@@ -2,6 +2,29 @@
 export type Language = 'ru' | 'en';
 export type Theme = 'dark' | 'light';
 
+export interface ThreeKeys {
+  key1: { title: string; text: string; }; // Energy
+  key2: { title: string; text: string; }; // Love
+  key3: { title: string; text: string; }; // Career
+}
+
+export interface UserEvolution {
+  level: number;
+  title: string; // e.g. "Seeker", "Awakened", "Master"
+  stats: {
+    intuition: number; // 0-100
+    confidence: number;
+    awareness: number;
+  };
+  lastUpdated: number;
+}
+
+export interface UserContext {
+  weather?: string; // e.g. "Rainy", "Sunny"
+  socialProof?: string; // e.g. "87% of Scorpios..."
+  mood?: string; // e.g. "Anxious", "Excited" (detected from chat)
+}
+
 export interface UserProfile {
   id?: string; // Telegram ID
   name: string;
@@ -13,6 +36,9 @@ export interface UserProfile {
   theme: Theme; 
   isPremium: boolean; 
   isAdmin?: boolean;
+  threeKeys?: ThreeKeys;
+  evolution?: UserEvolution;
+  lastContext?: UserContext;
 }
 
 export enum ZodiacSign {
@@ -57,14 +83,22 @@ export interface NatalChartData {
   }
 }
 
+export interface SynastryResult {
+  compatibilityScore: number; // 0-100
+  emotionalConnection: string;
+  intellectualConnection: string;
+  challenge: string;
+  summary: string;
+}
+
 export interface DailyHoroscope {
   date: string;
   mood: string;
   color: string;
   number: number;
   content: string;
-  moonImpact?: string; // Personalized Moon phase analysis
-  transitFocus?: string; // Premium feature: Impact of today's sky on natal chart
+  moonImpact?: string; 
+  transitFocus?: string; 
 }
 
 export interface WeeklyHoroscope {
@@ -89,4 +123,4 @@ export interface ChatMessage {
   timestamp: number;
 }
 
-export type ViewState = 'onboarding' | 'dashboard' | 'chart' | 'oracle' | 'settings' | 'admin';
+export type ViewState = 'onboarding' | 'hook' | 'paywall' | 'dashboard' | 'chart' | 'synastry' | 'oracle' | 'settings' | 'admin';

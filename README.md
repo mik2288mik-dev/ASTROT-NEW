@@ -1,20 +1,52 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# ASTROT - Soulful Astrology App
 
-# Run and deploy your AI Studio app
+## 🌌 Concept & Vision
+Astrot is not just a calculator; it is a "Soulful Best Friend."
+The core philosophy moves beyond static data into a **Living, Breathing Entity** that evolves with the user.
 
-This contains everything you need to run your app locally.
+---
 
-View your app in AI Studio: https://ai.studio/apps/drive/1Jc1iWfPtoF0xM2amgQ9PyEjvmIxy7sBw
+## 🧠 4-Layer Personalization System
 
-## Run Locally
+### Layer 1: The Base (Static)
+*   **Input:** Birth Date, Time, Place.
+*   **Output:** Natal Chart, Element, Three Keys (Hook).
+*   **Goal:** Establish authority and identity.
 
-**Prerequisites:**  Node.js
+### Layer 2: Behavioral Patterns (Dynamic)
+*   **Input:** Frequency of login, preferred sections (Love vs. Career).
+*   **Output:** Reordering dashboard buttons, "We noticed you care about..." prompts.
+*   **Goal:** Reduce friction, increase relevance.
 
+### Layer 3: Emotional & Contextual (Momentary)
+*   **Input:** Current Weather (API), News Trends (API), Text Sentiment (Gemini).
+*   **Output:** "It's raining and Moon is in Pisces — perfect for tea and journaling."
+*   **Goal:** Create a "Wow" factor. The app knows *where* and *how* you are.
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+### Layer 4: Evolutionary (Long-term)
+*   **Input:** Time spent, depth of queries, premium duration.
+*   **Output:** "Soul Level" growth. "Your Confidence score increased by 27% this month."
+*   **Goal:** Gamification of spiritual growth. Retention.
+
+---
+
+## 🔮 The "Mystical Funnel" (User Flow)
+
+1.  **Onboarding:** Name/Date/Place.
+2.  **The Hook (Free):** Interactive "Manifestation" of 3 Personality Keys.
+3.  **The Cliffhanger (CTA):** "This is only 10%..."
+4.  **The Paywall:** Weekly Subscription (Telegram Stars).
+5.  **Premium Hub:**
+    *   **Cosmic Passport:** Dynamic header.
+    *   **Soul Evolution:** Progress bars (Confidence, Intuition).
+    *   **Context Card:** Weather + Transit integration.
+    *   **Full Analysis:** Deep dives into 5 Pillars.
+    *   **Synastry:** Compatibility.
+
+---
+
+## 🛠 Technical Roadmap (Optimization)
+
+1.  **Context API:** Integrate OpenWeatherMap & NewsAPI for real-time context.
+2.  **Incremental Context:** Do not send full chat history to Gemini every time; summarize previous context into a "User State" object.
+3.  **Batch Processing:** Generate Daily Horoscopes at 00:01 UTC via Cron Jobs (Cloud Functions) rather than on-demand to reduce latency.

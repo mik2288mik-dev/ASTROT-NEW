@@ -1,22 +1,22 @@
 
 import { GoogleGenAI, Type, Schema } from "@google/genai";
-import { UserProfile, NatalChartData, DailyHoroscope, WeeklyHoroscope, MonthlyHoroscope } from "../types";
+import { UserProfile, NatalChartData, DailyHoroscope, WeeklyHoroscope, MonthlyHoroscope, ThreeKeys, SynastryResult, UserContext, UserEvolution } from "../types";
 import { SYSTEM_INSTRUCTION_ASTRA } from "../constants";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 const MODEL_NAME = "gemini-2.5-flash";
 
+// Helper to select language prompt
+const getLangPrompt = (lang: string) => lang === 'ru' ? "Response must be in Russian." : "Response must be in English.";
+
 export const calculateNatalChart = async (profile: UserProfile): Promise<NatalChartData> => {
-  const langPrompt = profile.language === 'ru' ? "Response must be in Russian language." : "Response must be in English.";
-  
   const prompt = `
-    Calculate the natal chart for ${profile.name}, born ${profile.birthDate} at ${profile.birthTime} in ${profile.birthPlace}.
-    1. Identify Signs for Sun, Moon, Rising, Mercury, Venus, Mars.
-    2. Identify the Dominant Element (Fire, Water, Air, Earth).
-    3. Identify the Chart Ruler (Ruling Planet).
-    4. Write a 2-paragraph professional, soulful summary of their personality.
-    ${langPrompt}
+    Calculate natal chart for ${profile.name}, ${profile.birthDate} ${profile.birthTime}, ${profile.birthPlace}.
+    Return strict JSON.
+    1. Sun/Moon/Rising/Mercury/Venus/Mars signs.
+    2. Dominant Element & Ruler.
+    3. A professional, soulful summary (2 paragraphs).
+    ${getLangPrompt(profile.language)}
   `;
 
   const responseSchema: Schema = {
@@ -28,8 +28,8 @@ export const calculateNatalChart = async (profile: UserProfile): Promise<NatalCh
       mercury: { type: Type.OBJECT, properties: { planet: { type: Type.STRING }, sign: { type: Type.STRING }, description: { type: Type.STRING } } },
       venus: { type: Type.OBJECT, properties: { planet: { type: Type.STRING }, sign: { type: Type.STRING }, description: { type: Type.STRING } } },
       mars: { type: Type.OBJECT, properties: { planet: { type: Type.STRING }, sign: { type: Type.STRING }, description: { type: Type.STRING } } },
-      element: { type: Type.STRING, description: "Dominant element" },
-      rulingPlanet: { type: Type.STRING, description: "Chart ruler" },
+      element: { type: Type.STRING },
+      rulingPlanet: { type: Type.STRING },
       summary: { type: Type.STRING },
     },
     required: ["sun", "moon", "rising", "mercury", "venus", "mars", "element", "rulingPlanet", "summary"]
@@ -38,36 +38,88 @@ export const calculateNatalChart = async (profile: UserProfile): Promise<NatalCh
   const response = await ai.models.generateContent({
     model: MODEL_NAME,
     contents: prompt,
-    config: {
-      systemInstruction: SYSTEM_INSTRUCTION_ASTRA,
-      responseMimeType: "application/json",
-      responseSchema: responseSchema,
-      temperature: 0.7,
-    }
+    config: { systemInstruction: SYSTEM_INSTRUCTION_ASTRA, responseMimeType: "application/json", responseSchema: responseSchema }
   });
 
-  if (!response.text) throw new Error("Failed to generate chart data");
-  return JSON.parse(response.text) as NatalChartData;
+  return JSON.parse(response.text!) as NatalChartData;
 };
 
-export const getDailyHoroscope = async (profile: UserProfile, chartData: NatalChartData): Promise<DailyHoroscope> => {
-  const langPrompt = profile.language === 'ru' ? "Response must be in Russian." : "Response must be in English.";
-  
-  // Highly personalized prompt asking for specific transit calculations
+export const getThreeKeys = async (profile: UserProfile, chartData: NatalChartData): Promise<ThreeKeys> => {
   const prompt = `
-    Perform a DEEP astrological analysis for ${profile.name}.
-    Birth Data: ${profile.birthDate}, ${profile.birthTime}, ${profile.birthPlace}.
-    Target Date: ${new Date().toLocaleDateString()}.
+    Create a "Hook" analysis for ${profile.name} based on their chart (${chartData.sun.sign} Sun, ${chartData.moon.sign} Moon, ${chartData.rising.sign} Rising).
+    Generate 3 short, punchy, intriguing "Keys" to their personality.
+    Key 1 (Energy): Combine Sun/Moon/Rising into a "Superpower".
+    Key 2 (Love): Analyze Venus (${chartData.venus.sign}) + Mars. Define their "Love Style".
+    Key 3 (Career): Define their "Career Archetype" based on the chart.
+    
+    Style: Mystical, direct, intriguing. Like a best friend revealing a secret.
+    ${getLangPrompt(profile.language)}
+  `;
 
-    CRITICAL INSTRUCTIONS FOR PERSONALIZATION:
-    1. Calculate the current transits relative to the user's NATAL CHART HOUSES (Placidus or Whole Sign).
-    2. "Moon Impact": Identify strictly which NATAL HOUSE the Moon is transiting today and how that affects the user emotionally (e.g., "Moon in your 5th house of creativity").
-    3. "Transit Focus": Identify one major specific aspect happening today (e.g. Transiting Mars square Natal Venus) and explain it.
-    4. "Mood": Abstract feeling based on the elements.
-    5. "Color" & "Number": Based on the day's planetary ruler.
+  const responseSchema: Schema = {
+    type: Type.OBJECT,
+    properties: {
+      key1: { type: Type.OBJECT, properties: { title: { type: Type.STRING }, text: { type: Type.STRING } } },
+      key2: { type: Type.OBJECT, properties: { title: { type: Type.STRING }, text: { type: Type.STRING } } },
+      key3: { type: Type.OBJECT, properties: { title: { type: Type.STRING }, text: { type: Type.STRING } } },
+    },
+    required: ["key1", "key2", "key3"]
+  };
 
-    Your tone must be soulful, strict, and highly professional. No fluff.
-    ${langPrompt}
+  const response = await ai.models.generateContent({
+    model: MODEL_NAME,
+    contents: prompt,
+    config: { systemInstruction: SYSTEM_INSTRUCTION_ASTRA, responseMimeType: "application/json", responseSchema: responseSchema }
+  });
+
+  return JSON.parse(response.text!) as ThreeKeys;
+};
+
+export const calculateSynastry = async (profile: UserProfile, partnerName: string, partnerDate: string): Promise<SynastryResult> => {
+    const prompt = `
+      Calculate Synastry (Compatibility) between ${profile.name} (Born: ${profile.birthDate}) and ${partnerName} (Born: ${partnerDate}).
+      Analyze the planetary aspects roughly based on signs.
+      Provide a Compatibility Score (0-100).
+      Describe the Emotional Connection, Intellectual Bond, and the Main Challenge.
+      ${getLangPrompt(profile.language)}
+    `;
+
+    const responseSchema: Schema = {
+        type: Type.OBJECT,
+        properties: {
+            compatibilityScore: { type: Type.NUMBER },
+            emotionalConnection: { type: Type.STRING },
+            intellectualConnection: { type: Type.STRING },
+            challenge: { type: Type.STRING },
+            summary: { type: Type.STRING }
+        },
+        required: ["compatibilityScore", "emotionalConnection", "intellectualConnection", "challenge", "summary"]
+    };
+
+    const response = await ai.models.generateContent({
+        model: MODEL_NAME,
+        contents: prompt,
+        config: { systemInstruction: SYSTEM_INSTRUCTION_ASTRA, responseMimeType: "application/json", responseSchema: responseSchema }
+    });
+
+    return JSON.parse(response.text!) as SynastryResult;
+};
+
+export const getDailyHoroscope = async (profile: UserProfile, chartData: NatalChartData, context?: UserContext): Promise<DailyHoroscope> => {
+  // Injecting Context for "Wow" factor
+  const contextString = context 
+      ? `User Context: Weather is ${context.weather}. Current Mood/Vibe: ${context.mood || 'Neutral'}.` 
+      : "";
+
+  const prompt = `
+    Personalized Daily Horoscope for ${profile.name}.
+    Focus: Transits to Natal Houses.
+    ${contextString}
+    IMPORTANT: If context is provided, weave it into the advice (e.g. "Since it's ${context?.weather}, Mercury suggests...").
+    1. "Moon Impact": Specific House transit.
+    2. "Transit Focus": One major aspect.
+    3. Mood/Color/Number.
+    ${getLangPrompt(profile.language)}
   `;
 
   const responseSchema: Schema = {
@@ -77,9 +129,9 @@ export const getDailyHoroscope = async (profile: UserProfile, chartData: NatalCh
       mood: { type: Type.STRING },
       color: { type: Type.STRING },
       number: { type: Type.NUMBER },
-      content: { type: Type.STRING, description: "General advice based on transits" },
-      moonImpact: { type: Type.STRING, description: "Specific house transit analysis for Moon" },
-      transitFocus: { type: Type.STRING, description: "Specific planetary aspect active today" }
+      content: { type: Type.STRING },
+      moonImpact: { type: Type.STRING },
+      transitFocus: { type: Type.STRING }
     },
     required: ["date", "mood", "color", "number", "content", "moonImpact"]
   };
@@ -87,128 +139,109 @@ export const getDailyHoroscope = async (profile: UserProfile, chartData: NatalCh
   const response = await ai.models.generateContent({
     model: MODEL_NAME,
     contents: prompt,
-    config: {
-      systemInstruction: SYSTEM_INSTRUCTION_ASTRA,
-      responseMimeType: "application/json",
-      responseSchema: responseSchema,
-    }
+    config: { systemInstruction: SYSTEM_INSTRUCTION_ASTRA, responseMimeType: "application/json", responseSchema: responseSchema }
   });
 
-  if (!response.text) throw new Error("Failed to generate horoscope");
-  return JSON.parse(response.text) as DailyHoroscope;
+  return JSON.parse(response.text!) as DailyHoroscope;
+};
+
+export const updateUserEvolution = async (profile: UserProfile): Promise<UserEvolution> => {
+    // If no evolution exists, initialize
+    const currentEvo = profile.evolution || {
+        level: 1,
+        title: "Seeker",
+        stats: { intuition: 50, confidence: 50, awareness: 50 },
+        lastUpdated: Date.now()
+    };
+
+    // Simulate "AI Analysis" of recent growth (Mocking complexity for speed)
+    // In a real app, we would analyze chat history depth.
+    const updatedStats = {
+        intuition: Math.min(100, currentEvo.stats.intuition + Math.floor(Math.random() * 5)),
+        confidence: Math.min(100, currentEvo.stats.confidence + Math.floor(Math.random() * 3)),
+        awareness: Math.min(100, currentEvo.stats.awareness + Math.floor(Math.random() * 4)),
+    };
+    
+    let newLevel = currentEvo.level;
+    if ((updatedStats.intuition + updatedStats.confidence + updatedStats.awareness) / 3 > (newLevel * 30)) {
+        newLevel += 1;
+    }
+
+    // AI could generate the title based on stats
+    const titles = ["Seeker", "Apprentice", "Mystic", "Guide", "Master"];
+    const newTitle = titles[Math.min(newLevel - 1, 4)];
+
+    return {
+        level: newLevel,
+        title: newTitle,
+        stats: updatedStats,
+        lastUpdated: Date.now()
+    };
 };
 
 export const getWeeklyHoroscope = async (profile: UserProfile, chartData: NatalChartData): Promise<WeeklyHoroscope> => {
-  const langPrompt = profile.language === 'ru' ? "Response must be in Russian." : "Response must be in English.";
-  
   const prompt = `
-    Generate a weekly horoscope for ${profile.name}.
-    Placements: Sun ${chartData.sun.sign}, Rising ${chartData.rising.sign}, Moon ${chartData.moon.sign}.
-    Focus on real, actionable advice based on planetary movements for the week.
-    ${langPrompt}
+    Weekly Horoscope for ${profile.name}.
+    Focus: Actionable advice for the week ahead based on transits.
+    ${getLangPrompt(profile.language)}
   `;
-
   const responseSchema: Schema = {
-    type: Type.OBJECT,
-    properties: {
-      weekRange: { type: Type.STRING },
-      theme: { type: Type.STRING },
-      advice: { type: Type.STRING },
-      love: { type: Type.STRING },
-      career: { type: Type.STRING }
-    },
-    required: ["weekRange", "theme", "advice", "love", "career"]
+      type: Type.OBJECT,
+      properties: {
+          weekRange: { type: Type.STRING },
+          theme: { type: Type.STRING },
+          advice: { type: Type.STRING },
+          love: { type: Type.STRING },
+          career: { type: Type.STRING }
+      },
+      required: ["weekRange", "theme", "advice", "love", "career"]
   };
-
   const response = await ai.models.generateContent({
-    model: MODEL_NAME,
-    contents: prompt,
-    config: {
-      systemInstruction: SYSTEM_INSTRUCTION_ASTRA,
-      responseMimeType: "application/json",
-      responseSchema: responseSchema,
-    }
+      model: MODEL_NAME,
+      contents: prompt,
+      config: { systemInstruction: SYSTEM_INSTRUCTION_ASTRA, responseMimeType: "application/json", responseSchema: responseSchema }
   });
-
-  if (!response.text) throw new Error("Failed to generate weekly horoscope");
-  return JSON.parse(response.text) as WeeklyHoroscope;
+  return JSON.parse(response.text!) as WeeklyHoroscope;
 };
 
 export const getMonthlyHoroscope = async (profile: UserProfile, chartData: NatalChartData): Promise<MonthlyHoroscope> => {
-  const langPrompt = profile.language === 'ru' ? "Response must be in Russian." : "Response must be in English.";
-  
-  const prompt = `
-    Generate a monthly horoscope for next month for ${profile.name}.
-    Placements: Sun ${chartData.sun.sign}, Rising ${chartData.rising.sign}.
-    Style: Editorial, comprehensive, analyzing major transits.
-    ${langPrompt}
-  `;
-
-  const responseSchema: Schema = {
-    type: Type.OBJECT,
-    properties: {
-      month: { type: Type.STRING },
-      theme: { type: Type.STRING },
-      focus: { type: Type.STRING },
-      content: { type: Type.STRING }
-    },
-    required: ["month", "theme", "focus", "content"]
-  };
-
-  const response = await ai.models.generateContent({
-    model: MODEL_NAME,
-    contents: prompt,
-    config: {
-      systemInstruction: SYSTEM_INSTRUCTION_ASTRA,
-      responseMimeType: "application/json",
-      responseSchema: responseSchema,
-    }
-  });
-
-  if (!response.text) throw new Error("Failed to generate monthly horoscope");
-  return JSON.parse(response.text) as MonthlyHoroscope;
+    const prompt = `Monthly Horoscope for ${profile.name}. Editorial style. ${getLangPrompt(profile.language)}`;
+    const responseSchema: Schema = {
+        type: Type.OBJECT,
+        properties: {
+            month: { type: Type.STRING },
+            theme: { type: Type.STRING },
+            focus: { type: Type.STRING },
+            content: { type: Type.STRING }
+        },
+        required: ["month", "theme", "focus", "content"]
+    };
+    const response = await ai.models.generateContent({
+        model: MODEL_NAME,
+        contents: prompt,
+        config: { systemInstruction: SYSTEM_INSTRUCTION_ASTRA, responseMimeType: "application/json", responseSchema: responseSchema }
+    });
+    return JSON.parse(response.text!) as MonthlyHoroscope;
 };
 
 export const getDeepDiveAnalysis = async (profile: UserProfile, topic: string, chartData: NatalChartData): Promise<string> => {
-  const langPrompt = profile.language === 'ru' ? "Response must be in Russian." : "Response must be in English.";
-  
-  const prompt = `
-    The user ${profile.name} wants a deep dive analysis on: "${topic}".
-    Chart: Sun ${chartData.sun.sign}, Moon ${chartData.moon.sign}, Rising ${chartData.rising.sign}, Venus ${chartData.venus.sign}.
-    Explain strictly based on their chart.
-    ${langPrompt}
-  `;
-
+  const prompt = `Deep dive on ${topic} for ${profile.name}. Chart: Sun ${chartData.sun.sign}. ${getLangPrompt(profile.language)}`;
   const response = await ai.models.generateContent({
     model: MODEL_NAME,
     contents: prompt,
-    config: {
-      systemInstruction: SYSTEM_INSTRUCTION_ASTRA,
-    }
+    config: { systemInstruction: SYSTEM_INSTRUCTION_ASTRA }
   });
-
   return response.text || "Stars are silent.";
 };
 
 export const chatWithAstra = async (history: { role: 'user' | 'model', text: string }[], message: string, profile: UserProfile): Promise<string> => {
-    const langInstruction = profile.language === 'ru' ? "You must speak Russian." : "You must speak English.";
-    
     const chat = ai.chats.create({
         model: MODEL_NAME,
         config: {
-            systemInstruction: `
-              ${SYSTEM_INSTRUCTION_ASTRA} 
-              ${langInstruction} 
-              Context: User is ${profile.name}, born ${profile.birthDate} in ${profile.birthPlace}.
-              IMPORTANT: IGNORE non-astrology/spiritual questions. Return the user to the path of the stars.
-            `,
+            systemInstruction: `${SYSTEM_INSTRUCTION_ASTRA} ${getLangPrompt(profile.language)} Context: User ${profile.name}.`,
         },
-        history: history.map(h => ({
-            role: h.role,
-            parts: [{ text: h.text }]
-        }))
+        history: history.map(h => ({ role: h.role, parts: [{ text: h.text }] }))
     });
-
     const result = await chat.sendMessage({ message });
-    return result.text || "The stars are clouded right now.";
+    return result.text || "The stars are clouded.";
 }

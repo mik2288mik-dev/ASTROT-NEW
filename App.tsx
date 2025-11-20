@@ -9,15 +9,15 @@ import { NatalChart } from './views/NatalChart';
 import { OracleChat } from './views/OracleChat';
 import { Settings } from './views/Settings';
 import { AdminPanel } from './views/AdminPanel';
-import { Navigation } from './components/Navigation';
 import { Header } from './components/Header';
 import { Loading } from './components/ui/Loading';
 import { getText } from './constants';
 import { PremiumPreview } from './components/PremiumPreview';
 import { requestStarsPayment } from './services/telegramService';
+import { HookChat } from './views/HookChat';
+import { Paywall } from './views/Paywall';
+import { Synastry } from './views/Synastry';
 
-// OWNER TELEGRAM ID (Replace with real ID)
-// Only this ID sees the Admin button initially.
 const OWNER_ID = 123456789; 
 
 const App: React.FC = () => {
@@ -27,7 +27,6 @@ const App: React.FC = () => {
     const [view, setView] = useState<ViewState>('onboarding');
     const [showPremiumPreview, setShowPremiumPreview] = useState(false);
 
-    // Initialize Telegram WebApp
     useEffect(() => {
         const tg = (window as any).Telegram?.WebApp;
         if (tg) {
@@ -38,16 +37,11 @@ const App: React.FC = () => {
         }
     }, []);
 
-    // GLOBAL THEME MANAGEMENT
     useEffect(() => {
         const theme = profile?.theme || 'dark';
         const body = document.body;
-        
-        if (theme === 'light') {
-            body.classList.add('theme-light');
-        } else {
-            body.classList.remove('theme-light');
-        }
+        if (theme === 'light') body.classList.add('theme-light');
+        else body.classList.remove('theme-light');
 
         const tg = (window as any).Telegram?.WebApp;
         if (tg) {
@@ -70,19 +64,15 @@ const App: React.FC = () => {
                 if (!storedProfile.language) storedProfile.language = 'ru';
                 if (!storedProfile.theme) storedProfile.theme = 'dark';
 
-                // Check Admin Status
-                // Logic: User is admin if they are the Owner OR if their profile was previously promoted to admin
                 const isAdmin = tgId === OWNER_ID || storedProfile.isAdmin || false;
-                
                 const updatedProfile = { ...storedProfile, id: tgId, isAdmin };
                 
                 setProfile(updatedProfile);
                 
-                if (storedChart) {
-                    setChartData(storedChart);
-                }
-                // Default to Chart view instead of Dashboard for strict flow
-                setView('chart');
+                if (storedChart) setChartData(storedChart);
+
+                // If user is set up, go straight to Dashboard (Hub)
+                setView('dashboard');
             }
             setLoading(false);
         };
@@ -93,9 +83,7 @@ const App: React.FC = () => {
         const tg = (window as any).Telegram?.WebApp;
         const tgUser = tg?.initDataUnsafe?.user;
         const tgId = tgUser?.id;
-
-        const isAdmin = tgId === OWNER_ID; // First time setup: Only owner gets admin
-
+        const isAdmin = tgId === OWNER_ID;
         const fullProfile = { ...newProfile, id: tgId, isAdmin };
 
         setProfile(fullProfile);
@@ -106,7 +94,9 @@ const App: React.FC = () => {
             const generatedChart = await calculateNatalChart(fullProfile);
             setChartData(generatedChart);
             await saveChartData(generatedChart);
-            setView('chart'); // Go to Chart first
+            
+            // Funnel: Onboarding -> Hook
+            setView('hook'); 
         } catch (error) {
             console.error("AI Generation failed:", error);
             alert("Error connecting to stars. Please try again.");
@@ -127,17 +117,30 @@ const App: React.FC = () => {
            setProfile(updated);
            saveProfile(updated);
            setShowPremiumPreview(false);
+           setView('dashboard');
        }
     };
 
-    // Intercept navigation for locked features
-    const handleSetView = (newView: ViewState) => {
+    // Navigation Logic
+    const navigateTo = (newView: ViewState) => {
         if (!profile) return;
-        if (!profile.isPremium && (newView === 'dashboard' || newView === 'oracle')) {
+        
+        // Premium Gating
+        if (!profile.isPremium && (newView === 'synastry' || newView === 'oracle')) {
             setShowPremiumPreview(true);
             return;
         }
         setView(newView);
+    };
+
+    const handleBack = () => {
+        // If in Admin, return to Settings
+        if (view === 'admin') {
+            setView('settings');
+            return;
+        }
+        // Otherwise return to Hub
+        setView('dashboard');
     };
 
     if (loading) {
@@ -158,41 +161,61 @@ const App: React.FC = () => {
 
     return (
         <div className="flex flex-col h-full w-full overflow-hidden text-astro-text font-sans selection:bg-astro-highlight selection:text-white">
-            <Header profile={profile} />
+            
+            {/* Header handles Title, Settings button, and Back button */}
+            <Header 
+                profile={profile} 
+                view={view} 
+                onOpenSettings={() => setView('settings')}
+                onBack={handleBack}
+            />
             
             <main className="flex-1 relative w-full max-w-md mx-auto overflow-hidden">
                 {view === 'admin' ? (
                     <AdminPanel profile={profile} onUpdate={handleProfileUpdate} onClose={() => setView('settings')} />
+                ) : view === 'hook' && chartData ? (
+                    <HookChat 
+                        profile={profile} 
+                        chartData={chartData} 
+                        onComplete={() => setView('paywall')} 
+                        onUpdateProfile={handleProfileUpdate}
+                    />
+                ) : view === 'paywall' ? (
+                    <Paywall 
+                        profile={profile} 
+                        onPurchase={requestPremium} 
+                        onClose={() => setView('dashboard')}
+                    />
                 ) : view === 'oracle' ? (
                     <OracleChat profile={profile} />
+                ) : view === 'synastry' ? (
+                    <Synastry profile={profile} requestPremium={requestPremium} />
+                ) : view === 'chart' ? (
+                    <div className="h-full overflow-y-auto scrollbar-hide">
+                        <NatalChart data={chartData} profile={profile} requestPremium={requestPremium} />
+                    </div>
+                ) : view === 'settings' ? (
+                    <div className="h-full overflow-y-auto scrollbar-hide">
+                        <Settings 
+                            profile={profile} 
+                            onUpdate={handleProfileUpdate} 
+                            onShowPremiumPreview={() => setShowPremiumPreview(true)}
+                            onOpenAdmin={() => setView('admin')}
+                        />
+                    </div>
                 ) : (
-                    <div className="h-full overflow-y-auto scrollbar-hide pb-24">
-                        {view === 'dashboard' && (
-                            <Dashboard profile={profile} chartData={chartData} requestPremium={requestPremium} />
-                        )}
-                        {view === 'chart' && (
-                            <NatalChart data={chartData} profile={profile} requestPremium={requestPremium} />
-                        )}
-                        {view === 'settings' && (
-                            <Settings 
-                                profile={profile} 
-                                onUpdate={handleProfileUpdate} 
-                                onShowPremiumPreview={() => setShowPremiumPreview(true)}
-                                onOpenAdmin={() => setView('admin')}
-                            />
-                        )}
+                    // Default to Dashboard
+                    <div className="h-full overflow-y-auto scrollbar-hide">
+                        <Dashboard 
+                            profile={profile} 
+                            chartData={chartData} 
+                            requestPremium={requestPremium} 
+                            onNavigate={navigateTo} 
+                        />
                     </div>
                 )}
             </main>
 
-            <Navigation 
-                currentView={view} 
-                setView={handleSetView} 
-                language={profile.language} 
-                isPremium={profile.isPremium}
-            />
-
-            {/* Premium Modal */}
             {showPremiumPreview && (
                 <PremiumPreview onClose={() => setShowPremiumPreview(false)} onPurchase={requestPremium} />
             )}

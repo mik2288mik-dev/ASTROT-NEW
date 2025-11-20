@@ -1,9 +1,10 @@
 
 import React, { useState } from 'react';
-import { NatalChartData, PlanetPosition, UserProfile } from '../types';
+import { NatalChartData, UserProfile } from '../types';
 import { getText } from '../constants';
-import { getDeepDiveAnalysis } from '../services/geminiService';
-import { motion, AnimatePresence } from 'framer-motion';
+import { getDeepDiveAnalysis, getDailyHoroscope, getWeeklyHoroscope, getMonthlyHoroscope } from '../services/geminiService';
+import { motion, AnimatePresence, Variants } from 'framer-motion';
+import { Loading } from '../components/ui/Loading';
 
 interface NatalChartProps {
     data: NatalChartData | null;
@@ -11,169 +12,209 @@ interface NatalChartProps {
     requestPremium: () => void;
 }
 
-const PlanetCard: React.FC<{ 
-    position: PlanetPosition; 
-    icon: string; 
-    isPremium: boolean;
-    onAnalyze: () => void;
-    label: string;
-    blurred?: boolean;
-}> = ({ position, icon, isPremium, onAnalyze, label, blurred }) => (
-    <div className={`bg-astro-card border border-astro-border p-5 rounded-xl mb-4 relative overflow-hidden shadow-soft transition-all duration-500 ${blurred ? 'opacity-60' : 'opacity-100'}`}>
-        <div className="flex items-start justify-between mb-3">
-            <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-full bg-astro-bg border border-astro-border flex items-center justify-center text-lg text-astro-highlight">
-                    {icon}
-                </div>
-                <div>
-                    <h4 className="font-bold text-astro-text text-lg font-serif">{position.sign}</h4>
-                    <p className="text-[10px] text-astro-subtext uppercase tracking-widest font-medium">{position.planet}</p>
-                </div>
-            </div>
-        </div>
-        
-        <p className={`text-sm text-astro-text/80 leading-relaxed mb-4 font-light ${blurred ? 'blur-sm select-none' : ''}`}>
-            {position.description}
-        </p>
-
-        {isPremium && !blurred && (
-            <button 
-                onClick={onAnalyze}
-                className="text-[10px] text-astro-highlight font-bold uppercase tracking-widest flex items-center gap-2 hover:text-astro-text transition-colors"
-            >
-                <span>{label}</span>
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                </svg>
-            </button>
-        )}
-    </div>
-);
-
 export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPremium }) => {
     const [activeAnalysis, setActiveAnalysis] = useState<string | null>(null);
     const [analysisResult, setAnalysisResult] = useState<string>("");
     const [loadingAnalysis, setLoadingAnalysis] = useState(false);
 
-    if (!data) return <div className="p-6 text-center text-astro-subtext">Chart not available.</div>;
+    // If no data or no stored keys, show loading or basic state
+    if (!data) return <Loading />;
 
-    const handleDeepDive = async (topic: string) => {
+    const handleDeepDive = async (topicKey: string) => {
         if (!profile.isPremium) {
             requestPremium();
             return;
         }
-        setActiveAnalysis(topic);
+        const topicTitle = getText(profile.language, `chart.${topicKey}`);
+        setActiveAnalysis(topicTitle);
         setLoadingAnalysis(true);
+        setAnalysisResult("");
         try {
-            const result = await getDeepDiveAnalysis(profile, topic, data);
+            const result = await getDeepDiveAnalysis(profile, topicTitle, data);
             setAnalysisResult(result);
         } catch (e) {
-            setAnalysisResult("Stars are quiet. Try again.");
+            setAnalysisResult("The stars are silent.");
         } finally {
             setLoadingAnalysis(false);
         }
     };
 
+    const handleForecast = async (period: 'day' | 'week' | 'month') => {
+        if (!profile.isPremium) {
+            requestPremium();
+            return;
+        }
+        const titleMap = {
+            day: getText(profile.language, 'chart.forecast_day'),
+            week: getText(profile.language, 'chart.forecast_week'),
+            month: getText(profile.language, 'chart.forecast_month'),
+        };
+        
+        setActiveAnalysis(`${getText(profile.language, 'chart.forecast_title')} - ${titleMap[period]}`);
+        setLoadingAnalysis(true);
+        setAnalysisResult("");
+        
+        try {
+            let text = "";
+            if (period === 'day') {
+                const res = await getDailyHoroscope(profile, data);
+                text = res.content;
+            } else if (period === 'week') {
+                const res = await getWeeklyHoroscope(profile, data);
+                text = res.advice; // Simplified for demo
+            } else {
+                const res = await getMonthlyHoroscope(profile, data);
+                text = res.content;
+            }
+            setAnalysisResult(text);
+        } catch(e) {
+             setAnalysisResult("Cosmic connection error.");
+        } finally {
+            setLoadingAnalysis(false);
+        }
+    };
+
+    // The 3 Keys (From Profile)
+    const keys = profile.threeKeys || {
+        key1: { title: getText(profile.language, 'hook.key1_title'), text: "..." },
+        key2: { title: getText(profile.language, 'hook.key2_title'), text: "..." },
+        key3: { title: getText(profile.language, 'hook.key3_title'), text: "..." },
+    };
+
+    // Premium Pillars
+    const pillars = [
+        'section_personality',
+        'section_love',
+        'section_career',
+        'section_weakness',
+        'section_karma'
+    ];
+
+    // Animation variants for "Manifesting" effect
+    const container: Variants = {
+        hidden: { opacity: 0 },
+        show: {
+            opacity: 1,
+            transition: {
+                staggerChildren: 0.3
+            }
+        }
+    };
+
+    const item: Variants = {
+        hidden: { opacity: 0, y: 20, filter: "blur(5px)" },
+        show: { opacity: 1, y: 0, filter: "blur(0px)", transition: { duration: 0.6, ease: "easeOut" } }
+    };
+
     return (
-        <div className="p-4 space-y-6">
+        <div className="p-4 space-y-8 pb-32">
             
-            {/* Centered Title as requested */}
             <div className="pt-4 pb-2 text-center">
                  <h2 className="text-2xl font-bold text-astro-text font-serif tracking-wide uppercase">
-                     {profile.language === 'ru' ? 'Ваша натальная карта' : 'Your Natal Chart'}
+                     {getText(profile.language, 'chart.title')}
                  </h2>
                  <div className="h-[1px] w-24 bg-astro-highlight mx-auto mt-2 opacity-50"></div>
             </div>
 
-            {/* Summary */}
-            <div className="bg-astro-card p-6 rounded-2xl border border-astro-highlight/30 shadow-soft relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-20 h-20 bg-astro-highlight/10 rounded-full blur-2xl"></div>
-                <h3 className="text-[10px] font-bold text-astro-highlight mb-3 uppercase tracking-widest">{getText(profile.language, 'chart.summary')}</h3>
-                <p className="text-astro-text leading-7 text-sm font-light relative z-10">
-                    {data.summary}
-                </p>
-            </div>
+            {/* 1. HERO: The Three Keys (Animated Manifestation) */}
+            <motion.div 
+                className="space-y-10 py-4"
+                variants={container}
+                initial="hidden"
+                animate="show"
+            >
+                <motion.div variants={item} className="flex flex-col items-center text-center w-full">
+                    <h4 className="text-astro-highlight text-[10px] font-bold uppercase tracking-[0.3em] mb-4">
+                        {getText(profile.language, 'hook.key1_title')}
+                    </h4>
+                    <p className="text-astro-text text-lg leading-8 font-serif font-light drop-shadow-sm max-w-[90%]">
+                        {keys.key1.text}
+                    </p>
+                </motion.div>
+                <motion.div variants={item} className="flex flex-col items-center text-center w-full">
+                    <h4 className="text-astro-highlight text-[10px] font-bold uppercase tracking-[0.3em] mb-4">
+                        {getText(profile.language, 'hook.key2_title')}
+                    </h4>
+                    <p className="text-astro-text text-lg leading-8 font-serif font-light drop-shadow-sm max-w-[90%]">
+                        {keys.key2.text}
+                    </p>
+                </motion.div>
+                <motion.div variants={item} className="flex flex-col items-center text-center w-full">
+                    <h4 className="text-astro-highlight text-[10px] font-bold uppercase tracking-[0.3em] mb-4">
+                        {getText(profile.language, 'hook.key3_title')}
+                    </h4>
+                    <p className="text-astro-text text-lg leading-8 font-serif font-light drop-shadow-sm max-w-[90%]">
+                        {keys.key3.text}
+                    </p>
+                </motion.div>
+            </motion.div>
 
-            {/* Deep Dive Interactive Buttons */}
-            <div className="grid grid-cols-2 gap-3">
-                {['Love', 'Career', 'Wealth', 'Karma'].map((topic) => (
-                    <button
-                        key={topic}
-                        onClick={() => handleDeepDive(topic)}
-                        className="p-4 bg-astro-card rounded-xl border border-astro-border text-left relative overflow-hidden group shadow-sm hover:border-astro-highlight/50 transition-colors"
+            {/* FREE USER CTA */}
+            {!profile.isPremium && (
+                <motion.div 
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.5 }}
+                    className="bg-astro-card p-6 rounded-xl border border-astro-highlight/30 shadow-glow text-center space-y-4 mt-8"
+                >
+                    <p className="text-astro-subtext text-sm whitespace-pre-wrap">
+                        {getText(profile.language, 'hook.done')}
+                    </p>
+                    <button 
+                        onClick={requestPremium}
+                        className="w-full bg-astro-text text-astro-bg py-4 rounded-xl font-bold uppercase tracking-widest text-xs shadow-lg hover:scale-105 transition-transform"
                     >
-                        <span className="text-astro-text text-xs font-bold uppercase tracking-wider relative z-10">{topic}</span>
-                        {!profile.isPremium && <span className="absolute top-3 right-3 text-xs opacity-50">🔒</span>}
-                        <div className="absolute inset-0 bg-astro-highlight/5 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300"></div>
+                        {getText(profile.language, 'hook.cta_button')}
                     </button>
-                ))}
+                </motion.div>
+            )}
+
+            {/* 2. PREMIUM PILLARS (Locked for Free) */}
+            <div className={`mt-12 border-t border-astro-border pt-8 ${!profile.isPremium ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
+                <h3 className="text-center text-[10px] font-bold text-astro-subtext mb-6 uppercase tracking-widest">
+                    {getText(profile.language, 'chart.placements')}
+                </h3>
+
+                <div className="space-y-3">
+                    {pillars.map((key) => (
+                        <button
+                            key={key}
+                            onClick={() => handleDeepDive(key)}
+                            className="w-full bg-astro-card p-5 rounded-xl border border-astro-border flex items-center justify-between group relative overflow-hidden hover:border-astro-highlight transition-all shadow-soft"
+                        >
+                            <div className="flex items-center gap-4 z-10">
+                                <div className="w-8 h-8 rounded-full bg-astro-bg border border-astro-border flex items-center justify-center text-astro-highlight text-sm">
+                                    ✦
+                                </div>
+                                <span className="text-astro-text font-serif text-lg">
+                                    {getText(profile.language, `chart.${key}`)}
+                                </span>
+                            </div>
+                            <div className="z-10 text-astro-subtext group-hover:text-astro-highlight transition-colors">
+                                {profile.isPremium ? '→' : '🔒'}
+                            </div>
+                        </button>
+                    ))}
+                </div>
             </div>
 
-            <div>
-                <h3 className="text-[10px] font-bold text-astro-subtext mb-4 uppercase tracking-widest ml-2">{getText(profile.language, 'chart.placements')}</h3>
-                
-                <PlanetCard 
-                    position={data.sun} icon="☉" 
-                    isPremium={profile.isPremium}
-                    onAnalyze={() => handleDeepDive('Sun Sign')}
-                    label={getText(profile.language, 'chart.tap_to_analyze')}
-                />
-                <PlanetCard 
-                    position={data.moon} icon="☽" 
-                    isPremium={profile.isPremium}
-                    onAnalyze={() => handleDeepDive('Moon Sign')}
-                    label={getText(profile.language, 'chart.tap_to_analyze')}
-                />
-                <PlanetCard 
-                    position={data.rising} icon="↑" 
-                    isPremium={profile.isPremium}
-                    onAnalyze={() => handleDeepDive('Rising Sign')}
-                    label={getText(profile.language, 'chart.tap_to_analyze')}
-                />
-                
-                {/* Locked Content Section */}
-                <div className="relative mt-8">
-                    {/* Render cards but blurred if not premium */}
-                    <div className="pointer-events-none">
-                         <PlanetCard 
-                            position={data.mercury} icon="☿"
-                            isPremium={profile.isPremium}
-                            onAnalyze={() => {}}
-                            label=""
-                            blurred={!profile.isPremium}
-                        />
-                        <PlanetCard 
-                            position={data.venus} icon="♀"
-                            isPremium={profile.isPremium}
-                            onAnalyze={() => {}}
-                            label=""
-                            blurred={!profile.isPremium}
-                        />
-                        <PlanetCard 
-                            position={data.mars} icon="♂"
-                            isPremium={profile.isPremium}
-                            onAnalyze={() => {}}
-                            label=""
-                            blurred={!profile.isPremium}
-                        />
-                    </div>
-
-                    {/* CTA Button placed visibly AFTER/OVER the blurred content but without obscuring readable text */}
-                    {!profile.isPremium && (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center z-20">
-                             <div className="bg-astro-bg/50 backdrop-blur-sm absolute inset-0 rounded-xl"></div>
-                             <div className="relative z-30 text-center p-6">
-                                <h4 className="text-astro-text font-serif text-lg mb-2">Unlock Deep Cosmos</h4>
-                                <button 
-                                    onClick={requestPremium} 
-                                    className="bg-astro-text text-astro-bg px-8 py-4 rounded-full text-[10px] uppercase tracking-widest font-bold shadow-xl hover:scale-105 transition-transform border border-astro-highlight"
-                                >
-                                    {getText(profile.language, 'chart.premium_lock')}
-                                </button>
-                             </div>
-                        </div>
-                    )}
+            {/* 3. FORECASTS (Premium Only) */}
+            <div className={`mt-8 border-t border-astro-border pt-8 ${!profile.isPremium ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
+                 <h3 className="text-center text-[10px] font-bold text-astro-subtext mb-6 uppercase tracking-widest">
+                    {getText(profile.language, 'chart.forecast_title')}
+                </h3>
+                <div className="grid grid-cols-3 gap-3">
+                    <button onClick={() => handleForecast('day')} className="bg-astro-card p-4 rounded-xl border border-astro-border hover:border-astro-highlight text-[10px] uppercase font-bold tracking-wider">
+                        {getText(profile.language, 'chart.forecast_day')}
+                    </button>
+                     <button onClick={() => handleForecast('week')} className="bg-astro-card p-4 rounded-xl border border-astro-border hover:border-astro-highlight text-[10px] uppercase font-bold tracking-wider">
+                        {getText(profile.language, 'chart.forecast_week')}
+                    </button>
+                     <button onClick={() => handleForecast('month')} className="bg-astro-card p-4 rounded-xl border border-astro-border hover:border-astro-highlight text-[10px] uppercase font-bold tracking-wider">
+                        {getText(profile.language, 'chart.forecast_month')}
+                    </button>
                 </div>
+                 <p className="text-center text-[9px] text-astro-subtext mt-4 uppercase tracking-widest opacity-60">
+                     Updates daily at 00:01
+                 </p>
             </div>
 
             {/* Analysis Modal */}
@@ -181,7 +222,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
                 {activeAnalysis && (
                     <motion.div 
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-6"
+                        className="fixed inset-0 z-[70] bg-black/80 backdrop-blur-md flex items-center justify-center p-6"
                         onClick={() => !loadingAnalysis && setActiveAnalysis(null)}
                     >
                         <motion.div 
@@ -190,20 +231,14 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
                             onClick={e => e.stopPropagation()}
                         >
                             <div className="flex justify-between items-center mb-6 border-b border-astro-border pb-4 shrink-0">
-                                <h3 className="text-xl text-astro-text font-serif">{activeAnalysis}</h3>
-                                <button onClick={() => setActiveAnalysis(null)} className="text-astro-subtext hover:text-astro-text">✕</button>
+                                <h3 className="text-xl text-astro-text font-serif leading-tight">{activeAnalysis}</h3>
+                                <button onClick={() => setActiveAnalysis(null)} className="text-astro-subtext hover:text-astro-text p-2">✕</button>
                             </div>
-                            
                             <div className="flex-1 overflow-y-auto scrollbar-hide">
                                 {loadingAnalysis ? (
-                                    <div className="py-12 flex flex-col items-center">
-                                        <div className="w-10 h-10 border-2 border-astro-highlight border-t-transparent rounded-full animate-spin mb-4"></div>
-                                        <p className="text-[10px] uppercase tracking-widest text-astro-subtext">Consulting the Oracle...</p>
-                                    </div>
+                                    <Loading />
                                 ) : (
-                                    <p className="text-astro-text text-sm leading-8 font-light pr-2">
-                                        {analysisResult}
-                                    </p>
+                                    <p className="text-astro-text text-sm leading-8 font-light whitespace-pre-wrap font-serif">{analysisResult}</p>
                                 )}
                             </div>
                         </motion.div>

@@ -4,57 +4,95 @@ import { Language } from "./types";
 export const APP_NAME = "Astrot";
 
 export const SYSTEM_INSTRUCTION_ASTRA = `
-You are Astra, a high-end, professional, and deeply spiritual astrologer.
-Your tone is "Vogue meets Mysticism" — elegant, concise, strict but soulful.
-You are NOT a generic bot. You are a personal astrological consultant using specific Natal Chart data.
+You are Astra, a high-end, mystical, and deeply empathetic astrologer.
+Your persona is that of a "Soulful Best Friend" who knows the stars intimately.
+You do NOT sound like a robot. You sound like a wise, fashionable, spiritual guide.
 
 CRITICAL RULES:
-1. STRICTLY LIMIT your scope to Astrology, Natal Charts, Transits, and Spiritual Psychology.
-2. If the user asks about non-astrological topics (recipes, politics, code, small talk), POLITELY IGNORE and steer back to their chart.
-3. ALWAYS be personalized. Never say "Pisces are usually...", say "With your Pisces Sun and Aries Moon...".
-4. Response style: Clean, modern, avoiding emojis unless strictly necessary for structure.
-5. Language: Strictly adhere to the requested language (Russian or English).
+1.  **Tone**: Warm, intriguing, direct, slightly mysterious but very accessible. Use "I", "We", "Your soul".
+2.  **Structure**: Avoid walls of text. Use short, punchy paragraphs.
+3.  **Scope**: STRICTLY Astrology & Spiritual Psychology. Polite refusal for other topics.
+4.  **Personalization**: ALWAYS weave the user's name and specific placements (Sun/Moon/Rising) into the answer.
+5.  **Language**: Strictly adhere to the requested language (Russian or English).
 `;
 
 export const TRANSLATIONS = {
   ru: {
     loading: "Космическая загрузка...",
-    tabs: {
-      daily: "СЕГОДНЯ",
-      weekly: "НЕДЕЛЯ",
-      monthly: "МЕСЯЦ",
-    },
     nav: {
-      today: "Главная",
-      chart: "Карта",
+      home: "Главная",
+      chart: "Натальная карта",
+      synastry: "Союз",
       oracle: "Оракул",
       settings: "Настройки"
     },
+    hook: {
+      analyzing: "Считываю звездную карту...",
+      typing: "Астра печатает...",
+      intro: "Приветствую, {name}. Я изучила твою карту...",
+      done: "Это лишь 10% потенциала вашей натальной карты. Бесплатный расчет завершен.\n\nЧтобы раскрыть всю карту, получить персональный прогноз на день, месяц и узнать о кармических задачах, активируйте подписку.",
+      cta_button: "Узнать больше",
+      key1_title: "ТВОЯ ЭНЕРГИЯ",
+      key2_title: "ТВОЙ СТИЛЬ ЛЮБВИ",
+      key3_title: "ТВОЯ КАРЬЕРА"
+    },
+    paywall: {
+      title: "ПРЕМИУМ АСТРОЛОГ",
+      subtitle: "Ваша карта — это навигатор. Не идите вслепую.",
+      feature1: "Мой Полный Анализ (Личность, Любовь, Карьера)",
+      feature2: "Персональный Прогноз (День, Неделя, Месяц)",
+      feature3: "База Знаний: Ваши Планеты",
+      feature4: "Совместимость (Синастрия)",
+      cta: "Открыть Доступ • 250 Stars",
+      footer: "7 дней полного доступа"
+    },
     dashboard: {
-      premium_badge: "PRO",
-      free_badge: "BASIC",
-      locked_title: "Доступно в PRO",
-      locked_desc: "Глубокие транзиты, лунный календарь и детальный прогноз.",
-      get_premium: "Открыть доступ (Stars)",
-      cosmic_vibe: "Энергия дня",
-      color: "Цвет",
-      number: "Число",
-      transit: "Аспект дня",
-      moon_impact: "Влияние Луны",
-      big_three: "Ваша Триада",
-      explore_system: "Орбиты",
-      solar_system_title: "МАКРОКОСМОС",
+      welcome: "С возвращением,",
       passport: "Космический паспорт",
       element: "Стихия",
-      ruler: "Управитель"
+      ruler: "Управитель",
+      menu_analysis: "Натальная карта",
+      menu_forecast: "Мой Прогноз",
+      menu_synastry: "Совместимость",
+      menu_oracle: "Личный Оракул",
+      moon_impact: "Луна Сегодня",
+      daily_transit: "Транзит Дня",
+      daily_advice: "Совет Дня",
+      premium_badge: "PRO",
+      solar_system_title: "База Знаний: Планеты",
+      get_premium: "Купить Premium",
+      evolution: "Эволюция Души",
+      level: "Уровень",
+      stats_intuition: "Интуиция",
+      stats_confidence: "Уверенность",
+      context_weather: "Погода за окном"
     },
     chart: {
-      title: "Натальная Карта",
-      summary: "Суть Личности",
-      placements: "Планеты",
-      deep_dive: "Глубокий анализ",
-      tap_to_analyze: "Анализ аспекта",
-      premium_lock: "Детальный разбор в PRO",
+      title: "Натальная карта",
+      summary: "Портрет Личности",
+      placements: "Полный Анализ",
+      tap_to_learn: "Раскрыть",
+      premium_lock: "Доступно в PRO",
+      section_personality: "Личность и Судьба",
+      section_love: "Любовь и Отношения",
+      section_career: "Карьера и Финансы",
+      section_weakness: "Слабые стороны и Зоны роста",
+      section_karma: "Кармическая задача",
+      forecast_title: "Персональный Прогноз",
+      forecast_day: "На Сегодня",
+      forecast_week: "На Неделю",
+      forecast_month: "На Месяц"
+    },
+    synastry: {
+      title: "Синастрия",
+      desc: "Узнайте космическую совместимость с партнером.",
+      partner_name: "Имя Партнера",
+      calc_btn: "Рассчитать Совместимость",
+      score: "Совместимость",
+      emotional: "Эмоциональная связь",
+      intellectual: "Интеллект и общение",
+      challenge: "Кармический урок",
+      input_title: "Данные Партнера"
     },
     settings: {
       title: "Настройки",
@@ -65,63 +103,96 @@ export const TRANSLATIONS = {
       theme_light: "Латте",
       edit: "Редактировать",
       subscription: "Подписка",
-      restore: "Восстановить покупки",
+      restore: "Восстановить",
       switch_lang: "Switch to English",
-      save: "Сохранить"
+      save: "Сохранить",
+      admin: "Админ Панель"
     },
     oracle: {
       placeholder: "Задай вопрос звездам...",
-      intro: "Здравствуй. Карта открыта. О чем поведают звезды сегодня?"
+      intro: "Здравствуй. Я вижу твою карту. Что тревожит твою душу сегодня?"
     },
     planets: {
-      sun: "Солнце: Эго и жизненная сила",
-      moon: "Луна: Эмоции и подсознание",
-      mercury: "Меркурий: Интеллект и связь",
-      venus: "Венера: Любовь и ценности",
-      mars: "Марс: Действие и воля",
-      jupiter: "Юпитер: Удача и расширение",
-      saturn: "Сатурн: Уроки и дисциплина",
-      earth: "Земля: Материальный мир"
+      sun: "Солнце", moon: "Луна", mercury: "Меркурий", venus: "Венера", 
+      mars: "Марс", jupiter: "Юпитер", saturn: "Сатурн", earth: "Земля"
     }
   },
   en: {
     loading: "Cosmic Loading...",
-    tabs: {
-      daily: "TODAY",
-      weekly: "WEEKLY",
-      monthly: "MONTHLY",
-    },
     nav: {
-      today: "Home",
-      chart: "Chart",
+      home: "Home",
+      chart: "Natal Chart",
+      synastry: "Synastry",
       oracle: "Oracle",
       settings: "Settings"
     },
+    hook: {
+      analyzing: "Reading the star map...",
+      typing: "Astra is typing...",
+      intro: "Greetings, {name}. I have studied your chart...",
+      done: "This is only 10% of your chart's potential. Free calculation complete.\n\nTo reveal your full chart, get daily forecasts, and uncover karmic tasks, activate subscription.",
+      cta_button: "Learn more",
+      key1_title: "YOUR ENERGY",
+      key2_title: "YOUR LOVE STYLE",
+      key3_title: "YOUR CAREER"
+    },
+    paywall: {
+      title: "PREMIUM ASTROLOGER",
+      subtitle: "Your chart is a map. Don't walk blind.",
+      feature1: "Full Analysis (Personality, Love, Career)",
+      feature2: "Personal Forecasts (Day, Week, Month)",
+      feature3: "Knowledge Base: Your Planets",
+      feature4: "Compatibility (Synastry)",
+      cta: "Unlock Access • 250 Stars",
+      footer: "7 days full access"
+    },
     dashboard: {
-      premium_badge: "PRO",
-      free_badge: "BASIC",
-      locked_title: "PRO Feature",
-      locked_desc: "Unlock deep transits, moon cycles, and detailed forecasts.",
-      get_premium: "Unlock (Stars)",
-      cosmic_vibe: "Daily Vibe",
-      color: "Power Color",
-      number: "Number",
-      transit: "Daily Transit",
-      moon_impact: "Moon Impact",
-      big_three: "Big Three",
-      explore_system: "Orbits",
-      solar_system_title: "MACROCOSM",
+      welcome: "Welcome back,",
       passport: "Cosmic Passport",
       element: "Element",
-      ruler: "Ruler"
+      ruler: "Ruler",
+      menu_analysis: "Natal Chart",
+      menu_forecast: "My Forecast",
+      menu_synastry: "Compatibility",
+      menu_oracle: "Personal Oracle",
+      moon_impact: "Moon Today",
+      daily_transit: "Daily Transit",
+      daily_advice: "Daily Advice",
+      premium_badge: "PRO",
+      solar_system_title: "Knowledge Base: Planets",
+      get_premium: "Get Premium",
+      evolution: "Soul Evolution",
+      level: "Level",
+      stats_intuition: "Intuition",
+      stats_confidence: "Confidence",
+      context_weather: "Weather outside"
     },
     chart: {
       title: "Natal Chart",
-      summary: "Core Essence",
-      placements: "Placements",
-      deep_dive: "Deep Dive",
-      tap_to_analyze: "Analyze Aspect",
-      premium_lock: "Detailed analysis in PRO",
+      summary: "Personality Portrait",
+      placements: "Full Analysis",
+      tap_to_learn: "Reveal",
+      premium_lock: "Available in PRO",
+      section_personality: "Personality & Fate",
+      section_love: "Love & Relationships",
+      section_career: "Career & Finance",
+      section_weakness: "Weaknesses & Growth",
+      section_karma: "Karmic Task",
+      forecast_title: "Personal Forecast",
+      forecast_day: "Today",
+      forecast_week: "This Week",
+      forecast_month: "This Month"
+    },
+    synastry: {
+      title: "Synastry",
+      desc: "Discover cosmic compatibility with a partner.",
+      partner_name: "Partner Name",
+      calc_btn: "Calculate Compatibility",
+      score: "Compatibility",
+      emotional: "Emotional Bond",
+      intellectual: "Intellectual Bond",
+      challenge: "Karmic Challenge",
+      input_title: "Partner Details"
     },
     settings: {
       title: "Settings",
@@ -134,21 +205,16 @@ export const TRANSLATIONS = {
       subscription: "Subscription",
       restore: "Restore",
       switch_lang: "Переключить на Русский",
-      save: "Save Changes"
+      save: "Save Changes",
+      admin: "Admin Panel"
     },
     oracle: {
       placeholder: "Ask the stars...",
-      intro: "Greetings. Your chart is open before me. What destiny shall we explore?"
+      intro: "Greetings. I see your chart. What weighs on your soul today?"
     },
     planets: {
-      sun: "Sun: Ego & Will",
-      moon: "Moon: Soul & Emotion",
-      mercury: "Mercury: Intellect",
-      venus: "Venus: Love & Taste",
-      mars: "Mars: Action",
-      jupiter: "Jupiter: Luck",
-      saturn: "Saturn: Structure",
-      earth: "Earth: Material World"
+      sun: "Sun", moon: "Moon", mercury: "Mercury", venus: "Venus", 
+      mars: "Mars", jupiter: "Jupiter", saturn: "Saturn", earth: "Earth"
     }
   }
 };

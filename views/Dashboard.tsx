@@ -1,295 +1,193 @@
-import React, { useEffect, useState } from 'react';
-import { UserProfile, NatalChartData, DailyHoroscope, WeeklyHoroscope, MonthlyHoroscope } from '../types';
-import { getDailyHoroscope, getWeeklyHoroscope, getMonthlyHoroscope } from '../services/geminiService';
-import { Loading } from '../components/ui/Loading';
+
+import React, { useState, useEffect } from 'react';
+import { UserProfile, NatalChartData, UserContext, UserEvolution } from '../types';
 import { getText } from '../constants';
 import { SolarSystem } from '../components/SolarSystem';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Loading } from '../components/ui/Loading';
+import { getUserContext } from '../services/contextService';
+import { updateUserEvolution } from '../services/geminiService';
+import { saveProfile } from '../services/storageService';
+import { motion } from 'framer-motion';
 
 interface DashboardProps {
     profile: UserProfile;
     chartData: NatalChartData | null;
     requestPremium: () => void;
+    onNavigate: (view: any) => void;
 }
 
-type Tab = 'daily' | 'weekly' | 'monthly';
-
-export const Dashboard: React.FC<DashboardProps> = ({ profile, chartData, requestPremium }) => {
-    const [activeTab, setActiveTab] = useState<Tab>(profile.isPremium ? 'daily' : 'weekly');
-    const [dailyData, setDailyData] = useState<DailyHoroscope | null>(null);
-    const [weeklyData, setWeeklyData] = useState<WeeklyHoroscope | null>(null);
-    const [monthlyData, setMonthlyData] = useState<MonthlyHoroscope | null>(null);
-    const [loading, setLoading] = useState(false);
+export const Dashboard: React.FC<DashboardProps> = ({ profile, chartData, requestPremium, onNavigate }) => {
+    
+    const [context, setContext] = useState<UserContext | null>(null);
+    const [evolution, setEvolution] = useState<UserEvolution | null>(profile.evolution || null);
 
     useEffect(() => {
-        if (!chartData) return;
-        
-        const fetchData = async () => {
-            setLoading(true);
-            try {
-                if (activeTab === 'daily') {
-                    if (!dailyData && profile.isPremium) {
-                        const data = await getDailyHoroscope(profile, chartData);
-                        setDailyData(data);
-                    }
-                } else if (activeTab === 'weekly') {
-                    if (!weeklyData) {
-                        const data = await getWeeklyHoroscope(profile, chartData);
-                        setWeeklyData(data);
-                    }
-                } else if (activeTab === 'monthly') {
-                    if (!monthlyData && profile.isPremium) {
-                         const data = await getMonthlyHoroscope(profile, chartData);
-                         setMonthlyData(data);
-                    }
-                }
-            } catch (e) {
-                console.error(e);
-            } finally {
-                setLoading(false);
+        const loadSmartFeatures = async () => {
+            // 1. Load Context (Weather/Social Proof)
+            const ctx = await getUserContext(profile);
+            setContext(ctx);
+
+            // 2. Update Evolution (Simulated Async)
+            if (!profile.evolution || (Date.now() - profile.evolution.lastUpdated > 86400000)) {
+                // Update once every 24 hours or if missing
+                const newEvo = await updateUserEvolution(profile);
+                setEvolution(newEvo);
+                
+                // Save to profile
+                const updatedProfile = { ...profile, evolution: newEvo };
+                await saveProfile(updatedProfile);
             }
         };
-
-        fetchData();
-    }, [activeTab, profile, chartData]);
-
-    useEffect(() => {
-        if (!profile.isPremium && activeTab === 'daily') {
-            setActiveTab('weekly');
-        }
-    }, [profile.isPremium]);
-
-    const PremiumLock = () => (
-        <div className="absolute inset-0 z-20 bg-astro-card/95 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center rounded-xl border border-astro-border">
-            <div className="w-12 h-12 rounded-full border border-astro-highlight flex items-center justify-center mb-4 text-astro-highlight text-xl">
-                ★
-            </div>
-            <h3 className="text-astro-text font-serif text-lg mb-2 uppercase tracking-wider">{getText(profile.language, 'dashboard.locked_title')}</h3>
-            <p className="text-astro-subtext text-xs mb-6 leading-relaxed max-w-[200px]">{getText(profile.language, 'dashboard.locked_desc')}</p>
-            <button 
-                onClick={requestPremium}
-                className="bg-astro-text text-astro-bg font-bold py-3 px-8 rounded-lg shadow-soft hover:scale-105 transition-transform text-[10px] uppercase tracking-widest"
-            >
-                {getText(profile.language, 'dashboard.get_premium')}
-            </button>
-        </div>
-    );
+        loadSmartFeatures();
+    }, []);
 
     if (!chartData) return <Loading />;
 
     return (
-        <div className="p-4 pb-24 space-y-6">
+        <div className="p-4 pb-32 space-y-6">
             
-            {/* Cosmic Passport Header */}
-            <div className="bg-astro-card rounded-xl p-6 border border-astro-border shadow-soft relative overflow-hidden">
-                <div className="flex justify-between items-start relative z-10">
+            {/* 1. COSMIC PASSPORT (Layer 1: Base) */}
+            <div className="bg-astro-card rounded-2xl p-6 border border-astro-border shadow-soft relative overflow-hidden">
+                 <div className="absolute -top-10 -right-10 w-48 h-48 bg-astro-highlight rounded-full blur-3xl opacity-20"></div>
+                 <div className="relative z-10">
+                    <p className="text-[10px] uppercase tracking-widest text-astro-subtext mb-2">{getText(profile.language, 'dashboard.passport')}</p>
+                    <div className="flex justify-between items-end">
+                        <div>
+                            <h1 className="text-3xl font-serif text-astro-text mb-1">{profile.name}</h1>
+                            <div className="flex gap-3 text-xs font-medium text-astro-highlight">
+                                <span>☉ {chartData.sun.sign}</span>
+                                <span>☾ {chartData.moon.sign}</span>
+                                <span>↑ {chartData.rising.sign}</span>
+                            </div>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-[10px] uppercase tracking-widest text-astro-subtext">{getText(profile.language, 'dashboard.element')}</p>
+                            <p className="font-serif text-lg text-astro-text">{chartData.element}</p>
+                        </div>
+                    </div>
+                 </div>
+            </div>
+
+            {/* 2. PRIMARY ACTION: NATAL CHART (Move to Top) */}
+            <button 
+                onClick={() => onNavigate('chart')}
+                className="w-full bg-astro-card p-6 rounded-xl border border-astro-border text-left hover:border-astro-highlight transition-colors shadow-sm group relative overflow-hidden"
+            >
+                <div className="absolute -right-6 -bottom-6 text-[80px] opacity-5 grayscale group-hover:grayscale-0 transition-all">📜</div>
+                <div className="flex justify-between items-center mb-2 relative z-10">
+                    <h3 className="font-serif text-2xl text-astro-text">{getText(profile.language, 'dashboard.menu_analysis')}</h3>
+                    <span className="text-2xl group-hover:scale-110 transition-transform">→</span>
+                </div>
+                <p className="text-astro-subtext text-xs font-light relative z-10">
+                    Personality, Fate, Karma & Forecasts.
+                </p>
+            </button>
+
+            {/* 3. SOCIAL PROOF (Layer 2/4: Community) */}
+            {context?.socialProof && (
+                <div className="overflow-hidden py-2 bg-astro-bg border-y border-astro-border/50">
+                    <motion.div 
+                        className="whitespace-nowrap text-[10px] uppercase tracking-widest text-astro-subtext"
+                        animate={{ x: [300, -500] }}
+                        transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+                    >
+                        ★ {context.socialProof} ★
+                    </motion.div>
+                </div>
+            )}
+
+            {/* 4. SOUL EVOLUTION (Layer 4: Evolution) */}
+            {evolution && (
+                <div className="bg-astro-card p-5 rounded-xl border border-astro-border space-y-3">
+                    <div className="flex justify-between items-center">
+                         <h3 className="text-[10px] uppercase tracking-widest text-astro-text font-bold">
+                            {getText(profile.language, 'dashboard.evolution')}
+                         </h3>
+                         <span className="text-astro-highlight text-xs font-serif">{evolution.title} • Lvl {evolution.level}</span>
+                    </div>
+                    
+                    {/* Bars */}
                     <div>
-                        <p className="text-[10px] uppercase tracking-widest text-astro-subtext mb-1">{getText(profile.language, 'dashboard.passport')}</p>
-                        <h2 className="text-2xl font-serif text-astro-text">{profile.name}</h2>
-                    </div>
-                    <div className="text-right">
-                        <p className="text-[10px] uppercase tracking-widest text-astro-subtext mb-1">{getText(profile.language, 'dashboard.element')}</p>
-                        <h2 className="text-lg font-serif text-astro-text">{chartData.element || "Ether"}</h2>
-                    </div>
-                </div>
-                <div className="mt-6 flex justify-between items-end relative z-10">
-                     <div>
-                        <p className="text-[10px] uppercase tracking-widest text-astro-subtext mb-1">Sun Sign</p>
-                        <div className="flex items-center gap-2">
-                            <span className="text-xl text-astro-highlight">☉</span>
-                            <span className="text-xl font-serif text-astro-text">{chartData.sun.sign}</span>
+                        <div className="flex justify-between text-[9px] text-astro-subtext mb-1 uppercase tracking-wider">
+                            <span>{getText(profile.language, 'dashboard.stats_intuition')}</span>
+                            <span>{evolution.stats.intuition}%</span>
+                        </div>
+                        <div className="h-1.5 bg-astro-bg rounded-full overflow-hidden">
+                            <motion.div 
+                                initial={{ width: 0 }} animate={{ width: `${evolution.stats.intuition}%` }}
+                                className="h-full bg-purple-400/70 rounded-full"
+                            />
                         </div>
                     </div>
-                     <div className="text-right">
-                        <p className="text-[10px] uppercase tracking-widest text-astro-subtext mb-1">{getText(profile.language, 'dashboard.ruler')}</p>
-                        <div className="flex items-center gap-2 justify-end">
-                            <span className="text-lg font-serif text-astro-text">{chartData.rulingPlanet || "Unknown"}</span>
+                    <div>
+                        <div className="flex justify-between text-[9px] text-astro-subtext mb-1 uppercase tracking-wider">
+                            <span>{getText(profile.language, 'dashboard.stats_confidence')}</span>
+                            <span>{evolution.stats.confidence}%</span>
+                        </div>
+                         <div className="h-1.5 bg-astro-bg rounded-full overflow-hidden">
+                            <motion.div 
+                                initial={{ width: 0 }} animate={{ width: `${evolution.stats.confidence}%` }}
+                                className="h-full bg-yellow-400/70 rounded-full"
+                            />
                         </div>
                     </div>
                 </div>
-                {/* Background graphic - subtle gradient based on theme vars */}
-                <div className="absolute -top-10 -right-10 w-48 h-48 bg-astro-highlight rounded-full blur-3xl opacity-10"></div>
+            )}
+
+            {/* 5. COSMIC WEATHER (Layer 3: Context) */}
+            {context?.weather && (
+                <div className="bg-gradient-to-r from-astro-card to-astro-bg p-5 rounded-xl border border-astro-border relative overflow-hidden">
+                    <div className="relative z-10 flex items-center justify-between">
+                        <div>
+                            <h3 className="text-[10px] uppercase tracking-widest text-astro-subtext mb-1">{getText(profile.language, 'dashboard.context_weather')}</h3>
+                            <p className="text-xl font-serif text-astro-text capitalize">{context.weather}</p>
+                        </div>
+                        <div className="text-3xl opacity-50">
+                           {context.weather.includes('Rain') ? '🌧' : context.weather.includes('Sun') ? '☀' : '☁'}
+                        </div>
+                    </div>
+                    <p className="relative z-10 text-xs text-astro-subtext mt-2 font-light italic">
+                        "The stars align with the sky today..."
+                    </p>
+                </div>
+            )}
+
+            {/* 6. SECONDARY ACTIONS */}
+            <div className="grid grid-cols-2 gap-4">
+                
+                {/* Synastry */}
+                <button 
+                    onClick={() => onNavigate('synastry')}
+                    className="bg-astro-card p-4 rounded-xl border border-astro-border text-left hover:border-astro-highlight transition-colors shadow-sm group relative overflow-hidden"
+                >
+                    {!profile.isPremium && <div className="absolute inset-0 bg-black/10 backdrop-blur-[1px] flex items-center justify-center z-20"><span className="text-xs font-bold bg-astro-text text-astro-bg px-2 py-1 rounded">PRO</span></div>}
+                    <div className="flex flex-col justify-between h-24">
+                         <span className="text-2xl group-hover:scale-110 transition-transform origin-left">💞</span>
+                        <div>
+                            <h3 className="font-serif text-md text-astro-text">{getText(profile.language, 'dashboard.menu_synastry')}</h3>
+                            <p className="text-astro-subtext text-[10px] font-light">Check compatibility.</p>
+                        </div>
+                    </div>
+                </button>
+
+                 {/* Personal Oracle */}
+                <button 
+                    onClick={() => onNavigate('oracle')}
+                    className="bg-astro-card p-4 rounded-xl border border-astro-border text-left hover:border-astro-highlight transition-colors shadow-sm group relative overflow-hidden"
+                >
+                    {!profile.isPremium && <div className="absolute inset-0 bg-black/10 backdrop-blur-[1px] flex items-center justify-center z-20"><span className="text-xs font-bold bg-astro-text text-astro-bg px-2 py-1 rounded">PRO</span></div>}
+                    <div className="flex flex-col justify-between h-24">
+                         <span className="text-2xl group-hover:scale-110 transition-transform origin-left">👁</span>
+                        <div>
+                             <h3 className="font-serif text-md text-astro-text">{getText(profile.language, 'dashboard.menu_oracle')}</h3>
+                             <p className="text-astro-subtext text-[10px] font-light">Ask Astra anything.</p>
+                        </div>
+                    </div>
+                </button>
             </div>
 
-            {/* Solar System */}
+            {/* Knowledge Base: Planets */}
             <SolarSystem language={profile.language} />
-
-            {/* Tabs */}
-            <div className="flex bg-astro-card rounded-lg p-1 border border-astro-border relative shadow-sm">
-                <button 
-                    onClick={() => setActiveTab('daily')}
-                    className={`flex-1 py-3 text-[10px] font-bold tracking-widest uppercase rounded-md transition-all relative z-10 ${activeTab === 'daily' ? 'bg-astro-bg text-astro-text border border-astro-border shadow-sm' : 'text-astro-subtext hover:text-astro-text'}`}
-                >
-                    {getText(profile.language, 'tabs.daily')} {profile.isPremium ? '' : '🔒'}
-                </button>
-                <button 
-                    onClick={() => setActiveTab('weekly')}
-                    className={`flex-1 py-3 text-[10px] font-bold tracking-widest uppercase rounded-md transition-all relative z-10 ${activeTab === 'weekly' ? 'bg-astro-bg text-astro-text border border-astro-border shadow-sm' : 'text-astro-subtext hover:text-astro-text'}`}
-                >
-                    {getText(profile.language, 'tabs.weekly')}
-                </button>
-                <button 
-                    onClick={() => setActiveTab('monthly')}
-                    className={`flex-1 py-3 text-[10px] font-bold tracking-widest uppercase rounded-md transition-all relative z-10 ${activeTab === 'monthly' ? 'bg-astro-bg text-astro-text border border-astro-border shadow-sm' : 'text-astro-subtext hover:text-astro-text'}`}
-                >
-                    {getText(profile.language, 'tabs.monthly')} {profile.isPremium ? '' : '🔒'}
-                </button>
-            </div>
-
-            <div className="min-h-[300px] relative">
-                {loading ? (
-                    <div className="absolute inset-0 flex items-center justify-center bg-astro-card/50 rounded-xl z-30 backdrop-blur-sm">
-                         <Loading message={getText(profile.language, 'loading')} />
-                    </div>
-                ) : (
-                    <AnimatePresence mode="wait">
-                        {/* DAILY VIEW */}
-                        {activeTab === 'daily' && (
-                            <motion.div 
-                                key="daily"
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -10 }}
-                                className="space-y-6"
-                            >
-                                {!profile.isPremium ? <PremiumLock /> : dailyData && (
-                                    <>
-                                        {/* Moon Impact Card */}
-                                        <div className="bg-astro-card border-l-2 border-astro-highlight p-6 rounded-r-xl shadow-soft">
-                                             <h4 className="text-[10px] font-bold text-astro-subtext mb-2 uppercase tracking-widest">
-                                                {getText(profile.language, 'dashboard.moon_impact')}
-                                            </h4>
-                                            <p className="text-sm text-astro-text leading-relaxed font-light">
-                                                {dailyData.moonImpact || "The moon is quiet today."}
-                                            </p>
-                                        </div>
-
-                                        <div className="bg-astro-card rounded-xl p-6 border border-astro-border shadow-soft relative overflow-hidden">
-                                            <div className="relative z-10">
-                                                <span className="inline-block mb-4 text-[10px] font-bold tracking-widest text-astro-highlight uppercase">
-                                                    {getText(profile.language, 'dashboard.cosmic_vibe')}
-                                                </span>
-                                                <h3 className="text-3xl font-serif text-astro-text mb-4 leading-tight">
-                                                    {dailyData.mood}
-                                                </h3>
-                                                <div className="h-[1px] w-12 bg-astro-border mb-4"></div>
-                                                <p className="text-astro-text/80 leading-8 text-sm font-light">
-                                                    {dailyData.content}
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        {dailyData.transitFocus && (
-                                            <div className="p-5 rounded-xl border border-astro-highlight/30 bg-astro-highlight/5">
-                                                <h4 className="text-astro-highlight text-[10px] font-bold mb-2 uppercase tracking-widest">
-                                                    {getText(profile.language, 'dashboard.transit')}
-                                                </h4>
-                                                <p className="text-sm text-astro-text leading-relaxed font-light">
-                                                    {dailyData.transitFocus}
-                                                </p>
-                                            </div>
-                                        )}
-
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="bg-astro-card rounded-xl p-4 border border-astro-border flex flex-col items-center shadow-soft">
-                                                <span className="text-astro-subtext text-[10px] uppercase mb-2 tracking-widest">{getText(profile.language, 'dashboard.color')}</span>
-                                                <div className="w-6 h-6 rounded-full mb-2 shadow-sm border border-astro-border" style={{ backgroundColor: dailyData.color || '#fff' }}></div>
-                                                <span className="text-astro-text text-xs font-medium uppercase">{dailyData.color}</span>
-                                            </div>
-                                            <div className="bg-astro-card rounded-xl p-4 border border-astro-border flex flex-col items-center shadow-soft">
-                                                <span className="text-astro-subtext text-[10px] uppercase mb-2 tracking-widest">{getText(profile.language, 'dashboard.number')}</span>
-                                                <span className="text-2xl font-serif text-astro-text">{dailyData.number}</span>
-                                            </div>
-                                        </div>
-                                    </>
-                                )}
-                            </motion.div>
-                        )}
-
-                        {/* WEEKLY VIEW */}
-                        {activeTab === 'weekly' && weeklyData && (
-                            <motion.div 
-                                key="weekly"
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -10 }}
-                                className="space-y-6"
-                            >
-                                <div className="bg-astro-card rounded-xl p-6 border border-astro-border relative shadow-soft">
-                                    <div className="mb-4">
-                                        <p className="text-astro-highlight text-[10px] font-bold tracking-widest uppercase mb-2">{weeklyData.weekRange}</p>
-                                        <h3 className="text-astro-text font-serif text-2xl">{weeklyData.theme}</h3>
-                                    </div>
-                                    <p className="text-astro-text/80 text-sm leading-8 font-light">{weeklyData.advice}</p>
-                                </div>
-
-                                <div className="grid gap-4">
-                                    <div className="bg-astro-card p-5 rounded-xl border border-astro-border shadow-sm">
-                                        <div className="flex items-center gap-3 mb-3">
-                                            <span className="text-xs uppercase tracking-widest font-bold text-astro-text">Love</span>
-                                            <div className="h-[1px] flex-1 bg-astro-border"></div>
-                                        </div>
-                                        <p className="text-astro-subtext text-sm leading-relaxed font-light">{weeklyData.love}</p>
-                                    </div>
-                                    <div className="bg-astro-card p-5 rounded-xl border border-astro-border shadow-sm">
-                                        <div className="flex items-center gap-3 mb-3">
-                                            <span className="text-xs uppercase tracking-widest font-bold text-astro-text">Career</span>
-                                            <div className="h-[1px] flex-1 bg-astro-border"></div>
-                                        </div>
-                                        <p className="text-astro-subtext text-sm leading-relaxed font-light">{weeklyData.career}</p>
-                                    </div>
-                                </div>
-                            </motion.div>
-                        )}
-
-                         {/* MONTHLY VIEW */}
-                         {activeTab === 'monthly' && (
-                             <motion.div 
-                                key="monthly"
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -10 }}
-                                className="space-y-6"
-                            >
-                                {!profile.isPremium ? <PremiumLock /> : monthlyData && (
-                                    <div className="bg-astro-card p-8 rounded-xl border border-astro-border shadow-soft">
-                                        <h3 className="text-3xl text-astro-text font-serif mb-2">{monthlyData.month}</h3>
-                                        <span className="text-astro-subtext text-[10px] uppercase tracking-[0.2em] mb-8 block">{monthlyData.theme}</span>
-                                        
-                                        <div className="prose prose-invert prose-sm">
-                                            <p className="text-astro-text/80 leading-8 font-light mb-8">{monthlyData.content}</p>
-                                        </div>
-                                        
-                                        <div className="p-4 border-l-2 border-astro-highlight bg-astro-highlight/5">
-                                            <span className="text-[10px] text-astro-highlight uppercase tracking-widest block mb-2">Key Focus</span>
-                                            <p className="text-astro-text text-sm font-serif italic">"{monthlyData.focus}"</p>
-                                        </div>
-                                    </div>
-                                )}
-                            </motion.div>
-                         )}
-                    </AnimatePresence>
-                )}
-            </div>
-
-            {/* Big Three Footer */}
-            <div className="border-t border-astro-border pt-8 pb-4">
-                <h4 className="text-[10px] font-bold text-astro-subtext mb-6 uppercase tracking-widest text-center">{getText(profile.language, 'dashboard.big_three')}</h4>
-                <div className="flex justify-center gap-12">
-                    <div className="text-center">
-                        <span className="text-astro-text text-xl mb-2 block">☉</span>
-                        <span className="text-astro-subtext text-[10px] uppercase tracking-wider font-bold">{chartData.sun.sign}</span>
-                    </div>
-                    <div className="text-center">
-                        <span className="text-astro-text text-xl mb-2 block">☽</span>
-                        <span className="text-astro-subtext text-[10px] uppercase tracking-wider font-bold">{chartData.moon.sign}</span>
-                    </div>
-                    <div className="text-center">
-                        <span className="text-astro-text text-xl mb-2 block">↑</span>
-                        <span className="text-astro-subtext text-[10px] uppercase tracking-wider font-bold">{chartData.rising.sign}</span>
-                    </div>
-                </div>
-            </div>
         </div>
     );
 };
