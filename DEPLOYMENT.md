@@ -95,12 +95,39 @@
 ### 2. Проверьте API эндпоинты
 
 ```bash
-# Проверка здоровья API
-curl https://your-app.railway.app/api/users/current
+# Health check (автоматически запустит миграции если таблиц нет)
+curl https://your-app.railway.app/api/health
 
-# Ручной запуск миграций (если нужно)
+# Ручной запуск миграций (GET или POST)
+curl https://your-app.railway.app/api/migrations/run
+# или
 curl -X POST https://your-app.railway.app/api/migrations/run
 ```
+
+### 3. Если таблицы не созданы
+
+Если после деплоя таблицы не созданы, выполните одно из следующих действий:
+
+**Вариант 1: Через API endpoint (рекомендуется)**
+```bash
+# Вызовите health check endpoint - он автоматически запустит миграции
+curl https://your-app.railway.app/api/health
+
+# Или напрямую запустите миграции
+curl https://your-app.railway.app/api/migrations/run
+```
+
+**Вариант 2: Через Railway CLI**
+```bash
+# Подключитесь к Railway и запустите миграции
+railway run npm run migrate
+```
+
+**Вариант 3: Через Railway Dashboard**
+1. Откройте Railway Dashboard → ваше приложение → Deployments
+2. Найдите последний деплой и откройте его логи
+3. Проверьте, были ли запущены миграции в postbuild скрипте
+4. Если нет, перезапустите деплой или вызовите API endpoint
 
 ### 3. Проверьте базу данных
 
@@ -143,12 +170,35 @@ await migration004(pool);
 
 ### Миграции не запускаются
 
-**Проблема**: В логах нет записей о миграциях
+**Проблема**: В логах нет записей о миграциях или таблицы не созданы
 
 **Решение**:
-1. Проверьте что `DATABASE_URL` установлен в Railway
-2. Запустите миграции вручную через API: `POST /api/migrations/run`
-3. Проверьте логи Railway на наличие ошибок
+1. **Проверьте что `DATABASE_URL` установлен в Railway**:
+   - Railway Dashboard → Variables → DATABASE_URL
+   - Должен быть автоматически добавлен при подключении БД
+
+2. **Запустите миграции вручную через API**:
+   ```bash
+   # Health check (автоматически запустит миграции если нужно)
+   curl https://your-app.railway.app/api/health
+   
+   # Или напрямую запустите миграции
+   curl https://your-app.railway.app/api/migrations/run
+   ```
+
+3. **Проверьте логи Railway**:
+   - Railway Dashboard → Deployments → Logs
+   - Ищите сообщения `[Migrations]` или `[API/migrations]`
+   - Проверьте наличие ошибок подключения
+
+4. **Проверьте postbuild скрипт**:
+   - Убедитесь что в `package.json` есть `"postbuild": "npm run migrate"`
+   - Проверьте что скрипт `migrate` существует и работает
+
+5. **Если проблема сохраняется**:
+   - Перезапустите деплой в Railway
+   - Проверьте что Railway Database запущен и доступен
+   - Убедитесь что используется правильный DATABASE_URL (публичный, не внутренний)
 
 ### Ошибка подключения к БД
 
