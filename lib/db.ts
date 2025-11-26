@@ -1,6 +1,8 @@
 // Database connection utility for Railway
 // This file handles connection to Railway Database
 
+import { Pool } from 'pg';
+
 const DATABASE_URL = process.env.DATABASE_URL || '';
 
 // Logging utility
@@ -23,15 +25,35 @@ if (!DATABASE_URL) {
   log.info(`DATABASE_URL configured: ${DATABASE_URL.substring(0, 30)}...`);
 }
 
+// Create connection pool
+let pool: Pool | null = null;
+
+function getPool(): Pool {
+  if (!pool) {
+    if (!DATABASE_URL) {
+      throw new Error('DATABASE_URL is not configured');
+    }
+    
+    pool = new Pool({
+      connectionString: DATABASE_URL,
+      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+      max: 20,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 2000,
+    });
+
+    pool.on('error', (err) => {
+      log.error('Unexpected error on idle client', err);
+    });
+
+    log.info('Database connection pool created');
+  }
+  
+  return pool;
+}
+
 /**
  * Execute a query against Railway Database
- * This is a generic function that can be used for any SQL query
- * 
- * NOTE: To use with actual Railway Database, install the appropriate package:
- * - For PostgreSQL: npm install pg @types/pg
- * - For MySQL: npm install mysql2
- * 
- * Then uncomment and adapt the code below based on your database type
  */
 export async function queryDatabase(query: string, params?: any[]): Promise<any> {
   if (!DATABASE_URL) {
@@ -41,26 +63,9 @@ export async function queryDatabase(query: string, params?: any[]): Promise<any>
   try {
     log.info(`[DB] Executing query: ${query.substring(0, 100)}...`, { params });
     
-    // PostgreSQL Example (uncomment when pg package is installed):
-    /*
-    const { Pool } = require('pg');
-    const pool = new Pool({ connectionString: DATABASE_URL });
-    const result = await pool.query(query, params);
-    await pool.end();
+    const dbPool = getPool();
+    const result = await dbPool.query(query, params);
     return result.rows;
-    */
-    
-    // MySQL Example (uncomment when mysql2 package is installed):
-    /*
-    const mysql = require('mysql2/promise');
-    const connection = await mysql.createConnection(DATABASE_URL);
-    const [rows] = await connection.execute(query, params);
-    await connection.end();
-    return rows;
-    */
-    
-    // For now, throw error to indicate DB needs to be configured
-    throw new Error('Database connection not implemented. Please install pg (PostgreSQL) or mysql2 (MySQL) package and uncomment the appropriate code in lib/db.ts');
   } catch (error: any) {
     log.error('[DB] Query failed', {
       error: error.message,
@@ -73,95 +78,234 @@ export async function queryDatabase(query: string, params?: any[]): Promise<any>
 
 /**
  * Initialize database tables if they don't exist
+ * NOTE: This is now handled by migrations. Use runMigrations() instead.
+ * @deprecated Use runMigrations() from lib/migrations.ts
  */
 export async function initializeDatabase(): Promise<void> {
-  try {
-    log.info('[DB] Initializing database tables...');
-    
-    // Create users table
-    const createUsersTable = `
-      CREATE TABLE IF NOT EXISTS users (
-        id VARCHAR(255) PRIMARY KEY,
-        name VARCHAR(255),
-        birth_date VARCHAR(50),
-        birth_time VARCHAR(50),
-        birth_place VARCHAR(255),
-        is_setup BOOLEAN DEFAULT false,
-        language VARCHAR(10) DEFAULT 'ru',
-        theme VARCHAR(10) DEFAULT 'dark',
-        is_premium BOOLEAN DEFAULT false,
-        is_admin BOOLEAN DEFAULT false,
-        three_keys JSONB,
-        evolution JSONB,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-    `;
-    
-    // Create charts table
-    const createChartsTable = `
-      CREATE TABLE IF NOT EXISTS charts (
-        user_id VARCHAR(255) PRIMARY KEY,
-        chart_data JSONB NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-      );
-    `;
-    
-    // Execute table creation (uncomment when DB connection is configured)
-    // await queryDatabase(createUsersTable);
-    // await queryDatabase(createChartsTable);
-    
-    log.info('[DB] Database initialization complete (using in-memory fallback)');
-  } catch (error: any) {
-    log.error('[DB] Failed to initialize database', {
-      error: error.message,
-      stack: error.stack
-    });
-    throw error;
-  }
+  log.warn('[DB] initializeDatabase() is deprecated. Migrations are handled automatically.');
+  // Migrations are now handled by lib/migrations.ts
 }
 
-// For now, we'll use a simple in-memory store as fallback
-// In production, replace this with actual Railway DB connection
-const memoryStore: {
-  users: Record<string, any>;
-  charts: Record<string, any>;
-} = {
-  users: {},
-  charts: {},
-};
-
 /**
- * Simple in-memory database operations (fallback)
- * Replace with actual Railway DB operations
+ * Database operations using PostgreSQL
  */
 export const db = {
   users: {
     async get(userId: string) {
       log.info(`[DB] Getting user: ${userId}`);
-      return memoryStore.users[userId] || null;
+      
+      if (!DATABASE_URL) {
+        log.warn('[DB] DATABASE_URL not set, returning null');
+        return null;
+      }
+
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          'SELECT * FROM users WHERE id = $1',
+          [userId]
+        );
+        
+        if (result.rows.length === 0) {
+          return null;
+        }
+
+        const user = result.rows[0];
+        // Transform database format to client format
+        return {
+          id: user.id,
+          name: user.name,
+          birth_date: user.birth_date,
+          birth_time: user.birth_time,
+          birth_place: user.birth_place,
+          is_setup: user.is_setup,
+          language: user.language,
+          theme: user.theme,
+          is_premium: user.is_premium,
+          is_admin: user.is_admin,
+          three_keys: user.three_keys,
+          evolution: user.evolution,
+          premium_activated_at: user.premium_activated_at,
+          premium_stars_amount: user.premium_stars_amount,
+          premium_transaction_id: user.premium_transaction_id,
+          created_at: user.created_at,
+          updated_at: user.updated_at,
+        };
+      } catch (error: any) {
+        log.error('[DB] Error getting user', {
+          error: error.message,
+          userId
+        });
+        throw error;
+      }
     },
+
     async set(userId: string, data: any) {
       log.info(`[DB] Setting user: ${userId}`, { hasName: !!data.name });
-      memoryStore.users[userId] = { ...data, updated_at: new Date().toISOString() };
-      return memoryStore.users[userId];
+      
+      if (!DATABASE_URL) {
+        throw new Error('DATABASE_URL is not configured');
+      }
+
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          `INSERT INTO users (
+            id, name, birth_date, birth_time, birth_place,
+            is_setup, language, theme, is_premium, is_admin,
+            three_keys, evolution, updated_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, CURRENT_TIMESTAMP)
+          ON CONFLICT (id) DO UPDATE SET
+            name = EXCLUDED.name,
+            birth_date = EXCLUDED.birth_date,
+            birth_time = EXCLUDED.birth_time,
+            birth_place = EXCLUDED.birth_place,
+            is_setup = EXCLUDED.is_setup,
+            language = EXCLUDED.language,
+            theme = EXCLUDED.theme,
+            is_premium = EXCLUDED.is_premium,
+            is_admin = EXCLUDED.is_admin,
+            three_keys = EXCLUDED.three_keys,
+            evolution = EXCLUDED.evolution,
+            updated_at = CURRENT_TIMESTAMP
+          RETURNING *`,
+          [
+            userId,
+            data.name,
+            data.birth_date,
+            data.birth_time,
+            data.birth_place,
+            data.is_setup || false,
+            data.language || 'ru',
+            data.theme || 'dark',
+            data.is_premium || false,
+            data.is_admin || false,
+            data.three_keys ? JSON.stringify(data.three_keys) : null,
+            data.evolution ? JSON.stringify(data.evolution) : null,
+          ]
+        );
+
+        const user = result.rows[0];
+        return {
+          id: user.id,
+          name: user.name,
+          birth_date: user.birth_date,
+          birth_time: user.birth_time,
+          birth_place: user.birth_place,
+          is_setup: user.is_setup,
+          language: user.language,
+          theme: user.theme,
+          is_premium: user.is_premium,
+          is_admin: user.is_admin,
+          three_keys: user.three_keys,
+          evolution: user.evolution,
+        };
+      } catch (error: any) {
+        log.error('[DB] Error setting user', {
+          error: error.message,
+          userId
+        });
+        throw error;
+      }
     },
+
     async getAll() {
       log.info('[DB] Getting all users');
-      return Object.values(memoryStore.users);
+      
+      if (!DATABASE_URL) {
+        log.warn('[DB] DATABASE_URL not set, returning empty array');
+        return [];
+      }
+
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query('SELECT * FROM users ORDER BY created_at DESC');
+        
+        return result.rows.map((user: any) => ({
+          id: user.id,
+          name: user.name,
+          birth_date: user.birth_date,
+          birth_time: user.birth_time,
+          birth_place: user.birth_place,
+          is_setup: user.is_setup,
+          language: user.language,
+          theme: user.theme,
+          is_premium: user.is_premium,
+          is_admin: user.is_admin,
+          three_keys: user.three_keys,
+          evolution: user.evolution,
+        }));
+      } catch (error: any) {
+        log.error('[DB] Error getting all users', {
+          error: error.message
+        });
+        throw error;
+      }
     },
   },
+
   charts: {
     async get(userId: string) {
       log.info(`[DB] Getting chart for user: ${userId}`);
-      return memoryStore.charts[userId] || null;
+      
+      if (!DATABASE_URL) {
+        log.warn('[DB] DATABASE_URL not set, returning null');
+        return null;
+      }
+
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          'SELECT chart_data FROM charts WHERE user_id = $1',
+          [userId]
+        );
+        
+        if (result.rows.length === 0) {
+          return null;
+        }
+
+        return result.rows[0].chart_data;
+      } catch (error: any) {
+        log.error('[DB] Error getting chart', {
+          error: error.message,
+          userId
+        });
+        throw error;
+      }
     },
+
     async set(userId: string, data: any) {
       log.info(`[DB] Setting chart for user: ${userId}`);
-      memoryStore.charts[userId] = { ...data, updated_at: new Date().toISOString() };
-      return memoryStore.charts[userId];
+      
+      if (!DATABASE_URL) {
+        throw new Error('DATABASE_URL is not configured');
+      }
+
+      try {
+        const dbPool = getPool();
+        const chartData = data.chart_data || data;
+        
+        const result = await dbPool.query(
+          `INSERT INTO charts (user_id, chart_data, updated_at)
+           VALUES ($1, $2, CURRENT_TIMESTAMP)
+           ON CONFLICT (user_id) DO UPDATE SET
+             chart_data = EXCLUDED.chart_data,
+             updated_at = CURRENT_TIMESTAMP
+           RETURNING *`,
+          [userId, JSON.stringify(chartData)]
+        );
+
+        return {
+          user_id: result.rows[0].user_id,
+          chart_data: result.rows[0].chart_data,
+        };
+      } catch (error: any) {
+        log.error('[DB] Error setting chart', {
+          error: error.message,
+          userId
+        });
+        throw error;
+      }
     },
   },
 };
