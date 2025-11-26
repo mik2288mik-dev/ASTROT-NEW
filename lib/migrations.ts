@@ -156,7 +156,15 @@ async function migration003(pool: Pool): Promise<void> {
 export async function runMigrations(): Promise<void> {
   if (!DATABASE_URL) {
     log.warn('DATABASE_URL is not set. Skipping migrations.');
+    log.warn('Please ensure Railway Database is connected and DATABASE_URL is set in environment variables.');
     return;
+  }
+  
+  // Log connection info for debugging
+  const urlParts = DATABASE_URL.match(/^postgres(ql)?:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/(.+)$/);
+  if (urlParts) {
+    const [, , user, , host, port, database] = urlParts;
+    log.info(`Connecting to database: ${host}:${port}/${database} (user: ${user})`);
   }
 
   let pool: Pool | null = null;

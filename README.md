@@ -1,99 +1,99 @@
-# Astrot - Soulful Astrology App
+# Astrot - Приложение Астрологии
 
-Astrology application built with Next.js, React, and TypeScript.
+Астрологическое приложение, построенное на Next.js, React и TypeScript.
 
-## Migration from Vite to Next.js
+## Миграция с Vite на Next.js
 
-This project has been migrated from Vite to Next.js to enable:
-- Server-side rendering (SSR)
-- API Routes for backend logic
-- Better integration with Railway Database
-- Improved data persistence (no more localStorage fallback)
+Проект был мигрирован с Vite на Next.js для включения:
+- Серверного рендеринга (SSR)
+- API Routes для backend логики
+- Лучшей интеграции с Railway Database
+- Улучшенного сохранения данных (без fallback на localStorage)
 
-## Getting Started
+## Начало работы
 
-### Prerequisites
+### Требования
 
 - Node.js 18+ 
-- npm or yarn
-- Railway account (for database)
+- npm или yarn
+- Аккаунт Railway (для базы данных)
 
-### Installation
+### Установка
 
-1. Install dependencies:
+1. Установите зависимости:
 ```bash
 npm install
 ```
 
-2. Set up environment variables:
+2. Настройте переменные окружения:
 ```bash
 cp .env.example .env
 ```
 
-3. Configure your `.env` file:
-- `DATABASE_URL`: Your Railway Database connection string
-- `OPENAI_API_KEY`: (Optional) For AI features
-- `EPHE_PATH`: (Optional) Path to Swiss Ephemeris files
-- `USE_SWE_WASM`: Set to 'true' to use WebAssembly version
+3. Настройте файл `.env`:
+- `DATABASE_URL`: Строка подключения к Railway Database
+- `OPENAI_API_KEY`: (Опционально) Для AI функций
+- `EPHE_PATH`: (Опционально) Путь к файлам Swiss Ephemeris
+- `USE_SWE_WASM`: Установите 'true' для использования WebAssembly версии
 
-### Development
+### Разработка
 
-Run the development server:
+Запустите сервер разработки:
 
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Откройте [http://localhost:3000](http://localhost:3000) в браузере.
 
-### Building for Production
+### Сборка для продакшена
 
 ```bash
 npm run build
 npm start
 ```
 
-## Project Structure
+## Структура проекта
 
 ```
 ├── pages/
 │   ├── api/              # API Routes
-│   │   ├── users/       # User management endpoints
-│   │   ├── charts/       # Chart data endpoints
-│   │   └── astrology/   # Astrology calculation endpoints
+│   │   ├── users/       # Эндпоинты управления пользователями
+│   │   ├── charts/       # Эндпоинты данных карт
+│   │   └── astrology/   # Эндпоинты расчетов астрологии
 │   ├── _app.tsx         # Next.js app wrapper
 │   ├── _document.tsx    # Next.js document wrapper
-│   └── index.tsx        # Home page
-├── components/          # React components
-├── views/              # Page views/components
-├── services/           # Business logic services
-├── lib/                # Utility libraries (DB, etc.)
-├── styles/             # Global styles
-└── types.ts            # TypeScript type definitions
+│   └── index.tsx        # Главная страница
+├── components/          # React компоненты
+├── views/              # Компоненты страниц
+├── services/           # Сервисы бизнес-логики
+├── lib/                # Утилиты (БД и т.д.)
+├── styles/             # Глобальные стили
+└── types.ts            # Определения типов TypeScript
 ```
 
-## Database Setup
+## Настройка базы данных
 
-The application uses Railway Database for data persistence. 
+Приложение использует Railway Database для сохранения данных.
 
-### Setting up Railway Database
+### Настройка Railway Database
 
-1. Create a PostgreSQL or MySQL database on Railway
-2. Copy the connection string to `DATABASE_URL` in your `.env` file
-3. Install the appropriate database driver:
+1. Создайте PostgreSQL или MySQL базу данных на Railway
+2. Скопируйте строку подключения в `DATABASE_URL` в файле `.env`
+3. Установите соответствующий драйвер базы данных:
    ```bash
-   # For PostgreSQL
+   # Для PostgreSQL
    npm install pg @types/pg
    
-   # OR for MySQL
+   # ИЛИ для MySQL
    npm install mysql2
    ```
-4. Update `lib/db.ts` - uncomment the appropriate database connection code (PostgreSQL or MySQL)
-5. The application will automatically create necessary tables on first run (when `initializeDatabase()` is called)
+4. Обновите `lib/db.ts` - раскомментируйте соответствующий код подключения (PostgreSQL или MySQL)
+5. Приложение автоматически создаст необходимые таблицы при первом запуске (когда вызывается `initializeDatabase()`)
 
-### Database Schema
+### Схема базы данных
 
-- **users**: User profiles and settings
+- **users**: Профили и настройки пользователей
   - id (VARCHAR PRIMARY KEY)
   - name, birth_date, birth_time, birth_place
   - is_setup, language, theme
@@ -102,77 +102,77 @@ The application uses Railway Database for data persistence.
   - evolution (JSONB)
   - created_at, updated_at
 
-- **charts**: Natal chart data per user
+- **charts**: Данные натальных карт пользователей
   - user_id (VARCHAR PRIMARY KEY, FOREIGN KEY)
   - chart_data (JSONB)
   - created_at, updated_at
 
-**Note**: Currently using in-memory fallback until database driver is installed and configured.
+**Примечание**: В настоящее время используется in-memory fallback до установки и настройки драйвера базы данных.
 
 ## API Routes
 
-### Users
-- `GET /api/users/[id]` - Get user profile
-- `POST /api/users/[id]` - Create/update user profile
-- `GET /api/users` - Get all users (admin)
+### Пользователи
+- `GET /api/users/[id]` - Получить профиль пользователя
+- `POST /api/users/[id]` - Создать/обновить профиль пользователя
+- `GET /api/users` - Получить всех пользователей (админ)
 
-### Charts
-- `GET /api/charts/[id]` - Get user's chart
-- `POST /api/charts/[id]` - Save user's chart
+### Карты
+- `GET /api/charts/[id]` - Получить карту пользователя
+- `POST /api/charts/[id]` - Сохранить карту пользователя
 
-### Astrology
-- `POST /api/astrology/natal-chart` - Calculate natal chart
-- `POST /api/astrology/three-keys` - Get three keys
-- `POST /api/astrology/synastry` - Calculate synastry
-- `POST /api/astrology/daily-horoscope` - Get daily horoscope
-- `POST /api/astrology/weekly-horoscope` - Get weekly horoscope
-- `POST /api/astrology/monthly-horoscope` - Get monthly horoscope
-- `POST /api/astrology/deep-dive` - Deep dive analysis
-- `POST /api/astrology/chat` - Chat with AI
+### Астрология
+- `POST /api/astrology/natal-chart` - Рассчитать натальную карту
+- `POST /api/astrology/three-keys` - Получить три ключа
+- `POST /api/astrology/synastry` - Рассчитать синастрию
+- `POST /api/astrology/daily-horoscope` - Получить ежедневный гороскоп
+- `POST /api/astrology/weekly-horoscope` - Получить еженедельный гороскоп
+- `POST /api/astrology/monthly-horoscope` - Получить ежемесячный гороскоп
+- `POST /api/astrology/deep-dive` - Глубокий анализ
+- `POST /api/astrology/chat` - Чат с AI
 
-## Features
+## Функции
 
-- **User Profiles**: Store user birth data and preferences
-- **Natal Charts**: Calculate and display natal charts
-- **Three Keys**: Personalized astrology insights
-- **Synastry**: Compatibility analysis
-- **Horoscopes**: Daily, weekly, and monthly horoscopes
-- **Premium Subscriptions**: Telegram Stars integration
-- **Admin Panel**: User management
+- **Профили пользователей**: Хранение данных рождения и предпочтений пользователей
+- **Натальные карты**: Расчет и отображение натальных карт
+- **Три ключа**: Персонализированные астрологические инсайты
+- **Синастрия**: Анализ совместимости
+- **Гороскопы**: Ежедневные, еженедельные и ежемесячные гороскопы
+- **Премиум подписки**: Интеграция с Telegram Stars
+- **Админ панель**: Управление пользователями
 
-## Logging
+## Логирование
 
-All API routes and services include comprehensive logging:
-- Request/response logging
-- Error tracking
-- Performance metrics
-- Database operation logs
+Все API routes и сервисы включают подробное логирование:
+- Логирование запросов/ответов
+- Отслеживание ошибок
+- Метрики производительности
+- Логи операций базы данных
 
-Check server console and browser console for detailed logs.
+Проверьте консоль сервера и консоль браузера для подробных логов.
 
-## Migration Notes
+## Заметки о миграции
 
-### What Changed
+### Что изменилось
 
-1. **Build System**: Vite → Next.js
-2. **API Calls**: Direct external API → Next.js API Routes
-3. **Data Storage**: localStorage fallback → Database only
-4. **Styling**: Tailwind via CDN → Tailwind via PostCSS
+1. **Система сборки**: Vite → Next.js
+2. **API вызовы**: Прямые внешние API → Next.js API Routes
+3. **Хранение данных**: localStorage fallback → Только база данных
+4. **Стилизация**: Tailwind через CDN → Tailwind через PostCSS
 
-### Breaking Changes
+### Критические изменения
 
-- All API calls now go through `/api/*` routes
-- No more localStorage fallback (data must be saved to database)
-- Environment variables use Next.js conventions
+- Все API вызовы теперь идут через `/api/*` routes
+- Больше нет localStorage fallback (данные должны сохраняться в базу данных)
+- Переменные окружения используют соглашения Next.js
 
-### Next Steps
+### Следующие шаги
 
-1. Install database driver (pg for PostgreSQL or mysql2 for MySQL)
-2. Update `lib/db.ts` with actual database connection
-3. Implement real Swiss Ephemeris integration
-4. Add OpenAI API integration for chat features
-5. Set up Railway deployment
+1. Установить драйвер базы данных (pg для PostgreSQL или mysql2 для MySQL)
+2. Обновить `lib/db.ts` с реальным подключением к базе данных
+3. Реализовать интеграцию с Swiss Ephemeris
+4. Добавить интеграцию с OpenAI API для функций чата
+5. Настроить деплой на Railway
 
-## License
+## Лицензия
 
-Private project
+Приватный проект

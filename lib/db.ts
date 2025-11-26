@@ -21,8 +21,16 @@ const log = {
 // Check if DATABASE_URL is configured
 if (!DATABASE_URL) {
   log.warn('DATABASE_URL is not set. Database operations will fail.');
+  log.warn('Please ensure DATABASE_URL is set in Railway environment variables.');
 } else {
-  log.info(`DATABASE_URL configured: ${DATABASE_URL.substring(0, 30)}...`);
+  // Log connection info (without sensitive data)
+  const urlParts = DATABASE_URL.match(/^postgres(ql)?:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/(.+)$/);
+  if (urlParts) {
+    const [, , user, , host, port, database] = urlParts;
+    log.info(`DATABASE_URL configured: postgresql://${user}:***@${host}:${port}/${database}`);
+  } else {
+    log.info(`DATABASE_URL configured: ${DATABASE_URL.substring(0, 30)}...`);
+  }
 }
 
 // Create connection pool
