@@ -53,12 +53,20 @@ const App: React.FC = () => {
 
     useEffect(() => {
         const loadData = async () => {
+            console.log('[App] Loading user data...');
             const storedProfile = await getProfile();
             const storedChart = await getChartData();
 
             const tg = (window as any).Telegram?.WebApp;
             const tgUser = tg?.initDataUnsafe?.user;
             const tgId = tgUser?.id;
+
+            console.log('[App] Loaded data:', {
+                hasProfile: !!storedProfile,
+                hasChart: !!storedChart,
+                tgId,
+                profileIsSetup: storedProfile?.isSetup
+            });
 
             if (storedProfile && storedProfile.isSetup) {
                 if (!storedProfile.language) storedProfile.language = 'ru';
@@ -67,12 +75,23 @@ const App: React.FC = () => {
                 const isAdmin = tgId === OWNER_ID || storedProfile.isAdmin || false;
                 const updatedProfile = { ...storedProfile, id: tgId, isAdmin };
                 
+                console.log('[App] Setting up profile:', {
+                    userId: updatedProfile.id,
+                    isAdmin,
+                    isPremium: updatedProfile.isPremium
+                });
+                
                 setProfile(updatedProfile);
                 
-                if (storedChart) setChartData(storedChart);
+                if (storedChart) {
+                    console.log('[App] Setting chart data');
+                    setChartData(storedChart);
+                }
 
                 // If user is set up, go straight to Dashboard (Hub)
                 setView('dashboard');
+            } else {
+                console.log('[App] No profile found or not set up, showing onboarding');
             }
             setLoading(false);
         };
@@ -80,25 +99,55 @@ const App: React.FC = () => {
     }, []);
 
     const handleOnboardingComplete = async (newProfile: UserProfile) => {
+        console.log('[App] Onboarding complete, saving profile...', {
+            name: newProfile.name,
+            birthDate: newProfile.birthDate
+        });
+
         const tg = (window as any).Telegram?.WebApp;
         const tgUser = tg?.initDataUnsafe?.user;
         const tgId = tgUser?.id;
         const isAdmin = tgId === OWNER_ID;
         const fullProfile = { ...newProfile, id: tgId, isAdmin };
 
+        console.log('[App] Full profile prepared:', {
+            userId: fullProfile.id,
+            isAdmin,
+            isSetup: fullProfile.isSetup
+        });
+
         setProfile(fullProfile);
         setLoading(true);
-        await saveProfile(fullProfile);
+        
+        try {
+            await saveProfile(fullProfile);
+            console.log('[App] Profile saved successfully');
+        } catch (error) {
+            console.error('[App] Failed to save profile:', error);
+        }
 
         try {
+            console.log('[App] Calculating natal chart...');
             const generatedChart = await calculateNatalChart(fullProfile);
+            console.log('[App] Chart generated, saving...', {
+                hasSun: !!generatedChart.sun,
+                hasMoon: !!generatedChart.moon,
+                element: generatedChart.element
+            });
+            
             setChartData(generatedChart);
-            await saveChartData(generatedChart);
+            
+            try {
+                await saveChartData(generatedChart);
+                console.log('[App] Chart saved successfully');
+            } catch (error) {
+                console.error('[App] Failed to save chart:', error);
+            }
             
             // Funnel: Onboarding -> Hook
             setView('hook'); 
         } catch (error) {
-            console.error("AI Generation failed:", error);
+            console.error("[App] AI Generation failed:", error);
             alert("Error connecting to stars. Please try again.");
         } finally {
             setLoading(false);
@@ -111,13 +160,22 @@ const App: React.FC = () => {
 
     const requestPremium = async () => {
        if (!profile) return;
+       console.log('[App] Requesting premium for user:', profile.id);
        const success = await requestStarsPayment(profile);
        if (success) {
+           console.log('[App] Premium payment successful, updating profile...');
            const updated = { ...profile, isPremium: true };
            setProfile(updated);
-           saveProfile(updated);
+           try {
+               await saveProfile(updated);
+               console.log('[App] Premium status saved successfully');
+           } catch (error) {
+               console.error('[App] Failed to save premium status:', error);
+           }
            setShowPremiumPreview(false);
            setView('dashboard');
+       } else {
+           console.log('[App] Premium payment cancelled or failed');
        }
     };
 

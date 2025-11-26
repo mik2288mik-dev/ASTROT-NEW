@@ -4,33 +4,84 @@ import { SYSTEM_INSTRUCTION_ASTRA } from "../constants";
 // Helper to select language prompt
 const getLangPrompt = (lang: string) => lang === 'ru' ? "Response must be in Russian." : "Response must be in English.";
 
-// API base URL - будет использоваться для вызовов к backend API
-const API_BASE_URL = process.env.DATABASE_URL ? `${process.env.DATABASE_URL}/api` : '/api';
+// API base URL - используем локальные Next.js API routes
+const API_BASE_URL = typeof window !== 'undefined' ? '' : process.env.NEXT_PUBLIC_API_URL || '';
+
+// Logging utility
+const log = {
+  info: (message: string, data?: any) => {
+    console.log(`[AstrologyService] ${message}`, data || '');
+  },
+  error: (message: string, error?: any) => {
+    console.error(`[AstrologyService] ERROR: ${message}`, error || '');
+  },
+  warn: (message: string, data?: any) => {
+    console.warn(`[AstrologyService] WARNING: ${message}`, data || '');
+  }
+};
+
+// Log API configuration
+log.info(`API_BASE_URL configured: ${API_BASE_URL}`);
 
 /**
  * Calculate natal chart - calls backend API
  */
 export const calculateNatalChart = async (profile: UserProfile): Promise<NatalChartData> => {
+  const url = `${API_BASE_URL}/astrology/natal-chart`;
+  log.info('[calculateNatalChart] Starting calculation', {
+    name: profile.name,
+    birthDate: profile.birthDate,
+    birthPlace: profile.birthPlace
+  });
+
   try {
-    const response = await fetch(`${API_BASE_URL}/astrology/natal-chart`, {
+    const requestBody = {
+      name: profile.name,
+      birthDate: profile.birthDate,
+      birthTime: profile.birthTime,
+      birthPlace: profile.birthPlace,
+      language: profile.language
+    };
+
+    log.info(`[calculateNatalChart] Sending POST request to: ${url}`);
+
+    const startTime = Date.now();
+    const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: profile.name,
-        birthDate: profile.birthDate,
-        birthTime: profile.birthTime,
-        birthPlace: profile.birthPlace,
-        language: profile.language
-      })
+      body: JSON.stringify(requestBody)
+    });
+
+    const duration = Date.now() - startTime;
+    log.info(`[calculateNatalChart] Response received in ${duration}ms`, {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok
     });
 
     if (!response.ok) {
-      throw new Error('Failed to calculate natal chart');
+      const errorText = await response.text().catch(() => 'Unable to read error response');
+      log.error(`[calculateNatalChart] Server returned error status ${response.status}`, {
+        status: response.status,
+        statusText: response.statusText,
+        errorBody: errorText
+      });
+      throw new Error(`Failed to calculate natal chart: ${response.status} ${response.statusText}`);
     }
 
-    return await response.json() as NatalChartData;
-  } catch (error) {
-    console.error('Error calculating natal chart:', error);
+    const chartData = await response.json() as NatalChartData;
+    log.info('[calculateNatalChart] Successfully calculated natal chart', {
+      hasSun: !!chartData.sun,
+      hasMoon: !!chartData.moon,
+      element: chartData.element
+    });
+    return chartData;
+  } catch (error: any) {
+    log.error('[calculateNatalChart] Error occurred', {
+      error: error.message,
+      stack: error.stack
+    });
+    log.warn('[calculateNatalChart] Falling back to mock data');
     // Fallback to mock data if API fails
     return generateMockNatalChart(profile);
   }
@@ -59,20 +110,44 @@ const generateMockNatalChart = (profile: UserProfile): NatalChartData => {
 };
 
 export const getThreeKeys = async (profile: UserProfile, chartData: NatalChartData): Promise<ThreeKeys> => {
+  const url = `${API_BASE_URL}/astrology/three-keys`;
+  log.info('[getThreeKeys] Starting request', { userId: profile.id });
+
   try {
-    const response = await fetch(`${API_BASE_URL}/astrology/three-keys`, {
+    log.info(`[getThreeKeys] Sending POST request to: ${url}`);
+    const startTime = Date.now();
+    const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ profile, chartData })
     });
 
+    const duration = Date.now() - startTime;
+    log.info(`[getThreeKeys] Response received in ${duration}ms`, {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok
+    });
+
     if (!response.ok) {
-      throw new Error('Failed to get three keys');
+      const errorText = await response.text().catch(() => 'Unable to read error response');
+      log.error(`[getThreeKeys] Server returned error status ${response.status}`, {
+        status: response.status,
+        statusText: response.statusText,
+        errorBody: errorText
+      });
+      throw new Error(`Failed to get three keys: ${response.status} ${response.statusText}`);
     }
 
-    return await response.json() as ThreeKeys;
-  } catch (error) {
-    console.error('Error getting three keys:', error);
+    const keys = await response.json() as ThreeKeys;
+    log.info('[getThreeKeys] Successfully received three keys');
+    return keys;
+  } catch (error: any) {
+    log.error('[getThreeKeys] Error occurred', {
+      error: error.message,
+      stack: error.stack
+    });
+    log.warn('[getThreeKeys] Falling back to mock data');
     // Fallback to mock data
     return {
       key1: {
@@ -98,8 +173,13 @@ export const getThreeKeys = async (profile: UserProfile, chartData: NatalChartDa
 };
 
 export const calculateSynastry = async (profile: UserProfile, partnerName: string, partnerDate: string): Promise<SynastryResult> => {
+  const url = `${API_BASE_URL}/astrology/synastry`;
+  log.info('[calculateSynastry] Starting calculation', { partnerName, partnerDate });
+
   try {
-    const response = await fetch(`${API_BASE_URL}/astrology/synastry`, {
+    log.info(`[calculateSynastry] Sending POST request to: ${url}`);
+    const startTime = Date.now();
+    const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -110,13 +190,34 @@ export const calculateSynastry = async (profile: UserProfile, partnerName: strin
       })
     });
 
+    const duration = Date.now() - startTime;
+    log.info(`[calculateSynastry] Response received in ${duration}ms`, {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok
+    });
+
     if (!response.ok) {
-      throw new Error('Failed to calculate synastry');
+      const errorText = await response.text().catch(() => 'Unable to read error response');
+      log.error(`[calculateSynastry] Server returned error status ${response.status}`, {
+        status: response.status,
+        statusText: response.statusText,
+        errorBody: errorText
+      });
+      throw new Error(`Failed to calculate synastry: ${response.status} ${response.statusText}`);
     }
 
-    return await response.json() as SynastryResult;
-  } catch (error) {
-    console.error('Error calculating synastry:', error);
+    const result = await response.json() as SynastryResult;
+    log.info('[calculateSynastry] Successfully calculated synastry', {
+      compatibilityScore: result.compatibilityScore
+    });
+    return result;
+  } catch (error: any) {
+    log.error('[calculateSynastry] Error occurred', {
+      error: error.message,
+      stack: error.stack
+    });
+    log.warn('[calculateSynastry] Falling back to mock data');
     // Fallback to mock data
     const lang = profile.language === 'ru';
     return {
@@ -138,20 +239,44 @@ export const calculateSynastry = async (profile: UserProfile, partnerName: strin
 };
 
 export const getDailyHoroscope = async (profile: UserProfile, chartData: NatalChartData, context?: UserContext): Promise<DailyHoroscope> => {
+  const url = `${API_BASE_URL}/astrology/daily-horoscope`;
+  log.info('[getDailyHoroscope] Starting request', { userId: profile.id });
+
   try {
-    const response = await fetch(`${API_BASE_URL}/astrology/daily-horoscope`, {
+    log.info(`[getDailyHoroscope] Sending POST request to: ${url}`);
+    const startTime = Date.now();
+    const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ profile, chartData, context })
     });
 
+    const duration = Date.now() - startTime;
+    log.info(`[getDailyHoroscope] Response received in ${duration}ms`, {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok
+    });
+
     if (!response.ok) {
-      throw new Error('Failed to get daily horoscope');
+      const errorText = await response.text().catch(() => 'Unable to read error response');
+      log.error(`[getDailyHoroscope] Server returned error status ${response.status}`, {
+        status: response.status,
+        statusText: response.statusText,
+        errorBody: errorText
+      });
+      throw new Error(`Failed to get daily horoscope: ${response.status} ${response.statusText}`);
     }
 
-    return await response.json() as DailyHoroscope;
-  } catch (error) {
-    console.error('Error getting daily horoscope:', error);
+    const horoscope = await response.json() as DailyHoroscope;
+    log.info('[getDailyHoroscope] Successfully received daily horoscope');
+    return horoscope;
+  } catch (error: any) {
+    log.error('[getDailyHoroscope] Error occurred', {
+      error: error.message,
+      stack: error.stack
+    });
+    log.warn('[getDailyHoroscope] Falling back to mock data');
     // Fallback to mock data
     const lang = profile.language === 'ru';
     return {
@@ -205,20 +330,44 @@ export const updateUserEvolution = async (profile: UserProfile): Promise<UserEvo
 };
 
 export const getWeeklyHoroscope = async (profile: UserProfile, chartData: NatalChartData): Promise<WeeklyHoroscope> => {
+  const url = `${API_BASE_URL}/astrology/weekly-horoscope`;
+  log.info('[getWeeklyHoroscope] Starting request', { userId: profile.id });
+
   try {
-    const response = await fetch(`${API_BASE_URL}/astrology/weekly-horoscope`, {
+    log.info(`[getWeeklyHoroscope] Sending POST request to: ${url}`);
+    const startTime = Date.now();
+    const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ profile, chartData })
     });
 
+    const duration = Date.now() - startTime;
+    log.info(`[getWeeklyHoroscope] Response received in ${duration}ms`, {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok
+    });
+
     if (!response.ok) {
-      throw new Error('Failed to get weekly horoscope');
+      const errorText = await response.text().catch(() => 'Unable to read error response');
+      log.error(`[getWeeklyHoroscope] Server returned error status ${response.status}`, {
+        status: response.status,
+        statusText: response.statusText,
+        errorBody: errorText
+      });
+      throw new Error(`Failed to get weekly horoscope: ${response.status} ${response.statusText}`);
     }
 
-    return await response.json() as WeeklyHoroscope;
-  } catch (error) {
-    console.error('Error getting weekly horoscope:', error);
+    const horoscope = await response.json() as WeeklyHoroscope;
+    log.info('[getWeeklyHoroscope] Successfully received weekly horoscope');
+    return horoscope;
+  } catch (error: any) {
+    log.error('[getWeeklyHoroscope] Error occurred', {
+      error: error.message,
+      stack: error.stack
+    });
+    log.warn('[getWeeklyHoroscope] Falling back to mock data');
     // Fallback to mock data
     const lang = profile.language === 'ru';
     return {
@@ -232,20 +381,44 @@ export const getWeeklyHoroscope = async (profile: UserProfile, chartData: NatalC
 };
 
 export const getMonthlyHoroscope = async (profile: UserProfile, chartData: NatalChartData): Promise<MonthlyHoroscope> => {
+  const url = `${API_BASE_URL}/astrology/monthly-horoscope`;
+  log.info('[getMonthlyHoroscope] Starting request', { userId: profile.id });
+
   try {
-    const response = await fetch(`${API_BASE_URL}/astrology/monthly-horoscope`, {
+    log.info(`[getMonthlyHoroscope] Sending POST request to: ${url}`);
+    const startTime = Date.now();
+    const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ profile, chartData })
     });
 
+    const duration = Date.now() - startTime;
+    log.info(`[getMonthlyHoroscope] Response received in ${duration}ms`, {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok
+    });
+
     if (!response.ok) {
-      throw new Error('Failed to get monthly horoscope');
+      const errorText = await response.text().catch(() => 'Unable to read error response');
+      log.error(`[getMonthlyHoroscope] Server returned error status ${response.status}`, {
+        status: response.status,
+        statusText: response.statusText,
+        errorBody: errorText
+      });
+      throw new Error(`Failed to get monthly horoscope: ${response.status} ${response.statusText}`);
     }
 
-    return await response.json() as MonthlyHoroscope;
-  } catch (error) {
-    console.error('Error getting monthly horoscope:', error);
+    const horoscope = await response.json() as MonthlyHoroscope;
+    log.info('[getMonthlyHoroscope] Successfully received monthly horoscope');
+    return horoscope;
+  } catch (error: any) {
+    log.error('[getMonthlyHoroscope] Error occurred', {
+      error: error.message,
+      stack: error.stack
+    });
+    log.warn('[getMonthlyHoroscope] Falling back to mock data');
     // Fallback to mock data
     const lang = profile.language === 'ru';
     const month = new Date().toLocaleString(lang ? 'ru' : 'en', { month: 'long' });
@@ -261,21 +434,43 @@ export const getMonthlyHoroscope = async (profile: UserProfile, chartData: Natal
 };
 
 export const getDeepDiveAnalysis = async (profile: UserProfile, topic: string, chartData: NatalChartData): Promise<string> => {
+  const url = `${API_BASE_URL}/astrology/deep-dive`;
+  log.info('[getDeepDiveAnalysis] Starting request', { topic, userId: profile.id });
+
   try {
-    const response = await fetch(`${API_BASE_URL}/astrology/deep-dive`, {
+    log.info(`[getDeepDiveAnalysis] Sending POST request to: ${url}`);
+    const startTime = Date.now();
+    const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ profile, topic, chartData })
     });
 
+    const duration = Date.now() - startTime;
+    log.info(`[getDeepDiveAnalysis] Response received in ${duration}ms`, {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok
+    });
+
     if (!response.ok) {
-      throw new Error('Failed to get deep dive analysis');
+      const errorText = await response.text().catch(() => 'Unable to read error response');
+      log.error(`[getDeepDiveAnalysis] Server returned error status ${response.status}`, {
+        status: response.status,
+        statusText: response.statusText,
+        errorBody: errorText
+      });
+      throw new Error(`Failed to get deep dive analysis: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
+    log.info('[getDeepDiveAnalysis] Successfully received analysis');
     return data.analysis || "Stars are silent.";
-  } catch (error) {
-    console.error('Error getting deep dive analysis:', error);
+  } catch (error: any) {
+    log.error('[getDeepDiveAnalysis] Error occurred', {
+      error: error.message,
+      stack: error.stack
+    });
     const lang = profile.language === 'ru';
     return lang
       ? `Глубокий анализ по теме "${topic}" для ${profile.name}. Ваша карта показывает интересные аспекты в этой области.`
@@ -284,8 +479,17 @@ export const getDeepDiveAnalysis = async (profile: UserProfile, topic: string, c
 };
 
 export const chatWithAstra = async (history: { role: 'user' | 'model', text: string }[], message: string, profile: UserProfile): Promise<string> => {
+  const url = `${API_BASE_URL}/astrology/chat`;
+  log.info('[chatWithAstra] Starting chat request', {
+    messageLength: message.length,
+    historyLength: history.length,
+    userId: profile.id
+  });
+
   try {
-    const response = await fetch(`${API_BASE_URL}/astrology/chat`, {
+    log.info(`[chatWithAstra] Sending POST request to: ${url}`);
+    const startTime = Date.now();
+    const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -296,14 +500,33 @@ export const chatWithAstra = async (history: { role: 'user' | 'model', text: str
       })
     });
 
+    const duration = Date.now() - startTime;
+    log.info(`[chatWithAstra] Response received in ${duration}ms`, {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok
+    });
+
     if (!response.ok) {
-      throw new Error('Failed to chat with Astra');
+      const errorText = await response.text().catch(() => 'Unable to read error response');
+      log.error(`[chatWithAstra] Server returned error status ${response.status}`, {
+        status: response.status,
+        statusText: response.statusText,
+        errorBody: errorText
+      });
+      throw new Error(`Failed to chat with Astra: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
+    log.info('[chatWithAstra] Successfully received response', {
+      responseLength: data.response?.length || 0
+    });
     return data.response || "The stars are clouded.";
-  } catch (error) {
-    console.error('Error chatting with Astra:', error);
+  } catch (error: any) {
+    log.error('[chatWithAstra] Error occurred', {
+      error: error.message,
+      stack: error.stack
+    });
     const lang = profile.language === 'ru';
     return lang
       ? 'Звезды временно скрыты облаками. Попробуйте позже.'

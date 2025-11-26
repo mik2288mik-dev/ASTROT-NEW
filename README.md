@@ -1,53 +1,178 @@
-# ASTROT - Soulful Astrology App
+# Astrot - Soulful Astrology App
 
-## 🌌 Concept & Vision
-Astrot is not just a calculator; it is a "Soulful Best Friend."
-The core philosophy moves beyond static data into a **Living, Breathing Entity** that evolves with the user.
+Astrology application built with Next.js, React, and TypeScript.
 
----
+## Migration from Vite to Next.js
 
-## 🧠 4-Layer Personalization System
+This project has been migrated from Vite to Next.js to enable:
+- Server-side rendering (SSR)
+- API Routes for backend logic
+- Better integration with Railway Database
+- Improved data persistence (no more localStorage fallback)
 
-### Layer 1: The Base (Static)
-*   **Input:** Birth Date, Time, Place.
-*   **Output:** Natal Chart, Element, Three Keys (Hook).
-*   **Goal:** Establish authority and identity.
+## Getting Started
 
-### Layer 2: Behavioral Patterns (Dynamic)
-*   **Input:** Frequency of login, preferred sections (Love vs. Career).
-*   **Output:** Reordering dashboard buttons, "We noticed you care about..." prompts.
-*   **Goal:** Reduce friction, increase relevance.
+### Prerequisites
 
-### Layer 3: Emotional & Contextual (Momentary)
-*   **Input:** Current Weather (API), News Trends (API), Text Sentiment Analysis.
-*   **Output:** "It's raining and Moon is in Pisces — perfect for tea and journaling."
-*   **Goal:** Create a "Wow" factor. The app knows *where* and *how* you are.
+- Node.js 18+ 
+- npm or yarn
+- Railway account (for database)
 
-### Layer 4: Evolutionary (Long-term)
-*   **Input:** Time spent, depth of queries, premium duration.
-*   **Output:** "Soul Level" growth. "Your Confidence score increased by 27% this month."
-*   **Goal:** Gamification of spiritual growth. Retention.
+### Installation
 
----
+1. Install dependencies:
+```bash
+npm install
+```
 
-## 🔮 The "Mystical Funnel" (User Flow)
+2. Set up environment variables:
+```bash
+cp .env.example .env
+```
 
-1.  **Onboarding:** Name/Date/Place.
-2.  **The Hook (Free):** Interactive "Manifestation" of 3 Personality Keys.
-3.  **The Cliffhanger (CTA):** "This is only 10%..."
-4.  **The Paywall:** Weekly Subscription (Telegram Stars).
-5.  **Premium Hub:**
-    *   **Cosmic Passport:** Dynamic header.
-    *   **Soul Evolution:** Progress bars (Confidence, Intuition).
-    *   **Context Card:** Weather + Transit integration.
-    *   **Full Analysis:** Deep dives into 5 Pillars.
-    *   **Synastry:** Compatibility.
+3. Configure your `.env` file:
+- `DATABASE_URL`: Your Railway Database connection string
+- `OPENAI_API_KEY`: (Optional) For AI features
+- `EPHE_PATH`: (Optional) Path to Swiss Ephemeris files
+- `USE_SWE_WASM`: Set to 'true' to use WebAssembly version
 
----
+### Development
 
-## 🛠 Technical Roadmap (Optimization)
+Run the development server:
 
-1.  **Context API:** Integrate OpenWeatherMap & NewsAPI for real-time context.
-2.  **Incremental Context:** Summarize previous context into a "User State" object to optimize API calls.
-3.  **Batch Processing:** Generate Daily Horoscopes at 00:01 UTC via Cron Jobs (Cloud Functions) rather than on-demand to reduce latency.
-4.  **Database:** All data is stored in Railway Database via DATABASE_URL environment variable.
+```bash
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+### Building for Production
+
+```bash
+npm run build
+npm start
+```
+
+## Project Structure
+
+```
+├── pages/
+│   ├── api/              # API Routes
+│   │   ├── users/       # User management endpoints
+│   │   ├── charts/       # Chart data endpoints
+│   │   └── astrology/   # Astrology calculation endpoints
+│   ├── _app.tsx         # Next.js app wrapper
+│   ├── _document.tsx    # Next.js document wrapper
+│   └── index.tsx        # Home page
+├── components/          # React components
+├── views/              # Page views/components
+├── services/           # Business logic services
+├── lib/                # Utility libraries (DB, etc.)
+├── styles/             # Global styles
+└── types.ts            # TypeScript type definitions
+```
+
+## Database Setup
+
+The application uses Railway Database for data persistence. 
+
+### Setting up Railway Database
+
+1. Create a PostgreSQL or MySQL database on Railway
+2. Copy the connection string to `DATABASE_URL` in your `.env` file
+3. Install the appropriate database driver:
+   ```bash
+   # For PostgreSQL
+   npm install pg @types/pg
+   
+   # OR for MySQL
+   npm install mysql2
+   ```
+4. Update `lib/db.ts` - uncomment the appropriate database connection code (PostgreSQL or MySQL)
+5. The application will automatically create necessary tables on first run (when `initializeDatabase()` is called)
+
+### Database Schema
+
+- **users**: User profiles and settings
+  - id (VARCHAR PRIMARY KEY)
+  - name, birth_date, birth_time, birth_place
+  - is_setup, language, theme
+  - is_premium, is_admin
+  - three_keys (JSONB)
+  - evolution (JSONB)
+  - created_at, updated_at
+
+- **charts**: Natal chart data per user
+  - user_id (VARCHAR PRIMARY KEY, FOREIGN KEY)
+  - chart_data (JSONB)
+  - created_at, updated_at
+
+**Note**: Currently using in-memory fallback until database driver is installed and configured.
+
+## API Routes
+
+### Users
+- `GET /api/users/[id]` - Get user profile
+- `POST /api/users/[id]` - Create/update user profile
+- `GET /api/users` - Get all users (admin)
+
+### Charts
+- `GET /api/charts/[id]` - Get user's chart
+- `POST /api/charts/[id]` - Save user's chart
+
+### Astrology
+- `POST /api/astrology/natal-chart` - Calculate natal chart
+- `POST /api/astrology/three-keys` - Get three keys
+- `POST /api/astrology/synastry` - Calculate synastry
+- `POST /api/astrology/daily-horoscope` - Get daily horoscope
+- `POST /api/astrology/weekly-horoscope` - Get weekly horoscope
+- `POST /api/astrology/monthly-horoscope` - Get monthly horoscope
+- `POST /api/astrology/deep-dive` - Deep dive analysis
+- `POST /api/astrology/chat` - Chat with AI
+
+## Features
+
+- **User Profiles**: Store user birth data and preferences
+- **Natal Charts**: Calculate and display natal charts
+- **Three Keys**: Personalized astrology insights
+- **Synastry**: Compatibility analysis
+- **Horoscopes**: Daily, weekly, and monthly horoscopes
+- **Premium Subscriptions**: Telegram Stars integration
+- **Admin Panel**: User management
+
+## Logging
+
+All API routes and services include comprehensive logging:
+- Request/response logging
+- Error tracking
+- Performance metrics
+- Database operation logs
+
+Check server console and browser console for detailed logs.
+
+## Migration Notes
+
+### What Changed
+
+1. **Build System**: Vite → Next.js
+2. **API Calls**: Direct external API → Next.js API Routes
+3. **Data Storage**: localStorage fallback → Database only
+4. **Styling**: Tailwind via CDN → Tailwind via PostCSS
+
+### Breaking Changes
+
+- All API calls now go through `/api/*` routes
+- No more localStorage fallback (data must be saved to database)
+- Environment variables use Next.js conventions
+
+### Next Steps
+
+1. Install database driver (pg for PostgreSQL or mysql2 for MySQL)
+2. Update `lib/db.ts` with actual database connection
+3. Implement real Swiss Ephemeris integration
+4. Add OpenAI API integration for chat features
+5. Set up Railway deployment
+
+## License
+
+Private project
