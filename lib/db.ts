@@ -21,8 +21,16 @@ const log = {
 // Check if DATABASE_URL is configured
 if (!DATABASE_URL) {
   log.warn('DATABASE_URL is not set. Database operations will fail.');
+  log.warn('Please ensure DATABASE_URL is set in Railway environment variables.');
 } else {
-  log.info(`DATABASE_URL configured: ${DATABASE_URL.substring(0, 30)}...`);
+  // Log connection info (without sensitive data)
+  const urlParts = DATABASE_URL.match(/^postgres(ql)?:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/(.+)$/);
+  if (urlParts) {
+    const [, , user, , host, port, database] = urlParts;
+    log.info(`DATABASE_URL configured: postgresql://${user}:***@${host}:${port}/${database}`);
+  } else {
+    log.info(`DATABASE_URL configured: ${DATABASE_URL.substring(0, 30)}...`);
+  }
 }
 
 // Create connection pool
@@ -34,12 +42,19 @@ function getPool(): Pool {
       throw new Error('DATABASE_URL is not configured');
     }
     
+    // Parse DATABASE_URL to handle Railway's internal hostnames
+    let connectionString = DATABASE_URL;
+    
+    // Railway sometimes provides internal hostnames that may not resolve immediately
+    // We'll use the connection string as-is, but with better timeout settings
     pool = new Pool({
-      connectionString: DATABASE_URL,
+      connectionString: connectionString,
       ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
       max: 20,
       idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 2000,
+      connectionTimeoutMillis: 10000, // Increased from 2000ms to 10000ms
+      query_timeout: 30000,
+      statement_timeout: 30000,
     });
 
     pool.on('error', (err) => {
