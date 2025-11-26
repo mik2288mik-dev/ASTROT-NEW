@@ -3,7 +3,7 @@ import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { UserProfile, NatalChartData, DailyHoroscope, WeeklyHoroscope, MonthlyHoroscope, ThreeKeys, SynastryResult, UserContext, UserEvolution } from "../types";
 import { SYSTEM_INSTRUCTION_ASTRA } from "../constants";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || process.env.GEMINI_API_KEY || '' });
 const MODEL_NAME = "gemini-2.5-flash";
 
 // Helper to select language prompt
