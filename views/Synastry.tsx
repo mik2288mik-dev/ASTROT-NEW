@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { UserProfile, SynastryResult } from '../types';
-import { calculateSynastry } from '../services/geminiService';
+import { calculateSynastry } from '../services/astrologyService';
 import { getText } from '../constants';
 import { motion } from 'framer-motion';
 import { Loading } from '../components/ui/Loading';

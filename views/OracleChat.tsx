@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { UserProfile, ChatMessage } from '../types';
-import { chatWithAstra } from '../services/geminiService';
+import { chatWithAstra } from '../services/astrologyService';
 import { motion } from 'framer-motion';
 
 interface OracleChatProps {

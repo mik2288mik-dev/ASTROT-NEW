@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { UserProfile, NatalChartData, ViewState } from './types';
 import { getProfile, getChartData, saveProfile, saveChartData } from './services/storageService';
-import { calculateNatalChart } from './services/geminiService';
+import { calculateNatalChart } from './services/astrologyService';
 import { Onboarding } from './views/Onboarding';
 import { Dashboard } from './views/Dashboard';
 import { NatalChart } from './views/NatalChart';

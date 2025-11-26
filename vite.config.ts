@@ -11,8 +11,6 @@ export default defineConfig(({ mode }) => {
       },
       plugins: [react()],
       define: {
-        'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
         'process.env.OPENAI_API_KEY': JSON.stringify(env.OPENAI_API_KEY),
         'process.env.DATABASE_URL': JSON.stringify(env.DATABASE_URL),
         'process.env.EPHE_PATH': JSON.stringify(env.EPHE_PATH),

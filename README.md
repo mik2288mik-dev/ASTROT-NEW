@@ -19,7 +19,7 @@ The core philosophy moves beyond static data into a **Living, Breathing Entity**
 *   **Goal:** Reduce friction, increase relevance.
 
 ### Layer 3: Emotional & Contextual (Momentary)
-*   **Input:** Current Weather (API), News Trends (API), Text Sentiment (Gemini).
+*   **Input:** Current Weather (API), News Trends (API), Text Sentiment Analysis.
 *   **Output:** "It's raining and Moon is in Pisces — perfect for tea and journaling."
 *   **Goal:** Create a "Wow" factor. The app knows *where* and *how* you are.
 
@@ -48,5 +48,6 @@ The core philosophy moves beyond static data into a **Living, Breathing Entity**
 ## 🛠 Technical Roadmap (Optimization)
 
 1.  **Context API:** Integrate OpenWeatherMap & NewsAPI for real-time context.
-2.  **Incremental Context:** Do not send full chat history to Gemini every time; summarize previous context into a "User State" object.
+2.  **Incremental Context:** Summarize previous context into a "User State" object to optimize API calls.
 3.  **Batch Processing:** Generate Daily Horoscopes at 00:01 UTC via Cron Jobs (Cloud Functions) rather than on-demand to reduce latency.
+4.  **Database:** All data is stored in Replit Database via DATABASE_URL environment variable.

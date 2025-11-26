@@ -5,7 +5,7 @@ import { getText } from '../constants';
 import { SolarSystem } from '../components/SolarSystem';
 import { Loading } from '../components/ui/Loading';
 import { getUserContext } from '../services/contextService';
-import { updateUserEvolution } from '../services/geminiService';
+import { updateUserEvolution } from '../services/astrologyService';
 import { saveProfile } from '../services/storageService';
 import { motion } from 'framer-motion';
 
