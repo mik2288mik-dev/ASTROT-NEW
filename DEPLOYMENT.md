@@ -95,12 +95,39 @@
 ### 2. Проверьте API эндпоинты
 
 ```bash
-# Проверка здоровья API
-curl https://your-app.railway.app/api/users/current
+# Health check (автоматически запустит миграции если таблиц нет)
+curl https://your-app.railway.app/api/health
 
-# Ручной запуск миграций (если нужно)
+# Ручной запуск миграций (GET или POST)
+curl https://your-app.railway.app/api/migrations/run
+# или
 curl -X POST https://your-app.railway.app/api/migrations/run
 ```
+
+### 3. Если таблицы не созданы
+
+Если после деплоя таблицы не созданы, выполните одно из следующих действий:
+
+**Вариант 1: Через API endpoint (рекомендуется)**
+```bash
+# Вызовите health check endpoint - он автоматически запустит миграции
+curl https://your-app.railway.app/api/health
+
+# Или напрямую запустите миграции
+curl https://your-app.railway.app/api/migrations/run
+```
+
+**Вариант 2: Через Railway CLI**
+```bash
+# Подключитесь к Railway и запустите миграции
+railway run npm run migrate
+```
+
+**Вариант 3: Через Railway Dashboard**
+1. Откройте Railway Dashboard → ваше приложение → Deployments
+2. Найдите последний деплой и откройте его логи
+3. Проверьте, были ли запущены миграции в postbuild скрипте
+4. Если нет, перезапустите деплой или вызовите API endpoint
 
 ### 3. Проверьте базу данных
 
@@ -143,28 +170,79 @@ await migration004(pool);
 
 ### Миграции не запускаются
 
-**Проблема**: В логах нет записей о миграциях
+**Проблема**: В логах нет записей о миграциях или таблицы не созданы
 
 **Решение**:
-1. Проверьте что `DATABASE_URL` установлен в Railway
-2. Запустите миграции вручную через API: `POST /api/migrations/run`
-3. Проверьте логи Railway на наличие ошибок
+1. **Проверьте что `DATABASE_URL` установлен в Railway**:
+   - Railway Dashboard → Variables → DATABASE_URL
+   - Должен быть автоматически добавлен при подключении БД
+
+2. **Запустите миграции вручную через API**:
+   ```bash
+   # Health check (автоматически запустит миграции если нужно)
+   curl https://your-app.railway.app/api/health
+   
+   # Или напрямую запустите миграции
+   curl https://your-app.railway.app/api/migrations/run
+   ```
+
+3. **Проверьте логи Railway**:
+   - Railway Dashboard → Deployments → Logs
+   - Ищите сообщения `[Migrations]` или `[API/migrations]`
+   - Проверьте наличие ошибок подключения
+
+4. **Проверьте postbuild скрипт**:
+   - Убедитесь что в `package.json` есть `"postbuild": "npm run migrate"`
+   - Проверьте что скрипт `migrate` существует и работает
+
+5. **Если проблема сохраняется**:
+   - Перезапустите деплой в Railway
+   - Проверьте что Railway Database запущен и доступен
+   - Убедитесь что используется правильный DATABASE_URL (публичный, не внутренний)
 
 ### Ошибка подключения к БД
 
 **Проблема**: `getaddrinfo ENOTFOUND postgres.railway.internal` или `Error: connect ECONNREFUSED`
 
+**Причины**:
+- Railway предоставляет два типа `DATABASE_URL`:
+  - **Внутренний** (`postgres.railway.internal`) - доступен только внутри сети Railway
+  - **Публичный** (`containers-us-west-xxx.railway.app`) - доступен извне
+- Если приложение запускается в Docker-контейнере вне сети Railway, внутренний DNS не разрешается
+
 **Решение**:
-1. Убедитесь что Railway Database создан и подключен к проекту
-2. Проверьте `DATABASE_URL` в переменных окружения Railway:
-   - Должен быть автоматически добавлен при подключении БД
-   - Формат: `postgresql://user:password@host:port/database`
-   - Если использует внутренний хост `postgres.railway.internal` - это нормально, Railway обработает это автоматически
-3. Убедитесь что драйвер `pg` установлен (должен быть в `package.json`)
-4. Если проблема сохраняется:
-   - Перезапустите деплой в Railway
-   - Проверьте что Railway Database запущен и доступен
+
+1. **Проверьте тип DATABASE_URL**:
+   ```bash
+   # В Railway Dashboard → Variables → DATABASE_URL
+   # Если видите postgres.railway.internal - это внутренний URL
+   ```
+
+2. **Используйте публичный URL базы данных**:
+   - В Railway Dashboard → Database → Connect → Public Networking
+   - Скопируйте публичный `DATABASE_URL` (с хостом вида `containers-us-west-xxx.railway.app`)
+   - Обновите переменную окружения `DATABASE_URL` в Railway
+
+3. **Альтернативное решение** (если нужно использовать внутренний URL):
+   - Убедитесь что приложение запускается внутри сети Railway
+   - Проверьте что Railway Database и приложение находятся в одном проекте
+   - Railway автоматически обработает внутренний DNS
+
+4. **Проверьте настройки подключения**:
+   - Убедитесь что Railway Database создан и запущен
+   - Проверьте что драйвер `pg` установлен (должен быть в `package.json`)
+   - Убедитесь что SSL настроен правильно (для production)
+
+5. **Улучшенная диагностика**:
+   - Код теперь автоматически определяет тип hostname и предупреждает о возможных проблемах
+   - Логи содержат детальную информацию об ошибках подключения
+   - Добавлена retry логика (3 попытки с задержкой 2 секунды)
+
+6. **Если проблема сохраняется**:
+   - Перезапустите деплой в Railway: `railway up` или через Dashboard
+   - Проверьте логи Railway на наличие детальных сообщений об ошибках
    - Убедитесь что проект и БД находятся в одном Railway проекте
+   - Проверьте сетевые настройки и firewall правила
 
 ### Таблицы не создаются
 
