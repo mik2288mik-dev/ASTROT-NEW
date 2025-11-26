@@ -164,8 +164,9 @@ export const saveChartData = async (data: NatalChartData): Promise<void> => {
 
   log.info(`[saveChartData] Starting save for user: ${userId}`, {
     userId,
-    hasPlanets: !!data.planets,
-    hasHouses: !!data.houses
+    hasSun: !!data.sun,
+    hasMoon: !!data.moon,
+    element: data.element
   });
 
   try {
@@ -251,11 +252,12 @@ export const getChartData = async (): Promise<NatalChartData | null> => {
     
     if (response.ok) {
       const chartData = await response.json() as NatalChartData;
-      log.info(`[getChartData] Successfully loaded chart from database`, {
-        userId,
-        hasPlanets: !!chartData.planets,
-        hasHouses: !!chartData.houses
-      });
+        log.info(`[getChartData] Successfully loaded chart from database`, {
+          userId,
+          hasSun: !!chartData.sun,
+          hasMoon: !!chartData.moon,
+          element: chartData.element
+        });
       return chartData;
     } else if (response.status === 404) {
       log.info(`[getChartData] Chart not found (404), will try localStorage`);

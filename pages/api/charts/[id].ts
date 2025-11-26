@@ -18,6 +18,10 @@ export default async function handler(
   const { id } = req.query;
   const userId = Array.isArray(id) ? id[0] : id;
 
+  if (!userId) {
+    return res.status(400).json({ error: 'User ID is required' });
+  }
+
   log.info(`Request received`, {
     method: req.method,
     userId,
@@ -36,8 +40,9 @@ export default async function handler(
       }
 
       log.info(`[GET] Chart found for user: ${userId}`, {
-        hasPlanets: !!chart.chart_data?.planets,
-        hasHouses: !!chart.chart_data?.houses
+        hasSun: !!chart.chart_data?.sun,
+        hasMoon: !!chart.chart_data?.moon,
+        element: chart.chart_data?.element
       });
 
       return res.status(200).json(chart.chart_data || chart);
@@ -47,8 +52,9 @@ export default async function handler(
       // Save chart data
       const chartData = req.body;
       log.info(`[${req.method}] Saving chart for user: ${userId}`, {
-        hasPlanets: !!chartData.planets,
-        hasHouses: !!chartData.houses
+        hasSun: !!chartData.sun,
+        hasMoon: !!chartData.moon,
+        element: chartData.element
       });
 
       const savedChart = await db.charts.set(userId, {

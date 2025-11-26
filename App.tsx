@@ -130,8 +130,9 @@ const App: React.FC = () => {
             console.log('[App] Calculating natal chart...');
             const generatedChart = await calculateNatalChart(fullProfile);
             console.log('[App] Chart generated, saving...', {
-                hasPlanets: !!generatedChart.planets,
-                hasHouses: !!generatedChart.houses
+                hasSun: !!generatedChart.sun,
+                hasMoon: !!generatedChart.moon,
+                element: generatedChart.element
             });
             
             setChartData(generatedChart);

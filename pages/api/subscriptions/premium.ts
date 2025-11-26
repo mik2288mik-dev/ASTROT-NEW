@@ -18,6 +18,10 @@ export default async function handler(
   const { userId } = req.query;
   const id = Array.isArray(userId) ? userId[0] : userId;
 
+  if (!id) {
+    return res.status(400).json({ error: 'User ID is required' });
+  }
+
   log.info('Request received', {
     method: req.method,
     userId: id,
