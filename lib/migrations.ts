@@ -175,35 +175,11 @@ export async function runMigrations(): Promise<void> {
     pool = new Pool({
       connectionString: DATABASE_URL,
       ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-      connectionTimeoutMillis: 10000, // Increased timeout for Railway
-      query_timeout: 30000,
-      statement_timeout: 30000,
     });
 
-    // Test connection with retry logic
-    let retries = 3;
-    let lastError: any = null;
-    
-    while (retries > 0) {
-      try {
-        await pool.query('SELECT NOW()');
-        log.info('Database connection established');
-        break;
-      } catch (error: any) {
-        lastError = error;
-        retries--;
-        if (retries > 0) {
-          log.warn(`Connection attempt failed, retrying... (${retries} attempts left)`, {
-            error: error.message
-          });
-          await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds before retry
-        }
-      }
-    }
-    
-    if (retries === 0 && lastError) {
-      throw new Error(`Failed to connect to database after 3 attempts: ${lastError.message}`);
-    }
+    // Test connection
+    await pool.query('SELECT NOW()');
+    log.info('Database connection established');
 
     // Create migrations table first
     await createMigrationsTable(pool);

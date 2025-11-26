@@ -42,19 +42,12 @@ function getPool(): Pool {
       throw new Error('DATABASE_URL is not configured');
     }
     
-    // Parse DATABASE_URL to handle Railway's internal hostnames
-    let connectionString = DATABASE_URL;
-    
-    // Railway sometimes provides internal hostnames that may not resolve immediately
-    // We'll use the connection string as-is, but with better timeout settings
     pool = new Pool({
-      connectionString: connectionString,
+      connectionString: DATABASE_URL,
       ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
       max: 20,
       idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 10000, // Increased from 2000ms to 10000ms
-      query_timeout: 30000,
-      statement_timeout: 30000,
+      connectionTimeoutMillis: 2000,
     });
 
     pool.on('error', (err) => {
