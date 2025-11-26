@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { NatalChartData, UserProfile } from '../types';
 import { getText } from '../constants';
-import { getDeepDiveAnalysis, getDailyHoroscope, getWeeklyHoroscope, getMonthlyHoroscope } from '../services/geminiService';
+import { getDeepDiveAnalysis, getDailyHoroscope, getWeeklyHoroscope, getMonthlyHoroscope } from '../services/astrologyService';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { Loading } from '../components/ui/Loading';
 

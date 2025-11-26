@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { UserProfile, NatalChartData } from '../types';
-import { getThreeKeys } from '../services/geminiService';
+import { getThreeKeys } from '../services/astrologyService';
 import { saveProfile } from '../services/storageService';
 import { motion } from 'framer-motion';
 import { Loading } from '../components/ui/Loading';
