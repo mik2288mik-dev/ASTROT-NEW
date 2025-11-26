@@ -42,16 +42,36 @@ function getPool(): Pool {
       throw new Error('DATABASE_URL is not configured');
     }
     
+    // Parse and log connection info for debugging
+    const urlParts = DATABASE_URL.match(/^postgres(ql)?:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/(.+)$/);
+    if (urlParts) {
+      const [, , user, , host, port, database] = urlParts;
+      log.info(`Creating connection pool: ${host}:${port}/${database} (user: ${user})`);
+      
+      // Check if using internal Railway hostname
+      if (host.includes('railway.internal')) {
+        log.warn('Using Railway internal hostname. This may not be accessible from Docker containers.');
+      }
+    }
+    
     pool = new Pool({
       connectionString: DATABASE_URL,
       ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
       max: 20,
       idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 2000,
+      connectionTimeoutMillis: 10000, // Increased timeout to 10 seconds
     });
 
     pool.on('error', (err) => {
-      log.error('Unexpected error on idle client', err);
+      log.error('Unexpected error on idle client', {
+        error: err.message,
+        code: err.code,
+        stack: err.stack
+      });
+    });
+
+    pool.on('connect', () => {
+      log.info('New database connection established');
     });
 
     log.info('Database connection pool created');
@@ -75,11 +95,25 @@ export async function queryDatabase(query: string, params?: any[]): Promise<any>
     const result = await dbPool.query(query, params);
     return result.rows;
   } catch (error: any) {
+    const errorMessage = error.message || 'Unknown error';
+    const errorCode = error.code || 'UNKNOWN';
+    
     log.error('[DB] Query failed', {
-      error: error.message,
+      error: errorMessage,
+      code: errorCode,
       stack: error.stack,
       query: query.substring(0, 100)
     });
+
+    // Provide helpful error messages for common connection issues
+    if (errorMessage.includes('ENOTFOUND') || errorMessage.includes('getaddrinfo')) {
+      log.error('[DB] DNS resolution failed. Check DATABASE_URL hostname.');
+    } else if (errorMessage.includes('ECONNREFUSED')) {
+      log.error('[DB] Connection refused. Check if database server is running and accessible.');
+    } else if (errorMessage.includes('timeout')) {
+      log.error('[DB] Connection timeout. Database may be unreachable.');
+    }
+    
     throw error;
   }
 }

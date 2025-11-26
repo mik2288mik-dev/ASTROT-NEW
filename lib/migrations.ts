@@ -151,6 +151,28 @@ async function migration003(pool: Pool): Promise<void> {
 }
 
 /**
+ * Test database connection with retry logic
+ */
+async function testConnection(pool: Pool, retries = 3, delay = 2000): Promise<void> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      await pool.query('SELECT NOW()');
+      log.info('Database connection established');
+      return;
+    } catch (error: any) {
+      if (i < retries - 1) {
+        log.warn(`Connection attempt ${i + 1} failed, retrying in ${delay}ms...`, {
+          error: error.message
+        });
+        await new Promise(resolve => setTimeout(resolve, delay));
+      } else {
+        throw error;
+      }
+    }
+  }
+}
+
+/**
  * Run all migrations
  */
 export async function runMigrations(): Promise<void> {
@@ -165,6 +187,14 @@ export async function runMigrations(): Promise<void> {
   if (urlParts) {
     const [, , user, , host, port, database] = urlParts;
     log.info(`Connecting to database: ${host}:${port}/${database} (user: ${user})`);
+    
+    // Check if using internal Railway hostname
+    if (host.includes('railway.internal')) {
+      log.warn('Using Railway internal hostname. This may not be accessible from Docker containers.');
+      log.warn('If running outside Railway network, use the public database URL instead.');
+    }
+  } else {
+    log.warn('Could not parse DATABASE_URL format. Please check the connection string.');
   }
 
   let pool: Pool | null = null;
@@ -172,14 +202,18 @@ export async function runMigrations(): Promise<void> {
   try {
     log.info('Starting database migrations...');
     
+    // Configure pool with better timeout settings
     pool = new Pool({
       connectionString: DATABASE_URL,
       ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+      connectionTimeoutMillis: 10000, // 10 seconds timeout
+      idleTimeoutMillis: 30000,
+      max: 5, // Limit connections for migrations
     });
 
-    // Test connection
-    await pool.query('SELECT NOW()');
-    log.info('Database connection established');
+    // Test connection with retry logic
+    await testConnection(pool, 3, 2000);
+    log.info('Database connection test passed');
 
     // Create migrations table first
     await createMigrationsTable(pool);
@@ -191,15 +225,42 @@ export async function runMigrations(): Promise<void> {
 
     log.info('All migrations completed successfully');
   } catch (error: any) {
+    const errorMessage = error.message || 'Unknown error';
+    const errorCode = error.code || 'UNKNOWN';
+    
     log.error('Migration failed', {
-      error: error.message,
+      error: errorMessage,
+      code: errorCode,
       stack: error.stack
     });
+
+    // Provide helpful error messages for common issues
+    if (errorMessage.includes('ENOTFOUND') || errorMessage.includes('getaddrinfo')) {
+      log.error('DNS resolution failed. Possible causes:');
+      log.error('1. Database hostname is incorrect or not accessible');
+      log.error('2. If using Railway internal hostname (postgres.railway.internal), ensure you are running inside Railway network');
+      log.error('3. If running in Docker, use Railway public database URL instead of internal');
+      log.error('4. Check network connectivity and DNS settings');
+    } else if (errorMessage.includes('ECONNREFUSED')) {
+      log.error('Connection refused. Possible causes:');
+      log.error('1. Database server is not running');
+      log.error('2. Port number is incorrect');
+      log.error('3. Firewall is blocking the connection');
+    } else if (errorMessage.includes('authentication') || errorMessage.includes('password')) {
+      log.error('Authentication failed. Check username and password in DATABASE_URL');
+    } else if (errorMessage.includes('timeout')) {
+      log.error('Connection timeout. Database server may be unreachable or overloaded');
+    }
+
     throw error;
   } finally {
     if (pool) {
-      await pool.end();
-      log.info('Database connection closed');
+      try {
+        await pool.end();
+        log.info('Database connection closed');
+      } catch (closeError: any) {
+        log.warn('Error closing connection pool', { error: closeError.message });
+      }
     }
   }
 }
