@@ -1,7 +1,7 @@
 import { UserProfile, NatalChartData } from "../types";
 
-// Railway Database API base URL
-const DB_API_URL = process.env.DATABASE_URL || '';
+// Next.js API base URL - используем локальные API routes
+const API_BASE_URL = typeof window !== 'undefined' ? '' : process.env.NEXT_PUBLIC_API_URL || '';
 
 const PROFILE_KEY = 'astrot_profile';
 const CHART_KEY = 'astrot_chart';
@@ -19,12 +19,10 @@ const log = {
   }
 };
 
-// Check if DATABASE_URL is configured
-if (!DB_API_URL) {
-  log.warn('DATABASE_URL is not set. All data will be saved to localStorage only.');
-} else {
-  log.info(`DATABASE_URL configured: ${DB_API_URL.substring(0, 30)}...`);
-}
+log.info('StorageService initialized', { 
+  isClient: typeof window !== 'undefined',
+  apiBaseUrl: API_BASE_URL || '/api'
+});
 
 /**
  * Save profile to Railway Database
@@ -38,49 +36,43 @@ export const saveProfile = async (profile: UserProfile): Promise<void> => {
   });
 
   try {
-    if (DB_API_URL) {
-      const url = `${DB_API_URL}/api/users/${userId}`;
-      log.info(`[saveProfile] Sending POST request to: ${url}`);
-      
-      const requestBody = JSON.stringify(profile);
-      log.info(`[saveProfile] Request body size: ${requestBody.length} bytes`);
+    // Always try to save to database via Next.js API
+    const url = `${API_BASE_URL}/api/users/${userId}`;
+    log.info(`[saveProfile] Sending POST request to: ${url}`);
+    
+    const requestBody = JSON.stringify(profile);
+    log.info(`[saveProfile] Request body size: ${requestBody.length} bytes`);
 
-      const startTime = Date.now();
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: requestBody
-      });
+    const startTime = Date.now();
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: requestBody
+    });
 
-      const duration = Date.now() - startTime;
-      log.info(`[saveProfile] Response received in ${duration}ms`, {
+    const duration = Date.now() - startTime;
+    log.info(`[saveProfile] Response received in ${duration}ms`, {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unable to read error response');
+      log.error(`[saveProfile] Server returned error status ${response.status}`, {
         status: response.status,
         statusText: response.statusText,
-        ok: response.ok
+        errorBody: errorText
       });
-
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => 'Unable to read error response');
-        log.error(`[saveProfile] Server returned error status ${response.status}`, {
-          status: response.status,
-          statusText: response.statusText,
-          errorBody: errorText
-        });
-        throw new Error(`Failed to save profile to database: ${response.status} ${response.statusText}`);
-      }
-
-      const responseData = await response.json().catch(() => null);
-      log.info(`[saveProfile] Successfully saved profile to database`, {
-        userId,
-        responseData: responseData ? 'Received' : 'No response body'
-      });
-      return;
-    } else {
-      // Fallback to localStorage if DATABASE_URL is not set
-      log.warn('[saveProfile] DATABASE_URL not set, using localStorage fallback');
-      localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
-      log.info('[saveProfile] Profile saved to localStorage');
+      throw new Error(`Failed to save profile to database: ${response.status} ${response.statusText}`);
     }
+
+    const responseData = await response.json().catch(() => null);
+    log.info(`[saveProfile] Successfully saved profile to database`, {
+      userId,
+      responseData: responseData ? 'Received' : 'No response body'
+    });
+    return;
   } catch (error: any) {
     log.error('[saveProfile] Error occurred during save', {
       error: error.message,
@@ -110,35 +102,32 @@ export const getProfile = async (): Promise<UserProfile | null> => {
   log.info(`[getProfile] Starting fetch for user: ${userId}`, { userId, tgId });
 
   try {
-    if (DB_API_URL) {
-      const url = `${DB_API_URL}/api/users/${userId}`;
-      log.info(`[getProfile] Sending GET request to: ${url}`);
+    // Always try to get from database via Next.js API
+    const url = `${API_BASE_URL}/api/users/${userId}`;
+    log.info(`[getProfile] Sending GET request to: ${url}`);
 
-      const startTime = Date.now();
-      const response = await fetch(url);
-      const duration = Date.now() - startTime;
+    const startTime = Date.now();
+    const response = await fetch(url);
+    const duration = Date.now() - startTime;
 
-      log.info(`[getProfile] Response received in ${duration}ms`, {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok
+    log.info(`[getProfile] Response received in ${duration}ms`, {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok
+    });
+    
+    if (response.ok) {
+      const profile = await response.json() as UserProfile;
+      log.info(`[getProfile] Successfully loaded profile from database`, {
+        userId,
+        hasName: !!profile.name,
+        isSetup: profile.isSetup
       });
-      
-      if (response.ok) {
-        const profile = await response.json() as UserProfile;
-        log.info(`[getProfile] Successfully loaded profile from database`, {
-          userId,
-          hasName: !!profile.name,
-          isSetup: profile.isSetup
-        });
-        return profile;
-      } else if (response.status === 404) {
-        log.info(`[getProfile] Profile not found (404), will try localStorage`);
-      } else {
-        log.warn(`[getProfile] Unexpected status ${response.status}, will try localStorage`);
-      }
+      return profile;
+    } else if (response.status === 404) {
+      log.info(`[getProfile] Profile not found (404), will try localStorage`);
     } else {
-      log.warn('[getProfile] DATABASE_URL not set, using localStorage');
+      log.warn(`[getProfile] Unexpected status ${response.status}, will try localStorage`);
     }
   } catch (error: any) {
     log.error('[getProfile] Error occurred during fetch', {
@@ -180,49 +169,43 @@ export const saveChartData = async (data: NatalChartData): Promise<void> => {
   });
 
   try {
-    if (DB_API_URL) {
-      const url = `${DB_API_URL}/api/charts/${userId}`;
-      log.info(`[saveChartData] Sending POST request to: ${url}`);
+    // Always try to save to database via Next.js API
+    const url = `${API_BASE_URL}/api/charts/${userId}`;
+    log.info(`[saveChartData] Sending POST request to: ${url}`);
 
-      const requestBody = JSON.stringify(data);
-      log.info(`[saveChartData] Request body size: ${requestBody.length} bytes`);
+    const requestBody = JSON.stringify(data);
+    log.info(`[saveChartData] Request body size: ${requestBody.length} bytes`);
 
-      const startTime = Date.now();
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: requestBody
-      });
+    const startTime = Date.now();
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: requestBody
+    });
 
-      const duration = Date.now() - startTime;
-      log.info(`[saveChartData] Response received in ${duration}ms`, {
+    const duration = Date.now() - startTime;
+    log.info(`[saveChartData] Response received in ${duration}ms`, {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unable to read error response');
+      log.error(`[saveChartData] Server returned error status ${response.status}`, {
         status: response.status,
         statusText: response.statusText,
-        ok: response.ok
+        errorBody: errorText
       });
-
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => 'Unable to read error response');
-        log.error(`[saveChartData] Server returned error status ${response.status}`, {
-          status: response.status,
-          statusText: response.statusText,
-          errorBody: errorText
-        });
-        throw new Error(`Failed to save chart to database: ${response.status} ${response.statusText}`);
-      }
-
-      const responseData = await response.json().catch(() => null);
-      log.info(`[saveChartData] Successfully saved chart to database`, {
-        userId,
-        responseData: responseData ? 'Received' : 'No response body'
-      });
-      return;
-    } else {
-      // Fallback to localStorage
-      log.warn('[saveChartData] DATABASE_URL not set, using localStorage fallback');
-      localStorage.setItem(CHART_KEY, JSON.stringify(data));
-      log.info('[saveChartData] Chart saved to localStorage');
+      throw new Error(`Failed to save chart to database: ${response.status} ${response.statusText}`);
     }
+
+    const responseData = await response.json().catch(() => null);
+    log.info(`[saveChartData] Successfully saved chart to database`, {
+      userId,
+      responseData: responseData ? 'Received' : 'No response body'
+    });
+    return;
   } catch (error: any) {
     log.error('[saveChartData] Error occurred during save', {
       error: error.message,
@@ -252,35 +235,32 @@ export const getChartData = async (): Promise<NatalChartData | null> => {
   log.info(`[getChartData] Starting fetch for user: ${userId}`, { userId, tgId });
 
   try {
-    if (DB_API_URL) {
-      const url = `${DB_API_URL}/api/charts/${userId}`;
-      log.info(`[getChartData] Sending GET request to: ${url}`);
+    // Always try to get from database via Next.js API
+    const url = `${API_BASE_URL}/api/charts/${userId}`;
+    log.info(`[getChartData] Sending GET request to: ${url}`);
 
-      const startTime = Date.now();
-      const response = await fetch(url);
-      const duration = Date.now() - startTime;
+    const startTime = Date.now();
+    const response = await fetch(url);
+    const duration = Date.now() - startTime;
 
-      log.info(`[getChartData] Response received in ${duration}ms`, {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok
+    log.info(`[getChartData] Response received in ${duration}ms`, {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok
+    });
+    
+    if (response.ok) {
+      const chartData = await response.json() as NatalChartData;
+      log.info(`[getChartData] Successfully loaded chart from database`, {
+        userId,
+        hasPlanets: !!chartData.planets,
+        hasHouses: !!chartData.houses
       });
-      
-      if (response.ok) {
-        const chartData = await response.json() as NatalChartData;
-        log.info(`[getChartData] Successfully loaded chart from database`, {
-          userId,
-          hasPlanets: !!chartData.planets,
-          hasHouses: !!chartData.houses
-        });
-        return chartData;
-      } else if (response.status === 404) {
-        log.info(`[getChartData] Chart not found (404), will try localStorage`);
-      } else {
-        log.warn(`[getChartData] Unexpected status ${response.status}, will try localStorage`);
-      }
+      return chartData;
+    } else if (response.status === 404) {
+      log.info(`[getChartData] Chart not found (404), will try localStorage`);
     } else {
-      log.warn('[getChartData] DATABASE_URL not set, using localStorage');
+      log.warn(`[getChartData] Unexpected status ${response.status}, will try localStorage`);
     }
   } catch (error: any) {
     log.error('[getChartData] Error occurred during fetch', {
@@ -314,34 +294,31 @@ export const getAllUsers = async (): Promise<UserProfile[]> => {
   log.info('[getAllUsers] Starting fetch for all users');
 
   try {
-    if (DB_API_URL) {
-      const url = `${DB_API_URL}/api/users`;
-      log.info(`[getAllUsers] Sending GET request to: ${url}`);
+    // Always try to get from database via Next.js API
+    const url = `${API_BASE_URL}/api/users`;
+    log.info(`[getAllUsers] Sending GET request to: ${url}`);
 
-      const startTime = Date.now();
-      const response = await fetch(url);
-      const duration = Date.now() - startTime;
+    const startTime = Date.now();
+    const response = await fetch(url);
+    const duration = Date.now() - startTime;
 
-      log.info(`[getAllUsers] Response received in ${duration}ms`, {
+    log.info(`[getAllUsers] Response received in ${duration}ms`, {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok
+    });
+    
+    if (response.ok) {
+      const users = await response.json() as UserProfile[];
+      log.info(`[getAllUsers] Successfully loaded ${users.length} users from database`);
+      return users;
+    } else {
+      const errorText = await response.text().catch(() => 'Unable to read error response');
+      log.error(`[getAllUsers] Server returned error status ${response.status}`, {
         status: response.status,
         statusText: response.statusText,
-        ok: response.ok
+        errorBody: errorText
       });
-      
-      if (response.ok) {
-        const users = await response.json() as UserProfile[];
-        log.info(`[getAllUsers] Successfully loaded ${users.length} users from database`);
-        return users;
-      } else {
-        const errorText = await response.text().catch(() => 'Unable to read error response');
-        log.error(`[getAllUsers] Server returned error status ${response.status}`, {
-          status: response.status,
-          statusText: response.statusText,
-          errorBody: errorText
-        });
-      }
-    } else {
-      log.warn('[getAllUsers] DATABASE_URL not set, using mock data');
     }
   } catch (error: any) {
     log.error('[getAllUsers] Error occurred during fetch', {

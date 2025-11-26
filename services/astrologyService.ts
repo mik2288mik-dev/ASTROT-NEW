@@ -4,8 +4,8 @@ import { SYSTEM_INSTRUCTION_ASTRA } from "../constants";
 // Helper to select language prompt
 const getLangPrompt = (lang: string) => lang === 'ru' ? "Response must be in Russian." : "Response must be in English.";
 
-// API base URL - будет использоваться для вызовов к backend API
-const API_BASE_URL = process.env.DATABASE_URL ? `${process.env.DATABASE_URL}/api` : '/api';
+// API base URL - используем локальные Next.js API routes
+const API_BASE_URL = typeof window !== 'undefined' ? '' : process.env.NEXT_PUBLIC_API_URL || '';
 
 // Logging utility
 const log = {
