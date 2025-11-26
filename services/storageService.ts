@@ -1,18 +1,18 @@
 import { UserProfile, NatalChartData } from "../types";
 
-// Replit Database API base URL
+// Railway Database API base URL
 const DB_API_URL = process.env.DATABASE_URL || '';
 
 const PROFILE_KEY = 'astrot_profile';
 const CHART_KEY = 'astrot_chart';
 
 /**
- * Save profile to Replit Database
+ * Save profile to Railway Database
  */
 export const saveProfile = async (profile: UserProfile): Promise<void> => {
   try {
     if (DB_API_URL) {
-      // Save to Replit Database via API
+      // Save to Railway Database via API
       const response = await fetch(`${DB_API_URL}/api/users/${profile.id || 'current'}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -35,12 +35,12 @@ export const saveProfile = async (profile: UserProfile): Promise<void> => {
 };
 
 /**
- * Get profile from Replit Database
+ * Get profile from Railway Database
  */
 export const getProfile = async (): Promise<UserProfile | null> => {
   try {
     if (DB_API_URL) {
-      // Get from Replit Database via API
+      // Get from Railway Database via API
       const tg = (window as any).Telegram?.WebApp;
       const tgId = tg?.initDataUnsafe?.user?.id;
       const userId = tgId || 'current';
@@ -61,7 +61,7 @@ export const getProfile = async (): Promise<UserProfile | null> => {
 };
 
 /**
- * Save chart data to Replit Database
+ * Save chart data to Railway Database
  */
 export const saveChartData = async (data: NatalChartData): Promise<void> => {
   try {
@@ -91,7 +91,7 @@ export const saveChartData = async (data: NatalChartData): Promise<void> => {
 };
 
 /**
- * Get chart data from Replit Database
+ * Get chart data from Railway Database
  */
 export const getChartData = async (): Promise<NatalChartData | null> => {
   try {
@@ -116,7 +116,7 @@ export const getChartData = async (): Promise<NatalChartData | null> => {
 };
 
 /**
- * Get all users for Admin Panel from Replit Database
+ * Get all users for Admin Panel from Railway Database
  */
 export const getAllUsers = async (): Promise<UserProfile[]> => {
   try {

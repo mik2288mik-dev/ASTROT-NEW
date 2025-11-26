@@ -50,4 +50,4 @@ The core philosophy moves beyond static data into a **Living, Breathing Entity**
 1.  **Context API:** Integrate OpenWeatherMap & NewsAPI for real-time context.
 2.  **Incremental Context:** Summarize previous context into a "User State" object to optimize API calls.
 3.  **Batch Processing:** Generate Daily Horoscopes at 00:01 UTC via Cron Jobs (Cloud Functions) rather than on-demand to reduce latency.
-4.  **Database:** All data is stored in Replit Database via DATABASE_URL environment variable.
+4.  **Database:** All data is stored in Railway Database via DATABASE_URL environment variable.
