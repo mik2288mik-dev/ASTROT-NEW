@@ -30,12 +30,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, chartData, reques
             // 2. Update Evolution (Simulated Async)
             if (!profile.evolution || (Date.now() - profile.evolution.lastUpdated > 86400000)) {
                 // Update once every 24 hours or if missing
+                console.log('[Dashboard] Updating user evolution...');
                 const newEvo = await updateUserEvolution(profile);
                 setEvolution(newEvo);
                 
                 // Save to profile
                 const updatedProfile = { ...profile, evolution: newEvo };
-                await saveProfile(updatedProfile);
+                try {
+                    await saveProfile(updatedProfile);
+                    console.log('[Dashboard] Evolution saved successfully');
+                } catch (error) {
+                    console.error('[Dashboard] Failed to save evolution:', error);
+                }
             }
         };
         loadSmartFeatures();

@@ -20,31 +20,54 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
     const handleLanguageToggle = () => {
         const newLang: Language = profile.language === 'ru' ? 'en' : 'ru';
         const updated = { ...profile, language: newLang };
+        console.log('[Settings] Language changed to:', newLang);
         onUpdate(updated);
-        saveProfile(updated);
+        saveProfile(updated).catch(error => {
+            console.error('[Settings] Failed to save language:', error);
+        });
     };
 
     const handleThemeToggle = (newTheme: Theme) => {
         const updated = { ...profile, theme: newTheme };
+        console.log('[Settings] Theme changed to:', newTheme);
         onUpdate(updated);
-        saveProfile(updated);
+        saveProfile(updated).catch(error => {
+            console.error('[Settings] Failed to save theme:', error);
+        });
     };
 
     const handlePremiumPurchase = async () => {
         if (profile.isPremium) return;
         
+        console.log('[Settings] Starting premium purchase...');
         const success = await requestStarsPayment(profile);
         if (success) {
+            console.log('[Settings] Premium purchase successful');
             const updated = { ...profile, isPremium: true };
             onUpdate(updated);
-            saveProfile(updated);
+            try {
+                await saveProfile(updated);
+                console.log('[Settings] Premium status saved');
+            } catch (error) {
+                console.error('[Settings] Failed to save premium status:', error);
+            }
+        } else {
+            console.log('[Settings] Premium purchase cancelled');
         }
     };
 
     const handleSaveProfile = () => {
         const updated = { ...profile, name: tempName, birthPlace: tempPlace };
+        console.log('[Settings] Saving profile changes:', {
+            name: tempName,
+            birthPlace: tempPlace
+        });
         onUpdate(updated);
-        saveProfile(updated);
+        saveProfile(updated).then(() => {
+            console.log('[Settings] Profile saved successfully');
+        }).catch(error => {
+            console.error('[Settings] Failed to save profile:', error);
+        });
         setEditing(false);
     };
 

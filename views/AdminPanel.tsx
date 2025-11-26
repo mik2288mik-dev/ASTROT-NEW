@@ -44,9 +44,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onUpdate, onClo
 
         // If acting on self, update global app state
         if (targetUser.id === profile.id) {
+            console.log('[AdminPanel] Toggling premium for self:', targetUser.id);
             const updatedProfile = { ...profile, isPremium: !profile.isPremium };
             onUpdate(updatedProfile);
-            saveProfile(updatedProfile);
+            saveProfile(updatedProfile).then(() => {
+                console.log('[AdminPanel] Premium status saved');
+            }).catch(error => {
+                console.error('[AdminPanel] Failed to save premium status:', error);
+            });
         }
     };
 
@@ -61,9 +66,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onUpdate, onClo
         
         // If acting on self
         if (targetUser.id === profile.id) {
+            console.log('[AdminPanel] Toggling admin status for self:', targetUser.id);
             const updatedProfile = { ...profile, isAdmin: !profile.isAdmin };
             onUpdate(updatedProfile);
-            saveProfile(updatedProfile);
+            saveProfile(updatedProfile).then(() => {
+                console.log('[AdminPanel] Admin status saved');
+            }).catch(error => {
+                console.error('[AdminPanel] Failed to save admin status:', error);
+            });
         }
     };
 

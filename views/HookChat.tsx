@@ -33,8 +33,14 @@ export const HookChat: React.FC<HookChatProps> = ({ profile, chartData, onComple
                 const keys = await getThreeKeys(profile, chartData);
                 
                 // Save keys immediately
+                console.log('[HookChat] Saving three keys to profile...');
                 const updatedProfile = { ...profile, threeKeys: keys };
-                await saveProfile(updatedProfile);
+                try {
+                    await saveProfile(updatedProfile);
+                    console.log('[HookChat] Three keys saved successfully');
+                } catch (error) {
+                    console.error('[HookChat] Failed to save three keys:', error);
+                }
                 onUpdateProfile(updatedProfile);
                 
                 setIsLoading(false);
