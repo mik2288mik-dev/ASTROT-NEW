@@ -19,6 +19,25 @@ const log = {
 };
 
 /**
+ * Check if a table exists in the database
+ */
+async function tableExists(pool: Pool, tableName: string): Promise<boolean> {
+  try {
+    const result = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = $1
+      );
+    `, [tableName]);
+    return result.rows[0].exists;
+  } catch (error: any) {
+    log.error(`Error checking if table ${tableName} exists`, { error: error.message });
+    return false;
+  }
+}
+
+/**
  * Create migrations table to track applied migrations
  */
 async function createMigrationsTable(pool: Pool): Promise<void> {
@@ -31,6 +50,13 @@ async function createMigrationsTable(pool: Pool): Promise<void> {
   `;
   
   await pool.query(createTableQuery);
+  
+  // Verify table was created
+  const exists = await tableExists(pool, 'migrations');
+  if (!exists) {
+    throw new Error('Failed to create migrations table - table does not exist after CREATE TABLE');
+  }
+  
   log.info('Migrations table created/verified');
 }
 
@@ -63,7 +89,13 @@ async function migration001(pool: Pool): Promise<void> {
   
   if (await isMigrationApplied(pool, migrationName)) {
     log.info(`Migration ${migrationName} already applied, skipping`);
-    return;
+    // Verify table exists even if migration was already applied
+    const exists = await tableExists(pool, 'users');
+    if (!exists) {
+      log.warn(`Migration ${migrationName} was marked as applied but table 'users' does not exist. Recreating...`);
+    } else {
+      return;
+    }
   }
 
   log.info(`Applying migration ${migrationName}...`);
@@ -91,6 +123,13 @@ async function migration001(pool: Pool): Promise<void> {
   `;
 
   await pool.query(createUsersTable);
+  
+  // Verify table was created
+  const exists = await tableExists(pool, 'users');
+  if (!exists) {
+    throw new Error(`Failed to create table 'users' - table does not exist after CREATE TABLE`);
+  }
+  
   await markMigrationApplied(pool, migrationName);
   log.info(`Migration ${migrationName} applied successfully`);
 }
@@ -103,10 +142,22 @@ async function migration002(pool: Pool): Promise<void> {
   
   if (await isMigrationApplied(pool, migrationName)) {
     log.info(`Migration ${migrationName} already applied, skipping`);
-    return;
+    // Verify table exists even if migration was already applied
+    const exists = await tableExists(pool, 'charts');
+    if (!exists) {
+      log.warn(`Migration ${migrationName} was marked as applied but table 'charts' does not exist. Recreating...`);
+    } else {
+      return;
+    }
   }
 
   log.info(`Applying migration ${migrationName}...`);
+
+  // Ensure users table exists before creating foreign key
+  const usersExists = await tableExists(pool, 'users');
+  if (!usersExists) {
+    throw new Error('Cannot create charts table: users table does not exist. Run migration001 first.');
+  }
 
   const createChartsTable = `
     CREATE TABLE IF NOT EXISTS charts (
@@ -119,6 +170,13 @@ async function migration002(pool: Pool): Promise<void> {
   `;
 
   await pool.query(createChartsTable);
+  
+  // Verify table was created
+  const exists = await tableExists(pool, 'charts');
+  if (!exists) {
+    throw new Error(`Failed to create table 'charts' - table does not exist after CREATE TABLE`);
+  }
+  
   await markMigrationApplied(pool, migrationName);
   log.info(`Migration ${migrationName} applied successfully`);
 }
@@ -148,6 +206,30 @@ async function migration003(pool: Pool): Promise<void> {
 
   await markMigrationApplied(pool, migrationName);
   log.info(`Migration ${migrationName} applied successfully`);
+}
+
+/**
+ * Verify that all required tables exist
+ */
+async function verifyTablesExist(pool: Pool): Promise<void> {
+  const requiredTables = ['migrations', 'users', 'charts'];
+  const missingTables: string[] = [];
+
+  for (const tableName of requiredTables) {
+    const exists = await tableExists(pool, tableName);
+    if (!exists) {
+      missingTables.push(tableName);
+      log.error(`Table ${tableName} does not exist after migrations`);
+    } else {
+      log.info(`✓ Table ${tableName} exists`);
+    }
+  }
+
+  if (missingTables.length > 0) {
+    throw new Error(`Required tables are missing: ${missingTables.join(', ')}`);
+  }
+
+  log.info('All required tables verified successfully');
 }
 
 /**
@@ -203,8 +285,9 @@ export async function runMigrations(): Promise<void> {
     log.info('Starting database migrations...');
     
     // Configure pool with better timeout settings
+    // Use process.env.DATABASE_URL directly from environment variables
     pool = new Pool({
-      connectionString: DATABASE_URL,
+      connectionString: process.env.DATABASE_URL, // Direct use of process.env.DATABASE_URL
       ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
       connectionTimeoutMillis: 10000, // 10 seconds timeout
       idleTimeoutMillis: 30000,
@@ -222,6 +305,10 @@ export async function runMigrations(): Promise<void> {
     await migration001(pool);
     await migration002(pool);
     await migration003(pool);
+
+    // Verify that all tables were created successfully
+    log.info('Verifying tables were created...');
+    await verifyTablesExist(pool);
 
     log.info('All migrations completed successfully');
   } catch (error: any) {
