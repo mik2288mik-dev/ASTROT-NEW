@@ -27,7 +27,7 @@ log.info(`API_BASE_URL configured: ${API_BASE_URL}`);
  * Calculate natal chart - calls backend API
  */
 export const calculateNatalChart = async (profile: UserProfile): Promise<NatalChartData> => {
-  const url = `${API_BASE_URL}/astrology/natal-chart`;
+  const url = `${API_BASE_URL}/api/astrology/natal-chart`;
   log.info('[calculateNatalChart] Starting calculation', {
     name: profile.name,
     birthDate: profile.birthDate,
@@ -150,7 +150,7 @@ const generateMockNatalChart = (profile: UserProfile): NatalChartData => {
 };
 
 export const getThreeKeys = async (profile: UserProfile, chartData: NatalChartData): Promise<ThreeKeys> => {
-  const url = `${API_BASE_URL}/astrology/three-keys`;
+  const url = `${API_BASE_URL}/api/astrology/three-keys`;
   log.info('[getThreeKeys] Starting request', { userId: profile.id });
 
   try {
@@ -213,7 +213,7 @@ export const getThreeKeys = async (profile: UserProfile, chartData: NatalChartDa
 };
 
 export const calculateSynastry = async (profile: UserProfile, partnerName: string, partnerDate: string): Promise<SynastryResult> => {
-  const url = `${API_BASE_URL}/astrology/synastry`;
+  const url = `${API_BASE_URL}/api/astrology/synastry`;
   log.info('[calculateSynastry] Starting calculation', { partnerName, partnerDate });
 
   try {
@@ -279,7 +279,7 @@ export const calculateSynastry = async (profile: UserProfile, partnerName: strin
 };
 
 export const getDailyHoroscope = async (profile: UserProfile, chartData: NatalChartData, context?: UserContext): Promise<DailyHoroscope> => {
-  const url = `${API_BASE_URL}/astrology/daily-horoscope`;
+  const url = `${API_BASE_URL}/api/astrology/daily-horoscope`;
   log.info('[getDailyHoroscope] Starting request', { userId: profile.id });
 
   try {
@@ -370,7 +370,7 @@ export const updateUserEvolution = async (profile: UserProfile): Promise<UserEvo
 };
 
 export const getWeeklyHoroscope = async (profile: UserProfile, chartData: NatalChartData): Promise<WeeklyHoroscope> => {
-  const url = `${API_BASE_URL}/astrology/weekly-horoscope`;
+  const url = `${API_BASE_URL}/api/astrology/weekly-horoscope`;
   log.info('[getWeeklyHoroscope] Starting request', { userId: profile.id });
 
   try {
@@ -421,7 +421,7 @@ export const getWeeklyHoroscope = async (profile: UserProfile, chartData: NatalC
 };
 
 export const getMonthlyHoroscope = async (profile: UserProfile, chartData: NatalChartData): Promise<MonthlyHoroscope> => {
-  const url = `${API_BASE_URL}/astrology/monthly-horoscope`;
+  const url = `${API_BASE_URL}/api/astrology/monthly-horoscope`;
   log.info('[getMonthlyHoroscope] Starting request', { userId: profile.id });
 
   try {
@@ -474,7 +474,7 @@ export const getMonthlyHoroscope = async (profile: UserProfile, chartData: Natal
 };
 
 export const getDeepDiveAnalysis = async (profile: UserProfile, topic: string, chartData: NatalChartData): Promise<string> => {
-  const url = `${API_BASE_URL}/astrology/deep-dive`;
+  const url = `${API_BASE_URL}/api/astrology/deep-dive`;
   log.info('[getDeepDiveAnalysis] Starting request', { topic, userId: profile.id });
 
   try {
@@ -519,7 +519,7 @@ export const getDeepDiveAnalysis = async (profile: UserProfile, topic: string, c
 };
 
 export const chatWithAstra = async (history: { role: 'user' | 'model', text: string }[], message: string, profile: UserProfile): Promise<string> => {
-  const url = `${API_BASE_URL}/astrology/chat`;
+  const url = `${API_BASE_URL}/api/astrology/chat`;
   log.info('[chatWithAstra] Starting chat request', {
     messageLength: message.length,
     historyLength: history.length,
