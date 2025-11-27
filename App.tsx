@@ -53,47 +53,67 @@ const App: React.FC = () => {
 
     useEffect(() => {
         const loadData = async () => {
-            console.log('[App] Loading user data...');
-            const storedProfile = await getProfile();
-            const storedChart = await getChartData();
-
+            console.log('[App] Loading user data from database...');
+            
             const tg = (window as any).Telegram?.WebApp;
             const tgUser = tg?.initDataUnsafe?.user;
             const tgId = tgUser?.id;
 
-            console.log('[App] Loaded data:', {
-                hasProfile: !!storedProfile,
-                hasChart: !!storedChart,
-                tgId,
-                profileIsSetup: storedProfile?.isSetup
-            });
-
-            if (storedProfile && storedProfile.isSetup) {
-                if (!storedProfile.language) storedProfile.language = 'ru';
-                if (!storedProfile.theme) storedProfile.theme = 'dark';
-
-                const isAdmin = tgId === OWNER_ID || storedProfile.isAdmin || false;
-                const updatedProfile = { ...storedProfile, id: tgId, isAdmin };
-                
-                console.log('[App] Setting up profile:', {
-                    userId: updatedProfile.id,
-                    isAdmin,
-                    isPremium: updatedProfile.isPremium
-                });
-                
-                setProfile(updatedProfile);
-                
-                if (storedChart) {
-                    console.log('[App] Setting chart data');
-                    setChartData(storedChart);
-                }
-
-                // If user is set up, go straight to Dashboard (Hub)
-                setView('dashboard');
-            } else {
-                console.log('[App] No profile found or not set up, showing onboarding');
+            if (!tgId) {
+                console.log('[App] No Telegram user ID found, showing onboarding');
+                setLoading(false);
+                return;
             }
-            setLoading(false);
+
+            try {
+                // Загружаем профиль из БД
+                const storedProfile = await getProfile();
+                
+                // Загружаем данные карты из БД
+                const storedChart = await getChartData();
+
+                console.log('[App] Loaded data from database:', {
+                    hasProfile: !!storedProfile,
+                    hasChart: !!storedChart,
+                    tgId,
+                    profileIsSetup: storedProfile?.isSetup
+                });
+
+                // Если профиль найден в БД и он настроен - показываем dashboard
+                if (storedProfile && storedProfile.isSetup) {
+                    if (!storedProfile.language) storedProfile.language = 'ru';
+                    if (!storedProfile.theme) storedProfile.theme = 'dark';
+
+                    const isAdmin = tgId === OWNER_ID || storedProfile.isAdmin || false;
+                    const updatedProfile = { ...storedProfile, id: tgId, isAdmin };
+                    
+                    console.log('[App] User data found in database, showing dashboard:', {
+                        userId: updatedProfile.id,
+                        isAdmin,
+                        isPremium: updatedProfile.isPremium
+                    });
+                    
+                    setProfile(updatedProfile);
+                    
+                    if (storedChart) {
+                        console.log('[App] Setting chart data from database');
+                        setChartData(storedChart);
+                    }
+
+                    // Если данные есть в БД - показываем главную страницу с персонализированным контентом
+                    setView('dashboard');
+                } else {
+                    // Если данных нет в БД - показываем форму ввода данных
+                    console.log('[App] No user data found in database, showing onboarding form');
+                    setView('onboarding');
+                }
+            } catch (error) {
+                console.error('[App] Error loading user data:', error);
+                // При ошибке загрузки показываем onboarding
+                setView('onboarding');
+            } finally {
+                setLoading(false);
+            }
         };
         loadData();
     }, []);

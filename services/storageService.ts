@@ -125,24 +125,27 @@ export const getProfile = async (): Promise<UserProfile | null> => {
       });
       return profile;
     } else if (response.status === 404) {
-      log.info(`[getProfile] Profile not found (404), will try localStorage`);
+      // Если данных нет в БД - возвращаем null (не используем localStorage)
+      log.info(`[getProfile] Profile not found in database (404), returning null`);
+      return null;
     } else {
-      log.warn(`[getProfile] Unexpected status ${response.status}, will try localStorage`);
+      log.warn(`[getProfile] Unexpected status ${response.status}, will try localStorage as fallback`);
     }
   } catch (error: any) {
-    log.error('[getProfile] Error occurred during fetch', {
+    // При ошибке сети используем localStorage как fallback
+    log.error('[getProfile] Error occurred during fetch, will try localStorage', {
       error: error.message,
       stack: error.stack,
       userId
     });
   }
 
-  // Fallback to localStorage
+  // Fallback to localStorage только при ошибках сети (не при 404)
   try {
     const data = localStorage.getItem(PROFILE_KEY);
     if (data) {
       const profile = JSON.parse(data) as UserProfile;
-      log.info('[getProfile] Loaded profile from localStorage fallback');
+      log.info('[getProfile] Loaded profile from localStorage fallback (network error)');
       return profile;
     } else {
       log.info('[getProfile] No profile found in localStorage');
@@ -260,24 +263,27 @@ export const getChartData = async (): Promise<NatalChartData | null> => {
         });
       return chartData;
     } else if (response.status === 404) {
-      log.info(`[getChartData] Chart not found (404), will try localStorage`);
+      // Если данных нет в БД - возвращаем null (не используем localStorage)
+      log.info(`[getChartData] Chart not found in database (404), returning null`);
+      return null;
     } else {
-      log.warn(`[getChartData] Unexpected status ${response.status}, will try localStorage`);
+      log.warn(`[getChartData] Unexpected status ${response.status}, will try localStorage as fallback`);
     }
   } catch (error: any) {
-    log.error('[getChartData] Error occurred during fetch', {
+    // При ошибке сети используем localStorage как fallback
+    log.error('[getChartData] Error occurred during fetch, will try localStorage', {
       error: error.message,
       stack: error.stack,
       userId
     });
   }
 
-  // Fallback to localStorage
+  // Fallback to localStorage только при ошибках сети (не при 404)
   try {
     const data = localStorage.getItem(CHART_KEY);
     if (data) {
       const chartData = JSON.parse(data) as NatalChartData;
-      log.info('[getChartData] Loaded chart from localStorage fallback');
+      log.info('[getChartData] Loaded chart from localStorage fallback (network error)');
       return chartData;
     } else {
       log.info('[getChartData] No chart found in localStorage');
