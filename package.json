@@ -8,7 +8,6 @@
     "start": "next start",
     "lint": "next lint",
     "migrate": "tsx scripts/migrate.ts",
-    "test-db": "tsx scripts/test-db.ts",
     "postbuild": "npm run migrate"
   },
   "dependencies": {
