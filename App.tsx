@@ -119,11 +119,16 @@ const App: React.FC = () => {
         setProfile(fullProfile);
         setLoading(true);
         
-        try {
-            await saveProfile(fullProfile);
-            console.log('[App] Profile saved successfully');
-        } catch (error) {
-            console.error('[App] Failed to save profile:', error);
+        // Сохраняем данные только если пользователь отметил галочку "запомнить данные"
+        if (fullProfile.isSetup) {
+            try {
+                await saveProfile(fullProfile);
+                console.log('[App] Profile saved successfully');
+            } catch (error) {
+                console.error('[App] Failed to save profile:', error);
+            }
+        } else {
+            console.log('[App] User chose not to save data, skipping profile save');
         }
 
         try {
@@ -137,14 +142,19 @@ const App: React.FC = () => {
             
             setChartData(generatedChart);
             
-            try {
-                await saveChartData(generatedChart);
-                console.log('[App] Chart saved successfully');
-            } catch (error) {
-                console.error('[App] Failed to save chart:', error);
+            // Сохраняем карту только если пользователь отметил галочку "запомнить данные"
+            if (fullProfile.isSetup) {
+                try {
+                    await saveChartData(generatedChart);
+                    console.log('[App] Chart saved successfully');
+                } catch (error) {
+                    console.error('[App] Failed to save chart:', error);
+                }
+            } else {
+                console.log('[App] User chose not to save data, skipping chart save');
             }
             
-            // Funnel: Onboarding -> Hook
+            // Funnel: Onboarding -> Hook -> Dashboard (not Paywall)
             setView('hook'); 
         } catch (error) {
             console.error("[App] AI Generation failed:", error);
@@ -183,9 +193,9 @@ const App: React.FC = () => {
     const navigateTo = (newView: ViewState) => {
         if (!profile) return;
         
-        // Premium Gating
+        // Premium Gating - показываем Paywall при попытке доступа к закрытым функциям
         if (!profile.isPremium && (newView === 'synastry' || newView === 'oracle')) {
-            setShowPremiumPreview(true);
+            setView('paywall');
             return;
         }
         setView(newView);
@@ -235,7 +245,7 @@ const App: React.FC = () => {
                     <HookChat 
                         profile={profile} 
                         chartData={chartData} 
-                        onComplete={() => setView('paywall')} 
+                        onComplete={() => setView('dashboard')} 
                         onUpdateProfile={handleProfileUpdate}
                     />
                 ) : view === 'paywall' ? (
