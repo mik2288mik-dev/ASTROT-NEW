@@ -1,8 +1,14 @@
 // Database connection utility for Railway
 // This file handles connection to Railway Database
+// 
+// Uses process.env.DATABASE_URL from environment variables
+// DATABASE_URL should be set in Railway Variables or .env file
+// Format: postgresql://user:password@host:port/database
 
-import { Pool } from 'pg';
+import { Pool, Client } from 'pg';
 
+// Read DATABASE_URL from environment variables
+// This is set in Railway Variables or .env file
 const DATABASE_URL = process.env.DATABASE_URL || '';
 
 // Logging utility
@@ -54,8 +60,10 @@ function getPool(): Pool {
       }
     }
     
+    // Use process.env.DATABASE_URL directly for connection
+    // This reads the connection string from environment variables
     pool = new Pool({
-      connectionString: DATABASE_URL,
+      connectionString: process.env.DATABASE_URL, // Direct use of process.env.DATABASE_URL
       ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
       max: 20,
       idleTimeoutMillis: 30000,
@@ -126,6 +134,48 @@ export async function queryDatabase(query: string, params?: any[]): Promise<any>
 export async function initializeDatabase(): Promise<void> {
   log.warn('[DB] initializeDatabase() is deprecated. Migrations are handled automatically.');
   // Migrations are now handled by lib/migrations.ts
+}
+
+/**
+ * Test database connection using Client (simple connection test)
+ * This is useful for testing if DATABASE_URL is correctly configured
+ * 
+ * Example usage:
+ * ```typescript
+ * import { testDatabaseConnection } from '../lib/db';
+ * 
+ * testDatabaseConnection()
+ *   .then(() => console.log('Connected to database'))
+ *   .catch(err => console.error('Database connection error:', err.stack));
+ * ```
+ */
+export async function testDatabaseConnection(): Promise<void> {
+  if (!process.env.DATABASE_URL) {
+    throw new Error('DATABASE_URL is not configured in environment variables');
+  }
+
+  const client = new Client({
+    connectionString: process.env.DATABASE_URL, // Read from environment
+  });
+
+  try {
+    await client.connect();
+    log.info('Database connection test successful');
+    
+    // Test query
+    const result = await client.query('SELECT NOW()');
+    log.info('Database query test successful', { serverTime: result.rows[0].now });
+    
+    await client.end();
+  } catch (error: any) {
+    log.error('Database connection test failed', {
+      error: error.message,
+      code: error.code,
+      stack: error.stack
+    });
+    await client.end().catch(() => {}); // Ensure client is closed
+    throw error;
+  }
 }
 
 /**

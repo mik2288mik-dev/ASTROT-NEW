@@ -285,8 +285,9 @@ export async function runMigrations(): Promise<void> {
     log.info('Starting database migrations...');
     
     // Configure pool with better timeout settings
+    // Use process.env.DATABASE_URL directly from environment variables
     pool = new Pool({
-      connectionString: DATABASE_URL,
+      connectionString: process.env.DATABASE_URL, // Direct use of process.env.DATABASE_URL
       ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
       connectionTimeoutMillis: 10000, // 10 seconds timeout
       idleTimeoutMillis: 30000,
