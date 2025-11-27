@@ -10,6 +10,114 @@ const log = {
   },
 };
 
+// Personalized descriptions based on natal chart data
+function generatePersonalizedThreeKeys(profile: any, chartData: any) {
+  const lang = profile?.language === 'ru';
+  const sunSign = chartData.sun.sign;
+  const moonSign = chartData.moon.sign;
+  const risingSign = chartData.rising?.sign || sunSign;
+  const venusSign = chartData.venus?.sign || sunSign;
+  const marsSign = chartData.mars?.sign || sunSign;
+  const element = chartData.element || 'Fire';
+
+  // Key 1: Energy - based on Sun, Moon, and Element
+  const energyDescriptions = {
+    'ru': {
+      'Fire': `Твоя энергия ${sunSign} с Луной в ${moonSign} создает мощную огненную силу. Ты вдохновляешь других своей страстью и уверенностью.`,
+      'Water': `Твоя энергия ${sunSign} с Луной в ${moonSign} дарует глубину эмоций и интуицию. Ты чувствуешь мир на уровне души.`,
+      'Air': `Твоя энергия ${sunSign} с Луной в ${moonSign} создает легкость мысли и общения. Твой ум быстр и находчив.`,
+      'Earth': `Твоя энергия ${sunSign} с Луной в ${moonSign} дает практичность и стабильность. Ты создаешь реальные результаты.`,
+    },
+    'en': {
+      'Fire': `Your ${sunSign} energy with Moon in ${moonSign} creates a powerful fiery force. You inspire others with your passion and confidence.`,
+      'Water': `Your ${sunSign} energy with Moon in ${moonSign} grants emotional depth and intuition. You feel the world at a soul level.`,
+      'Air': `Your ${sunSign} energy with Moon in ${moonSign} creates lightness of thought and communication. Your mind is quick and resourceful.`,
+      'Earth': `Your ${sunSign} energy with Moon in ${moonSign} provides practicality and stability. You create real tangible results.`,
+    }
+  };
+
+  // Key 2: Love Style - based on Venus and Moon
+  const loveDescriptions = {
+    'ru': {
+      'Aries': `В любви ты страстен и прямолинеен. Твоя Венера в ${venusSign} с Луной в ${moonSign} создает яркие, незабываемые отношения.`,
+      'Taurus': `В любви ты ищешь стабильность и чувственность. Твоя Венера в ${venusSign} с Луной в ${moonSign} дарит преданность и нежность.`,
+      'Gemini': `В любви ты ценишь интеллект и общение. Твоя Венера в ${venusSign} с Луной в ${moonSign} создает живые, разнообразные отношения.`,
+      'Cancer': `В любви ты ищешь глубокую эмоциональную связь. Твоя Венера в ${venusSign} с Луной в ${moonSign} дарит заботу и преданность.`,
+      'Leo': `В любви ты щедр и романтичен. Твоя Венера в ${venusSign} с Луной в ${moonSign} создает королевские, яркие отношения.`,
+      'Virgo': `В любви ты заботлив и внимателен к деталям. Твоя Венера в ${venusSign} с Луной в ${moonSign} проявляется в служении любимым.`,
+      'Libra': `В любви ты ищешь гармонию и баланс. Твоя Венера в ${venusSign} с Луной в ${moonSign} создает изящные, равноправные отношения.`,
+      'Scorpio': `В любви ты страстен и глубок. Твоя Венера в ${venusSign} с Луной в ${moonSign} создает трансформирующие, интенсивные отношения.`,
+      'Sagittarius': `В любви ты ценишь свободу и приключения. Твоя Венера в ${venusSign} с Луной в ${moonSign} создает вдохновляющие отношения.`,
+      'Capricorn': `В любви ты серьезен и верен. Твоя Венера в ${venusSign} с Луной в ${moonSign} создает надежные, долгосрочные отношения.`,
+      'Aquarius': `В любви ты уникален и независим. Твоя Венера в ${venusSign} с Луной в ${moonSign} создает необычные, дружеские отношения.`,
+      'Pisces': `В любви ты романтичен и сострадателен. Твоя Венера в ${venusSign} с Луной в ${moonSign} создает мистические, глубокие отношения.`,
+    },
+    'en': {
+      'Aries': `In love you are passionate and direct. Your Venus in ${venusSign} with Moon in ${moonSign} creates bright, unforgettable relationships.`,
+      'Taurus': `In love you seek stability and sensuality. Your Venus in ${venusSign} with Moon in ${moonSign} brings devotion and tenderness.`,
+      'Gemini': `In love you value intellect and communication. Your Venus in ${venusSign} with Moon in ${moonSign} creates lively, diverse relationships.`,
+      'Cancer': `In love you seek deep emotional connection. Your Venus in ${venusSign} with Moon in ${moonSign} brings care and devotion.`,
+      'Leo': `In love you are generous and romantic. Your Venus in ${venusSign} with Moon in ${moonSign} creates royal, brilliant relationships.`,
+      'Virgo': `In love you are caring and attentive to details. Your Venus in ${venusSign} with Moon in ${moonSign} manifests in serving loved ones.`,
+      'Libra': `In love you seek harmony and balance. Your Venus in ${venusSign} with Moon in ${moonSign} creates graceful, equal relationships.`,
+      'Scorpio': `In love you are passionate and deep. Your Venus in ${venusSign} with Moon in ${moonSign} creates transformative, intense relationships.`,
+      'Sagittarius': `In love you value freedom and adventure. Your Venus in ${venusSign} with Moon in ${moonSign} creates inspiring relationships.`,
+      'Capricorn': `In love you are serious and loyal. Your Venus in ${venusSign} with Moon in ${moonSign} creates reliable, long-term relationships.`,
+      'Aquarius': `In love you are unique and independent. Your Venus in ${venusSign} with Moon in ${moonSign} creates unusual, friendly relationships.`,
+      'Pisces': `In love you are romantic and compassionate. Your Venus in ${venusSign} with Moon in ${moonSign} creates mystical, deep relationships.`,
+    }
+  };
+
+  // Key 3: Career - based on Mars, Sun, and Ruling Planet
+  const careerDescriptions = {
+    'ru': {
+      'Aries': `Твоя карьера связана с лидерством и инициативой. Марс в ${marsSign} с Солнцем в ${sunSign} дают энергию первопроходца.`,
+      'Taurus': `Твоя карьера связана с созданием материальных ценностей. Марс в ${marsSign} с Солнцем в ${sunSign} дают упорство и практичность.`,
+      'Gemini': `Твоя карьера связана с коммуникацией и обменом информацией. Марс в ${marsSign} с Солнцем в ${sunSign} дают ловкость ума.`,
+      'Cancer': `Твоя карьера связана с заботой о других и созданием уюта. Марс в ${marsSign} с Солнцем в ${sunSign} дают эмоциональный интеллект.`,
+      'Leo': `Твоя карьера связана с творчеством и самовыражением. Марс в ${marsSign} с Солнцем в ${sunSign} дают харизму и уверенность.`,
+      'Virgo': `Твоя карьера связана с анализом и служением. Марс в ${marsSign} с Солнцем в ${sunSign} дают точность и мастерство.`,
+      'Libra': `Твоя карьера связана с искусством и дипломатией. Марс в ${marsSign} с Солнцем в ${sunSign} дают чувство гармонии.`,
+      'Scorpio': `Твоя карьера связана с трансформацией и глубинными процессами. Марс в ${marsSign} с Солнцем в ${sunSign} дают силу воли.`,
+      'Sagittarius': `Твоя карьера связана с обучением и путешествиями. Марс в ${marsSign} с Солнцем в ${sunSign} дают стремление к росту.`,
+      'Capricorn': `Твоя карьера связана с достижениями и управлением. Марс в ${marsSign} с Солнцем в ${sunSign} дают амбиции и дисциплину.`,
+      'Aquarius': `Твоя карьера связана с инновациями и технологиями. Марс в ${marsSign} с Солнцем в ${sunSign} дают оригинальность мышления.`,
+      'Pisces': `Твоя карьера связана с искусством и помощью людям. Марс в ${marsSign} с Солнцем в ${sunSign} дают интуицию и сочувствие.`,
+    },
+    'en': {
+      'Aries': `Your career is connected to leadership and initiative. Mars in ${marsSign} with Sun in ${sunSign} give pioneer energy.`,
+      'Taurus': `Your career is connected to creating material values. Mars in ${marsSign} with Sun in ${sunSign} give persistence and practicality.`,
+      'Gemini': `Your career is connected to communication and information exchange. Mars in ${marsSign} with Sun in ${sunSign} give mental agility.`,
+      'Cancer': `Your career is connected to caring for others and creating comfort. Mars in ${marsSign} with Sun in ${sunSign} give emotional intelligence.`,
+      'Leo': `Your career is connected to creativity and self-expression. Mars in ${marsSign} with Sun in ${sunSign} give charisma and confidence.`,
+      'Virgo': `Your career is connected to analysis and service. Mars in ${marsSign} with Sun in ${sunSign} give precision and mastery.`,
+      'Libra': `Your career is connected to art and diplomacy. Mars in ${marsSign} with Sun in ${sunSign} give sense of harmony.`,
+      'Scorpio': `Your career is connected to transformation and deep processes. Mars in ${marsSign} with Sun in ${sunSign} give willpower.`,
+      'Sagittarius': `Your career is connected to teaching and travel. Mars in ${marsSign} with Sun in ${sunSign} give drive for growth.`,
+      'Capricorn': `Your career is connected to achievement and management. Mars in ${marsSign} with Sun in ${sunSign} give ambition and discipline.`,
+      'Aquarius': `Your career is connected to innovation and technology. Mars in ${marsSign} with Sun in ${sunSign} give original thinking.`,
+      'Pisces': `Your career is connected to art and helping people. Mars in ${marsSign} with Sun in ${sunSign} give intuition and compassion.`,
+    }
+  };
+
+  const langCode = lang ? 'ru' : 'en';
+
+  return {
+    key1: {
+      title: lang ? 'ТВОЯ ЭНЕРГИЯ' : 'YOUR ENERGY',
+      text: energyDescriptions[langCode][element] || energyDescriptions[langCode]['Fire']
+    },
+    key2: {
+      title: lang ? 'ТВОЙ СТИЛЬ ЛЮБВИ' : 'YOUR LOVE STYLE',
+      text: loveDescriptions[langCode][sunSign] || loveDescriptions[langCode]['Aries']
+    },
+    key3: {
+      title: lang ? 'ТВОЯ КАРЬЕРА' : 'YOUR CAREER',
+      text: careerDescriptions[langCode][sunSign] || careerDescriptions[langCode]['Aries']
+    }
+  };
+}
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -26,37 +134,28 @@ export default async function handler(
   try {
     const { profile, chartData } = req.body;
 
+    if (!chartData || !chartData.sun || !chartData.moon) {
+      log.error('Invalid chart data provided');
+      return res.status(400).json({ 
+        error: 'Invalid chart data',
+        message: 'Chart data with sun and moon is required'
+      });
+    }
+
     log.info('Generating three keys', {
       userId: profile?.id,
-      language: profile?.language
+      language: profile?.language,
+      sunSign: chartData.sun.sign,
+      moonSign: chartData.moon.sign
     });
 
-    // TODO: Implement actual three keys generation using AI/astrology logic
-    // For now, return mock data based on profile language
-    
-    const lang = profile?.language === 'ru';
-    const keys = {
-      key1: {
-        title: lang ? 'ТВОЯ ЭНЕРГИЯ' : 'YOUR ENERGY',
-        text: lang 
-          ? 'Твоя уникальная энергия сочетает силу Солнца и глубину Луны.'
-          : 'Your unique energy combines the strength of the Sun and the depth of the Moon.'
-      },
-      key2: {
-        title: lang ? 'ТВОЙ СТИЛЬ ЛЮБВИ' : 'YOUR LOVE STYLE',
-        text: lang
-          ? 'В любви ты ищешь глубокую связь и взаимопонимание.'
-          : 'In love, you seek deep connection and understanding.'
-      },
-      key3: {
-        title: lang ? 'ТВОЯ КАРЬЕРА' : 'YOUR CAREER',
-        text: lang
-          ? 'Твоя карьера связана с творчеством и самовыражением.'
-          : 'Your career is connected to creativity and self-expression.'
-      }
-    };
+    // Generate personalized three keys based on natal chart data
+    const keys = generatePersonalizedThreeKeys(profile, chartData);
 
-    log.info('Three keys generated successfully');
+    log.info('Three keys generated successfully', {
+      userId: profile?.id,
+      hasUniqueKeys: true
+    });
 
     return res.status(200).json(keys);
   } catch (error: any) {
