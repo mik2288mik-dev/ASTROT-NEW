@@ -1,20 +1,19 @@
-import * as swisseph from 'swisseph';
-import path from 'path';
+/**
+ * Swiss Ephemeris Calculator - WebAssembly версия
+ * Использует sweph-wasm для точных астрологических расчетов
+ * БЕЗ нативных зависимостей - работает везде!
+ */
+import SwissEPH from 'sweph-wasm';
 import axios from 'axios';
-
-// Установка пути к файлам эфемерид
-const EPHE_PATH = process.env.EPHE_PATH || path.join(process.cwd(), 'ephe');
-
-// Инициализация Swiss Ephemeris
-swisseph.swe_set_ephe_path(EPHE_PATH);
+import path from 'path';
 
 // Logging utility
 const log = {
   info: (message: string, data?: any) => {
-    console.log(`[SwissephCalculator] ${message}`, data || '');
+    console.log(`[SwissephCalculator-WASM] ${message}`, data || '');
   },
   error: (message: string, error?: any) => {
-    console.error(`[SwissephCalculator] ERROR: ${message}`, error || '');
+    console.error(`[SwissephCalculator-WASM] ERROR: ${message}`, error || '');
   },
 };
 
@@ -26,16 +25,16 @@ const ZODIAC_SIGNS = [
 
 // Планеты Swiss Ephemeris
 const PLANETS = {
-  SUN: swisseph.SE_SUN,
-  MOON: swisseph.SE_MOON,
-  MERCURY: swisseph.SE_MERCURY,
-  VENUS: swisseph.SE_VENUS,
-  MARS: swisseph.SE_MARS,
-  JUPITER: swisseph.SE_JUPITER,
-  SATURN: swisseph.SE_SATURN,
-  URANUS: swisseph.SE_URANUS,
-  NEPTUNE: swisseph.SE_NEPTUNE,
-  PLUTO: swisseph.SE_PLUTO,
+  SUN: 0,
+  MOON: 1,
+  MERCURY: 2,
+  VENUS: 3,
+  MARS: 4,
+  JUPITER: 5,
+  SATURN: 6,
+  URANUS: 7,
+  NEPTUNE: 8,
+  PLUTO: 9,
 };
 
 interface Coordinates {
@@ -51,15 +50,46 @@ interface PlanetPosition {
   description: string;
 }
 
+// Глобальная инициализация Swiss Ephemeris
+let sweInstance: any = null;
+let isInitialized = false;
+
+/**
+ * Инициализация Swiss Ephemeris WASM
+ */
+async function initSwissEph() {
+  if (isInitialized && sweInstance) {
+    return sweInstance;
+  }
+
+  try {
+    log.info('Initializing Swiss Ephemeris WebAssembly...');
+    sweInstance = await SwissEPH.init();
+    
+    // Устанавливаем путь к локальным файлам ephemeris если они есть
+    const ephePath = process.env.EPHE_PATH || path.join(process.cwd(), 'ephe');
+    log.info('Setting ephemeris path', { ephePath });
+    
+    // Примечание: sweph-wasm загружает файлы из CDN по умолчанию
+    // Локальные файлы можно использовать настроив путь
+    await sweInstance.swe_set_ephe_path();
+    
+    isInitialized = true;
+    log.info('Swiss Ephemeris initialized successfully');
+    return sweInstance;
+  } catch (error: any) {
+    log.error('Failed to initialize Swiss Ephemeris', error);
+    throw new Error(`Failed to initialize Swiss Ephemeris: ${error.message}`);
+  }
+}
+
 /**
  * Получение координат по названию места через геокодинг
- * Использует Nominatim API (OpenStreetMap)
  */
 export async function getCoordinates(placeName: string): Promise<Coordinates> {
   try {
     log.info('Getting coordinates for place', { placeName });
     
-    // Используем Nominatim API от OpenStreetMap (бесплатный)
     const url = 'https://nominatim.openstreetmap.org/search';
     const response = await axios.get(url, {
       params: {
@@ -69,7 +99,8 @@ export async function getCoordinates(placeName: string): Promise<Coordinates> {
       },
       headers: {
         'User-Agent': 'AstrotApp/1.0'
-      }
+      },
+      timeout: 10000
     });
 
     if (!response.data || response.data.length === 0) {
@@ -82,11 +113,7 @@ export async function getCoordinates(placeName: string): Promise<Coordinates> {
 
     log.info('Coordinates found', { lat, lon, placeName });
 
-    return {
-      lat,
-      lon,
-      timezone: 'UTC' // Упрощенно, для точного расчета можно использовать timezone API
-    };
+    return { lat, lon, timezone: 'UTC' };
   } catch (error: any) {
     log.error('Error getting coordinates', error);
     throw new Error(`Failed to get coordinates for ${placeName}: ${error.message}`);
@@ -94,26 +121,11 @@ export async function getCoordinates(placeName: string): Promise<Coordinates> {
 }
 
 /**
- * Конвертация даты и времени в Julian Day Number
- */
-function dateToJulianDay(
-  year: number,
-  month: number,
-  day: number,
-  hour: number = 12,
-  minute: number = 0
-): number {
-  const utc = hour + minute / 60.0;
-  const julday = swisseph.swe_julday(year, month, day, utc, swisseph.SE_GREG_CAL);
-  log.info('Calculated Julian Day', { year, month, day, hour, minute, julday });
-  return julday;
-}
-
-/**
  * Получение знака зодиака из градуса эклиптики
  */
 function getZodiacSign(degree: number): string {
-  const signIndex = Math.floor(degree / 30);
+  const normalizedDegree = ((degree % 360) + 360) % 360;
+  const signIndex = Math.floor(normalizedDegree / 30);
   return ZODIAC_SIGNS[signIndex];
 }
 
@@ -121,80 +133,8 @@ function getZodiacSign(degree: number): string {
  * Получение градуса в знаке
  */
 function getDegreeInSign(degree: number): number {
-  return degree % 30;
-}
-
-/**
- * Расчет положения планеты
- */
-function calculatePlanetPosition(
-  julday: number,
-  planetId: number,
-  planetName: string
-): PlanetPosition | null {
-  try {
-    const result = swisseph.swe_calc_ut(julday, planetId, swisseph.SEFLG_SWIEPH);
-    
-    if (result.flag < 0) {
-      log.error(`Failed to calculate ${planetName}`, result.error);
-      return null;
-    }
-
-    const longitude = result.longitude;
-    const sign = getZodiacSign(longitude);
-    const degreeInSign = getDegreeInSign(longitude);
-
-    log.info(`Calculated ${planetName}`, { longitude, sign, degreeInSign });
-
-    return {
-      planet: planetName,
-      sign,
-      degree: degreeInSign,
-      description: getPlanetDescription(planetName)
-    };
-  } catch (error: any) {
-    log.error(`Error calculating ${planetName}`, error);
-    return null;
-  }
-}
-
-/**
- * Расчет ASC (Асцендента / Rising Sign)
- */
-function calculateAscendant(
-  julday: number,
-  lat: number,
-  lon: number
-): PlanetPosition | null {
-  try {
-    const result = swisseph.swe_houses(
-      julday,
-      lat,
-      lon,
-      'P' // Placidus house system
-    );
-
-    if (!result || !result.ascendant) {
-      log.error('Failed to calculate ascendant');
-      return null;
-    }
-
-    const ascendant = result.ascendant;
-    const sign = getZodiacSign(ascendant);
-    const degreeInSign = getDegreeInSign(ascendant);
-
-    log.info('Calculated Ascendant', { ascendant, sign, degreeInSign });
-
-    return {
-      planet: 'Ascendant',
-      sign,
-      degree: degreeInSign,
-      description: 'Your outer personality and first impressions.'
-    };
-  } catch (error: any) {
-    log.error('Error calculating ascendant', error);
-    return null;
-  }
+  const normalizedDegree = ((degree % 360) + 360) % 360;
+  return normalizedDegree % 30;
 }
 
 /**
@@ -212,6 +152,86 @@ function getPlanetDescription(planetName: string): string {
     'Ascendant': 'Your outer personality and first impressions.'
   };
   return descriptions[planetName] || 'Planetary influence.';
+}
+
+/**
+ * Расчет положения планеты используя Swiss Ephemeris WASM
+ */
+async function calculatePlanetPosition(
+  swe: any,
+  julday: number,
+  planetId: number,
+  planetName: string
+): Promise<PlanetPosition | null> {
+  try {
+    // Используем флаг SEFLG_SWIEPH (Swiss Ephemeris) + SEFLG_SPEED
+    const result = swe.swe_calc_ut(julday, planetId, 258); // 258 = SEFLG_SWIEPH | SEFLG_SPEED
+    
+    if (!result || result.length < 3) {
+      log.error(`Failed to calculate ${planetName}`, { result });
+      return null;
+    }
+
+    const longitude = result[0]; // Longitude в градусах
+    const sign = getZodiacSign(longitude);
+    const degreeInSign = getDegreeInSign(longitude);
+
+    log.info(`Calculated ${planetName}`, { 
+      longitude: longitude.toFixed(4), 
+      sign, 
+      degreeInSign: degreeInSign.toFixed(2) 
+    });
+
+    return {
+      planet: planetName,
+      sign,
+      degree: degreeInSign,
+      description: getPlanetDescription(planetName)
+    };
+  } catch (error: any) {
+    log.error(`Error calculating ${planetName}`, error);
+    return null;
+  }
+}
+
+/**
+ * Расчет ASC (Асцендента / Rising Sign) используя Swiss Ephemeris WASM
+ */
+async function calculateAscendant(
+  swe: any,
+  julday: number,
+  lat: number,
+  lon: number
+): Promise<PlanetPosition | null> {
+  try {
+    // Используем систему домов Placidus ('P')
+    const result = swe.swe_houses(julday, lat, lon, 'P');
+
+    if (!result || !result.ascmc || result.ascmc.length === 0) {
+      log.error('Failed to calculate ascendant', { result });
+      return null;
+    }
+
+    const ascendant = result.ascmc[0]; // Первое значение - Ascendant
+    const sign = getZodiacSign(ascendant);
+    const degreeInSign = getDegreeInSign(ascendant);
+
+    log.info('Calculated Ascendant', { 
+      ascendant: ascendant.toFixed(4), 
+      sign, 
+      degreeInSign: degreeInSign.toFixed(2) 
+    });
+
+    return {
+      planet: 'Ascendant',
+      sign,
+      degree: degreeInSign,
+      description: 'Your outer personality and first impressions.'
+    };
+  } catch (error: any) {
+    log.error('Error calculating ascendant', error);
+    return null;
+  }
 }
 
 /**
@@ -241,7 +261,6 @@ function calculateElement(positions: PlanetPosition[]): string {
     }
   });
 
-  // Возвращаем доминирующий элемент
   let maxElement = 'Fire';
   let maxCount = 0;
   for (const [element, count] of Object.entries(counts)) {
@@ -277,6 +296,7 @@ function calculateRulingPlanet(sunSign: string): string {
 
 /**
  * Основная функция расчета натальной карты
+ * Использует настоящую Swiss Ephemeris через WebAssembly!
  */
 export async function calculateNatalChart(
   name: string,
@@ -285,12 +305,15 @@ export async function calculateNatalChart(
   birthPlace: string
 ): Promise<any> {
   try {
-    log.info('Starting natal chart calculation', {
+    log.info('Starting natal chart calculation with Swiss Ephemeris WASM', {
       name,
       birthDate,
       birthTime,
       birthPlace
     });
+
+    // Инициализируем Swiss Ephemeris
+    const swe = await initSwissEph();
 
     // Получаем координаты места рождения
     const coords = await getCoordinates(birthPlace);
@@ -298,7 +321,7 @@ export async function calculateNatalChart(
     // Парсим дату рождения
     const [year, month, day] = birthDate.split('-').map(Number);
     
-    // Парсим время рождения (если не указано, используем полдень)
+    // Парсим время рождения
     let hour = 12;
     let minute = 0;
     if (birthTime) {
@@ -307,16 +330,21 @@ export async function calculateNatalChart(
       minute = m;
     }
 
-    // Конвертируем в Julian Day
-    const julday = dateToJulianDay(year, month, day, hour, minute);
+    // Конвертируем в Julian Day используя Swiss Ephemeris
+    const utcHour = hour + minute / 60.0;
+    const julday = swe.swe_julday(year, month, day, utcHour, 1); // 1 = Gregorian calendar
+    
+    log.info('Calculated Julian Day', { year, month, day, hour, minute, julday });
 
     // Рассчитываем положения планет
-    const sun = calculatePlanetPosition(julday, PLANETS.SUN, 'Sun');
-    const moon = calculatePlanetPosition(julday, PLANETS.MOON, 'Moon');
-    const mercury = calculatePlanetPosition(julday, PLANETS.MERCURY, 'Mercury');
-    const venus = calculatePlanetPosition(julday, PLANETS.VENUS, 'Venus');
-    const mars = calculatePlanetPosition(julday, PLANETS.MARS, 'Mars');
-    const ascendant = calculateAscendant(julday, coords.lat, coords.lon);
+    const [sun, moon, mercury, venus, mars, ascendant] = await Promise.all([
+      calculatePlanetPosition(swe, julday, PLANETS.SUN, 'Sun'),
+      calculatePlanetPosition(swe, julday, PLANETS.MOON, 'Moon'),
+      calculatePlanetPosition(swe, julday, PLANETS.MERCURY, 'Mercury'),
+      calculatePlanetPosition(swe, julday, PLANETS.VENUS, 'Venus'),
+      calculatePlanetPosition(swe, julday, PLANETS.MARS, 'Mars'),
+      calculateAscendant(swe, julday, coords.lat, coords.lon)
+    ]);
 
     // Проверяем что основные планеты рассчитаны
     if (!sun || !moon || !ascendant) {
@@ -325,6 +353,10 @@ export async function calculateNatalChart(
 
     // Определяем элемент и управляющую планету
     const positions = [sun, moon, ascendant].filter(p => p !== null) as PlanetPosition[];
+    if (mercury) positions.push(mercury);
+    if (venus) positions.push(venus);
+    if (mars) positions.push(mars);
+    
     const element = calculateElement(positions);
     const rulingPlanet = calculateRulingPlanet(sun.sign);
 
@@ -337,22 +369,22 @@ export async function calculateNatalChart(
       mars,
       element,
       rulingPlanet,
-      summary: `Natal chart for ${name}, born on ${birthDate} at ${birthTime || '12:00'} in ${birthPlace}. Your chart reveals a ${element} dominant personality.`
+      summary: `Natal chart for ${name}, born on ${birthDate} at ${birthTime || '12:00'} in ${birthPlace}. Your chart reveals a ${element} dominant personality with ${sun.sign} Sun, ${moon.sign} Moon, and ${ascendant.sign} Rising.`
     };
 
-    log.info('Natal chart calculated successfully', {
+    log.info('Natal chart calculated successfully with Swiss Ephemeris WASM', {
       hasSun: !!sun,
       hasMoon: !!moon,
       hasRising: !!ascendant,
-      element
+      element,
+      sunSign: sun.sign,
+      moonSign: moon.sign,
+      risingSign: ascendant.sign
     });
 
     return chartData;
   } catch (error: any) {
     log.error('Error calculating natal chart', error);
     throw error;
-  } finally {
-    // Очистка ресурсов Swiss Ephemeris
-    swisseph.swe_close();
   }
 }
