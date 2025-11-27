@@ -101,19 +101,38 @@ function generatePersonalizedThreeKeys(profile: any, chartData: any) {
   };
 
   const langCode = lang ? 'ru' : 'en';
+  
+  // Типобезопасное получение описаний
+  type LangKey = 'ru' | 'en';
+  type ElementKey = 'Fire' | 'Water' | 'Air' | 'Earth';
+  
+  const getEnergyText = (lang: LangKey, elem: string): string => {
+    const descriptions = energyDescriptions[lang] as Record<string, string>;
+    return descriptions[elem] || descriptions['Fire'];
+  };
+  
+  const getLoveText = (lang: LangKey, sign: string): string => {
+    const descriptions = loveDescriptions[lang] as Record<string, string>;
+    return descriptions[sign] || descriptions['Aries'];
+  };
+  
+  const getCareerText = (lang: LangKey, sign: string): string => {
+    const descriptions = careerDescriptions[lang] as Record<string, string>;
+    return descriptions[sign] || descriptions['Aries'];
+  };
 
   return {
     key1: {
       title: lang ? 'ТВОЯ ЭНЕРГИЯ' : 'YOUR ENERGY',
-      text: energyDescriptions[langCode][element] || energyDescriptions[langCode]['Fire']
+      text: getEnergyText(langCode as LangKey, element)
     },
     key2: {
       title: lang ? 'ТВОЙ СТИЛЬ ЛЮБВИ' : 'YOUR LOVE STYLE',
-      text: loveDescriptions[langCode][sunSign] || loveDescriptions[langCode]['Aries']
+      text: getLoveText(langCode as LangKey, sunSign)
     },
     key3: {
       title: lang ? 'ТВОЯ КАРЬЕРА' : 'YOUR CAREER',
-      text: careerDescriptions[langCode][sunSign] || careerDescriptions[langCode]['Aries']
+      text: getCareerText(langCode as LangKey, sunSign)
     }
   };
 }
