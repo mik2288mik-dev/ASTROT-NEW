@@ -65,7 +65,7 @@ function getPool(): Pool {
     pool.on('error', (err) => {
       log.error('Unexpected error on idle client', {
         error: err.message,
-        code: err.code,
+        code: (err as any).code,
         stack: err.stack
       });
     });
