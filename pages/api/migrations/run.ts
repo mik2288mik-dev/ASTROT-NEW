@@ -93,12 +93,56 @@ export default async function handler(
     // Verify tables were created
     const tablesExistAfter = await checkTablesExist();
     
+    // Additional check: verify all required tables exist
+    let allTablesExist = false;
+    if (tablesExistAfter) {
+      try {
+        const pool = new Pool({
+          connectionString: DATABASE_URL,
+          ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+          connectionTimeoutMillis: 5000,
+        });
+        
+        const requiredTables = ['migrations', 'users', 'charts'];
+        const tableChecks = await Promise.all(
+          requiredTables.map(async (tableName) => {
+            const result = await pool.query(`
+              SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_schema = 'public' 
+                AND table_name = $1
+              );
+            `, [tableName]);
+            return { table: tableName, exists: result.rows[0].exists };
+          })
+        );
+        
+        allTablesExist = tableChecks.every(check => check.exists);
+        
+        await pool.end();
+        
+        return res.status(200).json({
+          success: true,
+          message: 'Migrations completed successfully',
+          tables: {
+            existedBefore: tablesExist,
+            existAfter: tablesExistAfter,
+            allRequiredTablesExist: allTablesExist,
+            tableStatus: tableChecks,
+          }
+        });
+      } catch (error: any) {
+        log.error('Error verifying tables', { error: error.message });
+      }
+    }
+    
     return res.status(200).json({
       success: true,
       message: 'Migrations completed successfully',
       tables: {
         existedBefore: tablesExist,
         existAfter: tablesExistAfter,
+        allRequiredTablesExist: allTablesExist,
       }
     });
   } catch (error: any) {
