@@ -121,7 +121,8 @@ export const getProfile = async (): Promise<UserProfile | null> => {
       log.info(`[getProfile] Successfully loaded profile from database`, {
         userId,
         hasName: !!profile.name,
-        isSetup: profile.isSetup
+        isSetup: profile.isSetup,
+        profileData: JSON.stringify(profile)
       });
       return profile;
     } else if (response.status === 404) {
