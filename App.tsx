@@ -76,7 +76,8 @@ const App: React.FC = () => {
                     hasProfile: !!storedProfile,
                     hasChart: !!storedChart,
                     tgId,
-                    profileIsSetup: storedProfile?.isSetup
+                    profileIsSetup: storedProfile?.isSetup,
+                    profileData: storedProfile ? JSON.stringify(storedProfile) : 'null'
                 });
 
                 // Если профиль найден в БД и он настроен - показываем натальную карту

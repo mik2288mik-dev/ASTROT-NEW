@@ -41,10 +41,27 @@ export default async function handler(
 
       log.info(`[GET] User found: ${userId}`, {
         hasName: !!user.name,
-        isPremium: user.is_premium
+        isPremium: user.is_premium,
+        isSetup: user.is_setup
       });
 
-      return res.status(200).json(user);
+      // Transform database format (snake_case) to client format (camelCase)
+      const clientUser = {
+        id: user.id,
+        name: user.name,
+        birthDate: user.birth_date,
+        birthTime: user.birth_time,
+        birthPlace: user.birth_place,
+        isSetup: user.is_setup,
+        language: user.language,
+        theme: user.theme,
+        isPremium: user.is_premium,
+        isAdmin: user.is_admin,
+        threeKeys: user.three_keys,
+        evolution: user.evolution,
+      };
+
+      return res.status(200).json(clientUser);
     }
 
     if (req.method === 'POST' || req.method === 'PUT') {
