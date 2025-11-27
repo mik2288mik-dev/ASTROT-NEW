@@ -100,7 +100,7 @@ const App: React.FC = () => {
                         // Если карта найдена в БД - используем её
                         console.log('[App] Setting chart data from database');
                         setChartData(storedChart);
-                        setView('chart');
+                        setView('dashboard'); // Показываем Dashboard с космическим паспортом
                     } else {
                         // Если карты нет в БД, но профиль есть - пересчитываем карту
                         console.log('[App] Chart not found in database, recalculating...');
@@ -112,7 +112,7 @@ const App: React.FC = () => {
                                 await saveChartData(generatedChart);
                                 console.log('[App] Chart recalculated and saved');
                             }
-                            setView('chart');
+                            setView('dashboard'); // Показываем Dashboard с космическим паспортом
                         } catch (error) {
                             console.error('[App] Error recalculating chart:', error);
                             // При ошибке пересчета показываем onboarding
