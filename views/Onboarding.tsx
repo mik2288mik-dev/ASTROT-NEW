@@ -25,19 +25,49 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     }, []);
 
     const handleNext = () => {
-        if (step === 1 && name) setStep(2);
-        else if (step === 2 && date && time) setStep(3);
-        else if (step === 3 && place) {
+        // Валидация на каждом шаге
+        if (step === 1) {
+            if (!name || name.trim() === '') {
+                alert('Пожалуйста, введите ваше имя');
+                return;
+            }
+            setStep(2);
+        } else if (step === 2) {
+            if (!date) {
+                alert('Пожалуйста, выберите дату рождения');
+                return;
+            }
+            if (!time) {
+                alert('Пожалуйста, выберите время рождения');
+                return;
+            }
+            setStep(3);
+        } else if (step === 3) {
+            if (!place || place.trim() === '') {
+                alert('Пожалуйста, введите место рождения');
+                return;
+            }
+            
+            // Создаем профиль с валидированными данными
             const profile: UserProfile = {
-                name,
+                name: name.trim(),
                 birthDate: date,
                 birthTime: time,
-                birthPlace: place,
+                birthPlace: place.trim(),
                 isSetup: rememberData, // Сохранять только если галочка отмечена
                 language: 'ru', // Default to Russian
                 theme: 'dark', // Default to Dark/Strict
                 isPremium: false
             };
+            
+            console.log('[Onboarding] Submitting profile:', {
+                name: profile.name,
+                birthDate: profile.birthDate,
+                birthTime: profile.birthTime,
+                birthPlace: profile.birthPlace,
+                isSetup: profile.isSetup
+            });
+            
             onComplete(profile);
         }
     };

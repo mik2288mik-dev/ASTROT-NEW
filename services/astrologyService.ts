@@ -60,16 +60,48 @@ export const calculateNatalChart = async (profile: UserProfile): Promise<NatalCh
     });
 
     if (!response.ok) {
-      const errorText = await response.text().catch(() => 'Unable to read error response');
+      let errorText = '';
+      try {
+        const errorData = await response.json();
+        errorText = errorData.message || errorData.error || JSON.stringify(errorData);
+      } catch {
+        errorText = await response.text().catch(() => 'Unable to read error response');
+      }
+      
       log.error(`[calculateNatalChart] Server returned error status ${response.status}`, {
         status: response.status,
         statusText: response.statusText,
-        errorBody: errorText
+        errorBody: errorText,
+        url
       });
-      throw new Error(`Failed to calculate natal chart: ${response.status} ${response.statusText}`);
+      
+      // Для ошибок валидации (400) не используем fallback, пробрасываем ошибку
+      if (response.status === 400) {
+        throw new Error(`Ошибка валидации данных: ${errorText}`);
+      }
+      
+      throw new Error(`Failed to calculate natal chart: ${response.status} ${response.statusText}. ${errorText}`);
     }
 
-    const chartData = await response.json() as NatalChartData;
+    let chartData: NatalChartData;
+    try {
+      chartData = await response.json() as NatalChartData;
+    } catch (parseError: any) {
+      log.error('[calculateNatalChart] Failed to parse response JSON', {
+        error: parseError.message
+      });
+      throw new Error('Invalid response format from server');
+    }
+
+    // Валидация полученных данных
+    if (!chartData || !chartData.sun) {
+      log.error('[calculateNatalChart] Invalid chart data received', {
+        hasData: !!chartData,
+        hasSun: !!chartData?.sun
+      });
+      throw new Error('Invalid chart data received from server');
+    }
+
     log.info('[calculateNatalChart] Successfully calculated natal chart', {
       hasSun: !!chartData.sun,
       hasMoon: !!chartData.moon,
@@ -79,10 +111,18 @@ export const calculateNatalChart = async (profile: UserProfile): Promise<NatalCh
   } catch (error: any) {
     log.error('[calculateNatalChart] Error occurred', {
       error: error.message,
-      stack: error.stack
+      stack: error.stack,
+      name: error.name
     });
+    
+    // Не используем fallback для ошибок валидации или сетевых ошибок
+    // Пробрасываем ошибку дальше, чтобы App.tsx мог обработать её правильно
+    if (error.message && (error.message.includes('валидации') || error.message.includes('Failed to calculate'))) {
+      throw error;
+    }
+    
     log.warn('[calculateNatalChart] Falling back to mock data');
-    // Fallback to mock data if API fails
+    // Fallback to mock data only for unexpected errors
     return generateMockNatalChart(profile);
   }
 };

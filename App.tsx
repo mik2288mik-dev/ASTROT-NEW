@@ -152,8 +152,19 @@ const App: React.FC = () => {
         }
 
         try {
-            console.log('[App] Calculating natal chart...');
+            console.log('[App] Calculating natal chart...', {
+                name: fullProfile.name,
+                birthDate: fullProfile.birthDate,
+                birthTime: fullProfile.birthTime,
+                birthPlace: fullProfile.birthPlace
+            });
+            
             const generatedChart = await calculateNatalChart(fullProfile);
+            
+            if (!generatedChart || !generatedChart.sun) {
+                throw new Error('Invalid chart data received');
+            }
+            
             console.log('[App] Chart generated, saving...', {
                 hasSun: !!generatedChart.sun,
                 hasMoon: !!generatedChart.moon,
@@ -169,6 +180,7 @@ const App: React.FC = () => {
                     console.log('[App] Chart saved successfully');
                 } catch (error) {
                     console.error('[App] Failed to save chart:', error);
+                    // Не прерываем процесс, если сохранение не удалось
                 }
             } else {
                 console.log('[App] User chose not to save data, skipping chart save');
@@ -176,9 +188,20 @@ const App: React.FC = () => {
             
             // Funnel: Onboarding -> Hook -> Dashboard (not Paywall)
             setView('hook'); 
-        } catch (error) {
-            console.error("[App] AI Generation failed:", error);
-            alert("Error connecting to stars. Please try again.");
+        } catch (error: any) {
+            console.error("[App] Error calculating natal chart:", error);
+            console.error("[App] Error details:", {
+                message: error?.message,
+                stack: error?.stack,
+                name: error?.name
+            });
+            
+            // Показываем более информативное сообщение об ошибке
+            const errorMessage = error?.message || 'Unknown error occurred';
+            alert(`Ошибка при расчете карты: ${errorMessage}. Пожалуйста, попробуйте еще раз.`);
+            
+            // Возвращаемся к onboarding, чтобы пользователь мог попробовать снова
+            setView('onboarding');
         } finally {
             setLoading(false);
         }
