@@ -8,17 +8,12 @@ interface LoadingProps {
 export const Loading: React.FC<LoadingProps> = ({ message }) => {
     return (
         <div className="fixed inset-0 flex flex-col items-center justify-center bg-astro-bg z-50 text-center">
-            {/* Вращающийся логотип АСТРОТ */}
+            {/* Статичный логотип АСТРОТ с элегантным свечением */}
             <motion.div
                 className="relative mb-8"
-                animate={{ 
-                    rotate: 360,
-                }}
-                transition={{ 
-                    duration: 3, 
-                    repeat: Infinity, 
-                    ease: "linear" 
-                }}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5 }}
             >
                 <h1 className="text-6xl font-bold text-astro-text font-serif tracking-tighter">
                     АСТРОТ
