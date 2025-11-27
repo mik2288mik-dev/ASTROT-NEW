@@ -107,9 +107,9 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
     };
 
     return (
-        <div className="p-4 space-y-8 pb-32">
+        <div className="p-4 space-y-8 pb-32" style={{ paddingTop: 'calc(1rem + 24px)' }}>
             
-            <div className="pt-4 pb-2 text-center">
+            <div className="pb-2 text-center">
                  <h2 className="text-2xl font-bold text-astro-text font-serif tracking-wide uppercase">
                      {getText(profile.language, 'chart.title')}
                  </h2>
@@ -222,7 +222,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
                 {activeAnalysis && (
                     <motion.div 
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[70] bg-black/80 backdrop-blur-md flex items-center justify-center p-6"
+                        className="fixed inset-0 z-[70] bg-black/80 backdrop-blur-md flex items-center justify-center p-6 pt-[88px]"
                         onClick={() => !loadingAnalysis && setActiveAnalysis(null)}
                     >
                         <motion.div 

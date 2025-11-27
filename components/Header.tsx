@@ -32,7 +32,7 @@ export const Header: React.FC<HeaderProps> = ({ profile, view, onOpenSettings, o
     if (isFunnel) return null;
 
     return (
-        <header className="bg-astro-bg/80 backdrop-blur-md border-b border-astro-border h-16 shrink-0 flex items-center justify-between px-4 relative z-40">
+        <header className="bg-astro-bg/80 backdrop-blur-md border-b border-astro-border h-16 shrink-0 flex items-center justify-between px-4 relative z-40" style={{ marginTop: '24px' }}>
             
             {/* Left Side */}
             <div className="flex items-center gap-3 w-20">

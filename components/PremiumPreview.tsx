@@ -16,7 +16,7 @@ export const PremiumPreview: React.FC<PremiumPreviewProps> = ({ onClose, onPurch
     ];
 
     return (
-        <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-lg flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-lg flex items-center justify-center p-4" style={{ paddingTop: 'calc(1rem + 24px)' }}>
             <motion.div 
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}

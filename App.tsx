@@ -100,8 +100,8 @@ const App: React.FC = () => {
                         setChartData(storedChart);
                     }
 
-                    // Если данные есть в БД - показываем главную страницу с персонализированным контентом
-                    setView('dashboard');
+                    // Если данные есть в БД - показываем страницу натальной карты
+                    setView('chart');
                 } else {
                     // Если данных нет в БД - показываем форму ввода данных
                     console.log('[App] No user data found in database, showing onboarding form');
