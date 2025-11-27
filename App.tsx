@@ -79,7 +79,7 @@ const App: React.FC = () => {
                     profileIsSetup: storedProfile?.isSetup
                 });
 
-                // Если профиль найден в БД и он настроен - показываем dashboard
+                // Если профиль найден в БД и он настроен - показываем натальную карту
                 if (storedProfile && storedProfile.isSetup) {
                     if (!storedProfile.language) storedProfile.language = 'ru';
                     if (!storedProfile.theme) storedProfile.theme = 'dark';
@@ -87,21 +87,38 @@ const App: React.FC = () => {
                     const isAdmin = tgId === OWNER_ID || storedProfile.isAdmin || false;
                     const updatedProfile = { ...storedProfile, id: tgId, isAdmin };
                     
-                    console.log('[App] User data found in database, showing dashboard:', {
+                    console.log('[App] User data found in database, preparing to show chart:', {
                         userId: updatedProfile.id,
                         isAdmin,
-                        isPremium: updatedProfile.isPremium
+                        isPremium: updatedProfile.isPremium,
+                        hasChart: !!storedChart
                     });
                     
                     setProfile(updatedProfile);
                     
                     if (storedChart) {
+                        // Если карта найдена в БД - используем её
                         console.log('[App] Setting chart data from database');
                         setChartData(storedChart);
+                        setView('chart');
+                    } else {
+                        // Если карты нет в БД, но профиль есть - пересчитываем карту
+                        console.log('[App] Chart not found in database, recalculating...');
+                        try {
+                            const generatedChart = await calculateNatalChart(updatedProfile);
+                            if (generatedChart && generatedChart.sun) {
+                                setChartData(generatedChart);
+                                // Сохраняем пересчитанную карту в БД
+                                await saveChartData(generatedChart);
+                                console.log('[App] Chart recalculated and saved');
+                            }
+                            setView('chart');
+                        } catch (error) {
+                            console.error('[App] Error recalculating chart:', error);
+                            // При ошибке пересчета показываем onboarding
+                            setView('onboarding');
+                        }
                     }
-
-                    // Если данные есть в БД - показываем страницу натальной карты
-                    setView('chart');
                 } else {
                     // Если данных нет в БД - показываем форму ввода данных
                     console.log('[App] No user data found in database, showing onboarding form');
@@ -255,11 +272,7 @@ const App: React.FC = () => {
     };
 
     if (loading) {
-        return (
-            <div className="fixed inset-0 flex items-center justify-center bg-astro-bg z-50">
-                <Loading message={getText(profile?.language || 'ru', 'loading')} />
-            </div>
-        );
+        return <Loading message={getText(profile?.language || 'ru', 'loading')} />;
     }
 
     if (!profile || view === 'onboarding') {
