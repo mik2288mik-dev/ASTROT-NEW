@@ -79,7 +79,7 @@ const App: React.FC = () => {
                     profileIsSetup: storedProfile?.isSetup
                 });
 
-                // Если профиль найден в БД и он настроен - показываем dashboard
+                // Если профиль найден в БД и он настроен - показываем натальную карту или dashboard
                 if (storedProfile && storedProfile.isSetup) {
                     if (!storedProfile.language) storedProfile.language = 'ru';
                     if (!storedProfile.theme) storedProfile.theme = 'dark';
@@ -87,10 +87,11 @@ const App: React.FC = () => {
                     const isAdmin = tgId === OWNER_ID || storedProfile.isAdmin || false;
                     const updatedProfile = { ...storedProfile, id: tgId, isAdmin };
                     
-                    console.log('[App] User data found in database, showing dashboard:', {
+                    console.log('[App] User data found in database:', {
                         userId: updatedProfile.id,
                         isAdmin,
-                        isPremium: updatedProfile.isPremium
+                        isPremium: updatedProfile.isPremium,
+                        hasChart: !!storedChart
                     });
                     
                     setProfile(updatedProfile);
@@ -98,10 +99,13 @@ const App: React.FC = () => {
                     if (storedChart) {
                         console.log('[App] Setting chart data from database');
                         setChartData(storedChart);
+                        // Если данные сохранены и пользователь есть в БД - открываем сразу страницу с натальной картой
+                        setView('chart');
+                    } else {
+                        // Если данных карты нет - показываем dashboard
+                        console.log('[App] No chart data found, showing dashboard');
+                        setView('dashboard');
                     }
-
-                    // Если данные есть в БД - показываем главную страницу с персонализированным контентом
-                    setView('dashboard');
                 } else {
                     // Если данных нет в БД - показываем форму ввода данных
                     console.log('[App] No user data found in database, showing onboarding form');
