@@ -31,7 +31,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, chartData, reques
             if (!profile.evolution || (Date.now() - profile.evolution.lastUpdated > 86400000)) {
                 // Update once every 24 hours or if missing
                 console.log('[Dashboard] Updating user evolution...');
-                const newEvo = await updateUserEvolution(profile);
+                const newEvo = await updateUserEvolution(profile, chartData || undefined);
                 setEvolution(newEvo);
                 
                 // Save to profile
