@@ -26,11 +26,25 @@ export default async function handler(
   try {
     const { name, birthDate, birthTime, birthPlace, language } = req.body;
 
+    // Validate required fields
+    if (!name || !birthDate || !birthPlace) {
+      log.error('Missing required fields', {
+        hasName: !!name,
+        hasBirthDate: !!birthDate,
+        hasBirthPlace: !!birthPlace
+      });
+      return res.status(400).json({ 
+        error: 'Missing required fields',
+        message: 'Name, birthDate, and birthPlace are required'
+      });
+    }
+
     log.info('Calculating natal chart', {
       name,
       birthDate,
+      birthTime: birthTime || 'not provided',
       birthPlace,
-      language
+      language: language || 'ru'
     });
 
     // TODO: Implement actual natal chart calculation using Swiss Ephemeris
@@ -54,7 +68,11 @@ export default async function handler(
       summary: `This is a mystical reading for ${name}. The stars reveal a complex and beautiful soul journey.`
     };
 
-    log.info('Natal chart calculated successfully');
+    log.info('Natal chart calculated successfully', {
+      hasSun: !!chartData.sun,
+      hasMoon: !!chartData.moon,
+      element: chartData.element
+    });
 
     return res.status(200).json(chartData);
   } catch (error: any) {
