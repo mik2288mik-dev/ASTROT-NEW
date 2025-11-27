@@ -187,30 +187,66 @@ export const getThreeKeys = async (profile: UserProfile, chartData: NatalChartDa
       error: error.message,
       stack: error.stack
     });
-    log.warn('[getThreeKeys] Falling back to mock data');
-    // Fallback to mock data
-    return {
-      key1: {
-        title: profile.language === 'ru' ? 'ТВОЯ ЭНЕРГИЯ' : 'YOUR ENERGY',
-        text: profile.language === 'ru' 
-          ? 'Твоя уникальная энергия сочетает силу Солнца и глубину Луны.'
-          : 'Your unique energy combines the strength of the Sun and the depth of the Moon.'
-      },
-      key2: {
-        title: profile.language === 'ru' ? 'ТВОЙ СТИЛЬ ЛЮБВИ' : 'YOUR LOVE STYLE',
-        text: profile.language === 'ru'
-          ? 'В любви ты ищешь глубокую связь и взаимопонимание.'
-          : 'In love, you seek deep connection and understanding.'
-      },
-      key3: {
-        title: profile.language === 'ru' ? 'ТВОЯ КАРЬЕРА' : 'YOUR CAREER',
-        text: profile.language === 'ru'
-          ? 'Твоя карьера связана с творчеством и самовыражением.'
-          : 'Your career is connected to creativity and self-expression.'
-      }
-    };
+    log.warn('[getThreeKeys] Falling back to personalized mock data');
+    // Fallback to personalized mock data based on chart
+    return generatePersonalizedThreeKeysFallback(profile, chartData);
   }
 };
+
+// Генерирует персонализированные три ключа на основе натальной карты (fallback)
+function generatePersonalizedThreeKeysFallback(profile: UserProfile, chartData: NatalChartData): ThreeKeys {
+  const lang = profile.language === 'ru';
+  const sunSign = chartData.sun?.sign || 'Aries';
+  const moonSign = chartData.moon?.sign || 'Cancer';
+  const element = chartData.element || 'Fire';
+  const venusSign = chartData.venus?.sign || sunSign;
+  const marsSign = chartData.mars?.sign || sunSign;
+
+  // Энергия на основе элемента и знаков
+  const energyTexts: Record<string, { ru: string, en: string }> = {
+    'Fire': {
+      ru: `Твоя энергия ${sunSign} с Луной в ${moonSign} создает мощный огонь внутри. Ты вдохновляешь и ведешь других вперед.`,
+      en: `Your ${sunSign} energy with Moon in ${moonSign} creates a powerful inner fire. You inspire and lead others forward.`
+    },
+    'Water': {
+      ru: `Твоя энергия ${sunSign} с Луной в ${moonSign} течет как река эмоций. Твоя интуиция - твоя сверхсила.`,
+      en: `Your ${sunSign} energy with Moon in ${moonSign} flows like a river of emotions. Your intuition is your superpower.`
+    },
+    'Air': {
+      ru: `Твоя энергия ${sunSign} с Луной в ${moonSign} легка как ветер. Твои идеи меняют мир вокруг тебя.`,
+      en: `Your ${sunSign} energy with Moon in ${moonSign} is light as wind. Your ideas change the world around you.`
+    },
+    'Earth': {
+      ru: `Твоя энергия ${sunSign} с Луной в ${moonSign} тверда как скала. Ты создаешь прочный фундамент для своей жизни.`,
+      en: `Your ${sunSign} energy with Moon in ${moonSign} is solid as rock. You create a strong foundation for your life.`
+    }
+  };
+
+  // Стиль любви на основе Венеры
+  const loveText = lang 
+    ? `В любви твоя Венера в ${venusSign} с Луной в ${moonSign} создает уникальный стиль отношений. Ты ищешь то, что резонирует с твоей душой.`
+    : `In love your Venus in ${venusSign} with Moon in ${moonSign} creates a unique relationship style. You seek what resonates with your soul.`;
+
+  // Карьера на основе Солнца и Марса
+  const careerText = lang
+    ? `Твоя карьера определяется Солнцем в ${sunSign} и Марсом в ${marsSign}. Твой путь уникален и ведет к самореализации.`
+    : `Your career is defined by Sun in ${sunSign} and Mars in ${marsSign}. Your path is unique and leads to self-actualization.`;
+
+  return {
+    key1: {
+      title: lang ? 'ТВОЯ ЭНЕРГИЯ' : 'YOUR ENERGY',
+      text: energyTexts[element]?.[lang ? 'ru' : 'en'] || energyTexts['Fire'][lang ? 'ru' : 'en']
+    },
+    key2: {
+      title: lang ? 'ТВОЙ СТИЛЬ ЛЮБВИ' : 'YOUR LOVE STYLE',
+      text: loveText
+    },
+    key3: {
+      title: lang ? 'ТВОЯ КАРЬЕРА' : 'YOUR CAREER',
+      text: careerText
+    }
+  };
+}
 
 export const calculateSynastry = async (profile: UserProfile, partnerName: string, partnerDate: string): Promise<SynastryResult> => {
   const url = `${API_BASE_URL}/api/astrology/synastry`;
@@ -337,16 +373,23 @@ export const getDailyHoroscope = async (profile: UserProfile, chartData: NatalCh
   }
 };
 
-export const updateUserEvolution = async (profile: UserProfile): Promise<UserEvolution> => {
-  // If no evolution exists, initialize
-  const currentEvo = profile.evolution || {
-    level: 1,
-    title: "Seeker",
-    stats: { intuition: 50, confidence: 50, awareness: 50 },
-    lastUpdated: Date.now()
-  };
+export const updateUserEvolution = async (profile: UserProfile, chartData?: NatalChartData): Promise<UserEvolution> => {
+  // If no evolution exists, initialize with personalized values based on natal chart
+  if (!profile.evolution) {
+    // Начальные значения зависят от натальной карты пользователя
+    const initialStats = calculateInitialStats(profile, chartData);
+    
+    return {
+      level: 1,
+      title: profile.language === 'ru' ? "Искатель" : "Seeker",
+      stats: initialStats,
+      lastUpdated: Date.now()
+    };
+  }
 
-  // Simulate growth based on usage
+  const currentEvo = profile.evolution;
+
+  // Simulate growth based on usage - каждый пользователь растет по-своему
   const updatedStats = {
     intuition: Math.min(100, currentEvo.stats.intuition + Math.floor(Math.random() * 5)),
     confidence: Math.min(100, currentEvo.stats.confidence + Math.floor(Math.random() * 3)),
@@ -354,11 +397,14 @@ export const updateUserEvolution = async (profile: UserProfile): Promise<UserEvo
   };
   
   let newLevel = currentEvo.level;
-  if ((updatedStats.intuition + updatedStats.confidence + updatedStats.awareness) / 3 > (newLevel * 30)) {
+  const avgStat = (updatedStats.intuition + updatedStats.confidence + updatedStats.awareness) / 3;
+  if (avgStat > (newLevel * 30)) {
     newLevel += 1;
   }
 
-  const titles = ["Seeker", "Apprentice", "Mystic", "Guide", "Master"];
+  const titles = profile.language === 'ru' 
+    ? ["Искатель", "Ученик", "Мистик", "Проводник", "Мастер"]
+    : ["Seeker", "Apprentice", "Mystic", "Guide", "Master"];
   const newTitle = titles[Math.min(newLevel - 1, 4)];
 
   return {
@@ -368,6 +414,58 @@ export const updateUserEvolution = async (profile: UserProfile): Promise<UserEvo
     lastUpdated: Date.now()
   };
 };
+
+// Вычисляет начальные статы на основе натальной карты пользователя
+function calculateInitialStats(profile: UserProfile, chartData?: NatalChartData): { intuition: number, confidence: number, awareness: number } {
+  if (!chartData) {
+    // Если нет данных карты - используем случайные, но уникальные для каждого пользователя значения
+    const seed = profile.name?.length || 0;
+    return {
+      intuition: 40 + (seed % 20),
+      confidence: 40 + ((seed * 2) % 20),
+      awareness: 40 + ((seed * 3) % 20)
+    };
+  }
+
+  // Интуиция зависит от Луны и водных знаков
+  let intuition = 50;
+  const moonSign = chartData.moon?.sign;
+  if (['Cancer', 'Scorpio', 'Pisces'].includes(moonSign)) {
+    intuition += 15;
+  } else if (['Gemini', 'Aquarius', 'Libra'].includes(moonSign)) {
+    intuition += 10;
+  }
+
+  // Уверенность зависит от Солнца и огненных знаков
+  let confidence = 50;
+  const sunSign = chartData.sun?.sign;
+  if (['Aries', 'Leo', 'Sagittarius'].includes(sunSign)) {
+    confidence += 15;
+  } else if (['Taurus', 'Capricorn', 'Virgo'].includes(sunSign)) {
+    confidence += 10;
+  }
+
+  // Осознанность зависит от элемента и Меркурия
+  let awareness = 50;
+  const element = chartData.element;
+  if (element === 'Air') {
+    awareness += 15;
+  } else if (element === 'Earth') {
+    awareness += 12;
+  } else if (element === 'Water') {
+    awareness += 8;
+  }
+
+  log.info('[updateUserEvolution] Calculated personalized initial stats', {
+    userId: profile.id,
+    sunSign,
+    moonSign,
+    element,
+    stats: { intuition, confidence, awareness }
+  });
+
+  return { intuition, confidence, awareness };
+}
 
 export const getWeeklyHoroscope = async (profile: UserProfile, chartData: NatalChartData): Promise<WeeklyHoroscope> => {
   const url = `${API_BASE_URL}/api/astrology/weekly-horoscope`;
