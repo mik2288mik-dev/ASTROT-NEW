@@ -3,9 +3,9 @@ export type Language = 'ru' | 'en';
 export type Theme = 'dark' | 'light';
 
 export interface ThreeKeys {
-  key1: { title: string; text: string; }; // Energy
-  key2: { title: string; text: string; }; // Love
-  key3: { title: string; text: string; }; // Career
+  key1: { title: string; text: string; advice?: string[]; }; // Energy
+  key2: { title: string; text: string; advice?: string[]; }; // Love
+  key3: { title: string; text: string; advice?: string[]; }; // Career
 }
 
 export interface UserEvolution {
