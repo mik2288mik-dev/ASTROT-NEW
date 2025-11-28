@@ -84,10 +84,29 @@ export interface NatalChartData {
 }
 
 export interface SynastryResult {
-  compatibilityScore: number; // 0-100
-  emotionalConnection: string;
-  intellectualConnection: string;
-  challenge: string;
+  compatibilityScore?: number; // 0-100 (опционально для краткого режима)
+  
+  // Краткий режим (бесплатный) - тизер
+  briefOverview?: {
+    introduction: string; // 1 абзац - кто кому как ощущается
+    harmony: string; // что гармонично и естественно
+    challenges: string; // где могут быть недопонимания
+    tips: string[]; // 3-4 подсказки как лучше обходиться друг с другом
+  };
+  
+  // Полный режим (премиум) - глубокий разбор
+  fullAnalysis?: {
+    generalTheme: string; // Общая тема связи (1-2 абзаца)
+    attraction: string; // Что притягивает (2-3 абзаца)
+    difficulties: string; // Где могут быть сложности (2-3 абзаца)
+    recommendations: string[]; // 3-6 конкретных рекомендаций
+    potential: string; // Потенциал отношений (1-3 абзаца)
+  };
+  
+  // Общие поля (для обратной совместимости)
+  emotionalConnection?: string;
+  intellectualConnection?: string;
+  challenge?: string;
   summary: string;
 }
 

@@ -97,7 +97,10 @@ export const TRANSLATIONS = {
       emotional: "Эмоциональная связь",
       intellectual: "Интеллект и общение",
       challenge: "Кармический урок",
-      input_title: "Данные Партнера"
+      input_title: "Данные Партнера",
+      brief_btn: "Краткий обзор (Бесплатно)",
+      full_btn: "Глубокий разбор (Премиум)",
+      loading: "Считываем звездную совместимость..."
     },
     settings: {
       title: "Настройки",
@@ -197,7 +200,10 @@ export const TRANSLATIONS = {
       emotional: "Emotional Bond",
       intellectual: "Intellectual Bond",
       challenge: "Karmic Challenge",
-      input_title: "Partner Details"
+      input_title: "Partner Details",
+      brief_btn: "Brief Overview (Free)",
+      full_btn: "Deep Analysis (Premium)",
+      loading: "Reading star compatibility..."
     },
     settings: {
       title: "Settings",
