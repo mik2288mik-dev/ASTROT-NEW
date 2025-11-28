@@ -161,17 +161,23 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, chartData, reques
             {/* 6. SECONDARY ACTIONS */}
             <div className="grid grid-cols-2 gap-4">
                 
-                {/* Synastry */}
+                {/* Synastry - доступна всем */}
                 <button 
                     onClick={() => onNavigate('synastry')}
                     className="bg-astro-card p-4 rounded-xl border border-astro-border text-left hover:border-astro-highlight transition-colors shadow-sm group relative overflow-hidden"
                 >
-                    {!profile.isPremium && <div className="absolute inset-0 bg-black/10 backdrop-blur-[1px] flex items-center justify-center z-20"><span className="text-xs font-bold bg-astro-text text-astro-bg px-2 py-1 rounded">PRO</span></div>}
                     <div className="flex flex-col justify-between h-24">
                          <span className="text-2xl group-hover:scale-110 transition-transform origin-left">💞</span>
                         <div>
                             <h3 className="font-serif text-md text-astro-text">{getText(profile.language, 'dashboard.menu_synastry')}</h3>
-                            <p className="text-astro-subtext text-[10px] font-light">Check compatibility.</p>
+                            <p className="text-astro-subtext text-[10px] font-light">
+                                {profile.language === 'ru' ? 'Совместимость.' : 'Check compatibility.'}
+                            </p>
+                            {!profile.isPremium && (
+                                <span className="text-[8px] text-astro-highlight uppercase tracking-wider">
+                                    {profile.language === 'ru' ? 'Бесплатный тизер' : 'Free preview'}
+                                </span>
+                            )}
                         </div>
                     </div>
                 </button>

@@ -248,6 +248,185 @@ function generatePersonalizedThreeKeysFallback(profile: UserProfile, chartData: 
   };
 }
 
+/**
+ * Краткий обзор синастрии (бесплатный) - тизер для всех пользователей
+ */
+export const calculateBriefSynastry = async (
+  profile: UserProfile, 
+  partnerName: string, 
+  partnerDate: string,
+  partnerTime?: string,
+  partnerPlace?: string,
+  relationshipType?: string
+): Promise<SynastryResult> => {
+  const url = `${API_BASE_URL}/api/astrology/synastry-brief`;
+  log.info('[calculateBriefSynastry] Starting calculation', { partnerName, partnerDate });
+
+  try {
+    log.info(`[calculateBriefSynastry] Sending POST request to: ${url}`);
+    const startTime = Date.now();
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        profile,
+        partnerName,
+        partnerDate,
+        partnerTime,
+        partnerPlace,
+        language: profile.language,
+        relationshipType
+      })
+    });
+
+    const duration = Date.now() - startTime;
+    log.info(`[calculateBriefSynastry] Response received in ${duration}ms`, {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unable to read error response');
+      log.error(`[calculateBriefSynastry] Server returned error status ${response.status}`, {
+        status: response.status,
+        statusText: response.statusText,
+        errorBody: errorText
+      });
+      throw new Error(`Failed to calculate brief synastry: ${response.status} ${response.statusText}`);
+    }
+
+    const result = await response.json() as SynastryResult;
+    log.info('[calculateBriefSynastry] Successfully calculated brief synastry');
+    return result;
+  } catch (error: any) {
+    log.error('[calculateBriefSynastry] Error occurred', {
+      error: error.message,
+      stack: error.stack
+    });
+    log.warn('[calculateBriefSynastry] Falling back to mock data');
+    // Fallback to mock data
+    const lang = profile.language === 'ru';
+    return {
+      briefOverview: {
+        introduction: lang 
+          ? `${profile.name} и ${partnerName} создают интересную динамику в отношениях. Каждый привносит свои уникальные качества.`
+          : `${profile.name} and ${partnerName} create interesting dynamics. Each brings unique qualities.`,
+        harmony: lang
+          ? 'В этой связи есть естественное понимание друг друга. Вы оба цените искренность и открытость.'
+          : 'There is natural understanding in this connection. You both value honesty and openness.',
+        challenges: lang
+          ? 'Иногда может возникать недопонимание из-за разных темпераментов. Важно давать друг другу пространство.'
+          : 'Sometimes misunderstandings may arise due to different temperaments. It\'s important to give each other space.',
+        tips: lang
+          ? [
+              'Слушайте друг друга внимательно',
+              'Цените различия как возможность для роста',
+              'Находите компромиссы в спорных вопросах',
+              'Поддерживайте открытую коммуникацию'
+            ]
+          : [
+              'Listen to each other attentively',
+              'Value differences as opportunities for growth',
+              'Find compromises in disputed matters',
+              'Maintain open communication'
+            ]
+      },
+      summary: lang
+        ? `Краткий обзор совместимости между ${profile.name} и ${partnerName}.`
+        : `Brief compatibility overview between ${profile.name} and ${partnerName}.`
+    };
+  }
+};
+
+/**
+ * Полный анализ синастрии (премиум) - глубокий разбор для премиум пользователей
+ */
+export const calculateFullSynastry = async (
+  profile: UserProfile, 
+  partnerName: string, 
+  partnerDate: string,
+  partnerTime?: string,
+  partnerPlace?: string,
+  relationshipType?: string
+): Promise<SynastryResult> => {
+  const url = `${API_BASE_URL}/api/astrology/synastry-full`;
+  log.info('[calculateFullSynastry] Starting calculation', { partnerName, partnerDate });
+
+  try {
+    log.info(`[calculateFullSynastry] Sending POST request to: ${url}`);
+    const startTime = Date.now();
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        profile,
+        partnerName,
+        partnerDate,
+        partnerTime,
+        partnerPlace,
+        language: profile.language,
+        relationshipType
+      })
+    });
+
+    const duration = Date.now() - startTime;
+    log.info(`[calculateFullSynastry] Response received in ${duration}ms`, {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unable to read error response');
+      log.error(`[calculateFullSynastry] Server returned error status ${response.status}`, {
+        status: response.status,
+        statusText: response.statusText,
+        errorBody: errorText
+      });
+      throw new Error(`Failed to calculate full synastry: ${response.status} ${response.statusText}`);
+    }
+
+    const result = await response.json() as SynastryResult;
+    log.info('[calculateFullSynastry] Successfully calculated full synastry');
+    return result;
+  } catch (error: any) {
+    log.error('[calculateFullSynastry] Error occurred', {
+      error: error.message,
+      stack: error.stack
+    });
+    log.warn('[calculateFullSynastry] Falling back to mock data');
+    // Fallback to mock data
+    const lang = profile.language === 'ru';
+    return {
+      fullAnalysis: {
+        generalTheme: lang 
+          ? `Ваша связь с ${partnerName} создаёт особую атмосферу взаимного роста и понимания.`
+          : `Your connection with ${partnerName} creates a special atmosphere of mutual growth and understanding.`,
+        attraction: lang
+          ? 'Вас притягивает друг к другу естественная гармония характеров.'
+          : 'You are attracted to each other by the natural harmony of characters.',
+        difficulties: lang
+          ? 'Иногда ваши разные темпы жизни могут создавать напряжение.'
+          : 'Sometimes your different life paces can create tension.',
+        recommendations: lang
+          ? ['Проговаривайте свои чувства', 'Давайте друг другу пространство', 'Находите общие цели']
+          : ['Express your feelings', 'Give each other space', 'Find common goals'],
+        potential: lang
+          ? 'Эта связь может стать источником глубокого личностного роста.'
+          : 'This connection can become a source of deep personal growth.'
+      },
+      summary: lang
+        ? `Глубокий анализ совместимости между ${profile.name} и ${partnerName}.`
+        : `Deep compatibility analysis between ${profile.name} and ${partnerName}.`
+    };
+  }
+};
+
+/**
+ * Старая функция синастрии (оставлена для обратной совместимости)
+ * @deprecated Используйте calculateBriefSynastry или calculateFullSynastry
+ */
 export const calculateSynastry = async (profile: UserProfile, partnerName: string, partnerDate: string): Promise<SynastryResult> => {
   const url = `${API_BASE_URL}/api/astrology/synastry`;
   log.info('[calculateSynastry] Starting calculation', { partnerName, partnerDate });

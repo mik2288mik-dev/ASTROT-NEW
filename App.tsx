@@ -254,8 +254,9 @@ const App: React.FC = () => {
     const navigateTo = (newView: ViewState) => {
         if (!profile) return;
         
-        // Premium Gating - показываем Paywall при попытке доступа к закрытым функциям
-        if (!profile.isPremium && (newView === 'synastry' || newView === 'oracle')) {
+        // Premium Gating - показываем Paywall только для Oracle
+        // Synastry доступна всем, но с ограниченным функционалом для бесплатных пользователей
+        if (!profile.isPremium && newView === 'oracle') {
             setView('paywall');
             return;
         }
