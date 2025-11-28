@@ -46,6 +46,9 @@ npm install openai  # ✅ Готово
 |----------|----------|--------|
 | `/api/astrology/soul-passport` | Паспорт души | gpt-4o |
 | `/api/astrology/ai-three-keys` | AI версия трёх ключей | gpt-4o |
+| `/api/astrology/full-chart-interpretation` | Полная интерпретация по блокам (NEW!) | gpt-4o |
+| `/api/astrology/transit-forecast` | Прогнозы с транзитами (NEW!) | gpt-4o/mini |
+| `/api/astrology/evolution-description` | Описание эволюции (NEW!) | gpt-4o-mini |
 
 ### 5. 📚 Создана документация
 

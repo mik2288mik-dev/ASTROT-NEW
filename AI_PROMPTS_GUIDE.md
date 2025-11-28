@@ -201,6 +201,95 @@ const soulPassport = response.choices[0].message.content;
 }
 ```
 
+### 8. Полная интерпретация натальной карты (NEW!)
+
+**Функция**: `createFullNatalChartPrompt(natalData, profile)`
+
+Создаёт подробную интерпретацию натальной карты по блокам. Используется когда пользователь нажимает "Узнать больше".
+
+**Формат ответа**: Markdown текст
+
+Блоки:
+- ТВОЯ ЛИЧНОСТЬ И ЭНЕРГИЯ
+- ТВОЙ ВНУТРЕННИЙ МИР И ЭМОЦИИ
+- ТВОЙ УМ И ОБЩЕНИЕ
+- ЛЮБОВЬ И ОТНОШЕНИЯ
+- КАРЬЕРА И САМОРАЗВИТИЕ
+- ТВОИ СИЛЬНЫЕ СТОРОНЫ
+- ЧЕМУ СТОИТ НАУЧИТЬСЯ
+
+**Пример использования**:
+
+```typescript
+const response = await fetch('/api/astrology/full-chart-interpretation', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ profile, chartData })
+});
+const { interpretation } = await response.json();
+// interpretation - Markdown текст с подробным разбором
+```
+
+### 9. Прогнозы с транзитами (NEW!)
+
+**Функция**: `createTransitForecastPrompt(natalData, profile, transits, period)`
+
+Создаёт персональный прогноз с учётом текущих транзитов планет.
+
+**Параметры**:
+- `period`: `'day'` | `'week'` | `'month'`
+- `transits`: объект с текущими положениями планет
+
+**Формат ответа**: Markdown текст
+
+**Пример использования**:
+
+```typescript
+const response = await fetch('/api/astrology/transit-forecast', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ 
+    profile, 
+    chartData,
+    period: 'week' // или 'day', 'month'
+  })
+});
+const { forecast } = await response.json();
+// forecast - Markdown текст с прогнозом и рекомендациями
+```
+
+### 10. Описание эволюции (NEW!)
+
+**Функция**: `createEvolutionPrompt(natalData, profile, evolution)`
+
+Создаёт красивое описание текущего уровня внутреннего развития пользователя.
+
+**Формат ответа**: Markdown текст
+
+**Пример использования**:
+
+```typescript
+const response = await fetch('/api/astrology/evolution-description', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ 
+    profile, 
+    chartData,
+    evolution: {
+      level: 2,
+      title: "Apprentice",
+      stats: {
+        awareness: 50,
+        intuition: 52,
+        confidence: 52
+      }
+    }
+  })
+});
+const { description } = await response.json();
+// description - Markdown текст с описанием уровня развития
+```
+
 ## 🌍 Поддержка Языков
 
 Все промпты написаны на русском языке, но содержат инструкцию о том, что Астра должна отвечать на языке пользователя (русский или английский).

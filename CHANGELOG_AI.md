@@ -6,8 +6,12 @@
 
 #### Новые файлы:
 - `lib/prompts.ts` - Система промптов для AI (все на русском)
+- `lib/transits-calculator.ts` - Расчёт текущих транзитов планет
 - `pages/api/astrology/soul-passport.ts` - Новый endpoint для "паспорта души"
 - `pages/api/astrology/ai-three-keys.ts` - AI версия "трёх ключей" с советами
+- `pages/api/astrology/full-chart-interpretation.ts` - Полная интерпретация по блокам (**NEW!**)
+- `pages/api/astrology/transit-forecast.ts` - Прогнозы с транзитами (**NEW!**)
+- `pages/api/astrology/evolution-description.ts` - Описание эволюции (**NEW!**)
 - `AI_PROMPTS_GUIDE.md` - Подробная документация по промптам
 - `AI_INTEGRATION_COMPLETE.md` - Полная документация интеграции
 - `SUMMARY_AI_INTEGRATION.md` - Резюме интеграции
@@ -26,7 +30,14 @@
 - `createMonthlyForecastPrompt()` - Генерация промпта для месячного прогноза
 - `createDeepDivePrompt()` - Генерация промпта для глубокого анализа
 - `createSynastryPrompt()` - Генерация промпта для синастрии
+- `createFullNatalChartPrompt()` - Генерация промпта для полной интерпретации (**NEW!**)
+- `createTransitForecastPrompt()` - Генерация промпта для прогнозов с транзитами (**NEW!**)
+- `createEvolutionPrompt()` - Генерация промпта для описания эволюции (**NEW!**)
 - `addLanguageInstruction()` - Вспомогательная функция для языка
+
+#### Функции в transits-calculator.ts:
+- `getCurrentTransits()` - Получить текущие транзиты планет
+- `getTransitsForPeriod()` - Получить транзиты для периода (неделя/месяц)
 
 #### Типы в prompts.ts:
 - `ThreeKeysAIResponse`
