@@ -41,17 +41,17 @@ export const RegenerateButton: React.FC<RegenerateButtonProps> = ({
     loading: lang ? 'Пересказываю…' : 'Retelling…',
     success: lang ? 'Готово!' : 'Done!',
     error: lang ? 'Ошибка' : 'Error',
-    limitReached: lang ? 'Доступно завтра' : 'Available tomorrow',
+    limitReached: lang ? 'Доступно через неделю' : 'Available next week',
     premiumOnly: lang ? 'Рассказать по-другому (Премиум)' : 'Tell differently (Premium)',
     tooltipFree: lang 
-      ? 'Если захочешь — я могу пересказать твой разбор другими словами, но не чаще одного раза в день'
-      : 'If you want — I can retell your reading in different words, but not more than once a day',
+      ? 'В твоей подписке включена 1 регенерация в неделю. Используй её, чтобы я пересказал твой разбор другими словами'
+      : 'Your subscription includes 1 regeneration per week. Use it to get your reading retold in different words',
     tooltipPaid: lang
       ? 'Следующая регенерация будет стоить 50 звёзд'
       : 'Next regeneration will cost 50 stars',
     tooltipLimit: lang
-      ? 'Сегодня ты уже менял текст. Я смогу рассказать иначе завтра'
-      : 'You already changed the text today. I can tell it differently tomorrow',
+      ? 'На этой неделе ты уже использовал бесплатную регенерацию. Следующая будет доступна через неделю или за 50 звёзд'
+      : 'You already used your free regeneration this week. Next one available next week or for 50 stars',
   };
 
   const handleClick = async () => {
