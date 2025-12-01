@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { UserProfile, NatalChartData } from '../types';
 import { getOrGenerateHoroscope } from '../services/contentGenerationService';
 import { Loading } from '../components/ui/Loading';
+import { getZodiacSign } from '../constants';
 
 interface HoroscopeProps {
     profile: UserProfile;
@@ -40,6 +41,44 @@ const ZODIAC_DATES: Record<string, string> = {
     'Pisces': '19.02 - 20.03'
 };
 
+const SIGN_ALIASES: Record<string, keyof typeof ZODIAC_SYMBOLS> = {
+    'овен': 'Aries',
+    'aries': 'Aries',
+    'телец': 'Taurus',
+    'taurus': 'Taurus',
+    'близнецы': 'Gemini',
+    'gemini': 'Gemini',
+    'рак': 'Cancer',
+    'cancer': 'Cancer',
+    'лев': 'Leo',
+    'leo': 'Leo',
+    'дева': 'Virgo',
+    'virgo': 'Virgo',
+    'весы': 'Libra',
+    'libra': 'Libra',
+    'скорпион': 'Scorpio',
+    'scorpio': 'Scorpio',
+    'стрелец': 'Sagittarius',
+    'sagittarius': 'Sagittarius',
+    'козерог': 'Capricorn',
+    'capricorn': 'Capricorn',
+    'водолей': 'Aquarius',
+    'aquarius': 'Aquarius',
+    'рыбы': 'Pisces',
+    'pisces': 'Pisces'
+};
+
+const normalizeSign = (sign?: string): keyof typeof ZODIAC_SYMBOLS => {
+    if (!sign) return 'Aries';
+    const trimmed = sign.trim();
+    const aliasKey = trimmed.toLowerCase();
+    if (SIGN_ALIASES[aliasKey]) {
+        return SIGN_ALIASES[aliasKey];
+    }
+    const normalized = trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
+    return (ZODIAC_SYMBOLS as Record<string, string>)[normalized] ? normalized as keyof typeof ZODIAC_SYMBOLS : 'Aries';
+};
+
 export const Horoscope: React.FC<HoroscopeProps> = ({ profile, chartData }) => {
     const [horoscope, setHoroscope] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -76,23 +115,10 @@ export const Horoscope: React.FC<HoroscopeProps> = ({ profile, chartData }) => {
         );
     }
 
-    const sunSign = chartData.sun?.sign || 'Aries';
-    const zodiacSymbol = ZODIAC_SYMBOLS[sunSign] || '♈';
+    const sunSign = normalizeSign(chartData.sun?.sign);
+    const zodiacSymbol = ZODIAC_SYMBOLS[sunSign];
     const zodiacDates = ZODIAC_DATES[sunSign] || '';
-    const zodiacName = profile.language === 'ru' 
-        ? (sunSign === 'Aries' ? 'Овен' :
-           sunSign === 'Taurus' ? 'Телец' :
-           sunSign === 'Gemini' ? 'Близнецы' :
-           sunSign === 'Cancer' ? 'Рак' :
-           sunSign === 'Leo' ? 'Лев' :
-           sunSign === 'Virgo' ? 'Дева' :
-           sunSign === 'Libra' ? 'Весы' :
-           sunSign === 'Scorpio' ? 'Скорпион' :
-           sunSign === 'Sagittarius' ? 'Стрелец' :
-           sunSign === 'Capricorn' ? 'Козерог' :
-           sunSign === 'Aquarius' ? 'Водолей' :
-           sunSign === 'Pisces' ? 'Рыбы' : sunSign)
-        : sunSign;
+    const zodiacName = getZodiacSign(profile.language, sunSign);
 
     return (
         <div className="min-h-screen px-6 py-8 max-w-2xl mx-auto">
@@ -102,23 +128,17 @@ export const Horoscope: React.FC<HoroscopeProps> = ({ profile, chartData }) => {
             </h1>
 
             {/* Блок с иконкой знака зодиака */}
-            <div className="flex flex-col items-center mb-8">
-                {/* Большая круглая иконка знака - ЗАГЛУШКА */}
-                <div className="w-32 h-32 rounded-full bg-astro-card border-2 border-astro-border flex items-center justify-center mb-6 shadow-lg">
-                    <span className="text-7xl text-astro-highlight">
-                        {zodiacSymbol}
-                    </span>
+            <div className="bg-astro-card/80 rounded-3xl border border-astro-border shadow-soft mb-8 p-5 flex items-center gap-5">
+                <div className="w-24 h-24 rounded-2xl bg-astro-bg/70 flex items-center justify-center shadow-inner">
+                    <span className="text-5xl text-astro-highlight">{zodiacSymbol}</span>
                 </div>
-
-                {/* Название знака */}
-                <h2 className="text-2xl font-semibold text-astro-text mb-2">
-                    {zodiacName}
-                </h2>
-
-                {/* Даты знака */}
-                <p className="text-base text-astro-subtext">
-                    {zodiacDates}
-                </p>
+                <div className="flex-1">
+                    <p className="text-xs uppercase tracking-[0.3em] text-astro-subtext mb-1">
+                        {profile.language === 'ru' ? 'Твой солнечный знак' : 'Your Sun Sign'}
+                    </p>
+                    <h2 className="text-3xl font-serif text-astro-text mb-1">{zodiacName}</h2>
+                    <p className="text-sm text-astro-subtext">{zodiacDates}</p>
+                </div>
             </div>
 
             {/* Основной текст гороскопа */}

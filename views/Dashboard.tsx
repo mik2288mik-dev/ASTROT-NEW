@@ -119,7 +119,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, chartData, reques
             {/* 1.5. HOROSCOPE FOR TODAY */}
             <button 
                 onClick={() => onNavigate('horoscope')}
-                className="w-full bg-gradient-to-br from-purple-900/20 to-astro-card rounded-2xl p-6 border border-astro-highlight/30 shadow-soft relative overflow-hidden text-left hover:border-astro-highlight transition-colors group"
+                className="w-full bg-gradient-to-br from-purple-900/20 to-astro-card rounded-2xl p-6 shadow-soft relative overflow-hidden text-left transition-transform duration-200 focus:outline-none focus:ring-2 focus:ring-astro-highlight/30 group hover:-translate-y-0.5"
             >
                 <div className="absolute -top-16 -left-16 w-48 h-48 bg-purple-500 rounded-full blur-3xl opacity-20"></div>
                 <div className="relative z-10">
@@ -150,7 +150,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, chartData, reques
             {/* 2. PRIMARY ACTION: NATAL CHART */}
             <button 
                 onClick={() => onNavigate('chart')}
-                className="w-full bg-gradient-to-br from-purple-900/20 to-astro-card rounded-2xl p-6 border border-astro-highlight/30 text-left hover:border-astro-highlight transition-colors shadow-soft group relative overflow-hidden"
+                className="w-full bg-gradient-to-br from-purple-900/20 to-astro-card rounded-2xl p-6 text-left transition-transform duration-200 shadow-soft group relative overflow-hidden focus:outline-none focus:ring-2 focus:ring-astro-highlight/30 hover:-translate-y-0.5"
             >
                 <div className="absolute -top-16 -left-16 w-48 h-48 bg-purple-500 rounded-full blur-3xl opacity-20"></div>
                 <div className="relative z-10">
@@ -243,7 +243,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, chartData, reques
                 {/* Synastry - доступна всем */}
                 <button 
                     onClick={() => onNavigate('synastry')}
-                    className="bg-gradient-to-br from-pink-900/20 to-astro-card p-5 rounded-2xl border border-astro-highlight/30 text-left hover:border-astro-highlight transition-colors shadow-soft group relative overflow-hidden"
+                    className="bg-gradient-to-br from-pink-900/20 to-astro-card p-5 rounded-2xl text-left transition-transform duration-200 shadow-soft group relative overflow-hidden focus:outline-none focus:ring-2 focus:ring-astro-highlight/30 hover:-translate-y-0.5"
                 >
                     <div className="absolute -top-10 -right-10 w-32 h-32 bg-pink-500 rounded-full blur-2xl opacity-20"></div>
                     <div className="relative z-10 flex flex-col justify-between h-28">
@@ -267,7 +267,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, chartData, reques
                  {/* Personal Oracle */}
                 <button 
                     onClick={() => onNavigate('oracle')}
-                    className="bg-gradient-to-br from-blue-900/20 to-astro-card p-5 rounded-2xl border border-astro-highlight/30 text-left hover:border-astro-highlight transition-colors shadow-soft group relative overflow-hidden"
+                    className="bg-gradient-to-br from-blue-900/20 to-astro-card p-5 rounded-2xl text-left transition-transform duration-200 shadow-soft group relative overflow-hidden focus:outline-none focus:ring-2 focus:ring-astro-highlight/30 hover:-translate-y-0.5"
                 >
                     <div className="absolute -top-10 -right-10 w-32 h-32 bg-blue-500 rounded-full blur-2xl opacity-20"></div>
                     {!profile.isPremium && <div className="absolute inset-0 bg-black/10 backdrop-blur-[1px] flex items-center justify-center z-20 rounded-2xl"><span className="text-xs font-bold bg-astro-text text-astro-bg px-2 py-1 rounded">PRO</span></div>}

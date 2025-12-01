@@ -53,6 +53,22 @@ const App: React.FC = () => {
         }
     }, [profile?.theme]);
 
+    const refreshContentInBackground = (currentProfile: UserProfile, currentChart: NatalChartData) => {
+        updateContentIfNeeded(currentProfile, currentChart)
+            .then((updatedContent) => {
+                if (updatedContent) {
+                    setProfile((prev) => {
+                        if (!prev) return prev;
+                        return { ...prev, generatedContent: updatedContent };
+                    });
+                    console.log('[App] Content updated in background');
+                }
+            })
+            .catch((error) => {
+                console.error('[App] Error updating content in background:', error);
+            });
+    };
+
     useEffect(() => {
         const loadData = async () => {
             console.log('[App] Loading user data from database...');
@@ -68,11 +84,12 @@ const App: React.FC = () => {
             }
 
             try {
-                // Загружаем профиль из БД
-                const storedProfile = await getProfile();
-                
-                // Загружаем данные карты из БД
-                const storedChart = await getChartData();
+                console.time('[App] bootstrap');
+                // Загружаем профиль и карту параллельно
+                const [storedProfile, storedChart] = await Promise.all([
+                    getProfile(),
+                    getChartData()
+                ]);
 
                 console.log('[App] Loaded data from database:', {
                     hasProfile: !!storedProfile,
@@ -103,24 +120,8 @@ const App: React.FC = () => {
                         // Если карта найдена в БД - используем её
                         console.log('[App] Setting chart data from database');
                         setChartData(storedChart);
-                        
-                        // Проверяем и обновляем весь контент (гороскопы, deep dive и т.д.)
-                        try {
-                            console.log('[App] Checking if content needs update...');
-                            const updatedContent = await updateContentIfNeeded(updatedProfile, storedChart);
-                            
-                            // Обновляем профиль с новым контентом
-                            if (updatedContent) {
-                                updatedProfile.generatedContent = updatedContent;
-                                setProfile(updatedProfile);
-                                console.log('[App] Content updated and saved');
-                            }
-                        } catch (error) {
-                            console.error('[App] Error updating content:', error);
-                            // Не прерываем загрузку, если обновление контента не удалось
-                        }
-                        
                         setView('dashboard'); // Показываем Dashboard с космическим паспортом
+                        refreshContentInBackground(updatedProfile, storedChart);
                     } else {
                         // Если карты нет в БД, но профиль есть - пересчитываем карту
                         console.log('[App] Chart not found in database, recalculating...');
@@ -131,6 +132,7 @@ const App: React.FC = () => {
                                 // Сохраняем пересчитанную карту в БД
                                 await saveChartData(generatedChart);
                                 console.log('[App] Chart recalculated and saved');
+                                refreshContentInBackground(updatedProfile, generatedChart);
                             }
                             setView('dashboard'); // Показываем Dashboard с космическим паспортом
                         } catch (error) {
@@ -149,6 +151,7 @@ const App: React.FC = () => {
                 // При ошибке загрузки показываем onboarding
                 setView('onboarding');
             } finally {
+                console.timeEnd('[App] bootstrap');
                 setLoading(false);
             }
         };
