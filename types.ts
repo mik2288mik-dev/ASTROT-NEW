@@ -39,6 +39,7 @@ export interface UserProfile {
   threeKeys?: ThreeKeys;
   evolution?: UserEvolution;
   lastContext?: UserContext;
+  starsBalance?: number; // Баланс звёзд для платных регенераций
 }
 
 export enum ZodiacSign {
@@ -143,3 +144,33 @@ export interface ChatMessage {
 }
 
 export type ViewState = 'onboarding' | 'hook' | 'paywall' | 'dashboard' | 'chart' | 'synastry' | 'oracle' | 'settings' | 'admin';
+
+// Cached text types
+export interface CachedText<T = any> {
+  data: T;
+  updatedAt?: Date | string;
+  createdAt?: Date | string;
+}
+
+// Regeneration types
+export type ContentType = 'three_keys' | 'natal_summary' | 'full_natal' | 'synastry' | 'forecast';
+
+export interface RegenerationLimits {
+  canRegenerate: boolean;
+  isFree: boolean;
+  costInStars: number;
+  regenerationsToday: number;
+  message?: string;
+}
+
+export interface RegenerationRequest {
+  userId: string;
+  contentType: ContentType;
+}
+
+export interface RegenerationResponse {
+  success: boolean;
+  data?: any;
+  error?: string;
+  newBalance?: number;
+}

@@ -1,4 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { db } from '../../../lib/db';
+import OpenAI from 'openai';
+import { SYSTEM_PROMPT_ASTRA, createThreeKeysPrompt, addLanguageInstruction, ThreeKeysAIResponse } from '../../../lib/prompts';
 
 // Logging utility
 const log = {
@@ -9,6 +12,11 @@ const log = {
     console.error(`[API/astrology/three-keys] ERROR: ${message}`, error || '');
   },
 };
+
+// Initialize OpenAI client
+const openai = process.env.OPENAI_API_KEY ? new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+}) : null;
 
 // Personalized descriptions based on natal chart data
 function generatePersonalizedThreeKeys(profile: any, chartData: any) {
@@ -137,6 +145,49 @@ function generatePersonalizedThreeKeys(profile: any, chartData: any) {
   };
 }
 
+/**
+ * Generate three keys using OpenAI
+ */
+async function generateThreeKeysWithAI(profile: any, chartData: any): Promise<any> {
+  const lang = profile?.language === 'ru';
+  
+  if (!openai) {
+    log.warn('OpenAI not configured, using fallback');
+    return generatePersonalizedThreeKeys(profile, chartData);
+  }
+
+  try {
+    const userPrompt = createThreeKeysPrompt(chartData, profile);
+    const promptWithLang = addLanguageInstruction(userPrompt, lang ? 'ru' : 'en');
+
+    log.info('Sending request to OpenAI for three keys generation');
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT_ASTRA },
+        { role: 'user', content: promptWithLang }
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.75,
+      max_tokens: 2000,
+    });
+
+    const responseText = completion.choices[0]?.message?.content || '{}';
+    const threeKeys: ThreeKeysAIResponse = JSON.parse(responseText);
+    
+    if (!threeKeys.key1 || !threeKeys.key2 || !threeKeys.key3) {
+      throw new Error('Invalid JSON structure from OpenAI');
+    }
+    
+    log.info('Successfully generated three keys with OpenAI');
+    return threeKeys;
+  } catch (error: any) {
+    log.error('Error generating with OpenAI, using fallback', { error: error.message });
+    return generatePersonalizedThreeKeys(profile, chartData);
+  }
+}
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -152,6 +203,7 @@ export default async function handler(
 
   try {
     const { profile, chartData } = req.body;
+    const userId = profile?.id;
 
     if (!chartData || !chartData.sun || !chartData.moon) {
       log.error('Invalid chart data provided');
@@ -161,18 +213,46 @@ export default async function handler(
       });
     }
 
-    log.info('Generating three keys', {
-      userId: profile?.id,
+    log.info('Processing three keys request', {
+      userId,
       language: profile?.language,
       sunSign: chartData.sun.sign,
       moonSign: chartData.moon.sign
     });
 
-    // Generate personalized three keys based on natal chart data
-    const keys = generatePersonalizedThreeKeys(profile, chartData);
+    // 1. Проверяем наличие кешированного текста в БД
+    if (userId) {
+      try {
+        const cached = await db.cachedTexts.getThreeKeys(userId);
+        if (cached && cached.data) {
+          log.info('Returning cached three keys', { 
+            userId, 
+            updatedAt: cached.updatedAt 
+          });
+          return res.status(200).json(cached.data);
+        }
+      } catch (error: any) {
+        log.warn('Error checking cache, proceeding with generation', { error: error.message });
+      }
+    }
+
+    // 2. Генерируем новый текст (если кеша нет)
+    log.info('No cached data found, generating new three keys', { userId });
+    const keys = await generateThreeKeysWithAI(profile, chartData);
+
+    // 3. Сохраняем в БД для будущих запросов
+    if (userId) {
+      try {
+        await db.cachedTexts.setThreeKeys(userId, keys);
+        log.info('Cached three keys saved to DB', { userId });
+      } catch (error: any) {
+        log.error('Error saving to cache', { error: error.message });
+        // Не прерываем выполнение, просто логируем ошибку
+      }
+    }
 
     log.info('Three keys generated successfully', {
-      userId: profile?.id,
+      userId,
       hasUniqueKeys: true
     });
 
