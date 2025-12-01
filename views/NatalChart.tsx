@@ -36,43 +36,44 @@ const KeyBlock: React.FC<{
     return (
         <div className="w-full max-w-2xl mx-auto">
             {/* Заголовок блока */}
-            <h3 className="text-center text-lg font-semibold text-astro-subtext uppercase tracking-wider mb-6">
+            <h3 className="text-left text-lg font-semibold text-astro-subtext uppercase tracking-wider mb-4">
                 {title}
             </h3>
 
-            {/* Большая круглая иконка планеты - ЗАГЛУШКА */}
-            <div className="flex justify-center mb-8">
-                <div className="w-36 h-36 rounded-full bg-astro-card border-2 border-astro-border flex items-center justify-center shadow-md">
-                    <span className="text-7xl text-astro-highlight">
+            {/* Иконка планеты слева + текст справа */}
+            <div className="flex gap-4 items-start">
+                {/* Иконка планеты сбоку */}
+                <div className="flex-shrink-0 w-16 h-16 rounded-full bg-astro-card border-2 border-astro-border flex items-center justify-center shadow-md">
+                    <span className="text-3xl text-astro-highlight">
                         {planetSymbol}
                     </span>
                 </div>
-            </div>
 
-            {/* Основной текст интерпретации */}
-            <div className="max-w-[85%] mx-auto space-y-6 mb-8">
-                {text.split('\n\n').filter(p => p.trim()).map((paragraph, idx) => (
-                    <p 
-                        key={idx}
-                        className="text-[18px] leading-relaxed text-astro-text text-center"
-                        style={{ lineHeight: '1.7' }}
-                    >
-                        {paragraph.trim()}
-                    </p>
-                ))}
+                {/* Основной текст интерпретации */}
+                <div className="flex-1 space-y-3">
+                    {text.split('\n\n').filter(p => p.trim()).map((paragraph, idx) => (
+                        <p 
+                            key={idx}
+                            className="text-[16px] leading-relaxed text-astro-text"
+                            style={{ lineHeight: '1.6' }}
+                        >
+                            {paragraph.trim()}
+                        </p>
+                    ))}
+                </div>
             </div>
 
             {/* Советы (если есть) */}
             {advice && advice.length > 0 && (
-                <div className="max-w-[85%] mx-auto mt-8 pt-6 border-t border-astro-border/30">
-                    <h4 className="text-base font-semibold text-astro-text mb-4 text-center">
+                <div className="mt-4 pt-4 border-t border-astro-border/30 ml-20">
+                    <h4 className="text-sm font-semibold text-astro-text mb-2">
                         {language === 'ru' ? 'Советы' : 'Advice'}
                     </h4>
-                    <div className="space-y-4">
+                    <div className="space-y-2">
                         {advice.map((item, index) => (
                             <p 
                                 key={index}
-                                className="text-[17px] leading-relaxed text-astro-subtext text-center"
+                                className="text-[15px] leading-relaxed text-astro-subtext"
                             >
                                 {item}
                             </p>
@@ -214,7 +215,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
 
             {/* Три ключа - основные интерпретации */}
             <motion.div 
-                className="space-y-16"
+                className="space-y-8"
                 variants={container}
                 initial="hidden"
                 animate="show"
@@ -252,23 +253,6 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
                     />
                 </motion.div>
 
-                {/* Regenerate Button для премиум пользователей */}
-                {profile.isPremium && (
-                    <motion.div variants={item} className="pt-8">
-                        <RegenerateButton
-                            userId={profile.id || ''}
-                            contentType="three_keys"
-                            isPremium={profile.isPremium}
-                            language={profile.language}
-                            profile={profile}
-                            chartData={data}
-                            onRegenerate={(newData) => {
-                                setKeys(newData);
-                            }}
-                            onRequestPremium={requestPremium}
-                        />
-                    </motion.div>
-                )}
             </motion.div>
 
             {/* FREE USER CTA */}
@@ -292,62 +276,87 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
             )}
 
             {/* PREMIUM: Deep Dive разделы */}
-            <div className={`mt-20 ${!profile.isPremium ? 'opacity-40 pointer-events-none' : ''}`}>
+            <div className="mt-20">
                 <h2 className="text-2xl font-bold text-astro-text text-center mb-8">
                     {getText(profile.language, 'chart.placements')}
                 </h2>
 
                 <div className="space-y-4 max-w-xl mx-auto">
-                    {pillars.map((key) => (
-                        <button
-                            key={key}
-                            onClick={() => handleDeepDive(key)}
-                            className="w-full bg-astro-card rounded-2xl p-6 border border-astro-border hover:border-astro-highlight transition-colors text-left"
-                        >
-                            <div className="flex items-center justify-between">
-                                <span className="text-[18px] font-medium text-astro-text">
-                                    {getText(profile.language, `chart.${key}`)}
-                                </span>
-                                <span className="text-astro-subtext text-sm">
-                                    {profile.language === 'ru' ? 'Открыть' : 'Open'}
-                                </span>
-                            </div>
-                        </button>
-                    ))}
+                    {pillars.map((key) => {
+                        const fullText = getText(profile.language, `chart.${key}`);
+                        const words = fullText.split(' ');
+                        const previewWords = words.slice(0, 3).join(' ');
+                        const restWords = words.slice(3).join(' ');
+                        
+                        return (
+                            <button
+                                key={key}
+                                onClick={() => handleDeepDive(key)}
+                                className="w-full bg-astro-card rounded-2xl p-6 border border-astro-border hover:border-astro-highlight transition-colors text-left relative"
+                            >
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[18px] font-medium text-astro-text">
+                                            {previewWords}
+                                        </span>
+                                        {!profile.isPremium && restWords && (
+                                            <>
+                                                <span className="text-[18px] font-medium text-astro-text blur-sm select-none">
+                                                    {restWords}
+                                                </span>
+                                                <span className="text-astro-highlight ml-2">🔒</span>
+                                            </>
+                                        )}
+                                        {profile.isPremium && restWords && (
+                                            <span className="text-[18px] font-medium text-astro-text">
+                                                {' ' + restWords}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <span className="text-astro-subtext text-sm ml-4">
+                                        {profile.language === 'ru' ? 'Открыть' : 'Open'}
+                                    </span>
+                                </div>
+                            </button>
+                        );
+                    })}
                 </div>
             </div>
 
             {/* PREMIUM: Прогнозы */}
-            <div className={`mt-16 ${!profile.isPremium ? 'opacity-40 pointer-events-none' : ''}`}>
+            <div className="mt-16">
                 <h2 className="text-2xl font-bold text-astro-text text-center mb-8">
                     {getText(profile.language, 'chart.forecast_title')}
                 </h2>
 
                 <div className="grid grid-cols-3 gap-4 max-w-xl mx-auto">
-                    <button 
-                        onClick={() => handleForecast('day')} 
-                        className="bg-astro-card rounded-xl p-4 border border-astro-border hover:border-astro-highlight transition-colors"
-                    >
-                        <p className="text-sm font-medium text-astro-text text-center">
-                            {getText(profile.language, 'chart.forecast_day')}
-                        </p>
-                    </button>
-                    <button 
-                        onClick={() => handleForecast('week')} 
-                        className="bg-astro-card rounded-xl p-4 border border-astro-border hover:border-astro-highlight transition-colors"
-                    >
-                        <p className="text-sm font-medium text-astro-text text-center">
-                            {getText(profile.language, 'chart.forecast_week')}
-                        </p>
-                    </button>
-                    <button 
-                        onClick={() => handleForecast('month')} 
-                        className="bg-astro-card rounded-xl p-4 border border-astro-border hover:border-astro-highlight transition-colors"
-                    >
-                        <p className="text-sm font-medium text-astro-text text-center">
-                            {getText(profile.language, 'chart.forecast_month')}
-                        </p>
-                    </button>
+                    {['day', 'week', 'month'].map((period) => {
+                        const fullText = getText(profile.language, `chart.forecast_${period}`);
+                        const words = fullText.split(' ');
+                        const previewWords = words.slice(0, 3).join(' ');
+                        const restWords = words.slice(3).join(' ');
+                        
+                        return (
+                            <button 
+                                key={period}
+                                onClick={() => handleForecast(period as 'day' | 'week' | 'month')} 
+                                className="bg-astro-card rounded-xl p-4 border border-astro-border hover:border-astro-highlight transition-colors relative"
+                            >
+                                <div className="text-sm font-medium text-astro-text text-center">
+                                    <div>{previewWords}</div>
+                                    {!profile.isPremium && restWords && (
+                                        <div className="flex items-center justify-center gap-1 mt-1">
+                                            <span className="blur-sm select-none">{restWords}</span>
+                                            <span className="text-xs">🔒</span>
+                                        </div>
+                                    )}
+                                    {profile.isPremium && restWords && (
+                                        <div className="mt-1">{restWords}</div>
+                                    )}
+                                </div>
+                            </button>
+                        );
+                    })}
                 </div>
             </div>
 
@@ -397,6 +406,22 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            {/* Regenerate Button в самом низу страницы */}
+            <div className="mt-20 max-w-md mx-auto">
+                <RegenerateButton
+                    userId={profile.id || ''}
+                    contentType="three_keys"
+                    isPremium={profile.isPremium}
+                    language={profile.language}
+                    profile={profile}
+                    chartData={data}
+                    onRegenerate={(newData) => {
+                        setKeys(newData);
+                    }}
+                    onRequestPremium={requestPremium}
+                />
+            </div>
         </div>
     );
 };

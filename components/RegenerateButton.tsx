@@ -120,7 +120,7 @@ export const RegenerateButton: React.FC<RegenerateButtonProps> = ({
           onMouseLeave={() => setShowTooltip(false)}
         >
           <span className="text-lg opacity-30">⚿</span>
-          <span className="text-xs uppercase tracking-widest font-bold opacity-50">
+          <span className="text-sm font-medium tracking-wide opacity-50">
             {texts.premiumOnly}
           </span>
         </button>
@@ -179,7 +179,7 @@ export const RegenerateButton: React.FC<RegenerateButtonProps> = ({
         </motion.span>
 
         {/* Text */}
-        <span className="text-xs uppercase tracking-widest font-bold">
+        <span className="text-sm font-medium tracking-wide">
           {state === 'idle' && texts.idle}
           {state === 'loading' && texts.loading}
           {state === 'success' && texts.success}
