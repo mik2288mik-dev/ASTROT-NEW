@@ -235,15 +235,18 @@ function generatePersonalizedThreeKeysFallback(profile: UserProfile, chartData: 
   return {
     key1: {
       title: lang ? 'ТВОЯ ЭНЕРГИЯ' : 'YOUR ENERGY',
-      text: energyTexts[element]?.[lang ? 'ru' : 'en'] || energyTexts['Fire'][lang ? 'ru' : 'en']
+      text: energyTexts[element]?.[lang ? 'ru' : 'en'] || energyTexts['Fire'][lang ? 'ru' : 'en'],
+      advice: []
     },
     key2: {
       title: lang ? 'ТВОЙ СТИЛЬ ЛЮБВИ' : 'YOUR LOVE STYLE',
-      text: loveText
+      text: loveText,
+      advice: []
     },
     key3: {
       title: lang ? 'ТВОЯ КАРЬЕРА' : 'YOUR CAREER',
-      text: careerText
+      text: careerText,
+      advice: []
     }
   };
 }

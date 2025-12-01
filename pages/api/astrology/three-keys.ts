@@ -11,6 +11,9 @@ const log = {
   error: (message: string, error?: any) => {
     console.error(`[API/astrology/three-keys] ERROR: ${message}`, error || '');
   },
+  warn: (message: string, data?: any) => {
+    console.warn(`[API/astrology/three-keys] WARNING: ${message}`, data || '');
+  }
 };
 
 // Initialize OpenAI client
@@ -132,15 +135,18 @@ function generatePersonalizedThreeKeys(profile: any, chartData: any) {
   return {
     key1: {
       title: lang ? 'ТВОЯ ЭНЕРГИЯ' : 'YOUR ENERGY',
-      text: getEnergyText(langCode as LangKey, element)
+      text: getEnergyText(langCode as LangKey, element),
+      advice: []
     },
     key2: {
       title: lang ? 'ТВОЙ СТИЛЬ ЛЮБВИ' : 'YOUR LOVE STYLE',
-      text: getLoveText(langCode as LangKey, sunSign)
+      text: getLoveText(langCode as LangKey, sunSign),
+      advice: []
     },
     key3: {
       title: lang ? 'ТВОЯ КАРЬЕРА' : 'YOUR CAREER',
-      text: getCareerText(langCode as LangKey, sunSign)
+      text: getCareerText(langCode as LangKey, sunSign),
+      advice: []
     }
   };
 }
