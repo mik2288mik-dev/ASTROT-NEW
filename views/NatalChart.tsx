@@ -30,7 +30,7 @@ const ChartBlock: React.FC<{
     title: string;
     planet: string;
     text: string;
-    advice: string[];
+    advice?: string[];
     language: 'ru' | 'en';
     variant?: 'default' | 'highlight';
 }> = ({ title, planet, text, advice, language, variant = 'default' }) => {
