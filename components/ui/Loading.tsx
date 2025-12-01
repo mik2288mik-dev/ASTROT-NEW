@@ -57,12 +57,15 @@ export const Loading: React.FC<LoadingProps> = ({ message }) => {
                 style={{ perspective: 1000 }}
             >
                 {/* Круглый логотип */}
-                <div className="relative w-32 h-32 rounded-full bg-gradient-to-br from-astro-primary to-astro-accent flex items-center justify-center shadow-2xl border-4 border-astro-highlight/30">
+                <div className="relative w-40 h-40 rounded-full bg-gradient-to-br from-astro-primary via-purple-600 to-astro-accent flex items-center justify-center shadow-2xl border-4 border-astro-highlight/30">
                     {hasLogo ? (
                         <img 
                             src="/logo.png" 
                             alt="ASTROT" 
-                            className="w-20 h-20 object-contain"
+                            className="w-28 h-28 object-contain drop-shadow-lg"
+                            style={{
+                                filter: 'brightness(0) invert(1) drop-shadow(0 0 10px rgba(255,255,255,0.3))'
+                            }}
                         />
                     ) : (
                         <div className="text-6xl font-bold text-white font-serif">
@@ -72,10 +75,10 @@ export const Loading: React.FC<LoadingProps> = ({ message }) => {
                     
                     {/* Свечение вокруг логотипа */}
                     <motion.div 
-                        className="absolute inset-0 bg-astro-highlight rounded-full blur-2xl opacity-30 -z-10"
+                        className="absolute inset-0 bg-astro-highlight rounded-full blur-3xl opacity-40 -z-10"
                         animate={{ 
-                            scale: [1, 1.2, 1], 
-                            opacity: [0.2, 0.4, 0.2] 
+                            scale: [1, 1.3, 1], 
+                            opacity: [0.3, 0.5, 0.3] 
                         }}
                         transition={{ duration: 2, repeat: Infinity }}
                     />
