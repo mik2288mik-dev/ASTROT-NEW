@@ -7,6 +7,7 @@ import { generateAllContent, updateContentIfNeeded } from './services/contentGen
 import { Onboarding } from './views/Onboarding';
 import { Dashboard } from './views/Dashboard';
 import { NatalChart } from './views/NatalChart';
+import { Horoscope } from './views/Horoscope';
 import { OracleChat } from './views/OracleChat';
 import { Settings } from './views/Settings';
 import { AdminPanel } from './views/AdminPanel';
@@ -349,6 +350,10 @@ const App: React.FC = () => {
                     <OracleChat profile={profile} />
                 ) : view === 'synastry' ? (
                     <Synastry profile={profile} requestPremium={requestPremium} />
+                ) : view === 'horoscope' ? (
+                    <div className="h-full overflow-y-auto scrollbar-hide">
+                        <Horoscope profile={profile} chartData={chartData} />
+                    </div>
                 ) : view === 'chart' ? (
                     <div className="h-full overflow-y-auto scrollbar-hide">
                         <NatalChart data={chartData} profile={profile} requestPremium={requestPremium} />

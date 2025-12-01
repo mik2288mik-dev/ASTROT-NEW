@@ -97,7 +97,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, chartData, reques
                             : 'The Moon strengthens your intuition. Listen to your inner voice.'}
                     </p>
                     <button 
-                        onClick={() => onNavigate('chart')}
+                        onClick={() => onNavigate('horoscope')}
                         className="text-xs text-astro-highlight font-medium hover:underline"
                     >
                         {profile.language === 'ru' ? 'Подробный прогноз →' : 'Detailed forecast →'}
