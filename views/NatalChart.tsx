@@ -5,6 +5,8 @@ import { getText } from '../constants';
 import { getDeepDiveAnalysis, getDailyHoroscope, getWeeklyHoroscope, getMonthlyHoroscope } from '../services/astrologyService';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { Loading } from '../components/ui/Loading';
+import { RegenerateButton } from '../components/RegenerateButton';
+import { TextCard, TextContent, AdviceList, Paragraph } from '../components/TextCard';
 
 interface NatalChartProps {
     data: NatalChartData | null;
@@ -74,12 +76,12 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
         }
     };
 
-    // The 3 Keys (From Profile)
-    const keys = profile.threeKeys || {
+    // The 3 Keys (From Profile) - обновляемые при регенерации
+    const [keys, setKeys] = useState(profile.threeKeys || {
         key1: { title: getText(profile.language, 'hook.key1_title'), text: "..." },
         key2: { title: getText(profile.language, 'hook.key2_title'), text: "..." },
         key3: { title: getText(profile.language, 'hook.key3_title'), text: "..." },
-    };
+    });
 
     // Premium Pillars
     const pillars = [
@@ -118,35 +120,88 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
 
             {/* 1. HERO: The Three Keys (Animated Manifestation) */}
             <motion.div 
-                className="space-y-10 py-4"
+                className="space-y-6 py-4"
                 variants={container}
                 initial="hidden"
                 animate="show"
             >
-                <motion.div variants={item} className="flex flex-col items-center text-center w-full">
-                    <h4 className="text-astro-highlight text-[10px] font-bold uppercase tracking-[0.3em] mb-4">
-                        {getText(profile.language, 'hook.key1_title')}
-                    </h4>
-                    <p className="text-astro-text text-lg leading-8 font-serif font-light drop-shadow-sm max-w-[90%]">
-                        {keys.key1.text}
-                    </p>
+                {/* Key 1: Energy */}
+                <motion.div variants={item}>
+                    <TextCard
+                        title={keys.key1.title}
+                        icon="⚡"
+                        variant="highlight"
+                        animate={false}
+                    >
+                        <TextContent>
+                            <Paragraph>{keys.key1.text}</Paragraph>
+                        </TextContent>
+                        {keys.key1.advice && keys.key1.advice.length > 0 && (
+                            <AdviceList 
+                                items={keys.key1.advice} 
+                                title={profile.language === 'ru' ? 'Совет' : 'Advice'} 
+                            />
+                        )}
+                    </TextCard>
                 </motion.div>
-                <motion.div variants={item} className="flex flex-col items-center text-center w-full">
-                    <h4 className="text-astro-highlight text-[10px] font-bold uppercase tracking-[0.3em] mb-4">
-                        {getText(profile.language, 'hook.key2_title')}
-                    </h4>
-                    <p className="text-astro-text text-lg leading-8 font-serif font-light drop-shadow-sm max-w-[90%]">
-                        {keys.key2.text}
-                    </p>
+
+                {/* Key 2: Love */}
+                <motion.div variants={item}>
+                    <TextCard
+                        title={keys.key2.title}
+                        icon="💞"
+                        variant="highlight"
+                        animate={false}
+                    >
+                        <TextContent>
+                            <Paragraph>{keys.key2.text}</Paragraph>
+                        </TextContent>
+                        {keys.key2.advice && keys.key2.advice.length > 0 && (
+                            <AdviceList 
+                                items={keys.key2.advice} 
+                                title={profile.language === 'ru' ? 'Совет' : 'Advice'} 
+                            />
+                        )}
+                    </TextCard>
                 </motion.div>
-                <motion.div variants={item} className="flex flex-col items-center text-center w-full">
-                    <h4 className="text-astro-highlight text-[10px] font-bold uppercase tracking-[0.3em] mb-4">
-                        {getText(profile.language, 'hook.key3_title')}
-                    </h4>
-                    <p className="text-astro-text text-lg leading-8 font-serif font-light drop-shadow-sm max-w-[90%]">
-                        {keys.key3.text}
-                    </p>
+
+                {/* Key 3: Career */}
+                <motion.div variants={item}>
+                    <TextCard
+                        title={keys.key3.title}
+                        icon="🎯"
+                        variant="highlight"
+                        animate={false}
+                    >
+                        <TextContent>
+                            <Paragraph>{keys.key3.text}</Paragraph>
+                        </TextContent>
+                        {keys.key3.advice && keys.key3.advice.length > 0 && (
+                            <AdviceList 
+                                items={keys.key3.advice} 
+                                title={profile.language === 'ru' ? 'Совет' : 'Advice'} 
+                            />
+                        )}
+                    </TextCard>
                 </motion.div>
+
+                {/* Regenerate Button */}
+                {profile.isPremium && (
+                    <motion.div variants={item}>
+                        <RegenerateButton
+                            userId={profile.id || ''}
+                            contentType="three_keys"
+                            isPremium={profile.isPremium}
+                            language={profile.language}
+                            profile={profile}
+                            chartData={data}
+                            onRegenerate={(newData) => {
+                                setKeys(newData);
+                            }}
+                            onRequestPremium={requestPremium}
+                        />
+                    </motion.div>
+                )}
             </motion.div>
 
             {/* FREE USER CTA */}

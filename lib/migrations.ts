@@ -209,10 +209,183 @@ async function migration003(pool: Pool): Promise<void> {
 }
 
 /**
+ * Migration 004: Add cached text fields to users table
+ */
+async function migration004(pool: Pool): Promise<void> {
+  const migrationName = '004_add_cached_texts';
+  
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
+  log.info(`Applying migration ${migrationName}...`);
+
+  // Add fields for caching AI-generated texts
+  const addColumns = `
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS three_keys_text JSONB,
+    ADD COLUMN IF NOT EXISTS three_keys_updated_at TIMESTAMP,
+    ADD COLUMN IF NOT EXISTS natal_summary TEXT,
+    ADD COLUMN IF NOT EXISTS natal_summary_updated_at TIMESTAMP,
+    ADD COLUMN IF NOT EXISTS full_natal TEXT,
+    ADD COLUMN IF NOT EXISTS full_natal_updated_at TIMESTAMP,
+    ADD COLUMN IF NOT EXISTS stars_balance INTEGER DEFAULT 0;
+  `;
+
+  await pool.query(addColumns);
+  
+  await markMigrationApplied(pool, migrationName);
+  log.info(`Migration ${migrationName} applied successfully`);
+}
+
+/**
+ * Migration 005: Create synastry_cache table
+ */
+async function migration005(pool: Pool): Promise<void> {
+  const migrationName = '005_create_synastry_cache';
+  
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
+  log.info(`Applying migration ${migrationName}...`);
+
+  // Ensure users table exists before creating foreign key
+  const usersExists = await tableExists(pool, 'users');
+  if (!usersExists) {
+    throw new Error('Cannot create synastry_cache table: users table does not exist.');
+  }
+
+  const createSynastryCacheTable = `
+    CREATE TABLE IF NOT EXISTS synastry_cache (
+      id SERIAL PRIMARY KEY,
+      user_id VARCHAR(255) NOT NULL,
+      partner_data JSONB NOT NULL,
+      brief_analysis TEXT,
+      full_analysis TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT fk_synastry_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+  `;
+
+  await pool.query(createSynastryCacheTable);
+  
+  // Create index for faster lookups
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_synastry_user_id ON synastry_cache(user_id)');
+  
+  // Verify table was created
+  const exists = await tableExists(pool, 'synastry_cache');
+  if (!exists) {
+    throw new Error(`Failed to create table 'synastry_cache' - table does not exist after CREATE TABLE`);
+  }
+  
+  await markMigrationApplied(pool, migrationName);
+  log.info(`Migration ${migrationName} applied successfully`);
+}
+
+/**
+ * Migration 006: Create forecasts_cache table
+ */
+async function migration006(pool: Pool): Promise<void> {
+  const migrationName = '006_create_forecasts_cache';
+  
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
+  log.info(`Applying migration ${migrationName}...`);
+
+  // Ensure users table exists before creating foreign key
+  const usersExists = await tableExists(pool, 'users');
+  if (!usersExists) {
+    throw new Error('Cannot create forecasts_cache table: users table does not exist.');
+  }
+
+  const createForecastsCacheTable = `
+    CREATE TABLE IF NOT EXISTS forecasts_cache (
+      id SERIAL PRIMARY KEY,
+      user_id VARCHAR(255) NOT NULL,
+      period_type VARCHAR(20) NOT NULL, -- 'day', 'week', 'month'
+      period_date DATE NOT NULL, -- The date this forecast is for
+      content JSONB NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT fk_forecast_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      CONSTRAINT unique_user_period UNIQUE (user_id, period_type, period_date)
+    );
+  `;
+
+  await pool.query(createForecastsCacheTable);
+  
+  // Create index for faster lookups
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_forecasts_user_period ON forecasts_cache(user_id, period_type, period_date)');
+  
+  // Verify table was created
+  const exists = await tableExists(pool, 'forecasts_cache');
+  if (!exists) {
+    throw new Error(`Failed to create table 'forecasts_cache' - table does not exist after CREATE TABLE`);
+  }
+  
+  await markMigrationApplied(pool, migrationName);
+  log.info(`Migration ${migrationName} applied successfully`);
+}
+
+/**
+ * Migration 007: Create regenerations tracking table
+ */
+async function migration007(pool: Pool): Promise<void> {
+  const migrationName = '007_create_regenerations_tracking';
+  
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
+  log.info(`Applying migration ${migrationName}...`);
+
+  // Ensure users table exists before creating foreign key
+  const usersExists = await tableExists(pool, 'users');
+  if (!usersExists) {
+    throw new Error('Cannot create regenerations table: users table does not exist.');
+  }
+
+  const createRegenerationsTable = `
+    CREATE TABLE IF NOT EXISTS regenerations (
+      id SERIAL PRIMARY KEY,
+      user_id VARCHAR(255) NOT NULL,
+      content_type VARCHAR(50) NOT NULL, -- 'three_keys', 'natal_summary', 'full_natal', 'synastry', 'forecast'
+      regeneration_date DATE NOT NULL,
+      was_paid BOOLEAN DEFAULT false,
+      stars_cost INTEGER DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT fk_regeneration_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+  `;
+
+  await pool.query(createRegenerationsTable);
+  
+  // Create indexes for faster lookups
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_regen_user_date ON regenerations(user_id, regeneration_date)');
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_regen_user_type_date ON regenerations(user_id, content_type, regeneration_date)');
+  
+  // Verify table was created
+  const exists = await tableExists(pool, 'regenerations');
+  if (!exists) {
+    throw new Error(`Failed to create table 'regenerations' - table does not exist after CREATE TABLE`);
+  }
+  
+  await markMigrationApplied(pool, migrationName);
+  log.info(`Migration ${migrationName} applied successfully`);
+}
+
+/**
  * Verify that all required tables exist
  */
 async function verifyTablesExist(pool: Pool): Promise<void> {
-  const requiredTables = ['migrations', 'users', 'charts'];
+  const requiredTables = ['migrations', 'users', 'charts', 'synastry_cache', 'forecasts_cache', 'regenerations'];
   const missingTables: string[] = [];
 
   for (const tableName of requiredTables) {
@@ -305,6 +478,10 @@ export async function runMigrations(): Promise<void> {
     await migration001(pool);
     await migration002(pool);
     await migration003(pool);
+    await migration004(pool);
+    await migration005(pool);
+    await migration006(pool);
+    await migration007(pool);
 
     // Verify that all tables were created successfully
     log.info('Verifying tables were created...');
