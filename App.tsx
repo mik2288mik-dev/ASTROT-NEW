@@ -3,7 +3,8 @@ import React, { useEffect, useState } from 'react';
 import { UserProfile, NatalChartData, ViewState } from './types';
 import { getProfile, getChartData, saveProfile, saveChartData } from './services/storageService';
 import { calculateNatalChart } from './services/astrologyService';
-import { generateAllContent, updateContentIfNeeded } from './services/contentGenerationService';
+import { generateAllContent, shouldUpdateContent } from './services/contentGenerationService';
+import { getDailyHoroscope } from './services/astrologyService';
 import { Onboarding } from './views/Onboarding';
 import { Dashboard } from './views/Dashboard';
 import { NatalChart } from './views/NatalChart';
@@ -100,28 +101,41 @@ const App: React.FC = () => {
                     setProfile(updatedProfile);
                     
                     if (storedChart) {
-                        // Если карта найдена в БД - используем её
+                        // Если карта найдена в БД - используем её и показываем сразу
+                        // Натальная карта сохраняется в БД и просто отображается при входе
+                        // Обновление контента натальной карты только через кнопку регенерации
                         console.log('[App] Setting chart data from database');
                         setChartData(storedChart);
-                        
-                        // Показываем Dashboard сразу, обновление контента делаем асинхронно после загрузки
                         setView('dashboard');
                         
-                        // Обновляем контент асинхронно после показа интерфейса (не блокируем загрузку)
+                        // Обновляем ТОЛЬКО ежедневный гороскоп асинхронно (если нужно)
+                        // Остальной контент (weekly, monthly, threeKeys, deepDive) не обновляется автоматически
                         setTimeout(async () => {
                             try {
-                                console.log('[App] Checking if content needs update (async)...');
-                                const updatedContent = await updateContentIfNeeded(updatedProfile, storedChart);
-                                
-                                // Обновляем профиль с новым контентом
-                                if (updatedContent) {
-                                    updatedProfile.generatedContent = updatedContent;
-                                    setProfile(updatedProfile);
-                                    console.log('[App] Content updated and saved');
+                                if (updatedProfile.generatedContent) {
+                                    const timestamps = updatedProfile.generatedContent.timestamps || {};
+                                    const shouldUpdateDaily = shouldUpdateContent(timestamps, 'daily');
+                                    
+                                    if (shouldUpdateDaily) {
+                                        console.log('[App] Updating daily horoscope only...');
+                                        const dailyHoroscope = await getDailyHoroscope(updatedProfile, storedChart);
+                                        const updatedContent = {
+                                            ...updatedProfile.generatedContent,
+                                            dailyHoroscope,
+                                            timestamps: {
+                                                ...timestamps,
+                                                dailyHoroscopeGenerated: Date.now()
+                                            }
+                                        };
+                                        const updatedProfileWithContent = { ...updatedProfile, generatedContent: updatedContent };
+                                        await saveProfile(updatedProfileWithContent);
+                                        setProfile(updatedProfileWithContent);
+                                        console.log('[App] Daily horoscope updated');
+                                    }
                                 }
                             } catch (error) {
-                                console.error('[App] Error updating content:', error);
-                                // Не прерываем работу, если обновление контента не удалось
+                                console.error('[App] Error updating daily horoscope:', error);
+                                // Не прерываем работу, если обновление не удалось
                             }
                         }, 100);
                     } else {

@@ -79,14 +79,14 @@ export const shouldUpdateContent = (timestamps: UserGeneratedContent['timestamps
       return shouldUpdateDailyHoroscope(lastDaily);
     
     case 'weekly':
-      // Обновляем еженедельно
-      const lastWeekly = timestamps.weeklyHoroscopeGenerated || 0;
-      return now - lastWeekly > ONE_WEEK;
+      // Weekly гороскоп генерируется ОДИН РАЗ при первом входе, не обновляется автоматически
+      // Обновление только через платную регенерацию за звезды
+      return false;
     
     case 'monthly':
-      // Обновляем ежемесячно
-      const lastMonthly = timestamps.monthlyHoroscopeGenerated || 0;
-      return now - lastMonthly > ONE_MONTH;
+      // Monthly гороскоп генерируется ОДИН РАЗ при первом входе, не обновляется автоматически
+      // Обновление только через платную регенерацию за звезды
+      return false;
     
     case 'threeKeys':
       // Три ключа генерируются ТОЛЬКО ОДИН РАЗ (НЕ обновляются автоматически)
@@ -246,8 +246,9 @@ export const updateContentIfNeeded = async (profile: UserProfile, chartData: Nat
   const timestamps = existingContent.timestamps || {};
   let updated = false;
 
-  // Проверяем и обновляем ТОЛЬКО ГОРОСКОПЫ по расписанию
-  // Three Keys и Deep Dive НЕ обновляются автоматически
+  // Обновляем ТОЛЬКО ежедневный гороскоп по расписанию (каждый день в 4:00 МСК)
+  // Weekly, Monthly, Three Keys и Deep Dive НЕ обновляются автоматически
+  // Они генерируются один раз при первом входе и сохраняются в БД
   
   if (shouldUpdateContent(timestamps, 'daily')) {
     log.info('[updateContentIfNeeded] Updating daily horoscope (4:00 MSK)');
@@ -259,28 +260,9 @@ export const updateContentIfNeeded = async (profile: UserProfile, chartData: Nat
       log.error('[updateContentIfNeeded] Failed to update daily horoscope', error);
     }
   }
-
-  if (shouldUpdateContent(timestamps, 'weekly')) {
-    log.info('[updateContentIfNeeded] Updating weekly horoscope');
-    try {
-      existingContent.weeklyHoroscope = await getWeeklyHoroscope(profile, chartData);
-      existingContent.timestamps.weeklyHoroscopeGenerated = Date.now();
-      updated = true;
-    } catch (error) {
-      log.error('[updateContentIfNeeded] Failed to update weekly horoscope', error);
-    }
-  }
-
-  if (shouldUpdateContent(timestamps, 'monthly')) {
-    log.info('[updateContentIfNeeded] Updating monthly horoscope');
-    try {
-      existingContent.monthlyHoroscope = await getMonthlyHoroscope(profile, chartData);
-      existingContent.timestamps.monthlyHoroscopeGenerated = Date.now();
-      updated = true;
-    } catch (error) {
-      log.error('[updateContentIfNeeded] Failed to update monthly horoscope', error);
-    }
-  }
+  
+  // Weekly и Monthly гороскопы НЕ обновляются автоматически
+  // Они генерируются один раз и сохраняются в БД
 
   // Если что-то обновилось - сохраняем профиль
   if (updated) {

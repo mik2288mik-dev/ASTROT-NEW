@@ -38,7 +38,7 @@ export const Loading: React.FC<LoadingProps> = ({ message }) => {
         <div className="fixed inset-0 flex flex-col items-center justify-center bg-astro-bg z-50 text-center px-4">
             {/* Логотип с медленным 3D вращением */}
             <motion.div
-                className="relative mb-12"
+                className="relative mb-8"
                 initial={{ opacity: 0, scale: 0.5, rotateY: 0 }}
                 animate={{ 
                     opacity: 1, 
@@ -72,6 +72,20 @@ export const Loading: React.FC<LoadingProps> = ({ message }) => {
                     </div>
                 )}
             </motion.div>
+            
+            {/* Элегантная тонкая 1px строка загрузки под логотип */}
+            <div className="w-32 h-px bg-astro-border mb-8 relative overflow-hidden">
+                <motion.div 
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-astro-highlight to-transparent"
+                    initial={{ x: '-100%' }}
+                    animate={{ x: '200%' }}
+                    transition={{ 
+                        duration: 1.5,
+                        repeat: Infinity,
+                        ease: "easeInOut"
+                    }}
+                />
+            </div>
             
             {/* Прогресс-бар с процентами */}
             <div className="w-64 max-w-full">
