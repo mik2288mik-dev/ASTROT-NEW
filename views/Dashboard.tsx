@@ -31,25 +31,33 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, chartData, reques
     }, []);
 
     useEffect(() => {
+        // Загружаем контекст и эволюцию асинхронно после показа интерфейса
         const loadSmartFeatures = async () => {
+            // Небольшая задержка, чтобы не блокировать показ интерфейса
+            await new Promise(resolve => setTimeout(resolve, 200));
+            
             // 1. Load Context (Weather/Social Proof)
-            const ctx = await getUserContext(profile);
-            setContext(ctx);
+            try {
+                const ctx = await getUserContext(profile);
+                setContext(ctx);
+            } catch (error) {
+                console.error('[Dashboard] Failed to load context:', error);
+            }
 
             // 2. Update Evolution (Simulated Async)
             if (!profile.evolution || (Date.now() - profile.evolution.lastUpdated > 86400000)) {
                 // Update once every 24 hours or if missing
-                console.log('[Dashboard] Updating user evolution...');
-                const newEvo = await updateUserEvolution(profile, chartData || undefined);
-                setEvolution(newEvo);
-                
-                // Save to profile
-                const updatedProfile = { ...profile, evolution: newEvo };
                 try {
+                    console.log('[Dashboard] Updating user evolution...');
+                    const newEvo = await updateUserEvolution(profile, chartData || undefined);
+                    setEvolution(newEvo);
+                    
+                    // Save to profile
+                    const updatedProfile = { ...profile, evolution: newEvo };
                     await saveProfile(updatedProfile);
                     console.log('[Dashboard] Evolution saved successfully');
                 } catch (error) {
-                    console.error('[Dashboard] Failed to save evolution:', error);
+                    console.error('[Dashboard] Failed to update evolution:', error);
                 }
             }
         };
@@ -119,7 +127,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, chartData, reques
             {/* 1.5. HOROSCOPE FOR TODAY */}
             <button 
                 onClick={() => onNavigate('horoscope')}
-                className="w-full bg-gradient-to-br from-purple-900/20 to-astro-card rounded-2xl p-6 border border-astro-highlight/30 shadow-soft relative overflow-hidden text-left hover:border-astro-highlight transition-colors group"
+                className="w-full bg-gradient-to-br from-purple-900/20 to-astro-card rounded-2xl p-6 shadow-soft relative overflow-hidden text-left transition-colors group"
             >
                 <div className="absolute -top-16 -left-16 w-48 h-48 bg-purple-500 rounded-full blur-3xl opacity-20"></div>
                 <div className="relative z-10">
@@ -150,7 +158,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, chartData, reques
             {/* 2. PRIMARY ACTION: NATAL CHART */}
             <button 
                 onClick={() => onNavigate('chart')}
-                className="w-full bg-gradient-to-br from-purple-900/20 to-astro-card rounded-2xl p-6 border border-astro-highlight/30 text-left hover:border-astro-highlight transition-colors shadow-soft group relative overflow-hidden"
+                className="w-full bg-gradient-to-br from-purple-900/20 to-astro-card rounded-2xl p-6 text-left transition-colors shadow-soft group relative overflow-hidden"
             >
                 <div className="absolute -top-16 -left-16 w-48 h-48 bg-purple-500 rounded-full blur-3xl opacity-20"></div>
                 <div className="relative z-10">
@@ -243,7 +251,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, chartData, reques
                 {/* Synastry - доступна всем */}
                 <button 
                     onClick={() => onNavigate('synastry')}
-                    className="bg-gradient-to-br from-pink-900/20 to-astro-card p-5 rounded-2xl border border-astro-highlight/30 text-left hover:border-astro-highlight transition-colors shadow-soft group relative overflow-hidden"
+                    className="bg-gradient-to-br from-pink-900/20 to-astro-card p-5 rounded-2xl text-left transition-colors shadow-soft group relative overflow-hidden"
                 >
                     <div className="absolute -top-10 -right-10 w-32 h-32 bg-pink-500 rounded-full blur-2xl opacity-20"></div>
                     <div className="relative z-10 flex flex-col justify-between h-28">
@@ -267,7 +275,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, chartData, reques
                  {/* Personal Oracle */}
                 <button 
                     onClick={() => onNavigate('oracle')}
-                    className="bg-gradient-to-br from-blue-900/20 to-astro-card p-5 rounded-2xl border border-astro-highlight/30 text-left hover:border-astro-highlight transition-colors shadow-soft group relative overflow-hidden"
+                    className="bg-gradient-to-br from-blue-900/20 to-astro-card p-5 rounded-2xl text-left transition-colors shadow-soft group relative overflow-hidden"
                 >
                     <div className="absolute -top-10 -right-10 w-32 h-32 bg-blue-500 rounded-full blur-2xl opacity-20"></div>
                     {!profile.isPremium && <div className="absolute inset-0 bg-black/10 backdrop-blur-[1px] flex items-center justify-center z-20 rounded-2xl"><span className="text-xs font-bold bg-astro-text text-astro-bg px-2 py-1 rounded">PRO</span></div>}

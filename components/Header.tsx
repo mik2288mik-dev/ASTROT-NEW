@@ -32,6 +32,7 @@ export const Header: React.FC<HeaderProps> = ({ profile, view, onOpenSettings, o
     if (isFunnel) return null;
 
     return (
+        <>
         <header className="bg-astro-bg/80 backdrop-blur-md border-b border-astro-border h-16 shrink-0 flex items-center justify-between px-4 relative z-40" style={{ marginTop: '24px' }}>
             
             {/* Left Side */}
@@ -40,16 +41,8 @@ export const Header: React.FC<HeaderProps> = ({ profile, view, onOpenSettings, o
                     // Empty on Hub (avatar now in cosmic passport)
                     <div className="w-9"></div>
                 ) : (
-                    // Back Button on Sub-pages - опущена на дополнительные 24px
-                    <button 
-                        onClick={onBack}
-                        className="w-9 h-9 flex items-center justify-center text-astro-text hover:text-astro-highlight transition-colors"
-                        style={{ marginTop: '48px' }}
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                        </svg>
-                    </button>
+                    // Placeholder for back button (positioned below header)
+                    <div className="w-9"></div>
                 )}
             </div>
 
@@ -65,5 +58,19 @@ export const Header: React.FC<HeaderProps> = ({ profile, view, onOpenSettings, o
                 <div className="w-9"></div>
             </div>
         </header>
+        
+        {/* Back Button - аккуратно ниже крестика закрытия приложения (который находится в правом верхнем углу) */}
+        {!isHub && (
+            <button 
+                onClick={onBack}
+                className="fixed left-4 w-9 h-9 flex items-center justify-center text-astro-text hover:text-astro-highlight transition-colors z-50"
+                style={{ top: '88px' }}
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+            </button>
+        )}
+        </>
     );
 };
