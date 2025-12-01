@@ -119,51 +119,45 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, chartData, reques
             {/* 1.5. HOROSCOPE FOR TODAY */}
             <button 
                 onClick={() => onNavigate('horoscope')}
-                className="w-full bg-gradient-to-br from-purple-900/20 to-astro-card rounded-2xl p-6 border border-astro-highlight/30 shadow-soft relative overflow-hidden text-left hover:border-astro-highlight transition-colors group"
+                className="w-full bg-astro-card rounded-2xl p-6 border border-astro-border/70 shadow-soft text-left transition-transform duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-astro-highlight/40 hover:-translate-y-0.5 group"
             >
-                <div className="absolute -top-16 -left-16 w-48 h-48 bg-purple-500 rounded-full blur-3xl opacity-20"></div>
-                <div className="relative z-10">
-                    <div className="flex items-start justify-between mb-3">
-                        <div>
-                            <p className="text-[10px] uppercase tracking-widest text-astro-subtext mb-1">
-                                {profile.language === 'ru' ? 'Гороскоп на сегодня' : 'Today\'s Horoscope'}
-                            </p>
-                            <h3 className="font-serif text-xl text-astro-text">
-                                {profile.language === 'ru' ? 'Сегодня тебя ждёт особенный день' : 'A special day awaits you'}
-                            </h3>
-                        </div>
-                        <div className="flex-shrink-0 w-12 h-12 rounded-full bg-astro-highlight/10 border border-astro-highlight/30 flex items-center justify-center group-hover:scale-110 transition-transform">
-                            <span className="text-2xl text-astro-highlight">☾</span>
-                        </div>
+                <div className="flex items-start justify-between mb-3">
+                    <div>
+                        <p className="text-[10px] uppercase tracking-widest text-astro-subtext mb-1">
+                            {profile.language === 'ru' ? 'Гороскоп на сегодня' : 'Today\'s Horoscope'}
+                        </p>
+                        <h3 className="font-serif text-xl text-astro-text">
+                            {profile.language === 'ru' ? 'Сегодня тебя ждёт особенный день' : 'A special day awaits you'}
+                        </h3>
                     </div>
-                    <p className="text-xs text-astro-subtext font-light mb-4">
-                        {profile.language === 'ru' 
-                            ? 'Луна усиливает твою интуицию. Прислушайся к внутреннему голосу.' 
-                            : 'The Moon strengthens your intuition. Listen to your inner voice.'}
-                    </p>
-                    <div className="text-xs text-astro-highlight font-medium">
-                        {profile.language === 'ru' ? 'Подробный прогноз →' : 'Detailed forecast →'}
+                    <div className="flex-shrink-0 w-12 h-12 rounded-2xl bg-astro-bg/70 border border-astro-border/60 flex items-center justify-center group-hover:scale-105 transition-transform">
+                        <span className="text-2xl text-astro-highlight">☾</span>
                     </div>
+                </div>
+                <p className="text-xs text-astro-subtext font-light mb-4">
+                    {profile.language === 'ru' 
+                        ? 'Луна усиливает твою интуицию. Прислушайся к внутреннему голосу.' 
+                        : 'The Moon strengthens your intuition. Listen to your inner voice.'}
+                </p>
+                <div className="text-xs text-astro-highlight font-medium">
+                    {profile.language === 'ru' ? 'Подробный прогноз →' : 'Detailed forecast →'}
                 </div>
             </button>
 
             {/* 2. PRIMARY ACTION: NATAL CHART */}
             <button 
                 onClick={() => onNavigate('chart')}
-                className="w-full bg-gradient-to-br from-purple-900/20 to-astro-card rounded-2xl p-6 border border-astro-highlight/30 text-left hover:border-astro-highlight transition-colors shadow-soft group relative overflow-hidden"
+                className="w-full bg-astro-card rounded-2xl p-6 border border-astro-border/70 text-left shadow-soft transition-transform duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-astro-highlight/40 hover:-translate-y-0.5 group"
             >
-                <div className="absolute -top-16 -left-16 w-48 h-48 bg-purple-500 rounded-full blur-3xl opacity-20"></div>
-                <div className="relative z-10">
-                    <div className="flex justify-between items-start mb-3">
-                        <div>
-                            <h3 className="font-serif text-xl text-astro-text mb-1">{getText(profile.language, 'dashboard.menu_analysis')}</h3>
-                            <p className="text-astro-subtext text-xs font-light">
-                                {profile.language === 'ru' ? 'Личность, судьба, карма и прогнозы' : 'Personality, Fate, Karma & Forecasts'}
-                            </p>
-                        </div>
-                        <div className="flex-shrink-0 w-12 h-12 rounded-full bg-astro-highlight/10 border border-astro-highlight/30 flex items-center justify-center group-hover:scale-110 transition-transform">
-                            <span className="text-2xl text-astro-highlight">→</span>
-                        </div>
+                <div className="flex justify-between items-start mb-3">
+                    <div>
+                        <h3 className="font-serif text-xl text-astro-text mb-1">{getText(profile.language, 'dashboard.menu_analysis')}</h3>
+                        <p className="text-astro-subtext text-xs font-light">
+                            {profile.language === 'ru' ? 'Личность, судьба, карма и прогнозы' : 'Personality, Fate, Karma & Forecasts'}
+                        </p>
+                    </div>
+                    <div className="flex-shrink-0 w-12 h-12 rounded-2xl bg-astro-bg/70 border border-astro-border/60 flex items-center justify-center group-hover:scale-105 transition-transform">
+                        <span className="text-2xl text-astro-highlight">→</span>
                     </div>
                 </div>
             </button>
@@ -243,11 +237,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, chartData, reques
                 {/* Synastry - доступна всем */}
                 <button 
                     onClick={() => onNavigate('synastry')}
-                    className="bg-gradient-to-br from-pink-900/20 to-astro-card p-5 rounded-2xl border border-astro-highlight/30 text-left hover:border-astro-highlight transition-colors shadow-soft group relative overflow-hidden"
+                    className="relative bg-astro-card p-5 rounded-2xl border border-astro-border/70 text-left shadow-soft transition-transform duration-200 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-astro-highlight/40 group"
                 >
-                    <div className="absolute -top-10 -right-10 w-32 h-32 bg-pink-500 rounded-full blur-2xl opacity-20"></div>
-                    <div className="relative z-10 flex flex-col justify-between h-28">
-                        <div className="w-10 h-10 rounded-full bg-astro-highlight/10 border border-astro-highlight/30 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <div className="flex flex-col justify-between h-28">
+                        <div className="w-10 h-10 rounded-2xl bg-astro-bg/70 border border-astro-border/60 flex items-center justify-center group-hover:scale-105 transition-transform">
                             <span className="text-xl text-astro-highlight">♥</span>
                         </div>
                         <div>
@@ -267,12 +260,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, chartData, reques
                  {/* Personal Oracle */}
                 <button 
                     onClick={() => onNavigate('oracle')}
-                    className="bg-gradient-to-br from-blue-900/20 to-astro-card p-5 rounded-2xl border border-astro-highlight/30 text-left hover:border-astro-highlight transition-colors shadow-soft group relative overflow-hidden"
+                    className="relative bg-astro-card p-5 rounded-2xl border border-astro-border/70 text-left shadow-soft transition-transform duration-200 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-astro-highlight/40 group"
                 >
-                    <div className="absolute -top-10 -right-10 w-32 h-32 bg-blue-500 rounded-full blur-2xl opacity-20"></div>
                     {!profile.isPremium && <div className="absolute inset-0 bg-black/10 backdrop-blur-[1px] flex items-center justify-center z-20 rounded-2xl"><span className="text-xs font-bold bg-astro-text text-astro-bg px-2 py-1 rounded">PRO</span></div>}
                     <div className="relative z-10 flex flex-col justify-between h-28">
-                        <div className="w-10 h-10 rounded-full bg-astro-highlight/10 border border-astro-highlight/30 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <div className="w-10 h-10 rounded-2xl bg-astro-bg/70 border border-astro-border/60 flex items-center justify-center group-hover:scale-105 transition-transform">
                             <span className="text-xl text-astro-highlight">✧</span>
                         </div>
                         <div>

@@ -8,6 +8,7 @@ interface LoadingProps {
 export const Loading: React.FC<LoadingProps> = ({ message }) => {
     const [progress, setProgress] = useState(0);
     const [hasLogo, setHasLogo] = useState(false);
+    const loadingLabel = message || 'Загрузка...';
 
     useEffect(() => {
         // Проверяем наличие файла logo.png
@@ -36,62 +37,46 @@ export const Loading: React.FC<LoadingProps> = ({ message }) => {
 
     return (
         <div className="fixed inset-0 flex flex-col items-center justify-center bg-astro-bg z-50 text-center px-4">
-            {/* Логотип с 3D вращением как монета */}
+            {/* Логотип без обводок */}
             <motion.div
-                className="relative mb-12"
-                initial={{ opacity: 0, scale: 0.5, rotateY: 0 }}
+                className="mb-12"
+                initial={{ opacity: 0, scale: 0.9, rotateY: 0 }}
                 animate={{ 
                     opacity: 1, 
                     scale: 1,
-                    rotateY: [0, 360, 720, 1080]
+                    rotateY: [0, 360]
                 }}
                 transition={{ 
-                    opacity: { duration: 0.3 },
-                    scale: { duration: 0.5 },
+                    opacity: { duration: 0.4, ease: "easeOut" },
+                    scale: { duration: 0.6, ease: "easeOut" },
                     rotateY: { 
-                        duration: 3, 
+                        duration: 8, 
                         repeat: Infinity,
                         ease: "linear"
                     }
                 }}
                 style={{ perspective: 1000 }}
             >
-                {/* Круглый логотип */}
-                <div className="relative w-40 h-40 rounded-full bg-gradient-to-br from-astro-primary via-purple-600 to-astro-accent flex items-center justify-center shadow-2xl border-4 border-astro-highlight/30">
-                    {hasLogo ? (
-                        <img 
-                            src="/logo.png" 
-                            alt="ASTROT" 
-                            className="w-28 h-28 object-contain drop-shadow-lg"
-                            style={{
-                                filter: 'brightness(0) invert(1) drop-shadow(0 0 10px rgba(255,255,255,0.3))'
-                            }}
-                        />
-                    ) : (
-                        <div className="text-6xl font-bold text-white font-serif">
-                            A
-                        </div>
-                    )}
-                    
-                    {/* Свечение вокруг логотипа */}
-                    <motion.div 
-                        className="absolute inset-0 bg-astro-highlight rounded-full blur-3xl opacity-40 -z-10"
-                        animate={{ 
-                            scale: [1, 1.3, 1], 
-                            opacity: [0.3, 0.5, 0.3] 
-                        }}
-                        transition={{ duration: 2, repeat: Infinity }}
+                {hasLogo ? (
+                    <img 
+                        src="/logo.png" 
+                        alt="ASTROT" 
+                        className="w-28 h-28 object-contain drop-shadow-[0_25px_45px_rgba(0,0,0,0.45)]"
                     />
-                </div>
+                ) : (
+                    <div className="text-6xl font-serif text-white drop-shadow-[0_12px_32px_rgba(0,0,0,0.5)]">
+                        ASTROT
+                    </div>
+                )}
             </motion.div>
             
             {/* Прогресс-бар с процентами */}
             <div className="w-64 max-w-full">
                 {/* Проценты */}
                 <motion.div 
-                    className="text-astro-text text-2xl font-bold mb-3 font-serif"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
+                    className="text-astro-text text-3xl font-light tracking-[0.35em] uppercase mb-4"
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 }}
                 >
                     {Math.round(progress)}%
@@ -106,15 +91,9 @@ export const Loading: React.FC<LoadingProps> = ({ message }) => {
                         transition={{ duration: 0.1 }}
                     />
                 </div>
-                
-                {/* Сообщение о загрузке */}
-                <motion.p 
-                    className="text-astro-subtext text-xs uppercase tracking-[0.2em] mt-4 font-serif"
-                    animate={{ opacity: [0.4, 1, 0.4] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                >
-                    {message || "Загрузка..."}
-                </motion.p>
+
+                {/* Текст оставляем только для скринридеров */}
+                <span className="sr-only">{loadingLabel}</span>
             </div>
         </div>
     );

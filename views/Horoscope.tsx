@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { UserProfile, NatalChartData } from '../types';
 import { getOrGenerateHoroscope } from '../services/contentGenerationService';
 import { Loading } from '../components/ui/Loading';
+import { getZodiacSign } from '../constants';
 
 interface HoroscopeProps {
     profile: UserProfile;
@@ -26,18 +27,54 @@ const ZODIAC_SYMBOLS: Record<string, string> = {
 
 // Даты знаков зодиака
 const ZODIAC_DATES: Record<string, string> = {
-    'Aries': '21.03 - 19.04',
-    'Taurus': '20.04 - 20.05',
-    'Gemini': '21.05 - 20.06',
-    'Cancer': '21.06 - 22.07',
-    'Leo': '23.07 - 22.08',
-    'Virgo': '23.08 - 22.09',
-    'Libra': '23.09 - 22.10',
-    'Scorpio': '23.10 - 21.11',
-    'Sagittarius': '22.11 - 21.12',
-    'Capricorn': '22.12 - 19.01',
-    'Aquarius': '20.01 - 18.02',
-    'Pisces': '19.02 - 20.03'
+    'Aries': '21.03 – 19.04',
+    'Taurus': '20.04 – 20.05',
+    'Gemini': '21.05 – 20.06',
+    'Cancer': '21.06 – 22.07',
+    'Leo': '23.07 – 22.08',
+    'Virgo': '23.08 – 22.09',
+    'Libra': '23.09 – 22.10',
+    'Scorpio': '23.10 – 21.11',
+    'Sagittarius': '22.11 – 21.12',
+    'Capricorn': '22.12 – 19.01',
+    'Aquarius': '20.01 – 18.02',
+    'Pisces': '19.02 – 20.03'
+};
+
+// Нормализация знаков (учитываем русские названия и лишние символы)
+const ZODIAC_LOOKUP: Record<string, string> = {
+    aries: 'Aries',
+    овен: 'Aries',
+    taurus: 'Taurus',
+    телец: 'Taurus',
+    gemini: 'Gemini',
+    близнецы: 'Gemini',
+    cancer: 'Cancer',
+    рак: 'Cancer',
+    leo: 'Leo',
+    лев: 'Leo',
+    virgo: 'Virgo',
+    дева: 'Virgo',
+    libra: 'Libra',
+    весы: 'Libra',
+    scorpio: 'Scorpio',
+    скорпион: 'Scorpio',
+    sagittarius: 'Sagittarius',
+    стрелец: 'Sagittarius',
+    capricorn: 'Capricorn',
+    козерог: 'Capricorn',
+    aquarius: 'Aquarius',
+    водолей: 'Aquarius',
+    pisces: 'Pisces',
+    рыбы: 'Pisces'
+};
+
+const normalizeSign = (sign?: string): string => {
+    if (!sign) return 'Aries';
+    const cleaned = sign
+        .toLowerCase()
+        .replace(/[^a-zа-яё]/gi, '');
+    return ZODIAC_LOOKUP[cleaned] || (sign.charAt(0).toUpperCase() + sign.slice(1).toLowerCase());
 };
 
 export const Horoscope: React.FC<HoroscopeProps> = ({ profile, chartData }) => {
@@ -76,23 +113,10 @@ export const Horoscope: React.FC<HoroscopeProps> = ({ profile, chartData }) => {
         );
     }
 
-    const sunSign = chartData.sun?.sign || 'Aries';
+    const sunSign = normalizeSign(chartData.sun?.sign);
     const zodiacSymbol = ZODIAC_SYMBOLS[sunSign] || '♈';
     const zodiacDates = ZODIAC_DATES[sunSign] || '';
-    const zodiacName = profile.language === 'ru' 
-        ? (sunSign === 'Aries' ? 'Овен' :
-           sunSign === 'Taurus' ? 'Телец' :
-           sunSign === 'Gemini' ? 'Близнецы' :
-           sunSign === 'Cancer' ? 'Рак' :
-           sunSign === 'Leo' ? 'Лев' :
-           sunSign === 'Virgo' ? 'Дева' :
-           sunSign === 'Libra' ? 'Весы' :
-           sunSign === 'Scorpio' ? 'Скорпион' :
-           sunSign === 'Sagittarius' ? 'Стрелец' :
-           sunSign === 'Capricorn' ? 'Козерог' :
-           sunSign === 'Aquarius' ? 'Водолей' :
-           sunSign === 'Pisces' ? 'Рыбы' : sunSign)
-        : sunSign;
+    const zodiacName = getZodiacSign(profile.language, sunSign);
 
     return (
         <div className="min-h-screen px-6 py-8 max-w-2xl mx-auto">
@@ -102,23 +126,25 @@ export const Horoscope: React.FC<HoroscopeProps> = ({ profile, chartData }) => {
             </h1>
 
             {/* Блок с иконкой знака зодиака */}
-            <div className="flex flex-col items-center mb-8">
-                {/* Большая круглая иконка знака - ЗАГЛУШКА */}
-                <div className="w-32 h-32 rounded-full bg-astro-card border-2 border-astro-border flex items-center justify-center mb-6 shadow-lg">
-                    <span className="text-7xl text-astro-highlight">
-                        {zodiacSymbol}
-                    </span>
+            <div className="bg-astro-card rounded-3xl p-6 border border-astro-border shadow-soft mb-8">
+                <div className="flex items-center gap-6 flex-wrap">
+                    <div className="w-28 h-28 rounded-2xl bg-astro-bg/60 border border-astro-border flex items-center justify-center">
+                        <span className="text-6xl text-astro-highlight">
+                            {zodiacSymbol}
+                        </span>
+                    </div>
+                    <div className="flex-1 min-w-[180px]">
+                        <p className="text-xs uppercase tracking-[0.3em] text-astro-subtext mb-2">
+                            {profile.language === 'ru' ? 'Твой солнечный знак' : 'Your sun sign'}
+                        </p>
+                        <h2 className="text-3xl font-serif text-astro-text mb-1">
+                            {zodiacName}
+                        </h2>
+                        <p className="text-sm text-astro-subtext">
+                            {zodiacDates}
+                        </p>
+                    </div>
                 </div>
-
-                {/* Название знака */}
-                <h2 className="text-2xl font-semibold text-astro-text mb-2">
-                    {zodiacName}
-                </h2>
-
-                {/* Даты знака */}
-                <p className="text-base text-astro-subtext">
-                    {zodiacDates}
-                </p>
             </div>
 
             {/* Основной текст гороскопа */}
