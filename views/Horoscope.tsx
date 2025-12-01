@@ -95,44 +95,44 @@ export const Horoscope: React.FC<HoroscopeProps> = ({ profile, chartData }) => {
         : sunSign;
 
     return (
-        <div className="min-h-screen px-6 py-8 max-w-2xl mx-auto">
+        <div className="min-h-screen px-4 py-6 max-w-2xl mx-auto">
             {/* Заголовок страницы */}
-            <h1 className="text-[32px] font-bold text-astro-text text-center mb-8 leading-tight">
+            <h1 className="text-2xl font-bold text-astro-text text-center mb-6 leading-tight">
                 {profile.language === 'ru' ? 'Гороскоп на сегодня' : 'Today\'s Horoscope'}
             </h1>
 
             {/* Блок с иконкой знака зодиака - иконка слева, текст справа */}
-            <div className="flex items-start gap-6 mb-8">
+            <div className="flex items-start gap-4 mb-6">
                 {/* Иконка знака слева */}
-                <div className="flex-shrink-0 w-24 h-24 rounded-full bg-astro-card border-2 border-astro-border flex items-center justify-center shadow-lg">
-                    <span className="text-6xl text-astro-highlight">
+                <div className="flex-shrink-0 w-16 h-16 rounded-full bg-astro-card border-2 border-astro-border flex items-center justify-center shadow-lg">
+                    <span className="text-4xl text-astro-highlight">
                         {zodiacSymbol}
                     </span>
                 </div>
 
                 {/* Текст справа от иконки */}
-                <div className="flex-1 pt-2">
+                <div className="flex-1 pt-1">
                     {/* Название знака */}
-                    <h2 className="text-2xl font-semibold text-astro-text mb-2">
+                    <h2 className="text-xl font-semibold text-astro-text mb-1">
                         {zodiacName}
                     </h2>
 
                     {/* Даты знака */}
-                    <p className="text-base text-astro-subtext">
+                    <p className="text-sm text-astro-subtext">
                         {zodiacDates}
                     </p>
                 </div>
             </div>
 
             {/* Основной текст гороскопа */}
-            <div className="bg-astro-card rounded-3xl p-8 border border-astro-border shadow-sm">
-                <div className="max-w-[85%] mx-auto space-y-6">
+            <div className="bg-astro-card rounded-2xl p-6 border border-astro-border shadow-sm">
+                <div className="max-w-[90%] mx-auto space-y-4">
                     {/* Разбиваем текст на абзацы */}
                     {horoscope.content?.split('\n').filter((p: string) => p.trim()).map((paragraph: string, index: number) => (
                         <p 
                             key={index}
-                            className="text-[18px] leading-relaxed text-astro-text"
-                            style={{ lineHeight: '1.7' }}
+                            className="text-[15px] leading-relaxed text-astro-text"
+                            style={{ lineHeight: '1.6' }}
                         >
                             {paragraph.trim()}
                         </p>
@@ -140,11 +140,11 @@ export const Horoscope: React.FC<HoroscopeProps> = ({ profile, chartData }) => {
 
                     {/* Если есть дополнительная информация */}
                     {horoscope.moonImpact && (
-                        <div className="pt-6 border-t border-astro-border/30">
-                            <h3 className="text-lg font-semibold text-astro-text mb-3">
+                        <div className="pt-4 border-t border-astro-border/30">
+                            <h3 className="text-base font-semibold text-astro-text mb-2">
                                 {profile.language === 'ru' ? 'Влияние Луны' : 'Moon Impact'}
                             </h3>
-                            <p className="text-[17px] leading-relaxed text-astro-subtext">
+                            <p className="text-[14px] leading-relaxed text-astro-subtext">
                                 {horoscope.moonImpact}
                             </p>
                         </div>
@@ -152,21 +152,21 @@ export const Horoscope: React.FC<HoroscopeProps> = ({ profile, chartData }) => {
 
                     {/* Настроение дня */}
                     {horoscope.mood && (
-                        <div className="flex items-center justify-center gap-4 pt-6">
+                        <div className="flex items-center justify-center gap-4 pt-4">
                             <div className="text-center">
-                                <p className="text-sm text-astro-subtext mb-1">
+                                <p className="text-xs text-astro-subtext mb-1">
                                     {profile.language === 'ru' ? 'Настроение' : 'Mood'}
                                 </p>
-                                <p className="text-lg font-medium text-astro-text">
+                                <p className="text-base font-medium text-astro-text">
                                     {horoscope.mood}
                                 </p>
                             </div>
                             {horoscope.color && (
                                 <div className="text-center">
-                                    <p className="text-sm text-astro-subtext mb-1">
+                                    <p className="text-xs text-astro-subtext mb-1">
                                         {profile.language === 'ru' ? 'Цвет дня' : 'Lucky Color'}
                                     </p>
-                                    <p className="text-lg font-medium text-astro-text">
+                                    <p className="text-base font-medium text-astro-text">
                                         {horoscope.color}
                                     </p>
                                 </div>
@@ -177,7 +177,7 @@ export const Horoscope: React.FC<HoroscopeProps> = ({ profile, chartData }) => {
             </div>
 
             {/* Нижний отступ для безопасной зоны */}
-            <div className="h-24"></div>
+            <div className="h-20"></div>
         </div>
     );
 };
