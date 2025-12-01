@@ -687,6 +687,29 @@ export const db = {
       }
     },
 
+    async getCountThisWeek(userId: string, contentType: string) {
+      log.info(`[DB] Getting regeneration count for this week: user ${userId}, type: ${contentType}`);
+      
+      if (!DATABASE_URL) return 0;
+
+      try {
+        const dbPool = getPool();
+        // Считаем регенерации за последние 7 дней
+        const result = await dbPool.query(
+          `SELECT COUNT(*) FROM regenerations 
+           WHERE user_id = $1 
+           AND content_type = $2 
+           AND regeneration_date >= CURRENT_DATE - INTERVAL '7 days'`,
+          [userId, contentType]
+        );
+        
+        return parseInt(result.rows[0].count);
+      } catch (error: any) {
+        log.error('[DB] Error getting regeneration count for week', { error: error.message, userId });
+        throw error;
+      }
+    },
+
     async add(userId: string, contentType: string, wasPaid: boolean, starsCost: number) {
       log.info(`[DB] Adding regeneration record for user: ${userId}, type: ${contentType}, paid: ${wasPaid}`);
       

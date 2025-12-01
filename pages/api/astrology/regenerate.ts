@@ -34,6 +34,10 @@ const REGENERATION_COST_STARS = 50;
 
 /**
  * Проверить лимиты регенерации для пользователя
+ * 
+ * Логика:
+ * - Премиум пользователи: 1 бесплатная регенерация в НЕДЕЛЮ
+ * - Все последующие регенерации: 50 звёзд
  */
 async function checkRegenerationLimits(userId: string, contentType: string, isPremium: boolean) {
   if (!isPremium) {
@@ -41,22 +45,22 @@ async function checkRegenerationLimits(userId: string, contentType: string, isPr
       canRegenerate: false,
       isFree: false,
       costInStars: 0,
-      regenerationsToday: 0,
+      regenerationsThisWeek: 0,
       message: 'Регенерация доступна только для премиум-пользователей'
     };
   }
 
-  // Получаем количество регенераций сегодня
-  const countToday = await db.regenerations.getCountToday(userId, contentType);
+  // Получаем количество регенераций за неделю (последние 7 дней)
+  const countThisWeek = await db.regenerations.getCountThisWeek(userId, contentType);
   
-  // Первая регенерация в день - бесплатная
-  if (countToday === 0) {
+  // Первая регенерация в неделю - бесплатная (включена в премиум)
+  if (countThisWeek === 0) {
     return {
       canRegenerate: true,
       isFree: true,
       costInStars: 0,
-      regenerationsToday: 0,
-      message: 'Первая регенерация сегодня бесплатна'
+      regenerationsThisWeek: 0,
+      message: 'Первая регенерация в неделю включена в премиум'
     };
   }
 
@@ -68,7 +72,7 @@ async function checkRegenerationLimits(userId: string, contentType: string, isPr
       canRegenerate: false,
       isFree: false,
       costInStars: REGENERATION_COST_STARS,
-      regenerationsToday: countToday,
+      regenerationsThisWeek: countThisWeek,
       message: `Недостаточно звёзд. Нужно: ${REGENERATION_COST_STARS}, у вас: ${starsBalance}`
     };
   }
@@ -77,7 +81,7 @@ async function checkRegenerationLimits(userId: string, contentType: string, isPr
     canRegenerate: true,
     isFree: false,
     costInStars: REGENERATION_COST_STARS,
-    regenerationsToday: countToday,
+    regenerationsThisWeek: countThisWeek,
     message: 'Регенерация будет стоить 50 звёзд'
   };
 }
