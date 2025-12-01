@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { NatalChartData, UserProfile } from '../types';
 import { getText } from '../constants';
-import { getDeepDiveAnalysis, getDailyHoroscope, getWeeklyHoroscope, getMonthlyHoroscope } from '../services/astrologyService';
+import { getOrGenerateDeepDive, getOrGenerateHoroscope } from '../services/contentGenerationService';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { Loading } from '../components/ui/Loading';
 import { RegenerateButton } from '../components/RegenerateButton';
@@ -116,14 +116,33 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
             requestPremium();
             return;
         }
+        
+        // Мапим ключи из констант на наши ключи в кэше
+        const topicMap: Record<string, 'personality' | 'love' | 'career' | 'weakness' | 'karma'> = {
+            'section_personality': 'personality',
+            'section_love': 'love',
+            'section_career': 'career',
+            'section_weakness': 'weakness',
+            'section_karma': 'karma'
+        };
+        
+        const topic = topicMap[topicKey];
+        if (!topic) {
+            console.error('[NatalChart] Unknown topic key:', topicKey);
+            return;
+        }
+        
         const topicTitle = getText(profile.language, `chart.${topicKey}`);
         setActiveAnalysis(topicTitle);
         setLoadingAnalysis(true);
         setAnalysisResult("");
+        
         try {
-            const result = await getDeepDiveAnalysis(profile, topicTitle, data);
+            // Используем новый сервис с кэшированием
+            const result = await getOrGenerateDeepDive(profile, data, topic);
             setAnalysisResult(result);
         } catch (e) {
+            console.error('[NatalChart] Error loading Deep Dive:', e);
             setAnalysisResult("The stars are silent.");
         } finally {
             setLoadingAnalysis(false);
@@ -147,19 +166,26 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
         
         try {
             let text = "";
+            // Используем новый сервис с кэшированием
+            const periodMap = {
+                'day': 'daily',
+                'week': 'weekly',
+                'month': 'monthly'
+            } as const;
+            
+            const res = await getOrGenerateHoroscope(profile, data, periodMap[period]);
+            
             if (period === 'day') {
-                const res = await getDailyHoroscope(profile, data);
-                text = res.content;
+                text = (res as any).content;
             } else if (period === 'week') {
-                const res = await getWeeklyHoroscope(profile, data);
-                text = res.advice; // Simplified for demo
+                text = (res as any).advice;
             } else {
-                const res = await getMonthlyHoroscope(profile, data);
-                text = res.content;
+                text = (res as any).content;
             }
             setAnalysisResult(text);
         } catch(e) {
-             setAnalysisResult("Cosmic connection error.");
+            console.error('[NatalChart] Error loading forecast:', e);
+            setAnalysisResult("Cosmic connection error.");
         } finally {
             setLoadingAnalysis(false);
         }

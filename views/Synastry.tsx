@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { UserProfile, SynastryResult } from '../types';
-import { calculateBriefSynastry, calculateFullSynastry } from '../services/astrologyService';
+import { getOrGenerateSynastry } from '../services/contentGenerationService';
 import { getText } from '../constants';
 import { motion } from 'framer-motion';
 import { Loading } from '../components/ui/Loading';
@@ -34,33 +34,20 @@ export const Synastry: React.FC<SynastryProps> = ({ profile, requestPremium }) =
         setAnalysisMode(mode);
         
         try {
-            let data: SynastryResult;
-            
-            if (mode === 'brief') {
-                // Краткий анализ (бесплатный)
-                data = await calculateBriefSynastry(
-                    profile, 
-                    partnerName, 
-                    partnerDate,
-                    partnerTime || undefined,
-                    partnerPlace || undefined,
-                    relationshipType
-                );
-            } else {
-                // Полный анализ (премиум)
-                data = await calculateFullSynastry(
-                    profile, 
-                    partnerName, 
-                    partnerDate,
-                    partnerTime || undefined,
-                    partnerPlace || undefined,
-                    relationshipType
-                );
-            }
+            // Используем новый сервис с кэшированием
+            const data = await getOrGenerateSynastry(
+                profile,
+                partnerName,
+                partnerDate,
+                partnerTime || undefined,
+                partnerPlace || undefined,
+                relationshipType,
+                mode
+            );
             
             setResult(data);
         } catch (e) {
-            console.error(e);
+            console.error('[Synastry] Error calculating synastry:', e);
         } finally {
             setLoading(false);
         }

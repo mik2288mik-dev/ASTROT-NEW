@@ -382,6 +382,31 @@ async function migration007(pool: Pool): Promise<void> {
 }
 
 /**
+ * Migration 008: Add generated_content field to users table
+ */
+async function migration008(pool: Pool): Promise<void> {
+  const migrationName = '008_add_generated_content';
+  
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
+  log.info(`Applying migration ${migrationName}...`);
+
+  // Add generated_content field for caching all AI-generated content
+  const addColumn = `
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS generated_content JSONB;
+  `;
+
+  await pool.query(addColumn);
+  
+  await markMigrationApplied(pool, migrationName);
+  log.info(`Migration ${migrationName} applied successfully`);
+}
+
+/**
  * Verify that all required tables exist
  */
 async function verifyTablesExist(pool: Pool): Promise<void> {
@@ -482,6 +507,7 @@ export async function runMigrations(): Promise<void> {
     await migration005(pool);
     await migration006(pool);
     await migration007(pool);
+    await migration008(pool);
 
     // Verify that all tables were created successfully
     log.info('Verifying tables were created...');
