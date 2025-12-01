@@ -16,18 +16,18 @@ const log = {
 };
 
 /**
- * Получает время следующего обновления гороскопа (6:00 утра по МСК)
+ * Получает время следующего обновления гороскопа (4:00 утра по МСК)
  */
 const getNextDailyUpdateTime = (): number => {
   // Получаем текущее время в МСК (UTC+3)
   const now = new Date();
   const moscowTime = new Date(now.getTime() + (3 * 60 * 60 * 1000)); // UTC+3
   
-  // Создаем дату следующего обновления в 6:00 МСК
+  // Создаем дату следующего обновления в 4:00 МСК
   const nextUpdate = new Date(moscowTime);
-  nextUpdate.setHours(6, 0, 0, 0);
+  nextUpdate.setHours(4, 0, 0, 0);
   
-  // Если уже прошло 6:00 сегодня, берем завтра 6:00
+  // Если уже прошло 4:00 сегодня, берем завтра 4:00
   if (moscowTime.getTime() >= nextUpdate.getTime()) {
     nextUpdate.setDate(nextUpdate.getDate() + 1);
   }
@@ -38,7 +38,7 @@ const getNextDailyUpdateTime = (): number => {
 
 /**
  * Проверяет, нужно ли обновить дневной гороскоп
- * Обновляется каждый день в 6:00 утра по МСК
+ * Обновляется каждый день в 4:00 утра по МСК
  */
 const shouldUpdateDailyHoroscope = (lastGenerated: number): boolean => {
   if (!lastGenerated) return true;
@@ -47,16 +47,16 @@ const shouldUpdateDailyHoroscope = (lastGenerated: number): boolean => {
   const moscowNow = new Date(now + (3 * 60 * 60 * 1000));
   const moscowLast = new Date(lastGenerated + (3 * 60 * 60 * 1000));
   
-  // Получаем дату последнего обновления в 6:00 МСК
+  // Получаем дату последнего обновления в 4:00 МСК
   const lastUpdateDate = new Date(moscowLast);
-  lastUpdateDate.setHours(6, 0, 0, 0);
+  lastUpdateDate.setHours(4, 0, 0, 0);
   
-  // Получаем текущую дату в 6:00 МСК
+  // Получаем текущую дату в 4:00 МСК
   const currentUpdateDate = new Date(moscowNow);
-  currentUpdateDate.setHours(6, 0, 0, 0);
+  currentUpdateDate.setHours(4, 0, 0, 0);
   
-  // Если текущее время после 6:00 и дата изменилась - обновляем
-  if (moscowNow.getHours() >= 6 && currentUpdateDate.getTime() > lastUpdateDate.getTime()) {
+  // Если текущее время после 4:00 и дата изменилась - обновляем
+  if (moscowNow.getHours() >= 4 && currentUpdateDate.getTime() > lastUpdateDate.getTime()) {
     return true;
   }
   
@@ -74,7 +74,7 @@ export const shouldUpdateContent = (timestamps: UserGeneratedContent['timestamps
 
   switch (contentType) {
     case 'daily':
-      // Обновляем каждый день в 6:00 утра по МСК
+      // Обновляем каждый день в 4:00 утра по МСК
       const lastDaily = timestamps.dailyHoroscopeGenerated || 0;
       return shouldUpdateDailyHoroscope(lastDaily);
     
@@ -89,12 +89,14 @@ export const shouldUpdateContent = (timestamps: UserGeneratedContent['timestamps
       return now - lastMonthly > ONE_MONTH;
     
     case 'threeKeys':
-      // Три ключа генерируются только один раз (или при регенерации)
-      return !timestamps.threeKeysGenerated;
+      // Три ключа генерируются ТОЛЬКО ОДИН РАЗ (НЕ обновляются автоматически)
+      // Обновление только через платную регенерацию за звезды
+      return false;
     
     case 'deepDive':
-      // Deep Dive генерируется только один раз
-      return !timestamps.deepDiveGenerated;
+      // Deep Dive генерируется ТОЛЬКО ОДИН РАЗ (НЕ обновляется автоматически)
+      // Обновление только через платную регенерацию за звезды
+      return false;
     
     default:
       return true;
@@ -222,6 +224,11 @@ export const generateAllContent = async (profile: UserProfile, chartData: NatalC
 
 /**
  * Обновляет контент, если необходимо (проверяет временные метки)
+ * 
+ * ВАЖНО: 
+ * - Натальная карта (Three Keys, Deep Dive) генерируется ОДИН РАЗ
+ * - Обновляются ТОЛЬКО гороскопы по расписанию
+ * - Натальная карта обновляется только через платную регенерацию
  */
 export const updateContentIfNeeded = async (profile: UserProfile, chartData: NatalChartData): Promise<UserGeneratedContent> => {
   log.info('[updateContentIfNeeded] Checking if content needs update', {
@@ -229,9 +236,9 @@ export const updateContentIfNeeded = async (profile: UserProfile, chartData: Nat
     hasGeneratedContent: !!profile.generatedContent
   });
 
-  // Если контента вообще нет - генерируем все
+  // Если контента вообще нет - генерируем все (первый вход)
   if (!profile.generatedContent) {
-    log.info('[updateContentIfNeeded] No content found, generating all');
+    log.info('[updateContentIfNeeded] No content found, generating all (first time)');
     return await generateAllContent(profile, chartData);
   }
 
@@ -239,9 +246,11 @@ export const updateContentIfNeeded = async (profile: UserProfile, chartData: Nat
   const timestamps = existingContent.timestamps || {};
   let updated = false;
 
-  // Проверяем и обновляем гороскопы по расписанию
+  // Проверяем и обновляем ТОЛЬКО ГОРОСКОПЫ по расписанию
+  // Three Keys и Deep Dive НЕ обновляются автоматически
+  
   if (shouldUpdateContent(timestamps, 'daily')) {
-    log.info('[updateContentIfNeeded] Updating daily horoscope');
+    log.info('[updateContentIfNeeded] Updating daily horoscope (4:00 MSK)');
     try {
       existingContent.dailyHoroscope = await getDailyHoroscope(profile, chartData);
       existingContent.timestamps.dailyHoroscopeGenerated = Date.now();
@@ -275,7 +284,7 @@ export const updateContentIfNeeded = async (profile: UserProfile, chartData: Nat
 
   // Если что-то обновилось - сохраняем профиль
   if (updated) {
-    log.info('[updateContentIfNeeded] Content updated, saving profile');
+    log.info('[updateContentIfNeeded] Horoscopes updated, saving profile');
     try {
       const updatedProfile = { ...profile, generatedContent: existingContent };
       await saveProfile(updatedProfile);
@@ -283,7 +292,7 @@ export const updateContentIfNeeded = async (profile: UserProfile, chartData: Nat
       log.error('[updateContentIfNeeded] Failed to save updated profile', error);
     }
   } else {
-    log.info('[updateContentIfNeeded] No updates needed');
+    log.info('[updateContentIfNeeded] No horoscope updates needed, using cache');
   }
 
   return existingContent;
