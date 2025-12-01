@@ -217,6 +217,7 @@ export const db = {
           is_admin: user.is_admin,
           three_keys: user.three_keys,
           evolution: user.evolution,
+          generated_content: user.generated_content,
           premium_activated_at: user.premium_activated_at,
           premium_stars_amount: user.premium_stars_amount,
           premium_transaction_id: user.premium_transaction_id,
@@ -245,8 +246,8 @@ export const db = {
           `INSERT INTO users (
             id, name, birth_date, birth_time, birth_place,
             is_setup, language, theme, is_premium, is_admin,
-            three_keys, evolution, updated_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, CURRENT_TIMESTAMP)
+            three_keys, evolution, generated_content, updated_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, CURRENT_TIMESTAMP)
           ON CONFLICT (id) DO UPDATE SET
             name = EXCLUDED.name,
             birth_date = EXCLUDED.birth_date,
@@ -259,6 +260,7 @@ export const db = {
             is_admin = EXCLUDED.is_admin,
             three_keys = EXCLUDED.three_keys,
             evolution = EXCLUDED.evolution,
+            generated_content = EXCLUDED.generated_content,
             updated_at = CURRENT_TIMESTAMP
           RETURNING *`,
           [
@@ -274,6 +276,7 @@ export const db = {
             data.is_admin || false,
             data.three_keys ? JSON.stringify(data.three_keys) : null,
             data.evolution ? JSON.stringify(data.evolution) : null,
+            data.generated_content ? JSON.stringify(data.generated_content) : null,
           ]
         );
 
@@ -291,6 +294,7 @@ export const db = {
           is_admin: user.is_admin,
           three_keys: user.three_keys,
           evolution: user.evolution,
+          generated_content: user.generated_content,
         };
       } catch (error: any) {
         log.error('[DB] Error setting user', {
@@ -326,6 +330,7 @@ export const db = {
           is_admin: user.is_admin,
           three_keys: user.three_keys,
           evolution: user.evolution,
+          generated_content: user.generated_content,
         }));
       } catch (error: any) {
         log.error('[DB] Error getting all users', {

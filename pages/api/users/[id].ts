@@ -59,6 +59,7 @@ export default async function handler(
         isAdmin: user.is_admin,
         threeKeys: user.three_keys,
         evolution: user.evolution,
+        generatedContent: user.generated_content,
       };
 
       return res.status(200).json(clientUser);
@@ -86,6 +87,7 @@ export default async function handler(
         is_admin: userData.isAdmin || false,
         three_keys: userData.threeKeys || null,
         evolution: userData.evolution || null,
+        generated_content: userData.generatedContent || null,
       };
 
       const savedUser = await db.users.set(userId, dbUser);
@@ -106,6 +108,7 @@ export default async function handler(
         isAdmin: savedUser.is_admin,
         threeKeys: savedUser.three_keys,
         evolution: savedUser.evolution,
+        generatedContent: savedUser.generated_content,
       };
 
       return res.status(200).json(clientUser);

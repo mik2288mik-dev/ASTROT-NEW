@@ -40,6 +40,9 @@ export interface UserProfile {
   evolution?: UserEvolution;
   lastContext?: UserContext;
   starsBalance?: number; // Баланс звёзд для платных регенераций
+  
+  // Все генерации пользователя (кэшируются)
+  generatedContent?: UserGeneratedContent;
 }
 
 export enum ZodiacSign {
@@ -82,6 +85,46 @@ export interface NatalChartData {
     career: string;
     karma: string;
   }
+}
+
+// Полное хранилище всех генераций пользователя
+export interface UserGeneratedContent {
+  // Три ключа (основа)
+  threeKeys?: ThreeKeys;
+  
+  // Гороскопы (обновляются по расписанию)
+  dailyHoroscope?: DailyHoroscope;
+  weeklyHoroscope?: WeeklyHoroscope;
+  monthlyHoroscope?: MonthlyHoroscope;
+  
+  // Deep Dive анализы (генерируются один раз)
+  deepDiveAnalyses?: {
+    personality?: string;
+    love?: string;
+    career?: string;
+    weakness?: string;
+    karma?: string;
+  };
+  
+  // История синастрий (кэшируется по партнерам)
+  synastries?: {
+    [partnerId: string]: {
+      partnerName: string;
+      partnerDate: string;
+      briefResult?: SynastryResult;
+      fullResult?: SynastryResult;
+      timestamp: number;
+    };
+  };
+  
+  // Временные метки для обновления
+  timestamps: {
+    threeKeysGenerated?: number;
+    dailyHoroscopeGenerated?: number;
+    weeklyHoroscopeGenerated?: number;
+    monthlyHoroscopeGenerated?: number;
+    deepDiveGenerated?: number;
+  };
 }
 
 export interface SynastryResult {
@@ -143,7 +186,7 @@ export interface ChatMessage {
   timestamp: number;
 }
 
-export type ViewState = 'onboarding' | 'hook' | 'paywall' | 'dashboard' | 'chart' | 'synastry' | 'oracle' | 'settings' | 'admin';
+export type ViewState = 'onboarding' | 'hook' | 'paywall' | 'dashboard' | 'chart' | 'horoscope' | 'synastry' | 'oracle' | 'settings' | 'admin';
 
 // Cached text types
 export interface CachedText<T = any> {

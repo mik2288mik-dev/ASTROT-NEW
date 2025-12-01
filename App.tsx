@@ -3,9 +3,11 @@ import React, { useEffect, useState } from 'react';
 import { UserProfile, NatalChartData, ViewState } from './types';
 import { getProfile, getChartData, saveProfile, saveChartData } from './services/storageService';
 import { calculateNatalChart } from './services/astrologyService';
+import { generateAllContent, updateContentIfNeeded } from './services/contentGenerationService';
 import { Onboarding } from './views/Onboarding';
 import { Dashboard } from './views/Dashboard';
 import { NatalChart } from './views/NatalChart';
+import { Horoscope } from './views/Horoscope';
 import { OracleChat } from './views/OracleChat';
 import { Settings } from './views/Settings';
 import { AdminPanel } from './views/AdminPanel';
@@ -101,6 +103,23 @@ const App: React.FC = () => {
                         // Если карта найдена в БД - используем её
                         console.log('[App] Setting chart data from database');
                         setChartData(storedChart);
+                        
+                        // Проверяем и обновляем весь контент (гороскопы, deep dive и т.д.)
+                        try {
+                            console.log('[App] Checking if content needs update...');
+                            const updatedContent = await updateContentIfNeeded(updatedProfile, storedChart);
+                            
+                            // Обновляем профиль с новым контентом
+                            if (updatedContent) {
+                                updatedProfile.generatedContent = updatedContent;
+                                setProfile(updatedProfile);
+                                console.log('[App] Content updated and saved');
+                            }
+                        } catch (error) {
+                            console.error('[App] Error updating content:', error);
+                            // Не прерываем загрузку, если обновление контента не удалось
+                        }
+                        
                         setView('dashboard'); // Показываем Dashboard с космическим паспортом
                     } else {
                         // Если карты нет в БД, но профиль есть - пересчитываем карту
@@ -200,8 +219,23 @@ const App: React.FC = () => {
                     console.error('[App] Failed to save chart:', error);
                     // Не прерываем процесс, если сохранение не удалось
                 }
+                
+                // НОВОЕ: Генерируем ВСЕ данные сразу при первом входе
+                console.log('[App] Generating all content for first-time user...');
+                try {
+                    const allContent = await generateAllContent(fullProfile, generatedChart);
+                    fullProfile.generatedContent = allContent;
+                    
+                    // Сохраняем обновленный профиль со всеми генерациями
+                    await saveProfile(fullProfile);
+                    setProfile(fullProfile);
+                    console.log('[App] All content generated and saved successfully');
+                } catch (error) {
+                    console.error('[App] Failed to generate all content:', error);
+                    // Не прерываем процесс, если генерация не удалась
+                }
             } else {
-                console.log('[App] User chose not to save data, skipping chart save');
+                console.log('[App] User chose not to save data, skipping content generation');
             }
             
             // Funnel: Onboarding -> Hook -> Dashboard (not Paywall)
@@ -316,6 +350,10 @@ const App: React.FC = () => {
                     <OracleChat profile={profile} />
                 ) : view === 'synastry' ? (
                     <Synastry profile={profile} requestPremium={requestPremium} />
+                ) : view === 'horoscope' ? (
+                    <div className="h-full overflow-y-auto scrollbar-hide">
+                        <Horoscope profile={profile} chartData={chartData} />
+                    </div>
                 ) : view === 'chart' ? (
                     <div className="h-full overflow-y-auto scrollbar-hide">
                         <NatalChart data={chartData} profile={profile} requestPremium={requestPremium} />
