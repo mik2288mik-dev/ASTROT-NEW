@@ -55,7 +55,7 @@ export const Header: React.FC<HeaderProps> = ({ profile, view, onOpenSettings, o
             {/* Center - Title */}
             <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none text-center">
                  <h1 className="text-xl font-bold text-astro-text font-serif tracking-tighter drop-shadow-sm uppercase">
-                     {isHub ? 'ASTROT' : getText(profile.language, `nav.${view}`)}
+                     ASTROT
                  </h1>
             </div>
 
