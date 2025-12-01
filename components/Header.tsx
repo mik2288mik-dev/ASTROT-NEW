@@ -32,7 +32,7 @@ export const Header: React.FC<HeaderProps> = ({ profile, view, onOpenSettings, o
     if (isFunnel) return null;
 
     return (
-        <header className="bg-astro-bg/80 backdrop-blur-md border-b border-astro-border h-16 shrink-0 flex items-center justify-between px-4 relative z-40" style={{ marginTop: '24px' }}>
+        <header className="bg-astro-bg/80 backdrop-blur-md border-b border-astro-border shrink-0 flex items-center justify-between px-4 relative z-40 pt-12 pb-4">
             
             {/* Left Side */}
             <div className="flex items-center gap-3 w-20">
@@ -40,11 +40,10 @@ export const Header: React.FC<HeaderProps> = ({ profile, view, onOpenSettings, o
                     // Empty on Hub (avatar now in cosmic passport)
                     <div className="w-9"></div>
                 ) : (
-                    // Back Button on Sub-pages - опущена на дополнительные 24px
+                    // Back Button on Sub-pages - positioned below Telegram close button
                     <button 
                         onClick={onBack}
                         className="w-9 h-9 flex items-center justify-center text-astro-text hover:text-astro-highlight transition-colors"
-                        style={{ marginTop: '48px' }}
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />

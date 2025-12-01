@@ -68,18 +68,17 @@ const App: React.FC = () => {
             }
 
             try {
-                // Загружаем профиль из БД
-                const storedProfile = await getProfile();
-                
-                // Загружаем данные карты из БД
-                const storedChart = await getChartData();
+                // Загружаем профиль и карту ПАРАЛЛЕЛЬНО для ускорения
+                const [storedProfile, storedChart] = await Promise.all([
+                    getProfile(),
+                    getChartData()
+                ]);
 
                 console.log('[App] Loaded data from database:', {
                     hasProfile: !!storedProfile,
                     hasChart: !!storedChart,
                     tgId,
-                    profileIsSetup: storedProfile?.isSetup,
-                    profileData: storedProfile ? JSON.stringify(storedProfile) : 'null'
+                    profileIsSetup: storedProfile?.isSetup
                 });
 
                 // Если профиль найден в БД и он настроен - показываем натальную карту
@@ -90,37 +89,29 @@ const App: React.FC = () => {
                     const isAdmin = tgId === OWNER_ID || storedProfile.isAdmin || false;
                     const updatedProfile = { ...storedProfile, id: tgId, isAdmin };
                     
-                    console.log('[App] User data found in database, preparing to show chart:', {
-                        userId: updatedProfile.id,
-                        isAdmin,
-                        isPremium: updatedProfile.isPremium,
-                        hasChart: !!storedChart
-                    });
-                    
                     setProfile(updatedProfile);
                     
                     if (storedChart) {
                         // Если карта найдена в БД - используем её
                         console.log('[App] Setting chart data from database');
                         setChartData(storedChart);
+                        setView('dashboard'); // Показываем Dashboard СРАЗУ
+                        setLoading(false); // Убираем загрузку СРАЗУ
                         
-                        // Проверяем и обновляем весь контент (гороскопы, deep dive и т.д.)
-                        try {
-                            console.log('[App] Checking if content needs update...');
-                            const updatedContent = await updateContentIfNeeded(updatedProfile, storedChart);
-                            
-                            // Обновляем профиль с новым контентом
-                            if (updatedContent) {
-                                updatedProfile.generatedContent = updatedContent;
-                                setProfile(updatedProfile);
-                                console.log('[App] Content updated and saved');
-                            }
-                        } catch (error) {
-                            console.error('[App] Error updating content:', error);
-                            // Не прерываем загрузку, если обновление контента не удалось
-                        }
+                        // Проверяем и обновляем контент В ФОНЕ (не блокируя UI)
+                        updateContentIfNeeded(updatedProfile, storedChart)
+                            .then((updatedContent) => {
+                                if (updatedContent) {
+                                    updatedProfile.generatedContent = updatedContent;
+                                    setProfile({...updatedProfile});
+                                    console.log('[App] Content updated in background');
+                                }
+                            })
+                            .catch((error) => {
+                                console.error('[App] Error updating content in background:', error);
+                            });
                         
-                        setView('dashboard'); // Показываем Dashboard с космическим паспортом
+                        return; // Выходим раньше - loading уже false
                     } else {
                         // Если карты нет в БД, но профиль есть - пересчитываем карту
                         console.log('[App] Chart not found in database, recalculating...');
@@ -128,14 +119,13 @@ const App: React.FC = () => {
                             const generatedChart = await calculateNatalChart(updatedProfile);
                             if (generatedChart && generatedChart.sun) {
                                 setChartData(generatedChart);
-                                // Сохраняем пересчитанную карту в БД
-                                await saveChartData(generatedChart);
-                                console.log('[App] Chart recalculated and saved');
+                                // Сохраняем пересчитанную карту в БД в фоне
+                                saveChartData(generatedChart).catch(console.error);
+                                console.log('[App] Chart recalculated');
                             }
-                            setView('dashboard'); // Показываем Dashboard с космическим паспортом
+                            setView('dashboard');
                         } catch (error) {
                             console.error('[App] Error recalculating chart:', error);
-                            // При ошибке пересчета показываем onboarding
                             setView('onboarding');
                         }
                     }
@@ -146,7 +136,6 @@ const App: React.FC = () => {
                 }
             } catch (error) {
                 console.error('[App] Error loading user data:', error);
-                // При ошибке загрузки показываем onboarding
                 setView('onboarding');
             } finally {
                 setLoading(false);

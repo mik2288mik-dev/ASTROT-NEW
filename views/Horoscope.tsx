@@ -97,28 +97,31 @@ export const Horoscope: React.FC<HoroscopeProps> = ({ profile, chartData }) => {
     return (
         <div className="min-h-screen px-6 py-8 max-w-2xl mx-auto">
             {/* Заголовок страницы */}
-            <h1 className="text-[32px] font-bold text-astro-text text-center mb-8 leading-tight">
+            <h1 className="text-[28px] font-bold text-astro-text text-center mb-6 leading-tight">
                 {profile.language === 'ru' ? 'Гороскоп на сегодня' : 'Today\'s Horoscope'}
             </h1>
 
-            {/* Блок с иконкой знака зодиака */}
-            <div className="flex flex-col items-center mb-8">
-                {/* Большая круглая иконка знака - ЗАГЛУШКА */}
-                <div className="w-32 h-32 rounded-full bg-astro-card border-2 border-astro-border flex items-center justify-center mb-6 shadow-lg">
-                    <span className="text-7xl text-astro-highlight">
+            {/* Блок с иконкой знака зодиака - горизонтальный лейаут */}
+            <div className="flex items-center gap-5 mb-8 bg-astro-card rounded-2xl p-5 border border-astro-border">
+                {/* Иконка знака слева */}
+                <div className="flex-shrink-0 w-20 h-20 rounded-full bg-astro-bg border border-astro-border flex items-center justify-center shadow-lg">
+                    <span className="text-5xl text-astro-highlight">
                         {zodiacSymbol}
                     </span>
                 </div>
 
-                {/* Название знака */}
-                <h2 className="text-2xl font-semibold text-astro-text mb-2">
-                    {zodiacName}
-                </h2>
+                {/* Текст справа */}
+                <div className="flex-1">
+                    {/* Название знака */}
+                    <h2 className="text-xl font-semibold text-astro-text mb-1">
+                        {zodiacName}
+                    </h2>
 
-                {/* Даты знака */}
-                <p className="text-base text-astro-subtext">
-                    {zodiacDates}
-                </p>
+                    {/* Даты знака */}
+                    <p className="text-sm text-astro-subtext">
+                        {zodiacDates}
+                    </p>
+                </div>
             </div>
 
             {/* Основной текст гороскопа */}
