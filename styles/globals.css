@@ -89,3 +89,42 @@ h1, h2, h3, h4, h5, h6, .font-fashion {
     -ms-overflow-style: none;
     scrollbar-width: none;
 }
+
+/* Soft Shadow for Cards */
+.shadow-soft {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+}
+
+body.theme-light .shadow-soft {
+  box-shadow: 0 4px 12px rgba(60, 47, 47, 0.08), 0 2px 4px rgba(60, 47, 47, 0.04);
+}
+
+/* Glow Shadow for Highlighted Elements */
+.shadow-glow {
+  box-shadow: 0 0 20px rgba(191, 161, 255, 0.3), 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+body.theme-light .shadow-glow {
+  box-shadow: 0 0 20px rgba(166, 123, 91, 0.3), 0 4px 12px rgba(60, 47, 47, 0.1);
+}
+
+/* Smooth Transitions */
+* {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Better Typography for Reading */
+.text-balance {
+  text-wrap: balance;
+}
+
+/* Custom Gradient Backgrounds */
+.bg-gradient-cosmic {
+  background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-primary) 100%);
+}
+
+body.theme-light .bg-gradient-cosmic {
+  background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-primary) 100%);
+}

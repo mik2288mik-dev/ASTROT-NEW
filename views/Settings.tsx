@@ -81,7 +81,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                     onClick={onOpenAdmin}
                     className="w-full bg-red-500/10 border border-red-500 text-red-500 py-3 rounded-lg uppercase text-[10px] tracking-widest font-bold hover:bg-red-500/20 transition-colors mb-4"
                 >
-                    ⚠️ Open Admin Panel
+                    ! Open Admin Panel
                 </button>
             )}
 

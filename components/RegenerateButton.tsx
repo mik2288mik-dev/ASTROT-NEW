@@ -44,14 +44,14 @@ export const RegenerateButton: React.FC<RegenerateButtonProps> = ({
     limitReached: lang ? 'Доступно завтра' : 'Available tomorrow',
     premiumOnly: lang ? 'Рассказать по-другому (Премиум)' : 'Tell differently (Premium)',
     tooltipFree: lang 
-      ? 'Если захочешь — я могу пересказать твой разбор другими словами, но не чаще одного раза в день 💫'
-      : 'If you want — I can retell your reading in different words, but not more than once a day 💫',
+      ? 'Если захочешь — я могу пересказать твой разбор другими словами, но не чаще одного раза в день'
+      : 'If you want — I can retell your reading in different words, but not more than once a day',
     tooltipPaid: lang
-      ? 'Следующая регенерация будет стоить 50 звёзд ⭐'
-      : 'Next regeneration will cost 50 stars ⭐',
+      ? 'Следующая регенерация будет стоить 50 звёзд'
+      : 'Next regeneration will cost 50 stars',
     tooltipLimit: lang
-      ? 'Сегодня ты уже менял текст. Я смогу рассказать иначе завтра 🌗'
-      : 'You already changed the text today. I can tell it differently tomorrow 🌗',
+      ? 'Сегодня ты уже менял текст. Я смогу рассказать иначе завтра'
+      : 'You already changed the text today. I can tell it differently tomorrow',
   };
 
   const handleClick = async () => {
@@ -119,7 +119,7 @@ export const RegenerateButton: React.FC<RegenerateButtonProps> = ({
           onMouseEnter={() => setShowTooltip(true)}
           onMouseLeave={() => setShowTooltip(false)}
         >
-          <span className="text-lg opacity-30">🔒</span>
+          <span className="text-lg opacity-30">⚿</span>
           <span className="text-xs uppercase tracking-widest font-bold opacity-50">
             {texts.premiumOnly}
           </span>
@@ -171,11 +171,11 @@ export const RegenerateButton: React.FC<RegenerateButtonProps> = ({
           animate={state === 'loading' ? { rotate: 360 } : {}}
           transition={{ duration: 1.5, repeat: state === 'loading' ? Infinity : 0, ease: 'linear' }}
         >
-          {state === 'idle' && '🔄'}
-          {state === 'loading' && '⏳'}
-          {state === 'success' && '✨'}
-          {state === 'error' && '⚠️'}
-          {state === 'limit_reached' && '🌗'}
+          {state === 'idle' && '↻'}
+          {state === 'loading' && '⌛'}
+          {state === 'success' && '✓'}
+          {state === 'error' && '!'}
+          {state === 'limit_reached' && '○'}
         </motion.span>
 
         {/* Text */}

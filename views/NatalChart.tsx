@@ -6,13 +6,102 @@ import { getDeepDiveAnalysis, getDailyHoroscope, getWeeklyHoroscope, getMonthlyH
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { Loading } from '../components/ui/Loading';
 import { RegenerateButton } from '../components/RegenerateButton';
-import { TextCard, TextContent, AdviceList, Paragraph } from '../components/TextCard';
 
 interface NatalChartProps {
     data: NatalChartData | null;
     profile: UserProfile;
     requestPremium: () => void;
 }
+
+// Иконки планет для блоков
+const PLANET_ICONS: Record<string, string> = {
+    energy: '☉', // Солнце
+    love: '♀', // Венера
+    career: '♃', // Юпитер
+    personality: '☉', // Солнце
+    emotions: '☾', // Луна
+    mind: '☿', // Меркурий
+    weakness: '♄', // Сатурн
+    karma: '♇' // Плутон
+};
+
+// Компонент блока натальной карты в стиле референса
+const ChartBlock: React.FC<{
+    title: string;
+    planet: string;
+    text: string;
+    advice: string[];
+    language: 'ru' | 'en';
+    variant?: 'default' | 'highlight';
+}> = ({ title, planet, text, advice, language, variant = 'default' }) => {
+    const gradientClass = variant === 'highlight' 
+        ? 'from-purple-900/20 via-astro-card to-astro-card' 
+        : 'from-astro-card to-astro-card';
+    
+    return (
+        <div className={`relative rounded-3xl overflow-hidden bg-gradient-to-b ${gradientClass} border border-astro-border shadow-soft`}>
+            {/* Декоративный фон */}
+            <div className="absolute -top-20 -right-20 w-64 h-64 bg-astro-highlight rounded-full blur-3xl opacity-10"></div>
+            
+            <div className="relative z-10 p-8 space-y-6">
+                {/* Заголовок */}
+                <div className="text-center">
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext mb-3 font-bold">
+                        {title}
+                    </p>
+                </div>
+
+                {/* Центральная иконка планеты */}
+                <div className="flex justify-center">
+                    <div className="relative">
+                        <div className="absolute inset-0 bg-astro-highlight/20 rounded-full blur-2xl"></div>
+                        <div className="relative w-32 h-32 rounded-full bg-gradient-to-br from-astro-highlight/10 to-transparent border border-astro-highlight/30 flex items-center justify-center backdrop-blur-sm">
+                            <span className="text-6xl text-astro-highlight opacity-90 font-light">
+                                {planet}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Основной текст */}
+                <div className="space-y-4 text-center px-2">
+                    {text.split('\n\n').map((paragraph, idx) => (
+                        paragraph.trim() && (
+                            <p key={idx} className="text-sm text-astro-text leading-relaxed font-light">
+                                {paragraph.trim()}
+                            </p>
+                        )
+                    ))}
+                </div>
+
+                {/* Советы */}
+                {advice && advice.length > 0 && (
+                    <div className="mt-6 pt-6 border-t border-astro-border/30">
+                        <h4 className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext font-bold mb-4 text-center">
+                            {language === 'ru' ? 'Советы' : 'Advice'}
+                        </h4>
+                        <div className="space-y-3">
+                            {advice.map((item, index) => {
+                                // Разные цвета для маркеров
+                                const colors = ['text-purple-400', 'text-pink-400', 'text-blue-400'];
+                                const colorClass = colors[index % colors.length];
+                                
+                                return (
+                                    <div key={index} className="flex items-start gap-3">
+                                        <span className={`flex-shrink-0 mt-1 ${colorClass} text-xs`}>●</span>
+                                        <span className="flex-1 text-sm text-astro-text font-light leading-relaxed">
+                                            {item}
+                                        </span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
 
 export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPremium }) => {
     const [activeAnalysis, setActiveAnalysis] = useState<string | null>(null);
@@ -112,7 +201,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
         <div className="p-4 space-y-8 pb-32" style={{ paddingTop: 'calc(1rem + 24px)' }}>
             
             <div className="pb-2 text-center">
-                 <h2 className="text-2xl font-bold text-astro-text font-serif tracking-wide uppercase">
+                 <h2 className="text-2xl font-bold text-astro-text font-serif tracking-wide">
                      {getText(profile.language, 'chart.title')}
                  </h2>
                  <div className="h-[1px] w-24 bg-astro-highlight mx-auto mt-2 opacity-50"></div>
@@ -120,69 +209,45 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
 
             {/* 1. HERO: The Three Keys (Animated Manifestation) */}
             <motion.div 
-                className="space-y-6 py-4"
+                className="space-y-8 py-4"
                 variants={container}
                 initial="hidden"
                 animate="show"
             >
                 {/* Key 1: Energy */}
                 <motion.div variants={item}>
-                    <TextCard
+                    <ChartBlock
                         title={keys.key1.title}
-                        icon="⚡"
+                        planet={PLANET_ICONS.energy}
+                        text={keys.key1.text}
+                        advice={keys.key1.advice}
+                        language={profile.language}
                         variant="highlight"
-                        animate={false}
-                    >
-                        <TextContent>
-                            <Paragraph>{keys.key1.text}</Paragraph>
-                        </TextContent>
-                        {keys.key1.advice && keys.key1.advice.length > 0 && (
-                            <AdviceList 
-                                items={keys.key1.advice} 
-                                title={profile.language === 'ru' ? 'Совет' : 'Advice'} 
-                            />
-                        )}
-                    </TextCard>
+                    />
                 </motion.div>
 
                 {/* Key 2: Love */}
                 <motion.div variants={item}>
-                    <TextCard
+                    <ChartBlock
                         title={keys.key2.title}
-                        icon="💞"
-                        variant="highlight"
-                        animate={false}
-                    >
-                        <TextContent>
-                            <Paragraph>{keys.key2.text}</Paragraph>
-                        </TextContent>
-                        {keys.key2.advice && keys.key2.advice.length > 0 && (
-                            <AdviceList 
-                                items={keys.key2.advice} 
-                                title={profile.language === 'ru' ? 'Совет' : 'Advice'} 
-                            />
-                        )}
-                    </TextCard>
+                        planet={PLANET_ICONS.love}
+                        text={keys.key2.text}
+                        advice={keys.key2.advice}
+                        language={profile.language}
+                        variant="default"
+                    />
                 </motion.div>
 
                 {/* Key 3: Career */}
                 <motion.div variants={item}>
-                    <TextCard
+                    <ChartBlock
                         title={keys.key3.title}
-                        icon="🎯"
-                        variant="highlight"
-                        animate={false}
-                    >
-                        <TextContent>
-                            <Paragraph>{keys.key3.text}</Paragraph>
-                        </TextContent>
-                        {keys.key3.advice && keys.key3.advice.length > 0 && (
-                            <AdviceList 
-                                items={keys.key3.advice} 
-                                title={profile.language === 'ru' ? 'Совет' : 'Advice'} 
-                            />
-                        )}
-                    </TextCard>
+                        planet={PLANET_ICONS.career}
+                        text={keys.key3.text}
+                        advice={keys.key3.advice}
+                        language={profile.language}
+                        variant="default"
+                    />
                 </motion.div>
 
                 {/* Regenerate Button */}
@@ -244,7 +309,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
                                 </span>
                             </div>
                             <div className="z-10 text-astro-subtext group-hover:text-astro-highlight transition-colors">
-                                {profile.isPremium ? '→' : '🔒'}
+                                {profile.isPremium ? '→' : '⚿'}
                             </div>
                         </button>
                     ))}
