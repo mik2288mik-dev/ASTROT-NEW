@@ -109,16 +109,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, chartData, reques
                     <p className="text-[10px] uppercase tracking-widest text-astro-subtext mb-2">{getText(profile.language, 'dashboard.passport')}</p>
                     <div className="flex justify-between items-end">
                         <div>
-                            <h1 className="text-3xl font-serif text-astro-text mb-1">{profile.name}</h1>
-                            <div className="flex gap-3 text-xs font-medium text-astro-highlight">
-                                <span>☉ {getZodiacSign(profile.language, chartData.sun.sign)}</span>
-                                <span>☾ {getZodiacSign(profile.language, chartData.moon.sign)}</span>
-                                <span>↑ {getZodiacSign(profile.language, chartData.rising.sign)}</span>
+                            <h1 className="text-2xl font-serif text-astro-text mb-2">{profile.name}</h1>
+                            <div className="text-sm font-medium text-astro-highlight">
+                                <span>☉ {getZodiacSign(profile.language, chartData.sun?.sign || 'Aries')}</span>
                             </div>
                         </div>
                         <div className="text-right">
                             <p className="text-[10px] uppercase tracking-widest text-astro-subtext">{getText(profile.language, 'dashboard.element')}</p>
-                            <p className="font-serif text-lg text-astro-text">{getElement(profile.language, chartData.element)}</p>
+                            <p className="font-serif text-base text-astro-text">{getElement(profile.language, chartData.element)}</p>
                         </div>
                     </div>
                  </div>

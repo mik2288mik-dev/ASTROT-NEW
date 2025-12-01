@@ -36,26 +36,26 @@ const KeyBlock: React.FC<{
     return (
         <div className="w-full max-w-2xl mx-auto">
             {/* Заголовок блока */}
-            <h3 className="text-left text-lg font-semibold text-astro-subtext uppercase tracking-wider mb-4">
+            <h3 className="text-left text-base font-semibold text-astro-subtext uppercase tracking-wider mb-3">
                 {title}
             </h3>
 
             {/* Иконка планеты слева + текст справа */}
-            <div className="flex gap-4 items-start">
+            <div className="flex gap-3 items-start">
                 {/* Иконка планеты сбоку */}
-                <div className="flex-shrink-0 w-16 h-16 rounded-full bg-astro-card border-2 border-astro-border flex items-center justify-center shadow-md">
-                    <span className="text-3xl text-astro-highlight">
+                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-astro-card border-2 border-astro-border flex items-center justify-center shadow-md">
+                    <span className="text-2xl text-astro-highlight">
                         {planetSymbol}
                     </span>
                 </div>
 
                 {/* Основной текст интерпретации */}
-                <div className="flex-1 space-y-3">
+                <div className="flex-1 space-y-2">
                     {text.split('\n\n').filter(p => p.trim()).map((paragraph, idx) => (
                         <p 
                             key={idx}
-                            className="text-[16px] leading-relaxed text-astro-text"
-                            style={{ lineHeight: '1.6' }}
+                            className="text-[14px] leading-relaxed text-astro-text"
+                            style={{ lineHeight: '1.5' }}
                         >
                             {paragraph.trim()}
                         </p>
@@ -65,15 +65,15 @@ const KeyBlock: React.FC<{
 
             {/* Советы (если есть) */}
             {advice && advice.length > 0 && (
-                <div className="mt-4 pt-4 border-t border-astro-border/30 ml-20">
-                    <h4 className="text-sm font-semibold text-astro-text mb-2">
+                <div className="mt-3 pt-3 border-t border-astro-border/30 ml-16">
+                    <h4 className="text-xs font-semibold text-astro-text mb-2">
                         {language === 'ru' ? 'Советы' : 'Advice'}
                     </h4>
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                         {advice.map((item, index) => (
                             <p 
                                 key={index}
-                                className="text-[15px] leading-relaxed text-astro-subtext"
+                                className="text-[13px] leading-relaxed text-astro-subtext"
                             >
                                 {item}
                             </p>
@@ -115,6 +115,15 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
         }
         
         const topicTitle = getText(profile.language, `chart.${topicKey}`);
+        
+        // Проверяем кэш ПЕРЕД установкой loading состояния
+        if (profile.generatedContent?.deepDiveAnalyses?.[topic]) {
+            console.log(`[NatalChart] Using cached Deep Dive for ${topic}`);
+            setActiveAnalysis(topicTitle);
+            setAnalysisResult(profile.generatedContent.deepDiveAnalyses[topic]);
+            return; // Не показываем loading, сразу показываем результат
+        }
+        
         setActiveAnalysis(topicTitle);
         setLoadingAnalysis(true);
         setAnalysisResult("");
@@ -142,6 +151,31 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
             month: getText(profile.language, 'chart.forecast_month'),
         };
         
+        const periodMap = {
+            'day': 'daily',
+            'week': 'weekly',
+            'month': 'monthly'
+        } as const;
+        
+        const periodKey = periodMap[period];
+        
+        // Проверяем кэш ПЕРЕД установкой loading состояния
+        let cachedText = null;
+        if (period === 'day' && profile.generatedContent?.dailyHoroscope) {
+            cachedText = profile.generatedContent.dailyHoroscope.content;
+        } else if (period === 'week' && profile.generatedContent?.weeklyHoroscope) {
+            cachedText = profile.generatedContent.weeklyHoroscope.advice;
+        } else if (period === 'month' && profile.generatedContent?.monthlyHoroscope) {
+            cachedText = profile.generatedContent.monthlyHoroscope.content;
+        }
+        
+        if (cachedText) {
+            console.log(`[NatalChart] Using cached ${period} forecast`);
+            setActiveAnalysis(`${getText(profile.language, 'chart.forecast_title')} - ${titleMap[period]}`);
+            setAnalysisResult(cachedText);
+            return; // Не показываем loading, сразу показываем результат
+        }
+        
         setActiveAnalysis(`${getText(profile.language, 'chart.forecast_title')} - ${titleMap[period]}`);
         setLoadingAnalysis(true);
         setAnalysisResult("");
@@ -149,13 +183,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
         try {
             let text = "";
             // Используем новый сервис с кэшированием
-            const periodMap = {
-                'day': 'daily',
-                'week': 'weekly',
-                'month': 'monthly'
-            } as const;
-            
-            const res = await getOrGenerateHoroscope(profile, data, periodMap[period]);
+            const res = await getOrGenerateHoroscope(profile, data, periodKey);
             
             if (period === 'day') {
                 text = (res as any).content;
@@ -206,16 +234,16 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
     };
 
     return (
-        <div className="min-h-screen px-6 py-8 max-w-3xl mx-auto pb-32">
+        <div className="min-h-screen px-4 py-6 max-w-3xl mx-auto pb-32">
             
             {/* Главный заголовок страницы */}
-            <h1 className="text-[32px] font-bold text-astro-text text-center mb-12 leading-tight">
+            <h1 className="text-2xl font-bold text-astro-text text-center mb-8 leading-tight">
                 {getText(profile.language, 'chart.title')}
             </h1>
 
             {/* Три ключа - основные интерпретации */}
             <motion.div 
-                className="space-y-8"
+                className="space-y-6"
                 variants={container}
                 initial="hidden"
                 animate="show"
@@ -261,14 +289,14 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
                     initial={{ opacity: 0 }} 
                     animate={{ opacity: 1 }} 
                     transition={{ delay: 1 }}
-                    className="mt-16 bg-astro-card rounded-3xl p-8 border border-astro-border text-center space-y-6"
+                    className="mt-12 bg-astro-card rounded-2xl p-6 border border-astro-border text-center space-y-4"
                 >
-                    <p className="text-[17px] text-astro-text leading-relaxed max-w-[85%] mx-auto">
+                    <p className="text-[15px] text-astro-text leading-relaxed max-w-[90%] mx-auto">
                         {getText(profile.language, 'hook.done')}
                     </p>
                     <button 
                         onClick={requestPremium}
-                        className="bg-astro-highlight text-white px-8 py-4 rounded-full text-base font-semibold hover:opacity-90 transition-opacity"
+                        className="bg-astro-highlight text-white px-6 py-3 rounded-full text-sm font-semibold hover:opacity-90 transition-opacity"
                     >
                         {getText(profile.language, 'hook.cta_button')}
                     </button>
@@ -276,12 +304,12 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
             )}
 
             {/* PREMIUM: Deep Dive разделы */}
-            <div className="mt-20">
-                <h2 className="text-2xl font-bold text-astro-text text-center mb-8">
+            <div className="mt-12">
+                <h2 className="text-xl font-bold text-astro-text text-center mb-6">
                     {getText(profile.language, 'chart.placements')}
                 </h2>
 
-                <div className="space-y-4 max-w-xl mx-auto">
+                <div className="space-y-3 max-w-xl mx-auto">
                     {pillars.map((key) => {
                         const fullText = getText(profile.language, `chart.${key}`);
                         const words = fullText.split(' ');
@@ -292,28 +320,28 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
                             <button
                                 key={key}
                                 onClick={() => handleDeepDive(key)}
-                                className="w-full bg-astro-card rounded-2xl p-6 border border-astro-border hover:border-astro-highlight transition-colors text-left relative"
+                                className="w-full bg-astro-card rounded-xl p-4 border border-astro-border hover:border-astro-highlight transition-colors text-left relative"
                             >
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
-                                        <span className="text-[18px] font-medium text-astro-text">
+                                        <span className="text-[15px] font-medium text-astro-text">
                                             {previewWords}
                                         </span>
                                         {!profile.isPremium && restWords && (
                                             <>
-                                                <span className="text-[18px] font-medium text-astro-text blur-sm select-none">
+                                                <span className="text-[15px] font-medium text-astro-text blur-sm select-none">
                                                     {restWords}
                                                 </span>
-                                                <span className="text-astro-highlight ml-2">🔒</span>
+                                                <span className="text-astro-highlight ml-2 text-xs">🔒</span>
                                             </>
                                         )}
                                         {profile.isPremium && restWords && (
-                                            <span className="text-[18px] font-medium text-astro-text">
+                                            <span className="text-[15px] font-medium text-astro-text">
                                                 {' ' + restWords}
                                             </span>
                                         )}
                                     </div>
-                                    <span className="text-astro-subtext text-sm ml-4">
+                                    <span className="text-astro-subtext text-xs ml-4">
                                         {profile.language === 'ru' ? 'Открыть' : 'Open'}
                                     </span>
                                 </div>
@@ -324,12 +352,12 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
             </div>
 
             {/* PREMIUM: Прогнозы */}
-            <div className="mt-16">
-                <h2 className="text-2xl font-bold text-astro-text text-center mb-8">
+            <div className="mt-12">
+                <h2 className="text-xl font-bold text-astro-text text-center mb-6">
                     {getText(profile.language, 'chart.forecast_title')}
                 </h2>
 
-                <div className="grid grid-cols-3 gap-4 max-w-xl mx-auto">
+                <div className="grid grid-cols-3 gap-3 max-w-xl mx-auto">
                     {['day', 'week', 'month'].map((period) => {
                         const fullText = getText(profile.language, `chart.forecast_${period}`);
                         const words = fullText.split(' ');
@@ -340,18 +368,18 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
                             <button 
                                 key={period}
                                 onClick={() => handleForecast(period as 'day' | 'week' | 'month')} 
-                                className="bg-astro-card rounded-xl p-4 border border-astro-border hover:border-astro-highlight transition-colors relative"
+                                className="bg-astro-card rounded-lg p-3 border border-astro-border hover:border-astro-highlight transition-colors relative"
                             >
-                                <div className="text-sm font-medium text-astro-text text-center">
+                                <div className="text-xs font-medium text-astro-text text-center">
                                     <div>{previewWords}</div>
                                     {!profile.isPremium && restWords && (
                                         <div className="flex items-center justify-center gap-1 mt-1">
-                                            <span className="blur-sm select-none">{restWords}</span>
-                                            <span className="text-xs">🔒</span>
+                                            <span className="blur-sm select-none text-[10px]">{restWords}</span>
+                                            <span className="text-[10px]">🔒</span>
                                         </div>
                                     )}
                                     {profile.isPremium && restWords && (
-                                        <div className="mt-1">{restWords}</div>
+                                        <div className="mt-1 text-[10px]">{restWords}</div>
                                     )}
                                 </div>
                             </button>
@@ -390,11 +418,11 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
                                 {loadingAnalysis ? (
                                     <Loading />
                                 ) : (
-                                    <div className="max-w-[90%] mx-auto space-y-4">
+                                    <div className="max-w-[90%] mx-auto space-y-3">
                                         {analysisResult.split('\n\n').filter(p => p.trim()).map((paragraph, idx) => (
                                             <p 
                                                 key={idx}
-                                                className="text-[17px] leading-relaxed text-astro-text"
+                                                className="text-[14px] leading-relaxed text-astro-text"
                                             >
                                                 {paragraph.trim()}
                                             </p>
@@ -408,7 +436,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
             </AnimatePresence>
 
             {/* Regenerate Button в самом низу страницы */}
-            <div className="mt-20 max-w-md mx-auto">
+            <div className="mt-12 max-w-md mx-auto">
                 <RegenerateButton
                     userId={profile.id || ''}
                     contentType="three_keys"

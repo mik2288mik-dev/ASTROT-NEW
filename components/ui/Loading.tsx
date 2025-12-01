@@ -18,7 +18,7 @@ export const Loading: React.FC<LoadingProps> = ({ message }) => {
     }, []);
 
     useEffect(() => {
-        // Симуляция загрузки от 0 до 100%
+        // Симуляция загрузки от 0 до 100% (без отображения процентов)
         const duration = 2000; // 2 секунды
         const interval = 20; // обновление каждые 20мс
         const steps = duration / interval;
@@ -87,19 +87,8 @@ export const Loading: React.FC<LoadingProps> = ({ message }) => {
                 />
             </div>
             
-            {/* Прогресс-бар с процентами */}
+            {/* Прогресс-бар без процентов */}
             <div className="w-64 max-w-full">
-                {/* Проценты с элегантным шрифтом */}
-                <motion.div 
-                    className="text-astro-text text-3xl font-light mb-3 tracking-wider"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.3 }}
-                    style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
-                >
-                    {Math.round(progress)}%
-                </motion.div>
-                
                 {/* Прогресс-бар */}
                 <div className="w-full h-2 bg-astro-card rounded-full overflow-hidden border border-astro-border">
                     <motion.div 
