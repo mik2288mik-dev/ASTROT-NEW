@@ -74,18 +74,49 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, chartData, reques
                  </div>
             </div>
 
-            {/* 2. PRIMARY ACTION: NATAL CHART (Move to Top) */}
+            {/* 1.5. HOROSCOPE FOR TODAY */}
+            <div className="bg-gradient-to-br from-purple-900/20 to-astro-card rounded-2xl p-6 border border-astro-highlight/30 shadow-soft relative overflow-hidden">
+                <div className="absolute -top-16 -left-16 w-48 h-48 bg-purple-500 rounded-full blur-3xl opacity-20"></div>
+                <div className="relative z-10">
+                    <div className="flex items-start justify-between mb-3">
+                        <div>
+                            <p className="text-[10px] uppercase tracking-widest text-astro-subtext mb-1">
+                                {profile.language === 'ru' ? 'Гороскоп на сегодня' : 'Today\'s Horoscope'}
+                            </p>
+                            <h3 className="font-serif text-xl text-astro-text">
+                                {profile.language === 'ru' ? 'Сегодня тебя ждёт особенный день' : 'A special day awaits you'}
+                            </h3>
+                        </div>
+                        <div className="flex-shrink-0 w-12 h-12 rounded-full bg-astro-highlight/10 border border-astro-highlight/30 flex items-center justify-center">
+                            <span className="text-2xl text-astro-highlight">☾</span>
+                        </div>
+                    </div>
+                    <p className="text-xs text-astro-subtext font-light mb-4">
+                        {profile.language === 'ru' 
+                            ? 'Луна усиливает твою интуицию. Прислушайся к внутреннему голосу.' 
+                            : 'The Moon strengthens your intuition. Listen to your inner voice.'}
+                    </p>
+                    <button 
+                        onClick={() => onNavigate('chart')}
+                        className="text-xs text-astro-highlight font-medium hover:underline"
+                    >
+                        {profile.language === 'ru' ? 'Подробный прогноз →' : 'Detailed forecast →'}
+                    </button>
+                </div>
+            </div>
+
+            {/* 2. PRIMARY ACTION: NATAL CHART */}
             <button 
                 onClick={() => onNavigate('chart')}
                 className="w-full bg-astro-card p-6 rounded-xl border border-astro-border text-left hover:border-astro-highlight transition-colors shadow-sm group relative overflow-hidden"
             >
-                <div className="absolute -right-6 -bottom-6 text-[80px] opacity-5 grayscale group-hover:grayscale-0 transition-all">📜</div>
+                <div className="absolute -right-6 -bottom-6 text-[80px] opacity-5 group-hover:opacity-10 transition-all">✦</div>
                 <div className="flex justify-between items-center mb-2 relative z-10">
                     <h3 className="font-serif text-2xl text-astro-text">{getText(profile.language, 'dashboard.menu_analysis')}</h3>
                     <span className="text-2xl group-hover:scale-110 transition-transform">→</span>
                 </div>
                 <p className="text-astro-subtext text-xs font-light relative z-10">
-                    Personality, Fate, Karma & Forecasts.
+                    {profile.language === 'ru' ? 'Личность, судьба, карма и прогнозы' : 'Personality, Fate, Karma & Forecasts'}
                 </p>
             </button>
 
@@ -148,12 +179,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, chartData, reques
                             <h3 className="text-[10px] uppercase tracking-widest text-astro-subtext mb-1">{getText(profile.language, 'dashboard.context_weather')}</h3>
                             <p className="text-xl font-serif text-astro-text capitalize">{context.weather}</p>
                         </div>
-                        <div className="text-3xl opacity-50">
-                           {context.weather.includes('Rain') ? '🌧' : context.weather.includes('Sun') ? '☀' : '☁'}
+                        <div className="text-3xl opacity-50 text-astro-highlight">
+                           {context.weather.includes('Rain') ? '☂' : context.weather.includes('Sun') ? '☀' : '☁'}
                         </div>
                     </div>
                     <p className="relative z-10 text-xs text-astro-subtext mt-2 font-light italic">
-                        "The stars align with the sky today..."
+                        {profile.language === 'ru' ? 'Звёзды согласны с небом сегодня...' : 'The stars align with the sky today...'}
                     </p>
                 </div>
             )}
@@ -167,11 +198,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, chartData, reques
                     className="bg-astro-card p-4 rounded-xl border border-astro-border text-left hover:border-astro-highlight transition-colors shadow-sm group relative overflow-hidden"
                 >
                     <div className="flex flex-col justify-between h-24">
-                         <span className="text-2xl group-hover:scale-110 transition-transform origin-left">💞</span>
+                         <span className="text-2xl group-hover:scale-110 transition-transform origin-left text-astro-highlight">♥</span>
                         <div>
                             <h3 className="font-serif text-md text-astro-text">{getText(profile.language, 'dashboard.menu_synastry')}</h3>
                             <p className="text-astro-subtext text-[10px] font-light">
-                                {profile.language === 'ru' ? 'Совместимость.' : 'Check compatibility.'}
+                                {profile.language === 'ru' ? 'Совместимость' : 'Check compatibility'}
                             </p>
                             {!profile.isPremium && (
                                 <span className="text-[8px] text-astro-highlight uppercase tracking-wider">
@@ -189,10 +220,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, chartData, reques
                 >
                     {!profile.isPremium && <div className="absolute inset-0 bg-black/10 backdrop-blur-[1px] flex items-center justify-center z-20"><span className="text-xs font-bold bg-astro-text text-astro-bg px-2 py-1 rounded">PRO</span></div>}
                     <div className="flex flex-col justify-between h-24">
-                         <span className="text-2xl group-hover:scale-110 transition-transform origin-left">👁</span>
+                         <span className="text-2xl group-hover:scale-110 transition-transform origin-left text-astro-highlight">✧</span>
                         <div>
                              <h3 className="font-serif text-md text-astro-text">{getText(profile.language, 'dashboard.menu_oracle')}</h3>
-                             <p className="text-astro-subtext text-[10px] font-light">Ask Astra anything.</p>
+                             <p className="text-astro-subtext text-[10px] font-light">
+                                {profile.language === 'ru' ? 'Спроси у Астры' : 'Ask Astra anything'}
+                             </p>
                         </div>
                     </div>
                 </button>

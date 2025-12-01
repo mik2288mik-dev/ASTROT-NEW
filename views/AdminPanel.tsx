@@ -88,7 +88,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onUpdate, onClo
             <div className="bg-astro-card border-b border-astro-border p-6 sticky top-0 z-10 shadow-md flex justify-between items-center">
                 <div>
                     <h2 className="text-2xl font-bold font-serif text-astro-text flex items-center gap-2">
-                        <span className="text-red-500">🛡</span>
+                        <span className="text-red-500">◈</span>
                         ADMIN CONSOLE
                     </h2>
                     <p className="text-[10px] text-astro-subtext uppercase tracking-widest">Owner Access Only</p>

@@ -168,7 +168,7 @@ export const Synastry: React.FC<SynastryProps> = ({ profile, requestPremium }) =
                             disabled={!partnerName || !partnerDate}
                             className="w-full bg-astro-card border-2 border-astro-highlight text-astro-text py-4 rounded-lg font-bold uppercase tracking-widest text-[10px] shadow-lg disabled:opacity-50 disabled:border-astro-border hover:bg-astro-highlight hover:text-white transition-colors"
                         >
-                            {profile.language === 'ru' ? '✨ Краткий обзор (Бесплатно)' : '✨ Brief Overview (Free)'}
+                            {profile.language === 'ru' ? 'Краткий обзор (Бесплатно)' : 'Brief Overview (Free)'}
                         </button>
 
                         {/* Полный анализ (премиум) */}
@@ -183,7 +183,7 @@ export const Synastry: React.FC<SynastryProps> = ({ profile, requestPremium }) =
                                 </span>
                             )}
                             <span className="group-hover:scale-105 transition-transform inline-block">
-                                {profile.language === 'ru' ? '🔮 Глубокий разбор (Премиум)' : '🔮 Deep Analysis (Premium)'}
+                                {profile.language === 'ru' ? 'Глубокий разбор (Премиум)' : 'Deep Analysis (Premium)'}
                             </span>
                         </button>
                     </div>
@@ -225,7 +225,7 @@ export const Synastry: React.FC<SynastryProps> = ({ profile, requestPremium }) =
 
                             <div className="bg-astro-card p-5 rounded-xl border border-astro-border">
                                 <h4 className="text-green-400 text-[10px] font-bold uppercase tracking-widest mb-2">
-                                    {profile.language === 'ru' ? '✅ Гармония' : '✅ Harmony'}
+                                    {profile.language === 'ru' ? '+ Гармония' : '+ Harmony'}
                                 </h4>
                                 <p className="text-sm font-light leading-relaxed text-astro-text">
                                     {result.briefOverview.harmony}
@@ -234,7 +234,7 @@ export const Synastry: React.FC<SynastryProps> = ({ profile, requestPremium }) =
 
                             <div className="bg-astro-card p-5 rounded-xl border border-astro-border">
                                 <h4 className="text-yellow-400 text-[10px] font-bold uppercase tracking-widest mb-2">
-                                    {profile.language === 'ru' ? '⚠️ Точки роста' : '⚠️ Growth Points'}
+                                    {profile.language === 'ru' ? '! Точки роста' : '! Growth Points'}
                                 </h4>
                                 <p className="text-sm font-light leading-relaxed text-astro-text">
                                     {result.briefOverview.challenges}
@@ -243,7 +243,7 @@ export const Synastry: React.FC<SynastryProps> = ({ profile, requestPremium }) =
 
                             <div className="bg-astro-card p-5 rounded-xl border border-astro-border">
                                 <h4 className="text-astro-highlight text-[10px] font-bold uppercase tracking-widest mb-3">
-                                    {profile.language === 'ru' ? '💡 Подсказки' : '💡 Tips'}
+                                    {profile.language === 'ru' ? '→ Подсказки' : '→ Tips'}
                                 </h4>
                                 <ul className="space-y-2">
                                     {result.briefOverview.tips.map((tip, index) => (
@@ -265,8 +265,8 @@ export const Synastry: React.FC<SynastryProps> = ({ profile, requestPremium }) =
                                 >
                                     <p className="text-astro-text text-sm">
                                         {profile.language === 'ru' 
-                                            ? '🔮 Хотите узнать больше? Получите глубокий разбор вашей совместимости с подробными рекомендациями!'
-                                            : '🔮 Want to know more? Get a deep analysis of your compatibility with detailed recommendations!'
+                                            ? 'Хотите узнать больше? Получите глубокий разбор вашей совместимости с подробными рекомендациями!'
+                                            : 'Want to know more? Get a deep analysis of your compatibility with detailed recommendations!'
                                         }
                                     </p>
                                     <button 
@@ -285,7 +285,7 @@ export const Synastry: React.FC<SynastryProps> = ({ profile, requestPremium }) =
                         <div className="space-y-4">
                             <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 p-6 rounded-xl border border-purple-500/30">
                                 <div className="flex items-center gap-2 mb-3">
-                                    <span className="text-xl">🌟</span>
+                                    <span className="text-xl">✦</span>
                                     <h4 className="text-astro-highlight text-xs font-bold uppercase tracking-widest">
                                         {profile.language === 'ru' ? 'Общая тема вашей связи' : 'General Theme of Your Connection'}
                                     </h4>
@@ -297,7 +297,7 @@ export const Synastry: React.FC<SynastryProps> = ({ profile, requestPremium }) =
 
                             <div className="bg-astro-card p-5 rounded-xl border border-astro-border">
                                 <div className="flex items-center gap-2 mb-3">
-                                    <span className="text-xl">💞</span>
+                                    <span className="text-xl">♥</span>
                                     <h4 className="text-pink-400 text-[10px] font-bold uppercase tracking-widest">
                                         {profile.language === 'ru' ? 'Что вас притягивает' : 'What Attracts You'}
                                     </h4>
@@ -309,7 +309,7 @@ export const Synastry: React.FC<SynastryProps> = ({ profile, requestPremium }) =
 
                             <div className="bg-astro-card p-5 rounded-xl border border-astro-border">
                                 <div className="flex items-center gap-2 mb-3">
-                                    <span className="text-xl">🌊</span>
+                                    <span className="text-xl">~</span>
                                     <h4 className="text-blue-400 text-[10px] font-bold uppercase tracking-widest">
                                         {profile.language === 'ru' ? 'Сложности и трения' : 'Difficulties and Friction'}
                                     </h4>
@@ -321,7 +321,7 @@ export const Synastry: React.FC<SynastryProps> = ({ profile, requestPremium }) =
 
                             <div className="bg-astro-card p-5 rounded-xl border border-astro-border">
                                 <div className="flex items-center gap-2 mb-3">
-                                    <span className="text-xl">📝</span>
+                                    <span className="text-xl">✓</span>
                                     <h4 className="text-green-400 text-[10px] font-bold uppercase tracking-widest">
                                         {profile.language === 'ru' ? 'Как выстраивать отношения' : 'How to Build the Relationship'}
                                     </h4>
@@ -338,7 +338,7 @@ export const Synastry: React.FC<SynastryProps> = ({ profile, requestPremium }) =
 
                             <div className="bg-gradient-to-br from-astro-highlight/10 to-astro-card p-6 rounded-xl border border-astro-highlight/30">
                                 <div className="flex items-center gap-2 mb-3">
-                                    <span className="text-xl">✨</span>
+                                    <span className="text-xl">✧</span>
                                     <h4 className="text-astro-highlight text-xs font-bold uppercase tracking-widest">
                                         {profile.language === 'ru' ? 'Потенциал отношений' : 'Relationship Potential'}
                                     </h4>
