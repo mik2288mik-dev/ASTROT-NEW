@@ -124,6 +124,26 @@ export const TRANSLATIONS = {
     planets: {
       sun: "Солнце", moon: "Луна", mercury: "Меркурий", venus: "Венера", 
       mars: "Марс", jupiter: "Юпитер", saturn: "Сатурн", earth: "Земля"
+    },
+    zodiac: {
+      Aries: "Овен",
+      Taurus: "Телец",
+      Gemini: "Близнецы",
+      Cancer: "Рак",
+      Leo: "Лев",
+      Virgo: "Дева",
+      Libra: "Весы",
+      Scorpio: "Скорпион",
+      Sagittarius: "Стрелец",
+      Capricorn: "Козерог",
+      Aquarius: "Водолей",
+      Pisces: "Рыбы"
+    },
+    elements: {
+      Fire: "Огонь",
+      Water: "Вода",
+      Air: "Воздух",
+      Earth: "Земля"
     }
   },
   en: {
@@ -227,6 +247,26 @@ export const TRANSLATIONS = {
     planets: {
       sun: "Sun", moon: "Moon", mercury: "Mercury", venus: "Venus", 
       mars: "Mars", jupiter: "Jupiter", saturn: "Saturn", earth: "Earth"
+    },
+    zodiac: {
+      Aries: "Aries",
+      Taurus: "Taurus",
+      Gemini: "Gemini",
+      Cancer: "Cancer",
+      Leo: "Leo",
+      Virgo: "Virgo",
+      Libra: "Libra",
+      Scorpio: "Scorpio",
+      Sagittarius: "Sagittarius",
+      Capricorn: "Capricorn",
+      Aquarius: "Aquarius",
+      Pisces: "Pisces"
+    },
+    elements: {
+      Fire: "Fire",
+      Water: "Water",
+      Air: "Air",
+      Earth: "Earth"
     }
   }
 };
@@ -239,4 +279,14 @@ export const getText = (lang: Language, key: string) => {
        current = current[k];
    }
    return current;
+};
+
+export const getZodiacSign = (lang: Language, sign: string): string => {
+  const zodiacTranslations = TRANSLATIONS[lang].zodiac as Record<string, string>;
+  return zodiacTranslations[sign] || sign;
+};
+
+export const getElement = (lang: Language, element: string): string => {
+  const elementTranslations = TRANSLATIONS[lang].elements as Record<string, string>;
+  return elementTranslations[element] || element;
 };

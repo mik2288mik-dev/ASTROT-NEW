@@ -375,6 +375,7 @@ const App: React.FC = () => {
                             chartData={chartData} 
                             requestPremium={requestPremium} 
                             onNavigate={navigateTo} 
+                            onOpenSettings={() => setView('settings')}
                         />
                     </div>
                 )}
