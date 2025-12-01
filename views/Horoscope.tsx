@@ -101,24 +101,27 @@ export const Horoscope: React.FC<HoroscopeProps> = ({ profile, chartData }) => {
                 {profile.language === 'ru' ? 'Гороскоп на сегодня' : 'Today\'s Horoscope'}
             </h1>
 
-            {/* Блок с иконкой знака зодиака */}
-            <div className="flex flex-col items-center mb-8">
-                {/* Большая круглая иконка знака - ЗАГЛУШКА */}
-                <div className="w-32 h-32 rounded-full bg-astro-card border-2 border-astro-border flex items-center justify-center mb-6 shadow-lg">
-                    <span className="text-7xl text-astro-highlight">
+            {/* Блок с иконкой знака зодиака - иконка слева, текст справа */}
+            <div className="flex items-start gap-6 mb-8">
+                {/* Иконка знака слева */}
+                <div className="flex-shrink-0 w-24 h-24 rounded-full bg-astro-card border-2 border-astro-border flex items-center justify-center shadow-lg">
+                    <span className="text-6xl text-astro-highlight">
                         {zodiacSymbol}
                     </span>
                 </div>
 
-                {/* Название знака */}
-                <h2 className="text-2xl font-semibold text-astro-text mb-2">
-                    {zodiacName}
-                </h2>
+                {/* Текст справа от иконки */}
+                <div className="flex-1 pt-2">
+                    {/* Название знака */}
+                    <h2 className="text-2xl font-semibold text-astro-text mb-2">
+                        {zodiacName}
+                    </h2>
 
-                {/* Даты знака */}
-                <p className="text-base text-astro-subtext">
-                    {zodiacDates}
-                </p>
+                    {/* Даты знака */}
+                    <p className="text-base text-astro-subtext">
+                        {zodiacDates}
+                    </p>
+                </div>
             </div>
 
             {/* Основной текст гороскопа */}

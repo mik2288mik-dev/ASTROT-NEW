@@ -104,23 +104,26 @@ const App: React.FC = () => {
                         console.log('[App] Setting chart data from database');
                         setChartData(storedChart);
                         
-                        // Проверяем и обновляем весь контент (гороскопы, deep dive и т.д.)
-                        try {
-                            console.log('[App] Checking if content needs update...');
-                            const updatedContent = await updateContentIfNeeded(updatedProfile, storedChart);
-                            
-                            // Обновляем профиль с новым контентом
-                            if (updatedContent) {
-                                updatedProfile.generatedContent = updatedContent;
-                                setProfile(updatedProfile);
-                                console.log('[App] Content updated and saved');
-                            }
-                        } catch (error) {
-                            console.error('[App] Error updating content:', error);
-                            // Не прерываем загрузку, если обновление контента не удалось
-                        }
+                        // Показываем Dashboard сразу, обновление контента делаем асинхронно после загрузки
+                        setView('dashboard');
                         
-                        setView('dashboard'); // Показываем Dashboard с космическим паспортом
+                        // Обновляем контент асинхронно после показа интерфейса (не блокируем загрузку)
+                        setTimeout(async () => {
+                            try {
+                                console.log('[App] Checking if content needs update (async)...');
+                                const updatedContent = await updateContentIfNeeded(updatedProfile, storedChart);
+                                
+                                // Обновляем профиль с новым контентом
+                                if (updatedContent) {
+                                    updatedProfile.generatedContent = updatedContent;
+                                    setProfile(updatedProfile);
+                                    console.log('[App] Content updated and saved');
+                                }
+                            } catch (error) {
+                                console.error('[App] Error updating content:', error);
+                                // Не прерываем работу, если обновление контента не удалось
+                            }
+                        }, 100);
                     } else {
                         // Если карты нет в БД, но профиль есть - пересчитываем карту
                         console.log('[App] Chart not found in database, recalculating...');
