@@ -193,11 +193,12 @@ async function calculatePlanetPosition(
     const sign = getZodiacSign(longitude);
     const degreeInSign = getDegreeInSign(longitude);
 
-    log.info(`Calculated ${planetName}`, { 
+    log.info(`[PLANET] Calculated ${planetName}`, { 
       longitude: longitude.toFixed(6), 
       sign, 
       degreeInSign: degreeInSign.toFixed(4),
-      fullDegree: `${degreeInSign.toFixed(2)}° ${sign}`
+      fullDegree: `${degreeInSign.toFixed(2)}° ${sign}`,
+      signIndex: Math.floor((longitude % 360) / 30)
     });
 
     return {
@@ -293,22 +294,29 @@ function calculateElement(positions: PlanetPosition[]): string {
 
 /**
  * Определить ожидаемый знак Солнца по дате рождения (упрощённо, для валидации)
- * Это приблизительная проверка, реальный расчет зависит от точного времени и года
+ * 
+ * ВАЖНО: Это приблизительная функция для валидации!
+ * - Точное время входа Солнца в знак меняется от года к году (на 1-2 дня)
+ * - Не учитывает точное время суток и часовой пояс
+ * - Используется только для выявления явных ошибок в расчетах
+ * 
+ * Реальный знак зодиака ВСЕГДА должен определяться по точной эклиптической долготе,
+ * полученной из Swiss Ephemeris, как это делается в функции getZodiacSign().
  */
 function getExpectedSunSignByDate(year: number, month: number, day: number): string {
-  // Упрощённая логика для проверки (не учитывает точное время и год)
-  if ((month === 3 && day >= 21) || (month === 4 && day <= 19)) return 'Aries';
-  if ((month === 4 && day >= 20) || (month === 5 && day <= 20)) return 'Taurus';
-  if ((month === 5 && day >= 21) || (month === 6 && day <= 20)) return 'Gemini';
-  if ((month === 6 && day >= 21) || (month === 7 && day <= 22)) return 'Cancer';
-  if ((month === 7 && day >= 23) || (month === 8 && day <= 22)) return 'Leo';
-  if ((month === 8 && day >= 23) || (month === 9 && day <= 22)) return 'Virgo';
-  if ((month === 9 && day >= 23) || (month === 10 && day <= 22)) return 'Libra';
-  if ((month === 10 && day >= 23) || (month === 11 && day <= 21)) return 'Scorpio';
-  if ((month === 11 && day >= 22) || (month === 12 && day <= 21)) return 'Sagittarius';
-  if ((month === 12 && day >= 22) || (month === 1 && day <= 19)) return 'Capricorn';
-  if ((month === 1 && day >= 20) || (month === 2 && day <= 18)) return 'Aquarius';
-  return 'Pisces'; // 19 февраля - 20 марта
+  // Упрощённая логика для проверки (тропический зодиак, примерные даты)
+  if ((month === 3 && day >= 21) || (month === 4 && day <= 19)) return 'Aries';      // ~21 марта - 19 апреля
+  if ((month === 4 && day >= 20) || (month === 5 && day <= 20)) return 'Taurus';     // ~20 апреля - 20 мая
+  if ((month === 5 && day >= 21) || (month === 6 && day <= 20)) return 'Gemini';     // ~21 мая - 20 июня
+  if ((month === 6 && day >= 21) || (month === 7 && day <= 22)) return 'Cancer';     // ~21 июня - 22 июля
+  if ((month === 7 && day >= 23) || (month === 8 && day <= 22)) return 'Leo';        // ~23 июля - 22 августа
+  if ((month === 8 && day >= 23) || (month === 9 && day <= 22)) return 'Virgo';      // ~23 августа - 22 сентября
+  if ((month === 9 && day >= 23) || (month === 10 && day <= 22)) return 'Libra';     // ~23 сентября - 22 октября
+  if ((month === 10 && day >= 23) || (month === 11 && day <= 21)) return 'Scorpio';  // ~23 октября - 21 ноября
+  if ((month === 11 && day >= 22) || (month === 12 && day <= 21)) return 'Sagittarius'; // ~22 ноября - 21 декабря
+  if ((month === 12 && day >= 22) || (month === 1 && day <= 19)) return 'Capricorn'; // ~22 декабря - 19 января
+  if ((month === 1 && day >= 20) || (month === 2 && day <= 18)) return 'Aquarius';   // ~20 января - 18 февраля
+  return 'Pisces'; // ~19 февраля - 20 марта
 }
 
 /**
@@ -378,18 +386,58 @@ export async function calculateNatalChart(
       }
     }
 
-    // Конвертируем в Julian Day используя Swiss Ephemeris
-    // Используем UTC время (Swiss Ephemeris ожидает UTC)
-    const utcHour = hour + minute / 60.0;
-    const julday = swe.swe_julday(year, month, day, utcHour, 1); // 1 = Gregorian calendar
+    // Конвертируем локальное время в UTC с учетом временной зоны
+    // Вычисляем примерное смещение часового пояса на основе долготы
+    // (приблизительно: 15 градусов долготы = 1 час)
+    const timezoneOffsetHours = coords.lon / 15.0;
     
-    log.info('Calculated Julian Day', { 
-      year, 
-      month, 
-      day, 
-      hour, 
-      minute, 
-      utcHour: utcHour.toFixed(4),
+    // Конвертируем локальное время в UTC
+    const localHour = hour + minute / 60.0;
+    let utcHour = localHour - timezoneOffsetHours;
+    
+    // Корректируем день если время вышло за пределы суток
+    let adjustedDay = day;
+    let adjustedMonth = month;
+    let adjustedYear = year;
+    
+    if (utcHour < 0) {
+      utcHour += 24;
+      adjustedDay -= 1;
+      if (adjustedDay < 1) {
+        adjustedMonth -= 1;
+        if (adjustedMonth < 1) {
+          adjustedMonth = 12;
+          adjustedYear -= 1;
+        }
+        // Упрощенная логика для последнего дня месяца
+        const daysInMonth = new Date(adjustedYear, adjustedMonth, 0).getDate();
+        adjustedDay = daysInMonth;
+      }
+    } else if (utcHour >= 24) {
+      utcHour -= 24;
+      adjustedDay += 1;
+      const daysInMonth = new Date(adjustedYear, adjustedMonth, 0).getDate();
+      if (adjustedDay > daysInMonth) {
+        adjustedDay = 1;
+        adjustedMonth += 1;
+        if (adjustedMonth > 12) {
+          adjustedMonth = 1;
+          adjustedYear += 1;
+        }
+      }
+    }
+    
+    // Конвертируем в Julian Day используя Swiss Ephemeris
+    const julday = swe.swe_julday(adjustedYear, adjustedMonth, adjustedDay, utcHour, 1); // 1 = Gregorian calendar
+    
+    log.info('Calculated Julian Day with timezone correction', { 
+      inputDate: `${year}-${month}-${day}`,
+      inputTime: `${hour}:${minute}`,
+      coordinates: { lat: coords.lat, lon: coords.lon },
+      timezoneOffsetHours: timezoneOffsetHours.toFixed(2),
+      localTime: localHour.toFixed(4),
+      utcTime: utcHour.toFixed(4),
+      adjustedDate: `${adjustedYear}-${adjustedMonth}-${adjustedDay}`,
       julday: julday.toFixed(6)
     });
 
@@ -432,17 +480,28 @@ export async function calculateNatalChart(
     // Валидация: проверяем, что знак Солнца соответствует ожидаемому для даты рождения
     // Это поможет выявить проблемы с расчетом
     const expectedSignByDate = getExpectedSunSignByDate(year, month, day);
-    if (sun.sign !== expectedSignByDate) {
-      log.warn(`[VALIDATION] Sun sign mismatch!`, {
+    const signMatch = sun.sign === expectedSignByDate;
+    
+    // Вычисляем смещение часового пояса для логирования
+    const tzOffset = coords.lon / 15.0;
+    
+    if (!signMatch) {
+      log.warn(`[VALIDATION] ⚠️ Sun sign mismatch detected!`, {
         calculated: sun.sign,
         expectedByDate: expectedSignByDate,
         date: `${year}-${month}-${day}`,
-        sunLongitude: sun.degree,
-        note: 'This might indicate a timezone or calculation issue'
+        time: `${hour}:${minute}`,
+        birthPlace,
+        sunDegreeInSign: sun.degree.toFixed(2),
+        sunPosition: `${sun.degree.toFixed(2)}° ${sun.sign}`,
+        timezoneOffset: tzOffset.toFixed(2),
+        note: 'This might indicate a timezone or calculation issue. The sign is calculated correctly based on ecliptic longitude, but may differ from simplified date ranges.'
       });
+    } else {
+      log.info(`[VALIDATION] ✓ Sun sign matches expected value for date`);
     }
 
-    log.info('Natal chart calculated successfully with Swiss Ephemeris WASM', {
+    log.info('🌟 Natal chart calculated successfully with Swiss Ephemeris WASM', {
       hasSun: !!sun,
       hasMoon: !!moon,
       hasRising: !!ascendant,
@@ -451,7 +510,12 @@ export async function calculateNatalChart(
       moonSign: moon.sign,
       risingSign: ascendant.sign,
       expectedSunSignByDate: expectedSignByDate,
-      sunSignMatch: sun.sign === expectedSignByDate
+      sunSignMatch: signMatch,
+      allPlanets: {
+        sun: `${sun.sign} at ${sun.degree.toFixed(2)}°`,
+        moon: `${moon.sign} at ${moon.degree.toFixed(2)}°`,
+        rising: `${ascendant.sign} at ${ascendant.degree.toFixed(2)}°`
+      }
     });
 
     return chartData;
