@@ -20,11 +20,8 @@ const log = {
   },
 };
 
-// Знаки зодиака
-const ZODIAC_SIGNS = [
-  'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
-  'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
-];
+// Импортируем централизованные данные о знаках зодиака
+const { ZODIAC_SIGNS } = require('./zodiac-utils');
 
 // Планеты Swiss Ephemeris
 const PLANETS = {
@@ -124,10 +121,19 @@ export async function getCoordinates(placeName: string): Promise<Coordinates> {
 }
 
 /**
- * Получение знака зодиака из градуса эклиптики
- * Исправленная версия с правильной обработкой граничных случаев
+ * Определяет знак зодиака по эклиптической долготе планеты
+ * 
+ * Эклиптическая долгота - это угол от точки весеннего равноденствия (0° Овна)
+ * до текущего положения планеты на эклиптике. Каждый знак зодиака занимает 30°.
+ * 
+ * @param degree - Эклиптическая долгота в градусах (0-360)
+ * @returns Название знака зодиака на английском (Aries, Taurus, и т.д.)
+ * 
+ * @example
+ * getZodiacSign(45) // 'Taurus' (45° находится во втором знаке)
+ * getZodiacSign(180) // 'Libra' (180° находится в седьмом знаке)
  */
-function getZodiacSign(degree: number): string {
+export function getZodiacSign(degree: number): string {
   // Нормализуем градус в диапазон 0-360
   let normalizedDegree = degree % 360;
   if (normalizedDegree < 0) {
@@ -141,15 +147,29 @@ function getZodiacSign(degree: number): string {
   // Обрабатываем граничный случай: ровно 360° или очень близко к 360°
   const finalIndex = signIndex >= 12 ? 0 : signIndex;
   
-  log.info(`[getZodiacSign] Degree: ${degree.toFixed(4)}, Normalized: ${normalizedDegree.toFixed(4)}, Sign Index: ${finalIndex}, Sign: ${ZODIAC_SIGNS[finalIndex]}`);
+  // Используем централизованный массив знаков
+  const { ZODIAC_SIGNS: signs } = require('./zodiac-utils');
+  const signName = signs[finalIndex];
   
-  return ZODIAC_SIGNS[finalIndex];
+  log.info(`[getZodiacSign] Degree: ${degree.toFixed(4)}, Normalized: ${normalizedDegree.toFixed(4)}, Sign Index: ${finalIndex}, Sign: ${signName}`);
+  
+  return signName;
 }
 
 /**
- * Получение градуса в знаке
+ * Вычисляет градус планеты внутри знака зодиака
+ * 
+ * Например, если эклиптическая долгота = 45°, то планета находится в Тельце (30-60°)
+ * на 15° внутри знака (45 - 30 = 15°).
+ * 
+ * @param degree - Эклиптическая долгота в градусах (0-360)
+ * @returns Градус внутри знака (0-29.99...)
+ * 
+ * @example
+ * getDegreeInSign(45) // 15 (45° - 30° = 15° в Тельце)
+ * getDegreeInSign(180) // 0 (180° - 180° = 0° в Весах)
  */
-function getDegreeInSign(degree: number): number {
+export function getDegreeInSign(degree: number): number {
   const normalizedDegree = ((degree % 360) + 360) % 360;
   return normalizedDegree % 30;
 }
@@ -172,7 +192,20 @@ function getPlanetDescription(planetName: string): string {
 }
 
 /**
- * Расчет положения планеты используя Swiss Ephemeris WASM
+ * Рассчитывает положение планеты в натальной карте используя Swiss Ephemeris
+ * 
+ * Использует точные астрономические расчеты для определения эклиптической долготы планеты,
+ * затем вычисляет знак зодиака и градус внутри знака.
+ * 
+ * @param swe - Экземпляр Swiss Ephemeris (инициализированный)
+ * @param julday - Юлианский день для момента рождения
+ * @param planetId - ID планеты в Swiss Ephemeris (0=Sun, 1=Moon, 2=Mercury, и т.д.)
+ * @param planetName - Название планеты для логирования ('Sun', 'Moon', и т.д.)
+ * @returns Объект с данными о положении планеты или null при ошибке
+ * 
+ * @example
+ * const sunPosition = await calculatePlanetPosition(swe, 2451545.0, PLANETS.SUN, 'Sun');
+ * // { planet: 'Sun', sign: 'Aries', degree: 15.5, description: '...' }
  */
 async function calculatePlanetPosition(
   swe: any,
@@ -214,7 +247,20 @@ async function calculatePlanetPosition(
 }
 
 /**
- * Расчет ASC (Асцендента / Rising Sign) используя Swiss Ephemeris WASM
+ * Рассчитывает Асцендент (Rising Sign) - знак зодиака на восточном горизонте в момент рождения
+ * 
+ * Асцендент зависит от точного времени и места рождения, так как Земля вращается,
+ * и знак на горизонте меняется каждые 2 часа. Использует систему домов Placidus.
+ * 
+ * @param swe - Экземпляр Swiss Ephemeris (инициализированный)
+ * @param julday - Юлианский день для момента рождения
+ * @param lat - Широта места рождения в градусах (-90 до 90)
+ * @param lon - Долгота места рождения в градусах (-180 до 180)
+ * @returns Объект с данными об Асценденте или null при ошибке
+ * 
+ * @example
+ * const ascendant = await calculateAscendant(swe, 2451545.0, 55.7558, 37.6173);
+ * // { planet: 'Ascendant', sign: 'Leo', degree: 12.3, description: '...' }
  */
 async function calculateAscendant(
   swe: any,
@@ -254,42 +300,53 @@ async function calculateAscendant(
 }
 
 /**
- * Определение доминирующего элемента
+ * Определяет доминирующий элемент (стихию) на основе положений планет
+ * 
+ * Элементы: Fire (Огонь), Earth (Земля), Air (Воздух), Water (Вода).
+ * Каждый знак зодиака принадлежит одному элементу. Функция подсчитывает,
+ * какой элемент встречается чаще всего среди планет.
+ * 
+ * @param positions - Массив положений планет в натальной карте
+ * @returns Название доминирующего элемента ('Fire', 'Earth', 'Air', или 'Water')
+ * 
+ * @example
+ * const positions = [
+ *   { sign: 'Aries', ... },    // Fire
+ *   { sign: 'Leo', ... },       // Fire
+ *   { sign: 'Cancer', ... }     // Water
+ * ];
+ * calculateElement(positions) // 'Fire' (2 против 1)
  */
 function calculateElement(positions: PlanetPosition[]): string {
-  const elements: { [key: string]: string[] } = {
-    Fire: ['Aries', 'Leo', 'Sagittarius'],
-    Earth: ['Taurus', 'Virgo', 'Capricorn'],
-    Air: ['Gemini', 'Libra', 'Aquarius'],
-    Water: ['Cancer', 'Scorpio', 'Pisces']
-  };
+  // Используем централизованные данные о элементах для избежания дублирования
+  const { getElementForSign } = require('./zodiac-utils');
 
-  const counts: { [key: string]: number } = {
+  const elementCounts: { [key: string]: number } = {
     Fire: 0,
     Earth: 0,
     Air: 0,
     Water: 0
   };
 
-  positions.forEach(pos => {
-    for (const [element, signs] of Object.entries(elements)) {
-      if (signs.includes(pos.sign)) {
-        counts[element]++;
-        break;
-      }
+  // Подсчитываем элементы для каждой планеты
+  positions.forEach(position => {
+    const element = getElementForSign(position.sign as any);
+    if (element) {
+      elementCounts[element]++;
     }
   });
 
-  let maxElement = 'Fire';
+  // Находим элемент с максимальным количеством
+  let dominantElement = 'Fire';
   let maxCount = 0;
-  for (const [element, count] of Object.entries(counts)) {
+  for (const [element, count] of Object.entries(elementCounts)) {
     if (count > maxCount) {
       maxCount = count;
-      maxElement = element;
+      dominantElement = element;
     }
   }
 
-  return maxElement;
+  return dominantElement;
 }
 
 /**
@@ -302,47 +359,78 @@ function calculateElement(positions: PlanetPosition[]): string {
  * 
  * Реальный знак зодиака ВСЕГДА должен определяться по точной эклиптической долготе,
  * полученной из Swiss Ephemeris, как это делается в функции getZodiacSign().
+ * 
+ * @deprecated Используйте getApproximateSunSignByDate из lib/zodiac-utils.ts
  */
 function getExpectedSunSignByDate(year: number, month: number, day: number): string {
-  // Упрощённая логика для проверки (тропический зодиак, примерные даты)
-  if ((month === 3 && day >= 21) || (month === 4 && day <= 19)) return 'Aries';      // ~21 марта - 19 апреля
-  if ((month === 4 && day >= 20) || (month === 5 && day <= 20)) return 'Taurus';     // ~20 апреля - 20 мая
-  if ((month === 5 && day >= 21) || (month === 6 && day <= 20)) return 'Gemini';     // ~21 мая - 20 июня
-  if ((month === 6 && day >= 21) || (month === 7 && day <= 22)) return 'Cancer';     // ~21 июня - 22 июля
-  if ((month === 7 && day >= 23) || (month === 8 && day <= 22)) return 'Leo';        // ~23 июля - 22 августа
-  if ((month === 8 && day >= 23) || (month === 9 && day <= 22)) return 'Virgo';      // ~23 августа - 22 сентября
-  if ((month === 9 && day >= 23) || (month === 10 && day <= 22)) return 'Libra';     // ~23 сентября - 22 октября
-  if ((month === 10 && day >= 23) || (month === 11 && day <= 21)) return 'Scorpio';  // ~23 октября - 21 ноября
-  if ((month === 11 && day >= 22) || (month === 12 && day <= 21)) return 'Sagittarius'; // ~22 ноября - 21 декабря
-  if ((month === 12 && day >= 22) || (month === 1 && day <= 19)) return 'Capricorn'; // ~22 декабря - 19 января
-  if ((month === 1 && day >= 20) || (month === 2 && day <= 18)) return 'Aquarius';   // ~20 января - 18 февраля
-  return 'Pisces'; // ~19 февраля - 20 марта
+  // Импортируем централизованную функцию для избежания дублирования
+  const { getApproximateSunSignByDate } = require('./zodiac-utils');
+  return getApproximateSunSignByDate(year, month, day);
 }
 
+/**
+ * Определяет управляющую (управитель) планету знака зодиака Солнца
+ * 
+ * Каждый знак зодиака имеет свою управляющую планету:
+ * - Овен → Марс, Телец → Венера, Близнецы → Меркурий
+ * - Рак → Луна, Лев → Солнце, Дева → Меркурий
+ * - Весы → Венера, Скорпион → Плутон, Стрелец → Юпитер
+ * - Козерог → Сатурн, Водолей → Уран, Рыбы → Нептун
+ * 
+ * @param sunSign - Знак зодиака Солнца (Aries, Taurus, и т.д.)
+ * @returns Название управляющей планеты ('Mars', 'Venus', и т.д.)
+ * 
+ * @example
+ * calculateRulingPlanet('Aries') // 'Mars'
+ * calculateRulingPlanet('Leo') // 'Sun'
+ */
 /**
  * Определение управляющей планеты
+ * 
+ * @deprecated Используйте getRulingPlanet из lib/zodiac-utils.ts
  */
 function calculateRulingPlanet(sunSign: string): string {
-  const rulers: { [key: string]: string } = {
-    'Aries': 'Mars',
-    'Taurus': 'Venus',
-    'Gemini': 'Mercury',
-    'Cancer': 'Moon',
-    'Leo': 'Sun',
-    'Virgo': 'Mercury',
-    'Libra': 'Venus',
-    'Scorpio': 'Pluto',
-    'Sagittarius': 'Jupiter',
-    'Capricorn': 'Saturn',
-    'Aquarius': 'Uranus',
-    'Pisces': 'Neptune'
-  };
-  return rulers[sunSign] || 'Sun';
+  // Используем централизованную функцию для избежания дублирования
+  const { getRulingPlanet } = require('./zodiac-utils');
+  return getRulingPlanet(sunSign as any) || 'Sun';
 }
 
 /**
- * Основная функция расчета натальной карты
- * Использует настоящую Swiss Ephemeris через WebAssembly!
+ * Рассчитывает полную натальную карту для человека
+ * 
+ * Натальная карта - это "снимок" неба в момент рождения человека.
+ * Функция вычисляет положения всех планет, Асцендент, определяет доминирующий
+ * элемент и управляющую планету.
+ * 
+ * Процесс расчета:
+ * 1. Получает координаты места рождения через геокодинг
+ * 2. Конвертирует локальное время в UTC с учетом часового пояса
+ * 3. Вычисляет Юлианский день для момента рождения
+ * 4. Рассчитывает положения планет (Солнце, Луна, Меркурий, Венера, Марс)
+ * 5. Вычисляет Асцендент на основе координат и времени
+ * 6. Определяет доминирующий элемент и управляющую планету
+ * 
+ * @param name - Имя человека (используется только для описания)
+ * @param birthDate - Дата рождения в формате YYYY-MM-DD
+ * @param birthTime - Время рождения в формате HH:MM (24-часовой формат)
+ * @param birthPlace - Название места рождения (город, страна)
+ * @returns Объект с данными натальной карты:
+ *   - sun, moon, rising, mercury, venus, mars: положения планет
+ *   - element: доминирующий элемент ('Fire', 'Earth', 'Air', 'Water')
+ *   - rulingPlanet: управляющая планета знака Солнца
+ *   - summary: текстовое описание карты
+ * 
+ * @throws Error если не удалось инициализировать Swiss Ephemeris или рассчитать карту
+ * 
+ * @example
+ * const chart = await calculateNatalChart(
+ *   'John Doe',
+ *   '1990-05-15',
+ *   '14:30',
+ *   'Moscow, Russia'
+ * );
+ * console.log(chart.sun.sign); // 'Taurus'
+ * console.log(chart.element); // 'Earth'
  */
 export async function calculateNatalChart(
   name: string,
@@ -364,25 +452,25 @@ export async function calculateNatalChart(
     // Получаем координаты места рождения
     const coords = await getCoordinates(birthPlace);
 
-    // Парсим дату рождения
-    const [year, month, day] = birthDate.split('-').map(Number);
+    // Парсим дату рождения из формата YYYY-MM-DD
+    const [birthYear, birthMonth, birthDay] = birthDate.split('-').map(Number);
     
-    // Парсим время рождения
-    let hour = 12;
-    let minute = 0;
+    // Парсим время рождения из формата HH:MM
+    let birthHour = 12; // По умолчанию полдень
+    let birthMinute = 0;
     if (birthTime) {
       const timeParts = birthTime.split(':');
-      hour = parseInt(timeParts[0], 10) || 12;
-      minute = parseInt(timeParts[1], 10) || 0;
+      birthHour = parseInt(timeParts[0], 10) || 12;
+      birthMinute = parseInt(timeParts[1], 10) || 0;
       
       // Проверяем валидность времени
-      if (hour < 0 || hour > 23) {
-        log.warn(`Invalid hour ${hour}, using 12:00`);
-        hour = 12;
+      if (birthHour < 0 || birthHour > 23) {
+        log.warn(`Invalid hour ${birthHour}, using 12:00`);
+        birthHour = 12;
       }
-      if (minute < 0 || minute > 59) {
-        log.warn(`Invalid minute ${minute}, using 0`);
-        minute = 0;
+      if (birthMinute < 0 || birthMinute > 59) {
+        log.warn(`Invalid minute ${birthMinute}, using 0`);
+        birthMinute = 0;
       }
     }
 
@@ -391,17 +479,18 @@ export async function calculateNatalChart(
     // (приблизительно: 15 градусов долготы = 1 час)
     const timezoneOffsetHours = coords.lon / 15.0;
     
-    // Конвертируем локальное время в UTC
-    const localHour = hour + minute / 60.0;
-    let utcHour = localHour - timezoneOffsetHours;
+    // Конвертируем локальное время в UTC (десятичные часы)
+    const localTimeInHours = birthHour + birthMinute / 60.0;
+    let utcTimeInHours = localTimeInHours - timezoneOffsetHours;
     
     // Корректируем день если время вышло за пределы суток
-    let adjustedDay = day;
-    let adjustedMonth = month;
-    let adjustedYear = year;
+    let adjustedDay = birthDay;
+    let adjustedMonth = birthMonth;
+    let adjustedYear = birthYear;
     
-    if (utcHour < 0) {
-      utcHour += 24;
+    // Корректируем дату если UTC время вышло за пределы суток
+    if (utcTimeInHours < 0) {
+      utcTimeInHours += 24;
       adjustedDay -= 1;
       if (adjustedDay < 1) {
         adjustedMonth -= 1;
@@ -413,8 +502,8 @@ export async function calculateNatalChart(
         const daysInMonth = new Date(adjustedYear, adjustedMonth, 0).getDate();
         adjustedDay = daysInMonth;
       }
-    } else if (utcHour >= 24) {
-      utcHour -= 24;
+    } else if (utcTimeInHours >= 24) {
+      utcTimeInHours -= 24;
       adjustedDay += 1;
       const daysInMonth = new Date(adjustedYear, adjustedMonth, 0).getDate();
       if (adjustedDay > daysInMonth) {
@@ -428,27 +517,28 @@ export async function calculateNatalChart(
     }
     
     // Конвертируем в Julian Day используя Swiss Ephemeris
-    const julday = swe.swe_julday(adjustedYear, adjustedMonth, adjustedDay, utcHour, 1); // 1 = Gregorian calendar
+    // Параметр 1 означает использование григорианского календаря
+    const julianDay = swe.swe_julday(adjustedYear, adjustedMonth, adjustedDay, utcTimeInHours, 1);
     
     log.info('Calculated Julian Day with timezone correction', { 
-      inputDate: `${year}-${month}-${day}`,
-      inputTime: `${hour}:${minute}`,
+      inputDate: `${birthYear}-${birthMonth}-${birthDay}`,
+      inputTime: `${birthHour}:${birthMinute}`,
       coordinates: { lat: coords.lat, lon: coords.lon },
       timezoneOffsetHours: timezoneOffsetHours.toFixed(2),
-      localTime: localHour.toFixed(4),
-      utcTime: utcHour.toFixed(4),
+      localTime: localTimeInHours.toFixed(4),
+      utcTime: utcTimeInHours.toFixed(4),
       adjustedDate: `${adjustedYear}-${adjustedMonth}-${adjustedDay}`,
-      julday: julday.toFixed(6)
+      julianDay: julianDay.toFixed(6)
     });
 
-    // Рассчитываем положения планет
+    // Рассчитываем положения планет параллельно для оптимизации
     const [sun, moon, mercury, venus, mars, ascendant] = await Promise.all([
-      calculatePlanetPosition(swe, julday, PLANETS.SUN, 'Sun'),
-      calculatePlanetPosition(swe, julday, PLANETS.MOON, 'Moon'),
-      calculatePlanetPosition(swe, julday, PLANETS.MERCURY, 'Mercury'),
-      calculatePlanetPosition(swe, julday, PLANETS.VENUS, 'Venus'),
-      calculatePlanetPosition(swe, julday, PLANETS.MARS, 'Mars'),
-      calculateAscendant(swe, julday, coords.lat, coords.lon)
+      calculatePlanetPosition(swe, julianDay, PLANETS.SUN, 'Sun'),
+      calculatePlanetPosition(swe, julianDay, PLANETS.MOON, 'Moon'),
+      calculatePlanetPosition(swe, julianDay, PLANETS.MERCURY, 'Mercury'),
+      calculatePlanetPosition(swe, julianDay, PLANETS.VENUS, 'Venus'),
+      calculatePlanetPosition(swe, julianDay, PLANETS.MARS, 'Mars'),
+      calculateAscendant(swe, julianDay, coords.lat, coords.lon)
     ]);
 
     // Проверяем что основные планеты рассчитаны
@@ -479,7 +569,7 @@ export async function calculateNatalChart(
 
     // Валидация: проверяем, что знак Солнца соответствует ожидаемому для даты рождения
     // Это поможет выявить проблемы с расчетом
-    const expectedSignByDate = getExpectedSunSignByDate(year, month, day);
+    const expectedSignByDate = getExpectedSunSignByDate(birthYear, birthMonth, birthDay);
     const signMatch = sun.sign === expectedSignByDate;
     
     // Вычисляем смещение часового пояса для логирования
@@ -489,8 +579,8 @@ export async function calculateNatalChart(
       log.warn(`[VALIDATION] ⚠️ Sun sign mismatch detected!`, {
         calculated: sun.sign,
         expectedByDate: expectedSignByDate,
-        date: `${year}-${month}-${day}`,
-        time: `${hour}:${minute}`,
+        date: `${birthYear}-${birthMonth}-${birthDay}`,
+        time: `${birthHour}:${birthMinute}`,
         birthPlace,
         sunDegreeInSign: sun.degree.toFixed(2),
         sunPosition: `${sun.degree.toFixed(2)}° ${sun.sign}`,

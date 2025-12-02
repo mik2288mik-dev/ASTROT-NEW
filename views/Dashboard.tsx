@@ -1,13 +1,15 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, memo, useCallback } from 'react';
 import { UserProfile, NatalChartData, UserContext, UserEvolution } from '../types';
-import { getText, getZodiacSign, getElement } from '../constants';
+import { getText } from '../constants';
 import { SolarSystem } from '../components/SolarSystem';
 import { Loading } from '../components/ui/Loading';
 import { getUserContext } from '../services/contextService';
 import { updateUserEvolution } from '../services/astrologyService';
 import { saveProfile } from '../services/storageService';
 import { motion } from 'framer-motion';
+import { CosmicPassport } from '../components/Dashboard/CosmicPassport';
+import { SoulEvolution } from '../components/Dashboard/SoulEvolution';
 
 interface DashboardProps {
     profile: UserProfile;
@@ -17,11 +19,24 @@ interface DashboardProps {
     onOpenSettings: () => void;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ profile, chartData, requestPremium, onNavigate, onOpenSettings }) => {
+export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPremium, onNavigate, onOpenSettings }) => {
     
     const [context, setContext] = useState<UserContext | null>(null);
     const [evolution, setEvolution] = useState<UserEvolution | null>(profile.evolution || null);
     const [tgUser, setTgUser] = useState<any>(null);
+
+    // Мемуизируем язык для оптимизации
+    const language = useMemo(() => profile.language, [profile.language]);
+
+    // Мемуизируем displayName и photoUrl
+    const displayName = useMemo(() => tgUser?.first_name || profile.name, [tgUser?.first_name, profile.name]);
+    const photoUrl = useMemo(() => tgUser?.photo_url, [tgUser?.photo_url]);
+
+    // Мемуизируем колбэки для навигации
+    const handleNavigateHoroscope = useCallback(() => onNavigate('horoscope'), [onNavigate]);
+    const handleNavigateChart = useCallback(() => onNavigate('chart'), [onNavigate]);
+    const handleNavigateSynastry = useCallback(() => onNavigate('synastry'), [onNavigate]);
+    const handleNavigateOracle = useCallback(() => onNavigate('oracle'), [onNavigate]);
 
     useEffect(() => {
         const tg = (window as any).Telegram?.WebApp;
@@ -62,69 +77,25 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, chartData, reques
             }
         };
         loadSmartFeatures();
-    }, []);
+    }, [profile.id, chartData?.sun?.sign]); // Оптимизированные зависимости
 
     if (!chartData) return <Loading />;
-
-    const displayName = tgUser?.first_name || profile.name;
-    const photoUrl = tgUser?.photo_url;
 
     return (
         <div className="p-4 pb-32 space-y-6">
             
             {/* 1. COSMIC PASSPORT (Layer 1: Base) */}
-            <div className="bg-astro-card rounded-2xl p-6 border border-astro-border shadow-soft relative overflow-hidden">
-                 <div className="absolute -top-10 -right-10 w-48 h-48 bg-astro-highlight rounded-full blur-3xl opacity-20"></div>
-                 <div className="relative z-10">
-                    {/* Header with Avatar and Settings */}
-                    <div className="flex items-start justify-between mb-4">
-                        {/* Avatar */}
-                        <div className="relative group">
-                            {photoUrl ? (
-                                <img src={photoUrl} alt="Avatar" className="w-14 h-14 rounded-full border-2 border-astro-border shadow-md object-cover" />
-                            ) : (
-                                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-astro-primary to-astro-accent flex items-center justify-center text-white text-lg font-bold shadow-lg">
-                                    {displayName.charAt(0).toUpperCase()}
-                                </div>
-                            )}
-                            {profile.isPremium && (
-                                <div className="absolute -bottom-1 -right-1 bg-yellow-400 text-black text-[9px] font-bold px-2 py-0.5 rounded-full border-2 border-astro-card shadow-md z-10">
-                                    PRO
-                                </div>
-                            )}
-                        </div>
-                        
-                        {/* Settings Button */}
-                        <button 
-                            onClick={onOpenSettings}
-                            className="w-10 h-10 flex items-center justify-center text-astro-subtext hover:text-astro-text transition-colors rounded-full hover:bg-astro-bg/50"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            </svg>
-                        </button>
-                    </div>
-
-                    <p className="text-[10px] uppercase tracking-widest text-astro-subtext mb-2">{getText(profile.language, 'dashboard.passport')}</p>
-                    <div className="flex justify-between items-end">
-                        <div>
-                            <h1 className="text-2xl font-serif text-astro-text mb-2">{profile.name}</h1>
-                            <div className="text-sm font-medium text-astro-highlight">
-                                <span>☉ {getZodiacSign(profile.language, chartData.sun?.sign || 'Aries')}</span>
-                            </div>
-                        </div>
-                        <div className="text-right">
-                            <p className="text-[10px] uppercase tracking-widest text-astro-subtext">{getText(profile.language, 'dashboard.element')}</p>
-                            <p className="font-serif text-base text-astro-text">{getElement(profile.language, chartData.element)}</p>
-                        </div>
-                    </div>
-                 </div>
-            </div>
+            <CosmicPassport
+              profile={profile}
+              chartData={chartData}
+              photoUrl={photoUrl}
+              displayName={displayName}
+              onOpenSettings={onOpenSettings}
+            />
 
             {/* 1.5. HOROSCOPE FOR TODAY */}
             <button 
-                onClick={() => onNavigate('horoscope')}
+                onClick={handleNavigateHoroscope}
                 className="w-full bg-gradient-to-br from-purple-900/20 to-astro-card rounded-2xl p-6 shadow-soft relative overflow-hidden text-left transition-colors group"
             >
                 <div className="absolute -top-16 -left-16 w-48 h-48 bg-purple-500 rounded-full blur-3xl opacity-20"></div>
@@ -155,7 +126,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, chartData, reques
 
             {/* 2. PRIMARY ACTION: NATAL CHART */}
             <button 
-                onClick={() => onNavigate('chart')}
+                onClick={handleNavigateChart}
                 className="w-full bg-gradient-to-br from-purple-900/20 to-astro-card rounded-2xl p-6 text-left transition-colors shadow-soft group relative overflow-hidden"
             >
                 <div className="absolute -top-16 -left-16 w-48 h-48 bg-purple-500 rounded-full blur-3xl opacity-20"></div>
@@ -189,40 +160,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, chartData, reques
 
             {/* 4. SOUL EVOLUTION (Layer 4: Evolution) */}
             {evolution && (
-                <div className="bg-astro-card p-5 rounded-xl border border-astro-border space-y-3">
-                    <div className="flex justify-between items-center">
-                         <h3 className="text-[10px] uppercase tracking-widest text-astro-text font-bold">
-                            {getText(profile.language, 'dashboard.evolution')}
-                         </h3>
-                         <span className="text-astro-highlight text-xs font-serif">{evolution.title} • Lvl {evolution.level}</span>
-                    </div>
-                    
-                    {/* Bars */}
-                    <div>
-                        <div className="flex justify-between text-[9px] text-astro-subtext mb-1 uppercase tracking-wider">
-                            <span>{getText(profile.language, 'dashboard.stats_intuition')}</span>
-                            <span>{evolution.stats.intuition}%</span>
-                        </div>
-                        <div className="h-1.5 bg-astro-bg rounded-full overflow-hidden">
-                            <motion.div 
-                                initial={{ width: 0 }} animate={{ width: `${evolution.stats.intuition}%` }}
-                                className="h-full bg-purple-400/70 rounded-full"
-                            />
-                        </div>
-                    </div>
-                    <div>
-                        <div className="flex justify-between text-[9px] text-astro-subtext mb-1 uppercase tracking-wider">
-                            <span>{getText(profile.language, 'dashboard.stats_confidence')}</span>
-                            <span>{evolution.stats.confidence}%</span>
-                        </div>
-                         <div className="h-1.5 bg-astro-bg rounded-full overflow-hidden">
-                            <motion.div 
-                                initial={{ width: 0 }} animate={{ width: `${evolution.stats.confidence}%` }}
-                                className="h-full bg-yellow-400/70 rounded-full"
-                            />
-                        </div>
-                    </div>
-                </div>
+                <SoulEvolution evolution={evolution} language={language} />
             )}
 
             {/* 5. COSMIC WEATHER (Layer 3: Context) */}
@@ -248,7 +186,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, chartData, reques
                 
                 {/* Synastry - доступна всем */}
                 <button 
-                    onClick={() => onNavigate('synastry')}
+                    onClick={handleNavigateSynastry}
                     className="bg-gradient-to-br from-pink-900/20 to-astro-card p-5 rounded-2xl text-left transition-colors shadow-soft group relative overflow-hidden"
                 >
                     <div className="absolute -top-10 -right-10 w-32 h-32 bg-pink-500 rounded-full blur-2xl opacity-20"></div>
@@ -272,7 +210,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, chartData, reques
 
                  {/* Personal Oracle */}
                 <button 
-                    onClick={() => onNavigate('oracle')}
+                    onClick={handleNavigateOracle}
                     className="bg-gradient-to-br from-blue-900/20 to-astro-card p-5 rounded-2xl text-left transition-colors shadow-soft group relative overflow-hidden"
                 >
                     <div className="absolute -top-10 -right-10 w-32 h-32 bg-blue-500 rounded-full blur-2xl opacity-20"></div>
@@ -292,7 +230,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, chartData, reques
             </div>
 
             {/* Knowledge Base: Planets */}
-            <SolarSystem language={profile.language} />
+            <SolarSystem language={language} />
         </div>
     );
-};
+});
+
+Dashboard.displayName = 'Dashboard';

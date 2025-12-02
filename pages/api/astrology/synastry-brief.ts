@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
 import { calculateNatalChart } from '../../../lib/swisseph-calculator';
 import { SYSTEM_PROMPT_ASTRA, createBriefSynastryPrompt, addLanguageInstruction, BriefSynastryAIResponse } from '../../../lib/prompts';
+import { validateSynastryInput, formatValidationErrors } from '../../../lib/validation';
 
 // Logging utility
 const log = {
@@ -34,10 +35,29 @@ export default async function handler(
   try {
     const { profile, partnerName, partnerDate, partnerTime, partnerPlace, language, relationshipType } = req.body;
 
-    if (!profile || !partnerName || !partnerDate) {
+    // Строгая валидация входных данных
+    const validation = validateSynastryInput({
+      profile,
+      partnerName,
+      partnerDate,
+      partnerTime,
+      partnerPlace,
+      language: language || profile?.language || 'ru'
+    });
+
+    if (!validation.isValid) {
+      const userLanguage = (language || profile?.language || 'ru') === 'en' ? 'en' : 'ru';
+      const errorMessage = formatValidationErrors(validation.errors, userLanguage);
+      
+      log.error('Validation failed', {
+        errors: validation.errors,
+        userLanguage
+      });
+      
       return res.status(400).json({ 
-        error: 'Bad request',
-        message: 'Profile, partnerName, and partnerDate are required'
+        error: 'Validation failed',
+        message: errorMessage,
+        errors: validation.errors
       });
     }
 
@@ -180,7 +200,16 @@ export default async function handler(
       log.error('Failed to parse JSON response', {
         error: parseError.message
       });
-      throw new Error('Invalid JSON response from AI');
+      
+      const userLanguage = (language || profile?.language || 'ru') === 'en' ? 'en' : 'ru';
+      const errorMessage = userLanguage === 'ru'
+        ? 'Не удалось обработать ответ от AI. Пожалуйста, попробуйте позже.'
+        : 'Failed to process AI response. Please try again later.';
+      
+      return res.status(500).json({ 
+        error: 'AI response parsing failed',
+        message: errorMessage
+      });
     }
   } catch (error: any) {
     log.error('Error calculating brief synastry', {
@@ -188,30 +217,15 @@ export default async function handler(
       stack: error.stack
     });
 
-    // Fallback на случай ошибки
-    const { profile, partnerName, language } = req.body;
-    const lang = language === 'ru';
+    const userLanguage = (req.body.language || req.body.profile?.language || 'ru') === 'en' ? 'en' : 'ru';
+    const errorMessage = userLanguage === 'ru'
+      ? 'Не удалось рассчитать совместимость. Пожалуйста, проверьте данные и попробуйте снова.'
+      : 'Failed to calculate compatibility. Please check your data and try again.';
     
-    const fallbackResult = {
-      briefOverview: {
-        introduction: lang 
-          ? `${profile?.name} и ${partnerName} создают интересную динамику в отношениях.`
-          : `${profile?.name} and ${partnerName} create interesting dynamics.`,
-        harmony: lang
-          ? 'В этой связи есть естественное понимание друг друга.'
-          : 'There is natural understanding in this connection.',
-        challenges: lang
-          ? 'Иногда может возникать недопонимание из-за разных темпераментов.'
-          : 'Sometimes misunderstandings may arise due to different temperaments.',
-        tips: lang
-          ? ['Слушайте друг друга', 'Цените различия', 'Находите компромиссы']
-          : ['Listen to each other', 'Value differences', 'Find compromises']
-      },
-      summary: lang
-        ? `Краткий обзор совместимости между ${profile?.name} и ${partnerName}.`
-        : `Brief compatibility overview between ${profile?.name} and ${partnerName}.`
-    };
-
-    return res.status(200).json(fallbackResult);
+    return res.status(500).json({ 
+      error: 'Synastry calculation failed',
+      message: errorMessage,
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 }

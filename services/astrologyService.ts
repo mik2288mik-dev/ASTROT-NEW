@@ -60,27 +60,35 @@ export const calculateNatalChart = async (profile: UserProfile): Promise<NatalCh
     });
 
     if (!response.ok) {
-      let errorText = '';
+      let errorMessage = '';
+      let errorDetails: any = null;
+      
       try {
         const errorData = await response.json();
-        errorText = errorData.message || errorData.error || JSON.stringify(errorData);
+        // Используем новую структуру ошибок с полем message
+        errorMessage = errorData.message || errorData.error || 'Unknown error';
+        errorDetails = errorData.errors || errorData.details;
       } catch {
-        errorText = await response.text().catch(() => 'Unable to read error response');
+        errorMessage = await response.text().catch(() => 'Unable to read error response');
       }
       
       log.error(`[calculateNatalChart] Server returned error status ${response.status}`, {
         status: response.status,
         statusText: response.statusText,
-        errorBody: errorText,
+        errorMessage,
+        errorDetails,
         url
       });
       
-      // Для ошибок валидации (400) не используем fallback, пробрасываем ошибку
+      // Для ошибок валидации (400) возвращаем понятное сообщение
       if (response.status === 400) {
-        throw new Error(`Ошибка валидации данных: ${errorText}`);
+        const validationError = errorMessage || 'Ошибка валидации данных';
+        throw new Error(validationError);
       }
       
-      throw new Error(`Failed to calculate natal chart: ${response.status} ${response.statusText}. ${errorText}`);
+      // Для других ошибок возвращаем понятное сообщение
+      const userFriendlyError = errorMessage || `Ошибка сервера: ${response.status}`;
+      throw new Error(userFriendlyError);
     }
 
     let chartData: NatalChartData;
@@ -426,75 +434,6 @@ export const calculateFullSynastry = async (
   }
 };
 
-/**
- * Старая функция синастрии (оставлена для обратной совместимости)
- * @deprecated Используйте calculateBriefSynastry или calculateFullSynastry
- */
-export const calculateSynastry = async (profile: UserProfile, partnerName: string, partnerDate: string): Promise<SynastryResult> => {
-  const url = `${API_BASE_URL}/api/astrology/synastry`;
-  log.info('[calculateSynastry] Starting calculation', { partnerName, partnerDate });
-
-  try {
-    log.info(`[calculateSynastry] Sending POST request to: ${url}`);
-    const startTime = Date.now();
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        profile,
-        partnerName,
-        partnerDate,
-        language: profile.language
-      })
-    });
-
-    const duration = Date.now() - startTime;
-    log.info(`[calculateSynastry] Response received in ${duration}ms`, {
-      status: response.status,
-      statusText: response.statusText,
-      ok: response.ok
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => 'Unable to read error response');
-      log.error(`[calculateSynastry] Server returned error status ${response.status}`, {
-        status: response.status,
-        statusText: response.statusText,
-        errorBody: errorText
-      });
-      throw new Error(`Failed to calculate synastry: ${response.status} ${response.statusText}`);
-    }
-
-    const result = await response.json() as SynastryResult;
-    log.info('[calculateSynastry] Successfully calculated synastry', {
-      compatibilityScore: result.compatibilityScore
-    });
-    return result;
-  } catch (error: any) {
-    log.error('[calculateSynastry] Error occurred', {
-      error: error.message,
-      stack: error.stack
-    });
-    log.warn('[calculateSynastry] Falling back to mock data');
-    // Fallback to mock data
-    const lang = profile.language === 'ru';
-    return {
-      compatibilityScore: Math.floor(Math.random() * 40) + 60,
-      emotionalConnection: lang 
-        ? 'Глубокая эмоциональная связь между вами.'
-        : 'Deep emotional connection between you.',
-      intellectualConnection: lang
-        ? 'Интеллектуальное взаимопонимание и общие интересы.'
-        : 'Intellectual understanding and shared interests.',
-      challenge: lang
-        ? 'Основной вызов - найти баланс между независимостью и близостью.'
-        : 'Main challenge - finding balance between independence and closeness.',
-      summary: lang
-        ? `Синастрия между ${profile.name} и ${partnerName} показывает интересную динамику.`
-        : `Synastry between ${profile.name} and ${partnerName} shows interesting dynamics.`
-    };
-  }
-};
 
 export const getDailyHoroscope = async (profile: UserProfile, chartData: NatalChartData, context?: UserContext): Promise<DailyHoroscope> => {
   const url = `${API_BASE_URL}/api/astrology/daily-horoscope`;
@@ -609,21 +548,26 @@ function calculateInitialStats(profile: UserProfile, chartData?: NatalChartData)
     };
   }
 
+  // Используем централизованные данные о знаках для избежания дублирования
+  const { getElementForSign, SIGN_ELEMENTS } = require('../lib/zodiac-utils');
+
   // Интуиция зависит от Луны и водных знаков
   let intuition = 50;
   const moonSign = chartData.moon?.sign;
-  if (['Cancer', 'Scorpio', 'Pisces'].includes(moonSign)) {
+  const moonElement = moonSign ? getElementForSign(moonSign as any) : null;
+  if (moonElement === 'Water') {
     intuition += 15;
-  } else if (['Gemini', 'Aquarius', 'Libra'].includes(moonSign)) {
+  } else if (moonElement === 'Air') {
     intuition += 10;
   }
 
   // Уверенность зависит от Солнца и огненных знаков
   let confidence = 50;
   const sunSign = chartData.sun?.sign;
-  if (['Aries', 'Leo', 'Sagittarius'].includes(sunSign)) {
+  const sunElement = sunSign ? getElementForSign(sunSign as any) : null;
+  if (sunElement === 'Fire') {
     confidence += 15;
-  } else if (['Taurus', 'Capricorn', 'Virgo'].includes(sunSign)) {
+  } else if (sunElement === 'Earth') {
     confidence += 10;
   }
 

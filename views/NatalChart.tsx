@@ -5,6 +5,8 @@ import { getOrGenerateDeepDive, getOrGenerateHoroscope } from '../services/conte
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { Loading } from '../components/ui/Loading';
 import { RegenerateButton } from '../components/RegenerateButton';
+import { KeyBlock } from '../components/NatalChart/KeyBlock';
+import { AnalysisModal } from '../components/NatalChart/AnalysisModal';
 
 interface NatalChartProps {
     data: NatalChartData | null;
@@ -12,8 +14,12 @@ interface NatalChartProps {
     requestPremium: () => void;
 }
 
-// Иконки планет для блоков (ЗАГЛУШКИ - символы Unicode)
-// TODO: Заменить на SVG иконки
+/**
+ * Иконки планет для блоков натальной карты
+ * 
+ * Используются Unicode символы как временное решение.
+ * TODO: Заменить на SVG иконки для лучшего качества и контроля стилей
+ */
 const PLANET_ICONS: Record<string, string> = {
     energy: '☉',      // Солнце - для энергии
     love: '♀',        // Венера - для любви
@@ -23,66 +29,6 @@ const PLANET_ICONS: Record<string, string> = {
     mind: '☿',        // Меркурий - для разума
     weakness: '♄',    // Сатурн - для слабостей
     karma: '♇'        // Плутон - для кармы
-};
-
-// Минималистичный компонент блока "три ключа"
-const KeyBlock: React.FC<{
-    title: string;
-    planetSymbol: string;
-    text: string;
-    advice?: string[];
-    language: 'ru' | 'en';
-}> = ({ title, planetSymbol, text, advice, language }) => {
-    return (
-        <div className="w-full max-w-2xl mx-auto">
-            {/* Заголовок блока */}
-            <h3 className="text-left text-base font-semibold text-astro-subtext uppercase tracking-wider mb-3">
-                {title}
-            </h3>
-
-            {/* Иконка планеты слева + текст справа */}
-            <div className="flex gap-3 items-start">
-                {/* Иконка планеты сбоку */}
-                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-astro-card border-2 border-astro-border flex items-center justify-center shadow-md">
-                    <span className="text-2xl text-astro-highlight">
-                        {planetSymbol}
-                    </span>
-                </div>
-
-                {/* Основной текст интерпретации */}
-                <div className="flex-1 space-y-2">
-                    {text.split('\n\n').filter(p => p.trim()).map((paragraph, idx) => (
-                        <p 
-                            key={idx}
-                            className="text-[14px] leading-relaxed text-astro-text"
-                            style={{ lineHeight: '1.5' }}
-                        >
-                            {paragraph.trim()}
-                        </p>
-                    ))}
-                </div>
-            </div>
-
-            {/* Советы (если есть) */}
-            {advice && advice.length > 0 && (
-                <div className="mt-3 pt-3 border-t border-astro-border/30 ml-16">
-                    <h4 className="text-xs font-semibold text-astro-text mb-2">
-                        {language === 'ru' ? 'Советы' : 'Advice'}
-                    </h4>
-                    <div className="space-y-1.5">
-                        {advice.map((item, index) => (
-                            <p 
-                                key={index}
-                                className="text-[13px] leading-relaxed text-astro-subtext"
-                            >
-                                {item}
-                            </p>
-                        ))}
-                    </div>
-                </div>
-            )}
-        </div>
-    );
 };
 
 export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPremium }) => {
@@ -389,51 +335,13 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
             </div>
 
             {/* Модалка с детальным анализом */}
-            <AnimatePresence>
-                {activeAnalysis && (
-                    <motion.div 
-                        initial={{ opacity: 0 }} 
-                        animate={{ opacity: 1 }} 
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[70] bg-black/80 flex items-center justify-center p-6"
-                        onClick={() => !loadingAnalysis && setActiveAnalysis(null)}
-                    >
-                        <motion.div 
-                            initial={{ scale: 0.95 }} 
-                            animate={{ scale: 1 }} 
-                            exit={{ scale: 0.95 }}
-                            className="bg-astro-card w-full max-w-lg rounded-3xl p-8 border border-astro-border max-h-[80vh] flex flex-col"
-                            onClick={e => e.stopPropagation()}
-                        >
-                            <div className="flex justify-between items-center mb-6 pb-4 border-b border-astro-border shrink-0">
-                                <h3 className="text-xl font-semibold text-astro-text">{activeAnalysis}</h3>
-                                <button 
-                                    onClick={() => setActiveAnalysis(null)} 
-                                    className="text-astro-subtext hover:text-astro-text text-2xl leading-none"
-                                >
-                                    ×
-                                </button>
-                            </div>
-                            <div className="flex-1 overflow-y-auto scrollbar-hide">
-                                {loadingAnalysis ? (
-                                    <Loading />
-                                ) : (
-                                    <div className="max-w-[90%] mx-auto space-y-3">
-                                        {analysisResult.split('\n\n').filter(p => p.trim()).map((paragraph, idx) => (
-                                            <p 
-                                                key={idx}
-                                                className="text-[14px] leading-relaxed text-astro-text"
-                                            >
-                                                {paragraph.trim()}
-                                            </p>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            <AnalysisModal
+                isOpen={!!activeAnalysis}
+                title={activeAnalysis || ''}
+                content={analysisResult}
+                isLoading={loadingAnalysis}
+                onClose={() => !loadingAnalysis && setActiveAnalysis(null)}
+            />
 
             {/* Regenerate Button в самом низу страницы */}
             <div className="mt-12 max-w-md mx-auto">
