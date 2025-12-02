@@ -15,6 +15,9 @@ const log = {
   error: (message: string, error?: any) => {
     console.error(`[SwissephCalculator-WASM] ERROR: ${message}`, error || '');
   },
+  warn: (message: string, data?: any) => {
+    console.warn(`[SwissephCalculator-WASM] WARNING: ${message}`, data || '');
+  },
 };
 
 // Знаки зодиака
