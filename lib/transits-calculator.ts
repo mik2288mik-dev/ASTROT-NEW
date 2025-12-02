@@ -15,6 +15,9 @@ const log = {
   error: (message: string, error?: any) => {
     console.error(`[TransitsCalculator] ERROR: ${message}`, error || '');
   },
+  warn: (message: string, data?: any) => {
+    console.warn(`[TransitsCalculator] WARNING: ${message}`, data || '');
+  },
 };
 
 /**
