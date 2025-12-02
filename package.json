@@ -16,13 +16,15 @@
   "dependencies": {
     "@types/pg": "^8.10.9",
     "axios": "^1.13.2",
+    "date-fns-tz": "^3.2.0",
     "framer-motion": "^12.23.24",
     "next": "^15.1.0",
     "openai": "^6.9.1",
     "pg": "^8.11.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "sweph-wasm": "^2.6.9"
+    "sweph-wasm": "^2.6.9",
+    "tz-lookup": "^6.1.25"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",

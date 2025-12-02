@@ -12,25 +12,7 @@ const log = {
   },
 };
 
-// Моковые данные как fallback
-function generateMockChart(name: string): any {
-  const signs = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
-  const randomSign = () => signs[Math.floor(Math.random() * signs.length)];
-  const elements = ['Fire', 'Water', 'Air', 'Earth'];
-  const planets = ['Mars', 'Venus', 'Mercury', 'Moon', 'Sun', 'Jupiter'];
-
-  return {
-    sun: { planet: 'Sun', sign: randomSign(), degree: Math.random() * 30, description: 'Your core essence and identity.' },
-    moon: { planet: 'Moon', sign: randomSign(), degree: Math.random() * 30, description: 'Your emotional nature and inner self.' },
-    rising: { planet: 'Ascendant', sign: randomSign(), degree: Math.random() * 30, description: 'Your outer personality and first impressions.' },
-    mercury: { planet: 'Mercury', sign: randomSign(), degree: Math.random() * 30, description: 'Your communication style and thinking patterns.' },
-    venus: { planet: 'Venus', sign: randomSign(), degree: Math.random() * 30, description: 'Your love language and values.' },
-    mars: { planet: 'Mars', sign: randomSign(), degree: Math.random() * 30, description: 'Your drive and passion.' },
-    element: elements[Math.floor(Math.random() * elements.length)],
-    rulingPlanet: planets[Math.floor(Math.random() * planets.length)],
-    summary: `This is a mystical reading for ${name}. The stars reveal a complex and beautiful soul journey.`
-  };
-}
+// УДАЛЕНО: generateMockChart - больше не используем mock данные
 
 export default async function handler(
   req: NextApiRequest,

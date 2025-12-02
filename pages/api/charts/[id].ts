@@ -45,15 +45,37 @@ export default async function handler(
         element: chart.chart_data?.element
       });
 
-      return res.status(200).json(chart.chart_data || chart);
+      // Проверяем что chart_data существует и содержит обязательные поля
+      const chartData = chart.chart_data || chart;
+      if (!chartData || !chartData.sun || !chartData.moon) {
+        log.error('[GET] Invalid chart data structure', { hasSun: !!chartData?.sun, hasMoon: !!chartData?.moon });
+        return res.status(500).json({ error: 'Invalid chart data structure' });
+      }
+      
+      return res.status(200).json(chartData);
     }
 
     if (req.method === 'POST' || req.method === 'PUT') {
       // Save chart data
       const chartData = req.body;
+      
+      // Валидация обязательных полей
+      if (!chartData || !chartData.sun || !chartData.moon || !chartData.rising) {
+        log.error(`[${req.method}] Invalid chart data: missing required fields`, {
+          hasSun: !!chartData?.sun,
+          hasMoon: !!chartData?.moon,
+          hasRising: !!chartData?.rising
+        });
+        return res.status(400).json({ 
+          error: 'Invalid chart data',
+          message: 'Chart data must contain sun, moon, and rising positions'
+        });
+      }
+      
       log.info(`[${req.method}] Saving chart for user: ${userId}`, {
         hasSun: !!chartData.sun,
         hasMoon: !!chartData.moon,
+        hasRising: !!chartData.rising,
         element: chartData.element
       });
 
@@ -64,7 +86,14 @@ export default async function handler(
 
       log.info(`[${req.method}] Chart saved successfully for user: ${userId}`);
 
-      return res.status(200).json(savedChart.chart_data || savedChart);
+      const savedChartData = savedChart.chart_data || savedChart;
+      // Проверяем сохраненные данные перед возвратом
+      if (!savedChartData || !savedChartData.sun || !savedChartData.moon) {
+        log.error(`[${req.method}] Saved chart data is invalid`, { userId });
+        return res.status(500).json({ error: 'Failed to save chart data correctly' });
+      }
+
+      return res.status(200).json(savedChartData);
     }
 
     return res.status(405).json({ error: 'Method not allowed' });

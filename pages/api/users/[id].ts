@@ -46,6 +46,11 @@ export default async function handler(
       });
 
       // Transform database format (snake_case) to client format (camelCase)
+      // Синхронизируем threeKeys: если есть в generatedContent, используем его, иначе из отдельного поля
+      const generatedContent = user.generated_content || {};
+      const threeKeysFromGenerated = generatedContent.threeKeys || null;
+      const threeKeys = threeKeysFromGenerated || user.three_keys;
+      
       const clientUser = {
         id: user.id,
         name: user.name,
@@ -57,7 +62,7 @@ export default async function handler(
         theme: user.theme,
         isPremium: user.is_premium,
         isAdmin: user.is_admin,
-        threeKeys: user.three_keys,
+        threeKeys: threeKeys, // Синхронизированное значение
         evolution: user.evolution,
         generatedContent: user.generated_content,
       };
@@ -74,6 +79,15 @@ export default async function handler(
       });
 
       // Transform data to match database schema
+      // Синхронизируем threeKeys: если есть в generatedContent, сохраняем и там, и в отдельном поле
+      const generatedContent = userData.generatedContent || {};
+      const threeKeysToSave = generatedContent.threeKeys || userData.threeKeys || null;
+      
+      // Обновляем generatedContent.threeKeys если его нет, но есть в userData.threeKeys
+      const updatedGeneratedContent = threeKeysToSave && !generatedContent.threeKeys
+        ? { ...generatedContent, threeKeys: threeKeysToSave }
+        : generatedContent;
+      
       const dbUser = {
         id: userId,
         name: userData.name,
@@ -85,9 +99,9 @@ export default async function handler(
         theme: userData.theme || 'dark',
         is_premium: userData.isPremium || false,
         is_admin: userData.isAdmin || false,
-        three_keys: userData.threeKeys || null,
+        three_keys: threeKeysToSave, // Синхронизированное значение
         evolution: userData.evolution || null,
-        generated_content: userData.generatedContent || null,
+        generated_content: Object.keys(updatedGeneratedContent).length > 0 ? updatedGeneratedContent : null,
       };
 
       const savedUser = await db.users.set(userId, dbUser);
@@ -95,6 +109,10 @@ export default async function handler(
       log.info(`[${req.method}] User saved successfully: ${userId}`);
 
       // Transform back to client format
+      // Синхронизируем threeKeys при возврате
+      const savedGeneratedContent = savedUser.generated_content || {};
+      const syncedThreeKeys = savedGeneratedContent.threeKeys || savedUser.three_keys;
+      
       const clientUser = {
         id: savedUser.id,
         name: savedUser.name,
@@ -106,7 +124,7 @@ export default async function handler(
         theme: savedUser.theme,
         isPremium: savedUser.is_premium,
         isAdmin: savedUser.is_admin,
-        threeKeys: savedUser.three_keys,
+        threeKeys: syncedThreeKeys, // Синхронизированное значение
         evolution: savedUser.evolution,
         generatedContent: savedUser.generated_content,
       };

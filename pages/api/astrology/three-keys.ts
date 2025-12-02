@@ -24,6 +24,11 @@ const openai = process.env.OPENAI_API_KEY ? new OpenAI({
 // Personalized descriptions based on natal chart data
 function generatePersonalizedThreeKeys(profile: any, chartData: any) {
   const lang = profile?.language === 'ru';
+  // Проверяем наличие обязательных данных
+  if (!chartData?.sun?.sign || !chartData?.moon?.sign) {
+    throw new Error('Invalid chart data: sun or moon sign is missing');
+  }
+  
   const sunSign = chartData.sun.sign;
   const moonSign = chartData.moon.sign;
   const risingSign = chartData.rising?.sign || sunSign;
