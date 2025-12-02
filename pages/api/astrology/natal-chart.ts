@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { calculateNatalChart } from '../../../lib/swisseph-calculator';
+import { validateNatalChartInput, formatValidationErrors } from '../../../lib/validation';
 
 // Logging utility
 const log = {
@@ -47,16 +48,28 @@ export default async function handler(
   try {
     const { name, birthDate, birthTime, birthPlace, language } = req.body;
 
-    // Validate required fields
-    if (!name || !birthDate || !birthPlace) {
-      log.error('Missing required fields', {
-        hasName: !!name,
-        hasBirthDate: !!birthDate,
-        hasBirthPlace: !!birthPlace
+    // Строгая валидация входных данных
+    const validation = validateNatalChartInput({
+      name,
+      birthDate,
+      birthTime,
+      birthPlace,
+      language: language || 'ru'
+    });
+
+    if (!validation.isValid) {
+      const userLanguage = language === 'en' ? 'en' : 'ru';
+      const errorMessage = formatValidationErrors(validation.errors, userLanguage);
+      
+      log.error('Validation failed', {
+        errors: validation.errors,
+        userLanguage
       });
+      
       return res.status(400).json({ 
-        error: 'Missing required fields',
-        message: 'Name, birthDate, and birthPlace are required'
+        error: 'Validation failed',
+        message: errorMessage,
+        errors: validation.errors
       });
     }
 
@@ -86,24 +99,38 @@ export default async function handler(
 
       return res.status(200).json(chartData);
     } catch (swissephError: any) {
-      // Если расчет Swiss Ephemeris не удался, используем mock данные
-      log.error('Swiss Ephemeris calculation failed, falling back to mock data', {
-        error: swissephError.message
+      // Если расчет Swiss Ephemeris не удался, возвращаем понятную ошибку
+      log.error('Swiss Ephemeris calculation failed', {
+        error: swissephError.message,
+        stack: swissephError.stack
       });
       
-      const mockData = generateMockChart(name);
-      log.info('Returning mock natal chart data');
+      const userLanguage = language === 'en' ? 'en' : 'ru';
+      const errorMessage = userLanguage === 'ru'
+        ? 'Не удалось рассчитать натальную карту. Пожалуйста, проверьте правильность введенных данных и попробуйте снова.'
+        : 'Failed to calculate natal chart. Please check your input data and try again.';
       
-      return res.status(200).json(mockData);
+      return res.status(500).json({ 
+        error: 'Calculation failed',
+        message: errorMessage,
+        details: process.env.NODE_ENV === 'development' ? swissephError.message : undefined
+      });
     }
   } catch (error: any) {
     log.error('Error calculating natal chart', {
       error: error.message,
       stack: error.stack
     });
+    
+    const userLanguage = req.body.language === 'en' ? 'en' : 'ru';
+    const errorMessage = userLanguage === 'ru'
+      ? 'Произошла ошибка при расчете натальной карты. Пожалуйста, попробуйте позже.'
+      : 'An error occurred while calculating the natal chart. Please try again later.';
+    
     return res.status(500).json({ 
       error: 'Internal server error',
-      message: error.message 
+      message: errorMessage,
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 }

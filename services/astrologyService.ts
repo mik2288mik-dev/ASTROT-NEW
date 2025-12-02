@@ -60,27 +60,35 @@ export const calculateNatalChart = async (profile: UserProfile): Promise<NatalCh
     });
 
     if (!response.ok) {
-      let errorText = '';
+      let errorMessage = '';
+      let errorDetails: any = null;
+      
       try {
         const errorData = await response.json();
-        errorText = errorData.message || errorData.error || JSON.stringify(errorData);
+        // Используем новую структуру ошибок с полем message
+        errorMessage = errorData.message || errorData.error || 'Unknown error';
+        errorDetails = errorData.errors || errorData.details;
       } catch {
-        errorText = await response.text().catch(() => 'Unable to read error response');
+        errorMessage = await response.text().catch(() => 'Unable to read error response');
       }
       
       log.error(`[calculateNatalChart] Server returned error status ${response.status}`, {
         status: response.status,
         statusText: response.statusText,
-        errorBody: errorText,
+        errorMessage,
+        errorDetails,
         url
       });
       
-      // Для ошибок валидации (400) не используем fallback, пробрасываем ошибку
+      // Для ошибок валидации (400) возвращаем понятное сообщение
       if (response.status === 400) {
-        throw new Error(`Ошибка валидации данных: ${errorText}`);
+        const validationError = errorMessage || 'Ошибка валидации данных';
+        throw new Error(validationError);
       }
       
-      throw new Error(`Failed to calculate natal chart: ${response.status} ${response.statusText}. ${errorText}`);
+      // Для других ошибок возвращаем понятное сообщение
+      const userFriendlyError = errorMessage || `Ошибка сервера: ${response.status}`;
+      throw new Error(userFriendlyError);
     }
 
     let chartData: NatalChartData;

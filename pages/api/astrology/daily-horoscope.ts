@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
 import { SYSTEM_PROMPT_ASTRA, createDailyForecastPrompt, addLanguageInstruction, DailyForecastAIResponse } from '../../../lib/prompts';
+import { validateNatalChartInput, formatValidationErrors } from '../../../lib/validation';
 
 // Logging utility
 const log = {
@@ -30,11 +31,36 @@ export default async function handler(
     const lang = profile?.language === 'ru';
     const today = new Date().toISOString().split('T')[0];
 
+    // Валидация входных данных
     if (!profile || !chartData) {
+      const errorMessage = lang
+        ? 'Профиль и данные карты обязательны для расчета гороскопа'
+        : 'Profile and chart data are required for horoscope calculation';
+      
       return res.status(400).json({ 
         error: 'Bad request',
-        message: 'Profile and chartData are required'
+        message: errorMessage
       });
+    }
+
+    // Валидация структуры профиля
+    if (!profile.name || !profile.birthDate || !profile.birthPlace) {
+      const validation = validateNatalChartInput({
+        name: profile.name,
+        birthDate: profile.birthDate,
+        birthTime: profile.birthTime,
+        birthPlace: profile.birthPlace,
+        language: profile.language || 'ru'
+      });
+
+      if (!validation.isValid) {
+        const errorMessage = formatValidationErrors(validation.errors, lang ? 'ru' : 'en');
+        return res.status(400).json({ 
+          error: 'Invalid profile data',
+          message: errorMessage,
+          errors: validation.errors
+        });
+      }
     }
 
     log.info('Daily horoscope request received', {
@@ -120,7 +146,16 @@ export default async function handler(
       log.error('Failed to parse JSON response', {
         error: parseError.message
       });
-      throw new Error('Invalid JSON response from AI');
+      
+      const lang = profile?.language === 'ru';
+      const errorMessage = lang
+        ? 'Не удалось обработать ответ от AI. Пожалуйста, попробуйте позже.'
+        : 'Failed to process AI response. Please try again later.';
+      
+      return res.status(500).json({ 
+        error: 'AI response parsing failed',
+        message: errorMessage
+      });
     }
   } catch (error: any) {
     log.error('Error getting daily horoscope', {
@@ -128,27 +163,19 @@ export default async function handler(
       stack: error.stack
     });
 
-    // Fallback на случай ошибки
     const { profile } = req.body;
     const lang = profile?.language === 'ru';
     const today = new Date().toISOString().split('T')[0];
     
-    const fallbackHoroscope = {
-      date: today,
-      mood: lang ? 'Вдохновленный' : 'Inspired',
-      color: 'Purple',
-      number: 7,
-      content: lang
-        ? 'Сегодня звезды благоприятствуют новым начинаниям.'
-        : 'Today the stars favor new beginnings.',
-      moonImpact: lang
-        ? 'Луна в вашем знаке усиливает интуицию.'
-        : 'Moon in your sign enhances intuition.',
-      transitFocus: lang
-        ? 'Меркурий способствует общению.'
-        : 'Mercury favors communication.'
-    };
+    // Возвращаем понятную ошибку вместо fallback
+    const errorMessage = lang
+      ? 'Не удалось получить гороскоп. Пожалуйста, попробуйте позже.'
+      : 'Failed to get horoscope. Please try again later.';
     
-    return res.status(200).json(fallbackHoroscope);
+    return res.status(500).json({ 
+      error: 'Horoscope generation failed',
+      message: errorMessage,
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 }
