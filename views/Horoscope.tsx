@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { UserProfile, NatalChartData } from '../types';
 import { getOrGenerateHoroscope } from '../services/contentGenerationService';
 import { Loading } from '../components/ui/Loading';
+import { getZodiacSign } from '../constants';
 
 interface HoroscopeProps {
     profile: UserProfile;
@@ -79,20 +80,7 @@ export const Horoscope: React.FC<HoroscopeProps> = ({ profile, chartData }) => {
     const sunSign = chartData.sun?.sign || 'Aries';
     const zodiacSymbol = ZODIAC_SYMBOLS[sunSign] || '♈';
     const zodiacDates = ZODIAC_DATES[sunSign] || '';
-    const zodiacName = profile.language === 'ru' 
-        ? (sunSign === 'Aries' ? 'Овен' :
-           sunSign === 'Taurus' ? 'Телец' :
-           sunSign === 'Gemini' ? 'Близнецы' :
-           sunSign === 'Cancer' ? 'Рак' :
-           sunSign === 'Leo' ? 'Лев' :
-           sunSign === 'Virgo' ? 'Дева' :
-           sunSign === 'Libra' ? 'Весы' :
-           sunSign === 'Scorpio' ? 'Скорпион' :
-           sunSign === 'Sagittarius' ? 'Стрелец' :
-           sunSign === 'Capricorn' ? 'Козерог' :
-           sunSign === 'Aquarius' ? 'Водолей' :
-           sunSign === 'Pisces' ? 'Рыбы' : sunSign)
-        : sunSign;
+    const zodiacName = getZodiacSign(profile.language, sunSign);
 
     return (
         <div className="min-h-screen px-4 py-6 max-w-2xl mx-auto">
