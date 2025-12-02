@@ -1,4 +1,5 @@
 import React, { memo } from 'react';
+import Image from 'next/image';
 import { UserProfile, NatalChartData } from '../../types';
 import { getText, getZodiacSign, getElement } from '../../constants';
 
@@ -26,7 +27,16 @@ export const CosmicPassport = memo<CosmicPassportProps>(({
           {/* Avatar */}
           <div className="relative group">
             {photoUrl ? (
-              <img src={photoUrl} alt="Avatar" className="w-14 h-14 rounded-full border-2 border-astro-border shadow-md object-cover" />
+              <div className="relative w-14 h-14 rounded-full border-2 border-astro-border shadow-md overflow-hidden">
+                <Image 
+                  src={photoUrl} 
+                  alt="Avatar" 
+                  width={56}
+                  height={56}
+                  className="object-cover"
+                  unoptimized={photoUrl.startsWith('http')} // Telegram URLs могут требовать unoptimized
+                />
+              </div>
             ) : (
               <div className="w-14 h-14 rounded-full bg-gradient-to-br from-astro-primary to-astro-accent flex items-center justify-center text-white text-lg font-bold shadow-lg">
                 {displayName.charAt(0).toUpperCase()}

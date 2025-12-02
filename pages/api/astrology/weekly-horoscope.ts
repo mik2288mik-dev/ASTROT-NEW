@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
 import { SYSTEM_PROMPT_ASTRA, createWeeklyForecastPrompt, addLanguageInstruction, WeeklyForecastAIResponse } from '../../../lib/prompts';
+import { CACHE_CONFIGS } from '../../../lib/cache';
 
 // Logging utility
 const log = {
@@ -101,6 +102,11 @@ export default async function handler(
         love: forecast.love || '',
         career: forecast.career || ''
       };
+      
+      // Еженедельный гороскоп кэшируется на неделю
+      const cacheConfig = CACHE_CONFIGS.weeklyHoroscope;
+      res.setHeader('Cache-Control', `public, s-maxage=${cacheConfig.revalidate}, stale-while-revalidate=86400`);
+      res.setHeader('CDN-Cache-Control', `public, s-maxage=${cacheConfig.revalidate}`);
       
       return res.status(200).json(horoscope);
     } catch (parseError: any) {

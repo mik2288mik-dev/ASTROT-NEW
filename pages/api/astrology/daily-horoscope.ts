@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
 import { SYSTEM_PROMPT_ASTRA, createDailyForecastPrompt, addLanguageInstruction, DailyForecastAIResponse } from '../../../lib/prompts';
 import { validateNatalChartInput, formatValidationErrors } from '../../../lib/validation';
+import { getSecondsUntilNextUpdate, CACHE_CONFIGS } from '../../../lib/cache';
 
 // Logging utility
 const log = {
@@ -140,6 +141,13 @@ export default async function handler(
         moonImpact: forecast.advice?.[0] || '',
         transitFocus: forecast.advice?.[1] || ''
       };
+      
+      // Устанавливаем заголовки кэширования для ежедневного гороскопа
+      // Гороскоп обновляется раз в день в 4:00 МСК
+      const cacheSeconds = getSecondsUntilNextUpdate();
+      res.setHeader('Cache-Control', `public, s-maxage=${cacheSeconds}, stale-while-revalidate=3600`);
+      res.setHeader('CDN-Cache-Control', `public, s-maxage=${cacheSeconds}`);
+      res.setHeader('Vercel-CDN-Cache-Control', `public, s-maxage=${cacheSeconds}`);
       
       return res.status(200).json(horoscope);
     } catch (parseError: any) {

@@ -97,6 +97,10 @@ export default async function handler(
         element: chartData.element
       });
 
+      // Натальная карта статична для пользователя - кэшируем на долго
+      // Но так как это персональные данные, кэшируем только на клиенте
+      res.setHeader('Cache-Control', 'private, max-age=31536000, immutable'); // 1 год
+      
       return res.status(200).json(chartData);
     } catch (swissephError: any) {
       // Если расчет Swiss Ephemeris не удался, возвращаем понятную ошибку

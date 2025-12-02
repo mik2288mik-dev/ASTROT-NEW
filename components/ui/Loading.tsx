@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 
 interface LoadingProps {
@@ -72,14 +73,19 @@ export const Loading: React.FC<LoadingProps> = ({ message, progress: externalPro
                     className="relative"
                 >
                     {logoLoaded ? (
-                        <img 
-                            src="/logo.png" 
-                            alt="ASTROT" 
-                            className="w-32 h-32 object-contain drop-shadow-lg"
-                            style={{
-                                filter: 'brightness(0) invert(1) drop-shadow(0 0 20px rgba(255,255,255,0.5))'
-                            }}
-                        />
+                        <div className="relative w-32 h-32">
+                            <Image 
+                                src="/logo.png" 
+                                alt="ASTROT" 
+                                width={128}
+                                height={128}
+                                className="object-contain drop-shadow-lg"
+                                style={{
+                                    filter: 'brightness(0) invert(1) drop-shadow(0 0 20px rgba(255,255,255,0.5))'
+                                }}
+                                priority
+                            />
+                        </div>
                     ) : (
                         <div className="w-32 h-32 flex items-center justify-center">
                             <motion.div
