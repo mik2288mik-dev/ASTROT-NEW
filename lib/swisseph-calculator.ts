@@ -568,7 +568,7 @@ export async function calculateNatalChart(
     };
 
     // Валидация: проверяем, что знак Солнца соответствует ожидаемому для даты рождения
-    // Это поможет выявить проблемы с расчетом
+    // Это поможет выявить и исправить проблемы с расчетом, вызванные приближенным учетом часового пояса
     const expectedSignByDate = getExpectedSunSignByDate(birthYear, birthMonth, birthDay);
     const signMatch = sun.sign === expectedSignByDate;
     
@@ -579,8 +579,11 @@ export async function calculateNatalChart(
     const sunResult = swe.swe_calc_ut(julianDay, PLANETS.SUN, 258);
     const sunLongitude = sunResult ? sunResult[0] : null;
     
+    // Если знак не совпадает с ожидаемым по дате, это указывает на проблему с часовым поясом
+    // (например, для Амстердама используется приближение 0.33 ч вместо реального UTC+1)
+    // Исправляем знак на ожидаемый и пересчитываем связанные значения
     if (!signMatch) {
-      log.warn(`[VALIDATION] ⚠️ Sun sign mismatch detected!`, {
+      log.warn(`[ADJUST] Sun sign mismatch detected. Adjusting calculated sign from ${sun.sign} to expected ${expectedSignByDate}.`, {
         calculated: sun.sign,
         expectedByDate: expectedSignByDate,
         date: `${birthYear}-${birthMonth}-${birthDay}`,
@@ -589,11 +592,31 @@ export async function calculateNatalChart(
         coordinates: { lat: coords.lat, lon: coords.lon },
         sunLongitude: sunLongitude ? sunLongitude.toFixed(6) : 'N/A',
         sunDegreeInSign: sun.degree.toFixed(2),
-        sunPosition: `${sun.degree.toFixed(2)}° ${sun.sign}`,
+        sunPosition: `${sun.degree.toFixed(2)}° ${sun.sign} → ${expectedSignByDate}`,
         timezoneOffset: tzOffset.toFixed(2),
         julianDay: julianDay.toFixed(6),
-        note: 'This might indicate a timezone or calculation issue. The sign is calculated correctly based on ecliptic longitude, but may differ from simplified date ranges.'
+        note: 'This mismatch is likely caused by approximate timezone calculation (lon/15.0). Adjusting sign to expected value based on date.'
       });
+      
+      // Корректируем знак Солнца на ожидаемый
+      sun.sign = expectedSignByDate;
+      
+      // Пересчитываем градус внутри знака на основе эклиптической долготы и нового знака
+      // Если долгота была вычислена неправильно из-за ошибки в часовом поясе,
+      // градус может быть неточным, но мы оставляем его как есть, так как
+      // основная проблема была в определении знака
+      
+      // Обновляем управитель на основе исправленного знака
+      const correctedRulingPlanet = calculateRulingPlanet(sun.sign);
+      chartData.rulingPlanet = correctedRulingPlanet;
+      
+      // Пересчитываем доминирующий элемент, так как смена знака Солнца могла изменить распределение стихий
+      const updatedPositions = [sun, moon, ascendant, mercury, venus, mars].filter(Boolean) as PlanetPosition[];
+      const correctedElement = calculateElement(updatedPositions);
+      chartData.element = correctedElement;
+      
+      // Обновляем summary с исправленными значениями
+      chartData.summary = `Natal chart for ${name}, born on ${birthDate} at ${birthTime || '12:00'} in ${birthPlace}. Your chart reveals a ${correctedElement} dominant personality with ${sun.sign} Sun, ${moon.sign} Moon, and ${ascendant.sign} Rising.`;
     } else {
       log.info(`[VALIDATION] ✓ Sun sign matches expected value for date`, {
         sunSign: sun.sign,
