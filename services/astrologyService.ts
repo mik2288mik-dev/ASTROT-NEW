@@ -548,21 +548,26 @@ function calculateInitialStats(profile: UserProfile, chartData?: NatalChartData)
     };
   }
 
+  // Используем централизованные данные о знаках для избежания дублирования
+  const { getElementForSign, SIGN_ELEMENTS } = require('../lib/zodiac-utils');
+
   // Интуиция зависит от Луны и водных знаков
   let intuition = 50;
   const moonSign = chartData.moon?.sign;
-  if (['Cancer', 'Scorpio', 'Pisces'].includes(moonSign)) {
+  const moonElement = moonSign ? getElementForSign(moonSign as any) : null;
+  if (moonElement === 'Water') {
     intuition += 15;
-  } else if (['Gemini', 'Aquarius', 'Libra'].includes(moonSign)) {
+  } else if (moonElement === 'Air') {
     intuition += 10;
   }
 
   // Уверенность зависит от Солнца и огненных знаков
   let confidence = 50;
   const sunSign = chartData.sun?.sign;
-  if (['Aries', 'Leo', 'Sagittarius'].includes(sunSign)) {
+  const sunElement = sunSign ? getElementForSign(sunSign as any) : null;
+  if (sunElement === 'Fire') {
     confidence += 15;
-  } else if (['Taurus', 'Capricorn', 'Virgo'].includes(sunSign)) {
+  } else if (sunElement === 'Earth') {
     confidence += 10;
   }
 

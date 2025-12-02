@@ -20,11 +20,8 @@ const log = {
   },
 };
 
-// Знаки зодиака
-const ZODIAC_SIGNS = [
-  'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
-  'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
-];
+// Импортируем централизованные данные о знаках зодиака
+const { ZODIAC_SIGNS } = require('./zodiac-utils');
 
 // Планеты Swiss Ephemeris
 const PLANETS = {
@@ -136,7 +133,7 @@ export async function getCoordinates(placeName: string): Promise<Coordinates> {
  * getZodiacSign(45) // 'Taurus' (45° находится во втором знаке)
  * getZodiacSign(180) // 'Libra' (180° находится в седьмом знаке)
  */
-function getZodiacSign(degree: number): string {
+export function getZodiacSign(degree: number): string {
   // Нормализуем градус в диапазон 0-360
   let normalizedDegree = degree % 360;
   if (normalizedDegree < 0) {
@@ -150,9 +147,13 @@ function getZodiacSign(degree: number): string {
   // Обрабатываем граничный случай: ровно 360° или очень близко к 360°
   const finalIndex = signIndex >= 12 ? 0 : signIndex;
   
-  log.info(`[getZodiacSign] Degree: ${degree.toFixed(4)}, Normalized: ${normalizedDegree.toFixed(4)}, Sign Index: ${finalIndex}, Sign: ${ZODIAC_SIGNS[finalIndex]}`);
+  // Используем централизованный массив знаков
+  const { ZODIAC_SIGNS: signs } = require('./zodiac-utils');
+  const signName = signs[finalIndex];
   
-  return ZODIAC_SIGNS[finalIndex];
+  log.info(`[getZodiacSign] Degree: ${degree.toFixed(4)}, Normalized: ${normalizedDegree.toFixed(4)}, Sign Index: ${finalIndex}, Sign: ${signName}`);
+  
+  return signName;
 }
 
 /**
@@ -168,7 +169,7 @@ function getZodiacSign(degree: number): string {
  * getDegreeInSign(45) // 15 (45° - 30° = 15° в Тельце)
  * getDegreeInSign(180) // 0 (180° - 180° = 0° в Весах)
  */
-function getDegreeInSign(degree: number): number {
+export function getDegreeInSign(degree: number): number {
   const normalizedDegree = ((degree % 360) + 360) % 360;
   return normalizedDegree % 30;
 }
@@ -317,39 +318,35 @@ async function calculateAscendant(
  * calculateElement(positions) // 'Fire' (2 против 1)
  */
 function calculateElement(positions: PlanetPosition[]): string {
-  const elements: { [key: string]: string[] } = {
-    Fire: ['Aries', 'Leo', 'Sagittarius'],
-    Earth: ['Taurus', 'Virgo', 'Capricorn'],
-    Air: ['Gemini', 'Libra', 'Aquarius'],
-    Water: ['Cancer', 'Scorpio', 'Pisces']
-  };
+  // Используем централизованные данные о элементах для избежания дублирования
+  const { getElementForSign } = require('./zodiac-utils');
 
-  const counts: { [key: string]: number } = {
+  const elementCounts: { [key: string]: number } = {
     Fire: 0,
     Earth: 0,
     Air: 0,
     Water: 0
   };
 
-  positions.forEach(pos => {
-    for (const [element, signs] of Object.entries(elements)) {
-      if (signs.includes(pos.sign)) {
-        counts[element]++;
-        break;
-      }
+  // Подсчитываем элементы для каждой планеты
+  positions.forEach(position => {
+    const element = getElementForSign(position.sign as any);
+    if (element) {
+      elementCounts[element]++;
     }
   });
 
-  let maxElement = 'Fire';
+  // Находим элемент с максимальным количеством
+  let dominantElement = 'Fire';
   let maxCount = 0;
-  for (const [element, count] of Object.entries(counts)) {
+  for (const [element, count] of Object.entries(elementCounts)) {
     if (count > maxCount) {
       maxCount = count;
-      maxElement = element;
+      dominantElement = element;
     }
   }
 
-  return maxElement;
+  return dominantElement;
 }
 
 /**
@@ -362,21 +359,13 @@ function calculateElement(positions: PlanetPosition[]): string {
  * 
  * Реальный знак зодиака ВСЕГДА должен определяться по точной эклиптической долготе,
  * полученной из Swiss Ephemeris, как это делается в функции getZodiacSign().
+ * 
+ * @deprecated Используйте getApproximateSunSignByDate из lib/zodiac-utils.ts
  */
 function getExpectedSunSignByDate(year: number, month: number, day: number): string {
-  // Упрощённая логика для проверки (тропический зодиак, примерные даты)
-  if ((month === 3 && day >= 21) || (month === 4 && day <= 19)) return 'Aries';      // ~21 марта - 19 апреля
-  if ((month === 4 && day >= 20) || (month === 5 && day <= 20)) return 'Taurus';     // ~20 апреля - 20 мая
-  if ((month === 5 && day >= 21) || (month === 6 && day <= 20)) return 'Gemini';     // ~21 мая - 20 июня
-  if ((month === 6 && day >= 21) || (month === 7 && day <= 22)) return 'Cancer';     // ~21 июня - 22 июля
-  if ((month === 7 && day >= 23) || (month === 8 && day <= 22)) return 'Leo';        // ~23 июля - 22 августа
-  if ((month === 8 && day >= 23) || (month === 9 && day <= 22)) return 'Virgo';      // ~23 августа - 22 сентября
-  if ((month === 9 && day >= 23) || (month === 10 && day <= 22)) return 'Libra';     // ~23 сентября - 22 октября
-  if ((month === 10 && day >= 23) || (month === 11 && day <= 21)) return 'Scorpio';  // ~23 октября - 21 ноября
-  if ((month === 11 && day >= 22) || (month === 12 && day <= 21)) return 'Sagittarius'; // ~22 ноября - 21 декабря
-  if ((month === 12 && day >= 22) || (month === 1 && day <= 19)) return 'Capricorn'; // ~22 декабря - 19 января
-  if ((month === 1 && day >= 20) || (month === 2 && day <= 18)) return 'Aquarius';   // ~20 января - 18 февраля
-  return 'Pisces'; // ~19 февраля - 20 марта
+  // Импортируем централизованную функцию для избежания дублирования
+  const { getApproximateSunSignByDate } = require('./zodiac-utils');
+  return getApproximateSunSignByDate(year, month, day);
 }
 
 /**
@@ -395,22 +384,15 @@ function getExpectedSunSignByDate(year: number, month: number, day: number): str
  * calculateRulingPlanet('Aries') // 'Mars'
  * calculateRulingPlanet('Leo') // 'Sun'
  */
+/**
+ * Определение управляющей планеты
+ * 
+ * @deprecated Используйте getRulingPlanet из lib/zodiac-utils.ts
+ */
 function calculateRulingPlanet(sunSign: string): string {
-  const rulers: { [key: string]: string } = {
-    'Aries': 'Mars',
-    'Taurus': 'Venus',
-    'Gemini': 'Mercury',
-    'Cancer': 'Moon',
-    'Leo': 'Sun',
-    'Virgo': 'Mercury',
-    'Libra': 'Venus',
-    'Scorpio': 'Pluto',
-    'Sagittarius': 'Jupiter',
-    'Capricorn': 'Saturn',
-    'Aquarius': 'Uranus',
-    'Pisces': 'Neptune'
-  };
-  return rulers[sunSign] || 'Sun';
+  // Используем централизованную функцию для избежания дублирования
+  const { getRulingPlanet } = require('./zodiac-utils');
+  return getRulingPlanet(sunSign as any) || 'Sun';
 }
 
 /**
