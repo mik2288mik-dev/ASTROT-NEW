@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import Image from 'next/image';
+import NextImage from 'next/image';
 import { motion } from 'framer-motion';
 
 interface LoadingProps {
@@ -13,7 +13,8 @@ export const Loading: React.FC<LoadingProps> = ({ message, progress: externalPro
 
     useEffect(() => {
         // Проверяем наличие файла logo.png
-        const img = new Image();
+        if (typeof window === 'undefined') return;
+        const img = new window.Image();
         img.onload = () => {
             setLogoLoaded(true);
         };
@@ -74,7 +75,7 @@ export const Loading: React.FC<LoadingProps> = ({ message, progress: externalPro
                 >
                     {logoLoaded ? (
                         <div className="relative w-32 h-32">
-                            <Image 
+                            <NextImage 
                                 src="/logo.png" 
                                 alt="ASTROT" 
                                 width={128}
