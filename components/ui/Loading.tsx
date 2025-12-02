@@ -48,7 +48,7 @@ export const Loading: React.FC<LoadingProps> = ({ message, progress: externalPro
 
     return (
         <div className="fixed inset-0 flex flex-col items-center justify-center bg-astro-bg z-50 text-center px-4">
-            {/* Логотип с красивым крутящимся вращением */}
+            {/* Логотип с плавным вращением по часовой стрелке */}
             <motion.div
                 className="relative mb-8"
                 initial={{ opacity: 0, scale: 0.5 }}
@@ -61,13 +61,13 @@ export const Loading: React.FC<LoadingProps> = ({ message, progress: externalPro
                     scale: { duration: 0.5 },
                 }}
             >
-                {/* Крутящийся логотип */}
+                {/* Крутящийся логотип - как часовая стрелка */}
                 <motion.div
                     animate={{ 
                         rotate: 360
                     }}
                     transition={{ 
-                        duration: 3, 
+                        duration: 2, 
                         repeat: Infinity,
                         ease: "linear"
                     }}
@@ -89,19 +89,9 @@ export const Loading: React.FC<LoadingProps> = ({ message, progress: externalPro
                         </div>
                     ) : (
                         <div className="w-32 h-32 flex items-center justify-center">
-                            <motion.div
-                                className="text-6xl font-bold text-white font-serif"
-                                animate={{ 
-                                    rotate: 360
-                                }}
-                                transition={{ 
-                                    duration: 2, 
-                                    repeat: Infinity,
-                                    ease: "linear"
-                                }}
-                            >
+                            <div className="text-6xl font-bold text-white font-serif">
                                 A
-                            </motion.div>
+                            </div>
                         </div>
                     )}
                 </motion.div>
@@ -110,7 +100,7 @@ export const Loading: React.FC<LoadingProps> = ({ message, progress: externalPro
             {/* Сообщение загрузки */}
             {message && (
                 <motion.p 
-                    className="text-sm text-astro-subtext mb-6 uppercase tracking-wider"
+                    className="text-sm text-astro-subtext uppercase tracking-wider"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.3 }}
@@ -118,32 +108,6 @@ export const Loading: React.FC<LoadingProps> = ({ message, progress: externalPro
                     {message}
                 </motion.p>
             )}
-            
-            {/* Элегантная тонкая 1px строка загрузки под логотип */}
-            <div className="w-32 h-px bg-astro-border mb-8 relative overflow-hidden">
-                <motion.div 
-                    className="absolute inset-0 bg-gradient-to-r from-transparent via-astro-highlight to-transparent"
-                    initial={{ x: '-100%' }}
-                    animate={{ x: '200%' }}
-                    transition={{ 
-                        duration: 1.5,
-                        repeat: Infinity,
-                        ease: "easeInOut"
-                    }}
-                />
-            </div>
-            
-            {/* Прогресс-бар */}
-            <div className="w-64 max-w-full">
-                <div className="w-full h-2 bg-astro-card rounded-full overflow-hidden border border-astro-border">
-                    <motion.div 
-                        className="h-full bg-gradient-to-r from-astro-primary via-astro-accent to-astro-highlight rounded-full"
-                        initial={{ width: '0%' }}
-                        animate={{ width: `${progress}%` }}
-                        transition={{ duration: 0.2, ease: "easeOut" }}
-                    />
-                </div>
-            </div>
         </div>
     );
 };
