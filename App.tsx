@@ -27,6 +27,7 @@ const App: React.FC = () => {
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [chartData, setChartData] = useState<NatalChartData | null>(null);
     const [loading, setLoading] = useState(true);
+    const [loadingProgress, setLoadingProgress] = useState(0);
     const [view, setView] = useState<ViewState>('onboarding');
     const [showPremiumPreview, setShowPremiumPreview] = useState(false);
 
@@ -57,6 +58,7 @@ const App: React.FC = () => {
     useEffect(() => {
         const loadData = async () => {
             console.log('[App] Loading user data from database...');
+            setLoadingProgress(10);
             
             const tg = (window as any).Telegram?.WebApp;
             const tgUser = tg?.initDataUnsafe?.user;
@@ -64,15 +66,18 @@ const App: React.FC = () => {
 
             if (!tgId) {
                 console.log('[App] No Telegram user ID found, showing onboarding');
+                setLoadingProgress(100);
                 setLoading(false);
                 return;
             }
 
             try {
                 // Загружаем профиль из БД
+                setLoadingProgress(30);
                 const storedProfile = await getProfile();
                 
                 // Загружаем данные карты из БД
+                setLoadingProgress(50);
                 const storedChart = await getChartData();
 
                 console.log('[App] Loaded data from database:', {
@@ -105,7 +110,9 @@ const App: React.FC = () => {
                         // Натальная карта сохраняется в БД и просто отображается при входе
                         // Обновление контента натальной карты только через кнопку регенерации
                         console.log('[App] Setting chart data from database');
+                        setLoadingProgress(80);
                         setChartData(storedChart);
+                        setLoadingProgress(100);
                         setView('dashboard');
                         
                         // Обновляем ТОЛЬКО ежедневный гороскоп асинхронно (если нужно)
@@ -141,17 +148,21 @@ const App: React.FC = () => {
                     } else {
                         // Если карты нет в БД, но профиль есть - пересчитываем карту
                         console.log('[App] Chart not found in database, recalculating...');
+                        setLoadingProgress(60);
                         try {
                             const generatedChart = await calculateNatalChart(updatedProfile);
+                            setLoadingProgress(80);
                             if (generatedChart && generatedChart.sun) {
                                 setChartData(generatedChart);
                                 // Сохраняем пересчитанную карту в БД
                                 await saveChartData(generatedChart);
                                 console.log('[App] Chart recalculated and saved');
                             }
+                            setLoadingProgress(100);
                             setView('dashboard'); // Показываем Dashboard с космическим паспортом
                         } catch (error) {
                             console.error('[App] Error recalculating chart:', error);
+                            setLoadingProgress(100);
                             // При ошибке пересчета показываем onboarding
                             setView('onboarding');
                         }
@@ -159,14 +170,18 @@ const App: React.FC = () => {
                 } else {
                     // Если данных нет в БД - показываем форму ввода данных
                     console.log('[App] No user data found in database, showing onboarding form');
+                    setLoadingProgress(100);
                     setView('onboarding');
                 }
             } catch (error) {
                 console.error('[App] Error loading user data:', error);
+                setLoadingProgress(100);
                 // При ошибке загрузки показываем onboarding
                 setView('onboarding');
             } finally {
-                setLoading(false);
+                setTimeout(() => {
+                    setLoading(false);
+                }, 300); // Небольшая задержка для плавного перехода
             }
         };
         loadData();
@@ -192,10 +207,12 @@ const App: React.FC = () => {
 
         setProfile(fullProfile);
         setLoading(true);
+        setLoadingProgress(10);
         
         // Сохраняем данные только если пользователь отметил галочку "запомнить данные"
         if (fullProfile.isSetup) {
             try {
+                setLoadingProgress(20);
                 await saveProfile(fullProfile);
                 console.log('[App] Profile saved successfully');
             } catch (error) {
@@ -213,7 +230,9 @@ const App: React.FC = () => {
                 birthPlace: fullProfile.birthPlace
             });
             
+            setLoadingProgress(30);
             const generatedChart = await calculateNatalChart(fullProfile);
+            setLoadingProgress(70);
             
             if (!generatedChart || !generatedChart.sun) {
                 throw new Error('Invalid chart data received');
@@ -226,6 +245,7 @@ const App: React.FC = () => {
             });
             
             setChartData(generatedChart);
+            setLoadingProgress(80);
             
             // Сохраняем карту только если пользователь отметил галочку "запомнить данные"
             if (fullProfile.isSetup) {
@@ -239,6 +259,7 @@ const App: React.FC = () => {
                 
                 // НОВОЕ: Генерируем ВСЕ данные сразу при первом входе
                 console.log('[App] Generating all content for first-time user...');
+                setLoadingProgress(85);
                 try {
                     const allContent = await generateAllContent(fullProfile, generatedChart);
                     fullProfile.generatedContent = allContent;
@@ -247,6 +268,7 @@ const App: React.FC = () => {
                     await saveProfile(fullProfile);
                     setProfile(fullProfile);
                     console.log('[App] All content generated and saved successfully');
+                    setLoadingProgress(95);
                 } catch (error) {
                     console.error('[App] Failed to generate all content:', error);
                     // Не прерываем процесс, если генерация не удалась
@@ -255,8 +277,11 @@ const App: React.FC = () => {
                 console.log('[App] User chose not to save data, skipping content generation');
             }
             
+            setLoadingProgress(100);
             // Funnel: Onboarding -> Hook -> Dashboard (not Paywall)
-            setView('hook'); 
+            setTimeout(() => {
+                setView('hook');
+            }, 300); 
         } catch (error: any) {
             console.error("[App] Error calculating natal chart:", error);
             console.error("[App] Error details:", {
@@ -272,7 +297,10 @@ const App: React.FC = () => {
             // Возвращаемся к onboarding, чтобы пользователь мог попробовать снова
             setView('onboarding');
         } finally {
-            setLoading(false);
+            setLoadingProgress(100);
+            setTimeout(() => {
+                setLoading(false);
+            }, 300);
         }
     };
 
@@ -325,7 +353,7 @@ const App: React.FC = () => {
     };
 
     if (loading) {
-        return <Loading message={getText(profile?.language || 'ru', 'loading')} />;
+        return <Loading message={getText(profile?.language || 'ru', 'loading')} progress={loadingProgress} />;
     }
 
     if (!profile || view === 'onboarding') {
