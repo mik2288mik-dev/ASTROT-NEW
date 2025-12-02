@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { UserProfile, SynastryResult } from '../types';
 import { getOrGenerateSynastry } from '../services/contentGenerationService';
-import { getText } from '../constants';
+import { getText, getZodiacSign } from '../constants';
 import { motion } from 'framer-motion';
 import { Loading } from '../components/ui/Loading';
+import { getApproximateSunSignByDate } from '../lib/zodiac-utils';
 
 interface SynastryProps {
     profile: UserProfile;
@@ -19,6 +20,20 @@ export const Synastry: React.FC<SynastryProps> = ({ profile, requestPremium }) =
     const [result, setResult] = useState<SynastryResult | null>(null);
     const [loading, setLoading] = useState(false);
     const [analysisMode, setAnalysisMode] = useState<'brief' | 'full'>('brief');
+    
+    // Вычисляем предполагаемый знак зодиака партнера
+    const partnerZodiacSign = useMemo(() => {
+        if (!partnerDate) return null;
+        try {
+            const [year, month, day] = partnerDate.split('-').map(Number);
+            if (!year || !month || !day) return null;
+            const sign = getApproximateSunSignByDate(year, month, day);
+            const signTranslated = getZodiacSign(profile.language, sign);
+            return { sign: signTranslated, signEn: sign };
+        } catch {
+            return null;
+        }
+    }, [partnerDate, profile.language]);
 
     const handleCalculate = async (mode: 'brief' | 'full') => {
         if (!partnerName || !partnerDate) return;
@@ -96,6 +111,15 @@ export const Synastry: React.FC<SynastryProps> = ({ profile, requestPremium }) =
                                 onChange={(e) => setPartnerDate(e.target.value)}
                                 className="w-full bg-astro-card border-2 border-astro-border rounded-2xl p-4 outline-none focus:border-astro-highlight transition-colors text-astro-text text-lg"
                             />
+                            {partnerZodiacSign && (
+                                <motion.div 
+                                    initial={{ opacity: 0, y: -5 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="mt-3 text-sm text-astro-highlight"
+                                >
+                                    ✨ {profile.language === 'ru' ? 'Знак зодиака партнера:' : 'Partner\'s zodiac sign:'} <span className="font-bold">{partnerZodiacSign.sign}</span> ({partnerZodiacSign.signEn})
+                                </motion.div>
+                            )}
                         </div>
 
                         {/* Дополнительные поля */}

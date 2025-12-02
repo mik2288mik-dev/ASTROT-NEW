@@ -575,6 +575,10 @@ export async function calculateNatalChart(
     // Вычисляем смещение часового пояса для логирования
     const tzOffset = coords.lon / 15.0;
     
+    // Вычисляем эклиптическую долготу Солнца для детального логирования
+    const sunResult = swe.swe_calc_ut(julianDay, PLANETS.SUN, 258);
+    const sunLongitude = sunResult ? sunResult[0] : null;
+    
     if (!signMatch) {
       log.warn(`[VALIDATION] ⚠️ Sun sign mismatch detected!`, {
         calculated: sun.sign,
@@ -582,13 +586,20 @@ export async function calculateNatalChart(
         date: `${birthYear}-${birthMonth}-${birthDay}`,
         time: `${birthHour}:${birthMinute}`,
         birthPlace,
+        coordinates: { lat: coords.lat, lon: coords.lon },
+        sunLongitude: sunLongitude ? sunLongitude.toFixed(6) : 'N/A',
         sunDegreeInSign: sun.degree.toFixed(2),
         sunPosition: `${sun.degree.toFixed(2)}° ${sun.sign}`,
         timezoneOffset: tzOffset.toFixed(2),
+        julianDay: julianDay.toFixed(6),
         note: 'This might indicate a timezone or calculation issue. The sign is calculated correctly based on ecliptic longitude, but may differ from simplified date ranges.'
       });
     } else {
-      log.info(`[VALIDATION] ✓ Sun sign matches expected value for date`);
+      log.info(`[VALIDATION] ✓ Sun sign matches expected value for date`, {
+        sunSign: sun.sign,
+        sunLongitude: sunLongitude ? sunLongitude.toFixed(6) : 'N/A',
+        date: `${birthYear}-${birthMonth}-${birthDay}`
+      });
     }
 
     log.info('🌟 Natal chart calculated successfully with Swiss Ephemeris WASM', {

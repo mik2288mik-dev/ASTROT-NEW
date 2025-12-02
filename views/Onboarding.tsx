@@ -1,7 +1,9 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { UserProfile } from '../types';
 import { motion } from 'framer-motion';
+import { getApproximateSunSignByDate } from '../lib/zodiac-utils';
+import { getZodiacSign } from '../constants';
 
 interface OnboardingProps {
     onComplete: (profile: UserProfile) => void;
@@ -14,6 +16,21 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     const [time, setTime] = useState("");
     const [place, setPlace] = useState("");
     const [rememberData, setRememberData] = useState(true);
+    
+    // Вычисляем предполагаемый знак зодиака на основе выбранной даты
+    const predictedZodiacSign = useMemo(() => {
+        if (!date) return null;
+        try {
+            const [year, month, day] = date.split('-').map(Number);
+            if (!year || !month || !day) return null;
+            const sign = getApproximateSunSignByDate(year, month, day);
+            const signRu = getZodiacSign('ru', sign);
+            const signEn = sign;
+            return { ru: signRu, en: signEn };
+        } catch {
+            return null;
+        }
+    }, [date]);
 
     // Telegram integration
     useEffect(() => {
@@ -119,6 +136,15 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                                     onChange={(e) => setDate(e.target.value)}
                                     className="w-full bg-transparent border-b border-astro-border py-3 text-xl text-astro-text focus:border-astro-highlight outline-none font-serif"
                                 />
+                                {predictedZodiacSign && (
+                                    <motion.div 
+                                        initial={{ opacity: 0, y: -5 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="mt-3 text-sm text-astro-highlight"
+                                    >
+                                        ✨ Ваш знак зодиака: <span className="font-bold">{predictedZodiacSign.ru}</span> ({predictedZodiacSign.en})
+                                    </motion.div>
+                                )}
                             </div>
                             <div>
                                 <label className="block text-[10px] uppercase tracking-widest font-bold text-astro-subtext mb-3">
