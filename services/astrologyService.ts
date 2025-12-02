@@ -123,38 +123,9 @@ export const calculateNatalChart = async (profile: UserProfile): Promise<NatalCh
       name: error.name
     });
     
-    // Не используем fallback для ошибок валидации или сетевых ошибок
-    // Пробрасываем ошибку дальше, чтобы App.tsx мог обработать её правильно
-    if (error.message && (error.message.includes('валидации') || error.message.includes('Failed to calculate'))) {
-      throw error;
-    }
-    
-    log.warn('[calculateNatalChart] Falling back to mock data');
-    // Fallback to mock data only for unexpected errors
-    return generateMockNatalChart(profile);
+    // Всегда пробрасываем ошибку - не используем mock данные
+    throw error;
   }
-};
-
-/**
- * Generate mock natal chart as fallback
- */
-const generateMockNatalChart = (profile: UserProfile): NatalChartData => {
-  const signs = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
-  const randomSign = () => signs[Math.floor(Math.random() * signs.length)];
-  const elements = ['Fire', 'Water', 'Air', 'Earth'];
-  const planets = ['Mars', 'Venus', 'Mercury', 'Moon', 'Sun', 'Jupiter'];
-  
-  return {
-    sun: { planet: 'Sun', sign: randomSign(), description: 'Your core essence and identity.' },
-    moon: { planet: 'Moon', sign: randomSign(), description: 'Your emotional nature and inner self.' },
-    rising: { planet: 'Ascendant', sign: randomSign(), description: 'Your outer personality and first impressions.' },
-    mercury: { planet: 'Mercury', sign: randomSign(), description: 'Your communication style and thinking patterns.' },
-    venus: { planet: 'Venus', sign: randomSign(), description: 'Your love language and values.' },
-    mars: { planet: 'Mars', sign: randomSign(), description: 'Your drive and passion.' },
-    element: elements[Math.floor(Math.random() * elements.length)],
-    rulingPlanet: planets[Math.floor(Math.random() * planets.length)],
-    summary: `This is a mystical reading for ${profile.name}. The stars reveal a complex and beautiful soul journey.`
-  };
 };
 
 export const getThreeKeys = async (profile: UserProfile, chartData: NatalChartData): Promise<ThreeKeys> => {
@@ -195,69 +166,12 @@ export const getThreeKeys = async (profile: UserProfile, chartData: NatalChartDa
       error: error.message,
       stack: error.stack
     });
-    log.warn('[getThreeKeys] Falling back to personalized mock data');
-    // Fallback to personalized mock data based on chart
-    return generatePersonalizedThreeKeysFallback(profile, chartData);
+    // Пробрасываем ошибку вместо fallback
+    throw error;
   }
 };
 
-// Генерирует персонализированные три ключа на основе натальной карты (fallback)
-function generatePersonalizedThreeKeysFallback(profile: UserProfile, chartData: NatalChartData): ThreeKeys {
-  const lang = profile.language === 'ru';
-  const sunSign = chartData.sun?.sign || 'Aries';
-  const moonSign = chartData.moon?.sign || 'Cancer';
-  const element = chartData.element || 'Fire';
-  const venusSign = chartData.venus?.sign || sunSign;
-  const marsSign = chartData.mars?.sign || sunSign;
-
-  // Энергия на основе элемента и знаков
-  const energyTexts: Record<string, { ru: string, en: string }> = {
-    'Fire': {
-      ru: `Твоя энергия ${sunSign} с Луной в ${moonSign} создает мощный огонь внутри. Ты вдохновляешь и ведешь других вперед.`,
-      en: `Your ${sunSign} energy with Moon in ${moonSign} creates a powerful inner fire. You inspire and lead others forward.`
-    },
-    'Water': {
-      ru: `Твоя энергия ${sunSign} с Луной в ${moonSign} течет как река эмоций. Твоя интуиция - твоя сверхсила.`,
-      en: `Your ${sunSign} energy with Moon in ${moonSign} flows like a river of emotions. Your intuition is your superpower.`
-    },
-    'Air': {
-      ru: `Твоя энергия ${sunSign} с Луной в ${moonSign} легка как ветер. Твои идеи меняют мир вокруг тебя.`,
-      en: `Your ${sunSign} energy with Moon in ${moonSign} is light as wind. Your ideas change the world around you.`
-    },
-    'Earth': {
-      ru: `Твоя энергия ${sunSign} с Луной в ${moonSign} тверда как скала. Ты создаешь прочный фундамент для своей жизни.`,
-      en: `Your ${sunSign} energy with Moon in ${moonSign} is solid as rock. You create a strong foundation for your life.`
-    }
-  };
-
-  // Стиль любви на основе Венеры
-  const loveText = lang 
-    ? `В любви твоя Венера в ${venusSign} с Луной в ${moonSign} создает уникальный стиль отношений. Ты ищешь то, что резонирует с твоей душой.`
-    : `In love your Venus in ${venusSign} with Moon in ${moonSign} creates a unique relationship style. You seek what resonates with your soul.`;
-
-  // Карьера на основе Солнца и Марса
-  const careerText = lang
-    ? `Твоя карьера определяется Солнцем в ${sunSign} и Марсом в ${marsSign}. Твой путь уникален и ведет к самореализации.`
-    : `Your career is defined by Sun in ${sunSign} and Mars in ${marsSign}. Your path is unique and leads to self-actualization.`;
-
-  return {
-    key1: {
-      title: lang ? 'ТВОЯ ЭНЕРГИЯ' : 'YOUR ENERGY',
-      text: energyTexts[element]?.[lang ? 'ru' : 'en'] || energyTexts['Fire'][lang ? 'ru' : 'en'],
-      advice: []
-    },
-    key2: {
-      title: lang ? 'ТВОЙ СТИЛЬ ЛЮБВИ' : 'YOUR LOVE STYLE',
-      text: loveText,
-      advice: []
-    },
-    key3: {
-      title: lang ? 'ТВОЯ КАРЬЕРА' : 'YOUR CAREER',
-      text: careerText,
-      advice: []
-    }
-  };
-}
+// УДАЛЕНО: generatePersonalizedThreeKeysFallback - больше не используем fallback данные
 
 /**
  * Краткий обзор синастрии (бесплатный) - тизер для всех пользователей
@@ -315,38 +229,8 @@ export const calculateBriefSynastry = async (
       error: error.message,
       stack: error.stack
     });
-    log.warn('[calculateBriefSynastry] Falling back to mock data');
-    // Fallback to mock data
-    const lang = profile.language === 'ru';
-    return {
-      briefOverview: {
-        introduction: lang 
-          ? `${profile.name} и ${partnerName} создают интересную динамику в отношениях. Каждый привносит свои уникальные качества.`
-          : `${profile.name} and ${partnerName} create interesting dynamics. Each brings unique qualities.`,
-        harmony: lang
-          ? 'В этой связи есть естественное понимание друг друга. Вы оба цените искренность и открытость.'
-          : 'There is natural understanding in this connection. You both value honesty and openness.',
-        challenges: lang
-          ? 'Иногда может возникать недопонимание из-за разных темпераментов. Важно давать друг другу пространство.'
-          : 'Sometimes misunderstandings may arise due to different temperaments. It\'s important to give each other space.',
-        tips: lang
-          ? [
-              'Слушайте друг друга внимательно',
-              'Цените различия как возможность для роста',
-              'Находите компромиссы в спорных вопросах',
-              'Поддерживайте открытую коммуникацию'
-            ]
-          : [
-              'Listen to each other attentively',
-              'Value differences as opportunities for growth',
-              'Find compromises in disputed matters',
-              'Maintain open communication'
-            ]
-      },
-      summary: lang
-        ? `Краткий обзор совместимости между ${profile.name} и ${partnerName}.`
-        : `Brief compatibility overview between ${profile.name} and ${partnerName}.`
-    };
+    // Пробрасываем ошибку вместо fallback
+    throw error;
   }
 };
 
@@ -406,31 +290,8 @@ export const calculateFullSynastry = async (
       error: error.message,
       stack: error.stack
     });
-    log.warn('[calculateFullSynastry] Falling back to mock data');
-    // Fallback to mock data
-    const lang = profile.language === 'ru';
-    return {
-      fullAnalysis: {
-        generalTheme: lang 
-          ? `Ваша связь с ${partnerName} создаёт особую атмосферу взаимного роста и понимания.`
-          : `Your connection with ${partnerName} creates a special atmosphere of mutual growth and understanding.`,
-        attraction: lang
-          ? 'Вас притягивает друг к другу естественная гармония характеров.'
-          : 'You are attracted to each other by the natural harmony of characters.',
-        difficulties: lang
-          ? 'Иногда ваши разные темпы жизни могут создавать напряжение.'
-          : 'Sometimes your different life paces can create tension.',
-        recommendations: lang
-          ? ['Проговаривайте свои чувства', 'Давайте друг другу пространство', 'Находите общие цели']
-          : ['Express your feelings', 'Give each other space', 'Find common goals'],
-        potential: lang
-          ? 'Эта связь может стать источником глубокого личностного роста.'
-          : 'This connection can become a source of deep personal growth.'
-      },
-      summary: lang
-        ? `Глубокий анализ совместимости между ${profile.name} и ${partnerName}.`
-        : `Deep compatibility analysis between ${profile.name} and ${partnerName}.`
-    };
+    // Пробрасываем ошибку вместо fallback
+    throw error;
   }
 };
 
@@ -473,24 +334,8 @@ export const getDailyHoroscope = async (profile: UserProfile, chartData: NatalCh
       error: error.message,
       stack: error.stack
     });
-    log.warn('[getDailyHoroscope] Falling back to mock data');
-    // Fallback to mock data
-    const lang = profile.language === 'ru';
-    return {
-      date: new Date().toISOString().split('T')[0],
-      mood: lang ? 'Вдохновленный' : 'Inspired',
-      color: 'Purple',
-      number: 7,
-      content: lang
-        ? 'Сегодня звезды благоприятствуют новым начинаниям.'
-        : 'Today the stars favor new beginnings.',
-      moonImpact: lang
-        ? 'Луна в вашем знаке усиливает интуицию.'
-        : 'Moon in your sign enhances intuition.',
-      transitFocus: lang
-        ? 'Меркурий способствует общению.'
-        : 'Mercury favors communication.'
-    };
+    // Пробрасываем ошибку вместо fallback
+    throw error;
   }
 };
 
@@ -631,16 +476,8 @@ export const getWeeklyHoroscope = async (profile: UserProfile, chartData: NatalC
       error: error.message,
       stack: error.stack
     });
-    log.warn('[getWeeklyHoroscope] Falling back to mock data');
-    // Fallback to mock data
-    const lang = profile.language === 'ru';
-    return {
-      weekRange: `${new Date().toLocaleDateString()} - ${new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString()}`,
-      theme: lang ? 'Новые возможности' : 'New Opportunities',
-      advice: lang ? 'Эта неделя принесет важные изменения.' : 'This week will bring important changes.',
-      love: lang ? 'В отношениях наступит период гармонии.' : 'A period of harmony in relationships.',
-      career: lang ? 'Профессиональный рост ожидается.' : 'Professional growth is expected.'
-    };
+    // Пробрасываем ошибку вместо fallback
+    throw error;
   }
 };
 
@@ -682,18 +519,8 @@ export const getMonthlyHoroscope = async (profile: UserProfile, chartData: Natal
       error: error.message,
       stack: error.stack
     });
-    log.warn('[getMonthlyHoroscope] Falling back to mock data');
-    // Fallback to mock data
-    const lang = profile.language === 'ru';
-    const month = new Date().toLocaleString(lang ? 'ru' : 'en', { month: 'long' });
-    return {
-      month,
-      theme: lang ? 'Трансформация' : 'Transformation',
-      focus: lang ? 'Личностный рост и развитие' : 'Personal growth and development',
-      content: lang
-        ? `Этот месяц ${month} принесет важные изменения в вашей жизни.`
-        : `This ${month} will bring important changes to your life.`
-    };
+    // Пробрасываем ошибку вместо fallback
+    throw error;
   }
 };
 

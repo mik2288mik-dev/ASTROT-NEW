@@ -148,7 +148,9 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
     };
 
     // The 3 Keys (From Profile) - обновляемые при регенерации
-    const [keys, setKeys] = useState(profile.threeKeys || {
+    // Используем generatedContent.threeKeys как основной источник, profile.threeKeys как fallback
+    const threeKeysSource = profile.generatedContent?.threeKeys || profile.threeKeys;
+    const [keys, setKeys] = useState(threeKeysSource || {
         key1: { title: getText(profile.language, 'hook.key1_title'), text: "...", advice: [] },
         key2: { title: getText(profile.language, 'hook.key2_title'), text: "...", advice: [] },
         key3: { title: getText(profile.language, 'hook.key3_title'), text: "...", advice: [] },

@@ -6,6 +6,8 @@
 import SwissEPH from 'sweph-wasm';
 import axios from 'axios';
 import path from 'path';
+import tzLookup from 'tz-lookup';
+import { zonedTimeToUtc, utcToZonedTime } from 'date-fns-tz';
 
 // Logging utility
 const log = {
@@ -21,7 +23,8 @@ const log = {
 };
 
 // Импортируем централизованные данные о знаках зодиака
-const { ZODIAC_SIGNS } = require('./zodiac-utils');
+const { ZODIAC_SIGNS, getElementForSign: getElementForSignUtil, getRulingPlanet: getRulingPlanetUtil } = require('./zodiac-utils');
+import type { ZodiacSign } from './zodiac-utils';
 
 // Планеты Swiss Ephemeris
 const PLANETS = {
@@ -51,7 +54,8 @@ interface PlanetPosition {
 }
 
 // Глобальная инициализация Swiss Ephemeris
-let sweInstance: any = null;
+// Тип из sweph-wasm может быть любым, но мы используем его методы
+let sweInstance: ReturnType<typeof SwissEPH.init> extends Promise<infer T> ? T : never | null = null;
 let isInitialized = false;
 
 /**
@@ -84,11 +88,63 @@ async function initSwissEph() {
 }
 
 /**
- * Получение координат по названию места через геокодинг
+ * Конвертирует локальное время в UTC с учетом реального часового пояса
+ * Использует date-fns-tz для точной конвертации
+ * 
+ * @param year - Год рождения
+ * @param month - Месяц рождения (1-12)
+ * @param day - День рождения (1-31)
+ * @param hour - Час рождения (0-23)
+ * @param minute - Минута рождения (0-59)
+ * @param timezone - Название часового пояса (например, 'Europe/Moscow', 'America/New_York')
+ * @returns Объект с UTC временем и скорректированной датой
+ */
+function convertLocalTimeToUTC(
+  year: number,
+  month: number,
+  day: number,
+  hour: number,
+  minute: number,
+  timezone: string
+): { utcYear: number; utcMonth: number; utcDay: number; utcHour: number; utcMinute: number; utcTimeInHours: number } {
+  try {
+    // Создаем строку даты и времени в формате ISO (локальное время в указанном часовом поясе)
+    const localDateString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
+    
+    // Создаем Date объект из локального времени (интерпретируем как локальное в указанном часовом поясе)
+    const localDate = new Date(localDateString);
+    
+    // Конвертируем локальное время в указанном часовом поясе в UTC
+    const utcDate = zonedTimeToUtc(localDate, timezone);
+    
+    // Извлекаем компоненты UTC даты
+    const utcYear = utcDate.getUTCFullYear();
+    const utcMonth = utcDate.getUTCMonth() + 1; // getUTCMonth() возвращает 0-11
+    const utcDay = utcDate.getUTCDate();
+    const utcHour = utcDate.getUTCHours();
+    const utcMinute = utcDate.getUTCMinutes();
+    const utcTimeInHours = utcHour + utcMinute / 60.0;
+    
+    log.info('Converted local time to UTC', {
+      local: { year, month, day, hour, minute },
+      timezone,
+      utc: { utcYear, utcMonth, utcDay, utcHour, utcMinute, utcTimeInHours: utcTimeInHours.toFixed(4) }
+    });
+    
+    return { utcYear, utcMonth, utcDay, utcHour, utcMinute, utcTimeInHours };
+  } catch (error: any) {
+    log.error('Error converting local time to UTC', { error: error.message, timezone, year, month, day, hour, minute });
+    throw new Error(`Failed to convert time with timezone ${timezone}: ${error.message}`);
+  }
+}
+
+/**
+ * Получение координат и часового пояса по названию места через геокодинг
+ * Использует точное определение часового пояса через tz-lookup
  */
 export async function getCoordinates(placeName: string): Promise<Coordinates> {
   try {
-    log.info('Getting coordinates for place', { placeName });
+    log.info('Getting coordinates and timezone for place', { placeName });
     
     const url = 'https://nominatim.openstreetmap.org/search';
     const response = await axios.get(url, {
@@ -111,9 +167,19 @@ export async function getCoordinates(placeName: string): Promise<Coordinates> {
     const lat = parseFloat(location.lat);
     const lon = parseFloat(location.lon);
 
-    log.info('Coordinates found', { lat, lon, placeName });
+    // Точное определение часового пояса по координатам
+    let timezone: string;
+    try {
+      timezone = tzLookup(lat, lon);
+      log.info('Timezone determined accurately', { lat, lon, timezone, placeName });
+    } catch (tzError: any) {
+      log.warn('Failed to determine timezone, using UTC', { error: tzError.message });
+      timezone = 'UTC';
+    }
 
-    return { lat, lon, timezone: 'UTC' };
+    log.info('Coordinates and timezone found', { lat, lon, timezone, placeName });
+
+    return { lat, lon, timezone };
   } catch (error: any) {
     log.error('Error getting coordinates', error);
     throw new Error(`Failed to get coordinates for ${placeName}: ${error.message}`);
@@ -208,7 +274,7 @@ function getPlanetDescription(planetName: string): string {
  * // { planet: 'Sun', sign: 'Aries', degree: 15.5, description: '...' }
  */
 async function calculatePlanetPosition(
-  swe: any,
+  swe: NonNullable<typeof sweInstance>,
   julday: number,
   planetId: number,
   planetName: string
@@ -263,7 +329,7 @@ async function calculatePlanetPosition(
  * // { planet: 'Ascendant', sign: 'Leo', degree: 12.3, description: '...' }
  */
 async function calculateAscendant(
-  swe: any,
+  swe: NonNullable<typeof sweInstance>,
   julday: number,
   lat: number,
   lon: number
@@ -330,7 +396,7 @@ function calculateElement(positions: PlanetPosition[]): string {
 
   // Подсчитываем элементы для каждой планеты
   positions.forEach(position => {
-    const element = getElementForSign(position.sign as any);
+      const element = getElementForSign(position.sign as ZodiacSign);
     if (element) {
       elementCounts[element]++;
     }
@@ -432,12 +498,24 @@ function calculateRulingPlanet(sunSign: string): string {
  * console.log(chart.sun.sign); // 'Taurus'
  * console.log(chart.element); // 'Earth'
  */
+export interface NatalChartResult {
+  sun: PlanetPosition;
+  moon: PlanetPosition;
+  rising: PlanetPosition;
+  mercury: PlanetPosition | null;
+  venus: PlanetPosition | null;
+  mars: PlanetPosition | null;
+  element: string;
+  rulingPlanet: string;
+  summary: string;
+}
+
 export async function calculateNatalChart(
   name: string,
   birthDate: string,
   birthTime: string,
   birthPlace: string
-): Promise<any> {
+): Promise<NatalChartResult> {
   try {
     log.info('Starting natal chart calculation with Swiss Ephemeris WASM', {
       name,
@@ -474,60 +552,29 @@ export async function calculateNatalChart(
       }
     }
 
-    // Конвертируем локальное время в UTC с учетом временной зоны
-    // Вычисляем примерное смещение часового пояса на основе долготы
-    // (приблизительно: 15 градусов долготы = 1 час)
-    const timezoneOffsetHours = coords.lon / 15.0;
-    
-    // Конвертируем локальное время в UTC (десятичные часы)
-    const localTimeInHours = birthHour + birthMinute / 60.0;
-    let utcTimeInHours = localTimeInHours - timezoneOffsetHours;
-    
-    // Корректируем день если время вышло за пределы суток
-    let adjustedDay = birthDay;
-    let adjustedMonth = birthMonth;
-    let adjustedYear = birthYear;
-    
-    // Корректируем дату если UTC время вышло за пределы суток
-    if (utcTimeInHours < 0) {
-      utcTimeInHours += 24;
-      adjustedDay -= 1;
-      if (adjustedDay < 1) {
-        adjustedMonth -= 1;
-        if (adjustedMonth < 1) {
-          adjustedMonth = 12;
-          adjustedYear -= 1;
-        }
-        // Упрощенная логика для последнего дня месяца
-        const daysInMonth = new Date(adjustedYear, adjustedMonth, 0).getDate();
-        adjustedDay = daysInMonth;
-      }
-    } else if (utcTimeInHours >= 24) {
-      utcTimeInHours -= 24;
-      adjustedDay += 1;
-      const daysInMonth = new Date(adjustedYear, adjustedMonth, 0).getDate();
-      if (adjustedDay > daysInMonth) {
-        adjustedDay = 1;
-        adjustedMonth += 1;
-        if (adjustedMonth > 12) {
-          adjustedMonth = 1;
-          adjustedYear += 1;
-        }
-      }
-    }
+    // Конвертируем локальное время в UTC с учетом реального часового пояса
+    // Используем точную библиотеку date-fns-tz вместо приблизительного расчета
+    const { utcYear, utcMonth, utcDay, utcHour, utcMinute, utcTimeInHours } = convertLocalTimeToUTC(
+      birthYear,
+      birthMonth,
+      birthDay,
+      birthHour,
+      birthMinute,
+      coords.timezone
+    );
     
     // Конвертируем в Julian Day используя Swiss Ephemeris
     // Параметр 1 означает использование григорианского календаря
-    const julianDay = swe.swe_julday(adjustedYear, adjustedMonth, adjustedDay, utcTimeInHours, 1);
+    const julianDay = swe.swe_julday(utcYear, utcMonth, utcDay, utcTimeInHours, 1);
     
-    log.info('Calculated Julian Day with timezone correction', { 
+    log.info('Calculated Julian Day with accurate timezone conversion', { 
       inputDate: `${birthYear}-${birthMonth}-${birthDay}`,
       inputTime: `${birthHour}:${birthMinute}`,
       coordinates: { lat: coords.lat, lon: coords.lon },
-      timezoneOffsetHours: timezoneOffsetHours.toFixed(2),
-      localTime: localTimeInHours.toFixed(4),
-      utcTime: utcTimeInHours.toFixed(4),
-      adjustedDate: `${adjustedYear}-${adjustedMonth}-${adjustedDay}`,
+      timezone: coords.timezone,
+      localTime: `${birthHour}:${birthMinute}`,
+      utcTime: `${utcHour}:${utcMinute} (${utcTimeInHours.toFixed(4)} hours)`,
+      utcDate: `${utcYear}-${utcMonth}-${utcDay}`,
       julianDay: julianDay.toFixed(6)
     });
 
@@ -541,10 +588,7 @@ export async function calculateNatalChart(
       calculateAscendant(swe, julianDay, coords.lat, coords.lon)
     ]);
 
-    // Проверяем что основные планеты рассчитаны
-    if (!sun || !moon || !ascendant) {
-      throw new Error('Failed to calculate essential planets');
-    }
+    // Проверка уже выполнена выше при создании chartData
 
     // Определяем элемент и управляющую планету
     const positions = [sun, moon, ascendant].filter(p => p !== null) as PlanetPosition[];
@@ -555,73 +599,57 @@ export async function calculateNatalChart(
     const element = calculateElement(positions);
     const rulingPlanet = calculateRulingPlanet(sun.sign);
 
-    const chartData = {
+    // Проверяем что основные планеты не null
+    if (!sun || !moon || !ascendant) {
+      throw new Error('Failed to calculate essential planets: sun, moon, or ascendant is null');
+    }
+
+    const chartData: NatalChartResult = {
       sun,
       moon,
       rising: ascendant,
-      mercury,
-      venus,
-      mars,
+      mercury: mercury || null,
+      venus: venus || null,
+      mars: mars || null,
       element,
       rulingPlanet,
       summary: `Natal chart for ${name}, born on ${birthDate} at ${birthTime || '12:00'} in ${birthPlace}. Your chart reveals a ${element} dominant personality with ${sun.sign} Sun, ${moon.sign} Moon, and ${ascendant.sign} Rising.`
     };
 
     // Валидация: проверяем, что знак Солнца соответствует ожидаемому для даты рождения
-    // Это поможет выявить и исправить проблемы с расчетом, вызванные приближенным учетом часового пояса
+    // Теперь используем точный часовой пояс, поэтому несоответствие должно быть редким
     const expectedSignByDate = getExpectedSunSignByDate(birthYear, birthMonth, birthDay);
     const signMatch = sun.sign === expectedSignByDate;
-    
-    // Вычисляем смещение часового пояса для логирования
-    const tzOffset = coords.lon / 15.0;
     
     // Вычисляем эклиптическую долготу Солнца для детального логирования
     const sunResult = swe.swe_calc_ut(julianDay, PLANETS.SUN, 258);
     const sunLongitude = sunResult ? sunResult[0] : null;
     
-    // Если знак не совпадает с ожидаемым по дате, это указывает на проблему с часовым поясом
-    // (например, для Амстердама используется приближение 0.33 ч вместо реального UTC+1)
-    // Исправляем знак на ожидаемый и пересчитываем связанные значения
+    // Логируем результат валидации (теперь с точным часовым поясом несоответствия должны быть редкими)
     if (!signMatch) {
-      log.warn(`[ADJUST] Sun sign mismatch detected. Adjusting calculated sign from ${sun.sign} to expected ${expectedSignByDate}.`, {
+      log.warn(`[VALIDATION] Sun sign mismatch detected. This may be due to time of day or edge case.`, {
         calculated: sun.sign,
         expectedByDate: expectedSignByDate,
         date: `${birthYear}-${birthMonth}-${birthDay}`,
         time: `${birthHour}:${birthMinute}`,
+        utcTime: `${utcHour}:${utcMinute}`,
         birthPlace,
+        timezone: coords.timezone,
         coordinates: { lat: coords.lat, lon: coords.lon },
         sunLongitude: sunLongitude ? sunLongitude.toFixed(6) : 'N/A',
         sunDegreeInSign: sun.degree.toFixed(2),
-        sunPosition: `${sun.degree.toFixed(2)}° ${sun.sign} → ${expectedSignByDate}`,
-        timezoneOffset: tzOffset.toFixed(2),
+        sunPosition: `${sun.degree.toFixed(2)}° ${sun.sign}`,
         julianDay: julianDay.toFixed(6),
-        note: 'This mismatch is likely caused by approximate timezone calculation (lon/15.0). Adjusting sign to expected value based on date.'
+        note: 'Using accurate timezone conversion. Mismatch may be due to time of day near sign boundary.'
       });
-      
-      // Корректируем знак Солнца на ожидаемый
-      sun.sign = expectedSignByDate;
-      
-      // Пересчитываем градус внутри знака на основе эклиптической долготы и нового знака
-      // Если долгота была вычислена неправильно из-за ошибки в часовом поясе,
-      // градус может быть неточным, но мы оставляем его как есть, так как
-      // основная проблема была в определении знака
-      
-      // Обновляем управитель на основе исправленного знака
-      const correctedRulingPlanet = calculateRulingPlanet(sun.sign);
-      chartData.rulingPlanet = correctedRulingPlanet;
-      
-      // Пересчитываем доминирующий элемент, так как смена знака Солнца могла изменить распределение стихий
-      const updatedPositions = [sun, moon, ascendant, mercury, venus, mars].filter(Boolean) as PlanetPosition[];
-      const correctedElement = calculateElement(updatedPositions);
-      chartData.element = correctedElement;
-      
-      // Обновляем summary с исправленными значениями
-      chartData.summary = `Natal chart for ${name}, born on ${birthDate} at ${birthTime || '12:00'} in ${birthPlace}. Your chart reveals a ${correctedElement} dominant personality with ${sun.sign} Sun, ${moon.sign} Moon, and ${ascendant.sign} Rising.`;
+      // НЕ корректируем знак автоматически - используем точный расчет
+      // Если знак не совпадает, это может быть из-за времени суток близко к границе знака
     } else {
       log.info(`[VALIDATION] ✓ Sun sign matches expected value for date`, {
         sunSign: sun.sign,
         sunLongitude: sunLongitude ? sunLongitude.toFixed(6) : 'N/A',
-        date: `${birthYear}-${birthMonth}-${birthDay}`
+        date: `${birthYear}-${birthMonth}-${birthDay}`,
+        timezone: coords.timezone
       });
     }
 
