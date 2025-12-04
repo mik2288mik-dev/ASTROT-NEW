@@ -9,20 +9,6 @@ interface LoadingProps {
 
 export const Loading: React.FC<LoadingProps> = ({ message, progress: externalProgress }) => {
     const [progress, setProgress] = useState(0);
-    const [logoLoaded, setLogoLoaded] = useState(false);
-
-    useEffect(() => {
-        // Проверяем наличие файла logo.png
-        if (typeof window === 'undefined') return;
-        const img = new window.Image();
-        img.onload = () => {
-            setLogoLoaded(true);
-        };
-        img.onerror = () => {
-            setLogoLoaded(false);
-        };
-        img.src = '/logo.png';
-    }, []);
 
     useEffect(() => {
         // Если передан внешний прогресс - используем его, иначе симулируем
@@ -77,27 +63,20 @@ export const Loading: React.FC<LoadingProps> = ({ message, progress: externalPro
                     }}
                     className="relative"
                 >
-                    {logoLoaded ? (
-                        <div className="relative w-48 h-48 md:w-56 md:h-56">
-                            <NextImage 
-                                src="/logo.png" 
-                                alt="ASTROT" 
-                                width={224}
-                                height={224}
-                                className="object-contain"
-                                style={{
-                                    filter: 'drop-shadow(0 0 40px rgba(191, 161, 255, 0.4)) drop-shadow(0 4px 20px rgba(0, 0, 0, 0.3))'
-                                }}
-                                priority
-                            />
-                        </div>
-                    ) : (
-                        <div className="w-48 h-48 md:w-56 md:h-56 flex items-center justify-center">
-                            <div className="text-8xl md:text-9xl font-bold text-astro-highlight opacity-90" style={{ fontFamily: 'Outfit, sans-serif' }}>
-                                A
-                            </div>
-                        </div>
-                    )}
+                    <div className="relative w-48 h-48 md:w-56 md:h-56">
+                        <NextImage 
+                            src="/logo.png" 
+                            alt="ASTROT" 
+                            width={224}
+                            height={224}
+                            className="object-contain"
+                            style={{
+                                filter: 'drop-shadow(0 0 40px rgba(191, 161, 255, 0.4)) drop-shadow(0 4px 20px rgba(0, 0, 0, 0.3))'
+                            }}
+                            priority
+                            unoptimized
+                        />
+                    </div>
                 </motion.div>
             </motion.div>
         </div>
