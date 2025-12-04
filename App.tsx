@@ -287,12 +287,27 @@ const App: React.FC = () => {
             console.error("[App] Error details:", {
                 message: error?.message,
                 stack: error?.stack,
-                name: error?.name
+                name: error?.name,
+                code: error?.code
             });
             
             // Показываем более информативное сообщение об ошибке
-            const errorMessage = error?.message || 'Unknown error occurred';
-            alert(`Ошибка при расчете карты: ${errorMessage}. Пожалуйста, попробуйте еще раз.`);
+            let errorMessage = error?.message || 'Неизвестная ошибка';
+            
+            // Если сообщение уже на русском и понятное, используем его
+            // Иначе показываем общее сообщение
+            if (!errorMessage.includes('Ошибка') && !errorMessage.includes('ошибка')) {
+                // Если сообщение на английском или техническое, показываем общее
+                if (errorMessage.includes('initialize') || errorMessage.includes('ephemeris') || errorMessage.includes('Swiss')) {
+                    errorMessage = 'Ошибка инициализации астрономических расчетов. Пожалуйста, попробуйте позже или обновите страницу.';
+                } else if (errorMessage.includes('location') || errorMessage.includes('coordinates')) {
+                    errorMessage = 'Не удалось найти указанное место рождения. Пожалуйста, проверьте правильность написания.';
+                } else {
+                    errorMessage = 'Не удалось рассчитать натальную карту. Пожалуйста, проверьте правильность введенных данных и попробуйте снова.';
+                }
+            }
+            
+            alert(`Ошибка при расчете карты: ${errorMessage}`);
             
             // Возвращаемся к onboarding, чтобы пользователь мог попробовать снова
             setView('onboarding');
