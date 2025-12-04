@@ -146,38 +146,13 @@ let nativeInitialized = false;
 
 /**
  * Получение Native калькулятора Swiss Ephemeris
+ * ВАЖНО: Нативный модуль swisseph не установлен, используем WASM версию
  */
 async function getNativeCalculator() {
-  if (nativeInitialized && nativeSweInstance) {
-    log.info('Native Swiss Ephemeris already initialized, reusing instance');
-    return nativeSweInstance;
-  }
-
-  try {
-    log.info('Initializing Swiss Ephemeris Native...');
-    
-    // Динамический импорт native модуля
-    const swisseph = require('swisseph');
-    
-    // Устанавливаем путь к эфемеридам перед расчетами
-    const ephePath = process.env.EPHE_PATH || '/app/ephe';
-    swisseph.swe_set_ephe_path(ephePath);
-    log.info(`✓ Ephemeris path set to: ${ephePath}`);
-    
-    nativeSweInstance = swisseph;
-    nativeInitialized = true;
-    
-    log.info('✓ Swiss Ephemeris Native initialized successfully');
-    return nativeSweInstance;
-  } catch (error: any) {
-    log.error('❌ Failed to initialize Swiss Ephemeris Native', {
-      error: error.message,
-      stack: error.stack,
-      name: error.name,
-      code: error.code
-    });
-    throw new Error(`Ошибка инициализации Native астрономических расчетов: ${error.message || 'Неизвестная ошибка'}`);
-  }
+  // Нативный модуль swisseph не установлен в package.json
+  // Используем WASM версию вместо него для точных расчетов
+  log.info('Native module not available, using WASM version for calculations');
+  return getWasmCalculator();
 }
 
 /**
@@ -189,22 +164,13 @@ async function getWasmCalculator() {
 
 /**
  * Фабрика для выбора калькулятора Swiss Ephemeris
- * На сервере всегда используется Native версия
- * На клиенте можно выбрать WASM через USE_SWE_WASM
+ * Используем WASM версию везде для точных расчетов
+ * (нативный модуль swisseph не установлен)
  */
 async function getSwissephCalculator() {
-  // На сервере ВСЕГДА используем native
-  if (IS_SERVER) {
-    return getNativeCalculator();
-  }
-  
-  // На клиенте можно выбрать WASM через переменную окружения
-  if (!IS_SERVER && process.env.USE_SWE_WASM === 'true') {
-    return getWasmCalculator();
-  }
-  
-  // Всё остальное возвращает native
-  return getNativeCalculator();
+  // Используем WASM версию везде для точных расчетов
+  // WASM версия обеспечивает те же точные расчеты, что и нативная
+  return getWasmCalculator();
 }
 
 /**
