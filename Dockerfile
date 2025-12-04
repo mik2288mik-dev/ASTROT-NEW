@@ -8,6 +8,9 @@ WORKDIR /app
 # Устанавливаем зависимости для кэширования слоя
 COPY package.json package-lock.json ./
 
+# Устанавливаем Python и компилятор для node-gyp (нужно для swisseph-v2)
+RUN apk add --no-cache python3 make g++
+
 # Устанавливаем все зависимости (нужны dev для сборки TypeScript/Tailwind)
 # Используем --prefer-offline для ускорения сборки
 RUN npm ci --prefer-offline --no-audit --no-fund
