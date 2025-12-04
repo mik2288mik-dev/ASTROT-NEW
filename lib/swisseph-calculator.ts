@@ -7,7 +7,7 @@ import SwissEPH from 'sweph-wasm';
 import axios from 'axios';
 import path from 'path';
 import tzLookup from 'tz-lookup';
-import { zonedTimeToUtc, utcToZonedTime } from 'date-fns-tz';
+import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 
 // Logging utility
 const log = {
@@ -55,7 +55,7 @@ interface PlanetPosition {
 
 // Глобальная инициализация Swiss Ephemeris
 // Тип из sweph-wasm может быть любым, но мы используем его методы
-let sweInstance: ReturnType<typeof SwissEPH.init> extends Promise<infer T> ? T : never | null = null;
+let sweInstance: Awaited<ReturnType<typeof SwissEPH.init>> | null = null;
 let isInitialized = false;
 
 /**
@@ -111,30 +111,15 @@ function convertLocalTimeToUTC(
     // Правильный способ конвертации локального времени в UTC с использованием date-fns-tz:
     // Используем итеративный подход для точной конвертации
     
-    // Шаг 1: Создаем начальное приближение - Date в UTC представляющий желаемое локальное время
-    let utcDate = new Date(Date.UTC(year, month - 1, day, hour, minute, 0));
+    // Правильный способ конвертации локального времени в UTC:
+    // Создаем Date объект, представляющий локальное время (как будто это UTC)
+    const localDate = new Date(Date.UTC(year, month - 1, day, hour, minute, 0));
     
-    // Шаг 2: Конвертируем это UTC время в локальное время в указанном timezone
-    let localInTimezone = utcToZonedTime(utcDate, timezone);
+    // Используем fromZonedTime для конвертации локального времени в указанном часовом поясе в UTC
+    const utcDate = fromZonedTime(localDate, timezone);
     
-    // Шаг 3: Вычисляем разницу между желаемым и фактическим локальным временем
-    // Используем компоненты даты для точного сравнения
-    let diffHours = hour - localInTimezone.getHours();
-    let diffMinutes = minute - localInTimezone.getMinutes();
-    let totalDiffMinutes = diffHours * 60 + diffMinutes;
-    
-    // Шаг 4: Корректируем UTC время на разницу
-    utcDate = new Date(utcDate.getTime() - totalDiffMinutes * 60 * 1000);
-    
-    // Шаг 5: Повторяем для точности (может потребоваться из-за DST и граничных случаев)
-    localInTimezone = utcToZonedTime(utcDate, timezone);
-    diffHours = hour - localInTimezone.getHours();
-    diffMinutes = minute - localInTimezone.getMinutes();
-    totalDiffMinutes = diffHours * 60 + diffMinutes;
-    
-    if (Math.abs(totalDiffMinutes) > 0) {
-      utcDate = new Date(utcDate.getTime() - totalDiffMinutes * 60 * 1000);
-    }
+    // Для проверки: конвертируем обратно в локальное время
+    const localInTimezone = toZonedTime(utcDate, timezone);
     
     // Извлекаем компоненты UTC даты
     const utcYear = utcDate.getUTCFullYear();
@@ -399,7 +384,7 @@ async function calculateAscendant(
     // Используем систему домов Placidus ('P')
     const result = swe.swe_houses(julday, lat, lon, 'P');
 
-    if (!result || !result.ascmc || result.ascmc.length === 0) {
+    if (!result || !result.ascmc) {
       log.error('Failed to calculate ascendant', { result });
       return null;
     }
@@ -651,6 +636,11 @@ export async function calculateNatalChart(
 
     // Проверка уже выполнена выше при создании chartData
 
+    // Проверяем что основные планеты не null
+    if (!sun || !moon || !ascendant) {
+      throw new Error('Failed to calculate essential planets: sun, moon, or ascendant is null');
+    }
+
     // Определяем элемент и управляющую планету
     const positions = [sun, moon, ascendant].filter(p => p !== null) as PlanetPosition[];
     if (mercury) positions.push(mercury);
@@ -659,11 +649,6 @@ export async function calculateNatalChart(
     
     const element = calculateElement(positions);
     const rulingPlanet = calculateRulingPlanet(sun.sign);
-
-    // Проверяем что основные планеты не null
-    if (!sun || !moon || !ascendant) {
-      throw new Error('Failed to calculate essential planets: sun, moon, or ascendant is null');
-    }
 
     const chartData: NatalChartResult = {
       sun,

@@ -71,9 +71,9 @@ export interface NatalChartData {
   sun: PlanetPosition;
   moon: PlanetPosition;
   rising: PlanetPosition; 
-  mercury: PlanetPosition;
-  venus: PlanetPosition;
-  mars: PlanetPosition;
+  mercury: PlanetPosition | null;
+  venus: PlanetPosition | null;
+  mars: PlanetPosition | null;
   
   // New Personalization Fields
   element: string; // Fire, Water, Air, Earth
