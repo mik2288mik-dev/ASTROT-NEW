@@ -107,11 +107,10 @@ export function getApproximateSunSignByDate(year: number, month: number, day: nu
     if (startMonth > endMonth) {
       // Знак начинается в одном году и заканчивается в следующем
       // Например, Capricorn: декабрь (12) -> январь (1)
+      // Проверяем: декабрь с дня startDay до конца месяца ИЛИ январь с начала до дня endDay
       if (
-        (month === startMonth && day >= startDay) ||  // В начале знака
-        (month === endMonth && day <= endDay) ||       // В конце знака
-        (month > startMonth) ||                        // После начала (декабрь -> январь)
-        (month < endMonth)                             // До конца (январь после декабря)
+        (month === startMonth && day >= startDay) ||  // В начале знака (например, Dec 22+)
+        (month === endMonth && day <= endDay)          // В конце знака (например, Jan 1-19)
       ) {
         return sign;
       }

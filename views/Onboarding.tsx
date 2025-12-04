@@ -140,9 +140,14 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                                     <motion.div 
                                         initial={{ opacity: 0, y: -5 }}
                                         animate={{ opacity: 1, y: 0 }}
-                                        className="mt-3 text-sm text-astro-highlight"
+                                        className="mt-3 text-sm"
                                     >
-                                        ✨ Ваш знак зодиака: <span className="font-bold">{predictedZodiacSign.ru}</span> ({predictedZodiacSign.en})
+                                        <div className="text-astro-highlight">
+                                            ✨ Предполагаемый знак зодиака: <span className="font-bold">{predictedZodiacSign.ru}</span> ({predictedZodiacSign.en})
+                                        </div>
+                                        <div className="text-astro-subtext text-xs mt-1">
+                                            * Приблизительно по дате. Точный знак будет рассчитан после ввода времени и места рождения.
+                                        </div>
                                     </motion.div>
                                 )}
                             </div>

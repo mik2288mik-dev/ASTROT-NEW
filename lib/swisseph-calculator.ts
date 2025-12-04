@@ -108,14 +108,33 @@ function convertLocalTimeToUTC(
   timezone: string
 ): { utcYear: number; utcMonth: number; utcDay: number; utcHour: number; utcMinute: number; utcTimeInHours: number } {
   try {
-    // Создаем строку даты и времени в формате ISO (локальное время в указанном часовом поясе)
-    const localDateString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
+    // Правильный способ конвертации локального времени в UTC с использованием date-fns-tz:
+    // Используем итеративный подход для точной конвертации
     
-    // Создаем Date объект из локального времени (интерпретируем как локальное в указанном часовом поясе)
-    const localDate = new Date(localDateString);
+    // Шаг 1: Создаем начальное приближение - Date в UTC представляющий желаемое локальное время
+    let utcDate = new Date(Date.UTC(year, month - 1, day, hour, minute, 0));
     
-    // Конвертируем локальное время в указанном часовом поясе в UTC
-    const utcDate = zonedTimeToUtc(localDate, timezone);
+    // Шаг 2: Конвертируем это UTC время в локальное время в указанном timezone
+    let localInTimezone = utcToZonedTime(utcDate, timezone);
+    
+    // Шаг 3: Вычисляем разницу между желаемым и фактическим локальным временем
+    // Используем компоненты даты для точного сравнения
+    let diffHours = hour - localInTimezone.getHours();
+    let diffMinutes = minute - localInTimezone.getMinutes();
+    let totalDiffMinutes = diffHours * 60 + diffMinutes;
+    
+    // Шаг 4: Корректируем UTC время на разницу
+    utcDate = new Date(utcDate.getTime() - totalDiffMinutes * 60 * 1000);
+    
+    // Шаг 5: Повторяем для точности (может потребоваться из-за DST и граничных случаев)
+    localInTimezone = utcToZonedTime(utcDate, timezone);
+    diffHours = hour - localInTimezone.getHours();
+    diffMinutes = minute - localInTimezone.getMinutes();
+    totalDiffMinutes = diffHours * 60 + diffMinutes;
+    
+    if (Math.abs(totalDiffMinutes) > 0) {
+      utcDate = new Date(utcDate.getTime() - totalDiffMinutes * 60 * 1000);
+    }
     
     // Извлекаем компоненты UTC даты
     const utcYear = utcDate.getUTCFullYear();
@@ -128,7 +147,13 @@ function convertLocalTimeToUTC(
     log.info('Converted local time to UTC', {
       local: { year, month, day, hour, minute },
       timezone,
-      utc: { utcYear, utcMonth, utcDay, utcHour, utcMinute, utcTimeInHours: utcTimeInHours.toFixed(4) }
+      utc: { utcYear, utcMonth, utcDay, utcHour, utcMinute, utcTimeInHours: utcTimeInHours.toFixed(4) },
+      dateShift: (utcDay !== day || utcMonth !== month || utcYear !== year) ? 'Date shifted due to timezone' : 'Same date',
+      verification: {
+        localInTimezone: `${localInTimezone.getHours()}:${String(localInTimezone.getMinutes()).padStart(2, '0')}`,
+        desired: `${hour}:${String(minute).padStart(2, '0')}`,
+        match: localInTimezone.getHours() === hour && localInTimezone.getMinutes() === minute
+      }
     });
     
     return { utcYear, utcMonth, utcDay, utcHour, utcMinute, utcTimeInHours };
@@ -201,23 +226,41 @@ export async function getCoordinates(placeName: string): Promise<Coordinates> {
  */
 export function getZodiacSign(degree: number): string {
   // Нормализуем градус в диапазон 0-360
+  // Используем более надежную нормализацию для обработки отрицательных значений и значений > 360
   let normalizedDegree = degree % 360;
   if (normalizedDegree < 0) {
     normalizedDegree += 360;
   }
   
+  // Убеждаемся что значение в правильном диапазоне
+  if (normalizedDegree >= 360) {
+    normalizedDegree = normalizedDegree % 360;
+  }
+  if (normalizedDegree < 0) {
+    normalizedDegree = 0;
+  }
+  
   // Определяем индекс знака (0-11)
   // 0°-30° = Aries (0), 30°-60° = Taurus (1), и т.д.
+  // Важно: Math.floor правильно обрабатывает граничные случаи
+  // Например: 30.0° -> index 1 (Taurus), 29.999° -> index 0 (Aries)
   const signIndex = Math.floor(normalizedDegree / 30);
   
-  // Обрабатываем граничный случай: ровно 360° или очень близко к 360°
-  const finalIndex = signIndex >= 12 ? 0 : signIndex;
+  // Обрабатываем граничный случай: ровно 360° должен быть Aries (0)
+  // signIndex может быть 12 только если normalizedDegree = 360.0 (что не должно произойти после нормализации)
+  const finalIndex = signIndex >= 12 ? 0 : (signIndex < 0 ? 0 : signIndex);
   
   // Используем централизованный массив знаков
   const { ZODIAC_SIGNS: signs } = require('./zodiac-utils');
+  
+  if (finalIndex < 0 || finalIndex >= signs.length) {
+    log.error(`[getZodiacSign] Invalid sign index: ${finalIndex} for degree ${degree}, normalized: ${normalizedDegree}`);
+    return signs[0]; // Fallback to Aries
+  }
+  
   const signName = signs[finalIndex];
   
-  log.info(`[getZodiacSign] Degree: ${degree.toFixed(4)}, Normalized: ${normalizedDegree.toFixed(4)}, Sign Index: ${finalIndex}, Sign: ${signName}`);
+  log.info(`[getZodiacSign] Degree: ${degree.toFixed(6)}, Normalized: ${normalizedDegree.toFixed(6)}, Sign Index: ${finalIndex}, Sign: ${signName}`);
   
   return signName;
 }
@@ -236,8 +279,18 @@ export function getZodiacSign(degree: number): string {
  * getDegreeInSign(180) // 0 (180° - 180° = 0° в Весах)
  */
 export function getDegreeInSign(degree: number): number {
-  const normalizedDegree = ((degree % 360) + 360) % 360;
-  return normalizedDegree % 30;
+  // Нормализуем градус в диапазон 0-360
+  let normalizedDegree = degree % 360;
+  if (normalizedDegree < 0) {
+    normalizedDegree += 360;
+  }
+  
+  // Вычисляем градус внутри знака (0-29.999...)
+  // Например: 45° -> 15° в Тельце, 180° -> 0° в Весах
+  const degreeInSign = normalizedDegree % 30;
+  
+  // Округляем до 2 знаков после запятой для читаемости, но возвращаем точное значение
+  return degreeInSign;
 }
 
 /**
@@ -280,15 +333,23 @@ async function calculatePlanetPosition(
   planetName: string
 ): Promise<PlanetPosition | null> {
   try {
-    // Используем флаг SEFLG_SWIEPH (Swiss Ephemeris) + SEFLG_SPEED
-    const result = swe.swe_calc_ut(julday, planetId, 258); // 258 = SEFLG_SWIEPH | SEFLG_SPEED
+    // Используем флаги Swiss Ephemeris для точных расчетов:
+    // SEFLG_SWIEPH (2) = использовать Swiss Ephemeris (самые точные данные)
+    // SEFLG_SPEED (256) = включить скорость планеты
+    // 258 = 2 | 256 = SEFLG_SWIEPH | SEFLG_SPEED
+    // Результат: эклиптическая долгота в градусах (0-360°)
+    const result = swe.swe_calc_ut(julday, planetId, 258);
     
     if (!result || result.length < 3) {
       log.error(`Failed to calculate ${planetName}`, { result });
       return null;
     }
 
-    const longitude = result[0]; // Longitude в градусах (эклиптическая долгота)
+    // result[0] = эклиптическая долгота в градусах (0-360°)
+    // result[1] = эклиптическая широта в градусах
+    // result[2] = расстояние в астрономических единицах
+    // result[3] = скорость в долготе (градусы/день)
+    const longitude = result[0]; // Эклиптическая долгота - основа для определения знака зодиака
     const sign = getZodiacSign(longitude);
     const degreeInSign = getDegreeInSign(longitude);
 
@@ -617,7 +678,7 @@ export async function calculateNatalChart(
     };
 
     // Валидация: проверяем, что знак Солнца соответствует ожидаемому для даты рождения
-    // Теперь используем точный часовой пояс, поэтому несоответствие должно быть редким
+    // Приблизительная проверка для выявления явных ошибок
     const expectedSignByDate = getExpectedSunSignByDate(birthYear, birthMonth, birthDay);
     const signMatch = sun.sign === expectedSignByDate;
     
@@ -625,31 +686,60 @@ export async function calculateNatalChart(
     const sunResult = swe.swe_calc_ut(julianDay, PLANETS.SUN, 258);
     const sunLongitude = sunResult ? sunResult[0] : null;
     
-    // Логируем результат валидации (теперь с точным часовым поясом несоответствия должны быть редкими)
+    // Детальная валидация и логирование
     if (!signMatch) {
-      log.warn(`[VALIDATION] Sun sign mismatch detected. This may be due to time of day or edge case.`, {
-        calculated: sun.sign,
-        expectedByDate: expectedSignByDate,
-        date: `${birthYear}-${birthMonth}-${birthDay}`,
-        time: `${birthHour}:${birthMinute}`,
-        utcTime: `${utcHour}:${utcMinute}`,
-        birthPlace,
-        timezone: coords.timezone,
-        coordinates: { lat: coords.lat, lon: coords.lon },
-        sunLongitude: sunLongitude ? sunLongitude.toFixed(6) : 'N/A',
-        sunDegreeInSign: sun.degree.toFixed(2),
-        sunPosition: `${sun.degree.toFixed(2)}° ${sun.sign}`,
-        julianDay: julianDay.toFixed(6),
-        note: 'Using accurate timezone conversion. Mismatch may be due to time of day near sign boundary.'
+      // Проверяем, не находится ли Солнце близко к границе знака
+      const isNearBoundary = sun.degree < 1.0 || sun.degree > 29.0;
+      const signIndex = Math.floor((sunLongitude || 0) / 30);
+      const expectedSignIndex = ZODIAC_SIGNS.indexOf(expectedSignByDate);
+      const signDifference = Math.abs(signIndex - expectedSignIndex);
+      
+      log.warn(`[VALIDATION] Sun sign mismatch detected`, {
+        calculated: {
+          sign: sun.sign,
+          degree: sun.degree.toFixed(4),
+          longitude: sunLongitude ? sunLongitude.toFixed(6) : 'N/A',
+          signIndex
+        },
+        expected: {
+          sign: expectedSignByDate,
+          signIndex: expectedSignIndex,
+          note: 'Approximate based on date only (does not account for time of day or year variations)'
+        },
+        input: {
+          date: `${birthYear}-${birthMonth}-${birthDay}`,
+          time: `${birthHour}:${birthMinute}`,
+          utcTime: `${utcHour}:${utcMinute}`,
+          birthPlace,
+          timezone: coords.timezone,
+          coordinates: { lat: coords.lat, lon: coords.lon }
+        },
+        calculation: {
+          julianDay: julianDay.toFixed(6),
+          sunPosition: `${sun.degree.toFixed(2)}° ${sun.sign}`,
+          isNearBoundary,
+          signDifference
+        },
+        note: 'Mismatch may be due to: 1) Time of day near sign boundary, 2) Year-specific sign entry dates, 3) Timezone conversion. Using accurate Swiss Ephemeris calculation.'
       });
-      // НЕ корректируем знак автоматически - используем точный расчет
-      // Если знак не совпадает, это может быть из-за времени суток близко к границе знака
+      
+      // Если разница больше 1 знака, это может указывать на серьезную ошибку
+      if (signDifference > 1) {
+        log.error(`[VALIDATION] CRITICAL: Large sign difference detected!`, {
+          calculatedSign: sun.sign,
+          expectedSign: expectedSignByDate,
+          difference: signDifference,
+          sunLongitude: sunLongitude ? sunLongitude.toFixed(6) : 'N/A'
+        });
+      }
     } else {
-      log.info(`[VALIDATION] ✓ Sun sign matches expected value for date`, {
+      log.info(`[VALIDATION] ✓ Sun sign matches expected approximate value`, {
         sunSign: sun.sign,
         sunLongitude: sunLongitude ? sunLongitude.toFixed(6) : 'N/A',
+        sunDegree: sun.degree.toFixed(4),
         date: `${birthYear}-${birthMonth}-${birthDay}`,
-        timezone: coords.timezone
+        timezone: coords.timezone,
+        note: 'Approximate date-based check passed. Using accurate Swiss Ephemeris calculation.'
       });
     }
 
