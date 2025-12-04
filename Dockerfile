@@ -9,7 +9,9 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 
 # Устанавливаем Python и компилятор для node-gyp (нужно для swisseph-v2)
-RUN apk add --no-cache python3 make g++
+# libc6-compat нужен для совместимости с некоторыми нативными модулями
+RUN apk add --no-cache python3 make g++ libc6-compat && \
+    ln -sf python3 /usr/bin/python
 
 # Устанавливаем все зависимости (нужны dev для сборки TypeScript/Tailwind)
 # Используем --prefer-offline для ускорения сборки
@@ -31,6 +33,11 @@ ENV NODE_ENV=production
 # Создаем непривилегированного пользователя для безопасности
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
+
+# Устанавливаем Python и компилятор для node-gyp (нужно для swisseph-v2)
+# libc6-compat нужен для совместимости с некоторыми нативными модулями
+RUN apk add --no-cache python3 make g++ libc6-compat && \
+    ln -sf python3 /usr/bin/python
 
 # Копируем package.json для установки production зависимостей
 COPY --from=builder --chown=nextjs:nodejs /app/package.json ./

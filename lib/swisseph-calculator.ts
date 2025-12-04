@@ -24,8 +24,7 @@ const log = {
 };
 
 // Импортируем централизованные данные о знаках зодиака
-const { ZODIAC_SIGNS, getElementForSign: getElementForSignUtil, getRulingPlanet: getRulingPlanetUtil } = require('./zodiac-utils');
-import type { ZodiacSign } from './zodiac-utils';
+import { ZODIAC_SIGNS, getElementForSign as getElementForSignUtil, getRulingPlanet as getRulingPlanetUtil, getApproximateSunSignByDate, type ZodiacSign } from './zodiac-utils';
 
 // Планеты Swiss Ephemeris
 const PLANETS = {
@@ -312,7 +311,7 @@ export function getZodiacSign(degree: number): string {
   const signIndex = Math.floor(normalizedDegree / 30);
   const finalIndex = signIndex >= 12 ? 0 : (signIndex < 0 ? 0 : signIndex);
   
-  const { ZODIAC_SIGNS: signs } = require('./zodiac-utils');
+  const signs = ZODIAC_SIGNS;
   
   if (finalIndex < 0 || finalIndex >= signs.length) {
     log.error(`[getZodiacSign] ❌ Invalid sign index: ${finalIndex} for degree ${degree}, normalized: ${normalizedDegree}`);
@@ -451,7 +450,6 @@ function calculateAscendant(
  * Определяет доминирующий элемент (стихию) на основе положений планет
  */
 function calculateElement(positions: PlanetPosition[]): string {
-  const { getElementForSign } = require('./zodiac-utils');
 
   const elementCounts: { [key: string]: number } = {
     Fire: 0,
@@ -461,7 +459,7 @@ function calculateElement(positions: PlanetPosition[]): string {
   };
 
   positions.forEach(position => {
-    const element = getElementForSign(position.sign as ZodiacSign);
+    const element = getElementForSignUtil(position.sign as ZodiacSign);
     if (element) {
       elementCounts[element]++;
     }
@@ -483,7 +481,6 @@ function calculateElement(positions: PlanetPosition[]): string {
  * Определить ожидаемый знак Солнца по дате рождения (упрощённо, для валидации)
  */
 function getExpectedSunSignByDate(year: number, month: number, day: number): string {
-  const { getApproximateSunSignByDate } = require('./zodiac-utils');
   return getApproximateSunSignByDate(year, month, day);
 }
 
@@ -491,8 +488,7 @@ function getExpectedSunSignByDate(year: number, month: number, day: number): str
  * Определение управляющей планеты
  */
 function calculateRulingPlanet(sunSign: string): string {
-  const { getRulingPlanet } = require('./zodiac-utils');
-  return getRulingPlanet(sunSign as any) || 'Sun';
+  return getRulingPlanetUtil(sunSign as any) || 'Sun';
 }
 
 /**

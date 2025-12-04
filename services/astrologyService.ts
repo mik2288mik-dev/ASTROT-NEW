@@ -1,5 +1,6 @@
 import { UserProfile, NatalChartData, DailyHoroscope, WeeklyHoroscope, MonthlyHoroscope, ThreeKeys, SynastryResult, UserContext, UserEvolution } from "../types";
 import { SYSTEM_INSTRUCTION_ASTRA } from "../constants";
+import { getElementForSign, SIGN_ELEMENTS } from "../lib/zodiac-utils";
 
 // Helper to select language prompt
 const getLangPrompt = (lang: string) => lang === 'ru' ? "Response must be in Russian." : "Response must be in English.";
@@ -406,7 +407,6 @@ function calculateInitialStats(profile: UserProfile, chartData?: NatalChartData)
   }
 
   // Используем централизованные данные о знаках для избежания дублирования
-  const { getElementForSign, SIGN_ELEMENTS } = require('../lib/zodiac-utils');
 
   // Интуиция зависит от Луны и водных знаков
   let intuition = 50;

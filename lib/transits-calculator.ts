@@ -6,6 +6,7 @@
  */
 
 import { calculateNatalChart } from './swisseph-calculator';
+import { getApproximateSunSignByDate } from './zodiac-utils';
 
 // Logging utility
 const log = {
@@ -168,7 +169,6 @@ function getSunSignByDate(date: Date): string {
   const year = date.getFullYear();
 
   // Используем централизованную функцию для избежания дублирования
-  const { getApproximateSunSignByDate } = require('./zodiac-utils');
   return getApproximateSunSignByDate(year, month, day);
 }
 
