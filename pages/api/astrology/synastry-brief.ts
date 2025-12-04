@@ -85,7 +85,14 @@ export default async function handler(
       // Используем fallback данные
       userChartData = {
         sun: { planet: 'Sun', sign: 'Leo', degree: 15, description: '' },
-        moon: { planet: 'Moon', sign: 'Cancer', degree: 10, description: '' }
+        moon: { planet: 'Moon', sign: 'Cancer', degree: 10, description: '' },
+        rising: { planet: 'Ascendant', sign: 'Aries', degree: 0, description: '' },
+        mercury: null,
+        venus: null,
+        mars: null,
+        element: 'Fire',
+        rulingPlanet: 'Sun',
+        summary: ''
       };
     }
 
@@ -103,7 +110,14 @@ export default async function handler(
       // Используем fallback данные
       partnerChartData = {
         sun: { planet: 'Sun', sign: 'Aries', degree: 20, description: '' },
-        moon: { planet: 'Moon', sign: 'Pisces', degree: 5, description: '' }
+        moon: { planet: 'Moon', sign: 'Pisces', degree: 5, description: '' },
+        rising: { planet: 'Ascendant', sign: 'Aries', degree: 0, description: '' },
+        mercury: null,
+        venus: null,
+        mars: null,
+        element: 'Fire',
+        rulingPlanet: 'Mars',
+        summary: ''
       };
     }
 
