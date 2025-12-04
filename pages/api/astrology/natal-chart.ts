@@ -92,9 +92,28 @@ export default async function handler(
       });
       
       const userLanguage = language === 'en' ? 'en' : 'ru';
-      const errorMessage = userLanguage === 'ru'
-        ? 'Не удалось рассчитать натальную карту. Пожалуйста, проверьте правильность введенных данных и попробуйте снова.'
-        : 'Failed to calculate natal chart. Please check your input data and try again.';
+      
+      // Определяем тип ошибки для более точного сообщения
+      let errorMessage = '';
+      const errorMsg = swissephError.message?.toLowerCase() || '';
+      
+      if (errorMsg.includes('location not found') || errorMsg.includes('coordinates')) {
+        errorMessage = userLanguage === 'ru'
+          ? 'Не удалось найти указанное место рождения. Пожалуйста, проверьте правильность написания (например: "Москва, Россия" или "Moscow, Russia").'
+          : 'Location not found. Please check the spelling of your birth place (e.g., "Moscow, Russia").';
+      } else if (errorMsg.includes('initialize') || errorMsg.includes('ephemeris')) {
+        errorMessage = userLanguage === 'ru'
+          ? 'Ошибка инициализации астрономических расчетов. Пожалуйста, попробуйте позже.'
+          : 'Astronomical calculation initialization error. Please try again later.';
+      } else if (errorMsg.includes('time') || errorMsg.includes('date')) {
+        errorMessage = userLanguage === 'ru'
+          ? 'Ошибка обработки даты или времени. Пожалуйста, проверьте правильность введенных данных.'
+          : 'Date or time processing error. Please check your input data.';
+      } else {
+        errorMessage = userLanguage === 'ru'
+          ? 'Не удалось рассчитать натальную карту. Пожалуйста, проверьте правильность введенных данных и попробуйте снова.'
+          : 'Failed to calculate natal chart. Please check your input data and try again.';
+      }
       
       return res.status(500).json({ 
         error: 'Calculation failed',

@@ -70,7 +70,16 @@ async function initSwissEph() {
     log.info('Initializing Swiss Ephemeris WebAssembly...');
     
     // Инициализируем Swiss Ephemeris (работает и в браузере, и в Node.js)
-    sweInstance = await SwissEPH.init();
+    try {
+      sweInstance = await SwissEPH.init();
+    } catch (initError: any) {
+      log.error('Failed to initialize Swiss Ephemeris WASM', initError);
+      throw new Error(`Failed to initialize ephemeris calculator. This may be due to missing dependencies. Error: ${initError.message}`);
+    }
+    
+    if (!sweInstance) {
+      throw new Error('Swiss Ephemeris instance is null after initialization');
+    }
     
     // Устанавливаем путь к эфемеридам
     // Swiss Ephemeris автоматически загружает файлы с CDN
@@ -87,7 +96,10 @@ async function initSwissEph() {
     return sweInstance;
   } catch (error: any) {
     log.error('❌ Failed to initialize Swiss Ephemeris', error);
-    throw new Error(`Failed to initialize Swiss Ephemeris: ${error.message}`);
+    isInitialized = false;
+    sweInstance = null;
+    // Пробрасываем оригинальное сообщение
+    throw error;
   }
 }
 
@@ -196,25 +208,38 @@ export async function getCoordinates(placeName: string): Promise<Coordinates> {
     log.info('Getting coordinates and timezone for place', { placeName });
     
     const url = 'https://nominatim.openstreetmap.org/search';
-    const response = await axios.get(url, {
-      params: {
-        q: placeName,
-        format: 'json',
-        limit: 1
-      },
-      headers: {
-        'User-Agent': 'AstrotApp/1.0'
-      },
-      timeout: 10000
-    });
+    
+    let response;
+    try {
+      response = await axios.get(url, {
+        params: {
+          q: placeName,
+          format: 'json',
+          limit: 1
+        },
+        headers: {
+          'User-Agent': 'AstrotApp/1.0'
+        },
+        timeout: 15000 // Увеличили timeout до 15 секунд
+      });
+    } catch (axiosError: any) {
+      if (axiosError.code === 'ECONNABORTED' || axiosError.message?.includes('timeout')) {
+        throw new Error(`Timeout getting coordinates for location: ${placeName}. Please check your internet connection and try again.`);
+      }
+      throw new Error(`Network error getting coordinates for ${placeName}: ${axiosError.message}`);
+    }
 
     if (!response.data || response.data.length === 0) {
-      throw new Error(`Location not found: ${placeName}`);
+      throw new Error(`Location not found: ${placeName}. Please check the spelling and try again (e.g., "Moscow, Russia" or "Москва, Россия").`);
     }
 
     const location = response.data[0];
     const lat = parseFloat(location.lat);
     const lon = parseFloat(location.lon);
+
+    if (isNaN(lat) || isNaN(lon)) {
+      throw new Error(`Invalid coordinates received for location: ${placeName}`);
+    }
 
     // Точное определение часового пояса по координатам
     let timezone: string;
@@ -226,12 +251,13 @@ export async function getCoordinates(placeName: string): Promise<Coordinates> {
       timezone = 'UTC';
     }
 
-    log.info('Coordinates and timezone found', { lat, lon, timezone, placeName });
+    log.info('Coordinates and timezone found', { lat, lon, timezone, placeName, displayName: location.display_name });
 
     return { lat, lon, timezone };
   } catch (error: any) {
     log.error('Error getting coordinates', error);
-    throw new Error(`Failed to get coordinates for ${placeName}: ${error.message}`);
+    // Пробрасываем оригинальное сообщение об ошибке
+    throw error;
   }
 }
 
