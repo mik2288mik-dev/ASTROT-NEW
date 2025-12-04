@@ -1,12 +1,14 @@
 /**
- * Swiss Ephemeris Calculator - WebAssembly версия
- * Использует sweph-wasm для точных астрологических расчетов
- * БЕЗ нативных зависимостей - работает везде!
+ * Swiss Ephemeris Calculator - Factory для выбора между Native и WASM версиями
+ * На сервере всегда используется Native версия для максимальной производительности
+ * На клиенте можно выбрать WASM через переменную окружения USE_SWE_WASM
  */
 import axios from 'axios';
 import path from 'path';
 import tzLookup from 'tz-lookup';
 import { fromZonedTime, toZonedTime } from 'date-fns-tz';
+
+const IS_SERVER = typeof window === 'undefined';
 
 // Logging utility
 const log = {
@@ -137,6 +139,73 @@ let sweInstance: any = null;
 let isInitialized = false;
 let initializationAttempts = 0;
 const MAX_INIT_ATTEMPTS = 3;
+
+// Native calculator instance
+let nativeSweInstance: any = null;
+let nativeInitialized = false;
+
+/**
+ * Получение Native калькулятора Swiss Ephemeris
+ */
+async function getNativeCalculator() {
+  if (nativeInitialized && nativeSweInstance) {
+    log.info('Native Swiss Ephemeris already initialized, reusing instance');
+    return nativeSweInstance;
+  }
+
+  try {
+    log.info('Initializing Swiss Ephemeris Native...');
+    
+    // Динамический импорт native модуля
+    const swisseph = require('swisseph');
+    
+    // Устанавливаем путь к эфемеридам перед расчетами
+    const ephePath = process.env.EPHE_PATH || '/app/ephe';
+    swisseph.swe_set_ephe_path(ephePath);
+    log.info(`✓ Ephemeris path set to: ${ephePath}`);
+    
+    nativeSweInstance = swisseph;
+    nativeInitialized = true;
+    
+    log.info('✓ Swiss Ephemeris Native initialized successfully');
+    return nativeSweInstance;
+  } catch (error: any) {
+    log.error('❌ Failed to initialize Swiss Ephemeris Native', {
+      error: error.message,
+      stack: error.stack,
+      name: error.name,
+      code: error.code
+    });
+    throw new Error(`Ошибка инициализации Native астрономических расчетов: ${error.message || 'Неизвестная ошибка'}`);
+  }
+}
+
+/**
+ * Получение WASM калькулятора Swiss Ephemeris
+ */
+async function getWasmCalculator() {
+  return initSwissEph();
+}
+
+/**
+ * Фабрика для выбора калькулятора Swiss Ephemeris
+ * На сервере всегда используется Native версия
+ * На клиенте можно выбрать WASM через USE_SWE_WASM
+ */
+async function getSwissephCalculator() {
+  // На сервере ВСЕГДА используем native
+  if (IS_SERVER) {
+    return getNativeCalculator();
+  }
+  
+  // На клиенте можно выбрать WASM через переменную окружения
+  if (!IS_SERVER && process.env.USE_SWE_WASM === 'true') {
+    return getWasmCalculator();
+  }
+  
+  // Всё остальное возвращает native
+  return getNativeCalculator();
+}
 
 /**
  * Инициализация Swiss Ephemeris WASM
@@ -602,16 +671,23 @@ async function calculatePlanetPosition(
     // Результат: эклиптическая долгота в градусах (0-360°)
     const result = swe.swe_calc_ut(julday, planetId, 258);
     
-    if (!result || result.length < 3) {
-      log.error(`Failed to calculate ${planetName}`, { result });
-      return null;
+    // Адаптер для совместимости: WASM возвращает массив, Native возвращает объект
+    let longitude: number;
+    if (Array.isArray(result)) {
+      // WASM версия: result[0] = эклиптическая долгота
+      if (!result || result.length < 3) {
+        log.error(`Failed to calculate ${planetName}`, { result });
+        return null;
+      }
+      longitude = result[0];
+    } else {
+      // Native версия: result.longitude = эклиптическая долгота
+      if (!result || typeof result.longitude !== 'number') {
+        log.error(`Failed to calculate ${planetName}`, { result });
+        return null;
+      }
+      longitude = result.longitude;
     }
-
-    // result[0] = эклиптическая долгота в градусах (0-360°)
-    // result[1] = эклиптическая широта в градусах
-    // result[2] = расстояние в астрономических единицах
-    // result[3] = скорость в долготе (градусы/день)
-    const longitude = result[0]; // Эклиптическая долгота - основа для определения знака зодиака
     const sign = getZodiacSign(longitude);
     const degreeInSign = getDegreeInSign(longitude);
 
@@ -661,12 +737,18 @@ async function calculateAscendant(
     // Используем систему домов Placidus ('P')
     const result = swe.swe_houses(julday, lat, lon, 'P');
 
-    if (!result || !result.ascmc) {
+    // Адаптер для совместимости: WASM возвращает ascmc[0], Native возвращает ascendant
+    let ascendant: number;
+    if (result && result.ascmc && Array.isArray(result.ascmc)) {
+      // WASM версия: result.ascmc[0] = Ascendant
+      ascendant = result.ascmc[0];
+    } else if (result && typeof result.ascendant === 'number') {
+      // Native версия: result.ascendant = Ascendant
+      ascendant = result.ascendant;
+    } else {
       log.error('Failed to calculate ascendant', { result });
       return null;
     }
-
-    const ascendant = result.ascmc[0]; // Первое значение - Ascendant
     const sign = getZodiacSign(ascendant);
     const degreeInSign = getDegreeInSign(ascendant);
 
@@ -840,7 +922,7 @@ export async function calculateNatalChart(
   birthPlace: string
 ): Promise<NatalChartResult> {
   try {
-    log.info('Starting natal chart calculation with Swiss Ephemeris WASM', {
+    log.info('Starting natal chart calculation with Swiss Ephemeris', {
       name,
       birthDate,
       birthTime,
@@ -850,7 +932,7 @@ export async function calculateNatalChart(
     // Инициализируем Swiss Ephemeris с улучшенной обработкой ошибок
     let swe;
     try {
-      swe = await initSwissEph();
+      swe = await getSwissephCalculator();
       if (!swe) {
         throw new Error('Swiss Ephemeris instance is null after initialization');
       }
@@ -961,7 +1043,10 @@ export async function calculateNatalChart(
     
     // Вычисляем эклиптическую долготу Солнца для детального логирования
     const sunResult = swe.swe_calc_ut(julianDay, PLANETS.SUN, 258);
-    const sunLongitude = sunResult ? sunResult[0] : null;
+    // Адаптер для совместимости: WASM возвращает массив, Native возвращает объект
+    const sunLongitude = sunResult 
+      ? (Array.isArray(sunResult) ? sunResult[0] : sunResult.longitude)
+      : null;
     
     // Детальная валидация и логирование
     if (!signMatch) {
@@ -1020,7 +1105,7 @@ export async function calculateNatalChart(
       });
     }
 
-    log.info('🌟 Natal chart calculated successfully with Swiss Ephemeris WASM', {
+    log.info('🌟 Natal chart calculated successfully with Swiss Ephemeris', {
       hasSun: !!sun,
       hasMoon: !!moon,
       hasRising: !!ascendant,
