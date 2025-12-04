@@ -114,13 +114,23 @@ async function initSwissEph() {
     }
     
     // Проверяем наличие необходимых методов
-    const requiredMethods = ['swe_calc_ut', 'swe_julday', 'swe_houses', 'swe_set_ephe_path'];
-    const missingMethods = requiredMethods.filter(method => typeof sweInstance![method] !== 'function');
+    type SwissEPHRequiredMethod = 'swe_calc_ut' | 'swe_julday' | 'swe_houses' | 'swe_set_ephe_path';
+    
+    const requiredMethods: SwissEPHRequiredMethod[] = [
+      'swe_calc_ut',
+      'swe_julday',
+      'swe_houses',
+      'swe_set_ephe_path',
+    ];
+    
+    const missingMethods = requiredMethods.filter(
+      (method) => typeof (sweInstance as any)[method] !== 'function'
+    );
     
     if (missingMethods.length > 0) {
       const errorMsg = `Swiss Ephemeris instance missing required methods: ${missingMethods.join(', ')}`;
       log.error(errorMsg, { 
-        availableMethods: Object.keys(sweInstance).filter(k => typeof sweInstance![k] === 'function'),
+        availableMethods: Object.keys(sweInstance).filter(k => typeof (sweInstance as any)[k] === 'function'),
         missingMethods 
       });
       throw new Error(errorMsg);
@@ -128,7 +138,7 @@ async function initSwissEph() {
     
     log.info('✓ Swiss Ephemeris instance validated', {
       hasRequiredMethods: true,
-      availableMethods: Object.keys(sweInstance).filter(k => typeof sweInstance![k] === 'function').length
+      availableMethods: Object.keys(sweInstance).filter(k => typeof (sweInstance as any)[k] === 'function').length
     });
     
     // Устанавливаем путь к эфемеридам (не критично, библиотека может работать со встроенными данными)
