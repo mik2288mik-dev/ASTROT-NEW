@@ -68,8 +68,13 @@ export const calculateNatalChart = async (profile: UserProfile): Promise<NatalCh
         // Используем новую структуру ошибок с полем message
         errorMessage = errorData.message || errorData.error || 'Unknown error';
         errorDetails = errorData.errors || errorData.details;
-      } catch {
-        errorMessage = await response.text().catch(() => 'Unable to read error response');
+      } catch (parseError) {
+        // Если не удалось распарсить JSON, пробуем прочитать как текст
+        try {
+          errorMessage = await response.text();
+        } catch {
+          errorMessage = `Ошибка сервера: ${response.status} ${response.statusText}`;
+        }
       }
       
       log.error(`[calculateNatalChart] Server returned error status ${response.status}`, {
@@ -77,13 +82,20 @@ export const calculateNatalChart = async (profile: UserProfile): Promise<NatalCh
         statusText: response.statusText,
         errorMessage,
         errorDetails,
-        url
+        url,
+        contentType: response.headers.get('content-type')
       });
       
       // Для ошибок валидации (400) возвращаем понятное сообщение
       if (response.status === 400) {
         const validationError = errorMessage || 'Ошибка валидации данных';
         throw new Error(validationError);
+      }
+      
+      // Для ошибок инициализации (500) возвращаем понятное сообщение
+      if (response.status === 500 && errorMessage) {
+        // Используем сообщение от сервера, если оно есть
+        throw new Error(errorMessage);
       }
       
       // Для других ошибок возвращаем понятное сообщение

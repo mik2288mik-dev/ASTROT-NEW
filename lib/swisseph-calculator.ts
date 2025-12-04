@@ -63,31 +63,80 @@ let isInitialized = false;
  */
 async function initSwissEph() {
   if (isInitialized && sweInstance) {
+    log.info('Swiss Ephemeris already initialized, reusing instance');
     return sweInstance;
   }
 
   try {
     log.info('Initializing Swiss Ephemeris WebAssembly...');
     
-    // Инициализируем Swiss Ephemeris (работает и в браузере, и в Node.js)
-    try {
-      sweInstance = await SwissEPH.init();
-    } catch (initError: any) {
-      log.error('Failed to initialize Swiss Ephemeris WASM', initError);
-      throw new Error(`Failed to initialize ephemeris calculator. This may be due to missing dependencies. Error: ${initError.message}`);
+    // Проверяем доступность модуля
+    if (!SwissEPH || typeof SwissEPH.init !== 'function') {
+      const errorMsg = 'SwissEPH module is not available or init function is missing';
+      log.error(errorMsg, { SwissEPH: typeof SwissEPH, hasInit: typeof SwissEPH?.init });
+      throw new Error(errorMsg);
     }
     
-    if (!sweInstance) {
-      throw new Error('Swiss Ephemeris instance is null after initialization');
+    // Инициализируем Swiss Ephemeris (работает и в браузере, и в Node.js)
+    let initResult;
+    try {
+      log.info('Calling SwissEPH.init()...');
+      initResult = await SwissEPH.init();
+      log.info('SwissEPH.init() completed', { 
+        hasResult: !!initResult,
+        resultType: typeof initResult,
+        hasMethods: initResult ? Object.keys(initResult).slice(0, 5) : []
+      });
+    } catch (initError: any) {
+      log.error('Failed to initialize Swiss Ephemeris WASM', {
+        error: initError.message,
+        stack: initError.stack,
+        name: initError.name,
+        code: initError.code
+      });
+      throw new Error(`Failed to initialize ephemeris calculator: ${initError.message || 'Unknown initialization error'}`);
     }
+    
+    sweInstance = initResult;
+    
+    if (!sweInstance) {
+      const errorMsg = 'Swiss Ephemeris instance is null after initialization';
+      log.error(errorMsg, { initResult });
+      throw new Error(errorMsg);
+    }
+    
+    // Проверяем наличие необходимых методов
+    const requiredMethods = ['swe_calc_ut', 'swe_julday', 'swe_houses', 'swe_set_ephe_path'];
+    const missingMethods = requiredMethods.filter(method => typeof sweInstance[method] !== 'function');
+    
+    if (missingMethods.length > 0) {
+      const errorMsg = `Swiss Ephemeris instance missing required methods: ${missingMethods.join(', ')}`;
+      log.error(errorMsg, { 
+        availableMethods: Object.keys(sweInstance).filter(k => typeof sweInstance[k] === 'function'),
+        missingMethods 
+      });
+      throw new Error(errorMsg);
+    }
+    
+    log.info('✓ Swiss Ephemeris instance validated', {
+      hasRequiredMethods: true,
+      availableMethods: Object.keys(sweInstance).filter(k => typeof sweInstance[k] === 'function').length
+    });
     
     // Устанавливаем путь к эфемеридам
     // Swiss Ephemeris автоматически загружает файлы с CDN
     try {
-      await sweInstance.swe_set_ephe_path();
-      log.info('✓ Ephemeris path initialized (CDN)');
+      if (typeof sweInstance.swe_set_ephe_path === 'function') {
+        await sweInstance.swe_set_ephe_path();
+        log.info('✓ Ephemeris path initialized (CDN)');
+      } else {
+        log.warn('swe_set_ephe_path is not available, skipping ephemeris path setup');
+      }
     } catch (epheError: any) {
-      log.warn('Ephemeris path warning (will use built-in data)', { error: epheError.message });
+      log.warn('Ephemeris path warning (will use built-in data)', { 
+        error: epheError.message,
+        stack: epheError.stack 
+      });
       // Не критично - библиотека может работать со встроенными данными
     }
     
@@ -95,11 +144,19 @@ async function initSwissEph() {
     log.info('✓ Swiss Ephemeris initialized successfully');
     return sweInstance;
   } catch (error: any) {
-    log.error('❌ Failed to initialize Swiss Ephemeris', error);
+    log.error('❌ Failed to initialize Swiss Ephemeris', {
+      error: error.message,
+      stack: error.stack,
+      name: error.name,
+      code: error.code,
+      isInitialized,
+      hasInstance: !!sweInstance
+    });
     isInitialized = false;
     sweInstance = null;
-    // Пробрасываем оригинальное сообщение
-    throw error;
+    // Пробрасываем оригинальное сообщение с дополнительным контекстом
+    const errorMessage = error.message || 'Unknown initialization error';
+    throw new Error(`Ошибка инициализации астрономических расчетов: ${errorMessage}`);
   }
 }
 
@@ -646,8 +703,23 @@ export async function calculateNatalChart(
       birthPlace
     });
 
-    // Инициализируем Swiss Ephemeris
-    const swe = await initSwissEph();
+    // Инициализируем Swiss Ephemeris с улучшенной обработкой ошибок
+    let swe;
+    try {
+      swe = await initSwissEph();
+      if (!swe) {
+        throw new Error('Swiss Ephemeris instance is null after initialization');
+      }
+      log.info('✓ Swiss Ephemeris initialized and ready for calculations');
+    } catch (initError: any) {
+      log.error('Failed to initialize Swiss Ephemeris for calculation', {
+        error: initError.message,
+        stack: initError.stack,
+        name: initError.name
+      });
+      // Пробрасываем ошибку с понятным сообщением
+      throw new Error(`Ошибка инициализации астрономических расчетов: ${initError.message || 'Неизвестная ошибка'}`);
+    }
 
     // Получаем координаты места рождения
     const coords = await getCoordinates(birthPlace);

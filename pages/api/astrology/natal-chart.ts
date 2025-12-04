@@ -65,6 +65,13 @@ export default async function handler(
 
     try {
       // Используем реальные расчеты Swiss Ephemeris
+      log.info('Calling calculateNatalChart...', {
+        name,
+        birthDate,
+        birthTime: birthTime || '12:00',
+        birthPlace
+      });
+      
       const chartData = await calculateNatalChart(
         name,
         birthDate,
@@ -88,31 +95,39 @@ export default async function handler(
       // Если расчет Swiss Ephemeris не удался, возвращаем понятную ошибку
       log.error('Swiss Ephemeris calculation failed', {
         error: swissephError.message,
-        stack: swissephError.stack
+        stack: swissephError.stack,
+        name: swissephError.name,
+        code: swissephError.code,
+        fullError: swissephError
       });
       
       const userLanguage = language === 'en' ? 'en' : 'ru';
       
       // Определяем тип ошибки для более точного сообщения
       let errorMessage = '';
-      const errorMsg = swissephError.message?.toLowerCase() || '';
+      const errorMsg = (swissephError.message || '').toLowerCase();
       
-      if (errorMsg.includes('location not found') || errorMsg.includes('coordinates')) {
+      if (errorMsg.includes('location not found') || errorMsg.includes('coordinates') || errorMsg.includes('не удалось найти')) {
         errorMessage = userLanguage === 'ru'
           ? 'Не удалось найти указанное место рождения. Пожалуйста, проверьте правильность написания (например: "Москва, Россия" или "Moscow, Russia").'
           : 'Location not found. Please check the spelling of your birth place (e.g., "Moscow, Russia").';
-      } else if (errorMsg.includes('initialize') || errorMsg.includes('ephemeris')) {
+      } else if (errorMsg.includes('инициализац') || errorMsg.includes('initialize') || errorMsg.includes('ephemeris') || errorMsg.includes('swiss')) {
         errorMessage = userLanguage === 'ru'
-          ? 'Ошибка инициализации астрономических расчетов. Пожалуйста, попробуйте позже.'
-          : 'Astronomical calculation initialization error. Please try again later.';
-      } else if (errorMsg.includes('time') || errorMsg.includes('date')) {
+          ? 'Ошибка инициализации астрономических расчетов. Пожалуйста, попробуйте позже или обновите страницу.'
+          : 'Astronomical calculation initialization error. Please try again later or refresh the page.';
+      } else if (errorMsg.includes('time') || errorMsg.includes('date') || errorMsg.includes('время') || errorMsg.includes('дата')) {
         errorMessage = userLanguage === 'ru'
           ? 'Ошибка обработки даты или времени. Пожалуйста, проверьте правильность введенных данных.'
           : 'Date or time processing error. Please check your input data.';
       } else {
-        errorMessage = userLanguage === 'ru'
-          ? 'Не удалось рассчитать натальную карту. Пожалуйста, проверьте правильность введенных данных и попробуйте снова.'
-          : 'Failed to calculate natal chart. Please check your input data and try again.';
+        // Используем сообщение из ошибки, если оно есть и понятное
+        if (swissephError.message && swissephError.message.length < 200) {
+          errorMessage = swissephError.message;
+        } else {
+          errorMessage = userLanguage === 'ru'
+            ? 'Не удалось рассчитать натальную карту. Пожалуйста, проверьте правильность введенных данных и попробуйте снова.'
+            : 'Failed to calculate natal chart. Please check your input data and try again.';
+        }
       }
       
       return res.status(500).json({ 
