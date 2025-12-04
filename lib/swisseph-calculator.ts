@@ -68,7 +68,12 @@ async function initSwissEph() {
 
   try {
     log.info('Initializing Swiss Ephemeris WebAssembly...');
-    sweInstance = await SwissEPH.init();
+    
+    // Инициализируем Swiss Ephemeris с настройками для Node.js окружения
+    sweInstance = await SwissEPH.init({
+      // Для Node.js окружения используем синхронную загрузку
+      useInlineWasm: typeof window === 'undefined',
+    });
     
     // Устанавливаем путь к локальным файлам ephemeris если они есть
     const ephePath = process.env.EPHE_PATH || path.join(process.cwd(), 'ephe');
@@ -76,10 +81,19 @@ async function initSwissEph() {
     
     // Примечание: sweph-wasm загружает файлы из CDN по умолчанию
     // Локальные файлы можно использовать настроив путь
-    await sweInstance.swe_set_ephe_path();
+    // Для локальных файлов вызываем: await sweInstance.swe_set_ephe_path(ephePath);
+    // Для CDN (по умолчанию): await sweInstance.swe_set_ephe_path();
+    try {
+      // Используем CDN для загрузки эфемерид
+      await sweInstance.swe_set_ephe_path();
+      log.info('✓ Ephemeris path set successfully (using CDN)');
+    } catch (epheError: any) {
+      log.warn('Could not set ephemeris path, using default', { error: epheError.message });
+      // Продолжаем работу - библиотека использует встроенные данные
+    }
     
     isInitialized = true;
-    log.info('Swiss Ephemeris initialized successfully');
+    log.info('✓ Swiss Ephemeris initialized successfully');
     return sweInstance;
   } catch (error: any) {
     log.error('Failed to initialize Swiss Ephemeris', error);
