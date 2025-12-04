@@ -34,7 +34,6 @@ cp .env.example .env
 - `DATABASE_URL`: Строка подключения к Railway Database
 - `OPENAI_API_KEY`: (Опционально) Для AI функций
 - `EPHE_PATH`: (Опционально) Путь к файлам Swiss Ephemeris
-- `USE_SWE_WASM`: Установите 'true' для использования WebAssembly версии
 
 ### Разработка
 
