@@ -77,11 +77,19 @@ async function initSwissEph() {
       throw new Error(errorMsg);
     }
     
-    // Инициализируем Swiss Ephemeris (работает и в браузере, и в Node.js)
+    // Инициализируем Swiss Ephemeris с timeout для предотвращения зависания
     let initResult;
     try {
       log.info('Calling SwissEPH.init()...');
-      initResult = await SwissEPH.init();
+      
+      // Добавляем timeout для предотвращения зависания (30 секунд)
+      const initPromise = SwissEPH.init();
+      const timeoutPromise = new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error('Initialization timeout after 30 seconds')), 30000)
+      );
+      
+      initResult = await Promise.race([initPromise, timeoutPromise]);
+      
       log.info('SwissEPH.init() completed', { 
         hasResult: !!initResult,
         resultType: typeof initResult,
@@ -107,12 +115,12 @@ async function initSwissEph() {
     
     // Проверяем наличие необходимых методов
     const requiredMethods = ['swe_calc_ut', 'swe_julday', 'swe_houses', 'swe_set_ephe_path'];
-    const missingMethods = requiredMethods.filter(method => typeof sweInstance[method] !== 'function');
+    const missingMethods = requiredMethods.filter(method => typeof sweInstance![method] !== 'function');
     
     if (missingMethods.length > 0) {
       const errorMsg = `Swiss Ephemeris instance missing required methods: ${missingMethods.join(', ')}`;
       log.error(errorMsg, { 
-        availableMethods: Object.keys(sweInstance).filter(k => typeof sweInstance[k] === 'function'),
+        availableMethods: Object.keys(sweInstance).filter(k => typeof sweInstance![k] === 'function'),
         missingMethods 
       });
       throw new Error(errorMsg);
@@ -120,22 +128,20 @@ async function initSwissEph() {
     
     log.info('✓ Swiss Ephemeris instance validated', {
       hasRequiredMethods: true,
-      availableMethods: Object.keys(sweInstance).filter(k => typeof sweInstance[k] === 'function').length
+      availableMethods: Object.keys(sweInstance).filter(k => typeof sweInstance![k] === 'function').length
     });
     
-    // Устанавливаем путь к эфемеридам
-    // Swiss Ephemeris автоматически загружает файлы с CDN
+    // Устанавливаем путь к эфемеридам (не критично, библиотека может работать со встроенными данными)
     try {
       if (typeof sweInstance.swe_set_ephe_path === 'function') {
         await sweInstance.swe_set_ephe_path();
-        log.info('✓ Ephemeris path initialized (CDN)');
+        log.info('✓ Ephemeris path initialized');
       } else {
         log.warn('swe_set_ephe_path is not available, skipping ephemeris path setup');
       }
     } catch (epheError: any) {
       log.warn('Ephemeris path warning (will use built-in data)', { 
-        error: epheError.message,
-        stack: epheError.stack 
+        error: epheError.message
       });
       // Не критично - библиотека может работать со встроенными данными
     }
