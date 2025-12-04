@@ -284,38 +284,56 @@ async function initSwissEph() {
     
     // Устанавливаем путь к эфемеридам для максимальной точности расчетов
     // Используем файлы из папки ephe для супер точных расчетов
+    // ВАЖНО: Флаг SEFLG_SWIEPH (2) в swe_calc_ut указывает использовать эти файлы
     try {
       if (typeof sweInstance.swe_set_ephe_path === 'function') {
         // Определяем путь к папке с эфемеридами
         // В Docker контейнере: /app/ephe, локально: ./ephe или process.cwd() + '/ephe'
         const ephePath = process.env.EPHE_PATH || (IS_SERVER ? '/app/ephe' : path.join(process.cwd(), 'ephe'));
         
-        // Для WASM версии путь может быть относительным или абсолютным
         // Проверяем, существует ли папка
         const fs = require('fs');
         if (fs.existsSync(ephePath)) {
-          await sweInstance.swe_set_ephe_path(ephePath);
-          log.info(`✓ Ephemeris path set to: ${ephePath} (using high-precision ephemeris files)`);
+          // Устанавливаем путь к эфемеридам
+          // Для WASM версии это может быть синхронная или асинхронная функция
+          const setPathResult = sweInstance.swe_set_ephe_path(ephePath);
+          // Если функция возвращает Promise, ждем его
+          if (setPathResult && typeof setPathResult.then === 'function') {
+            await setPathResult;
+          }
+          
+          log.info(`✓ Ephemeris path set to: ${ephePath}`, {
+            path: ephePath,
+            exists: true,
+            note: 'Using high-precision Swiss Ephemeris files (.se1) for calculations',
+            flag: 'SEFLG_SWIEPH (2) will be used in swe_calc_ut to load these files'
+          });
         } else {
-          log.warn(`Ephemeris path not found: ${ephePath}, using built-in data`, {
+          log.warn(`Ephemeris path not found: ${ephePath}`, {
             cwd: process.cwd(),
             ephePath,
-            envEPHE_PATH: process.env.EPHE_PATH
+            envEPHE_PATH: process.env.EPHE_PATH,
+            note: 'Will use built-in ephemeris data (still accurate, but may have date limitations)'
           });
-          // Пробуем установить путь все равно (библиотека может найти файлы)
+          // Пробуем установить путь все равно (библиотека может найти файлы по другому пути)
           try {
-            await sweInstance.swe_set_ephe_path(ephePath);
+            const setPathResult = sweInstance.swe_set_ephe_path(ephePath);
+            if (setPathResult && typeof setPathResult.then === 'function') {
+              await setPathResult;
+            }
           } catch (e) {
             // Игнорируем ошибку, библиотека будет использовать встроенные данные
           }
         }
       } else {
-        log.warn('swe_set_ephe_path is not available, using built-in ephemeris data');
+        log.warn('swe_set_ephe_path is not available', {
+          note: 'Library may use built-in ephemeris data. Calculations will still be accurate.'
+        });
       }
     } catch (epheError: any) {
-      log.warn('Ephemeris path setup warning (will use built-in data)', { 
+      log.warn('Ephemeris path setup warning', { 
         error: epheError.message,
-        note: 'Library will use built-in ephemeris data, calculations will still be accurate'
+        note: 'Library will use built-in ephemeris data. Calculations will still be accurate, but may have date range limitations.'
       });
       // Не критично - библиотека может работать со встроенными данными
     }
@@ -653,11 +671,15 @@ async function calculatePlanetPosition(
   planetName: string
 ): Promise<PlanetPosition | null> {
   try {
-    // Используем флаги Swiss Ephemeris для точных расчетов:
-    // SEFLG_SWIEPH (2) = использовать Swiss Ephemeris (самые точные данные)
+    // Используем флаги Swiss Ephemeris для СУПЕР ТОЧНЫХ расчетов:
+    // SEFLG_SWIEPH (2) = использовать файлы Swiss Ephemeris из папки ephe (самые точные данные)
+    //                    Этот флаг заставляет библиотеку загружать .se1 файлы из папки ephe
     // SEFLG_SPEED (256) = включить скорость планеты
     // 258 = 2 | 256 = SEFLG_SWIEPH | SEFLG_SPEED
-    // Результат: эклиптическая долгота в градусах (0-360°)
+    // ВАЖНО: При использовании флага SEFLG_SWIEPH библиотека автоматически загружает
+    //         соответствующие файлы из папки ephe (например, seas_*.se1, semo_*.se1, sepl_*.se1)
+    //         для максимальной точности расчетов на любую дату
+    // Результат: эклиптическая долгота в градусах (0-360°) с максимальной точностью
     const result = swe.swe_calc_ut(julday, planetId, 258);
     
     // Адаптер для совместимости: WASM возвращает массив, Native возвращает объект
