@@ -3,7 +3,6 @@
  * Использует sweph-wasm для точных астрологических расчетов
  * БЕЗ нативных зависимостей - работает везде!
  */
-import SwissEPH from 'sweph-wasm';
 import axios from 'axios';
 import path from 'path';
 import tzLookup from 'tz-lookup';
@@ -21,6 +20,85 @@ const log = {
     console.warn(`[SwissephCalculator-WASM] WARNING: ${message}`, data || '');
   },
 };
+
+// Динамический импорт для более надежной загрузки модуля
+let SwissEPH: any = null;
+let swephModuleLoading: Promise<any> | null = null;
+
+/**
+ * Загружает модуль sweph-wasm с обработкой ошибок
+ */
+async function loadSwephModule() {
+  if (SwissEPH) {
+    return SwissEPH;
+  }
+  
+  if (swephModuleLoading) {
+    return swephModuleLoading;
+  }
+  
+  swephModuleLoading = (async () => {
+    try {
+      log.info('Loading sweph-wasm module...');
+      
+      // Пробуем динамический импорт (ES6 модули)
+      let swephModule: any;
+      try {
+        swephModule = await import('sweph-wasm');
+      } catch (importError: any) {
+        log.warn('ES6 import failed, trying require...', { error: importError.message });
+        // Fallback на require для CommonJS (работает в Node.js серверной среде)
+        // Используем require через глобальный объект Node.js
+        if (typeof require !== 'undefined') {
+          swephModule = require('sweph-wasm');
+        } else {
+          throw new Error('Neither ES6 import nor require is available');
+        }
+      }
+      
+      // Модуль может экспортироваться по-разному:
+      // 1. Как default export: swephModule.default
+      // 2. Как именованный export: swephModule
+      // 3. Как функция напрямую: swephModule (если это CommonJS)
+      SwissEPH = swephModule.default || swephModule;
+      
+      if (!SwissEPH) {
+        throw new Error('sweph-wasm module loaded but export is null or undefined');
+      }
+      
+      // Проверяем, что это функция или объект с методом init
+      if (typeof SwissEPH !== 'function' && typeof SwissEPH !== 'object') {
+        throw new Error(`sweph-wasm module has unexpected type: ${typeof SwissEPH}`);
+      }
+      
+      // Если это функция, она должна быть функцией init
+      if (typeof SwissEPH === 'function' && SwissEPH.name !== 'init') {
+        // Возможно, это обертка, пробуем вызвать
+        log.info('Module is a function, checking if it has init method...');
+      }
+      
+      log.info('✓ sweph-wasm module loaded successfully', {
+        hasInit: typeof SwissEPH.init === 'function',
+        moduleType: typeof SwissEPH,
+        isFunction: typeof SwissEPH === 'function',
+        moduleKeys: typeof SwissEPH === 'object' ? Object.keys(SwissEPH).slice(0, 10) : []
+      });
+      
+      return SwissEPH;
+    } catch (error: any) {
+      log.error('Failed to load sweph-wasm module', {
+        error: error.message,
+        stack: error.stack,
+        code: error.code,
+        name: error.name
+      });
+      swephModuleLoading = null;
+      throw new Error(`Не удалось загрузить модуль астрономических расчетов: ${error.message || 'Неизвестная ошибка'}`);
+    }
+  })();
+  
+  return swephModuleLoading;
+}
 
 // Импортируем централизованные данные о знаках зодиака
 const { ZODIAC_SIGNS, getElementForSign: getElementForSignUtil, getRulingPlanet: getRulingPlanetUtil } = require('./zodiac-utils');
@@ -55,8 +133,10 @@ interface PlanetPosition {
 
 // Глобальная инициализация Swiss Ephemeris
 // Тип из sweph-wasm может быть любым, но мы используем его методы
-let sweInstance: Awaited<ReturnType<typeof SwissEPH.init>> | null = null;
+let sweInstance: any = null;
 let isInitialized = false;
+let initializationAttempts = 0;
+const MAX_INIT_ATTEMPTS = 3;
 
 /**
  * Инициализация Swiss Ephemeris WASM
@@ -70,10 +150,27 @@ async function initSwissEph() {
   try {
     log.info('Initializing Swiss Ephemeris WebAssembly...');
     
+    // Сначала загружаем модуль, если он еще не загружен
+    if (!SwissEPH) {
+      try {
+        SwissEPH = await loadSwephModule();
+      } catch (loadError: any) {
+        log.error('Failed to load Swiss Ephemeris module', {
+          error: loadError.message,
+          stack: loadError.stack
+        });
+        throw new Error(`Не удалось загрузить модуль астрономических расчетов: ${loadError.message || 'Неизвестная ошибка'}`);
+      }
+    }
+    
     // Проверяем доступность модуля
     if (!SwissEPH || typeof SwissEPH.init !== 'function') {
       const errorMsg = 'SwissEPH module is not available or init function is missing';
-      log.error(errorMsg, { SwissEPH: typeof SwissEPH, hasInit: typeof SwissEPH?.init });
+      log.error(errorMsg, { 
+        SwissEPH: typeof SwissEPH, 
+        hasInit: typeof SwissEPH?.init,
+        moduleKeys: SwissEPH ? Object.keys(SwissEPH).slice(0, 10) : []
+      });
       throw new Error(errorMsg);
     }
     
@@ -102,7 +199,16 @@ async function initSwissEph() {
         name: initError.name,
         code: initError.code
       });
-      throw new Error(`Failed to initialize ephemeris calculator: ${initError.message || 'Unknown initialization error'}`);
+      
+      // Более детальное сообщение об ошибке
+      let errorMessage = initError.message || 'Unknown initialization error';
+      if (initError.message?.includes('timeout')) {
+        errorMessage = 'Превышено время ожидания инициализации модуля расчетов';
+      } else if (initError.message?.includes('WebAssembly') || initError.message?.includes('wasm')) {
+        errorMessage = 'Ошибка загрузки WebAssembly модуля расчетов';
+      }
+      
+      throw new Error(`Failed to initialize ephemeris calculator: ${errorMessage}`);
     }
     
     sweInstance = initResult;
@@ -157,19 +263,41 @@ async function initSwissEph() {
     }
     
     isInitialized = true;
+    initializationAttempts = 0; // Сбрасываем счетчик при успешной инициализации
     log.info('✓ Swiss Ephemeris initialized successfully');
     return sweInstance;
   } catch (error: any) {
+    initializationAttempts++;
     log.error('❌ Failed to initialize Swiss Ephemeris', {
       error: error.message,
       stack: error.stack,
       name: error.name,
       code: error.code,
       isInitialized,
-      hasInstance: !!sweInstance
+      hasInstance: !!sweInstance,
+      attempt: initializationAttempts,
+      maxAttempts: MAX_INIT_ATTEMPTS
     });
+    
+    // Сбрасываем состояние при ошибке, чтобы можно было попробовать снова
     isInitialized = false;
     sweInstance = null;
+    
+    // Если это не последняя попытка и ошибка не критическая, пробуем еще раз
+    if (initializationAttempts < MAX_INIT_ATTEMPTS && 
+        !error.message?.includes('module') && 
+        !error.message?.includes('timeout')) {
+      log.info(`Retrying initialization (attempt ${initializationAttempts + 1}/${MAX_INIT_ATTEMPTS})...`);
+      // Небольшая задержка перед повторной попыткой
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return initSwissEph();
+    }
+    
+    // Сбрасываем счетчик попыток после всех попыток
+    if (initializationAttempts >= MAX_INIT_ATTEMPTS) {
+      initializationAttempts = 0;
+    }
+    
     // Пробрасываем оригинальное сообщение с дополнительным контекстом
     const errorMessage = error.message || 'Unknown initialization error';
     throw new Error(`Ошибка инициализации астрономических расчетов: ${errorMessage}`);
