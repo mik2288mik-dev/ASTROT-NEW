@@ -282,17 +282,40 @@ async function initSwissEph() {
       availableMethods: Object.keys(sweInstance).filter(k => typeof (sweInstance as any)[k] === 'function').length
     });
     
-    // Устанавливаем путь к эфемеридам (не критично, библиотека может работать со встроенными данными)
+    // Устанавливаем путь к эфемеридам для максимальной точности расчетов
+    // Используем файлы из папки ephe для супер точных расчетов
     try {
       if (typeof sweInstance.swe_set_ephe_path === 'function') {
-        await sweInstance.swe_set_ephe_path();
-        log.info('✓ Ephemeris path initialized');
+        // Определяем путь к папке с эфемеридами
+        // В Docker контейнере: /app/ephe, локально: ./ephe или process.cwd() + '/ephe'
+        const ephePath = process.env.EPHE_PATH || (IS_SERVER ? '/app/ephe' : path.join(process.cwd(), 'ephe'));
+        
+        // Для WASM версии путь может быть относительным или абсолютным
+        // Проверяем, существует ли папка
+        const fs = require('fs');
+        if (fs.existsSync(ephePath)) {
+          await sweInstance.swe_set_ephe_path(ephePath);
+          log.info(`✓ Ephemeris path set to: ${ephePath} (using high-precision ephemeris files)`);
+        } else {
+          log.warn(`Ephemeris path not found: ${ephePath}, using built-in data`, {
+            cwd: process.cwd(),
+            ephePath,
+            envEPHE_PATH: process.env.EPHE_PATH
+          });
+          // Пробуем установить путь все равно (библиотека может найти файлы)
+          try {
+            await sweInstance.swe_set_ephe_path(ephePath);
+          } catch (e) {
+            // Игнорируем ошибку, библиотека будет использовать встроенные данные
+          }
+        }
       } else {
-        log.warn('swe_set_ephe_path is not available, skipping ephemeris path setup');
+        log.warn('swe_set_ephe_path is not available, using built-in ephemeris data');
       }
     } catch (epheError: any) {
-      log.warn('Ephemeris path warning (will use built-in data)', { 
-        error: epheError.message
+      log.warn('Ephemeris path setup warning (will use built-in data)', { 
+        error: epheError.message,
+        note: 'Library will use built-in ephemeris data, calculations will still be accurate'
       });
       // Не критично - библиотека может работать со встроенными данными
     }
