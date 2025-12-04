@@ -32,6 +32,9 @@ ENV NODE_ENV=production
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
+# Устанавливаем Python и компилятор для node-gyp (нужно для swisseph-v2)
+RUN apk add --no-cache python3 make g++
+
 # Копируем package.json для установки production зависимостей
 COPY --from=builder --chown=nextjs:nodejs /app/package.json ./
 COPY --from=builder --chown=nextjs:nodejs /app/package-lock.json ./
