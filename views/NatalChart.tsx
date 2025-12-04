@@ -257,7 +257,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
                     {getText(profile.language, 'chart.placements')}
                 </h2>
 
-                <div className="space-y-3 max-w-xl mx-auto">
+                <div className="space-y-4 max-w-2xl mx-auto">
                     {pillars.map((key) => {
                         const fullText = getText(profile.language, `chart.${key}`);
                         const words = fullText.split(' ');
@@ -268,28 +268,28 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
                             <button
                                 key={key}
                                 onClick={() => handleDeepDive(key)}
-                                className="w-full bg-astro-card rounded-xl p-4 border border-astro-border hover:border-astro-highlight transition-colors text-left relative"
+                                className="w-full bg-astro-card rounded-xl p-5 md:p-6 border border-astro-border hover:border-astro-highlight transition-all hover:shadow-lg text-left relative group"
                             >
                                 <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-[15px] font-medium text-astro-text">
+                                    <div className="flex items-center gap-2.5">
+                                        <span className="text-base md:text-[17px] font-medium text-astro-text">
                                             {previewWords}
                                         </span>
                                         {!profile.isPremium && restWords && (
                                             <>
-                                                <span className="text-[15px] font-medium text-astro-text blur-sm select-none">
+                                                <span className="text-base md:text-[17px] font-medium text-astro-text blur-sm select-none">
                                                     {restWords}
                                                 </span>
-                                                <span className="text-astro-highlight ml-2 text-xs">🔒</span>
+                                                <span className="text-astro-highlight ml-2 text-sm">🔒</span>
                                             </>
                                         )}
                                         {profile.isPremium && restWords && (
-                                            <span className="text-[15px] font-medium text-astro-text">
+                                            <span className="text-base md:text-[17px] font-medium text-astro-text">
                                                 {' ' + restWords}
                                             </span>
                                         )}
                                     </div>
-                                    <span className="text-astro-subtext text-xs ml-4">
+                                    <span className="text-astro-subtext text-xs md:text-sm ml-4 group-hover:text-astro-highlight transition-colors">
                                         {profile.language === 'ru' ? 'Открыть' : 'Open'}
                                     </span>
                                 </div>
@@ -305,7 +305,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
                     {getText(profile.language, 'chart.forecast_title')}
                 </h2>
 
-                <div className="grid grid-cols-3 gap-3 max-w-xl mx-auto">
+                <div className="grid grid-cols-3 gap-3 md:gap-4 max-w-2xl mx-auto">
                     {['day', 'week', 'month'].map((period) => {
                         const fullText = getText(profile.language, `chart.forecast_${period}`);
                         const words = fullText.split(' ');
@@ -316,18 +316,18 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
                             <button 
                                 key={period}
                                 onClick={() => handleForecast(period as 'day' | 'week' | 'month')} 
-                                className="bg-astro-card rounded-lg p-3 border border-astro-border hover:border-astro-highlight transition-colors relative"
+                                className="bg-astro-card rounded-xl p-4 md:p-5 border border-astro-border hover:border-astro-highlight transition-all hover:shadow-lg relative group"
                             >
-                                <div className="text-xs font-medium text-astro-text text-center">
+                                <div className="text-sm md:text-base font-medium text-astro-text text-center">
                                     <div>{previewWords}</div>
                                     {!profile.isPremium && restWords && (
-                                        <div className="flex items-center justify-center gap-1 mt-1">
-                                            <span className="blur-sm select-none text-[10px]">{restWords}</span>
-                                            <span className="text-[10px]">🔒</span>
+                                        <div className="flex items-center justify-center gap-1 mt-1.5">
+                                            <span className="blur-sm select-none text-xs md:text-sm">{restWords}</span>
+                                            <span className="text-xs md:text-sm">🔒</span>
                                         </div>
                                     )}
                                     {profile.isPremium && restWords && (
-                                        <div className="mt-1 text-[10px]">{restWords}</div>
+                                        <div className="mt-1.5 text-xs md:text-sm">{restWords}</div>
                                     )}
                                 </div>
                             </button>

@@ -45,7 +45,9 @@ html, body {
   width: 100%;
   margin: 0;
   padding: 0;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
   background-color: var(--bg-primary);
   color: var(--text-main);
   transition: background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1), color 0.5s ease;
@@ -58,6 +60,19 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Responsive Typography Base */
+@media (max-width: 768px) {
+  html, body {
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  html, body {
+    font-size: 14px;
+  }
+}
+
 #__next {
   height: 100%;
   width: 100%;
@@ -67,8 +82,56 @@ html, body {
 }
 
 h1, h2, h3, h4, h5, h6, .font-fashion {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
   letter-spacing: -0.02em;
+  line-height: 1.3;
+  font-weight: 600;
+  margin-bottom: 0.75em;
+}
+
+h1 {
+  font-size: 1.875rem;
+  line-height: 1.2;
+}
+
+h2 {
+  font-size: 1.5rem;
+  line-height: 1.25;
+}
+
+h3 {
+  font-size: 1.25rem;
+  line-height: 1.3;
+}
+
+h4 {
+  font-size: 1.125rem;
+  line-height: 1.4;
+}
+
+/* Body text styles */
+p, .body-text {
+  font-size: 1rem;
+  line-height: 1.6;
+  margin-bottom: 1em;
+}
+
+/* Card content typography */
+.card-text {
+  font-size: 1rem;
+  line-height: 1.65;
+  max-width: 65ch;
+}
+
+/* Small text */
+.text-sm {
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.text-xs {
+  font-size: 0.75rem;
+  line-height: 1.4;
 }
 
 /* Custom Scrollbar - Hidden for clean look */
@@ -127,4 +190,72 @@ body.theme-light .shadow-glow {
 
 body.theme-light .bg-gradient-cosmic {
   background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-primary) 100%);
+}
+
+/* Typography utility classes for better readability */
+.reading-width {
+  max-width: 65ch;
+}
+
+.reading-width-narrow {
+  max-width: 55ch;
+}
+
+.reading-width-wide {
+  max-width: 75ch;
+}
+
+/* Better spacing for text blocks */
+.text-block > * + * {
+  margin-top: 1em;
+}
+
+/* List styling */
+ul, ol {
+  padding-left: 1.5em;
+  margin-bottom: 1em;
+}
+
+li {
+  margin-bottom: 0.5em;
+  line-height: 1.6;
+}
+
+/* Emphasis elements */
+strong, b {
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+em, i {
+  font-style: italic;
+  color: var(--text-main);
+}
+
+/* Better focus states */
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--highlight);
+  outline-offset: 2px;
+}
+
+/* Smooth hover transitions for interactive elements */
+button,
+a,
+.interactive {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Card improvements */
+.card-enhanced {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-enhanced:hover {
+  border-color: var(--highlight);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }

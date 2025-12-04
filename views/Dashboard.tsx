@@ -109,8 +109,8 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
                                 {profile.language === 'ru' ? 'Сегодня тебя ждёт особенный день' : 'A special day awaits you'}
                             </h3>
                         </div>
-                        <div className="flex-shrink-0 w-12 h-12 rounded-full bg-astro-highlight/10 border border-astro-highlight/30 flex items-center justify-center group-hover:scale-110 transition-transform">
-                            <span className="text-2xl text-astro-highlight">☾</span>
+                        <div className="flex-shrink-0 w-14 h-14 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-astro-highlight/20 to-astro-highlight/5 border-2 border-astro-highlight/40 flex items-center justify-center group-hover:scale-110 transition-all shadow-md group-hover:shadow-lg">
+                            <span className="text-3xl md:text-4xl text-astro-highlight opacity-90" style={{ filter: 'drop-shadow(0 2px 6px rgba(191, 161, 255, 0.3))' }}>☾</span>
                         </div>
                     </div>
                     <p className="text-xs text-astro-subtext font-light mb-4">
@@ -138,8 +138,8 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
                                 {profile.language === 'ru' ? 'Личность, судьба, карма и прогнозы' : 'Personality, Fate, Karma & Forecasts'}
                             </p>
                         </div>
-                        <div className="flex-shrink-0 w-12 h-12 rounded-full bg-astro-highlight/10 border border-astro-highlight/30 flex items-center justify-center group-hover:scale-110 transition-transform">
-                            <span className="text-2xl text-astro-highlight">→</span>
+                        <div className="flex-shrink-0 w-14 h-14 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-astro-highlight/20 to-astro-highlight/5 border-2 border-astro-highlight/40 flex items-center justify-center group-hover:scale-110 group-hover:rotate-[-10deg] transition-all shadow-md group-hover:shadow-lg">
+                            <span className="text-3xl md:text-4xl text-astro-highlight opacity-90" style={{ filter: 'drop-shadow(0 2px 6px rgba(191, 161, 255, 0.3))' }}>→</span>
                         </div>
                     </div>
                 </div>
@@ -191,8 +191,8 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
                 >
                     <div className="absolute -top-10 -right-10 w-32 h-32 bg-pink-500 rounded-full blur-2xl opacity-20"></div>
                     <div className="relative z-10 flex flex-col justify-between h-28">
-                        <div className="w-10 h-10 rounded-full bg-astro-highlight/10 border border-astro-highlight/30 flex items-center justify-center group-hover:scale-110 transition-transform">
-                            <span className="text-xl text-astro-highlight">♥</span>
+                        <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-gradient-to-br from-pink-400/20 to-pink-600/5 border-2 border-pink-400/40 flex items-center justify-center group-hover:scale-110 transition-all shadow-md group-hover:shadow-lg">
+                            <span className="text-2xl md:text-3xl text-pink-400 opacity-90" style={{ filter: 'drop-shadow(0 2px 6px rgba(244, 114, 182, 0.3))' }}>♥</span>
                         </div>
                         <div>
                             <h3 className="font-serif text-base text-astro-text mb-1">{getText(profile.language, 'dashboard.menu_synastry')}</h3>
@@ -216,8 +216,8 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
                     <div className="absolute -top-10 -right-10 w-32 h-32 bg-blue-500 rounded-full blur-2xl opacity-20"></div>
                     {!profile.isPremium && <div className="absolute inset-0 bg-black/10 backdrop-blur-[1px] flex items-center justify-center z-20 rounded-2xl"><span className="text-xs font-bold bg-astro-text text-astro-bg px-2 py-1 rounded">PRO</span></div>}
                     <div className="relative z-10 flex flex-col justify-between h-28">
-                        <div className="w-10 h-10 rounded-full bg-astro-highlight/10 border border-astro-highlight/30 flex items-center justify-center group-hover:scale-110 transition-transform">
-                            <span className="text-xl text-astro-highlight">✧</span>
+                        <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-gradient-to-br from-blue-400/20 to-blue-600/5 border-2 border-blue-400/40 flex items-center justify-center group-hover:scale-110 group-hover:rotate-[20deg] transition-all shadow-md group-hover:shadow-lg">
+                            <span className="text-2xl md:text-3xl text-blue-400 opacity-90" style={{ filter: 'drop-shadow(0 2px 6px rgba(96, 165, 250, 0.3))' }}>✧</span>
                         </div>
                         <div>
                              <h3 className="font-serif text-base text-astro-text mb-1">{getText(profile.language, 'dashboard.menu_oracle')}</h3>

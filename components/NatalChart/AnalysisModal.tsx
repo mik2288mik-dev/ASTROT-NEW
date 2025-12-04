@@ -55,15 +55,19 @@ export const AnalysisModal = memo<AnalysisModalProps>(({
                     </div>
 
                     {/* Содержимое */}
-                    <div className="flex-1 overflow-y-auto scrollbar-hide">
+                    <div className="flex-1 overflow-y-auto scrollbar-hide pr-2">
                         {isLoading ? (
                             <Loading />
                         ) : (
-                            <div className="max-w-[90%] mx-auto space-y-3">
+                            <div className="space-y-4">
                                 {content.split('\n\n').filter(p => p.trim()).map((paragraph, idx) => (
                                     <p 
                                         key={idx}
-                                        className="text-[14px] leading-relaxed text-astro-text"
+                                        className="card-text text-base md:text-[17px] text-astro-text"
+                                        style={{ 
+                                            lineHeight: '1.7',
+                                            maxWidth: '55ch'
+                                        }}
                                     >
                                         {paragraph.trim()}
                                     </p>
