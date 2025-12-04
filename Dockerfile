@@ -16,7 +16,6 @@ RUN npm ci --prefer-offline --no-audit --no-fund
 COPY . .
 
 # Собираем Next.js приложение
-# postbuild выполнит миграцию автоматически, но миграции лучше запускать в runtime
 RUN npm run build
 
 # Stage 2: Production stage
@@ -35,7 +34,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/package.json ./
 COPY --from=builder --chown=nextjs:nodejs /app/package-lock.json ./
 
 # Устанавливаем только production зависимости + tsx для миграций
-# tsx нужен для запуска миграций через postbuild или в runtime
+# tsx нужен для запуска миграций в runtime
 RUN npm ci --omit=dev --prefer-offline --no-audit --no-fund && \
     npm install --save-prod tsx && \
     npm cache clean --force
@@ -56,4 +55,5 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["npm", "start"]
+# Запускаем миграции перед стартом приложения (в runtime с доступным DATABASE_URL)
+CMD ["sh", "-c", "npm run migrate && npm start"]
