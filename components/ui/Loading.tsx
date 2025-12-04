@@ -48,66 +48,58 @@ export const Loading: React.FC<LoadingProps> = ({ message, progress: externalPro
 
     return (
         <div className="fixed inset-0 flex flex-col items-center justify-center bg-astro-bg z-50 text-center px-4">
-            {/* Логотип с плавным вращением по часовой стрелке */}
+            {/* 3D Вращение логотипа как монета */}
             <motion.div
-                className="relative mb-8"
-                initial={{ opacity: 0, scale: 0.5 }}
+                className="relative"
+                style={{ perspective: 1000 }}
+                initial={{ opacity: 0, scale: 0.7 }}
                 animate={{ 
                     opacity: 1, 
                     scale: 1,
                 }}
                 transition={{ 
-                    opacity: { duration: 0.3 },
-                    scale: { duration: 0.5 },
+                    duration: 0.6,
+                    ease: "easeOut"
                 }}
             >
-                {/* Крутящийся логотип - как часовая стрелка */}
+                {/* Крутящийся логотип - 3D flip как монета */}
                 <motion.div
                     animate={{ 
-                        rotate: 360
+                        rotateY: 360
                     }}
                     transition={{ 
-                        duration: 2, 
+                        duration: 2.5,
                         repeat: Infinity,
                         ease: "linear"
+                    }}
+                    style={{
+                        transformStyle: "preserve-3d",
                     }}
                     className="relative"
                 >
                     {logoLoaded ? (
-                        <div className="relative w-32 h-32">
+                        <div className="relative w-48 h-48 md:w-56 md:h-56">
                             <NextImage 
                                 src="/logo.png" 
                                 alt="ASTROT" 
-                                width={128}
-                                height={128}
-                                className="object-contain drop-shadow-lg"
+                                width={224}
+                                height={224}
+                                className="object-contain"
                                 style={{
-                                    filter: 'brightness(0) invert(1) drop-shadow(0 0 20px rgba(255,255,255,0.5))'
+                                    filter: 'drop-shadow(0 0 40px rgba(191, 161, 255, 0.4)) drop-shadow(0 4px 20px rgba(0, 0, 0, 0.3))'
                                 }}
                                 priority
                             />
                         </div>
                     ) : (
-                        <div className="w-32 h-32 flex items-center justify-center">
-                            <div className="text-6xl font-bold text-white font-serif">
+                        <div className="w-48 h-48 md:w-56 md:h-56 flex items-center justify-center">
+                            <div className="text-8xl md:text-9xl font-bold text-astro-highlight opacity-90" style={{ fontFamily: 'Outfit, sans-serif' }}>
                                 A
                             </div>
                         </div>
                     )}
                 </motion.div>
             </motion.div>
-            
-            {/* Сообщение загрузки */}
-            {message && (
-                <motion.p 
-                    className="text-sm text-astro-subtext uppercase tracking-wider"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.3 }}
-                >
-                    {message}
-                </motion.p>
-            )}
         </div>
     );
 };

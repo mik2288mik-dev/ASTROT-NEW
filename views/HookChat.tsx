@@ -117,17 +117,21 @@ export const HookChat: React.FC<HookChatProps> = ({ profile, chartData, onComple
                         transition={{ duration: 0.8, ease: "easeOut" }}
                         className="flex flex-col items-center text-center w-full"
                     >
-                         <div className="w-full max-w-[90%]">
+                         <div className="w-full max-w-2xl mx-auto px-4">
                             {msg.type === 'key' && (
-                                <h4 className="text-astro-highlight text-[10px] font-bold uppercase tracking-[0.3em] mb-4 animate-pulse">
+                                <h4 className="text-astro-highlight text-xs md:text-sm font-bold uppercase tracking-[0.3em] mb-5 animate-pulse">
                                     {msg.title}
                                 </h4>
                             )}
                             
-                            <p className={`text-astro-text leading-8 font-serif font-light drop-shadow-sm whitespace-pre-wrap ${
-                                msg.type === 'text' ? "italic text-astro-highlight opacity-80" : 
-                                msg.type === 'cta' ? "text-sm text-astro-subtext mt-4" : "text-lg"
-                            }`}>
+                            <p className={`text-astro-text font-serif font-light drop-shadow-sm whitespace-pre-wrap ${
+                                msg.type === 'text' ? "italic text-astro-highlight opacity-90 text-base md:text-lg leading-relaxed" : 
+                                msg.type === 'cta' ? "text-sm md:text-base text-astro-subtext mt-5 leading-relaxed" : "text-lg md:text-xl leading-relaxed"
+                            }`}
+                            style={{
+                                lineHeight: msg.type === 'key' ? '1.7' : '1.6',
+                                maxWidth: '65ch'
+                            }}>
                                 {msg.text}
                             </p>
 
@@ -137,7 +141,7 @@ export const HookChat: React.FC<HookChatProps> = ({ profile, chartData, onComple
                                     animate={{ scale: 1, opacity: 1 }}
                                     transition={{ delay: 1, duration: 0.5 }}
                                     onClick={onComplete}
-                                    className="mt-8 w-full bg-astro-text text-astro-bg py-4 rounded-xl font-bold uppercase tracking-widest text-xs shadow-glow hover:scale-105 transition-transform"
+                                    className="mt-10 w-full max-w-md mx-auto bg-astro-text text-astro-bg py-4 md:py-5 rounded-xl font-bold uppercase tracking-widest text-sm shadow-glow hover:scale-105 transition-transform"
                                 >
                                     {getText(profile.language, 'hook.cta_button')}
                                 </motion.button>

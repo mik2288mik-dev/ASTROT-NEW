@@ -57,13 +57,15 @@ export const SolarSystem: React.FC<SolarSystemProps> = ({ language }) => {
                         transition={{ duration: planet.speed, repeat: Infinity, ease: "linear" }}
                      >
                         <motion.div 
-                            className="absolute top-1/2 -translate-y-1/2 rounded-full cursor-pointer z-30 shadow-lg border border-white/10 hover:border-white transition-colors"
+                            className="absolute top-1/2 -translate-y-1/2 rounded-full cursor-pointer z-30 shadow-lg border-2 border-white/20 hover:border-white hover:shadow-2xl transition-all"
                             style={{ 
                                 width: planet.size, 
                                 height: planet.size, 
                                 backgroundColor: planet.color,
-                                right: -planet.size / 2 
+                                right: -planet.size / 2,
+                                boxShadow: `0 0 ${planet.size / 2}px ${planet.color}40`
                             }}
+                            whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 1.2 }}
                             onClick={(e) => { e.stopPropagation(); handlePlanetClick(planet.id); }}
                         />
@@ -78,17 +80,17 @@ export const SolarSystem: React.FC<SolarSystemProps> = ({ language }) => {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 20 }}
-                        className="absolute bottom-6 inset-x-6 bg-astro-card/95 backdrop-blur-xl p-5 rounded-xl border border-astro-border z-40 shadow-2xl"
+                        className="absolute bottom-6 inset-x-6 bg-astro-card/98 backdrop-blur-xl p-6 md:p-7 rounded-2xl border-2 border-astro-border z-40 shadow-2xl"
                     >
-                        <div className="flex justify-between items-start">
-                            <div className="pr-4">
-                                <p className="text-astro-text text-sm font-serif leading-relaxed tracking-wide font-medium">
+                        <div className="flex justify-between items-start gap-4">
+                            <div className="flex-1">
+                                <p className="card-text text-base md:text-[17px] text-astro-text font-serif leading-relaxed tracking-wide font-medium" style={{ lineHeight: '1.65', maxWidth: '60ch' }}>
                                     {getText(language, `planets.${selectedPlanet}`)}
                                 </p>
                             </div>
                             <button 
                                 onClick={() => setSelectedPlanet(null)}
-                                className="text-astro-subtext hover:text-astro-text p-1"
+                                className="flex-shrink-0 w-8 h-8 flex items-center justify-center text-astro-subtext hover:text-astro-text hover:bg-astro-bg/50 rounded-full transition-all"
                             >
                                 ✕
                             </button>
