@@ -68,21 +68,25 @@ async function initSwissEph() {
 
   try {
     log.info('Initializing Swiss Ephemeris WebAssembly...');
+    
+    // Инициализируем Swiss Ephemeris (работает и в браузере, и в Node.js)
     sweInstance = await SwissEPH.init();
     
-    // Устанавливаем путь к локальным файлам ephemeris если они есть
-    const ephePath = process.env.EPHE_PATH || path.join(process.cwd(), 'ephe');
-    log.info('Setting ephemeris path', { ephePath });
-    
-    // Примечание: sweph-wasm загружает файлы из CDN по умолчанию
-    // Локальные файлы можно использовать настроив путь
-    await sweInstance.swe_set_ephe_path();
+    // Устанавливаем путь к эфемеридам
+    // Swiss Ephemeris автоматически загружает файлы с CDN
+    try {
+      await sweInstance.swe_set_ephe_path();
+      log.info('✓ Ephemeris path initialized (CDN)');
+    } catch (epheError: any) {
+      log.warn('Ephemeris path warning (will use built-in data)', { error: epheError.message });
+      // Не критично - библиотека может работать со встроенными данными
+    }
     
     isInitialized = true;
-    log.info('Swiss Ephemeris initialized successfully');
+    log.info('✓ Swiss Ephemeris initialized successfully');
     return sweInstance;
   } catch (error: any) {
-    log.error('Failed to initialize Swiss Ephemeris', error);
+    log.error('❌ Failed to initialize Swiss Ephemeris', error);
     throw new Error(`Failed to initialize Swiss Ephemeris: ${error.message}`);
   }
 }
@@ -108,17 +112,23 @@ function convertLocalTimeToUTC(
   timezone: string
 ): { utcYear: number; utcMonth: number; utcDay: number; utcHour: number; utcMinute: number; utcTimeInHours: number } {
   try {
-    // Правильный способ конвертации локального времени в UTC с использованием date-fns-tz:
-    // Используем итеративный подход для точной конвертации
+    // ИСПРАВЛЕНО: Правильный способ конвертации локального времени в UTC с использованием date-fns-tz
     
-    // Правильный способ конвертации локального времени в UTC:
-    // Создаем Date объект, представляющий локальное время (как будто это UTC)
-    const localDate = new Date(Date.UTC(year, month - 1, day, hour, minute, 0));
+    // Создаем строку даты в формате ISO (без указания timezone)
+    // Это представляет локальное время в указанном часовом поясе
+    const dateString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
+    
+    log.info('Converting local time to UTC', {
+      input: { year, month, day, hour, minute },
+      timezone,
+      dateString
+    });
     
     // Используем fromZonedTime для конвертации локального времени в указанном часовом поясе в UTC
-    const utcDate = fromZonedTime(localDate, timezone);
+    // fromZonedTime принимает строку и интерпретирует её как локальное время в указанном timezone
+    const utcDate = fromZonedTime(dateString, timezone);
     
-    // Для проверки: конвертируем обратно в локальное время
+    // Для проверки: конвертируем обратно в локальное время в указанном timezone
     const localInTimezone = toZonedTime(utcDate, timezone);
     
     // Извлекаем компоненты UTC даты
@@ -129,17 +139,46 @@ function convertLocalTimeToUTC(
     const utcMinute = utcDate.getUTCMinutes();
     const utcTimeInHours = utcHour + utcMinute / 60.0;
     
-    log.info('Converted local time to UTC', {
+    // Проверяем, что конвертация обратно дает правильное локальное время
+    const verificationPassed = 
+      localInTimezone.getFullYear() === year &&
+      localInTimezone.getMonth() + 1 === month &&
+      localInTimezone.getDate() === day &&
+      localInTimezone.getHours() === hour &&
+      localInTimezone.getMinutes() === minute;
+    
+    log.info('✓ Converted local time to UTC successfully', {
       local: { year, month, day, hour, minute },
       timezone,
-      utc: { utcYear, utcMonth, utcDay, utcHour, utcMinute, utcTimeInHours: utcTimeInHours.toFixed(4) },
+      utc: { 
+        year: utcYear, 
+        month: utcMonth, 
+        day: utcDay, 
+        hour: utcHour, 
+        minute: utcMinute, 
+        timeInHours: utcTimeInHours.toFixed(4) 
+      },
       dateShift: (utcDay !== day || utcMonth !== month || utcYear !== year) ? 'Date shifted due to timezone' : 'Same date',
       verification: {
-        localInTimezone: `${localInTimezone.getHours()}:${String(localInTimezone.getMinutes()).padStart(2, '0')}`,
-        desired: `${hour}:${String(minute).padStart(2, '0')}`,
-        match: localInTimezone.getHours() === hour && localInTimezone.getMinutes() === minute
+        localInTimezone: `${localInTimezone.getFullYear()}-${String(localInTimezone.getMonth() + 1).padStart(2, '0')}-${String(localInTimezone.getDate()).padStart(2, '0')} ${String(localInTimezone.getHours()).padStart(2, '0')}:${String(localInTimezone.getMinutes()).padStart(2, '0')}`,
+        desired: `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')} ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`,
+        passed: verificationPassed ? '✓ PASS' : '✗ FAIL'
       }
     });
+    
+    if (!verificationPassed) {
+      log.error('❌ CRITICAL: Timezone conversion verification failed!', {
+        expected: { year, month, day, hour, minute },
+        got: { 
+          year: localInTimezone.getFullYear(),
+          month: localInTimezone.getMonth() + 1,
+          day: localInTimezone.getDate(),
+          hour: localInTimezone.getHours(),
+          minute: localInTimezone.getMinutes()
+        }
+      });
+      // Продолжаем выполнение, но логируем ошибку для отладки
+    }
     
     return { utcYear, utcMonth, utcDay, utcHour, utcMinute, utcTimeInHours };
   } catch (error: any) {
@@ -226,9 +265,10 @@ export function getZodiacSign(degree: number): string {
   }
   
   // Определяем индекс знака (0-11)
-  // 0°-30° = Aries (0), 30°-60° = Taurus (1), и т.д.
+  // 0°-30° = Aries (0), 30°-60° = Taurus (1), ..., 330°-360° = Pisces (11)
   // Важно: Math.floor правильно обрабатывает граничные случаи
   // Например: 30.0° -> index 1 (Taurus), 29.999° -> index 0 (Aries)
+  // 345° -> index 11 (Pisces)
   const signIndex = Math.floor(normalizedDegree / 30);
   
   // Обрабатываем граничный случай: ровно 360° должен быть Aries (0)
@@ -239,13 +279,23 @@ export function getZodiacSign(degree: number): string {
   const { ZODIAC_SIGNS: signs } = require('./zodiac-utils');
   
   if (finalIndex < 0 || finalIndex >= signs.length) {
-    log.error(`[getZodiacSign] Invalid sign index: ${finalIndex} for degree ${degree}, normalized: ${normalizedDegree}`);
+    log.error(`[getZodiacSign] ❌ Invalid sign index: ${finalIndex} for degree ${degree}, normalized: ${normalizedDegree}`);
     return signs[0]; // Fallback to Aries
   }
   
   const signName = signs[finalIndex];
+  const degreeInSign = normalizedDegree % 30;
   
-  log.info(`[getZodiacSign] Degree: ${degree.toFixed(6)}, Normalized: ${normalizedDegree.toFixed(6)}, Sign Index: ${finalIndex}, Sign: ${signName}`);
+  // Детальное логирование для отладки
+  log.info(`[getZodiacSign] ✓ Calculated`, {
+    inputDegree: degree.toFixed(6),
+    normalizedDegree: normalizedDegree.toFixed(6),
+    signIndex: finalIndex,
+    signName: signName,
+    degreeInSign: degreeInSign.toFixed(4),
+    fullPosition: `${degreeInSign.toFixed(2)}° ${signName}`,
+    zodiacMapping: `${normalizedDegree.toFixed(2)}° = ${signName} (${finalIndex * 30}° - ${(finalIndex + 1) * 30}°)`
+  });
   
   return signName;
 }

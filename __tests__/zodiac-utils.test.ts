@@ -29,6 +29,20 @@ describe('Zodiac Utils', () => {
       expect(getApproximateSunSignByDate(2000, 3, 5)).toBe('Pisces');    // ~середина Рыб
     });
 
+    it('КРИТИЧЕСКИЙ ТЕСТ: должен правильно определять Рыбы для 6 марта 1989', () => {
+      // Тест для репродукции бага: 6 марта 1989 должно быть Рыбы, а не Телец или Дева
+      // Pisces: 19 февраля - 20 марта
+      expect(getApproximateSunSignByDate(1989, 3, 6)).toBe('Pisces');
+      
+      // Дополнительные тесты для марта (период Рыб)
+      expect(getApproximateSunSignByDate(1989, 2, 19)).toBe('Pisces'); // Начало Рыб
+      expect(getApproximateSunSignByDate(1989, 2, 25)).toBe('Pisces'); // Середина февральской части
+      expect(getApproximateSunSignByDate(1989, 3, 1)).toBe('Pisces');  // Начало мартовской части
+      expect(getApproximateSunSignByDate(1989, 3, 10)).toBe('Pisces'); // Середина мартовской части
+      expect(getApproximateSunSignByDate(1989, 3, 20)).toBe('Pisces'); // Конец Рыб
+      expect(getApproximateSunSignByDate(1989, 3, 21)).toBe('Aries');  // Начало Овна
+    });
+
     it('должен правильно определять знак на границах', () => {
       // Границы знаков (примерные)
       expect(getApproximateSunSignByDate(2000, 3, 21)).toBe('Aries');     // Начало Овна
