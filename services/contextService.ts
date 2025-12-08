@@ -1,9 +1,6 @@
 
 import { UserProfile, UserContext, ZodiacSign } from "../types";
 
-// Mock data pools for "Wow" features
-const WEATHER_CONDITIONS = ['Rainy', 'Sunny', 'Cloudy', 'Stormy', 'Clear Night'];
-
 const SOCIAL_PROOF_TEMPLATES = {
     ru: [
         "87% пользователей с вашим знаком нашли любовь в этом месяце.",
@@ -20,21 +17,55 @@ const SOCIAL_PROOF_TEMPLATES = {
 };
 
 /**
- * Simulates gathering external context (API integrations would go here)
+ * Fetches weather data from WeatherAPI.com
+ */
+const fetchWeatherData = async (city: string): Promise<UserContext['weatherData'] | null> => {
+    try {
+        const API_BASE_URL = typeof window !== 'undefined' ? '' : process.env.NEXT_PUBLIC_API_URL || '';
+        const response = await fetch(`${API_BASE_URL}/api/weather?city=${encodeURIComponent(city)}`);
+        
+        if (!response.ok) {
+            console.warn('[ContextService] Failed to fetch weather:', response.status);
+            return null;
+        }
+
+        const result = await response.json();
+        if (result.success && result.data) {
+            return result.data;
+        }
+        
+        return null;
+    } catch (error) {
+        console.error('[ContextService] Error fetching weather:', error);
+        return null;
+    }
+};
+
+/**
+ * Gets user context including weather and social proof
  */
 export const getUserContext = async (profile: UserProfile): Promise<UserContext> => {
-    // 1. Simulate Weather API call
-    const randomWeather = WEATHER_CONDITIONS[Math.floor(Math.random() * WEATHER_CONDITIONS.length)];
+    const context: UserContext = {
+        mood: 'Neutral' // Default, updated by Chat
+    };
+
+    // 1. Fetch Weather Data if city is set
+    if (profile.weatherCity) {
+        const weatherData = await fetchWeatherData(profile.weatherCity);
+        if (weatherData) {
+            context.weatherData = weatherData;
+            // Для обратной совместимости сохраняем также в weather
+            context.weather = weatherData.condition;
+            context.moonPhase = weatherData.moonPhase;
+        }
+    }
     
     // 2. Generate Social Proof based on Sign/Profile
     const proofs = profile.language === 'ru' ? SOCIAL_PROOF_TEMPLATES.ru : SOCIAL_PROOF_TEMPLATES.en;
     const randomProof = proofs[Math.floor(Math.random() * proofs.length)];
+    context.socialProof = randomProof;
 
-    return {
-        weather: randomWeather,
-        socialProof: randomProof,
-        mood: 'Neutral' // Default, updated by Chat
-    };
+    return context;
 };
 
 /**

@@ -407,6 +407,31 @@ async function migration008(pool: Pool): Promise<void> {
 }
 
 /**
+ * Migration 009: Add weather_city field to users table
+ */
+async function migration009(pool: Pool): Promise<void> {
+  const migrationName = '009_add_weather_city';
+  
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
+  log.info(`Applying migration ${migrationName}...`);
+
+  // Add weather_city field for storing user's weather city preference
+  const addColumn = `
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS weather_city VARCHAR(255);
+  `;
+
+  await pool.query(addColumn);
+  
+  await markMigrationApplied(pool, migrationName);
+  log.info(`Migration ${migrationName} applied successfully`);
+}
+
+/**
  * Verify that all required tables exist
  */
 async function verifyTablesExist(pool: Pool): Promise<void> {
@@ -508,6 +533,7 @@ export async function runMigrations(): Promise<void> {
     await migration006(pool);
     await migration007(pool);
     await migration008(pool);
+    await migration009(pool);
 
     // Verify that all tables were created successfully
     log.info('Verifying tables were created...');
