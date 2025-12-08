@@ -26,6 +26,10 @@ export interface UserContext {
     temp: number; // Температура в градусах Цельсия
     humidity: number; // Влажность в процентах
     city: string; // Название города
+    moonPhase?: {
+      phase: string; // Фаза луны
+      illumination: number; // Освещенность в процентах
+    };
   };
   moonPhase?: {
     phase: string; // Фаза луны
