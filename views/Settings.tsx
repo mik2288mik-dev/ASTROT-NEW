@@ -16,6 +16,9 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
     const [editing, setEditing] = useState(false);
     const [tempName, setTempName] = useState(profile.name);
     const [tempPlace, setTempPlace] = useState(profile.birthPlace);
+    const [editingWeather, setEditingWeather] = useState(false);
+    const [tempWeatherCity, setTempWeatherCity] = useState(profile.weatherCity || '');
+    const [weatherLoading, setWeatherLoading] = useState(false);
 
     const handleLanguageToggle = () => {
         const newLang: Language = profile.language === 'ru' ? 'en' : 'ru';
@@ -69,6 +72,46 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
             console.error('[Settings] Failed to save profile:', error);
         });
         setEditing(false);
+    };
+
+    const handleSaveWeatherCity = async () => {
+        const city = tempWeatherCity.trim();
+        setWeatherLoading(true);
+        
+        // Если город указан, проверяем его валидность через API
+        if (city) {
+            try {
+                const API_BASE_URL = typeof window !== 'undefined' ? '' : process.env.NEXT_PUBLIC_API_URL || '';
+                const response = await fetch(`${API_BASE_URL}/api/weather?city=${encodeURIComponent(city)}`);
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    alert(profile.language === 'ru' 
+                        ? 'Не удалось найти указанный город. Проверьте правильность написания.'
+                        : 'Failed to find the specified city. Please check the spelling.');
+                    setWeatherLoading(false);
+                    return;
+                }
+            } catch (error) {
+                console.error('[Settings] Error validating weather city:', error);
+                alert(profile.language === 'ru' 
+                    ? 'Ошибка при проверке города. Попробуйте позже.'
+                    : 'Error validating city. Please try again later.');
+                setWeatherLoading(false);
+                return;
+            }
+        }
+
+        const updated = { ...profile, weatherCity: city || undefined };
+        console.log('[Settings] Saving weather city:', city);
+        onUpdate(updated);
+        saveProfile(updated).then(() => {
+            console.log('[Settings] Weather city saved successfully');
+        }).catch(error => {
+            console.error('[Settings] Failed to save weather city:', error);
+        });
+        setEditingWeather(false);
+        setWeatherLoading(false);
     };
 
     return (
@@ -150,6 +193,91 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                 >
                     {getText(profile.language, 'settings.switch_lang')}
                 </button>
+            </div>
+
+            {/* Weather Settings */}
+            <div className="bg-astro-card border border-astro-border rounded-xl p-6 shadow-sm">
+                <div className="flex justify-between items-center mb-4">
+                    <div>
+                        <h3 className="text-astro-text font-medium font-serif">
+                            {profile.language === 'ru' ? 'Погода и Луна' : 'Weather & Moon'}
+                        </h3>
+                        <p className="text-[10px] uppercase tracking-wider text-astro-subtext mt-1">
+                            {profile.language === 'ru' ? 'Настройка города для погоды' : 'Set city for weather'}
+                        </p>
+                    </div>
+                    {!editingWeather && (
+                        <button 
+                            onClick={() => setEditingWeather(true)} 
+                            className="text-astro-subtext text-[10px] uppercase tracking-wider hover:text-astro-primary border-b border-transparent hover:border-astro-subtext transition-all"
+                        >
+                            {profile.language === 'ru' ? 'Изменить' : 'Edit'}
+                        </button>
+                    )}
+                </div>
+
+                {editingWeather ? (
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-[10px] uppercase tracking-widest text-astro-subtext mb-2">
+                                {profile.language === 'ru' ? 'Город' : 'City'}
+                            </label>
+                            <input 
+                                type="text" 
+                                value={tempWeatherCity}
+                                onChange={(e) => setTempWeatherCity(e.target.value)}
+                                placeholder={profile.language === 'ru' ? 'Например: Москва или Moscow' : 'e.g. Moscow or London'}
+                                className="w-full bg-transparent border-b border-astro-highlight py-2 text-astro-text text-sm focus:outline-none transition-colors font-serif"
+                                disabled={weatherLoading}
+                            />
+                            <p className="text-[9px] text-astro-subtext mt-2 italic">
+                                {profile.language === 'ru' 
+                                    ? 'Укажите название города на русском или английском языке'
+                                    : 'Enter city name in English or Russian'}
+                            </p>
+                        </div>
+                        <div className="flex gap-2">
+                            <button 
+                                onClick={handleSaveWeatherCity}
+                                disabled={weatherLoading}
+                                className="flex-1 bg-white text-black font-bold py-3 rounded-lg shadow-lg hover:opacity-90 transition-transform uppercase text-xs tracking-widest disabled:opacity-50"
+                            >
+                                {weatherLoading 
+                                    ? (profile.language === 'ru' ? 'Проверка...' : 'Checking...')
+                                    : getText(profile.language, 'settings.save')
+                                }
+                            </button>
+                            <button 
+                                onClick={() => {
+                                    setEditingWeather(false);
+                                    setTempWeatherCity(profile.weatherCity || '');
+                                }}
+                                disabled={weatherLoading}
+                                className="bg-transparent border border-astro-border text-astro-text font-bold py-3 px-4 rounded-lg text-xs uppercase tracking-widest hover:bg-astro-bg transition-colors disabled:opacity-50"
+                            >
+                                {profile.language === 'ru' ? 'Отмена' : 'Cancel'}
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <div>
+                        <p className="text-sm text-astro-text font-serif">
+                            {profile.weatherCity 
+                                ? profile.weatherCity 
+                                : (profile.language === 'ru' 
+                                    ? 'Город не указан' 
+                                    : 'City not set')
+                            }
+                        </p>
+                        {profile.weatherCity && (
+                            <p className="text-[10px] text-astro-subtext mt-2">
+                                {profile.language === 'ru' 
+                                    ? 'Погода и фаза луны будут отображаться на главном экране'
+                                    : 'Weather and moon phase will be shown on the main screen'}
+                            </p>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Profile Form */}

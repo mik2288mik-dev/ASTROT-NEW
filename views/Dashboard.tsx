@@ -164,21 +164,116 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
             )}
 
             {/* 5. COSMIC WEATHER (Layer 3: Context) */}
-            {context?.weather && (
-                <div className="bg-gradient-to-r from-astro-card to-astro-bg p-5 rounded-xl border border-astro-border relative overflow-hidden">
-                    <div className="relative z-10 flex items-center justify-between">
-                        <div>
-                            <h3 className="text-[10px] uppercase tracking-widest text-astro-subtext mb-1">{getText(profile.language, 'dashboard.context_weather')}</h3>
-                            <p className="text-xl font-serif text-astro-text capitalize">{context.weather}</p>
-                        </div>
-                        <div className="text-3xl opacity-50 text-astro-highlight">
-                           {context.weather.includes('Rain') ? '☂' : context.weather.includes('Sun') ? '☀' : '☁'}
+            {profile.weatherCity ? (
+                context?.weatherData ? (
+                    <div className="bg-gradient-to-r from-astro-card to-astro-bg p-5 rounded-xl border border-astro-border relative overflow-hidden">
+                        <div className="relative z-10">
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="flex-1">
+                                    <h3 className="text-[10px] uppercase tracking-widest text-astro-subtext mb-1">
+                                        {getText(profile.language, 'dashboard.context_weather')}
+                                    </h3>
+                                    <div className="flex items-baseline gap-2">
+                                        <p className="text-xl font-serif text-astro-text capitalize">
+                                            {context.weatherData.condition}
+                                        </p>
+                                        <span className="text-sm text-astro-subtext">
+                                            {context.weatherData.temp}°C
+                                        </span>
+                                    </div>
+                                    <p className="text-xs text-astro-subtext mt-1">
+                                        {context.weatherData.city}
+                                        {context.weatherData.humidity && ` • ${context.weatherData.humidity}% ${profile.language === 'ru' ? 'влажность' : 'humidity'}`}
+                                    </p>
+                                </div>
+                                <div className="text-3xl opacity-50 text-astro-highlight">
+                                    {context.weatherData.condition.toLowerCase().includes('rain') || context.weatherData.condition.toLowerCase().includes('дождь') ? '☂' : 
+                                     context.weatherData.condition.toLowerCase().includes('sun') || context.weatherData.condition.toLowerCase().includes('солн') ? '☀' : 
+                                     context.weatherData.condition.toLowerCase().includes('cloud') || context.weatherData.condition.toLowerCase().includes('облач') ? '☁' : 
+                                     context.weatherData.condition.toLowerCase().includes('clear') || context.weatherData.condition.toLowerCase().includes('ясн') ? '☀' : '🌤'}
+                                </div>
+                            </div>
+                            
+                            {context.moonPhase && (
+                                <div className="mt-3 pt-3 border-t border-astro-border/30">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-xs text-astro-subtext uppercase tracking-wider">
+                                                {profile.language === 'ru' ? 'Фаза Луны' : 'Moon Phase'}
+                                            </p>
+                                            <p className="text-sm font-serif text-astro-text mt-1">
+                                                {context.moonPhase.phase}
+                                            </p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-xs text-astro-subtext">
+                                                {context.moonPhase.illumination}%
+                                            </p>
+                                            <p className="text-[10px] text-astro-subtext uppercase tracking-wider">
+                                                {profile.language === 'ru' ? 'освещённость' : 'illumination'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                            
+                            <p className="text-xs text-astro-subtext mt-3 font-light italic">
+                                {profile.language === 'ru' ? 'Звёзды согласны с небом сегодня...' : 'The stars align with the sky today...'}
+                            </p>
+                            
+                            {/* WeatherAPI Attribution */}
+                            <div className="mt-3 pt-2 border-t border-astro-border/20">
+                                <a 
+                                    href="https://www.weatherapi.com/" 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="text-[8px] text-astro-subtext hover:text-astro-highlight transition-colors flex items-center gap-1"
+                                >
+                                    <span>{profile.language === 'ru' ? 'Погода от' : 'Weather by'}</span>
+                                    <span className="underline">WeatherAPI.com</span>
+                                </a>
+                            </div>
                         </div>
                     </div>
+                ) : (
+                    <div className="bg-gradient-to-r from-astro-card to-astro-bg p-5 rounded-xl border border-astro-border relative overflow-hidden opacity-60">
+                        <div className="relative z-10 flex items-center justify-between">
+                            <div>
+                                <h3 className="text-[10px] uppercase tracking-widest text-astro-subtext mb-1">
+                                    {getText(profile.language, 'dashboard.context_weather')}
+                                </h3>
+                                <p className="text-sm font-serif text-astro-text">
+                                    {profile.language === 'ru' ? 'Загрузка погоды...' : 'Loading weather...'}
+                                </p>
+                            </div>
+                            <div className="text-3xl opacity-30 text-astro-highlight animate-pulse">☁</div>
+                        </div>
+                    </div>
+                )
+            ) : (
+                <button 
+                    onClick={onOpenSettings}
+                    className="w-full bg-gradient-to-r from-astro-card to-astro-bg p-5 rounded-xl border border-astro-border relative overflow-hidden text-left hover:border-astro-highlight/50 transition-colors group"
+                >
+                    <div className="relative z-10 flex items-center justify-between">
+                        <div>
+                            <h3 className="text-[10px] uppercase tracking-widest text-astro-subtext mb-1">
+                                {getText(profile.language, 'dashboard.context_weather')}
+                            </h3>
+                            <p className="text-sm font-serif text-astro-text">
+                                {profile.language === 'ru' 
+                                    ? 'Укажите город в настройках для отображения погоды'
+                                    : 'Set city in settings to see weather'}
+                            </p>
+                        </div>
+                        <div className="text-3xl opacity-30 text-astro-highlight group-hover:opacity-50 transition-opacity">☁</div>
+                    </div>
                     <p className="relative z-10 text-xs text-astro-subtext mt-2 font-light italic">
-                        {profile.language === 'ru' ? 'Звёзды согласны с небом сегодня...' : 'The stars align with the sky today...'}
+                        {profile.language === 'ru' 
+                            ? 'Нажмите, чтобы открыть настройки →' 
+                            : 'Tap to open settings →'}
                     </p>
-                </div>
+                </button>
             )}
 
             {/* 6. SECONDARY ACTIONS */}

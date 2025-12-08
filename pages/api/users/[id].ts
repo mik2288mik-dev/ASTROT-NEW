@@ -65,6 +65,7 @@ export default async function handler(
         threeKeys: threeKeys, // Синхронизированное значение
         evolution: user.evolution,
         generatedContent: user.generated_content,
+        weatherCity: user.weather_city,
       };
 
       return res.status(200).json(clientUser);
@@ -102,6 +103,7 @@ export default async function handler(
         three_keys: threeKeysToSave, // Синхронизированное значение
         evolution: userData.evolution || null,
         generated_content: Object.keys(updatedGeneratedContent).length > 0 ? updatedGeneratedContent : null,
+        weather_city: userData.weatherCity || null,
       };
 
       const savedUser = await db.users.set(userId, dbUser);
@@ -127,6 +129,7 @@ export default async function handler(
         threeKeys: syncedThreeKeys, // Синхронизированное значение
         evolution: savedUser.evolution,
         generatedContent: savedUser.generated_content,
+        weatherCity: savedUser.weather_city,
       };
 
       return res.status(200).json(clientUser);

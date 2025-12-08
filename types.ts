@@ -21,6 +21,16 @@ export interface UserEvolution {
 
 export interface UserContext {
   weather?: string; // e.g. "Rainy", "Sunny"
+  weatherData?: {
+    condition: string; // e.g. "Rainy", "Sunny"
+    temp: number; // Температура в градусах Цельсия
+    humidity: number; // Влажность в процентах
+    city: string; // Название города
+  };
+  moonPhase?: {
+    phase: string; // Фаза луны
+    illumination: number; // Освещенность в процентах
+  };
   socialProof?: string; // e.g. "87% of Scorpios..."
   mood?: string; // e.g. "Anxious", "Excited" (detected from chat)
 }
@@ -40,6 +50,7 @@ export interface UserProfile {
   evolution?: UserEvolution;
   lastContext?: UserContext;
   starsBalance?: number; // Баланс звёзд для платных регенераций
+  weatherCity?: string; // Город для погоды (например, "Moscow" или "Москва")
   
   // Все генерации пользователя (кэшируются)
   generatedContent?: UserGeneratedContent;
