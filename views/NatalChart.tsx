@@ -156,6 +156,19 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
         key3: { title: getText(profile.language, 'hook.key3_title'), text: "...", advice: [] },
     });
 
+    // Обновляем keys при изменении профиля или threeKeys
+    React.useEffect(() => {
+        const newThreeKeysSource = profile.generatedContent?.threeKeys || profile.threeKeys;
+        if (newThreeKeysSource && (
+            newThreeKeysSource.key1?.text !== keys.key1?.text ||
+            newThreeKeysSource.key2?.text !== keys.key2?.text ||
+            newThreeKeysSource.key3?.text !== keys.key3?.text
+        )) {
+            console.log('[NatalChart] Updating keys from profile');
+            setKeys(newThreeKeysSource);
+        }
+    }, [profile.generatedContent?.threeKeys, profile.threeKeys]);
+
     // Premium Pillars
     const pillars = [
         'section_personality',

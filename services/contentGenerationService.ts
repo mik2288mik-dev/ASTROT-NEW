@@ -358,26 +358,32 @@ export const getOrGenerateHoroscope = async (
 
   const timestamps = profile.generatedContent?.timestamps || {};
 
-  // Проверяем, нужно ли обновить
+  // Для weekly и monthly гороскопов - проверяем наличие в кэше ПЕРЕД проверкой обновления
+  // Они генерируются только один раз и не обновляются автоматически
+  if (period === 'weekly' && profile.generatedContent?.weeklyHoroscope) {
+    log.info('[getOrGenerateHoroscope] Using cached weekly horoscope');
+    return profile.generatedContent.weeklyHoroscope;
+  }
+  
+  if (period === 'monthly' && profile.generatedContent?.monthlyHoroscope) {
+    log.info('[getOrGenerateHoroscope] Using cached monthly horoscope');
+    return profile.generatedContent.monthlyHoroscope;
+  }
+
+  // Проверяем, нужно ли обновить (только для daily)
   const needsUpdate = shouldUpdateContent(timestamps, period);
 
   if (!needsUpdate) {
-    // Возвращаем кэшированный гороскоп
+    // Возвращаем кэшированный гороскоп (для daily)
     if (period === 'daily' && profile.generatedContent?.dailyHoroscope) {
       log.info('[getOrGenerateHoroscope] Using cached daily horoscope');
       return profile.generatedContent.dailyHoroscope;
     }
-    if (period === 'weekly' && profile.generatedContent?.weeklyHoroscope) {
-      log.info('[getOrGenerateHoroscope] Using cached weekly horoscope');
-      return profile.generatedContent.weeklyHoroscope;
-    }
-    if (period === 'monthly' && profile.generatedContent?.monthlyHoroscope) {
-      log.info('[getOrGenerateHoroscope] Using cached monthly horoscope');
-      return profile.generatedContent.monthlyHoroscope;
-    }
   }
 
-  // Генерируем новый гороскоп
+  // Генерируем новый гороскоп только если:
+  // - Для daily: нужно обновление или нет в кэше
+  // - Для weekly/monthly: нет в кэше (генерируются только один раз)
   log.info(`[getOrGenerateHoroscope] Generating new ${period} horoscope`);
   try {
     let horoscope: DailyHoroscope | WeeklyHoroscope | MonthlyHoroscope;
