@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import Image from 'next/image';
-import { UserProfile, NatalChartData } from '../../types';
+import { UserProfile, NatalChartData, UserContext } from '../../types';
 import { getText, getZodiacSign, getElement } from '../../constants';
 
 interface CosmicPassportProps {
@@ -9,14 +9,77 @@ interface CosmicPassportProps {
   photoUrl?: string;
   displayName: string;
   onOpenSettings: () => void;
+  weatherData?: UserContext['weatherData'];
 }
+
+// Функция для перевода погоды на русский
+const translateWeather = (condition: string, language: string): string => {
+    if (language !== 'ru') return condition;
+    
+    const translations: Record<string, string> = {
+        'sunny': 'Солнечно',
+        'clear': 'Ясно',
+        'partly cloudy': 'Переменная облачность',
+        'cloudy': 'Облачно',
+        'overcast': 'Пасмурно',
+        'mist': 'Туман',
+        'fog': 'Туман',
+        'light rain': 'Небольшой дождь',
+        'moderate rain': 'Умеренный дождь',
+        'heavy rain': 'Сильный дождь',
+        'light snow': 'Небольшой снег',
+        'moderate snow': 'Умеренный снег',
+        'heavy snow': 'Сильный снег',
+        'sleet': 'Мокрый снег',
+        'light drizzle': 'Моросящий дождь',
+        'moderate drizzle': 'Умеренная морось',
+        'heavy drizzle': 'Сильная морось',
+        'freezing drizzle': 'Ледяная морось',
+        'freezing rain': 'Ледяной дождь',
+        'freezing fog': 'Ледяной туман',
+        'patchy rain': 'Местами дождь',
+        'patchy snow': 'Местами снег',
+        'patchy sleet': 'Местами мокрый снег',
+        'patchy freezing drizzle': 'Местами ледяная морось',
+        'thundery outbreaks': 'Грозовые ливни',
+        'blowing snow': 'Метель',
+        'blizzard': 'Метель',
+        'light snow showers': 'Небольшие снежные ливни',
+        'moderate snow showers': 'Умеренные снежные ливни',
+        'heavy snow showers': 'Сильные снежные ливни',
+        'light rain showers': 'Небольшие дождевые ливни',
+        'moderate rain showers': 'Умеренные дождевые ливни',
+        'heavy rain showers': 'Сильные дождевые ливни',
+    };
+    
+    const lowerCondition = condition.toLowerCase();
+    for (const [key, value] of Object.entries(translations)) {
+        if (lowerCondition.includes(key)) {
+            return value;
+        }
+    }
+    
+    return condition;
+};
+
+// Функция для получения иконки погоды
+const getWeatherIcon = (condition: string): string => {
+    const lowerCondition = condition.toLowerCase();
+    if (lowerCondition.includes('rain') || lowerCondition.includes('дождь')) return '☂';
+    if (lowerCondition.includes('snow') || lowerCondition.includes('снег')) return '❄';
+    if (lowerCondition.includes('sun') || lowerCondition.includes('солн') || lowerCondition.includes('clear') || lowerCondition.includes('ясн')) return '☀';
+    if (lowerCondition.includes('cloud') || lowerCondition.includes('облач') || lowerCondition.includes('overcast') || lowerCondition.includes('пасмурно')) return '☁';
+    if (lowerCondition.includes('fog') || lowerCondition.includes('mist') || lowerCondition.includes('туман')) return '🌫';
+    return '🌤';
+};
 
 export const CosmicPassport = memo<CosmicPassportProps>(({ 
   profile, 
   chartData, 
   photoUrl, 
   displayName, 
-  onOpenSettings 
+  onOpenSettings,
+  weatherData
 }) => {
   return (
     <div className="bg-astro-card rounded-2xl p-6 border border-astro-border shadow-soft relative overflow-hidden">
@@ -80,6 +143,28 @@ export const CosmicPassport = memo<CosmicPassportProps>(({
             </p>
           </div>
         </div>
+        
+        {/* Weather Display */}
+        {weatherData && (
+          <div className="mt-4 pt-4 border-t border-astro-border/30 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">{getWeatherIcon(weatherData.condition)}</span>
+              <div>
+                <p className="text-xs font-medium text-astro-text">
+                  {translateWeather(weatherData.condition, profile.language)}
+                </p>
+                <p className="text-[10px] text-astro-subtext">
+                  {weatherData.city}
+                </p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-lg font-serif text-astro-text">
+                {weatherData.temp}°
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

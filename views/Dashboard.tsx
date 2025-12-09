@@ -7,6 +7,7 @@ import { Loading } from '../components/ui/Loading';
 import { getUserContext } from '../services/contextService';
 import { updateUserEvolution } from '../services/astrologyService';
 import { saveProfile } from '../services/storageService';
+import { getOrGenerateHoroscope } from '../services/contentGenerationService';
 import { motion } from 'framer-motion';
 import { CosmicPassport } from '../components/Dashboard/CosmicPassport';
 import { SoulEvolution } from '../components/Dashboard/SoulEvolution';
@@ -19,11 +20,87 @@ interface DashboardProps {
     onOpenSettings: () => void;
 }
 
+// Функция для перевода погоды на русский
+const translateWeather = (condition: string, language: string): string => {
+    if (language !== 'ru') return condition;
+    
+    const translations: Record<string, string> = {
+        'sunny': 'Солнечно',
+        'clear': 'Ясно',
+        'partly cloudy': 'Переменная облачность',
+        'cloudy': 'Облачно',
+        'overcast': 'Пасмурно',
+        'mist': 'Туман',
+        'fog': 'Туман',
+        'light rain': 'Небольшой дождь',
+        'moderate rain': 'Умеренный дождь',
+        'heavy rain': 'Сильный дождь',
+        'light snow': 'Небольшой снег',
+        'moderate snow': 'Умеренный снег',
+        'heavy snow': 'Сильный снег',
+        'sleet': 'Мокрый снег',
+        'light drizzle': 'Моросящий дождь',
+        'moderate drizzle': 'Умеренная морось',
+        'heavy drizzle': 'Сильная морось',
+        'freezing drizzle': 'Ледяная морось',
+        'freezing rain': 'Ледяной дождь',
+        'freezing fog': 'Ледяной туман',
+        'patchy rain': 'Местами дождь',
+        'patchy snow': 'Местами снег',
+        'patchy sleet': 'Местами мокрый снег',
+        'patchy freezing drizzle': 'Местами ледяная морось',
+        'thundery outbreaks': 'Грозовые ливни',
+        'blowing snow': 'Метель',
+        'blizzard': 'Метель',
+        'light snow showers': 'Небольшие снежные ливни',
+        'moderate snow showers': 'Умеренные снежные ливни',
+        'heavy snow showers': 'Сильные снежные ливни',
+        'light rain showers': 'Небольшие дождевые ливни',
+        'moderate rain showers': 'Умеренные дождевые ливни',
+        'heavy rain showers': 'Сильные дождевые ливни',
+    };
+    
+    const lowerCondition = condition.toLowerCase();
+    for (const [key, value] of Object.entries(translations)) {
+        if (lowerCondition.includes(key)) {
+            return value;
+        }
+    }
+    
+    return condition;
+};
+
+// Функция для перевода фазы луны на русский
+const translateMoonPhase = (phase: string, language: string): string => {
+    if (language !== 'ru') return phase;
+    
+    const translations: Record<string, string> = {
+        'new moon': 'Новолуние',
+        'waxing crescent': 'Растущий серп',
+        'first quarter': 'Первая четверть',
+        'waxing gibbous': 'Растущая луна',
+        'full moon': 'Полнолуние',
+        'waning gibbous': 'Убывающая луна',
+        'last quarter': 'Последняя четверть',
+        'waning crescent': 'Убывающий серп',
+    };
+    
+    const lowerPhase = phase.toLowerCase();
+    for (const [key, value] of Object.entries(translations)) {
+        if (lowerPhase.includes(key)) {
+            return value;
+        }
+    }
+    
+    return phase;
+};
+
 export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPremium, onNavigate, onOpenSettings }) => {
     
     const [context, setContext] = useState<UserContext | null>(null);
     const [evolution, setEvolution] = useState<UserEvolution | null>(profile.evolution || null);
     const [tgUser, setTgUser] = useState<any>(null);
+    const [dailyHoroscope, setDailyHoroscope] = useState<any>(null);
 
     // Мемуизируем язык для оптимизации
     const language = useMemo(() => profile.language, [profile.language]);
@@ -59,7 +136,17 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
                 console.error('[Dashboard] Failed to load context:', error);
             }
 
-            // 2. Update Evolution (Simulated Async)
+            // 2. Load Daily Horoscope
+            if (chartData) {
+                try {
+                    const horoscope = await getOrGenerateHoroscope(profile, chartData, 'daily');
+                    setDailyHoroscope(horoscope);
+                } catch (error) {
+                    console.error('[Dashboard] Failed to load horoscope:', error);
+                }
+            }
+
+            // 3. Update Evolution (Simulated Async)
             if (!profile.evolution || (Date.now() - profile.evolution.lastUpdated > 86400000)) {
                 // Update once every 24 hours or if missing
                 try {
@@ -91,6 +178,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
               photoUrl={photoUrl}
               displayName={displayName}
               onOpenSettings={onOpenSettings}
+              weatherData={context?.weatherData}
             />
 
             {/* 1.5. HOROSCOPE FOR TODAY */}
@@ -101,26 +189,43 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
                 <div className="absolute -top-16 -left-16 w-48 h-48 bg-purple-500 rounded-full blur-3xl opacity-20"></div>
                 <div className="relative z-10">
                     <div className="flex items-start justify-between mb-3">
-                        <div>
+                        <div className="flex-1">
                             <p className="text-[10px] uppercase tracking-widest text-astro-subtext mb-1">
                                 {profile.language === 'ru' ? 'Гороскоп на сегодня' : 'Today\'s Horoscope'}
                             </p>
-                            <h3 className="font-serif text-xl text-astro-text">
-                                {profile.language === 'ru' ? 'Сегодня тебя ждёт особенный день' : 'A special day awaits you'}
+                            {dailyHoroscope?.date && (
+                                <p className="text-[9px] text-astro-subtext mb-2">
+                                    {new Date(dailyHoroscope.date).toLocaleDateString(profile.language === 'ru' ? 'ru-RU' : 'en-US', {
+                                        day: 'numeric',
+                                        month: 'long',
+                                        year: 'numeric'
+                                    })}
+                                </p>
+                            )}
+                            <h3 className="font-serif text-xl text-astro-text mb-2">
+                                {dailyHoroscope?.content 
+                                    ? (dailyHoroscope.content.split('\n')[0] || (profile.language === 'ru' ? 'Сегодня тебя ждёт особенный день' : 'A special day awaits you'))
+                                    : (profile.language === 'ru' ? 'Сегодня тебя ждёт особенный день' : 'A special day awaits you')}
                             </h3>
+                            {dailyHoroscope?.content && dailyHoroscope.content.split('\n').length > 1 && (
+                                <p className="text-xs text-astro-subtext font-light">
+                                    {dailyHoroscope.content.split('\n').slice(1, 2).join(' ').substring(0, 100)}
+                                    {dailyHoroscope.content.split('\n').slice(1, 2).join(' ').length > 100 ? '...' : ''}
+                                </p>
+                            )}
                         </div>
-                        <div className="flex-shrink-0 w-14 h-14 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-astro-highlight/20 to-astro-highlight/5 border-2 border-astro-highlight/40 flex items-center justify-center group-hover:scale-110 transition-all shadow-md group-hover:shadow-lg">
+                        <div className="flex-shrink-0 w-14 h-14 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-astro-highlight/20 to-astro-highlight/5 border-2 border-astro-highlight/40 flex items-center justify-center group-hover:scale-110 transition-all shadow-md group-hover:shadow-lg ml-3">
                             <span className="text-3xl md:text-4xl text-astro-highlight opacity-90" style={{ filter: 'drop-shadow(0 2px 6px rgba(191, 161, 255, 0.3))' }}>☾</span>
                         </div>
                     </div>
-                    <p className="text-xs text-astro-subtext font-light mb-4">
-                        {profile.language === 'ru' 
-                            ? 'Луна усиливает твою интуицию. Прислушайся к внутреннему голосу.' 
-                            : 'The Moon strengthens your intuition. Listen to your inner voice.'}
-                    </p>
-                    <div className="text-xs text-astro-highlight font-medium">
+                    <div className="text-xs text-astro-highlight font-medium mb-2">
                         {profile.language === 'ru' ? 'Подробный прогноз →' : 'Detailed forecast →'}
                     </div>
+                    <p className="text-[9px] text-astro-subtext/70 font-light italic mt-3 pt-3 border-t border-astro-border/30">
+                        {profile.language === 'ru' 
+                            ? 'Гороскоп составлен на основе ваших планет, Луны, Солнца и данных рождения' 
+                            : 'Horoscope based on your planets, Moon, Sun and birth data'}
+                    </p>
                 </div>
             </button>
 
@@ -174,8 +279,8 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
                                         {getText(profile.language, 'dashboard.context_weather')}
                                     </h3>
                                     <div className="flex items-baseline gap-2">
-                                        <p className="text-xl font-serif text-astro-text capitalize">
-                                            {context.weatherData.condition}
+                                        <p className="text-xl font-serif text-astro-text">
+                                            {translateWeather(context.weatherData.condition, profile.language)}
                                         </p>
                                         <span className="text-sm text-astro-subtext">
                                             {context.weatherData.temp}°C
@@ -202,7 +307,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
                                                 {profile.language === 'ru' ? 'Фаза Луны' : 'Moon Phase'}
                                             </p>
                                             <p className="text-sm font-serif text-astro-text mt-1">
-                                                {context.moonPhase.phase}
+                                                {translateMoonPhase(context.moonPhase.phase, profile.language)}
                                             </p>
                                         </div>
                                         <div className="text-right">

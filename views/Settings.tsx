@@ -116,7 +116,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
 
     return (
         <div className="p-6 pb-24 space-y-6">
-            <h2 className="text-3xl font-bold text-astro-text font-serif mb-8">{getText(profile.language, 'settings.title')}</h2>
+            <h2 className="text-xl font-bold text-astro-text font-serif mb-8 text-center">{getText(profile.language, 'settings.title')}</h2>
 
             {/* Admin Button - Only visible if isAdmin */}
             {profile.isAdmin && onOpenAdmin && (
