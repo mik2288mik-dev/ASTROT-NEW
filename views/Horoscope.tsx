@@ -57,7 +57,7 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData }) => {
     return (
         <div className="min-h-screen px-4 py-6 max-w-2xl mx-auto">
             {/* Заголовок страницы */}
-            <h1 className="text-xl font-bold text-astro-text text-center mb-6 leading-tight">
+            <h1 className="text-lg font-semibold text-astro-text text-center mb-6 leading-tight">
                 {language === 'ru' ? 'Гороскоп на сегодня' : 'Today\'s Horoscope'}
             </h1>
 
