@@ -109,6 +109,17 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
     const displayName = useMemo(() => tgUser?.first_name || profile.name, [tgUser?.first_name, profile.name]);
     const photoUrl = useMemo(() => tgUser?.photo_url, [tgUser?.photo_url]);
 
+    const horoscopeDateLabel = useMemo(() => {
+        const locale = language === 'ru' ? 'ru-RU' : 'en-US';
+        const rawDate = dailyHoroscope?.date ? new Date(dailyHoroscope.date) : new Date();
+        if (Number.isNaN(rawDate.getTime())) return '';
+        return rawDate.toLocaleDateString(locale, {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        });
+    }, [dailyHoroscope?.date, language]);
+
     // Мемуизируем колбэки для навигации
     const handleNavigateHoroscope = useCallback(() => onNavigate('horoscope'), [onNavigate]);
     const handleNavigateChart = useCallback(() => onNavigate('chart'), [onNavigate]);
@@ -193,13 +204,9 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
                             <p className="text-[10px] uppercase tracking-widest text-astro-subtext mb-1">
                                 {profile.language === 'ru' ? 'Гороскоп на сегодня' : 'Today\'s Horoscope'}
                             </p>
-                            {dailyHoroscope?.date && (
+                            {horoscopeDateLabel && (
                                 <p className="text-[9px] text-astro-subtext mb-2">
-                                    {new Date(dailyHoroscope.date).toLocaleDateString(profile.language === 'ru' ? 'ru-RU' : 'en-US', {
-                                        day: 'numeric',
-                                        month: 'long',
-                                        year: 'numeric'
-                                    })}
+                                    {profile.language === 'ru' ? `Дата прогноза: ${horoscopeDateLabel}` : `Forecast date: ${horoscopeDateLabel}`}
                                 </p>
                             )}
                             <h3 className="font-serif text-xl text-astro-text mb-2">
@@ -223,8 +230,8 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
                     </div>
                     <p className="text-[9px] text-astro-subtext/70 font-light italic mt-3 pt-3 border-t border-astro-border/30">
                         {profile.language === 'ru' 
-                            ? 'Гороскоп составлен на основе ваших планет, Луны, Солнца и данных рождения' 
-                            : 'Horoscope based on your planets, Moon, Sun and birth data'}
+                            ? 'Гороскоп составлен на основе ваших планет, Луны, Солнца и точных данных рождения' 
+                            : 'Horoscope generated from your planets, Moon, Sun and precise birth data'}
                     </p>
                 </div>
             </button>

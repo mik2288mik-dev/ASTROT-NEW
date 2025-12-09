@@ -147,20 +147,18 @@ export const CosmicPassport = memo<CosmicPassportProps>(({
         {/* Weather Display */}
         {weatherData && (
           <div className="mt-4 pt-4 border-t border-astro-border/30 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-xl">{getWeatherIcon(weatherData.condition)}</span>
-              <div>
-                <p className="text-xs font-medium text-astro-text">
-                  {translateWeather(weatherData.condition, profile.language)}
-                </p>
-                <p className="text-[10px] text-astro-subtext">
-                  {weatherData.city}
-                </p>
-              </div>
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">{getWeatherIcon(weatherData.condition)}</span>
+              <p className="text-2xl font-serif text-astro-text">
+                {Math.round(weatherData.temp)}°C
+              </p>
             </div>
             <div className="text-right">
-              <p className="text-lg font-serif text-astro-text">
-                {weatherData.temp}°
+              <p className="text-[10px] text-astro-subtext font-medium">
+                {weatherData.city}
+              </p>
+              <p className="text-[10px] text-astro-subtext/80">
+                {translateWeather(weatherData.condition, profile.language)}
               </p>
             </div>
           </div>
