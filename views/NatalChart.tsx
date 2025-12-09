@@ -185,7 +185,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
         <div className="min-h-screen px-4 py-6 max-w-3xl mx-auto pb-32">
             
             {/* Главный заголовок страницы */}
-            <h1 className="text-lg font-semibold text-astro-text text-center mb-8 leading-tight">
+            <h1 className="text-base font-normal text-astro-text text-center mb-8 leading-tight" style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif', fontWeight: 400 }}>
                 {getText(profile.language, 'chart.title')}
             </h1>
 
@@ -253,7 +253,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
 
             {/* PREMIUM: Deep Dive разделы */}
             <div className="mt-12">
-                <h2 className="text-xl font-bold text-astro-text text-center mb-6">
+                <h2 className="text-sm font-normal text-astro-text text-center mb-6" style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif', fontWeight: 400 }}>
                     {getText(profile.language, 'chart.placements')}
                 </h2>
 
@@ -301,7 +301,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
 
             {/* PREMIUM: Прогнозы */}
             <div className="mt-12">
-                <h2 className="text-xl font-bold text-astro-text text-center mb-6">
+                <h2 className="text-sm font-normal text-astro-text text-center mb-6" style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif', fontWeight: 400 }}>
                     {getText(profile.language, 'chart.forecast_title')}
                 </h2>
 

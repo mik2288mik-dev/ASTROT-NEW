@@ -297,6 +297,9 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
                                         {context.weatherData.city}
                                         {context.weatherData.humidity && ` • ${context.weatherData.humidity}% ${profile.language === 'ru' ? 'влажность' : 'humidity'}`}
                                     </p>
+                                    <p className="text-[9px] text-astro-subtext/70 mt-1">
+                                        {profile.language === 'ru' ? 'Обновлено только что' : 'Updated just now'}
+                                    </p>
                                 </div>
                                 <div className="text-3xl opacity-50 text-astro-highlight">
                                     {context.weatherData.condition.toLowerCase().includes('rain') || context.weatherData.condition.toLowerCase().includes('дождь') ? '☂' : 
