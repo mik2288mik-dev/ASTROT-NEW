@@ -1,7 +1,6 @@
 import { UserProfile, NatalChartData, UserGeneratedContent, DailyHoroscope, WeeklyHoroscope, MonthlyHoroscope, ThreeKeys } from "../types";
 import { getThreeKeys, getDailyHoroscope, getWeeklyHoroscope, getMonthlyHoroscope, getDeepDiveAnalysis } from "./astrologyService";
 import { saveProfile } from "./storageService";
-import { db } from "../lib/db";
 
 // Logging utility
 const log = {
@@ -372,51 +371,63 @@ export const getOrGenerateHoroscope = async (
     // Получаем сегодняшнюю дату в формате YYYY-MM-DD
     const today = new Date().toISOString().split('T')[0];
     
-    try {
-      // Проверяем кэш в БД
-      const cachedHoroscope = await db.dailyHoroscopesCache.get(zodiacSign, today);
-      
-      if (cachedHoroscope && cachedHoroscope.data) {
-        log.info(`[getOrGenerateHoroscope] Using cached daily horoscope from DB for ${zodiacSign} on ${today}`);
-        const horoscope = cachedHoroscope.data as DailyHoroscope;
-        
-        // Убеждаемся, что дата актуальная
-        if (!horoscope.date || horoscope.date !== today) {
-          horoscope.date = today;
-        }
-        
-        // Сохраняем в профиль пользователя для быстрого доступа
-        if (!profile.generatedContent) {
-          profile.generatedContent = { deepDiveAnalyses: {}, synastries: {}, timestamps: {} };
-        }
-        profile.generatedContent.dailyHoroscope = horoscope;
-        profile.generatedContent.timestamps.dailyHoroscopeGenerated = Date.now();
-        
-        // Сохраняем профиль асинхронно (не ждем)
-        saveProfile(profile).catch(error => {
-          log.error('[getOrGenerateHoroscope] Failed to save profile with cached horoscope', error);
-        });
-        
-        return horoscope;
-      }
-      
-      // Если нет в кэше - генерируем новый гороскоп
-      log.info(`[getOrGenerateHoroscope] No cached horoscope found, generating new one for ${zodiacSign} on ${today}`);
-      const horoscope = await getDailyHoroscope(profile, chartData);
-      
-      // Убеждаемся, что дата актуальная
-      if (!horoscope.date || horoscope.date !== today) {
-        horoscope.date = today;
-      }
-      
-      // Сохраняем в централизованный кэш БД для всех пользователей этого знака
+    // Проверяем кэш в БД только на сервере
+    if (typeof window === 'undefined') {
       try {
+        // Динамический импорт db только на сервере
+        const { db } = await import('../lib/db');
+        
+        // Проверяем кэш в БД
+        const cachedHoroscope = await db.dailyHoroscopesCache.get(zodiacSign, today);
+        
+        if (cachedHoroscope && cachedHoroscope.data) {
+          log.info(`[getOrGenerateHoroscope] Using cached daily horoscope from DB for ${zodiacSign} on ${today}`);
+          const horoscope = cachedHoroscope.data as DailyHoroscope;
+          
+          // Убеждаемся, что дата актуальная
+          if (!horoscope.date || horoscope.date !== today) {
+            horoscope.date = today;
+          }
+          
+          // Сохраняем в профиль пользователя для быстрого доступа
+          if (!profile.generatedContent) {
+            profile.generatedContent = { deepDiveAnalyses: {}, synastries: {}, timestamps: {} };
+          }
+          profile.generatedContent.dailyHoroscope = horoscope;
+          profile.generatedContent.timestamps.dailyHoroscopeGenerated = Date.now();
+          
+          // Сохраняем профиль асинхронно (не ждем)
+          saveProfile(profile).catch(error => {
+            log.error('[getOrGenerateHoroscope] Failed to save profile with cached horoscope', error);
+          });
+          
+          return horoscope;
+        }
+      } catch (dbError) {
+        log.error('[getOrGenerateHoroscope] Error accessing DB cache, will generate new horoscope', dbError);
+      }
+    }
+    
+    // Если нет в кэше или на клиенте - генерируем новый гороскоп
+    log.info(`[getOrGenerateHoroscope] No cached horoscope found, generating new one for ${zodiacSign} on ${today}`);
+    const horoscope = await getDailyHoroscope(profile, chartData);
+    
+    // Убеждаемся, что дата актуальная
+    if (!horoscope.date || horoscope.date !== today) {
+      horoscope.date = today;
+    }
+    
+    // Сохраняем в централизованный кэш БД для всех пользователей этого знака (только на сервере)
+    if (typeof window === 'undefined') {
+      try {
+        const { db } = await import('../lib/db');
         await db.dailyHoroscopesCache.set(zodiacSign, today, horoscope);
         log.info(`[getOrGenerateHoroscope] Daily horoscope cached in DB for ${zodiacSign} on ${today}`);
       } catch (cacheError) {
         log.error('[getOrGenerateHoroscope] Failed to cache horoscope in DB', cacheError);
         // Продолжаем выполнение даже если кэширование не удалось
       }
+    }
       
       // Сохраняем в профиль пользователя
       if (!profile.generatedContent) {
