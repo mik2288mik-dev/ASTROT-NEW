@@ -20,7 +20,7 @@ export const KeyBlock = memo<KeyBlockProps>(({ title, planetSymbol, text, advice
     return (
         <div className="w-full max-w-3xl mx-auto">
             {/* Заголовок блока */}
-            <h3 className="text-left text-sm md:text-base font-semibold text-astro-subtext uppercase tracking-wide mb-4">
+            <h3 className="text-left text-xs md:text-sm font-normal text-astro-subtext uppercase tracking-wide mb-4" style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif', fontWeight: 400 }}>
                 {title}
             </h3>
 

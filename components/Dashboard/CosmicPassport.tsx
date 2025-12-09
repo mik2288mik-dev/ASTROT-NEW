@@ -62,6 +62,31 @@ const translateWeather = (condition: string, language: string): string => {
     return condition;
 };
 
+// Функция для перевода фазы луны на русский
+const translateMoonPhase = (phase: string, language: string): string => {
+    if (language !== 'ru') return phase;
+    
+    const translations: Record<string, string> = {
+        'new moon': 'Новолуние',
+        'waxing crescent': 'Растущий серп',
+        'first quarter': 'Первая четверть',
+        'waxing gibbous': 'Растущая луна',
+        'full moon': 'Полнолуние',
+        'waning gibbous': 'Убывающая луна',
+        'last quarter': 'Последняя четверть',
+        'waning crescent': 'Убывающий серп',
+    };
+    
+    const lowerPhase = phase.toLowerCase();
+    for (const [key, value] of Object.entries(translations)) {
+        if (lowerPhase.includes(key)) {
+            return value;
+        }
+    }
+    
+    return phase;
+};
+
 // Функция для получения иконки погоды
 const getWeatherIcon = (condition: string): string => {
     const lowerCondition = condition.toLowerCase();
@@ -146,21 +171,50 @@ export const CosmicPassport = memo<CosmicPassportProps>(({
         
         {/* Weather Display */}
         {weatherData && (
-          <div className="mt-4 pt-4 border-t border-astro-border/30 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">{getWeatherIcon(weatherData.condition)}</span>
-              <p className="text-2xl font-serif text-astro-text">
-                {Math.round(weatherData.temp)}°C
-              </p>
+          <div className="mt-4 pt-4 border-t border-astro-border/30">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">{getWeatherIcon(weatherData.condition)}</span>
+                <div>
+                  <p className="text-xl font-serif text-astro-text">
+                    {Math.round(weatherData.temp)}°C
+                  </p>
+                  <p className="text-[10px] text-astro-subtext/80 mt-0.5">
+                    {translateWeather(weatherData.condition, profile.language)}
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] text-astro-subtext font-medium">
+                  {weatherData.city}
+                </p>
+                {weatherData.humidity && (
+                  <p className="text-[9px] text-astro-subtext/70 mt-0.5">
+                    {profile.language === 'ru' ? `${weatherData.humidity}% влажность` : `${weatherData.humidity}% humidity`}
+                  </p>
+                )}
+              </div>
             </div>
-            <div className="text-right">
-              <p className="text-[10px] text-astro-subtext font-medium">
-                {weatherData.city}
-              </p>
-              <p className="text-[10px] text-astro-subtext/80">
-                {translateWeather(weatherData.condition, profile.language)}
-              </p>
-            </div>
+            {weatherData.moonPhase && (
+              <div className="pt-2 mt-2 border-t border-astro-border/20 flex items-center justify-between">
+                <div>
+                  <p className="text-[9px] text-astro-subtext uppercase tracking-wider">
+                    {profile.language === 'ru' ? 'Фаза Луны' : 'Moon Phase'}
+                  </p>
+                  <p className="text-xs font-serif text-astro-text mt-0.5">
+                    {translateMoonPhase(weatherData.moonPhase.phase, profile.language)}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-astro-subtext">
+                    {weatherData.moonPhase.illumination}%
+                  </p>
+                  <p className="text-[9px] text-astro-subtext/70 uppercase tracking-wider">
+                    {profile.language === 'ru' ? 'освещённость' : 'illumination'}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

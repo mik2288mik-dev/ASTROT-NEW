@@ -57,9 +57,25 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData }) => {
     return (
         <div className="min-h-screen px-4 py-6 max-w-2xl mx-auto">
             {/* Заголовок страницы */}
-            <h1 className="text-lg font-semibold text-astro-text text-center mb-6 leading-tight">
+            <h1 className="text-base font-normal text-astro-text text-center mb-6 leading-tight" style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif', fontWeight: 400 }}>
                 {language === 'ru' ? 'Гороскоп на сегодня' : 'Today\'s Horoscope'}
             </h1>
+            
+            {/* Дата гороскопа */}
+            {horoscope?.date && (
+                <p className="text-xs text-astro-subtext text-center mb-6" style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif' }}>
+                    {(() => {
+                        const locale = language === 'ru' ? 'ru-RU' : 'en-US';
+                        const rawDate = new Date(horoscope.date);
+                        if (Number.isNaN(rawDate.getTime())) return '';
+                        return rawDate.toLocaleDateString(locale, {
+                            day: 'numeric',
+                            month: 'long',
+                            year: 'numeric'
+                        });
+                    })()}
+                </p>
+            )}
 
             {/* Блок с иконкой знака зодиака */}
             <ZodiacHeader sunSign={sunSign} language={language} />
