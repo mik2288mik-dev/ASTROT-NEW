@@ -85,7 +85,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                 const response = await fetch(`${API_BASE_URL}/api/weather?city=${encodeURIComponent(city)}`);
                 
                 if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({}));
+                    await response.json().catch(() => ({}));
                     alert(profile.language === 'ru' 
                         ? 'Не удалось найти указанный город. Проверьте правильность написания.'
                         : 'Failed to find the specified city. Please check the spelling.');
@@ -105,11 +105,19 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
         const updated = { ...profile, weatherCity: city || undefined };
         console.log('[Settings] Saving weather city:', city);
         onUpdate(updated);
-        saveProfile(updated).then(() => {
-            console.log('[Settings] Weather city saved successfully');
-        }).catch(error => {
+
+        try {
+            await saveProfile(updated);
+            console.log('[Settings] Weather city saved successfully (DB persist confirmed)');
+        } catch (error) {
             console.error('[Settings] Failed to save weather city:', error);
-        });
+            alert(profile.language === 'ru' 
+                ? 'Не удалось сохранить город в базе данных. Попробуйте ещё раз.'
+                : 'Failed to save your city to the database. Please try again.');
+            setWeatherLoading(false);
+            return;
+        }
+
         setEditingWeather(false);
         setWeatherLoading(false);
     };
