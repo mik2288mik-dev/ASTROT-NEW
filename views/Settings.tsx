@@ -104,11 +104,26 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
 
         const updated = { ...profile, weatherCity: city || undefined };
         console.log('[Settings] Saving weather city:', city);
+        
+        // Обновляем локальное состояние сразу для быстрого отклика
         onUpdate(updated);
 
         try {
             await saveProfile(updated);
             console.log('[Settings] Weather city saved successfully (DB persist confirmed)');
+            
+            // Перезагружаем профиль из БД для синхронизации
+            try {
+                const { getProfile } = await import('../services/storageService');
+                const reloadedProfile = await getProfile();
+                if (reloadedProfile) {
+                    console.log('[Settings] Profile reloaded from DB, updating state');
+                    onUpdate(reloadedProfile);
+                }
+            } catch (reloadError) {
+                console.warn('[Settings] Failed to reload profile from DB, using local update', reloadError);
+                // Используем локальное обновление как fallback
+            }
         } catch (error) {
             console.error('[Settings] Failed to save weather city:', error);
             alert(profile.language === 'ru' 
