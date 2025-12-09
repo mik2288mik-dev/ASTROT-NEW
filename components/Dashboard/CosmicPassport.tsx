@@ -110,7 +110,7 @@ export const CosmicPassport = memo<CosmicPassportProps>(({
     <div className="bg-astro-card rounded-2xl p-6 border border-astro-border shadow-soft relative overflow-hidden">
       <div className="absolute -top-10 -right-10 w-48 h-48 bg-astro-highlight rounded-full blur-3xl opacity-20"></div>
       <div className="relative z-10">
-        {/* Header with Avatar and Settings */}
+        {/* Header with Avatar, Weather and Settings */}
         <div className="flex items-start justify-between mb-4">
           {/* Avatar */}
           <div className="relative group">
@@ -137,16 +137,34 @@ export const CosmicPassport = memo<CosmicPassportProps>(({
             )}
           </div>
           
-          {/* Settings Button */}
-          <button 
-            onClick={onOpenSettings}
-            className="w-10 h-10 flex items-center justify-center text-astro-subtext hover:text-astro-text transition-colors rounded-full hover:bg-astro-bg/50"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-          </button>
+          {/* Weather and Settings */}
+          <div className="flex items-center gap-3">
+            {/* Weather Display */}
+            {weatherData && (
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-astro-bg/50 rounded-lg border border-astro-border/30">
+                <span className="text-xl">{getWeatherIcon(weatherData.condition)}</span>
+                <div className="text-right">
+                  <p className="text-sm font-serif text-astro-text leading-tight">
+                    {Math.round(weatherData.temp)}°
+                  </p>
+                  <p className="text-[9px] text-astro-subtext/80 leading-tight">
+                    {weatherData.city.length > 8 ? weatherData.city.substring(0, 8) + '...' : weatherData.city}
+                  </p>
+                </div>
+              </div>
+            )}
+            
+            {/* Settings Button */}
+            <button 
+              onClick={onOpenSettings}
+              className="w-10 h-10 flex items-center justify-center text-astro-subtext hover:text-astro-text transition-colors rounded-full hover:bg-astro-bg/50"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         <p className="text-[10px] uppercase tracking-widest text-astro-subtext mb-2">
@@ -168,55 +186,6 @@ export const CosmicPassport = memo<CosmicPassportProps>(({
             </p>
           </div>
         </div>
-        
-        {/* Weather Display */}
-        {weatherData && (
-          <div className="mt-4 pt-4 border-t border-astro-border/30">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">{getWeatherIcon(weatherData.condition)}</span>
-                <div>
-                  <p className="text-xl font-serif text-astro-text">
-                    {Math.round(weatherData.temp)}°C
-                  </p>
-                  <p className="text-[10px] text-astro-subtext/80 mt-0.5">
-                    {translateWeather(weatherData.condition, profile.language)}
-                  </p>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-[10px] text-astro-subtext font-medium">
-                  {weatherData.city}
-                </p>
-                {weatherData.humidity && (
-                  <p className="text-[9px] text-astro-subtext/70 mt-0.5">
-                    {profile.language === 'ru' ? `${weatherData.humidity}% влажность` : `${weatherData.humidity}% humidity`}
-                  </p>
-                )}
-              </div>
-            </div>
-            {weatherData.moonPhase && (
-              <div className="pt-2 mt-2 border-t border-astro-border/20 flex items-center justify-between">
-                <div>
-                  <p className="text-[9px] text-astro-subtext uppercase tracking-wider">
-                    {profile.language === 'ru' ? 'Фаза Луны' : 'Moon Phase'}
-                  </p>
-                  <p className="text-xs font-serif text-astro-text mt-0.5">
-                    {translateMoonPhase(weatherData.moonPhase.phase, profile.language)}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-xs text-astro-subtext">
-                    {weatherData.moonPhase.illumination}%
-                  </p>
-                  <p className="text-[9px] text-astro-subtext/70 uppercase tracking-wider">
-                    {profile.language === 'ru' ? 'освещённость' : 'illumination'}
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
       </div>
     </div>
   );

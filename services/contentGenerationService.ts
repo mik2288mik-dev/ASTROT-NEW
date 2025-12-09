@@ -16,18 +16,18 @@ const log = {
 };
 
 /**
- * Получает время следующего обновления гороскопа (4:00 утра по МСК)
+ * Получает время следующего обновления гороскопа (00:01 по МСК)
  */
 const getNextDailyUpdateTime = (): number => {
   // Получаем текущее время в МСК (UTC+3)
   const now = new Date();
   const moscowTime = new Date(now.getTime() + (3 * 60 * 60 * 1000)); // UTC+3
   
-  // Создаем дату следующего обновления в 4:00 МСК
+  // Создаем дату следующего обновления в 00:01 МСК
   const nextUpdate = new Date(moscowTime);
-  nextUpdate.setHours(4, 0, 0, 0);
+  nextUpdate.setHours(0, 1, 0, 0);
   
-  // Если уже прошло 4:00 сегодня, берем завтра 4:00
+  // Если уже прошло 00:01 сегодня, берем завтра 00:01
   if (moscowTime.getTime() >= nextUpdate.getTime()) {
     nextUpdate.setDate(nextUpdate.getDate() + 1);
   }
@@ -38,7 +38,7 @@ const getNextDailyUpdateTime = (): number => {
 
 /**
  * Проверяет, нужно ли обновить дневной гороскоп
- * Обновляется каждый день в 4:00 утра по МСК
+ * Обновляется каждый день в 00:01 по МСК
  */
 const shouldUpdateDailyHoroscope = (lastGenerated: number): boolean => {
   if (!lastGenerated) return true;
@@ -47,17 +47,19 @@ const shouldUpdateDailyHoroscope = (lastGenerated: number): boolean => {
   const moscowNow = new Date(now + (3 * 60 * 60 * 1000));
   const moscowLast = new Date(lastGenerated + (3 * 60 * 60 * 1000));
   
-  // Получаем дату последнего обновления в 4:00 МСК
+  // Получаем дату последнего обновления в 00:01 МСК
   const lastUpdateDate = new Date(moscowLast);
-  lastUpdateDate.setHours(4, 0, 0, 0);
+  lastUpdateDate.setHours(0, 1, 0, 0);
   
-  // Получаем текущую дату в 4:00 МСК
+  // Получаем текущую дату в 00:01 МСК
   const currentUpdateDate = new Date(moscowNow);
-  currentUpdateDate.setHours(4, 0, 0, 0);
+  currentUpdateDate.setHours(0, 1, 0, 0);
   
-  // Если текущее время после 4:00 и дата изменилась - обновляем
-  if (moscowNow.getHours() >= 4 && currentUpdateDate.getTime() > lastUpdateDate.getTime()) {
-    return true;
+  // Если текущее время после 00:01 и дата изменилась - обновляем
+  if (moscowNow.getHours() > 0 || (moscowNow.getHours() === 0 && moscowNow.getMinutes() >= 1)) {
+    if (currentUpdateDate.getTime() > lastUpdateDate.getTime()) {
+      return true;
+    }
   }
   
   // Если прошло больше суток - обновляем в любом случае
@@ -246,12 +248,12 @@ export const updateContentIfNeeded = async (profile: UserProfile, chartData: Nat
   const timestamps = existingContent.timestamps || {};
   let updated = false;
 
-  // Обновляем ТОЛЬКО ежедневный гороскоп по расписанию (каждый день в 4:00 МСК)
+  // Обновляем ТОЛЬКО ежедневный гороскоп по расписанию (каждый день в 00:01 МСК)
   // Weekly, Monthly, Three Keys и Deep Dive НЕ обновляются автоматически
   // Они генерируются один раз при первом входе и сохраняются в БД
   
   if (shouldUpdateContent(timestamps, 'daily')) {
-    log.info('[updateContentIfNeeded] Updating daily horoscope (4:00 MSK)');
+    log.info('[updateContentIfNeeded] Updating daily horoscope (00:01 MSK)');
     try {
       existingContent.dailyHoroscope = await getDailyHoroscope(profile, chartData);
       existingContent.timestamps.dailyHoroscopeGenerated = Date.now();

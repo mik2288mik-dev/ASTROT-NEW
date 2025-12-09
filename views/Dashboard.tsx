@@ -209,16 +209,37 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
                                     {profile.language === 'ru' ? `Дата прогноза: ${horoscopeDateLabel}` : `Forecast date: ${horoscopeDateLabel}`}
                                 </p>
                             )}
-                            <h3 className="font-serif text-xl text-astro-text mb-2">
-                                {dailyHoroscope?.content 
-                                    ? (dailyHoroscope.content.split('\n')[0] || (profile.language === 'ru' ? 'Сегодня тебя ждёт особенный день' : 'A special day awaits you'))
-                                    : (profile.language === 'ru' ? 'Сегодня тебя ждёт особенный день' : 'A special day awaits you')}
-                            </h3>
-                            {dailyHoroscope?.content && dailyHoroscope.content.split('\n').length > 1 && (
-                                <p className="text-xs text-astro-subtext font-light">
-                                    {dailyHoroscope.content.split('\n').slice(1, 2).join(' ').substring(0, 100)}
-                                    {dailyHoroscope.content.split('\n').slice(1, 2).join(' ').length > 100 ? '...' : ''}
-                                </p>
+                            {dailyHoroscope?.content ? (
+                                <>
+                                    {/* Краткий гороскоп - только первое предложение или первые 2-3 предложения */}
+                                    <h3 className="font-serif text-lg text-astro-text mb-2">
+                                        {(() => {
+                                            // Берем первые 2-3 предложения для краткого отображения
+                                            const sentences = dailyHoroscope.content.split(/[.!?]+/).filter(s => s.trim().length > 0);
+                                            const shortText = sentences.slice(0, 2).join('. ').trim();
+                                            return shortText.length > 0 ? shortText + '.' : dailyHoroscope.content.substring(0, 150) + '...';
+                                        })()}
+                                    </h3>
+                                    {dailyHoroscope.mood && (
+                                        <div className="flex items-center gap-2 mt-2">
+                                            <span className="text-xs text-astro-subtext">
+                                                {profile.language === 'ru' ? 'Настроение:' : 'Mood:'} <span className="text-astro-highlight font-medium">{dailyHoroscope.mood}</span>
+                                            </span>
+                                            {dailyHoroscope.color && (
+                                                <>
+                                                    <span className="text-astro-subtext">•</span>
+                                                    <span className="text-xs text-astro-subtext">
+                                                        {profile.language === 'ru' ? 'Цвет:' : 'Color:'} <span className="text-astro-highlight font-medium">{dailyHoroscope.color}</span>
+                                                    </span>
+                                                </>
+                                            )}
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <h3 className="font-serif text-xl text-astro-text mb-2">
+                                    {profile.language === 'ru' ? 'Сегодня тебя ждёт особенный день' : 'A special day awaits you'}
+                                </h3>
                             )}
                         </div>
                         <div className="flex-shrink-0 w-14 h-14 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-astro-highlight/20 to-astro-highlight/5 border-2 border-astro-highlight/40 flex items-center justify-center group-hover:scale-110 transition-all shadow-md group-hover:shadow-lg ml-3">

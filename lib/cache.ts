@@ -12,7 +12,7 @@ export interface CacheConfig {
  * Конфигурация кэширования для разных типов контента
  */
 export const CACHE_CONFIGS = {
-  // Ежедневный гороскоп - обновляется раз в день (4:00 МСК)
+  // Ежедневный гороскоп - обновляется раз в день (00:01 МСК)
   dailyHoroscope: {
     revalidate: 86400, // 24 часа
     tags: ['daily-horoscope']
@@ -56,14 +56,14 @@ export const CACHE_CONFIGS = {
 } as const;
 
 /**
- * Получает время следующего обновления гороскопа (4:00 утра по МСК)
+ * Получает время следующего обновления гороскопа (00:01 по МСК)
  */
 export function getNextDailyUpdateTime(): number {
   const now = new Date();
   const moscowTime = new Date(now.getTime() + (3 * 60 * 60 * 1000)); // UTC+3
   
   const nextUpdate = new Date(moscowTime);
-  nextUpdate.setHours(4, 0, 0, 0);
+  nextUpdate.setHours(0, 1, 0, 0);
   
   if (moscowTime.getTime() >= nextUpdate.getTime()) {
     nextUpdate.setDate(nextUpdate.getDate() + 1);
