@@ -3,6 +3,7 @@ import OpenAI from 'openai';
 import { SYSTEM_PROMPT_ASTRA, createDailyForecastPrompt, addLanguageInstruction, DailyForecastAIResponse } from '../../../lib/prompts';
 import { validateNatalChartInput, formatValidationErrors } from '../../../lib/validation';
 import { getSecondsUntilNextUpdate, CACHE_CONFIGS } from '../../../lib/cache';
+import { db } from '../../../lib/db';
 
 // Logging utility
 const log = {
@@ -70,6 +71,31 @@ export default async function handler(
       date: today,
       language: lang ? 'ru' : 'en'
     });
+
+    // Проверяем кэш БД по знаку зодиака (централизованный кэш для всех пользователей одного знака)
+    const zodiacSign = chartData?.sun?.sign;
+    if (zodiacSign) {
+      try {
+        const cachedHoroscope = await db.dailyHoroscopesCache.get(zodiacSign, today);
+        if (cachedHoroscope && cachedHoroscope.data) {
+          log.info(`Using cached daily horoscope from DB for ${zodiacSign} on ${today}`);
+          const horoscope = cachedHoroscope.data;
+          // Убеждаемся, что дата актуальная
+          if (!horoscope.date || horoscope.date !== today) {
+            horoscope.date = today;
+          }
+          // Устанавливаем заголовки кэширования
+          const cacheSeconds = getSecondsUntilNextUpdate();
+          res.setHeader('Cache-Control', `public, s-maxage=${cacheSeconds}, stale-while-revalidate=3600`);
+          res.setHeader('CDN-Cache-Control', `public, s-maxage=${cacheSeconds}`);
+          res.setHeader('Vercel-CDN-Cache-Control', `public, s-maxage=${cacheSeconds}`);
+          return res.status(200).json(horoscope);
+        }
+      } catch (cacheError) {
+        log.error('Error checking DB cache, will generate new horoscope', cacheError);
+        // Продолжаем генерацию если кэш недоступен
+      }
+    }
 
     // Проверяем наличие API ключа
     if (!process.env.OPENAI_API_KEY) {
@@ -147,6 +173,17 @@ export default async function handler(
         moonImpact: forecast.advice?.[0] || '',
         transitFocus: forecast.advice?.[1] || ''
       };
+      
+      // Сохраняем в централизованный кэш БД для всех пользователей этого знака
+      if (zodiacSign) {
+        try {
+          await db.dailyHoroscopesCache.set(zodiacSign, today, horoscope);
+          log.info(`Daily horoscope cached in DB for ${zodiacSign} on ${today}`);
+        } catch (cacheError) {
+          log.error('Failed to cache horoscope in DB', cacheError);
+          // Продолжаем выполнение даже если кэширование не удалось
+        }
+      }
       
       // Устанавливаем заголовки кэширования для ежедневного гороскопа
       // Гороскоп обновляется раз в день в 00:01 МСК

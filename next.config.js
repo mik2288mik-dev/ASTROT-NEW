@@ -15,6 +15,33 @@ const nextConfig = {
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     minimumCacheTTL: 60, // Кэшировать изображения минимум 60 секунд
   },
+  // Webpack конфигурация для исключения Node.js модулей из клиентского бандла
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      // Исключаем Node.js модули из клиентского бандла
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+        dns: false,
+        child_process: false,
+        crypto: false,
+        stream: false,
+        url: false,
+        zlib: false,
+        http: false,
+        https: false,
+        assert: false,
+        os: false,
+        path: false,
+        'pg': false,
+        'pg-native': false,
+        'pg-connection-string': false,
+      };
+    }
+    return config;
+  },
   // Для работы с Telegram WebApp
   async headers() {
     return [
