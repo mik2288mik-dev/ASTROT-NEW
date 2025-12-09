@@ -143,7 +143,7 @@ export default async function handler(
       };
       
       // Устанавливаем заголовки кэширования для ежедневного гороскопа
-      // Гороскоп обновляется раз в день в 4:00 МСК
+      // Гороскоп обновляется раз в день в 00:01 МСК
       const cacheSeconds = getSecondsUntilNextUpdate();
       res.setHeader('Cache-Control', `public, s-maxage=${cacheSeconds}, stale-while-revalidate=3600`);
       res.setHeader('CDN-Cache-Control', `public, s-maxage=${cacheSeconds}`);
