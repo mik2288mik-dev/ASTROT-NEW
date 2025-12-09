@@ -115,12 +115,30 @@ const App: React.FC = () => {
                         setLoadingProgress(100);
                         setView('dashboard');
                         
-                        // Обновляем ТОЛЬКО ежедневный гороскоп асинхронно (если нужно)
-                        // Остальной контент (weekly, monthly, threeKeys, deepDive) не обновляется автоматически
+                        // Проверяем, нужно ли сгенерировать контент (если его нет)
+                        // Это может произойти, если пользователь был создан до добавления generatedContent
                         setTimeout(async () => {
                             try {
-                                if (updatedProfile.generatedContent) {
-                                    const timestamps = updatedProfile.generatedContent.timestamps || {};
+                                let needsContentGeneration = false;
+                                
+                                // Проверяем, есть ли вообще generatedContent или threeKeys
+                                const hasGeneratedContent = updatedProfile.generatedContent && 
+                                    Object.keys(updatedProfile.generatedContent).length > 0;
+                                const hasThreeKeys = (updatedProfile.generatedContent?.threeKeys || updatedProfile.threeKeys) &&
+                                    updatedProfile.generatedContent?.threeKeys?.key1?.text && 
+                                    updatedProfile.generatedContent?.threeKeys?.key1?.text !== "...";
+                                
+                                if (!hasGeneratedContent || !hasThreeKeys) {
+                                    console.log('[App] Missing content or threeKeys, generating all content...', {
+                                        hasGeneratedContent,
+                                        hasThreeKeys,
+                                        hasThreeKeysInGenerated: !!updatedProfile.generatedContent?.threeKeys,
+                                        hasThreeKeysInProfile: !!updatedProfile.threeKeys
+                                    });
+                                    needsContentGeneration = true;
+                                } else {
+                                    // Проверяем, нужно ли обновить daily horoscope
+                                    const timestamps = updatedProfile.generatedContent?.timestamps || {};
                                     const shouldUpdateDaily = shouldUpdateContent(timestamps, 'daily');
                                     
                                     if (shouldUpdateDaily) {
@@ -140,8 +158,18 @@ const App: React.FC = () => {
                                         console.log('[App] Daily horoscope updated');
                                     }
                                 }
+                                
+                                // Генерируем весь контент, если его нет
+                                if (needsContentGeneration) {
+                                    console.log('[App] Generating all content for existing user...');
+                                    const allContent = await generateAllContent(updatedProfile, storedChart);
+                                    const updatedProfileWithContent = { ...updatedProfile, generatedContent: allContent };
+                                    await saveProfile(updatedProfileWithContent);
+                                    setProfile(updatedProfileWithContent);
+                                    console.log('[App] All content generated and saved successfully');
+                                }
                             } catch (error) {
-                                console.error('[App] Error updating daily horoscope:', error);
+                                console.error('[App] Error updating content:', error);
                                 // Не прерываем работу, если обновление не удалось
                             }
                         }, 100);
