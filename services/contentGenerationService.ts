@@ -373,7 +373,6 @@ export const getOrGenerateHoroscope = async (
     
     // Проверяем локальный кэш в профиле пользователя
     const cachedHoroscope = profile.generatedContent?.dailyHoroscope;
-    const lastGenerated = profile.generatedContent?.timestamps?.dailyHoroscopeGenerated || 0;
     
     // Если есть кэш и он актуальный (сегодняшний) - используем его
     if (cachedHoroscope && cachedHoroscope.date === today) {
