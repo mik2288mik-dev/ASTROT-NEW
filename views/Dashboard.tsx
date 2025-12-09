@@ -215,7 +215,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
                                     <h3 className="font-serif text-lg text-astro-text mb-2">
                                         {(() => {
                                             // Берем первые 2-3 предложения для краткого отображения
-                                            const sentences = dailyHoroscope.content.split(/[.!?]+/).filter(s => s.trim().length > 0);
+                                            const sentences = dailyHoroscope.content.split(/[.!?]+/).filter((s: string) => s.trim().length > 0);
                                             const shortText = sentences.slice(0, 2).join('. ').trim();
                                             return shortText.length > 0 ? shortText + '.' : dailyHoroscope.content.substring(0, 150) + '...';
                                         })()}
