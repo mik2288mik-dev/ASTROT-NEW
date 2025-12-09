@@ -878,4 +878,58 @@ export const db = {
       }
     },
   },
+
+  // Daily horoscopes cache operations (by zodiac sign)
+  dailyHoroscopesCache: {
+    async get(zodiacSign: string, date: string) {
+      log.info(`[DB] Getting cached daily horoscope for sign: ${zodiacSign}, date: ${date}`);
+      
+      if (!DATABASE_URL) return null;
+
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          'SELECT horoscope_data, updated_at FROM daily_horoscopes_cache WHERE zodiac_sign = $1 AND date = $2',
+          [zodiacSign, date]
+        );
+        
+        if (result.rows.length === 0) {
+          return null;
+        }
+
+        return {
+          data: result.rows[0].horoscope_data,
+          updatedAt: result.rows[0].updated_at
+        };
+      } catch (error: any) {
+        log.error('[DB] Error getting cached daily horoscope', { error: error.message, zodiacSign, date });
+        throw error;
+      }
+    },
+
+    async set(zodiacSign: string, date: string, horoscopeData: any) {
+      log.info(`[DB] Setting cached daily horoscope for sign: ${zodiacSign}, date: ${date}`);
+      
+      if (!DATABASE_URL) {
+        throw new Error('DATABASE_URL is not configured');
+      }
+
+      try {
+        const dbPool = getPool();
+        await dbPool.query(
+          `INSERT INTO daily_horoscopes_cache (zodiac_sign, date, horoscope_data, updated_at)
+           VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
+           ON CONFLICT (zodiac_sign, date) DO UPDATE SET
+             horoscope_data = EXCLUDED.horoscope_data,
+             updated_at = CURRENT_TIMESTAMP`,
+          [zodiacSign, date, JSON.stringify(horoscopeData)]
+        );
+        
+        return { success: true };
+      } catch (error: any) {
+        log.error('[DB] Error setting cached daily horoscope', { error: error.message, zodiacSign, date });
+        throw error;
+      }
+    },
+  },
 };

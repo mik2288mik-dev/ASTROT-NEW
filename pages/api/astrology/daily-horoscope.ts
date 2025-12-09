@@ -30,6 +30,7 @@ export default async function handler(
   try {
     const { profile, chartData, context } = req.body;
     const lang = profile?.language === 'ru';
+    // Всегда используем сегодняшнюю дату
     const today = new Date().toISOString().split('T')[0];
 
     // Валидация входных данных
@@ -73,8 +74,10 @@ export default async function handler(
     // Проверяем наличие API ключа
     if (!process.env.OPENAI_API_KEY) {
       log.error('OpenAI API key not configured, using fallback');
+      // Всегда используем сегодняшнюю дату
+      const currentDate = new Date().toISOString().split('T')[0];
       const fallbackHoroscope = {
-        date: today,
+        date: currentDate, // Всегда актуальная дата
         mood: lang ? 'Вдохновленный' : 'Inspired',
         color: 'Purple',
         number: 7,
@@ -131,9 +134,12 @@ export default async function handler(
     try {
       forecast = JSON.parse(responseText);
       
+      // Всегда используем сегодняшнюю дату для гороскопа
+      const currentDate = new Date().toISOString().split('T')[0];
+      
       // Добавляем дату и дополнительные поля
       const horoscope = {
-        date: today,
+        date: currentDate, // Всегда актуальная дата
         mood: forecast.mood || (lang ? 'Вдохновлённый' : 'Inspired'),
         color: forecast.color || 'Purple',
         number: forecast.number || 7,

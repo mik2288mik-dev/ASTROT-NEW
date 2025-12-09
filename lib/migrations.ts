@@ -432,10 +432,45 @@ async function migration009(pool: Pool): Promise<void> {
 }
 
 /**
+ * Migration 010: Create daily_horoscopes_cache table for caching horoscopes by zodiac sign
+ */
+async function migration010(pool: Pool): Promise<void> {
+  const migrationName = '010_create_daily_horoscopes_cache';
+  
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
+  log.info(`Applying migration ${migrationName}...`);
+
+  // Create table for caching daily horoscopes by zodiac sign and date
+  const createTable = `
+    CREATE TABLE IF NOT EXISTS daily_horoscopes_cache (
+      id SERIAL PRIMARY KEY,
+      zodiac_sign VARCHAR(20) NOT NULL,
+      date DATE NOT NULL,
+      horoscope_data JSONB NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(zodiac_sign, date)
+    );
+    
+    CREATE INDEX IF NOT EXISTS idx_daily_horoscopes_cache_sign_date 
+    ON daily_horoscopes_cache(zodiac_sign, date);
+  `;
+
+  await pool.query(createTable);
+  
+  await markMigrationApplied(pool, migrationName);
+  log.info(`Migration ${migrationName} applied successfully`);
+}
+
+/**
  * Verify that all required tables exist
  */
 async function verifyTablesExist(pool: Pool): Promise<void> {
-  const requiredTables = ['migrations', 'users', 'charts', 'synastry_cache', 'forecasts_cache', 'regenerations'];
+  const requiredTables = ['migrations', 'users', 'charts', 'synastry_cache', 'forecasts_cache', 'regenerations', 'daily_horoscopes_cache'];
   const missingTables: string[] = [];
 
   for (const tableName of requiredTables) {
@@ -534,6 +569,7 @@ export async function runMigrations(): Promise<void> {
     await migration007(pool);
     await migration008(pool);
     await migration009(pool);
+    await migration010(pool);
 
     // Verify that all tables were created successfully
     log.info('Verifying tables were created...');
