@@ -185,7 +185,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
         <div className="min-h-screen px-4 py-6 max-w-3xl mx-auto pb-32">
             
             {/* Главный заголовок страницы */}
-            <h1 className="text-2xl font-bold text-astro-text text-center mb-8 leading-tight">
+            <h1 className="text-xl font-bold text-astro-text text-center mb-8 leading-tight">
                 {getText(profile.language, 'chart.title')}
             </h1>
 
