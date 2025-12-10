@@ -117,7 +117,7 @@ export default async function handler(
         // Если передан непустой объект - используем его
         if (Object.keys(updatedGeneratedContent).length > 0) {
           finalGeneratedContent = updatedGeneratedContent;
-          log.info(`[${req.method}] Using provided generatedContent with`, Object.keys(updatedGeneratedContent).length, 'keys');
+          log.info(`[${req.method}] Using provided generatedContent with ${Object.keys(updatedGeneratedContent).length} keys`);
         } else {
           log.warn(`[${req.method}] Provided generatedContent is empty, keeping existing`);
           // Если передан пустой объект - сохраняем существующий (не перезаписываем)
@@ -193,7 +193,7 @@ export default async function handler(
       const dbSetDuration = Date.now() - dbSetStartTime;
       
       log.info(`[${req.method}] ===== USER SAVED SUCCESSFULLY =====`);
-      log.info(`[${req.method}] Save duration:`, dbSetDuration, 'ms');
+      log.info(`[${req.method}] Save duration: ${dbSetDuration} ms`);
       log.info(`[${req.method}] savedUser.weather_city:`, savedUser.weather_city);
       log.info(`[${req.method}] savedUser.weather_city type:`, typeof savedUser.weather_city);
       log.info(`[${req.method}] savedUser.hasGeneratedContent:`, !!savedUser.generated_content);
