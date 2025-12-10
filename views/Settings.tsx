@@ -147,54 +147,11 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                 saveDuration: saveDuration + 'ms'
             });
             
-            // Перезагружаем профиль из БД для синхронизации и обновляем состояние ОДИН РАЗ
-            console.log('[Settings] ===== RELOADING PROFILE FROM DB =====');
-            try {
-                const { getProfile } = await import('../services/storageService');
-                const reloadStartTime = Date.now();
-                const reloadedProfile = await getProfile();
-                const reloadDuration = Date.now() - reloadStartTime;
-                console.log('[Settings] Profile reloaded from DB in', reloadDuration, 'ms');
-                
-                if (reloadedProfile) {
-                    console.log('[Settings] ===== RELOADED PROFILE DATA =====');
-                    console.log('[Settings] Reloaded profile.weatherCity:', reloadedProfile.weatherCity);
-                    console.log('[Settings] Reloaded profile.hasGeneratedContent:', !!reloadedProfile.generatedContent);
-                    console.log('[Settings] Reloaded profile.generatedContent keys:', reloadedProfile.generatedContent ? Object.keys(reloadedProfile.generatedContent) : 'none');
-                    console.log('[Settings] Reloaded profile.generatedContent.threeKeys exists:', !!reloadedProfile.generatedContent?.threeKeys);
-                    console.log('[Settings] Reloaded profile.generatedContent.dailyHoroscope exists:', !!reloadedProfile.generatedContent?.dailyHoroscope);
-                    
-                    // Проверяем что generatedContent не потерялся
-                    if (!reloadedProfile.generatedContent && profile.generatedContent) {
-                        console.error('[Settings] ⚠️ WARNING: generatedContent was lost during save!');
-                        console.error('[Settings] Original generatedContent:', JSON.stringify(profile.generatedContent).substring(0, 200));
-                    } else if (reloadedProfile.generatedContent && profile.generatedContent) {
-                        const originalKeys = Object.keys(profile.generatedContent);
-                        const reloadedKeys = Object.keys(reloadedProfile.generatedContent);
-                        if (originalKeys.length !== reloadedKeys.length) {
-                            console.warn('[Settings] ⚠️ WARNING: generatedContent keys count changed!', {
-                                original: originalKeys.length,
-                                reloaded: reloadedKeys.length,
-                                originalKeys,
-                                reloadedKeys
-                            });
-                        }
-                    }
-                    
-                    // Обновляем состояние только один раз после перезагрузки из БД
-                    console.log('[Settings] Updating state with reloaded profile');
-                    onUpdate(reloadedProfile);
-                } else {
-                    console.warn('[Settings] Failed to reload profile from DB, using local update');
-                    // Если не удалось перезагрузить, используем локальное обновление
-                    onUpdate(updated);
-                }
-            } catch (reloadError) {
-                console.error('[Settings] Error reloading profile from DB:', reloadError);
-                console.warn('[Settings] Using local update as fallback');
-                // Используем локальное обновление как fallback
-                onUpdate(updated);
-            }
+            // ВАЖНО: НЕ перезагружаем профиль из БД, так как это вызывает re-render всего приложения
+            // и может вызвать перегенерацию гороскопа и натальной карты
+            // Просто обновляем локальное состояние с новым weatherCity
+            console.log('[Settings] Updating state with new weatherCity (without DB reload)');
+            onUpdate(updated);
         } catch (error) {
             console.error('[Settings] ===== ERROR SAVING WEATHER CITY =====');
             console.error('[Settings] Error details:', error);
@@ -204,6 +161,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                 ? 'Не удалось сохранить город в базе данных. Попробуйте ещё раз.'
                 : 'Failed to save your city to the database. Please try again.');
             setWeatherLoading(false);
+            setEditingWeather(false);
             return;
         }
 
