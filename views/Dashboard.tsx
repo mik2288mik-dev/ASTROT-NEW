@@ -143,15 +143,30 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
             try {
                 const ctx = await getUserContext(profile);
                 setContext(ctx);
+                if (profile.weatherCity && !ctx.weatherData) {
+                    console.warn('[Dashboard] Weather city is set but weather data was not loaded', {
+                        weatherCity: profile.weatherCity
+                    });
+                }
             } catch (error) {
                 console.error('[Dashboard] Failed to load context:', error);
             }
 
-            // 2. Load Daily Horoscope
+            // 2. Load Daily Horoscope (with cache check)
             if (chartData) {
                 try {
-                    const horoscope = await getOrGenerateHoroscope(profile, chartData, 'daily');
-                    setDailyHoroscope(horoscope);
+                    // Проверяем кэш перед загрузкой
+                    const today = new Date().toISOString().split('T')[0];
+                    const cachedHoroscope = profile.generatedContent?.dailyHoroscope;
+                    
+                    if (cachedHoroscope && cachedHoroscope.date === today) {
+                        console.log('[Dashboard] Using cached horoscope');
+                        setDailyHoroscope(cachedHoroscope);
+                    } else {
+                        console.log('[Dashboard] Loading horoscope from API');
+                        const horoscope = await getOrGenerateHoroscope(profile, chartData, 'daily');
+                        setDailyHoroscope(horoscope);
+                    }
                 } catch (error) {
                     console.error('[Dashboard] Failed to load horoscope:', error);
                 }

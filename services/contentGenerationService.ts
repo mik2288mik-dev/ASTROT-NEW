@@ -374,15 +374,23 @@ export const getOrGenerateHoroscope = async (
     // Проверяем локальный кэш в профиле пользователя
     const cachedHoroscope = profile.generatedContent?.dailyHoroscope;
     
-    // Если есть кэш и он актуальный (сегодняшний) - используем его
+    // Если есть кэш и он актуальный (сегодняшний) - используем его БЕЗ вызова API
     if (cachedHoroscope && cachedHoroscope.date === today) {
-      log.info(`[getOrGenerateHoroscope] Using cached daily horoscope from profile for ${zodiacSign} on ${today}`);
+      log.info(`[getOrGenerateHoroscope] Using cached daily horoscope from profile for ${zodiacSign} on ${today}`, {
+        hasContent: !!cachedHoroscope.content,
+        date: cachedHoroscope.date
+      });
       return cachedHoroscope;
     }
     
     // Если нет локального кэша или он устарел - получаем через API
     // API endpoint проверит централизованный кэш БД и вернет его или сгенерирует новый
-    log.info(`[getOrGenerateHoroscope] Getting daily horoscope via API for ${zodiacSign} on ${today}`);
+    log.info(`[getOrGenerateHoroscope] Cache miss or outdated, getting daily horoscope via API for ${zodiacSign} on ${today}`, {
+      hasCache: !!cachedHoroscope,
+      cacheDate: cachedHoroscope?.date,
+      today
+    });
+    
     const horoscope = await getDailyHoroscope(profile, chartData);
     
     // Убеждаемся, что дата актуальная

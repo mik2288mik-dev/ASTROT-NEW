@@ -65,7 +65,7 @@ export default async function handler(
         threeKeys: threeKeys, // Синхронизированное значение
         evolution: user.evolution,
         generatedContent: user.generated_content,
-        weatherCity: user.weather_city,
+        weatherCity: user.weather_city && user.weather_city.trim() ? user.weather_city.trim() : undefined,
       };
 
       return res.status(200).json(clientUser);
@@ -103,7 +103,7 @@ export default async function handler(
         three_keys: threeKeysToSave, // Синхронизированное значение
         evolution: userData.evolution || null,
         generated_content: Object.keys(updatedGeneratedContent).length > 0 ? updatedGeneratedContent : null,
-        weather_city: userData.weatherCity || null,
+        weather_city: userData.weatherCity ? String(userData.weatherCity).trim() : null,
       };
 
       const savedUser = await db.users.set(userId, dbUser);
