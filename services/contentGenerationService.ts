@@ -399,16 +399,33 @@ export const getOrGenerateHoroscope = async (
     }
     
     // Сохраняем в профиль пользователя для быстрого доступа
-    if (!profile.generatedContent) {
-      profile.generatedContent = { deepDiveAnalyses: {}, synastries: {}, timestamps: {} };
-    }
-    profile.generatedContent.dailyHoroscope = horoscope;
-    profile.generatedContent.timestamps.dailyHoroscopeGenerated = Date.now();
+    const updatedGeneratedContent = profile.generatedContent || { deepDiveAnalyses: {}, synastries: {}, timestamps: {} };
+    updatedGeneratedContent.dailyHoroscope = horoscope;
+    updatedGeneratedContent.timestamps = updatedGeneratedContent.timestamps || {};
+    updatedGeneratedContent.timestamps.dailyHoroscopeGenerated = Date.now();
     
-    // Сохраняем профиль асинхронно (не ждем)
-    saveProfile(profile).catch(error => {
+    // Создаем обновленный профиль
+    const updatedProfile = {
+      ...profile,
+      generatedContent: updatedGeneratedContent
+    };
+    
+    // Сохраняем профиль СИНХРОННО, чтобы изменения точно сохранились
+    try {
+      log.info('[getOrGenerateHoroscope] Saving profile with updated horoscope', {
+        hasHoroscope: !!horoscope.content,
+        date: horoscope.date
+      });
+      await saveProfile(updatedProfile);
+      log.info('[getOrGenerateHoroscope] Profile saved successfully with horoscope');
+      
+      // Обновляем объект profile для возврата (чтобы изменения были видны в вызывающем коде)
+      profile.generatedContent = updatedGeneratedContent;
+    } catch (error) {
       log.error('[getOrGenerateHoroscope] Failed to save profile with horoscope', error);
-    });
+      // Продолжаем выполнение даже если сохранение не удалось, но все равно обновляем локальный объект
+      profile.generatedContent = updatedGeneratedContent;
+    }
     
     return horoscope;
   }

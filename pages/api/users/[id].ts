@@ -47,9 +47,28 @@ export default async function handler(
 
       // Transform database format (snake_case) to client format (camelCase)
       // Синхронизируем threeKeys: если есть в generatedContent, используем его, иначе из отдельного поля
-      const generatedContent = user.generated_content || {};
-      const threeKeysFromGenerated = generatedContent.threeKeys || null;
+      let generatedContent = user.generated_content;
+      
+      // Парсим generatedContent если это строка
+      if (typeof generatedContent === 'string') {
+        try {
+          generatedContent = JSON.parse(generatedContent);
+        } catch (e) {
+          log.error('[GET] Failed to parse generated_content JSON', { error: e });
+          generatedContent = {};
+        }
+      }
+      
+      const threeKeysFromGenerated = generatedContent?.threeKeys || null;
       const threeKeys = threeKeysFromGenerated || user.three_keys;
+      
+      log.info(`[GET] User profile loaded`, {
+        userId: user.id,
+        hasGeneratedContent: !!generatedContent,
+        hasDailyHoroscope: !!generatedContent?.dailyHoroscope,
+        dailyHoroscopeDate: generatedContent?.dailyHoroscope?.date,
+        weatherCity: user.weather_city
+      });
       
       const clientUser = {
         id: user.id,
@@ -64,7 +83,7 @@ export default async function handler(
         isAdmin: user.is_admin,
         threeKeys: threeKeys, // Синхронизированное значение
         evolution: user.evolution,
-        generatedContent: user.generated_content,
+        generatedContent: generatedContent || {},
         weatherCity: user.weather_city && user.weather_city.trim() ? user.weather_city.trim() : undefined,
       };
 
@@ -89,6 +108,22 @@ export default async function handler(
         ? { ...generatedContent, threeKeys: threeKeysToSave }
         : generatedContent;
       
+      // Убеждаемся, что generated_content правильно сериализуется
+      let generatedContentToSave = updatedGeneratedContent;
+      if (Object.keys(updatedGeneratedContent).length > 0) {
+        // Если есть данные, убеждаемся что это объект, а не строка
+        if (typeof updatedGeneratedContent === 'string') {
+          try {
+            generatedContentToSave = JSON.parse(updatedGeneratedContent);
+          } catch (e) {
+            log.error('[POST] Failed to parse generatedContent, using as is', { error: e });
+            generatedContentToSave = updatedGeneratedContent;
+          }
+        }
+      } else {
+        generatedContentToSave = null;
+      }
+      
       const dbUser = {
         id: userId,
         name: userData.name,
@@ -102,18 +137,39 @@ export default async function handler(
         is_admin: userData.isAdmin || false,
         three_keys: threeKeysToSave, // Синхронизированное значение
         evolution: userData.evolution || null,
-        generated_content: Object.keys(updatedGeneratedContent).length > 0 ? updatedGeneratedContent : null,
+        generated_content: generatedContentToSave,
         weather_city: userData.weatherCity ? String(userData.weatherCity).trim() : null,
       };
+      
+      log.info(`[${req.method}] Saving user data`, {
+        userId,
+        hasGeneratedContent: !!generatedContentToSave,
+        hasDailyHoroscope: !!generatedContentToSave?.dailyHoroscope,
+        dailyHoroscopeDate: generatedContentToSave?.dailyHoroscope?.date,
+        weatherCity: dbUser.weather_city
+      });
 
       const savedUser = await db.users.set(userId, dbUser);
       
-      log.info(`[${req.method}] User saved successfully: ${userId}`);
+      log.info(`[${req.method}] User saved successfully: ${userId}`, {
+        weatherCity: dbUser.weather_city,
+        hasGeneratedContent: !!dbUser.generated_content,
+        hasDailyHoroscope: !!JSON.parse(dbUser.generated_content || '{}')?.dailyHoroscope
+      });
 
       // Transform back to client format
       // Синхронизируем threeKeys при возврате
-      const savedGeneratedContent = savedUser.generated_content || {};
-      const syncedThreeKeys = savedGeneratedContent.threeKeys || savedUser.three_keys;
+      let savedGeneratedContent = savedUser.generated_content;
+      if (typeof savedGeneratedContent === 'string') {
+        try {
+          savedGeneratedContent = JSON.parse(savedGeneratedContent);
+        } catch (e) {
+          log.error('[POST] Failed to parse saved generated_content JSON', { error: e });
+          savedGeneratedContent = {};
+        }
+      }
+      
+      const syncedThreeKeys = savedGeneratedContent?.threeKeys || savedUser.three_keys;
       
       const clientUser = {
         id: savedUser.id,
@@ -128,8 +184,8 @@ export default async function handler(
         isAdmin: savedUser.is_admin,
         threeKeys: syncedThreeKeys, // Синхронизированное значение
         evolution: savedUser.evolution,
-        generatedContent: savedUser.generated_content,
-        weatherCity: savedUser.weather_city,
+        generatedContent: savedGeneratedContent || {},
+        weatherCity: savedUser.weather_city && savedUser.weather_city.trim() ? savedUser.weather_city.trim() : undefined,
       };
 
       return res.status(200).json(clientUser);

@@ -8,9 +8,10 @@ import { HoroscopeContent } from '../components/Horoscope/HoroscopeContent';
 interface HoroscopeProps {
     profile: UserProfile;
     chartData: NatalChartData | null;
+    onUpdateProfile?: (profile: UserProfile) => void;
 }
 
-export const Horoscope = memo<HoroscopeProps>(({ profile, chartData }) => {
+export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdateProfile }) => {
     const [horoscope, setHoroscope] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
@@ -30,6 +31,13 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData }) => {
             const today = new Date().toISOString().split('T')[0];
             const cachedHoroscope = profile.generatedContent?.dailyHoroscope;
             
+            console.log('[Horoscope] Checking cache', {
+                hasCache: !!cachedHoroscope,
+                cacheDate: cachedHoroscope?.date,
+                today,
+                isCacheValid: cachedHoroscope && cachedHoroscope.date === today
+            });
+            
             // Если есть актуальный кэш - используем его сразу без загрузки
             if (cachedHoroscope && cachedHoroscope.date === today) {
                 console.log('[Horoscope] Using cached horoscope from profile');
@@ -39,10 +47,29 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData }) => {
             }
             
             // Если кэша нет или он устарел - загружаем
+            console.log('[Horoscope] Cache miss or outdated, loading from API');
             setLoading(true);
             try {
                 const data = await getOrGenerateHoroscope(profile, chartData, 'daily');
+                console.log('[Horoscope] Horoscope loaded', {
+                    hasContent: !!data.content,
+                    date: data.date
+                });
                 setHoroscope(data);
+                
+                // Перезагружаем профиль из БД, чтобы получить обновленный generatedContent
+                if (onUpdateProfile) {
+                    try {
+                        const { getProfile } = await import('../services/storageService');
+                        const reloadedProfile = await getProfile();
+                        if (reloadedProfile) {
+                            console.log('[Horoscope] Profile reloaded, updating parent component');
+                            onUpdateProfile(reloadedProfile);
+                        }
+                    } catch (reloadError) {
+                        console.warn('[Horoscope] Failed to reload profile', reloadError);
+                    }
+                }
             } catch (error) {
                 console.error('[Horoscope] Error loading horoscope:', error);
             } finally {

@@ -440,7 +440,7 @@ const App: React.FC = () => {
                     <Synastry profile={profile} requestPremium={requestPremium} />
                 ) : view === 'horoscope' ? (
                     <div className="h-full overflow-y-auto scrollbar-hide">
-                        <Horoscope profile={profile} chartData={chartData} />
+                        <Horoscope profile={profile} chartData={chartData} onUpdateProfile={handleProfileUpdate} />
                     </div>
                 ) : view === 'chart' ? (
                     <div className="h-full overflow-y-auto scrollbar-hide">
