@@ -133,13 +133,21 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
         }
     }, []);
 
-    // Отдельный useEffect для обновления только контекста (погоды) при изменении weatherCity
+    // Отдельный useEffect для обновления ТОЛЬКО погоды при изменении weatherCity
+    // ВАЖНО: Этот useEffect НЕ должен вызывать генерацию карты или гороскопа
     useEffect(() => {
         const updateWeatherContext = async () => {
             if (profile.weatherCity) {
                 try {
+                    // Загружаем только погоду, не трогая другие данные
                     const ctx = await getUserContext(profile);
-                    setContext(ctx);
+                    // Обновляем только weatherData в контексте, не трогая остальное
+                    setContext(prev => {
+                        if (!prev) {
+                            return { ...ctx, mood: 'Neutral' };
+                        }
+                        return { ...prev, weatherData: ctx.weatherData, weather: ctx.weather, moonPhase: ctx.moonPhase };
+                    });
                     if (!ctx.weatherData) {
                         console.warn('[Dashboard] Weather city is set but weather data was not loaded', {
                             weatherCity: profile.weatherCity
@@ -147,26 +155,36 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
                     }
                 } catch (error) {
                     console.error('[Dashboard] Failed to load weather context:', error);
+                    // При ошибке НЕ делаем ничего - просто не показываем погоду
+                    // НЕ вызываем генерацию карты или гороскопа!
                 }
             } else {
-                // Если город не указан, очищаем контекст погоды
-                setContext(prev => prev ? { ...prev, weatherData: undefined } : null);
+                // Если город не указан, очищаем только контекст погоды
+                setContext(prev => prev ? { ...prev, weatherData: undefined, weather: undefined, moonPhase: undefined } : null);
             }
         };
         updateWeatherContext();
     }, [profile.weatherCity]); // Обновляем только при изменении weatherCity
 
+    // Основной useEffect для загрузки данных при первой загрузке или изменении профиля/карты
+    // ВАЖНО: Этот useEffect НЕ должен срабатывать при изменении weatherCity
     useEffect(() => {
         // Загружаем контекст и эволюцию асинхронно после показа интерфейса
         const loadSmartFeatures = async () => {
             // Небольшая задержка, чтобы не блокировать показ интерфейса
             await new Promise(resolve => setTimeout(resolve, 200));
             
-            // 1. Load Context (Weather/Social Proof)
+            // 1. Load Context (Weather/Social Proof) - только при первой загрузке
             // ВАЖНО: Загружаем контекст только при первой загрузке или изменении основных данных
+            // НЕ загружаем погоду здесь - она обрабатывается отдельным useEffect
             try {
                 const ctx = await getUserContext(profile);
-                setContext(ctx);
+                // Обновляем контекст, но если погода уже загружена - сохраняем её
+                setContext(prev => {
+                    if (!prev) return ctx;
+                    // Сохраняем погоду если она уже была загружена
+                    return { ...ctx, weatherData: prev.weatherData || ctx.weatherData, weather: prev.weather || ctx.weather, moonPhase: prev.moonPhase || ctx.moonPhase };
+                });
                 if (profile.weatherCity && !ctx.weatherData) {
                     console.warn('[Dashboard] Weather city is set but weather data was not loaded', {
                         weatherCity: profile.weatherCity
@@ -174,11 +192,12 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
                 }
             } catch (error) {
                 console.error('[Dashboard] Failed to load context:', error);
+                // При ошибке НЕ делаем ничего - просто не показываем контекст
             }
 
             // 2. Load Daily Horoscope (with cache check)
             // ВАЖНО: Используем кэш из профиля, не генерируем каждый раз!
-            // НЕ генерируем гороскоп заново при изменении только weatherCity
+            // Загружаем ТОЛЬКО если chartData есть
             if (chartData) {
                 try {
                     // Проверяем кэш перед загрузкой
