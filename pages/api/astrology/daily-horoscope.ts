@@ -72,7 +72,7 @@ export default async function handler(
       language: lang ? 'ru' : 'en'
     });
 
-    // Проверяем кэш БД по знаку зодиака (централизованный кэш для всех пользователей одного знака)
+    // Проверяем кэш БД по знаку зодиака (единый гороскоп для всех пользователей одного знака)
     const zodiacSign = chartData?.sun?.sign;
     if (zodiacSign) {
       try {

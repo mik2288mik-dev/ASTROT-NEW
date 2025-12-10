@@ -371,10 +371,11 @@ export const getOrGenerateHoroscope = async (
     // Получаем сегодняшнюю дату в формате YYYY-MM-DD
     const today = new Date().toISOString().split('T')[0];
     
-    // Проверяем локальный кэш в профиле пользователя
+    // Проверяем локальный кэш в профиле пользователя (может быть устаревшим)
     const cachedHoroscope = profile.generatedContent?.dailyHoroscope;
     
     // Если есть кэш и он актуальный (сегодняшний) - используем его БЕЗ вызова API
+    // Но API endpoint проверит централизованный кэш по знаку зодиака и вернет актуальный гороскоп
     if (cachedHoroscope && cachedHoroscope.date === today) {
       log.info(`[getOrGenerateHoroscope] Using cached daily horoscope from profile for ${zodiacSign} on ${today}`, {
         hasContent: !!cachedHoroscope.content,
@@ -398,14 +399,15 @@ export const getOrGenerateHoroscope = async (
       horoscope.date = today;
     }
     
-    // Сохраняем в профиль пользователя для быстрого доступа
+    // Сохраняем в профиль пользователя для быстрого доступа (локальный кэш)
+    // Основной кэш хранится в БД по знаку зодиака для всех пользователей
     if (!profile.generatedContent) {
       profile.generatedContent = { deepDiveAnalyses: {}, synastries: {}, timestamps: {} };
     }
     profile.generatedContent.dailyHoroscope = horoscope;
     profile.generatedContent.timestamps.dailyHoroscopeGenerated = Date.now();
     
-    // Сохраняем профиль асинхронно (не ждем)
+    // Сохраняем профиль асинхронно (не ждем) для локального кэша
     saveProfile(profile).catch(error => {
       log.error('[getOrGenerateHoroscope] Failed to save profile with horoscope', error);
     });
