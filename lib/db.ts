@@ -380,7 +380,7 @@ export const db = {
         const queryDuration = Date.now() - queryStartTime;
         
         log.info('[DB] ===== SQL QUERY COMPLETED =====');
-        log.info('[DB] Query duration:', queryDuration, 'ms');
+        log.info(`[DB] Query duration: ${queryDuration} ms`);
         log.info('[DB] Result rows count:', result.rows.length);
         if (result.rows.length > 0) {
           const savedRow = result.rows[0];
