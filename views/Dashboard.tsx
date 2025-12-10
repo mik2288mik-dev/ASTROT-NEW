@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo, memo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, memo, useCallback, useRef } from 'react';
 import { UserProfile, NatalChartData, UserContext, UserEvolution } from '../types';
 import { getText } from '../constants';
 import { SolarSystem } from '../components/SolarSystem';
@@ -135,7 +135,16 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
 
     // Отдельный useEffect для обновления ТОЛЬКО погоды при изменении weatherCity
     // ВАЖНО: Этот useEffect НЕ должен вызывать генерацию карты или гороскопа
+    // Используем ref для отслеживания предыдущего значения weatherCity
+    const prevWeatherCityRef = useRef(profile.weatherCity);
+    
     useEffect(() => {
+        // Проверяем, действительно ли weatherCity изменился
+        if (prevWeatherCityRef.current === profile.weatherCity) {
+            return;
+        }
+        prevWeatherCityRef.current = profile.weatherCity;
+        
         const updateWeatherContext = async () => {
             if (profile.weatherCity) {
                 try {
@@ -167,8 +176,27 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
     }, [profile.weatherCity]); // Обновляем только при изменении weatherCity
 
     // Основной useEffect для загрузки данных при первой загрузке или изменении профиля/карты
-    // ВАЖНО: Этот useEffect НЕ должен срабатывать при изменении weatherCity
+    // ВАЖНО: Этот useEffect НЕ должен срабатывать при изменении weatherCity или других несущественных полей
+    // Используем ref для отслеживания того, что данные уже загружены
+    const dataLoadedRef = useRef(false);
+    const profileIdRef = useRef(profile.id);
+    const zodiacSignRef = useRef(chartData?.sun?.sign);
+    
     useEffect(() => {
+        // Проверяем, изменились ли критически важные данные
+        const profileIdChanged = profileIdRef.current !== profile.id;
+        const zodiacSignChanged = zodiacSignRef.current !== chartData?.sun?.sign;
+        
+        // Если данные уже загружены и ничего критического не изменилось - пропускаем
+        if (dataLoadedRef.current && !profileIdChanged && !zodiacSignChanged) {
+            return;
+        }
+        
+        // Обновляем refs
+        profileIdRef.current = profile.id;
+        zodiacSignRef.current = chartData?.sun?.sign;
+        dataLoadedRef.current = true;
+        
         // Загружаем контекст и эволюцию асинхронно после показа интерфейса
         const loadSmartFeatures = async () => {
             // Небольшая задержка, чтобы не блокировать показ интерфейса
@@ -185,11 +213,6 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
                     // Сохраняем погоду если она уже была загружена
                     return { ...ctx, weatherData: prev.weatherData || ctx.weatherData, weather: prev.weather || ctx.weather, moonPhase: prev.moonPhase || ctx.moonPhase };
                 });
-                if (profile.weatherCity && !ctx.weatherData) {
-                    console.warn('[Dashboard] Weather city is set but weather data was not loaded', {
-                        weatherCity: profile.weatherCity
-                    });
-                }
             } catch (error) {
                 console.error('[Dashboard] Failed to load context:', error);
                 // При ошибке НЕ делаем ничего - просто не показываем контекст

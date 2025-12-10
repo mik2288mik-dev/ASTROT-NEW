@@ -141,21 +141,10 @@ const App: React.FC = () => {
                                     setProfile(updatedProfileWithContent);
                                     console.log('[App] All content generated and saved successfully');
                                 } else {
-                                    // Если контент есть - проверяем только daily horoscope
-                                    const timestamps = updatedProfile.generatedContent?.timestamps || {};
-                                    const shouldUpdateDaily = shouldUpdateContent(timestamps, 'daily');
-                                    
-                                    if (shouldUpdateDaily) {
-                                        console.log('[App] Updating daily horoscope only (scheduled update)...');
-                                        // Используем getOrGenerateHoroscope, который проверяет кэш перед генерацией
-                                        const dailyHoroscope = await getOrGenerateHoroscope(updatedProfile, storedChart, 'daily');
-                                        // getOrGenerateHoroscope уже сохраняет данные в профиль, но обновим локальное состояние
-                                        const updatedProfileWithContent = { ...updatedProfile, generatedContent: updatedProfile.generatedContent };
-                                        setProfile(updatedProfileWithContent);
-                                        console.log('[App] Daily horoscope updated');
-                                    } else {
-                                        console.log('[App] Content is up to date, no generation needed');
-                                    }
+                                    // Если контент есть - НЕ обновляем daily horoscope здесь
+                                    // Dashboard сам проверит кэш и загрузит гороскоп если нужно
+                                    // Это избегает лишних API запросов при первой загрузке
+                                    console.log('[App] Content is up to date, Dashboard will load horoscope from cache if needed');
                                 }
                             } catch (error) {
                                 console.error('[App] Error updating content:', error);
