@@ -95,11 +95,17 @@ export default async function handler(
       
       // ВАЖНО: Проверяем, был ли generatedContent явно передан в запросе
       // Если не передан - сохраняем существующий из БД
+      log.info(`[${req.method}] ===== PROCESSING GENERATED CONTENT =====`);
+      log.info(`[${req.method}] userData.generatedContent !== undefined:`, userData.generatedContent !== undefined);
+      log.info(`[${req.method}] userData.generatedContent !== null:`, userData.generatedContent !== null);
+      log.info(`[${req.method}] existingUser?.generated_content exists:`, !!existingUser?.generated_content);
+      
       let finalGeneratedContent = existingUser?.generated_content || null;
       let threeKeysToSave = null;
       
       if (userData.generatedContent !== undefined && userData.generatedContent !== null) {
         // Если generatedContent передан явно - используем его
+        log.info(`[${req.method}] Using provided generatedContent`);
         const generatedContent = userData.generatedContent;
         threeKeysToSave = generatedContent.threeKeys || userData.threeKeys || null;
         
@@ -111,13 +117,18 @@ export default async function handler(
         // Если передан непустой объект - используем его
         if (Object.keys(updatedGeneratedContent).length > 0) {
           finalGeneratedContent = updatedGeneratedContent;
+          log.info(`[${req.method}] Using provided generatedContent with`, Object.keys(updatedGeneratedContent).length, 'keys');
+        } else {
+          log.warn(`[${req.method}] Provided generatedContent is empty, keeping existing`);
+          // Если передан пустой объект - сохраняем существующий (не перезаписываем)
         }
-        // Если передан пустой объект - сохраняем существующий (не перезаписываем)
       } else {
         // Если generatedContent не передан - используем существующий из БД и синхронизируем threeKeys
+        log.info(`[${req.method}] generatedContent not provided, using existing from DB`);
         threeKeysToSave = userData.threeKeys || finalGeneratedContent?.threeKeys || null;
         if (existingUser?.generated_content && threeKeysToSave && !finalGeneratedContent?.threeKeys) {
           // Обновляем threeKeys в существующем generatedContent если нужно
+          log.info(`[${req.method}] Updating threeKeys in existing generatedContent`);
           finalGeneratedContent = {
             ...existingUser.generated_content,
             threeKeys: threeKeysToSave
@@ -126,12 +137,30 @@ export default async function handler(
           // Используем threeKeys из существующего generatedContent
           threeKeysToSave = finalGeneratedContent.threeKeys || threeKeysToSave;
         }
+        
+        log.info(`[${req.method}] Final generatedContent keys:`, finalGeneratedContent ? Object.keys(finalGeneratedContent) : []);
+      }
+      
+      // ВАЖНО: Проверяем что finalGeneratedContent не потерялся
+      if (!finalGeneratedContent && existingUser?.generated_content) {
+        log.warn(`[${req.method}] ⚠️ WARNING: finalGeneratedContent is null but existingUser has generated_content! Restoring...`);
+        finalGeneratedContent = existingUser.generated_content;
       }
       
       // ВАЖНО: Сохраняем weatherCity правильно - если передан, используем его, иначе сохраняем существующий
+      log.info(`[${req.method}] ===== PROCESSING WEATHER CITY =====`);
+      log.info(`[${req.method}] userData.weatherCity:`, userData.weatherCity);
+      log.info(`[${req.method}] userData.weatherCity type:`, typeof userData.weatherCity);
+      log.info(`[${req.method}] userData.weatherCity !== undefined:`, userData.weatherCity !== undefined);
+      log.info(`[${req.method}] existingUser?.weather_city:`, existingUser?.weather_city);
+      
       const weatherCityToSave = userData.weatherCity !== undefined 
         ? (userData.weatherCity ? String(userData.weatherCity).trim() : null)
         : (existingUser?.weather_city || null);
+      
+      log.info(`[${req.method}] weatherCityToSave (final):`, weatherCityToSave);
+      log.info(`[${req.method}] weatherCityToSave type:`, typeof weatherCityToSave);
+      log.info(`[${req.method}] weatherCityToSave length:`, weatherCityToSave ? weatherCityToSave.length : 0);
       
       const dbUser = {
         id: userId,
@@ -150,15 +179,25 @@ export default async function handler(
         weather_city: weatherCityToSave,
       };
       
-      log.info(`[${req.method}] Preparing to save user data`, {
-        hasGeneratedContent: !!finalGeneratedContent,
-        generatedContentKeys: finalGeneratedContent ? Object.keys(finalGeneratedContent).length : 0,
-        weatherCity: weatherCityToSave
-      });
+      log.info(`[${req.method}] ===== PREPARING TO SAVE USER DATA =====`);
+      log.info(`[${req.method}] hasGeneratedContent:`, !!finalGeneratedContent);
+      log.info(`[${req.method}] generatedContentKeys:`, finalGeneratedContent ? Object.keys(finalGeneratedContent).length : 0);
+      log.info(`[${req.method}] generatedContent keys list:`, finalGeneratedContent ? Object.keys(finalGeneratedContent) : []);
+      log.info(`[${req.method}] weatherCity:`, weatherCityToSave);
+      log.info(`[${req.method}] dbUser.weather_city:`, dbUser.weather_city);
+      log.info(`[${req.method}] dbUser.hasGeneratedContent:`, !!dbUser.generated_content);
 
+      log.info(`[${req.method}] ===== CALLING db.users.set() =====`);
+      const dbSetStartTime = Date.now();
       const savedUser = await db.users.set(userId, dbUser);
+      const dbSetDuration = Date.now() - dbSetStartTime;
       
-      log.info(`[${req.method}] User saved successfully: ${userId}`);
+      log.info(`[${req.method}] ===== USER SAVED SUCCESSFULLY =====`);
+      log.info(`[${req.method}] Save duration:`, dbSetDuration, 'ms');
+      log.info(`[${req.method}] savedUser.weather_city:`, savedUser.weather_city);
+      log.info(`[${req.method}] savedUser.weather_city type:`, typeof savedUser.weather_city);
+      log.info(`[${req.method}] savedUser.hasGeneratedContent:`, !!savedUser.generated_content);
+      log.info(`[${req.method}] savedUser.generatedContent keys:`, savedUser.generated_content ? Object.keys(savedUser.generated_content) : []);
 
       // Transform back to client format
       // Синхронизируем threeKeys при возврате

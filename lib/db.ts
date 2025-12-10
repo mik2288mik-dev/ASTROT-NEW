@@ -307,17 +307,37 @@ export const db = {
         }
         
         // Объединяем weatherCity: если передан - используем его, иначе сохраняем существующий
+        log.info('[DB] ===== PROCESSING WEATHER CITY IN DB =====');
+        log.info('[DB] data.weather_city:', data.weather_city);
+        log.info('[DB] data.weather_city type:', typeof data.weather_city);
+        log.info('[DB] data.weather_city !== undefined:', data.weather_city !== undefined);
+        log.info('[DB] existingUser?.weather_city:', existingUser?.weather_city);
+        log.info('[DB] existingUser?.weather_city type:', typeof existingUser?.weather_city);
+        
         const finalWeatherCity = data.weather_city !== undefined
           ? (data.weather_city || null)
           : (existingUser?.weather_city || null);
         
-        log.info('[DB] Merging user data', {
-          hasExistingGeneratedContent: !!existingUser?.generated_content,
-          hasNewGeneratedContent: !!data.generated_content,
-          finalGeneratedContentType: finalGeneratedContent ? typeof finalGeneratedContent : 'null',
-          finalWeatherCity
-        });
+        log.info('[DB] finalWeatherCity (calculated):', finalWeatherCity);
+        log.info('[DB] finalWeatherCity type:', typeof finalWeatherCity);
+        log.info('[DB] finalWeatherCity length:', finalWeatherCity ? finalWeatherCity.length : 0);
         
+        log.info('[DB] ===== MERGING USER DATA =====');
+        log.info('[DB] hasExistingGeneratedContent:', !!existingUser?.generated_content);
+        log.info('[DB] hasNewGeneratedContent:', !!data.generated_content);
+        log.info('[DB] finalGeneratedContentType:', finalGeneratedContent ? typeof finalGeneratedContent : 'null');
+        log.info('[DB] finalWeatherCity:', finalWeatherCity);
+        log.info('[DB] existingUser generatedContent keys:', existingUser?.generated_content ? Object.keys(existingUser.generated_content) : []);
+        log.info('[DB] new data generatedContent keys:', data.generated_content ? Object.keys(data.generated_content) : []);
+        
+        log.info('[DB] ===== EXECUTING SQL INSERT/UPDATE =====');
+        log.info('[DB] SQL params weather_city (finalWeatherCity):', finalWeatherCity);
+        log.info('[DB] SQL params weather_city type:', typeof finalWeatherCity);
+        log.info('[DB] SQL params generated_content exists:', !!finalGeneratedContent);
+        log.info('[DB] SQL params generated_content type:', typeof finalGeneratedContent);
+        log.info('[DB] SQL params generated_content length:', finalGeneratedContent ? finalGeneratedContent.length : 0);
+        
+        const queryStartTime = Date.now();
         const result = await dbPool.query(
           `INSERT INTO users (
             id, name, birth_date, birth_time, birth_place,
@@ -357,6 +377,28 @@ export const db = {
             finalWeatherCity,
           ]
         );
+        const queryDuration = Date.now() - queryStartTime;
+        
+        log.info('[DB] ===== SQL QUERY COMPLETED =====');
+        log.info('[DB] Query duration:', queryDuration, 'ms');
+        log.info('[DB] Result rows count:', result.rows.length);
+        if (result.rows.length > 0) {
+          const savedRow = result.rows[0];
+          log.info('[DB] Saved row.weather_city:', savedRow.weather_city);
+          log.info('[DB] Saved row.weather_city type:', typeof savedRow.weather_city);
+          log.info('[DB] Saved row.hasGeneratedContent:', !!savedRow.generated_content);
+          log.info('[DB] Saved row.generatedContent type:', typeof savedRow.generated_content);
+          if (savedRow.generated_content) {
+            try {
+              const parsed = typeof savedRow.generated_content === 'string' 
+                ? JSON.parse(savedRow.generated_content) 
+                : savedRow.generated_content;
+              log.info('[DB] Saved row.generatedContent keys:', Object.keys(parsed));
+            } catch (e) {
+              log.warn('[DB] Failed to parse saved generated_content:', e);
+            }
+          }
+        }
 
         const user = result.rows[0];
         

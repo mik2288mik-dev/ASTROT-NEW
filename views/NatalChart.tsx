@@ -150,7 +150,31 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
     // The 3 Keys (From Profile) - обновляемые при регенерации
     // Используем generatedContent.threeKeys как основной источник, profile.threeKeys как fallback
     const threeKeysSource = profile.generatedContent?.threeKeys || profile.threeKeys;
-    const [keys, setKeys] = useState(threeKeysSource || {
+    
+    // Проверяем что threeKeys не пустой и имеет валидные данные
+    const isValidThreeKeys = threeKeysSource && 
+        threeKeysSource.key1?.text && 
+        threeKeysSource.key1.text !== "..." &&
+        threeKeysSource.key1.text.trim().length > 0 &&
+        threeKeysSource.key2?.text && 
+        threeKeysSource.key2.text !== "..." &&
+        threeKeysSource.key2.text.trim().length > 0 &&
+        threeKeysSource.key3?.text && 
+        threeKeysSource.key3.text !== "..." &&
+        threeKeysSource.key3.text.trim().length > 0;
+    
+    if (!isValidThreeKeys && threeKeysSource) {
+        console.warn('[NatalChart] Invalid threeKeys detected:', {
+            hasKey1: !!threeKeysSource.key1,
+            hasKey2: !!threeKeysSource.key2,
+            hasKey3: !!threeKeysSource.key3,
+            key1Text: threeKeysSource.key1?.text?.substring(0, 50) || 'empty',
+            key2Text: threeKeysSource.key2?.text?.substring(0, 50) || 'empty',
+            key3Text: threeKeysSource.key3?.text?.substring(0, 50) || 'empty'
+        });
+    }
+    
+    const [keys, setKeys] = useState(isValidThreeKeys ? threeKeysSource : {
         key1: { title: getText(profile.language, 'hook.key1_title'), text: "...", advice: [] },
         key2: { title: getText(profile.language, 'hook.key2_title'), text: "...", advice: [] },
         key3: { title: getText(profile.language, 'hook.key3_title'), text: "...", advice: [] },
@@ -159,13 +183,39 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
     // Обновляем keys при изменении профиля или threeKeys
     React.useEffect(() => {
         const newThreeKeysSource = profile.generatedContent?.threeKeys || profile.threeKeys;
-        if (newThreeKeysSource && (
+        
+        // Проверяем что newThreeKeysSource валидный
+        const isValidNewThreeKeys = newThreeKeysSource && 
+            newThreeKeysSource.key1?.text && 
+            newThreeKeysSource.key1.text !== "..." &&
+            newThreeKeysSource.key1.text.trim().length > 0 &&
+            newThreeKeysSource.key2?.text && 
+            newThreeKeysSource.key2.text !== "..." &&
+            newThreeKeysSource.key2.text.trim().length > 0 &&
+            newThreeKeysSource.key3?.text && 
+            newThreeKeysSource.key3.text !== "..." &&
+            newThreeKeysSource.key3.text.trim().length > 0;
+        
+        if (isValidNewThreeKeys && (
             newThreeKeysSource.key1?.text !== keys.key1?.text ||
             newThreeKeysSource.key2?.text !== keys.key2?.text ||
             newThreeKeysSource.key3?.text !== keys.key3?.text
         )) {
-            console.log('[NatalChart] Updating keys from profile');
+            console.log('[NatalChart] Updating keys from profile', {
+                key1TextLength: newThreeKeysSource.key1.text.length,
+                key2TextLength: newThreeKeysSource.key2.text.length,
+                key3TextLength: newThreeKeysSource.key3.text.length
+            });
             setKeys(newThreeKeysSource);
+        } else if (newThreeKeysSource && !isValidNewThreeKeys) {
+            console.warn('[NatalChart] Received invalid threeKeys, not updating', {
+                hasKey1: !!newThreeKeysSource.key1,
+                hasKey2: !!newThreeKeysSource.key2,
+                hasKey3: !!newThreeKeysSource.key3,
+                key1Text: newThreeKeysSource.key1?.text?.substring(0, 50) || 'empty',
+                key2Text: newThreeKeysSource.key2?.text?.substring(0, 50) || 'empty',
+                key3Text: newThreeKeysSource.key3?.text?.substring(0, 50) || 'empty'
+            });
         }
     }, [profile.generatedContent?.threeKeys, profile.threeKeys]);
 

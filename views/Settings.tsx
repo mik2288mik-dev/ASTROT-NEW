@@ -78,20 +78,34 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
         const city = tempWeatherCity.trim();
         setWeatherLoading(true);
         
+        console.log('[Settings] ===== START SAVING WEATHER CITY =====');
+        console.log('[Settings] Input city value:', city);
+        console.log('[Settings] City length:', city.length);
+        console.log('[Settings] Current profile.weatherCity:', profile.weatherCity);
+        console.log('[Settings] Current profile.hasGeneratedContent:', !!profile.generatedContent);
+        console.log('[Settings] Current profile.generatedContent keys:', profile.generatedContent ? Object.keys(profile.generatedContent) : 'none');
+        
         // Если город указан, проверяем его валидность через API
         if (city && city.length > 0) {
+            console.log('[Settings] Validating city through API...');
             try {
                 const API_BASE_URL = typeof window !== 'undefined' ? '' : process.env.NEXT_PUBLIC_API_URL || '';
-                const response = await fetch(`${API_BASE_URL}/api/weather?city=${encodeURIComponent(city)}`);
+                const weatherUrl = `${API_BASE_URL}/api/weather?city=${encodeURIComponent(city)}`;
+                console.log('[Settings] Weather API URL:', weatherUrl);
+                
+                const response = await fetch(weatherUrl);
+                console.log('[Settings] Weather API response status:', response.status);
                 
                 if (!response.ok) {
                     await response.json().catch(() => ({}));
+                    console.error('[Settings] Weather API validation failed:', response.status);
                     alert(profile.language === 'ru' 
                         ? 'Не удалось найти указанный город. Проверьте правильность написания.'
                         : 'Failed to find the specified city. Please check the spelling.');
                     setWeatherLoading(false);
                     return;
                 }
+                console.log('[Settings] Weather API validation successful');
             } catch (error) {
                 console.error('[Settings] Error validating weather city:', error);
                 alert(profile.language === 'ru' 
@@ -100,46 +114,92 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                 setWeatherLoading(false);
                 return;
             }
+        } else {
+            console.log('[Settings] City is empty, will save as null/undefined');
         }
 
         // Сохраняем город (пустая строка становится undefined, что преобразуется в null в БД)
         // ВАЖНО: Сохраняем только weatherCity, не трогая другие поля, чтобы не потерять generatedContent
+        const cityToSave = city && city.length > 0 ? city : undefined;
         const updated = { 
             ...profile, 
-            weatherCity: city && city.length > 0 ? city : undefined 
+            weatherCity: cityToSave
         };
-        console.log('[Settings] Saving weather city:', city || 'null');
+        
+        console.log('[Settings] ===== PREPARING TO SAVE =====');
+        console.log('[Settings] City to save:', cityToSave || 'null/undefined');
+        console.log('[Settings] Updated profile.weatherCity:', updated.weatherCity);
+        console.log('[Settings] Updated profile.hasGeneratedContent:', !!updated.generatedContent);
+        console.log('[Settings] Updated profile.generatedContent keys:', updated.generatedContent ? Object.keys(updated.generatedContent) : 'none');
+        console.log('[Settings] Updated profile.generatedContent.threeKeys exists:', !!updated.generatedContent?.threeKeys);
+        console.log('[Settings] Updated profile.generatedContent.dailyHoroscope exists:', !!updated.generatedContent?.dailyHoroscope);
         
         try {
             // Сохраняем в БД
+            console.log('[Settings] ===== CALLING saveProfile() =====');
+            const saveStartTime = Date.now();
             await saveProfile(updated);
+            const saveDuration = Date.now() - saveStartTime;
+            console.log('[Settings] saveProfile() completed in', saveDuration, 'ms');
             console.log('[Settings] Weather city saved successfully (DB persist confirmed)', {
-                city: city || 'null',
-                weatherCity: updated.weatherCity
+                city: cityToSave || 'null',
+                weatherCity: updated.weatherCity,
+                saveDuration: saveDuration + 'ms'
             });
             
             // Перезагружаем профиль из БД для синхронизации и обновляем состояние ОДИН РАЗ
+            console.log('[Settings] ===== RELOADING PROFILE FROM DB =====');
             try {
                 const { getProfile } = await import('../services/storageService');
+                const reloadStartTime = Date.now();
                 const reloadedProfile = await getProfile();
+                const reloadDuration = Date.now() - reloadStartTime;
+                console.log('[Settings] Profile reloaded from DB in', reloadDuration, 'ms');
+                
                 if (reloadedProfile) {
-                    console.log('[Settings] Profile reloaded from DB, updating state', {
-                        weatherCity: reloadedProfile.weatherCity,
-                        hasGeneratedContent: !!reloadedProfile.generatedContent
-                    });
+                    console.log('[Settings] ===== RELOADED PROFILE DATA =====');
+                    console.log('[Settings] Reloaded profile.weatherCity:', reloadedProfile.weatherCity);
+                    console.log('[Settings] Reloaded profile.hasGeneratedContent:', !!reloadedProfile.generatedContent);
+                    console.log('[Settings] Reloaded profile.generatedContent keys:', reloadedProfile.generatedContent ? Object.keys(reloadedProfile.generatedContent) : 'none');
+                    console.log('[Settings] Reloaded profile.generatedContent.threeKeys exists:', !!reloadedProfile.generatedContent?.threeKeys);
+                    console.log('[Settings] Reloaded profile.generatedContent.dailyHoroscope exists:', !!reloadedProfile.generatedContent?.dailyHoroscope);
+                    
+                    // Проверяем что generatedContent не потерялся
+                    if (!reloadedProfile.generatedContent && profile.generatedContent) {
+                        console.error('[Settings] ⚠️ WARNING: generatedContent was lost during save!');
+                        console.error('[Settings] Original generatedContent:', JSON.stringify(profile.generatedContent).substring(0, 200));
+                    } else if (reloadedProfile.generatedContent && profile.generatedContent) {
+                        const originalKeys = Object.keys(profile.generatedContent);
+                        const reloadedKeys = Object.keys(reloadedProfile.generatedContent);
+                        if (originalKeys.length !== reloadedKeys.length) {
+                            console.warn('[Settings] ⚠️ WARNING: generatedContent keys count changed!', {
+                                original: originalKeys.length,
+                                reloaded: reloadedKeys.length,
+                                originalKeys,
+                                reloadedKeys
+                            });
+                        }
+                    }
+                    
                     // Обновляем состояние только один раз после перезагрузки из БД
+                    console.log('[Settings] Updating state with reloaded profile');
                     onUpdate(reloadedProfile);
                 } else {
+                    console.warn('[Settings] Failed to reload profile from DB, using local update');
                     // Если не удалось перезагрузить, используем локальное обновление
                     onUpdate(updated);
                 }
             } catch (reloadError) {
-                console.warn('[Settings] Failed to reload profile from DB, using local update', reloadError);
+                console.error('[Settings] Error reloading profile from DB:', reloadError);
+                console.warn('[Settings] Using local update as fallback');
                 // Используем локальное обновление как fallback
                 onUpdate(updated);
             }
         } catch (error) {
-            console.error('[Settings] Failed to save weather city:', error);
+            console.error('[Settings] ===== ERROR SAVING WEATHER CITY =====');
+            console.error('[Settings] Error details:', error);
+            console.error('[Settings] Error message:', error instanceof Error ? error.message : String(error));
+            console.error('[Settings] Error stack:', error instanceof Error ? error.stack : 'no stack');
             alert(profile.language === 'ru' 
                 ? 'Не удалось сохранить город в базе данных. Попробуйте ещё раз.'
                 : 'Failed to save your city to the database. Please try again.');
@@ -147,6 +207,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
             return;
         }
 
+        console.log('[Settings] ===== WEATHER CITY SAVE COMPLETED =====');
         setEditingWeather(false);
         setWeatherLoading(false);
     };
