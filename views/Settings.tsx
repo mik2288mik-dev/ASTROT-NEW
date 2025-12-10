@@ -103,32 +103,40 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
         }
 
         // Сохраняем город (пустая строка становится undefined, что преобразуется в null в БД)
-        const updated = { ...profile, weatherCity: city && city.length > 0 ? city : undefined };
+        // ВАЖНО: Сохраняем только weatherCity, не трогая другие поля, чтобы не потерять generatedContent
+        const updated = { 
+            ...profile, 
+            weatherCity: city && city.length > 0 ? city : undefined 
+        };
         console.log('[Settings] Saving weather city:', city || 'null');
         
-        // Обновляем локальное состояние сразу для быстрого отклика
-        onUpdate(updated);
-
         try {
+            // Сохраняем в БД
             await saveProfile(updated);
             console.log('[Settings] Weather city saved successfully (DB persist confirmed)', {
                 city: city || 'null',
                 weatherCity: updated.weatherCity
             });
             
-            // Перезагружаем профиль из БД для синхронизации
+            // Перезагружаем профиль из БД для синхронизации и обновляем состояние ОДИН РАЗ
             try {
                 const { getProfile } = await import('../services/storageService');
                 const reloadedProfile = await getProfile();
                 if (reloadedProfile) {
                     console.log('[Settings] Profile reloaded from DB, updating state', {
-                        weatherCity: reloadedProfile.weatherCity
+                        weatherCity: reloadedProfile.weatherCity,
+                        hasGeneratedContent: !!reloadedProfile.generatedContent
                     });
+                    // Обновляем состояние только один раз после перезагрузки из БД
                     onUpdate(reloadedProfile);
+                } else {
+                    // Если не удалось перезагрузить, используем локальное обновление
+                    onUpdate(updated);
                 }
             } catch (reloadError) {
                 console.warn('[Settings] Failed to reload profile from DB, using local update', reloadError);
                 // Используем локальное обновление как fallback
+                onUpdate(updated);
             }
         } catch (error) {
             console.error('[Settings] Failed to save weather city:', error);
