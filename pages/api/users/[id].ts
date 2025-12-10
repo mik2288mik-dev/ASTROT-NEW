@@ -9,6 +9,9 @@ const log = {
   error: (message: string, error?: any) => {
     console.error(`[API/users/[id]] ERROR: ${message}`, error || '');
   },
+  warn: (message: string, error?: any) => {
+    console.warn(`[API/users/[id]] WARN: ${message}`, error || '');
+  },
 };
 
 export default async function handler(
