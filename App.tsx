@@ -3,8 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { UserProfile, NatalChartData, ViewState } from './types';
 import { getProfile, getChartData, saveProfile, saveChartData } from './services/storageService';
 import { calculateNatalChart } from './services/astrologyService';
-import { generateAllContent, shouldUpdateContent } from './services/contentGenerationService';
-import { getDailyHoroscope } from './services/astrologyService';
+import { generateAllContent, shouldUpdateContent, getOrGenerateHoroscope } from './services/contentGenerationService';
 import { Onboarding } from './views/Onboarding';
 import { Dashboard } from './views/Dashboard';
 import { NatalChart } from './views/NatalChart';
@@ -148,17 +147,10 @@ const App: React.FC = () => {
                                     
                                     if (shouldUpdateDaily) {
                                         console.log('[App] Updating daily horoscope only (scheduled update)...');
-                                        const dailyHoroscope = await getDailyHoroscope(updatedProfile, storedChart);
-                                        const updatedContent = {
-                                            ...updatedProfile.generatedContent,
-                                            dailyHoroscope,
-                                            timestamps: {
-                                                ...timestamps,
-                                                dailyHoroscopeGenerated: Date.now()
-                                            }
-                                        };
-                                        const updatedProfileWithContent = { ...updatedProfile, generatedContent: updatedContent };
-                                        await saveProfile(updatedProfileWithContent);
+                                        // Используем getOrGenerateHoroscope, который проверяет кэш перед генерацией
+                                        const dailyHoroscope = await getOrGenerateHoroscope(updatedProfile, storedChart, 'daily');
+                                        // getOrGenerateHoroscope уже сохраняет данные в профиль, но обновим локальное состояние
+                                        const updatedProfileWithContent = { ...updatedProfile, generatedContent: updatedProfile.generatedContent };
                                         setProfile(updatedProfileWithContent);
                                         console.log('[App] Daily horoscope updated');
                                     } else {
