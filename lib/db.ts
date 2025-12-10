@@ -275,6 +275,49 @@ export const db = {
 
       try {
         const dbPool = getPool();
+        
+        // ВАЖНО: При обновлении получаем существующего пользователя и объединяем данные
+        // Это предотвращает случайную перезапись существующих данных
+        let existingUser = null;
+        try {
+          const existingResult = await dbPool.query('SELECT * FROM users WHERE id = $1', [userId]);
+          if (existingResult.rows.length > 0) {
+            existingUser = existingResult.rows[0];
+          }
+        } catch (e) {
+          log.warn('[DB] Failed to get existing user, will use new values', { error: e });
+        }
+        
+        // Объединяем generatedContent: если передан и не пустой - используем его, иначе сохраняем существующий
+        let finalGeneratedContent = null;
+        if (data.generated_content !== undefined && data.generated_content !== null) {
+          // Если передан объект с данными - используем его
+          if (typeof data.generated_content === 'object' && Object.keys(data.generated_content).length > 0) {
+            finalGeneratedContent = JSON.stringify(data.generated_content);
+          } else if (data.generated_content === null) {
+            // Если явно передан null - сохраняем null (удаляем)
+            finalGeneratedContent = null;
+          } else {
+            // Если передан пустой объект - сохраняем существующий
+            finalGeneratedContent = existingUser?.generated_content || null;
+          }
+        } else {
+          // Если не передан - сохраняем существующий
+          finalGeneratedContent = existingUser?.generated_content || null;
+        }
+        
+        // Объединяем weatherCity: если передан - используем его, иначе сохраняем существующий
+        const finalWeatherCity = data.weather_city !== undefined
+          ? (data.weather_city || null)
+          : (existingUser?.weather_city || null);
+        
+        log.info('[DB] Merging user data', {
+          hasExistingGeneratedContent: !!existingUser?.generated_content,
+          hasNewGeneratedContent: !!data.generated_content,
+          finalGeneratedContentType: finalGeneratedContent ? typeof finalGeneratedContent : 'null',
+          finalWeatherCity
+        });
+        
         const result = await dbPool.query(
           `INSERT INTO users (
             id, name, birth_date, birth_time, birth_place,
@@ -310,8 +353,8 @@ export const db = {
             data.is_admin || false,
             data.three_keys ? JSON.stringify(data.three_keys) : null,
             data.evolution ? JSON.stringify(data.evolution) : null,
-            data.generated_content ? JSON.stringify(data.generated_content) : null,
-            data.weather_city || null,
+            finalGeneratedContent,
+            finalWeatherCity,
           ]
         );
 

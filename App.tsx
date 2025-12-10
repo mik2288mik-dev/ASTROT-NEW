@@ -115,12 +115,11 @@ const App: React.FC = () => {
                         setLoadingProgress(100);
                         setView('dashboard');
                         
-                        // Проверяем, нужно ли сгенерировать контент (если его нет)
+                        // ВАЖНО: Проверяем, нужно ли сгенерировать контент (если его нет)
                         // Это может произойти, если пользователь был создан до добавления generatedContent
+                        // НО: НЕ генерируем контент каждый раз при загрузке!
                         setTimeout(async () => {
                             try {
-                                let needsContentGeneration = false;
-                                
                                 // Проверяем, есть ли вообще generatedContent или threeKeys
                                 const hasGeneratedContent = updatedProfile.generatedContent && 
                                     Object.keys(updatedProfile.generatedContent).length > 0;
@@ -128,21 +127,27 @@ const App: React.FC = () => {
                                     updatedProfile.generatedContent?.threeKeys?.key1?.text && 
                                     updatedProfile.generatedContent?.threeKeys?.key1?.text !== "...";
                                 
+                                // Генерируем контент ТОЛЬКО если его действительно нет
                                 if (!hasGeneratedContent || !hasThreeKeys) {
-                                    console.log('[App] Missing content or threeKeys, generating all content...', {
+                                    console.log('[App] Missing content or threeKeys, generating all content ONCE...', {
                                         hasGeneratedContent,
                                         hasThreeKeys,
                                         hasThreeKeysInGenerated: !!updatedProfile.generatedContent?.threeKeys,
                                         hasThreeKeysInProfile: !!updatedProfile.threeKeys
                                     });
-                                    needsContentGeneration = true;
+                                    
+                                    const allContent = await generateAllContent(updatedProfile, storedChart);
+                                    const updatedProfileWithContent = { ...updatedProfile, generatedContent: allContent };
+                                    await saveProfile(updatedProfileWithContent);
+                                    setProfile(updatedProfileWithContent);
+                                    console.log('[App] All content generated and saved successfully');
                                 } else {
-                                    // Проверяем, нужно ли обновить daily horoscope
+                                    // Если контент есть - проверяем только daily horoscope
                                     const timestamps = updatedProfile.generatedContent?.timestamps || {};
                                     const shouldUpdateDaily = shouldUpdateContent(timestamps, 'daily');
                                     
                                     if (shouldUpdateDaily) {
-                                        console.log('[App] Updating daily horoscope only...');
+                                        console.log('[App] Updating daily horoscope only (scheduled update)...');
                                         const dailyHoroscope = await getDailyHoroscope(updatedProfile, storedChart);
                                         const updatedContent = {
                                             ...updatedProfile.generatedContent,
@@ -156,17 +161,9 @@ const App: React.FC = () => {
                                         await saveProfile(updatedProfileWithContent);
                                         setProfile(updatedProfileWithContent);
                                         console.log('[App] Daily horoscope updated');
+                                    } else {
+                                        console.log('[App] Content is up to date, no generation needed');
                                     }
-                                }
-                                
-                                // Генерируем весь контент, если его нет
-                                if (needsContentGeneration) {
-                                    console.log('[App] Generating all content for existing user...');
-                                    const allContent = await generateAllContent(updatedProfile, storedChart);
-                                    const updatedProfileWithContent = { ...updatedProfile, generatedContent: allContent };
-                                    await saveProfile(updatedProfileWithContent);
-                                    setProfile(updatedProfileWithContent);
-                                    console.log('[App] All content generated and saved successfully');
                                 }
                             } catch (error) {
                                 console.error('[App] Error updating content:', error);

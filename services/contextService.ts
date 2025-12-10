@@ -22,21 +22,46 @@ const SOCIAL_PROOF_TEMPLATES = {
 const fetchWeatherData = async (city: string): Promise<UserContext['weatherData'] | null> => {
     try {
         const API_BASE_URL = typeof window !== 'undefined' ? '' : process.env.NEXT_PUBLIC_API_URL || '';
-        const response = await fetch(`${API_BASE_URL}/api/weather?city=${encodeURIComponent(city)}`);
+        const url = `${API_BASE_URL}/api/weather?city=${encodeURIComponent(city)}`;
+        
+        console.log('[ContextService] Fetching weather from:', url);
+        
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
         
         if (!response.ok) {
-            console.warn('[ContextService] Failed to fetch weather:', response.status);
+            const errorText = await response.text().catch(() => 'Unknown error');
+            console.warn('[ContextService] Failed to fetch weather:', {
+                status: response.status,
+                statusText: response.statusText,
+                error: errorText
+            });
             return null;
         }
 
         const result = await response.json();
+        console.log('[ContextService] Weather API response:', result);
+        
         if (result.success && result.data) {
+            console.log('[ContextService] Weather data received successfully:', {
+                city: result.data.city,
+                temp: result.data.temp,
+                condition: result.data.condition
+            });
             return result.data;
         }
         
+        console.warn('[ContextService] Weather API returned unsuccessful response:', result);
         return null;
-    } catch (error) {
-        console.error('[ContextService] Error fetching weather:', error);
+    } catch (error: any) {
+        console.error('[ContextService] Error fetching weather:', {
+            error: error.message,
+            stack: error.stack
+        });
         return null;
     }
 };

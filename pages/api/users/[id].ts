@@ -79,6 +79,14 @@ export default async function handler(
         isPremium: userData.is_premium
       });
 
+      // ВАЖНО: Получаем существующего пользователя для правильного объединения данных
+      let existingUser = null;
+      try {
+        existingUser = await db.users.get(userId);
+      } catch (e) {
+        log.warn('[API/users/[id]] Failed to get existing user, will use new values', e);
+      }
+      
       // Transform data to match database schema
       // Синхронизируем threeKeys: если есть в generatedContent, сохраняем и там, и в отдельном поле
       const generatedContent = userData.generatedContent || {};
@@ -88,6 +96,21 @@ export default async function handler(
       const updatedGeneratedContent = threeKeysToSave && !generatedContent.threeKeys
         ? { ...generatedContent, threeKeys: threeKeysToSave }
         : generatedContent;
+      
+      // ВАЖНО: Объединяем generatedContent правильно - сохраняем существующий если новый не передан или пустой
+      let finalGeneratedContent = updatedGeneratedContent;
+      if (userData.generatedContent === undefined || userData.generatedContent === null) {
+        // Если generatedContent не передан - сохраняем существующий
+        finalGeneratedContent = existingUser?.generated_content || null;
+      } else if (Object.keys(updatedGeneratedContent).length === 0) {
+        // Если передан пустой объект - сохраняем существующий (не перезаписываем)
+        finalGeneratedContent = existingUser?.generated_content || null;
+      }
+      
+      // ВАЖНО: Сохраняем weatherCity правильно - если передан, используем его, иначе сохраняем существующий
+      const weatherCityToSave = userData.weatherCity !== undefined 
+        ? (userData.weatherCity ? String(userData.weatherCity).trim() : null)
+        : (existingUser?.weather_city || null);
       
       const dbUser = {
         id: userId,
@@ -102,9 +125,15 @@ export default async function handler(
         is_admin: userData.isAdmin || false,
         three_keys: threeKeysToSave, // Синхронизированное значение
         evolution: userData.evolution || null,
-        generated_content: Object.keys(updatedGeneratedContent).length > 0 ? updatedGeneratedContent : null,
-        weather_city: userData.weatherCity ? String(userData.weatherCity).trim() : null,
+        generated_content: finalGeneratedContent,
+        weather_city: weatherCityToSave,
       };
+      
+      log.info(`[${req.method}] Preparing to save user data`, {
+        hasGeneratedContent: !!finalGeneratedContent,
+        generatedContentKeys: finalGeneratedContent ? Object.keys(finalGeneratedContent).length : 0,
+        weatherCity: weatherCityToSave
+      });
 
       const savedUser = await db.users.set(userId, dbUser);
       

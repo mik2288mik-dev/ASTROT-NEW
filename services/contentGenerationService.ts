@@ -371,15 +371,15 @@ export const getOrGenerateHoroscope = async (
     // Получаем сегодняшнюю дату в формате YYYY-MM-DD
     const today = new Date().toISOString().split('T')[0];
     
-    // Проверяем локальный кэш в профиле пользователя (может быть устаревшим)
+    // ВАЖНО: Проверяем локальный кэш в профиле пользователя ПЕРЕД вызовом API
     const cachedHoroscope = profile.generatedContent?.dailyHoroscope;
     
-    // Если есть кэш и он актуальный (сегодняшний) - используем его БЕЗ вызова API
-    // Но API endpoint проверит централизованный кэш по знаку зодиака и вернет актуальный гороскоп
-    if (cachedHoroscope && cachedHoroscope.date === today) {
-      log.info(`[getOrGenerateHoroscope] Using cached daily horoscope from profile for ${zodiacSign} on ${today}`, {
+    // Если есть кэш и он актуальный (сегодняшний) И имеет контент - используем его БЕЗ вызова API
+    if (cachedHoroscope && cachedHoroscope.date === today && cachedHoroscope.content) {
+      log.info(`[getOrGenerateHoroscope] Using cached daily horoscope from profile (NO API CALL) for ${zodiacSign} on ${today}`, {
         hasContent: !!cachedHoroscope.content,
-        date: cachedHoroscope.date
+        date: cachedHoroscope.date,
+        contentLength: cachedHoroscope.content?.length || 0
       });
       return cachedHoroscope;
     }
@@ -389,6 +389,7 @@ export const getOrGenerateHoroscope = async (
     log.info(`[getOrGenerateHoroscope] Cache miss or outdated, getting daily horoscope via API for ${zodiacSign} on ${today}`, {
       hasCache: !!cachedHoroscope,
       cacheDate: cachedHoroscope?.date,
+      hasContent: !!cachedHoroscope?.content,
       today
     });
     
@@ -407,10 +408,13 @@ export const getOrGenerateHoroscope = async (
     profile.generatedContent.dailyHoroscope = horoscope;
     profile.generatedContent.timestamps.dailyHoroscopeGenerated = Date.now();
     
-    // Сохраняем профиль асинхронно (не ждем) для локального кэша
-    saveProfile(profile).catch(error => {
+    // Сохраняем профиль СИНХРОННО для локального кэша (чтобы данные точно сохранились)
+    try {
+      await saveProfile(profile);
+      log.info('[getOrGenerateHoroscope] Profile saved with horoscope');
+    } catch (error) {
       log.error('[getOrGenerateHoroscope] Failed to save profile with horoscope', error);
-    });
+    }
     
     return horoscope;
   }
