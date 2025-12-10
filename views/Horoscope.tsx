@@ -26,6 +26,19 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData }) => {
         const loadHoroscope = async () => {
             if (!chartData) return;
             
+            // Проверяем, есть ли уже кэшированный гороскоп для сегодня
+            const today = new Date().toISOString().split('T')[0];
+            const cachedHoroscope = profile.generatedContent?.dailyHoroscope;
+            
+            // Если есть актуальный кэш - используем его сразу без загрузки
+            if (cachedHoroscope && cachedHoroscope.date === today) {
+                console.log('[Horoscope] Using cached horoscope from profile');
+                setHoroscope(cachedHoroscope);
+                setLoading(false);
+                return;
+            }
+            
+            // Если кэша нет или он устарел - загружаем
             setLoading(true);
             try {
                 const data = await getOrGenerateHoroscope(profile, chartData, 'daily');
@@ -38,7 +51,7 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData }) => {
         };
 
         loadHoroscope();
-    }, [profile.id, chartData?.sun?.sign]); // Зависимости оптимизированы
+    }, [profile.id, chartData?.sun?.sign, profile.generatedContent?.dailyHoroscope?.date]); // Добавлена зависимость от даты гороскопа
 
     if (loading) {
         return <Loading />;

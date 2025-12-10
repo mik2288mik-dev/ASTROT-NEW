@@ -50,14 +50,25 @@ export const getUserContext = async (profile: UserProfile): Promise<UserContext>
     };
 
     // 1. Fetch Weather Data if city is set
-    if (profile.weatherCity) {
-        const weatherData = await fetchWeatherData(profile.weatherCity);
+    const weatherCity = profile.weatherCity?.trim();
+    if (weatherCity && weatherCity.length > 0) {
+        console.log('[ContextService] Fetching weather for city:', weatherCity);
+        const weatherData = await fetchWeatherData(weatherCity);
         if (weatherData) {
             context.weatherData = weatherData;
             // Для обратной совместимости сохраняем также в weather
             context.weather = weatherData.condition;
             context.moonPhase = weatherData.moonPhase;
+            console.log('[ContextService] Weather data loaded successfully', {
+                city: weatherData.city,
+                temp: weatherData.temp,
+                condition: weatherData.condition
+            });
+        } else {
+            console.warn('[ContextService] Failed to fetch weather data for city:', weatherCity);
         }
+    } else {
+        console.log('[ContextService] No weather city set, skipping weather fetch');
     }
     
     // 2. Generate Social Proof based on Sign/Profile

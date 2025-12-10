@@ -79,7 +79,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
         setWeatherLoading(true);
         
         // Если город указан, проверяем его валидность через API
-        if (city) {
+        if (city && city.length > 0) {
             try {
                 const API_BASE_URL = typeof window !== 'undefined' ? '' : process.env.NEXT_PUBLIC_API_URL || '';
                 const response = await fetch(`${API_BASE_URL}/api/weather?city=${encodeURIComponent(city)}`);
@@ -102,22 +102,28 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
             }
         }
 
-        const updated = { ...profile, weatherCity: city || undefined };
-        console.log('[Settings] Saving weather city:', city);
+        // Сохраняем город (пустая строка становится undefined, что преобразуется в null в БД)
+        const updated = { ...profile, weatherCity: city && city.length > 0 ? city : undefined };
+        console.log('[Settings] Saving weather city:', city || 'null');
         
         // Обновляем локальное состояние сразу для быстрого отклика
         onUpdate(updated);
 
         try {
             await saveProfile(updated);
-            console.log('[Settings] Weather city saved successfully (DB persist confirmed)');
+            console.log('[Settings] Weather city saved successfully (DB persist confirmed)', {
+                city: city || 'null',
+                weatherCity: updated.weatherCity
+            });
             
             // Перезагружаем профиль из БД для синхронизации
             try {
                 const { getProfile } = await import('../services/storageService');
                 const reloadedProfile = await getProfile();
                 if (reloadedProfile) {
-                    console.log('[Settings] Profile reloaded from DB, updating state');
+                    console.log('[Settings] Profile reloaded from DB, updating state', {
+                        weatherCity: reloadedProfile.weatherCity
+                    });
                     onUpdate(reloadedProfile);
                 }
             } catch (reloadError) {
