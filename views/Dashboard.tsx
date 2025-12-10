@@ -133,6 +133,29 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
         }
     }, []);
 
+    // Отдельный useEffect для обновления только контекста (погоды) при изменении weatherCity
+    useEffect(() => {
+        const updateWeatherContext = async () => {
+            if (profile.weatherCity) {
+                try {
+                    const ctx = await getUserContext(profile);
+                    setContext(ctx);
+                    if (!ctx.weatherData) {
+                        console.warn('[Dashboard] Weather city is set but weather data was not loaded', {
+                            weatherCity: profile.weatherCity
+                        });
+                    }
+                } catch (error) {
+                    console.error('[Dashboard] Failed to load weather context:', error);
+                }
+            } else {
+                // Если город не указан, очищаем контекст погоды
+                setContext(prev => prev ? { ...prev, weatherData: undefined } : null);
+            }
+        };
+        updateWeatherContext();
+    }, [profile.weatherCity]); // Обновляем только при изменении weatherCity
+
     useEffect(() => {
         // Загружаем контекст и эволюцию асинхронно после показа интерфейса
         const loadSmartFeatures = async () => {
@@ -140,6 +163,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
             await new Promise(resolve => setTimeout(resolve, 200));
             
             // 1. Load Context (Weather/Social Proof)
+            // ВАЖНО: Загружаем контекст только при первой загрузке или изменении основных данных
             try {
                 const ctx = await getUserContext(profile);
                 setContext(ctx);
@@ -154,6 +178,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
 
             // 2. Load Daily Horoscope (with cache check)
             // ВАЖНО: Используем кэш из профиля, не генерируем каждый раз!
+            // НЕ генерируем гороскоп заново при изменении только weatherCity
             if (chartData) {
                 try {
                     // Проверяем кэш перед загрузкой
@@ -206,7 +231,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
             }
         };
         loadSmartFeatures();
-    }, [profile.id, chartData?.sun?.sign]); // Оптимизированные зависимости
+    }, [profile.id, chartData?.sun?.sign]); // НЕ включаем weatherCity - он обрабатывается отдельным useEffect
 
     if (!chartData) return <Loading />;
 

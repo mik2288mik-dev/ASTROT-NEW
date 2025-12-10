@@ -92,22 +92,40 @@ export default async function handler(
       
       // Transform data to match database schema
       // Синхронизируем threeKeys: если есть в generatedContent, сохраняем и там, и в отдельном поле
-      const generatedContent = userData.generatedContent || {};
-      const threeKeysToSave = generatedContent.threeKeys || userData.threeKeys || null;
       
-      // Обновляем generatedContent.threeKeys если его нет, но есть в userData.threeKeys
-      const updatedGeneratedContent = threeKeysToSave && !generatedContent.threeKeys
-        ? { ...generatedContent, threeKeys: threeKeysToSave }
-        : generatedContent;
+      // ВАЖНО: Проверяем, был ли generatedContent явно передан в запросе
+      // Если не передан - сохраняем существующий из БД
+      let finalGeneratedContent = existingUser?.generated_content || null;
+      let threeKeysToSave = null;
       
-      // ВАЖНО: Объединяем generatedContent правильно - сохраняем существующий если новый не передан или пустой
-      let finalGeneratedContent = updatedGeneratedContent;
-      if (userData.generatedContent === undefined || userData.generatedContent === null) {
-        // Если generatedContent не передан - сохраняем существующий
-        finalGeneratedContent = existingUser?.generated_content || null;
-      } else if (Object.keys(updatedGeneratedContent).length === 0) {
+      if (userData.generatedContent !== undefined && userData.generatedContent !== null) {
+        // Если generatedContent передан явно - используем его
+        const generatedContent = userData.generatedContent;
+        threeKeysToSave = generatedContent.threeKeys || userData.threeKeys || null;
+        
+        // Обновляем generatedContent.threeKeys если его нет, но есть в userData.threeKeys
+        const updatedGeneratedContent = threeKeysToSave && !generatedContent.threeKeys
+          ? { ...generatedContent, threeKeys: threeKeysToSave }
+          : generatedContent;
+        
+        // Если передан непустой объект - используем его
+        if (Object.keys(updatedGeneratedContent).length > 0) {
+          finalGeneratedContent = updatedGeneratedContent;
+        }
         // Если передан пустой объект - сохраняем существующий (не перезаписываем)
-        finalGeneratedContent = existingUser?.generated_content || null;
+      } else {
+        // Если generatedContent не передан - используем существующий из БД и синхронизируем threeKeys
+        threeKeysToSave = userData.threeKeys || finalGeneratedContent?.threeKeys || null;
+        if (existingUser?.generated_content && threeKeysToSave && !finalGeneratedContent?.threeKeys) {
+          // Обновляем threeKeys в существующем generatedContent если нужно
+          finalGeneratedContent = {
+            ...existingUser.generated_content,
+            threeKeys: threeKeysToSave
+          };
+        } else if (finalGeneratedContent) {
+          // Используем threeKeys из существующего generatedContent
+          threeKeysToSave = finalGeneratedContent.threeKeys || threeKeysToSave;
+        }
       }
       
       // ВАЖНО: Сохраняем weatherCity правильно - если передан, используем его, иначе сохраняем существующий
@@ -161,7 +179,7 @@ export default async function handler(
         threeKeys: syncedThreeKeys, // Синхронизированное значение
         evolution: savedUser.evolution,
         generatedContent: savedUser.generated_content,
-        weatherCity: savedUser.weather_city,
+        weatherCity: savedUser.weather_city && savedUser.weather_city.trim() ? savedUser.weather_city.trim() : undefined,
       };
 
       return res.status(200).json(clientUser);
