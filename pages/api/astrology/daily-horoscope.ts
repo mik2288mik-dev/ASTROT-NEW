@@ -72,55 +72,27 @@ export default async function handler(
       language: lang ? 'ru' : 'en'
     });
 
-    // Проверяем кэш БД за пользователем (персональный гороскоп)
-    const userId = profile.id;
-    if (userId) {
+    // Проверяем кэш БД по знаку зодиака (единый гороскоп для всех пользователей одного знака)
+    const zodiacSign = chartData?.sun?.sign;
+    if (zodiacSign) {
       try {
-        // Загружаем профиль пользователя из БД для проверки кэша
-        const dbUser = await db.users.get(userId);
-        if (dbUser && dbUser.generated_content) {
-          const cachedHoroscope = dbUser.generated_content.dailyHoroscope;
-          const cachedDate = cachedHoroscope?.date;
-          const cachedTimestamp = dbUser.generated_content.timestamps?.dailyHoroscopeGenerated;
-          
-          // Проверяем, есть ли гороскоп за сегодня
-          if (cachedHoroscope && cachedDate === today) {
-            // Проверяем время генерации - гороскоп должен быть сгенерирован после 00:01 МСК сегодня
-            const now = new Date();
-            const moscowTime = new Date(now.getTime() + (3 * 60 * 60 * 1000)); // UTC+3
-            const todayStart = new Date(moscowTime);
-            todayStart.setHours(0, 1, 0, 0); // 00:01 МСК сегодня
-            todayStart.setMinutes(0);
-            todayStart.setSeconds(0);
-            todayStart.setMilliseconds(0);
-            
-            // Конвертируем в UTC для сравнения с timestamp
-            const todayStartUTC = new Date(todayStart.getTime() - (3 * 60 * 60 * 1000));
-            
-            // Если гороскоп был сгенерирован после 00:01 сегодня (МСК) - используем его
-            if (cachedTimestamp && cachedTimestamp >= todayStartUTC.getTime()) {
-              log.info(`Using cached daily horoscope from DB for user ${userId} on ${today}`, {
-                cachedTimestamp: new Date(cachedTimestamp).toISOString(),
-                todayStartUTC: todayStartUTC.toISOString()
-              });
-              // Устанавливаем заголовки кэширования
-              const cacheSeconds = getSecondsUntilNextUpdate();
-              res.setHeader('Cache-Control', `private, s-maxage=${cacheSeconds}, stale-while-revalidate=3600`);
-              res.setHeader('CDN-Cache-Control', `private, s-maxage=${cacheSeconds}`);
-              res.setHeader('Vercel-CDN-Cache-Control', `private, s-maxage=${cacheSeconds}`);
-              return res.status(200).json(cachedHoroscope);
-            } else {
-              log.info(`Cached horoscope found but generated before 00:01 today, will generate new`, {
-                cachedTimestamp: cachedTimestamp ? new Date(cachedTimestamp).toISOString() : 'null',
-                todayStartUTC: todayStartUTC.toISOString()
-              });
-            }
-          } else if (cachedHoroscope && cachedDate) {
-            log.info(`Cached horoscope found but outdated: ${cachedDate} vs ${today}, will generate new`);
+        const cachedHoroscope = await db.dailyHoroscopesCache.get(zodiacSign, today);
+        if (cachedHoroscope && cachedHoroscope.data) {
+          log.info(`Using cached daily horoscope from DB for ${zodiacSign} on ${today}`);
+          const horoscope = cachedHoroscope.data;
+          // Убеждаемся, что дата актуальная
+          if (!horoscope.date || horoscope.date !== today) {
+            horoscope.date = today;
           }
+          // Устанавливаем заголовки кэширования
+          const cacheSeconds = getSecondsUntilNextUpdate();
+          res.setHeader('Cache-Control', `public, s-maxage=${cacheSeconds}, stale-while-revalidate=3600`);
+          res.setHeader('CDN-Cache-Control', `public, s-maxage=${cacheSeconds}`);
+          res.setHeader('Vercel-CDN-Cache-Control', `public, s-maxage=${cacheSeconds}`);
+          return res.status(200).json(horoscope);
         }
       } catch (cacheError) {
-        log.error('Error checking user cache in DB, will generate new horoscope', cacheError);
+        log.error('Error checking DB cache, will generate new horoscope', cacheError);
         // Продолжаем генерацию если кэш недоступен
       }
     }
@@ -202,32 +174,13 @@ export default async function handler(
         transitFocus: forecast.advice?.[1] || ''
       };
       
-      // Сохраняем гороскоп за пользователем в БД (персональный кэш)
-      if (userId) {
+      // Сохраняем в централизованный кэш БД для всех пользователей этого знака
+      if (zodiacSign) {
         try {
-          // Загружаем текущий профиль пользователя
-          const dbUser = await db.users.get(userId);
-          const currentGeneratedContent = dbUser?.generated_content || {};
-          
-          // Обновляем гороскоп и timestamp
-          const updatedGeneratedContent = {
-            ...currentGeneratedContent,
-            dailyHoroscope: horoscope,
-            timestamps: {
-              ...currentGeneratedContent.timestamps,
-              dailyHoroscopeGenerated: Date.now()
-            }
-          };
-          
-          // Сохраняем обновленный профиль
-          await db.users.set(userId, {
-            ...dbUser,
-            generated_content: updatedGeneratedContent
-          });
-          
-          log.info(`Daily horoscope cached in DB for user ${userId} on ${today}`);
+          await db.dailyHoroscopesCache.set(zodiacSign, today, horoscope);
+          log.info(`Daily horoscope cached in DB for ${zodiacSign} on ${today}`);
         } catch (cacheError) {
-          log.error('Failed to cache horoscope in user DB', cacheError);
+          log.error('Failed to cache horoscope in DB', cacheError);
           // Продолжаем выполнение даже если кэширование не удалось
         }
       }
