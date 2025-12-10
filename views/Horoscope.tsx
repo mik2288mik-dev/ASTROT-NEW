@@ -26,25 +26,38 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData }) => {
         const loadHoroscope = async () => {
             if (!chartData) return;
             
-            // Проверяем, есть ли уже кэшированный гороскоп для сегодня
+            // ВАЖНО: Проверяем кэш ПЕРЕД загрузкой, не генерируем каждый раз!
             const today = new Date().toISOString().split('T')[0];
             const cachedHoroscope = profile.generatedContent?.dailyHoroscope;
             
-            // Если есть актуальный кэш - используем его сразу без загрузки
-            if (cachedHoroscope && cachedHoroscope.date === today) {
-                console.log('[Horoscope] Using cached horoscope from profile');
+            // Если есть актуальный кэш с контентом - используем его БЕЗ вызова API
+            if (cachedHoroscope && cachedHoroscope.date === today && cachedHoroscope.content) {
+                console.log('[Horoscope] Using cached horoscope from profile (no API call)', {
+                    date: cachedHoroscope.date,
+                    hasContent: !!cachedHoroscope.content
+                });
                 setHoroscope(cachedHoroscope);
                 setLoading(false);
                 return;
             }
             
-            // Если кэша нет или он устарел - загружаем
+            // Если кэша нет или он устарел - загружаем через API (который проверит централизованный кэш)
             setLoading(true);
             try {
+                console.log('[Horoscope] Cache miss or outdated, loading from API', {
+                    hasCache: !!cachedHoroscope,
+                    cacheDate: cachedHoroscope?.date,
+                    today
+                });
                 const data = await getOrGenerateHoroscope(profile, chartData, 'daily');
                 setHoroscope(data);
             } catch (error) {
                 console.error('[Horoscope] Error loading horoscope:', error);
+                // При ошибке используем кэш если есть
+                if (cachedHoroscope) {
+                    console.log('[Horoscope] Using cached horoscope as fallback after error');
+                    setHoroscope(cachedHoroscope);
+                }
             } finally {
                 setLoading(false);
             }

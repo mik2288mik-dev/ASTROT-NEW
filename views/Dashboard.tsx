@@ -153,22 +153,38 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
             }
 
             // 2. Load Daily Horoscope (with cache check)
+            // ВАЖНО: Используем кэш из профиля, не генерируем каждый раз!
             if (chartData) {
                 try {
                     // Проверяем кэш перед загрузкой
                     const today = new Date().toISOString().split('T')[0];
                     const cachedHoroscope = profile.generatedContent?.dailyHoroscope;
                     
-                    if (cachedHoroscope && cachedHoroscope.date === today) {
-                        console.log('[Dashboard] Using cached horoscope');
+                    // Если есть актуальный кэш - используем его БЕЗ вызова API
+                    if (cachedHoroscope && cachedHoroscope.date === today && cachedHoroscope.content) {
+                        console.log('[Dashboard] Using cached horoscope from profile (no API call)', {
+                            date: cachedHoroscope.date,
+                            hasContent: !!cachedHoroscope.content
+                        });
                         setDailyHoroscope(cachedHoroscope);
                     } else {
-                        console.log('[Dashboard] Loading horoscope from API');
+                        // Если кэша нет или он устарел - загружаем через API (который проверит централизованный кэш)
+                        console.log('[Dashboard] Cache miss or outdated, loading horoscope from API', {
+                            hasCache: !!cachedHoroscope,
+                            cacheDate: cachedHoroscope?.date,
+                            today
+                        });
                         const horoscope = await getOrGenerateHoroscope(profile, chartData, 'daily');
                         setDailyHoroscope(horoscope);
                     }
                 } catch (error) {
                     console.error('[Dashboard] Failed to load horoscope:', error);
+                    // При ошибке используем кэш если есть
+                    const cachedHoroscope = profile.generatedContent?.dailyHoroscope;
+                    if (cachedHoroscope) {
+                        console.log('[Dashboard] Using cached horoscope as fallback after error');
+                        setDailyHoroscope(cachedHoroscope);
+                    }
                 }
             }
 
