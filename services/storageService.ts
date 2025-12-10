@@ -29,11 +29,23 @@ log.info('StorageService initialized', {
  */
 export const saveProfile = async (profile: UserProfile): Promise<void> => {
   const userId = profile.id || 'current';
-  log.info(`[saveProfile] Starting save for user: ${userId}`, { 
+  log.info(`[saveProfile] ===== STARTING SAVE PROFILE =====`);
+  log.info(`[saveProfile] userId: ${userId}`, { 
     userId, 
     hasName: !!profile.name,
     isPremium: profile.isPremium 
   });
+  log.info(`[saveProfile] profile.weatherCity:`, profile.weatherCity);
+  log.info(`[saveProfile] profile.hasGeneratedContent:`, !!profile.generatedContent);
+  log.info(`[saveProfile] profile.generatedContent keys:`, profile.generatedContent ? Object.keys(profile.generatedContent) : []);
+  log.info(`[saveProfile] profile.generatedContent.threeKeys exists:`, !!profile.generatedContent?.threeKeys);
+  log.info(`[saveProfile] profile.threeKeys exists:`, !!profile.threeKeys);
+  
+  if (profile.generatedContent?.threeKeys) {
+    log.info(`[saveProfile] threeKeys.key1.text length:`, profile.generatedContent.threeKeys.key1?.text?.length || 0);
+    log.info(`[saveProfile] threeKeys.key2.text length:`, profile.generatedContent.threeKeys.key2?.text?.length || 0);
+    log.info(`[saveProfile] threeKeys.key3.text length:`, profile.generatedContent.threeKeys.key3?.text?.length || 0);
+  }
 
   try {
     // Always try to save to database via Next.js API
@@ -42,6 +54,17 @@ export const saveProfile = async (profile: UserProfile): Promise<void> => {
     
     const requestBody = JSON.stringify(profile);
     log.info(`[saveProfile] Request body size: ${requestBody.length} bytes`);
+    
+    // Логируем содержимое requestBody для отладки
+    try {
+      const parsedBody = JSON.parse(requestBody);
+      log.info(`[saveProfile] Request body.weatherCity:`, parsedBody.weatherCity);
+      log.info(`[saveProfile] Request body.hasGeneratedContent:`, !!parsedBody.generatedContent);
+      log.info(`[saveProfile] Request body.generatedContent keys:`, parsedBody.generatedContent ? Object.keys(parsedBody.generatedContent) : []);
+      log.info(`[saveProfile] Request body.generatedContent.threeKeys exists:`, !!parsedBody.generatedContent?.threeKeys);
+    } catch (e) {
+      log.warn(`[saveProfile] Failed to parse request body for logging:`, e);
+    }
 
     const startTime = Date.now();
     const response = await fetch(url, {
@@ -68,10 +91,15 @@ export const saveProfile = async (profile: UserProfile): Promise<void> => {
     }
 
     const responseData = await response.json().catch(() => null);
-    log.info(`[saveProfile] Successfully saved profile to database`, {
-      userId,
-      responseData: responseData ? 'Received' : 'No response body'
-    });
+    log.info(`[saveProfile] ===== PROFILE SAVED SUCCESSFULLY =====`);
+    log.info(`[saveProfile] userId:`, userId);
+    log.info(`[saveProfile] responseData exists:`, !!responseData);
+    if (responseData) {
+      log.info(`[saveProfile] responseData.weatherCity:`, responseData.weatherCity);
+      log.info(`[saveProfile] responseData.hasGeneratedContent:`, !!responseData.generatedContent);
+      log.info(`[saveProfile] responseData.generatedContent keys:`, responseData.generatedContent ? Object.keys(responseData.generatedContent) : []);
+      log.info(`[saveProfile] responseData.generatedContent.threeKeys exists:`, !!responseData.generatedContent?.threeKeys);
+    }
     return;
   } catch (error: any) {
     log.error('[saveProfile] Error occurred during save', {

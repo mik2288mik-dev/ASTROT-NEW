@@ -125,11 +125,45 @@ export const generateAllContent = async (profile: UserProfile, chartData: NatalC
     log.info('[generateAllContent] Generating Three Keys...');
     try {
       const threeKeys = await getThreeKeys(profile, chartData);
+      log.info('[generateAllContent] Three Keys received from API', {
+        hasKey1: !!threeKeys?.key1,
+        hasKey2: !!threeKeys?.key2,
+        hasKey3: !!threeKeys?.key3,
+        key1TextLength: threeKeys?.key1?.text?.length || 0,
+        key2TextLength: threeKeys?.key2?.text?.length || 0,
+        key3TextLength: threeKeys?.key3?.text?.length || 0,
+        key1Text: threeKeys?.key1?.text?.substring(0, 50) || 'empty',
+        key2Text: threeKeys?.key2?.text?.substring(0, 50) || 'empty',
+        key3Text: threeKeys?.key3?.text?.substring(0, 50) || 'empty'
+      });
+      
+      // Проверяем что threeKeys не пустой
+      if (!threeKeys || !threeKeys.key1 || !threeKeys.key2 || !threeKeys.key3) {
+        log.error('[generateAllContent] Three Keys structure is invalid', {
+          hasThreeKeys: !!threeKeys,
+          hasKey1: !!threeKeys?.key1,
+          hasKey2: !!threeKeys?.key2,
+          hasKey3: !!threeKeys?.key3
+        });
+        throw new Error('Invalid threeKeys structure received');
+      }
+      
+      // Проверяем что тексты не пустые
+      if (!threeKeys.key1.text || !threeKeys.key2.text || !threeKeys.key3.text) {
+        log.error('[generateAllContent] Three Keys texts are empty', {
+          key1Text: threeKeys.key1.text,
+          key2Text: threeKeys.key2.text,
+          key3Text: threeKeys.key3.text
+        });
+        throw new Error('Empty threeKeys texts received');
+      }
+      
       generatedContent.threeKeys = threeKeys;
       generatedContent.timestamps.threeKeysGenerated = Date.now();
-      log.info('[generateAllContent] Three Keys generated successfully');
+      log.info('[generateAllContent] Three Keys generated successfully and validated');
     } catch (error) {
       log.error('[generateAllContent] Failed to generate Three Keys', error);
+      // НЕ добавляем пустые threeKeys в generatedContent
     }
 
     // 2. Генерируем гороскопы
