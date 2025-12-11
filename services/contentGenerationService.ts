@@ -1,5 +1,5 @@
-import { UserProfile, NatalChartData, UserGeneratedContent, DailyHoroscope, WeeklyHoroscope, MonthlyHoroscope, ThreeKeys } from "../types";
-import { getThreeKeys, getDailyHoroscope, getWeeklyHoroscope, getMonthlyHoroscope, getDeepDiveAnalysis } from "./astrologyService";
+import { UserProfile, NatalChartData, UserGeneratedContent, DailyHoroscope, ThreeKeys } from "../types";
+import { getThreeKeys, getDailyHoroscope, getDeepDiveAnalysis } from "./astrologyService";
 import { saveProfile } from "./storageService";
 
 // Logging utility
@@ -69,27 +69,13 @@ const shouldUpdateDailyHoroscope = (lastGenerated: number): boolean => {
 /**
  * Проверяет, нужно ли обновить контент на основе временных меток
  */
-export const shouldUpdateContent = (timestamps: UserGeneratedContent['timestamps'], contentType: 'daily' | 'weekly' | 'monthly' | 'threeKeys' | 'deepDive'): boolean => {
-  const now = Date.now();
-  const ONE_WEEK = 7 * 24 * 60 * 60 * 1000;
-  const ONE_MONTH = 30 * 24 * 60 * 60 * 1000;
-
+export const shouldUpdateContent = (timestamps: UserGeneratedContent['timestamps'], contentType: 'daily' | 'threeKeys' | 'deepDive'): boolean => {
   switch (contentType) {
     case 'daily':
       // Обновляем каждый день в 4:00 утра по МСК
       const lastDaily = timestamps.dailyHoroscopeGenerated || 0;
       return shouldUpdateDailyHoroscope(lastDaily);
-    
-    case 'weekly':
-      // Weekly гороскоп генерируется ОДИН РАЗ при первом входе, не обновляется автоматически
-      // Обновление только через платную регенерацию за звезды
-      return false;
-    
-    case 'monthly':
-      // Monthly гороскоп генерируется ОДИН РАЗ при первом входе, не обновляется автоматически
-      // Обновление только через платную регенерацию за звезды
-      return false;
-    
+
     case 'threeKeys':
       // Три ключа генерируются ТОЛЬКО ОДИН РАЗ (НЕ обновляются автоматически)
       // Обновление только через платную регенерацию за звезды
@@ -166,39 +152,18 @@ export const generateAllContent = async (profile: UserProfile, chartData: NatalC
       // НЕ добавляем пустые threeKeys в generatedContent
     }
 
-    // 2. Генерируем гороскопы
-    log.info('[generateAllContent] Generating horoscopes...');
+    // 2. Генерируем только ежедневный гороскоп
+    log.info('[generateAllContent] Generating daily horoscope...');
     try {
-      const [daily, weekly, monthly] = await Promise.all([
-        getDailyHoroscope(profile, chartData).catch(e => {
-          log.error('[generateAllContent] Failed to generate daily horoscope', e);
-          return null;
-        }),
-        getWeeklyHoroscope(profile, chartData).catch(e => {
-          log.error('[generateAllContent] Failed to generate weekly horoscope', e);
-          return null;
-        }),
-        getMonthlyHoroscope(profile, chartData).catch(e => {
-          log.error('[generateAllContent] Failed to generate monthly horoscope', e);
-          return null;
-        })
-      ]);
+      const daily = await getDailyHoroscope(profile, chartData);
 
       if (daily) {
         generatedContent.dailyHoroscope = daily;
         generatedContent.timestamps.dailyHoroscopeGenerated = Date.now();
       }
-      if (weekly) {
-        generatedContent.weeklyHoroscope = weekly;
-        generatedContent.timestamps.weeklyHoroscopeGenerated = Date.now();
-      }
-      if (monthly) {
-        generatedContent.monthlyHoroscope = monthly;
-        generatedContent.timestamps.monthlyHoroscopeGenerated = Date.now();
-      }
-      log.info('[generateAllContent] Horoscopes generated successfully');
+      log.info('[generateAllContent] Daily horoscope generated successfully');
     } catch (error) {
-      log.error('[generateAllContent] Failed to generate horoscopes', error);
+      log.error('[generateAllContent] Failed to generate daily horoscope', error);
     }
 
     // 3. Генерируем Deep Dive анализы (все 5 разделов сразу)
@@ -246,8 +211,6 @@ export const generateAllContent = async (profile: UserProfile, chartData: NatalC
     log.info(`[generateAllContent] Full content generation completed in ${duration}ms`, {
       hasThreeKeys: !!generatedContent.threeKeys,
       hasDaily: !!generatedContent.dailyHoroscope,
-      hasWeekly: !!generatedContent.weeklyHoroscope,
-      hasMonthly: !!generatedContent.monthlyHoroscope,
       deepDiveCount: Object.keys(generatedContent.deepDiveAnalyses || {}).length
     });
 
@@ -283,8 +246,7 @@ export const updateContentIfNeeded = async (profile: UserProfile, chartData: Nat
   let updated = false;
 
   // Обновляем ТОЛЬКО ежедневный гороскоп по расписанию (каждый день в 00:01 МСК)
-  // Weekly, Monthly, Three Keys и Deep Dive НЕ обновляются автоматически
-  // Они генерируются один раз при первом входе и сохраняются в БД
+  // Остальные блоки генерируются один раз при первом входе и сохраняются в БД
   
   if (shouldUpdateContent(timestamps, 'daily')) {
     log.info('[updateContentIfNeeded] Updating daily horoscope (00:01 MSK)');
@@ -302,7 +264,7 @@ export const updateContentIfNeeded = async (profile: UserProfile, chartData: Nat
 
   // Если что-то обновилось - сохраняем профиль
   if (updated) {
-    log.info('[updateContentIfNeeded] Horoscopes updated, saving profile');
+    log.info('[updateContentIfNeeded] Horoscope updated, saving profile');
     try {
       const updatedProfile = { ...profile, generatedContent: existingContent };
       await saveProfile(updatedProfile);
@@ -384,121 +346,58 @@ export const getOrGenerateDeepDive = async (
  */
 export const getOrGenerateHoroscope = async (
   profile: UserProfile,
-  chartData: NatalChartData,
-  period: 'daily' | 'weekly' | 'monthly'
-): Promise<DailyHoroscope | WeeklyHoroscope | MonthlyHoroscope> => {
-  log.info(`[getOrGenerateHoroscope] Getting ${period} horoscope`, {
+  chartData: NatalChartData
+): Promise<DailyHoroscope> => {
+  log.info('[getOrGenerateHoroscope] Getting daily horoscope', {
     userId: profile.id,
     hasGeneratedContent: !!profile.generatedContent
   });
 
-  const timestamps = profile.generatedContent?.timestamps || {};
+  const zodiacSign = chartData.sun?.sign;
+  if (!zodiacSign) {
+    log.error('[getOrGenerateHoroscope] No zodiac sign found in chartData');
+    throw new Error('Zodiac sign is required for daily horoscope');
+  }
 
-  // Для daily гороскопа: API endpoint проверяет кэш БД и возвращает его или генерирует новый
-  if (period === 'daily') {
-    const zodiacSign = chartData.sun?.sign;
-    if (!zodiacSign) {
-      log.error('[getOrGenerateHoroscope] No zodiac sign found in chartData');
-      throw new Error('Zodiac sign is required for daily horoscope');
-    }
+  const today = new Date().toISOString().split('T')[0];
+  const cachedHoroscope = profile.generatedContent?.dailyHoroscope;
 
-    // Получаем сегодняшнюю дату в формате YYYY-MM-DD
-    const today = new Date().toISOString().split('T')[0];
-    
-    // ВАЖНО: Проверяем локальный кэш в профиле пользователя ПЕРЕД вызовом API
-    const cachedHoroscope = profile.generatedContent?.dailyHoroscope;
-    
-    // Если есть кэш и он актуальный (сегодняшний) И имеет контент - используем его БЕЗ вызова API
-    if (cachedHoroscope && cachedHoroscope.date === today && cachedHoroscope.content) {
-      log.info(`[getOrGenerateHoroscope] Using cached daily horoscope from profile (NO API CALL) for ${zodiacSign} on ${today}`, {
-        hasContent: !!cachedHoroscope.content,
-        date: cachedHoroscope.date,
-        contentLength: cachedHoroscope.content?.length || 0
-      });
-      return cachedHoroscope;
-    }
-    
-    // Если нет локального кэша или он устарел - получаем через API
-    // API endpoint проверит централизованный кэш БД и вернет его или сгенерирует новый
-    log.info(`[getOrGenerateHoroscope] Cache miss or outdated, getting daily horoscope via API for ${zodiacSign} on ${today}`, {
-      hasCache: !!cachedHoroscope,
-      cacheDate: cachedHoroscope?.date,
-      hasContent: !!cachedHoroscope?.content,
-      today
+  if (cachedHoroscope && cachedHoroscope.date === today && cachedHoroscope.content) {
+    log.info(`[getOrGenerateHoroscope] Using cached daily horoscope from profile (NO API CALL) for ${zodiacSign} on ${today}`, {
+      hasContent: !!cachedHoroscope.content,
+      date: cachedHoroscope.date,
+      contentLength: cachedHoroscope.content?.length || 0
     });
-    
-    const horoscope = await getDailyHoroscope(profile, chartData);
-    
-    // Убеждаемся, что дата актуальная
-    if (!horoscope.date || horoscope.date !== today) {
-      horoscope.date = today;
-    }
-    
-    // Сохраняем в профиль пользователя для быстрого доступа (локальный кэш)
-    // Основной кэш хранится в БД по знаку зодиака для всех пользователей
-    if (!profile.generatedContent) {
-      profile.generatedContent = { deepDiveAnalyses: {}, synastries: {}, timestamps: {} };
-    }
-    profile.generatedContent.dailyHoroscope = horoscope;
-    profile.generatedContent.timestamps.dailyHoroscopeGenerated = Date.now();
-    
-    // Сохраняем профиль СИНХРОННО для локального кэша (чтобы данные точно сохранились)
-    try {
-      await saveProfile(profile);
-      log.info('[getOrGenerateHoroscope] Profile saved with horoscope');
-    } catch (error) {
-      log.error('[getOrGenerateHoroscope] Failed to save profile with horoscope', error);
-    }
-    
-    return horoscope;
+    return cachedHoroscope;
   }
 
-  // Для weekly и monthly гороскопов - проверяем наличие в кэше пользователя
-  // Они генерируются только один раз и не обновляются автоматически
-  if (period === 'weekly' && profile.generatedContent?.weeklyHoroscope) {
-    log.info('[getOrGenerateHoroscope] Using cached weekly horoscope');
-    return profile.generatedContent.weeklyHoroscope;
-  }
-  
-  if (period === 'monthly' && profile.generatedContent?.monthlyHoroscope) {
-    log.info('[getOrGenerateHoroscope] Using cached monthly horoscope');
-    return profile.generatedContent.monthlyHoroscope;
+  log.info(`[getOrGenerateHoroscope] Cache miss or outdated, getting daily horoscope via API for ${zodiacSign} on ${today}`, {
+    hasCache: !!cachedHoroscope,
+    cacheDate: cachedHoroscope?.date,
+    hasContent: !!cachedHoroscope?.content,
+    today
+  });
+
+  const horoscope = await getDailyHoroscope(profile, chartData);
+
+  if (!horoscope.date || horoscope.date !== today) {
+    horoscope.date = today;
   }
 
-  // Генерируем новый гороскоп для weekly/monthly
-  log.info(`[getOrGenerateHoroscope] Generating new ${period} horoscope`);
+  if (!profile.generatedContent) {
+    profile.generatedContent = { deepDiveAnalyses: {}, synastries: {}, timestamps: {} };
+  }
+  profile.generatedContent.dailyHoroscope = horoscope;
+  profile.generatedContent.timestamps.dailyHoroscopeGenerated = Date.now();
+
   try {
-    let horoscope: DailyHoroscope | WeeklyHoroscope | MonthlyHoroscope;
-
-    if (period === 'weekly') {
-      horoscope = await getWeeklyHoroscope(profile, chartData);
-      if (!profile.generatedContent) {
-        profile.generatedContent = { deepDiveAnalyses: {}, synastries: {}, timestamps: {} };
-      }
-      profile.generatedContent.weeklyHoroscope = horoscope as WeeklyHoroscope;
-      profile.generatedContent.timestamps.weeklyHoroscopeGenerated = Date.now();
-    } else {
-      horoscope = await getMonthlyHoroscope(profile, chartData);
-      if (!profile.generatedContent) {
-        profile.generatedContent = { deepDiveAnalyses: {}, synastries: {}, timestamps: {} };
-      }
-      profile.generatedContent.monthlyHoroscope = horoscope as MonthlyHoroscope;
-      profile.generatedContent.timestamps.monthlyHoroscopeGenerated = Date.now();
-    }
-
-    // Сохраняем профиль
-    try {
-      await saveProfile(profile);
-      log.info(`[getOrGenerateHoroscope] ${period} horoscope saved`);
-    } catch (error) {
-      log.error(`[getOrGenerateHoroscope] Failed to save ${period} horoscope`, error);
-    }
-
-    return horoscope;
+    await saveProfile(profile);
+    log.info('[getOrGenerateHoroscope] Profile saved with horoscope');
   } catch (error) {
-    log.error(`[getOrGenerateHoroscope] Failed to generate ${period} horoscope`, error);
-    throw error;
+    log.error('[getOrGenerateHoroscope] Failed to save profile with horoscope', error);
   }
+
+  return horoscope;
 };
 
 /**

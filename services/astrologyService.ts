@@ -1,4 +1,4 @@
-import { UserProfile, NatalChartData, DailyHoroscope, WeeklyHoroscope, MonthlyHoroscope, ThreeKeys, SynastryResult, UserContext, UserEvolution } from "../types";
+import { UserProfile, NatalChartData, DailyHoroscope, ThreeKeys, SynastryResult, UserContext, UserEvolution } from "../types";
 import { SYSTEM_INSTRUCTION_ASTRA } from "../constants";
 import { getElementForSign, SIGN_ELEMENTS } from "../lib/zodiac-utils";
 
@@ -450,91 +450,7 @@ function calculateInitialStats(profile: UserProfile, chartData?: NatalChartData)
   return { intuition, confidence, awareness };
 }
 
-export const getWeeklyHoroscope = async (profile: UserProfile, chartData: NatalChartData): Promise<WeeklyHoroscope> => {
-  const url = `${API_BASE_URL}/api/astrology/weekly-horoscope`;
-  log.info('[getWeeklyHoroscope] Starting request', { userId: profile.id });
 
-  try {
-    log.info(`[getWeeklyHoroscope] Sending POST request to: ${url}`);
-    const startTime = Date.now();
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ profile, chartData })
-    });
-
-    const duration = Date.now() - startTime;
-    log.info(`[getWeeklyHoroscope] Response received in ${duration}ms`, {
-      status: response.status,
-      statusText: response.statusText,
-      ok: response.ok
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => 'Unable to read error response');
-      log.error(`[getWeeklyHoroscope] Server returned error status ${response.status}`, {
-        status: response.status,
-        statusText: response.statusText,
-        errorBody: errorText
-      });
-      throw new Error(`Failed to get weekly horoscope: ${response.status} ${response.statusText}`);
-    }
-
-    const horoscope = await response.json() as WeeklyHoroscope;
-    log.info('[getWeeklyHoroscope] Successfully received weekly horoscope');
-    return horoscope;
-  } catch (error: any) {
-    log.error('[getWeeklyHoroscope] Error occurred', {
-      error: error.message,
-      stack: error.stack
-    });
-    // Пробрасываем ошибку вместо fallback
-    throw error;
-  }
-};
-
-export const getMonthlyHoroscope = async (profile: UserProfile, chartData: NatalChartData): Promise<MonthlyHoroscope> => {
-  const url = `${API_BASE_URL}/api/astrology/monthly-horoscope`;
-  log.info('[getMonthlyHoroscope] Starting request', { userId: profile.id });
-
-  try {
-    log.info(`[getMonthlyHoroscope] Sending POST request to: ${url}`);
-    const startTime = Date.now();
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ profile, chartData })
-    });
-
-    const duration = Date.now() - startTime;
-    log.info(`[getMonthlyHoroscope] Response received in ${duration}ms`, {
-      status: response.status,
-      statusText: response.statusText,
-      ok: response.ok
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => 'Unable to read error response');
-      log.error(`[getMonthlyHoroscope] Server returned error status ${response.status}`, {
-        status: response.status,
-        statusText: response.statusText,
-        errorBody: errorText
-      });
-      throw new Error(`Failed to get monthly horoscope: ${response.status} ${response.statusText}`);
-    }
-
-    const horoscope = await response.json() as MonthlyHoroscope;
-    log.info('[getMonthlyHoroscope] Successfully received monthly horoscope');
-    return horoscope;
-  } catch (error: any) {
-    log.error('[getMonthlyHoroscope] Error occurred', {
-      error: error.message,
-      stack: error.stack
-    });
-    // Пробрасываем ошибку вместо fallback
-    throw error;
-  }
-};
 
 export const getDeepDiveAnalysis = async (profile: UserProfile, topic: string, chartData: NatalChartData): Promise<string> => {
   const url = `${API_BASE_URL}/api/astrology/deep-dive`;
