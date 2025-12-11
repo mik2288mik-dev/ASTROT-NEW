@@ -49,7 +49,7 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData }) => {
                     cacheDate: cachedHoroscope?.date,
                     today
                 });
-                const data = await getOrGenerateHoroscope(profile, chartData, 'daily');
+                const data = await getOrGenerateHoroscope(profile, chartData);
                 setHoroscope(data);
             } catch (error) {
                 console.error('[Horoscope] Error loading horoscope:', error);

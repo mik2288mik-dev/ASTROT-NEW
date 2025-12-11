@@ -3,9 +3,6 @@ import { UserProfile, NatalChartData } from "../types";
 // Next.js API base URL - используем локальные API routes
 const API_BASE_URL = typeof window !== 'undefined' ? '' : process.env.NEXT_PUBLIC_API_URL || '';
 
-const PROFILE_KEY = 'astrot_profile';
-const CHART_KEY = 'astrot_chart';
-
 // Logging utility
 const log = {
   info: (message: string, data?: any) => {
@@ -108,14 +105,7 @@ export const saveProfile = async (profile: UserProfile): Promise<void> => {
       userId
     });
     
-    // Fallback to localStorage on error
-    try {
-      localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
-      log.info('[saveProfile] Fallback: Profile saved to localStorage');
-    } catch (localStorageError) {
-      log.error('[saveProfile] Failed to save to localStorage as well', localStorageError);
-      throw new Error('Failed to save profile to both database and localStorage');
-    }
+    throw error;
   }
 };
 
@@ -158,32 +148,17 @@ export const getProfile = async (): Promise<UserProfile | null> => {
       log.info(`[getProfile] Profile not found in database (404), returning null`);
       return null;
     } else {
-      log.warn(`[getProfile] Unexpected status ${response.status}, will try localStorage as fallback`);
+      log.warn(`[getProfile] Unexpected status ${response.status}, returning null`);
     }
   } catch (error: any) {
-    // При ошибке сети используем localStorage как fallback
-    log.error('[getProfile] Error occurred during fetch, will try localStorage', {
+    log.error('[getProfile] Error occurred during fetch', {
       error: error.message,
       stack: error.stack,
       userId
     });
   }
 
-  // Fallback to localStorage только при ошибках сети (не при 404)
-  try {
-    const data = localStorage.getItem(PROFILE_KEY);
-    if (data) {
-      const profile = JSON.parse(data) as UserProfile;
-      log.info('[getProfile] Loaded profile from localStorage fallback (network error)');
-      return profile;
-    } else {
-      log.info('[getProfile] No profile found in localStorage');
-      return null;
-    }
-  } catch (parseError) {
-    log.error('[getProfile] Error parsing localStorage data', parseError);
-    return null;
-  }
+  return null;
 };
 
 /**
@@ -246,14 +221,7 @@ export const saveChartData = async (data: NatalChartData): Promise<void> => {
       userId
     });
     
-    // Fallback to localStorage on error
-    try {
-      localStorage.setItem(CHART_KEY, JSON.stringify(data));
-      log.info('[saveChartData] Fallback: Chart saved to localStorage');
-    } catch (localStorageError) {
-      log.error('[saveChartData] Failed to save to localStorage as well', localStorageError);
-      throw new Error('Failed to save chart to both database and localStorage');
-    }
+    throw error;
   }
 };
 
@@ -296,32 +264,17 @@ export const getChartData = async (): Promise<NatalChartData | null> => {
       log.info(`[getChartData] Chart not found in database (404), returning null`);
       return null;
     } else {
-      log.warn(`[getChartData] Unexpected status ${response.status}, will try localStorage as fallback`);
+      log.warn(`[getChartData] Unexpected status ${response.status}, returning null`);
     }
   } catch (error: any) {
-    // При ошибке сети используем localStorage как fallback
-    log.error('[getChartData] Error occurred during fetch, will try localStorage', {
+    log.error('[getChartData] Error occurred during fetch', {
       error: error.message,
       stack: error.stack,
       userId
     });
   }
 
-  // Fallback to localStorage только при ошибках сети (не при 404)
-  try {
-    const data = localStorage.getItem(CHART_KEY);
-    if (data) {
-      const chartData = JSON.parse(data) as NatalChartData;
-      log.info('[getChartData] Loaded chart from localStorage fallback (network error)');
-      return chartData;
-    } else {
-      log.info('[getChartData] No chart found in localStorage');
-      return null;
-    }
-  } catch (parseError) {
-    log.error('[getChartData] Error parsing localStorage data', parseError);
-    return null;
-  }
+  return null;
 };
 
 /**
@@ -364,54 +317,6 @@ export const getAllUsers = async (): Promise<UserProfile[]> => {
     });
   }
 
-  // Fallback to mock data
-  log.info('[getAllUsers] Using mock data fallback');
-  await new Promise(resolve => setTimeout(resolve, 500));
-  
-  const currentUserStr = localStorage.getItem(PROFILE_KEY);
-  const currentUser = currentUserStr ? JSON.parse(currentUserStr) : null;
-  
-  const mockUsers: UserProfile[] = [
-    {
-      name: "Elena V.",
-      birthDate: "1995-04-12",
-      birthTime: "14:30",
-      birthPlace: "Moscow",
-      isSetup: true,
-      language: "ru",
-      theme: "dark",
-      isPremium: true,
-      id: "987654321",
-      isAdmin: false
-    },
-    {
-      name: "Alex M.",
-      birthDate: "1990-11-23",
-      birthTime: "09:15",
-      birthPlace: "London",
-      isSetup: true,
-      language: "en",
-      theme: "light",
-      isPremium: false,
-      id: "1122334455",
-      isAdmin: false
-    },
-    {
-      name: "Dmitry K.",
-      birthDate: "1988-01-05",
-      birthTime: "22:00",
-      birthPlace: "Saint Petersburg",
-      isSetup: true,
-      language: "ru",
-      theme: "dark",
-      isPremium: false,
-      id: "5566778899",
-      isAdmin: false
-    }
-  ];
-
-  if (currentUser) {
-    return [currentUser, ...mockUsers];
-  }
-  return mockUsers;
+  log.warn('[getAllUsers] Returning empty list due to fetch failure');
+  return [];
 };

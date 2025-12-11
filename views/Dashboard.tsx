@@ -241,7 +241,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
                             cacheDate: cachedHoroscope?.date,
                             today
                         });
-                        const horoscope = await getOrGenerateHoroscope(profile, chartData, 'daily');
+                        const horoscope = await getOrGenerateHoroscope(profile, chartData);
                         setDailyHoroscope(horoscope);
                     }
                 } catch (error) {

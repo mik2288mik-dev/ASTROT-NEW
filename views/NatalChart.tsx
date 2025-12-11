@@ -86,58 +86,30 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
         }
     };
 
-    const handleForecast = async (period: 'day' | 'week' | 'month') => {
+    const handleForecast = async () => {
         if (!profile.isPremium) {
             requestPremium();
             return;
         }
-        const titleMap = {
-            day: getText(profile.language, 'chart.forecast_day'),
-            week: getText(profile.language, 'chart.forecast_week'),
-            month: getText(profile.language, 'chart.forecast_month'),
-        };
-        
-        const periodMap = {
-            'day': 'daily',
-            'week': 'weekly',
-            'month': 'monthly'
-        } as const;
-        
-        const periodKey = periodMap[period];
-        
+        const title = getText(profile.language, 'chart.forecast_day');
+
         // Проверяем кэш ПЕРЕД установкой loading состояния
-        let cachedText = null;
-        if (period === 'day' && profile.generatedContent?.dailyHoroscope) {
-            cachedText = profile.generatedContent.dailyHoroscope.content;
-        } else if (period === 'week' && profile.generatedContent?.weeklyHoroscope) {
-            cachedText = profile.generatedContent.weeklyHoroscope.advice;
-        } else if (period === 'month' && profile.generatedContent?.monthlyHoroscope) {
-            cachedText = profile.generatedContent.monthlyHoroscope.content;
-        }
-        
+        const cachedText = profile.generatedContent?.dailyHoroscope?.content || null;
+
         if (cachedText) {
-            console.log(`[NatalChart] Using cached ${period} forecast`);
-            setActiveAnalysis(`${getText(profile.language, 'chart.forecast_title')} - ${titleMap[period]}`);
+            console.log('[NatalChart] Using cached daily forecast');
+            setActiveAnalysis(`${getText(profile.language, 'chart.forecast_title')} - ${title}`);
             setAnalysisResult(cachedText);
             return; // Не показываем loading, сразу показываем результат
         }
-        
-        setActiveAnalysis(`${getText(profile.language, 'chart.forecast_title')} - ${titleMap[period]}`);
+
+        setActiveAnalysis(`${getText(profile.language, 'chart.forecast_title')} - ${title}`);
         setLoadingAnalysis(true);
         setAnalysisResult("");
-        
+
         try {
-            let text = "";
-            // Используем новый сервис с кэшированием
-            const res = await getOrGenerateHoroscope(profile, data, periodKey);
-            
-            if (period === 'day') {
-                text = (res as any).content;
-            } else if (period === 'week') {
-                text = (res as any).advice;
-            } else {
-                text = (res as any).content;
-            }
+            const res = await getOrGenerateHoroscope(profile, data);
+            const text = res.content;
             setAnalysisResult(text);
         } catch(e) {
             console.error('[NatalChart] Error loading forecast:', e);
@@ -368,34 +340,23 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
                     {getText(profile.language, 'chart.forecast_title')}
                 </h2>
 
-                <div className="grid grid-cols-3 gap-3 md:gap-4 max-w-2xl mx-auto">
-                    {['day', 'week', 'month'].map((period) => {
-                        const fullText = getText(profile.language, `chart.forecast_${period}`);
-                        const words = fullText.split(' ');
-                        const previewWords = words.slice(0, 3).join(' ');
-                        const restWords = words.slice(3).join(' ');
-                        
-                        return (
-                            <button 
-                                key={period}
-                                onClick={() => handleForecast(period as 'day' | 'week' | 'month')} 
-                                className="bg-astro-card rounded-xl p-4 md:p-5 border border-astro-border hover:border-astro-highlight transition-all hover:shadow-lg relative group"
-                            >
-                                <div className="text-sm md:text-base font-medium text-astro-text text-center">
-                                    <div>{previewWords}</div>
-                                    {!profile.isPremium && restWords && (
-                                        <div className="flex items-center justify-center gap-1 mt-1.5">
-                                            <span className="blur-sm select-none text-xs md:text-sm">{restWords}</span>
-                                            <span className="text-xs md:text-sm">🔒</span>
-                                        </div>
-                                    )}
-                                    {profile.isPremium && restWords && (
-                                        <div className="mt-1.5 text-xs md:text-sm">{restWords}</div>
-                                    )}
+                <div className="grid grid-cols-1 gap-3 md:gap-4 max-w-2xl mx-auto">
+                    <button
+                        onClick={handleForecast}
+                        className="bg-astro-card rounded-xl p-4 md:p-5 border border-astro-border hover:border-astro-highlight transition-all hover:shadow-lg relative group"
+                    >
+                        <div className="text-sm md:text-base font-medium text-astro-text text-center">
+                            <div>{getText(profile.language, 'chart.forecast_day')}</div>
+                            {!profile.isPremium && (
+                                <div className="flex items-center justify-center gap-1 mt-1.5">
+                                    <span className="text-xs md:text-sm">🔒</span>
+                                    <span className="blur-sm select-none text-xs md:text-sm">
+                                        {getText(profile.language, 'chart.forecast_week')}
+                                    </span>
                                 </div>
-                            </button>
-                        );
-                    })}
+                            )}
+                        </div>
+                    </button>
                 </div>
             </div>
 
