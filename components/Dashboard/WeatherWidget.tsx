@@ -111,12 +111,12 @@ const generateWeatherComment = (
         ru: {
             'Aries': {
                 'sunny': [
-                    'Овен, сегодня солнце подпитывает твою огненную энергию! 🔥',
+                    'Овен, сегодня солнце подпитывает твою огненную энергию!',
                     'Идеальный день для Овна - солнце заряжает твою страсть к действию!',
                     'Солнечная погода + Овен = неудержимая энергия! Вперед!'
                 ],
                 'rain': [
-                    'Дождь не остановит Овна! Твоя внутренняя энергия сильнее любой непогоды 💪',
+                    'Дождь не остановит Овна! Твоя внутренняя энергия сильнее любой непогоды',
                     'Овен, даже под дождем ты горишь ярче солнца!',
                     'Дождь? Для Овна это просто дополнительный вызов!'
                 ],
@@ -133,7 +133,7 @@ const generateWeatherComment = (
             },
             'Taurus': {
                 'sunny': [
-                    'Телец, солнечная погода идеальна для твоей любви к комфорту! ☀️',
+                    'Телец, солнечная погода идеальна для твоей любви к комфорту!',
                     'Телец наслаждается каждым солнечным днем - это твоя стихия!',
                     'Солнце + Телец = идеальный день для наслаждения жизнью!'
                 ],
@@ -155,7 +155,7 @@ const generateWeatherComment = (
             },
             'Gemini': {
                 'sunny': [
-                    'Близнецы, солнечная погода идеальна для твоей переменчивой натуры! 🌟',
+                    'Близнецы, солнечная погода идеальна для твоей переменчивой натуры!',
                     'Солнце + Близнецы = бесконечные возможности для общения!',
                     'Близнецы, солнечный день - идеальное время для новых знакомств!'
                 ],
@@ -177,7 +177,7 @@ const generateWeatherComment = (
             },
             'Cancer': {
                 'sunny': [
-                    'Рак, солнечная погода согревает твою чувствительную душу! 🌙',
+                    'Рак, солнечная погода согревает твою чувствительную душу!',
                     'Солнце + Рак = идеальный день для эмоционального комфорта!',
                     'Рак, солнечный день наполняет тебя теплом и уютом!'
                 ],
@@ -199,7 +199,7 @@ const generateWeatherComment = (
             },
             'Leo': {
                 'sunny': [
-                    'Лев, солнце - это твоя стихия! Ты сияешь ярче любого светила! 👑',
+                    'Лев, солнце - это твоя стихия! Ты сияешь ярче любого светила!',
                     'Солнце + Лев = королевская энергия! Сегодня ты в центре внимания!',
                     'Лев, солнечный день создан для того, чтобы ты блистал!'
                 ],
@@ -221,7 +221,7 @@ const generateWeatherComment = (
             },
             'Virgo': {
                 'sunny': [
-                    'Дева, солнечная погода идеальна для твоих планов и организации! 📋',
+                    'Дева, солнечная погода идеальна для твоих планов и организации!',
                     'Солнце + Дева = идеальный день для продуктивности!',
                     'Дева, солнечный день - отличное время для реализации планов!'
                 ],
@@ -243,7 +243,7 @@ const generateWeatherComment = (
             },
             'Libra': {
                 'sunny': [
-                    'Весы, солнечная погода идеальна для гармонии и красоты! ⚖️',
+                    'Весы, солнечная погода идеальна для гармонии и красоты!',
                     'Солнце + Весы = идеальный баланс и гармония!',
                     'Весы, солнечный день создан для красоты и равновесия!'
                 ],
@@ -265,7 +265,7 @@ const generateWeatherComment = (
             },
             'Scorpio': {
                 'sunny': [
-                    'Скорпион, солнечная погода не может скрыть твою глубину! 🦂',
+                    'Скорпион, солнечная погода не может скрыть твою глубину!',
                     'Солнце + Скорпион = мощная энергия трансформации!',
                     'Скорпион, даже в солнечный день ты сохраняешь свою таинственность!'
                 ],
@@ -287,7 +287,7 @@ const generateWeatherComment = (
             },
             'Sagittarius': {
                 'sunny': [
-                    'Стрелец, солнечная погода идеальна для твоих приключений! 🏹',
+                    'Стрелец, солнечная погода идеальна для твоих приключений!',
                     'Солнце + Стрелец = неудержимая жажда путешествий!',
                     'Стрелец, солнечный день создан для открытий и приключений!'
                 ],
@@ -309,7 +309,7 @@ const generateWeatherComment = (
             },
             'Capricorn': {
                 'sunny': [
-                    'Козерог, солнечная погода идеальна для твоих амбиций! 🐐',
+                    'Козерог, солнечная погода идеальна для твоих амбиций!',
                     'Солнце + Козерог = идеальный день для достижения целей!',
                     'Козерог, солнечный день создан для работы и успеха!'
                 ],
@@ -331,7 +331,7 @@ const generateWeatherComment = (
             },
             'Aquarius': {
                 'sunny': [
-                    'Водолей, солнечная погода идеальна для твоих инноваций! 💧',
+                    'Водолей, солнечная погода идеальна для твоих инноваций!',
                     'Солнце + Водолей = идеальный день для новых идей!',
                     'Водолей, солнечный день создан для творчества и свободы!'
                 ],
@@ -353,7 +353,7 @@ const generateWeatherComment = (
             },
             'Pisces': {
                 'sunny': [
-                    'Рыбы, солнечная погода согревает твою мечтательную душу! 🐟',
+                    'Рыбы, солнечная погода согревает твою мечтательную душу!',
                     'Солнце + Рыбы = идеальный день для вдохновения!',
                     'Рыбы, солнечный день наполняет тебя творческой энергией!'
                 ],
@@ -377,12 +377,12 @@ const generateWeatherComment = (
         en: {
             'Aries': {
                 'sunny': [
-                    'Aries, sunny weather fuels your fiery energy! 🔥',
+                    'Aries, sunny weather fuels your fiery energy!',
                     'Perfect day for Aries - sun charges your passion for action!',
                     'Sunny weather + Aries = unstoppable energy! Go ahead!'
                 ],
                 'rain': [
-                    'Rain won\'t stop Aries! Your inner energy is stronger than any weather 💪',
+                    'Rain won\'t stop Aries! Your inner energy is stronger than any weather',
                     'Aries, even in the rain you burn brighter than the sun!',
                     'Rain? For Aries it\'s just an additional challenge!'
                 ],
@@ -399,7 +399,7 @@ const generateWeatherComment = (
             },
             'Taurus': {
                 'sunny': [
-                    'Taurus, sunny weather is perfect for your love of comfort! ☀️',
+                    'Taurus, sunny weather is perfect for your love of comfort!',
                     'Taurus enjoys every sunny day - it\'s your element!',
                     'Sun + Taurus = perfect day to enjoy life!'
                 ],
@@ -421,7 +421,7 @@ const generateWeatherComment = (
             },
             'Gemini': {
                 'sunny': [
-                    'Gemini, sunny weather is perfect for your changeable nature! 🌟',
+                    'Gemini, sunny weather is perfect for your changeable nature!',
                     'Sun + Gemini = endless opportunities for communication!',
                     'Gemini, sunny day is perfect time for new acquaintances!'
                 ],
@@ -443,7 +443,7 @@ const generateWeatherComment = (
             },
             'Cancer': {
                 'sunny': [
-                    'Cancer, sunny weather warms your sensitive soul! 🌙',
+                    'Cancer, sunny weather warms your sensitive soul!',
                     'Sun + Cancer = perfect day for emotional comfort!',
                     'Cancer, sunny day fills you with warmth and coziness!'
                 ],
@@ -465,7 +465,7 @@ const generateWeatherComment = (
             },
             'Leo': {
                 'sunny': [
-                    'Leo, sun is your element! You shine brighter than any luminary! 👑',
+                    'Leo, sun is your element! You shine brighter than any luminary!',
                     'Sun + Leo = royal energy! Today you\'re in the spotlight!',
                     'Leo, sunny day is made for you to shine!'
                 ],
@@ -487,7 +487,7 @@ const generateWeatherComment = (
             },
             'Virgo': {
                 'sunny': [
-                    'Virgo, sunny weather is perfect for your plans and organization! 📋',
+                    'Virgo, sunny weather is perfect for your plans and organization!',
                     'Sun + Virgo = perfect day for productivity!',
                     'Virgo, sunny day is great time to implement plans!'
                 ],
@@ -509,7 +509,7 @@ const generateWeatherComment = (
             },
             'Libra': {
                 'sunny': [
-                    'Libra, sunny weather is perfect for harmony and beauty! ⚖️',
+                    'Libra, sunny weather is perfect for harmony and beauty!',
                     'Sun + Libra = perfect balance and harmony!',
                     'Libra, sunny day is made for beauty and balance!'
                 ],
@@ -531,7 +531,7 @@ const generateWeatherComment = (
             },
             'Scorpio': {
                 'sunny': [
-                    'Scorpio, sunny weather can\'t hide your depth! 🦂',
+                    'Scorpio, sunny weather can\'t hide your depth!',
                     'Sun + Scorpio = powerful transformation energy!',
                     'Scorpio, even on a sunny day you keep your mystery!'
                 ],
@@ -553,7 +553,7 @@ const generateWeatherComment = (
             },
             'Sagittarius': {
                 'sunny': [
-                    'Sagittarius, sunny weather is perfect for your adventures! 🏹',
+                    'Sagittarius, sunny weather is perfect for your adventures!',
                     'Sun + Sagittarius = unstoppable thirst for travel!',
                     'Sagittarius, sunny day is made for discoveries and adventures!'
                 ],
@@ -575,7 +575,7 @@ const generateWeatherComment = (
             },
             'Capricorn': {
                 'sunny': [
-                    'Capricorn, sunny weather is perfect for your ambitions! 🐐',
+                    'Capricorn, sunny weather is perfect for your ambitions!',
                     'Sun + Capricorn = perfect day to achieve goals!',
                     'Capricorn, sunny day is made for work and success!'
                 ],
@@ -597,7 +597,7 @@ const generateWeatherComment = (
             },
             'Aquarius': {
                 'sunny': [
-                    'Aquarius, sunny weather is perfect for your innovations! 💧',
+                    'Aquarius, sunny weather is perfect for your innovations!',
                     'Sun + Aquarius = perfect day for new ideas!',
                     'Aquarius, sunny day is made for creativity and freedom!'
                 ],
@@ -619,7 +619,7 @@ const generateWeatherComment = (
             },
             'Pisces': {
                 'sunny': [
-                    'Pisces, sunny weather warms your dreamy soul! 🐟',
+                    'Pisces, sunny weather warms your dreamy soul!',
                     'Sun + Pisces = perfect day for inspiration!',
                     'Pisces, sunny day fills you with creative energy!'
                 ],
@@ -712,7 +712,7 @@ export const WeatherWidget = memo<WeatherWidgetProps>(({
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1">
             <h3 className="text-[10px] uppercase tracking-widest text-astro-subtext mb-2">
-              {profile.language === 'ru' ? '🌤 Космическая Погода' : '🌤 Cosmic Weather'}
+              {profile.language === 'ru' ? 'Космическая Погода' : 'Cosmic Weather'}
             </h3>
             
             {/* Основная информация о погоде */}
@@ -731,7 +731,7 @@ export const WeatherWidget = memo<WeatherWidgetProps>(({
             
             {/* Город */}
             <p className="text-xs text-astro-subtext mb-3">
-              📍 {weatherData.city}
+              {weatherData.city}
             </p>
             
             {/* Персонализированный комментарий */}
@@ -749,7 +749,7 @@ export const WeatherWidget = memo<WeatherWidgetProps>(({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-astro-subtext uppercase tracking-wider">
-                  {profile.language === 'ru' ? '🌙 Фаза Луны' : '🌙 Moon Phase'}
+                  {profile.language === 'ru' ? 'Фаза Луны' : 'Moon Phase'}
                 </p>
                 <p className="text-sm font-serif text-astro-text mt-1">
                   {translateMoonPhase(weatherData.moonPhase.phase, profile.language)}

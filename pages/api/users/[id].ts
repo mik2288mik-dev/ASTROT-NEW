@@ -143,7 +143,7 @@ export default async function handler(
       
       // ВАЖНО: Проверяем что finalGeneratedContent не потерялся
       if (!finalGeneratedContent && existingUser?.generated_content) {
-        log.warn(`[${req.method}] ⚠️ WARNING: finalGeneratedContent is null but existingUser has generated_content! Restoring...`);
+        log.warn(`[${req.method}] WARNING: finalGeneratedContent is null but existingUser has generated_content! Restoring...`);
         finalGeneratedContent = existingUser.generated_content;
       }
       
@@ -155,7 +155,7 @@ export default async function handler(
       log.info(`[${req.method}] existingUser?.weather_city:`, existingUser?.weather_city);
       
       const weatherCityToSave = userData.weatherCity !== undefined 
-        ? (userData.weatherCity ? String(userData.weatherCity).trim() : null)
+        ? (userData.weatherCity && String(userData.weatherCity).trim() ? String(userData.weatherCity).trim() : null)
         : (existingUser?.weather_city || null);
       
       log.info(`[${req.method}] weatherCityToSave (final):`, weatherCityToSave);

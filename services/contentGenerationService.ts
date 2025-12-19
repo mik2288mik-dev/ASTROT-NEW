@@ -121,8 +121,8 @@ export const generateAllContent = async (profile: UserProfile, chartData: NatalC
       log.error('[generateAllContent] Failed to generate Natal Intro', error);
       // Используем fallback
       generatedContent.natalIntro = profile.language === 'ru'
-        ? `Привет, ${profile.name || 'друг'}! Я изучила твою натальную карту. ✨`
-        : `Hi, ${profile.name || 'friend'}! I've studied your natal chart. ✨`;
+        ? `Привет, ${profile.name || 'друг'}! Я изучила твою натальную карту.`
+        : `Hi, ${profile.name || 'friend'}! I've studied your natal chart.`;
       generatedContent.timestamps.natalIntroGenerated = Date.now();
     }
 

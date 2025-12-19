@@ -187,8 +187,8 @@ export const getNatalIntro = async (profile: UserProfile, chartData: NatalChartD
     
     // Fallback
     const fallback = profile.language === 'ru' 
-      ? `Привет, ${profile.name || 'друг'}! Я изучила твою натальную карту и готова рассказать о тебе много интересного. ✨`
-      : `Hi, ${profile.name || 'friend'}! I've studied your natal chart and I'm ready to tell you many interesting things. ✨`;
+      ? `Привет, ${profile.name || 'друг'}! Я изучила твою натальную карту и готова рассказать о тебе много интересного.`
+      : `Hi, ${profile.name || 'friend'}! I've studied your natal chart and I'm ready to tell you many interesting things.`;
     
     log.info('[getNatalIntro] Using fallback intro');
     return fallback;

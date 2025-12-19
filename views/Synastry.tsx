@@ -117,7 +117,7 @@ export const Synastry: React.FC<SynastryProps> = ({ profile, requestPremium }) =
                                     animate={{ opacity: 1, y: 0 }}
                                     className="mt-3 text-sm text-astro-highlight"
                                 >
-                                    ✨ {profile.language === 'ru' ? 'Знак зодиака партнера:' : 'Partner\'s zodiac sign:'} <span className="font-bold">{partnerZodiacSign.sign}</span> ({partnerZodiacSign.signEn})
+                                    {profile.language === 'ru' ? 'Знак зодиака партнера:' : 'Partner\'s zodiac sign:'} <span className="font-bold">{partnerZodiacSign.sign}</span> ({partnerZodiacSign.signEn})
                                 </motion.div>
                             )}
                         </div>

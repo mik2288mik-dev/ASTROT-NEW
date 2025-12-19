@@ -242,23 +242,23 @@ export function getUsageStats(isPremium: boolean, usageCounts: Record<string, nu
  */
 export const PREMIUM_TEXTS = {
   ru: {
-    title: '✨ Откройте полный доступ к звёздам',
+    title: 'Откройте полный доступ к звёздам',
     subtitle: 'Получите глубокие знания о себе и своём пути',
     
     features: [
-      '🌟 Полный разбор натальной карты (все 5 секций)',
-      '❤️ Глубокий анализ любви и отношений',
-      '🎯 Карьера и предназначение',
-      '🔮 Кармическая задача',
-      '📅 Недельные и месячные гороскопы',
-      '💬 Безлимитный чат с Астрой',
-      '💑 Полная синастрия (совместимость)',
-      '🔄 Неограниченные перегенерации',
-      '📊 Прогнозы транзитов',
-      '🔔 Уведомления о важных событиях'
+      'Полный разбор натальной карты (все 5 секций)',
+      'Глубокий анализ любви и отношений',
+      'Карьера и предназначение',
+      'Кармическая задача',
+      'Недельные и месячные гороскопы',
+      'Безлимитный чат с Астрой',
+      'Полная синастрия (совместимость)',
+      'Неограниченные перегенерации',
+      'Прогнозы транзитов',
+      'Уведомления о важных событиях'
     ],
     
-    price: '⭐ 399 звёзд Telegram',
+    price: '399 звёзд Telegram',
     
     cta: 'Получить Premium',
     
@@ -266,23 +266,23 @@ export const PREMIUM_TEXTS = {
   },
   
   en: {
-    title: '✨ Unlock Full Access to the Stars',
+    title: 'Unlock Full Access to the Stars',
     subtitle: 'Get deep insights about yourself and your path',
     
     features: [
-      '🌟 Full natal chart analysis (all 5 sections)',
-      '❤️ Deep love & relationships analysis',
-      '🎯 Career & life purpose',
-      '🔮 Karmic mission',
-      '📅 Weekly & monthly horoscopes',
-      '💬 Unlimited Astra chat',
-      '💑 Full synastry (compatibility)',
-      '🔄 Unlimited regenerations',
-      '📊 Transit forecasts',
-      '🔔 Important event notifications'
+      'Full natal chart analysis (all 5 sections)',
+      'Deep love & relationships analysis',
+      'Career & life purpose',
+      'Karmic mission',
+      'Weekly & monthly horoscopes',
+      'Unlimited Astra chat',
+      'Full synastry (compatibility)',
+      'Unlimited regenerations',
+      'Transit forecasts',
+      'Important event notifications'
     ],
     
-    price: '⭐ 399 Telegram Stars',
+    price: '399 Telegram Stars',
     
     cta: 'Get Premium',
     

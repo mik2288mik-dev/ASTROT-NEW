@@ -143,7 +143,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                                         className="mt-3 text-sm"
                                     >
                                         <div className="text-astro-highlight">
-                                            ✨ Предполагаемый знак зодиака: <span className="font-bold">{predictedZodiacSign.ru}</span> ({predictedZodiacSign.en})
+                                            Предполагаемый знак зодиака: <span className="font-bold">{predictedZodiacSign.ru}</span> ({predictedZodiacSign.en})
                                         </div>
                                         <div className="text-astro-subtext text-xs mt-1">
                                             * Приблизительно по дате. Точный знак будет рассчитан после ввода времени и места рождения.

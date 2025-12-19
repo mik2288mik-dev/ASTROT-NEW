@@ -327,7 +327,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onUpdate, onClo
                         
                         {/* Top Users */}
                         <div className="bg-astro-card rounded-xl border border-astro-border p-6">
-                            <h3 className="text-lg font-serif text-astro-text mb-4">👑 Top Пользователи</h3>
+                            <h3 className="text-lg font-serif text-astro-text mb-4">Top Пользователи</h3>
                             <div className="space-y-2">
                                 {users
                                     .sort((a, b) => (b.starsBalance || 0) - (a.starsBalance || 0))
@@ -335,14 +335,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onUpdate, onClo
                                     .map((user, idx) => (
                                         <div key={idx} className="bg-astro-bg rounded-lg p-3 flex justify-between items-center">
                                             <div className="flex items-center gap-3">
-                                                <span className="text-2xl">{idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : '⭐'}</span>
+                                                <span className="text-sm text-astro-subtext">#{idx + 1}</span>
                                                 <div>
                                                     <p className="text-sm font-bold text-astro-text">{user.name}</p>
                                                     <p className="text-xs text-astro-subtext">{user.birthDate}</p>
                                                 </div>
                                             </div>
                                             <div className="text-right">
-                                                <p className="text-sm font-bold text-yellow-500">{user.starsBalance || 0} ⭐</p>
+                                                <p className="text-sm font-bold text-yellow-500">{user.starsBalance || 0} stars</p>
                                                 {user.isPremium && (
                                                     <span className="text-[8px] px-2 py-0.5 bg-yellow-500/10 text-yellow-500 rounded">PRO</span>
                                                 )}
@@ -396,7 +396,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onUpdate, onClo
                 {/* Settings Tab */}
                 {activeTab === 'settings' && (
                     <div className="bg-astro-card rounded-xl border border-astro-border p-6">
-                        <h3 className="text-lg font-serif text-astro-text mb-4">⚙️ Настройки системы</h3>
+                        <h3 className="text-lg font-serif text-astro-text mb-4">Настройки системы</h3>
                         
                         <div className="space-y-4">
                             <div className="bg-astro-bg rounded-lg p-4">
@@ -426,7 +426,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onUpdate, onClo
                                 <div className="space-y-2 text-xs">
                                     <div className="flex justify-between">
                                         <span className="text-astro-subtext">Цена Premium</span>
-                                        <span className="text-astro-text font-bold">399 ⭐</span>
+                                        <span className="text-astro-text font-bold">399 stars</span>
                                     </div>
                                     <div className="flex justify-between">
                                         <span className="text-astro-subtext">Free лимит Deep Dive</span>
