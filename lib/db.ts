@@ -315,7 +315,7 @@ export const db = {
         log.info('[DB] existingUser?.weather_city type:', typeof existingUser?.weather_city);
         
         const finalWeatherCity = data.weather_city !== undefined
-          ? (data.weather_city || null)
+          ? (data.weather_city && String(data.weather_city).trim() ? String(data.weather_city).trim() : null)
           : (existingUser?.weather_city || null);
         
         log.info('[DB] finalWeatherCity (calculated):', finalWeatherCity);

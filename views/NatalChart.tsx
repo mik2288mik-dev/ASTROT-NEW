@@ -166,7 +166,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
             
             {/* Главный заголовок страницы */}
             <h1 className="text-xl font-semibold text-astro-text text-center mb-2 leading-tight">
-                ✨ {getText(profile.language, 'chart.title')}
+                {getText(profile.language, 'chart.title')}
             </h1>
             
             <p className="text-sm text-astro-subtext text-center mb-8">
@@ -197,7 +197,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
                     className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-2xl p-6 border border-purple-500/30 text-center space-y-4 mb-8"
                 >
                     <h3 className="text-lg font-semibold text-astro-text">
-                        {profile.language === 'ru' ? '✨ Хочешь узнать больше?' : '✨ Want to know more?'}
+                        {profile.language === 'ru' ? 'Хочешь узнать больше?' : 'Want to know more?'}
                     </h3>
                     <p className="text-[15px] text-astro-text leading-relaxed">
                         {profile.language === 'ru' 
@@ -216,13 +216,12 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
             {/* ПОЛНЫЕ РАЗДЕЛЫ НАТАЛЬНОЙ КАРТЫ */}
             <div className="space-y-3">
                 <h2 className="text-base font-semibold text-astro-text mb-4">
-                    {profile.language === 'ru' ? '📖 Разделы натальной карты' : '📖 Natal Chart Sections'}
+                    {profile.language === 'ru' ? 'Разделы натальной карты' : 'Natal Chart Sections'}
                 </h2>
 
                 <div className="space-y-3 max-w-2xl mx-auto">
                     {pillars.map((key, index) => {
                         const fullText = getText(profile.language, `chart.${key}`);
-                        const icon = ['🌟', '❤️', '🎯', '🔍', '✨'][index];
                         
                         return (
                             <button
@@ -237,7 +236,6 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
                             >
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
-                                        <span className="text-2xl">{icon}</span>
                                         <div className="flex flex-col">
                                             <span className="text-[15px] font-medium text-astro-text">
                                                 {fullText}
@@ -254,7 +252,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
                                             {profile.language === 'ru' ? 'Читать →' : 'Read →'}
                                         </span>
                                     ) : (
-                                        <span className="text-sm">🔒</span>
+                                        <span className="text-sm text-astro-subtext">Locked</span>
                                     )}
                                 </div>
                             </button>
@@ -278,7 +276,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
                             <div>{getText(profile.language, 'chart.forecast_day')}</div>
                             {!profile.isPremium && (
                                 <div className="flex items-center justify-center gap-1 mt-1.5">
-                                    <span className="text-xs md:text-sm">🔒</span>
+                                    <span className="text-xs md:text-sm text-astro-subtext">Locked</span>
                                     <span className="blur-sm select-none text-xs md:text-sm">
                                         {getText(profile.language, 'chart.forecast_week')}
                                     </span>

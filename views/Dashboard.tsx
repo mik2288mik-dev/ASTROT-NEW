@@ -341,7 +341,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
                                     {profile.language === 'ru' ? 'Загрузка погоды...' : 'Loading weather...'}
                                 </p>
                             </div>
-                            <div className="text-3xl opacity-30 text-astro-highlight animate-pulse">☁</div>
+                            <div className="text-3xl opacity-30 text-astro-highlight animate-pulse">...</div>
                         </div>
                     </div>
                 )
@@ -361,7 +361,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
                                     : 'Set city in settings to see weather'}
                             </p>
                         </div>
-                        <div className="text-3xl opacity-30 text-astro-highlight group-hover:opacity-50 transition-opacity">☁</div>
+                        <div className="text-3xl opacity-30 text-astro-highlight group-hover:opacity-50 transition-opacity">...</div>
                     </div>
                     <p className="relative z-10 text-xs text-astro-subtext mt-2 font-light italic">
                         {profile.language === 'ru' 

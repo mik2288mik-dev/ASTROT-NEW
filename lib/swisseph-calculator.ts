@@ -630,7 +630,7 @@ export async function calculateNatalChart(
       });
     }
 
-    log.info('🌟 Natal chart calculated successfully with Swiss Ephemeris', {
+    log.info('Natal chart calculated successfully with Swiss Ephemeris', {
       hasSun: !!sun,
       hasMoon: !!moon,
       hasRising: !!ascendant,

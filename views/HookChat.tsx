@@ -39,8 +39,8 @@ export const HookChat: React.FC<HookChatProps> = ({ profile, chartData, onComple
                         console.error('[HookChat] Failed to get natal intro:', error);
                         // Fallback текст
                         introText = profile.language === 'ru'
-                            ? `Привет, ${profile.name}! Я изучила твою натальную карту и готова рассказать о тебе много интересного. ✨`
-                            : `Hi, ${profile.name}! I've studied your natal chart and I'm ready to tell you many interesting things. ✨`;
+                            ? `Привет, ${profile.name}! Я изучила твою натальную карту и готова рассказать о тебе много интересного.`
+                            : `Hi, ${profile.name}! I've studied your natal chart and I'm ready to tell you many interesting things.`;
                     }
                 }
                 

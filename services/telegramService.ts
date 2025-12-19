@@ -41,7 +41,7 @@ export const requestStarsPayment = async (profile: UserProfile): Promise<boolean
             title: profile.language === 'ru' ? TITLE_RU : TITLE_EN,
             message: profile.language === 'ru' ? DESC_RU : DESC_EN,
             buttons: [
-                { id: 'pay', type: 'default', text: 'Pay 250 ⭐️' },
+                { id: 'pay', type: 'default', text: 'Pay 250 stars' },
                 { id: 'cancel', type: 'destructive', text: 'Cancel' }
             ]
         }, (buttonId: string) => {

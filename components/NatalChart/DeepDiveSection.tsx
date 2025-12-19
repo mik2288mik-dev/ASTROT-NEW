@@ -59,7 +59,7 @@ export const DeepDiveSection = memo<DeepDiveSectionProps>(({
                 {isPremium ? (
                     <span className="text-xs md:text-sm text-astro-highlight font-medium group-hover:translate-x-1 transition-transform">{tapToLearn}</span>
                 ) : (
-                    <span className="text-sm text-astro-subtext">🔒</span>
+                    <span className="text-sm text-astro-subtext">Locked</span>
                 )}
             </div>
         </motion.div>
