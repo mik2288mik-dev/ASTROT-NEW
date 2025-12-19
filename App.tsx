@@ -20,7 +20,12 @@ import { HookChat } from './views/HookChat';
 import { Paywall } from './views/Paywall';
 import { Synastry } from './views/Synastry';
 
-const OWNER_ID = 123456789; 
+// Get owner ID from environment variables for security
+const OWNER_ID = process.env.NEXT_PUBLIC_OWNER_ID || '';
+
+if (!OWNER_ID) {
+    console.warn('[App] OWNER_ID not configured. Admin features will not be available.');
+}
 
 const App: React.FC = () => {
     const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -92,7 +97,7 @@ const App: React.FC = () => {
                     if (!storedProfile.language) storedProfile.language = 'ru';
                     if (!storedProfile.theme) storedProfile.theme = 'dark';
 
-                    const isAdmin = tgId === OWNER_ID || storedProfile.isAdmin || false;
+                    const isAdmin = (OWNER_ID && String(tgId) === String(OWNER_ID)) || storedProfile.isAdmin || false;
                     const updatedProfile = { ...storedProfile, id: tgId, isAdmin };
                     
                     console.log('[App] User data found in database, preparing to show chart:', {
@@ -202,7 +207,7 @@ const App: React.FC = () => {
         const tg = (window as any).Telegram?.WebApp;
         const tgUser = tg?.initDataUnsafe?.user;
         const tgId = tgUser?.id;
-        const isAdmin = tgId === OWNER_ID;
+        const isAdmin = OWNER_ID && String(tgId) === String(OWNER_ID);
         const fullProfile = { ...newProfile, id: tgId, isAdmin };
 
         console.log('[App] Full profile prepared:', {

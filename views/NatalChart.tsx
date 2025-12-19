@@ -119,77 +119,22 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
         }
     };
 
-    // The 3 Keys (From Profile) - обновляемые при регенерации
-    // Используем generatedContent.threeKeys как основной источник, profile.threeKeys как fallback
-    const threeKeysSource = profile.generatedContent?.threeKeys || profile.threeKeys;
+    // НОВАЯ ЛОГИКА: Используем вступление натальной карты вместо "трех ключей"
+    // Вступительный текст для натальной карты (intro)
+    const natalIntroSource = profile.generatedContent?.natalIntro;
     
-    // Проверяем что threeKeys не пустой и имеет валидные данные
-    const isValidThreeKeys = threeKeysSource && 
-        threeKeysSource.key1?.text && 
-        threeKeysSource.key1.text !== "..." &&
-        threeKeysSource.key1.text.trim().length > 0 &&
-        threeKeysSource.key2?.text && 
-        threeKeysSource.key2.text !== "..." &&
-        threeKeysSource.key2.text.trim().length > 0 &&
-        threeKeysSource.key3?.text && 
-        threeKeysSource.key3.text !== "..." &&
-        threeKeysSource.key3.text.trim().length > 0;
-    
-    if (!isValidThreeKeys && threeKeysSource) {
-        console.warn('[NatalChart] Invalid threeKeys detected:', {
-            hasKey1: !!threeKeysSource.key1,
-            hasKey2: !!threeKeysSource.key2,
-            hasKey3: !!threeKeysSource.key3,
-            key1Text: threeKeysSource.key1?.text?.substring(0, 50) || 'empty',
-            key2Text: threeKeysSource.key2?.text?.substring(0, 50) || 'empty',
-            key3Text: threeKeysSource.key3?.text?.substring(0, 50) || 'empty'
-        });
-    }
-    
-    const [keys, setKeys] = useState(isValidThreeKeys ? threeKeysSource : {
-        key1: { title: getText(profile.language, 'hook.key1_title'), text: "...", advice: [] },
-        key2: { title: getText(profile.language, 'hook.key2_title'), text: "...", advice: [] },
-        key3: { title: getText(profile.language, 'hook.key3_title'), text: "...", advice: [] },
-    });
+    const [natalIntro, setNatalIntro] = useState<string>(
+        natalIntroSource || getText(profile.language, 'chart.loading_intro')
+    );
 
-    // Обновляем keys при изменении профиля или threeKeys
+    // Обновляем intro при изменении профиля
     React.useEffect(() => {
-        const newThreeKeysSource = profile.generatedContent?.threeKeys || profile.threeKeys;
-        
-        // Проверяем что newThreeKeysSource валидный
-        const isValidNewThreeKeys = newThreeKeysSource && 
-            newThreeKeysSource.key1?.text && 
-            newThreeKeysSource.key1.text !== "..." &&
-            newThreeKeysSource.key1.text.trim().length > 0 &&
-            newThreeKeysSource.key2?.text && 
-            newThreeKeysSource.key2.text !== "..." &&
-            newThreeKeysSource.key2.text.trim().length > 0 &&
-            newThreeKeysSource.key3?.text && 
-            newThreeKeysSource.key3.text !== "..." &&
-            newThreeKeysSource.key3.text.trim().length > 0;
-        
-        if (isValidNewThreeKeys && (
-            newThreeKeysSource.key1?.text !== keys.key1?.text ||
-            newThreeKeysSource.key2?.text !== keys.key2?.text ||
-            newThreeKeysSource.key3?.text !== keys.key3?.text
-        )) {
-            console.log('[NatalChart] Updating keys from profile', {
-                key1TextLength: newThreeKeysSource.key1.text.length,
-                key2TextLength: newThreeKeysSource.key2.text.length,
-                key3TextLength: newThreeKeysSource.key3.text.length
-            });
-            setKeys(newThreeKeysSource);
-        } else if (newThreeKeysSource && !isValidNewThreeKeys) {
-            console.warn('[NatalChart] Received invalid threeKeys, not updating', {
-                hasKey1: !!newThreeKeysSource.key1,
-                hasKey2: !!newThreeKeysSource.key2,
-                hasKey3: !!newThreeKeysSource.key3,
-                key1Text: newThreeKeysSource.key1?.text?.substring(0, 50) || 'empty',
-                key2Text: newThreeKeysSource.key2?.text?.substring(0, 50) || 'empty',
-                key3Text: newThreeKeysSource.key3?.text?.substring(0, 50) || 'empty'
-            });
+        const newIntro = profile.generatedContent?.natalIntro;
+        if (newIntro && newIntro !== natalIntro) {
+            console.log('[NatalChart] Updating intro from profile');
+            setNatalIntro(newIntro);
         }
-    }, [profile.generatedContent?.threeKeys, profile.threeKeys]);
+    }, [profile.generatedContent?.natalIntro]);
 
     // Premium Pillars
     const pillars = [
@@ -220,50 +165,27 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
         <div className="min-h-screen px-4 py-6 max-w-3xl mx-auto pb-32">
             
             {/* Главный заголовок страницы */}
-            <h1 className="text-base font-normal text-astro-text text-center mb-8 leading-tight" style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif', fontWeight: 400 }}>
-                {getText(profile.language, 'chart.title')}
+            <h1 className="text-xl font-semibold text-astro-text text-center mb-2 leading-tight">
+                ✨ {getText(profile.language, 'chart.title')}
             </h1>
+            
+            <p className="text-sm text-astro-subtext text-center mb-8">
+                {profile.name ? `${profile.name}, ${profile.birthDate}` : profile.birthDate}
+            </p>
 
-            {/* Три ключа - основные интерпретации */}
+            {/* ВСТУПЛЕНИЕ: Общий портрет личности (FREE) */}
             <motion.div 
-                className="space-y-6"
-                variants={container}
-                initial="hidden"
-                animate="show"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="bg-gradient-to-br from-astro-card to-astro-bg rounded-2xl p-6 border border-astro-border mb-8 shadow-lg"
             >
-                {/* Key 1: Энергия */}
-                <motion.div variants={item}>
-                    <KeyBlock
-                        title={keys.key1.title}
-                        planetSymbol={PLANET_ICONS.energy}
-                        text={keys.key1.text}
-                        advice={keys.key1.advice}
-                        language={profile.language}
+                <div className="prose prose-sm max-w-none">
+                    <div 
+                        className="text-[15px] text-astro-text leading-relaxed whitespace-pre-line"
+                        dangerouslySetInnerHTML={{ __html: natalIntro.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }}
                     />
-                </motion.div>
-
-                {/* Key 2: Любовь */}
-                <motion.div variants={item}>
-                    <KeyBlock
-                        title={keys.key2.title}
-                        planetSymbol={PLANET_ICONS.love}
-                        text={keys.key2.text}
-                        advice={keys.key2.advice}
-                        language={profile.language}
-                    />
-                </motion.div>
-
-                {/* Key 3: Карьера */}
-                <motion.div variants={item}>
-                    <KeyBlock
-                        title={keys.key3.title}
-                        planetSymbol={PLANET_ICONS.career}
-                        text={keys.key3.text}
-                        advice={keys.key3.advice}
-                        language={profile.language}
-                    />
-                </motion.div>
-
+                </div>
             </motion.div>
 
             {/* FREE USER CTA */}
@@ -271,62 +193,69 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
                 <motion.div 
                     initial={{ opacity: 0 }} 
                     animate={{ opacity: 1 }} 
-                    transition={{ delay: 1 }}
-                    className="mt-12 bg-astro-card rounded-2xl p-6 border border-astro-border text-center space-y-4"
+                    transition={{ delay: 0.5 }}
+                    className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-2xl p-6 border border-purple-500/30 text-center space-y-4 mb-8"
                 >
-                    <p className="text-[15px] text-astro-text leading-relaxed max-w-[90%] mx-auto">
-                        {getText(profile.language, 'hook.done')}
+                    <h3 className="text-lg font-semibold text-astro-text">
+                        {profile.language === 'ru' ? '✨ Хочешь узнать больше?' : '✨ Want to know more?'}
+                    </h3>
+                    <p className="text-[15px] text-astro-text leading-relaxed">
+                        {profile.language === 'ru' 
+                            ? 'Полный разбор карты с глубокими анализами доступен в Premium' 
+                            : 'Full chart analysis with deep insights available in Premium'}
                     </p>
                     <button 
                         onClick={requestPremium}
-                        className="bg-astro-highlight text-white px-6 py-3 rounded-full text-sm font-semibold hover:opacity-90 transition-opacity"
+                        className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-8 py-3 rounded-full text-sm font-semibold hover:opacity-90 transition-opacity shadow-lg"
                     >
                         {getText(profile.language, 'hook.cta_button')}
                     </button>
                 </motion.div>
             )}
 
-            {/* PREMIUM: Deep Dive разделы */}
-            <div className="mt-12">
-                <h2 className="text-sm font-normal text-astro-text text-center mb-6" style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif', fontWeight: 400 }}>
-                    {getText(profile.language, 'chart.placements')}
+            {/* ПОЛНЫЕ РАЗДЕЛЫ НАТАЛЬНОЙ КАРТЫ */}
+            <div className="space-y-3">
+                <h2 className="text-base font-semibold text-astro-text mb-4">
+                    {profile.language === 'ru' ? '📖 Разделы натальной карты' : '📖 Natal Chart Sections'}
                 </h2>
 
-                <div className="space-y-4 max-w-2xl mx-auto">
-                    {pillars.map((key) => {
+                <div className="space-y-3 max-w-2xl mx-auto">
+                    {pillars.map((key, index) => {
                         const fullText = getText(profile.language, `chart.${key}`);
-                        const words = fullText.split(' ');
-                        const previewWords = words.slice(0, 3).join(' ');
-                        const restWords = words.slice(3).join(' ');
+                        const icon = ['🌟', '❤️', '🎯', '🔍', '✨'][index];
                         
                         return (
                             <button
                                 key={key}
                                 onClick={() => handleDeepDive(key)}
-                                className="w-full bg-astro-card rounded-xl p-5 md:p-6 border border-astro-border hover:border-astro-highlight transition-all hover:shadow-lg text-left relative group"
+                                disabled={!profile.isPremium}
+                                className={`w-full bg-astro-card rounded-xl p-4 border transition-all text-left relative ${
+                                    profile.isPremium 
+                                        ? 'border-astro-border hover:border-astro-highlight hover:shadow-lg cursor-pointer group' 
+                                        : 'border-astro-border/50 cursor-not-allowed opacity-60'
+                                }`}
                             >
                                 <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2.5">
-                                        <span className="text-base md:text-[17px] font-medium text-astro-text">
-                                            {previewWords}
-                                        </span>
-                                        {!profile.isPremium && restWords && (
-                                            <>
-                                                <span className="text-base md:text-[17px] font-medium text-astro-text blur-sm select-none">
-                                                    {restWords}
-                                                </span>
-                                                <span className="text-astro-highlight ml-2 text-sm">🔒</span>
-                                            </>
-                                        )}
-                                        {profile.isPremium && restWords && (
-                                            <span className="text-base md:text-[17px] font-medium text-astro-text">
-                                                {' ' + restWords}
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-2xl">{icon}</span>
+                                        <div className="flex flex-col">
+                                            <span className="text-[15px] font-medium text-astro-text">
+                                                {fullText}
                                             </span>
-                                        )}
+                                            {!profile.isPremium && (
+                                                <span className="text-xs text-astro-subtext mt-0.5">
+                                                    {profile.language === 'ru' ? 'Premium доступ' : 'Premium access'}
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
-                                    <span className="text-astro-subtext text-xs md:text-sm ml-4 group-hover:text-astro-highlight transition-colors">
-                                        {profile.language === 'ru' ? 'Открыть' : 'Open'}
-                                    </span>
+                                    {profile.isPremium ? (
+                                        <span className="text-astro-subtext text-sm group-hover:text-astro-highlight transition-colors">
+                                            {profile.language === 'ru' ? 'Читать →' : 'Read →'}
+                                        </span>
+                                    ) : (
+                                        <span className="text-sm">🔒</span>
+                                    )}
                                 </div>
                             </button>
                         );
@@ -369,21 +298,25 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
                 onClose={() => !loadingAnalysis && setActiveAnalysis(null)}
             />
 
-            {/* Regenerate Button в самом низу страницы */}
-            <div className="mt-12 max-w-md mx-auto">
-                <RegenerateButton
-                    userId={profile.id || ''}
-                    contentType="three_keys"
-                    isPremium={profile.isPremium}
-                    language={profile.language}
-                    profile={profile}
-                    chartData={data}
-                    onRegenerate={(newData) => {
-                        setKeys(newData);
-                    }}
-                    onRequestPremium={requestPremium}
-                />
-            </div>
+            {/* Regenerate Button для вступления (только для premium) */}
+            {profile.isPremium && (
+                <div className="mt-12 max-w-md mx-auto">
+                    <RegenerateButton
+                        userId={profile.id || ''}
+                        contentType="natal_intro"
+                        isPremium={profile.isPremium}
+                        language={profile.language}
+                        profile={profile}
+                        chartData={data}
+                        onRegenerate={(newIntro) => {
+                            if (typeof newIntro === 'string') {
+                                setNatalIntro(newIntro);
+                            }
+                        }}
+                        onRequestPremium={requestPremium}
+                    />
+                </div>
+            )}
         </div>
     );
 };

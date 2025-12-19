@@ -467,10 +467,105 @@ async function migration010(pool: Pool): Promise<void> {
 }
 
 /**
+ * Migration 011: Add performance indexes
+ */
+async function migration011(pool: Pool): Promise<void> {
+  const migrationName = '011_add_performance_indexes';
+  
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
+  log.info(`Applying migration ${migrationName}...`);
+
+  const queries = [
+    // Индекс для поиска премиум пользователей
+    'CREATE INDEX IF NOT EXISTS idx_users_is_premium ON users(is_premium)',
+    
+    // Индекс для сортировки по дате создания
+    'CREATE INDEX IF NOT EXISTS idx_users_created_at ON users(created_at DESC)',
+    
+    // Индекс для обновления карт
+    'CREATE INDEX IF NOT EXISTS idx_charts_updated_at ON charts(updated_at DESC)',
+    
+    // Индекс для JSONB поля generated_content (для быстрого поиска timestamps)
+    `CREATE INDEX IF NOT EXISTS idx_users_generated_content_timestamps 
+     ON users USING gin ((generated_content->'timestamps'))`,
+    
+    // Индекс для synastry_cache
+    'CREATE INDEX IF NOT EXISTS idx_synastry_cache_updated ON synastry_cache(updated_at DESC)',
+    
+    // Индекс для regenerations по дате
+    'CREATE INDEX IF NOT EXISTS idx_regenerations_date ON regenerations(regeneration_date DESC)',
+    
+    // Обновление статистики таблиц для оптимизатора запросов
+    'ANALYZE users',
+    'ANALYZE charts',
+    'ANALYZE daily_horoscopes_cache',
+    'ANALYZE synastry_cache'
+  ];
+
+  for (const query of queries) {
+    await pool.query(query);
+  }
+
+  await markMigrationApplied(pool, migrationName);
+  log.info(`Migration ${migrationName} applied successfully`);
+}
+
+/**
+ * Migration 012: Create deep_dive_analyses table (move from JSONB to separate table)
+ */
+async function migration012(pool: Pool): Promise<void> {
+  const migrationName = '012_create_deep_dive_analyses_table';
+  
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
+  log.info(`Applying migration ${migrationName}...`);
+
+  // Ensure users table exists
+  const usersExists = await tableExists(pool, 'users');
+  if (!usersExists) {
+    throw new Error('Cannot create deep_dive_analyses table: users table does not exist.');
+  }
+
+  const createTable = `
+    CREATE TABLE IF NOT EXISTS deep_dive_analyses (
+      id SERIAL PRIMARY KEY,
+      user_id VARCHAR(255) NOT NULL,
+      topic VARCHAR(50) NOT NULL,
+      analysis TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT fk_deep_dive_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      UNIQUE(user_id, topic)
+    );
+    
+    CREATE INDEX IF NOT EXISTS idx_deep_dive_user_id ON deep_dive_analyses(user_id);
+    CREATE INDEX IF NOT EXISTS idx_deep_dive_user_topic ON deep_dive_analyses(user_id, topic);
+  `;
+
+  await pool.query(createTable);
+  
+  // Verify table was created
+  const exists = await tableExists(pool, 'deep_dive_analyses');
+  if (!exists) {
+    throw new Error(`Failed to create table 'deep_dive_analyses' - table does not exist after CREATE TABLE`);
+  }
+  
+  await markMigrationApplied(pool, migrationName);
+  log.info(`Migration ${migrationName} applied successfully`);
+}
+
+/**
  * Verify that all required tables exist
  */
 async function verifyTablesExist(pool: Pool): Promise<void> {
-  const requiredTables = ['migrations', 'users', 'charts', 'synastry_cache', 'forecasts_cache', 'regenerations', 'daily_horoscopes_cache'];
+  const requiredTables = ['migrations', 'users', 'charts', 'synastry_cache', 'forecasts_cache', 'regenerations', 'daily_horoscopes_cache', 'deep_dive_analyses'];
   const missingTables: string[] = [];
 
   for (const tableName of requiredTables) {
@@ -570,6 +665,8 @@ export async function runMigrations(): Promise<void> {
     await migration008(pool);
     await migration009(pool);
     await migration010(pool);
+    await migration011(pool);
+    await migration012(pool);
 
     // Verify that all tables were created successfully
     log.info('Verifying tables were created...');
