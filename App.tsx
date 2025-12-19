@@ -97,7 +97,7 @@ const App: React.FC = () => {
                     if (!storedProfile.language) storedProfile.language = 'ru';
                     if (!storedProfile.theme) storedProfile.theme = 'dark';
 
-                    const isAdmin = (OWNER_ID && String(tgId) === String(OWNER_ID)) || storedProfile.isAdmin || false;
+                    const isAdmin = OWNER_ID && String(tgId) === String(OWNER_ID) ? true : (storedProfile.isAdmin === true ? true : undefined);
                     const updatedProfile = { ...storedProfile, id: tgId, isAdmin };
                     
                     console.log('[App] User data found in database, preparing to show chart:', {
@@ -207,7 +207,7 @@ const App: React.FC = () => {
         const tg = (window as any).Telegram?.WebApp;
         const tgUser = tg?.initDataUnsafe?.user;
         const tgId = tgUser?.id;
-        const isAdmin = OWNER_ID && String(tgId) === String(OWNER_ID);
+        const isAdmin = OWNER_ID && String(tgId) === String(OWNER_ID) ? true : undefined;
         const fullProfile = { ...newProfile, id: tgId, isAdmin };
 
         console.log('[App] Full profile prepared:', {

@@ -9,6 +9,9 @@ const log = {
   info: (message: string, data?: any) => {
     console.log(`[API/astrology/natal-intro] ${message}`, data || '');
   },
+  warn: (message: string, data?: any) => {
+    console.warn(`[API/astrology/natal-intro] WARN: ${message}`, data || '');
+  },
   error: (message: string, error?: any) => {
     console.error(`[API/astrology/natal-intro] ERROR: ${message}`, error || '');
   },
@@ -164,18 +167,21 @@ async function handler(
       try {
         const existingProfile = await db.users.get(userId);
         if (existingProfile) {
+          const existingContent = existingProfile.generated_content && typeof existingProfile.generated_content === 'object' 
+            ? existingProfile.generated_content 
+            : {};
           const updatedContent = {
-            ...(existingProfile.generatedContent || {}),
+            ...existingContent,
             natalIntro: intro,
             timestamps: {
-              ...(existingProfile.generatedContent?.timestamps || {}),
+              ...(existingContent.timestamps || {}),
               natalIntroGenerated: Date.now()
             }
           };
 
           await db.users.set(userId, {
             ...existingProfile,
-            generatedContent: updatedContent
+            generated_content: updatedContent
           });
 
           log.info('Natal intro saved to user profile', { userId });

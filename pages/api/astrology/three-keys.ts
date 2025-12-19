@@ -200,7 +200,7 @@ async function generateThreeKeysWithAI(profile: any, chartData: any): Promise<an
   }
 }
 
-export default async function handler(
+async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
