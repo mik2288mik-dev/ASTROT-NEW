@@ -62,12 +62,12 @@ const translateWeather = (condition: string, language: string): string => {
 // Функция для получения иконки погоды
 const getWeatherIcon = (condition: string): string => {
     const lowerCondition = condition.toLowerCase();
-    if (lowerCondition.includes('rain') || lowerCondition.includes('дождь')) return '☂';
-    if (lowerCondition.includes('snow') || lowerCondition.includes('снег')) return '❄';
-    if (lowerCondition.includes('sun') || lowerCondition.includes('солн') || lowerCondition.includes('clear') || lowerCondition.includes('ясн')) return '☀';
-    if (lowerCondition.includes('cloud') || lowerCondition.includes('облач') || lowerCondition.includes('overcast') || lowerCondition.includes('пасмурно')) return '☁';
-    if (lowerCondition.includes('fog') || lowerCondition.includes('mist') || lowerCondition.includes('туман')) return '🌫';
-    return '🌤';
+    if (lowerCondition.includes('rain') || lowerCondition.includes('дождь')) return '';
+    if (lowerCondition.includes('snow') || lowerCondition.includes('снег')) return '';
+    if (lowerCondition.includes('sun') || lowerCondition.includes('солн') || lowerCondition.includes('clear') || lowerCondition.includes('ясн')) return '';
+    if (lowerCondition.includes('cloud') || lowerCondition.includes('облач') || lowerCondition.includes('overcast') || lowerCondition.includes('пасмурно')) return '';
+    if (lowerCondition.includes('fog') || lowerCondition.includes('mist') || lowerCondition.includes('туман')) return '';
+    return '';
 };
 
 // Функция для перевода фазы луны на русский

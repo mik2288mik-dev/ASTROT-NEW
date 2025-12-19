@@ -21,14 +21,14 @@ interface NatalChartProps {
  * TODO: Заменить на SVG иконки для лучшего качества и контроля стилей
  */
 const PLANET_ICONS: Record<string, string> = {
-    energy: '☉',      // Солнце - для энергии
-    love: '♀',        // Венера - для любви
-    career: '♃',      // Юпитер - для карьеры
-    personality: '☉', // Солнце - для личности
-    emotions: '☾',    // Луна - для эмоций
-    mind: '☿',        // Меркурий - для разума
-    weakness: '♄',    // Сатурн - для слабостей
-    karma: '♇'        // Плутон - для кармы
+    energy: '',      // Солнце - для энергии
+    love: '',        // Венера - для любви
+    career: '',      // Юпитер - для карьеры
+    personality: '', // Солнце - для личности
+    emotions: '',    // Луна - для эмоций
+    mind: '',        // Меркурий - для разума
+    weakness: '',    // Сатурн - для слабостей
+    karma: ''        // Плутон - для кармы
 };
 
 export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPremium }) => {
