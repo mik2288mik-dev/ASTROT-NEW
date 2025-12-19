@@ -24,7 +24,7 @@ async function main() {
     console.log(`📊 Database: ${host}:${port}/${database} (user: ${user})`);
     
     if (host.includes('railway.internal')) {
-      console.warn('⚠️  Warning: Using Railway internal hostname');
+      console.warn('Warning: Using Railway internal hostname');
       console.warn('   This may not be accessible from Docker containers outside Railway network');
       console.warn('   Consider using Railway public database URL instead');
     }

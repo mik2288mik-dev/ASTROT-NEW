@@ -90,7 +90,7 @@ function generateFallbackIntro(profile: any, chartData: any): string {
   const element = chartData.element || 'Fire';
   
   if (lang) {
-    return `**Привет, ${name}! 👋**
+    return `**Привет, ${name}!**
 
 Я изучила твою натальную карту, и вот что я вижу:
 
@@ -108,7 +108,7 @@ function generateFallbackIntro(profile: any, chartData: any): string {
 
 Хочешь узнать больше о своей личности, любви, карьере и предназначении? Активируй Premium!`;
   } else {
-    return `**Hi, ${name}! 👋**
+    return `**Hi, ${name}!**
 
 I've studied your natal chart, and here's what I see:
 

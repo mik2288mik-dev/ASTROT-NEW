@@ -33,7 +33,7 @@ export const PremiumPreview: React.FC<PremiumPreviewProps> = ({ onClose, onPurch
                 <div className="space-y-4 mb-8">
                     {features.map((f, i) => (
                         <div key={i} className="flex items-center gap-4 bg-astro-card p-3 rounded-lg border border-astro-border">
-                            <div className="w-8 h-8 rounded-full bg-astro-highlight/10 flex items-center justify-center text-astro-highlight">★</div>
+                            <div className="w-8 h-8 rounded-full bg-astro-highlight/10 flex items-center justify-center text-astro-highlight">*</div>
                             <div>
                                 <h4 className="text-astro-text text-sm font-bold">{f.title}</h4>
                                 <p className="text-astro-subtext text-xs">{f.desc}</p>

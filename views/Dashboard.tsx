@@ -268,7 +268,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
                             )}
                         </div>
                         <div className="flex-shrink-0 w-14 h-14 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-astro-highlight/20 to-astro-highlight/5 border-2 border-astro-highlight/40 flex items-center justify-center group-hover:scale-110 transition-all shadow-md group-hover:shadow-lg ml-3">
-                            <span className="text-3xl md:text-4xl text-astro-highlight opacity-90" style={{ filter: 'drop-shadow(0 2px 6px rgba(191, 161, 255, 0.3))' }}>☾</span>
+                            <span className="text-3xl md:text-4xl text-astro-highlight opacity-90" style={{ filter: 'drop-shadow(0 2px 6px rgba(191, 161, 255, 0.3))' }}>L</span>
                         </div>
                     </div>
                     <div className="text-xs text-astro-highlight font-medium mb-2">
@@ -311,7 +311,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
                         animate={{ x: [300, -500] }}
                         transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
                     >
-                        ★ {context.socialProof} ★
+                        {context.socialProof}
                     </motion.div>
                 </div>
             )}
