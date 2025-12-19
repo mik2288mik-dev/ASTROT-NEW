@@ -104,7 +104,10 @@ export interface NatalChartData {
 
 // Полное хранилище всех генераций пользователя
 export interface UserGeneratedContent {
-  // Три ключа (основа)
+  // НОВОЕ: Вступление натальной карты (бесплатное)
+  natalIntro?: string;
+  
+  // УСТАРЕЛО: Три ключа (оставлено для совместимости с существующими пользователями)
   threeKeys?: ThreeKeys;
   
   // Гороскопы (обновляются по расписанию)
@@ -112,13 +115,13 @@ export interface UserGeneratedContent {
   weeklyHoroscope?: WeeklyHoroscope;
   monthlyHoroscope?: MonthlyHoroscope;
   
-  // Deep Dive анализы (генерируются один раз)
+  // Deep Dive анализы - полные секции натальной карты (премиум)
   deepDiveAnalyses?: {
-    personality?: string;
-    love?: string;
-    career?: string;
-    weakness?: string;
-    karma?: string;
+    personality?: string;    // Личность и характер
+    love?: string;          // Любовь и отношения
+    career?: string;        // Карьера и самореализация
+    weakness?: string;      // Зоны роста и вызовы
+    karma?: string;         // Кармическая задача
   };
   
   // История синастрий (кэшируется по партнерам)
@@ -134,7 +137,8 @@ export interface UserGeneratedContent {
   
   // Временные метки для обновления
   timestamps: {
-    threeKeysGenerated?: number;
+    natalIntroGenerated?: number;
+    threeKeysGenerated?: number;  // Устарело, но оставлено
     dailyHoroscopeGenerated?: number;
     weeklyHoroscopeGenerated?: number;
     monthlyHoroscopeGenerated?: number;

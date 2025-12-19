@@ -1,7 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '../../../lib/db';
 import OpenAI from 'openai';
-import { SYSTEM_PROMPT_ASTRA, createThreeKeysPrompt, addLanguageInstruction, ThreeKeysAIResponse } from '../../../lib/prompts';
+import { SYSTEM_PROMPT_ASTRA, createFullNatalChartIntroPrompt, createThreeKeysPrompt, addLanguageInstruction, ThreeKeysAIResponse } from '../../../lib/prompts';
+import { withRateLimit, RATE_LIMIT_CONFIGS } from '../../../lib/rateLimit';
 
 // Logging utility
 const log = {
@@ -279,3 +280,6 @@ export default async function handler(
     });
   }
 }
+
+// Rate limiting: AI операции - 5 запросов в минуту для free
+export default withRateLimit(handler, RATE_LIMIT_CONFIGS.AI_FREE);

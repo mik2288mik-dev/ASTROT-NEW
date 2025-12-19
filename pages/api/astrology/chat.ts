@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
+import { withRateLimit, RATE_LIMIT_CONFIGS } from '../../../lib/rateLimit';
 
 // Logging utility
 const log = {
@@ -16,7 +17,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-export default async function handler(
+async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
@@ -113,3 +114,9 @@ export default async function handler(
     return res.status(200).json({ response: fallbackResponse });
   }
 }
+
+// Rate limiting: AI чат премиум функция - строгий лимит
+export default withRateLimit(handler, (req) => {
+  const isPremium = req.body?.profile?.isPremium;
+  return isPremium ? RATE_LIMIT_CONFIGS.AI_PREMIUM : RATE_LIMIT_CONFIGS.AI_FREE;
+});

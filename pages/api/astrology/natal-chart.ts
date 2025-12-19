@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { calculateNatalChart } from '../../../lib/swisseph-calculator';
 import { validateNatalChartInput, formatValidationErrors } from '../../../lib/validation';
+import { withRateLimit, RATE_LIMIT_CONFIGS } from '../../../lib/rateLimit';
 
 // Logging utility
 const log = {
@@ -14,7 +15,7 @@ const log = {
 
 // УДАЛЕНО: generateMockChart - больше не используем mock данные
 
-export default async function handler(
+async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
@@ -154,3 +155,6 @@ export default async function handler(
     });
   }
 }
+
+// Применяем rate limiting: 10 запросов в минуту для всех
+export default withRateLimit(handler, RATE_LIMIT_CONFIGS.FREE);

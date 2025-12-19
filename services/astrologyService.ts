@@ -141,6 +141,63 @@ export const calculateNatalChart = async (profile: UserProfile): Promise<NatalCh
   }
 };
 
+/**
+ * Get Natal Chart Introduction (новый формат вместо "трех ключей")
+ */
+export const getNatalIntro = async (profile: UserProfile, chartData: NatalChartData): Promise<string> => {
+  const url = `${API_BASE_URL}/api/astrology/natal-intro`;
+  log.info('[getNatalIntro] Starting request', { userId: profile.id });
+
+  try {
+    log.info(`[getNatalIntro] Sending POST request to: ${url}`);
+    const startTime = Date.now();
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ profile, chartData })
+    });
+
+    const duration = Date.now() - startTime;
+    log.info(`[getNatalIntro] Response received in ${duration}ms`, {
+      status: response.status,
+      ok: response.ok
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unable to read error response');
+      log.error(`[getNatalIntro] Server returned error status ${response.status}`, {
+        errorBody: errorText
+      });
+      throw new Error(`Server error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const intro = data.intro;
+
+    log.info('[getNatalIntro] Natal intro received', {
+      introLength: intro?.length || 0
+    });
+
+    return intro;
+  } catch (error: any) {
+    log.error('[getNatalIntro] Error occurred', {
+      error: error.message,
+      stack: error.stack
+    });
+    
+    // Fallback
+    const fallback = profile.language === 'ru' 
+      ? `Привет, ${profile.name || 'друг'}! Я изучила твою натальную карту и готова рассказать о тебе много интересного. ✨`
+      : `Hi, ${profile.name || 'friend'}! I've studied your natal chart and I'm ready to tell you many interesting things. ✨`;
+    
+    log.info('[getNatalIntro] Using fallback intro');
+    return fallback;
+  }
+};
+
+/**
+ * УСТАРЕЛО: Get Three Keys (оставлено для совместимости)
+ */
 export const getThreeKeys = async (profile: UserProfile, chartData: NatalChartData): Promise<ThreeKeys> => {
   const url = `${API_BASE_URL}/api/astrology/three-keys`;
   log.info('[getThreeKeys] Starting request', { userId: profile.id });

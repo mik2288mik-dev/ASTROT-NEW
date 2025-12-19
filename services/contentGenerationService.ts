@@ -1,5 +1,5 @@
 import { UserProfile, NatalChartData, UserGeneratedContent, DailyHoroscope, ThreeKeys } from "../types";
-import { getThreeKeys, getDailyHoroscope, getDeepDiveAnalysis } from "./astrologyService";
+import { getThreeKeys, getNatalIntro, getDailyHoroscope, getDeepDiveAnalysis } from "./astrologyService";
 import { saveProfile } from "./storageService";
 
 // Logging utility
@@ -107,49 +107,28 @@ export const generateAllContent = async (profile: UserProfile, chartData: NatalC
   };
 
   try {
-    // 1. Генерируем три ключа (если еще нет)
-    log.info('[generateAllContent] Generating Three Keys...');
+    // 1. НОВОЕ: Генерируем вступление натальной карты (бесплатное)
+    log.info('[generateAllContent] Generating Natal Intro...');
     try {
-      const threeKeys = await getThreeKeys(profile, chartData);
-      log.info('[generateAllContent] Three Keys received from API', {
-        hasKey1: !!threeKeys?.key1,
-        hasKey2: !!threeKeys?.key2,
-        hasKey3: !!threeKeys?.key3,
-        key1TextLength: threeKeys?.key1?.text?.length || 0,
-        key2TextLength: threeKeys?.key2?.text?.length || 0,
-        key3TextLength: threeKeys?.key3?.text?.length || 0,
-        key1Text: threeKeys?.key1?.text?.substring(0, 50) || 'empty',
-        key2Text: threeKeys?.key2?.text?.substring(0, 50) || 'empty',
-        key3Text: threeKeys?.key3?.text?.substring(0, 50) || 'empty'
+      const intro = await getNatalIntro(profile, chartData);
+      log.info('[generateAllContent] Natal Intro received from API', {
+        introLength: intro?.length || 0
       });
       
-      // Проверяем что threeKeys не пустой
-      if (!threeKeys || !threeKeys.key1 || !threeKeys.key2 || !threeKeys.key3) {
-        log.error('[generateAllContent] Three Keys structure is invalid', {
-          hasThreeKeys: !!threeKeys,
-          hasKey1: !!threeKeys?.key1,
-          hasKey2: !!threeKeys?.key2,
-          hasKey3: !!threeKeys?.key3
-        });
-        throw new Error('Invalid threeKeys structure received');
+      if (intro && intro.length > 50) {
+        generatedContent.natalIntro = intro;
+        generatedContent.timestamps.natalIntroGenerated = Date.now();
+        log.info('[generateAllContent] Natal Intro generated successfully');
+      } else {
+        throw new Error('Natal intro too short or empty');
       }
-      
-      // Проверяем что тексты не пустые
-      if (!threeKeys.key1.text || !threeKeys.key2.text || !threeKeys.key3.text) {
-        log.error('[generateAllContent] Three Keys texts are empty', {
-          key1Text: threeKeys.key1.text,
-          key2Text: threeKeys.key2.text,
-          key3Text: threeKeys.key3.text
-        });
-        throw new Error('Empty threeKeys texts received');
-      }
-      
-      generatedContent.threeKeys = threeKeys;
-      generatedContent.timestamps.threeKeysGenerated = Date.now();
-      log.info('[generateAllContent] Three Keys generated successfully and validated');
     } catch (error) {
-      log.error('[generateAllContent] Failed to generate Three Keys', error);
-      // НЕ добавляем пустые threeKeys в generatedContent
+      log.error('[generateAllContent] Failed to generate Natal Intro', error);
+      // Используем fallback
+      generatedContent.natalIntro = profile.language === 'ru'
+        ? `Привет, ${profile.name || 'друг'}! Я изучила твою натальную карту. ✨`
+        : `Hi, ${profile.name || 'friend'}! I've studied your natal chart. ✨`;
+      generatedContent.timestamps.natalIntroGenerated = Date.now();
     }
 
     // 2. Генерируем только ежедневный гороскоп

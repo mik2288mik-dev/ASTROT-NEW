@@ -3,13 +3,15 @@ import { db } from '../../../lib/db';
 import OpenAI from 'openai';
 import { 
   SYSTEM_PROMPT_ASTRA, 
-  createThreeKeysPrompt, 
-  createSoulPassportPrompt,
-  createFullNatalChartPrompt,
-  createBriefSynastryPrompt,
-  createFullSynastryPrompt,
+  createFullNatalChartIntroPrompt,
+  createPersonalityAnalysisPrompt,
+  createLoveAnalysisPrompt,
+  createCareerAnalysisPrompt,
+  createChallengesAnalysisPrompt,
+  createKarmaAnalysisPrompt,
   addLanguageInstruction 
 } from '../../../lib/prompts';
+import { withRateLimit, RATE_LIMIT_CONFIGS } from '../../../lib/rateLimit';
 
 // Logging utility
 const log = {
@@ -87,48 +89,15 @@ async function checkRegenerationLimits(userId: string, contentType: string, isPr
 }
 
 /**
- * Регенерировать три ключа
+ * Регенерировать вступление натальной карты
  */
-async function regenerateThreeKeys(profile: any, chartData: any): Promise<any> {
+async function regenerateNatalIntro(profile: any, chartData: any): Promise<string> {
   if (!openai) {
     throw new Error('OpenAI not configured');
   }
 
   const lang = profile?.language === 'ru';
-  const userPrompt = createThreeKeysPrompt(chartData, profile);
-  const promptWithLang = addLanguageInstruction(userPrompt, lang ? 'ru' : 'en');
-
-  const completion = await openai.chat.completions.create({
-    model: 'gpt-4o',
-    messages: [
-      { role: 'system', content: SYSTEM_PROMPT_ASTRA },
-      { role: 'user', content: promptWithLang }
-    ],
-    response_format: { type: "json_object" },
-    temperature: 0.85, // Немного выше для разнообразия
-    max_tokens: 2000,
-  });
-
-  const responseText = completion.choices[0]?.message?.content || '{}';
-  const result = JSON.parse(responseText);
-  
-  if (!result.key1 || !result.key2 || !result.key3) {
-    throw new Error('Invalid response structure from OpenAI');
-  }
-  
-  return result;
-}
-
-/**
- * Регенерировать краткое описание (soul passport)
- */
-async function regenerateNatalSummary(profile: any, chartData: any): Promise<string> {
-  if (!openai) {
-    throw new Error('OpenAI not configured');
-  }
-
-  const lang = profile?.language === 'ru';
-  const userPrompt = createSoulPassportPrompt(chartData, profile);
+  const userPrompt = createFullNatalChartIntroPrompt(chartData, profile);
   const promptWithLang = addLanguageInstruction(userPrompt, lang ? 'ru' : 'en');
 
   const completion = await openai.chat.completions.create({
@@ -145,15 +114,37 @@ async function regenerateNatalSummary(profile: any, chartData: any): Promise<str
 }
 
 /**
- * Регенерировать полный разбор натальной карты
+ * Регенерировать секцию Deep Dive
  */
-async function regenerateFullNatal(profile: any, chartData: any): Promise<string> {
+async function regenerateDeepDive(profile: any, chartData: any, topic: string): Promise<string> {
   if (!openai) {
     throw new Error('OpenAI not configured');
   }
 
   const lang = profile?.language === 'ru';
-  const userPrompt = createFullNatalChartPrompt(chartData, profile);
+  
+  // Выбираем промпт в зависимости от темы
+  let userPrompt: string;
+  switch(topic) {
+    case 'personality':
+      userPrompt = createPersonalityAnalysisPrompt(chartData, profile);
+      break;
+    case 'love':
+      userPrompt = createLoveAnalysisPrompt(chartData, profile);
+      break;
+    case 'career':
+      userPrompt = createCareerAnalysisPrompt(chartData, profile);
+      break;
+    case 'weakness':
+      userPrompt = createChallengesAnalysisPrompt(chartData, profile);
+      break;
+    case 'karma':
+      userPrompt = createKarmaAnalysisPrompt(chartData, profile);
+      break;
+    default:
+      throw new Error(`Unknown topic: ${topic}`);
+  }
+
   const promptWithLang = addLanguageInstruction(userPrompt, lang ? 'ru' : 'en');
 
   const completion = await openai.chat.completions.create({
@@ -163,7 +154,7 @@ async function regenerateFullNatal(profile: any, chartData: any): Promise<string
       { role: 'user', content: promptWithLang }
     ],
     temperature: 0.85,
-    max_tokens: 3000,
+    max_tokens: 2000,
   });
 
   return completion.choices[0]?.message?.content || '';
@@ -256,34 +247,49 @@ export default async function handler(
     
     try {
       switch (contentType) {
-        case 'three_keys':
+        case 'natal_intro':
           if (!chartData) {
-            throw new Error('chartData required for three_keys regeneration');
+            throw new Error('chartData required for natal_intro regeneration');
           }
-          regeneratedData = await regenerateThreeKeys(profile, chartData);
-          await db.cachedTexts.setThreeKeys(userId, regeneratedData);
+          regeneratedData = await regenerateNatalIntro(profile, chartData);
+          
+          // Сохраняем в generatedContent
+          const existingProfile = await db.users.get(userId);
+          if (existingProfile) {
+            await db.users.set(userId, {
+              ...existingProfile,
+              generatedContent: {
+                ...(existingProfile.generatedContent || {}),
+                natalIntro: regeneratedData,
+                timestamps: {
+                  ...(existingProfile.generatedContent?.timestamps || {}),
+                  natalIntroGenerated: Date.now()
+                }
+              }
+            });
+          }
           break;
 
-        case 'natal_summary':
+        case 'deep_dive_personality':
+        case 'deep_dive_love':
+        case 'deep_dive_career':
+        case 'deep_dive_weakness':
+        case 'deep_dive_karma':
           if (!chartData) {
-            throw new Error('chartData required for natal_summary regeneration');
+            throw new Error('chartData required for deep_dive regeneration');
           }
-          regeneratedData = await regenerateNatalSummary(profile, chartData);
-          await db.cachedTexts.setNatalSummary(userId, regeneratedData);
-          break;
-
-        case 'full_natal':
-          if (!chartData) {
-            throw new Error('chartData required for full_natal regeneration');
-          }
-          regeneratedData = await regenerateFullNatal(profile, chartData);
-          await db.cachedTexts.setFullNatal(userId, regeneratedData);
+          
+          const topic = contentType.replace('deep_dive_', '');
+          regeneratedData = await regenerateDeepDive(profile, chartData, topic);
+          
+          // Сохраняем в таблицу deep_dive_analyses
+          await db.deepDiveAnalyses.set(userId, topic, regeneratedData);
           break;
 
         default:
           return res.status(400).json({
             error: 'Invalid content type',
-            message: `Unsupported content type: ${contentType}`
+            message: `Unsupported content type: ${contentType}. Supported: natal_intro, deep_dive_personality, deep_dive_love, deep_dive_career, deep_dive_weakness, deep_dive_karma`
           });
       }
 
@@ -337,3 +343,6 @@ export default async function handler(
     });
   }
 }
+
+// Применяем rate limiting
+export default withRateLimit(handler, RATE_LIMIT_CONFIGS.AI_PREMIUM);

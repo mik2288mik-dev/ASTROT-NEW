@@ -964,6 +964,84 @@ export const db = {
     },
   },
 
+  // Deep dive analyses operations
+  deepDiveAnalyses: {
+    async get(userId: string, topic: string) {
+      log.info(`[DB] Getting deep dive analysis for user: ${userId}, topic: ${topic}`);
+      
+      if (!DATABASE_URL) return null;
+
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          'SELECT analysis, updated_at FROM deep_dive_analyses WHERE user_id = $1 AND topic = $2',
+          [userId, topic]
+        );
+        
+        if (result.rows.length === 0) {
+          return null;
+        }
+
+        return {
+          analysis: result.rows[0].analysis,
+          updatedAt: result.rows[0].updated_at
+        };
+      } catch (error: any) {
+        log.error('[DB] Error getting deep dive analysis', { error: error.message, userId, topic });
+        throw error;
+      }
+    },
+
+    async set(userId: string, topic: string, analysis: string) {
+      log.info(`[DB] Setting deep dive analysis for user: ${userId}, topic: ${topic}`);
+      
+      if (!DATABASE_URL) {
+        throw new Error('DATABASE_URL is not configured');
+      }
+
+      try {
+        const dbPool = getPool();
+        await dbPool.query(
+          `INSERT INTO deep_dive_analyses (user_id, topic, analysis, updated_at)
+           VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
+           ON CONFLICT (user_id, topic) DO UPDATE SET
+             analysis = EXCLUDED.analysis,
+             updated_at = CURRENT_TIMESTAMP`,
+          [userId, topic, analysis]
+        );
+        
+        return { success: true };
+      } catch (error: any) {
+        log.error('[DB] Error setting deep dive analysis', { error: error.message, userId, topic });
+        throw error;
+      }
+    },
+
+    async getAll(userId: string) {
+      log.info(`[DB] Getting all deep dive analyses for user: ${userId}`);
+      
+      if (!DATABASE_URL) return {};
+
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          'SELECT topic, analysis, updated_at FROM deep_dive_analyses WHERE user_id = $1',
+          [userId]
+        );
+        
+        const analyses: Record<string, string> = {};
+        result.rows.forEach(row => {
+          analyses[row.topic] = row.analysis;
+        });
+        
+        return analyses;
+      } catch (error: any) {
+        log.error('[DB] Error getting all deep dive analyses', { error: error.message, userId });
+        return {};
+      }
+    }
+  },
+
   // Daily horoscopes cache operations (by zodiac sign)
   dailyHoroscopesCache: {
     async get(zodiacSign: string, date: string) {
