@@ -5,7 +5,6 @@ import { getOrGenerateDeepDive, getOrGenerateHoroscope } from '../services/conte
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { Loading } from '../components/ui/Loading';
 import { RegenerateButton } from '../components/RegenerateButton';
-import { KeyBlock } from '../components/NatalChart/KeyBlock';
 import { AnalysisModal } from '../components/NatalChart/AnalysisModal';
 
 interface NatalChartProps {
@@ -15,20 +14,137 @@ interface NatalChartProps {
 }
 
 /**
- * Иконки планет для блоков натальной карты
- * 
- * Используются Unicode символы как временное решение.
- * TODO: Заменить на SVG иконки для лучшего качества и контроля стилей
+ * Премиальные SVG иконки планет для разделов натальной карты
  */
-const PLANET_ICONS: Record<string, string> = {
-    energy: '',      // Солнце - для энергии
-    love: '',        // Венера - для любви
-    career: '',      // Юпитер - для карьеры
-    personality: '', // Солнце - для личности
-    emotions: '',    // Луна - для эмоций
-    mind: '',        // Меркурий - для разума
-    weakness: '',    // Сатурн - для слабостей
-    karma: ''        // Плутон - для кармы
+const PlanetIcon: React.FC<{ type: string; className?: string }> = ({ type, className = '' }) => {
+    const icons: Record<string, JSX.Element> = {
+        personality: (
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" fill="none" opacity="0.3"/>
+                <circle cx="12" cy="12" r="6" fill="currentColor" opacity="0.8"/>
+                <circle cx="12" cy="12" r="2" fill="currentColor"/>
+                <path d="M12 2 L12 6 M12 18 L12 22 M2 12 L6 12 M18 12 L22 12" stroke="currentColor" strokeWidth="1.5" opacity="0.5"/>
+            </svg>
+        ),
+        love: (
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" 
+                      stroke="currentColor" strokeWidth="1.5" fill="currentColor" opacity="0.9"/>
+            </svg>
+        ),
+        career: (
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+                <path d="M12 2 L15 8 L22 9 L17 14 L18 21 L12 18 L6 21 L7 14 L2 9 L9 8 Z" 
+                      stroke="currentColor" strokeWidth="1.5" fill="currentColor" opacity="0.9"/>
+            </svg>
+        ),
+        weakness: (
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" fill="none" opacity="0.3"/>
+                <path d="M8 12 L16 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                <path d="M12 8 L12 16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+        ),
+        karma: (
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" fill="none" opacity="0.3"/>
+                <path d="M12 2 A10 10 0 0 1 22 12" stroke="currentColor" strokeWidth="1.5" fill="none" opacity="0.6"/>
+                <path d="M12 22 A10 10 0 0 1 2 12" stroke="currentColor" strokeWidth="1.5" fill="none" opacity="0.6"/>
+                <circle cx="12" cy="12" r="3" fill="currentColor" opacity="0.8"/>
+            </svg>
+        ),
+        forecast: (
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+                <path d="M12 2 L15 8 L22 9 L17 14 L18 21 L12 18 L6 21 L7 14 L2 9 L9 8 Z" 
+                      stroke="currentColor" strokeWidth="1.5" fill="currentColor" opacity="0.9"/>
+                <circle cx="12" cy="12" r="2" fill="currentColor" opacity="0.3"/>
+            </svg>
+        )
+    };
+    
+    return icons[type] || icons.personality;
+};
+
+/**
+ * Компонент карточки раздела натальной карты
+ */
+const SectionCard: React.FC<{
+    title: string;
+    iconType: string;
+    isPremium: boolean;
+    language: 'ru' | 'en';
+    onClick: () => void;
+    index: number;
+}> = ({ title, iconType, isPremium, language, onClick, index }) => {
+    return (
+        <motion.button
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.1, duration: 0.4 }}
+            onClick={onClick}
+            disabled={!isPremium}
+            className={`
+                group relative w-full overflow-hidden rounded-2xl p-6
+                border-2 transition-all duration-300 text-left
+                ${isPremium 
+                    ? 'bg-gradient-to-br from-astro-card via-astro-card to-astro-bg border-astro-border hover:border-astro-highlight hover:shadow-xl hover:shadow-astro-highlight/20 cursor-pointer' 
+                    : 'bg-astro-card/50 border-astro-border/30 cursor-not-allowed opacity-60'
+                }
+            `}
+        >
+            {/* Декоративный градиентный фон */}
+            <div className="absolute inset-0 bg-gradient-to-br from-astro-highlight/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            
+            {/* Содержимое карточки */}
+            <div className="relative z-10 flex items-center gap-5">
+                {/* Иконка планеты */}
+                <div className={`
+                    flex-shrink-0 w-16 h-16 rounded-2xl 
+                    flex items-center justify-center
+                    transition-all duration-300
+                    ${isPremium 
+                        ? 'bg-gradient-to-br from-astro-highlight/20 to-astro-highlight/5 group-hover:scale-110 group-hover:rotate-6' 
+                        : 'bg-astro-bg/50'
+                    }
+                `}>
+                    <PlanetIcon 
+                        type={iconType} 
+                        className={`w-8 h-8 ${isPremium ? 'text-astro-highlight' : 'text-astro-subtext'}`}
+                    />
+                </div>
+                
+                {/* Текст */}
+                <div className="flex-1 min-w-0">
+                    <h3 className="text-lg font-semibold text-astro-text mb-1 group-hover:text-astro-highlight transition-colors">
+                        {title}
+                    </h3>
+                    {!isPremium && (
+                        <p className="text-xs text-astro-subtext uppercase tracking-wider">
+                            {language === 'ru' ? 'Premium доступ' : 'Premium access'}
+                        </p>
+                    )}
+                </div>
+                
+                {/* Стрелка */}
+                {isPremium && (
+                    <div className="flex-shrink-0 text-astro-subtext group-hover:text-astro-highlight group-hover:translate-x-1 transition-all">
+                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                    </div>
+                )}
+            </div>
+            
+            {/* Блокирующий overlay для free пользователей */}
+            {!isPremium && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                    <svg className="w-6 h-6 text-astro-subtext" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                </div>
+            )}
+        </motion.button>
+    );
 };
 
 export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPremium }) => {
@@ -36,7 +152,6 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
     const [analysisResult, setAnalysisResult] = useState<string>("");
     const [loadingAnalysis, setLoadingAnalysis] = useState(false);
 
-    // If no data or no stored keys, show loading or basic state
     if (!data) return <Loading />;
 
     const handleDeepDive = async (topicKey: string) => {
@@ -45,7 +160,6 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
             return;
         }
         
-        // Мапим ключи из констант на наши ключи в кэше
         const topicMap: Record<string, 'personality' | 'love' | 'career' | 'weakness' | 'karma'> = {
             'section_personality': 'personality',
             'section_love': 'love',
@@ -62,12 +176,11 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
         
         const topicTitle = getText(profile.language, `chart.${topicKey}`);
         
-        // Проверяем кэш ПЕРЕД установкой loading состояния
         if (profile.generatedContent?.deepDiveAnalyses?.[topic]) {
             console.log(`[NatalChart] Using cached Deep Dive for ${topic}`);
             setActiveAnalysis(topicTitle);
             setAnalysisResult(profile.generatedContent.deepDiveAnalyses[topic]);
-            return; // Не показываем loading, сразу показываем результат
+            return;
         }
         
         setActiveAnalysis(topicTitle);
@@ -75,12 +188,11 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
         setAnalysisResult("");
         
         try {
-            // Используем новый сервис с кэшированием
             const result = await getOrGenerateDeepDive(profile, data, topic);
             setAnalysisResult(result);
         } catch (e) {
             console.error('[NatalChart] Error loading Deep Dive:', e);
-            setAnalysisResult("The stars are silent.");
+            setAnalysisResult(profile.language === 'ru' ? 'Звёзды молчат.' : 'The stars are silent.');
         } finally {
             setLoadingAnalysis(false);
         }
@@ -93,14 +205,13 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
         }
         const title = getText(profile.language, 'chart.forecast_day');
 
-        // Проверяем кэш ПЕРЕД установкой loading состояния
         const cachedText = profile.generatedContent?.dailyHoroscope?.content || null;
 
         if (cachedText) {
             console.log('[NatalChart] Using cached daily forecast');
             setActiveAnalysis(`${getText(profile.language, 'chart.forecast_title')} - ${title}`);
             setAnalysisResult(cachedText);
-            return; // Не показываем loading, сразу показываем результат
+            return;
         }
 
         setActiveAnalysis(`${getText(profile.language, 'chart.forecast_title')} - ${title}`);
@@ -113,21 +224,17 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
             setAnalysisResult(text);
         } catch(e) {
             console.error('[NatalChart] Error loading forecast:', e);
-            setAnalysisResult("Cosmic connection error.");
+            setAnalysisResult(profile.language === 'ru' ? 'Ошибка космического соединения.' : 'Cosmic connection error.');
         } finally {
             setLoadingAnalysis(false);
         }
     };
 
-    // НОВАЯ ЛОГИКА: Используем вступление натальной карты вместо "трех ключей"
-    // Вступительный текст для натальной карты (intro)
     const natalIntroSource = profile.generatedContent?.natalIntro;
-    
     const [natalIntro, setNatalIntro] = useState<string>(
         natalIntroSource || getText(profile.language, 'chart.loading_intro')
     );
 
-    // Обновляем intro при изменении профиля
     React.useEffect(() => {
         const newIntro = profile.generatedContent?.natalIntro;
         if (newIntro && newIntro !== natalIntro) {
@@ -136,54 +243,60 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
         }
     }, [profile.generatedContent?.natalIntro]);
 
-    // Premium Pillars
-    const pillars = [
-        'section_personality',
-        'section_love',
-        'section_career',
-        'section_weakness',
-        'section_karma'
+    const sections = [
+        { key: 'section_personality', icon: 'personality' },
+        { key: 'section_love', icon: 'love' },
+        { key: 'section_career', icon: 'career' },
+        { key: 'section_weakness', icon: 'weakness' },
+        { key: 'section_karma', icon: 'karma' }
     ];
 
-    // Animation variants
-    const container: Variants = {
-        hidden: { opacity: 0 },
-        show: {
-            opacity: 1,
-            transition: {
-                staggerChildren: 0.2
-            }
-        }
-    };
-
-    const item: Variants = {
-        hidden: { opacity: 0, y: 10 },
-        show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } }
-    };
-
     return (
-        <div className="min-h-screen px-4 py-6 max-w-3xl mx-auto pb-32">
-            
-            {/* Главный заголовок страницы */}
-            <h1 className="text-xl font-semibold text-astro-text text-center mb-2 leading-tight">
-                {getText(profile.language, 'chart.title')}
-            </h1>
-            
-            <p className="text-sm text-astro-subtext text-center mb-8">
-                {profile.name ? `${profile.name}, ${profile.birthDate}` : profile.birthDate}
-            </p>
-
-            {/* ВСТУПЛЕНИЕ: Общий портрет личности (FREE) */}
-            <motion.div 
-                initial={{ opacity: 0, y: 10 }}
+        <div className="min-h-screen px-4 py-6 max-w-4xl mx-auto pb-32">
+            {/* Заголовок страницы */}
+            <motion.div
+                initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
-                className="bg-gradient-to-br from-astro-card to-astro-bg rounded-2xl p-6 border border-astro-border mb-8 shadow-lg"
+                className="text-center mb-8"
             >
-                <div className="prose prose-sm max-w-none">
+                <h1 className="text-2xl md:text-3xl font-bold text-astro-text mb-2 font-serif">
+                    {getText(profile.language, 'chart.title')}
+                </h1>
+                <p className="text-sm text-astro-subtext">
+                    {profile.name ? `${profile.name}, ${profile.birthDate}` : profile.birthDate}
+                </p>
+            </motion.div>
+
+            {/* ВСТУПЛЕНИЕ: Общий портрет личности */}
+            <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.1 }}
+                className="relative bg-gradient-to-br from-astro-card via-astro-card to-astro-bg rounded-3xl p-8 md:p-10 border border-astro-border mb-10 shadow-xl overflow-hidden"
+            >
+                {/* Декоративные элементы */}
+                <div className="absolute top-0 right-0 w-64 h-64 bg-astro-highlight/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+                <div className="absolute bottom-0 left-0 w-48 h-48 bg-astro-highlight/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
+                
+                <div className="relative z-10">
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-astro-highlight/20 to-astro-highlight/5 flex items-center justify-center">
+                            <PlanetIcon type="personality" className="w-6 h-6 text-astro-highlight" />
+                        </div>
+                        <h2 className="text-lg font-semibold text-astro-text">
+                            {profile.language === 'ru' ? 'Твой космический портрет' : 'Your cosmic portrait'}
+                        </h2>
+                    </div>
+                    
                     <div 
-                        className="text-[15px] text-astro-text leading-relaxed whitespace-pre-line"
-                        dangerouslySetInnerHTML={{ __html: natalIntro.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }}
+                        className="text-[16px] md:text-[17px] text-astro-text leading-relaxed space-y-4 prose prose-lg max-w-none"
+                        style={{ lineHeight: '1.75' }}
+                        dangerouslySetInnerHTML={{ 
+                            __html: natalIntro
+                                .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-astro-highlight">$1</strong>')
+                                .replace(/\n/g, '<br/>')
+                        }} 
                     />
                 </div>
             </motion.div>
@@ -191,100 +304,121 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
             {/* FREE USER CTA */}
             {!profile.isPremium && (
                 <motion.div 
-                    initial={{ opacity: 0 }} 
-                    animate={{ opacity: 1 }} 
-                    transition={{ delay: 0.5 }}
-                    className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-2xl p-6 border border-purple-500/30 text-center space-y-4 mb-8"
+                    initial={{ opacity: 0, scale: 0.95 }} 
+                    animate={{ opacity: 1, scale: 1 }} 
+                    transition={{ delay: 0.3, duration: 0.4 }}
+                    className="relative bg-gradient-to-r from-purple-500/20 via-pink-500/20 to-purple-500/20 rounded-3xl p-8 border-2 border-purple-500/30 text-center mb-10 overflow-hidden"
                 >
-                    <h3 className="text-lg font-semibold text-astro-text">
-                        {profile.language === 'ru' ? 'Хочешь узнать больше?' : 'Want to know more?'}
-                    </h3>
-                    <p className="text-[15px] text-astro-text leading-relaxed">
-                        {profile.language === 'ru' 
-                            ? 'Полный разбор карты с глубокими анализами доступен в Premium' 
-                            : 'Full chart analysis with deep insights available in Premium'}
-                    </p>
-                    <button 
-                        onClick={requestPremium}
-                        className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-8 py-3 rounded-full text-sm font-semibold hover:opacity-90 transition-opacity shadow-lg"
-                    >
-                        {getText(profile.language, 'hook.cta_button')}
-                    </button>
+                    <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-transparent animate-pulse" />
+                    <div className="relative z-10 space-y-4">
+                        <h3 className="text-xl font-bold text-astro-text">
+                            {profile.language === 'ru' ? 'Раскрой всю свою карту' : 'Unlock your full chart'}
+                        </h3>
+                        <p className="text-[15px] text-astro-text/90 leading-relaxed max-w-2xl mx-auto">
+                            {profile.language === 'ru' 
+                                ? 'Получи глубокие анализы по всем разделам, персональные прогнозы и кармические инсайты' 
+                                : 'Get deep insights into all sections, personal forecasts and karmic insights'}
+                        </p>
+                        <button 
+                            onClick={requestPremium}
+                            className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-10 py-4 rounded-full text-base font-semibold hover:opacity-90 transition-all shadow-lg hover:shadow-xl hover:scale-105"
+                        >
+                            {getText(profile.language, 'hook.cta_button')}
+                        </button>
+                    </div>
                 </motion.div>
             )}
 
-            {/* ПОЛНЫЕ РАЗДЕЛЫ НАТАЛЬНОЙ КАРТЫ */}
-            <div className="space-y-3">
-                <h2 className="text-base font-semibold text-astro-text mb-4">
-                    {profile.language === 'ru' ? 'Разделы натальной карты' : 'Natal Chart Sections'}
-                </h2>
+            {/* РАЗДЕЛЫ НАТАЛЬНОЙ КАРТЫ */}
+            <div className="mb-12">
+                <motion.h2 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.4 }}
+                    className="text-xl font-semibold text-astro-text mb-6 text-center"
+                >
+                    {profile.language === 'ru' ? 'Глубокий анализ' : 'Deep Analysis'}
+                </motion.h2>
 
-                <div className="space-y-3 max-w-2xl mx-auto">
-                    {pillars.map((key, index) => {
-                        const fullText = getText(profile.language, `chart.${key}`);
-                        
-                        return (
-                            <button
-                                key={key}
-                                onClick={() => handleDeepDive(key)}
-                                disabled={!profile.isPremium}
-                                className={`w-full bg-astro-card rounded-xl p-4 border transition-all text-left relative ${
-                                    profile.isPremium 
-                                        ? 'border-astro-border hover:border-astro-highlight hover:shadow-lg cursor-pointer group' 
-                                        : 'border-astro-border/50 cursor-not-allowed opacity-60'
-                                }`}
-                            >
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex flex-col">
-                                            <span className="text-[15px] font-medium text-astro-text">
-                                                {fullText}
-                                            </span>
-                                            {!profile.isPremium && (
-                                                <span className="text-xs text-astro-subtext mt-0.5">
-                                                    {profile.language === 'ru' ? 'Premium доступ' : 'Premium access'}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-                                    {profile.isPremium ? (
-                                        <span className="text-astro-subtext text-sm group-hover:text-astro-highlight transition-colors">
-                                            {profile.language === 'ru' ? 'Читать →' : 'Read →'}
-                                        </span>
-                                    ) : (
-                                        <span className="text-sm text-astro-subtext">Locked</span>
-                                    )}
-                                </div>
-                            </button>
-                        );
-                    })}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {sections.map((section, index) => (
+                        <SectionCard
+                            key={section.key}
+                            title={getText(profile.language, `chart.${section.key}`)}
+                            iconType={section.icon}
+                            isPremium={profile.isPremium}
+                            language={profile.language}
+                            onClick={() => handleDeepDive(section.key)}
+                            index={index}
+                        />
+                    ))}
                 </div>
             </div>
 
-            {/* PREMIUM: Прогнозы */}
-            <div className="mt-12">
-                <h2 className="text-sm font-normal text-astro-text text-center mb-6" style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif', fontWeight: 400 }}>
+            {/* ПРОГНОЗЫ */}
+            <div className="mb-12">
+                <motion.h2 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.6 }}
+                    className="text-xl font-semibold text-astro-text mb-6 text-center"
+                >
                     {getText(profile.language, 'chart.forecast_title')}
-                </h2>
+                </motion.h2>
 
-                <div className="grid grid-cols-1 gap-3 md:gap-4 max-w-2xl mx-auto">
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.7 }}
+                >
                     <button
                         onClick={handleForecast}
-                        className="bg-astro-card rounded-xl p-4 md:p-5 border border-astro-border hover:border-astro-highlight transition-all hover:shadow-lg relative group"
+                        disabled={!profile.isPremium}
+                        className={`
+                            w-full relative overflow-hidden rounded-2xl p-8 border-2 transition-all duration-300
+                            ${profile.isPremium 
+                                ? 'bg-gradient-to-br from-astro-card via-astro-card to-astro-bg border-astro-border hover:border-astro-highlight hover:shadow-xl hover:shadow-astro-highlight/20 cursor-pointer' 
+                                : 'bg-astro-card/50 border-astro-border/30 cursor-not-allowed opacity-60'
+                            }
+                        `}
                     >
-                        <div className="text-sm md:text-base font-medium text-astro-text text-center">
-                            <div>{getText(profile.language, 'chart.forecast_day')}</div>
-                            {!profile.isPremium && (
-                                <div className="flex items-center justify-center gap-1 mt-1.5">
-                                    <span className="text-xs md:text-sm text-astro-subtext">Locked</span>
-                                    <span className="blur-sm select-none text-xs md:text-sm">
-                                        {getText(profile.language, 'chart.forecast_week')}
-                                    </span>
+                        <div className="absolute inset-0 bg-gradient-to-br from-astro-highlight/5 via-transparent to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300" />
+                        
+                        <div className="relative z-10 flex items-center justify-between">
+                            <div className="flex items-center gap-5">
+                                <div className={`
+                                    w-16 h-16 rounded-2xl flex items-center justify-center
+                                    transition-all duration-300
+                                    ${profile.isPremium 
+                                        ? 'bg-gradient-to-br from-astro-highlight/20 to-astro-highlight/5 hover:scale-110' 
+                                        : 'bg-astro-bg/50'
+                                    }
+                                `}>
+                                    <PlanetIcon 
+                                        type="forecast" 
+                                        className={`w-8 h-8 ${profile.isPremium ? 'text-astro-highlight' : 'text-astro-subtext'}`}
+                                    />
                                 </div>
+                                <div>
+                                    <h3 className="text-lg font-semibold text-astro-text mb-1">
+                                        {getText(profile.language, 'chart.forecast_day')}
+                                    </h3>
+                                    {!profile.isPremium && (
+                                        <p className="text-xs text-astro-subtext uppercase tracking-wider">
+                                            {profile.language === 'ru' ? 'Premium доступ' : 'Premium access'}
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                            
+                            {profile.isPremium && (
+                                <svg className="w-6 h-6 text-astro-subtext hover:text-astro-highlight transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                </svg>
                             )}
                         </div>
                     </button>
-                </div>
+                </motion.div>
             </div>
 
             {/* Модалка с детальным анализом */}
