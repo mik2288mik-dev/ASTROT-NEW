@@ -17,7 +17,7 @@ interface NatalChartProps {
  * Премиальные SVG иконки планет для разделов натальной карты
  */
 const PlanetIcon: React.FC<{ type: string; className?: string }> = ({ type, className = '' }) => {
-    const icons: Record<string, JSX.Element> = {
+    const icons: Record<string, React.ReactElement> = {
         personality: (
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
                 <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" fill="none" opacity="0.3"/>
