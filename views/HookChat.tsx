@@ -1,8 +1,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { UserProfile, NatalChartData } from '../types';
-import { getThreeKeys } from '../services/astrologyService';
-import { saveProfile } from '../services/storageService';
+import { getNatalIntro } from '../services/astrologyService';
 import { motion } from 'framer-motion';
 import { Loading } from '../components/ui/Loading';
 import { getText } from '../constants';
@@ -30,53 +29,36 @@ export const HookChat: React.FC<HookChatProps> = ({ profile, chartData, onComple
             setIsLoading(true);
             
             try {
-                const keys = await getThreeKeys(profile, chartData);
+                // Получаем natalIntro из профиля или генерируем
+                let introText = profile.generatedContent?.natalIntro;
                 
-                // Save keys immediately
-                console.log('[HookChat] Saving three keys to profile...');
-                const updatedProfile = { ...profile, threeKeys: keys };
-                try {
-                    await saveProfile(updatedProfile);
-                    console.log('[HookChat] Three keys saved successfully');
-                } catch (error) {
-                    console.error('[HookChat] Failed to save three keys:', error);
+                if (!introText) {
+                    try {
+                        introText = await getNatalIntro(profile, chartData);
+                    } catch (error) {
+                        console.error('[HookChat] Failed to get natal intro:', error);
+                        // Fallback текст
+                        introText = profile.language === 'ru'
+                            ? `Привет, ${profile.name}! Я изучила твою натальную карту и готова рассказать о тебе много интересного. ✨`
+                            : `Hi, ${profile.name}! I've studied your natal chart and I'm ready to tell you many interesting things. ✨`;
+                    }
                 }
-                onUpdateProfile(updatedProfile);
                 
                 setIsLoading(false);
                 
-                // Animation Sequence - FAST & PERSISTENT
-                
-                // 1. Intro
-                const introText = getText(profile.language, 'hook.intro').replace('{name}', profile.name);
-                setMessages([{ type: 'text', text: introText }]);
+                // Animation Sequence - показываем natalIntro
+                const greetingText = getText(profile.language, 'hook.intro').replace('{name}', profile.name);
+                setMessages([{ type: 'text', text: greetingText }]);
                 await new Promise(r => setTimeout(r, 1500));
                 
-                // 2. Key 1
+                // Показываем natalIntro как один большой текст
                 setMessages(prev => [...prev, { 
-                    type: 'key',
-                    title: getText(profile.language, 'hook.key1_title'),
-                    text: keys.key1.text 
+                    type: 'text',
+                    text: introText || ''
                 }]);
-                await new Promise(r => setTimeout(r, 2500));
-                
-                // 3. Key 2
-                setMessages(prev => [...prev, { 
-                    type: 'key',
-                    title: getText(profile.language, 'hook.key2_title'),
-                    text: keys.key2.text 
-                }]);
-                await new Promise(r => setTimeout(r, 2500));
+                await new Promise(r => setTimeout(r, 3000));
 
-                // 4. Key 3
-                setMessages(prev => [...prev, { 
-                    type: 'key',
-                    title: getText(profile.language, 'hook.key3_title'),
-                    text: keys.key3.text 
-                }]);
-                await new Promise(r => setTimeout(r, 2500));
-
-                // 5. CTA (Final)
+                // CTA (Final)
                 setMessages(prev => [...prev, { 
                     type: 'cta',
                     text: getText(profile.language, 'hook.done')
@@ -85,7 +67,7 @@ export const HookChat: React.FC<HookChatProps> = ({ profile, chartData, onComple
             } catch (e) {
                 console.error(e);
                 setIsLoading(false);
-                onComplete(); // Fallback to Paywall
+                onComplete(); // Fallback to Dashboard
             }
         };
         sequence();

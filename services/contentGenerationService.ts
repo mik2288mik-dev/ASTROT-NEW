@@ -1,5 +1,5 @@
-import { UserProfile, NatalChartData, UserGeneratedContent, DailyHoroscope, ThreeKeys } from "../types";
-import { getThreeKeys, getNatalIntro, getDailyHoroscope, getDeepDiveAnalysis } from "./astrologyService";
+import { UserProfile, NatalChartData, UserGeneratedContent, DailyHoroscope } from "../types";
+import { getNatalIntro, getDailyHoroscope, getDeepDiveAnalysis } from "./astrologyService";
 import { saveProfile } from "./storageService";
 
 // Logging utility
@@ -69,17 +69,12 @@ const shouldUpdateDailyHoroscope = (lastGenerated: number): boolean => {
 /**
  * Проверяет, нужно ли обновить контент на основе временных меток
  */
-export const shouldUpdateContent = (timestamps: UserGeneratedContent['timestamps'], contentType: 'daily' | 'threeKeys' | 'deepDive'): boolean => {
+export const shouldUpdateContent = (timestamps: UserGeneratedContent['timestamps'], contentType: 'daily' | 'deepDive'): boolean => {
   switch (contentType) {
     case 'daily':
       // Обновляем каждый день в 4:00 утра по МСК
       const lastDaily = timestamps.dailyHoroscopeGenerated || 0;
       return shouldUpdateDailyHoroscope(lastDaily);
-
-    case 'threeKeys':
-      // Три ключа генерируются ТОЛЬКО ОДИН РАЗ (НЕ обновляются автоматически)
-      // Обновление только через платную регенерацию за звезды
-      return false;
     
     case 'deepDive':
       // Deep Dive генерируется ТОЛЬКО ОДИН РАЗ (НЕ обновляется автоматически)
@@ -188,7 +183,7 @@ export const generateAllContent = async (profile: UserProfile, chartData: NatalC
 
     const duration = Date.now() - startTime;
     log.info(`[generateAllContent] Full content generation completed in ${duration}ms`, {
-      hasThreeKeys: !!generatedContent.threeKeys,
+      hasNatalIntro: !!generatedContent.natalIntro,
       hasDaily: !!generatedContent.dailyHoroscope,
       deepDiveCount: Object.keys(generatedContent.deepDiveAnalyses || {}).length
     });

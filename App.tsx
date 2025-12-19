@@ -124,20 +124,17 @@ const App: React.FC = () => {
                         // НО: НЕ генерируем контент каждый раз при загрузке!
                         setTimeout(async () => {
                             try {
-                                // Проверяем, есть ли вообще generatedContent или threeKeys
+                                // Проверяем, есть ли вообще generatedContent
                                 const hasGeneratedContent = updatedProfile.generatedContent && 
                                     Object.keys(updatedProfile.generatedContent).length > 0;
-                                const hasThreeKeys = (updatedProfile.generatedContent?.threeKeys || updatedProfile.threeKeys) &&
-                                    updatedProfile.generatedContent?.threeKeys?.key1?.text && 
-                                    updatedProfile.generatedContent?.threeKeys?.key1?.text !== "...";
+                                const hasNatalIntro = updatedProfile.generatedContent?.natalIntro && 
+                                    updatedProfile.generatedContent.natalIntro.length > 0;
                                 
                                 // Генерируем контент ТОЛЬКО если его действительно нет
-                                if (!hasGeneratedContent || !hasThreeKeys) {
-                                    console.log('[App] Missing content or threeKeys, generating all content ONCE...', {
+                                if (!hasGeneratedContent || !hasNatalIntro) {
+                                    console.log('[App] Missing content or natalIntro, generating all content ONCE...', {
                                         hasGeneratedContent,
-                                        hasThreeKeys,
-                                        hasThreeKeysInGenerated: !!updatedProfile.generatedContent?.threeKeys,
-                                        hasThreeKeysInProfile: !!updatedProfile.threeKeys
+                                        hasNatalIntro
                                     });
                                     
                                     const allContent = await generateAllContent(updatedProfile, storedChart);

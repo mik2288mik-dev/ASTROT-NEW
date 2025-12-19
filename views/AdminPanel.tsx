@@ -44,7 +44,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onUpdate, onClo
     const conversionRate = totalUsers > 0 ? Math.round((premiumUsers / totalUsers) * 100) : 0;
     
     // Подсчет созданных карт
-    const usersWithCharts = users.filter(u => u.generatedContent?.natalIntro || u.generatedContent?.threeKeys).length;
+    const usersWithCharts = users.filter(u => u.generatedContent?.natalIntro).length;
     
     // Подсчет пользователей с Deep Dive
     const usersWithDeepDive = users.filter(u => 

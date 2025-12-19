@@ -131,7 +131,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
         console.log('[Settings] Updated profile.weatherCity:', updated.weatherCity);
         console.log('[Settings] Updated profile.hasGeneratedContent:', !!updated.generatedContent);
         console.log('[Settings] Updated profile.generatedContent keys:', updated.generatedContent ? Object.keys(updated.generatedContent) : 'none');
-        console.log('[Settings] Updated profile.generatedContent.threeKeys exists:', !!updated.generatedContent?.threeKeys);
+        console.log('[Settings] Updated profile.generatedContent.natalIntro exists:', !!updated.generatedContent?.natalIntro);
         console.log('[Settings] Updated profile.generatedContent.dailyHoroscope exists:', !!updated.generatedContent?.dailyHoroscope);
         
         try {
