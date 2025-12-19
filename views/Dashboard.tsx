@@ -11,6 +11,7 @@ import { getOrGenerateHoroscope } from '../services/contentGenerationService';
 import { motion } from 'framer-motion';
 import { CosmicPassport } from '../components/Dashboard/CosmicPassport';
 import { SoulEvolution } from '../components/Dashboard/SoulEvolution';
+import { WeatherWidget } from '../components/Dashboard/WeatherWidget';
 
 interface DashboardProps {
     profile: UserProfile;
@@ -20,80 +21,6 @@ interface DashboardProps {
     onOpenSettings: () => void;
 }
 
-// Функция для перевода погоды на русский
-const translateWeather = (condition: string, language: string): string => {
-    if (language !== 'ru') return condition;
-    
-    const translations: Record<string, string> = {
-        'sunny': 'Солнечно',
-        'clear': 'Ясно',
-        'partly cloudy': 'Переменная облачность',
-        'cloudy': 'Облачно',
-        'overcast': 'Пасмурно',
-        'mist': 'Туман',
-        'fog': 'Туман',
-        'light rain': 'Небольшой дождь',
-        'moderate rain': 'Умеренный дождь',
-        'heavy rain': 'Сильный дождь',
-        'light snow': 'Небольшой снег',
-        'moderate snow': 'Умеренный снег',
-        'heavy snow': 'Сильный снег',
-        'sleet': 'Мокрый снег',
-        'light drizzle': 'Моросящий дождь',
-        'moderate drizzle': 'Умеренная морось',
-        'heavy drizzle': 'Сильная морось',
-        'freezing drizzle': 'Ледяная морось',
-        'freezing rain': 'Ледяной дождь',
-        'freezing fog': 'Ледяной туман',
-        'patchy rain': 'Местами дождь',
-        'patchy snow': 'Местами снег',
-        'patchy sleet': 'Местами мокрый снег',
-        'patchy freezing drizzle': 'Местами ледяная морось',
-        'thundery outbreaks': 'Грозовые ливни',
-        'blowing snow': 'Метель',
-        'blizzard': 'Метель',
-        'light snow showers': 'Небольшие снежные ливни',
-        'moderate snow showers': 'Умеренные снежные ливни',
-        'heavy snow showers': 'Сильные снежные ливни',
-        'light rain showers': 'Небольшие дождевые ливни',
-        'moderate rain showers': 'Умеренные дождевые ливни',
-        'heavy rain showers': 'Сильные дождевые ливни',
-    };
-    
-    const lowerCondition = condition.toLowerCase();
-    for (const [key, value] of Object.entries(translations)) {
-        if (lowerCondition.includes(key)) {
-            return value;
-        }
-    }
-    
-    return condition;
-};
-
-// Функция для перевода фазы луны на русский
-const translateMoonPhase = (phase: string, language: string): string => {
-    if (language !== 'ru') return phase;
-    
-    const translations: Record<string, string> = {
-        'new moon': 'Новолуние',
-        'waxing crescent': 'Растущий серп',
-        'first quarter': 'Первая четверть',
-        'waxing gibbous': 'Растущая луна',
-        'full moon': 'Полнолуние',
-        'waning gibbous': 'Убывающая луна',
-        'last quarter': 'Последняя четверть',
-        'waning crescent': 'Убывающий серп',
-    };
-    
-    const lowerPhase = phase.toLowerCase();
-    for (const [key, value] of Object.entries(translations)) {
-        if (lowerPhase.includes(key)) {
-            return value;
-        }
-    }
-    
-    return phase;
-};
 
 export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPremium, onNavigate, onOpenSettings }) => {
     
@@ -396,79 +323,13 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
 
             {/* 5. COSMIC WEATHER (Layer 3: Context) */}
             {profile.weatherCity ? (
-                context?.weatherData ? (
-                    <div className="bg-gradient-to-r from-astro-card to-astro-bg p-5 rounded-xl border border-astro-border relative overflow-hidden">
-                        <div className="relative z-10">
-                            <div className="flex items-center justify-between mb-3">
-                                <div className="flex-1">
-                                    <h3 className="text-[10px] uppercase tracking-widest text-astro-subtext mb-1">
-                                        {getText(profile.language, 'dashboard.context_weather')}
-                                    </h3>
-                                    <div className="flex items-baseline gap-2">
-                                        <p className="text-xl font-serif text-astro-text">
-                                            {translateWeather(context.weatherData.condition, profile.language)}
-                                        </p>
-                                        <span className="text-sm text-astro-subtext">
-                                            {context.weatherData.temp}°C
-                                        </span>
-                                    </div>
-                                    <p className="text-xs text-astro-subtext mt-1">
-                                        {context.weatherData.city}
-                                        {context.weatherData.humidity && ` • ${context.weatherData.humidity}% ${profile.language === 'ru' ? 'влажность' : 'humidity'}`}
-                                    </p>
-                                    <p className="text-[9px] text-astro-subtext/70 mt-1">
-                                        {profile.language === 'ru' ? 'Обновлено только что' : 'Updated just now'}
-                                    </p>
-                                </div>
-                                <div className="text-3xl opacity-50 text-astro-highlight">
-                                    {context.weatherData.condition.toLowerCase().includes('rain') || context.weatherData.condition.toLowerCase().includes('дождь') ? '☂' : 
-                                     context.weatherData.condition.toLowerCase().includes('sun') || context.weatherData.condition.toLowerCase().includes('солн') ? '☀' : 
-                                     context.weatherData.condition.toLowerCase().includes('cloud') || context.weatherData.condition.toLowerCase().includes('облач') ? '☁' : 
-                                     context.weatherData.condition.toLowerCase().includes('clear') || context.weatherData.condition.toLowerCase().includes('ясн') ? '☀' : '🌤'}
-                                </div>
-                            </div>
-                            
-                            {context.moonPhase && (
-                                <div className="mt-3 pt-3 border-t border-astro-border/30">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <p className="text-xs text-astro-subtext uppercase tracking-wider">
-                                                {profile.language === 'ru' ? 'Фаза Луны' : 'Moon Phase'}
-                                            </p>
-                                            <p className="text-sm font-serif text-astro-text mt-1">
-                                                {translateMoonPhase(context.moonPhase.phase, profile.language)}
-                                            </p>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="text-xs text-astro-subtext">
-                                                {context.moonPhase.illumination}%
-                                            </p>
-                                            <p className="text-[10px] text-astro-subtext uppercase tracking-wider">
-                                                {profile.language === 'ru' ? 'освещённость' : 'illumination'}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                            
-                            <p className="text-xs text-astro-subtext mt-3 font-light italic">
-                                {profile.language === 'ru' ? 'Звёзды согласны с небом сегодня...' : 'The stars align with the sky today...'}
-                            </p>
-                            
-                            {/* WeatherAPI Attribution */}
-                            <div className="mt-3 pt-2 border-t border-astro-border/20">
-                                <a 
-                                    href="https://www.weatherapi.com/" 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    className="text-[8px] text-astro-subtext hover:text-astro-highlight transition-colors flex items-center gap-1"
-                                >
-                                    <span>{profile.language === 'ru' ? 'Погода от' : 'Weather by'}</span>
-                                    <span className="underline">WeatherAPI.com</span>
-                                </a>
-                            </div>
-                        </div>
-                    </div>
+                context?.weatherData && chartData ? (
+                    <WeatherWidget 
+                        profile={profile}
+                        chartData={chartData}
+                        weatherData={context.weatherData}
+                        dailyHoroscope={dailyHoroscope}
+                    />
                 ) : (
                     <div className="bg-gradient-to-r from-astro-card to-astro-bg p-5 rounded-xl border border-astro-border relative overflow-hidden opacity-60">
                         <div className="relative z-10 flex items-center justify-between">
