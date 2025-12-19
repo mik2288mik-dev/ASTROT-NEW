@@ -97,7 +97,7 @@ const App: React.FC = () => {
                     if (!storedProfile.language) storedProfile.language = 'ru';
                     if (!storedProfile.theme) storedProfile.theme = 'dark';
 
-                    const isAdmin = (OWNER_ID && String(tgId) === String(OWNER_ID)) || storedProfile.isAdmin || false;
+                    const isAdmin = OWNER_ID && String(tgId) === String(OWNER_ID) ? true : (storedProfile.isAdmin === true ? true : undefined);
                     const updatedProfile = { ...storedProfile, id: tgId, isAdmin };
                     
                     console.log('[App] User data found in database, preparing to show chart:', {
@@ -124,20 +124,17 @@ const App: React.FC = () => {
                         // НО: НЕ генерируем контент каждый раз при загрузке!
                         setTimeout(async () => {
                             try {
-                                // Проверяем, есть ли вообще generatedContent или threeKeys
+                                // Проверяем, есть ли вообще generatedContent
                                 const hasGeneratedContent = updatedProfile.generatedContent && 
                                     Object.keys(updatedProfile.generatedContent).length > 0;
-                                const hasThreeKeys = (updatedProfile.generatedContent?.threeKeys || updatedProfile.threeKeys) &&
-                                    updatedProfile.generatedContent?.threeKeys?.key1?.text && 
-                                    updatedProfile.generatedContent?.threeKeys?.key1?.text !== "...";
+                                const hasNatalIntro = updatedProfile.generatedContent?.natalIntro && 
+                                    updatedProfile.generatedContent.natalIntro.length > 0;
                                 
                                 // Генерируем контент ТОЛЬКО если его действительно нет
-                                if (!hasGeneratedContent || !hasThreeKeys) {
-                                    console.log('[App] Missing content or threeKeys, generating all content ONCE...', {
+                                if (!hasGeneratedContent || !hasNatalIntro) {
+                                    console.log('[App] Missing content or natalIntro, generating all content ONCE...', {
                                         hasGeneratedContent,
-                                        hasThreeKeys,
-                                        hasThreeKeysInGenerated: !!updatedProfile.generatedContent?.threeKeys,
-                                        hasThreeKeysInProfile: !!updatedProfile.threeKeys
+                                        hasNatalIntro
                                     });
                                     
                                     const allContent = await generateAllContent(updatedProfile, storedChart);
@@ -207,7 +204,7 @@ const App: React.FC = () => {
         const tg = (window as any).Telegram?.WebApp;
         const tgUser = tg?.initDataUnsafe?.user;
         const tgId = tgUser?.id;
-        const isAdmin = OWNER_ID && String(tgId) === String(OWNER_ID);
+        const isAdmin = OWNER_ID && String(tgId) === String(OWNER_ID) ? true : undefined;
         const fullProfile = { ...newProfile, id: tgId, isAdmin };
 
         console.log('[App] Full profile prepared:', {

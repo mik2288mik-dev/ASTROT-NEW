@@ -171,7 +171,7 @@ async function regenerateDeepDive(profile: any, chartData: any, topic: string): 
  * 5. Сохранить в БД
  * 6. Записать в таблицу регенераций
  */
-export default async function handler(
+async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
@@ -253,16 +253,19 @@ export default async function handler(
           }
           regeneratedData = await regenerateNatalIntro(profile, chartData);
           
-          // Сохраняем в generatedContent
+          // Сохраняем в generated_content
           const existingProfile = await db.users.get(userId);
           if (existingProfile) {
+            const existingContent = existingProfile.generated_content && typeof existingProfile.generated_content === 'object' 
+              ? existingProfile.generated_content 
+              : {};
             await db.users.set(userId, {
               ...existingProfile,
-              generatedContent: {
-                ...(existingProfile.generatedContent || {}),
+              generated_content: {
+                ...existingContent,
                 natalIntro: regeneratedData,
                 timestamps: {
-                  ...(existingProfile.generatedContent?.timestamps || {}),
+                  ...(existingContent.timestamps || {}),
                   natalIntroGenerated: Date.now()
                 }
               }

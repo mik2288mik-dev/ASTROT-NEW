@@ -35,13 +35,10 @@ export const saveProfile = async (profile: UserProfile): Promise<void> => {
   log.info(`[saveProfile] profile.weatherCity:`, profile.weatherCity);
   log.info(`[saveProfile] profile.hasGeneratedContent:`, !!profile.generatedContent);
   log.info(`[saveProfile] profile.generatedContent keys:`, profile.generatedContent ? Object.keys(profile.generatedContent) : []);
-  log.info(`[saveProfile] profile.generatedContent.threeKeys exists:`, !!profile.generatedContent?.threeKeys);
-  log.info(`[saveProfile] profile.threeKeys exists:`, !!profile.threeKeys);
+  log.info(`[saveProfile] profile.generatedContent.natalIntro exists:`, !!profile.generatedContent?.natalIntro);
   
-  if (profile.generatedContent?.threeKeys) {
-    log.info(`[saveProfile] threeKeys.key1.text length:`, profile.generatedContent.threeKeys.key1?.text?.length || 0);
-    log.info(`[saveProfile] threeKeys.key2.text length:`, profile.generatedContent.threeKeys.key2?.text?.length || 0);
-    log.info(`[saveProfile] threeKeys.key3.text length:`, profile.generatedContent.threeKeys.key3?.text?.length || 0);
+  if (profile.generatedContent?.natalIntro) {
+    log.info(`[saveProfile] natalIntro length:`, profile.generatedContent.natalIntro.length || 0);
   }
 
   try {
@@ -58,7 +55,7 @@ export const saveProfile = async (profile: UserProfile): Promise<void> => {
       log.info(`[saveProfile] Request body.weatherCity:`, parsedBody.weatherCity);
       log.info(`[saveProfile] Request body.hasGeneratedContent:`, !!parsedBody.generatedContent);
       log.info(`[saveProfile] Request body.generatedContent keys:`, parsedBody.generatedContent ? Object.keys(parsedBody.generatedContent) : []);
-      log.info(`[saveProfile] Request body.generatedContent.threeKeys exists:`, !!parsedBody.generatedContent?.threeKeys);
+      log.info(`[saveProfile] Request body.generatedContent.natalIntro exists:`, !!parsedBody.generatedContent?.natalIntro);
     } catch (e) {
       log.warn(`[saveProfile] Failed to parse request body for logging:`, e);
     }
@@ -95,7 +92,7 @@ export const saveProfile = async (profile: UserProfile): Promise<void> => {
       log.info(`[saveProfile] responseData.weatherCity:`, responseData.weatherCity);
       log.info(`[saveProfile] responseData.hasGeneratedContent:`, !!responseData.generatedContent);
       log.info(`[saveProfile] responseData.generatedContent keys:`, responseData.generatedContent ? Object.keys(responseData.generatedContent) : []);
-      log.info(`[saveProfile] responseData.generatedContent.threeKeys exists:`, !!responseData.generatedContent?.threeKeys);
+      log.info(`[saveProfile] responseData.generatedContent.natalIntro exists:`, !!responseData.generatedContent?.natalIntro);
     }
     return;
   } catch (error: any) {

@@ -215,7 +215,7 @@ export interface CachedText<T = any> {
 }
 
 // Regeneration types
-export type ContentType = 'three_keys' | 'natal_summary' | 'full_natal' | 'synastry' | 'forecast';
+export type ContentType = 'three_keys' | 'natal_summary' | 'full_natal' | 'synastry' | 'forecast' | 'natal_intro';
 
 export interface RegenerationLimits {
   canRegenerate: boolean;

@@ -44,7 +44,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onUpdate, onClo
     const conversionRate = totalUsers > 0 ? Math.round((premiumUsers / totalUsers) * 100) : 0;
     
     // Подсчет созданных карт
-    const usersWithCharts = users.filter(u => u.generatedContent?.natalIntro || u.generatedContent?.threeKeys).length;
+    const usersWithCharts = users.filter(u => u.generatedContent?.natalIntro).length;
     
     // Подсчет пользователей с Deep Dive
     const usersWithDeepDive = users.filter(u => 
@@ -52,47 +52,61 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onUpdate, onClo
         Object.keys(u.generatedContent.deepDiveAnalyses).length > 0
     ).length;
 
-    const handleTogglePremium = (targetUser: UserProfile) => {
+    const handleTogglePremium = async (targetUser: UserProfile) => {
+        const updatedUser = { ...targetUser, isPremium: !targetUser.isPremium };
+        
+        // Обновляем локальное состояние
         const updatedList = users.map(u => {
             if (u.id === targetUser.id) {
-                return { ...u, isPremium: !u.isPremium };
+                return updatedUser;
             }
             return u;
         });
         setUsers(updatedList);
 
-        // If acting on self, update global app state
-        if (targetUser.id === profile.id) {
-            console.log('[AdminPanel] Toggling premium for self:', targetUser.id);
-            const updatedProfile = { ...profile, isPremium: !profile.isPremium };
-            onUpdate(updatedProfile);
-            saveProfile(updatedProfile).then(() => {
-                console.log('[AdminPanel] Premium status saved');
-            }).catch(error => {
-                console.error('[AdminPanel] Failed to save premium status:', error);
-            });
+        // Сохраняем в БД
+        try {
+            console.log('[AdminPanel] Toggling premium for user:', targetUser.id, 'new status:', updatedUser.isPremium);
+            await saveProfile(updatedUser);
+            console.log('[AdminPanel] Premium status saved successfully');
+            
+            // If acting on self, update global app state
+            if (targetUser.id === profile.id) {
+                onUpdate(updatedUser);
+            }
+        } catch (error) {
+            console.error('[AdminPanel] Failed to save premium status:', error);
+            // Откатываем изменения в UI при ошибке
+            setUsers(users);
         }
     };
 
-    const handleToggleAdmin = (targetUser: UserProfile) => {
-         const updatedList = users.map(u => {
+    const handleToggleAdmin = async (targetUser: UserProfile) => {
+        const updatedUser = { ...targetUser, isAdmin: !targetUser.isAdmin };
+        
+        // Обновляем локальное состояние
+        const updatedList = users.map(u => {
             if (u.id === targetUser.id) {
-                return { ...u, isAdmin: !u.isAdmin };
+                return updatedUser;
             }
             return u;
         });
         setUsers(updatedList);
         
-        // If acting on self
-        if (targetUser.id === profile.id) {
-            console.log('[AdminPanel] Toggling admin status for self:', targetUser.id);
-            const updatedProfile = { ...profile, isAdmin: !profile.isAdmin };
-            onUpdate(updatedProfile);
-            saveProfile(updatedProfile).then(() => {
-                console.log('[AdminPanel] Admin status saved');
-            }).catch(error => {
-                console.error('[AdminPanel] Failed to save admin status:', error);
-            });
+        // Сохраняем в БД
+        try {
+            console.log('[AdminPanel] Toggling admin status for user:', targetUser.id, 'new status:', updatedUser.isAdmin);
+            await saveProfile(updatedUser);
+            console.log('[AdminPanel] Admin status saved successfully');
+            
+            // If acting on self, update global app state
+            if (targetUser.id === profile.id) {
+                onUpdate(updatedUser);
+            }
+        } catch (error) {
+            console.error('[AdminPanel] Failed to save admin status:', error);
+            // Откатываем изменения в UI при ошибке
+            setUsers(users);
         }
     };
 
