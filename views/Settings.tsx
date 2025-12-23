@@ -165,14 +165,19 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
             
             if (error?.message) {
                 const errorMsg = error.message.toLowerCase();
-                if (errorMsg.includes('database') || errorMsg.includes('база данных')) {
+                if (errorMsg.includes('database') || errorMsg.includes('база данных') || errorMsg.includes('failed to save')) {
+                    // Более понятное сообщение об ошибке
                     errorMessage = profile.language === 'ru'
-                        ? 'Ошибка базы данных. Проверьте подключение и попробуйте позже.'
-                        : 'Database error. Please check your connection and try again later.';
-                } else if (errorMsg.includes('network') || errorMsg.includes('сеть')) {
+                        ? 'Не удалось сохранить город. Попробуйте ещё раз через несколько секунд.'
+                        : 'Failed to save city. Please try again in a few seconds.';
+                } else if (errorMsg.includes('network') || errorMsg.includes('сеть') || errorMsg.includes('fetch')) {
                     errorMessage = profile.language === 'ru'
                         ? 'Ошибка сети. Проверьте подключение к интернету.'
                         : 'Network error. Please check your internet connection.';
+                } else if (errorMsg.includes('timeout')) {
+                    errorMessage = profile.language === 'ru'
+                        ? 'Превышено время ожидания. Попробуйте позже.'
+                        : 'Request timeout. Please try again later.';
                 }
             }
             

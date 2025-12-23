@@ -85,7 +85,7 @@ export const TRANSLATIONS = {
     chart: {
       title: "Твоя Натальная Карта",
       summary: "Портрет Личности",
-      loading_intro: "Анализирую твою карту...",
+      loading_intro: "Твоя натальная карта",
       placements: "Полный Анализ",
       tap_to_learn: "Раскрыть",
       premium_lock: "Доступно в PRO",
@@ -210,7 +210,7 @@ export const TRANSLATIONS = {
       title: "Natal Chart",
       summary: "Personality Portrait",
       placements: "Full Analysis",
-      loading_intro: "Analyzing your chart...",
+      loading_intro: "Your natal chart",
       tap_to_learn: "Reveal",
       premium_lock: "PRO Access",
       section_personality: "Personality & Character",

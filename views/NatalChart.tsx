@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { NatalChartData, UserProfile } from '../types';
 import { getText } from '../constants';
 import { getOrGenerateDeepDive, getOrGenerateHoroscope } from '../services/contentGenerationService';
-import { motion, AnimatePresence, Variants } from 'framer-motion';
+import { getNatalIntro } from '../services/astrologyService';
+import { saveProfile } from '../services/storageService';
+import { motion } from 'framer-motion';
 import { Loading } from '../components/ui/Loading';
 import { RegenerateButton } from '../components/RegenerateButton';
 import { AnalysisModal } from '../components/NatalChart/AnalysisModal';
@@ -232,14 +234,74 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
 
     const natalIntroSource = profile.generatedContent?.natalIntro;
     const [natalIntro, setNatalIntro] = useState<string>(
-        natalIntroSource || getText(profile.language, 'chart.loading_intro')
+        natalIntroSource || (profile.language === 'ru' ? 'Твоя натальная карта' : 'Your natal chart')
     );
+    const [isLoadingIntro, setIsLoadingIntro] = useState(!natalIntroSource);
+    const hasTriedLoadingRef = useRef(false);
 
-    React.useEffect(() => {
+    // Автоматически генерируем natalIntro если его нет
+    useEffect(() => {
+        // Если уже есть - используем его
+        if (profile.generatedContent?.natalIntro) {
+            setNatalIntro(profile.generatedContent.natalIntro);
+            setIsLoadingIntro(false);
+            hasTriedLoadingRef.current = false;
+            return;
+        }
+
+        // Если нет и еще не пытались загрузить - генерируем (только один раз)
+        if (!hasTriedLoadingRef.current && data) {
+            hasTriedLoadingRef.current = true;
+            console.log('[NatalChart] Natal intro missing, generating...');
+            setIsLoadingIntro(true);
+            
+            getNatalIntro(profile, data)
+                .then((intro) => {
+                    if (intro && intro.length > 50) {
+                        setNatalIntro(intro);
+                        
+                        // Сохраняем в профиль
+                        const updatedContent = {
+                            ...profile.generatedContent,
+                            natalIntro: intro,
+                            timestamps: {
+                                ...(profile.generatedContent?.timestamps || {}),
+                                natalIntroGenerated: Date.now()
+                            }
+                        };
+                        const updatedProfile = {
+                            ...profile,
+                            generatedContent: updatedContent
+                        };
+                        return saveProfile(updatedProfile);
+                    } else {
+                        throw new Error('Intro too short');
+                    }
+                })
+                .then(() => {
+                    console.log('[NatalChart] Natal intro generated and saved');
+                })
+                .catch((error) => {
+                    console.error('[NatalChart] Failed to generate natal intro:', error);
+                    // Показываем fallback
+                    const fallback = profile.language === 'ru'
+                        ? `Привет, ${profile.name || 'друг'}! Я изучила твою натальную карту. Твоё Солнце в ${data.sun?.sign || 'неизвестном знаке'}, Луна в ${data.moon?.sign || 'неизвестном знаке'}.`
+                        : `Hi, ${profile.name || 'friend'}! I've studied your natal chart. Your Sun is in ${data.sun?.sign || 'unknown sign'}, Moon in ${data.moon?.sign || 'unknown sign'}.`;
+                    setNatalIntro(fallback);
+                })
+                .finally(() => {
+                    setIsLoadingIntro(false);
+                });
+        }
+    }, [data, profile.id, profile.generatedContent?.natalIntro]); // Загружаем только при изменении данных карты или профиля
+
+    // Обновляем intro если он изменился в профиле
+    useEffect(() => {
         const newIntro = profile.generatedContent?.natalIntro;
         if (newIntro && newIntro !== natalIntro) {
             console.log('[NatalChart] Updating intro from profile');
             setNatalIntro(newIntro);
+            setIsLoadingIntro(false);
         }
     }, [profile.generatedContent?.natalIntro]);
 
@@ -285,19 +347,25 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
                             <PlanetIcon type="personality" className="w-6 h-6 text-astro-highlight" />
                         </div>
                         <h2 className="text-lg font-semibold text-astro-text">
-                            {profile.language === 'ru' ? 'Твой космический портрет' : 'Your cosmic portrait'}
+                            {profile.language === 'ru' ? 'Твоя натальная карта' : 'Your natal chart'}
                         </h2>
                     </div>
                     
-                    <div 
-                        className="text-[16px] md:text-[17px] text-astro-text leading-relaxed space-y-4 prose prose-lg max-w-none"
-                        style={{ lineHeight: '1.75' }}
-                        dangerouslySetInnerHTML={{ 
-                            __html: natalIntro
-                                .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-astro-highlight">$1</strong>')
-                                .replace(/\n/g, '<br/>')
-                        }} 
-                    />
+                    {isLoadingIntro ? (
+                        <div className="text-[16px] md:text-[17px] text-astro-text leading-relaxed">
+                            <Loading message={profile.language === 'ru' ? 'Загружаю твою натальную карту...' : 'Loading your natal chart...'} />
+                        </div>
+                    ) : (
+                        <div 
+                            className="text-[16px] md:text-[17px] text-astro-text leading-relaxed space-y-4 prose prose-lg max-w-none"
+                            style={{ lineHeight: '1.75' }}
+                            dangerouslySetInnerHTML={{ 
+                                __html: natalIntro
+                                    .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-astro-highlight">$1</strong>')
+                                    .replace(/\n/g, '<br/>')
+                            }} 
+                        />
+                    )}
                 </div>
             </motion.div>
 
