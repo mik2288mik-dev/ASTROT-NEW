@@ -93,8 +93,8 @@ export default async function handler(
       // Transform data to match database schema
       // Синхронизируем threeKeys: если есть в generatedContent, сохраняем и там, и в отдельном поле
       
-      // ВАЖНО: Проверяем, был ли generatedContent явно передан в запросе
-      // Если не передан - сохраняем существующий из БД
+      // ВАЖНО: Обрабатываем generatedContent правильно
+      // Если передан - используем его, если нет - сохраняем существующий из БД
       log.info(`[${req.method}] ===== PROCESSING GENERATED CONTENT =====`);
       log.info(`[${req.method}] userData.generatedContent !== undefined:`, userData.generatedContent !== undefined);
       log.info(`[${req.method}] userData.generatedContent !== null:`, userData.generatedContent !== null);
@@ -103,29 +103,33 @@ export default async function handler(
       let finalGeneratedContent = existingUser?.generated_content || null;
       let threeKeysToSave = null;
       
+      // ВАЖНО: Проверяем наличие generatedContent в запросе
+      // Если он передан и не пустой - используем его
+      // Если не передан или пустой - сохраняем существующий из БД
       if (userData.generatedContent !== undefined && userData.generatedContent !== null) {
-        // Если generatedContent передан явно - используем его
-        log.info(`[${req.method}] Using provided generatedContent`);
         const generatedContent = userData.generatedContent;
-        threeKeysToSave = generatedContent.threeKeys || userData.threeKeys || null;
+        const hasContent = typeof generatedContent === 'object' && Object.keys(generatedContent).length > 0;
         
-        // Обновляем generatedContent.threeKeys если его нет, но есть в userData.threeKeys
-        const updatedGeneratedContent = threeKeysToSave && !generatedContent.threeKeys
-          ? { ...generatedContent, threeKeys: threeKeysToSave }
-          : generatedContent;
-        
-        // Если передан непустой объект - используем его
-        if (Object.keys(updatedGeneratedContent).length > 0) {
-          finalGeneratedContent = updatedGeneratedContent;
-          log.info(`[${req.method}] Using provided generatedContent with ${Object.keys(updatedGeneratedContent).length} keys`);
+        if (hasContent) {
+          // Если передан непустой объект - используем его
+          log.info(`[${req.method}] Using provided generatedContent with ${Object.keys(generatedContent).length} keys`);
+          threeKeysToSave = generatedContent.threeKeys || userData.threeKeys || null;
+          
+          // Обновляем generatedContent.threeKeys если его нет, но есть в userData.threeKeys
+          finalGeneratedContent = threeKeysToSave && !generatedContent.threeKeys
+            ? { ...generatedContent, threeKeys: threeKeysToSave }
+            : generatedContent;
         } else {
-          log.warn(`[${req.method}] Provided generatedContent is empty, keeping existing`);
-          // Если передан пустой объект - сохраняем существующий (не перезаписываем)
+          // Если передан пустой объект - сохраняем существующий из БД
+          log.info(`[${req.method}] Provided generatedContent is empty, keeping existing from DB`);
+          finalGeneratedContent = existingUser?.generated_content || null;
+          threeKeysToSave = userData.threeKeys || finalGeneratedContent?.threeKeys || null;
         }
       } else {
-        // Если generatedContent не передан - используем существующий из БД и синхронизируем threeKeys
+        // Если generatedContent не передан - используем существующий из БД
         log.info(`[${req.method}] generatedContent not provided, using existing from DB`);
         threeKeysToSave = userData.threeKeys || finalGeneratedContent?.threeKeys || null;
+        
         if (existingUser?.generated_content && threeKeysToSave && !finalGeneratedContent?.threeKeys) {
           // Обновляем threeKeys в существующем generatedContent если нужно
           log.info(`[${req.method}] Updating threeKeys in existing generatedContent`);
@@ -137,15 +141,16 @@ export default async function handler(
           // Используем threeKeys из существующего generatedContent
           threeKeysToSave = finalGeneratedContent.threeKeys || threeKeysToSave;
         }
-        
-        log.info(`[${req.method}] Final generatedContent keys:`, finalGeneratedContent ? Object.keys(finalGeneratedContent) : []);
       }
       
-      // ВАЖНО: Проверяем что finalGeneratedContent не потерялся
+      // КРИТИЧЕСКИ ВАЖНО: Проверяем что finalGeneratedContent не потерялся
+      // Это защита от потери данных при обновлении других полей (например, weatherCity)
       if (!finalGeneratedContent && existingUser?.generated_content) {
         log.warn(`[${req.method}] WARNING: finalGeneratedContent is null but existingUser has generated_content! Restoring...`);
         finalGeneratedContent = existingUser.generated_content;
       }
+      
+      log.info(`[${req.method}] Final generatedContent keys:`, finalGeneratedContent ? Object.keys(finalGeneratedContent) : []);
       
       // ВАЖНО: Сохраняем weatherCity правильно - если передан, используем его, иначе сохраняем существующий
       log.info(`[${req.method}] ===== PROCESSING WEATHER CITY =====`);
@@ -173,6 +178,12 @@ export default async function handler(
       log.info(`[${req.method}] weatherCityToSave type:`, typeof weatherCityToSave);
       log.info(`[${req.method}] weatherCityToSave length:`, weatherCityToSave ? weatherCityToSave.length : 0);
       
+      // ВАЖНО: Преобразуем finalGeneratedContent в правильный формат для БД
+      // lib/db.ts ожидает объект или null, и сам сериализует его в JSON
+      const dbGeneratedContent = finalGeneratedContent !== null && finalGeneratedContent !== undefined
+        ? finalGeneratedContent  // lib/db.ts сам сериализует объект в JSON
+        : null;
+      
       const dbUser = {
         id: userId,
         name: userData.name,
@@ -186,9 +197,13 @@ export default async function handler(
         is_admin: userData.isAdmin || false,
         three_keys: threeKeysToSave, // Синхронизированное значение
         evolution: userData.evolution || null,
-        generated_content: finalGeneratedContent,
+        generated_content: dbGeneratedContent, // Передаем объект, lib/db.ts сериализует его
         weather_city: weatherCityToSave,
       };
+      
+      log.info(`[${req.method}] dbUser.generated_content type:`, typeof dbUser.generated_content);
+      log.info(`[${req.method}] dbUser.generated_content is object:`, typeof dbUser.generated_content === 'object' && dbUser.generated_content !== null);
+      log.info(`[${req.method}] dbUser.generated_content keys:`, dbUser.generated_content ? Object.keys(dbUser.generated_content) : []);
       
       log.info(`[${req.method}] ===== PREPARING TO SAVE USER DATA =====`);
       log.info(`[${req.method}] hasGeneratedContent:`, !!finalGeneratedContent);

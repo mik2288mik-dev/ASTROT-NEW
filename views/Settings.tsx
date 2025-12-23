@@ -121,6 +121,9 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
         // Сохраняем город (пустая строка становится undefined, что преобразуется в null в БД)
         // ВАЖНО: Сохраняем только weatherCity, не трогая другие поля, чтобы не потерять generatedContent
         const cityToSave = city && city.length > 0 ? city : undefined;
+        
+        // ВАЖНО: Создаем объект только с полями которые нужно обновить, чтобы не потерять generatedContent
+        // API сам правильно обработает сохранение и не потеряет существующий generatedContent
         const updated = { 
             ...profile, 
             weatherCity: cityToSave
@@ -131,26 +134,17 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
         console.log('[Settings] Updated profile.weatherCity:', updated.weatherCity);
         console.log('[Settings] Updated profile.hasGeneratedContent:', !!updated.generatedContent);
         console.log('[Settings] Updated profile.generatedContent keys:', updated.generatedContent ? Object.keys(updated.generatedContent) : 'none');
-        console.log('[Settings] Updated profile.generatedContent.natalIntro exists:', !!updated.generatedContent?.natalIntro);
-        console.log('[Settings] Updated profile.generatedContent.dailyHoroscope exists:', !!updated.generatedContent?.dailyHoroscope);
         
         try {
-            // Сохраняем в БД
+            // Сохраняем в БД - API правильно обработает сохранение weatherCity и сохранит generatedContent
             console.log('[Settings] ===== CALLING saveProfile() =====');
             const saveStartTime = Date.now();
             await saveProfile(updated);
             const saveDuration = Date.now() - saveStartTime;
             console.log('[Settings] saveProfile() completed in', saveDuration, 'ms');
-            console.log('[Settings] Weather city saved successfully (DB persist confirmed)', {
-                city: cityToSave || 'null',
-                weatherCity: updated.weatherCity,
-                saveDuration: saveDuration + 'ms'
-            });
             
-            // ВАЖНО: НЕ перезагружаем профиль из БД, так как это вызывает re-render всего приложения
-            // и может вызвать перегенерацию гороскопа и натальной карты
-            // Просто обновляем локальное состояние с новым weatherCity
-            console.log('[Settings] Updating state with new weatherCity (without DB reload)');
+            // Обновляем локальное состояние с новым weatherCity
+            console.log('[Settings] Updating state with new weatherCity');
             onUpdate(updated);
         } catch (error: any) {
             console.error('[Settings] ===== ERROR SAVING WEATHER CITY =====');
@@ -165,14 +159,19 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
             
             if (error?.message) {
                 const errorMsg = error.message.toLowerCase();
-                if (errorMsg.includes('database') || errorMsg.includes('база данных')) {
+                if (errorMsg.includes('database') || errorMsg.includes('база данных') || errorMsg.includes('failed to save')) {
+                    // Более понятное сообщение об ошибке
                     errorMessage = profile.language === 'ru'
-                        ? 'Ошибка базы данных. Проверьте подключение и попробуйте позже.'
-                        : 'Database error. Please check your connection and try again later.';
-                } else if (errorMsg.includes('network') || errorMsg.includes('сеть')) {
+                        ? 'Не удалось сохранить город. Попробуйте ещё раз через несколько секунд.'
+                        : 'Failed to save city. Please try again in a few seconds.';
+                } else if (errorMsg.includes('network') || errorMsg.includes('сеть') || errorMsg.includes('fetch')) {
                     errorMessage = profile.language === 'ru'
                         ? 'Ошибка сети. Проверьте подключение к интернету.'
                         : 'Network error. Please check your internet connection.';
+                } else if (errorMsg.includes('timeout')) {
+                    errorMessage = profile.language === 'ru'
+                        ? 'Превышено время ожидания. Попробуйте позже.'
+                        : 'Request timeout. Please try again later.';
                 }
             }
             
