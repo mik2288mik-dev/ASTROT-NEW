@@ -239,18 +239,21 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
     const [isLoadingIntro, setIsLoadingIntro] = useState(!natalIntroSource);
     const hasTriedLoadingRef = useRef(false);
 
-    // Автоматически генерируем natalIntro если его нет
+    // Обновляем intro из профиля (основной источник данных)
     useEffect(() => {
-        // Если уже есть - используем его
-        if (profile.generatedContent?.natalIntro) {
-            setNatalIntro(profile.generatedContent.natalIntro);
+        const newIntro = profile.generatedContent?.natalIntro;
+        if (newIntro) {
+            if (newIntro !== natalIntro) {
+                console.log('[NatalChart] Updating intro from profile');
+                setNatalIntro(newIntro);
+            }
             setIsLoadingIntro(false);
-            hasTriedLoadingRef.current = false;
+            hasTriedLoadingRef.current = false; // Сбрасываем флаг если intro появился
             return;
         }
 
-        // Если нет и еще не пытались загрузить - генерируем (только один раз)
-        if (!hasTriedLoadingRef.current && data) {
+        // Если нет intro и еще не пытались загрузить - генерируем (только один раз)
+        if (!hasTriedLoadingRef.current && data && !isLoadingIntro) {
             hasTriedLoadingRef.current = true;
             console.log('[NatalChart] Natal intro missing, generating...');
             setIsLoadingIntro(true);
@@ -262,7 +265,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
                         
                         // Сохраняем в профиль
                         const updatedContent = {
-                            ...profile.generatedContent,
+                            ...(profile.generatedContent || {}),
                             natalIntro: intro,
                             timestamps: {
                                 ...(profile.generatedContent?.timestamps || {}),
@@ -293,17 +296,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
                     setIsLoadingIntro(false);
                 });
         }
-    }, [data, profile.id, profile.generatedContent?.natalIntro]); // Загружаем только при изменении данных карты или профиля
-
-    // Обновляем intro если он изменился в профиле
-    useEffect(() => {
-        const newIntro = profile.generatedContent?.natalIntro;
-        if (newIntro && newIntro !== natalIntro) {
-            console.log('[NatalChart] Updating intro from profile');
-            setNatalIntro(newIntro);
-            setIsLoadingIntro(false);
-        }
-    }, [profile.generatedContent?.natalIntro]);
+    }, [profile.generatedContent?.natalIntro, data?.sun?.sign, profile.id]); // Загружаем только при изменении intro в профиле или данных карты
 
     const sections = [
         { key: 'section_personality', icon: 'personality' },
