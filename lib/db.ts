@@ -299,11 +299,23 @@ export const db = {
             finalGeneratedContent = null;
           } else {
             // Если передан пустой объект - сохраняем существующий
-            finalGeneratedContent = existingUser?.generated_content || null;
+            const existingContent = existingUser?.generated_content;
+            // Убеждаемся что существующий контент сериализован
+            if (existingContent !== null && existingContent !== undefined) {
+              finalGeneratedContent = typeof existingContent === 'string' ? existingContent : JSON.stringify(existingContent);
+            } else {
+              finalGeneratedContent = null;
+            }
           }
         } else {
           // Если не передан - сохраняем существующий
-          finalGeneratedContent = existingUser?.generated_content || null;
+          const existingContent = existingUser?.generated_content;
+          // Убеждаемся что существующий контент сериализован
+          if (existingContent !== null && existingContent !== undefined) {
+            finalGeneratedContent = typeof existingContent === 'string' ? existingContent : JSON.stringify(existingContent);
+          } else {
+            finalGeneratedContent = null;
+          }
         }
         
         // Объединяем weatherCity: если передан - используем его, иначе сохраняем существующий
@@ -338,66 +350,81 @@ export const db = {
         log.info('[DB] SQL params generated_content length:', finalGeneratedContent ? finalGeneratedContent.length : 0);
         
         const queryStartTime = Date.now();
-        const result = await dbPool.query(
-          `INSERT INTO users (
-            id, name, birth_date, birth_time, birth_place,
-            is_setup, language, theme, is_premium, is_admin,
-            three_keys, evolution, generated_content, weather_city, updated_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, CURRENT_TIMESTAMP)
-          ON CONFLICT (id) DO UPDATE SET
-            name = EXCLUDED.name,
-            birth_date = EXCLUDED.birth_date,
-            birth_time = EXCLUDED.birth_time,
-            birth_place = EXCLUDED.birth_place,
-            is_setup = EXCLUDED.is_setup,
-            language = EXCLUDED.language,
-            theme = EXCLUDED.theme,
-            is_premium = EXCLUDED.is_premium,
-            is_admin = EXCLUDED.is_admin,
-            three_keys = EXCLUDED.three_keys,
-            evolution = EXCLUDED.evolution,
-            generated_content = EXCLUDED.generated_content,
-            weather_city = EXCLUDED.weather_city,
-            updated_at = CURRENT_TIMESTAMP
-          RETURNING *`,
-          [
-            userId,
-            data.name,
-            data.birth_date,
-            data.birth_time,
-            data.birth_place,
-            data.is_setup || false,
-            data.language || 'ru',
-            data.theme || 'dark',
-            data.is_premium || false,
-            data.is_admin || false,
-            data.three_keys ? JSON.stringify(data.three_keys) : null,
-            data.evolution ? JSON.stringify(data.evolution) : null,
-            finalGeneratedContent,
-            finalWeatherCity,
+        try {
+          const result = await dbPool.query(
+            `INSERT INTO users (
+              id, name, birth_date, birth_time, birth_place,
+              is_setup, language, theme, is_premium, is_admin,
+              three_keys, evolution, generated_content, weather_city, updated_at
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, CURRENT_TIMESTAMP)
+            ON CONFLICT (id) DO UPDATE SET
+              name = EXCLUDED.name,
+              birth_date = EXCLUDED.birth_date,
+              birth_time = EXCLUDED.birth_time,
+              birth_place = EXCLUDED.birth_place,
+              is_setup = EXCLUDED.is_setup,
+              language = EXCLUDED.language,
+              theme = EXCLUDED.theme,
+              is_premium = EXCLUDED.is_premium,
+              is_admin = EXCLUDED.is_admin,
+              three_keys = EXCLUDED.three_keys,
+              evolution = EXCLUDED.evolution,
+              generated_content = EXCLUDED.generated_content,
+              weather_city = EXCLUDED.weather_city,
+              updated_at = CURRENT_TIMESTAMP
+            RETURNING *`,
+            [
+              userId,
+              data.name,
+              data.birth_date,
+              data.birth_time,
+              data.birth_place,
+              data.is_setup || false,
+              data.language || 'ru',
+              data.theme || 'dark',
+              data.is_premium || false,
+              data.is_admin || false,
+              data.three_keys ? JSON.stringify(data.three_keys) : null,
+              data.evolution ? JSON.stringify(data.evolution) : null,
+              finalGeneratedContent,
+              finalWeatherCity,
           ]
-        );
-        const queryDuration = Date.now() - queryStartTime;
-        
-        log.info('[DB] ===== SQL QUERY COMPLETED =====');
-        log.info(`[DB] Query duration: ${queryDuration} ms`);
-        log.info('[DB] Result rows count:', result.rows.length);
-        if (result.rows.length > 0) {
-          const savedRow = result.rows[0];
-          log.info('[DB] Saved row.weather_city:', savedRow.weather_city);
-          log.info('[DB] Saved row.weather_city type:', typeof savedRow.weather_city);
-          log.info('[DB] Saved row.hasGeneratedContent:', !!savedRow.generated_content);
-          log.info('[DB] Saved row.generatedContent type:', typeof savedRow.generated_content);
-          if (savedRow.generated_content) {
-            try {
-              const parsed = typeof savedRow.generated_content === 'string' 
-                ? JSON.parse(savedRow.generated_content) 
-                : savedRow.generated_content;
-              log.info('[DB] Saved row.generatedContent keys:', Object.keys(parsed));
-            } catch (e) {
-              log.warn('[DB] Failed to parse saved generated_content:', e);
+          );
+          const queryDuration = Date.now() - queryStartTime;
+          
+          log.info('[DB] ===== SQL QUERY COMPLETED =====');
+          log.info(`[DB] Query duration: ${queryDuration} ms`);
+          log.info('[DB] Result rows count:', result.rows.length);
+          if (result.rows.length > 0) {
+            const savedRow = result.rows[0];
+            log.info('[DB] Saved row.weather_city:', savedRow.weather_city);
+            log.info('[DB] Saved row.weather_city type:', typeof savedRow.weather_city);
+            log.info('[DB] Saved row.hasGeneratedContent:', !!savedRow.generated_content);
+            log.info('[DB] Saved row.generatedContent type:', typeof savedRow.generated_content);
+            if (savedRow.generated_content) {
+              try {
+                const parsed = typeof savedRow.generated_content === 'string' 
+                  ? JSON.parse(savedRow.generated_content) 
+                  : savedRow.generated_content;
+                log.info('[DB] Saved row.generatedContent keys:', Object.keys(parsed));
+              } catch (e) {
+                log.warn('[DB] Failed to parse saved generated_content:', e);
+              }
             }
           }
+        } catch (dbError: any) {
+          log.error('[DB] ===== SQL QUERY FAILED =====');
+          log.error('[DB] Error message:', dbError.message);
+          log.error('[DB] Error code:', dbError.code);
+          log.error('[DB] Error detail:', dbError.detail);
+          log.error('[DB] Error hint:', dbError.hint);
+          log.error('[DB] SQL params:', {
+            userId,
+            weather_city: finalWeatherCity,
+            hasGeneratedContent: !!finalGeneratedContent,
+            generatedContentType: typeof finalGeneratedContent
+          });
+          throw new Error(`Database error: ${dbError.message || 'Failed to save user data'}`);
         }
 
         const user = result.rows[0];

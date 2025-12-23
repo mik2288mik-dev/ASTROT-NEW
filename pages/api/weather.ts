@@ -74,26 +74,52 @@ export default async function handler(
     const weatherUrl = `https://api.weatherapi.com/v1/current.json?key=${apiKey}&q=${encodeURIComponent(city)}&aqi=no`;
     const astronomyUrl = `https://api.weatherapi.com/v1/astronomy.json?key=${apiKey}&q=${encodeURIComponent(city)}`;
 
-    // Запрашиваем погоду и астрономию параллельно
-    const [weatherResponse, astronomyResponse] = await Promise.all([
-      fetch(weatherUrl),
-      fetch(astronomyUrl)
-    ]);
+    // Запрашиваем погоду и астрономию параллельно с таймаутом
+    let weatherResponse, astronomyResponse;
+    try {
+      [weatherResponse, astronomyResponse] = await Promise.all([
+        fetch(weatherUrl, { 
+          signal: AbortSignal.timeout(10000) // 10 секунд таймаут
+        }),
+        fetch(astronomyUrl, { 
+          signal: AbortSignal.timeout(10000) 
+        })
+      ]);
+    } catch (fetchError: any) {
+      console.error('[Weather API] Fetch error:', fetchError);
+      if (fetchError.name === 'AbortError' || fetchError.name === 'TimeoutError') {
+        return res.status(408).json({ 
+          success: false, 
+          error: 'Request timeout. Please try again later.' 
+        });
+      }
+      throw fetchError;
+    }
 
     if (!weatherResponse.ok) {
       const errorData = await weatherResponse.json().catch(() => ({}));
       console.error('[Weather API] Weather request failed:', weatherResponse.status, errorData);
       
       if (weatherResponse.status === 400) {
+        const errorMessage = errorData?.error?.message || 'Invalid city name';
         return res.status(400).json({ 
           success: false, 
-          error: 'Invalid city name. Please check the city name and try again.' 
+          error: errorMessage.includes('No matching location') || errorMessage.includes('Invalid')
+            ? `City "${city}" not found. Please check the spelling and try again.`
+            : 'Invalid city name. Please check the city name and try again.'
+        });
+      }
+      
+      if (weatherResponse.status === 401 || weatherResponse.status === 403) {
+        return res.status(500).json({ 
+          success: false, 
+          error: 'Weather API authentication failed. Please contact support.' 
         });
       }
       
       return res.status(weatherResponse.status).json({ 
         success: false, 
-        error: 'Failed to fetch weather data' 
+        error: `Failed to fetch weather data (${weatherResponse.status})` 
       });
     }
 

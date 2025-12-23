@@ -154,9 +154,20 @@ export default async function handler(
       log.info(`[${req.method}] userData.weatherCity !== undefined:`, userData.weatherCity !== undefined);
       log.info(`[${req.method}] existingUser?.weather_city:`, existingUser?.weather_city);
       
-      const weatherCityToSave = userData.weatherCity !== undefined 
-        ? (userData.weatherCity && String(userData.weatherCity).trim() ? String(userData.weatherCity).trim() : null)
-        : (existingUser?.weather_city || null);
+      let weatherCityToSave: string | null = null;
+      
+      if (userData.weatherCity !== undefined) {
+        // Если weatherCity явно передан (может быть строкой или null/undefined)
+        if (userData.weatherCity === null || userData.weatherCity === '') {
+          weatherCityToSave = null;
+        } else {
+          const trimmed = String(userData.weatherCity).trim();
+          weatherCityToSave = trimmed.length > 0 ? trimmed : null;
+        }
+      } else {
+        // Если не передан - сохраняем существующий
+        weatherCityToSave = existingUser?.weather_city ? String(existingUser.weather_city).trim() : null;
+      }
       
       log.info(`[${req.method}] weatherCityToSave (final):`, weatherCityToSave);
       log.info(`[${req.method}] weatherCityToSave type:`, typeof weatherCityToSave);
