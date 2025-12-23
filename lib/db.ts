@@ -412,6 +412,56 @@ export const db = {
               }
             }
           }
+
+          const user = result.rows[0];
+          
+          // Парсим JSON поля, если они являются строками
+          let threeKeys = user.three_keys;
+          if (typeof threeKeys === 'string') {
+            try {
+              threeKeys = JSON.parse(threeKeys);
+            } catch (e) {
+              log.warn('[DB] Failed to parse three_keys JSON in set', { error: e });
+              threeKeys = null;
+            }
+          }
+          
+          let evolution = user.evolution;
+          if (typeof evolution === 'string') {
+            try {
+              evolution = JSON.parse(evolution);
+            } catch (e) {
+              log.warn('[DB] Failed to parse evolution JSON in set', { error: e });
+              evolution = null;
+            }
+          }
+          
+          let generatedContent = user.generated_content;
+          if (typeof generatedContent === 'string') {
+            try {
+              generatedContent = JSON.parse(generatedContent);
+            } catch (e) {
+              log.warn('[DB] Failed to parse generated_content JSON in set', { error: e });
+              generatedContent = null;
+            }
+          }
+          
+          return {
+            id: user.id,
+            name: user.name,
+            birth_date: user.birth_date,
+            birth_time: user.birth_time,
+            birth_place: user.birth_place,
+            is_setup: user.is_setup,
+            language: user.language,
+            theme: user.theme,
+            is_premium: user.is_premium,
+            is_admin: user.is_admin,
+            three_keys: threeKeys,
+            evolution: evolution,
+            generated_content: generatedContent,
+            weather_city: user.weather_city,
+          };
         } catch (dbError: any) {
           log.error('[DB] ===== SQL QUERY FAILED =====');
           log.error('[DB] Error message:', dbError.message);
@@ -426,56 +476,6 @@ export const db = {
           });
           throw new Error(`Database error: ${dbError.message || 'Failed to save user data'}`);
         }
-
-        const user = result.rows[0];
-        
-        // Парсим JSON поля, если они являются строками
-        let threeKeys = user.three_keys;
-        if (typeof threeKeys === 'string') {
-          try {
-            threeKeys = JSON.parse(threeKeys);
-          } catch (e) {
-            log.warn('[DB] Failed to parse three_keys JSON in set', { error: e });
-            threeKeys = null;
-          }
-        }
-        
-        let evolution = user.evolution;
-        if (typeof evolution === 'string') {
-          try {
-            evolution = JSON.parse(evolution);
-          } catch (e) {
-            log.warn('[DB] Failed to parse evolution JSON in set', { error: e });
-            evolution = null;
-          }
-        }
-        
-        let generatedContent = user.generated_content;
-        if (typeof generatedContent === 'string') {
-          try {
-            generatedContent = JSON.parse(generatedContent);
-          } catch (e) {
-            log.warn('[DB] Failed to parse generated_content JSON in set', { error: e });
-            generatedContent = null;
-          }
-        }
-        
-        return {
-          id: user.id,
-          name: user.name,
-          birth_date: user.birth_date,
-          birth_time: user.birth_time,
-          birth_place: user.birth_place,
-          is_setup: user.is_setup,
-          language: user.language,
-          theme: user.theme,
-          is_premium: user.is_premium,
-          is_admin: user.is_admin,
-          three_keys: threeKeys,
-          evolution: evolution,
-          generated_content: generatedContent,
-          weather_city: user.weather_city,
-        };
       } catch (error: any) {
         log.error('[DB] Error setting user', {
           error: error.message,
