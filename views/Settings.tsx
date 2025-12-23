@@ -152,14 +152,31 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
             // Просто обновляем локальное состояние с новым weatherCity
             console.log('[Settings] Updating state with new weatherCity (without DB reload)');
             onUpdate(updated);
-        } catch (error) {
+        } catch (error: any) {
             console.error('[Settings] ===== ERROR SAVING WEATHER CITY =====');
             console.error('[Settings] Error details:', error);
             console.error('[Settings] Error message:', error instanceof Error ? error.message : String(error));
             console.error('[Settings] Error stack:', error instanceof Error ? error.stack : 'no stack');
-            alert(profile.language === 'ru' 
+            
+            // Более детальное сообщение об ошибке
+            let errorMessage = profile.language === 'ru' 
                 ? 'Не удалось сохранить город в базе данных. Попробуйте ещё раз.'
-                : 'Failed to save your city to the database. Please try again.');
+                : 'Failed to save your city to the database. Please try again.';
+            
+            if (error?.message) {
+                const errorMsg = error.message.toLowerCase();
+                if (errorMsg.includes('database') || errorMsg.includes('база данных')) {
+                    errorMessage = profile.language === 'ru'
+                        ? 'Ошибка базы данных. Проверьте подключение и попробуйте позже.'
+                        : 'Database error. Please check your connection and try again later.';
+                } else if (errorMsg.includes('network') || errorMsg.includes('сеть')) {
+                    errorMessage = profile.language === 'ru'
+                        ? 'Ошибка сети. Проверьте подключение к интернету.'
+                        : 'Network error. Please check your internet connection.';
+                }
+            }
+            
+            alert(errorMessage);
             setWeatherLoading(false);
             setEditingWeather(false);
             return;

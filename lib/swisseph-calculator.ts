@@ -248,21 +248,38 @@ export async function getCoordinates(placeName: string): Promise<Coordinates> {
         params: {
           q: placeName,
           format: 'json',
-          limit: 1
+          limit: 1,
+          addressdetails: 1
         },
         headers: {
-          'User-Agent': 'AstrotApp/1.0'
+          'User-Agent': 'AstrotApp/1.0 (https://astrot.app)',
+          'Accept': 'application/json',
+          'Accept-Language': 'en-US,en;q=0.9,ru;q=0.8'
         },
         timeout: 15000
       });
     } catch (axiosError: any) {
+      log.error('Error fetching coordinates from Nominatim', {
+        placeName,
+        error: axiosError.message,
+        code: axiosError.code,
+        response: axiosError.response?.data
+      });
+      
       if (axiosError.code === 'ECONNABORTED' || axiosError.message?.includes('timeout')) {
         throw new Error(`Timeout getting coordinates for location: ${placeName}. Please check your internet connection and try again.`);
       }
+      
+      // Проверяем если это ошибка rate limit от Nominatim
+      if (axiosError.response?.status === 429) {
+        throw new Error(`Too many requests to map service. Please wait a moment and try again.`);
+      }
+      
       throw new Error(`Network error getting coordinates for ${placeName}: ${axiosError.message}`);
     }
 
     if (!response.data || response.data.length === 0) {
+      log.warn('No location found in Nominatim response', { placeName, responseData: response.data });
       throw new Error(`Location not found: ${placeName}. Please check the spelling and try again (e.g., "Moscow, Russia" or "Москва, Россия").`);
     }
 
