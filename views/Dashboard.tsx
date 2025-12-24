@@ -19,10 +19,11 @@ interface DashboardProps {
     requestPremium: () => void;
     onNavigate: (view: any) => void;
     onOpenSettings: () => void;
+    onUpdateProfile: (profile: UserProfile) => void;
 }
 
 
-export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPremium, onNavigate, onOpenSettings }) => {
+export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPremium, onNavigate, onOpenSettings, onUpdateProfile }) => {
     
     const [context, setContext] = useState<UserContext | null>(null);
     const [evolution, setEvolution] = useState<UserEvolution | null>(profile.evolution || null);
@@ -170,6 +171,12 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
                         });
                         const horoscope = await getOrGenerateHoroscope(profile, chartData);
                         setDailyHoroscope(horoscope);
+                        
+                        // ВАЖНО: Обновляем профиль в родительском компоненте, так как getOrGenerateHoroscope обновил его структуру
+                        // Это предотвратит повторную генерацию при навигации
+                        if (profile.generatedContent?.dailyHoroscope?.date === horoscope.date) {
+                             onUpdateProfile({ ...profile });
+                        }
                     }
                 } catch (error) {
                     console.error('[Dashboard] Failed to load horoscope:', error);

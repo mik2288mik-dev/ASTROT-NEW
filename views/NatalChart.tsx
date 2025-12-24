@@ -13,6 +13,7 @@ interface NatalChartProps {
     data: NatalChartData | null;
     profile: UserProfile;
     requestPremium: () => void;
+    onUpdateProfile?: (profile: UserProfile) => void;
 }
 
 /**
@@ -149,7 +150,7 @@ const SectionCard: React.FC<{
     );
 };
 
-export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPremium }) => {
+export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPremium, onUpdateProfile }) => {
     const [activeAnalysis, setActiveAnalysis] = useState<string | null>(null);
     const [analysisResult, setAnalysisResult] = useState<string>("");
     const [loadingAnalysis, setLoadingAnalysis] = useState(false);
@@ -276,6 +277,12 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
                             ...profile,
                             generatedContent: updatedContent
                         };
+                        
+                        // Сначала обновляем локальный стейт через колбэк, чтобы интерфейс обновился мгновенно
+                        if (onUpdateProfile) {
+                            onUpdateProfile(updatedProfile);
+                        }
+                        
                         return saveProfile(updatedProfile);
                     } else {
                         throw new Error('Intro too short');
