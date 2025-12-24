@@ -4,6 +4,7 @@ import { SYSTEM_PROMPT_ASTRA, createDailyForecastPrompt, addLanguageInstruction,
 import { validateNatalChartInput, formatValidationErrors } from '../../../lib/validation';
 import { getSecondsUntilNextUpdate, CACHE_CONFIGS } from '../../../lib/cache';
 import { db } from '../../../lib/db';
+import { getCurrentTransits } from '../../../lib/transits-calculator';
 
 // Logging utility
 const log = {
@@ -126,7 +127,20 @@ export default async function handler(
       month: 'long',
       year: 'numeric'
     });
-    const userPrompt = createDailyForecastPrompt(chartData, profile, currentDate);
+
+    // Получаем текущие транзиты для точного прогноза
+    let transits = null;
+    try {
+      transits = await getCurrentTransits();
+      log.info('Transits calculated for daily horoscope', {
+         sunSign: transits?.sun?.sign,
+         moonSign: transits?.moon?.sign
+      });
+    } catch (error) {
+       log.error('Failed to calculate transits for daily horoscope', error);
+    }
+
+    const userPrompt = createDailyForecastPrompt(chartData, profile, currentDate, transits);
     const promptWithLang = addLanguageInstruction(userPrompt, lang ? 'ru' : 'en');
 
     log.info('Sending request to OpenAI', {
