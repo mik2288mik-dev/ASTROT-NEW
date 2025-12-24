@@ -97,7 +97,8 @@ export const TRANSLATIONS = {
       forecast_title: "Персональный Прогноз",
       forecast_day: "На Сегодня",
       forecast_week: "На Неделю",
-      forecast_month: "На Месяц"
+      forecast_month: "На Месяц",
+      free_teaser_title: "Космический Паспорт"
     },
     synastry: {
       title: "Синастрия",
@@ -221,7 +222,8 @@ export const TRANSLATIONS = {
       forecast_title: "Personal Forecast",
       forecast_day: "Today",
       forecast_week: "This Week",
-      forecast_month: "This Month"
+      forecast_month: "This Month",
+      free_teaser_title: "Cosmic Passport"
     },
     synastry: {
       title: "Synastry",
