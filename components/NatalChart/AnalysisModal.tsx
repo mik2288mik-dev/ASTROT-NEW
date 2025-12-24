@@ -1,13 +1,18 @@
-import React, { memo } from 'react';
+import React, { memo, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loading } from '../ui/Loading';
 
 /**
- * Модальное окно для отображения детального анализа натальной карты
+ * Полноэкранный компонент для отображения детального анализа натальной карты
  * 
  * Используется для показа:
  * - Deep Dive анализов (личность, любовь, карьера, слабости, карма)
  * - Прогнозов (дневной, недельный, месячный)
+ * 
+ * Особенности:
+ * - Полноэкранный режим с красивой типографикой
+ * - Автоматическая очистка текста от лишних символов markdown
+ * - Правильное разбиение на параграфы с учетом списков
  */
 interface AnalysisModalProps {
     isOpen: boolean;
@@ -17,6 +22,59 @@ interface AnalysisModalProps {
     onClose: () => void;
 }
 
+/**
+ * Очищает и форматирует текст от AI
+ * Убирает лишние символы markdown, которые плохо отображаются
+ */
+const cleanText = (text: string): string => {
+    if (!text) return '';
+    
+    return text
+        // Убираем markdown заголовки (##, ###, **текст**)
+        .replace(/#{1,6}\s+/g, '')
+        .replace(/\*\*(.+?)\*\*/g, '$1')
+        .replace(/\*(.+?)\*/g, '$1')
+        // Убираем лишние пробелы и переносы строк
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+};
+
+/**
+ * Разбивает текст на секции для красивого отображения
+ */
+const parseContent = (text: string) => {
+    if (!text) return [];
+    
+    const cleaned = cleanText(text);
+    const paragraphs = cleaned.split('\n\n').filter(p => p.trim());
+    
+    return paragraphs.map(paragraph => {
+        const trimmed = paragraph.trim();
+        
+        // Проверяем, это список (начинается с •, -, числа)
+        const isList = /^[•\-\d]/.test(trimmed);
+        
+        // Разбиваем список на элементы
+        if (isList) {
+            const items = trimmed
+                .split('\n')
+                .filter(line => line.trim())
+                .map(line => line.replace(/^[•\-\d]+[\.)]\s*/, '').trim());
+            
+            return {
+                type: 'list' as const,
+                content: items
+            };
+        }
+        
+        // Обычный параграф
+        return {
+            type: 'paragraph' as const,
+            content: trimmed
+        };
+    });
+};
+
 export const AnalysisModal = memo<AnalysisModalProps>(({ 
     isOpen, 
     title, 
@@ -24,58 +82,88 @@ export const AnalysisModal = memo<AnalysisModalProps>(({
     isLoading, 
     onClose 
 }) => {
+    // Парсим контент один раз при изменении
+    const parsedContent = useMemo(() => parseContent(content), [content]);
+    
     if (!isOpen) return null;
 
     return (
         <AnimatePresence>
             <motion.div 
-                initial={{ opacity: 0 }} 
-                animate={{ opacity: 1 }} 
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 z-[70] bg-black/80 flex items-center justify-center p-6"
-                onClick={onClose}
+                initial={{ x: '100%' }} 
+                animate={{ x: 0 }} 
+                exit={{ x: '100%' }}
+                transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+                className="fixed inset-0 z-[70] bg-astro-bg overflow-y-auto"
             >
-                <motion.div 
-                    initial={{ scale: 0.95 }} 
-                    animate={{ scale: 1 }} 
-                    exit={{ scale: 0.95 }}
-                    className="bg-astro-card w-full max-w-lg rounded-3xl p-8 border border-astro-border max-h-[80vh] flex flex-col"
-                    onClick={e => e.stopPropagation()}
-                >
-                    {/* Заголовок модалки */}
-                    <div className="flex justify-between items-center mb-6 pb-4 border-b border-astro-border shrink-0">
-                        <h3 className="text-xl font-semibold text-astro-text">{title}</h3>
+                {/* Заголовок с кнопкой закрытия */}
+                <div className="sticky top-0 z-10 bg-astro-bg/95 backdrop-blur-md border-b border-astro-border">
+                    <div className="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
                         <button 
-                            onClick={onClose} 
-                            className="text-astro-subtext hover:text-astro-text text-2xl leading-none"
-                            aria-label="Close"
+                            onClick={onClose}
+                            className="flex items-center gap-2 text-astro-subtext hover:text-astro-text transition-colors"
+                            aria-label="Back"
                         >
-                            ×
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                            </svg>
+                            <span className="text-sm uppercase tracking-wider">Назад</span>
                         </button>
+                        <h1 className="text-lg font-serif text-astro-text text-center flex-1 mx-4">
+                            {title}
+                        </h1>
+                        <div className="w-16"></div> {/* Spacer для центрирования заголовка */}
                     </div>
+                </div>
 
-                    {/* Содержимое */}
-                    <div className="flex-1 overflow-y-auto scrollbar-hide pr-2">
-                        {isLoading ? (
+                {/* Контент */}
+                <div className="max-w-3xl mx-auto px-6 py-8 pb-24">
+                    {isLoading ? (
+                        <div className="flex items-center justify-center min-h-[50vh]">
                             <Loading />
-                        ) : (
-                            <div className="space-y-4">
-                                {content.split('\n\n').filter(p => p.trim()).map((paragraph, idx) => (
-                                    <p 
-                                        key={idx}
-                                        className="card-text text-base md:text-[17px] text-astro-text"
-                                        style={{ 
-                                            lineHeight: '1.7',
-                                            maxWidth: '55ch'
-                                        }}
-                                    >
-                                        {paragraph.trim()}
-                                    </p>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                </motion.div>
+                        </div>
+                    ) : (
+                        <motion.div 
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.1 }}
+                            className="space-y-6"
+                        >
+                            {parsedContent.map((section, idx) => (
+                                <motion.div
+                                    key={idx}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.1 + idx * 0.05 }}
+                                >
+                                    {section.type === 'paragraph' ? (
+                                        <p className="text-base md:text-lg text-astro-text leading-relaxed font-serif" style={{ lineHeight: '1.8' }}>
+                                            {section.content}
+                                        </p>
+                                    ) : (
+                                        <ul className="space-y-3 pl-1">
+                                            {section.content.map((item, itemIdx) => (
+                                                <li key={itemIdx} className="flex items-start gap-3">
+                                                    <span className="text-astro-highlight mt-1.5 flex-shrink-0">✦</span>
+                                                    <span className="text-base md:text-lg text-astro-text leading-relaxed font-serif" style={{ lineHeight: '1.8' }}>
+                                                        {item}
+                                                    </span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                </motion.div>
+                            ))}
+                            
+                            {/* Если текст пустой */}
+                            {parsedContent.length === 0 && (
+                                <div className="text-center text-astro-subtext py-12">
+                                    <p className="text-lg font-serif">Контент отсутствует</p>
+                                </div>
+                            )}
+                        </motion.div>
+                    )}
+                </div>
             </motion.div>
         </AnimatePresence>
     );
