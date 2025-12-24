@@ -157,9 +157,11 @@ ${userProfileJson}
 export const createDailyForecastPrompt = (
   natalData: NatalChartData,
   profile: UserProfile,
-  currentDate: string
+  currentDate: string,
+  transits?: any
 ): string => {
   const natalDataJson = JSON.stringify(natalData, null, 2);
+  const transitsJson = transits ? JSON.stringify(transits, null, 2) : "Нет данных о транзитах";
   
   return `Сегодня ${currentDate}.
 
@@ -167,11 +169,15 @@ export const createDailyForecastPrompt = (
 
 ${natalDataJson}
 
+Вот ТЕКУЩИЕ ТРАНЗИТЫ планет (положения планет на небе прямо сейчас):
+
+${transitsJson}
+
 Задача: создай ПЕРСОНАЛЬНЫЙ и ЧЕСТНЫЙ прогноз на сегодня для этого человека.
 
 Учитывай:
-– Текущие транзиты к натальной карте (это самое важное!).
-– Лунный день и фазу Луны.
+– Текущие транзиты к натальной карте (это самое важное!). Сравнивай планеты из транзитов с планетами натальной карты.
+– Лунный день и фазу Луны (из транзитов).
 – Общие астрологические тренды дня.
 
 Формат ответа должен включать:
