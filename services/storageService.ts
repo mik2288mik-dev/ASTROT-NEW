@@ -23,23 +23,24 @@ log.info('StorageService initialized', {
 
 /**
  * Save profile to Railway Database
+ * WARNING: This is the ONLY persistence layer. No local storage fallback.
  */
 export const saveProfile = async (profile: UserProfile): Promise<void> => {
-  const userId = profile.id || 'current';
+  const userId = profile.id;
+  
+  if (!userId) {
+      log.error('[saveProfile] Cannot save profile without userId');
+      throw new Error('User ID is required for saving');
+  }
+
   log.info(`[saveProfile] ===== STARTING SAVE PROFILE =====`);
   log.info(`[saveProfile] userId: ${userId}`, { 
     userId, 
     hasName: !!profile.name,
     isPremium: profile.isPremium 
   });
-  log.info(`[saveProfile] profile.weatherCity:`, profile.weatherCity);
-  log.info(`[saveProfile] profile.hasGeneratedContent:`, !!profile.generatedContent);
-  log.info(`[saveProfile] profile.generatedContent keys:`, profile.generatedContent ? Object.keys(profile.generatedContent) : []);
-  log.info(`[saveProfile] profile.generatedContent.natalIntro exists:`, !!profile.generatedContent?.natalIntro);
   
-  if (profile.generatedContent?.natalIntro) {
-    log.info(`[saveProfile] natalIntro length:`, profile.generatedContent.natalIntro.length || 0);
-  }
+  // ... rest of logging ...
 
   try {
     // Always try to save to database via Next.js API
@@ -108,11 +109,18 @@ export const saveProfile = async (profile: UserProfile): Promise<void> => {
 
 /**
  * Get profile from Railway Database
+ * WARNING: This is the ONLY persistence layer. No local storage fallback.
  */
 export const getProfile = async (): Promise<UserProfile | null> => {
   const tg = (window as any).Telegram?.WebApp;
   const tgId = tg?.initDataUnsafe?.user?.id;
-  const userId = tgId || 'current';
+  
+  if (!tgId) {
+      log.warn('[getProfile] No Telegram ID found, cannot fetch profile from DB');
+      return null;
+  }
+  
+  const userId = tgId;
   
   log.info(`[getProfile] Starting fetch for user: ${userId}`, { userId, tgId });
 
@@ -160,11 +168,18 @@ export const getProfile = async (): Promise<UserProfile | null> => {
 
 /**
  * Save chart data to Railway Database
+ * WARNING: This is the ONLY persistence layer. No local storage fallback.
  */
 export const saveChartData = async (data: NatalChartData): Promise<void> => {
   const tg = (window as any).Telegram?.WebApp;
   const tgId = tg?.initDataUnsafe?.user?.id;
-  const userId = tgId || 'current';
+  
+  if (!tgId) {
+      log.error('[saveChartData] No Telegram ID found, cannot save chart');
+      throw new Error('User ID is required for saving chart');
+  }
+
+  const userId = tgId;
 
   log.info(`[saveChartData] Starting save for user: ${userId}`, {
     userId,
@@ -224,11 +239,18 @@ export const saveChartData = async (data: NatalChartData): Promise<void> => {
 
 /**
  * Get chart data from Railway Database
+ * WARNING: This is the ONLY persistence layer. No local storage fallback.
  */
 export const getChartData = async (): Promise<NatalChartData | null> => {
   const tg = (window as any).Telegram?.WebApp;
   const tgId = tg?.initDataUnsafe?.user?.id;
-  const userId = tgId || 'current';
+  
+  if (!tgId) {
+      log.warn('[getChartData] No Telegram ID found, cannot fetch chart');
+      return null;
+  }
+  
+  const userId = tgId;
 
   log.info(`[getChartData] Starting fetch for user: ${userId}`, { userId, tgId });
 
