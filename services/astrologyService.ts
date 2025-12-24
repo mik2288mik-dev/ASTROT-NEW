@@ -1,4 +1,4 @@
-import { UserProfile, NatalChartData, DailyHoroscope, ThreeKeys, SynastryResult, UserContext, UserEvolution } from "../types";
+import { UserProfile, NatalChartData, DailyHoroscope, SynastryResult, UserContext, UserEvolution } from "../types";
 import { SYSTEM_INSTRUCTION_ASTRA } from "../constants";
 import { getElementForSign, SIGN_ELEMENTS } from "../lib/zodiac-utils";
 
@@ -194,54 +194,6 @@ export const getNatalIntro = async (profile: UserProfile, chartData: NatalChartD
     return fallback;
   }
 };
-
-/**
- * УСТАРЕЛО: Get Three Keys (оставлено для совместимости)
- */
-export const getThreeKeys = async (profile: UserProfile, chartData: NatalChartData): Promise<ThreeKeys> => {
-  const url = `${API_BASE_URL}/api/astrology/three-keys`;
-  log.info('[getThreeKeys] Starting request', { userId: profile.id });
-
-  try {
-    log.info(`[getThreeKeys] Sending POST request to: ${url}`);
-    const startTime = Date.now();
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ profile, chartData })
-    });
-
-    const duration = Date.now() - startTime;
-    log.info(`[getThreeKeys] Response received in ${duration}ms`, {
-      status: response.status,
-      statusText: response.statusText,
-      ok: response.ok
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => 'Unable to read error response');
-      log.error(`[getThreeKeys] Server returned error status ${response.status}`, {
-        status: response.status,
-        statusText: response.statusText,
-        errorBody: errorText
-      });
-      throw new Error(`Failed to get three keys: ${response.status} ${response.statusText}`);
-    }
-
-    const keys = await response.json() as ThreeKeys;
-    log.info('[getThreeKeys] Successfully received three keys');
-    return keys;
-  } catch (error: any) {
-    log.error('[getThreeKeys] Error occurred', {
-      error: error.message,
-      stack: error.stack
-    });
-    // Пробрасываем ошибку вместо fallback
-    throw error;
-  }
-};
-
-// УДАЛЕНО: generatePersonalizedThreeKeysFallback - больше не используем fallback данные
 
 /**
  * Краткий обзор синастрии (бесплатный) - тизер для всех пользователей

@@ -35,12 +35,6 @@ export const SYSTEM_PROMPT_ASTRA = `Ты — профессиональный а
 – Используй 1–2 иконки для акцентов, но не спамь ими.
 – Не используй слащавый "подлизный" тон. Будь объективным и немного дерзким.`;
 
-/**
- * НОВЫЙ промпт для ПОЛНОЙ натальной карты
- * 
- * Классический профессиональный разбор всей натальной карты
- * Без акцента на "три ключа" - полноценный анализ личности
- */
 export const createFullNatalChartIntroPrompt = (
   natalData: NatalChartData,
   profile: UserProfile
@@ -84,19 +78,6 @@ ${natalDataJson}
 ✓ 1-2 иконки для оформления (не эмодзи!)
 
 Длина: 600-900 символов`;
-};
-
-/**
- * УСТАРЕВШИЙ промпт для «трёх ключей»
- * Оставлен для совместимости с существующими данными
- * Новые пользователи получают полный разбор выше
- */
-export const createThreeKeysPrompt = (
-  natalData: NatalChartData,
-  profile: UserProfile
-): string => {
-  // Теперь вызываем новый промпт
-  return createFullNatalChartIntroPrompt(natalData, profile);
 };
 
 /**
@@ -923,25 +904,14 @@ ${evolutionJson}
 Выведи результат в формате Markdown с подзаголовками.`;
 };
 
-/**
- * Типы для структурированных ответов AI
- */
-export interface ThreeKeysAIResponse {
-  key1: {
-    title: string;
-    text: string;
-    advice: string[];
+export interface EvolutionAIResponse {
+  level: number;
+  stats: {
+    awareness: number;
+    intuition: number;
+    confidence: number;
   };
-  key2: {
-    title: string;
-    text: string;
-    advice: string[];
-  };
-  key3: {
-    title: string;
-    text: string;
-    advice: string[];
-  };
+  title: string;
 }
 
 export interface DailyForecastAIResponse {

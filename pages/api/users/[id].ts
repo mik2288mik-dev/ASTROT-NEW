@@ -49,10 +49,7 @@ export default async function handler(
       });
 
       // Transform database format (snake_case) to client format (camelCase)
-      // Синхронизируем threeKeys: если есть в generatedContent, используем его, иначе из отдельного поля
       const generatedContent = user.generated_content || {};
-      const threeKeysFromGenerated = generatedContent.threeKeys || null;
-      const threeKeys = threeKeysFromGenerated || user.three_keys;
       
       const clientUser = {
         id: user.id,
@@ -65,7 +62,6 @@ export default async function handler(
         theme: user.theme,
         isPremium: user.is_premium,
         isAdmin: user.is_admin,
-        threeKeys: threeKeys, // Синхронизированное значение
         evolution: user.evolution,
         generatedContent: user.generated_content,
         weatherCity: user.weather_city && user.weather_city.trim() ? user.weather_city.trim() : undefined,
@@ -101,7 +97,6 @@ export default async function handler(
       log.info(`[${req.method}] existingUser?.generated_content exists:`, !!existingUser?.generated_content);
       
       let finalGeneratedContent = existingUser?.generated_content || null;
-      let threeKeysToSave = null;
       
       // ВАЖНО: Проверяем наличие generatedContent в запросе
       // Если он передан и не пустой - используем его
@@ -113,34 +108,15 @@ export default async function handler(
         if (hasContent) {
           // Если передан непустой объект - используем его
           log.info(`[${req.method}] Using provided generatedContent with ${Object.keys(generatedContent).length} keys`);
-          threeKeysToSave = generatedContent.threeKeys || userData.threeKeys || null;
-          
-          // Обновляем generatedContent.threeKeys если его нет, но есть в userData.threeKeys
-          finalGeneratedContent = threeKeysToSave && !generatedContent.threeKeys
-            ? { ...generatedContent, threeKeys: threeKeysToSave }
-            : generatedContent;
+          finalGeneratedContent = generatedContent;
         } else {
           // Если передан пустой объект - сохраняем существующий из БД
           log.info(`[${req.method}] Provided generatedContent is empty, keeping existing from DB`);
           finalGeneratedContent = existingUser?.generated_content || null;
-          threeKeysToSave = userData.threeKeys || finalGeneratedContent?.threeKeys || null;
         }
       } else {
         // Если generatedContent не передан - используем существующий из БД
         log.info(`[${req.method}] generatedContent not provided, using existing from DB`);
-        threeKeysToSave = userData.threeKeys || finalGeneratedContent?.threeKeys || null;
-        
-        if (existingUser?.generated_content && threeKeysToSave && !finalGeneratedContent?.threeKeys) {
-          // Обновляем threeKeys в существующем generatedContent если нужно
-          log.info(`[${req.method}] Updating threeKeys in existing generatedContent`);
-          finalGeneratedContent = {
-            ...existingUser.generated_content,
-            threeKeys: threeKeysToSave
-          };
-        } else if (finalGeneratedContent) {
-          // Используем threeKeys из существующего generatedContent
-          threeKeysToSave = finalGeneratedContent.threeKeys || threeKeysToSave;
-        }
       }
       
       // КРИТИЧЕСКИ ВАЖНО: Проверяем что finalGeneratedContent не потерялся
@@ -195,7 +171,6 @@ export default async function handler(
         theme: userData.theme || 'dark',
         is_premium: userData.isPremium || false,
         is_admin: userData.isAdmin || false,
-        three_keys: threeKeysToSave, // Синхронизированное значение
         evolution: userData.evolution || null,
         generated_content: dbGeneratedContent, // Передаем объект, lib/db.ts сериализует его
         weather_city: weatherCityToSave,
@@ -226,9 +201,7 @@ export default async function handler(
       log.info(`[${req.method}] savedUser.generatedContent keys:`, savedUser.generated_content ? Object.keys(savedUser.generated_content) : []);
 
       // Transform back to client format
-      // Синхронизируем threeKeys при возврате
       const savedGeneratedContent = savedUser.generated_content || {};
-      const syncedThreeKeys = savedGeneratedContent.threeKeys || savedUser.three_keys;
       
       const clientUser = {
         id: savedUser.id,
@@ -241,7 +214,6 @@ export default async function handler(
         theme: savedUser.theme,
         isPremium: savedUser.is_premium,
         isAdmin: savedUser.is_admin,
-        threeKeys: syncedThreeKeys, // Синхронизированное значение
         evolution: savedUser.evolution,
         generatedContent: savedUser.generated_content,
         weatherCity: savedUser.weather_city && savedUser.weather_city.trim() ? savedUser.weather_city.trim() : undefined,

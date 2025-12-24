@@ -97,22 +97,26 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                 console.log('[Settings] Weather API response status:', response.status);
                 
                 if (!response.ok) {
-                    await response.json().catch(() => ({}));
-                    console.error('[Settings] Weather API validation failed:', response.status);
-                    alert(profile.language === 'ru' 
-                        ? 'Не удалось найти указанный город. Проверьте правильность написания.'
-                        : 'Failed to find the specified city. Please check the spelling.');
-                    setWeatherLoading(false);
-                    return;
+                    // Если 404 - города точно нет
+                    if (response.status === 400 || response.status === 404) {
+                         console.error('[Settings] Weather API validation failed: City not found');
+                         alert(profile.language === 'ru' 
+                             ? 'Не удалось найти указанный город. Проверьте правильность написания.'
+                             : 'Failed to find the specified city. Please check the spelling.');
+                         setWeatherLoading(false);
+                         return;
+                    }
+                    
+                    // Если 500 или другая ошибка - возможно проблема с API, но город может быть верным
+                    // Разрешаем сохранение с предупреждением в консоль
+                    console.warn('[Settings] Weather API validation warning:', response.status);
+                } else {
+                    console.log('[Settings] Weather API validation successful');
                 }
-                console.log('[Settings] Weather API validation successful');
             } catch (error) {
                 console.error('[Settings] Error validating weather city:', error);
-                alert(profile.language === 'ru' 
-                    ? 'Ошибка при проверке города. Попробуйте позже.'
-                    : 'Error validating city. Please try again later.');
-                setWeatherLoading(false);
-                return;
+                // При ошибке сети не блокируем сохранение, а просто логируем
+                // Пользователь все равно хочет сохранить этот город
             }
         } else {
             console.log('[Settings] City is empty, will save as null/undefined');

@@ -8,9 +8,10 @@ import { HoroscopeContent } from '../components/Horoscope/HoroscopeContent';
 interface HoroscopeProps {
     profile: UserProfile;
     chartData: NatalChartData | null;
+    onUpdateProfile?: (profile: UserProfile) => void;
 }
 
-export const Horoscope = memo<HoroscopeProps>(({ profile, chartData }) => {
+export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdateProfile }) => {
     const [horoscope, setHoroscope] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
@@ -51,6 +52,14 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData }) => {
                 });
                 const data = await getOrGenerateHoroscope(profile, chartData);
                 setHoroscope(data);
+                
+                // Обновляем профиль в родительском компоненте
+                if (onUpdateProfile && profile.generatedContent) {
+                    // Создаем копию профиля с обновленным гороскопом
+                    // getOrGenerateHoroscope мутирует profile.generatedContent, но нам нужно создать новый объект
+                    // чтобы React увидел изменения
+                    onUpdateProfile({ ...profile });
+                }
             } catch (error) {
                 console.error('[Horoscope] Error loading horoscope:', error);
                 // При ошибке используем кэш если есть

@@ -46,10 +46,7 @@ export const TRANSLATIONS = {
       typing: "Астра печатает...",
       intro: "Приветствую, {name}. Я изучила твою карту...",
       done: "Это лишь 10% потенциала вашей натальной карты. Бесплатный расчет завершен.\n\nЧтобы раскрыть всю карту, получить персональный прогноз на день, месяц и узнать о кармических задачах, активируйте подписку.",
-      cta_button: "Узнать больше",
-      key1_title: "ТВОЯ ЭНЕРГИЯ",
-      key2_title: "ТВОЙ СТИЛЬ ЛЮБВИ",
-      key3_title: "ТВОЯ КАРЬЕРА"
+      cta_button: "Узнать больше"
     },
     paywall: {
       title: "ПРЕМИУМ АСТРОЛОГ",
@@ -97,7 +94,8 @@ export const TRANSLATIONS = {
       forecast_title: "Персональный Прогноз",
       forecast_day: "На Сегодня",
       forecast_week: "На Неделю",
-      forecast_month: "На Месяц"
+      forecast_month: "На Месяц",
+      free_teaser_title: "Космический Паспорт"
     },
     synastry: {
       title: "Синастрия",
@@ -170,10 +168,7 @@ export const TRANSLATIONS = {
       typing: "Astra is typing...",
       intro: "Greetings, {name}. I have studied your chart...",
       done: "This is only 10% of your chart's potential. Free calculation complete.\n\nTo reveal your full chart, get daily forecasts, and uncover karmic tasks, activate subscription.",
-      cta_button: "Learn more",
-      key1_title: "YOUR ENERGY",
-      key2_title: "YOUR LOVE STYLE",
-      key3_title: "YOUR CAREER"
+      cta_button: "Learn more"
     },
     paywall: {
       title: "PREMIUM ASTROLOGER",
@@ -221,7 +216,8 @@ export const TRANSLATIONS = {
       forecast_title: "Personal Forecast",
       forecast_day: "Today",
       forecast_week: "This Week",
-      forecast_month: "This Month"
+      forecast_month: "This Month",
+      free_teaser_title: "Cosmic Passport"
     },
     synastry: {
       title: "Synastry",

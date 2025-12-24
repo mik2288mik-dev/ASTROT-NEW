@@ -204,17 +204,6 @@ export const db = {
 
         const user = result.rows[0];
         
-        // Парсим JSON поля, если они являются строками (для обратной совместимости)
-        let threeKeys = user.three_keys;
-        if (typeof threeKeys === 'string') {
-          try {
-            threeKeys = JSON.parse(threeKeys);
-          } catch (e) {
-            log.warn('[DB] Failed to parse three_keys JSON', { error: e });
-            threeKeys = null;
-          }
-        }
-        
         let evolution = user.evolution;
         if (typeof evolution === 'string') {
           try {
@@ -247,7 +236,6 @@ export const db = {
           theme: user.theme,
           is_premium: user.is_premium,
           is_admin: user.is_admin,
-          three_keys: threeKeys,
           evolution: evolution,
           generated_content: generatedContent,
           weather_city: user.weather_city,
@@ -355,8 +343,8 @@ export const db = {
             `INSERT INTO users (
               id, name, birth_date, birth_time, birth_place,
               is_setup, language, theme, is_premium, is_admin,
-              three_keys, evolution, generated_content, weather_city, updated_at
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, CURRENT_TIMESTAMP)
+              evolution, generated_content, weather_city, updated_at
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, CURRENT_TIMESTAMP)
             ON CONFLICT (id) DO UPDATE SET
               name = EXCLUDED.name,
               birth_date = EXCLUDED.birth_date,
@@ -367,7 +355,6 @@ export const db = {
               theme = EXCLUDED.theme,
               is_premium = EXCLUDED.is_premium,
               is_admin = EXCLUDED.is_admin,
-              three_keys = EXCLUDED.three_keys,
               evolution = EXCLUDED.evolution,
               generated_content = EXCLUDED.generated_content,
               weather_city = EXCLUDED.weather_city,
@@ -384,7 +371,6 @@ export const db = {
               data.theme || 'dark',
               data.is_premium || false,
               data.is_admin || false,
-              data.three_keys ? JSON.stringify(data.three_keys) : null,
               data.evolution ? JSON.stringify(data.evolution) : null,
               finalGeneratedContent,
               finalWeatherCity,
@@ -414,17 +400,6 @@ export const db = {
           }
 
           const user = result.rows[0];
-          
-          // Парсим JSON поля, если они являются строками
-          let threeKeys = user.three_keys;
-          if (typeof threeKeys === 'string') {
-            try {
-              threeKeys = JSON.parse(threeKeys);
-            } catch (e) {
-              log.warn('[DB] Failed to parse three_keys JSON in set', { error: e });
-              threeKeys = null;
-            }
-          }
           
           let evolution = user.evolution;
           if (typeof evolution === 'string') {
@@ -457,7 +432,6 @@ export const db = {
             theme: user.theme,
             is_premium: user.is_premium,
             is_admin: user.is_admin,
-            three_keys: threeKeys,
             evolution: evolution,
             generated_content: generatedContent,
             weather_city: user.weather_city,
@@ -508,7 +482,6 @@ export const db = {
           theme: user.theme,
           is_premium: user.is_premium,
           is_admin: user.is_admin,
-          three_keys: user.three_keys,
           evolution: user.evolution,
           generated_content: user.generated_content,
           weather_city: user.weather_city,
@@ -589,55 +562,6 @@ export const db = {
 
   // Cached texts operations
   cachedTexts: {
-    async getThreeKeys(userId: string) {
-      log.info(`[DB] Getting cached three keys for user: ${userId}`);
-      
-      if (!DATABASE_URL) return null;
-
-      try {
-        const dbPool = getPool();
-        const result = await dbPool.query(
-          'SELECT three_keys_text, three_keys_updated_at FROM users WHERE id = $1',
-          [userId]
-        );
-        
-        if (result.rows.length === 0 || !result.rows[0].three_keys_text) {
-          return null;
-        }
-
-        return {
-          data: result.rows[0].three_keys_text,
-          updatedAt: result.rows[0].three_keys_updated_at
-        };
-      } catch (error: any) {
-        log.error('[DB] Error getting cached three keys', { error: error.message, userId });
-        throw error;
-      }
-    },
-
-    async setThreeKeys(userId: string, data: any) {
-      log.info(`[DB] Setting cached three keys for user: ${userId}`);
-      
-      if (!DATABASE_URL) {
-        throw new Error('DATABASE_URL is not configured');
-      }
-
-      try {
-        const dbPool = getPool();
-        await dbPool.query(
-          `UPDATE users 
-           SET three_keys_text = $1, three_keys_updated_at = CURRENT_TIMESTAMP 
-           WHERE id = $2`,
-          [JSON.stringify(data), userId]
-        );
-        
-        return { success: true };
-      } catch (error: any) {
-        log.error('[DB] Error setting cached three keys', { error: error.message, userId });
-        throw error;
-      }
-    },
-
     async getNatalSummary(userId: string) {
       log.info(`[DB] Getting cached natal summary for user: ${userId}`);
       
