@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React, { memo, useMemo } from 'react';
 import { Language } from '../../types';
 
 interface HoroscopeContentProps {
@@ -9,6 +9,22 @@ interface HoroscopeContentProps {
   language: Language;
 }
 
+/**
+ * Очищает текст от лишних символов markdown
+ */
+const cleanText = (text: string): string => {
+  if (!text) return '';
+  
+  return text
+    // Убираем markdown заголовки и форматирование
+    .replace(/#{1,6}\s+/g, '')
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/\*(.+?)\*/g, '$1')
+    // Убираем лишние пробелы
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
 export const HoroscopeContent = memo<HoroscopeContentProps>(({ 
   content, 
   moonImpact, 
@@ -16,33 +32,44 @@ export const HoroscopeContent = memo<HoroscopeContentProps>(({
   color, 
   language 
 }) => {
-  const paragraphs = content?.split('\n').filter((p: string) => p.trim()) || [];
+  // Очищаем и разбиваем текст на параграфы
+  const paragraphs = useMemo(() => {
+    const cleaned = cleanText(content);
+    // Разбиваем по двойным переносам строк или по одиночным если их нет
+    const split = cleaned.includes('\n\n') 
+      ? cleaned.split('\n\n') 
+      : cleaned.split('\n');
+    
+    return split
+      .filter((p: string) => p.trim())
+      .map((p: string) => p.trim());
+  }, [content]);
 
   return (
     <div className="bg-astro-card rounded-2xl p-6 md:p-8 border border-astro-border shadow-sm">
-      <div className="space-y-4 md:space-y-5">
-        {/* Разбиваем текст на абзацы */}
+      <div className="space-y-5 md:space-y-6">
+        {/* Разбиваем текст на абзацы с улучшенной типографикой */}
         {paragraphs.map((paragraph: string, index: number) => (
           <p 
             key={index}
-            className="card-text text-base md:text-[17px] text-astro-text"
+            className="font-serif text-base md:text-lg text-astro-text"
             style={{ 
-              lineHeight: '1.7',
-              maxWidth: '65ch'
+              lineHeight: '1.8',
+              maxWidth: '70ch'
             }}
           >
-            {paragraph.trim()}
+            {paragraph}
           </p>
         ))}
 
         {/* Если есть дополнительная информация */}
         {moonImpact && (
-          <div className="pt-5 mt-5 border-t border-astro-border/40">
+          <div className="pt-6 mt-6 border-t border-astro-border/40">
             <h3 className="text-base md:text-lg font-semibold text-astro-text mb-3">
               {language === 'ru' ? 'Влияние Луны' : 'Moon Impact'}
             </h3>
-            <p className="text-[15px] md:text-base text-astro-subtext" style={{ lineHeight: '1.6', maxWidth: '60ch' }}>
-              {moonImpact}
+            <p className="font-serif text-[15px] md:text-base text-astro-text/80" style={{ lineHeight: '1.7', maxWidth: '65ch' }}>
+              {cleanText(moonImpact)}
             </p>
           </div>
         )}
