@@ -46,10 +46,7 @@ export const TRANSLATIONS = {
       typing: "Астра печатает...",
       intro: "Приветствую, {name}. Я изучила твою карту...",
       done: "Это лишь 10% потенциала вашей натальной карты. Бесплатный расчет завершен.\n\nЧтобы раскрыть всю карту, получить персональный прогноз на день, месяц и узнать о кармических задачах, активируйте подписку.",
-      cta_button: "Узнать больше",
-      key1_title: "ТВОЯ ЭНЕРГИЯ",
-      key2_title: "ТВОЙ СТИЛЬ ЛЮБВИ",
-      key3_title: "ТВОЯ КАРЬЕРА"
+      cta_button: "Узнать больше"
     },
     paywall: {
       title: "ПРЕМИУМ АСТРОЛОГ",
@@ -171,10 +168,7 @@ export const TRANSLATIONS = {
       typing: "Astra is typing...",
       intro: "Greetings, {name}. I have studied your chart...",
       done: "This is only 10% of your chart's potential. Free calculation complete.\n\nTo reveal your full chart, get daily forecasts, and uncover karmic tasks, activate subscription.",
-      cta_button: "Learn more",
-      key1_title: "YOUR ENERGY",
-      key2_title: "YOUR LOVE STYLE",
-      key3_title: "YOUR CAREER"
+      cta_button: "Learn more"
     },
     paywall: {
       title: "PREMIUM ASTROLOGER",

@@ -36,12 +36,6 @@ export const CACHE_CONFIGS = {
     tags: ['natal-chart']
   },
   
-  // Три ключа - статичны для пользователя
-  threeKeys: {
-    revalidate: false,
-    tags: ['three-keys']
-  },
-  
   // Deep Dive анализы - статичны
   deepDive: {
     revalidate: false,

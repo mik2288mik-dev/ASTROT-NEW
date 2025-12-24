@@ -3,9 +3,7 @@ export type Language = 'ru' | 'en';
 export type Theme = 'dark' | 'light';
 
 export interface ThreeKeys {
-  key1: { title: string; text: string; advice?: string[]; }; // Energy
-  key2: { title: string; text: string; advice?: string[]; }; // Love
-  key3: { title: string; text: string; advice?: string[]; }; // Career
+  // Removed content as it is deprecated
 }
 
 export interface UserEvolution {
@@ -50,7 +48,6 @@ export interface UserProfile {
   theme: Theme; 
   isPremium: boolean; 
   isAdmin?: boolean;
-  threeKeys?: ThreeKeys;
   evolution?: UserEvolution;
   lastContext?: UserContext;
   starsBalance?: number; // Баланс звёзд для платных регенераций
@@ -106,9 +103,6 @@ export interface NatalChartData {
 export interface UserGeneratedContent {
   // НОВОЕ: Вступление натальной карты (бесплатное)
   natalIntro?: string;
-  
-  // УСТАРЕЛО: Три ключа (оставлено для совместимости с существующими пользователями)
-  threeKeys?: ThreeKeys;
   
   // Гороскопы (обновляются по расписанию)
   dailyHoroscope?: DailyHoroscope;
@@ -215,7 +209,7 @@ export interface CachedText<T = any> {
 }
 
 // Regeneration types
-export type ContentType = 'three_keys' | 'natal_summary' | 'full_natal' | 'synastry' | 'forecast' | 'natal_intro';
+export type ContentType = 'natal_summary' | 'full_natal' | 'synastry' | 'forecast' | 'natal_intro';
 
 export interface RegenerationLimits {
   canRegenerate: boolean;
