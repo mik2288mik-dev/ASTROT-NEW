@@ -100,10 +100,24 @@ function initSwissEph() {
     // Устанавливаем путь к эфемеридам для максимальной точности расчетов
     try {
       if (typeof sweInstance.swe_set_ephe_path === 'function') {
-        const ephePath = process.env.EPHE_PATH || (IS_SERVER ? '/app/ephe' : path.join(process.cwd(), 'ephe'));
-        
         const fs = require('fs');
-        if (fs.existsSync(ephePath)) {
+        
+        // Определяем путь к эфемеридам с проверкой существования
+        let ephePath = process.env.EPHE_PATH;
+        
+        if (!ephePath) {
+            // Попытка 1: Локальный путь в проекте (приоритет для разработки и Cursor)
+            const localPath = path.join(process.cwd(), 'ephe');
+            if (fs.existsSync(localPath)) {
+                ephePath = localPath;
+            } 
+            // Попытка 2: Стандартный путь в Docker контейнере
+            else if (fs.existsSync('/app/ephe')) {
+                ephePath = '/app/ephe';
+            }
+        }
+        
+        if (ephePath && fs.existsSync(ephePath)) {
           sweInstance.swe_set_ephe_path(ephePath);
           
           log.info(`✓ Ephemeris path set to: ${ephePath}`, {
@@ -112,9 +126,9 @@ function initSwissEph() {
             note: 'Using high-precision Swiss Ephemeris files (.se1) for calculations'
           });
         } else {
-          log.warn(`Ephemeris path not found: ${ephePath}`, {
+          log.warn(`Ephemeris path not found or invalid`, {
             cwd: process.cwd(),
-            ephePath,
+            attemptedPath: ephePath,
             envEPHE_PATH: process.env.EPHE_PATH,
             note: 'Will use built-in ephemeris data (still accurate, but may have date limitations)'
           });
