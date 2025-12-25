@@ -271,12 +271,25 @@ export const getChartData = async (): Promise<NatalChartData | null> => {
     
     if (response.ok) {
       const chartData = await response.json() as NatalChartData;
-        log.info(`[getChartData] Successfully loaded chart from database`, {
+      
+      // Валидация данных карты перед возвратом
+      if (!chartData || !chartData.sun || !chartData.moon) {
+        log.error(`[getChartData] Invalid chart data received from database`, {
           userId,
-          hasSun: !!chartData.sun,
-          hasMoon: !!chartData.moon,
-          element: chartData.element
+          hasData: !!chartData,
+          hasSun: !!chartData?.sun,
+          hasMoon: !!chartData?.moon
         });
+        return null;
+      }
+      
+      log.info(`[getChartData] Successfully loaded chart from database`, {
+        userId,
+        hasSun: !!chartData.sun,
+        hasMoon: !!chartData.moon,
+        hasRising: !!chartData.rising,
+        element: chartData.element
+      });
       return chartData;
     } else if (response.status === 404) {
       // Если данных нет в БД - возвращаем null (не используем localStorage)

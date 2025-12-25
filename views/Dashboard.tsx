@@ -61,47 +61,33 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
         }
     }, []);
 
-    // Отдельный useEffect для обновления ТОЛЬКО погоды при изменении weatherCity
-    // ВАЖНО: Этот useEffect НЕ должен вызывать генерацию карты или гороскопа
-    // Используем ref для отслеживания предыдущего значения weatherCity
-    const prevWeatherCityRef = useRef(profile.weatherCity);
-    
+    // Загрузка погоды для города из профиля (weatherCity хранится в БД)
     useEffect(() => {
-        // Проверяем, действительно ли weatherCity изменился
-        if (prevWeatherCityRef.current === profile.weatherCity) {
-            return;
-        }
-        prevWeatherCityRef.current = profile.weatherCity;
-        
-        const updateWeatherContext = async () => {
-            if (profile.weatherCity) {
+        const loadWeather = async () => {
+            const weatherCity = profile.weatherCity?.trim();
+            if (weatherCity && weatherCity.length > 0) {
                 try {
-                    // Загружаем только погоду, не трогая другие данные
                     const ctx = await getUserContext(profile);
-                    // Обновляем только weatherData в контексте, не трогая остальное
                     setContext(prev => {
                         if (!prev) {
                             return { ...ctx, mood: 'Neutral' };
                         }
-                        return { ...prev, weatherData: ctx.weatherData, weather: ctx.weather, moonPhase: ctx.moonPhase };
+                        return { 
+                            ...prev, 
+                            weatherData: ctx.weatherData, 
+                            weather: ctx.weather, 
+                            moonPhase: ctx.moonPhase 
+                        };
                     });
-                    if (!ctx.weatherData) {
-                        console.warn('[Dashboard] Weather city is set but weather data was not loaded', {
-                            weatherCity: profile.weatherCity
-                        });
-                    }
                 } catch (error) {
-                    console.error('[Dashboard] Failed to load weather context:', error);
-                    // При ошибке НЕ делаем ничего - просто не показываем погоду
-                    // НЕ вызываем генерацию карты или гороскопа!
+                    // При ошибке просто не показываем погоду
                 }
             } else {
-                // Если город не указан, очищаем только контекст погоды
                 setContext(prev => prev ? { ...prev, weatherData: undefined, weather: undefined, moonPhase: undefined } : null);
             }
         };
-        updateWeatherContext();
-    }, [profile.weatherCity]); // Обновляем только при изменении weatherCity
+        loadWeather();
+    }, [profile.weatherCity]);
 
     // Основной useEffect для загрузки данных при первой загрузке или изменении профиля/карты
     // ВАЖНО: Этот useEffect НЕ должен срабатывать при изменении weatherCity или других несущественных полей
@@ -130,79 +116,64 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
             // Небольшая задержка, чтобы не блокировать показ интерфейса
             await new Promise(resolve => setTimeout(resolve, 200));
             
-            // 1. Load Context (Weather/Social Proof) - только при первой загрузке
-            // ВАЖНО: Загружаем контекст только при первой загрузке или изменении основных данных
-            // НЕ загружаем погоду здесь - она обрабатывается отдельным useEffect
+            // 1. Load Social Proof (погода загружается отдельным useEffect)
             try {
                 const ctx = await getUserContext(profile);
-                // Обновляем контекст, но если погода уже загружена - сохраняем её
                 setContext(prev => {
-                    if (!prev) return ctx;
-                    // Сохраняем погоду если она уже была загружена
-                    return { ...ctx, weatherData: prev.weatherData || ctx.weatherData, weather: prev.weather || ctx.weather, moonPhase: prev.moonPhase || ctx.moonPhase };
+                    if (!prev) {
+                        return { ...ctx, mood: 'Neutral' };
+                    }
+                    return { 
+                        ...ctx, 
+                        weatherData: prev.weatherData || ctx.weatherData, 
+                        weather: prev.weather || ctx.weather, 
+                        moonPhase: prev.moonPhase || ctx.moonPhase 
+                    };
                 });
             } catch (error) {
-                console.error('[Dashboard] Failed to load context:', error);
-                // При ошибке НЕ делаем ничего - просто не показываем контекст
+                // При ошибке просто не показываем контекст
             }
 
-            // 2. Load Daily Horoscope (with cache check)
-            // ВАЖНО: Используем кэш из профиля, не генерируем каждый раз!
-            // Загружаем ТОЛЬКО если chartData есть
+            // 2. Load Daily Horoscope из БД (генерируется только раз в день)
             if (chartData) {
-                try {
-                    // Проверяем кэш перед загрузкой
-                    const today = new Date().toISOString().split('T')[0];
-                    const cachedHoroscope = profile.generatedContent?.dailyHoroscope;
-                    
-                    // Если есть актуальный кэш - используем его БЕЗ вызова API
-                    if (cachedHoroscope && cachedHoroscope.date === today && cachedHoroscope.content) {
-                        console.log('[Dashboard] Using cached horoscope from profile (no API call)', {
-                            date: cachedHoroscope.date,
-                            hasContent: !!cachedHoroscope.content
-                        });
-                        setDailyHoroscope(cachedHoroscope);
-                    } else {
-                        // Если кэша нет или он устарел - загружаем через API (который проверит централизованный кэш)
-                        console.log('[Dashboard] Cache miss or outdated, loading horoscope from API', {
-                            hasCache: !!cachedHoroscope,
-                            cacheDate: cachedHoroscope?.date,
-                            today
-                        });
+                const today = new Date().toISOString().split('T')[0];
+                const cachedHoroscope = profile.generatedContent?.dailyHoroscope;
+                
+                // Если есть гороскоп на сегодня - используем из БД БЕЗ запроса к API
+                if (cachedHoroscope && cachedHoroscope.date === today && cachedHoroscope.content && cachedHoroscope.content.length > 0) {
+                    setDailyHoroscope(cachedHoroscope);
+                } else {
+                    // Если гороскопа на сегодня нет - генерируем, сохраняем в БД и показываем
+                    try {
                         const horoscope = await getOrGenerateHoroscope(profile, chartData);
                         setDailyHoroscope(horoscope);
                         
-                        // ВАЖНО: Обновляем профиль в родительском компоненте, так как getOrGenerateHoroscope обновил его структуру
-                        // Это предотвратит повторную генерацию при навигации
-                        if (profile.generatedContent?.dailyHoroscope?.date === horoscope.date) {
-                             onUpdateProfile({ ...profile });
+                        if (onUpdateProfile) {
+                            const updatedProfile = { ...profile };
+                            if (!updatedProfile.generatedContent) {
+                                updatedProfile.generatedContent = {};
+                            }
+                            updatedProfile.generatedContent.dailyHoroscope = horoscope;
+                            onUpdateProfile(updatedProfile);
                         }
-                    }
-                } catch (error) {
-                    console.error('[Dashboard] Failed to load horoscope:', error);
-                    // При ошибке используем кэш если есть
-                    const cachedHoroscope = profile.generatedContent?.dailyHoroscope;
-                    if (cachedHoroscope) {
-                        console.log('[Dashboard] Using cached horoscope as fallback after error');
-                        setDailyHoroscope(cachedHoroscope);
+                    } catch (error) {
+                        // При ошибке используем старый кэш если есть
+                        if (cachedHoroscope && cachedHoroscope.content) {
+                            setDailyHoroscope(cachedHoroscope);
+                        }
                     }
                 }
             }
 
             // 3. Update Evolution (Simulated Async)
             if (!profile.evolution || (Date.now() - profile.evolution.lastUpdated > 86400000)) {
-                // Update once every 24 hours or if missing
                 try {
-                    console.log('[Dashboard] Updating user evolution...');
                     const newEvo = await updateUserEvolution(profile, chartData || undefined);
                     setEvolution(newEvo);
-                    
-                    // Save to profile
                     const updatedProfile = { ...profile, evolution: newEvo };
                     await saveProfile(updatedProfile);
-                    console.log('[Dashboard] Evolution saved successfully');
                 } catch (error) {
-                    console.error('[Dashboard] Failed to update evolution:', error);
+                    // Ошибка не критична
                 }
             }
         };

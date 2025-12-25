@@ -109,50 +109,13 @@ const App: React.FC = () => {
                     
                     setProfile(updatedProfile);
                     
-                    if (storedChart) {
+                    if (storedChart && storedChart.sun && storedChart.moon) {
                         // Если карта найдена в БД - используем её и показываем сразу
-                        // Натальная карта сохраняется в БД и просто отображается при входе
-                        // Обновление контента натальной карты только через кнопку регенерации
-                        console.log('[App] Setting chart data from database');
+                        // ВСЕ данные уже в БД, НИКАКИХ генераций при повторном входе
                         setLoadingProgress(80);
                         setChartData(storedChart);
                         setLoadingProgress(100);
                         setView('dashboard');
-                        
-                        // ВАЖНО: Проверяем, нужно ли сгенерировать контент (если его нет)
-                        // Это может произойти, если пользователь был создан до добавления generatedContent
-                        // НО: НЕ генерируем контент каждый раз при загрузке!
-                        setTimeout(async () => {
-                            try {
-                                // Проверяем, есть ли вообще generatedContent
-                                const hasGeneratedContent = updatedProfile.generatedContent && 
-                                    Object.keys(updatedProfile.generatedContent).length > 0;
-                                const hasNatalIntro = updatedProfile.generatedContent?.natalIntro && 
-                                    updatedProfile.generatedContent.natalIntro.length > 0;
-                                
-                                // Генерируем контент ТОЛЬКО если его действительно нет
-                                if (!hasGeneratedContent || !hasNatalIntro) {
-                                    console.log('[App] Missing content or natalIntro, generating all content ONCE...', {
-                                        hasGeneratedContent,
-                                        hasNatalIntro
-                                    });
-                                    
-                                    const allContent = await generateAllContent(updatedProfile, storedChart);
-                                    const updatedProfileWithContent = { ...updatedProfile, generatedContent: allContent };
-                                    await saveProfile(updatedProfileWithContent);
-                                    setProfile(updatedProfileWithContent);
-                                    console.log('[App] All content generated and saved successfully');
-                                } else {
-                                    // Если контент есть - НЕ обновляем daily horoscope здесь
-                                    // Dashboard сам проверит кэш и загрузит гороскоп если нужно
-                                    // Это избегает лишних API запросов при первой загрузке
-                                    console.log('[App] Content is up to date, Dashboard will load horoscope from cache if needed');
-                                }
-                            } catch (error) {
-                                console.error('[App] Error updating content:', error);
-                                // Не прерываем работу, если обновление не удалось
-                            }
-                        }, 100);
                     } else {
                         // Если карты нет в БД, но профиль есть - пересчитываем карту
                         console.log('[App] Chart not found in database, recalculating...');
@@ -160,18 +123,17 @@ const App: React.FC = () => {
                         try {
                             const generatedChart = await calculateNatalChart(updatedProfile);
                             setLoadingProgress(80);
-                            if (generatedChart && generatedChart.sun) {
+                            if (generatedChart && generatedChart.sun && generatedChart.moon && generatedChart.rising) {
                                 setChartData(generatedChart);
-                                // Сохраняем пересчитанную карту в БД
                                 await saveChartData(generatedChart);
-                                console.log('[App] Chart recalculated and saved');
+                                setLoadingProgress(100);
+                                setView('dashboard');
+                            } else {
+                                setLoadingProgress(100);
+                                setView('onboarding');
                             }
-                            setLoadingProgress(100);
-                            setView('dashboard'); // Показываем Dashboard с космическим паспортом
                         } catch (error) {
-                            console.error('[App] Error recalculating chart:', error);
                             setLoadingProgress(100);
-                            // При ошибке пересчета показываем onboarding
                             setView('onboarding');
                         }
                     }
@@ -242,8 +204,13 @@ const App: React.FC = () => {
             const generatedChart = await calculateNatalChart(fullProfile);
             setLoadingProgress(70);
             
-            if (!generatedChart || !generatedChart.sun) {
-                throw new Error('Invalid chart data received');
+            if (!generatedChart || !generatedChart.sun || !generatedChart.moon || !generatedChart.rising) {
+                console.error('[App] Invalid chart data received:', {
+                    hasSun: !!generatedChart?.sun,
+                    hasMoon: !!generatedChart?.moon,
+                    hasRising: !!generatedChart?.rising
+                });
+                throw new Error('Invalid chart data received - missing required fields');
             }
             
             console.log('[App] Chart generated, saving...', {
@@ -271,18 +238,12 @@ const App: React.FC = () => {
                 try {
                     const allContent = await generateAllContent(fullProfile, generatedChart);
                     fullProfile.generatedContent = allContent;
-                    
-                    // Сохраняем обновленный профиль со всеми генерациями
                     await saveProfile(fullProfile);
                     setProfile(fullProfile);
-                    console.log('[App] All content generated and saved successfully');
                     setLoadingProgress(95);
                 } catch (error) {
-                    console.error('[App] Failed to generate all content:', error);
                     // Не прерываем процесс, если генерация не удалась
                 }
-            } else {
-                console.log('[App] User chose not to save data, skipping content generation');
             }
             
             setLoadingProgress(100);
