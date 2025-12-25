@@ -78,19 +78,28 @@ export const getUserContext = async (profile: UserProfile): Promise<UserContext>
     const weatherCity = profile.weatherCity?.trim();
     if (weatherCity && weatherCity.length > 0) {
         console.log('[ContextService] Fetching weather for city:', weatherCity);
-        const weatherData = await fetchWeatherData(weatherCity);
-        if (weatherData) {
-            context.weatherData = weatherData;
-            // Для обратной совместимости сохраняем также в weather
-            context.weather = weatherData.condition;
-            context.moonPhase = weatherData.moonPhase;
-            console.log('[ContextService] Weather data loaded successfully', {
-                city: weatherData.city,
-                temp: weatherData.temp,
-                condition: weatherData.condition
+        try {
+            const weatherData = await fetchWeatherData(weatherCity);
+            if (weatherData && weatherData.city && weatherData.condition) {
+                context.weatherData = weatherData;
+                // Для обратной совместимости сохраняем также в weather
+                context.weather = weatherData.condition;
+                context.moonPhase = weatherData.moonPhase;
+                console.log('[ContextService] Weather data loaded successfully', {
+                    city: weatherData.city,
+                    temp: weatherData.temp,
+                    condition: weatherData.condition,
+                    hasMoonPhase: !!weatherData.moonPhase
+                });
+            } else {
+                console.warn('[ContextService] Weather API returned invalid data:', weatherData);
+            }
+        } catch (error: any) {
+            console.error('[ContextService] Error fetching weather data:', {
+                error: error.message,
+                city: weatherCity
             });
-        } else {
-            console.warn('[ContextService] Failed to fetch weather data for city:', weatherCity);
+            // Не прерываем выполнение, просто не добавляем погоду в контекст
         }
     } else {
         console.log('[ContextService] No weather city set, skipping weather fetch');

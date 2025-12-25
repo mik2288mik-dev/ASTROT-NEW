@@ -336,11 +336,12 @@ export const getOrGenerateHoroscope = async (
   const today = new Date().toISOString().split('T')[0];
   const cachedHoroscope = profile.generatedContent?.dailyHoroscope;
 
-  if (cachedHoroscope && cachedHoroscope.date === today && cachedHoroscope.content) {
+  // ВАЖНО: Проверяем что кэш актуален И содержит контент
+  if (cachedHoroscope && cachedHoroscope.date === today && cachedHoroscope.content && cachedHoroscope.content.length > 0) {
     log.info(`[getOrGenerateHoroscope] Using cached daily horoscope from profile (NO API CALL) for ${zodiacSign} on ${today}`, {
       hasContent: !!cachedHoroscope.content,
       date: cachedHoroscope.date,
-      contentLength: cachedHoroscope.content?.length || 0
+      contentLength: cachedHoroscope.content.length
     });
     return cachedHoroscope;
   }

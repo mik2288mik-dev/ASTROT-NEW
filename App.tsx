@@ -109,11 +109,15 @@ const App: React.FC = () => {
                     
                     setProfile(updatedProfile);
                     
-                    if (storedChart) {
+                    if (storedChart && storedChart.sun && storedChart.moon) {
                         // Если карта найдена в БД - используем её и показываем сразу
                         // Натальная карта сохраняется в БД и просто отображается при входе
                         // Обновление контента натальной карты только через кнопку регенерации
-                        console.log('[App] Setting chart data from database');
+                        console.log('[App] Setting chart data from database', {
+                            hasSun: !!storedChart.sun,
+                            hasMoon: !!storedChart.moon,
+                            hasRising: !!storedChart.rising
+                        });
                         setLoadingProgress(80);
                         setChartData(storedChart);
                         setLoadingProgress(100);
@@ -160,14 +164,26 @@ const App: React.FC = () => {
                         try {
                             const generatedChart = await calculateNatalChart(updatedProfile);
                             setLoadingProgress(80);
-                            if (generatedChart && generatedChart.sun) {
+                            if (generatedChart && generatedChart.sun && generatedChart.moon && generatedChart.rising) {
                                 setChartData(generatedChart);
                                 // Сохраняем пересчитанную карту в БД
                                 await saveChartData(generatedChart);
-                                console.log('[App] Chart recalculated and saved');
+                                console.log('[App] Chart recalculated and saved', {
+                                    hasSun: !!generatedChart.sun,
+                                    hasMoon: !!generatedChart.moon,
+                                    hasRising: !!generatedChart.rising
+                                });
+                                setLoadingProgress(100);
+                                setView('dashboard'); // Показываем Dashboard с космическим паспортом
+                            } else {
+                                console.error('[App] Invalid chart data received:', {
+                                    hasSun: !!generatedChart?.sun,
+                                    hasMoon: !!generatedChart?.moon,
+                                    hasRising: !!generatedChart?.rising
+                                });
+                                setLoadingProgress(100);
+                                setView('onboarding');
                             }
-                            setLoadingProgress(100);
-                            setView('dashboard'); // Показываем Dashboard с космическим паспортом
                         } catch (error) {
                             console.error('[App] Error recalculating chart:', error);
                             setLoadingProgress(100);
@@ -242,8 +258,13 @@ const App: React.FC = () => {
             const generatedChart = await calculateNatalChart(fullProfile);
             setLoadingProgress(70);
             
-            if (!generatedChart || !generatedChart.sun) {
-                throw new Error('Invalid chart data received');
+            if (!generatedChart || !generatedChart.sun || !generatedChart.moon || !generatedChart.rising) {
+                console.error('[App] Invalid chart data received:', {
+                    hasSun: !!generatedChart?.sun,
+                    hasMoon: !!generatedChart?.moon,
+                    hasRising: !!generatedChart?.rising
+                });
+                throw new Error('Invalid chart data received - missing required fields');
             }
             
             console.log('[App] Chart generated, saving...', {

@@ -64,18 +64,22 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
     // Отдельный useEffect для обновления ТОЛЬКО погоды при изменении weatherCity
     // ВАЖНО: Этот useEffect НЕ должен вызывать генерацию карты или гороскопа
     // Используем ref для отслеживания предыдущего значения weatherCity
-    const prevWeatherCityRef = useRef(profile.weatherCity);
+    const prevWeatherCityRef = useRef<string | undefined>(profile.weatherCity);
     
     useEffect(() => {
+        const currentWeatherCity = profile.weatherCity?.trim();
+        const prevWeatherCity = prevWeatherCityRef.current?.trim();
+        
         // Проверяем, действительно ли weatherCity изменился
-        if (prevWeatherCityRef.current === profile.weatherCity) {
+        if (currentWeatherCity === prevWeatherCity) {
             return;
         }
-        prevWeatherCityRef.current = profile.weatherCity;
+        prevWeatherCityRef.current = currentWeatherCity;
         
         const updateWeatherContext = async () => {
-            if (profile.weatherCity) {
+            if (currentWeatherCity && currentWeatherCity.length > 0) {
                 try {
+                    console.log('[Dashboard] Loading weather for city:', currentWeatherCity);
                     // Загружаем только погоду, не трогая другие данные
                     const ctx = await getUserContext(profile);
                     // Обновляем только weatherData в контексте, не трогая остальное
@@ -85,9 +89,15 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
                         }
                         return { ...prev, weatherData: ctx.weatherData, weather: ctx.weather, moonPhase: ctx.moonPhase };
                     });
-                    if (!ctx.weatherData) {
+                    if (ctx.weatherData) {
+                        console.log('[Dashboard] Weather data loaded successfully', {
+                            city: ctx.weatherData.city,
+                            temp: ctx.weatherData.temp,
+                            condition: ctx.weatherData.condition
+                        });
+                    } else {
                         console.warn('[Dashboard] Weather city is set but weather data was not loaded', {
-                            weatherCity: profile.weatherCity
+                            weatherCity: currentWeatherCity
                         });
                     }
                 } catch (error) {
@@ -97,6 +107,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
                 }
             } else {
                 // Если город не указан, очищаем только контекст погоды
+                console.log('[Dashboard] No weather city set, clearing weather context');
                 setContext(prev => prev ? { ...prev, weatherData: undefined, weather: undefined, moonPhase: undefined } : null);
             }
         };
@@ -137,9 +148,21 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
                 const ctx = await getUserContext(profile);
                 // Обновляем контекст, но если погода уже загружена - сохраняем её
                 setContext(prev => {
-                    if (!prev) return ctx;
+                    if (!prev) {
+                        // Если погода не загружена и город указан - загружаем её
+                        if (profile.weatherCity && !ctx.weatherData) {
+                            // Погода будет загружена отдельным useEffect
+                            return { ...ctx, mood: 'Neutral' };
+                        }
+                        return ctx;
+                    }
                     // Сохраняем погоду если она уже была загружена
-                    return { ...ctx, weatherData: prev.weatherData || ctx.weatherData, weather: prev.weather || ctx.weather, moonPhase: prev.moonPhase || ctx.moonPhase };
+                    return { 
+                        ...ctx, 
+                        weatherData: prev.weatherData || ctx.weatherData, 
+                        weather: prev.weather || ctx.weather, 
+                        moonPhase: prev.moonPhase || ctx.moonPhase 
+                    };
                 });
             } catch (error) {
                 console.error('[Dashboard] Failed to load context:', error);
@@ -155,11 +178,12 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
                     const today = new Date().toISOString().split('T')[0];
                     const cachedHoroscope = profile.generatedContent?.dailyHoroscope;
                     
-                    // Если есть актуальный кэш - используем его БЕЗ вызова API
-                    if (cachedHoroscope && cachedHoroscope.date === today && cachedHoroscope.content) {
-                        console.log('[Dashboard] Using cached horoscope from profile (no API call)', {
+                    // Если есть актуальный кэш с контентом - используем его БЕЗ вызова API
+                    if (cachedHoroscope && cachedHoroscope.date === today && cachedHoroscope.content && cachedHoroscope.content.length > 0) {
+                        console.log('[Dashboard] Using cached horoscope from profile (NO API CALL)', {
                             date: cachedHoroscope.date,
-                            hasContent: !!cachedHoroscope.content
+                            hasContent: !!cachedHoroscope.content,
+                            contentLength: cachedHoroscope.content.length
                         });
                         setDailyHoroscope(cachedHoroscope);
                     } else {
@@ -167,22 +191,27 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
                         console.log('[Dashboard] Cache miss or outdated, loading horoscope from API', {
                             hasCache: !!cachedHoroscope,
                             cacheDate: cachedHoroscope?.date,
-                            today
+                            today,
+                            hasContent: !!cachedHoroscope?.content
                         });
                         const horoscope = await getOrGenerateHoroscope(profile, chartData);
                         setDailyHoroscope(horoscope);
                         
-                        // ВАЖНО: Обновляем профиль в родительском компоненте, так как getOrGenerateHoroscope обновил его структуру
-                        // Это предотвратит повторную генерацию при навигации
-                        if (profile.generatedContent?.dailyHoroscope?.date === horoscope.date) {
-                             onUpdateProfile({ ...profile });
+                        // ВАЖНО: Обновляем профиль в родительском компоненте только если данные изменились
+                        if (onUpdateProfile) {
+                            const updatedProfile = { ...profile };
+                            if (!updatedProfile.generatedContent) {
+                                updatedProfile.generatedContent = {};
+                            }
+                            updatedProfile.generatedContent.dailyHoroscope = horoscope;
+                            onUpdateProfile(updatedProfile);
                         }
                     }
                 } catch (error) {
                     console.error('[Dashboard] Failed to load horoscope:', error);
                     // При ошибке используем кэш если есть
                     const cachedHoroscope = profile.generatedContent?.dailyHoroscope;
-                    if (cachedHoroscope) {
+                    if (cachedHoroscope && cachedHoroscope.content) {
                         console.log('[Dashboard] Using cached horoscope as fallback after error');
                         setDailyHoroscope(cachedHoroscope);
                     }

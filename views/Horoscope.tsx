@@ -25,17 +25,21 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
 
     useEffect(() => {
         const loadHoroscope = async () => {
-            if (!chartData) return;
+            if (!chartData) {
+                setLoading(false);
+                return;
+            }
             
             // ВАЖНО: Проверяем кэш ПЕРЕД загрузкой, не генерируем каждый раз!
             const today = new Date().toISOString().split('T')[0];
             const cachedHoroscope = profile.generatedContent?.dailyHoroscope;
             
             // Если есть актуальный кэш с контентом - используем его БЕЗ вызова API
-            if (cachedHoroscope && cachedHoroscope.date === today && cachedHoroscope.content) {
-                console.log('[Horoscope] Using cached horoscope from profile (no API call)', {
+            if (cachedHoroscope && cachedHoroscope.date === today && cachedHoroscope.content && cachedHoroscope.content.length > 0) {
+                console.log('[Horoscope] Using cached horoscope from profile (NO API CALL)', {
                     date: cachedHoroscope.date,
-                    hasContent: !!cachedHoroscope.content
+                    hasContent: !!cachedHoroscope.content,
+                    contentLength: cachedHoroscope.content.length
                 });
                 setHoroscope(cachedHoroscope);
                 setLoading(false);
@@ -48,24 +52,29 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
                 console.log('[Horoscope] Cache miss or outdated, loading from API', {
                     hasCache: !!cachedHoroscope,
                     cacheDate: cachedHoroscope?.date,
-                    today
+                    today,
+                    hasContent: !!cachedHoroscope?.content
                 });
                 const data = await getOrGenerateHoroscope(profile, chartData);
                 setHoroscope(data);
                 
-                // Обновляем профиль в родительском компоненте
-                if (onUpdateProfile && profile.generatedContent) {
-                    // Создаем копию профиля с обновленным гороскопом
-                    // getOrGenerateHoroscope мутирует profile.generatedContent, но нам нужно создать новый объект
-                    // чтобы React увидел изменения
-                    onUpdateProfile({ ...profile });
+                // Обновляем профиль в родительском компоненте только если данные изменились
+                if (onUpdateProfile) {
+                    const updatedProfile = { ...profile };
+                    if (!updatedProfile.generatedContent) {
+                        updatedProfile.generatedContent = {};
+                    }
+                    updatedProfile.generatedContent.dailyHoroscope = data;
+                    onUpdateProfile(updatedProfile);
                 }
             } catch (error) {
                 console.error('[Horoscope] Error loading horoscope:', error);
                 // При ошибке используем кэш если есть
-                if (cachedHoroscope) {
+                if (cachedHoroscope && cachedHoroscope.content) {
                     console.log('[Horoscope] Using cached horoscope as fallback after error');
                     setHoroscope(cachedHoroscope);
+                } else {
+                    setLoading(false);
                 }
             } finally {
                 setLoading(false);
@@ -73,7 +82,7 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
         };
 
         loadHoroscope();
-    }, [profile.id, chartData?.sun?.sign, profile.generatedContent?.dailyHoroscope?.date]); // Добавлена зависимость от даты гороскопа
+    }, [profile.id, chartData?.sun?.sign, profile.generatedContent?.dailyHoroscope?.date]); // Загружаем только при изменении даты гороскопа
 
     if (loading) {
         return <Loading />;

@@ -168,7 +168,24 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
     const [analysisResult, setAnalysisResult] = useState<string>("");
     const [loadingAnalysis, setLoadingAnalysis] = useState(false);
 
-    if (!data) return <Loading />;
+    if (!data || !data.sun || !data.moon) {
+        console.error('[NatalChart] Invalid chart data:', {
+            hasData: !!data,
+            hasSun: !!data?.sun,
+            hasMoon: !!data?.moon
+        });
+        return (
+            <div className="min-h-screen px-4 py-6 max-w-4xl mx-auto pb-32 flex items-center justify-center">
+                <div className="text-center">
+                    <p className="text-astro-text mb-4">
+                        {profile.language === 'ru' 
+                            ? 'Ошибка загрузки натальной карты. Пожалуйста, попробуйте обновить страницу.'
+                            : 'Error loading natal chart. Please try refreshing the page.'}
+                    </p>
+                </div>
+            </div>
+        );
+    }
 
     const handleDeepDive = async (topicKey: string) => {
         if (!profile.isPremium) {
