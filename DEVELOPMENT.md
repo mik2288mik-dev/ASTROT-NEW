@@ -147,7 +147,6 @@ NEXT_PUBLIC_OWNER_ID=...
 ### Астрология:
 - `POST /api/astrology/natal-chart` - расчет карты
 - `POST /api/astrology/natal-intro` - вступление карты
-- `POST /api/astrology/three-keys` - три ключа (legacy)
 - `POST /api/astrology/deep-dive` - глубокий анализ
 - `POST /api/astrology/daily-horoscope` - дневной гороскоп
 - `POST /api/astrology/chat` - чат с Астрой
@@ -313,7 +312,7 @@ export const RATE_LIMIT_CONFIGS = {
 - ✅ Error tracking система
 
 **Важные улучшения:**
-- ✅ Переработаны промпты (убран акцент на "три ключа")
+- ✅ Переработаны промпты (классическая натальная карта)
 - ✅ Новая структура натальной карты (вступление + 5 секций)
 - ✅ Четкое разделение Premium/Free контента
 - ✅ Улучшенная админ панель (4 вкладки)
@@ -343,7 +342,6 @@ export const RATE_LIMIT_CONFIGS = {
 
 ### Удалённые API endpoints:
 Не использовались в коде:
-- /api/astrology/ai-three-keys.ts
 - /api/astrology/soul-passport.ts
 - /api/astrology/full-chart-interpretation.ts
 - /api/astrology/evolution-description.ts

@@ -2,10 +2,6 @@
 export type Language = 'ru' | 'en';
 export type Theme = 'dark' | 'light';
 
-export interface ThreeKeys {
-  // Removed content as it is deprecated
-}
-
 export interface UserEvolution {
   level: number;
   title: string; // e.g. "Seeker", "Awakened", "Master"
@@ -132,7 +128,6 @@ export interface UserGeneratedContent {
   // Временные метки для обновления
   timestamps: {
     natalIntroGenerated?: number;
-    threeKeysGenerated?: number;  // Устарело, но оставлено
     dailyHoroscopeGenerated?: number;
     weeklyHoroscopeGenerated?: number;
     monthlyHoroscopeGenerated?: number;

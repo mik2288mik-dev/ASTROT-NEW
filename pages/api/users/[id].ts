@@ -49,7 +49,7 @@ export default async function handler(
       });
 
       // Transform database format (snake_case) to client format (camelCase)
-      const generatedContent = user.generated_content || {};
+      const generatedContent = user.generated_content || { timestamps: {} };
       
       const clientUser = {
         id: user.id,
@@ -87,7 +87,6 @@ export default async function handler(
       }
       
       // Transform data to match database schema
-      // Синхронизируем threeKeys: если есть в generatedContent, сохраняем и там, и в отдельном поле
       
       // ВАЖНО: Обрабатываем generatedContent правильно
       // Если передан - используем его, если нет - сохраняем существующий из БД
@@ -201,7 +200,7 @@ export default async function handler(
       log.info(`[${req.method}] savedUser.generatedContent keys:`, savedUser.generated_content ? Object.keys(savedUser.generated_content) : []);
 
       // Transform back to client format
-      const savedGeneratedContent = savedUser.generated_content || {};
+      const savedGeneratedContent = savedUser.generated_content || { timestamps: {} };
       
       const clientUser = {
         id: savedUser.id,

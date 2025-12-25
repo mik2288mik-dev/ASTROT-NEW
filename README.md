@@ -115,7 +115,6 @@ npm run migrate
   - name, birth_date, birth_time, birth_place
   - is_setup, language, theme
   - is_premium, is_admin
-  - three_keys (JSONB)
   - evolution (JSONB)
   - created_at, updated_at
 
@@ -144,8 +143,9 @@ npm run migrate
 
 ### Астрология
 - `POST /api/astrology/natal-chart` - Рассчитать натальную карту
-- `POST /api/astrology/three-keys` - Получить три ключа
-- `POST /api/astrology/synastry` - Рассчитать синастрию
+- `POST /api/astrology/natal-intro` - Получить вступление натальной карты
+- `POST /api/astrology/synastry-brief` - Краткая синастрия (бесплатно)
+- `POST /api/astrology/synastry-full` - Полная синастрия (премиум)
 - `POST /api/astrology/daily-horoscope` - Получить ежедневный гороскоп
 - `POST /api/astrology/weekly-horoscope` - Получить еженедельный гороскоп
 - `POST /api/astrology/monthly-horoscope` - Получить ежемесячный гороскоп
@@ -156,7 +156,7 @@ npm run migrate
 
 - **Профили пользователей**: Хранение данных рождения и предпочтений пользователей
 - **Натальные карты**: Расчет и отображение натальных карт
-- **Три ключа**: Персонализированные астрологические инсайты
+- **Вступление натальной карты**: Персонализированное вступление на основе натальной карты
 - **Синастрия**: Анализ совместимости
 - **Гороскопы**: Ежедневные, еженедельные и ежемесячные гороскопы
 - **Премиум подписки**: Интеграция с Telegram Stars

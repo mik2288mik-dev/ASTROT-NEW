@@ -151,7 +151,9 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
                         if (onUpdateProfile) {
                             const updatedProfile = { ...profile };
                             if (!updatedProfile.generatedContent) {
-                                updatedProfile.generatedContent = {};
+                                updatedProfile.generatedContent = {
+                                    timestamps: {}
+                                };
                             }
                             updatedProfile.generatedContent.dailyHoroscope = horoscope;
                             onUpdateProfile(updatedProfile);

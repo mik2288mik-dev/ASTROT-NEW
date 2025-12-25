@@ -38,7 +38,6 @@ export default async function handler(
         theme: user.theme,
         isPremium: user.is_premium,
         isAdmin: user.is_admin,
-        threeKeys: user.three_keys,
         evolution: user.evolution,
       }));
 
