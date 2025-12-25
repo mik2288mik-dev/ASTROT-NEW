@@ -169,22 +169,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
     const [loadingAnalysis, setLoadingAnalysis] = useState(false);
 
     if (!data || !data.sun || !data.moon) {
-        console.error('[NatalChart] Invalid chart data:', {
-            hasData: !!data,
-            hasSun: !!data?.sun,
-            hasMoon: !!data?.moon
-        });
-        return (
-            <div className="min-h-screen px-4 py-6 max-w-4xl mx-auto pb-32 flex items-center justify-center">
-                <div className="text-center">
-                    <p className="text-astro-text mb-4">
-                        {profile.language === 'ru' 
-                            ? 'Ошибка загрузки натальной карты. Пожалуйста, попробуйте обновить страницу.'
-                            : 'Error loading natal chart. Please try refreshing the page.'}
-                    </p>
-                </div>
-            </div>
-        );
+        return <Loading />;
     }
 
     const handleDeepDive = async (topicKey: string) => {
@@ -203,14 +188,12 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
         
         const topic = topicMap[topicKey];
         if (!topic) {
-            console.error('[NatalChart] Unknown topic key:', topicKey);
             return;
         }
         
         const topicTitle = getText(profile.language, `chart.${topicKey}`);
         
         if (profile.generatedContent?.deepDiveAnalyses?.[topic]) {
-            console.log(`[NatalChart] Using cached Deep Dive for ${topic}`);
             setActiveAnalysis(topicTitle);
             setAnalysisResult(profile.generatedContent.deepDiveAnalyses[topic]);
             return;
@@ -224,7 +207,6 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
             const result = await getOrGenerateDeepDive(profile, data, topic);
             setAnalysisResult(result);
         } catch (e) {
-            console.error('[NatalChart] Error loading Deep Dive:', e);
             setAnalysisResult(profile.language === 'ru' ? 'Звёзды молчат.' : 'The stars are silent.');
         } finally {
             setLoadingAnalysis(false);
@@ -240,8 +222,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
 
         const cachedText = profile.generatedContent?.dailyHoroscope?.content || null;
 
-        if (cachedText) {
-            console.log('[NatalChart] Using cached daily forecast');
+        if (cachedText && cachedText.length > 0) {
             setActiveAnalysis(`${getText(profile.language, 'chart.forecast_title')} - ${title}`);
             setAnalysisResult(cachedText);
             return;
@@ -256,7 +237,6 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
             const text = res.content;
             setAnalysisResult(text);
         } catch(e) {
-            console.error('[NatalChart] Error loading forecast:', e);
             setAnalysisResult(profile.language === 'ru' ? 'Ошибка космического соединения.' : 'Cosmic connection error.');
         } finally {
             setLoadingAnalysis(false);
@@ -273,20 +253,18 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
     // Обновляем intro из профиля (основной источник данных)
     useEffect(() => {
         const newIntro = profile.generatedContent?.natalIntro;
-        if (newIntro) {
+        if (newIntro && newIntro.length > 0) {
             if (newIntro !== natalIntro) {
-                console.log('[NatalChart] Updating intro from profile');
                 setNatalIntro(newIntro);
             }
             setIsLoadingIntro(false);
-            hasTriedLoadingRef.current = false; // Сбрасываем флаг если intro появился
+            hasTriedLoadingRef.current = false;
             return;
         }
 
         // Если нет intro и еще не пытались загрузить - генерируем (только один раз)
-        if (!hasTriedLoadingRef.current && data && !isLoadingIntro) {
+        if (!hasTriedLoadingRef.current && data && !isLoadingIntro && !newIntro) {
             hasTriedLoadingRef.current = true;
-            console.log('[NatalChart] Natal intro missing, generating...');
             setIsLoadingIntro(true);
             
             getNatalIntro(profile, data)
@@ -294,7 +272,6 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
                     if (intro && intro.length > 50) {
                         setNatalIntro(intro);
                         
-                        // Сохраняем в профиль
                         const updatedContent = {
                             ...(profile.generatedContent || {}),
                             natalIntro: intro,
@@ -308,7 +285,6 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
                             generatedContent: updatedContent
                         };
                         
-                        // Сначала обновляем локальный стейт через колбэк, чтобы интерфейс обновился мгновенно
                         if (onUpdateProfile) {
                             onUpdateProfile(updatedProfile);
                         }
@@ -318,12 +294,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
                         throw new Error('Intro too short');
                     }
                 })
-                .then(() => {
-                    console.log('[NatalChart] Natal intro generated and saved');
-                })
                 .catch((error) => {
-                    console.error('[NatalChart] Failed to generate natal intro:', error);
-                    // Показываем fallback
                     const fallback = profile.language === 'ru'
                         ? `Привет, ${profile.name || 'друг'}! Я изучила твою натальную карту. Твоё Солнце в ${data.sun?.sign || 'неизвестном знаке'}, Луна в ${data.moon?.sign || 'неизвестном знаке'}.`
                         : `Hi, ${profile.name || 'friend'}! I've studied your natal chart. Your Sun is in ${data.sun?.sign || 'unknown sign'}, Moon in ${data.moon?.sign || 'unknown sign'}.`;
@@ -333,7 +304,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
                     setIsLoadingIntro(false);
                 });
         }
-    }, [profile.generatedContent?.natalIntro, data?.sun?.sign, profile.id]); // Загружаем только при изменении intro в профиле или данных карты
+    }, [profile.generatedContent?.natalIntro]);
 
     const sections = [
         { key: 'section_personality', icon: 'personality' },

@@ -113,47 +113,26 @@ const App: React.FC = () => {
                         // Если карта найдена в БД - используем её и показываем сразу
                         // Натальная карта сохраняется в БД и просто отображается при входе
                         // Обновление контента натальной карты только через кнопку регенерации
-                        console.log('[App] Setting chart data from database', {
-                            hasSun: !!storedChart.sun,
-                            hasMoon: !!storedChart.moon,
-                            hasRising: !!storedChart.rising
-                        });
                         setLoadingProgress(80);
                         setChartData(storedChart);
                         setLoadingProgress(100);
                         setView('dashboard');
                         
-                        // ВАЖНО: Проверяем, нужно ли сгенерировать контент (если его нет)
-                        // Это может произойти, если пользователь был создан до добавления generatedContent
-                        // НО: НЕ генерируем контент каждый раз при загрузке!
+                        // Проверяем, нужно ли сгенерировать контент (если его нет)
                         setTimeout(async () => {
                             try {
-                                // Проверяем, есть ли вообще generatedContent
                                 const hasGeneratedContent = updatedProfile.generatedContent && 
                                     Object.keys(updatedProfile.generatedContent).length > 0;
                                 const hasNatalIntro = updatedProfile.generatedContent?.natalIntro && 
                                     updatedProfile.generatedContent.natalIntro.length > 0;
                                 
-                                // Генерируем контент ТОЛЬКО если его действительно нет
                                 if (!hasGeneratedContent || !hasNatalIntro) {
-                                    console.log('[App] Missing content or natalIntro, generating all content ONCE...', {
-                                        hasGeneratedContent,
-                                        hasNatalIntro
-                                    });
-                                    
                                     const allContent = await generateAllContent(updatedProfile, storedChart);
                                     const updatedProfileWithContent = { ...updatedProfile, generatedContent: allContent };
                                     await saveProfile(updatedProfileWithContent);
                                     setProfile(updatedProfileWithContent);
-                                    console.log('[App] All content generated and saved successfully');
-                                } else {
-                                    // Если контент есть - НЕ обновляем daily horoscope здесь
-                                    // Dashboard сам проверит кэш и загрузит гороскоп если нужно
-                                    // Это избегает лишних API запросов при первой загрузке
-                                    console.log('[App] Content is up to date, Dashboard will load horoscope from cache if needed');
                                 }
                             } catch (error) {
-                                console.error('[App] Error updating content:', error);
                                 // Не прерываем работу, если обновление не удалось
                             }
                         }, 100);
@@ -166,28 +145,15 @@ const App: React.FC = () => {
                             setLoadingProgress(80);
                             if (generatedChart && generatedChart.sun && generatedChart.moon && generatedChart.rising) {
                                 setChartData(generatedChart);
-                                // Сохраняем пересчитанную карту в БД
                                 await saveChartData(generatedChart);
-                                console.log('[App] Chart recalculated and saved', {
-                                    hasSun: !!generatedChart.sun,
-                                    hasMoon: !!generatedChart.moon,
-                                    hasRising: !!generatedChart.rising
-                                });
                                 setLoadingProgress(100);
-                                setView('dashboard'); // Показываем Dashboard с космическим паспортом
+                                setView('dashboard');
                             } else {
-                                console.error('[App] Invalid chart data received:', {
-                                    hasSun: !!generatedChart?.sun,
-                                    hasMoon: !!generatedChart?.moon,
-                                    hasRising: !!generatedChart?.rising
-                                });
                                 setLoadingProgress(100);
                                 setView('onboarding');
                             }
                         } catch (error) {
-                            console.error('[App] Error recalculating chart:', error);
                             setLoadingProgress(100);
-                            // При ошибке пересчета показываем onboarding
                             setView('onboarding');
                         }
                     }

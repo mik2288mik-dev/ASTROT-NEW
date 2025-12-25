@@ -338,20 +338,8 @@ export const getOrGenerateHoroscope = async (
 
   // ВАЖНО: Проверяем что кэш актуален И содержит контент
   if (cachedHoroscope && cachedHoroscope.date === today && cachedHoroscope.content && cachedHoroscope.content.length > 0) {
-    log.info(`[getOrGenerateHoroscope] Using cached daily horoscope from profile (NO API CALL) for ${zodiacSign} on ${today}`, {
-      hasContent: !!cachedHoroscope.content,
-      date: cachedHoroscope.date,
-      contentLength: cachedHoroscope.content.length
-    });
     return cachedHoroscope;
   }
-
-  log.info(`[getOrGenerateHoroscope] Cache miss or outdated, getting daily horoscope via API for ${zodiacSign} on ${today}`, {
-    hasCache: !!cachedHoroscope,
-    cacheDate: cachedHoroscope?.date,
-    hasContent: !!cachedHoroscope?.content,
-    today
-  });
 
   const horoscope = await getDailyHoroscope(profile, chartData);
 
@@ -367,9 +355,8 @@ export const getOrGenerateHoroscope = async (
 
   try {
     await saveProfile(profile);
-    log.info('[getOrGenerateHoroscope] Profile saved with horoscope');
   } catch (error) {
-    log.error('[getOrGenerateHoroscope] Failed to save profile with horoscope', error);
+    // Ошибка сохранения не критична
   }
 
   return horoscope;

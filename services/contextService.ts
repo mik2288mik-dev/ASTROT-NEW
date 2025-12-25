@@ -24,8 +24,6 @@ const fetchWeatherData = async (city: string): Promise<UserContext['weatherData'
         const API_BASE_URL = typeof window !== 'undefined' ? '' : process.env.NEXT_PUBLIC_API_URL || '';
         const url = `${API_BASE_URL}/api/weather?city=${encodeURIComponent(city)}`;
         
-        console.log('[ContextService] Fetching weather from:', url);
-        
         const response = await fetch(url, {
             method: 'GET',
             headers: {
@@ -34,34 +32,17 @@ const fetchWeatherData = async (city: string): Promise<UserContext['weatherData'
         });
         
         if (!response.ok) {
-            const errorText = await response.text().catch(() => 'Unknown error');
-            console.warn('[ContextService] Failed to fetch weather:', {
-                status: response.status,
-                statusText: response.statusText,
-                error: errorText
-            });
             return null;
         }
 
         const result = await response.json();
-        console.log('[ContextService] Weather API response:', result);
         
         if (result.success && result.data) {
-            console.log('[ContextService] Weather data received successfully:', {
-                city: result.data.city,
-                temp: result.data.temp,
-                condition: result.data.condition
-            });
             return result.data;
         }
         
-        console.warn('[ContextService] Weather API returned unsuccessful response:', result);
         return null;
     } catch (error: any) {
-        console.error('[ContextService] Error fetching weather:', {
-            error: error.message,
-            stack: error.stack
-        });
         return null;
     }
 };
@@ -77,32 +58,16 @@ export const getUserContext = async (profile: UserProfile): Promise<UserContext>
     // 1. Fetch Weather Data if city is set
     const weatherCity = profile.weatherCity?.trim();
     if (weatherCity && weatherCity.length > 0) {
-        console.log('[ContextService] Fetching weather for city:', weatherCity);
         try {
             const weatherData = await fetchWeatherData(weatherCity);
             if (weatherData && weatherData.city && weatherData.condition) {
                 context.weatherData = weatherData;
-                // Для обратной совместимости сохраняем также в weather
                 context.weather = weatherData.condition;
                 context.moonPhase = weatherData.moonPhase;
-                console.log('[ContextService] Weather data loaded successfully', {
-                    city: weatherData.city,
-                    temp: weatherData.temp,
-                    condition: weatherData.condition,
-                    hasMoonPhase: !!weatherData.moonPhase
-                });
-            } else {
-                console.warn('[ContextService] Weather API returned invalid data:', weatherData);
             }
         } catch (error: any) {
-            console.error('[ContextService] Error fetching weather data:', {
-                error: error.message,
-                city: weatherCity
-            });
             // Не прерываем выполнение, просто не добавляем погоду в контекст
         }
-    } else {
-        console.log('[ContextService] No weather city set, skipping weather fetch');
     }
     
     // 2. Generate Social Proof based on Sign/Profile
