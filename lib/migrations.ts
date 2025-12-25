@@ -112,7 +112,6 @@ async function migration001(pool: Pool): Promise<void> {
       theme VARCHAR(10) DEFAULT 'dark',
       is_premium BOOLEAN DEFAULT false,
       is_admin BOOLEAN DEFAULT false,
-      three_keys JSONB,
       evolution JSONB,
       premium_activated_at TIMESTAMP,
       premium_stars_amount INTEGER,
@@ -224,8 +223,6 @@ async function migration004(pool: Pool): Promise<void> {
   // Add fields for caching AI-generated texts
   const addColumns = `
     ALTER TABLE users
-    ADD COLUMN IF NOT EXISTS three_keys_text JSONB,
-    ADD COLUMN IF NOT EXISTS three_keys_updated_at TIMESTAMP,
     ADD COLUMN IF NOT EXISTS natal_summary TEXT,
     ADD COLUMN IF NOT EXISTS natal_summary_updated_at TIMESTAMP,
     ADD COLUMN IF NOT EXISTS full_natal TEXT,
@@ -356,7 +353,7 @@ async function migration007(pool: Pool): Promise<void> {
     CREATE TABLE IF NOT EXISTS regenerations (
       id SERIAL PRIMARY KEY,
       user_id VARCHAR(255) NOT NULL,
-      content_type VARCHAR(50) NOT NULL, -- 'three_keys', 'natal_summary', 'full_natal', 'synastry', 'forecast'
+      content_type VARCHAR(50) NOT NULL, -- 'natal_summary', 'full_natal', 'synastry', 'forecast'
       regeneration_date DATE NOT NULL,
       was_paid BOOLEAN DEFAULT false,
       stars_cost INTEGER DEFAULT 0,

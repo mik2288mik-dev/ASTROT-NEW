@@ -87,7 +87,6 @@ export default async function handler(
       }
       
       // Transform data to match database schema
-      // Синхронизируем threeKeys: если есть в generatedContent, сохраняем и там, и в отдельном поле
       
       // ВАЖНО: Обрабатываем generatedContent правильно
       // Если передан - используем его, если нет - сохраняем существующий из БД
