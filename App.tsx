@@ -111,31 +111,11 @@ const App: React.FC = () => {
                     
                     if (storedChart && storedChart.sun && storedChart.moon) {
                         // Если карта найдена в БД - используем её и показываем сразу
-                        // Натальная карта сохраняется в БД и просто отображается при входе
-                        // Обновление контента натальной карты только через кнопку регенерации
+                        // ВСЕ данные уже в БД, НИКАКИХ генераций при повторном входе
                         setLoadingProgress(80);
                         setChartData(storedChart);
                         setLoadingProgress(100);
                         setView('dashboard');
-                        
-                        // Проверяем, нужно ли сгенерировать контент (если его нет)
-                        setTimeout(async () => {
-                            try {
-                                const hasGeneratedContent = updatedProfile.generatedContent && 
-                                    Object.keys(updatedProfile.generatedContent).length > 0;
-                                const hasNatalIntro = updatedProfile.generatedContent?.natalIntro && 
-                                    updatedProfile.generatedContent.natalIntro.length > 0;
-                                
-                                if (!hasGeneratedContent || !hasNatalIntro) {
-                                    const allContent = await generateAllContent(updatedProfile, storedChart);
-                                    const updatedProfileWithContent = { ...updatedProfile, generatedContent: allContent };
-                                    await saveProfile(updatedProfileWithContent);
-                                    setProfile(updatedProfileWithContent);
-                                }
-                            } catch (error) {
-                                // Не прерываем работу, если обновление не удалось
-                            }
-                        }, 100);
                     } else {
                         // Если карты нет в БД, но профиль есть - пересчитываем карту
                         console.log('[App] Chart not found in database, recalculating...');
@@ -258,18 +238,12 @@ const App: React.FC = () => {
                 try {
                     const allContent = await generateAllContent(fullProfile, generatedChart);
                     fullProfile.generatedContent = allContent;
-                    
-                    // Сохраняем обновленный профиль со всеми генерациями
                     await saveProfile(fullProfile);
                     setProfile(fullProfile);
-                    console.log('[App] All content generated and saved successfully');
                     setLoadingProgress(95);
                 } catch (error) {
-                    console.error('[App] Failed to generate all content:', error);
                     // Не прерываем процесс, если генерация не удалась
                 }
-            } else {
-                console.log('[App] User chose not to save data, skipping content generation');
             }
             
             setLoadingProgress(100);

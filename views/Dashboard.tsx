@@ -61,30 +61,23 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
         }
     }, []);
 
-    // Отдельный useEffect для обновления ТОЛЬКО погоды при изменении weatherCity
-    // ВАЖНО: Этот useEffect НЕ должен вызывать генерацию карты или гороскопа
-    // Используем ref для отслеживания предыдущего значения weatherCity
-    const prevWeatherCityRef = useRef<string | undefined>(profile.weatherCity);
-    
+    // Загрузка погоды для города из профиля (weatherCity хранится в БД)
     useEffect(() => {
-        const currentWeatherCity = profile.weatherCity?.trim();
-        const prevWeatherCity = prevWeatherCityRef.current?.trim();
-        
-        // Проверяем, действительно ли weatherCity изменился
-        if (currentWeatherCity === prevWeatherCity) {
-            return;
-        }
-        prevWeatherCityRef.current = currentWeatherCity;
-        
-        const updateWeatherContext = async () => {
-            if (currentWeatherCity && currentWeatherCity.length > 0) {
+        const loadWeather = async () => {
+            const weatherCity = profile.weatherCity?.trim();
+            if (weatherCity && weatherCity.length > 0) {
                 try {
                     const ctx = await getUserContext(profile);
                     setContext(prev => {
                         if (!prev) {
                             return { ...ctx, mood: 'Neutral' };
                         }
-                        return { ...prev, weatherData: ctx.weatherData, weather: ctx.weather, moonPhase: ctx.moonPhase };
+                        return { 
+                            ...prev, 
+                            weatherData: ctx.weatherData, 
+                            weather: ctx.weather, 
+                            moonPhase: ctx.moonPhase 
+                        };
                     });
                 } catch (error) {
                     // При ошибке просто не показываем погоду
@@ -93,8 +86,8 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
                 setContext(prev => prev ? { ...prev, weatherData: undefined, weather: undefined, moonPhase: undefined } : null);
             }
         };
-        updateWeatherContext();
-    }, [profile.weatherCity]); // Обновляем только при изменении weatherCity
+        loadWeather();
+    }, [profile.weatherCity]);
 
     // Основной useEffect для загрузки данных при первой загрузке или изменении профиля/карты
     // ВАЖНО: Этот useEffect НЕ должен срабатывать при изменении weatherCity или других несущественных полей
@@ -123,22 +116,13 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
             // Небольшая задержка, чтобы не блокировать показ интерфейса
             await new Promise(resolve => setTimeout(resolve, 200));
             
-            // 1. Load Context (Weather/Social Proof) - только при первой загрузке
-            // ВАЖНО: Загружаем контекст только при первой загрузке или изменении основных данных
-            // НЕ загружаем погоду здесь - она обрабатывается отдельным useEffect
+            // 1. Load Social Proof (погода загружается отдельным useEffect)
             try {
                 const ctx = await getUserContext(profile);
-                // Обновляем контекст, но если погода уже загружена - сохраняем её
                 setContext(prev => {
                     if (!prev) {
-                        // Если погода не загружена и город указан - загружаем её
-                        if (profile.weatherCity && !ctx.weatherData) {
-                            // Погода будет загружена отдельным useEffect
-                            return { ...ctx, mood: 'Neutral' };
-                        }
-                        return ctx;
+                        return { ...ctx, mood: 'Neutral' };
                     }
-                    // Сохраняем погоду если она уже была загружена
                     return { 
                         ...ctx, 
                         weatherData: prev.weatherData || ctx.weatherData, 
@@ -147,23 +131,20 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
                     };
                 });
             } catch (error) {
-                // При ошибке НЕ делаем ничего - просто не показываем контекст
+                // При ошибке просто не показываем контекст
             }
 
-            // 2. Load Daily Horoscope (with cache check)
-            // ВАЖНО: Используем кэш из профиля, не генерируем каждый раз!
-            // Загружаем ТОЛЬКО если chartData есть
+            // 2. Load Daily Horoscope из БД (генерируется только раз в день)
             if (chartData) {
-                try {
-                    // Проверяем кэш перед загрузкой
-                    const today = new Date().toISOString().split('T')[0];
-                    const cachedHoroscope = profile.generatedContent?.dailyHoroscope;
-                    
-                    // Если есть актуальный кэш с контентом - используем его БЕЗ вызова API
-                    if (cachedHoroscope && cachedHoroscope.date === today && cachedHoroscope.content && cachedHoroscope.content.length > 0) {
-                        setDailyHoroscope(cachedHoroscope);
-                    } else {
-                        // Если кэша нет или он устарел - загружаем через API (который проверит централизованный кэш)
+                const today = new Date().toISOString().split('T')[0];
+                const cachedHoroscope = profile.generatedContent?.dailyHoroscope;
+                
+                // Если есть гороскоп на сегодня - используем из БД БЕЗ запроса к API
+                if (cachedHoroscope && cachedHoroscope.date === today && cachedHoroscope.content && cachedHoroscope.content.length > 0) {
+                    setDailyHoroscope(cachedHoroscope);
+                } else {
+                    // Если гороскопа на сегодня нет - генерируем, сохраняем в БД и показываем
+                    try {
                         const horoscope = await getOrGenerateHoroscope(profile, chartData);
                         setDailyHoroscope(horoscope);
                         
@@ -175,11 +156,11 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
                             updatedProfile.generatedContent.dailyHoroscope = horoscope;
                             onUpdateProfile(updatedProfile);
                         }
-                    }
-                } catch (error) {
-                    const cachedHoroscope = profile.generatedContent?.dailyHoroscope;
-                    if (cachedHoroscope && cachedHoroscope.content) {
-                        setDailyHoroscope(cachedHoroscope);
+                    } catch (error) {
+                        // При ошибке используем старый кэш если есть
+                        if (cachedHoroscope && cachedHoroscope.content) {
+                            setDailyHoroscope(cachedHoroscope);
+                        }
                     }
                 }
             }
