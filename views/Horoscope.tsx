@@ -50,7 +50,9 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
                 if (onUpdateProfile) {
                     const updatedProfile = { ...profile };
                     if (!updatedProfile.generatedContent) {
-                        updatedProfile.generatedContent = {};
+                        updatedProfile.generatedContent = {
+                            timestamps: {}
+                        };
                     }
                     updatedProfile.generatedContent.dailyHoroscope = data;
                     onUpdateProfile(updatedProfile);

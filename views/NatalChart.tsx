@@ -346,9 +346,9 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
                         { id: 'sun', sign: data.sun?.sign, name: profile.language === 'ru' ? 'Солнце' : 'Sun' },
                         { id: 'moon', sign: data.moon?.sign, name: profile.language === 'ru' ? 'Луна' : 'Moon' },
                         { id: 'rising', sign: data.rising?.sign, name: profile.language === 'ru' ? 'Асцендент' : 'Rising' },
-                        { id: 'mercury', sign: data.planets?.mercury?.sign, name: profile.language === 'ru' ? 'Меркурий' : 'Mercury' },
-                        { id: 'venus', sign: data.planets?.venus?.sign, name: profile.language === 'ru' ? 'Венера' : 'Venus' },
-                        { id: 'mars', sign: data.planets?.mars?.sign, name: profile.language === 'ru' ? 'Марс' : 'Mars' },
+                        { id: 'mercury', sign: data.mercury?.sign, name: profile.language === 'ru' ? 'Меркурий' : 'Mercury' },
+                        { id: 'venus', sign: data.venus?.sign, name: profile.language === 'ru' ? 'Венера' : 'Venus' },
+                        { id: 'mars', sign: data.mars?.sign, name: profile.language === 'ru' ? 'Марс' : 'Mars' },
                     ].map((planet) => (
                         <div key={planet.id} className="snap-start flex-shrink-0 w-28 bg-astro-card/30 border border-astro-border rounded-xl p-3 flex flex-col items-center justify-center gap-2">
                             <div className="w-10 h-10 rounded-full bg-astro-bg border border-astro-border flex items-center justify-center text-astro-highlight">
