@@ -139,15 +139,23 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
                 const today = new Date().toISOString().split('T')[0];
                 const cachedHoroscope = profile.generatedContent?.dailyHoroscope;
                 
-                // Если есть гороскоп на сегодня - используем из БД БЕЗ запроса к API
-                if (cachedHoroscope && cachedHoroscope.date === today && cachedHoroscope.content && cachedHoroscope.content.length > 0) {
+                // ВАЖНО: Проверяем кэш из БД - если есть валидный гороскоп на сегодня, используем его БЕЗ запроса к API
+                if (cachedHoroscope && 
+                    cachedHoroscope.date === today && 
+                    cachedHoroscope.content && 
+                    cachedHoroscope.content.length > 0) {
+                    // Используем кэш из профиля - НЕ делаем запрос к API
+                    console.log('[Dashboard] Using cached horoscope from profile, no API call needed');
                     setDailyHoroscope(cachedHoroscope);
                 } else {
-                    // Если гороскопа на сегодня нет - генерируем, сохраняем в БД и показываем
+                    // Только если гороскопа на сегодня нет - генерируем через API
+                    // getOrGenerateHoroscope сам проверит кэш в БД перед генерацией
+                    console.log('[Dashboard] No cached horoscope for today, generating...');
                     try {
                         const horoscope = await getOrGenerateHoroscope(profile, chartData);
                         setDailyHoroscope(horoscope);
                         
+                        // Обновляем профиль с новым гороскопом
                         if (onUpdateProfile) {
                             const updatedProfile = { ...profile };
                             if (!updatedProfile.generatedContent) {
@@ -156,11 +164,14 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
                                 };
                             }
                             updatedProfile.generatedContent.dailyHoroscope = horoscope;
+                            updatedProfile.generatedContent.timestamps.dailyHoroscopeGenerated = Date.now();
                             onUpdateProfile(updatedProfile);
                         }
                     } catch (error) {
-                        // При ошибке используем старый кэш если есть
+                        console.error('[Dashboard] Failed to generate horoscope:', error);
+                        // При ошибке используем старый кэш если есть (даже если не сегодняшний)
                         if (cachedHoroscope && cachedHoroscope.content) {
+                            console.log('[Dashboard] Using old cached horoscope as fallback');
                             setDailyHoroscope(cachedHoroscope);
                         }
                     }

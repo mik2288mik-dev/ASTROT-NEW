@@ -537,76 +537,156 @@ export interface NatalChartResult {
   summary: string;
 }
 
+/**
+ * ЧЕТКАЯ ЛОГИКА РАСЧЕТА НАТАЛЬНОЙ КАРТЫ:
+ * 1. Валидация входных данных
+ * 2. Инициализация Swiss Ephemeris
+ * 3. Получение координат места рождения
+ * 4. Парсинг и валидация даты/времени
+ * 5. Конвертация в UTC и Julian Day
+ * 6. Расчет положений планет
+ * 7. Валидация результатов
+ * 8. Расчет дополнительных параметров (элемент, управляющая планета)
+ * 9. Возврат результата
+ */
 export async function calculateNatalChart(
   name: string,
   birthDate: string,
   birthTime: string,
   birthPlace: string
 ): Promise<NatalChartResult> {
+  const startTime = Date.now();
+  
   try {
-    log.info('Starting natal chart calculation with Swiss Ephemeris', {
+    log.info('Starting natal chart calculation', {
       name,
       birthDate,
-      birthTime,
+      birthTime: birthTime || '12:00 (default)',
       birthPlace
     });
 
-    // Инициализируем Swiss Ephemeris
+    // Шаг 1: Валидация входных данных
+    if (!name || name.trim().length === 0) {
+      throw new Error('Name is required');
+    }
+    if (!birthDate || !birthDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      throw new Error('Invalid birth date format. Expected YYYY-MM-DD');
+    }
+    if (!birthPlace || birthPlace.trim().length === 0) {
+      throw new Error('Birth place is required');
+    }
+
+    // Шаг 2: Инициализация Swiss Ephemeris
     const swe = getNativeCalculator();
     if (!swe) {
       throw new Error('Swiss Ephemeris instance is null after initialization');
     }
-    log.info('✓ Swiss Ephemeris initialized and ready for calculations');
+    log.info('✓ Swiss Ephemeris initialized');
 
-    // Получаем координаты места рождения
-    const coords = await getCoordinates(birthPlace);
+    // Шаг 3: Получение координат места рождения
+    let coords: Coordinates;
+    try {
+      coords = await getCoordinates(birthPlace);
+      log.info('✓ Coordinates obtained', {
+        lat: coords.lat,
+        lon: coords.lon,
+        timezone: coords.timezone
+      });
+    } catch (coordError: any) {
+      log.error('Failed to get coordinates', {
+        error: coordError.message,
+        birthPlace
+      });
+      throw new Error(`Location not found: ${birthPlace}. Please check the spelling (e.g., "Moscow, Russia" or "Москва, Россия").`);
+    }
 
-    // Парсим дату рождения
+    // Шаг 4: Парсинг и валидация даты/времени
     const [birthYear, birthMonth, birthDay] = birthDate.split('-').map(Number);
     
-    // Парсим время рождения
+    // Валидация даты
+    if (isNaN(birthYear) || isNaN(birthMonth) || isNaN(birthDay)) {
+      throw new Error('Invalid birth date: could not parse date components');
+    }
+    if (birthYear < 1900 || birthYear > 2100) {
+      throw new Error('Birth year must be between 1900 and 2100');
+    }
+    if (birthMonth < 1 || birthMonth > 12) {
+      throw new Error('Birth month must be between 1 and 12');
+    }
+    if (birthDay < 1 || birthDay > 31) {
+      throw new Error('Birth day must be between 1 and 31');
+    }
+    
+    // Парсинг времени рождения
     let birthHour = 12;
     let birthMinute = 0;
-    if (birthTime) {
+    if (birthTime && birthTime.trim().length > 0) {
       const timeParts = birthTime.split(':');
-      birthHour = parseInt(timeParts[0], 10) || 12;
-      birthMinute = parseInt(timeParts[1], 10) || 0;
+      birthHour = parseInt(timeParts[0], 10);
+      birthMinute = parseInt(timeParts[1] || '0', 10);
       
-      if (birthHour < 0 || birthHour > 23) {
+      // Валидация времени
+      if (isNaN(birthHour) || birthHour < 0 || birthHour > 23) {
         log.warn(`Invalid hour ${birthHour}, using 12:00`);
         birthHour = 12;
       }
-      if (birthMinute < 0 || birthMinute > 59) {
+      if (isNaN(birthMinute) || birthMinute < 0 || birthMinute > 59) {
         log.warn(`Invalid minute ${birthMinute}, using 0`);
         birthMinute = 0;
       }
     }
 
-    // Конвертируем локальное время в UTC
-    const { utcYear, utcMonth, utcDay, utcHour, utcMinute, utcTimeInHours } = convertLocalTimeToUTC(
-      birthYear,
-      birthMonth,
-      birthDay,
-      birthHour,
-      birthMinute,
-      coords.timezone
-    );
+    // Шаг 5: Конвертация в UTC и Julian Day
+    let utcYear: number, utcMonth: number, utcDay: number, utcTimeInHours: number;
+    try {
+      const utcData = convertLocalTimeToUTC(
+        birthYear,
+        birthMonth,
+        birthDay,
+        birthHour,
+        birthMinute,
+        coords.timezone
+      );
+      utcYear = utcData.utcYear;
+      utcMonth = utcData.utcMonth;
+      utcDay = utcData.utcDay;
+      utcTimeInHours = utcData.utcTimeInHours;
+      
+      log.info('✓ Time converted to UTC', {
+        local: `${birthYear}-${birthMonth}-${birthDay} ${birthHour}:${birthMinute}`,
+        utc: `${utcYear}-${utcMonth}-${utcDay} ${utcData.utcHour}:${utcData.utcMinute}`,
+        timezone: coords.timezone
+      });
+    } catch (timeError: any) {
+      log.error('Failed to convert time to UTC', {
+        error: timeError.message
+      });
+      throw new Error(`Failed to convert time to UTC: ${timeError.message}`);
+    }
     
-    // Конвертируем в Julian Day
-    const julianDay = swe.swe_julday(utcYear, utcMonth, utcDay, utcTimeInHours, 1);
-    
-    log.info('Calculated Julian Day with accurate timezone conversion', { 
-      inputDate: `${birthYear}-${birthMonth}-${birthDay}`,
-      inputTime: `${birthHour}:${birthMinute}`,
-      coordinates: { lat: coords.lat, lon: coords.lon },
-      timezone: coords.timezone,
-      localTime: `${birthHour}:${birthMinute}`,
-      utcTime: `${utcHour}:${utcMinute} (${utcTimeInHours.toFixed(4)} hours)`,
-      utcDate: `${utcYear}-${utcMonth}-${utcDay}`,
-      julianDay: julianDay.toFixed(6)
-    });
+    // Конвертация в Julian Day
+    let julianDay: number;
+    try {
+      julianDay = swe.swe_julday(utcYear, utcMonth, utcDay, utcTimeInHours, 1);
+      if (!julianDay || isNaN(julianDay)) {
+        throw new Error('Invalid Julian Day calculated');
+      }
+      log.info('✓ Julian Day calculated', {
+        julianDay: julianDay.toFixed(6)
+      });
+    } catch (julianError: any) {
+      log.error('Failed to calculate Julian Day', {
+        error: julianError.message,
+        utcYear,
+        utcMonth,
+        utcDay,
+        utcTimeInHours
+      });
+      throw new Error(`Failed to calculate Julian Day: ${julianError.message}`);
+    }
 
-    // Рассчитываем положения планет параллельно
+    // Шаг 6: Расчет положений планет
+    log.info('Calculating planet positions...');
     const [sun, moon, mercury, venus, mars, ascendant] = await Promise.all([
       Promise.resolve(calculatePlanetPosition(swe, julianDay, PLANETS.SUN, 'Sun')),
       Promise.resolve(calculatePlanetPosition(swe, julianDay, PLANETS.MOON, 'Moon')),
@@ -616,11 +696,30 @@ export async function calculateNatalChart(
       Promise.resolve(calculateAscendant(swe, julianDay, coords.lat, coords.lon))
     ]);
 
-    if (!sun || !moon || !ascendant) {
-      throw new Error('Failed to calculate essential planets: sun, moon, or ascendant is null');
+    // Шаг 7: Валидация результатов
+    if (!sun) {
+      throw new Error('Failed to calculate Sun position');
+    }
+    if (!moon) {
+      throw new Error('Failed to calculate Moon position');
+    }
+    if (!ascendant) {
+      throw new Error('Failed to calculate Ascendant');
     }
 
-    // Определяем элемент и управляющую планету
+    // Валидация знаков зодиака
+    const validSigns = ZODIAC_SIGNS;
+    if (!validSigns.includes(sun.sign)) {
+      throw new Error(`Invalid Sun sign: ${sun.sign}`);
+    }
+    if (!validSigns.includes(moon.sign)) {
+      throw new Error(`Invalid Moon sign: ${moon.sign}`);
+    }
+    if (!validSigns.includes(ascendant.sign)) {
+      throw new Error(`Invalid Ascendant sign: ${ascendant.sign}`);
+    }
+
+    // Шаг 8: Расчет дополнительных параметров
     const positions = [sun, moon, ascendant].filter(p => p !== null) as PlanetPosition[];
     if (mercury) positions.push(mercury);
     if (venus) positions.push(venus);
@@ -629,6 +728,7 @@ export async function calculateNatalChart(
     const element = calculateElement(positions);
     const rulingPlanet = calculateRulingPlanet(sun.sign);
 
+    // Шаг 9: Формирование результата
     const chartData: NatalChartResult = {
       sun,
       moon,
@@ -641,39 +741,44 @@ export async function calculateNatalChart(
       summary: `Natal chart for ${name}, born on ${birthDate} at ${birthTime || '12:00'} in ${birthPlace}. Your chart reveals a ${element} dominant personality with ${sun.sign} Sun, ${moon.sign} Moon, and ${ascendant.sign} Rising.`
     };
 
-    // Валидация знака Солнца
+    // Дополнительная валидация знака Солнца (для логирования)
     const expectedSignByDate = getExpectedSunSignByDate(birthYear, birthMonth, birthDay);
     const signMatch = sun.sign === expectedSignByDate;
     
-    const sunResult = swe.swe_calc_ut(julianDay, PLANETS.SUN, 258);
-    const sunLongitude = sunResult && typeof sunResult.longitude === 'number' ? sunResult.longitude : null;
-    
     if (!signMatch) {
-      log.warn(`[VALIDATION] Sun sign mismatch detected`, {
+      log.warn(`[VALIDATION] Sun sign mismatch (approximate)`, {
         calculated: { sign: sun.sign, degree: sun.degree.toFixed(4) },
         expected: { sign: expectedSignByDate },
-        note: 'Approximate based on date only'
+        note: 'Approximate based on date only - actual calculation is more accurate'
       });
     } else {
       log.info(`[VALIDATION] ✓ Sun sign matches expected approximate value`, {
-        sunSign: sun.sign,
-        sunLongitude: sunLongitude ? sunLongitude.toFixed(6) : 'N/A'
+        sunSign: sun.sign
       });
     }
 
-    log.info('Natal chart calculated successfully with Swiss Ephemeris', {
-      hasSun: !!sun,
-      hasMoon: !!moon,
-      hasRising: !!ascendant,
-      element,
+    const duration = Date.now() - startTime;
+    log.info('✓ Natal chart calculated successfully', {
+      duration: `${duration}ms`,
       sunSign: sun.sign,
       moonSign: moon.sign,
-      risingSign: ascendant.sign
+      risingSign: ascendant.sign,
+      element,
+      rulingPlanet,
+      hasMercury: !!mercury,
+      hasVenus: !!venus,
+      hasMars: !!mars
     });
 
     return chartData;
   } catch (error: any) {
-    log.error('Error calculating natal chart', error);
+    const duration = Date.now() - startTime;
+    log.error('❌ Error calculating natal chart', {
+      error: error.message,
+      stack: error.stack,
+      duration: `${duration}ms`,
+      input: { name, birthDate, birthTime, birthPlace }
+    });
     throw error;
   }
 }
