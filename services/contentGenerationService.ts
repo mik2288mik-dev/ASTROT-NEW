@@ -337,26 +337,46 @@ export const getOrGenerateHoroscope = async (
   const cachedHoroscope = profile.generatedContent?.dailyHoroscope;
 
   // ВАЖНО: Проверяем что кэш актуален И содержит контент
-  if (cachedHoroscope && cachedHoroscope.date === today && cachedHoroscope.content && cachedHoroscope.content.length > 0) {
+  // Если есть валидный гороскоп на сегодня - возвращаем его БЕЗ запроса к API
+  if (cachedHoroscope && 
+      cachedHoroscope.date === today && 
+      cachedHoroscope.content && 
+      cachedHoroscope.content.length > 0) {
+    log.info('[getOrGenerateHoroscope] Using cached horoscope from profile, skipping API call', {
+      date: cachedHoroscope.date,
+      contentLength: cachedHoroscope.content.length
+    });
     return cachedHoroscope;
   }
 
+  // Только если гороскопа нет или он устарел - делаем запрос к API
+  // API сам проверит кэш в БД перед генерацией
+  log.info('[getOrGenerateHoroscope] No valid cached horoscope, calling API', {
+    hasCached: !!cachedHoroscope,
+    cachedDate: cachedHoroscope?.date,
+    today
+  });
+
   const horoscope = await getDailyHoroscope(profile, chartData);
 
+  // Убеждаемся что дата актуальная
   if (!horoscope.date || horoscope.date !== today) {
     horoscope.date = today;
   }
 
+  // Сохраняем в профиль для кэширования
   if (!profile.generatedContent) {
     profile.generatedContent = { deepDiveAnalyses: {}, synastries: {}, timestamps: {} };
   }
   profile.generatedContent.dailyHoroscope = horoscope;
   profile.generatedContent.timestamps.dailyHoroscopeGenerated = Date.now();
 
+  // Сохраняем в БД (не критично если не удалось)
   try {
     await saveProfile(profile);
+    log.info('[getOrGenerateHoroscope] Horoscope saved to profile');
   } catch (error) {
-    // Ошибка сохранения не критична
+    log.warn('[getOrGenerateHoroscope] Failed to save horoscope to profile (non-critical)', error);
   }
 
   return horoscope;
