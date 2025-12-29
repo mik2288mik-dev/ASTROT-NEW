@@ -163,115 +163,81 @@ const SectionCard: React.FC<{
     );
 };
 
+/**
+ * Состояния загрузки натальной карты
+ */
+type NatalChartLoadingState = 
+    | { type: 'idle' }
+    | { type: 'loading_intro' }
+    | { type: 'loading_analysis'; topic: string }
+    | { type: 'loading_forecast' }
+    | { type: 'error'; message: string }
+    | { type: 'success' };
+
 export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPremium, onUpdateProfile }) => {
+    // Состояния модального окна с анализом
     const [activeAnalysis, setActiveAnalysis] = useState<string | null>(null);
     const [analysisResult, setAnalysisResult] = useState<string>("");
-    const [loadingAnalysis, setLoadingAnalysis] = useState(false);
+    const [loadingState, setLoadingState] = useState<NatalChartLoadingState>({ type: 'idle' });
 
+    // Валидация данных натальной карты
     if (!data || !data.sun || !data.moon) {
         return <Loading />;
     }
 
-    const handleDeepDive = async (topicKey: string) => {
-        if (!profile.isPremium) {
-            requestPremium();
-            return;
-        }
-        
-        const topicMap: Record<string, 'personality' | 'love' | 'career' | 'weakness' | 'karma'> = {
-            'section_personality': 'personality',
-            'section_love': 'love',
-            'section_career': 'career',
-            'section_weakness': 'weakness',
-            'section_karma': 'karma'
-        };
-        
-        const topic = topicMap[topicKey];
-        if (!topic) {
-            return;
-        }
-        
-        const topicTitle = getText(profile.language, `chart.${topicKey}`);
-        
-        if (profile.generatedContent?.deepDiveAnalyses?.[topic]) {
-            setActiveAnalysis(topicTitle);
-            setAnalysisResult(profile.generatedContent.deepDiveAnalyses[topic]);
-            return;
-        }
-        
-        setActiveAnalysis(topicTitle);
-        setLoadingAnalysis(true);
-        setAnalysisResult("");
-        
-        try {
-            const result = await getOrGenerateDeepDive(profile, data, topic);
-            setAnalysisResult(result);
-        } catch (e) {
-            setAnalysisResult(profile.language === 'ru' ? 'Звёзды молчат.' : 'The stars are silent.');
-        } finally {
-            setLoadingAnalysis(false);
-        }
-    };
-
-    const handleForecast = async () => {
-        if (!profile.isPremium) {
-            requestPremium();
-            return;
-        }
-        const title = getText(profile.language, 'chart.forecast_day');
-
-        const cachedText = profile.generatedContent?.dailyHoroscope?.content || null;
-
-        if (cachedText && cachedText.length > 0) {
-            setActiveAnalysis(`${getText(profile.language, 'chart.forecast_title')} - ${title}`);
-            setAnalysisResult(cachedText);
-            return;
-        }
-
-        setActiveAnalysis(`${getText(profile.language, 'chart.forecast_title')} - ${title}`);
-        setLoadingAnalysis(true);
-        setAnalysisResult("");
-
-        try {
-            const res = await getOrGenerateHoroscope(profile, data);
-            const text = res.content;
-            setAnalysisResult(text);
-        } catch(e) {
-            setAnalysisResult(profile.language === 'ru' ? 'Ошибка космического соединения.' : 'Cosmic connection error.');
-        } finally {
-            setLoadingAnalysis(false);
-        }
-    };
-
+    /**
+     * ЧЕТКАЯ ЛОГИКА: Загрузка вступления натальной карты
+     * 1. Проверяем кэш в профиле
+     * 2. Если нет - загружаем через API
+     * 3. Сохраняем в профиль
+     * 4. Обновляем состояние
+     */
     const natalIntroSource = profile.generatedContent?.natalIntro;
-    const [natalIntro, setNatalIntro] = useState<string>(
-        natalIntroSource || (profile.language === 'ru' ? 'Твоя натальная карта' : 'Your natal chart')
-    );
-    const [isLoadingIntro, setIsLoadingIntro] = useState(!natalIntroSource);
-    const hasTriedLoadingRef = useRef(false);
+    const [natalIntro, setNatalIntro] = useState<string>(() => {
+        // Инициализация: используем кэш или fallback
+        if (natalIntroSource && natalIntroSource.length > 50) {
+            return natalIntroSource;
+        }
+        return profile.language === 'ru' 
+            ? `Привет, ${profile.name || 'друг'}! Загружаю твою натальную карту...`
+            : `Hi, ${profile.name || 'friend'}! Loading your natal chart...`;
+    });
+    const [isLoadingIntro, setIsLoadingIntro] = useState(!natalIntroSource || natalIntroSource.length < 50);
+    const introLoadAttemptedRef = useRef(false);
 
-    // Обновляем intro из профиля (основной источник данных)
+    /**
+     * Загружает вступление натальной карты (один раз при монтировании)
+     */
     useEffect(() => {
-        const newIntro = profile.generatedContent?.natalIntro;
-        if (newIntro && newIntro.length > 0) {
-            if (newIntro !== natalIntro) {
-                setNatalIntro(newIntro);
+        // Если уже есть валидное вступление в профиле - используем его
+        const cachedIntro = profile.generatedContent?.natalIntro;
+        if (cachedIntro && cachedIntro.length > 50) {
+            if (cachedIntro !== natalIntro) {
+                setNatalIntro(cachedIntro);
             }
             setIsLoadingIntro(false);
-            hasTriedLoadingRef.current = false;
+            introLoadAttemptedRef.current = true;
             return;
         }
 
-        // Если нет intro и еще не пытались загрузить - генерируем (только один раз)
-        if (!hasTriedLoadingRef.current && data && !isLoadingIntro && !newIntro) {
-            hasTriedLoadingRef.current = true;
+        // Если уже пытались загрузить - не повторяем
+        if (introLoadAttemptedRef.current) {
+            return;
+        }
+
+        // Загружаем вступление (только один раз)
+        if (data && !isLoadingIntro && !cachedIntro) {
+            introLoadAttemptedRef.current = true;
             setIsLoadingIntro(true);
+            setLoadingState({ type: 'loading_intro' });
             
             getNatalIntro(profile, data)
                 .then((intro) => {
                     if (intro && intro.length > 50) {
                         setNatalIntro(intro);
+                        setLoadingState({ type: 'success' });
                         
+                        // Сохраняем в профиль
                         const updatedContent = {
                             ...(profile.generatedContent || {}),
                             natalIntro: intro,
@@ -289,22 +255,143 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
                             onUpdateProfile(updatedProfile);
                         }
                         
-                        return saveProfile(updatedProfile);
+                        saveProfile(updatedProfile).catch((error) => {
+                            console.error('Failed to save natal intro:', error);
+                        });
                     } else {
                         throw new Error('Intro too short');
                     }
                 })
                 .catch((error) => {
+                    console.error('Failed to load natal intro:', error);
                     const fallback = profile.language === 'ru'
                         ? `Привет, ${profile.name || 'друг'}! Я изучила твою натальную карту. Твоё Солнце в ${data.sun?.sign || 'неизвестном знаке'}, Луна в ${data.moon?.sign || 'неизвестном знаке'}.`
                         : `Hi, ${profile.name || 'friend'}! I've studied your natal chart. Your Sun is in ${data.sun?.sign || 'unknown sign'}, Moon in ${data.moon?.sign || 'unknown sign'}.`;
                     setNatalIntro(fallback);
+                    setLoadingState({ type: 'error', message: 'Failed to load intro' });
                 })
                 .finally(() => {
                     setIsLoadingIntro(false);
                 });
         }
-    }, [profile.generatedContent?.natalIntro]);
+    }, [profile.generatedContent?.natalIntro, data, profile, natalIntro]);
+
+    /**
+     * ЧЕТКАЯ ЛОГИКА: Обработка Deep Dive анализа
+     * 1. Проверяем премиум статус
+     * 2. Проверяем кэш
+     * 3. Если нет - загружаем
+     * 4. Показываем в модальном окне
+     */
+    const handleDeepDive = async (topicKey: string) => {
+        // Шаг 1: Проверка премиум статуса
+        if (!profile.isPremium) {
+            requestPremium();
+            return;
+        }
+        
+        // Шаг 2: Маппинг ключа на тему
+        const topicMap: Record<string, 'personality' | 'love' | 'career' | 'weakness' | 'karma'> = {
+            'section_personality': 'personality',
+            'section_love': 'love',
+            'section_career': 'career',
+            'section_weakness': 'weakness',
+            'section_karma': 'karma'
+        };
+        
+        const topic = topicMap[topicKey];
+        if (!topic) {
+            console.error(`Unknown topic key: ${topicKey}`);
+            return;
+        }
+        
+        const topicTitle = getText(profile.language, `chart.${topicKey}`);
+        
+        // Шаг 3: Проверка кэша
+        const cachedAnalysis = profile.generatedContent?.deepDiveAnalyses?.[topic];
+        if (cachedAnalysis && cachedAnalysis.length > 0) {
+            setActiveAnalysis(topicTitle);
+            setAnalysisResult(cachedAnalysis);
+            setLoadingState({ type: 'success' });
+            return;
+        }
+        
+        // Шаг 4: Загрузка анализа
+        setActiveAnalysis(topicTitle);
+        setLoadingState({ type: 'loading_analysis', topic });
+        setAnalysisResult("");
+        
+        try {
+            const result = await getOrGenerateDeepDive(profile, data, topic);
+            if (result && result.length > 0) {
+                setAnalysisResult(result);
+                setLoadingState({ type: 'success' });
+            } else {
+                throw new Error('Empty analysis result');
+            }
+        } catch (e: any) {
+            console.error(`Failed to load deep dive for ${topic}:`, e);
+            const errorMessage = profile.language === 'ru' 
+                ? 'Звёзды молчат. Попробуйте позже.' 
+                : 'The stars are silent. Please try again later.';
+            setAnalysisResult(errorMessage);
+            setLoadingState({ type: 'error', message: `Failed to load ${topic}` });
+        }
+    };
+
+    /**
+     * ЧЕТКАЯ ЛОГИКА: Обработка прогноза
+     * 1. Проверяем премиум статус
+     * 2. Проверяем кэш (по дате)
+     * 3. Если нет или устарел - загружаем
+     * 4. Показываем в модальном окне
+     */
+    const handleForecast = async () => {
+        // Шаг 1: Проверка премиум статуса
+        if (!profile.isPremium) {
+            requestPremium();
+            return;
+        }
+
+        const title = getText(profile.language, 'chart.forecast_day');
+        const modalTitle = `${getText(profile.language, 'chart.forecast_title')} - ${title}`;
+
+        // Шаг 2: Проверка кэша
+        const cachedHoroscope = profile.generatedContent?.dailyHoroscope;
+        const today = new Date().toISOString().split('T')[0];
+        
+        if (cachedHoroscope && 
+            cachedHoroscope.date === today && 
+            cachedHoroscope.content && 
+            cachedHoroscope.content.length > 0) {
+            setActiveAnalysis(modalTitle);
+            setAnalysisResult(cachedHoroscope.content);
+            setLoadingState({ type: 'success' });
+            return;
+        }
+
+        // Шаг 3: Загрузка прогноза
+        setActiveAnalysis(modalTitle);
+        setLoadingState({ type: 'loading_forecast' });
+        setAnalysisResult("");
+
+        try {
+            const horoscope = await getOrGenerateHoroscope(profile, data);
+            if (horoscope.content && horoscope.content.length > 0) {
+                setAnalysisResult(horoscope.content);
+                setLoadingState({ type: 'success' });
+            } else {
+                throw new Error('Empty horoscope content');
+            }
+        } catch (e: any) {
+            console.error('Failed to load forecast:', e);
+            const errorMessage = profile.language === 'ru' 
+                ? 'Ошибка космического соединения. Попробуйте позже.' 
+                : 'Cosmic connection error. Please try again later.';
+            setAnalysisResult(errorMessage);
+            setLoadingState({ type: 'error', message: 'Failed to load forecast' });
+        }
+    };
 
     const sections = [
         { key: 'section_personality', icon: 'personality' },
@@ -516,8 +603,14 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
                 isOpen={!!activeAnalysis}
                 title={activeAnalysis || ''}
                 content={analysisResult}
-                isLoading={loadingAnalysis}
-                onClose={() => !loadingAnalysis && setActiveAnalysis(null)}
+                isLoading={loadingState.type === 'loading_analysis' || loadingState.type === 'loading_forecast'}
+                onClose={() => {
+                    if (loadingState.type !== 'loading_analysis' && loadingState.type !== 'loading_forecast') {
+                        setActiveAnalysis(null);
+                        setAnalysisResult("");
+                        setLoadingState({ type: 'idle' });
+                    }
+                }}
             />
 
             {/* Regenerate Button для вступления (только для premium) */}
