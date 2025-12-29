@@ -708,7 +708,7 @@ export async function calculateNatalChart(
     }
 
     // Валидация знаков зодиака
-    const validSigns = ZODIAC_SIGNS;
+    const validSigns = ZODIAC_SIGNS as readonly string[];
     if (!validSigns.includes(sun.sign)) {
       throw new Error(`Invalid Sun sign: ${sun.sign}`);
     }
