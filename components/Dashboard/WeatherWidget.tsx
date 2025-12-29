@@ -60,29 +60,29 @@ const translateWeather = (condition: string, language: string): string => {
     return condition;
 };
 
-// Функция для получения эмодзи погоды
-const getWeatherEmoji = (condition: string, temp: number): string => {
+// Функция для получения символа погоды
+const getWeatherSymbol = (condition: string, temp: number): string => {
     const lowerCondition = condition.toLowerCase();
     
     if (lowerCondition.includes('rain') || lowerCondition.includes('дождь') || lowerCondition.includes('drizzle')) {
-        return '🌧️';
+        return '●';
     }
     if (lowerCondition.includes('snow') || lowerCondition.includes('снег') || lowerCondition.includes('sleet')) {
-        return '❄️';
+        return '◆';
     }
     if (lowerCondition.includes('sun') || lowerCondition.includes('солн') || lowerCondition.includes('clear') || lowerCondition.includes('ясн')) {
-        return temp > 25 ? '☀️' : '🌤️';
+        return '◉';
     }
     if (lowerCondition.includes('cloud') || lowerCondition.includes('облач') || lowerCondition.includes('overcast') || lowerCondition.includes('пасмурно')) {
-        return '☁️';
+        return '◐';
     }
     if (lowerCondition.includes('fog') || lowerCondition.includes('mist') || lowerCondition.includes('туман')) {
-        return '🌫️';
+        return '◑';
     }
     if (lowerCondition.includes('thunder') || lowerCondition.includes('гроз')) {
-        return '⛈️';
+        return '◈';
     }
-    return '🌍';
+    return '○';
 };
 
 // Функция для перевода фазы луны на русский
@@ -138,24 +138,24 @@ const generateFunnyWeatherComment = (
         ru: {
             'Aries': {
                 'sunny': [
-                    '🔥 Овен, солнце сегодня просто огонь! Твоя энергия зашкаливает!',
-                    '☀️ Овен, даже солнце завидует твоей энергии! Вперед, покоряй мир!',
-                    '✨ Овен, солнечная погода + твоя огненная натура = взрывной микс!'
+                    'Овен, солнце сегодня просто огонь! Твоя энергия зашкаливает!',
+                    'Овен, даже солнце завидует твоей энергии! Вперед, покоряй мир!',
+                    'Овен, солнечная погода + твоя огненная натура = взрывной микс!'
                 ],
                 'rain': [
-                    '🌧️ Овен, дождь? Не проблема! Ты пробежишься и высушишь все вокруг!',
-                    '💪 Овен, даже дождь не остановит твою огненную энергию!',
-                    '⚡ Овен, дождь - это просто дополнительный вызов для тебя!'
+                    'Овен, дождь? Не проблема! Ты пробежишься и высушишь все вокруг!',
+                    'Овен, даже дождь не остановит твою огненную энергию!',
+                    'Овен, дождь - это просто дополнительный вызов для тебя!'
                 ],
                 'cloudy': [
-                    '☁️ Овен, облака пытаются скрыть твою энергию, но у них не получится!',
-                    '🌟 Овен, даже в пасмурный день ты сияешь ярче солнца!',
-                    '🔥 Овен, облачность? Твоя энергия пробивает любые тучи!'
+                    'Овен, облака пытаются скрыть твою энергию, но у них не получится!',
+                    'Овен, даже в пасмурный день ты сияешь ярче солнца!',
+                    'Овен, облачность? Твоя энергия пробивает любые тучи!'
                 ],
                 'snow': [
-                    '❄️ Овен, снег? Отличный повод для зимних приключений!',
-                    '⛄ Овен, даже снег не заморозит твою страсть к действию!',
-                    '🎿 Овен, снежная погода - это просто новый вызов для тебя!'
+                    'Овен, снег? Отличный повод для зимних приключений!',
+                    'Овен, даже снег не заморозит твою страсть к действию!',
+                    'Овен, снежная погода - это просто новый вызов для тебя!'
                 ]
             },
             'Taurus': {
@@ -484,19 +484,19 @@ const generateFunnyWeatherComment = (
         // Выбираем случайный комментарий
         const randomComment = signComments[Math.floor(Math.random() * signComments.length)];
         
-        // Добавляем связь с гороскопом, если есть
-        if (dailyHoroscope && dailyHoroscope.mood) {
-            const horoscopeMood = dailyHoroscope.mood.toLowerCase();
-            if (isRu) {
-                if (horoscopeMood.includes('happy') || horoscopeMood.includes('радост') || horoscopeMood.includes('счастл') || horoscopeMood.includes('вдохнов')) {
-                    return `${randomComment} И это идеально сочетается с твоим сегодняшним настроением! ✨`;
-                }
-            } else {
-                if (horoscopeMood.includes('happy') || horoscopeMood.includes('inspired') || horoscopeMood.includes('joyful')) {
-                    return `${randomComment} And this perfectly matches your mood today! ✨`;
+            // Добавляем связь с гороскопом, если есть
+            if (dailyHoroscope && dailyHoroscope.mood) {
+                const horoscopeMood = dailyHoroscope.mood.toLowerCase();
+                if (isRu) {
+                    if (horoscopeMood.includes('happy') || horoscopeMood.includes('радост') || horoscopeMood.includes('счастл') || horoscopeMood.includes('вдохнов')) {
+                        return `${randomComment} И это идеально сочетается с твоим сегодняшним настроением!`;
+                    }
+                } else {
+                    if (horoscopeMood.includes('happy') || horoscopeMood.includes('inspired') || horoscopeMood.includes('joyful')) {
+                        return `${randomComment} And this perfectly matches your mood today!`;
+                    }
                 }
             }
-        }
         
         return randomComment;
     }
@@ -504,8 +504,8 @@ const generateFunnyWeatherComment = (
     // Fallback комментарий
     const lang = language as 'ru' | 'en';
     return isRu 
-        ? `Погода сегодня ${translateWeather(weatherCondition, language).toLowerCase()}, ${temp}°C - идеально для ${getZodiacSign(lang, zodiacSign)}! ✨`
-        : `Weather today is ${translateWeather(weatherCondition, language).toLowerCase()}, ${temp}°C - perfect for ${getZodiacSign(lang, zodiacSign)}! ✨`;
+        ? `Погода сегодня ${translateWeather(weatherCondition, language).toLowerCase()}, ${temp}°C - идеально для ${getZodiacSign(lang, zodiacSign)}!`
+        : `Weather today is ${translateWeather(weatherCondition, language).toLowerCase()}, ${temp}°C - perfect for ${getZodiacSign(lang, zodiacSign)}!`;
 };
 
 export const WeatherWidget = memo<WeatherWidgetProps>(({ 
@@ -519,7 +519,7 @@ export const WeatherWidget = memo<WeatherWidgetProps>(({
   }
 
   const zodiacSign = chartData?.sun?.sign || 'Aries';
-  const weatherEmoji = getWeatherEmoji(weatherData.condition, weatherData.temp);
+  const weatherSymbol = getWeatherSymbol(weatherData.condition, weatherData.temp);
   const weatherComment = generateFunnyWeatherComment(
     zodiacSign,
     weatherData.condition,
@@ -545,12 +545,20 @@ export const WeatherWidget = memo<WeatherWidgetProps>(({
           <h3 className="text-[10px] uppercase tracking-widest text-astro-subtext font-bold">
             {profile.language === 'ru' ? 'Космическая Погода' : 'Cosmic Weather'}
           </h3>
-          <div className="text-2xl animate-pulse">{weatherEmoji}</div>
+          <motion.div 
+            animate={{ scale: [1, 1.1, 1] }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className="w-8 h-8 rounded-full bg-astro-highlight/30 flex items-center justify-center"
+          >
+            <span className="text-astro-highlight text-xl font-bold">{weatherSymbol}</span>
+          </motion.div>
         </div>
         
         {/* Основная информация о погоде */}
         <div className="flex items-center gap-4 mb-4">
-          <div className="text-5xl">{weatherEmoji}</div>
+          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-astro-highlight/30 to-blue-500/20 border-2 border-astro-highlight/40 flex items-center justify-center">
+            <span className="text-3xl font-bold text-astro-highlight">{weatherSymbol}</span>
+          </div>
           <div className="flex-1">
             <p className="text-2xl font-serif font-bold text-astro-text mb-1">
               {translateWeather(weatherData.condition, profile.language)}
@@ -596,7 +604,7 @@ export const WeatherWidget = memo<WeatherWidgetProps>(({
                   {profile.language === 'ru' ? 'Фаза Луны' : 'Moon Phase'}
                 </p>
                 <p className="text-sm font-serif text-astro-text">
-                  🌙 {translateMoonPhase(weatherData.moonPhase.phase, profile.language)}
+                  <span className="text-astro-highlight mr-1">◐</span> {translateMoonPhase(weatherData.moonPhase.phase, profile.language)}
                 </p>
               </div>
               <div className="text-right">

@@ -17,38 +17,38 @@ interface NatalChartProps {
 }
 
 /**
- * Прикольные эмодзи планет для натальной карты! 🌟
+ * Красивые символы планет для натальной карты
  */
-const getPlanetEmoji = (planetId: string): string => {
-    const emojis: Record<string, string> = {
-        'sun': '☀️',
-        'moon': '🌙',
-        'mercury': '☿️',
-        'venus': '♀️',
-        'mars': '♂️',
+const getPlanetSymbol = (planetId: string): string => {
+    const symbols: Record<string, string> = {
+        'sun': '☉',
+        'moon': '☽',
+        'mercury': '☿',
+        'venus': '♀',
+        'mars': '♂',
         'jupiter': '♃',
         'saturn': '♄',
         'uranus': '♅',
         'neptune': '♆',
         'pluto': '♇',
-        'rising': '⬆️',
-        'ascendant': '⬆️'
+        'rising': 'ASC',
+        'ascendant': 'ASC'
     };
-    return emojis[planetId] || '✨';
+    return symbols[planetId] || '●';
 };
 
 /**
- * Веселые названия планет
+ * Красивые названия планет
  */
 const getPlanetFunName = (planetId: string, language: 'ru' | 'en'): string => {
     const names: Record<string, Record<string, string>> = {
-        'sun': { ru: 'Солнышко ☀️', en: 'Sun ☀️' },
-        'moon': { ru: 'Луна 🌙', en: 'Moon 🌙' },
-        'mercury': { ru: 'Меркурий ☿️', en: 'Mercury ☿️' },
-        'venus': { ru: 'Венера ♀️', en: 'Venus ♀️' },
-        'mars': { ru: 'Марс ♂️', en: 'Mars ♂️' },
-        'rising': { ru: 'Асцендент ⬆️', en: 'Rising ⬆️' },
-        'ascendant': { ru: 'Асцендент ⬆️', en: 'Rising ⬆️' }
+        'sun': { ru: 'Солнце', en: 'Sun' },
+        'moon': { ru: 'Луна', en: 'Moon' },
+        'mercury': { ru: 'Меркурий', en: 'Mercury' },
+        'venus': { ru: 'Венера', en: 'Venus' },
+        'mars': { ru: 'Марс', en: 'Mars' },
+        'rising': { ru: 'Асцендент', en: 'Rising' },
+        'ascendant': { ru: 'Асцендент', en: 'Rising' }
     };
     return names[planetId]?.[language] || planetId;
 };
@@ -70,25 +70,49 @@ const PlanetIcon: React.FC<{ type: string; className?: string }> = ({ type, clas
         return <svg viewBox="0 0 24 24" className={className}>{planetSvgs[type] || planetSvgs.default}</svg>;
     }
 
-    // Прикольные иконки с эмодзи для разделов
+    // Красивые иконки для разделов (без эмодзи)
     const icons: Record<string, React.ReactElement> = {
         personality: (
-            <div className="text-3xl">✨</div>
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" fill="none" opacity="0.3"/>
+                <circle cx="12" cy="12" r="6" fill="currentColor" opacity="0.8"/>
+                <circle cx="12" cy="12" r="2" fill="currentColor"/>
+                <path d="M12 2 L12 6 M12 18 L12 22 M2 12 L6 12 M18 12 L22 12" stroke="currentColor" strokeWidth="1.5" opacity="0.5"/>
+            </svg>
         ),
         love: (
-            <div className="text-3xl">💕</div>
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" 
+                      stroke="currentColor" strokeWidth="1.5" fill="currentColor" opacity="0.9"/>
+            </svg>
         ),
         career: (
-            <div className="text-3xl">🚀</div>
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+                <path d="M12 2 L15 8 L22 9 L17 14 L18 21 L12 18 L6 21 L7 14 L2 9 L9 8 Z" 
+                      stroke="currentColor" strokeWidth="1.5" fill="currentColor" opacity="0.9"/>
+            </svg>
         ),
         weakness: (
-            <div className="text-3xl">🌱</div>
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" fill="none" opacity="0.3"/>
+                <path d="M8 12 L16 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                <path d="M12 8 L12 16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
         ),
         karma: (
-            <div className="text-3xl">🌀</div>
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" fill="none" opacity="0.3"/>
+                <path d="M12 2 A10 10 0 0 1 22 12" stroke="currentColor" strokeWidth="1.5" fill="none" opacity="0.6"/>
+                <path d="M12 22 A10 10 0 0 1 2 12" stroke="currentColor" strokeWidth="1.5" fill="none" opacity="0.6"/>
+                <circle cx="12" cy="12" r="3" fill="currentColor" opacity="0.8"/>
+            </svg>
         ),
         forecast: (
-            <div className="text-3xl">🔮</div>
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+                <path d="M12 2 L15 8 L22 9 L17 14 L18 21 L12 18 L6 21 L7 14 L2 9 L9 8 Z" 
+                      stroke="currentColor" strokeWidth="1.5" fill="currentColor" opacity="0.9"/>
+                <circle cx="12" cy="12" r="2" fill="currentColor" opacity="0.3"/>
+            </svg>
         )
     };
     
@@ -99,7 +123,7 @@ const PlanetIcon: React.FC<{ type: string; className?: string }> = ({ type, clas
  * Компонент карточки раздела натальной карты
  */
 /**
- * Прикольная карточка раздела с веселыми анимациями! 🎨
+ * Красивая карточка раздела с веселыми анимациями
  */
 const SectionCard: React.FC<{
     title: string;
@@ -109,15 +133,6 @@ const SectionCard: React.FC<{
     onClick: () => void;
     index: number;
 }> = ({ title, iconType, isPremium, language, onClick, index }) => {
-    // Прикольные эмодзи для разделов
-    const sectionEmojis: Record<string, string> = {
-        'personality': '✨',
-        'love': '💕',
-        'career': '🚀',
-        'weakness': '🌱',
-        'karma': '🌀'
-    };
-    
     // Веселые подсказки
     const funHints: Record<string, Record<string, string>> = {
         'personality': {
@@ -160,7 +175,7 @@ const SectionCard: React.FC<{
                 }
             `}
         >
-            {/* Прикольные декорации */}
+            {/* Красивые декорации */}
             <motion.div 
                 animate={isPremium ? { rotate: 360 } : {}}
                 transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
@@ -169,13 +184,13 @@ const SectionCard: React.FC<{
             
             {/* Содержимое карточки */}
             <div className="relative z-10 flex items-center gap-5">
-                {/* Прикольная иконка с эмодзи */}
+                {/* Красивая иконка */}
                 <motion.div
                     animate={isPremium ? { rotate: [0, 10, -10, 0] } : {}}
                     transition={{ duration: 3, repeat: Infinity, repeatDelay: 2 }}
                     className={`
                         flex-shrink-0 w-20 h-20 rounded-2xl 
-                        flex items-center justify-center text-4xl
+                        flex items-center justify-center
                         transition-all duration-300
                         ${isPremium 
                             ? 'bg-gradient-to-br from-astro-highlight/30 to-pink-500/20 group-hover:scale-110 group-hover:rotate-12 shadow-lg' 
@@ -183,7 +198,10 @@ const SectionCard: React.FC<{
                         }
                     `}
                 >
-                    {sectionEmojis[iconType] || '✨'}
+                    <PlanetIcon 
+                        type={iconType} 
+                        className={`w-10 h-10 ${isPremium ? 'text-astro-highlight' : 'text-astro-subtext'}`}
+                    />
                 </motion.div>
                 
                 {/* Текст */}
@@ -198,7 +216,9 @@ const SectionCard: React.FC<{
                     )}
                     {!isPremium && (
                         <div className="flex items-center gap-2 mt-2">
-                            <span className="text-lg">🔒</span>
+                            <svg className="w-4 h-4 text-astro-subtext" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
                             <p className="text-xs text-astro-subtext uppercase tracking-wider font-semibold">
                                 {language === 'ru' ? 'Premium доступ' : 'Premium access'}
                             </p>
@@ -206,12 +226,12 @@ const SectionCard: React.FC<{
                     )}
                 </div>
                 
-                {/* Прикольная стрелка */}
+                {/* Красивая стрелка */}
                 {isPremium && (
                     <motion.div
                         animate={{ x: [0, 5, 0] }}
                         transition={{ duration: 1.5, repeat: Infinity }}
-                        className="flex-shrink-0 text-astro-subtext group-hover:text-astro-highlight group-hover:translate-x-2 transition-all text-2xl"
+                        className="flex-shrink-0 text-astro-subtext group-hover:text-astro-highlight group-hover:translate-x-2 transition-all text-2xl font-bold"
                     >
                         →
                     </motion.div>
@@ -225,9 +245,11 @@ const SectionCard: React.FC<{
                         <motion.div
                             animate={{ scale: [1, 1.2, 1] }}
                             transition={{ duration: 2, repeat: Infinity }}
-                            className="text-4xl mb-2"
+                            className="mb-2"
                         >
-                            🔒
+                            <svg className="w-8 h-8 mx-auto text-astro-subtext" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
                         </motion.div>
                         <p className="text-xs text-astro-subtext font-semibold">
                             {language === 'ru' ? 'Разблокируй Premium!' : 'Unlock Premium!'}
@@ -479,7 +501,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
 
     return (
         <div className="min-h-screen px-4 py-6 max-w-4xl mx-auto pb-32">
-            {/* Прикольный заголовок страницы! 🌟 */}
+            {/* Красивый заголовок страницы */}
             <motion.div
                 initial={{ opacity: 0, y: -20, scale: 0.9 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -487,21 +509,23 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
                 className="text-center mb-8"
             >
                 <motion.div
-                    animate={{ rotate: [0, 5, -5, 0] }}
-                    transition={{ duration: 4, repeat: Infinity, repeatDelay: 2 }}
-                    className="text-5xl mb-4"
+                    animate={{ scale: [1, 1.1, 1] }}
+                    transition={{ duration: 3, repeat: Infinity, repeatDelay: 2 }}
+                    className="mb-4"
                 >
-                    🌟
+                    <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-astro-highlight/30 to-purple-500/30 border-2 border-astro-highlight/50 flex items-center justify-center">
+                        <span className="text-3xl font-bold text-astro-highlight">✦</span>
+                    </div>
                 </motion.div>
                 <h1 className="text-3xl md:text-4xl font-bold mb-3 font-serif bg-gradient-to-r from-astro-highlight via-pink-400 to-purple-400 bg-clip-text text-transparent">
                     {getText(profile.language, 'chart.title')}
                 </h1>
                 <div className="flex items-center justify-center gap-2 text-sm text-astro-subtext">
-                    <span className="text-lg">✨</span>
+                    <span className="text-astro-highlight">●</span>
                     <p>
                         {profile.name ? `${profile.name}, ${profile.birthDate}` : profile.birthDate}
                     </p>
-                    <span className="text-lg">💫</span>
+                    <span className="text-astro-highlight">●</span>
                 </div>
             </motion.div>
 
@@ -514,7 +538,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
                     </h2>
                 </div>
 
-                {/* Прикольный горизонтальный скролл с планетами! 🌟 */}
+                {/* Красивый горизонтальный скролл с планетами */}
                 <div className="flex overflow-x-auto gap-3 pb-4 px-1 scrollbar-hide snap-x">
                     {[
                         { id: 'sun', sign: data.sun?.sign, name: getPlanetFunName('sun', profile.language) },
@@ -535,9 +559,9 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
                             <motion.div
                                 animate={{ rotate: [0, 10, -10, 0] }}
                                 transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
-                                className="w-14 h-14 rounded-full bg-gradient-to-br from-astro-highlight/30 to-astro-highlight/10 border-2 border-astro-highlight/40 flex items-center justify-center text-3xl group-hover:scale-110 transition-transform"
+                                className="w-14 h-14 rounded-full bg-gradient-to-br from-astro-highlight/30 to-astro-highlight/10 border-2 border-astro-highlight/40 flex items-center justify-center group-hover:scale-110 transition-transform"
                             >
-                                {getPlanetEmoji(planet.id)}
+                                <span className="text-2xl font-bold text-astro-highlight">{getPlanetSymbol(planet.id)}</span>
                             </motion.div>
                             <div className="text-center">
                                 <p className="text-[10px] text-astro-subtext uppercase tracking-wider font-bold">{planet.name}</p>
@@ -547,14 +571,14 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
                     ))}
                 </div>
 
-                {/* Прикольное вступление с веселым дизайном! ✨ */}
+                {/* Красивое вступление с веселым дизайном */}
                 <motion.div 
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
                     className="relative bg-gradient-to-br from-purple-900/30 via-astro-card to-pink-900/20 rounded-2xl p-6 border-2 border-astro-border shadow-xl overflow-hidden group hover:border-astro-highlight/50 transition-all"
                 >
-                    {/* Прикольные декорации */}
+                    {/* Красивые декорации */}
                     <motion.div 
                         animate={{ rotate: 360 }}
                         transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
@@ -576,9 +600,9 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
                             <motion.span
                                 animate={{ rotate: [0, 15, -15, 0] }}
                                 transition={{ duration: 2, repeat: Infinity, repeatDelay: 2 }}
-                                className="text-2xl"
+                                className="text-astro-highlight text-xl"
                             >
-                                ✨
+                                ✦
                             </motion.span>
                             <span className="bg-gradient-to-r from-astro-highlight to-pink-400 bg-clip-text text-transparent">
                                 {profile.language === 'ru' ? 'Твоя Космическая Суть' : 'Your Cosmic Essence'}
@@ -586,9 +610,9 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
                             <motion.span
                                 animate={{ rotate: [0, -15, 15, 0] }}
                                 transition={{ duration: 2, repeat: Infinity, repeatDelay: 2 }}
-                                className="text-2xl"
+                                className="text-astro-highlight text-xl"
                             >
-                                🌟
+                                ✦
                             </motion.span>
                         </motion.h3>
                         
@@ -601,9 +625,9 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
                                 transition={{ delay: 0.4 }}
                                 className="text-base text-astro-text/95 leading-relaxed font-serif italic bg-astro-bg/30 rounded-xl p-4 border border-astro-border/30 backdrop-blur-sm"
                             >
-                                <span className="text-2xl mr-2">💫</span>
-                                "{natalIntro}"
-                                <span className="text-2xl ml-2">✨</span>
+                                <span className="text-astro-highlight mr-2">"</span>
+                                {natalIntro}
+                                <span className="text-astro-highlight ml-2">"</span>
                             </motion.div>
                         )}
                         
@@ -616,8 +640,8 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
                             >
                                 <p className="text-xs text-astro-subtext text-center font-semibold">
                                     {profile.language === 'ru' 
-                                        ? '🎁 Это лишь 5% твоей карты! Раскрой полную картину ниже 👇' 
-                                        : '🎁 This is only 5% of your chart! Unlock the full picture below 👇'}
+                                        ? 'Это лишь 5% твоей карты! Раскрой полную картину ниже ↓' 
+                                        : 'This is only 5% of your chart! Unlock the full picture below ↓'}
                                 </p>
                             </motion.div>
                         )}
@@ -625,7 +649,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
                 </motion.div>
             </div>
 
-            {/* Прикольные разделы натальной карты! 🎉 */}
+            {/* Красивые разделы натальной карты */}
             <div className="mb-12">
                 <motion.h2 
                     initial={{ opacity: 0, scale: 0.9 }}
@@ -636,9 +660,9 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
                     <motion.span
                         animate={{ rotate: [0, 20, -20, 0] }}
                         transition={{ duration: 3, repeat: Infinity, repeatDelay: 2 }}
-                        className="text-3xl"
+                        className="text-astro-highlight text-2xl"
                     >
-                        🔮
+                        ◈
                     </motion.span>
                     <span className="bg-gradient-to-r from-astro-highlight via-pink-400 to-purple-400 bg-clip-text text-transparent">
                         {profile.language === 'ru' ? 'Глубокий Анализ' : 'Deep Analysis'}
@@ -646,9 +670,9 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
                     <motion.span
                         animate={{ rotate: [0, -20, 20, 0] }}
                         transition={{ duration: 3, repeat: Infinity, repeatDelay: 2 }}
-                        className="text-3xl"
+                        className="text-astro-highlight text-2xl"
                     >
-                        ✨
+                        ◈
                     </motion.span>
                 </motion.h2>
 
