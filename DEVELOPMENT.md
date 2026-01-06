@@ -15,8 +15,12 @@ DATABASE_URL=postgresql://...
 OPENAI_API_KEY=sk-...
 NEXT_PUBLIC_OWNER_ID=твой_telegram_id
 EPHE_PATH=./ephe
+WEATHER_API=твой_ключ_weatherapi
 
-# 3. Запусти
+# 3. Запусти миграции (только первый раз)
+npm run migrate
+
+# 4. Запусти
 npm run dev
 ```
 
@@ -43,9 +47,11 @@ npm run dev
 /services/           → Бизнес-логика
   astrologyService.ts
   contentGenerationService.ts
+  storageService.ts  → API запросы к серверу
   
 /views/              → React компоненты (страницы)
 /components/         → UI компоненты
+/ephe/               → Файлы эфемерид Swiss Ephemeris
 /types.ts            → TypeScript типы
 ```
 
@@ -59,12 +65,22 @@ npm run dev
 - `deep_dive_analyses` - глубокие анализы
 - `synastry_cache` - кэш совместимости
 - `forecasts_cache` - кэш прогнозов
-- `daily_horoscopes_cache` - дневные гороскопы
+- `daily_horoscopes_cache` - дневные гороскопы (по знакам)
 - `regenerations` - история регенераций
 - `migrations` - применённые миграции
 
 ### Миграции:
-Применяются автоматически через `/api/health` при старте приложения.
+
+**Миграции запускаются ОДИН раз при деплое:**
+```bash
+# При сборке (автоматически)
+npm run build  # = next build && npm run migrate
+
+# Вручную (для разработки)
+npm run migrate
+```
+
+> ⚠️ **Важно:** Миграции НЕ запускаются через API эндпоинты, чтобы избежать блокировок БД при одновременных запросах.
 
 ---
 
@@ -114,31 +130,41 @@ NEXT_PUBLIC_OWNER_ID=...
 
 ---
 
-## 🎨 Натальная карта
+## 🔮 Swiss Ephemeris (Натальные карты)
 
-### Структура:
+### Файлы эфемерид:
+Папка `/ephe/` содержит файлы `.se1` для точных астрономических расчетов.
 
-**Бесплатное вступление:**
-- Общий портрет личности
-- Суперсилы
-- Стихия и энергия
-- 600-900 символов
+### Автоматическое определение пути:
+Код проверяет пути в следующем порядке:
+1. `EPHE_PATH` (переменная окружения)
+2. `./ephe` (локальная разработка)
+3. `/app/ephe` (Docker)
+4. `/workspace/ephe` (Railway)
 
-**Premium секции (по 900-1200 символов):**
-1. 🌟 Личность и Характер
-2. ❤️ Любовь и Отношения
-3. 🎯 Карьера и Самореализация
-4. 🔍 Зоны Роста и Вызовы
-5. ✨ Кармическая Задача
+### Диагностика:
+Если расчеты не работают, проверь логи `[SwissephCalculator]`:
+- `✓ Ephemeris path set to: ...` - путь найден
+- `Эфемериды не найдены` - файлы отсутствуют
 
-### Промпты:
-Все промпты в `lib/prompts.ts`:
-- `createFullNatalChartIntroPrompt()` - вступление
-- `createPersonalityAnalysisPrompt()` - личность
-- `createLoveAnalysisPrompt()` - любовь
-- `createCareerAnalysisPrompt()` - карьера
-- `createChallengesAnalysisPrompt()` - зоны роста
-- `createKarmaAnalysisPrompt()` - карма
+---
+
+## 🌤️ Погода (WeatherAPI)
+
+### Архитектура:
+Запросы к WeatherAPI проксируются через сервер:
+```
+Frontend → /api/weather?city=... → WeatherAPI
+```
+
+Это решает:
+- CORS проблемы
+- Безопасное хранение API ключа
+
+### Настройка:
+```env
+WEATHER_API=твой_ключ_от_weatherapi.com
+```
 
 ---
 
@@ -159,7 +185,22 @@ NEXT_PUBLIC_OWNER_ID=...
 - `GET /api/users` - все пользователи (admin)
 
 ### Система:
-- `GET /api/health` - health check + миграции
+- `GET /api/health` - health check (проверка БД)
+- `GET /api/weather?city=...` - погода
+
+---
+
+## 📊 Кэширование
+
+### Ежедневный гороскоп:
+Кэшируется по знаку зодиака и дате в `daily_horoscopes_cache`.
+Один гороскоп на знак в день для всех пользователей.
+
+### Прогнозы:
+Кэшируются по пользователю в `forecasts_cache`.
+
+### Deep Dive:
+Сохраняются в `deep_dive_analyses` по пользователю и теме.
 
 ---
 
@@ -174,23 +215,6 @@ NEXT_PUBLIC_OWNER_ID=...
 - **SETTINGS** - настройки системы
 
 Код: `views/AdminPanel.tsx`
-
----
-
-## 🐛 Error Tracking
-
-Встроенная система отслеживания:
-```typescript
-import { logError } from './lib/errorTracking';
-
-logError(error, {
-  userId: user.id,
-  endpoint: '/api/something',
-  metadata: { ... }
-});
-```
-
-Просмотр ошибок: Admin Panel → ERRORS
 
 ---
 
@@ -215,12 +239,20 @@ npm run test:coverage
 2. Настрой Environment Variables
 3. Railway автоматически деплоит при push
 
+### Docker:
+Dockerfile автоматически:
+1. Устанавливает зависимости
+2. Собирает приложение
+3. Копирует папку `ephe/` с эфемеридами
+4. Запускает миграции при старте
+5. Запускает приложение
+
 ### Важно перед деплоем:
 - ✅ Настроен `NEXT_PUBLIC_OWNER_ID`
 - ✅ Настроен `DATABASE_URL` (public, не internal!)
 - ✅ Настроен `OPENAI_API_KEY`
-- ✅ Включены автоматические backup БД
-- ✅ Проверены миграции
+- ✅ Настроен `WEATHER_API`
+- ✅ Папка `ephe/` содержит файлы `.se1`
 
 ---
 
@@ -228,24 +260,24 @@ npm run test:coverage
 
 ### Миграции не применяются:
 ```bash
-# Проверь /api/health
-curl http://localhost:3000/api/health
+# Запусти вручную
+npm run migrate
+
+# Проверь логи
+# [Migrations] Starting database migrations...
 ```
+
+### Натальные карты не работают:
+1. Проверь наличие файлов в `ephe/`
+2. Проверь логи `[SwissephCalculator]`
+3. Проверь переменную `EPHE_PATH`
+
+### Погода не работает:
+1. Проверь `WEATHER_API` в .env
+2. Проверь логи `[Weather API]`
 
 ### Rate limit слишком строгий:
-Настрой в `lib/rateLimit.ts`:
-```typescript
-export const RATE_LIMIT_CONFIGS = {
-  FREE: { windowMs: 60000, maxRequests: 10 },
-  // ...
-}
-```
-
-### Ошибки OpenAI:
-Проверь:
-- API key действителен
-- Баланс аккаунта
-- Rate limits OpenAI
+Настрой в `lib/rateLimit.ts`
 
 ---
 
@@ -255,30 +287,10 @@ export const RATE_LIMIT_CONFIGS = {
 Все важные операции логируются с префиксами:
 - `[API/...]` - API endpoints
 - `[DB]` - Database operations
+- `[SwissephCalculator]` - Расчеты эфемерид
 - `[ContentGenerationService]` - AI генерация
-- `[ErrorTracking]` - Ошибки
-
-### Метрики (Admin Panel):
-- Total Users
-- Premium conversion
-- Charts created
-- Deep Dives usage
-- Errors count
-
----
-
-## 🎯 TODO для Production
-
-### Критично:
-- [ ] Настроить автоматические backup БД
-- [ ] Интегрировать Sentry (опционально)
-- [ ] Протестировать все флоу
-
-### Желательно:
-- [ ] Добавить больше unit тестов
-- [ ] Настроить CDN для статики
-- [ ] A/B тест Paywall
-- [ ] Аналитика (Mixpanel/Amplitude)
+- `[Weather API]` - Погода
+- `[Migrations]` - Миграции
 
 ---
 
@@ -301,59 +313,4 @@ export const RATE_LIMIT_CONFIGS = {
 
 ---
 
-## 📝 Changelog
-
-### Последние изменения (18.12.2025):
-
-**Критичные исправления:**
-- ✅ OWNER_ID в environment variables
-- ✅ Rate limiting для всех API
-- ✅ Индексы БД для производительности
-- ✅ Error tracking система
-
-**Важные улучшения:**
-- ✅ Переработаны промпты (классическая натальная карта)
-- ✅ Новая структура натальной карты (вступление + 5 секций)
-- ✅ Четкое разделение Premium/Free контента
-- ✅ Улучшенная админ панель (4 вкладки)
-- ✅ Deep Dive в отдельную таблицу
-
-**Очистка проекта:**
-- 🧹 Удалено 9 лишних MD файлов (~150 KB)
-- 🧹 Удалено 4 устаревших API endpoints (~22 KB)
-- 🧹 Обновлен regenerate.ts под новую структуру
-- 🧹 Вся документация объединена в DEVELOPMENT.md
-
----
-
-## 🧹 Что было очищено
-
-### Удалённые MD файлы:
-Было 9 файлов, теперь только `README.md` и этот `DEVELOPMENT.md`:
-- ИТОГИ_РАБОТЫ.md
-- CHANGELOG_FIXES.md
-- ПЛАН_УЛУЧШЕНИЙ.md
-- КРАТКАЯ_АРХИТЕКТУРА.md
-- FULL_APPLICATION_AUDIT.md
-- РЕЗЮМЕ_ИСПРАВЛЕНИЙ.md
-- КРАТКАЯ_СВОДКА.md
-- AUDIT_REPORT.md
-- ИЗМЕНЕНИЯ.txt
-
-### Удалённые API endpoints:
-Не использовались в коде:
-- /api/astrology/soul-passport.ts
-- /api/astrology/full-chart-interpretation.ts
-- /api/astrology/evolution-description.ts
-
-### Обновлён regenerate.ts:
-- Теперь работает с новой структурой (natal_intro, deep_dive)
-- Использует новые промпты
-- Сохраняет в правильные места (generatedContent, deep_dive_analyses)
-- Добавлен rate limiting
-
----
-
-**🎉 Проект полностью очищен и готов к production!**
-
-Удачи с запуском! ✨
+**🎉 Проект готов к production!**
