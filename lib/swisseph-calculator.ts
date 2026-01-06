@@ -105,33 +105,48 @@ function initSwissEph() {
         // Определяем путь к эфемеридам с проверкой существования
         let ephePath = process.env.EPHE_PATH;
         
-        if (!ephePath) {
-            // Попытка 1: Локальный путь в проекте (приоритет для разработки и Cursor)
-            const localPath = path.join(process.cwd(), 'ephe');
-            if (fs.existsSync(localPath)) {
-                ephePath = localPath;
-            } 
-            // Попытка 2: Стандартный путь в Docker контейнере
-            else if (fs.existsSync('/app/ephe')) {
-                ephePath = '/app/ephe';
-            }
-        }
+        // Список путей для проверки в порядке приоритета
+        const possiblePaths = [
+          ephePath,
+          path.join(process.cwd(), 'ephe'),
+          '/app/ephe',
+          path.join(__dirname, '..', 'ephe'),
+          '/workspace/ephe',
+        ].filter(Boolean) as string[];
         
-        if (ephePath && fs.existsSync(ephePath)) {
+        // Находим первый существующий путь
+        ephePath = possiblePaths.find(p => {
+          try {
+            return fs.existsSync(p) && fs.statSync(p).isDirectory();
+          } catch {
+            return false;
+          }
+        });
+        
+        if (ephePath) {
+          // Проверяем наличие файлов эфемерид
+          const files = fs.readdirSync(ephePath);
+          const epheFiles = files.filter((f: string) => f.endsWith('.se1'));
+          
+          if (epheFiles.length === 0) {
+            throw new Error(`Папка эфемерид найдена (${ephePath}), но файлы .se1 отсутствуют`);
+          }
+          
           sweInstance.swe_set_ephe_path(ephePath);
           
           log.info(`✓ Ephemeris path set to: ${ephePath}`, {
             path: ephePath,
-            exists: true,
+            filesCount: epheFiles.length,
             note: 'Using high-precision Swiss Ephemeris files (.se1) for calculations'
           });
         } else {
-          log.warn(`Ephemeris path not found or invalid`, {
+          const errorMsg = `Эфемериды не найдены. Проверенные пути: ${possiblePaths.join(', ')}`;
+          log.error(errorMsg, {
             cwd: process.cwd(),
-            attemptedPath: ephePath,
             envEPHE_PATH: process.env.EPHE_PATH,
-            note: 'Will use built-in ephemeris data (still accurate, but may have date limitations)'
+            checkedPaths: possiblePaths
           });
+          throw new Error(errorMsg);
         }
       } else {
         log.warn('swe_set_ephe_path is not available', {
@@ -139,10 +154,11 @@ function initSwissEph() {
         });
       }
     } catch (epheError: any) {
-      log.warn('Ephemeris path setup warning', { 
+      log.error('Ephemeris path setup failed', { 
         error: epheError.message,
-        note: 'Library will use built-in ephemeris data. Calculations will still be accurate, but may have date range limitations.'
+        note: 'Cannot proceed without ephemeris files'
       });
+      throw new Error(`Ошибка настройки астрономических данных: ${epheError.message}`);
     }
     
     isInitialized = true;
