@@ -4,13 +4,24 @@ import { db } from '../../../lib/db';
 // Logging utility
 const log = {
   info: (message: string, data?: any) => {
-    console.log(`[API/charts/[id]] ${message}`, data || '');
+    console.log(`[API/charts] ${message}`, data || '');
   },
   error: (message: string, error?: any) => {
-    console.error(`[API/charts/[id]] ERROR: ${message}`, error || '');
+    console.error(`[API/charts] ERROR: ${message}`, error || '');
   },
 };
 
+/**
+ * API для работы с натальными картами
+ * 
+ * GET /api/charts/:userId - получить карту из БД
+ *   - Если карта есть: 200 + chartData
+ *   - Если нет: 404
+ * 
+ * POST /api/charts/:userId - НЕ РЕКОМЕНДУЕТСЯ напрямую
+ *   - Используйте /api/astrology/natal-chart для расчёта и сохранения
+ *   - Этот endpoint только для совместимости
+ */
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -22,46 +33,50 @@ export default async function handler(
     return res.status(400).json({ error: 'User ID is required' });
   }
 
-  log.info(`Request received`, {
-    method: req.method,
-    userId,
-    path: req.url
-  });
+  log.info(`Request: ${req.method} /api/charts/${userId}`);
 
   try {
+    // ============ GET: Получить карту из БД ============
     if (req.method === 'GET') {
-      // Get chart data
-      log.info(`[GET] Fetching chart for user: ${userId}`);
-      const chart = await db.charts.get(userId);
+      log.info(`[GET] Fetching chart for userId=${userId}`);
       
-      if (!chart) {
-        log.info(`[GET] Chart not found for user: ${userId}`);
+      const chartRecord = await db.charts.get(userId);
+      
+      if (!chartRecord || !chartRecord.chart_data) {
+        log.info(`[GET] DB_MISS: no chart for userId=${userId}`);
         return res.status(404).json({ error: 'Chart not found' });
       }
 
-      log.info(`[GET] Chart found for user: ${userId}`, {
-        hasSun: !!chart.chart_data?.sun,
-        hasMoon: !!chart.chart_data?.moon,
-        element: chart.chart_data?.element
-      });
-
-      // Проверяем что chart_data существует и содержит обязательные поля
-      const chartData = chart.chart_data || chart;
-      if (!chartData || !chartData.sun || !chartData.moon) {
-        log.error('[GET] Invalid chart data structure', { hasSun: !!chartData?.sun, hasMoon: !!chartData?.moon });
+      const chartData = chartRecord.chart_data;
+      
+      // Валидация данных
+      if (!chartData.sun || !chartData.moon) {
+        log.error('[GET] Invalid chart data structure', { 
+          hasSun: !!chartData.sun, 
+          hasMoon: !!chartData.moon 
+        });
         return res.status(500).json({ error: 'Invalid chart data structure' });
       }
+
+      log.info(`[GET] DB_HIT: returning chart for userId=${userId}`, {
+        sunSign: chartData.sun?.sign,
+        calculatedAt: chartRecord.calculated_at
+      });
+
+      // Добавляем метаданные
+      res.setHeader('X-Chart-Source', 'database');
+      res.setHeader('X-Chart-Calculated-At', chartRecord.calculated_at || 'unknown');
       
       return res.status(200).json(chartData);
     }
 
+    // ============ POST: Сохранить карту (legacy) ============
     if (req.method === 'POST' || req.method === 'PUT') {
-      // Save chart data
       const chartData = req.body;
       
-      // Валидация обязательных полей
+      // Валидация
       if (!chartData || !chartData.sun || !chartData.moon || !chartData.rising) {
-        log.error(`[${req.method}] Invalid chart data: missing required fields`, {
+        log.error(`[${req.method}] Invalid chart data`, {
           hasSun: !!chartData?.sun,
           hasMoon: !!chartData?.moon,
           hasRising: !!chartData?.rising
@@ -72,31 +87,20 @@ export default async function handler(
         });
       }
       
-      log.info(`[${req.method}] Saving chart for user: ${userId}`, {
-        hasSun: !!chartData.sun,
-        hasMoon: !!chartData.moon,
-        hasRising: !!chartData.rising,
-        element: chartData.element
+      log.info(`[${req.method}] Saving chart for userId=${userId}`, {
+        sunSign: chartData.sun?.sign
       });
 
-      const savedChart = await db.charts.set(userId, {
-        user_id: userId,
-        chart_data: chartData,
-      });
+      // Сохраняем без данных рождения (legacy mode)
+      const savedChart = await db.charts.set(userId, chartData);
 
-      log.info(`[${req.method}] Chart saved successfully for user: ${userId}`);
+      log.info(`[${req.method}] SAVED: chart saved for userId=${userId}`);
 
-      const savedChartData = savedChart.chart_data || savedChart;
-      // Проверяем сохраненные данные перед возвратом
-      if (!savedChartData || !savedChartData.sun || !savedChartData.moon) {
-        log.error(`[${req.method}] Saved chart data is invalid`, { userId });
-        return res.status(500).json({ error: 'Failed to save chart data correctly' });
-      }
-
-      return res.status(200).json(savedChartData);
+      return res.status(200).json(savedChart.chart_data);
     }
 
     return res.status(405).json({ error: 'Method not allowed' });
+    
   } catch (error: any) {
     log.error('Error processing request', {
       error: error.message,

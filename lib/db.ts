@@ -496,8 +496,12 @@ export const db = {
   },
 
   charts: {
+    /**
+     * Получить карту пользователя с полными данными
+     * Логирует: DB_HIT если карта найдена, DB_MISS если нет
+     */
     async get(userId: string) {
-      log.info(`[DB] Getting chart for user: ${userId}`);
+      log.info(`[DB] [charts.get] userId=${userId}`);
       
       if (!DATABASE_URL) {
         log.warn('[DB] DATABASE_URL not set, returning null');
@@ -507,15 +511,34 @@ export const db = {
       try {
         const dbPool = getPool();
         const result = await dbPool.query(
-          'SELECT chart_data FROM charts WHERE user_id = $1',
+          `SELECT user_id, chart_data, birth_date, birth_time, birth_place, 
+                  input_hash, calculated_at, created_at, updated_at 
+           FROM charts WHERE user_id = $1`,
           [userId]
         );
         
         if (result.rows.length === 0) {
+          log.info(`[DB] [charts.get] DB_MISS: no chart for userId=${userId}`);
           return null;
         }
 
-        return result.rows[0].chart_data;
+        const row = result.rows[0];
+        log.info(`[DB] [charts.get] DB_HIT: chart found for userId=${userId}`, {
+          inputHash: row.input_hash,
+          calculatedAt: row.calculated_at
+        });
+        
+        return {
+          user_id: row.user_id,
+          chart_data: row.chart_data,
+          birth_date: row.birth_date,
+          birth_time: row.birth_time,
+          birth_place: row.birth_place,
+          input_hash: row.input_hash,
+          calculated_at: row.calculated_at,
+          created_at: row.created_at,
+          updated_at: row.updated_at
+        };
       } catch (error: any) {
         log.error('[DB] Error getting chart', {
           error: error.message,
@@ -525,8 +548,51 @@ export const db = {
       }
     },
 
-    async set(userId: string, data: any) {
-      log.info(`[DB] Setting chart for user: ${userId}`);
+    /**
+     * Проверить, нужен ли пересчёт карты
+     * Сравнивает хэш входных данных с сохранённым
+     */
+    async needsRecalculation(userId: string, birthDate: string, birthTime: string, birthPlace: string): Promise<{ needsCalc: boolean; existingChart: any | null; reason: string }> {
+      log.info(`[DB] [charts.needsRecalculation] userId=${userId}`);
+      
+      const existing = await this.get(userId);
+      
+      if (!existing) {
+        log.info(`[DB] [charts.needsRecalculation] NEEDS_CALC: no existing chart`);
+        return { needsCalc: true, existingChart: null, reason: 'NO_EXISTING_CHART' };
+      }
+      
+      // Сравниваем данные рождения
+      const inputChanged = 
+        existing.birth_date !== birthDate ||
+        existing.birth_time !== birthTime ||
+        existing.birth_place !== birthPlace;
+      
+      if (inputChanged) {
+        log.info(`[DB] [charts.needsRecalculation] NEEDS_CALC: birth data changed`, {
+          old: { date: existing.birth_date, time: existing.birth_time, place: existing.birth_place },
+          new: { date: birthDate, time: birthTime, place: birthPlace }
+        });
+        return { needsCalc: true, existingChart: existing, reason: 'BIRTH_DATA_CHANGED' };
+      }
+      
+      // Проверяем, что chart_data валидна
+      const chartData = existing.chart_data;
+      if (!chartData || !chartData.sun || !chartData.moon) {
+        log.info(`[DB] [charts.needsRecalculation] NEEDS_CALC: invalid chart data`);
+        return { needsCalc: true, existingChart: existing, reason: 'INVALID_CHART_DATA' };
+      }
+      
+      log.info(`[DB] [charts.needsRecalculation] CACHE_HIT: using existing chart`);
+      return { needsCalc: false, existingChart: existing, reason: 'CACHE_HIT' };
+    },
+
+    /**
+     * Сохранить карту с данными рождения для идемпотентности
+     * Логирует: SAVED с деталями
+     */
+    async set(userId: string, chartData: any, birthDate?: string, birthTime?: string, birthPlace?: string) {
+      log.info(`[DB] [charts.set] userId=${userId}`);
       
       if (!DATABASE_URL) {
         throw new Error('DATABASE_URL is not configured');
@@ -534,21 +600,41 @@ export const db = {
 
       try {
         const dbPool = getPool();
-        const chartData = data.chart_data || data;
+        const data = chartData.chart_data || chartData;
+        
+        // Создаём хэш входных данных для быстрой проверки
+        const inputHash = birthDate && birthPlace 
+          ? Buffer.from(`${birthDate}|${birthTime || '12:00'}|${birthPlace}`).toString('base64').substring(0, 64)
+          : null;
         
         const result = await dbPool.query(
-          `INSERT INTO charts (user_id, chart_data, updated_at)
-           VALUES ($1, $2, CURRENT_TIMESTAMP)
+          `INSERT INTO charts (user_id, chart_data, birth_date, birth_time, birth_place, input_hash, calculated_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
            ON CONFLICT (user_id) DO UPDATE SET
              chart_data = EXCLUDED.chart_data,
+             birth_date = EXCLUDED.birth_date,
+             birth_time = EXCLUDED.birth_time,
+             birth_place = EXCLUDED.birth_place,
+             input_hash = EXCLUDED.input_hash,
+             calculated_at = CURRENT_TIMESTAMP,
              updated_at = CURRENT_TIMESTAMP
            RETURNING *`,
-          [userId, JSON.stringify(chartData)]
+          [userId, JSON.stringify(data), birthDate, birthTime, birthPlace, inputHash]
         );
+
+        log.info(`[DB] [charts.set] SAVED: chart saved for userId=${userId}`, {
+          inputHash,
+          hasData: !!result.rows[0].chart_data
+        });
 
         return {
           user_id: result.rows[0].user_id,
           chart_data: result.rows[0].chart_data,
+          birth_date: result.rows[0].birth_date,
+          birth_time: result.rows[0].birth_time,
+          birth_place: result.rows[0].birth_place,
+          input_hash: result.rows[0].input_hash,
+          calculated_at: result.rows[0].calculated_at
         };
       } catch (error: any) {
         log.error('[DB] Error setting chart', {
@@ -558,6 +644,187 @@ export const db = {
         throw error;
       }
     },
+  },
+
+  /**
+   * Настройки пользователя (погода и т.д.)
+   */
+  userSettings: {
+    async get(userId: string) {
+      log.info(`[DB] [userSettings.get] userId=${userId}`);
+      
+      if (!DATABASE_URL) {
+        log.warn('[DB] DATABASE_URL not set, returning null');
+        return null;
+      }
+
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          `SELECT user_id, weather_city, weather_lat, weather_lon, weather_units, timezone, updated_at 
+           FROM user_settings WHERE user_id = $1`,
+          [userId]
+        );
+        
+        if (result.rows.length === 0) {
+          log.info(`[DB] [userSettings.get] DB_MISS: no settings for userId=${userId}`);
+          return null;
+        }
+
+        const row = result.rows[0];
+        log.info(`[DB] [userSettings.get] DB_HIT: settings found`, {
+          city: row.weather_city
+        });
+        
+        return {
+          userId: row.user_id,
+          weatherCity: row.weather_city,
+          weatherLat: row.weather_lat,
+          weatherLon: row.weather_lon,
+          weatherUnits: row.weather_units,
+          timezone: row.timezone,
+          updatedAt: row.updated_at
+        };
+      } catch (error: any) {
+        log.error('[DB] Error getting user settings', {
+          error: error.message,
+          userId
+        });
+        throw error;
+      }
+    },
+
+    async setWeatherCity(userId: string, city: string | null, lat?: number, lon?: number) {
+      log.info(`[DB] [userSettings.setWeatherCity] userId=${userId}, city=${city}`);
+      
+      if (!DATABASE_URL) {
+        throw new Error('DATABASE_URL is not configured');
+      }
+
+      // Валидация: city должен быть null или непустой строкой
+      let validCity: string | null = null;
+      if (city !== null && city !== undefined) {
+        const trimmed = String(city).trim();
+        if (trimmed.length >= 2 && trimmed.length <= 64) {
+          validCity = trimmed;
+        } else if (trimmed.length > 0) {
+          throw new Error(`City name must be 2-64 characters, got ${trimmed.length}`);
+        }
+      }
+
+      try {
+        const dbPool = getPool();
+        
+        const result = await dbPool.query(
+          `INSERT INTO user_settings (user_id, weather_city, weather_lat, weather_lon, updated_at)
+           VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
+           ON CONFLICT (user_id) DO UPDATE SET
+             weather_city = EXCLUDED.weather_city,
+             weather_lat = EXCLUDED.weather_lat,
+             weather_lon = EXCLUDED.weather_lon,
+             updated_at = CURRENT_TIMESTAMP
+           RETURNING *`,
+          [userId, validCity, lat || null, lon || null]
+        );
+
+        log.info(`[DB] [userSettings.setWeatherCity] SAVED: city=${validCity}`);
+
+        return {
+          userId: result.rows[0].user_id,
+          weatherCity: result.rows[0].weather_city,
+          weatherLat: result.rows[0].weather_lat,
+          weatherLon: result.rows[0].weather_lon,
+          updatedAt: result.rows[0].updated_at
+        };
+      } catch (error: any) {
+        log.error('[DB] Error setting weather city', {
+          error: error.message,
+          userId,
+          city
+        });
+        throw error;
+      }
+    }
+  },
+
+  /**
+   * Ежедневный гороскоп (по пользователю и дате)
+   */
+  dailyHoroscope: {
+    async get(userId: string, dateKey: string) {
+      log.info(`[DB] [dailyHoroscope.get] userId=${userId}, date=${dateKey}`);
+      
+      if (!DATABASE_URL) {
+        log.warn('[DB] DATABASE_URL not set, returning null');
+        return null;
+      }
+
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          `SELECT content, zodiac_sign, created_at 
+           FROM daily_horoscope WHERE user_id = $1 AND date_key = $2`,
+          [userId, dateKey]
+        );
+        
+        if (result.rows.length === 0) {
+          log.info(`[DB] [dailyHoroscope.get] DB_MISS: no horoscope for date=${dateKey}`);
+          return null;
+        }
+
+        log.info(`[DB] [dailyHoroscope.get] DB_HIT: horoscope found for date=${dateKey}`);
+        
+        return {
+          content: result.rows[0].content,
+          zodiacSign: result.rows[0].zodiac_sign,
+          createdAt: result.rows[0].created_at
+        };
+      } catch (error: any) {
+        log.error('[DB] Error getting daily horoscope', {
+          error: error.message,
+          userId,
+          dateKey
+        });
+        throw error;
+      }
+    },
+
+    async set(userId: string, dateKey: string, content: any, zodiacSign?: string) {
+      log.info(`[DB] [dailyHoroscope.set] userId=${userId}, date=${dateKey}`);
+      
+      if (!DATABASE_URL) {
+        throw new Error('DATABASE_URL is not configured');
+      }
+
+      try {
+        const dbPool = getPool();
+        
+        const result = await dbPool.query(
+          `INSERT INTO daily_horoscope (user_id, date_key, content, zodiac_sign)
+           VALUES ($1, $2, $3, $4)
+           ON CONFLICT (user_id, date_key) DO UPDATE SET
+             content = EXCLUDED.content,
+             zodiac_sign = EXCLUDED.zodiac_sign
+           RETURNING *`,
+          [userId, dateKey, JSON.stringify(content), zodiacSign]
+        );
+
+        log.info(`[DB] [dailyHoroscope.set] SAVED: horoscope for date=${dateKey}`);
+
+        return {
+          content: result.rows[0].content,
+          zodiacSign: result.rows[0].zodiac_sign,
+          createdAt: result.rows[0].created_at
+        };
+      } catch (error: any) {
+        log.error('[DB] Error setting daily horoscope', {
+          error: error.message,
+          userId,
+          dateKey
+        });
+        throw error;
+      }
+    }
   },
 
   // Cached texts operations

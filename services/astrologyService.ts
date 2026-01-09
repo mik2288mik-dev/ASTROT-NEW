@@ -23,22 +23,30 @@ log.info(`API_BASE_URL configured: ${API_BASE_URL}`);
 
 /**
  * Calculate natal chart - calls backend API
+ * 
+ * API является идемпотентным:
+ * - Если карта уже есть в БД и данные не изменились - возвращает из кэша
+ * - Если карты нет или данные изменились - рассчитывает и сохраняет
  */
-export const calculateNatalChart = async (profile: UserProfile): Promise<NatalChartData> => {
+export const calculateNatalChart = async (profile: UserProfile, forceRecalculate = false): Promise<NatalChartData> => {
   const url = `${API_BASE_URL}/api/astrology/natal-chart`;
   log.info('[calculateNatalChart] Starting calculation', {
+    userId: profile.id,
     name: profile.name,
     birthDate: profile.birthDate,
-    birthPlace: profile.birthPlace
+    birthPlace: profile.birthPlace,
+    forceRecalculate
   });
 
   try {
     const requestBody = {
+      userId: profile.id, // Важно для идемпотентности
       name: profile.name,
       birthDate: profile.birthDate,
       birthTime: profile.birthTime,
       birthPlace: profile.birthPlace,
-      language: profile.language
+      language: profile.language,
+      forceRecalculate
     };
 
     log.info(`[calculateNatalChart] Sending POST request to: ${url}`);
@@ -315,7 +323,13 @@ export const calculateFullSynastry = async (
 };
 
 
-export const getDailyHoroscope = async (profile: UserProfile, chartData: NatalChartData, context?: UserContext): Promise<DailyHoroscope> => {
+/**
+ * Get daily horoscope
+ * 
+ * API проверяет БД - если гороскоп за сегодня уже есть, возвращает его.
+ * Генерация происходит только один раз в сутки.
+ */
+export const getDailyHoroscope = async (profile: UserProfile, chartData: NatalChartData): Promise<DailyHoroscope> => {
   const url = `${API_BASE_URL}/api/astrology/daily-horoscope`;
   log.info('[getDailyHoroscope] Starting request', { userId: profile.id });
 
@@ -325,7 +339,11 @@ export const getDailyHoroscope = async (profile: UserProfile, chartData: NatalCh
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ profile, chartData, context })
+      body: JSON.stringify({ 
+        userId: profile.id, // Важно для кэширования в БД
+        profile, 
+        chartData 
+      })
     });
 
     const duration = Date.now() - startTime;

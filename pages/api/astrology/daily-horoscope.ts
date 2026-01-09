@@ -2,25 +2,42 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
 import { SYSTEM_PROMPT_ASTRA, createDailyForecastPrompt, addLanguageInstruction, DailyForecastAIResponse } from '../../../lib/prompts';
 import { validateNatalChartInput, formatValidationErrors } from '../../../lib/validation';
-import { getSecondsUntilNextUpdate } from '../../../lib/cache';
 import { db } from '../../../lib/db';
 import { getCurrentTransits } from '../../../lib/transits-calculator';
+import { tryAcquireLock, releaseLock, LockKeys } from '../../../lib/serverLocks';
 
 // Logging utility
 const log = {
   info: (message: string, data?: any) => {
-    console.log(`[API/astrology/daily-horoscope] ${message}`, data || '');
+    console.log(`[API/daily-horoscope] ${message}`, data || '');
   },
   error: (message: string, error?: any) => {
-    console.error(`[API/astrology/daily-horoscope] ERROR: ${message}`, error || '');
+    console.error(`[API/daily-horoscope] ERROR: ${message}`, error || '');
   },
 };
 
 // Initialize OpenAI client
-const openai = new OpenAI({
+const openai = process.env.OPENAI_API_KEY ? new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
-});
+}) : null;
 
+/**
+ * Получить ключ даты в формате YYYY-MM-DD
+ */
+function getTodayKey(): string {
+  return new Date().toISOString().split('T')[0];
+}
+
+/**
+ * API для ежедневного гороскопа
+ * 
+ * Логика:
+ * 1. Проверяем БД на наличие гороскопа за сегодня для userId
+ * 2. Если есть - возвращаем (DB_HIT)
+ * 3. Если нет - генерируем, сохраняем, возвращаем (GENERATED)
+ * 
+ * Гороскоп генерируется ОДИН РАЗ В СУТКИ на пользователя
+ */
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -29,157 +46,139 @@ export default async function handler(
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  try {
-    const { profile, chartData } = req.body;
-    const lang = profile?.language === 'ru';
-    // Всегда используем сегодняшнюю дату
-    const today = new Date().toISOString().split('T')[0];
+  const startTime = Date.now();
+  const dateKey = getTodayKey();
 
-    // Валидация входных данных
-    if (!profile || !chartData) {
-      const errorMessage = lang
-        ? 'Профиль и данные карты обязательны для расчета гороскопа'
-        : 'Profile and chart data are required for horoscope calculation';
-      
+  try {
+    const { userId, profile, chartData } = req.body;
+    const lang = profile?.language === 'ru';
+
+    // Валидация
+    if (!userId || !profile || !chartData) {
       return res.status(400).json({ 
         error: 'Bad request',
-        message: errorMessage
+        message: 'userId, profile and chartData are required'
       });
     }
 
-    // Валидация структуры профиля
-    if (!profile.name || !profile.birthDate || !profile.birthPlace) {
-      const validation = validateNatalChartInput({
-        name: profile.name,
-        birthDate: profile.birthDate,
-        birthTime: profile.birthTime,
-        birthPlace: profile.birthPlace,
-        language: profile.language || 'ru'
-      });
-
-      if (!validation.isValid) {
-        const errorMessage = formatValidationErrors(validation.errors, lang ? 'ru' : 'en');
-        return res.status(400).json({ 
-          error: 'Invalid profile data',
-          message: errorMessage,
-          errors: validation.errors
-        });
-      }
-    }
-
-    log.info('Daily horoscope request received', {
-      userId: profile.id,
-      date: today,
-      language: lang ? 'ru' : 'en'
-    });
-
-    // Проверяем кэш БД по знаку зодиака (единый гороскоп для всех пользователей одного знака)
     const zodiacSign = chartData?.sun?.sign;
-    if (zodiacSign) {
-      try {
-        const cachedHoroscope = await db.dailyHoroscopesCache.get(zodiacSign, today);
-        if (cachedHoroscope && cachedHoroscope.data) {
-          log.info(`Using cached daily horoscope from DB for ${zodiacSign} on ${today}`);
-          const horoscope = cachedHoroscope.data;
-          // Убеждаемся, что дата актуальная
-          if (!horoscope.date || horoscope.date !== today) {
-            horoscope.date = today;
-          }
-          // Устанавливаем заголовки кэширования
-          const cacheSeconds = getSecondsUntilNextUpdate();
-          res.setHeader('Cache-Control', `public, s-maxage=${cacheSeconds}, stale-while-revalidate=3600`);
-          res.setHeader('CDN-Cache-Control', `public, s-maxage=${cacheSeconds}`);
-          res.setHeader('Vercel-CDN-Cache-Control', `public, s-maxage=${cacheSeconds}`);
-          return res.status(200).json(horoscope);
-        }
-      } catch (cacheError) {
-        log.error('Error checking DB cache, will generate new horoscope', cacheError);
-        // Продолжаем генерацию если кэш недоступен
-      }
-    }
-
-    // Проверяем наличие API ключа
-    if (!process.env.OPENAI_API_KEY) {
-      log.error('OpenAI API key not configured, using fallback');
-      // Всегда используем сегодняшнюю дату
-      const currentDate = new Date().toISOString().split('T')[0];
-      const fallbackHoroscope = {
-        date: currentDate, // Всегда актуальная дата
-        mood: lang ? 'Вдохновленный' : 'Inspired',
-        color: 'Purple',
-        number: 7,
-        content: lang
-          ? 'Сегодня звезды благоприятствуют новым начинаниям.'
-          : 'Today the stars favor new beginnings.',
-        moonImpact: lang
-          ? 'Луна в вашем знаке усиливает интуицию.'
-          : 'Moon in your sign enhances intuition.',
-        transitFocus: lang
-          ? 'Меркурий способствует общению.'
-          : 'Mercury favors communication.'
-      };
-      return res.status(200).json(fallbackHoroscope);
-    }
-
-    // Создаём промпт
-    const currentDate = new Date().toLocaleDateString(lang ? 'ru-RU' : 'en-US', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    });
-
-    // Получаем текущие транзиты для точного прогноза
-    let transits = null;
-    try {
-      transits = await getCurrentTransits();
-      log.info('Transits calculated for daily horoscope', {
-         sunSign: transits?.sun?.sign,
-         moonSign: transits?.moon?.sign
+    if (!zodiacSign) {
+      return res.status(400).json({ 
+        error: 'Bad request',
+        message: 'chartData must contain sun.sign'
       });
-    } catch (error) {
-       log.error('Failed to calculate transits for daily horoscope', error);
     }
 
-    const userPrompt = createDailyForecastPrompt(chartData, profile, currentDate, transits);
-    const promptWithLang = addLanguageInstruction(userPrompt, lang ? 'ru' : 'en');
+    log.info(`=== REQUEST START === userId=${userId}, date=${dateKey}, sign=${zodiacSign}`);
 
-    log.info('Sending request to OpenAI', {
-      model: 'gpt-4o-mini',
-      promptLength: promptWithLang.length
-    });
+    // ШАГ 1: Проверяем БД
+    const existing = await db.dailyHoroscope.get(userId, dateKey);
+    
+    if (existing && existing.content) {
+      const duration = Date.now() - startTime;
+      log.info(`DB_HIT: returning cached horoscope (${duration}ms)`, {
+        userId,
+        dateKey,
+        zodiacSign
+      });
 
-    // Отправляем запрос в OpenAI
-    const startTime = Date.now();
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT_ASTRA },
-        { role: 'user', content: promptWithLang }
-      ],
-      response_format: { type: "json_object" },
-      temperature: 0.7,
-      max_tokens: 1000,
-    });
+      res.setHeader('X-Horoscope-Source', 'cache');
+      res.setHeader('X-Horoscope-Date', dateKey);
+      
+      return res.status(200).json(existing.content);
+    }
 
-    const duration = Date.now() - startTime;
-    const responseText = completion.choices[0]?.message?.content || '{}';
+    log.info(`DB_MISS: no horoscope for date=${dateKey}, will generate`);
 
-    log.info('OpenAI response received', {
-      duration: `${duration}ms`,
-      tokensUsed: completion.usage?.total_tokens
-    });
+    // ШАГ 2: Защита от двойных вызовов
+    const lockKey = LockKeys.dailyHoroscope(userId, dateKey);
+    
+    if (!tryAcquireLock(lockKey, 'daily-horoscope-generation')) {
+      log.info(`LOCK_DENIED: generation already in progress`);
+      
+      // Ждём и пробуем взять из БД
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      const afterWait = await db.dailyHoroscope.get(userId, dateKey);
+      if (afterWait && afterWait.content) {
+        res.setHeader('X-Horoscope-Source', 'cache-after-wait');
+        return res.status(200).json(afterWait.content);
+      }
+      
+      return res.status(409).json({
+        error: 'Generation in progress',
+        message: lang ? 'Гороскоп генерируется. Подождите.' : 'Horoscope is being generated. Please wait.'
+      });
+    }
 
-    // Парсим JSON ответ
-    let forecast: DailyForecastAIResponse;
     try {
-      forecast = JSON.parse(responseText);
+      // ШАГ 3: Проверяем OpenAI
+      if (!openai) {
+        log.error('OpenAI API key not configured');
+        releaseLock(lockKey);
+        
+        // Fallback гороскоп
+        const fallback = {
+          date: dateKey,
+          mood: lang ? 'Вдохновленный' : 'Inspired',
+          color: 'Purple',
+          number: 7,
+          content: lang
+            ? 'Сегодня звезды благоприятствуют новым начинаниям.'
+            : 'Today the stars favor new beginnings.',
+          moonImpact: lang ? 'Луна усиливает интуицию.' : 'Moon enhances intuition.',
+          transitFocus: lang ? 'Меркурий способствует общению.' : 'Mercury favors communication.'
+        };
+        
+        return res.status(200).json(fallback);
+      }
+
+      // ШАГ 4: Получаем транзиты
+      let transits = null;
+      try {
+        transits = await getCurrentTransits();
+        log.info('Transits calculated', { sunSign: transits?.sun?.sign });
+      } catch (error) {
+        log.error('Failed to calculate transits', error);
+      }
+
+      // ШАГ 5: Генерируем гороскоп
+      log.info('GENERATING: calling OpenAI');
       
-      // Всегда используем сегодняшнюю дату для гороскопа
-      const currentDate = new Date().toISOString().split('T')[0];
+      const currentDateStr = new Date().toLocaleDateString(lang ? 'ru-RU' : 'en-US', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      });
+
+      const userPrompt = createDailyForecastPrompt(chartData, profile, currentDateStr, transits);
+      const promptWithLang = addLanguageInstruction(userPrompt, lang ? 'ru' : 'en');
+
+      const genStartTime = Date.now();
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT_ASTRA },
+          { role: 'user', content: promptWithLang }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.7,
+        max_tokens: 1000,
+      });
+
+      const genDuration = Date.now() - genStartTime;
+      const responseText = completion.choices[0]?.message?.content || '{}';
+
+      log.info('OpenAI response received', {
+        durationMs: genDuration,
+        tokensUsed: completion.usage?.total_tokens
+      });
+
+      // ШАГ 6: Парсим и форматируем ответ
+      const forecast: DailyForecastAIResponse = JSON.parse(responseText);
       
-      // Добавляем дату и дополнительные поля
       const horoscope = {
-        date: currentDate, // Всегда актуальная дата
+        date: dateKey,
         mood: forecast.mood || (lang ? 'Вдохновлённый' : 'Inspired'),
         color: forecast.color || 'Purple',
         number: forecast.number || 7,
@@ -187,59 +186,44 @@ export default async function handler(
         moonImpact: forecast.advice?.[0] || '',
         transitFocus: forecast.advice?.[1] || ''
       };
+
+      // ШАГ 7: Сохраняем в БД
+      await db.dailyHoroscope.set(userId, dateKey, horoscope, zodiacSign);
       
-      // Сохраняем в централизованный кэш БД для всех пользователей этого знака
-      if (zodiacSign) {
-        try {
-          await db.dailyHoroscopesCache.set(zodiacSign, today, horoscope);
-          log.info(`Daily horoscope cached in DB for ${zodiacSign} on ${today}`);
-        } catch (cacheError) {
-          log.error('Failed to cache horoscope in DB', cacheError);
-          // Продолжаем выполнение даже если кэширование не удалось
-        }
-      }
-      
-      // Устанавливаем заголовки кэширования для ежедневного гороскопа
-      // Гороскоп обновляется раз в день в 00:01 МСК
-      const cacheSeconds = getSecondsUntilNextUpdate();
-      res.setHeader('Cache-Control', `public, s-maxage=${cacheSeconds}, stale-while-revalidate=3600`);
-      res.setHeader('CDN-Cache-Control', `public, s-maxage=${cacheSeconds}`);
-      res.setHeader('Vercel-CDN-Cache-Control', `public, s-maxage=${cacheSeconds}`);
+      releaseLock(lockKey);
+
+      const totalDuration = Date.now() - startTime;
+      log.info(`GENERATED & SAVED: horoscope created (${totalDuration}ms)`, {
+        userId,
+        dateKey,
+        genDuration
+      });
+
+      res.setHeader('X-Horoscope-Source', 'generated');
+      res.setHeader('X-Horoscope-Date', dateKey);
+      res.setHeader('X-Generation-Time', genDuration.toString());
       
       return res.status(200).json(horoscope);
-    } catch (parseError: any) {
-      log.error('Failed to parse JSON response', {
-        error: parseError.message
-      });
-      
-      const lang = profile?.language === 'ru';
-      const errorMessage = lang
-        ? 'Не удалось обработать ответ от AI. Пожалуйста, попробуйте позже.'
-        : 'Failed to process AI response. Please try again later.';
-      
-      return res.status(500).json({ 
-        error: 'AI response parsing failed',
-        message: errorMessage
-      });
+
+    } catch (error) {
+      releaseLock(lockKey);
+      throw error;
     }
+
   } catch (error: any) {
-    log.error('Error getting daily horoscope', {
+    const duration = Date.now() - startTime;
+    log.error(`Request failed after ${duration}ms`, {
       error: error.message,
       stack: error.stack
     });
 
-    const { profile } = req.body;
-    const lang = profile?.language === 'ru';
-    
-    // Возвращаем понятную ошибку вместо fallback
-    const errorMessage = lang
-      ? 'Не удалось получить гороскоп. Пожалуйста, попробуйте позже.'
-      : 'Failed to get horoscope. Please try again later.';
+    const lang = req.body?.profile?.language === 'ru';
     
     return res.status(500).json({ 
       error: 'Horoscope generation failed',
-      message: errorMessage,
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: lang 
+        ? 'Не удалось получить гороскоп. Попробуйте позже.'
+        : 'Failed to get horoscope. Please try again later.'
     });
   }
 }
