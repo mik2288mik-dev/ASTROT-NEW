@@ -559,10 +559,135 @@ async function migration012(pool: Pool): Promise<void> {
 }
 
 /**
+ * Migration 013: Extend charts table with birth data and hash for idempotency
+ */
+async function migration013(pool: Pool): Promise<void> {
+  const migrationName = '013_extend_charts_for_idempotency';
+  
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
+  log.info(`Applying migration ${migrationName}...`);
+
+  // Добавляем поля для хранения исходных данных рождения и хэша для идемпотентности
+  const alterTable = `
+    ALTER TABLE charts
+    ADD COLUMN IF NOT EXISTS birth_date VARCHAR(50),
+    ADD COLUMN IF NOT EXISTS birth_time VARCHAR(50),
+    ADD COLUMN IF NOT EXISTS birth_place VARCHAR(255),
+    ADD COLUMN IF NOT EXISTS input_hash VARCHAR(64),
+    ADD COLUMN IF NOT EXISTS calculated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+    
+    CREATE INDEX IF NOT EXISTS idx_charts_input_hash ON charts(input_hash);
+  `;
+
+  await pool.query(alterTable);
+  
+  await markMigrationApplied(pool, migrationName);
+  log.info(`Migration ${migrationName} applied successfully`);
+}
+
+/**
+ * Migration 014: Create user_settings table for weather and other settings
+ */
+async function migration014(pool: Pool): Promise<void> {
+  const migrationName = '014_create_user_settings';
+  
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
+  log.info(`Applying migration ${migrationName}...`);
+
+  // Ensure users table exists
+  const usersExists = await tableExists(pool, 'users');
+  if (!usersExists) {
+    throw new Error('Cannot create user_settings table: users table does not exist.');
+  }
+
+  const createTable = `
+    CREATE TABLE IF NOT EXISTS user_settings (
+      user_id VARCHAR(255) PRIMARY KEY,
+      weather_city VARCHAR(64),
+      weather_lat DOUBLE PRECISION,
+      weather_lon DOUBLE PRECISION,
+      weather_units VARCHAR(10) DEFAULT 'metric',
+      timezone VARCHAR(50),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT fk_user_settings_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+    
+    CREATE INDEX IF NOT EXISTS idx_user_settings_city ON user_settings(weather_city);
+  `;
+
+  await pool.query(createTable);
+  
+  // Verify table was created
+  const exists = await tableExists(pool, 'user_settings');
+  if (!exists) {
+    throw new Error(`Failed to create table 'user_settings' - table does not exist after CREATE TABLE`);
+  }
+  
+  await markMigrationApplied(pool, migrationName);
+  log.info(`Migration ${migrationName} applied successfully`);
+}
+
+/**
+ * Migration 015: Create daily_horoscope table (per-user, per-date)
+ */
+async function migration015(pool: Pool): Promise<void> {
+  const migrationName = '015_create_daily_horoscope_per_user';
+  
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
+  log.info(`Applying migration ${migrationName}...`);
+
+  // Ensure users table exists
+  const usersExists = await tableExists(pool, 'users');
+  if (!usersExists) {
+    throw new Error('Cannot create daily_horoscope table: users table does not exist.');
+  }
+
+  const createTable = `
+    CREATE TABLE IF NOT EXISTS daily_horoscope (
+      id SERIAL PRIMARY KEY,
+      user_id VARCHAR(255) NOT NULL,
+      date_key VARCHAR(10) NOT NULL,
+      content JSONB NOT NULL,
+      zodiac_sign VARCHAR(20),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT fk_daily_horoscope_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      UNIQUE(user_id, date_key)
+    );
+    
+    CREATE INDEX IF NOT EXISTS idx_daily_horoscope_user_date ON daily_horoscope(user_id, date_key);
+    CREATE INDEX IF NOT EXISTS idx_daily_horoscope_date ON daily_horoscope(date_key);
+  `;
+
+  await pool.query(createTable);
+  
+  // Verify table was created
+  const exists = await tableExists(pool, 'daily_horoscope');
+  if (!exists) {
+    throw new Error(`Failed to create table 'daily_horoscope' - table does not exist after CREATE TABLE`);
+  }
+  
+  await markMigrationApplied(pool, migrationName);
+  log.info(`Migration ${migrationName} applied successfully`);
+}
+
+/**
  * Verify that all required tables exist
  */
 async function verifyTablesExist(pool: Pool): Promise<void> {
-  const requiredTables = ['migrations', 'users', 'charts', 'synastry_cache', 'forecasts_cache', 'regenerations', 'daily_horoscopes_cache', 'deep_dive_analyses'];
+  const requiredTables = ['migrations', 'users', 'charts', 'synastry_cache', 'forecasts_cache', 'regenerations', 'daily_horoscopes_cache', 'deep_dive_analyses', 'user_settings', 'daily_horoscope'];
   const missingTables: string[] = [];
 
   for (const tableName of requiredTables) {
@@ -664,6 +789,9 @@ export async function runMigrations(): Promise<void> {
     await migration010(pool);
     await migration011(pool);
     await migration012(pool);
+    await migration013(pool);
+    await migration014(pool);
+    await migration015(pool);
 
     // Verify that all tables were created successfully
     log.info('Verifying tables were created...');

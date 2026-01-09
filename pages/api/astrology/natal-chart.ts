@@ -2,37 +2,48 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { calculateNatalChart } from '../../../lib/swisseph-calculator';
 import { validateNatalChartInput, formatValidationErrors } from '../../../lib/validation';
 import { withRateLimit, RATE_LIMIT_CONFIGS } from '../../../lib/rateLimit';
+import { db } from '../../../lib/db';
+import { tryAcquireLock, releaseLock, LockKeys } from '../../../lib/serverLocks';
 
 // Logging utility
 const log = {
   info: (message: string, data?: any) => {
-    console.log(`[API/astrology/natal-chart] ${message}`, data || '');
+    console.log(`[API/natal-chart] ${message}`, data || '');
   },
   error: (message: string, error?: any) => {
-    console.error(`[API/astrology/natal-chart] ERROR: ${message}`, error || '');
+    console.error(`[API/natal-chart] ERROR: ${message}`, error || '');
   },
 };
 
-// УДАЛЕНО: generateMockChart - больше не используем mock данные
-
 /**
- * ЧЕТКАЯ ЛОГИКА ОБРАБОТКИ ЗАПРОСА НАТАЛЬНОЙ КАРТЫ:
- * 1. Валидация метода запроса
- * 2. Валидация входных данных
- * 3. Расчет натальной карты через Swiss Ephemeris
- * 4. Обработка ошибок с понятными сообщениями
- * 5. Возврат результата с правильными заголовками кэширования
+ * ИДЕМПОТЕНТНЫЙ API для расчёта натальной карты
+ * 
+ * Логика:
+ * 1. Проверяем есть ли карта в БД
+ * 2. Если есть и данные рождения не изменились - возвращаем из БД (CACHE_HIT)
+ * 3. Если нет или данные изменились - рассчитываем, сохраняем, возвращаем (CALCULATED)
+ * 4. Защита от двойных вызовов через серверный mutex
+ * 
+ * Логирование:
+ * - CACHE_HIT: карта взята из БД без пересчёта
+ * - CACHE_MISS: карты нет, нужен расчёт
+ * - BIRTH_DATA_CHANGED: данные изменились, нужен пересчёт
+ * - CALCULATED: карта рассчитана
+ * - SAVED: карта сохранена в БД
+ * - LOCK_DENIED: запрос уже выполняется для этого пользователя
  */
 async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  log.info('Request received', {
+  const startTime = Date.now();
+  
+  log.info('=== REQUEST START ===', {
     method: req.method,
     path: req.url
   });
 
-  // Шаг 1: Валидация метода запроса
+  // Только POST
   if (req.method !== 'POST') {
     return res.status(405).json({ 
       error: 'Method not allowed',
@@ -40,10 +51,12 @@ async function handler(
     });
   }
 
-  try {
-    const { name, birthDate, birthTime, birthPlace, language } = req.body;
+  let lockKey: string | null = null;
 
-    // Шаг 2: Строгая валидация входных данных
+  try {
+    const { userId, name, birthDate, birthTime, birthPlace, language, forceRecalculate } = req.body;
+
+    // Строгая валидация входных данных
     const validation = validateNatalChartInput({
       name,
       birthDate,
@@ -56,11 +69,7 @@ async function handler(
       const userLanguage = language === 'en' ? 'en' : 'ru';
       const errorMessage = formatValidationErrors(validation.errors, userLanguage);
       
-      log.error('Validation failed', {
-        errors: validation.errors,
-        userLanguage,
-        input: { name, birthDate, birthTime, birthPlace }
-      });
+      log.error('Validation failed', { errors: validation.errors });
       
       return res.status(400).json({ 
         error: 'Validation failed',
@@ -69,142 +78,180 @@ async function handler(
       });
     }
 
-    log.info('Calculating natal chart with Swiss Ephemeris', {
+    // Нормализуем данные
+    const normalizedBirthTime = birthTime || '12:00';
+    const effectiveUserId = userId || 'anonymous';
+
+    log.info('Request validated', {
+      userId: effectiveUserId,
       name,
       birthDate,
-      birthTime: birthTime || '12:00 (default)',
+      birthTime: normalizedBirthTime,
       birthPlace,
-      language: language || 'ru'
+      forceRecalculate
     });
 
-    // Шаг 3: Расчет натальной карты
-    try {
-      const startTime = Date.now();
-      
-      const chartData = await calculateNatalChart(
-        name,
-        birthDate,
-        birthTime || '12:00',
+    // ШАГ 1: Проверяем, нужен ли пересчёт
+    if (!forceRecalculate) {
+      const checkResult = await db.charts.needsRecalculation(
+        effectiveUserId, 
+        birthDate, 
+        normalizedBirthTime, 
         birthPlace
       );
 
-      const duration = Date.now() - startTime;
-
-      // Валидация результата расчета
-      if (!chartData || !chartData.sun || !chartData.moon || !chartData.rising) {
-        throw new Error('Invalid chart data: missing essential planets');
+      if (!checkResult.needsCalc && checkResult.existingChart) {
+        const duration = Date.now() - startTime;
+        log.info(`CACHE_HIT: returning existing chart (${duration}ms)`, {
+          userId: effectiveUserId,
+          reason: checkResult.reason
+        });
+        
+        // Устанавливаем заголовки
+        res.setHeader('X-Chart-Source', 'cache');
+        res.setHeader('X-Chart-Reason', checkResult.reason);
+        
+        return res.status(200).json(checkResult.existingChart.chart_data);
       }
 
-      log.info('Natal chart calculated successfully', {
-        duration: `${duration}ms`,
-        hasSun: !!chartData.sun,
-        hasMoon: !!chartData.moon,
-        hasRising: !!chartData.rising,
-        element: chartData.element,
-        sunSign: chartData.sun.sign,
-        moonSign: chartData.moon.sign,
-        risingSign: chartData.rising.sign
+      log.info(`CACHE_MISS: need to calculate`, {
+        userId: effectiveUserId,
+        reason: checkResult.reason
       });
+    } else {
+      log.info('FORCE_RECALCULATE: skipping cache check');
+    }
 
-      // Шаг 4: Установка заголовков кэширования
-      // Натальная карта статична для пользователя - кэшируем на долго
-      // Но так как это персональные данные, кэшируем только на клиенте
-      res.setHeader('Cache-Control', 'private, max-age=31536000, immutable'); // 1 год
-      
-      return res.status(200).json(chartData);
-      
-    } catch (calculationError: any) {
-      // Шаг 5: Обработка ошибок расчета
-      log.error('Swiss Ephemeris calculation failed', {
-        error: calculationError.message,
-        stack: calculationError.stack,
-        name: calculationError.name,
-        code: calculationError.code,
-        input: { name, birthDate, birthTime, birthPlace }
+    // ШАГ 2: Пытаемся получить блокировку
+    lockKey = LockKeys.natalChartCalculation(effectiveUserId);
+    
+    if (!tryAcquireLock(lockKey, 'natal-chart-calculation')) {
+      log.info('LOCK_DENIED: calculation already in progress', {
+        userId: effectiveUserId
       });
       
-      const userLanguage = language === 'en' ? 'en' : 'ru';
+      // Ждём немного и пробуем взять из БД
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Классификация ошибок для более точных сообщений
-      const errorMsg = (calculationError.message || '').toLowerCase();
-      let errorMessage = '';
-      let statusCode = 500;
-      
-      if (errorMsg.includes('location not found') || 
-          errorMsg.includes('coordinates') || 
-          errorMsg.includes('не удалось найти') ||
-          errorMsg.includes('nominatim')) {
-        // Ошибка геокодинга
-        statusCode = 400;
-        errorMessage = userLanguage === 'ru'
-          ? 'Не удалось найти указанное место рождения. Пожалуйста, проверьте правильность написания (например: "Москва, Россия" или "Moscow, Russia").'
-          : 'Location not found. Please check the spelling of your birth place (e.g., "Moscow, Russia").';
-      } else if (errorMsg.includes('инициализац') || 
-                 errorMsg.includes('initialize') || 
-                 errorMsg.includes('ephemeris') || 
-                 errorMsg.includes('swiss') ||
-                 errorMsg.includes('instance')) {
-        // Ошибка инициализации Swiss Ephemeris
-        statusCode = 500;
-        errorMessage = userLanguage === 'ru'
-          ? 'Ошибка инициализации астрономических расчетов. Пожалуйста, попробуйте позже или обновите страницу.'
-          : 'Astronomical calculation initialization error. Please try again later or refresh the page.';
-      } else if (errorMsg.includes('time') || 
-                 errorMsg.includes('date') || 
-                 errorMsg.includes('время') || 
-                 errorMsg.includes('дата') ||
-                 errorMsg.includes('invalid date')) {
-        // Ошибка обработки даты/времени
-        statusCode = 400;
-        errorMessage = userLanguage === 'ru'
-          ? 'Ошибка обработки даты или времени. Пожалуйста, проверьте правильность введенных данных.'
-          : 'Date or time processing error. Please check your input data.';
-      } else if (errorMsg.includes('timeout') || 
-                 errorMsg.includes('network') ||
-                 errorMsg.includes('connection')) {
-        // Сетевые ошибки
-        statusCode = 503;
-        errorMessage = userLanguage === 'ru'
-          ? 'Ошибка соединения с сервисом геолокации. Пожалуйста, проверьте интернет-соединение и попробуйте позже.'
-          : 'Connection error with geolocation service. Please check your internet connection and try again later.';
-      } else {
-        // Общая ошибка
-        // Используем сообщение из ошибки, если оно есть и понятное
-        if (calculationError.message && calculationError.message.length < 200) {
-          errorMessage = calculationError.message;
-        } else {
-          errorMessage = userLanguage === 'ru'
-            ? 'Не удалось рассчитать натальную карту. Пожалуйста, проверьте правильность введенных данных и попробуйте снова.'
-            : 'Failed to calculate natal chart. Please check your input data and try again.';
-        }
+      const existingChart = await db.charts.get(effectiveUserId);
+      if (existingChart && existingChart.chart_data) {
+        res.setHeader('X-Chart-Source', 'cache-after-wait');
+        return res.status(200).json(existingChart.chart_data);
       }
       
-      return res.status(statusCode).json({ 
-        error: 'Calculation failed',
-        message: errorMessage,
-        details: process.env.NODE_ENV === 'development' ? calculationError.message : undefined
+      return res.status(409).json({
+        error: 'Calculation in progress',
+        message: language === 'ru' 
+          ? 'Расчёт уже выполняется. Пожалуйста, подождите.'
+          : 'Calculation is already in progress. Please wait.'
       });
     }
-  } catch (error: any) {
-    // Обработка неожиданных ошибок
-    log.error('Unexpected error in natal chart handler', {
-      error: error.message,
-      stack: error.stack,
-      name: error.name
+
+    // ШАГ 3: Рассчитываем карту
+    log.info('CALCULATING: starting Swiss Ephemeris calculation', {
+      userId: effectiveUserId,
+      birthDate,
+      birthTime: normalizedBirthTime,
+      birthPlace
     });
+
+    const calcStartTime = Date.now();
     
+    const chartData = await calculateNatalChart(
+      name,
+      birthDate,
+      normalizedBirthTime,
+      birthPlace
+    );
+
+    const calcDuration = Date.now() - calcStartTime;
+
+    // Валидация результата
+    if (!chartData || !chartData.sun || !chartData.moon || !chartData.rising) {
+      throw new Error('Invalid chart data: missing essential planets');
+    }
+
+    log.info('CALCULATED: chart calculation complete', {
+      userId: effectiveUserId,
+      durationMs: calcDuration,
+      sunSign: chartData.sun.sign,
+      moonSign: chartData.moon.sign,
+      risingSign: chartData.rising.sign
+    });
+
+    // ШАГ 4: Сохраняем в БД
+    await db.charts.set(
+      effectiveUserId, 
+      chartData, 
+      birthDate, 
+      normalizedBirthTime, 
+      birthPlace
+    );
+
+    log.info('SAVED: chart saved to database', {
+      userId: effectiveUserId
+    });
+
+    // Освобождаем блокировку
+    releaseLock(lockKey);
+    lockKey = null;
+
+    const totalDuration = Date.now() - startTime;
+    log.info(`=== REQUEST COMPLETE (${totalDuration}ms) ===`, {
+      userId: effectiveUserId,
+      source: 'calculated',
+      calcDuration: calcDuration
+    });
+
+    // Устанавливаем заголовки
+    res.setHeader('X-Chart-Source', 'calculated');
+    res.setHeader('X-Calculation-Time', calcDuration.toString());
+    res.setHeader('Cache-Control', 'private, max-age=31536000, immutable');
+    
+    return res.status(200).json(chartData);
+    
+  } catch (error: any) {
+    // Освобождаем блокировку при ошибке
+    if (lockKey) {
+      releaseLock(lockKey);
+    }
+
+    const duration = Date.now() - startTime;
+    log.error(`Request failed after ${duration}ms`, {
+      error: error.message,
+      stack: error.stack
+    });
+
     const userLanguage = req.body?.language === 'en' ? 'en' : 'ru';
-    const errorMessage = userLanguage === 'ru'
-      ? 'Произошла ошибка при расчете натальной карты. Пожалуйста, попробуйте позже.'
-      : 'An error occurred while calculating the natal chart. Please try again later.';
     
-    return res.status(500).json({ 
-      error: 'Internal server error',
+    // Классификация ошибок
+    const errorMsg = (error.message || '').toLowerCase();
+    let errorMessage = '';
+    let statusCode = 500;
+    
+    if (errorMsg.includes('location not found') || errorMsg.includes('coordinates') || errorMsg.includes('nominatim')) {
+      statusCode = 400;
+      errorMessage = userLanguage === 'ru'
+        ? 'Не удалось найти указанное место рождения. Проверьте правильность написания.'
+        : 'Location not found. Please check the spelling of your birth place.';
+    } else if (errorMsg.includes('initialize') || errorMsg.includes('ephemeris')) {
+      statusCode = 500;
+      errorMessage = userLanguage === 'ru'
+        ? 'Ошибка инициализации расчётов. Попробуйте позже.'
+        : 'Calculation initialization error. Please try again later.';
+    } else {
+      errorMessage = userLanguage === 'ru'
+        ? 'Не удалось рассчитать натальную карту. Попробуйте позже.'
+        : 'Failed to calculate natal chart. Please try again later.';
+    }
+    
+    return res.status(statusCode).json({ 
+      error: 'Calculation failed',
       message: errorMessage,
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 }
 
-// Применяем rate limiting: 10 запросов в минуту для всех
+// Rate limiting: 10 запросов в минуту
 export default withRateLimit(handler, RATE_LIMIT_CONFIGS.FREE);

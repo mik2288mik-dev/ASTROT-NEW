@@ -8,8 +8,6 @@ import tzLookup from 'tz-lookup';
 import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 import * as swisseph from 'swisseph-v2';
 
-const IS_SERVER = typeof window === 'undefined';
-
 // Logging utility
 const log = {
   info: (message: string, data?: any) => {

@@ -1,7 +1,6 @@
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { UserProfile, ViewState } from '../types';
-import { getText } from '../constants';
 
 interface HeaderProps {
     profile: UserProfile | null;
@@ -10,20 +9,10 @@ interface HeaderProps {
     onBack: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ profile, view, onOpenSettings, onBack }) => {
-    const [tgUser, setTgUser] = useState<any>(null);
-
-    useEffect(() => {
-        const tg = (window as any).Telegram?.WebApp;
-        if (tg?.initDataUnsafe?.user) {
-            setTgUser(tg.initDataUnsafe.user);
-        }
-    }, []);
-
+export const Header: React.FC<HeaderProps> = ({ profile, view, onBack }) => {
+    // onOpenSettings не используется здесь, так как кнопка настроек перенесена в CosmicPassport
+    
     if (!profile) return null;
-
-    const displayName = tgUser?.first_name || profile.name;
-    const photoUrl = tgUser?.photo_url;
 
     // Logic: If on Dashboard, show Main Header. If on sub-view, show Back Header.
     const isHub = view === 'dashboard';

@@ -147,9 +147,14 @@ export const CosmicPassport = memo<CosmicPassportProps>(({
                   <p className="text-sm font-serif text-astro-text leading-tight">
                     {Math.round(weatherData.temp)}°
                   </p>
-                  <p className="text-[9px] text-astro-subtext/80 leading-tight">
+                  <p className="text-[9px] text-astro-subtext/80 leading-tight" title={translateWeather(weatherData.condition, profile.language)}>
                     {weatherData.city.length > 8 ? weatherData.city.substring(0, 8) + '...' : weatherData.city}
                   </p>
+                  {weatherData.moonPhase && (
+                    <p className="text-[8px] text-astro-highlight/70 leading-tight">
+                      {translateMoonPhase(weatherData.moonPhase.phase, profile.language)}
+                    </p>
+                  )}
                 </div>
               </div>
             )}

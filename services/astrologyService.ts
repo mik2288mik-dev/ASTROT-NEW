@@ -1,9 +1,6 @@
-import { UserProfile, NatalChartData, DailyHoroscope, SynastryResult, UserContext, UserEvolution } from "../types";
+import { UserProfile, NatalChartData, DailyHoroscope, SynastryResult, UserEvolution } from "../types";
 import { SYSTEM_INSTRUCTION_ASTRA } from "../constants";
-import { getElementForSign, SIGN_ELEMENTS } from "../lib/zodiac-utils";
-
-// Helper to select language prompt
-const getLangPrompt = (lang: string) => lang === 'ru' ? "Response must be in Russian." : "Response must be in English.";
+import { getElementForSign } from "../lib/zodiac-utils";
 
 // API base URL - используем локальные Next.js API routes
 const API_BASE_URL = typeof window !== 'undefined' ? '' : process.env.NEXT_PUBLIC_API_URL || '';
@@ -26,22 +23,30 @@ log.info(`API_BASE_URL configured: ${API_BASE_URL}`);
 
 /**
  * Calculate natal chart - calls backend API
+ * 
+ * API является идемпотентным:
+ * - Если карта уже есть в БД и данные не изменились - возвращает из кэша
+ * - Если карты нет или данные изменились - рассчитывает и сохраняет
  */
-export const calculateNatalChart = async (profile: UserProfile): Promise<NatalChartData> => {
+export const calculateNatalChart = async (profile: UserProfile, forceRecalculate = false): Promise<NatalChartData> => {
   const url = `${API_BASE_URL}/api/astrology/natal-chart`;
   log.info('[calculateNatalChart] Starting calculation', {
+    userId: profile.id,
     name: profile.name,
     birthDate: profile.birthDate,
-    birthPlace: profile.birthPlace
+    birthPlace: profile.birthPlace,
+    forceRecalculate
   });
 
   try {
     const requestBody = {
+      userId: profile.id, // Важно для идемпотентности
       name: profile.name,
       birthDate: profile.birthDate,
       birthTime: profile.birthTime,
       birthPlace: profile.birthPlace,
-      language: profile.language
+      language: profile.language,
+      forceRecalculate
     };
 
     log.info(`[calculateNatalChart] Sending POST request to: ${url}`);
@@ -69,7 +74,7 @@ export const calculateNatalChart = async (profile: UserProfile): Promise<NatalCh
         // Используем новую структуру ошибок с полем message
         errorMessage = errorData.message || errorData.error || 'Unknown error';
         errorDetails = errorData.errors || errorData.details;
-      } catch (parseError) {
+      } catch {
         // Если не удалось распарсить JSON, пробуем прочитать как текст
         try {
           errorMessage = await response.text();
@@ -318,7 +323,13 @@ export const calculateFullSynastry = async (
 };
 
 
-export const getDailyHoroscope = async (profile: UserProfile, chartData: NatalChartData, context?: UserContext): Promise<DailyHoroscope> => {
+/**
+ * Get daily horoscope
+ * 
+ * API проверяет БД - если гороскоп за сегодня уже есть, возвращает его.
+ * Генерация происходит только один раз в сутки.
+ */
+export const getDailyHoroscope = async (profile: UserProfile, chartData: NatalChartData): Promise<DailyHoroscope> => {
   const url = `${API_BASE_URL}/api/astrology/daily-horoscope`;
   log.info('[getDailyHoroscope] Starting request', { userId: profile.id });
 
@@ -328,7 +339,11 @@ export const getDailyHoroscope = async (profile: UserProfile, chartData: NatalCh
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ profile, chartData, context })
+      body: JSON.stringify({ 
+        userId: profile.id, // Важно для кэширования в БД
+        profile, 
+        chartData 
+      })
     });
 
     const duration = Date.now() - startTime;

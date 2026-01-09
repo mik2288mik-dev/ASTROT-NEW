@@ -776,8 +776,7 @@ export const addLanguageInstruction = (prompt: string, language: 'ru' | 'en'): s
  * Используется когда человек нажимает «Узнать больше» и попадает в подробный разбор.
  */
 export const createFullNatalChartPrompt = (
-  natalData: NatalChartData,
-  profile: UserProfile
+  natalData: NatalChartData
 ): string => {
   const natalDataJson = JSON.stringify(natalData, null, 2);
   

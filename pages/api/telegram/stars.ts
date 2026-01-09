@@ -28,7 +28,7 @@ export default async function handler(
   }
 
   try {
-    const { userId, starsAmount, transactionId, initData } = req.body;
+    const { userId, starsAmount, transactionId } = req.body;
 
     log.info('Verifying Telegram Stars payment', {
       userId,

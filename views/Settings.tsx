@@ -1,9 +1,10 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserProfile, Language, Theme } from '../types';
 import { getText } from '../constants';
 import { saveProfile } from '../services/storageService';
 import { requestStarsPayment } from '../services/telegramService';
+import { getWeatherSettings, saveWeatherCity } from '../services/weatherService';
 
 interface SettingsProps {
     profile: UserProfile;
@@ -17,8 +18,21 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
     const [tempName, setTempName] = useState(profile.name);
     const [tempPlace, setTempPlace] = useState(profile.birthPlace);
     const [editingWeather, setEditingWeather] = useState(false);
-    const [tempWeatherCity, setTempWeatherCity] = useState(profile.weatherCity || '');
+    const [tempWeatherCity, setTempWeatherCity] = useState('');
+    const [currentWeatherCity, setCurrentWeatherCity] = useState<string | null>(null);
     const [weatherLoading, setWeatherLoading] = useState(false);
+
+    // Загружаем настройки погоды из БД при монтировании
+    useEffect(() => {
+        if (profile.id) {
+            getWeatherSettings(profile.id)
+                .then(settings => {
+                    setCurrentWeatherCity(settings.city);
+                    setTempWeatherCity(settings.city || '');
+                })
+                .catch(console.error);
+        }
+    }, [profile.id]);
 
     const handleLanguageToggle = () => {
         const newLang: Language = profile.language === 'ru' ? 'en' : 'ru';
@@ -75,119 +89,38 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
     };
 
     const handleSaveWeatherCity = async () => {
+        if (!profile.id) return;
+        
         const city = tempWeatherCity.trim();
         setWeatherLoading(true);
         
-        console.log('[Settings] ===== START SAVING WEATHER CITY =====');
-        console.log('[Settings] Input city value:', city);
-        console.log('[Settings] City length:', city.length);
-        console.log('[Settings] Current profile.weatherCity:', profile.weatherCity);
-        console.log('[Settings] Current profile.hasGeneratedContent:', !!profile.generatedContent);
-        console.log('[Settings] Current profile.generatedContent keys:', profile.generatedContent ? Object.keys(profile.generatedContent) : 'none');
-        
-        // Если город указан, проверяем его валидность через API
-        if (city && city.length > 0) {
-            console.log('[Settings] Validating city through API...');
-            try {
-                const API_BASE_URL = typeof window !== 'undefined' ? '' : process.env.NEXT_PUBLIC_API_URL || '';
-                const weatherUrl = `${API_BASE_URL}/api/weather?city=${encodeURIComponent(city)}`;
-                console.log('[Settings] Weather API URL:', weatherUrl);
-                
-                const response = await fetch(weatherUrl);
-                console.log('[Settings] Weather API response status:', response.status);
-                
-                if (!response.ok) {
-                    // Если 404 - города точно нет
-                    if (response.status === 400 || response.status === 404) {
-                         console.error('[Settings] Weather API validation failed: City not found');
-                         alert(profile.language === 'ru' 
-                             ? 'Не удалось найти указанный город. Проверьте правильность написания.'
-                             : 'Failed to find the specified city. Please check the spelling.');
-                         setWeatherLoading(false);
-                         return;
-                    }
-                    
-                    // Если 500 или другая ошибка - возможно проблема с API, но город может быть верным
-                    // Разрешаем сохранение с предупреждением в консоль
-                    console.warn('[Settings] Weather API validation warning:', response.status);
-                } else {
-                    console.log('[Settings] Weather API validation successful');
-                }
-            } catch (error) {
-                console.error('[Settings] Error validating weather city:', error);
-                // При ошибке сети не блокируем сохранение, а просто логируем
-                // Пользователь все равно хочет сохранить этот город
-            }
-        } else {
-            console.log('[Settings] City is empty, will save as null/undefined');
-        }
+        console.log('[Settings] Saving weather city:', city || 'null');
 
-        // Сохраняем город (пустая строка становится undefined, что преобразуется в null в БД)
-        // ВАЖНО: Сохраняем только weatherCity, не трогая другие поля, чтобы не потерять generatedContent
-        const cityToSave = city && city.length > 0 ? city : undefined;
-        
-        // ВАЖНО: Создаем объект только с полями которые нужно обновить, чтобы не потерять generatedContent
-        // API сам правильно обработает сохранение и не потеряет существующий generatedContent
-        const updated = { 
-            ...profile, 
-            weatherCity: cityToSave
-        };
-        
-        console.log('[Settings] ===== PREPARING TO SAVE =====');
-        console.log('[Settings] City to save:', cityToSave || 'null/undefined');
-        console.log('[Settings] Updated profile.weatherCity:', updated.weatherCity);
-        console.log('[Settings] Updated profile.hasGeneratedContent:', !!updated.generatedContent);
-        console.log('[Settings] Updated profile.generatedContent keys:', updated.generatedContent ? Object.keys(updated.generatedContent) : 'none');
-        
         try {
-            // Сохраняем в БД - API правильно обработает сохранение weatherCity и сохранит generatedContent
-            console.log('[Settings] ===== CALLING saveProfile() =====');
-            const saveStartTime = Date.now();
-            await saveProfile(updated);
-            const saveDuration = Date.now() - saveStartTime;
-            console.log('[Settings] saveProfile() completed in', saveDuration, 'ms');
+            // Сохраняем через новый API (в таблицу user_settings)
+            const cityToSave = city.length >= 2 ? city : null;
+            await saveWeatherCity(profile.id, cityToSave);
             
-            // Обновляем локальное состояние с новым weatherCity
-            console.log('[Settings] Updating state with new weatherCity');
+            // Обновляем локальное состояние
+            setCurrentWeatherCity(cityToSave);
+            
+            // Обновляем профиль для обновления UI в других компонентах
+            const updated = { ...profile, weatherCity: cityToSave || undefined };
             onUpdate(updated);
+            
+            console.log('[Settings] Weather city saved successfully');
+            setEditingWeather(false);
         } catch (error: any) {
-            console.error('[Settings] ===== ERROR SAVING WEATHER CITY =====');
-            console.error('[Settings] Error details:', error);
-            console.error('[Settings] Error message:', error instanceof Error ? error.message : String(error));
-            console.error('[Settings] Error stack:', error instanceof Error ? error.stack : 'no stack');
+            console.error('[Settings] Error saving weather city:', error);
             
-            // Более детальное сообщение об ошибке
-            let errorMessage = profile.language === 'ru' 
-                ? 'Не удалось сохранить город в базе данных. Попробуйте ещё раз.'
-                : 'Failed to save your city to the database. Please try again.';
-            
-            if (error?.message) {
-                const errorMsg = error.message.toLowerCase();
-                if (errorMsg.includes('database') || errorMsg.includes('база данных') || errorMsg.includes('failed to save')) {
-                    // Более понятное сообщение об ошибке
-                    errorMessage = profile.language === 'ru'
-                        ? 'Не удалось сохранить город. Попробуйте ещё раз через несколько секунд.'
-                        : 'Failed to save city. Please try again in a few seconds.';
-                } else if (errorMsg.includes('network') || errorMsg.includes('сеть') || errorMsg.includes('fetch')) {
-                    errorMessage = profile.language === 'ru'
-                        ? 'Ошибка сети. Проверьте подключение к интернету.'
-                        : 'Network error. Please check your internet connection.';
-                } else if (errorMsg.includes('timeout')) {
-                    errorMessage = profile.language === 'ru'
-                        ? 'Превышено время ожидания. Попробуйте позже.'
-                        : 'Request timeout. Please try again later.';
-                }
-            }
+            const errorMessage = profile.language === 'ru'
+                ? 'Не удалось сохранить город. Попробуйте ещё раз.'
+                : 'Failed to save city. Please try again.';
             
             alert(errorMessage);
+        } finally {
             setWeatherLoading(false);
-            setEditingWeather(false);
-            return;
         }
-
-        console.log('[Settings] ===== WEATHER CITY SAVE COMPLETED =====');
-        setEditingWeather(false);
-        setWeatherLoading(false);
     };
 
     return (
@@ -310,28 +243,30 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                                 placeholder={profile.language === 'ru' ? 'Например: Москва или Moscow' : 'e.g. Moscow or London'}
                                 className="w-full bg-transparent border-b border-astro-highlight py-2 text-astro-text text-sm focus:outline-none transition-colors font-serif"
                                 disabled={weatherLoading}
+                                minLength={2}
+                                maxLength={64}
                             />
                             <p className="text-[9px] text-astro-subtext mt-2 italic">
                                 {profile.language === 'ru' 
-                                    ? 'Укажите название города на русском или английском языке'
-                                    : 'Enter city name in English or Russian'}
+                                    ? 'Укажите название города (2-64 символа)'
+                                    : 'Enter city name (2-64 characters)'}
                             </p>
                         </div>
                         <div className="flex gap-2">
                             <button 
                                 onClick={handleSaveWeatherCity}
-                                disabled={weatherLoading}
+                                disabled={weatherLoading || (tempWeatherCity.trim().length > 0 && tempWeatherCity.trim().length < 2)}
                                 className="flex-1 bg-white text-black font-bold py-3 rounded-lg shadow-lg hover:opacity-90 transition-transform uppercase text-xs tracking-widest disabled:opacity-50"
                             >
                                 {weatherLoading 
-                                    ? (profile.language === 'ru' ? 'Проверка...' : 'Checking...')
+                                    ? (profile.language === 'ru' ? 'Сохранение...' : 'Saving...')
                                     : getText(profile.language, 'settings.save')
                                 }
                             </button>
                             <button 
                                 onClick={() => {
                                     setEditingWeather(false);
-                                    setTempWeatherCity(profile.weatherCity || '');
+                                    setTempWeatherCity(currentWeatherCity || '');
                                 }}
                                 disabled={weatherLoading}
                                 className="bg-transparent border border-astro-border text-astro-text font-bold py-3 px-4 rounded-lg text-xs uppercase tracking-widest hover:bg-astro-bg transition-colors disabled:opacity-50"
@@ -343,14 +278,14 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                 ) : (
                     <div>
                         <p className="text-sm text-astro-text font-serif">
-                            {profile.weatherCity 
-                                ? profile.weatherCity 
+                            {currentWeatherCity 
+                                ? currentWeatherCity 
                                 : (profile.language === 'ru' 
                                     ? 'Город не указан' 
                                     : 'City not set')
                             }
                         </p>
-                        {profile.weatherCity && (
+                        {currentWeatherCity && (
                             <p className="text-[10px] text-astro-subtext mt-2">
                                 {profile.language === 'ru' 
                                     ? 'Погода и фаза луны будут отображаться на главном экране'

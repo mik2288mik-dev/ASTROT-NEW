@@ -79,6 +79,34 @@ export const Loading: React.FC<LoadingProps> = ({ message, progress: externalPro
                     </div>
                 </motion.div>
             </motion.div>
+            
+            {/* Сообщение загрузки */}
+            {message && (
+                <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                    className="mt-6 text-astro-subtext text-sm font-medium"
+                >
+                    {message}
+                </motion.p>
+            )}
+            
+            {/* Индикатор прогресса */}
+            {progress > 0 && progress < 100 && (
+                <motion.div
+                    initial={{ opacity: 0, width: 0 }}
+                    animate={{ opacity: 1, width: '200px' }}
+                    transition={{ delay: 0.5 }}
+                    className="mt-4 h-1 bg-astro-border rounded-full overflow-hidden"
+                >
+                    <motion.div
+                        className="h-full bg-astro-highlight rounded-full"
+                        style={{ width: `${progress}%` }}
+                        transition={{ duration: 0.3 }}
+                    />
+                </motion.div>
+            )}
         </div>
     );
 };

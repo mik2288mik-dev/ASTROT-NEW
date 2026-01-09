@@ -1,8 +1,8 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { UserProfile, NatalChartData, ViewState } from './types';
-import { getProfile, getChartData, saveProfile, saveChartData } from './services/storageService';
-import { calculateNatalChart } from './services/astrologyService';
+import { getProfile, saveProfile } from './services/storageService';
+import { getOrCalculateChart } from './services/chartService';
 import { generateAllContent } from './services/contentGenerationService';
 import { Onboarding } from './views/Onboarding';
 import { Dashboard } from './views/Dashboard';
@@ -34,6 +34,9 @@ const App: React.FC = () => {
     const [loadingProgress, setLoadingProgress] = useState(0);
     const [view, setView] = useState<ViewState>('onboarding');
     const [showPremiumPreview, setShowPremiumPreview] = useState(false);
+    
+    // Ref для предотвращения двойной загрузки
+    const dataLoadedRef = useRef(false);
 
     useEffect(() => {
         const tg = (window as any).Telegram?.WebApp;
@@ -60,8 +63,12 @@ const App: React.FC = () => {
     }, [profile?.theme]);
 
     useEffect(() => {
+        // Защита от двойной загрузки
+        if (dataLoadedRef.current) return;
+        dataLoadedRef.current = true;
+        
         const loadData = async () => {
-            console.log('[App] Loading user data from database...');
+            console.log('[App] === LOADING USER DATA ===');
             setLoadingProgress(10);
             
             const tg = (window as any).Telegram?.WebApp;
@@ -76,89 +83,73 @@ const App: React.FC = () => {
             }
 
             try {
-                // Загружаем профиль из БД
+                // Шаг 1: Загружаем профиль из БД
                 setLoadingProgress(30);
                 const storedProfile = await getProfile();
-                
-                // Загружаем данные карты из БД
-                setLoadingProgress(50);
-                const storedChart = await getChartData();
 
-                console.log('[App] Loaded data from database:', {
+                console.log('[App] Profile loaded:', {
                     hasProfile: !!storedProfile,
-                    hasChart: !!storedChart,
-                    tgId,
-                    profileIsSetup: storedProfile?.isSetup,
-                    profileData: storedProfile ? JSON.stringify(storedProfile) : 'null'
+                    isSetup: storedProfile?.isSetup,
+                    tgId
                 });
 
-                // Если профиль найден в БД и он настроен - показываем натальную карту
-                if (storedProfile && storedProfile.isSetup) {
-                    if (!storedProfile.language) storedProfile.language = 'ru';
-                    if (!storedProfile.theme) storedProfile.theme = 'dark';
+                // Если профиля нет или он не настроен - показываем onboarding
+                if (!storedProfile || !storedProfile.isSetup) {
+                    console.log('[App] No profile or not setup, showing onboarding');
+                    setLoadingProgress(100);
+                    setView('onboarding');
+                    setLoading(false);
+                    return;
+                }
 
-                    const isAdmin = OWNER_ID && String(tgId) === String(OWNER_ID) ? true : (storedProfile.isAdmin === true ? true : undefined);
-                    const updatedProfile = { ...storedProfile, id: tgId, isAdmin };
+                // Шаг 2: Нормализуем профиль
+                if (!storedProfile.language) storedProfile.language = 'ru';
+                if (!storedProfile.theme) storedProfile.theme = 'dark';
+                
+                const isAdmin = OWNER_ID && String(tgId) === String(OWNER_ID) ? true : storedProfile.isAdmin;
+                const updatedProfile = { ...storedProfile, id: tgId, isAdmin };
+                setProfile(updatedProfile);
+
+                // Шаг 3: Загружаем карту через chartService
+                // Он сам проверит БД и рассчитает только если нужно
+                setLoadingProgress(50);
+                console.log('[App] Loading chart via chartService...');
+                
+                try {
+                    const chart = await getOrCalculateChart(updatedProfile);
                     
-                    console.log('[App] User data found in database, preparing to show chart:', {
-                        userId: updatedProfile.id,
-                        isAdmin,
-                        isPremium: updatedProfile.isPremium,
-                        hasChart: !!storedChart
-                    });
-                    
-                    setProfile(updatedProfile);
-                    
-                    if (storedChart && storedChart.sun && storedChart.moon) {
-                        // Если карта найдена в БД - используем её и показываем сразу
-                        // ВСЕ данные уже в БД, НИКАКИХ генераций при повторном входе
-                        setLoadingProgress(80);
-                        setChartData(storedChart);
+                    if (chart && chart.sun && chart.moon) {
+                        console.log('[App] Chart loaded successfully:', {
+                            sunSign: chart.sun.sign,
+                            moonSign: chart.moon.sign
+                        });
+                        setChartData(chart);
                         setLoadingProgress(100);
                         setView('dashboard');
                     } else {
-                        // Если карты нет в БД, но профиль есть - пересчитываем карту
-                        console.log('[App] Chart not found in database, recalculating...');
-                        setLoadingProgress(60);
-                        try {
-                            const generatedChart = await calculateNatalChart(updatedProfile);
-                            setLoadingProgress(80);
-                            if (generatedChart && generatedChart.sun && generatedChart.moon && generatedChart.rising) {
-                                setChartData(generatedChart);
-                                await saveChartData(generatedChart);
-                                setLoadingProgress(100);
-                                setView('dashboard');
-                            } else {
-                                setLoadingProgress(100);
-                                setView('onboarding');
-                            }
-                        } catch (error) {
-                            setLoadingProgress(100);
-                            setView('onboarding');
-                        }
+                        console.log('[App] Invalid chart data, showing onboarding');
+                        setLoadingProgress(100);
+                        setView('onboarding');
                     }
-                } else {
-                    // Если данных нет в БД - показываем форму ввода данных
-                    console.log('[App] No user data found in database, showing onboarding form');
+                } catch (chartError) {
+                    console.error('[App] Error loading chart:', chartError);
                     setLoadingProgress(100);
                     setView('onboarding');
                 }
             } catch (error) {
                 console.error('[App] Error loading user data:', error);
                 setLoadingProgress(100);
-                // При ошибке загрузки показываем onboarding
                 setView('onboarding');
             } finally {
-                setTimeout(() => {
-                    setLoading(false);
-                }, 300); // Небольшая задержка для плавного перехода
+                setTimeout(() => setLoading(false), 300);
             }
         };
+        
         loadData();
     }, []);
 
     const handleOnboardingComplete = async (newProfile: UserProfile) => {
-        console.log('[App] Onboarding complete, saving profile...', {
+        console.log('[App] === ONBOARDING COMPLETE ===', {
             name: newProfile.name,
             birthDate: newProfile.birthDate
         });
@@ -169,122 +160,75 @@ const App: React.FC = () => {
         const isAdmin = OWNER_ID && String(tgId) === String(OWNER_ID) ? true : undefined;
         const fullProfile = { ...newProfile, id: tgId, isAdmin };
 
-        console.log('[App] Full profile prepared:', {
-            userId: fullProfile.id,
-            isAdmin,
-            isSetup: fullProfile.isSetup
-        });
-
         setProfile(fullProfile);
         setLoading(true);
         setLoadingProgress(10);
-        
-        // Сохраняем данные только если пользователь отметил галочку "запомнить данные"
-        if (fullProfile.isSetup) {
-            try {
-                setLoadingProgress(20);
-                await saveProfile(fullProfile);
-                console.log('[App] Profile saved successfully');
-            } catch (error) {
-                console.error('[App] Failed to save profile:', error);
-            }
-        } else {
-            console.log('[App] User chose not to save data, skipping profile save');
-        }
 
         try {
-            console.log('[App] Calculating natal chart...', {
-                name: fullProfile.name,
-                birthDate: fullProfile.birthDate,
-                birthTime: fullProfile.birthTime,
-                birthPlace: fullProfile.birthPlace
-            });
+            // Шаг 1: Сохраняем профиль
+            if (fullProfile.isSetup) {
+                setLoadingProgress(20);
+                await saveProfile(fullProfile);
+                console.log('[App] Profile saved');
+            }
+
+            // Шаг 2: Рассчитываем карту через chartService
+            // API сам сохранит результат в БД
+            setLoadingProgress(40);
+            console.log('[App] Calculating natal chart...');
             
-            setLoadingProgress(30);
-            const generatedChart = await calculateNatalChart(fullProfile);
-            setLoadingProgress(70);
+            const generatedChart = await getOrCalculateChart(fullProfile);
             
             if (!generatedChart || !generatedChart.sun || !generatedChart.moon || !generatedChart.rising) {
-                console.error('[App] Invalid chart data received:', {
-                    hasSun: !!generatedChart?.sun,
-                    hasMoon: !!generatedChart?.moon,
-                    hasRising: !!generatedChart?.rising
-                });
-                throw new Error('Invalid chart data received - missing required fields');
+                throw new Error('Invalid chart data received');
             }
             
-            console.log('[App] Chart generated, saving...', {
-                hasSun: !!generatedChart.sun,
-                hasMoon: !!generatedChart.moon,
-                element: generatedChart.element
+            console.log('[App] Chart calculated:', {
+                sunSign: generatedChart.sun.sign,
+                moonSign: generatedChart.moon.sign
             });
             
             setChartData(generatedChart);
-            setLoadingProgress(80);
-            
-            // Сохраняем карту только если пользователь отметил галочку "запомнить данные"
+            setLoadingProgress(70);
+
+            // Шаг 3: Генерируем контент для первого входа
             if (fullProfile.isSetup) {
-                try {
-                    await saveChartData(generatedChart);
-                    console.log('[App] Chart saved successfully');
-                } catch (error) {
-                    console.error('[App] Failed to save chart:', error);
-                    // Не прерываем процесс, если сохранение не удалось
-                }
+                console.log('[App] Generating initial content...');
+                setLoadingProgress(80);
                 
-                // НОВОЕ: Генерируем ВСЕ данные сразу при первом входе
-                console.log('[App] Generating all content for first-time user...');
-                setLoadingProgress(85);
                 try {
                     const allContent = await generateAllContent(fullProfile, generatedChart);
                     fullProfile.generatedContent = allContent;
                     await saveProfile(fullProfile);
                     setProfile(fullProfile);
-                    setLoadingProgress(95);
-                } catch (error) {
-                    // Не прерываем процесс, если генерация не удалась
+                } catch (contentError) {
+                    console.error('[App] Content generation failed (non-critical):', contentError);
                 }
             }
             
             setLoadingProgress(100);
-            // Funnel: Onboarding -> Hook -> Dashboard (not Paywall)
-            setTimeout(() => {
-                setView('hook');
-            }, 300); 
-        } catch (error: any) {
-            console.error("[App] Error calculating natal chart:", error);
-            console.error("[App] Error details:", {
-                message: error?.message,
-                stack: error?.stack,
-                name: error?.name,
-                code: error?.code
-            });
             
-            // Показываем более информативное сообщение об ошибке
+            // Переходим к Hook
+            setTimeout(() => setView('hook'), 300);
+            
+        } catch (error: any) {
+            console.error('[App] Error during onboarding:', error);
+            
             let errorMessage = error?.message || 'Неизвестная ошибка';
             
-            // Если сообщение уже на русском и понятное, используем его
-            // Иначе показываем общее сообщение
-            if (!errorMessage.includes('Ошибка') && !errorMessage.includes('ошибка')) {
-                // Если сообщение на английском или техническое, показываем общее
-                if (errorMessage.includes('initialize') || errorMessage.includes('ephemeris') || errorMessage.includes('Swiss')) {
-                    errorMessage = 'Ошибка инициализации астрономических расчетов. Пожалуйста, попробуйте позже или обновите страницу.';
-                } else if (errorMessage.includes('location') || errorMessage.includes('coordinates')) {
-                    errorMessage = 'Не удалось найти указанное место рождения. Пожалуйста, проверьте правильность написания.';
-                } else {
-                    errorMessage = 'Не удалось рассчитать натальную карту. Пожалуйста, проверьте правильность введенных данных и попробуйте снова.';
-                }
+            if (errorMessage.includes('initialize') || errorMessage.includes('ephemeris')) {
+                errorMessage = 'Ошибка инициализации расчетов. Попробуйте позже.';
+            } else if (errorMessage.includes('location') || errorMessage.includes('coordinates')) {
+                errorMessage = 'Не удалось найти место рождения. Проверьте написание.';
+            } else if (!errorMessage.includes('ошибк')) {
+                errorMessage = 'Не удалось рассчитать карту. Проверьте данные.';
             }
             
-            alert(`Ошибка при расчете карты: ${errorMessage}`);
-            
-            // Возвращаемся к onboarding, чтобы пользователь мог попробовать снова
+            alert(`Ошибка: ${errorMessage}`);
             setView('onboarding');
         } finally {
             setLoadingProgress(100);
-            setTimeout(() => {
-                setLoading(false);
-            }, 300);
+            setTimeout(() => setLoading(false), 300);
         }
     };
 
@@ -366,8 +310,7 @@ const App: React.FC = () => {
                     <HookChat 
                         profile={profile} 
                         chartData={chartData} 
-                        onComplete={() => setView('dashboard')} 
-                        onUpdateProfile={handleProfileUpdate}
+                        onComplete={() => setView('dashboard')}
                     />
                 ) : view === 'paywall' ? (
                     <Paywall 
@@ -411,10 +354,8 @@ const App: React.FC = () => {
                         <Dashboard 
                             profile={profile} 
                             chartData={chartData} 
-                            requestPremium={requestPremium} 
                             onNavigate={navigateTo} 
                             onOpenSettings={() => setView('settings')}
-                            onUpdateProfile={handleProfileUpdate}
                         />
                     </div>
                 )}
