@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { motion } from 'framer-motion';
-import { UserProfile, UserEvolution } from '../../types';
+import { UserEvolution } from '../../types';
 import { getText } from '../../constants';
 
 interface SoulEvolutionProps {

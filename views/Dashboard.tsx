@@ -15,14 +15,12 @@ import { WeatherWidget } from '../components/Dashboard/WeatherWidget';
 interface DashboardProps {
     profile: UserProfile;
     chartData: NatalChartData | null;
-    requestPremium: () => void;
     onNavigate: (view: any) => void;
     onOpenSettings: () => void;
-    onUpdateProfile: (profile: UserProfile) => void;
 }
 
 
-export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPremium, onNavigate, onOpenSettings, onUpdateProfile }) => {
+export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate, onOpenSettings }) => {
     
     const [context, setContext] = useState<UserContext | null>(null);
     const [evolution, setEvolution] = useState<UserEvolution | null>(profile.evolution || null);
@@ -62,23 +60,26 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, requestPrem
 
     // Загрузка погоды через новый API (город хранится в БД user_settings)
     useEffect(() => {
-        if (!profile.id) return;
+        const userId = profile.id;
+        if (!userId) return;
         
         const loadWeather = async () => {
             try {
-                const weatherData = await getTodayWeather(profile.id);
-                if (weatherData) {
-                    setContext(prev => ({
-                        ...prev,
+                const data = await getTodayWeather(userId);
+                if (data) {
+                    setContext({
+                        mood: 'Neutral',
                         weatherData: {
-                            city: weatherData.city,
-                            temp: weatherData.temp,
-                            condition: weatherData.condition,
-                            humidity: weatherData.humidity,
-                            moonPhase: weatherData.moonPhase
-                        },
-                        mood: 'Neutral'
-                    }));
+                            city: data.city,
+                            temp: data.temp,
+                            condition: data.condition,
+                            humidity: data.humidity ?? 0,
+                            moonPhase: data.moonPhase ? {
+                                phase: data.moonPhase.phase,
+                                illumination: parseInt(data.moonPhase.illumination) || 0
+                            } : undefined
+                        }
+                    });
                 }
             } catch {
                 // При ошибке просто не показываем погоду

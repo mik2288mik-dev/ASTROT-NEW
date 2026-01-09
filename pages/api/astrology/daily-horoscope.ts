@@ -1,7 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
 import { SYSTEM_PROMPT_ASTRA, createDailyForecastPrompt, addLanguageInstruction, DailyForecastAIResponse } from '../../../lib/prompts';
-import { validateNatalChartInput, formatValidationErrors } from '../../../lib/validation';
 import { db } from '../../../lib/db';
 import { getCurrentTransits } from '../../../lib/transits-calculator';
 import { tryAcquireLock, releaseLock, LockKeys } from '../../../lib/serverLocks';

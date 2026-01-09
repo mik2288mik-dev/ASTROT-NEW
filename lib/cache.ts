@@ -107,7 +107,6 @@ export function checkNatalChartCache(
   generatedContent?: any,
   chartData?: any
 ): NatalChartCacheStatus {
-  const now = Date.now();
   const today = new Date().toISOString().split('T')[0];
   
   // Натальная карта всегда актуальна (статична)

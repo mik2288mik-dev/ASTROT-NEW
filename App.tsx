@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { UserProfile, NatalChartData, ViewState } from './types';
 import { getProfile, saveProfile } from './services/storageService';
-import { getOrCalculateChart, forceRecalculateChart, birthDataChanged } from './services/chartService';
+import { getOrCalculateChart } from './services/chartService';
 import { generateAllContent } from './services/contentGenerationService';
 import { Onboarding } from './views/Onboarding';
 import { Dashboard } from './views/Dashboard';
@@ -310,8 +310,7 @@ const App: React.FC = () => {
                     <HookChat 
                         profile={profile} 
                         chartData={chartData} 
-                        onComplete={() => setView('dashboard')} 
-                        onUpdateProfile={handleProfileUpdate}
+                        onComplete={() => setView('dashboard')}
                     />
                 ) : view === 'paywall' ? (
                     <Paywall 
@@ -355,10 +354,8 @@ const App: React.FC = () => {
                         <Dashboard 
                             profile={profile} 
                             chartData={chartData} 
-                            requestPremium={requestPremium} 
                             onNavigate={navigateTo} 
                             onOpenSettings={() => setView('settings')}
-                            onUpdateProfile={handleProfileUpdate}
                         />
                     </div>
                 )}

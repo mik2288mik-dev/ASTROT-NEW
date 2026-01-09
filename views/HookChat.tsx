@@ -10,7 +10,6 @@ interface HookChatProps {
     profile: UserProfile;
     chartData: NatalChartData;
     onComplete: () => void;
-    onUpdateProfile: (profile: UserProfile) => void;
 }
 
 interface MessageItem {
@@ -19,7 +18,7 @@ interface MessageItem {
     text: string;
 }
 
-export const HookChat: React.FC<HookChatProps> = ({ profile, chartData, onComplete, onUpdateProfile }) => {
+export const HookChat: React.FC<HookChatProps> = ({ profile, chartData, onComplete }) => {
     const [messages, setMessages] = useState<MessageItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const scrollRef = useRef<HTMLDivElement>(null);

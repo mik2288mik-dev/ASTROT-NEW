@@ -61,7 +61,7 @@ const translateWeather = (condition: string, language: string): string => {
 };
 
 // Функция для получения символа погоды
-const getWeatherSymbol = (condition: string, temp: number): string => {
+const getWeatherSymbol = (condition: string): string => {
     const lowerCondition = condition.toLowerCase();
     
     if (lowerCondition.includes('rain') || lowerCondition.includes('дождь') || lowerCondition.includes('drizzle')) {
@@ -519,7 +519,7 @@ export const WeatherWidget = memo<WeatherWidgetProps>(({
   }
 
   const zodiacSign = chartData?.sun?.sign || 'Aries';
-  const weatherSymbol = getWeatherSymbol(weatherData.condition, weatherData.temp);
+  const weatherSymbol = getWeatherSymbol(weatherData.condition);
   const weatherComment = generateFunnyWeatherComment(
     zodiacSign,
     weatherData.condition,

@@ -16,27 +16,6 @@ const log = {
 };
 
 /**
- * Получает время следующего обновления гороскопа (00:01 по МСК)
- */
-const getNextDailyUpdateTime = (): number => {
-  // Получаем текущее время в МСК (UTC+3)
-  const now = new Date();
-  const moscowTime = new Date(now.getTime() + (3 * 60 * 60 * 1000)); // UTC+3
-  
-  // Создаем дату следующего обновления в 00:01 МСК
-  const nextUpdate = new Date(moscowTime);
-  nextUpdate.setHours(0, 1, 0, 0);
-  
-  // Если уже прошло 00:01 сегодня, берем завтра 00:01
-  if (moscowTime.getTime() >= nextUpdate.getTime()) {
-    nextUpdate.setDate(nextUpdate.getDate() + 1);
-  }
-  
-  // Конвертируем обратно в UTC timestamp
-  return nextUpdate.getTime() - (3 * 60 * 60 * 1000);
-};
-
-/**
  * Проверяет, нужно ли обновить дневной гороскоп
  * Обновляется каждый день в 00:01 по МСК
  */

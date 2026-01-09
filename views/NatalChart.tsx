@@ -448,12 +448,12 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
                 {/* Сетка планет - 3 колонки на мобильном */}
                 <div className="grid grid-cols-3 gap-2 mb-4">
                     {[
-                        { id: 'sun', sign: data.sun?.sign, name: getPlanetFunName('sun', profile.language), degree: data.sun?.degree },
-                        { id: 'moon', sign: data.moon?.sign, name: getPlanetFunName('moon', profile.language), degree: data.moon?.degree },
-                        { id: 'rising', sign: data.rising?.sign, name: getPlanetFunName('rising', profile.language), degree: data.rising?.degree },
-                        { id: 'mercury', sign: data.mercury?.sign, name: getPlanetFunName('mercury', profile.language), degree: data.mercury?.degree },
-                        { id: 'venus', sign: data.venus?.sign, name: getPlanetFunName('venus', profile.language), degree: data.venus?.degree },
-                        { id: 'mars', sign: data.mars?.sign, name: getPlanetFunName('mars', profile.language), degree: data.mars?.degree },
+                        { id: 'sun', sign: data.sun?.sign, name: getPlanetFunName('sun', profile.language) },
+                        { id: 'moon', sign: data.moon?.sign, name: getPlanetFunName('moon', profile.language) },
+                        { id: 'rising', sign: data.rising?.sign, name: getPlanetFunName('rising', profile.language) },
+                        { id: 'mercury', sign: data.mercury?.sign, name: getPlanetFunName('mercury', profile.language) },
+                        { id: 'venus', sign: data.venus?.sign, name: getPlanetFunName('venus', profile.language) },
+                        { id: 'mars', sign: data.mars?.sign, name: getPlanetFunName('mars', profile.language) },
                     ].map((planet, idx) => (
                         <motion.div
                             key={planet.id}
@@ -471,11 +471,6 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
                             <div className="text-sm font-semibold text-astro-text">
                                 {planet.sign || '—'}
                             </div>
-                            {planet.degree !== undefined && (
-                                <div className="text-[10px] text-astro-subtext mt-0.5">
-                                    {Math.round(planet.degree)}°
-                                </div>
-                            )}
                         </motion.div>
                     ))}
                 </div>

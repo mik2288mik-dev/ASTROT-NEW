@@ -31,7 +31,7 @@ describe('API Natal Chart (Integration Tests)', () => {
         expect(data.error).toBe('Validation failed');
         expect(data.errors).toBeDefined();
         expect(Array.isArray(data.errors)).toBe(true);
-      } catch (error) {
+      } catch {
         // Сервер не запущен - пропускаем тест
         console.log('Integration test skipped - server not running');
       }
@@ -56,7 +56,7 @@ describe('API Natal Chart (Integration Tests)', () => {
         expect(response.status).toBe(400);
         const data = await response.json();
         expect(data.error).toBe('Validation failed');
-      } catch (error) {
+      } catch {
         console.log('Integration test skipped - server not running');
       }
     });
@@ -81,7 +81,7 @@ describe('API Natal Chart (Integration Tests)', () => {
         expect(response.status).toBe(400);
         const data = await response.json();
         expect(data.error).toBe('Validation failed');
-      } catch (error) {
+      } catch {
         console.log('Integration test skipped - server not running');
       }
     });

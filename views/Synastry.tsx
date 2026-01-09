@@ -19,7 +19,6 @@ export const Synastry: React.FC<SynastryProps> = ({ profile, requestPremium }) =
     const [relationshipType, setRelationshipType] = useState("романтика");
     const [result, setResult] = useState<SynastryResult | null>(null);
     const [loading, setLoading] = useState(false);
-    const [analysisMode, setAnalysisMode] = useState<'brief' | 'full'>('brief');
     
     // Вычисляем предполагаемый знак зодиака партнера
     const partnerZodiacSign = useMemo(() => {
@@ -45,7 +44,6 @@ export const Synastry: React.FC<SynastryProps> = ({ profile, requestPremium }) =
         }
 
         setLoading(true);
-        setAnalysisMode(mode);
         
         try {
             // Используем новый сервис с кэшированием

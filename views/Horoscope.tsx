@@ -57,7 +57,7 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
                     updatedProfile.generatedContent.dailyHoroscope = data;
                     onUpdateProfile(updatedProfile);
                 }
-            } catch (error) {
+            } catch {
                 if (cachedHoroscope && cachedHoroscope.content) {
                     setHoroscope(cachedHoroscope);
                 } else {
