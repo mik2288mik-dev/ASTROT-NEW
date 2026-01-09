@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
 import { SYSTEM_PROMPT_ASTRA, createDailyForecastPrompt, addLanguageInstruction, DailyForecastAIResponse } from '../../../lib/prompts';
 import { validateNatalChartInput, formatValidationErrors } from '../../../lib/validation';
-import { getSecondsUntilNextUpdate, CACHE_CONFIGS } from '../../../lib/cache';
+import { getSecondsUntilNextUpdate } from '../../../lib/cache';
 import { db } from '../../../lib/db';
 import { getCurrentTransits } from '../../../lib/transits-calculator';
 
@@ -30,7 +30,7 @@ export default async function handler(
   }
 
   try {
-    const { profile, chartData, context } = req.body;
+    const { profile, chartData } = req.body;
     const lang = profile?.language === 'ru';
     // Всегда используем сегодняшнюю дату
     const today = new Date().toISOString().split('T')[0];
@@ -230,7 +230,6 @@ export default async function handler(
 
     const { profile } = req.body;
     const lang = profile?.language === 'ru';
-    const today = new Date().toISOString().split('T')[0];
     
     // Возвращаем понятную ошибку вместо fallback
     const errorMessage = lang

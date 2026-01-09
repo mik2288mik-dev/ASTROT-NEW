@@ -180,7 +180,7 @@ async function handler(
   }
 
   try {
-    const { userId, contentType, profile, chartData, partnerData } = req.body;
+    const { userId, contentType, profile, chartData } = req.body;
 
     log.info('Regeneration request received', {
       userId,

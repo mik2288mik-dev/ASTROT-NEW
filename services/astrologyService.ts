@@ -1,9 +1,6 @@
 import { UserProfile, NatalChartData, DailyHoroscope, SynastryResult, UserContext, UserEvolution } from "../types";
 import { SYSTEM_INSTRUCTION_ASTRA } from "../constants";
-import { getElementForSign, SIGN_ELEMENTS } from "../lib/zodiac-utils";
-
-// Helper to select language prompt
-const getLangPrompt = (lang: string) => lang === 'ru' ? "Response must be in Russian." : "Response must be in English.";
+import { getElementForSign } from "../lib/zodiac-utils";
 
 // API base URL - используем локальные Next.js API routes
 const API_BASE_URL = typeof window !== 'undefined' ? '' : process.env.NEXT_PUBLIC_API_URL || '';
@@ -69,7 +66,7 @@ export const calculateNatalChart = async (profile: UserProfile): Promise<NatalCh
         // Используем новую структуру ошибок с полем message
         errorMessage = errorData.message || errorData.error || 'Unknown error';
         errorDetails = errorData.errors || errorData.details;
-      } catch (parseError) {
+      } catch {
         // Если не удалось распарсить JSON, пробуем прочитать как текст
         try {
           errorMessage = await response.text();

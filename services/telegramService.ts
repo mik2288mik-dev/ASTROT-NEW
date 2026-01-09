@@ -6,7 +6,7 @@ import { UserProfile } from "../types";
  */
 
 export const requestStarsPayment = async (profile: UserProfile): Promise<boolean> => {
-    // @ts-ignore
+    // @ts-expect-error - Telegram WebApp types are not fully defined
     const tg = window.Telegram?.WebApp;
 
     const TITLE_RU = 'Премиум на Неделю';
