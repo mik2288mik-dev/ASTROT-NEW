@@ -162,83 +162,37 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
         { id: 'mars', data: data.mars },
     ];
 
+    const normalizeText = (value: string) => value.replace(/\*/g, '').replace(/\s+\n/g, '\n').trim();
+    const splitParagraphs = (value: string) => normalizeText(value)
+        .split(/\n{2,}/)
+        .map((paragraph) => paragraph.trim())
+        .filter(Boolean);
+    const renderParagraphs = (value: string) => (
+        <div className="space-y-3 text-astro-text leading-relaxed text-[15px]">
+            {splitParagraphs(value).map((paragraph, index) => (
+                <p key={`${index}-${paragraph.slice(0, 12)}`} className="whitespace-pre-line">
+                    {paragraph}
+                </p>
+            ))}
+        </div>
+    );
+
     return (
         <div className="min-h-full pb-24">
-            {/* Приветствие */}
-            <motion.div 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="px-5 pt-6 pb-4"
-            >
-                <h2 className="text-2xl font-bold text-astro-text mb-1">
-                    {lang === 'ru' ? `Привет, ${profile.name || 'друг'}!` : `Hey, ${profile.name || 'friend'}!`}
-                </h2>
-                <p className="text-astro-subtext">
-                    {lang === 'ru' 
-                        ? `${data.sun?.sign} с душой ${data.moon?.sign}`
-                        : `${data.sun?.sign} with a ${data.moon?.sign} soul`
-                    }
-                </p>
-            </motion.div>
-
-            {/* Три главные планеты - большие карточки */}
-            <div className="px-5 mb-6">
-                <div className="flex gap-3">
-                    {mainPlanets.map((planet, idx) => (
-                        <motion.div
-                            key={planet.id}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: idx * 0.1 }}
-                            className="flex-1 bg-gradient-to-b from-astro-card to-astro-bg border border-astro-border rounded-2xl p-4 text-center"
-                        >
-                            <div className="text-3xl mb-2 text-astro-highlight">
-                                {PLANET_SYMBOLS[planet.id]}
-                            </div>
-                            <div className="text-xs text-astro-subtext uppercase tracking-wider mb-1">
-                                {PLANET_NAMES[planet.id]?.[lang]}
-                            </div>
-                            <div className="text-base font-semibold text-astro-text">
-                                {planet.data?.sign || '—'}
-                            </div>
-                            <div className="text-[10px] text-astro-subtext mt-1">
-                                {PLANET_MEANINGS[planet.id]?.[lang]}
-                            </div>
-                        </motion.div>
-                    ))}
-                </div>
-            </div>
-
-            {/* Другие планеты - компактная строка */}
-            <div className="px-5 mb-8">
-                <div className="flex justify-between bg-astro-card/50 rounded-xl px-4 py-3 border border-astro-border/50">
-                    {otherPlanets.map((planet) => (
-                        <div key={planet.id} className="text-center">
-                            <span className="text-lg text-astro-highlight/70">{PLANET_SYMBOLS[planet.id]}</span>
-                            <span className="text-sm text-astro-text ml-1">{planet.data?.sign || '—'}</span>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
             {/* Вступление */}
             {(natalIntro || isLoadingIntro) && (
                 <motion.div 
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="px-5 mb-8"
+                    className="px-5 pt-6 mb-8"
                 >
-                    <div className="bg-gradient-to-br from-astro-highlight/10 to-transparent border border-astro-highlight/20 rounded-2xl p-5">
-                        {isLoadingIntro ? (
-                            <div className="flex items-center justify-center py-4">
-                                <div className="w-5 h-5 border-2 border-astro-highlight border-t-transparent rounded-full animate-spin" />
-                            </div>
-                        ) : (
-                            <p className="text-astro-text leading-relaxed text-[15px]">
-                                {natalIntro}
-                            </p>
-                        )}
-                    </div>
+                    {isLoadingIntro ? (
+                        <div className="flex items-center justify-center py-4">
+                            <div className="w-5 h-5 border-2 border-astro-highlight border-t-transparent rounded-full animate-spin" />
+                        </div>
+                    ) : (
+                        renderParagraphs(natalIntro)
+                    )}
                 </motion.div>
             )}
 
@@ -262,18 +216,14 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: idx * 0.05 }}
                                 className={`
-                                    rounded-2xl border overflow-hidden transition-all
-                                    ${isExpanded 
-                                        ? 'bg-astro-card border-astro-highlight/30' 
-                                        : 'bg-astro-card/50 border-astro-border/50'
-                                    }
+                                    border-b border-astro-border/30 overflow-hidden transition-all
                                     ${isLocked ? 'opacity-80' : ''}
                                 `}
                             >
                                 {/* Заголовок раздела */}
                                 <button
                                     onClick={() => handleTopicClick(topic.id)}
-                                    className="w-full flex items-center justify-between p-4 text-left"
+                                    className="w-full flex items-center justify-between py-4 text-left"
                                 >
                                     <div className="flex items-center gap-3">
                                         <span className="text-xl">{topic.icon}</span>
@@ -309,16 +259,14 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
                                             transition={{ duration: 0.2 }}
                                             className="overflow-hidden"
                                         >
-                                            <div className="px-4 pb-4 pt-0">
-                                                <div className="border-t border-astro-border/30 pt-4">
+                                            <div className="pb-4 pt-0">
+                                                <div className="pt-3">
                                                     {isLoading ? (
                                                         <div className="flex items-center justify-center py-8">
                                                             <div className="w-6 h-6 border-2 border-astro-highlight border-t-transparent rounded-full animate-spin" />
                                                         </div>
                                                     ) : content ? (
-                                                        <p className="text-astro-text/90 leading-relaxed text-[15px] whitespace-pre-line">
-                                                            {content}
-                                                        </p>
+                                                        renderParagraphs(content)
                                                     ) : (
                                                         <p className="text-astro-subtext text-center py-4">
                                                             {lang === 'ru' ? 'Загружаю космическую мудрость...' : 'Loading cosmic wisdom...'}
@@ -351,6 +299,66 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
                     </button>
                 </motion.div>
             )}
+
+            {/* Сводка карты */}
+            <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="px-5 mt-10 pb-6"
+            >
+                <h2 className="text-2xl font-bold text-astro-text mb-1">
+                    {lang === 'ru' ? `Привет, ${profile.name || 'друг'}!` : `Hey, ${profile.name || 'friend'}!`}
+                </h2>
+                <p className="text-astro-subtext mb-4">
+                    {lang === 'ru' 
+                        ? `${data.sun?.sign} с душой ${data.moon?.sign}`
+                        : `${data.sun?.sign} with a ${data.moon?.sign} soul`
+                    }
+                </p>
+
+                <div className="space-y-3">
+                    {mainPlanets.map((planet, idx) => (
+                        <motion.div
+                            key={planet.id}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: idx * 0.05 }}
+                            className="flex items-center justify-between"
+                        >
+                            <div className="flex items-center gap-3">
+                                <span className="text-2xl text-astro-highlight">{PLANET_SYMBOLS[planet.id]}</span>
+                                <div>
+                                    <div className="text-xs text-astro-subtext uppercase tracking-wider">
+                                        {PLANET_NAMES[planet.id]?.[lang]}
+                                    </div>
+                                    <div className="text-base font-semibold text-astro-text">
+                                        {planet.data?.sign || '—'}
+                                    </div>
+                                </div>
+                            </div>
+                            <span className="text-xs text-astro-subtext">
+                                {PLANET_MEANINGS[planet.id]?.[lang]}
+                            </span>
+                        </motion.div>
+                    ))}
+                </div>
+
+                <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-astro-subtext">
+                    {otherPlanets.map((planet) => (
+                        <span key={planet.id} className="flex items-center gap-1">
+                            <span className="text-astro-highlight/70">{PLANET_SYMBOLS[planet.id]}</span>
+                            <span>{planet.data?.sign || '—'}</span>
+                        </span>
+                    ))}
+                </div>
+
+                <div className="mt-4 text-[11px] text-astro-subtext leading-relaxed">
+                    {lang === 'ru' 
+                        ? 'Солнце — твоя основа и характер, Луна — эмоции и привычки, Асцендент — первое впечатление и стиль поведения.'
+                        : 'Sun = your core, Moon = emotions and habits, Rising = first impression and style.'
+                    }
+                </div>
+            </motion.div>
         </div>
     );
 };

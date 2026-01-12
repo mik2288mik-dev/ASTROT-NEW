@@ -1,7 +1,7 @@
 import React, { memo, useMemo } from 'react';
 import { UserProfile, NatalChartData, UserContext } from '../../types';
 import { motion } from 'framer-motion';
-import { getWeatherJoke, getDailyJoke } from '../../lib/cosmic-jokes';
+import { getWeatherJoke } from '../../lib/cosmic-jokes';
 
 interface WeatherWidgetProps {
   profile: UserProfile;
@@ -53,9 +53,10 @@ export const WeatherWidget = memo<WeatherWidgetProps>(({ profile, chartData, wea
             sunSign,
             moonSign,
             marsSign,
-            lang
+            lang,
+            profile.name
         );
-    }, [weatherData.temp, weatherData.condition, sunSign, moonSign, marsSign, lang]);
+    }, [weatherData.temp, weatherData.condition, sunSign, moonSign, marsSign, lang, profile.name]);
 
     const icon = getWeatherIcon(weatherData.condition);
     const condition = translateCondition(weatherData.condition, lang);
@@ -64,31 +65,25 @@ export const WeatherWidget = memo<WeatherWidgetProps>(({ profile, chartData, wea
         <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-gradient-to-br from-astro-card to-astro-bg border border-astro-border rounded-2xl p-4 overflow-hidden"
+            className="bg-gradient-to-br from-astro-card to-astro-bg border border-astro-border rounded-2xl p-5 overflow-hidden"
         >
             {/* Верхняя часть - погода */}
-            <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-3">
-                    <span className="text-3xl">{icon}</span>
-                    <div>
-                        <div className="text-2xl font-bold text-astro-text">
-                            {Math.round(weatherData.temp)}°
-                        </div>
-                        <div className="text-xs text-astro-subtext">
-                            {condition}
-                        </div>
-                    </div>
+            <div className="flex flex-col items-center text-center gap-1 mb-4">
+                <span className="text-4xl">{icon}</span>
+                <div className="text-4xl font-bold text-astro-text leading-tight">
+                    {Math.round(weatherData.temp)}°
                 </div>
-                <div className="text-right">
-                    <div className="text-xs text-astro-subtext">
-                        {weatherData.city}
-                    </div>
-                    {weatherData.humidity && (
-                        <div className="text-[10px] text-astro-subtext/70">
-                            💧 {weatherData.humidity}%
-                        </div>
-                    )}
+                <div className="text-sm text-astro-subtext">
+                    {condition}
                 </div>
+                <div className="text-sm text-astro-subtext">
+                    {weatherData.city}
+                </div>
+                {weatherData.humidity && (
+                    <div className="text-xs text-astro-subtext/70">
+                        💧 {weatherData.humidity}%
+                    </div>
+                )}
             </div>
 
             {/* Шутка */}
@@ -100,13 +95,11 @@ export const WeatherWidget = memo<WeatherWidgetProps>(({ profile, chartData, wea
 
             {/* Фаза луны */}
             {weatherData.moonPhase && (
-                <div className="flex items-center justify-between mt-3 pt-3 border-t border-astro-border/30">
-                    <div className="flex items-center gap-2">
-                        <span className="text-lg">🌙</span>
-                        <span className="text-xs text-astro-subtext">
-                            {lang === 'ru' ? 'Луна' : 'Moon'}
-                        </span>
-                    </div>
+                <div className="flex items-center justify-center gap-2 mt-3 pt-3 border-t border-astro-border/30">
+                    <span className="text-lg">🌙</span>
+                    <span className="text-xs text-astro-subtext">
+                        {lang === 'ru' ? 'Луна' : 'Moon'}
+                    </span>
                     <span className="text-xs text-astro-text">
                         {weatherData.moonPhase.illumination}%
                     </span>

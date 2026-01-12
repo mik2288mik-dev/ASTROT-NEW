@@ -1,15 +1,12 @@
 
 import React, { useState, useEffect, useMemo, memo, useCallback, useRef } from 'react';
-import { UserProfile, NatalChartData, UserContext, UserEvolution } from '../types';
+import { UserProfile, NatalChartData, UserContext } from '../types';
 import { getText } from '../constants';
 import { SolarSystem } from '../components/SolarSystem';
 import { Loading } from '../components/ui/Loading';
-import { updateUserEvolution } from '../services/astrologyService';
-import { saveProfile } from '../services/storageService';
 import { getTodayWeather } from '../services/weatherService';
 import { motion } from 'framer-motion';
 import { CosmicPassport } from '../components/Dashboard/CosmicPassport';
-import { SoulEvolution } from '../components/Dashboard/SoulEvolution';
 import { WeatherWidget } from '../components/Dashboard/WeatherWidget';
 
 interface DashboardProps {
@@ -23,7 +20,6 @@ interface DashboardProps {
 export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate, onOpenSettings }) => {
     
     const [context, setContext] = useState<UserContext | null>(null);
-    const [evolution, setEvolution] = useState<UserEvolution | null>(profile.evolution || null);
     const [tgUser, setTgUser] = useState<any>(null);
     const [dailyHoroscope, setDailyHoroscope] = useState<any>(null);
 
@@ -124,17 +120,6 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
                 setDailyHoroscope(cachedHoroscope);
             }
 
-            // 2. Обновляем Evolution (только если прошло больше суток)
-            if (!profile.evolution || (Date.now() - profile.evolution.lastUpdated > 86400000)) {
-                try {
-                    const newEvo = await updateUserEvolution(profile, chartData || undefined);
-                    setEvolution(newEvo);
-                    const updatedProfile = { ...profile, evolution: newEvo };
-                    await saveProfile(updatedProfile);
-                } catch {
-                    // Ошибка не критична
-                }
-            }
         };
         
         loadDashboardData();
@@ -158,57 +143,50 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
             {/* 1.5. HOROSCOPE FOR TODAY */}
             <button 
                 onClick={handleNavigateHoroscope}
-                className="w-full bg-gradient-to-br from-purple-900/20 to-astro-card rounded-2xl p-6 shadow-soft relative overflow-hidden text-left transition-colors group"
+                className="w-full bg-gradient-to-br from-purple-900/20 to-astro-card rounded-2xl p-6 shadow-soft relative overflow-hidden text-center transition-colors"
             >
                 <div className="absolute -top-16 -left-16 w-48 h-48 bg-purple-500 rounded-full blur-3xl opacity-20"></div>
                 <div className="relative z-10">
-                    <div className="flex items-start justify-between mb-3">
-                        <div className="flex-1">
-                            <p className="text-[10px] uppercase tracking-widest text-astro-subtext mb-1">
-                                {profile.language === 'ru' ? 'Гороскоп на сегодня' : 'Today\'s Horoscope'}
-                            </p>
-                            {horoscopeDateLabel && (
-                                <p className="text-[9px] text-astro-subtext mb-2">
-                                    {profile.language === 'ru' ? `Дата прогноза: ${horoscopeDateLabel}` : `Forecast date: ${horoscopeDateLabel}`}
-                                </p>
-                            )}
-                            {dailyHoroscope?.content ? (
-                                <>
-                                    {/* Краткий гороскоп - только первое предложение или первые 2-3 предложения */}
-                                    <h3 className="font-serif text-lg text-astro-text mb-2">
-                                        {(() => {
-                                            // Берем первые 2-3 предложения для краткого отображения
-                                            const sentences = dailyHoroscope.content.split(/[.!?]+/).filter((s: string) => s.trim().length > 0);
-                                            const shortText = sentences.slice(0, 2).join('. ').trim();
-                                            return shortText.length > 0 ? shortText + '.' : dailyHoroscope.content.substring(0, 150) + '...';
-                                        })()}
-                                    </h3>
-                                    {dailyHoroscope.mood && (
-                                        <div className="flex items-center gap-2 mt-2">
+                    <p className="text-[10px] uppercase tracking-widest text-astro-subtext mb-1">
+                        {profile.language === 'ru' ? 'Гороскоп на сегодня' : 'Today\'s Horoscope'}
+                    </p>
+                    {horoscopeDateLabel && (
+                        <p className="text-[9px] text-astro-subtext mb-2">
+                            {profile.language === 'ru' ? `Дата прогноза: ${horoscopeDateLabel}` : `Forecast date: ${horoscopeDateLabel}`}
+                        </p>
+                    )}
+                    {dailyHoroscope?.content ? (
+                        <>
+                            {/* Краткий гороскоп - только первое предложение или первые 2-3 предложения */}
+                            <h3 className="font-serif text-lg text-astro-text mb-2">
+                                {(() => {
+                                    // Берем первые 2-3 предложения для краткого отображения
+                                    const sentences = dailyHoroscope.content.split(/[.!?]+/).filter((s: string) => s.trim().length > 0);
+                                    const shortText = sentences.slice(0, 2).join('. ').trim();
+                                    return shortText.length > 0 ? shortText + '.' : dailyHoroscope.content.substring(0, 150) + '...';
+                                })()}
+                            </h3>
+                            {dailyHoroscope.mood && (
+                                <div className="flex items-center justify-center gap-2 mt-2 flex-wrap">
+                                    <span className="text-xs text-astro-subtext">
+                                        {profile.language === 'ru' ? 'Настроение:' : 'Mood:'} <span className="text-astro-highlight font-medium">{dailyHoroscope.mood}</span>
+                                    </span>
+                                    {dailyHoroscope.color && (
+                                        <>
+                                            <span className="text-astro-subtext">•</span>
                                             <span className="text-xs text-astro-subtext">
-                                                {profile.language === 'ru' ? 'Настроение:' : 'Mood:'} <span className="text-astro-highlight font-medium">{dailyHoroscope.mood}</span>
+                                                {profile.language === 'ru' ? 'Цвет:' : 'Color:'} <span className="text-astro-highlight font-medium">{dailyHoroscope.color}</span>
                                             </span>
-                                            {dailyHoroscope.color && (
-                                                <>
-                                                    <span className="text-astro-subtext">•</span>
-                                                    <span className="text-xs text-astro-subtext">
-                                                        {profile.language === 'ru' ? 'Цвет:' : 'Color:'} <span className="text-astro-highlight font-medium">{dailyHoroscope.color}</span>
-                                                    </span>
-                                                </>
-                                            )}
-                                        </div>
+                                        </>
                                     )}
-                                </>
-                            ) : (
-                                <h3 className="font-serif text-xl text-astro-text mb-2">
-                                    {profile.language === 'ru' ? 'Сегодня тебя ждёт особенный день' : 'A special day awaits you'}
-                                </h3>
+                                </div>
                             )}
-                        </div>
-                        <div className="flex-shrink-0 w-14 h-14 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-astro-highlight/20 to-astro-highlight/5 border-2 border-astro-highlight/40 flex items-center justify-center group-hover:scale-110 transition-all shadow-md group-hover:shadow-lg ml-3">
-                            <span className="text-3xl md:text-4xl text-astro-highlight opacity-90" style={{ filter: 'drop-shadow(0 2px 6px rgba(191, 161, 255, 0.3))' }}>L</span>
-                        </div>
-                    </div>
+                        </>
+                    ) : (
+                        <h3 className="font-serif text-xl text-astro-text mb-2">
+                            {profile.language === 'ru' ? 'Сегодня тебя ждёт особенный день' : 'A special day awaits you'}
+                        </h3>
+                    )}
                     <div className="text-xs text-astro-highlight font-medium mb-2">
                         {profile.language === 'ru' ? 'Подробный прогноз →' : 'Detailed forecast →'}
                     </div>
@@ -223,21 +201,14 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
             {/* 2. PRIMARY ACTION: NATAL CHART */}
             <button 
                 onClick={handleNavigateChart}
-                className="w-full bg-gradient-to-br from-purple-900/20 to-astro-card rounded-2xl p-6 text-left transition-colors shadow-soft group relative overflow-hidden"
+                className="w-full bg-gradient-to-br from-purple-900/20 to-astro-card rounded-2xl p-6 text-center transition-colors shadow-soft relative overflow-hidden"
             >
                 <div className="absolute -top-16 -left-16 w-48 h-48 bg-purple-500 rounded-full blur-3xl opacity-20"></div>
                 <div className="relative z-10">
-                    <div className="flex justify-between items-start mb-3">
-                        <div>
-                            <h3 className="font-serif text-xl text-astro-text mb-1">{getText(profile.language, 'dashboard.menu_analysis')}</h3>
-                            <p className="text-astro-subtext text-xs font-light">
-                                {profile.language === 'ru' ? 'Личность, судьба, карма и прогнозы' : 'Personality, Fate, Karma & Forecasts'}
-                            </p>
-                        </div>
-                        <div className="flex-shrink-0 w-14 h-14 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-astro-highlight/20 to-astro-highlight/5 border-2 border-astro-highlight/40 flex items-center justify-center group-hover:scale-110 group-hover:rotate-[-10deg] transition-all shadow-md group-hover:shadow-lg">
-                            <span className="text-3xl md:text-4xl text-astro-highlight opacity-90" style={{ filter: 'drop-shadow(0 2px 6px rgba(191, 161, 255, 0.3))' }}>→</span>
-                        </div>
-                    </div>
+                    <h3 className="font-serif text-xl text-astro-text mb-1">{getText(profile.language, 'dashboard.menu_analysis')}</h3>
+                    <p className="text-astro-subtext text-xs font-light">
+                        {profile.language === 'ru' ? 'Личность, судьба, карма и прогнозы' : 'Personality, Fate, Karma & Forecasts'}
+                    </p>
                 </div>
             </button>
 
@@ -254,12 +225,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
                 </div>
             )}
 
-            {/* 4. SOUL EVOLUTION (Layer 4: Evolution) */}
-            {evolution && (
-                <SoulEvolution evolution={evolution} language={language} />
-            )}
-
-            {/* 5. COSMIC WEATHER (Layer 3: Context) */}
+            {/* 4. COSMIC WEATHER (Layer 3: Context) */}
             {profile.weatherCity ? (
                 context?.weatherData && chartData ? (
                     <WeatherWidget 
