@@ -266,7 +266,6 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
                         profile={profile}
                         chartData={chartData}
                         weatherData={context.weatherData}
-                        dailyHoroscope={dailyHoroscope}
                     />
                 ) : (
                     <div className="bg-gradient-to-r from-astro-card to-astro-bg p-5 rounded-xl border border-astro-border relative overflow-hidden opacity-60">

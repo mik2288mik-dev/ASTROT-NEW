@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { UserProfile, NatalChartData, ViewState } from './types';
 import { getProfile, saveProfile } from './services/storageService';
 import { getOrCalculateChart } from './services/chartService';
@@ -19,6 +19,7 @@ import { requestStarsPayment } from './services/telegramService';
 import { HookChat } from './views/HookChat';
 import { Paywall } from './views/Paywall';
 import { Synastry } from './views/Synastry';
+import { useSwipeBack } from './lib/useSwipeBack';
 
 // Get owner ID from environment variables for security
 const OWNER_ID = process.env.NEXT_PUBLIC_OWNER_ID || '';
@@ -301,7 +302,7 @@ const App: React.FC = () => {
         setView(newView);
     };
 
-    const handleBack = () => {
+    const handleBack = useCallback(() => {
         // If in Admin, return to Settings
         if (view === 'admin') {
             setView('settings');
@@ -309,7 +310,16 @@ const App: React.FC = () => {
         }
         // Otherwise return to Hub
         setView('dashboard');
-    };
+    }, [view]);
+
+    // Свайп назад от левого края (как в iOS)
+    const canSwipeBack = view !== 'dashboard' && view !== 'onboarding' && view !== 'hook' && view !== 'paywall';
+    useSwipeBack({
+        onSwipeBack: handleBack,
+        enabled: canSwipeBack,
+        threshold: 80,
+        edgeWidth: 25
+    });
 
     if (loading) {
         return <Loading message={getText(profile?.language || 'ru', 'loading')} progress={loadingProgress} />;
