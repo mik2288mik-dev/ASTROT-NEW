@@ -113,16 +113,14 @@ export const saveProfile = async (profile: UserProfile): Promise<void> => {
  */
 export const getProfile = async (): Promise<UserProfile | null> => {
   const tg = (window as any).Telegram?.WebApp;
-  const tgId = tg?.initDataUnsafe?.user?.id;
+  const userId = tg?.initDataUnsafe?.user?.id;
   
-  if (!tgId) {
-      log.warn('[getProfile] No Telegram ID found, cannot fetch profile from DB');
+  if (!userId) {
+      log.warn('[getProfile] No Telegram user ID found, cannot fetch profile from DB');
       return null;
   }
   
-  const userId = tgId;
-  
-  log.info(`[getProfile] Starting fetch for user: ${userId}`, { userId, tgId });
+  log.info(`[getProfile] Starting fetch for user: ${userId}`);
 
   try {
     // Always try to get from database via Next.js API
@@ -172,14 +170,12 @@ export const getProfile = async (): Promise<UserProfile | null> => {
  */
 export const saveChartData = async (data: NatalChartData): Promise<void> => {
   const tg = (window as any).Telegram?.WebApp;
-  const tgId = tg?.initDataUnsafe?.user?.id;
+  const userId = tg?.initDataUnsafe?.user?.id;
   
-  if (!tgId) {
-      log.error('[saveChartData] No Telegram ID found, cannot save chart');
-      throw new Error('User ID is required for saving chart');
+  if (!userId) {
+      log.error('[saveChartData] No Telegram user ID found, cannot save chart');
+      throw new Error('Telegram user ID is required for saving chart');
   }
-
-  const userId = tgId;
 
   log.info(`[saveChartData] Starting save for user: ${userId}`, {
     userId,
@@ -243,16 +239,14 @@ export const saveChartData = async (data: NatalChartData): Promise<void> => {
  */
 export const getChartData = async (): Promise<NatalChartData | null> => {
   const tg = (window as any).Telegram?.WebApp;
-  const tgId = tg?.initDataUnsafe?.user?.id;
+  const userId = tg?.initDataUnsafe?.user?.id;
   
-  if (!tgId) {
-      log.warn('[getChartData] No Telegram ID found, cannot fetch chart');
+  if (!userId) {
+      log.warn('[getChartData] No Telegram user ID found, cannot fetch chart');
       return null;
   }
   
-  const userId = tgId;
-
-  log.info(`[getChartData] Starting fetch for user: ${userId}`, { userId, tgId });
+  log.info(`[getChartData] Starting fetch for user: ${userId}`);
 
   try {
     // Always try to get from database via Next.js API

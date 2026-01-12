@@ -157,6 +157,13 @@ const App: React.FC = () => {
         const tg = (window as any).Telegram?.WebApp;
         const tgUser = tg?.initDataUnsafe?.user;
         const tgId = tgUser?.id;
+        
+        if (!tgId) {
+            console.error('[App] No Telegram user ID - cannot save data');
+            alert('Ошибка: Приложение должно быть открыто в Telegram');
+            return;
+        }
+        
         const isAdmin = OWNER_ID && String(tgId) === String(OWNER_ID) ? true : undefined;
         const fullProfile = { ...newProfile, id: tgId, isAdmin };
 
@@ -165,12 +172,10 @@ const App: React.FC = () => {
         setLoadingProgress(10);
 
         try {
-            // Шаг 1: Сохраняем профиль
-            if (fullProfile.isSetup) {
-                setLoadingProgress(20);
-                await saveProfile(fullProfile);
-                console.log('[App] Profile saved');
-            }
+            // Шаг 1: ВСЕГДА сохраняем профиль сначала (нужно для FK constraint в charts)
+            setLoadingProgress(20);
+            await saveProfile(fullProfile);
+            console.log('[App] Profile saved');
 
             // Шаг 2: Рассчитываем карту через chartService
             // API сам сохранит результат в БД
@@ -192,18 +197,20 @@ const App: React.FC = () => {
             setLoadingProgress(70);
 
             // Шаг 3: Генерируем контент для первого входа
-            if (fullProfile.isSetup) {
-                console.log('[App] Generating initial content...');
-                setLoadingProgress(80);
+            console.log('[App] Generating initial content...');
+            setLoadingProgress(80);
+            
+            try {
+                const allContent = await generateAllContent(fullProfile, generatedChart);
+                fullProfile.generatedContent = allContent;
                 
-                try {
-                    const allContent = await generateAllContent(fullProfile, generatedChart);
-                    fullProfile.generatedContent = allContent;
+                // Обновляем профиль только если пользователь хочет сохранить данные
+                if (fullProfile.isSetup) {
                     await saveProfile(fullProfile);
-                    setProfile(fullProfile);
-                } catch (contentError) {
-                    console.error('[App] Content generation failed (non-critical):', contentError);
                 }
+                setProfile(fullProfile);
+            } catch (contentError) {
+                console.error('[App] Content generation failed (non-critical):', contentError);
             }
             
             setLoadingProgress(100);
