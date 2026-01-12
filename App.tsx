@@ -165,6 +165,16 @@ const App: React.FC = () => {
         setLoadingProgress(10);
 
         try {
+            // Шаг 1: Пытаемся сохранить профиль (не критично если не получится)
+            setLoadingProgress(20);
+            let profileSaved = false;
+            try {
+                await saveProfile(fullProfile);
+                profileSaved = true;
+                console.log('[App] Profile saved successfully');
+            } catch (saveError: any) {
+                console.warn('[App] Failed to save profile (will continue with calculation):', saveError.message);
+                // Продолжаем без сохранения - расчёт карты всё равно сработает
             }
 
             // Шаг 2: Рассчитываем карту через chartService
@@ -202,6 +212,9 @@ const App: React.FC = () => {
                         console.warn('[App] Failed to save content (non-critical):', e);
                     }
                 }
+                setProfile(fullProfile);
+            } catch (contentError) {
+                console.error('[App] Content generation failed (non-critical):', contentError);
             }
             
             setLoadingProgress(100);
