@@ -563,10 +563,13 @@ export const db = {
       }
       
       // Сравниваем данные рождения
+      // Нормализуем для сравнения, чтобы избежать лишних пересчетов из-за регистра или пробелов
+      const normalize = (s: string | null | undefined) => String(s || '').trim().toLowerCase();
+      
       const inputChanged = 
-        existing.birth_date !== birthDate ||
-        existing.birth_time !== birthTime ||
-        existing.birth_place !== birthPlace;
+        normalize(existing.birth_date) !== normalize(birthDate) ||
+        normalize(existing.birth_time) !== normalize(birthTime) ||
+        normalize(existing.birth_place) !== normalize(birthPlace);
       
       if (inputChanged) {
         log.info(`[DB] [charts.needsRecalculation] NEEDS_CALC: birth data changed`, {
