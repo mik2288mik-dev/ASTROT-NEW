@@ -73,10 +73,19 @@ const App: React.FC = () => {
             
             const tg = (window as any).Telegram?.WebApp;
             const tgUser = tg?.initDataUnsafe?.user;
-            const tgId = tgUser?.id;
+            let tgId = tgUser?.id;
+
+            // Если нет Telegram ID, проверяем localStorage на временный ID
+            if (!tgId && typeof window !== 'undefined') {
+                const storedTempId = localStorage.getItem('astrot_temp_user_id');
+                if (storedTempId) {
+                    tgId = storedTempId;
+                    console.log('[App] Using stored temporary user ID:', tgId);
+                }
+            }
 
             if (!tgId) {
-                console.log('[App] No Telegram user ID found, showing onboarding');
+                console.log('[App] No user ID found, showing onboarding');
                 setLoadingProgress(100);
                 setLoading(false);
                 return;
@@ -156,7 +165,23 @@ const App: React.FC = () => {
 
         const tg = (window as any).Telegram?.WebApp;
         const tgUser = tg?.initDataUnsafe?.user;
-        const tgId = tgUser?.id;
+        let tgId = tgUser?.id;
+        
+        // Генерируем временный ID если нет Telegram ID (для тестирования)
+        if (!tgId) {
+            // Используем localStorage для сохранения временного ID между сессиями
+            const storedTempId = typeof window !== 'undefined' ? localStorage.getItem('astrot_temp_user_id') : null;
+            if (storedTempId) {
+                tgId = storedTempId;
+            } else {
+                tgId = `temp_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+                if (typeof window !== 'undefined') {
+                    localStorage.setItem('astrot_temp_user_id', tgId);
+                }
+            }
+            console.log('[App] Using temporary user ID:', tgId);
+        }
+        
         const isAdmin = OWNER_ID && String(tgId) === String(OWNER_ID) ? true : undefined;
         const fullProfile = { ...newProfile, id: tgId, isAdmin };
 
@@ -165,12 +190,10 @@ const App: React.FC = () => {
         setLoadingProgress(10);
 
         try {
-            // Шаг 1: Сохраняем профиль
-            if (fullProfile.isSetup) {
-                setLoadingProgress(20);
-                await saveProfile(fullProfile);
-                console.log('[App] Profile saved');
-            }
+            // Шаг 1: ВСЕГДА сохраняем профиль сначала (нужно для FK constraint в charts)
+            setLoadingProgress(20);
+            await saveProfile(fullProfile);
+            console.log('[App] Profile saved');
 
             // Шаг 2: Рассчитываем карту через chartService
             // API сам сохранит результат в БД
@@ -192,18 +215,20 @@ const App: React.FC = () => {
             setLoadingProgress(70);
 
             // Шаг 3: Генерируем контент для первого входа
-            if (fullProfile.isSetup) {
-                console.log('[App] Generating initial content...');
-                setLoadingProgress(80);
+            console.log('[App] Generating initial content...');
+            setLoadingProgress(80);
+            
+            try {
+                const allContent = await generateAllContent(fullProfile, generatedChart);
+                fullProfile.generatedContent = allContent;
                 
-                try {
-                    const allContent = await generateAllContent(fullProfile, generatedChart);
-                    fullProfile.generatedContent = allContent;
+                // Обновляем профиль только если пользователь хочет сохранить данные
+                if (fullProfile.isSetup) {
                     await saveProfile(fullProfile);
-                    setProfile(fullProfile);
-                } catch (contentError) {
-                    console.error('[App] Content generation failed (non-critical):', contentError);
                 }
+                setProfile(fullProfile);
+            } catch (contentError) {
+                console.error('[App] Content generation failed (non-critical):', contentError);
             }
             
             setLoadingProgress(100);

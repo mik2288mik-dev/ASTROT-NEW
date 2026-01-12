@@ -113,16 +113,23 @@ export const saveProfile = async (profile: UserProfile): Promise<void> => {
  */
 export const getProfile = async (): Promise<UserProfile | null> => {
   const tg = (window as any).Telegram?.WebApp;
-  const tgId = tg?.initDataUnsafe?.user?.id;
+  let userId = tg?.initDataUnsafe?.user?.id;
   
-  if (!tgId) {
-      log.warn('[getProfile] No Telegram ID found, cannot fetch profile from DB');
+  // Проверяем localStorage на временный ID если нет Telegram ID
+  if (!userId && typeof window !== 'undefined') {
+    const storedTempId = localStorage.getItem('astrot_temp_user_id');
+    if (storedTempId) {
+      userId = storedTempId;
+      log.info('[getProfile] Using stored temporary user ID:', userId);
+    }
+  }
+  
+  if (!userId) {
+      log.warn('[getProfile] No user ID found, cannot fetch profile from DB');
       return null;
   }
   
-  const userId = tgId;
-  
-  log.info(`[getProfile] Starting fetch for user: ${userId}`, { userId, tgId });
+  log.info(`[getProfile] Starting fetch for user: ${userId}`);
 
   try {
     // Always try to get from database via Next.js API
@@ -172,14 +179,21 @@ export const getProfile = async (): Promise<UserProfile | null> => {
  */
 export const saveChartData = async (data: NatalChartData): Promise<void> => {
   const tg = (window as any).Telegram?.WebApp;
-  const tgId = tg?.initDataUnsafe?.user?.id;
+  let userId = tg?.initDataUnsafe?.user?.id;
   
-  if (!tgId) {
-      log.error('[saveChartData] No Telegram ID found, cannot save chart');
+  // Проверяем localStorage на временный ID если нет Telegram ID
+  if (!userId && typeof window !== 'undefined') {
+    const storedTempId = localStorage.getItem('astrot_temp_user_id');
+    if (storedTempId) {
+      userId = storedTempId;
+      log.info('[saveChartData] Using stored temporary user ID:', userId);
+    }
+  }
+  
+  if (!userId) {
+      log.error('[saveChartData] No user ID found, cannot save chart');
       throw new Error('User ID is required for saving chart');
   }
-
-  const userId = tgId;
 
   log.info(`[saveChartData] Starting save for user: ${userId}`, {
     userId,
@@ -243,16 +257,23 @@ export const saveChartData = async (data: NatalChartData): Promise<void> => {
  */
 export const getChartData = async (): Promise<NatalChartData | null> => {
   const tg = (window as any).Telegram?.WebApp;
-  const tgId = tg?.initDataUnsafe?.user?.id;
+  let userId = tg?.initDataUnsafe?.user?.id;
   
-  if (!tgId) {
-      log.warn('[getChartData] No Telegram ID found, cannot fetch chart');
-      return null;
+  // Проверяем localStorage на временный ID если нет Telegram ID
+  if (!userId && typeof window !== 'undefined') {
+    const storedTempId = localStorage.getItem('astrot_temp_user_id');
+    if (storedTempId) {
+      userId = storedTempId;
+      log.info('[getChartData] Using stored temporary user ID:', userId);
+    }
   }
   
-  const userId = tgId;
+  if (!userId) {
+      log.warn('[getChartData] No user ID found, cannot fetch chart');
+      return null;
+  }
 
-  log.info(`[getChartData] Starting fetch for user: ${userId}`, { userId, tgId });
+  log.info(`[getChartData] Starting fetch for user: ${userId}`);
 
   try {
     // Always try to get from database via Next.js API
