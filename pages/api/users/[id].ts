@@ -35,7 +35,20 @@ export default async function handler(
     if (req.method === 'GET') {
       // Get user profile
       log.info(`[GET] Fetching user: ${userId}`);
-      const user = await db.users.get(userId);
+      
+      // Проверяем доступность БД
+      if (!process.env.DATABASE_URL) {
+        log.warn(`[GET] DATABASE_URL not configured, returning 404`);
+        return res.status(404).json({ error: 'User not found' });
+      }
+      
+      let user;
+      try {
+        user = await db.users.get(userId);
+      } catch (dbError: any) {
+        log.error(`[GET] Database error`, { error: dbError.message });
+        return res.status(500).json({ error: 'Database error', message: dbError.message });
+      }
       
       if (!user) {
         log.info(`[GET] User not found: ${userId}`);
@@ -73,8 +86,17 @@ export default async function handler(
       const userData = req.body;
       log.info(`[${req.method}] Saving user: ${userId}`, {
         hasName: !!userData.name,
-        isPremium: userData.is_premium
+        isPremium: userData.isPremium
       });
+
+      // Проверяем доступность БД
+      if (!process.env.DATABASE_URL) {
+        log.error(`[${req.method}] DATABASE_URL not configured`);
+        return res.status(500).json({ 
+          error: 'Database not configured',
+          message: 'DATABASE_URL is not set. Please configure the database connection.'
+        });
+      }
 
       // ВАЖНО: Получаем существующего пользователя для правильного объединения данных
       let existingUser = null;

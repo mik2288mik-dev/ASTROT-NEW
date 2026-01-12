@@ -91,35 +91,43 @@ async function handler(
       forceRecalculate
     });
 
-    // ШАГ 1: Проверяем, нужен ли пересчёт
-    if (!forceRecalculate) {
-      const checkResult = await db.charts.needsRecalculation(
-        effectiveUserId, 
-        birthDate, 
-        normalizedBirthTime, 
-        birthPlace
-      );
+    // ШАГ 1: Проверяем, нужен ли пересчёт (только если БД доступна)
+    const DATABASE_URL_CHECK = process.env.DATABASE_URL;
+    
+    if (!forceRecalculate && DATABASE_URL_CHECK) {
+      try {
+        const checkResult = await db.charts.needsRecalculation(
+          effectiveUserId, 
+          birthDate, 
+          normalizedBirthTime, 
+          birthPlace
+        );
 
-      if (!checkResult.needsCalc && checkResult.existingChart) {
-        const duration = Date.now() - startTime;
-        log.info(`CACHE_HIT: returning existing chart (${duration}ms)`, {
+        if (!checkResult.needsCalc && checkResult.existingChart) {
+          const duration = Date.now() - startTime;
+          log.info(`CACHE_HIT: returning existing chart (${duration}ms)`, {
+            userId: effectiveUserId,
+            reason: checkResult.reason
+          });
+          
+          // Устанавливаем заголовки
+          res.setHeader('X-Chart-Source', 'cache');
+          res.setHeader('X-Chart-Reason', checkResult.reason);
+          
+          return res.status(200).json(checkResult.existingChart.chart_data);
+        }
+
+        log.info(`CACHE_MISS: need to calculate`, {
           userId: effectiveUserId,
           reason: checkResult.reason
         });
-        
-        // Устанавливаем заголовки
-        res.setHeader('X-Chart-Source', 'cache');
-        res.setHeader('X-Chart-Reason', checkResult.reason);
-        
-        return res.status(200).json(checkResult.existingChart.chart_data);
+      } catch (cacheError: any) {
+        log.warn('Cache check failed, proceeding to calculate', { error: cacheError.message });
       }
-
-      log.info(`CACHE_MISS: need to calculate`, {
-        userId: effectiveUserId,
-        reason: checkResult.reason
-      });
-    } else {
+    } else if (forceRecalculate) {
       log.info('FORCE_RECALCULATE: skipping cache check');
+    } else {
+      log.info('DATABASE_URL not configured: skipping cache check');
     }
 
     // ШАГ 2: Пытаемся получить блокировку
@@ -130,13 +138,19 @@ async function handler(
         userId: effectiveUserId
       });
       
-      // Ждём немного и пробуем взять из БД
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      const existingChart = await db.charts.get(effectiveUserId);
-      if (existingChart && existingChart.chart_data) {
-        res.setHeader('X-Chart-Source', 'cache-after-wait');
-        return res.status(200).json(existingChart.chart_data);
+      // Ждём немного и пробуем взять из БД (если БД доступна)
+      if (DATABASE_URL_CHECK) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        try {
+          const existingChart = await db.charts.get(effectiveUserId);
+          if (existingChart && existingChart.chart_data) {
+            res.setHeader('X-Chart-Source', 'cache-after-wait');
+            return res.status(200).json(existingChart.chart_data);
+          }
+        } catch (dbError: any) {
+          log.warn('Failed to get chart from DB after wait', { error: dbError.message });
+        }
       }
       
       return res.status(409).json({
@@ -179,18 +193,55 @@ async function handler(
       risingSign: chartData.rising.sign
     });
 
-    // ШАГ 4: Сохраняем в БД
-    await db.charts.set(
-      effectiveUserId, 
-      chartData, 
-      birthDate, 
-      normalizedBirthTime, 
-      birthPlace
-    );
+    // ШАГ 4: Сохраняем в БД (если БД доступна)
+    // Проверяем наличие DATABASE_URL
+    const DATABASE_URL = process.env.DATABASE_URL;
+    
+    if (DATABASE_URL) {
+      try {
+        // Сначала проверяем, существует ли пользователь (для FK constraint)
+        const existingUser = await db.users.get(effectiveUserId);
+        if (!existingUser) {
+          // Создаём минимальную запись пользователя для FK constraint
+          log.info('Creating minimal user record for chart FK constraint', { userId: effectiveUserId });
+          await db.users.set(effectiveUserId, {
+            id: effectiveUserId,
+            name: name,
+            birth_date: birthDate,
+            birth_time: normalizedBirthTime,
+            birth_place: birthPlace,
+            is_setup: false,
+            language: language || 'ru',
+            theme: 'dark',
+            is_premium: false,
+            is_admin: false,
+            evolution: null,
+            generated_content: null,
+            weather_city: null,
+          });
+          log.info('Minimal user record created', { userId: effectiveUserId });
+        }
+        
+        await db.charts.set(
+          effectiveUserId, 
+          chartData, 
+          birthDate, 
+          normalizedBirthTime, 
+          birthPlace
+        );
 
-    log.info('SAVED: chart saved to database', {
-      userId: effectiveUserId
-    });
+        log.info('SAVED: chart saved to database', {
+          userId: effectiveUserId
+        });
+      } catch (dbError: any) {
+        log.warn('Failed to save chart to database, returning calculated data anyway', { 
+          error: dbError.message,
+          userId: effectiveUserId
+        });
+      }
+    } else {
+      log.warn('DATABASE_URL not configured, skipping database save');
+    }
 
     // Освобождаем блокировку
     releaseLock(lockKey);

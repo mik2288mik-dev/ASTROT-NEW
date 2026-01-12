@@ -165,22 +165,17 @@ const App: React.FC = () => {
         setLoadingProgress(10);
 
         try {
-            // Шаг 1: Сохраняем профиль
-            if (fullProfile.isSetup) {
-                setLoadingProgress(20);
-                await saveProfile(fullProfile);
-                console.log('[App] Profile saved');
             }
 
             // Шаг 2: Рассчитываем карту через chartService
-            // API сам сохранит результат в БД
+            // API сам сохранит результат в БД (если БД доступна)
             setLoadingProgress(40);
             console.log('[App] Calculating natal chart...');
             
             const generatedChart = await getOrCalculateChart(fullProfile);
             
             if (!generatedChart || !generatedChart.sun || !generatedChart.moon || !generatedChart.rising) {
-                throw new Error('Invalid chart data received');
+                throw new Error('Не удалось получить данные карты. Попробуйте ещё раз.');
             }
             
             console.log('[App] Chart calculated:', {
@@ -191,18 +186,21 @@ const App: React.FC = () => {
             setChartData(generatedChart);
             setLoadingProgress(70);
 
-            // Шаг 3: Генерируем контент для первого входа
-            if (fullProfile.isSetup) {
-                console.log('[App] Generating initial content...');
-                setLoadingProgress(80);
+            // Шаг 3: Генерируем контент для первого входа (не критично)
+            console.log('[App] Generating initial content...');
+            setLoadingProgress(80);
+            
+            try {
+                const allContent = await generateAllContent(fullProfile, generatedChart);
+                fullProfile.generatedContent = allContent;
                 
-                try {
-                    const allContent = await generateAllContent(fullProfile, generatedChart);
-                    fullProfile.generatedContent = allContent;
-                    await saveProfile(fullProfile);
-                    setProfile(fullProfile);
-                } catch (contentError) {
-                    console.error('[App] Content generation failed (non-critical):', contentError);
+                // Обновляем профиль только если получилось сохранить ранее
+                if (profileSaved && fullProfile.isSetup) {
+                    try {
+                        await saveProfile(fullProfile);
+                    } catch (e) {
+                        console.warn('[App] Failed to save content (non-critical):', e);
+                    }
                 }
             }
             
@@ -213,18 +211,38 @@ const App: React.FC = () => {
             
         } catch (error: any) {
             console.error('[App] Error during onboarding:', error);
+            console.error('[App] Error message:', error?.message);
+            console.error('[App] Error stack:', error?.stack);
             
-            let errorMessage = error?.message || 'Неизвестная ошибка';
+            // Получаем оригинальное сообщение ошибки
+            const originalMessage = error?.message || 'Неизвестная ошибка';
             
-            if (errorMessage.includes('initialize') || errorMessage.includes('ephemeris')) {
-                errorMessage = 'Ошибка инициализации расчетов. Попробуйте позже.';
-            } else if (errorMessage.includes('location') || errorMessage.includes('coordinates')) {
-                errorMessage = 'Не удалось найти место рождения. Проверьте написание.';
-            } else if (!errorMessage.includes('ошибк')) {
-                errorMessage = 'Не удалось рассчитать карту. Проверьте данные.';
+            // Если сообщение уже на русском - показываем его как есть
+            if (/[а-яА-ЯёЁ]/.test(originalMessage)) {
+                alert(originalMessage);
+            } else {
+                // Определяем тип ошибки для user-friendly сообщения
+                const lowerMessage = originalMessage.toLowerCase();
+                let errorMessage = originalMessage;
+                
+                if (lowerMessage.includes('database') || lowerMessage.includes('db')) {
+                    errorMessage = 'Ошибка базы данных. Попробуйте позже.';
+                } else if (lowerMessage.includes('initialize') || lowerMessage.includes('ephemeris')) {
+                    errorMessage = 'Ошибка инициализации расчетов. Попробуйте позже.';
+                } else if (lowerMessage.includes('location') || lowerMessage.includes('coordinates') || lowerMessage.includes('not found')) {
+                    errorMessage = 'Не удалось найти место рождения. Проверьте написание (например: "Москва, Россия").';
+                } else if (lowerMessage.includes('validation') || lowerMessage.includes('invalid')) {
+                    errorMessage = `Ошибка данных: ${originalMessage}`;
+                } else if (lowerMessage.includes('network') || lowerMessage.includes('fetch')) {
+                    errorMessage = 'Ошибка сети. Проверьте интернет-соединение.';
+                } else if (lowerMessage.includes('timeout')) {
+                    errorMessage = 'Превышено время ожидания. Попробуйте позже.';
+                } else {
+                    errorMessage = 'Произошла ошибка при расчёте. Попробуйте снова.';
+                }
+                
+                alert(errorMessage);
             }
-            
-            alert(`Ошибка: ${errorMessage}`);
             setView('onboarding');
         } finally {
             setLoadingProgress(100);

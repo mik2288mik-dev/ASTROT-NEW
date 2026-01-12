@@ -263,10 +263,13 @@ function convertLocalTimeToUTC(
 
 /**
  * Получение координат и часового пояса по названию места через геокодинг
+ * С retry логикой для надёжности
  */
-export async function getCoordinates(placeName: string): Promise<Coordinates> {
+export async function getCoordinates(placeName: string, retryCount = 0): Promise<Coordinates> {
+  const MAX_RETRIES = 2;
+  
   try {
-    log.info('Getting coordinates and timezone for place', { placeName });
+    log.info('Getting coordinates and timezone for place', { placeName, attempt: retryCount + 1 });
     
     const url = 'https://nominatim.openstreetmap.org/search';
     
@@ -284,31 +287,44 @@ export async function getCoordinates(placeName: string): Promise<Coordinates> {
           'Accept': 'application/json',
           'Accept-Language': 'en-US,en;q=0.9,ru;q=0.8'
         },
-        timeout: 15000
+        timeout: 20000 // Увеличен таймаут до 20 секунд
       });
     } catch (axiosError: any) {
       log.error('Error fetching coordinates from Nominatim', {
         placeName,
         error: axiosError.message,
         code: axiosError.code,
-        response: axiosError.response?.data
+        attempt: retryCount + 1
       });
       
+      // Retry для сетевых ошибок
+      if (retryCount < MAX_RETRIES && (
+        axiosError.code === 'ECONNABORTED' || 
+        axiosError.code === 'ENOTFOUND' ||
+        axiosError.code === 'ETIMEDOUT' ||
+        axiosError.message?.includes('timeout') ||
+        axiosError.message?.includes('network')
+      )) {
+        log.info(`Retrying geocoding request (attempt ${retryCount + 2}/${MAX_RETRIES + 1})`);
+        await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
+        return getCoordinates(placeName, retryCount + 1);
+      }
+      
       if (axiosError.code === 'ECONNABORTED' || axiosError.message?.includes('timeout')) {
-        throw new Error(`Timeout getting coordinates for location: ${placeName}. Please check your internet connection and try again.`);
+        throw new Error(`Не удалось получить координаты для "${placeName}". Проверьте интернет-соединение.`);
       }
       
       // Проверяем если это ошибка rate limit от Nominatim
       if (axiosError.response?.status === 429) {
-        throw new Error(`Too many requests to map service. Please wait a moment and try again.`);
+        throw new Error(`Слишком много запросов. Подождите немного и попробуйте снова.`);
       }
       
-      throw new Error(`Network error getting coordinates for ${placeName}: ${axiosError.message}`);
+      throw new Error(`Ошибка сети при поиске места "${placeName}". Попробуйте позже.`);
     }
 
     if (!response.data || response.data.length === 0) {
       log.warn('No location found in Nominatim response', { placeName, responseData: response.data });
-      throw new Error(`Location not found: ${placeName}. Please check the spelling and try again (e.g., "Moscow, Russia" or "Москва, Россия").`);
+      throw new Error(`Место "${placeName}" не найдено. Проверьте написание (например: "Москва, Россия").`);
     }
 
     const location = response.data[0];
@@ -316,7 +332,7 @@ export async function getCoordinates(placeName: string): Promise<Coordinates> {
     const lon = parseFloat(location.lon);
 
     if (isNaN(lat) || isNaN(lon)) {
-      throw new Error(`Invalid coordinates received for location: ${placeName}`);
+      throw new Error(`Некорректные координаты для места "${placeName}".`);
     }
 
     let timezone: string;
@@ -324,15 +340,15 @@ export async function getCoordinates(placeName: string): Promise<Coordinates> {
       timezone = tzLookup(lat, lon);
       log.info('Timezone determined accurately', { lat, lon, timezone, placeName });
     } catch (tzError: any) {
-      log.warn('Failed to determine timezone, using UTC', { error: tzError.message });
-      timezone = 'UTC';
+      log.warn('Failed to determine timezone, using Europe/Moscow as fallback', { error: tzError.message });
+      timezone = 'Europe/Moscow'; // Более разумный fallback для русскоязычных пользователей
     }
 
     log.info('Coordinates and timezone found', { lat, lon, timezone, placeName, displayName: location.display_name });
 
     return { lat, lon, timezone };
   } catch (error: any) {
-    log.error('Error getting coordinates', error);
+    log.error('Error getting coordinates', { error: error.message, placeName });
     throw error;
   }
 }
