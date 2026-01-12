@@ -76,25 +76,50 @@ async function calculateChart(profile: UserProfile): Promise<NatalChartData> {
   
   const url = `${API_BASE_URL}/api/astrology/natal-chart`;
   
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      userId: profile.id,
-      name: profile.name,
-      birthDate: profile.birthDate,
-      birthTime: profile.birthTime,
-      birthPlace: profile.birthPlace,
-      language: profile.language
-    })
-  });
-  
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Unknown error' }));
-    throw new Error(error.message || `Calculation failed: ${response.status}`);
+  let response;
+  try {
+    response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: profile.id,
+        name: profile.name,
+        birthDate: profile.birthDate,
+        birthTime: profile.birthTime,
+        birthPlace: profile.birthPlace,
+        language: profile.language
+      })
+    });
+  } catch (fetchError: any) {
+    log.error(`[calculateChart] Network error`, { error: fetchError.message });
+    throw new Error('Ошибка сети. Проверьте интернет-соединение и попробуйте снова.');
   }
   
-  const chartData = await response.json();
+  if (!response.ok) {
+    let errorMessage = 'Неизвестная ошибка';
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.message || errorData.error || `Ошибка сервера: ${response.status}`;
+      log.error(`[calculateChart] API error`, { status: response.status, error: errorMessage });
+    } catch {
+      errorMessage = `Ошибка сервера: ${response.status}`;
+    }
+    throw new Error(errorMessage);
+  }
+  
+  let chartData;
+  try {
+    chartData = await response.json();
+  } catch (parseError) {
+    log.error(`[calculateChart] Failed to parse response`);
+    throw new Error('Ошибка обработки ответа сервера.');
+  }
+  
+  // Валидация ответа
+  if (!chartData || !chartData.sun || !chartData.moon || !chartData.rising) {
+    log.error(`[calculateChart] Invalid chart data`, { chartData });
+    throw new Error('Получены некорректные данные карты.');
+  }
   
   log.info(`[calculateChart] CALCULATED: chart created`, {
     sunSign: chartData.sun?.sign,

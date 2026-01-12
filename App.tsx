@@ -236,29 +236,33 @@ const App: React.FC = () => {
             
             // Получаем оригинальное сообщение ошибки
             const originalMessage = error?.message || 'Неизвестная ошибка';
-            let errorMessage = originalMessage;
             
-            // Определяем тип ошибки для user-friendly сообщения
-            const lowerMessage = originalMessage.toLowerCase();
-            
-            if (lowerMessage.includes('database') || lowerMessage.includes('db')) {
-                errorMessage = 'Ошибка базы данных. Попробуйте позже.';
-            } else if (lowerMessage.includes('initialize') || lowerMessage.includes('ephemeris')) {
-                errorMessage = 'Ошибка инициализации расчетов. Попробуйте позже.';
-            } else if (lowerMessage.includes('location') || lowerMessage.includes('coordinates') || lowerMessage.includes('not found')) {
-                errorMessage = 'Не удалось найти место рождения. Проверьте написание (например: "Москва, Россия").';
-            } else if (lowerMessage.includes('validation') || lowerMessage.includes('invalid')) {
-                errorMessage = `Ошибка данных: ${originalMessage}`;
-            } else if (lowerMessage.includes('network') || lowerMessage.includes('fetch')) {
-                errorMessage = 'Ошибка сети. Проверьте интернет-соединение.';
-            } else if (lowerMessage.includes('timeout')) {
-                errorMessage = 'Превышено время ожидания. Попробуйте позже.';
+            // Если сообщение уже на русском - показываем его как есть
+            if (/[а-яА-ЯёЁ]/.test(originalMessage)) {
+                alert(originalMessage);
             } else {
-                // Показываем оригинальную ошибку для отладки
-                errorMessage = `Ошибка: ${originalMessage}`;
+                // Определяем тип ошибки для user-friendly сообщения
+                const lowerMessage = originalMessage.toLowerCase();
+                let errorMessage = originalMessage;
+                
+                if (lowerMessage.includes('database') || lowerMessage.includes('db')) {
+                    errorMessage = 'Ошибка базы данных. Попробуйте позже.';
+                } else if (lowerMessage.includes('initialize') || lowerMessage.includes('ephemeris')) {
+                    errorMessage = 'Ошибка инициализации расчетов. Попробуйте позже.';
+                } else if (lowerMessage.includes('location') || lowerMessage.includes('coordinates') || lowerMessage.includes('not found')) {
+                    errorMessage = 'Не удалось найти место рождения. Проверьте написание (например: "Москва, Россия").';
+                } else if (lowerMessage.includes('validation') || lowerMessage.includes('invalid')) {
+                    errorMessage = `Ошибка данных: ${originalMessage}`;
+                } else if (lowerMessage.includes('network') || lowerMessage.includes('fetch')) {
+                    errorMessage = 'Ошибка сети. Проверьте интернет-соединение.';
+                } else if (lowerMessage.includes('timeout')) {
+                    errorMessage = 'Превышено время ожидания. Попробуйте позже.';
+                } else {
+                    errorMessage = 'Произошла ошибка при расчёте. Попробуйте снова.';
+                }
+                
+                alert(errorMessage);
             }
-            
-            alert(errorMessage);
             setView('onboarding');
         } finally {
             setLoadingProgress(100);
