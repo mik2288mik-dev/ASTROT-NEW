@@ -1,4 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
+
+/**
+ * Health check endpoint for Railway deployment monitoring
+ * Returns status of app and database connectivity
+ */
 import { Pool } from 'pg';
 
 const DATABASE_URL = process.env.DATABASE_URL || '';
