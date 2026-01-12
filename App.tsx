@@ -73,19 +73,10 @@ const App: React.FC = () => {
             
             const tg = (window as any).Telegram?.WebApp;
             const tgUser = tg?.initDataUnsafe?.user;
-            let tgId = tgUser?.id;
-
-            // Если нет Telegram ID, проверяем localStorage на временный ID
-            if (!tgId && typeof window !== 'undefined') {
-                const storedTempId = localStorage.getItem('astrot_temp_user_id');
-                if (storedTempId) {
-                    tgId = storedTempId;
-                    console.log('[App] Using stored temporary user ID:', tgId);
-                }
-            }
+            const tgId = tgUser?.id;
 
             if (!tgId) {
-                console.log('[App] No user ID found, showing onboarding');
+                console.log('[App] No Telegram user ID found, showing onboarding');
                 setLoadingProgress(100);
                 setLoading(false);
                 return;
@@ -165,21 +156,12 @@ const App: React.FC = () => {
 
         const tg = (window as any).Telegram?.WebApp;
         const tgUser = tg?.initDataUnsafe?.user;
-        let tgId = tgUser?.id;
+        const tgId = tgUser?.id;
         
-        // Генерируем временный ID если нет Telegram ID (для тестирования)
         if (!tgId) {
-            // Используем localStorage для сохранения временного ID между сессиями
-            const storedTempId = typeof window !== 'undefined' ? localStorage.getItem('astrot_temp_user_id') : null;
-            if (storedTempId) {
-                tgId = storedTempId;
-            } else {
-                tgId = `temp_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-                if (typeof window !== 'undefined') {
-                    localStorage.setItem('astrot_temp_user_id', tgId);
-                }
-            }
-            console.log('[App] Using temporary user ID:', tgId);
+            console.error('[App] No Telegram user ID - cannot save data');
+            alert('Ошибка: Приложение должно быть открыто в Telegram');
+            return;
         }
         
         const isAdmin = OWNER_ID && String(tgId) === String(OWNER_ID) ? true : undefined;

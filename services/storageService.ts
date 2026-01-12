@@ -113,19 +113,10 @@ export const saveProfile = async (profile: UserProfile): Promise<void> => {
  */
 export const getProfile = async (): Promise<UserProfile | null> => {
   const tg = (window as any).Telegram?.WebApp;
-  let userId = tg?.initDataUnsafe?.user?.id;
-  
-  // Проверяем localStorage на временный ID если нет Telegram ID
-  if (!userId && typeof window !== 'undefined') {
-    const storedTempId = localStorage.getItem('astrot_temp_user_id');
-    if (storedTempId) {
-      userId = storedTempId;
-      log.info('[getProfile] Using stored temporary user ID:', userId);
-    }
-  }
+  const userId = tg?.initDataUnsafe?.user?.id;
   
   if (!userId) {
-      log.warn('[getProfile] No user ID found, cannot fetch profile from DB');
+      log.warn('[getProfile] No Telegram user ID found, cannot fetch profile from DB');
       return null;
   }
   
@@ -179,20 +170,11 @@ export const getProfile = async (): Promise<UserProfile | null> => {
  */
 export const saveChartData = async (data: NatalChartData): Promise<void> => {
   const tg = (window as any).Telegram?.WebApp;
-  let userId = tg?.initDataUnsafe?.user?.id;
-  
-  // Проверяем localStorage на временный ID если нет Telegram ID
-  if (!userId && typeof window !== 'undefined') {
-    const storedTempId = localStorage.getItem('astrot_temp_user_id');
-    if (storedTempId) {
-      userId = storedTempId;
-      log.info('[saveChartData] Using stored temporary user ID:', userId);
-    }
-  }
+  const userId = tg?.initDataUnsafe?.user?.id;
   
   if (!userId) {
-      log.error('[saveChartData] No user ID found, cannot save chart');
-      throw new Error('User ID is required for saving chart');
+      log.error('[saveChartData] No Telegram user ID found, cannot save chart');
+      throw new Error('Telegram user ID is required for saving chart');
   }
 
   log.info(`[saveChartData] Starting save for user: ${userId}`, {
@@ -257,22 +239,13 @@ export const saveChartData = async (data: NatalChartData): Promise<void> => {
  */
 export const getChartData = async (): Promise<NatalChartData | null> => {
   const tg = (window as any).Telegram?.WebApp;
-  let userId = tg?.initDataUnsafe?.user?.id;
-  
-  // Проверяем localStorage на временный ID если нет Telegram ID
-  if (!userId && typeof window !== 'undefined') {
-    const storedTempId = localStorage.getItem('astrot_temp_user_id');
-    if (storedTempId) {
-      userId = storedTempId;
-      log.info('[getChartData] Using stored temporary user ID:', userId);
-    }
-  }
+  const userId = tg?.initDataUnsafe?.user?.id;
   
   if (!userId) {
-      log.warn('[getChartData] No user ID found, cannot fetch chart');
+      log.warn('[getChartData] No Telegram user ID found, cannot fetch chart');
       return null;
   }
-
+  
   log.info(`[getChartData] Starting fetch for user: ${userId}`);
 
   try {
