@@ -142,20 +142,20 @@ export const CosmicPassport = memo<CosmicPassportProps>(({
           <div className="flex items-center gap-3">
             {/* Weather Display */}
             {weatherData && (
-              <div className="flex items-center gap-3 px-4 py-2 bg-astro-bg/50 rounded-xl border border-astro-border/30">
-                <span className="text-2xl">{getWeatherIcon(weatherData.condition)}</span>
+              <div className="flex items-center gap-3 px-4 py-2.5 bg-astro-bg/50 rounded-xl border border-astro-border/30">
+                <span className="text-3xl">{getWeatherIcon(weatherData.condition)}</span>
                 <div className="text-right">
-                  <p className="text-lg font-serif text-astro-text leading-tight">
+                  <p className="text-xl font-serif text-astro-text leading-tight">
                     {Math.round(weatherData.temp)}°
                   </p>
-                  <p className="text-[10px] text-astro-subtext/80 leading-tight" title={translateWeather(weatherData.condition, profile.language)}>
+                  <p className="text-[11px] text-astro-subtext/80 leading-tight" title={translateWeather(weatherData.condition, profile.language)}>
                     {translateWeather(weatherData.condition, profile.language)}
                   </p>
-                  <p className="text-[9px] text-astro-subtext/60 leading-tight">
+                  <p className="text-[10px] text-astro-subtext/60 leading-tight">
                     {weatherData.city.length > 10 ? weatherData.city.substring(0, 10) + '...' : weatherData.city}
                   </p>
                   {weatherData.moonPhase && (
-                    <p className="text-[9px] text-astro-highlight/70 leading-tight">
+                    <p className="text-[10px] text-astro-highlight/70 leading-tight">
                       {translateMoonPhase(weatherData.moonPhase.phase, profile.language)}
                     </p>
                   )}
