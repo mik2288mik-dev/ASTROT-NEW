@@ -50,17 +50,30 @@ export function validateDate(dateString: string): { isValid: boolean; error?: st
 }
 
 /**
- * Валидация времени в формате HH:MM
+ * Валидация времени в формате HH:MM или H:MM
  */
 export function validateTime(timeString: string): { isValid: boolean; error?: string } {
   if (!timeString || typeof timeString !== 'string') {
     return { isValid: false, error: 'Time is required' };
   }
 
-  // Проверяем формат HH:MM
-  const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
-  if (!timeRegex.test(timeString)) {
+  // Проверяем формат HH:MM или H:MM (допускаем однозначный час)
+  const timeRegex = /^(\d{1,2}):([0-5]\d)$/;
+  const match = timeString.match(timeRegex);
+  
+  if (!match) {
     return { isValid: false, error: 'Time must be in format HH:MM (24-hour format)' };
+  }
+  
+  const hours = parseInt(match[1], 10);
+  const minutes = parseInt(match[2], 10);
+  
+  if (hours < 0 || hours > 23) {
+    return { isValid: false, error: 'Hours must be between 0 and 23' };
+  }
+  
+  if (minutes < 0 || minutes > 59) {
+    return { isValid: false, error: 'Minutes must be between 0 and 59' };
   }
 
   return { isValid: true };

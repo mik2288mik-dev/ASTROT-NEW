@@ -47,18 +47,20 @@ describe('Validation', () => {
   });
 
   describe('validateTime', () => {
-    it('должен принимать валидное время в формате HH:MM', () => {
+    it('должен принимать валидное время в формате HH:MM или H:MM', () => {
       expect(validateTime('00:00').isValid).toBe(true);
       expect(validateTime('12:30').isValid).toBe(true);
       expect(validateTime('23:59').isValid).toBe(true);
+      expect(validateTime('1:30').isValid).toBe(true);   // Одна цифра для часа допускается
+      expect(validateTime('9:05').isValid).toBe(true);   // Однозначный час
     });
 
     it('должен отклонять невалидные форматы времени', () => {
       expect(validateTime('25:00').isValid).toBe(false); // Час > 23
       expect(validateTime('12:60').isValid).toBe(false); // Минута > 59
-      expect(validateTime('1:30').isValid).toBe(false);   // Одна цифра для часа
       expect(validateTime('12:5').isValid).toBe(false);   // Одна цифра для минуты
       expect(validateTime('invalid').isValid).toBe(false);
+      expect(validateTime('24:00').isValid).toBe(false); // Час = 24 невалиден
     });
 
     it('должен отклонять пустые значения', () => {
