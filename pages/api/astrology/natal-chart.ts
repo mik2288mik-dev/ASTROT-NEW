@@ -234,6 +234,12 @@ async function handler(
       errorMessage = userLanguage === 'ru'
         ? 'Не удалось найти указанное место рождения. Проверьте правильность написания.'
         : 'Location not found. Please check the spelling of your birth place.';
+    } else if (errorMsg.includes('timeout') || errorMsg.includes('network') || errorMsg.includes('econnrefused')) {
+      // Network errors (nominatim or db)
+      statusCode = 503;
+      errorMessage = userLanguage === 'ru'
+        ? 'Временные проблемы с соединением. Пожалуйста, попробуйте еще раз через минуту.'
+        : 'Temporary connection issue. Please try again in a minute.';
     } else if (errorMsg.includes('initialize') || errorMsg.includes('ephemeris')) {
       statusCode = 500;
       errorMessage = userLanguage === 'ru'
