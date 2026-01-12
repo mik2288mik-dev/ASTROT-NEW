@@ -10,6 +10,9 @@ const log = {
   info: (message: string, data?: any) => {
     console.log(`[API/natal-chart] ${message}`, data || '');
   },
+  warn: (message: string, data?: any) => {
+    console.warn(`[API/natal-chart] WARNING: ${message}`, data || '');
+  },
   error: (message: string, error?: any) => {
     console.error(`[API/natal-chart] ERROR: ${message}`, error || '');
   },
