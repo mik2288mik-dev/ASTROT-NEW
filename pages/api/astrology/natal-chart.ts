@@ -240,10 +240,15 @@ async function handler(
       errorMessage = userLanguage === 'ru'
         ? 'Временные проблемы с соединением. Пожалуйста, попробуйте еще раз через минуту.'
         : 'Temporary connection issue. Please try again in a minute.';
+    } else if (errorMsg.includes('database_url is not configured')) {
+      statusCode = 500;
+      errorMessage = userLanguage === 'ru'
+        ? 'Ошибка конфигурации базы данных. Обратитесь к администратору.'
+        : 'Database configuration error. Please contact administrator.';
     } else if (errorMsg.includes('initialize') || errorMsg.includes('ephemeris')) {
       statusCode = 500;
       errorMessage = userLanguage === 'ru'
-        ? 'Ошибка инициализации расчётов. Попробуйте позже.'
+        ? 'Ошибка инициализации расчетов. Попробуйте позже.'
         : 'Calculation initialization error. Please try again later.';
     } else {
       errorMessage = userLanguage === 'ru'
