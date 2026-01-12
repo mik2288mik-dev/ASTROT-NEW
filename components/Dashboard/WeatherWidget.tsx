@@ -90,6 +90,11 @@ export const WeatherWidget = memo<WeatherWidgetProps>(({ profile, chartData, wea
                         </div>
                     )}
                 </div>
+                {weatherData.humidity && (
+                    <div className="text-xs text-astro-subtext/70">
+                        💧 {weatherData.humidity}%
+                    </div>
+                )}
             </div>
 
             {/* Шутка */}
@@ -101,13 +106,11 @@ export const WeatherWidget = memo<WeatherWidgetProps>(({ profile, chartData, wea
 
             {/* Фаза луны */}
             {weatherData.moonPhase && (
-                <div className="flex items-center justify-between mt-3 pt-3 border-t border-astro-border/30">
-                    <div className="flex items-center gap-2">
-                        <span className="text-lg">🌙</span>
-                        <span className="text-xs text-astro-subtext">
-                            {lang === 'ru' ? 'Луна' : 'Moon'}
-                        </span>
-                    </div>
+                <div className="flex items-center justify-center gap-2 mt-3 pt-3 border-t border-astro-border/30">
+                    <span className="text-lg">🌙</span>
+                    <span className="text-xs text-astro-subtext">
+                        {lang === 'ru' ? 'Луна' : 'Moon'}
+                    </span>
                     <span className="text-xs text-astro-text">
                         {weatherData.moonPhase.illumination}%
                     </span>
