@@ -53,8 +53,10 @@ RUN npm ci --omit=dev --prefer-offline --no-audit --no-fund && \
 COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/next.config.js ./
+COPY --from=builder --chown=nextjs:nodejs /app/tsconfig.json ./
 COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
 COPY --from=builder --chown=nextjs:nodejs /app/lib ./lib
+COPY --from=builder --chown=nextjs:nodejs /app/types ./types
 COPY --from=builder --chown=nextjs:nodejs /app/ephe ./ephe
 COPY --from=builder --chown=nextjs:nodejs /app/metadata.json ./
 
