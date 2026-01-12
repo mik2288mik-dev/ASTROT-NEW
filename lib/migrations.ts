@@ -759,18 +759,18 @@ export async function runMigrations(): Promise<void> {
   try {
     log.info('Starting database migrations...');
     
-    // Configure pool with better timeout settings
+    // Configure pool with SHORT timeout settings for fast startup
     // Use process.env.DATABASE_URL directly from environment variables
     pool = new Pool({
       connectionString: process.env.DATABASE_URL, // Direct use of process.env.DATABASE_URL
       ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-      connectionTimeoutMillis: 10000, // 10 seconds timeout
-      idleTimeoutMillis: 30000,
-      max: 5, // Limit connections for migrations
+      connectionTimeoutMillis: 5000, // 5 seconds timeout (reduced from 10)
+      idleTimeoutMillis: 10000,
+      max: 3, // Limit connections for migrations
     });
 
-    // Test connection with retry logic
-    await testConnection(pool, 3, 2000);
+    // Test connection with minimal retry (fast fail)
+    await testConnection(pool, 1, 1000);
     log.info('Database connection test passed');
 
     // Create migrations table first
