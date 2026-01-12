@@ -73,25 +73,10 @@ const App: React.FC = () => {
             
             const tg = (window as any).Telegram?.WebApp;
             const tgUser = tg?.initDataUnsafe?.user;
-            let tgId = tgUser?.id;
-
-            // Если нет Telegram ID, генерируем/читаем гостевой ID
-            if (!tgId) {
-                console.log('[App] No Telegram user ID found, checking guest ID');
-                const guestId = localStorage.getItem('guest_user_id');
-                if (guestId) {
-                    tgId = guestId;
-                } else {
-                    const newGuestId = 'guest_' + Math.random().toString(36).substr(2, 9);
-                    localStorage.setItem('guest_user_id', newGuestId);
-                    tgId = newGuestId;
-                }
-                console.log('[App] Using Guest ID:', tgId);
-            }
+            const tgId = tgUser?.id;
 
             if (!tgId) {
-                // Should not happen with the fix above
-                console.log('[App] No user ID available, showing onboarding');
+                console.log('[App] No Telegram user ID found, showing onboarding');
                 setLoadingProgress(100);
                 setLoading(false);
                 return;
@@ -171,17 +156,7 @@ const App: React.FC = () => {
 
         const tg = (window as any).Telegram?.WebApp;
         const tgUser = tg?.initDataUnsafe?.user;
-        let tgId = tgUser?.id;
-
-        // Fallback to guest ID if no Telegram ID
-        if (!tgId) {
-            tgId = localStorage.getItem('guest_user_id');
-            if (!tgId) {
-                tgId = 'guest_' + Math.random().toString(36).substr(2, 9);
-                localStorage.setItem('guest_user_id', tgId);
-            }
-        }
-
+        const tgId = tgUser?.id;
         const isAdmin = OWNER_ID && String(tgId) === String(OWNER_ID) ? true : undefined;
         const fullProfile = { ...newProfile, id: tgId, isAdmin };
 

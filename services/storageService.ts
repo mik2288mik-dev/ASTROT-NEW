@@ -113,18 +113,16 @@ export const saveProfile = async (profile: UserProfile): Promise<void> => {
  */
 export const getProfile = async (): Promise<UserProfile | null> => {
   const tg = (window as any).Telegram?.WebApp;
-  let userId = tg?.initDataUnsafe?.user?.id;
+  const tgId = tg?.initDataUnsafe?.user?.id;
   
-  if (!userId) {
-      userId = localStorage.getItem('guest_user_id');
-      if (!userId) {
-          log.warn('[getProfile] No Telegram ID or guest ID found, cannot fetch profile from DB');
-          return null;
-      }
-      log.info(`[getProfile] Using guest ID: ${userId}`);
+  if (!tgId) {
+      log.warn('[getProfile] No Telegram ID found, cannot fetch profile from DB');
+      return null;
   }
   
-  log.info(`[getProfile] Starting fetch for user: ${userId}`, { userId });
+  const userId = tgId;
+  
+  log.info(`[getProfile] Starting fetch for user: ${userId}`, { userId, tgId });
 
   try {
     // Always try to get from database via Next.js API
@@ -174,15 +172,14 @@ export const getProfile = async (): Promise<UserProfile | null> => {
  */
 export const saveChartData = async (data: NatalChartData): Promise<void> => {
   const tg = (window as any).Telegram?.WebApp;
-  let userId = tg?.initDataUnsafe?.user?.id;
+  const tgId = tg?.initDataUnsafe?.user?.id;
   
-  if (!userId) {
-      userId = localStorage.getItem('guest_user_id');
-      if (!userId) {
-          log.error('[saveChartData] No Telegram ID or guest ID found, cannot save chart');
-          throw new Error('User ID is required for saving chart');
-      }
+  if (!tgId) {
+      log.error('[saveChartData] No Telegram ID found, cannot save chart');
+      throw new Error('User ID is required for saving chart');
   }
+
+  const userId = tgId;
 
   log.info(`[saveChartData] Starting save for user: ${userId}`, {
     userId,
@@ -246,17 +243,16 @@ export const saveChartData = async (data: NatalChartData): Promise<void> => {
  */
 export const getChartData = async (): Promise<NatalChartData | null> => {
   const tg = (window as any).Telegram?.WebApp;
-  let userId = tg?.initDataUnsafe?.user?.id;
+  const tgId = tg?.initDataUnsafe?.user?.id;
   
-  if (!userId) {
-      userId = localStorage.getItem('guest_user_id');
-      if (!userId) {
-          log.warn('[getChartData] No Telegram ID or guest ID found, cannot fetch chart');
-          return null;
-      }
+  if (!tgId) {
+      log.warn('[getChartData] No Telegram ID found, cannot fetch chart');
+      return null;
   }
+  
+  const userId = tgId;
 
-  log.info(`[getChartData] Starting fetch for user: ${userId}`, { userId });
+  log.info(`[getChartData] Starting fetch for user: ${userId}`, { userId, tgId });
 
   try {
     // Always try to get from database via Next.js API
