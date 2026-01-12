@@ -11,9 +11,11 @@ async function main() {
   
   // Check if DATABASE_URL is set
   if (!process.env.DATABASE_URL) {
-    console.error('❌ DATABASE_URL environment variable is not set');
-    console.error('Please set DATABASE_URL in your environment variables');
-    process.exit(1);
+    console.warn('⚠️ DATABASE_URL environment variable is not set');
+    console.warn('Skipping migrations - database operations will be limited');
+    console.warn('Please set DATABASE_URL in Railway environment variables');
+    // Don't exit with error - allow app to start without DB
+    process.exit(0);
   }
 
   // Log DATABASE_URL info (without sensitive data)
