@@ -90,12 +90,13 @@ const translateMoonPhase = (phase: string, language: string): string => {
 // Функция для получения иконки погоды
 const getWeatherIcon = (condition: string): string => {
     const lowerCondition = condition.toLowerCase();
-    if (lowerCondition.includes('rain') || lowerCondition.includes('дождь')) return '';
-    if (lowerCondition.includes('snow') || lowerCondition.includes('снег')) return '';
-    if (lowerCondition.includes('sun') || lowerCondition.includes('солн') || lowerCondition.includes('clear') || lowerCondition.includes('ясн')) return '';
-    if (lowerCondition.includes('cloud') || lowerCondition.includes('облач') || lowerCondition.includes('overcast') || lowerCondition.includes('пасмурно')) return '';
-    if (lowerCondition.includes('fog') || lowerCondition.includes('mist') || lowerCondition.includes('туман')) return '';
-    return '';
+    if (lowerCondition.includes('sun') || lowerCondition.includes('солн') || lowerCondition.includes('clear') || lowerCondition.includes('ясн')) return '☀️';
+    if (lowerCondition.includes('rain') || lowerCondition.includes('дожд')) return '🌧️';
+    if (lowerCondition.includes('snow') || lowerCondition.includes('снег')) return '❄️';
+    if (lowerCondition.includes('cloud') || lowerCondition.includes('облач') || lowerCondition.includes('overcast') || lowerCondition.includes('пасмурно')) return '☁️';
+    if (lowerCondition.includes('fog') || lowerCondition.includes('mist') || lowerCondition.includes('туман')) return '🌫️';
+    if (lowerCondition.includes('thunder') || lowerCondition.includes('гроз')) return '⛈️';
+    return '🌤️';
 };
 
 export const CosmicPassport = memo<CosmicPassportProps>(({ 
@@ -115,18 +116,18 @@ export const CosmicPassport = memo<CosmicPassportProps>(({
           {/* Avatar */}
           <div className="relative group">
             {photoUrl ? (
-              <div className="relative w-14 h-14 rounded-full border-2 border-astro-border shadow-md overflow-hidden">
+              <div className="relative w-16 h-16 rounded-full border-2 border-astro-border shadow-md overflow-hidden">
                 <Image 
                   src={photoUrl} 
                   alt="Avatar" 
-                  width={56}
-                  height={56}
+                  width={64}
+                  height={64}
                   className="object-cover"
                   unoptimized={photoUrl.startsWith('http')} // Telegram URLs могут требовать unoptimized
                 />
               </div>
             ) : (
-              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-astro-primary to-astro-accent flex items-center justify-center text-white text-lg font-bold shadow-lg">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-astro-primary to-astro-accent flex items-center justify-center text-white text-xl font-bold shadow-lg">
                 {displayName.charAt(0).toUpperCase()}
               </div>
             )}
@@ -141,17 +142,20 @@ export const CosmicPassport = memo<CosmicPassportProps>(({
           <div className="flex items-center gap-3">
             {/* Weather Display */}
             {weatherData && (
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-astro-bg/50 rounded-lg border border-astro-border/30">
-                <span className="text-xl">{getWeatherIcon(weatherData.condition)}</span>
+              <div className="flex items-center gap-3 px-4 py-2.5 bg-astro-bg/50 rounded-xl border border-astro-border/30">
+                <span className="text-3xl">{getWeatherIcon(weatherData.condition)}</span>
                 <div className="text-right">
-                  <p className="text-sm font-serif text-astro-text leading-tight">
+                  <p className="text-xl font-serif text-astro-text leading-tight">
                     {Math.round(weatherData.temp)}°
                   </p>
-                  <p className="text-[9px] text-astro-subtext/80 leading-tight" title={translateWeather(weatherData.condition, profile.language)}>
-                    {weatherData.city.length > 8 ? weatherData.city.substring(0, 8) + '...' : weatherData.city}
+                  <p className="text-[11px] text-astro-subtext/80 leading-tight" title={translateWeather(weatherData.condition, profile.language)}>
+                    {translateWeather(weatherData.condition, profile.language)}
+                  </p>
+                  <p className="text-[10px] text-astro-subtext/60 leading-tight">
+                    {weatherData.city.length > 10 ? weatherData.city.substring(0, 10) + '...' : weatherData.city}
                   </p>
                   {weatherData.moonPhase && (
-                    <p className="text-[8px] text-astro-highlight/70 leading-tight">
+                    <p className="text-[10px] text-astro-highlight/70 leading-tight">
                       {translateMoonPhase(weatherData.moonPhase.phase, profile.language)}
                     </p>
                   )}
