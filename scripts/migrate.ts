@@ -48,7 +48,10 @@ async function main() {
       console.error('   4. Ensure database service is running on Railway');
     }
     
-    process.exit(1);
+    // Don't block app startup - let it start and handle DB errors gracefully
+    console.warn('⚠️ Continuing app startup despite migration failure');
+    console.warn('   Database operations may fail until migrations are run manually');
+    process.exit(0);
   }
 }
 
