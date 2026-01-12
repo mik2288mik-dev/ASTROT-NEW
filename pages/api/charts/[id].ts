@@ -40,7 +40,20 @@ export default async function handler(
     if (req.method === 'GET') {
       log.info(`[GET] Fetching chart for userId=${userId}`);
       
-      const chartRecord = await db.charts.get(userId);
+      // Проверяем доступность БД
+      if (!process.env.DATABASE_URL) {
+        log.info(`[GET] DATABASE_URL not configured, returning 404`);
+        return res.status(404).json({ error: 'Chart not found' });
+      }
+      
+      let chartRecord;
+      try {
+        chartRecord = await db.charts.get(userId);
+      } catch (dbError: any) {
+        log.error(`[GET] Database error`, { error: dbError.message });
+        // Если БД недоступна, возвращаем 404 вместо 500
+        return res.status(404).json({ error: 'Chart not found' });
+      }
       
       if (!chartRecord || !chartRecord.chart_data) {
         log.info(`[GET] DB_MISS: no chart for userId=${userId}`);
