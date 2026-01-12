@@ -1,7 +1,7 @@
 import React, { memo, useMemo } from 'react';
 import { UserProfile, NatalChartData, UserContext } from '../../types';
 import { motion } from 'framer-motion';
-import { getWeatherJoke, getDailyJoke } from '../../lib/cosmic-jokes';
+import { getWeatherJoke } from '../../lib/cosmic-jokes';
 
 interface WeatherWidgetProps {
   profile: UserProfile;
@@ -53,9 +53,10 @@ export const WeatherWidget = memo<WeatherWidgetProps>(({ profile, chartData, wea
             sunSign,
             moonSign,
             marsSign,
-            lang
+            lang,
+            profile.name
         );
-    }, [weatherData.temp, weatherData.condition, sunSign, moonSign, marsSign, lang]);
+    }, [weatherData.temp, weatherData.condition, sunSign, moonSign, marsSign, lang, profile.name]);
 
     const icon = getWeatherIcon(weatherData.condition);
     const condition = translateCondition(weatherData.condition, lang);

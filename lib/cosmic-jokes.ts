@@ -63,50 +63,50 @@ const SIGN_TRAITS: Record<string, { ru: string[]; en: string[] }> = {
 const WEATHER_JOKE_TEMPLATES = {
     cold: {
         ru: [
-            "На улице {temp}°C. Твой {planet} в {sign} говорит: «{trait}». Но давай честно — ты останешься дома 🏠",
-            "Холодно ({temp}°C)! Твоя Луна в {moonSign} требует горячего чая и пледа. Марс протестует, но проиграет ☕",
-            "{temp}°C за окном. Твой {sign} хотел бы героически выйти на мороз, но {moonSign} Луна уже включила сериал 📺",
+            "{name}, на улице {temp}°C. Ты {trait}, но плед сегодня сильнее 🧣",
+            "Холодно ({temp}°C). {name}, твой настрой: «{trait}», и это идеально для чая ☕",
+            "{temp}°C за окном. {name}, ты {trait}, но мороз намекает на сериал 📺",
         ],
         en: [
-            "It's {temp}°C outside. Your {planet} in {sign} says: «{trait}». But let's be honest — you're staying home 🏠",
-            "Cold ({temp}°C)! Your Moon in {moonSign} demands hot tea and a blanket. Mars protests but will lose ☕",
-            "{temp}°C outside. Your {sign} wanted to heroically face the cold, but your {moonSign} Moon started Netflix 📺",
+            "{name}, it's {temp}°C outside. You're {trait}, but the blanket wins today 🧣",
+            "Cold ({temp}°C). {name}, your vibe says: «{trait}», and it's perfect for tea ☕",
+            "{temp}°C outside. {name}, you're {trait}, but the cold votes for Netflix 📺",
         ]
     },
     warm: {
         ru: [
-            "Отличные {temp}°C! Твой {sign} кричит: «На улицу!», а {moonSign} Луна: «Но сначала кофе» ☕",
-            "{temp}°C — идеально! Твой Марс в {marsSign} готов к подвигам. Венера предлагает подвиг на диване 🛋️",
-            "Погода {temp}°C. Твой внутренний {sign} — {trait}. Внешний ты — в телефоне 📱",
+            "{name}, {temp}°C — самое то для небольшой прогулки. Ты {trait} 😌",
+            "{temp}°C — идеально. {name}, ты {trait}, но сначала кофе — это закон ☕",
+            "Погода {temp}°C. {name}, ты {trait}, а значит можно и на улицу, и в плед — как решишь 🫶",
         ],
         en: [
-            "Nice {temp}°C! Your {sign} screams: «Go outside!», and your {moonSign} Moon: «But coffee first» ☕",
-            "{temp}°C — perfect! Your Mars in {marsSign} is ready for action. Venus suggests couch adventures 🛋️",
-            "Weather is {temp}°C. Your inner {sign} — {trait}. Actual you — on your phone 📱",
+            "{name}, {temp}°C is perfect for a little walk. You're {trait} 😌",
+            "{temp}°C — just right. {name}, you're {trait}, but coffee first ☕",
+            "Weather is {temp}°C. {name}, you're {trait}, so both outdoors and couch are valid 🫶",
         ]
     },
     hot: {
         ru: [
-            "Жара {temp}°C! Твой {sign} и {moonSign} Луна наконец согласны — мороженое. Срочно 🍦",
-            "{temp}°C 🔥 Твой огненный {sign} в своей стихии! Твоя водная Венера ищет кондиционер 😅",
-            "На улице {temp}°C. Твой {sign} {trait}, но при такой жаре даже он хочет в тень 🌴",
+            "Жара {temp}°C. {name}, ты {trait}, но сейчас главное — вода и тень 🧊",
+            "{temp}°C 🔥 {name}, твой режим «{trait}», но кондиционер сегодня герой 😅",
+            "На улице {temp}°C. {name}, ты {trait}, но жара просит лёгкий темп 🌴",
         ],
         en: [
-            "Hot {temp}°C! Your {sign} and {moonSign} Moon finally agree — ice cream. Now 🍦",
-            "{temp}°C 🔥 Your fiery {sign} is in its element! Your watery Venus is looking for AC 😅",
-            "It's {temp}°C outside. Your {sign} {trait}, but even they want shade now 🌴",
+            "Hot {temp}°C. {name}, you're {trait}, but water and shade come first 🧊",
+            "{temp}°C 🔥 {name}, your mode is «{trait}», but AC is the hero 😅",
+            "It's {temp}°C outside. {name}, you're {trait}, but even you want shade 🌴",
         ]
     },
     rain: {
         ru: [
-            "Дождь при {temp}°C. Твоя {moonSign} Луна: «Идеально для меланхолии». Твой {sign}: «{trait}» 🌧️",
-            "Льёт дождь! Твой {sign} хотел продуктивный день, {moonSign} Луна включила lo-fi и смотрит в окно 🎵",
-            "Дождливо ({temp}°C). Водные знаки счастливы. Ты, как {sign}, — {trait} 💧",
+            "Дождь при {temp}°C. {name}, ты {trait} — отличный повод для уюта 🌧️",
+            "Льёт дождь! {name}, ты {trait}, так что музыка и окно сегодня в тему 🎵",
+            "Дождливо ({temp}°C). {name}, ты {trait}, можно чуть замедлиться ☔",
         ],
         en: [
-            "Rain at {temp}°C. Your {moonSign} Moon: «Perfect for melancholy». Your {sign}: «{trait}» 🌧️",
-            "It's raining! Your {sign} wanted a productive day, {moonSign} Moon started lo-fi and stares at window 🎵",
-            "Rainy ({temp}°C). Water signs are happy. You, as a {sign}, — {trait} 💧",
+            "Rain at {temp}°C. {name}, you're {trait} — perfect for cozy vibes 🌧️",
+            "It's raining! {name}, you're {trait}, so lo-fi and window-gazing fit 🎵",
+            "Rainy ({temp}°C). {name}, you're {trait}, it's okay to slow down ☔",
         ]
     }
 };
@@ -114,24 +114,24 @@ const WEATHER_JOKE_TEMPLATES = {
 // Ежедневные шутки (не привязанные к погоде)
 const DAILY_JOKES = {
     ru: [
-        "Сегодня твой {sign} хочет {trait}. Луна в {moonSign} вносит коррективы: сначала поспать 😴",
-        "Меркурий шепчет тебе: «Отправь это сообщение». Твоя {moonSign} Луна: «Подожди до завтра» 📱",
-        "Венера в твоей карте говорит о любви. Марс отвечает: «А что насчёт пиццы?» 🍕",
-        "Твой {sign} сегодня на высоте! Ну, или будет. После кофе. И ещё одного кофе ☕☕",
-        "Звёзды говорят, что сегодня отличный день. Твой {moonSign} внутренний голос: «Посмотрим» 🌟",
-        "Юпитер обещает удачу! Сатурн напоминает о дедлайне. Классика 📅",
-        "Сегодня идеальный день чтобы {trait}. Или чтобы притвориться, что собираешься 😏",
-        "Твой {sign} сегодня особенно {sign_adj}. Окружающие пока не в курсе, но скоро узнают ✨",
+        "{name}, сегодня твой настрой: «{trait}». Можно смело действовать 😴",
+        "{name}, если хочется написать «то самое» сообщение — ты {trait}, это нормально 📱",
+        "{name}, сегодня день для маленьких радостей. Ты {trait}, и это твой козырь 🍕",
+        "{name}, ты сегодня особенно {sign_adj}. Кофе это только подтверждает ☕☕",
+        "{name}, звёзды тут ни при чём — ты {trait}, значит день уже хороший 🌟",
+        "{name}, удача рядом. Ты {trait}, осталось только заметить 📅",
+        "{name}, сегодня идеальный день чтобы {trait}. Или хотя бы задуматься 😏",
+        "{name}, ты сегодня особенно {sign_adj}. Окружающие скоро поймут ✨",
     ],
     en: [
-        "Today your {sign} wants to {trait}. Your {moonSign} Moon adjusts: sleep first 😴",
-        "Mercury whispers: «Send that message». Your {moonSign} Moon: «Wait until tomorrow» 📱",
-        "Venus in your chart talks about love. Mars replies: «What about pizza?» 🍕",
-        "Your {sign} is on fire today! Well, will be. After coffee. And another coffee ☕☕",
-        "Stars say it's a great day. Your {moonSign} inner voice: «We'll see» 🌟",
-        "Jupiter promises luck! Saturn reminds about the deadline. Classic 📅",
-        "Perfect day to {trait}. Or to pretend you're going to 😏",
-        "Your {sign} is especially {sign_adj} today. Others don't know yet, but they will ✨",
+        "{name}, today's vibe is «{trait}». You're good to go 😴",
+        "{name}, if you want to send that message — you're {trait}, it makes sense 📱",
+        "{name}, today is for small joys. You're {trait}, that's the advantage 🍕",
+        "{name}, you're especially {sign_adj} today. Coffee agrees ☕☕",
+        "{name}, stars are optional — you're {trait}, so the day is already good 🌟",
+        "{name}, luck is nearby. You're {trait}, just notice it 📅",
+        "{name}, perfect day to be {trait}. Or to plan it 😏",
+        "{name}, you're especially {sign_adj} today. Others will notice ✨",
     ]
 };
 
@@ -160,7 +160,8 @@ export function getWeatherJoke(
     sunSign: string,
     moonSign: string,
     marsSign?: string,
-    language: 'ru' | 'en' = 'ru'
+    language: 'ru' | 'en' = 'ru',
+    displayName?: string
 ): string {
     // Определяем тип погоды
     let weatherType: 'cold' | 'warm' | 'hot' | 'rain' = 'warm';
@@ -181,13 +182,14 @@ export function getWeatherJoke(
     const sunTraits = SIGN_TRAITS[sunSign]?.[language] || SIGN_TRAITS['Aries'][language];
     const trait = sunTraits[Math.floor(Math.random() * sunTraits.length)];
 
+    const name = displayName?.trim() 
+        ? displayName.trim() 
+        : (language === 'ru' ? 'друг' : 'friend');
+
     // Заполняем шаблон
     return template
         .replace(/{temp}/g, String(Math.round(temperature)))
-        .replace(/{sign}/g, sunSign)
-        .replace(/{moonSign}/g, moonSign)
-        .replace(/{marsSign}/g, marsSign || 'Aries')
-        .replace(/{planet}/g, language === 'ru' ? 'Марс' : 'Mars')
+        .replace(/{name}/g, name)
         .replace(/{trait}/g, trait);
 }
 
@@ -198,7 +200,8 @@ export function getDailyJoke(
     sunSign: string,
     moonSign: string,
     language: 'ru' | 'en' = 'ru',
-    dayOfYear?: number
+    dayOfYear?: number,
+    displayName?: string
 ): string {
     // Используем день года для детерминированного выбора (одна шутка в день)
     const day = dayOfYear ?? Math.floor(Date.now() / (1000 * 60 * 60 * 24));
@@ -214,9 +217,12 @@ export function getDailyJoke(
     // Получаем прилагательное
     const adjective = SIGN_ADJECTIVES[sunSign]?.[language] || SIGN_ADJECTIVES['Aries'][language];
 
+    const name = displayName?.trim() 
+        ? displayName.trim() 
+        : (language === 'ru' ? 'друг' : 'friend');
+
     return template
-        .replace(/{sign}/g, sunSign)
-        .replace(/{moonSign}/g, moonSign)
+        .replace(/{name}/g, name)
         .replace(/{trait}/g, trait)
         .replace(/{sign_adj}/g, adjective);
 }
