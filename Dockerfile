@@ -67,5 +67,5 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Запускаем миграции перед стартом приложения (в runtime с доступным DATABASE_URL)
-CMD ["sh", "-c", "npm run migrate && npm start"]
+# Запускаем приложение напрямую (миграции выполняются при первом запросе к БД)
+CMD ["npm", "start"]
