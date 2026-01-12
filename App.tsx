@@ -334,7 +334,7 @@ const App: React.FC = () => {
     }
 
     return (
-        <div className="flex flex-col h-full w-full overflow-hidden bg-astro-bg pt-[15px] text-astro-text font-sans selection:bg-astro-highlight selection:text-white">
+        <div className="flex flex-col h-full w-full overflow-hidden bg-astro-bg pt-4 text-astro-text font-sans selection:bg-astro-highlight selection:text-white">
             
             {/* Header handles Title, Settings button, and Back button */}
             <Header 

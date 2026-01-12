@@ -68,16 +68,27 @@ export const WeatherWidget = memo<WeatherWidgetProps>(({ profile, chartData, wea
             className="bg-gradient-to-br from-astro-card to-astro-bg border border-astro-border rounded-2xl p-5 overflow-hidden"
         >
             {/* Верхняя часть - погода */}
-            <div className="flex flex-col items-center text-center gap-1 mb-4">
-                <span className="text-4xl">{icon}</span>
-                <div className="text-4xl font-bold text-astro-text leading-tight">
-                    {Math.round(weatherData.temp)}°
+            <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                    <span className="text-4xl">{icon}</span>
+                    <div>
+                        <div className="text-3xl font-bold text-astro-text">
+                            {Math.round(weatherData.temp)}°
+                        </div>
+                        <div className="text-sm text-astro-subtext">
+                            {condition}
+                        </div>
+                    </div>
                 </div>
-                <div className="text-sm text-astro-subtext">
-                    {condition}
-                </div>
-                <div className="text-sm text-astro-subtext">
-                    {weatherData.city}
+                <div className="text-right">
+                    <div className="text-sm text-astro-subtext">
+                        {weatherData.city}
+                    </div>
+                    {weatherData.humidity && (
+                        <div className="text-xs text-astro-subtext/70">
+                            💧 {weatherData.humidity}%
+                        </div>
+                    )}
                 </div>
                 {weatherData.humidity && (
                     <div className="text-xs text-astro-subtext/70">

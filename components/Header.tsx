@@ -32,8 +32,8 @@ export const Header: React.FC<HeaderProps> = ({ profile, view, onBack }) => {
 
     return (
         <header 
-            className="bg-astro-bg shrink-0 relative z-40"
-            style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}
+            className="bg-astro-bg border-b border-astro-border/50 shrink-0 relative z-40"
+            style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 8px)' }}
         >
             <div className="h-14 flex items-center justify-between px-4">
                 {/* Left - Back button */}
