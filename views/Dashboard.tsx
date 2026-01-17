@@ -14,10 +14,11 @@ interface DashboardProps {
     chartData: NatalChartData | null;
     onNavigate: (view: any) => void;
     onOpenSettings: () => void;
+    onContextUpdate?: (context: UserContext | null) => void;
 }
 
 
-export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate, onOpenSettings }) => {
+export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate, onOpenSettings, onContextUpdate }) => {
     
     const [context, setContext] = useState<UserContext | null>(null);
     const [tgUser, setTgUser] = useState<any>(null);
@@ -63,7 +64,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
             try {
                 const data = await getTodayWeather(userId);
                 if (data) {
-                    setContext({
+                    const nextContext = {
                         mood: 'Neutral',
                         weatherData: {
                             city: data.city,
@@ -75,7 +76,9 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
                                 illumination: parseInt(data.moonPhase.illumination) || 0
                             } : undefined
                         }
-                    });
+                    };
+                    setContext(nextContext);
+                    onContextUpdate?.(nextContext);
                 }
             } catch {
                 // При ошибке просто не показываем погоду
