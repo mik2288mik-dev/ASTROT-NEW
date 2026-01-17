@@ -82,6 +82,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
                 }
             } catch {
                 // При ошибке просто не показываем погоду
+                setContext(null);
             }
         };
         
