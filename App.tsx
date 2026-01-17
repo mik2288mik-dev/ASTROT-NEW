@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { UserProfile, NatalChartData, ViewState } from './types';
+import { UserProfile, NatalChartData, UserContext, ViewState } from './types';
 import { getProfile, saveProfile } from './services/storageService';
 import { getOrCalculateChart } from './services/chartService';
 import { generateAllContent } from './services/contentGenerationService';
@@ -36,6 +36,8 @@ const App: React.FC = () => {
     const [loadingProgress, setLoadingProgress] = useState(0);
     const [view, setView] = useState<ViewState>('onboarding');
     const [showPremiumPreview, setShowPremiumPreview] = useState(false);
+    const [ambientContext, setAmbientContext] = useState<UserContext | null>(null);
+    
     // Ref для предотвращения двойной загрузки
     const dataLoadedRef = useRef(false);
 
@@ -328,7 +330,7 @@ const App: React.FC = () => {
     if (!profile || view === 'onboarding') {
         return (
             <div className="fixed inset-0 overflow-y-auto bg-astro-bg">
-                <BackgroundLayers view="onboarding" />
+                <BackgroundLayers theme="dark" view="onboarding" context={ambientContext} />
                 <Onboarding onComplete={handleOnboardingComplete} />
             </div>
         );
@@ -336,7 +338,7 @@ const App: React.FC = () => {
 
     return (
         <div className="flex flex-col h-full w-full overflow-hidden bg-astro-bg pt-4 text-astro-text font-sans selection:bg-astro-highlight selection:text-white">
-            <BackgroundLayers view={view} />
+            <BackgroundLayers theme={profile.theme} view={view} context={ambientContext} />
             
             {/* Header handles Title, Settings button, and Back button */}
             <Header 
@@ -399,6 +401,7 @@ const App: React.FC = () => {
                             chartData={chartData} 
                             onNavigate={navigateTo} 
                             onOpenSettings={() => setView('settings')}
+                            onContextUpdate={setAmbientContext}
                         />
                     </div>
                 )}
