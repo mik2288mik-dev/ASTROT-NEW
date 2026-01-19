@@ -330,6 +330,7 @@ const App: React.FC = () => {
     if (!profile || view === 'onboarding') {
         return (
             <div className="fixed inset-0 overflow-y-auto bg-astro-bg">
+                <BackgroundLayers view="onboarding" />
                 <BackgroundLayers theme="dark" view="onboarding" context={ambientContext} />
                 <Onboarding onComplete={handleOnboardingComplete} />
             </div>
@@ -338,6 +339,7 @@ const App: React.FC = () => {
 
     return (
         <div className="flex flex-col h-full w-full overflow-hidden bg-astro-bg pt-4 text-astro-text font-sans selection:bg-astro-highlight selection:text-white">
+            <BackgroundLayers view={view} />
             <BackgroundLayers theme={profile.theme} view={view} context={ambientContext} />
             
             {/* Header handles Title, Settings button, and Back button */}
