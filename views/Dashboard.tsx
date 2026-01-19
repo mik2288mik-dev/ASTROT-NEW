@@ -63,7 +63,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
             try {
                 const data = await getTodayWeather(userId);
                 if (data) {
-                    setContext({
+                    const nextContext = {
                         mood: 'Neutral',
                         weatherData: {
                             city: data.city,
@@ -75,10 +75,12 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
                                 illumination: parseInt(data.moonPhase.illumination) || 0
                             } : undefined
                         }
-                    });
+                    };
+                    setContext(nextContext);
                 }
             } catch {
                 // При ошибке просто не показываем погоду
+                setContext(null);
             }
         };
         
