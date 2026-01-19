@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import type { StaticImageData } from 'next/image';
+import { ViewState } from '../types';
 import { Theme, UserContext, ViewState } from '../types';
 import bgDarkStars from '../ASTROT_ASSETS/backgrounds/bg_dark_stars.jpg.png';
 import bgGoldNebula from '../ASTROT_ASSETS/backgrounds/bg_gold_nebula.jpg.png';
@@ -20,13 +20,11 @@ interface BackgroundLayersProps {
 }
 
 type OverlayLayer = {
-  src: AssetImage;
+  src: string;
   opacity: number;
 };
 
-type AssetImage = StaticImageData | string;
-
-const BACKGROUND_BY_VIEW: Record<ViewState, AssetImage> = {
+const BACKGROUND_BY_VIEW: Record<ViewState, string> = {
   onboarding: bgDarkStars,
   hook: bgVioletNebula,
   paywall: bgGoldNebula,
@@ -82,6 +80,33 @@ const OVERLAYS_BY_VIEW: Partial<Record<ViewState, OverlayLayer[]>> = {
 export const BackgroundLayers: React.FC<BackgroundLayersProps> = ({ view }) => {
   const background = useMemo(() => BACKGROUND_BY_VIEW[view], [view]);
   const overlays = useMemo(() => OVERLAYS_BY_VIEW[view] ?? [], [view]);
+  theme: Theme;
+  view: ViewState;
+  context?: UserContext | null;
+}
+
+const getBackgroundAsset = (theme: Theme, view: ViewState) => {
+  if (view === 'hook') return bgVioletNebula;
+  if (view === 'paywall') return bgGoldNebula;
+  if (view === 'onboarding') return bgDarkStars;
+  return theme === 'light' ? bgSoftGradient : bgMainDeepSpace;
+};
+
+const getOverlayAsset = (theme: Theme, context?: UserContext | null) => {
+  const condition = context?.weatherData?.condition?.toLowerCase() || '';
+
+  if (condition.includes('fog') || condition.includes('mist')) return overlaySoftFog2;
+  if (condition.includes('rain') || condition.includes('drizzle') || condition.includes('storm')) return overlaySoftFog;
+  if (condition.includes('snow')) return overlaySparkles;
+  if (condition.includes('clear') || condition.includes('sun')) return overlayLightRays;
+  if (condition.includes('cloud')) return overlaySparkles;
+
+  return theme === 'light' ? overlayGoldGlow : overlayVioletGlow;
+};
+
+export const BackgroundLayers: React.FC<BackgroundLayersProps> = ({ theme, view, context }) => {
+  const background = useMemo(() => getBackgroundAsset(theme, view), [theme, view]);
+  const overlay = useMemo(() => getOverlayAsset(theme, context), [theme, context]);
 
   return (
     <div className="fixed inset-0 -z-10">
@@ -97,6 +122,13 @@ export const BackgroundLayers: React.FC<BackgroundLayersProps> = ({ view }) => {
         />
       ))}
       <div className="absolute inset-0 bg-astro-bg/65 pointer-events-none" />
+      {overlay && (
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20"
+          style={{ backgroundImage: `url(${overlay})` }}
+        />
+      )}
+      <div className="absolute inset-0 bg-astro-bg/65" />
     </div>
   );
 };
