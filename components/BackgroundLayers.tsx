@@ -1,3 +1,4 @@
+import Image, { type StaticImageData } from 'next/image';
 import React, { useMemo } from 'react';
 import { Theme, UserContext, ViewState } from '../types';
 import bgDarkStars from '../ASTROT_ASSETS/backgrounds/bg_dark_stars.jpg.png';
@@ -19,11 +20,11 @@ interface BackgroundLayersProps {
 }
 
 type OverlayLayer = {
-  src: string;
+  src: StaticImageData;
   opacity: number;
 };
 
-const BACKGROUND_BY_VIEW: Record<ViewState, string> = {
+const BACKGROUND_BY_VIEW: Record<ViewState, StaticImageData> = {
   onboarding: bgDarkStars,
   hook: bgVioletNebula,
   paywall: bgGoldNebula,
@@ -76,7 +77,7 @@ const OVERLAYS_BY_VIEW: Partial<Record<ViewState, OverlayLayer[]>> = {
   ]
 };
 
-const getOverlayAsset = (theme: Theme, context?: UserContext | null) => {
+const getOverlayAsset = (theme: Theme, context?: UserContext | null): StaticImageData => {
   const condition = context?.weatherData?.condition?.toLowerCase() || '';
 
   if (condition.includes('fog') || condition.includes('mist')) return overlaySoftFog2;
@@ -99,22 +100,28 @@ export const BackgroundLayers: React.FC<BackgroundLayersProps> = ({
 
   return (
     <div className="fixed inset-0 -z-10">
-      <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: `url(${background})` }}
-      />
+      <div className="absolute inset-0">
+        <Image
+          src={background}
+          alt=""
+          fill
+          priority={view === 'onboarding' || view === 'paywall'}
+          sizes="100vw"
+          style={{ objectFit: 'cover', objectPosition: 'center' }}
+        />
+      </div>
       {overlays.map((layer, index) => (
         <div
-          key={`${layer.src}-${index}`}
+          key={`${layer.src.src}-${index}`}
           className="absolute inset-0 bg-cover bg-center bg-no-repeat pointer-events-none"
-          style={{ backgroundImage: `url(${layer.src})`, opacity: layer.opacity }}
+          style={{ backgroundImage: `url(${layer.src.src})`, opacity: layer.opacity }}
         />
       ))}
       <div className="absolute inset-0 bg-astro-bg/65 pointer-events-none" />
       {overlay && (
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20"
-          style={{ backgroundImage: `url(${overlay})` }}
+          style={{ backgroundImage: `url(${overlay.src})` }}
         />
       )}
       <div className="absolute inset-0 bg-astro-bg/65" />
