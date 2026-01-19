@@ -14,10 +14,11 @@ interface DashboardProps {
     chartData: NatalChartData | null;
     onNavigate: (view: any) => void;
     onOpenSettings: () => void;
+    onContextUpdate?: (context: UserContext | null) => void;
 }
 
 
-export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate, onOpenSettings }) => {
+export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate, onOpenSettings, onContextUpdate }) => {
     
     const [context, setContext] = useState<UserContext | null>(null);
     const [tgUser, setTgUser] = useState<any>(null);
@@ -77,6 +78,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
                         }
                     };
                     setContext(nextContext);
+                    onContextUpdate?.(nextContext);
                 }
             } catch {
                 // При ошибке просто не показываем погоду
