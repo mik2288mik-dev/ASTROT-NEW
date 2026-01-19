@@ -1,5 +1,4 @@
 import React, { useMemo } from 'react';
-import { ViewState } from '../types';
 import { Theme, UserContext, ViewState } from '../types';
 import bgDarkStars from '../ASTROT_ASSETS/backgrounds/bg_dark_stars.jpg.png';
 import bgGoldNebula from '../ASTROT_ASSETS/backgrounds/bg_gold_nebula.jpg.png';
@@ -77,21 +76,6 @@ const OVERLAYS_BY_VIEW: Partial<Record<ViewState, OverlayLayer[]>> = {
   ]
 };
 
-export const BackgroundLayers: React.FC<BackgroundLayersProps> = ({ view }) => {
-  const background = useMemo(() => BACKGROUND_BY_VIEW[view], [view]);
-  const overlays = useMemo(() => OVERLAYS_BY_VIEW[view] ?? [], [view]);
-  theme: Theme;
-  view: ViewState;
-  context?: UserContext | null;
-}
-
-const getBackgroundAsset = (theme: Theme, view: ViewState) => {
-  if (view === 'hook') return bgVioletNebula;
-  if (view === 'paywall') return bgGoldNebula;
-  if (view === 'onboarding') return bgDarkStars;
-  return theme === 'light' ? bgSoftGradient : bgMainDeepSpace;
-};
-
 const getOverlayAsset = (theme: Theme, context?: UserContext | null) => {
   const condition = context?.weatherData?.condition?.toLowerCase() || '';
 
@@ -104,9 +88,14 @@ const getOverlayAsset = (theme: Theme, context?: UserContext | null) => {
   return theme === 'light' ? overlayGoldGlow : overlayVioletGlow;
 };
 
-export const BackgroundLayers: React.FC<BackgroundLayersProps> = ({ theme, view, context }) => {
-  const background = useMemo(() => getBackgroundAsset(theme, view), [theme, view]);
+export const BackgroundLayers: React.FC<BackgroundLayersProps> = ({
+  theme = 'dark',
+  view,
+  context
+}) => {
+  const overlays = useMemo(() => OVERLAYS_BY_VIEW[view] ?? [], [view]);
   const overlay = useMemo(() => getOverlayAsset(theme, context), [theme, context]);
+  const background = useMemo(() => BACKGROUND_BY_VIEW[view], [view]);
 
   return (
     <div className="fixed inset-0 -z-10">
