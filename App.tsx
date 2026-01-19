@@ -20,6 +20,7 @@ import { HookChat } from './views/HookChat';
 import { Paywall } from './views/Paywall';
 import { Synastry } from './views/Synastry';
 import { useSwipeBack } from './lib/useSwipeBack';
+import { BackgroundLayers } from './components/BackgroundLayers';
 
 // Get owner ID from environment variables for security
 const OWNER_ID = process.env.NEXT_PUBLIC_OWNER_ID || '';
@@ -35,7 +36,6 @@ const App: React.FC = () => {
     const [loadingProgress, setLoadingProgress] = useState(0);
     const [view, setView] = useState<ViewState>('onboarding');
     const [showPremiumPreview, setShowPremiumPreview] = useState(false);
-    
     // Ref для предотвращения двойной загрузки
     const dataLoadedRef = useRef(false);
 
@@ -328,6 +328,7 @@ const App: React.FC = () => {
     if (!profile || view === 'onboarding') {
         return (
             <div className="fixed inset-0 overflow-y-auto bg-astro-bg">
+                <BackgroundLayers view="onboarding" />
                 <Onboarding onComplete={handleOnboardingComplete} />
             </div>
         );
@@ -335,6 +336,7 @@ const App: React.FC = () => {
 
     return (
         <div className="flex flex-col h-full w-full overflow-hidden bg-astro-bg pt-4 text-astro-text font-sans selection:bg-astro-highlight selection:text-white">
+            <BackgroundLayers view={view} />
             
             {/* Header handles Title, Settings button, and Back button */}
             <Header 
