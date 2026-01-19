@@ -15,6 +15,8 @@ import overlayVioletGlow from '../ASTROT_ASSETS/overlays/overlay_violet_glow.png
 
 interface BackgroundLayersProps {
   view: ViewState;
+  theme?: Theme;
+  context?: UserContext | null;
 }
 
 type OverlayLayer = {
