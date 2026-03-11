@@ -194,7 +194,7 @@ export interface ChatMessage {
   timestamp: number;
 }
 
-export type ViewState = 'onboarding' | 'hook' | 'paywall' | 'dashboard' | 'my-cards' | 'chart' | 'horoscope' | 'synastry' | 'oracle' | 'settings' | 'admin';
+export type ViewState = 'onboarding' | 'hook' | 'paywall' | 'dashboard' | 'my-cards' | 'birth-input' | 'chart' | 'horoscope' | 'synastry' | 'oracle' | 'settings' | 'admin';
 
 // Cached text types
 export interface CachedText<T = any> {

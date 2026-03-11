@@ -50,6 +50,15 @@ export const TRANSLATIONS = {
       add_card: "Добавить карту",
       empty: "У вас пока нет карт. Добавьте первую."
     },
+    birth_input: {
+      title: "Данные рождения",
+      birth_date: "Дата рождения",
+      birth_time: "Время рождения",
+      birth_place: "Место рождения",
+      time_unknown: "Точное время неизвестно",
+      warning: "Без времени карта будет приблизительной (без Асцендента и домов)",
+      submit: "Рассчитать"
+    },
     hook: {
       analyzing: "Считываю звездную карту...",
       typing: "Астра печатает...",
@@ -180,6 +189,15 @@ export const TRANSLATIONS = {
       shop: "Shop",
       add_card: "Add card",
       empty: "You have no cards yet. Add your first one."
+    },
+    birth_input: {
+      title: "Birth Data",
+      birth_date: "Birth date",
+      birth_time: "Birth time",
+      birth_place: "Birth place",
+      time_unknown: "Exact time unknown",
+      warning: "Without time the chart will be approximate (no Ascendant and houses)",
+      submit: "Calculate"
     },
     hook: {
       analyzing: "Reading the star map...",

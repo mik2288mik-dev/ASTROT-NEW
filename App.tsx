@@ -20,6 +20,7 @@ import { HookChat } from './views/HookChat';
 import { Paywall } from './views/Paywall';
 import { Synastry } from './views/Synastry';
 import { MyCards } from './views/MyCards';
+import { BirthDataInput } from './views/BirthDataInput';
 import { useSwipeBack } from './lib/useSwipeBack';
 import { BackgroundLayers } from './components/BackgroundLayers';
 
@@ -306,17 +307,19 @@ const App: React.FC = () => {
     };
 
     const handleBack = useCallback(() => {
-        // If in Admin, return to Settings
         if (view === 'admin') {
             setView('settings');
             return;
         }
-        // Otherwise return to Hub
+        if (view === 'birth-input') {
+            setView('my-cards');
+            return;
+        }
         setView('my-cards');
     }, [view]);
 
     // Свайп назад от левого края (как в iOS)
-    const canSwipeBack = view !== 'dashboard' && view !== 'my-cards' && view !== 'onboarding' && view !== 'hook' && view !== 'paywall';
+    const canSwipeBack = view !== 'dashboard' && view !== 'my-cards' && view !== 'birth-input' && view !== 'onboarding' && view !== 'hook' && view !== 'paywall';
     useSwipeBack({
         onSwipeBack: handleBack,
         enabled: canSwipeBack,
@@ -393,8 +396,19 @@ const App: React.FC = () => {
                             userId={profile.id!}
                             userProfile={profile}
                             onOpenShop={() => setView('paywall')}
-                            onAddCard={() => setView('onboarding')}
+                            onAddCard={() => setView('birth-input')}
                             onOpenCard={(cardId) => setView('chart')}
+                        />
+                    </div>
+                ) : view === 'birth-input' ? (
+                    <div className="h-full overflow-y-auto scrollbar-hide">
+                        <BirthDataInput
+                            userProfile={profile}
+                            onBack={() => setView('my-cards')}
+                            onSubmit={(data) => {
+                                console.log('[BirthDataInput] Submit:', data);
+                                setView('my-cards');
+                            }}
                         />
                     </div>
                 ) : view === 'settings' ? (
