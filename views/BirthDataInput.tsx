@@ -13,7 +13,7 @@ export interface BirthDataSubmit {
 interface BirthDataInputProps {
   userProfile: UserProfile;
   onBack: () => void;
-  onSubmit: (data: BirthDataSubmit) => void;
+  onSubmit: (data: BirthDataSubmit) => void | Promise<void>;
 }
 
 export const BirthDataInput: React.FC<BirthDataInputProps> = ({
@@ -26,19 +26,28 @@ export const BirthDataInput: React.FC<BirthDataInputProps> = ({
   const [birthTime, setBirthTime] = useState('');
   const [timeUnknown, setTimeUnknown] = useState(false);
   const [birthPlace, setBirthPlace] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const isValid = birthDate.trim().length > 0 && birthPlace.trim().length > 0;
   const timeValue = timeUnknown ? '' : birthTime;
 
-  const handleSubmit = () => {
-    if (!isValid) return;
-    onSubmit({
-      name: userProfile.name || '',
-      birth_date: birthDate.trim(),
-      birth_time: timeUnknown ? null : (birthTime.trim() || null),
-      birth_place: birthPlace.trim(),
-      time_unknown: timeUnknown,
-    });
+  const handleSubmit = async () => {
+    if (!isValid || loading) return;
+    setLoading(true);
+    try {
+      await onSubmit({
+        name: userProfile.name || '',
+        birth_date: birthDate.trim(),
+        birth_time: timeUnknown ? null : (birthTime.trim() || null),
+        birth_place: birthPlace.trim(),
+        time_unknown: timeUnknown,
+      });
+    } catch (e) {
+      console.error('[BirthDataInput] Error:', e);
+      alert('Ошибка расчета карты');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -117,10 +126,10 @@ export const BirthDataInput: React.FC<BirthDataInputProps> = ({
         </button>
         <button
           onClick={handleSubmit}
-          disabled={!isValid}
+          disabled={!isValid || loading}
           className="flex-1 py-3 rounded-xl bg-astro-highlight text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {getText(lang, 'birth_input.submit')}
+          {loading ? (lang === 'ru' ? 'Расчёт...' : 'Calculating...') : getText(lang, 'birth_input.submit')}
         </button>
       </div>
     </div>

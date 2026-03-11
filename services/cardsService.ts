@@ -9,6 +9,30 @@ async function handleResponse<T>(response: Response): Promise<T> {
   return data as T;
 }
 
+export async function calculateNatalChart(
+  userId: string,
+  name: string,
+  birthDate: string,
+  birthTime: string | null,
+  birthPlace: string
+): Promise<any> {
+  const url = `${API_BASE_URL}/api/astrology/natal-chart`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      userId,
+      name,
+      birthDate,
+      birthTime: birthTime || '12:00',
+      birthPlace,
+      language: 'ru',
+      forceRecalculate: true,
+    }),
+  });
+  return handleResponse(response);
+}
+
 export interface CardPayload {
   name?: string;
   birth_date?: string;

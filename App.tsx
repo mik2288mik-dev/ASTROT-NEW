@@ -21,6 +21,7 @@ import { Paywall } from './views/Paywall';
 import { Synastry } from './views/Synastry';
 import { MyCards } from './views/MyCards';
 import { BirthDataInput } from './views/BirthDataInput';
+import { calculateNatalChart, createCard } from './services/cardsService';
 import { useSwipeBack } from './lib/useSwipeBack';
 import { BackgroundLayers } from './components/BackgroundLayers';
 
@@ -405,8 +406,23 @@ const App: React.FC = () => {
                         <BirthDataInput
                             userProfile={profile}
                             onBack={() => setView('my-cards')}
-                            onSubmit={(data) => {
-                                console.log('[BirthDataInput] Submit:', data);
+                            onSubmit={async (data) => {
+                                const userId = profile.id!;
+                                const name = data.name?.trim() || profile.name || 'Я';
+                                const chartRes = await calculateNatalChart(
+                                    userId,
+                                    name,
+                                    data.birth_date,
+                                    data.birth_time,
+                                    data.birth_place
+                                );
+                                await createCard(userId, {
+                                    name,
+                                    birth_date: data.birth_date,
+                                    birth_time: data.birth_time,
+                                    birth_place: data.birth_place,
+                                    data_json: chartRes,
+                                });
                                 setView('my-cards');
                             }}
                         />
