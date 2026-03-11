@@ -512,6 +512,147 @@ export const db = {
         throw error;
       }
     },
+
+    async getBalance(userId: string) {
+      log.info(`[DB] Getting balance for user: ${userId}`);
+      if (!DATABASE_URL) return 0;
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query('SELECT balance FROM users WHERE id = $1', [userId]);
+        return result.rows.length === 0 ? 0 : (result.rows[0].balance || 0);
+      } catch (error: any) {
+        log.error('[DB] Error getting balance', { error: error.message, userId });
+        throw error;
+      }
+    },
+
+    async updateBalance(userId: string, balance: number) {
+      log.info(`[DB] Updating balance for user: ${userId} to ${balance}`);
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      try {
+        const dbPool = getPool();
+        await dbPool.query('UPDATE users SET balance = $1 WHERE id = $2', [balance, userId]);
+        return { success: true };
+      } catch (error: any) {
+        log.error('[DB] Error updating balance', { error: error.message, userId });
+        throw error;
+      }
+    },
+
+    async incrementBalance(userId: string, amount: number) {
+      log.info(`[DB] Incrementing balance for user: ${userId} by ${amount}`);
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          'UPDATE users SET balance = COALESCE(balance, 0) + $1 WHERE id = $2 RETURNING balance',
+          [amount, userId]
+        );
+        return { success: true, balance: result.rows[0]?.balance ?? 0 };
+      } catch (error: any) {
+        log.error('[DB] Error incrementing balance', { error: error.message, userId });
+        throw error;
+      }
+    },
+
+    async decrementBalance(userId: string, amount: number) {
+      log.info(`[DB] Decrementing balance for user: ${userId} by ${amount}`);
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          'UPDATE users SET balance = GREATEST(COALESCE(balance, 0) - $1, 0) WHERE id = $2 AND COALESCE(balance, 0) >= $1 RETURNING balance',
+          [amount, userId]
+        );
+        if (result.rows.length === 0) throw new Error('Insufficient balance');
+        return { success: true, balance: result.rows[0].balance };
+      } catch (error: any) {
+        log.error('[DB] Error decrementing balance', { error: error.message, userId });
+        throw error;
+      }
+    },
+
+    async setPremiumExpiry(userId: string, premiumExpiresAt: Date | string | null) {
+      log.info(`[DB] Setting premium expiry for user: ${userId}`);
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      try {
+        const dbPool = getPool();
+        await dbPool.query('UPDATE users SET premium_expires_at = $1 WHERE id = $2', [premiumExpiresAt, userId]);
+        return { success: true };
+      } catch (error: any) {
+        log.error('[DB] Error setting premium expiry', { error: error.message, userId });
+        throw error;
+      }
+    },
+
+    async setRefCode(userId: string, refCode: string | null) {
+      log.info(`[DB] Setting ref code for user: ${userId}`);
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      try {
+        const dbPool = getPool();
+        await dbPool.query('UPDATE users SET ref_code = $1 WHERE id = $2', [refCode, userId]);
+        return { success: true };
+      } catch (error: any) {
+        log.error('[DB] Error setting ref code', { error: error.message, userId });
+        throw error;
+      }
+    },
+
+    async setReferredBy(userId: string, referredBy: string | null) {
+      log.info(`[DB] Setting referred_by for user: ${userId}`);
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      try {
+        const dbPool = getPool();
+        await dbPool.query('UPDATE users SET referred_by = $1 WHERE id = $2', [referredBy, userId]);
+        return { success: true };
+      } catch (error: any) {
+        log.error('[DB] Error setting referred_by', { error: error.message, userId });
+        throw error;
+      }
+    },
+
+    async getByRefCode(refCode: string) {
+      log.info(`[DB] Getting user by ref code: ${refCode}`);
+      if (!DATABASE_URL) return null;
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query('SELECT * FROM users WHERE ref_code = $1', [refCode]);
+        if (result.rows.length === 0) return null;
+        const user = result.rows[0];
+        let evolution = user.evolution;
+        if (typeof evolution === 'string') {
+          try { evolution = JSON.parse(evolution); } catch { evolution = null; }
+        }
+        let generatedContent = user.generated_content;
+        if (typeof generatedContent === 'string') {
+          try { generatedContent = JSON.parse(generatedContent); } catch { generatedContent = null; }
+        }
+        return {
+          id: user.id,
+          name: user.name,
+          birth_date: user.birth_date,
+          birth_time: user.birth_time,
+          birth_place: user.birth_place,
+          is_setup: user.is_setup,
+          language: user.language,
+          theme: user.theme,
+          is_premium: user.is_premium,
+          is_admin: user.is_admin,
+          evolution,
+          generated_content: generatedContent,
+          weather_city: user.weather_city,
+          balance: user.balance,
+          premium_expires_at: user.premium_expires_at,
+          ref_code: user.ref_code,
+          referred_by: user.referred_by,
+          created_at: user.created_at,
+          updated_at: user.updated_at,
+        };
+      } catch (error: any) {
+        log.error('[DB] Error getting user by ref code', { error: error.message, refCode });
+        throw error;
+      }
+    },
   },
 
   charts: {
@@ -660,6 +801,432 @@ export const db = {
           error: error.message,
           userId
         });
+        throw error;
+      }
+    },
+  },
+
+  cards: {
+    async list(userId: string) {
+      log.info(`[DB] [cards.list] userId=${userId}`);
+      if (!DATABASE_URL) return [];
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          'SELECT * FROM cards WHERE user_id = $1 ORDER BY created_at DESC',
+          [userId]
+        );
+        return result.rows.map((row: any) => ({
+          id: row.id,
+          user_id: row.user_id,
+          name: row.name,
+          birth_date: row.birth_date,
+          birth_time: row.birth_time,
+          birth_place: row.birth_place,
+          latitude: row.latitude,
+          longitude: row.longitude,
+          timezone: row.timezone,
+          data_json: row.data_json,
+          is_purchased_full: row.is_purchased_full,
+          is_purchased_pro: row.is_purchased_pro,
+          created_at: row.created_at,
+        }));
+      } catch (error: any) {
+        log.error('[DB] Error listing cards', { error: error.message, userId });
+        throw error;
+      }
+    },
+
+    async getById(cardId: number, userId: string) {
+      log.info(`[DB] [cards.getById] cardId=${cardId}, userId=${userId}`);
+      if (!DATABASE_URL) return null;
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          'SELECT * FROM cards WHERE id = $1 AND user_id = $2',
+          [cardId, userId]
+        );
+        if (result.rows.length === 0) return null;
+        const row = result.rows[0];
+        return {
+          id: row.id,
+          user_id: row.user_id,
+          name: row.name,
+          birth_date: row.birth_date,
+          birth_time: row.birth_time,
+          birth_place: row.birth_place,
+          latitude: row.latitude,
+          longitude: row.longitude,
+          timezone: row.timezone,
+          data_json: row.data_json,
+          is_purchased_full: row.is_purchased_full,
+          is_purchased_pro: row.is_purchased_pro,
+          created_at: row.created_at,
+        };
+      } catch (error: any) {
+        log.error('[DB] Error getting card', { error: error.message, cardId, userId });
+        throw error;
+      }
+    },
+
+    async create(userId: string, payload: {
+      name?: string;
+      birth_date: string;
+      birth_time?: string | null;
+      birth_place: string;
+      latitude?: number | null;
+      longitude?: number | null;
+      timezone?: string | null;
+      data_json: any;
+      is_purchased_full?: boolean;
+      is_purchased_pro?: boolean;
+    }) {
+      log.info(`[DB] [cards.create] userId=${userId}`);
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          `INSERT INTO cards (user_id, name, birth_date, birth_time, birth_place, latitude, longitude, timezone, data_json, is_purchased_full, is_purchased_pro)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+           RETURNING *`,
+          [
+            userId,
+            payload.name ?? 'Я',
+            payload.birth_date,
+            payload.birth_time ?? null,
+            payload.birth_place,
+            payload.latitude ?? null,
+            payload.longitude ?? null,
+            payload.timezone ?? null,
+            typeof payload.data_json === 'string' ? payload.data_json : JSON.stringify(payload.data_json),
+            payload.is_purchased_full ?? false,
+            payload.is_purchased_pro ?? false,
+          ]
+        );
+        const row = result.rows[0];
+        return {
+          id: row.id,
+          user_id: row.user_id,
+          name: row.name,
+          birth_date: row.birth_date,
+          birth_time: row.birth_time,
+          birth_place: row.birth_place,
+          latitude: row.latitude,
+          longitude: row.longitude,
+          timezone: row.timezone,
+          data_json: row.data_json,
+          is_purchased_full: row.is_purchased_full,
+          is_purchased_pro: row.is_purchased_pro,
+          created_at: row.created_at,
+        };
+      } catch (error: any) {
+        log.error('[DB] Error creating card', { error: error.message, userId });
+        throw error;
+      }
+    },
+
+    async update(cardId: number, userId: string, payload: {
+      name?: string;
+      birth_date?: string;
+      birth_time?: string | null;
+      birth_place?: string;
+      latitude?: number | null;
+      longitude?: number | null;
+      timezone?: string | null;
+      data_json?: any;
+      is_purchased_full?: boolean;
+      is_purchased_pro?: boolean;
+    }) {
+      log.info(`[DB] [cards.update] cardId=${cardId}, userId=${userId}`);
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      try {
+        const dbPool = getPool();
+        const updates: string[] = [];
+        const values: any[] = [];
+        let idx = 1;
+        if (payload.name !== undefined) { updates.push(`name = $${idx++}`); values.push(payload.name); }
+        if (payload.birth_date !== undefined) { updates.push(`birth_date = $${idx++}`); values.push(payload.birth_date); }
+        if (payload.birth_time !== undefined) { updates.push(`birth_time = $${idx++}`); values.push(payload.birth_time); }
+        if (payload.birth_place !== undefined) { updates.push(`birth_place = $${idx++}`); values.push(payload.birth_place); }
+        if (payload.latitude !== undefined) { updates.push(`latitude = $${idx++}`); values.push(payload.latitude); }
+        if (payload.longitude !== undefined) { updates.push(`longitude = $${idx++}`); values.push(payload.longitude); }
+        if (payload.timezone !== undefined) { updates.push(`timezone = $${idx++}`); values.push(payload.timezone); }
+        if (payload.data_json !== undefined) {
+          updates.push(`data_json = $${idx++}`);
+          values.push(typeof payload.data_json === 'string' ? payload.data_json : JSON.stringify(payload.data_json));
+        }
+        if (payload.is_purchased_full !== undefined) { updates.push(`is_purchased_full = $${idx++}`); values.push(payload.is_purchased_full); }
+        if (payload.is_purchased_pro !== undefined) { updates.push(`is_purchased_pro = $${idx++}`); values.push(payload.is_purchased_pro); }
+        if (updates.length === 0) return this.getById(cardId, userId);
+        values.push(cardId, userId);
+        const result = await dbPool.query(
+          `UPDATE cards SET ${updates.join(', ')} WHERE id = $${idx} AND user_id = $${idx + 1} RETURNING *`,
+          values
+        );
+        if (result.rows.length === 0) return null;
+        const row = result.rows[0];
+        return {
+          id: row.id,
+          user_id: row.user_id,
+          name: row.name,
+          birth_date: row.birth_date,
+          birth_time: row.birth_time,
+          birth_place: row.birth_place,
+          latitude: row.latitude,
+          longitude: row.longitude,
+          timezone: row.timezone,
+          data_json: row.data_json,
+          is_purchased_full: row.is_purchased_full,
+          is_purchased_pro: row.is_purchased_pro,
+          created_at: row.created_at,
+        };
+      } catch (error: any) {
+        log.error('[DB] Error updating card', { error: error.message, cardId, userId });
+        throw error;
+      }
+    },
+
+    async delete(cardId: number, userId: string) {
+      log.info(`[DB] [cards.delete] cardId=${cardId}, userId=${userId}`);
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query('DELETE FROM cards WHERE id = $1 AND user_id = $2 RETURNING id', [cardId, userId]);
+        return { success: result.rows.length > 0 };
+      } catch (error: any) {
+        log.error('[DB] Error deleting card', { error: error.message, cardId, userId });
+        throw error;
+      }
+    },
+
+    async markFullPurchased(cardId: number, userId: string) {
+      log.info(`[DB] [cards.markFullPurchased] cardId=${cardId}, userId=${userId}`);
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          'UPDATE cards SET is_purchased_full = true WHERE id = $1 AND user_id = $2 RETURNING *',
+          [cardId, userId]
+        );
+        return result.rows.length > 0 ? { success: true } : null;
+      } catch (error: any) {
+        log.error('[DB] Error marking full purchased', { error: error.message, cardId, userId });
+        throw error;
+      }
+    },
+
+    async markProPurchased(cardId: number, userId: string) {
+      log.info(`[DB] [cards.markProPurchased] cardId=${cardId}, userId=${userId}`);
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          'UPDATE cards SET is_purchased_pro = true WHERE id = $1 AND user_id = $2 RETURNING *',
+          [cardId, userId]
+        );
+        return result.rows.length > 0 ? { success: true } : null;
+      } catch (error: any) {
+        log.error('[DB] Error marking pro purchased', { error: error.message, cardId, userId });
+        throw error;
+      }
+    },
+  },
+
+  purchases: {
+    async create(payload: {
+      user_id: string;
+      type: string;
+      amount_lumi?: number | null;
+      real_currency?: string | null;
+      real_amount?: number | null;
+      item_id?: string | null;
+      status?: string;
+    }) {
+      log.info(`[DB] [purchases.create] user_id=${payload.user_id}, type=${payload.type}`);
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          `INSERT INTO purchases (user_id, type, amount_lumi, real_currency, real_amount, item_id, status)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)
+           RETURNING *`,
+          [
+            payload.user_id,
+            payload.type,
+            payload.amount_lumi ?? null,
+            payload.real_currency ?? null,
+            payload.real_amount ?? null,
+            payload.item_id ?? null,
+            payload.status ?? 'success',
+          ]
+        );
+        const row = result.rows[0];
+        return {
+          id: row.id,
+          user_id: row.user_id,
+          type: row.type,
+          amount_lumi: row.amount_lumi,
+          real_currency: row.real_currency,
+          real_amount: row.real_amount,
+          item_id: row.item_id,
+          status: row.status,
+          created_at: row.created_at,
+        };
+      } catch (error: any) {
+        log.error('[DB] Error creating purchase', { error: error.message });
+        throw error;
+      }
+    },
+
+    async listByUser(userId: string) {
+      log.info(`[DB] [purchases.listByUser] userId=${userId}`);
+      if (!DATABASE_URL) return [];
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          'SELECT * FROM purchases WHERE user_id = $1 ORDER BY created_at DESC',
+          [userId]
+        );
+        return result.rows.map((row: any) => ({
+          id: row.id,
+          user_id: row.user_id,
+          type: row.type,
+          amount_lumi: row.amount_lumi,
+          real_currency: row.real_currency,
+          real_amount: row.real_amount,
+          item_id: row.item_id,
+          status: row.status,
+          created_at: row.created_at,
+        }));
+      } catch (error: any) {
+        log.error('[DB] Error listing purchases', { error: error.message, userId });
+        throw error;
+      }
+    },
+
+    async listRecentByUser(userId: string, limit: number) {
+      log.info(`[DB] [purchases.listRecentByUser] userId=${userId}, limit=${limit}`);
+      if (!DATABASE_URL) return [];
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          'SELECT * FROM purchases WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2',
+          [userId, limit]
+        );
+        return result.rows.map((row: any) => ({
+          id: row.id,
+          user_id: row.user_id,
+          type: row.type,
+          amount_lumi: row.amount_lumi,
+          real_currency: row.real_currency,
+          real_amount: row.real_amount,
+          item_id: row.item_id,
+          status: row.status,
+          created_at: row.created_at,
+        }));
+      } catch (error: any) {
+        log.error('[DB] Error listing recent purchases', { error: error.message, userId });
+        throw error;
+      }
+    },
+  },
+
+  referrals: {
+    async create(referrerId: string, referredId: string) {
+      log.info(`[DB] [referrals.create] referrerId=${referrerId}, referredId=${referredId}`);
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          `INSERT INTO referrals (referrer_id, referred_id)
+           VALUES ($1, $2)
+           ON CONFLICT (referrer_id, referred_id) DO NOTHING
+           RETURNING *`,
+          [referrerId, referredId]
+        );
+        if (result.rows.length === 0) return null;
+        const row = result.rows[0];
+        return {
+          id: row.id,
+          referrer_id: row.referrer_id,
+          referred_id: row.referred_id,
+          bonus_given: row.bonus_given,
+          created_at: row.created_at,
+        };
+      } catch (error: any) {
+        log.error('[DB] Error creating referral', { error: error.message });
+        throw error;
+      }
+    },
+
+    async getByReferredId(referredId: string) {
+      log.info(`[DB] [referrals.getByReferredId] referredId=${referredId}`);
+      if (!DATABASE_URL) return null;
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          'SELECT * FROM referrals WHERE referred_id = $1',
+          [referredId]
+        );
+        if (result.rows.length === 0) return null;
+        const row = result.rows[0];
+        return {
+          id: row.id,
+          referrer_id: row.referrer_id,
+          referred_id: row.referred_id,
+          bonus_given: row.bonus_given,
+          created_at: row.created_at,
+        };
+      } catch (error: any) {
+        log.error('[DB] Error getting referral by referred id', { error: error.message, referredId });
+        throw error;
+      }
+    },
+
+    async exists(referrerId: string, referredId: string) {
+      log.info(`[DB] [referrals.exists] referrerId=${referrerId}, referredId=${referredId}`);
+      if (!DATABASE_URL) return false;
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          'SELECT 1 FROM referrals WHERE referrer_id = $1 AND referred_id = $2',
+          [referrerId, referredId]
+        );
+        return result.rows.length > 0;
+      } catch (error: any) {
+        log.error('[DB] Error checking referral exists', { error: error.message });
+        throw error;
+      }
+    },
+
+    async markBonusGiven(referrerId: string, referredId: string) {
+      log.info(`[DB] [referrals.markBonusGiven] referrerId=${referrerId}, referredId=${referredId}`);
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          'UPDATE referrals SET bonus_given = true WHERE referrer_id = $1 AND referred_id = $2 RETURNING *',
+          [referrerId, referredId]
+        );
+        return { success: result.rows.length > 0 };
+      } catch (error: any) {
+        log.error('[DB] Error marking bonus given', { error: error.message });
+        throw error;
+      }
+    },
+
+    async countTodayForReferrer(referrerId: string) {
+      log.info(`[DB] [referrals.countTodayForReferrer] referrerId=${referrerId}`);
+      if (!DATABASE_URL) return 0;
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          'SELECT COUNT(*) FROM referrals WHERE referrer_id = $1 AND created_at::date = CURRENT_DATE',
+          [referrerId]
+        );
+        return parseInt(result.rows[0].count);
+      } catch (error: any) {
+        log.error('[DB] Error counting referrals today', { error: error.message, referrerId });
         throw error;
       }
     },
