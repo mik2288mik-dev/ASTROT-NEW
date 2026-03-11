@@ -684,10 +684,195 @@ async function migration015(pool: Pool): Promise<void> {
 }
 
 /**
+ * Migration 016: Add balance, premium_expires_at, ref_code, referred_by to users
+ */
+async function migration016(pool: Pool): Promise<void> {
+  const migrationName = '016_add_users_balance_ref_fields';
+  
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
+  log.info(`Applying migration ${migrationName}...`);
+
+  const alterQueries = [
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS balance INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS premium_expires_at TIMESTAMP NULL`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS ref_code VARCHAR(50) UNIQUE NULL`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by TEXT NULL REFERENCES users(id)`,
+  ];
+
+  for (const query of alterQueries) {
+    await pool.query(query);
+  }
+  
+  await markMigrationApplied(pool, migrationName);
+  log.info(`Migration ${migrationName} applied successfully`);
+}
+
+/**
+ * Migration 017: Create cards table for MVP
+ */
+async function migration017(pool: Pool): Promise<void> {
+  const migrationName = '017_create_cards_table';
+  
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
+  log.info(`Applying migration ${migrationName}...`);
+
+  const usersExists = await tableExists(pool, 'users');
+  if (!usersExists) {
+    throw new Error('Cannot create cards table: users table does not exist.');
+  }
+
+  const createTable = `
+    CREATE TABLE IF NOT EXISTS cards (
+      id SERIAL PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      name VARCHAR(100) NOT NULL DEFAULT 'Я',
+      birth_date DATE NOT NULL,
+      birth_time TIME NULL,
+      birth_place VARCHAR(255) NOT NULL,
+      latitude DECIMAL(10, 8) NULL,
+      longitude DECIMAL(11, 8) NULL,
+      timezone VARCHAR(50) NULL,
+      data_json JSONB NOT NULL,
+      is_purchased_full BOOLEAN NOT NULL DEFAULT false,
+      is_purchased_pro BOOLEAN NOT NULL DEFAULT false,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    );
+  `;
+
+  await pool.query(createTable);
+  
+  const exists = await tableExists(pool, 'cards');
+  if (!exists) {
+    throw new Error(`Failed to create table 'cards' - table does not exist after CREATE TABLE`);
+  }
+  
+  await markMigrationApplied(pool, migrationName);
+  log.info(`Migration ${migrationName} applied successfully`);
+}
+
+/**
+ * Migration 018: Create purchases table
+ */
+async function migration018(pool: Pool): Promise<void> {
+  const migrationName = '018_create_purchases_table';
+  
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
+  log.info(`Applying migration ${migrationName}...`);
+
+  const usersExists = await tableExists(pool, 'users');
+  if (!usersExists) {
+    throw new Error('Cannot create purchases table: users table does not exist.');
+  }
+
+  const createTable = `
+    CREATE TABLE IF NOT EXISTS purchases (
+      id SERIAL PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      type VARCHAR(50) NOT NULL,
+      amount_lumi INTEGER NULL,
+      real_currency VARCHAR(10) NULL,
+      real_amount DECIMAL(10,2) NULL,
+      item_id VARCHAR(50) NULL,
+      status VARCHAR(20) NOT NULL DEFAULT 'success',
+      created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    );
+  `;
+
+  await pool.query(createTable);
+  
+  const exists = await tableExists(pool, 'purchases');
+  if (!exists) {
+    throw new Error(`Failed to create table 'purchases' - table does not exist after CREATE TABLE`);
+  }
+  
+  await markMigrationApplied(pool, migrationName);
+  log.info(`Migration ${migrationName} applied successfully`);
+}
+
+/**
+ * Migration 019: Create referrals table
+ */
+async function migration019(pool: Pool): Promise<void> {
+  const migrationName = '019_create_referrals_table';
+  
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
+  log.info(`Applying migration ${migrationName}...`);
+
+  const usersExists = await tableExists(pool, 'users');
+  if (!usersExists) {
+    throw new Error('Cannot create referrals table: users table does not exist.');
+  }
+
+  const createTable = `
+    CREATE TABLE IF NOT EXISTS referrals (
+      id SERIAL PRIMARY KEY,
+      referrer_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      referred_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      bonus_given BOOLEAN NOT NULL DEFAULT false,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      UNIQUE(referrer_id, referred_id)
+    );
+  `;
+
+  await pool.query(createTable);
+  
+  const exists = await tableExists(pool, 'referrals');
+  if (!exists) {
+    throw new Error(`Failed to create table 'referrals' - table does not exist after CREATE TABLE`);
+  }
+  
+  await markMigrationApplied(pool, migrationName);
+  log.info(`Migration ${migrationName} applied successfully`);
+}
+
+/**
+ * Migration 020: Add indexes for cards, purchases, referrals
+ */
+async function migration020(pool: Pool): Promise<void> {
+  const migrationName = '020_add_cards_purchases_referrals_indexes';
+  
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
+  log.info(`Applying migration ${migrationName}...`);
+
+  const createIndexes = [
+    'CREATE INDEX IF NOT EXISTS idx_cards_user_id ON cards(user_id)',
+    'CREATE INDEX IF NOT EXISTS idx_purchases_user_id ON purchases(user_id)',
+    'CREATE INDEX IF NOT EXISTS idx_referrals_referrer_id ON referrals(referrer_id)',
+  ];
+
+  for (const query of createIndexes) {
+    await pool.query(query);
+  }
+
+  await markMigrationApplied(pool, migrationName);
+  log.info(`Migration ${migrationName} applied successfully`);
+}
+
+/**
  * Verify that all required tables exist
  */
 async function verifyTablesExist(pool: Pool): Promise<void> {
-  const requiredTables = ['migrations', 'users', 'charts', 'synastry_cache', 'forecasts_cache', 'regenerations', 'daily_horoscopes_cache', 'deep_dive_analyses', 'user_settings', 'daily_horoscope'];
+  const requiredTables = ['migrations', 'users', 'charts', 'synastry_cache', 'forecasts_cache', 'regenerations', 'daily_horoscopes_cache', 'deep_dive_analyses', 'user_settings', 'daily_horoscope', 'cards', 'purchases', 'referrals'];
   const missingTables: string[] = [];
 
   for (const tableName of requiredTables) {
@@ -792,6 +977,11 @@ export async function runMigrations(): Promise<void> {
     await migration013(pool);
     await migration014(pool);
     await migration015(pool);
+    await migration016(pool);
+    await migration017(pool);
+    await migration018(pool);
+    await migration019(pool);
+    await migration020(pool);
 
     // Verify that all tables were created successfully
     log.info('Verifying tables were created...');
