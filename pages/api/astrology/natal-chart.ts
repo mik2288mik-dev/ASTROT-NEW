@@ -30,6 +30,11 @@ function toMvpFormat(chartData: any, hasExactTime: boolean): any {
       mercury: toPlanet(chartData?.mercury) || { sign: '', degree: 0, retrograde: false },
       venus: toPlanet(chartData?.venus) || { sign: '', degree: 0, retrograde: false },
       mars: toPlanet(chartData?.mars) || { sign: '', degree: 0, retrograde: false },
+      jupiter: toPlanet(chartData?.jupiter) || null,
+      saturn: toPlanet(chartData?.saturn) || null,
+      uranus: toPlanet(chartData?.uranus) || null,
+      neptune: toPlanet(chartData?.neptune) || null,
+      pluto: toPlanet(chartData?.pluto) || null,
     },
     houses_available: hasHouses,
   };
