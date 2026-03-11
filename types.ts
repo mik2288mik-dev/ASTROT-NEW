@@ -225,3 +225,72 @@ export interface RegenerationResponse {
   error?: string;
   newBalance?: number;
 }
+
+// MVP types
+export interface UserBalanceResponse {
+  balance: number;
+  is_premium: boolean;
+  premium_expires_at: string | null;
+}
+
+export interface Card {
+  id: number;
+  user_id: string;
+  name: string;
+  birth_date: string;
+  birth_time: string | null;
+  birth_place: string;
+  latitude: number | null;
+  longitude: number | null;
+  timezone: string | null;
+  data_json: any;
+  is_purchased_full: boolean;
+  is_purchased_pro: boolean;
+  created_at: string;
+}
+
+export interface Purchase {
+  id: number;
+  user_id: string;
+  type: string;
+  amount_lumi: number | null;
+  real_currency: string | null;
+  real_amount: number | null;
+  item_id: string | null;
+  status: string;
+  created_at: string;
+}
+
+export interface Referral {
+  id: number;
+  referrer_id: string;
+  referred_id: string;
+  bonus_given: boolean;
+  created_at: string;
+}
+
+export interface NatalPlanetShort {
+  sign: string;
+  degree: number;
+  retrograde?: boolean;
+  description_short?: string;
+}
+
+export interface NatalChartApiResponse {
+  success: boolean;
+  data: {
+    sun: NatalPlanetShort;
+    moon: NatalPlanetShort;
+    ascendant: { sign: string; degree: number; description_short?: string } | null;
+    mercury: { sign: string; degree: number; retrograde?: boolean };
+    venus: { sign: string; degree: number; retrograde?: boolean };
+    mars: { sign: string; degree: number; retrograde?: boolean };
+    jupiter?: { sign: string; degree: number; retrograde?: boolean } | null;
+    saturn?: { sign: string; degree: number; retrograde?: boolean } | null;
+    uranus?: { sign: string; degree: number; retrograde?: boolean } | null;
+    neptune?: { sign: string; degree: number; retrograde?: boolean } | null;
+    pluto?: { sign: string; degree: number; retrograde?: boolean } | null;
+  };
+  houses_available: boolean;
+  message?: string;
+}

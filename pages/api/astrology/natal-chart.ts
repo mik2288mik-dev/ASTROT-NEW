@@ -4,6 +4,36 @@ import { validateNatalChartInput, formatValidationErrors } from '../../../lib/va
 import { withRateLimit, RATE_LIMIT_CONFIGS } from '../../../lib/rateLimit';
 import { db } from '../../../lib/db';
 import { tryAcquireLock, releaseLock, LockKeys } from '../../../lib/serverLocks';
+import { getShortDescription } from '../../../lib/descriptions';
+
+function toMvpFormat(chartData: any, hasExactTime: boolean): any {
+  const hasHouses = hasExactTime && chartData?.rising;
+  const toPlanet = (p: any, body?: 'sun' | 'moon' | 'ascendant') => {
+    if (!p || !p.sign) return null;
+    const base = { sign: p.sign, degree: typeof p.degree === 'number' ? p.degree : parseFloat(p.degree) || 0 };
+    if (body) {
+      return { ...base, retrograde: p.retrograde ?? false, description_short: getShortDescription(body, p.sign) };
+    }
+    return { ...base, retrograde: p.retrograde ?? false };
+  };
+  const toAsc = (p: any) => {
+    if (!p || !p.sign || !hasHouses) return null;
+    const deg = typeof p.degree === 'number' ? p.degree : parseFloat(p.degree) || 0;
+    return { sign: p.sign, degree: deg, description_short: getShortDescription('ascendant', p.sign) };
+  };
+  return {
+    success: true,
+    data: {
+      sun: toPlanet(chartData?.sun, 'sun') || { sign: '', degree: 0, retrograde: false, description_short: '' },
+      moon: toPlanet(chartData?.moon, 'moon') || { sign: '', degree: 0, retrograde: false, description_short: '' },
+      ascendant: toAsc(chartData?.rising),
+      mercury: toPlanet(chartData?.mercury) || { sign: '', degree: 0, retrograde: false },
+      venus: toPlanet(chartData?.venus) || { sign: '', degree: 0, retrograde: false },
+      mars: toPlanet(chartData?.mars) || { sign: '', degree: 0, retrograde: false },
+    },
+    houses_available: hasHouses,
+  };
+}
 
 // Logging utility
 const log = {
@@ -112,12 +142,14 @@ async function handler(
             userId: effectiveUserId,
             reason: checkResult.reason
           });
-          
-          // Устанавливаем заголовки
+
+          const hasExactTime = !!(birthTime && String(birthTime).trim().length > 0);
+          const mvpResponse = toMvpFormat(checkResult.existingChart.chart_data, hasExactTime);
+
           res.setHeader('X-Chart-Source', 'cache');
           res.setHeader('X-Chart-Reason', checkResult.reason);
-          
-          return res.status(200).json(checkResult.existingChart.chart_data);
+
+          return res.status(200).json(mvpResponse);
         }
 
         log.info(`CACHE_MISS: need to calculate`, {
@@ -148,8 +180,10 @@ async function handler(
         try {
           const existingChart = await db.charts.get(effectiveUserId);
           if (existingChart && existingChart.chart_data) {
+            const hasExactTime = !!(birthTime && String(birthTime).trim().length > 0);
+            const mvpResponse = toMvpFormat(existingChart.chart_data, hasExactTime);
             res.setHeader('X-Chart-Source', 'cache-after-wait');
-            return res.status(200).json(existingChart.chart_data);
+            return res.status(200).json(mvpResponse);
           }
         } catch (dbError: any) {
           log.warn('Failed to get chart from DB after wait', { error: dbError.message });
@@ -257,12 +291,14 @@ async function handler(
       calcDuration: calcDuration
     });
 
-    // Устанавливаем заголовки
+    const hasExactTime = !!(birthTime && String(birthTime).trim().length > 0);
+    const mvpResponse = toMvpFormat(chartData, hasExactTime);
+
     res.setHeader('X-Chart-Source', 'calculated');
     res.setHeader('X-Calculation-Time', calcDuration.toString());
     res.setHeader('Cache-Control', 'private, max-age=31536000, immutable');
-    
-    return res.status(200).json(chartData);
+
+    return res.status(200).json(mvpResponse);
     
   } catch (error: any) {
     // Освобождаем блокировку при ошибке
