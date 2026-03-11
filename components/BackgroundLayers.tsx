@@ -29,6 +29,7 @@ const BACKGROUND_BY_VIEW: Record<ViewState, StaticImageData> = {
   hook: bgVioletNebula,
   paywall: bgGoldNebula,
   dashboard: bgMainDeepSpace,
+  'my-cards': bgSoftGradient,
   chart: bgMainDeepSpace,
   horoscope: bgMainDeepSpace,
   synastry: bgMainDeepSpace,
@@ -54,6 +55,7 @@ const OVERLAYS_BY_VIEW: Partial<Record<ViewState, OverlayLayer[]>> = {
     { src: overlaySoftFog, opacity: 0.16 },
     { src: overlayLightRays, opacity: 0.1 }
   ],
+  'my-cards': [],
   chart: [{ src: overlayVioletGlow, opacity: 0.18 }],
   horoscope: [
     { src: overlaySparkles, opacity: 0.18 },

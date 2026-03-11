@@ -19,6 +19,7 @@ import { requestStarsPayment } from './services/telegramService';
 import { HookChat } from './views/HookChat';
 import { Paywall } from './views/Paywall';
 import { Synastry } from './views/Synastry';
+import { MyCards } from './views/MyCards';
 import { useSwipeBack } from './lib/useSwipeBack';
 import { BackgroundLayers } from './components/BackgroundLayers';
 
@@ -128,7 +129,7 @@ const App: React.FC = () => {
                         });
                         setChartData(chart);
                         setLoadingProgress(100);
-                        setView('dashboard');
+                        setView('my-cards');
                     } else {
                         console.log('[App] Invalid chart data, showing onboarding');
                         setLoadingProgress(100);
@@ -285,7 +286,7 @@ const App: React.FC = () => {
                console.error('[App] Failed to save premium status:', error);
            }
            setShowPremiumPreview(false);
-           setView('dashboard');
+           setView('my-cards');
        } else {
            console.log('[App] Premium payment cancelled or failed');
        }
@@ -311,11 +312,11 @@ const App: React.FC = () => {
             return;
         }
         // Otherwise return to Hub
-        setView('dashboard');
+        setView('my-cards');
     }, [view]);
 
     // Свайп назад от левого края (как в iOS)
-    const canSwipeBack = view !== 'dashboard' && view !== 'onboarding' && view !== 'hook' && view !== 'paywall';
+    const canSwipeBack = view !== 'dashboard' && view !== 'my-cards' && view !== 'onboarding' && view !== 'hook' && view !== 'paywall';
     useSwipeBack({
         onSwipeBack: handleBack,
         enabled: canSwipeBack,
@@ -357,13 +358,13 @@ const App: React.FC = () => {
                     <HookChat 
                         profile={profile} 
                         chartData={chartData} 
-                        onComplete={() => setView('dashboard')}
+                        onComplete={() => setView('my-cards')}
                     />
                 ) : view === 'paywall' ? (
                     <Paywall 
                         profile={profile} 
                         onPurchase={requestPremium} 
-                        onClose={() => setView('dashboard')}
+                        onClose={() => setView('my-cards')}
                     />
                 ) : view === 'oracle' ? (
                     <OracleChat profile={profile} />
@@ -384,6 +385,16 @@ const App: React.FC = () => {
                             profile={profile} 
                             requestPremium={requestPremium}
                             onUpdateProfile={handleProfileUpdate}
+                        />
+                    </div>
+                ) : view === 'my-cards' ? (
+                    <div className="h-full overflow-y-auto scrollbar-hide">
+                        <MyCards
+                            userId={profile.id!}
+                            userProfile={profile}
+                            onOpenShop={() => setView('paywall')}
+                            onAddCard={() => setView('onboarding')}
+                            onOpenCard={(cardId) => setView('chart')}
                         />
                     </div>
                 ) : view === 'settings' ? (

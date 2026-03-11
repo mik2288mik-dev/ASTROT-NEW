@@ -11,7 +11,7 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ profile, view, onBack }) => {
     if (!profile) return null;
 
-    const isHub = view === 'dashboard';
+    const isHub = view === 'dashboard' || view === 'my-cards';
     const isFunnel = view === 'onboarding' || view === 'hook' || view === 'paywall';
 
     if (isFunnel) return null;
@@ -26,6 +26,7 @@ export const Header: React.FC<HeaderProps> = ({ profile, view, onBack }) => {
             settings: { ru: 'Настройки', en: 'Settings' },
             admin: { ru: 'Админ', en: 'Admin' },
             dashboard: { ru: 'ASTROT', en: 'ASTROT' },
+            'my-cards': { ru: 'Мои карты', en: 'My Cards' },
         };
         return titles[view]?.[profile.language] || 'ASTROT';
     };

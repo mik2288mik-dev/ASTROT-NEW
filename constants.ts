@@ -41,6 +41,15 @@ export const TRANSLATIONS = {
       oracle: "Оракул",
       settings: "Настройки"
     },
+    my_cards: {
+      greeting: "Привет,",
+      guest: "гость",
+      balance: "Баланс",
+      lumi: "Луми",
+      shop: "Магазин",
+      add_card: "Добавить карту",
+      empty: "У вас пока нет карт. Добавьте первую."
+    },
     hook: {
       analyzing: "Считываю звездную карту...",
       typing: "Астра печатает...",
@@ -162,6 +171,15 @@ export const TRANSLATIONS = {
       synastry: "Synastry",
       oracle: "Oracle",
       settings: "Settings"
+    },
+    my_cards: {
+      greeting: "Hi,",
+      guest: "guest",
+      balance: "Balance",
+      lumi: "Lumi",
+      shop: "Shop",
+      add_card: "Add card",
+      empty: "You have no cards yet. Add your first one."
     },
     hook: {
       analyzing: "Reading the star map...",
