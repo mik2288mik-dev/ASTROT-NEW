@@ -1,4 +1,17 @@
-import type { FullReport, CardDataJson } from '../types';
+import type { FullReport, CardDataJson, NatalDataFlat } from '../types';
+
+export function normalizeNatalData(raw: CardDataJson | any): NatalDataFlat {
+  if (!raw || typeof raw !== 'object') {
+    throw new Error('Natal data is empty or invalid');
+  }
+  if (raw.data && typeof raw.data === 'object' && (raw.data.sun || raw.data.moon)) {
+    return raw.data as NatalDataFlat;
+  }
+  if (raw.sun || raw.moon) {
+    return raw as NatalDataFlat;
+  }
+  throw new Error('Natal data does not contain recognizable planet positions');
+}
 
 const SUN_PERSONALITY: Record<string, string> = {
   Aries: 'Your core identity is shaped by courage, initiative, and a pioneering spirit. You are driven to lead, to be first, and to forge new paths. Your life force burns with directness and an instinct for action.',
@@ -138,15 +151,17 @@ function getOppositeSign(sign: string): string {
 }
 
 export function generateFullReport(dataJson: CardDataJson): FullReport {
-  const sunSign = dataJson.sun?.sign || dataJson.sun?.sign;
-  const moonSign = dataJson.moon?.sign;
-  const ascSign = dataJson.ascendant?.sign;
-  const venusSign = dataJson.venus?.sign;
-  const marsSign = dataJson.mars?.sign;
-  const saturnSign = dataJson.saturn?.sign;
-  const jupiterSign = dataJson.jupiter?.sign;
-  const nodeSign = dataJson.north_node?.sign;
-  const elementDominant = dataJson.element;
+  const natal = normalizeNatalData(dataJson);
+
+  const sunSign = natal.sun?.sign;
+  const moonSign = natal.moon?.sign;
+  const ascSign = natal.ascendant?.sign;
+  const venusSign = natal.venus?.sign;
+  const marsSign = natal.mars?.sign;
+  const saturnSign = natal.saturn?.sign;
+  const jupiterSign = natal.jupiter?.sign;
+  const nodeSign = natal.north_node?.sign;
+  const elementDominant = natal.element;
 
   if (!sunSign || !moonSign) {
     throw new Error('Insufficient natal data: Sun and Moon positions are required for Full Report');

@@ -1,4 +1,5 @@
-import type { ProReport, ProReportPlanetBlock, ProReportAspectBlock, ProReportHouseBlock, CardDataJson, ExtendedPlanetPosition, AspectData, HouseData } from '../types';
+import type { ProReport, ProReportPlanetBlock, ProReportAspectBlock, ProReportHouseBlock, CardDataJson, NatalDataFlat, ExtendedPlanetPosition, AspectData, HouseData } from '../types';
+import { normalizeNatalData } from './report-generator';
 
 const PLANET_IN_SIGN: Record<string, Record<string, string>> = {
   Sun: {
@@ -445,48 +446,50 @@ function buildKarmicThemes(dataJson: CardDataJson): string {
 }
 
 export function generateProReport(dataJson: CardDataJson): ProReport {
-  if (!dataJson.sun?.sign || !dataJson.moon?.sign) {
+  const natal = normalizeNatalData(dataJson) as CardDataJson;
+
+  if (!natal.sun?.sign || !natal.moon?.sign) {
     throw new Error('Insufficient natal data: Sun and Moon positions are required for Pro Report');
   }
 
-  const planets = buildPlanetBlocks(dataJson);
-  const houses = buildHouseBlocks(dataJson);
-  const aspects = buildAspectBlocks(dataJson);
+  const planets = buildPlanetBlocks(natal);
+  const houses = buildHouseBlocks(natal);
+  const aspects = buildAspectBlocks(natal);
 
   let northNodeBlock: { sign: string; degree: number; interpretation: string } | null = null;
   let southNodeBlock: { sign: string; degree: number; interpretation: string } | null = null;
 
-  if (dataJson.north_node?.sign) {
-    const sign = dataJson.north_node.sign;
+  if (natal.north_node?.sign) {
+    const sign = natal.north_node.sign;
     const oppositeSign = getOppositeSign(sign);
     const nodeData = NODE_INTERPRETATION[sign];
     northNodeBlock = {
       sign,
-      degree: dataJson.north_node.degree ?? 0,
+      degree: natal.north_node.degree ?? 0,
       interpretation: nodeData?.north || `North Node in ${sign}.`,
     };
     southNodeBlock = {
       sign: oppositeSign,
-      degree: dataJson.north_node.degree ?? 0,
+      degree: natal.north_node.degree ?? 0,
       interpretation: nodeData?.south || `South Node in ${oppositeSign}.`,
     };
   }
 
   let lilithBlock: { sign: string; degree: number; interpretation: string } | null = null;
-  if (dataJson.lilith?.sign) {
+  if (natal.lilith?.sign) {
     lilithBlock = {
-      sign: dataJson.lilith.sign,
-      degree: dataJson.lilith.degree ?? 0,
-      interpretation: LILITH_INTERPRETATION[dataJson.lilith.sign] || `Black Moon Lilith in ${dataJson.lilith.sign}.`,
+      sign: natal.lilith.sign,
+      degree: natal.lilith.degree ?? 0,
+      interpretation: LILITH_INTERPRETATION[natal.lilith.sign] || `Black Moon Lilith in ${natal.lilith.sign}.`,
     };
   }
 
   let chironBlock: { sign: string; degree: number; interpretation: string } | null = null;
-  if (dataJson.chiron?.sign) {
+  if (natal.chiron?.sign) {
     chironBlock = {
-      sign: dataJson.chiron.sign,
-      degree: dataJson.chiron.degree ?? 0,
-      interpretation: CHIRON_INTERPRETATION[dataJson.chiron.sign] || `Chiron in ${dataJson.chiron.sign}.`,
+      sign: natal.chiron.sign,
+      degree: natal.chiron.degree ?? 0,
+      interpretation: CHIRON_INTERPRETATION[natal.chiron.sign] || `Chiron in ${natal.chiron.sign}.`,
     };
   }
 
@@ -501,9 +504,9 @@ export function generateProReport(dataJson: CardDataJson): ProReport {
     lilith: lilithBlock,
     chiron: chironBlock,
     interpretation_blocks: {
-      configuration: buildConfiguration(dataJson),
-      dominant_patterns: buildDominantPatterns(dataJson),
-      karmic_themes: buildKarmicThemes(dataJson),
+      configuration: buildConfiguration(natal),
+      dominant_patterns: buildDominantPatterns(natal),
+      karmic_themes: buildKarmicThemes(natal),
     },
     generated_at: new Date().toISOString(),
   };

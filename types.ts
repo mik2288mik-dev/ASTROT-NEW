@@ -311,10 +311,10 @@ export interface ProReport {
   generated_at: string;
 }
 
-export interface CardDataJson {
+export interface NatalDataFlat {
   sun?: ExtendedPlanetPosition;
   moon?: ExtendedPlanetPosition;
-  ascendant?: { sign: string; degree: number; longitude: number };
+  ascendant?: { sign: string; degree: number; longitude?: number; description_short?: string };
   mercury?: ExtendedPlanetPosition;
   venus?: ExtendedPlanetPosition;
   mars?: ExtendedPlanetPosition;
@@ -331,6 +331,12 @@ export interface CardDataJson {
   element?: string;
   rulingPlanet?: string;
   summary?: string;
+}
+
+export interface CardDataJson extends NatalDataFlat {
+  success?: boolean;
+  data?: NatalDataFlat;
+  houses_available?: boolean;
   full_report?: FullReport;
   pro_report?: ProReport;
   [key: string]: any;
