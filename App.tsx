@@ -25,6 +25,7 @@ import { BasicResult } from './views/BasicResult';
 import { FullReport } from './views/FullReport';
 import { ProReport } from './views/ProReport';
 import { Shop } from './views/Shop';
+import { Profile } from './views/Profile';
 import { calculateNatalChart, createCard } from './services/cardsService';
 import { useSwipeBack } from './lib/useSwipeBack';
 import { BackgroundLayers } from './components/BackgroundLayers';
@@ -321,6 +322,10 @@ const App: React.FC = () => {
             setView('basic-result');
             return;
         }
+        if (view === 'profile') {
+            setView('my-cards');
+            return;
+        }
         if (view === 'shop') {
             setView('my-cards');
             return;
@@ -357,14 +362,14 @@ const App: React.FC = () => {
 
     return (
         <div className="flex flex-col h-full w-full overflow-hidden bg-astro-bg pt-4 text-astro-text font-sans selection:bg-astro-highlight selection:text-white">
-            <BackgroundLayers view={(view === 'full-report' || view === 'pro-report' || view === 'shop' ? 'my-cards' : view) as ViewState} />
-            <BackgroundLayers theme={profile.theme} view={(view === 'full-report' || view === 'pro-report' || view === 'shop' ? 'my-cards' : view) as ViewState} context={ambientContext} />
+            <BackgroundLayers view={(view === 'full-report' || view === 'pro-report' || view === 'shop' || view === 'profile' ? 'my-cards' : view) as ViewState} />
+            <BackgroundLayers theme={profile.theme} view={(view === 'full-report' || view === 'pro-report' || view === 'shop' || view === 'profile' ? 'my-cards' : view) as ViewState} context={ambientContext} />
             
             {/* Header handles Title, Settings button, and Back button */}
             <Header 
                 profile={profile} 
-                view={(view === 'full-report' || view === 'pro-report' || view === 'shop' ? 'my-cards' : view) as ViewState} 
-                onOpenSettings={() => setView('settings')}
+                view={(view === 'full-report' || view === 'pro-report' || view === 'shop' || view === 'profile' ? 'my-cards' : view) as ViewState} 
+                onOpenSettings={() => setView('profile')}
                 onBack={handleBack}
             />
             
@@ -479,6 +484,15 @@ const App: React.FC = () => {
                                 });
                                 setView('my-cards');
                             }}
+                        />
+                    </div>
+                ) : view === 'profile' ? (
+                    <div className="h-full overflow-y-auto scrollbar-hide">
+                        <Profile
+                            userId={profile.id!}
+                            userProfile={profile}
+                            onBack={() => setView('my-cards')}
+                            onOpenSettings={() => setView('settings')}
                         />
                     </div>
                 ) : view === 'settings' ? (

@@ -124,6 +124,18 @@ export const TRANSLATIONS = {
       month_12: "12 месяцев",
       back: "Назад"
     },
+    profile: {
+      title: "Профиль",
+      balance: "Баланс",
+      invite: "Пригласить друга",
+      your_link: "Ваша реферальная ссылка",
+      copy: "Скопировать ссылку",
+      share: "Поделиться",
+      copied: "Ссылка скопирована",
+      shared: "Ссылка отправлена",
+      settings: "Настройки",
+      back: "Назад"
+    },
     hook: {
       analyzing: "Считываю звездную карту...",
       typing: "Астра печатает...",
@@ -327,6 +339,18 @@ export const TRANSLATIONS = {
       month_3: "3 months",
       month_6: "6 months",
       month_12: "12 months",
+      back: "Back"
+    },
+    profile: {
+      title: "Profile",
+      balance: "Balance",
+      invite: "Invite a friend",
+      your_link: "Your referral link",
+      copy: "Copy link",
+      share: "Share",
+      copied: "Link copied",
+      shared: "Link shared",
+      settings: "Settings",
       back: "Back"
     },
     hook: {
