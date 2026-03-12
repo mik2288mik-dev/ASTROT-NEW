@@ -58,12 +58,12 @@ export const FullReport: React.FC<FullReportProps> = ({ userId, cardId, language
         <h3 className="text-base font-semibold text-astro-text mb-2">
           {getText(lang, 'full_report.unavailable')}
         </h3>
-        <p className="text-sm text-astro-text/50 mb-6 max-w-[260px]">
+        <p className="text-sm text-astro-text/55 mb-6 max-w-[260px]">
           {getText(lang, 'full_report.unavailable_desc')}
         </p>
         <button
           onClick={onBack}
-          className="px-6 py-2.5 rounded-xl border border-astro-border text-astro-text/70 text-sm"
+          className="px-6 py-2.5 rounded-xl border border-astro-border/60 text-astro-text/70 text-sm font-medium hover:bg-white/5"
         >
           {getText(lang, 'full_report.back')}
         </button>
@@ -73,25 +73,25 @@ export const FullReport: React.FC<FullReportProps> = ({ userId, cardId, language
 
   return (
     <div className="h-full overflow-y-auto scrollbar-hide px-4 pb-10">
-      <div className="pt-4 pb-2">
+      <div className="pt-4 pb-4">
         <h2 className="text-lg font-semibold text-astro-text">
           {getText(lang, 'full_report.title')}
         </h2>
         {card?.name && (
-          <p className="text-sm text-astro-text/50 mt-0.5">{card.name}</p>
+          <p className="text-sm text-astro-text/55 mt-1">{card.name}</p>
         )}
       </div>
 
-      <div className="mt-4 space-y-5">
+      <div className="max-w-[65ch] space-y-6">
         {SECTION_KEYS.map(({ key, titleKey }) => {
           const content = report[key];
           if (!content || key === 'generated_at') return null;
           return (
-            <section key={key}>
-              <h3 className="text-sm font-semibold text-astro-highlight uppercase tracking-wider mb-2">
+            <section key={key} className="border-b border-astro-border/40 pb-6 last:border-0 last:pb-0">
+              <h3 className="text-sm font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-3">
                 {getText(lang, titleKey)}
               </h3>
-              <div className="text-sm text-astro-text/85 leading-relaxed whitespace-pre-line">
+              <div className="text-sm text-astro-text/90 leading-relaxed whitespace-pre-line">
                 {content}
               </div>
             </section>
@@ -101,7 +101,7 @@ export const FullReport: React.FC<FullReportProps> = ({ userId, cardId, language
 
       <button
         onClick={onBack}
-        className="w-full mt-8 py-3 rounded-2xl border border-astro-border text-astro-text/60 text-sm transition-colors active:bg-astro-card/40"
+        className="w-full mt-8 py-3 rounded-xl border border-astro-border/60 text-astro-text/60 text-sm font-medium hover:bg-white/5 transition-colors"
       >
         {getText(lang, 'full_report.back')}
       </button>

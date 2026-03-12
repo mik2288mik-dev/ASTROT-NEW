@@ -18,19 +18,19 @@ interface ProReportProps {
 }
 
 const SectionHeader: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <h3 className="text-sm font-semibold text-astro-highlight uppercase tracking-wider mb-3 mt-6 first:mt-0">
+  <h3 className="text-sm font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-3 mt-6 first:mt-0">
     {children}
   </h3>
 );
 
 const PlanetCard: React.FC<{ p: ProReportPlanetBlock; lang: Language }> = ({ p, lang }) => (
-  <div className="p-3.5 rounded-xl bg-astro-card/50 border border-astro-border mb-2">
-    <div className="flex items-center justify-between mb-1">
+  <div className="p-4 rounded-xl bg-white/5 dark:bg-white/[0.03] border border-astro-border/50 mb-3">
+    <div className="flex items-center justify-between mb-1.5">
       <span className="text-sm font-semibold text-astro-text">{p.planet}</span>
-      <div className="flex items-center gap-2 text-xs text-astro-text/50">
+      <div className="flex items-center gap-2 text-xs text-astro-text/55">
         <span>{getZodiacSign(lang, p.sign)} {p.degree.toFixed(1)}°</span>
         {p.retrograde && (
-          <span className="text-red-400/80 font-medium">{getText(lang, 'pro_report.retrograde')}</span>
+          <span className="text-amber-600/90 dark:text-amber-500/90 font-medium">{getText(lang, 'pro_report.retrograde')}</span>
         )}
         {p.house != null && (
           <span>{p.house} {getText(lang, 'pro_report.house_label')}</span>
@@ -38,21 +38,21 @@ const PlanetCard: React.FC<{ p: ProReportPlanetBlock; lang: Language }> = ({ p, 
       </div>
     </div>
     {p.interpretation && (
-      <p className="text-xs text-astro-text/70 leading-relaxed mt-1">{p.interpretation}</p>
+      <p className="text-xs text-astro-text/70 leading-relaxed mt-1.5">{p.interpretation}</p>
     )}
   </div>
 );
 
 const HouseCard: React.FC<{ h: ProReportHouseBlock; lang: Language }> = ({ h, lang }) => (
-  <div className="p-3 rounded-xl bg-astro-card/40 border border-astro-border/60 mb-2">
-    <div className="flex items-center justify-between mb-0.5">
+  <div className="p-4 rounded-xl bg-white/5 dark:bg-white/[0.03] border border-astro-border/50 mb-3">
+    <div className="flex items-center justify-between mb-1">
       <span className="text-sm font-medium text-astro-text">
         {h.house} {getText(lang, 'pro_report.house_label')}
       </span>
-      <span className="text-xs text-astro-text/50">{getZodiacSign(lang, h.sign)} {h.degree.toFixed(1)}°</span>
+      <span className="text-xs text-astro-text/55">{getZodiacSign(lang, h.sign)} {h.degree.toFixed(1)}°</span>
     </div>
     {h.interpretation && (
-      <p className="text-xs text-astro-text/60 leading-relaxed mt-1">{h.interpretation}</p>
+      <p className="text-xs text-astro-text/65 leading-relaxed mt-1">{h.interpretation}</p>
     )}
   </div>
 );
@@ -63,17 +63,17 @@ const AspectCard: React.FC<{ a: ProReportAspectBlock; lang: Language }> = ({ a, 
   };
   const symbol = aspectSymbols[a.aspect] || a.aspect;
   return (
-    <div className="p-3 rounded-xl bg-astro-card/40 border border-astro-border/60 mb-2">
-      <div className="flex items-center gap-2 text-sm">
+    <div className="p-4 rounded-xl bg-white/5 dark:bg-white/[0.03] border border-astro-border/50 mb-3">
+      <div className="flex items-center gap-2 text-sm flex-wrap">
         <span className="text-astro-text font-medium">{a.planet1}</span>
-        <span className="text-astro-highlight">{symbol}</span>
+        <span className="text-blue-600 dark:text-blue-400">{symbol}</span>
         <span className="text-astro-text font-medium">{a.planet2}</span>
-        <span className="text-xs text-astro-text/40 ml-auto">
+        <span className="text-xs text-astro-text/45 ml-auto">
           {a.angle.toFixed(1)}° · {getText(lang, 'pro_report.orb')} {a.orb.toFixed(1)}°
         </span>
       </div>
       {a.interpretation && (
-        <p className="text-xs text-astro-text/60 leading-relaxed mt-1.5">{a.interpretation}</p>
+        <p className="text-xs text-astro-text/65 leading-relaxed mt-1.5">{a.interpretation}</p>
       )}
     </div>
   );
@@ -86,10 +86,10 @@ const PointBlock: React.FC<{
 }> = ({ title, point, lang }) => {
   if (!point) return null;
   return (
-    <div className="p-3.5 rounded-xl bg-astro-card/50 border border-astro-border mb-2">
+    <div className="p-4 rounded-xl bg-white/5 dark:bg-white/[0.03] border border-astro-border/50 mb-3">
       <div className="flex items-center justify-between mb-1">
         <span className="text-sm font-semibold text-astro-text">{title}</span>
-        <span className="text-xs text-astro-text/50">{getZodiacSign(lang, point.sign)} {point.degree.toFixed(1)}°</span>
+        <span className="text-xs text-astro-text/55">{getZodiacSign(lang, point.sign)} {point.degree.toFixed(1)}°</span>
       </div>
       {point.interpretation && (
         <p className="text-xs text-astro-text/70 leading-relaxed mt-1">{point.interpretation}</p>
@@ -137,12 +137,12 @@ export const ProReport: React.FC<ProReportProps> = ({ userId, cardId, language, 
         <h3 className="text-base font-semibold text-astro-text mb-2">
           {getText(lang, 'pro_report.unavailable')}
         </h3>
-        <p className="text-sm text-astro-text/50 mb-6 max-w-[260px]">
+        <p className="text-sm text-astro-text/55 mb-6 max-w-[260px]">
           {getText(lang, 'pro_report.unavailable_desc')}
         </p>
         <button
           onClick={onBack}
-          className="px-6 py-2.5 rounded-xl border border-astro-border text-astro-text/70 text-sm"
+          className="px-6 py-2.5 rounded-xl border border-astro-border/60 text-astro-text/70 text-sm font-medium hover:bg-white/5"
         >
           {getText(lang, 'pro_report.back')}
         </button>
@@ -161,93 +161,90 @@ export const ProReport: React.FC<ProReportProps> = ({ userId, cardId, language, 
 
   return (
     <div className="h-full overflow-y-auto scrollbar-hide px-4 pb-10">
-      <div className="pt-4 pb-1">
+      <div className="pt-4 pb-4">
         <h2 className="text-lg font-semibold text-astro-text">
           {getText(lang, 'pro_report.title')}
         </h2>
         {card?.name && (
-          <p className="text-sm text-astro-text/50 mt-0.5">{card.name}</p>
+          <p className="text-sm text-astro-text/55 mt-1">{card.name}</p>
         )}
       </div>
 
-      {/* Interpretation blocks */}
-      {ib?.configuration && (
-        <>
-          <SectionHeader>{getText(lang, 'pro_report.configuration')}</SectionHeader>
-          <p className="text-sm text-astro-text/80 leading-relaxed whitespace-pre-line mb-2">{ib.configuration}</p>
-        </>
-      )}
-      {ib?.dominant_patterns && (
-        <>
-          <SectionHeader>{getText(lang, 'pro_report.dominant_patterns')}</SectionHeader>
-          <p className="text-sm text-astro-text/80 leading-relaxed whitespace-pre-line mb-2">{ib.dominant_patterns}</p>
-        </>
-      )}
-      {ib?.karmic_themes && (
-        <>
-          <SectionHeader>{getText(lang, 'pro_report.karmic_themes')}</SectionHeader>
-          <p className="text-sm text-astro-text/80 leading-relaxed whitespace-pre-line mb-2">{ib.karmic_themes}</p>
-        </>
-      )}
+      <div className="max-w-[65ch]">
+        {ib?.configuration && (
+          <>
+            <SectionHeader>{getText(lang, 'pro_report.configuration')}</SectionHeader>
+            <p className="text-sm text-astro-text/85 leading-relaxed whitespace-pre-line mb-2">{ib.configuration}</p>
+          </>
+        )}
+        {ib?.dominant_patterns && (
+          <>
+            <SectionHeader>{getText(lang, 'pro_report.dominant_patterns')}</SectionHeader>
+            <p className="text-sm text-astro-text/85 leading-relaxed whitespace-pre-line mb-2">{ib.dominant_patterns}</p>
+          </>
+        )}
+        {ib?.karmic_themes && (
+          <>
+            <SectionHeader>{getText(lang, 'pro_report.karmic_themes')}</SectionHeader>
+            <p className="text-sm text-astro-text/85 leading-relaxed whitespace-pre-line mb-2">{ib.karmic_themes}</p>
+          </>
+        )}
 
-      {/* Planets */}
-      {hasPlanets && (
-        <>
-          <SectionHeader>{getText(lang, 'pro_report.planets')}</SectionHeader>
-          {report.planets.map((p, i) => (
-            <PlanetCard key={`${p.planet}-${i}`} p={p} lang={lang} />
-          ))}
-        </>
-      )}
+        {hasPlanets && (
+          <>
+            <SectionHeader>{getText(lang, 'pro_report.planets')}</SectionHeader>
+            <div className="space-y-0">
+              {report.planets.map((p, i) => (
+                <PlanetCard key={`${p.planet}-${i}`} p={p} lang={lang} />
+              ))}
+            </div>
+          </>
+        )}
 
-      {/* Nodes */}
-      {(hasNorthNode || hasSouthNode) && (
-        <>
-          <SectionHeader>{getText(lang, 'pro_report.nodes')}</SectionHeader>
-          <PointBlock title={getText(lang, 'pro_report.north_node')} point={report.nodes.north_node} lang={lang} />
-          <PointBlock title={getText(lang, 'pro_report.south_node')} point={report.nodes.south_node} lang={lang} />
-        </>
-      )}
+        {(hasNorthNode || hasSouthNode) && (
+          <>
+            <SectionHeader>{getText(lang, 'pro_report.nodes')}</SectionHeader>
+            <PointBlock title={getText(lang, 'pro_report.north_node')} point={report.nodes.north_node} lang={lang} />
+            <PointBlock title={getText(lang, 'pro_report.south_node')} point={report.nodes.south_node} lang={lang} />
+          </>
+        )}
 
-      {/* Lilith */}
-      {hasLilith && (
-        <>
-          <SectionHeader>{getText(lang, 'pro_report.lilith')}</SectionHeader>
-          <PointBlock title={getText(lang, 'pro_report.lilith')} point={report.lilith} lang={lang} />
-        </>
-      )}
+        {hasLilith && (
+          <>
+            <SectionHeader>{getText(lang, 'pro_report.lilith')}</SectionHeader>
+            <PointBlock title={getText(lang, 'pro_report.lilith')} point={report.lilith} lang={lang} />
+          </>
+        )}
 
-      {/* Chiron */}
-      {hasChiron && (
-        <>
-          <SectionHeader>{getText(lang, 'pro_report.chiron')}</SectionHeader>
-          <PointBlock title={getText(lang, 'pro_report.chiron')} point={report.chiron} lang={lang} />
-        </>
-      )}
+        {hasChiron && (
+          <>
+            <SectionHeader>{getText(lang, 'pro_report.chiron')}</SectionHeader>
+            <PointBlock title={getText(lang, 'pro_report.chiron')} point={report.chiron} lang={lang} />
+          </>
+        )}
 
-      {/* Houses */}
-      {hasHouses && (
-        <>
-          <SectionHeader>{getText(lang, 'pro_report.houses')}</SectionHeader>
-          {report.houses.map((h, i) => (
-            <HouseCard key={`house-${h.house}-${i}`} h={h} lang={lang} />
-          ))}
-        </>
-      )}
+        {hasHouses && (
+          <>
+            <SectionHeader>{getText(lang, 'pro_report.houses')}</SectionHeader>
+            {report.houses.map((h, i) => (
+              <HouseCard key={`house-${h.house}-${i}`} h={h} lang={lang} />
+            ))}
+          </>
+        )}
 
-      {/* Aspects */}
-      {hasAspects && (
-        <>
-          <SectionHeader>{getText(lang, 'pro_report.aspects')}</SectionHeader>
-          {report.aspects.map((a, i) => (
-            <AspectCard key={`${a.planet1}-${a.planet2}-${i}`} a={a} lang={lang} />
-          ))}
-        </>
-      )}
+        {hasAspects && (
+          <>
+            <SectionHeader>{getText(lang, 'pro_report.aspects')}</SectionHeader>
+            {report.aspects.map((a, i) => (
+              <AspectCard key={`${a.planet1}-${a.planet2}-${i}`} a={a} lang={lang} />
+            ))}
+          </>
+        )}
+      </div>
 
       <button
         onClick={onBack}
-        className="w-full mt-8 py-3 rounded-2xl border border-astro-border text-astro-text/60 text-sm transition-colors active:bg-astro-card/40"
+        className="w-full mt-8 py-3 rounded-xl border border-astro-border/60 text-astro-text/60 text-sm font-medium hover:bg-white/5 transition-colors"
       >
         {getText(lang, 'pro_report.back')}
       </button>

@@ -52,25 +52,25 @@ export const BirthDataInput: React.FC<BirthDataInputProps> = ({
 
   return (
     <div className="h-full overflow-y-auto scrollbar-hide px-4 pb-8">
-      <h2 className="text-lg font-medium text-astro-text pt-4 mb-6">
+      <h2 className="text-lg font-semibold text-astro-text pt-4 mb-6">
         {getText(lang, 'birth_input.title')}
       </h2>
 
-      <div className="space-y-4">
+      <div className="space-y-5">
         <div>
-          <label className="block text-sm font-medium text-astro-text/80 mb-1">
+          <label className="block text-sm font-medium text-astro-text/80 mb-1.5">
             {getText(lang, 'birth_input.birth_date')}
           </label>
           <input
             type="date"
             value={birthDate}
             onChange={(e) => setBirthDate(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl bg-astro-bg/80 border border-astro-border text-astro-text focus:border-astro-highlight focus:outline-none"
+            className="w-full px-4 py-3 rounded-xl bg-white/5 dark:bg-white/[0.03] border border-astro-border/60 text-astro-text focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/30"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-astro-text/80 mb-1">
+          <label className="block text-sm font-medium text-astro-text/80 mb-1.5">
             {getText(lang, 'birth_input.birth_time')}
           </label>
           <input
@@ -78,11 +78,11 @@ export const BirthDataInput: React.FC<BirthDataInputProps> = ({
             value={timeValue}
             onChange={(e) => setBirthTime(e.target.value)}
             disabled={timeUnknown}
-            className="w-full px-4 py-3 rounded-xl bg-astro-bg/80 border border-astro-border text-astro-text focus:border-astro-highlight focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full px-4 py-3 rounded-xl bg-white/5 dark:bg-white/[0.03] border border-astro-border/60 text-astro-text focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
           />
         </div>
 
-        <label className="flex items-center gap-2 cursor-pointer">
+        <label className="flex items-center gap-3 cursor-pointer py-1">
           <input
             type="checkbox"
             checked={timeUnknown}
@@ -90,29 +90,28 @@ export const BirthDataInput: React.FC<BirthDataInputProps> = ({
               setTimeUnknown(e.target.checked);
               if (e.target.checked) setBirthTime('');
             }}
-            className="rounded border-astro-border text-astro-highlight focus:ring-astro-highlight"
+            className="w-4 h-4 rounded border-astro-border/60 text-blue-600 focus:ring-blue-500/30"
           />
-          <span className="text-sm text-astro-text">
+          <span className="text-sm text-astro-text/90">
             {getText(lang, 'birth_input.time_unknown')}
           </span>
         </label>
 
         {timeUnknown && (
-          <p className="text-xs text-amber-500/90">
+          <p className="text-xs text-amber-600/90 dark:text-amber-500/90 bg-amber-500/10 dark:bg-amber-500/5 px-3 py-2 rounded-lg border border-amber-500/20">
             {getText(lang, 'birth_input.warning')}
           </p>
         )}
 
         <div>
-          <label className="block text-sm font-medium text-astro-text/80 mb-1">
+          <label className="block text-sm font-medium text-astro-text/80 mb-1.5">
             {getText(lang, 'birth_input.birth_place')}
           </label>
           <input
             type="text"
             value={birthPlace}
             onChange={(e) => setBirthPlace(e.target.value)}
-            placeholder="Москва, Россия"
-            className="w-full px-4 py-3 rounded-xl bg-astro-bg/80 border border-astro-border text-astro-text placeholder-astro-text/40 focus:border-astro-highlight focus:outline-none"
+            className="w-full px-4 py-3 rounded-xl bg-white/5 dark:bg-white/[0.03] border border-astro-border/60 text-astro-text focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/30"
           />
         </div>
       </div>
@@ -120,14 +119,14 @@ export const BirthDataInput: React.FC<BirthDataInputProps> = ({
       <div className="mt-8 flex gap-3">
         <button
           onClick={onBack}
-          className="flex-1 py-3 rounded-xl border border-astro-border text-astro-text text-sm font-medium"
+          className="flex-1 py-3 rounded-xl border border-astro-border/60 text-astro-text/80 text-sm font-medium hover:bg-white/5 transition-colors"
         >
           {lang === 'ru' ? 'Назад' : 'Back'}
         </button>
         <button
           onClick={handleSubmit}
           disabled={!isValid || loading}
-          className="flex-1 py-3 rounded-xl bg-astro-highlight text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex-1 py-3 rounded-xl bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {loading ? (lang === 'ru' ? 'Расчёт...' : 'Calculating...') : getText(lang, 'birth_input.submit')}
         </button>

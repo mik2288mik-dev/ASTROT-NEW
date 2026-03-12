@@ -118,7 +118,7 @@ export const BasicResult: React.FC<BasicResultProps> = ({
         </p>
         <button
           onClick={onBack}
-          className="px-6 py-2.5 rounded-xl border border-astro-border text-astro-text/80 text-sm"
+          className="px-6 py-2.5 rounded-xl border border-astro-border/60 text-astro-text/80 text-sm font-medium hover:bg-white/5"
         >
           {getText(lang, 'basic_result.back')}
         </button>
@@ -131,7 +131,7 @@ export const BasicResult: React.FC<BasicResultProps> = ({
     const signLocalized = getZodiacSign(lang, item.sign);
     const deg = item.degree != null ? `${Number(item.degree).toFixed(1)}°` : null;
     return (
-      <div className="p-4 rounded-2xl bg-astro-card/60 border border-astro-border">
+      <div className="p-4 rounded-xl bg-white/5 dark:bg-white/[0.03] border border-astro-border/50">
         <div className="text-xs font-medium text-astro-text/50 uppercase tracking-wider mb-1">
           {getText(lang, titleKey)}
         </div>
@@ -140,7 +140,7 @@ export const BasicResult: React.FC<BasicResultProps> = ({
           {deg && <span className="text-sm text-astro-text/50">{deg}</span>}
         </div>
         {item.description_short && (
-          <p className="text-xs text-astro-text/60 mt-1.5 leading-relaxed">{item.description_short}</p>
+          <p className="text-xs text-astro-text/65 mt-1.5 leading-relaxed">{item.description_short}</p>
         )}
       </div>
     );
@@ -150,15 +150,13 @@ export const BasicResult: React.FC<BasicResultProps> = ({
 
   return (
     <div className="h-full overflow-y-auto scrollbar-hide px-4 pb-10">
-      {/* Card header */}
       <div className="pt-4 pb-5">
         <h2 className="text-lg font-semibold text-astro-text">{card.name || 'Я'}</h2>
-        <p className="text-sm text-astro-text/50 mt-0.5">
+        <p className="text-sm text-astro-text/55 mt-0.5">
           {formatDate(card.birth_date)} · {card.birth_place}
         </p>
       </div>
 
-      {/* Planet blocks */}
       {chartData && (
         <div className="space-y-3 mb-6">
           {renderPlanetBlock('basic_result.sun', chartData.sun)}
@@ -166,11 +164,11 @@ export const BasicResult: React.FC<BasicResultProps> = ({
           {hasAscendant
             ? renderPlanetBlock('basic_result.ascendant', chartData.ascendant)
             : (
-              <div className="p-4 rounded-2xl border border-astro-border/50 border-dashed">
+              <div className="p-4 rounded-xl border border-astro-border/40 border-dashed bg-white/[0.02]">
                 <div className="text-xs font-medium text-astro-text/50 uppercase tracking-wider mb-1">
                   {getText(lang, 'basic_result.ascendant')}
                 </div>
-                <p className="text-sm text-astro-text/40">
+                <p className="text-sm text-astro-text/50">
                   {getText(lang, 'basic_result.ascendant_unavailable')}
                 </p>
               </div>
@@ -179,13 +177,11 @@ export const BasicResult: React.FC<BasicResultProps> = ({
         </div>
       )}
 
-      {/* Action buttons */}
       <div className="space-y-3">
-        {/* Full Report button */}
         {card.is_purchased_full ? (
           <button
             onClick={onOpenFullReport}
-            className="w-full py-3.5 rounded-2xl bg-astro-highlight/10 border border-astro-highlight/25 text-astro-highlight text-sm font-medium transition-colors active:bg-astro-highlight/20"
+            className="w-full py-3.5 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-600 dark:text-blue-400 text-sm font-medium hover:bg-blue-500/15 transition-colors"
           >
             {getText(lang, 'basic_result.full_opened')}
           </button>
@@ -193,7 +189,7 @@ export const BasicResult: React.FC<BasicResultProps> = ({
           <button
             onClick={handleBuyFull}
             disabled={purchaseLoadingFull}
-            className="w-full py-3.5 rounded-2xl bg-astro-highlight text-white text-sm font-semibold transition-opacity disabled:opacity-60"
+            className="w-full py-3.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
           >
             {purchaseLoadingFull
               ? getText(lang, 'basic_result.full_loading')
@@ -202,11 +198,10 @@ export const BasicResult: React.FC<BasicResultProps> = ({
           </button>
         )}
 
-        {/* Pro Report button */}
         {card.is_purchased_pro ? (
           <button
             onClick={onOpenProReport}
-            className="w-full py-3.5 rounded-2xl bg-astro-highlight/10 border border-astro-highlight/25 text-astro-highlight text-sm font-medium transition-colors active:bg-astro-highlight/20"
+            className="w-full py-3.5 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-600 dark:text-blue-400 text-sm font-medium hover:bg-blue-500/15 transition-colors"
           >
             {getText(lang, 'basic_result.pro_opened')}
           </button>
@@ -214,7 +209,7 @@ export const BasicResult: React.FC<BasicResultProps> = ({
           <button
             onClick={handleBuyPro}
             disabled={purchaseLoadingPro}
-            className="w-full py-3.5 rounded-2xl border border-astro-highlight/40 text-astro-highlight text-sm font-medium transition-opacity disabled:opacity-60"
+            className="w-full py-3.5 rounded-xl border border-blue-500/50 text-blue-600 dark:text-blue-400 text-sm font-medium hover:bg-blue-500/10 disabled:opacity-60 transition-colors"
           >
             {purchaseLoadingPro
               ? getText(lang, 'basic_result.pro_loading')
@@ -222,21 +217,20 @@ export const BasicResult: React.FC<BasicResultProps> = ({
             }
           </button>
         ) : (
-          <div className="w-full py-3.5 rounded-2xl border border-astro-border/50 text-center">
-            <span className="text-sm text-astro-text/30">
+          <div className="w-full py-3.5 rounded-xl border border-astro-border/50 bg-white/[0.02] text-center">
+            <span className="text-sm text-astro-text/45">
               {getText(lang, 'basic_result.pro_btn')}
             </span>
-            <p className="text-xs text-astro-text/25 mt-0.5">
+            <p className="text-xs text-astro-text/40 mt-0.5">
               {getText(lang, 'basic_result.pro_locked')}
             </p>
           </div>
         )}
       </div>
 
-      {/* Back button */}
       <button
         onClick={onBack}
-        className="w-full mt-6 py-3 rounded-2xl border border-astro-border text-astro-text/60 text-sm transition-colors active:bg-astro-card/40"
+        className="w-full mt-6 py-3 rounded-xl border border-astro-border/60 text-astro-text/60 text-sm font-medium hover:bg-white/5 transition-colors"
       >
         {getText(lang, 'basic_result.back')}
       </button>
