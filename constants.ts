@@ -42,13 +42,15 @@ export const TRANSLATIONS = {
       settings: "Настройки"
     },
     my_cards: {
+      title: "Мои карты",
       greeting: "Привет,",
       guest: "гость",
       balance: "Баланс",
       lumi: "Луми",
       shop: "Магазин",
       add_card: "Добавить карту",
-      empty: "У вас пока нет карт. Добавьте первую."
+      section_cards: "Ваши карты",
+      empty: "Пока нет карт. Добавьте первую."
     },
     birth_input: {
       title: "Данные рождения",
@@ -193,13 +195,15 @@ export const TRANSLATIONS = {
       settings: "Settings"
     },
     my_cards: {
+      title: "My Cards",
       greeting: "Hi,",
       guest: "guest",
       balance: "Balance",
       lumi: "Lumi",
       shop: "Shop",
       add_card: "Add card",
-      empty: "You have no cards yet. Add your first one."
+      section_cards: "Your cards",
+      empty: "No cards yet. Add your first one."
     },
     birth_input: {
       title: "Birth Data",
