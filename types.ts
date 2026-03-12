@@ -196,7 +196,7 @@ export interface ChatMessage {
 
 export type ViewState = 'onboarding' | 'hook' | 'paywall' | 'dashboard' | 'my-cards' | 'birth-input' | 'basic-result' | 'chart' | 'horoscope' | 'synastry' | 'oracle' | 'settings' | 'admin';
 
-export type ExtendedViewState = ViewState | 'full-report' | 'pro-report';
+export type ExtendedViewState = ViewState | 'full-report' | 'pro-report' | 'shop';
 
 // Cached text types
 export interface CachedText<T = any> {

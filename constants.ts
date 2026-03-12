@@ -109,6 +109,21 @@ export const TRANSLATIONS = {
       south_node: "Южный узел",
       back: "Назад"
     },
+    shop: {
+      title: "Магазин",
+      balance: "Баланс",
+      lumi_packs: "Пакеты Луми",
+      premium: "Премиум",
+      buy: "Купить",
+      activate: "Активировать",
+      lumi_added: "Луми добавлены на ваш баланс",
+      premium_activated: "Премиум активирован",
+      month_1: "1 месяц",
+      month_3: "3 месяца",
+      month_6: "6 месяцев",
+      month_12: "12 месяцев",
+      back: "Назад"
+    },
     hook: {
       analyzing: "Считываю звездную карту...",
       typing: "Астра печатает...",
@@ -297,6 +312,21 @@ export const TRANSLATIONS = {
       orb: "orb",
       north_node: "North Node",
       south_node: "South Node",
+      back: "Back"
+    },
+    shop: {
+      title: "Shop",
+      balance: "Balance",
+      lumi_packs: "Lumi Packs",
+      premium: "Premium",
+      buy: "Buy",
+      activate: "Activate",
+      lumi_added: "Lumi added to your balance",
+      premium_activated: "Premium activated",
+      month_1: "1 month",
+      month_3: "3 months",
+      month_6: "6 months",
+      month_12: "12 months",
       back: "Back"
     },
     hook: {
