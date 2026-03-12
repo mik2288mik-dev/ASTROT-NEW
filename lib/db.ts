@@ -1030,6 +1030,54 @@ export const db = {
         throw error;
       }
     },
+
+    async saveReportToCard(cardId: number, userId: string, reportType: 'full_report' | 'pro_report', reportData: any) {
+      log.info(`[DB] [cards.saveReportToCard] cardId=${cardId}, userId=${userId}, type=${reportType}`);
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      try {
+        const dbPool = getPool();
+        const card = await this.getById(cardId, userId);
+        if (!card) throw new Error('Card not found');
+
+        let dataJson = card.data_json;
+        if (typeof dataJson === 'string') {
+          try { dataJson = JSON.parse(dataJson); } catch { dataJson = {}; }
+        }
+        if (!dataJson || typeof dataJson !== 'object') dataJson = {};
+
+        dataJson[reportType] = reportData;
+
+        const isPurchasedField = reportType === 'full_report' ? 'is_purchased_full' : 'is_purchased_pro';
+
+        const result = await dbPool.query(
+          `UPDATE cards SET data_json = $1, ${isPurchasedField} = true WHERE id = $2 AND user_id = $3 RETURNING *`,
+          [JSON.stringify(dataJson), cardId, userId]
+        );
+
+        if (result.rows.length === 0) throw new Error('Failed to save report');
+
+        const row = result.rows[0];
+        log.info(`[DB] [cards.saveReportToCard] SAVED: ${reportType} for cardId=${cardId}`);
+        return {
+          id: row.id,
+          user_id: row.user_id,
+          name: row.name,
+          birth_date: row.birth_date,
+          birth_time: row.birth_time,
+          birth_place: row.birth_place,
+          latitude: row.latitude,
+          longitude: row.longitude,
+          timezone: row.timezone,
+          data_json: row.data_json,
+          is_purchased_full: row.is_purchased_full,
+          is_purchased_pro: row.is_purchased_pro,
+          created_at: row.created_at,
+        };
+      } catch (error: any) {
+        log.error('[DB] Error saving report to card', { error: error.message, cardId, userId, reportType });
+        throw error;
+      }
+    },
   },
 
   purchases: {

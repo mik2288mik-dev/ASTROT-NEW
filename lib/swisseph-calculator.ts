@@ -38,6 +38,20 @@ const PLANETS = {
   PLUTO: 9,
 };
 
+const EXTRA_BODIES = {
+  TRUE_NODE: 11,
+  MEAN_APOG: 12,
+  CHIRON: 15,
+};
+
+const ASPECT_DEFINITIONS = [
+  { name: 'conjunction' as const, angle: 0, orb: 8 },
+  { name: 'sextile' as const, angle: 60, orb: 6 },
+  { name: 'square' as const, angle: 90, orb: 7 },
+  { name: 'trine' as const, angle: 120, orb: 8 },
+  { name: 'opposition' as const, angle: 180, orb: 8 },
+];
+
 interface Coordinates {
   lat: number;
   lon: number;
@@ -550,6 +564,297 @@ function getExpectedSunSignByDate(year: number, month: number, day: number): str
  */
 function calculateRulingPlanet(sunSign: string): string {
   return getRulingPlanetUtil(sunSign as any) || 'Sun';
+}
+
+interface RawPlanetResult {
+  planet: string;
+  sign: string;
+  degree: number;
+  longitude: number;
+  retrograde: boolean;
+  description: string;
+}
+
+function calculatePlanetPositionRaw(
+  swe: NonNullable<typeof sweInstance>,
+  julday: number,
+  planetId: number,
+  planetName: string
+): RawPlanetResult | null {
+  try {
+    const flags = swisseph.SEFLG_SWIEPH | swisseph.SEFLG_SPEED;
+    const result = swe.swe_calc_ut(julday, planetId, flags);
+
+    if (!result || typeof result.longitude !== 'number') {
+      log.error(`Failed to calculate ${planetName}`, { result });
+      return null;
+    }
+
+    const longitude = result.longitude;
+    const sign = getZodiacSign(longitude);
+    const degreeInSign = getDegreeInSign(longitude);
+    const retrograde = typeof result.longitudeSpeed === 'number' ? result.longitudeSpeed < 0 : false;
+
+    return {
+      planet: planetName,
+      sign,
+      degree: degreeInSign,
+      longitude,
+      retrograde,
+      description: getPlanetDescription(planetName),
+    };
+  } catch (error: any) {
+    log.error(`Error calculating ${planetName}`, error);
+    return null;
+  }
+}
+
+function calculateHouses(
+  swe: NonNullable<typeof sweInstance>,
+  julday: number,
+  lat: number,
+  lon: number
+): { houses: Array<{ house: number; sign: string; degree: number }>; mc: number | null } {
+  try {
+    const result = swe.swe_houses(julday, lat, lon, 'P');
+    if (!result) return { houses: [], mc: null };
+
+    const houses: Array<{ house: number; sign: string; degree: number }> = [];
+    const houseCusps = result.house;
+
+    if (Array.isArray(houseCusps)) {
+      for (let i = 1; i <= 12; i++) {
+        const cusp = houseCusps[i];
+        if (typeof cusp === 'number' && !isNaN(cusp)) {
+          houses.push({
+            house: i,
+            sign: getZodiacSign(cusp),
+            degree: getDegreeInSign(cusp),
+          });
+        }
+      }
+    }
+
+    const mc = typeof result.mc === 'number' ? result.mc : null;
+    return { houses, mc };
+  } catch (error: any) {
+    log.error('Error calculating houses', error);
+    return { houses: [], mc: null };
+  }
+}
+
+function calculateAspects(
+  positions: Array<{ planet: string; longitude: number }>
+): Array<{ planet1: string; planet2: string; aspect: string; angle: number; orb: number }> {
+  const aspects: Array<{ planet1: string; planet2: string; aspect: string; angle: number; orb: number }> = [];
+
+  for (let i = 0; i < positions.length; i++) {
+    for (let j = i + 1; j < positions.length; j++) {
+      const p1 = positions[i];
+      const p2 = positions[j];
+
+      let diff = Math.abs(p1.longitude - p2.longitude);
+      if (diff > 180) diff = 360 - diff;
+
+      for (const aspectDef of ASPECT_DEFINITIONS) {
+        const orb = Math.abs(diff - aspectDef.angle);
+        if (orb <= aspectDef.orb) {
+          aspects.push({
+            planet1: p1.planet,
+            planet2: p2.planet,
+            aspect: aspectDef.name,
+            angle: Math.round(diff * 100) / 100,
+            orb: Math.round(orb * 100) / 100,
+          });
+          break;
+        }
+      }
+    }
+  }
+
+  return aspects;
+}
+
+function determinePlanetHouse(
+  longitude: number,
+  houseCusps: Array<{ house: number; sign: string; degree: number; rawLongitude?: number }>,
+  rawCusps: number[]
+): number | undefined {
+  if (rawCusps.length < 12) return undefined;
+
+  for (let i = 0; i < 12; i++) {
+    const currentCusp = rawCusps[i];
+    const nextCusp = rawCusps[(i + 1) % 12];
+
+    let inHouse = false;
+    if (currentCusp <= nextCusp) {
+      inHouse = longitude >= currentCusp && longitude < nextCusp;
+    } else {
+      inHouse = longitude >= currentCusp || longitude < nextCusp;
+    }
+
+    if (inHouse) return i + 1;
+  }
+  return undefined;
+}
+
+export interface ExtendedNatalChartResult {
+  sun: RawPlanetResult;
+  moon: RawPlanetResult;
+  rising: RawPlanetResult;
+  mercury: RawPlanetResult | null;
+  venus: RawPlanetResult | null;
+  mars: RawPlanetResult | null;
+  jupiter: RawPlanetResult | null;
+  saturn: RawPlanetResult | null;
+  uranus: RawPlanetResult | null;
+  neptune: RawPlanetResult | null;
+  pluto: RawPlanetResult | null;
+  north_node: RawPlanetResult | null;
+  lilith: RawPlanetResult | null;
+  chiron: RawPlanetResult | null;
+  houses: Array<{ house: number; sign: string; degree: number }>;
+  aspects: Array<{ planet1: string; planet2: string; aspect: string; angle: number; orb: number }>;
+  element: string;
+  rulingPlanet: string;
+  summary: string;
+}
+
+export async function calculateExtendedNatalChart(
+  name: string,
+  birthDate: string,
+  birthTime: string,
+  birthPlace: string,
+  lat?: number,
+  lon?: number,
+  tz?: string
+): Promise<ExtendedNatalChartResult> {
+  const startTime = Date.now();
+
+  try {
+    if (!name || name.trim().length === 0) throw new Error('Name is required');
+    if (!birthDate || !birthDate.match(/^\d{4}-\d{2}-\d{2}$/)) throw new Error('Invalid birth date format');
+    if (!birthPlace || birthPlace.trim().length === 0) throw new Error('Birth place is required');
+
+    const swe = getNativeCalculator();
+    if (!swe) throw new Error('Swiss Ephemeris instance is null');
+
+    let coords: Coordinates;
+    if (typeof lat === 'number' && typeof lon === 'number' && tz) {
+      coords = { lat, lon, timezone: tz };
+    } else {
+      coords = await getCoordinates(birthPlace);
+    }
+
+    const [birthYear, birthMonth, birthDay] = birthDate.split('-').map(Number);
+    if (isNaN(birthYear) || isNaN(birthMonth) || isNaN(birthDay)) throw new Error('Invalid birth date');
+
+    let birthHour = 12;
+    let birthMinute = 0;
+    if (birthTime && birthTime.trim().length > 0) {
+      const timeParts = birthTime.split(':');
+      birthHour = parseInt(timeParts[0], 10);
+      birthMinute = parseInt(timeParts[1] || '0', 10);
+      if (isNaN(birthHour) || birthHour < 0 || birthHour > 23) birthHour = 12;
+      if (isNaN(birthMinute) || birthMinute < 0 || birthMinute > 59) birthMinute = 0;
+    }
+
+    const utcData = convertLocalTimeToUTC(birthYear, birthMonth, birthDay, birthHour, birthMinute, coords.timezone);
+    const julianDay = swe.swe_julday(utcData.utcYear, utcData.utcMonth, utcData.utcDay, utcData.utcTimeInHours, 1);
+    if (!julianDay || isNaN(julianDay)) throw new Error('Invalid Julian Day');
+
+    const sun = calculatePlanetPositionRaw(swe, julianDay, PLANETS.SUN, 'Sun');
+    const moon = calculatePlanetPositionRaw(swe, julianDay, PLANETS.MOON, 'Moon');
+    const mercury = calculatePlanetPositionRaw(swe, julianDay, PLANETS.MERCURY, 'Mercury');
+    const venus = calculatePlanetPositionRaw(swe, julianDay, PLANETS.VENUS, 'Venus');
+    const mars = calculatePlanetPositionRaw(swe, julianDay, PLANETS.MARS, 'Mars');
+    const jupiter = calculatePlanetPositionRaw(swe, julianDay, PLANETS.JUPITER, 'Jupiter');
+    const saturn = calculatePlanetPositionRaw(swe, julianDay, PLANETS.SATURN, 'Saturn');
+    const uranus = calculatePlanetPositionRaw(swe, julianDay, PLANETS.URANUS, 'Uranus');
+    const neptune = calculatePlanetPositionRaw(swe, julianDay, PLANETS.NEPTUNE, 'Neptune');
+    const pluto = calculatePlanetPositionRaw(swe, julianDay, PLANETS.PLUTO, 'Pluto');
+
+    let north_node: RawPlanetResult | null = null;
+    try {
+      north_node = calculatePlanetPositionRaw(swe, julianDay, EXTRA_BODIES.TRUE_NODE, 'North Node');
+    } catch (e: any) {
+      log.warn('Could not calculate North Node', { error: e.message });
+    }
+
+    let lilith: RawPlanetResult | null = null;
+    try {
+      lilith = calculatePlanetPositionRaw(swe, julianDay, EXTRA_BODIES.MEAN_APOG, 'Lilith');
+    } catch (e: any) {
+      log.warn('Could not calculate Lilith', { error: e.message });
+    }
+
+    let chiron: RawPlanetResult | null = null;
+    try {
+      chiron = calculatePlanetPositionRaw(swe, julianDay, EXTRA_BODIES.CHIRON, 'Chiron');
+    } catch (e: any) {
+      log.warn('Could not calculate Chiron', { error: e.message });
+    }
+
+    const ascResult = calculateAscendant(swe, julianDay, coords.lat, coords.lon);
+    if (!sun) throw new Error('Failed to calculate Sun position');
+    if (!moon) throw new Error('Failed to calculate Moon position');
+    if (!ascResult) throw new Error('Failed to calculate Ascendant');
+
+    const rising: RawPlanetResult = {
+      planet: 'Ascendant',
+      sign: ascResult.sign,
+      degree: ascResult.degree,
+      longitude: ascResult.degree + ZODIAC_SIGNS.indexOf(ascResult.sign as any) * 30,
+      retrograde: false,
+      description: ascResult.description,
+    };
+
+    const { houses, mc } = calculateHouses(swe, julianDay, coords.lat, coords.lon);
+
+    let rawCusps: number[] = [];
+    try {
+      const houseResult = swe.swe_houses(julianDay, coords.lat, coords.lon, 'P');
+      if (houseResult && Array.isArray(houseResult.house)) {
+        rawCusps = houseResult.house.slice(1, 13);
+      }
+    } catch {}
+
+    const allPlanets: RawPlanetResult[] = [sun, moon, mercury, venus, mars, jupiter, saturn, uranus, neptune, pluto, north_node, lilith, chiron].filter(Boolean) as RawPlanetResult[];
+
+    if (rawCusps.length === 12) {
+      for (const p of allPlanets) {
+        (p as any).house = determinePlanetHouse(p.longitude, houses, rawCusps);
+      }
+    }
+
+    const positionsForAspects = allPlanets
+      .filter(p => p.planet !== 'North Node' && p.planet !== 'Lilith')
+      .map(p => ({ planet: p.planet, longitude: p.longitude }));
+    const aspects = calculateAspects(positionsForAspects);
+
+    const corePositions: PlanetPosition[] = [sun, moon, ascResult];
+    if (mercury) corePositions.push({ planet: 'Mercury', sign: mercury.sign, degree: mercury.degree, description: mercury.description });
+    if (venus) corePositions.push({ planet: 'Venus', sign: venus.sign, degree: venus.degree, description: venus.description });
+    if (mars) corePositions.push({ planet: 'Mars', sign: mars.sign, degree: mars.degree, description: mars.description });
+    const element = calculateElement(corePositions);
+    const rulingPlanet = calculateRulingPlanet(sun.sign);
+
+    const duration = Date.now() - startTime;
+    log.info('Extended natal chart calculated', { duration: `${duration}ms`, planets: allPlanets.length, aspects: aspects.length, houses: houses.length });
+
+    return {
+      sun, moon, rising,
+      mercury, venus, mars,
+      jupiter, saturn, uranus, neptune, pluto,
+      north_node, lilith, chiron,
+      houses, aspects,
+      element, rulingPlanet,
+      summary: `Extended natal chart for ${name}: ${sun.sign} Sun, ${moon.sign} Moon, ${ascResult.sign} Rising. ${element} dominant. ${aspects.length} aspects calculated.`,
+    };
+  } catch (error: any) {
+    log.error('Error calculating extended natal chart', { error: error.message });
+    throw error;
+  }
 }
 
 /**
