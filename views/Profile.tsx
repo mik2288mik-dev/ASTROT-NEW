@@ -85,73 +85,74 @@ export const Profile: React.FC<ProfileProps> = ({ userId, userProfile, onBack, o
 
   return (
     <div className="h-full overflow-y-auto scrollbar-hide px-4 pb-10">
-      {/* User info */}
-      <div className="mt-4 mb-6 text-center">
-        <div className="w-14 h-14 mx-auto rounded-full bg-astro-highlight/15 flex items-center justify-center mb-3">
-          <span className="text-xl font-bold text-astro-highlight">
+      <header className="pt-4 pb-4">
+        <h2 className="text-xl font-semibold text-astro-text">
+          {getText(lang, 'profile.title')}
+        </h2>
+      </header>
+
+      <section className="mb-4 flex items-center gap-4 p-4 rounded-xl bg-white/5 dark:bg-white/[0.03] border border-astro-border/50">
+        <div className="w-12 h-12 rounded-full bg-blue-500/15 flex items-center justify-center flex-shrink-0">
+          <span className="text-lg font-semibold text-blue-600 dark:text-blue-400">
             {displayName.charAt(0).toUpperCase()}
           </span>
         </div>
-        <h2 className="text-lg font-semibold text-astro-text">{displayName}</h2>
-      </div>
+        <div className="font-medium text-astro-text">{displayName}</div>
+      </section>
 
-      {/* Balance */}
-      <div className="mb-6 p-5 rounded-2xl bg-astro-card/60 border border-astro-border text-center">
+      <section className="mb-6 p-4 rounded-xl bg-white/5 dark:bg-white/[0.03] border border-astro-border/50">
         <div className="text-xs font-medium text-astro-text/50 uppercase tracking-wider mb-1">
           {getText(lang, 'profile.balance')}
         </div>
-        <div className="text-3xl font-bold text-astro-text tabular-nums">
+        <div className="text-2xl font-semibold text-astro-text tabular-nums">
           {balance === null ? '—' : balance}
-          <span className="text-base font-medium text-astro-text/50 ml-1.5">Lumi</span>
+          <span className="text-sm font-medium text-astro-text/55 ml-1.5">Lumi</span>
         </div>
-      </div>
+      </section>
 
-      {/* Referral */}
-      <div className="mb-6 p-5 rounded-2xl bg-astro-card/60 border border-astro-border">
-        <h3 className="text-sm font-semibold text-astro-text/60 uppercase tracking-wider mb-3">
+      <section className="mb-6 p-4 rounded-xl bg-white/5 dark:bg-white/[0.03] border border-astro-border/50">
+        <h3 className="text-sm font-medium text-astro-text/70 mb-3">
           {getText(lang, 'profile.invite')}
         </h3>
 
         {loadingLink ? (
-          <div className="text-sm text-astro-text/40 py-2">...</div>
+          <div className="text-sm text-astro-text/50 py-2">...</div>
         ) : refLink ? (
           <>
-            <div className="text-xs text-astro-text/50 mb-1.5">{getText(lang, 'profile.your_link')}</div>
-            <div className="p-3 rounded-xl bg-astro-bg/80 border border-astro-border/60 text-xs text-astro-text/70 break-all select-all mb-4">
+            <div className="text-xs text-astro-text/55 mb-1.5">{getText(lang, 'profile.your_link')}</div>
+            <div className="p-3 rounded-xl bg-astro-bg/50 border border-astro-border/50 text-xs text-astro-text/75 break-all select-all mb-4">
               {refLink}
             </div>
             <div className="flex gap-3">
               <button
                 onClick={handleCopy}
-                className="flex-1 py-2.5 rounded-xl bg-astro-highlight text-white text-sm font-semibold"
+                className="flex-1 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors"
               >
                 {getText(lang, 'profile.copy')}
               </button>
               <button
                 onClick={handleShare}
-                className="flex-1 py-2.5 rounded-xl border border-astro-highlight/40 text-astro-highlight text-sm font-semibold"
+                className="flex-1 py-2.5 rounded-xl border border-astro-border/60 text-astro-text/80 text-sm font-medium hover:bg-white/5 transition-colors"
               >
                 {getText(lang, 'profile.share')}
               </button>
             </div>
           </>
         ) : (
-          <div className="text-sm text-astro-text/40 py-2">—</div>
+          <div className="text-sm text-astro-text/50 py-2">—</div>
         )}
-      </div>
+      </section>
 
-      {/* Settings link */}
       <button
         onClick={onOpenSettings}
-        className="w-full mb-3 py-3 rounded-2xl border border-astro-border text-astro-text/70 text-sm transition-colors active:bg-astro-card/40"
+        className="w-full mb-3 py-3 rounded-xl border border-astro-border/60 text-astro-text/75 text-sm font-medium hover:bg-white/5 transition-colors"
       >
         {getText(lang, 'profile.settings')}
       </button>
 
-      {/* Back */}
       <button
         onClick={onBack}
-        className="w-full py-3 rounded-2xl border border-astro-border text-astro-text/60 text-sm transition-colors active:bg-astro-card/40"
+        className="w-full py-3 rounded-xl border border-astro-border/60 text-astro-text/60 text-sm font-medium hover:bg-white/5 transition-colors"
       >
         {getText(lang, 'profile.back')}
       </button>

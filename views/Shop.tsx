@@ -78,19 +78,23 @@ export const Shop: React.FC<ShopProps> = ({ userId, language, onBack }) => {
 
   return (
     <div className="h-full overflow-y-auto scrollbar-hide px-4 pb-10">
-      {/* Balance */}
-      <div className="mt-4 mb-6 p-5 rounded-2xl bg-astro-card/60 border border-astro-border text-center">
+      <header className="pt-4 pb-4">
+        <h2 className="text-xl font-semibold text-astro-text">
+          {getText(lang, 'shop.title')}
+        </h2>
+      </header>
+
+      <section className="mb-6 p-4 rounded-xl bg-white/5 dark:bg-white/[0.03] border border-astro-border/50">
         <div className="text-xs font-medium text-astro-text/50 uppercase tracking-wider mb-1">
           {getText(lang, 'shop.balance')}
         </div>
-        <div className="text-3xl font-bold text-astro-text tabular-nums">
+        <div className="text-2xl font-semibold text-astro-text tabular-nums">
           {loadingBalance ? '—' : balance}
-          <span className="text-base font-medium text-astro-text/50 ml-1.5">Lumi</span>
+          <span className="text-sm font-medium text-astro-text/55 ml-1.5">Lumi</span>
         </div>
-      </div>
+      </section>
 
-      {/* Lumi Packs */}
-      <h3 className="text-sm font-semibold text-astro-text/60 uppercase tracking-wider mb-3">
+      <h3 className="text-sm font-medium text-astro-text/70 mb-3">
         {getText(lang, 'shop.lumi_packs')}
       </h3>
       <div className="grid grid-cols-3 gap-3 mb-8">
@@ -99,14 +103,14 @@ export const Shop: React.FC<ShopProps> = ({ userId, language, onBack }) => {
           return (
             <div
               key={pack}
-              className="flex flex-col items-center p-4 rounded-2xl bg-astro-card/50 border border-astro-border"
+              className="flex flex-col items-center p-4 rounded-xl bg-white/5 dark:bg-white/[0.03] border border-astro-border/50"
             >
-              <span className="text-2xl font-bold text-astro-text tabular-nums">{amount}</span>
-              <span className="text-xs text-astro-text/50 mb-3">Lumi</span>
+              <span className="text-2xl font-semibold text-astro-text tabular-nums">{amount}</span>
+              <span className="text-xs text-astro-text/55 mb-3">Lumi</span>
               <button
                 onClick={() => handleBuyLumi(pack)}
                 disabled={!!buyingPack}
-                className="w-full py-2 rounded-xl bg-astro-highlight text-white text-xs font-semibold transition-opacity disabled:opacity-50"
+                className="w-full py-2.5 rounded-xl bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors"
               >
                 {loading ? '...' : getText(lang, 'shop.buy')}
               </button>
@@ -115,8 +119,7 @@ export const Shop: React.FC<ShopProps> = ({ userId, language, onBack }) => {
         })}
       </div>
 
-      {/* Premium */}
-      <h3 className="text-sm font-semibold text-astro-text/60 uppercase tracking-wider mb-3">
+      <h3 className="text-sm font-medium text-astro-text/70 mb-3">
         {getText(lang, 'shop.premium')}
       </h3>
       <div className="space-y-3 mb-8">
@@ -125,7 +128,7 @@ export const Shop: React.FC<ShopProps> = ({ userId, language, onBack }) => {
           return (
             <div
               key={plan}
-              className="flex items-center justify-between p-4 rounded-2xl bg-astro-card/50 border border-astro-border"
+              className="flex items-center justify-between p-4 rounded-xl bg-white/5 dark:bg-white/[0.03] border border-astro-border/50"
             >
               <span className="text-sm font-medium text-astro-text">
                 {getText(lang, labelKey)}
@@ -133,7 +136,7 @@ export const Shop: React.FC<ShopProps> = ({ userId, language, onBack }) => {
               <button
                 onClick={() => handleActivatePremium(plan)}
                 disabled={!!activatingPlan}
-                className="px-5 py-2 rounded-xl border border-astro-highlight/40 text-astro-highlight text-xs font-semibold transition-opacity disabled:opacity-50"
+                className="px-5 py-2.5 rounded-xl border border-blue-500/50 text-blue-600 dark:text-blue-400 text-xs font-semibold hover:bg-blue-500/10 disabled:opacity-50 transition-colors"
               >
                 {loading ? '...' : getText(lang, 'shop.activate')}
               </button>
@@ -142,10 +145,9 @@ export const Shop: React.FC<ShopProps> = ({ userId, language, onBack }) => {
         })}
       </div>
 
-      {/* Back */}
       <button
         onClick={onBack}
-        className="w-full py-3 rounded-2xl border border-astro-border text-astro-text/60 text-sm transition-colors active:bg-astro-card/40"
+        className="w-full py-3 rounded-xl border border-astro-border/60 text-astro-text/60 text-sm font-medium hover:bg-white/5 transition-colors"
       >
         {getText(lang, 'shop.back')}
       </button>

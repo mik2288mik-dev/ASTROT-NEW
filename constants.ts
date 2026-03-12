@@ -33,7 +33,7 @@ export const SYSTEM_INSTRUCTION_ASTRA = `
 
 export const TRANSLATIONS = {
   ru: {
-    loading: "Космическая загрузка...",
+    loading: "Загрузка...",
     nav: {
       home: "Главная",
       chart: "Натальная карта",
@@ -59,7 +59,7 @@ export const TRANSLATIONS = {
       birth_place: "Место рождения",
       time_unknown: "Точное время неизвестно",
       warning: "Без времени карта будет приблизительной (без Асцендента и домов)",
-      submit: "Рассчитать"
+      submit: "Рассчитать карту"
     },
     basic_result: {
       sun: "Солнце",
@@ -250,7 +250,7 @@ export const TRANSLATIONS = {
     }
   },
   en: {
-    loading: "Cosmic Loading...",
+    loading: "Loading...",
     nav: {
       home: "Home",
       chart: "Natal Chart",
@@ -276,7 +276,7 @@ export const TRANSLATIONS = {
       birth_place: "Birth place",
       time_unknown: "Exact time unknown",
       warning: "Without time the chart will be approximate (no Ascendant and houses)",
-      submit: "Calculate"
+      submit: "Calculate chart"
     },
     basic_result: {
       sun: "Sun",
