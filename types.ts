@@ -233,6 +233,107 @@ export interface UserBalanceResponse {
   premium_expires_at: string | null;
 }
 
+export interface AspectData {
+  planet1: string;
+  planet2: string;
+  aspect: 'conjunction' | 'sextile' | 'square' | 'trine' | 'opposition';
+  angle: number;
+  orb: number;
+}
+
+export interface HouseData {
+  house: number;
+  sign: string;
+  degree: number;
+}
+
+export interface ExtendedPlanetPosition {
+  planet: string;
+  sign: string;
+  degree: number;
+  longitude: number;
+  retrograde: boolean;
+  house?: number;
+}
+
+export interface FullReport {
+  personality: string;
+  emotions: string;
+  relationships: string;
+  career: string;
+  karmic_vector: string;
+  summary: string;
+  generated_at: string;
+}
+
+export interface ProReportPlanetBlock {
+  planet: string;
+  sign: string;
+  degree: number;
+  house?: number;
+  retrograde: boolean;
+  interpretation: string;
+}
+
+export interface ProReportAspectBlock {
+  planet1: string;
+  planet2: string;
+  aspect: string;
+  angle: number;
+  orb: number;
+  interpretation: string;
+}
+
+export interface ProReportHouseBlock {
+  house: number;
+  sign: string;
+  degree: number;
+  interpretation: string;
+}
+
+export interface ProReport {
+  planets: ProReportPlanetBlock[];
+  houses: ProReportHouseBlock[];
+  aspects: ProReportAspectBlock[];
+  nodes: {
+    north_node: { sign: string; degree: number; interpretation: string } | null;
+    south_node: { sign: string; degree: number; interpretation: string } | null;
+  };
+  lilith: { sign: string; degree: number; interpretation: string } | null;
+  chiron: { sign: string; degree: number; interpretation: string } | null;
+  interpretation_blocks: {
+    configuration: string;
+    dominant_patterns: string;
+    karmic_themes: string;
+  };
+  generated_at: string;
+}
+
+export interface CardDataJson {
+  sun?: ExtendedPlanetPosition;
+  moon?: ExtendedPlanetPosition;
+  ascendant?: { sign: string; degree: number; longitude: number };
+  mercury?: ExtendedPlanetPosition;
+  venus?: ExtendedPlanetPosition;
+  mars?: ExtendedPlanetPosition;
+  jupiter?: ExtendedPlanetPosition;
+  saturn?: ExtendedPlanetPosition;
+  uranus?: ExtendedPlanetPosition;
+  neptune?: ExtendedPlanetPosition;
+  pluto?: ExtendedPlanetPosition;
+  north_node?: ExtendedPlanetPosition;
+  lilith?: ExtendedPlanetPosition;
+  chiron?: ExtendedPlanetPosition;
+  houses?: HouseData[];
+  aspects?: AspectData[];
+  element?: string;
+  rulingPlanet?: string;
+  summary?: string;
+  full_report?: FullReport;
+  pro_report?: ProReport;
+  [key: string]: any;
+}
+
 export interface Card {
   id: number;
   user_id: string;
@@ -243,7 +344,7 @@ export interface Card {
   latitude: number | null;
   longitude: number | null;
   timezone: string | null;
-  data_json: any;
+  data_json: CardDataJson;
   is_purchased_full: boolean;
   is_purchased_pro: boolean;
   created_at: string;

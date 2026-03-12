@@ -1,5 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '../../../lib/db';
+import { generateFullReport } from '../../../lib/report-generator';
+import { generateProReport } from '../../../lib/pro-report-generator';
 
 const log = {
   info: (message: string, data?: any) => console.log(`[API/spend/lumi] ${message}`, data || ''),
@@ -22,7 +24,38 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: 'cost must be a non-negative number' });
   }
 
+  const cardId = parseInt(String(card_id), 10);
+  if (isNaN(cardId) || cardId < 1) {
+    return res.status(400).json({ error: 'Invalid card_id' });
+  }
+
   try {
+    const card = await db.cards.getById(cardId, userId);
+    if (!card) {
+      return res.status(404).json({ error: 'Card not found' });
+    }
+
+    let dataJson = card.data_json;
+    if (typeof dataJson === 'string') {
+      try { dataJson = JSON.parse(dataJson); } catch { dataJson = {}; }
+    }
+    if (!dataJson || typeof dataJson !== 'object') {
+      return res.status(400).json({ error: 'Card has no natal data' });
+    }
+
+    if (item === 'full_report') {
+      if (card.is_purchased_full && dataJson.full_report) {
+        return res.status(400).json({ error: 'Full report already purchased for this card' });
+      }
+    } else if (item === 'pro_report') {
+      if (!card.is_purchased_full) {
+        return res.status(400).json({ error: 'Full report must be purchased before Pro report' });
+      }
+      if (card.is_purchased_pro && dataJson.pro_report) {
+        return res.status(400).json({ error: 'Pro report already purchased for this card' });
+      }
+    }
+
     const balance = await db.users.getBalance(userId);
     if (balance < costNum) {
       return res.status(400).json({
@@ -38,17 +71,43 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       user_id: userId,
       type: 'spend',
       amount_lumi: -costNum,
-      item_id: item,
+      item_id: `${item}:card_${cardId}`,
       status: 'success',
     });
 
     if (item === 'full_report') {
-      await db.cards.markFullPurchased(parseInt(String(card_id), 10), userId);
-    } else if (item === 'pro_report') {
-      await db.cards.markProPurchased(parseInt(String(card_id), 10), userId);
+      log.info('Generating full report', { userId, cardId });
+      const fullReport = generateFullReport(dataJson);
+      await db.cards.saveReportToCard(cardId, userId, 'full_report', fullReport);
+      log.info('Full report generated and saved', { userId, cardId });
+
+      return res.status(200).json({
+        success: true,
+        balance: newBalance,
+        report: fullReport,
+      });
     }
 
-    log.info('Lumi spent', { userId, card_id, item, cost: costNum, newBalance });
+    if (item === 'pro_report') {
+      log.info('Generating pro report', { userId, cardId });
+      const proReport = generateProReport(dataJson);
+      await db.cards.saveReportToCard(cardId, userId, 'pro_report', proReport);
+      log.info('Pro report generated and saved', { userId, cardId });
+
+      return res.status(200).json({
+        success: true,
+        balance: newBalance,
+        report: proReport,
+      });
+    }
+
+    if (item === 'full_report' || item === 'pro_report') {
+      // handled above
+    } else {
+      await db.cards.markFullPurchased(cardId, userId);
+    }
+
+    log.info('Lumi spent', { userId, card_id: cardId, item, cost: costNum, newBalance });
 
     return res.status(200).json({
       success: true,

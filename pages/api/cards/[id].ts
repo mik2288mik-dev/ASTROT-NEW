@@ -33,7 +33,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (!card) {
         return res.status(404).json({ error: 'Card not found' });
       }
-      return res.status(200).json({ success: true, card });
+
+      let dataJson = card.data_json;
+      if (typeof dataJson === 'string') {
+        try { dataJson = JSON.parse(dataJson); } catch { dataJson = {}; }
+      }
+
+      const response: any = {
+        success: true,
+        card: {
+          ...card,
+          is_purchased_full: card.is_purchased_full,
+          is_purchased_pro: card.is_purchased_pro,
+        },
+      };
+
+      if (card.is_purchased_full && dataJson?.full_report) {
+        response.card.full_report = dataJson.full_report;
+      }
+      if (card.is_purchased_pro && dataJson?.pro_report) {
+        response.card.pro_report = dataJson.pro_report;
+      }
+
+      return res.status(200).json(response);
     }
 
     if (req.method === 'PUT') {
