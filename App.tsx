@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { UserProfile, NatalChartData, UserContext, ViewState } from './types';
+import { UserProfile, NatalChartData, UserContext, ViewState, ExtendedViewState } from './types';
 import { getProfile, saveProfile } from './services/storageService';
 import { getOrCalculateChart } from './services/chartService';
 import { generateAllContent } from './services/contentGenerationService';
@@ -22,6 +22,8 @@ import { Synastry } from './views/Synastry';
 import { MyCards } from './views/MyCards';
 import { BirthDataInput } from './views/BirthDataInput';
 import { BasicResult } from './views/BasicResult';
+import { FullReport } from './views/FullReport';
+import { ProReport } from './views/ProReport';
 import { calculateNatalChart, createCard } from './services/cardsService';
 import { useSwipeBack } from './lib/useSwipeBack';
 import { BackgroundLayers } from './components/BackgroundLayers';
@@ -38,7 +40,7 @@ const App: React.FC = () => {
     const [chartData, setChartData] = useState<NatalChartData | null>(null);
     const [loading, setLoading] = useState(true);
     const [loadingProgress, setLoadingProgress] = useState(0);
-    const [view, setView] = useState<ViewState>('onboarding');
+    const [view, setView] = useState<ExtendedViewState>('onboarding');
     const [showPremiumPreview, setShowPremiumPreview] = useState(false);
     const [ambientContext, setAmbientContext] = useState<UserContext | null>(null);
     const [selectedCardId, setSelectedCardId] = useState<number | null>(null);
@@ -297,7 +299,7 @@ const App: React.FC = () => {
     };
 
     // Navigation Logic
-    const navigateTo = (newView: ViewState) => {
+    const navigateTo = (newView: ExtendedViewState) => {
         if (!profile) return;
         
         // Premium Gating - показываем Paywall только для Oracle
@@ -314,6 +316,10 @@ const App: React.FC = () => {
             setView('settings');
             return;
         }
+        if (view === 'full-report' || view === 'pro-report') {
+            setView('basic-result');
+            return;
+        }
         if (view === 'birth-input' || view === 'basic-result') {
             setView('my-cards');
             return;
@@ -322,7 +328,7 @@ const App: React.FC = () => {
     }, [view]);
 
     // Свайп назад от левого края (как в iOS)
-    const canSwipeBack = view !== 'dashboard' && view !== 'my-cards' && view !== 'birth-input' && view !== 'basic-result' && view !== 'onboarding' && view !== 'hook' && view !== 'paywall';
+    const canSwipeBack = view !== 'dashboard' && view !== 'my-cards' && view !== 'birth-input' && view !== 'basic-result' && view !== 'full-report' && view !== 'pro-report' && view !== 'onboarding' && view !== 'hook' && view !== 'paywall';
     useSwipeBack({
         onSwipeBack: handleBack,
         enabled: canSwipeBack,
@@ -346,13 +352,13 @@ const App: React.FC = () => {
 
     return (
         <div className="flex flex-col h-full w-full overflow-hidden bg-astro-bg pt-4 text-astro-text font-sans selection:bg-astro-highlight selection:text-white">
-            <BackgroundLayers view={view} />
-            <BackgroundLayers theme={profile.theme} view={view} context={ambientContext} />
+            <BackgroundLayers view={(view === 'full-report' || view === 'pro-report' ? 'basic-result' : view) as ViewState} />
+            <BackgroundLayers theme={profile.theme} view={(view === 'full-report' || view === 'pro-report' ? 'basic-result' : view) as ViewState} context={ambientContext} />
             
             {/* Header handles Title, Settings button, and Back button */}
             <Header 
                 profile={profile} 
-                view={view} 
+                view={(view === 'full-report' || view === 'pro-report' ? 'basic-result' : view) as ViewState} 
                 onOpenSettings={() => setView('settings')}
                 onBack={handleBack}
             />
@@ -413,8 +419,26 @@ const App: React.FC = () => {
                             cardId={selectedCardId}
                             language={profile.language}
                             onBack={() => setView('my-cards')}
-                            onOpenFullReport={() => console.log('[BasicResult] Open full report')}
-                            onOpenProReport={() => console.log('[BasicResult] Open pro report')}
+                            onOpenFullReport={() => setView('full-report')}
+                            onOpenProReport={() => setView('pro-report')}
+                        />
+                    </div>
+                ) : view === 'full-report' && selectedCardId ? (
+                    <div className="h-full overflow-y-auto scrollbar-hide">
+                        <FullReport
+                            userId={profile.id!}
+                            cardId={selectedCardId}
+                            language={profile.language}
+                            onBack={() => setView('basic-result')}
+                        />
+                    </div>
+                ) : view === 'pro-report' && selectedCardId ? (
+                    <div className="h-full overflow-y-auto scrollbar-hide">
+                        <ProReport
+                            userId={profile.id!}
+                            cardId={selectedCardId}
+                            language={profile.language}
+                            onBack={() => setView('basic-result')}
                         />
                     </div>
                 ) : view === 'birth-input' ? (
@@ -432,12 +456,13 @@ const App: React.FC = () => {
                                     data.birth_time,
                                     data.birth_place
                                 );
+                                const cardData = chartRes?.data || chartRes;
                                 await createCard(userId, {
                                     name,
                                     birth_date: data.birth_date,
                                     birth_time: data.birth_time,
                                     birth_place: data.birth_place,
-                                    data_json: chartRes,
+                                    data_json: cardData,
                                 });
                                 setView('my-cards');
                             }}
