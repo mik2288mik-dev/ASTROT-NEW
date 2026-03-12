@@ -21,6 +21,7 @@ import { Paywall } from './views/Paywall';
 import { Synastry } from './views/Synastry';
 import { MyCards } from './views/MyCards';
 import { BirthDataInput } from './views/BirthDataInput';
+import { BasicResult } from './views/BasicResult';
 import { calculateNatalChart, createCard } from './services/cardsService';
 import { useSwipeBack } from './lib/useSwipeBack';
 import { BackgroundLayers } from './components/BackgroundLayers';
@@ -40,6 +41,7 @@ const App: React.FC = () => {
     const [view, setView] = useState<ViewState>('onboarding');
     const [showPremiumPreview, setShowPremiumPreview] = useState(false);
     const [ambientContext, setAmbientContext] = useState<UserContext | null>(null);
+    const [selectedCardId, setSelectedCardId] = useState<number | null>(null);
     
     // Ref для предотвращения двойной загрузки
     const dataLoadedRef = useRef(false);
@@ -312,7 +314,7 @@ const App: React.FC = () => {
             setView('settings');
             return;
         }
-        if (view === 'birth-input') {
+        if (view === 'birth-input' || view === 'basic-result') {
             setView('my-cards');
             return;
         }
@@ -320,7 +322,7 @@ const App: React.FC = () => {
     }, [view]);
 
     // Свайп назад от левого края (как в iOS)
-    const canSwipeBack = view !== 'dashboard' && view !== 'my-cards' && view !== 'birth-input' && view !== 'onboarding' && view !== 'hook' && view !== 'paywall';
+    const canSwipeBack = view !== 'dashboard' && view !== 'my-cards' && view !== 'birth-input' && view !== 'basic-result' && view !== 'onboarding' && view !== 'hook' && view !== 'paywall';
     useSwipeBack({
         onSwipeBack: handleBack,
         enabled: canSwipeBack,
@@ -398,7 +400,21 @@ const App: React.FC = () => {
                             userProfile={profile}
                             onOpenShop={() => setView('paywall')}
                             onAddCard={() => setView('birth-input')}
-                            onOpenCard={(cardId) => setView('chart')}
+                            onOpenCard={(cardId) => {
+                                setSelectedCardId(cardId);
+                                setView('basic-result');
+                            }}
+                        />
+                    </div>
+                ) : view === 'basic-result' && selectedCardId ? (
+                    <div className="h-full overflow-y-auto scrollbar-hide">
+                        <BasicResult
+                            userId={profile.id!}
+                            cardId={selectedCardId}
+                            language={profile.language}
+                            onBack={() => setView('my-cards')}
+                            onOpenFullReport={() => console.log('[BasicResult] Open full report')}
+                            onOpenProReport={() => console.log('[BasicResult] Open pro report')}
                         />
                     </div>
                 ) : view === 'birth-input' ? (

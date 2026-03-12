@@ -31,6 +31,7 @@ const BACKGROUND_BY_VIEW: Record<ViewState, StaticImageData> = {
   dashboard: bgMainDeepSpace,
   'my-cards': bgSoftGradient,
   'birth-input': bgSoftGradient,
+  'basic-result': bgSoftGradient,
   chart: bgMainDeepSpace,
   horoscope: bgMainDeepSpace,
   synastry: bgMainDeepSpace,
@@ -58,6 +59,7 @@ const OVERLAYS_BY_VIEW: Partial<Record<ViewState, OverlayLayer[]>> = {
   ],
   'my-cards': [],
   'birth-input': [],
+  'basic-result': [],
   chart: [{ src: overlayVioletGlow, opacity: 0.18 }],
   horoscope: [
     { src: overlaySparkles, opacity: 0.18 },

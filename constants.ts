@@ -59,6 +59,17 @@ export const TRANSLATIONS = {
       warning: "Без времени карта будет приблизительной (без Асцендента и домов)",
       submit: "Рассчитать"
     },
+    basic_result: {
+      sun: "Солнце",
+      moon: "Луна",
+      ascendant: "Асцендент",
+      full_btn: "Полный разбор за 300 Луми",
+      pro_btn: "Профессиональный разбор за 200 Луми",
+      full_opened: "Полный разбор открыт",
+      pro_opened: "Профессиональный разбор открыт",
+      not_found: "Карта не найдена",
+      back: "Назад"
+    },
     hook: {
       analyzing: "Считываю звездную карту...",
       typing: "Астра печатает...",
@@ -198,6 +209,17 @@ export const TRANSLATIONS = {
       time_unknown: "Exact time unknown",
       warning: "Without time the chart will be approximate (no Ascendant and houses)",
       submit: "Calculate"
+    },
+    basic_result: {
+      sun: "Sun",
+      moon: "Moon",
+      ascendant: "Ascendant",
+      full_btn: "Full report for 300 Lumi",
+      pro_btn: "Professional report for 200 Lumi",
+      full_opened: "Full report unlocked",
+      pro_opened: "Professional report unlocked",
+      not_found: "Card not found",
+      back: "Back"
     },
     hook: {
       analyzing: "Reading the star map...",
