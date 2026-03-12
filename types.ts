@@ -196,6 +196,8 @@ export interface ChatMessage {
 
 export type ViewState = 'onboarding' | 'hook' | 'paywall' | 'dashboard' | 'my-cards' | 'birth-input' | 'basic-result' | 'chart' | 'horoscope' | 'synastry' | 'oracle' | 'settings' | 'admin';
 
+export type ExtendedViewState = ViewState | 'full-report' | 'pro-report';
+
 // Cached text types
 export interface CachedText<T = any> {
   data: T;
@@ -347,6 +349,8 @@ export interface Card {
   data_json: CardDataJson;
   is_purchased_full: boolean;
   is_purchased_pro: boolean;
+  full_report?: FullReport;
+  pro_report?: ProReport;
   created_at: string;
 }
 

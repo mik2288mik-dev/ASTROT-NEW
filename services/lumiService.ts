@@ -35,7 +35,7 @@ export async function purchasePremium(userId: string, plan: string): Promise<{ s
   return handleResponse(response);
 }
 
-export async function spendLumi(userId: string, card_id: number, item: string, cost: number): Promise<{ success: boolean; balance: number }> {
+export async function spendLumi(userId: string, card_id: number, item: string, cost: number): Promise<{ success: boolean; balance: number; report?: any; error?: string }> {
   const url = `${API_BASE_URL}/api/spend/lumi`;
   const response = await fetch(url, {
     method: 'POST',
