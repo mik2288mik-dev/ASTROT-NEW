@@ -22,6 +22,7 @@ export const BirthDataInput: React.FC<BirthDataInputProps> = ({
   onSubmit,
 }) => {
   const lang = userProfile.language || 'ru';
+  const [name, setName] = useState('');
   const [birthDate, setBirthDate] = useState('');
   const [birthTime, setBirthTime] = useState('');
   const [timeUnknown, setTimeUnknown] = useState(false);
@@ -36,7 +37,7 @@ export const BirthDataInput: React.FC<BirthDataInputProps> = ({
     setLoading(true);
     try {
       await onSubmit({
-        name: userProfile.name || '',
+        name: name.trim() || 'Новая карта',
         birth_date: birthDate.trim(),
         birth_time: timeUnknown ? null : (birthTime.trim() || null),
         birth_place: birthPlace.trim(),
@@ -57,6 +58,18 @@ export const BirthDataInput: React.FC<BirthDataInputProps> = ({
       </h2>
 
       <div className="space-y-5">
+        <div>
+          <label className="block text-sm font-medium text-astro-text/80 mb-1.5">
+            Name
+          </label>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full px-4 py-3 rounded-xl bg-white/5 dark:bg-white/[0.03] border border-astro-border/60 text-astro-text focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/30"
+          />
+        </div>
+
         <div>
           <label className="block text-sm font-medium text-astro-text/80 mb-1.5">
             {getText(lang, 'birth_input.birth_date')}

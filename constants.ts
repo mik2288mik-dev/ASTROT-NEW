@@ -1,7 +1,7 @@
 
 import { Language } from "./types";
 
-export const APP_NAME = "Astrot";
+export const APP_NAME = "Lumia";
 
 export const SYSTEM_INSTRUCTION_ASTRA = `
 Ты — профессиональный астролог (с рождения, династия) — веселый, прикольный, молодежный, современный добрый друг.
@@ -62,9 +62,19 @@ export const TRANSLATIONS = {
       submit: "Рассчитать карту"
     },
     basic_result: {
+      title: "Результат карты",
+      summary_intro: "Это ваш быстрый портрет:",
+      summary_sun: "Солнце в",
+      summary_moon: "Луна в",
+      summary_asc: "Асцендент в",
+      summary_fallback: "основные акценты карты собраны ниже в простом формате",
       sun: "Солнце",
       moon: "Луна",
       ascendant: "Асцендент",
+      full_title: "Full Report",
+      full_desc: "Подробный разбор личности, сильных сторон, эмоций, отношений и жизненных сценариев в понятной форме.",
+      pro_title: "Pro Report",
+      pro_desc: "Глубокая аналитика для продвинутого чтения: аспекты, дома, узлы, Lilith, Chiron и структурный анализ карты.",
       full_btn: "Полный разбор за 300 Луми",
       pro_btn: "Профессиональный разбор за 200 Луми",
       full_opened: "Полный разбор открыт",
@@ -279,9 +289,19 @@ export const TRANSLATIONS = {
       submit: "Calculate chart"
     },
     basic_result: {
+      title: "Your chart result",
+      summary_intro: "Here is your quick portrait:",
+      summary_sun: "Sun in",
+      summary_moon: "Moon in",
+      summary_asc: "Ascendant in",
+      summary_fallback: "the main chart accents are explained below in a simple way",
       sun: "Sun",
       moon: "Moon",
       ascendant: "Ascendant",
+      full_title: "Full Report",
+      full_desc: "A detailed reading of personality, strengths, emotions, relationships and life patterns in clear language.",
+      pro_title: "Pro Report",
+      pro_desc: "Advanced analytical format: aspects, houses, nodes, Lilith, Chiron and structured chart analysis.",
       full_btn: "Full report for 300 Lumi",
       pro_btn: "Professional report for 200 Lumi",
       full_opened: "Full report unlocked",

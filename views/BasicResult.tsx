@@ -58,10 +58,22 @@ export const BasicResult: React.FC<BasicResultProps> = ({
     loadCard();
   }, [userId, cardId]);
 
-  const formatDate = (d: string) => {
-    if (!d) return '';
-    const [y, m, day] = d.split('-');
-    return lang === 'ru' ? `${day}.${m}.${y}` : `${m}/${day}/${y}`;
+  const formatDate = (dateValue: string) => {
+    if (!dateValue) return '';
+    const date = new Date(dateValue);
+    if (Number.isNaN(date.getTime())) {
+      const dateOnly = dateValue.split('T')[0];
+      const [y, m, d] = dateOnly.split('-');
+      if (y && m && d) {
+        return lang === 'ru' ? `${d}.${m}.${y}` : `${m}/${d}/${y}`;
+      }
+      return dateValue;
+    }
+    return new Intl.DateTimeFormat(lang === 'ru' ? 'ru-RU' : 'en-US', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+    }).format(date);
   };
 
   const handleBuyFull = async () => {
@@ -131,7 +143,7 @@ export const BasicResult: React.FC<BasicResultProps> = ({
     const signLocalized = getZodiacSign(lang, item.sign);
     const deg = item.degree != null ? `${Number(item.degree).toFixed(1)}°` : null;
     return (
-      <div className="p-4 rounded-xl bg-white/5 dark:bg-white/[0.03] border border-astro-border/50">
+      <div className="p-4 rounded-2xl bg-white/5 dark:bg-white/[0.03] border border-astro-border/50">
         <div className="text-xs font-medium text-astro-text/50 uppercase tracking-wider mb-1">
           {getText(lang, titleKey)}
         </div>
@@ -140,20 +152,36 @@ export const BasicResult: React.FC<BasicResultProps> = ({
           {deg && <span className="text-sm text-astro-text/50">{deg}</span>}
         </div>
         {item.description_short && (
-          <p className="text-xs text-astro-text/65 mt-1.5 leading-relaxed">{item.description_short}</p>
+          <p className="text-sm text-astro-text/70 mt-2 leading-relaxed">{item.description_short}</p>
         )}
       </div>
     );
   };
 
   const hasAscendant = chartData?.ascendant && chartData.ascendant.sign;
+  const sunSign = chartData?.sun?.sign ? getZodiacSign(lang, chartData.sun.sign) : null;
+  const moonSign = chartData?.moon?.sign ? getZodiacSign(lang, chartData.moon.sign) : null;
+  const ascSign = hasAscendant ? getZodiacSign(lang, chartData.ascendant.sign) : null;
 
   return (
     <div className="h-full overflow-y-auto scrollbar-hide px-4 pb-10">
-      <div className="pt-4 pb-5">
-        <h2 className="text-lg font-semibold text-astro-text">{card.name || 'Я'}</h2>
-        <p className="text-sm text-astro-text/55 mt-0.5">
+      <div className="pt-4 pb-4">
+        <p className="text-xs uppercase tracking-wider text-astro-text/45 mb-1.5">
+          {getText(lang, 'basic_result.title')}
+        </p>
+        <h2 className="text-xl font-semibold text-astro-text leading-tight break-words">{card.name || 'Новая карта'}</h2>
+        <p className="text-sm text-astro-text/60 mt-1 leading-relaxed break-words">
           {formatDate(card.birth_date)} · {card.birth_place}
+        </p>
+      </div>
+
+      <div className="mb-4 p-4 rounded-2xl border border-blue-500/20 bg-blue-500/5">
+        <p className="text-sm text-astro-text/80 leading-relaxed">
+          {getText(lang, 'basic_result.summary_intro')}{' '}
+          {sunSign && moonSign
+            ? `${getText(lang, 'basic_result.summary_sun')} ${sunSign}, ${getText(lang, 'basic_result.summary_moon')} ${moonSign}`
+            : getText(lang, 'basic_result.summary_fallback')}
+          {ascSign ? `, ${getText(lang, 'basic_result.summary_asc')} ${ascSign}.` : `.`}
         </p>
       </div>
 
@@ -164,11 +192,11 @@ export const BasicResult: React.FC<BasicResultProps> = ({
           {hasAscendant
             ? renderPlanetBlock('basic_result.ascendant', chartData.ascendant)
             : (
-              <div className="p-4 rounded-xl border border-astro-border/40 border-dashed bg-white/[0.02]">
+              <div className="p-4 rounded-2xl border border-astro-border/40 bg-white/[0.02]">
                 <div className="text-xs font-medium text-astro-text/50 uppercase tracking-wider mb-1">
                   {getText(lang, 'basic_result.ascendant')}
                 </div>
-                <p className="text-sm text-astro-text/50">
+                <p className="text-sm text-astro-text/55 leading-relaxed">
                   {getText(lang, 'basic_result.ascendant_unavailable')}
                 </p>
               </div>
@@ -178,54 +206,62 @@ export const BasicResult: React.FC<BasicResultProps> = ({
       )}
 
       <div className="space-y-3">
-        {card.is_purchased_full ? (
-          <button
-            onClick={onOpenFullReport}
-            className="w-full py-3.5 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-600 dark:text-blue-400 text-sm font-medium hover:bg-blue-500/15 transition-colors"
-          >
-            {getText(lang, 'basic_result.full_opened')}
-          </button>
-        ) : (
-          <button
-            onClick={handleBuyFull}
-            disabled={purchaseLoadingFull}
-            className="w-full py-3.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
-          >
-            {purchaseLoadingFull
-              ? getText(lang, 'basic_result.full_loading')
-              : getText(lang, 'basic_result.full_btn')
-            }
-          </button>
-        )}
+        <div className="p-4 rounded-2xl border border-astro-border/50 bg-white/[0.02]">
+          <p className="text-sm font-semibold text-astro-text mb-1">{getText(lang, 'basic_result.full_title')}</p>
+          <p className="text-xs text-astro-text/60 leading-relaxed mb-3">{getText(lang, 'basic_result.full_desc')}</p>
+          {card.is_purchased_full ? (
+            <button
+              onClick={onOpenFullReport}
+              className="w-full py-3.5 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-600 dark:text-blue-400 text-sm font-medium hover:bg-blue-500/15 transition-colors"
+            >
+              {getText(lang, 'basic_result.full_opened')}
+            </button>
+          ) : (
+            <button
+              onClick={handleBuyFull}
+              disabled={purchaseLoadingFull}
+              className="w-full py-3.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+            >
+              {purchaseLoadingFull
+                ? getText(lang, 'basic_result.full_loading')
+                : getText(lang, 'basic_result.full_btn')
+              }
+            </button>
+          )}
+        </div>
 
-        {card.is_purchased_pro ? (
-          <button
-            onClick={onOpenProReport}
-            className="w-full py-3.5 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-600 dark:text-blue-400 text-sm font-medium hover:bg-blue-500/15 transition-colors"
-          >
-            {getText(lang, 'basic_result.pro_opened')}
-          </button>
-        ) : card.is_purchased_full ? (
-          <button
-            onClick={handleBuyPro}
-            disabled={purchaseLoadingPro}
-            className="w-full py-3.5 rounded-xl border border-blue-500/50 text-blue-600 dark:text-blue-400 text-sm font-medium hover:bg-blue-500/10 disabled:opacity-60 transition-colors"
-          >
-            {purchaseLoadingPro
-              ? getText(lang, 'basic_result.pro_loading')
-              : getText(lang, 'basic_result.pro_btn')
-            }
-          </button>
-        ) : (
-          <div className="w-full py-3.5 rounded-xl border border-astro-border/50 bg-white/[0.02] text-center">
-            <span className="text-sm text-astro-text/45">
-              {getText(lang, 'basic_result.pro_btn')}
-            </span>
-            <p className="text-xs text-astro-text/40 mt-0.5">
-              {getText(lang, 'basic_result.pro_locked')}
-            </p>
-          </div>
-        )}
+        <div className="p-4 rounded-2xl border border-astro-border/50 bg-white/[0.02]">
+          <p className="text-sm font-semibold text-astro-text mb-1">{getText(lang, 'basic_result.pro_title')}</p>
+          <p className="text-xs text-astro-text/60 leading-relaxed mb-3">{getText(lang, 'basic_result.pro_desc')}</p>
+          {card.is_purchased_pro ? (
+            <button
+              onClick={onOpenProReport}
+              className="w-full py-3.5 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-600 dark:text-blue-400 text-sm font-medium hover:bg-blue-500/15 transition-colors"
+            >
+              {getText(lang, 'basic_result.pro_opened')}
+            </button>
+          ) : card.is_purchased_full ? (
+            <button
+              onClick={handleBuyPro}
+              disabled={purchaseLoadingPro}
+              className="w-full py-3.5 rounded-xl border border-blue-500/50 text-blue-600 dark:text-blue-400 text-sm font-medium hover:bg-blue-500/10 disabled:opacity-60 transition-colors"
+            >
+              {purchaseLoadingPro
+                ? getText(lang, 'basic_result.pro_loading')
+                : getText(lang, 'basic_result.pro_btn')
+              }
+            </button>
+          ) : (
+            <div className="w-full py-3.5 rounded-xl border border-astro-border/50 bg-white/[0.02] text-center">
+              <span className="text-sm text-astro-text/45">
+                {getText(lang, 'basic_result.pro_btn')}
+              </span>
+              <p className="text-xs text-astro-text/40 mt-0.5">
+                {getText(lang, 'basic_result.pro_locked')}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
 
       <button

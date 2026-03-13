@@ -55,32 +55,47 @@ export const MyCards: React.FC<MyCardsProps> = ({
     load();
   }, [userId]);
 
-  const formatDate = (d: string) => {
-    if (!d) return '';
-    const [y, m, day] = d.split('-');
-    return lang === 'ru' ? `${day}.${m}.${y}` : `${m}/${day}/${y}`;
+  const formatDate = (dateValue: string) => {
+    if (!dateValue) return '';
+    const date = new Date(dateValue);
+    if (Number.isNaN(date.getTime())) {
+      const dateOnly = dateValue.split('T')[0];
+      const [y, m, d] = dateOnly.split('-');
+      if (y && m && d) {
+        return lang === 'ru' ? `${d}.${m}.${y}` : `${m}/${d}/${y}`;
+      }
+      return dateValue;
+    }
+    return new Intl.DateTimeFormat(lang === 'ru' ? 'ru-RU' : 'en-US', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+    }).format(date);
   };
 
   return (
     <div className="h-full overflow-y-auto scrollbar-hide px-4 pb-12">
-      <header className="pt-5 pb-4">
+      <header className="pt-5 pb-5">
         <h1 className="text-xl font-semibold text-astro-text tracking-tight">
           {getText(lang, 'my_cards.title')}
         </h1>
-        <p className="text-sm text-astro-text/70 mt-1">
+        <p className="text-sm text-astro-text/70 mt-1 leading-relaxed">
           {getText(lang, 'my_cards.greeting')} {displayName || getText(lang, 'my_cards.guest')}
         </p>
       </header>
 
-      <section className="mb-5 p-4 rounded-xl bg-white/5 dark:bg-white/[0.03] border border-astro-border/50">
+      <section className="mb-5 p-4 rounded-2xl bg-white/5 dark:bg-white/[0.03] border border-astro-border/50">
         <div className="flex items-center justify-between">
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-semibold text-astro-text tabular-nums">{balance}</span>
-            <span className="text-sm text-astro-text/60">{getText(lang, 'my_cards.lumi')}</span>
+          <div className="flex flex-col">
+            <span className="text-xs text-astro-text/50 mb-0.5">{getText(lang, 'my_cards.balance')}</span>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-semibold text-astro-text tabular-nums">{balance}</span>
+              <span className="text-sm text-astro-text/60">{getText(lang, 'my_cards.lumi')}</span>
+            </div>
           </div>
           <button
             onClick={onOpenShop}
-            className="text-sm font-medium text-blue-600 hover:text-blue-500 transition-colors"
+            className="px-4 py-2 rounded-xl border border-blue-500/30 bg-blue-500/10 text-sm font-medium text-blue-600 hover:bg-blue-500/15 transition-colors"
           >
             {getText(lang, 'my_cards.shop')}
           </button>
@@ -95,16 +110,21 @@ export const MyCards: React.FC<MyCardsProps> = ({
         {getText(lang, 'my_cards.add_card')}
       </button>
 
-      <h2 className="text-sm font-medium text-astro-text/60 mb-3">
-        {getText(lang, 'my_cards.section_cards')}
-      </h2>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-sm font-medium text-astro-text/65">
+          {getText(lang, 'my_cards.section_cards')}
+        </h2>
+        {!loading && cards.length > 0 && (
+          <span className="text-xs text-astro-text/45">{cards.length}</span>
+        )}
+      </div>
 
       {loading ? (
         <div className="py-8 text-center">
           <span className="text-sm text-astro-text/50">{getText(lang, 'loading')}</span>
         </div>
       ) : cards.length === 0 ? (
-        <div className="py-10 px-5 rounded-xl border border-astro-border/40 bg-white/5 dark:bg-white/[0.02] text-center">
+        <div className="py-10 px-5 rounded-2xl border border-astro-border/40 bg-white/5 dark:bg-white/[0.02] text-center">
           <p className="text-sm text-astro-text/70 mb-4">
             {getText(lang, 'my_cards.empty')}
           </p>
@@ -121,10 +141,10 @@ export const MyCards: React.FC<MyCardsProps> = ({
             <button
               key={card.id}
               onClick={() => onOpenCard(card.id)}
-              className="w-full text-left p-4 rounded-xl bg-white/5 dark:bg-white/[0.03] border border-astro-border/40 hover:border-astro-border/60 active:bg-white/10 transition-colors"
+              className="w-full text-left p-4 rounded-2xl bg-white/5 dark:bg-white/[0.03] border border-astro-border/50 hover:border-astro-border/70 active:bg-white/10 transition-colors"
             >
-              <div className="font-medium text-astro-text text-[15px]">{card.name || 'Я'}</div>
-              <div className="mt-1 text-[13px] text-astro-text/60">
+              <div className="font-semibold text-astro-text text-[16px] leading-snug break-words">{card.name || 'Новая карта'}</div>
+              <div className="mt-1.5 text-[13px] text-astro-text/62 leading-relaxed break-words">
                 {formatDate(card.birth_date)} · {card.birth_place}
               </div>
               <div className="mt-3 flex gap-2">
