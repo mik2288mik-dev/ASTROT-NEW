@@ -466,7 +466,7 @@ const App: React.FC = () => {
                             onBack={() => setView('my-cards')}
                             onSubmit={async (data) => {
                                 const userId = profile.id!;
-                                const name = data.name?.trim() || profile.name || 'Я';
+                                const name = data.name?.trim() || 'Новая карта';
                                 const chartRes = await calculateNatalChart(
                                     userId,
                                     name,
@@ -475,14 +475,20 @@ const App: React.FC = () => {
                                     data.birth_place
                                 );
                                 const cardData = chartRes?.data || chartRes;
-                                await createCard(userId, {
+                                const createdCardRes = await createCard(userId, {
                                     name,
                                     birth_date: data.birth_date,
                                     birth_time: data.birth_time,
                                     birth_place: data.birth_place,
                                     data_json: cardData,
                                 });
-                                setView('my-cards');
+                                const createdCardId = createdCardRes?.card?.id;
+                                if (createdCardId) {
+                                    setSelectedCardId(createdCardId);
+                                    setView('basic-result');
+                                } else {
+                                    setView('my-cards');
+                                }
                             }}
                         />
                     </div>
