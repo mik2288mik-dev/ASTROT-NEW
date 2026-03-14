@@ -70,10 +70,10 @@ export default async function handler(
 
     log.info(`=== REQUEST START === userId=${userId}, date=${dateKey}, sign=${zodiacSign}`);
 
-    // ШАГ 1: Проверяем БД
-    const existing = await db.dailyHoroscope.get(userId, dateKey);
+    // ШАГ 1: Проверяем БД (daily_natal_cards)
+    const existingContent = await db.daily_natal_cards.get(userId, dateKey);
     
-    if (existing && existing.content) {
+    if (existingContent) {
       const duration = Date.now() - startTime;
       log.info(`DB_HIT: returning cached horoscope (${duration}ms)`, {
         userId,
@@ -84,7 +84,7 @@ export default async function handler(
       res.setHeader('X-Horoscope-Source', 'cache');
       res.setHeader('X-Horoscope-Date', dateKey);
       
-      return res.status(200).json(existing.content);
+      return res.status(200).json(existingContent);
     }
 
     log.info(`DB_MISS: no horoscope for date=${dateKey}, will generate`);
@@ -98,10 +98,10 @@ export default async function handler(
       // Ждём и пробуем взять из БД
       await new Promise(resolve => setTimeout(resolve, 3000));
       
-      const afterWait = await db.dailyHoroscope.get(userId, dateKey);
-      if (afterWait && afterWait.content) {
+      const afterWait = await db.daily_natal_cards.get(userId, dateKey);
+      if (afterWait) {
         res.setHeader('X-Horoscope-Source', 'cache-after-wait');
-        return res.status(200).json(afterWait.content);
+        return res.status(200).json(afterWait);
       }
       
       return res.status(409).json({
@@ -187,7 +187,7 @@ export default async function handler(
       };
 
       // ШАГ 7: Сохраняем в БД
-      await db.dailyHoroscope.set(userId, dateKey, horoscope, zodiacSign);
+      await db.daily_natal_cards.set(userId, dateKey, horoscope);
       
       releaseLock(lockKey);
 

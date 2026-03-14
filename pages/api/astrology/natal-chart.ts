@@ -99,7 +99,7 @@ async function handler(
     
     if (!forceRecalculate && DATABASE_URL_CHECK) {
       try {
-        const checkResult = await db.charts.needsRecalculation(
+        const checkResult = await db.natal_charts.needsRecalculation(
           effectiveUserId, 
           birthDate, 
           normalizedBirthTime, 
@@ -146,7 +146,7 @@ async function handler(
         await new Promise(resolve => setTimeout(resolve, 2000));
         
         try {
-          const existingChart = await db.charts.get(effectiveUserId);
+          const existingChart = await db.natal_charts.get(effectiveUserId);
           if (existingChart && existingChart.chart_data) {
             res.setHeader('X-Chart-Source', 'cache-after-wait');
             return res.status(200).json(existingChart.chart_data);
@@ -220,7 +220,7 @@ async function handler(
           log.info('Minimal user record created', { userId: effectiveUserId });
         }
         
-        await db.charts.set(
+        await db.natal_charts.set(
           effectiveUserId, 
           chartData, 
           birthDate, 

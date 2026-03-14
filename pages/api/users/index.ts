@@ -38,7 +38,6 @@ export default async function handler(
         theme: user.theme,
         isPremium: user.is_premium,
         isAdmin: user.is_admin,
-        evolution: user.evolution,
       }));
 
       log.info(`[GET] Found ${clientUsers.length} users`);

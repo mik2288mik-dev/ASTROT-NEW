@@ -52,8 +52,7 @@ async function checkRegenerationLimits(userId: string, contentType: string, isPr
     };
   }
 
-  // Получаем количество регенераций за неделю (последние 7 дней)
-  const countThisWeek = await db.regenerations.getCountThisWeek(userId, contentType);
+  const countThisWeek = await db.lumi_transactions.getRegenerationCountThisWeek(userId);
   
   // Первая регенерация в неделю - бесплатная (включена в премиум)
   if (countThisWeek === 0) {
@@ -66,8 +65,7 @@ async function checkRegenerationLimits(userId: string, contentType: string, isPr
     };
   }
 
-  // Последующие регенерации - 50 звёзд
-  const starsBalance = await db.starsBalance.get(userId);
+  const starsBalance = await db.lumi_transactions.getBalance(userId);
   
   if (starsBalance < REGENERATION_COST_STARS) {
     return {
@@ -221,12 +219,11 @@ async function handler(
       cost: limits.costInStars
     });
 
-    // Списываем звёзды если нужно
-    let newBalance = await db.starsBalance.get(userId);
+    let newBalance = await db.lumi_transactions.getBalance(userId);
     
     if (!limits.isFree) {
       try {
-        const result = await db.starsBalance.deduct(userId, REGENERATION_COST_STARS);
+        const result = await db.lumi_transactions.deduct(userId, REGENERATION_COST_STARS, 'regenerate_deduct');
         newBalance = result.newBalance;
         log.info('Stars deducted successfully', {
           userId,
@@ -267,8 +264,7 @@ async function handler(
           const topic = contentType.replace('deep_dive_', '');
           regeneratedData = await regenerateDeepDive(profile, chartData, topic);
           
-          // Сохраняем в таблицу deep_dive_analyses
-          await db.deepDiveAnalyses.set(userId, topic, regeneratedData);
+          await db.interpretations.set(userId, `deep_dive_${topic}`, topic, regeneratedData);
           break;
 
         default:
@@ -291,7 +287,7 @@ async function handler(
 
       // Возвращаем звёзды если регенерация не удалась
       if (!limits.isFree) {
-        await db.starsBalance.add(userId, REGENERATION_COST_STARS);
+        await db.lumi_transactions.add(userId, REGENERATION_COST_STARS, 'refund');
         log.info('Stars refunded due to regeneration failure');
       }
 
@@ -301,9 +297,9 @@ async function handler(
       });
     }
 
-    // Записываем регенерацию в таблицу
     try {
-      await db.regenerations.add(userId, contentType, !limits.isFree, limits.isFree ? 0 : REGENERATION_COST_STARS);
+      const reason = contentType === 'natal_intro' ? 'regenerate_natal' : contentType.startsWith('deep_dive_') ? 'regenerate_deep_dive' : 'regenerate_synastry';
+      await db.lumi_transactions.add(userId, 0, reason);
       log.info('Regeneration recorded', { userId, contentType });
     } catch (error: any) {
       log.warn('Failed to record regeneration', { error: error.message });

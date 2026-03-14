@@ -45,34 +45,25 @@ export default async function handler(
         return res.status(404).json({ error: 'User not found' });
       }
 
-      // Update user to premium
-      const updatedUser = {
-        ...user,
-        is_premium: true,
-        premium_activated_at: new Date().toISOString(),
-        premium_stars_amount: starsAmount,
-        premium_transaction_id: transactionId,
-      };
+      await db.users.set(id, { is_premium: true });
 
-      await db.users.set(id, updatedUser);
+      const updatedUser = await db.users.get(id);
 
       log.info('Premium subscription activated successfully', {
         userId: id
       });
 
-      // Transform to client format
       const clientUser = {
-        id: updatedUser.id,
-        name: updatedUser.name,
-        birthDate: updatedUser.birth_date,
-        birthTime: updatedUser.birth_time,
-        birthPlace: updatedUser.birth_place,
-        isSetup: updatedUser.is_setup,
-        language: updatedUser.language,
-        theme: updatedUser.theme,
-        isPremium: updatedUser.is_premium,
-        isAdmin: updatedUser.is_admin,
-        evolution: updatedUser.evolution,
+        id: updatedUser!.id,
+        name: updatedUser!.name,
+        birthDate: updatedUser!.birth_date,
+        birthTime: updatedUser!.birth_time,
+        birthPlace: updatedUser!.birth_place,
+        isSetup: updatedUser!.is_setup,
+        language: updatedUser!.language,
+        theme: updatedUser!.theme,
+        isPremium: updatedUser!.is_premium,
+        isAdmin: updatedUser!.is_admin,
       };
 
       return res.status(200).json({
@@ -92,7 +83,7 @@ export default async function handler(
 
       return res.status(200).json({
         isPremium: user.is_premium || false,
-        activatedAt: user.premium_activated_at || null,
+        activatedAt: user.premium_until || null,
       });
     }
 

@@ -41,10 +41,10 @@ export default async function handler(
   log.info(`[GET] Fetching weather for userId=${userId}`);
 
   try {
-    // ШАГ 1: Получаем настройки пользователя из БД
-    const settings = await db.userSettings.get(userId);
+    // ШАГ 1: Получаем пользователя из БД (weather_city в users)
+    const user = await db.users.get(userId);
     
-    if (!settings || !settings.weatherCity) {
+    if (!user || !user.weather_city) {
       log.info(`[GET] CITY_MISSING: no city set for userId=${userId}`);
       return res.status(400).json({
         error: 'City not set',
@@ -53,7 +53,7 @@ export default async function handler(
       });
     }
 
-    const city = settings.weatherCity;
+    const city = user.weather_city;
     log.info(`[GET] City found: ${city}`);
 
     // ШАГ 2: Проверяем API ключ

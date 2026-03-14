@@ -201,22 +201,6 @@ function toUserId(userId: string): string {
   return String(userId).trim();
 }
 
-/** Explicit lumi_transactions reason values for regenerations (no LIKE) */
-const REGENERATION_REASONS = ['regenerate_natal', 'regenerate_deep_dive', 'regenerate_synastry'] as const;
-function contentTypeToRegenerationReason(contentType: string): string {
-  if (contentType === 'natal_intro') return 'regenerate_natal';
-  if (contentType.startsWith('deep_dive_')) return 'regenerate_deep_dive';
-  if (contentType === 'synastry') return 'regenerate_synastry';
-  return 'regenerate_natal';
-}
-
-/** Strict interpretations.type values for Deep Dive */
-const DEEP_DIVE_TYPES = ['deep_dive_personality', 'deep_dive_love', 'deep_dive_career', 'deep_dive_weakness', 'deep_dive_karma'] as const;
-function topicToDeepDiveType(topic: string): string {
-  const t = `deep_dive_${topic}`;
-  return DEEP_DIVE_TYPES.includes(t as any) ? t : 'deep_dive_personality';
-}
-
 /**
  * Lumia Database operations
  */
@@ -392,7 +376,7 @@ export const db = {
     },
   },
 
-  charts: {
+  natal_charts: {
     async get(userId: string) {
       const id = toUserId(userId);
       if (!DATABASE_URL) return null;
@@ -511,396 +495,9 @@ export const db = {
     },
   },
 
-  /** Weather - uses users.weather_city, latitude, longitude (no separate user_settings table) */
-  userSettings: {
-    async get(userId: string) {
-      const id = toUserId(userId);
-      if (!DATABASE_URL) return null;
-      try {
-        const dbPool = getPool();
-        const result = await dbPool.query(
-          `SELECT id, weather_city, latitude, longitude FROM users WHERE id = $1`,
-          [id]
-        );
-        if (result.rows.length === 0) return null;
-        const row = result.rows[0];
-        return {
-          userId: String(row.id),
-          weatherCity: row.weather_city,
-          weatherLat: row.latitude,
-          weatherLon: row.longitude,
-          weatherUnits: null,
-          timezone: null,
-          updatedAt: null
-        };
-      } catch (error: any) {
-        log.error('[DB] Error getting user settings', { error: error.message, userId });
-        throw error;
-      }
-    },
-
-    async setWeatherCity(userId: string, city: string | null, lat?: number, lon?: number) {
-      const id = toUserId(userId);
-      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
-      let validCity: string | null = null;
-      if (city !== null && city !== undefined) {
-        const trimmed = String(city).trim();
-        if (trimmed.length >= 2 && trimmed.length <= 64) validCity = trimmed;
-        else if (trimmed.length > 0) throw new Error(`City name must be 2-64 characters, got ${trimmed.length}`);
-      }
-      try {
-        const dbPool = getPool();
-        const result = await dbPool.query(
-          `INSERT INTO users (id, weather_city, latitude, longitude)
-           VALUES ($1, $2, $3, $4)
-           ON CONFLICT (id) DO UPDATE SET
-             weather_city = EXCLUDED.weather_city,
-             latitude = EXCLUDED.latitude,
-             longitude = EXCLUDED.longitude
-           RETURNING id, weather_city, latitude, longitude`,
-          [id, validCity, lat ?? null, lon ?? null]
-        );
-        const row = result.rows[0];
-        return {
-          userId: String(row.id),
-          weatherCity: row.weather_city,
-          weatherLat: row.latitude,
-          weatherLon: row.longitude,
-          updatedAt: new Date().toISOString()
-        };
-      } catch (error: any) {
-        log.error('[DB] Error setting weather city', {
-          error: error.message,
-          userId,
-          city
-        });
-        throw error;
-      }
-    }
-  },
-
-  /** Daily natal card (personal horoscope per user/date) - Lumia daily_natal_cards */
-  dailyHoroscope: {
-    async get(userId: string, dateKey: string) {
-      const id = toUserId(userId);
-      if (!DATABASE_URL) return null;
-      try {
-        const dbPool = getPool();
-        const result = await dbPool.query(
-          `SELECT content FROM daily_natal_cards WHERE user_id = $1 AND date = $2`,
-          [id, dateKey]
-        );
-        if (result.rows.length === 0) return null;
-        const row = result.rows[0];
-        const content = typeof row.content === 'string' ? JSON.parse(row.content) : row.content;
-        return { content, zodiacSign: content?.date ? null : null, createdAt: null };
-      } catch (error: any) {
-        log.error('[DB] Error getting daily horoscope', { error: error.message, userId, dateKey });
-        throw error;
-      }
-    },
-
-    async set(userId: string, dateKey: string, content: any, _zodiacSign?: string) {
-      const id = toUserId(userId);
-      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
-      try {
-        const dbPool = getPool();
-        await dbPool.query(
-          `INSERT INTO daily_natal_cards (user_id, date, content)
-           VALUES ($1, $2, $3)
-           ON CONFLICT (user_id, date) DO UPDATE SET content = EXCLUDED.content`,
-          [id, dateKey, typeof content === 'string' ? content : JSON.stringify(content)]
-        );
-        return { content, zodiacSign: null, createdAt: new Date().toISOString() };
-      } catch (error: any) {
-        log.error('[DB] Error setting daily horoscope', { error: error.message, userId, dateKey });
-        throw error;
-      }
-    }
-  },
-
-  // Cached texts operations
-  cachedTexts: {
-    async getNatalSummary(userId: string) {
-      log.info(`[DB] Getting cached natal summary for user: ${userId}`);
-      
-      if (!DATABASE_URL) return null;
-
-      try {
-        const dbPool = getPool();
-        const result = await dbPool.query(
-          'SELECT natal_summary, natal_summary_updated_at FROM users WHERE id = $1',
-          [userId]
-        );
-        
-        if (result.rows.length === 0 || !result.rows[0].natal_summary) {
-          return null;
-        }
-
-        return {
-          data: result.rows[0].natal_summary,
-          updatedAt: result.rows[0].natal_summary_updated_at
-        };
-      } catch (error: any) {
-        log.error('[DB] Error getting cached natal summary', { error: error.message, userId });
-        throw error;
-      }
-    },
-
-    async setNatalSummary(userId: string, data: string) {
-      log.info(`[DB] Setting cached natal summary for user: ${userId}`);
-      
-      if (!DATABASE_URL) {
-        throw new Error('DATABASE_URL is not configured');
-      }
-
-      try {
-        const dbPool = getPool();
-        await dbPool.query(
-          `UPDATE users 
-           SET natal_summary = $1, natal_summary_updated_at = CURRENT_TIMESTAMP 
-           WHERE id = $2`,
-          [data, userId]
-        );
-        
-        return { success: true };
-      } catch (error: any) {
-        log.error('[DB] Error setting cached natal summary', { error: error.message, userId });
-        throw error;
-      }
-    },
-
-    async getFullNatal(userId: string) {
-      log.info(`[DB] Getting cached full natal for user: ${userId}`);
-      
-      if (!DATABASE_URL) return null;
-
-      try {
-        const dbPool = getPool();
-        const result = await dbPool.query(
-          'SELECT full_natal, full_natal_updated_at FROM users WHERE id = $1',
-          [userId]
-        );
-        
-        if (result.rows.length === 0 || !result.rows[0].full_natal) {
-          return null;
-        }
-
-        return {
-          data: result.rows[0].full_natal,
-          updatedAt: result.rows[0].full_natal_updated_at
-        };
-      } catch (error: any) {
-        log.error('[DB] Error getting cached full natal', { error: error.message, userId });
-        throw error;
-      }
-    },
-
-    async setFullNatal(userId: string, data: string) {
-      log.info(`[DB] Setting cached full natal for user: ${userId}`);
-      
-      if (!DATABASE_URL) {
-        throw new Error('DATABASE_URL is not configured');
-      }
-
-      try {
-        const dbPool = getPool();
-        await dbPool.query(
-          `UPDATE users 
-           SET full_natal = $1, full_natal_updated_at = CURRENT_TIMESTAMP 
-           WHERE id = $2`,
-          [data, userId]
-        );
-        
-        return { success: true };
-      } catch (error: any) {
-        log.error('[DB] Error setting cached full natal', { error: error.message, userId });
-        throw error;
-      }
-    },
-  },
-
-  // Synastry cache operations
-  synastryCache: {
-    async get(userId: string, partnerData: any) {
-      log.info(`[DB] Getting cached synastry for user: ${userId}`);
-      
-      if (!DATABASE_URL) return null;
-
-      try {
-        const dbPool = getPool();
-        const result = await dbPool.query(
-          'SELECT brief_analysis, full_analysis, updated_at FROM synastry_cache WHERE user_id = $1 AND partner_data = $2',
-          [userId, JSON.stringify(partnerData)]
-        );
-        
-        if (result.rows.length === 0) {
-          return null;
-        }
-
-        return {
-          briefAnalysis: result.rows[0].brief_analysis,
-          fullAnalysis: result.rows[0].full_analysis,
-          updatedAt: result.rows[0].updated_at
-        };
-      } catch (error: any) {
-        log.error('[DB] Error getting cached synastry', { error: error.message, userId });
-        throw error;
-      }
-    },
-
-    async set(userId: string, partnerData: any, briefAnalysis?: string, fullAnalysis?: string) {
-      log.info(`[DB] Setting cached synastry for user: ${userId}`);
-      
-      if (!DATABASE_URL) {
-        throw new Error('DATABASE_URL is not configured');
-      }
-
-      try {
-        const dbPool = getPool();
-        await dbPool.query(
-          `INSERT INTO synastry_cache (user_id, partner_data, brief_analysis, full_analysis, updated_at)
-           VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
-           ON CONFLICT (user_id, partner_data) DO UPDATE SET
-             brief_analysis = COALESCE(EXCLUDED.brief_analysis, synastry_cache.brief_analysis),
-             full_analysis = COALESCE(EXCLUDED.full_analysis, synastry_cache.full_analysis),
-             updated_at = CURRENT_TIMESTAMP`,
-          [userId, JSON.stringify(partnerData), briefAnalysis, fullAnalysis]
-        );
-        
-        return { success: true };
-      } catch (error: any) {
-        log.error('[DB] Error setting cached synastry', { error: error.message, userId });
-        throw error;
-      }
-    },
-  },
-
-  // Forecasts cache operations
-  forecastsCache: {
-    async get(userId: string, periodType: 'day' | 'week' | 'month', periodDate: string) {
-      log.info(`[DB] Getting cached forecast for user: ${userId}, period: ${periodType}, date: ${periodDate}`);
-      
-      if (!DATABASE_URL) return null;
-
-      try {
-        const dbPool = getPool();
-        const result = await dbPool.query(
-          'SELECT content, created_at FROM forecasts_cache WHERE user_id = $1 AND period_type = $2 AND period_date = $3',
-          [userId, periodType, periodDate]
-        );
-        
-        if (result.rows.length === 0) {
-          return null;
-        }
-
-        return {
-          data: result.rows[0].content,
-          createdAt: result.rows[0].created_at
-        };
-      } catch (error: any) {
-        log.error('[DB] Error getting cached forecast', { error: error.message, userId });
-        throw error;
-      }
-    },
-
-    async set(userId: string, periodType: 'day' | 'week' | 'month', periodDate: string, content: any) {
-      log.info(`[DB] Setting cached forecast for user: ${userId}, period: ${periodType}, date: ${periodDate}`);
-      
-      if (!DATABASE_URL) {
-        throw new Error('DATABASE_URL is not configured');
-      }
-
-      try {
-        const dbPool = getPool();
-        await dbPool.query(
-          `INSERT INTO forecasts_cache (user_id, period_type, period_date, content)
-           VALUES ($1, $2, $3, $4)
-           ON CONFLICT (user_id, period_type, period_date) DO UPDATE SET
-             content = EXCLUDED.content,
-             created_at = CURRENT_TIMESTAMP`,
-          [userId, periodType, periodDate, JSON.stringify(content)]
-        );
-        
-        return { success: true };
-      } catch (error: any) {
-        log.error('[DB] Error setting cached forecast', { error: error.message, userId });
-        throw error;
-      }
-    },
-  },
-
-  /** Regenerations - tracked via lumi_transactions with explicit reason values */
-  regenerations: {
-    async getCountToday(userId: string, contentType: string) {
-      const id = toUserId(userId);
-      const reason = contentTypeToRegenerationReason(contentType);
-      if (!DATABASE_URL) return 0;
-      try {
-        const dbPool = getPool();
-        const result = await dbPool.query(
-          `SELECT COUNT(*) FROM lumi_transactions
-           WHERE user_id = $1 AND reason = $2 AND created_at::date = CURRENT_DATE`,
-          [id, reason]
-        );
-        return parseInt(result.rows[0].count);
-      } catch (error: any) {
-        log.error('[DB] Error getting regeneration count', { error: error.message, userId });
-        throw error;
-      }
-    },
-
-    async getCountThisWeek(userId: string, _contentType: string) {
-      const id = toUserId(userId);
-      if (!DATABASE_URL) return 0;
-      try {
-        const dbPool = getPool();
-        const result = await dbPool.query(
-          `SELECT COUNT(*) FROM lumi_transactions
-           WHERE user_id = $1 AND reason IN ('regenerate_natal', 'regenerate_deep_dive', 'regenerate_synastry') AND created_at >= NOW() - INTERVAL '7 days'`,
-          [id]
-        );
-        return parseInt(result.rows[0].count);
-      } catch (error: any) {
-        log.error('[DB] Error getting regeneration count for week', { error: error.message, userId });
-        throw error;
-      }
-    },
-
-    async add(userId: string, contentType: string, _wasPaid: boolean, _starsCost: number) {
-      const id = toUserId(userId);
-      const reason = contentTypeToRegenerationReason(contentType);
-      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
-      try {
-        const dbPool = getPool();
-        await dbPool.query(
-          `INSERT INTO lumi_transactions (user_id, amount, reason) VALUES ($1, 0, $2)`,
-          [id, reason]
-        );
-        return { success: true };
-      } catch (error: any) {
-        log.error('[DB] Error adding regeneration record', { error: error.message, userId });
-        throw error;
-      }
-    },
-  },
-
-  /** Stars/Lumi balance - uses users.lumi_balance (Lumia) */
-  starsBalance: {
-    async get(userId: string) {
-      const id = toUserId(userId);
-      if (!DATABASE_URL) return 0;
-      try {
-        const dbPool = getPool();
-        const result = await dbPool.query('SELECT lumi_balance FROM users WHERE id = $1', [id]);
-        return result.rows.length === 0 ? 0 : (result.rows[0].lumi_balance ?? 0);
-      } catch (error: any) {
-        log.error('[DB] Error getting stars balance', { error: error.message, userId });
-        throw error;
-      }
-    },
-
-    async add(userId: string, amount: number) {
+  /** lumi_transactions - balance and history (Lumia) */
+  lumi_transactions: {
+    async add(userId: string, amount: number, reason: string) {
       const id = toUserId(userId);
       if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
       try {
@@ -910,17 +507,46 @@ export const db = {
           [amount, id]
         );
         await dbPool.query(
-          `INSERT INTO lumi_transactions (user_id, amount, reason) VALUES ($1, $2, 'refund')`,
-          [id, amount]
+          `INSERT INTO lumi_transactions (user_id, amount, reason) VALUES ($1, $2, $3)`,
+          [id, amount, reason]
         );
         return { success: true };
       } catch (error: any) {
-        log.error('[DB] Error adding stars', { error: error.message, userId });
+        log.error('[DB] Error adding lumi transaction', { error: error.message, userId });
         throw error;
       }
     },
 
-    async deduct(userId: string, amount: number) {
+    async getBalance(userId: string) {
+      const id = toUserId(userId);
+      if (!DATABASE_URL) return 0;
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query('SELECT lumi_balance FROM users WHERE id = $1', [id]);
+        return result.rows.length === 0 ? 0 : (result.rows[0].lumi_balance ?? 0);
+      } catch (error: any) {
+        log.error('[DB] Error getting balance', { error: error.message, userId });
+        throw error;
+      }
+    },
+
+    async getHistory(userId: string, limit = 50) {
+      const id = toUserId(userId);
+      if (!DATABASE_URL) return [];
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          `SELECT amount, reason, created_at FROM lumi_transactions WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2`,
+          [id, limit]
+        );
+        return result.rows;
+      } catch (error: any) {
+        log.error('[DB] Error getting history', { error: error.message, userId });
+        throw error;
+      }
+    },
+
+    async deduct(userId: string, amount: number, reason: string) {
       const id = toUserId(userId);
       if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
       try {
@@ -933,130 +559,219 @@ export const db = {
         );
         if (result.rows.length === 0) throw new Error('Insufficient stars balance');
         await dbPool.query(
-          `INSERT INTO lumi_transactions (user_id, amount, reason) VALUES ($1, $2, 'regenerate_deduct')`,
-          [id, -amount]
+          `INSERT INTO lumi_transactions (user_id, amount, reason) VALUES ($1, $2, $3)`,
+          [id, -amount, reason]
         );
         return { success: true, newBalance: result.rows[0].lumi_balance };
       } catch (error: any) {
-        log.error('[DB] Error deducting stars', { error: error.message, userId });
+        log.error('[DB] Error deducting', { error: error.message, userId });
+        throw error;
+      }
+    },
+
+    getRegenerationCountThisWeek: async (userId: string) => {
+      const id = toUserId(userId);
+      if (!DATABASE_URL) return 0;
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          `SELECT COUNT(*) FROM lumi_transactions
+           WHERE user_id = $1 AND reason IN ('regenerate_natal', 'regenerate_deep_dive', 'regenerate_synastry') AND created_at >= NOW() - INTERVAL '7 days'`,
+          [id]
+        );
+        return parseInt(result.rows[0].count);
+      } catch (error: any) {
+        log.error('[DB] Error getting regeneration count', { error: error.message, userId });
         throw error;
       }
     },
   },
 
-  /** Deep dive analyses - interpretations with strict type values */
-  deepDiveAnalyses: {
-    async get(userId: string, topic: string) {
+  /** roulette_spins (Lumia) */
+  roulette_spins: {
+    async add(userId: string, winAmount: number) {
       const id = toUserId(userId);
-      const type = topicToDeepDiveType(topic);
-      if (!DATABASE_URL) return null;
-      try {
-        const dbPool = getPool();
-        const result = await dbPool.query(
-          `SELECT content, created_at FROM interpretations
-           WHERE user_id = $1 AND type = $2 AND input_hash = $3`,
-          [id, type, topic]
-        );
-        if (result.rows.length === 0) return null;
-        return { analysis: result.rows[0].content, updatedAt: result.rows[0].created_at };
-      } catch (error: any) {
-        log.error('[DB] Error getting deep dive analysis', { error: error.message, userId, topic });
-        throw error;
-      }
-    },
-
-    async set(userId: string, topic: string, analysis: string) {
-      const id = toUserId(userId);
-      const type = topicToDeepDiveType(topic);
       if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
       try {
         const dbPool = getPool();
         await dbPool.query(
-          `INSERT INTO interpretations (user_id, type, input_hash, content)
-           VALUES ($1, $2, $3, $4)
-           ON CONFLICT (user_id, type, input_hash) DO UPDATE SET content = EXCLUDED.content`,
-          [id, type, topic, analysis]
+          `INSERT INTO roulette_spins (user_id, win_amount) VALUES ($1, $2)`,
+          [id, winAmount]
         );
         return { success: true };
       } catch (error: any) {
-        log.error('[DB] Error setting deep dive analysis', { error: error.message, userId, topic });
+        log.error('[DB] Error adding roulette spin', { error: error.message, userId });
         throw error;
       }
     },
 
-    async getAll(userId: string) {
+    async getTodayCount(userId: string) {
       const id = toUserId(userId);
-      if (!DATABASE_URL) return {};
+      if (!DATABASE_URL) return 0;
       try {
         const dbPool = getPool();
         const result = await dbPool.query(
-          `SELECT input_hash as topic, content as analysis FROM interpretations
-           WHERE user_id = $1 AND type IN ('deep_dive_personality', 'deep_dive_love', 'deep_dive_career', 'deep_dive_weakness', 'deep_dive_karma')`,
+          `SELECT COUNT(*) FROM roulette_spins WHERE user_id = $1 AND created_at::date = CURRENT_DATE`,
           [id]
         );
-        const analyses: Record<string, string> = {};
-        result.rows.forEach((row: any) => {
-          analyses[row.topic] = row.analysis;
-        });
-        return analyses;
+        return parseInt(result.rows[0].count);
       } catch (error: any) {
-        log.error('[DB] Error getting all deep dive analyses', { error: error.message, userId });
-        return {};
+        log.error('[DB] Error getting today spin count', { error: error.message, userId });
+        throw error;
       }
-    }
+    },
   },
 
-  // Daily horoscopes cache operations (by zodiac sign)
-  dailyHoroscopesCache: {
+  /** daily_horoscopes - general by zodiac sign (Lumia) */
+  daily_horoscopes: {
     async get(zodiacSign: string, date: string) {
-      log.info(`[DB] Getting cached daily horoscope for sign: ${zodiacSign}, date: ${date}`);
-      
       if (!DATABASE_URL) return null;
-
       try {
         const dbPool = getPool();
         const result = await dbPool.query(
-          'SELECT horoscope_data, updated_at FROM daily_horoscopes_cache WHERE zodiac_sign = $1 AND date = $2',
+          `SELECT content FROM daily_horoscopes WHERE zodiac_sign = $1 AND date = $2`,
           [zodiacSign, date]
         );
-        
-        if (result.rows.length === 0) {
-          return null;
-        }
-
-        return {
-          data: result.rows[0].horoscope_data,
-          updatedAt: result.rows[0].updated_at
-        };
+        return result.rows.length === 0 ? null : result.rows[0].content;
       } catch (error: any) {
-        log.error('[DB] Error getting cached daily horoscope', { error: error.message, zodiacSign, date });
+        log.error('[DB] Error getting daily horoscope', { error: error.message, zodiacSign, date });
         throw error;
       }
     },
 
-    async set(zodiacSign: string, date: string, horoscopeData: any) {
-      log.info(`[DB] Setting cached daily horoscope for sign: ${zodiacSign}, date: ${date}`);
-      
-      if (!DATABASE_URL) {
-        throw new Error('DATABASE_URL is not configured');
-      }
-
+    async set(zodiacSign: string, date: string, content: string) {
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
       try {
         const dbPool = getPool();
         await dbPool.query(
-          `INSERT INTO daily_horoscopes_cache (zodiac_sign, date, horoscope_data, updated_at)
-           VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
-           ON CONFLICT (zodiac_sign, date) DO UPDATE SET
-             horoscope_data = EXCLUDED.horoscope_data,
-             updated_at = CURRENT_TIMESTAMP`,
-          [zodiacSign, date, JSON.stringify(horoscopeData)]
+          `INSERT INTO daily_horoscopes (zodiac_sign, date, content) VALUES ($1, $2, $3)
+           ON CONFLICT (zodiac_sign, date) DO UPDATE SET content = EXCLUDED.content`,
+          [zodiacSign, date, content]
         );
-        
         return { success: true };
       } catch (error: any) {
-        log.error('[DB] Error setting cached daily horoscope', { error: error.message, zodiacSign, date });
+        log.error('[DB] Error setting daily horoscope', { error: error.message, zodiacSign, date });
         throw error;
       }
     },
   },
+
+  /** daily_natal_cards - personal daily card per user (Lumia) */
+  daily_natal_cards: {
+    async get(userId: string, date: string) {
+      const id = toUserId(userId);
+      if (!DATABASE_URL) return null;
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          `SELECT content FROM daily_natal_cards WHERE user_id = $1 AND date = $2`,
+          [id, date]
+        );
+        if (result.rows.length === 0) return null;
+        const c = result.rows[0].content;
+        return typeof c === 'string' ? JSON.parse(c) : c;
+      } catch (error: any) {
+        log.error('[DB] Error getting daily natal card', { error: error.message, userId, date });
+        throw error;
+      }
+    },
+
+    async set(userId: string, date: string, content: any) {
+      const id = toUserId(userId);
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      try {
+        const dbPool = getPool();
+        await dbPool.query(
+          `INSERT INTO daily_natal_cards (user_id, date, content) VALUES ($1, $2, $3)
+           ON CONFLICT (user_id, date) DO UPDATE SET content = EXCLUDED.content`,
+          [id, date, typeof content === 'string' ? content : JSON.stringify(content)]
+        );
+        return { success: true };
+      } catch (error: any) {
+        log.error('[DB] Error setting daily natal card', { error: error.message, userId, date });
+        throw error;
+      }
+    },
+  },
+
+  /** astro_questions (Lumia) */
+  astro_questions: {
+    async add(userId: string, question: string, answer: string) {
+      const id = toUserId(userId);
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      try {
+        const dbPool = getPool();
+        await dbPool.query(
+          `INSERT INTO astro_questions (user_id, question, answer) VALUES ($1, $2, $3)`,
+          [id, question, answer]
+        );
+        return { success: true };
+      } catch (error: any) {
+        log.error('[DB] Error adding astro question', { error: error.message, userId });
+        throw error;
+      }
+    },
+
+    async getByUser(userId: string) {
+      const id = toUserId(userId);
+      if (!DATABASE_URL) return [];
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          `SELECT question, answer, created_at FROM astro_questions WHERE user_id = $1 ORDER BY created_at DESC`,
+          [id]
+        );
+        return result.rows;
+      } catch (error: any) {
+        log.error('[DB] Error getting astro questions', { error: error.message, userId });
+        throw error;
+      }
+    },
+  },
+
+  /** dictionary (Lumia) */
+  dictionary: {
+    async getByTerm(term: string) {
+      if (!DATABASE_URL) return null;
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          `SELECT term, title, description, category FROM dictionary WHERE term = $1`,
+          [term]
+        );
+        return result.rows.length === 0 ? null : result.rows[0];
+      } catch (error: any) {
+        log.error('[DB] Error getting dictionary term', { error: error.message, term });
+        throw error;
+      }
+    },
+
+    async getAll() {
+      if (!DATABASE_URL) return [];
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(`SELECT term, title, description, category FROM dictionary ORDER BY term`);
+        return result.rows;
+      } catch (error: any) {
+        log.error('[DB] Error getting all dictionary', { error: error.message });
+        throw error;
+      }
+    },
+
+    async search(query: string) {
+      if (!DATABASE_URL) return [];
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          `SELECT term, title, description, category FROM dictionary WHERE term ILIKE $1 OR title ILIKE $1 OR description ILIKE $1`,
+          [`%${query}%`]
+        );
+        return result.rows;
+      } catch (error: any) {
+        log.error('[DB] Error searching dictionary', { error: error.message, query });
+        throw error;
+      }
+    },
+  },
+
 };

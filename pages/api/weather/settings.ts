@@ -45,10 +45,10 @@ export default async function handler(
 
       log.info(`[GET] Fetching settings for userId=${userId}`);
       
-      const settings = await db.userSettings.get(userId);
+      const user = await db.users.get(userId);
       
-      if (!settings) {
-        log.info(`[GET] DB_MISS: no settings for userId=${userId}`);
+      if (!user) {
+        log.info(`[GET] DB_MISS: no user for userId=${userId}`);
         return res.status(200).json({ 
           userId,
           city: null,
@@ -57,16 +57,16 @@ export default async function handler(
       }
 
       log.info(`[GET] DB_HIT: settings found`, {
-        city: settings.weatherCity
+        city: user.weather_city
       });
 
       return res.status(200).json({
-        userId: settings.userId,
-        city: settings.weatherCity,
-        lat: settings.weatherLat,
-        lon: settings.weatherLon,
-        units: settings.weatherUnits,
-        updatedAt: settings.updatedAt
+        userId: user.id,
+        city: user.weather_city || null,
+        lat: user.latitude ?? null,
+        lon: user.longitude ?? null,
+        units: null,
+        updatedAt: null
       });
     }
 
@@ -120,7 +120,7 @@ export default async function handler(
       }
 
       try {
-        const saved = await db.userSettings.setWeatherCity(userId, validatedCity);
+        await db.users.set(userId, { weather_city: validatedCity });
         
         releaseLock(lockKey);
 
@@ -128,9 +128,9 @@ export default async function handler(
 
         return res.status(200).json({
           success: true,
-          userId: saved.userId,
-          city: saved.weatherCity,
-          updatedAt: saved.updatedAt
+          userId,
+          city: validatedCity,
+          updatedAt: new Date().toISOString()
         });
       } catch (error) {
         releaseLock(lockKey);

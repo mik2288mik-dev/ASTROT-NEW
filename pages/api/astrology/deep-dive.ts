@@ -1,6 +1,12 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
+import { db } from '../../../lib/db';
 import { SYSTEM_PROMPT_ASTRA, createDeepDivePrompt, addLanguageInstruction } from '../../../lib/prompts';
+
+const TITLE_TO_KEY: Record<string, string> = {
+  personality: 'personality', love: 'love', career: 'career', weakness: 'weakness', weaknesses: 'weakness', karma: 'karma',
+  'личность': 'personality', 'любовь': 'love', 'карьера': 'career', 'слабости': 'weakness', 'карма': 'karma',
+};
 
 // Logging utility
 const log = {
@@ -42,6 +48,19 @@ export default async function handler(
       language: lang ? 'ru' : 'en'
     });
 
+    const topicForLookup = typeof topic === 'string' ? (TITLE_TO_KEY[topic.toLowerCase()] || topic.toLowerCase()) : 'personality';
+    const validTopics = ['personality', 'love', 'career', 'weakness', 'karma'];
+    const topicKey = validTopics.includes(topicForLookup) ? topicForLookup : 'personality';
+
+    if (profile?.id && process.env.DATABASE_URL) {
+      try {
+        const cached = await db.interpretations.getByHash(profile.id, `deep_dive_${topicKey}`, topicKey);
+        if (cached?.content && cached.content.length > 50) {
+          return res.status(200).json({ analysis: cached.content });
+        }
+      } catch (_e) {}
+    }
+
     // Проверяем наличие API ключа
     if (!process.env.OPENAI_API_KEY) {
       log.error('OpenAI API key not configured, using fallback');
@@ -80,6 +99,16 @@ export default async function handler(
       analysisLength: analysis.length,
       tokensUsed: completion.usage?.total_tokens
     });
+
+    const topicForDb = topicKey;
+    const userId = profile?.id;
+    if (userId && process.env.DATABASE_URL) {
+      try {
+        await db.interpretations.set(userId, `deep_dive_${topicForDb}`, topicForDb, analysis);
+      } catch (e) {
+        log.error('Failed to save deep dive to interpretations', e);
+      }
+    }
 
     return res.status(200).json({ analysis });
   } catch (error: any) {

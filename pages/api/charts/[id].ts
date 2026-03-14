@@ -48,7 +48,7 @@ export default async function handler(
       
       let chartRecord;
       try {
-        chartRecord = await db.charts.get(userId);
+        chartRecord = await db.natal_charts.get(userId);
       } catch (dbError: any) {
         log.error(`[GET] Database error`, { error: dbError.message });
         // Если БД недоступна, возвращаем 404 вместо 500
@@ -105,7 +105,7 @@ export default async function handler(
       });
 
       // Сохраняем без данных рождения (legacy mode)
-      const savedChart = await db.charts.set(userId, chartData);
+      const savedChart = await db.natal_charts.set(userId, chartData);
 
       log.info(`[${req.method}] SAVED: chart saved for userId=${userId}`);
 

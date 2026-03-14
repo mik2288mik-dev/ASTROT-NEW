@@ -100,6 +100,8 @@ async function migrationReset(pool: Pool): Promise<void> {
     }
   }
 
+  await pool.query('DROP TYPE IF EXISTS interpretation_type CASCADE');
+
   await pool.query('TRUNCATE migrations');
   log.info('Migrations history cleared');
 
@@ -119,6 +121,23 @@ async function lumia001FullSchema(pool: Pool): Promise<void> {
   }
 
   log.info('Applying Lumia schema...');
+
+  await pool.query(`
+    CREATE TYPE interpretation_type AS ENUM (
+      'natal_free',
+      'natal_intro',
+      'natal_amateur',
+      'natal_pro',
+      'daily_natal_card',
+      'question_answer',
+      'synastry',
+      'deep_dive_personality',
+      'deep_dive_love',
+      'deep_dive_career',
+      'deep_dive_weakness',
+      'deep_dive_karma'
+    );
+  `);
 
   await pool.query(`
     CREATE TABLE users (
@@ -173,7 +192,7 @@ async function lumia001FullSchema(pool: Pool): Promise<void> {
     CREATE TABLE interpretations (
       id SERIAL PRIMARY KEY,
       user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
-      type TEXT NOT NULL,
+      type interpretation_type NOT NULL,
       input_hash TEXT NOT NULL,
       content TEXT NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -245,7 +264,9 @@ async function lumia001FullSchema(pool: Pool): Promise<void> {
     CREATE INDEX idx_interpretations_user_type ON interpretations(user_id, type);
     CREATE UNIQUE INDEX idx_interpretations_lookup ON interpretations(user_id, type, input_hash);
     CREATE INDEX idx_lumi_transactions_user ON lumi_transactions(user_id);
+    CREATE INDEX idx_lumi_transactions_reason ON lumi_transactions(reason);
     CREATE INDEX idx_astro_questions_user ON astro_questions(user_id);
+    CREATE INDEX idx_astro_questions_user_date ON astro_questions(user_id, created_at);
     CREATE INDEX idx_daily_horoscopes_date ON daily_horoscopes(date);
     CREATE INDEX idx_daily_horoscopes_sign_date ON daily_horoscopes(zodiac_sign, date);
     CREATE INDEX idx_daily_natal_cards_user ON daily_natal_cards(user_id);

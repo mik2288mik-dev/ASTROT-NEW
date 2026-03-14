@@ -61,12 +61,22 @@ export default async function handler(
         isSetup: user.is_setup
       });
 
-      // Fetch natal intro from interpretations (Lumia schema)
-      let generatedContent: { natalIntro?: string } | null = null;
+      // Fetch generated content from interpretations (Lumia schema)
+      let generatedContent: { natalIntro?: string; deepDiveAnalyses?: Record<string, string> } | null = null;
       try {
         const natalIntro = await db.interpretations.getByHash(userId, 'natal_intro', 'default');
-        if (natalIntro?.content) {
-          generatedContent = { natalIntro: natalIntro.content };
+        const deepDiveTypes = ['deep_dive_personality', 'deep_dive_love', 'deep_dive_career', 'deep_dive_weakness', 'deep_dive_karma'];
+        const topics = ['personality', 'love', 'career', 'weakness', 'karma'];
+        const deepDiveAnalyses: Record<string, string> = {};
+        for (let i = 0; i < deepDiveTypes.length; i++) {
+          const row = await db.interpretations.getByHash(userId, deepDiveTypes[i], topics[i]);
+          if (row?.content) deepDiveAnalyses[topics[i]] = row.content;
+        }
+        if (natalIntro?.content || Object.keys(deepDiveAnalyses).length > 0) {
+          generatedContent = {
+            ...(natalIntro?.content ? { natalIntro: natalIntro.content } : {}),
+            ...(Object.keys(deepDiveAnalyses).length > 0 ? { deepDiveAnalyses } : {}),
+          };
         }
       } catch (_e) {}
 
