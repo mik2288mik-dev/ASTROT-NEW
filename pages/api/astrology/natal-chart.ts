@@ -208,19 +208,14 @@ async function handler(
           // Создаём минимальную запись пользователя для FK constraint
           log.info('Creating minimal user record for chart FK constraint', { userId: effectiveUserId });
           await db.users.set(effectiveUserId, {
-            id: effectiveUserId,
-            name: name,
+            name,
             birth_date: birthDate,
             birth_time: normalizedBirthTime,
             birth_place: birthPlace,
             is_setup: false,
             language: language || 'ru',
             theme: 'dark',
-            is_premium: false,
             is_admin: false,
-            evolution: null,
-            generated_content: null,
-            weather_city: null,
           });
           log.info('Minimal user record created', { userId: effectiveUserId });
         }

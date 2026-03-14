@@ -1,11 +1,10 @@
-// Database migrations utility
-// This file handles automatic database migrations on Railway deployment
+// Lumia Database Migrations
+// Full schema replacement: Astrot -> Lumia
 
 import { Pool } from 'pg';
 
 const DATABASE_URL = process.env.DATABASE_URL || '';
 
-// Logging utility
 const log = {
   info: (message: string, data?: any) => {
     console.log(`[Migrations] ${message}`, data || '');
@@ -18,51 +17,32 @@ const log = {
   }
 };
 
-/**
- * Check if a table exists in the database
- */
 async function tableExists(pool: Pool, tableName: string): Promise<boolean> {
   try {
     const result = await pool.query(`
       SELECT EXISTS (
         SELECT FROM information_schema.tables 
-        WHERE table_schema = 'public' 
-        AND table_name = $1
+        WHERE table_schema = 'public' AND table_name = $1
       );
     `, [tableName]);
     return result.rows[0].exists;
   } catch (error: any) {
-    log.error(`Error checking if table ${tableName} exists`, { error: error.message });
+    log.error(`Error checking table ${tableName}`, { error: error.message });
     return false;
   }
 }
 
-/**
- * Create migrations table to track applied migrations
- */
 async function createMigrationsTable(pool: Pool): Promise<void> {
-  const createTableQuery = `
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS migrations (
       id SERIAL PRIMARY KEY,
       name VARCHAR(255) UNIQUE NOT NULL,
       applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
-  `;
-  
-  await pool.query(createTableQuery);
-  
-  // Verify table was created
-  const exists = await tableExists(pool, 'migrations');
-  if (!exists) {
-    throw new Error('Failed to create migrations table - table does not exist after CREATE TABLE');
-  }
-  
+  `);
   log.info('Migrations table created/verified');
 }
 
-/**
- * Check if migration was already applied
- */
 async function isMigrationApplied(pool: Pool, migrationName: string): Promise<boolean> {
   const result = await pool.query(
     'SELECT COUNT(*) FROM migrations WHERE name = $1',
@@ -71,9 +51,6 @@ async function isMigrationApplied(pool: Pool, migrationName: string): Promise<bo
   return parseInt(result.rows[0].count) > 0;
 }
 
-/**
- * Mark migration as applied
- */
 async function markMigrationApplied(pool: Pool, migrationName: string): Promise<void> {
   await pool.query(
     'INSERT INTO migrations (name) VALUES ($1) ON CONFLICT (name) DO NOTHING',
@@ -82,634 +59,219 @@ async function markMigrationApplied(pool: Pool, migrationName: string): Promise<
 }
 
 /**
- * Migration 001: Create users table
+ * Migration: Full database reset - DROP all tables
  */
-async function migration001(pool: Pool): Promise<void> {
-  const migrationName = '001_create_users_table';
-  
-  if (await isMigrationApplied(pool, migrationName)) {
-    log.info(`Migration ${migrationName} already applied, skipping`);
-    // Verify table exists even if migration was already applied
-    const exists = await tableExists(pool, 'users');
-    if (!exists) {
-      log.warn(`Migration ${migrationName} was marked as applied but table 'users' does not exist. Recreating...`);
-    } else {
-      return;
-    }
-  }
+async function migrationReset(pool: Pool): Promise<void> {
+  const migrationName = 'lumia_reset';
 
-  log.info(`Applying migration ${migrationName}...`);
-
-  const createUsersTable = `
-    CREATE TABLE IF NOT EXISTS users (
-      id VARCHAR(255) PRIMARY KEY,
-      name VARCHAR(255),
-      birth_date VARCHAR(50),
-      birth_time VARCHAR(50),
-      birth_place VARCHAR(255),
-      is_setup BOOLEAN DEFAULT false,
-      language VARCHAR(10) DEFAULT 'ru',
-      theme VARCHAR(10) DEFAULT 'dark',
-      is_premium BOOLEAN DEFAULT false,
-      is_admin BOOLEAN DEFAULT false,
-      evolution JSONB,
-      premium_activated_at TIMESTAMP,
-      premium_stars_amount INTEGER,
-      premium_transaction_id VARCHAR(255),
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-  `;
-
-  await pool.query(createUsersTable);
-  
-  // Verify table was created
-  const exists = await tableExists(pool, 'users');
-  if (!exists) {
-    throw new Error(`Failed to create table 'users' - table does not exist after CREATE TABLE`);
-  }
-  
-  await markMigrationApplied(pool, migrationName);
-  log.info(`Migration ${migrationName} applied successfully`);
-}
-
-/**
- * Migration 002: Create charts table
- */
-async function migration002(pool: Pool): Promise<void> {
-  const migrationName = '002_create_charts_table';
-  
-  if (await isMigrationApplied(pool, migrationName)) {
-    log.info(`Migration ${migrationName} already applied, skipping`);
-    // Verify table exists even if migration was already applied
-    const exists = await tableExists(pool, 'charts');
-    if (!exists) {
-      log.warn(`Migration ${migrationName} was marked as applied but table 'charts' does not exist. Recreating...`);
-    } else {
-      return;
-    }
-  }
-
-  log.info(`Applying migration ${migrationName}...`);
-
-  // Ensure users table exists before creating foreign key
-  const usersExists = await tableExists(pool, 'users');
-  if (!usersExists) {
-    throw new Error('Cannot create charts table: users table does not exist. Run migration001 first.');
-  }
-
-  const createChartsTable = `
-    CREATE TABLE IF NOT EXISTS charts (
-      user_id VARCHAR(255) PRIMARY KEY,
-      chart_data JSONB NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-    );
-  `;
-
-  await pool.query(createChartsTable);
-  
-  // Verify table was created
-  const exists = await tableExists(pool, 'charts');
-  if (!exists) {
-    throw new Error(`Failed to create table 'charts' - table does not exist after CREATE TABLE`);
-  }
-  
-  await markMigrationApplied(pool, migrationName);
-  log.info(`Migration ${migrationName} applied successfully`);
-}
-
-/**
- * Migration 003: Create indexes for better performance
- */
-async function migration003(pool: Pool): Promise<void> {
-  const migrationName = '003_create_indexes';
-  
   if (await isMigrationApplied(pool, migrationName)) {
     log.info(`Migration ${migrationName} already applied, skipping`);
     return;
   }
 
-  log.info(`Applying migration ${migrationName}...`);
+  log.info('Applying full database reset...');
 
-  const createIndexes = [
-    'CREATE INDEX IF NOT EXISTS idx_users_is_premium ON users(is_premium)',
-    'CREATE INDEX IF NOT EXISTS idx_users_is_setup ON users(is_setup)',
-    'CREATE INDEX IF NOT EXISTS idx_users_created_at ON users(created_at)',
+  const dropOrder = [
+    'astro_questions',
+    'daily_natal_cards',
+    'daily_horoscopes',
+    'roulette_spins',
+    'lumi_transactions',
+    'interpretations',
+    'natal_charts',
+    'dictionary',
+    'daily_horoscope',
+    'user_settings',
+    'deep_dive_analyses',
+    'daily_horoscopes_cache',
+    'regenerations',
+    'forecasts_cache',
+    'synastry_cache',
+    'charts',
+    'users'
   ];
 
-  for (const indexQuery of createIndexes) {
-    await pool.query(indexQuery);
+  for (const table of dropOrder) {
+    try {
+      await pool.query(`DROP TABLE IF EXISTS ${table} CASCADE`);
+      log.info(`Dropped table ${table}`);
+    } catch (e: any) {
+      log.warn(`Drop ${table} failed (may not exist):`, e.message);
+    }
   }
 
+  await pool.query('TRUNCATE migrations');
+  log.info('Migrations history cleared');
+
   await markMigrationApplied(pool, migrationName);
-  log.info(`Migration ${migrationName} applied successfully`);
+  log.info('Migration lumia_reset applied');
 }
 
 /**
- * Migration 004: Add cached text fields to users table
+ * Migration: Lumia full schema
  */
-async function migration004(pool: Pool): Promise<void> {
-  const migrationName = '004_add_cached_texts';
-  
+async function lumia001FullSchema(pool: Pool): Promise<void> {
+  const migrationName = 'lumia_001_full_schema';
+
   if (await isMigrationApplied(pool, migrationName)) {
     log.info(`Migration ${migrationName} already applied, skipping`);
     return;
   }
 
-  log.info(`Applying migration ${migrationName}...`);
+  log.info('Applying Lumia schema...');
 
-  // Add fields for caching AI-generated texts
-  const addColumns = `
-    ALTER TABLE users
-    ADD COLUMN IF NOT EXISTS natal_summary TEXT,
-    ADD COLUMN IF NOT EXISTS natal_summary_updated_at TIMESTAMP,
-    ADD COLUMN IF NOT EXISTS full_natal TEXT,
-    ADD COLUMN IF NOT EXISTS full_natal_updated_at TIMESTAMP,
-    ADD COLUMN IF NOT EXISTS stars_balance INTEGER DEFAULT 0;
-  `;
-
-  await pool.query(addColumns);
-  
-  await markMigrationApplied(pool, migrationName);
-  log.info(`Migration ${migrationName} applied successfully`);
-}
-
-/**
- * Migration 005: Create synastry_cache table
- */
-async function migration005(pool: Pool): Promise<void> {
-  const migrationName = '005_create_synastry_cache';
-  
-  if (await isMigrationApplied(pool, migrationName)) {
-    log.info(`Migration ${migrationName} already applied, skipping`);
-    return;
-  }
-
-  log.info(`Applying migration ${migrationName}...`);
-
-  // Ensure users table exists before creating foreign key
-  const usersExists = await tableExists(pool, 'users');
-  if (!usersExists) {
-    throw new Error('Cannot create synastry_cache table: users table does not exist.');
-  }
-
-  const createSynastryCacheTable = `
-    CREATE TABLE IF NOT EXISTS synastry_cache (
-      id SERIAL PRIMARY KEY,
-      user_id VARCHAR(255) NOT NULL,
-      partner_data JSONB NOT NULL,
-      brief_analysis TEXT,
-      full_analysis TEXT,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      CONSTRAINT fk_synastry_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  await pool.query(`
+    CREATE TABLE users (
+      id BIGINT PRIMARY KEY,
+      name TEXT,
+      birth_date DATE,
+      birth_time TIME,
+      birth_place TEXT,
+      latitude DOUBLE PRECISION,
+      longitude DOUBLE PRECISION,
+      sun_sign TEXT,
+      moon_sign TEXT,
+      ascendant TEXT,
+      lumi_balance INTEGER DEFAULT 0,
+      premium_until TIMESTAMP,
+      ref_code TEXT UNIQUE,
+      referred_by BIGINT,
+      login_streak INTEGER DEFAULT 0,
+      last_login TIMESTAMP,
+      language TEXT DEFAULT 'ru',
+      theme TEXT DEFAULT 'dark',
+      is_admin BOOLEAN DEFAULT FALSE,
+      weather_city TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
-  `;
+  `);
 
-  await pool.query(createSynastryCacheTable);
-  
-  // Create index for faster lookups
-  await pool.query('CREATE INDEX IF NOT EXISTS idx_synastry_user_id ON synastry_cache(user_id)');
-  
-  // Verify table was created
-  const exists = await tableExists(pool, 'synastry_cache');
-  if (!exists) {
-    throw new Error(`Failed to create table 'synastry_cache' - table does not exist after CREATE TABLE`);
-  }
-  
-  await markMigrationApplied(pool, migrationName);
-  log.info(`Migration ${migrationName} applied successfully`);
-}
-
-/**
- * Migration 006: Create forecasts_cache table
- */
-async function migration006(pool: Pool): Promise<void> {
-  const migrationName = '006_create_forecasts_cache';
-  
-  if (await isMigrationApplied(pool, migrationName)) {
-    log.info(`Migration ${migrationName} already applied, skipping`);
-    return;
-  }
-
-  log.info(`Applying migration ${migrationName}...`);
-
-  // Ensure users table exists before creating foreign key
-  const usersExists = await tableExists(pool, 'users');
-  if (!usersExists) {
-    throw new Error('Cannot create forecasts_cache table: users table does not exist.');
-  }
-
-  const createForecastsCacheTable = `
-    CREATE TABLE IF NOT EXISTS forecasts_cache (
+  await pool.query(`
+    CREATE TABLE natal_charts (
       id SERIAL PRIMARY KEY,
-      user_id VARCHAR(255) NOT NULL,
-      period_type VARCHAR(20) NOT NULL, -- 'day', 'week', 'month'
-      period_date DATE NOT NULL, -- The date this forecast is for
-      content JSONB NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      CONSTRAINT fk_forecast_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-      CONSTRAINT unique_user_period UNIQUE (user_id, period_type, period_date)
+      user_id BIGINT UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+      sun JSONB,
+      moon JSONB,
+      ascendant JSONB,
+      mercury JSONB,
+      venus JSONB,
+      mars JSONB,
+      jupiter JSONB,
+      saturn JSONB,
+      houses JSONB,
+      aspects JSONB,
+      chart_data JSONB,
+      input_hash TEXT,
+      birth_date DATE,
+      birth_time TIME,
+      birth_place TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
-  `;
+  `);
 
-  await pool.query(createForecastsCacheTable);
-  
-  // Create index for faster lookups
-  await pool.query('CREATE INDEX IF NOT EXISTS idx_forecasts_user_period ON forecasts_cache(user_id, period_type, period_date)');
-  
-  // Verify table was created
-  const exists = await tableExists(pool, 'forecasts_cache');
-  if (!exists) {
-    throw new Error(`Failed to create table 'forecasts_cache' - table does not exist after CREATE TABLE`);
-  }
-  
-  await markMigrationApplied(pool, migrationName);
-  log.info(`Migration ${migrationName} applied successfully`);
-}
-
-/**
- * Migration 007: Create regenerations tracking table
- */
-async function migration007(pool: Pool): Promise<void> {
-  const migrationName = '007_create_regenerations_tracking';
-  
-  if (await isMigrationApplied(pool, migrationName)) {
-    log.info(`Migration ${migrationName} already applied, skipping`);
-    return;
-  }
-
-  log.info(`Applying migration ${migrationName}...`);
-
-  // Ensure users table exists before creating foreign key
-  const usersExists = await tableExists(pool, 'users');
-  if (!usersExists) {
-    throw new Error('Cannot create regenerations table: users table does not exist.');
-  }
-
-  const createRegenerationsTable = `
-    CREATE TABLE IF NOT EXISTS regenerations (
+  await pool.query(`
+    CREATE TABLE interpretations (
       id SERIAL PRIMARY KEY,
-      user_id VARCHAR(255) NOT NULL,
-      content_type VARCHAR(50) NOT NULL, -- 'natal_summary', 'full_natal', 'synastry', 'forecast'
-      regeneration_date DATE NOT NULL,
-      was_paid BOOLEAN DEFAULT false,
-      stars_cost INTEGER DEFAULT 0,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      CONSTRAINT fk_regeneration_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+      type TEXT NOT NULL,
+      input_hash TEXT NOT NULL,
+      content TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
-  `;
+  `);
 
-  await pool.query(createRegenerationsTable);
-  
-  // Create indexes for faster lookups
-  await pool.query('CREATE INDEX IF NOT EXISTS idx_regen_user_date ON regenerations(user_id, regeneration_date)');
-  await pool.query('CREATE INDEX IF NOT EXISTS idx_regen_user_type_date ON regenerations(user_id, content_type, regeneration_date)');
-  
-  // Verify table was created
-  const exists = await tableExists(pool, 'regenerations');
-  if (!exists) {
-    throw new Error(`Failed to create table 'regenerations' - table does not exist after CREATE TABLE`);
-  }
-  
-  await markMigrationApplied(pool, migrationName);
-  log.info(`Migration ${migrationName} applied successfully`);
-}
-
-/**
- * Migration 008: Add generated_content field to users table
- */
-async function migration008(pool: Pool): Promise<void> {
-  const migrationName = '008_add_generated_content';
-  
-  if (await isMigrationApplied(pool, migrationName)) {
-    log.info(`Migration ${migrationName} already applied, skipping`);
-    return;
-  }
-
-  log.info(`Applying migration ${migrationName}...`);
-
-  // Add generated_content field for caching all AI-generated content
-  const addColumn = `
-    ALTER TABLE users
-    ADD COLUMN IF NOT EXISTS generated_content JSONB;
-  `;
-
-  await pool.query(addColumn);
-  
-  await markMigrationApplied(pool, migrationName);
-  log.info(`Migration ${migrationName} applied successfully`);
-}
-
-/**
- * Migration 009: Add weather_city field to users table
- */
-async function migration009(pool: Pool): Promise<void> {
-  const migrationName = '009_add_weather_city';
-  
-  if (await isMigrationApplied(pool, migrationName)) {
-    log.info(`Migration ${migrationName} already applied, skipping`);
-    return;
-  }
-
-  log.info(`Applying migration ${migrationName}...`);
-
-  // Add weather_city field for storing user's weather city preference
-  const addColumn = `
-    ALTER TABLE users
-    ADD COLUMN IF NOT EXISTS weather_city VARCHAR(255);
-  `;
-
-  await pool.query(addColumn);
-  
-  await markMigrationApplied(pool, migrationName);
-  log.info(`Migration ${migrationName} applied successfully`);
-}
-
-/**
- * Migration 010: Create daily_horoscopes_cache table for caching horoscopes by zodiac sign
- */
-async function migration010(pool: Pool): Promise<void> {
-  const migrationName = '010_create_daily_horoscopes_cache';
-  
-  if (await isMigrationApplied(pool, migrationName)) {
-    log.info(`Migration ${migrationName} already applied, skipping`);
-    return;
-  }
-
-  log.info(`Applying migration ${migrationName}...`);
-
-  // Create table for caching daily horoscopes by zodiac sign and date
-  const createTable = `
-    CREATE TABLE IF NOT EXISTS daily_horoscopes_cache (
+  await pool.query(`
+    CREATE TABLE lumi_transactions (
       id SERIAL PRIMARY KEY,
-      zodiac_sign VARCHAR(20) NOT NULL,
+      user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+      amount INTEGER NOT NULL,
+      reason TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  await pool.query(`
+    CREATE TABLE roulette_spins (
+      id SERIAL PRIMARY KEY,
+      user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+      win_amount INTEGER,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  await pool.query(`
+    CREATE TABLE daily_horoscopes (
+      id SERIAL PRIMARY KEY,
+      zodiac_sign TEXT NOT NULL,
       date DATE NOT NULL,
-      horoscope_data JSONB NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      UNIQUE(zodiac_sign, date)
+      content TEXT NOT NULL,
+      UNIQUE (zodiac_sign, date)
     );
-    
-    CREATE INDEX IF NOT EXISTS idx_daily_horoscopes_cache_sign_date 
-    ON daily_horoscopes_cache(zodiac_sign, date);
-  `;
+  `);
 
-  await pool.query(createTable);
-  
-  await markMigrationApplied(pool, migrationName);
-  log.info(`Migration ${migrationName} applied successfully`);
-}
-
-/**
- * Migration 011: Add performance indexes
- */
-async function migration011(pool: Pool): Promise<void> {
-  const migrationName = '011_add_performance_indexes';
-  
-  if (await isMigrationApplied(pool, migrationName)) {
-    log.info(`Migration ${migrationName} already applied, skipping`);
-    return;
-  }
-
-  log.info(`Applying migration ${migrationName}...`);
-
-  const queries = [
-    // Индекс для поиска премиум пользователей
-    'CREATE INDEX IF NOT EXISTS idx_users_is_premium ON users(is_premium)',
-    
-    // Индекс для сортировки по дате создания
-    'CREATE INDEX IF NOT EXISTS idx_users_created_at ON users(created_at DESC)',
-    
-    // Индекс для обновления карт
-    'CREATE INDEX IF NOT EXISTS idx_charts_updated_at ON charts(updated_at DESC)',
-    
-    // Индекс для JSONB поля generated_content (для быстрого поиска timestamps)
-    `CREATE INDEX IF NOT EXISTS idx_users_generated_content_timestamps 
-     ON users USING gin ((generated_content->'timestamps'))`,
-    
-    // Индекс для synastry_cache
-    'CREATE INDEX IF NOT EXISTS idx_synastry_cache_updated ON synastry_cache(updated_at DESC)',
-    
-    // Индекс для regenerations по дате
-    'CREATE INDEX IF NOT EXISTS idx_regenerations_date ON regenerations(regeneration_date DESC)',
-    
-    // Обновление статистики таблиц для оптимизатора запросов
-    'ANALYZE users',
-    'ANALYZE charts',
-    'ANALYZE daily_horoscopes_cache',
-    'ANALYZE synastry_cache'
-  ];
-
-  for (const query of queries) {
-    await pool.query(query);
-  }
-
-  await markMigrationApplied(pool, migrationName);
-  log.info(`Migration ${migrationName} applied successfully`);
-}
-
-/**
- * Migration 012: Create deep_dive_analyses table (move from JSONB to separate table)
- */
-async function migration012(pool: Pool): Promise<void> {
-  const migrationName = '012_create_deep_dive_analyses_table';
-  
-  if (await isMigrationApplied(pool, migrationName)) {
-    log.info(`Migration ${migrationName} already applied, skipping`);
-    return;
-  }
-
-  log.info(`Applying migration ${migrationName}...`);
-
-  // Ensure users table exists
-  const usersExists = await tableExists(pool, 'users');
-  if (!usersExists) {
-    throw new Error('Cannot create deep_dive_analyses table: users table does not exist.');
-  }
-
-  const createTable = `
-    CREATE TABLE IF NOT EXISTS deep_dive_analyses (
+  await pool.query(`
+    CREATE TABLE daily_natal_cards (
       id SERIAL PRIMARY KEY,
-      user_id VARCHAR(255) NOT NULL,
-      topic VARCHAR(50) NOT NULL,
-      analysis TEXT NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      CONSTRAINT fk_deep_dive_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-      UNIQUE(user_id, topic)
+      user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+      date DATE,
+      content TEXT NOT NULL,
+      UNIQUE (user_id, date)
     );
-    
-    CREATE INDEX IF NOT EXISTS idx_deep_dive_user_id ON deep_dive_analyses(user_id);
-    CREATE INDEX IF NOT EXISTS idx_deep_dive_user_topic ON deep_dive_analyses(user_id, topic);
-  `;
+  `);
 
-  await pool.query(createTable);
-  
-  // Verify table was created
-  const exists = await tableExists(pool, 'deep_dive_analyses');
-  if (!exists) {
-    throw new Error(`Failed to create table 'deep_dive_analyses' - table does not exist after CREATE TABLE`);
-  }
-  
-  await markMigrationApplied(pool, migrationName);
-  log.info(`Migration ${migrationName} applied successfully`);
-}
-
-/**
- * Migration 013: Extend charts table with birth data and hash for idempotency
- */
-async function migration013(pool: Pool): Promise<void> {
-  const migrationName = '013_extend_charts_for_idempotency';
-  
-  if (await isMigrationApplied(pool, migrationName)) {
-    log.info(`Migration ${migrationName} already applied, skipping`);
-    return;
-  }
-
-  log.info(`Applying migration ${migrationName}...`);
-
-  // Добавляем поля для хранения исходных данных рождения и хэша для идемпотентности
-  const alterTable = `
-    ALTER TABLE charts
-    ADD COLUMN IF NOT EXISTS birth_date VARCHAR(50),
-    ADD COLUMN IF NOT EXISTS birth_time VARCHAR(50),
-    ADD COLUMN IF NOT EXISTS birth_place VARCHAR(255),
-    ADD COLUMN IF NOT EXISTS input_hash VARCHAR(64),
-    ADD COLUMN IF NOT EXISTS calculated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
-    
-    CREATE INDEX IF NOT EXISTS idx_charts_input_hash ON charts(input_hash);
-  `;
-
-  await pool.query(alterTable);
-  
-  await markMigrationApplied(pool, migrationName);
-  log.info(`Migration ${migrationName} applied successfully`);
-}
-
-/**
- * Migration 014: Create user_settings table for weather and other settings
- */
-async function migration014(pool: Pool): Promise<void> {
-  const migrationName = '014_create_user_settings';
-  
-  if (await isMigrationApplied(pool, migrationName)) {
-    log.info(`Migration ${migrationName} already applied, skipping`);
-    return;
-  }
-
-  log.info(`Applying migration ${migrationName}...`);
-
-  // Ensure users table exists
-  const usersExists = await tableExists(pool, 'users');
-  if (!usersExists) {
-    throw new Error('Cannot create user_settings table: users table does not exist.');
-  }
-
-  const createTable = `
-    CREATE TABLE IF NOT EXISTS user_settings (
-      user_id VARCHAR(255) PRIMARY KEY,
-      weather_city VARCHAR(64),
-      weather_lat DOUBLE PRECISION,
-      weather_lon DOUBLE PRECISION,
-      weather_units VARCHAR(10) DEFAULT 'metric',
-      timezone VARCHAR(50),
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      CONSTRAINT fk_user_settings_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-    );
-    
-    CREATE INDEX IF NOT EXISTS idx_user_settings_city ON user_settings(weather_city);
-  `;
-
-  await pool.query(createTable);
-  
-  // Verify table was created
-  const exists = await tableExists(pool, 'user_settings');
-  if (!exists) {
-    throw new Error(`Failed to create table 'user_settings' - table does not exist after CREATE TABLE`);
-  }
-  
-  await markMigrationApplied(pool, migrationName);
-  log.info(`Migration ${migrationName} applied successfully`);
-}
-
-/**
- * Migration 015: Create daily_horoscope table (per-user, per-date)
- */
-async function migration015(pool: Pool): Promise<void> {
-  const migrationName = '015_create_daily_horoscope_per_user';
-  
-  if (await isMigrationApplied(pool, migrationName)) {
-    log.info(`Migration ${migrationName} already applied, skipping`);
-    return;
-  }
-
-  log.info(`Applying migration ${migrationName}...`);
-
-  // Ensure users table exists
-  const usersExists = await tableExists(pool, 'users');
-  if (!usersExists) {
-    throw new Error('Cannot create daily_horoscope table: users table does not exist.');
-  }
-
-  const createTable = `
-    CREATE TABLE IF NOT EXISTS daily_horoscope (
+  await pool.query(`
+    CREATE TABLE astro_questions (
       id SERIAL PRIMARY KEY,
-      user_id VARCHAR(255) NOT NULL,
-      date_key VARCHAR(10) NOT NULL,
-      content JSONB NOT NULL,
-      zodiac_sign VARCHAR(20),
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      CONSTRAINT fk_daily_horoscope_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-      UNIQUE(user_id, date_key)
+      user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+      question TEXT NOT NULL,
+      answer TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
-    
-    CREATE INDEX IF NOT EXISTS idx_daily_horoscope_user_date ON daily_horoscope(user_id, date_key);
-    CREATE INDEX IF NOT EXISTS idx_daily_horoscope_date ON daily_horoscope(date_key);
-  `;
+  `);
 
-  await pool.query(createTable);
-  
-  // Verify table was created
-  const exists = await tableExists(pool, 'daily_horoscope');
-  if (!exists) {
-    throw new Error(`Failed to create table 'daily_horoscope' - table does not exist after CREATE TABLE`);
-  }
-  
+  await pool.query(`
+    CREATE TABLE dictionary (
+      id SERIAL PRIMARY KEY,
+      term TEXT UNIQUE,
+      title TEXT,
+      description TEXT,
+      category TEXT
+    );
+  `);
+
+  await pool.query(`
+    CREATE INDEX idx_interpretations_hash ON interpretations(input_hash);
+    CREATE INDEX idx_interpretations_user ON interpretations(user_id);
+    CREATE INDEX idx_interpretations_user_type ON interpretations(user_id, type);
+    CREATE UNIQUE INDEX idx_interpretations_lookup ON interpretations(user_id, type, input_hash);
+    CREATE INDEX idx_lumi_transactions_user ON lumi_transactions(user_id);
+    CREATE INDEX idx_astro_questions_user ON astro_questions(user_id);
+    CREATE INDEX idx_daily_horoscopes_date ON daily_horoscopes(date);
+    CREATE INDEX idx_daily_horoscopes_sign_date ON daily_horoscopes(zodiac_sign, date);
+    CREATE INDEX idx_daily_natal_cards_user ON daily_natal_cards(user_id);
+    CREATE INDEX idx_daily_natal_cards_user_date ON daily_natal_cards(user_id, date);
+  `);
+
   await markMigrationApplied(pool, migrationName);
-  log.info(`Migration ${migrationName} applied successfully`);
+  log.info('Migration lumia_001_full_schema applied');
 }
 
-/**
- * Verify that all required tables exist
- */
 async function verifyTablesExist(pool: Pool): Promise<void> {
-  const requiredTables = ['migrations', 'users', 'charts', 'synastry_cache', 'forecasts_cache', 'regenerations', 'daily_horoscopes_cache', 'deep_dive_analyses', 'user_settings', 'daily_horoscope'];
-  const missingTables: string[] = [];
-
-  for (const tableName of requiredTables) {
-    const exists = await tableExists(pool, tableName);
-    if (!exists) {
-      missingTables.push(tableName);
-      log.error(`Table ${tableName} does not exist after migrations`);
-    } else {
-      log.info(`✓ Table ${tableName} exists`);
-    }
+  const required = [
+    'users', 'natal_charts', 'interpretations', 'lumi_transactions',
+    'roulette_spins', 'daily_horoscopes', 'daily_natal_cards',
+    'astro_questions', 'dictionary'
+  ];
+  const missing: string[] = [];
+  for (const t of required) {
+    if (!(await tableExists(pool, t))) missing.push(t);
+    else log.info(`✓ Table ${t} exists`);
   }
-
-  if (missingTables.length > 0) {
-    throw new Error(`Required tables are missing: ${missingTables.join(', ')}`);
+  if (missing.length > 0) {
+    throw new Error(`Missing tables: ${missing.join(', ')}`);
   }
-
-  log.info('All required tables verified successfully');
 }
 
-/**
- * Test database connection with retry logic
- */
 async function testConnection(pool: Pool, retries = 3, delay = 2000): Promise<void> {
   for (let i = 0; i < retries; i++) {
     try {
@@ -718,122 +280,50 @@ async function testConnection(pool: Pool, retries = 3, delay = 2000): Promise<vo
       return;
     } catch (error: any) {
       if (i < retries - 1) {
-        log.warn(`Connection attempt ${i + 1} failed, retrying in ${delay}ms...`, {
-          error: error.message
-        });
-        await new Promise(resolve => setTimeout(resolve, delay));
-      } else {
-        throw error;
-      }
+        log.warn(`Connection attempt ${i + 1} failed, retrying...`, { error: error.message });
+        await new Promise(r => setTimeout(r, delay));
+      } else throw error;
     }
   }
 }
 
-/**
- * Run all migrations
- */
 export async function runMigrations(): Promise<void> {
   if (!DATABASE_URL) {
-    log.warn('DATABASE_URL is not set. Skipping migrations.');
-    log.warn('Please ensure Railway Database is connected and DATABASE_URL is set in environment variables.');
+    log.warn('DATABASE_URL not set. Skipping migrations.');
     return;
-  }
-  
-  // Log connection info for debugging
-  const urlParts = DATABASE_URL.match(/^postgres(ql)?:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/(.+)$/);
-  if (urlParts) {
-    const [, , user, , host, port, database] = urlParts;
-    log.info(`Connecting to database: ${host}:${port}/${database} (user: ${user})`);
-    
-    // Check if using internal Railway hostname
-    if (host.includes('railway.internal')) {
-      log.warn('Using Railway internal hostname. This may not be accessible from Docker containers.');
-      log.warn('If running outside Railway network, use the public database URL instead.');
-    }
-  } else {
-    log.warn('Could not parse DATABASE_URL format. Please check the connection string.');
   }
 
   let pool: Pool | null = null;
 
   try {
-    log.info('Starting database migrations...');
-    
-    // Configure pool with SHORT timeout settings for fast startup
-    // Use process.env.DATABASE_URL directly from environment variables
+    log.info('Starting Lumia database migrations...');
+
     pool = new Pool({
-      connectionString: process.env.DATABASE_URL, // Direct use of process.env.DATABASE_URL
+      connectionString: process.env.DATABASE_URL,
       ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-      connectionTimeoutMillis: 5000, // 5 seconds timeout (reduced from 10)
+      connectionTimeoutMillis: 5000,
       idleTimeoutMillis: 10000,
-      max: 3, // Limit connections for migrations
+      max: 3,
     });
 
-    // Test connection with minimal retry (fast fail)
     await testConnection(pool, 1, 1000);
-    log.info('Database connection test passed');
-
-    // Create migrations table first
     await createMigrationsTable(pool);
 
-    // Run migrations in order
-    await migration001(pool);
-    await migration002(pool);
-    await migration003(pool);
-    await migration004(pool);
-    await migration005(pool);
-    await migration006(pool);
-    await migration007(pool);
-    await migration008(pool);
-    await migration009(pool);
-    await migration010(pool);
-    await migration011(pool);
-    await migration012(pool);
-    await migration013(pool);
-    await migration014(pool);
-    await migration015(pool);
-
-    // Verify that all tables were created successfully
-    log.info('Verifying tables were created...');
+    await migrationReset(pool);
+    await lumia001FullSchema(pool);
     await verifyTablesExist(pool);
 
-    log.info('All migrations completed successfully');
+    log.info('All Lumia migrations completed successfully');
   } catch (error: any) {
-    const errorMessage = error.message || 'Unknown error';
-    const errorCode = error.code || 'UNKNOWN';
-    
-    log.error('Migration failed', {
-      error: errorMessage,
-      code: errorCode,
-      stack: error.stack
-    });
-
-    // Provide helpful error messages for common issues
-    if (errorMessage.includes('ENOTFOUND') || errorMessage.includes('getaddrinfo')) {
-      log.error('DNS resolution failed. Possible causes:');
-      log.error('1. Database hostname is incorrect or not accessible');
-      log.error('2. If using Railway internal hostname (postgres.railway.internal), ensure you are running inside Railway network');
-      log.error('3. If running in Docker, use Railway public database URL instead of internal');
-      log.error('4. Check network connectivity and DNS settings');
-    } else if (errorMessage.includes('ECONNREFUSED')) {
-      log.error('Connection refused. Possible causes:');
-      log.error('1. Database server is not running');
-      log.error('2. Port number is incorrect');
-      log.error('3. Firewall is blocking the connection');
-    } else if (errorMessage.includes('authentication') || errorMessage.includes('password')) {
-      log.error('Authentication failed. Check username and password in DATABASE_URL');
-    } else if (errorMessage.includes('timeout')) {
-      log.error('Connection timeout. Database server may be unreachable or overloaded');
-    }
-
+    log.error('Migration failed', { error: error.message, stack: error.stack });
     throw error;
   } finally {
     if (pool) {
       try {
         await pool.end();
         log.info('Database connection closed');
-      } catch (closeError: any) {
-        log.warn('Error closing connection pool', { error: closeError.message });
+      } catch (e: any) {
+        log.warn('Error closing pool', { error: e.message });
       }
     }
   }

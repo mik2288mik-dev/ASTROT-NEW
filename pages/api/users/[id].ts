@@ -61,7 +61,15 @@ export default async function handler(
         isSetup: user.is_setup
       });
 
-      // Transform database format (snake_case) to client format (camelCase)
+      // Fetch natal intro from interpretations (Lumia schema)
+      let generatedContent: { natalIntro?: string } | null = null;
+      try {
+        const natalIntro = await db.interpretations.getByHash(userId, 'natal_intro', 'default');
+        if (natalIntro?.content) {
+          generatedContent = { natalIntro: natalIntro.content };
+        }
+      } catch (_e) {}
+
       const clientUser = {
         id: user.id,
         name: user.name,
@@ -73,8 +81,8 @@ export default async function handler(
         theme: user.theme,
         isPremium: user.is_premium,
         isAdmin: user.is_admin,
-        evolution: user.evolution,
-        generatedContent: user.generated_content,
+        evolution: null,
+        generatedContent,
         weatherCity: user.weather_city && user.weather_city.trim() ? user.weather_city.trim() : undefined,
       };
 
@@ -106,81 +114,16 @@ export default async function handler(
         log.warn('[API/users/[id]] Failed to get existing user, will use new values', e);
       }
       
-      // Transform data to match database schema
-      
-      // ВАЖНО: Обрабатываем generatedContent правильно
-      // Если передан - используем его, если нет - сохраняем существующий из БД
-      log.info(`[${req.method}] ===== PROCESSING GENERATED CONTENT =====`);
-      log.info(`[${req.method}] userData.generatedContent !== undefined:`, userData.generatedContent !== undefined);
-      log.info(`[${req.method}] userData.generatedContent !== null:`, userData.generatedContent !== null);
-      log.info(`[${req.method}] existingUser?.generated_content exists:`, !!existingUser?.generated_content);
-      
-      let finalGeneratedContent = existingUser?.generated_content || null;
-      
-      // ВАЖНО: Проверяем наличие generatedContent в запросе
-      // Если он передан и не пустой - используем его
-      // Если не передан или пустой - сохраняем существующий из БД
-      if (userData.generatedContent !== undefined && userData.generatedContent !== null) {
-        const generatedContent = userData.generatedContent;
-        const hasContent = typeof generatedContent === 'object' && Object.keys(generatedContent).length > 0;
-        
-        if (hasContent) {
-          // Если передан непустой объект - используем его
-          log.info(`[${req.method}] Using provided generatedContent with ${Object.keys(generatedContent).length} keys`);
-          finalGeneratedContent = generatedContent;
-        } else {
-          // Если передан пустой объект - сохраняем существующий из БД
-          log.info(`[${req.method}] Provided generatedContent is empty, keeping existing from DB`);
-          finalGeneratedContent = existingUser?.generated_content || null;
-        }
-      } else {
-        // Если generatedContent не передан - используем существующий из БД
-        log.info(`[${req.method}] generatedContent not provided, using existing from DB`);
-      }
-      
-      // КРИТИЧЕСКИ ВАЖНО: Проверяем что finalGeneratedContent не потерялся
-      // Это защита от потери данных при обновлении других полей (например, weatherCity)
-      if (!finalGeneratedContent && existingUser?.generated_content) {
-        log.warn(`[${req.method}] WARNING: finalGeneratedContent is null but existingUser has generated_content! Restoring...`);
-        finalGeneratedContent = existingUser.generated_content;
-      }
-      
-      log.info(`[${req.method}] Final generatedContent keys:`, finalGeneratedContent ? Object.keys(finalGeneratedContent) : []);
-      
-      // ВАЖНО: Сохраняем weatherCity правильно - если передан, используем его, иначе сохраняем существующий
-      log.info(`[${req.method}] ===== PROCESSING WEATHER CITY =====`);
-      log.info(`[${req.method}] userData.weatherCity:`, userData.weatherCity);
-      log.info(`[${req.method}] userData.weatherCity type:`, typeof userData.weatherCity);
-      log.info(`[${req.method}] userData.weatherCity !== undefined:`, userData.weatherCity !== undefined);
-      log.info(`[${req.method}] existingUser?.weather_city:`, existingUser?.weather_city);
-      
-      let weatherCityToSave: string | null = null;
-      
+      let weatherCityToSave: string | null = undefined as any;
       if (userData.weatherCity !== undefined) {
-        // Если weatherCity явно передан (может быть строкой или null/undefined)
-        if (userData.weatherCity === null || userData.weatherCity === '') {
-          weatherCityToSave = null;
-        } else {
-          const trimmed = String(userData.weatherCity).trim();
-          weatherCityToSave = trimmed.length > 0 ? trimmed : null;
-        }
-      } else {
-        // Если не передан - сохраняем существующий
-        weatherCityToSave = existingUser?.weather_city ? String(existingUser.weather_city).trim() : null;
+        weatherCityToSave = (userData.weatherCity === null || userData.weatherCity === '')
+          ? null
+          : (String(userData.weatherCity).trim() || null);
+      } else if (existingUser?.weather_city) {
+        weatherCityToSave = String(existingUser.weather_city).trim() || null;
       }
-      
-      log.info(`[${req.method}] weatherCityToSave (final):`, weatherCityToSave);
-      log.info(`[${req.method}] weatherCityToSave type:`, typeof weatherCityToSave);
-      log.info(`[${req.method}] weatherCityToSave length:`, weatherCityToSave ? weatherCityToSave.length : 0);
-      
-      // ВАЖНО: Преобразуем finalGeneratedContent в правильный формат для БД
-      // lib/db.ts ожидает объект или null, и сам сериализует его в JSON
-      const dbGeneratedContent = finalGeneratedContent !== null && finalGeneratedContent !== undefined
-        ? finalGeneratedContent  // lib/db.ts сам сериализует объект в JSON
-        : null;
-      
+
       const dbUser = {
-        id: userId,
         name: userData.name,
         birth_date: userData.birthDate,
         birth_time: userData.birthTime,
@@ -190,36 +133,17 @@ export default async function handler(
         theme: userData.theme || 'dark',
         is_premium: userData.isPremium || false,
         is_admin: userData.isAdmin || false,
-        evolution: userData.evolution || null,
-        generated_content: dbGeneratedContent, // Передаем объект, lib/db.ts сериализует его
         weather_city: weatherCityToSave,
       };
-      
-      log.info(`[${req.method}] dbUser.generated_content type:`, typeof dbUser.generated_content);
-      log.info(`[${req.method}] dbUser.generated_content is object:`, typeof dbUser.generated_content === 'object' && dbUser.generated_content !== null);
-      log.info(`[${req.method}] dbUser.generated_content keys:`, dbUser.generated_content ? Object.keys(dbUser.generated_content) : []);
-      
-      log.info(`[${req.method}] ===== PREPARING TO SAVE USER DATA =====`);
-      log.info(`[${req.method}] hasGeneratedContent:`, !!finalGeneratedContent);
-      log.info(`[${req.method}] generatedContentKeys:`, finalGeneratedContent ? Object.keys(finalGeneratedContent).length : 0);
-      log.info(`[${req.method}] generatedContent keys list:`, finalGeneratedContent ? Object.keys(finalGeneratedContent) : []);
-      log.info(`[${req.method}] weatherCity:`, weatherCityToSave);
-      log.info(`[${req.method}] dbUser.weather_city:`, dbUser.weather_city);
-      log.info(`[${req.method}] dbUser.hasGeneratedContent:`, !!dbUser.generated_content);
 
-      log.info(`[${req.method}] ===== CALLING db.users.set() =====`);
-      const dbSetStartTime = Date.now();
       const savedUser = await db.users.set(userId, dbUser);
-      const dbSetDuration = Date.now() - dbSetStartTime;
-      
-      log.info(`[${req.method}] ===== USER SAVED SUCCESSFULLY =====`);
-      log.info(`[${req.method}] Save duration: ${dbSetDuration} ms`);
-      log.info(`[${req.method}] savedUser.weather_city:`, savedUser.weather_city);
-      log.info(`[${req.method}] savedUser.weather_city type:`, typeof savedUser.weather_city);
-      log.info(`[${req.method}] savedUser.hasGeneratedContent:`, !!savedUser.generated_content);
-      log.info(`[${req.method}] savedUser.generatedContent keys:`, savedUser.generated_content ? Object.keys(savedUser.generated_content) : []);
 
-      // Transform back to client format
+      let generatedContent: { natalIntro?: string } | null = null;
+      try {
+        const natalIntro = await db.interpretations.getByHash(userId, 'natal_intro', 'default');
+        if (natalIntro?.content) generatedContent = { natalIntro: natalIntro.content };
+      } catch (_e) {}
+
       const clientUser = {
         id: savedUser.id,
         name: savedUser.name,
@@ -231,8 +155,8 @@ export default async function handler(
         theme: savedUser.theme,
         isPremium: savedUser.is_premium,
         isAdmin: savedUser.is_admin,
-        evolution: savedUser.evolution,
-        generatedContent: savedUser.generated_content,
+        evolution: null,
+        generatedContent,
         weatherCity: savedUser.weather_city && savedUser.weather_city.trim() ? savedUser.weather_city.trim() : undefined,
       };
 

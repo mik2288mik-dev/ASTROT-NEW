@@ -197,356 +197,214 @@ export async function testDatabaseConnection(): Promise<void> {
   }
 }
 
+function toUserId(userId: string): string {
+  return String(userId).trim();
+}
+
+/** Explicit lumi_transactions reason values for regenerations (no LIKE) */
+const REGENERATION_REASONS = ['regenerate_natal', 'regenerate_deep_dive', 'regenerate_synastry'] as const;
+function contentTypeToRegenerationReason(contentType: string): string {
+  if (contentType === 'natal_intro') return 'regenerate_natal';
+  if (contentType.startsWith('deep_dive_')) return 'regenerate_deep_dive';
+  if (contentType === 'synastry') return 'regenerate_synastry';
+  return 'regenerate_natal';
+}
+
+/** Strict interpretations.type values for Deep Dive */
+const DEEP_DIVE_TYPES = ['deep_dive_personality', 'deep_dive_love', 'deep_dive_career', 'deep_dive_weakness', 'deep_dive_karma'] as const;
+function topicToDeepDiveType(topic: string): string {
+  const t = `deep_dive_${topic}`;
+  return DEEP_DIVE_TYPES.includes(t as any) ? t : 'deep_dive_personality';
+}
+
 /**
- * Database operations using PostgreSQL
+ * Lumia Database operations
  */
 export const db = {
   users: {
     async get(userId: string) {
-      log.info(`[DB] Getting user: ${userId}`);
-      
-      if (!DATABASE_URL) {
-        log.warn('[DB] DATABASE_URL not set, returning null');
-        return null;
-      }
-
+      const id = toUserId(userId);
+      if (!DATABASE_URL) return null;
       try {
         const dbPool = getPool();
         const result = await dbPool.query(
           'SELECT * FROM users WHERE id = $1',
-          [userId]
+          [id]
         );
-        
-        if (result.rows.length === 0) {
-          return null;
-        }
-
-        const user = result.rows[0];
-        
-        let evolution = user.evolution;
-        if (typeof evolution === 'string') {
-          try {
-            evolution = JSON.parse(evolution);
-          } catch (e) {
-            log.warn('[DB] Failed to parse evolution JSON', { error: e });
-            evolution = null;
-          }
-        }
-        
-        let generatedContent = user.generated_content;
-        if (typeof generatedContent === 'string') {
-          try {
-            generatedContent = JSON.parse(generatedContent);
-          } catch (e) {
-            log.warn('[DB] Failed to parse generated_content JSON', { error: e });
-            generatedContent = null;
-          }
-        }
-        
-        // Transform database format to client format
+        if (result.rows.length === 0) return null;
+        const u = result.rows[0];
+        const isPremium = u.premium_until && new Date(u.premium_until) > new Date();
         return {
-          id: user.id,
-          name: user.name,
-          birth_date: user.birth_date,
-          birth_time: user.birth_time,
-          birth_place: user.birth_place,
-          is_setup: user.is_setup,
-          language: user.language,
-          theme: user.theme,
-          is_premium: user.is_premium,
-          is_admin: user.is_admin,
-          evolution: evolution,
-          generated_content: generatedContent,
-          weather_city: user.weather_city,
-          premium_activated_at: user.premium_activated_at,
-          premium_stars_amount: user.premium_stars_amount,
-          premium_transaction_id: user.premium_transaction_id,
-          created_at: user.created_at,
-          updated_at: user.updated_at,
+          id: String(u.id),
+          name: u.name,
+          birth_date: u.birth_date,
+          birth_time: u.birth_time,
+          birth_place: u.birth_place,
+          latitude: u.latitude,
+          longitude: u.longitude,
+          sun_sign: u.sun_sign,
+          moon_sign: u.moon_sign,
+          ascendant: u.ascendant,
+          lumi_balance: u.lumi_balance ?? 0,
+          premium_until: u.premium_until,
+          ref_code: u.ref_code,
+          referred_by: u.referred_by,
+          login_streak: u.login_streak ?? 0,
+          last_login: u.last_login,
+          language: u.language || 'ru',
+          theme: u.theme || 'dark',
+          is_admin: u.is_admin ?? false,
+          weather_city: u.weather_city,
+          created_at: u.created_at,
+          is_premium: isPremium,
+          is_setup: !!(u.name && u.birth_date && u.birth_place),
         };
       } catch (error: any) {
-        log.error('[DB] Error getting user', {
-          error: error.message,
-          userId
-        });
+        log.error('[DB] Error getting user', { error: error.message, userId });
         throw error;
       }
     },
 
     async set(userId: string, data: any) {
-      log.info(`[DB] Setting user: ${userId}`, { hasName: !!data.name });
-      
-      if (!DATABASE_URL) {
-        throw new Error('DATABASE_URL is not configured');
-      }
-
+      const id = toUserId(userId);
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
       try {
         const dbPool = getPool();
-        
-        // ВАЖНО: При обновлении получаем существующего пользователя и объединяем данные
-        // Это предотвращает случайную перезапись существующих данных
-        let existingUser = null;
+        let existingUser: any = null;
         try {
-          const existingResult = await dbPool.query('SELECT * FROM users WHERE id = $1', [userId]);
-          if (existingResult.rows.length > 0) {
-            existingUser = existingResult.rows[0];
-          }
-        } catch (e) {
-          log.warn('[DB] Failed to get existing user, will use new values', { error: e });
+          const r = await dbPool.query('SELECT * FROM users WHERE id = $1', [id]);
+          if (r.rows.length > 0) existingUser = r.rows[0];
+        } catch (_e) {}
+        const merge = (key: string, def?: any) =>
+          data[key] !== undefined ? data[key] : (existingUser?.[key] ?? def);
+        const weatherCity = merge('weather_city');
+        const finalWeatherCity = weatherCity != null && String(weatherCity).trim()
+          ? String(weatherCity).trim()
+          : null;
+        let premiumUntil = data.premium_until;
+        if (premiumUntil === undefined && data.is_premium !== undefined) {
+          premiumUntil = data.is_premium
+            ? (existingUser?.premium_until || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000))
+            : null;
+        } else if (premiumUntil === undefined) {
+          premiumUntil = existingUser?.premium_until ?? null;
         }
-        
-        // Объединяем generatedContent: если передан и не пустой - используем его, иначе сохраняем существующий
-        let finalGeneratedContent = null;
-        if (data.generated_content !== undefined && data.generated_content !== null) {
-          // Если передан объект с данными - используем его
-          if (typeof data.generated_content === 'object' && Object.keys(data.generated_content).length > 0) {
-            finalGeneratedContent = JSON.stringify(data.generated_content);
-          } else if (data.generated_content === null) {
-            // Если явно передан null - сохраняем null (удаляем)
-            finalGeneratedContent = null;
-          } else {
-            // Если передан пустой объект - сохраняем существующий
-            const existingContent = existingUser?.generated_content;
-            // Убеждаемся что существующий контент сериализован
-            if (existingContent !== null && existingContent !== undefined) {
-              finalGeneratedContent = typeof existingContent === 'string' ? existingContent : JSON.stringify(existingContent);
-            } else {
-              finalGeneratedContent = null;
-            }
-          }
-        } else {
-          // Если не передан - сохраняем существующий
-          const existingContent = existingUser?.generated_content;
-          // Убеждаемся что существующий контент сериализован
-          if (existingContent !== null && existingContent !== undefined) {
-            finalGeneratedContent = typeof existingContent === 'string' ? existingContent : JSON.stringify(existingContent);
-          } else {
-            finalGeneratedContent = null;
-          }
-        }
-        
-        // Объединяем weatherCity: если передан - используем его, иначе сохраняем существующий
-        log.info('[DB] ===== PROCESSING WEATHER CITY IN DB =====');
-        log.info('[DB] data.weather_city:', data.weather_city);
-        log.info('[DB] data.weather_city type:', typeof data.weather_city);
-        log.info('[DB] data.weather_city !== undefined:', data.weather_city !== undefined);
-        log.info('[DB] existingUser?.weather_city:', existingUser?.weather_city);
-        log.info('[DB] existingUser?.weather_city type:', typeof existingUser?.weather_city);
-        
-        const finalWeatherCity = data.weather_city !== undefined
-          ? (data.weather_city && String(data.weather_city).trim() ? String(data.weather_city).trim() : null)
-          : (existingUser?.weather_city || null);
-        
-        log.info('[DB] finalWeatherCity (calculated):', finalWeatherCity);
-        log.info('[DB] finalWeatherCity type:', typeof finalWeatherCity);
-        log.info('[DB] finalWeatherCity length:', finalWeatherCity ? finalWeatherCity.length : 0);
-        
-        log.info('[DB] ===== MERGING USER DATA =====');
-        log.info('[DB] hasExistingGeneratedContent:', !!existingUser?.generated_content);
-        log.info('[DB] hasNewGeneratedContent:', !!data.generated_content);
-        log.info('[DB] finalGeneratedContentType:', finalGeneratedContent ? typeof finalGeneratedContent : 'null');
-        log.info('[DB] finalWeatherCity:', finalWeatherCity);
-        log.info('[DB] existingUser generatedContent keys:', existingUser?.generated_content ? Object.keys(existingUser.generated_content) : []);
-        log.info('[DB] new data generatedContent keys:', data.generated_content ? Object.keys(data.generated_content) : []);
-        
-        log.info('[DB] ===== EXECUTING SQL INSERT/UPDATE =====');
-        log.info('[DB] SQL params weather_city (finalWeatherCity):', finalWeatherCity);
-        log.info('[DB] SQL params weather_city type:', typeof finalWeatherCity);
-        log.info('[DB] SQL params generated_content exists:', !!finalGeneratedContent);
-        log.info('[DB] SQL params generated_content type:', typeof finalGeneratedContent);
-        log.info('[DB] SQL params generated_content length:', finalGeneratedContent ? finalGeneratedContent.length : 0);
-        
-        const queryStartTime = Date.now();
-        try {
-          const result = await dbPool.query(
-            `INSERT INTO users (
-              id, name, birth_date, birth_time, birth_place,
-              is_setup, language, theme, is_premium, is_admin,
-              evolution, generated_content, weather_city, updated_at
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, CURRENT_TIMESTAMP)
-            ON CONFLICT (id) DO UPDATE SET
-              name = EXCLUDED.name,
-              birth_date = EXCLUDED.birth_date,
-              birth_time = EXCLUDED.birth_time,
-              birth_place = EXCLUDED.birth_place,
-              is_setup = EXCLUDED.is_setup,
-              language = EXCLUDED.language,
-              theme = EXCLUDED.theme,
-              is_premium = EXCLUDED.is_premium,
-              is_admin = EXCLUDED.is_admin,
-              evolution = EXCLUDED.evolution,
-              generated_content = EXCLUDED.generated_content,
-              weather_city = EXCLUDED.weather_city,
-              updated_at = CURRENT_TIMESTAMP
-            RETURNING *`,
-            [
-              userId,
-              data.name,
-              data.birth_date,
-              data.birth_time,
-              data.birth_place,
-              data.is_setup || false,
-              data.language || 'ru',
-              data.theme || 'dark',
-              data.is_premium || false,
-              data.is_admin || false,
-              data.evolution ? JSON.stringify(data.evolution) : null,
-              finalGeneratedContent,
-              finalWeatherCity,
+        const result = await dbPool.query(
+          `INSERT INTO users (
+            id, name, birth_date, birth_time, birth_place,
+            latitude, longitude, sun_sign, moon_sign, ascendant,
+            lumi_balance, premium_until, ref_code, referred_by,
+            login_streak, last_login, language, theme, is_admin, weather_city
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+          ON CONFLICT (id) DO UPDATE SET
+            name = COALESCE(EXCLUDED.name, users.name),
+            birth_date = COALESCE(EXCLUDED.birth_date, users.birth_date),
+            birth_time = COALESCE(EXCLUDED.birth_time, users.birth_time),
+            birth_place = COALESCE(EXCLUDED.birth_place, users.birth_place),
+            latitude = COALESCE(EXCLUDED.latitude, users.latitude),
+            longitude = COALESCE(EXCLUDED.longitude, users.longitude),
+            sun_sign = COALESCE(EXCLUDED.sun_sign, users.sun_sign),
+            moon_sign = COALESCE(EXCLUDED.moon_sign, users.moon_sign),
+            ascendant = COALESCE(EXCLUDED.ascendant, users.ascendant),
+            lumi_balance = COALESCE(EXCLUDED.lumi_balance, users.lumi_balance),
+            premium_until = EXCLUDED.premium_until,
+            language = COALESCE(EXCLUDED.language, users.language),
+            theme = COALESCE(EXCLUDED.theme, users.theme),
+            is_admin = COALESCE(EXCLUDED.is_admin, users.is_admin),
+            weather_city = COALESCE(EXCLUDED.weather_city, users.weather_city)
+          RETURNING *`,
+          [
+            id,
+            merge('name'),
+            merge('birth_date'),
+            merge('birth_time'),
+            merge('birth_place'),
+            merge('latitude'),
+            merge('longitude'),
+            merge('sun_sign'),
+            merge('moon_sign'),
+            merge('ascendant'),
+            merge('lumi_balance', 0),
+            premiumUntil,
+            merge('ref_code'),
+            merge('referred_by'),
+            merge('login_streak', 0),
+            merge('last_login'),
+            merge('language', 'ru'),
+            merge('theme', 'dark'),
+            merge('is_admin', false),
+            finalWeatherCity,
           ]
-          );
-          const queryDuration = Date.now() - queryStartTime;
-          
-          log.info('[DB] ===== SQL QUERY COMPLETED =====');
-          log.info(`[DB] Query duration: ${queryDuration} ms`);
-          log.info('[DB] Result rows count:', result.rows.length);
-          if (result.rows.length > 0) {
-            const savedRow = result.rows[0];
-            log.info('[DB] Saved row.weather_city:', savedRow.weather_city);
-            log.info('[DB] Saved row.weather_city type:', typeof savedRow.weather_city);
-            log.info('[DB] Saved row.hasGeneratedContent:', !!savedRow.generated_content);
-            log.info('[DB] Saved row.generatedContent type:', typeof savedRow.generated_content);
-            if (savedRow.generated_content) {
-              try {
-                const parsed = typeof savedRow.generated_content === 'string' 
-                  ? JSON.parse(savedRow.generated_content) 
-                  : savedRow.generated_content;
-                log.info('[DB] Saved row.generatedContent keys:', Object.keys(parsed));
-              } catch (e) {
-                log.warn('[DB] Failed to parse saved generated_content:', e);
-              }
-            }
-          }
-
-          const user = result.rows[0];
-          
-          let evolution = user.evolution;
-          if (typeof evolution === 'string') {
-            try {
-              evolution = JSON.parse(evolution);
-            } catch (e) {
-              log.warn('[DB] Failed to parse evolution JSON in set', { error: e });
-              evolution = null;
-            }
-          }
-          
-          let generatedContent = user.generated_content;
-          if (typeof generatedContent === 'string') {
-            try {
-              generatedContent = JSON.parse(generatedContent);
-            } catch (e) {
-              log.warn('[DB] Failed to parse generated_content JSON in set', { error: e });
-              generatedContent = null;
-            }
-          }
-          
-          return {
-            id: user.id,
-            name: user.name,
-            birth_date: user.birth_date,
-            birth_time: user.birth_time,
-            birth_place: user.birth_place,
-            is_setup: user.is_setup,
-            language: user.language,
-            theme: user.theme,
-            is_premium: user.is_premium,
-            is_admin: user.is_admin,
-            evolution: evolution,
-            generated_content: generatedContent,
-            weather_city: user.weather_city,
-          };
-        } catch (dbError: any) {
-          log.error('[DB] ===== SQL QUERY FAILED =====');
-          log.error('[DB] Error message:', dbError.message);
-          log.error('[DB] Error code:', dbError.code);
-          log.error('[DB] Error detail:', dbError.detail);
-          log.error('[DB] Error hint:', dbError.hint);
-          log.error('[DB] SQL params:', {
-            userId,
-            weather_city: finalWeatherCity,
-            hasGeneratedContent: !!finalGeneratedContent,
-            generatedContentType: typeof finalGeneratedContent
-          });
-          throw new Error(`Database error: ${dbError.message || 'Failed to save user data'}`);
-        }
+        );
+        const u = result.rows[0];
+        const isPremium = u.premium_until && new Date(u.premium_until) > new Date();
+        return {
+          id: String(u.id),
+          name: u.name,
+          birth_date: u.birth_date,
+          birth_time: u.birth_time,
+          birth_place: u.birth_place,
+          is_setup: !!(u.name && u.birth_date && u.birth_place),
+          language: u.language || 'ru',
+          theme: u.theme || 'dark',
+          is_premium: isPremium,
+          is_admin: u.is_admin ?? false,
+          weather_city: u.weather_city,
+        };
       } catch (error: any) {
-        log.error('[DB] Error setting user', {
-          error: error.message,
-          userId
-        });
+        log.error('[DB] Error setting user', { error: error.message, userId });
         throw error;
       }
     },
 
-    async getAll() {
-      log.info('[DB] Getting all users');
-      
-      if (!DATABASE_URL) {
-        log.warn('[DB] DATABASE_URL not set, returning empty array');
-        return [];
-      }
+    async getOrCreate(userId: string, data?: any) {
+      let u = await this.get(userId);
+      if (u) return u;
+      await this.set(userId, data || {});
+      return this.get(userId);
+    },
 
+    async getAll() {
+      if (!DATABASE_URL) return [];
       try {
         const dbPool = getPool();
         const result = await dbPool.query('SELECT * FROM users ORDER BY created_at DESC');
-        
-        return result.rows.map((user: any) => ({
-          id: user.id,
-          name: user.name,
-          birth_date: user.birth_date,
-          birth_time: user.birth_time,
-          birth_place: user.birth_place,
-          is_setup: user.is_setup,
-          language: user.language,
-          theme: user.theme,
-          is_premium: user.is_premium,
-          is_admin: user.is_admin,
-          evolution: user.evolution,
-          generated_content: user.generated_content,
-          weather_city: user.weather_city,
-        }));
-      } catch (error: any) {
-        log.error('[DB] Error getting all users', {
-          error: error.message
+        return result.rows.map((u: any) => {
+          const isPremium = u.premium_until && new Date(u.premium_until) > new Date();
+          return {
+            id: String(u.id),
+            name: u.name,
+            birth_date: u.birth_date,
+            birth_time: u.birth_time,
+            birth_place: u.birth_place,
+            is_setup: !!(u.name && u.birth_date && u.birth_place),
+            language: u.language || 'ru',
+            theme: u.theme || 'dark',
+            is_premium: isPremium,
+            is_admin: u.is_admin ?? false,
+            weather_city: u.weather_city,
+          };
         });
+      } catch (error: any) {
+        log.error('[DB] Error getting all users', { error: error.message });
         throw error;
       }
     },
   },
 
   charts: {
-    /**
-     * Получить карту пользователя с полными данными
-     * Логирует: DB_HIT если карта найдена, DB_MISS если нет
-     */
     async get(userId: string) {
-      log.info(`[DB] [charts.get] userId=${userId}`);
-      
-      if (!DATABASE_URL) {
-        log.warn('[DB] DATABASE_URL not set, returning null');
-        return null;
-      }
-
+      const id = toUserId(userId);
+      if (!DATABASE_URL) return null;
       try {
         const dbPool = getPool();
         const result = await dbPool.query(
-          `SELECT user_id, chart_data, birth_date, birth_time, birth_place, 
-                  input_hash, calculated_at, created_at, updated_at 
-           FROM charts WHERE user_id = $1`,
-          [userId]
+          `SELECT user_id, chart_data, birth_date, birth_time, birth_place, input_hash, created_at
+           FROM natal_charts WHERE user_id = $1`,
+          [id]
         );
-        
-        if (result.rows.length === 0) {
-          log.info(`[DB] [charts.get] DB_MISS: no chart for userId=${userId}`);
-          return null;
-        }
-
+        if (result.rows.length === 0) return null;
         const row = result.rows[0];
-        log.info(`[DB] [charts.get] DB_HIT: chart found for userId=${userId}`, {
-          inputHash: row.input_hash,
-          calculatedAt: row.calculated_at
-        });
-        
         return {
           user_id: row.user_id,
           chart_data: row.chart_data,
@@ -554,106 +412,56 @@ export const db = {
           birth_time: row.birth_time,
           birth_place: row.birth_place,
           input_hash: row.input_hash,
-          calculated_at: row.calculated_at,
+          calculated_at: row.created_at,
           created_at: row.created_at,
-          updated_at: row.updated_at
+          updated_at: row.created_at
         };
       } catch (error: any) {
-        log.error('[DB] Error getting chart', {
-          error: error.message,
-          userId
-        });
+        log.error('[DB] Error getting chart', { error: error.message, userId });
         throw error;
       }
     },
 
-    /**
-     * Проверить, нужен ли пересчёт карты
-     * Сравнивает хэш входных данных с сохранённым
-     */
     async needsRecalculation(userId: string, birthDate: string, birthTime: string, birthPlace: string): Promise<{ needsCalc: boolean; existingChart: any | null; reason: string }> {
-      log.info(`[DB] [charts.needsRecalculation] userId=${userId}`);
-      
       const existing = await this.get(userId);
-      
-      if (!existing) {
-        log.info(`[DB] [charts.needsRecalculation] NEEDS_CALC: no existing chart`);
-        return { needsCalc: true, existingChart: null, reason: 'NO_EXISTING_CHART' };
-      }
-      
-      // Сравниваем данные рождения
-      const inputChanged = 
-        existing.birth_date !== birthDate ||
-        existing.birth_time !== birthTime ||
-        existing.birth_place !== birthPlace;
-      
-      if (inputChanged) {
-        log.info(`[DB] [charts.needsRecalculation] NEEDS_CALC: birth data changed`, {
-          old: { date: existing.birth_date, time: existing.birth_time, place: existing.birth_place },
-          new: { date: birthDate, time: birthTime, place: birthPlace }
-        });
-        return { needsCalc: true, existingChart: existing, reason: 'BIRTH_DATA_CHANGED' };
-      }
-      
-      // Проверяем, что chart_data валидна
+      if (!existing) return { needsCalc: true, existingChart: null, reason: 'NO_EXISTING_CHART' };
+      const inputChanged = existing.birth_date !== birthDate || existing.birth_time !== birthTime || existing.birth_place !== birthPlace;
+      if (inputChanged) return { needsCalc: true, existingChart: existing, reason: 'BIRTH_DATA_CHANGED' };
       const chartData = existing.chart_data;
-      if (!chartData || !chartData.sun || !chartData.moon) {
-        log.info(`[DB] [charts.needsRecalculation] NEEDS_CALC: invalid chart data`);
-        return { needsCalc: true, existingChart: existing, reason: 'INVALID_CHART_DATA' };
-      }
-      
-      log.info(`[DB] [charts.needsRecalculation] CACHE_HIT: using existing chart`);
+      if (!chartData || !chartData.sun || !chartData.moon) return { needsCalc: true, existingChart: existing, reason: 'INVALID_CHART_DATA' };
       return { needsCalc: false, existingChart: existing, reason: 'CACHE_HIT' };
     },
 
-    /**
-     * Сохранить карту с данными рождения для идемпотентности
-     * Логирует: SAVED с деталями
-     */
     async set(userId: string, chartData: any, birthDate?: string, birthTime?: string, birthPlace?: string) {
-      log.info(`[DB] [charts.set] userId=${userId}`);
-      
-      if (!DATABASE_URL) {
-        throw new Error('DATABASE_URL is not configured');
-      }
-
+      const id = toUserId(userId);
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
       try {
         const dbPool = getPool();
         const data = chartData.chart_data || chartData;
-        
-        // Создаём хэш входных данных для быстрой проверки
-        const inputHash = birthDate && birthPlace 
+        const inputHash = birthDate && birthPlace
           ? Buffer.from(`${birthDate}|${birthTime || '12:00'}|${birthPlace}`).toString('base64').substring(0, 64)
           : null;
-        
         const result = await dbPool.query(
-          `INSERT INTO charts (user_id, chart_data, birth_date, birth_time, birth_place, input_hash, calculated_at, updated_at)
-           VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+          `INSERT INTO natal_charts (user_id, chart_data, birth_date, birth_time, birth_place, input_hash)
+           VALUES ($1, $2, $3, $4, $5, $6)
            ON CONFLICT (user_id) DO UPDATE SET
              chart_data = EXCLUDED.chart_data,
              birth_date = EXCLUDED.birth_date,
              birth_time = EXCLUDED.birth_time,
              birth_place = EXCLUDED.birth_place,
-             input_hash = EXCLUDED.input_hash,
-             calculated_at = CURRENT_TIMESTAMP,
-             updated_at = CURRENT_TIMESTAMP
-           RETURNING *`,
-          [userId, JSON.stringify(data), birthDate, birthTime, birthPlace, inputHash]
+             input_hash = EXCLUDED.input_hash
+           RETURNING user_id, chart_data, birth_date, birth_time, birth_place, input_hash, created_at`,
+          [id, JSON.stringify(data), birthDate, birthTime, birthPlace, inputHash]
         );
-
-        log.info(`[DB] [charts.set] SAVED: chart saved for userId=${userId}`, {
-          inputHash,
-          hasData: !!result.rows[0].chart_data
-        });
-
+        const row = result.rows[0];
         return {
-          user_id: result.rows[0].user_id,
-          chart_data: result.rows[0].chart_data,
-          birth_date: result.rows[0].birth_date,
-          birth_time: result.rows[0].birth_time,
-          birth_place: result.rows[0].birth_place,
-          input_hash: result.rows[0].input_hash,
-          calculated_at: result.rows[0].calculated_at
+          user_id: row.user_id,
+          chart_data: row.chart_data,
+          birth_date: row.birth_date,
+          birth_time: row.birth_time,
+          birth_place: row.birth_place,
+          input_hash: row.input_hash,
+          calculated_at: row.created_at
         };
       } catch (error: any) {
         log.error('[DB] Error setting chart', {
@@ -665,95 +473,100 @@ export const db = {
     },
   },
 
-  /**
-   * Настройки пользователя (погода и т.д.)
-   */
-  userSettings: {
-    async get(userId: string) {
-      log.info(`[DB] [userSettings.get] userId=${userId}`);
-      
-      if (!DATABASE_URL) {
-        log.warn('[DB] DATABASE_URL not set, returning null');
-        return null;
-      }
-
+  /** OpenAI cache - interpretations table (Lumia) */
+  interpretations: {
+    async getByHash(userId: string, type: string, inputHash: string) {
+      const id = toUserId(userId);
+      if (!DATABASE_URL) return null;
       try {
         const dbPool = getPool();
         const result = await dbPool.query(
-          `SELECT user_id, weather_city, weather_lat, weather_lon, weather_units, timezone, updated_at 
-           FROM user_settings WHERE user_id = $1`,
-          [userId]
+          `SELECT content, created_at FROM interpretations WHERE user_id = $1 AND type = $2 AND input_hash = $3`,
+          [id, type, inputHash]
         );
-        
-        if (result.rows.length === 0) {
-          log.info(`[DB] [userSettings.get] DB_MISS: no settings for userId=${userId}`);
-          return null;
-        }
+        if (result.rows.length === 0) return null;
+        return { content: result.rows[0].content, updatedAt: result.rows[0].created_at };
+      } catch (error: any) {
+        log.error('[DB] Error getting interpretation', { error: error.message, userId, type });
+        throw error;
+      }
+    },
 
+    async set(userId: string, type: string, inputHash: string, content: string) {
+      const id = toUserId(userId);
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      try {
+        const dbPool = getPool();
+        await dbPool.query(
+          `INSERT INTO interpretations (user_id, type, input_hash, content)
+           VALUES ($1, $2, $3, $4)
+           ON CONFLICT (user_id, type, input_hash) DO UPDATE SET content = EXCLUDED.content`,
+          [id, type, inputHash, content]
+        );
+        return { success: true };
+      } catch (error: any) {
+        log.error('[DB] Error setting interpretation', { error: error.message, userId, type });
+        throw error;
+      }
+    },
+  },
+
+  /** Weather - uses users.weather_city, latitude, longitude (no separate user_settings table) */
+  userSettings: {
+    async get(userId: string) {
+      const id = toUserId(userId);
+      if (!DATABASE_URL) return null;
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          `SELECT id, weather_city, latitude, longitude FROM users WHERE id = $1`,
+          [id]
+        );
+        if (result.rows.length === 0) return null;
         const row = result.rows[0];
-        log.info(`[DB] [userSettings.get] DB_HIT: settings found`, {
-          city: row.weather_city
-        });
-        
         return {
-          userId: row.user_id,
+          userId: String(row.id),
           weatherCity: row.weather_city,
-          weatherLat: row.weather_lat,
-          weatherLon: row.weather_lon,
-          weatherUnits: row.weather_units,
-          timezone: row.timezone,
-          updatedAt: row.updated_at
+          weatherLat: row.latitude,
+          weatherLon: row.longitude,
+          weatherUnits: null,
+          timezone: null,
+          updatedAt: null
         };
       } catch (error: any) {
-        log.error('[DB] Error getting user settings', {
-          error: error.message,
-          userId
-        });
+        log.error('[DB] Error getting user settings', { error: error.message, userId });
         throw error;
       }
     },
 
     async setWeatherCity(userId: string, city: string | null, lat?: number, lon?: number) {
-      log.info(`[DB] [userSettings.setWeatherCity] userId=${userId}, city=${city}`);
-      
-      if (!DATABASE_URL) {
-        throw new Error('DATABASE_URL is not configured');
-      }
-
-      // Валидация: city должен быть null или непустой строкой
+      const id = toUserId(userId);
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
       let validCity: string | null = null;
       if (city !== null && city !== undefined) {
         const trimmed = String(city).trim();
-        if (trimmed.length >= 2 && trimmed.length <= 64) {
-          validCity = trimmed;
-        } else if (trimmed.length > 0) {
-          throw new Error(`City name must be 2-64 characters, got ${trimmed.length}`);
-        }
+        if (trimmed.length >= 2 && trimmed.length <= 64) validCity = trimmed;
+        else if (trimmed.length > 0) throw new Error(`City name must be 2-64 characters, got ${trimmed.length}`);
       }
-
       try {
         const dbPool = getPool();
-        
         const result = await dbPool.query(
-          `INSERT INTO user_settings (user_id, weather_city, weather_lat, weather_lon, updated_at)
-           VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
-           ON CONFLICT (user_id) DO UPDATE SET
+          `INSERT INTO users (id, weather_city, latitude, longitude)
+           VALUES ($1, $2, $3, $4)
+           ON CONFLICT (id) DO UPDATE SET
              weather_city = EXCLUDED.weather_city,
-             weather_lat = EXCLUDED.weather_lat,
-             weather_lon = EXCLUDED.weather_lon,
-             updated_at = CURRENT_TIMESTAMP
-           RETURNING *`,
-          [userId, validCity, lat || null, lon || null]
+             latitude = EXCLUDED.latitude,
+             longitude = EXCLUDED.longitude
+           RETURNING id, weather_city, latitude, longitude`,
+          [id, validCity, lat ?? null, lon ?? null]
         );
-
-        log.info(`[DB] [userSettings.setWeatherCity] SAVED: city=${validCity}`);
-
+        const row = result.rows[0];
         return {
-          userId: result.rows[0].user_id,
-          weatherCity: result.rows[0].weather_city,
-          weatherLat: result.rows[0].weather_lat,
-          weatherLon: result.rows[0].weather_lon,
-          updatedAt: result.rows[0].updated_at
+          userId: String(row.id),
+          weatherCity: row.weather_city,
+          weatherLat: row.latitude,
+          weatherLon: row.longitude,
+          updatedAt: new Date().toISOString()
         };
       } catch (error: any) {
         log.error('[DB] Error setting weather city', {
@@ -766,81 +579,41 @@ export const db = {
     }
   },
 
-  /**
-   * Ежедневный гороскоп (по пользователю и дате)
-   */
+  /** Daily natal card (personal horoscope per user/date) - Lumia daily_natal_cards */
   dailyHoroscope: {
     async get(userId: string, dateKey: string) {
-      log.info(`[DB] [dailyHoroscope.get] userId=${userId}, date=${dateKey}`);
-      
-      if (!DATABASE_URL) {
-        log.warn('[DB] DATABASE_URL not set, returning null');
-        return null;
-      }
-
+      const id = toUserId(userId);
+      if (!DATABASE_URL) return null;
       try {
         const dbPool = getPool();
         const result = await dbPool.query(
-          `SELECT content, zodiac_sign, created_at 
-           FROM daily_horoscope WHERE user_id = $1 AND date_key = $2`,
-          [userId, dateKey]
+          `SELECT content FROM daily_natal_cards WHERE user_id = $1 AND date = $2`,
+          [id, dateKey]
         );
-        
-        if (result.rows.length === 0) {
-          log.info(`[DB] [dailyHoroscope.get] DB_MISS: no horoscope for date=${dateKey}`);
-          return null;
-        }
-
-        log.info(`[DB] [dailyHoroscope.get] DB_HIT: horoscope found for date=${dateKey}`);
-        
-        return {
-          content: result.rows[0].content,
-          zodiacSign: result.rows[0].zodiac_sign,
-          createdAt: result.rows[0].created_at
-        };
+        if (result.rows.length === 0) return null;
+        const row = result.rows[0];
+        const content = typeof row.content === 'string' ? JSON.parse(row.content) : row.content;
+        return { content, zodiacSign: content?.date ? null : null, createdAt: null };
       } catch (error: any) {
-        log.error('[DB] Error getting daily horoscope', {
-          error: error.message,
-          userId,
-          dateKey
-        });
+        log.error('[DB] Error getting daily horoscope', { error: error.message, userId, dateKey });
         throw error;
       }
     },
 
-    async set(userId: string, dateKey: string, content: any, zodiacSign?: string) {
-      log.info(`[DB] [dailyHoroscope.set] userId=${userId}, date=${dateKey}`);
-      
-      if (!DATABASE_URL) {
-        throw new Error('DATABASE_URL is not configured');
-      }
-
+    async set(userId: string, dateKey: string, content: any, _zodiacSign?: string) {
+      const id = toUserId(userId);
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
       try {
         const dbPool = getPool();
-        
-        const result = await dbPool.query(
-          `INSERT INTO daily_horoscope (user_id, date_key, content, zodiac_sign)
-           VALUES ($1, $2, $3, $4)
-           ON CONFLICT (user_id, date_key) DO UPDATE SET
-             content = EXCLUDED.content,
-             zodiac_sign = EXCLUDED.zodiac_sign
-           RETURNING *`,
-          [userId, dateKey, JSON.stringify(content), zodiacSign]
+        await dbPool.query(
+          `INSERT INTO daily_natal_cards (user_id, date, content)
+           VALUES ($1, $2, $3)
+           ON CONFLICT (user_id, date) DO UPDATE SET content = EXCLUDED.content`,
+          [id, dateKey, typeof content === 'string' ? content : JSON.stringify(content)]
         );
-
-        log.info(`[DB] [dailyHoroscope.set] SAVED: horoscope for date=${dateKey}`);
-
-        return {
-          content: result.rows[0].content,
-          zodiacSign: result.rows[0].zodiac_sign,
-          createdAt: result.rows[0].created_at
-        };
+        return { content, zodiacSign: null, createdAt: new Date().toISOString() };
       } catch (error: any) {
-        log.error('[DB] Error setting daily horoscope', {
-          error: error.message,
-          userId,
-          dateKey
-        });
+        log.error('[DB] Error setting daily horoscope', { error: error.message, userId, dateKey });
         throw error;
       }
     }
@@ -1057,20 +830,19 @@ export const db = {
     },
   },
 
-  // Regenerations tracking operations
+  /** Regenerations - tracked via lumi_transactions with explicit reason values */
   regenerations: {
     async getCountToday(userId: string, contentType: string) {
-      log.info(`[DB] Getting regeneration count for user: ${userId}, type: ${contentType}`);
-      
+      const id = toUserId(userId);
+      const reason = contentTypeToRegenerationReason(contentType);
       if (!DATABASE_URL) return 0;
-
       try {
         const dbPool = getPool();
         const result = await dbPool.query(
-          'SELECT COUNT(*) FROM regenerations WHERE user_id = $1 AND content_type = $2 AND regeneration_date = CURRENT_DATE',
-          [userId, contentType]
+          `SELECT COUNT(*) FROM lumi_transactions
+           WHERE user_id = $1 AND reason = $2 AND created_at::date = CURRENT_DATE`,
+          [id, reason]
         );
-        
         return parseInt(result.rows[0].count);
       } catch (error: any) {
         log.error('[DB] Error getting regeneration count', { error: error.message, userId });
@@ -1078,22 +850,16 @@ export const db = {
       }
     },
 
-    async getCountThisWeek(userId: string, contentType: string) {
-      log.info(`[DB] Getting regeneration count for this week: user ${userId}, type: ${contentType}`);
-      
+    async getCountThisWeek(userId: string, _contentType: string) {
+      const id = toUserId(userId);
       if (!DATABASE_URL) return 0;
-
       try {
         const dbPool = getPool();
-        // Считаем регенерации за последние 7 дней
         const result = await dbPool.query(
-          `SELECT COUNT(*) FROM regenerations 
-           WHERE user_id = $1 
-           AND content_type = $2 
-           AND regeneration_date >= CURRENT_DATE - INTERVAL '7 days'`,
-          [userId, contentType]
+          `SELECT COUNT(*) FROM lumi_transactions
+           WHERE user_id = $1 AND reason IN ('regenerate_natal', 'regenerate_deep_dive', 'regenerate_synastry') AND created_at >= NOW() - INTERVAL '7 days'`,
+          [id]
         );
-        
         return parseInt(result.rows[0].count);
       } catch (error: any) {
         log.error('[DB] Error getting regeneration count for week', { error: error.message, userId });
@@ -1101,21 +867,16 @@ export const db = {
       }
     },
 
-    async add(userId: string, contentType: string, wasPaid: boolean, starsCost: number) {
-      log.info(`[DB] Adding regeneration record for user: ${userId}, type: ${contentType}, paid: ${wasPaid}`);
-      
-      if (!DATABASE_URL) {
-        throw new Error('DATABASE_URL is not configured');
-      }
-
+    async add(userId: string, contentType: string, _wasPaid: boolean, _starsCost: number) {
+      const id = toUserId(userId);
+      const reason = contentTypeToRegenerationReason(contentType);
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
       try {
         const dbPool = getPool();
         await dbPool.query(
-          `INSERT INTO regenerations (user_id, content_type, regeneration_date, was_paid, stars_cost)
-           VALUES ($1, $2, CURRENT_DATE, $3, $4)`,
-          [userId, contentType, wasPaid, starsCost]
+          `INSERT INTO lumi_transactions (user_id, amount, reason) VALUES ($1, 0, $2)`,
+          [id, reason]
         );
-        
         return { success: true };
       } catch (error: any) {
         log.error('[DB] Error adding regeneration record', { error: error.message, userId });
@@ -1124,25 +885,15 @@ export const db = {
     },
   },
 
-  // Stars balance operations
+  /** Stars/Lumi balance - uses users.lumi_balance (Lumia) */
   starsBalance: {
     async get(userId: string) {
-      log.info(`[DB] Getting stars balance for user: ${userId}`);
-      
+      const id = toUserId(userId);
       if (!DATABASE_URL) return 0;
-
       try {
         const dbPool = getPool();
-        const result = await dbPool.query(
-          'SELECT stars_balance FROM users WHERE id = $1',
-          [userId]
-        );
-        
-        if (result.rows.length === 0) {
-          return 0;
-        }
-
-        return result.rows[0].stars_balance || 0;
+        const result = await dbPool.query('SELECT lumi_balance FROM users WHERE id = $1', [id]);
+        return result.rows.length === 0 ? 0 : (result.rows[0].lumi_balance ?? 0);
       } catch (error: any) {
         log.error('[DB] Error getting stars balance', { error: error.message, userId });
         throw error;
@@ -1150,21 +901,18 @@ export const db = {
     },
 
     async add(userId: string, amount: number) {
-      log.info(`[DB] Adding ${amount} stars to user: ${userId}`);
-      
-      if (!DATABASE_URL) {
-        throw new Error('DATABASE_URL is not configured');
-      }
-
+      const id = toUserId(userId);
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
       try {
         const dbPool = getPool();
         await dbPool.query(
-          `UPDATE users 
-           SET stars_balance = COALESCE(stars_balance, 0) + $1 
-           WHERE id = $2`,
-          [amount, userId]
+          `UPDATE users SET lumi_balance = COALESCE(lumi_balance, 0) + $1 WHERE id = $2`,
+          [amount, id]
         );
-        
+        await dbPool.query(
+          `INSERT INTO lumi_transactions (user_id, amount, reason) VALUES ($1, $2, 'refund')`,
+          [id, amount]
+        );
         return { success: true };
       } catch (error: any) {
         log.error('[DB] Error adding stars', { error: error.message, userId });
@@ -1173,27 +921,22 @@ export const db = {
     },
 
     async deduct(userId: string, amount: number) {
-      log.info(`[DB] Deducting ${amount} stars from user: ${userId}`);
-      
-      if (!DATABASE_URL) {
-        throw new Error('DATABASE_URL is not configured');
-      }
-
+      const id = toUserId(userId);
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
       try {
         const dbPool = getPool();
         const result = await dbPool.query(
-          `UPDATE users 
-           SET stars_balance = GREATEST(COALESCE(stars_balance, 0) - $1, 0)
-           WHERE id = $2 AND COALESCE(stars_balance, 0) >= $1
-           RETURNING stars_balance`,
-          [amount, userId]
+          `UPDATE users SET lumi_balance = GREATEST(COALESCE(lumi_balance, 0) - $1, 0)
+           WHERE id = $2 AND COALESCE(lumi_balance, 0) >= $1
+           RETURNING lumi_balance`,
+          [amount, id]
         );
-        
-        if (result.rows.length === 0) {
-          throw new Error('Insufficient stars balance');
-        }
-        
-        return { success: true, newBalance: result.rows[0].stars_balance };
+        if (result.rows.length === 0) throw new Error('Insufficient stars balance');
+        await dbPool.query(
+          `INSERT INTO lumi_transactions (user_id, amount, reason) VALUES ($1, $2, 'regenerate_deduct')`,
+          [id, -amount]
+        );
+        return { success: true, newBalance: result.rows[0].lumi_balance };
       } catch (error: any) {
         log.error('[DB] Error deducting stars', { error: error.message, userId });
         throw error;
@@ -1201,28 +944,21 @@ export const db = {
     },
   },
 
-  // Deep dive analyses operations
+  /** Deep dive analyses - interpretations with strict type values */
   deepDiveAnalyses: {
     async get(userId: string, topic: string) {
-      log.info(`[DB] Getting deep dive analysis for user: ${userId}, topic: ${topic}`);
-      
+      const id = toUserId(userId);
+      const type = topicToDeepDiveType(topic);
       if (!DATABASE_URL) return null;
-
       try {
         const dbPool = getPool();
         const result = await dbPool.query(
-          'SELECT analysis, updated_at FROM deep_dive_analyses WHERE user_id = $1 AND topic = $2',
-          [userId, topic]
+          `SELECT content, created_at FROM interpretations
+           WHERE user_id = $1 AND type = $2 AND input_hash = $3`,
+          [id, type, topic]
         );
-        
-        if (result.rows.length === 0) {
-          return null;
-        }
-
-        return {
-          analysis: result.rows[0].analysis,
-          updatedAt: result.rows[0].updated_at
-        };
+        if (result.rows.length === 0) return null;
+        return { analysis: result.rows[0].content, updatedAt: result.rows[0].created_at };
       } catch (error: any) {
         log.error('[DB] Error getting deep dive analysis', { error: error.message, userId, topic });
         throw error;
@@ -1230,23 +966,17 @@ export const db = {
     },
 
     async set(userId: string, topic: string, analysis: string) {
-      log.info(`[DB] Setting deep dive analysis for user: ${userId}, topic: ${topic}`);
-      
-      if (!DATABASE_URL) {
-        throw new Error('DATABASE_URL is not configured');
-      }
-
+      const id = toUserId(userId);
+      const type = topicToDeepDiveType(topic);
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
       try {
         const dbPool = getPool();
         await dbPool.query(
-          `INSERT INTO deep_dive_analyses (user_id, topic, analysis, updated_at)
-           VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
-           ON CONFLICT (user_id, topic) DO UPDATE SET
-             analysis = EXCLUDED.analysis,
-             updated_at = CURRENT_TIMESTAMP`,
-          [userId, topic, analysis]
+          `INSERT INTO interpretations (user_id, type, input_hash, content)
+           VALUES ($1, $2, $3, $4)
+           ON CONFLICT (user_id, type, input_hash) DO UPDATE SET content = EXCLUDED.content`,
+          [id, type, topic, analysis]
         );
-        
         return { success: true };
       } catch (error: any) {
         log.error('[DB] Error setting deep dive analysis', { error: error.message, userId, topic });
@@ -1255,22 +985,19 @@ export const db = {
     },
 
     async getAll(userId: string) {
-      log.info(`[DB] Getting all deep dive analyses for user: ${userId}`);
-      
+      const id = toUserId(userId);
       if (!DATABASE_URL) return {};
-
       try {
         const dbPool = getPool();
         const result = await dbPool.query(
-          'SELECT topic, analysis, updated_at FROM deep_dive_analyses WHERE user_id = $1',
-          [userId]
+          `SELECT input_hash as topic, content as analysis FROM interpretations
+           WHERE user_id = $1 AND type IN ('deep_dive_personality', 'deep_dive_love', 'deep_dive_career', 'deep_dive_weakness', 'deep_dive_karma')`,
+          [id]
         );
-        
         const analyses: Record<string, string> = {};
-        result.rows.forEach(row => {
+        result.rows.forEach((row: any) => {
           analyses[row.topic] = row.analysis;
         });
-        
         return analyses;
       } catch (error: any) {
         log.error('[DB] Error getting all deep dive analyses', { error: error.message, userId });

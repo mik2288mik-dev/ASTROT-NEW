@@ -159,36 +159,28 @@ async function handler(
       hasRising: !!chartData.rising
     });
 
+    // Проверяем кэш в interpretations
+    if (userId) {
+      try {
+        const cached = await db.interpretations.getByHash(userId, 'natal_intro', 'default');
+        if (cached?.content && cached.content.length > 50) {
+          log.info('Returning cached natal intro', { userId });
+          res.setHeader('Cache-Control', 'public, s-maxage=86400, stale-while-revalidate=172800');
+          return res.status(200).json({ intro: cached.content, timestamp: Date.now() });
+        }
+      } catch (_e) {}
+    }
+
     // Генерируем вступление
     const intro = await generateNatalIntroWithAI(profile, chartData);
 
-    // Сохраняем в профиль пользователя
+    // Сохраняем в interpretations (Lumia schema)
     if (userId) {
       try {
-        const existingProfile = await db.users.get(userId);
-        if (existingProfile) {
-          const existingContent = existingProfile.generated_content && typeof existingProfile.generated_content === 'object' 
-            ? existingProfile.generated_content 
-            : {};
-          const updatedContent = {
-            ...existingContent,
-            natalIntro: intro,
-            timestamps: {
-              ...(existingContent.timestamps || {}),
-              natalIntroGenerated: Date.now()
-            }
-          };
-
-          await db.users.set(userId, {
-            ...existingProfile,
-            generated_content: updatedContent
-          });
-
-          log.info('Natal intro saved to user profile', { userId });
-        }
+        await db.interpretations.set(userId, 'natal_intro', 'default', intro);
+        log.info('Natal intro saved to interpretations', { userId });
       } catch (dbError: any) {
         log.error('Error saving intro to database', { error: dbError.message, userId });
-        // Не падаем, если не удалось сохранить в БД
       }
     }
 

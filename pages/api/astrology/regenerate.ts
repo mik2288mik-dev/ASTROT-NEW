@@ -252,25 +252,7 @@ async function handler(
             throw new Error('chartData required for natal_intro regeneration');
           }
           regeneratedData = await regenerateNatalIntro(profile, chartData);
-          
-          // Сохраняем в generated_content
-          const existingProfile = await db.users.get(userId);
-          if (existingProfile) {
-            const existingContent = existingProfile.generated_content && typeof existingProfile.generated_content === 'object' 
-              ? existingProfile.generated_content 
-              : {};
-            await db.users.set(userId, {
-              ...existingProfile,
-              generated_content: {
-                ...existingContent,
-                natalIntro: regeneratedData,
-                timestamps: {
-                  ...(existingContent.timestamps || {}),
-                  natalIntroGenerated: Date.now()
-                }
-              }
-            });
-          }
+          await db.interpretations.set(userId, 'natal_intro', 'default', regeneratedData);
           break;
 
         case 'deep_dive_personality':
