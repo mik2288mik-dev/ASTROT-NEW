@@ -242,6 +242,7 @@ export const db = {
           created_at: u.created_at,
           is_premium: isPremium,
           is_setup: !!(u.name && u.birth_date && u.birth_place),
+          chart_slots: u.chart_slots ?? 1,
         };
       } catch (error: any) {
         log.error('[DB] Error getting user', { error: error.message, userId });
@@ -377,37 +378,152 @@ export const db = {
   },
 
   natal_charts: {
-    async get(userId: string) {
+    _rowToChart(row: any) {
+      return {
+        id: row.id,
+        user_id: row.user_id,
+        name: row.name || 'Моя карта',
+        chart_data: row.chart_data,
+        birth_date: row.birth_date,
+        birth_time: row.birth_time,
+        birth_place: row.birth_place,
+        input_hash: row.input_hash,
+        is_primary: row.is_primary ?? true,
+        calculated_at: row.created_at,
+        created_at: row.created_at,
+        updated_at: row.created_at,
+      };
+    },
+
+    /** Primary chart for user (dashboard, horoscope, onboarding) */
+    async getPrimary(userId: string) {
       const id = toUserId(userId);
       if (!DATABASE_URL) return null;
       try {
         const dbPool = getPool();
         const result = await dbPool.query(
-          `SELECT user_id, chart_data, birth_date, birth_time, birth_place, input_hash, created_at
-           FROM natal_charts WHERE user_id = $1`,
+          `SELECT id, user_id, name, chart_data, birth_date, birth_time, birth_place, input_hash, is_primary, created_at
+           FROM natal_charts WHERE user_id = $1 ORDER BY is_primary DESC NULLS LAST, id ASC LIMIT 1`,
           [id]
         );
         if (result.rows.length === 0) return null;
-        const row = result.rows[0];
-        return {
-          user_id: row.user_id,
-          chart_data: row.chart_data,
-          birth_date: row.birth_date,
-          birth_time: row.birth_time,
-          birth_place: row.birth_place,
-          input_hash: row.input_hash,
-          calculated_at: row.created_at,
-          created_at: row.created_at,
-          updated_at: row.created_at
-        };
+        return this._rowToChart(result.rows[0]);
       } catch (error: any) {
-        log.error('[DB] Error getting chart', { error: error.message, userId });
+        log.error('[DB] Error getting primary chart', { error: error.message, userId });
         throw error;
       }
     },
 
-    async needsRecalculation(userId: string, birthDate: string, birthTime: string, birthPlace: string): Promise<{ needsCalc: boolean; existingChart: any | null; reason: string }> {
-      const existing = await this.get(userId);
+    /** All charts for user */
+    async getAll(userId: string) {
+      const id = toUserId(userId);
+      if (!DATABASE_URL) return [];
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          `SELECT id, user_id, name, chart_data, birth_date, birth_time, birth_place, input_hash, is_primary, created_at
+           FROM natal_charts WHERE user_id = $1 ORDER BY is_primary DESC NULLS LAST, id ASC`,
+          [id]
+        );
+        return result.rows.map((r: any) => this._rowToChart(r));
+      } catch (error: any) {
+        log.error('[DB] Error getting all charts', { error: error.message, userId });
+        throw error;
+      }
+    },
+
+    /** Chart by id */
+    async getById(chartId: number) {
+      if (!DATABASE_URL) return null;
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          `SELECT id, user_id, name, chart_data, birth_date, birth_time, birth_place, input_hash, is_primary, created_at
+           FROM natal_charts WHERE id = $1`,
+          [chartId]
+        );
+        if (result.rows.length === 0) return null;
+        return this._rowToChart(result.rows[0]);
+      } catch (error: any) {
+        log.error('[DB] Error getting chart by id', { error: error.message, chartId });
+        throw error;
+      }
+    },
+
+    /** Create new chart. First chart gets is_primary=true. Checks chart_slots limit. */
+    async create(userId: string, data: { name: string; birthDate: string; birthTime?: string; birthPlace: string; chartData: any }) {
+      const id = toUserId(userId);
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      try {
+        const dbPool = getPool();
+        const charts = await this.getAll(userId);
+        const user = await db.users.get(userId);
+        const slots = user?.chart_slots ?? 1;
+        if (charts.length >= slots) {
+          throw new Error(`Chart slots limit reached (${slots}). Purchase more with Lumi.`);
+        }
+        const inputHash = Buffer.from(`${data.birthDate}|${data.birthTime || '12:00'}|${data.birthPlace}`).toString('base64').substring(0, 64);
+        const isPrimary = charts.length === 0;
+        const chartData = data.chartData?.chart_data || data.chartData;
+        const result = await dbPool.query(
+          `INSERT INTO natal_charts (user_id, name, birth_date, birth_time, birth_place, chart_data, input_hash, is_primary)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+           RETURNING id, user_id, name, chart_data, birth_date, birth_time, birth_place, input_hash, is_primary, created_at`,
+          [id, data.name || 'Моя карта', data.birthDate, data.birthTime || '12:00', data.birthPlace, JSON.stringify(chartData), inputHash, isPrimary]
+        );
+        return this._rowToChart(result.rows[0]);
+      } catch (error: any) {
+        log.error('[DB] Error creating chart', { error: error.message, userId });
+        throw error;
+      }
+    },
+
+    /** Set chart as primary. Unsets previous primary. */
+    async setPrimary(chartId: number) {
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      try {
+        const dbPool = getPool();
+        const chart = await this.getById(chartId);
+        if (!chart) throw new Error('Chart not found');
+        await dbPool.query('UPDATE natal_charts SET is_primary = FALSE WHERE user_id = $1', [chart.user_id]);
+        await dbPool.query('UPDATE natal_charts SET is_primary = TRUE WHERE id = $1', [chartId]);
+        return { success: true };
+      } catch (error: any) {
+        log.error('[DB] Error setting primary chart', { error: error.message, chartId });
+        throw error;
+      }
+    },
+
+    /** Delete chart */
+    async delete(chartId: number) {
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      try {
+        const dbPool = getPool();
+        const chart = await this.getById(chartId);
+        if (!chart) throw new Error('Chart not found');
+        await dbPool.query('DELETE FROM natal_charts WHERE id = $1', [chartId]);
+        if (chart.is_primary) {
+          const remaining = await this.getAll(String(chart.user_id));
+          if (remaining.length > 0) {
+            await dbPool.query('UPDATE natal_charts SET is_primary = TRUE WHERE id = $1', [remaining[0].id]);
+          }
+        }
+        return { success: true };
+      } catch (error: any) {
+        log.error('[DB] Error deleting chart', { error: error.message, chartId });
+        throw error;
+      }
+    },
+
+    /** Legacy: get primary chart (alias for getPrimary) */
+    async get(userId: string) {
+      return this.getPrimary(userId);
+    },
+
+    async needsRecalculation(userIdOrChartId: string | number, birthDate: string, birthTime: string, birthPlace: string): Promise<{ needsCalc: boolean; existingChart: any | null; reason: string }> {
+      const existing = typeof userIdOrChartId === 'number'
+        ? await this.getById(userIdOrChartId)
+        : await this.getPrimary(userIdOrChartId);
       if (!existing) return { needsCalc: true, existingChart: null, reason: 'NO_EXISTING_CHART' };
       const inputChanged = existing.birth_date !== birthDate || existing.birth_time !== birthTime || existing.birth_place !== birthPlace;
       if (inputChanged) return { needsCalc: true, existingChart: existing, reason: 'BIRTH_DATA_CHANGED' };
@@ -416,6 +532,7 @@ export const db = {
       return { needsCalc: false, existingChart: existing, reason: 'CACHE_HIT' };
     },
 
+    /** Legacy: upsert chart for user (primary or by input_hash). For multi-chart use create(). */
     async set(userId: string, chartData: any, birthDate?: string, birthTime?: string, birthPlace?: string) {
       const id = toUserId(userId);
       if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
@@ -425,33 +542,26 @@ export const db = {
         const inputHash = birthDate && birthPlace
           ? Buffer.from(`${birthDate}|${birthTime || '12:00'}|${birthPlace}`).toString('base64').substring(0, 64)
           : null;
+        const existing = await this.getPrimary(userId);
+        if (existing) {
+          const result = await dbPool.query(
+            `UPDATE natal_charts SET chart_data = $1, birth_date = $2, birth_time = $3, birth_place = $4, input_hash = $5
+             WHERE id = $6 RETURNING id, user_id, name, chart_data, birth_date, birth_time, birth_place, input_hash, is_primary, created_at`,
+            [JSON.stringify(data), birthDate, birthTime, birthPlace, inputHash, existing.id]
+          );
+          return this._rowToChart(result.rows[0]);
+        }
+        const charts = await this.getAll(userId);
+        const isPrimary = charts.length === 0;
         const result = await dbPool.query(
-          `INSERT INTO natal_charts (user_id, chart_data, birth_date, birth_time, birth_place, input_hash)
-           VALUES ($1, $2, $3, $4, $5, $6)
-           ON CONFLICT (user_id) DO UPDATE SET
-             chart_data = EXCLUDED.chart_data,
-             birth_date = EXCLUDED.birth_date,
-             birth_time = EXCLUDED.birth_time,
-             birth_place = EXCLUDED.birth_place,
-             input_hash = EXCLUDED.input_hash
-           RETURNING user_id, chart_data, birth_date, birth_time, birth_place, input_hash, created_at`,
-          [id, JSON.stringify(data), birthDate, birthTime, birthPlace, inputHash]
+          `INSERT INTO natal_charts (user_id, name, chart_data, birth_date, birth_time, birth_place, input_hash, is_primary)
+           VALUES ($1, 'Моя карта', $2, $3, $4, $5, $6, $7)
+           RETURNING id, user_id, name, chart_data, birth_date, birth_time, birth_place, input_hash, is_primary, created_at`,
+          [id, JSON.stringify(data), birthDate, birthTime, birthPlace, inputHash, isPrimary]
         );
-        const row = result.rows[0];
-        return {
-          user_id: row.user_id,
-          chart_data: row.chart_data,
-          birth_date: row.birth_date,
-          birth_time: row.birth_time,
-          birth_place: row.birth_place,
-          input_hash: row.input_hash,
-          calculated_at: row.created_at
-        };
+        return this._rowToChart(result.rows[0]);
       } catch (error: any) {
-        log.error('[DB] Error setting chart', {
-          error: error.message,
-          userId
-        });
+        log.error('[DB] Error setting chart', { error: error.message, userId });
         throw error;
       }
     },
@@ -459,24 +569,59 @@ export const db = {
 
   /** OpenAI cache - interpretations table (Lumia) */
   interpretations: {
-    async getByHash(userId: string, type: string, inputHash: string) {
+    /** Chart-level cache: natal_intro, deep_dive_*, daily_natal_card */
+    async getByChart(chartId: number, type: string, inputHash: string) {
+      if (!DATABASE_URL) return null;
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          `SELECT content, created_at FROM interpretations WHERE chart_id = $1 AND type = $2 AND input_hash = $3`,
+          [chartId, type, inputHash]
+        );
+        if (result.rows.length === 0) return null;
+        return { content: result.rows[0].content, updatedAt: result.rows[0].created_at };
+      } catch (error: any) {
+        log.error('[DB] Error getting interpretation by chart', { error: error.message, chartId, type });
+        throw error;
+      }
+    },
+
+    async setByChart(chartId: number, type: string, inputHash: string, content: string) {
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      try {
+        const dbPool = getPool();
+        await dbPool.query(
+          `INSERT INTO interpretations (chart_id, type, input_hash, content)
+           VALUES ($1, $2, $3, $4)
+           ON CONFLICT (chart_id, type, input_hash) DO UPDATE SET content = EXCLUDED.content`,
+          [chartId, type, inputHash, content]
+        );
+        return { success: true };
+      } catch (error: any) {
+        log.error('[DB] Error setting interpretation by chart', { error: error.message, chartId, type });
+        throw error;
+      }
+    },
+
+    /** User-level cache: question_answer, oracle_chat */
+    async getByUser(userId: string, type: string, inputHash: string) {
       const id = toUserId(userId);
       if (!DATABASE_URL) return null;
       try {
         const dbPool = getPool();
         const result = await dbPool.query(
-          `SELECT content, created_at FROM interpretations WHERE user_id = $1 AND type = $2 AND input_hash = $3`,
+          `SELECT content, created_at FROM interpretations WHERE user_id = $1 AND type = $2 AND input_hash = $3 AND chart_id IS NULL`,
           [id, type, inputHash]
         );
         if (result.rows.length === 0) return null;
         return { content: result.rows[0].content, updatedAt: result.rows[0].created_at };
       } catch (error: any) {
-        log.error('[DB] Error getting interpretation', { error: error.message, userId, type });
+        log.error('[DB] Error getting interpretation by user', { error: error.message, userId, type });
         throw error;
       }
     },
 
-    async set(userId: string, type: string, inputHash: string, content: string) {
+    async setByUser(userId: string, type: string, inputHash: string, content: string) {
       const id = toUserId(userId);
       if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
       try {
@@ -489,9 +634,28 @@ export const db = {
         );
         return { success: true };
       } catch (error: any) {
-        log.error('[DB] Error setting interpretation', { error: error.message, userId, type });
+        log.error('[DB] Error setting interpretation by user', { error: error.message, userId, type });
         throw error;
       }
+    },
+
+    /** Resolve by chartId or userId (for chart-level types). Uses primary chart when chartId not provided. */
+    async getByHash(chartIdOrUserId: number | string, type: string, inputHash: string) {
+      if (typeof chartIdOrUserId === 'number') {
+        return this.getByChart(chartIdOrUserId, type, inputHash);
+      }
+      const chart = await db.natal_charts.getPrimary(chartIdOrUserId);
+      if (chart) return this.getByChart(chart.id, type, inputHash);
+      return this.getByUser(chartIdOrUserId, type, inputHash);
+    },
+
+    async set(chartIdOrUserId: number | string, type: string, inputHash: string, content: string) {
+      if (typeof chartIdOrUserId === 'number') {
+        return this.setByChart(chartIdOrUserId, type, inputHash, content);
+      }
+      const chart = await db.natal_charts.getPrimary(chartIdOrUserId);
+      if (chart) return this.setByChart(chart.id, type, inputHash, content);
+      return this.setByUser(chartIdOrUserId, type, inputHash, content);
     },
   },
 
@@ -656,39 +820,94 @@ export const db = {
     },
   },
 
-  /** daily_natal_cards - personal daily card per user (Lumia) */
+  /** daily_natal_cards - personal daily card per chart (Lumia) */
   daily_natal_cards: {
-    async get(userId: string, date: string) {
-      const id = toUserId(userId);
+    async getByChart(chartId: number, date: string) {
       if (!DATABASE_URL) return null;
       try {
         const dbPool = getPool();
         const result = await dbPool.query(
-          `SELECT content FROM daily_natal_cards WHERE user_id = $1 AND date = $2`,
-          [id, date]
+          `SELECT content FROM daily_natal_cards WHERE chart_id = $1 AND date = $2`,
+          [chartId, date]
         );
         if (result.rows.length === 0) return null;
         const c = result.rows[0].content;
         return typeof c === 'string' ? JSON.parse(c) : c;
       } catch (error: any) {
-        log.error('[DB] Error getting daily natal card', { error: error.message, userId, date });
+        log.error('[DB] Error getting daily natal card by chart', { error: error.message, chartId, date });
         throw error;
       }
     },
 
-    async set(userId: string, date: string, content: any) {
-      const id = toUserId(userId);
+    async setByChart(chartId: number, date: string, content: any) {
       if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
       try {
         const dbPool = getPool();
         await dbPool.query(
-          `INSERT INTO daily_natal_cards (user_id, date, content) VALUES ($1, $2, $3)
-           ON CONFLICT (user_id, date) DO UPDATE SET content = EXCLUDED.content`,
-          [id, date, typeof content === 'string' ? content : JSON.stringify(content)]
+          `INSERT INTO daily_natal_cards (chart_id, date, content) VALUES ($1, $2, $3)
+           ON CONFLICT (chart_id, date) DO UPDATE SET content = EXCLUDED.content`,
+          [chartId, date, typeof content === 'string' ? content : JSON.stringify(content)]
         );
         return { success: true };
       } catch (error: any) {
-        log.error('[DB] Error setting daily natal card', { error: error.message, userId, date });
+        log.error('[DB] Error setting daily natal card by chart', { error: error.message, chartId, date });
+        throw error;
+      }
+    },
+
+    /** Legacy: resolve via primary chart */
+    async get(userId: string, date: string) {
+      const chart = await db.natal_charts.getPrimary(userId);
+      if (!chart) return null;
+      return this.getByChart(chart.id, date);
+    },
+
+    async set(userId: string, date: string, content: any) {
+      const chart = await db.natal_charts.getPrimary(userId);
+      if (!chart) throw new Error('No primary chart for user');
+      return this.setByChart(chart.id, date, content);
+    },
+  },
+
+  /** synastry_cache - AI cache for synastry (chart1_id < chart2_id) */
+  synastry: {
+    _normalize(chartA: number, chartB: number): [number, number] {
+      const chart1 = Math.min(chartA, chartB);
+      const chart2 = Math.max(chartA, chartB);
+      return [chart1, chart2];
+    },
+
+    async get(chartA: number, chartB: number, mode: string, inputHash: string) {
+      if (!DATABASE_URL) return null;
+      const [chart1, chart2] = this._normalize(chartA, chartB);
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          `SELECT content FROM synastry_cache WHERE chart1_id = $1 AND chart2_id = $2 AND mode = $3 AND input_hash = $4`,
+          [chart1, chart2, mode, inputHash]
+        );
+        if (result.rows.length === 0) return null;
+        return result.rows[0].content;
+      } catch (error: any) {
+        log.error('[DB] Error getting synastry', { error: error.message, chart1, chart2 });
+        throw error;
+      }
+    },
+
+    async set(chartA: number, chartB: number, mode: string, inputHash: string, content: any) {
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      const [chart1, chart2] = this._normalize(chartA, chartB);
+      try {
+        const dbPool = getPool();
+        await dbPool.query(
+          `INSERT INTO synastry_cache (chart1_id, chart2_id, mode, input_hash, content)
+           VALUES ($1, $2, $3, $4, $5)
+           ON CONFLICT (chart1_id, chart2_id, mode, input_hash) DO UPDATE SET content = EXCLUDED.content`,
+          [chart1, chart2, mode, inputHash, typeof content === 'string' ? content : JSON.stringify(content)]
+        );
+        return { success: true };
+      } catch (error: any) {
+        log.error('[DB] Error setting synastry', { error: error.message, chart1, chart2 });
         throw error;
       }
     },

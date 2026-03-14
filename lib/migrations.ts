@@ -72,6 +72,7 @@ async function migrationReset(pool: Pool): Promise<void> {
   log.info('Applying full database reset...');
 
   const dropOrder = [
+    'synastry_cache',
     'astro_questions',
     'daily_natal_cards',
     'daily_horoscopes',
@@ -169,6 +170,7 @@ async function lumia001FullSchema(pool: Pool): Promise<void> {
     CREATE TABLE natal_charts (
       id SERIAL PRIMARY KEY,
       user_id BIGINT UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+      is_primary BOOLEAN DEFAULT TRUE,
       sun JSONB,
       moon JSONB,
       ascendant JSONB,
@@ -277,11 +279,87 @@ async function lumia001FullSchema(pool: Pool): Promise<void> {
   log.info('Migration lumia_001_full_schema applied');
 }
 
+/**
+ * Migration: Multi-chart support (lumia_002)
+ * Run AFTER lumia_001. Alters schema for multiple natal charts per user.
+ */
+async function lumia002MultiChart(pool: Pool): Promise<void> {
+  const migrationName = 'lumia_002_multi_chart';
+
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
+  log.info('Applying multi-chart migration...');
+
+  await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS chart_slots INTEGER DEFAULT 1');
+
+  await pool.query('ALTER TABLE natal_charts DROP CONSTRAINT IF EXISTS natal_charts_user_id_key');
+  await pool.query('ALTER TABLE natal_charts ADD COLUMN IF NOT EXISTS name TEXT');
+  await pool.query('ALTER TABLE natal_charts ADD COLUMN IF NOT EXISTS is_primary BOOLEAN DEFAULT FALSE');
+  await pool.query(`UPDATE natal_charts SET name = COALESCE(name, 'Моя карта'), is_primary = TRUE WHERE is_primary IS NOT TRUE`);
+  await pool.query('ALTER TABLE natal_charts ALTER COLUMN name SET DEFAULT \'Моя карта\'');
+
+  await pool.query('DROP INDEX IF EXISTS idx_natal_charts_user_input_hash');
+  await pool.query('CREATE UNIQUE INDEX idx_natal_charts_user_input_hash ON natal_charts(user_id, input_hash) WHERE input_hash IS NOT NULL');
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_natal_charts_user ON natal_charts(user_id)');
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_natal_charts_user_primary ON natal_charts(user_id) WHERE is_primary = TRUE');
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_natal_charts_input_hash ON natal_charts(input_hash) WHERE input_hash IS NOT NULL');
+
+  await pool.query('ALTER TABLE interpretations ADD COLUMN IF NOT EXISTS chart_id BIGINT REFERENCES natal_charts(id) ON DELETE CASCADE');
+  await pool.query(`
+    UPDATE interpretations i SET chart_id = (
+      SELECT nc.id FROM natal_charts nc WHERE nc.user_id = i.user_id
+      ORDER BY nc.is_primary DESC NULLS LAST, nc.id ASC LIMIT 1
+    ) WHERE i.chart_id IS NULL AND i.user_id IS NOT NULL
+  `);
+
+  await pool.query('DROP INDEX IF EXISTS idx_interpretations_lookup');
+  await pool.query('CREATE UNIQUE INDEX idx_interpretations_chart_lookup ON interpretations(chart_id, type, input_hash) WHERE chart_id IS NOT NULL');
+  await pool.query('CREATE UNIQUE INDEX idx_interpretations_user_lookup ON interpretations(user_id, type, input_hash) WHERE user_id IS NOT NULL AND chart_id IS NULL');
+  await pool.query('ALTER TABLE interpretations DROP CONSTRAINT IF EXISTS interpretations_chart_or_user');
+  await pool.query('ALTER TABLE interpretations ADD CONSTRAINT interpretations_chart_or_user CHECK ((chart_id IS NOT NULL) OR (user_id IS NOT NULL))');
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_interpretations_chart ON interpretations(chart_id) WHERE chart_id IS NOT NULL');
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_interpretations_user ON interpretations(user_id) WHERE user_id IS NOT NULL');
+
+  await pool.query('ALTER TABLE daily_natal_cards ADD COLUMN IF NOT EXISTS chart_id BIGINT REFERENCES natal_charts(id) ON DELETE CASCADE');
+  await pool.query(`
+    UPDATE daily_natal_cards dnc SET chart_id = (
+      SELECT nc.id FROM natal_charts nc WHERE nc.user_id = dnc.user_id
+      ORDER BY nc.is_primary DESC NULLS LAST, nc.id ASC LIMIT 1
+    ) WHERE dnc.chart_id IS NULL AND dnc.user_id IS NOT NULL
+  `);
+  await pool.query('DELETE FROM daily_natal_cards WHERE chart_id IS NULL');
+  await pool.query('ALTER TABLE daily_natal_cards DROP CONSTRAINT IF EXISTS daily_natal_cards_user_id_date_key');
+  await pool.query('DROP INDEX IF EXISTS idx_daily_natal_cards_chart_date');
+  await pool.query('CREATE UNIQUE INDEX idx_daily_natal_cards_chart_date ON daily_natal_cards(chart_id, date) WHERE chart_id IS NOT NULL');
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS synastry_cache (
+      id BIGSERIAL PRIMARY KEY,
+      chart1_id BIGINT NOT NULL REFERENCES natal_charts(id) ON DELETE CASCADE,
+      chart2_id BIGINT NOT NULL REFERENCES natal_charts(id) ON DELETE CASCADE,
+      mode TEXT NOT NULL,
+      input_hash TEXT NOT NULL,
+      content JSONB NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT synastry_chart_order CHECK (chart1_id < chart2_id)
+    )
+  `);
+  await pool.query('CREATE UNIQUE INDEX IF NOT EXISTS idx_synastry_cache_lookup ON synastry_cache(chart1_id, chart2_id, mode, input_hash)');
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_synastry_cache_chart1 ON synastry_cache(chart1_id)');
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_synastry_cache_chart2 ON synastry_cache(chart2_id)');
+
+  await markMigrationApplied(pool, migrationName);
+  log.info('Migration lumia_002_multi_chart applied');
+}
+
 async function verifyTablesExist(pool: Pool): Promise<void> {
   const required = [
     'users', 'natal_charts', 'interpretations', 'lumi_transactions',
     'roulette_spins', 'daily_horoscopes', 'daily_natal_cards',
-    'astro_questions', 'dictionary'
+    'astro_questions', 'dictionary', 'synastry_cache'
   ];
   const missing: string[] = [];
   for (const t of required) {
@@ -332,6 +410,7 @@ export async function runMigrations(): Promise<void> {
 
     await migrationReset(pool);
     await lumia001FullSchema(pool);
+    await lumia002MultiChart(pool);
     await verifyTablesExist(pool);
 
     log.info('All Lumia migrations completed successfully');
