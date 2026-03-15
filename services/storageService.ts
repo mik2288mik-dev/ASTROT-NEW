@@ -350,6 +350,133 @@ export const getChartData = async (): Promise<NatalChartData | null> => {
   return null;
 };
 
+// --- Multi-chart API (chart slots flow) ---
+
+export interface ChartListItem {
+  id: number;
+  user_id: string;
+  name: string;
+  chart_data: any;
+  birth_date: string;
+  birth_time: string;
+  birth_place: string;
+  is_primary: boolean;
+  created_at?: string;
+}
+
+export interface ChartsResponse {
+  charts: ChartListItem[];
+  chartSlots: number;
+  canAddMore: boolean;
+}
+
+/**
+ * Get all charts for user (multi-chart flow)
+ */
+export const getCharts = async (userId: string): Promise<ChartsResponse> => {
+  if (!userId) throw new Error('UserId is required');
+  const url = `${API_BASE_URL}/api/charts?userId=${encodeURIComponent(userId)}`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Failed to fetch charts: ${res.status}`);
+  }
+  return res.json();
+};
+
+/**
+ * Create a new chart (enforces chart_slots limit)
+ */
+export const createChart = async (
+  userId: string,
+  data: { name: string; birthDate: string; birthTime?: string; birthPlace: string; chartData: any }
+): Promise<ChartListItem> => {
+  if (!userId) throw new Error('UserId is required');
+  const url = `${API_BASE_URL}/api/charts`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId, ...data }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || err.error || `Failed to create chart: ${res.status}`);
+  }
+  return res.json();
+};
+
+/**
+ * Buy one additional chart slot with Lumi
+ */
+export const buyChartSlot = async (userId: string): Promise<{ newBalance: number; chartSlots: number }> => {
+  if (!userId) throw new Error('UserId is required');
+  const url = `${API_BASE_URL}/api/charts`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId, action: 'buy-slot' }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || err.error || `Failed to buy slot: ${res.status}`);
+  }
+  const data = await res.json();
+  return { newBalance: data.newBalance, chartSlots: data.chartSlots };
+};
+
+/**
+ * Delete a chart (reassigns primary if needed)
+ */
+export const deleteChart = async (chartId: number, userId: string): Promise<void> => {
+  if (!userId) throw new Error('UserId is required');
+  const url = `${API_BASE_URL}/api/charts/chart/${chartId}?userId=${encodeURIComponent(userId)}`;
+  const res = await fetch(url, { method: 'DELETE' });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Failed to delete chart: ${res.status}`);
+  }
+};
+
+/**
+ * Set a chart as primary
+ */
+export const setPrimaryChart = async (chartId: number, userId: string): Promise<void> => {
+  if (!userId) throw new Error('UserId is required');
+  const url = `${API_BASE_URL}/api/charts/set-primary`;
+  const res = await fetch(url, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chartId, userId }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Failed to set primary: ${res.status}`);
+  }
+};
+
+/**
+ * Calculate natal chart (no save) - for multi-chart add flow
+ */
+export const calculateNatalChartData = async (data: {
+  name: string;
+  birthDate: string;
+  birthTime?: string;
+  birthPlace: string;
+  language?: string;
+}): Promise<any> => {
+  const url = `${API_BASE_URL}/api/astrology/calculate-natal`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || err.error || `Calculation failed: ${res.status}`);
+  }
+  return res.json();
+};
+
 /**
  * Get all users for Admin Panel from Railway Database
  */

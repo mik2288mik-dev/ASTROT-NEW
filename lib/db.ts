@@ -349,6 +349,41 @@ export const db = {
       return this.get(userId);
     },
 
+    /** Buy one chart slot with Lumi. Atomic: deduct + increment chart_slots. */
+    async buyChartSlot(userId: string, cost: number): Promise<{ success: true; newBalance: number; chartSlots: number }> {
+      const id = toUserId(userId);
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      const dbPool = getPool();
+      const client = await dbPool.connect();
+      try {
+        await client.query('BEGIN');
+        const result = await client.query(
+          `UPDATE users SET lumi_balance = COALESCE(lumi_balance, 0) - $1, chart_slots = COALESCE(chart_slots, 1) + 1
+           WHERE id = $2 AND COALESCE(lumi_balance, 0) >= $1
+           RETURNING lumi_balance, chart_slots`,
+          [cost, id]
+        );
+        if (result.rows.length === 0) {
+          await client.query('ROLLBACK');
+          throw new Error('Insufficient Lumi balance');
+        }
+        await client.query(
+          `INSERT INTO lumi_transactions (user_id, amount, reason) VALUES ($1, $2, $3)`,
+          [id, -cost, 'chart_slot']
+        );
+        const newBalance = result.rows[0].lumi_balance ?? 0;
+        const chartSlots = result.rows[0].chart_slots ?? 1;
+        await client.query('COMMIT');
+        return { success: true, newBalance, chartSlots };
+      } catch (error: any) {
+        await client.query('ROLLBACK').catch(() => {});
+        log.error('[DB] Error buyChartSlot', { error: error.message, userId });
+        throw error;
+      } finally {
+        client.release();
+      }
+    },
+
     /**
      * Process daily login: atomic check + award + update.
      * Prevents double-award for same day. Uses UTC dates.

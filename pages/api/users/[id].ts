@@ -82,6 +82,7 @@ export default async function handler(
 
       const lumiBalance = user.lumi_balance ?? 0;
       const loginStreak = user.login_streak ?? 0;
+      const chartSlots = user.chart_slots ?? 1;
 
       const clientUser = {
         id: user.id,
@@ -99,6 +100,7 @@ export default async function handler(
         weatherCity: user.weather_city && user.weather_city.trim() ? user.weather_city.trim() : undefined,
         lumiBalance,
         loginStreak,
+        chartSlots,
       };
 
       return res.status(200).json(clientUser);

@@ -48,6 +48,7 @@ export interface UserProfile {
   lastContext?: UserContext;
   lumiBalance?: number; // Lumi balance (internal app currency)
   loginStreak?: number; // Consecutive daily login count
+  chartSlots?: number; // Max charts user can have
   weatherCity?: string; // Город для погоды (например, "Moscow" или "Москва")
   
   // Все генерации пользователя (кэшируются)
@@ -195,7 +196,7 @@ export interface ChatMessage {
   timestamp: number;
 }
 
-export type ViewState = 'onboarding' | 'hook' | 'paywall' | 'dashboard' | 'chart' | 'horoscope' | 'synastry' | 'oracle' | 'settings' | 'admin';
+export type ViewState = 'onboarding' | 'hook' | 'paywall' | 'dashboard' | 'chart' | 'horoscope' | 'synastry' | 'oracle' | 'settings' | 'admin' | 'charts';
 
 // Cached text types
 export interface CachedText<T = any> {

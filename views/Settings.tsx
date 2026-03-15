@@ -11,9 +11,10 @@ interface SettingsProps {
     onUpdate: (profile: UserProfile) => void;
     onShowPremiumPreview?: () => void;
     onOpenAdmin?: () => void;
+    onOpenCharts?: () => void;
 }
 
-export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPremiumPreview, onOpenAdmin }) => {
+export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPremiumPreview, onOpenAdmin, onOpenCharts }) => {
     const [editing, setEditing] = useState(false);
     const [tempName, setTempName] = useState(profile.name);
     const [tempPlace, setTempPlace] = useState(profile.birthPlace);
@@ -165,6 +166,24 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                 </div>
                 <div className="absolute -right-6 -bottom-10 text-[100px] opacity-10"></div>
             </div>
+
+            {/* My Charts */}
+            {onOpenCharts && (
+                <button 
+                    onClick={onOpenCharts}
+                    className="w-full bg-astro-card border border-astro-border rounded-xl p-5 flex items-center justify-between shadow-sm hover:border-astro-highlight/50 transition-colors text-left"
+                >
+                    <div>
+                        <h3 className="text-astro-text font-medium font-serif">
+                            {profile.language === 'ru' ? 'Мои карты' : 'My Charts'}
+                        </h3>
+                        <p className="text-[10px] uppercase tracking-wider text-astro-subtext mt-1">
+                            {profile.language === 'ru' ? 'Управление натальными картами' : 'Manage natal charts'}
+                        </p>
+                    </div>
+                    <span className="text-astro-subtext">→</span>
+                </button>
+            )}
 
             {/* Theme Switcher */}
             <div className="bg-astro-card border border-astro-border rounded-xl p-5 flex items-center justify-between shadow-sm">

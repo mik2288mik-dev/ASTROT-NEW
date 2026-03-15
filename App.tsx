@@ -19,6 +19,7 @@ import { requestStarsPayment } from './services/telegramService';
 import { HookChat } from './views/HookChat';
 import { Paywall } from './views/Paywall';
 import { Synastry } from './views/Synastry';
+import { MyCharts } from './views/MyCharts';
 import { useSwipeBack } from './lib/useSwipeBack';
 import { BackgroundLayers } from './components/BackgroundLayers';
 
@@ -355,8 +356,8 @@ const App: React.FC = () => {
     };
 
     const handleBack = useCallback(() => {
-        // If in Admin, return to Settings
-        if (view === 'admin') {
+        // If in Admin or Charts, return to Settings
+        if (view === 'admin' || view === 'charts') {
             setView('settings');
             return;
         }
@@ -444,6 +445,19 @@ const App: React.FC = () => {
                             onUpdate={handleProfileUpdate} 
                             onShowPremiumPreview={() => setShowPremiumPreview(true)}
                             onOpenAdmin={() => setView('admin')}
+                            onOpenCharts={() => setView('charts')}
+                        />
+                    </div>
+                ) : view === 'charts' ? (
+                    <div className="h-full overflow-y-auto scrollbar-hide">
+                        <MyCharts 
+                            profile={profile} 
+                            onBack={() => setView('settings')}
+                            onProfileUpdate={handleProfileUpdate}
+                            onChartSelect={(chartData) => {
+                                setChartData(chartData);
+                                setView('chart');
+                            }}
                         />
                     </div>
                 ) : (

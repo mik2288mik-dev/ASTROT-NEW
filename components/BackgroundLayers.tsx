@@ -34,7 +34,8 @@ const BACKGROUND_BY_VIEW: Record<ViewState, StaticImageData> = {
   synastry: bgMainDeepSpace,
   oracle: bgMainDeepSpace,
   settings: bgSoftGradient,
-  admin: bgSoftGradient
+  admin: bgSoftGradient,
+  charts: bgSoftGradient
 };
 
 const OVERLAYS_BY_VIEW: Partial<Record<ViewState, OverlayLayer[]>> = {

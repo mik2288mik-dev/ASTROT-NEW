@@ -20,6 +20,7 @@ export const Header: React.FC<HeaderProps> = ({ profile, view, onBack }) => {
     const getViewTitle = () => {
         const titles: Record<string, { ru: string; en: string }> = {
             chart: { ru: 'Натальная карта', en: 'Natal Chart' },
+            charts: { ru: 'Мои карты', en: 'My Charts' },
             horoscope: { ru: 'Гороскоп', en: 'Horoscope' },
             oracle: { ru: 'Оракул', en: 'Oracle' },
             synastry: { ru: 'Совместимость', en: 'Synastry' },
