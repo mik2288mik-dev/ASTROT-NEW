@@ -15,7 +15,6 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     const [date, setDate] = useState("");
     const [time, setTime] = useState("");
     const [place, setPlace] = useState("");
-    const [rememberData, setRememberData] = useState(true);
     
     // Вычисляем предполагаемый знак зодиака на основе выбранной даты
     const predictedZodiacSign = useMemo(() => {
@@ -178,18 +177,6 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                                     className="w-full bg-transparent border-b border-astro-border py-3 text-xl text-astro-text focus:border-astro-highlight outline-none font-serif placeholder-astro-subtext/20"
                                     placeholder="Москва, Россия"
                                 />
-                            </div>
-                            <div className="flex items-center gap-3 pt-4">
-                                <input 
-                                    type="checkbox" 
-                                    id="rememberData"
-                                    checked={rememberData}
-                                    onChange={(e) => setRememberData(e.target.checked)}
-                                    className="w-5 h-5 rounded border-astro-border bg-transparent text-astro-highlight focus:ring-astro-highlight focus:ring-2 cursor-pointer"
-                                />
-                                <label htmlFor="rememberData" className="text-sm text-astro-text cursor-pointer">
-                                    Запомнить данные для будущих входов
-                                </label>
                             </div>
                         </motion.div>
                     )}

@@ -144,76 +144,59 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
               weatherData={context?.weatherData}
             />
 
-            {/* 1.5. HOROSCOPE FOR TODAY */}
+            {/* Horoscope */}
             <button 
                 onClick={handleNavigateHoroscope}
-                className="w-full bg-gradient-to-br from-purple-900/20 to-astro-card rounded-2xl p-6 shadow-soft relative overflow-hidden text-center transition-colors"
+                className="w-full bg-astro-card rounded-xl p-5 border border-astro-border hover:border-astro-highlight/30 transition-colors text-left"
             >
-                <div className="absolute -top-16 -left-16 w-48 h-48 bg-purple-500 rounded-full blur-3xl opacity-20"></div>
-                <div className="relative z-10">
-                    <p className="text-[10px] uppercase tracking-widest text-astro-subtext mb-1">
-                        {profile.language === 'ru' ? 'Гороскоп на сегодня' : 'Today\'s Horoscope'}
+                <p className="text-[10px] uppercase tracking-widest text-astro-subtext mb-1">
+                    {getText(profile.language, 'dashboard.horoscope_today')}
+                </p>
+                {horoscopeDateLabel && (
+                    <p className="text-[9px] text-astro-subtext mb-2">
+                        {getText(profile.language, 'dashboard.forecast_date')}: {horoscopeDateLabel}
                     </p>
-                    {horoscopeDateLabel && (
-                        <p className="text-[9px] text-astro-subtext mb-2">
-                            {profile.language === 'ru' ? `Дата прогноза: ${horoscopeDateLabel}` : `Forecast date: ${horoscopeDateLabel}`}
-                        </p>
-                    )}
-                    {dailyHoroscope?.content ? (
-                        <>
-                            {/* Краткий гороскоп - только первое предложение или первые 2-3 предложения */}
-                            <h3 className="font-serif text-lg text-astro-text mb-2">
-                                {(() => {
-                                    // Берем первые 2-3 предложения для краткого отображения
-                                    const sentences = dailyHoroscope.content.split(/[.!?]+/).filter((s: string) => s.trim().length > 0);
-                                    const shortText = sentences.slice(0, 2).join('. ').trim();
-                                    return shortText.length > 0 ? shortText + '.' : dailyHoroscope.content.substring(0, 150) + '...';
-                                })()}
-                            </h3>
-                            {dailyHoroscope.mood && (
-                                <div className="flex items-center justify-center gap-2 mt-2 flex-wrap">
-                                    <span className="text-xs text-astro-subtext">
-                                        {profile.language === 'ru' ? 'Настроение:' : 'Mood:'} <span className="text-astro-highlight font-medium">{dailyHoroscope.mood}</span>
-                                    </span>
-                                    {dailyHoroscope.color && (
-                                        <>
-                                            <span className="text-astro-subtext">•</span>
-                                            <span className="text-xs text-astro-subtext">
-                                                {profile.language === 'ru' ? 'Цвет:' : 'Color:'} <span className="text-astro-highlight font-medium">{dailyHoroscope.color}</span>
-                                            </span>
-                                        </>
-                                    )}
-                                </div>
-                            )}
-                        </>
-                    ) : (
-                        <h3 className="font-serif text-xl text-astro-text mb-2">
-                            {profile.language === 'ru' ? 'Сегодня тебя ждёт особенный день' : 'A special day awaits you'}
+                )}
+                {dailyHoroscope?.content ? (
+                    <>
+                        <h3 className="font-serif text-base text-astro-text mb-2 line-clamp-2">
+                            {(() => {
+                                const sentences = dailyHoroscope.content.split(/[.!?]+/).filter((s: string) => s.trim().length > 0);
+                                const shortText = sentences.slice(0, 2).join('. ').trim();
+                                return shortText.length > 0 ? shortText + '.' : dailyHoroscope.content.substring(0, 120) + '...';
+                            })()}
                         </h3>
-                    )}
-                    <div className="text-xs text-astro-highlight font-medium mb-2">
-                        {profile.language === 'ru' ? 'Подробный прогноз →' : 'Detailed forecast →'}
-                    </div>
-                    <p className="text-[9px] text-astro-subtext/70 font-light italic mt-3 pt-3 border-t border-astro-border/30">
-                        {profile.language === 'ru' 
-                            ? 'Гороскоп составлен на основе ваших планет, Луны, Солнца и точных данных рождения' 
-                            : 'Horoscope generated from your planets, Moon, Sun and precise birth data'}
-                    </p>
-                </div>
+                        {(dailyHoroscope.mood || dailyHoroscope.color) && (
+                            <div className="flex items-center gap-2 flex-wrap text-xs text-astro-subtext">
+                                {dailyHoroscope.mood && (
+                                    <span>{getText(profile.language, 'dashboard.mood')}: <span className="text-astro-highlight font-medium">{dailyHoroscope.mood}</span></span>
+                                )}
+                                {dailyHoroscope.mood && dailyHoroscope.color && <span>·</span>}
+                                {dailyHoroscope.color && (
+                                    <span>{getText(profile.language, 'dashboard.color')}: <span className="text-astro-highlight font-medium">{dailyHoroscope.color}</span></span>
+                                )}
+                            </div>
+                        )}
+                    </>
+                ) : (
+                    <h3 className="font-serif text-base text-astro-text">
+                        {getText(profile.language, 'dashboard.special_day')}
+                    </h3>
+                )}
+                <p className="text-xs text-astro-highlight font-medium mt-2">
+                    {getText(profile.language, 'dashboard.detailed_forecast')}
+                </p>
             </button>
 
-            {/* 2. PRIMARY ACTION: NATAL CHART */}
+            {/* Natal Chart CTA */}
             <button 
                 onClick={handleNavigateChart}
-                className="w-full bg-gradient-to-br from-purple-900/20 to-astro-card rounded-2xl p-6 text-center transition-colors shadow-soft relative overflow-hidden"
+                className="w-full bg-astro-card rounded-xl p-5 border border-astro-border hover:border-astro-highlight/30 transition-colors text-left"
             >
-                <div className="absolute -top-16 -left-16 w-48 h-48 bg-purple-500 rounded-full blur-3xl opacity-20"></div>
-                <div className="relative z-10">
-                    <h3 className="font-serif text-xl text-astro-text mb-1">{getText(profile.language, 'dashboard.menu_analysis')}</h3>
-                    <p className="text-astro-subtext text-xs font-light">
-                        {profile.language === 'ru' ? 'Личность, судьба, карма и прогнозы' : 'Personality, Fate, Karma & Forecasts'}
-                    </p>
-                </div>
+                <h3 className="font-serif text-lg text-astro-text mb-0.5">{getText(profile.language, 'dashboard.menu_analysis')}</h3>
+                <p className="text-astro-subtext text-xs">
+                    {getText(profile.language, 'dashboard.chart_subtitle')}
+                </p>
             </button>
 
             {/* 3. SOCIAL PROOF (Layer 2/4: Community) */}
@@ -238,91 +221,52 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
                         weatherData={context.weatherData}
                     />
                 ) : (
-                    <div className="bg-gradient-to-r from-astro-card to-astro-bg p-5 rounded-xl border border-astro-border relative overflow-hidden opacity-60">
-                        <div className="relative z-10 flex items-center justify-between">
-                            <div>
-                                <h3 className="text-[10px] uppercase tracking-widest text-astro-subtext mb-1">
-                                    {getText(profile.language, 'dashboard.context_weather')}
-                                </h3>
-                                <p className="text-sm font-serif text-astro-text">
-                                    {profile.language === 'ru' ? 'Загрузка погоды...' : 'Loading weather...'}
-                                </p>
-                            </div>
-                            <div className="text-3xl opacity-30 text-astro-highlight animate-pulse">...</div>
-                        </div>
+                    <div className="bg-astro-card/60 p-5 rounded-xl border border-astro-border opacity-70">
+                        <h3 className="text-[10px] uppercase tracking-widest text-astro-subtext mb-1">
+                            {getText(profile.language, 'dashboard.context_weather')}
+                        </h3>
+                        <p className="text-sm text-astro-text">{getText(profile.language, 'dashboard.loading_weather')}</p>
                     </div>
                 )
             ) : (
                 <button 
                     onClick={onOpenSettings}
-                    className="w-full bg-gradient-to-r from-astro-card to-astro-bg p-5 rounded-xl border border-astro-border relative overflow-hidden text-left hover:border-astro-highlight/50 transition-colors group"
+                    className="w-full bg-astro-card/60 p-5 rounded-xl border border-astro-border text-left hover:border-astro-highlight/40 transition-colors"
                 >
-                    <div className="relative z-10 flex items-center justify-between">
-                        <div>
-                            <h3 className="text-[10px] uppercase tracking-widest text-astro-subtext mb-1">
-                                {getText(profile.language, 'dashboard.context_weather')}
-                            </h3>
-                            <p className="text-sm font-serif text-astro-text">
-                                {profile.language === 'ru' 
-                                    ? 'Укажите город в настройках для отображения погоды'
-                                    : 'Set city in settings to see weather'}
-                            </p>
-                        </div>
-                        <div className="text-3xl opacity-30 text-astro-highlight group-hover:opacity-50 transition-opacity">...</div>
-                    </div>
-                    <p className="relative z-10 text-xs text-astro-subtext mt-2 font-light italic">
-                        {profile.language === 'ru' 
-                            ? 'Нажмите, чтобы открыть настройки →' 
-                            : 'Tap to open settings →'}
-                    </p>
+                    <h3 className="text-[10px] uppercase tracking-widest text-astro-subtext mb-1">
+                        {getText(profile.language, 'dashboard.context_weather')}
+                    </h3>
+                    <p className="text-sm text-astro-text">{getText(profile.language, 'dashboard.set_city_hint')}</p>
+                    <p className="text-xs text-astro-subtext mt-2">{getText(profile.language, 'dashboard.tap_settings')}</p>
                 </button>
             )}
 
-            {/* 6. SECONDARY ACTIONS */}
-            <div className="grid grid-cols-2 gap-4">
-                
-                {/* Synastry - доступна всем */}
+            {/* Synastry & Oracle */}
+            <div className="grid grid-cols-2 gap-3">
                 <button 
                     onClick={handleNavigateSynastry}
-                    className="bg-gradient-to-br from-pink-900/20 to-astro-card p-5 rounded-2xl text-left transition-colors shadow-soft group relative overflow-hidden"
+                    className="bg-astro-card p-4 rounded-xl border border-astro-border hover:border-astro-highlight/30 transition-colors text-left"
                 >
-                    <div className="absolute -top-10 -right-10 w-32 h-32 bg-pink-500 rounded-full blur-2xl opacity-20"></div>
-                    <div className="relative z-10 flex flex-col justify-between h-28">
-                        <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-gradient-to-br from-pink-400/20 to-pink-600/5 border-2 border-pink-400/40 flex items-center justify-center group-hover:scale-110 transition-all shadow-md group-hover:shadow-lg">
-                            <span className="text-2xl md:text-3xl text-pink-400 opacity-90" style={{ filter: 'drop-shadow(0 2px 6px rgba(244, 114, 182, 0.3))' }}>♥</span>
-                        </div>
-                        <div>
-                            <h3 className="font-serif text-base text-astro-text mb-1">{getText(profile.language, 'dashboard.menu_synastry')}</h3>
-                            <p className="text-astro-subtext text-[10px] font-light">
-                                {profile.language === 'ru' ? 'Совместимость' : 'Check compatibility'}
-                            </p>
-                            {!profile.isPremium && (
-                                <span className="text-[8px] text-astro-highlight uppercase tracking-wider">
-                                    {profile.language === 'ru' ? 'Бесплатный тизер' : 'Free preview'}
-                                </span>
-                            )}
-                        </div>
-                    </div>
+                    <span className="text-xl text-pink-400/90">♥</span>
+                    <h3 className="font-serif text-sm text-astro-text mt-2 mb-0.5">{getText(profile.language, 'dashboard.menu_synastry')}</h3>
+                    <p className="text-astro-subtext text-[10px]">{getText(profile.language, 'dashboard.synastry_subtitle')}</p>
+                    {!profile.isPremium && (
+                        <span className="text-[9px] text-astro-highlight uppercase tracking-wider mt-1 block">{getText(profile.language, 'dashboard.synastry_free')}</span>
+                    )}
                 </button>
 
-                 {/* Personal Oracle */}
                 <button 
                     onClick={handleNavigateOracle}
-                    className="bg-gradient-to-br from-blue-900/20 to-astro-card p-5 rounded-2xl text-left transition-colors shadow-soft group relative overflow-hidden"
+                    className="bg-astro-card p-4 rounded-xl border border-astro-border hover:border-astro-highlight/30 transition-colors text-left relative"
                 >
-                    <div className="absolute -top-10 -right-10 w-32 h-32 bg-blue-500 rounded-full blur-2xl opacity-20"></div>
-                    {!profile.isPremium && <div className="absolute inset-0 bg-black/10 backdrop-blur-[1px] flex items-center justify-center z-20 rounded-2xl"><span className="text-xs font-bold bg-astro-text text-astro-bg px-2 py-1 rounded">PRO</span></div>}
-                    <div className="relative z-10 flex flex-col justify-between h-28">
-                        <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-gradient-to-br from-blue-400/20 to-blue-600/5 border-2 border-blue-400/40 flex items-center justify-center group-hover:scale-110 group-hover:rotate-[20deg] transition-all shadow-md group-hover:shadow-lg">
-                            <span className="text-2xl md:text-3xl text-blue-400 opacity-90" style={{ filter: 'drop-shadow(0 2px 6px rgba(96, 165, 250, 0.3))' }}>✧</span>
-                        </div>
-                        <div>
-                             <h3 className="font-serif text-base text-astro-text mb-1">{getText(profile.language, 'dashboard.menu_oracle')}</h3>
-                             <p className="text-astro-subtext text-[10px] font-light">
-                                {profile.language === 'ru' ? 'Спроси у Lumia' : 'Ask Lumia anything'}
-                             </p>
-                        </div>
-                    </div>
+                    {!profile.isPremium && (
+                        <span className="absolute top-2 right-2 text-[9px] font-bold bg-astro-highlight/20 text-astro-highlight px-2 py-0.5 rounded-full uppercase">
+                            {getText(profile.language, 'dashboard.premium_badge')}
+                        </span>
+                    )}
+                    <span className="text-xl text-blue-400/90">✧</span>
+                    <h3 className="font-serif text-sm text-astro-text mt-2 mb-0.5">{getText(profile.language, 'dashboard.menu_oracle')}</h3>
+                    <p className="text-astro-subtext text-[10px]">{getText(profile.language, 'dashboard.oracle_subtitle')}</p>
                 </button>
             </div>
 

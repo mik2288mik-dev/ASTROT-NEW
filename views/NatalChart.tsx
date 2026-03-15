@@ -189,14 +189,19 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, 
         </div>
     );
 
+    const greeting = `${getText(lang, 'chart.greeting')}, ${profile.name || getText(lang, 'chart.friend')}!`;
+    const soulPhrase = lang === 'ru'
+        ? `${data.sun?.sign} ${getText(lang, 'chart.soul_connector')} ${data.moon?.sign}`
+        : `${data.sun?.sign} ${getText(lang, 'chart.soul_connector')} ${data.moon?.sign}${getText(lang, 'chart.soul_suffix')}`;
+
     return (
         <div className="min-h-full pb-24">
-            {/* Вступление */}
+            {/* Intro */}
             {(natalIntro || isLoadingIntro) && (
                 <motion.div 
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="px-5 pt-6 mb-8"
+                    className="px-5 pt-6 mb-6"
                 >
                     {isLoadingIntro ? (
                         <div className="flex items-center justify-center py-4">
@@ -208,13 +213,51 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, 
                 </motion.div>
             )}
 
-            {/* Разделы анализа */}
+            {/* Chart summary — compact, above deep dive */}
+            <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="px-5 mb-6"
+            >
+                <div className="bg-astro-card/60 rounded-xl border border-astro-border p-4">
+                    <h2 className="text-lg font-bold text-astro-text mb-1">{greeting}</h2>
+                    <p className="text-astro-subtext text-sm mb-4">{soulPhrase}</p>
+                    <div className="grid grid-cols-3 gap-3">
+                        {mainPlanets.map((planet) => (
+                            <div key={planet.id} className="flex items-center gap-2">
+                                <span className="text-lg text-astro-highlight">{PLANET_SYMBOLS[planet.id]}</span>
+                                <div className="min-w-0">
+                                    <div className="text-[10px] text-astro-subtext uppercase tracking-wider truncate">
+                                        {PLANET_NAMES[planet.id]?.[lang]}
+                                    </div>
+                                    <div className="text-sm font-semibold text-astro-text truncate">
+                                        {planet.data?.sign || '—'}
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-astro-subtext">
+                        {otherPlanets.map((planet) => (
+                            <span key={planet.id} className="flex items-center gap-1">
+                                <span className="text-astro-highlight/70">{PLANET_SYMBOLS[planet.id]}</span>
+                                <span>{planet.data?.sign || '—'}</span>
+                            </span>
+                        ))}
+                    </div>
+                    <p className="mt-3 text-[10px] text-astro-subtext/80 leading-relaxed">
+                        {getText(lang, 'chart.chart_legend')}
+                    </p>
+                </div>
+            </motion.div>
+
+            {/* Deep dive sections */}
             <div className="px-5">
-                <h3 className="text-lg font-semibold text-astro-text mb-4">
-                    {lang === 'ru' ? 'Глубже в тебя' : 'Deeper Into You'}
+                <h3 className="text-base font-semibold text-astro-text mb-3">
+                    {getText(lang, 'chart.deeper')}
                 </h3>
 
-                <div className="space-y-3">
+                <div className="space-y-2">
                     {TOPICS.map((topic, idx) => {
                         const isExpanded = expandedTopic === topic.id;
                         const isLocked = !topic.free && !profile.isPremium;
@@ -224,44 +267,41 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, 
                         return (
                             <motion.div
                                 key={topic.id}
-                                initial={{ opacity: 0, y: 10 }}
+                                initial={{ opacity: 0, y: 8 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: idx * 0.05 }}
+                                transition={{ delay: idx * 0.04 }}
                                 className={`
-                                    border-b border-astro-border/30 overflow-hidden transition-all
-                                    ${isLocked ? 'opacity-80' : ''}
+                                    border border-astro-border/50 rounded-lg overflow-hidden transition-all
+                                    ${isLocked ? 'opacity-90' : ''}
                                 `}
                             >
-                                {/* Заголовок раздела */}
                                 <button
                                     onClick={() => handleTopicClick(topic.id)}
-                                    className="w-full flex items-center justify-between py-4 text-left"
+                                    className="w-full flex items-center justify-between py-3 px-4 text-left hover:bg-astro-card/30 transition-colors"
                                 >
-                                    <div className="flex items-center gap-3">
-                                        <span className="text-xl">{topic.icon}</span>
-                                        <span className={`font-medium ${isLocked ? 'text-astro-subtext' : 'text-astro-text'}`}>
+                                    <div className="flex items-center gap-3 min-w-0">
+                                        <span className="text-lg shrink-0">{topic.icon}</span>
+                                        <span className={`font-medium text-sm truncate ${isLocked ? 'text-astro-subtext' : 'text-astro-text'}`}>
                                             {topic[lang]}
                                         </span>
                                     </div>
-                                    
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-2 shrink-0">
                                         {isLocked && (
-                                            <span className="text-[10px] uppercase tracking-wider text-astro-highlight bg-astro-highlight/10 px-2 py-1 rounded-full">
-                                                Premium
+                                            <span className="text-[10px] uppercase tracking-wider text-astro-highlight bg-astro-highlight/10 px-2 py-0.5 rounded-full">
+                                                {getText(lang, 'chart.premium_lock')}
                                             </span>
                                         )}
                                         <motion.span
                                             animate={{ rotate: isExpanded ? 180 : 0 }}
                                             className="text-astro-subtext"
                                         >
-                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                             </svg>
                                         </motion.span>
                                     </div>
                                 </button>
 
-                                {/* Контент раздела */}
                                 <AnimatePresence>
                                     {isExpanded && !isLocked && (
                                         <motion.div
@@ -269,22 +309,20 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, 
                                             animate={{ height: 'auto', opacity: 1 }}
                                             exit={{ height: 0, opacity: 0 }}
                                             transition={{ duration: 0.2 }}
-                                            className="overflow-hidden"
+                                            className="overflow-hidden border-t border-astro-border/50"
                                         >
-                                            <div className="pb-4 pt-0">
-                                                <div className="pt-3">
-                                                    {isLoading ? (
-                                                        <div className="flex items-center justify-center py-8">
-                                                            <div className="w-6 h-6 border-2 border-astro-highlight border-t-transparent rounded-full animate-spin" />
-                                                        </div>
-                                                    ) : content ? (
-                                                        renderParagraphs(content)
-                                                    ) : (
-                                                        <p className="text-astro-subtext text-center py-4">
-                                                            {lang === 'ru' ? 'Загружаю космическую мудрость...' : 'Loading cosmic wisdom...'}
-                                                        </p>
-                                                    )}
-                                                </div>
+                                            <div className="p-4 pt-3">
+                                                {isLoading ? (
+                                                    <div className="flex items-center justify-center py-6">
+                                                        <div className="w-5 h-5 border-2 border-astro-highlight border-t-transparent rounded-full animate-spin" />
+                                                    </div>
+                                                ) : content ? (
+                                                    renderParagraphs(content)
+                                                ) : (
+                                                    <p className="text-astro-subtext text-sm text-center py-4">
+                                                        {getText(lang, 'chart.loading_wisdom')}
+                                                    </p>
+                                                )}
                                             </div>
                                         </motion.div>
                                     )}
@@ -295,82 +333,22 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, 
                 </div>
             </div>
 
-            {/* CTA для премиума */}
+            {/* Premium CTA */}
             {!profile.isPremium && (
                 <motion.div 
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    transition={{ delay: 0.5 }}
-                    className="px-5 mt-8"
+                    transition={{ delay: 0.3 }}
+                    className="px-5 mt-6 pb-6"
                 >
                     <button
                         onClick={requestPremium}
-                        className="w-full bg-gradient-to-r from-astro-highlight to-purple-500 text-white font-semibold py-4 rounded-2xl active:scale-[0.98] transition-transform"
+                        className="w-full bg-gradient-to-r from-astro-highlight to-purple-500 text-white font-semibold py-3.5 rounded-xl text-sm active:scale-[0.98] transition-transform"
                     >
-                        {lang === 'ru' ? '✨ Открыть полный анализ' : '✨ Unlock Full Analysis'}
+                        {getText(lang, 'chart.unlock_full')}
                     </button>
                 </motion.div>
             )}
-
-            {/* Сводка карты */}
-            <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="px-5 mt-10 pb-6"
-            >
-                <h2 className="text-2xl font-bold text-astro-text mb-1">
-                    {lang === 'ru' ? `Привет, ${profile.name || 'друг'}!` : `Hey, ${profile.name || 'friend'}!`}
-                </h2>
-                <p className="text-astro-subtext mb-4">
-                    {lang === 'ru' 
-                        ? `${data.sun?.sign} с душой ${data.moon?.sign}`
-                        : `${data.sun?.sign} with a ${data.moon?.sign} soul`
-                    }
-                </p>
-
-                <div className="space-y-3">
-                    {mainPlanets.map((planet, idx) => (
-                        <motion.div
-                            key={planet.id}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: idx * 0.05 }}
-                            className="flex items-center justify-between"
-                        >
-                            <div className="flex items-center gap-3">
-                                <span className="text-2xl text-astro-highlight">{PLANET_SYMBOLS[planet.id]}</span>
-                                <div>
-                                    <div className="text-xs text-astro-subtext uppercase tracking-wider">
-                                        {PLANET_NAMES[planet.id]?.[lang]}
-                                    </div>
-                                    <div className="text-base font-semibold text-astro-text">
-                                        {planet.data?.sign || '—'}
-                                    </div>
-                                </div>
-                            </div>
-                            <span className="text-xs text-astro-subtext">
-                                {PLANET_MEANINGS[planet.id]?.[lang]}
-                            </span>
-                        </motion.div>
-                    ))}
-                </div>
-
-                <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-astro-subtext">
-                    {otherPlanets.map((planet) => (
-                        <span key={planet.id} className="flex items-center gap-1">
-                            <span className="text-astro-highlight/70">{PLANET_SYMBOLS[planet.id]}</span>
-                            <span>{planet.data?.sign || '—'}</span>
-                        </span>
-                    ))}
-                </div>
-
-                <div className="mt-4 text-[11px] text-astro-subtext leading-relaxed">
-                    {lang === 'ru' 
-                        ? 'Солнце — твоя основа и характер, Луна — эмоции и привычки, Асцендент — первое впечатление и стиль поведения.'
-                        : 'Sun = your core, Moon = emotions and habits, Rising = first impression and style.'
-                    }
-                </div>
-            </motion.div>
         </div>
     );
 };

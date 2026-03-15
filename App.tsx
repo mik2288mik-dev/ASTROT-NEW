@@ -502,7 +502,7 @@ const App: React.FC = () => {
             </main>
 
             {showPremiumPreview && (
-                <PremiumPreview onClose={() => setShowPremiumPreview(false)} onPurchase={requestPremium} />
+                <PremiumPreview language={profile?.language || 'ru'} onClose={() => setShowPremiumPreview(false)} onPurchase={requestPremium} />
             )}
         </div>
     );

@@ -143,16 +143,16 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                 <div className="relative z-10">
                     <h3 className="text-lg font-serif font-bold mb-1">{getText(profile.language, 'settings.subscription')}</h3>
                     <p className="text-xs opacity-80 mb-6 font-medium tracking-wide uppercase">
-                        {profile.isPremium ? "PRO ACCESS UNLOCKED" : "BASIC PLAN"}
+                        {profile.isPremium ? getText(profile.language, 'settings.plan_pro') : getText(profile.language, 'settings.plan_basic')}
                     </p>
                     
                     <div className="flex gap-2">
                         <button 
                             onClick={handlePremiumPurchase}
                             disabled={profile.isPremium}
-                            className="flex-1 bg-astro-bg text-astro-text font-bold py-3 px-4 rounded-lg text-[10px] uppercase tracking-widest shadow hover:scale-105 transition-all disabled:opacity-50 disabled:scale-100"
+                            className="flex-1 bg-astro-bg text-astro-text font-bold py-3 px-4 rounded-lg text-[10px] uppercase tracking-widest shadow hover:scale-[1.02] transition-transform disabled:opacity-50 disabled:scale-100"
                         >
-                            {profile.isPremium ? "Active" : getText(profile.language, 'dashboard.get_premium')}
+                            {profile.isPremium ? getText(profile.language, 'settings.plan_active') : getText(profile.language, 'dashboard.get_premium')}
                         </button>
                         {!profile.isPremium && onShowPremiumPreview && (
                             <button 
