@@ -129,7 +129,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
         loadDashboardData();
     }, [profile.id, chartData?.sun?.sign]);
 
-    if (!chartData) return <Loading />;
+    if (!chartData) return <Loading message={getText(profile.language, 'loading')} />;
 
     return (
         <div className="p-4 pb-32 space-y-6">

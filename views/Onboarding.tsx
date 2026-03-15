@@ -71,7 +71,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                 birthDate: date,
                 birthTime: time,
                 birthPlace: place.trim(),
-                isSetup: rememberData, // Сохранять только если галочка отмечена
+                isSetup: true, // Всегда true при завершении онбординга — данные сохраняются в БД
                 language: 'ru', // Default to Russian
                 theme: 'dark', // Default to Dark/Strict
                 isPremium: false

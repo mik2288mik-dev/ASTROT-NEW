@@ -78,13 +78,19 @@ const App: React.FC = () => {
             console.log('[App] === LOADING USER DATA ===');
             setLoadingProgress(10);
             
-            const tg = (window as any).Telegram?.WebApp;
-            const tgUser = tg?.initDataUnsafe?.user;
-            const tgId = tgUser?.id;
+            // Ждём Telegram Web App (может загружаться асинхронно)
+            let tgId: string | number | undefined;
+            for (let attempt = 0; attempt < 5; attempt++) {
+                const tg = (window as any).Telegram?.WebApp;
+                tgId = tg?.initDataUnsafe?.user?.id;
+                if (tgId) break;
+                await new Promise(r => setTimeout(r, 300));
+            }
 
             if (!tgId) {
-                console.log('[App] No Telegram user ID found, showing onboarding');
+                console.log('[App] No Telegram user ID found after retries, showing onboarding');
                 setLoadingProgress(100);
+                setView('onboarding');
                 setLoading(false);
                 return;
             }
@@ -114,7 +120,7 @@ const App: React.FC = () => {
                 if (!storedProfile.theme) storedProfile.theme = 'dark';
                 
                 const isAdmin = OWNER_ID && String(tgId) === String(OWNER_ID) ? true : storedProfile.isAdmin;
-                const updatedProfile = { ...storedProfile, id: tgId, isAdmin };
+                const updatedProfile = { ...storedProfile, id: String(tgId), isAdmin };
                 setProfile(updatedProfile);
 
                 // Шаг 3: Загружаем карту через chartService
@@ -134,14 +140,25 @@ const App: React.FC = () => {
                         setLoadingProgress(100);
                         setView('dashboard');
                     } else {
-                        console.log('[App] Invalid chart data, showing onboarding');
+                        console.log('[App] Invalid chart data, going to dashboard');
                         setLoadingProgress(100);
-                        setView('onboarding');
+                        setChartData(null);
+                        setView('dashboard');
                     }
                 } catch (chartError) {
                     console.error('[App] Error loading chart:', chartError);
                     setLoadingProgress(100);
-                    setView('onboarding');
+                    // Профиль есть — не возвращаем в онбординг. Пробуем ещё раз через 2 сек.
+                    setChartData(null);
+                    setView('dashboard');
+                    setTimeout(async () => {
+                        try {
+                            const retryChart = await getOrCalculateChart(updatedProfile);
+                            if (retryChart?.sun && retryChart?.moon) {
+                                setChartData(retryChart);
+                            }
+                        } catch (_) {}
+                    }, 2000);
                 }
             } catch (error) {
                 console.error('[App] Error loading user data:', error);
@@ -165,23 +182,30 @@ const App: React.FC = () => {
         const tgUser = tg?.initDataUnsafe?.user;
         const tgId = tgUser?.id;
         const isAdmin = OWNER_ID && String(tgId) === String(OWNER_ID) ? true : undefined;
-        const fullProfile = { ...newProfile, id: tgId, isAdmin };
+        const fullProfile = { ...newProfile, id: String(tgId), isAdmin };
 
         setProfile(fullProfile);
         setLoading(true);
         setLoadingProgress(10);
 
         try {
-            // Шаг 1: Пытаемся сохранить профиль (не критично если не получится)
+            // Шаг 1: Сохраняем профиль в БД (критично для persistence)
             setLoadingProgress(20);
             let profileSaved = false;
-            try {
-                await saveProfile(fullProfile);
-                profileSaved = true;
-                console.log('[App] Profile saved successfully');
-            } catch (saveError: any) {
-                console.warn('[App] Failed to save profile (will continue with calculation):', saveError.message);
-                // Продолжаем без сохранения - расчёт карты всё равно сработает
+            for (let attempt = 1; attempt <= 2; attempt++) {
+                try {
+                    await saveProfile(fullProfile);
+                    profileSaved = true;
+                    console.log('[App] Profile saved successfully');
+                    break;
+                } catch (saveError: any) {
+                    console.warn(`[App] Profile save attempt ${attempt}/2 failed:`, saveError.message);
+                    if (attempt === 2) {
+                        console.warn('[App] Profile save failed twice, continuing — natal-chart API will create user');
+                    } else {
+                        await new Promise(r => setTimeout(r, 500));
+                    }
+                }
             }
 
             // Шаг 2: Рассчитываем карту через chartService
@@ -226,8 +250,8 @@ const App: React.FC = () => {
             
             setLoadingProgress(100);
             
-            // Переходим к Hook
-            setTimeout(() => setView('hook'), 300);
+            // Переходим сразу в dashboard — чистый первый экран продукта
+            setTimeout(() => setView('dashboard'), 300);
             
         } catch (error: any) {
             console.error('[App] Error during onboarding:', error);
