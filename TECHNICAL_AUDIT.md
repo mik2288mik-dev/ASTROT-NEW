@@ -199,7 +199,7 @@ ASTROT-NEW/
 **Профиль (UserProfile):**
 - id, name, birthDate, birthTime, birthPlace, isSetup
 - language, theme, isPremium, isAdmin
-- evolution, generatedContent, weatherCity, starsBalance
+- evolution, generatedContent, weatherCity, lumiBalance
 
 **Карта (NatalChartData):**
 - sun, moon, rising (PlanetPosition)

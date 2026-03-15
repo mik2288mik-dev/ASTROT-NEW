@@ -46,7 +46,7 @@ export interface UserProfile {
   isAdmin?: boolean;
   evolution?: UserEvolution;
   lastContext?: UserContext;
-  starsBalance?: number; // Баланс звёзд для платных регенераций
+  lumiBalance?: number; // Lumi balance (internal app currency)
   weatherCity?: string; // Город для погоды (например, "Moscow" или "Москва")
   
   // Все генерации пользователя (кэшируются)

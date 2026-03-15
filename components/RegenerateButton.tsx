@@ -12,6 +12,7 @@ interface RegenerateButtonProps {
   partnerData?: any;
   onRegenerate: (newData: any) => void;
   onRequestPremium?: () => void;
+  onBalanceUpdate?: (balance: number) => void;
   className?: string;
 }
 
@@ -27,6 +28,7 @@ export const RegenerateButton: React.FC<RegenerateButtonProps> = ({
   partnerData,
   onRegenerate,
   onRequestPremium,
+  onBalanceUpdate,
   className = ''
 }) => {
   const [state, setState] = useState<ButtonState>('idle');
@@ -83,7 +85,7 @@ export const RegenerateButton: React.FC<RegenerateButtonProps> = ({
       const data = await response.json();
 
       if (!response.ok) {
-        if (response.status === 403 && data.message?.includes('звёзд')) {
+        if (response.status === 403 && (data.message?.includes('Lumi') || data.message?.includes('звёзд'))) {
           setState('limit_reached');
           setErrorMessage(data.message);
         } else {
@@ -98,6 +100,9 @@ export const RegenerateButton: React.FC<RegenerateButtonProps> = ({
       setState('success');
       setIsFirstTime(false);
       onRegenerate(data.data);
+      if (typeof data.newBalance === 'number' && onBalanceUpdate) {
+        onBalanceUpdate(data.newBalance);
+      }
 
       // Вернуться к idle через 2 секунды
       setTimeout(() => setState('idle'), 2000);

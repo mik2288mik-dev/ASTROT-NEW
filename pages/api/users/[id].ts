@@ -80,6 +80,8 @@ export default async function handler(
         }
       } catch (_e) {}
 
+      const lumiBalance = user.lumi_balance ?? 0;
+
       const clientUser = {
         id: user.id,
         name: user.name,
@@ -94,6 +96,7 @@ export default async function handler(
         evolution: null,
         generatedContent,
         weatherCity: user.weather_city && user.weather_city.trim() ? user.weather_city.trim() : undefined,
+        lumiBalance,
       };
 
       return res.status(200).json(clientUser);

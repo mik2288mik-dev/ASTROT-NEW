@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { UserProfile, NatalChartData, UserContext, ViewState } from './types';
-import { getProfile, saveProfile } from './services/storageService';
+import { getProfile, saveProfile, getLumiBalance } from './services/storageService';
 import { getOrCalculateChart } from './services/chartService';
 import { generateAllContent } from './services/contentGenerationService';
 import { Onboarding } from './views/Onboarding';
@@ -270,6 +270,26 @@ const App: React.FC = () => {
         setProfile(updatedProfile);
     };
 
+    const handleBalanceUpdate = useCallback((balance: number) => {
+        setProfile(prev => prev ? { ...prev, lumiBalance: balance } : prev);
+    }, []);
+
+    const refreshLumiOnDashboard = useCallback(async () => {
+        if (!profile?.id) return;
+        try {
+            const balance = await getLumiBalance(profile.id);
+            setProfile(prev => prev ? { ...prev, lumiBalance: balance } : prev);
+        } catch {
+            // Non-critical
+        }
+    }, [profile?.id]);
+
+    useEffect(() => {
+        if (view === 'dashboard' && profile?.id) {
+            refreshLumiOnDashboard();
+        }
+    }, [view, profile?.id, refreshLumiOnDashboard]);
+
     const requestPremium = async () => {
        if (!profile) return;
        console.log('[App] Requesting premium for user:', profile.id);
@@ -384,6 +404,7 @@ const App: React.FC = () => {
                             profile={profile} 
                             requestPremium={requestPremium}
                             onUpdateProfile={handleProfileUpdate}
+                            onBalanceUpdate={handleBalanceUpdate}
                         />
                     </div>
                 ) : view === 'settings' ? (

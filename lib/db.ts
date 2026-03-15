@@ -368,6 +368,7 @@ export const db = {
             is_premium: isPremium,
             is_admin: u.is_admin ?? false,
             weather_city: u.weather_city,
+            lumi_balance: u.lumi_balance ?? 0,
           };
         });
       } catch (error: any) {
@@ -661,24 +662,72 @@ export const db = {
 
   /** lumi_transactions - balance and history (Lumia) */
   lumi_transactions: {
-    async add(userId: string, amount: number, reason: string) {
+    /** Transactional add: ensures users.lumi_balance and lumi_transactions stay in sync */
+    async addTransactional(userId: string, amount: number, reason: string): Promise<{ success: true; newBalance: number }> {
       const id = toUserId(userId);
       if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      const dbPool = getPool();
+      const client = await dbPool.connect();
       try {
-        const dbPool = getPool();
-        await dbPool.query(
+        await client.query('BEGIN');
+        await client.query(
           `UPDATE users SET lumi_balance = COALESCE(lumi_balance, 0) + $1 WHERE id = $2`,
           [amount, id]
         );
-        await dbPool.query(
+        await client.query(
           `INSERT INTO lumi_transactions (user_id, amount, reason) VALUES ($1, $2, $3)`,
           [id, amount, reason]
         );
-        return { success: true };
+        const bal = await client.query('SELECT lumi_balance FROM users WHERE id = $1', [id]);
+        const newBalance = bal.rows.length > 0 ? (bal.rows[0].lumi_balance ?? 0) : 0;
+        await client.query('COMMIT');
+        return { success: true, newBalance };
       } catch (error: any) {
-        log.error('[DB] Error adding lumi transaction', { error: error.message, userId });
+        await client.query('ROLLBACK').catch(() => {});
+        log.error('[DB] Error adding lumi (transactional)', { error: error.message, userId });
         throw error;
+      } finally {
+        client.release();
       }
+    },
+
+    /** Transactional deduct: ensures users.lumi_balance and lumi_transactions stay in sync. Fails if insufficient. */
+    async deductTransactional(userId: string, amount: number, reason: string): Promise<{ success: true; newBalance: number }> {
+      const id = toUserId(userId);
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      const dbPool = getPool();
+      const client = await dbPool.connect();
+      try {
+        await client.query('BEGIN');
+        const result = await client.query(
+          `UPDATE users SET lumi_balance = COALESCE(lumi_balance, 0) - $1
+           WHERE id = $2 AND COALESCE(lumi_balance, 0) >= $1
+           RETURNING lumi_balance`,
+          [amount, id]
+        );
+        if (result.rows.length === 0) {
+          await client.query('ROLLBACK');
+          throw new Error('Insufficient Lumi balance');
+        }
+        await client.query(
+          `INSERT INTO lumi_transactions (user_id, amount, reason) VALUES ($1, $2, $3)`,
+          [id, -amount, reason]
+        );
+        const newBalance = result.rows[0].lumi_balance ?? 0;
+        await client.query('COMMIT');
+        return { success: true, newBalance };
+      } catch (error: any) {
+        await client.query('ROLLBACK').catch(() => {});
+        log.error('[DB] Error deducting lumi (transactional)', { error: error.message, userId });
+        throw error;
+      } finally {
+        client.release();
+      }
+    },
+
+    async add(userId: string, amount: number, reason: string) {
+      const r = await this.addTransactional(userId, amount, reason);
+      return { success: true };
     },
 
     async getBalance(userId: string) {
@@ -711,26 +760,7 @@ export const db = {
     },
 
     async deduct(userId: string, amount: number, reason: string) {
-      const id = toUserId(userId);
-      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
-      try {
-        const dbPool = getPool();
-        const result = await dbPool.query(
-          `UPDATE users SET lumi_balance = GREATEST(COALESCE(lumi_balance, 0) - $1, 0)
-           WHERE id = $2 AND COALESCE(lumi_balance, 0) >= $1
-           RETURNING lumi_balance`,
-          [amount, id]
-        );
-        if (result.rows.length === 0) throw new Error('Insufficient stars balance');
-        await dbPool.query(
-          `INSERT INTO lumi_transactions (user_id, amount, reason) VALUES ($1, $2, $3)`,
-          [id, -amount, reason]
-        );
-        return { success: true, newBalance: result.rows[0].lumi_balance };
-      } catch (error: any) {
-        log.error('[DB] Error deducting', { error: error.message, userId });
-        throw error;
-      }
+      return this.deductTransactional(userId, amount, reason);
     },
 
     getRegenerationCountThisWeek: async (userId: string) => {

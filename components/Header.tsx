@@ -60,8 +60,15 @@ export const Header: React.FC<HeaderProps> = ({ profile, view, onBack }) => {
                     </h1>
                 </div>
 
-                {/* Right - Placeholder for balance */}
-                <div className="w-16"></div>
+                {/* Right - Lumi balance */}
+                <div className="w-16 flex justify-end items-center">
+                  {typeof profile.lumiBalance === 'number' && (
+                    <span className="text-sm font-medium text-astro-highlight flex items-center gap-1">
+                      <span className="text-yellow-400">✦</span>
+                      {profile.lumiBalance}
+                    </span>
+                  )}
+                </div>
             </div>
         </header>
     );

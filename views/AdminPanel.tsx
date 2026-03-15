@@ -317,7 +317,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onUpdate, onClo
                                     <p className="text-sm text-astro-subtext mb-2">Средний баланс звезд</p>
                                     <div className="bg-astro-bg rounded-lg p-4">
                                         <p className="text-2xl font-bold text-blue-500">
-                                            {Math.round(users.reduce((sum, u) => sum + (u.starsBalance || 0), 0) / Math.max(users.length, 1))}
+                                            {Math.round(users.reduce((sum, u) => sum + (u.lumiBalance || 0), 0) / Math.max(users.length, 1))}
                                         </p>
                                         <p className="text-xs text-astro-subtext mt-1">звезд на пользователя</p>
                                     </div>
@@ -330,7 +330,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onUpdate, onClo
                             <h3 className="text-lg font-serif text-astro-text mb-4">Top Пользователи</h3>
                             <div className="space-y-2">
                                 {users
-                                    .sort((a, b) => (b.starsBalance || 0) - (a.starsBalance || 0))
+                                    .sort((a, b) => (b.lumiBalance || 0) - (a.lumiBalance || 0))
                                     .slice(0, 5)
                                     .map((user, idx) => (
                                         <div key={idx} className="bg-astro-bg rounded-lg p-3 flex justify-between items-center">
@@ -342,7 +342,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onUpdate, onClo
                                                 </div>
                                             </div>
                                             <div className="text-right">
-                                                <p className="text-sm font-bold text-yellow-500">{user.starsBalance || 0} stars</p>
+                                                <p className="text-sm font-bold text-yellow-500">{user.lumiBalance || 0} Lumi</p>
                                                 {user.isPremium && (
                                                     <span className="text-[8px] px-2 py-0.5 bg-yellow-500/10 text-yellow-500 rounded">PRO</span>
                                                 )}

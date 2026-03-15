@@ -167,6 +167,22 @@ export const getProfile = async (): Promise<UserProfile | null> => {
 };
 
 /**
+ * Fetch current Lumi balance from API (for refresh after add/spend)
+ */
+export const getLumiBalance = async (userId: string): Promise<number> => {
+  if (!userId) return 0;
+  try {
+    const url = `${API_BASE_URL}/api/users/lumi?userId=${encodeURIComponent(userId)}`;
+    const res = await fetch(url);
+    if (!res.ok) return 0;
+    const data = await res.json();
+    return data.lumi_balance ?? 0;
+  } catch {
+    return 0;
+  }
+};
+
+/**
  * Save chart data to Railway Database
  * WARNING: This is the ONLY persistence layer. No local storage fallback.
  */

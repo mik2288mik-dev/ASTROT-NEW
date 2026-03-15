@@ -12,6 +12,7 @@ interface NatalChartProps {
     profile: UserProfile;
     requestPremium: () => void;
     onUpdateProfile?: (profile: UserProfile) => void;
+    onBalanceUpdate?: (balance: number) => void;
 }
 
 // Символы планет
@@ -52,7 +53,7 @@ const TOPICS = [
     { id: 'karma', icon: '♾️', ru: 'Кармические уроки', en: 'Karmic Lessons', free: false },
 ];
 
-export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPremium, onUpdateProfile }) => {
+export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPremium, onUpdateProfile, onBalanceUpdate }) => {
     // Состояния
     const [expandedTopic, setExpandedTopic] = useState<string | null>('personality'); // Личность открыта по умолчанию
     const [topicContent, setTopicContent] = useState<Record<string, string>>({});

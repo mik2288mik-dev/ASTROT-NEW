@@ -65,15 +65,14 @@ async function checkRegenerationLimits(userId: string, contentType: string, isPr
     };
   }
 
-  const starsBalance = await db.lumi_transactions.getBalance(userId);
-  
-  if (starsBalance < REGENERATION_COST_STARS) {
+  const lumiBalance = await db.lumi_transactions.getBalance(userId);
+  if (lumiBalance < REGENERATION_COST_STARS) {
     return {
       canRegenerate: false,
       isFree: false,
       costInStars: REGENERATION_COST_STARS,
       regenerationsThisWeek: countThisWeek,
-      message: `Недостаточно звёзд. Нужно: ${REGENERATION_COST_STARS}, у вас: ${starsBalance}`
+      message: `Недостаточно Lumi. Нужно: ${REGENERATION_COST_STARS}, у вас: ${lumiBalance}`
     };
   }
 
@@ -223,7 +222,7 @@ async function handler(
     
     if (!limits.isFree) {
       try {
-        const result = await db.lumi_transactions.deduct(userId, REGENERATION_COST_STARS, 'regenerate_deduct');
+        const result = await db.lumi_transactions.deduct(userId, REGENERATION_COST_STARS, contentType === 'natal_intro' ? 'regenerate_natal' : 'regenerate_deep_dive');
         newBalance = result.newBalance;
         log.info('Stars deducted successfully', {
           userId,
@@ -299,7 +298,7 @@ async function handler(
 
     try {
       const reason = contentType === 'natal_intro' ? 'regenerate_natal' : contentType.startsWith('deep_dive_') ? 'regenerate_deep_dive' : 'regenerate_synastry';
-      await db.lumi_transactions.add(userId, 0, reason);
+      await db.lumi_transactions.add(userId, 0, reason); // Record usage (0 amount)
       log.info('Regeneration recorded', { userId, contentType });
     } catch (error: any) {
       log.warn('Failed to record regeneration', { error: error.message });
