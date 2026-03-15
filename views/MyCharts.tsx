@@ -156,7 +156,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
   const canBuySlot = !canAddMore && lumiBalance >= slotCost;
 
   return (
-    <div className="p-4 pb-24 space-y-6">
+    <div className="p-4 space-y-6 screen-pb">
       <h2 className="text-lg font-semibold text-astro-text font-serif mb-4">
         {T(lang, 'Мои карты', 'My Charts')}
       </h2>

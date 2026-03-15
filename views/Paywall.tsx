@@ -19,11 +19,15 @@ export const Paywall: React.FC<PaywallProps> = ({ profile, onPurchase, onClose }
     ];
 
     return (
-        <div className="flex flex-col items-center justify-center h-full p-6 bg-astro-bg text-center perspective-1000 relative">
+        <div 
+            className="flex flex-col items-center justify-center h-full p-6 bg-astro-bg text-center perspective-1000 relative"
+            style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 1.5rem)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1.5rem)' }}
+        >
             {/* Close Button */}
             <button 
                 onClick={onClose}
-                className="absolute top-6 right-6 text-astro-subtext hover:text-astro-text transition-colors z-50 p-2 opacity-60 hover:opacity-100"
+                className="absolute text-astro-subtext hover:text-astro-text transition-colors z-50 p-2 opacity-60 hover:opacity-100"
+                style={{ top: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)', right: 'calc(env(safe-area-inset-right, 0px) + 1rem)' }}
                 aria-label="Close"
             >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">

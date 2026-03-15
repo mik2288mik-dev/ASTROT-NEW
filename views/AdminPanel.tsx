@@ -116,9 +116,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onUpdate, onClo
     );
 
     return (
-        <div className="fixed inset-0 z-[60] bg-astro-bg overflow-y-auto">
+        <div 
+            className="fixed inset-0 z-[60] bg-astro-bg overflow-y-auto"
+            style={{ paddingTop: 'env(safe-area-inset-top, 0px)', paddingBottom: 'env(safe-area-inset-bottom, 0px)', paddingLeft: 'env(safe-area-inset-left, 0px)', paddingRight: 'env(safe-area-inset-right, 0px)' }}
+        >
             {/* Header */}
-            <div className="bg-astro-card border-b border-astro-border p-6 sticky top-0 z-10 shadow-md">
+            <div 
+                className="bg-astro-card border-b border-astro-border p-6 sticky top-0 z-10 shadow-md"
+                style={{ top: 'env(safe-area-inset-top, 0px)' }}
+            >
                 <div className="flex justify-between items-center mb-4">
                     <div>
                         <h2 className="text-2xl font-bold font-serif text-astro-text flex items-center gap-2">

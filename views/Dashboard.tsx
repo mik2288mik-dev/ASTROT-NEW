@@ -132,7 +132,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
     if (!chartData) return <Loading message={getText(profile.language, 'loading')} />;
 
     return (
-        <div className="p-4 pb-32 space-y-6">
+        <div className="p-4 space-y-6 screen-pb">
             
             {/* 1. COSMIC PASSPORT (Layer 1: Base) */}
             <CosmicPassport

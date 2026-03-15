@@ -405,7 +405,10 @@ const App: React.FC = () => {
 
     if (!profile || view === 'onboarding') {
         return (
-            <div className="fixed inset-0 overflow-y-auto bg-astro-bg">
+            <div 
+                className="fixed inset-0 overflow-y-auto bg-astro-bg"
+                style={{ paddingTop: 'env(safe-area-inset-top, 0px)', paddingBottom: 'env(safe-area-inset-bottom, 0px)', paddingLeft: 'env(safe-area-inset-left, 0px)', paddingRight: 'env(safe-area-inset-right, 0px)' }}
+            >
                 <BackgroundLayers view="onboarding" />
                 <BackgroundLayers theme="dark" view="onboarding" context={ambientContext} />
                 <Onboarding onComplete={handleOnboardingComplete} />
@@ -414,7 +417,7 @@ const App: React.FC = () => {
     }
 
     return (
-        <div className="flex flex-col h-full w-full overflow-hidden bg-astro-bg pt-4 text-astro-text font-sans selection:bg-astro-highlight selection:text-white">
+        <div className="flex flex-col h-full w-full min-h-0 overflow-hidden bg-astro-bg text-astro-text font-sans selection:bg-astro-highlight selection:text-white">
             <BackgroundLayers view={view} />
             <BackgroundLayers theme={profile.theme} view={view} context={ambientContext} />
             
@@ -426,7 +429,10 @@ const App: React.FC = () => {
                 onBack={handleBack}
             />
             
-            <main className="flex-1 relative w-full max-w-md mx-auto overflow-hidden">
+            <main 
+                className="flex-1 relative w-full max-w-md mx-auto overflow-hidden min-h-0"
+                style={{ paddingLeft: 'env(safe-area-inset-left, 0px)', paddingRight: 'env(safe-area-inset-right, 0px)' }}
+            >
                 {view === 'admin' ? (
                     <AdminPanel profile={profile} onUpdate={handleProfileUpdate} onClose={() => setView('settings')} />
                 ) : view === 'hook' && chartData ? (

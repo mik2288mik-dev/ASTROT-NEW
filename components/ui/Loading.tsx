@@ -32,7 +32,10 @@ export const Loading: React.FC<LoadingProps> = ({ message, progress: externalPro
     }, [externalProgress]);
 
     return (
-        <div className="fixed inset-0 flex flex-col items-center justify-center bg-astro-bg z-50 text-center px-4">
+        <div 
+            className="fixed inset-0 flex flex-col items-center justify-center bg-astro-bg z-50 text-center px-4"
+            style={{ paddingTop: 'env(safe-area-inset-top, 0px)', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+        >
             {/* 3D Вращение логотипа как монета */}
             <motion.div
                 className="relative"

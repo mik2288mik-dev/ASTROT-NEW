@@ -6,6 +6,7 @@ export default function Document() {
       <Head>
         <title>Lumia</title>
         <meta name="application-name" content="Lumia" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <script src="https://cdn.tailwindcss.com"></script>
         <script src="https://telegram.org/js/telegram-web-app.js"></script>
         <link rel="preconnect" href="https://fonts.googleapis.com" />

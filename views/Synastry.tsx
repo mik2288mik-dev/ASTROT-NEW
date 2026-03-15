@@ -73,7 +73,7 @@ export const Synastry: React.FC<SynastryProps> = ({ profile, requestPremium }) =
     }
 
     return (
-        <div className="min-h-screen px-6 py-8 max-w-2xl mx-auto pb-32">
+        <div className="min-h-screen px-6 py-8 max-w-2xl mx-auto screen-pb">
             {/* Заголовок страницы */}
             <h1 className="text-[32px] font-bold text-astro-text text-center mb-12 leading-tight">
                 {getText(profile.language, 'synastry.title')}

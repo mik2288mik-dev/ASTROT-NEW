@@ -108,7 +108,10 @@ export const OracleChat: React.FC<OracleChatProps> = ({ profile }) => {
             </div>
 
             {/* Input Area - Anchored at Bottom (above nav) */}
-            <div className="p-4 bg-astro-card border-t border-astro-border shrink-0 pb-24">
+            <div 
+                className="p-4 bg-astro-card border-t border-astro-border shrink-0"
+                style={{ paddingBottom: 'calc(6rem + env(safe-area-inset-bottom, 0px))' }}
+            >
                 <div className="flex items-center gap-2 bg-astro-bg rounded-full px-4 py-3 border border-astro-border focus-within:border-astro-highlight transition-colors shadow-sm">
                     <input
                         type="text"

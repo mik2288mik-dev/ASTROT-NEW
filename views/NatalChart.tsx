@@ -195,7 +195,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, 
         : `${data.sun?.sign} ${getText(lang, 'chart.soul_connector')} ${data.moon?.sign}${getText(lang, 'chart.soul_suffix')}`;
 
     return (
-        <div className="min-h-full pb-24">
+        <div className="min-h-full screen-pb">
             {/* Intro */}
             {(natalIntro || isLoadingIntro) && (
                 <motion.div 

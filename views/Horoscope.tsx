@@ -86,7 +86,7 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
     }
 
     return (
-        <div className="min-h-screen px-4 py-6 max-w-2xl mx-auto">
+        <div className="min-h-screen px-4 py-6 max-w-2xl mx-auto screen-pb">
             {/* Заголовок страницы */}
             <h1 className="text-base font-normal text-astro-text text-center mb-6 leading-tight" style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif', fontWeight: 400 }}>
                 {language === 'ru' ? 'Гороскоп на сегодня' : 'Today\'s Horoscope'}
@@ -120,8 +120,6 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
                 language={language}
             />
 
-            {/* Нижний отступ для безопасной зоны */}
-            <div className="h-20"></div>
         </div>
     );
 });

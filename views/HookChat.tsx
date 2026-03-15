@@ -88,7 +88,10 @@ export const HookChat: React.FC<HookChatProps> = ({ profile, chartData, onComple
     }
 
     return (
-        <div className="flex flex-col h-full bg-astro-bg p-4 pt-8 pb-24 overflow-y-auto scrollbar-hide">
+        <div 
+            className="flex flex-col h-full bg-astro-bg p-4 pt-8 overflow-y-auto scrollbar-hide"
+            style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 2rem)', paddingBottom: 'calc(6rem + env(safe-area-inset-bottom, 0px))' }}
+        >
             <div className="flex-1 space-y-8">
                 {messages.map((msg, idx) => (
                     <motion.div 
