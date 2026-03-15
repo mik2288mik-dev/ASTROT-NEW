@@ -1,6 +1,7 @@
-import React, { useState, useMemo } from 'react';
-import { UserProfile, SynastryResult } from '../types';
+import React, { useState, useMemo, useEffect } from 'react';
+import { UserProfile, SynastryResult, NatalChartData } from '../types';
 import { getOrGenerateSynastry } from '../services/contentGenerationService';
+import { getCharts, type ChartListItem } from '../services/storageService';
 import { getText, getZodiacSign } from '../constants';
 import { motion } from 'framer-motion';
 import { Loading } from '../components/ui/Loading';
@@ -8,10 +9,13 @@ import { getApproximateSunSignByDate } from '../lib/zodiac-utils';
 
 interface SynastryProps {
     profile: UserProfile;
+    chartData?: NatalChartData | null;
     requestPremium: () => void;
 }
 
-export const Synastry: React.FC<SynastryProps> = ({ profile, requestPremium }) => {
+export const Synastry: React.FC<SynastryProps> = ({ profile, chartData, requestPremium }) => {
+    const [partnerInputMode, setPartnerInputMode] = useState<'manual' | 'charts'>('manual');
+    const [savedCharts, setSavedCharts] = useState<ChartListItem[]>([]);
     const [partnerName, setPartnerName] = useState("");
     const [partnerDate, setPartnerDate] = useState("");
     const [partnerTime, setPartnerTime] = useState("");
@@ -20,6 +24,24 @@ export const Synastry: React.FC<SynastryProps> = ({ profile, requestPremium }) =
     const [result, setResult] = useState<SynastryResult | null>(null);
     const [loading, setLoading] = useState(false);
     
+    // Load saved charts for "partner from charts" option
+    useEffect(() => {
+        if (!profile.id) return;
+        getCharts(profile.id)
+            .then((res) => setSavedCharts(res.charts ?? []))
+            .catch(() => setSavedCharts([]));
+    }, [profile.id]);
+
+    const partnerCharts = useMemo(() => savedCharts.filter((c) => !c.is_primary), [savedCharts]);
+
+    const handleSelectChartAsPartner = (chart: ChartListItem) => {
+        setPartnerName(chart.name);
+        setPartnerDate(chart.birth_date);
+        setPartnerTime(chart.birth_time || '12:00');
+        setPartnerPlace(chart.birth_place || '');
+        setPartnerInputMode('manual');
+    };
+
     // Вычисляем предполагаемый знак зодиака партнера
     const partnerZodiacSign = useMemo(() => {
         if (!partnerDate) return null;
@@ -75,14 +97,80 @@ export const Synastry: React.FC<SynastryProps> = ({ profile, requestPremium }) =
     return (
         <div className="min-h-screen px-6 py-8 max-w-2xl mx-auto screen-pb">
             {/* Заголовок страницы */}
-            <h1 className="text-[32px] font-bold text-astro-text text-center mb-12 leading-tight">
+            <h1 className="text-2xl font-bold text-astro-text text-center mb-4 leading-tight">
                 {getText(profile.language, 'synastry.title')}
             </h1>
 
             {!result ? (
                 /* ФОРМА ВВОДА ДАННЫХ */
-                <div className="space-y-8">
-                    {/* Минималистичная форма */}
+                <div className="space-y-6">
+                    {/* Intro */}
+                    <p className="text-sm text-astro-subtext text-center">
+                        {getText(profile.language, 'synastry.desc')}
+                    </p>
+
+                    {/* Form card */}
+                    <div className="bg-astro-card border border-astro-border rounded-xl p-5 space-y-6">
+                    {/* Partner input mode toggle */}
+                    <div className="flex gap-2 p-1 bg-astro-card rounded-xl border border-astro-border">
+                        <button
+                            type="button"
+                            onClick={() => setPartnerInputMode('manual')}
+                            className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                                partnerInputMode === 'manual'
+                                    ? 'bg-astro-highlight/20 text-astro-highlight border border-astro-highlight/50'
+                                    : 'text-astro-subtext hover:text-astro-text'
+                            }`}
+                        >
+                            {getText(profile.language, 'synastry.partner_from_manual')}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setPartnerInputMode('charts')}
+                            className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                                partnerInputMode === 'charts'
+                                    ? 'bg-astro-highlight/20 text-astro-highlight border border-astro-highlight/50'
+                                    : 'text-astro-subtext hover:text-astro-text'
+                            }`}
+                        >
+                            {getText(profile.language, 'synastry.partner_from_charts')}
+                        </button>
+                    </div>
+
+                    {/* Partner from saved charts */}
+                    {partnerInputMode === 'charts' && (
+                        <div className="space-y-3">
+                            {partnerCharts.length === 0 ? (
+                                <p className="text-sm text-astro-subtext text-center py-4">
+                                    {profile.language === 'ru'
+                                        ? 'Нет сохранённых карт для выбора. Добавьте карту партнёра в «Мои карты».'
+                                        : 'No saved charts to select. Add a partner chart in My Charts.'}
+                                </p>
+                            ) : (
+                                partnerCharts.map((chart) => (
+                                    <button
+                                        key={chart.id}
+                                        type="button"
+                                        onClick={() => handleSelectChartAsPartner(chart)}
+                                        className="w-full bg-astro-card border border-astro-border rounded-xl p-4 text-left hover:border-astro-highlight/50 transition-colors"
+                                    >
+                                        <p className="font-medium text-astro-text">{chart.name}</p>
+                                        <p className="text-xs text-astro-subtext mt-1">
+                                            {chart.birth_date} • {chart.birth_place}
+                                        </p>
+                                        {chart.chart_data?.sun?.sign && (
+                                            <p className="text-[10px] text-astro-highlight mt-0.5">
+                                                ☉ {getZodiacSign(profile.language, chart.chart_data.sun.sign)}
+                                            </p>
+                                        )}
+                                    </button>
+                                ))
+                            )}
+                        </div>
+                    )}
+
+                    {/* Manual form (shown when manual mode or after selecting from charts) */}
+                    {partnerInputMode === 'manual' && (
                     <div className="space-y-6">
                         {/* Имя партнера */}
                         <div>
@@ -123,7 +211,7 @@ export const Synastry: React.FC<SynastryProps> = ({ profile, requestPremium }) =
                         {/* Дополнительные поля */}
                         <div className="pt-6 border-t border-astro-border/30">
                             <p className="text-sm text-astro-subtext mb-6 text-center">
-                                {profile.language === 'ru' ? 'Дополнительно (для более точного анализа)' : 'Optional (for more accurate analysis)'}
+                                {getText(profile.language, 'synastry.optional_more')}
                             </p>
                             
                             <div className="space-y-6">
@@ -172,6 +260,7 @@ export const Synastry: React.FC<SynastryProps> = ({ profile, requestPremium }) =
                             </div>
                         </div>
                     </div>
+                    )}
 
                     {/* Кнопки расчета */}
                     <div className="space-y-4 pt-6">
@@ -193,6 +282,7 @@ export const Synastry: React.FC<SynastryProps> = ({ profile, requestPremium }) =
                             {profile.language === 'ru' ? 'Глубокий разбор' : 'Deep Analysis'}
                             {!profile.isPremium && ' (Premium)'}
                         </button>
+                    </div>
                     </div>
                 </div>
             ) : (

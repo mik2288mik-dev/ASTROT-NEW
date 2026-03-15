@@ -11,7 +11,7 @@ import {
   type ChartsResponse,
 } from '../services/storageService';
 import { Loading } from '../components/ui/Loading';
-import { getZodiacSign } from '../constants';
+import { getText, getZodiacSign } from '../constants';
 
 interface MyChartsProps {
   profile: UserProfile;
@@ -147,7 +147,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
     if (cd && onChartSelect) onChartSelect(cd, chart.id);
   };
 
-  if (loading) return <Loading message={T(lang, 'Загрузка карт...', 'Loading charts...')} />;
+  if (loading) return <Loading message={getText(lang, 'charts.loading')} />;
 
   const charts = data?.charts ?? [];
   const canAddMore = data?.canAddMore ?? true;
@@ -157,12 +157,25 @@ export const MyCharts: React.FC<MyChartsProps> = ({
 
   return (
     <div className="p-4 space-y-6 screen-pb">
-      <h2 className="text-lg font-semibold text-astro-text font-serif mb-4">
-        {T(lang, 'Мои карты', 'My Charts')}
+      <h2 className="text-lg font-semibold text-astro-text font-serif mb-2">
+        {getText(lang, 'charts.title')}
       </h2>
 
-      <div className="text-xs text-astro-subtext mb-4">
-        {T(lang, 'Слотов:', 'Slots:')} {charts.length} / {chartSlots}
+      {/* Prominent slot display */}
+      <div className="bg-astro-card border border-astro-border rounded-xl p-4 flex items-center justify-between">
+        <div>
+          <p className="text-[10px] uppercase tracking-widest text-astro-subtext mb-0.5">
+            {getText(lang, 'charts.slots')}
+          </p>
+          <p className="text-lg font-semibold text-astro-text">
+            {charts.length} / {chartSlots}
+          </p>
+        </div>
+        {!canAddMore && (
+          <span className="text-[10px] text-astro-highlight uppercase tracking-wider">
+            {lang === 'ru' ? 'Слоты заняты' : 'Slots full'}
+          </span>
+        )}
       </div>
 
       {addError && (
@@ -173,7 +186,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
 
       {charts.length === 0 ? (
         <div className="bg-astro-card border border-astro-border rounded-xl p-6 text-center text-astro-subtext">
-          {T(lang, 'Пока нет сохранённых карт.', 'No saved charts yet.')}
+          {getText(lang, 'charts.no_charts')}
         </div>
       ) : (
         <div className="space-y-3">
@@ -323,25 +336,26 @@ export const MyCharts: React.FC<MyChartsProps> = ({
               onClick={() => setShowAddForm(true)}
               className="w-full bg-astro-card border border-astro-border rounded-xl p-4 text-astro-text font-serif hover:border-astro-highlight/50 transition-colors"
             >
-              + {T(lang, 'Добавить карту', 'Add chart')}
+              + {getText(lang, 'charts.add_chart')}
             </button>
           ) : canBuySlot ? (
             <button
               onClick={handleBuySlot}
               disabled={actionLoading === 'buy-slot'}
-              className="w-full bg-astro-highlight/20 border border-astro-highlight rounded-xl p-4 text-astro-text font-serif hover:bg-astro-highlight/30 transition-colors disabled:opacity-50"
+              className="w-full bg-astro-highlight/20 border-2 border-astro-highlight rounded-xl p-4 text-astro-text font-serif hover:bg-astro-highlight/30 transition-colors disabled:opacity-50 font-semibold"
             >
               {actionLoading === 'buy-slot'
-                ? T(lang, 'Покупка...', 'Purchasing...')
-                : T(lang, `Купить слот за ${slotCost} Lumi`, `Buy slot for ${slotCost} Lumi`)}
+                ? getText(lang, 'charts.purchasing')
+                : `${getText(lang, 'charts.buy_slot')} ${slotCost} ${getText(lang, 'charts.buy_slot_lumi')}`}
             </button>
           ) : (
-            <div className="bg-astro-card border border-astro-border rounded-xl p-4 text-astro-subtext text-sm text-center">
-              {T(lang, 'Достигнут лимит карт. Купите слот за Lumi.', 'Chart limit reached. Buy a slot with Lumi.')}
-              <br />
-              <span className="text-[10px]">
-                {T(lang, 'Баланс:', 'Balance:')} {lumiBalance} Lumi
-              </span>
+            <div className="bg-astro-card border border-astro-highlight/50 rounded-xl p-4 text-center">
+              <p className="text-astro-subtext text-sm mb-2">
+                {getText(lang, 'charts.limit_reached')}
+              </p>
+              <p className="text-xs text-astro-highlight font-medium">
+                {getText(lang, 'charts.balance')}: {lumiBalance} Lumi
+              </p>
             </div>
           )}
         </div>

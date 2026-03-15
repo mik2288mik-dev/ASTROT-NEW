@@ -99,7 +99,9 @@ export const TRANSLATIONS = {
       oracle_subtitle: "Спроси у Lumia",
       loading_weather: "Загрузка погоды...",
       set_city_hint: "Укажите город в настройках для отображения погоды",
-      tap_settings: "Нажмите, чтобы открыть настройки →"
+      tap_settings: "Нажмите, чтобы открыть настройки →",
+      my_charts: "Мои карты",
+      my_charts_subtitle: "Управление картами и слотами"
     },
     chart: {
       title: "Твоя Натальная Карта",
@@ -127,9 +129,25 @@ export const TRANSLATIONS = {
       forecast_month: "На Месяц",
       free_teaser_title: "Космический Паспорт"
     },
+    charts: {
+      title: "Мои карты",
+      slots: "Слотов",
+      slots_used: "карт",
+      no_charts: "Пока нет сохранённых карт.",
+      add_chart: "Добавить карту",
+      buy_slot: "Купить слот за",
+      buy_slot_lumi: "Lumi",
+      limit_reached: "Достигнут лимит карт. Купите слот за Lumi.",
+      balance: "Баланс",
+      purchasing: "Покупка...",
+      loading: "Загрузка карт..."
+    },
     synastry: {
       title: "Синастрия",
       desc: "Узнайте космическую совместимость с партнером.",
+      partner_from_manual: "Ввести вручную",
+      partner_from_charts: "Выбрать из моих карт",
+      optional_more: "Дополнительно (для более точного анализа)",
       partner_name: "Имя Партнера",
       calc_btn: "Рассчитать Совместимость",
       score: "Совместимость",
@@ -259,7 +277,9 @@ export const TRANSLATIONS = {
       oracle_subtitle: "Ask Lumia anything",
       loading_weather: "Loading weather...",
       set_city_hint: "Set city in settings to see weather",
-      tap_settings: "Tap to open settings →"
+      tap_settings: "Tap to open settings →",
+      my_charts: "My Charts",
+      my_charts_subtitle: "Manage charts & slots"
     },
     chart: {
       title: "Natal Chart",
@@ -287,9 +307,25 @@ export const TRANSLATIONS = {
       forecast_month: "This Month",
       free_teaser_title: "Cosmic Passport"
     },
+    charts: {
+      title: "My Charts",
+      slots: "Slots",
+      slots_used: "charts",
+      no_charts: "No saved charts yet.",
+      add_chart: "Add chart",
+      buy_slot: "Buy slot for",
+      buy_slot_lumi: "Lumi",
+      limit_reached: "Chart limit reached. Buy a slot with Lumi.",
+      balance: "Balance",
+      purchasing: "Purchasing...",
+      loading: "Loading charts..."
+    },
     synastry: {
       title: "Synastry",
       desc: "Discover cosmic compatibility with a partner.",
+      partner_from_manual: "Enter manually",
+      partner_from_charts: "Select from my charts",
+      optional_more: "Optional (for more accurate analysis)",
       partner_name: "Partner Name",
       calc_btn: "Calculate Compatibility",
       score: "Compatibility",

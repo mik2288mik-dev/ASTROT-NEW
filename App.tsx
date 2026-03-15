@@ -450,7 +450,7 @@ const App: React.FC = () => {
                 ) : view === 'oracle' ? (
                     <OracleChat profile={profile} />
                 ) : view === 'synastry' ? (
-                    <Synastry profile={profile} requestPremium={requestPremium} />
+                    <Synastry profile={profile} chartData={chartData} requestPremium={requestPremium} />
                 ) : view === 'horoscope' ? (
                     <div className="h-full overflow-y-auto scrollbar-hide">
                         <Horoscope 

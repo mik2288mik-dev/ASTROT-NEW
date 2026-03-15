@@ -45,6 +45,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
     // Мемуизируем колбэки для навигации
     const handleNavigateHoroscope = useCallback(() => onNavigate('horoscope'), [onNavigate]);
     const handleNavigateChart = useCallback(() => onNavigate('chart'), [onNavigate]);
+    const handleNavigateCharts = useCallback(() => onNavigate('charts'), [onNavigate]);
     const handleNavigateSynastry = useCallback(() => onNavigate('synastry'), [onNavigate]);
     const handleNavigateOracle = useCallback(() => onNavigate('oracle'), [onNavigate]);
 
@@ -197,6 +198,18 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
                 <p className="text-astro-subtext text-xs">
                     {getText(profile.language, 'dashboard.chart_subtitle')}
                 </p>
+            </button>
+
+            {/* My Charts shortcut */}
+            <button 
+                onClick={handleNavigateCharts}
+                className="w-full bg-astro-card rounded-xl p-4 border border-astro-border hover:border-astro-highlight/30 transition-colors text-left flex items-center gap-3"
+            >
+                <span className="text-xl text-astro-highlight/90">◇</span>
+                <div className="text-left">
+                    <h3 className="font-serif text-sm text-astro-text mb-0.5">{getText(profile.language, 'dashboard.my_charts')}</h3>
+                    <p className="text-astro-subtext text-[10px]">{getText(profile.language, 'dashboard.my_charts_subtitle')}</p>
+                </div>
             </button>
 
             {/* 3. SOCIAL PROOF (Layer 2/4: Community) */}

@@ -62,7 +62,7 @@ export default async function handler(
       });
 
       // Fetch generated content from interpretations (Lumia schema)
-      let generatedContent: { natalIntro?: string; deepDiveAnalyses?: Record<string, string> } | null = null;
+      let generatedContent: { natalIntro?: string; deepDiveAnalyses?: Record<string, string>; dailyHoroscope?: any } | null = null;
       try {
         const natalIntro = await db.interpretations.getByHash(userId, 'natal_intro', 'default');
         const deepDiveTypes = ['deep_dive_personality', 'deep_dive_love', 'deep_dive_career', 'deep_dive_weakness', 'deep_dive_karma'];
@@ -77,6 +77,15 @@ export default async function handler(
             ...(natalIntro?.content ? { natalIntro: natalIntro.content } : {}),
             ...(Object.keys(deepDiveAnalyses).length > 0 ? { deepDiveAnalyses } : {}),
           };
+        }
+
+        // Hydrate dailyHoroscope from daily_natal_cards for app reopen (primary chart, today)
+        const todayKey = new Date().toISOString().split('T')[0];
+        const dailyHoroscope = await db.daily_natal_cards.get(userId, todayKey);
+        if (dailyHoroscope && generatedContent) {
+          generatedContent.dailyHoroscope = dailyHoroscope;
+        } else if (dailyHoroscope && !generatedContent) {
+          generatedContent = { dailyHoroscope };
         }
       } catch (_e) {}
 
