@@ -177,10 +177,14 @@ async function handler(
   }
 
   try {
-    const { userId, contentType, profile, chartData } = req.body;
+    const { userId, contentType, profile, chartData, chartId } = req.body;
+
+    const effectiveChartId = chartId != null ? parseInt(String(chartId), 10) : null;
+    const cacheKey = effectiveChartId ?? userId;
 
     log.info('Regeneration request received', {
       userId,
+      chartId: effectiveChartId,
       contentType,
       isPremium: profile?.isPremium
     });
@@ -248,7 +252,7 @@ async function handler(
             throw new Error('chartData required for natal_intro regeneration');
           }
           regeneratedData = await regenerateNatalIntro(profile, chartData);
-          await db.interpretations.set(userId, 'natal_intro', 'default', regeneratedData);
+          await db.interpretations.set(cacheKey, 'natal_intro', 'default', regeneratedData);
           break;
 
         case 'deep_dive_personality':
@@ -263,7 +267,7 @@ async function handler(
           const topic = contentType.replace('deep_dive_', '');
           regeneratedData = await regenerateDeepDive(profile, chartData, topic);
           
-          await db.interpretations.set(userId, `deep_dive_${topic}`, topic, regeneratedData);
+          await db.interpretations.set(cacheKey, `deep_dive_${topic}`, topic, regeneratedData);
           break;
 
         default:

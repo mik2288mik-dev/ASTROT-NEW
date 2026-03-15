@@ -233,25 +233,28 @@ export const updateContentIfNeeded = async (profile: UserProfile, chartData: Nat
 
 /**
  * Получает или генерирует Deep Dive анализ для конкретной темы
+ * @param chartId - optional; when provided, uses chart-level DB cache (multi-chart), skips profile cache
  */
 export const getOrGenerateDeepDive = async (
   profile: UserProfile,
   chartData: NatalChartData,
-  topic: 'personality' | 'love' | 'career' | 'weakness' | 'karma'
+  topic: 'personality' | 'love' | 'career' | 'weakness' | 'karma',
+  chartId?: number | null
 ): Promise<string> => {
   log.info(`[getOrGenerateDeepDive] Getting Deep Dive for topic: ${topic}`, {
     userId: profile.id,
+    chartId,
     hasGeneratedContent: !!profile.generatedContent
   });
 
-  // Проверяем, есть ли уже сгенерированный контент
-  if (profile.generatedContent?.deepDiveAnalyses?.[topic]) {
-    log.info(`[getOrGenerateDeepDive] Using cached Deep Dive for ${topic}`);
+  // Profile cache only for primary chart (no chartId). For chartId, API/DB handles cache.
+  if (!chartId && profile.generatedContent?.deepDiveAnalyses?.[topic]) {
+    log.info(`[getOrGenerateDeepDive] Using profile cached Deep Dive for ${topic}`);
     return profile.generatedContent.deepDiveAnalyses[topic]!;
   }
 
-  // Если нет - генерируем
-  log.info(`[getOrGenerateDeepDive] Generating new Deep Dive for ${topic}`);
+  // Генерируем (API проверяет DB cache по chartId/userId)
+  log.info(`[getOrGenerateDeepDive] Fetching Deep Dive for ${topic}`, { chartId: chartId ?? 'primary' });
   const topicTitle = {
     personality: profile.language === 'ru' ? 'Личность' : 'Personality',
     love: profile.language === 'ru' ? 'Любовь' : 'Love',
@@ -261,28 +264,21 @@ export const getOrGenerateDeepDive = async (
   }[topic];
 
   try {
-    const analysis = await getDeepDiveAnalysis(profile, topicTitle, chartData);
-    
-    // Сохраняем в кэш
-    if (!profile.generatedContent) {
-      profile.generatedContent = {
-        deepDiveAnalyses: {},
-        synastries: {},
-        timestamps: {}
-      };
-    }
-    if (!profile.generatedContent.deepDiveAnalyses) {
-      profile.generatedContent.deepDiveAnalyses = {};
-    }
-    profile.generatedContent.deepDiveAnalyses[topic] = analysis;
-    profile.generatedContent.timestamps.deepDiveGenerated = Date.now();
+    const analysis = await getDeepDiveAnalysis(profile, topicTitle, chartData, chartId);
 
-    // Сохраняем профиль
-    try {
-      await saveProfile(profile);
-      log.info(`[getOrGenerateDeepDive] Deep Dive saved for ${topic}`);
-    } catch (error) {
-      log.error(`[getOrGenerateDeepDive] Failed to save Deep Dive for ${topic}`, error);
+    // Сохраняем в profile cache только для primary (без chartId) — для быстрого повторного открытия
+    if (!chartId && profile.generatedContent) {
+      if (!profile.generatedContent.deepDiveAnalyses) {
+        profile.generatedContent.deepDiveAnalyses = {};
+      }
+      profile.generatedContent.deepDiveAnalyses[topic] = analysis;
+      profile.generatedContent.timestamps.deepDiveGenerated = Date.now();
+      try {
+        await saveProfile(profile);
+        log.info(`[getOrGenerateDeepDive] Deep Dive saved to profile for ${topic}`);
+      } catch (error) {
+        log.error(`[getOrGenerateDeepDive] Failed to save Deep Dive for ${topic}`, error);
+      }
     }
 
     return analysis;

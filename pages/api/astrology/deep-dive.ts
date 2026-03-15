@@ -32,7 +32,7 @@ export default async function handler(
   }
 
   try {
-    const { profile, topic, chartData } = req.body;
+    const { profile, topic, chartData, chartId } = req.body;
     const lang = profile?.language === 'ru';
 
     if (!profile || !topic || !chartData) {
@@ -42,8 +42,12 @@ export default async function handler(
       });
     }
 
+    const effectiveChartId = chartId != null ? parseInt(String(chartId), 10) : null;
+    const cacheKey = effectiveChartId ?? profile?.id;
+
     log.info('Deep dive request received', {
       userId: profile.id,
+      chartId: effectiveChartId,
       topic,
       language: lang ? 'ru' : 'en'
     });
@@ -52,9 +56,9 @@ export default async function handler(
     const validTopics = ['personality', 'love', 'career', 'weakness', 'karma'];
     const topicKey = validTopics.includes(topicForLookup) ? topicForLookup : 'personality';
 
-    if (profile?.id && process.env.DATABASE_URL) {
+    if (cacheKey && process.env.DATABASE_URL) {
       try {
-        const cached = await db.interpretations.getByHash(profile.id, `deep_dive_${topicKey}`, topicKey);
+        const cached = await db.interpretations.getByHash(cacheKey, `deep_dive_${topicKey}`, topicKey);
         if (cached?.content && cached.content.length > 50) {
           return res.status(200).json({ analysis: cached.content });
         }
@@ -101,10 +105,9 @@ export default async function handler(
     });
 
     const topicForDb = topicKey;
-    const userId = profile?.id;
-    if (userId && process.env.DATABASE_URL) {
+    if (cacheKey && process.env.DATABASE_URL) {
       try {
-        await db.interpretations.set(userId, `deep_dive_${topicForDb}`, topicForDb, analysis);
+        await db.interpretations.set(cacheKey, `deep_dive_${topicForDb}`, topicForDb, analysis);
       } catch (e) {
         log.error('Failed to save deep dive to interpretations', e);
       }

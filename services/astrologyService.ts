@@ -148,10 +148,15 @@ export const calculateNatalChart = async (profile: UserProfile, forceRecalculate
 
 /**
  * Get Natal Chart Introduction (новый формат вместо "трех ключей")
+ * @param chartId - optional; when provided, cache is chart-level (multi-chart)
  */
-export const getNatalIntro = async (profile: UserProfile, chartData: NatalChartData): Promise<string> => {
+export const getNatalIntro = async (
+  profile: UserProfile,
+  chartData: NatalChartData,
+  chartId?: number | null
+): Promise<string> => {
   const url = `${API_BASE_URL}/api/astrology/natal-intro`;
-  log.info('[getNatalIntro] Starting request', { userId: profile.id });
+  log.info('[getNatalIntro] Starting request', { userId: profile.id, chartId });
 
   try {
     log.info(`[getNatalIntro] Sending POST request to: ${url}`);
@@ -159,7 +164,7 @@ export const getNatalIntro = async (profile: UserProfile, chartData: NatalChartD
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ profile, chartData })
+      body: JSON.stringify({ profile, chartData, chartId: chartId ?? undefined })
     });
 
     const duration = Date.now() - startTime;
@@ -476,9 +481,17 @@ function calculateInitialStats(profile: UserProfile, chartData?: NatalChartData)
 
 
 
-export const getDeepDiveAnalysis = async (profile: UserProfile, topic: string, chartData: NatalChartData): Promise<string> => {
+/**
+ * @param chartId - optional; when provided, cache is chart-level (multi-chart)
+ */
+export const getDeepDiveAnalysis = async (
+  profile: UserProfile,
+  topic: string,
+  chartData: NatalChartData,
+  chartId?: number | null
+): Promise<string> => {
   const url = `${API_BASE_URL}/api/astrology/deep-dive`;
-  log.info('[getDeepDiveAnalysis] Starting request', { topic, userId: profile.id });
+  log.info('[getDeepDiveAnalysis] Starting request', { topic, userId: profile.id, chartId });
 
   try {
     log.info(`[getDeepDiveAnalysis] Sending POST request to: ${url}`);
@@ -486,7 +499,7 @@ export const getDeepDiveAnalysis = async (profile: UserProfile, topic: string, c
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ profile, topic, chartData })
+      body: JSON.stringify({ profile, topic, chartData, chartId: chartId ?? undefined })
     });
 
     const duration = Date.now() - startTime;

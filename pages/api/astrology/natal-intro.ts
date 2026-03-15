@@ -140,7 +140,7 @@ async function handler(
   }
 
   try {
-    const { profile, chartData } = req.body;
+    const { profile, chartData, chartId } = req.body;
 
     if (!profile || !chartData) {
       log.error('Missing required fields', { hasProfile: !!profile, hasChartData: !!chartData });
@@ -151,20 +151,24 @@ async function handler(
     }
 
     const userId = profile.id || profile.name;
+    const effectiveChartId = chartId != null ? parseInt(String(chartId), 10) : null;
+    const cacheKey = effectiveChartId ?? userId;
+
     log.info('Natal intro request received', {
       userId,
+      chartId: effectiveChartId,
       language: profile.language,
       hasSun: !!chartData.sun,
       hasMoon: !!chartData.moon,
       hasRising: !!chartData.rising
     });
 
-    // Проверяем кэш в interpretations
-    if (userId) {
+    // Проверяем кэш в interpretations (chart-level или user/primary)
+    if (cacheKey) {
       try {
-        const cached = await db.interpretations.getByHash(userId, 'natal_intro', 'default');
+        const cached = await db.interpretations.getByHash(cacheKey, 'natal_intro', 'default');
         if (cached?.content && cached.content.length > 50) {
-          log.info('Returning cached natal intro', { userId });
+          log.info('Returning cached natal intro', { chartId: effectiveChartId, userId });
           res.setHeader('Cache-Control', 'public, s-maxage=86400, stale-while-revalidate=172800');
           return res.status(200).json({ intro: cached.content, timestamp: Date.now() });
         }
@@ -174,13 +178,13 @@ async function handler(
     // Генерируем вступление
     const intro = await generateNatalIntroWithAI(profile, chartData);
 
-    // Сохраняем в interpretations (Lumia schema)
-    if (userId) {
+    // Сохраняем в interpretations (Lumia schema) — chart-level или user-level
+    if (cacheKey) {
       try {
-        await db.interpretations.set(userId, 'natal_intro', 'default', intro);
-        log.info('Natal intro saved to interpretations', { userId });
+        await db.interpretations.set(cacheKey, 'natal_intro', 'default', intro);
+        log.info('Natal intro saved to interpretations', { chartId: effectiveChartId, userId });
       } catch (dbError: any) {
-        log.error('Error saving intro to database', { error: dbError.message, userId });
+        log.error('Error saving intro to database', { error: dbError.message, chartId: effectiveChartId, userId });
       }
     }
 

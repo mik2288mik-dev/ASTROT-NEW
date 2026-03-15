@@ -10,6 +10,7 @@ import { Loading } from '../components/ui/Loading';
 interface NatalChartProps {
     data: NatalChartData | null;
     profile: UserProfile;
+    chartId?: number;
     requestPremium: () => void;
     onUpdateProfile?: (profile: UserProfile) => void;
     onBalanceUpdate?: (balance: number) => void;
@@ -53,7 +54,7 @@ const TOPICS = [
     { id: 'karma', icon: '♾️', ru: 'Кармические уроки', en: 'Karmic Lessons', free: false },
 ];
 
-export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPremium, onUpdateProfile, onBalanceUpdate }) => {
+export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, requestPremium, onUpdateProfile, onBalanceUpdate }) => {
     // Состояния
     const [expandedTopic, setExpandedTopic] = useState<string | null>('personality'); // Личность открыта по умолчанию
     const [topicContent, setTopicContent] = useState<Record<string, string>>({});
@@ -69,11 +70,19 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
         return <Loading />;
     }
 
-    // Загрузка вступления
+    // Сброс при смене карты — перезагружаем intro и topic content
+    useEffect(() => {
+        introLoadedRef.current = false;
+        setNatalIntro('');
+        setTopicContent({});
+    }, [chartId, data?.sun?.sign]);
+
+    // Загрузка вступления (chartId = selected chart; undefined = primary)
     useEffect(() => {
         if (introLoadedRef.current) return;
-        
-        const cached = profile.generatedContent?.natalIntro;
+
+        // Profile cache только для primary (без chartId)
+        const cached = !chartId && profile.generatedContent?.natalIntro;
         if (cached && cached.length > 50) {
             setNatalIntro(cached);
             setIsLoadingIntro(false);
@@ -83,34 +92,36 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
 
         introLoadedRef.current = true;
         setIsLoadingIntro(true);
-        
-        getNatalIntro(profile, data)
+
+        getNatalIntro(profile, data, chartId)
             .then((intro) => {
                 if (intro && intro.length > 50) {
                     setNatalIntro(intro);
-                    // Сохраняем в профиль
-                    const updated: UserProfile = {
-                        ...profile,
-                        generatedContent: {
-                            ...(profile.generatedContent || {}),
-                            natalIntro: intro,
-                            timestamps: profile.generatedContent?.timestamps || {}
-                        }
-                    };
-                    onUpdateProfile?.(updated);
-                    saveProfile(updated).catch(console.error);
+                    // Сохраняем в профиль только для primary (без chartId)
+                    if (!chartId) {
+                        const updated: UserProfile = {
+                            ...profile,
+                            generatedContent: {
+                                ...(profile.generatedContent || {}),
+                                natalIntro: intro,
+                                timestamps: profile.generatedContent?.timestamps || {}
+                            }
+                        };
+                        onUpdateProfile?.(updated);
+                        saveProfile(updated).catch(console.error);
+                    }
                 }
             })
             .catch(console.error)
             .finally(() => setIsLoadingIntro(false));
-    }, []);
+    }, [chartId, data?.sun?.sign]);
 
-    // Загрузка контента темы при раскрытии
+    // Загрузка контента темы при раскрытии (chartId = selected chart; undefined = primary)
     useEffect(() => {
         if (!expandedTopic) return;
-        
-        // Проверяем кэш
-        const analyses = profile.generatedContent?.deepDiveAnalyses;
+
+        // Profile cache только для primary (без chartId)
+        const analyses = !chartId && profile.generatedContent?.deepDiveAnalyses;
         const cached = analyses ? (analyses as Record<string, string | undefined>)[expandedTopic] : undefined;
         if (cached) {
             setTopicContent(prev => ({ ...prev, [expandedTopic]: cached }));
@@ -124,9 +135,9 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
         const topic = TOPICS.find(t => t.id === expandedTopic);
         if (!topic?.free && !profile.isPremium) return;
 
-        // Загружаем
+        // Загружаем (API/DB cache по chartId)
         setLoadingTopic(expandedTopic);
-        getOrGenerateDeepDive(profile, data, expandedTopic as any)
+        getOrGenerateDeepDive(profile, data, expandedTopic as any, chartId)
             .then((content) => {
                 if (content) {
                     setTopicContent(prev => ({ ...prev, [expandedTopic]: content }));
@@ -134,7 +145,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, requestPr
             })
             .catch(console.error)
             .finally(() => setLoadingTopic(null));
-    }, [expandedTopic, profile.isPremium]);
+    }, [expandedTopic, profile.isPremium, chartId, data?.sun?.sign]);
 
     // Обработка клика на тему
     const handleTopicClick = (topicId: string) => {

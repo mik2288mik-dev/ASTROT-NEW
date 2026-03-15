@@ -33,6 +33,7 @@ if (!OWNER_ID) {
 const App: React.FC = () => {
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [chartData, setChartData] = useState<NatalChartData | null>(null);
+    const [activeChartId, setActiveChartId] = useState<number | undefined>(undefined);
     const [loading, setLoading] = useState(true);
     const [loadingProgress, setLoadingProgress] = useState(0);
     const [view, setView] = useState<ViewState>('onboarding');
@@ -433,6 +434,7 @@ const App: React.FC = () => {
                         <NatalChart 
                             data={chartData} 
                             profile={profile} 
+                            chartId={activeChartId}
                             requestPremium={requestPremium}
                             onUpdateProfile={handleProfileUpdate}
                             onBalanceUpdate={handleBalanceUpdate}
@@ -454,8 +456,9 @@ const App: React.FC = () => {
                             profile={profile} 
                             onBack={() => setView('settings')}
                             onProfileUpdate={handleProfileUpdate}
-                            onChartSelect={(chartData) => {
+                            onChartSelect={(chartData, chartId) => {
                                 setChartData(chartData);
+                                setActiveChartId(chartId);
                                 setView('chart');
                             }}
                         />

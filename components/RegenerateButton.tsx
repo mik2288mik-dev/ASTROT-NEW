@@ -9,6 +9,7 @@ interface RegenerateButtonProps {
   language: 'ru' | 'en';
   profile: any;
   chartData?: any;
+  chartId?: number;
   partnerData?: any;
   onRegenerate: (newData: any) => void;
   onRequestPremium?: () => void;
@@ -25,6 +26,7 @@ export const RegenerateButton: React.FC<RegenerateButtonProps> = ({
   language,
   profile,
   chartData,
+  chartId,
   partnerData,
   onRegenerate,
   onRequestPremium,
@@ -78,6 +80,7 @@ export const RegenerateButton: React.FC<RegenerateButtonProps> = ({
           contentType,
           profile,
           chartData,
+          chartId,
           partnerData
         })
       });

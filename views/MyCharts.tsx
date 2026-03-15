@@ -16,7 +16,7 @@ import { getZodiacSign } from '../constants';
 interface MyChartsProps {
   profile: UserProfile;
   onBack: () => void;
-  onChartSelect?: (chartData: any) => void;
+  onChartSelect?: (chartData: any, chartId?: number) => void;
   onProfileUpdate?: (profile: UserProfile) => void;
 }
 
@@ -144,7 +144,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
 
   const handleSelectChart = (chart: ChartListItem) => {
     const cd = chart.chart_data;
-    if (cd && onChartSelect) onChartSelect(cd);
+    if (cd && onChartSelect) onChartSelect(cd, chart.id);
   };
 
   if (loading) return <Loading message={T(lang, 'Загрузка карт...', 'Loading charts...')} />;
