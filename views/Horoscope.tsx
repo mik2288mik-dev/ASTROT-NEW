@@ -69,7 +69,7 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
         };
 
         loadHoroscope();
-    }, [profile.generatedContent?.dailyHoroscope?.date]); // Загружаем только при изменении даты гороскопа
+    }, [profile.id, profile.generatedContent?.dailyHoroscope?.date, chartData?.sun?.sign]); // chartData, profile для первичной загрузки; date для обновления при смене дня
 
     if (loading) {
         return <Loading />;

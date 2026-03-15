@@ -60,6 +60,9 @@ export default async function handler(
       });
     }
 
+    // Нормализуем userId (Telegram может передать number)
+    const effectiveUserId = String(userId).trim();
+
     const zodiacSign = chartData?.sun?.sign;
     if (!zodiacSign) {
       return res.status(400).json({ 
@@ -68,15 +71,15 @@ export default async function handler(
       });
     }
 
-    log.info(`=== REQUEST START === userId=${userId}, date=${dateKey}, sign=${zodiacSign}`);
+    log.info(`=== REQUEST START === userId=${effectiveUserId}, date=${dateKey}, sign=${zodiacSign}`);
 
     // ШАГ 1: Проверяем БД (daily_natal_cards)
-    const existingContent = await db.daily_natal_cards.get(userId, dateKey);
+    const existingContent = await db.daily_natal_cards.get(effectiveUserId, dateKey);
     
     if (existingContent) {
       const duration = Date.now() - startTime;
       log.info(`DB_HIT: returning cached horoscope (${duration}ms)`, {
-        userId,
+        userId: effectiveUserId,
         dateKey,
         zodiacSign
       });
@@ -90,7 +93,7 @@ export default async function handler(
     log.info(`DB_MISS: no horoscope for date=${dateKey}, will generate`);
 
     // ШАГ 2: Защита от двойных вызовов
-    const lockKey = LockKeys.dailyHoroscope(userId, dateKey);
+    const lockKey = LockKeys.dailyHoroscope(effectiveUserId, dateKey);
     
     if (!tryAcquireLock(lockKey, 'daily-horoscope-generation')) {
       log.info(`LOCK_DENIED: generation already in progress`);
@@ -98,7 +101,7 @@ export default async function handler(
       // Ждём и пробуем взять из БД
       await new Promise(resolve => setTimeout(resolve, 3000));
       
-      const afterWait = await db.daily_natal_cards.get(userId, dateKey);
+      const afterWait = await db.daily_natal_cards.get(effectiveUserId, dateKey);
       if (afterWait) {
         res.setHeader('X-Horoscope-Source', 'cache-after-wait');
         return res.status(200).json(afterWait);
@@ -186,14 +189,20 @@ export default async function handler(
         transitFocus: forecast.advice?.[1] || ''
       };
 
-      // ШАГ 7: Сохраняем в БД
-      await db.daily_natal_cards.set(userId, dateKey, horoscope);
+      // ШАГ 7: Сохраняем в БД (non-blocking: если не удалось — всё равно возвращаем результат)
+      try {
+        await db.daily_natal_cards.set(effectiveUserId, dateKey, horoscope);
+        log.info('Horoscope saved to DB');
+      } catch (saveError: any) {
+        log.info('Could not save horoscope to DB (non-critical)', { error: saveError.message });
+        // Продолжаем — возвращаем сгенерированный гороскоп клиенту
+      }
       
       releaseLock(lockKey);
 
       const totalDuration = Date.now() - startTime;
-      log.info(`GENERATED & SAVED: horoscope created (${totalDuration}ms)`, {
-        userId,
+      log.info(`GENERATED: horoscope created (${totalDuration}ms)`, {
+        userId: effectiveUserId,
         dateKey,
         genDuration
       });
