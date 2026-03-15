@@ -47,6 +47,7 @@ export interface UserProfile {
   evolution?: UserEvolution;
   lastContext?: UserContext;
   lumiBalance?: number; // Lumi balance (internal app currency)
+  loginStreak?: number; // Consecutive daily login count
   weatherCity?: string; // Город для погоды (например, "Moscow" или "Москва")
   
   // Все генерации пользователя (кэшируются)

@@ -39,6 +39,7 @@ export default async function handler(
         isPremium: user.is_premium,
         isAdmin: user.is_admin,
         lumiBalance: user.lumi_balance ?? 0,
+        loginStreak: user.login_streak ?? 0,
       }));
 
       log.info(`[GET] Found ${clientUsers.length} users`);

@@ -167,6 +167,31 @@ export const getProfile = async (): Promise<UserProfile | null> => {
 };
 
 /**
+ * Process daily login bonus and streak.
+ * Returns updated balance and streak. Safe to call every app load - backend prevents double-award.
+ */
+export const processDailyLogin = async (userId: string): Promise<{
+  awardedToday: boolean;
+  dailyReward?: number;
+  streakBonus?: number;
+  streak: number;
+  newBalance: number;
+}> => {
+  if (!userId) throw new Error('UserId is required');
+  const url = `${API_BASE_URL}/api/users/daily-login`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || `Daily login failed: ${res.status}`);
+  }
+  return res.json();
+};
+
+/**
  * Fetch current Lumi balance from API (for refresh after add/spend)
  */
 export const getLumiBalance = async (userId: string): Promise<number> => {

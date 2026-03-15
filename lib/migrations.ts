@@ -72,6 +72,7 @@ async function migrationReset(pool: Pool): Promise<void> {
   log.info('Applying full database reset...');
 
   const dropOrder = [
+    'star_payments',
     'synastry_cache',
     'astro_questions',
     'daily_natal_cards',
@@ -355,11 +356,40 @@ async function lumia002MultiChart(pool: Pool): Promise<void> {
   log.info('Migration lumia_002_multi_chart applied');
 }
 
+/**
+ * Migration: Star payments for idempotency (lumia_003)
+ */
+async function lumia003StarPayments(pool: Pool): Promise<void> {
+  const migrationName = 'lumia_003_star_payments';
+
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
+  log.info('Applying star_payments migration...');
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS star_payments (
+      id SERIAL PRIMARY KEY,
+      telegram_payment_charge_id TEXT UNIQUE NOT NULL,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      stars_amount INTEGER NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  await pool.query('CREATE UNIQUE INDEX IF NOT EXISTS idx_star_payments_charge_id ON star_payments(telegram_payment_charge_id)');
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_star_payments_user ON star_payments(user_id)');
+
+  await markMigrationApplied(pool, migrationName);
+  log.info('Migration lumia_003_star_payments applied');
+}
+
 async function verifyTablesExist(pool: Pool): Promise<void> {
   const required = [
     'users', 'natal_charts', 'interpretations', 'lumi_transactions',
     'roulette_spins', 'daily_horoscopes', 'daily_natal_cards',
-    'astro_questions', 'dictionary', 'synastry_cache'
+    'astro_questions', 'dictionary', 'synastry_cache', 'star_payments'
   ];
   const missing: string[] = [];
   for (const t of required) {
@@ -411,6 +441,7 @@ export async function runMigrations(): Promise<void> {
     await migrationReset(pool);
     await lumia001FullSchema(pool);
     await lumia002MultiChart(pool);
+    await lumia003StarPayments(pool);
     await verifyTablesExist(pool);
 
     log.info('All Lumia migrations completed successfully');

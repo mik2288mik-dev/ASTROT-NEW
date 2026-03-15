@@ -349,6 +349,106 @@ export const db = {
       return this.get(userId);
     },
 
+    /**
+     * Process daily login: atomic check + award + update.
+     * Prevents double-award for same day. Uses UTC dates.
+     */
+    async processDailyLogin(userId: string): Promise<{
+      awardedToday: boolean;
+      dailyReward?: number;
+      streakBonus?: number;
+      streak: number;
+      newBalance: number;
+    }> {
+      const id = toUserId(userId);
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+
+      const DAILY_REWARD = 3;
+      const STREAK_BONUSES: Record<number, number> = { 3: 10, 7: 20, 30: 30 };
+
+      const dbPool = getPool();
+      const client = await dbPool.connect();
+      try {
+        await client.query('BEGIN');
+
+        const row = await client.query(
+          `SELECT last_login, login_streak, lumi_balance FROM users WHERE id = $1 FOR UPDATE`,
+          [id]
+        );
+        if (row.rows.length === 0) {
+          await client.query('ROLLBACK');
+          throw new Error('User not found');
+        }
+
+        const lastLogin = row.rows[0].last_login;
+        const currentStreak = row.rows[0].login_streak ?? 0;
+        const currentBalance = row.rows[0].lumi_balance ?? 0;
+
+        const now = new Date();
+        const todayUtc = now.toISOString().slice(0, 10);
+        const lastLoginDate = lastLogin ? new Date(lastLogin).toISOString().slice(0, 10) : null;
+
+        if (lastLoginDate === todayUtc) {
+          await client.query('ROLLBACK');
+          return {
+            awardedToday: false,
+            streak: currentStreak,
+            newBalance: currentBalance,
+          };
+        }
+
+        const yesterday = new Date(now);
+        yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+        const yesterdayUtc = yesterday.toISOString().slice(0, 10);
+
+        let newStreak: number;
+        if (!lastLoginDate) {
+          newStreak = 1;
+        } else if (lastLoginDate === yesterdayUtc) {
+          newStreak = currentStreak + 1;
+        } else {
+          newStreak = 1;
+        }
+
+        const dailyReward = DAILY_REWARD;
+        const streakBonus = STREAK_BONUSES[newStreak] ?? 0;
+        const total = dailyReward + streakBonus;
+
+        await client.query(
+          `UPDATE users SET last_login = NOW(), login_streak = $1, lumi_balance = COALESCE(lumi_balance, 0) + $2 WHERE id = $3`,
+          [newStreak, total, id]
+        );
+
+        await client.query(
+          `INSERT INTO lumi_transactions (user_id, amount, reason) VALUES ($1, $2, $3)`,
+          [id, dailyReward, 'daily_login']
+        );
+        if (streakBonus > 0) {
+          await client.query(
+            `INSERT INTO lumi_transactions (user_id, amount, reason) VALUES ($1, $2, $3)`,
+            [id, streakBonus, 'streak_bonus']
+          );
+        }
+
+        const newBalance = currentBalance + total;
+        await client.query('COMMIT');
+
+        return {
+          awardedToday: true,
+          dailyReward,
+          streakBonus: streakBonus > 0 ? streakBonus : undefined,
+          streak: newStreak,
+          newBalance,
+        };
+      } catch (error: any) {
+        await client.query('ROLLBACK').catch(() => {});
+        log.error('[DB] Error processDailyLogin', { error: error.message, userId });
+        throw error;
+      } finally {
+        client.release();
+      }
+    },
+
     async getAll() {
       if (!DATABASE_URL) return [];
       try {
@@ -356,20 +456,21 @@ export const db = {
         const result = await dbPool.query('SELECT * FROM users ORDER BY created_at DESC');
         return result.rows.map((u: any) => {
           const isPremium = u.premium_until && new Date(u.premium_until) > new Date();
-          return {
-            id: String(u.id),
-            name: u.name,
-            birth_date: u.birth_date,
-            birth_time: u.birth_time,
-            birth_place: u.birth_place,
-            is_setup: !!(u.name && u.birth_date && u.birth_place),
-            language: u.language || 'ru',
-            theme: u.theme || 'dark',
-            is_premium: isPremium,
-            is_admin: u.is_admin ?? false,
-            weather_city: u.weather_city,
-            lumi_balance: u.lumi_balance ?? 0,
-          };
+        return {
+          id: String(u.id),
+          name: u.name,
+          birth_date: u.birth_date,
+          birth_time: u.birth_time,
+          birth_place: u.birth_place,
+          is_setup: !!(u.name && u.birth_date && u.birth_place),
+          language: u.language || 'ru',
+          theme: u.theme || 'dark',
+          is_premium: isPremium,
+          is_admin: u.is_admin ?? false,
+          weather_city: u.weather_city,
+          lumi_balance: u.lumi_balance ?? 0,
+          login_streak: u.login_streak ?? 0,
+        };
         });
       } catch (error: any) {
         log.error('[DB] Error getting all users', { error: error.message });
@@ -776,6 +877,43 @@ export const db = {
         return parseInt(result.rows[0].count);
       } catch (error: any) {
         log.error('[DB] Error getting regeneration count', { error: error.message, userId });
+        throw error;
+      }
+    },
+  },
+
+  /** star_payments - idempotency for Telegram Stars premium purchases */
+  star_payments: {
+    async exists(telegramPaymentChargeId: string): Promise<boolean> {
+      if (!DATABASE_URL) return false;
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          'SELECT 1 FROM star_payments WHERE telegram_payment_charge_id = $1 LIMIT 1',
+          [telegramPaymentChargeId]
+        );
+        return result.rows.length > 0;
+      } catch (error: any) {
+        log.error('[DB] Error checking star payment', { error: error.message });
+        throw error;
+      }
+    },
+
+    /** Returns true if inserted, false if duplicate (UNIQUE constraint). DB-level idempotency. */
+    async record(telegramPaymentChargeId: string, userId: string, starsAmount: number): Promise<boolean> {
+      const id = toUserId(userId);
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          `INSERT INTO star_payments (telegram_payment_charge_id, user_id, stars_amount) VALUES ($1, $2, $3)
+           ON CONFLICT (telegram_payment_charge_id) DO NOTHING
+           RETURNING id`,
+          [telegramPaymentChargeId, id, starsAmount]
+        );
+        return result.rowCount !== null && result.rowCount > 0;
+      } catch (error: any) {
+        log.error('[DB] Error recording star payment', { error: error.message, userId });
         throw error;
       }
     },

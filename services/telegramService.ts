@@ -1,63 +1,125 @@
+import { UserProfile } from '../types';
 
-import { UserProfile } from "../types";
+const API_BASE = typeof window !== 'undefined' ? '' : process.env.NEXT_PUBLIC_API_URL || '';
 
 /**
- * This service handles interactions with the Telegram WebApp API for payments (Stars).
+ * Request Premium payment via Telegram Stars.
+ * - With BOT_TOKEN: creates real invoice, opens via openInvoice
+ * - Without BOT_TOKEN: sim mode with showPopup + activate API
  */
-
 export const requestStarsPayment = async (profile: UserProfile): Promise<boolean> => {
-    // @ts-expect-error - Telegram WebApp types are not fully defined
-    const tg = window.Telegram?.WebApp;
+  const userId = profile.id;
+  if (!userId) {
+    console.warn('[TelegramService] No user id');
+    return false;
+  }
 
-    const TITLE_RU = 'Премиум на Неделю';
-    const DESC_RU = 'Полный доступ на 7 дней за 250 Stars';
-    const TITLE_EN = 'Weekly Premium';
-    const DESC_EN = 'Full access for 7 days for 250 Stars';
+  const tg = (window as any).Telegram?.WebApp;
+  const TITLE_RU = 'Премиум на Неделю';
+  const DESC_RU = 'Полный доступ на 7 дней за 250 Stars';
+  const TITLE_EN = 'Weekly Premium';
+  const DESC_EN = 'Full access for 7 days for 250 Stars';
 
-    if (!tg) {
-        console.warn("Telegram WebApp not available");
-        return new Promise(resolve => {
-            const confirm = window.confirm(`Simulate Payment: ${DESC_EN}?`);
-            setTimeout(() => resolve(confirm), 1000);
-        });
-    }
-
-    // Check version for showPopup support (introduced in 6.2)
-    const isVersionSupported = tg.isVersionAtLeast ? tg.isVersionAtLeast('6.2') : false;
-
-    if (!isVersionSupported) {
-        // Fallback for older Telegram versions
-        return new Promise(resolve => {
-            const confirm = window.confirm(
-                profile.language === 'ru' ? DESC_RU : DESC_EN
-            );
-            resolve(confirm);
-        });
-    }
-
-    // Modern flow with native popup
-    return new Promise((resolve) => {
-        tg.showPopup({
-            title: profile.language === 'ru' ? TITLE_RU : TITLE_EN,
-            message: profile.language === 'ru' ? DESC_RU : DESC_EN,
-            buttons: [
-                { id: 'pay', type: 'default', text: 'Pay 250 stars' },
-                { id: 'cancel', type: 'destructive', text: 'Cancel' }
-            ]
-        }, (buttonId: string) => {
-            if (buttonId === 'pay') {
-                if (tg.MainButton) {
-                    tg.MainButton.showProgress();
-                    setTimeout(() => {
-                        tg.MainButton.hideProgress();
-                        resolve(true);
-                    }, 1500);
-                } else {
-                    resolve(true);
-                }
-            } else {
-                resolve(false);
-            }
-        });
+  try {
+    const res = await fetch(`${API_BASE}/api/telegram/create-invoice`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId }),
     });
+    const data = await res.json();
+
+    if (data.invoiceUrl && tg?.openInvoice) {
+      return new Promise((resolve) => {
+        tg.openInvoice(data.invoiceUrl, (status: string) => {
+          if (status === 'paid') {
+            resolve(true);
+          } else {
+            resolve(false);
+          }
+        });
+      });
+    }
+
+    if (data.simMode) {
+      return simPaymentFlow(tg, profile, TITLE_RU, DESC_RU, TITLE_EN, DESC_EN, userId);
+    }
+
+    console.warn('[TelegramService] No invoice URL and not sim mode');
+    return false;
+  } catch (err: any) {
+    console.error('[TelegramService] Payment error:', err?.message);
+    return false;
+  }
 };
+
+async function simPaymentFlow(
+  tg: any,
+  profile: UserProfile,
+  titleRu: string,
+  descRu: string,
+  titleEn: string,
+  descEn: string,
+  userId: string
+): Promise<boolean> {
+  if (!tg) {
+    return new Promise((resolve) => {
+      const ok = window.confirm(`Simulate Payment: ${descEn}?`);
+      if (ok) {
+        activateSim(userId).then(resolve);
+      } else {
+        resolve(false);
+      }
+    });
+  }
+
+  const hasPopup = tg.isVersionAtLeast ? tg.isVersionAtLeast('6.2') : false;
+  if (!hasPopup) {
+    return new Promise((resolve) => {
+      const ok = window.confirm(profile.language === 'ru' ? descRu : descEn);
+      if (ok) {
+        activateSim(userId).then(resolve);
+      } else {
+        resolve(false);
+      }
+    });
+  }
+
+  return new Promise((resolve) => {
+    tg.showPopup(
+      {
+        title: profile.language === 'ru' ? titleRu : titleEn,
+        message: profile.language === 'ru' ? descRu : descEn,
+        buttons: [
+          { id: 'pay', type: 'default', text: 'Pay 250 stars' },
+          { id: 'cancel', type: 'destructive', text: 'Cancel' },
+        ],
+      },
+      (buttonId: string) => {
+        if (buttonId === 'pay') {
+          if (tg.MainButton) tg.MainButton.showProgress();
+          activateSim(userId)
+            .then((ok) => {
+              if (tg.MainButton) tg.MainButton.hideProgress();
+              resolve(ok);
+            })
+            .catch(() => {
+              if (tg.MainButton) tg.MainButton.hideProgress();
+              resolve(false);
+            });
+        } else {
+          resolve(false);
+        }
+      }
+    );
+  });
+}
+
+async function activateSim(userId: string): Promise<boolean> {
+  const res = await fetch(`${API_BASE}/api/subscriptions/activate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId, simMode: true }),
+  });
+  const data = await res.json();
+  return data.success === true;
+}

@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { UserProfile, NatalChartData, UserContext, ViewState } from './types';
-import { getProfile, saveProfile, getLumiBalance } from './services/storageService';
+import { getProfile, saveProfile, getLumiBalance, processDailyLogin } from './services/storageService';
 import { getOrCalculateChart } from './services/chartService';
 import { generateAllContent } from './services/contentGenerationService';
 import { Onboarding } from './views/Onboarding';
@@ -40,6 +40,8 @@ const App: React.FC = () => {
     
     // Ref для предотвращения двойной загрузки
     const dataLoadedRef = useRef(false);
+    // Ref для однократного вызова daily login за сессию
+    const dailyLoginProcessedRef = useRef(false);
 
     useEffect(() => {
         const tg = (window as any).Telegram?.WebApp;
@@ -290,19 +292,47 @@ const App: React.FC = () => {
         }
     }, [view, profile?.id, refreshLumiOnDashboard]);
 
+    // Daily login bonus: process once per session when user reaches dashboard
+    useEffect(() => {
+        if (view !== 'dashboard' || !profile?.id || dailyLoginProcessedRef.current) return;
+        dailyLoginProcessedRef.current = true;
+        processDailyLogin(profile.id)
+            .then((result) => {
+                setProfile((prev) =>
+                    prev
+                        ? {
+                              ...prev,
+                              lumiBalance: result.newBalance,
+                              loginStreak: result.streak,
+                          }
+                        : prev
+                );
+            })
+            .catch((err) => {
+                console.warn('[App] Daily login failed (non-critical):', err?.message);
+                dailyLoginProcessedRef.current = false; // Allow retry on next dashboard visit
+            });
+    }, [view, profile?.id]);
+
     const requestPremium = async () => {
        if (!profile) return;
        console.log('[App] Requesting premium for user:', profile.id);
        const success = await requestStarsPayment(profile);
        if (success) {
-           console.log('[App] Premium payment successful, updating profile...');
-           const updated = { ...profile, isPremium: true };
-           setProfile(updated);
+           console.log('[App] Premium payment successful, refreshing profile...');
            try {
-               await saveProfile(updated);
-               console.log('[App] Premium status saved successfully');
+               for (let i = 0; i <= 2; i++) {
+                   if (i > 0) await new Promise((r) => setTimeout(r, 1200));
+                   const fresh = await getProfile();
+                   if (fresh) {
+                       const isAdmin = OWNER_ID && String(profile.id) === String(OWNER_ID) ? true : fresh.isAdmin;
+                       setProfile({ ...fresh, id: profile.id, isAdmin });
+                       if (fresh.isPremium) break;
+                   }
+               }
            } catch (error) {
-               console.error('[App] Failed to save premium status:', error);
+               console.error('[App] Failed to refresh profile:', error);
+               setProfile((prev) => prev ? { ...prev, isPremium: true } : prev);
            }
            setShowPremiumPreview(false);
            setView('dashboard');
