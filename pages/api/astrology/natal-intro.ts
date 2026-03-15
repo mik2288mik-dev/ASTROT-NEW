@@ -79,52 +79,38 @@ async function generateNatalIntroWithAI(profile: any, chartData: any): Promise<s
 }
 
 /**
- * Fallback function if OpenAI is unavailable
+ * Fallback intro when OpenAI is unavailable.
+ * Lumia style: max 1–2 astrology terms, personal, warm.
  */
 function generateFallbackIntro(profile: any, chartData: any): string {
   const lang = profile?.language === 'ru';
   const name = profile.name || (lang ? 'друг' : 'friend');
-  const sunSign = chartData.sun?.sign || 'Unknown';
-  const moonSign = chartData.moon?.sign || 'Unknown';
-  const rising = chartData.rising?.sign || 'Unknown';
   const element = chartData.element || 'Fire';
   
   if (lang) {
     return `**Привет, ${name}!**
 
-Я изучила твою натальную карту, и вот что я вижу:
+Я изучила твою карту, и вот что вижу: у тебя сильная, узнаваемая энергия. Ты чувствуешь людей и ситуации глубже, чем кажется со стороны.
 
-Твоё Солнце в ${sunSign}, Луна в ${moonSign}, а Асцендент в ${rising}. Это создаёт уникальное сочетание качеств — ты одновременно ${sunSign.toLowerCase()} в своей сути, ${moonSign.toLowerCase()} в эмоциях, и ${rising.toLowerCase()} в том, как мир тебя видит.
-
-**Твои суперсилы:**
+**Твои сильные стороны:**
 • Твоя стихия ${element} даёт тебе особый подход к жизни
 • Ты легко находишь баланс между разными сторонами себя
 • У тебя есть природная способность понимать людей
-• Твоя интуиция сильнее, чем ты думаешь
 
 **Что делает тебя особенным:**
-• Твоё сочетание знаков создаёт редкую комбинацию качеств
-• Ты можешь быть разным в зависимости от ситуации — и это твоя сила
-
-Хочешь узнать больше о своей личности, любви, карьере и предназначении? Активируй Premium!`;
+Ты можешь быть разным в зависимости от ситуации — и это твоя сила. Хочешь узнать больше о личности, любви, карьере и предназначении? Активируй Premium!`;
   } else {
     return `**Hi, ${name}!**
 
-I've studied your natal chart, and here's what I see:
+I've studied your chart, and here's what I see: you have a strong, recognizable energy. You feel people and situations more deeply than it might seem from the outside.
 
-Your Sun is in ${sunSign}, Moon in ${moonSign}, and Ascendant in ${rising}. This creates a unique combination of qualities — you're ${sunSign.toLowerCase()} at your core, ${moonSign.toLowerCase()} in emotions, and ${rising.toLowerCase()} in how the world sees you.
-
-**Your superpowers:**
+**Your strengths:**
 • Your ${element} element gives you a special approach to life
 • You easily find balance between different sides of yourself
 • You have a natural ability to understand people
-• Your intuition is stronger than you think
 
 **What makes you special:**
-• Your sign combination creates a rare mix of qualities
-• You can be different depending on the situation — and that's your strength
-
-Want to learn more about your personality, love, career and life purpose? Activate Premium!`;
+You can be different depending on the situation — and that's your strength. Want to learn more about your personality, love, career and life purpose? Activate Premium!`;
   }
 }
 
