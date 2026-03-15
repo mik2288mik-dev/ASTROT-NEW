@@ -26,9 +26,9 @@ export const Header: React.FC<HeaderProps> = ({ profile, view, onBack }) => {
             synastry: { ru: 'Совместимость', en: 'Synastry' },
             settings: { ru: 'Настройки', en: 'Settings' },
             admin: { ru: 'Админ', en: 'Admin' },
-            dashboard: { ru: 'ASTROT', en: 'ASTROT' },
+            dashboard: { ru: 'Lumia', en: 'Lumia' },
         };
-        return titles[view]?.[profile.language] || 'ASTROT';
+        return titles[view]?.[profile.language] || 'Lumia';
     };
 
     return (

@@ -38,7 +38,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        title: 'ASTROT Premium',
+        title: 'Lumia Premium',
         description: `Full access for ${PREMIUM_DAYS} days`,
         payload,
         provider_token: '',

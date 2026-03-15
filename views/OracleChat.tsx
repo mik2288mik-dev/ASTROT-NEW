@@ -14,7 +14,7 @@ export const OracleChat: React.FC<OracleChatProps> = ({ profile }) => {
         {
             id: 'init',
             role: 'model',
-            text: `Hello ${profile.name}. I am Astra. Ask me anything about your chart, your feelings, or the stars.`,
+            text: `Hello ${profile.name}. I am Lumia. Ask me anything about your chart, your feelings, or the stars.`,
             timestamp: Date.now()
         }
     ]);
@@ -72,7 +72,7 @@ export const OracleChat: React.FC<OracleChatProps> = ({ profile }) => {
         <div className="flex flex-col h-full w-full bg-astro-bg">
             {/* Chat Header */}
             <div className="p-4 border-b border-astro-border bg-astro-bg/95 backdrop-blur z-10 text-center shrink-0">
-                <h2 className="text-sm font-bold uppercase tracking-widest text-astro-text font-serif">Oracle Astra</h2>
+                <h2 className="text-sm font-bold uppercase tracking-widest text-astro-text font-serif">Lumia Oracle</h2>
             </div>
 
             {/* Messages Area - Scrolls Independently */}

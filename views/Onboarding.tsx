@@ -99,7 +99,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                 {/* Header */}
                 <div className="mb-16 text-center">
                     <h1 className="text-5xl font-bold text-astro-text mb-3 font-serif tracking-tighter">
-                        ASTROT
+                        Lumia
                     </h1>
                     <p className="text-astro-subtext text-[10px] uppercase tracking-[0.4em]">
                         Персональный Оракул

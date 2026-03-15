@@ -1,7 +1,7 @@
 
 import { Language } from "./types";
 
-export const APP_NAME = "Astrot";
+export const APP_NAME = "Lumia";
 
 /**
  * Lumia Oracle Chat — системная инструкция для чата с Астрой.
@@ -38,7 +38,7 @@ export const TRANSLATIONS = {
     },
     hook: {
       analyzing: "Считываю звездную карту...",
-      typing: "Астра печатает...",
+      typing: "Lumia печатает...",
       intro: "Приветствую, {name}. Я изучила твою карту...",
       done: "Это лишь 10% потенциала вашей натальной карты. Бесплатный расчет завершен.\n\nЧтобы раскрыть всю карту, получить персональный прогноз на день, месяц и узнать о кармических задачах, активируйте подписку.",
       cta_button: "Узнать больше"
@@ -160,7 +160,7 @@ export const TRANSLATIONS = {
     },
     hook: {
       analyzing: "Reading the star map...",
-      typing: "Astra is typing...",
+      typing: "Lumia is typing...",
       intro: "Greetings, {name}. I have studied your chart...",
       done: "This is only 10% of your chart's potential. Free calculation complete.\n\nTo reveal your full chart, get daily forecasts, and uncover karmic tasks, activate subscription.",
       cta_button: "Learn more"

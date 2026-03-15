@@ -9,7 +9,7 @@ interface PremiumPreviewProps {
 
 export const PremiumPreview: React.FC<PremiumPreviewProps> = ({ onClose, onPurchase }) => {
     const features = [
-        { title: "Oracle Chat", desc: "Unlimited AI conversations with Astra." },
+        { title: "Oracle Chat", desc: "Unlimited AI conversations with Lumia." },
         { title: "Daily Forecast", desc: "Deep personal transits & Moon impact." },
         { title: "Deep Dives", desc: "Interactive analysis of Love & Career." },
         { title: "Cosmic Passport", desc: "Full planetary breakdown & aspects." }
@@ -27,7 +27,7 @@ export const PremiumPreview: React.FC<PremiumPreviewProps> = ({ onClose, onPurch
 
                 <button onClick={onClose} className="absolute top-4 right-4 text-astro-subtext hover:text-astro-text">✕</button>
 
-                <h2 className="text-2xl font-bold font-serif text-astro-text mb-2 text-center">ASTROT PRO</h2>
+                <h2 className="text-2xl font-bold font-serif text-astro-text mb-2 text-center">Lumia PRO</h2>
                 <p className="text-center text-[10px] uppercase tracking-widest text-astro-highlight mb-8">Unlock the Stars</p>
 
                 <div className="space-y-4 mb-8">

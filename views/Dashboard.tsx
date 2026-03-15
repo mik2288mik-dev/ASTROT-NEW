@@ -319,7 +319,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
                         <div>
                              <h3 className="font-serif text-base text-astro-text mb-1">{getText(profile.language, 'dashboard.menu_oracle')}</h3>
                              <p className="text-astro-subtext text-[10px] font-light">
-                                {profile.language === 'ru' ? 'Спроси у Астры' : 'Ask Astra anything'}
+                                {profile.language === 'ru' ? 'Спроси у Lumia' : 'Ask Lumia anything'}
                              </p>
                         </div>
                     </div>

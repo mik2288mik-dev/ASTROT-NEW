@@ -56,7 +56,7 @@ async function handler(
     const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
       {
         role: 'system',
-        content: systemInstruction || 'You are Astra, a helpful astrology assistant.'
+        content: systemInstruction || 'You are Lumia, a helpful astrology assistant.'
       }
     ];
 

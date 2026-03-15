@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import NextImage from 'next/image';
 import { motion } from 'framer-motion';
 
 interface LoadingProps {
@@ -63,19 +62,15 @@ export const Loading: React.FC<LoadingProps> = ({ message, progress: externalPro
                     }}
                     className="relative"
                 >
-                    <div className="relative w-48 h-48 md:w-56 md:h-56">
-                        <NextImage 
-                            src="/logo.png" 
-                            alt="ASTROT" 
-                            width={224}
-                            height={224}
-                            className="object-contain"
+                    <div className="relative w-48 h-48 md:w-56 md:h-56 flex items-center justify-center">
+                        <span
+                            className="text-5xl md:text-6xl font-bold font-serif text-astro-text tracking-tight"
                             style={{
                                 filter: 'drop-shadow(0 0 40px rgba(191, 161, 255, 0.4)) drop-shadow(0 4px 20px rgba(0, 0, 0, 0.3))'
                             }}
-                            priority
-                            unoptimized
-                        />
+                        >
+                            Lumia
+                        </span>
                     </div>
                 </motion.div>
             </motion.div>
