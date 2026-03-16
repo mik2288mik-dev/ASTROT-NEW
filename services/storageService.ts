@@ -388,6 +388,7 @@ export interface ChartsResponse {
   charts: ChartListItem[];
   chartSlots: number;
   canAddMore: boolean;
+  slotCost?: number;
 }
 
 const normalizeChartListItem = (chart: ChartListItem): ChartListItem => ({
@@ -418,7 +419,7 @@ export const getCharts = async (userId: string): Promise<ChartsResponse> => {
  */
 export const createChart = async (
   userId: string,
-  data: { name: string; birthDate: string; birthTime?: string; birthPlace: string; chartData: any }
+  data: { name: string; birthDate: string; birthTime?: string; birthPlace: string; chartData?: any; language?: string }
 ): Promise<ChartListItem> => {
   if (!userId) throw new Error('UserId is required');
   const url = `${API_BASE_URL}/api/charts`;
@@ -482,29 +483,6 @@ export const setPrimaryChart = async (chartId: number, userId: string): Promise<
     const err = await res.json().catch(() => ({}));
     throw new Error(err.error || `Failed to set primary: ${res.status}`);
   }
-};
-
-/**
- * Calculate natal chart (no save) - for multi-chart add flow
- */
-export const calculateNatalChartData = async (data: {
-  name: string;
-  birthDate: string;
-  birthTime?: string;
-  birthPlace: string;
-  language?: string;
-}): Promise<any> => {
-  const url = `${API_BASE_URL}/api/astrology/calculate-natal`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || err.error || `Calculation failed: ${res.status}`);
-  }
-  return res.json();
 };
 
 /**

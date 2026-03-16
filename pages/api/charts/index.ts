@@ -1,6 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { calculateNatalChart } from '../../../lib/swisseph-calculator';
+import { formatValidationErrors, validateNatalChartInput } from '../../../lib/validation';
 import { db } from '../../../lib/db';
-import { buyChartSlot } from '../../../services/chartSlotService';
+import { buyChartSlot, getChartSlotCost } from '../../../services/chartSlotService';
 
 const log = {
   info: (msg: string, data?: any) => console.log(`[API/charts] ${msg}`, data || ''),
@@ -19,15 +21,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const charts = await db.natal_charts.getAll(userId);
       const user = await db.users.get(userId);
       const chartSlots = user?.chart_slots ?? 1;
+
       return res.status(200).json({
         charts,
         chartSlots,
         canAddMore: charts.length < chartSlots,
+        slotCost: getChartSlotCost(),
       });
     }
 
     if (req.method === 'POST') {
-      const { action, name, birthDate, birthTime, birthPlace, chartData } = req.body;
+      const { action, name, birthDate, birthTime, birthPlace, chartData, language } = req.body || {};
 
       if (action === 'buy-slot') {
         const result = await buyChartSlot(userId);
@@ -38,18 +42,57 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
       }
 
-      if (!birthDate || !birthPlace || !chartData) {
+      const normalizedBirthTime = birthTime || '12:00';
+      const userLanguage = language === 'en' ? 'en' : 'ru';
+      const validation = validateNatalChartInput({
+        name: name || 'My Chart',
+        birthDate,
+        birthTime: normalizedBirthTime,
+        birthPlace,
+        language: userLanguage,
+      });
+
+      if (!validation.isValid) {
         return res.status(400).json({
-          error: 'birthDate, birthPlace, and chartData are required',
+          error: 'Validation failed',
+          message: formatValidationErrors(validation.errors, userLanguage),
+          errors: validation.errors,
         });
       }
+
+      if (!birthDate || !birthPlace) {
+        return res.status(400).json({
+          error: 'birthDate and birthPlace are required',
+        });
+      }
+
+      // Check slot capacity before starting the expensive calculation path.
+      const existingCharts = await db.natal_charts.getAll(userId);
+      const user = await db.users.get(userId);
+      const chartSlots = user?.chart_slots ?? 1;
+
+      if (existingCharts.length >= chartSlots) {
+        return res.status(403).json({
+          error: `Chart slots limit reached (${chartSlots}). Purchase more with Lumi.`,
+          code: 'SLOTS_LIMIT',
+        });
+      }
+
+      const resolvedChartData =
+        chartData ||
+        await calculateNatalChart(
+          name || 'My Chart',
+          birthDate,
+          normalizedBirthTime,
+          birthPlace
+        );
 
       const chart = await db.natal_charts.create(userId, {
         name: name || 'Моя карта',
         birthDate,
-        birthTime: birthTime || '12:00',
+        birthTime: normalizedBirthTime,
         birthPlace,
-        chartData,
+        chartData: resolvedChartData,
       });
 
       log.info('Chart created', { userId, chartId: chart.id });

@@ -52,6 +52,7 @@ const App: React.FC = () => {
     const [synastryPrefill, setSynastryPrefill] = useState<SynastryPrefill>(null);
     const [chartsReturnView, setChartsReturnView] = useState<ViewState>('settings');
     const [walletReturnView, setWalletReturnView] = useState<ViewState>('dashboard');
+    const [chartReturnView, setChartReturnView] = useState<ViewState>('dashboard');
     
     // Ref для предотвращения двойной загрузки
     const dataLoadedRef = useRef(false);
@@ -386,11 +387,25 @@ const App: React.FC = () => {
             setView('paywall');
             return;
         }
+        if (newView === 'chart') {
+            setActiveChartId(undefined);
+            setChartReturnView('dashboard');
+        }
         setView(newView);
     };
 
-    const handleBack = useCallback(() => {
-        // If in Admin or Charts, return to Settings
+    const refreshPrimaryChartState = useCallback(async () => {
+        try {
+            const freshChart = await getChartData();
+            setChartData(freshChart);
+            setActiveChartId(undefined);
+        } catch (error) {
+            console.error('[App] Failed to refresh primary chart state:', error);
+        }
+    }, []);
+
+    const handleBack = useCallback(async () => {
+        // Keep screen-specific return paths explicit for management flows.
         if (view === 'admin') {
             setView('settings');
             return;
@@ -403,19 +418,22 @@ const App: React.FC = () => {
             setView(walletReturnView);
             return;
         }
+        if (view === 'chart') {
+            const returnView = activeChartId ? chartReturnView : 'dashboard';
+
+            if (activeChartId) {
+                await refreshPrimaryChartState();
+            } else {
+                setActiveChartId(undefined);
+            }
+
+            setChartReturnView('dashboard');
+            setView(returnView);
+            return;
+        }
         // Otherwise return to Hub
         setView('dashboard');
-    }, [chartsReturnView, view, walletReturnView]);
-
-    const refreshPrimaryChartState = useCallback(async () => {
-        try {
-            const freshChart = await getChartData();
-            setChartData(freshChart);
-            setActiveChartId(undefined);
-        } catch (error) {
-            console.error('[App] Failed to refresh primary chart state:', error);
-        }
-    }, []);
+    }, [activeChartId, chartReturnView, chartsReturnView, refreshPrimaryChartState, view, walletReturnView]);
 
     const openCharts = useCallback((returnView: ViewState) => {
         setChartsReturnView(returnView);
@@ -552,6 +570,7 @@ const App: React.FC = () => {
                             onChartSelect={(chartData, chartId) => {
                                 setChartData(chartData);
                                 setActiveChartId(chartId);
+                                setChartReturnView('charts');
                                 setView('chart');
                             }}
                         />
