@@ -63,31 +63,41 @@ export default async function handler(
 
       // Fetch generated content from interpretations (Lumia schema)
       let generatedContent: { natalIntro?: string; deepDiveAnalyses?: Record<string, string>; dailyHoroscope?: any } | null = null;
+
+      let natalIntro: { content?: string } | null = null;
       try {
-        const natalIntro = await db.interpretations.getByHash(userId, 'natal_intro', 'default');
+        natalIntro = await db.interpretations.getByHash(userId, 'natal_intro', 'default');
+      } catch (e: any) {
+        log.warn('[GET] Failed to hydrate natalIntro', { userId, error: e?.message });
+      }
+
+      let deepDiveAnalyses: Record<string, string> = {};
+      try {
         const deepDiveTypes = ['deep_dive_personality', 'deep_dive_love', 'deep_dive_career', 'deep_dive_weakness', 'deep_dive_karma'];
         const topics = ['personality', 'love', 'career', 'weakness', 'karma'];
-        const deepDiveAnalyses: Record<string, string> = {};
         for (let i = 0; i < deepDiveTypes.length; i++) {
           const row = await db.interpretations.getByHash(userId, deepDiveTypes[i], topics[i]);
           if (row?.content) deepDiveAnalyses[topics[i]] = row.content;
         }
-        if (natalIntro?.content || Object.keys(deepDiveAnalyses).length > 0) {
-          generatedContent = {
-            ...(natalIntro?.content ? { natalIntro: natalIntro.content } : {}),
-            ...(Object.keys(deepDiveAnalyses).length > 0 ? { deepDiveAnalyses } : {}),
-          };
-        }
+      } catch (e: any) {
+        log.warn('[GET] Failed to hydrate deepDiveAnalyses', { userId, error: e?.message });
+      }
 
-        // Hydrate dailyHoroscope from daily_natal_cards for app reopen (primary chart, today)
+      let dailyHoroscope: any = null;
+      try {
         const todayKey = new Date().toISOString().split('T')[0];
-        const dailyHoroscope = await db.daily_natal_cards.get(userId, todayKey);
-        if (dailyHoroscope && generatedContent) {
-          generatedContent.dailyHoroscope = dailyHoroscope;
-        } else if (dailyHoroscope && !generatedContent) {
-          generatedContent = { dailyHoroscope };
-        }
-      } catch (_e) {}
+        dailyHoroscope = await db.daily_natal_cards.get(userId, todayKey);
+      } catch (e: any) {
+        log.warn('[GET] Failed to hydrate dailyHoroscope', { userId, error: e?.message });
+      }
+
+      if (natalIntro?.content || Object.keys(deepDiveAnalyses).length > 0 || dailyHoroscope) {
+        generatedContent = {
+          ...(natalIntro?.content ? { natalIntro: natalIntro.content } : {}),
+          ...(Object.keys(deepDiveAnalyses).length > 0 ? { deepDiveAnalyses } : {}),
+          ...(dailyHoroscope ? { dailyHoroscope } : {}),
+        };
+      }
 
       const lumiBalance = user.lumi_balance ?? 0;
       const loginStreak = user.login_streak ?? 0;

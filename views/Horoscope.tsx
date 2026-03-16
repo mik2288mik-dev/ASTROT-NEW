@@ -23,6 +23,16 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
     // Мемуизируем язык для оптимизации
     const language = useMemo(() => profile.language, [profile.language]);
 
+    // Sync: when profile.generatedContent.dailyHoroscope arrives with valid today data, apply immediately
+    useEffect(() => {
+        const cached = profile.generatedContent?.dailyHoroscope;
+        const today = new Date().toISOString().split('T')[0];
+        if (cached && cached.date === today && cached.content && cached.content.length > 0) {
+            setHoroscope(cached);
+            setLoading(false);
+        }
+    }, [profile.generatedContent?.dailyHoroscope]);
+
     useEffect(() => {
         const loadHoroscope = async () => {
             if (!chartData) {

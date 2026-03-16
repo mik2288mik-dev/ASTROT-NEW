@@ -62,6 +62,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, 
     const [natalIntro, setNatalIntro] = useState<string>('');
     const [isLoadingIntro, setIsLoadingIntro] = useState(true);
     const introLoadedRef = useRef(false);
+    const apiInFlightRef = useRef(false);
 
     const lang = profile.language;
 
@@ -73,15 +74,26 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, 
     // Сброс при смене карты — перезагружаем intro и topic content
     useEffect(() => {
         introLoadedRef.current = false;
+        apiInFlightRef.current = false;
         setNatalIntro('');
         setTopicContent({});
     }, [chartId, data?.sun?.sign]);
 
-    // Загрузка вступления (chartId = selected chart; undefined = primary)
+    // Sync: when profile.generatedContent.natalIntro arrives (primary only), apply immediately
     useEffect(() => {
-        if (introLoadedRef.current) return;
+        if (chartId) return;
+        const cached = profile.generatedContent?.natalIntro;
+        if (cached && cached.length > 50) {
+            setNatalIntro(cached);
+            setIsLoadingIntro(false);
+            introLoadedRef.current = true;
+        }
+    }, [chartId, profile.generatedContent?.natalIntro]);
 
-        // Profile cache только для primary (без chartId)
+    // Загрузка вступления (chartId = selected chart; undefined = primary)
+    // introLoadedRef = "we have displayed content"; apiInFlightRef = "API call in progress"
+    useEffect(() => {
+        // Profile cache только для primary (без chartId) — всегда проверяем первым
         const cached = !chartId && profile.generatedContent?.natalIntro;
         if (cached && cached.length > 50) {
             setNatalIntro(cached);
@@ -90,13 +102,17 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, 
             return;
         }
 
-        introLoadedRef.current = true;
+        if (introLoadedRef.current) return;
+        if (apiInFlightRef.current) return;
+
+        apiInFlightRef.current = true;
         setIsLoadingIntro(true);
 
         getNatalIntro(profile, data, chartId)
             .then((intro) => {
                 if (intro && intro.length > 50) {
                     setNatalIntro(intro);
+                    introLoadedRef.current = true;
                     // Сохраняем в профиль только для primary (без chartId)
                     if (!chartId) {
                         const updated: UserProfile = {
@@ -113,8 +129,21 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, 
                 }
             })
             .catch(console.error)
-            .finally(() => setIsLoadingIntro(false));
-    }, [chartId, data?.sun?.sign]);
+            .finally(() => {
+                apiInFlightRef.current = false;
+                setIsLoadingIntro(false);
+            });
+    }, [chartId, data?.sun?.sign, profile.generatedContent?.natalIntro]);
+
+    // Sync: when profile.generatedContent.deepDiveAnalyses arrives (primary only), apply
+    useEffect(() => {
+        if (!expandedTopic || chartId) return;
+        const analyses = profile.generatedContent?.deepDiveAnalyses as Record<string, string | undefined> | undefined;
+        const cached = analyses?.[expandedTopic];
+        if (cached) {
+            setTopicContent(prev => ({ ...prev, [expandedTopic]: cached }));
+        }
+    }, [chartId, expandedTopic, profile.generatedContent?.deepDiveAnalyses]);
 
     // Загрузка контента темы при раскрытии (chartId = selected chart; undefined = primary)
     useEffect(() => {
@@ -145,7 +174,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, 
             })
             .catch(console.error)
             .finally(() => setLoadingTopic(null));
-    }, [expandedTopic, profile.isPremium, chartId, data?.sun?.sign]);
+    }, [expandedTopic, profile.isPremium, chartId, data?.sun?.sign, profile.generatedContent?.deepDiveAnalyses]);
 
     // Обработка клика на тему
     const handleTopicClick = (topicId: string) => {

@@ -90,6 +90,14 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
         loadWeather();
     }, [profile.id, profile.weatherCity]);
 
+    // Sync: when profile.generatedContent.dailyHoroscope arrives, apply immediately (no guard)
+    useEffect(() => {
+        const cached = profile.generatedContent?.dailyHoroscope;
+        if (cached && cached.content) {
+            setDailyHoroscope(cached);
+        }
+    }, [profile.generatedContent?.dailyHoroscope]);
+
     // Основной useEffect для загрузки данных при первой загрузке или изменении профиля/карты
     // ВАЖНО: Этот useEffect НЕ должен срабатывать при изменении weatherCity или других несущественных полей
     // Используем ref для отслеживания того, что данные уже загружены
@@ -112,19 +120,13 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
         zodiacSignRef.current = chartData?.sun?.sign;
         dataLoadedRef.current = true;
         
-        // Загружаем данные асинхронно
+        // Загружаем данные асинхронно (horoscope sync handled by dedicated effect above)
         const loadDashboardData = async () => {
-            // Небольшая задержка, чтобы не блокировать показ интерфейса
             await new Promise(resolve => setTimeout(resolve, 200));
-
-            // 1. Показываем кэшированный гороскоп из профиля (БЕЗ запросов к API)
-            // Гороскоп генерируется только при открытии страницы Horoscope
             const cachedHoroscope = profile.generatedContent?.dailyHoroscope;
             if (cachedHoroscope && cachedHoroscope.content) {
-                console.log('[Dashboard] Using cached horoscope from profile');
                 setDailyHoroscope(cachedHoroscope);
             }
-
         };
         
         loadDashboardData();
