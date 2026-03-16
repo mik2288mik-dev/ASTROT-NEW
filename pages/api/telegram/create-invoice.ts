@@ -1,4 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { getLumiPack } from '../../../services/lumiPacks';
 
 const log = {
   info: (msg: string, data?: any) => console.log(`[API/telegram/create-invoice] ${msg}`, data || ''),
@@ -14,6 +15,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const userId = (req.body?.userId ?? req.query.userId) as string;
+  const type = (req.body?.type ?? req.query.type ?? 'premium_week') as string;
+  const packId = (req.body?.packId ?? req.query.packId) as string | undefined;
   if (!userId?.trim()) {
     return res.status(400).json({ error: 'userId is required' });
   }
@@ -29,7 +32,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const payload = JSON.stringify({ userId: String(userId).trim(), type: 'premium_week' });
+    const premiumProduct = {
+      payload: { userId: String(userId).trim(), type: 'premium_week' },
+      title: 'Lumia Premium',
+      description: `Full access for ${PREMIUM_DAYS} days`,
+      label: 'Premium 1 Week',
+      amount: PREMIUM_STARS,
+    };
+
+    const lumiPack = type === 'lumi_pack' ? getLumiPack(packId) : null;
+    if (type === 'lumi_pack' && !lumiPack) {
+      return res.status(400).json({ error: 'Invalid Lumi pack' });
+    }
+
+    const product = lumiPack
+      ? {
+          payload: { userId: String(userId).trim(), type: 'lumi_pack', packId: lumiPack.id },
+          title: lumiPack.title.en,
+          description: `${lumiPack.lumiAmount} Lumi pack`,
+          label: `${lumiPack.lumiAmount} Lumi`,
+          amount: lumiPack.starsAmount,
+        }
+      : premiumProduct;
+
+    const payload = JSON.stringify(product.payload);
     if (payload.length > 128) {
       return res.status(400).json({ error: 'Payload too long' });
     }
@@ -38,12 +64,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        title: 'Lumia Premium',
-        description: `Full access for ${PREMIUM_DAYS} days`,
+        title: product.title,
+        description: product.description,
         payload,
         provider_token: '',
         currency: 'XTR',
-        prices: [{ label: 'Premium 1 Week', amount: PREMIUM_STARS }],
+        prices: [{ label: product.label, amount: product.amount }],
       }),
     });
 

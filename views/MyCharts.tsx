@@ -19,6 +19,7 @@ interface MyChartsProps {
   onBack: () => void;
   onChartSelect?: (chartData: any, chartId?: number) => void;
   onProfileUpdate?: (profile: UserProfile) => void;
+  onOpenWallet?: () => void;
   onUseInSynastry?: (chart: ChartListItem) => void;
   onPrimaryChartUpdated?: () => Promise<void> | void;
 }
@@ -30,6 +31,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
   onBack,
   onChartSelect,
   onProfileUpdate,
+  onOpenWallet,
   onUseInSynastry,
   onPrimaryChartUpdated,
 }) => {
@@ -162,6 +164,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
   const canBuySlot = !canAddMore && lumiBalance >= slotCost;
   const partnerCharts = charts.filter((chart) => !chart.is_primary);
   const isSingleChartState = charts.length === 1 && chartSlots > 1;
+  const shouldOpenWallet = !canAddMore && !canBuySlot;
 
   return (
     <div className="p-4 space-y-6 screen-pb">
@@ -187,6 +190,33 @@ export const MyCharts: React.FC<MyChartsProps> = ({
           </div>
         </div>
 
+        {canAddMore ? (
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="w-full rounded-xl bg-astro-highlight px-4 py-3 text-sm font-semibold text-white"
+          >
+            + {getText(lang, 'charts.add_chart')}
+          </button>
+        ) : canBuySlot ? (
+          <button
+            onClick={handleBuySlot}
+            disabled={actionLoading === 'buy-slot'}
+            className="w-full rounded-xl bg-astro-highlight px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
+          >
+            {actionLoading === 'buy-slot'
+              ? getText(lang, 'charts.purchasing')
+              : `${getText(lang, 'charts.buy_slot')} ${slotCost} ${getText(lang, 'charts.buy_slot_lumi')}`}
+          </button>
+        ) : (
+          <button
+            onClick={onOpenWallet}
+            disabled={!onOpenWallet}
+            className="w-full rounded-xl border border-astro-highlight/40 px-4 py-3 text-sm font-semibold text-astro-highlight disabled:opacity-50"
+          >
+            {T(lang, 'Открыть Lumi Wallet', 'Open Lumi Wallet')}
+          </button>
+        )}
+
         <div className="rounded-xl border border-astro-border/70 bg-astro-bg/40 p-4">
           <p className="text-sm font-medium text-astro-text">{getText(lang, 'charts.value_title')}</p>
           <p className="mt-2 text-sm leading-relaxed text-astro-subtext">
@@ -199,15 +229,9 @@ export const MyCharts: React.FC<MyChartsProps> = ({
             <p className="text-sm font-medium text-astro-text">{getText(lang, 'charts.slots_full_title')}</p>
             <p className="text-sm text-astro-subtext">{getText(lang, 'charts.slots_full_body')}</p>
             {canBuySlot ? (
-              <button
-                onClick={handleBuySlot}
-                disabled={actionLoading === 'buy-slot'}
-                className="inline-flex items-center justify-center rounded-lg bg-astro-highlight px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white disabled:opacity-50"
-              >
-                {actionLoading === 'buy-slot'
-                  ? getText(lang, 'charts.purchasing')
-                  : `${getText(lang, 'charts.buy_slot')} ${slotCost} ${getText(lang, 'charts.buy_slot_lumi')}`}
-              </button>
+              <p className="text-xs text-astro-subtext">
+                {T(lang, 'Баланса хватает, можно сразу купить новый слот.', 'You have enough balance to buy a new slot right away.')}
+              </p>
             ) : (
               <p className="text-xs text-astro-subtext">
                 {getText(lang, 'charts.slots_need_more_lumi')} {Math.max(slotCost - lumiBalance, 0)} Lumi.
@@ -380,21 +404,22 @@ export const MyCharts: React.FC<MyChartsProps> = ({
             </button>
           </div>
         </div>
-      ) : canAddMore ? (
-        <button
-          onClick={() => setShowAddForm(true)}
-          className="w-full bg-astro-card border border-dashed border-astro-border rounded-xl py-4 text-sm text-astro-text hover:border-astro-highlight/40 transition-colors"
-        >
-          + {getText(lang, 'charts.add_chart')}
-        </button>
-      ) : (
+      ) : shouldOpenWallet ? (
         <div className="bg-astro-card border border-astro-border rounded-xl p-4 text-center">
           <p className="text-sm text-astro-subtext">{getText(lang, 'charts.limit_reached')}</p>
           <p className="mt-2 text-base font-medium text-astro-highlight">
             {getText(lang, 'charts.balance')}: {lumiBalance} Lumi
           </p>
+          {onOpenWallet && (
+            <button
+              onClick={onOpenWallet}
+              className="mt-3 inline-flex rounded-lg border border-astro-highlight/40 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-astro-highlight"
+            >
+              {T(lang, 'Открыть Lumi Wallet', 'Open Lumi Wallet')}
+            </button>
+          )}
         </div>
-      )}
+      ) : null}
 
       {partnerCharts.length > 0 && (
         <p className="text-xs text-astro-subtext text-center">

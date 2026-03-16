@@ -1,4 +1,4 @@
-import { UserProfile, NatalChartData } from "../types";
+import { UserProfile, NatalChartData, LumiWalletData } from "../types";
 import { toDateInputValue } from "../lib/date-utils";
 
 // Next.js API base URL - используем локальные API routes
@@ -206,6 +206,25 @@ export const getLumiBalance = async (userId: string): Promise<number> => {
   } catch {
     return 0;
   }
+};
+
+export const getLumiWallet = async (userId: string, limit = 30): Promise<LumiWalletData> => {
+  if (!userId) {
+    return { lumi_balance: 0, transactions: [] };
+  }
+
+  const url = `${API_BASE_URL}/api/users/lumi?userId=${encodeURIComponent(userId)}&includeHistory=true&limit=${encodeURIComponent(String(limit))}`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || err.error || `Failed to fetch Lumi wallet: ${res.status}`);
+  }
+
+  const data = await res.json();
+  return {
+    lumi_balance: data.lumi_balance ?? 0,
+    transactions: data.transactions ?? [],
+  };
 };
 
 /**

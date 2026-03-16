@@ -6,9 +6,10 @@ interface HeaderProps {
     view: ViewState;
     onOpenSettings: () => void;
     onBack: () => void;
+    onOpenWallet: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ profile, view, onBack }) => {
+export const Header: React.FC<HeaderProps> = ({ profile, view, onBack, onOpenWallet }) => {
     if (!profile) return null;
 
     const isHub = view === 'dashboard';
@@ -16,7 +17,6 @@ export const Header: React.FC<HeaderProps> = ({ profile, view, onBack }) => {
 
     if (isFunnel) return null;
 
-    // Получаем название текущего раздела
     const getViewTitle = () => {
         const titles: Record<string, { ru: string; en: string }> = {
             chart: { ru: 'Натальная карта', en: 'Natal Chart' },
@@ -24,6 +24,7 @@ export const Header: React.FC<HeaderProps> = ({ profile, view, onBack }) => {
             horoscope: { ru: 'Гороскоп', en: 'Horoscope' },
             oracle: { ru: 'Оракул', en: 'Oracle' },
             synastry: { ru: 'Совместимость', en: 'Synastry' },
+            wallet: { ru: 'Lumi Wallet', en: 'Lumi Wallet' },
             settings: { ru: 'Настройки', en: 'Settings' },
             admin: { ru: 'Админ', en: 'Admin' },
             dashboard: { ru: 'Lumia', en: 'Lumia' },
@@ -32,15 +33,14 @@ export const Header: React.FC<HeaderProps> = ({ profile, view, onBack }) => {
     };
 
     return (
-        <header 
+        <header
             className="bg-astro-bg border-b border-astro-border/50 shrink-0 relative z-40"
             style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 8px)', paddingLeft: 'env(safe-area-inset-left, 0px)', paddingRight: 'env(safe-area-inset-right, 0px)' }}
         >
             <div className="h-14 flex items-center justify-between px-4">
-                {/* Left - Back button */}
                 <div className="w-16 flex items-center">
                     {!isHub && (
-                        <button 
+                        <button
                             onClick={onBack}
                             className="flex items-center gap-1 text-astro-highlight active:opacity-70 transition-opacity"
                         >
@@ -54,20 +54,21 @@ export const Header: React.FC<HeaderProps> = ({ profile, view, onBack }) => {
                     )}
                 </div>
 
-                {/* Center - Title */}
                 <div className="flex-1 text-center">
                     <h1 className={`font-semibold text-astro-text ${isHub ? 'text-xl font-serif tracking-tight' : 'text-base'}`}>
                         {getViewTitle()}
                     </h1>
                 </div>
 
-                {/* Right - Lumi balance */}
-                <div className="w-16 flex justify-end items-center">
+                <div className="w-20 flex justify-end items-center">
                   {typeof profile.lumiBalance === 'number' && (
-                    <span className="text-sm font-medium text-astro-highlight flex items-center gap-1">
+                    <button
+                      onClick={onOpenWallet}
+                      className="text-sm font-medium text-astro-highlight flex items-center gap-1 hover:opacity-80 transition-opacity"
+                    >
                       <span className="text-yellow-400">✦</span>
                       {profile.lumiBalance}
-                    </span>
+                    </button>
                   )}
                 </div>
             </div>

@@ -1,4 +1,5 @@
 import { UserProfile } from '../types';
+import { getLumiPack, type LumiPackId } from './lumiPacks';
 
 const API_BASE = typeof window !== 'undefined' ? '' : process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -24,7 +25,7 @@ export const requestStarsPayment = async (profile: UserProfile): Promise<boolean
     const res = await fetch(`${API_BASE}/api/telegram/create-invoice`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId }),
+      body: JSON.stringify({ userId, type: 'premium_week' }),
     });
     const data = await res.json();
 
@@ -65,7 +66,7 @@ async function simPaymentFlow(
     return new Promise((resolve) => {
       const ok = window.confirm(`Simulate Payment: ${descEn}?`);
       if (ok) {
-        activateSim(userId).then(resolve);
+        activateSim(userId, { simMode: true, type: 'premium_week' }).then(resolve);
       } else {
         resolve(false);
       }
@@ -77,7 +78,7 @@ async function simPaymentFlow(
     return new Promise((resolve) => {
       const ok = window.confirm(profile.language === 'ru' ? descRu : descEn);
       if (ok) {
-        activateSim(userId).then(resolve);
+        activateSim(userId, { simMode: true, type: 'premium_week' }).then(resolve);
       } else {
         resolve(false);
       }
@@ -97,7 +98,7 @@ async function simPaymentFlow(
       (buttonId: string) => {
         if (buttonId === 'pay') {
           if (tg.MainButton) tg.MainButton.showProgress();
-          activateSim(userId)
+          activateSim(userId, { simMode: true, type: 'premium_week' })
             .then((ok) => {
               if (tg.MainButton) tg.MainButton.hideProgress();
               resolve(ok);
@@ -114,11 +115,45 @@ async function simPaymentFlow(
   });
 }
 
-async function activateSim(userId: string): Promise<boolean> {
+export const requestLumiPackPayment = async (profile: UserProfile, packId: LumiPackId): Promise<boolean> => {
+  const userId = profile.id;
+  const pack = getLumiPack(packId);
+  if (!userId || !pack) {
+    return false;
+  }
+
+  const tg = (window as any).Telegram?.WebApp;
+
+  try {
+    const res = await fetch(`${API_BASE}/api/telegram/create-invoice`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, type: 'lumi_pack', packId }),
+    });
+    const data = await res.json();
+
+    if (data.invoiceUrl && tg?.openInvoice) {
+      return new Promise((resolve) => {
+        tg.openInvoice(data.invoiceUrl, (status: string) => resolve(status === 'paid'));
+      });
+    }
+
+    if (data.simMode) {
+      return activateSim(userId, { simMode: true, type: 'lumi_pack', packId });
+    }
+
+    return false;
+  } catch (err: any) {
+    console.error('[TelegramService] Lumi pack payment error:', err?.message);
+    return false;
+  }
+};
+
+async function activateSim(userId: string, payload: Record<string, any>): Promise<boolean> {
   const res = await fetch(`${API_BASE}/api/subscriptions/activate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ userId, simMode: true }),
+    body: JSON.stringify({ userId, ...payload }),
   });
   const data = await res.json();
   return data.success === true;

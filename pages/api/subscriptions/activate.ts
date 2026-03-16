@@ -1,5 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { activatePremium } from '../../../services/premiumService';
+import { activateLumiPackPurchase } from '../../../services/lumiTopUpService';
+import { getLumiPack } from '../../../services/lumiPacks';
 import { db } from '../../../lib/db';
 
 const log = {
@@ -18,6 +20,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const userId = (req.body?.userId ?? req.query.userId) as string;
   const simMode = req.body?.simMode === true;
+  const type = (req.body?.type ?? req.query.type ?? 'premium_week') as string;
+  const packId = (req.body?.packId ?? req.query.packId) as string | undefined;
 
   if (!userId?.trim()) {
     return res.status(400).json({ error: 'userId is required' });
@@ -33,10 +37,38 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
-  const chargeId = `sim_${userId}_${Date.now()}`;
-  const starsAmount = 250;
+  const chargeId = `sim_${type}_${userId}_${Date.now()}`;
 
   try {
+    if (type === 'lumi_pack') {
+      if (!packId) {
+        return res.status(400).json({ error: 'packId is required for lumi_pack' });
+      }
+      const pack = getLumiPack(packId);
+      if (!pack) {
+        return res.status(400).json({ error: 'Invalid Lumi pack' });
+      }
+
+      const lumiResult = await activateLumiPackPurchase(userId, chargeId, pack.starsAmount, pack.id);
+      const user = await db.users.get(userId);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      return res.status(200).json({
+        success: true,
+        activated: lumiResult.activated,
+        user: {
+          id: user.id,
+          isPremium: user.is_premium || false,
+          premiumUntil: user.premium_until ?? null,
+          lumiBalance: user.lumi_balance ?? 0,
+          loginStreak: user.login_streak ?? 0,
+        },
+      });
+    }
+
+    const starsAmount = 250;
     const result = await activatePremium(userId, chargeId, starsAmount);
 
     const user = await db.users.get(userId);

@@ -20,6 +20,7 @@ import { HookChat } from './views/HookChat';
 import { Paywall } from './views/Paywall';
 import { Synastry } from './views/Synastry';
 import { MyCharts } from './views/MyCharts';
+import { Wallet } from './views/Wallet';
 import { useSwipeBack } from './lib/useSwipeBack';
 import { BackgroundLayers } from './components/BackgroundLayers';
 
@@ -50,6 +51,7 @@ const App: React.FC = () => {
     const [ambientContext, setAmbientContext] = useState<UserContext | null>(null);
     const [synastryPrefill, setSynastryPrefill] = useState<SynastryPrefill>(null);
     const [chartsReturnView, setChartsReturnView] = useState<ViewState>('settings');
+    const [walletReturnView, setWalletReturnView] = useState<ViewState>('dashboard');
     
     // Ref для предотвращения двойной загрузки
     const dataLoadedRef = useRef(false);
@@ -401,9 +403,13 @@ const App: React.FC = () => {
             setView(chartsReturnView);
             return;
         }
+        if (view === 'wallet') {
+            setView(walletReturnView);
+            return;
+        }
         // Otherwise return to Hub
         setView('dashboard');
-    }, [chartsReturnView, view]);
+    }, [chartsReturnView, view, walletReturnView]);
 
     const refreshPrimaryChartState = useCallback(async () => {
         try {
@@ -423,6 +429,11 @@ const App: React.FC = () => {
     const openSynastryWithPrefill = useCallback((prefill: SynastryPrefill) => {
         setSynastryPrefill(prefill);
         setView('synastry');
+    }, []);
+
+    const openWallet = useCallback((returnView: ViewState) => {
+        setWalletReturnView(returnView);
+        setView('wallet');
     }, []);
 
     // Свайп назад от левого края (как в iOS)
@@ -462,6 +473,7 @@ const App: React.FC = () => {
                 view={view} 
                 onOpenSettings={() => setView('settings')}
                 onBack={handleBack}
+                onOpenWallet={() => openWallet(view)}
             />
             
             <main 
@@ -528,6 +540,7 @@ const App: React.FC = () => {
                             profile={profile} 
                             onBack={() => setView(chartsReturnView)}
                             onProfileUpdate={handleProfileUpdate}
+                            onOpenWallet={() => openWallet('charts')}
                             onPrimaryChartUpdated={refreshPrimaryChartState}
                             onUseInSynastry={(chart) => {
                                 openSynastryWithPrefill({
@@ -546,6 +559,13 @@ const App: React.FC = () => {
                             }}
                         />
                     </div>
+                ) : view === 'wallet' ? (
+                    <div className="h-full overflow-y-auto scrollbar-hide">
+                        <Wallet
+                            profile={profile}
+                            onUpdateProfile={handleProfileUpdate}
+                        />
+                    </div>
                 ) : (
                     // Default to Dashboard
                     <div className="h-full overflow-y-auto scrollbar-hide">
@@ -555,6 +575,10 @@ const App: React.FC = () => {
                             onNavigate={(newView) => {
                                 if (newView === 'charts') {
                                     openCharts('dashboard');
+                                    return;
+                                }
+                                if (newView === 'wallet') {
+                                    openWallet('dashboard');
                                     return;
                                 }
                                 if (newView === 'synastry') {

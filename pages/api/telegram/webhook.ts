@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { activatePremium } from '../../../services/premiumService';
+import { activateLumiPackPurchase } from '../../../services/lumiTopUpService';
 
 const log = {
   info: (msg: string, data?: any) => console.log(`[API/telegram/webhook] ${msg}`, data || ''),
@@ -84,7 +85,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({ ok: true });
   }
 
-  let payload: { userId?: string; type?: string };
+  let payload: { userId?: string; type?: string; packId?: 'starter' | 'plus' | 'max' };
   try {
     payload = JSON.parse(payment.invoice_payload);
   } catch {
@@ -99,14 +100,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const result = await activatePremium(
-      String(userId),
-      payment.telegram_payment_charge_id,
-      payment.total_amount
-    );
-    log.info('Premium activated via webhook', { userId, activated: result.activated });
+    if (payload.type === 'lumi_pack' && payload.packId) {
+      const result = await activateLumiPackPurchase(
+        String(userId),
+        payment.telegram_payment_charge_id,
+        payment.total_amount,
+        payload.packId
+      );
+      log.info('Lumi pack activated via webhook', { userId, activated: result.activated, packId: payload.packId });
+    } else {
+      const result = await activatePremium(
+        String(userId),
+        payment.telegram_payment_charge_id,
+        payment.total_amount
+      );
+      log.info('Premium activated via webhook', { userId, activated: result.activated });
+    }
   } catch (error: any) {
-    log.error('Failed to activate premium', { userId, error: error.message });
+    log.error('Failed to process Telegram payment', { userId, type: payload.type, error: error.message });
   }
 
   return res.status(200).json({ ok: true });

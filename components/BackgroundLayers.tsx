@@ -33,6 +33,7 @@ const BACKGROUND_BY_VIEW: Record<ViewState, StaticImageData> = {
   horoscope: bgMainDeepSpace,
   synastry: bgMainDeepSpace,
   oracle: bgMainDeepSpace,
+  wallet: bgSoftGradient,
   settings: bgSoftGradient,
   admin: bgSoftGradient,
   charts: bgSoftGradient
@@ -67,6 +68,10 @@ const OVERLAYS_BY_VIEW: Partial<Record<ViewState, OverlayLayer[]>> = {
   oracle: [
     { src: overlayVioletGlow, opacity: 0.18 },
     { src: overlaySoftFog2, opacity: 0.12 }
+  ],
+  wallet: [
+    { src: overlayGoldGlow, opacity: 0.12 },
+    { src: overlaySoftFog2, opacity: 0.1 }
   ],
   settings: [
     { src: overlayGoldGlow, opacity: 0.12 },

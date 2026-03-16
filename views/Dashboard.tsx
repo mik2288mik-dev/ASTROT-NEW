@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, memo, useCallback, useRef } from 'react';
 import { UserProfile, NatalChartData, UserContext } from '../types';
 import { getText } from '../constants';
@@ -19,18 +18,13 @@ interface DashboardProps {
     onContextUpdate?: (context: UserContext | null) => void;
 }
 
-
 export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate, onOpenSettings, onContextUpdate }) => {
-    
     const [context, setContext] = useState<UserContext | null>(null);
     const [tgUser, setTgUser] = useState<any>(null);
     const [dailyHoroscope, setDailyHoroscope] = useState<any>(null);
     const [chartsInfo, setChartsInfo] = useState<{ used: number; total: number } | null>(null);
 
-    // Мемуизируем язык для оптимизации
     const language = useMemo(() => profile.language, [profile.language]);
-
-    // Мемуизируем displayName и photoUrl
     const displayName = useMemo(() => tgUser?.first_name || profile.name, [tgUser?.first_name, profile.name]);
     const photoUrl = useMemo(() => tgUser?.photo_url, [tgUser?.photo_url]);
 
@@ -38,10 +32,10 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
         return formatLumiaDate(dailyHoroscope?.date || getMoscowTodayKey(), language);
     }, [dailyHoroscope?.date, language]);
 
-    // Мемуизируем колбэки для навигации
     const handleNavigateHoroscope = useCallback(() => onNavigate('horoscope'), [onNavigate]);
     const handleNavigateChart = useCallback(() => onNavigate('chart'), [onNavigate]);
     const handleNavigateCharts = useCallback(() => onNavigate('charts'), [onNavigate]);
+    const handleNavigateWallet = useCallback(() => onNavigate('wallet'), [onNavigate]);
     const handleNavigateSynastry = useCallback(() => onNavigate('synastry'), [onNavigate]);
     const handleNavigateOracle = useCallback(() => onNavigate('oracle'), [onNavigate]);
 
@@ -69,11 +63,10 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
             });
     }, [profile.chartSlots, profile.id]);
 
-    // Загрузка погоды через новый API (город хранится в БД user_settings)
     useEffect(() => {
         const userId = profile.id;
         if (!userId) return;
-        
+
         const loadWeather = async () => {
             try {
                 const data = await getTodayWeather(userId);
@@ -95,15 +88,13 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
                     onContextUpdate?.(nextContext);
                 }
             } catch {
-                // При ошибке просто не показываем погоду
                 setContext(null);
             }
         };
-        
-        loadWeather();
-    }, [profile.id, profile.weatherCity]);
 
-    // Sync: when profile.generatedContent.dailyHoroscope arrives, apply immediately (no guard)
+        loadWeather();
+    }, [profile.id, profile.weatherCity, onContextUpdate]);
+
     useEffect(() => {
         const cached = profile.generatedContent?.dailyHoroscope;
         const today = getMoscowTodayKey();
@@ -114,29 +105,22 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
         }
     }, [profile.generatedContent?.dailyHoroscope]);
 
-    // Основной useEffect для загрузки данных при первой загрузке или изменении профиля/карты
-    // ВАЖНО: Этот useEffect НЕ должен срабатывать при изменении weatherCity или других несущественных полей
-    // Используем ref для отслеживания того, что данные уже загружены
     const dataLoadedRef = useRef(false);
     const profileIdRef = useRef(profile.id);
     const zodiacSignRef = useRef(chartData?.sun?.sign);
-    
+
     useEffect(() => {
-        // Проверяем, изменились ли критически важные данные
         const profileIdChanged = profileIdRef.current !== profile.id;
         const zodiacSignChanged = zodiacSignRef.current !== chartData?.sun?.sign;
-        
-        // Если данные уже загружены и ничего критического не изменилось - пропускаем
+
         if (dataLoadedRef.current && !profileIdChanged && !zodiacSignChanged) {
             return;
         }
-        
-        // Обновляем refs
+
         profileIdRef.current = profile.id;
         zodiacSignRef.current = chartData?.sun?.sign;
         dataLoadedRef.current = true;
-        
-        // Загружаем данные асинхронно (horoscope sync handled by dedicated effect above)
+
         const loadDashboardData = async () => {
             await new Promise(resolve => setTimeout(resolve, 200));
             const cachedHoroscope = profile.generatedContent?.dailyHoroscope;
@@ -147,16 +131,14 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
                 setDailyHoroscope(null);
             }
         };
-        
-        loadDashboardData();
-    }, [profile.id, chartData?.sun?.sign]);
+
+        void loadDashboardData();
+    }, [profile.id, chartData?.sun?.sign, profile.generatedContent?.dailyHoroscope]);
 
     if (!chartData) return <Loading message={getText(profile.language, 'loading')} />;
 
     return (
         <div className="p-4 space-y-6 screen-pb">
-            
-            {/* 1. COSMIC PASSPORT (Layer 1: Base) */}
             <CosmicPassport
               profile={profile}
               chartData={chartData}
@@ -166,8 +148,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
               weatherData={context?.weatherData}
             />
 
-            {/* Horoscope */}
-            <button 
+            <button
                 onClick={handleNavigateHoroscope}
                 className="w-full bg-astro-card rounded-xl p-5 border border-astro-border hover:border-astro-highlight/30 transition-colors text-left"
             >
@@ -185,7 +166,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
                             {(() => {
                                 const sentences = dailyHoroscope.content.split(/[.!?]+/).filter((s: string) => s.trim().length > 0);
                                 const shortText = sentences.slice(0, 2).join('. ').trim();
-                                return shortText.length > 0 ? shortText + '.' : dailyHoroscope.content.substring(0, 120) + '...';
+                                return shortText.length > 0 ? `${shortText}.` : `${dailyHoroscope.content.substring(0, 120)}...`;
                             })()}
                         </h3>
                         {(dailyHoroscope.mood || dailyHoroscope.color) && (
@@ -193,7 +174,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
                                 {dailyHoroscope.mood && (
                                     <span>{getText(profile.language, 'dashboard.mood')}: <span className="text-astro-highlight font-medium">{dailyHoroscope.mood}</span></span>
                                 )}
-                                {dailyHoroscope.mood && dailyHoroscope.color && <span>·</span>}
+                                {dailyHoroscope.mood && dailyHoroscope.color && <span>•</span>}
                                 {dailyHoroscope.color && (
                                     <span>{getText(profile.language, 'dashboard.color')}: <span className="text-astro-highlight font-medium">{dailyHoroscope.color}</span></span>
                                 )}
@@ -210,8 +191,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
                 </p>
             </button>
 
-            {/* Natal Chart CTA */}
-            <button 
+            <button
                 onClick={handleNavigateChart}
                 className="w-full bg-astro-card rounded-xl p-5 border border-astro-border hover:border-astro-highlight/30 transition-colors text-left"
             >
@@ -221,56 +201,60 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
                 </p>
             </button>
 
-            {/* My Charts shortcut */}
-            <div className="w-full bg-astro-card rounded-xl p-4 border border-astro-border space-y-3">
-                <div className="flex items-start justify-between gap-4">
-                    <div>
-                        <p className="text-[10px] uppercase tracking-widest text-astro-subtext mb-1">
-                            {getText(profile.language, 'dashboard.charts_overview_title')}
-                        </p>
-                        <h3 className="font-serif text-base text-astro-text">
-                            {chartsInfo ? `${chartsInfo.used} / ${chartsInfo.total}` : `0 / ${profile.chartSlots ?? 1}`}
-                        </h3>
-                    </div>
-                    <button
-                        onClick={handleNavigateCharts}
-                        className="text-[10px] uppercase tracking-wider text-astro-highlight hover:underline"
-                    >
-                        {getText(profile.language, 'dashboard.charts_overview_cta')}
-                    </button>
-                </div>
-                <p className="text-xs text-astro-subtext">
-                    {getText(profile.language, 'dashboard.charts_overview_hint')}
-                </p>
-            </div>
-            <button 
-                onClick={handleNavigateCharts}
-                className="w-full bg-astro-card rounded-xl p-4 border border-astro-border hover:border-astro-highlight/30 transition-colors text-left flex items-center gap-3"
-            >
-                <span className="text-xl text-astro-highlight/90">◇</span>
-                <div className="text-left">
-                    <h3 className="font-serif text-sm text-astro-text mb-0.5">{getText(profile.language, 'dashboard.my_charts')}</h3>
-                    <p className="text-astro-subtext text-[10px]">{getText(profile.language, 'dashboard.my_charts_subtitle')}</p>
-                </div>
-            </button>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <button
+                    onClick={handleNavigateWallet}
+                    className="w-full bg-astro-card rounded-xl p-4 border border-astro-border hover:border-astro-highlight/30 transition-colors text-left"
+                >
+                    <p className="text-[10px] uppercase tracking-widest text-astro-subtext mb-1">
+                        {profile.language === 'ru' ? 'Lumi Wallet' : 'Lumi Wallet'}
+                    </p>
+                    <h3 className="font-serif text-lg text-astro-text">{profile.lumiBalance ?? 0} Lumi</h3>
+                    <p className="mt-2 text-xs text-astro-subtext">
+                        {profile.language === 'ru'
+                            ? 'Баланс, история операций и пополнение в одном месте.'
+                            : 'Balance, transaction history, and top-up in one place.'}
+                    </p>
+                </button>
 
-            {/* 3. SOCIAL PROOF (Layer 2/4: Community) */}
+                <button
+                    onClick={handleNavigateCharts}
+                    className="w-full bg-astro-card rounded-xl p-4 border border-astro-border hover:border-astro-highlight/30 transition-colors text-left"
+                >
+                    <div className="flex items-start justify-between gap-4">
+                        <div>
+                            <p className="text-[10px] uppercase tracking-widest text-astro-subtext mb-1">
+                                {getText(profile.language, 'dashboard.charts_overview_title')}
+                            </p>
+                            <h3 className="font-serif text-lg text-astro-text">
+                                {chartsInfo ? `${chartsInfo.used} / ${chartsInfo.total}` : `0 / ${profile.chartSlots ?? 1}`}
+                            </h3>
+                        </div>
+                        <span className="text-[10px] uppercase tracking-wider text-astro-highlight">
+                            {getText(profile.language, 'dashboard.charts_overview_cta')}
+                        </span>
+                    </div>
+                    <p className="mt-2 text-xs text-astro-subtext">
+                        {getText(profile.language, 'dashboard.charts_overview_hint')}
+                    </p>
+                </button>
+            </div>
+
             {context?.socialProof && (
                 <div className="overflow-hidden py-2 bg-astro-bg border-y border-astro-border/50">
-                    <motion.div 
+                    <motion.div
                         className="whitespace-nowrap text-[10px] uppercase tracking-widest text-astro-subtext"
                         animate={{ x: [300, -500] }}
-                        transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+                        transition={{ duration: 15, repeat: Infinity, ease: 'linear' }}
                     >
                         {context.socialProof}
                     </motion.div>
                 </div>
             )}
 
-            {/* 4. COSMIC WEATHER (Layer 3: Context) */}
             {profile.weatherCity ? (
                 context?.weatherData && chartData ? (
-                    <WeatherWidget 
+                    <WeatherWidget
                         profile={profile}
                         chartData={chartData}
                         weatherData={context.weatherData}
@@ -284,7 +268,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
                     </div>
                 )
             ) : (
-                <button 
+                <button
                     onClick={onOpenSettings}
                     className="w-full bg-astro-card/60 p-5 rounded-xl border border-astro-border text-left hover:border-astro-highlight/40 transition-colors"
                 >
@@ -296,9 +280,8 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
                 </button>
             )}
 
-            {/* Synastry & Oracle */}
             <div className="grid grid-cols-2 gap-3">
-                <button 
+                <button
                     onClick={handleNavigateSynastry}
                     className="bg-astro-card p-4 rounded-xl border border-astro-border hover:border-astro-highlight/30 transition-colors text-left"
                 >
@@ -313,7 +296,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
                     )}
                 </button>
 
-                <button 
+                <button
                     onClick={handleNavigateOracle}
                     className="bg-astro-card p-4 rounded-xl border border-astro-border hover:border-astro-highlight/30 transition-colors text-left relative"
                 >
@@ -328,7 +311,6 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
                 </button>
             </div>
 
-            {/* Knowledge Base: Planets */}
             <SolarSystem language={language} />
         </div>
     );

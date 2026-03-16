@@ -202,7 +202,18 @@ export interface ChatMessage {
   timestamp: number;
 }
 
-export type ViewState = 'onboarding' | 'hook' | 'paywall' | 'dashboard' | 'chart' | 'horoscope' | 'synastry' | 'oracle' | 'settings' | 'admin' | 'charts';
+export interface LumiTransaction {
+  amount: number;
+  reason: string;
+  created_at: string;
+}
+
+export interface LumiWalletData {
+  lumi_balance: number;
+  transactions: LumiTransaction[];
+}
+
+export type ViewState = 'onboarding' | 'hook' | 'paywall' | 'dashboard' | 'chart' | 'horoscope' | 'synastry' | 'oracle' | 'settings' | 'admin' | 'charts' | 'wallet';
 
 // Cached text types
 export interface CachedText<T = any> {
