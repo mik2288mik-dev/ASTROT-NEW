@@ -201,6 +201,16 @@ function toUserId(userId: string): string {
   return String(userId).trim();
 }
 
+function normalizeBirthTimeValue(value?: string | null): string {
+  if (!value) return '12:00';
+  const trimmed = String(value).trim();
+  const match = trimmed.match(/^(\d{2}):(\d{2})/);
+  if (match) {
+    return `${match[1]}:${match[2]}`;
+  }
+  return trimmed;
+}
+
 /**
  * Lumia Database operations
  */
@@ -662,7 +672,12 @@ export const db = {
         ? await this.getById(userIdOrChartId)
         : await this.getPrimary(userIdOrChartId);
       if (!existing) return { needsCalc: true, existingChart: null, reason: 'NO_EXISTING_CHART' };
-      const inputChanged = existing.birth_date !== birthDate || existing.birth_time !== birthTime || existing.birth_place !== birthPlace;
+      const normalizedExistingBirthTime = normalizeBirthTimeValue(existing.birth_time);
+      const normalizedRequestedBirthTime = normalizeBirthTimeValue(birthTime);
+      const inputChanged =
+        existing.birth_date !== birthDate ||
+        normalizedExistingBirthTime !== normalizedRequestedBirthTime ||
+        existing.birth_place !== birthPlace;
       if (inputChanged) return { needsCalc: true, existingChart: existing, reason: 'BIRTH_DATA_CHANGED' };
       const chartData = existing.chart_data;
       if (!chartData || !chartData.sun || !chartData.moon) return { needsCalc: true, existingChart: existing, reason: 'INVALID_CHART_DATA' };
