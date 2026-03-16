@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, memo, useCallback, useRef } from 'react';
-import { UserProfile, NatalChartData, UserContext } from '../types';
+import { UserProfile, NatalChartData, UserContext, ViewState } from '../types';
 import { getText } from '../constants';
 import { SolarSystem } from '../components/SolarSystem';
 import { Loading } from '../components/ui/Loading';
@@ -9,10 +9,12 @@ import { CosmicPassport } from '../components/Dashboard/CosmicPassport';
 import { WeatherWidget } from '../components/Dashboard/WeatherWidget';
 import { formatLumiaDate, getMoscowTodayKey } from '../lib/date-utils';
 
+type DashboardView = Extract<ViewState, 'chart' | 'horoscope' | 'synastry' | 'oracle'>;
+
 interface DashboardProps {
     profile: UserProfile;
     chartData: NatalChartData | null;
-    onNavigate: (view: any) => void;
+    onNavigate: (view: DashboardView) => void;
     onOpenSettings: () => void;
     onContextUpdate?: (context: UserContext | null) => void;
 }
@@ -57,10 +59,12 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
                             temp: data.temp,
                             condition: data.condition,
                             humidity: data.humidity ?? 0,
-                            moonPhase: data.moonPhase ? {
-                                phase: data.moonPhase.phase,
-                                illumination: parseInt(data.moonPhase.illumination) || 0,
-                            } : undefined,
+                            moonPhase: data.moonPhase
+                                ? {
+                                      phase: data.moonPhase.phase,
+                                      illumination: parseInt(data.moonPhase.illumination, 10) || 0,
+                                  }
+                                : undefined,
                         },
                     };
                     setContext(nextContext);
@@ -71,7 +75,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
             }
         };
 
-        loadWeather();
+        void loadWeather();
     }, [profile.id, profile.weatherCity, onContextUpdate]);
 
     useEffect(() => {
@@ -100,18 +104,13 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
         zodiacSignRef.current = chartData?.sun?.sign;
         dataLoadedRef.current = true;
 
-        const loadDashboardData = async () => {
-            await new Promise(resolve => setTimeout(resolve, 200));
-            const cachedHoroscope = profile.generatedContent?.dailyHoroscope;
-            const today = getMoscowTodayKey();
-            if (cachedHoroscope && cachedHoroscope.date === today && cachedHoroscope.content) {
-                setDailyHoroscope(cachedHoroscope);
-            } else {
-                setDailyHoroscope(null);
-            }
-        };
-
-        void loadDashboardData();
+        const cachedHoroscope = profile.generatedContent?.dailyHoroscope;
+        const today = getMoscowTodayKey();
+        if (cachedHoroscope && cachedHoroscope.date === today && cachedHoroscope.content) {
+            setDailyHoroscope(cachedHoroscope);
+        } else {
+            setDailyHoroscope(null);
+        }
     }, [profile.id, chartData?.sun?.sign, profile.generatedContent?.dailyHoroscope]);
 
     if (!chartData) return <Loading message={getText(profile.language, 'loading')} />;
@@ -129,19 +128,19 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
 
             <button
                 onClick={handleNavigateHoroscope}
-                className="w-full bg-astro-card rounded-xl p-5 border border-astro-border hover:border-astro-highlight/30 transition-colors text-left"
+                className="w-full rounded-xl border border-astro-border bg-astro-card p-5 text-left transition-colors hover:border-astro-highlight/30"
             >
-                <p className="text-[10px] uppercase tracking-widest text-astro-subtext mb-1">
+                <p className="mb-1 text-[10px] uppercase tracking-widest text-astro-subtext">
                     {getText(profile.language, 'dashboard.horoscope_today')}
                 </p>
                 {horoscopeDateLabel && (
-                    <p className="text-[9px] text-astro-subtext mb-2">
+                    <p className="mb-2 text-[9px] text-astro-subtext">
                         {getText(profile.language, 'dashboard.forecast_date')}: {horoscopeDateLabel}
                     </p>
                 )}
                 {dailyHoroscope?.content ? (
                     <>
-                        <h3 className="font-serif text-base text-astro-text mb-2 line-clamp-2">
+                        <h3 className="mb-2 line-clamp-2 font-serif text-base text-astro-text">
                             {(() => {
                                 const sentences = dailyHoroscope.content.split(/[.!?]+/).filter((s: string) => s.trim().length > 0);
                                 const shortText = sentences.slice(0, 2).join('. ').trim();
@@ -149,13 +148,19 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
                             })()}
                         </h3>
                         {(dailyHoroscope.mood || dailyHoroscope.color) && (
-                            <div className="flex items-center gap-2 flex-wrap text-xs text-astro-subtext">
+                            <div className="flex flex-wrap items-center gap-2 text-xs text-astro-subtext">
                                 {dailyHoroscope.mood && (
-                                    <span>{getText(profile.language, 'dashboard.mood')}: <span className="text-astro-highlight font-medium">{dailyHoroscope.mood}</span></span>
+                                    <span>
+                                        {getText(profile.language, 'dashboard.mood')}:{' '}
+                                        <span className="font-medium text-astro-highlight">{dailyHoroscope.mood}</span>
+                                    </span>
                                 )}
                                 {dailyHoroscope.mood && dailyHoroscope.color && <span>•</span>}
                                 {dailyHoroscope.color && (
-                                    <span>{getText(profile.language, 'dashboard.color')}: <span className="text-astro-highlight font-medium">{dailyHoroscope.color}</span></span>
+                                    <span>
+                                        {getText(profile.language, 'dashboard.color')}:{' '}
+                                        <span className="font-medium text-astro-highlight">{dailyHoroscope.color}</span>
+                                    </span>
                                 )}
                             </div>
                         )}
@@ -165,25 +170,27 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
                         {getText(profile.language, 'dashboard.special_day')}
                     </h3>
                 )}
-                <p className="text-xs text-astro-highlight font-medium mt-2">
+                <p className="mt-2 text-xs font-medium text-astro-highlight">
                     {getText(profile.language, 'dashboard.detailed_forecast')}
                 </p>
             </button>
 
             <button
                 onClick={handleNavigateChart}
-                className="w-full bg-astro-card rounded-xl p-5 border border-astro-border hover:border-astro-highlight/30 transition-colors text-left"
+                className="w-full rounded-xl border border-astro-border bg-astro-card p-5 text-left transition-colors hover:border-astro-highlight/30"
             >
-                <h3 className="font-serif text-lg text-astro-text mb-0.5">{getText(profile.language, 'dashboard.menu_analysis')}</h3>
-                <p className="text-astro-subtext text-xs">
+                <h3 className="mb-0.5 font-serif text-lg text-astro-text">
+                    {getText(profile.language, 'dashboard.menu_analysis')}
+                </h3>
+                <p className="text-xs text-astro-subtext">
                     {profile.language === 'ru'
-                        ? 'Ваша натальная карта, личные интерпретации и вход в сохранённые карты.'
-                        : 'Your natal chart, personal interpretations, and access to saved charts.'}
+                        ? 'Ваша натальная карта и личные интерпретации.'
+                        : 'Your natal chart and personal interpretations.'}
                 </p>
             </button>
 
             {context?.socialProof && (
-                <div className="overflow-hidden py-2 bg-astro-bg border-y border-astro-border/50">
+                <div className="overflow-hidden border-y border-astro-border/50 bg-astro-bg py-2">
                     <motion.div
                         className="whitespace-nowrap text-[10px] uppercase tracking-widest text-astro-subtext"
                         animate={{ x: [300, -500] }}
@@ -196,14 +203,10 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
 
             {profile.weatherCity ? (
                 context?.weatherData && chartData ? (
-                    <WeatherWidget
-                        profile={profile}
-                        chartData={chartData}
-                        weatherData={context.weatherData}
-                    />
+                    <WeatherWidget profile={profile} chartData={chartData} weatherData={context.weatherData} />
                 ) : (
-                    <div className="bg-astro-card/60 p-5 rounded-xl border border-astro-border opacity-70">
-                        <h3 className="text-[10px] uppercase tracking-widest text-astro-subtext mb-1">
+                    <div className="rounded-xl border border-astro-border bg-astro-card/60 p-5 opacity-70">
+                        <h3 className="mb-1 text-[10px] uppercase tracking-widest text-astro-subtext">
                             {getText(profile.language, 'dashboard.context_weather')}
                         </h3>
                         <p className="text-sm text-astro-text">{getText(profile.language, 'dashboard.loading_weather')}</p>
@@ -212,44 +215,50 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
             ) : (
                 <button
                     onClick={onOpenSettings}
-                    className="w-full bg-astro-card/60 p-5 rounded-xl border border-astro-border text-left hover:border-astro-highlight/40 transition-colors"
+                    className="w-full rounded-xl border border-astro-border bg-astro-card/60 p-5 text-left transition-colors hover:border-astro-highlight/40"
                 >
-                    <h3 className="text-[10px] uppercase tracking-widest text-astro-subtext mb-1">
+                    <h3 className="mb-1 text-[10px] uppercase tracking-widest text-astro-subtext">
                         {getText(profile.language, 'dashboard.context_weather')}
                     </h3>
                     <p className="text-sm text-astro-text">{getText(profile.language, 'dashboard.set_city_hint')}</p>
-                    <p className="text-xs text-astro-subtext mt-2">{getText(profile.language, 'dashboard.tap_settings')}</p>
+                    <p className="mt-2 text-xs text-astro-subtext">{getText(profile.language, 'dashboard.tap_settings')}</p>
                 </button>
             )}
 
             <div className="grid grid-cols-2 gap-3">
                 <button
                     onClick={handleNavigateSynastry}
-                    className="bg-astro-card p-4 rounded-xl border border-astro-border hover:border-astro-highlight/30 transition-colors text-left"
+                    className="rounded-xl border border-astro-border bg-astro-card p-4 text-left transition-colors hover:border-astro-highlight/30"
                 >
                     <span className="text-xl text-pink-400/90">♥</span>
-                    <h3 className="font-serif text-sm text-astro-text mt-2 mb-0.5">{getText(profile.language, 'dashboard.menu_synastry')}</h3>
-                    <p className="text-astro-subtext text-[10px]">{getText(profile.language, 'dashboard.synastry_subtitle')}</p>
-                    <p className="text-astro-subtext text-[10px] mt-1">
+                    <h3 className="mt-2 mb-0.5 font-serif text-sm text-astro-text">
+                        {getText(profile.language, 'dashboard.menu_synastry')}
+                    </h3>
+                    <p className="text-[10px] text-astro-subtext">{getText(profile.language, 'dashboard.synastry_subtitle')}</p>
+                    <p className="mt-1 text-[10px] text-astro-subtext">
                         {profile.language === 'ru' ? 'Используй сохранённые карты без повторного ввода.' : 'Reuse saved charts without entering the data again.'}
                     </p>
                     {!profile.isPremium && (
-                        <span className="text-[9px] text-astro-highlight uppercase tracking-wider mt-1 block">{getText(profile.language, 'dashboard.synastry_free')}</span>
+                        <span className="mt-1 block text-[9px] uppercase tracking-wider text-astro-highlight">
+                            {getText(profile.language, 'dashboard.synastry_free')}
+                        </span>
                     )}
                 </button>
 
                 <button
                     onClick={handleNavigateOracle}
-                    className="bg-astro-card p-4 rounded-xl border border-astro-border hover:border-astro-highlight/30 transition-colors text-left relative"
+                    className="relative rounded-xl border border-astro-border bg-astro-card p-4 text-left transition-colors hover:border-astro-highlight/30"
                 >
                     {!profile.isPremium && (
-                        <span className="absolute top-2 right-2 text-[9px] font-bold bg-astro-highlight/20 text-astro-highlight px-2 py-0.5 rounded-full uppercase">
+                        <span className="absolute right-2 top-2 rounded-full bg-astro-highlight/20 px-2 py-0.5 text-[9px] font-bold uppercase text-astro-highlight">
                             {getText(profile.language, 'dashboard.premium_badge')}
                         </span>
                     )}
                     <span className="text-xl text-blue-400/90">✧</span>
-                    <h3 className="font-serif text-sm text-astro-text mt-2 mb-0.5">{getText(profile.language, 'dashboard.menu_oracle')}</h3>
-                    <p className="text-astro-subtext text-[10px]">{getText(profile.language, 'dashboard.oracle_subtitle')}</p>
+                    <h3 className="mt-2 mb-0.5 font-serif text-sm text-astro-text">
+                        {getText(profile.language, 'dashboard.menu_oracle')}
+                    </h3>
+                    <p className="text-[10px] text-astro-subtext">{getText(profile.language, 'dashboard.oracle_subtitle')}</p>
                 </button>
             </div>
 

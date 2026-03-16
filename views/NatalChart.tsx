@@ -13,7 +13,6 @@ interface NatalChartProps {
     chartId?: number;
     requestPremium: () => void;
     onUpdateProfile?: (profile: UserProfile) => void;
-    onBalanceUpdate?: (balance: number) => void;
     onOpenCharts?: () => void;
 }
 
@@ -55,7 +54,7 @@ const TOPICS = [
     { id: 'karma', icon: '♾️', ru: 'Кармические уроки', en: 'Karmic Lessons', free: false },
 ];
 
-export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, requestPremium, onUpdateProfile, onBalanceUpdate, onOpenCharts }) => {
+export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, requestPremium, onUpdateProfile, onOpenCharts }) => {
     // Состояния
     const [expandedTopic, setExpandedTopic] = useState<string | null>('personality'); // Личность открыта по умолчанию
     const [topicContent, setTopicContent] = useState<Record<string, string>>({});

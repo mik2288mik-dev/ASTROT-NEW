@@ -311,10 +311,6 @@ const App: React.FC = () => {
         setProfile(updatedProfile);
     };
 
-    const handleBalanceUpdate = useCallback((balance: number) => {
-        setProfile(prev => prev ? { ...prev, lumiBalance: balance } : prev);
-    }, []);
-
     const refreshLumiOnDashboard = useCallback(async () => {
         if (!profile?.id) return;
         try {
@@ -521,7 +517,6 @@ const App: React.FC = () => {
                             chartId={activeChartId}
                             requestPremium={requestPremium}
                             onUpdateProfile={handleProfileUpdate}
-                            onBalanceUpdate={handleBalanceUpdate}
                             onOpenCharts={() => openCharts('chart')}
                         />
                     </div>
@@ -575,14 +570,6 @@ const App: React.FC = () => {
                             profile={profile} 
                             chartData={chartData} 
                             onNavigate={(newView) => {
-                                if (newView === 'charts') {
-                                    openCharts('dashboard');
-                                    return;
-                                }
-                                if (newView === 'wallet') {
-                                    openWallet('dashboard');
-                                    return;
-                                }
                                 if (newView === 'synastry') {
                                     setSynastryPrefill(null);
                                 }
