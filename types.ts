@@ -172,6 +172,10 @@ export interface DailyHoroscope {
   content: string;
   moonImpact?: string; 
   transitFocus?: string; 
+  persisted?: boolean;
+  source?: 'cache' | 'generated' | 'generated-not-persisted' | 'cache-after-wait';
+  code?: 'PRIMARY_CHART_MISSING' | 'GENERATION_IN_PROGRESS' | 'DAILY_CACHE_READ_FAILED' | 'DAILY_PERSIST_FAILED';
+  message?: string;
 }
 
 export interface WeeklyHoroscope {

@@ -12,6 +12,7 @@ import {
 } from '../services/storageService';
 import { Loading } from '../components/ui/Loading';
 import { getText, getZodiacSign } from '../constants';
+import { formatLumiaDate } from '../lib/date-utils';
 
 interface MyChartsProps {
   profile: UserProfile;
@@ -39,7 +40,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
   const [addError, setAddError] = useState<string | null>(null);
 
   const lang = profile.language || 'ru';
-  const slotCost = 50; // Lumi per chart slot
+  const slotCost = 50;
 
   const loadCharts = useCallback(async () => {
     if (!profile.id) return;
@@ -161,7 +162,6 @@ export const MyCharts: React.FC<MyChartsProps> = ({
         {getText(lang, 'charts.title')}
       </h2>
 
-      {/* Prominent slot display */}
       <div className="bg-astro-card border border-astro-border rounded-xl p-4 flex items-center justify-between">
         <div>
           <p className="text-[10px] uppercase tracking-widest text-astro-subtext mb-0.5">
@@ -196,6 +196,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
             const signLabel = sunSign ? getZodiacSign(lang, sunSign) : '-';
             const isPrimary = chart.is_primary ?? false;
             const isBusy = actionLoading === `primary-${chart.id}` || actionLoading === `delete-${chart.id}`;
+            const formattedBirthDate = formatLumiaDate(chart.birth_date, lang) || chart.birth_date;
 
             return (
               <div
@@ -215,7 +216,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
                       )}
                     </div>
                     <p className="text-xs text-astro-subtext mt-1">
-                      {chart.birth_date} • {chart.birth_place}
+                      {formattedBirthDate} • {chart.birth_place}
                     </p>
                     {sunSign && (
                       <p className="text-[10px] text-astro-subtext mt-0.5">

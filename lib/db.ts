@@ -42,6 +42,7 @@ if (!DATABASE_URL) {
 // Create connection pool
 let pool: Pool | null = null;
 let migrationsRun = false;
+let dailyNatalCardsChartScopeSupported: boolean | null = null;
 
 function getPool(): Pool {
   if (!pool) {
@@ -211,6 +212,38 @@ function normalizeBirthTimeValue(value?: string | null): string {
   return trimmed;
 }
 
+async function supportsDailyNatalCardsChartScope(): Promise<boolean> {
+  if (dailyNatalCardsChartScopeSupported !== null) {
+    return dailyNatalCardsChartScopeSupported;
+  }
+
+  if (!DATABASE_URL) {
+    dailyNatalCardsChartScopeSupported = false;
+    return false;
+  }
+
+  const dbPool = getPool();
+  const result = await dbPool.query(
+    `SELECT EXISTS (
+       SELECT 1
+       FROM information_schema.columns
+       WHERE table_name = 'daily_natal_cards'
+         AND column_name = 'chart_id'
+     ) AS has_chart_id`
+  );
+
+  dailyNatalCardsChartScopeSupported = !!result.rows[0]?.has_chart_id;
+  return dailyNatalCardsChartScopeSupported;
+}
+
+function serializeDailyNatalCardContent(content: any): string {
+  return typeof content === 'string' ? content : JSON.stringify(content);
+}
+
+function parseDailyNatalCardContent(raw: any) {
+  return typeof raw === 'string' ? JSON.parse(raw) : raw;
+}
+
 /**
  * Lumia Database operations
  */
@@ -269,7 +302,7 @@ export const db = {
         try {
           const r = await dbPool.query('SELECT * FROM users WHERE id = $1', [id]);
           if (r.rows.length > 0) existingUser = r.rows[0];
-        } catch (_e) {}
+        } catch {}
         const merge = (key: string, def?: any) =>
           data[key] !== undefined ? data[key] : (existingUser?.[key] ?? def);
         const weatherCity = merge('weather_city');
@@ -353,7 +386,7 @@ export const db = {
     },
 
     async getOrCreate(userId: string, data?: any) {
-      let u = await this.get(userId);
+      const u = await this.get(userId);
       if (u) return u;
       await this.set(userId, data || {});
       return this.get(userId);
@@ -877,7 +910,7 @@ export const db = {
     },
 
     async add(userId: string, amount: number, reason: string) {
-      const r = await this.addTransactional(userId, amount, reason);
+      await this.addTransactional(userId, amount, reason);
       return { success: true };
     },
 
@@ -1040,17 +1073,23 @@ export const db = {
 
   /** daily_natal_cards - personal daily card per chart (Lumia) */
   daily_natal_cards: {
+    async supportsChartScope() {
+      return supportsDailyNatalCardsChartScope();
+    },
+
     async getByChart(chartId: number, date: string) {
       if (!DATABASE_URL) return null;
       try {
         const dbPool = getPool();
         const result = await dbPool.query(
-          `SELECT content FROM daily_natal_cards WHERE chart_id = $1 AND date = $2`,
+          `SELECT content FROM daily_natal_cards
+           WHERE chart_id = $1 AND date = $2
+           ORDER BY id DESC
+           LIMIT 1`,
           [chartId, date]
         );
         if (result.rows.length === 0) return null;
-        const c = result.rows[0].content;
-        return typeof c === 'string' ? JSON.parse(c) : c;
+        return parseDailyNatalCardContent(result.rows[0].content);
       } catch (error: any) {
         log.error('[DB] Error getting daily natal card by chart', { error: error.message, chartId, date });
         throw error;
@@ -1061,11 +1100,20 @@ export const db = {
       if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
       try {
         const dbPool = getPool();
-        await dbPool.query(
-          `INSERT INTO daily_natal_cards (chart_id, date, content) VALUES ($1, $2, $3)
-           ON CONFLICT (chart_id, date) DO UPDATE SET content = EXCLUDED.content`,
-          [chartId, date, typeof content === 'string' ? content : JSON.stringify(content)]
+        const serializedContent = serializeDailyNatalCardContent(content);
+        const updated = await dbPool.query(
+          `UPDATE daily_natal_cards
+           SET content = $3
+           WHERE chart_id = $1 AND date = $2`,
+          [chartId, date, serializedContent]
         );
+
+        if ((updated.rowCount ?? 0) === 0) {
+          await dbPool.query(
+            `INSERT INTO daily_natal_cards (chart_id, date, content) VALUES ($1, $2, $3)`,
+            [chartId, date, serializedContent]
+          );
+        }
         return { success: true };
       } catch (error: any) {
         log.error('[DB] Error setting daily natal card by chart', { error: error.message, chartId, date });
@@ -1073,17 +1121,79 @@ export const db = {
       }
     },
 
-    /** Legacy: resolve via primary chart */
+    async getByUser(userId: string, date: string) {
+      const id = toUserId(userId);
+      if (!DATABASE_URL) return null;
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          `SELECT content FROM daily_natal_cards
+           WHERE user_id = $1 AND date = $2
+           ORDER BY id DESC
+           LIMIT 1`,
+          [id, date]
+        );
+        if (result.rows.length === 0) return null;
+        return parseDailyNatalCardContent(result.rows[0].content);
+      } catch (error: any) {
+        log.error('[DB] Error getting daily natal card by user', { error: error.message, userId, date });
+        throw error;
+      }
+    },
+
+    async setByUser(userId: string, date: string, content: any) {
+      const id = toUserId(userId);
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      try {
+        const dbPool = getPool();
+        const serializedContent = serializeDailyNatalCardContent(content);
+        const updated = await dbPool.query(
+          `UPDATE daily_natal_cards
+           SET content = $3
+           WHERE user_id = $1 AND date = $2`,
+          [id, date, serializedContent]
+        );
+
+        if ((updated.rowCount ?? 0) === 0) {
+          await dbPool.query(
+            `INSERT INTO daily_natal_cards (user_id, date, content) VALUES ($1, $2, $3)`,
+            [id, date, serializedContent]
+          );
+        }
+        return { success: true };
+      } catch (error: any) {
+        log.error('[DB] Error setting daily natal card by user', { error: error.message, userId, date });
+        throw error;
+      }
+    },
+
+    async getForPrimaryUser(userId: string, date: string) {
+      const usesChartScope = await this.supportsChartScope();
+      if (usesChartScope) {
+        const chart = await db.natal_charts.getPrimary(userId);
+        if (!chart) return null;
+        return this.getByChart(chart.id, date);
+      }
+      return this.getByUser(userId, date);
+    },
+
+    async setForPrimaryUser(userId: string, date: string, content: any) {
+      const usesChartScope = await this.supportsChartScope();
+      if (usesChartScope) {
+        const chart = await db.natal_charts.getPrimary(userId);
+        if (!chart) throw new Error('PRIMARY_CHART_MISSING');
+        return this.setByChart(chart.id, date, content);
+      }
+      return this.setByUser(userId, date, content);
+    },
+
+    /** Compatibility wrapper: resolves by chart scope when available, otherwise legacy user scope. */
     async get(userId: string, date: string) {
-      const chart = await db.natal_charts.getPrimary(userId);
-      if (!chart) return null;
-      return this.getByChart(chart.id, date);
+      return this.getForPrimaryUser(userId, date);
     },
 
     async set(userId: string, date: string, content: any) {
-      const chart = await db.natal_charts.getPrimary(userId);
-      if (!chart) throw new Error('No primary chart for user');
-      return this.setByChart(chart.id, date, content);
+      return this.setForPrimaryUser(userId, date, content);
     },
   },
 

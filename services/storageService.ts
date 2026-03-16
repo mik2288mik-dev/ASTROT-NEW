@@ -1,4 +1,5 @@
 import { UserProfile, NatalChartData } from "../types";
+import { toDateInputValue } from "../lib/date-utils";
 
 // Next.js API base URL - используем локальные API routes
 const API_BASE_URL = typeof window !== 'undefined' ? '' : process.env.NEXT_PUBLIC_API_URL || '';
@@ -370,6 +371,11 @@ export interface ChartsResponse {
   canAddMore: boolean;
 }
 
+const normalizeChartListItem = (chart: ChartListItem): ChartListItem => ({
+  ...chart,
+  birth_date: toDateInputValue(chart.birth_date) || chart.birth_date,
+});
+
 /**
  * Get all charts for user (multi-chart flow)
  */
@@ -381,7 +387,11 @@ export const getCharts = async (userId: string): Promise<ChartsResponse> => {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.error || `Failed to fetch charts: ${res.status}`);
   }
-  return res.json();
+  const data = await res.json() as ChartsResponse;
+  return {
+    ...data,
+    charts: (data.charts || []).map(normalizeChartListItem),
+  };
 };
 
 /**
@@ -402,7 +412,8 @@ export const createChart = async (
     const err = await res.json().catch(() => ({}));
     throw new Error(err.message || err.error || `Failed to create chart: ${res.status}`);
   }
-  return res.json();
+  const chart = await res.json() as ChartListItem;
+  return normalizeChartListItem(chart);
 };
 
 /**

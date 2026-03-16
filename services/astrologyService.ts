@@ -21,6 +21,12 @@ const log = {
 // Log API configuration
 log.info(`API_BASE_URL configured: ${API_BASE_URL}`);
 
+type ApiErrorWithCode = Error & {
+  status?: number;
+  code?: string;
+  details?: any;
+};
+
 /**
  * Calculate natal chart - calls backend API
  * 
@@ -359,13 +365,32 @@ export const getDailyHoroscope = async (profile: UserProfile, chartData: NatalCh
     });
 
     if (!response.ok) {
-      const errorText = await response.text().catch(() => 'Unable to read error response');
+      let errorMessage = `Failed to get daily horoscope: ${response.status} ${response.statusText}`;
+      let errorCode: string | undefined;
+      let errorDetails: any;
+
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorData.error || errorMessage;
+        errorCode = errorData.code;
+        errorDetails = errorData.details;
+      } catch {
+        const errorText = await response.text().catch(() => 'Unable to read error response');
+        errorMessage = errorText || errorMessage;
+      }
+
       log.error(`[getDailyHoroscope] Server returned error status ${response.status}`, {
         status: response.status,
         statusText: response.statusText,
-        errorBody: errorText
+        errorCode,
+        errorMessage,
+        errorDetails,
       });
-      throw new Error(`Failed to get daily horoscope: ${response.status} ${response.statusText}`);
+      const error = new Error(errorMessage) as ApiErrorWithCode;
+      error.status = response.status;
+      error.code = errorCode;
+      error.details = errorDetails;
+      throw error;
     }
 
     const horoscope = await response.json() as DailyHoroscope;

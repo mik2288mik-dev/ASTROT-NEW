@@ -8,6 +8,7 @@ import { getTodayWeather } from '../services/weatherService';
 import { motion } from 'framer-motion';
 import { CosmicPassport } from '../components/Dashboard/CosmicPassport';
 import { WeatherWidget } from '../components/Dashboard/WeatherWidget';
+import { formatLumiaDate, getMoscowTodayKey } from '../lib/date-utils';
 
 interface DashboardProps {
     profile: UserProfile;
@@ -32,14 +33,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
     const photoUrl = useMemo(() => tgUser?.photo_url, [tgUser?.photo_url]);
 
     const horoscopeDateLabel = useMemo(() => {
-        const locale = language === 'ru' ? 'ru-RU' : 'en-US';
-        const rawDate = dailyHoroscope?.date ? new Date(dailyHoroscope.date) : new Date();
-        if (Number.isNaN(rawDate.getTime())) return '';
-        return rawDate.toLocaleDateString(locale, {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric'
-        });
+        return formatLumiaDate(dailyHoroscope?.date || getMoscowTodayKey(), language);
     }, [dailyHoroscope?.date, language]);
 
     // Мемуизируем колбэки для навигации
@@ -93,8 +87,11 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
     // Sync: when profile.generatedContent.dailyHoroscope arrives, apply immediately (no guard)
     useEffect(() => {
         const cached = profile.generatedContent?.dailyHoroscope;
-        if (cached && cached.content) {
+        const today = getMoscowTodayKey();
+        if (cached && cached.date === today && cached.content) {
             setDailyHoroscope(cached);
+        } else {
+            setDailyHoroscope(null);
         }
     }, [profile.generatedContent?.dailyHoroscope]);
 
@@ -124,8 +121,11 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
         const loadDashboardData = async () => {
             await new Promise(resolve => setTimeout(resolve, 200));
             const cachedHoroscope = profile.generatedContent?.dailyHoroscope;
-            if (cachedHoroscope && cachedHoroscope.content) {
+            const today = getMoscowTodayKey();
+            if (cachedHoroscope && cachedHoroscope.date === today && cachedHoroscope.content) {
                 setDailyHoroscope(cachedHoroscope);
+            } else {
+                setDailyHoroscope(null);
             }
         };
         

@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '../../../lib/db';
+import { getMoscowTodayKey } from '../../../lib/date-utils';
 
 // Logging utility
 const log = {
@@ -62,7 +63,12 @@ export default async function handler(
       });
 
       // Fetch generated content from interpretations (Lumia schema)
-      let generatedContent: { natalIntro?: string; deepDiveAnalyses?: Record<string, string>; dailyHoroscope?: any } | null = null;
+      let generatedContent: {
+        natalIntro?: string;
+        deepDiveAnalyses?: Record<string, string>;
+        dailyHoroscope?: any;
+        timestamps: Record<string, number>;
+      } | null = null;
 
       let natalIntro: { content?: string } | null = null;
       try {
@@ -71,7 +77,7 @@ export default async function handler(
         log.warn('[GET] Failed to hydrate natalIntro', { userId, error: e?.message });
       }
 
-      let deepDiveAnalyses: Record<string, string> = {};
+      const deepDiveAnalyses: Record<string, string> = {};
       try {
         const deepDiveTypes = ['deep_dive_personality', 'deep_dive_love', 'deep_dive_career', 'deep_dive_weakness', 'deep_dive_karma'];
         const topics = ['personality', 'love', 'career', 'weakness', 'karma'];
@@ -85,14 +91,21 @@ export default async function handler(
 
       let dailyHoroscope: any = null;
       try {
-        const todayKey = new Date().toISOString().split('T')[0];
-        dailyHoroscope = await db.daily_natal_cards.get(userId, todayKey);
+        const todayKey = getMoscowTodayKey();
+        dailyHoroscope = await db.daily_natal_cards.getForPrimaryUser(userId, todayKey);
       } catch (e: any) {
-        log.warn('[GET] Failed to hydrate dailyHoroscope', { userId, error: e?.message });
+        log.warn('[GET] Failed to hydrate dailyHoroscope', {
+          userId,
+          code: 'DAILY_CACHE_READ_FAILED',
+          error: e?.message,
+        });
       }
 
       if (natalIntro?.content || Object.keys(deepDiveAnalyses).length > 0 || dailyHoroscope) {
         generatedContent = {
+          timestamps: {
+            ...(dailyHoroscope ? { dailyHoroscopeGenerated: Date.now() } : {}),
+          },
           ...(natalIntro?.content ? { natalIntro: natalIntro.content } : {}),
           ...(Object.keys(deepDiveAnalyses).length > 0 ? { deepDiveAnalyses } : {}),
           ...(dailyHoroscope ? { dailyHoroscope } : {}),
@@ -178,7 +191,7 @@ export default async function handler(
       try {
         const natalIntro = await db.interpretations.getByHash(userId, 'natal_intro', 'default');
         if (natalIntro?.content) generatedContent = { natalIntro: natalIntro.content };
-      } catch (_e) {}
+      } catch {}
 
       const clientUser = {
         id: savedUser.id,

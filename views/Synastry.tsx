@@ -6,6 +6,7 @@ import { getText, getZodiacSign } from '../constants';
 import { motion } from 'framer-motion';
 import { Loading } from '../components/ui/Loading';
 import { getApproximateSunSignByDate } from '../lib/zodiac-utils';
+import { toDateInputValue } from '../lib/date-utils';
 
 interface SynastryProps {
     profile: UserProfile;
@@ -36,7 +37,7 @@ export const Synastry: React.FC<SynastryProps> = ({ profile, chartData, requestP
 
     const handleSelectChartAsPartner = (chart: ChartListItem) => {
         setPartnerName(chart.name);
-        setPartnerDate(chart.birth_date);
+        setPartnerDate(toDateInputValue(chart.birth_date));
         setPartnerTime(chart.birth_time || '12:00');
         setPartnerPlace(chart.birth_place || '');
         setPartnerInputMode('manual');

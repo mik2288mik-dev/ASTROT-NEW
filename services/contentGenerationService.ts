@@ -1,6 +1,7 @@
 import { UserProfile, NatalChartData, UserGeneratedContent, DailyHoroscope } from "../types";
 import { getNatalIntro, getDailyHoroscope, getDeepDiveAnalysis } from "./astrologyService";
 import { saveProfile } from "./storageService";
+import { getMoscowTodayKey } from "../lib/date-utils";
 
 // Logging utility
 const log = {
@@ -308,7 +309,7 @@ export const getOrGenerateHoroscope = async (
     throw new Error('Zodiac sign is required for daily horoscope');
   }
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = getMoscowTodayKey();
   const cachedHoroscope = profile.generatedContent?.dailyHoroscope;
 
   // ВАЖНО: Проверяем что кэш актуален И содержит контент

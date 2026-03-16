@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo, memo } from 'react';
-import { UserProfile, NatalChartData } from '../types';
+import { UserProfile, NatalChartData, DailyHoroscope } from '../types';
 import { getOrGenerateHoroscope } from '../services/contentGenerationService';
 import { Loading } from '../components/ui/Loading';
 import { ZodiacHeader } from '../components/Horoscope/ZodiacHeader';
 import { HoroscopeContent } from '../components/Horoscope/HoroscopeContent';
+import { formatLumiaDate, getMoscowTodayKey } from '../lib/date-utils';
 
 interface HoroscopeProps {
     profile: UserProfile;
@@ -11,75 +12,148 @@ interface HoroscopeProps {
     onUpdateProfile?: (profile: UserProfile) => void;
 }
 
+type HoroscopeApiError = Error & {
+    code?: string;
+};
+
+const getPersistNotice = (language: string) =>
+    language === 'ru'
+        ? 'Показываем свежий гороскоп, но он пока не сохранился в базе.'
+        : 'Showing a fresh horoscope, but it has not been saved yet.';
+
+const getStaleNotice = (language: string) =>
+    language === 'ru'
+        ? 'Показываем последнюю доступную версию гороскопа, пока свежая загрузка недоступна.'
+        : 'Showing the latest available horoscope while a fresh one is unavailable.';
+
+const getFallbackError = (language: string) =>
+    language === 'ru' ? 'Не удалось загрузить гороскоп' : 'Failed to load horoscope';
+
 export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdateProfile }) => {
-    const [horoscope, setHoroscope] = useState<any>(null);
+    const [horoscope, setHoroscope] = useState<DailyHoroscope | null>(null);
     const [loading, setLoading] = useState(true);
+    const [statusMessage, setStatusMessage] = useState<string | null>(null);
+    const [isStale, setIsStale] = useState(false);
 
-    // Мемуизируем sunSign чтобы избежать пересчета
-    const sunSign = useMemo(() => {
-        return chartData?.sun?.sign || 'Aries';
-    }, [chartData?.sun?.sign]);
-
-    // Мемуизируем язык для оптимизации
+    const sunSign = useMemo(() => chartData?.sun?.sign || 'Aries', [chartData?.sun?.sign]);
     const language = useMemo(() => profile.language, [profile.language]);
 
-    // Sync: when profile.generatedContent.dailyHoroscope arrives with valid today data, apply immediately
     useEffect(() => {
         const cached = profile.generatedContent?.dailyHoroscope;
-        const today = new Date().toISOString().split('T')[0];
+        const today = getMoscowTodayKey();
         if (cached && cached.date === today && cached.content && cached.content.length > 0) {
             setHoroscope(cached);
+            setIsStale(false);
+            setStatusMessage(
+                cached.persisted === false || cached.code === 'DAILY_PERSIST_FAILED'
+                    ? getPersistNotice(language)
+                    : null
+            );
             setLoading(false);
         }
-    }, [profile.generatedContent?.dailyHoroscope]);
+    }, [language, profile.generatedContent?.dailyHoroscope]);
 
     useEffect(() => {
+        let cancelled = false;
+
         const loadHoroscope = async () => {
             if (!chartData) {
-                setLoading(false);
-                return;
-            }
-            
-            // Проверяем гороскоп из БД (генерируется только раз в день)
-            const today = new Date().toISOString().split('T')[0];
-            const cachedHoroscope = profile.generatedContent?.dailyHoroscope;
-            
-            // Если есть гороскоп на сегодня - используем из БД БЕЗ запроса к API
-            if (cachedHoroscope && cachedHoroscope.date === today && cachedHoroscope.content && cachedHoroscope.content.length > 0) {
-                setHoroscope(cachedHoroscope);
-                setLoading(false);
-                return;
-            }
-            
-            // Если гороскопа на сегодня нет - генерируем, сохраняем в БД и показываем
-            setLoading(true);
-            try {
-                const data = await getOrGenerateHoroscope(profile, chartData);
-                setHoroscope(data);
-                
-                if (onUpdateProfile) {
-                    const updatedProfile = { ...profile };
-                    if (!updatedProfile.generatedContent) {
-                        updatedProfile.generatedContent = {
-                            timestamps: {}
-                        };
-                    }
-                    updatedProfile.generatedContent.dailyHoroscope = data;
-                    onUpdateProfile(updatedProfile);
-                }
-            } catch {
-                if (cachedHoroscope && cachedHoroscope.content) {
-                    setHoroscope(cachedHoroscope);
-                } else {
+                if (!cancelled) {
+                    setHoroscope(null);
+                    setStatusMessage(null);
                     setLoading(false);
                 }
-            } finally {
-                setLoading(false);
+                return;
             }
+
+            const today = getMoscowTodayKey();
+            const cachedHoroscope = profile.generatedContent?.dailyHoroscope;
+
+            if (cachedHoroscope && cachedHoroscope.date === today && cachedHoroscope.content && cachedHoroscope.content.length > 0) {
+                if (!cancelled) {
+                    setHoroscope(cachedHoroscope);
+                    setIsStale(false);
+                    setStatusMessage(
+                        cachedHoroscope.persisted === false || cachedHoroscope.code === 'DAILY_PERSIST_FAILED'
+                            ? getPersistNotice(language)
+                            : null
+                    );
+                    setLoading(false);
+                }
+                return;
+            }
+
+            if (!cancelled) {
+                setLoading(true);
+                setStatusMessage(null);
+                setIsStale(false);
+            }
+
+            let lastError: HoroscopeApiError | null = null;
+
+            for (let attempt = 0; attempt < 2; attempt++) {
+                try {
+                    const data = await getOrGenerateHoroscope(profile, chartData);
+                    if (cancelled) return;
+
+                    setHoroscope(data);
+                    setIsStale(false);
+                    setStatusMessage(
+                        data.persisted === false || data.code === 'DAILY_PERSIST_FAILED'
+                            ? getPersistNotice(language)
+                            : null
+                    );
+
+                    if (onUpdateProfile) {
+                        const updatedProfile = { ...profile };
+                        if (!updatedProfile.generatedContent) {
+                            updatedProfile.generatedContent = {
+                                timestamps: {}
+                            };
+                        }
+                        updatedProfile.generatedContent.dailyHoroscope = data;
+                        updatedProfile.generatedContent.timestamps = {
+                            ...(updatedProfile.generatedContent.timestamps || {}),
+                            dailyHoroscopeGenerated: Date.now(),
+                        };
+                        onUpdateProfile(updatedProfile);
+                    }
+
+                    setLoading(false);
+                    return;
+                } catch (error: any) {
+                    lastError = error as HoroscopeApiError;
+
+                    if (lastError?.code === 'GENERATION_IN_PROGRESS' && attempt === 0) {
+                        await new Promise((resolve) => setTimeout(resolve, 2500));
+                        continue;
+                    }
+
+                    break;
+                }
+            }
+
+            if (cancelled) return;
+
+            if (cachedHoroscope && cachedHoroscope.content) {
+                const stale = cachedHoroscope.date !== today;
+                setHoroscope(cachedHoroscope);
+                setIsStale(stale);
+                setStatusMessage(lastError?.message || (stale ? getStaleNotice(language) : null));
+            } else {
+                setHoroscope(null);
+                setStatusMessage(lastError?.message || getFallbackError(language));
+            }
+
+            setLoading(false);
         };
 
         loadHoroscope();
-    }, [profile.id, profile.generatedContent?.dailyHoroscope?.date, chartData?.sun?.sign]); // chartData, profile для первичной загрузки; date для обновления при смене дня
+
+        return () => {
+            cancelled = true;
+        };
+    }, [profile.id, profile.generatedContent?.dailyHoroscope?.date, chartData?.sun?.sign, language, onUpdateProfile]);
 
     if (loading) {
         return <Loading />;
@@ -87,9 +161,9 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
 
     if (!horoscope || !chartData) {
         return (
-            <div className="flex items-center justify-center h-full">
-                <p className="text-astro-subtext">
-                    {language === 'ru' ? 'Не удалось загрузить гороскоп' : 'Failed to load horoscope'}
+            <div className="flex items-center justify-center h-full px-6">
+                <p className="text-astro-subtext text-center">
+                    {statusMessage || getFallbackError(language)}
                 </p>
             </div>
         );
@@ -97,31 +171,24 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
 
     return (
         <div className="min-h-screen px-4 py-6 max-w-2xl mx-auto screen-pb">
-            {/* Заголовок страницы */}
             <h1 className="text-base font-normal text-astro-text text-center mb-6 leading-tight" style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif', fontWeight: 400 }}>
                 {language === 'ru' ? 'Гороскоп на сегодня' : 'Today\'s Horoscope'}
             </h1>
-            
-            {/* Дата гороскопа */}
+
             {horoscope?.date && (
-                <p className="text-xs text-astro-subtext text-center mb-6" style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif' }}>
-                    {(() => {
-                        const locale = language === 'ru' ? 'ru-RU' : 'en-US';
-                        const rawDate = new Date(horoscope.date);
-                        if (Number.isNaN(rawDate.getTime())) return '';
-                        return rawDate.toLocaleDateString(locale, {
-                            day: 'numeric',
-                            month: 'long',
-                            year: 'numeric'
-                        });
-                    })()}
+                <p className="text-xs text-astro-subtext text-center mb-4" style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif' }}>
+                    {formatLumiaDate(horoscope.date, language)}
                 </p>
             )}
 
-            {/* Блок с иконкой знака зодиака */}
+            {statusMessage && (
+                <div className={`mb-5 rounded-xl border px-4 py-3 text-xs ${isStale ? 'bg-astro-card border-astro-border text-astro-subtext' : 'bg-astro-highlight/10 border-astro-highlight/30 text-astro-text'}`}>
+                    {statusMessage}
+                </div>
+            )}
+
             <ZodiacHeader sunSign={sunSign} language={language} />
 
-            {/* Основной текст гороскопа */}
             <HoroscopeContent 
                 content={horoscope.content || ''}
                 moonImpact={horoscope.moonImpact}
