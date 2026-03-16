@@ -180,11 +180,31 @@ export const getNatalIntro = async (
     });
 
     if (!response.ok) {
-      const errorText = await response.text().catch(() => 'Unable to read error response');
+      let errorMessage = `Server error: ${response.status}`;
+      let errorCode: string | undefined;
+      let errorDetails: any = null;
+
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorData.error || errorMessage;
+        errorCode = errorData.code;
+        errorDetails = errorData.details;
+      } catch {
+        const errorText = await response.text().catch(() => 'Unable to read error response');
+        errorMessage = errorText || errorMessage;
+      }
+
       log.error(`[getNatalIntro] Server returned error status ${response.status}`, {
-        errorBody: errorText
+        errorMessage,
+        errorCode,
+        errorDetails
       });
-      throw new Error(`Server error: ${response.status}`);
+
+      const apiError = new Error(errorMessage) as ApiErrorWithCode;
+      apiError.status = response.status;
+      apiError.code = errorCode;
+      apiError.details = errorDetails;
+      throw apiError;
     }
 
     const data = await response.json();
@@ -206,8 +226,8 @@ export const getNatalIntro = async (
       ? `Привет, ${profile.name || 'друг'}! Я изучила твою натальную карту и готова рассказать о тебе много интересного.`
       : `Hi, ${profile.name || 'friend'}! I've studied your natal chart and I'm ready to tell you many interesting things.`;
     
-    log.info('[getNatalIntro] Using fallback intro');
-    return fallback;
+    void fallback;
+    throw error;
   }
 };
 
@@ -535,13 +555,33 @@ export const getDeepDiveAnalysis = async (
     });
 
     if (!response.ok) {
-      const errorText = await response.text().catch(() => 'Unable to read error response');
+      let errorMessage = `Failed to get deep dive analysis: ${response.status} ${response.statusText}`;
+      let errorCode: string | undefined;
+      let errorDetails: any = null;
+
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorData.error || errorMessage;
+        errorCode = errorData.code;
+        errorDetails = errorData.details;
+      } catch {
+        const errorText = await response.text().catch(() => 'Unable to read error response');
+        errorMessage = errorText || errorMessage;
+      }
+
       log.error(`[getDeepDiveAnalysis] Server returned error status ${response.status}`, {
         status: response.status,
         statusText: response.statusText,
-        errorBody: errorText
+        errorMessage,
+        errorCode,
+        errorDetails
       });
-      throw new Error(`Failed to get deep dive analysis: ${response.status} ${response.statusText}`);
+
+      const apiError = new Error(errorMessage) as ApiErrorWithCode;
+      apiError.status = response.status;
+      apiError.code = errorCode;
+      apiError.details = errorDetails;
+      throw apiError;
     }
 
     const data = await response.json();
@@ -553,9 +593,11 @@ export const getDeepDiveAnalysis = async (
       stack: error.stack
     });
     const lang = profile.language === 'ru';
-    return lang
+    const fallback = lang
       ? `Глубокий анализ по теме "${topic}" для ${profile.name}. Ваша карта показывает интересные аспекты в этой области.`
       : `Deep analysis on "${topic}" for ${profile.name}. Your chart shows interesting aspects in this area.`;
+    void fallback;
+    throw error;
   }
 };
 

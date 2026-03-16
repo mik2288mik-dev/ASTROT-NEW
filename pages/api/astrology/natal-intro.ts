@@ -156,9 +156,27 @@ async function handler(
         if (cached?.content && cached.content.length > 50) {
           log.info('Returning cached natal intro', { chartId: effectiveChartId, userId });
           res.setHeader('Cache-Control', 'public, s-maxage=86400, stale-while-revalidate=172800');
-          return res.status(200).json({ intro: cached.content, timestamp: Date.now() });
+          return res.status(200).json({
+            intro: cached.content,
+            timestamp: Date.now(),
+            persisted: true,
+            source: 'cache',
+          });
         }
-      } catch (_e) {}
+      } catch (cacheError: any) {
+        log.error('Failed to read natal intro cache', {
+          error: cacheError.message,
+          chartId: effectiveChartId,
+          userId,
+        });
+        return res.status(500).json({
+          error: 'Cache read failed',
+          code: 'NATAL_INTRO_CACHE_READ_FAILED',
+          message: profile.language === 'ru'
+            ? 'Не удалось загрузить сохранённый текст натальной карты.'
+            : 'Failed to load the saved natal reading.',
+        });
+      }
     }
 
     // Генерируем вступление
@@ -171,6 +189,13 @@ async function handler(
         log.info('Natal intro saved to interpretations', { chartId: effectiveChartId, userId });
       } catch (dbError: any) {
         log.error('Error saving intro to database', { error: dbError.message, chartId: effectiveChartId, userId });
+        return res.status(500).json({
+          error: 'Persistence failed',
+          code: 'NATAL_INTRO_PERSIST_FAILED',
+          message: profile.language === 'ru'
+            ? 'Текст натальной карты сгенерирован, но не сохранился. Повторите попытку позже.'
+            : 'The natal reading was generated but could not be saved. Please try again later.',
+        });
       }
     }
 
@@ -179,7 +204,9 @@ async function handler(
 
     return res.status(200).json({
       intro,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      persisted: true,
+      source: 'generated',
     });
   } catch (error: any) {
     log.error('Unexpected error in handler', {
@@ -189,6 +216,7 @@ async function handler(
     
     return res.status(500).json({
       error: 'Internal server error',
+      code: 'NATAL_INTRO_INTERNAL_ERROR',
       message: error.message 
     });
   }

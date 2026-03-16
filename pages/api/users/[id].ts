@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '../../../lib/db';
-import { getMoscowTodayKey } from '../../../lib/date-utils';
+import { getMoscowTodayKey, toDateInputValue } from '../../../lib/date-utils';
 
 // Logging utility
 const log = {
@@ -14,6 +14,12 @@ const log = {
     console.warn(`[API/users/[id]] WARN: ${message}`, error || '');
   },
 };
+
+function toUnixTimestamp(value?: string | Date | null): number | undefined {
+  if (!value) return undefined;
+  const timestamp = new Date(value).getTime();
+  return Number.isFinite(timestamp) ? timestamp : undefined;
+}
 
 export default async function handler(
   req: NextApiRequest,
@@ -70,7 +76,7 @@ export default async function handler(
         timestamps: Record<string, number>;
       } | null = null;
 
-      let natalIntro: { content?: string } | null = null;
+      let natalIntro: { content?: string; updatedAt?: string | Date } | null = null;
       try {
         natalIntro = await db.interpretations.getByHash(userId, 'natal_intro', 'default');
       } catch (e: any) {
@@ -104,6 +110,8 @@ export default async function handler(
       if (natalIntro?.content || Object.keys(deepDiveAnalyses).length > 0 || dailyHoroscope) {
         generatedContent = {
           timestamps: {
+            ...(toUnixTimestamp(natalIntro?.updatedAt) ? { natalIntroGenerated: toUnixTimestamp(natalIntro?.updatedAt) } : {}),
+            ...(Object.keys(deepDiveAnalyses).length > 0 ? { deepDiveGenerated: Date.now() } : {}),
             ...(dailyHoroscope ? { dailyHoroscopeGenerated: Date.now() } : {}),
           },
           ...(natalIntro?.content ? { natalIntro: natalIntro.content } : {}),
@@ -119,7 +127,7 @@ export default async function handler(
       const clientUser = {
         id: user.id,
         name: user.name,
-        birthDate: user.birth_date,
+        birthDate: toDateInputValue(user.birth_date) || user.birth_date,
         birthTime: user.birth_time,
         birthPlace: user.birth_place,
         isSetup: user.is_setup,
@@ -196,7 +204,7 @@ export default async function handler(
       const clientUser = {
         id: savedUser.id,
         name: savedUser.name,
-        birthDate: savedUser.birth_date,
+        birthDate: toDateInputValue(savedUser.birth_date) || savedUser.birth_date,
         birthTime: savedUser.birth_time,
         birthPlace: savedUser.birth_place,
         isSetup: savedUser.is_setup,

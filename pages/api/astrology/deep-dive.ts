@@ -60,9 +60,27 @@ export default async function handler(
       try {
         const cached = await db.interpretations.getByHash(cacheKey, `deep_dive_${topicKey}`, topicKey);
         if (cached?.content && cached.content.length > 50) {
-          return res.status(200).json({ analysis: cached.content });
+          return res.status(200).json({
+            analysis: cached.content,
+            persisted: true,
+            source: 'cache',
+          });
         }
-      } catch (_e) {}
+      } catch (cacheError: any) {
+        log.error('Failed to read deep dive cache', {
+          error: cacheError.message,
+          userId: profile.id,
+          chartId: effectiveChartId,
+          topic: topicKey,
+        });
+        return res.status(500).json({
+          error: 'Cache read failed',
+          code: 'DEEP_DIVE_CACHE_READ_FAILED',
+          message: lang
+            ? 'Не удалось загрузить сохранённый глубокий разбор.'
+            : 'Failed to load the saved deep-dive reading.',
+        });
+      }
     }
 
     // Проверяем наличие API ключа
@@ -108,12 +126,23 @@ export default async function handler(
     if (cacheKey && process.env.DATABASE_URL) {
       try {
         await db.interpretations.set(cacheKey, `deep_dive_${topicForDb}`, topicForDb, analysis);
-      } catch (e) {
+      } catch (e: any) {
         log.error('Failed to save deep dive to interpretations', e);
+        return res.status(500).json({
+          error: 'Persistence failed',
+          code: 'DEEP_DIVE_PERSIST_FAILED',
+          message: lang
+            ? 'Глубокий разбор сгенерирован, но не сохранился. Попробуйте позже.'
+            : 'The deep-dive reading was generated but could not be saved. Please try again later.',
+        });
       }
     }
 
-    return res.status(200).json({ analysis });
+    return res.status(200).json({
+      analysis,
+      persisted: true,
+      source: 'generated',
+    });
   } catch (error: any) {
     log.error('Error in deep dive handler', {
       error: error.message,
@@ -128,6 +157,13 @@ export default async function handler(
       ? `Глубокий анализ по теме "${topic}" для ${profile?.name}. Ваша карта показывает интересные аспекты в этой области.`
       : `Deep analysis on "${topic}" for ${profile?.name}. Your chart shows interesting aspects in this area.`;
 
-    return res.status(200).json({ analysis: fallbackAnalysis });
+    void fallbackAnalysis;
+    return res.status(500).json({
+      error: 'Deep dive generation failed',
+      code: error?.code || 'DEEP_DIVE_INTERNAL_ERROR',
+      message: lang
+        ? 'Не удалось получить глубокий разбор натальной карты.'
+        : 'Failed to load the deep-dive natal reading.',
+    });
   }
 }

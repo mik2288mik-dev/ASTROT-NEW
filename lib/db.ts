@@ -43,6 +43,7 @@ if (!DATABASE_URL) {
 let pool: Pool | null = null;
 let migrationsRun = false;
 let dailyNatalCardsChartScopeSupported: boolean | null = null;
+let interpretationsChartScopeSupported: boolean | null = null;
 
 function getPool(): Pool {
   if (!pool) {
@@ -210,6 +211,51 @@ function normalizeBirthTimeValue(value?: string | null): string {
     return `${match[1]}:${match[2]}`;
   }
   return trimmed;
+}
+
+function normalizeBirthDateValue(value?: string | Date | null): string {
+  if (!value) return '';
+
+  if (value instanceof Date) {
+    return `${value.getUTCFullYear()}-${String(value.getUTCMonth() + 1).padStart(2, '0')}-${String(value.getUTCDate()).padStart(2, '0')}`;
+  }
+
+  const trimmed = String(value).trim();
+  const dateOnlyMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (dateOnlyMatch) {
+    return `${dateOnlyMatch[1]}-${dateOnlyMatch[2]}-${dateOnlyMatch[3]}`;
+  }
+
+  const parsed = new Date(trimmed);
+  if (!Number.isNaN(parsed.getTime())) {
+    return `${parsed.getUTCFullYear()}-${String(parsed.getUTCMonth() + 1).padStart(2, '0')}-${String(parsed.getUTCDate()).padStart(2, '0')}`;
+  }
+
+  return trimmed;
+}
+
+async function supportsInterpretationsChartScope(): Promise<boolean> {
+  if (interpretationsChartScopeSupported !== null) {
+    return interpretationsChartScopeSupported;
+  }
+
+  if (!DATABASE_URL) {
+    interpretationsChartScopeSupported = false;
+    return false;
+  }
+
+  const dbPool = getPool();
+  const result = await dbPool.query(
+    `SELECT EXISTS (
+       SELECT 1
+       FROM information_schema.columns
+       WHERE table_name = 'interpretations'
+         AND column_name = 'chart_id'
+     ) AS has_chart_id`
+  );
+
+  interpretationsChartScopeSupported = !!result.rows[0]?.has_chart_id;
+  return interpretationsChartScopeSupported;
 }
 
 async function supportsDailyNatalCardsChartScope(): Promise<boolean> {
@@ -642,7 +688,9 @@ export const db = {
         if (charts.length >= slots) {
           throw new Error(`Chart slots limit reached (${slots}). Purchase more with Lumi.`);
         }
-        const inputHash = Buffer.from(`${data.birthDate}|${data.birthTime || '12:00'}|${data.birthPlace}`).toString('base64').substring(0, 64);
+        const normalizedBirthDate = normalizeBirthDateValue(data.birthDate);
+        const normalizedBirthTime = normalizeBirthTimeValue(data.birthTime);
+        const inputHash = Buffer.from(`${normalizedBirthDate}|${normalizedBirthTime}|${data.birthPlace}`).toString('base64').substring(0, 64);
         const isPrimary = charts.length === 0;
         const chartData = data.chartData?.chart_data || data.chartData;
         const result = await dbPool.query(
@@ -705,10 +753,12 @@ export const db = {
         ? await this.getById(userIdOrChartId)
         : await this.getPrimary(userIdOrChartId);
       if (!existing) return { needsCalc: true, existingChart: null, reason: 'NO_EXISTING_CHART' };
+      const normalizedExistingBirthDate = normalizeBirthDateValue(existing.birth_date);
+      const normalizedRequestedBirthDate = normalizeBirthDateValue(birthDate);
       const normalizedExistingBirthTime = normalizeBirthTimeValue(existing.birth_time);
       const normalizedRequestedBirthTime = normalizeBirthTimeValue(birthTime);
       const inputChanged =
-        existing.birth_date !== birthDate ||
+        normalizedExistingBirthDate !== normalizedRequestedBirthDate ||
         normalizedExistingBirthTime !== normalizedRequestedBirthTime ||
         existing.birth_place !== birthPlace;
       if (inputChanged) return { needsCalc: true, existingChart: existing, reason: 'BIRTH_DATA_CHANGED' };
@@ -724,15 +774,17 @@ export const db = {
       try {
         const dbPool = getPool();
         const data = chartData.chart_data || chartData;
-        const inputHash = birthDate && birthPlace
-          ? Buffer.from(`${birthDate}|${birthTime || '12:00'}|${birthPlace}`).toString('base64').substring(0, 64)
+        const normalizedBirthDate = normalizeBirthDateValue(birthDate);
+        const normalizedBirthTime = normalizeBirthTimeValue(birthTime);
+        const inputHash = normalizedBirthDate && birthPlace
+          ? Buffer.from(`${normalizedBirthDate}|${normalizedBirthTime}|${birthPlace}`).toString('base64').substring(0, 64)
           : null;
         const existing = await this.getPrimary(userId);
         if (existing) {
           const result = await dbPool.query(
             `UPDATE natal_charts SET chart_data = $1, birth_date = $2, birth_time = $3, birth_place = $4, input_hash = $5
              WHERE id = $6 RETURNING id, user_id, name, chart_data, birth_date, birth_time, birth_place, input_hash, is_primary, created_at`,
-            [JSON.stringify(data), birthDate, birthTime, birthPlace, inputHash, existing.id]
+            [JSON.stringify(data), normalizedBirthDate || birthDate, normalizedBirthTime || birthTime, birthPlace, inputHash, existing.id]
           );
           return this._rowToChart(result.rows[0]);
         }
@@ -742,7 +794,7 @@ export const db = {
           `INSERT INTO natal_charts (user_id, name, chart_data, birth_date, birth_time, birth_place, input_hash, is_primary)
            VALUES ($1, 'Моя карта', $2, $3, $4, $5, $6, $7)
            RETURNING id, user_id, name, chart_data, birth_date, birth_time, birth_place, input_hash, is_primary, created_at`,
-          [id, JSON.stringify(data), birthDate, birthTime, birthPlace, inputHash, isPrimary]
+          [id, JSON.stringify(data), normalizedBirthDate || birthDate, normalizedBirthTime || birthTime, birthPlace, inputHash, isPrimary]
         );
         return this._rowToChart(result.rows[0]);
       } catch (error: any) {
@@ -754,13 +806,61 @@ export const db = {
 
   /** OpenAI cache - interpretations table (Lumia) */
   interpretations: {
+    async supportsChartScope() {
+      return supportsInterpretationsChartScope();
+    },
+
+    async _getLegacyUserScoped(userId: string, type: string, inputHash: string, primaryChartId?: number) {
+      const id = toUserId(userId);
+      if (!DATABASE_URL) return null;
+      try {
+        const dbPool = getPool();
+        const supportsChartScope = await this.supportsChartScope();
+        const result = supportsChartScope
+          ? await dbPool.query(
+              `SELECT content, created_at
+               FROM interpretations
+               WHERE user_id = $1
+                 AND type = $2
+                 AND input_hash = $3
+                 AND (${primaryChartId != null ? 'chart_id IS NULL OR chart_id = $4' : 'chart_id IS NULL'})
+               ORDER BY ${primaryChartId != null ? 'CASE WHEN chart_id = $4 THEN 0 ELSE 1 END,' : ''} created_at DESC
+               LIMIT 1`,
+              primaryChartId != null ? [id, type, inputHash, primaryChartId] : [id, type, inputHash]
+            )
+          : await dbPool.query(
+              `SELECT content, created_at
+               FROM interpretations
+               WHERE user_id = $1 AND type = $2 AND input_hash = $3
+               ORDER BY created_at DESC
+               LIMIT 1`,
+              [id, type, inputHash]
+            );
+        if (result.rows.length === 0) return null;
+        return { content: result.rows[0].content, updatedAt: result.rows[0].created_at };
+      } catch (error: any) {
+        log.error('[DB] Error getting interpretation by user fallback', { error: error.message, userId, type, primaryChartId });
+        throw error;
+      }
+    },
+
     /** Chart-level cache: natal_intro, deep_dive_*, daily_natal_card */
     async getByChart(chartId: number, type: string, inputHash: string) {
       if (!DATABASE_URL) return null;
       try {
+        const supportsChartScope = await this.supportsChartScope();
+        if (!supportsChartScope) {
+          const chart = await db.natal_charts.getById(chartId);
+          return chart?.user_id ? this._getLegacyUserScoped(String(chart.user_id), type, inputHash) : null;
+        }
+
         const dbPool = getPool();
         const result = await dbPool.query(
-          `SELECT content, created_at FROM interpretations WHERE chart_id = $1 AND type = $2 AND input_hash = $3`,
+          `SELECT content, created_at
+           FROM interpretations
+           WHERE chart_id = $1 AND type = $2 AND input_hash = $3
+           ORDER BY created_at DESC
+           LIMIT 1`,
           [chartId, type, inputHash]
         );
         if (result.rows.length === 0) return null;
@@ -771,16 +871,47 @@ export const db = {
       }
     },
 
-    async setByChart(chartId: number, type: string, inputHash: string, content: string) {
+    async setByChart(chartId: number, type: string, inputHash: string, content: string, ownerUserId?: string) {
       if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
       try {
+        const supportsChartScope = await this.supportsChartScope();
+        if (!supportsChartScope) {
+          const chart = ownerUserId ? { user_id: ownerUserId } : await db.natal_charts.getById(chartId);
+          if (!chart?.user_id) throw new Error('INTERPRETATION_OWNER_NOT_FOUND');
+          return this.setByUser(String(chart.user_id), type, inputHash, content);
+        }
+
         const dbPool = getPool();
-        await dbPool.query(
-          `INSERT INTO interpretations (chart_id, type, input_hash, content)
-           VALUES ($1, $2, $3, $4)
-           ON CONFLICT (chart_id, type, input_hash) DO UPDATE SET content = EXCLUDED.content`,
-          [chartId, type, inputHash, content]
-        );
+        const ownerId = ownerUserId ? toUserId(ownerUserId) : null;
+        const updated = ownerId
+          ? await dbPool.query(
+              `UPDATE interpretations
+               SET content = $4, user_id = COALESCE(user_id, $5)
+               WHERE chart_id = $1 AND type = $2 AND input_hash = $3`,
+              [chartId, type, inputHash, content, ownerId]
+            )
+          : await dbPool.query(
+              `UPDATE interpretations
+               SET content = $4
+               WHERE chart_id = $1 AND type = $2 AND input_hash = $3`,
+              [chartId, type, inputHash, content]
+            );
+
+        if ((updated.rowCount ?? 0) === 0) {
+          if (ownerId) {
+            await dbPool.query(
+              `INSERT INTO interpretations (user_id, chart_id, type, input_hash, content)
+               VALUES ($1, $2, $3, $4, $5)`,
+              [ownerId, chartId, type, inputHash, content]
+            );
+          } else {
+            await dbPool.query(
+              `INSERT INTO interpretations (chart_id, type, input_hash, content)
+               VALUES ($1, $2, $3, $4)`,
+              [chartId, type, inputHash, content]
+            );
+          }
+        }
         return { success: true };
       } catch (error: any) {
         log.error('[DB] Error setting interpretation by chart', { error: error.message, chartId, type });
@@ -790,20 +921,7 @@ export const db = {
 
     /** User-level cache: question_answer, oracle_chat */
     async getByUser(userId: string, type: string, inputHash: string) {
-      const id = toUserId(userId);
-      if (!DATABASE_URL) return null;
-      try {
-        const dbPool = getPool();
-        const result = await dbPool.query(
-          `SELECT content, created_at FROM interpretations WHERE user_id = $1 AND type = $2 AND input_hash = $3 AND chart_id IS NULL`,
-          [id, type, inputHash]
-        );
-        if (result.rows.length === 0) return null;
-        return { content: result.rows[0].content, updatedAt: result.rows[0].created_at };
-      } catch (error: any) {
-        log.error('[DB] Error getting interpretation by user', { error: error.message, userId, type });
-        throw error;
-      }
+      return this._getLegacyUserScoped(userId, type, inputHash);
     },
 
     async setByUser(userId: string, type: string, inputHash: string, content: string) {
@@ -811,12 +929,28 @@ export const db = {
       if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
       try {
         const dbPool = getPool();
-        await dbPool.query(
-          `INSERT INTO interpretations (user_id, type, input_hash, content)
-           VALUES ($1, $2, $3, $4)
-           ON CONFLICT (user_id, type, input_hash) DO UPDATE SET content = EXCLUDED.content`,
-          [id, type, inputHash, content]
-        );
+        const supportsChartScope = await this.supportsChartScope();
+        const updated = supportsChartScope
+          ? await dbPool.query(
+              `UPDATE interpretations
+               SET content = $4
+               WHERE user_id = $1 AND type = $2 AND input_hash = $3 AND chart_id IS NULL`,
+              [id, type, inputHash, content]
+            )
+          : await dbPool.query(
+              `UPDATE interpretations
+               SET content = $4
+               WHERE user_id = $1 AND type = $2 AND input_hash = $3`,
+              [id, type, inputHash, content]
+            );
+
+        if ((updated.rowCount ?? 0) === 0) {
+          await dbPool.query(
+            `INSERT INTO interpretations (user_id, type, input_hash, content)
+             VALUES ($1, $2, $3, $4)`,
+            [id, type, inputHash, content]
+          );
+        }
         return { success: true };
       } catch (error: any) {
         log.error('[DB] Error setting interpretation by user', { error: error.message, userId, type });
@@ -829,17 +963,37 @@ export const db = {
       if (typeof chartIdOrUserId === 'number') {
         return this.getByChart(chartIdOrUserId, type, inputHash);
       }
-      const chart = await db.natal_charts.getPrimary(chartIdOrUserId);
-      if (chart) return this.getByChart(chart.id, type, inputHash);
-      return this.getByUser(chartIdOrUserId, type, inputHash);
+
+      const supportsChartScope = await this.supportsChartScope();
+      const chart = supportsChartScope ? await db.natal_charts.getPrimary(chartIdOrUserId) : null;
+      if (chart) {
+        const chartScoped = await this.getByChart(chart.id, type, inputHash);
+        if (chartScoped) return chartScoped;
+      }
+
+      return this._getLegacyUserScoped(chartIdOrUserId, type, inputHash, chart?.id);
     },
 
     async set(chartIdOrUserId: number | string, type: string, inputHash: string, content: string) {
       if (typeof chartIdOrUserId === 'number') {
         return this.setByChart(chartIdOrUserId, type, inputHash, content);
       }
-      const chart = await db.natal_charts.getPrimary(chartIdOrUserId);
-      if (chart) return this.setByChart(chart.id, type, inputHash, content);
+
+      const supportsChartScope = await this.supportsChartScope();
+      const chart = supportsChartScope ? await db.natal_charts.getPrimary(chartIdOrUserId) : null;
+      if (chart) {
+        try {
+          return await this.setByChart(chart.id, type, inputHash, content, chartIdOrUserId);
+        } catch (error: any) {
+          log.warn('[DB] Falling back to user-scoped interpretation save', {
+            userId: chartIdOrUserId,
+            chartId: chart.id,
+            type,
+            error: error.message,
+          });
+        }
+      }
+
       return this.setByUser(chartIdOrUserId, type, inputHash, content);
     },
   },
