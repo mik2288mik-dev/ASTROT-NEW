@@ -4,7 +4,6 @@ import { getText } from '../constants';
 import { SolarSystem } from '../components/SolarSystem';
 import { Loading } from '../components/ui/Loading';
 import { getTodayWeather } from '../services/weatherService';
-import { getCharts } from '../services/storageService';
 import { motion } from 'framer-motion';
 import { CosmicPassport } from '../components/Dashboard/CosmicPassport';
 import { WeatherWidget } from '../components/Dashboard/WeatherWidget';
@@ -22,7 +21,6 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
     const [context, setContext] = useState<UserContext | null>(null);
     const [tgUser, setTgUser] = useState<any>(null);
     const [dailyHoroscope, setDailyHoroscope] = useState<any>(null);
-    const [chartsInfo, setChartsInfo] = useState<{ used: number; total: number } | null>(null);
 
     const language = useMemo(() => profile.language, [profile.language]);
     const displayName = useMemo(() => tgUser?.first_name || profile.name, [tgUser?.first_name, profile.name]);
@@ -34,8 +32,6 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
 
     const handleNavigateHoroscope = useCallback(() => onNavigate('horoscope'), [onNavigate]);
     const handleNavigateChart = useCallback(() => onNavigate('chart'), [onNavigate]);
-    const handleNavigateCharts = useCallback(() => onNavigate('charts'), [onNavigate]);
-    const handleNavigateWallet = useCallback(() => onNavigate('wallet'), [onNavigate]);
     const handleNavigateSynastry = useCallback(() => onNavigate('synastry'), [onNavigate]);
     const handleNavigateOracle = useCallback(() => onNavigate('oracle'), [onNavigate]);
 
@@ -45,23 +41,6 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
             setTgUser(tg.initDataUnsafe.user);
         }
     }, []);
-
-    useEffect(() => {
-        if (!profile.id) return;
-        getCharts(profile.id)
-            .then((res) => {
-                setChartsInfo({
-                    used: res.charts?.length ?? 0,
-                    total: res.chartSlots ?? profile.chartSlots ?? 1,
-                });
-            })
-            .catch(() => {
-                setChartsInfo({
-                    used: 0,
-                    total: profile.chartSlots ?? 1,
-                });
-            });
-    }, [profile.chartSlots, profile.id]);
 
     useEffect(() => {
         const userId = profile.id;
@@ -80,9 +59,9 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
                             humidity: data.humidity ?? 0,
                             moonPhase: data.moonPhase ? {
                                 phase: data.moonPhase.phase,
-                                illumination: parseInt(data.moonPhase.illumination) || 0
-                            } : undefined
-                        }
+                                illumination: parseInt(data.moonPhase.illumination) || 0,
+                            } : undefined,
+                        },
                     };
                     setContext(nextContext);
                     onContextUpdate?.(nextContext);
@@ -140,12 +119,12 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
     return (
         <div className="p-4 space-y-6 screen-pb">
             <CosmicPassport
-              profile={profile}
-              chartData={chartData}
-              photoUrl={photoUrl}
-              displayName={displayName}
-              onOpenSettings={onOpenSettings}
-              weatherData={context?.weatherData}
+                profile={profile}
+                chartData={chartData}
+                photoUrl={photoUrl}
+                displayName={displayName}
+                onOpenSettings={onOpenSettings}
+                weatherData={context?.weatherData}
             />
 
             <button
@@ -197,48 +176,11 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
             >
                 <h3 className="font-serif text-lg text-astro-text mb-0.5">{getText(profile.language, 'dashboard.menu_analysis')}</h3>
                 <p className="text-astro-subtext text-xs">
-                    {getText(profile.language, 'dashboard.chart_subtitle')}
+                    {profile.language === 'ru'
+                        ? 'Ваша натальная карта, личные интерпретации и вход в сохранённые карты.'
+                        : 'Your natal chart, personal interpretations, and access to saved charts.'}
                 </p>
             </button>
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <button
-                    onClick={handleNavigateWallet}
-                    className="w-full bg-astro-card rounded-xl p-4 border border-astro-border hover:border-astro-highlight/30 transition-colors text-left"
-                >
-                    <p className="text-[10px] uppercase tracking-widest text-astro-subtext mb-1">
-                        {profile.language === 'ru' ? 'Lumi Wallet' : 'Lumi Wallet'}
-                    </p>
-                    <h3 className="font-serif text-lg text-astro-text">{profile.lumiBalance ?? 0} Lumi</h3>
-                    <p className="mt-2 text-xs text-astro-subtext">
-                        {profile.language === 'ru'
-                            ? 'Баланс, история операций и пополнение в одном месте.'
-                            : 'Balance, transaction history, and top-up in one place.'}
-                    </p>
-                </button>
-
-                <button
-                    onClick={handleNavigateCharts}
-                    className="w-full bg-astro-card rounded-xl p-4 border border-astro-border hover:border-astro-highlight/30 transition-colors text-left"
-                >
-                    <div className="flex items-start justify-between gap-4">
-                        <div>
-                            <p className="text-[10px] uppercase tracking-widest text-astro-subtext mb-1">
-                                {getText(profile.language, 'dashboard.charts_overview_title')}
-                            </p>
-                            <h3 className="font-serif text-lg text-astro-text">
-                                {chartsInfo ? `${chartsInfo.used} / ${chartsInfo.total}` : `0 / ${profile.chartSlots ?? 1}`}
-                            </h3>
-                        </div>
-                        <span className="text-[10px] uppercase tracking-wider text-astro-highlight">
-                            {getText(profile.language, 'dashboard.charts_overview_cta')}
-                        </span>
-                    </div>
-                    <p className="mt-2 text-xs text-astro-subtext">
-                        {getText(profile.language, 'dashboard.charts_overview_hint')}
-                    </p>
-                </button>
-            </div>
 
             {context?.socialProof && (
                 <div className="overflow-hidden py-2 bg-astro-bg border-y border-astro-border/50">

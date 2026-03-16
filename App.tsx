@@ -522,6 +522,7 @@ const App: React.FC = () => {
                             requestPremium={requestPremium}
                             onUpdateProfile={handleProfileUpdate}
                             onBalanceUpdate={handleBalanceUpdate}
+                            onOpenCharts={() => openCharts('chart')}
                         />
                     </div>
                 ) : view === 'settings' ? (
@@ -532,6 +533,7 @@ const App: React.FC = () => {
                             onShowPremiumPreview={() => setShowPremiumPreview(true)}
                             onOpenAdmin={() => setView('admin')}
                             onOpenCharts={() => openCharts('settings')}
+                            onOpenWallet={() => openWallet('settings')}
                         />
                     </div>
                 ) : view === 'charts' ? (

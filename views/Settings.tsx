@@ -12,9 +12,10 @@ interface SettingsProps {
     onShowPremiumPreview?: () => void;
     onOpenAdmin?: () => void;
     onOpenCharts?: () => void;
+    onOpenWallet?: () => void;
 }
 
-export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPremiumPreview, onOpenAdmin, onOpenCharts }) => {
+export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPremiumPreview, onOpenAdmin, onOpenCharts, onOpenWallet }) => {
     const [editing, setEditing] = useState(false);
     const [tempName, setTempName] = useState(profile.name);
     const [tempPlace, setTempPlace] = useState(profile.birthPlace);
@@ -182,6 +183,25 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                         </p>
                     </div>
                     <span className="text-astro-subtext">→</span>
+                </button>
+            )}
+
+            {onOpenWallet && (
+                <button 
+                    onClick={onOpenWallet}
+                    className="w-full bg-astro-card border border-astro-border rounded-xl p-5 flex items-center justify-between shadow-sm hover:border-astro-highlight/50 transition-colors text-left"
+                >
+                    <div>
+                        <h3 className="text-astro-text font-medium font-serif">
+                            {profile.language === 'ru' ? 'Lumi Wallet' : 'Lumi Wallet'}
+                        </h3>
+                        <p className="text-[10px] uppercase tracking-wider text-astro-subtext mt-1">
+                            {profile.language === 'ru' ? 'Баланс, история и пополнение Lumi' : 'Balance, history, and Lumi top-up'}
+                        </p>
+                    </div>
+                    <span className="text-astro-highlight text-sm font-medium">
+                        {profile.lumiBalance ?? 0} Lumi
+                    </span>
                 </button>
             )}
 

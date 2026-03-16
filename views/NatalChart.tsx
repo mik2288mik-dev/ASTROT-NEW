@@ -14,6 +14,7 @@ interface NatalChartProps {
     requestPremium: () => void;
     onUpdateProfile?: (profile: UserProfile) => void;
     onBalanceUpdate?: (balance: number) => void;
+    onOpenCharts?: () => void;
 }
 
 // Символы планет
@@ -54,7 +55,7 @@ const TOPICS = [
     { id: 'karma', icon: '♾️', ru: 'Кармические уроки', en: 'Karmic Lessons', free: false },
 ];
 
-export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, requestPremium, onUpdateProfile, onBalanceUpdate }) => {
+export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, requestPremium, onUpdateProfile, onBalanceUpdate, onOpenCharts }) => {
     // Состояния
     const [expandedTopic, setExpandedTopic] = useState<string | null>('personality'); // Личность открыта по умолчанию
     const [topicContent, setTopicContent] = useState<Record<string, string>>({});
@@ -279,6 +280,31 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, 
                     </p>
                 </div>
             </motion.div>
+
+            {onOpenCharts && (
+                <div className="px-5 mb-5">
+                    <button
+                        onClick={onOpenCharts}
+                        className="w-full rounded-xl border border-astro-border/80 bg-astro-card/35 px-4 py-3 text-left hover:border-astro-highlight/35 transition-colors"
+                    >
+                        <div className="flex items-center justify-between gap-4">
+                            <div className="min-w-0">
+                                <p className="text-[10px] uppercase tracking-widest text-astro-subtext">
+                                    {lang === 'ru' ? 'Мои карты' : 'My Charts'}
+                                </p>
+                                <p className="mt-1 text-sm text-astro-text">
+                                    {lang === 'ru'
+                                        ? 'Primary chart, saved profiles, slots и Synastry в одном месте.'
+                                        : 'Primary chart, saved profiles, slots, and Synastry in one place.'}
+                                </p>
+                            </div>
+                            <span className="text-xs font-medium text-astro-highlight shrink-0">
+                                {lang === 'ru' ? 'Открыть' : 'Open'}
+                            </span>
+                        </div>
+                    </button>
+                </div>
+            )}
 
             {/* Deep dive sections */}
             <div className="px-5">
