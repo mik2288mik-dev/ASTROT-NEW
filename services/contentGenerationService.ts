@@ -368,7 +368,8 @@ export const getOrGenerateSynastry = async (
   partnerTime?: string,
   partnerPlace?: string,
   relationshipType?: string,
-  mode: 'brief' | 'full' = 'brief'
+  mode: 'brief' | 'full' = 'brief',
+  partnerChartId?: number
 ): Promise<any> => {
   log.info(`[getOrGenerateSynastry] Getting synastry for partner: ${partnerName}`, {
     userId: profile.id,
@@ -377,10 +378,12 @@ export const getOrGenerateSynastry = async (
   });
 
   // Создаем уникальный ключ для партнера (на основе имени и даты рождения)
-  const partnerId = `${partnerName.toLowerCase().trim()}_${partnerDate}`;
+  const partnerId = partnerChartId
+    ? `chart_${partnerChartId}`
+    : `${partnerName.toLowerCase().trim()}_${partnerDate}`;
 
   // Проверяем, есть ли уже сохраненная синастрия
-  const cachedSynastry = profile.generatedContent?.synastries?.[partnerId];
+  const cachedSynastry = partnerChartId ? null : profile.generatedContent?.synastries?.[partnerId];
   
   if (cachedSynastry) {
     if (mode === 'brief' && cachedSynastry.briefResult) {
@@ -407,7 +410,8 @@ export const getOrGenerateSynastry = async (
         partnerDate,
         partnerTime,
         partnerPlace,
-        relationshipType
+        relationshipType,
+        partnerChartId
       );
     } else {
       result = await calculateFullSynastry(
@@ -416,7 +420,8 @@ export const getOrGenerateSynastry = async (
         partnerDate,
         partnerTime,
         partnerPlace,
-        relationshipType
+        relationshipType,
+        partnerChartId
       );
     }
 
@@ -435,9 +440,14 @@ export const getOrGenerateSynastry = async (
       profile.generatedContent.synastries[partnerId] = {
         partnerName,
         partnerDate,
+        partnerChartId,
+        source: partnerChartId ? 'saved-chart' : 'manual',
         timestamp: Date.now()
       };
     }
+    profile.generatedContent.synastries[partnerId].partnerChartId = partnerChartId;
+    profile.generatedContent.synastries[partnerId].source = partnerChartId ? 'saved-chart' : 'manual';
+    profile.generatedContent.synastries[partnerId].timestamp = Date.now();
 
     if (mode === 'brief') {
       profile.generatedContent.synastries[partnerId].briefResult = result;

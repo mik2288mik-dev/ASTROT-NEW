@@ -1,9 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
+import { createHash } from 'crypto';
 import { calculateNatalChart } from '../../../lib/swisseph-calculator';
+import { db } from '../../../lib/db';
 import { SYSTEM_PROMPT_ASTRA, createFullSynastryPrompt, addLanguageInstruction, FullSynastryAIResponse } from '../../../lib/prompts';
 
-// Logging utility
 const log = {
   info: (message: string, data?: any) => {
     console.log(`[API/astrology/synastry-full] ${message}`, data || '');
@@ -13,35 +14,33 @@ const log = {
   },
 };
 
-// Initialize OpenAI client
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+
+const buildCacheKey = (primaryChartId: number, partnerChartId: number, language: string) =>
+  createHash('sha256')
+    .update(`${primaryChartId}:${partnerChartId}:full:${language}`)
+    .digest('hex');
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  log.info('Request received', {
-    method: req.method,
-    path: req.url
-  });
-
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const { profile, partnerName, partnerDate, partnerTime, partnerPlace, language, relationshipType } = req.body;
+    const { profile, partnerName, partnerDate, partnerTime, partnerPlace, language, relationshipType, partnerChartId } = req.body;
 
     if (!profile || !partnerName || !partnerDate) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Bad request',
         message: 'Profile, partnerName, and partnerDate are required'
       });
     }
 
-    // Проверяем премиум статус
     if (!profile.isPremium) {
       return res.status(403).json({
         error: 'Premium required',
@@ -49,103 +48,75 @@ export default async function handler(
       });
     }
 
-    log.info('Calculating full synastry', {
-      userId: profile?.id,
-      partnerName,
-      partnerDate,
-      language,
-      relationshipType
-    });
+    const currentLanguage = language === 'en' ? 'en' : 'ru';
+    const lang = currentLanguage === 'ru';
 
-    const lang = language === 'ru';
+    let primaryChartRecord: any = null;
+    let partnerChartRecord: any = null;
+    let userChartData: any = null;
+    let partnerChartData: any = null;
 
-    // Получаем натальную карту пользователя
-    let userChartData;
-    try {
+    if (profile?.id) {
+      primaryChartRecord = await db.natal_charts.getPrimary(String(profile.id));
+      userChartData = primaryChartRecord?.chart_data || null;
+    }
+
+    if (partnerChartId && profile?.id) {
+      partnerChartRecord = await db.natal_charts.getById(Number(partnerChartId));
+      if (!partnerChartRecord || String(partnerChartRecord.user_id) !== String(profile.id)) {
+        return res.status(404).json({
+          error: 'Partner chart not found',
+          message: 'Saved partner chart not found'
+        });
+      }
+      partnerChartData = partnerChartRecord.chart_data || null;
+    }
+
+    if (primaryChartRecord?.id && partnerChartRecord?.id) {
+      const cacheKey = buildCacheKey(primaryChartRecord.id, partnerChartRecord.id, currentLanguage);
+      const cached = await db.synastry.get(primaryChartRecord.id, partnerChartRecord.id, 'full', cacheKey);
+      if (cached) {
+        const parsed = typeof cached === 'string' ? JSON.parse(cached) : cached;
+        return res.status(200).json(parsed);
+      }
+    }
+
+    if (!userChartData) {
       userChartData = await calculateNatalChart(
         profile.name,
         profile.birthDate,
         profile.birthTime || '12:00',
         profile.birthPlace
       );
-    } catch (error: any) {
-      log.error('Failed to calculate user natal chart', { error: error.message });
-      // Используем fallback данные
-      userChartData = {
-        sun: { planet: 'Sun', sign: 'Leo', degree: 15, description: '' },
-        moon: { planet: 'Moon', sign: 'Cancer', degree: 10, description: '' },
-        rising: { planet: 'Ascendant', sign: 'Aries', degree: 0, description: '' },
-        mercury: null,
-        venus: null,
-        mars: null,
-        element: 'Fire',
-        rulingPlanet: 'Sun',
-        summary: ''
-      };
     }
 
-    // Вычисляем натальную карту партнёра
-    let partnerChartData;
-    try {
+    if (!partnerChartData) {
       partnerChartData = await calculateNatalChart(
         partnerName,
         partnerDate,
         partnerTime || '12:00',
         partnerPlace || profile.birthPlace
       );
-    } catch (error: any) {
-      log.error('Failed to calculate partner natal chart', { error: error.message });
-      // Используем fallback данные
-      partnerChartData = {
-        sun: { planet: 'Sun', sign: 'Aries', degree: 20, description: '' },
-        moon: { planet: 'Moon', sign: 'Pisces', degree: 5, description: '' },
-        rising: { planet: 'Ascendant', sign: 'Aries', degree: 0, description: '' },
-        mercury: null,
-        venus: null,
-        mars: null,
-        element: 'Fire',
-        rulingPlanet: 'Mars',
-        summary: ''
-      };
     }
 
-    log.info('Both natal charts calculated', {
-      userSun: userChartData.sun?.sign,
-      partnerSun: partnerChartData.sun?.sign
-    });
-
-    // Проверяем наличие API ключа
     if (!process.env.OPENAI_API_KEY) {
-      log.error('OpenAI API key not configured, using fallback');
       const fallbackResult = {
         fullAnalysis: {
-          generalTheme: lang 
-            ? `Ваша связь с ${partnerName} создаёт особую атмосферу взаимного роста и понимания. Это отношения, которые учат вас обоих быть более открытыми и принимающими.`
-            : `Your connection with ${partnerName} creates a special atmosphere of mutual growth and understanding. This is a relationship that teaches both of you to be more open and accepting.`,
+          generalTheme: lang
+            ? `Связь между ${profile?.name} и ${partnerName} строится на взаимном росте и внимании друг к другу.`
+            : `The connection between ${profile?.name} and ${partnerName} is built on mutual growth and attention to each other.`,
           attraction: lang
-            ? `Вас притягивает друг к другу естественная гармония характеров. ${profile?.name}, ты чувствуешь себя понятым и принятым рядом с ${partnerName}. Ваши различия дополняют друг друга, создавая баланс между спокойствием и динамикой, мечтательностью и практичностью.`
-            : `You are attracted to each other by the natural harmony of characters. ${profile?.name}, you feel understood and accepted next to ${partnerName}. Your differences complement each other, creating balance between calm and dynamics, dreaminess and practicality.`,
+            ? `Вас притягивает ощущение, что рядом можно быть собой и при этом открывать новые стороны характера.`
+            : `You are drawn by the sense that you can be yourselves and still discover new sides of one another.`,
           difficulties: lang
-            ? `Иногда ваши разные темпы жизни могут создавать напряжение. Один из вас предпочитает действовать быстро и решительно, другой - обдумывать и взвешивать. Важно не воспринимать это как недостаток, а видеть возможность учиться друг у друга.`
-            : `Sometimes your different life paces can create tension. One of you prefers to act quickly and decisively, the other - to think and weigh. It's important not to perceive this as a flaw, but to see an opportunity to learn from each other.`,
+            ? `Трудности чаще всего возникают из-за разного темпа, ожиданий и способа выражать чувства.`
+            : `Difficulties usually arise from different pacing, expectations, and emotional expression.`,
           recommendations: lang
-            ? [
-                'Регулярно проговаривайте свои чувства и потребности',
-                'Давайте друг другу пространство для личных интересов',
-                'Находите общие цели и двигайтесь к ним вместе',
-                'Учитесь принимать разные темпы и стили действий',
-                'Создавайте ритуалы близости - совместные прогулки, вечера, разговоры'
-              ]
-            : [
-                'Regularly express your feelings and needs',
-                'Give each other space for personal interests',
-                'Find common goals and move towards them together',
-                'Learn to accept different paces and action styles',
-                'Create intimacy rituals - joint walks, evenings, conversations'
-              ],
+            ? ['Чаще обсуждайте ожидания', 'Не торопите друг друга в сложных разговорах', 'Поддерживайте общие ритуалы близости']
+            : ['Discuss expectations more often', 'Do not rush difficult conversations', 'Keep shared rituals of closeness'],
           potential: lang
-            ? `Если вы оба будете внимательны к потребностям друг друга, эта связь может стать источником глубокого личностного роста. Вы можете научиться видеть мир глазами другого человека, развить качества, которых вам не хватало. ${partnerName} поможет ${profile?.name} стать более решительным и уверенным, а ${profile?.name} научит ${partnerName} чувствовать и понимать эмоции. Вместе вы создаёте нечто большее, чем каждый из вас по отдельности.`
-            : `If you both are attentive to each other's needs, this connection can become a source of deep personal growth. You can learn to see the world through another person's eyes, develop qualities you were lacking. ${partnerName} will help ${profile?.name} become more decisive and confident, and ${profile?.name} will teach ${partnerName} to feel and understand emotions. Together you create something greater than each of you separately.`
+            ? `При зрелом подходе эта связь может стать сильным пространством для доверия, развития и глубокой близости.`
+            : `With a mature approach, this connection can become a strong space for trust, growth, and deep closeness.`
         },
         summary: lang
           ? `Глубокий анализ совместимости между ${profile?.name} и ${partnerName}.`
@@ -154,94 +125,44 @@ export default async function handler(
       return res.status(200).json(fallbackResult);
     }
 
-    // Создаём промпт для AI
     const userPrompt = createFullSynastryPrompt(
-      userChartData, 
-      profile, 
-      partnerChartData, 
+      userChartData,
+      profile,
+      partnerChartData,
       partnerName,
       relationshipType || 'романтические отношения'
     );
-    const promptWithLang = addLanguageInstruction(userPrompt, lang ? 'ru' : 'en');
+    const promptWithLang = addLanguageInstruction(userPrompt, currentLanguage);
 
-    log.info('Sending request to OpenAI', {
-      model: 'gpt-4o',
-      promptLength: promptWithLang.length
-    });
-
-    // Отправляем запрос в OpenAI
-    const startTime = Date.now();
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages: [
         { role: 'system', content: SYSTEM_PROMPT_ASTRA },
         { role: 'user', content: promptWithLang }
       ],
-      response_format: { type: "json_object" },
+      response_format: { type: 'json_object' },
       temperature: 0.7,
       max_tokens: 2500,
     });
 
-    const duration = Date.now() - startTime;
-    const responseText = completion.choices[0]?.message?.content || '{}';
+    const content = completion.choices[0]?.message?.content || '{}';
+    const result = JSON.parse(content) as FullSynastryAIResponse;
 
-    log.info('OpenAI response received', {
-      duration: `${duration}ms`,
-      tokensUsed: completion.usage?.total_tokens
-    });
-
-    // Парсим JSON ответ
-    let fullSynastry: FullSynastryAIResponse;
-    try {
-      fullSynastry = JSON.parse(responseText);
-      
-      log.info('Full synastry calculated successfully');
-
-      const result = {
-        fullAnalysis: fullSynastry,
-        summary: fullSynastry.generalTheme
-      };
-
-      return res.status(200).json(result);
-    } catch (parseError: any) {
-      log.error('Failed to parse JSON response', {
-        error: parseError.message
-      });
-      throw new Error('Invalid JSON response from AI');
+    if (primaryChartRecord?.id && partnerChartRecord?.id) {
+      const cacheKey = buildCacheKey(primaryChartRecord.id, partnerChartRecord.id, currentLanguage);
+      await db.synastry.set(primaryChartRecord.id, partnerChartRecord.id, 'full', cacheKey, result);
     }
+
+    return res.status(200).json(result);
   } catch (error: any) {
     log.error('Error calculating full synastry', {
-      error: error.message,
+      message: error.message,
       stack: error.stack
     });
 
-    // Fallback на случай ошибки
-    const { profile, partnerName, language } = req.body;
-    const lang = language === 'ru';
-    
-    const fallbackResult = {
-      fullAnalysis: {
-        generalTheme: lang 
-          ? `Ваша связь с ${partnerName} создаёт особую атмосферу взаимного роста и понимания.`
-          : `Your connection with ${partnerName} creates a special atmosphere of mutual growth and understanding.`,
-        attraction: lang
-          ? 'Вас притягивает друг к другу естественная гармония характеров.'
-          : 'You are attracted to each other by the natural harmony of characters.',
-        difficulties: lang
-          ? 'Иногда ваши разные темпы жизни могут создавать напряжение.'
-          : 'Sometimes your different life paces can create tension.',
-        recommendations: lang
-          ? ['Проговаривайте свои чувства', 'Давайте друг другу пространство', 'Находите общие цели']
-          : ['Express your feelings', 'Give each other space', 'Find common goals'],
-        potential: lang
-          ? 'Эта связь может стать источником глубокого личностного роста.'
-          : 'This connection can become a source of deep personal growth.'
-      },
-      summary: lang
-        ? `Глубокий анализ совместимости между ${profile?.name} и ${partnerName}.`
-        : `Deep compatibility analysis between ${profile?.name} and ${partnerName}.`
-    };
-
-    return res.status(200).json(fallbackResult);
+    return res.status(500).json({
+      error: 'Internal server error',
+      message: error.message || 'Failed to calculate full synastry'
+    });
   }
 }

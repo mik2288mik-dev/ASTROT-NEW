@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { UserProfile, NatalChartData, UserContext, ViewState } from './types';
-import { getProfile, saveProfile, getLumiBalance, processDailyLogin } from './services/storageService';
+import { getProfile, saveProfile, getLumiBalance, processDailyLogin, getChartData } from './services/storageService';
 import { getOrCalculateChart } from './services/chartService';
 import { generateAllContent } from './services/contentGenerationService';
 import { Onboarding } from './views/Onboarding';
@@ -30,6 +30,15 @@ if (!OWNER_ID) {
     console.warn('[App] OWNER_ID not configured. Admin features will not be available.');
 }
 
+type SynastryPrefill = {
+    source: 'saved-chart' | 'manual';
+    partnerChartId?: number;
+    partnerName?: string;
+    partnerDate?: string;
+    partnerTime?: string;
+    partnerPlace?: string;
+} | null;
+
 const App: React.FC = () => {
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [chartData, setChartData] = useState<NatalChartData | null>(null);
@@ -39,6 +48,8 @@ const App: React.FC = () => {
     const [view, setView] = useState<ViewState>('onboarding');
     const [showPremiumPreview, setShowPremiumPreview] = useState(false);
     const [ambientContext, setAmbientContext] = useState<UserContext | null>(null);
+    const [synastryPrefill, setSynastryPrefill] = useState<SynastryPrefill>(null);
+    const [chartsReturnView, setChartsReturnView] = useState<ViewState>('settings');
     
     // Ref для предотвращения двойной загрузки
     const dataLoadedRef = useRef(false);
@@ -157,7 +168,7 @@ const App: React.FC = () => {
                             if (retryChart?.sun && retryChart?.moon) {
                                 setChartData(retryChart);
                             }
-                        } catch (_) {}
+                        } catch {}
                     }, 2000);
                 }
             } catch (error) {
@@ -382,13 +393,37 @@ const App: React.FC = () => {
 
     const handleBack = useCallback(() => {
         // If in Admin or Charts, return to Settings
-        if (view === 'admin' || view === 'charts') {
+        if (view === 'admin') {
             setView('settings');
+            return;
+        }
+        if (view === 'charts') {
+            setView(chartsReturnView);
             return;
         }
         // Otherwise return to Hub
         setView('dashboard');
-    }, [view]);
+    }, [chartsReturnView, view]);
+
+    const refreshPrimaryChartState = useCallback(async () => {
+        try {
+            const freshChart = await getChartData();
+            setChartData(freshChart);
+            setActiveChartId(undefined);
+        } catch (error) {
+            console.error('[App] Failed to refresh primary chart state:', error);
+        }
+    }, []);
+
+    const openCharts = useCallback((returnView: ViewState) => {
+        setChartsReturnView(returnView);
+        setView('charts');
+    }, []);
+
+    const openSynastryWithPrefill = useCallback((prefill: SynastryPrefill) => {
+        setSynastryPrefill(prefill);
+        setView('synastry');
+    }, []);
 
     // Свайп назад от левого края (как в iOS)
     const canSwipeBack = view !== 'dashboard' && view !== 'onboarding' && view !== 'hook' && view !== 'paywall';
@@ -450,7 +485,14 @@ const App: React.FC = () => {
                 ) : view === 'oracle' ? (
                     <OracleChat profile={profile} />
                 ) : view === 'synastry' ? (
-                    <Synastry profile={profile} chartData={chartData} requestPremium={requestPremium} />
+                    <Synastry
+                        profile={profile}
+                        chartData={chartData}
+                        requestPremium={requestPremium}
+                        initialPrefill={synastryPrefill}
+                        onOpenCharts={() => openCharts('synastry')}
+                        onUpdateProfile={handleProfileUpdate}
+                    />
                 ) : view === 'horoscope' ? (
                     <div className="h-full overflow-y-auto scrollbar-hide">
                         <Horoscope 
@@ -477,15 +519,26 @@ const App: React.FC = () => {
                             onUpdate={handleProfileUpdate} 
                             onShowPremiumPreview={() => setShowPremiumPreview(true)}
                             onOpenAdmin={() => setView('admin')}
-                            onOpenCharts={() => setView('charts')}
+                            onOpenCharts={() => openCharts('settings')}
                         />
                     </div>
                 ) : view === 'charts' ? (
                     <div className="h-full overflow-y-auto scrollbar-hide">
                         <MyCharts 
                             profile={profile} 
-                            onBack={() => setView('settings')}
+                            onBack={() => setView(chartsReturnView)}
                             onProfileUpdate={handleProfileUpdate}
+                            onPrimaryChartUpdated={refreshPrimaryChartState}
+                            onUseInSynastry={(chart) => {
+                                openSynastryWithPrefill({
+                                    source: 'saved-chart',
+                                    partnerChartId: chart.id,
+                                    partnerName: chart.name,
+                                    partnerDate: chart.birth_date,
+                                    partnerTime: chart.birth_time,
+                                    partnerPlace: chart.birth_place,
+                                });
+                            }}
                             onChartSelect={(chartData, chartId) => {
                                 setChartData(chartData);
                                 setActiveChartId(chartId);
@@ -499,7 +552,16 @@ const App: React.FC = () => {
                         <Dashboard 
                             profile={profile} 
                             chartData={chartData} 
-                            onNavigate={navigateTo} 
+                            onNavigate={(newView) => {
+                                if (newView === 'charts') {
+                                    openCharts('dashboard');
+                                    return;
+                                }
+                                if (newView === 'synastry') {
+                                    setSynastryPrefill(null);
+                                }
+                                navigateTo(newView);
+                            }} 
                             onOpenSettings={() => setView('settings')}
                             onContextUpdate={setAmbientContext}
                         />

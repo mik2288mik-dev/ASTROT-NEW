@@ -5,6 +5,7 @@ import { getText } from '../constants';
 import { SolarSystem } from '../components/SolarSystem';
 import { Loading } from '../components/ui/Loading';
 import { getTodayWeather } from '../services/weatherService';
+import { getCharts } from '../services/storageService';
 import { motion } from 'framer-motion';
 import { CosmicPassport } from '../components/Dashboard/CosmicPassport';
 import { WeatherWidget } from '../components/Dashboard/WeatherWidget';
@@ -24,6 +25,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
     const [context, setContext] = useState<UserContext | null>(null);
     const [tgUser, setTgUser] = useState<any>(null);
     const [dailyHoroscope, setDailyHoroscope] = useState<any>(null);
+    const [chartsInfo, setChartsInfo] = useState<{ used: number; total: number } | null>(null);
 
     // Мемуизируем язык для оптимизации
     const language = useMemo(() => profile.language, [profile.language]);
@@ -49,6 +51,23 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
             setTgUser(tg.initDataUnsafe.user);
         }
     }, []);
+
+    useEffect(() => {
+        if (!profile.id) return;
+        getCharts(profile.id)
+            .then((res) => {
+                setChartsInfo({
+                    used: res.charts?.length ?? 0,
+                    total: res.chartSlots ?? profile.chartSlots ?? 1,
+                });
+            })
+            .catch(() => {
+                setChartsInfo({
+                    used: 0,
+                    total: profile.chartSlots ?? 1,
+                });
+            });
+    }, [profile.chartSlots, profile.id]);
 
     // Загрузка погоды через новый API (город хранится в БД user_settings)
     useEffect(() => {
@@ -203,6 +222,27 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
             </button>
 
             {/* My Charts shortcut */}
+            <div className="w-full bg-astro-card rounded-xl p-4 border border-astro-border space-y-3">
+                <div className="flex items-start justify-between gap-4">
+                    <div>
+                        <p className="text-[10px] uppercase tracking-widest text-astro-subtext mb-1">
+                            {getText(profile.language, 'dashboard.charts_overview_title')}
+                        </p>
+                        <h3 className="font-serif text-base text-astro-text">
+                            {chartsInfo ? `${chartsInfo.used} / ${chartsInfo.total}` : `0 / ${profile.chartSlots ?? 1}`}
+                        </h3>
+                    </div>
+                    <button
+                        onClick={handleNavigateCharts}
+                        className="text-[10px] uppercase tracking-wider text-astro-highlight hover:underline"
+                    >
+                        {getText(profile.language, 'dashboard.charts_overview_cta')}
+                    </button>
+                </div>
+                <p className="text-xs text-astro-subtext">
+                    {getText(profile.language, 'dashboard.charts_overview_hint')}
+                </p>
+            </div>
             <button 
                 onClick={handleNavigateCharts}
                 className="w-full bg-astro-card rounded-xl p-4 border border-astro-border hover:border-astro-highlight/30 transition-colors text-left flex items-center gap-3"
@@ -265,6 +305,9 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
                     <span className="text-xl text-pink-400/90">♥</span>
                     <h3 className="font-serif text-sm text-astro-text mt-2 mb-0.5">{getText(profile.language, 'dashboard.menu_synastry')}</h3>
                     <p className="text-astro-subtext text-[10px]">{getText(profile.language, 'dashboard.synastry_subtitle')}</p>
+                    <p className="text-astro-subtext text-[10px] mt-1">
+                        {profile.language === 'ru' ? 'Используй сохранённые карты без повторного ввода.' : 'Reuse saved charts without entering the data again.'}
+                    </p>
                     {!profile.isPremium && (
                         <span className="text-[9px] text-astro-highlight uppercase tracking-wider mt-1 block">{getText(profile.language, 'dashboard.synastry_free')}</span>
                     )}

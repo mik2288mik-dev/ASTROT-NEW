@@ -101,7 +101,10 @@ export const TRANSLATIONS = {
       set_city_hint: "Укажите город в настройках для отображения погоды",
       tap_settings: "Нажмите, чтобы открыть настройки →",
       my_charts: "Мои карты",
-      my_charts_subtitle: "Управление картами и слотами"
+      my_charts_subtitle: "Управление картами и слотами",
+      charts_overview_title: "Сохранённые карты",
+      charts_overview_hint: "Сохранённые карты можно быстро использовать в синастрии и других сценариях Lumia.",
+      charts_overview_cta: "Открыть карты"
     },
     chart: {
       title: "Твоя Натальная Карта",
@@ -140,7 +143,18 @@ export const TRANSLATIONS = {
       limit_reached: "Достигнут лимит карт. Купите слот за Lumi.",
       balance: "Баланс",
       purchasing: "Покупка...",
-      loading: "Загрузка карт..."
+      loading: "Загрузка карт...",
+      value_title: "Карты в Lumia — это не просто список.",
+      value_body: "Сохранённые карты можно быстро открывать, сравнивать в синастрии и использовать без повторного ввода данных.",
+      primary_role: "Ваша базовая карта для Lumia",
+      saved_role: "Сохранённая карта для совместимости и сравнений",
+      use_in_synastry: "В синастрию",
+      slots_full_title: "Слоты заполнены",
+      slots_full_body: "Ещё один слот нужен, чтобы сохранить карту партнёра и быстро возвращаться к синастрии.",
+      slots_need_more_lumi: "Не хватает Lumi для нового слота.",
+      empty_title: "Начните со своей карты",
+      empty_body: "Когда здесь появятся карты партнёра, их можно будет использовать в синастрии без повторного ввода.",
+      single_chart_body: "Ещё одна сохранённая карта откроет быстрое сравнение в синастрии."
     },
     synastry: {
       title: "Синастрия",
@@ -157,7 +171,22 @@ export const TRANSLATIONS = {
       input_title: "Данные Партнера",
       brief_btn: "Краткий обзор (Бесплатно)",
       full_btn: "Глубокий разбор (Премиум)",
-      loading: "Считываем звездную совместимость..."
+      loading: "Считываем звездную совместимость...",
+      primary_title: "Ваша сторона",
+      partner_title: "Партнёр",
+      primary_hint: "В синастрии всегда используется текущая primary карта.",
+      selected_saved: "Сохранённая карта",
+      selected_manual: "Ручной ввод",
+      no_saved_title: "Нет карт партнёра",
+      no_saved_body: "Сохраните ещё одну карту в My Charts, чтобы запускать синастрию без повторного ввода данных.",
+      open_charts: "Открыть My Charts",
+      buy_slot: "Купить слот",
+      change_partner: "Сменить партнёра",
+      compare_again: "Сравнить другую карту",
+      result_saved_badge: "Из сохранённой карты",
+      result_manual_badge: "Ручной ввод",
+      saved_first_hint: "Лучше выбирать сохранённую карту: так пару можно открывать повторно без нового ввода.",
+      manual_hint: "Ручной ввод подойдёт для разовой проверки, если карта ещё не сохранена."
     },
     settings: {
       title: "Настройки",
@@ -279,7 +308,10 @@ export const TRANSLATIONS = {
       set_city_hint: "Set city in settings to see weather",
       tap_settings: "Tap to open settings →",
       my_charts: "My Charts",
-      my_charts_subtitle: "Manage charts & slots"
+      my_charts_subtitle: "Manage charts & slots",
+      charts_overview_title: "Saved charts",
+      charts_overview_hint: "Saved charts can be reused in Synastry and future Lumia flows.",
+      charts_overview_cta: "Open charts"
     },
     chart: {
       title: "Natal Chart",
@@ -318,7 +350,18 @@ export const TRANSLATIONS = {
       limit_reached: "Chart limit reached. Buy a slot with Lumi.",
       balance: "Balance",
       purchasing: "Purchasing...",
-      loading: "Loading charts..."
+      loading: "Loading charts...",
+      value_title: "Saved charts are reusable assets in Lumia.",
+      value_body: "Open them anytime, reuse them in Synastry, and stop re-entering partner birth data.",
+      primary_role: "Your base chart in Lumia",
+      saved_role: "Reusable chart for compatibility and comparisons",
+      use_in_synastry: "Use in Synastry",
+      slots_full_title: "Your slots are full",
+      slots_full_body: "One more slot lets you save another partner chart and return to Synastry faster.",
+      slots_need_more_lumi: "You need more Lumi to unlock another slot.",
+      empty_title: "Start with your chart",
+      empty_body: "When partner charts are saved here, they can be reused in Synastry without retyping the data.",
+      single_chart_body: "One more saved chart unlocks faster Synastry comparisons."
     },
     synastry: {
       title: "Synastry",
@@ -335,7 +378,22 @@ export const TRANSLATIONS = {
       input_title: "Partner Details",
       brief_btn: "Brief Overview (Free)",
       full_btn: "Deep Analysis (Premium)",
-      loading: "Reading star compatibility..."
+      loading: "Reading star compatibility...",
+      primary_title: "You",
+      partner_title: "Partner",
+      primary_hint: "Synastry always uses your current primary chart on your side.",
+      selected_saved: "Saved chart",
+      selected_manual: "Manual input",
+      no_saved_title: "No partner charts saved yet",
+      no_saved_body: "Save another chart in My Charts to compare again without re-entering partner details.",
+      open_charts: "Open My Charts",
+      buy_slot: "Buy slot",
+      change_partner: "Change partner",
+      compare_again: "Compare another chart",
+      result_saved_badge: "From saved chart",
+      result_manual_badge: "Manual input",
+      saved_first_hint: "Saved charts are the fastest way to reopen Synastry later.",
+      manual_hint: "Manual input is best for one-off comparisons."
     },
     settings: {
       title: "Settings",

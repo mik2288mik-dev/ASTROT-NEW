@@ -19,6 +19,8 @@ interface MyChartsProps {
   onBack: () => void;
   onChartSelect?: (chartData: any, chartId?: number) => void;
   onProfileUpdate?: (profile: UserProfile) => void;
+  onUseInSynastry?: (chart: ChartListItem) => void;
+  onPrimaryChartUpdated?: () => Promise<void> | void;
 }
 
 const T = (lang: string, ru: string, en: string) => (lang === 'ru' ? ru : en);
@@ -28,7 +30,10 @@ export const MyCharts: React.FC<MyChartsProps> = ({
   onBack,
   onChartSelect,
   onProfileUpdate,
+  onUseInSynastry,
+  onPrimaryChartUpdated,
 }) => {
+  void onBack;
   const [data, setData] = useState<ChartsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -116,6 +121,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
     try {
       await setPrimaryChart(chartId, profile.id);
       await loadCharts();
+      await onPrimaryChartUpdated?.();
     } catch (err: any) {
       setAddError(err?.message || T(lang, 'Ошибка', 'Error'));
     } finally {
@@ -125,17 +131,16 @@ export const MyCharts: React.FC<MyChartsProps> = ({
 
   const handleDelete = async (chart: ChartListItem) => {
     if (!profile.id) return;
-    const msg = T(
-      lang,
-      `Удалить карту "${chart.name}"?`,
-      `Delete chart "${chart.name}"?`
-    );
+    const msg = T(lang, `Удалить карту "${chart.name}"?`, `Delete chart "${chart.name}"?`);
     if (!confirm(msg)) return;
     setActionLoading(`delete-${chart.id}`);
     setAddError(null);
     try {
       await deleteChart(chart.id, profile.id);
       await loadCharts();
+      if (chart.is_primary) {
+        await onPrimaryChartUpdated?.();
+      }
     } catch (err: any) {
       setAddError(err?.message || T(lang, 'Ошибка удаления', 'Delete failed'));
     } finally {
@@ -155,6 +160,8 @@ export const MyCharts: React.FC<MyChartsProps> = ({
   const chartSlots = data?.chartSlots ?? 1;
   const lumiBalance = profile.lumiBalance ?? 0;
   const canBuySlot = !canAddMore && lumiBalance >= slotCost;
+  const partnerCharts = charts.filter((chart) => !chart.is_primary);
+  const isSingleChartState = charts.length === 1 && chartSlots > 1;
 
   return (
     <div className="p-4 space-y-6 screen-pb">
@@ -162,19 +169,55 @@ export const MyCharts: React.FC<MyChartsProps> = ({
         {getText(lang, 'charts.title')}
       </h2>
 
-      <div className="bg-astro-card border border-astro-border rounded-xl p-4 flex items-center justify-between">
-        <div>
-          <p className="text-[10px] uppercase tracking-widest text-astro-subtext mb-0.5">
-            {getText(lang, 'charts.slots')}
-          </p>
-          <p className="text-lg font-semibold text-astro-text">
-            {charts.length} / {chartSlots}
+      <div className="bg-astro-card border border-astro-border rounded-xl p-4 space-y-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-[10px] uppercase tracking-widest text-astro-subtext mb-1">
+              {getText(lang, 'charts.slots')}
+            </p>
+            <p className="text-2xl font-semibold text-astro-text">
+              {charts.length} / {chartSlots}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-[10px] uppercase tracking-widest text-astro-subtext mb-1">
+              {getText(lang, 'charts.balance')}
+            </p>
+            <p className="text-lg font-semibold text-astro-text">{lumiBalance} Lumi</p>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-astro-border/70 bg-astro-bg/40 p-4">
+          <p className="text-sm font-medium text-astro-text">{getText(lang, 'charts.value_title')}</p>
+          <p className="mt-2 text-sm leading-relaxed text-astro-subtext">
+            {getText(lang, 'charts.value_body')}
           </p>
         </div>
+
         {!canAddMore && (
-          <span className="text-[10px] text-astro-highlight uppercase tracking-wider">
-            {lang === 'ru' ? 'Слоты заняты' : 'Slots full'}
-          </span>
+          <div className="rounded-xl border border-astro-highlight/30 bg-astro-highlight/10 p-4 space-y-2">
+            <p className="text-sm font-medium text-astro-text">{getText(lang, 'charts.slots_full_title')}</p>
+            <p className="text-sm text-astro-subtext">{getText(lang, 'charts.slots_full_body')}</p>
+            {canBuySlot ? (
+              <button
+                onClick={handleBuySlot}
+                disabled={actionLoading === 'buy-slot'}
+                className="inline-flex items-center justify-center rounded-lg bg-astro-highlight px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white disabled:opacity-50"
+              >
+                {actionLoading === 'buy-slot'
+                  ? getText(lang, 'charts.purchasing')
+                  : `${getText(lang, 'charts.buy_slot')} ${slotCost} ${getText(lang, 'charts.buy_slot_lumi')}`}
+              </button>
+            ) : (
+              <p className="text-xs text-astro-subtext">
+                {getText(lang, 'charts.slots_need_more_lumi')} {Math.max(slotCost - lumiBalance, 0)} Lumi.
+              </p>
+            )}
+          </div>
+        )}
+
+        {isSingleChartState && (
+          <p className="text-sm text-astro-subtext">{getText(lang, 'charts.single_chart_body')}</p>
         )}
       </div>
 
@@ -185,8 +228,9 @@ export const MyCharts: React.FC<MyChartsProps> = ({
       )}
 
       {charts.length === 0 ? (
-        <div className="bg-astro-card border border-astro-border rounded-xl p-6 text-center text-astro-subtext">
-          {getText(lang, 'charts.no_charts')}
+        <div className="bg-astro-card border border-astro-border rounded-xl p-6 text-center">
+          <p className="text-base font-medium text-astro-text">{getText(lang, 'charts.empty_title')}</p>
+          <p className="mt-2 text-sm text-astro-subtext">{getText(lang, 'charts.empty_body')}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -205,17 +249,20 @@ export const MyCharts: React.FC<MyChartsProps> = ({
                   isPrimary ? 'border-astro-highlight' : 'border-astro-border'
                 }`}
               >
-                <div className="flex items-start justify-between gap-2">
+                <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-serif text-astro-text">{chart.name}</span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-serif text-astro-text break-words">{chart.name}</span>
                       {isPrimary && (
                         <span className="text-[9px] uppercase tracking-wider text-astro-highlight bg-astro-highlight/20 px-2 py-0.5 rounded">
                           {T(lang, 'Основная', 'Primary')}
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-astro-subtext mt-1">
+                    <p className="mt-1 text-xs text-astro-subtext">
+                      {isPrimary ? getText(lang, 'charts.primary_role') : getText(lang, 'charts.saved_role')}
+                    </p>
+                    <p className="text-xs text-astro-subtext mt-2 break-words">
                       {formattedBirthDate} • {chart.birth_place}
                     </p>
                     {sunSign && (
@@ -224,7 +271,24 @@ export const MyCharts: React.FC<MyChartsProps> = ({
                       </p>
                     )}
                   </div>
-                  <div className="flex flex-col gap-1">
+
+                  <div className="flex flex-col items-end gap-2 text-right">
+                    {onChartSelect && (
+                      <button
+                        onClick={() => handleSelectChart(chart)}
+                        className="text-[10px] uppercase tracking-wider text-astro-highlight hover:underline"
+                      >
+                        {T(lang, 'Открыть', 'Open')}
+                      </button>
+                    )}
+                    {!isPrimary && onUseInSynastry && (
+                      <button
+                        onClick={() => onUseInSynastry(chart)}
+                        className="text-[10px] uppercase tracking-wider text-astro-highlight hover:underline"
+                      >
+                        {getText(lang, 'charts.use_in_synastry')}
+                      </button>
+                    )}
                     {!isPrimary && (
                       <button
                         onClick={() => handleSetPrimary(chart.id)}
@@ -241,14 +305,6 @@ export const MyCharts: React.FC<MyChartsProps> = ({
                     >
                       {T(lang, 'Удалить', 'Delete')}
                     </button>
-                    {onChartSelect && (
-                      <button
-                        onClick={() => handleSelectChart(chart)}
-                        className="text-[10px] uppercase tracking-wider text-astro-highlight hover:underline"
-                      >
-                        {T(lang, 'Открыть', 'Open')}
-                      </button>
-                    )}
                   </div>
                 </div>
               </div>
@@ -314,52 +370,40 @@ export const MyCharts: React.FC<MyChartsProps> = ({
               disabled={actionLoading === 'add'}
               className="flex-1 bg-astro-highlight text-white font-bold py-3 rounded-lg text-xs uppercase tracking-widest disabled:opacity-50"
             >
-              {actionLoading === 'add'
-                ? T(lang, 'Создание...', 'Creating...')
-                : T(lang, 'Создать', 'Create')}
+              {actionLoading === 'add' ? T(lang, 'Создание...', 'Creating...') : T(lang, 'Создать', 'Create')}
             </button>
             <button
-              onClick={() => {
-                setShowAddForm(false);
-                setAddError(null);
-              }}
-              disabled={actionLoading === 'add'}
-              className="bg-transparent border border-astro-border text-astro-text py-3 px-4 rounded-lg text-xs uppercase tracking-widest"
+              onClick={() => setShowAddForm(false)}
+              className="flex-1 border border-astro-border text-astro-text py-3 rounded-lg text-xs uppercase tracking-widest"
             >
               {T(lang, 'Отмена', 'Cancel')}
             </button>
           </div>
         </div>
+      ) : canAddMore ? (
+        <button
+          onClick={() => setShowAddForm(true)}
+          className="w-full bg-astro-card border border-dashed border-astro-border rounded-xl py-4 text-sm text-astro-text hover:border-astro-highlight/40 transition-colors"
+        >
+          + {getText(lang, 'charts.add_chart')}
+        </button>
       ) : (
-        <div className="space-y-2">
-          {canAddMore ? (
-            <button
-              onClick={() => setShowAddForm(true)}
-              className="w-full bg-astro-card border border-astro-border rounded-xl p-4 text-astro-text font-serif hover:border-astro-highlight/50 transition-colors"
-            >
-              + {getText(lang, 'charts.add_chart')}
-            </button>
-          ) : canBuySlot ? (
-            <button
-              onClick={handleBuySlot}
-              disabled={actionLoading === 'buy-slot'}
-              className="w-full bg-astro-highlight/20 border-2 border-astro-highlight rounded-xl p-4 text-astro-text font-serif hover:bg-astro-highlight/30 transition-colors disabled:opacity-50 font-semibold"
-            >
-              {actionLoading === 'buy-slot'
-                ? getText(lang, 'charts.purchasing')
-                : `${getText(lang, 'charts.buy_slot')} ${slotCost} ${getText(lang, 'charts.buy_slot_lumi')}`}
-            </button>
-          ) : (
-            <div className="bg-astro-card border border-astro-highlight/50 rounded-xl p-4 text-center">
-              <p className="text-astro-subtext text-sm mb-2">
-                {getText(lang, 'charts.limit_reached')}
-              </p>
-              <p className="text-xs text-astro-highlight font-medium">
-                {getText(lang, 'charts.balance')}: {lumiBalance} Lumi
-              </p>
-            </div>
-          )}
+        <div className="bg-astro-card border border-astro-border rounded-xl p-4 text-center">
+          <p className="text-sm text-astro-subtext">{getText(lang, 'charts.limit_reached')}</p>
+          <p className="mt-2 text-base font-medium text-astro-highlight">
+            {getText(lang, 'charts.balance')}: {lumiBalance} Lumi
+          </p>
         </div>
+      )}
+
+      {partnerCharts.length > 0 && (
+        <p className="text-xs text-astro-subtext text-center">
+          {T(
+            lang,
+            'Карты партнёров уже готовы к повторному использованию в синастрии.',
+            'Your saved partner charts are ready to reuse in Synastry.'
+          )}
+        </p>
       )}
     </div>
   );

@@ -240,7 +240,8 @@ export const calculateBriefSynastry = async (
   partnerDate: string,
   partnerTime?: string,
   partnerPlace?: string,
-  relationshipType?: string
+  relationshipType?: string,
+  partnerChartId?: number
 ): Promise<SynastryResult> => {
   const url = `${API_BASE_URL}/api/astrology/synastry-brief`;
   log.info('[calculateBriefSynastry] Starting calculation', { partnerName, partnerDate });
@@ -258,7 +259,8 @@ export const calculateBriefSynastry = async (
         partnerTime,
         partnerPlace,
         language: profile.language,
-        relationshipType
+        relationshipType,
+        partnerChartId
       })
     });
 
@@ -301,7 +303,8 @@ export const calculateFullSynastry = async (
   partnerDate: string,
   partnerTime?: string,
   partnerPlace?: string,
-  relationshipType?: string
+  relationshipType?: string,
+  partnerChartId?: number
 ): Promise<SynastryResult> => {
   const url = `${API_BASE_URL}/api/astrology/synastry-full`;
   log.info('[calculateFullSynastry] Starting calculation', { partnerName, partnerDate });
@@ -319,7 +322,8 @@ export const calculateFullSynastry = async (
         partnerTime,
         partnerPlace,
         language: profile.language,
-        relationshipType
+        relationshipType,
+        partnerChartId
       })
     });
 

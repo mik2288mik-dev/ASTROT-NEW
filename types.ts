@@ -121,6 +121,8 @@ export interface UserGeneratedContent {
     [partnerId: string]: {
       partnerName: string;
       partnerDate: string;
+      partnerChartId?: number;
+      source?: 'saved-chart' | 'manual';
       briefResult?: SynastryResult;
       fullResult?: SynastryResult;
       timestamp: number;

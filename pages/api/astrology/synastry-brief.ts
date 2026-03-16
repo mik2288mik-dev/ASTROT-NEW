@@ -1,10 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
+import { createHash } from 'crypto';
 import { calculateNatalChart } from '../../../lib/swisseph-calculator';
+import { db } from '../../../lib/db';
 import { SYSTEM_PROMPT_ASTRA, createBriefSynastryPrompt, addLanguageInstruction, BriefSynastryAIResponse } from '../../../lib/prompts';
 import { validateSynastryInput, formatValidationErrors } from '../../../lib/validation';
 
-// Logging utility
 const log = {
   info: (message: string, data?: any) => {
     console.log(`[API/astrology/synastry-brief] ${message}`, data || '');
@@ -14,10 +15,14 @@ const log = {
   },
 };
 
-// Initialize OpenAI client
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+
+const buildCacheKey = (primaryChartId: number, partnerChartId: number, language: string) =>
+  createHash('sha256')
+    .update(`${primaryChartId}:${partnerChartId}:brief:${language}`)
+    .digest('hex');
 
 export default async function handler(
   req: NextApiRequest,
@@ -33,9 +38,8 @@ export default async function handler(
   }
 
   try {
-    const { profile, partnerName, partnerDate, partnerTime, partnerPlace, language, relationshipType } = req.body;
+    const { profile, partnerName, partnerDate, partnerTime, partnerPlace, language, relationshipType, partnerChartId } = req.body;
 
-    // Строгая валидация входных данных
     const validation = validateSynastryInput({
       profile,
       partnerName,
@@ -48,111 +52,79 @@ export default async function handler(
     if (!validation.isValid) {
       const userLanguage = (language || profile?.language || 'ru') === 'en' ? 'en' : 'ru';
       const errorMessage = formatValidationErrors(validation.errors, userLanguage);
-      
-      log.error('Validation failed', {
-        errors: validation.errors,
-        userLanguage
-      });
-      
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Validation failed',
         message: errorMessage,
         errors: validation.errors
       });
     }
 
-    log.info('Calculating brief synastry', {
-      userId: profile?.id,
-      partnerName,
-      partnerDate,
-      language,
-      relationshipType
-    });
+    const currentLanguage = language === 'en' ? 'en' : 'ru';
+    const lang = currentLanguage === 'ru';
 
-    const lang = language === 'ru';
+    let primaryChartRecord: any = null;
+    let partnerChartRecord: any = null;
+    let userChartData: any = null;
+    let partnerChartData: any = null;
 
-    // Получаем натальную карту пользователя
-    let userChartData;
-    try {
+    if (profile?.id) {
+      primaryChartRecord = await db.natal_charts.getPrimary(String(profile.id));
+      userChartData = primaryChartRecord?.chart_data || null;
+    }
+
+    if (partnerChartId && profile?.id) {
+      partnerChartRecord = await db.natal_charts.getById(Number(partnerChartId));
+      if (!partnerChartRecord || String(partnerChartRecord.user_id) !== String(profile.id)) {
+        return res.status(404).json({
+          error: 'Partner chart not found',
+          message: 'Saved partner chart not found'
+        });
+      }
+      partnerChartData = partnerChartRecord.chart_data || null;
+    }
+
+    if (primaryChartRecord?.id && partnerChartRecord?.id) {
+      const cacheKey = buildCacheKey(primaryChartRecord.id, partnerChartRecord.id, currentLanguage);
+      const cached = await db.synastry.get(primaryChartRecord.id, partnerChartRecord.id, 'brief', cacheKey);
+      if (cached) {
+        const parsed = typeof cached === 'string' ? JSON.parse(cached) : cached;
+        return res.status(200).json(parsed);
+      }
+    }
+
+    if (!userChartData) {
       userChartData = await calculateNatalChart(
         profile.name,
         profile.birthDate,
         profile.birthTime || '12:00',
         profile.birthPlace
       );
-    } catch (error: any) {
-      log.error('Failed to calculate user natal chart', { error: error.message });
-      // Используем fallback данные
-      userChartData = {
-        sun: { planet: 'Sun', sign: 'Leo', degree: 15, description: '' },
-        moon: { planet: 'Moon', sign: 'Cancer', degree: 10, description: '' },
-        rising: { planet: 'Ascendant', sign: 'Aries', degree: 0, description: '' },
-        mercury: null,
-        venus: null,
-        mars: null,
-        element: 'Fire',
-        rulingPlanet: 'Sun',
-        summary: ''
-      };
     }
 
-    // Вычисляем натальную карту партнёра
-    let partnerChartData;
-    try {
+    if (!partnerChartData) {
       partnerChartData = await calculateNatalChart(
         partnerName,
         partnerDate,
         partnerTime || '12:00',
         partnerPlace || profile.birthPlace
       );
-    } catch (error: any) {
-      log.error('Failed to calculate partner natal chart', { error: error.message });
-      // Используем fallback данные
-      partnerChartData = {
-        sun: { planet: 'Sun', sign: 'Aries', degree: 20, description: '' },
-        moon: { planet: 'Moon', sign: 'Pisces', degree: 5, description: '' },
-        rising: { planet: 'Ascendant', sign: 'Aries', degree: 0, description: '' },
-        mercury: null,
-        venus: null,
-        mars: null,
-        element: 'Fire',
-        rulingPlanet: 'Mars',
-        summary: ''
-      };
     }
 
-    log.info('Both natal charts calculated', {
-      userSun: userChartData.sun?.sign,
-      partnerSun: partnerChartData.sun?.sign
-    });
-
-    // Проверяем наличие API ключа
     if (!process.env.OPENAI_API_KEY) {
-      log.error('OpenAI API key not configured, using fallback');
       const fallbackResult = {
         briefOverview: {
-          introduction: lang 
-            ? `${profile?.name} и ${partnerName} создают интересную динамику в отношениях. Каждый привносит свои уникальные качества.`
+          introduction: lang
+            ? `${profile?.name} и ${partnerName} создают интересную динамику. Каждый приносит свои уникальные качества.`
             : `${profile?.name} and ${partnerName} create interesting dynamics. Each brings unique qualities.`,
           harmony: lang
             ? 'В этой связи есть естественное понимание друг друга. Вы оба цените искренность и открытость.'
             : 'There is natural understanding in this connection. You both value honesty and openness.',
           challenges: lang
             ? 'Иногда может возникать недопонимание из-за разных темпераментов. Важно давать друг другу пространство.'
-            : 'Sometimes misunderstandings may arise due to different temperaments. It\'s important to give each other space.',
+            : 'Sometimes misunderstandings may arise due to different temperaments. It is important to give each other space.',
           tips: lang
-            ? [
-                'Слушайте друг друга внимательно',
-                'Цените различия как возможность для роста',
-                'Находите компромиссы в спорных вопросах',
-                'Поддерживайте открытую коммуникацию'
-              ]
-            : [
-                'Listen to each other attentively',
-                'Value differences as opportunities for growth',
-                'Find compromises in disputed matters',
-                'Maintain open communication'
-              ]
+            ? ['Слушайте друг друга внимательно', 'Цените различия как возможность для роста', 'Находите компромиссы', 'Поддерживайте открытую коммуникацию']
+            : ['Listen to each other attentively', 'Value differences as opportunities for growth', 'Find compromises', 'Keep communication open']
         },
         summary: lang
           ? `Краткий обзор совместимости между ${profile?.name} и ${partnerName}.`
@@ -161,85 +133,44 @@ export default async function handler(
       return res.status(200).json(fallbackResult);
     }
 
-    // Создаём промпт для AI
     const userPrompt = createBriefSynastryPrompt(
-      userChartData, 
-      profile, 
-      partnerChartData, 
+      userChartData,
+      profile,
+      partnerChartData,
       partnerName,
       relationshipType || 'романтика'
     );
-    const promptWithLang = addLanguageInstruction(userPrompt, lang ? 'ru' : 'en');
+    const promptWithLang = addLanguageInstruction(userPrompt, currentLanguage);
 
-    log.info('Sending request to OpenAI', {
-      model: 'gpt-4o',
-      promptLength: promptWithLang.length
-    });
-
-    // Отправляем запрос в OpenAI
-    const startTime = Date.now();
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages: [
         { role: 'system', content: SYSTEM_PROMPT_ASTRA },
         { role: 'user', content: promptWithLang }
       ],
-      response_format: { type: "json_object" },
+      response_format: { type: 'json_object' },
       temperature: 0.7,
-      max_tokens: 1000,
+      max_tokens: 1500,
     });
 
-    const duration = Date.now() - startTime;
-    const responseText = completion.choices[0]?.message?.content || '{}';
+    const content = completion.choices[0]?.message?.content || '{}';
+    const result = JSON.parse(content) as BriefSynastryAIResponse;
 
-    log.info('OpenAI response received', {
-      duration: `${duration}ms`,
-      tokensUsed: completion.usage?.total_tokens
-    });
-
-    // Парсим JSON ответ
-    let briefSynastry: BriefSynastryAIResponse;
-    try {
-      briefSynastry = JSON.parse(responseText);
-      
-      log.info('Brief synastry calculated successfully');
-
-      const result = {
-        briefOverview: briefSynastry,
-        summary: briefSynastry.introduction
-      };
-
-      return res.status(200).json(result);
-    } catch (parseError: any) {
-      log.error('Failed to parse JSON response', {
-        error: parseError.message
-      });
-      
-      const userLanguage = (language || profile?.language || 'ru') === 'en' ? 'en' : 'ru';
-      const errorMessage = userLanguage === 'ru'
-        ? 'Не удалось обработать ответ от AI. Пожалуйста, попробуйте позже.'
-        : 'Failed to process AI response. Please try again later.';
-      
-      return res.status(500).json({ 
-        error: 'AI response parsing failed',
-        message: errorMessage
-      });
+    if (primaryChartRecord?.id && partnerChartRecord?.id) {
+      const cacheKey = buildCacheKey(primaryChartRecord.id, partnerChartRecord.id, currentLanguage);
+      await db.synastry.set(primaryChartRecord.id, partnerChartRecord.id, 'brief', cacheKey, result);
     }
+
+    return res.status(200).json(result);
   } catch (error: any) {
     log.error('Error calculating brief synastry', {
-      error: error.message,
+      message: error.message,
       stack: error.stack
     });
 
-    const userLanguage = (req.body.language || req.body.profile?.language || 'ru') === 'en' ? 'en' : 'ru';
-    const errorMessage = userLanguage === 'ru'
-      ? 'Не удалось рассчитать совместимость. Пожалуйста, проверьте данные и попробуйте снова.'
-      : 'Failed to calculate compatibility. Please check your data and try again.';
-    
-    return res.status(500).json({ 
-      error: 'Synastry calculation failed',
-      message: errorMessage,
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    return res.status(500).json({
+      error: 'Internal server error',
+      message: error.message || 'Failed to calculate synastry'
     });
   }
 }
