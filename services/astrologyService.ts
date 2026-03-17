@@ -1,4 +1,4 @@
-import { UserProfile, NatalChartData, DailyHoroscope, SynastryResult, UserEvolution } from "../types";
+import { UserProfile, NatalChartData, DailyHoroscope, SynastryResult, UserEvolution, OracleChatResponse, OracleHistoryEntry } from "../types";
 import { SYSTEM_INSTRUCTION_ASTRA } from "../constants";
 import { getElementForSign } from "../lib/zodiac-utils";
 
@@ -605,7 +605,7 @@ export const getDeepDiveAnalysis = async (
   }
 };
 
-export const chatWithAstra = async (history: { role: 'user' | 'model', text: string }[], message: string, profile: UserProfile): Promise<string> => {
+const legacyChatWithAstra = async (history: { role: 'user' | 'model', text: string }[], message: string, profile: UserProfile): Promise<string> => {
   const url = `${API_BASE_URL}/api/astrology/chat`;
   log.info('[chatWithAstra] Starting chat request', {
     messageLength: message.length,
@@ -658,5 +658,128 @@ export const chatWithAstra = async (history: { role: 'user' | 'model', text: str
     return lang
       ? 'Звезды временно скрыты облаками. Попробуйте позже.'
       : 'The stars are temporarily clouded. Please try again later.';
+  }
+};
+
+void legacyChatWithAstra;
+
+export const getOracleHistory = async (profile: UserProfile, limit = 12): Promise<OracleHistoryEntry[]> => {
+  const url = `${API_BASE_URL}/api/astrology/chat?userId=${encodeURIComponent(profile.id || '')}&limit=${limit}`;
+  log.info('[getOracleHistory] Starting history request', {
+    userId: profile.id,
+    limit,
+  });
+
+  try {
+    const startTime = Date.now();
+    const response = await fetch(url);
+    const duration = Date.now() - startTime;
+
+    log.info(`[getOracleHistory] Response received in ${duration}ms`, {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok
+    });
+
+    if (!response.ok) {
+      let errorMessage = `Failed to load Oracle history: ${response.status} ${response.statusText}`;
+      let errorCode: string | undefined;
+      let errorDetails: any = null;
+
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorData.error || errorMessage;
+        errorCode = errorData.code;
+        errorDetails = errorData.details;
+      } catch {
+        const errorText = await response.text().catch(() => 'Unable to read error response');
+        errorMessage = errorText || errorMessage;
+      }
+
+      const apiError = new Error(errorMessage) as ApiErrorWithCode;
+      apiError.status = response.status;
+      apiError.code = errorCode;
+      apiError.details = errorDetails;
+      throw apiError;
+    }
+
+    const data = await response.json();
+    return data.items || [];
+  } catch (error: any) {
+    log.error('[getOracleHistory] Error occurred', {
+      error: error.message,
+      stack: error.stack
+    });
+    throw error;
+  }
+};
+
+export const chatWithAstra = async (
+  history: { role: 'user' | 'model', text: string }[],
+  message: string,
+  profile: UserProfile
+): Promise<OracleChatResponse> => {
+  const url = `${API_BASE_URL}/api/astrology/chat`;
+  log.info('[chatWithAstra] Starting chat request', {
+    messageLength: message.length,
+    historyLength: history.length,
+    userId: profile.id
+  });
+
+  try {
+    log.info(`[chatWithAstra] Sending POST request to: ${url}`);
+    const startTime = Date.now();
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: profile.id,
+        history,
+        message,
+        systemInstruction: SYSTEM_INSTRUCTION_ASTRA
+      })
+    });
+
+    const duration = Date.now() - startTime;
+    log.info(`[chatWithAstra] Response received in ${duration}ms`, {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok
+    });
+
+    if (!response.ok) {
+      let errorMessage = `Failed to chat with Astra: ${response.status} ${response.statusText}`;
+      let errorCode: string | undefined;
+      let errorDetails: any = null;
+
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorData.error || errorMessage;
+        errorCode = errorData.code;
+        errorDetails = errorData.details;
+      } catch {
+        const errorText = await response.text().catch(() => 'Unable to read error response');
+        errorMessage = errorText || errorMessage;
+      }
+
+      const apiError = new Error(errorMessage) as ApiErrorWithCode;
+      apiError.status = response.status;
+      apiError.code = errorCode;
+      apiError.details = errorDetails;
+      throw apiError;
+    }
+
+    const data = await response.json() as OracleChatResponse;
+    log.info('[chatWithAstra] Successfully received response', {
+      responseLength: data.answer?.length || 0,
+      reusedRecent: !!data.reusedRecent
+    });
+    return data;
+  } catch (error: any) {
+    log.error('[chatWithAstra] Error occurred', {
+      error: error.message,
+      stack: error.stack
+    });
+    throw error;
   }
 };

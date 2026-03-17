@@ -24,6 +24,10 @@ const log = {
   }
 };
 
+function normalizeOracleQuestion(value: string): string {
+  return value.replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
 // Check if DATABASE_URL is configured
 if (!DATABASE_URL) {
   log.warn('DATABASE_URL is not set. Database operations will fail.');
@@ -1413,18 +1417,47 @@ export const db = {
       }
     },
 
-    async getByUser(userId: string) {
+    async getByUser(userId: string, limit = 20) {
       const id = toUserId(userId);
       if (!DATABASE_URL) return [];
       try {
         const dbPool = getPool();
         const result = await dbPool.query(
-          `SELECT question, answer, created_at FROM astro_questions WHERE user_id = $1 ORDER BY created_at DESC`,
-          [id]
+          `SELECT question, answer, created_at
+           FROM astro_questions
+           WHERE user_id = $1
+           ORDER BY created_at DESC
+           LIMIT $2`,
+          [id, limit]
         );
         return result.rows;
       } catch (error: any) {
         log.error('[DB] Error getting astro questions', { error: error.message, userId });
+        throw error;
+      }
+    },
+
+    async findRecentDuplicate(userId: string, question: string, windowSeconds = 20) {
+      const id = toUserId(userId);
+      if (!DATABASE_URL) return null;
+
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          `SELECT question, answer, created_at
+           FROM astro_questions
+           WHERE user_id = $1
+             AND created_at >= NOW() - ($2 * INTERVAL '1 second')
+           ORDER BY created_at DESC
+           LIMIT 10`,
+          [id, windowSeconds]
+        );
+
+        const normalizedQuestion = normalizeOracleQuestion(question);
+        const match = result.rows.find((row: any) => normalizeOracleQuestion(row.question) === normalizedQuestion);
+        return match || null;
+      } catch (error: any) {
+        log.error('[DB] Error finding duplicate astro question', { error: error.message, userId });
         throw error;
       }
     },

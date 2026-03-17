@@ -202,6 +202,18 @@ export interface ChatMessage {
   timestamp: number;
 }
 
+export interface OracleHistoryEntry {
+  question: string;
+  answer: string;
+  createdAt: string;
+}
+
+export interface OracleChatResponse {
+  answer: string;
+  createdAt: string;
+  reusedRecent?: boolean;
+}
+
 export interface LumiTransaction {
   amount: number;
   reason: string;

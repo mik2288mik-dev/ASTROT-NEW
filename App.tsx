@@ -509,7 +509,7 @@ const App: React.FC = () => {
                         onClose={() => setView('dashboard')}
                     />
                 ) : view === 'oracle' ? (
-                    <OracleChat profile={profile} />
+                    <OracleChat profile={profile} onPremiumRequired={() => setView('paywall')} />
                 ) : view === 'synastry' ? (
                     <Synastry
                         profile={profile}

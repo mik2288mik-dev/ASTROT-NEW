@@ -1,8 +1,16 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
-import { withRateLimit, RATE_LIMIT_CONFIGS } from '../../../lib/rateLimit';
+import { SYSTEM_INSTRUCTION_ASTRA } from '../../../constants';
+import { db } from '../../../lib/db';
+import { RATE_LIMIT_CONFIGS, withRateLimit } from '../../../lib/rateLimit';
 
-// Logging utility
+const MIN_QUESTION_LENGTH = 3;
+const MAX_QUESTION_LENGTH = 500;
+const MAX_HISTORY_MESSAGES = 10;
+const DEFAULT_HISTORY_LIMIT = 12;
+const MAX_HISTORY_LIMIT = 20;
+const DUPLICATE_WINDOW_SECONDS = 20;
+
 const log = {
   info: (message: string, data?: any) => {
     console.log(`[API/astrology/chat] ${message}`, data || '');
@@ -12,111 +20,252 @@ const log = {
   },
 };
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const openai = process.env.OPENAI_API_KEY
+  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  : null;
+
+type HistoryMessage = {
+  role: 'user' | 'model';
+  text: string;
+};
+
+function normalizeQuestion(value: string): string {
+  return value.replace(/\s+/g, ' ').trim();
+}
+
+function mapErrorMessage(code: string, lang: 'ru' | 'en') {
+  const messages = {
+    PREMIUM_REQUIRED: {
+      ru: 'Оракул доступен только в Lumia Premium.',
+      en: 'Oracle is available only in Lumia Premium.',
+    },
+    QUESTION_REQUIRED: {
+      ru: 'Введите вопрос для Lumia.',
+      en: 'Enter a question for Lumia.',
+    },
+    QUESTION_TOO_SHORT: {
+      ru: 'Вопрос слишком короткий. Сформулируйте его чуть подробнее.',
+      en: 'Your question is too short. Add a little more detail.',
+    },
+    QUESTION_TOO_LONG: {
+      ru: 'Вопрос слишком длинный. Сократите его и попробуйте снова.',
+      en: 'Your question is too long. Shorten it and try again.',
+    },
+    USER_NOT_FOUND: {
+      ru: 'Профиль не найден. Откройте Lumia заново.',
+      en: 'Profile not found. Reopen Lumia and try again.',
+    },
+    OPENAI_NOT_CONFIGURED: {
+      ru: 'Oracle временно недоступен. Попробуйте позже.',
+      en: 'Oracle is temporarily unavailable. Please try again later.',
+    },
+    ORACLE_UPSTREAM_ERROR: {
+      ru: 'Lumia не смогла подготовить ответ. Попробуйте ещё раз.',
+      en: 'Lumia could not prepare an answer. Please try again.',
+    },
+  } as const;
+
+  return messages[code as keyof typeof messages]?.[lang] || messages.ORACLE_UPSTREAM_ERROR[lang];
+}
+
+function buildChartContext(user: any, primaryChart: any) {
+  const chartData = primaryChart?.chart_data;
+  const lines = [
+    `Name: ${user?.name || 'Unknown'}`,
+    user?.birth_date ? `Birth date: ${user.birth_date}` : '',
+    user?.birth_time ? `Birth time: ${user.birth_time}` : '',
+    user?.birth_place ? `Birth place: ${user.birth_place}` : '',
+    chartData?.sun?.sign ? `Sun: ${chartData.sun.sign}` : '',
+    chartData?.moon?.sign ? `Moon: ${chartData.moon.sign}` : '',
+    chartData?.rising?.sign ? `Ascendant: ${chartData.rising.sign}` : '',
+    chartData?.element ? `Element: ${chartData.element}` : '',
+    chartData?.rulingPlanet ? `Ruling planet: ${chartData.rulingPlanet}` : '',
+  ].filter(Boolean);
+
+  return lines.join('\n');
+}
+
+function sanitizeHistory(history: any): HistoryMessage[] {
+  if (!Array.isArray(history)) return [];
+
+  return history
+    .filter((message) => message && (message.role === 'user' || message.role === 'model') && typeof message.text === 'string')
+    .slice(-MAX_HISTORY_MESSAGES)
+    .map((message) => ({
+      role: message.role,
+      text: message.text.trim().slice(0, 1200),
+    }))
+    .filter((message) => message.text.length > 0);
+}
 
 async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
   try {
-    const { history, message, profile, systemInstruction } = req.body;
-    const lang = profile?.language === 'ru';
+    const method = req.method;
 
-    if (!message || !profile) {
-      return res.status(400).json({ 
+    if (method !== 'GET' && method !== 'POST') {
+      return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    const userId = method === 'GET' ? String(req.query.userId || '') : String(req.body?.userId || '');
+
+    if (!userId.trim()) {
+      return res.status(400).json({
         error: 'Bad request',
-        message: 'Message and profile are required'
+        code: 'USER_NOT_FOUND',
+        message: 'userId is required',
       });
     }
 
-    log.info('Chat request received', {
-      userId: profile.id,
-      messageLength: message.length,
-      historyLength: history?.length || 0,
-      language: lang ? 'ru' : 'en'
-    });
-
-    // Проверяем наличие API ключа
-    if (!process.env.OPENAI_API_KEY) {
-      log.error('OpenAI API key not configured');
-      const fallbackResponse = lang
-        ? 'Звезды временно скрыты облаками. Попробуйте позже.'
-        : 'The stars are temporarily clouded. Please try again later.';
-      return res.status(200).json({ response: fallbackResponse });
+    const user = await db.users.get(userId);
+    if (!user) {
+      return res.status(404).json({
+        error: 'User not found',
+        code: 'USER_NOT_FOUND',
+        message: 'Profile not found',
+      });
     }
 
-    // Формируем сообщения для OpenAI
+    const lang: 'ru' | 'en' = user.language === 'en' ? 'en' : 'ru';
+
+    if (!user.is_premium) {
+      return res.status(403).json({
+        error: 'Premium required',
+        code: 'PREMIUM_REQUIRED',
+        message: mapErrorMessage('PREMIUM_REQUIRED', lang),
+      });
+    }
+
+    if (method === 'GET') {
+      const limit = Math.min(Math.max(parseInt(String(req.query.limit || DEFAULT_HISTORY_LIMIT), 10) || DEFAULT_HISTORY_LIMIT, 1), MAX_HISTORY_LIMIT);
+      const items = await db.astro_questions.getByUser(userId, limit);
+      return res.status(200).json({
+        items: items.map((item: any) => ({
+          question: item.question,
+          answer: item.answer,
+          createdAt: new Date(item.created_at).toISOString(),
+        })),
+      });
+    }
+
+    const normalizedQuestion = normalizeQuestion(String(req.body?.message || ''));
+    if (!normalizedQuestion) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        code: 'QUESTION_REQUIRED',
+        message: mapErrorMessage('QUESTION_REQUIRED', lang),
+      });
+    }
+
+    if (normalizedQuestion.length < MIN_QUESTION_LENGTH) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        code: 'QUESTION_TOO_SHORT',
+        message: mapErrorMessage('QUESTION_TOO_SHORT', lang),
+      });
+    }
+
+    if (normalizedQuestion.length > MAX_QUESTION_LENGTH) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        code: 'QUESTION_TOO_LONG',
+        message: mapErrorMessage('QUESTION_TOO_LONG', lang),
+      });
+    }
+
+    log.info('Oracle question received', {
+      userId,
+      questionLength: normalizedQuestion.length,
+    });
+
+    const duplicate = await db.astro_questions.findRecentDuplicate(userId, normalizedQuestion, DUPLICATE_WINDOW_SECONDS);
+    if (duplicate) {
+      log.info('Returning recent duplicate Oracle answer', { userId });
+      return res.status(200).json({
+        answer: duplicate.answer,
+        createdAt: new Date(duplicate.created_at).toISOString(),
+        reusedRecent: true,
+      });
+    }
+
+    if (!openai) {
+      return res.status(503).json({
+        error: 'Oracle unavailable',
+        code: 'OPENAI_NOT_CONFIGURED',
+        message: mapErrorMessage('OPENAI_NOT_CONFIGURED', lang),
+      });
+    }
+
+    const primaryChart = await db.natal_charts.getPrimary(userId);
+    const history = sanitizeHistory(req.body?.history);
+    const chartContext = buildChartContext(user, primaryChart);
+
     const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
       {
         role: 'system',
-        content: systemInstruction || 'You are Lumia, a helpful astrology assistant.'
-      }
+        content: `${SYSTEM_INSTRUCTION_ASTRA}
+
+Use the user's natal chart context when it is relevant to the question, but stay direct and practical.
+
+User context:
+${chartContext || 'Chart context is temporarily unavailable. Answer carefully and be honest about uncertainty.'}`,
+      },
+      ...history.map((message) => ({
+        role: (message.role === 'model' ? 'assistant' : 'user') as 'assistant' | 'user',
+        content: message.text,
+      })),
+      {
+        role: 'user',
+        content: normalizedQuestion,
+      },
     ];
 
-    // Добавляем историю чата
-    if (history && Array.isArray(history)) {
-      history.forEach((msg: any) => {
-        if (msg.role === 'user') {
-          messages.push({ role: 'user', content: msg.text });
-        } else if (msg.role === 'model') {
-          messages.push({ role: 'assistant', content: msg.text });
-        }
+    try {
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages,
+        temperature: 0.7,
+        max_tokens: 900,
+      });
+
+      const answer = completion.choices[0]?.message?.content?.trim();
+      if (!answer) {
+        throw new Error('Empty Oracle response');
+      }
+
+      await db.astro_questions.add(userId, normalizedQuestion, answer);
+
+      return res.status(200).json({
+        answer,
+        createdAt: new Date().toISOString(),
+        reusedRecent: false,
+      });
+    } catch (error: any) {
+      log.error('Oracle completion failed', {
+        userId,
+        error: error.message,
+        code: error.code,
+        type: error.type,
+      });
+
+      return res.status(502).json({
+        error: 'Oracle upstream error',
+        code: 'ORACLE_UPSTREAM_ERROR',
+        message: mapErrorMessage('ORACLE_UPSTREAM_ERROR', lang),
       });
     }
-
-    // Добавляем текущее сообщение
-    messages.push({ role: 'user', content: message });
-
-    log.info('Sending request to OpenAI', {
-      messagesCount: messages.length,
-      model: 'gpt-4o-mini'
-    });
-
-    // Отправляем запрос в OpenAI
-    const startTime = Date.now();
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini', // Используем более быструю и дешёвую модель для чата
-      messages,
-      temperature: 0.7,
-      max_tokens: 1000,
-    });
-
-    const duration = Date.now() - startTime;
-    const response = completion.choices[0]?.message?.content || '';
-
-    log.info('OpenAI response received', {
-      duration: `${duration}ms`,
-      responseLength: response.length,
-      tokensUsed: completion.usage?.total_tokens
-    });
-
-    return res.status(200).json({ response });
   } catch (error: any) {
-    log.error('Error in chat handler', {
-      error: error.message,
-      code: error.code,
-      type: error.type
+    log.error('Oracle handler failed', { error: error.message, stack: error.stack });
+    return res.status(500).json({
+      error: 'Internal server error',
+      code: 'ORACLE_INTERNAL_ERROR',
+      message: 'Failed to process Oracle request',
     });
-
-    // Fallback на случай ошибки OpenAI
-    const lang = req.body.profile?.language === 'ru';
-    const fallbackResponse = lang
-      ? 'Звезды временно скрыты облаками. Попробуйте позже.'
-      : 'The stars are temporarily clouded. Please try again later.';
-
-    return res.status(200).json({ response: fallbackResponse });
   }
 }
 
-// Rate limiting: AI чат премиум функция - строгий лимит
-export default withRateLimit(handler, (req) => {
-  const isPremium = req.body?.profile?.isPremium;
-  return isPremium ? RATE_LIMIT_CONFIGS.AI_PREMIUM : RATE_LIMIT_CONFIGS.AI_FREE;
-});
+export default withRateLimit(handler, (req) => (
+  req.method === 'GET' ? RATE_LIMIT_CONFIGS.PREMIUM : RATE_LIMIT_CONFIGS.AI_PREMIUM
+));
