@@ -21,6 +21,13 @@ function toUnixTimestamp(value?: string | Date | null): number | undefined {
   return Number.isFinite(timestamp) ? timestamp : undefined;
 }
 
+/** Owner gets isAdmin from env; otherwise use DB. Ensures Admin Panel visible even if client bundle lacks NEXT_PUBLIC_OWNER_ID. */
+function resolveIsAdmin(userId: string, dbIsAdmin: boolean | undefined): boolean {
+  const ownerId = process.env.NEXT_PUBLIC_OWNER_ID || '';
+  if (ownerId && String(userId) === String(ownerId)) return true;
+  return !!dbIsAdmin;
+}
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -134,7 +141,7 @@ export default async function handler(
         language: user.language,
         theme: user.theme,
         isPremium: user.is_premium,
-        isAdmin: user.is_admin,
+        isAdmin: resolveIsAdmin(userId, user.is_admin),
         evolution: null,
         generatedContent,
         weatherCity: user.weather_city && user.weather_city.trim() ? user.weather_city.trim() : undefined,
@@ -210,7 +217,7 @@ export default async function handler(
         language: savedUser.language,
         theme: savedUser.theme,
         isPremium: savedUser.is_premium,
-        isAdmin: savedUser.is_admin,
+        isAdmin: resolveIsAdmin(userId, savedUser.is_admin),
         evolution: null,
         generatedContent,
         weatherCity: savedUser.weather_city && savedUser.weather_city.trim() ? savedUser.weather_city.trim() : undefined,
