@@ -4,6 +4,7 @@ import { UserProfile } from '../types';
 import { motion } from 'framer-motion';
 import { getApproximateSunSignByDate } from '../lib/zodiac-utils';
 import { getZodiacSign } from '../constants';
+import { ensureTelegramFullscreen } from '../lib/telegramFullscreen';
 
 interface OnboardingProps {
     onComplete: (profile: UserProfile) => void;
@@ -37,7 +38,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         if (tg?.initDataUnsafe?.user) {
             setName(tg.initDataUnsafe.user.first_name || "");
         }
-        tg?.expand();
+        ensureTelegramFullscreen();
     }, []);
 
     const handleNext = () => {

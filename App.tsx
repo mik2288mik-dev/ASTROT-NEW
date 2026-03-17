@@ -25,6 +25,7 @@ import { getAdminStatus } from './services/adminService';
 import { recordUserSession } from './services/sessionService';
 import { useSwipeBack } from './lib/useSwipeBack';
 import { BackgroundLayers } from './components/BackgroundLayers';
+import { installTelegramFullscreenGuard } from './lib/telegramFullscreen';
 
 // Get owner ID from environment variables for security
 const OWNER_ID = process.env.NEXT_PUBLIC_OWNER_ID || '';
@@ -98,12 +99,10 @@ const App: React.FC = () => {
 
     useEffect(() => {
         const tg = (window as any).Telegram?.WebApp;
-        if (tg) {
-            tg.ready();
-            tg.expand();
-            tg.enableClosingConfirmation();
-            tg.disableVerticalSwipes?.(); 
-        }
+        tg?.enableClosingConfirmation?.();
+
+        const cleanupFullscreenGuard = installTelegramFullscreenGuard();
+        return cleanupFullscreenGuard;
     }, []);
 
     useEffect(() => {
