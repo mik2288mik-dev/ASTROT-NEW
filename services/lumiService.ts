@@ -27,6 +27,8 @@ export const LUMI_REASONS = {
   question: 'question',
   daily_card: 'daily_card',
   chart_slot: 'chart_slot',
+  admin_lumi_add: 'admin_lumi_add',
+  admin_lumi_subtract: 'admin_lumi_subtract',
   regenerate_natal: 'regenerate_natal',
   regenerate_deep_dive: 'regenerate_deep_dive',
   regenerate_synastry: 'regenerate_synastry',
@@ -43,7 +45,6 @@ function validateAmount(amount: number): void {
 }
 
 function validateReason(reason: string): void {
-  const valid = Object.values(LUMI_REASONS);
   // Allow any string; log if not in predefined list
   if (!Object.values(LUMI_REASONS).includes(reason as LumiReason)) {
     log.info(`Reason "${reason}" used (not in LUMI_REASONS)`);

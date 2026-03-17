@@ -188,12 +188,11 @@ export default async function handler(
         is_setup: userData.isSetup || false,
         language: userData.language || 'ru',
         theme: userData.theme || 'dark',
-        is_premium: userData.isPremium || false,
-        is_admin: userData.isAdmin || false,
         weather_city: weatherCityToSave,
       };
 
       const savedUser = await db.users.set(userId, dbUser);
+      const refreshedUser = await db.users.get(userId);
 
       let generatedContent: { natalIntro?: string } | null = null;
       try {
@@ -215,6 +214,9 @@ export default async function handler(
         evolution: null,
         generatedContent,
         weatherCity: savedUser.weather_city && savedUser.weather_city.trim() ? savedUser.weather_city.trim() : undefined,
+        lumiBalance: refreshedUser?.lumi_balance ?? 0,
+        loginStreak: refreshedUser?.login_streak ?? 0,
+        chartSlots: refreshedUser?.chart_slots ?? 1,
       };
 
       return res.status(200).json(clientUser);

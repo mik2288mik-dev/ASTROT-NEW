@@ -442,6 +442,30 @@ export const db = {
       return this.get(userId);
     },
 
+    async setPremiumUntil(userId: string, premiumUntil: string | null) {
+      const id = toUserId(userId);
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          `UPDATE users
+           SET premium_until = $1
+           WHERE id = $2
+           RETURNING id`,
+          [premiumUntil, id]
+        );
+
+        if (result.rows.length === 0) {
+          throw new Error('User not found');
+        }
+
+        return this.get(userId);
+      } catch (error: any) {
+        log.error('[DB] Error setting premium_until', { error: error.message, userId });
+        throw error;
+      }
+    },
+
     /** Buy one chart slot with Lumi. Atomic: deduct + increment chart_slots. */
     async buyChartSlot(userId: string, cost: number): Promise<{ success: true; newBalance: number; chartSlots: number }> {
       const id = toUserId(userId);
@@ -1158,6 +1182,26 @@ export const db = {
         throw error;
       }
     },
+
+    async getLatestByUser(userId: string) {
+      const id = toUserId(userId);
+      if (!DATABASE_URL) return null;
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          `SELECT stars_amount, created_at
+           FROM star_payments
+           WHERE user_id = $1
+           ORDER BY created_at DESC
+           LIMIT 1`,
+          [id]
+        );
+        return result.rows.length > 0 ? result.rows[0] : null;
+      } catch (error: any) {
+        log.error('[DB] Error getting latest star payment', { error: error.message, userId });
+        throw error;
+      }
+    },
   },
 
   /** roulette_spins (Lumia) */
@@ -1460,6 +1504,102 @@ export const db = {
         log.error('[DB] Error finding duplicate astro question', { error: error.message, userId });
         throw error;
       }
+    },
+  },
+
+  admin: {
+    async listUsers(options?: { q?: string; premium?: 'all' | 'premium' | 'free'; limit?: number }) {
+      if (!DATABASE_URL) return [];
+
+      const queryText = (options?.q || '').trim();
+      const premium = options?.premium || 'all';
+      const limit = Math.min(Math.max(options?.limit || 100, 1), 200);
+      const like = `%${queryText}%`;
+
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          `SELECT
+             u.id,
+             u.name,
+             u.premium_until,
+             COALESCE(u.lumi_balance, 0) AS lumi_balance,
+             COALESCE(u.login_streak, 0) AS login_streak,
+             COALESCE(u.chart_slots, 1) AS chart_slots,
+             COALESCE(u.is_admin, FALSE) AS is_admin,
+             u.created_at,
+             u.last_login,
+             COUNT(nc.id)::int AS saved_charts_count
+           FROM users u
+           LEFT JOIN natal_charts nc ON nc.user_id = u.id
+           WHERE
+             ($1 = '' OR COALESCE(u.name, '') ILIKE $2 OR CAST(u.id AS TEXT) ILIKE $2)
+             AND (
+               $3 = 'all'
+               OR ($3 = 'premium' AND u.premium_until IS NOT NULL AND u.premium_until > NOW())
+               OR ($3 = 'free' AND (u.premium_until IS NULL OR u.premium_until <= NOW()))
+             )
+           GROUP BY u.id
+           ORDER BY u.created_at DESC
+           LIMIT $4`,
+          [queryText, like, premium, limit]
+        );
+
+        return result.rows.map((row: any) => ({
+          id: String(row.id),
+          name: row.name || 'Unnamed user',
+          premium_until: row.premium_until,
+          is_premium: !!(row.premium_until && new Date(row.premium_until) > new Date()),
+          lumi_balance: row.lumi_balance ?? 0,
+          login_streak: row.login_streak ?? 0,
+          chart_slots: row.chart_slots ?? 1,
+          saved_charts_count: row.saved_charts_count ?? 0,
+          created_at: row.created_at,
+          last_login: row.last_login,
+          is_admin: row.is_admin ?? false,
+        }));
+      } catch (error: any) {
+        log.error('[DB] Error listing admin users', { error: error.message });
+        throw error;
+      }
+    },
+
+    async getUserDetail(userId: string) {
+      const user = await db.users.get(userId);
+      if (!user) return null;
+
+      const charts = await db.natal_charts.getAll(userId);
+      const primaryChart = charts.find((chart: any) => chart.is_primary) || null;
+      const recentLumiTransactions = await db.lumi_transactions.getHistory(userId, 20);
+      const latestStarsPayment = await db.star_payments.getLatestByUser(userId);
+
+      return {
+        id: user.id,
+        name: user.name || 'Unnamed user',
+        birth_date: user.birth_date,
+        birth_time: user.birth_time,
+        birth_place: user.birth_place,
+        premium_until: user.premium_until,
+        is_premium: user.is_premium,
+        lumi_balance: user.lumi_balance ?? 0,
+        login_streak: user.login_streak ?? 0,
+        chart_slots: user.chart_slots ?? 1,
+        saved_charts_count: charts.length,
+        is_admin: user.is_admin ?? false,
+        created_at: user.created_at,
+        last_login: user.last_login,
+        primary_chart: primaryChart
+          ? {
+              id: primaryChart.id,
+              name: primaryChart.name,
+              birth_date: primaryChart.birth_date,
+              birth_time: primaryChart.birth_time,
+              birth_place: primaryChart.birth_place,
+            }
+          : null,
+        recent_lumi_transactions: recentLumiTransactions,
+        latest_stars_payment: latestStarsPayment,
+      };
     },
   },
 

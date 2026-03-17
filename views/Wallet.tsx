@@ -27,6 +27,8 @@ const formatTransactionReason = (lang: 'ru' | 'en', reason: string): string => {
     regenerate_deep_dive: { ru: 'Повторная генерация deep dive', en: 'Deep dive regeneration' },
     regenerate_synastry: { ru: 'Повторная генерация синастрии', en: 'Synastry regeneration' },
     premium_bonus: { ru: 'Бонус Premium', en: 'Premium bonus' },
+    admin_lumi_add: { ru: 'Начисление Lumi от admin', en: 'Admin Lumi credit' },
+    admin_lumi_subtract: { ru: 'Списание Lumi от admin', en: 'Admin Lumi deduction' },
     refund: { ru: 'Возврат', en: 'Refund' },
     lumi_pack_starter: { ru: 'Пакет Lumi: Стартовый', en: 'Lumi pack: Starter' },
     lumi_pack_plus: { ru: 'Пакет Lumi: Plus', en: 'Lumi pack: Plus' },

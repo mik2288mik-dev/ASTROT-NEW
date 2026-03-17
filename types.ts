@@ -214,6 +214,44 @@ export interface OracleChatResponse {
   reusedRecent?: boolean;
 }
 
+export type AdminPremiumFilter = 'all' | 'premium' | 'free';
+
+export interface AdminUserSummary {
+  id: string;
+  name: string;
+  isPremium: boolean;
+  premiumUntil: string | null;
+  lumiBalance: number;
+  loginStreak: number;
+  chartSlots: number;
+  savedChartsCount: number;
+  isAdmin: boolean;
+  createdAt: string | null;
+  lastLogin: string | null;
+}
+
+export interface AdminChartSummary {
+  id: number;
+  name: string;
+  birthDate: string;
+  birthTime: string;
+  birthPlace: string;
+}
+
+export interface AdminRecentPayment {
+  starsAmount: number;
+  createdAt: string;
+}
+
+export interface AdminUserDetail extends AdminUserSummary {
+  birthDate: string;
+  birthTime: string;
+  birthPlace: string;
+  primaryChart: AdminChartSummary | null;
+  recentLumiTransactions: LumiTransaction[];
+  latestStarsPayment: AdminRecentPayment | null;
+}
+
 export interface LumiTransaction {
   amount: number;
   reason: string;

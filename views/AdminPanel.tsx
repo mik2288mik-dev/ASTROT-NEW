@@ -1,453 +1,548 @@
-
 import React, { useEffect, useState } from 'react';
-import { UserProfile } from '../types';
-import { saveProfile, getAllUsers } from '../services/storageService';
-import { getRecentErrors } from '../lib/errorTracking';
+import {
+  type AdminPremiumFilter,
+  type AdminUserDetail,
+  type AdminUserSummary,
+  type LumiTransaction,
+  type UserProfile,
+} from '../types';
+import {
+  fetchAdminUserDetail,
+  fetchAdminUsers,
+  updateAdminLumi,
+  updateAdminPremium,
+} from '../services/adminService';
 
 interface AdminPanelProps {
-    profile: UserProfile;
-    onUpdate: (profile: UserProfile) => void;
-    onClose: () => void;
+  profile: UserProfile;
+  onUpdate: (profile: UserProfile) => void;
+  onClose: () => void;
 }
 
-type TabType = 'users' | 'stats' | 'errors' | 'settings';
+const T = (lang: 'ru' | 'en', ru: string, en: string) => (lang === 'ru' ? ru : en);
+
+const formatDateTime = (lang: 'ru' | 'en', value?: string | null) => {
+  if (!value) return lang === 'ru' ? 'Нет данных' : 'No data';
+  return new Intl.DateTimeFormat(lang === 'ru' ? 'ru-RU' : 'en-US', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value));
+};
+
+const formatDateOnly = (lang: 'ru' | 'en', value?: string | null) => {
+  if (!value) return lang === 'ru' ? 'Нет данных' : 'No data';
+  return new Intl.DateTimeFormat(lang === 'ru' ? 'ru-RU' : 'en-US', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  }).format(new Date(value));
+};
+
+const formatLumiReason = (lang: 'ru' | 'en', reason: string) => {
+  const map: Record<string, { ru: string; en: string }> = {
+    daily_login: { ru: 'Daily login', en: 'Daily login' },
+    streak_bonus: { ru: 'Streak bonus', en: 'Streak bonus' },
+    referral_bonus: { ru: 'Referral bonus', en: 'Referral bonus' },
+    chart_slot: { ru: 'Chart slot purchase', en: 'Chart slot purchase' },
+    regenerate_natal: { ru: 'Natal regeneration', en: 'Natal regeneration' },
+    regenerate_deep_dive: { ru: 'Deep dive regeneration', en: 'Deep dive regeneration' },
+    regenerate_synastry: { ru: 'Synastry regeneration', en: 'Synastry regeneration' },
+    premium_bonus: { ru: 'Premium bonus', en: 'Premium bonus' },
+    refund: { ru: 'Refund', en: 'Refund' },
+    admin_lumi_add: { ru: 'Admin Lumi credit', en: 'Admin Lumi credit' },
+    admin_lumi_subtract: { ru: 'Admin Lumi deduction', en: 'Admin Lumi deduction' },
+  };
+
+  return map[reason]?.[lang] || reason.replace(/_/g, ' ');
+};
+
+const FILTERS: AdminPremiumFilter[] = ['all', 'premium', 'free'];
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onUpdate, onClose }) => {
-    const [users, setUsers] = useState<UserProfile[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState("");
-    const [activeTab, setActiveTab] = useState<TabType>('users');
-    const [errors, setErrors] = useState<any[]>([]);
+  const lang = profile.language === 'en' ? 'en' : 'ru';
+  const [users, setUsers] = useState<AdminUserSummary[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [selectedUser, setSelectedUser] = useState<AdminUserDetail | null>(null);
+  const [search, setSearch] = useState('');
+  const [premiumFilter, setPremiumFilter] = useState<AdminPremiumFilter>('all');
+  const [listLoading, setListLoading] = useState(true);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [lumiAmount, setLumiAmount] = useState('10');
+  const [lumiNote, setLumiNote] = useState('');
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const data = await getAllUsers();
-                setUsers(data);
-                
-                // Загружаем ошибки
-                const recentErrors = getRecentErrors(20);
-                setErrors(recentErrors);
-            } catch (e) {
-                console.error("Failed to fetch users", e);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchData();
-    }, []);
+  const syncOwnProfile = (detail: AdminUserDetail) => {
+    if (detail.id !== profile.id) return;
 
-    // Stats Calculation
-    const totalUsers = users.length;
-    const premiumUsers = users.filter(u => u.isPremium).length;
-    const freeUsers = totalUsers - premiumUsers;
-    const conversionRate = totalUsers > 0 ? Math.round((premiumUsers / totalUsers) * 100) : 0;
-    
-    // Подсчет созданных карт
-    const usersWithCharts = users.filter(u => u.generatedContent?.natalIntro).length;
-    
-    // Подсчет пользователей с Deep Dive
-    const usersWithDeepDive = users.filter(u => 
-        u.generatedContent?.deepDiveAnalyses && 
-        Object.keys(u.generatedContent.deepDiveAnalyses).length > 0
-    ).length;
+    onUpdate({
+      ...profile,
+      isPremium: detail.isPremium,
+      isAdmin: detail.isAdmin,
+      lumiBalance: detail.lumiBalance,
+      chartSlots: detail.chartSlots,
+      loginStreak: detail.loginStreak,
+    });
+  };
 
-    const handleTogglePremium = async (targetUser: UserProfile) => {
-        const updatedUser = { ...targetUser, isPremium: !targetUser.isPremium };
-        
-        // Обновляем локальное состояние
-        const updatedList = users.map(u => {
-            if (u.id === targetUser.id) {
-                return updatedUser;
-            }
-            return u;
-        });
-        setUsers(updatedList);
+  const loadUsers = async (keepSelection = true) => {
+    setListLoading(true);
+    setError(null);
+    try {
+      const nextUsers = await fetchAdminUsers({
+        q: search.trim(),
+        premium: premiumFilter,
+        limit: 120,
+      });
+      setUsers(nextUsers);
 
-        // Сохраняем в БД
-        try {
-            console.log('[AdminPanel] Toggling premium for user:', targetUser.id, 'new status:', updatedUser.isPremium);
-            await saveProfile(updatedUser);
-            console.log('[AdminPanel] Premium status saved successfully');
-            
-            // If acting on self, update global app state
-            if (targetUser.id === profile.id) {
-                onUpdate(updatedUser);
-            }
-        } catch (error) {
-            console.error('[AdminPanel] Failed to save premium status:', error);
-            // Откатываем изменения в UI при ошибке
-            setUsers(users);
-        }
-    };
+      const nextSelectedId = keepSelection && selectedUserId && nextUsers.some((user) => user.id === selectedUserId)
+        ? selectedUserId
+        : (nextUsers[0]?.id || null);
+      setSelectedUserId(nextSelectedId);
+    } catch (loadError: any) {
+      setUsers([]);
+      setSelectedUserId(null);
+      setSelectedUser(null);
+      setError(loadError?.message || T(lang, 'Не удалось загрузить пользователей', 'Failed to load users'));
+    } finally {
+      setListLoading(false);
+    }
+  };
 
-    const handleToggleAdmin = async (targetUser: UserProfile) => {
-        const updatedUser = { ...targetUser, isAdmin: !targetUser.isAdmin };
-        
-        // Обновляем локальное состояние
-        const updatedList = users.map(u => {
-            if (u.id === targetUser.id) {
-                return updatedUser;
-            }
-            return u;
-        });
-        setUsers(updatedList);
-        
-        // Сохраняем в БД
-        try {
-            console.log('[AdminPanel] Toggling admin status for user:', targetUser.id, 'new status:', updatedUser.isAdmin);
-            await saveProfile(updatedUser);
-            console.log('[AdminPanel] Admin status saved successfully');
-            
-            // If acting on self, update global app state
-            if (targetUser.id === profile.id) {
-                onUpdate(updatedUser);
-            }
-        } catch (error) {
-            console.error('[AdminPanel] Failed to save admin status:', error);
-            // Откатываем изменения в UI при ошибке
-            setUsers(users);
-        }
-    };
+  const loadSelectedUser = async (userId: string | null) => {
+    if (!userId) {
+      setSelectedUser(null);
+      return;
+    }
 
-    const filteredUsers = users.filter(u => 
-        u.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        (u.id && u.id.toString().includes(searchTerm))
-    );
+    setDetailLoading(true);
+    setError(null);
+    try {
+      const detail = await fetchAdminUserDetail(userId);
+      setSelectedUser(detail);
+      syncOwnProfile(detail);
+    } catch (loadError: any) {
+      setSelectedUser(null);
+      setError(loadError?.message || T(lang, 'Не удалось загрузить пользователя', 'Failed to load user'));
+    } finally {
+      setDetailLoading(false);
+    }
+  };
 
-    return (
-        <div 
-            className="fixed inset-0 z-[60] bg-astro-bg overflow-y-auto"
-            style={{ paddingTop: 'env(safe-area-inset-top, 0px)', paddingBottom: 'env(safe-area-inset-bottom, 0px)', paddingLeft: 'env(safe-area-inset-left, 0px)', paddingRight: 'env(safe-area-inset-right, 0px)' }}
-        >
-            {/* Header */}
-            <div 
-                className="bg-astro-card border-b border-astro-border p-6 sticky top-0 z-10 shadow-md"
-                style={{ top: 'env(safe-area-inset-top, 0px)' }}
-            >
-                <div className="flex justify-between items-center mb-4">
-                    <div>
-                        <h2 className="text-2xl font-bold font-serif text-astro-text flex items-center gap-2">
-                            <span className="text-red-500">◈</span>
-                            ADMIN CONSOLE
-                        </h2>
-                        <p className="text-[10px] text-astro-subtext uppercase tracking-widest">Owner Access Only</p>
-                    </div>
-                    <button 
-                        onClick={onClose} 
-                        className="bg-astro-bg text-astro-text px-5 py-2 rounded-lg border border-astro-border hover:bg-astro-highlight hover:text-white transition-colors text-xs uppercase font-bold tracking-widest"
-                    >
-                        Exit
-                    </button>
-                </div>
-                
-                {/* Tabs */}
-                <div className="flex gap-2">
-                    {(['users', 'stats', 'errors', 'settings'] as TabType[]).map((tab) => (
-                        <button
-                            key={tab}
-                            onClick={() => setActiveTab(tab)}
-                            className={`px-4 py-2 rounded-lg text-xs uppercase font-bold tracking-widest transition-colors ${
-                                activeTab === tab
-                                    ? 'bg-astro-highlight text-white'
-                                    : 'bg-astro-bg text-astro-text hover:bg-astro-highlight/10'
-                            }`}
-                        >
-                            {tab}
-                            {tab === 'errors' && errors.length > 0 && (
-                                <span className="ml-2 bg-red-500 text-white px-1.5 py-0.5 rounded-full text-[8px]">
-                                    {errors.length}
-                                </span>
-                            )}
-                        </button>
-                    ))}
-                </div>
-            </div>
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      void loadUsers();
+    }, 200);
 
-            <div className="p-6 max-w-6xl mx-auto space-y-8">
-                {/* Quick Stats - всегда показываем */}
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                    <div className="bg-astro-card p-5 rounded-xl border border-astro-border shadow-sm">
-                        <p className="text-[10px] text-astro-subtext uppercase tracking-widest mb-1">Total Users</p>
-                        <p className="text-3xl font-serif text-astro-text">{totalUsers}</p>
-                    </div>
-                    <div className="bg-astro-card p-5 rounded-xl border border-astro-border shadow-sm">
-                        <p className="text-[10px] text-astro-subtext uppercase tracking-widest mb-1">Premium</p>
-                        <p className="text-3xl font-serif text-yellow-500">{premiumUsers}</p>
-                        <p className="text-[10px] text-astro-subtext mt-1">{conversionRate}% conversion</p>
-                    </div>
-                    <div className="bg-astro-card p-5 rounded-xl border border-astro-border shadow-sm">
-                        <p className="text-[10px] text-astro-subtext uppercase tracking-widest mb-1">Free Users</p>
-                        <p className="text-3xl font-serif text-astro-text">{freeUsers}</p>
-                    </div>
-                    <div className="bg-astro-card p-5 rounded-xl border border-astro-border shadow-sm">
-                        <p className="text-[10px] text-astro-subtext uppercase tracking-widest mb-1">With Charts</p>
-                        <p className="text-3xl font-serif text-purple-500">{usersWithCharts}</p>
-                    </div>
-                    <div className="bg-astro-card p-5 rounded-xl border border-astro-border shadow-sm">
-                        <p className="text-[10px] text-astro-subtext uppercase tracking-widest mb-1">Deep Dives</p>
-                        <p className="text-3xl font-serif text-pink-500">{usersWithDeepDive}</p>
-                    </div>
-                </div>
+    return () => window.clearTimeout(timeoutId);
+  }, [premiumFilter, search]);
 
-                {/* Tab Content */}
-                {activeTab === 'users' && (
-                    <>
-                        {/* User Management Table */}
-                <div className="bg-astro-card rounded-xl border border-astro-border overflow-hidden shadow-lg">
-                    <div className="p-5 border-b border-astro-border flex justify-between items-center">
-                        <h3 className="text-lg font-serif text-astro-text">User Database</h3>
-                        <input 
-                            type="text" 
-                            placeholder="Search by Name or ID..." 
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="bg-astro-bg border border-astro-border rounded-lg px-4 py-2 text-sm text-astro-text outline-none focus:border-astro-highlight w-64"
-                        />
-                    </div>
+  useEffect(() => {
+    void loadSelectedUser(selectedUserId);
+  }, [selectedUserId]);
 
-                    {loading ? (
-                        <div className="p-12 text-center text-astro-subtext text-xs uppercase tracking-widest">Loading Database...</div>
-                    ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left border-collapse">
-                                <thead>
-                                    <tr className="bg-astro-bg/50 text-astro-subtext text-[10px] uppercase tracking-widest">
-                                        <th className="p-4 font-bold">User</th>
-                                        <th className="p-4 font-bold">Telegram ID</th>
-                                        <th className="p-4 font-bold">Location</th>
-                                        <th className="p-4 font-bold text-center">Premium</th>
-                                        <th className="p-4 font-bold text-center">Admin</th>
-                                        <th className="p-4 font-bold text-right">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="text-sm text-astro-text">
-                                    {filteredUsers.map((u, idx) => (
-                                        <tr key={idx} className="border-b border-astro-border hover:bg-astro-highlight/5 transition-colors">
-                                            <td className="p-4">
-                                                <div className="font-bold">{u.name}</div>
-                                                <div className="text-xs text-astro-subtext">{u.birthDate}</div>
-                                            </td>
-                                            <td className="p-4 font-mono text-xs opacity-80">
-                                                {u.id || "N/A"}
-                                            </td>
-                                            <td className="p-4">
-                                                {u.birthPlace}
-                                            </td>
-                                            <td className="p-4 text-center">
-                                                {u.isPremium ? (
-                                                    <span className="px-2 py-1 bg-yellow-500/10 text-yellow-500 rounded text-[10px] uppercase font-bold border border-yellow-500/20">
-                                                        Active
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-astro-subtext text-xs">-</span>
-                                                )}
-                                            </td>
-                                            <td className="p-4 text-center">
-                                                {u.isAdmin ? (
-                                                    <span className="px-2 py-1 bg-red-500/10 text-red-500 rounded text-[10px] uppercase font-bold border border-red-500/20">
-                                                        ADMIN
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-astro-subtext text-xs">-</span>
-                                                )}
-                                            </td>
-                                            <td className="p-4 text-right space-x-2">
-                                                <button 
-                                                    onClick={() => handleTogglePremium(u)}
-                                                    className={`px-3 py-1 rounded text-[10px] uppercase font-bold tracking-wider transition-colors border ${
-                                                        u.isPremium 
-                                                        ? 'border-red-500/50 text-red-500 hover:bg-red-500 hover:text-white' 
-                                                        : 'border-yellow-500/50 text-yellow-500 hover:bg-yellow-500 hover:text-white'
-                                                    }`}
-                                                >
-                                                    {u.isPremium ? "Revoke PRO" : "Grant PRO"}
-                                                </button>
-                                                <button 
-                                                    onClick={() => handleToggleAdmin(u)}
-                                                    className={`px-3 py-1 rounded text-[10px] uppercase font-bold tracking-wider transition-colors border ${
-                                                        u.isAdmin
-                                                        ? 'border-astro-subtext text-astro-subtext hover:bg-astro-text hover:text-astro-bg' 
-                                                        : 'border-astro-highlight text-astro-highlight hover:bg-astro-highlight hover:text-white'
-                                                    }`}
-                                                >
-                                                    {u.isAdmin ? "Demote" : "Promote"}
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-                </div>
-                    </>
-                )}
+  const handlePremiumAction = async (action: 'grant' | 'revoke') => {
+    if (!selectedUserId) return;
 
-                {/* Stats Tab */}
-                {activeTab === 'stats' && (
-                    <div className="space-y-6">
-                        <div className="bg-astro-card rounded-xl border border-astro-border p-6">
-                            <h3 className="text-lg font-serif text-astro-text mb-4">📊 Статистика приложения</h3>
-                            
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <p className="text-sm text-astro-subtext mb-2">Конверсия в Premium</p>
-                                    <div className="bg-astro-bg rounded-lg p-4">
-                                        <p className="text-2xl font-bold text-yellow-500">{conversionRate}%</p>
-                                        <p className="text-xs text-astro-subtext mt-1">{premiumUsers} из {totalUsers}</p>
-                                    </div>
-                                </div>
-                                
-                                <div>
-                                    <p className="text-sm text-astro-subtext mb-2">Активация карт</p>
-                                    <div className="bg-astro-bg rounded-lg p-4">
-                                        <p className="text-2xl font-bold text-purple-500">
-                                            {totalUsers > 0 ? Math.round((usersWithCharts / totalUsers) * 100) : 0}%
-                                        </p>
-                                        <p className="text-xs text-astro-subtext mt-1">{usersWithCharts} карт создано</p>
-                                    </div>
-                                </div>
-                                
-                                <div>
-                                    <p className="text-sm text-astro-subtext mb-2">Deep Dive использование</p>
-                                    <div className="bg-astro-bg rounded-lg p-4">
-                                        <p className="text-2xl font-bold text-pink-500">
-                                            {premiumUsers > 0 ? Math.round((usersWithDeepDive / premiumUsers) * 100) : 0}%
-                                        </p>
-                                        <p className="text-xs text-astro-subtext mt-1">от премиум пользователей</p>
-                                    </div>
-                                </div>
-                                
-                                <div>
-                                    <p className="text-sm text-astro-subtext mb-2">Средний баланс звезд</p>
-                                    <div className="bg-astro-bg rounded-lg p-4">
-                                        <p className="text-2xl font-bold text-blue-500">
-                                            {Math.round(users.reduce((sum, u) => sum + (u.lumiBalance || 0), 0) / Math.max(users.length, 1))}
-                                        </p>
-                                        <p className="text-xs text-astro-subtext mt-1">звезд на пользователя</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        {/* Top Users */}
-                        <div className="bg-astro-card rounded-xl border border-astro-border p-6">
-                            <h3 className="text-lg font-serif text-astro-text mb-4">Top Пользователи</h3>
-                            <div className="space-y-2">
-                                {users
-                                    .sort((a, b) => (b.lumiBalance || 0) - (a.lumiBalance || 0))
-                                    .slice(0, 5)
-                                    .map((user, idx) => (
-                                        <div key={idx} className="bg-astro-bg rounded-lg p-3 flex justify-between items-center">
-                                            <div className="flex items-center gap-3">
-                                                <span className="text-sm text-astro-subtext">#{idx + 1}</span>
-                                                <div>
-                                                    <p className="text-sm font-bold text-astro-text">{user.name}</p>
-                                                    <p className="text-xs text-astro-subtext">{user.birthDate}</p>
-                                                </div>
-                                            </div>
-                                            <div className="text-right">
-                                                <p className="text-sm font-bold text-yellow-500">{user.lumiBalance || 0} Lumi</p>
-                                                {user.isPremium && (
-                                                    <span className="text-[8px] px-2 py-0.5 bg-yellow-500/10 text-yellow-500 rounded">PRO</span>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))}
-                            </div>
-                        </div>
-                    </div>
-                )}
+    setActionLoading(`premium-${action}`);
+    setError(null);
+    try {
+      const updated = await updateAdminPremium(selectedUserId, action);
+      setSelectedUser(updated);
+      syncOwnProfile(updated);
+      await loadUsers(true);
+    } catch (actionError: any) {
+      setError(actionError?.message || T(lang, 'Не удалось обновить premium', 'Failed to update premium'));
+    } finally {
+      setActionLoading(null);
+    }
+  };
 
-                {/* Errors Tab */}
-                {activeTab === 'errors' && (
-                    <div className="bg-astro-card rounded-xl border border-astro-border">
-                        <div className="p-5 border-b border-astro-border">
-                            <h3 className="text-lg font-serif text-astro-text">🐛 Последние ошибки</h3>
-                            <p className="text-xs text-astro-subtext mt-1">Отслеживание ошибок приложения</p>
-                        </div>
-                        
-                        <div className="divide-y divide-astro-border max-h-[600px] overflow-y-auto">
-                            {errors.length === 0 ? (
-                                <div className="p-12 text-center text-astro-subtext">
-                                    <p className="text-2xl mb-2">✅</p>
-                                    <p className="text-sm">Ошибок не обнаружено</p>
-                                </div>
-                            ) : (
-                                errors.map((error, idx) => (
-                                    <div key={idx} className="p-4 hover:bg-astro-bg/50 transition-colors">
-                                        <div className="flex justify-between items-start mb-2">
-                                            <div className="flex-1">
-                                                <p className="text-sm font-bold text-red-500">{error.error}</p>
-                                                <p className="text-xs text-astro-text mt-1">{error.message}</p>
-                                            </div>
-                                            <span className="text-[10px] text-astro-subtext">
-                                                {new Date(error.timestamp).toLocaleString()}
-                                            </span>
-                                        </div>
-                                        {error.userId && (
-                                            <p className="text-[10px] text-astro-subtext">User ID: {error.userId}</p>
-                                        )}
-                                        {error.endpoint && (
-                                            <p className="text-[10px] text-astro-subtext font-mono">{error.endpoint}</p>
-                                        )}
-                                    </div>
-                                ))
-                            )}
-                        </div>
-                    </div>
-                )}
+  const handleLumiAction = async (action: 'add' | 'subtract') => {
+    if (!selectedUserId) return;
 
-                {/* Settings Tab */}
-                {activeTab === 'settings' && (
-                    <div className="bg-astro-card rounded-xl border border-astro-border p-6">
-                        <h3 className="text-lg font-serif text-astro-text mb-4">Настройки системы</h3>
-                        
-                        <div className="space-y-4">
-                            <div className="bg-astro-bg rounded-lg p-4">
-                                <p className="text-sm font-bold text-astro-text mb-2">Environment</p>
-                                <div className="grid grid-cols-2 gap-2 text-xs">
-                                    <div>
-                                        <p className="text-astro-subtext">OpenAI API</p>
-                                        <p className="text-green-500">✓ Configured</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-astro-subtext">Database</p>
-                                        <p className="text-green-500">✓ Connected</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-astro-subtext">Rate Limiting</p>
-                                        <p className="text-green-500">✓ Active</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-astro-subtext">Error Tracking</p>
-                                        <p className="text-green-500">✓ Active</p>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div className="bg-astro-bg rounded-lg p-4">
-                                <p className="text-sm font-bold text-astro-text mb-2">Premium конфигурация</p>
-                                <div className="space-y-2 text-xs">
-                                    <div className="flex justify-between">
-                                        <span className="text-astro-subtext">Цена Premium</span>
-                                        <span className="text-astro-text font-bold">399 stars</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-astro-subtext">Free лимит Deep Dive</span>
-                                        <span className="text-astro-text font-bold">0 (Premium only)</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-astro-subtext">Free лимит регенераций</span>
-                                        <span className="text-astro-text font-bold">3 в неделю</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-            </div>
+    const amount = Number(lumiAmount);
+    if (!Number.isInteger(amount) || amount <= 0) {
+      setError(T(lang, 'Введите целое положительное число Lumi', 'Enter a positive Lumi amount'));
+      return;
+    }
+
+    setActionLoading(`lumi-${action}`);
+    setError(null);
+    try {
+      const updated = await updateAdminLumi(selectedUserId, action, amount, lumiNote.trim());
+      setSelectedUser(updated);
+      syncOwnProfile(updated);
+      setLumiNote('');
+      await loadUsers(true);
+    } catch (actionError: any) {
+      setError(actionError?.message || T(lang, 'Не удалось обновить Lumi', 'Failed to update Lumi'));
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] overflow-y-auto bg-astro-bg"
+      style={{
+        paddingTop: 'env(safe-area-inset-top, 0px)',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        paddingLeft: 'env(safe-area-inset-left, 0px)',
+        paddingRight: 'env(safe-area-inset-right, 0px)',
+      }}
+    >
+      <div
+        className="sticky top-0 z-10 border-b border-astro-border bg-astro-card px-4 py-5 shadow-md"
+        style={{ top: 'env(safe-area-inset-top, 0px)' }}
+      >
+        <div className="mb-4 flex items-center justify-between gap-4">
+          <div>
+            <h2 className="font-serif text-xl font-semibold text-astro-text">
+              {T(lang, 'Admin Panel', 'Admin Panel')}
+            </h2>
+            <p className="mt-1 text-[10px] uppercase tracking-widest text-astro-subtext">
+              {T(lang, 'Owner / admin access only', 'Owner / admin access only')}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-lg border border-astro-border px-4 py-2 text-xs font-semibold uppercase tracking-widest text-astro-text transition-colors hover:border-astro-highlight/40"
+          >
+            {T(lang, 'Закрыть', 'Close')}
+          </button>
         </div>
-    );
+
+        <div className="space-y-3">
+          <input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder={T(lang, 'Поиск по имени или Telegram ID', 'Search by name or Telegram ID')}
+            className="w-full rounded-xl border border-astro-border bg-astro-bg px-4 py-3 text-sm text-astro-text outline-none focus:border-astro-highlight/50"
+          />
+
+          <div className="flex gap-2">
+            {FILTERS.map((filter) => {
+              const label =
+                filter === 'all'
+                  ? T(lang, 'Все', 'All')
+                  : filter === 'premium'
+                    ? 'Premium'
+                    : T(lang, 'Free', 'Free');
+
+              return (
+                <button
+                  key={filter}
+                  onClick={() => setPremiumFilter(filter)}
+                  className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-widest transition-colors ${
+                    premiumFilter === filter
+                      ? 'bg-astro-highlight text-white'
+                      : 'border border-astro-border text-astro-subtext hover:border-astro-highlight/40 hover:text-astro-text'
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      <div className="mx-auto max-w-6xl space-y-6 p-4">
+        {error && (
+          <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-300">
+            {error}
+          </div>
+        )}
+
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+          <section className="rounded-2xl border border-astro-border bg-astro-card">
+            <div className="border-b border-astro-border px-4 py-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h3 className="font-serif text-lg text-astro-text">
+                    {T(lang, 'Пользователи', 'Users')}
+                  </h3>
+                  <p className="mt-1 text-xs text-astro-subtext">
+                    {T(lang, 'Реальные пользователи из базы данных', 'Real users from the database')}
+                  </p>
+                </div>
+                <span className="rounded-full border border-astro-border px-3 py-1 text-xs text-astro-subtext">
+                  {users.length}
+                </span>
+              </div>
+            </div>
+
+            {listLoading ? (
+              <div className="p-6 text-sm text-astro-subtext">
+                {T(lang, 'Загружаем список пользователей...', 'Loading users...')}
+              </div>
+            ) : users.length === 0 ? (
+              <div className="p-6 text-sm text-astro-subtext">
+                {T(lang, 'Пользователи не найдены', 'No users found')}
+              </div>
+            ) : (
+              <div className="divide-y divide-astro-border">
+                {users.map((user) => {
+                  const isSelected = user.id === selectedUserId;
+
+                  return (
+                    <button
+                      key={user.id}
+                      onClick={() => setSelectedUserId(user.id)}
+                      className={`w-full px-4 py-4 text-left transition-colors ${
+                        isSelected ? 'bg-astro-highlight/10' : 'hover:bg-astro-bg/40'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0">
+                          <p className="truncate font-medium text-astro-text">{user.name}</p>
+                          <p className="mt-1 text-xs text-astro-subtext">{user.id}</p>
+                        </div>
+                        <div className="text-right text-xs text-astro-subtext">
+                          <p>{user.lumiBalance} Lumi</p>
+                          <p className="mt-1">
+                            {user.savedChartsCount}/{user.chartSlots} {T(lang, 'карт', 'charts')}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 flex flex-wrap gap-2 text-[10px] uppercase tracking-widest">
+                        <span className={`rounded-full px-2 py-1 ${user.isPremium ? 'bg-yellow-500/15 text-yellow-400' : 'bg-astro-bg text-astro-subtext'}`}>
+                          {user.isPremium ? 'Premium' : 'Free'}
+                        </span>
+                        {user.isAdmin && (
+                          <span className="rounded-full bg-red-500/15 px-2 py-1 text-red-300">
+                            Admin
+                          </span>
+                        )}
+                        <span className="rounded-full bg-astro-bg px-2 py-1 text-astro-subtext">
+                          {T(lang, 'Серия', 'Streak')}: {user.loginStreak}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+
+          <section className="rounded-2xl border border-astro-border bg-astro-card">
+            <div className="border-b border-astro-border px-4 py-4">
+              <h3 className="font-serif text-lg text-astro-text">
+                {T(lang, 'Карточка пользователя', 'User overview')}
+              </h3>
+              <p className="mt-1 text-xs text-astro-subtext">
+                {T(lang, 'Premium, Lumi, слоты, карты и последние операции', 'Premium, Lumi, slots, charts, and recent operations')}
+              </p>
+            </div>
+
+            {detailLoading ? (
+              <div className="p-6 text-sm text-astro-subtext">
+                {T(lang, 'Загружаем данные пользователя...', 'Loading user details...')}
+              </div>
+            ) : !selectedUser ? (
+              <div className="p-6 text-sm text-astro-subtext">
+                {T(lang, 'Выберите пользователя слева', 'Select a user from the list')}
+              </div>
+            ) : (
+              <div className="space-y-6 p-4">
+                <div className="rounded-xl border border-astro-border bg-astro-bg/30 p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <p className="font-serif text-xl text-astro-text">{selectedUser.name}</p>
+                      <p className="mt-1 text-sm text-astro-subtext">{selectedUser.id}</p>
+                      <p className="mt-2 text-sm text-astro-subtext">
+                        {selectedUser.birthDate || T(lang, 'Дата не указана', 'Birth date not set')}
+                        {selectedUser.birthPlace ? `, ${selectedUser.birthPlace}` : ''}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2 text-[10px] uppercase tracking-widest">
+                      <span className={`rounded-full px-2 py-1 ${selectedUser.isPremium ? 'bg-yellow-500/15 text-yellow-400' : 'bg-astro-bg text-astro-subtext'}`}>
+                        {selectedUser.isPremium ? 'Premium' : 'Free'}
+                      </span>
+                      {selectedUser.isAdmin && (
+                        <span className="rounded-full bg-red-500/15 px-2 py-1 text-red-300">Admin</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-xl border border-astro-border bg-astro-bg/20 p-4">
+                    <p className="text-[10px] uppercase tracking-widest text-astro-subtext">Premium until</p>
+                    <p className="mt-2 text-sm text-astro-text">{formatDateTime(lang, selectedUser.premiumUntil)}</p>
+                  </div>
+                  <div className="rounded-xl border border-astro-border bg-astro-bg/20 p-4">
+                    <p className="text-[10px] uppercase tracking-widest text-astro-subtext">Lumi</p>
+                    <p className="mt-2 text-sm text-astro-text">{selectedUser.lumiBalance}</p>
+                  </div>
+                  <div className="rounded-xl border border-astro-border bg-astro-bg/20 p-4">
+                    <p className="text-[10px] uppercase tracking-widest text-astro-subtext">
+                      {T(lang, 'Слоты / карты', 'Slots / charts')}
+                    </p>
+                    <p className="mt-2 text-sm text-astro-text">
+                      {selectedUser.savedChartsCount} / {selectedUser.chartSlots}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-astro-border bg-astro-bg/20 p-4">
+                    <p className="text-[10px] uppercase tracking-widest text-astro-subtext">
+                      {T(lang, 'Серия входов', 'Login streak')}
+                    </p>
+                    <p className="mt-2 text-sm text-astro-text">{selectedUser.loginStreak}</p>
+                  </div>
+                  <div className="rounded-xl border border-astro-border bg-astro-bg/20 p-4">
+                    <p className="text-[10px] uppercase tracking-widest text-astro-subtext">
+                      {T(lang, 'Создан', 'Created')}
+                    </p>
+                    <p className="mt-2 text-sm text-astro-text">{formatDateTime(lang, selectedUser.createdAt)}</p>
+                  </div>
+                  <div className="rounded-xl border border-astro-border bg-astro-bg/20 p-4">
+                    <p className="text-[10px] uppercase tracking-widest text-astro-subtext">
+                      {T(lang, 'Последний вход', 'Last login')}
+                    </p>
+                    <p className="mt-2 text-sm text-astro-text">{formatDateTime(lang, selectedUser.lastLogin)}</p>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-astro-border bg-astro-bg/20 p-4">
+                  <div className="mb-4 flex flex-wrap gap-3">
+                    <button
+                      onClick={() => handlePremiumAction('grant')}
+                      disabled={actionLoading === 'premium-grant'}
+                      className="rounded-lg bg-astro-highlight px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                    >
+                      {actionLoading === 'premium-grant'
+                        ? T(lang, 'Обновляем...', 'Updating...')
+                        : T(lang, 'Выдать Premium +30 дней', 'Grant Premium +30 days')}
+                    </button>
+                    <button
+                      onClick={() => handlePremiumAction('revoke')}
+                      disabled={actionLoading === 'premium-revoke'}
+                      className="rounded-lg border border-red-500/40 px-4 py-2 text-sm font-semibold text-red-300 disabled:opacity-50"
+                    >
+                      {actionLoading === 'premium-revoke'
+                        ? T(lang, 'Обновляем...', 'Updating...')
+                        : T(lang, 'Отозвать Premium', 'Revoke Premium')}
+                    </button>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-[minmax(0,120px)_minmax(0,1fr)]">
+                    <input
+                      value={lumiAmount}
+                      onChange={(event) => setLumiAmount(event.target.value.replace(/[^\d]/g, ''))}
+                      placeholder="10"
+                      className="rounded-lg border border-astro-border bg-astro-card px-3 py-2 text-sm text-astro-text outline-none focus:border-astro-highlight/40"
+                    />
+                    <input
+                      value={lumiNote}
+                      onChange={(event) => setLumiNote(event.target.value)}
+                      placeholder={T(lang, 'Комментарий для операции (необязательно)', 'Optional note for this action')}
+                      className="rounded-lg border border-astro-border bg-astro-card px-3 py-2 text-sm text-astro-text outline-none focus:border-astro-highlight/40"
+                    />
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap gap-3">
+                    <button
+                      onClick={() => handleLumiAction('add')}
+                      disabled={actionLoading === 'lumi-add'}
+                      className="rounded-lg bg-emerald-500/80 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                    >
+                      {actionLoading === 'lumi-add'
+                        ? T(lang, 'Обновляем...', 'Updating...')
+                        : T(lang, 'Добавить Lumi', 'Add Lumi')}
+                    </button>
+                    <button
+                      onClick={() => handleLumiAction('subtract')}
+                      disabled={actionLoading === 'lumi-subtract'}
+                      className="rounded-lg border border-red-500/40 px-4 py-2 text-sm font-semibold text-red-300 disabled:opacity-50"
+                    >
+                      {actionLoading === 'lumi-subtract'
+                        ? T(lang, 'Обновляем...', 'Updating...')
+                        : T(lang, 'Списать Lumi', 'Subtract Lumi')}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-astro-border bg-astro-bg/20 p-4">
+                  <h4 className="font-medium text-astro-text">
+                    {T(lang, 'Основная карта', 'Primary chart')}
+                  </h4>
+                  {selectedUser.primaryChart ? (
+                    <div className="mt-3 space-y-1 text-sm text-astro-subtext">
+                      <p className="text-astro-text">{selectedUser.primaryChart.name}</p>
+                      <p>{selectedUser.primaryChart.birthDate}</p>
+                      <p>{selectedUser.primaryChart.birthPlace}</p>
+                    </div>
+                  ) : (
+                    <p className="mt-3 text-sm text-astro-subtext">
+                      {T(lang, 'Основная карта пока отсутствует', 'Primary chart is not available')}
+                    </p>
+                  )}
+                </div>
+
+                <div className="rounded-xl border border-astro-border bg-astro-bg/20 p-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <h4 className="font-medium text-astro-text">
+                      {T(lang, 'Последние операции Lumi', 'Recent Lumi transactions')}
+                    </h4>
+                    <span className="text-xs text-astro-subtext">{selectedUser.recentLumiTransactions.length}</span>
+                  </div>
+
+                  {selectedUser.recentLumiTransactions.length === 0 ? (
+                    <p className="mt-3 text-sm text-astro-subtext">
+                      {T(lang, 'Транзакций пока нет', 'No transactions yet')}
+                    </p>
+                  ) : (
+                    <div className="mt-3 space-y-3">
+                      {selectedUser.recentLumiTransactions.map((transaction: LumiTransaction, index) => {
+                        const income = transaction.amount >= 0;
+                        return (
+                          <div
+                            key={`${transaction.created_at}-${transaction.reason}-${index}`}
+                            className="flex items-start justify-between gap-4 rounded-lg border border-astro-border bg-astro-card p-3"
+                          >
+                            <div>
+                              <p className="text-sm text-astro-text">{formatLumiReason(lang, transaction.reason)}</p>
+                              <p className="mt-1 text-xs text-astro-subtext">
+                                {formatDateTime(lang, transaction.created_at)}
+                              </p>
+                            </div>
+                            <span className={`text-sm font-semibold ${income ? 'text-emerald-400' : 'text-red-300'}`}>
+                              {income ? '+' : ''}
+                              {transaction.amount}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                <div className="rounded-xl border border-astro-border bg-astro-bg/20 p-4">
+                  <h4 className="font-medium text-astro-text">
+                    {T(lang, 'Последний Stars платёж', 'Latest Stars payment')}
+                  </h4>
+                  {selectedUser.latestStarsPayment ? (
+                    <div className="mt-3 text-sm text-astro-subtext">
+                      <p className="text-astro-text">{selectedUser.latestStarsPayment.starsAmount} Stars</p>
+                      <p className="mt-1">{formatDateOnly(lang, selectedUser.latestStarsPayment.createdAt)}</p>
+                    </div>
+                  ) : (
+                    <p className="mt-3 text-sm text-astro-subtext">
+                      {T(lang, 'Платежи не найдены', 'No Stars payments found')}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+          </section>
+        </div>
+      </div>
+    </div>
+  );
 };
