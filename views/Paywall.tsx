@@ -45,6 +45,9 @@ export const Paywall: React.FC<PaywallProps> = ({ profile, onPurchase, onClose }
                 <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-64 h-64 bg-astro-highlight/20 rounded-full blur-3xl pointer-events-none"></div>
 
                 <div>
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-astro-highlight mb-3">
+                        {getText(profile.language, 'paywall.title')}
+                    </p>
                     <h1 className="text-3xl font-serif font-bold text-astro-text mb-3">
                         {getText(profile.language, 'paywall.title')}
                     </h1>
@@ -63,7 +66,9 @@ export const Paywall: React.FC<PaywallProps> = ({ profile, onPurchase, onClose }
                                 transition={{ delay: i * 0.1 + 0.2 }}
                                 className="flex items-center gap-4"
                             >
-                                <div className="w-6 h-6 rounded-full bg-astro-highlight flex items-center justify-center text-astro-bg font-bold text-xs">✓</div>
+                                <div className="w-7 h-7 rounded-full bg-astro-highlight/15 flex items-center justify-center text-astro-highlight font-bold text-[10px] uppercase tracking-widest">
+                                    {String(i + 1).padStart(2, '0')}
+                                </div>
                                 <span className="text-astro-text text-sm font-medium">{feat}</span>
                             </motion.div>
                         ))}

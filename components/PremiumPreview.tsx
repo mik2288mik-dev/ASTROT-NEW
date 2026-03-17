@@ -29,15 +29,18 @@ export const PremiumPreview: React.FC<PremiumPreviewProps> = ({ language, onClos
             >
                 <div className="absolute -top-20 -right-20 w-64 h-64 bg-astro-highlight/20 rounded-full blur-3xl" aria-hidden />
 
-                <button onClick={onClose} className="absolute top-4 right-4 text-astro-subtext hover:text-astro-text" aria-label="Close">✕</button>
+                <button onClick={onClose} className="absolute top-4 right-4 text-astro-subtext hover:text-astro-text" aria-label="Close">×</button>
 
                 <h2 className="text-2xl font-bold font-serif text-astro-text mb-2 text-center">{getText(language, 'premium_preview.title')}</h2>
-                <p className="text-center text-[10px] uppercase tracking-widest text-astro-highlight mb-8">{getText(language, 'premium_preview.tagline')}</p>
+                <p className="text-center text-[10px] uppercase tracking-widest text-astro-highlight">{getText(language, 'premium_preview.tagline')}</p>
+                <p className="mt-3 mb-8 text-center text-sm leading-relaxed text-astro-subtext">{getText(language, 'premium_preview.subtitle')}</p>
 
                 <div className="space-y-4 mb-8">
                     {features.map((f, i) => (
                         <div key={i} className="flex items-center gap-4 bg-astro-card p-3 rounded-lg border border-astro-border">
-                            <div className="w-8 h-8 rounded-full bg-astro-highlight/10 flex items-center justify-center text-astro-highlight shrink-0">*</div>
+                            <div className="w-8 h-8 rounded-full bg-astro-highlight/10 flex items-center justify-center text-[10px] font-semibold uppercase tracking-widest text-astro-highlight shrink-0">
+                                {String(i + 1).padStart(2, '0')}
+                            </div>
                             <div className="min-w-0">
                                 <h4 className="text-astro-text text-sm font-bold">{f.title}</h4>
                                 <p className="text-astro-subtext text-xs">{f.desc}</p>
