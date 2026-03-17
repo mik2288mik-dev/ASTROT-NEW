@@ -334,8 +334,8 @@ const App: React.FC = () => {
         try {
             const balance = await getLumiBalance(profile.id);
             setProfile(prev => prev ? { ...prev, lumiBalance: balance } : prev);
-        } catch {
-            // Non-critical
+        } catch (error: any) {
+            console.warn('[App] Failed to refresh Lumi balance on dashboard:', error?.message || error);
         }
     }, [profile?.id]);
 

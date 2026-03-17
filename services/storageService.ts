@@ -196,16 +196,19 @@ export const processDailyLogin = async (userId: string): Promise<{
  * Fetch current Lumi balance from API (for refresh after add/spend)
  */
 export const getLumiBalance = async (userId: string): Promise<number> => {
-  if (!userId) return 0;
-  try {
-    const url = `${API_BASE_URL}/api/users/lumi?userId=${encodeURIComponent(userId)}`;
-    const res = await fetch(url);
-    if (!res.ok) return 0;
-    const data = await res.json();
-    return data.lumi_balance ?? 0;
-  } catch {
-    return 0;
+  if (!userId) {
+    throw new Error('UserId is required');
   }
+
+  const url = `${API_BASE_URL}/api/users/lumi?userId=${encodeURIComponent(userId)}`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || err.error || `Failed to fetch Lumi balance: ${res.status}`);
+  }
+
+  const data = await res.json();
+  return data.lumi_balance ?? 0;
 };
 
 export const getLumiWallet = async (userId: string, limit = 30): Promise<LumiWalletData> => {
