@@ -302,7 +302,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, 
                 animate={{ opacity: 1, y: 0 }}
                 className="px-5 pt-6"
             >
-                <div className="rounded-[24px] border border-astro-border bg-gradient-to-b from-astro-card to-astro-card/60 p-5 shadow-soft">
+                <div className="rounded-[24px] border border-astro-border/80 bg-gradient-to-b from-astro-card to-astro-card/60 p-6 shadow-soft">
                     <div className="flex items-start justify-between gap-4">
                         <div>
                             <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
@@ -336,9 +336,9 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, 
             <motion.section
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="px-5 mt-6"
+                className="px-5 mt-5"
             >
-                <div className="rounded-[24px] border border-astro-border bg-astro-card/65 p-5">
+                <div className="rounded-[24px] border border-astro-border/80 bg-astro-card/60 p-5">
                     <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
                         {getText(lang, 'chart.core_title')}
                     </p>
@@ -386,32 +386,30 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, 
             </motion.section>
 
             {onOpenCharts && (
-                <div className="px-5 mt-5">
+                <div className="px-5 mt-4">
                     <button
                         onClick={onOpenCharts}
-                        className="w-full rounded-2xl border border-astro-border/80 bg-astro-card/35 px-4 py-3 text-left transition-colors hover:border-astro-highlight/35"
+                        className="w-full rounded-2xl border border-astro-border/70 bg-astro-bg/15 px-4 py-3 text-left transition-colors hover:border-astro-highlight/30"
                     >
                         <div className="flex items-center justify-between gap-4">
                             <div className="min-w-0">
                                 <p className="text-[10px] uppercase tracking-widest text-astro-subtext">
-                                    {lang === 'ru' ? 'Мои карты' : 'My Charts'}
+                                    {getText(lang, 'chart.my_charts_title')}
                                 </p>
                                 <p className="mt-1 text-sm text-astro-text">
-                                    {lang === 'ru'
-                                        ? 'Primary chart, saved profiles, slots и Synastry в одном месте.'
-                                        : 'Primary chart, saved profiles, slots, and Synastry in one place.'}
+                                    {getText(lang, 'chart.my_charts_body')}
                                 </p>
                             </div>
                             <span className="shrink-0 text-xs font-medium text-astro-highlight">
-                                {lang === 'ru' ? 'Открыть' : 'Open'}
+                                {getText(lang, 'chart.my_charts_cta')}
                             </span>
                         </div>
                     </button>
                 </div>
             )}
 
-            <section className="px-5 mt-6">
-                <div className="rounded-[24px] border border-astro-border bg-astro-card/55 p-5">
+            <section className="px-5 mt-5">
+                <div className="rounded-[24px] border border-astro-border/80 bg-astro-card/55 p-5">
                     <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
                         {getText(lang, 'chart.deeper')}
                     </p>
@@ -422,7 +420,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, 
                         {getText(lang, 'chart.deeper_intro')}
                     </p>
 
-                    <div className="mt-5 space-y-5">
+                    <div className="mt-5 space-y-4">
                         <div className="rounded-2xl border border-astro-border/70 bg-astro-bg/25 p-4">
                             <div className="mb-4 flex items-center justify-between gap-4">
                                 <div>
@@ -477,7 +475,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, 
                                 </p>
                                 <button
                                     onClick={requestPremium}
-                                    className="mt-4 w-full rounded-xl bg-gradient-to-r from-astro-highlight to-purple-500 py-3.5 text-sm font-semibold text-white transition-transform active:scale-[0.98]"
+                                    className="mt-4 w-full rounded-xl border border-astro-highlight/35 bg-astro-highlight/10 py-3.5 text-sm font-semibold text-astro-highlight transition-colors hover:border-astro-highlight/55 hover:bg-astro-highlight/15"
                                 >
                                     {getText(lang, 'chart.unlock_full')}
                                 </button>

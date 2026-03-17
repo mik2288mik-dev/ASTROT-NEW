@@ -185,7 +185,7 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
     if (!horoscope || !chartData) {
         return (
             <div className="flex min-h-full items-center justify-center px-5 py-8">
-                <div className="w-full max-w-md rounded-[24px] border border-astro-border bg-astro-card/70 p-6 text-center">
+                <div className="w-full max-w-md rounded-[24px] border border-astro-border/80 bg-astro-card/70 p-6 text-center">
                     <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
                         {getText(language, 'horoscope.today_layer_label')}
                     </p>
@@ -209,8 +209,8 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
     }
 
     return (
-        <div className="min-h-screen max-w-2xl mx-auto px-5 pt-6 space-y-5 screen-pb">
-            <section className="rounded-[24px] border border-astro-border bg-gradient-to-b from-astro-card to-astro-card/65 p-5 shadow-sm">
+        <div className="min-h-screen max-w-2xl mx-auto px-5 pt-6 space-y-4 screen-pb">
+            <section className="rounded-[24px] border border-astro-border/80 bg-gradient-to-b from-astro-card to-astro-card/65 p-5 shadow-sm">
                 <div className="flex items-start justify-between gap-4">
                     <div>
                         <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
@@ -238,7 +238,7 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
                 )}
             </section>
 
-            <section className="rounded-[24px] border border-astro-border bg-astro-card/60 p-5">
+            <section className="rounded-[24px] border border-astro-border/80 bg-astro-card/60 p-5">
                 <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
                     {getText(language, 'horoscope.foundation_label')}
                 </p>
@@ -251,7 +251,7 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
             </section>
 
             {signals.length > 0 && (
-                <section className="rounded-[24px] border border-astro-border bg-astro-card/55 p-5">
+                <section className="rounded-[24px] border border-astro-border/80 bg-astro-card/55 p-5">
                     <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
                         {getText(language, 'horoscope.signals_title')}
                     </p>
@@ -284,7 +284,7 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
                 language={language}
             />
 
-            <section className="rounded-[24px] border border-astro-border bg-astro-card/45 p-5">
+            <section className="rounded-[24px] border border-astro-border/80 bg-astro-card/45 p-5">
                 <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
                     {getText(language, 'horoscope.bridge_label')}
                 </p>

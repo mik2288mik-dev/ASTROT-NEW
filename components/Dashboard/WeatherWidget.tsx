@@ -65,9 +65,8 @@ export const WeatherWidget = memo<WeatherWidgetProps>(({ profile, chartData, wea
         <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-gradient-to-br from-astro-card to-astro-bg border border-astro-border rounded-2xl p-5 overflow-hidden"
+            className="rounded-[24px] border border-astro-border/70 bg-gradient-to-br from-astro-card/70 to-astro-bg p-5 overflow-hidden"
         >
-            {/* Верхняя часть - погода */}
             <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
                     <span className="text-4xl">{icon}</span>
@@ -90,21 +89,14 @@ export const WeatherWidget = memo<WeatherWidgetProps>(({ profile, chartData, wea
                         </div>
                     )}
                 </div>
-                {weatherData.humidity && (
-                    <div className="text-xs text-astro-subtext/70">
-                        💧 {weatherData.humidity}%
-                    </div>
-                )}
             </div>
 
-            {/* Шутка */}
-            <div className="bg-astro-bg/50 rounded-xl p-3 border border-astro-border/30">
+            <div className="bg-astro-bg/40 rounded-2xl p-3.5 border border-astro-border/30">
                 <p className="text-sm text-astro-text/90 leading-relaxed">
                     {joke}
                 </p>
             </div>
 
-            {/* Фаза луны */}
             {weatherData.moonPhase && (
                 <div className="flex items-center justify-center gap-2 mt-3 pt-3 border-t border-astro-border/30">
                     <span className="text-lg">🌙</span>

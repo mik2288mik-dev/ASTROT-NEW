@@ -27,15 +27,13 @@ export const SolarSystem: React.FC<SolarSystemProps> = ({ language }) => {
     };
 
     return (
-        <div className="relative w-full h-[360px] bg-astro-bg rounded-2xl overflow-hidden flex items-center justify-center mb-6 border border-astro-border shadow-sm">
-            {/* Title Overlay - Centered & Styled */}
+        <div className="relative mb-4 flex h-[340px] w-full items-center justify-center overflow-hidden rounded-[24px] border border-astro-border/70 bg-astro-card/35 shadow-sm">
             <div className="absolute top-6 left-0 right-0 z-10 pointer-events-none flex justify-center">
-                <h3 className="text-astro-text font-serif text-[10px] uppercase tracking-[0.3em] opacity-60 border-b border-transparent">
+                <h3 className="text-astro-text font-serif text-[10px] uppercase tracking-[0.28em] opacity-55 border-b border-transparent">
                     {getText(language, 'dashboard.solar_system_title')}
                 </h3>
             </div>
 
-            {/* Sun */}
             <motion.div 
                 className="absolute rounded-full shadow-[0_0_60px_rgba(253,184,19,0.2)] cursor-pointer z-20 bg-gradient-to-br from-yellow-300 to-orange-500"
                 style={{ width: 50, height: 50 }}
@@ -44,7 +42,6 @@ export const SolarSystem: React.FC<SolarSystemProps> = ({ language }) => {
                 onClick={() => handlePlanetClick('sun')}
             />
 
-            {/* Orbits & Planets */}
             {planets.filter(p => p.id !== 'sun').map((planet) => (
                 <div 
                     key={planet.id}
@@ -73,14 +70,13 @@ export const SolarSystem: React.FC<SolarSystemProps> = ({ language }) => {
                 </div>
             ))}
 
-            {/* Info Modal */}
             <AnimatePresence>
                 {selectedPlanet && (
                     <motion.div 
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 20 }}
-                        className="absolute bottom-6 inset-x-6 bg-astro-card/98 backdrop-blur-xl p-6 md:p-7 rounded-2xl border-2 border-astro-border z-40 shadow-2xl"
+                        className="absolute bottom-6 inset-x-6 bg-astro-card/98 backdrop-blur-xl p-6 md:p-7 rounded-2xl border border-astro-border z-40 shadow-2xl"
                     >
                         <div className="flex justify-between items-start gap-4">
                             <div className="flex-1">

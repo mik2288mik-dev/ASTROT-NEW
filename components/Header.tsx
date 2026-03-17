@@ -1,5 +1,6 @@
 import React from 'react';
 import { UserProfile, ViewState } from '../types';
+import { getText } from '../constants';
 
 interface HeaderProps {
     profile: UserProfile | null;
@@ -17,6 +18,9 @@ export const Header: React.FC<HeaderProps> = ({ profile, view, onBack, onOpenWal
 
     if (isFunnel) return null;
 
+    const hasLumi = typeof profile.lumiBalance === 'number';
+    const lumiValue = Math.max(0, profile.lumiBalance ?? 0);
+
     const getViewTitle = () => {
         const titles: Record<string, { ru: string; en: string }> = {
             chart: { ru: 'Натальная карта', en: 'Natal Chart' },
@@ -24,9 +28,9 @@ export const Header: React.FC<HeaderProps> = ({ profile, view, onBack, onOpenWal
             horoscope: { ru: 'Гороскоп', en: 'Horoscope' },
             oracle: { ru: 'Оракул', en: 'Oracle' },
             synastry: { ru: 'Совместимость', en: 'Synastry' },
-            wallet: { ru: 'Lumi Wallet', en: 'Lumi Wallet' },
+            wallet: { ru: 'Кошелёк Lumi', en: 'Lumi Wallet' },
             settings: { ru: 'Настройки', en: 'Settings' },
-            admin: { ru: 'Админ', en: 'Admin' },
+            admin: { ru: 'Админ-панель', en: 'Admin Panel' },
             dashboard: { ru: 'Lumia', en: 'Lumia' },
         };
         return titles[view]?.[profile.language] || 'Lumia';
@@ -41,44 +45,54 @@ export const Header: React.FC<HeaderProps> = ({ profile, view, onBack, onOpenWal
                 paddingRight: 'env(safe-area-inset-right, 0px)',
             }}
         >
-            <div className="px-4 pt-1 pb-3">
-                <div className="h-12 flex items-center justify-between">
-                    <div className="w-16 flex items-center">
+            <div className="px-4 pt-1 pb-2.5">
+                <div className="h-11 flex items-center justify-between">
+                    <div className="w-20 flex items-center">
                         {!isHub && (
                             <button
                                 onClick={onBack}
-                                className="flex items-center gap-1 text-astro-highlight active:opacity-70 transition-opacity"
+                                className="flex items-center gap-1.5 text-astro-subtext hover:text-astro-text active:opacity-70 transition-colors"
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                                 </svg>
-                                <span className="text-sm font-medium">
-                                    {profile.language === 'ru' ? 'Назад' : 'Back'}
+                                <span className="text-xs font-medium tracking-wide">
+                                    {getText(profile.language, 'header.back')}
                                 </span>
                             </button>
                         )}
                     </div>
 
                     <div className="flex-1 text-center">
-                        <h1 className={`font-semibold text-astro-text ${isHub ? 'text-xl font-serif tracking-tight' : 'text-base'}`}>
+                        <h1 className={`font-semibold text-astro-text ${isHub ? 'text-[22px] font-serif tracking-tight' : 'text-[15px]'}`}>
                             {getViewTitle()}
                         </h1>
                     </div>
 
-                    <div className="w-16" />
+                    <div className="w-20 flex justify-end">
+                        {!isHub && hasLumi && (
+                            <button
+                                onClick={onOpenWallet}
+                                aria-label={getText(profile.language, 'header.wallet')}
+                                className="relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-astro-border/70 bg-astro-card/60 text-astro-subtext transition-colors hover:border-astro-highlight/35 hover:text-astro-text"
+                            >
+                                <span className="text-sm leading-none">✦</span>
+                                <span className="absolute -right-1 -top-1 min-w-[18px] rounded-full border border-astro-bg bg-astro-highlight px-1.5 py-0.5 text-[9px] font-semibold leading-none text-white">
+                                    {lumiValue}
+                                </span>
+                            </button>
+                        )}
+                    </div>
                 </div>
 
-                {typeof profile.lumiBalance === 'number' && (
-                    <div className="mt-1 flex justify-center">
+                {isHub && (
+                    <div className="mt-1.5 flex justify-center">
                         <button
                             onClick={onOpenWallet}
-                            className="inline-flex items-center gap-2 rounded-full border border-astro-highlight/30 bg-astro-card/90 px-4 py-2 text-sm font-medium text-astro-text shadow-sm hover:border-astro-highlight/50 hover:bg-astro-card transition-colors"
+                            className="inline-flex items-center gap-2 rounded-full border border-astro-border/70 bg-astro-card/60 px-3.5 py-1.5 text-xs font-medium text-astro-text shadow-sm transition-colors hover:border-astro-highlight/35 hover:bg-astro-card/80"
                         >
-                            <span className="text-yellow-400 text-base leading-none">✦</span>
-                            <span>{profile.lumiBalance} Lumi</span>
-                            <span className="text-xs text-astro-subtext">
-                                {profile.language === 'ru' ? 'Кошелёк' : 'Wallet'}
-                            </span>
+                            <span className="text-yellow-400 text-sm leading-none">✦</span>
+                            <span>{lumiValue} Lumi</span>
                         </button>
                     </div>
                 )}

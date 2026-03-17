@@ -116,7 +116,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
     if (!chartData) return <Loading message={getText(profile.language, 'loading')} />;
 
     return (
-        <div className="p-4 space-y-6 screen-pb">
+        <div className="p-5 space-y-5 screen-pb">
             <CosmicPassport
                 profile={profile}
                 chartData={chartData}
@@ -126,71 +126,77 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
                 weatherData={context?.weatherData}
             />
 
-            <button
-                onClick={handleNavigateHoroscope}
-                className="w-full rounded-xl border border-astro-border bg-astro-card p-5 text-left transition-colors hover:border-astro-highlight/30"
-            >
-                <p className="mb-1 text-[10px] uppercase tracking-widest text-astro-subtext">
-                    {getText(profile.language, 'dashboard.horoscope_today')}
-                </p>
-                {horoscopeDateLabel && (
-                    <p className="mb-2 text-[9px] text-astro-subtext">
-                        {getText(profile.language, 'dashboard.forecast_date')}: {horoscopeDateLabel}
-                    </p>
-                )}
-                <p className="mb-3 text-xs text-astro-subtext">
-                    {getText(profile.language, 'dashboard.horoscope_footer')}
-                </p>
-                {dailyHoroscope?.content ? (
-                    <>
-                        <h3 className="mb-2 line-clamp-2 font-serif text-base text-astro-text">
-                            {(() => {
-                                const sentences = dailyHoroscope.content.split(/[.!?]+/).filter((s: string) => s.trim().length > 0);
-                                const shortText = sentences.slice(0, 2).join('. ').trim();
-                                return shortText.length > 0 ? `${shortText}.` : `${dailyHoroscope.content.substring(0, 120)}...`;
-                            })()}
-                        </h3>
-                        {(dailyHoroscope.mood || dailyHoroscope.color) && (
-                            <div className="flex flex-wrap items-center gap-2 text-xs text-astro-subtext">
-                                {dailyHoroscope.mood && (
-                                    <span>
-                                        {getText(profile.language, 'dashboard.mood')}:{' '}
-                                        <span className="font-medium text-astro-highlight">{dailyHoroscope.mood}</span>
-                                    </span>
-                                )}
-                                {dailyHoroscope.mood && dailyHoroscope.color && <span>•</span>}
-                                {dailyHoroscope.color && (
-                                    <span>
-                                        {getText(profile.language, 'dashboard.color')}:{' '}
-                                        <span className="font-medium text-astro-highlight">{dailyHoroscope.color}</span>
-                                    </span>
-                                )}
-                            </div>
+            <div className="space-y-3">
+                <button
+                    onClick={handleNavigateHoroscope}
+                    className="w-full rounded-[24px] border border-astro-border bg-gradient-to-b from-astro-card to-astro-card/65 p-5 text-left transition-colors hover:border-astro-highlight/30"
+                >
+                    <div className="flex items-start justify-between gap-4">
+                        <div>
+                            <p className="mb-1 text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
+                                {getText(profile.language, 'dashboard.horoscope_today')}
+                            </p>
+                            <p className="text-xs leading-relaxed text-astro-subtext">
+                                {getText(profile.language, 'dashboard.horoscope_footer')}
+                            </p>
+                        </div>
+                        {horoscopeDateLabel && (
+                            <span className="shrink-0 rounded-full border border-astro-border/70 bg-astro-bg/25 px-3 py-1 text-[11px] text-astro-subtext">
+                                {horoscopeDateLabel}
+                            </span>
                         )}
-                    </>
-                ) : (
-                    <h3 className="font-serif text-base text-astro-text">
-                        {getText(profile.language, 'dashboard.special_day')}
-                    </h3>
-                )}
-                <p className="mt-2 text-xs font-medium text-astro-highlight">
-                    {getText(profile.language, 'dashboard.detailed_forecast')}
-                </p>
-            </button>
+                    </div>
 
-            <button
-                onClick={handleNavigateChart}
-                className="w-full rounded-xl border border-astro-border bg-astro-card p-5 text-left transition-colors hover:border-astro-highlight/30"
-            >
-                <h3 className="mb-0.5 font-serif text-lg text-astro-text">
-                    {getText(profile.language, 'dashboard.menu_analysis')}
-                </h3>
-                <p className="text-xs text-astro-subtext">
-                    {profile.language === 'ru'
-                        ? 'Ваша натальная карта и личные интерпретации.'
-                        : 'Your natal chart and personal interpretations.'}
-                </p>
-            </button>
+                    {dailyHoroscope?.content ? (
+                        <>
+                            <h3 className="mt-4 line-clamp-2 font-serif text-lg text-astro-text">
+                                {(() => {
+                                    const sentences = dailyHoroscope.content.split(/[.!?]+/).filter((s: string) => s.trim().length > 0);
+                                    const shortText = sentences.slice(0, 2).join('. ').trim();
+                                    return shortText.length > 0 ? `${shortText}.` : `${dailyHoroscope.content.substring(0, 120)}...`;
+                                })()}
+                            </h3>
+                            {(dailyHoroscope.mood || dailyHoroscope.color) && (
+                                <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-astro-subtext">
+                                    {dailyHoroscope.mood && (
+                                        <span className="rounded-full border border-astro-border/70 bg-astro-bg/25 px-3 py-1">
+                                            {getText(profile.language, 'dashboard.mood')}: <span className="font-medium text-astro-highlight">{dailyHoroscope.mood}</span>
+                                        </span>
+                                    )}
+                                    {dailyHoroscope.color && (
+                                        <span className="rounded-full border border-astro-border/70 bg-astro-bg/25 px-3 py-1">
+                                            {getText(profile.language, 'dashboard.color')}: <span className="font-medium text-astro-highlight">{dailyHoroscope.color}</span>
+                                        </span>
+                                    )}
+                                </div>
+                            )}
+                        </>
+                    ) : (
+                        <h3 className="mt-4 font-serif text-lg text-astro-text">
+                            {getText(profile.language, 'dashboard.special_day')}
+                        </h3>
+                    )}
+
+                    <p className="mt-4 text-sm font-medium text-astro-highlight">
+                        {getText(profile.language, 'dashboard.detailed_forecast')}
+                    </p>
+                </button>
+
+                <button
+                    onClick={handleNavigateChart}
+                    className="w-full rounded-[24px] border border-astro-border bg-astro-card/70 p-5 text-left transition-colors hover:border-astro-highlight/30"
+                >
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
+                        {getText(profile.language, 'dashboard.menu_analysis')}
+                    </p>
+                    <h3 className="mt-2 font-serif text-lg text-astro-text">
+                        {getText(profile.language, 'chart.summary')}
+                    </h3>
+                    <p className="mt-2 text-sm leading-relaxed text-astro-subtext">
+                        {getText(profile.language, 'dashboard.chart_subtitle')}
+                    </p>
+                </button>
+            </div>
 
             {context?.socialProof && (
                 <div className="overflow-hidden border-y border-astro-border/50 bg-astro-bg py-2">
@@ -208,7 +214,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
                 context?.weatherData && chartData ? (
                     <WeatherWidget profile={profile} chartData={chartData} weatherData={context.weatherData} />
                 ) : (
-                    <div className="rounded-xl border border-astro-border bg-astro-card/60 p-5 opacity-70">
+                    <div className="rounded-[24px] border border-astro-border/70 bg-astro-card/45 p-5 opacity-75">
                         <h3 className="mb-1 text-[10px] uppercase tracking-widest text-astro-subtext">
                             {getText(profile.language, 'dashboard.context_weather')}
                         </h3>
@@ -218,7 +224,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
             ) : (
                 <button
                     onClick={onOpenSettings}
-                    className="w-full rounded-xl border border-astro-border bg-astro-card/60 p-5 text-left transition-colors hover:border-astro-highlight/40"
+                    className="w-full rounded-[24px] border border-astro-border/70 bg-astro-card/45 p-5 text-left transition-colors hover:border-astro-highlight/30"
                 >
                     <h3 className="mb-1 text-[10px] uppercase tracking-widest text-astro-subtext">
                         {getText(profile.language, 'dashboard.context_weather')}
@@ -231,7 +237,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
             <div className="grid grid-cols-2 gap-3">
                 <button
                     onClick={handleNavigateSynastry}
-                    className="rounded-xl border border-astro-border bg-astro-card p-4 text-left transition-colors hover:border-astro-highlight/30"
+                    className="rounded-[22px] border border-astro-border bg-astro-card/60 p-4 text-left transition-colors hover:border-astro-highlight/30"
                 >
                     <span className="text-xl text-pink-400/90">♥</span>
                     <h3 className="mt-2 mb-0.5 font-serif text-sm text-astro-text">
@@ -239,7 +245,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
                     </h3>
                     <p className="text-[10px] text-astro-subtext">{getText(profile.language, 'dashboard.synastry_subtitle')}</p>
                     <p className="mt-1 text-[10px] text-astro-subtext">
-                        {profile.language === 'ru' ? 'Используй сохранённые карты без повторного ввода.' : 'Reuse saved charts without entering the data again.'}
+                        {getText(profile.language, 'dashboard.synastry_hint')}
                     </p>
                     {!profile.isPremium && (
                         <span className="mt-1 block text-[9px] uppercase tracking-wider text-astro-highlight">
@@ -250,7 +256,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
 
                 <button
                     onClick={handleNavigateOracle}
-                    className="relative rounded-xl border border-astro-border bg-astro-card p-4 text-left transition-colors hover:border-astro-highlight/30"
+                    className="relative rounded-[22px] border border-astro-border bg-astro-card/60 p-4 text-left transition-colors hover:border-astro-highlight/30"
                 >
                     {!profile.isPremium && (
                         <span className="absolute right-2 top-2 rounded-full bg-astro-highlight/20 px-2 py-0.5 text-[9px] font-bold uppercase text-astro-highlight">
