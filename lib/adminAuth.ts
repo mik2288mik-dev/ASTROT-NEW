@@ -83,9 +83,13 @@ function verifyTelegramInitData(initData: string): VerifiedTelegramUser {
   };
 }
 
-export async function getAdminAccessState(req: NextApiRequest) {
+export function getVerifiedTelegramUser(req: NextApiRequest): VerifiedTelegramUser {
   const initData = getHeaderValue(req, INIT_DATA_HEADER);
-  const telegramUser = verifyTelegramInitData(initData);
+  return verifyTelegramInitData(initData);
+}
+
+export async function getAdminAccessState(req: NextApiRequest) {
+  const telegramUser = getVerifiedTelegramUser(req);
   const requester = await db.users.get(telegramUser.id);
   const ownerId = getConfiguredOwnerId();
   const isOwner = !!ownerId && telegramUser.id === String(ownerId);

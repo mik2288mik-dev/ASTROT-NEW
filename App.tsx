@@ -22,6 +22,7 @@ import { Synastry } from './views/Synastry';
 import { MyCharts } from './views/MyCharts';
 import { Wallet } from './views/Wallet';
 import { getAdminStatus } from './services/adminService';
+import { recordUserSession } from './services/sessionService';
 import { useSwipeBack } from './lib/useSwipeBack';
 import { BackgroundLayers } from './components/BackgroundLayers';
 
@@ -59,6 +60,7 @@ const App: React.FC = () => {
     const dataLoadedRef = useRef(false);
     // Ref для однократного вызова daily login за сессию
     const dailyLoginProcessedRef = useRef(false);
+    const lastSessionPingRef = useRef(0);
 
     const getFallbackAdminStatus = useCallback((userId?: string | number, storedIsAdmin?: boolean) => {
         return OWNER_ID && userId ? String(userId) === String(OWNER_ID) : !!storedIsAdmin;
@@ -75,6 +77,24 @@ const App: React.FC = () => {
             return fallbackIsAdmin;
         }
     }, [getFallbackAdminStatus]);
+
+    const trackSessionActivity = useCallback(async (force = false) => {
+        if (!profile?.id || typeof window === 'undefined') return;
+
+        const now = Date.now();
+        if (!force && now - lastSessionPingRef.current < 30000) {
+            return;
+        }
+
+        lastSessionPingRef.current = now;
+
+        try {
+            const tg = (window as any).Telegram?.WebApp;
+            await recordUserSession(tg?.platform || null);
+        } catch (error: any) {
+            console.warn('[App] Failed to track user session:', error?.message || error);
+        }
+    }, [profile?.id]);
 
     useEffect(() => {
         const tg = (window as any).Telegram?.WebApp;
@@ -344,6 +364,23 @@ const App: React.FC = () => {
             refreshLumiOnDashboard();
         }
     }, [view, profile?.id, refreshLumiOnDashboard]);
+
+    useEffect(() => {
+        if (!profile?.id || typeof document === 'undefined') return;
+
+        void trackSessionActivity(true);
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                void trackSessionActivity();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, [profile?.id, trackSessionActivity]);
 
     // Daily login bonus: process once per session when user reaches dashboard
     useEffect(() => {

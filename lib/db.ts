@@ -28,6 +28,41 @@ function normalizeOracleQuestion(value: string): string {
   return value.replace(/\s+/g, ' ').trim().toLowerCase();
 }
 
+function detectDeviceLabel(telegramPlatform?: string | null, userAgent?: string | null): string {
+  const platform = (telegramPlatform || '').trim().toLowerCase();
+  const ua = (userAgent || '').toLowerCase();
+  const parts: string[] = [];
+
+  if (platform) {
+    const platformMap: Record<string, string> = {
+      android: 'Telegram Android',
+      ios: 'Telegram iOS',
+      macos: 'Telegram macOS',
+      tdesktop: 'Telegram Desktop',
+      web: 'Telegram Web',
+      webk: 'Telegram Web',
+      weba: 'Telegram Web',
+    };
+    parts.push(platformMap[platform] || `Telegram ${platform}`);
+  }
+
+  if (ua.includes('iphone')) parts.push('iPhone');
+  else if (ua.includes('ipad')) parts.push('iPad');
+  else if (ua.includes('android')) parts.push('Android');
+  else if (ua.includes('windows')) parts.push('Windows');
+  else if (ua.includes('mac os') || ua.includes('macintosh')) parts.push('macOS');
+  else if (ua.includes('linux')) parts.push('Linux');
+
+  return parts.filter(Boolean).join(' • ') || 'Unknown device';
+}
+
+function trimText(value?: string | null, maxLength = 1000): string | null {
+  if (value == null) return null;
+  const trimmed = String(value).trim();
+  if (!trimmed) return null;
+  return trimmed.length > maxLength ? trimmed.slice(0, maxLength) : trimmed;
+}
+
 // Check if DATABASE_URL is configured
 if (!DATABASE_URL) {
   log.warn('DATABASE_URL is not set. Database operations will fail.');
@@ -1507,6 +1542,61 @@ export const db = {
     },
   },
 
+  user_sessions: {
+    async upsert(userId: string, sessionId: string, options?: { telegramPlatform?: string | null; userAgent?: string | null }) {
+      const id = toUserId(userId);
+      const safeSessionId = trimText(sessionId, 128);
+      if (!safeSessionId) {
+        throw new Error('SESSION_ID_REQUIRED');
+      }
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+
+      const telegramPlatform = trimText(options?.telegramPlatform, 64);
+      const userAgent = trimText(options?.userAgent, 1000);
+      const deviceLabel = detectDeviceLabel(telegramPlatform, userAgent);
+
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          `INSERT INTO user_sessions (session_id, user_id, telegram_platform, device_label, user_agent)
+           VALUES ($1, $2, $3, $4, $5)
+           ON CONFLICT (session_id, user_id) DO UPDATE SET
+             telegram_platform = COALESCE(EXCLUDED.telegram_platform, user_sessions.telegram_platform),
+             device_label = COALESCE(EXCLUDED.device_label, user_sessions.device_label),
+             user_agent = COALESCE(EXCLUDED.user_agent, user_sessions.user_agent),
+             last_seen_at = CURRENT_TIMESTAMP
+           RETURNING session_id, user_id, telegram_platform, device_label, user_agent, started_at, last_seen_at`,
+          [safeSessionId, id, telegramPlatform, deviceLabel, userAgent]
+        );
+
+        return result.rows[0] || null;
+      } catch (error: any) {
+        log.error('[DB] Error upserting user session', { error: error.message, userId });
+        throw error;
+      }
+    },
+
+    async getRecentByUser(userId: string, limit = 10) {
+      const id = toUserId(userId);
+      if (!DATABASE_URL) return [];
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          `SELECT session_id, telegram_platform, device_label, user_agent, started_at, last_seen_at
+           FROM user_sessions
+           WHERE user_id = $1
+           ORDER BY last_seen_at DESC
+           LIMIT $2`,
+          [id, limit]
+        );
+        return result.rows;
+      } catch (error: any) {
+        log.error('[DB] Error getting recent sessions', { error: error.message, userId });
+        throw error;
+      }
+    },
+  },
+
   admin: {
     async listUsers(options?: { q?: string; premium?: 'all' | 'premium' | 'free'; limit?: number }) {
       if (!DATABASE_URL) return [];
@@ -1572,6 +1662,10 @@ export const db = {
       const primaryChart = charts.find((chart: any) => chart.is_primary) || null;
       const recentLumiTransactions = await db.lumi_transactions.getHistory(userId, 20);
       const latestStarsPayment = await db.star_payments.getLatestByUser(userId);
+      const recentSessions = await db.user_sessions.getRecentByUser(userId, 8);
+      const recentOracleQuestions = await db.astro_questions.getByUser(userId, 5);
+      const lastSeenAt = recentSessions[0]?.last_seen_at ?? null;
+      const currentDeviceLabel = recentSessions[0]?.device_label ?? null;
 
       return {
         id: user.id,
@@ -1588,6 +1682,8 @@ export const db = {
         is_admin: user.is_admin ?? false,
         created_at: user.created_at,
         last_login: user.last_login,
+        last_seen_at: lastSeenAt,
+        current_device_label: currentDeviceLabel,
         primary_chart: primaryChart
           ? {
               id: primaryChart.id,
@@ -1598,8 +1694,264 @@ export const db = {
             }
           : null,
         recent_lumi_transactions: recentLumiTransactions,
+        recent_sessions: recentSessions,
+        recent_oracle_questions: recentOracleQuestions,
         latest_stars_payment: latestStarsPayment,
       };
+    },
+
+    async getNotificationRecipients(segment: 'all' | 'premium' | 'free' | 'active_7d' | 'inactive_30d') {
+      if (!DATABASE_URL) return [];
+
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          `SELECT
+             u.id,
+             COALESCE(u.name, 'Unnamed user') AS name,
+             COALESCE(u.language, 'ru') AS language,
+             u.premium_until,
+             COALESCE(MAX(us.last_seen_at), u.last_login) AS last_seen_at
+           FROM users u
+           LEFT JOIN user_sessions us ON us.user_id = u.id
+           GROUP BY u.id
+           HAVING
+             (
+               $1 = 'all'
+               OR ($1 = 'premium' AND u.premium_until IS NOT NULL AND u.premium_until > NOW())
+               OR ($1 = 'free' AND (u.premium_until IS NULL OR u.premium_until <= NOW()))
+               OR ($1 = 'active_7d' AND COALESCE(MAX(us.last_seen_at), u.last_login) >= NOW() - INTERVAL '7 days')
+               OR ($1 = 'inactive_30d' AND (COALESCE(MAX(us.last_seen_at), u.last_login) IS NULL OR COALESCE(MAX(us.last_seen_at), u.last_login) < NOW() - INTERVAL '30 days'))
+             )
+           ORDER BY u.created_at DESC`,
+          [segment]
+        );
+
+        return result.rows.map((row: any) => ({
+          id: String(row.id),
+          name: row.name || 'Unnamed user',
+          language: row.language || 'ru',
+          last_seen_at: row.last_seen_at ?? null,
+          is_premium: !!(row.premium_until && new Date(row.premium_until) > new Date()),
+        }));
+      } catch (error: any) {
+        log.error('[DB] Error getting notification recipients', { error: error.message, segment });
+        throw error;
+      }
+    },
+  },
+
+  notification_templates: {
+    async getAll() {
+      if (!DATABASE_URL) return [];
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          `SELECT id, title, body_ru, body_en, kind, is_active, created_at, updated_at
+           FROM notification_templates
+           ORDER BY updated_at DESC, id DESC`
+        );
+        return result.rows;
+      } catch (error: any) {
+        log.error('[DB] Error getting notification templates', { error: error.message });
+        throw error;
+      }
+    },
+
+    async create(data: { title: string; bodyRu?: string | null; bodyEn?: string | null; kind: 'personal' | 'broadcast' | 'both'; isActive?: boolean }) {
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          `INSERT INTO notification_templates (title, body_ru, body_en, kind, is_active)
+           VALUES ($1, $2, $3, $4, $5)
+           RETURNING id, title, body_ru, body_en, kind, is_active, created_at, updated_at`,
+          [
+            trimText(data.title, 120),
+            trimText(data.bodyRu, 4000),
+            trimText(data.bodyEn, 4000),
+            data.kind,
+            data.isActive ?? true,
+          ]
+        );
+        return result.rows[0];
+      } catch (error: any) {
+        log.error('[DB] Error creating notification template', { error: error.message });
+        throw error;
+      }
+    },
+
+    async update(templateId: number, data: { title: string; bodyRu?: string | null; bodyEn?: string | null; kind: 'personal' | 'broadcast' | 'both'; isActive: boolean }) {
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          `UPDATE notification_templates
+           SET title = $2,
+               body_ru = $3,
+               body_en = $4,
+               kind = $5,
+               is_active = $6,
+               updated_at = CURRENT_TIMESTAMP
+           WHERE id = $1
+           RETURNING id, title, body_ru, body_en, kind, is_active, created_at, updated_at`,
+          [
+            templateId,
+            trimText(data.title, 120),
+            trimText(data.bodyRu, 4000),
+            trimText(data.bodyEn, 4000),
+            data.kind,
+            data.isActive,
+          ]
+        );
+        return result.rows[0] || null;
+      } catch (error: any) {
+        log.error('[DB] Error updating notification template', { error: error.message, templateId });
+        throw error;
+      }
+    },
+  },
+
+  notifications: {
+    async createCampaign(data: {
+      createdBy: string;
+      mode: 'personal' | 'broadcast';
+      targetSegment?: 'all' | 'premium' | 'free' | 'active_7d' | 'inactive_30d' | null;
+      targetUserId?: string | null;
+      templateId?: number | null;
+      title: string;
+      bodyRu?: string | null;
+      bodyEn?: string | null;
+      totalRecipients: number;
+    }) {
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          `INSERT INTO notification_campaigns (
+             created_by, mode, target_segment, target_user_id, template_id, title, body_ru, body_en, total_recipients
+           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+           RETURNING id, created_at`,
+          [
+            toUserId(data.createdBy),
+            data.mode,
+            data.targetSegment ?? null,
+            data.targetUserId ? toUserId(data.targetUserId) : null,
+            data.templateId ?? null,
+            trimText(data.title, 120),
+            trimText(data.bodyRu, 4000),
+            trimText(data.bodyEn, 4000),
+            data.totalRecipients,
+          ]
+        );
+        return result.rows[0];
+      } catch (error: any) {
+        log.error('[DB] Error creating notification campaign', { error: error.message });
+        throw error;
+      }
+    },
+
+    async addDelivery(data: {
+      campaignId: number;
+      userId: string;
+      language: string;
+      messageText: string;
+      status: 'sent' | 'failed';
+      telegramMessageId?: number | null;
+      errorText?: string | null;
+    }) {
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      try {
+        const dbPool = getPool();
+        await dbPool.query(
+          `INSERT INTO notification_deliveries (
+             campaign_id, user_id, language, message_text, status, telegram_message_id, error_text, sent_at
+           ) VALUES ($1, $2, $3, $4, $5, $6, $7, CASE WHEN $5 = 'sent' THEN CURRENT_TIMESTAMP ELSE NULL END)`,
+          [
+            data.campaignId,
+            toUserId(data.userId),
+            trimText(data.language, 10),
+            trimText(data.messageText, 4000) || '',
+            data.status,
+            data.telegramMessageId ?? null,
+            trimText(data.errorText, 500),
+          ]
+        );
+        return { success: true };
+      } catch (error: any) {
+        log.error('[DB] Error adding notification delivery', { error: error.message, campaignId: data.campaignId });
+        throw error;
+      }
+    },
+
+    async finalizeCampaign(campaignId: number, counts: { successCount: number; failedCount: number; totalRecipients: number }) {
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      try {
+        const dbPool = getPool();
+        await dbPool.query(
+          `UPDATE notification_campaigns
+           SET success_count = $2,
+               failed_count = $3,
+               total_recipients = $4,
+               sent_at = CURRENT_TIMESTAMP
+           WHERE id = $1`,
+          [campaignId, counts.successCount, counts.failedCount, counts.totalRecipients]
+        );
+        return { success: true };
+      } catch (error: any) {
+        log.error('[DB] Error finalizing notification campaign', { error: error.message, campaignId });
+        throw error;
+      }
+    },
+
+    async getRecentCampaigns(limit = 20) {
+      if (!DATABASE_URL) return [];
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          `SELECT
+             nc.id,
+             nc.mode,
+             nc.target_segment,
+             nc.target_user_id,
+             target_user.name AS target_user_name,
+             nc.template_id,
+             nc.title,
+             COALESCE(nc.total_recipients, 0) AS total_recipients,
+             COALESCE(nc.success_count, 0) AS success_count,
+             COALESCE(nc.failed_count, 0) AS failed_count,
+             nc.created_at,
+             nc.sent_at
+           FROM notification_campaigns nc
+           LEFT JOIN users target_user ON target_user.id = nc.target_user_id
+           ORDER BY nc.created_at DESC
+           LIMIT $1`,
+          [limit]
+        );
+
+        const campaigns = [];
+        for (const row of result.rows) {
+          const failures = await dbPool.query(
+            `SELECT nd.user_id, COALESCE(u.name, 'Unnamed user') AS user_name, nd.error_text, nd.created_at
+             FROM notification_deliveries nd
+             LEFT JOIN users u ON u.id = nd.user_id
+             WHERE nd.campaign_id = $1 AND nd.status = 'failed'
+             ORDER BY nd.created_at DESC
+             LIMIT 3`,
+            [row.id]
+          );
+
+          campaigns.push({
+            ...row,
+            recent_failures: failures.rows,
+          });
+        }
+
+        return campaigns;
+      } catch (error: any) {
+        log.error('[DB] Error getting recent notification campaigns', { error: error.message });
+        throw error;
+      }
     },
   },
 

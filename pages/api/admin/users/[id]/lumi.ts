@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { requireAdminAccess, handleAdminError } from '../../../../../lib/adminAuth';
 import { db } from '../../../../../lib/db';
 import { serializeAdminUserDetail } from '../../../../../lib/adminSerializers';
+import { sendTelegramTextMessage } from '../../../../../lib/telegramBot';
 import { addLumi, spendLumi } from '../../../../../services/lumiService';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -58,9 +59,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
+    let notificationSent = false;
+    let notificationError: string | null = null;
+
+    if (note) {
+      const lang = targetUser.language === 'en' ? 'en' : 'ru';
+      const messageText = action === 'add'
+        ? (lang === 'ru'
+            ? `На ваш баланс начислено ${amount} Lumi.\n\n${note}`
+            : `${amount} Lumi was credited to your balance.\n\n${note}`)
+        : (lang === 'ru'
+            ? `С вашего баланса списано ${amount} Lumi.\n\n${note}`
+            : `${amount} Lumi was deducted from your balance.\n\n${note}`);
+
+      const notificationResult = await sendTelegramTextMessage(String(targetUser.id), messageText);
+      notificationSent = notificationResult.ok;
+      notificationError = notificationResult.ok ? null : (notificationResult.error || 'Failed to send Telegram notification');
+    }
+
     const updated = await db.admin.getUserDetail(userId);
     return res.status(200).json({
       user: updated ? serializeAdminUserDetail(updated) : null,
+      notificationSent,
+      notificationError,
     });
   } catch (error) {
     return handleAdminError(res, error);

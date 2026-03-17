@@ -243,6 +243,21 @@ export interface AdminRecentPayment {
   createdAt: string;
 }
 
+export interface AdminUserSession {
+  sessionId: string;
+  telegramPlatform: string | null;
+  deviceLabel: string | null;
+  userAgent: string | null;
+  startedAt: string;
+  lastSeenAt: string;
+}
+
+export interface AdminOracleQuestion {
+  question: string;
+  answer: string;
+  createdAt: string;
+}
+
 export interface AdminUserDetail extends AdminUserSummary {
   birthDate: string;
   birthTime: string;
@@ -250,6 +265,57 @@ export interface AdminUserDetail extends AdminUserSummary {
   primaryChart: AdminChartSummary | null;
   recentLumiTransactions: LumiTransaction[];
   latestStarsPayment: AdminRecentPayment | null;
+  lastSeenAt: string | null;
+  currentDeviceLabel: string | null;
+  recentSessions: AdminUserSession[];
+  recentOracleQuestions: AdminOracleQuestion[];
+}
+
+export type AdminNotificationTemplateKind = 'personal' | 'broadcast' | 'both';
+export type AdminNotificationTargetSegment = 'all' | 'premium' | 'free' | 'active_7d' | 'inactive_30d';
+
+export interface AdminNotificationTemplate {
+  id: number;
+  title: string;
+  bodyRu: string;
+  bodyEn: string;
+  kind: AdminNotificationTemplateKind;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminNotificationFailureSample {
+  userId: string;
+  userName: string;
+  error: string;
+  createdAt: string;
+}
+
+export interface AdminNotificationHistoryItem {
+  id: number;
+  mode: 'personal' | 'broadcast';
+  targetSegment: AdminNotificationTargetSegment | null;
+  targetUserId: string | null;
+  targetUserName: string | null;
+  templateId: number | null;
+  title: string;
+  totalRecipients: number;
+  successCount: number;
+  failedCount: number;
+  createdAt: string;
+  sentAt: string | null;
+  recentFailures: AdminNotificationFailureSample[];
+}
+
+export interface AdminNotificationSendResult {
+  campaign: AdminNotificationHistoryItem;
+}
+
+export interface AdminLumiActionResult {
+  user: AdminUserDetail;
+  notificationSent?: boolean;
+  notificationError?: string | null;
 }
 
 export interface LumiTransaction {

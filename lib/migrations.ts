@@ -72,6 +72,10 @@ async function migrationReset(pool: Pool): Promise<void> {
   log.info('Applying full database reset...');
 
   const dropOrder = [
+    'notification_deliveries',
+    'notification_campaigns',
+    'notification_templates',
+    'user_sessions',
     'star_payments',
     'synastry_cache',
     'astro_questions',
@@ -385,11 +389,133 @@ async function lumia003StarPayments(pool: Pool): Promise<void> {
   log.info('Migration lumia_003_star_payments applied');
 }
 
+/**
+ * Migration: Admin backoffice sessions + notifications (lumia_004)
+ */
+async function lumia004AdminBackoffice(pool: Pool): Promise<void> {
+  const migrationName = 'lumia_004_admin_backoffice';
+
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
+  log.info('Applying admin backoffice migration...');
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS user_sessions (
+      id BIGSERIAL PRIMARY KEY,
+      session_id TEXT NOT NULL,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      telegram_platform TEXT,
+      device_label TEXT,
+      user_agent TEXT,
+      started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      last_seen_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE (session_id, user_id)
+    )
+  `);
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_user_sessions_user ON user_sessions(user_id)');
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_user_sessions_last_seen ON user_sessions(last_seen_at DESC)');
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS notification_templates (
+      id BIGSERIAL PRIMARY KEY,
+      title TEXT NOT NULL,
+      body_ru TEXT,
+      body_en TEXT,
+      kind TEXT NOT NULL DEFAULT 'both',
+      is_active BOOLEAN DEFAULT TRUE,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_notification_templates_kind ON notification_templates(kind)');
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS notification_campaigns (
+      id BIGSERIAL PRIMARY KEY,
+      created_by BIGINT REFERENCES users(id) ON DELETE SET NULL,
+      mode TEXT NOT NULL,
+      target_segment TEXT,
+      target_user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
+      template_id BIGINT REFERENCES notification_templates(id) ON DELETE SET NULL,
+      title TEXT NOT NULL,
+      body_ru TEXT,
+      body_en TEXT,
+      total_recipients INTEGER DEFAULT 0,
+      success_count INTEGER DEFAULT 0,
+      failed_count INTEGER DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      sent_at TIMESTAMP
+    )
+  `);
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_notification_campaigns_created_at ON notification_campaigns(created_at DESC)');
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS notification_deliveries (
+      id BIGSERIAL PRIMARY KEY,
+      campaign_id BIGINT NOT NULL REFERENCES notification_campaigns(id) ON DELETE CASCADE,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      language TEXT,
+      message_text TEXT NOT NULL,
+      status TEXT NOT NULL,
+      telegram_message_id BIGINT,
+      error_text TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      sent_at TIMESTAMP
+    )
+  `);
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_notification_deliveries_campaign ON notification_deliveries(campaign_id)');
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_notification_deliveries_user ON notification_deliveries(user_id)');
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_notification_deliveries_status ON notification_deliveries(status)');
+
+  const existingTemplates = await pool.query('SELECT COUNT(*)::int AS count FROM notification_templates');
+  const templateCount = existingTemplates.rows[0]?.count ?? 0;
+  if (templateCount === 0) {
+    await pool.query(
+      `INSERT INTO notification_templates (title, body_ru, body_en, kind, is_active)
+       VALUES
+       ($1, $2, $3, $4, TRUE),
+       ($5, $6, $7, $8, TRUE),
+       ($9, $10, $11, $12, TRUE),
+       ($13, $14, $15, $16, TRUE),
+       ($17, $18, $19, $20, TRUE)`,
+      [
+        'Premium granted',
+        'Твой Premium в Lumia уже активирован. Можно возвращаться к полному разбору, Оракулу и расширенным возможностям.',
+        'Your Lumia Premium is now active. You can return to full readings, Oracle, and the expanded product flows.',
+        'personal',
+        'Lumi credited',
+        'Мы начислили Lumi на твой баланс. Открой Lumia Wallet, чтобы посмотреть обновление.',
+        'We credited Lumi to your balance. Open Lumia Wallet to see the update.',
+        'personal',
+        'Important announcement',
+        'У нас есть важное обновление в Lumia. Открой приложение, чтобы посмотреть детали.',
+        'We have an important Lumia update. Open the app to see the details.',
+        'broadcast',
+        'Maintenance update',
+        'Сегодня в Lumia идут технические работы. Если что-то временно недоступно, попробуй чуть позже.',
+        'Lumia is undergoing maintenance today. If something is temporarily unavailable, please try again a bit later.',
+        'broadcast',
+        'Come back',
+        'Мы сохранили твои карты и историю в Lumia. Возвращайся — всё уже ждёт тебя внутри.',
+        'Your charts and history are still waiting for you in Lumia. Come back when you are ready.',
+        'broadcast',
+      ]
+    );
+  }
+
+  await markMigrationApplied(pool, migrationName);
+  log.info('Migration lumia_004_admin_backoffice applied');
+}
+
 async function verifyTablesExist(pool: Pool): Promise<void> {
   const required = [
     'users', 'natal_charts', 'interpretations', 'lumi_transactions',
     'roulette_spins', 'daily_horoscopes', 'daily_natal_cards',
-    'astro_questions', 'dictionary', 'synastry_cache', 'star_payments'
+    'astro_questions', 'dictionary', 'synastry_cache', 'star_payments',
+    'user_sessions', 'notification_templates', 'notification_campaigns', 'notification_deliveries'
   ];
   const missing: string[] = [];
   for (const t of required) {
@@ -442,6 +568,7 @@ export async function runMigrations(): Promise<void> {
     await lumia001FullSchema(pool);
     await lumia002MultiChart(pool);
     await lumia003StarPayments(pool);
+    await lumia004AdminBackoffice(pool);
     await verifyTablesExist(pool);
 
     log.info('All Lumia migrations completed successfully');

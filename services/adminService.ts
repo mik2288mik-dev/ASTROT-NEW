@@ -1,4 +1,10 @@
 import {
+  type AdminLumiActionResult,
+  type AdminNotificationHistoryItem,
+  type AdminNotificationSendResult,
+  type AdminNotificationTargetSegment,
+  type AdminNotificationTemplate,
+  type AdminNotificationTemplateKind,
   type AdminPremiumFilter,
   type AdminUserDetail,
   type AdminUserSummary,
@@ -96,15 +102,75 @@ export async function updateAdminLumi(
   action: 'add' | 'subtract',
   amount: number,
   note?: string
-): Promise<AdminUserDetail> {
-  const data = await adminRequest<{ user: AdminUserDetail }>(
+): Promise<AdminLumiActionResult> {
+  return adminRequest<AdminLumiActionResult>(
     `/api/admin/users/${encodeURIComponent(userId)}/lumi`,
     {
       method: 'POST',
       bodyJson: { action, amount, note },
     }
   );
-  return data.user;
+}
+
+export async function fetchNotificationTemplates(): Promise<AdminNotificationTemplate[]> {
+  const data = await adminRequest<{ templates: AdminNotificationTemplate[] }>('/api/admin/notification-templates');
+  return data.templates || [];
+}
+
+export async function createNotificationTemplate(payload: {
+  title: string;
+  bodyRu: string;
+  bodyEn: string;
+  kind: AdminNotificationTemplateKind;
+  isActive: boolean;
+}): Promise<AdminNotificationTemplate> {
+  const data = await adminRequest<{ template: AdminNotificationTemplate }>('/api/admin/notification-templates', {
+    method: 'POST',
+    bodyJson: payload,
+  });
+  return data.template;
+}
+
+export async function updateNotificationTemplate(
+  templateId: number,
+  payload: {
+    title: string;
+    bodyRu: string;
+    bodyEn: string;
+    kind: AdminNotificationTemplateKind;
+    isActive: boolean;
+  }
+): Promise<AdminNotificationTemplate> {
+  const data = await adminRequest<{ template: AdminNotificationTemplate }>(
+    `/api/admin/notification-templates/${templateId}`,
+    {
+      method: 'PATCH',
+      bodyJson: payload,
+    }
+  );
+  return data.template;
+}
+
+export async function fetchNotificationHistory(limit = 20): Promise<AdminNotificationHistoryItem[]> {
+  const data = await adminRequest<{ history: AdminNotificationHistoryItem[] }>(
+    `/api/admin/notifications?limit=${encodeURIComponent(String(limit))}`
+  );
+  return data.history || [];
+}
+
+export async function sendNotification(payload: {
+  mode: 'personal' | 'broadcast';
+  targetUserId?: string | null;
+  targetSegment?: AdminNotificationTargetSegment | null;
+  templateId?: number | null;
+  title: string;
+  bodyRu: string;
+  bodyEn: string;
+}): Promise<AdminNotificationSendResult> {
+  return adminRequest<AdminNotificationSendResult>('/api/admin/notifications/send', {
+    method: 'POST',
+    bodyJson: payload,
+  });
 }
 
 export { AdminApiError };

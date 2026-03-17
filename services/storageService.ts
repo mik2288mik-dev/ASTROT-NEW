@@ -201,7 +201,7 @@ export const getLumiBalance = async (userId: string): Promise<number> => {
   }
 
   const url = `${API_BASE_URL}/api/users/lumi?userId=${encodeURIComponent(userId)}`;
-  const res = await fetch(url);
+  const res = await fetch(url, { cache: 'no-store' });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.message || err.error || `Failed to fetch Lumi balance: ${res.status}`);
@@ -217,7 +217,7 @@ export const getLumiWallet = async (userId: string, limit = 30): Promise<LumiWal
   }
 
   const url = `${API_BASE_URL}/api/users/lumi?userId=${encodeURIComponent(userId)}&includeHistory=true&limit=${encodeURIComponent(String(limit))}`;
-  const res = await fetch(url);
+  const res = await fetch(url, { cache: 'no-store' });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.message || err.error || `Failed to fetch Lumi wallet: ${res.status}`);
