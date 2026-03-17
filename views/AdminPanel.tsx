@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
-import { type UserProfile } from '../types';
+import React, { useMemo, useState } from 'react';
+import { type AdminUserSegment, type AdminUsersOverview, type UserProfile } from '../types';
 import { AdminUsersTab } from './admin/AdminUsersTab';
 import { AdminNotificationsTab } from './admin/AdminNotificationsTab';
 
 type AdminOwnProfilePatch = Partial<Pick<UserProfile, 'isPremium' | 'lumiBalance' | 'chartSlots' | 'loginStreak'>>;
+type AdminSection = 'users' | 'send' | 'templates' | 'history';
 
 interface AdminPanelProps {
   profile: UserProfile;
@@ -13,10 +14,54 @@ interface AdminPanelProps {
 
 const T = (lang: 'ru' | 'en', ru: string, en: string) => (lang === 'ru' ? ru : en);
 
+const ADMIN_SECTIONS: Array<{ id: AdminSection; title: { ru: string; en: string } }> = [
+  { id: 'users', title: { ru: 'Пользователи', en: 'Users' } },
+  { id: 'send', title: { ru: 'Отправка', en: 'Send' } },
+  { id: 'templates', title: { ru: 'Шаблоны', en: 'Templates' } },
+  { id: 'history', title: { ru: 'История', en: 'History' } },
+];
+
+const EMPTY_OVERVIEW: AdminUsersOverview = {
+  totalUsers: 0,
+  activePremiumUsers: 0,
+  totalLumiBalance: 0,
+  activeUsers7d: 0,
+  needAttentionUsers: 0,
+};
+
 export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onPatchOwnProfile, onClose }) => {
   const lang = profile.language === 'en' ? 'en' : 'ru';
-  const [activeTab, setActiveTab] = useState<'users' | 'notifications'>('users');
+  const [activeSection, setActiveSection] = useState<AdminSection>('users');
   const [notificationTargetUserId, setNotificationTargetUserId] = useState<string>('');
+  const [userSegment, setUserSegment] = useState<AdminUserSegment>('all');
+  const [overview, setOverview] = useState<AdminUsersOverview>(EMPTY_OVERVIEW);
+
+  const summaryChips = useMemo(() => ([
+    {
+      id: 'premium',
+      label: T(lang, 'Premium', 'Premium'),
+      value: overview.activePremiumUsers,
+      segment: 'premium' as AdminUserSegment,
+    },
+    {
+      id: 'users',
+      label: T(lang, 'Пользователи', 'Users'),
+      value: overview.totalUsers,
+      segment: 'all' as AdminUserSegment,
+    },
+    {
+      id: 'lumi',
+      label: 'Lumi',
+      value: overview.totalLumiBalance,
+      segment: 'need_attention' as AdminUserSegment,
+    },
+    {
+      id: 'active',
+      label: T(lang, 'Активны 7д', 'Active 7d'),
+      value: overview.activeUsers7d,
+      segment: 'active_7d' as AdminUserSegment,
+    },
+  ]), [lang, overview.activePremiumUsers, overview.activeUsers7d, overview.totalLumiBalance, overview.totalUsers]);
 
   return (
     <div
@@ -29,7 +74,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onPatchOwnProfi
       }}
     >
       <div
-        className="sticky top-0 z-10 border-b border-astro-border bg-astro-card px-4 py-5 shadow-md"
+        className="sticky top-0 z-10 border-b border-astro-border bg-astro-card/95 px-4 py-5 shadow-md backdrop-blur"
         style={{ top: 'env(safe-area-inset-top, 0px)' }}
       >
         <div className="mb-4 flex items-center justify-between gap-4">
@@ -47,45 +92,65 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onPatchOwnProfi
           </button>
         </div>
 
-        <div className="flex gap-2">
-          <button
-            onClick={() => setActiveTab('users')}
-            className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-widest transition-colors ${
-              activeTab === 'users'
-                ? 'bg-astro-highlight text-white'
-                : 'border border-astro-border text-astro-subtext hover:border-astro-highlight/40 hover:text-astro-text'
-            }`}
-          >
-            {T(lang, 'Пользователи', 'Users')}
-          </button>
-          <button
-            onClick={() => setActiveTab('notifications')}
-            className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-widest transition-colors ${
-              activeTab === 'notifications'
-                ? 'bg-astro-highlight text-white'
-                : 'border border-astro-border text-astro-subtext hover:border-astro-highlight/40 hover:text-astro-text'
-            }`}
-          >
-            {T(lang, 'Уведомления', 'Notifications')}
-          </button>
+        <div className="scrollbar-hide -mx-4 overflow-x-auto px-4">
+          <div className="mb-3 flex min-w-max gap-2">
+            {summaryChips.map((chip) => (
+              <button
+                key={chip.id}
+                onClick={() => {
+                  setActiveSection('users');
+                  setUserSegment(chip.segment);
+                }}
+                className={`rounded-2xl border px-3 py-2 text-left transition-colors ${
+                  activeSection === 'users' && userSegment === chip.segment
+                    ? 'border-astro-highlight/50 bg-astro-highlight/10'
+                    : 'border-astro-border bg-astro-bg/30 hover:border-astro-highlight/30'
+                }`}
+              >
+                <p className="text-[10px] uppercase tracking-widest text-astro-subtext">{chip.label}</p>
+                <p className="mt-1 text-sm font-semibold text-astro-text">{chip.value}</p>
+              </button>
+            ))}
+          </div>
+
+          <div className="flex min-w-max gap-2">
+            {ADMIN_SECTIONS.map((section) => (
+              <button
+                key={section.id}
+                onClick={() => setActiveSection(section.id)}
+                className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-widest transition-colors ${
+                  activeSection === section.id
+                    ? 'bg-astro-highlight text-white'
+                    : 'border border-astro-border text-astro-subtext hover:border-astro-highlight/40 hover:text-astro-text'
+                }`}
+              >
+                {section.title[lang]}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      <div className="mx-auto max-w-6xl space-y-6 p-4">
-        {activeTab === 'users' ? (
+      <div className="mx-auto max-w-3xl space-y-6 p-4">
+        {activeSection === 'users' ? (
           <AdminUsersTab
             profile={profile}
+            segment={userSegment}
+            onSegmentChange={setUserSegment}
+            onOverviewChange={setOverview}
             onPatchOwnProfile={onPatchOwnProfile}
             onSendNotification={(userId) => {
               setNotificationTargetUserId(userId);
-              setActiveTab('notifications');
+              setActiveSection('send');
             }}
           />
         ) : (
           <AdminNotificationsTab
             profile={profile}
+            section={activeSection}
             initialTargetUserId={notificationTargetUserId}
             onClearInitialTarget={() => setNotificationTargetUserId('')}
+            onChangeSection={setActiveSection}
           />
         )}
       </div>

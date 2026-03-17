@@ -63,6 +63,54 @@ function trimText(value?: string | null, maxLength = 1000): string | null {
   return trimmed.length > maxLength ? trimmed.slice(0, maxLength) : trimmed;
 }
 
+type AdminDbPremiumFilter = 'all' | 'premium' | 'free';
+type AdminDbUserSegment = 'all' | 'premium' | 'free' | 'active_7d' | 'inactive_30d' | 'need_attention';
+
+const ADMIN_USER_METRICS_CTE = `
+  WITH user_metrics AS (
+    SELECT
+      u.id,
+      u.name,
+      u.premium_until,
+      COALESCE(u.lumi_balance, 0) AS lumi_balance,
+      COALESCE(u.login_streak, 0) AS login_streak,
+      COALESCE(u.chart_slots, 1) AS chart_slots,
+      COALESCE(u.is_admin, FALSE) AS is_admin,
+      u.created_at,
+      u.last_login,
+      COALESCE(MAX(us.last_seen_at), u.last_login) AS last_seen_at,
+      COUNT(DISTINCT nc.id)::int AS saved_charts_count
+    FROM users u
+    LEFT JOIN natal_charts nc ON nc.user_id = u.id
+    LEFT JOIN user_sessions us ON us.user_id = u.id
+    GROUP BY u.id
+  )
+`;
+
+const ADMIN_NEED_ATTENTION_SQL = `(
+  ((premium_until IS NULL OR premium_until <= NOW()) AND lumi_balance <= 10)
+  OR saved_charts_count >= chart_slots
+)`;
+
+function getAdminPremiumFilterSql(paramIndex: number) {
+  return `(
+    $${paramIndex} = 'all'
+    OR ($${paramIndex} = 'premium' AND premium_until IS NOT NULL AND premium_until > NOW())
+    OR ($${paramIndex} = 'free' AND (premium_until IS NULL OR premium_until <= NOW()))
+  )`;
+}
+
+function getAdminUserSegmentSql(paramIndex: number) {
+  return `(
+    $${paramIndex} = 'all'
+    OR ($${paramIndex} = 'premium' AND premium_until IS NOT NULL AND premium_until > NOW())
+    OR ($${paramIndex} = 'free' AND (premium_until IS NULL OR premium_until <= NOW()))
+    OR ($${paramIndex} = 'active_7d' AND last_seen_at >= NOW() - INTERVAL '7 days')
+    OR ($${paramIndex} = 'inactive_30d' AND (last_seen_at IS NULL OR last_seen_at < NOW() - INTERVAL '30 days'))
+    OR ($${paramIndex} = 'need_attention' AND ${ADMIN_NEED_ATTENTION_SQL})
+  )`;
+}
+
 // Check if DATABASE_URL is configured
 if (!DATABASE_URL) {
   log.warn('DATABASE_URL is not set. Database operations will fail.');
@@ -1598,41 +1646,28 @@ export const db = {
   },
 
   admin: {
-    async listUsers(options?: { q?: string; premium?: 'all' | 'premium' | 'free'; limit?: number }) {
+    async listUsers(options?: { q?: string; premium?: AdminDbPremiumFilter; segment?: AdminDbUserSegment; limit?: number }) {
       if (!DATABASE_URL) return [];
 
       const queryText = (options?.q || '').trim();
       const premium = options?.premium || 'all';
+      const segment = options?.segment || 'all';
       const limit = Math.min(Math.max(options?.limit || 100, 1), 200);
       const like = `%${queryText}%`;
 
       try {
         const dbPool = getPool();
         const result = await dbPool.query(
-          `SELECT
-             u.id,
-             u.name,
-             u.premium_until,
-             COALESCE(u.lumi_balance, 0) AS lumi_balance,
-             COALESCE(u.login_streak, 0) AS login_streak,
-             COALESCE(u.chart_slots, 1) AS chart_slots,
-             COALESCE(u.is_admin, FALSE) AS is_admin,
-             u.created_at,
-             u.last_login,
-             COUNT(nc.id)::int AS saved_charts_count
-           FROM users u
-           LEFT JOIN natal_charts nc ON nc.user_id = u.id
+          `${ADMIN_USER_METRICS_CTE}
+           SELECT *
+           FROM user_metrics
            WHERE
-             ($1 = '' OR COALESCE(u.name, '') ILIKE $2 OR CAST(u.id AS TEXT) ILIKE $2)
-             AND (
-               $3 = 'all'
-               OR ($3 = 'premium' AND u.premium_until IS NOT NULL AND u.premium_until > NOW())
-               OR ($3 = 'free' AND (u.premium_until IS NULL OR u.premium_until <= NOW()))
-             )
-           GROUP BY u.id
-           ORDER BY u.created_at DESC
-           LIMIT $4`,
-          [queryText, like, premium, limit]
+             ($1 = '' OR COALESCE(name, '') ILIKE $2 OR CAST(id AS TEXT) ILIKE $2)
+             AND ${getAdminPremiumFilterSql(3)}
+             AND ${getAdminUserSegmentSql(4)}
+           ORDER BY created_at DESC
+           LIMIT $5`,
+          [queryText, like, premium, segment, limit]
         );
 
         return result.rows.map((row: any) => ({
@@ -1646,10 +1681,48 @@ export const db = {
           saved_charts_count: row.saved_charts_count ?? 0,
           created_at: row.created_at,
           last_login: row.last_login,
+          last_seen_at: row.last_seen_at ?? row.last_login ?? null,
           is_admin: row.is_admin ?? false,
         }));
       } catch (error: any) {
         log.error('[DB] Error listing admin users', { error: error.message });
+        throw error;
+      }
+    },
+
+    async getUsersOverview() {
+      if (!DATABASE_URL) {
+        return {
+          total_users: 0,
+          active_premium_users: 0,
+          total_lumi_balance: 0,
+          active_users_7d: 0,
+          need_attention_users: 0,
+        };
+      }
+
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          `${ADMIN_USER_METRICS_CTE}
+           SELECT
+             COUNT(*)::int AS total_users,
+             COUNT(*) FILTER (WHERE premium_until IS NOT NULL AND premium_until > NOW())::int AS active_premium_users,
+             COALESCE(SUM(lumi_balance), 0)::int AS total_lumi_balance,
+             COUNT(*) FILTER (WHERE last_seen_at >= NOW() - INTERVAL '7 days')::int AS active_users_7d,
+             COUNT(*) FILTER (WHERE ${ADMIN_NEED_ATTENTION_SQL})::int AS need_attention_users
+           FROM user_metrics`
+        );
+
+        return result.rows[0] || {
+          total_users: 0,
+          active_premium_users: 0,
+          total_lumi_balance: 0,
+          active_users_7d: 0,
+          need_attention_users: 0,
+        };
+      } catch (error: any) {
+        log.error('[DB] Error getting admin users overview', { error: error.message });
         throw error;
       }
     },
@@ -1660,10 +1733,10 @@ export const db = {
 
       const charts = await db.natal_charts.getAll(userId);
       const primaryChart = charts.find((chart: any) => chart.is_primary) || null;
-      const recentLumiTransactions = await db.lumi_transactions.getHistory(userId, 20);
+      const recentLumiTransactions = await db.lumi_transactions.getHistory(userId, 6);
       const latestStarsPayment = await db.star_payments.getLatestByUser(userId);
-      const recentSessions = await db.user_sessions.getRecentByUser(userId, 8);
-      const recentOracleQuestions = await db.astro_questions.getByUser(userId, 5);
+      const recentSessions = await db.user_sessions.getRecentByUser(userId, 3);
+      const recentOracleQuestions = await db.astro_questions.getByUser(userId, 3);
       const lastSeenAt = recentSessions[0]?.last_seen_at ?? null;
       const currentDeviceLabel = recentSessions[0]?.device_label ?? null;
 
@@ -1917,6 +1990,8 @@ export const db = {
              target_user.name AS target_user_name,
              nc.template_id,
              nc.title,
+             nc.body_ru,
+             nc.body_en,
              COALESCE(nc.total_recipients, 0) AS total_recipients,
              COALESCE(nc.success_count, 0) AS success_count,
              COALESCE(nc.failed_count, 0) AS failed_count,

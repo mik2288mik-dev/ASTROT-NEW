@@ -7,7 +7,9 @@ import {
   type AdminNotificationTemplateKind,
   type AdminPremiumFilter,
   type AdminUserDetail,
+  type AdminUserSegment,
   type AdminUserSummary,
+  type AdminUsersOverview,
 } from '../types';
 
 const API_BASE = typeof window !== 'undefined' ? '' : process.env.NEXT_PUBLIC_API_URL || '';
@@ -65,16 +67,27 @@ async function adminRequest<T>(path: string, options: AdminRequestOptions = {}):
 export async function fetchAdminUsers(params?: {
   q?: string;
   premium?: AdminPremiumFilter;
+  segment?: AdminUserSegment;
   limit?: number;
-}): Promise<AdminUserSummary[]> {
+}): Promise<{ users: AdminUserSummary[]; overview: AdminUsersOverview }> {
   const search = new URLSearchParams();
   if (params?.q) search.set('q', params.q);
   if (params?.premium) search.set('premium', params.premium);
+  if (params?.segment && params.segment !== 'all') search.set('segment', params.segment);
   if (params?.limit) search.set('limit', String(params.limit));
 
   const suffix = search.toString() ? `?${search.toString()}` : '';
-  const data = await adminRequest<{ users: AdminUserSummary[] }>(`/api/admin/users${suffix}`);
-  return data.users || [];
+  const data = await adminRequest<{ users: AdminUserSummary[]; overview?: AdminUsersOverview }>(`/api/admin/users${suffix}`);
+  return {
+    users: data.users || [],
+    overview: data.overview || {
+      totalUsers: 0,
+      activePremiumUsers: 0,
+      totalLumiBalance: 0,
+      activeUsers7d: 0,
+      needAttentionUsers: 0,
+    },
+  };
 }
 
 export async function getAdminStatus(): Promise<{ isAdmin: boolean; requesterId: string }> {

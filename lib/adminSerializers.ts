@@ -22,6 +22,7 @@ export function serializeAdminUserSummary(row: any) {
     isAdmin: isEffectiveAdmin(row.id, row.is_admin),
     createdAt: row.created_at ?? null,
     lastLogin: row.last_login ?? null,
+    lastSeenAt: row.last_seen_at ?? row.last_login ?? null,
   };
 }
 
@@ -101,6 +102,8 @@ export function serializeNotificationHistoryItem(row: any) {
     targetUserName: row.target_user_name || null,
     templateId: row.template_id != null ? Number(row.template_id) : null,
     title: row.title || '',
+    bodyRu: row.body_ru || '',
+    bodyEn: row.body_en || '',
     totalRecipients: row.total_recipients ?? 0,
     successCount: row.success_count ?? 0,
     failedCount: row.failed_count ?? 0,
@@ -112,5 +115,15 @@ export function serializeNotificationHistoryItem(row: any) {
       error: failure.error_text || 'Unknown error',
       createdAt: failure.created_at,
     })),
+  };
+}
+
+export function serializeAdminUsersOverview(row: any) {
+  return {
+    totalUsers: Number(row.total_users ?? 0),
+    activePremiumUsers: Number(row.active_premium_users ?? 0),
+    totalLumiBalance: Number(row.total_lumi_balance ?? 0),
+    activeUsers7d: Number(row.active_users_7d ?? 0),
+    needAttentionUsers: Number(row.need_attention_users ?? 0),
   };
 }

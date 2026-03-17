@@ -215,6 +215,7 @@ export interface OracleChatResponse {
 }
 
 export type AdminPremiumFilter = 'all' | 'premium' | 'free';
+export type AdminUserSegment = 'all' | 'premium' | 'free' | 'active_7d' | 'inactive_30d' | 'need_attention';
 
 export interface AdminUserSummary {
   id: string;
@@ -228,6 +229,20 @@ export interface AdminUserSummary {
   isAdmin: boolean;
   createdAt: string | null;
   lastLogin: string | null;
+  lastSeenAt?: string | null;
+}
+
+export interface AdminUsersOverview {
+  totalUsers: number;
+  activePremiumUsers: number;
+  totalLumiBalance: number;
+  activeUsers7d: number;
+  needAttentionUsers: number;
+}
+
+export interface AdminUsersResponse {
+  users: AdminUserSummary[];
+  overview: AdminUsersOverview;
 }
 
 export interface AdminChartSummary {
@@ -300,6 +315,8 @@ export interface AdminNotificationHistoryItem {
   targetUserName: string | null;
   templateId: number | null;
   title: string;
+  bodyRu: string;
+  bodyEn: string;
   totalRecipients: number;
   successCount: number;
   failedCount: number;

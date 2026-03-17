@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   type AdminNotificationHistoryItem,
   type AdminNotificationTargetSegment,
@@ -14,15 +14,62 @@ import {
   updateNotificationTemplate,
 } from '../../services/adminService';
 
+type AdminNotificationSection = 'send' | 'templates' | 'history';
+
 interface AdminNotificationsTabProps {
   profile: UserProfile;
+  section: AdminNotificationSection;
   initialTargetUserId?: string;
   onClearInitialTarget?: () => void;
+  onChangeSection?: (section: AdminNotificationSection) => void;
 }
 
 const T = (lang: 'ru' | 'en', ru: string, en: string) => (lang === 'ru' ? ru : en);
 const SEGMENTS: AdminNotificationTargetSegment[] = ['all', 'premium', 'free', 'active_7d', 'inactive_30d'];
 const KINDS: AdminNotificationTemplateKind[] = ['both', 'personal', 'broadcast'];
+
+const NOTIFICATION_PRESETS = [
+  {
+    key: 'maintenance',
+    title: { ru: 'Техническое обновление Lumia', en: 'Lumia maintenance update' },
+    bodyRu: 'Сегодня проводим техническое обновление Lumia. Если мини-приложение откроется не сразу, попробуйте зайти повторно через несколько минут.',
+    bodyEn: 'We are running a Lumia maintenance update today. If the mini app does not open immediately, please try again in a few minutes.',
+    mode: 'broadcast' as const,
+    matches: ['maintenance', 'important announcement'],
+  },
+  {
+    key: 'premium_granted',
+    title: { ru: 'Premium активирован', en: 'Premium activated' },
+    bodyRu: 'Ваш Premium в Lumia активирован. Откройте приложение, чтобы использовать все премиум-возможности.',
+    bodyEn: 'Your Lumia Premium is now active. Open the app to use all premium features.',
+    mode: 'personal' as const,
+    matches: ['premium granted', 'premium activated'],
+  },
+  {
+    key: 'lumi_credited',
+    title: { ru: 'Lumi начислены', en: 'Lumi credited' },
+    bodyRu: 'На ваш баланс Lumia начислены Lumi. Откройте кошелёк, чтобы увидеть обновлённый баланс.',
+    bodyEn: 'Lumi have been added to your Lumia balance. Open the wallet to see the updated amount.',
+    mode: 'personal' as const,
+    matches: ['lumi credited', 'lumi added'],
+  },
+  {
+    key: 'comeback',
+    title: { ru: 'Мы ждём вас в Lumia', en: 'We miss you in Lumia' },
+    bodyRu: 'В Lumia появились новые возможности. Возвращайтесь, чтобы посмотреть обновления, карты и персональные подсказки.',
+    bodyEn: 'Lumia has new updates waiting for you. Come back to check your charts, guidance, and fresh content.',
+    mode: 'broadcast' as const,
+    matches: ['come back', 'comeback', 'inactive users'],
+  },
+  {
+    key: 'announcement',
+    title: { ru: 'Новость Lumia', en: 'Lumia announcement' },
+    bodyRu: 'У Lumia есть важное обновление для вас. Откройте приложение, чтобы узнать подробности.',
+    bodyEn: 'Lumia has an important update for you. Open the app to see the details.',
+    mode: 'broadcast' as const,
+    matches: ['announcement', 'important announcement'],
+  },
+];
 
 const formatDateTime = (lang: 'ru' | 'en', value?: string | null) => {
   if (!value) return lang === 'ru' ? 'Нет данных' : 'No data';
@@ -64,10 +111,16 @@ const emptyTemplateDraft = {
   isActive: true,
 };
 
+function normalizeTitle(value: string) {
+  return value.trim().toLowerCase();
+}
+
 export const AdminNotificationsTab: React.FC<AdminNotificationsTabProps> = ({
   profile,
+  section,
   initialTargetUserId,
   onClearInitialTarget,
+  onChangeSection,
 }) => {
   const lang = profile.language === 'en' ? 'en' : 'ru';
   const [templates, setTemplates] = useState<AdminNotificationTemplate[]>([]);
@@ -89,7 +142,7 @@ export const AdminNotificationsTab: React.FC<AdminNotificationsTabProps> = ({
     [mode, templates]
   );
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -104,28 +157,90 @@ export const AdminNotificationsTab: React.FC<AdminNotificationsTabProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [lang]);
 
   useEffect(() => {
     void loadData();
-  }, []);
+  }, [loadData]);
 
   useEffect(() => {
-    if (initialTargetUserId) {
-      setMode('personal');
-      setTargetUserId(initialTargetUserId);
-      onClearInitialTarget?.();
-    }
+    if (!initialTargetUserId) return;
+    setMode('personal');
+    setTargetUserId(initialTargetUserId);
+    onClearInitialTarget?.();
   }, [initialTargetUserId, onClearInitialTarget]);
 
+  const applyComposePayload = (payload: {
+    mode: 'personal' | 'broadcast';
+    targetUserId?: string | null;
+    targetSegment?: AdminNotificationTargetSegment | null;
+    templateId?: number | null;
+    title: string;
+    bodyRu: string;
+    bodyEn: string;
+  }) => {
+    setMode(payload.mode);
+    setTargetUserId(payload.targetUserId || '');
+    setTargetSegment(payload.targetSegment || 'all');
+    setTemplateId(payload.templateId ?? null);
+    setTitle(payload.title);
+    setBodyRu(payload.bodyRu);
+    setBodyEn(payload.bodyEn);
+    setError(null);
+  };
+
   const handleUseTemplate = (template: AdminNotificationTemplate) => {
-    setTemplateId(template.id);
-    setTitle(template.title);
-    setBodyRu(template.bodyRu);
-    setBodyEn(template.bodyEn);
-    if (template.kind === 'personal' || template.kind === 'broadcast') {
-      setMode(template.kind);
+    applyComposePayload({
+      mode: template.kind === 'personal' || template.kind === 'broadcast' ? template.kind : mode,
+      targetUserId,
+      targetSegment,
+      templateId: template.id,
+      title: template.title,
+      bodyRu: template.bodyRu,
+      bodyEn: template.bodyEn,
+    });
+  };
+
+  const handleApplyPreset = (presetKey: string) => {
+    const preset = NOTIFICATION_PRESETS.find((item) => item.key === presetKey);
+    if (!preset) return;
+
+    const matchingTemplate = templates.find((template) => {
+      const titleNormalized = normalizeTitle(template.title);
+      return preset.matches.some((candidate) => titleNormalized.includes(candidate));
+    });
+
+    if (matchingTemplate) {
+      handleUseTemplate(matchingTemplate);
+      if (matchingTemplate.kind === 'both') {
+        setMode(preset.mode);
+      }
+    } else {
+      applyComposePayload({
+        mode: preset.mode,
+        targetUserId: preset.mode === 'personal' ? targetUserId : '',
+        targetSegment: preset.mode === 'broadcast' ? targetSegment : null,
+        templateId: null,
+        title: preset.title[lang],
+        bodyRu: preset.bodyRu,
+        bodyEn: preset.bodyEn,
+      });
     }
+
+    onChangeSection?.('send');
+  };
+
+  const handleReuseCampaign = (campaign: AdminNotificationHistoryItem) => {
+    applyComposePayload({
+      mode: campaign.mode,
+      targetUserId: campaign.mode === 'personal' ? campaign.targetUserId : null,
+      targetSegment: campaign.mode === 'broadcast' ? campaign.targetSegment : null,
+      templateId: campaign.templateId,
+      title: campaign.title,
+      bodyRu: campaign.bodyRu,
+      bodyEn: campaign.bodyEn,
+    });
+    onChangeSection?.('send');
   };
 
   const handleEditTemplate = (template?: AdminNotificationTemplate) => {
@@ -204,6 +319,7 @@ export const AdminNotificationsTab: React.FC<AdminNotificationsTabProps> = ({
         bodyEn: bodyEn.trim(),
       });
       setHistory((prev) => [result.campaign, ...prev].slice(0, 20));
+      onChangeSection?.('history');
     } catch (sendError: any) {
       setError(sendError?.message || T(lang, 'Не удалось отправить уведомление', 'Failed to send notification'));
     } finally {
@@ -211,248 +327,317 @@ export const AdminNotificationsTab: React.FC<AdminNotificationsTabProps> = ({
     }
   };
 
-  return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
-      <section className="space-y-6">
-        {error && (
-          <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-300">
-            {error}
-          </div>
-        )}
+  const renderSend = () => (
+    <section className="space-y-4 rounded-2xl border border-astro-border bg-astro-card p-4">
+      <div>
+        <h3 className="font-serif text-lg text-astro-text">{T(lang, 'Отправка уведомлений', 'Send notifications')}</h3>
+        <p className="mt-1 text-xs text-astro-subtext">
+          {T(lang, 'Личные сообщения и массовые рассылки через Telegram', 'Personal and broadcast Telegram messages')}
+        </p>
+      </div>
 
-        <div className="rounded-2xl border border-astro-border bg-astro-card p-4 space-y-4">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h3 className="font-serif text-lg text-astro-text">{T(lang, 'Отправка уведомлений', 'Send notifications')}</h3>
-              <p className="mt-1 text-xs text-astro-subtext">{T(lang, 'Личные сообщения и массовые рассылки через Telegram', 'Personal and broadcast Telegram messages')}</p>
-            </div>
-            {loading && <span className="text-xs text-astro-subtext">{T(lang, 'Загрузка...', 'Loading...')}</span>}
-          </div>
-
-          <div className="flex gap-2">
+      <div className="scrollbar-hide -mx-1 overflow-x-auto px-1">
+        <div className="flex min-w-max gap-2">
+          {NOTIFICATION_PRESETS.map((preset) => (
             <button
-              onClick={() => setMode('personal')}
-              className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-widest transition-colors ${
-                mode === 'personal'
-                  ? 'bg-astro-highlight text-white'
-                  : 'border border-astro-border text-astro-subtext hover:border-astro-highlight/40 hover:text-astro-text'
-              }`}
+              key={preset.key}
+              onClick={() => handleApplyPreset(preset.key)}
+              className="rounded-full border border-astro-border px-3 py-2 text-xs font-semibold uppercase tracking-widest text-astro-subtext transition-colors hover:border-astro-highlight/40 hover:text-astro-text"
             >
-              {T(lang, 'Личное', 'Personal')}
+              {preset.title[lang]}
             </button>
-            <button
-              onClick={() => setMode('broadcast')}
-              className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-widest transition-colors ${
-                mode === 'broadcast'
-                  ? 'bg-astro-highlight text-white'
-                  : 'border border-astro-border text-astro-subtext hover:border-astro-highlight/40 hover:text-astro-text'
-              }`}
-            >
-              {T(lang, 'Массовое', 'Broadcast')}
-            </button>
-          </div>
-
-          {mode === 'personal' ? (
-            <input
-              value={targetUserId}
-              onChange={(event) => setTargetUserId(event.target.value)}
-              placeholder={T(lang, 'Telegram ID пользователя', 'Target user Telegram ID')}
-              className="w-full rounded-lg border border-astro-border bg-astro-bg px-3 py-2 text-sm text-astro-text outline-none focus:border-astro-highlight/40"
-            />
-          ) : (
-            <select
-              value={targetSegment}
-              onChange={(event) => setTargetSegment(event.target.value as AdminNotificationTargetSegment)}
-              className="w-full rounded-lg border border-astro-border bg-astro-bg px-3 py-2 text-sm text-astro-text outline-none focus:border-astro-highlight/40"
-            >
-              {SEGMENTS.map((segment) => (
-                <option key={segment} value={segment}>{getSegmentLabel(lang, segment)}</option>
-              ))}
-            </select>
-          )}
-
-          <select
-            value={templateId ?? ''}
-            onChange={(event) => {
-              const value = Number(event.target.value);
-              const template = templates.find((item) => item.id === value);
-              if (!template) {
-                setTemplateId(null);
-                return;
-              }
-              handleUseTemplate(template);
-            }}
-            className="w-full rounded-lg border border-astro-border bg-astro-bg px-3 py-2 text-sm text-astro-text outline-none focus:border-astro-highlight/40"
-          >
-            <option value="">{T(lang, 'Без шаблона', 'No template')}</option>
-            {filteredTemplates.map((template: AdminNotificationTemplate) => (
-              <option key={template.id} value={template.id}>{template.title}</option>
-            ))}
-          </select>
-
-          <input
-            value={title}
-            onChange={(event) => setTitle(event.target.value)}
-            placeholder={T(lang, 'Заголовок', 'Title')}
-            className="w-full rounded-lg border border-astro-border bg-astro-bg px-3 py-2 text-sm text-astro-text outline-none focus:border-astro-highlight/40"
-          />
-
-          <div className="grid gap-4 lg:grid-cols-2">
-            <textarea
-              value={bodyRu}
-              onChange={(event) => setBodyRu(event.target.value)}
-              rows={5}
-              placeholder="RU"
-              className="w-full rounded-lg border border-astro-border bg-astro-bg px-3 py-2 text-sm text-astro-text outline-none focus:border-astro-highlight/40"
-            />
-            <textarea
-              value={bodyEn}
-              onChange={(event) => setBodyEn(event.target.value)}
-              rows={5}
-              placeholder="EN"
-              className="w-full rounded-lg border border-astro-border bg-astro-bg px-3 py-2 text-sm text-astro-text outline-none focus:border-astro-highlight/40"
-            />
-          </div>
-
-          <button
-            onClick={handleSend}
-            disabled={actionLoading === 'send'}
-            className="rounded-lg bg-astro-highlight px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
-          >
-            {actionLoading === 'send' ? T(lang, 'Отправляем...', 'Sending...') : T(lang, 'Отправить уведомление', 'Send notification')}
-          </button>
+          ))}
         </div>
+      </div>
 
-        <div className="rounded-2xl border border-astro-border bg-astro-card p-4 space-y-4">
-          <div className="flex items-center justify-between gap-4">
-            <h3 className="font-serif text-lg text-astro-text">{T(lang, 'Шаблоны сообщений', 'Message templates')}</h3>
-            <button onClick={() => handleEditTemplate()} className="rounded-lg border border-astro-border px-4 py-2 text-xs font-semibold uppercase tracking-widest text-astro-text">
-              {T(lang, 'Новый шаблон', 'New template')}
-            </button>
-          </div>
+      <div className="flex gap-2">
+        <button
+          onClick={() => setMode('personal')}
+          className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-widest transition-colors ${
+            mode === 'personal'
+              ? 'bg-astro-highlight text-white'
+              : 'border border-astro-border text-astro-subtext hover:border-astro-highlight/40 hover:text-astro-text'
+          }`}
+        >
+          {T(lang, 'Личное', 'Personal')}
+        </button>
+        <button
+          onClick={() => setMode('broadcast')}
+          className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-widest transition-colors ${
+            mode === 'broadcast'
+              ? 'bg-astro-highlight text-white'
+              : 'border border-astro-border text-astro-subtext hover:border-astro-highlight/40 hover:text-astro-text'
+          }`}
+        >
+          {T(lang, 'Массовое', 'Broadcast')}
+        </button>
+      </div>
 
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-            <div className="space-y-3">
-              {templates.map((template) => (
-                <div key={template.id} className="rounded-lg border border-astro-border bg-astro-bg/20 p-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm text-astro-text">{template.title}</p>
-                      <p className="mt-1 text-xs text-astro-subtext">{getKindLabel(lang, template.kind)}</p>
-                    </div>
-                    <span className={`rounded-full px-2 py-1 text-[10px] uppercase tracking-widest ${template.isActive ? 'bg-emerald-500/15 text-emerald-300' : 'bg-astro-bg text-astro-subtext'}`}>
-                      {template.isActive ? T(lang, 'Активен', 'Active') : T(lang, 'Выключен', 'Disabled')}
-                    </span>
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <button onClick={() => handleUseTemplate(template)} className="rounded-lg border border-astro-border px-3 py-2 text-xs font-semibold uppercase tracking-widest text-astro-text">
-                      {T(lang, 'Использовать', 'Use')}
-                    </button>
-                    <button onClick={() => handleEditTemplate(template)} className="rounded-lg border border-astro-border px-3 py-2 text-xs font-semibold uppercase tracking-widest text-astro-text">
-                      {T(lang, 'Редактировать', 'Edit')}
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+      {mode === 'personal' ? (
+        <input
+          value={targetUserId}
+          onChange={(event) => setTargetUserId(event.target.value)}
+          placeholder={T(lang, 'Telegram ID пользователя', 'Target user Telegram ID')}
+          className="w-full rounded-lg border border-astro-border bg-astro-bg px-3 py-2 text-sm text-astro-text outline-none focus:border-astro-highlight/40"
+        />
+      ) : (
+        <select
+          value={targetSegment}
+          onChange={(event) => setTargetSegment(event.target.value as AdminNotificationTargetSegment)}
+          className="w-full rounded-lg border border-astro-border bg-astro-bg px-3 py-2 text-sm text-astro-text outline-none focus:border-astro-highlight/40"
+        >
+          {SEGMENTS.map((segment) => (
+            <option key={segment} value={segment}>{getSegmentLabel(lang, segment)}</option>
+          ))}
+        </select>
+      )}
 
-            <div className="rounded-xl border border-astro-border bg-astro-bg/20 p-4 space-y-4">
-              <h4 className="font-medium text-astro-text">{draft.id ? T(lang, 'Редактирование шаблона', 'Edit template') : T(lang, 'Новый шаблон', 'New template')}</h4>
-              <input
-                value={draft.title}
-                onChange={(event) => setDraft((prev) => ({ ...prev, title: event.target.value }))}
-                placeholder={T(lang, 'Заголовок', 'Title')}
-                className="w-full rounded-lg border border-astro-border bg-astro-card px-3 py-2 text-sm text-astro-text outline-none focus:border-astro-highlight/40"
-              />
-              <select
-                value={draft.kind}
-                onChange={(event) => setDraft((prev) => ({ ...prev, kind: event.target.value as AdminNotificationTemplateKind }))}
-                className="w-full rounded-lg border border-astro-border bg-astro-card px-3 py-2 text-sm text-astro-text outline-none focus:border-astro-highlight/40"
-              >
-                {KINDS.map((kind) => (
-                  <option key={kind} value={kind}>{getKindLabel(lang, kind)}</option>
-                ))}
-              </select>
-              <textarea
-                value={draft.bodyRu}
-                onChange={(event) => setDraft((prev) => ({ ...prev, bodyRu: event.target.value }))}
-                rows={4}
-                placeholder="RU"
-                className="w-full rounded-lg border border-astro-border bg-astro-card px-3 py-2 text-sm text-astro-text outline-none focus:border-astro-highlight/40"
-              />
-              <textarea
-                value={draft.bodyEn}
-                onChange={(event) => setDraft((prev) => ({ ...prev, bodyEn: event.target.value }))}
-                rows={4}
-                placeholder="EN"
-                className="w-full rounded-lg border border-astro-border bg-astro-card px-3 py-2 text-sm text-astro-text outline-none focus:border-astro-highlight/40"
-              />
-              <button
-                onClick={() => setDraft((prev) => ({ ...prev, isActive: !prev.isActive }))}
-                className={`rounded-lg px-4 py-2 text-sm font-semibold ${draft.isActive ? 'border border-emerald-500/40 bg-emerald-500/10 text-emerald-300' : 'border border-astro-border bg-astro-card text-astro-subtext'}`}
-              >
-                {draft.isActive ? T(lang, 'Активен', 'Active') : T(lang, 'Выключен', 'Disabled')}
-              </button>
-              <div className="flex flex-wrap gap-3">
-                <button onClick={handleSaveTemplate} disabled={actionLoading === 'template-save'} className="rounded-lg bg-astro-highlight px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
-                  {actionLoading === 'template-save' ? T(lang, 'Сохраняем...', 'Saving...') : T(lang, 'Сохранить шаблон', 'Save template')}
-                </button>
-                <button onClick={() => setDraft(emptyTemplateDraft)} className="rounded-lg border border-astro-border px-4 py-2 text-sm font-semibold text-astro-text">
-                  {T(lang, 'Сбросить', 'Reset')}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <select
+        value={templateId ?? ''}
+        onChange={(event) => {
+          const value = Number(event.target.value);
+          const template = templates.find((item) => item.id === value);
+          if (!template) {
+            setTemplateId(null);
+            return;
+          }
+          handleUseTemplate(template);
+        }}
+        className="w-full rounded-lg border border-astro-border bg-astro-bg px-3 py-2 text-sm text-astro-text outline-none focus:border-astro-highlight/40"
+      >
+        <option value="">{T(lang, 'Без шаблона', 'No template')}</option>
+        {filteredTemplates.map((template) => (
+          <option key={template.id} value={template.id}>{template.title}</option>
+        ))}
+      </select>
 
-      <section className="rounded-2xl border border-astro-border bg-astro-card p-4 space-y-4">
+      <input
+        value={title}
+        onChange={(event) => setTitle(event.target.value)}
+        placeholder={T(lang, 'Заголовок', 'Title')}
+        className="w-full rounded-lg border border-astro-border bg-astro-bg px-3 py-2 text-sm text-astro-text outline-none focus:border-astro-highlight/40"
+      />
+
+      <div className="grid gap-4">
+        <textarea
+          value={bodyRu}
+          onChange={(event) => setBodyRu(event.target.value)}
+          rows={5}
+          placeholder="RU"
+          className="w-full rounded-lg border border-astro-border bg-astro-bg px-3 py-2 text-sm text-astro-text outline-none focus:border-astro-highlight/40"
+        />
+        <textarea
+          value={bodyEn}
+          onChange={(event) => setBodyEn(event.target.value)}
+          rows={5}
+          placeholder="EN"
+          className="w-full rounded-lg border border-astro-border bg-astro-bg px-3 py-2 text-sm text-astro-text outline-none focus:border-astro-highlight/40"
+        />
+      </div>
+
+      <button
+        onClick={handleSend}
+        disabled={actionLoading === 'send'}
+        className="rounded-lg bg-astro-highlight px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
+      >
+        {actionLoading === 'send' ? T(lang, 'Отправляем...', 'Sending...') : T(lang, 'Отправить уведомление', 'Send notification')}
+      </button>
+    </section>
+  );
+
+  const renderTemplates = () => (
+    <div className="space-y-4">
+      <section className="space-y-4 rounded-2xl border border-astro-border bg-astro-card p-4">
         <div className="flex items-center justify-between gap-4">
-          <h3 className="font-serif text-lg text-astro-text">{T(lang, 'История отправок', 'Notification history')}</h3>
-          <button onClick={() => void loadData()} className="rounded-lg border border-astro-border px-4 py-2 text-xs font-semibold uppercase tracking-widest text-astro-text">
-            {T(lang, 'Обновить', 'Refresh')}
+          <div>
+            <h3 className="font-serif text-lg text-astro-text">{T(lang, 'Шаблоны сообщений', 'Message templates')}</h3>
+            <p className="mt-1 text-xs text-astro-subtext">
+              {T(lang, 'Используйте и редактируйте готовые шаблоны', 'Reuse and edit saved templates')}
+            </p>
+          </div>
+          <button
+            onClick={() => handleEditTemplate()}
+            className="rounded-lg border border-astro-border px-4 py-2 text-xs font-semibold uppercase tracking-widest text-astro-text"
+          >
+            {T(lang, 'Новый шаблон', 'New template')}
           </button>
         </div>
 
-        {loading && history.length === 0 ? (
-          <p className="text-sm text-astro-subtext">{T(lang, 'Загружаем историю...', 'Loading history...')}</p>
-        ) : history.length === 0 ? (
-          <p className="text-sm text-astro-subtext">{T(lang, 'История отправок пока пуста', 'No notification history yet')}</p>
+        {templates.length === 0 ? (
+          <p className="text-sm text-astro-subtext">{T(lang, 'Шаблонов пока нет', 'No templates yet')}</p>
         ) : (
           <div className="space-y-3">
-            {history.map((item) => (
-              <div key={item.id} className="rounded-xl border border-astro-border bg-astro-bg/20 p-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-astro-text">{item.title}</p>
-                    <p className="mt-1 text-xs text-astro-subtext">
-                      {item.mode === 'personal'
-                        ? `${T(lang, 'Личное', 'Personal')}: ${item.targetUserName || item.targetUserId || '—'}`
-                        : `${T(lang, 'Массовое', 'Broadcast')}: ${item.targetSegment ? getSegmentLabel(lang, item.targetSegment) : '—'}`}
-                    </p>
-                    <p className="mt-1 text-xs text-astro-subtext">{formatDateTime(lang, item.createdAt)}</p>
+            {templates.map((template) => (
+              <div key={template.id} className="rounded-lg border border-astro-border bg-astro-bg/20 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm text-astro-text">{template.title}</p>
+                    <p className="mt-1 text-xs text-astro-subtext">{getKindLabel(lang, template.kind)}</p>
                   </div>
-                  <div className="text-right text-xs text-astro-subtext">
-                    <p>{item.successCount}/{item.totalRecipients} {T(lang, 'доставлено', 'sent')}</p>
-                    <p className="mt-1 text-red-300">{item.failedCount} {T(lang, 'ошибок', 'failed')}</p>
-                  </div>
+                  <span className={`rounded-full px-2 py-1 text-[10px] uppercase tracking-widest ${template.isActive ? 'bg-emerald-500/15 text-emerald-300' : 'bg-astro-bg text-astro-subtext'}`}>
+                    {template.isActive ? T(lang, 'Активен', 'Active') : T(lang, 'Выключен', 'Disabled')}
+                  </span>
                 </div>
-                {item.recentFailures.length > 0 && (
-                  <div className="mt-3 space-y-2">
-                    {item.recentFailures.map((failure) => (
-                      <div key={`${item.id}-${failure.userId}-${failure.createdAt}`} className="rounded-lg border border-red-500/30 bg-red-500/5 p-3">
-                        <p className="text-sm text-red-200">{failure.userName}</p>
-                        <p className="mt-1 text-xs text-red-200/80">{failure.error}</p>
-                        <p className="mt-1 text-xs text-astro-subtext">{formatDateTime(lang, failure.createdAt)}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    onClick={() => {
+                      handleUseTemplate(template);
+                      onChangeSection?.('send');
+                    }}
+                    className="rounded-lg border border-astro-border px-3 py-2 text-xs font-semibold uppercase tracking-widest text-astro-text"
+                  >
+                    {T(lang, 'Использовать', 'Use')}
+                  </button>
+                  <button
+                    onClick={() => handleEditTemplate(template)}
+                    className="rounded-lg border border-astro-border px-3 py-2 text-xs font-semibold uppercase tracking-widest text-astro-text"
+                  >
+                    {T(lang, 'Редактировать', 'Edit')}
+                  </button>
+                </div>
               </div>
             ))}
           </div>
         )}
       </section>
+
+      <section className="space-y-4 rounded-2xl border border-astro-border bg-astro-card p-4">
+        <h4 className="font-medium text-astro-text">
+          {draft.id ? T(lang, 'Редактирование шаблона', 'Edit template') : T(lang, 'Новый шаблон', 'New template')}
+        </h4>
+        <input
+          value={draft.title}
+          onChange={(event) => setDraft((prev) => ({ ...prev, title: event.target.value }))}
+          placeholder={T(lang, 'Заголовок', 'Title')}
+          className="w-full rounded-lg border border-astro-border bg-astro-bg px-3 py-2 text-sm text-astro-text outline-none focus:border-astro-highlight/40"
+        />
+        <select
+          value={draft.kind}
+          onChange={(event) => setDraft((prev) => ({ ...prev, kind: event.target.value as AdminNotificationTemplateKind }))}
+          className="w-full rounded-lg border border-astro-border bg-astro-bg px-3 py-2 text-sm text-astro-text outline-none focus:border-astro-highlight/40"
+        >
+          {KINDS.map((kind) => (
+            <option key={kind} value={kind}>{getKindLabel(lang, kind)}</option>
+          ))}
+        </select>
+        <textarea
+          value={draft.bodyRu}
+          onChange={(event) => setDraft((prev) => ({ ...prev, bodyRu: event.target.value }))}
+          rows={4}
+          placeholder="RU"
+          className="w-full rounded-lg border border-astro-border bg-astro-bg px-3 py-2 text-sm text-astro-text outline-none focus:border-astro-highlight/40"
+        />
+        <textarea
+          value={draft.bodyEn}
+          onChange={(event) => setDraft((prev) => ({ ...prev, bodyEn: event.target.value }))}
+          rows={4}
+          placeholder="EN"
+          className="w-full rounded-lg border border-astro-border bg-astro-bg px-3 py-2 text-sm text-astro-text outline-none focus:border-astro-highlight/40"
+        />
+        <button
+          onClick={() => setDraft((prev) => ({ ...prev, isActive: !prev.isActive }))}
+          className={`rounded-lg px-4 py-2 text-sm font-semibold ${draft.isActive ? 'border border-emerald-500/40 bg-emerald-500/10 text-emerald-300' : 'border border-astro-border bg-astro-bg text-astro-subtext'}`}
+        >
+          {draft.isActive ? T(lang, 'Активен', 'Active') : T(lang, 'Выключен', 'Disabled')}
+        </button>
+        <div className="flex flex-wrap gap-3">
+          <button
+            onClick={handleSaveTemplate}
+            disabled={actionLoading === 'template-save'}
+            className="rounded-lg bg-astro-highlight px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+          >
+            {actionLoading === 'template-save' ? T(lang, 'Сохраняем...', 'Saving...') : T(lang, 'Сохранить шаблон', 'Save template')}
+          </button>
+          <button
+            onClick={() => setDraft(emptyTemplateDraft)}
+            className="rounded-lg border border-astro-border px-4 py-2 text-sm font-semibold text-astro-text"
+          >
+            {T(lang, 'Сбросить', 'Reset')}
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+
+  const renderHistory = () => (
+    <section className="space-y-4 rounded-2xl border border-astro-border bg-astro-card p-4">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h3 className="font-serif text-lg text-astro-text">{T(lang, 'История отправок', 'Notification history')}</h3>
+          <p className="mt-1 text-xs text-astro-subtext">
+            {T(lang, 'Последние отправки и ошибки доставки', 'Recent sends and delivery failures')}
+          </p>
+        </div>
+        <button
+          onClick={() => void loadData()}
+          className="rounded-lg border border-astro-border px-4 py-2 text-xs font-semibold uppercase tracking-widest text-astro-text"
+        >
+          {T(lang, 'Обновить', 'Refresh')}
+        </button>
+      </div>
+
+      {loading && history.length === 0 ? (
+        <p className="text-sm text-astro-subtext">{T(lang, 'Загружаем историю...', 'Loading history...')}</p>
+      ) : history.length === 0 ? (
+        <p className="text-sm text-astro-subtext">{T(lang, 'История отправок пока пуста', 'No notification history yet')}</p>
+      ) : (
+        <div className="space-y-3">
+          {history.map((item) => (
+            <div key={item.id} className="rounded-xl border border-astro-border bg-astro-bg/20 p-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-astro-text">{item.title}</p>
+                  <p className="mt-1 text-xs text-astro-subtext">
+                    {item.mode === 'personal'
+                      ? `${T(lang, 'Личное', 'Personal')}: ${item.targetUserName || item.targetUserId || '—'}`
+                      : `${T(lang, 'Массовое', 'Broadcast')}: ${item.targetSegment ? getSegmentLabel(lang, item.targetSegment) : '—'}`}
+                  </p>
+                  <p className="mt-1 text-xs text-astro-subtext">{formatDateTime(lang, item.createdAt)}</p>
+                </div>
+                <div className="text-right text-xs text-astro-subtext">
+                  <p>{item.successCount}/{item.totalRecipients} {T(lang, 'доставлено', 'sent')}</p>
+                  <p className="mt-1 text-red-300">{item.failedCount} {T(lang, 'ошибок', 'failed')}</p>
+                </div>
+              </div>
+
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  onClick={() => handleReuseCampaign(item)}
+                  className="rounded-lg border border-astro-border px-3 py-2 text-xs font-semibold uppercase tracking-widest text-astro-text"
+                >
+                  {T(lang, 'Переиспользовать', 'Reuse')}
+                </button>
+              </div>
+
+              {item.recentFailures.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {item.recentFailures.map((failure) => (
+                    <div key={`${item.id}-${failure.userId}-${failure.createdAt}`} className="rounded-lg border border-red-500/30 bg-red-500/5 p-3">
+                      <p className="text-sm text-red-200">{failure.userName}</p>
+                      <p className="mt-1 text-xs text-red-200/80">{failure.error}</p>
+                      <p className="mt-1 text-xs text-astro-subtext">{formatDateTime(lang, failure.createdAt)}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+
+  return (
+    <div className="space-y-4">
+      {error && (
+        <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-300">
+          {error}
+        </div>
+      )}
+
+      {section === 'send' && renderSend()}
+      {section === 'templates' && renderTemplates()}
+      {section === 'history' && renderHistory()}
     </div>
   );
 };
