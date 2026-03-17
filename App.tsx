@@ -21,6 +21,7 @@ import { Paywall } from './views/Paywall';
 import { Synastry } from './views/Synastry';
 import { MyCharts } from './views/MyCharts';
 import { Wallet } from './views/Wallet';
+import { getAdminStatus } from './services/adminService';
 import { useSwipeBack } from './lib/useSwipeBack';
 import { BackgroundLayers } from './components/BackgroundLayers';
 
@@ -58,6 +59,22 @@ const App: React.FC = () => {
     const dataLoadedRef = useRef(false);
     // Ref для однократного вызова daily login за сессию
     const dailyLoginProcessedRef = useRef(false);
+
+    const getFallbackAdminStatus = useCallback((userId?: string | number, storedIsAdmin?: boolean) => {
+        return OWNER_ID && userId ? String(userId) === String(OWNER_ID) : !!storedIsAdmin;
+    }, []);
+
+    const resolveAuthoritativeAdminStatus = useCallback(async (userId?: string | number, storedIsAdmin?: boolean) => {
+        const fallbackIsAdmin = getFallbackAdminStatus(userId, storedIsAdmin);
+
+        try {
+            const result = await getAdminStatus();
+            return result.isAdmin;
+        } catch (error: any) {
+            console.warn('[App] Failed to fetch authoritative admin status:', error?.message || error);
+            return fallbackIsAdmin;
+        }
+    }, [getFallbackAdminStatus]);
 
     useEffect(() => {
         const tg = (window as any).Telegram?.WebApp;
@@ -133,7 +150,7 @@ const App: React.FC = () => {
                 if (!storedProfile.language) storedProfile.language = 'ru';
                 if (!storedProfile.theme) storedProfile.theme = 'dark';
                 
-                const isAdmin = OWNER_ID && String(tgId) === String(OWNER_ID) ? true : storedProfile.isAdmin;
+                const isAdmin = await resolveAuthoritativeAdminStatus(tgId, storedProfile.isAdmin);
                 const updatedProfile = { ...storedProfile, id: String(tgId), isAdmin };
                 setProfile(updatedProfile);
 
@@ -184,7 +201,7 @@ const App: React.FC = () => {
         };
         
         loadData();
-    }, []);
+    }, [resolveAuthoritativeAdminStatus]);
 
     const handleOnboardingComplete = async (newProfile: UserProfile) => {
         console.log('[App] === ONBOARDING COMPLETE ===', {
@@ -195,7 +212,7 @@ const App: React.FC = () => {
         const tg = (window as any).Telegram?.WebApp;
         const tgUser = tg?.initDataUnsafe?.user;
         const tgId = tgUser?.id;
-        const isAdmin = OWNER_ID && String(tgId) === String(OWNER_ID) ? true : undefined;
+        const isAdmin = await resolveAuthoritativeAdminStatus(tgId, false);
         const fullProfile = { ...newProfile, id: String(tgId), isAdmin };
 
         setProfile(fullProfile);
@@ -361,7 +378,7 @@ const App: React.FC = () => {
                    if (i > 0) await new Promise((r) => setTimeout(r, 1200));
                    const fresh = await getProfile();
                    if (fresh) {
-                       const isAdmin = OWNER_ID && String(profile.id) === String(OWNER_ID) ? true : fresh.isAdmin;
+                       const isAdmin = await resolveAuthoritativeAdminStatus(profile.id, fresh.isAdmin);
                        setProfile({ ...fresh, id: profile.id, isAdmin });
                        if (fresh.isPremium) break;
                    }

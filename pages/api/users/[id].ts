@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '../../../lib/db';
+import { getConfiguredOwnerId } from '../../../lib/adminAuth';
 import { getMoscowTodayKey, toDateInputValue } from '../../../lib/date-utils';
 
 // Logging utility
@@ -23,7 +24,7 @@ function toUnixTimestamp(value?: string | Date | null): number | undefined {
 
 /** Owner gets isAdmin from env; otherwise use DB. Ensures Admin Panel visible even if client bundle lacks NEXT_PUBLIC_OWNER_ID. */
 function resolveIsAdmin(userId: string, dbIsAdmin: boolean | undefined): boolean {
-  const ownerId = process.env.NEXT_PUBLIC_OWNER_ID || '';
+  const ownerId = getConfiguredOwnerId();
   if (ownerId && String(userId) === String(ownerId)) return true;
   return !!dbIsAdmin;
 }

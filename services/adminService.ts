@@ -71,6 +71,10 @@ export async function fetchAdminUsers(params?: {
   return data.users || [];
 }
 
+export async function getAdminStatus(): Promise<{ isAdmin: boolean; requesterId: string }> {
+  return adminRequest<{ isAdmin: boolean; requesterId: string }>('/api/admin/me');
+}
+
 export async function fetchAdminUserDetail(userId: string): Promise<AdminUserDetail> {
   const data = await adminRequest<{ user: AdminUserDetail }>(`/api/admin/users/${encodeURIComponent(userId)}`);
   return data.user;

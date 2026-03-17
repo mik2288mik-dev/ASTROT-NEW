@@ -2,7 +2,6 @@ import crypto from 'crypto';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from './db';
 
-const OWNER_ID = process.env.NEXT_PUBLIC_OWNER_ID || '';
 const BOT_TOKEN = process.env.BOT_TOKEN || '';
 const INIT_DATA_HEADER = 'x-telegram-init-data';
 
@@ -21,6 +20,10 @@ type VerifiedTelegramUser = {
   id: string;
   rawUser: Record<string, any>;
 };
+
+export function getConfiguredOwnerId(): string {
+  return process.env.NEXT_PUBLIC_OWNER_ID || process.env.OWNER_ID || '';
+}
 
 function getHeaderValue(req: NextApiRequest, headerName: string): string {
   const value = req.headers[headerName];
@@ -80,23 +83,31 @@ function verifyTelegramInitData(initData: string): VerifiedTelegramUser {
   };
 }
 
-export async function requireAdminAccess(req: NextApiRequest) {
+export async function getAdminAccessState(req: NextApiRequest) {
   const initData = getHeaderValue(req, INIT_DATA_HEADER);
   const telegramUser = verifyTelegramInitData(initData);
   const requester = await db.users.get(telegramUser.id);
-  const isOwner = OWNER_ID && telegramUser.id === String(OWNER_ID);
+  const ownerId = getConfiguredOwnerId();
+  const isOwner = !!ownerId && telegramUser.id === String(ownerId);
   const isAdmin = isOwner || !!requester?.is_admin;
-
-  if (!isAdmin) {
-    throw new AdminAuthError(403, 'ADMIN_REQUIRED', 'Admin access is required');
-  }
 
   return {
     requesterId: telegramUser.id,
     isOwner,
+    isAdmin,
     user: requester,
     telegramUser: telegramUser.rawUser,
   };
+}
+
+export async function requireAdminAccess(req: NextApiRequest) {
+  const access = await getAdminAccessState(req);
+
+  if (!access.isAdmin) {
+    throw new AdminAuthError(403, 'ADMIN_REQUIRED', 'Admin access is required');
+  }
+
+  return access;
 }
 
 export function handleAdminError(res: NextApiResponse, error: unknown) {
