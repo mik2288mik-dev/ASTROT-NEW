@@ -45,9 +45,8 @@ export const ZodiacHeader = memo<ZodiacHeaderProps>(({ sunSign, language }) => {
   const zodiacName = getZodiacSign(language, sunSign);
 
   return (
-    <div className="flex items-start gap-5 mb-8">
-      {/* Иконка знака слева */}
-      <div className="flex-shrink-0 w-20 h-20 md:w-24 md:h-24 rounded-full bg-gradient-to-br from-astro-card to-astro-bg border-2 border-astro-border flex items-center justify-center shadow-lg">
+    <div className="flex items-start gap-4">
+      <div className="flex-shrink-0 w-16 h-16 md:w-20 md:h-20 rounded-full bg-gradient-to-br from-astro-card to-astro-bg border border-astro-border flex items-center justify-center shadow-lg">
         <span className="text-5xl md:text-6xl text-astro-highlight opacity-90" style={{ 
           filter: 'drop-shadow(0 3px 8px rgba(191, 161, 255, 0.4))'
         }}>
@@ -55,14 +54,10 @@ export const ZodiacHeader = memo<ZodiacHeaderProps>(({ sunSign, language }) => {
         </span>
       </div>
 
-      {/* Текст справа от иконки */}
-      <div className="flex-1 pt-2 md:pt-3">
-        {/* Название знака */}
-        <h2 className="text-2xl md:text-3xl font-semibold text-astro-text mb-2">
+      <div className="flex-1 pt-1 md:pt-2">
+        <h2 className="text-xl md:text-2xl font-semibold text-astro-text mb-1">
           {zodiacName}
         </h2>
-
-        {/* Даты знака */}
         <p className="text-sm md:text-base text-astro-subtext tracking-wide">
           {zodiacDates}
         </p>

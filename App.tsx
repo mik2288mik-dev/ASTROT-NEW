@@ -595,6 +595,8 @@ const App: React.FC = () => {
                             profile={profile} 
                             chartData={chartData} 
                             onUpdateProfile={handleProfileUpdate}
+                            onOpenChart={() => setView('chart')}
+                            onRequestPremium={() => setShowPremiumPreview(true)}
                         />
                     </div>
                 ) : view === 'chart' ? (

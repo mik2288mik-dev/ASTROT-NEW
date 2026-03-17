@@ -138,6 +138,9 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
                         {getText(profile.language, 'dashboard.forecast_date')}: {horoscopeDateLabel}
                     </p>
                 )}
+                <p className="mb-3 text-xs text-astro-subtext">
+                    {getText(profile.language, 'dashboard.horoscope_footer')}
+                </p>
                 {dailyHoroscope?.content ? (
                     <>
                         <h3 className="mb-2 line-clamp-2 font-serif text-base text-astro-text">

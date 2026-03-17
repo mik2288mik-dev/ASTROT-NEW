@@ -1,11 +1,11 @@
 import React, { memo, useMemo } from 'react';
+import { getText } from '../../constants';
 import { Language } from '../../types';
 
 interface HoroscopeContentProps {
   content: string;
   moonImpact?: string;
-  mood?: string;
-  color?: string;
+  transitFocus?: string;
   language: Language;
 }
 
@@ -28,8 +28,7 @@ const cleanText = (text: string): string => {
 export const HoroscopeContent = memo<HoroscopeContentProps>(({ 
   content, 
   moonImpact, 
-  mood, 
-  color, 
+  transitFocus,
   language 
 }) => {
   // Очищаем и разбиваем текст на параграфы
@@ -46,58 +45,65 @@ export const HoroscopeContent = memo<HoroscopeContentProps>(({
   }, [content]);
 
   return (
-    <div className="bg-astro-card rounded-2xl p-6 md:p-8 border border-astro-border shadow-sm">
-      <div className="space-y-5 md:space-y-6">
-        {/* Разбиваем текст на абзацы с улучшенной типографикой */}
-        {paragraphs.map((paragraph: string, index: number) => (
-          <p 
-            key={index}
-            className="font-serif text-base md:text-lg text-astro-text"
-            style={{ 
-              lineHeight: '1.8',
-              maxWidth: '70ch'
-            }}
-          >
-            {paragraph}
-          </p>
-        ))}
+    <div className="space-y-5">
+      <div className="rounded-[24px] border border-astro-border bg-gradient-to-b from-astro-card to-astro-card/65 p-6 shadow-sm">
+        <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
+          {getText(language, 'horoscope.reading_title')}
+        </p>
+        <p className="mt-2 text-sm leading-relaxed text-astro-subtext">
+          {getText(language, 'horoscope.reading_body')}
+        </p>
 
-        {/* Если есть дополнительная информация */}
-        {moonImpact && (
-          <div className="pt-6 mt-6 border-t border-astro-border/40">
-            <h3 className="text-base md:text-lg font-semibold text-astro-text mb-3">
-              {language === 'ru' ? 'Влияние Луны' : 'Moon Impact'}
-            </h3>
-            <p className="font-serif text-[15px] md:text-base text-astro-text/80" style={{ lineHeight: '1.7', maxWidth: '65ch' }}>
-              {cleanText(moonImpact)}
+        <div className="mt-5 space-y-4 md:space-y-5">
+          {paragraphs.map((paragraph: string, index: number) => (
+            <p 
+              key={index}
+              className="font-serif text-base md:text-lg text-astro-text"
+              style={{ 
+                lineHeight: '1.8',
+                maxWidth: '70ch'
+              }}
+            >
+              {paragraph}
             </p>
-          </div>
-        )}
+          ))}
+        </div>
+      </div>
 
-        {/* Настроение дня */}
-        {mood && (
-          <div className="flex items-center justify-center gap-6 md:gap-8 pt-5 mt-5 border-t border-astro-border/30">
-            <div className="text-center">
-              <p className="text-xs md:text-sm text-astro-subtext mb-2 uppercase tracking-wide">
-                {language === 'ru' ? 'Настроение' : 'Mood'}
-              </p>
-              <p className="text-base md:text-lg font-medium text-astro-text">
-                {mood}
-              </p>
-            </div>
-            {color && (
-              <div className="text-center">
-                <p className="text-xs md:text-sm text-astro-subtext mb-2 uppercase tracking-wide">
-                  {language === 'ru' ? 'Цвет дня' : 'Lucky Color'}
+      {(moonImpact || transitFocus) && (
+        <div className="rounded-[24px] border border-astro-border bg-astro-card/60 p-5">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
+            {getText(language, 'horoscope.context_title')}
+          </p>
+          <p className="mt-2 text-sm leading-relaxed text-astro-subtext">
+            {getText(language, 'horoscope.context_body')}
+          </p>
+
+          <div className="mt-4 space-y-3">
+            {moonImpact && (
+              <div className="rounded-2xl border border-astro-border/70 bg-astro-bg/25 p-4">
+                <h3 className="text-sm font-semibold text-astro-text">
+                  {getText(language, 'horoscope.moon_impact_title')}
+                </h3>
+                <p className="mt-2 font-serif text-[15px] leading-relaxed text-astro-text/85">
+                  {cleanText(moonImpact)}
                 </p>
-                <p className="text-base md:text-lg font-medium text-astro-text">
-                  {color}
+              </div>
+            )}
+
+            {transitFocus && (
+              <div className="rounded-2xl border border-astro-border/70 bg-astro-bg/25 p-4">
+                <h3 className="text-sm font-semibold text-astro-text">
+                  {getText(language, 'horoscope.transit_focus_title')}
+                </h3>
+                <p className="mt-2 font-serif text-[15px] leading-relaxed text-astro-text/85">
+                  {cleanText(transitFocus)}
                 </p>
               </div>
             )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 });
