@@ -3,15 +3,17 @@ import { type UserProfile } from '../types';
 import { AdminUsersTab } from './admin/AdminUsersTab';
 import { AdminNotificationsTab } from './admin/AdminNotificationsTab';
 
+type AdminOwnProfilePatch = Partial<Pick<UserProfile, 'isPremium' | 'lumiBalance' | 'chartSlots' | 'loginStreak'>>;
+
 interface AdminPanelProps {
   profile: UserProfile;
-  onUpdate: (profile: UserProfile) => void;
+  onPatchOwnProfile: (patch: AdminOwnProfilePatch) => void;
   onClose: () => void;
 }
 
 const T = (lang: 'ru' | 'en', ru: string, en: string) => (lang === 'ru' ? ru : en);
 
-export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onUpdate, onClose }) => {
+export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onPatchOwnProfile, onClose }) => {
   const lang = profile.language === 'en' ? 'en' : 'ru';
   const [activeTab, setActiveTab] = useState<'users' | 'notifications'>('users');
   const [notificationTargetUserId, setNotificationTargetUserId] = useState<string>('');
@@ -73,7 +75,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onUpdate, onClo
         {activeTab === 'users' ? (
           <AdminUsersTab
             profile={profile}
-            onUpdate={onUpdate}
+            onPatchOwnProfile={onPatchOwnProfile}
             onSendNotification={(userId) => {
               setNotificationTargetUserId(userId);
               setActiveTab('notifications');

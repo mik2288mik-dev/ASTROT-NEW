@@ -345,9 +345,22 @@ const App: React.FC = () => {
         }
     };
 
-    const handleProfileUpdate = (updatedProfile: UserProfile) => {
+    const handleProfileUpdate = useCallback((updatedProfile: UserProfile) => {
         setProfile(updatedProfile);
-    };
+    }, []);
+
+    const handleAdminOwnProfilePatch = useCallback((
+        patch: Partial<Pick<UserProfile, 'isPremium' | 'lumiBalance' | 'chartSlots' | 'loginStreak'>>
+    ) => {
+        setProfile((prev) => {
+            if (!prev) return prev;
+            return {
+                ...prev,
+                ...patch,
+                isAdmin: prev.isAdmin,
+            };
+        });
+    }, []);
 
     const refreshLumiOnDashboard = useCallback(async () => {
         if (!profile?.id) return;
@@ -549,7 +562,11 @@ const App: React.FC = () => {
                 style={{ paddingLeft: 'env(safe-area-inset-left, 0px)', paddingRight: 'env(safe-area-inset-right, 0px)' }}
             >
                 {view === 'admin' ? (
-                    <AdminPanel profile={profile} onUpdate={handleProfileUpdate} onClose={() => setView('settings')} />
+                    <AdminPanel
+                        profile={profile}
+                        onPatchOwnProfile={handleAdminOwnProfilePatch}
+                        onClose={() => setView('settings')}
+                    />
                 ) : view === 'hook' && chartData ? (
                     <HookChat 
                         profile={profile} 

@@ -14,9 +14,11 @@ import {
   updateAdminPremium,
 } from '../../services/adminService';
 
+type AdminOwnProfilePatch = Partial<Pick<UserProfile, 'isPremium' | 'lumiBalance' | 'chartSlots' | 'loginStreak'>>;
+
 interface AdminUsersTabProps {
   profile: UserProfile;
-  onUpdate: (profile: UserProfile) => void;
+  onPatchOwnProfile: (patch: AdminOwnProfilePatch) => void;
   onSendNotification: (userId: string) => void;
 }
 
@@ -55,7 +57,7 @@ const formatLumiReason = (lang: 'ru' | 'en', reason: string) => {
   return map[reason]?.[lang] || reason.replace(/_/g, ' ');
 };
 
-export const AdminUsersTab: React.FC<AdminUsersTabProps> = ({ profile, onUpdate, onSendNotification }) => {
+export const AdminUsersTab: React.FC<AdminUsersTabProps> = ({ profile, onPatchOwnProfile, onSendNotification }) => {
   const lang = profile.language === 'en' ? 'en' : 'ru';
   const [users, setUsers] = useState<AdminUserSummary[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
@@ -69,17 +71,15 @@ export const AdminUsersTab: React.FC<AdminUsersTabProps> = ({ profile, onUpdate,
   const [lumiAmount, setLumiAmount] = useState('10');
   const [lumiNote, setLumiNote] = useState('');
 
-  const syncOwnProfile = useCallback((detail: AdminUserDetail) => {
+  const patchOwnProfileFromDetail = useCallback((detail: AdminUserDetail) => {
     if (detail.id !== profile.id) return;
-    onUpdate({
-      ...profile,
+    onPatchOwnProfile({
       isPremium: detail.isPremium,
-      isAdmin: profile.isAdmin,
       lumiBalance: detail.lumiBalance,
       chartSlots: detail.chartSlots,
       loginStreak: detail.loginStreak,
     });
-  }, [onUpdate, profile]);
+  }, [onPatchOwnProfile, profile.id]);
 
   const loadUsers = useCallback(async (keepSelection = true) => {
     setListLoading(true);
@@ -116,14 +116,13 @@ export const AdminUsersTab: React.FC<AdminUsersTabProps> = ({ profile, onUpdate,
     try {
       const detail = await fetchAdminUserDetail(userId);
       setSelectedUser(detail);
-      syncOwnProfile(detail);
     } catch (loadError: any) {
       setSelectedUser(null);
       setError(loadError?.message || T(lang, 'Не удалось загрузить пользователя', 'Failed to load user'));
     } finally {
       setDetailLoading(false);
     }
-  }, [lang, syncOwnProfile]);
+  }, [lang]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -144,7 +143,7 @@ export const AdminUsersTab: React.FC<AdminUsersTabProps> = ({ profile, onUpdate,
     try {
       const updated = await updateAdminPremium(selectedUserId, action);
       setSelectedUser(updated);
-      syncOwnProfile(updated);
+      patchOwnProfileFromDetail(updated);
       await loadUsers(true);
     } catch (actionError: any) {
       setError(actionError?.message || T(lang, 'Не удалось обновить premium', 'Failed to update premium'));
@@ -167,7 +166,7 @@ export const AdminUsersTab: React.FC<AdminUsersTabProps> = ({ profile, onUpdate,
       const result = await updateAdminLumi(selectedUserId, action, amount, lumiNote.trim());
       const updated = result.user;
       setSelectedUser(updated);
-      syncOwnProfile(updated);
+      patchOwnProfileFromDetail(updated);
       await loadUsers(true);
       setLumiNote('');
       if (lumiNote.trim() && result.notificationError) {
