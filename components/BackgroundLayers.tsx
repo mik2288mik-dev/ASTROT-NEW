@@ -153,7 +153,7 @@ export const BackgroundLayers: React.FC<BackgroundLayersProps> = ({
           className="pointer-events-none absolute inset-0"
           style={{
             background:
-              'linear-gradient(180deg, rgba(5,5,5,0.55) 0%, rgba(5,5,5,0.28) 42%, rgba(5,5,5,0.62) 100%)',
+              'linear-gradient(180deg, rgba(5,5,5,0.42) 0%, rgba(5,5,5,0.18) 40%, rgba(5,5,5,0.48) 100%)',
           }}
         />
       )}

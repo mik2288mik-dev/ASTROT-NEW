@@ -116,7 +116,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
     if (!chartData) return <Loading message={getText(profile.language, 'loading')} />;
 
     return (
-        <div className="p-5 space-y-5 screen-pb">
+        <div className="space-y-3.5 px-4 py-4 screen-pb sm:px-4 sm:py-4">
             <CosmicPassport
                 profile={profile}
                 chartData={chartData}
@@ -126,10 +126,11 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
                 weatherData={context?.weatherData}
             />
 
-            <div className="space-y-3">
+            <div className="space-y-2.5">
                 <button
                     onClick={handleNavigateHoroscope}
-                    className="w-full rounded-[24px] border border-astro-border bg-gradient-to-b from-astro-card to-astro-card/65 p-5 text-left transition-colors hover:border-astro-highlight/30"
+                    type="button"
+                    className="lumia-glass w-full rounded-2xl p-4 text-left transition-[transform,box-shadow] hover:ring-1 hover:ring-astro-highlight/22 active:scale-[0.99] sm:p-[18px]"
                 >
                     <div className="flex items-start justify-between gap-4">
                         <div>
@@ -141,7 +142,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
                             </p>
                         </div>
                         {horoscopeDateLabel && (
-                            <span className="shrink-0 rounded-full border border-astro-border/70 bg-astro-bg/25 px-3 py-1 text-[11px] text-astro-subtext">
+                            <span className="shrink-0 rounded-full bg-astro-text/[0.06] px-2.5 py-1 text-[11px] text-astro-subtext">
                                 {horoscopeDateLabel}
                             </span>
                         )}
@@ -155,12 +156,12 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
                             {(dailyHoroscope.mood || dailyHoroscope.color) && (
                                 <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-astro-subtext">
                                     {dailyHoroscope.mood && (
-                                        <span className="rounded-full border border-astro-border/70 bg-astro-bg/25 px-3 py-1">
+                                        <span className="rounded-full bg-astro-text/[0.06] px-2.5 py-1">
                                             {getText(profile.language, 'dashboard.mood')}: <span className="font-medium text-astro-highlight">{dailyHoroscope.mood}</span>
                                         </span>
                                     )}
                                     {dailyHoroscope.color && (
-                                        <span className="rounded-full border border-astro-border/70 bg-astro-bg/25 px-3 py-1">
+                                        <span className="rounded-full bg-astro-text/[0.06] px-2.5 py-1">
                                             {getText(profile.language, 'dashboard.color')}: <span className="font-medium text-astro-highlight">{dailyHoroscope.color}</span>
                                         </span>
                                     )}
@@ -180,7 +181,8 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
 
                 <button
                     onClick={handleNavigateChart}
-                    className="w-full rounded-[24px] border border-astro-border bg-astro-card/70 p-5 text-left transition-colors hover:border-astro-highlight/30"
+                    type="button"
+                    className="lumia-glass w-full rounded-2xl p-4 text-left transition-[transform,box-shadow] hover:ring-1 hover:ring-astro-highlight/22 active:scale-[0.99] sm:p-[18px]"
                 >
                     <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
                         {getText(profile.language, 'dashboard.menu_analysis')}
@@ -210,7 +212,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
                 context?.weatherData && chartData ? (
                     <WeatherWidget profile={profile} chartData={chartData} weatherData={context.weatherData} />
                 ) : (
-                    <div className="rounded-[24px] border border-astro-border/70 bg-astro-card/45 p-5 opacity-75">
+                    <div className="lumia-glass rounded-2xl p-4 opacity-80 sm:p-[18px]">
                         <h3 className="mb-1 text-[10px] uppercase tracking-widest text-astro-subtext">
                             {getText(profile.language, 'dashboard.context_weather')}
                         </h3>
@@ -220,7 +222,8 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
             ) : (
                 <button
                     onClick={onOpenSettings}
-                    className="w-full rounded-[24px] border border-astro-border/70 bg-astro-card/45 p-5 text-left transition-colors hover:border-astro-highlight/30"
+                    type="button"
+                    className="lumia-glass w-full rounded-2xl p-4 text-left transition-[transform,box-shadow] hover:ring-1 hover:ring-astro-highlight/22 active:scale-[0.99] sm:p-[18px]"
                 >
                     <h3 className="mb-1 text-[10px] uppercase tracking-widest text-astro-subtext">
                         {getText(profile.language, 'dashboard.context_weather')}
@@ -230,10 +233,11 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
                 </button>
             )}
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2.5">
                 <button
                     onClick={handleNavigateSynastry}
-                    className="rounded-[22px] border border-astro-border bg-astro-card/60 p-4 text-left transition-colors hover:border-astro-highlight/30"
+                    type="button"
+                    className="lumia-glass rounded-2xl p-3.5 text-left transition-[transform,box-shadow] hover:ring-1 hover:ring-astro-highlight/22 active:scale-[0.99] sm:p-4"
                 >
                     <span className="text-xl text-pink-400/90">♥</span>
                     <h3 className="mt-2 mb-0.5 font-serif text-sm text-astro-text">
@@ -252,7 +256,8 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
 
                 <button
                     onClick={handleNavigateOracle}
-                    className="relative rounded-[22px] border border-astro-border bg-astro-card/60 p-4 text-left transition-colors hover:border-astro-highlight/30"
+                    type="button"
+                    className="lumia-glass relative rounded-2xl p-3.5 text-left transition-[transform,box-shadow] hover:ring-1 hover:ring-astro-highlight/22 active:scale-[0.99] sm:p-4"
                 >
                     {!profile.isPremium && (
                         <span className="absolute right-2 top-2 rounded-full bg-astro-highlight/20 px-2 py-0.5 text-[9px] font-bold uppercase text-astro-highlight">

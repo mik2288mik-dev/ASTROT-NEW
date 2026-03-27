@@ -13,7 +13,7 @@
   --accent-primary: #FFFFFF; 
   --accent-secondary: #2A2A2A;
   --highlight: #BFA1FF;   
-  --border-color: rgba(255, 255, 255, 0.08);
+  --border-color: rgba(255, 255, 255, 0.055);
   --orbit-color: rgba(255, 255, 255, 0.12);
   --shadow-color: rgba(0, 0, 0, 0.5);
 }
@@ -169,6 +169,25 @@ p, .body-text {
 .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
+}
+
+/* Glass surfaces (dashboard cards): soft edge, no harsh “white frame” on dark */
+.lumia-glass {
+  background: color-mix(in srgb, var(--bg-card) 52%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text-main) 7%, transparent);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--text-main) 6%, transparent) inset,
+    0 12px 40px var(--shadow-color);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+body.theme-light .lumia-glass {
+  background: color-mix(in srgb, var(--bg-card) 58%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text-main) 8%, transparent);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--text-main) 12%, transparent) inset,
+    0 10px 32px var(--shadow-color);
 }
 
 /* Soft Shadow for Cards */

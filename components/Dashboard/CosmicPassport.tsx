@@ -87,8 +87,11 @@ export const CosmicPassport = memo<CosmicPassportProps>(
             : `Sun · ${sunLabel}`;
 
     return (
-      <div className="relative overflow-hidden rounded-3xl border border-astro-border/45 bg-astro-card/95 shadow-soft">
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/25 to-transparent" aria-hidden />
+      <div className="lumia-glass relative overflow-hidden rounded-2xl">
+        <div
+          className="pointer-events-none absolute inset-0 bg-gradient-to-br from-astro-text/[0.05] via-transparent to-transparent"
+          aria-hidden
+        />
 
         <button
           type="button"
@@ -107,11 +110,11 @@ export const CosmicPassport = memo<CosmicPassportProps>(
           </svg>
         </button>
 
-        <div className="relative px-5 pb-5 pt-5 pr-14 sm:px-6 sm:pb-6 sm:pr-16 sm:pt-6">
-          <div className="flex items-center gap-4">
-            <div className="relative h-[52px] w-[52px] shrink-0 sm:h-14 sm:w-14">
+        <div className="relative px-4 pb-4 pt-4 pr-12 sm:px-5 sm:pb-5 sm:pr-14 sm:pt-5">
+          <div className="flex items-center gap-3.5">
+            <div className="relative h-[50px] w-[50px] shrink-0 sm:h-[54px] sm:w-[54px]">
               {photoUrl ? (
-                <div className="relative h-full w-full overflow-hidden rounded-full border border-astro-border/35 bg-astro-bg shadow-sm">
+                <div className="relative h-full w-full overflow-hidden rounded-full ring-1 ring-astro-text/12 ring-offset-2 ring-offset-transparent">
                   <Image
                     src={photoUrl}
                     alt=""
@@ -122,12 +125,12 @@ export const CosmicPassport = memo<CosmicPassportProps>(
                   />
                 </div>
               ) : (
-                <div className="flex h-full w-full items-center justify-center rounded-full border border-astro-border/35 bg-astro-bg/50 font-serif text-lg font-semibold text-astro-text">
+                <div className="flex h-full w-full items-center justify-center rounded-full bg-astro-text/[0.05] font-serif text-lg font-semibold text-astro-text ring-1 ring-astro-text/12">
                   {displayNameFinal.charAt(0).toUpperCase()}
                 </div>
               )}
               {profile.isPremium && (
-                <span className="absolute -bottom-0.5 -right-0.5 rounded-full border-2 border-astro-card bg-astro-highlight px-1 py-px text-[6px] font-bold uppercase leading-none text-white">
+                <span className="absolute -bottom-0.5 -right-0.5 rounded-full bg-astro-highlight px-1 py-px text-[6px] font-bold uppercase leading-none text-white ring-2 ring-astro-card">
                   Pro
                 </span>
               )}
@@ -142,8 +145,11 @@ export const CosmicPassport = memo<CosmicPassportProps>(
           </div>
 
           {weatherData && (
-            <div className="mt-5 flex items-start gap-3 border-t border-astro-border/25 pt-4">
-              <span className="mt-0.5 text-[22px] leading-none opacity-90" aria-hidden>
+            <div className="mt-4 flex items-center gap-3 border-t border-astro-border/35 pt-3.5">
+              <span
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-astro-text/[0.06] text-[20px] leading-none"
+                aria-hidden
+              >
                 {getWeatherIcon(weatherData.condition)}
               </span>
               <div className="min-w-0 flex-1">
@@ -155,7 +161,7 @@ export const CosmicPassport = memo<CosmicPassportProps>(
                   </span>
                 </p>
                 {weatherData.moonPhase && (
-                  <p className="mt-1 text-xs text-astro-subtext/80">
+                  <p className="mt-0.5 text-[11px] text-astro-subtext/85">
                     {translateMoonPhase(weatherData.moonPhase.phase, lang)}
                   </p>
                 )}
@@ -163,7 +169,7 @@ export const CosmicPassport = memo<CosmicPassportProps>(
             </div>
           )}
 
-          <div className="mt-5 border-t border-astro-border/25 pt-4">
+          <div className="mt-4 border-t border-astro-border/35 pt-3.5">
             <p className="text-[13px] leading-relaxed text-astro-text sm:text-sm">
               <span className="font-medium">{getText(lang, 'dashboard.element')}</span>
               <span className="text-astro-subtext"> — </span>

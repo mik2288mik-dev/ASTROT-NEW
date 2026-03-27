@@ -39,7 +39,7 @@ export const Header: React.FC<HeaderProps> = ({ profile, view, onBack, onOpenWal
 
     return (
         <header
-            className="bg-astro-bg border-b border-astro-border/50 shrink-0 relative z-40"
+            className="shrink-0 relative z-40 border-b border-astro-border/40 bg-astro-bg/72 backdrop-blur-xl backdrop-saturate-150"
             style={{
                 paddingTop: 'max(env(safe-area-inset-top, 0px), 8px)',
                 paddingLeft: 'env(safe-area-inset-left, 0px)',
