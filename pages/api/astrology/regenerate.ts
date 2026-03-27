@@ -12,6 +12,7 @@ import {
   addLanguageInstruction 
 } from '../../../lib/prompts';
 import { withRateLimit, RATE_LIMIT_CONFIGS } from '../../../lib/rateLimit';
+import { getOpenAIInterpretationModel } from '../../../lib/appSettings';
 
 // Logging utility
 const log = {
@@ -97,8 +98,9 @@ async function regenerateNatalIntro(profile: any, chartData: any): Promise<strin
   const userPrompt = createFullNatalChartIntroPrompt(chartData, profile);
   const promptWithLang = addLanguageInstruction(userPrompt, lang ? 'ru' : 'en');
 
+  const modelId = await getOpenAIInterpretationModel();
   const completion = await openai.chat.completions.create({
-    model: 'gpt-4o',
+    model: modelId,
     messages: [
       { role: 'system', content: SYSTEM_PROMPT_ASTRA },
       { role: 'user', content: promptWithLang }
@@ -144,8 +146,9 @@ async function regenerateDeepDive(profile: any, chartData: any, topic: string): 
 
   const promptWithLang = addLanguageInstruction(userPrompt, lang ? 'ru' : 'en');
 
+  const modelId = await getOpenAIInterpretationModel();
   const completion = await openai.chat.completions.create({
-    model: 'gpt-4o',
+    model: modelId,
     messages: [
       { role: 'system', content: SYSTEM_PROMPT_ASTRA },
       { role: 'user', content: promptWithLang }

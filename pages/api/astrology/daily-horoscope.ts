@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
 import { SYSTEM_PROMPT_ASTRA, createDailyForecastPrompt, addLanguageInstruction, DailyForecastAIResponse } from '../../../lib/prompts';
+import { getOpenAIInterpretationModel } from '../../../lib/appSettings';
 import { db } from '../../../lib/db';
 import { getCurrentTransits } from '../../../lib/transits-calculator';
 import { tryAcquireLock, releaseLock, LockKeys } from '../../../lib/serverLocks';
@@ -272,17 +273,18 @@ export default async function handler(
 
         const userPrompt = createDailyForecastPrompt(chartData, profile, currentDateStr, transits);
         const promptWithLang = addLanguageInstruction(userPrompt, lang ? 'ru' : 'en');
+        const modelId = await getOpenAIInterpretationModel();
 
         const genStartTime = Date.now();
         const completion = await openai.chat.completions.create({
-          model: 'gpt-4o-mini',
+          model: modelId,
           messages: [
             { role: 'system', content: SYSTEM_PROMPT_ASTRA },
             { role: 'user', content: promptWithLang },
           ],
           response_format: { type: 'json_object' },
           temperature: 0.7,
-          max_tokens: 1000,
+          max_tokens: 1200,
         });
 
         const genDuration = Date.now() - genStartTime;
@@ -291,17 +293,31 @@ export default async function handler(
         log.info('OpenAI response received', {
           durationMs: genDuration,
           tokensUsed: completion.usage?.total_tokens,
+          model: modelId,
         });
 
         const forecast: DailyForecastAIResponse = JSON.parse(responseText);
+        const moonLine =
+          (typeof forecast.moonFocus === 'string' && forecast.moonFocus.trim()) ||
+          (Array.isArray(forecast.advice) ? forecast.advice[0] : '') ||
+          '';
+        const transitLine =
+          (typeof forecast.transitFocus === 'string' && forecast.transitFocus.trim()) ||
+          (Array.isArray(forecast.advice) ? forecast.advice[1] : '') ||
+          '';
+        const adviceArr = Array.isArray(forecast.advice)
+          ? forecast.advice.map((s) => String(s).trim()).filter(Boolean).slice(0, 5)
+          : [];
+
         horoscope = {
           date: dateKey,
           mood: forecast.mood || (lang ? 'Вдохновленный' : 'Inspired'),
           color: forecast.color || 'Purple',
           number: forecast.number || 7,
           content: forecast.content || '',
-          moonImpact: forecast.advice?.[0] || '',
-          transitFocus: forecast.advice?.[1] || '',
+          ...(adviceArr.length > 0 ? { advice: adviceArr } : {}),
+          moonImpact: moonLine,
+          transitFocus: transitLine,
         };
       }
 

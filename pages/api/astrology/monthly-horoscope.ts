@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
 import { SYSTEM_PROMPT_ASTRA, createMonthlyForecastPrompt, addLanguageInstruction, MonthlyForecastAIResponse } from '../../../lib/prompts';
+import { getOpenAIInterpretationModel } from '../../../lib/appSettings';
 import { CACHE_CONFIGS } from '../../../lib/cache';
 
 // Logging utility
@@ -62,15 +63,15 @@ export default async function handler(
     const userPrompt = createMonthlyForecastPrompt(chartData, profile, month);
     const promptWithLang = addLanguageInstruction(userPrompt, lang ? 'ru' : 'en');
 
+    const modelId = await getOpenAIInterpretationModel();
     log.info('Sending request to OpenAI', {
-      model: 'gpt-4o',
+      model: modelId,
       promptLength: promptWithLang.length
     });
 
-    // Отправляем запрос в OpenAI (используем gpt-4o для более глубокого месячного прогноза)
     const startTime = Date.now();
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: modelId,
       messages: [
         { role: 'system', content: SYSTEM_PROMPT_ASTRA },
         { role: 'user', content: promptWithLang }

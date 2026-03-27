@@ -1,8 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '../../../lib/db';
-import OpenAI from 'openai';
-import { SYSTEM_PROMPT_ASTRA, createFullNatalChartIntroPrompt, addLanguageInstruction } from '../../../lib/prompts';
 import { withRateLimit, RATE_LIMIT_CONFIGS } from '../../../lib/rateLimit';
+import { generateNatalIntroWithOpenAI } from '../../../lib/natal-intro-ai';
 
 // Logging utility
 const log = {
@@ -16,103 +15,6 @@ const log = {
     console.error(`[API/astrology/natal-intro] ERROR: ${message}`, error || '');
   },
 };
-
-// Initialize OpenAI client
-const openai = process.env.OPENAI_API_KEY ? new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-}) : null;
-
-/**
- * Generate natal chart intro using OpenAI
- */
-async function generateNatalIntroWithAI(profile: any, chartData: any): Promise<string> {
-  const lang = profile?.language === 'ru';
-  
-  if (!openai) {
-    log.warn('OpenAI not configured, using fallback');
-    return generateFallbackIntro(profile, chartData);
-  }
-
-  try {
-    const userPrompt = createFullNatalChartIntroPrompt(chartData, profile);
-    const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
-      {
-        role: 'system',
-        content: addLanguageInstruction(SYSTEM_PROMPT_ASTRA, lang ? 'ru' : 'en')
-      },
-      {
-        role: 'user',
-        content: userPrompt
-      }
-    ];
-
-    log.info('Sending request to OpenAI for natal intro', { userId: profile.id });
-    
-    const startTime = Date.now();
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',  // Используем более умную модель для качественного вступления
-      messages,
-      temperature: 0.8,
-      max_tokens: 1500,
-    });
-
-    const duration = Date.now() - startTime;
-    const intro = completion.choices[0]?.message?.content || '';
-
-    log.info('OpenAI response received', {
-      duration: `${duration}ms`,
-      introLength: intro.length,
-      tokensUsed: completion.usage?.total_tokens
-    });
-
-    return intro;
-  } catch (error: any) {
-    log.error('Error calling OpenAI', {
-      error: error.message,
-      code: error.code,
-      type: error.type
-    });
-    
-    // Fallback при ошибке
-    return generateFallbackIntro(profile, chartData);
-  }
-}
-
-/**
- * Fallback intro when OpenAI is unavailable.
- * Lumia style: max 1–2 astrology terms, personal, warm.
- */
-function generateFallbackIntro(profile: any, chartData: any): string {
-  const lang = profile?.language === 'ru';
-  const name = profile.name || (lang ? 'друг' : 'friend');
-  const element = chartData.element || 'Fire';
-  
-  if (lang) {
-    return `**Привет, ${name}!**
-
-Я изучила твою карту, и вот что вижу: у тебя сильная, узнаваемая энергия. Ты чувствуешь людей и ситуации глубже, чем кажется со стороны.
-
-**Твои сильные стороны:**
-• Твоя стихия ${element} даёт тебе особый подход к жизни
-• Ты легко находишь баланс между разными сторонами себя
-• У тебя есть природная способность понимать людей
-
-**Что делает тебя особенным:**
-Ты можешь быть разным в зависимости от ситуации — и это твоя сила. Хочешь узнать больше о личности, любви, карьере и предназначении? Активируй Premium!`;
-  } else {
-    return `**Hi, ${name}!**
-
-I've studied your chart, and here's what I see: you have a strong, recognizable energy. You feel people and situations more deeply than it might seem from the outside.
-
-**Your strengths:**
-• Your ${element} element gives you a special approach to life
-• You easily find balance between different sides of yourself
-• You have a natural ability to understand people
-
-**What makes you special:**
-You can be different depending on the situation — and that's your strength. Want to learn more about your personality, love, career and life purpose? Activate Premium!`;
-  }
-}
 
 /**
  * Main API handler
@@ -174,13 +76,13 @@ async function handler(
           code: 'NATAL_INTRO_CACHE_READ_FAILED',
           message: profile.language === 'ru'
             ? 'Не удалось загрузить сохранённый текст натальной карты.'
-            : 'Failed to load the saved natal reading.',
+            : 'Failed to load the saved chart summary.',
         });
       }
     }
 
-    // Генерируем вступление
-    const intro = await generateNatalIntroWithAI(profile, chartData);
+    log.info('Generating natal intro via OpenAI', { userId, chartId: effectiveChartId });
+    const intro = await generateNatalIntroWithOpenAI(profile, chartData);
 
     // Сохраняем в interpretations (Lumia schema) — chart-level или user-level
     if (cacheKey) {
@@ -194,7 +96,7 @@ async function handler(
           code: 'NATAL_INTRO_PERSIST_FAILED',
           message: profile.language === 'ru'
             ? 'Текст натальной карты сгенерирован, но не сохранился. Повторите попытку позже.'
-            : 'The natal reading was generated but could not be saved. Please try again later.',
+            : 'The chart summary was generated but could not be saved. Please try again later.',
         });
       }
     }

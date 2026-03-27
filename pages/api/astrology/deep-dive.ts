@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
 import { db } from '../../../lib/db';
 import { SYSTEM_PROMPT_ASTRA, createDeepDivePrompt, addLanguageInstruction } from '../../../lib/prompts';
+import { getOpenAIInterpretationModel } from '../../../lib/appSettings';
 
 const TITLE_TO_KEY: Record<string, string> = {
   personality: 'personality', love: 'love', career: 'career', weakness: 'weakness', weaknesses: 'weakness', karma: 'karma',
@@ -78,7 +79,7 @@ export default async function handler(
           code: 'DEEP_DIVE_CACHE_READ_FAILED',
           message: lang
             ? 'Не удалось загрузить сохранённый глубокий разбор.'
-            : 'Failed to load the saved deep-dive reading.',
+            : 'Failed to load the saved deep-dive analysis.',
         });
       }
     }
@@ -96,15 +97,16 @@ export default async function handler(
     const userPrompt = createDeepDivePrompt(chartData, profile, topic);
     const promptWithLang = addLanguageInstruction(userPrompt, lang ? 'ru' : 'en');
 
+    const modelId = await getOpenAIInterpretationModel();
     log.info('Sending request to OpenAI', {
-      model: 'gpt-4o-mini',
+      model: modelId,
       promptLength: promptWithLang.length
     });
 
     // Отправляем запрос в OpenAI
     const startTime = Date.now();
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: modelId,
       messages: [
         { role: 'system', content: SYSTEM_PROMPT_ASTRA },
         { role: 'user', content: promptWithLang }
@@ -133,7 +135,7 @@ export default async function handler(
           code: 'DEEP_DIVE_PERSIST_FAILED',
           message: lang
             ? 'Глубокий разбор сгенерирован, но не сохранился. Попробуйте позже.'
-            : 'The deep-dive reading was generated but could not be saved. Please try again later.',
+            : 'The deep-dive analysis was generated but could not be saved. Please try again later.',
         });
       }
     }
@@ -163,7 +165,7 @@ export default async function handler(
       code: error?.code || 'DEEP_DIVE_INTERNAL_ERROR',
       message: lang
         ? 'Не удалось получить глубокий разбор натальной карты.'
-        : 'Failed to load the deep-dive natal reading.',
+        : 'Failed to load the deep-dive natal analysis.',
     });
   }
 }

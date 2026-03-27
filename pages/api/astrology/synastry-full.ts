@@ -4,6 +4,7 @@ import { createHash } from 'crypto';
 import { calculateNatalChart } from '../../../lib/swisseph-calculator';
 import { db } from '../../../lib/db';
 import { SYSTEM_PROMPT_ASTRA, createFullSynastryPrompt, addLanguageInstruction, FullSynastryAIResponse } from '../../../lib/prompts';
+import { getOpenAIInterpretationModel } from '../../../lib/appSettings';
 
 const log = {
   info: (message: string, data?: any) => {
@@ -134,8 +135,9 @@ export default async function handler(
     );
     const promptWithLang = addLanguageInstruction(userPrompt, currentLanguage);
 
+    const modelId = await getOpenAIInterpretationModel();
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: modelId,
       messages: [
         { role: 'system', content: SYSTEM_PROMPT_ASTRA },
         { role: 'user', content: promptWithLang }

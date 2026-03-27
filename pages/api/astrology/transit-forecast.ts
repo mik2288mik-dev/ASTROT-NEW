@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
 import { SYSTEM_PROMPT_ASTRA, createTransitForecastPrompt, addLanguageInstruction } from '../../../lib/prompts';
+import { getOpenAIInterpretationModel } from '../../../lib/appSettings';
 import { getCurrentTransits, getTransitsForPeriod } from '../../../lib/transits-calculator';
 
 // Logging utility
@@ -97,16 +98,15 @@ export default async function handler(
     );
     const promptWithLang = addLanguageInstruction(userPrompt, lang ? 'ru' : 'en');
 
+    const modelId = await getOpenAIInterpretationModel();
     log.info('Sending request to OpenAI', {
-      model: period === 'month' ? 'gpt-4o' : 'gpt-4o-mini',
+      model: modelId,
       promptLength: promptWithLang.length
     });
 
-    // Отправляем запрос в OpenAI
-    // Используем gpt-4o для месячного прогноза, gpt-4o-mini для дня и недели
     const startTime = Date.now();
     const completion = await openai.chat.completions.create({
-      model: period === 'month' ? 'gpt-4o' : 'gpt-4o-mini',
+      model: modelId,
       messages: [
         { role: 'system', content: SYSTEM_PROMPT_ASTRA },
         { role: 'user', content: promptWithLang }

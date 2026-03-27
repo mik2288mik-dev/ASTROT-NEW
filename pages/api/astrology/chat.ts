@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
+import { getOpenAIInterpretationModel } from '../../../lib/appSettings';
 import { SYSTEM_INSTRUCTION_ASTRA } from '../../../constants';
 import { db } from '../../../lib/db';
 import { RATE_LIMIT_CONFIGS, withRateLimit } from '../../../lib/rateLimit';
@@ -223,8 +224,9 @@ ${chartContext || 'Chart context is temporarily unavailable. Answer carefully an
     ];
 
     try {
+      const modelId = await getOpenAIInterpretationModel();
       const completion = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: modelId,
         messages,
         temperature: 0.7,
         max_tokens: 900,
