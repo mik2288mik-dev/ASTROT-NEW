@@ -46,19 +46,17 @@ export const ZodiacHeader = memo<ZodiacHeaderProps>(({ sunSign, language }) => {
   const zodiacName = getZodiacSign(language, sunSign);
 
   return (
-    <div className="border-b border-astro-border/40 pb-5">
-      <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-astro-subtext">
-        {getText(language, 'planets.sun')}
-      </p>
-      <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+    <div className="border-b border-astro-border/25 pb-3.5">
+      <p className="lumia-label tracking-[0.16em]">{getText(language, 'planets.sun')}</p>
+      <div className="mt-1.5 flex flex-wrap items-baseline gap-x-2 gap-y-1">
         <h2 className="font-sans text-xl font-semibold tracking-tight text-astro-text sm:text-2xl">
           {zodiacName}
         </h2>
-        <span className="text-[15px] text-astro-subtext/45 sm:text-base" aria-hidden>
+        <span className="text-[15px] text-astro-subtext/55 sm:text-base" aria-hidden>
           {zodiacSymbol}
         </span>
       </div>
-      <p className="mt-1.5 text-sm text-astro-subtext sm:text-[15px]">{zodiacDates}</p>
+      <p className="lumia-muted mt-1 text-sm sm:text-[15px]">{zodiacDates}</p>
     </div>
   );
 });

@@ -9,7 +9,7 @@
   --bg-primary: #050505;  
   --bg-card: #121212;     
   --text-main: #EAEAEA;   
-  --text-sub: #888888;    
+  --text-sub: #a8a8a8;
   --accent-primary: #FFFFFF; 
   --accent-secondary: #2A2A2A;
   --highlight: #BFA1FF;   
@@ -171,23 +171,44 @@ p, .body-text {
     scrollbar-width: none;
 }
 
-/* Glass surfaces (dashboard cards): soft edge, no harsh “white frame” on dark */
+/* Glass surfaces: depth from shadow + top sheen — avoid a bright “picture frame” stroke */
 .lumia-glass {
-  background: color-mix(in srgb, var(--bg-card) 52%, transparent);
-  border: 1px solid color-mix(in srgb, var(--text-main) 7%, transparent);
+  background: color-mix(in srgb, var(--bg-card) 50%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text-main) 3.5%, transparent);
   box-shadow:
-    0 1px 0 color-mix(in srgb, var(--text-main) 6%, transparent) inset,
-    0 12px 40px var(--shadow-color);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+    0 1px 0 color-mix(in srgb, var(--text-main) 5.5%, transparent) inset,
+    0 10px 36px var(--shadow-color);
+  backdrop-filter: blur(20px) saturate(1.15);
+  -webkit-backdrop-filter: blur(20px) saturate(1.15);
 }
 
 body.theme-light .lumia-glass {
-  background: color-mix(in srgb, var(--bg-card) 58%, transparent);
-  border: 1px solid color-mix(in srgb, var(--text-main) 8%, transparent);
+  background: color-mix(in srgb, var(--bg-card) 56%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text-main) 6%, transparent);
   box-shadow:
-    0 1px 0 color-mix(in srgb, var(--text-main) 12%, transparent) inset,
-    0 10px 32px var(--shadow-color);
+    0 1px 0 color-mix(in srgb, var(--text-main) 10%, transparent) inset,
+    0 8px 28px var(--shadow-color);
+  backdrop-filter: blur(18px) saturate(1.08);
+  -webkit-backdrop-filter: blur(18px) saturate(1.08);
+}
+
+/* Nested blocks inside glass panels: tint only, no second outline */
+.lumia-glass-inset {
+  background: color-mix(in srgb, var(--text-main) 5%, transparent);
+  border-radius: 0.75rem;
+}
+
+/* Secondary copy: readable on cosmic scrim without going full white */
+.lumia-muted {
+  color: color-mix(in srgb, var(--text-sub) 82%, var(--text-main) 18%);
+}
+
+.lumia-label {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--text-sub) 75%, var(--text-main) 25%);
 }
 
 /* Soft Shadow for Cards */

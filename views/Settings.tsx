@@ -23,8 +23,9 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
     const [tempWeatherCity, setTempWeatherCity] = useState('');
     const [currentWeatherCity, setCurrentWeatherCity] = useState<string | null>(null);
     const [weatherLoading, setWeatherLoading] = useState(false);
-    const sectionClass = 'rounded-[24px] border border-astro-border/80 bg-astro-card/60 p-5';
-    const rowCardClass = 'w-full rounded-[24px] border border-astro-border/80 bg-astro-card/55 p-5 text-left transition-colors hover:border-astro-highlight/35';
+    const sectionClass = 'lumia-glass rounded-2xl p-4 sm:p-[18px]';
+    const rowCardClass =
+        'lumia-glass w-full rounded-2xl p-4 text-left transition-[transform,box-shadow] hover:ring-1 hover:ring-astro-highlight/22 active:scale-[0.99] sm:p-[18px]';
     const inlineActionClass = 'text-astro-subtext text-[10px] uppercase tracking-wider hover:text-astro-text transition-colors';
     const inputBaseClass = 'w-full bg-transparent border-b border-astro-border py-2 text-astro-text text-sm focus:outline-none focus:border-astro-highlight transition-colors font-serif';
     const editableInputClass = (enabled: boolean) =>
@@ -131,30 +132,29 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
     };
 
     return (
-        <div className="mx-auto max-w-2xl px-5 py-6 space-y-5 screen-pb">
-            <section className="rounded-[24px] border border-astro-border/80 bg-gradient-to-b from-astro-card to-astro-card/65 p-5">
-                <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
-                    {getText(profile.language, 'settings.subscription')}
-                </p>
-                <h2 className="mt-2 font-serif text-2xl text-astro-text">
+        <div className="mx-auto max-w-2xl space-y-3 px-4 py-4 screen-pb sm:space-y-3.5">
+            <section className="lumia-glass rounded-2xl p-4 sm:p-[18px]">
+                <p className="lumia-label tracking-[0.2em]">{getText(profile.language, 'settings.subscription')}</p>
+                <h2 className="mt-1.5 font-serif text-xl text-astro-text sm:text-2xl">
                     {profile.isPremium ? getText(profile.language, 'settings.plan_pro') : getText(profile.language, 'settings.plan_basic')}
                 </h2>
-                <p className="mt-3 text-sm leading-relaxed text-astro-subtext">
+                <p className="lumia-muted mt-2 text-sm leading-relaxed">
                     {getText(profile.language, 'settings.subscription_body')}
                 </p>
 
-                <div className="mt-5 flex gap-2">
+                <div className="mt-4 flex flex-wrap gap-2">
                     <button
                         onClick={handlePremiumPurchase}
                         disabled={profile.isPremium}
-                        className="flex-1 rounded-xl bg-astro-highlight px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
+                        className="min-h-[44px] flex-1 rounded-xl bg-astro-highlight px-4 py-2.5 text-sm font-semibold text-white shadow-[0_0_0_1px_color-mix(in_srgb,var(--highlight)_35%,transparent)_inset] disabled:opacity-50"
                     >
                         {profile.isPremium ? getText(profile.language, 'settings.plan_active') : getText(profile.language, 'dashboard.get_premium')}
                     </button>
                     {!profile.isPremium && onShowPremiumPreview && (
                         <button
                             onClick={onShowPremiumPreview}
-                            className="rounded-xl border border-astro-border/80 px-4 py-3 text-sm font-medium text-astro-text transition-colors hover:border-astro-highlight/35"
+                            type="button"
+                            className="min-h-[44px] rounded-xl bg-astro-text/[0.06] px-4 py-2.5 text-sm font-medium text-astro-text transition-[box-shadow] hover:ring-1 hover:ring-astro-highlight/25"
                         >
                             Lumia Premium
                         </button>
@@ -169,11 +169,9 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                             <h3 className="font-serif text-lg text-astro-text">
                                 {getText(profile.language, 'settings.charts_title')}
                             </h3>
-                            <p className="mt-1 text-sm text-astro-subtext">
-                                {getText(profile.language, 'settings.charts_body')}
-                            </p>
+                            <p className="lumia-muted mt-1 text-sm">{getText(profile.language, 'settings.charts_body')}</p>
                         </div>
-                        <span className="text-astro-subtext">→</span>
+                        <span className="text-astro-subtext/70">→</span>
                     </div>
                 </button>
             )}
@@ -185,37 +183,37 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                             <h3 className="font-serif text-lg text-astro-text">
                                 {getText(profile.language, 'settings.wallet_title')}
                             </h3>
-                            <p className="mt-1 text-sm text-astro-subtext">
-                                {getText(profile.language, 'settings.wallet_body')}
-                            </p>
+                            <p className="lumia-muted mt-1 text-sm">{getText(profile.language, 'settings.wallet_body')}</p>
                         </div>
-                        <span className="rounded-full border border-astro-highlight/25 bg-astro-highlight/10 px-3 py-1 text-sm font-medium text-astro-highlight">
+                        <span className="rounded-full bg-astro-highlight/14 px-3 py-1 text-sm font-medium text-astro-highlight ring-1 ring-astro-highlight/20">
                             {profile.lumiBalance ?? 0} Lumi
                         </span>
                     </div>
                 </button>
             )}
 
-            <div className={`${sectionClass} flex items-center justify-between gap-4`}>
-                <div>
+            <div className={`${sectionClass} flex items-center justify-between gap-3`}>
+                <div className="min-w-0 pr-2">
                     <h3 className="font-serif text-lg text-astro-text">{getText(profile.language, 'settings.theme')}</h3>
-                    <p className="mt-1 text-sm text-astro-subtext">{getText(profile.language, 'settings.theme_body')}</p>
-                    <p className="mt-2 text-[10px] uppercase tracking-wider text-astro-subtext">
+                    <p className="lumia-muted mt-1 text-sm leading-snug">{getText(profile.language, 'settings.theme_body')}</p>
+                    <p className="lumia-label mt-1.5 tracking-wider">
                         {profile.theme === 'light' ? getText(profile.language, 'settings.theme_light') : getText(profile.language, 'settings.theme_dark')}
                     </p>
                 </div>
-                <div className="flex rounded-xl border border-astro-border bg-astro-bg/30 p-1">
+                <div className="flex shrink-0 rounded-xl bg-astro-text/[0.06] p-0.5 ring-1 ring-astro-text/[0.05]">
                     <button 
+                        type="button"
                         onClick={() => handleThemeToggle('dark')}
-                        className={`rounded-lg p-2 transition-colors ${profile.theme === 'dark' ? 'bg-astro-card text-white shadow-sm border border-white/10' : 'text-astro-subtext'}`}
+                        className={`rounded-lg p-2 transition-colors ${profile.theme === 'dark' ? 'bg-astro-card/90 text-white shadow-sm ring-1 ring-white/12' : 'text-astro-subtext'}`}
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
                         </svg>
                     </button>
                     <button 
+                        type="button"
                         onClick={() => handleThemeToggle('light')}
-                        className={`rounded-lg p-2 transition-colors ${profile.theme === 'light' ? 'bg-white text-black shadow-sm border border-black/10' : 'text-astro-subtext'}`}
+                        className={`rounded-lg p-2 transition-colors ${profile.theme === 'light' ? 'bg-white text-black shadow-sm ring-1 ring-black/8' : 'text-astro-subtext'}`}
                         aria-label="Light theme"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -225,15 +223,16 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                 </div>
             </div>
 
-            <div className={`${sectionClass} flex items-center justify-between gap-4`}>
-                <div>
+            <div className={`${sectionClass} flex items-center justify-between gap-3`}>
+                <div className="min-w-0 pr-2">
                     <h3 className="font-serif text-lg text-astro-text">{getText(profile.language, 'settings.language')}</h3>
-                    <p className="mt-1 text-sm text-astro-subtext">{getText(profile.language, 'settings.language_body')}</p>
-                    <p className="mt-2 text-[10px] uppercase tracking-wider text-astro-subtext">{languageLabel}</p>
+                    <p className="lumia-muted mt-1 text-sm leading-snug">{getText(profile.language, 'settings.language_body')}</p>
+                    <p className="lumia-label mt-1.5 tracking-wider">{languageLabel}</p>
                 </div>
                 <button 
+                    type="button"
                     onClick={handleLanguageToggle}
-                    className="rounded-xl border border-astro-border/80 px-4 py-2 text-sm font-medium text-astro-text transition-colors hover:border-astro-highlight/35"
+                    className="shrink-0 rounded-xl bg-astro-text/[0.06] px-3.5 py-2 text-sm font-medium text-astro-text ring-1 ring-astro-text/[0.06] transition-[box-shadow] hover:ring-astro-highlight/28"
                 >
                     {getText(profile.language, 'settings.switch_lang')}
                 </button>
@@ -243,7 +242,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                 <div className="flex items-start justify-between gap-4">
                     <div>
                         <h3 className="font-serif text-lg text-astro-text">{getText(profile.language, 'settings.weather_title')}</h3>
-                        <p className="mt-1 text-sm text-astro-subtext">{getText(profile.language, 'settings.weather_body')}</p>
+                        <p className="lumia-muted mt-1 text-sm">{getText(profile.language, 'settings.weather_body')}</p>
                     </div>
                     {!editingWeather && (
                         <button
@@ -256,7 +255,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                 </div>
 
                 {editingWeather ? (
-                    <div className="mt-5 space-y-4">
+                    <div className="mt-4 space-y-3">
                         <div>
                             <label className="mb-2 block text-[10px] uppercase tracking-widest text-astro-subtext">
                                 {getText(profile.language, 'settings.weather_city')}
@@ -271,9 +270,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                                 minLength={2}
                                 maxLength={64}
                             />
-                            <p className="mt-2 text-[11px] leading-relaxed text-astro-subtext">
-                                {getText(profile.language, 'settings.weather_helper')}
-                            </p>
+                            <p className="lumia-muted mt-2 text-[11px] leading-relaxed">{getText(profile.language, 'settings.weather_helper')}</p>
                         </div>
                         <div className="flex gap-2">
                             <button 
@@ -289,18 +286,18 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                                     setTempWeatherCity(currentWeatherCity || '');
                                 }}
                                 disabled={weatherLoading}
-                                className="rounded-xl border border-astro-border/80 px-4 py-3 text-sm font-medium text-astro-text transition-colors hover:border-astro-highlight/35 disabled:opacity-50"
+                                className="rounded-xl bg-astro-text/[0.06] px-4 py-2.5 text-sm font-medium text-astro-text ring-1 ring-astro-text/[0.06] transition-[box-shadow] hover:ring-astro-highlight/25 disabled:opacity-50"
                             >
                                 {getText(profile.language, 'settings.cancel')}
                             </button>
                         </div>
                     </div>
                 ) : (
-                    <div className="mt-5 rounded-2xl border border-astro-border/70 bg-astro-bg/20 p-4">
+                    <div className="lumia-glass-inset mt-4 p-3.5">
                         <p className="font-serif text-base text-astro-text">
                             {currentWeatherCity || getText(profile.language, 'settings.weather_empty')}
                         </p>
-                        <p className="mt-2 text-sm leading-relaxed text-astro-subtext">
+                        <p className="lumia-muted mt-1.5 text-sm leading-relaxed">
                             {currentWeatherCity ? getText(profile.language, 'settings.weather_ready') : getText(profile.language, 'settings.weather_helper')}
                         </p>
                     </div>
@@ -317,7 +314,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                     )}
                 </div>
 
-                <div className="mt-5 space-y-5">
+                <div className="mt-4 space-y-4">
                     <div>
                         <label className="mb-2 block text-[10px] uppercase tracking-widest text-astro-subtext">
                             {getText(profile.language, 'settings.profile_name')}
@@ -365,7 +362,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                                     setTempName(profile.name);
                                     setTempPlace(profile.birthPlace);
                                 }}
-                                className="rounded-xl border border-astro-border/80 px-4 py-3 text-sm font-medium text-astro-text transition-colors hover:border-astro-highlight/35"
+                                className="rounded-xl bg-astro-text/[0.06] px-4 py-2.5 text-sm font-medium text-astro-text ring-1 ring-astro-text/[0.06] transition-[box-shadow] hover:ring-astro-highlight/25"
                             >
                                 {getText(profile.language, 'settings.cancel')}
                             </button>
@@ -381,11 +378,9 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                             <h3 className="font-serif text-lg text-astro-text">
                                 {getText(profile.language, 'settings.admin')}
                             </h3>
-                            <p className="mt-1 text-sm text-astro-subtext">
-                                {getText(profile.language, 'settings.admin_body')}
-                            </p>
+                            <p className="lumia-muted mt-1 text-sm">{getText(profile.language, 'settings.admin_body')}</p>
                         </div>
-                        <span className="text-astro-subtext">→</span>
+                        <span className="text-astro-subtext/70">→</span>
                     </div>
                 </button>
             )}

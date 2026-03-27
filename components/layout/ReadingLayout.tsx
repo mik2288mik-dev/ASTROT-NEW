@@ -7,7 +7,7 @@ import React, { memo } from 'react';
 export const READING_PAGE_CLASS =
   'mx-auto w-full max-w-reading-wide px-4 sm:px-6';
 
-export const READING_SECTION_PAD = 'p-5 sm:p-6 md:p-7';
+export const READING_SECTION_PAD = 'p-4 sm:p-5 md:p-6';
 
 interface ReadingLayoutProps {
   children: React.ReactNode;

@@ -186,20 +186,19 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
     if (!horoscope || !chartData) {
         return (
             <div className={`flex min-h-full items-center justify-center py-8 ${READING_PAGE_CLASS}`}>
-                <div className={`w-full rounded-2xl border border-astro-border/80 bg-astro-card/70 text-center sm:rounded-3xl ${READING_SECTION_PAD}`}>
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
-                        {getText(language, 'horoscope.today_layer_label')}
-                    </p>
-                    <h1 className="mt-3 font-serif text-2xl text-astro-text">
+                <div className={`lumia-glass w-full rounded-2xl text-center sm:rounded-2xl ${READING_SECTION_PAD}`}>
+                    <p className="lumia-label tracking-[0.2em]">{getText(language, 'horoscope.today_layer_label')}</p>
+                    <h1 className="mt-2 font-serif text-xl text-astro-text sm:text-2xl">
                         {getText(language, 'horoscope.empty_title')}
                     </h1>
-                    <p className="mt-3 text-sm leading-relaxed text-astro-subtext">
+                    <p className="lumia-muted mt-2 text-sm leading-relaxed">
                         {statusMessage || getText(language, 'horoscope.empty_body')}
                     </p>
                     {onOpenChart && (
                         <button
+                            type="button"
                             onClick={onOpenChart}
-                            className="mt-5 w-full rounded-xl border border-astro-highlight/30 bg-astro-highlight/10 px-4 py-3 text-sm font-medium text-astro-highlight transition-colors hover:border-astro-highlight/50"
+                            className="mt-4 w-full rounded-xl bg-astro-highlight/12 px-4 py-2.5 text-sm font-medium text-astro-highlight ring-1 ring-astro-highlight/28 transition-[box-shadow] hover:ring-astro-highlight/45"
                         >
                             {getText(language, 'horoscope.empty_cta')}
                         </button>
@@ -210,60 +209,52 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
     }
 
     return (
-        <div className={`min-h-screen space-y-5 pt-6 screen-pb sm:space-y-6 ${READING_PAGE_CLASS}`}>
-            <section
-                className={`rounded-2xl border border-astro-border/80 bg-gradient-to-b from-astro-card to-astro-card/65 shadow-sm sm:rounded-3xl ${READING_SECTION_PAD}`}
-            >
-                <div className="flex items-start justify-between gap-4">
-                    <div>
-                        <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
-                            {getText(language, 'horoscope.today_layer_label')}
-                        </p>
-                        <h1 className="mt-2 font-serif text-2xl text-astro-text">
+        <div className={`min-h-screen space-y-3 pt-4 screen-pb sm:space-y-3.5 ${READING_PAGE_CLASS}`}>
+            <section className={`lumia-glass rounded-2xl sm:rounded-2xl ${READING_SECTION_PAD}`}>
+                <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                        <p className="lumia-label tracking-[0.2em]">{getText(language, 'horoscope.today_layer_label')}</p>
+                        <h1 className="mt-1.5 font-serif text-xl text-astro-text sm:text-2xl">
                             {getText(language, 'horoscope.title')}
                         </h1>
                     </div>
                     {horoscope?.date && (
-                        <span className="shrink-0 rounded-full border border-astro-border/70 bg-astro-bg/25 px-3 py-1.5 text-[11px] text-astro-subtext">
+                        <span className="shrink-0 rounded-full bg-astro-text/[0.07] px-2.5 py-1 text-[11px] lumia-muted">
                             {formatLumiaDate(horoscope.date, language)}
                         </span>
                     )}
                 </div>
 
-                <p className="mt-3 text-sm leading-relaxed text-astro-subtext">
-                    {getText(language, 'horoscope.subtitle')}
-                </p>
+                <p className="lumia-muted mt-2 text-sm leading-relaxed">{getText(language, 'horoscope.subtitle')}</p>
 
                 {statusMessage && (
-                    <div className={`mt-4 rounded-2xl border px-4 py-3 text-xs leading-relaxed ${isStale ? 'bg-astro-bg/20 border-astro-border text-astro-subtext' : 'bg-astro-highlight/10 border-astro-highlight/30 text-astro-text'}`}>
+                    <div
+                        className={`mt-3 rounded-xl px-3.5 py-2.5 text-xs leading-relaxed ${
+                            isStale
+                                ? 'lumia-glass-inset lumia-muted'
+                                : 'bg-astro-highlight/12 text-astro-text ring-1 ring-astro-highlight/25'
+                        }`}
+                    >
                         {statusMessage}
                     </div>
                 )}
             </section>
 
-            <section className={`rounded-2xl border border-astro-border/80 bg-astro-card/60 sm:rounded-3xl ${READING_SECTION_PAD}`}>
-                <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
-                    {getText(language, 'horoscope.foundation_label')}
-                </p>
-                <p className="mt-2 text-sm leading-relaxed text-astro-subtext">
-                    {getText(language, 'horoscope.foundation_body')}
-                </p>
-                <div className="mt-5">
+            <section className={`lumia-glass rounded-2xl sm:rounded-2xl ${READING_SECTION_PAD}`}>
+                <p className="lumia-label tracking-[0.2em]">{getText(language, 'horoscope.foundation_label')}</p>
+                <p className="lumia-muted mt-1.5 text-sm leading-relaxed">{getText(language, 'horoscope.foundation_body')}</p>
+                <div className="mt-3">
                     <ZodiacHeader sunSign={sunSign} language={language} />
                 </div>
             </section>
 
             {signals.length > 0 && (
-                <section className={`rounded-2xl border border-astro-border/80 bg-astro-card/55 sm:rounded-3xl ${READING_SECTION_PAD}`}>
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
-                        {getText(language, 'horoscope.signals_title')}
-                    </p>
-                    <p className="mt-2 text-sm leading-relaxed text-astro-subtext">
-                        {getText(language, 'horoscope.signals_body')}
-                    </p>
+                <section className={`lumia-glass rounded-2xl sm:rounded-2xl ${READING_SECTION_PAD}`}>
+                    <p className="lumia-label tracking-[0.2em]">{getText(language, 'horoscope.signals_title')}</p>
+                    <p className="lumia-muted mt-1.5 text-sm leading-relaxed">{getText(language, 'horoscope.signals_body')}</p>
 
                     <div
-                        className={`mt-4 grid gap-3 sm:gap-4 ${
+                        className={`mt-3 grid gap-2 sm:gap-2.5 ${
                             signals.length === 1
                                 ? 'grid-cols-1'
                                 : signals.length === 2
@@ -272,16 +263,9 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
                         }`}
                     >
                         {signals.map((signal) => (
-                            <div
-                                key={signal.label}
-                                className="rounded-xl border border-astro-border/70 bg-astro-bg/25 p-4 text-center sm:rounded-2xl sm:p-5"
-                            >
-                                <p className="text-[10px] font-medium uppercase tracking-wider text-astro-subtext">
-                                    {signal.label}
-                                </p>
-                                <p className="mt-2 text-base font-medium text-astro-text sm:text-lg">
-                                    {signal.value}
-                                </p>
+                            <div key={signal.label} className="lumia-glass-inset px-3 py-3 text-center sm:py-3.5">
+                                <p className="lumia-label text-[9px] tracking-wider">{signal.label}</p>
+                                <p className="mt-1 text-[15px] font-medium text-astro-text sm:text-base">{signal.value}</p>
                             </div>
                         ))}
                     </div>
@@ -296,38 +280,32 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
                 language={language}
             />
 
-            <section className={`rounded-2xl border border-astro-border/80 bg-astro-card/45 sm:rounded-3xl ${READING_SECTION_PAD}`}>
-                <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
-                    {getText(language, 'horoscope.bridge_label')}
-                </p>
-                <h2 className="mt-2 font-serif text-xl text-astro-text">
+            <section className={`lumia-glass rounded-2xl sm:rounded-2xl ${READING_SECTION_PAD}`}>
+                <p className="lumia-label tracking-[0.2em]">{getText(language, 'horoscope.bridge_label')}</p>
+                <h2 className="mt-1.5 font-serif text-lg text-astro-text sm:text-xl">
                     {getText(language, 'horoscope.bridge_title')}
                 </h2>
-                <p className="mt-2 text-sm leading-relaxed text-astro-subtext">
-                    {getText(language, 'horoscope.bridge_body')}
-                </p>
+                <p className="lumia-muted mt-1.5 text-sm leading-relaxed">{getText(language, 'horoscope.bridge_body')}</p>
 
-                <div className="mt-5 space-y-3">
+                <div className="mt-4 space-y-2.5">
                     {onOpenChart && (
                         <button
+                            type="button"
                             onClick={onOpenChart}
-                            className="w-full rounded-xl border border-astro-highlight/30 bg-astro-highlight/10 px-4 py-3 text-sm font-medium text-astro-highlight transition-colors hover:border-astro-highlight/50"
+                            className="w-full rounded-xl bg-astro-highlight/12 px-4 py-2.5 text-sm font-medium text-astro-highlight ring-1 ring-astro-highlight/28 transition-[box-shadow] hover:ring-astro-highlight/45"
                         >
                             {getText(language, 'horoscope.open_chart')}
                         </button>
                     )}
 
                     {!profile.isPremium && onRequestPremium && (
-                        <div className="rounded-2xl border border-astro-border/70 bg-astro-bg/20 p-4">
-                            <p className="text-sm font-medium text-astro-text">
-                                {getText(language, 'horoscope.premium_title')}
-                            </p>
-                            <p className="mt-2 text-sm leading-relaxed text-astro-subtext">
-                                {getText(language, 'horoscope.premium_body')}
-                            </p>
+                        <div className="lumia-glass-inset p-3.5">
+                            <p className="text-sm font-medium text-astro-text">{getText(language, 'horoscope.premium_title')}</p>
+                            <p className="lumia-muted mt-1.5 text-sm leading-relaxed">{getText(language, 'horoscope.premium_body')}</p>
                             <button
+                                type="button"
                                 onClick={onRequestPremium}
-                                className="mt-3 text-sm font-medium text-astro-highlight"
+                                className="mt-2.5 text-sm font-medium text-astro-highlight"
                             >
                                 {getText(language, 'horoscope.premium_cta')}
                             </button>
