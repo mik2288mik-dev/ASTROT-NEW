@@ -2,6 +2,7 @@ import React, { memo } from 'react';
 import Image from 'next/image';
 import { UserProfile, NatalChartData, UserContext } from '../../types';
 import { getText, getZodiacSign, getElement } from '../../constants';
+import { LumiaLogo } from '../brand/LumiaLogo';
 
 interface CosmicPassportProps {
   profile: UserProfile;
@@ -78,6 +79,9 @@ export const CosmicPassport = memo<CosmicPassportProps>(
         <div className="pointer-events-none absolute -bottom-24 -left-12 h-48 w-48 rounded-full bg-astro-primary/5 blur-3xl" aria-hidden />
 
         <div className="relative px-5 pb-6 pt-5 sm:px-6 sm:pb-7 sm:pt-6">
+          <div className="mb-4 flex justify-center opacity-90 sm:mb-5">
+            <LumiaLogo variant="row" className="scale-[0.88] sm:scale-95" />
+          </div>
           <div className="flex items-start justify-between gap-4">
             <div className="relative shrink-0">
               {photoUrl ? (

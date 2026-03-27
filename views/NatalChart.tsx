@@ -60,6 +60,22 @@ const PLANET_MEANINGS: Record<string, { ru: string; en: string }> = {
     mars: { ru: 'драйв', en: 'drive' },
 };
 
+/** Drop AI duplicate opener when it repeats the screen greeting (Привет, Имя). */
+function stripRedundantIntroGreeting(raw: string, name: string | undefined): string {
+    if (!raw?.trim() || !name?.trim()) return raw;
+    const parts = raw.trim().split(/\n{2,}/);
+    const first = parts[0]?.replace(/\*/g, '').trim().toLowerCase() || '';
+    const n = name.trim().toLowerCase();
+    const isGreeting =
+        first.length < 140 &&
+        (first.startsWith(`привет, ${n}`) ||
+            first.startsWith(`привет ${n}`) ||
+            first.startsWith(`hi, ${n}`) ||
+            first.startsWith(`hey, ${n}`));
+    if (!isGreeting || parts.length < 2) return raw;
+    return parts.slice(1).join('\n\n').trim() || raw;
+}
+
 const TOPICS: TopicMeta[] = [
     { id: 'personality', marker: '01', titleKey: 'chart.section_personality', teaserKey: 'chart.topic_personality_teaser', free: true },
     { id: 'love', marker: '02', titleKey: 'chart.section_love', teaserKey: 'chart.topic_love_teaser', free: false },
@@ -262,7 +278,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, 
     const soulPhrase = lang === 'ru'
         ? `${localizedSun} с лунным ритмом ${localizedMoon}`
         : `${localizedSun} with a ${localizedMoon} emotional rhythm`;
-    const displayedIntro = natalIntro || data.summary || '';
+    const displayedIntro = stripRedundantIntroGreeting(natalIntro || data.summary || '', profile.name);
 
     const freeTopic = TOPICS.find((item) => item.free)!;
     const premiumTopics = TOPICS.filter((item) => !item.free);
@@ -270,6 +286,9 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, 
     const activeTopicMeta = expandedTopic ? TOPICS.find((t) => t.id === expandedTopic) : null;
     const activeContent = expandedTopic ? topicContent[expandedTopic] : '';
     const activeLoading = expandedTopic ? loadingTopic === expandedTopic : false;
+
+    const chipWrapClass =
+        'flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-2';
 
     const renderTopicChip = (topic: TopicMeta) => {
         const selected = expandedTopic === topic.id;
@@ -281,17 +300,17 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, 
                 role="tab"
                 aria-selected={selected}
                 onClick={() => (locked ? requestPremium() : handleTopicSelect(topic.id))}
-                className={`shrink-0 rounded-full border px-3.5 py-2 text-left text-[13px] font-medium transition-all sm:px-4 sm:text-sm ${
+                className={`w-full rounded-xl border px-3 py-2.5 text-center text-[13px] font-medium leading-snug transition-all sm:min-h-[3rem] sm:w-[calc(50%-0.25rem)] sm:px-3 sm:text-sm ${
                     locked
-                        ? 'border-astro-border/50 bg-astro-bg/20 text-astro-subtext/70'
+                        ? 'border-astro-border/50 bg-astro-bg/20 text-astro-subtext/80'
                         : selected
-                          ? 'border-astro-highlight/45 bg-astro-highlight/12 text-astro-text shadow-sm'
-                          : 'border-astro-border/70 bg-astro-card/50 text-astro-text hover:border-astro-highlight/30 hover:bg-astro-bg/30'
+                          ? 'border-astro-highlight/40 bg-astro-highlight/10 text-astro-text shadow-sm'
+                          : 'border-astro-border/70 bg-astro-card/60 text-astro-text hover:border-astro-highlight/25 hover:bg-astro-bg/25'
                 }`}
             >
-                <span className="block truncate max-w-[9.5rem] sm:max-w-none">{getText(lang, topic.titleKey)}</span>
+                <span className="block [text-wrap:balance]">{getText(lang, topic.titleKey)}</span>
                 {locked && (
-                    <span className="mt-0.5 block text-[10px] font-normal uppercase tracking-wider text-astro-subtext">
+                    <span className="mt-1 block text-[10px] font-normal uppercase tracking-wider text-astro-subtext">
                         {getText(lang, 'chart.premium_lock')}
                     </span>
                 )}
@@ -305,27 +324,24 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, 
                 <div
                     className={`rounded-2xl border border-astro-border/80 bg-gradient-to-b from-astro-card to-astro-card/60 shadow-soft sm:rounded-3xl ${READING_SECTION_PAD}`}
                 >
-                    <div className="flex items-start justify-between gap-4">
-                        <div>
+                    <div className="flex items-start justify-between gap-4 border-b border-astro-border/35 pb-5">
+                        <div className="min-w-0">
                             <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
                                 {getText(lang, 'chart.summary')}
                             </p>
                             <h1 className="mt-2 font-serif text-2xl font-semibold text-astro-text">
                                 {greeting}
                             </h1>
+                            <p className="mt-2 text-sm text-astro-subtext">{soulPhrase}</p>
                         </div>
-                        <span className="rounded-full border border-astro-highlight/30 bg-astro-highlight/10 px-3 py-1 text-[10px] uppercase tracking-widest text-astro-highlight">
+                        <span className="shrink-0 rounded-full border border-astro-highlight/25 bg-astro-highlight/8 px-2.5 py-1 text-[9px] uppercase tracking-widest text-astro-highlight">
                             {getText(lang, 'chart.free_layer_label')}
                         </span>
                     </div>
 
-                    <p className="mt-3 text-sm text-astro-subtext">
-                        {soulPhrase}
-                    </p>
-
-                    <div className="mt-5 rounded-xl border border-astro-border/60 bg-astro-bg/20 p-4 sm:rounded-2xl sm:p-5 md:p-6">
+                    <div className="pt-6">
                         {isLoadingIntro && !displayedIntro ? (
-                            <div className="flex items-center justify-center py-8">
+                            <div className="flex items-center justify-center py-10">
                                 <div className="h-5 w-5 animate-spin rounded-full border-2 border-astro-highlight border-t-transparent" />
                             </div>
                         ) : (
@@ -448,11 +464,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, 
                             <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-astro-highlight">
                                 {getText(lang, 'chart.deeper_free_label')}
                             </p>
-                            <div
-                                className="mt-2.5 flex gap-2 overflow-x-auto pb-1 scrollbar-hide [-webkit-overflow-scrolling:touch]"
-                                role="tablist"
-                                aria-label={getText(lang, 'chart.deeper')}
-                            >
+                            <div className={`${chipWrapClass} mt-2.5`} role="tablist" aria-label={getText(lang, 'chart.deeper')}>
                                 {renderTopicChip(freeTopic)}
                             </div>
                         </div>
@@ -462,7 +474,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, 
                                 {getText(lang, 'chart.deeper_premium_label')}
                             </p>
                             <div
-                                className="mt-2.5 flex flex-wrap gap-2"
+                                className={`${chipWrapClass} mt-2.5`}
                                 role="tablist"
                                 aria-label={getText(lang, 'chart.deeper_premium_label')}
                             >

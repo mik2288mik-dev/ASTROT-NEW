@@ -1,110 +1,89 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import Image from 'next/image';
+import bgMainDeepSpace from '../../ASTROT_ASSETS/backgrounds/bg_main_deep_space.jpg.png';
+import { LumiaLogo } from '../brand/LumiaLogo';
 
 interface LoadingProps {
-    message?: string;
-    progress?: number; // Реальный прогресс загрузки от 0 до 100
+  message?: string;
+  progress?: number;
 }
 
 export const Loading: React.FC<LoadingProps> = ({ message, progress: externalProgress }) => {
-    const [progress, setProgress] = useState(0);
+  const [progress, setProgress] = useState(0);
 
-    useEffect(() => {
-        // Если передан внешний прогресс - используем его, иначе симулируем
-        if (externalProgress !== undefined) {
-            setProgress(externalProgress);
-        } else {
-            // Симуляция загрузки только если нет внешнего прогресса
-            const duration = 2000;
-            const interval = 20;
-            const steps = duration / interval;
-            const increment = 100 / steps;
+  useEffect(() => {
+    if (externalProgress !== undefined) {
+      setProgress(externalProgress);
+    } else {
+      const duration = 2000;
+      const interval = 20;
+      const steps = duration / interval;
+      const increment = 100 / steps;
 
-            const timer = setInterval(() => {
-                setProgress(prev => {
-                    const next = prev + increment;
-                    return next >= 100 ? 100 : next;
-                });
-            }, interval);
+      const timer = setInterval(() => {
+        setProgress((prev) => {
+          const next = prev + increment;
+          return next >= 100 ? 100 : next;
+        });
+      }, interval);
 
-            return () => clearInterval(timer);
-        }
-    }, [externalProgress]);
+      return () => clearInterval(timer);
+    }
+  }, [externalProgress]);
 
-    return (
-        <div 
-            className="fixed inset-0 flex flex-col items-center justify-center bg-astro-bg z-50 text-center px-4"
-            style={{ paddingTop: 'env(safe-area-inset-top, 0px)', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+  return (
+    <div
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden text-center"
+      style={{
+        paddingTop: 'env(safe-area-inset-top, 0px)',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+      }}
+    >
+      <div className="absolute inset-0">
+        <Image
+          src={bgMainDeepSpace}
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover object-center"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0618]/75 via-[#120b22]/65 to-[#0a0618]/85" />
+      </div>
+
+      <motion.div
+        className="relative z-10 flex flex-col items-center px-6"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, ease: 'easeOut' }}
+      >
+        <motion.div
+          animate={{ opacity: [0.85, 1, 0.85] }}
+          transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
         >
-            {/* 3D Вращение логотипа как монета */}
+          <LumiaLogo variant="row" inverted className="scale-110 sm:scale-125" />
+        </motion.div>
+
+        {message && (
+          <p className="mt-8 max-w-xs text-sm font-medium leading-relaxed text-white/80">{message}</p>
+        )}
+
+        {progress > 0 && progress < 100 && (
+          <motion.div
+            initial={{ opacity: 0, width: 0 }}
+            animate={{ opacity: 1, width: 220 }}
+            transition={{ delay: 0.35 }}
+            className="mt-6 h-0.5 overflow-hidden rounded-full bg-white/15"
+          >
             <motion.div
-                className="relative"
-                style={{ perspective: 1000 }}
-                initial={{ opacity: 0, scale: 0.7 }}
-                animate={{ 
-                    opacity: 1, 
-                    scale: 1,
-                }}
-                transition={{ 
-                    duration: 0.6,
-                    ease: "easeOut"
-                }}
-            >
-                {/* Крутящийся логотип - 3D flip как монета */}
-                <motion.div
-                    animate={{ 
-                        rotateY: 360
-                    }}
-                    transition={{ 
-                        duration: 2.5,
-                        repeat: Infinity,
-                        ease: "linear"
-                    }}
-                    style={{
-                        transformStyle: "preserve-3d",
-                    }}
-                    className="relative"
-                >
-                    <div className="relative w-48 h-48 md:w-56 md:h-56 flex items-center justify-center">
-                        <span
-                            className="text-5xl md:text-6xl font-bold font-serif text-astro-text tracking-tight"
-                            style={{
-                                filter: 'drop-shadow(0 0 40px rgba(191, 161, 255, 0.4)) drop-shadow(0 4px 20px rgba(0, 0, 0, 0.3))'
-                            }}
-                        >
-                            Lumia
-                        </span>
-                    </div>
-                </motion.div>
-            </motion.div>
-            
-            {/* Сообщение загрузки */}
-            {message && (
-                <motion.p
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.3 }}
-                    className="mt-6 text-astro-subtext text-sm font-medium"
-                >
-                    {message}
-                </motion.p>
-            )}
-            
-            {/* Индикатор прогресса */}
-            {progress > 0 && progress < 100 && (
-                <motion.div
-                    initial={{ opacity: 0, width: 0 }}
-                    animate={{ opacity: 1, width: '200px' }}
-                    transition={{ delay: 0.5 }}
-                    className="mt-4 h-1 bg-astro-border rounded-full overflow-hidden"
-                >
-                    <motion.div
-                        className="h-full bg-astro-highlight rounded-full"
-                        style={{ width: `${progress}%` }}
-                        transition={{ duration: 0.3 }}
-                    />
-                </motion.div>
-            )}
-        </div>
-    );
+              className="h-full rounded-full bg-violet-300/90"
+              style={{ width: `${progress}%` }}
+              transition={{ duration: 0.25 }}
+            />
+          </motion.div>
+        )}
+      </motion.div>
+    </div>
+  );
 };

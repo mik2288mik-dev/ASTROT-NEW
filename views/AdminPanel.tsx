@@ -3,6 +3,7 @@ import { type AdminUserSegment, type AdminUsersOverview, type UserProfile } from
 import { AdminUsersTab } from './admin/AdminUsersTab';
 import { AdminNotificationsTab } from './admin/AdminNotificationsTab';
 import { AdminAiSettingsTab } from './admin/AdminAiSettingsTab';
+import { LumiaLogo } from '../components/brand/LumiaLogo';
 
 type AdminOwnProfilePatch = Partial<Pick<UserProfile, 'isPremium' | 'lumiBalance' | 'chartSlots' | 'loginStreak'>>;
 type AdminSection = 'users' | 'ai' | 'send' | 'templates' | 'history';
@@ -80,8 +81,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onPatchOwnProfi
         style={{ top: 'env(safe-area-inset-top, 0px)' }}
       >
         <div className="mb-4 flex items-center justify-between gap-4">
-          <div>
-            <h2 className="font-serif text-xl font-semibold text-astro-text">Admin Panel</h2>
+          <div className="min-w-0">
+            <div className="mb-2">
+              <LumiaLogo variant="row" className="scale-90" />
+            </div>
+            <h2 className="font-serif text-lg font-semibold text-astro-text">Admin Panel</h2>
             <p className="mt-1 text-[10px] uppercase tracking-widest text-astro-subtext">
               {T(lang, 'Owner / admin access only', 'Owner / admin access only')}
             </p>

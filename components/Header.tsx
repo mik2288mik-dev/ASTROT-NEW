@@ -1,6 +1,7 @@
 import React from 'react';
 import { UserProfile, ViewState } from '../types';
 import { getText } from '../constants';
+import { LumiaLogo } from './brand/LumiaLogo';
 
 interface HeaderProps {
     profile: UserProfile | null;
@@ -63,10 +64,14 @@ export const Header: React.FC<HeaderProps> = ({ profile, view, onBack, onOpenWal
                         )}
                     </div>
 
-                    <div className="flex-1 text-center">
-                        <h1 className={`font-semibold text-astro-text ${isHub ? 'text-[22px] font-serif tracking-tight' : 'text-[15px]'}`}>
-                            {getViewTitle()}
-                        </h1>
+                    <div className="flex flex-1 items-center justify-center gap-2 min-w-0">
+                        {isHub ? (
+                            <LumiaLogo variant="row" className="justify-center scale-[0.92] sm:scale-100" />
+                        ) : (
+                            <h1 className="truncate text-center text-[15px] font-semibold text-astro-text">
+                                {getViewTitle()}
+                            </h1>
+                        )}
                     </div>
 
                     <div className="w-20 flex justify-end">
