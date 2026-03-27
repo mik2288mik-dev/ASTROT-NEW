@@ -172,6 +172,8 @@ export interface DailyHoroscope {
   color: string;
   number: number;
   content: string;
+  /** Up to three practical tips when the model returns them */
+  advice?: string[];
   moonImpact?: string; 
   transitFocus?: string; 
   persisted?: boolean;
