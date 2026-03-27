@@ -7,6 +7,12 @@ function getTelegramInitData(): string | null {
   return typeof initData === 'string' && initData.trim() ? initData : null;
 }
 
+/** Headers fragment for authenticated Telegram WebApp API calls */
+export function getTelegramInitDataHeaders(): Record<string, string> {
+  const initData = getTelegramInitData();
+  return initData ? { [INIT_DATA_HEADER]: initData } : {};
+}
+
 export function getOrCreateAppSessionId(): string | null {
   if (typeof window === 'undefined') return null;
 

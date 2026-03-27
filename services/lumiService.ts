@@ -32,6 +32,7 @@ export const LUMI_REASONS = {
   regenerate_natal: 'regenerate_natal',
   regenerate_deep_dive: 'regenerate_deep_dive',
   regenerate_synastry: 'regenerate_synastry',
+  refresh_natal_intro: 'refresh_natal_intro',
   premium_bonus: 'premium_bonus',
   refund: 'refund',
 } as const;

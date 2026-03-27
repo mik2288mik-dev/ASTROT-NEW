@@ -4,8 +4,12 @@ import { getText, getZodiacSign } from '../constants';
 import { getOrGenerateDeepDive } from '../services/contentGenerationService';
 import { getNatalIntro } from '../services/astrologyService';
 import { saveProfile } from '../services/storageService';
+import { getTelegramInitDataHeaders } from '../services/sessionService';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loading } from '../components/ui/Loading';
+import { FormattedAiText } from '../components/ui/FormattedAiText';
+
+const NATAL_INTRO_REFRESH_COST = 250;
 
 interface NatalChartProps {
     data: NatalChartData | null;
@@ -14,6 +18,7 @@ interface NatalChartProps {
     requestPremium: () => void;
     onUpdateProfile?: (profile: UserProfile) => void;
     onOpenCharts?: () => void;
+    onBalanceUpdate?: (balance: number) => void;
 }
 
 type DeepDiveTopicId = 'personality' | 'love' | 'career' | 'weakness' | 'karma';
@@ -62,12 +67,14 @@ const TOPICS: TopicMeta[] = [
     { id: 'karma', marker: '05', titleKey: 'chart.section_karma', teaserKey: 'chart.topic_karma_teaser', free: false },
 ];
 
-export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, requestPremium, onUpdateProfile, onOpenCharts }) => {
+export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, requestPremium, onUpdateProfile, onOpenCharts, onBalanceUpdate }) => {
     const [expandedTopic, setExpandedTopic] = useState<DeepDiveTopicId | null>('personality');
     const [topicContent, setTopicContent] = useState<Record<string, string>>({});
     const [loadingTopic, setLoadingTopic] = useState<DeepDiveTopicId | null>(null);
     const [natalIntro, setNatalIntro] = useState<string>('');
     const [isLoadingIntro, setIsLoadingIntro] = useState(true);
+    const [refreshIntroBusy, setRefreshIntroBusy] = useState(false);
+    const [hasTelegramAuth, setHasTelegramAuth] = useState(false);
     const introLoadedRef = useRef(false);
     const apiInFlightRef = useRef(false);
 
@@ -84,6 +91,10 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, 
         setTopicContent({});
         setExpandedTopic('personality');
     }, [chartId, data.sun.sign]);
+
+    useEffect(() => {
+        setHasTelegramAuth(Object.keys(getTelegramInitDataHeaders()).length > 0);
+    }, []);
 
     useEffect(() => {
         if (chartId) return;
@@ -192,20 +203,58 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, 
         { id: 'mars', data: data.mars },
     ].filter((planet) => planet.data);
 
-    const normalizeText = (value: string) => value.replace(/\*/g, '').replace(/\s+\n/g, '\n').trim();
-    const splitParagraphs = (value: string) => normalizeText(value)
-        .split(/\n{2,}/)
-        .map((paragraph) => paragraph.trim())
-        .filter(Boolean);
-    const renderParagraphs = (value: string) => (
-        <div className="space-y-3 text-[15px] leading-relaxed text-astro-text">
-            {splitParagraphs(value).map((paragraph, index) => (
-                <p key={`${index}-${paragraph.slice(0, 12)}`} className="whitespace-pre-line">
-                    {paragraph}
-                </p>
-            ))}
-        </div>
-    );
+    const lumiBalance = profile.lumiBalance ?? 0;
+    const refreshIntroDisabled = refreshIntroBusy || lumiBalance < NATAL_INTRO_REFRESH_COST;
+
+    const handleRefreshIntro = async () => {
+        const headers = getTelegramInitDataHeaders();
+        if (!Object.keys(headers).length || refreshIntroBusy) return;
+        setRefreshIntroBusy(true);
+        try {
+            const res = await fetch('/api/astrology/refresh-natal-intro', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...headers },
+                body: JSON.stringify({
+                    userId: profile.id,
+                    profile,
+                    chartData: data,
+                    chartId: chartId ?? undefined,
+                }),
+            });
+            const payload = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                throw new Error(payload.message || payload.error || 'refresh failed');
+            }
+            const intro = payload.intro as string;
+            if (intro && intro.length > 50) {
+                setNatalIntro(intro);
+                introLoadedRef.current = true;
+                const newBal = typeof payload.newBalance === 'number' ? payload.newBalance : profile.lumiBalance;
+                if (!chartId) {
+                    const updated: UserProfile = {
+                        ...profile,
+                        lumiBalance: newBal,
+                        generatedContent: {
+                            ...(profile.generatedContent || {}),
+                            natalIntro: intro,
+                            timestamps: profile.generatedContent?.timestamps || {},
+                        },
+                    };
+                    onUpdateProfile?.(updated);
+                    saveProfile(updated).catch(console.error);
+                } else if (typeof payload.newBalance === 'number') {
+                    onUpdateProfile?.({ ...profile, lumiBalance: newBal });
+                }
+                if (typeof payload.newBalance === 'number') {
+                    onBalanceUpdate?.(payload.newBalance);
+                }
+            }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setRefreshIntroBusy(false);
+        }
+    };
 
     const localizedSun = getZodiacSign(lang, data.sun.sign);
     const localizedMoon = getZodiacSign(lang, data.moon.sign);
@@ -281,7 +330,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, 
                                         <div className="h-5 w-5 animate-spin rounded-full border-2 border-astro-highlight border-t-transparent" />
                                     </div>
                                 ) : content ? (
-                                    renderParagraphs(content)
+                                    <FormattedAiText text={content} />
                                 ) : (
                                     <p className="py-4 text-center text-sm text-astro-subtext">
                                         {getText(lang, 'chart.loading_wisdom')}
@@ -327,9 +376,31 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, 
                                 <div className="h-5 w-5 animate-spin rounded-full border-2 border-astro-highlight border-t-transparent" />
                             </div>
                         ) : (
-                            renderParagraphs(displayedIntro)
+                            <FormattedAiText text={displayedIntro} />
                         )}
                     </div>
+                    {hasTelegramAuth && (
+                        <div className="mt-4">
+                            <button
+                                type="button"
+                                onClick={() => void handleRefreshIntro()}
+                                disabled={refreshIntroDisabled}
+                                className="w-full rounded-xl border border-astro-border/80 bg-astro-bg/20 px-4 py-3 text-left text-sm font-medium text-astro-text transition-colors hover:border-astro-highlight/35 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                {refreshIntroBusy
+                                    ? getText(lang, 'chart.refresh_intro_loading')
+                                    : getText(lang, 'chart.refresh_intro_cta').replace(
+                                        '{cost}',
+                                        String(NATAL_INTRO_REFRESH_COST)
+                                    )}
+                            </button>
+                            {lumiBalance < NATAL_INTRO_REFRESH_COST && (
+                                <p className="mt-2 text-center text-xs text-astro-subtext">
+                                    {getText(lang, 'chart.refresh_intro_insufficient')}
+                                </p>
+                            )}
+                        </div>
+                    )}
                 </div>
             </motion.section>
 
@@ -411,7 +482,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, 
             <section className="px-5 mt-5">
                 <div className="rounded-[24px] border border-astro-border/80 bg-astro-card/55 p-5">
                     <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
-                        {getText(lang, 'chart.deeper')}
+                        {getText(lang, 'chart.deeper_section_label')}
                     </p>
                     <h2 className="mt-2 font-serif text-xl text-astro-text">
                         {getText(lang, 'chart.deeper')}

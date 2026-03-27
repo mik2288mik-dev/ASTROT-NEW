@@ -94,6 +94,19 @@ export async function getAdminStatus(): Promise<{ isAdmin: boolean; requesterId:
   return adminRequest<{ isAdmin: boolean; requesterId: string }>('/api/admin/me');
 }
 
+export async function fetchAdminAiSettings(): Promise<{
+  modelId: string;
+  storedModelId: string | null;
+  envFallback: string;
+  options: Array<{ id: string; label: string }>;
+}> {
+  return adminRequest('/api/admin/ai-settings');
+}
+
+export async function saveAdminAiModel(modelId: string): Promise<{ success: boolean; modelId: string }> {
+  return adminRequest('/api/admin/ai-settings', { method: 'POST', bodyJson: { modelId } });
+}
+
 export async function fetchAdminUserDetail(userId: string): Promise<AdminUserDetail> {
   const data = await adminRequest<{ user: AdminUserDetail }>(`/api/admin/users/${encodeURIComponent(userId)}`);
   return data.user;

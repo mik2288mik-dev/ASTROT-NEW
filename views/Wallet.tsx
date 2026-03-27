@@ -26,6 +26,7 @@ const formatTransactionReason = (lang: 'ru' | 'en', reason: string): string => {
     regenerate_natal: { ru: 'Повторная генерация натальной карты', en: 'Natal regeneration' },
     regenerate_deep_dive: { ru: 'Повторная генерация deep dive', en: 'Deep dive regeneration' },
     regenerate_synastry: { ru: 'Повторная генерация синастрии', en: 'Synastry regeneration' },
+    refresh_natal_intro: { ru: 'Обновление разбора карты', en: 'Chart summary refresh' },
     premium_bonus: { ru: 'Бонус Premium', en: 'Premium bonus' },
     admin_lumi_add: { ru: 'Начисление Lumi от admin', en: 'Admin Lumi credit' },
     admin_lumi_subtract: { ru: 'Списание Lumi от admin', en: 'Admin Lumi deduction' },

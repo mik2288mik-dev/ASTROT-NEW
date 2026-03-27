@@ -1,48 +1,24 @@
-import React, { memo, useMemo } from 'react';
+import React, { memo } from 'react';
 import { getText } from '../../constants';
 import { Language } from '../../types';
+import { FormattedAiText } from '../ui/FormattedAiText';
 
 interface HoroscopeContentProps {
   content: string;
   moonImpact?: string;
   transitFocus?: string;
+  advice?: string[];
   language: Language;
 }
-
-/**
- * Очищает текст от лишних символов markdown
- */
-const cleanText = (text: string): string => {
-  if (!text) return '';
-  
-  return text
-    // Убираем markdown заголовки и форматирование
-    .replace(/#{1,6}\s+/g, '')
-    .replace(/\*\*(.+?)\*\*/g, '$1')
-    .replace(/\*(.+?)\*/g, '$1')
-    // Убираем лишние пробелы
-    .replace(/\s+/g, ' ')
-    .trim();
-};
 
 export const HoroscopeContent = memo<HoroscopeContentProps>(({ 
   content, 
   moonImpact, 
   transitFocus,
+  advice,
   language 
 }) => {
-  // Очищаем и разбиваем текст на параграфы
-  const paragraphs = useMemo(() => {
-    const cleaned = cleanText(content);
-    // Разбиваем по двойным переносам строк или по одиночным если их нет
-    const split = cleaned.includes('\n\n') 
-      ? cleaned.split('\n\n') 
-      : cleaned.split('\n');
-    
-    return split
-      .filter((p: string) => p.trim())
-      .map((p: string) => p.trim());
-  }, [content]);
+  const tips = (advice || []).map((s) => String(s).trim()).filter(Boolean);
 
   return (
     <div className="space-y-5">
@@ -54,19 +30,11 @@ export const HoroscopeContent = memo<HoroscopeContentProps>(({
           {getText(language, 'horoscope.reading_body')}
         </p>
 
-        <div className="mt-5 space-y-4 md:space-y-5">
-          {paragraphs.map((paragraph: string, index: number) => (
-            <p 
-              key={index}
-              className="font-serif text-base md:text-lg text-astro-text"
-              style={{ 
-                lineHeight: '1.8',
-                maxWidth: '70ch'
-              }}
-            >
-              {paragraph}
-            </p>
-          ))}
+        <div className="mt-5">
+          <FormattedAiText
+            text={content}
+            paragraphClassName="font-serif text-base md:text-lg text-astro-text leading-[1.75] max-w-[70ch]"
+          />
         </div>
       </div>
 
@@ -85,9 +53,9 @@ export const HoroscopeContent = memo<HoroscopeContentProps>(({
                 <h3 className="text-sm font-semibold text-astro-text">
                   {getText(language, 'horoscope.moon_impact_title')}
                 </h3>
-                <p className="mt-2 font-serif text-[15px] leading-relaxed text-astro-text/85">
-                  {cleanText(moonImpact)}
-                </p>
+                <div className="mt-2 font-serif">
+                  <FormattedAiText text={moonImpact} paragraphClassName="text-[15px] leading-relaxed text-astro-text/90" />
+                </div>
               </div>
             )}
 
@@ -96,12 +64,33 @@ export const HoroscopeContent = memo<HoroscopeContentProps>(({
                 <h3 className="text-sm font-semibold text-astro-text">
                   {getText(language, 'horoscope.transit_focus_title')}
                 </h3>
-                <p className="mt-2 font-serif text-[15px] leading-relaxed text-astro-text/85">
-                  {cleanText(transitFocus)}
-                </p>
+                <div className="mt-2 font-serif">
+                  <FormattedAiText text={transitFocus} paragraphClassName="text-[15px] leading-relaxed text-astro-text/90" />
+                </div>
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {tips.length > 0 && (
+        <div className="rounded-[24px] border border-astro-border bg-astro-card/55 p-5">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
+            {getText(language, 'horoscope.advice_title')}
+          </p>
+          <ul className="mt-4 space-y-3">
+            {tips.map((line, i) => (
+              <li
+                key={i}
+                className="flex gap-3 rounded-2xl border border-astro-border/60 bg-astro-bg/20 px-4 py-3 text-sm leading-relaxed text-astro-text"
+              >
+                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-astro-highlight/15 text-xs font-semibold text-astro-highlight">
+                  {i + 1}
+                </span>
+                <span className="min-w-0 pt-0.5">{line}</span>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </div>

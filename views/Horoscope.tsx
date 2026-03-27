@@ -281,6 +281,7 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
                 content={horoscope.content || ''}
                 moonImpact={horoscope.moonImpact}
                 transitFocus={horoscope.transitFocus}
+                advice={horoscope.advice}
                 language={language}
             />
 

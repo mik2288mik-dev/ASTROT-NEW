@@ -48,8 +48,8 @@ export const RegenerateButton: React.FC<RegenerateButtonProps> = ({
     limitReached: lang ? 'Доступно через неделю' : 'Available next week',
     premiumOnly: lang ? 'Рассказать по-другому (Премиум)' : 'Tell differently (Premium)',
     tooltipFree: lang 
-      ? 'В твоей подписке включена 1 регенерация в неделю. Используй её, чтобы я пересказал твой разбор другими словами'
-      : 'Your subscription includes 1 regeneration per week. Use it to get your reading retold in different words',
+      ? 'В подписке — 1 бесплатное обновление текста в неделю. Нажми, чтобы Lumia пересказала разбор другими словами'
+      : 'Your plan includes 1 free text refresh per week. Use it to have Lumia retell the analysis in new words',
     tooltipPaid: lang
       ? 'Следующая регенерация будет стоить 50 звёзд'
       : 'Next regeneration will cost 50 stars',

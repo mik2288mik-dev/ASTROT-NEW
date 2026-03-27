@@ -2,9 +2,10 @@ import React, { useMemo, useState } from 'react';
 import { type AdminUserSegment, type AdminUsersOverview, type UserProfile } from '../types';
 import { AdminUsersTab } from './admin/AdminUsersTab';
 import { AdminNotificationsTab } from './admin/AdminNotificationsTab';
+import { AdminAiSettingsTab } from './admin/AdminAiSettingsTab';
 
 type AdminOwnProfilePatch = Partial<Pick<UserProfile, 'isPremium' | 'lumiBalance' | 'chartSlots' | 'loginStreak'>>;
-type AdminSection = 'users' | 'send' | 'templates' | 'history';
+type AdminSection = 'users' | 'ai' | 'send' | 'templates' | 'history';
 
 interface AdminPanelProps {
   profile: UserProfile;
@@ -16,6 +17,7 @@ const T = (lang: 'ru' | 'en', ru: string, en: string) => (lang === 'ru' ? ru : e
 
 const ADMIN_SECTIONS: Array<{ id: AdminSection; title: { ru: string; en: string } }> = [
   { id: 'users', title: { ru: 'Пользователи', en: 'Users' } },
+  { id: 'ai', title: { ru: 'AI', en: 'AI' } },
   { id: 'send', title: { ru: 'Отправка', en: 'Send' } },
   { id: 'templates', title: { ru: 'Шаблоны', en: 'Templates' } },
   { id: 'history', title: { ru: 'История', en: 'History' } },
@@ -132,7 +134,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onPatchOwnProfi
       </div>
 
       <div className="mx-auto max-w-3xl space-y-6 p-4">
-        {activeSection === 'users' ? (
+        {activeSection === 'ai' ? (
+          <AdminAiSettingsTab profile={profile} />
+        ) : activeSection === 'users' ? (
           <AdminUsersTab
             profile={profile}
             segment={userSegment}
