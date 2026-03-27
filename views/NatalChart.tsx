@@ -182,14 +182,13 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, 
             .finally(() => setLoadingTopic(null));
     }, [chartId, data, expandedTopic, profile, profile.generatedContent?.deepDiveAnalyses, profile.isPremium, topicContent]);
 
-    const handleTopicClick = (topicId: DeepDiveTopicId) => {
+    const handleTopicSelect = (topicId: DeepDiveTopicId) => {
         const topic = TOPICS.find((item) => item.id === topicId);
         if (!topic?.free && !profile.isPremium) {
             requestPremium();
             return;
         }
-
-        setExpandedTopic((prev) => (prev === topicId ? null : topicId));
+        setExpandedTopic(topicId);
     };
 
     const mainPlanets = [
@@ -268,96 +267,35 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, 
     const freeTopic = TOPICS.find((item) => item.free)!;
     const premiumTopics = TOPICS.filter((item) => !item.free);
 
-    const renderTopicAccordion = (topic: TopicMeta) => {
-        const isExpanded = expandedTopic === topic.id;
-        const isLocked = !topic.free && !profile.isPremium;
-        const content = topicContent[topic.id];
-        const isLoading = loadingTopic === topic.id;
-        const panelId = `deep-dive-panel-${topic.id}`;
-        const headerId = `deep-dive-header-${topic.id}`;
+    const activeTopicMeta = expandedTopic ? TOPICS.find((t) => t.id === expandedTopic) : null;
+    const activeContent = expandedTopic ? topicContent[expandedTopic] : '';
+    const activeLoading = expandedTopic ? loadingTopic === expandedTopic : false;
 
+    const renderTopicChip = (topic: TopicMeta) => {
+        const selected = expandedTopic === topic.id;
+        const locked = !topic.free && !profile.isPremium;
         return (
-            <div
+            <button
                 key={topic.id}
-                className={`rounded-2xl border transition-shadow ${
-                    isExpanded && !isLocked
-                        ? 'border-astro-border bg-astro-card/80 shadow-md shadow-black/5'
-                        : isLocked
-                          ? 'border-astro-border/60 bg-astro-card/40'
-                          : 'border-astro-border/80 bg-astro-card/55 hover:border-astro-highlight/25'
+                type="button"
+                role="tab"
+                aria-selected={selected}
+                onClick={() => (locked ? requestPremium() : handleTopicSelect(topic.id))}
+                className={`shrink-0 rounded-full border px-3.5 py-2 text-left text-[13px] font-medium transition-all sm:px-4 sm:text-sm ${
+                    locked
+                        ? 'border-astro-border/50 bg-astro-bg/20 text-astro-subtext/70'
+                        : selected
+                          ? 'border-astro-highlight/45 bg-astro-highlight/12 text-astro-text shadow-sm'
+                          : 'border-astro-border/70 bg-astro-card/50 text-astro-text hover:border-astro-highlight/30 hover:bg-astro-bg/30'
                 }`}
             >
-                <button
-                    type="button"
-                    id={headerId}
-                    aria-expanded={isExpanded && !isLocked}
-                    aria-controls={panelId}
-                    onClick={() => handleTopicClick(topic.id)}
-                    className="flex w-full items-start gap-3 px-4 py-4 text-left sm:gap-4 sm:px-5 sm:py-5"
-                >
-                    <span className="mt-0.5 shrink-0 rounded-lg border border-astro-border/80 bg-astro-bg/50 px-2 py-1 font-mono text-[11px] font-semibold tabular-nums text-astro-subtext">
-                        {topic.marker}
+                <span className="block truncate max-w-[9.5rem] sm:max-w-none">{getText(lang, topic.titleKey)}</span>
+                {locked && (
+                    <span className="mt-0.5 block text-[10px] font-normal uppercase tracking-wider text-astro-subtext">
+                        {getText(lang, 'chart.premium_lock')}
                     </span>
-                    <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2 gap-y-1">
-                            <span className="text-base font-semibold text-astro-text sm:text-[17px]">
-                                {getText(lang, topic.titleKey)}
-                            </span>
-                            <span
-                                className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wider ${
-                                    topic.free
-                                        ? 'bg-astro-highlight/15 text-astro-highlight'
-                                        : 'bg-astro-bg/60 text-astro-subtext'
-                                }`}
-                            >
-                                {topic.free ? getText(lang, 'chart.topic_free_included') : getText(lang, 'chart.premium_lock')}
-                            </span>
-                        </div>
-                        <p className="mt-2 text-sm leading-relaxed text-astro-subtext sm:text-[15px] sm:leading-relaxed">
-                            {getText(lang, topic.teaserKey)}
-                        </p>
-                    </div>
-                    <span
-                        className={`mt-1 shrink-0 text-astro-subtext transition-transform duration-200 ${
-                            isExpanded && !isLocked ? 'rotate-180' : ''
-                        }`}
-                        aria-hidden
-                    >
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                    </span>
-                </button>
-
-                <AnimatePresence initial={false}>
-                    {isExpanded && !isLocked && (
-                        <motion.div
-                            id={panelId}
-                            role="region"
-                            aria-labelledby={headerId}
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.22, ease: [0.25, 0.1, 0.25, 1] }}
-                            className="overflow-hidden border-t border-astro-border/60"
-                        >
-                            <div className="border-l-2 border-astro-highlight/30 bg-astro-bg/20 px-5 py-5 sm:px-7 sm:py-6 md:px-8 md:py-8">
-                                {isLoading ? (
-                                    <div className="flex min-h-[120px] items-center justify-center py-4">
-                                        <div className="h-6 w-6 animate-spin rounded-full border-2 border-astro-highlight border-t-transparent" />
-                                    </div>
-                                ) : content ? (
-                                    <FormattedAiText text={content} variant="article" />
-                                ) : (
-                                    <p className="py-6 text-center text-sm text-astro-subtext">
-                                        {getText(lang, 'chart.loading_wisdom')}
-                                    </p>
-                                )}
-                            </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            </div>
+                )}
+            </button>
         );
     };
 
@@ -498,71 +436,90 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, 
                     <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
                         {getText(lang, 'chart.deeper_section_label')}
                     </p>
-                    <h2 className="mt-2 font-serif text-xl text-astro-text">
+                    <h2 className="mt-2 font-serif text-xl text-astro-text sm:text-2xl">
                         {getText(lang, 'chart.deeper')}
                     </h2>
-                    <p className="mt-2 text-sm leading-relaxed text-astro-subtext">
+                    <p className="mt-2 max-w-prose text-sm leading-relaxed text-astro-subtext sm:text-[15px]">
                         {getText(lang, 'chart.deeper_intro')}
                     </p>
 
-                    <div className="mt-6 space-y-8 sm:mt-7">
+                    <div className="mt-6 space-y-5">
                         <div>
-                            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                                <div className="min-w-0">
-                                    <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-astro-highlight">
-                                        {getText(lang, 'chart.deeper_free_label')}
-                                    </p>
-                                    <p className="mt-2 max-w-prose text-sm leading-relaxed text-astro-subtext sm:text-[15px]">
-                                        {getText(lang, 'chart.deeper_free_body')}
-                                    </p>
-                                </div>
-                                <span className="shrink-0 self-start rounded-full border border-astro-highlight/35 bg-astro-highlight/10 px-3 py-1.5 text-[10px] font-medium uppercase tracking-wider text-astro-highlight">
-                                    {getText(lang, 'chart.topic_free_included')}
-                                </span>
+                            <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-astro-highlight">
+                                {getText(lang, 'chart.deeper_free_label')}
+                            </p>
+                            <div
+                                className="mt-2.5 flex gap-2 overflow-x-auto pb-1 scrollbar-hide [-webkit-overflow-scrolling:touch]"
+                                role="tablist"
+                                aria-label={getText(lang, 'chart.deeper')}
+                            >
+                                {renderTopicChip(freeTopic)}
                             </div>
-                            <div className="space-y-3">{renderTopicAccordion(freeTopic)}</div>
                         </div>
 
-                        <div className="border-t border-astro-border/50 pt-8">
-                            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                                <div className="min-w-0">
-                                    <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-astro-subtext">
-                                        {getText(lang, 'chart.deeper_premium_label')}
-                                    </p>
-                                    <p className="mt-2 max-w-prose text-sm leading-relaxed text-astro-subtext sm:text-[15px]">
-                                        {getText(lang, 'chart.deeper_premium_body')}
+                        <div>
+                            <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-astro-subtext">
+                                {getText(lang, 'chart.deeper_premium_label')}
+                            </p>
+                            <div
+                                className="mt-2.5 flex flex-wrap gap-2"
+                                role="tablist"
+                                aria-label={getText(lang, 'chart.deeper_premium_label')}
+                            >
+                                {premiumTopics.map((t) => renderTopicChip(t))}
+                            </div>
+                        </div>
+
+                        <div className="rounded-xl border border-astro-border/60 bg-astro-bg/15 p-5 sm:rounded-2xl sm:p-6 md:p-7">
+                            {activeTopicMeta && (
+                                <div className="mb-5 border-b border-astro-border/40 pb-5">
+                                    <h3 className="font-serif text-lg text-astro-text sm:text-xl">
+                                        {getText(lang, activeTopicMeta.titleKey)}
+                                    </h3>
+                                    <p className="mt-2 text-sm leading-relaxed text-astro-subtext sm:text-[15px]">
+                                        {getText(lang, activeTopicMeta.teaserKey)}
                                     </p>
                                 </div>
-                                <span className="shrink-0 self-start rounded-full border border-astro-border bg-astro-bg/40 px-3 py-1.5 text-[10px] font-medium uppercase tracking-wider text-astro-subtext">
-                                    {getText(lang, 'chart.premium_lock')}
-                                </span>
-                            </div>
-
-                            <div className="space-y-3">{premiumTopics.map((topic) => renderTopicAccordion(topic))}</div>
+                            )}
+                            <AnimatePresence mode="wait">
+                                <motion.div
+                                    key={expandedTopic || 'none'}
+                                    initial={{ opacity: 0, y: 6 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -4 }}
+                                    transition={{ duration: 0.18 }}
+                                >
+                                    {activeLoading ? (
+                                        <div className="flex min-h-[140px] items-center justify-center py-6">
+                                            <div className="h-6 w-6 animate-spin rounded-full border-2 border-astro-highlight/40 border-t-astro-highlight" />
+                                        </div>
+                                    ) : activeContent ? (
+                                        <FormattedAiText text={activeContent} variant="article" />
+                                    ) : (
+                                        <p className="py-4 text-center text-sm text-astro-subtext">
+                                            {getText(lang, 'chart.loading_wisdom')}
+                                        </p>
+                                    )}
+                                </motion.div>
+                            </AnimatePresence>
                         </div>
 
                         {!profile.isPremium && (
-                            <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                className="rounded-2xl border border-astro-highlight/30 bg-gradient-to-b from-astro-highlight/10 to-transparent p-5"
-                            >
-                                <p className="text-[10px] uppercase tracking-widest text-astro-highlight">
+                            <div className="rounded-xl border border-astro-border/70 bg-astro-bg/20 p-4 sm:p-5">
+                                <p className="text-[10px] uppercase tracking-widest text-astro-subtext">
                                     Lumia Premium
                                 </p>
-                                <h3 className="mt-2 font-serif text-lg text-astro-text">
-                                    {getText(lang, 'chart.premium_value_title')}
-                                </h3>
-                                <p className="mt-2 text-sm leading-relaxed text-astro-subtext">
+                                <p className="mt-1 text-sm leading-relaxed text-astro-subtext">
                                     {getText(lang, 'chart.premium_value_body')}
                                 </p>
                                 <button
+                                    type="button"
                                     onClick={requestPremium}
-                                    className="mt-4 w-full rounded-xl border border-astro-highlight/35 bg-astro-highlight/10 py-3.5 text-sm font-semibold text-astro-highlight transition-colors hover:border-astro-highlight/55 hover:bg-astro-highlight/15"
+                                    className="mt-3 w-full rounded-lg border border-astro-highlight/35 bg-astro-highlight/10 py-3 text-sm font-semibold text-astro-highlight transition-colors hover:bg-astro-highlight/15"
                                 >
                                     {getText(lang, 'chart.unlock_full')}
                                 </button>
-                            </motion.div>
+                            </div>
                         )}
                     </div>
                 </div>

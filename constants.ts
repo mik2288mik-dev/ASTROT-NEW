@@ -74,6 +74,7 @@ export const TRANSLATIONS = {
     dashboard: {
       welcome: "С возвращением,",
       passport: "Космический паспорт",
+      passport_tagline: "Твоя карта в одном спокойном экране",
       element: "Стихия",
       ruler: "Управитель",
       menu_analysis: "Натальная карта",
@@ -410,6 +411,7 @@ export const TRANSLATIONS = {
     dashboard: {
       welcome: "Welcome back,",
       passport: "Cosmic Passport",
+      passport_tagline: "Your chart, one calm screen",
       element: "Element",
       ruler: "Ruler",
       menu_analysis: "Natal Chart",
