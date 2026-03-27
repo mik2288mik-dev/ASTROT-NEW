@@ -381,6 +381,41 @@ function parseDailyNatalCardContent(raw: any) {
  * Lumia Database operations
  */
 export const db = {
+  /** Key-value settings (e.g. admin-selected OpenAI model) */
+  app_settings: {
+    async get(key: string): Promise<{ value: string; updated_at?: string } | null> {
+      if (!DATABASE_URL) return null;
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          'SELECT value, updated_at FROM app_settings WHERE key = $1 LIMIT 1',
+          [key]
+        );
+        if (result.rows.length === 0) return null;
+        return { value: String(result.rows[0].value), updated_at: result.rows[0].updated_at };
+      } catch (error: any) {
+        log.error('[DB] Error getting app_settings', { error: error.message, key });
+        throw error;
+      }
+    },
+
+    async set(key: string, value: string): Promise<void> {
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      try {
+        const dbPool = getPool();
+        await dbPool.query(
+          `INSERT INTO app_settings (key, value, updated_at)
+           VALUES ($1, $2, CURRENT_TIMESTAMP)
+           ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP`,
+          [key, value]
+        );
+      } catch (error: any) {
+        log.error('[DB] Error setting app_settings', { error: error.message, key });
+        throw error;
+      }
+    },
+  },
+
   users: {
     async get(userId: string) {
       const id = toUserId(userId);

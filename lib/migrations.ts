@@ -510,9 +510,30 @@ async function lumia004AdminBackoffice(pool: Pool): Promise<void> {
   log.info('Migration lumia_004_admin_backoffice applied');
 }
 
+async function lumia005AppSettings(pool: Pool): Promise<void> {
+  const migrationName = 'lumia_005_app_settings';
+
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS app_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_app_settings_key ON app_settings(key)');
+
+  await markMigrationApplied(pool, migrationName);
+  log.info('Migration lumia_005_app_settings applied');
+}
+
 async function verifyTablesExist(pool: Pool): Promise<void> {
   const required = [
-    'users', 'natal_charts', 'interpretations', 'lumi_transactions',
+    'users', 'natal_charts', 'interpretations', 'lumi_transactions', 'app_settings',
     'roulette_spins', 'daily_horoscopes', 'daily_natal_cards',
     'astro_questions', 'dictionary', 'synastry_cache', 'star_payments',
     'user_sessions', 'notification_templates', 'notification_campaigns', 'notification_deliveries'
@@ -569,6 +590,7 @@ export async function runMigrations(): Promise<void> {
     await lumia002MultiChart(pool);
     await lumia003StarPayments(pool);
     await lumia004AdminBackoffice(pool);
+    await lumia005AppSettings(pool);
     await verifyTablesExist(pool);
 
     log.info('All Lumia migrations completed successfully');
