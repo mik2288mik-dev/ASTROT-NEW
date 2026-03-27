@@ -149,13 +149,9 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
 
                     {dailyHoroscope?.content ? (
                         <>
-                            <h3 className="mt-4 line-clamp-2 font-serif text-lg text-astro-text">
-                                {(() => {
-                                    const sentences = dailyHoroscope.content.split(/[.!?]+/).filter((s: string) => s.trim().length > 0);
-                                    const shortText = sentences.slice(0, 2).join('. ').trim();
-                                    return shortText.length > 0 ? `${shortText}.` : `${dailyHoroscope.content.substring(0, 120)}...`;
-                                })()}
-                            </h3>
+                            <p className="lumia-prose mt-4 line-clamp-4 text-[15px] leading-[1.65] text-astro-text [text-wrap:pretty] sm:text-base sm:leading-[1.68]">
+                                {dailyHoroscope.content.replace(/\*\*/g, '').trim()}
+                            </p>
                             {(dailyHoroscope.mood || dailyHoroscope.color) && (
                                 <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-astro-subtext">
                                     {dailyHoroscope.mood && (

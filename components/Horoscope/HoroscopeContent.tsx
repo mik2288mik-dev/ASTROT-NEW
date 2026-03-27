@@ -30,8 +30,8 @@ export const HoroscopeContent = memo<HoroscopeContentProps>(({
           {getText(language, 'horoscope.reading_body')}
         </p>
 
-        <div className="mt-5 w-full max-w-none">
-          <FormattedAiText text={content} variant="article" className="font-serif" />
+        <div className="mx-auto mt-6 w-full max-w-reading">
+          <FormattedAiText text={content} variant="article" className="lumia-prose" />
         </div>
       </div>
 
@@ -50,8 +50,8 @@ export const HoroscopeContent = memo<HoroscopeContentProps>(({
                 <h3 className="text-sm font-semibold text-astro-text sm:text-base">
                   {getText(language, 'horoscope.moon_impact_title')}
                 </h3>
-                <div className="mt-3 font-serif">
-                  <FormattedAiText text={moonImpact} variant="article" />
+                <div className="mt-3">
+                  <FormattedAiText text={moonImpact} variant="article" className="lumia-prose" />
                 </div>
               </div>
             )}
@@ -61,8 +61,8 @@ export const HoroscopeContent = memo<HoroscopeContentProps>(({
                 <h3 className="text-sm font-semibold text-astro-text sm:text-base">
                   {getText(language, 'horoscope.transit_focus_title')}
                 </h3>
-                <div className="mt-3 font-serif">
-                  <FormattedAiText text={transitFocus} variant="article" />
+                <div className="mt-3">
+                  <FormattedAiText text={transitFocus} variant="article" className="lumia-prose" />
                 </div>
               </div>
             )}

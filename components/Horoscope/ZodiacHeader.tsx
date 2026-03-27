@@ -46,22 +46,19 @@ export const ZodiacHeader = memo<ZodiacHeaderProps>(({ sunSign, language }) => {
   const zodiacName = getZodiacSign(language, sunSign);
 
   return (
-    <div className="flex items-start gap-3 border-b border-astro-border/40 pb-5 sm:gap-4">
-      <span
-        className="mt-1 shrink-0 text-[20px] leading-none text-astro-subtext/55 sm:text-[22px]"
-        aria-hidden
-      >
-        {zodiacSymbol}
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-astro-subtext">
-          {getText(language, 'planets.sun')}
-        </p>
-        <h2 className="mt-0.5 font-serif text-lg font-semibold tracking-tight text-astro-text sm:text-xl">
+    <div className="border-b border-astro-border/40 pb-5">
+      <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-astro-subtext">
+        {getText(language, 'planets.sun')}
+      </p>
+      <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+        <h2 className="font-sans text-xl font-semibold tracking-tight text-astro-text sm:text-2xl">
           {zodiacName}
         </h2>
-        <p className="mt-0.5 text-xs text-astro-subtext/90 sm:text-sm">{zodiacDates}</p>
+        <span className="text-[15px] text-astro-subtext/45 sm:text-base" aria-hidden>
+          {zodiacSymbol}
+        </span>
       </div>
+      <p className="mt-1.5 text-sm text-astro-subtext sm:text-[15px]">{zodiacDates}</p>
     </div>
   );
 });

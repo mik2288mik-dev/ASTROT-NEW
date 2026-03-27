@@ -31,9 +31,9 @@ module.exports = {
         '3xl': ['1.875rem', { lineHeight: '1.3' }],
       },
       maxWidth: {
-        'reading': '65ch',
-        'reading-narrow': '55ch',
-        'reading-wide': '75ch',
+        reading: '38rem',
+        'reading-narrow': '34rem',
+        'reading-wide': '42rem',
       },
       boxShadow: {
         'soft': '0 4px 20px var(--shadow-color)',

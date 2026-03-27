@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Loading } from '../components/ui/Loading';
 import { FormattedAiText } from '../components/ui/FormattedAiText';
 import { READING_PAGE_CLASS, READING_SECTION_PAD } from '../components/layout/ReadingLayout';
+import { stripRedundantIntroGreeting } from '../lib/strip-intro-greeting';
 
 const NATAL_INTRO_REFRESH_COST = 250;
 
@@ -59,22 +60,6 @@ const PLANET_MEANINGS: Record<string, { ru: string; en: string }> = {
     venus: { ru: 'близость', en: 'love style' },
     mars: { ru: 'драйв', en: 'drive' },
 };
-
-/** Drop AI duplicate opener when it repeats the screen greeting (Привет, Имя). */
-function stripRedundantIntroGreeting(raw: string, name: string | undefined): string {
-    if (!raw?.trim() || !name?.trim()) return raw;
-    const parts = raw.trim().split(/\n{2,}/);
-    const first = parts[0]?.replace(/\*/g, '').trim().toLowerCase() || '';
-    const n = name.trim().toLowerCase();
-    const isGreeting =
-        first.length < 140 &&
-        (first.startsWith(`привет, ${n}`) ||
-            first.startsWith(`привет ${n}`) ||
-            first.startsWith(`hi, ${n}`) ||
-            first.startsWith(`hey, ${n}`));
-    if (!isGreeting || parts.length < 2) return raw;
-    return parts.slice(1).join('\n\n').trim() || raw;
-}
 
 const TOPICS: TopicMeta[] = [
     { id: 'personality', marker: '01', titleKey: 'chart.section_personality', teaserKey: 'chart.topic_personality_teaser', free: true },
@@ -287,8 +272,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, 
     const activeContent = expandedTopic ? topicContent[expandedTopic] : '';
     const activeLoading = expandedTopic ? loadingTopic === expandedTopic : false;
 
-    const chipWrapClass =
-        'flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-2';
+    const chipWrapClass = 'grid w-full grid-cols-1 gap-2.5 min-[380px]:grid-cols-2 sm:gap-3';
 
     const renderTopicChip = (topic: TopicMeta) => {
         const selected = expandedTopic === topic.id;
@@ -300,7 +284,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, 
                 role="tab"
                 aria-selected={selected}
                 onClick={() => (locked ? requestPremium() : handleTopicSelect(topic.id))}
-                className={`w-full rounded-xl border px-3 py-2.5 text-center text-[13px] font-medium leading-snug transition-all sm:min-h-[3rem] sm:w-[calc(50%-0.25rem)] sm:px-3 sm:text-sm ${
+                className={`min-h-[3.25rem] w-full rounded-xl border px-3 py-3 text-left text-[14px] font-medium leading-snug transition-all sm:min-h-[3.5rem] sm:px-4 sm:text-[15px] sm:leading-snug ${
                     locked
                         ? 'border-astro-border/50 bg-astro-bg/20 text-astro-subtext/80'
                         : selected
@@ -345,7 +329,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, 
                                 <div className="h-5 w-5 animate-spin rounded-full border-2 border-astro-highlight border-t-transparent" />
                             </div>
                         ) : (
-                            <FormattedAiText text={displayedIntro} variant="article" />
+                            <FormattedAiText text={displayedIntro} variant="article" className="lumia-prose mx-auto max-w-reading" />
                         )}
                     </div>
                     {hasTelegramAuth && (
@@ -506,7 +490,11 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, 
                                             <div className="h-6 w-6 animate-spin rounded-full border-2 border-astro-highlight/40 border-t-astro-highlight" />
                                         </div>
                                     ) : activeContent ? (
-                                        <FormattedAiText text={activeContent} variant="article" />
+                                        <FormattedAiText
+                                            text={activeContent}
+                                            variant="article"
+                                            className="lumia-prose mx-auto max-w-reading"
+                                        />
                                     ) : (
                                         <p className="py-4 text-center text-sm text-astro-subtext">
                                             {getText(lang, 'chart.loading_wisdom')}

@@ -33,12 +33,11 @@ export interface FormattedAiTextProps {
   text: string;
   className?: string;
   paragraphClassName?: string;
-  /** Larger type + spacing for hero / long reads (natal intro, daily body) */
   variant?: 'default' | 'article';
 }
 
 /**
- * Renders AI prose with readable structure: paragraphs, simple lists, optional **bold**, stripped # headings.
+ * Long-form AI prose: editorial line length, relaxed leading, clear list rhythm.
  */
 export const FormattedAiText = memo<FormattedAiTextProps>(({ text, className = '', paragraphClassName = '', variant = 'default' }) => {
   const blocks = useMemo(() => {
@@ -50,12 +49,15 @@ export const FormattedAiText = memo<FormattedAiTextProps>(({ text, className = '
   if (blocks.length === 0) return null;
 
   const articleP =
-    'text-[17px] sm:text-lg leading-[1.65] sm:leading-[1.7] text-astro-text tracking-normal [text-wrap:pretty]';
+    'font-sans text-[17px] leading-[1.72] tracking-[0.01em] text-astro-text [text-wrap:pretty] sm:text-[18px] sm:leading-[1.75]';
   const defaultPBase =
-    'text-[16px] sm:text-[17px] leading-[1.65] sm:leading-[1.7] text-astro-text tracking-normal [text-wrap:pretty]';
+    'font-sans text-[16px] leading-[1.7] tracking-[0.01em] text-astro-text [text-wrap:pretty] sm:text-[17px] sm:leading-[1.72]';
   const defaultP = paragraphClassName || (variant === 'article' ? articleP : defaultPBase);
-  const blockGap = variant === 'article' ? 'space-y-6' : 'space-y-5';
-  const listText = variant === 'article' ? 'text-[16px] sm:text-[17px] leading-[1.65]' : 'text-[16px] leading-[1.65]';
+  const blockGap = variant === 'article' ? 'space-y-7' : 'space-y-6';
+  const listText =
+    variant === 'article'
+      ? 'text-[16px] leading-[1.68] sm:text-[17px] sm:leading-[1.72]'
+      : 'text-[16px] leading-[1.65]';
 
   return (
     <div className={`${blockGap} ${className}`}>
@@ -66,9 +68,13 @@ export const FormattedAiText = memo<FormattedAiTextProps>(({ text, className = '
         const allList = lines.length > 1 && lines.every(isListLine);
         if (allList) {
           return (
-            <ul key={bi} className={`list-disc space-y-2.5 pl-5 text-astro-text sm:pl-6 ${listText}`}>
+            <ul
+              key={bi}
+              className={`list-none space-y-3 border-l-2 border-astro-highlight/25 pl-4 text-astro-text sm:space-y-3.5 sm:pl-5 ${listText}`}
+            >
               {lines.map((line, li) => (
-                <li key={li} className="pl-0.5 marker:text-astro-highlight">
+                <li key={li} className="relative pl-0 [text-wrap:pretty]">
+                  <span className="absolute -left-3 top-[0.55em] h-1 w-1 rounded-full bg-astro-highlight/50 sm:-left-3.5" aria-hidden />
                   {parseInlineFormatting(listItemText(line))}
                 </li>
               ))}
@@ -81,13 +87,11 @@ export const FormattedAiText = memo<FormattedAiTextProps>(({ text, className = '
         if (isHeading) {
           const rest = lines.slice(1).join('\n');
           return (
-            <div key={bi} className="space-y-2">
-              <h3 className="text-[15px] font-semibold tracking-wide text-astro-text sm:text-base">
+            <div key={bi} className="space-y-3">
+              <h3 className="font-sans text-[15px] font-semibold tracking-wide text-astro-text sm:text-base">
                 {parseInlineFormatting(headText)}
               </h3>
-              {rest ? (
-                <p className={defaultP}>{parseInlineFormatting(rest)}</p>
-              ) : null}
+              {rest ? <p className={defaultP}>{parseInlineFormatting(rest)}</p> : null}
             </div>
           );
         }
