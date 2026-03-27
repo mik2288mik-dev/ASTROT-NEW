@@ -535,7 +535,6 @@ const App: React.FC = () => {
                 className="fixed inset-0 overflow-y-auto bg-astro-bg"
                 style={{ paddingTop: 'env(safe-area-inset-top, 0px)', paddingBottom: 'env(safe-area-inset-bottom, 0px)', paddingLeft: 'env(safe-area-inset-left, 0px)', paddingRight: 'env(safe-area-inset-right, 0px)' }}
             >
-                <BackgroundLayers view="onboarding" />
                 <BackgroundLayers theme="dark" view="onboarding" context={ambientContext} />
                 <Onboarding onComplete={handleOnboardingComplete} />
             </div>
@@ -544,7 +543,6 @@ const App: React.FC = () => {
 
     return (
         <div className="flex flex-col h-full w-full min-h-0 overflow-hidden bg-astro-bg text-astro-text font-sans selection:bg-astro-highlight selection:text-white">
-            <BackgroundLayers view={view} />
             <BackgroundLayers theme={profile.theme} view={view} context={ambientContext} />
             
             {/* Header handles Title, Settings button, and Back button */}

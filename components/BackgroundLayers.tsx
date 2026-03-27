@@ -24,67 +24,72 @@ type OverlayLayer = {
   opacity: number;
 };
 
+/** Distinct cosmic plates per main flow (muted by scrim so UI stays readable). */
 const BACKGROUND_BY_VIEW: Record<ViewState, StaticImageData> = {
   onboarding: bgDarkStars,
   hook: bgVioletNebula,
   paywall: bgGoldNebula,
   dashboard: bgMainDeepSpace,
-  chart: bgMainDeepSpace,
-  horoscope: bgMainDeepSpace,
-  synastry: bgMainDeepSpace,
-  oracle: bgMainDeepSpace,
+  chart: bgVioletNebula,
+  horoscope: bgGoldNebula,
+  synastry: bgVioletNebula,
+  oracle: bgDarkStars,
   wallet: bgSoftGradient,
   settings: bgSoftGradient,
   admin: bgSoftGradient,
-  charts: bgSoftGradient
+  charts: bgSoftGradient,
 };
 
 const OVERLAYS_BY_VIEW: Partial<Record<ViewState, OverlayLayer[]>> = {
   onboarding: [
-    { src: overlaySoftFog2, opacity: 0.18 },
-    { src: overlaySparkles, opacity: 0.12 }
+    { src: overlaySoftFog2, opacity: 0.22 },
+    { src: overlaySparkles, opacity: 0.14 },
   ],
   hook: [
-    { src: overlayVioletGlow, opacity: 0.2 },
-    { src: overlaySparkles, opacity: 0.12 }
+    { src: overlayVioletGlow, opacity: 0.24 },
+    { src: overlaySparkles, opacity: 0.14 },
   ],
   paywall: [
-    { src: overlayGoldGlow, opacity: 0.2 },
-    { src: overlayLightRays, opacity: 0.12 }
+    { src: overlayGoldGlow, opacity: 0.22 },
+    { src: overlayLightRays, opacity: 0.14 },
   ],
   dashboard: [
-    { src: overlaySoftFog, opacity: 0.16 },
-    { src: overlayLightRays, opacity: 0.1 }
+    { src: overlaySoftFog, opacity: 0.2 },
+    { src: overlayLightRays, opacity: 0.12 },
   ],
-  chart: [{ src: overlayVioletGlow, opacity: 0.18 }],
+  chart: [
+    { src: overlayVioletGlow, opacity: 0.2 },
+    { src: overlaySoftFog2, opacity: 0.1 },
+  ],
   horoscope: [
-    { src: overlaySparkles, opacity: 0.18 },
-    { src: overlayVioletGlow, opacity: 0.1 }
+    { src: overlayGoldGlow, opacity: 0.18 },
+    { src: overlaySparkles, opacity: 0.14 },
   ],
   synastry: [
-    { src: overlayVioletGlow, opacity: 0.18 },
-    { src: overlaySparkles, opacity: 0.1 }
+    { src: overlayVioletGlow, opacity: 0.2 },
+    { src: overlayLightRays, opacity: 0.1 },
   ],
   oracle: [
-    { src: overlayVioletGlow, opacity: 0.18 },
-    { src: overlaySoftFog2, opacity: 0.12 }
+    { src: overlaySoftFog2, opacity: 0.2 },
+    { src: overlaySparkles, opacity: 0.12 },
   ],
   wallet: [
-    { src: overlayGoldGlow, opacity: 0.12 },
-    { src: overlaySoftFog2, opacity: 0.1 }
+    { src: overlayGoldGlow, opacity: 0.14 },
+    { src: overlaySoftFog2, opacity: 0.1 },
   ],
   settings: [
-    { src: overlayGoldGlow, opacity: 0.12 },
-    { src: overlaySoftFog2, opacity: 0.1 }
+    { src: overlayGoldGlow, opacity: 0.14 },
+    { src: overlaySoftFog2, opacity: 0.1 },
   ],
   admin: [
-    { src: overlayGoldGlow, opacity: 0.12 },
-    { src: overlaySoftFog2, opacity: 0.1 }
-  ]
+    { src: overlayGoldGlow, opacity: 0.14 },
+    { src: overlaySoftFog2, opacity: 0.1 },
+  ],
 };
 
-const getOverlayAsset = (theme: Theme, context?: UserContext | null): StaticImageData => {
+const getWeatherOverlay = (theme: Theme, context?: UserContext | null): StaticImageData | null => {
   const condition = context?.weatherData?.condition?.toLowerCase() || '';
+  if (!condition) return null;
 
   if (condition.includes('fog') || condition.includes('mist')) return overlaySoftFog2;
   if (condition.includes('rain') || condition.includes('drizzle') || condition.includes('storm')) return overlaySoftFog;
@@ -98,39 +103,68 @@ const getOverlayAsset = (theme: Theme, context?: UserContext | null): StaticImag
 export const BackgroundLayers: React.FC<BackgroundLayersProps> = ({
   theme = 'dark',
   view,
-  context
+  context,
 }) => {
   const overlays = useMemo(() => OVERLAYS_BY_VIEW[view] ?? [], [view]);
-  const overlay = useMemo(() => getOverlayAsset(theme, context), [theme, context]);
+  const weatherOverlay = useMemo(() => getWeatherOverlay(theme, context), [theme, context]);
   const background = useMemo(() => BACKGROUND_BY_VIEW[view], [view]);
 
+  const isSoftShell = view === 'wallet' || view === 'settings' || view === 'admin';
+
   return (
-    <div className="fixed inset-0 -z-10">
-      <div className="absolute inset-0">
+    <div className="fixed inset-0 -z-10 overflow-hidden">
+      <div className="absolute inset-0 scale-105">
         <Image
           src={background}
           alt=""
           fill
           priority={view === 'onboarding' || view === 'paywall'}
           sizes="100vw"
-          style={{ objectFit: 'cover', objectPosition: 'center' }}
+          className="object-cover object-center"
         />
       </div>
+
       {overlays.map((layer, index) => (
         <div
           key={`${layer.src.src}-${index}`}
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat pointer-events-none"
+          className="pointer-events-none absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: `url(${layer.src.src})`, opacity: layer.opacity }}
         />
       ))}
-      <div className="absolute inset-0 bg-astro-bg/65 pointer-events-none" />
-      {overlay && (
+
+      {weatherOverlay && !isSoftShell && (
         <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20"
-          style={{ backgroundImage: `url(${overlay.src})` }}
+          className="pointer-events-none absolute inset-0 bg-cover bg-center bg-no-repeat opacity-[0.14]"
+          style={{ backgroundImage: `url(${weatherOverlay.src})` }}
         />
       )}
-      <div className="absolute inset-0 bg-astro-bg/65" />
+
+      {/* One frosted scrim: readable text, cosmos still visible (no double-stack like before) */}
+      {theme === 'light' ? (
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              'linear-gradient(180deg, rgba(245,242,235,0.82) 0%, rgba(245,242,235,0.58) 45%, rgba(245,242,235,0.72) 100%)',
+          }}
+        />
+      ) : (
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              'linear-gradient(180deg, rgba(5,5,5,0.55) 0%, rgba(5,5,5,0.28) 42%, rgba(5,5,5,0.62) 100%)',
+          }}
+        />
+      )}
+
+      {/* Subtle vignette so edges don’t compete with cards */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          boxShadow: theme === 'light' ? 'inset 0 0 120px rgba(60,47,47,0.08)' : 'inset 0 0 100px rgba(0,0,0,0.35)',
+        }}
+      />
     </div>
   );
 };
