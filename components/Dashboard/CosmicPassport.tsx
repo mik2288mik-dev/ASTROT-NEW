@@ -41,8 +41,10 @@ const translateMoonPhase = (phase: string, language: string): string => {
   const translations: Record<string, string> = {
     'new moon': 'Новолуние',
     'waxing crescent': 'Растущий серп',
+    'waxing gibbous': 'Растущая Луна',
     'first quarter': 'Первая четверть',
     'full moon': 'Полнолуние',
+    'waning gibbous': 'Убывающая Луна',
     'last quarter': 'Последняя четверть',
   };
   const lower = phase.toLowerCase();
@@ -69,66 +71,87 @@ export const CosmicPassport = memo<CosmicPassportProps>(
     const sunSign = chartData.sun?.sign || 'Aries';
     const sunLabel = getZodiacSign(lang, sunSign);
     const moonLabel = chartData.moon?.sign ? getZodiacSign(lang, chartData.moon.sign) : null;
+    const sameSign = moonLabel && moonLabel === sunLabel;
+    const displayNameFinal = profile.name?.trim() || displayName;
+
+    const signsLine =
+      lang === 'ru'
+        ? sameSign
+          ? `☉☽ ${sunLabel}`
+          : moonLabel
+            ? `☉ ${sunLabel} · ☽ ${moonLabel}`
+            : `☉ ${sunLabel}`
+        : sameSign
+          ? `Sun & Moon · ${sunLabel}`
+          : moonLabel
+            ? `Sun ${sunLabel} · Moon ${moonLabel}`
+            : `Sun · ${sunLabel}`;
 
     return (
-      <div className="relative overflow-hidden rounded-3xl border border-astro-border/60 bg-gradient-to-br from-astro-card via-astro-card to-astro-bg/40 shadow-soft">
-        <div
-          className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-astro-highlight/10 blur-3xl"
-          aria-hidden
-        />
-        <div className="pointer-events-none absolute -bottom-24 -left-12 h-48 w-48 rounded-full bg-astro-primary/5 blur-3xl" aria-hidden />
+      <div className="relative overflow-hidden rounded-3xl border border-astro-border/50 bg-astro-card/90 shadow-soft backdrop-blur-sm">
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/30 to-transparent opacity-70" aria-hidden />
 
-        <div className="relative px-5 pb-6 pt-5 sm:px-6 sm:pb-7 sm:pt-6">
-          <div className="mb-4 flex justify-center opacity-90 sm:mb-5">
-            <LumiaLogo variant="row" className="scale-[0.88] sm:scale-95" />
+        <div className="relative px-5 pb-5 pt-4 sm:px-6 sm:pb-6 sm:pt-5">
+          <div className="mb-5 flex justify-center">
+            <LumiaLogo variant="row" className="scale-[0.82] opacity-[0.92] sm:scale-90" />
           </div>
-          <div className="flex items-start justify-between gap-4">
-            <div className="relative shrink-0">
+
+          {/* Одна сетка: аватар | имя и знаки | погода + настройки — выравнивание по центру строки */}
+          <div className="grid grid-cols-[auto_1fr_auto] items-center gap-x-4 gap-y-0">
+            <div className="relative h-14 w-14 shrink-0 sm:h-[60px] sm:w-[60px]">
               {photoUrl ? (
-                <div className="relative h-[52px] w-[52px] overflow-hidden rounded-2xl border border-astro-border/50 shadow-sm sm:h-14 sm:w-14">
+                <div className="relative h-full w-full overflow-hidden rounded-full border-2 border-astro-border/40 bg-astro-bg shadow-sm ring-2 ring-white/50 ring-offset-2 ring-offset-astro-card">
                   <Image
                     src={photoUrl}
                     alt=""
-                    width={56}
-                    height={56}
+                    width={60}
+                    height={60}
                     className="h-full w-full object-cover"
                     unoptimized={photoUrl.startsWith('http')}
                   />
                 </div>
               ) : (
-                <div className="flex h-[52px] w-[52px] items-center justify-center rounded-2xl border border-astro-border/50 bg-astro-bg/50 font-serif text-lg font-semibold text-astro-text sm:h-14 sm:w-14 sm:text-xl">
-                  {displayName.charAt(0).toUpperCase()}
+                <div className="flex h-full w-full items-center justify-center rounded-full border-2 border-astro-border/40 bg-astro-bg/60 font-serif text-xl font-semibold text-astro-text shadow-sm">
+                  {displayNameFinal.charAt(0).toUpperCase()}
                 </div>
               )}
               {profile.isPremium && (
-                <span className="absolute -bottom-1 -right-1 rounded-md border border-astro-card bg-astro-highlight/20 px-1.5 py-px text-[8px] font-bold uppercase tracking-wide text-astro-highlight">
+                <span className="absolute -bottom-0.5 -right-0.5 rounded-full border-2 border-astro-card bg-astro-highlight/90 px-1.5 py-0.5 text-[7px] font-bold uppercase leading-none tracking-wide text-white shadow-sm">
                   Pro
                 </span>
               )}
             </div>
 
-            <div className="flex min-w-0 flex-1 items-start justify-end gap-2 sm:gap-3">
+            <div className="min-w-0 py-0.5 text-left">
+              <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-astro-subtext/90">
+                {getText(lang, 'dashboard.passport')}
+              </p>
+              <h1 className="mt-1 truncate font-serif text-[22px] font-semibold leading-tight tracking-tight text-astro-text sm:text-[26px]">
+                {displayNameFinal}
+              </h1>
+              <p className="mt-1.5 text-[13px] leading-snug text-astro-subtext sm:text-sm">{signsLine}</p>
+            </div>
+
+            <div className="flex shrink-0 flex-col items-end justify-center gap-2 self-center">
               {weatherData && (
-                <div className="min-w-0 max-w-[11rem] rounded-2xl border border-astro-border/40 bg-astro-bg/25 px-3 py-2 sm:max-w-none sm:px-4 sm:py-2.5">
-                  <div className="flex items-center gap-2.5">
-                    <span className="text-xl opacity-90 sm:text-2xl" aria-hidden>
+                <div className="max-w-[9.5rem] rounded-2xl border border-astro-border/35 bg-astro-bg/40 px-2.5 py-2 sm:max-w-[10.5rem] sm:px-3">
+                  <div className="flex items-center justify-end gap-2">
+                    <span className="text-lg leading-none opacity-90" aria-hidden>
                       {getWeatherIcon(weatherData.condition)}
                     </span>
                     <div className="min-w-0 text-right">
-                      <p className="font-serif text-lg font-medium leading-none text-astro-text sm:text-xl">
+                      <p className="font-sans text-base font-semibold tabular-nums leading-none text-astro-text sm:text-lg">
                         {Math.round(weatherData.temp)}°
                       </p>
                       <p
-                        className="mt-1 truncate text-[10px] leading-tight text-astro-subtext/85"
+                        className="mt-1 line-clamp-1 text-[9px] leading-tight text-astro-subtext/85"
                         title={translateWeather(weatherData.condition, lang)}
                       >
                         {translateWeather(weatherData.condition, lang)}
+                        {weatherData.city ? ` · ${weatherData.city}` : ''}
                       </p>
-                      {weatherData.city && (
-                        <p className="mt-0.5 truncate text-[9px] text-astro-subtext/55">{weatherData.city}</p>
-                      )}
                       {weatherData.moonPhase && (
-                        <p className="mt-0.5 text-[9px] text-astro-highlight/60">
+                        <p className="mt-0.5 line-clamp-1 text-[8px] text-astro-highlight/70">
                           {translateMoonPhase(weatherData.moonPhase.phase, lang)}
                         </p>
                       )}
@@ -136,14 +159,13 @@ export const CosmicPassport = memo<CosmicPassportProps>(
                   </div>
                 </div>
               )}
-
               <button
                 type="button"
                 onClick={onOpenSettings}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-transparent text-astro-subtext transition-colors hover:border-astro-border/50 hover:bg-astro-bg/40 hover:text-astro-text"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-astro-border/40 bg-astro-bg/30 text-astro-subtext transition-colors hover:border-astro-border/60 hover:bg-astro-bg/50 hover:text-astro-text"
                 aria-label={getText(lang, 'settings.title')}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -156,49 +178,15 @@ export const CosmicPassport = memo<CosmicPassportProps>(
             </div>
           </div>
 
-          <div className="mt-6 border-t border-astro-border/35 pt-5">
-            <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-astro-subtext/90">
-              {getText(lang, 'dashboard.passport')}
+          {/* Без второй «карточки в карточке»: одна линия стихии + теглайн (не дублируем «Кратко о тебе») */}
+          <div className="mt-5 border-t border-astro-border/30 pt-4">
+            <p className="text-[13px] leading-relaxed text-astro-text sm:text-sm">
+              <span className="font-medium text-astro-text">{getText(lang, 'dashboard.element')}</span>
+              <span className="text-astro-subtext"> — </span>
+              <span className="text-astro-text">{getElement(lang, chartData.element)}</span>
+              <span className="mx-2 text-astro-border/80">·</span>
+              <span className="text-astro-subtext/95">{getText(lang, 'dashboard.passport_tagline')}</span>
             </p>
-            <h1 className="mt-2 font-serif text-2xl font-semibold tracking-tight text-astro-text sm:text-3xl">
-              {profile.name || displayName}
-            </h1>
-
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-2 rounded-full border border-astro-border/50 bg-astro-bg/30 px-3 py-1.5 text-xs text-astro-text">
-                <span className="text-[14px] text-astro-highlight/70" aria-hidden>
-                  ☉
-                </span>
-                <span className="font-medium">{sunLabel}</span>
-              </span>
-              {moonLabel && (
-                <span className="inline-flex items-center gap-2 rounded-full border border-astro-border/40 bg-astro-bg/20 px-3 py-1.5 text-xs text-astro-subtext">
-                  <span className="text-[14px] text-astro-highlight/50" aria-hidden>
-                    ☽
-                  </span>
-                  <span>{moonLabel}</span>
-                </span>
-              )}
-            </div>
-
-            <div className="mt-5 grid grid-cols-2 gap-3 sm:gap-4">
-              <div className="rounded-2xl border border-astro-border/35 bg-astro-bg/20 px-4 py-3">
-                <p className="text-[10px] font-medium uppercase tracking-wider text-astro-subtext/80">
-                  {getText(lang, 'dashboard.element')}
-                </p>
-                <p className="mt-1.5 font-serif text-base text-astro-text sm:text-lg">
-                  {getElement(lang, chartData.element)}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-astro-border/35 bg-astro-bg/15 px-4 py-3">
-                <p className="text-[10px] font-medium uppercase tracking-wider text-astro-subtext/80">
-                  {getText(lang, 'chart.summary')}
-                </p>
-                <p className="mt-1.5 text-sm leading-snug text-astro-subtext sm:text-[15px]">
-                  {getText(lang, 'dashboard.passport_tagline')}
-                </p>
-              </div>
-            </div>
           </div>
         </div>
       </div>
