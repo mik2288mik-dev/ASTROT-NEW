@@ -272,7 +272,14 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, 
     const activeContent = expandedTopic ? topicContent[expandedTopic] : '';
     const activeLoading = expandedTopic ? loadingTopic === expandedTopic : false;
 
-    const chipWrapClass = 'grid w-full grid-cols-1 gap-2.5 min-[380px]:grid-cols-2 sm:gap-3';
+    const chipWrapClass = 'grid w-full grid-cols-1 gap-2 min-[360px]:grid-cols-2 sm:gap-2.5';
+
+    const LockIcon = ({ className = '' }: { className?: string }) => (
+        <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+            <rect x="5" y="11" width="14" height="10" rx="2" />
+            <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+        </svg>
+    );
 
     const renderTopicChip = (topic: TopicMeta) => {
         const selected = expandedTopic === topic.id;
@@ -283,21 +290,22 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, 
                 type="button"
                 role="tab"
                 aria-selected={selected}
-                onClick={() => (locked ? requestPremium() : handleTopicSelect(topic.id))}
-                className={`min-h-[3.25rem] w-full rounded-xl border px-3 py-3 text-left text-[14px] font-medium leading-snug transition-all sm:min-h-[3.5rem] sm:px-4 sm:text-[15px] sm:leading-snug ${
+                aria-label={
                     locked
-                        ? 'border-astro-border/50 bg-astro-bg/20 text-astro-subtext/80'
+                        ? `${getText(lang, topic.titleKey)} — ${lang === 'ru' ? 'доступно в Premium' : 'Premium'}`
+                        : getText(lang, topic.titleKey)
+                }
+                onClick={() => (locked ? requestPremium() : handleTopicSelect(topic.id))}
+                className={`flex min-h-[3rem] w-full items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-left text-[14px] font-medium leading-snug transition-all sm:min-h-[3.25rem] sm:px-3.5 sm:text-[15px] ${
+                    locked
+                        ? 'border-astro-border/40 bg-astro-bg/15 text-astro-subtext/90'
                         : selected
-                          ? 'border-astro-highlight/40 bg-astro-highlight/10 text-astro-text shadow-sm'
-                          : 'border-astro-border/70 bg-astro-card/60 text-astro-text hover:border-astro-highlight/25 hover:bg-astro-bg/25'
+                          ? 'border-astro-highlight/35 bg-astro-highlight/8 text-astro-text'
+                          : 'border-astro-border/60 bg-astro-card/50 text-astro-text hover:border-astro-highlight/20 hover:bg-astro-bg/20'
                 }`}
             >
-                <span className="block [text-wrap:balance]">{getText(lang, topic.titleKey)}</span>
-                {locked && (
-                    <span className="mt-1 block text-[10px] font-normal uppercase tracking-wider text-astro-subtext">
-                        {getText(lang, 'chart.premium_lock')}
-                    </span>
-                )}
+                <span className="min-w-0 flex-1 [text-wrap:balance]">{getText(lang, topic.titleKey)}</span>
+                {locked && <LockIcon className="shrink-0 text-astro-subtext/50" />}
             </button>
         );
     };
@@ -308,19 +316,11 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, 
                 <div
                     className={`rounded-2xl border border-astro-border/80 bg-gradient-to-b from-astro-card to-astro-card/60 shadow-soft sm:rounded-3xl ${READING_SECTION_PAD}`}
                 >
-                    <div className="flex items-start justify-between gap-4 border-b border-astro-border/35 pb-5">
-                        <div className="min-w-0">
-                            <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
-                                {getText(lang, 'chart.summary')}
-                            </p>
-                            <h1 className="mt-2 font-serif text-2xl font-semibold text-astro-text">
-                                {greeting}
-                            </h1>
-                            <p className="mt-2 text-sm text-astro-subtext">{soulPhrase}</p>
-                        </div>
-                        <span className="shrink-0 rounded-full border border-astro-highlight/25 bg-astro-highlight/8 px-2.5 py-1 text-[9px] uppercase tracking-widest text-astro-highlight">
-                            {getText(lang, 'chart.free_layer_label')}
-                        </span>
+                    <div className="border-b border-astro-border/30 pb-5">
+                        <h1 className="font-serif text-2xl font-semibold tracking-tight text-astro-text sm:text-[1.75rem]">
+                            {greeting}
+                        </h1>
+                        <p className="mt-2 text-sm leading-relaxed text-astro-subtext sm:text-[15px]">{soulPhrase}</p>
                     </div>
 
                     <div className="pt-6">
@@ -366,22 +366,24 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, 
                         {getText(lang, 'chart.core_body')}
                     </p>
 
-                    <div className="mt-5 grid grid-cols-1 gap-3 min-[400px]:grid-cols-3 sm:gap-4">
+                    <div className="mt-4 space-y-2">
                         {mainPlanets.map((planet) => (
                             <div
                                 key={planet.id}
-                                className="rounded-xl border border-astro-border/70 bg-astro-bg/30 p-4 sm:rounded-2xl sm:p-4"
+                                className="rounded-xl border border-astro-border/50 bg-astro-bg/20 px-3 py-2.5 sm:flex sm:items-center sm:gap-4 sm:px-4 sm:py-3"
                             >
-                                <div className="flex items-center gap-2">
-                                    <span className="text-xl text-astro-highlight sm:text-2xl">{PLANET_SYMBOLS[planet.id]}</span>
-                                    <span className="text-[10px] font-medium uppercase tracking-wider text-astro-subtext">
-                                        {PLANET_NAMES[planet.id]?.[lang]}
-                                    </span>
+                                <div className="flex items-center gap-3 sm:flex-1 sm:gap-4">
+                                    <span className="shrink-0 text-lg text-astro-highlight/90 sm:text-xl">{PLANET_SYMBOLS[planet.id]}</span>
+                                    <div className="min-w-0 flex-1">
+                                        <p className="text-[10px] font-medium uppercase tracking-wider text-astro-subtext">
+                                            {PLANET_NAMES[planet.id]?.[lang]}
+                                        </p>
+                                        <p className="mt-0.5 text-base font-semibold text-astro-text sm:text-lg">
+                                            {planet.data?.sign ? getZodiacSign(lang, planet.data.sign) : '—'}
+                                        </p>
+                                    </div>
                                 </div>
-                                <p className="mt-3 text-lg font-semibold text-astro-text sm:text-xl">
-                                    {planet.data?.sign ? getZodiacSign(lang, planet.data.sign) : '—'}
-                                </p>
-                                <p className="mt-1.5 text-xs leading-relaxed text-astro-subtext sm:text-[13px]">
+                                <p className="mt-2 pl-10 text-xs leading-snug text-astro-subtext sm:mt-0 sm:max-w-[46%] sm:flex-none sm:pl-0 sm:text-right sm:text-[13px]">
                                     {PLANET_MEANINGS[planet.id]?.[lang]}
                                 </p>
                             </div>
@@ -433,37 +435,15 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, 
 
             <section className="mt-7 sm:mt-8">
                 <div className={`rounded-2xl border border-astro-border/80 bg-astro-card/55 sm:rounded-3xl ${READING_SECTION_PAD}`}>
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
-                        {getText(lang, 'chart.deeper_section_label')}
-                    </p>
-                    <h2 className="mt-2 font-serif text-xl text-astro-text sm:text-2xl">
-                        {getText(lang, 'chart.deeper')}
-                    </h2>
+                    <h2 className="font-serif text-xl text-astro-text sm:text-2xl">{getText(lang, 'chart.deeper')}</h2>
                     <p className="mt-2 max-w-prose text-sm leading-relaxed text-astro-subtext sm:text-[15px]">
                         {getText(lang, 'chart.deeper_intro')}
                     </p>
 
-                    <div className="mt-6 space-y-5">
-                        <div>
-                            <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-astro-highlight">
-                                {getText(lang, 'chart.deeper_free_label')}
-                            </p>
-                            <div className={`${chipWrapClass} mt-2.5`} role="tablist" aria-label={getText(lang, 'chart.deeper')}>
-                                {renderTopicChip(freeTopic)}
-                            </div>
-                        </div>
-
-                        <div>
-                            <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-astro-subtext">
-                                {getText(lang, 'chart.deeper_premium_label')}
-                            </p>
-                            <div
-                                className={`${chipWrapClass} mt-2.5`}
-                                role="tablist"
-                                aria-label={getText(lang, 'chart.deeper_premium_label')}
-                            >
-                                {premiumTopics.map((t) => renderTopicChip(t))}
-                            </div>
+                    <div className="mt-5 space-y-4">
+                        <div className={`${chipWrapClass}`} role="tablist" aria-label={getText(lang, 'chart.deeper')}>
+                            {renderTopicChip(freeTopic)}
+                            {premiumTopics.map((t) => renderTopicChip(t))}
                         </div>
 
                         <div className="rounded-xl border border-astro-border/60 bg-astro-bg/15 p-5 sm:rounded-2xl sm:p-6 md:p-7">
@@ -505,21 +485,13 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, 
                         </div>
 
                         {!profile.isPremium && (
-                            <div className="rounded-xl border border-astro-border/70 bg-astro-bg/20 p-4 sm:p-5">
-                                <p className="text-[10px] uppercase tracking-widest text-astro-subtext">
-                                    Lumia Premium
-                                </p>
-                                <p className="mt-1 text-sm leading-relaxed text-astro-subtext">
-                                    {getText(lang, 'chart.premium_value_body')}
-                                </p>
-                                <button
-                                    type="button"
-                                    onClick={requestPremium}
-                                    className="mt-3 w-full rounded-lg border border-astro-highlight/35 bg-astro-highlight/10 py-3 text-sm font-semibold text-astro-highlight transition-colors hover:bg-astro-highlight/15"
-                                >
-                                    {getText(lang, 'chart.unlock_full')}
-                                </button>
-                            </div>
+                            <button
+                                type="button"
+                                onClick={requestPremium}
+                                className="w-full rounded-xl border border-astro-border/60 bg-astro-bg/15 py-3.5 text-sm font-semibold text-astro-text transition-colors hover:border-astro-highlight/30 hover:bg-astro-highlight/5"
+                            >
+                                {getText(lang, 'chart.unlock_full')}
+                            </button>
                         )}
                     </div>
                 </div>
