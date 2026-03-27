@@ -6,6 +6,7 @@ import { ZodiacHeader } from '../components/Horoscope/ZodiacHeader';
 import { HoroscopeContent } from '../components/Horoscope/HoroscopeContent';
 import { formatLumiaDate, getMoscowTodayKey } from '../lib/date-utils';
 import { getText } from '../constants';
+import { READING_PAGE_CLASS, READING_SECTION_PAD } from '../components/layout/ReadingLayout';
 
 interface HoroscopeProps {
     profile: UserProfile;
@@ -184,8 +185,8 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
 
     if (!horoscope || !chartData) {
         return (
-            <div className="flex min-h-full items-center justify-center px-5 py-8">
-                <div className="w-full max-w-md rounded-[24px] border border-astro-border/80 bg-astro-card/70 p-6 text-center">
+            <div className={`flex min-h-full items-center justify-center py-8 ${READING_PAGE_CLASS}`}>
+                <div className={`w-full rounded-2xl border border-astro-border/80 bg-astro-card/70 text-center sm:rounded-3xl ${READING_SECTION_PAD}`}>
                     <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
                         {getText(language, 'horoscope.today_layer_label')}
                     </p>
@@ -209,8 +210,10 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
     }
 
     return (
-        <div className="min-h-screen max-w-2xl mx-auto px-5 pt-6 space-y-4 screen-pb">
-            <section className="rounded-[24px] border border-astro-border/80 bg-gradient-to-b from-astro-card to-astro-card/65 p-5 shadow-sm">
+        <div className={`min-h-screen space-y-5 pt-6 screen-pb sm:space-y-6 ${READING_PAGE_CLASS}`}>
+            <section
+                className={`rounded-2xl border border-astro-border/80 bg-gradient-to-b from-astro-card to-astro-card/65 shadow-sm sm:rounded-3xl ${READING_SECTION_PAD}`}
+            >
                 <div className="flex items-start justify-between gap-4">
                     <div>
                         <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
@@ -238,7 +241,7 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
                 )}
             </section>
 
-            <section className="rounded-[24px] border border-astro-border/80 bg-astro-card/60 p-5">
+            <section className={`rounded-2xl border border-astro-border/80 bg-astro-card/60 sm:rounded-3xl ${READING_SECTION_PAD}`}>
                 <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
                     {getText(language, 'horoscope.foundation_label')}
                 </p>
@@ -251,7 +254,7 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
             </section>
 
             {signals.length > 0 && (
-                <section className="rounded-[24px] border border-astro-border/80 bg-astro-card/55 p-5">
+                <section className={`rounded-2xl border border-astro-border/80 bg-astro-card/55 sm:rounded-3xl ${READING_SECTION_PAD}`}>
                     <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
                         {getText(language, 'horoscope.signals_title')}
                     </p>
@@ -259,16 +262,24 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
                         {getText(language, 'horoscope.signals_body')}
                     </p>
 
-                    <div className={`mt-4 grid gap-3 ${signals.length === 1 ? 'grid-cols-1' : signals.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+                    <div
+                        className={`mt-4 grid gap-3 sm:gap-4 ${
+                            signals.length === 1
+                                ? 'grid-cols-1'
+                                : signals.length === 2
+                                  ? 'grid-cols-1 min-[420px]:grid-cols-2'
+                                  : 'grid-cols-1 min-[380px]:grid-cols-3'
+                        }`}
+                    >
                         {signals.map((signal) => (
                             <div
                                 key={signal.label}
-                                className="rounded-2xl border border-astro-border/70 bg-astro-bg/25 p-4 text-center"
+                                className="rounded-xl border border-astro-border/70 bg-astro-bg/25 p-4 text-center sm:rounded-2xl sm:p-5"
                             >
-                                <p className="text-[10px] uppercase tracking-widest text-astro-subtext">
+                                <p className="text-[10px] font-medium uppercase tracking-wider text-astro-subtext">
                                     {signal.label}
                                 </p>
-                                <p className="mt-2 text-sm font-medium text-astro-text">
+                                <p className="mt-2 text-base font-medium text-astro-text sm:text-lg">
                                     {signal.value}
                                 </p>
                             </div>
@@ -285,7 +296,7 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
                 language={language}
             />
 
-            <section className="rounded-[24px] border border-astro-border/80 bg-astro-card/45 p-5">
+            <section className={`rounded-2xl border border-astro-border/80 bg-astro-card/45 sm:rounded-3xl ${READING_SECTION_PAD}`}>
                 <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
                     {getText(language, 'horoscope.bridge_label')}
                 </p>

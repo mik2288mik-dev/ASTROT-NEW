@@ -8,6 +8,7 @@ import { getTelegramInitDataHeaders } from '../services/sessionService';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loading } from '../components/ui/Loading';
 import { FormattedAiText } from '../components/ui/FormattedAiText';
+import { READING_PAGE_CLASS, READING_SECTION_PAD } from '../components/layout/ReadingLayout';
 
 const NATAL_INTRO_REFRESH_COST = 250;
 
@@ -267,72 +268,88 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, 
     const freeTopic = TOPICS.find((item) => item.free)!;
     const premiumTopics = TOPICS.filter((item) => !item.free);
 
-    const renderTopicCard = (topic: TopicMeta) => {
+    const renderTopicAccordion = (topic: TopicMeta) => {
         const isExpanded = expandedTopic === topic.id;
         const isLocked = !topic.free && !profile.isPremium;
         const content = topicContent[topic.id];
         const isLoading = loadingTopic === topic.id;
+        const panelId = `deep-dive-panel-${topic.id}`;
+        const headerId = `deep-dive-header-${topic.id}`;
 
         return (
-            <motion.div
+            <div
                 key={topic.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={`overflow-hidden rounded-2xl border transition-colors ${
-                    isLocked
-                        ? 'border-astro-border/70 bg-astro-card/45'
-                        : 'border-astro-border bg-astro-card/60'
+                className={`rounded-2xl border transition-shadow ${
+                    isExpanded && !isLocked
+                        ? 'border-astro-border bg-astro-card/80 shadow-md shadow-black/5'
+                        : isLocked
+                          ? 'border-astro-border/60 bg-astro-card/40'
+                          : 'border-astro-border/80 bg-astro-card/55 hover:border-astro-highlight/25'
                 }`}
             >
                 <button
+                    type="button"
+                    id={headerId}
+                    aria-expanded={isExpanded && !isLocked}
+                    aria-controls={panelId}
                     onClick={() => handleTopicClick(topic.id)}
-                    className="w-full px-4 py-4 text-left transition-colors hover:bg-astro-card/70"
+                    className="flex w-full items-start gap-3 px-4 py-4 text-left sm:gap-4 sm:px-5 sm:py-5"
                 >
-                    <div className="flex items-start justify-between gap-4">
-                        <div className="min-w-0">
-                            <div className="flex items-center gap-3">
-                                <span className="rounded-full border border-astro-border bg-astro-bg/40 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest text-astro-subtext">
-                                    {topic.marker}
-                                </span>
-                                <span className="text-sm font-semibold text-astro-text">
-                                    {getText(lang, topic.titleKey)}
-                                </span>
-                            </div>
-                            <p className="mt-3 text-sm leading-relaxed text-astro-subtext">
-                                {getText(lang, topic.teaserKey)}
-                            </p>
-                        </div>
-
-                        <div className="shrink-0 pt-0.5">
-                            <span className={`rounded-full px-2 py-1 text-[10px] uppercase tracking-widest ${
-                                topic.free
-                                    ? 'border border-astro-highlight/30 bg-astro-highlight/10 text-astro-highlight'
-                                    : 'border border-astro-border bg-astro-bg/50 text-astro-subtext'
-                            }`}>
+                    <span className="mt-0.5 shrink-0 rounded-lg border border-astro-border/80 bg-astro-bg/50 px-2 py-1 font-mono text-[11px] font-semibold tabular-nums text-astro-subtext">
+                        {topic.marker}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2 gap-y-1">
+                            <span className="text-base font-semibold text-astro-text sm:text-[17px]">
+                                {getText(lang, topic.titleKey)}
+                            </span>
+                            <span
+                                className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wider ${
+                                    topic.free
+                                        ? 'bg-astro-highlight/15 text-astro-highlight'
+                                        : 'bg-astro-bg/60 text-astro-subtext'
+                                }`}
+                            >
                                 {topic.free ? getText(lang, 'chart.topic_free_included') : getText(lang, 'chart.premium_lock')}
                             </span>
                         </div>
+                        <p className="mt-2 text-sm leading-relaxed text-astro-subtext sm:text-[15px] sm:leading-relaxed">
+                            {getText(lang, topic.teaserKey)}
+                        </p>
                     </div>
+                    <span
+                        className={`mt-1 shrink-0 text-astro-subtext transition-transform duration-200 ${
+                            isExpanded && !isLocked ? 'rotate-180' : ''
+                        }`}
+                        aria-hidden
+                    >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                    </span>
                 </button>
 
                 <AnimatePresence initial={false}>
                     {isExpanded && !isLocked && (
                         <motion.div
+                            id={panelId}
+                            role="region"
+                            aria-labelledby={headerId}
                             initial={{ height: 0, opacity: 0 }}
                             animate={{ height: 'auto', opacity: 1 }}
                             exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.2 }}
-                            className="overflow-hidden border-t border-astro-border/70"
+                            transition={{ duration: 0.22, ease: [0.25, 0.1, 0.25, 1] }}
+                            className="overflow-hidden border-t border-astro-border/60"
                         >
-                            <div className="px-4 py-4">
+                            <div className="border-l-2 border-astro-highlight/30 bg-astro-bg/20 px-5 py-5 sm:px-7 sm:py-6 md:px-8 md:py-8">
                                 {isLoading ? (
-                                    <div className="flex items-center justify-center py-6">
-                                        <div className="h-5 w-5 animate-spin rounded-full border-2 border-astro-highlight border-t-transparent" />
+                                    <div className="flex min-h-[120px] items-center justify-center py-4">
+                                        <div className="h-6 w-6 animate-spin rounded-full border-2 border-astro-highlight border-t-transparent" />
                                     </div>
                                 ) : content ? (
-                                    <FormattedAiText text={content} />
+                                    <FormattedAiText text={content} variant="article" />
                                 ) : (
-                                    <p className="py-4 text-center text-sm text-astro-subtext">
+                                    <p className="py-6 text-center text-sm text-astro-subtext">
                                         {getText(lang, 'chart.loading_wisdom')}
                                     </p>
                                 )}
@@ -340,18 +357,16 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, 
                         </motion.div>
                     )}
                 </AnimatePresence>
-            </motion.div>
+            </div>
         );
     };
 
     return (
-        <div className="min-h-full screen-pb pb-8">
-            <motion.section
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="px-5 pt-6"
-            >
-                <div className="rounded-[24px] border border-astro-border/80 bg-gradient-to-b from-astro-card to-astro-card/60 p-6 shadow-soft">
+        <div className={`min-h-full screen-pb pb-10 ${READING_PAGE_CLASS}`}>
+            <motion.section initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="pt-6">
+                <div
+                    className={`rounded-2xl border border-astro-border/80 bg-gradient-to-b from-astro-card to-astro-card/60 shadow-soft sm:rounded-3xl ${READING_SECTION_PAD}`}
+                >
                     <div className="flex items-start justify-between gap-4">
                         <div>
                             <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
@@ -370,13 +385,13 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, 
                         {soulPhrase}
                     </p>
 
-                    <div className="mt-5 rounded-2xl border border-astro-border/70 bg-astro-bg/25 p-4">
+                    <div className="mt-5 rounded-xl border border-astro-border/60 bg-astro-bg/20 p-4 sm:rounded-2xl sm:p-5 md:p-6">
                         {isLoadingIntro && !displayedIntro ? (
                             <div className="flex items-center justify-center py-8">
                                 <div className="h-5 w-5 animate-spin rounded-full border-2 border-astro-highlight border-t-transparent" />
                             </div>
                         ) : (
-                            <FormattedAiText text={displayedIntro} />
+                            <FormattedAiText text={displayedIntro} variant="article" />
                         )}
                     </div>
                     {hasTelegramAuth && (
@@ -404,12 +419,8 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, 
                 </div>
             </motion.section>
 
-            <motion.section
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="px-5 mt-5"
-            >
-                <div className="rounded-[24px] border border-astro-border/80 bg-astro-card/60 p-5">
+            <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-6 sm:mt-7">
+                <div className={`rounded-2xl border border-astro-border/80 bg-astro-card/60 sm:rounded-3xl ${READING_SECTION_PAD}`}>
                     <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
                         {getText(lang, 'chart.core_title')}
                     </p>
@@ -417,19 +428,22 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, 
                         {getText(lang, 'chart.core_body')}
                     </p>
 
-                    <div className="mt-5 grid grid-cols-3 gap-3">
+                    <div className="mt-5 grid grid-cols-1 gap-3 min-[400px]:grid-cols-3 sm:gap-4">
                         {mainPlanets.map((planet) => (
-                            <div key={planet.id} className="rounded-2xl border border-astro-border/70 bg-astro-bg/30 p-3">
+                            <div
+                                key={planet.id}
+                                className="rounded-xl border border-astro-border/70 bg-astro-bg/30 p-4 sm:rounded-2xl sm:p-4"
+                            >
                                 <div className="flex items-center gap-2">
-                                    <span className="text-lg text-astro-highlight">{PLANET_SYMBOLS[planet.id]}</span>
-                                    <span className="text-[10px] uppercase tracking-widest text-astro-subtext">
+                                    <span className="text-xl text-astro-highlight sm:text-2xl">{PLANET_SYMBOLS[planet.id]}</span>
+                                    <span className="text-[10px] font-medium uppercase tracking-wider text-astro-subtext">
                                         {PLANET_NAMES[planet.id]?.[lang]}
                                     </span>
                                 </div>
-                                <p className="mt-3 text-base font-semibold text-astro-text">
+                                <p className="mt-3 text-lg font-semibold text-astro-text sm:text-xl">
                                     {planet.data?.sign ? getZodiacSign(lang, planet.data.sign) : '—'}
                                 </p>
-                                <p className="mt-1 text-[11px] leading-relaxed text-astro-subtext">
+                                <p className="mt-1.5 text-xs leading-relaxed text-astro-subtext sm:text-[13px]">
                                     {PLANET_MEANINGS[planet.id]?.[lang]}
                                 </p>
                             </div>
@@ -457,7 +471,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, 
             </motion.section>
 
             {onOpenCharts && (
-                <div className="px-5 mt-4">
+                <div className="mt-5">
                     <button
                         onClick={onOpenCharts}
                         className="w-full rounded-2xl border border-astro-border/70 bg-astro-bg/15 px-4 py-3 text-left transition-colors hover:border-astro-highlight/30"
@@ -479,8 +493,8 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, 
                 </div>
             )}
 
-            <section className="px-5 mt-5">
-                <div className="rounded-[24px] border border-astro-border/80 bg-astro-card/55 p-5">
+            <section className="mt-7 sm:mt-8">
+                <div className={`rounded-2xl border border-astro-border/80 bg-astro-card/55 sm:rounded-3xl ${READING_SECTION_PAD}`}>
                     <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
                         {getText(lang, 'chart.deeper_section_label')}
                     </p>
@@ -491,42 +505,40 @@ export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, 
                         {getText(lang, 'chart.deeper_intro')}
                     </p>
 
-                    <div className="mt-5 space-y-4">
-                        <div className="rounded-2xl border border-astro-border/70 bg-astro-bg/25 p-4">
-                            <div className="mb-4 flex items-center justify-between gap-4">
-                                <div>
-                                    <p className="text-[10px] uppercase tracking-widest text-astro-highlight">
+                    <div className="mt-6 space-y-8 sm:mt-7">
+                        <div>
+                            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                <div className="min-w-0">
+                                    <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-astro-highlight">
                                         {getText(lang, 'chart.deeper_free_label')}
                                     </p>
-                                    <p className="mt-1 text-sm text-astro-subtext">
+                                    <p className="mt-2 max-w-prose text-sm leading-relaxed text-astro-subtext sm:text-[15px]">
                                         {getText(lang, 'chart.deeper_free_body')}
                                     </p>
                                 </div>
-                                <span className="rounded-full border border-astro-highlight/30 bg-astro-highlight/10 px-3 py-1 text-[10px] uppercase tracking-widest text-astro-highlight">
+                                <span className="shrink-0 self-start rounded-full border border-astro-highlight/35 bg-astro-highlight/10 px-3 py-1.5 text-[10px] font-medium uppercase tracking-wider text-astro-highlight">
                                     {getText(lang, 'chart.topic_free_included')}
                                 </span>
                             </div>
-                            {renderTopicCard(freeTopic)}
+                            <div className="space-y-3">{renderTopicAccordion(freeTopic)}</div>
                         </div>
 
-                        <div className="rounded-2xl border border-astro-border/70 bg-astro-bg/25 p-4">
-                            <div className="mb-4 flex items-start justify-between gap-4">
-                                <div>
-                                    <p className="text-[10px] uppercase tracking-widest text-astro-subtext">
+                        <div className="border-t border-astro-border/50 pt-8">
+                            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                <div className="min-w-0">
+                                    <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-astro-subtext">
                                         {getText(lang, 'chart.deeper_premium_label')}
                                     </p>
-                                    <p className="mt-1 text-sm text-astro-subtext">
+                                    <p className="mt-2 max-w-prose text-sm leading-relaxed text-astro-subtext sm:text-[15px]">
                                         {getText(lang, 'chart.deeper_premium_body')}
                                     </p>
                                 </div>
-                                <span className="rounded-full border border-astro-border bg-astro-card px-3 py-1 text-[10px] uppercase tracking-widest text-astro-subtext">
+                                <span className="shrink-0 self-start rounded-full border border-astro-border bg-astro-bg/40 px-3 py-1.5 text-[10px] font-medium uppercase tracking-wider text-astro-subtext">
                                     {getText(lang, 'chart.premium_lock')}
                                 </span>
                             </div>
 
-                            <div className="space-y-3">
-                                {premiumTopics.map((topic) => renderTopicCard(topic))}
-                            </div>
+                            <div className="space-y-3">{premiumTopics.map((topic) => renderTopicAccordion(topic))}</div>
                         </div>
 
                         {!profile.isPremium && (
