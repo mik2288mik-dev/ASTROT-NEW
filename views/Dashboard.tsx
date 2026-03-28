@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, memo, useCallback, useRef } from 'react';
-import { UserProfile, NatalChartData, UserContext } from '../types';
+import { UserProfile, NatalChartData, UserContext, ViewState } from '../types';
 import { getText } from '../constants';
 import { Loading } from '../components/ui/Loading';
 import { getTodayWeather } from '../services/weatherService';
@@ -11,8 +11,10 @@ import { DashboardUserSummary } from '../components/Dashboard/DashboardUserSumma
 import { DashboardFeatureGrid, type FeatureItem } from '../components/Dashboard/DashboardFeatureGrid';
 import { DashboardStatusStrip } from '../components/Dashboard/DashboardStatusStrip';
 import { DashboardSecondaryCta } from '../components/Dashboard/DashboardSecondaryCta';
+import { HomeBottomNav } from '../components/Dashboard/HomeBottomNav';
 
-type DashboardView = 'chart' | 'horoscope' | 'synastry' | 'oracle';
+type DashboardView = Extract<ViewState, 'chart' | 'horoscope' | 'synastry' | 'oracle'>;
+type HubNavKey = 'home' | 'chart' | 'day' | 'more';
 
 interface DashboardProps {
     profile: UserProfile;
@@ -20,6 +22,7 @@ interface DashboardProps {
     onNavigate: (view: DashboardView) => void;
     onOpenSettings: () => void;
     onContextUpdate?: (context: UserContext | null) => void;
+    onOpenCharts?: () => void;
     onRequestPremium?: () => void;
 }
 
@@ -34,10 +37,11 @@ function pickHeroTitleVariant(mood: string | undefined, dateKey: string): 'ready
 }
 
 export const Dashboard = memo<DashboardProps>(
-    ({ profile, chartData, onNavigate, onOpenSettings, onContextUpdate, onRequestPremium }) => {
+    ({ profile, chartData, onNavigate, onOpenSettings, onContextUpdate, onOpenCharts, onRequestPremium }) => {
         const [context, setContext] = useState<UserContext | null>(null);
         const [tgUser, setTgUser] = useState<any>(null);
         const [dailyHoroscope, setDailyHoroscope] = useState<any>(null);
+        const [navActive, setNavActive] = useState<HubNavKey>('home');
 
         const language = useMemo(() => profile.language, [profile.language]);
         const lang = language === 'en' ? 'en' : 'ru';
@@ -141,6 +145,16 @@ export const Dashboard = memo<DashboardProps>(
             return getText(lang, 'dashboard.hero_title_ready');
         }, [heroTitleVariant, lang]);
 
+        const handleNav = useCallback(
+            (key: HubNavKey) => {
+                setNavActive(key);
+                if (key === 'chart') handleNavigateChart();
+                else if (key === 'day') handleNavigateHoroscope();
+                else if (key === 'more') onOpenCharts?.();
+            },
+            [handleNavigateChart, handleNavigateHoroscope, onOpenCharts]
+        );
+
         const featureItems: FeatureItem[] = useMemo(
             () => [
                 {
@@ -179,55 +193,59 @@ export const Dashboard = memo<DashboardProps>(
         if (!chartData) return <Loading message={getText(profile.language, 'loading')} />;
 
         return (
-            <div className="space-y-4 px-4 pb-2 pt-1 sm:px-4">
-                <DashboardUserSummary
-                    profile={profile}
-                    chartData={chartData}
-                    photoUrl={photoUrl}
-                    displayName={displayName}
-                    onOpenSettings={onOpenSettings}
-                />
+            <div className="relative min-h-full pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))]">
+                <div className="space-y-4 px-4 pb-2 pt-1 sm:px-4">
+                    <DashboardUserSummary
+                        profile={profile}
+                        chartData={chartData}
+                        photoUrl={photoUrl}
+                        displayName={displayName}
+                        onOpenSettings={onOpenSettings}
+                    />
 
-                <DailyHeroCard
-                    heroImage={bgGoldNebula}
-                    label={getText(lang, 'dashboard.hero_label')}
-                    dateLine={horoscopeDateLabel}
-                    title={heroTitle}
-                    subtitle={getText(lang, 'dashboard.hero_subtitle')}
-                    ctaLabel={getText(lang, 'dashboard.hero_cta')}
-                    onCta={handleNavigateHoroscope}
-                />
+                    <DailyHeroCard
+                        heroImage={bgGoldNebula}
+                        label={getText(lang, 'dashboard.hero_label')}
+                        dateLine={horoscopeDateLabel}
+                        title={heroTitle}
+                        subtitle={getText(lang, 'dashboard.hero_subtitle')}
+                        ctaLabel={getText(lang, 'dashboard.hero_cta')}
+                        onCta={handleNavigateHoroscope}
+                    />
 
-                <DashboardFeatureGrid items={featureItems} />
+                    <DashboardFeatureGrid items={featureItems} />
 
-                {context?.socialProof && (
-                    <div className="overflow-hidden rounded-xl border border-astro-border/30 bg-astro-card/35 py-1.5">
-                        <motion.div
-                            className="whitespace-nowrap text-[10px] uppercase tracking-widest text-astro-subtext/90"
-                            animate={{ x: [280, -480] }}
-                            transition={{ duration: 18, repeat: Infinity, ease: 'linear' }}
-                        >
-                            {context.socialProof}
-                        </motion.div>
-                    </div>
-                )}
+                    {context?.socialProof && (
+                        <div className="overflow-hidden rounded-xl border border-astro-border/35 bg-astro-card/40 py-2">
+                            <motion.div
+                                className="whitespace-nowrap text-[10px] uppercase tracking-widest text-astro-subtext"
+                                animate={{ x: [280, -480] }}
+                                transition={{ duration: 18, repeat: Infinity, ease: 'linear' }}
+                            >
+                                {context.socialProof}
+                            </motion.div>
+                        </div>
+                    )}
 
-                <DashboardStatusStrip
-                    language={lang}
-                    city={context?.weatherData?.city}
-                    temp={context?.weatherData?.temp}
-                    condition={context?.weatherData?.condition}
-                    moonPhase={context?.weatherData?.moonPhase?.phase}
-                    emptyHint={getText(lang, 'dashboard.weather_strip_set_city')}
-                    onOpenSettings={onOpenSettings}
-                />
+                    <DashboardStatusStrip
+                        language={lang}
+                        city={context?.weatherData?.city}
+                        temp={context?.weatherData?.temp}
+                        condition={context?.weatherData?.condition}
+                        moonPhase={context?.weatherData?.moonPhase?.phase}
+                        emptyHint={getText(lang, 'dashboard.weather_strip_set_city')}
+                        onOpenSettings={onOpenSettings}
+                    />
 
-                <DashboardSecondaryCta
-                    title={getText(lang, 'dashboard.secondary_oracle_title')}
-                    subtitle={getText(lang, 'dashboard.secondary_oracle_sub')}
-                    onClick={handleNavigateOracle}
-                    badge={!profile.isPremium ? getText(lang, 'dashboard.premium_badge') : undefined}
-                />
+                    <DashboardSecondaryCta
+                        title={getText(lang, 'dashboard.secondary_oracle_title')}
+                        subtitle={getText(lang, 'dashboard.secondary_oracle_sub')}
+                        onClick={handleNavigateOracle}
+                        badge={!profile.isPremium ? getText(lang, 'dashboard.premium_badge') : undefined}
+                    />
+                </div>
+
+                <HomeBottomNav language={profile.language} active={navActive} onSelect={handleNav} />
             </div>
         );
     }

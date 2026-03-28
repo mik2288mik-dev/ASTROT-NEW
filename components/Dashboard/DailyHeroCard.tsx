@@ -25,19 +25,17 @@ export const DailyHeroCard = memo<DailyHeroCardProps>(
             className="object-cover object-center"
           />
           <div
-            className="absolute inset-0 bg-gradient-to-t from-black/[0.92] via-black/55 to-black/30"
+            className="absolute inset-0 bg-gradient-to-t from-black/82 via-black/45 to-black/25"
             aria-hidden
           />
         </div>
-        <div className="relative flex min-h-[220px] flex-col justify-end px-5 pb-5 pt-14 sm:min-h-[236px] sm:px-6 sm:pb-5 sm:pt-16">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/85">{label}</p>
-          <p className="mt-1.5 text-xs font-medium text-white/70">{dateLine}</p>
-          <h2 className="mt-3 max-w-[18ch] font-serif text-[21px] font-semibold leading-[1.22] tracking-tight text-white [text-wrap:balance] sm:max-w-[20ch] sm:text-[23px]">
+        <div className="relative flex min-h-[220px] flex-col justify-end px-5 pb-5 pt-16 sm:min-h-[240px] sm:px-6 sm:pb-6 sm:pt-20">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/75">{label}</p>
+          <p className="mt-1.5 text-xs font-medium text-white/60">{dateLine}</p>
+          <h2 className="mt-3 font-serif text-[22px] font-semibold leading-[1.2] tracking-tight text-white sm:text-2xl">
             {title}
           </h2>
-          <p className="mt-2 max-w-[34ch] text-[13px] leading-relaxed text-white/88 [text-wrap:pretty] sm:text-sm">
-            {subtitle}
-          </p>
+          <p className="mt-2 max-w-[32ch] text-sm leading-relaxed text-white/80 [text-wrap:pretty]">{subtitle}</p>
           <button
             type="button"
             onClick={onCta}
