@@ -35,7 +35,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: parsed.error, message: parsed.message });
     }
 
-    const created = await db.scheduled_notification_templates.create(parsed.data);
+    const sortOrder = await db.scheduled_notification_templates.nextSortOrderForSlot(parsed.data.slot);
+    const created = await db.scheduled_notification_templates.create({
+      ...parsed.data,
+      sortOrder,
+      rotationGroup: null,
+    });
     const full = await db.scheduled_notification_templates.getById(Number(created.id));
     const base = serializeScheduledNotificationTemplate(full);
 

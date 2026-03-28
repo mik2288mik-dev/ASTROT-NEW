@@ -2135,6 +2135,19 @@ export const db = {
       return !!result.rows[0];
     },
 
+    /** Next sort_order for new template in slot (append to queue for rotation). */
+    async nextSortOrderForSlot(slot: string): Promise<number> {
+      if (!DATABASE_URL) return 0;
+      const dbPool = getPool();
+      const s = trimText(slot, 32) || 'custom';
+      const result = await dbPool.query(
+        `SELECT COALESCE(MAX(sort_order), -1) + 1 AS next_order FROM notification_templates WHERE slot = $1`,
+        [s]
+      );
+      const n = Number(result.rows[0]?.next_order);
+      return Number.isFinite(n) ? n : 0;
+    },
+
     async listActiveForSlot(slot: string, rotationGroup: string | null) {
       if (!DATABASE_URL) return [];
       const dbPool = getPool();

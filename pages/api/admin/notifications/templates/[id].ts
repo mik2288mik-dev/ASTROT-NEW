@@ -57,7 +57,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (!parsed.ok) {
         return res.status(400).json({ error: parsed.error, message: parsed.message });
       }
-      const updated = await db.scheduled_notification_templates.update(id, parsed.data);
+      const existingBefore = await db.scheduled_notification_templates.getById(id);
+      if (!existingBefore) {
+        return res.status(404).json({ error: 'NOT_FOUND', message: 'Template not found' });
+      }
+      const sortOrder = Number(existingBefore.sort_order ?? 0);
+      const updated = await db.scheduled_notification_templates.update(id, {
+        ...parsed.data,
+        sortOrder,
+        rotationGroup: null,
+      });
       if (!updated) {
         return res.status(404).json({ error: 'NOT_FOUND', message: 'Template not found' });
       }
