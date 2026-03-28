@@ -56,7 +56,6 @@ const App: React.FC = () => {
     const [chartsReturnView, setChartsReturnView] = useState<ViewState>('settings');
     const [walletReturnView, setWalletReturnView] = useState<ViewState>('dashboard');
     const [chartReturnView, setChartReturnView] = useState<ViewState>('dashboard');
-    const [hubPhotoUrl, setHubPhotoUrl] = useState<string | null>(null);
     
     // Ref для предотвращения двойной загрузки
     const dataLoadedRef = useRef(false);
@@ -105,12 +104,6 @@ const App: React.FC = () => {
         const cleanupFullscreenGuard = installTelegramFullscreenGuard();
         return cleanupFullscreenGuard;
     }, []);
-
-    useEffect(() => {
-        if (typeof window === 'undefined' || !profile) return;
-        const photo = (window as any).Telegram?.WebApp?.initDataUnsafe?.user?.photo_url;
-        setHubPhotoUrl(typeof photo === 'string' && photo ? photo : null);
-    }, [profile?.id]);
 
     useEffect(() => {
         const theme = profile?.theme || 'dark';
@@ -559,8 +552,6 @@ const App: React.FC = () => {
                 onOpenSettings={() => setView('settings')}
                 onBack={handleBack}
                 onOpenWallet={() => openWallet(view)}
-                compactHub={view === 'dashboard'}
-                hubAvatarUrl={view === 'dashboard' ? hubPhotoUrl : undefined}
             />
             
             <main 
@@ -676,8 +667,6 @@ const App: React.FC = () => {
                             }} 
                             onOpenSettings={() => setView('settings')}
                             onContextUpdate={setAmbientContext}
-                            onOpenCharts={() => openCharts('dashboard')}
-                            onRequestPremium={() => setShowPremiumPreview(true)}
                         />
                     </div>
                 )}
