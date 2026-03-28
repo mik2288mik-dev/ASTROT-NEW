@@ -22,6 +22,13 @@ import {
 
 const SLOTS: NotificationSlot[] = ['morning', 'day', 'evening', 'custom'];
 
+const SLOT_LABEL_RU: Record<NotificationSlot, string> = {
+  morning: 'Утро',
+  day: 'День',
+  evening: 'Вечер',
+  custom: 'Свой слот',
+};
+
 interface NotificationTemplateFormProps {
   template: AdminScheduledNotificationTemplate | null;
   assets: AdminScheduledNotificationAsset[];
@@ -29,10 +36,7 @@ interface NotificationTemplateFormProps {
   onUploadAsset: (file: File) => Promise<void>;
   onDeleteAsset: (id: number) => Promise<void>;
   assetUploading: boolean;
-  lang: 'ru' | 'en';
 }
-
-const T = (lang: 'ru' | 'en', ru: string, en: string) => (lang === 'ru' ? ru : en);
 
 const emptyPreview: PreviewModel = {
   visualMode: 'none',
@@ -46,7 +50,7 @@ const emptyPreview: PreviewModel = {
 };
 
 export const NotificationTemplateForm = memo<NotificationTemplateFormProps>(
-  ({ template, assets, onSaved, onUploadAsset, onDeleteAsset, assetUploading, lang }) => {
+  ({ template, assets, onSaved, onUploadAsset, onDeleteAsset, assetUploading }) => {
     const [name, setName] = useState('');
     const [slot, setSlot] = useState<NotificationSlot>('custom');
     const [visualMode, setVisualMode] = useState<NotificationVisualMode>('none');
@@ -64,8 +68,6 @@ export const NotificationTemplateForm = memo<NotificationTemplateFormProps>(
     const [generatedCustomZodiac, setGeneratedCustomZodiac] = useState('');
     const [previewSunSign, setPreviewSunSign] = useState('');
     const [isActive, setIsActive] = useState(true);
-    const [sortOrder, setSortOrder] = useState(0);
-    const [rotationGroup, setRotationGroup] = useState('');
     const [notes, setNotes] = useState('');
     const [scheduleRows, setScheduleRows] = useState<ScheduleRow[]>(schedulesToRows(undefined));
     const [preview, setPreview] = useState<PreviewModel>(emptyPreview);
@@ -93,8 +95,6 @@ export const NotificationTemplateForm = memo<NotificationTemplateFormProps>(
         setGeneratedZodiacMode((template.generatedZodiacMode as NotificationGeneratedZodiacMode) || 'none');
         setGeneratedCustomZodiac(template.generatedCustomZodiac || '');
         setIsActive(template.isActive);
-        setSortOrder(template.sortOrder);
-        setRotationGroup(template.rotationGroup || '');
         setNotes(template.notes || '');
         setScheduleRows(schedulesToRows(template.schedules));
       } else {
@@ -102,7 +102,7 @@ export const NotificationTemplateForm = memo<NotificationTemplateFormProps>(
         setSlot('morning');
         setVisualMode('none');
         setText('');
-        setButtonText(T(lang, 'Открыть Lumia', 'Open Lumia'));
+        setButtonText('Открыть Lumia');
         setDeepLink('');
         setAssetId(null);
         setGeneratedPreset('morning-soft');
@@ -114,12 +114,10 @@ export const NotificationTemplateForm = memo<NotificationTemplateFormProps>(
         setGeneratedZodiacMode('none');
         setGeneratedCustomZodiac('');
         setIsActive(true);
-        setSortOrder(0);
-        setRotationGroup('');
         setNotes('');
         setScheduleRows(schedulesToRows(undefined));
       }
-    }, [template, lang]);
+    }, [template]);
 
     const selectedAssetUrl = useMemo(() => {
       if (!assetId) return null;
@@ -138,8 +136,8 @@ export const NotificationTemplateForm = memo<NotificationTemplateFormProps>(
         deepLink,
         assetId,
         isActive: true,
-        sortOrder,
-        rotationGroup: rotationGroup.trim() || null,
+        sortOrder: 0,
+        rotationGroup: null,
         notes: notes.trim() || null,
         generatedPreset: visualMode === 'generated' ? generatedPreset : null,
         generatedTitle: generatedTitle.trim() || null,
@@ -164,8 +162,6 @@ export const NotificationTemplateForm = memo<NotificationTemplateFormProps>(
       buttonText,
       deepLink,
       assetId,
-      sortOrder,
-      rotationGroup,
       notes,
       generatedPreset,
       generatedTitle,
@@ -242,8 +238,8 @@ export const NotificationTemplateForm = memo<NotificationTemplateFormProps>(
           deepLink,
           assetId: visualMode === 'uploaded' ? assetId : null,
           isActive,
-          sortOrder,
-          rotationGroup: rotationGroup.trim() || null,
+          sortOrder: 0,
+          rotationGroup: null,
           notes: notes.trim() || null,
           generatedPreset: visualMode === 'generated' ? generatedPreset : null,
           generatedTitle: generatedTitle.trim() || null,
@@ -305,7 +301,7 @@ export const NotificationTemplateForm = memo<NotificationTemplateFormProps>(
 
         await onSaved(template ? undefined : { id: savedId });
       } catch (e: any) {
-        setError(e?.message || T(lang, 'Ошибка сохранения', 'Save failed'));
+        setError(e?.message || 'Ошибка сохранения');
       } finally {
         setSaving(false);
       }
@@ -315,22 +311,23 @@ export const NotificationTemplateForm = memo<NotificationTemplateFormProps>(
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="space-y-4 rounded-2xl border border-astro-border bg-astro-card p-4">
           <h4 className="font-serif text-lg text-astro-text">
-            {template
-              ? T(lang, 'Редактирование', 'Edit template')
-              : T(lang, 'Новый шаблон', 'New template')}
+            {template ? 'Редактирование шаблона' : 'Новый шаблон'}
           </h4>
+          <p className="text-[11px] text-astro-subtext">
+            Порядок в очереди слота задаётся автоматически (новые шаблоны добавляются в конец). Группы ротации не используются.
+          </p>
           {error ? <p className="text-sm text-red-300">{error}</p> : null}
 
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder={T(lang, 'Внутреннее имя', 'Internal name')}
+            placeholder="Внутреннее название (для себя)"
             className="w-full rounded-lg border border-astro-border bg-astro-bg px-3 py-2 text-sm text-astro-text"
           />
 
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="text-xs text-astro-subtext">
-              {T(lang, 'Слот', 'Slot')}
+              Слот дня
               <select
                 value={slot}
                 onChange={(e) => setSlot(e.target.value as NotificationSlot)}
@@ -338,21 +335,21 @@ export const NotificationTemplateForm = memo<NotificationTemplateFormProps>(
               >
                 {SLOTS.map((s) => (
                   <option key={s} value={s}>
-                    {s}
+                    {SLOT_LABEL_RU[s]}
                   </option>
                 ))}
               </select>
             </label>
             <label className="text-xs text-astro-subtext">
-              {T(lang, 'Визуал', 'Visual')}
+              Визуал
               <select
                 value={visualMode}
                 onChange={(e) => setVisualMode(e.target.value as NotificationVisualMode)}
                 className="mt-1 w-full rounded-lg border border-astro-border bg-astro-bg px-3 py-2 text-sm text-astro-text"
               >
-                <option value="none">{T(lang, 'Только текст', 'Text only')}</option>
-                <option value="uploaded">{T(lang, 'Загруженное фото', 'Uploaded image')}</option>
-                <option value="generated">{T(lang, 'Карточка Lumia', 'Generated card')}</option>
+                <option value="none">Только текст</option>
+                <option value="uploaded">Загруженное фото</option>
+                <option value="generated">Карточка Lumia</option>
               </select>
             </label>
           </div>
@@ -363,8 +360,8 @@ export const NotificationTemplateForm = memo<NotificationTemplateFormProps>(
             rows={5}
             placeholder={
               visualMode === 'generated'
-                ? T(lang, 'Текст под карточкой (подпись)', 'Caption below card')
-                : T(lang, 'Текст уведомления', 'Message text')
+                ? 'Текст под карточкой (подпись к фото)'
+                : 'Текст уведомления'
             }
             className="w-full rounded-lg border border-astro-border bg-astro-bg px-3 py-2 text-sm text-astro-text"
           />
@@ -372,7 +369,7 @@ export const NotificationTemplateForm = memo<NotificationTemplateFormProps>(
           {visualMode === 'generated' ? (
             <div className="space-y-3 rounded-xl border border-astro-border/60 bg-astro-bg/25 p-3">
               <label className="block text-xs text-astro-subtext">
-                {T(lang, 'Пресет карточки', 'Card preset')}
+                Стиль карточки
                 <select
                   value={generatedPreset}
                   onChange={(e) => setGeneratedPreset(e.target.value)}
@@ -380,7 +377,7 @@ export const NotificationTemplateForm = memo<NotificationTemplateFormProps>(
                 >
                   {GENERATED_PRESET_IDS.map((id) => (
                     <option key={id} value={id}>
-                      {NOTIFICATION_CARD_PRESETS[id].label[lang]}
+                      {NOTIFICATION_CARD_PRESETS[id].label.ru}
                     </option>
                   ))}
                 </select>
@@ -388,24 +385,24 @@ export const NotificationTemplateForm = memo<NotificationTemplateFormProps>(
               <input
                 value={generatedTitle}
                 onChange={(e) => setGeneratedTitle(e.target.value)}
-                placeholder={T(lang, 'Заголовок на карточке', 'Card headline')}
+                placeholder="Заголовок на карточке"
                 className="w-full rounded-lg border border-astro-border bg-astro-bg px-3 py-2 text-sm text-astro-text"
               />
               <input
                 value={generatedSubtitle}
                 onChange={(e) => setGeneratedSubtitle(e.target.value)}
-                placeholder={T(lang, 'Подзаголовок', 'Subtitle')}
+                placeholder="Подзаголовок"
                 className="w-full rounded-lg border border-astro-border bg-astro-bg px-3 py-2 text-sm text-astro-text"
               />
               <input
                 value={generatedAccent}
                 onChange={(e) => setGeneratedAccent(e.target.value)}
-                placeholder={T(lang, 'Акцент (капс)', 'Accent line')}
+                placeholder="Акцентная строка"
                 className="w-full rounded-lg border border-astro-border bg-astro-bg px-3 py-2 text-sm text-astro-text"
               />
               <label className="flex items-center gap-2 text-sm text-astro-text">
                 <input type="checkbox" checked={generatedShowDate} onChange={(e) => setGeneratedShowDate(e.target.checked)} />
-                {T(lang, 'Дата на карточке', 'Show date')}
+                Показывать дату
               </label>
               <label className="flex items-center gap-2 text-sm text-astro-text">
                 <input
@@ -413,36 +410,36 @@ export const NotificationTemplateForm = memo<NotificationTemplateFormProps>(
                   checked={generatedShowSlotLabel}
                   onChange={(e) => setGeneratedShowSlotLabel(e.target.checked)}
                 />
-                {T(lang, 'Метка слота (утро/день/вечер)', 'Slot label')}
+                Метка слота (утро / день / вечер)
               </label>
               <label className="block text-xs text-astro-subtext">
-                {T(lang, 'Зодиак на карточке', 'Zodiac on card')}
+                Зодиак на карточке
                 <select
                   value={generatedZodiacMode}
                   onChange={(e) => setGeneratedZodiacMode(e.target.value as NotificationGeneratedZodiacMode)}
                   className="mt-1 w-full rounded-lg border border-astro-border bg-astro-bg px-3 py-2 text-sm text-astro-text"
                 >
-                  <option value="none">{T(lang, 'Нет', 'None')}</option>
-                  <option value="sun_sign">{T(lang, 'Знак Солнца (пользователя)', 'User sun sign')}</option>
-                  <option value="custom">{T(lang, 'Свой текст', 'Custom')}</option>
+                  <option value="none">Нет</option>
+                  <option value="sun_sign">Знак Солнца пользователя</option>
+                  <option value="custom">Свой текст</option>
                 </select>
               </label>
               {generatedZodiacMode === 'custom' ? (
                 <input
                   value={generatedCustomZodiac}
                   onChange={(e) => setGeneratedCustomZodiac(e.target.value)}
-                  placeholder="☉ …"
+                  placeholder="Например: ☉ Рыбы"
                   className="w-full rounded-lg border border-astro-border bg-astro-bg px-3 py-2 text-sm text-astro-text"
                 />
               ) : null}
               <div className="border-t border-astro-border/40 pt-2">
                 <p className="text-[10px] uppercase text-astro-subtext">
-                  {T(lang, 'Предпросмотр зодиака (тест)', 'Preview zodiac (test)')}
+                  Для предпросмотра: знак Солнца
                 </p>
                 <input
                   value={previewSunSign}
                   onChange={(e) => setPreviewSunSign(e.target.value)}
-                  placeholder="Pisces / Рыбы"
+                  placeholder="Рыбы / Pisces"
                   className="mt-1 w-full rounded-lg border border-astro-border bg-astro-bg px-3 py-2 text-xs text-astro-text"
                 />
               </div>
@@ -451,7 +448,7 @@ export const NotificationTemplateForm = memo<NotificationTemplateFormProps>(
 
           {visualMode === 'uploaded' ? (
             <div>
-              <p className="mb-2 text-xs text-astro-subtext">{T(lang, 'Изображение', 'Image')}</p>
+              <p className="mb-2 text-xs text-astro-subtext">Изображение для Telegram</p>
               <NotificationAssetPicker
                 assets={assets}
                 selectedId={assetId}
@@ -459,7 +456,6 @@ export const NotificationTemplateForm = memo<NotificationTemplateFormProps>(
                 onUpload={onUploadAsset}
                 onDeleteAsset={onDeleteAsset}
                 uploading={assetUploading}
-                lang={lang}
               />
             </div>
           ) : null}
@@ -467,52 +463,31 @@ export const NotificationTemplateForm = memo<NotificationTemplateFormProps>(
           <input
             value={buttonText}
             onChange={(e) => setButtonText(e.target.value)}
-            placeholder={T(lang, 'Текст кнопки', 'Button label')}
+            placeholder="Текст кнопки"
             className="w-full rounded-lg border border-astro-border bg-astro-bg px-3 py-2 text-sm text-astro-text"
           />
 
           <input
             value={deepLink}
             onChange={(e) => setDeepLink(e.target.value)}
-            placeholder="https://… (mini app URL)"
+            placeholder="https://… (ссылка мини-приложения)"
             className="w-full rounded-lg border border-astro-border bg-astro-bg px-3 py-2 text-sm text-astro-text"
           />
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="text-xs text-astro-subtext">
-              {T(lang, 'Порядок', 'Sort order')}
-              <input
-                type="number"
-                value={sortOrder}
-                onChange={(e) => setSortOrder(Number(e.target.value) || 0)}
-                className="mt-1 w-full rounded-lg border border-astro-border bg-astro-bg px-3 py-2 text-sm text-astro-text"
-              />
-            </label>
-            <label className="text-xs text-astro-subtext">
-              {T(lang, 'Группа ротации', 'Rotation group')}
-              <input
-                value={rotationGroup}
-                onChange={(e) => setRotationGroup(e.target.value)}
-                placeholder={T(lang, 'опционально', 'optional')}
-                className="mt-1 w-full rounded-lg border border-astro-border bg-astro-bg px-3 py-2 text-sm text-astro-text"
-              />
-            </label>
-          </div>
 
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
-            placeholder={T(lang, 'Заметки админа', 'Admin notes')}
+            placeholder="Заметки (только для админов, в рассылку не идут)"
             className="w-full rounded-lg border border-astro-border bg-astro-bg px-3 py-2 text-sm text-astro-text"
           />
 
           <label className="flex items-center gap-2 text-sm text-astro-text">
             <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
-            {T(lang, 'Активен', 'Active')}
+            Шаблон активен
           </label>
 
-          <NotificationScheduleEditor rows={scheduleRows} onChange={setScheduleRows} lang={lang} />
+          <NotificationScheduleEditor rows={scheduleRows} onChange={setScheduleRows} />
 
           <button
             type="button"
@@ -520,11 +495,11 @@ export const NotificationTemplateForm = memo<NotificationTemplateFormProps>(
             onClick={() => void handleSave()}
             className="w-full rounded-lg bg-astro-highlight py-3 text-sm font-semibold text-white disabled:opacity-50"
           >
-            {saving ? T(lang, 'Сохранение…', 'Saving…') : T(lang, 'Сохранить', 'Save')}
+            {saving ? 'Сохранение…' : 'Сохранить'}
           </button>
         </div>
 
-        <NotificationPreview preview={preview} lang={lang} />
+        <NotificationPreview preview={preview} />
       </div>
     );
   }

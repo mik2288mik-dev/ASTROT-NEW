@@ -15,15 +15,13 @@ interface AdminPanelProps {
   onClose: () => void;
 }
 
-const T = (lang: 'ru' | 'en', ru: string, en: string) => (lang === 'ru' ? ru : en);
-
-const ADMIN_SECTIONS: Array<{ id: AdminSection; title: { ru: string; en: string } }> = [
-  { id: 'users', title: { ru: 'Пользователи', en: 'Users' } },
-  { id: 'ai', title: { ru: 'AI', en: 'AI' } },
-  { id: 'cms', title: { ru: 'Уведомления', en: 'Notifications' } },
-  { id: 'send', title: { ru: 'Отправка', en: 'Send' } },
-  { id: 'templates', title: { ru: 'Шаблоны', en: 'Templates' } },
-  { id: 'history', title: { ru: 'История', en: 'History' } },
+const ADMIN_SECTIONS: Array<{ id: AdminSection; title: string }> = [
+  { id: 'users', title: 'Пользователи' },
+  { id: 'ai', title: 'ИИ и модель' },
+  { id: 'cms', title: 'Рассылки' },
+  { id: 'send', title: 'Отправка' },
+  { id: 'templates', title: 'Шаблоны' },
+  { id: 'history', title: 'История' },
 ];
 
 const EMPTY_OVERVIEW: AdminUsersOverview = {
@@ -35,7 +33,10 @@ const EMPTY_OVERVIEW: AdminUsersOverview = {
 };
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onPatchOwnProfile, onClose }) => {
-  const lang = profile.language === 'en' ? 'en' : 'ru';
+  const adminProfileRu = useMemo(
+    () => ({ ...profile, language: 'ru' as const }),
+    [profile]
+  );
   const [activeSection, setActiveSection] = useState<AdminSection>('users');
   const [notificationTargetUserId, setNotificationTargetUserId] = useState<string>('');
   const [userSegment, setUserSegment] = useState<AdminUserSegment>('all');
@@ -44,13 +45,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onPatchOwnProfi
   const summaryChips = useMemo(() => ([
     {
       id: 'premium',
-      label: T(lang, 'Premium', 'Premium'),
+      label: 'Premium',
       value: overview.activePremiumUsers,
       segment: 'premium' as AdminUserSegment,
     },
     {
       id: 'users',
-      label: T(lang, 'Пользователи', 'Users'),
+      label: 'Пользователи',
       value: overview.totalUsers,
       segment: 'all' as AdminUserSegment,
     },
@@ -62,11 +63,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onPatchOwnProfi
     },
     {
       id: 'active',
-      label: T(lang, 'Активны 7д', 'Active 7d'),
+      label: 'Активны 7 дн.',
       value: overview.activeUsers7d,
       segment: 'active_7d' as AdminUserSegment,
     },
-  ]), [lang, overview.activePremiumUsers, overview.activeUsers7d, overview.totalLumiBalance, overview.totalUsers]);
+  ]), [overview.activePremiumUsers, overview.activeUsers7d, overview.totalLumiBalance, overview.totalUsers]);
 
   return (
     <div
@@ -87,16 +88,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onPatchOwnProfi
             <div className="mb-2">
               <LumiaLogo variant="row" className="scale-90" />
             </div>
-            <h2 className="font-serif text-lg font-semibold text-astro-text">Admin Panel</h2>
+            <h2 className="font-serif text-lg font-semibold text-astro-text">Панель администратора</h2>
             <p className="mt-1 text-[10px] uppercase tracking-widest text-astro-subtext">
-              {T(lang, 'Owner / admin access only', 'Owner / admin access only')}
+              Доступ только для владельца и админов
             </p>
           </div>
           <button
             onClick={onClose}
             className="rounded-lg border border-astro-border px-4 py-2 text-xs font-semibold uppercase tracking-widest text-astro-text transition-colors hover:border-astro-highlight/40"
           >
-            {T(lang, 'Закрыть', 'Close')}
+            Закрыть
           </button>
         </div>
 
@@ -132,19 +133,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onPatchOwnProfi
                     : 'border border-astro-border text-astro-subtext hover:border-astro-highlight/40 hover:text-astro-text'
                 }`}
               >
-                {section.title[lang]}
+                {section.title}
               </button>
             ))}
           </div>
         </div>
       </div>
 
-      <div className="mx-auto max-w-3xl space-y-6 p-4">
+      <div
+        className={`mx-auto space-y-6 p-4 ${activeSection === 'cms' ? 'max-w-5xl' : 'max-w-3xl'}`}
+      >
         {activeSection === 'ai' ? (
-          <AdminAiSettingsTab profile={profile} />
+          <AdminAiSettingsTab profile={adminProfileRu} />
         ) : activeSection === 'users' ? (
           <AdminUsersTab
-            profile={profile}
+            profile={adminProfileRu}
             segment={userSegment}
             onSegmentChange={setUserSegment}
             onOverviewChange={setOverview}
@@ -155,10 +158,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onPatchOwnProfi
             }}
           />
         ) : activeSection === 'cms' ? (
-          <NotificationsManager profile={profile} />
+          <NotificationsManager profile={adminProfileRu} />
         ) : (
           <AdminNotificationsTab
-            profile={profile}
+            profile={adminProfileRu}
             section={activeSection as 'send' | 'templates' | 'history'}
             initialTargetUserId={notificationTargetUserId}
             onClearInitialTarget={() => setNotificationTargetUserId('')}
