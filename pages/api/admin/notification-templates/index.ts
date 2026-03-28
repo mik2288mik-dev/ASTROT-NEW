@@ -16,7 +16,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     await requireAdminAccess(req);
 
     if (req.method === 'GET') {
-      const templates = await db.notification_templates.getAll();
+      const templates = await db.legacy_notification_templates.getAll();
       return res.status(200).json({
         templates: templates.map(serializeNotificationTemplate),
       });
@@ -38,7 +38,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'INVALID_KIND', message: 'Template kind is invalid' });
     }
 
-    const template = await db.notification_templates.create({
+    const template = await db.legacy_notification_templates.create({
       title,
       bodyRu,
       bodyEn,

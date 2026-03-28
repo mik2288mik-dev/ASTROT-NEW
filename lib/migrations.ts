@@ -72,9 +72,14 @@ async function migrationReset(pool: Pool): Promise<void> {
   log.info('Applying full database reset...');
 
   const dropOrder = [
+    'notification_delivery_log',
+    'notification_rotation_state',
+    'notification_schedules',
+    'notification_templates',
+    'notification_assets',
     'notification_deliveries',
     'notification_campaigns',
-    'notification_templates',
+    'legacy_notification_templates',
     'user_sessions',
     'star_payments',
     'synastry_cache',
@@ -531,12 +536,170 @@ async function lumia005AppSettings(pool: Pool): Promise<void> {
   log.info('Migration lumia_005_app_settings applied');
 }
 
+/**
+ * Migration: Scheduled Telegram notifications CMS (lumia_006)
+ * Renames legacy admin compose templates; adds assets, templates, schedules, rotation, delivery log.
+ */
+async function lumia006ScheduledNotifications(pool: Pool): Promise<void> {
+  const migrationName = 'lumia_006_scheduled_notifications';
+
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
+  log.info('Applying scheduled notifications migration...');
+
+  await pool.query(`
+    ALTER TABLE IF EXISTS notification_templates RENAME TO legacy_notification_templates
+  `);
+  await pool.query(
+    'ALTER INDEX IF EXISTS idx_notification_templates_kind RENAME TO idx_legacy_notification_templates_kind'
+  );
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS notification_assets (
+      id BIGSERIAL PRIMARY KEY,
+      file_name TEXT NOT NULL,
+      storage_path TEXT NOT NULL,
+      public_url TEXT NOT NULL,
+      mime_type TEXT NOT NULL,
+      file_size BIGINT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      uploaded_by BIGINT REFERENCES users(id) ON DELETE SET NULL
+    )
+  `);
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_notification_assets_created ON notification_assets(created_at DESC)');
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS notification_templates (
+      id BIGSERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      slot TEXT NOT NULL,
+      message_type TEXT NOT NULL DEFAULT 'text',
+      text TEXT NOT NULL DEFAULT '',
+      button_text TEXT NOT NULL DEFAULT '',
+      deep_link TEXT NOT NULL DEFAULT '',
+      asset_id BIGINT REFERENCES notification_assets(id) ON DELETE SET NULL,
+      is_active BOOLEAN DEFAULT TRUE,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      rotation_group TEXT,
+      notes TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_notification_templates_slot ON notification_templates(slot)');
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_notification_templates_active ON notification_templates(is_active)');
+  await pool.query(
+    'CREATE INDEX IF NOT EXISTS idx_notification_templates_rotation ON notification_templates(slot, rotation_group, sort_order, id)'
+  );
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS notification_schedules (
+      id BIGSERIAL PRIMARY KEY,
+      template_id BIGINT NOT NULL REFERENCES notification_templates(id) ON DELETE CASCADE,
+      send_time TIME NOT NULL,
+      timezone TEXT NOT NULL DEFAULT 'Europe/Moscow',
+      repeat_mode TEXT NOT NULL DEFAULT 'daily',
+      is_active BOOLEAN DEFAULT TRUE,
+      last_sent_at TIMESTAMP,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_notification_schedules_template ON notification_schedules(template_id)');
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_notification_schedules_active ON notification_schedules(is_active)');
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS notification_rotation_state (
+      id BIGSERIAL PRIMARY KEY,
+      slot TEXT NOT NULL,
+      rotation_group TEXT NOT NULL DEFAULT '',
+      last_template_id BIGINT REFERENCES notification_templates(id) ON DELETE SET NULL,
+      last_index INTEGER NOT NULL DEFAULT -1,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  await pool.query(
+    'CREATE UNIQUE INDEX IF NOT EXISTS idx_notification_rotation_state_unique ON notification_rotation_state (slot, rotation_group)'
+  );
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS notification_delivery_log (
+      id BIGSERIAL PRIMARY KEY,
+      template_id BIGINT REFERENCES notification_templates(id) ON DELETE SET NULL,
+      scheduled_for TIMESTAMP,
+      sent_at TIMESTAMP,
+      recipient_count INTEGER NOT NULL DEFAULT 0,
+      success_count INTEGER NOT NULL DEFAULT 0,
+      failure_count INTEGER NOT NULL DEFAULT 0,
+      status TEXT NOT NULL,
+      error_summary TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_notification_delivery_log_created ON notification_delivery_log(created_at DESC)');
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_notification_delivery_log_template ON notification_delivery_log(template_id)');
+
+  const countResult = await pool.query('SELECT COUNT(*)::int AS c FROM notification_templates');
+  if ((countResult.rows[0]?.c ?? 0) === 0) {
+    await pool.query(
+      `INSERT INTO notification_templates (name, slot, message_type, text, button_text, deep_link, is_active, sort_order, rotation_group, notes)
+       VALUES
+       ($1, 'morning', 'text', $2, $3, '', TRUE, 0, NULL, $4),
+       ($5, 'day', 'text', $6, $3, '', TRUE, 0, NULL, $7),
+       ($8, 'evening', 'text', $9, $3, '', TRUE, 0, NULL, $10)`,
+      [
+        'Morning Lumia',
+        'Доброе утро! Открой Lumia — короткий гороскоп и настроение дня уже ждут.',
+        'Открыть Lumia',
+        'Default seed — задайте deep link в админке (URL мини-приложения).',
+        'Day Lumia',
+        'Середина дня — загляни в Lumia за персональным ориентиром.',
+        'Default seed',
+        'Evening Lumia',
+        'Вечер — хорошее время свериться с картой и гороскопом в Lumia.',
+        'Default seed',
+      ]
+    );
+    const ids = await pool.query(`SELECT id, slot FROM notification_templates ORDER BY id`);
+    for (const row of ids.rows) {
+      const slot = String(row.slot);
+      let hour = 8;
+      const minute = 0;
+      if (slot === 'day') {
+        hour = 13;
+      } else if (slot === 'evening') {
+        hour = 20;
+      }
+      await pool.query(
+        `INSERT INTO notification_schedules (template_id, send_time, timezone, repeat_mode, is_active)
+         VALUES ($1, make_time($2, $3, 0), 'Europe/Moscow', 'daily', TRUE)`,
+        [row.id, hour, minute]
+      );
+    }
+  }
+
+  await markMigrationApplied(pool, migrationName);
+  log.info('Migration lumia_006_scheduled_notifications applied');
+}
+
 async function verifyTablesExist(pool: Pool): Promise<void> {
   const required = [
     'users', 'natal_charts', 'interpretations', 'lumi_transactions', 'app_settings',
     'roulette_spins', 'daily_horoscopes', 'daily_natal_cards',
     'astro_questions', 'dictionary', 'synastry_cache', 'star_payments',
-    'user_sessions', 'notification_templates', 'notification_campaigns', 'notification_deliveries'
+    'user_sessions',
+    'legacy_notification_templates',
+    'notification_campaigns',
+    'notification_deliveries',
+    'notification_assets',
+    'notification_templates',
+    'notification_schedules',
+    'notification_rotation_state',
+    'notification_delivery_log',
   ];
   const missing: string[] = [];
   for (const t of required) {
@@ -590,8 +753,9 @@ export async function runMigrations(): Promise<void> {
     await lumia002MultiChart(pool);
     await lumia003StarPayments(pool);
     await lumia004AdminBackoffice(pool);
-    await lumia005AppSettings(pool);
-    await verifyTablesExist(pool);
+  await lumia005AppSettings(pool);
+  await lumia006ScheduledNotifications(pool);
+  await verifyTablesExist(pool);
 
     log.info('All Lumia migrations completed successfully');
   } catch (error: any) {

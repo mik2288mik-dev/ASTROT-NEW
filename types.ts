@@ -331,6 +331,69 @@ export interface AdminNotificationSendResult {
   campaign: AdminNotificationHistoryItem;
 }
 
+export type NotificationSlot = 'morning' | 'day' | 'evening' | 'custom';
+export type ScheduledNotificationMessageType = 'text' | 'photo';
+
+export interface AdminScheduledNotificationAsset {
+  id: number;
+  fileName: string;
+  publicUrl: string;
+  mimeType: string;
+  fileSize: number;
+  refCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminScheduledNotificationTemplate {
+  id: number;
+  name: string;
+  slot: NotificationSlot;
+  messageType: ScheduledNotificationMessageType;
+  text: string;
+  buttonText: string;
+  deepLink: string;
+  assetId: number | null;
+  assetPublicUrl: string | null;
+  assetMimeType: string | null;
+  assetFileName: string | null;
+  isActive: boolean;
+  sortOrder: number;
+  rotationGroup: string | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+  schedules?: AdminNotificationSchedule[];
+}
+
+export interface AdminNotificationSchedule {
+  id: number;
+  templateId: number;
+  sendTime: string;
+  timezone: string;
+  repeatMode: string;
+  isActive: boolean;
+  lastSentAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  templateName?: string;
+  templateSlot?: string;
+}
+
+export interface AdminNotificationDeliveryLogItem {
+  id: number;
+  templateId: number | null;
+  templateName: string | null;
+  scheduledFor: string | null;
+  sentAt: string | null;
+  recipientCount: number;
+  successCount: number;
+  failureCount: number;
+  status: string;
+  errorSummary: string | null;
+  createdAt: string;
+}
+
 export interface AdminLumiActionResult {
   user: AdminUserDetail;
   notificationSent?: boolean;

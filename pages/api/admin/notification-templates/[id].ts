@@ -38,7 +38,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'INVALID_KIND', message: 'Template kind is invalid' });
     }
 
-    const template = await db.notification_templates.update(parsedTemplateId, {
+    const template = await db.legacy_notification_templates.update(parsedTemplateId, {
       title,
       bodyRu,
       bodyEn,

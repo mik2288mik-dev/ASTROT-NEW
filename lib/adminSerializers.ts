@@ -93,6 +93,80 @@ export function serializeNotificationTemplate(row: any) {
   };
 }
 
+export function serializeScheduledNotificationTemplate(row: any) {
+  return {
+    id: Number(row.id),
+    name: row.name || '',
+    slot: row.slot || 'custom',
+    messageType: row.message_type === 'photo' ? 'photo' : 'text',
+    text: row.text || '',
+    buttonText: row.button_text || '',
+    deepLink: row.deep_link || '',
+    assetId: row.asset_id != null ? Number(row.asset_id) : null,
+    assetPublicUrl: row.asset_public_url || null,
+    assetMimeType: row.asset_mime_type || null,
+    assetFileName: row.asset_file_name || null,
+    isActive: !!row.is_active,
+    sortOrder: Number(row.sort_order ?? 0),
+    rotationGroup: row.rotation_group ?? null,
+    notes: row.notes ?? null,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+export function serializeNotificationAsset(row: any) {
+  return {
+    id: Number(row.id),
+    fileName: row.file_name || '',
+    publicUrl: row.public_url || '',
+    mimeType: row.mime_type || '',
+    fileSize: Number(row.file_size ?? 0),
+    refCount: Number(row.ref_count ?? 0),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+export function serializeNotificationSchedule(row: any) {
+  const st = row.send_time;
+  const sendTime =
+    typeof st === 'string'
+      ? st.slice(0, 5)
+      : st && typeof st.toISOString === 'function'
+        ? st.toISOString().slice(11, 16)
+        : String(st || '').slice(0, 5);
+  return {
+    id: Number(row.id),
+    templateId: Number(row.template_id),
+    sendTime,
+    timezone: row.timezone || 'Europe/Moscow',
+    repeatMode: row.repeat_mode || 'daily',
+    isActive: !!row.is_active,
+    lastSentAt: row.last_sent_at ?? null,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    templateName: row.template_name,
+    templateSlot: row.template_slot,
+  };
+}
+
+export function serializeNotificationDeliveryLog(row: any) {
+  return {
+    id: Number(row.id),
+    templateId: row.template_id != null ? Number(row.template_id) : null,
+    templateName: row.template_name ?? null,
+    scheduledFor: row.scheduled_for ?? null,
+    sentAt: row.sent_at ?? null,
+    recipientCount: Number(row.recipient_count ?? 0),
+    successCount: Number(row.success_count ?? 0),
+    failureCount: Number(row.failure_count ?? 0),
+    status: row.status || '',
+    errorSummary: row.error_summary ?? null,
+    createdAt: row.created_at,
+  };
+}
+
 export function serializeNotificationHistoryItem(row: any) {
   return {
     id: Number(row.id),

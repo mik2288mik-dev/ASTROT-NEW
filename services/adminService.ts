@@ -1,11 +1,15 @@
 import {
   type AdminLumiActionResult,
+  type AdminNotificationDeliveryLogItem,
   type AdminNotificationHistoryItem,
+  type AdminNotificationSchedule,
   type AdminNotificationSendResult,
   type AdminNotificationTargetSegment,
   type AdminNotificationTemplate,
   type AdminNotificationTemplateKind,
   type AdminPremiumFilter,
+  type AdminScheduledNotificationAsset,
+  type AdminScheduledNotificationTemplate,
   type AdminUserDetail,
   type AdminUserSegment,
   type AdminUserSummary,
@@ -197,6 +201,159 @@ export async function sendNotification(payload: {
     method: 'POST',
     bodyJson: payload,
   });
+}
+
+export async function fetchScheduledNotificationTemplates(): Promise<AdminScheduledNotificationTemplate[]> {
+  const data = await adminRequest<{ templates: AdminScheduledNotificationTemplate[] }>(
+    '/api/admin/notifications/templates'
+  );
+  return data.templates || [];
+}
+
+export async function fetchScheduledNotificationTemplate(
+  id: number
+): Promise<AdminScheduledNotificationTemplate> {
+  const data = await adminRequest<{ template: AdminScheduledNotificationTemplate }>(
+    `/api/admin/notifications/templates/${id}`
+  );
+  return data.template;
+}
+
+export async function createScheduledNotificationTemplate(
+  payload: Record<string, unknown>
+): Promise<AdminScheduledNotificationTemplate> {
+  const data = await adminRequest<{ template: AdminScheduledNotificationTemplate }>(
+    '/api/admin/notifications/templates',
+    { method: 'POST', bodyJson: payload }
+  );
+  return data.template;
+}
+
+export async function updateScheduledNotificationTemplate(
+  id: number,
+  payload: Record<string, unknown>
+): Promise<AdminScheduledNotificationTemplate> {
+  const data = await adminRequest<{ template: AdminScheduledNotificationTemplate }>(
+    `/api/admin/notifications/templates/${id}`,
+    { method: 'PUT', bodyJson: payload }
+  );
+  return data.template;
+}
+
+export async function patchScheduledNotificationTemplateActive(
+  id: number,
+  isActive: boolean
+): Promise<AdminScheduledNotificationTemplate> {
+  const data = await adminRequest<{ template: AdminScheduledNotificationTemplate }>(
+    `/api/admin/notifications/templates/${id}`,
+    { method: 'PATCH', bodyJson: { isActive } }
+  );
+  return data.template;
+}
+
+export async function deleteScheduledNotificationTemplate(id: number): Promise<void> {
+  await adminRequest(`/api/admin/notifications/templates/${id}`, { method: 'DELETE' });
+}
+
+export async function fetchNotificationAssets(): Promise<AdminScheduledNotificationAsset[]> {
+  const data = await adminRequest<{ assets: AdminScheduledNotificationAsset[] }>(
+    '/api/admin/notifications/assets'
+  );
+  return data.assets || [];
+}
+
+export async function uploadNotificationAsset(file: File): Promise<AdminScheduledNotificationAsset> {
+  const initData = getTelegramInitData();
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await fetch(`${API_BASE}/api/admin/notifications/assets/upload`, {
+    method: 'POST',
+    headers: { [INIT_DATA_HEADER]: initData },
+    body: formData,
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new AdminApiError(
+      payload.message || payload.error || `Upload failed: ${response.status}`,
+      response.status,
+      payload.error
+    );
+  }
+  return (payload as { asset: AdminScheduledNotificationAsset }).asset;
+}
+
+export async function deleteNotificationAsset(id: number): Promise<void> {
+  await adminRequest(`/api/admin/notifications/assets/${id}`, { method: 'DELETE' });
+}
+
+export async function createNotificationSchedule(payload: Record<string, unknown>): Promise<AdminNotificationSchedule> {
+  const data = await adminRequest<{ schedule: AdminNotificationSchedule }>(
+    '/api/admin/notifications/schedules',
+    { method: 'POST', bodyJson: payload }
+  );
+  return data.schedule;
+}
+
+export async function updateNotificationSchedule(
+  id: number,
+  payload: Record<string, unknown>
+): Promise<AdminNotificationSchedule> {
+  const data = await adminRequest<{ schedule: AdminNotificationSchedule }>(
+    `/api/admin/notifications/schedules/${id}`,
+    { method: 'PUT', bodyJson: payload }
+  );
+  return data.schedule;
+}
+
+export async function deleteNotificationSchedule(id: number): Promise<void> {
+  await adminRequest(`/api/admin/notifications/schedules/${id}`, { method: 'DELETE' });
+}
+
+export async function previewScheduledNotification(payload: Record<string, unknown>): Promise<{
+  preview: {
+    messageType: string;
+    text: string;
+    imageUrl: string | null;
+    buttonText: string | null;
+    buttonUrl: string | null;
+    hasInlineButton: boolean;
+  };
+}> {
+  return adminRequest('/api/admin/notifications/preview', { method: 'POST', bodyJson: payload });
+}
+
+export async function sendScheduledNotificationTest(templateId: number): Promise<{
+  success: boolean;
+  successCount: number;
+  failureCount: number;
+  totalRecipients: number;
+  errorSummary: string | null;
+}> {
+  return adminRequest('/api/admin/notifications/send-test', {
+    method: 'POST',
+    bodyJson: { templateId },
+  });
+}
+
+export async function runNotificationSlot(slot: string, rotationGroup?: string | null): Promise<{
+  success: boolean;
+  templateId: number | null;
+  successCount: number;
+  failureCount: number;
+  totalRecipients: number;
+  errorSummary: string | null;
+}> {
+  return adminRequest('/api/admin/notifications/run-slot', {
+    method: 'POST',
+    bodyJson: { slot, rotationGroup: rotationGroup || null },
+  });
+}
+
+export async function fetchNotificationDeliveryLog(limit = 50): Promise<AdminNotificationDeliveryLogItem[]> {
+  const data = await adminRequest<{ log: AdminNotificationDeliveryLogItem[] }>(
+    `/api/admin/notifications/delivery-log?limit=${encodeURIComponent(String(limit))}`
+  );
+  return data.log || [];
 }
 
 export { AdminApiError };

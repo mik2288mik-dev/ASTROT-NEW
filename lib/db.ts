@@ -132,7 +132,7 @@ let migrationsRun = false;
 let dailyNatalCardsChartScopeSupported: boolean | null = null;
 let interpretationsChartScopeSupported: boolean | null = null;
 
-function getPool(): Pool {
+export function getPool(): Pool {
   if (!pool) {
     if (!DATABASE_URL) {
       throw new Error('DATABASE_URL is not configured');
@@ -1849,19 +1849,20 @@ export const db = {
     },
   },
 
-  notification_templates: {
+  /** Legacy compose templates (admin “Send” tab) — table legacy_notification_templates */
+  legacy_notification_templates: {
     async getAll() {
       if (!DATABASE_URL) return [];
       try {
         const dbPool = getPool();
         const result = await dbPool.query(
           `SELECT id, title, body_ru, body_en, kind, is_active, created_at, updated_at
-           FROM notification_templates
+           FROM legacy_notification_templates
            ORDER BY updated_at DESC, id DESC`
         );
         return result.rows;
       } catch (error: any) {
-        log.error('[DB] Error getting notification templates', { error: error.message });
+        log.error('[DB] Error getting legacy notification templates', { error: error.message });
         throw error;
       }
     },
@@ -1871,7 +1872,7 @@ export const db = {
       try {
         const dbPool = getPool();
         const result = await dbPool.query(
-          `INSERT INTO notification_templates (title, body_ru, body_en, kind, is_active)
+          `INSERT INTO legacy_notification_templates (title, body_ru, body_en, kind, is_active)
            VALUES ($1, $2, $3, $4, $5)
            RETURNING id, title, body_ru, body_en, kind, is_active, created_at, updated_at`,
           [
@@ -1884,7 +1885,7 @@ export const db = {
         );
         return result.rows[0];
       } catch (error: any) {
-        log.error('[DB] Error creating notification template', { error: error.message });
+        log.error('[DB] Error creating legacy notification template', { error: error.message });
         throw error;
       }
     },
@@ -1894,7 +1895,7 @@ export const db = {
       try {
         const dbPool = getPool();
         const result = await dbPool.query(
-          `UPDATE notification_templates
+          `UPDATE legacy_notification_templates
            SET title = $2,
                body_ru = $3,
                body_en = $4,
@@ -1914,9 +1915,357 @@ export const db = {
         );
         return result.rows[0] || null;
       } catch (error: any) {
-        log.error('[DB] Error updating notification template', { error: error.message, templateId });
+        log.error('[DB] Error updating legacy notification template', { error: error.message, templateId });
         throw error;
       }
+    },
+  },
+
+  notification_assets: {
+    async create(data: {
+      fileName: string;
+      storagePath: string;
+      publicUrl: string;
+      mimeType: string;
+      fileSize: number;
+      uploadedBy?: string | null;
+    }) {
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      const dbPool = getPool();
+      const result = await dbPool.query(
+        `INSERT INTO notification_assets (file_name, storage_path, public_url, mime_type, file_size, uploaded_by)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING *`,
+        [
+          trimText(data.fileName, 255) || 'file',
+          trimText(data.storagePath, 500) || '',
+          trimText(data.publicUrl, 1000) || '',
+          trimText(data.mimeType, 120) || 'application/octet-stream',
+          data.fileSize,
+          data.uploadedBy ? toUserId(data.uploadedBy) : null,
+        ]
+      );
+      return result.rows[0];
+    },
+
+    async getAll() {
+      if (!DATABASE_URL) return [];
+      const dbPool = getPool();
+      const result = await dbPool.query(
+        `SELECT a.*, (SELECT COUNT(*)::int FROM notification_templates t WHERE t.asset_id = a.id) AS ref_count
+         FROM notification_assets a
+         ORDER BY a.created_at DESC`
+      );
+      return result.rows;
+    },
+
+    async getById(id: number) {
+      if (!DATABASE_URL) return null;
+      const dbPool = getPool();
+      const result = await dbPool.query(`SELECT * FROM notification_assets WHERE id = $1`, [id]);
+      return result.rows[0] || null;
+    },
+
+    async deleteIfUnused(id: number) {
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      const dbPool = getPool();
+      const use = await dbPool.query(`SELECT COUNT(*)::int AS c FROM notification_templates WHERE asset_id = $1`, [id]);
+      if ((use.rows[0]?.c ?? 0) > 0) {
+        throw new Error('ASSET_IN_USE');
+      }
+      const row = await dbPool.query(`DELETE FROM notification_assets WHERE id = $1 RETURNING storage_path`, [id]);
+      return row.rows[0] || null;
+    },
+  },
+
+  /** Scheduled / CMS notification templates — table notification_templates */
+  scheduled_notification_templates: {
+    async listWithAsset() {
+      if (!DATABASE_URL) return [];
+      const dbPool = getPool();
+      const result = await dbPool.query(
+        `SELECT t.*, a.public_url AS asset_public_url, a.mime_type AS asset_mime_type
+         FROM notification_templates t
+         LEFT JOIN notification_assets a ON a.id = t.asset_id
+         ORDER BY t.slot ASC, t.sort_order ASC, t.id ASC`
+      );
+      return result.rows;
+    },
+
+    async getById(id: number) {
+      if (!DATABASE_URL) return null;
+      const dbPool = getPool();
+      const result = await dbPool.query(
+        `SELECT t.*, a.public_url AS asset_public_url, a.mime_type AS asset_mime_type, a.file_name AS asset_file_name
+         FROM notification_templates t
+         LEFT JOIN notification_assets a ON a.id = t.asset_id
+         WHERE t.id = $1`,
+        [id]
+      );
+      return result.rows[0] || null;
+    },
+
+    async create(data: {
+      name: string;
+      slot: string;
+      messageType: 'text' | 'photo';
+      text: string;
+      buttonText: string;
+      deepLink: string;
+      assetId?: number | null;
+      isActive?: boolean;
+      sortOrder?: number;
+      rotationGroup?: string | null;
+      notes?: string | null;
+    }) {
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      const dbPool = getPool();
+      const result = await dbPool.query(
+        `INSERT INTO notification_templates (
+           name, slot, message_type, text, button_text, deep_link, asset_id, is_active, sort_order, rotation_group, notes
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+         RETURNING *`,
+        [
+          trimText(data.name, 200) || 'Untitled',
+          trimText(data.slot, 32) || 'custom',
+          data.messageType === 'photo' ? 'photo' : 'text',
+          trimText(data.text, 4000) || '',
+          trimText(data.buttonText, 64) || '',
+          trimText(data.deepLink, 2000) || '',
+          data.assetId ?? null,
+          data.isActive !== false,
+          data.sortOrder ?? 0,
+          data.rotationGroup != null ? trimText(data.rotationGroup, 120) : null,
+          data.notes != null ? trimText(data.notes, 2000) : null,
+        ]
+      );
+      return result.rows[0];
+    },
+
+    async update(
+      id: number,
+      data: {
+        name: string;
+        slot: string;
+        messageType: 'text' | 'photo';
+        text: string;
+        buttonText: string;
+        deepLink: string;
+        assetId?: number | null;
+        isActive: boolean;
+        sortOrder: number;
+        rotationGroup?: string | null;
+        notes?: string | null;
+      }
+    ) {
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      const dbPool = getPool();
+      const result = await dbPool.query(
+        `UPDATE notification_templates SET
+           name = $2, slot = $3, message_type = $4, text = $5, button_text = $6, deep_link = $7,
+           asset_id = $8, is_active = $9, sort_order = $10, rotation_group = $11, notes = $12,
+           updated_at = CURRENT_TIMESTAMP
+         WHERE id = $1
+         RETURNING *`,
+        [
+          id,
+          trimText(data.name, 200) || 'Untitled',
+          trimText(data.slot, 32) || 'custom',
+          data.messageType === 'photo' ? 'photo' : 'text',
+          trimText(data.text, 4000) || '',
+          trimText(data.buttonText, 64) || '',
+          trimText(data.deepLink, 2000) || '',
+          data.assetId ?? null,
+          data.isActive,
+          data.sortOrder ?? 0,
+          data.rotationGroup != null ? trimText(data.rotationGroup, 120) : null,
+          data.notes != null ? trimText(data.notes, 2000) : null,
+        ]
+      );
+      return result.rows[0] || null;
+    },
+
+    async delete(id: number) {
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      const dbPool = getPool();
+      await dbPool.query(`DELETE FROM notification_schedules WHERE template_id = $1`, [id]);
+      const result = await dbPool.query(`DELETE FROM notification_templates WHERE id = $1 RETURNING id`, [id]);
+      return !!result.rows[0];
+    },
+
+    async listActiveForSlot(slot: string, rotationGroup: string | null) {
+      if (!DATABASE_URL) return [];
+      const dbPool = getPool();
+      const rg = rotationGroup || null;
+      const result = await dbPool.query(
+        `SELECT t.*, a.public_url AS asset_public_url
+         FROM notification_templates t
+         LEFT JOIN notification_assets a ON a.id = t.asset_id
+         WHERE t.is_active = TRUE AND t.slot = $1
+           AND (
+             ($2::text IS NULL AND t.rotation_group IS NULL)
+             OR ($2::text IS NOT NULL AND t.rotation_group = $2)
+           )
+         ORDER BY t.sort_order ASC, t.id ASC`,
+        [slot, rg]
+      );
+      return result.rows;
+    },
+  },
+
+  notification_schedules: {
+    async listAll() {
+      if (!DATABASE_URL) return [];
+      const dbPool = getPool();
+      const result = await dbPool.query(
+        `SELECT s.*, t.name AS template_name, t.slot AS template_slot
+         FROM notification_schedules s
+         JOIN notification_templates t ON t.id = s.template_id
+         ORDER BY t.slot, s.send_time`
+      );
+      return result.rows;
+    },
+
+    async listByTemplate(templateId: number) {
+      if (!DATABASE_URL) return [];
+      const dbPool = getPool();
+      const result = await dbPool.query(
+        `SELECT * FROM notification_schedules WHERE template_id = $1 ORDER BY send_time`,
+        [templateId]
+      );
+      return result.rows;
+    },
+
+    async upsert(data: {
+      id?: number | null;
+      templateId: number;
+      sendTime: string;
+      timezone: string;
+      repeatMode: string;
+      isActive: boolean;
+    }) {
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      const dbPool = getPool();
+      if (data.id) {
+        const result = await dbPool.query(
+          `UPDATE notification_schedules SET
+             send_time = $2::time, timezone = $3, repeat_mode = $4, is_active = $5, updated_at = CURRENT_TIMESTAMP
+           WHERE id = $1 AND template_id = $6
+           RETURNING *`,
+          [
+            data.id,
+            data.sendTime,
+            trimText(data.timezone, 64) || 'Europe/Moscow',
+            trimText(data.repeatMode, 32) || 'daily',
+            data.isActive,
+            data.templateId,
+          ]
+        );
+        return result.rows[0] || null;
+      }
+      const result = await dbPool.query(
+        `INSERT INTO notification_schedules (template_id, send_time, timezone, repeat_mode, is_active)
+         VALUES ($1, $2::time, $3, $4, $5)
+         RETURNING *`,
+        [
+          data.templateId,
+          data.sendTime,
+          trimText(data.timezone, 64) || 'Europe/Moscow',
+          trimText(data.repeatMode, 32) || 'daily',
+          data.isActive,
+        ]
+      );
+      return result.rows[0];
+    },
+
+    async delete(scheduleId: number) {
+      if (!DATABASE_URL) return false;
+      const dbPool = getPool();
+      const result = await dbPool.query(`DELETE FROM notification_schedules WHERE id = $1 RETURNING id`, [scheduleId]);
+      return !!result.rows[0];
+    },
+
+    async updateLastSent(scheduleId: number) {
+      if (!DATABASE_URL) return;
+      const dbPool = getPool();
+      await dbPool.query(
+        `UPDATE notification_schedules SET last_sent_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
+        [scheduleId]
+      );
+    },
+  },
+
+  notification_rotation_state: {
+    async get(slot: string, rotationGroup: string) {
+      if (!DATABASE_URL) return null;
+      const dbPool = getPool();
+      const result = await dbPool.query(
+        `SELECT * FROM notification_rotation_state WHERE slot = $1 AND rotation_group = $2`,
+        [slot, rotationGroup || '']
+      );
+      return result.rows[0] || null;
+    },
+
+    async upsert(slot: string, rotationGroup: string, lastTemplateId: number | null, lastIndex: number) {
+      if (!DATABASE_URL) return;
+      const dbPool = getPool();
+      const rg = rotationGroup || '';
+      await dbPool.query(
+        `INSERT INTO notification_rotation_state (slot, rotation_group, last_template_id, last_index, updated_at)
+         VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
+         ON CONFLICT (slot, rotation_group) DO UPDATE SET
+           last_template_id = EXCLUDED.last_template_id,
+           last_index = EXCLUDED.last_index,
+           updated_at = CURRENT_TIMESTAMP`,
+        [slot, rg, lastTemplateId, lastIndex]
+      );
+    },
+  },
+
+  notification_delivery_log: {
+    async create(data: {
+      templateId?: number | null;
+      scheduledFor?: Date | null;
+      sentAt?: Date | null;
+      recipientCount: number;
+      successCount: number;
+      failureCount: number;
+      status: string;
+      errorSummary?: string | null;
+    }) {
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      const dbPool = getPool();
+      const result = await dbPool.query(
+        `INSERT INTO notification_delivery_log (
+           template_id, scheduled_for, sent_at, recipient_count, success_count, failure_count, status, error_summary
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         RETURNING *`,
+        [
+          data.templateId ?? null,
+          data.scheduledFor ?? null,
+          data.sentAt ?? null,
+          data.recipientCount,
+          data.successCount,
+          data.failureCount,
+          trimText(data.status, 32) || 'unknown',
+          data.errorSummary != null ? trimText(data.errorSummary, 2000) : null,
+        ]
+      );
+      return result.rows[0];
+    },
+
+    async listRecent(limit = 50) {
+      if (!DATABASE_URL) return [];
+      const dbPool = getPool();
+      const result = await dbPool.query(
+        `SELECT l.*, t.name AS template_name
+         FROM notification_delivery_log l
+         LEFT JOIN notification_templates t ON t.id = l.template_id
+         ORDER BY l.created_at DESC
+         LIMIT $1`,
+        [Math.min(Math.max(limit, 1), 200)]
+      );
+      return result.rows;
     },
   },
 

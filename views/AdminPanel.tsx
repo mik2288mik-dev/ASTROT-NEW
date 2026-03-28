@@ -3,10 +3,11 @@ import { type AdminUserSegment, type AdminUsersOverview, type UserProfile } from
 import { AdminUsersTab } from './admin/AdminUsersTab';
 import { AdminNotificationsTab } from './admin/AdminNotificationsTab';
 import { AdminAiSettingsTab } from './admin/AdminAiSettingsTab';
+import { NotificationsManager } from '../components/Admin/Notifications/NotificationsManager';
 import { LumiaLogo } from '../components/brand/LumiaLogo';
 
 type AdminOwnProfilePatch = Partial<Pick<UserProfile, 'isPremium' | 'lumiBalance' | 'chartSlots' | 'loginStreak'>>;
-type AdminSection = 'users' | 'ai' | 'send' | 'templates' | 'history';
+type AdminSection = 'users' | 'ai' | 'cms' | 'send' | 'templates' | 'history';
 
 interface AdminPanelProps {
   profile: UserProfile;
@@ -19,6 +20,7 @@ const T = (lang: 'ru' | 'en', ru: string, en: string) => (lang === 'ru' ? ru : e
 const ADMIN_SECTIONS: Array<{ id: AdminSection; title: { ru: string; en: string } }> = [
   { id: 'users', title: { ru: 'Пользователи', en: 'Users' } },
   { id: 'ai', title: { ru: 'AI', en: 'AI' } },
+  { id: 'cms', title: { ru: 'Уведомления', en: 'Notifications' } },
   { id: 'send', title: { ru: 'Отправка', en: 'Send' } },
   { id: 'templates', title: { ru: 'Шаблоны', en: 'Templates' } },
   { id: 'history', title: { ru: 'История', en: 'History' } },
@@ -152,10 +154,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onPatchOwnProfi
               setActiveSection('send');
             }}
           />
+        ) : activeSection === 'cms' ? (
+          <NotificationsManager profile={profile} />
         ) : (
           <AdminNotificationsTab
             profile={profile}
-            section={activeSection}
+            section={activeSection as 'send' | 'templates' | 'history'}
             initialTargetUserId={notificationTargetUserId}
             onClearInitialTarget={() => setNotificationTargetUserId('')}
             onChangeSection={setActiveSection}
