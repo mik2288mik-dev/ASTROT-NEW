@@ -25,6 +25,8 @@ import { getAdminStatus } from './services/adminService';
 import { recordUserSession } from './services/sessionService';
 import { useSwipeBack } from './lib/useSwipeBack';
 import { BackgroundLayers } from './components/BackgroundLayers';
+import { HomeBottomNav } from './components/Dashboard/HomeBottomNav';
+import { hubNavActiveFromView } from './lib/homeHubNav';
 import { installTelegramFullscreenGuard } from './lib/telegramFullscreen';
 
 // Get owner ID from environment variables for security
@@ -523,6 +525,10 @@ const App: React.FC = () => {
         setView('wallet');
     }, []);
 
+    const hubNavViews: ViewState[] = ['dashboard', 'horoscope', 'chart', 'charts'];
+    const showHubBottomNav =
+        !!profile && !!chartData && hubNavViews.includes(view);
+
     // Свайп назад от левого края (как в iOS)
     const canSwipeBack = view !== 'dashboard' && view !== 'onboarding' && view !== 'hook' && view !== 'paywall';
     useSwipeBack({
@@ -563,8 +569,12 @@ const App: React.FC = () => {
                 hubAvatarUrl={view === 'dashboard' ? hubPhotoUrl : undefined}
             />
             
-            <main 
-                className="flex-1 relative w-full max-w-md mx-auto overflow-hidden min-h-0"
+            <main
+                className={`flex-1 relative w-full max-w-md mx-auto overflow-hidden min-h-0${
+                    showHubBottomNav
+                        ? ' pb-[calc(5.25rem+env(safe-area-inset-bottom,0px))]'
+                        : ''
+                }`}
                 style={{ paddingLeft: 'env(safe-area-inset-left, 0px)', paddingRight: 'env(safe-area-inset-right, 0px)' }}
             >
                 {view === 'admin' ? (
@@ -676,12 +686,22 @@ const App: React.FC = () => {
                             }} 
                             onOpenSettings={() => setView('settings')}
                             onContextUpdate={setAmbientContext}
-                            onOpenCharts={() => openCharts('dashboard')}
                             onRequestPremium={() => setShowPremiumPreview(true)}
                         />
                     </div>
                 )}
             </main>
+
+            {showHubBottomNav && (
+                <HomeBottomNav
+                    language={profile.language}
+                    active={hubNavActiveFromView(view)}
+                    onHome={() => setView('dashboard')}
+                    onChart={() => navigateTo('chart')}
+                    onDay={() => navigateTo('horoscope')}
+                    onCharts={() => openCharts(view)}
+                />
+            )}
 
             {showPremiumPreview && (
                 <PremiumPreview language={profile?.language || 'ru'} onClose={() => setShowPremiumPreview(false)} onPurchase={requestPremium} />

@@ -126,7 +126,7 @@ export const TRANSLATIONS = {
       nav_home: "Главная",
       nav_chart: "Карта",
       nav_day: "День",
-      nav_more: "Ещё"
+      nav_charts: "Карты"
     },
     chart: {
       title: "Твоя Натальная Карта",
@@ -478,7 +478,7 @@ export const TRANSLATIONS = {
       nav_home: "Home",
       nav_chart: "Chart",
       nav_day: "Today",
-      nav_more: "More"
+      nav_charts: "Charts"
     },
     chart: {
       title: "Natal Chart",

@@ -22,7 +22,7 @@ export const DashboardStatusStrip = memo<DashboardStatusStripProps>(
         <button
           type="button"
           onClick={onOpenSettings}
-          className="w-full rounded-xl border border-dashed border-astro-border/50 bg-astro-card/40 px-4 py-2.5 text-center text-xs text-astro-subtext transition-colors hover:border-astro-highlight/30 hover:text-astro-text"
+          className="w-full rounded-lg border border-dashed border-astro-border/40 bg-transparent px-3 py-2 text-center text-[11px] text-astro-subtext/90 transition-colors hover:border-astro-highlight/25 hover:text-astro-text"
         >
           {emptyHint}
         </button>
@@ -38,8 +38,8 @@ export const DashboardStatusStrip = memo<DashboardStatusStripProps>(
     if (moon) parts.push(moon);
 
     return (
-      <div className="rounded-xl border border-astro-border/35 bg-astro-card/50 px-4 py-2.5 text-center">
-        <p className="text-[12px] leading-snug text-astro-subtext [text-wrap:balance]">{parts.join(' · ')}</p>
+      <div className="rounded-lg border border-astro-border/25 bg-astro-card/35 px-3 py-2 text-center">
+        <p className="text-[11px] leading-snug text-astro-subtext/85 [text-wrap:balance]">{parts.join(' · ')}</p>
       </div>
     );
   }
