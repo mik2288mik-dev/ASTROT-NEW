@@ -1,5 +1,11 @@
 import { db } from '../lib/db';
-import { sendTelegramTextMessage, sendTelegramPhotoMessage, buildInlineKeyboardUrl } from '../lib/telegramBot';
+import {
+  sendTelegramTextMessage,
+  sendTelegramPhotoMessage,
+  sendTelegramPhotoBuffer,
+  buildInlineKeyboardUrl,
+} from '../lib/telegramBot';
+import { resolveNotificationVisual, getVisualMode } from './notificationVisualResolver';
 
 const BROADCAST_CHUNK_SIZE = 20;
 const BROADCAST_CHUNK_DELAY_MS = 250;
@@ -73,26 +79,45 @@ export async function markRotationAfterSend(
 
 async function deliverToRecipient(
   telegramUserId: string,
-  template: ScheduledTemplateRow
-): Promise<{ ok: boolean; error?: string }> {
+  template: ScheduledTemplateRow,
+  options?: { scheduleTimezone?: string | null; recipientLanguage?: string }
+): Promise<{ ok: boolean; error?: string; generatedCacheHit?: boolean }> {
   const caption = resolveCaption(template);
   const replyMarkup = resolveReplyMarkup(template);
-  const msgType = template.message_type === 'photo' ? 'photo' : 'text';
-  const photoUrl = template.asset_public_url ? String(template.asset_public_url).trim() : '';
+  const mode = getVisualMode(template);
 
-  if (msgType === 'photo') {
-    if (!photoUrl) {
-      return { ok: false, error: 'MISSING_IMAGE' };
+  if (mode === 'none') {
+    if (!caption) {
+      return { ok: false, error: 'EMPTY_TEXT' };
     }
-    const r = await sendTelegramPhotoMessage(telegramUserId, photoUrl, caption, { replyMarkup });
+    const r = await sendTelegramTextMessage(telegramUserId, caption, { replyMarkup });
     return r.ok ? { ok: true } : { ok: false, error: r.error };
   }
 
-  if (!caption) {
-    return { ok: false, error: 'EMPTY_TEXT' };
+  try {
+    const visual = await resolveNotificationVisual({
+      template,
+      recipientUserId: telegramUserId,
+      recipientLanguage: options?.recipientLanguage || 'ru',
+      scheduleTimezone: options?.scheduleTimezone ?? null,
+    });
+
+    if (visual.kind === 'uploaded') {
+      const r = await sendTelegramPhotoMessage(telegramUserId, visual.photoUrl, caption, { replyMarkup });
+      return r.ok ? { ok: true } : { ok: false, error: r.error };
+    }
+
+    const r = await sendTelegramPhotoBuffer(
+      telegramUserId,
+      visual.pngBuffer,
+      `lumia-card-${template.id}.png`,
+      caption,
+      { replyMarkup }
+    );
+    return r.ok ? { ok: true, generatedCacheHit: visual.cacheHit } : { ok: false, error: r.error };
+  } catch (e: any) {
+    return { ok: false, error: e?.message || 'VISUAL_RESOLVE_FAILED' };
   }
-  const r = await sendTelegramTextMessage(telegramUserId, caption, { replyMarkup });
-  return r.ok ? { ok: true } : { ok: false, error: r.error };
 }
 
 /**
@@ -105,6 +130,7 @@ export async function sendNotificationFromTemplate(
     mode: 'test' | 'broadcast';
     targetUserId?: string | null;
     targetSegment?: 'all' | 'premium' | 'free' | 'active_7d' | 'inactive_30d' | null;
+    scheduleTimezone?: string | null;
   }
 ): Promise<{
   successCount: number;
@@ -130,14 +156,23 @@ export async function sendNotificationFromTemplate(
   let successCount = 0;
   let failureCount = 0;
   const errors: string[] = [];
+  let genHits = 0;
+  let genMisses = 0;
 
   for (let i = 0; i < recipients.length; i += BROADCAST_CHUNK_SIZE) {
     const chunk = recipients.slice(i, i + BROADCAST_CHUNK_SIZE);
     await Promise.all(
       chunk.map(async (recipient) => {
-        const result = await deliverToRecipient(recipient.id, template);
+        const result = await deliverToRecipient(recipient.id, template, {
+          scheduleTimezone: input.scheduleTimezone,
+          recipientLanguage: recipient.language,
+        });
         if (result.ok) {
           successCount += 1;
+          if (getVisualMode(template) === 'generated') {
+            if (result.generatedCacheHit === true) genHits += 1;
+            else if (result.generatedCacheHit === false) genMisses += 1;
+          }
         } else {
           failureCount += 1;
           if (errors.length < 5 && result.error) {
@@ -153,6 +188,13 @@ export async function sendNotificationFromTemplate(
 
   const status =
     failureCount === 0 ? 'success' : successCount === 0 ? 'failed' : 'partial';
+  const vm = getVisualMode(template);
+  let cacheHitLog: boolean | null = null;
+  if (vm === 'generated' && successCount > 0) {
+    if (genHits > 0 && genMisses === 0) cacheHitLog = true;
+    else if (genMisses > 0 && genHits === 0) cacheHitLog = false;
+    else cacheHitLog = null;
+  }
   await db.notification_delivery_log.create({
     templateId: Number(template.id),
     sentAt: new Date(),
@@ -161,6 +203,10 @@ export async function sendNotificationFromTemplate(
     failureCount,
     status,
     errorSummary: errors.length ? errors.join('; ') : null,
+    visualMode: vm,
+    generatedPreset: vm === 'generated' ? String(template.generated_preset || '') || null : null,
+    assetId: vm === 'uploaded' && template.asset_id != null ? Number(template.asset_id) : null,
+    generatedCacheHit: cacheHitLog,
   });
 
   return {
@@ -319,6 +365,7 @@ export async function runDueScheduledNotifications(createdBy: string, now: Date 
         createdBy,
         mode: 'broadcast',
         targetSegment: 'all',
+        scheduleTimezone: String(row.timezone || 'Europe/Moscow'),
       });
       await db.notification_schedules.updateLastSent(run.scheduleId);
 

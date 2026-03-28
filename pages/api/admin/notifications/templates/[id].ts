@@ -5,7 +5,7 @@ import {
   serializeScheduledNotificationTemplate,
   serializeNotificationSchedule,
 } from '../../../../../lib/adminSerializers';
-import { parseTemplatePayload } from '../../../../../lib/notificationAdminValidation';
+import { parseTemplatePayload, existingRowToTemplatePayload } from '../../../../../lib/notificationAdminValidation';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const rawId = req.query.id;
@@ -41,19 +41,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (!existing) {
         return res.status(404).json({ error: 'NOT_FOUND', message: 'Template not found' });
       }
-      const updated = await db.scheduled_notification_templates.update(id, {
-        name: existing.name,
-        slot: existing.slot,
-        messageType: existing.message_type === 'photo' ? 'photo' : 'text',
-        text: existing.text || '',
-        buttonText: existing.button_text || '',
-        deepLink: existing.deep_link || '',
-        assetId: existing.asset_id != null ? Number(existing.asset_id) : null,
-        isActive: req.body.isActive,
-        sortOrder: Number(existing.sort_order ?? 0),
-        rotationGroup: existing.rotation_group,
-        notes: existing.notes,
-      });
+      const payload = existingRowToTemplatePayload(existing, { isActive: req.body.isActive });
+      const updated = await db.scheduled_notification_templates.update(id, payload);
       const full = await db.scheduled_notification_templates.getById(id);
       const row = full || updated;
       const base = serializeScheduledNotificationTemplate(row);

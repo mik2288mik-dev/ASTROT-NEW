@@ -309,11 +309,36 @@ export async function deleteNotificationSchedule(id: number): Promise<void> {
   await adminRequest(`/api/admin/notifications/schedules/${id}`, { method: 'DELETE' });
 }
 
+/** Fetches server-rendered PNG; caller must URL.revokeObjectURL when done. */
+export async function fetchGeneratedCardPreviewObjectUrl(payload: Record<string, unknown>): Promise<string> {
+  const initData = getTelegramInitData();
+  const response = await fetch(`${API_BASE}/api/admin/notifications/card-preview`, {
+    method: 'POST',
+    headers: {
+      [INIT_DATA_HEADER]: initData,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    const errBody = await response.json().catch(() => ({}));
+    throw new AdminApiError(
+      errBody.message || errBody.error || `Card preview failed: ${response.status}`,
+      response.status,
+      errBody.error
+    );
+  }
+  const blob = await response.blob();
+  return URL.createObjectURL(blob);
+}
+
 export async function previewScheduledNotification(payload: Record<string, unknown>): Promise<{
   preview: {
+    visualMode: string;
     messageType: string;
     text: string;
     imageUrl: string | null;
+    generatedCardPreviewPath: string | null;
     buttonText: string | null;
     buttonUrl: string | null;
     hasInlineButton: boolean;

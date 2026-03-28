@@ -90,11 +90,20 @@ export const NotificationsManager: React.FC<NotificationsManagerProps> = ({ prof
       await createScheduledNotificationTemplate({
         name: `${t.name} (copy)`,
         slot: t.slot,
+        visualMode: t.visualMode || 'none',
         messageType: t.messageType,
         text: t.text,
         buttonText: t.buttonText,
         deepLink: t.deepLink,
         assetId: t.assetId,
+        generatedPreset: t.generatedPreset,
+        generatedTitle: t.generatedTitle,
+        generatedSubtitle: t.generatedSubtitle,
+        generatedAccent: t.generatedAccent,
+        generatedShowDate: t.generatedShowDate,
+        generatedShowSlotLabel: t.generatedShowSlotLabel,
+        generatedZodiacMode: t.generatedZodiacMode,
+        generatedCustomZodiac: t.generatedCustomZodiac,
         isActive: false,
         sortOrder: t.sortOrder + 1,
         rotationGroup: t.rotationGroup,
@@ -260,6 +269,13 @@ export const NotificationsManager: React.FC<NotificationsManagerProps> = ({ prof
                 <p className="text-astro-subtext">
                   {row.successCount}/{row.recipientCount} {T(lang, 'успех', 'ok')}
                   {row.failureCount ? ` · ${row.failureCount} ${T(lang, 'ошибок', 'fail')}` : ''}
+                  {row.visualMode ? ` · ${row.visualMode}` : ''}
+                  {row.generatedPreset ? ` · ${row.generatedPreset}` : ''}
+                  {row.generatedCacheHit === true
+                    ? ` · ${T(lang, 'кэш', 'cache')}`
+                    : row.generatedCacheHit === false
+                      ? ` · ${T(lang, 'рендер', 'render')}`
+                      : ''}
                 </p>
                 {row.errorSummary ? <p className="text-red-300/90">{row.errorSummary}</p> : null}
                 <p className="text-[10px] text-astro-subtext/80">

@@ -686,6 +686,50 @@ async function lumia006ScheduledNotifications(pool: Pool): Promise<void> {
   log.info('Migration lumia_006_scheduled_notifications applied');
 }
 
+/**
+ * Hybrid visual modes: none / uploaded / generated cards (lumia_007)
+ */
+async function lumia007NotificationVisualHybrid(pool: Pool): Promise<void> {
+  const migrationName = 'lumia_007_notification_visual_hybrid';
+
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
+  log.info('Applying notification visual hybrid migration...');
+
+  await pool.query(`
+    ALTER TABLE notification_templates
+      ADD COLUMN IF NOT EXISTS visual_mode TEXT NOT NULL DEFAULT 'none',
+      ADD COLUMN IF NOT EXISTS generated_preset TEXT,
+      ADD COLUMN IF NOT EXISTS generated_title TEXT,
+      ADD COLUMN IF NOT EXISTS generated_subtitle TEXT,
+      ADD COLUMN IF NOT EXISTS generated_accent TEXT,
+      ADD COLUMN IF NOT EXISTS generated_show_date BOOLEAN NOT NULL DEFAULT FALSE,
+      ADD COLUMN IF NOT EXISTS generated_show_slot_label BOOLEAN NOT NULL DEFAULT FALSE,
+      ADD COLUMN IF NOT EXISTS generated_zodiac_mode TEXT,
+      ADD COLUMN IF NOT EXISTS generated_custom_zodiac TEXT
+  `);
+
+  await pool.query(`
+    UPDATE notification_templates
+    SET visual_mode = 'uploaded'
+    WHERE message_type = 'photo' AND asset_id IS NOT NULL
+  `);
+
+  await pool.query(`
+    ALTER TABLE notification_delivery_log
+      ADD COLUMN IF NOT EXISTS visual_mode TEXT,
+      ADD COLUMN IF NOT EXISTS generated_preset TEXT,
+      ADD COLUMN IF NOT EXISTS asset_id BIGINT,
+      ADD COLUMN IF NOT EXISTS generated_cache_hit BOOLEAN
+  `);
+
+  await markMigrationApplied(pool, migrationName);
+  log.info('Migration lumia_007_notification_visual_hybrid applied');
+}
+
 async function verifyTablesExist(pool: Pool): Promise<void> {
   const required = [
     'users', 'natal_charts', 'interpretations', 'lumi_transactions', 'app_settings',
@@ -755,6 +799,7 @@ export async function runMigrations(): Promise<void> {
     await lumia004AdminBackoffice(pool);
   await lumia005AppSettings(pool);
   await lumia006ScheduledNotifications(pool);
+  await lumia007NotificationVisualHybrid(pool);
   await verifyTablesExist(pool);
 
     log.info('All Lumia migrations completed successfully');

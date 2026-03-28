@@ -87,7 +87,7 @@ export const NotificationTemplateList = memo<NotificationTemplateListProps>(
                     <div className="min-w-0">
                       <p className="truncate font-medium text-astro-text">{t.name}</p>
                       <p className="mt-1 text-[11px] text-astro-subtext">
-                        {slotLabel(lang, t.slot)} · {t.messageType}
+                        {slotLabel(lang, t.slot)} · {t.visualMode || 'none'}
                         {t.schedules?.[0]?.sendTime ? ` · ${t.schedules[0].sendTime}` : ''}
                       </p>
                       <p className="mt-1 line-clamp-2 text-xs text-astro-subtext/90">{t.text}</p>
@@ -101,7 +101,13 @@ export const NotificationTemplateList = memo<NotificationTemplateListProps>(
                     </span>
                   </div>
                   <div className="mt-2 flex flex-wrap gap-1 text-[10px] text-astro-subtext">
-                    <span>{t.assetId ? T(lang, 'с фото', 'with image') : T(lang, 'без фото', 'no image')}</span>
+                    <span>
+                      {t.visualMode === 'generated'
+                        ? T(lang, 'карточка', 'card')
+                        : t.visualMode === 'uploaded'
+                          ? T(lang, 'фото', 'photo')
+                          : T(lang, 'текст', 'text')}
+                    </span>
                     <span>·</span>
                     <span>{new Date(t.updatedAt).toLocaleString(lang === 'ru' ? 'ru-RU' : 'en-US')}</span>
                   </div>

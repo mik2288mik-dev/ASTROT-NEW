@@ -94,11 +94,15 @@ export function serializeNotificationTemplate(row: any) {
 }
 
 export function serializeScheduledNotificationTemplate(row: any) {
+  const vm = String(row.visual_mode || 'none').toLowerCase();
+  const visualMode =
+    vm === 'uploaded' || vm === 'generated' ? vm : 'none';
   return {
     id: Number(row.id),
     name: row.name || '',
     slot: row.slot || 'custom',
     messageType: row.message_type === 'photo' ? 'photo' : 'text',
+    visualMode,
     text: row.text || '',
     buttonText: row.button_text || '',
     deepLink: row.deep_link || '',
@@ -106,6 +110,14 @@ export function serializeScheduledNotificationTemplate(row: any) {
     assetPublicUrl: row.asset_public_url || null,
     assetMimeType: row.asset_mime_type || null,
     assetFileName: row.asset_file_name || null,
+    generatedPreset: row.generated_preset ?? null,
+    generatedTitle: row.generated_title ?? null,
+    generatedSubtitle: row.generated_subtitle ?? null,
+    generatedAccent: row.generated_accent ?? null,
+    generatedShowDate: !!row.generated_show_date,
+    generatedShowSlotLabel: !!row.generated_show_slot_label,
+    generatedZodiacMode: row.generated_zodiac_mode ?? null,
+    generatedCustomZodiac: row.generated_custom_zodiac ?? null,
     isActive: !!row.is_active,
     sortOrder: Number(row.sort_order ?? 0),
     rotationGroup: row.rotation_group ?? null,
@@ -163,6 +175,10 @@ export function serializeNotificationDeliveryLog(row: any) {
     failureCount: Number(row.failure_count ?? 0),
     status: row.status || '',
     errorSummary: row.error_summary ?? null,
+    visualMode: row.visual_mode ?? null,
+    generatedPreset: row.generated_preset ?? null,
+    assetId: row.asset_id != null ? Number(row.asset_id) : null,
+    generatedCacheHit: row.generated_cache_hit === null || row.generated_cache_hit === undefined ? null : !!row.generated_cache_hit,
     createdAt: row.created_at,
   };
 }

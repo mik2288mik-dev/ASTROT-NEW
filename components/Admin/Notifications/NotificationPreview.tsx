@@ -1,9 +1,11 @@
 import React, { memo } from 'react';
 
 export type PreviewModel = {
+  visualMode: 'none' | 'uploaded' | 'generated';
   messageType: 'text' | 'photo';
   text: string;
   imageUrl: string | null;
+  generatedCardUrl: string | null;
   buttonText: string | null;
   buttonUrl: string | null;
   hasInlineButton: boolean;
@@ -17,6 +19,10 @@ interface NotificationPreviewProps {
 const T = (lang: 'ru' | 'en', ru: string, en: string) => (lang === 'ru' ? ru : en);
 
 export const NotificationPreview = memo<NotificationPreviewProps>(({ preview, lang }) => {
+  const showImage =
+    (preview.visualMode === 'uploaded' && preview.imageUrl) ||
+    (preview.visualMode === 'generated' && preview.generatedCardUrl);
+
   return (
     <div className="rounded-2xl border border-astro-border/60 bg-astro-bg/40 p-4">
       <p className="text-[10px] font-semibold uppercase tracking-widest text-astro-subtext">
@@ -32,16 +38,25 @@ export const NotificationPreview = memo<NotificationPreviewProps>(({ preview, la
             </div>
           </div>
           <div className="pt-2">
-            {preview.messageType === 'photo' && preview.imageUrl ? (
+            {showImage ? (
               <div className="overflow-hidden rounded-xl">
-                <img src={preview.imageUrl} alt="" className="max-h-40 w-full object-cover" />
+                <img
+                  src={preview.visualMode === 'generated' ? preview.generatedCardUrl! : preview.imageUrl!}
+                  alt=""
+                  className="max-h-52 w-full object-cover object-top"
+                />
               </div>
             ) : null}
-            {preview.text ? (
-              <p className="mt-2 whitespace-pre-wrap text-[13px] leading-snug text-white/92">{preview.text}</p>
-            ) : (
-              <p className="mt-2 text-[13px] text-white/45">{T(lang, 'Нет текста', 'No text')}</p>
-            )}
+            {preview.visualMode !== 'none' && preview.text ? (
+              <p className="mt-2 whitespace-pre-wrap text-[12px] leading-snug text-white/75">{preview.text}</p>
+            ) : null}
+            {preview.visualMode === 'none' ? (
+              preview.text ? (
+                <p className="mt-2 whitespace-pre-wrap text-[13px] leading-snug text-white/92">{preview.text}</p>
+              ) : (
+                <p className="mt-2 text-[13px] text-white/45">{T(lang, 'Нет текста', 'No text')}</p>
+              )
+            ) : null}
             {preview.hasInlineButton && preview.buttonText ? (
               <div className="mt-3">
                 <span className="inline-block rounded-lg bg-white/12 px-3 py-2 text-xs font-medium text-sky-300">

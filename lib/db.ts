@@ -2017,13 +2017,25 @@ export const db = {
       sortOrder?: number;
       rotationGroup?: string | null;
       notes?: string | null;
+      visualMode?: 'none' | 'uploaded' | 'generated';
+      generatedPreset?: string | null;
+      generatedTitle?: string | null;
+      generatedSubtitle?: string | null;
+      generatedAccent?: string | null;
+      generatedShowDate?: boolean;
+      generatedShowSlotLabel?: boolean;
+      generatedZodiacMode?: string | null;
+      generatedCustomZodiac?: string | null;
     }) {
       if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
       const dbPool = getPool();
+      const vm = data.visualMode || 'none';
       const result = await dbPool.query(
         `INSERT INTO notification_templates (
-           name, slot, message_type, text, button_text, deep_link, asset_id, is_active, sort_order, rotation_group, notes
-         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+           name, slot, message_type, text, button_text, deep_link, asset_id, is_active, sort_order, rotation_group, notes,
+           visual_mode, generated_preset, generated_title, generated_subtitle, generated_accent,
+           generated_show_date, generated_show_slot_label, generated_zodiac_mode, generated_custom_zodiac
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
          RETURNING *`,
         [
           trimText(data.name, 200) || 'Untitled',
@@ -2037,6 +2049,15 @@ export const db = {
           data.sortOrder ?? 0,
           data.rotationGroup != null ? trimText(data.rotationGroup, 120) : null,
           data.notes != null ? trimText(data.notes, 2000) : null,
+          trimText(vm, 16) || 'none',
+          data.generatedPreset != null ? trimText(data.generatedPreset, 64) : null,
+          data.generatedTitle != null ? trimText(data.generatedTitle, 200) : null,
+          data.generatedSubtitle != null ? trimText(data.generatedSubtitle, 300) : null,
+          data.generatedAccent != null ? trimText(data.generatedAccent, 120) : null,
+          !!data.generatedShowDate,
+          !!data.generatedShowSlotLabel,
+          data.generatedZodiacMode != null ? trimText(data.generatedZodiacMode, 32) : null,
+          data.generatedCustomZodiac != null ? trimText(data.generatedCustomZodiac, 80) : null,
         ]
       );
       return result.rows[0];
@@ -2056,6 +2077,15 @@ export const db = {
         sortOrder: number;
         rotationGroup?: string | null;
         notes?: string | null;
+        visualMode: 'none' | 'uploaded' | 'generated';
+        generatedPreset?: string | null;
+        generatedTitle?: string | null;
+        generatedSubtitle?: string | null;
+        generatedAccent?: string | null;
+        generatedShowDate: boolean;
+        generatedShowSlotLabel: boolean;
+        generatedZodiacMode?: string | null;
+        generatedCustomZodiac?: string | null;
       }
     ) {
       if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
@@ -2064,6 +2094,9 @@ export const db = {
         `UPDATE notification_templates SET
            name = $2, slot = $3, message_type = $4, text = $5, button_text = $6, deep_link = $7,
            asset_id = $8, is_active = $9, sort_order = $10, rotation_group = $11, notes = $12,
+           visual_mode = $13, generated_preset = $14, generated_title = $15, generated_subtitle = $16,
+           generated_accent = $17, generated_show_date = $18, generated_show_slot_label = $19,
+           generated_zodiac_mode = $20, generated_custom_zodiac = $21,
            updated_at = CURRENT_TIMESTAMP
          WHERE id = $1
          RETURNING *`,
@@ -2080,6 +2113,15 @@ export const db = {
           data.sortOrder ?? 0,
           data.rotationGroup != null ? trimText(data.rotationGroup, 120) : null,
           data.notes != null ? trimText(data.notes, 2000) : null,
+          trimText(data.visualMode, 16) || 'none',
+          data.generatedPreset != null ? trimText(data.generatedPreset, 64) : null,
+          data.generatedTitle != null ? trimText(data.generatedTitle, 200) : null,
+          data.generatedSubtitle != null ? trimText(data.generatedSubtitle, 300) : null,
+          data.generatedAccent != null ? trimText(data.generatedAccent, 120) : null,
+          data.generatedShowDate,
+          data.generatedShowSlotLabel,
+          data.generatedZodiacMode != null ? trimText(data.generatedZodiacMode, 32) : null,
+          data.generatedCustomZodiac != null ? trimText(data.generatedCustomZodiac, 80) : null,
         ]
       );
       return result.rows[0] || null;
@@ -2232,13 +2274,18 @@ export const db = {
       failureCount: number;
       status: string;
       errorSummary?: string | null;
+      visualMode?: string | null;
+      generatedPreset?: string | null;
+      assetId?: number | null;
+      generatedCacheHit?: boolean | null;
     }) {
       if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
       const dbPool = getPool();
       const result = await dbPool.query(
         `INSERT INTO notification_delivery_log (
-           template_id, scheduled_for, sent_at, recipient_count, success_count, failure_count, status, error_summary
-         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+           template_id, scheduled_for, sent_at, recipient_count, success_count, failure_count, status, error_summary,
+           visual_mode, generated_preset, asset_id, generated_cache_hit
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
          RETURNING *`,
         [
           data.templateId ?? null,
@@ -2249,6 +2296,10 @@ export const db = {
           data.failureCount,
           trimText(data.status, 32) || 'unknown',
           data.errorSummary != null ? trimText(data.errorSummary, 2000) : null,
+          data.visualMode != null ? trimText(data.visualMode, 32) : null,
+          data.generatedPreset != null ? trimText(data.generatedPreset, 64) : null,
+          data.assetId ?? null,
+          data.generatedCacheHit ?? null,
         ]
       );
       return result.rows[0];

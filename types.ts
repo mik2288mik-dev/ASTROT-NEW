@@ -333,6 +333,8 @@ export interface AdminNotificationSendResult {
 
 export type NotificationSlot = 'morning' | 'day' | 'evening' | 'custom';
 export type ScheduledNotificationMessageType = 'text' | 'photo';
+export type NotificationVisualMode = 'none' | 'uploaded' | 'generated';
+export type NotificationGeneratedZodiacMode = 'none' | 'sun_sign' | 'custom';
 
 export interface AdminScheduledNotificationAsset {
   id: number;
@@ -350,6 +352,7 @@ export interface AdminScheduledNotificationTemplate {
   name: string;
   slot: NotificationSlot;
   messageType: ScheduledNotificationMessageType;
+  visualMode: NotificationVisualMode;
   text: string;
   buttonText: string;
   deepLink: string;
@@ -357,6 +360,14 @@ export interface AdminScheduledNotificationTemplate {
   assetPublicUrl: string | null;
   assetMimeType: string | null;
   assetFileName: string | null;
+  generatedPreset: string | null;
+  generatedTitle: string | null;
+  generatedSubtitle: string | null;
+  generatedAccent: string | null;
+  generatedShowDate: boolean;
+  generatedShowSlotLabel: boolean;
+  generatedZodiacMode: NotificationGeneratedZodiacMode | string | null;
+  generatedCustomZodiac: string | null;
   isActive: boolean;
   sortOrder: number;
   rotationGroup: string | null;
@@ -391,6 +402,10 @@ export interface AdminNotificationDeliveryLogItem {
   failureCount: number;
   status: string;
   errorSummary: string | null;
+  visualMode: string | null;
+  generatedPreset: string | null;
+  assetId: number | null;
+  generatedCacheHit: boolean | null;
   createdAt: string;
 }
 

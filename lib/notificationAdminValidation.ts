@@ -1,6 +1,9 @@
+import { isValidGeneratedPreset } from './notificationCardPresets';
+
 const SLOTS = new Set(['morning', 'day', 'evening', 'custom']);
-const MSG_TYPES = new Set(['text', 'photo']);
 const REPEAT = new Set(['daily']);
+const VISUAL_MODES = new Set(['none', 'uploaded', 'generated']);
+const ZODIAC_MODES = new Set(['none', 'sun_sign', 'custom']);
 
 const MAX_TEXT = 4000;
 const MAX_NAME = 200;
@@ -8,6 +11,10 @@ const MAX_BUTTON = 64;
 const MAX_DEEP = 2000;
 const MAX_NOTES = 2000;
 const MAX_GROUP = 120;
+const MAX_GEN_TITLE = 120;
+const MAX_GEN_SUB = 200;
+const MAX_GEN_ACCENT = 100;
+const MAX_GEN_ZODIAC_CUSTOM = 80;
 
 export function parseHHMM(value: unknown): string | null {
   if (typeof value !== 'string') return null;
@@ -45,6 +52,15 @@ export type TemplatePayload = {
   sortOrder: number;
   rotationGroup: string | null;
   notes: string | null;
+  visualMode: 'none' | 'uploaded' | 'generated';
+  generatedPreset: string | null;
+  generatedTitle: string | null;
+  generatedSubtitle: string | null;
+  generatedAccent: string | null;
+  generatedShowDate: boolean;
+  generatedShowSlotLabel: boolean;
+  generatedZodiacMode: string | null;
+  generatedCustomZodiac: string | null;
 };
 
 export function parseTemplatePayload(body: any): { ok: true; data: TemplatePayload } | { ok: false; error: string; message: string } {
@@ -56,17 +72,52 @@ export function parseTemplatePayload(body: any): { ok: true; data: TemplatePaylo
   if (!SLOTS.has(slot)) {
     return { ok: false, error: 'INVALID_SLOT', message: 'Invalid slot' };
   }
-  const messageType = body?.messageType === 'photo' ? 'photo' : 'text';
-  if (!MSG_TYPES.has(messageType)) {
-    return { ok: false, error: 'INVALID_MESSAGE_TYPE', message: 'Invalid message type' };
+
+  const visualRaw = typeof body?.visualMode === 'string' ? body.visualMode.trim().toLowerCase() : 'none';
+  const visualMode = VISUAL_MODES.has(visualRaw) ? (visualRaw as 'none' | 'uploaded' | 'generated') : 'none';
+
+  let generatedPreset: string | null = null;
+  if (body?.generatedPreset != null && String(body.generatedPreset).trim()) {
+    const p = String(body.generatedPreset).trim();
+    if (!isValidGeneratedPreset(p)) {
+      return { ok: false, error: 'INVALID_PRESET', message: 'Invalid generated preset' };
+    }
+    generatedPreset = p;
   }
-  const text = typeof body?.text === 'string' ? body.text.slice(0, MAX_TEXT) : '';
-  const buttonText = typeof body?.buttonText === 'string' ? body.buttonText.trim().slice(0, MAX_BUTTON) : '';
-  const deepLink = typeof body?.deepLink === 'string' ? body.deepLink.trim().slice(0, MAX_DEEP) : '';
-  const dl = validateDeepLink(deepLink);
-  if (!dl.ok) {
-    return { ok: false, error: dl.error, message: 'Invalid deep link URL' };
+
+  const generatedTitle =
+    body?.generatedTitle != null && String(body.generatedTitle).trim()
+      ? String(body.generatedTitle).trim().slice(0, MAX_GEN_TITLE)
+      : null;
+  const generatedSubtitle =
+    body?.generatedSubtitle != null && String(body.generatedSubtitle).trim()
+      ? String(body.generatedSubtitle).trim().slice(0, MAX_GEN_SUB)
+      : null;
+  const generatedAccent =
+    body?.generatedAccent != null && String(body.generatedAccent).trim()
+      ? String(body.generatedAccent).trim().slice(0, MAX_GEN_ACCENT)
+      : null;
+  const generatedShowDate = body?.generatedShowDate === true;
+  const generatedShowSlotLabel = body?.generatedShowSlotLabel === true;
+
+  let generatedZodiacMode: string | null = null;
+  if (body?.generatedZodiacMode != null && String(body.generatedZodiacMode).trim()) {
+    const z = String(body.generatedZodiacMode).trim().toLowerCase();
+    if (!ZODIAC_MODES.has(z)) {
+      return { ok: false, error: 'INVALID_ZODIAC_MODE', message: 'Invalid zodiac mode' };
+    }
+    generatedZodiacMode = z;
   }
+
+  const generatedCustomZodiac =
+    body?.generatedCustomZodiac != null && String(body.generatedCustomZodiac).trim()
+      ? String(body.generatedCustomZodiac).trim().slice(0, MAX_GEN_ZODIAC_CUSTOM)
+      : null;
+
+  if (visualMode === 'generated' && !generatedPreset) {
+    return { ok: false, error: 'PRESET_REQUIRED', message: 'Preset is required for generated visual mode' };
+  }
+
   let assetId: number | null = null;
   if (body?.assetId != null && body.assetId !== '') {
     const n = Number(body.assetId);
@@ -75,6 +126,25 @@ export function parseTemplatePayload(body: any): { ok: true; data: TemplatePaylo
     }
     assetId = Math.floor(n);
   }
+
+  if (visualMode === 'uploaded' && !assetId) {
+    return { ok: false, error: 'UPLOAD_REQUIRES_ASSET', message: 'Uploaded mode requires an image' };
+  }
+
+  if (visualMode === 'generated' && generatedZodiacMode === 'custom' && !generatedCustomZodiac) {
+    return { ok: false, error: 'CUSTOM_ZODIAC_REQUIRED', message: 'Custom zodiac text is required when zodiac mode is custom' };
+  }
+
+  const messageType: 'text' | 'photo' = visualMode === 'none' ? 'text' : 'photo';
+
+  const text = typeof body?.text === 'string' ? body.text.slice(0, MAX_TEXT) : '';
+  const buttonText = typeof body?.buttonText === 'string' ? body.buttonText.trim().slice(0, MAX_BUTTON) : '';
+  const deepLink = typeof body?.deepLink === 'string' ? body.deepLink.trim().slice(0, MAX_DEEP) : '';
+  const dl = validateDeepLink(deepLink);
+  if (!dl.ok) {
+    return { ok: false, error: dl.error, message: 'Invalid deep link URL' };
+  }
+
   const isActive = body?.isActive !== false;
   const sortOrder = Math.max(0, Math.min(9999, Number(body?.sortOrder) || 0));
   let rotationGroup: string | null = null;
@@ -86,11 +156,8 @@ export function parseTemplatePayload(body: any): { ok: true; data: TemplatePaylo
     notes = String(body.notes).trim().slice(0, MAX_NOTES);
   }
 
-  if (messageType === 'photo' && !assetId) {
-    return { ok: false, error: 'PHOTO_REQUIRES_ASSET', message: 'Photo templates require an uploaded image' };
-  }
-  if (messageType === 'text' && !text.trim()) {
-    return { ok: false, error: 'TEXT_REQUIRED', message: 'Text message cannot be empty' };
+  if (visualMode === 'none' && !text.trim()) {
+    return { ok: false, error: 'TEXT_REQUIRED', message: 'Text is required when visual mode is none' };
   }
 
   return {
@@ -107,7 +174,43 @@ export function parseTemplatePayload(body: any): { ok: true; data: TemplatePaylo
       sortOrder,
       rotationGroup,
       notes,
+      visualMode,
+      generatedPreset,
+      generatedTitle,
+      generatedSubtitle,
+      generatedAccent,
+      generatedShowDate,
+      generatedShowSlotLabel,
+      generatedZodiacMode,
+      generatedCustomZodiac,
     },
+  };
+}
+
+export function existingRowToTemplatePayload(row: any, patch: { isActive: boolean }): TemplatePayload {
+  const vm = String(row.visual_mode || 'none').toLowerCase();
+  const visualMode = VISUAL_MODES.has(vm) ? (vm as 'none' | 'uploaded' | 'generated') : 'none';
+  return {
+    name: row.name || '',
+    slot: row.slot || 'custom',
+    messageType: row.message_type === 'photo' ? 'photo' : 'text',
+    text: row.text || '',
+    buttonText: row.button_text || '',
+    deepLink: row.deep_link || '',
+    assetId: row.asset_id != null ? Number(row.asset_id) : null,
+    isActive: patch.isActive,
+    sortOrder: Number(row.sort_order ?? 0),
+    rotationGroup: row.rotation_group ?? null,
+    notes: row.notes ?? null,
+    visualMode,
+    generatedPreset: row.generated_preset ?? null,
+    generatedTitle: row.generated_title ?? null,
+    generatedSubtitle: row.generated_subtitle ?? null,
+    generatedAccent: row.generated_accent ?? null,
+    generatedShowDate: !!row.generated_show_date,
+    generatedShowSlotLabel: !!row.generated_show_slot_label,
+    generatedZodiacMode: row.generated_zodiac_mode ?? null,
+    generatedCustomZodiac: row.generated_custom_zodiac ?? null,
   };
 }
 
