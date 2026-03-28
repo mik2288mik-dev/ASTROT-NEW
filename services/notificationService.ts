@@ -107,14 +107,18 @@ async function deliverToRecipient(
       return r.ok ? { ok: true } : { ok: false, error: r.error };
     }
 
-    const r = await sendTelegramPhotoBuffer(
-      telegramUserId,
-      visual.pngBuffer,
-      `lumia-card-${template.id}.png`,
-      caption,
-      { replyMarkup }
-    );
-    return r.ok ? { ok: true, generatedCacheHit: visual.cacheHit } : { ok: false, error: r.error };
+    if (visual.kind === 'generated') {
+      const r = await sendTelegramPhotoBuffer(
+        telegramUserId,
+        visual.pngBuffer,
+        `lumia-card-${template.id}.png`,
+        caption,
+        { replyMarkup }
+      );
+      return r.ok ? { ok: true, generatedCacheHit: visual.cacheHit } : { ok: false, error: r.error };
+    }
+
+    return { ok: false, error: 'UNEXPECTED_VISUAL_KIND' };
   } catch (e: any) {
     return { ok: false, error: e?.message || 'VISUAL_RESOLVE_FAILED' };
   }
