@@ -149,8 +149,12 @@ export async function sendAdminNotification(input: {
     failedCount,
   });
 
-  const recentCampaigns = await db.notifications.getRecentCampaigns(5);
-  const createdCampaign = recentCampaigns.find((item: any) => Number(item.id) === Number(campaign.id)) || recentCampaigns[0];
+  const recentCampaigns = await db.notifications.getRecentCampaigns({
+    page: 1,
+    pageSize: 5,
+  });
+  const createdCampaign = recentCampaigns.history.find((item: any) => Number(item.id) === Number(campaign.id))
+    || recentCampaigns.history[0];
 
   return {
     campaign: createdCampaign,

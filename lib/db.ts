@@ -24,10 +24,6 @@ const log = {
   }
 };
 
-function normalizeOracleQuestion(value: string): string {
-  return value.replace(/\s+/g, ' ').trim().toLowerCase();
-}
-
 function detectDeviceLabel(telegramPlatform?: string | null, userAgent?: string | null): string {
   const platform = (telegramPlatform || '').trim().toLowerCase();
   const ua = (userAgent || '').toLowerCase();
@@ -65,6 +61,10 @@ function trimText(value?: string | null, maxLength = 1000): string | null {
 
 type AdminDbPremiumFilter = 'all' | 'premium' | 'free';
 type AdminDbUserSegment = 'all' | 'premium' | 'free' | 'active_7d' | 'inactive_30d' | 'need_attention';
+type AdminDbUserSortBy = 'last_seen' | 'created_at' | 'lumi_balance' | 'premium_until' | 'saved_charts_count' | 'name';
+type AdminDbSortOrder = 'asc' | 'desc';
+type AdminDbNotificationMode = 'all' | 'personal' | 'broadcast';
+type AdminDbNotificationResult = 'all' | 'success' | 'partial' | 'failed';
 
 const ADMIN_USER_METRICS_CTE = `
   WITH user_metrics AS (
@@ -111,6 +111,63 @@ function getAdminUserSegmentSql(paramIndex: number) {
   )`;
 }
 
+function getAdminUserSortSql(sortBy: AdminDbUserSortBy, sortOrder: AdminDbSortOrder) {
+  const direction = sortOrder === 'asc' ? 'ASC' : 'DESC';
+  switch (sortBy) {
+    case 'name':
+      return `LOWER(COALESCE(name, '')) ${direction}, created_at DESC`;
+    case 'created_at':
+      return `created_at ${direction}`;
+    case 'lumi_balance':
+      return `lumi_balance ${direction}, created_at DESC`;
+    case 'premium_until':
+      return `premium_until ${direction} NULLS LAST, created_at DESC`;
+    case 'saved_charts_count':
+      return `saved_charts_count ${direction}, created_at DESC`;
+    case 'last_seen':
+    default:
+      return `last_seen_at ${direction} NULLS LAST, created_at DESC`;
+  }
+}
+
+function normalizeBirthTimeValue(value?: string | null): string {
+  if (!value) return '12:00';
+  const trimmed = String(value).trim();
+  const match = trimmed.match(/^(\d{2}):(\d{2})/);
+  if (match) {
+    return `${match[1]}:${match[2]}`;
+  }
+  return trimmed;
+}
+
+function normalizeBirthDateValue(value?: string | Date | null): string {
+  if (!value) return '';
+
+  if (value instanceof Date) {
+    return `${value.getUTCFullYear()}-${String(value.getUTCMonth() + 1).padStart(2, '0')}-${String(value.getUTCDate()).padStart(2, '0')}`;
+  }
+
+  const trimmed = String(value).trim();
+  const dateOnlyMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (dateOnlyMatch) {
+    return `${dateOnlyMatch[1]}-${dateOnlyMatch[2]}-${dateOnlyMatch[3]}`;
+  }
+
+  const parsed = new Date(trimmed);
+  if (!Number.isNaN(parsed.getTime())) {
+    return `${parsed.getUTCFullYear()}-${String(parsed.getUTCMonth() + 1).padStart(2, '0')}-${String(parsed.getUTCDate()).padStart(2, '0')}`;
+  }
+
+  return trimmed;
+}
+
+function normalizeOracleQuestion(value: string) {
+  return String(value || '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLowerCase();
+}
+
 // Check if DATABASE_URL is configured
 if (!DATABASE_URL) {
   log.warn('DATABASE_URL is not set. Database operations will fail.');
@@ -131,6 +188,54 @@ let pool: Pool | null = null;
 let migrationsRun = false;
 let dailyNatalCardsChartScopeSupported: boolean | null = null;
 let interpretationsChartScopeSupported: boolean | null = null;
+
+async function supportsInterpretationsChartScope(): Promise<boolean> {
+  if (interpretationsChartScopeSupported !== null) {
+    return interpretationsChartScopeSupported;
+  }
+
+  if (!DATABASE_URL) {
+    interpretationsChartScopeSupported = false;
+    return false;
+  }
+
+  const dbPool = getPool();
+  const result = await dbPool.query(
+    `SELECT EXISTS (
+       SELECT 1
+       FROM information_schema.columns
+       WHERE table_name = 'interpretations'
+         AND column_name = 'chart_id'
+     ) AS has_chart_id`
+  );
+
+  interpretationsChartScopeSupported = !!result.rows[0]?.has_chart_id;
+  return interpretationsChartScopeSupported;
+}
+
+async function supportsDailyNatalCardsChartScope(): Promise<boolean> {
+  if (dailyNatalCardsChartScopeSupported !== null) {
+    return dailyNatalCardsChartScopeSupported;
+  }
+
+  if (!DATABASE_URL) {
+    dailyNatalCardsChartScopeSupported = false;
+    return false;
+  }
+
+  const dbPool = getPool();
+  const result = await dbPool.query(
+    `SELECT EXISTS (
+       SELECT 1
+       FROM information_schema.columns
+       WHERE table_name = 'daily_natal_cards'
+         AND column_name = 'chart_id'
+     ) AS has_chart_id`
+  );
+
+  dailyNatalCardsChartScopeSupported = !!result.rows[0]?.has_chart_id;
+  return dailyNatalCardsChartScopeSupported;
+}
 
 export function getPool(): Pool {
   if (!pool) {
@@ -290,93 +395,6 @@ function toUserId(userId: string): string {
   return String(userId).trim();
 }
 
-function normalizeBirthTimeValue(value?: string | null): string {
-  if (!value) return '12:00';
-  const trimmed = String(value).trim();
-  const match = trimmed.match(/^(\d{2}):(\d{2})/);
-  if (match) {
-    return `${match[1]}:${match[2]}`;
-  }
-  return trimmed;
-}
-
-function normalizeBirthDateValue(value?: string | Date | null): string {
-  if (!value) return '';
-
-  if (value instanceof Date) {
-    return `${value.getUTCFullYear()}-${String(value.getUTCMonth() + 1).padStart(2, '0')}-${String(value.getUTCDate()).padStart(2, '0')}`;
-  }
-
-  const trimmed = String(value).trim();
-  const dateOnlyMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (dateOnlyMatch) {
-    return `${dateOnlyMatch[1]}-${dateOnlyMatch[2]}-${dateOnlyMatch[3]}`;
-  }
-
-  const parsed = new Date(trimmed);
-  if (!Number.isNaN(parsed.getTime())) {
-    return `${parsed.getUTCFullYear()}-${String(parsed.getUTCMonth() + 1).padStart(2, '0')}-${String(parsed.getUTCDate()).padStart(2, '0')}`;
-  }
-
-  return trimmed;
-}
-
-async function supportsInterpretationsChartScope(): Promise<boolean> {
-  if (interpretationsChartScopeSupported !== null) {
-    return interpretationsChartScopeSupported;
-  }
-
-  if (!DATABASE_URL) {
-    interpretationsChartScopeSupported = false;
-    return false;
-  }
-
-  const dbPool = getPool();
-  const result = await dbPool.query(
-    `SELECT EXISTS (
-       SELECT 1
-       FROM information_schema.columns
-       WHERE table_name = 'interpretations'
-         AND column_name = 'chart_id'
-     ) AS has_chart_id`
-  );
-
-  interpretationsChartScopeSupported = !!result.rows[0]?.has_chart_id;
-  return interpretationsChartScopeSupported;
-}
-
-async function supportsDailyNatalCardsChartScope(): Promise<boolean> {
-  if (dailyNatalCardsChartScopeSupported !== null) {
-    return dailyNatalCardsChartScopeSupported;
-  }
-
-  if (!DATABASE_URL) {
-    dailyNatalCardsChartScopeSupported = false;
-    return false;
-  }
-
-  const dbPool = getPool();
-  const result = await dbPool.query(
-    `SELECT EXISTS (
-       SELECT 1
-       FROM information_schema.columns
-       WHERE table_name = 'daily_natal_cards'
-         AND column_name = 'chart_id'
-     ) AS has_chart_id`
-  );
-
-  dailyNatalCardsChartScopeSupported = !!result.rows[0]?.has_chart_id;
-  return dailyNatalCardsChartScopeSupported;
-}
-
-function serializeDailyNatalCardContent(content: any): string {
-  return typeof content === 'string' ? content : JSON.stringify(content);
-}
-
-function parseDailyNatalCardContent(raw: any) {
-  return typeof raw === 'string' ? JSON.parse(raw) : raw;
-}
-
 /**
  * Lumia Database operations
  */
@@ -468,8 +486,8 @@ export const db = {
         const dbPool = getPool();
         let existingUser: any = null;
         try {
-          const r = await dbPool.query('SELECT * FROM users WHERE id = $1', [id]);
-          if (r.rows.length > 0) existingUser = r.rows[0];
+          const existingResult = await dbPool.query('SELECT * FROM users WHERE id = $1', [id]);
+          if (existingResult.rows.length > 0) existingUser = existingResult.rows[0];
         } catch {}
         const merge = (key: string, def?: any) =>
           data[key] !== undefined ? data[key] : (existingUser?.[key] ?? def);
@@ -584,7 +602,6 @@ export const db = {
       }
     },
 
-    /** Buy one chart slot with Lumi. Atomic: deduct + increment chart_slots. */
     async buyChartSlot(userId: string, cost: number): Promise<{ success: true; newBalance: number; chartSlots: number }> {
       const id = toUserId(userId);
       if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
@@ -593,7 +610,9 @@ export const db = {
       try {
         await client.query('BEGIN');
         const result = await client.query(
-          `UPDATE users SET lumi_balance = COALESCE(lumi_balance, 0) - $1, chart_slots = COALESCE(chart_slots, 1) + 1
+          `UPDATE users
+           SET lumi_balance = COALESCE(lumi_balance, 0) - $1,
+               chart_slots = COALESCE(chart_slots, 1) + 1
            WHERE id = $2 AND COALESCE(lumi_balance, 0) >= $1
            RETURNING lumi_balance, chart_slots`,
           [cost, id]
@@ -899,14 +918,7 @@ export const db = {
         ? await this.getById(userIdOrChartId)
         : await this.getPrimary(userIdOrChartId);
       if (!existing) return { needsCalc: true, existingChart: null, reason: 'NO_EXISTING_CHART' };
-      const normalizedExistingBirthDate = normalizeBirthDateValue(existing.birth_date);
-      const normalizedRequestedBirthDate = normalizeBirthDateValue(birthDate);
-      const normalizedExistingBirthTime = normalizeBirthTimeValue(existing.birth_time);
-      const normalizedRequestedBirthTime = normalizeBirthTimeValue(birthTime);
-      const inputChanged =
-        normalizedExistingBirthDate !== normalizedRequestedBirthDate ||
-        normalizedExistingBirthTime !== normalizedRequestedBirthTime ||
-        existing.birth_place !== birthPlace;
+      const inputChanged = existing.birth_date !== birthDate || existing.birth_time !== birthTime || existing.birth_place !== birthPlace;
       if (inputChanged) return { needsCalc: true, existingChart: existing, reason: 'BIRTH_DATA_CHANGED' };
       const chartData = existing.chart_data;
       if (!chartData || !chartData.sun || !chartData.moon) return { needsCalc: true, existingChart: existing, reason: 'INVALID_CHART_DATA' };
@@ -1307,14 +1319,14 @@ export const db = {
       try {
         const dbPool = getPool();
         const result = await dbPool.query(
-          `SELECT stars_amount, created_at
+          `SELECT telegram_payment_charge_id, user_id, stars_amount, created_at
            FROM star_payments
            WHERE user_id = $1
            ORDER BY created_at DESC
            LIMIT 1`,
           [id]
         );
-        return result.rows.length > 0 ? result.rows[0] : null;
+        return result.rows[0] || null;
       } catch (error: any) {
         log.error('[DB] Error getting latest star payment', { error: error.message, userId });
         throw error;
@@ -1402,14 +1414,12 @@ export const db = {
       try {
         const dbPool = getPool();
         const result = await dbPool.query(
-          `SELECT content FROM daily_natal_cards
-           WHERE chart_id = $1 AND date = $2
-           ORDER BY id DESC
-           LIMIT 1`,
+          `SELECT content FROM daily_natal_cards WHERE chart_id = $1 AND date = $2`,
           [chartId, date]
         );
         if (result.rows.length === 0) return null;
-        return parseDailyNatalCardContent(result.rows[0].content);
+        const c = result.rows[0].content;
+        return typeof c === 'string' ? JSON.parse(c) : c;
       } catch (error: any) {
         log.error('[DB] Error getting daily natal card by chart', { error: error.message, chartId, date });
         throw error;
@@ -1420,20 +1430,11 @@ export const db = {
       if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
       try {
         const dbPool = getPool();
-        const serializedContent = serializeDailyNatalCardContent(content);
-        const updated = await dbPool.query(
-          `UPDATE daily_natal_cards
-           SET content = $3
-           WHERE chart_id = $1 AND date = $2`,
-          [chartId, date, serializedContent]
+        await dbPool.query(
+          `INSERT INTO daily_natal_cards (chart_id, date, content) VALUES ($1, $2, $3)
+           ON CONFLICT (chart_id, date) DO UPDATE SET content = EXCLUDED.content`,
+          [chartId, date, typeof content === 'string' ? content : JSON.stringify(content)]
         );
-
-        if ((updated.rowCount ?? 0) === 0) {
-          await dbPool.query(
-            `INSERT INTO daily_natal_cards (chart_id, date, content) VALUES ($1, $2, $3)`,
-            [chartId, date, serializedContent]
-          );
-        }
         return { success: true };
       } catch (error: any) {
         log.error('[DB] Error setting daily natal card by chart', { error: error.message, chartId, date });
@@ -1441,79 +1442,41 @@ export const db = {
       }
     },
 
-    async getByUser(userId: string, date: string) {
-      const id = toUserId(userId);
-      if (!DATABASE_URL) return null;
-      try {
-        const dbPool = getPool();
-        const result = await dbPool.query(
-          `SELECT content FROM daily_natal_cards
-           WHERE user_id = $1 AND date = $2
-           ORDER BY id DESC
-           LIMIT 1`,
-          [id, date]
-        );
-        if (result.rows.length === 0) return null;
-        return parseDailyNatalCardContent(result.rows[0].content);
-      } catch (error: any) {
-        log.error('[DB] Error getting daily natal card by user', { error: error.message, userId, date });
-        throw error;
-      }
-    },
-
-    async setByUser(userId: string, date: string, content: any) {
-      const id = toUserId(userId);
-      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
-      try {
-        const dbPool = getPool();
-        const serializedContent = serializeDailyNatalCardContent(content);
-        const updated = await dbPool.query(
-          `UPDATE daily_natal_cards
-           SET content = $3
-           WHERE user_id = $1 AND date = $2`,
-          [id, date, serializedContent]
-        );
-
-        if ((updated.rowCount ?? 0) === 0) {
-          await dbPool.query(
-            `INSERT INTO daily_natal_cards (user_id, date, content) VALUES ($1, $2, $3)`,
-            [id, date, serializedContent]
-          );
-        }
-        return { success: true };
-      } catch (error: any) {
-        log.error('[DB] Error setting daily natal card by user', { error: error.message, userId, date });
-        throw error;
-      }
-    },
-
-    async getForPrimaryUser(userId: string, date: string) {
-      const usesChartScope = await this.supportsChartScope();
-      if (usesChartScope) {
-        const chart = await db.natal_charts.getPrimary(userId);
-        if (!chart) return null;
-        return this.getByChart(chart.id, date);
-      }
-      return this.getByUser(userId, date);
-    },
-
-    async setForPrimaryUser(userId: string, date: string, content: any) {
-      const usesChartScope = await this.supportsChartScope();
-      if (usesChartScope) {
-        const chart = await db.natal_charts.getPrimary(userId);
-        if (!chart) throw new Error('PRIMARY_CHART_MISSING');
-        return this.setByChart(chart.id, date, content);
-      }
-      return this.setByUser(userId, date, content);
-    },
-
-    /** Compatibility wrapper: resolves by chart scope when available, otherwise legacy user scope. */
+    /** Legacy: resolve via primary chart */
     async get(userId: string, date: string) {
-      return this.getForPrimaryUser(userId, date);
+      const chart = await db.natal_charts.getPrimary(userId);
+      if (!chart) return null;
+      return this.getByChart(chart.id, date);
     },
 
     async set(userId: string, date: string, content: any) {
-      return this.setForPrimaryUser(userId, date, content);
+      const chart = await db.natal_charts.getPrimary(userId);
+      if (!chart) throw new Error('No primary chart for user');
+      return this.setByChart(chart.id, date, content);
+    },
+
+    async getForPrimaryUser(userId: string, date: string) {
+      const supportsChartScope = await this.supportsChartScope();
+      if (!supportsChartScope) {
+        return this.get(userId, date);
+      }
+
+      const chart = await db.natal_charts.getPrimary(userId);
+      if (!chart) return null;
+      return this.getByChart(chart.id, date);
+    },
+
+    async setForPrimaryUser(userId: string, date: string, content: any) {
+      const supportsChartScope = await this.supportsChartScope();
+      if (!supportsChartScope) {
+        return this.set(userId, date, content);
+      }
+
+      const chart = await db.natal_charts.getPrimary(userId);
+      if (!chart) {
+        throw new Error('No primary chart for user');
+      }
+      return this.setByChart(chart.id, date, content);
     },
   },
 
@@ -1579,7 +1542,7 @@ export const db = {
       }
     },
 
-    async getByUser(userId: string, limit = 20) {
+    async getByUser(userId: string, limit = 10) {
       const id = toUserId(userId);
       if (!DATABASE_URL) return [];
       try {
@@ -1601,25 +1564,23 @@ export const db = {
 
     async findRecentDuplicate(userId: string, question: string, windowSeconds = 20) {
       const id = toUserId(userId);
-      if (!DATABASE_URL) return null;
-
+      const normalizedQuestion = normalizeOracleQuestion(question);
+      if (!DATABASE_URL || !normalizedQuestion) return null;
       try {
         const dbPool = getPool();
         const result = await dbPool.query(
           `SELECT question, answer, created_at
            FROM astro_questions
            WHERE user_id = $1
-             AND created_at >= NOW() - ($2 * INTERVAL '1 second')
+             AND LOWER(REGEXP_REPLACE(TRIM(question), '\s+', ' ', 'g')) = $2
+             AND created_at >= NOW() - ($3 * INTERVAL '1 second')
            ORDER BY created_at DESC
-           LIMIT 10`,
-          [id, windowSeconds]
+           LIMIT 1`,
+          [id, normalizedQuestion, windowSeconds]
         );
-
-        const normalizedQuestion = normalizeOracleQuestion(question);
-        const match = result.rows.find((row: any) => normalizeOracleQuestion(row.question) === normalizedQuestion);
-        return match || null;
+        return result.rows[0] || null;
       } catch (error: any) {
-        log.error('[DB] Error finding duplicate astro question', { error: error.message, userId });
+        log.error('[DB] Error getting recent duplicate astro question', { error: error.message, userId });
         throw error;
       }
     },
@@ -1681,44 +1642,85 @@ export const db = {
   },
 
   admin: {
-    async listUsers(options?: { q?: string; premium?: AdminDbPremiumFilter; segment?: AdminDbUserSegment; limit?: number }) {
-      if (!DATABASE_URL) return [];
+    async listUsers(options?: {
+      q?: string;
+      premium?: AdminDbPremiumFilter;
+      segment?: AdminDbUserSegment;
+      page?: number;
+      pageSize?: number;
+      sortBy?: AdminDbUserSortBy;
+      sortOrder?: AdminDbSortOrder;
+      limit?: number;
+    }) {
+      if (!DATABASE_URL) {
+        return {
+          users: [],
+          pagination: { page: 1, pageSize: 25, total: 0, totalPages: 1 },
+        };
+      }
 
       const queryText = (options?.q || '').trim();
       const premium = options?.premium || 'all';
       const segment = options?.segment || 'all';
-      const limit = Math.min(Math.max(options?.limit || 100, 1), 200);
+      const pageSize = Math.min(Math.max(options?.pageSize || options?.limit || 25, 1), 100);
+      const page = Math.max(options?.page || 1, 1);
+      const offset = (page - 1) * pageSize;
+      const sortBy = options?.sortBy || 'last_seen';
+      const sortOrder = options?.sortOrder || 'desc';
       const like = `%${queryText}%`;
+      const orderBySql = getAdminUserSortSql(sortBy, sortOrder);
 
       try {
         const dbPool = getPool();
-        const result = await dbPool.query(
-          `${ADMIN_USER_METRICS_CTE}
-           SELECT *
-           FROM user_metrics
-           WHERE
-             ($1 = '' OR COALESCE(name, '') ILIKE $2 OR CAST(id AS TEXT) ILIKE $2)
-             AND ${getAdminPremiumFilterSql(3)}
-             AND ${getAdminUserSegmentSql(4)}
-           ORDER BY created_at DESC
-           LIMIT $5`,
-          [queryText, like, premium, segment, limit]
-        );
+        const [countResult, usersResult] = await Promise.all([
+          dbPool.query(
+            `${ADMIN_USER_METRICS_CTE}
+             SELECT COUNT(*)::int AS total
+             FROM user_metrics
+             WHERE
+               ($1 = '' OR COALESCE(name, '') ILIKE $2 OR CAST(id AS TEXT) ILIKE $2)
+               AND ${getAdminPremiumFilterSql(3)}
+               AND ${getAdminUserSegmentSql(4)}`,
+            [queryText, like, premium, segment]
+          ),
+          dbPool.query(
+            `${ADMIN_USER_METRICS_CTE}
+             SELECT *
+             FROM user_metrics
+             WHERE
+               ($1 = '' OR COALESCE(name, '') ILIKE $2 OR CAST(id AS TEXT) ILIKE $2)
+               AND ${getAdminPremiumFilterSql(3)}
+               AND ${getAdminUserSegmentSql(4)}
+             ORDER BY ${orderBySql}
+             LIMIT $5
+             OFFSET $6`,
+            [queryText, like, premium, segment, pageSize, offset]
+          ),
+        ]);
 
-        return result.rows.map((row: any) => ({
-          id: String(row.id),
-          name: row.name || 'Unnamed user',
-          premium_until: row.premium_until,
-          is_premium: !!(row.premium_until && new Date(row.premium_until) > new Date()),
-          lumi_balance: row.lumi_balance ?? 0,
-          login_streak: row.login_streak ?? 0,
-          chart_slots: row.chart_slots ?? 1,
-          saved_charts_count: row.saved_charts_count ?? 0,
-          created_at: row.created_at,
-          last_login: row.last_login,
-          last_seen_at: row.last_seen_at ?? row.last_login ?? null,
-          is_admin: row.is_admin ?? false,
-        }));
+        const total = Number(countResult.rows[0]?.total || 0);
+        return {
+          users: usersResult.rows.map((row: any) => ({
+            id: String(row.id),
+            name: row.name || 'Unnamed user',
+            premium_until: row.premium_until,
+            is_premium: !!(row.premium_until && new Date(row.premium_until) > new Date()),
+            lumi_balance: row.lumi_balance ?? 0,
+            login_streak: row.login_streak ?? 0,
+            chart_slots: row.chart_slots ?? 1,
+            saved_charts_count: row.saved_charts_count ?? 0,
+            created_at: row.created_at,
+            last_login: row.last_login,
+            last_seen_at: row.last_seen_at ?? row.last_login ?? null,
+            is_admin: row.is_admin ?? false,
+          })),
+          pagination: {
+            page,
+            pageSize,
+            total,
+            totalPages: Math.max(1, Math.ceil(total / pageSize)),
+          },
+        };
       } catch (error: any) {
         log.error('[DB] Error listing admin users', { error: error.message });
         throw error;
@@ -2425,35 +2427,72 @@ export const db = {
       }
     },
 
-    async getRecentCampaigns(limit = 20) {
-      if (!DATABASE_URL) return [];
+    async getRecentCampaigns(options?: {
+      page?: number;
+      pageSize?: number;
+      mode?: AdminDbNotificationMode;
+      result?: AdminDbNotificationResult;
+      limit?: number;
+    }) {
+      if (!DATABASE_URL) {
+        return {
+          history: [],
+          pagination: { page: 1, pageSize: 20, total: 0, totalPages: 1 },
+        };
+      }
+
+      const pageSize = Math.min(Math.max(options?.pageSize || options?.limit || 20, 1), 50);
+      const page = Math.max(options?.page || 1, 1);
+      const offset = (page - 1) * pageSize;
+      const mode = options?.mode || 'all';
+      const result = options?.result || 'all';
+
+      const whereClauses = [
+        `($1 = 'all' OR nc.mode = $1)`,
+        `($2 = 'all'
+          OR ($2 = 'success' AND COALESCE(nc.failed_count, 0) = 0 AND COALESCE(nc.success_count, 0) > 0)
+          OR ($2 = 'partial' AND COALESCE(nc.failed_count, 0) > 0 AND COALESCE(nc.success_count, 0) > 0)
+          OR ($2 = 'failed' AND COALESCE(nc.failed_count, 0) > 0 AND COALESCE(nc.success_count, 0) = 0)
+        )`,
+      ];
+
       try {
         const dbPool = getPool();
-        const result = await dbPool.query(
-          `SELECT
-             nc.id,
-             nc.mode,
-             nc.target_segment,
-             nc.target_user_id,
-             target_user.name AS target_user_name,
-             nc.template_id,
-             nc.title,
-             nc.body_ru,
-             nc.body_en,
-             COALESCE(nc.total_recipients, 0) AS total_recipients,
-             COALESCE(nc.success_count, 0) AS success_count,
-             COALESCE(nc.failed_count, 0) AS failed_count,
-             nc.created_at,
-             nc.sent_at
-           FROM notification_campaigns nc
-           LEFT JOIN users target_user ON target_user.id = nc.target_user_id
-           ORDER BY nc.created_at DESC
-           LIMIT $1`,
-          [limit]
-        );
+        const [countResult, rowsResult] = await Promise.all([
+          dbPool.query(
+            `SELECT COUNT(*)::int AS total
+             FROM notification_campaigns nc
+             WHERE ${whereClauses.join(' AND ')}`,
+            [mode, result]
+          ),
+          dbPool.query(
+            `SELECT
+               nc.id,
+               nc.mode,
+               nc.target_segment,
+               nc.target_user_id,
+               target_user.name AS target_user_name,
+               nc.template_id,
+               nc.title,
+               nc.body_ru,
+               nc.body_en,
+               COALESCE(nc.total_recipients, 0) AS total_recipients,
+               COALESCE(nc.success_count, 0) AS success_count,
+               COALESCE(nc.failed_count, 0) AS failed_count,
+               nc.created_at,
+               nc.sent_at
+             FROM notification_campaigns nc
+             LEFT JOIN users target_user ON target_user.id = nc.target_user_id
+             WHERE ${whereClauses.join(' AND ')}
+             ORDER BY nc.created_at DESC
+             LIMIT $3
+             OFFSET $4`,
+            [mode, result, pageSize, offset]
+          ),
+        ]);
 
-        const campaigns = [];
-        for (const row of result.rows) {
+        const history = [];
+        for (const row of rowsResult.rows) {
           const failures = await dbPool.query(
             `SELECT nd.user_id, COALESCE(u.name, 'Unnamed user') AS user_name, nd.error_text, nd.created_at
              FROM notification_deliveries nd
@@ -2464,13 +2503,22 @@ export const db = {
             [row.id]
           );
 
-          campaigns.push({
+          history.push({
             ...row,
             recent_failures: failures.rows,
           });
         }
 
-        return campaigns;
+        const total = Number(countResult.rows[0]?.total || 0);
+        return {
+          history,
+          pagination: {
+            page,
+            pageSize,
+            total,
+            totalPages: Math.max(1, Math.ceil(total / pageSize)),
+          },
+        };
       } catch (error: any) {
         log.error('[DB] Error getting recent notification campaigns', { error: error.message });
         throw error;

@@ -1,8 +1,10 @@
 import {
   type AdminLumiActionResult,
   type AdminNotificationDeliveryLogItem,
-  type AdminNotificationHistoryItem,
   type AdminNotificationSchedule,
+  type AdminHistoryResultFilter,
+  type AdminNotificationHistoryResponse,
+  type AdminNotificationModeFilter,
   type AdminNotificationSendResult,
   type AdminNotificationTargetSegment,
   type AdminNotificationTemplate,
@@ -10,10 +12,11 @@ import {
   type AdminPremiumFilter,
   type AdminScheduledNotificationAsset,
   type AdminScheduledNotificationTemplate,
+  type AdminSortOrder,
   type AdminUserDetail,
+  type AdminUserSortBy,
   type AdminUserSegment,
-  type AdminUserSummary,
-  type AdminUsersOverview,
+  type AdminUsersResponse,
 } from '../types';
 
 const API_BASE = typeof window !== 'undefined' ? '' : process.env.NEXT_PUBLIC_API_URL || '';
@@ -72,16 +75,24 @@ export async function fetchAdminUsers(params?: {
   q?: string;
   premium?: AdminPremiumFilter;
   segment?: AdminUserSegment;
+  page?: number;
+  pageSize?: number;
+  sortBy?: AdminUserSortBy;
+  sortOrder?: AdminSortOrder;
   limit?: number;
-}): Promise<{ users: AdminUserSummary[]; overview: AdminUsersOverview }> {
+}): Promise<AdminUsersResponse> {
   const search = new URLSearchParams();
   if (params?.q) search.set('q', params.q);
   if (params?.premium) search.set('premium', params.premium);
   if (params?.segment && params.segment !== 'all') search.set('segment', params.segment);
+  if (params?.page) search.set('page', String(params.page));
+  if (params?.pageSize) search.set('pageSize', String(params.pageSize));
+  if (params?.sortBy) search.set('sortBy', params.sortBy);
+  if (params?.sortOrder) search.set('sortOrder', params.sortOrder);
   if (params?.limit) search.set('limit', String(params.limit));
 
   const suffix = search.toString() ? `?${search.toString()}` : '';
-  const data = await adminRequest<{ users: AdminUserSummary[]; overview?: AdminUsersOverview }>(`/api/admin/users${suffix}`);
+  const data = await adminRequest<Partial<AdminUsersResponse>>(`/api/admin/users${suffix}`);
   return {
     users: data.users || [],
     overview: data.overview || {
@@ -90,6 +101,12 @@ export async function fetchAdminUsers(params?: {
       totalLumiBalance: 0,
       activeUsers7d: 0,
       needAttentionUsers: 0,
+    },
+    pagination: data.pagination || {
+      page: params?.page || 1,
+      pageSize: params?.pageSize || params?.limit || 25,
+      total: data.users?.length || 0,
+      totalPages: 1,
     },
   };
 }
@@ -181,11 +198,33 @@ export async function updateNotificationTemplate(
   return data.template;
 }
 
-export async function fetchNotificationHistory(limit = 20): Promise<AdminNotificationHistoryItem[]> {
-  const data = await adminRequest<{ history: AdminNotificationHistoryItem[] }>(
-    `/api/admin/notifications?limit=${encodeURIComponent(String(limit))}`
+export async function fetchNotificationHistory(params?: {
+  page?: number;
+  pageSize?: number;
+  limit?: number;
+  mode?: AdminNotificationModeFilter;
+  result?: AdminHistoryResultFilter;
+}): Promise<AdminNotificationHistoryResponse> {
+  const search = new URLSearchParams();
+  if (params?.page) search.set('page', String(params.page));
+  if (params?.pageSize) search.set('pageSize', String(params.pageSize));
+  if (params?.limit) search.set('limit', String(params.limit));
+  if (params?.mode && params.mode !== 'all') search.set('mode', params.mode);
+  if (params?.result && params.result !== 'all') search.set('result', params.result);
+
+  const suffix = search.toString() ? `?${search.toString()}` : '';
+  const data = await adminRequest<Partial<AdminNotificationHistoryResponse>>(
+    `/api/admin/notifications${suffix}`
   );
-  return data.history || [];
+  return {
+    history: data.history || [],
+    pagination: data.pagination || {
+      page: params?.page || 1,
+      pageSize: params?.pageSize || params?.limit || 20,
+      total: data.history?.length || 0,
+      totalPages: 1,
+    },
+  };
 }
 
 export async function sendNotification(payload: {

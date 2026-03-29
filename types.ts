@@ -218,6 +218,15 @@ export interface OracleChatResponse {
 
 export type AdminPremiumFilter = 'all' | 'premium' | 'free';
 export type AdminUserSegment = 'all' | 'premium' | 'free' | 'active_7d' | 'inactive_30d' | 'need_attention';
+export type AdminUserSortBy = 'last_seen' | 'created_at' | 'lumi_balance' | 'premium_until' | 'saved_charts_count' | 'name';
+export type AdminSortOrder = 'asc' | 'desc';
+
+export interface PaginationMeta {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
 
 export interface AdminUserSummary {
   id: string;
@@ -245,6 +254,7 @@ export interface AdminUsersOverview {
 export interface AdminUsersResponse {
   users: AdminUserSummary[];
   overview: AdminUsersOverview;
+  pagination: PaginationMeta;
 }
 
 export interface AdminChartSummary {
@@ -290,6 +300,8 @@ export interface AdminUserDetail extends AdminUserSummary {
 
 export type AdminNotificationTemplateKind = 'personal' | 'broadcast' | 'both';
 export type AdminNotificationTargetSegment = 'all' | 'premium' | 'free' | 'active_7d' | 'inactive_30d';
+export type AdminNotificationModeFilter = 'all' | 'personal' | 'broadcast';
+export type AdminHistoryResultFilter = 'all' | 'success' | 'partial' | 'failed';
 
 export interface AdminNotificationTemplate {
   id: number;
@@ -325,6 +337,11 @@ export interface AdminNotificationHistoryItem {
   createdAt: string;
   sentAt: string | null;
   recentFailures: AdminNotificationFailureSample[];
+}
+
+export interface AdminNotificationHistoryResponse {
+  history: AdminNotificationHistoryItem[];
+  pagination: PaginationMeta;
 }
 
 export interface AdminNotificationSendResult {

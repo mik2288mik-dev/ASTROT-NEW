@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  type AdminHistoryResultFilter,
   type AdminNotificationHistoryItem,
+  type AdminNotificationModeFilter,
   type AdminNotificationTargetSegment,
   type AdminNotificationTemplate,
   type AdminNotificationTemplateKind,
@@ -13,6 +15,8 @@ import {
   sendNotification,
   updateNotificationTemplate,
 } from '../../services/adminService';
+import { AdminChipButton, AdminEmptyState, AdminPagination, AdminSectionHeader, AdminStateBanner, AdminSurface } from './AdminPrimitives';
+import { formatAdminText, getAdminText } from './adminText';
 
 type AdminNotificationSection = 'send' | 'templates' | 'history';
 
@@ -24,34 +28,35 @@ interface AdminNotificationsTabProps {
   onChangeSection?: (section: AdminNotificationSection) => void;
 }
 
-const T = (lang: 'ru' | 'en', ru: string, en: string) => (lang === 'ru' ? ru : en);
 const SEGMENTS: AdminNotificationTargetSegment[] = ['all', 'premium', 'free', 'active_7d', 'inactive_30d'];
-const KINDS: AdminNotificationTemplateKind[] = ['both', 'personal', 'broadcast'];
+const KINDS: Array<AdminNotificationTemplateKind | 'all'> = ['all', 'both', 'personal', 'broadcast'];
+const HISTORY_MODES: AdminNotificationModeFilter[] = ['all', 'personal', 'broadcast'];
+const HISTORY_RESULTS: AdminHistoryResultFilter[] = ['all', 'success', 'partial', 'failed'];
 
 const NOTIFICATION_PRESETS = [
   {
     key: 'maintenance',
     title: { ru: 'Техническое обновление Lumia', en: 'Lumia maintenance update' },
-    bodyRu: 'Сегодня проводим техническое обновление Lumia. Если мини-приложение откроется не сразу, попробуйте зайти повторно через несколько минут.',
+    bodyRu: 'Сегодня проводим техническое обновление Lumia. Если мини-приложение не откроется сразу, попробуйте зайти повторно через несколько минут.',
     bodyEn: 'We are running a Lumia maintenance update today. If the mini app does not open immediately, please try again in a few minutes.',
     mode: 'broadcast' as const,
-    matches: ['maintenance', 'important announcement'],
+    matches: ['maintenance', 'announcement'],
   },
   {
     key: 'premium_granted',
     title: { ru: 'Premium активирован', en: 'Premium activated' },
-    bodyRu: 'Ваш Premium в Lumia активирован. Откройте приложение, чтобы использовать все премиум-возможности.',
-    bodyEn: 'Your Lumia Premium is now active. Open the app to use all premium features.',
+    bodyRu: 'Ваш Lumia Premium активирован. Откройте приложение, чтобы использовать все премиум-возможности.',
+    bodyEn: 'Your Lumia Premium is active now. Open the app to use all premium features.',
     mode: 'personal' as const,
-    matches: ['premium granted', 'premium activated'],
+    matches: ['premium'],
   },
   {
     key: 'lumi_credited',
     title: { ru: 'Lumi начислены', en: 'Lumi credited' },
     bodyRu: 'На ваш баланс Lumia начислены Lumi. Откройте кошелёк, чтобы увидеть обновлённый баланс.',
-    bodyEn: 'Lumi have been added to your Lumia balance. Open the wallet to see the updated amount.',
+    bodyEn: 'Lumi were added to your Lumia balance. Open the wallet to see the updated amount.',
     mode: 'personal' as const,
-    matches: ['lumi credited', 'lumi added'],
+    matches: ['lumi'],
   },
   {
     key: 'comeback',
@@ -59,7 +64,7 @@ const NOTIFICATION_PRESETS = [
     bodyRu: 'В Lumia появились новые возможности. Возвращайтесь, чтобы посмотреть обновления, карты и персональные подсказки.',
     bodyEn: 'Lumia has new updates waiting for you. Come back to check your charts, guidance, and fresh content.',
     mode: 'broadcast' as const,
-    matches: ['come back', 'comeback', 'inactive users'],
+    matches: ['come back', 'inactive'],
   },
   {
     key: 'announcement',
@@ -67,40 +72,9 @@ const NOTIFICATION_PRESETS = [
     bodyRu: 'У Lumia есть важное обновление для вас. Откройте приложение, чтобы узнать подробности.',
     bodyEn: 'Lumia has an important update for you. Open the app to see the details.',
     mode: 'broadcast' as const,
-    matches: ['announcement', 'important announcement'],
+    matches: ['announcement', 'important'],
   },
 ];
-
-const formatDateTime = (lang: 'ru' | 'en', value?: string | null) => {
-  if (!value) return lang === 'ru' ? 'Нет данных' : 'No data';
-  return new Intl.DateTimeFormat(lang === 'ru' ? 'ru-RU' : 'en-US', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(value));
-};
-
-const getSegmentLabel = (lang: 'ru' | 'en', value: AdminNotificationTargetSegment) => {
-  const labels: Record<AdminNotificationTargetSegment, { ru: string; en: string }> = {
-    all: { ru: 'Все пользователи', en: 'All users' },
-    premium: { ru: 'Premium', en: 'Premium' },
-    free: { ru: 'Free', en: 'Free' },
-    active_7d: { ru: 'Активные за 7 дней', en: 'Active in last 7 days' },
-    inactive_30d: { ru: 'Неактивные 30+ дней', en: 'Inactive 30+ days' },
-  };
-  return labels[value][lang];
-};
-
-const getKindLabel = (lang: 'ru' | 'en', value: AdminNotificationTemplateKind) => {
-  const labels: Record<AdminNotificationTemplateKind, { ru: string; en: string }> = {
-    both: { ru: 'Личное и массовое', en: 'Personal and broadcast' },
-    personal: { ru: 'Личное', en: 'Personal' },
-    broadcast: { ru: 'Массовое', en: 'Broadcast' },
-  };
-  return labels[value][lang];
-};
 
 const emptyTemplateDraft = {
   id: null as number | null,
@@ -111,8 +85,58 @@ const emptyTemplateDraft = {
   isActive: true,
 };
 
+const formatDateTime = (lang: 'ru' | 'en', value?: string | null) => {
+  if (!value) return getAdminText(lang, 'no_data');
+  return new Intl.DateTimeFormat(lang === 'ru' ? 'ru-RU' : 'en-US', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value));
+};
+
+const getSegmentLabel = (lang: 'ru' | 'en', value: AdminNotificationTargetSegment) => {
+  const labels: Record<AdminNotificationTargetSegment, string> = {
+    all: lang === 'ru' ? 'Все пользователи' : 'All users',
+    premium: 'Premium',
+    free: 'Free',
+    active_7d: lang === 'ru' ? 'Активны за 7 дней' : 'Active in last 7 days',
+    inactive_30d: lang === 'ru' ? 'Неактивны 30+ дней' : 'Inactive 30+ days',
+  };
+  return labels[value];
+};
+
+const getKindLabel = (lang: 'ru' | 'en', value: AdminNotificationTemplateKind | 'all') => {
+  const labels: Record<AdminNotificationTemplateKind | 'all', string> = {
+    all: getAdminText(lang, 'filter_all'),
+    both: lang === 'ru' ? 'Личное и массовое' : 'Personal and broadcast',
+    personal: getAdminText(lang, 'personal'),
+    broadcast: getAdminText(lang, 'broadcast'),
+  };
+  return labels[value];
+};
+
+const getHistoryModeLabel = (lang: 'ru' | 'en', value: AdminNotificationModeFilter) => {
+  if (value === 'all') return getAdminText(lang, 'result_all');
+  return value === 'personal' ? getAdminText(lang, 'personal') : getAdminText(lang, 'broadcast');
+};
+
+const getHistoryResultLabel = (lang: 'ru' | 'en', value: AdminHistoryResultFilter) => {
+  if (value === 'all') return getAdminText(lang, 'result_all');
+  if (value === 'success') return getAdminText(lang, 'result_success');
+  if (value === 'partial') return getAdminText(lang, 'result_partial');
+  return getAdminText(lang, 'result_failed');
+};
+
 function normalizeTitle(value: string) {
   return value.trim().toLowerCase();
+}
+
+function getCampaignTone(item: AdminNotificationHistoryItem): 'success' | 'partial' | 'failed' {
+  if (item.failedCount > 0 && item.successCount === 0) return 'failed';
+  if (item.failedCount > 0 && item.successCount > 0) return 'partial';
+  return 'success';
 }
 
 export const AdminNotificationsTab: React.FC<AdminNotificationsTabProps> = ({
@@ -124,10 +148,14 @@ export const AdminNotificationsTab: React.FC<AdminNotificationsTabProps> = ({
 }) => {
   const lang = profile.language === 'en' ? 'en' : 'ru';
   const [templates, setTemplates] = useState<AdminNotificationTemplate[]>([]);
+  const [templatesLoading, setTemplatesLoading] = useState(true);
   const [history, setHistory] = useState<AdminNotificationHistoryItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [historyPagination, setHistoryPagination] = useState({ page: 1, pageSize: 20, total: 0, totalPages: 1 });
+  const [historyLoading, setHistoryLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [lastSendMessage, setLastSendMessage] = useState<string | null>(null);
+
   const [mode, setMode] = useState<'personal' | 'broadcast'>(initialTargetUserId ? 'personal' : 'broadcast');
   const [targetUserId, setTargetUserId] = useState(initialTargetUserId || '');
   const [targetSegment, setTargetSegment] = useState<AdminNotificationTargetSegment>('all');
@@ -135,42 +163,83 @@ export const AdminNotificationsTab: React.FC<AdminNotificationsTabProps> = ({
   const [title, setTitle] = useState('');
   const [bodyRu, setBodyRu] = useState('');
   const [bodyEn, setBodyEn] = useState('');
+
+  const [templateSearch, setTemplateSearch] = useState('');
+  const [templateKindFilter, setTemplateKindFilter] = useState<AdminNotificationTemplateKind | 'all'>('all');
+  const [templateStatus, setTemplateStatus] = useState<'all' | 'active' | 'disabled'>('all');
   const [draft, setDraft] = useState(emptyTemplateDraft);
+  const [editorOpen, setEditorOpen] = useState(false);
 
-  const filteredTemplates = useMemo(
-    () => templates.filter((template) => template.isActive && (template.kind === 'both' || template.kind === mode)),
-    [mode, templates]
-  );
+  const [historyMode, setHistoryMode] = useState<AdminNotificationModeFilter>('all');
+  const [historyResult, setHistoryResult] = useState<AdminHistoryResultFilter>('all');
+  const [expandedFailures, setExpandedFailures] = useState<Record<number, boolean>>({});
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
+  const loadTemplates = useCallback(async () => {
+    setTemplatesLoading(true);
     setError(null);
     try {
-      const [nextTemplates, nextHistory] = await Promise.all([
-        fetchNotificationTemplates(),
-        fetchNotificationHistory(20),
-      ]);
+      const nextTemplates = await fetchNotificationTemplates();
       setTemplates(nextTemplates);
-      setHistory(nextHistory);
     } catch (loadError: any) {
-      setError(loadError?.message || T(lang, 'Не удалось загрузить уведомления', 'Failed to load notifications'));
+      setError(loadError?.message || getAdminText(lang, 'notifications_failed'));
     } finally {
-      setLoading(false);
+      setTemplatesLoading(false);
     }
   }, [lang]);
 
+  const loadHistory = useCallback(async (page = historyPagination.page) => {
+    setHistoryLoading(true);
+    setError(null);
+    try {
+      const payload = await fetchNotificationHistory({
+        page,
+        pageSize: historyPagination.pageSize,
+        mode: historyMode,
+        result: historyResult,
+      });
+      setHistory(payload.history);
+      setHistoryPagination(payload.pagination);
+    } catch (loadError: any) {
+      setError(loadError?.message || getAdminText(lang, 'notifications_failed'));
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, [historyMode, historyPagination.page, historyPagination.pageSize, historyResult, lang]);
+
   useEffect(() => {
-    void loadData();
-  }, [loadData]);
+    void loadTemplates();
+  }, [loadTemplates]);
+
+  useEffect(() => {
+    void loadHistory(historyPagination.page);
+  }, [historyMode, historyPagination.page, historyPagination.pageSize, historyResult, loadHistory]);
 
   useEffect(() => {
     if (!initialTargetUserId) return;
     setMode('personal');
     setTargetUserId(initialTargetUserId);
+    setLastSendMessage(null);
     onClearInitialTarget?.();
   }, [initialTargetUserId, onClearInitialTarget]);
 
-  const applyComposePayload = (payload: {
+  const filteredTemplates = useMemo(() => {
+    const searchValue = normalizeTitle(templateSearch);
+    return templates.filter((template) => {
+      if (templateKindFilter !== 'all' && template.kind !== templateKindFilter) return false;
+      if (templateStatus === 'active' && !template.isActive) return false;
+      if (templateStatus === 'disabled' && template.isActive) return false;
+      if (!searchValue) return true;
+      return normalizeTitle(template.title).includes(searchValue);
+    });
+  }, [templateKindFilter, templateSearch, templateStatus, templates]);
+
+  const composePreview = useMemo(() => ({
+    title: title.trim(),
+    bodyRu: bodyRu.trim(),
+    bodyEn: bodyEn.trim(),
+  }), [bodyEn, bodyRu, title]);
+
+  const applyComposePayload = useCallback((payload: {
     mode: 'personal' | 'broadcast';
     targetUserId?: string | null;
     targetSegment?: AdminNotificationTargetSegment | null;
@@ -187,9 +256,10 @@ export const AdminNotificationsTab: React.FC<AdminNotificationsTabProps> = ({
     setBodyRu(payload.bodyRu);
     setBodyEn(payload.bodyEn);
     setError(null);
-  };
+    setLastSendMessage(null);
+  }, []);
 
-  const handleUseTemplate = (template: AdminNotificationTemplate) => {
+  const handleUseTemplate = useCallback((template: AdminNotificationTemplate) => {
     applyComposePayload({
       mode: template.kind === 'personal' || template.kind === 'broadcast' ? template.kind : mode,
       targetUserId,
@@ -199,9 +269,10 @@ export const AdminNotificationsTab: React.FC<AdminNotificationsTabProps> = ({
       bodyRu: template.bodyRu,
       bodyEn: template.bodyEn,
     });
-  };
+    onChangeSection?.('send');
+  }, [applyComposePayload, mode, onChangeSection, targetSegment, targetUserId]);
 
-  const handleApplyPreset = (presetKey: string) => {
+  const handleApplyPreset = useCallback((presetKey: string) => {
     const preset = NOTIFICATION_PRESETS.find((item) => item.key === presetKey);
     if (!preset) return;
 
@@ -225,10 +296,9 @@ export const AdminNotificationsTab: React.FC<AdminNotificationsTabProps> = ({
         bodyRu: preset.bodyRu,
         bodyEn: preset.bodyEn,
       });
+      onChangeSection?.('send');
     }
-
-    onChangeSection?.('send');
-  };
+  }, [applyComposePayload, handleUseTemplate, lang, onChangeSection, targetSegment, targetUserId, templates]);
 
   const handleReuseCampaign = (campaign: AdminNotificationHistoryItem) => {
     applyComposePayload({
@@ -243,28 +313,29 @@ export const AdminNotificationsTab: React.FC<AdminNotificationsTabProps> = ({
     onChangeSection?.('send');
   };
 
-  const handleEditTemplate = (template?: AdminNotificationTemplate) => {
+  const handleEditTemplate = (template?: AdminNotificationTemplate, duplicate = false) => {
     if (!template) {
       setDraft(emptyTemplateDraft);
-      return;
+    } else {
+      setDraft({
+        id: duplicate ? null : template.id,
+        title: duplicate ? `${template.title} Copy` : template.title,
+        bodyRu: template.bodyRu,
+        bodyEn: template.bodyEn,
+        kind: template.kind,
+        isActive: template.isActive,
+      });
     }
-    setDraft({
-      id: template.id,
-      title: template.title,
-      bodyRu: template.bodyRu,
-      bodyEn: template.bodyEn,
-      kind: template.kind,
-      isActive: template.isActive,
-    });
+    setEditorOpen(true);
   };
 
   const handleSaveTemplate = async () => {
     if (!draft.title.trim()) {
-      setError(T(lang, 'У шаблона должен быть заголовок', 'Template title is required'));
+      setError(getAdminText(lang, 'template_title_required'));
       return;
     }
     if (!draft.bodyRu.trim() && !draft.bodyEn.trim()) {
-      setError(T(lang, 'Добавьте текст хотя бы на одном языке', 'Add body text in at least one language'));
+      setError(getAdminText(lang, 'body_required'));
       return;
     }
 
@@ -283,10 +354,10 @@ export const AdminNotificationsTab: React.FC<AdminNotificationsTabProps> = ({
         ? await updateNotificationTemplate(draft.id, payload)
         : await createNotificationTemplate(payload);
 
-      await loadData();
+      await loadTemplates();
       handleEditTemplate(savedTemplate);
     } catch (saveError: any) {
-      setError(saveError?.message || T(lang, 'Не удалось сохранить шаблон', 'Failed to save template'));
+      setError(saveError?.message || getAdminText(lang, 'template_save_failed'));
     } finally {
       setActionLoading(null);
     }
@@ -294,20 +365,21 @@ export const AdminNotificationsTab: React.FC<AdminNotificationsTabProps> = ({
 
   const handleSend = async () => {
     if (!title.trim()) {
-      setError(T(lang, 'Укажите заголовок уведомления', 'Notification title is required'));
+      setError(getAdminText(lang, 'notification_title_required'));
       return;
     }
     if (!bodyRu.trim() && !bodyEn.trim()) {
-      setError(T(lang, 'Добавьте текст хотя бы на одном языке', 'Add body text in at least one language'));
+      setError(getAdminText(lang, 'body_required'));
       return;
     }
     if (mode === 'personal' && !targetUserId.trim()) {
-      setError(T(lang, 'Укажите Telegram ID пользователя', 'Target user Telegram ID is required'));
+      setError(getAdminText(lang, 'target_user_required'));
       return;
     }
 
     setActionLoading('send');
     setError(null);
+    setLastSendMessage(null);
     try {
       const result = await sendNotification({
         mode,
@@ -318,326 +390,475 @@ export const AdminNotificationsTab: React.FC<AdminNotificationsTabProps> = ({
         bodyRu: bodyRu.trim(),
         bodyEn: bodyEn.trim(),
       });
-      setHistory((prev) => [result.campaign, ...prev].slice(0, 20));
+
+      setLastSendMessage(formatAdminText(lang, 'send_success', {
+        success: result.campaign.successCount,
+        total: result.campaign.totalRecipients,
+      }));
+      setHistory((prev) => [result.campaign, ...prev].slice(0, historyPagination.pageSize));
+      setHistoryPagination((prev) => ({ ...prev, total: Math.max(prev.total, 1), totalPages: Math.max(prev.totalPages, 1) }));
       onChangeSection?.('history');
     } catch (sendError: any) {
-      setError(sendError?.message || T(lang, 'Не удалось отправить уведомление', 'Failed to send notification'));
+      setError(sendError?.message || getAdminText(lang, 'notification_send_failed'));
     } finally {
       setActionLoading(null);
     }
   };
 
   const renderSend = () => (
-    <section className="space-y-4 rounded-2xl border border-astro-border bg-astro-card p-4">
-      <div>
-        <h3 className="font-serif text-lg text-astro-text">{T(lang, 'Отправка уведомлений', 'Send notifications')}</h3>
-        <p className="mt-1 text-xs text-astro-subtext">
-          {T(lang, 'Личные сообщения и массовые рассылки через Telegram', 'Personal and broadcast Telegram messages')}
-        </p>
-      </div>
+    <div className="space-y-5">
+      {lastSendMessage ? <AdminStateBanner tone="success">{lastSendMessage}</AdminStateBanner> : null}
 
-      <div className="scrollbar-hide -mx-1 overflow-x-auto px-1">
-        <div className="flex min-w-max gap-2">
-          {NOTIFICATION_PRESETS.map((preset) => (
-            <button
-              key={preset.key}
-              onClick={() => handleApplyPreset(preset.key)}
-              className="rounded-full border border-astro-border px-3 py-2 text-xs font-semibold uppercase tracking-widest text-astro-subtext transition-colors hover:border-astro-highlight/40 hover:text-astro-text"
-            >
-              {preset.title[lang]}
-            </button>
-          ))}
+      <AdminSurface className="px-5 py-5">
+        <AdminSectionHeader
+          eyebrow="Notify"
+          title={getAdminText(lang, 'send_title')}
+          subtitle={getAdminText(lang, 'send_subtitle')}
+        />
+
+        <div className="scrollbar-hide -mx-1 mt-5 overflow-x-auto px-1">
+          <div className="flex min-w-max gap-2">
+            {NOTIFICATION_PRESETS.map((preset) => (
+              <AdminChipButton key={preset.key} onClick={() => handleApplyPreset(preset.key)}>
+                {preset.title[lang]}
+              </AdminChipButton>
+            ))}
+          </div>
         </div>
-      </div>
+      </AdminSurface>
 
-      <div className="flex gap-2">
-        <button
-          onClick={() => setMode('personal')}
-          className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-widest transition-colors ${
-            mode === 'personal'
-              ? 'bg-astro-highlight text-white'
-              : 'border border-astro-border text-astro-subtext hover:border-astro-highlight/40 hover:text-astro-text'
-          }`}
-        >
-          {T(lang, 'Личное', 'Personal')}
-        </button>
-        <button
-          onClick={() => setMode('broadcast')}
-          className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-widest transition-colors ${
-            mode === 'broadcast'
-              ? 'bg-astro-highlight text-white'
-              : 'border border-astro-border text-astro-subtext hover:border-astro-highlight/40 hover:text-astro-text'
-          }`}
-        >
-          {T(lang, 'Массовое', 'Broadcast')}
-        </button>
-      </div>
+      <AdminSurface className="px-5 py-5">
+        <AdminSectionHeader title={getAdminText(lang, 'audience')} />
+        <div className="mt-5 flex flex-wrap gap-2">
+          <AdminChipButton active={mode === 'personal'} onClick={() => setMode('personal')}>{getAdminText(lang, 'personal')}</AdminChipButton>
+          <AdminChipButton active={mode === 'broadcast'} onClick={() => setMode('broadcast')}>{getAdminText(lang, 'broadcast')}</AdminChipButton>
+        </div>
 
-      {mode === 'personal' ? (
-        <input
-          value={targetUserId}
-          onChange={(event) => setTargetUserId(event.target.value)}
-          placeholder={T(lang, 'Telegram ID пользователя', 'Target user Telegram ID')}
-          className="w-full rounded-lg border border-astro-border bg-astro-bg px-3 py-2 text-sm text-astro-text outline-none focus:border-astro-highlight/40"
-        />
-      ) : (
-        <select
-          value={targetSegment}
-          onChange={(event) => setTargetSegment(event.target.value as AdminNotificationTargetSegment)}
-          className="w-full rounded-lg border border-astro-border bg-astro-bg px-3 py-2 text-sm text-astro-text outline-none focus:border-astro-highlight/40"
-        >
-          {SEGMENTS.map((segment) => (
-            <option key={segment} value={segment}>{getSegmentLabel(lang, segment)}</option>
-          ))}
-        </select>
-      )}
+        <div className="mt-4">
+          {mode === 'personal' ? (
+            <input
+              value={targetUserId}
+              onChange={(event) => setTargetUserId(event.target.value)}
+              placeholder={getAdminText(lang, 'target_user')}
+              className="w-full rounded-[18px] border border-white/10 bg-[#0b1525] px-4 py-3 text-sm text-white outline-none focus:border-sky-400/40"
+            />
+          ) : (
+            <select
+              value={targetSegment}
+              onChange={(event) => setTargetSegment(event.target.value as AdminNotificationTargetSegment)}
+              className="w-full rounded-[18px] border border-white/10 bg-[#0b1525] px-4 py-3 text-sm text-white outline-none focus:border-sky-400/40"
+            >
+              {SEGMENTS.map((segment) => (
+                <option key={segment} value={segment}>{getSegmentLabel(lang, segment)}</option>
+              ))}
+            </select>
+          )}
+        </div>
+      </AdminSurface>
 
-      <select
-        value={templateId ?? ''}
-        onChange={(event) => {
-          const value = Number(event.target.value);
-          const template = templates.find((item) => item.id === value);
-          if (!template) {
-            setTemplateId(null);
-            return;
-          }
-          handleUseTemplate(template);
-        }}
-        className="w-full rounded-lg border border-astro-border bg-astro-bg px-3 py-2 text-sm text-astro-text outline-none focus:border-astro-highlight/40"
-      >
-        <option value="">{T(lang, 'Без шаблона', 'No template')}</option>
-        {filteredTemplates.map((template) => (
-          <option key={template.id} value={template.id}>{template.title}</option>
-        ))}
-      </select>
+      <AdminSurface className="px-5 py-5">
+        <AdminSectionHeader title={getAdminText(lang, 'message_source')} />
+        <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_200px]">
+          <select
+            value={templateId ?? ''}
+            onChange={(event) => {
+              const value = Number(event.target.value);
+              const template = templates.find((item) => item.id === value);
+              if (!template) {
+                setTemplateId(null);
+                return;
+              }
+              handleUseTemplate(template);
+            }}
+            className="rounded-[18px] border border-white/10 bg-[#0b1525] px-4 py-3 text-sm text-white outline-none focus:border-sky-400/40"
+          >
+            <option value="">{getAdminText(lang, 'no_template')}</option>
+            {templates
+              .filter((template) => template.isActive && (template.kind === 'both' || template.kind === mode))
+              .map((template) => (
+                <option key={template.id} value={template.id}>{template.title}</option>
+              ))}
+          </select>
 
-      <input
-        value={title}
-        onChange={(event) => setTitle(event.target.value)}
-        placeholder={T(lang, 'Заголовок', 'Title')}
-        className="w-full rounded-lg border border-astro-border bg-astro-bg px-3 py-2 text-sm text-astro-text outline-none focus:border-astro-highlight/40"
-      />
+          <button
+            onClick={() => onChangeSection?.('templates')}
+            className="rounded-[18px] border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/[0.06]"
+          >
+            {getAdminText(lang, 'section_templates')}
+          </button>
+        </div>
+      </AdminSurface>
 
-      <div className="grid gap-4">
-        <textarea
-          value={bodyRu}
-          onChange={(event) => setBodyRu(event.target.value)}
-          rows={5}
-          placeholder="RU"
-          className="w-full rounded-lg border border-astro-border bg-astro-bg px-3 py-2 text-sm text-astro-text outline-none focus:border-astro-highlight/40"
-        />
-        <textarea
-          value={bodyEn}
-          onChange={(event) => setBodyEn(event.target.value)}
-          rows={5}
-          placeholder="EN"
-          className="w-full rounded-lg border border-astro-border bg-astro-bg px-3 py-2 text-sm text-astro-text outline-none focus:border-astro-highlight/40"
-        />
-      </div>
+      <AdminSurface className="px-5 py-5">
+        <AdminSectionHeader title={getAdminText(lang, 'content_preview')} />
 
-      <button
-        onClick={handleSend}
-        disabled={actionLoading === 'send'}
-        className="rounded-lg bg-astro-highlight px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
-      >
-        {actionLoading === 'send' ? T(lang, 'Отправляем...', 'Sending...') : T(lang, 'Отправить уведомление', 'Send notification')}
-      </button>
-    </section>
+        <div className="mt-4 space-y-4">
+          <input
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            placeholder={getAdminText(lang, 'title')}
+            className="w-full rounded-[18px] border border-white/10 bg-[#0b1525] px-4 py-3 text-sm text-white outline-none focus:border-sky-400/40"
+          />
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <textarea
+              value={bodyRu}
+              onChange={(event) => setBodyRu(event.target.value)}
+              rows={7}
+              placeholder={getAdminText(lang, 'body_ru')}
+              className="w-full rounded-[18px] border border-white/10 bg-[#0b1525] px-4 py-3 text-sm text-white outline-none focus:border-sky-400/40"
+            />
+            <textarea
+              value={bodyEn}
+              onChange={(event) => setBodyEn(event.target.value)}
+              rows={7}
+              placeholder={getAdminText(lang, 'body_en')}
+              className="w-full rounded-[18px] border border-white/10 bg-[#0b1525] px-4 py-3 text-sm text-white outline-none focus:border-sky-400/40"
+            />
+          </div>
+
+          <div className="rounded-[22px] border border-white/10 bg-white/[0.03] p-4">
+            <p className="text-[10px] uppercase tracking-[0.22em] text-slate-500">{getAdminText(lang, 'preview')}</p>
+            <p className="mt-3 text-lg font-semibold text-white">{composePreview.title || '—'}</p>
+            <div className="mt-4 grid gap-4 lg:grid-cols-2">
+              <div className="rounded-[18px] border border-white/10 bg-[#0b1525] p-4">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">RU</p>
+                <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-200">{composePreview.bodyRu || '—'}</p>
+              </div>
+              <div className="rounded-[18px] border border-white/10 bg-[#0b1525] p-4">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">EN</p>
+                <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-200">{composePreview.bodyEn || '—'}</p>
+              </div>
+            </div>
+            <p className="mt-4 text-xs leading-5 text-slate-400">
+              {mode === 'personal' ? getAdminText(lang, 'preview_hint_personal') : getAdminText(lang, 'preview_hint_broadcast')}
+            </p>
+          </div>
+
+          <div className="sticky bottom-3 rounded-[22px] border border-sky-400/20 bg-[#0b1525]/95 p-4 backdrop-blur">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="text-sm text-slate-300">
+                {mode === 'personal'
+                  ? `${getAdminText(lang, 'personal')}: ${targetUserId || '—'}`
+                  : `${getAdminText(lang, 'broadcast')}: ${getSegmentLabel(lang, targetSegment)}`}
+              </div>
+              <button
+                onClick={() => void handleSend()}
+                disabled={actionLoading === 'send'}
+                className="rounded-[18px] bg-sky-400 px-5 py-3 text-sm font-semibold text-[#081120] transition-opacity disabled:opacity-60"
+              >
+                {actionLoading === 'send' ? getAdminText(lang, 'sending') : getAdminText(lang, 'send_now')}
+              </button>
+            </div>
+          </div>
+        </div>
+      </AdminSurface>
+    </div>
   );
 
   const renderTemplates = () => (
-    <div className="space-y-4">
-      <section className="space-y-4 rounded-2xl border border-astro-border bg-astro-card p-4">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h3 className="font-serif text-lg text-astro-text">{T(lang, 'Шаблоны сообщений', 'Message templates')}</h3>
-            <p className="mt-1 text-xs text-astro-subtext">
-              {T(lang, 'Используйте и редактируйте готовые шаблоны', 'Reuse and edit saved templates')}
-            </p>
-          </div>
-          <button
-            onClick={() => handleEditTemplate()}
-            className="rounded-lg border border-astro-border px-4 py-2 text-xs font-semibold uppercase tracking-widest text-astro-text"
-          >
-            {T(lang, 'Новый шаблон', 'New template')}
-          </button>
-        </div>
+    <div className="space-y-5">
+      <AdminSurface className="px-5 py-5">
+        <AdminSectionHeader
+          eyebrow="Templates"
+          title={getAdminText(lang, 'templates_title')}
+          subtitle={getAdminText(lang, 'templates_subtitle')}
+          action={(
+            <button
+              onClick={() => handleEditTemplate()}
+              className="rounded-[18px] border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-white"
+            >
+              {getAdminText(lang, 'template_new')}
+            </button>
+          )}
+        />
 
-        {templates.length === 0 ? (
-          <p className="text-sm text-astro-subtext">{T(lang, 'Шаблонов пока нет', 'No templates yet')}</p>
+        <div className="mt-5 grid gap-3 lg:grid-cols-[minmax(0,1fr)_190px_190px]">
+          <input
+            value={templateSearch}
+            onChange={(event) => setTemplateSearch(event.target.value)}
+            placeholder={getAdminText(lang, 'search_users')}
+            className="w-full rounded-[18px] border border-white/10 bg-[#0b1525] px-4 py-3 text-sm text-white outline-none focus:border-sky-400/40"
+          />
+          <select
+            value={templateKindFilter}
+            onChange={(event) => setTemplateKindFilter(event.target.value as any)}
+            className="rounded-[18px] border border-white/10 bg-[#0b1525] px-4 py-3 text-sm text-white outline-none focus:border-sky-400/40"
+          >
+            {KINDS.map((kind) => (
+              <option key={kind} value={kind}>{getKindLabel(lang, kind)}</option>
+            ))}
+          </select>
+          <select
+            value={templateStatus}
+            onChange={(event) => setTemplateStatus(event.target.value as any)}
+            className="rounded-[18px] border border-white/10 bg-[#0b1525] px-4 py-3 text-sm text-white outline-none focus:border-sky-400/40"
+          >
+            <option value="all">{getAdminText(lang, 'result_all')}</option>
+            <option value="active">{getAdminText(lang, 'template_active')}</option>
+            <option value="disabled">{getAdminText(lang, 'template_disabled')}</option>
+          </select>
+        </div>
+      </AdminSurface>
+
+      <AdminSurface className="overflow-hidden">
+        {templatesLoading ? (
+          <div className="px-5 py-8 text-sm text-slate-400">{getAdminText(lang, 'notifications_failed')}</div>
+        ) : filteredTemplates.length === 0 ? (
+          <div className="px-5 py-8">
+            <AdminEmptyState title={getAdminText(lang, 'templates_empty')} body={getAdminText(lang, 'templates_subtitle')} />
+          </div>
         ) : (
-          <div className="space-y-3">
-            {templates.map((template) => (
-              <div key={template.id} className="rounded-lg border border-astro-border bg-astro-bg/20 p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm text-astro-text">{template.title}</p>
-                    <p className="mt-1 text-xs text-astro-subtext">{getKindLabel(lang, template.kind)}</p>
+          <div className="divide-y divide-white/10">
+            {filteredTemplates.map((template) => (
+              <div key={template.id} className="px-5 py-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="text-base font-medium text-white">{template.title}</p>
+                    <div className="mt-2 flex flex-wrap gap-2 text-[10px] uppercase tracking-[0.18em]">
+                      <span className="rounded-full border border-white/10 px-2 py-1 text-slate-400">{getKindLabel(lang, template.kind)}</span>
+                      <span className={`rounded-full px-2 py-1 ${template.isActive ? 'bg-emerald-500/15 text-emerald-300' : 'bg-white/[0.05] text-slate-400'}`}>
+                        {template.isActive ? getAdminText(lang, 'template_active') : getAdminText(lang, 'template_disabled')}
+                      </span>
+                    </div>
                   </div>
-                  <span className={`rounded-full px-2 py-1 text-[10px] uppercase tracking-widest ${template.isActive ? 'bg-emerald-500/15 text-emerald-300' : 'bg-astro-bg text-astro-subtext'}`}>
-                    {template.isActive ? T(lang, 'Активен', 'Active') : T(lang, 'Выключен', 'Disabled')}
-                  </span>
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <button
-                    onClick={() => {
-                      handleUseTemplate(template);
-                      onChangeSection?.('send');
-                    }}
-                    className="rounded-lg border border-astro-border px-3 py-2 text-xs font-semibold uppercase tracking-widest text-astro-text"
-                  >
-                    {T(lang, 'Использовать', 'Use')}
-                  </button>
-                  <button
-                    onClick={() => handleEditTemplate(template)}
-                    className="rounded-lg border border-astro-border px-3 py-2 text-xs font-semibold uppercase tracking-widest text-astro-text"
-                  >
-                    {T(lang, 'Редактировать', 'Edit')}
-                  </button>
+                  <div className="flex flex-wrap gap-2">
+                    <AdminChipButton onClick={() => handleUseTemplate(template)}>{getAdminText(lang, 'template_use')}</AdminChipButton>
+                    <AdminChipButton onClick={() => handleEditTemplate(template)}>{getAdminText(lang, 'template_edit')}</AdminChipButton>
+                    <AdminChipButton onClick={() => handleEditTemplate(template, true)}>{getAdminText(lang, 'template_duplicate')}</AdminChipButton>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         )}
-      </section>
+      </AdminSurface>
+ 
+      {editorOpen ? (
+        <div className="fixed inset-0 z-[85] bg-black/55 backdrop-blur-sm">
+          <div className="absolute inset-x-0 bottom-0 top-24 overflow-y-auto rounded-t-[30px] border border-white/10 bg-[#091221] shadow-2xl md:inset-y-6 md:right-6 md:left-auto md:w-[520px] md:rounded-[30px]">
+            <div className="sticky top-0 z-10 border-b border-white/10 bg-[#091221]/95 px-5 py-4 backdrop-blur">
+              <button
+                onClick={() => setEditorOpen(false)}
+                className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-200"
+              >
+                ← {getAdminText(lang, 'close')}
+              </button>
+              <div className="mt-3">
+                <h3 className="font-serif text-2xl text-white">
+                  {draft.id ? getAdminText(lang, 'template_edit') : getAdminText(lang, 'template_new')}
+                </h3>
+              </div>
+            </div>
 
-      <section className="space-y-4 rounded-2xl border border-astro-border bg-astro-card p-4">
-        <h4 className="font-medium text-astro-text">
-          {draft.id ? T(lang, 'Редактирование шаблона', 'Edit template') : T(lang, 'Новый шаблон', 'New template')}
-        </h4>
-        <input
-          value={draft.title}
-          onChange={(event) => setDraft((prev) => ({ ...prev, title: event.target.value }))}
-          placeholder={T(lang, 'Заголовок', 'Title')}
-          className="w-full rounded-lg border border-astro-border bg-astro-bg px-3 py-2 text-sm text-astro-text outline-none focus:border-astro-highlight/40"
-        />
-        <select
-          value={draft.kind}
-          onChange={(event) => setDraft((prev) => ({ ...prev, kind: event.target.value as AdminNotificationTemplateKind }))}
-          className="w-full rounded-lg border border-astro-border bg-astro-bg px-3 py-2 text-sm text-astro-text outline-none focus:border-astro-highlight/40"
-        >
-          {KINDS.map((kind) => (
-            <option key={kind} value={kind}>{getKindLabel(lang, kind)}</option>
-          ))}
-        </select>
-        <textarea
-          value={draft.bodyRu}
-          onChange={(event) => setDraft((prev) => ({ ...prev, bodyRu: event.target.value }))}
-          rows={4}
-          placeholder="RU"
-          className="w-full rounded-lg border border-astro-border bg-astro-bg px-3 py-2 text-sm text-astro-text outline-none focus:border-astro-highlight/40"
-        />
-        <textarea
-          value={draft.bodyEn}
-          onChange={(event) => setDraft((prev) => ({ ...prev, bodyEn: event.target.value }))}
-          rows={4}
-          placeholder="EN"
-          className="w-full rounded-lg border border-astro-border bg-astro-bg px-3 py-2 text-sm text-astro-text outline-none focus:border-astro-highlight/40"
-        />
-        <button
-          onClick={() => setDraft((prev) => ({ ...prev, isActive: !prev.isActive }))}
-          className={`rounded-lg px-4 py-2 text-sm font-semibold ${draft.isActive ? 'border border-emerald-500/40 bg-emerald-500/10 text-emerald-300' : 'border border-astro-border bg-astro-bg text-astro-subtext'}`}
-        >
-          {draft.isActive ? T(lang, 'Активен', 'Active') : T(lang, 'Выключен', 'Disabled')}
-        </button>
-        <div className="flex flex-wrap gap-3">
-          <button
-            onClick={handleSaveTemplate}
-            disabled={actionLoading === 'template-save'}
-            className="rounded-lg bg-astro-highlight px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
-          >
-            {actionLoading === 'template-save' ? T(lang, 'Сохраняем...', 'Saving...') : T(lang, 'Сохранить шаблон', 'Save template')}
-          </button>
-          <button
-            onClick={() => setDraft(emptyTemplateDraft)}
-            className="rounded-lg border border-astro-border px-4 py-2 text-sm font-semibold text-astro-text"
-          >
-            {T(lang, 'Сбросить', 'Reset')}
-          </button>
+            <div className="space-y-4 px-5 py-5">
+              <input
+                value={draft.title}
+                onChange={(event) => setDraft((prev) => ({ ...prev, title: event.target.value }))}
+                placeholder={getAdminText(lang, 'title')}
+                className="w-full rounded-[18px] border border-white/10 bg-[#0b1525] px-4 py-3 text-sm text-white outline-none focus:border-sky-400/40"
+              />
+              <select
+                value={draft.kind}
+                onChange={(event) => setDraft((prev) => ({ ...prev, kind: event.target.value as AdminNotificationTemplateKind }))}
+                className="w-full rounded-[18px] border border-white/10 bg-[#0b1525] px-4 py-3 text-sm text-white outline-none focus:border-sky-400/40"
+              >
+                {KINDS.filter((item): item is AdminNotificationTemplateKind => item !== 'all').map((kind) => (
+                  <option key={kind} value={kind}>{getKindLabel(lang, kind)}</option>
+                ))}
+              </select>
+              <textarea
+                value={draft.bodyRu}
+                onChange={(event) => setDraft((prev) => ({ ...prev, bodyRu: event.target.value }))}
+                rows={6}
+                placeholder={getAdminText(lang, 'body_ru')}
+                className="w-full rounded-[18px] border border-white/10 bg-[#0b1525] px-4 py-3 text-sm text-white outline-none focus:border-sky-400/40"
+              />
+              <textarea
+                value={draft.bodyEn}
+                onChange={(event) => setDraft((prev) => ({ ...prev, bodyEn: event.target.value }))}
+                rows={6}
+                placeholder={getAdminText(lang, 'body_en')}
+                className="w-full rounded-[18px] border border-white/10 bg-[#0b1525] px-4 py-3 text-sm text-white outline-none focus:border-sky-400/40"
+              />
+              <button
+                onClick={() => setDraft((prev) => ({ ...prev, isActive: !prev.isActive }))}
+                className={`rounded-[18px] px-4 py-3 text-sm font-semibold ${
+                  draft.isActive ? 'border border-emerald-500/30 bg-emerald-500/10 text-emerald-200' : 'border border-white/10 bg-white/[0.03] text-slate-300'
+                }`}
+              >
+                {draft.isActive ? getAdminText(lang, 'template_active') : getAdminText(lang, 'template_disabled')}
+              </button>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={() => void handleSaveTemplate()}
+                  disabled={actionLoading === 'template-save'}
+                  className="rounded-[18px] bg-sky-400 px-5 py-3 text-sm font-semibold text-[#07111f] disabled:opacity-60"
+                >
+                  {actionLoading === 'template-save' ? getAdminText(lang, 'sending') : getAdminText(lang, 'template_save')}
+                </button>
+                <button
+                  onClick={() => setDraft(emptyTemplateDraft)}
+                  className="rounded-[18px] border border-white/10 bg-white/[0.03] px-5 py-3 text-sm font-semibold text-white"
+                >
+                  {getAdminText(lang, 'reset')}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
-      </section>
+      ) : null}
     </div>
   );
 
   const renderHistory = () => (
-    <section className="space-y-4 rounded-2xl border border-astro-border bg-astro-card p-4">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h3 className="font-serif text-lg text-astro-text">{T(lang, 'История отправок', 'Notification history')}</h3>
-          <p className="mt-1 text-xs text-astro-subtext">
-            {T(lang, 'Последние отправки и ошибки доставки', 'Recent sends and delivery failures')}
-          </p>
+    <div className="space-y-5">
+      <AdminSurface className="px-5 py-5">
+        <AdminSectionHeader
+          eyebrow="History"
+          title={getAdminText(lang, 'history_title')}
+          subtitle={getAdminText(lang, 'history_subtitle')}
+          action={(
+            <button
+              onClick={() => void loadHistory(historyPagination.page)}
+              className="rounded-[18px] border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-white"
+            >
+              {getAdminText(lang, 'refresh')}
+            </button>
+          )}
+        />
+
+        <div className="mt-5 grid gap-3 lg:grid-cols-2">
+          <select
+            value={historyMode}
+            onChange={(event) => {
+              setHistoryMode(event.target.value as AdminNotificationModeFilter);
+              setHistoryPagination((prev) => ({ ...prev, page: 1 }));
+            }}
+            className="rounded-[18px] border border-white/10 bg-[#0b1525] px-4 py-3 text-sm text-white outline-none focus:border-sky-400/40"
+          >
+            {HISTORY_MODES.map((item) => (
+              <option key={item} value={item}>{getHistoryModeLabel(lang, item)}</option>
+            ))}
+          </select>
+          <select
+            value={historyResult}
+            onChange={(event) => {
+              setHistoryResult(event.target.value as AdminHistoryResultFilter);
+              setHistoryPagination((prev) => ({ ...prev, page: 1 }));
+            }}
+            className="rounded-[18px] border border-white/10 bg-[#0b1525] px-4 py-3 text-sm text-white outline-none focus:border-sky-400/40"
+          >
+            {HISTORY_RESULTS.map((item) => (
+              <option key={item} value={item}>{getHistoryResultLabel(lang, item)}</option>
+            ))}
+          </select>
         </div>
-        <button
-          onClick={() => void loadData()}
-          className="rounded-lg border border-astro-border px-4 py-2 text-xs font-semibold uppercase tracking-widest text-astro-text"
-        >
-          {T(lang, 'Обновить', 'Refresh')}
-        </button>
-      </div>
+      </AdminSurface>
 
-      {loading && history.length === 0 ? (
-        <p className="text-sm text-astro-subtext">{T(lang, 'Загружаем историю...', 'Loading history...')}</p>
-      ) : history.length === 0 ? (
-        <p className="text-sm text-astro-subtext">{T(lang, 'История отправок пока пуста', 'No notification history yet')}</p>
-      ) : (
-        <div className="space-y-3">
-          {history.map((item) => (
-            <div key={item.id} className="rounded-xl border border-astro-border bg-astro-bg/20 p-4">
-              <div className="flex items-start justify-between gap-4">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-astro-text">{item.title}</p>
-                  <p className="mt-1 text-xs text-astro-subtext">
-                    {item.mode === 'personal'
-                      ? `${T(lang, 'Личное', 'Personal')}: ${item.targetUserName || item.targetUserId || '—'}`
-                      : `${T(lang, 'Массовое', 'Broadcast')}: ${item.targetSegment ? getSegmentLabel(lang, item.targetSegment) : '—'}`}
-                  </p>
-                  <p className="mt-1 text-xs text-astro-subtext">{formatDateTime(lang, item.createdAt)}</p>
-                </div>
-                <div className="text-right text-xs text-astro-subtext">
-                  <p>{item.successCount}/{item.totalRecipients} {T(lang, 'доставлено', 'sent')}</p>
-                  <p className="mt-1 text-red-300">{item.failedCount} {T(lang, 'ошибок', 'failed')}</p>
-                </div>
-              </div>
-
-              <div className="mt-3 flex flex-wrap gap-2">
-                <button
-                  onClick={() => handleReuseCampaign(item)}
-                  className="rounded-lg border border-astro-border px-3 py-2 text-xs font-semibold uppercase tracking-widest text-astro-text"
-                >
-                  {T(lang, 'Переиспользовать', 'Reuse')}
-                </button>
-              </div>
-
-              {item.recentFailures.length > 0 && (
-                <div className="mt-3 space-y-2">
-                  {item.recentFailures.map((failure) => (
-                    <div key={`${item.id}-${failure.userId}-${failure.createdAt}`} className="rounded-lg border border-red-500/30 bg-red-500/5 p-3">
-                      <p className="text-sm text-red-200">{failure.userName}</p>
-                      <p className="mt-1 text-xs text-red-200/80">{failure.error}</p>
-                      <p className="mt-1 text-xs text-astro-subtext">{formatDateTime(lang, failure.createdAt)}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
+      <AdminSurface className="overflow-hidden">
+        {historyLoading ? (
+          <div className="px-5 py-8 text-sm text-slate-400">{getAdminText(lang, 'refresh')}…</div>
+        ) : history.length === 0 ? (
+          <div className="px-5 py-8">
+            <AdminEmptyState title={getAdminText(lang, 'history_empty')} body={getAdminText(lang, 'history_subtitle')} />
+          </div>
+        ) : (
+          <>
+            <div className="divide-y divide-white/10">
+              {history.map((item) => (
+                <HistoryCard
+                  key={item.id}
+                  item={item}
+                  lang={lang}
+                  expanded={!!expandedFailures[item.id]}
+                  onToggleFailures={() => setExpandedFailures((prev) => ({ ...prev, [item.id]: !prev[item.id] }))}
+                  onReuse={() => handleReuseCampaign(item)}
+                />
+              ))}
             </div>
-          ))}
-        </div>
-      )}
-    </section>
+            <AdminPagination
+              page={historyPagination.page}
+              totalPages={historyPagination.totalPages}
+              total={historyPagination.total}
+              pageSize={historyPagination.pageSize}
+              label={getAdminText(lang, 'users_page')}
+              onPageChange={(page) => setHistoryPagination((prev) => ({ ...prev, page }))}
+            />
+          </>
+        )}
+      </AdminSurface>
+    </div>
   );
 
   return (
-    <div className="space-y-4">
-      {error && (
-        <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-300">
-          {error}
-        </div>
-      )}
+    <div className="space-y-5">
+      {error ? <AdminStateBanner tone="error">{error}</AdminStateBanner> : null}
+      {section === 'send' ? renderSend() : null}
+      {section === 'templates' ? renderTemplates() : null}
+      {section === 'history' ? renderHistory() : null}
+    </div>
+  );
+};
 
-      {section === 'send' && renderSend()}
-      {section === 'templates' && renderTemplates()}
-      {section === 'history' && renderHistory()}
+const HistoryCard: React.FC<{
+  item: AdminNotificationHistoryItem;
+  lang: 'ru' | 'en';
+  expanded: boolean;
+  onToggleFailures: () => void;
+  onReuse: () => void;
+}> = ({ item, lang, expanded, onToggleFailures, onReuse }) => {
+  const tone = getCampaignTone(item);
+  const toneClass = tone === 'success'
+    ? 'bg-emerald-500/12 text-emerald-200'
+    : tone === 'partial'
+      ? 'bg-amber-500/12 text-amber-200'
+      : 'bg-red-500/12 text-red-200';
+
+  return (
+    <div className="px-5 py-5">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-base font-medium text-white">{item.title}</p>
+            <span className={`rounded-full px-2 py-1 text-[10px] uppercase tracking-[0.18em] ${toneClass}`}>
+              {getHistoryResultLabel(lang, getCampaignTone(item))}
+            </span>
+          </div>
+          <p className="mt-2 text-sm text-slate-400">
+            {item.mode === 'personal'
+              ? `${getAdminText(lang, 'personal')}: ${item.targetUserName || item.targetUserId || '—'}`
+              : `${getAdminText(lang, 'broadcast')}: ${item.targetSegment ? getSegmentLabel(lang, item.targetSegment) : '—'}`}
+          </p>
+          <p className="mt-1 text-xs text-slate-500">{formatDateTime(lang, item.createdAt)}</p>
+        </div>
+
+        <div className="text-right text-sm text-slate-300">
+          <p>{item.successCount}/{item.totalRecipients} {getAdminText(lang, 'sent_count')}</p>
+          <p className="mt-1 text-red-300">{item.failedCount} {getAdminText(lang, 'failed_count')}</p>
+        </div>
+      </div>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        <AdminChipButton onClick={onReuse}>{getAdminText(lang, 'reuse')}</AdminChipButton>
+        {item.recentFailures.length > 0 ? (
+          <AdminChipButton onClick={onToggleFailures}>
+            {expanded ? getAdminText(lang, 'hide_failures') : getAdminText(lang, 'show_failures')}
+          </AdminChipButton>
+        ) : null}
+      </div>
+
+      {expanded && item.recentFailures.length > 0 ? (
+        <div className="mt-4 space-y-3">
+          {item.recentFailures.map((failure) => (
+            <div key={`${item.id}-${failure.userId}-${failure.createdAt}`} className="rounded-[18px] border border-red-500/20 bg-red-500/5 p-4">
+              <p className="text-sm text-red-100">{failure.userName}</p>
+              <p className="mt-1 text-xs leading-5 text-red-200/80">{failure.error}</p>
+              <p className="mt-2 text-xs text-slate-500">{formatDateTime(lang, failure.createdAt)}</p>
+            </div>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 };

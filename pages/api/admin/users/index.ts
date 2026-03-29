@@ -2,6 +2,20 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { requireAdminAccess, handleAdminError } from '../../../../lib/adminAuth';
 import { db } from '../../../../lib/db';
 import { serializeAdminUserSummary, serializeAdminUsersOverview } from '../../../../lib/adminSerializers';
+import type { AdminSortOrder, AdminUserSortBy } from '../../../../types';
+
+function isValidUserSortBy(value: unknown): value is AdminUserSortBy {
+  return value === 'last_seen'
+    || value === 'created_at'
+    || value === 'lumi_balance'
+    || value === 'premium_until'
+    || value === 'saved_charts_count'
+    || value === 'name';
+}
+
+function isValidSortOrder(value: unknown): value is AdminSortOrder {
+  return value === 'asc' || value === 'desc';
+}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
@@ -22,16 +36,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       || req.query.segment === 'need_attention'
       ? req.query.segment
       : 'all';
-    const limitRaw = typeof req.query.limit === 'string' ? parseInt(req.query.limit, 10) : 100;
-    const limit = Number.isFinite(limitRaw) ? limitRaw : 100;
+    const pageRaw = typeof req.query.page === 'string' ? parseInt(req.query.page, 10) : 1;
+    const page = Number.isFinite(pageRaw) && pageRaw > 0 ? pageRaw : 1;
+    const pageSizeRaw = typeof req.query.pageSize === 'string'
+      ? parseInt(req.query.pageSize, 10)
+      : (typeof req.query.limit === 'string' ? parseInt(req.query.limit, 10) : 25);
+    const pageSize = Math.min(Math.max(Number.isFinite(pageSizeRaw) ? pageSizeRaw : 25, 1), 100);
+    const sortBy = isValidUserSortBy(req.query.sortBy) ? req.query.sortBy : 'last_seen';
+    const sortOrder = isValidSortOrder(req.query.sortOrder) ? req.query.sortOrder : 'desc';
 
-    const [users, overview] = await Promise.all([
-      db.admin.listUsers({ q, premium, segment, limit }),
+    const [usersPayload, overview] = await Promise.all([
+      db.admin.listUsers({ q, premium, segment, page, pageSize, sortBy, sortOrder }),
       db.admin.getUsersOverview(),
     ]);
     return res.status(200).json({
-      users: users.map(serializeAdminUserSummary),
+      users: usersPayload.users.map(serializeAdminUserSummary),
       overview: serializeAdminUsersOverview(overview),
+      pagination: usersPayload.pagination,
     });
   } catch (error) {
     return handleAdminError(res, error);
