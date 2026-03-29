@@ -6,6 +6,7 @@ import type {
   UserProfile,
 } from '../../../types';
 import {
+  createScheduledNotificationTemplate,
   deleteNotificationAsset,
   deleteScheduledNotificationTemplate,
   fetchNotificationAssets,
@@ -16,11 +17,11 @@ import {
   runNotificationSlot,
   sendScheduledNotificationTest,
   uploadNotificationAsset,
-  createScheduledNotificationTemplate,
 } from '../../../services/adminService';
-import { NotificationTemplateList } from './NotificationTemplateList';
-import { NotificationTemplateForm } from './NotificationTemplateForm';
+import { AdminBadge, AdminButton, AdminSectionHeader, AdminStateBanner, AdminSurface } from '../../../views/admin/AdminPrimitives';
 import { NotificationMediaLibrary } from './NotificationMediaLibrary';
+import { NotificationTemplateForm } from './NotificationTemplateForm';
+import { NotificationTemplateList } from './NotificationTemplateList';
 
 interface NotificationsManagerProps {
   profile: UserProfile;
@@ -28,7 +29,7 @@ interface NotificationsManagerProps {
 
 type CmsTab = 'templates' | 'media';
 
-export const NotificationsManager: React.FC<NotificationsManagerProps> = ({ profile: _profile }) => {
+export const NotificationsManager: React.FC<NotificationsManagerProps> = () => {
   const [cmsTab, setCmsTab] = useState<CmsTab>('templates');
   const [templates, setTemplates] = useState<AdminScheduledNotificationTemplate[]>([]);
   const [assets, setAssets] = useState<AdminScheduledNotificationAsset[]>([]);
@@ -58,77 +59,74 @@ export const NotificationsManager: React.FC<NotificationsManagerProps> = ({ prof
     void loadAll();
   }, [loadAll]);
 
-  const handleSaved = useCallback(
-    async (result?: { id?: number }) => {
-      await loadAll();
-      const idToOpen = result?.id ?? selected?.id;
-      if (idToOpen != null) {
-        try {
-          setSelected(await fetchScheduledNotificationTemplate(idToOpen));
-        } catch {
-          /* ignore */
-        }
+  const handleSaved = useCallback(async (result?: { id?: number }) => {
+    await loadAll();
+    const idToOpen = result?.id ?? selected?.id;
+    if (idToOpen != null) {
+      try {
+        setSelected(await fetchScheduledNotificationTemplate(idToOpen));
+      } catch {
+        /* ignore */
       }
-    },
-    [loadAll, selected?.id]
-  );
+    }
+  }, [loadAll, selected?.id]);
 
-  const openTemplate = async (t: AdminScheduledNotificationTemplate | null) => {
-    if (!t) {
+  const openTemplate = async (template: AdminScheduledNotificationTemplate | null) => {
+    if (!template) {
       setSelected(null);
       return;
     }
     try {
-      const full = await fetchScheduledNotificationTemplate(t.id);
+      const full = await fetchScheduledNotificationTemplate(template.id);
       setSelected(full);
     } catch {
-      setSelected(t);
+      setSelected(template);
     }
   };
 
-  const handleDuplicate = async (t: AdminScheduledNotificationTemplate) => {
+  const handleDuplicate = async (template: AdminScheduledNotificationTemplate) => {
     try {
       await createScheduledNotificationTemplate({
-        name: `${t.name} (копия)`,
-        slot: t.slot,
-        visualMode: t.visualMode || 'none',
-        messageType: t.messageType,
-        text: t.text,
-        buttonText: t.buttonText,
-        deepLink: t.deepLink,
-        assetId: t.assetId,
-        generatedPreset: t.generatedPreset,
-        generatedTitle: t.generatedTitle,
-        generatedSubtitle: t.generatedSubtitle,
-        generatedAccent: t.generatedAccent,
-        generatedShowDate: t.generatedShowDate,
-        generatedShowSlotLabel: t.generatedShowSlotLabel,
-        generatedZodiacMode: t.generatedZodiacMode,
-        generatedCustomZodiac: t.generatedCustomZodiac,
+        name: `${template.name} (copy)`,
+        slot: template.slot,
+        visualMode: template.visualMode || 'none',
+        messageType: template.messageType,
+        text: template.text,
+        buttonText: template.buttonText,
+        deepLink: template.deepLink,
+        assetId: template.assetId,
+        generatedPreset: template.generatedPreset,
+        generatedTitle: template.generatedTitle,
+        generatedSubtitle: template.generatedSubtitle,
+        generatedAccent: template.generatedAccent,
+        generatedShowDate: template.generatedShowDate,
+        generatedShowSlotLabel: template.generatedShowSlotLabel,
+        generatedZodiacMode: template.generatedZodiacMode,
+        generatedCustomZodiac: template.generatedCustomZodiac,
         isActive: false,
-        notes: t.notes,
-        schedules: (t.schedules || []).map((s) => ({
-          sendTime: s.sendTime,
-          timezone: s.timezone,
-          repeatMode: s.repeatMode,
-          isActive: s.isActive,
+        notes: template.notes,
+        schedules: (template.schedules || []).map((schedule) => ({
+          sendTime: schedule.sendTime,
+          timezone: schedule.timezone,
+          repeatMode: schedule.repeatMode,
+          isActive: schedule.isActive,
         })),
       });
-      setToast('Дубликат создан');
+      setToast('Template duplicate created');
       await loadAll();
-    } catch (e: any) {
-      setToast(e?.message || 'Ошибка');
+    } catch (error: any) {
+      setToast(error?.message || 'Error');
     }
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Удалить шаблон?')) return;
+    if (!confirm('Delete template?')) return;
     try {
       await deleteScheduledNotificationTemplate(id);
       if (selected?.id === id) setSelected(null);
       await loadAll();
-    } catch (e: any) {
-      setToast(e?.message || 'Ошибка');
+    } catch (error: any) {
+      setToast(error?.message || 'Error');
     }
   };
 
@@ -139,42 +137,42 @@ export const NotificationsManager: React.FC<NotificationsManagerProps> = ({ prof
       if (selected?.id === id) {
         setSelected((prev) => (prev ? { ...prev, isActive } : null));
       }
-    } catch (e: any) {
-      setToast(e?.message || 'Ошибка');
+    } catch (error: any) {
+      setToast(error?.message || 'Error');
     }
   };
 
   const handleTest = async (id: number) => {
     try {
-      const r = await sendScheduledNotificationTest(id);
-      setToast(`Тест: ${r.successCount} ок, ${r.failureCount} ошибок`);
+      const result = await sendScheduledNotificationTest(id);
+      setToast(`Test: ${result.successCount} success, ${result.failureCount} failed`);
       await loadAll();
-    } catch (e: any) {
-      setToast(e?.message || 'Ошибка');
+    } catch (error: any) {
+      setToast(error?.message || 'Error');
     }
   };
 
   const handleRunSlot = async (slot: 'morning' | 'day' | 'evening' | 'custom') => {
     try {
-      const r = await runNotificationSlot(slot, null);
-      setToast(`Слот: шаблон #${r.templateId ?? '—'}, ${r.successCount}/${r.totalRecipients}`);
+      const result = await runNotificationSlot(slot, null);
+      setToast(`Slot run: template #${result.templateId ?? '—'}, ${result.successCount}/${result.totalRecipients}`);
       await loadAll();
-    } catch (e: any) {
-      setToast(e?.message || 'Ошибка');
+    } catch (error: any) {
+      setToast(error?.message || 'Error');
     }
   };
 
   const onUploadAsset = async (file: File) => {
     setAssetUploading(true);
     try {
-      const a = await uploadNotificationAsset(file);
-      setAssets((prev) => [a, ...prev]);
+      const asset = await uploadNotificationAsset(file);
+      setAssets((prev) => [asset, ...prev]);
       setSelected((prev) =>
-        prev && (prev.visualMode === 'uploaded' || prev.messageType === 'photo') ? { ...prev, assetId: a.id } : prev
+        prev && (prev.visualMode === 'uploaded' || prev.messageType === 'photo') ? { ...prev, assetId: asset.id } : prev
       );
-      setToast('Файл загружен');
-    } catch (e: any) {
-      setToast(e?.message || 'Не удалось загрузить');
+      setToast('Asset uploaded');
+    } catch (error: any) {
+      setToast(error?.message || 'Upload failed');
     } finally {
       setAssetUploading(false);
     }
@@ -183,134 +181,141 @@ export const NotificationsManager: React.FC<NotificationsManagerProps> = ({ prof
   const onDeleteAsset = async (id: number) => {
     try {
       await deleteNotificationAsset(id);
-      setAssets((prev) => prev.filter((a) => a.id !== id));
+      setAssets((prev) => prev.filter((asset) => asset.id !== id));
       if (selected?.assetId === id) {
         setSelected((prev) => (prev ? { ...prev, assetId: null } : null));
       }
-    } catch (e: any) {
-      setToast(e?.message || 'Нельзя удалить: возможно, файл используется');
+    } catch (error: any) {
+      setToast(error?.message || 'Cannot delete asset');
     }
   };
 
   useEffect(() => {
     if (!toast) return;
-    const t = setTimeout(() => setToast(null), 4000);
-    return () => clearTimeout(t);
+    const timeoutId = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(timeoutId);
   }, [toast]);
 
-  const visualLabelRu = useMemo(
-    () =>
-      ({
-        none: 'текст',
-        uploaded: 'фото',
-        generated: 'карточка',
-      }) as const,
-    []
-  );
+  const visualLabelRu = useMemo(() => ({
+    none: 'text',
+    uploaded: 'photo',
+    generated: 'card',
+  }) as const, []);
 
   return (
-    <div className="space-y-6">
-      {toast ? (
-        <div className="rounded-lg border border-astro-highlight/30 bg-astro-highlight/10 px-3 py-2 text-sm text-astro-text">
-          {toast}
-        </div>
-      ) : null}
+    <div className="space-y-5">
+      {toast ? <AdminStateBanner tone="info">{toast}</AdminStateBanner> : null}
 
-      <div className="flex flex-wrap gap-2 rounded-2xl border border-astro-border bg-astro-card/40 p-2">
-        <button
-          type="button"
-          onClick={() => setCmsTab('templates')}
-          className={`rounded-xl px-4 py-2 text-xs font-semibold transition-colors ${
-            cmsTab === 'templates' ? 'bg-astro-highlight text-white' : 'text-astro-subtext hover:text-astro-text'
-          }`}
-        >
-          Шаблоны и автоматика
-        </button>
-        <button
-          type="button"
-          onClick={() => setCmsTab('media')}
-          className={`rounded-xl px-4 py-2 text-xs font-semibold transition-colors ${
-            cmsTab === 'media' ? 'bg-astro-highlight text-white' : 'text-astro-subtext hover:text-astro-text'
-          }`}
-        >
-          Медиатека ({assets.length})
-        </button>
-      </div>
+      <AdminSurface className="px-5 py-5 sm:px-6 sm:py-6">
+        <AdminSectionHeader
+          eyebrow="Automation"
+          title="Advanced notification automation"
+          subtitle="Scheduled templates, slot execution, media assets, and delivery diagnostics."
+          action={(
+            <AdminButton tone="secondary" onClick={() => void loadAll()}>
+              Refresh
+            </AdminButton>
+          )}
+        />
+
+        <div className="mt-6 flex flex-wrap gap-2">
+          <AdminButton tone={cmsTab === 'templates' ? 'primary' : 'secondary'} onClick={() => setCmsTab('templates')}>
+            Templates & slots
+          </AdminButton>
+          <AdminButton tone={cmsTab === 'media' ? 'primary' : 'secondary'} onClick={() => setCmsTab('media')}>
+            Media library
+          </AdminButton>
+          <AdminBadge tone="neutral">{assets.length} assets</AdminBadge>
+          <AdminBadge tone="neutral">{templates.length} templates</AdminBadge>
+        </div>
+      </AdminSurface>
 
       {cmsTab === 'media' ? (
-        <div className="rounded-2xl border border-astro-border bg-astro-card p-4">
-          <NotificationMediaLibrary
-            assets={assets}
-            uploading={assetUploading}
-            onUpload={onUploadAsset}
-            onDelete={onDeleteAsset}
-            onRefresh={() => void loadAll()}
-          />
-        </div>
+        <AdminSurface className="px-4 py-4 sm:px-5 sm:py-5">
+          <div className="admin-cms-surface">
+            <NotificationMediaLibrary
+              assets={assets}
+              uploading={assetUploading}
+              onUpload={onUploadAsset}
+              onDelete={onDeleteAsset}
+              onRefresh={() => void loadAll()}
+            />
+          </div>
+        </AdminSurface>
       ) : null}
 
       {cmsTab === 'templates' ? (
-        <>
-          <div className="rounded-2xl border border-astro-border bg-astro-card p-4">
-            <NotificationTemplateList
-              templates={templates}
-              selectedId={selected?.id ?? null}
-              onSelect={(t) => void openTemplate(t)}
-              onDuplicate={handleDuplicate}
-              onDelete={handleDelete}
-              onToggleActive={handleToggle}
-              onTestSend={handleTest}
-              onRunSlot={handleRunSlot}
-              onNew={() => setSelected(null)}
-              loading={loading}
-              visualLabelRu={visualLabelRu}
+        <div className="grid gap-5 xl:grid-cols-[380px_minmax(0,1fr)]">
+          <AdminSurface className="px-4 py-4 sm:px-5 sm:py-5">
+            <div className="admin-cms-surface">
+              <NotificationTemplateList
+                templates={templates}
+                selectedId={selected?.id ?? null}
+                onSelect={(template) => void openTemplate(template)}
+                onDuplicate={handleDuplicate}
+                onDelete={handleDelete}
+                onToggleActive={handleToggle}
+                onTestSend={handleTest}
+                onRunSlot={handleRunSlot}
+                onNew={() => setSelected(null)}
+                loading={loading}
+                visualLabelRu={visualLabelRu}
+              />
+            </div>
+          </AdminSurface>
+
+          <div className="admin-cms-surface">
+            <NotificationTemplateForm
+              template={selected}
+              assets={assets}
+              onSaved={handleSaved}
+              onUploadAsset={onUploadAsset}
+              onDeleteAsset={onDeleteAsset}
+              assetUploading={assetUploading}
             />
           </div>
-
-          <NotificationTemplateForm
-            template={selected}
-            assets={assets}
-            onSaved={handleSaved}
-            onUploadAsset={onUploadAsset}
-            onDeleteAsset={onDeleteAsset}
-            assetUploading={assetUploading}
-          />
-        </>
+        </div>
       ) : null}
 
-      <section className="rounded-2xl border border-astro-border bg-astro-card p-4">
-        <div className="mb-3 flex items-center justify-between">
-          <h3 className="font-serif text-lg text-astro-text">Журнал доставки</h3>
-          <button type="button" onClick={() => void loadAll()} className="text-xs text-astro-highlight">
-            Обновить
-          </button>
+      <AdminSurface className="px-5 py-5 sm:px-6 sm:py-6">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="admin-label">Delivery log</p>
+            <h3 className="admin-heading mt-2 text-2xl text-white">Recent runs</h3>
+          </div>
+          <AdminButton tone="secondary" onClick={() => void loadAll()}>
+            Refresh
+          </AdminButton>
         </div>
+
         {deliveryLog.length === 0 ? (
-          <p className="text-sm text-astro-subtext">Пока пусто</p>
+          <p className="mt-5 text-sm text-slate-400">Nothing has run yet.</p>
         ) : (
-          <div className="max-h-64 space-y-2 overflow-y-auto text-xs">
+          <div className="mt-5 max-h-[420px] space-y-3 overflow-y-auto admin-scroll">
             {deliveryLog.map((row) => (
-              <div key={row.id} className="rounded-lg border border-astro-border/50 bg-astro-bg/20 p-2">
-                <p className="font-medium text-astro-text">
-                  {row.templateName || `#${row.templateId ?? '—'}`} · {row.status}
-                </p>
-                <p className="text-astro-subtext">
-                  {row.successCount}/{row.recipientCount} успешно
-                  {row.failureCount ? ` · ${row.failureCount} ошибок` : ''}
-                  {row.visualMode ? ` · ${visualLabelRu[row.visualMode as keyof typeof visualLabelRu] || row.visualMode}` : ''}
+              <div key={row.id} className="admin-surface-muted p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-white">{row.templateName || `#${row.templateId ?? '—'}`}</p>
+                    <p className="mt-1 text-xs text-slate-400">{row.sentAt || row.createdAt}</p>
+                  </div>
+                  <AdminBadge tone={row.failureCount > 0 ? 'warning' : 'success'}>{row.status}</AdminBadge>
+                </div>
+                <p className="mt-3 text-sm leading-6 text-slate-300">
+                  {row.successCount}/{row.recipientCount} success
+                  {row.failureCount ? ` · ${row.failureCount} failed` : ''}
                   {row.generatedPreset ? ` · ${row.generatedPreset}` : ''}
-                  {row.generatedCacheHit === true ? ' · из кэша' : row.generatedCacheHit === false ? ' · сгенерировано' : ''}
                 </p>
-                {row.errorSummary ? <p className="text-red-300/90">{row.errorSummary}</p> : null}
-                <p className="text-[10px] text-astro-subtext/80">{row.sentAt || row.createdAt}</p>
+                {row.errorSummary ? <p className="mt-2 text-xs leading-5 text-red-300">{row.errorSummary}</p> : null}
               </div>
             ))}
           </div>
         )}
-        <p className="mt-3 text-[10px] text-astro-subtext">
-          Cron: POST /api/cron/notifications-daily с заголовком Authorization: Bearer CRON_SECRET
+
+        <p className="mt-4 text-xs leading-5 text-slate-500">
+          Cron endpoint: POST /api/cron/notifications-daily with Authorization: Bearer CRON_SECRET
         </p>
-      </section>
+      </AdminSurface>
     </div>
   );
 };

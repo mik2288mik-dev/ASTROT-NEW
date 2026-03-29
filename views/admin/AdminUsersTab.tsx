@@ -3,6 +3,7 @@ import {
   type AdminUsersOverview,
   type AdminPremiumFilter,
   type AdminSortOrder,
+  type AdminUserDetail,
   type AdminUserSegment,
   type AdminUserSession,
   type AdminUserSortBy,
@@ -10,7 +11,18 @@ import {
   type LumiTransaction,
   type UserProfile,
 } from '../../types';
-import { AdminChipButton, AdminEmptyState, AdminPagination, AdminSectionHeader, AdminStateBanner, AdminSurface } from './AdminPrimitives';
+import {
+  AdminBadge,
+  AdminButton,
+  AdminChipButton,
+  AdminEmptyState,
+  AdminInput,
+  AdminPagination,
+  AdminSectionHeader,
+  AdminSelect,
+  AdminStateBanner,
+  AdminSurface,
+} from './AdminPrimitives';
 import { formatAdminText, getAdminText } from './adminText';
 import { useAdminUserDetail } from './hooks/useAdminUserDetail';
 import { useAdminUsersList } from './hooks/useAdminUsersList';
@@ -50,18 +62,6 @@ const formatDateOnly = (lang: 'ru' | 'en', value?: string | null) => {
   }).format(new Date(value));
 };
 
-const formatLumiReason = (lang: 'ru' | 'en', reason: string) => {
-  const map: Record<string, { ru: string; en: string }> = {
-    daily_login: { ru: 'Ежедневный вход', en: 'Daily login' },
-    streak_bonus: { ru: 'Бонус за серию входов', en: 'Streak bonus' },
-    chart_slot: { ru: 'Покупка слота для карты', en: 'Chart slot purchase' },
-    admin_lumi_add: { ru: 'Начисление Lumi от admin', en: 'Admin Lumi credit' },
-    admin_lumi_subtract: { ru: 'Списание Lumi от admin', en: 'Admin Lumi deduction' },
-    refund: { ru: 'Возврат', en: 'Refund' },
-  };
-  return map[reason]?.[lang] || reason.replaceAll('_', ' ');
-};
-
 const getSegmentLabel = (lang: 'ru' | 'en', segment: AdminUserSegment) => {
   const map: Record<AdminUserSegment, string> = {
     all: getAdminText(lang, 'segment_all'),
@@ -92,6 +92,23 @@ const getSortLabel = (lang: 'ru' | 'en', value: AdminUserSortBy) => {
   }
 };
 
+const formatLumiReason = (lang: 'ru' | 'en', reason: string) => {
+  const map: Record<string, { ru: string; en: string }> = {
+    daily_login: { ru: 'Ежедневный вход', en: 'Daily login' },
+    streak_bonus: { ru: 'Бонус за серию входов', en: 'Streak bonus' },
+    chart_slot: { ru: 'Покупка слота для карты', en: 'Chart slot purchase' },
+    admin_lumi_add: { ru: 'Начисление Lumi от admin', en: 'Admin Lumi credit' },
+    admin_lumi_subtract: { ru: 'Списание Lumi от admin', en: 'Admin Lumi deduction' },
+    refund: { ru: 'Возврат', en: 'Refund' },
+  };
+  return map[reason]?.[lang] || reason.replaceAll('_', ' ');
+};
+
+const getPremiumLabel = (lang: 'ru' | 'en', isPremium: boolean) => {
+  if (isPremium) return 'Premium';
+  return lang === 'ru' ? 'Free' : 'Free';
+};
+
 export const AdminUsersTab: React.FC<AdminUsersTabProps> = ({
   profile,
   segment,
@@ -107,11 +124,24 @@ export const AdminUsersTab: React.FC<AdminUsersTabProps> = ({
 
   const combinedError = detail.error || usersList.error;
 
-  const segmentBadgeValue = useMemo(() => ({
-    premium: usersList.overview.activePremiumUsers,
-    active_7d: usersList.overview.activeUsers7d,
-    need_attention: usersList.overview.needAttentionUsers,
-  }), [usersList.overview.activePremiumUsers, usersList.overview.activeUsers7d, usersList.overview.needAttentionUsers]);
+  const segmentCount = useMemo(() => {
+    switch (segment) {
+      case 'premium':
+        return usersList.overview.activePremiumUsers;
+      case 'active_7d':
+        return usersList.overview.activeUsers7d;
+      case 'need_attention':
+        return usersList.overview.needAttentionUsers;
+      default:
+        return usersList.pagination.total;
+    }
+  }, [
+    segment,
+    usersList.overview.activePremiumUsers,
+    usersList.overview.activeUsers7d,
+    usersList.overview.needAttentionUsers,
+    usersList.pagination.total,
+  ]);
 
   const handlePremiumAction = async (action: 'grant' | 'revoke') => {
     const ok = await detail.runPremiumAction(action, {
@@ -151,107 +181,146 @@ export const AdminUsersTab: React.FC<AdminUsersTabProps> = ({
     }
   };
 
-  const handleOpenNotification = () => {
-    if (!detail.selectedUser) return;
-    onSendNotification(detail.selectedUser.id);
-  };
-
   return (
     <div className="space-y-5">
       {combinedError ? <AdminStateBanner tone="error">{combinedError}</AdminStateBanner> : null}
 
-      <AdminSurface className="px-5 py-5">
+      <AdminSurface className="px-5 py-5 sm:px-6 sm:py-6">
         <AdminSectionHeader
           eyebrow="Users"
           title={getAdminText(lang, 'users_title')}
-          subtitle={getAdminText(lang, 'users_subtitle')}
+          subtitle={lang === 'ru'
+            ? 'Список пользователей, быстрые сегменты, действия с Premium и Lumi в одном рабочем пространстве.'
+            : 'Users list, quick segments, and Premium/Lumi actions in one workspace.'}
+          action={(
+            <AdminButton tone="secondary" onClick={() => void usersList.reload()}>
+              {lang === 'ru' ? 'Обновить' : 'Refresh'}
+            </AdminButton>
+          )}
         />
 
-        <div className="mt-5 space-y-4">
-          <div className="scrollbar-hide -mx-1 overflow-x-auto px-1">
-            <div className="flex min-w-max gap-2">
+        <div className="mt-6 grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_320px]">
+          <div className="space-y-4">
+            <div className="admin-surface-muted p-4">
+              <div className="grid gap-3 lg:grid-cols-[minmax(0,1.5fr)_190px_210px] xl:grid-cols-[minmax(0,1.5fr)_170px_220px_150px_110px]">
+                <div>
+                  <label className="admin-field-label" htmlFor="admin-users-search">
+                    {lang === 'ru' ? 'Поиск' : 'Search'}
+                  </label>
+                  <AdminInput
+                    id="admin-users-search"
+                    value={usersList.search}
+                    onChange={(event) => {
+                      usersList.setSearch(event.target.value);
+                      usersList.setPage(1);
+                    }}
+                    placeholder={getAdminText(lang, 'search_users')}
+                  />
+                </div>
+
+                <div>
+                  <label className="admin-field-label" htmlFor="admin-users-filter">
+                    {lang === 'ru' ? 'Доступ' : 'Access'}
+                  </label>
+                  <AdminSelect
+                    id="admin-users-filter"
+                    value={usersList.premiumFilter}
+                    onChange={(event) => {
+                      usersList.setPremiumFilter(event.target.value as AdminPremiumFilter);
+                      usersList.setPage(1);
+                    }}
+                  >
+                    {FILTERS.map((filter) => (
+                      <option key={filter} value={filter}>
+                        {filter === 'all' ? getAdminText(lang, 'filter_all') : filter === 'premium' ? 'Premium' : getAdminText(lang, 'filter_free')}
+                      </option>
+                    ))}
+                  </AdminSelect>
+                </div>
+
+                <div>
+                  <label className="admin-field-label" htmlFor="admin-users-sort">
+                    {lang === 'ru' ? 'Сортировка' : 'Sort by'}
+                  </label>
+                  <AdminSelect
+                    id="admin-users-sort"
+                    value={usersList.sortBy}
+                    onChange={(event) => {
+                      usersList.setSortBy(event.target.value as AdminUserSortBy);
+                      usersList.setPage(1);
+                    }}
+                  >
+                    <option value="last_seen">{getSortLabel(lang, 'last_seen')}</option>
+                    <option value="created_at">{getSortLabel(lang, 'created_at')}</option>
+                    <option value="lumi_balance">{getSortLabel(lang, 'lumi_balance')}</option>
+                    <option value="premium_until">{getSortLabel(lang, 'premium_until')}</option>
+                    <option value="saved_charts_count">{getSortLabel(lang, 'saved_charts_count')}</option>
+                    <option value="name">{getSortLabel(lang, 'name')}</option>
+                  </AdminSelect>
+                </div>
+
+                <div>
+                  <label className="admin-field-label" htmlFor="admin-users-order">
+                    {lang === 'ru' ? 'Порядок' : 'Order'}
+                  </label>
+                  <AdminSelect
+                    id="admin-users-order"
+                    value={usersList.sortOrder}
+                    onChange={(event) => {
+                      usersList.setSortOrder(event.target.value as AdminSortOrder);
+                      usersList.setPage(1);
+                    }}
+                  >
+                    <option value="desc">{getAdminText(lang, 'order_desc')}</option>
+                    <option value="asc">{getAdminText(lang, 'order_asc')}</option>
+                  </AdminSelect>
+                </div>
+
+                <div>
+                  <label className="admin-field-label" htmlFor="admin-users-size">
+                    {lang === 'ru' ? 'На странице' : 'Per page'}
+                  </label>
+                  <AdminSelect
+                    id="admin-users-size"
+                    value={usersList.pagination.pageSize}
+                    onChange={(event) => usersList.setPageSize(Number(event.target.value))}
+                  >
+                    {PAGE_SIZES.map((size) => (
+                      <option key={size} value={size}>{size}</option>
+                    ))}
+                  </AdminSelect>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
               {SEGMENTS.map((item) => (
                 <AdminChipButton key={item} active={segment === item} onClick={() => onSegmentChange(item)}>
-                  {[getSegmentLabel(lang, item), segmentBadgeValue[item as keyof typeof segmentBadgeValue]]
-                    .filter((value) => value !== undefined && value !== null && value !== '')
-                    .join(' · ')}
+                  {getSegmentLabel(lang, item)}
                 </AdminChipButton>
               ))}
             </div>
           </div>
 
-          <div className="grid gap-3 lg:grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(0,0.6fr))]">
-            <input
-              value={usersList.search}
-              onChange={(event) => {
-                usersList.setSearch(event.target.value);
-                usersList.setPage(1);
-              }}
-              placeholder={getAdminText(lang, 'search_users')}
-              className="w-full rounded-[18px] border border-white/10 bg-[#0b1525] px-4 py-3 text-sm text-white outline-none transition-colors placeholder:text-slate-500 focus:border-sky-400/40"
-            />
-
-            <select
-              value={usersList.premiumFilter}
-              onChange={(event) => {
-                usersList.setPremiumFilter(event.target.value as AdminPremiumFilter);
-                usersList.setPage(1);
-              }}
-              className="rounded-[18px] border border-white/10 bg-[#0b1525] px-4 py-3 text-sm text-white outline-none focus:border-sky-400/40"
-            >
-              {FILTERS.map((filter) => (
-                <option key={filter} value={filter}>
-                  {filter === 'all' ? getAdminText(lang, 'filter_all') : filter === 'premium' ? 'Premium' : getAdminText(lang, 'filter_free')}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={usersList.sortBy}
-              onChange={(event) => {
-                usersList.setSortBy(event.target.value as any);
-                usersList.setPage(1);
-              }}
-              className="rounded-[18px] border border-white/10 bg-[#0b1525] px-4 py-3 text-sm text-white outline-none focus:border-sky-400/40"
-            >
-              <option value="last_seen">{getSortLabel(lang, 'last_seen')}</option>
-              <option value="created_at">{getSortLabel(lang, 'created_at')}</option>
-              <option value="lumi_balance">{getSortLabel(lang, 'lumi_balance')}</option>
-              <option value="premium_until">{getSortLabel(lang, 'premium_until')}</option>
-              <option value="saved_charts_count">{getSortLabel(lang, 'saved_charts_count')}</option>
-              <option value="name">{getSortLabel(lang, 'name')}</option>
-            </select>
-
-            <div className="grid grid-cols-[minmax(0,1fr)_110px] gap-3">
-              <select
-                value={usersList.sortOrder}
-                onChange={(event) => {
-                  usersList.setSortOrder(event.target.value as AdminSortOrder);
-                  usersList.setPage(1);
-                }}
-                className="rounded-[18px] border border-white/10 bg-[#0b1525] px-4 py-3 text-sm text-white outline-none focus:border-sky-400/40"
-              >
-                <option value="desc">{getAdminText(lang, 'order_desc')}</option>
-                <option value="asc">{getAdminText(lang, 'order_asc')}</option>
-              </select>
-
-              <select
-                value={usersList.pagination.pageSize}
-                onChange={(event) => usersList.setPageSize(Number(event.target.value))}
-                className="rounded-[18px] border border-white/10 bg-[#0b1525] px-4 py-3 text-sm text-white outline-none focus:border-sky-400/40"
-              >
-                {PAGE_SIZES.map((size) => (
-                  <option key={size} value={size}>{size}</option>
-                ))}
-              </select>
+          <div className="admin-surface-muted p-4 sm:p-5">
+            <p className="admin-label">{lang === 'ru' ? 'Текущий фокус' : 'Current focus'}</p>
+            <p className="mt-3 text-2xl font-semibold text-white">{getSegmentLabel(lang, segment)}</p>
+            <p className="mt-2 text-sm leading-6 text-slate-400">
+              {lang === 'ru'
+                ? `Сейчас в выборке ${segmentCount} записей. Открывайте карточку пользователя, не теряя контекст списка.`
+                : `${segmentCount} records in the current view. Open user details without losing list context.`}
+            </p>
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <MiniMetric label={lang === 'ru' ? 'Всего Lumi' : 'Total Lumi'} value={usersList.overview.totalLumiBalance} />
+              <MiniMetric label={lang === 'ru' ? 'Premium' : 'Premium'} value={usersList.overview.activePremiumUsers} />
             </div>
           </div>
         </div>
       </AdminSurface>
 
       <AdminSurface className="overflow-hidden">
-        <div className="border-b border-white/10 px-5 py-4">
-          <div className="grid grid-cols-[minmax(0,1.3fr)_110px_120px_140px] gap-3 text-[11px] uppercase tracking-[0.22em] text-slate-500 max-md:hidden">
+        <div className="admin-divider border-t-0 px-5 py-4">
+          <div className="hidden grid-cols-[minmax(0,1.6fr)_112px_134px_160px] gap-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 lg:grid">
             <span>{getAdminText(lang, 'users_title')}</span>
             <span className="text-right">{getAdminText(lang, 'lumi')}</span>
             <span className="text-right">{getAdminText(lang, 'slots_charts')}</span>
@@ -260,9 +329,9 @@ export const AdminUsersTab: React.FC<AdminUsersTabProps> = ({
         </div>
 
         {usersList.loading ? (
-          <div className="px-5 py-8 text-sm text-slate-400">{getAdminText(lang, 'users_loading')}</div>
+          <div className="px-5 py-10 text-sm leading-6 text-slate-400">{getAdminText(lang, 'users_loading')}</div>
         ) : usersList.users.length === 0 ? (
-          <div className="px-5 py-8">
+          <div className="px-5 py-10">
             <AdminEmptyState
               title={getAdminText(lang, 'users_empty')}
               body={getAdminText(lang, 'users_subtitle')}
@@ -270,7 +339,7 @@ export const AdminUsersTab: React.FC<AdminUsersTabProps> = ({
           </div>
         ) : (
           <>
-            <div className="divide-y divide-white/10">
+            <div className="divide-y divide-white/8">
               {usersList.users.map((user) => (
                 <UserRow key={user.id} user={user} lang={lang} onOpen={() => detail.openUser(user.id)} />
               ))}
@@ -289,50 +358,53 @@ export const AdminUsersTab: React.FC<AdminUsersTabProps> = ({
       </AdminSurface>
 
       {detail.detailOpen ? (
-        <div className="fixed inset-0 z-[80] bg-black/55 backdrop-blur-sm">
-          <div
-            className="absolute inset-x-0 bottom-0 top-20 overflow-y-auto rounded-t-[30px] border border-white/10 bg-[#091221] shadow-2xl md:inset-y-4 md:right-4 md:left-auto md:w-[460px] md:rounded-[30px]"
-            style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom, 0px))' }}
-          >
-            <div className="sticky top-0 z-10 border-b border-white/10 bg-[#091221]/95 px-5 py-4 backdrop-blur">
-              <button
-                onClick={detail.closeUser}
-                className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-200"
-              >
-                ← {getAdminText(lang, 'detail_back')}
-              </button>
+        <div className="fixed inset-0 z-[80] bg-black/60 backdrop-blur-md">
+          <div className="admin-sheet admin-scroll" style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom, 0px))' }}>
+            <div className="admin-sticky-toolbar border-b border-white/10 bg-[#071220]/88 px-5 py-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <AdminButton tone="ghost" className="min-h-[2.5rem] px-0" onClick={detail.closeUser}>
+                  ← {getAdminText(lang, 'detail_back')}
+                </AdminButton>
+                {detail.selectedUser ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <AdminBadge tone={detail.selectedUser.isPremium ? 'premium' : 'neutral'}>
+                      {getPremiumLabel(lang, detail.selectedUser.isPremium)}
+                    </AdminBadge>
+                    {detail.selectedUser.isAdmin ? <AdminBadge tone="admin">Admin</AdminBadge> : null}
+                  </div>
+                ) : null}
+              </div>
 
-              <div className="mt-4 rounded-[22px] border border-white/10 bg-white/[0.03] p-4">
+              <div className="mt-4 admin-surface-muted p-4">
                 <div className="flex flex-wrap gap-2">
-                  <StickyActionButton active={detail.actionLoading === 'premium-grant'} onClick={() => void handlePremiumAction('grant')}>
+                  <ActionPill active={detail.actionLoading === 'premium-grant'} onClick={() => void handlePremiumAction('grant')}>
                     {getAdminText(lang, 'premium_plus')}
-                  </StickyActionButton>
-                  <StickyActionButton active={detail.actionLoading === 'premium-revoke'} onClick={() => void handlePremiumAction('revoke')}>
+                  </ActionPill>
+                  <ActionPill active={detail.actionLoading === 'premium-revoke'} onClick={() => void handlePremiumAction('revoke')}>
                     {getAdminText(lang, 'revoke')}
-                  </StickyActionButton>
-                  <StickyActionButton active={detail.actionLoading === 'lumi-add'} onClick={() => void handleLumiAction('add')}>
+                  </ActionPill>
+                  <ActionPill active={detail.actionLoading === 'lumi-add'} onClick={() => void handleLumiAction('add')}>
                     {getAdminText(lang, 'add_lumi')}
-                  </StickyActionButton>
-                  <StickyActionButton active={detail.actionLoading === 'lumi-subtract'} onClick={() => void handleLumiAction('subtract')}>
+                  </ActionPill>
+                  <ActionPill active={detail.actionLoading === 'lumi-subtract'} onClick={() => void handleLumiAction('subtract')}>
                     {getAdminText(lang, 'subtract_lumi')}
-                  </StickyActionButton>
-                  <StickyActionButton onClick={handleOpenNotification}>
+                  </ActionPill>
+                  <ActionPill onClick={() => detail.selectedUser ? onSendNotification(detail.selectedUser.id) : undefined}>
                     {getAdminText(lang, 'notify')}
-                  </StickyActionButton>
+                  </ActionPill>
                 </div>
 
-                <div className="mt-4 grid gap-3 sm:grid-cols-[120px_minmax(0,1fr)]">
-                  <input
+                <div className="mt-4 grid gap-3 sm:grid-cols-[132px_minmax(0,1fr)]">
+                  <AdminInput
                     value={detail.lumiAmount}
                     onChange={(event) => detail.setLumiAmount(event.target.value.replace(/[^\d]/g, ''))}
                     placeholder={getAdminText(lang, 'amount_placeholder')}
-                    className="rounded-[16px] border border-white/10 bg-[#0b1525] px-4 py-3 text-sm text-white outline-none focus:border-sky-400/40"
+                    inputMode="numeric"
                   />
-                  <input
+                  <AdminInput
                     value={detail.lumiNote}
                     onChange={(event) => detail.setLumiNote(event.target.value)}
                     placeholder={getAdminText(lang, 'note_placeholder')}
-                    className="rounded-[16px] border border-white/10 bg-[#0b1525] px-4 py-3 text-sm text-white outline-none focus:border-sky-400/40"
                   />
                 </div>
               </div>
@@ -353,126 +425,98 @@ export const AdminUsersTab: React.FC<AdminUsersTabProps> = ({
                 </AdminSurface>
               ) : (
                 <>
-                  <AdminSurface className="px-5 py-5">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0">
-                        <p className="truncate font-serif text-[28px] leading-tight text-white">{detail.selectedUser.name}</p>
-                        <div className="mt-2 flex flex-wrap items-center gap-2">
-                          <p className="text-sm text-slate-400">{detail.selectedUser.id}</p>
-                          <button
-                            onClick={() => void handleCopyTelegramId()}
-                            className="rounded-full border border-white/10 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-slate-300"
-                          >
-                            {getAdminText(lang, 'copy_id')}
-                          </button>
-                        </div>
-                        <p className="mt-3 text-sm text-slate-400">
-                          {detail.selectedUser.birthDate || getAdminText(lang, 'no_data')}
-                          {detail.selectedUser.birthPlace ? ` · ${detail.selectedUser.birthPlace}` : ''}
-                        </p>
-                      </div>
-
-                      <div className="flex flex-wrap gap-2 text-[10px] uppercase tracking-[0.18em]">
-                        <span className={`rounded-full px-3 py-1 ${detail.selectedUser.isPremium ? 'bg-yellow-500/15 text-yellow-300' : 'bg-white/[0.05] text-slate-400'}`}>
-                          {detail.selectedUser.isPremium ? 'Premium' : 'Free'}
-                        </span>
-                        {detail.selectedUser.isAdmin ? (
-                          <span className="rounded-full bg-red-500/15 px-3 py-1 text-red-200">Admin</span>
-                        ) : null}
-                      </div>
-                    </div>
-
-                    <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                      <StatCard label={getAdminText(lang, 'premium_until')} value={formatDateTime(lang, detail.selectedUser.premiumUntil)} />
-                      <StatCard label={getAdminText(lang, 'lumi')} value={`${detail.selectedUser.lumiBalance}`} />
-                      <StatCard label={getAdminText(lang, 'slots_charts')} value={`${detail.selectedUser.savedChartsCount} / ${detail.selectedUser.chartSlots}`} />
-                      <StatCard label={getAdminText(lang, 'last_seen')} value={formatDateTime(lang, detail.selectedUser.lastSeenAt)} />
-                    </div>
-
-                    <div className="mt-4 rounded-[18px] border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-slate-300">
-                      <span className="font-medium text-white">{getAdminText(lang, 'current_device')}:</span>{' '}
-                      {detail.selectedUser.currentDeviceLabel || getAdminText(lang, 'no_data')}
-                    </div>
-                  </AdminSurface>
-
-                  <AccordionCard title={getAdminText(lang, 'economy')} subtitle={getAdminText(lang, 'economy_subtitle')} defaultOpen>
-                    <div className="space-y-4">
-                      <div className="rounded-[18px] border border-white/10 bg-white/[0.03] p-4">
-                        <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">{getAdminText(lang, 'latest_stars')}</p>
-                        <p className="mt-2 text-sm text-white">
+                  <IdentityCard detail={detail.selectedUser} lang={lang} onCopyTelegramId={() => void handleCopyTelegramId()} />
+                  <DetailAccordion
+                    title={getAdminText(lang, 'economy')}
+                    subtitle={getAdminText(lang, 'economy_subtitle')}
+                    defaultOpen
+                  >
+                    <div className="space-y-3">
+                      <DetailCard>
+                        <p className="admin-label">{getAdminText(lang, 'latest_stars')}</p>
+                        <p className="mt-3 text-sm leading-6 text-white">
                           {detail.selectedUser.latestStarsPayment
                             ? `${detail.selectedUser.latestStarsPayment.starsAmount} Stars · ${formatDateOnly(lang, detail.selectedUser.latestStarsPayment.createdAt)}`
                             : getAdminText(lang, 'no_stars')}
                         </p>
-                      </div>
+                      </DetailCard>
 
                       {detail.selectedUser.recentLumiTransactions.length === 0 ? (
-                        <p className="text-sm text-slate-400">{getAdminText(lang, 'no_transactions')}</p>
+                        <p className="text-sm leading-6 text-slate-400">{getAdminText(lang, 'no_transactions')}</p>
                       ) : (
                         <div className="space-y-3">
-                          {detail.selectedUser.recentLumiTransactions.map((transaction: LumiTransaction, index) => (
-                            <div key={`${transaction.created_at}-${transaction.reason}-${index}`} className="flex items-start justify-between gap-4 rounded-[18px] border border-white/10 bg-white/[0.03] p-4">
-                              <div>
-                                <p className="text-sm text-white">{formatLumiReason(lang, transaction.reason)}</p>
-                                <p className="mt-1 text-xs text-slate-400">{formatDateTime(lang, transaction.created_at)}</p>
-                              </div>
-                              <span className={`text-sm font-semibold ${transaction.amount >= 0 ? 'text-emerald-300' : 'text-red-300'}`}>
-                                {transaction.amount >= 0 ? '+' : ''}{transaction.amount}
-                              </span>
-                            </div>
+                          {detail.selectedUser.recentLumiTransactions.map((transaction, index) => (
+                            <TransactionRow
+                              key={`${transaction.created_at}-${transaction.reason}-${index}`}
+                              transaction={transaction}
+                              lang={lang}
+                            />
                           ))}
                         </div>
                       )}
                     </div>
-                  </AccordionCard>
+                  </DetailAccordion>
 
-                  <AccordionCard title={getAdminText(lang, 'activity')} subtitle={getAdminText(lang, 'activity_subtitle')}>
-                    <div className="space-y-4">
+                  <DetailAccordion
+                    title={getAdminText(lang, 'activity')}
+                    subtitle={getAdminText(lang, 'activity_subtitle')}
+                  >
+                    <div className="space-y-3">
                       <div className="grid gap-3 sm:grid-cols-2">
                         <StatCard label={getAdminText(lang, 'last_daily_login')} value={formatDateTime(lang, detail.selectedUser.lastLogin)} />
                         <StatCard label={getAdminText(lang, 'created_at')} value={formatDateOnly(lang, detail.selectedUser.createdAt)} />
                       </div>
-                      <div className="rounded-[18px] border border-white/10 bg-white/[0.03] p-4">
-                        <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">{getAdminText(lang, 'oracle_questions')}</p>
+                      <DetailCard>
+                        <p className="admin-label">{getAdminText(lang, 'oracle_questions')}</p>
                         {detail.selectedUser.recentOracleQuestions.length === 0 ? (
-                          <p className="mt-2 text-sm text-slate-400">{getAdminText(lang, 'no_questions')}</p>
+                          <p className="mt-3 text-sm text-slate-400">{getAdminText(lang, 'no_questions')}</p>
                         ) : (
                           <div className="mt-3 space-y-3">
                             {detail.selectedUser.recentOracleQuestions.map((question) => (
-                              <div key={`${question.createdAt}-${question.question}`} className="rounded-[16px] border border-white/10 bg-[#0b1525] p-3">
+                              <div key={`${question.createdAt}-${question.question}`} className="admin-surface-muted p-3">
                                 <p className="text-sm text-white">{question.question}</p>
-                                <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-400">{question.answer}</p>
+                                <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-400">{question.answer}</p>
                                 <p className="mt-2 text-xs text-slate-500">{formatDateTime(lang, question.createdAt)}</p>
                               </div>
                             ))}
                           </div>
                         )}
-                      </div>
+                      </DetailCard>
                     </div>
-                  </AccordionCard>
+                  </DetailAccordion>
 
-                  <AccordionCard title={getAdminText(lang, 'charts')} subtitle={getAdminText(lang, 'charts_subtitle')}>
-                    <div className="space-y-4">
-                      <div className="rounded-[18px] border border-white/10 bg-white/[0.03] p-4">
-                        <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">{getAdminText(lang, 'primary_chart')}</p>
+                  <DetailAccordion
+                    title={getAdminText(lang, 'charts')}
+                    subtitle={getAdminText(lang, 'charts_subtitle')}
+                  >
+                    <div className="space-y-3">
+                      <DetailCard>
+                        <p className="admin-label">{getAdminText(lang, 'primary_chart')}</p>
                         {detail.selectedUser.primaryChart ? (
-                          <div className="mt-2 space-y-1 text-sm text-slate-300">
+                          <div className="mt-3 space-y-1 text-sm leading-6 text-slate-300">
                             <p className="text-white">{detail.selectedUser.primaryChart.name}</p>
                             <p>{detail.selectedUser.primaryChart.birthDate}</p>
                             <p>{detail.selectedUser.primaryChart.birthPlace}</p>
                           </div>
                         ) : (
-                          <p className="mt-2 text-sm text-slate-400">{getAdminText(lang, 'no_primary_chart')}</p>
+                          <p className="mt-3 text-sm text-slate-400">{getAdminText(lang, 'no_primary_chart')}</p>
                         )}
-                      </div>
-                      <div className="rounded-[18px] border border-white/10 bg-white/[0.03] p-4 text-sm text-slate-300">
-                        <p><span className="font-medium text-white">{getAdminText(lang, 'saved_charts')}:</span> {detail.selectedUser.savedChartsCount}</p>
-                        <p className="mt-2"><span className="font-medium text-white">{getAdminText(lang, 'total_slots')}:</span> {detail.selectedUser.chartSlots}</p>
-                      </div>
+                      </DetailCard>
+                      <DetailCard>
+                        <p className="text-sm text-slate-300">
+                          <span className="font-semibold text-white">{getAdminText(lang, 'saved_charts')}:</span> {detail.selectedUser.savedChartsCount}
+                        </p>
+                        <p className="mt-2 text-sm text-slate-300">
+                          <span className="font-semibold text-white">{getAdminText(lang, 'total_slots')}:</span> {detail.selectedUser.chartSlots}
+                        </p>
+                      </DetailCard>
                     </div>
-                  </AccordionCard>
+                  </DetailAccordion>
 
-                  <AccordionCard title={getAdminText(lang, 'sessions')} subtitle={getAdminText(lang, 'sessions_subtitle')}>
+                  <DetailAccordion
+                    title={getAdminText(lang, 'sessions')}
+                    subtitle={getAdminText(lang, 'sessions_subtitle')}
+                  >
                     {detail.selectedUser.recentSessions.length === 0 ? (
                       <p className="text-sm text-slate-400">{getAdminText(lang, 'no_sessions')}</p>
                     ) : (
@@ -483,12 +527,15 @@ export const AdminUsersTab: React.FC<AdminUsersTabProps> = ({
                             session={session}
                             lang={lang}
                             userAgentOpen={!!sessionDetailsOpen[session.sessionId]}
-                            onToggleUserAgent={() => setSessionDetailsOpen((prev) => ({ ...prev, [session.sessionId]: !prev[session.sessionId] }))}
+                            onToggleUserAgent={() => setSessionDetailsOpen((prev) => ({
+                              ...prev,
+                              [session.sessionId]: !prev[session.sessionId],
+                            }))}
                           />
                         ))}
                       </div>
                     )}
-                  </AccordionCard>
+                  </DetailAccordion>
                 </>
               )}
             </div>
@@ -499,57 +546,113 @@ export const AdminUsersTab: React.FC<AdminUsersTabProps> = ({
   );
 };
 
+const MiniMetric: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
+  <div className="admin-surface-muted p-3">
+    <p className="admin-label">{label}</p>
+    <p className="mt-2 text-lg font-semibold text-white">{value}</p>
+  </div>
+);
+
 const UserRow: React.FC<{
   user: AdminUserSummary;
   lang: 'ru' | 'en';
   onOpen: () => void;
 }> = ({ user, lang, onOpen }) => (
   <button
+    type="button"
     onClick={onOpen}
-    className="grid w-full gap-3 px-5 py-4 text-left transition-colors hover:bg-white/[0.03] md:grid-cols-[minmax(0,1.3fr)_110px_120px_140px] md:items-center"
+    className="grid w-full gap-4 px-5 py-4 text-left transition-colors hover:bg-white/[0.03] lg:grid-cols-[minmax(0,1.6fr)_112px_134px_160px] lg:items-center"
   >
     <div className="min-w-0">
       <div className="flex flex-wrap items-center gap-2">
-        <p className="truncate text-sm font-medium text-white">{user.name}</p>
-        {user.isPremium ? <span className="rounded-full bg-yellow-500/15 px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-yellow-300">Premium</span> : null}
-        {user.isAdmin ? <span className="rounded-full bg-red-500/15 px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-red-200">Admin</span> : null}
+        <p className="truncate text-[15px] font-semibold text-white">{user.name}</p>
+        <AdminBadge tone={user.isPremium ? 'premium' : 'neutral'}>{getPremiumLabel(lang, user.isPremium)}</AdminBadge>
+        {user.isAdmin ? <AdminBadge tone="admin">Admin</AdminBadge> : null}
       </div>
       <p className="mt-1 truncate text-xs text-slate-500">{user.id}</p>
-      <p className="mt-2 text-xs text-slate-400 md:hidden">
-        {getAdminText(lang, 'last_seen')}: {formatDateTime(lang, user.lastSeenAt || user.lastLogin)}
-      </p>
+      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-400 lg:hidden">
+        <span>{getAdminText(lang, 'lumi')}: {user.lumiBalance}</span>
+        <span>{getAdminText(lang, 'slots_charts')}: {user.savedChartsCount} / {user.chartSlots}</span>
+        <span>{getAdminText(lang, 'last_seen')}: {formatDateTime(lang, user.lastSeenAt || user.lastLogin)}</span>
+      </div>
     </div>
-    <p className="text-right text-sm text-slate-300">{user.lumiBalance}</p>
-    <p className="text-right text-sm text-slate-300">{user.savedChartsCount} / {user.chartSlots}</p>
-    <p className="text-right text-sm text-slate-400 max-md:hidden">{formatDateTime(lang, user.lastSeenAt || user.lastLogin)}</p>
+    <p className="hidden text-right text-sm font-medium text-slate-200 lg:block">{user.lumiBalance}</p>
+    <p className="hidden text-right text-sm text-slate-300 lg:block">{user.savedChartsCount} / {user.chartSlots}</p>
+    <p className="hidden text-right text-sm text-slate-400 lg:block">{formatDateTime(lang, user.lastSeenAt || user.lastLogin)}</p>
   </button>
 );
 
-const StickyActionButton: React.FC<{
+const ActionPill: React.FC<{
   children: React.ReactNode;
-  onClick: () => void;
+  onClick?: () => void;
   active?: boolean;
 }> = ({ children, onClick, active = false }) => (
   <button
+    type="button"
     onClick={onClick}
-    className={`rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] transition-colors ${
+    className={`inline-flex min-h-[2.5rem] items-center justify-center rounded-full border px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] transition-all ${
       active
-        ? 'bg-sky-400 text-[#07111f]'
-        : 'border border-white/10 bg-white/[0.04] text-white hover:border-white/20 hover:bg-white/[0.07]'
+        ? 'border-sky-300/35 bg-sky-300 text-[#081523] shadow-[0_10px_24px_rgba(125,211,252,0.26)]'
+        : 'border-white/10 bg-white/[0.045] text-white hover:border-white/16 hover:bg-white/[0.08]'
     }`}
   >
     {children}
   </button>
 );
 
+const IdentityCard: React.FC<{
+  detail: AdminUserDetail;
+  lang: 'ru' | 'en';
+  onCopyTelegramId: () => void;
+}> = ({ detail, lang, onCopyTelegramId }) => (
+  <AdminSurface className="px-5 py-5">
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="admin-heading truncate text-[28px] leading-tight text-white">{detail.name}</p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <p className="text-sm text-slate-400">{detail.id}</p>
+            <AdminButton tone="secondary" className="min-h-[2.2rem] px-3 text-[11px]" onClick={onCopyTelegramId}>
+              {getAdminText(lang, 'copy_id')}
+            </AdminButton>
+          </div>
+          <p className="mt-3 text-sm leading-6 text-slate-400">
+            {detail.birthDate || getAdminText(lang, 'no_data')}
+            {detail.birthPlace ? ` · ${detail.birthPlace}` : ''}
+          </p>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <AdminBadge tone={detail.isPremium ? 'premium' : 'neutral'}>{getPremiumLabel(lang, detail.isPremium)}</AdminBadge>
+          {detail.isAdmin ? <AdminBadge tone="admin">Admin</AdminBadge> : null}
+        </div>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <StatCard label={getAdminText(lang, 'premium_until')} value={formatDateTime(lang, detail.premiumUntil)} />
+        <StatCard label={getAdminText(lang, 'lumi')} value={`${detail.lumiBalance}`} />
+        <StatCard label={getAdminText(lang, 'slots_charts')} value={`${detail.savedChartsCount} / ${detail.chartSlots}`} />
+        <StatCard label={getAdminText(lang, 'last_seen')} value={formatDateTime(lang, detail.lastSeenAt)} />
+      </div>
+
+      <DetailCard>
+        <p className="text-sm leading-6 text-slate-300">
+          <span className="font-semibold text-white">{getAdminText(lang, 'current_device')}:</span>{' '}
+          {detail.currentDeviceLabel || getAdminText(lang, 'no_data')}
+        </p>
+      </DetailCard>
+    </div>
+  </AdminSurface>
+);
+
 const StatCard: React.FC<{ label: string; value: string }> = ({ label, value }) => (
-  <div className="rounded-[18px] border border-white/10 bg-white/[0.03] p-4">
-    <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">{label}</p>
-    <p className="mt-2 text-sm text-white">{value}</p>
+  <div className="admin-surface-muted p-4">
+    <p className="admin-label">{label}</p>
+    <p className="mt-2 text-sm leading-6 text-white">{value}</p>
   </div>
 );
 
-const AccordionCard: React.FC<{
+const DetailAccordion: React.FC<{
   title: string;
   subtitle: string;
   children: React.ReactNode;
@@ -560,19 +663,41 @@ const AccordionCard: React.FC<{
   return (
     <AdminSurface className="overflow-hidden">
       <button
+        type="button"
         onClick={() => setOpen((current) => !current)}
         className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left"
       >
-        <div>
-          <h3 className="font-serif text-xl text-white">{title}</h3>
-          <p className="mt-1 text-sm text-slate-400">{subtitle}</p>
+        <div className="min-w-0">
+          <h3 className="admin-heading text-xl text-white">{title}</h3>
+          <p className="mt-1 text-sm leading-6 text-slate-400">{subtitle}</p>
         </div>
-        <span className="text-lg text-slate-400">{open ? '−' : '+'}</span>
+        <span className="text-xl text-slate-500">{open ? '−' : '+'}</span>
       </button>
-      {open ? <div className="border-t border-white/10 px-5 py-4">{children}</div> : null}
+      {open ? <div className="admin-divider px-5 py-4">{children}</div> : null}
     </AdminSurface>
   );
 };
+
+const DetailCard: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <div className="admin-surface-muted p-4">{children}</div>
+);
+
+const TransactionRow: React.FC<{
+  transaction: LumiTransaction;
+  lang: 'ru' | 'en';
+}> = ({ transaction, lang }) => (
+  <DetailCard>
+    <div className="flex items-start justify-between gap-4">
+      <div className="min-w-0">
+        <p className="text-sm text-white">{formatLumiReason(lang, transaction.reason)}</p>
+        <p className="mt-1 text-xs text-slate-400">{formatDateTime(lang, transaction.created_at)}</p>
+      </div>
+      <span className={`shrink-0 text-sm font-semibold ${transaction.amount >= 0 ? 'text-emerald-300' : 'text-red-300'}`}>
+        {transaction.amount >= 0 ? '+' : ''}{transaction.amount}
+      </span>
+    </div>
+  </DetailCard>
+);
 
 const SessionRow: React.FC<{
   session: AdminUserSession;
@@ -580,13 +705,13 @@ const SessionRow: React.FC<{
   userAgentOpen: boolean;
   onToggleUserAgent: () => void;
 }> = ({ session, lang, userAgentOpen, onToggleUserAgent }) => (
-  <div className="rounded-[18px] border border-white/10 bg-white/[0.03] p-4">
+  <DetailCard>
     <div className="flex items-start justify-between gap-3">
       <div className="min-w-0">
         <p className="text-sm text-white">{session.deviceLabel || getAdminText(lang, 'unknown_device')}</p>
         <p className="mt-1 text-xs text-slate-400">{session.telegramPlatform || getAdminText(lang, 'platform_missing')}</p>
       </div>
-      <div className="text-right text-xs text-slate-400">
+      <div className="shrink-0 text-right text-xs text-slate-400">
         <p>{formatDateTime(lang, session.lastSeenAt)}</p>
         <p className="mt-1">{formatDateTime(lang, session.startedAt)}</p>
       </div>
@@ -594,11 +719,11 @@ const SessionRow: React.FC<{
 
     {session.userAgent ? (
       <div className="mt-3">
-        <button onClick={onToggleUserAgent} className="text-xs text-slate-400 underline-offset-4 hover:text-white hover:underline">
+        <button type="button" onClick={onToggleUserAgent} className="text-xs text-slate-400 underline-offset-4 hover:text-white hover:underline">
           {userAgentOpen ? (lang === 'ru' ? 'Скрыть user-agent' : 'Hide user agent') : getAdminText(lang, 'show_user_agent')}
         </button>
         {userAgentOpen ? <p className="mt-2 break-words text-[11px] leading-5 text-slate-500">{session.userAgent}</p> : null}
       </div>
     ) : null}
-  </div>
+  </DetailCard>
 );

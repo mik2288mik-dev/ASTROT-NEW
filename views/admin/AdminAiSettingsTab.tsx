@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import type { UserProfile } from '../../types';
 import { fetchAdminAiSettings, saveAdminAiModel } from '../../services/adminService';
+import { AdminButton, AdminSectionHeader, AdminSelect, AdminStateBanner, AdminSurface } from './AdminPrimitives';
 
 type Props = { profile: UserProfile };
 
@@ -13,6 +14,7 @@ export const AdminAiSettingsTab: React.FC<Props> = ({ profile }) => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [messageTone, setMessageTone] = useState<'success' | 'error' | 'info'>('info');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -21,12 +23,13 @@ export const AdminAiSettingsTab: React.FC<Props> = ({ profile }) => {
       const data = await fetchAdminAiSettings();
       setOptions(data.options || []);
       setModelId(data.modelId || '');
-    } catch (e: any) {
-      setMessage(e?.message || 'Failed to load');
+    } catch (error: any) {
+      setMessageTone('error');
+      setMessage(error?.message || T(lang, 'Не удалось загрузить настройки', 'Failed to load settings'));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [lang]);
 
   useEffect(() => {
     void load();
@@ -37,58 +40,71 @@ export const AdminAiSettingsTab: React.FC<Props> = ({ profile }) => {
     setMessage(null);
     try {
       await saveAdminAiModel(modelId);
+      setMessageTone('success');
       setMessage(T(lang, 'Модель сохранена', 'Model saved'));
       await load();
-    } catch (e: any) {
-      setMessage(e?.message || 'Save failed');
+    } catch (error: any) {
+      setMessageTone('error');
+      setMessage(error?.message || T(lang, 'Не удалось сохранить модель', 'Failed to save model'));
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="rounded-2xl border border-astro-border bg-astro-card/60 p-5">
-      <h3 className="font-serif text-lg text-astro-text">
-        {T(lang, 'Модель OpenAI для интерпретаций', 'OpenAI model for interpretations')}
-      </h3>
-      <p className="mt-2 text-sm leading-relaxed text-astro-subtext">
-        {T(
-          lang,
-          'Одна модель для натала, гороскопов, Deep Dive, синастрии и Oracle. Если API вернёт ошибку по имени модели — выберите другую или задайте OPENAI_INTERPRETATION_MODEL в окружении.',
-          'One model for natal, horoscopes, Deep Dive, synastry, and Oracle. If the API rejects a model id, pick another or set OPENAI_INTERPRETATION_MODEL in the environment.'
-        )}
-      </p>
+    <div className="space-y-5">
+      {message ? <AdminStateBanner tone={messageTone}>{message}</AdminStateBanner> : null}
 
-      {loading ? (
-        <p className="mt-4 text-sm text-astro-subtext">{T(lang, 'Загрузка…', 'Loading…')}</p>
-      ) : (
-        <div className="mt-4 space-y-3">
-          <label className="block text-[10px] uppercase tracking-widest text-astro-subtext">
-            {T(lang, 'Модель', 'Model')}
-          </label>
-          <select
-            value={modelId}
-            onChange={(e) => setModelId(e.target.value)}
-            className="w-full rounded-xl border border-astro-border bg-astro-bg/40 px-3 py-3 text-sm text-astro-text"
-          >
-            {options.map((opt) => (
-              <option key={opt.id} value={opt.id}>
-                {opt.label} ({opt.id})
-              </option>
-            ))}
-          </select>
-          <button
-            type="button"
-            onClick={() => void onSave()}
-            disabled={saving || !modelId}
-            className="w-full rounded-xl border border-astro-highlight/40 bg-astro-highlight/15 py-3 text-sm font-semibold text-astro-highlight disabled:opacity-50"
-          >
-            {saving ? T(lang, 'Сохранение…', 'Saving…') : T(lang, 'Сохранить', 'Save')}
-          </button>
+      <AdminSurface className="px-5 py-5 sm:px-6 sm:py-6">
+        <AdminSectionHeader
+          eyebrow="AI"
+          title={T(lang, 'Модель интерпретаций', 'Interpretation model')}
+          subtitle={T(
+            lang,
+            'Единая модель для натала, гороскопа, Deep Dive, синастрии и Oracle. Меняйте её здесь без ручной правки окружения.',
+            'One model for natal, horoscope, Deep Dive, synastry, and Oracle. Change it here without editing environment values.'
+          )}
+        />
+
+        <div className="mt-6 grid gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
+          <div className="admin-surface-muted p-4 sm:p-5">
+            <label className="admin-field-label" htmlFor="admin-ai-model">
+              {T(lang, 'Активная модель', 'Active model')}
+            </label>
+            {loading ? (
+              <p className="text-sm leading-6 text-slate-400">{T(lang, 'Загружаем доступные модели…', 'Loading available models…')}</p>
+            ) : (
+              <AdminSelect
+                id="admin-ai-model"
+                value={modelId}
+                onChange={(event) => setModelId(event.target.value)}
+              >
+                {options.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label} ({option.id})
+                  </option>
+                ))}
+              </AdminSelect>
+            )}
+          </div>
+
+          <div className="admin-surface-muted p-4 sm:p-5">
+            <p className="admin-label">{T(lang, 'Подсказка', 'Guidance')}</p>
+            <p className="mt-3 text-sm leading-6 text-slate-300">
+              {T(
+                lang,
+                'Если OpenAI отклоняет конкретный model id, выберите другой вариант здесь. Это изменение сразу влияет на основные интерпретационные поверхности Lumia.',
+                'If OpenAI rejects a specific model id, choose another one here. The change affects Lumia’s main interpretation surfaces immediately.'
+              )}
+            </p>
+            <div className="mt-5">
+              <AdminButton tone="primary" disabled={saving || !modelId || loading} onClick={() => void onSave()}>
+                {saving ? T(lang, 'Сохраняем…', 'Saving…') : T(lang, 'Сохранить модель', 'Save model')}
+              </AdminButton>
+            </div>
+          </div>
         </div>
-      )}
-
-      {message && <p className="mt-3 text-sm text-astro-text">{message}</p>}
+      </AdminSurface>
     </div>
   );
 };
