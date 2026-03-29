@@ -9,6 +9,9 @@ function isValidSegment(value: unknown): value is AdminNotificationTargetSegment
     || value === 'premium'
     || value === 'free'
     || value === 'active_7d'
+    || value === 'inactive_3d'
+    || value === 'inactive_7d'
+    || value === 'need_attention'
     || value === 'inactive_30d';
 }
 
@@ -24,6 +27,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const targetUserId = typeof req.body?.targetUserId === 'string' ? req.body.targetUserId.trim() : '';
     const targetSegment = req.body?.targetSegment;
     const parsedTemplateId = req.body?.templateId != null ? Number(req.body.templateId) : null;
+    const parsedAssetId = req.body?.assetId != null ? Number(req.body.assetId) : null;
     const title = typeof req.body?.title === 'string' ? req.body.title.trim() : '';
     const bodyRu = typeof req.body?.bodyRu === 'string' ? req.body.bodyRu.trim() : '';
     const bodyEn = typeof req.body?.bodyEn === 'string' ? req.body.bodyEn.trim() : '';
@@ -49,7 +53,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       mode,
       targetUserId: mode === 'personal' ? targetUserId : null,
       targetSegment: mode === 'broadcast' ? targetSegment : null,
-        templateId: Number.isInteger(parsedTemplateId) && parsedTemplateId !== null && parsedTemplateId > 0 ? parsedTemplateId : null,
+      templateId: Number.isInteger(parsedTemplateId) && parsedTemplateId !== null && parsedTemplateId > 0 ? parsedTemplateId : null,
+      assetId: Number.isInteger(parsedAssetId) && parsedAssetId !== null && parsedAssetId > 0 ? parsedAssetId : null,
       title,
       bodyRu,
       bodyEn,

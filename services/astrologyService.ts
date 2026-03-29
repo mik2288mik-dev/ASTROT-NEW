@@ -605,6 +605,53 @@ export const getDeepDiveAnalysis = async (
   }
 };
 
+export const getCachedDailyHoroscope = async (
+  userId: string,
+  language: 'ru' | 'en' = 'ru'
+): Promise<DailyHoroscope | null> => {
+  if (!userId) return null;
+
+  const url = `${API_BASE_URL}/api/astrology/daily-horoscope?userId=${encodeURIComponent(userId)}&lang=${encodeURIComponent(language)}`;
+  log.info('[getCachedDailyHoroscope] Starting request', { userId });
+
+  try {
+    const response = await fetch(url, { method: 'GET', cache: 'no-store' });
+    if (response.status === 404) {
+      return null;
+    }
+
+    if (!response.ok) {
+      let errorMessage = `Failed to get cached daily horoscope: ${response.status} ${response.statusText}`;
+      let errorCode: string | undefined;
+      let errorDetails: any;
+
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorData.error || errorMessage;
+        errorCode = errorData.code;
+        errorDetails = errorData.details;
+      } catch {
+        const errorText = await response.text().catch(() => 'Unable to read error response');
+        errorMessage = errorText || errorMessage;
+      }
+
+      const error = new Error(errorMessage) as ApiErrorWithCode;
+      error.status = response.status;
+      error.code = errorCode;
+      error.details = errorDetails;
+      throw error;
+    }
+
+    return await response.json() as DailyHoroscope;
+  } catch (error: any) {
+    log.warn('[getCachedDailyHoroscope] Failed to load cached horoscope', {
+      userId,
+      error: error?.message,
+    });
+    throw error;
+  }
+};
+
 const legacyChatWithAstra = async (history: { role: 'user' | 'model', text: string }[], message: string, profile: UserProfile): Promise<string> => {
   const url = `${API_BASE_URL}/api/astrology/chat`;
   log.info('[chatWithAstra] Starting chat request', {

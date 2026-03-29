@@ -730,6 +730,41 @@ async function lumia007NotificationVisualHybrid(pool: Pool): Promise<void> {
   log.info('Migration lumia_007_notification_visual_hybrid applied');
 }
 
+/**
+ * Admin backoffice hardening for legacy/send templates and targeted automation (lumia_008)
+ */
+async function lumia008AdminNotificationEnhancements(pool: Pool): Promise<void> {
+  const migrationName = 'lumia_008_admin_notification_enhancements';
+
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
+  log.info('Applying admin notification enhancements migration...');
+
+  await pool.query(`
+    ALTER TABLE legacy_notification_templates
+      ADD COLUMN IF NOT EXISTS asset_id BIGINT REFERENCES notification_assets(id) ON DELETE SET NULL
+  `);
+
+  await pool.query(`
+    ALTER TABLE notification_templates
+      ADD COLUMN IF NOT EXISTS target_segment TEXT
+  `);
+
+  await pool.query(`
+    ALTER TABLE notification_campaigns
+      ADD COLUMN IF NOT EXISTS asset_id BIGINT REFERENCES notification_assets(id) ON DELETE SET NULL
+  `);
+
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_notification_templates_target_segment ON notification_templates(target_segment)');
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_notification_campaigns_asset_id ON notification_campaigns(asset_id)');
+
+  await markMigrationApplied(pool, migrationName);
+  log.info('Migration lumia_008_admin_notification_enhancements applied');
+}
+
 async function verifyTablesExist(pool: Pool): Promise<void> {
   const required = [
     'users', 'natal_charts', 'interpretations', 'lumi_transactions', 'app_settings',
@@ -800,6 +835,7 @@ export async function runMigrations(): Promise<void> {
   await lumia005AppSettings(pool);
   await lumia006ScheduledNotifications(pool);
   await lumia007NotificationVisualHybrid(pool);
+  await lumia008AdminNotificationEnhancements(pool);
   await verifyTablesExist(pool);
 
     log.info('All Lumia migrations completed successfully');

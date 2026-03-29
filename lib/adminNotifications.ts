@@ -1,5 +1,5 @@
 import { db } from './db';
-import { sendTelegramTextMessage } from './telegramBot';
+import { sendTelegramPhotoMessage, sendTelegramTextMessage } from './telegramBot';
 import type { AdminNotificationTargetSegment } from '../types';
 
 type Recipient = {
@@ -73,6 +73,7 @@ export async function sendAdminNotification(input: {
   targetUserId?: string | null;
   targetSegment?: AdminNotificationTargetSegment | null;
   templateId?: number | null;
+  assetId?: number | null;
   title: string;
   bodyRu?: string | null;
   bodyEn?: string | null;
@@ -89,12 +90,21 @@ export async function sendAdminNotification(input: {
   }
 
   const recipients = await resolveRecipients(input);
+  const assetId = input.assetId != null ? Number(input.assetId) : null;
+  let assetRow: any = null;
+  if (Number.isInteger(assetId) && assetId && assetId > 0) {
+    assetRow = await db.notification_assets.getById(assetId);
+    if (!assetRow?.public_url) {
+      throw new Error('ASSET_NOT_FOUND');
+    }
+  }
   const campaign = await db.notifications.createCampaign({
     createdBy: input.createdBy,
     mode: input.mode,
     targetSegment: input.targetSegment ?? null,
     targetUserId: input.targetUserId ?? null,
-    templateId: input.templateId ?? null,
+    templateId: null,
+    assetId: assetRow?.id ? Number(assetRow.id) : null,
     title,
     bodyRu,
     bodyEn,
@@ -111,7 +121,9 @@ export async function sendAdminNotification(input: {
       chunk.map(async (recipient) => {
         const localizedBody = resolveLocalizedBody(recipient.language, bodyRu, bodyEn);
         const messageText = buildMessageText(title, localizedBody);
-        const result = await sendTelegramTextMessage(recipient.id, messageText);
+        const result = assetRow?.public_url
+          ? await sendTelegramPhotoMessage(recipient.id, String(assetRow.public_url), messageText)
+          : await sendTelegramTextMessage(recipient.id, messageText);
 
         if (result.ok) {
           successCount += 1;

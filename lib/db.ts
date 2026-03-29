@@ -6,6 +6,7 @@
 // Format: postgresql://user:password@host:port/database
 
 import { Pool, Client } from 'pg';
+import { LEGACY_NOTIFICATION_SEEDS, SCHEDULED_NOTIFICATION_SEEDS } from './adminNotificationSeedCatalog';
 
 // Read DATABASE_URL from environment variables
 // This is set in Railway Variables or .env file
@@ -60,17 +61,35 @@ function trimText(value?: string | null, maxLength = 1000): string | null {
 }
 
 type AdminDbPremiumFilter = 'all' | 'premium' | 'free';
-type AdminDbUserSegment = 'all' | 'premium' | 'free' | 'active_7d' | 'inactive_30d' | 'need_attention';
+type AdminDbUserSegment =
+  | 'all'
+  | 'premium'
+  | 'free'
+  | 'active_7d'
+  | 'inactive_3d'
+  | 'inactive_7d'
+  | 'inactive_30d'
+  | 'need_attention';
 type AdminDbUserSortBy = 'last_seen' | 'created_at' | 'lumi_balance' | 'premium_until' | 'saved_charts_count' | 'name';
 type AdminDbSortOrder = 'asc' | 'desc';
 type AdminDbNotificationMode = 'all' | 'personal' | 'broadcast';
 type AdminDbNotificationResult = 'all' | 'success' | 'partial' | 'failed';
+type AdminDbNotificationSegment =
+  | 'all'
+  | 'premium'
+  | 'free'
+  | 'active_7d'
+  | 'inactive_3d'
+  | 'inactive_7d'
+  | 'inactive_30d'
+  | 'need_attention';
 
 const ADMIN_USER_METRICS_CTE = `
   WITH user_metrics AS (
     SELECT
       u.id,
       u.name,
+      u.language,
       u.premium_until,
       COALESCE(u.lumi_balance, 0) AS lumi_balance,
       COALESCE(u.login_streak, 0) AS login_streak,
@@ -106,6 +125,8 @@ function getAdminUserSegmentSql(paramIndex: number) {
     OR ($${paramIndex} = 'premium' AND premium_until IS NOT NULL AND premium_until > NOW())
     OR ($${paramIndex} = 'free' AND (premium_until IS NULL OR premium_until <= NOW()))
     OR ($${paramIndex} = 'active_7d' AND last_seen_at >= NOW() - INTERVAL '7 days')
+    OR ($${paramIndex} = 'inactive_3d' AND (last_seen_at IS NULL OR last_seen_at < NOW() - INTERVAL '3 days'))
+    OR ($${paramIndex} = 'inactive_7d' AND (last_seen_at IS NULL OR last_seen_at < NOW() - INTERVAL '7 days'))
     OR ($${paramIndex} = 'inactive_30d' AND (last_seen_at IS NULL OR last_seen_at < NOW() - INTERVAL '30 days'))
     OR ($${paramIndex} = 'need_attention' AND ${ADMIN_NEED_ATTENTION_SQL})
   )`;
@@ -1810,32 +1831,24 @@ export const db = {
       };
     },
 
-    async getNotificationRecipients(segment: 'all' | 'premium' | 'free' | 'active_7d' | 'inactive_30d') {
-      if (!DATABASE_URL) return [];
-
-      try {
-        const dbPool = getPool();
-        const result = await dbPool.query(
-          `SELECT
-             u.id,
-             COALESCE(u.name, 'Unnamed user') AS name,
-             COALESCE(u.language, 'ru') AS language,
-             u.premium_until,
-             COALESCE(MAX(us.last_seen_at), u.last_login) AS last_seen_at
-           FROM users u
-           LEFT JOIN user_sessions us ON us.user_id = u.id
-           GROUP BY u.id
-           HAVING
-             (
-               $1 = 'all'
-               OR ($1 = 'premium' AND u.premium_until IS NOT NULL AND u.premium_until > NOW())
-               OR ($1 = 'free' AND (u.premium_until IS NULL OR u.premium_until <= NOW()))
-               OR ($1 = 'active_7d' AND COALESCE(MAX(us.last_seen_at), u.last_login) >= NOW() - INTERVAL '7 days')
-               OR ($1 = 'inactive_30d' AND (COALESCE(MAX(us.last_seen_at), u.last_login) IS NULL OR COALESCE(MAX(us.last_seen_at), u.last_login) < NOW() - INTERVAL '30 days'))
-             )
-           ORDER BY u.created_at DESC`,
-          [segment]
-        );
+      async getNotificationRecipients(segment: AdminDbNotificationSegment) {
+        if (!DATABASE_URL) return [];
+  
+        try {
+          const dbPool = getPool();
+          const result = await dbPool.query(
+            `${ADMIN_USER_METRICS_CTE}
+             SELECT
+               id,
+               COALESCE(name, 'Unnamed user') AS name,
+               COALESCE(language, 'ru') AS language,
+               premium_until,
+               last_seen_at
+             FROM user_metrics
+             WHERE ${getAdminUserSegmentSql(1)}
+             ORDER BY created_at DESC`,
+            [segment]
+          );
 
         return result.rows.map((row: any) => ({
           id: String(row.id),
@@ -1853,14 +1866,55 @@ export const db = {
 
   /** Legacy compose templates (admin “Send” tab) — table legacy_notification_templates */
   legacy_notification_templates: {
+    async ensureSeeded() {
+      if (!DATABASE_URL) return;
+      try {
+        const dbPool = getPool();
+        for (const seed of LEGACY_NOTIFICATION_SEEDS) {
+          const existing = await dbPool.query(
+            `SELECT id FROM legacy_notification_templates WHERE LOWER(title) = LOWER($1) LIMIT 1`,
+            [seed.title]
+          );
+          if (existing.rows.length > 0) continue;
+          await dbPool.query(
+            `INSERT INTO legacy_notification_templates (title, body_ru, body_en, kind, asset_id, is_active)
+             VALUES ($1, $2, $3, $4, $5, $6)`,
+            [
+              trimText(seed.title, 120),
+              trimText(seed.bodyRu, 4000),
+              trimText(seed.bodyEn, 4000),
+              seed.kind,
+              seed.assetId ?? null,
+              seed.isActive ?? true,
+            ]
+          );
+        }
+      } catch (error: any) {
+        log.error('[DB] Error seeding legacy notification templates', { error: error.message });
+        throw error;
+      }
+    },
+
     async getAll() {
       if (!DATABASE_URL) return [];
       try {
+        await this.ensureSeeded();
         const dbPool = getPool();
         const result = await dbPool.query(
-          `SELECT id, title, body_ru, body_en, kind, is_active, created_at, updated_at
-           FROM legacy_notification_templates
-           ORDER BY updated_at DESC, id DESC`
+          `SELECT
+             t.id,
+             t.title,
+             t.body_ru,
+             t.body_en,
+             t.kind,
+             t.asset_id,
+             a.public_url AS asset_public_url,
+             t.is_active,
+             t.created_at,
+             t.updated_at
+           FROM legacy_notification_templates t
+           LEFT JOIN notification_assets a ON a.id = t.asset_id
+           ORDER BY t.updated_at DESC, t.id DESC`
         );
         return result.rows;
       } catch (error: any) {
@@ -1869,19 +1923,27 @@ export const db = {
       }
     },
 
-    async create(data: { title: string; bodyRu?: string | null; bodyEn?: string | null; kind: 'personal' | 'broadcast' | 'both'; isActive?: boolean }) {
+    async create(data: {
+      title: string;
+      bodyRu?: string | null;
+      bodyEn?: string | null;
+      kind: 'personal' | 'broadcast' | 'both';
+      assetId?: number | null;
+      isActive?: boolean;
+    }) {
       if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
       try {
         const dbPool = getPool();
         const result = await dbPool.query(
-          `INSERT INTO legacy_notification_templates (title, body_ru, body_en, kind, is_active)
-           VALUES ($1, $2, $3, $4, $5)
-           RETURNING id, title, body_ru, body_en, kind, is_active, created_at, updated_at`,
+          `INSERT INTO legacy_notification_templates (title, body_ru, body_en, kind, asset_id, is_active)
+           VALUES ($1, $2, $3, $4, $5, $6)
+           RETURNING id, title, body_ru, body_en, kind, asset_id, is_active, created_at, updated_at`,
           [
             trimText(data.title, 120),
             trimText(data.bodyRu, 4000),
             trimText(data.bodyEn, 4000),
             data.kind,
+            data.assetId ?? null,
             data.isActive ?? true,
           ]
         );
@@ -1892,7 +1954,14 @@ export const db = {
       }
     },
 
-    async update(templateId: number, data: { title: string; bodyRu?: string | null; bodyEn?: string | null; kind: 'personal' | 'broadcast' | 'both'; isActive: boolean }) {
+    async update(templateId: number, data: {
+      title: string;
+      bodyRu?: string | null;
+      bodyEn?: string | null;
+      kind: 'personal' | 'broadcast' | 'both';
+      assetId?: number | null;
+      isActive: boolean;
+    }) {
       if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
       try {
         const dbPool = getPool();
@@ -1902,16 +1971,18 @@ export const db = {
                body_ru = $3,
                body_en = $4,
                kind = $5,
-               is_active = $6,
+               asset_id = $6,
+               is_active = $7,
                updated_at = CURRENT_TIMESTAMP
            WHERE id = $1
-           RETURNING id, title, body_ru, body_en, kind, is_active, created_at, updated_at`,
+           RETURNING id, title, body_ru, body_en, kind, asset_id, is_active, created_at, updated_at`,
           [
             templateId,
             trimText(data.title, 120),
             trimText(data.bodyRu, 4000),
             trimText(data.bodyEn, 4000),
             data.kind,
+            data.assetId ?? null,
             data.isActive,
           ]
         );
@@ -1954,7 +2025,11 @@ export const db = {
       if (!DATABASE_URL) return [];
       const dbPool = getPool();
       const result = await dbPool.query(
-        `SELECT a.*, (SELECT COUNT(*)::int FROM notification_templates t WHERE t.asset_id = a.id) AS ref_count
+        `SELECT a.*,
+                (
+                  (SELECT COUNT(*)::int FROM notification_templates t WHERE t.asset_id = a.id)
+                  + (SELECT COUNT(*)::int FROM legacy_notification_templates lt WHERE lt.asset_id = a.id)
+                ) AS ref_count
          FROM notification_assets a
          ORDER BY a.created_at DESC`
       );
@@ -1971,7 +2046,14 @@ export const db = {
     async deleteIfUnused(id: number) {
       if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
       const dbPool = getPool();
-      const use = await dbPool.query(`SELECT COUNT(*)::int AS c FROM notification_templates WHERE asset_id = $1`, [id]);
+      const use = await dbPool.query(
+        `SELECT
+           (
+             (SELECT COUNT(*)::int FROM notification_templates WHERE asset_id = $1)
+             + (SELECT COUNT(*)::int FROM legacy_notification_templates WHERE asset_id = $1)
+           ) AS c`,
+        [id]
+      );
       if ((use.rows[0]?.c ?? 0) > 0) {
         throw new Error('ASSET_IN_USE');
       }
@@ -1982,8 +2064,61 @@ export const db = {
 
   /** Scheduled / CMS notification templates — table notification_templates */
   scheduled_notification_templates: {
+    async ensureSeeded() {
+      if (!DATABASE_URL) return;
+      try {
+        const dbPool = getPool();
+        for (const seed of SCHEDULED_NOTIFICATION_SEEDS) {
+          const existing = await dbPool.query(
+            `SELECT id FROM notification_templates WHERE LOWER(name) = LOWER($1) LIMIT 1`,
+            [seed.name]
+          );
+          if (existing.rows.length > 0) continue;
+
+          const created = await dbPool.query(
+            `INSERT INTO notification_templates (
+               name, slot, target_segment, message_type, text, button_text, deep_link, is_active, sort_order, rotation_group, notes, visual_mode
+             ) VALUES ($1, $2, $3, 'text', $4, $5, $6, $7, $8, NULL, $9, 'none')
+             RETURNING id`,
+            [
+              trimText(seed.name, 200) || 'Untitled',
+              trimText(seed.slot, 32) || 'custom',
+              seed.targetSegment ?? null,
+              trimText(seed.text, 4000) || '',
+              trimText(seed.buttonText, 64) || '',
+              trimText(seed.deepLink, 2000) || '',
+              seed.isActive,
+              await this.nextSortOrderForSlot(seed.slot),
+              trimText(seed.notes, 2000),
+            ]
+          );
+
+          const templateId = Number(created.rows[0]?.id);
+          if (!Number.isFinite(templateId)) continue;
+
+          for (const schedule of seed.schedules) {
+            await dbPool.query(
+              `INSERT INTO notification_schedules (template_id, send_time, timezone, repeat_mode, is_active)
+               VALUES ($1, $2, $3, $4, $5)`,
+              [
+                templateId,
+                schedule.sendTime,
+                schedule.timezone,
+                schedule.repeatMode,
+                schedule.isActive,
+              ]
+            );
+          }
+        }
+      } catch (error: any) {
+        log.error('[DB] Error seeding scheduled notification templates', { error: error.message });
+        throw error;
+      }
+    },
+
     async listWithAsset() {
       if (!DATABASE_URL) return [];
+      await this.ensureSeeded();
       const dbPool = getPool();
       const result = await dbPool.query(
         `SELECT t.*, a.public_url AS asset_public_url, a.mime_type AS asset_mime_type
@@ -1996,6 +2131,7 @@ export const db = {
 
     async getById(id: number) {
       if (!DATABASE_URL) return null;
+      await this.ensureSeeded();
       const dbPool = getPool();
       const result = await dbPool.query(
         `SELECT t.*, a.public_url AS asset_public_url, a.mime_type AS asset_mime_type, a.file_name AS asset_file_name
@@ -2010,6 +2146,7 @@ export const db = {
     async create(data: {
       name: string;
       slot: string;
+      targetSegment?: AdminDbNotificationSegment | null;
       messageType: 'text' | 'photo';
       text: string;
       buttonText: string;
@@ -2034,14 +2171,15 @@ export const db = {
       const vm = data.visualMode || 'none';
       const result = await dbPool.query(
         `INSERT INTO notification_templates (
-           name, slot, message_type, text, button_text, deep_link, asset_id, is_active, sort_order, rotation_group, notes,
+           name, slot, target_segment, message_type, text, button_text, deep_link, asset_id, is_active, sort_order, rotation_group, notes,
            visual_mode, generated_preset, generated_title, generated_subtitle, generated_accent,
            generated_show_date, generated_show_slot_label, generated_zodiac_mode, generated_custom_zodiac
-         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
          RETURNING *`,
         [
           trimText(data.name, 200) || 'Untitled',
           trimText(data.slot, 32) || 'custom',
+          data.targetSegment ?? null,
           data.messageType === 'photo' ? 'photo' : 'text',
           trimText(data.text, 4000) || '',
           trimText(data.buttonText, 64) || '',
@@ -2070,6 +2208,7 @@ export const db = {
       data: {
         name: string;
         slot: string;
+        targetSegment?: AdminDbNotificationSegment | null;
         messageType: 'text' | 'photo';
         text: string;
         buttonText: string;
@@ -2094,11 +2233,11 @@ export const db = {
       const dbPool = getPool();
       const result = await dbPool.query(
         `UPDATE notification_templates SET
-           name = $2, slot = $3, message_type = $4, text = $5, button_text = $6, deep_link = $7,
-           asset_id = $8, is_active = $9, sort_order = $10, rotation_group = $11, notes = $12,
-           visual_mode = $13, generated_preset = $14, generated_title = $15, generated_subtitle = $16,
-           generated_accent = $17, generated_show_date = $18, generated_show_slot_label = $19,
-           generated_zodiac_mode = $20, generated_custom_zodiac = $21,
+           name = $2, slot = $3, target_segment = $4, message_type = $5, text = $6, button_text = $7, deep_link = $8,
+           asset_id = $9, is_active = $10, sort_order = $11, rotation_group = $12, notes = $13,
+           visual_mode = $14, generated_preset = $15, generated_title = $16, generated_subtitle = $17,
+           generated_accent = $18, generated_show_date = $19, generated_show_slot_label = $20,
+           generated_zodiac_mode = $21, generated_custom_zodiac = $22,
            updated_at = CURRENT_TIMESTAMP
          WHERE id = $1
          RETURNING *`,
@@ -2106,6 +2245,7 @@ export const db = {
           id,
           trimText(data.name, 200) || 'Untitled',
           trimText(data.slot, 32) || 'custom',
+          data.targetSegment ?? null,
           data.messageType === 'photo' ? 'photo' : 'text',
           trimText(data.text, 4000) || '',
           trimText(data.buttonText, 64) || '',
@@ -2150,7 +2290,7 @@ export const db = {
       return Number.isFinite(n) ? n : 0;
     },
 
-    async listActiveForSlot(slot: string, rotationGroup: string | null) {
+    async listActiveForSlot(slot: string, rotationGroup: string | null, targetSegment?: AdminDbNotificationSegment | null) {
       if (!DATABASE_URL) return [];
       const dbPool = getPool();
       const rg = rotationGroup || null;
@@ -2159,12 +2299,13 @@ export const db = {
          FROM notification_templates t
          LEFT JOIN notification_assets a ON a.id = t.asset_id
          WHERE t.is_active = TRUE AND t.slot = $1
+           AND ($3::text IS NULL OR t.target_segment IS NULL OR t.target_segment = $3)
            AND (
              ($2::text IS NULL AND t.rotation_group IS NULL)
              OR ($2::text IS NOT NULL AND t.rotation_group = $2)
            )
          ORDER BY t.sort_order ASC, t.id ASC`,
-        [slot, rg]
+        [slot, rg, targetSegment ?? null]
       );
       return result.rows;
     },
@@ -2339,9 +2480,10 @@ export const db = {
     async createCampaign(data: {
       createdBy: string;
       mode: 'personal' | 'broadcast';
-      targetSegment?: 'all' | 'premium' | 'free' | 'active_7d' | 'inactive_30d' | null;
+      targetSegment?: AdminDbNotificationSegment | null;
       targetUserId?: string | null;
       templateId?: number | null;
+      assetId?: number | null;
       title: string;
       bodyRu?: string | null;
       bodyEn?: string | null;
@@ -2352,8 +2494,8 @@ export const db = {
         const dbPool = getPool();
         const result = await dbPool.query(
           `INSERT INTO notification_campaigns (
-             created_by, mode, target_segment, target_user_id, template_id, title, body_ru, body_en, total_recipients
-           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+             created_by, mode, target_segment, target_user_id, template_id, asset_id, title, body_ru, body_en, total_recipients
+           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
            RETURNING id, created_at`,
           [
             toUserId(data.createdBy),
@@ -2361,6 +2503,7 @@ export const db = {
             data.targetSegment ?? null,
             data.targetUserId ? toUserId(data.targetUserId) : null,
             data.templateId ?? null,
+            data.assetId ?? null,
             trimText(data.title, 120),
             trimText(data.bodyRu, 4000),
             trimText(data.bodyEn, 4000),
@@ -2473,9 +2616,11 @@ export const db = {
                nc.target_user_id,
                target_user.name AS target_user_name,
                nc.template_id,
-               nc.title,
-               nc.body_ru,
-               nc.body_en,
+               nc.asset_id,
+               asset.public_url AS asset_public_url,
+                nc.title,
+                nc.body_ru,
+                nc.body_en,
                COALESCE(nc.total_recipients, 0) AS total_recipients,
                COALESCE(nc.success_count, 0) AS success_count,
                COALESCE(nc.failed_count, 0) AS failed_count,
@@ -2483,6 +2628,7 @@ export const db = {
                nc.sent_at
              FROM notification_campaigns nc
              LEFT JOIN users target_user ON target_user.id = nc.target_user_id
+             LEFT JOIN notification_assets asset ON asset.id = nc.asset_id
              WHERE ${whereClauses.join(' AND ')}
              ORDER BY nc.created_at DESC
              LIMIT $3

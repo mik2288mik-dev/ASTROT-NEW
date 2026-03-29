@@ -1,5 +1,5 @@
 import { UserProfile, NatalChartData, UserGeneratedContent, DailyHoroscope } from "../types";
-import { getNatalIntro, getDailyHoroscope, getDeepDiveAnalysis } from "./astrologyService";
+import { getNatalIntro, getDailyHoroscope, getDeepDiveAnalysis, getCachedDailyHoroscope } from "./astrologyService";
 import { saveProfile } from "./storageService";
 import { getMoscowTodayKey } from "../lib/date-utils";
 
@@ -323,6 +323,35 @@ export const getOrGenerateHoroscope = async (
       contentLength: cachedHoroscope.content.length
     });
     return cachedHoroscope;
+  }
+
+  try {
+    const dbCachedHoroscope = await getCachedDailyHoroscope(String(profile.id || ''), profile.language || 'ru');
+    if (dbCachedHoroscope &&
+        dbCachedHoroscope.date === today &&
+        dbCachedHoroscope.content &&
+        dbCachedHoroscope.content.length > 0) {
+      log.info('[getOrGenerateHoroscope] Using DB cached horoscope before generation', {
+        date: dbCachedHoroscope.date,
+        contentLength: dbCachedHoroscope.content.length
+      });
+
+      if (!profile.generatedContent) {
+        profile.generatedContent = { deepDiveAnalyses: {}, synastries: {}, timestamps: {} };
+      }
+      profile.generatedContent.dailyHoroscope = dbCachedHoroscope;
+      profile.generatedContent.timestamps.dailyHoroscopeGenerated = Date.now();
+
+      try {
+        await saveProfile(profile);
+      } catch (error) {
+        log.warn('[getOrGenerateHoroscope] Failed to persist DB cached horoscope into profile (non-critical)', error);
+      }
+
+      return dbCachedHoroscope;
+    }
+  } catch (error) {
+    log.warn('[getOrGenerateHoroscope] DB cache lookup failed, continuing with generation path', error);
   }
 
   // Только если гороскопа нет или он устарел - делаем запрос к API

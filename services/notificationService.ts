@@ -6,6 +6,7 @@ import {
   buildInlineKeyboardUrl,
 } from '../lib/telegramBot';
 import { resolveNotificationVisual, getVisualMode } from './notificationVisualResolver';
+import type { AdminNotificationTargetSegment } from '../types';
 
 const BROADCAST_CHUNK_SIZE = 20;
 const BROADCAST_CHUNK_DELAY_MS = 250;
@@ -133,7 +134,7 @@ export async function sendNotificationFromTemplate(
     createdBy: string;
     mode: 'test' | 'broadcast';
     targetUserId?: string | null;
-    targetSegment?: 'all' | 'premium' | 'free' | 'active_7d' | 'inactive_30d' | null;
+    targetSegment?: AdminNotificationTargetSegment | null;
     scheduleTimezone?: string | null;
   }
 ): Promise<{

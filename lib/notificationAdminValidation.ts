@@ -1,9 +1,20 @@
+import type { AdminNotificationTargetSegment } from '../types';
 import { isValidGeneratedPreset } from './notificationCardPresets';
 
 const SLOTS = new Set(['morning', 'day', 'evening', 'custom']);
 const REPEAT = new Set(['daily']);
 const VISUAL_MODES = new Set(['none', 'uploaded', 'generated']);
 const ZODIAC_MODES = new Set(['none', 'sun_sign', 'custom']);
+const TARGET_SEGMENTS = new Set([
+  'all',
+  'premium',
+  'free',
+  'active_7d',
+  'inactive_3d',
+  'inactive_7d',
+  'inactive_30d',
+  'need_attention',
+]);
 
 const MAX_TEXT = 4000;
 const MAX_NAME = 200;
@@ -43,6 +54,7 @@ export function validateDeepLink(url: string): { ok: true } | { ok: false; error
 export type TemplatePayload = {
   name: string;
   slot: string;
+  targetSegment: AdminNotificationTargetSegment | null;
   messageType: 'text' | 'photo';
   text: string;
   buttonText: string;
@@ -72,6 +84,10 @@ export function parseTemplatePayload(body: any): { ok: true; data: TemplatePaylo
   if (!SLOTS.has(slot)) {
     return { ok: false, error: 'INVALID_SLOT', message: 'Invalid slot' };
   }
+  const targetSegmentRaw = typeof body?.targetSegment === 'string' ? body.targetSegment.trim() : '';
+  const targetSegment = targetSegmentRaw && TARGET_SEGMENTS.has(targetSegmentRaw)
+    ? (targetSegmentRaw as AdminNotificationTargetSegment)
+    : null;
 
   const visualRaw = typeof body?.visualMode === 'string' ? body.visualMode.trim().toLowerCase() : 'none';
   const visualMode = VISUAL_MODES.has(visualRaw) ? (visualRaw as 'none' | 'uploaded' | 'generated') : 'none';
@@ -165,6 +181,7 @@ export function parseTemplatePayload(body: any): { ok: true; data: TemplatePaylo
     data: {
       name,
       slot,
+      targetSegment,
       messageType,
       text,
       buttonText,
@@ -193,6 +210,7 @@ export function existingRowToTemplatePayload(row: any, patch: { isActive: boolea
   return {
     name: row.name || '',
     slot: row.slot || 'custom',
+    targetSegment: row.target_segment ?? null,
     messageType: row.message_type === 'photo' ? 'photo' : 'text',
     text: row.text || '',
     buttonText: row.button_text || '',

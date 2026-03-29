@@ -8,6 +8,7 @@ import { motion } from 'framer-motion';
 import { CosmicPassport } from '../components/Dashboard/CosmicPassport';
 import { WeatherWidget } from '../components/Dashboard/WeatherWidget';
 import { formatLumiaDate, getMoscowTodayKey } from '../lib/date-utils';
+import { getCachedDailyHoroscope } from '../services/astrologyService';
 
 type DashboardView = Extract<ViewState, 'chart' | 'horoscope' | 'synastry' | 'oracle'>;
 
@@ -87,6 +88,30 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
             setDailyHoroscope(null);
         }
     }, [profile.generatedContent?.dailyHoroscope]);
+
+    useEffect(() => {
+        let cancelled = false;
+        const cached = profile.generatedContent?.dailyHoroscope;
+        const today = getMoscowTodayKey();
+        if (!profile.id) return;
+        if (cached && cached.date === today && cached.content) return;
+
+        const loadCachedHoroscope = async () => {
+            try {
+                const dbCached = await getCachedDailyHoroscope(profile.id!, profile.language);
+                if (!cancelled && dbCached?.date === today && dbCached.content) {
+                    setDailyHoroscope(dbCached);
+                }
+            } catch {
+                // keep teaser graceful without forcing generation on dashboard load
+            }
+        };
+
+        void loadCachedHoroscope();
+        return () => {
+            cancelled = true;
+        };
+    }, [profile.generatedContent?.dailyHoroscope, profile.id, profile.language]);
 
     const dataLoadedRef = useRef(false);
     const profileIdRef = useRef(profile.id);

@@ -169,6 +169,7 @@ export async function createNotificationTemplate(payload: {
   bodyRu: string;
   bodyEn: string;
   kind: AdminNotificationTemplateKind;
+  assetId?: number | null;
   isActive: boolean;
 }): Promise<AdminNotificationTemplate> {
   const data = await adminRequest<{ template: AdminNotificationTemplate }>('/api/admin/notification-templates', {
@@ -185,6 +186,7 @@ export async function updateNotificationTemplate(
     bodyRu: string;
     bodyEn: string;
     kind: AdminNotificationTemplateKind;
+    assetId?: number | null;
     isActive: boolean;
   }
 ): Promise<AdminNotificationTemplate> {
@@ -232,6 +234,7 @@ export async function sendNotification(payload: {
   targetUserId?: string | null;
   targetSegment?: AdminNotificationTargetSegment | null;
   templateId?: number | null;
+  assetId?: number | null;
   title: string;
   bodyRu: string;
   bodyEn: string;

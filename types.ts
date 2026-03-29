@@ -217,7 +217,15 @@ export interface OracleChatResponse {
 }
 
 export type AdminPremiumFilter = 'all' | 'premium' | 'free';
-export type AdminUserSegment = 'all' | 'premium' | 'free' | 'active_7d' | 'inactive_30d' | 'need_attention';
+export type AdminUserSegment =
+  | 'all'
+  | 'premium'
+  | 'free'
+  | 'active_7d'
+  | 'inactive_3d'
+  | 'inactive_7d'
+  | 'inactive_30d'
+  | 'need_attention';
 export type AdminUserSortBy = 'last_seen' | 'created_at' | 'lumi_balance' | 'premium_until' | 'saved_charts_count' | 'name';
 export type AdminSortOrder = 'asc' | 'desc';
 
@@ -299,7 +307,15 @@ export interface AdminUserDetail extends AdminUserSummary {
 }
 
 export type AdminNotificationTemplateKind = 'personal' | 'broadcast' | 'both';
-export type AdminNotificationTargetSegment = 'all' | 'premium' | 'free' | 'active_7d' | 'inactive_30d';
+export type AdminNotificationTargetSegment =
+  | 'all'
+  | 'premium'
+  | 'free'
+  | 'active_7d'
+  | 'inactive_3d'
+  | 'inactive_7d'
+  | 'inactive_30d'
+  | 'need_attention';
 export type AdminNotificationModeFilter = 'all' | 'personal' | 'broadcast';
 export type AdminHistoryResultFilter = 'all' | 'success' | 'partial' | 'failed';
 
@@ -309,6 +325,8 @@ export interface AdminNotificationTemplate {
   bodyRu: string;
   bodyEn: string;
   kind: AdminNotificationTemplateKind;
+  assetId?: number | null;
+  assetPublicUrl?: string | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -331,6 +349,8 @@ export interface AdminNotificationHistoryItem {
   title: string;
   bodyRu: string;
   bodyEn: string;
+  assetId?: number | null;
+  assetPublicUrl?: string | null;
   totalRecipients: number;
   successCount: number;
   failedCount: number;
@@ -368,6 +388,7 @@ export interface AdminScheduledNotificationTemplate {
   id: number;
   name: string;
   slot: NotificationSlot;
+  targetSegment: AdminNotificationTargetSegment | null;
   messageType: ScheduledNotificationMessageType;
   visualMode: NotificationVisualMode;
   text: string;

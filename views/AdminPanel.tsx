@@ -1,8 +1,13 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { type AdminUserSegment, type AdminUsersOverview, type UserProfile } from '../types';
-import { NotificationsManager } from '../components/Admin/Notifications/NotificationsManager';
+import { fetchAdminUsers } from '../services/adminService';
 import { AdminAiSettingsTab } from './admin/AdminAiSettingsTab';
+import { AdminAssetsTab } from './admin/AdminAssetsTab';
+import { AdminAutomationTab } from './admin/AdminAutomationTab';
+import { AdminChartsTab } from './admin/AdminChartsTab';
+import { AdminEconomyTab } from './admin/AdminEconomyTab';
 import { AdminNotificationsTab } from './admin/AdminNotificationsTab';
+import { AdminOverviewTab } from './admin/AdminOverviewTab';
 import { AdminUsersTab } from './admin/AdminUsersTab';
 import {
   AdminBadge,
@@ -10,12 +15,17 @@ import {
   AdminPanelShell,
   AdminSectionHeader,
   AdminStatChip,
+  AdminStateBanner,
   AdminSurface,
 } from './admin/AdminPrimitives';
 import { getAdminText } from './admin/adminText';
+import {
+  ADMIN_PRIMARY_SECTIONS,
+  ADMIN_SECONDARY_SECTIONS,
+  type AdminBackofficeSection,
+} from './admin/adminSections';
 
 type AdminOwnProfilePatch = Partial<Pick<UserProfile, 'isPremium' | 'lumiBalance' | 'chartSlots' | 'loginStreak'>>;
-type AdminSection = 'users' | 'ai' | 'cms' | 'send' | 'templates' | 'history';
 
 interface AdminPanelProps {
   profile: UserProfile;
@@ -31,11 +41,17 @@ const EMPTY_OVERVIEW: AdminUsersOverview = {
   needAttentionUsers: 0,
 };
 
-const PRIMARY_SECTIONS: AdminSection[] = ['users', 'send', 'templates', 'history'];
-const SECONDARY_SECTIONS: AdminSection[] = ['ai', 'cms'];
-
-const sectionIcon = (section: AdminSection) => {
+const sectionIcon = (section: AdminBackofficeSection) => {
   switch (section) {
+    case 'overview':
+      return (
+        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <path d="M4 19h16" strokeLinecap="round" />
+          <path d="M7 16V9" strokeLinecap="round" />
+          <path d="M12 16V5" strokeLinecap="round" />
+          <path d="M17 16v-3" strokeLinecap="round" />
+        </svg>
+      );
     case 'users':
       return (
         <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -43,6 +59,20 @@ const sectionIcon = (section: AdminSection) => {
           <circle cx="12" cy="9" r="3.5" />
           <path d="M6 19H4.5a2.5 2.5 0 0 1 0-5H7" strokeLinecap="round" />
           <path d="M18 14h1.5a2.5 2.5 0 0 1 0 5H18" strokeLinecap="round" />
+        </svg>
+      );
+    case 'economy':
+      return (
+        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <circle cx="12" cy="12" r="8" />
+          <path d="M12 7v10M9 9.5c0-1.1 1.34-2 3-2s3 .9 3 2-1.34 2-3 2-3 .9-3 2 1.34 2 3 2 3-.9 3-2" strokeLinecap="round" />
+        </svg>
+      );
+    case 'charts':
+      return (
+        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <circle cx="12" cy="12" r="8.5" />
+          <path d="M12 3.5v17M3.5 12h17M6.5 6.5l11 11M17.5 6.5l-11 11" />
         </svg>
       );
     case 'send':
@@ -67,6 +97,14 @@ const sectionIcon = (section: AdminSection) => {
           <path d="M20 4v5h-5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       );
+    case 'automation':
+      return (
+        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <path d="M6 12h12" strokeLinecap="round" />
+          <path d="M12 6v12" strokeLinecap="round" />
+          <circle cx="12" cy="12" r="8.5" />
+        </svg>
+      );
     case 'ai':
       return (
         <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -74,66 +112,153 @@ const sectionIcon = (section: AdminSection) => {
           <path d="M12 3v3M12 18v3M4.22 7.22l2.12 2.12M17.66 14.66l2.12 2.12M3 12h3M18 12h3M4.22 16.78l2.12-2.12M17.66 9.34l2.12-2.12" strokeLinecap="round" />
         </svg>
       );
-    case 'cms':
+    case 'assets':
     default:
       return (
         <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
-          <path d="M5 7.5h14M7 3.5h10v16H7z" strokeLinejoin="round" />
-          <path d="M9.5 12h5M9.5 15.5h5" strokeLinecap="round" />
+          <path d="M4 7.5A2.5 2.5 0 0 1 6.5 5h11A2.5 2.5 0 0 1 20 7.5v9A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5z" />
+          <path d="M8.5 10.5l2 2 2.5-3 4 5" strokeLinecap="round" strokeLinejoin="round" />
+          <circle cx="9" cy="9" r="1" />
         </svg>
       );
   }
 };
 
-const sectionLabel = (lang: 'ru' | 'en', section: AdminSection) => {
-  switch (section) {
-    case 'users':
-      return getAdminText(lang, 'section_users');
-    case 'send':
-      return getAdminText(lang, 'section_send');
-    case 'templates':
-      return getAdminText(lang, 'section_templates');
-    case 'history':
-      return getAdminText(lang, 'section_history');
-    case 'ai':
-      return lang === 'ru' ? 'ИИ-модель' : 'AI model';
-    case 'cms':
-    default:
-      return lang === 'ru' ? 'Автоматизация' : 'Automation';
-  }
+const sectionLabel = (lang: 'ru' | 'en', section: AdminBackofficeSection) => {
+  const keyMap: Record<AdminBackofficeSection, Parameters<typeof getAdminText>[1]> = {
+    overview: 'section_overview',
+    users: 'section_users',
+    economy: 'section_economy',
+    charts: 'section_charts',
+    send: 'section_send',
+    templates: 'section_templates',
+    history: 'section_history',
+    automation: 'section_automation',
+    ai: 'section_ai',
+    assets: 'section_assets',
+  };
+  return getAdminText(lang, keyMap[section]);
 };
 
-const sectionDescription = (lang: 'ru' | 'en', section: AdminSection) => {
+const sectionDescription = (lang: 'ru' | 'en', section: AdminBackofficeSection) => {
   switch (section) {
+    case 'overview':
+      return lang === 'ru' ? 'Сводка по продукту и быстрые переходы.' : 'Product summary and quick actions.';
     case 'users':
-      return lang === 'ru' ? 'Пользователи, Premium, Lumi и активность.' : 'Users, Premium, Lumi, and activity.';
+      return lang === 'ru' ? 'Поиск, сегменты, Premium, Lumi и активность.' : 'Search, segments, Premium, Lumi, and activity.';
+    case 'economy':
+      return lang === 'ru' ? 'Баланс Lumi, Stars и денежные действия.' : 'Lumi balance, Stars, and economy actions.';
+    case 'charts':
+      return lang === 'ru' ? 'Слоты, сохранённые карты и primary chart.' : 'Slots, saved charts, and primary chart.';
     case 'send':
-      return lang === 'ru' ? 'Личные и массовые сообщения без лишних шагов.' : 'Personal and broadcast messages without extra steps.';
+      return lang === 'ru' ? 'Личные и массовые отправки с картинкой.' : 'Personal and broadcast sends with images.';
     case 'templates':
-      return lang === 'ru' ? 'Повторяемые сценарии и готовые тексты.' : 'Reusable scenarios and ready-made message blocks.';
+      return lang === 'ru' ? 'Готовые шаблоны и reusable тексты.' : 'Ready-made templates and reusable text.';
     case 'history':
-      return lang === 'ru' ? 'Статусы кампаний, доставки и ошибки.' : 'Campaign status, deliveries, and failures.';
+      return lang === 'ru' ? 'История кампаний и ошибки доставки.' : 'Campaign history and delivery failures.';
+    case 'automation':
+      return lang === 'ru' ? 'Простой мастер плюс advanced automation.' : 'Simple wizard plus advanced automation.';
     case 'ai':
-      return lang === 'ru' ? 'Текущая модель интерпретаций и её настройка.' : 'Current interpretation model and its configuration.';
-    case 'cms':
+      return lang === 'ru' ? 'Активная модель интерпретаций Lumia.' : 'Current Lumia interpretation model.';
+    case 'assets':
     default:
-      return lang === 'ru' ? 'Продвинутые шаблоны, слоты и медиатека.' : 'Advanced templates, slots, and media.';
+      return lang === 'ru' ? 'Картинки для уведомлений и медиатека.' : 'Notification images and media library.';
   }
 };
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onPatchOwnProfile, onClose }) => {
   const lang = profile.language === 'en' ? 'en' : 'ru';
-  const [activeSection, setActiveSection] = useState<AdminSection>('users');
+  const [activeSection, setActiveSection] = useState<AdminBackofficeSection>('overview');
   const [notificationTargetUserId, setNotificationTargetUserId] = useState<string>('');
   const [userSegment, setUserSegment] = useState<AdminUserSegment>('all');
   const [overview, setOverview] = useState<AdminUsersOverview>(EMPTY_OVERVIEW);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadSummary = async () => {
+      try {
+        const payload = await fetchAdminUsers({ page: 1, pageSize: 1 });
+        if (!cancelled) {
+          setOverview(payload.overview);
+          setSummaryError(null);
+        }
+      } catch (error: any) {
+        if (!cancelled) {
+          setSummaryError(error?.message || null);
+        }
+      }
+    };
+    void loadSummary();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const summaryChips = useMemo(() => ([
-    { id: 'users', label: getAdminText(lang, 'metric_users'), value: overview.totalUsers, segment: 'all' as AdminUserSegment },
-    { id: 'premium', label: getAdminText(lang, 'metric_premium'), value: overview.activePremiumUsers, segment: 'premium' as AdminUserSegment },
-    { id: 'active', label: getAdminText(lang, 'metric_active'), value: overview.activeUsers7d, segment: 'active_7d' as AdminUserSegment },
-    { id: 'attention', label: getAdminText(lang, 'metric_attention'), value: overview.needAttentionUsers, segment: 'need_attention' as AdminUserSegment },
+    { id: 'users', label: getAdminText(lang, 'metric_users'), value: overview.totalUsers, section: 'users' as AdminBackofficeSection, segment: 'all' as AdminUserSegment },
+    { id: 'premium', label: getAdminText(lang, 'metric_premium'), value: overview.activePremiumUsers, section: 'users' as AdminBackofficeSection, segment: 'premium' as AdminUserSegment },
+    { id: 'active', label: getAdminText(lang, 'metric_active'), value: overview.activeUsers7d, section: 'users' as AdminBackofficeSection, segment: 'active_7d' as AdminUserSegment },
+    { id: 'attention', label: getAdminText(lang, 'metric_attention'), value: overview.needAttentionUsers, section: 'users' as AdminBackofficeSection, segment: 'need_attention' as AdminUserSegment },
   ]), [lang, overview.activePremiumUsers, overview.activeUsers7d, overview.needAttentionUsers, overview.totalUsers]);
+
+  const openSection = (section: AdminBackofficeSection) => {
+    setActiveSection(section);
+  };
+
+  const renderSection = () => {
+    switch (activeSection) {
+      case 'overview':
+        return <AdminOverviewTab profile={profile} onOpenSection={openSection} />;
+      case 'users':
+        return (
+          <AdminUsersTab
+            profile={profile}
+            segment={userSegment}
+            onSegmentChange={setUserSegment}
+            onOverviewChange={setOverview}
+            onPatchOwnProfile={onPatchOwnProfile}
+            onSendNotification={(userId) => {
+              setNotificationTargetUserId(userId);
+              setActiveSection('send');
+            }}
+          />
+        );
+      case 'economy':
+        return (
+          <AdminEconomyTab
+            profile={profile}
+            onPatchOwnProfile={onPatchOwnProfile}
+            onSendNotification={(userId) => {
+              setNotificationTargetUserId(userId);
+              setActiveSection('send');
+            }}
+          />
+        );
+      case 'charts':
+        return <AdminChartsTab profile={profile} onOpenUsers={() => setActiveSection('users')} />;
+      case 'send':
+      case 'templates':
+      case 'history':
+        return (
+          <AdminNotificationsTab
+            profile={profile}
+            section={activeSection}
+            initialTargetUserId={notificationTargetUserId}
+            onClearInitialTarget={() => setNotificationTargetUserId('')}
+            onChangeSection={(section) => setActiveSection(section)}
+          />
+        );
+      case 'automation':
+        return <AdminAutomationTab profile={profile} />;
+      case 'ai':
+        return <AdminAiSettingsTab profile={profile} />;
+      case 'assets':
+        return <AdminAssetsTab profile={profile} />;
+      default:
+        return null;
+    }
+  };
 
   return (
     <div
@@ -145,12 +270,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onPatchOwnProfi
         paddingRight: 'env(safe-area-inset-right, 0px)',
       }}
     >
-      <div className="mx-auto max-w-[1480px] px-3 pb-5 pt-3 sm:px-4 sm:pb-6 sm:pt-4 lg:px-5">
+      <div className="mx-auto max-w-[1600px] px-3 pb-5 pt-3 sm:px-4 sm:pb-6 sm:pt-4 xl:px-5">
         <AdminPanelShell>
-          <aside className="xl:sticky xl:top-4">
+          <aside className="xl:sticky xl:top-4 xl:max-h-[calc(100vh-2rem)] xl:overflow-y-auto xl:pr-1">
             <AdminSurface className="px-4 py-4 sm:px-5 sm:py-5">
               <AdminSectionHeader
-                eyebrow="Lumia Admin"
+                eyebrow="Lumia Admin 2.0"
                 title={getAdminText(lang, 'panel_title')}
                 subtitle={getAdminText(lang, 'panel_subtitle')}
                 action={(
@@ -160,25 +285,31 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onPatchOwnProfi
                 )}
               />
 
+              {summaryError ? (
+                <div className="mt-5">
+                  <AdminStateBanner tone="info">{summaryError}</AdminStateBanner>
+                </div>
+              ) : null}
+
               <div className="mt-6 admin-kpi-grid">
                 {summaryChips.map((chip) => (
                   <AdminStatChip
                     key={chip.id}
                     label={chip.label}
                     value={chip.value}
-                    active={activeSection === 'users' && userSegment === chip.segment}
+                    active={activeSection === chip.section && userSegment === chip.segment}
                     onClick={() => {
-                      setActiveSection('users');
                       setUserSegment(chip.segment);
+                      setActiveSection(chip.section);
                     }}
                   />
                 ))}
               </div>
 
               <div className="mt-6">
-                <p className="admin-label">{lang === 'ru' ? 'Основные разделы' : 'Core sections'}</p>
+                <p className="admin-label">{lang === 'ru' ? 'Основные разделы' : 'Primary sections'}</p>
                 <div className="admin-nav mt-3">
-                  {PRIMARY_SECTIONS.map((section) => (
+                  {ADMIN_PRIMARY_SECTIONS.map((section) => (
                     <button
                       key={section}
                       type="button"
@@ -198,11 +329,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onPatchOwnProfi
 
               <div className="mt-6">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="admin-label">{lang === 'ru' ? 'Инструменты' : 'Tools'}</p>
-                  <AdminBadge tone="neutral">{lang === 'ru' ? 'advanced' : 'advanced'}</AdminBadge>
+                  <p className="admin-label">{lang === 'ru' ? 'Дополнительно' : 'Additional'}</p>
+                  <AdminBadge tone="neutral">{lang === 'ru' ? 'tools' : 'tools'}</AdminBadge>
                 </div>
                 <div className="admin-nav mt-3">
-                  {SECONDARY_SECTIONS.map((section) => (
+                  {ADMIN_SECONDARY_SECTIONS.map((section) => (
                     <button
                       key={section}
                       type="button"
@@ -223,33 +354,52 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onPatchOwnProfi
           </aside>
 
           <main className="min-w-0 space-y-5">
-            {activeSection === 'users' ? (
-              <AdminUsersTab
-                profile={profile}
-                segment={userSegment}
-                onSegmentChange={setUserSegment}
-                onOverviewChange={setOverview}
-                onPatchOwnProfile={onPatchOwnProfile}
-                onSendNotification={(userId) => {
-                  setNotificationTargetUserId(userId);
-                  setActiveSection('send');
-                }}
-              />
-            ) : null}
+            <AdminSurface className="px-5 py-5 sm:px-6 sm:py-6">
+              <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                <div className="min-w-0">
+                  <p className="admin-label">{lang === 'ru' ? 'Текущий раздел' : 'Current section'}</p>
+                  <h1 className="admin-heading mt-2 text-[28px] leading-tight text-white sm:text-[34px]">
+                    {sectionLabel(lang, activeSection)}
+                  </h1>
+                  <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">
+                    {sectionDescription(lang, activeSection)}
+                  </p>
+                </div>
 
-            {activeSection === 'ai' ? <AdminAiSettingsTab profile={profile} /> : null}
+                <div className="flex flex-wrap gap-2">
+                  {activeSection !== 'send' ? (
+                    <AdminButton tone="secondary" onClick={() => setActiveSection('send')}>
+                      {getAdminText(lang, 'section_send')}
+                    </AdminButton>
+                  ) : null}
+                  {activeSection !== 'automation' ? (
+                    <AdminButton tone="secondary" onClick={() => setActiveSection('automation')}>
+                      {getAdminText(lang, 'section_automation')}
+                    </AdminButton>
+                  ) : null}
+                </div>
+              </div>
 
-            {activeSection === 'cms' ? <NotificationsManager profile={profile} /> : null}
+              <div className="mt-5 flex gap-2 overflow-x-auto pb-1 xl:hidden">
+                {[...ADMIN_PRIMARY_SECTIONS, ...ADMIN_SECONDARY_SECTIONS].map((section) => (
+                  <button
+                    key={section}
+                    type="button"
+                    onClick={() => setActiveSection(section)}
+                    className={`inline-flex min-h-[2.5rem] shrink-0 items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition ${
+                      activeSection === section
+                        ? 'border-sky-300/35 bg-sky-300 text-[#081523]'
+                        : 'border-white/10 bg-white/[0.04] text-slate-200'
+                    }`}
+                  >
+                    <span className="h-4 w-4">{sectionIcon(section)}</span>
+                    {sectionLabel(lang, section)}
+                  </button>
+                ))}
+              </div>
+            </AdminSurface>
 
-            {activeSection === 'send' || activeSection === 'templates' || activeSection === 'history' ? (
-              <AdminNotificationsTab
-                profile={profile}
-                section={activeSection}
-                initialTargetUserId={notificationTargetUserId}
-                onClearInitialTarget={() => setNotificationTargetUserId('')}
-                onChangeSection={setActiveSection}
-              />
-            ) : null}
+            {renderSection()}
           </main>
         </AdminPanelShell>
       </div>

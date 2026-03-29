@@ -27,6 +27,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const bodyEn = typeof req.body?.bodyEn === 'string' ? req.body.bodyEn.trim() : '';
     const kind = req.body?.kind;
     const isActive = req.body?.isActive !== false;
+    const assetId = req.body?.assetId != null ? Number(req.body.assetId) : null;
 
     if (!title) {
       return res.status(400).json({ error: 'TITLE_REQUIRED', message: 'Template title is required' });
@@ -43,6 +44,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       bodyRu,
       bodyEn,
       kind,
+      assetId: Number.isInteger(assetId) && assetId !== null && assetId > 0 ? assetId : null,
       isActive,
     });
 

@@ -102,7 +102,7 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  if (req.method !== 'POST') {
+  if (req.method !== 'POST' && req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
@@ -110,6 +110,58 @@ export default async function handler(
   const dateKey = getMoscowTodayKey();
 
   try {
+    if (req.method === 'GET') {
+      const userId = typeof req.query.userId === 'string' ? req.query.userId.trim() : '';
+      const lang = req.query.lang === 'en' ? false : true;
+
+      if (!userId) {
+        return res.status(400).json({
+          error: 'Bad request',
+          message: 'userId is required',
+        });
+      }
+
+      if (!process.env.DATABASE_URL) {
+        return sendDailyError(
+          res,
+          lang,
+          500,
+          'DAILY_CACHE_READ_FAILED',
+          'DATABASE_URL is not configured'
+        );
+      }
+
+      try {
+        const existingContent = await db.daily_natal_cards.getForPrimaryUser(userId, dateKey);
+        if (!existingContent) {
+          return res.status(404).json({
+            error: 'NOT_FOUND',
+            code: 'DAILY_NOT_FOUND',
+            message: lang
+              ? 'Гороскоп на сегодня ещё не сохранён.'
+              : 'No horoscope cached for today.',
+          });
+        }
+
+        const payload = withHoroscopeMeta(existingContent, {
+          persisted: true,
+          source: 'cache',
+        });
+        res.setHeader('X-Horoscope-Source', payload.source);
+        res.setHeader('X-Horoscope-Date', dateKey);
+        res.setHeader('X-Horoscope-Persisted', 'true');
+        return res.status(200).json(payload);
+      } catch (readError: any) {
+        return sendDailyError(
+          res,
+          lang,
+          500,
+          'DAILY_CACHE_READ_FAILED',
+          readError.message
+        );
+      }
+    }
+
     const { userId, profile, chartData } = req.body;
     const lang = profile?.language === 'ru';
     const hasDatabase = !!process.env.DATABASE_URL;

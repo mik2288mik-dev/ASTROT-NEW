@@ -39,7 +39,7 @@ interface AdminUsersTabProps {
 }
 
 const FILTERS: AdminPremiumFilter[] = ['all', 'premium', 'free'];
-const SEGMENTS: AdminUserSegment[] = ['all', 'premium', 'free', 'active_7d', 'inactive_30d', 'need_attention'];
+const SEGMENTS: AdminUserSegment[] = ['all', 'premium', 'free', 'active_7d', 'inactive_3d', 'inactive_7d', 'inactive_30d', 'need_attention'];
 const PAGE_SIZES = [25, 50, 100];
 
 const formatDateTime = (lang: 'ru' | 'en', value?: string | null) => {
@@ -63,15 +63,17 @@ const formatDateOnly = (lang: 'ru' | 'en', value?: string | null) => {
 };
 
 const getSegmentLabel = (lang: 'ru' | 'en', segment: AdminUserSegment) => {
-  const map: Record<AdminUserSegment, string> = {
+  const map: Record<string, string> = {
     all: getAdminText(lang, 'segment_all'),
     premium: getAdminText(lang, 'segment_premium'),
     free: getAdminText(lang, 'segment_free'),
     active_7d: getAdminText(lang, 'segment_active_7d'),
+    inactive_3d: getAdminText(lang, 'segment_inactive_3d'),
+    inactive_7d: getAdminText(lang, 'segment_inactive_7d'),
     inactive_30d: getAdminText(lang, 'segment_inactive_30d'),
     need_attention: getAdminText(lang, 'segment_attention'),
   };
-  return map[segment];
+  return map[segment] || segment.replaceAll('_', ' ');
 };
 
 const getSortLabel = (lang: 'ru' | 'en', value: AdminUserSortBy) => {

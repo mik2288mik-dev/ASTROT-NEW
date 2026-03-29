@@ -29,6 +29,66 @@ function resolveIsAdmin(userId: string, dbIsAdmin: boolean | undefined): boolean
   return !!dbIsAdmin;
 }
 
+async function hydrateGeneratedContent(userId: string) {
+  const generatedContent: {
+    natalIntro?: string;
+    deepDiveAnalyses?: Record<string, string>;
+    dailyHoroscope?: any;
+    timestamps: Record<string, number>;
+  } = { timestamps: {} };
+
+  let hasContent = false;
+
+  try {
+    const natalIntro = await db.interpretations.getByHash(userId, 'natal_intro', 'default');
+    if (natalIntro?.content) {
+      generatedContent.natalIntro = natalIntro.content;
+      const generatedAt = toUnixTimestamp(natalIntro.updatedAt);
+      if (generatedAt) {
+        generatedContent.timestamps.natalIntroGenerated = generatedAt;
+      }
+      hasContent = true;
+    }
+  } catch (e: any) {
+    log.warn('[hydrateGeneratedContent] Failed to hydrate natalIntro', { userId, error: e?.message });
+  }
+
+  try {
+    const deepDiveTypes = ['deep_dive_personality', 'deep_dive_love', 'deep_dive_career', 'deep_dive_weakness', 'deep_dive_karma'];
+    const topics = ['personality', 'love', 'career', 'weakness', 'karma'];
+    const deepDiveAnalyses: Record<string, string> = {};
+    for (let i = 0; i < deepDiveTypes.length; i++) {
+      const row = await db.interpretations.getByHash(userId, deepDiveTypes[i], topics[i]);
+      if (row?.content) deepDiveAnalyses[topics[i]] = row.content;
+    }
+    if (Object.keys(deepDiveAnalyses).length > 0) {
+      generatedContent.deepDiveAnalyses = deepDiveAnalyses;
+      generatedContent.timestamps.deepDiveGenerated = Date.now();
+      hasContent = true;
+    }
+  } catch (e: any) {
+    log.warn('[hydrateGeneratedContent] Failed to hydrate deepDiveAnalyses', { userId, error: e?.message });
+  }
+
+  try {
+    const todayKey = getMoscowTodayKey();
+    const dailyHoroscope = await db.daily_natal_cards.getForPrimaryUser(userId, todayKey);
+    if (dailyHoroscope) {
+      generatedContent.dailyHoroscope = dailyHoroscope;
+      generatedContent.timestamps.dailyHoroscopeGenerated = Date.now();
+      hasContent = true;
+    }
+  } catch (e: any) {
+    log.warn('[hydrateGeneratedContent] Failed to hydrate dailyHoroscope', {
+      userId,
+      code: 'DAILY_CACHE_READ_FAILED',
+      error: e?.message,
+    });
+  }
+
+  return hasContent ? generatedContent : null;
+}
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -76,57 +136,7 @@ export default async function handler(
         isSetup: user.is_setup
       });
 
-      // Fetch generated content from interpretations (Lumia schema)
-      let generatedContent: {
-        natalIntro?: string;
-        deepDiveAnalyses?: Record<string, string>;
-        dailyHoroscope?: any;
-        timestamps: Record<string, number>;
-      } | null = null;
-
-      let natalIntro: { content?: string; updatedAt?: string | Date } | null = null;
-      try {
-        natalIntro = await db.interpretations.getByHash(userId, 'natal_intro', 'default');
-      } catch (e: any) {
-        log.warn('[GET] Failed to hydrate natalIntro', { userId, error: e?.message });
-      }
-
-      const deepDiveAnalyses: Record<string, string> = {};
-      try {
-        const deepDiveTypes = ['deep_dive_personality', 'deep_dive_love', 'deep_dive_career', 'deep_dive_weakness', 'deep_dive_karma'];
-        const topics = ['personality', 'love', 'career', 'weakness', 'karma'];
-        for (let i = 0; i < deepDiveTypes.length; i++) {
-          const row = await db.interpretations.getByHash(userId, deepDiveTypes[i], topics[i]);
-          if (row?.content) deepDiveAnalyses[topics[i]] = row.content;
-        }
-      } catch (e: any) {
-        log.warn('[GET] Failed to hydrate deepDiveAnalyses', { userId, error: e?.message });
-      }
-
-      let dailyHoroscope: any = null;
-      try {
-        const todayKey = getMoscowTodayKey();
-        dailyHoroscope = await db.daily_natal_cards.getForPrimaryUser(userId, todayKey);
-      } catch (e: any) {
-        log.warn('[GET] Failed to hydrate dailyHoroscope', {
-          userId,
-          code: 'DAILY_CACHE_READ_FAILED',
-          error: e?.message,
-        });
-      }
-
-      if (natalIntro?.content || Object.keys(deepDiveAnalyses).length > 0 || dailyHoroscope) {
-        generatedContent = {
-          timestamps: {
-            ...(toUnixTimestamp(natalIntro?.updatedAt) ? { natalIntroGenerated: toUnixTimestamp(natalIntro?.updatedAt) } : {}),
-            ...(Object.keys(deepDiveAnalyses).length > 0 ? { deepDiveGenerated: Date.now() } : {}),
-            ...(dailyHoroscope ? { dailyHoroscopeGenerated: Date.now() } : {}),
-          },
-          ...(natalIntro?.content ? { natalIntro: natalIntro.content } : {}),
-          ...(Object.keys(deepDiveAnalyses).length > 0 ? { deepDiveAnalyses } : {}),
-          ...(dailyHoroscope ? { dailyHoroscope } : {}),
-        };
-      }
+      const generatedContent = await hydrateGeneratedContent(userId);
 
       const lumiBalance = user.lumi_balance ?? 0;
       const loginStreak = user.login_streak ?? 0;
@@ -202,11 +212,7 @@ export default async function handler(
       const savedUser = await db.users.set(userId, dbUser);
       const refreshedUser = await db.users.get(userId);
 
-      let generatedContent: { natalIntro?: string } | null = null;
-      try {
-        const natalIntro = await db.interpretations.getByHash(userId, 'natal_intro', 'default');
-        if (natalIntro?.content) generatedContent = { natalIntro: natalIntro.content };
-      } catch {}
+      const generatedContent = await hydrateGeneratedContent(userId);
 
       const clientUser = {
         id: savedUser.id,
