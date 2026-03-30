@@ -1,12 +1,8 @@
 import React, { useState, useEffect, useMemo, memo, useCallback, useRef } from 'react';
-import { UserProfile, NatalChartData, UserContext, ViewState } from '../types';
+import { UserProfile, NatalChartData, ViewState } from '../types';
 import { getText } from '../constants';
-import { SolarSystem } from '../components/SolarSystem';
 import { Loading } from '../components/ui/Loading';
-import { getTodayWeather } from '../services/weatherService';
-import { motion } from 'framer-motion';
 import { CosmicPassport } from '../components/Dashboard/CosmicPassport';
-import { WeatherWidget } from '../components/Dashboard/WeatherWidget';
 import { formatLumiaDate, getMoscowTodayKey } from '../lib/date-utils';
 import { getCachedDailyHoroscope } from '../services/astrologyService';
 
@@ -17,11 +13,30 @@ interface DashboardProps {
     chartData: NatalChartData | null;
     onNavigate: (view: DashboardView) => void;
     onOpenSettings: () => void;
-    onContextUpdate?: (context: UserContext | null) => void;
 }
 
-export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate, onOpenSettings, onContextUpdate }) => {
-    const [context, setContext] = useState<UserContext | null>(null);
+const cleanDashboardText = (value?: string | null): string =>
+    String(value || '')
+        .replace(/\*\*/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+const trimDashboardText = (value: string, maxLength: number): string => {
+    if (value.length <= maxLength) return value;
+
+    const slice = value.slice(0, maxLength).trim();
+    const lastSpace = slice.lastIndexOf(' ');
+    const safeCut = lastSpace > Math.floor(maxLength * 0.6) ? lastSpace : maxLength;
+    return `${slice.slice(0, safeCut).trim()}…`;
+};
+
+const splitIntoDashboardSentences = (value: string): string[] =>
+    value
+        .split(/(?<=[.!?…])\s+/)
+        .map((part) => cleanDashboardText(part))
+        .filter(Boolean);
+
+export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate, onOpenSettings }) => {
     const [tgUser, setTgUser] = useState<any>(null);
     const [dailyHoroscope, setDailyHoroscope] = useState<any>(null);
 
@@ -32,6 +47,68 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
     const horoscopeDateLabel = useMemo(() => {
         return formatLumiaDate(dailyHoroscope?.date || getMoscowTodayKey(), language);
     }, [dailyHoroscope?.date, language]);
+
+    const cleanedContent = useMemo(() => cleanDashboardText(dailyHoroscope?.content), [dailyHoroscope?.content]);
+    const contentSentences = useMemo(() => splitIntoDashboardSentences(cleanedContent), [cleanedContent]);
+    const adviceLines = useMemo(
+        () =>
+            (Array.isArray(dailyHoroscope?.advice) ? dailyHoroscope.advice : [])
+                .map((item: string) => cleanDashboardText(item))
+                .filter(Boolean)
+                .slice(0, 3),
+        [dailyHoroscope?.advice]
+    );
+    const transitFocus = useMemo(() => cleanDashboardText(dailyHoroscope?.transitFocus), [dailyHoroscope?.transitFocus]);
+    const moonImpact = useMemo(() => cleanDashboardText(dailyHoroscope?.moonImpact), [dailyHoroscope?.moonImpact]);
+
+    const heroHeadline = useMemo(() => {
+        const candidate =
+            adviceLines[0] ||
+            transitFocus ||
+            contentSentences[0] ||
+            getText(language, 'dashboard.hero_fallback_title');
+
+        return trimDashboardText(candidate.replace(/[.!?…]+$/u, '').trim(), 84);
+    }, [adviceLines, contentSentences, language, transitFocus]);
+
+    const heroSupport = useMemo(() => {
+        const candidate = transitFocus || contentSentences.find((sentence) => sentence !== adviceLines[0]) || '';
+        if (!candidate) return null;
+
+        const normalized = trimDashboardText(candidate, 148);
+        if (normalized.replace(/[.!?…]+$/u, '') === heroHeadline) {
+            return null;
+        }
+
+        return normalized;
+    }, [adviceLines, contentSentences, heroHeadline, transitFocus]);
+
+    const todayPoints = useMemo(
+        () => [
+            {
+                label: getText(language, 'dashboard.chance'),
+                value: trimDashboardText(
+                    adviceLines[0] || contentSentences[0] || getText(language, 'dashboard.fallback_chance'),
+                    116
+                ),
+            },
+            {
+                label: getText(language, 'dashboard.risk'),
+                value: trimDashboardText(
+                    adviceLines[1] || moonImpact || contentSentences[1] || getText(language, 'dashboard.fallback_risk'),
+                    116
+                ),
+            },
+            {
+                label: getText(language, 'dashboard.focus'),
+                value: trimDashboardText(
+                    transitFocus || adviceLines[2] || contentSentences[0] || getText(language, 'dashboard.fallback_focus'),
+                    116
+                ),
+            },
+        ],
+        [adviceLines, contentSentences, language, moonImpact, transitFocus]
+    );
 
     const handleNavigateHoroscope = useCallback(() => onNavigate('horoscope'), [onNavigate]);
     const handleNavigateChart = useCallback(() => onNavigate('chart'), [onNavigate]);
@@ -44,40 +121,6 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
             setTgUser(tg.initDataUnsafe.user);
         }
     }, []);
-
-    useEffect(() => {
-        const userId = profile.id;
-        if (!userId) return;
-
-        const loadWeather = async () => {
-            try {
-                const data = await getTodayWeather(userId);
-                if (data) {
-                    const nextContext = {
-                        mood: 'Neutral',
-                        weatherData: {
-                            city: data.city,
-                            temp: data.temp,
-                            condition: data.condition,
-                            humidity: data.humidity ?? 0,
-                            moonPhase: data.moonPhase
-                                ? {
-                                      phase: data.moonPhase.phase,
-                                      illumination: parseInt(data.moonPhase.illumination, 10) || 0,
-                                  }
-                                : undefined,
-                        },
-                    };
-                    setContext(nextContext);
-                    onContextUpdate?.(nextContext);
-                }
-            } catch {
-                setContext(null);
-            }
-        };
-
-        void loadWeather();
-    }, [profile.id, profile.weatherCity, onContextUpdate]);
 
     useEffect(() => {
         const cached = profile.generatedContent?.dailyHoroscope;
@@ -103,7 +146,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
                     setDailyHoroscope(dbCached);
                 }
             } catch {
-                // keep teaser graceful without forcing generation on dashboard load
+                // Dashboard remains stable without forcing generation on load
             }
         };
 
@@ -148,115 +191,106 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
                 photoUrl={photoUrl}
                 displayName={displayName}
                 onOpenSettings={onOpenSettings}
-                weatherData={context?.weatherData}
             />
 
-            <div className="space-y-2.5">
+            <section className="lumia-glass rounded-2xl p-4 sm:p-[18px]">
+                <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                        <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
+                            {getText(profile.language, 'dashboard.hero_label')}
+                        </p>
+                        <h2 className="mt-2 max-w-[15ch] font-serif text-[26px] leading-[1.1] tracking-tight text-astro-text sm:max-w-[18ch] sm:text-[30px]">
+                            {heroHeadline}
+                        </h2>
+                    </div>
+                    {horoscopeDateLabel && (
+                        <span className="shrink-0 rounded-full bg-astro-text/[0.06] px-2.5 py-1 text-[11px] text-astro-subtext">
+                            {horoscopeDateLabel}
+                        </span>
+                    )}
+                </div>
+
+                <p className="mt-4 max-w-[36ch] text-sm leading-relaxed text-astro-subtext">
+                    {getText(profile.language, 'dashboard.hero_body')}
+                </p>
+
+                {heroSupport && (
+                    <p className="mt-2.5 max-w-[38ch] text-[15px] leading-[1.6] text-astro-text/92 [text-wrap:pretty]">
+                        {heroSupport}
+                    </p>
+                )}
+
                 <button
                     onClick={handleNavigateHoroscope}
                     type="button"
-                    className="lumia-glass w-full rounded-2xl p-4 text-left transition-[transform,box-shadow] hover:ring-1 hover:ring-astro-highlight/22 active:scale-[0.99] sm:p-[18px]"
+                    className="mt-4 inline-flex items-center gap-2 rounded-full border border-astro-highlight/28 bg-astro-highlight/12 px-4 py-2.5 text-sm font-medium text-astro-highlight transition-[box-shadow,background-color] hover:bg-astro-highlight/16 hover:ring-1 hover:ring-astro-highlight/20"
                 >
-                    <div className="flex items-start justify-between gap-4">
-                        <div>
-                            <p className="mb-1 text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
-                                {getText(profile.language, 'dashboard.horoscope_today')}
-                            </p>
-                            <p className="text-xs leading-relaxed text-astro-subtext">
-                                {getText(profile.language, 'dashboard.horoscope_footer')}
+                    {getText(profile.language, 'dashboard.hero_cta')}
+                </button>
+            </section>
+
+            <section className="lumia-glass rounded-2xl p-4 sm:p-[18px]">
+                <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
+                    {getText(profile.language, 'dashboard.matters_label')}
+                </p>
+                <h3 className="mt-2 font-serif text-xl text-astro-text">
+                    {getText(profile.language, 'dashboard.matters_title')}
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-astro-subtext">
+                    {getText(profile.language, 'dashboard.matters_body')}
+                </p>
+
+                <div className="mt-4 space-y-2.5">
+                    {todayPoints.map((item) => (
+                        <div key={item.label} className="rounded-2xl border border-astro-border/55 bg-astro-text/[0.04] px-4 py-3.5">
+                            <p className="text-[10px] uppercase tracking-[0.18em] text-astro-subtext">{item.label}</p>
+                            <p className="mt-1.5 text-[15px] leading-[1.6] text-astro-text [text-wrap:pretty]">
+                                {item.value}
                             </p>
                         </div>
-                        {horoscopeDateLabel && (
-                            <span className="shrink-0 rounded-full bg-astro-text/[0.06] px-2.5 py-1 text-[11px] text-astro-subtext">
-                                {horoscopeDateLabel}
-                            </span>
-                        )}
-                    </div>
+                    ))}
+                </div>
+            </section>
 
-                    {dailyHoroscope?.content ? (
-                        <>
-                            <p className="lumia-prose mt-4 line-clamp-4 text-[15px] leading-[1.65] text-astro-text [text-wrap:pretty] sm:text-base sm:leading-[1.68]">
-                                {dailyHoroscope.content.replace(/\*\*/g, '').trim()}
-                            </p>
-                            {(dailyHoroscope.mood || dailyHoroscope.color) && (
-                                <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-astro-subtext">
-                                    {dailyHoroscope.mood && (
-                                        <span className="rounded-full bg-astro-text/[0.06] px-2.5 py-1">
-                                            {getText(profile.language, 'dashboard.mood')}: <span className="font-medium text-astro-highlight">{dailyHoroscope.mood}</span>
-                                        </span>
-                                    )}
-                                    {dailyHoroscope.color && (
-                                        <span className="rounded-full bg-astro-text/[0.06] px-2.5 py-1">
-                                            {getText(profile.language, 'dashboard.color')}: <span className="font-medium text-astro-highlight">{dailyHoroscope.color}</span>
-                                        </span>
-                                    )}
-                                </div>
-                            )}
-                        </>
-                    ) : (
-                        <h3 className="mt-4 font-serif text-lg text-astro-text">
-                            {getText(profile.language, 'dashboard.special_day')}
-                        </h3>
-                    )}
+            <section className="lumia-glass rounded-2xl p-4 sm:p-[18px]">
+                <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
+                    {getText(profile.language, 'dashboard.natal_label')}
+                </p>
+                <h3 className="mt-2 font-serif text-xl text-astro-text">
+                    {getText(profile.language, 'dashboard.natal_title')}
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-astro-subtext">
+                    {getText(profile.language, 'dashboard.natal_body')}
+                </p>
 
-                    <p className="mt-4 text-sm font-medium text-astro-highlight">
-                        {getText(profile.language, 'dashboard.detailed_forecast')}
-                    </p>
-                </button>
+                <div className="mt-4 flex flex-wrap gap-2">
+                    {[
+                        getText(profile.language, 'dashboard.natal_point_character'),
+                        getText(profile.language, 'dashboard.natal_point_love'),
+                        getText(profile.language, 'dashboard.natal_point_strengths'),
+                        getText(profile.language, 'dashboard.natal_point_patterns'),
+                    ].map((point) => (
+                        <span
+                            key={point}
+                            className="rounded-full border border-astro-border/55 bg-astro-text/[0.04] px-3 py-1.5 text-[11px] text-astro-text/92"
+                        >
+                            {point}
+                        </span>
+                    ))}
+                </div>
+
+                <p className="mt-4 text-xs leading-relaxed text-astro-subtext">
+                    {getText(profile.language, 'dashboard.natal_note')}
+                </p>
 
                 <button
                     onClick={handleNavigateChart}
                     type="button"
-                    className="lumia-glass w-full rounded-2xl p-4 text-left transition-[transform,box-shadow] hover:ring-1 hover:ring-astro-highlight/22 active:scale-[0.99] sm:p-[18px]"
+                    className="mt-4 inline-flex items-center gap-2 rounded-full border border-astro-border/70 bg-astro-card/60 px-4 py-2.5 text-sm font-medium text-astro-text transition-[box-shadow,border-color] hover:border-astro-highlight/32 hover:ring-1 hover:ring-astro-highlight/18"
                 >
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
-                        {getText(profile.language, 'dashboard.menu_analysis')}
-                    </p>
-                    <h3 className="mt-2 font-serif text-lg text-astro-text">
-                        {getText(profile.language, 'chart.summary')}
-                    </h3>
-                    <p className="mt-2 text-sm leading-relaxed text-astro-subtext">
-                        {getText(profile.language, 'dashboard.chart_subtitle')}
-                    </p>
+                    {getText(profile.language, 'dashboard.natal_cta')}
                 </button>
-            </div>
-
-            {context?.socialProof && (
-                <div className="overflow-hidden border-y border-astro-border/50 bg-astro-bg py-2">
-                    <motion.div
-                        className="whitespace-nowrap text-[10px] uppercase tracking-widest text-astro-subtext"
-                        animate={{ x: [300, -500] }}
-                        transition={{ duration: 15, repeat: Infinity, ease: 'linear' }}
-                    >
-                        {context.socialProof}
-                    </motion.div>
-                </div>
-            )}
-
-            {profile.weatherCity ? (
-                context?.weatherData && chartData ? (
-                    <WeatherWidget profile={profile} chartData={chartData} weatherData={context.weatherData} />
-                ) : (
-                    <div className="lumia-glass rounded-2xl p-4 opacity-80 sm:p-[18px]">
-                        <h3 className="mb-1 text-[10px] uppercase tracking-widest text-astro-subtext">
-                            {getText(profile.language, 'dashboard.context_weather')}
-                        </h3>
-                        <p className="text-sm text-astro-text">{getText(profile.language, 'dashboard.loading_weather')}</p>
-                    </div>
-                )
-            ) : (
-                <button
-                    onClick={onOpenSettings}
-                    type="button"
-                    className="lumia-glass w-full rounded-2xl p-4 text-left transition-[transform,box-shadow] hover:ring-1 hover:ring-astro-highlight/22 active:scale-[0.99] sm:p-[18px]"
-                >
-                    <h3 className="mb-1 text-[10px] uppercase tracking-widest text-astro-subtext">
-                        {getText(profile.language, 'dashboard.context_weather')}
-                    </h3>
-                    <p className="text-sm text-astro-text">{getText(profile.language, 'dashboard.set_city_hint')}</p>
-                    <p className="mt-2 text-xs text-astro-subtext">{getText(profile.language, 'dashboard.tap_settings')}</p>
-                </button>
-            )}
+            </section>
 
             <div className="grid grid-cols-2 gap-2.5">
                 <button
@@ -265,7 +299,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
                     className="lumia-glass rounded-2xl p-3.5 text-left transition-[transform,box-shadow] hover:ring-1 hover:ring-astro-highlight/22 active:scale-[0.99] sm:p-4"
                 >
                     <span className="text-xl text-pink-400/90">♥</span>
-                    <h3 className="mt-2 mb-0.5 font-serif text-sm text-astro-text">
+                    <h3 className="mb-0.5 mt-2 font-serif text-sm text-astro-text">
                         {getText(profile.language, 'dashboard.menu_synastry')}
                     </h3>
                     <p className="text-[10px] text-astro-subtext">{getText(profile.language, 'dashboard.synastry_subtitle')}</p>
@@ -290,14 +324,12 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
                         </span>
                     )}
                     <span className="text-xl text-blue-400/90">✧</span>
-                    <h3 className="mt-2 mb-0.5 font-serif text-sm text-astro-text">
+                    <h3 className="mb-0.5 mt-2 font-serif text-sm text-astro-text">
                         {getText(profile.language, 'dashboard.menu_oracle')}
                     </h3>
                     <p className="text-[10px] text-astro-subtext">{getText(profile.language, 'dashboard.oracle_subtitle')}</p>
                 </button>
             </div>
-
-            <SolarSystem language={language} />
         </div>
     );
 });

@@ -1,7 +1,7 @@
 import React, { memo } from 'react';
 import Image from 'next/image';
-import { UserProfile, NatalChartData, UserContext } from '../../types';
-import { getText, getZodiacSign, getElement } from '../../constants';
+import { UserProfile, NatalChartData } from '../../types';
+import { getText, getZodiacSign } from '../../constants';
 
 interface CosmicPassportProps {
   profile: UserProfile;
@@ -9,63 +9,10 @@ interface CosmicPassportProps {
   photoUrl?: string;
   displayName: string;
   onOpenSettings: () => void;
-  weatherData?: UserContext['weatherData'];
 }
 
-const translateWeather = (condition: string, language: string): string => {
-  if (language !== 'ru') return condition;
-  const translations: Record<string, string> = {
-    sunny: 'Солнечно',
-    clear: 'Ясно',
-    'partly cloudy': 'Переменная облачность',
-    cloudy: 'Облачно',
-    overcast: 'Пасмурно',
-    mist: 'Туман',
-    fog: 'Туман',
-    'light rain': 'Небольшой дождь',
-    'moderate rain': 'Умеренный дождь',
-    'heavy rain': 'Сильный дождь',
-    'patchy rain': 'Местами дождь',
-    thundery: 'Гроза',
-  };
-  const lower = condition.toLowerCase();
-  for (const [key, value] of Object.entries(translations)) {
-    if (lower.includes(key)) return value;
-  }
-  return condition;
-};
-
-const translateMoonPhase = (phase: string, language: string): string => {
-  if (language !== 'ru') return phase;
-  const translations: Record<string, string> = {
-    'new moon': 'Новолуние',
-    'waxing crescent': 'Растущий серп',
-    'waxing gibbous': 'Растущая Луна',
-    'first quarter': 'Первая четверть',
-    'full moon': 'Полнолуние',
-    'waning gibbous': 'Убывающая Луна',
-    'last quarter': 'Последняя четверть',
-  };
-  const lower = phase.toLowerCase();
-  for (const [key, value] of Object.entries(translations)) {
-    if (lower.includes(key)) return value;
-  }
-  return phase;
-};
-
-const getWeatherIcon = (condition: string): string => {
-  const lower = condition.toLowerCase();
-  if (lower.includes('sun') || lower.includes('clear') || lower.includes('ясн')) return '☀️';
-  if (lower.includes('rain') || lower.includes('дожд')) return '🌧️';
-  if (lower.includes('snow') || lower.includes('снег')) return '❄️';
-  if (lower.includes('cloud') || lower.includes('overcast') || lower.includes('пасмур')) return '☁️';
-  if (lower.includes('fog') || lower.includes('mist') || lower.includes('туман')) return '🌫️';
-  if (lower.includes('thunder') || lower.includes('гроз')) return '⛈️';
-  return '🌤️';
-};
-
 export const CosmicPassport = memo<CosmicPassportProps>(
-  ({ profile, chartData, photoUrl, displayName, onOpenSettings, weatherData }) => {
+  ({ profile, chartData, photoUrl, displayName, onOpenSettings }) => {
     const lang = profile.language;
     const sunSign = chartData.sun?.sign || 'Aries';
     const sunLabel = getZodiacSign(lang, sunSign);
@@ -130,8 +77,8 @@ export const CosmicPassport = memo<CosmicPassportProps>(
                 </div>
               )}
               {profile.isPremium && (
-                <span className="absolute -bottom-0.5 -right-0.5 rounded-full bg-astro-highlight px-1 py-px text-[6px] font-bold uppercase leading-none text-white ring-2 ring-astro-card">
-                  Pro
+                <span className="absolute -bottom-0.5 -right-0.5 rounded-full bg-astro-highlight px-1.5 py-px text-[7px] font-bold uppercase leading-none text-white ring-2 ring-astro-card">
+                  PRO
                 </span>
               )}
             </div>
@@ -144,38 +91,9 @@ export const CosmicPassport = memo<CosmicPassportProps>(
             </div>
           </div>
 
-          {weatherData && (
-            <div className="mt-4 flex items-center gap-3 border-t border-astro-border/35 pt-3.5">
-              <span
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-astro-text/[0.06] text-[20px] leading-none"
-                aria-hidden
-              >
-                {getWeatherIcon(weatherData.condition)}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="font-sans text-[17px] font-semibold tabular-nums leading-tight text-astro-text sm:text-lg">
-                  {Math.round(weatherData.temp)}°
-                  <span className="ml-2 text-[13px] font-normal text-astro-subtext">
-                    {translateWeather(weatherData.condition, lang)}
-                    {weatherData.city ? ` · ${weatherData.city}` : ''}
-                  </span>
-                </p>
-                {weatherData.moonPhase && (
-                  <p className="mt-0.5 text-[11px] text-astro-subtext/85">
-                    {translateMoonPhase(weatherData.moonPhase.phase, lang)}
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
-
           <div className="mt-4 border-t border-astro-border/35 pt-3.5">
-            <p className="text-[13px] leading-relaxed text-astro-text sm:text-sm">
-              <span className="font-medium">{getText(lang, 'dashboard.element')}</span>
-              <span className="text-astro-subtext"> — </span>
-              {getElement(lang, chartData.element)}
-              <span className="mx-2 text-astro-border">·</span>
-              <span className="text-astro-subtext">{getText(lang, 'dashboard.passport_tagline')}</span>
+            <p className="max-w-[38ch] text-sm leading-relaxed text-astro-text/92">
+              {getText(lang, 'dashboard.identity_body')}
             </p>
           </div>
         </div>

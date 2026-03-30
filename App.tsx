@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { UserProfile, NatalChartData, UserContext, ViewState } from './types';
+import { UserProfile, NatalChartData, ViewState } from './types';
 import { getProfile, saveProfile, getLumiBalance, processDailyLogin, getChartData } from './services/storageService';
 import { getOrCalculateChart } from './services/chartService';
 import { generateAllContent } from './services/contentGenerationService';
@@ -51,7 +51,6 @@ const App: React.FC = () => {
     const [loadingProgress, setLoadingProgress] = useState(0);
     const [view, setView] = useState<ViewState>('onboarding');
     const [showPremiumPreview, setShowPremiumPreview] = useState(false);
-    const [ambientContext, setAmbientContext] = useState<UserContext | null>(null);
     const [synastryPrefill, setSynastryPrefill] = useState<SynastryPrefill>(null);
     const [chartsReturnView, setChartsReturnView] = useState<ViewState>('settings');
     const [walletReturnView, setWalletReturnView] = useState<ViewState>('dashboard');
@@ -535,7 +534,7 @@ const App: React.FC = () => {
                 className="relative isolate fixed inset-0 overflow-y-auto bg-transparent"
                 style={{ paddingTop: 'env(safe-area-inset-top, 0px)', paddingBottom: 'env(safe-area-inset-bottom, 0px)', paddingLeft: 'env(safe-area-inset-left, 0px)', paddingRight: 'env(safe-area-inset-right, 0px)' }}
             >
-                <BackgroundLayers theme="dark" view="onboarding" context={ambientContext} />
+                <BackgroundLayers theme="dark" view="onboarding" />
                 <Onboarding onComplete={handleOnboardingComplete} />
             </div>
         );
@@ -543,7 +542,7 @@ const App: React.FC = () => {
 
     return (
         <div className="relative isolate flex h-full w-full min-h-0 flex-col overflow-hidden text-astro-text font-sans selection:bg-astro-highlight selection:text-white">
-            <BackgroundLayers theme={profile.theme} view={view} context={ambientContext} />
+            <BackgroundLayers theme={profile.theme} view={view} />
             
             {/* Header handles Title, Settings button, and Back button */}
             <Header 
@@ -666,7 +665,6 @@ const App: React.FC = () => {
                                 navigateTo(newView);
                             }} 
                             onOpenSettings={() => setView('settings')}
-                            onContextUpdate={setAmbientContext}
                         />
                     </div>
                 )}
