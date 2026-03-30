@@ -83,6 +83,92 @@ type AdminDbNotificationSegment =
   | 'inactive_7d'
   | 'inactive_30d'
   | 'need_attention';
+type DbContentAccessTier = 'free' | 'premium' | 'lumi';
+type DbContentSurface = 'natal' | 'forecast' | 'synastry' | 'question';
+type DbContentVariant =
+  | 'anchor'
+  | 'living'
+  | 'daily'
+  | 'morning'
+  | 'day'
+  | 'evening'
+  | 'weekly'
+  | 'monthly'
+  | 'brief'
+  | 'full'
+  | 'one_off';
+type DbContentModelTier = 'base' | 'premium';
+type DbContentUnlockType = 'free' | 'premium' | 'lumi';
+
+function normalizeJsonColumn<T = any>(value: any): T {
+  if (value == null) return value;
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value) as T;
+    } catch {
+      return value as T;
+    }
+  }
+  return value as T;
+}
+
+function mapContentInterpretationRow(row: any) {
+  return {
+    id: Number(row.id),
+    userId: row.user_id != null ? String(row.user_id) : null,
+    chartId: row.chart_id != null ? Number(row.chart_id) : null,
+    accessTier: row.access_tier,
+    contentSurface: row.content_surface,
+    contentVariant: row.content_variant,
+    modelTier: row.model_tier,
+    cacheKey: row.cache_key,
+    inputHash: row.input_hash ?? null,
+    content: normalizeJsonColumn(row.content),
+    promptVersion: row.prompt_version ?? null,
+    calculationVersion: row.calculation_version ?? null,
+    validFrom: row.valid_from ? new Date(row.valid_from).toISOString() : null,
+    validTo: row.valid_to ? new Date(row.valid_to).toISOString() : null,
+    isPersistent: !!row.is_persistent,
+    canRegenerateForLumi: !!row.can_regenerate_for_lumi,
+    regenerationCostLumi: row.regeneration_cost_lumi ?? null,
+    legacySource: row.legacy_source ?? null,
+    createdAt: new Date(row.created_at).toISOString(),
+    updatedAt: new Date(row.updated_at).toISOString(),
+  };
+}
+
+function mapContentUnlockRow(row: any) {
+  return {
+    id: Number(row.id),
+    userId: String(row.user_id),
+    chartId: row.chart_id != null ? Number(row.chart_id) : null,
+    accessTier: row.access_tier,
+    contentSurface: row.content_surface,
+    contentVariant: row.content_variant,
+    unlockType: row.unlock_type,
+    cacheKey: row.cache_key,
+    lumiSpent: Number(row.lumi_spent ?? 0),
+    metadata: normalizeJsonColumn<Record<string, any> | null>(row.metadata),
+    unlockedAt: new Date(row.unlocked_at).toISOString(),
+    expiresAt: row.expires_at ? new Date(row.expires_at).toISOString() : null,
+    revokedAt: row.revoked_at ? new Date(row.revoked_at).toISOString() : null,
+  };
+}
+
+function mapPremiumEntitlementRow(row: any) {
+  return {
+    id: Number(row.id),
+    userId: String(row.user_id),
+    tierName: row.tier_name,
+    status: row.status,
+    source: row.source,
+    startsAt: new Date(row.starts_at).toISOString(),
+    endsAt: new Date(row.ends_at).toISOString(),
+    metadata: normalizeJsonColumn<Record<string, any> | null>(row.metadata),
+    createdAt: new Date(row.created_at).toISOString(),
+    updatedAt: new Date(row.updated_at).toISOString(),
+  };
+}
 
 const ADMIN_USER_METRICS_CTE = `
   WITH user_metrics AS (
@@ -1174,6 +1260,516 @@ export const db = {
       }
 
       return this.setByUser(chartIdOrUserId, type, inputHash, content);
+    },
+  },
+
+  /** Content architecture v1 - tiered interpretations */
+  content_interpretations: {
+    async getByChart(
+      chartId: number,
+      accessTier: DbContentAccessTier,
+      contentSurface: DbContentSurface,
+      contentVariant: DbContentVariant,
+      cacheKey = 'default'
+    ) {
+      if (!DATABASE_URL) return null;
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          `SELECT *
+           FROM content_interpretations
+           WHERE chart_id = $1
+             AND access_tier = $2
+             AND content_surface = $3
+             AND content_variant = $4
+             AND cache_key = $5
+             AND (valid_to IS NULL OR valid_to >= NOW())
+           ORDER BY updated_at DESC
+           LIMIT 1`,
+          [chartId, accessTier, contentSurface, contentVariant, cacheKey]
+        );
+        return result.rows[0] ? mapContentInterpretationRow(result.rows[0]) : null;
+      } catch (error: any) {
+        log.error('[DB] Error getting content interpretation by chart', {
+          error: error.message,
+          chartId,
+          accessTier,
+          contentSurface,
+          contentVariant,
+          cacheKey,
+        });
+        throw error;
+      }
+    },
+
+    async getByUser(
+      userId: string,
+      accessTier: DbContentAccessTier,
+      contentSurface: DbContentSurface,
+      contentVariant: DbContentVariant,
+      cacheKey = 'default'
+    ) {
+      const id = toUserId(userId);
+      if (!DATABASE_URL) return null;
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          `SELECT *
+           FROM content_interpretations
+           WHERE user_id = $1
+             AND access_tier = $2
+             AND content_surface = $3
+             AND content_variant = $4
+             AND cache_key = $5
+             AND chart_id IS NULL
+             AND (valid_to IS NULL OR valid_to >= NOW())
+           ORDER BY updated_at DESC
+           LIMIT 1`,
+          [id, accessTier, contentSurface, contentVariant, cacheKey]
+        );
+        return result.rows[0] ? mapContentInterpretationRow(result.rows[0]) : null;
+      } catch (error: any) {
+        log.error('[DB] Error getting content interpretation by user', {
+          error: error.message,
+          userId,
+          accessTier,
+          contentSurface,
+          contentVariant,
+          cacheKey,
+        });
+        throw error;
+      }
+    },
+
+    async get(
+      chartIdOrUserId: number | string,
+      accessTier: DbContentAccessTier,
+      contentSurface: DbContentSurface,
+      contentVariant: DbContentVariant,
+      cacheKey = 'default'
+    ) {
+      if (typeof chartIdOrUserId === 'number') {
+        return this.getByChart(chartIdOrUserId, accessTier, contentSurface, contentVariant, cacheKey);
+      }
+
+      const primaryChart = await db.natal_charts.getPrimary(chartIdOrUserId);
+      if (primaryChart) {
+        const chartScoped = await this.getByChart(primaryChart.id, accessTier, contentSurface, contentVariant, cacheKey);
+        if (chartScoped) return chartScoped;
+      }
+
+      return this.getByUser(chartIdOrUserId, accessTier, contentSurface, contentVariant, cacheKey);
+    },
+
+    async upsertByChart(
+      chartId: number,
+      data: {
+        accessTier: DbContentAccessTier;
+        contentSurface: DbContentSurface;
+        contentVariant: DbContentVariant;
+        cacheKey?: string;
+        inputHash?: string | null;
+        content: any;
+        modelTier?: DbContentModelTier;
+        promptVersion?: string | null;
+        calculationVersion?: string | null;
+        validFrom?: string | Date | null;
+        validTo?: string | Date | null;
+        isPersistent?: boolean;
+        canRegenerateForLumi?: boolean;
+        regenerationCostLumi?: number | null;
+        legacySource?: string | null;
+      },
+      ownerUserId?: string | null
+    ) {
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      const cacheKey = data.cacheKey || 'default';
+      const payload = JSON.stringify(data.content);
+      const ownerId = ownerUserId ? toUserId(ownerUserId) : null;
+      try {
+        const dbPool = getPool();
+        const updated = await dbPool.query(
+          `UPDATE content_interpretations
+           SET user_id = COALESCE(user_id, $10),
+               input_hash = $6,
+               content = $7::jsonb,
+               model_tier = $8,
+               prompt_version = $11,
+               calculation_version = $12,
+               valid_from = $13,
+               valid_to = $14,
+               is_persistent = $15,
+               can_regenerate_for_lumi = $16,
+               regeneration_cost_lumi = $17,
+               legacy_source = $18,
+               updated_at = CURRENT_TIMESTAMP
+           WHERE chart_id = $1
+             AND access_tier = $2
+             AND content_surface = $3
+             AND content_variant = $4
+             AND cache_key = $5`,
+          [
+            chartId,
+            data.accessTier,
+            data.contentSurface,
+            data.contentVariant,
+            cacheKey,
+            data.inputHash ?? null,
+            payload,
+            data.modelTier || 'base',
+            ownerId,
+            data.promptVersion ?? null,
+            data.calculationVersion ?? null,
+            data.validFrom ?? null,
+            data.validTo ?? null,
+            !!data.isPersistent,
+            !!data.canRegenerateForLumi,
+            data.regenerationCostLumi ?? null,
+            data.legacySource ?? null,
+          ]
+        );
+
+        if ((updated.rowCount ?? 0) === 0) {
+          await dbPool.query(
+            `INSERT INTO content_interpretations
+              (user_id, chart_id, access_tier, content_surface, content_variant, model_tier, cache_key, input_hash, content, prompt_version, calculation_version, valid_from, valid_to, is_persistent, can_regenerate_for_lumi, regeneration_cost_lumi, legacy_source)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10, $11, $12, $13, $14, $15, $16, $17)`,
+            [
+              ownerId,
+              chartId,
+              data.accessTier,
+              data.contentSurface,
+              data.contentVariant,
+              data.modelTier || 'base',
+              cacheKey,
+              data.inputHash ?? null,
+              payload,
+              data.promptVersion ?? null,
+              data.calculationVersion ?? null,
+              data.validFrom ?? null,
+              data.validTo ?? null,
+              !!data.isPersistent,
+              !!data.canRegenerateForLumi,
+              data.regenerationCostLumi ?? null,
+              data.legacySource ?? null,
+            ]
+          );
+        }
+
+        return this.getByChart(chartId, data.accessTier, data.contentSurface, data.contentVariant, cacheKey);
+      } catch (error: any) {
+        log.error('[DB] Error upserting content interpretation by chart', {
+          error: error.message,
+          chartId,
+          accessTier: data.accessTier,
+          contentSurface: data.contentSurface,
+          contentVariant: data.contentVariant,
+          cacheKey,
+        });
+        throw error;
+      }
+    },
+
+    async upsertByUser(
+      userId: string,
+      data: {
+        accessTier: DbContentAccessTier;
+        contentSurface: DbContentSurface;
+        contentVariant: DbContentVariant;
+        cacheKey?: string;
+        inputHash?: string | null;
+        content: any;
+        modelTier?: DbContentModelTier;
+        promptVersion?: string | null;
+        calculationVersion?: string | null;
+        validFrom?: string | Date | null;
+        validTo?: string | Date | null;
+        isPersistent?: boolean;
+        canRegenerateForLumi?: boolean;
+        regenerationCostLumi?: number | null;
+        legacySource?: string | null;
+      }
+    ) {
+      const id = toUserId(userId);
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      const cacheKey = data.cacheKey || 'default';
+      const payload = JSON.stringify(data.content);
+      try {
+        const dbPool = getPool();
+        const updated = await dbPool.query(
+          `UPDATE content_interpretations
+           SET input_hash = $6,
+               content = $7::jsonb,
+               model_tier = $8,
+               prompt_version = $9,
+               calculation_version = $10,
+               valid_from = $11,
+               valid_to = $12,
+               is_persistent = $13,
+               can_regenerate_for_lumi = $14,
+               regeneration_cost_lumi = $15,
+               legacy_source = $16,
+               updated_at = CURRENT_TIMESTAMP
+           WHERE user_id = $1
+             AND access_tier = $2
+             AND content_surface = $3
+             AND content_variant = $4
+             AND cache_key = $5
+             AND chart_id IS NULL`,
+          [
+            id,
+            data.accessTier,
+            data.contentSurface,
+            data.contentVariant,
+            cacheKey,
+            data.inputHash ?? null,
+            payload,
+            data.modelTier || 'base',
+            data.promptVersion ?? null,
+            data.calculationVersion ?? null,
+            data.validFrom ?? null,
+            data.validTo ?? null,
+            !!data.isPersistent,
+            !!data.canRegenerateForLumi,
+            data.regenerationCostLumi ?? null,
+            data.legacySource ?? null,
+          ]
+        );
+
+        if ((updated.rowCount ?? 0) === 0) {
+          await dbPool.query(
+            `INSERT INTO content_interpretations
+              (user_id, access_tier, content_surface, content_variant, model_tier, cache_key, input_hash, content, prompt_version, calculation_version, valid_from, valid_to, is_persistent, can_regenerate_for_lumi, regeneration_cost_lumi, legacy_source)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10, $11, $12, $13, $14, $15, $16)`,
+            [
+              id,
+              data.accessTier,
+              data.contentSurface,
+              data.contentVariant,
+              data.modelTier || 'base',
+              cacheKey,
+              data.inputHash ?? null,
+              payload,
+              data.promptVersion ?? null,
+              data.calculationVersion ?? null,
+              data.validFrom ?? null,
+              data.validTo ?? null,
+              !!data.isPersistent,
+              !!data.canRegenerateForLumi,
+              data.regenerationCostLumi ?? null,
+              data.legacySource ?? null,
+            ]
+          );
+        }
+
+        return this.getByUser(userId, data.accessTier, data.contentSurface, data.contentVariant, cacheKey);
+      } catch (error: any) {
+        log.error('[DB] Error upserting content interpretation by user', {
+          error: error.message,
+          userId,
+          accessTier: data.accessTier,
+          contentSurface: data.contentSurface,
+          contentVariant: data.contentVariant,
+          cacheKey,
+        });
+        throw error;
+      }
+    },
+  },
+
+  /** Content architecture v1 - unlock log and current access */
+  content_unlocks: {
+    async add(data: {
+      userId: string;
+      chartId?: number | null;
+      accessTier: DbContentAccessTier;
+      contentSurface: DbContentSurface;
+      contentVariant: DbContentVariant;
+      unlockType: DbContentUnlockType;
+      cacheKey?: string;
+      lumiSpent?: number;
+      metadata?: Record<string, any> | null;
+      expiresAt?: string | Date | null;
+    }) {
+      const userId = toUserId(data.userId);
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          `INSERT INTO content_unlocks
+            (user_id, chart_id, access_tier, content_surface, content_variant, unlock_type, cache_key, lumi_spent, metadata, expires_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10)
+           RETURNING *`,
+          [
+            userId,
+            data.chartId ?? null,
+            data.accessTier,
+            data.contentSurface,
+            data.contentVariant,
+            data.unlockType,
+            data.cacheKey || 'default',
+            data.lumiSpent ?? 0,
+            JSON.stringify(data.metadata ?? null),
+            data.expiresAt ?? null,
+          ]
+        );
+        return result.rows[0] ? mapContentUnlockRow(result.rows[0]) : null;
+      } catch (error: any) {
+        log.error('[DB] Error adding content unlock', {
+          error: error.message,
+          userId: data.userId,
+          accessTier: data.accessTier,
+          contentSurface: data.contentSurface,
+          contentVariant: data.contentVariant,
+        });
+        throw error;
+      }
+    },
+
+    async getLatestActive(
+      userId: string,
+      filters: {
+        accessTier?: DbContentAccessTier;
+        contentSurface?: DbContentSurface;
+        contentVariant?: DbContentVariant;
+        chartId?: number | null;
+        cacheKey?: string;
+      } = {}
+    ) {
+      const id = toUserId(userId);
+      if (!DATABASE_URL) return null;
+      try {
+        const dbPool = getPool();
+        const params: any[] = [id];
+        const clauses = [
+          'user_id = $1',
+          'revoked_at IS NULL',
+          '(expires_at IS NULL OR expires_at > NOW())',
+        ];
+
+        if (filters.accessTier) {
+          params.push(filters.accessTier);
+          clauses.push(`access_tier = $${params.length}`);
+        }
+        if (filters.contentSurface) {
+          params.push(filters.contentSurface);
+          clauses.push(`content_surface = $${params.length}`);
+        }
+        if (filters.contentVariant) {
+          params.push(filters.contentVariant);
+          clauses.push(`content_variant = $${params.length}`);
+        }
+        if (filters.chartId != null) {
+          params.push(filters.chartId);
+          clauses.push(`chart_id = $${params.length}`);
+        }
+        if (filters.cacheKey) {
+          params.push(filters.cacheKey);
+          clauses.push(`cache_key = $${params.length}`);
+        }
+
+        const result = await dbPool.query(
+          `SELECT *
+           FROM content_unlocks
+           WHERE ${clauses.join(' AND ')}
+           ORDER BY unlocked_at DESC
+           LIMIT 1`,
+          params
+        );
+        return result.rows[0] ? mapContentUnlockRow(result.rows[0]) : null;
+      } catch (error: any) {
+        log.error('[DB] Error getting latest active content unlock', {
+          error: error.message,
+          userId,
+          filters,
+        });
+        throw error;
+      }
+    },
+
+    async hasAccess(userId: string, filters: {
+      accessTier: DbContentAccessTier;
+      contentSurface: DbContentSurface;
+      contentVariant: DbContentVariant;
+      chartId?: number | null;
+      cacheKey?: string;
+    }) {
+      if (filters.accessTier === 'free') return true;
+      if (filters.accessTier === 'premium') {
+        return !!(await db.premium_entitlements.getActive(userId));
+      }
+      return !!(await this.getLatestActive(userId, filters));
+    },
+  },
+
+  /** Content architecture v1 - premium periods */
+  premium_entitlements: {
+    async syncFromUsersTable(userId: string) {
+      const user = await db.users.get(userId);
+      if (!user?.premium_until || !DATABASE_URL) return null;
+
+      const endsAt = new Date(user.premium_until);
+      if (Number.isNaN(endsAt.getTime())) return null;
+
+      const dbPool = getPool();
+      const existing = await dbPool.query(
+        `SELECT *
+         FROM premium_entitlements
+         WHERE user_id = $1
+           AND tier_name = 'lumia_premium'
+           AND ends_at = $2
+           AND source = 'users.premium_until'
+         LIMIT 1`,
+        [toUserId(userId), endsAt.toISOString()]
+      );
+      if (existing.rows[0]) {
+        return mapPremiumEntitlementRow(existing.rows[0]);
+      }
+
+      const inserted = await dbPool.query(
+        `INSERT INTO premium_entitlements (user_id, tier_name, status, source, starts_at, ends_at, metadata)
+         VALUES ($1, 'lumia_premium', $2, 'users.premium_until', $3, $4, $5::jsonb)
+         RETURNING *`,
+        [
+          toUserId(userId),
+          endsAt.getTime() > Date.now() ? 'active' : 'expired',
+          user.created_at || new Date().toISOString(),
+          endsAt.toISOString(),
+          JSON.stringify({ syncedFromUsersTable: true }),
+        ]
+      );
+      return inserted.rows[0] ? mapPremiumEntitlementRow(inserted.rows[0]) : null;
+    },
+
+    async getActive(userId: string) {
+      const id = toUserId(userId);
+      if (!DATABASE_URL) return null;
+      try {
+        const dbPool = getPool();
+        await dbPool.query(
+          `UPDATE premium_entitlements
+           SET status = 'expired', updated_at = CURRENT_TIMESTAMP
+           WHERE user_id = $1 AND status = 'active' AND ends_at <= NOW()`,
+          [id]
+        );
+
+        await this.syncFromUsersTable(userId);
+
+        const result = await dbPool.query(
+          `SELECT *
+           FROM premium_entitlements
+           WHERE user_id = $1
+             AND status = 'active'
+             AND ends_at > NOW()
+           ORDER BY ends_at DESC
+           LIMIT 1`,
+          [id]
+        );
+        return result.rows[0] ? mapPremiumEntitlementRow(result.rows[0]) : null;
+      } catch (error: any) {
+        log.error('[DB] Error getting active premium entitlement', { error: error.message, userId });
+        throw error;
+      }
     },
   },
 

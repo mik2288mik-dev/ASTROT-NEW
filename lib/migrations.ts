@@ -72,6 +72,9 @@ async function migrationReset(pool: Pool): Promise<void> {
   log.info('Applying full database reset...');
 
   const dropOrder = [
+    'premium_entitlements',
+    'content_unlocks',
+    'content_interpretations',
     'notification_delivery_log',
     'notification_rotation_state',
     'notification_schedules',
@@ -765,11 +768,120 @@ async function lumia008AdminNotificationEnhancements(pool: Pool): Promise<void> 
   log.info('Migration lumia_008_admin_notification_enhancements applied');
 }
 
+/**
+ * Content architecture v1: tiered interpretations, unlocks, entitlements (lumia_009)
+ */
+async function lumia009ContentArchitecture(pool: Pool): Promise<void> {
+  const migrationName = 'lumia_009_content_architecture';
+
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
+  log.info('Applying content architecture migration...');
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS content_interpretations (
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+      chart_id BIGINT REFERENCES natal_charts(id) ON DELETE CASCADE,
+      access_tier TEXT NOT NULL,
+      content_surface TEXT NOT NULL,
+      content_variant TEXT NOT NULL,
+      model_tier TEXT NOT NULL DEFAULT 'base',
+      cache_key TEXT NOT NULL DEFAULT 'default',
+      input_hash TEXT,
+      content JSONB NOT NULL,
+      prompt_version TEXT,
+      calculation_version TEXT,
+      valid_from TIMESTAMP,
+      valid_to TIMESTAMP,
+      is_persistent BOOLEAN NOT NULL DEFAULT FALSE,
+      can_regenerate_for_lumi BOOLEAN NOT NULL DEFAULT FALSE,
+      regeneration_cost_lumi INTEGER,
+      legacy_source TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT content_interpretations_scope CHECK ((chart_id IS NOT NULL) OR (user_id IS NOT NULL)),
+      CONSTRAINT content_interpretations_access_tier CHECK (access_tier IN ('free', 'premium', 'lumi')),
+      CONSTRAINT content_interpretations_surface CHECK (content_surface IN ('natal', 'forecast', 'synastry', 'question')),
+      CONSTRAINT content_interpretations_variant CHECK (content_variant IN ('anchor', 'living', 'daily', 'morning', 'day', 'evening', 'weekly', 'monthly', 'brief', 'full', 'one_off')),
+      CONSTRAINT content_interpretations_model CHECK (model_tier IN ('base', 'premium'))
+    )
+  `);
+  await pool.query('CREATE UNIQUE INDEX IF NOT EXISTS idx_content_interpretations_chart_lookup ON content_interpretations(chart_id, access_tier, content_surface, content_variant, cache_key) WHERE chart_id IS NOT NULL');
+  await pool.query('CREATE UNIQUE INDEX IF NOT EXISTS idx_content_interpretations_user_lookup ON content_interpretations(user_id, access_tier, content_surface, content_variant, cache_key) WHERE user_id IS NOT NULL AND chart_id IS NULL');
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_content_interpretations_surface ON content_interpretations(content_surface, content_variant, access_tier)');
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_content_interpretations_validity ON content_interpretations(valid_from, valid_to)');
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS content_unlocks (
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      chart_id BIGINT REFERENCES natal_charts(id) ON DELETE CASCADE,
+      access_tier TEXT NOT NULL,
+      content_surface TEXT NOT NULL,
+      content_variant TEXT NOT NULL,
+      unlock_type TEXT NOT NULL,
+      cache_key TEXT NOT NULL DEFAULT 'default',
+      lumi_spent INTEGER NOT NULL DEFAULT 0,
+      metadata JSONB,
+      unlocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      expires_at TIMESTAMP,
+      revoked_at TIMESTAMP,
+      CONSTRAINT content_unlocks_access_tier CHECK (access_tier IN ('free', 'premium', 'lumi')),
+      CONSTRAINT content_unlocks_surface CHECK (content_surface IN ('natal', 'forecast', 'synastry', 'question')),
+      CONSTRAINT content_unlocks_variant CHECK (content_variant IN ('anchor', 'living', 'daily', 'morning', 'day', 'evening', 'weekly', 'monthly', 'brief', 'full', 'one_off')),
+      CONSTRAINT content_unlocks_type CHECK (unlock_type IN ('free', 'premium', 'lumi'))
+    )
+  `);
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_content_unlocks_lookup ON content_unlocks(user_id, content_surface, content_variant, access_tier, cache_key)');
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_content_unlocks_active ON content_unlocks(user_id, expires_at, revoked_at)');
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS premium_entitlements (
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      tier_name TEXT NOT NULL DEFAULT 'lumia_premium',
+      status TEXT NOT NULL DEFAULT 'active',
+      source TEXT NOT NULL DEFAULT 'users.premium_until',
+      starts_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      ends_at TIMESTAMP NOT NULL,
+      metadata JSONB,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT premium_entitlements_status CHECK (status IN ('active', 'expired', 'cancelled'))
+    )
+  `);
+  await pool.query('CREATE UNIQUE INDEX IF NOT EXISTS idx_premium_entitlements_unique_period ON premium_entitlements(user_id, tier_name, ends_at, source)');
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_premium_entitlements_active ON premium_entitlements(user_id, status, ends_at)');
+
+  await pool.query(`
+    INSERT INTO premium_entitlements (user_id, tier_name, status, source, starts_at, ends_at, metadata)
+    SELECT
+      u.id,
+      'lumia_premium',
+      CASE WHEN u.premium_until > NOW() THEN 'active' ELSE 'expired' END,
+      'users.premium_until',
+      COALESCE(u.created_at, CURRENT_TIMESTAMP),
+      u.premium_until,
+      jsonb_build_object('backfilled', TRUE)
+    FROM users u
+    WHERE u.premium_until IS NOT NULL
+    ON CONFLICT (user_id, tier_name, ends_at, source) DO NOTHING
+  `);
+
+  await markMigrationApplied(pool, migrationName);
+  log.info('Migration lumia_009_content_architecture applied');
+}
+
 async function verifyTablesExist(pool: Pool): Promise<void> {
   const required = [
     'users', 'natal_charts', 'interpretations', 'lumi_transactions', 'app_settings',
     'roulette_spins', 'daily_horoscopes', 'daily_natal_cards',
     'astro_questions', 'dictionary', 'synastry_cache', 'star_payments',
+    'content_interpretations', 'content_unlocks', 'premium_entitlements',
     'user_sessions',
     'legacy_notification_templates',
     'notification_campaigns',
@@ -836,6 +948,7 @@ export async function runMigrations(): Promise<void> {
   await lumia006ScheduledNotifications(pool);
   await lumia007NotificationVisualHybrid(pool);
   await lumia008AdminNotificationEnhancements(pool);
+  await lumia009ContentArchitecture(pool);
   await verifyTablesExist(pool);
 
     log.info('All Lumia migrations completed successfully');

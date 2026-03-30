@@ -197,6 +197,97 @@ export interface MonthlyHoroscope {
   content: string;
 }
 
+export type ContentAccessTier = 'free' | 'premium' | 'lumi';
+export type ContentSurface = 'natal' | 'forecast' | 'synastry' | 'question';
+export type ContentVariant =
+  | 'anchor'
+  | 'living'
+  | 'daily'
+  | 'morning'
+  | 'day'
+  | 'evening'
+  | 'weekly'
+  | 'monthly'
+  | 'brief'
+  | 'full'
+  | 'one_off';
+export type ContentModelTier = 'base' | 'premium';
+export type ContentUnlockType = 'free' | 'premium' | 'lumi';
+export type PremiumTierName = 'lumia_premium';
+export type PremiumEntitlementStatus = 'active' | 'expired' | 'cancelled';
+
+export interface ContentInterpretation<T = any> {
+  id: number;
+  userId: string | null;
+  chartId: number | null;
+  accessTier: ContentAccessTier;
+  contentSurface: ContentSurface;
+  contentVariant: ContentVariant;
+  modelTier: ContentModelTier;
+  cacheKey: string;
+  inputHash?: string | null;
+  content: T;
+  promptVersion?: string | null;
+  calculationVersion?: string | null;
+  validFrom?: string | null;
+  validTo?: string | null;
+  isPersistent: boolean;
+  canRegenerateForLumi: boolean;
+  regenerationCostLumi?: number | null;
+  legacySource?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ContentUnlock {
+  id: number;
+  userId: string;
+  chartId: number | null;
+  accessTier: ContentAccessTier;
+  contentSurface: ContentSurface;
+  contentVariant: ContentVariant;
+  unlockType: ContentUnlockType;
+  cacheKey: string;
+  lumiSpent: number;
+  metadata?: Record<string, any> | null;
+  unlockedAt: string;
+  expiresAt?: string | null;
+  revokedAt?: string | null;
+}
+
+export interface PremiumEntitlement {
+  id: number;
+  userId: string;
+  tierName: PremiumTierName;
+  status: PremiumEntitlementStatus;
+  source: string;
+  startsAt: string;
+  endsAt: string;
+  metadata?: Record<string, any> | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ContentLookupQuery {
+  userId: string;
+  chartId?: number | null;
+  accessTier: ContentAccessTier;
+  contentSurface: ContentSurface;
+  contentVariant: ContentVariant;
+  cacheKey?: string;
+}
+
+export interface ContentUnlockRequest {
+  userId: string;
+  chartId?: number | null;
+  accessTier: ContentAccessTier;
+  contentSurface: ContentSurface;
+  contentVariant: ContentVariant;
+  cacheKey?: string;
+  lumiCost?: number;
+  expiresAt?: string | null;
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'model';
