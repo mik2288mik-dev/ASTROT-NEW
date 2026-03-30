@@ -1451,11 +1451,21 @@ export const db = {
       if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
       try {
         const dbPool = getPool();
-        await dbPool.query(
-          `INSERT INTO daily_natal_cards (chart_id, date, content) VALUES ($1, $2, $3)
-           ON CONFLICT (chart_id, date) DO UPDATE SET content = EXCLUDED.content`,
-          [chartId, date, typeof content === 'string' ? content : JSON.stringify(content)]
+        const payload = typeof content === 'string' ? content : JSON.stringify(content);
+        // Partial unique index idx_daily_natal_cards_chart_date uses WHERE chart_id IS NOT NULL —
+        // ON CONFLICT must repeat that predicate or PostgreSQL rejects the upsert.
+        // user_id comes from the chart row because legacy schema has NOT NULL on user_id.
+        const result = await dbPool.query(
+          `INSERT INTO daily_natal_cards (user_id, chart_id, date, content)
+           SELECT nc.user_id, $1::bigint, $2::date, $3
+           FROM natal_charts nc WHERE nc.id = $1::bigint
+           ON CONFLICT (chart_id, date) WHERE chart_id IS NOT NULL
+           DO UPDATE SET content = EXCLUDED.content`,
+          [chartId, date, payload]
         );
+        if (result.rowCount === 0) {
+          throw new Error('No natal chart row for chart_id; cannot save daily natal card');
+        }
         return { success: true };
       } catch (error: any) {
         log.error('[DB] Error setting daily natal card by chart', { error: error.message, chartId, date });
