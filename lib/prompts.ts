@@ -823,6 +823,26 @@ export interface DailyForecastAIResponse {
   number: number;
 }
 
+export interface DailyForecastV2AIResponse {
+  headline: string;
+  summary: string;
+  chance: string;
+  risk: string;
+  focus: string;
+  reading: string;
+  context: string;
+  advice: string[];
+}
+
+export interface DaypartForecastAIResponse {
+  headline: string;
+  summary: string;
+  focus: string;
+  relationships: string;
+  money: string;
+  guidance: string;
+}
+
 export interface WeeklyForecastAIResponse {
   theme: string;
   advice: string;
@@ -835,6 +855,95 @@ export interface MonthlyForecastAIResponse {
   focus: string;
   content: string;
 }
+
+export const createDailyForecastV2Prompt = (
+  natalData: NatalChartData,
+  profile: UserProfile,
+  currentDate: string,
+  transits?: any
+): string => {
+  const natalDataJson = JSON.stringify(natalData, null, 2);
+  const transitsJson = JSON.stringify(transits || {}, null, 2);
+  const displayName = profile.name || 'the user';
+
+  return `Current date: ${currentDate}
+
+User: ${displayName}
+Language: ${profile.language}
+
+Natal chart:
+${natalDataJson}
+
+Current transits:
+${transitsJson}
+
+Task: create a serious personal daily forecast for Lumia.
+
+Rules:
+- Speak to the user as a real person, not as a zodiac sign.
+- The result must feel personal, emotionally precise, modern, and useful.
+- Focus on emotions, relationships, money, decisions, pressure, opportunity, and direction.
+- No mystical fluff.
+- No "color of the day", "number of the day", moon gimmicks, or decorative astrology.
+- No vague filler. Be concrete and human.
+- Free layer should still feel valuable and real.
+
+Return strict JSON with these fields:
+- headline: one strong personal line for today, max 90 chars
+- summary: 1-2 sentences explaining the tone of the day
+- chance: one practical opening of the day
+- risk: one practical risk of the day
+- focus: one clear focus for the day
+- reading: 2-4 short paragraphs separated by "\\n\\n"
+- context: 1-2 sentences explaining why the day feels this way through current influences and the natal chart
+- advice: exactly 3 short practical strings
+
+Return only JSON.`;
+};
+
+export const createDaypartForecastPrompt = (
+  natalData: NatalChartData,
+  profile: UserProfile,
+  currentDate: string,
+  slot: 'morning' | 'day' | 'evening',
+  transits?: any
+): string => {
+  const natalDataJson = JSON.stringify(natalData, null, 2);
+  const transitsJson = JSON.stringify(transits || {}, null, 2);
+  const displayName = profile.name || 'the user';
+
+  return `Current date: ${currentDate}
+Time slot: ${slot}
+
+User: ${displayName}
+Language: ${profile.language}
+
+Natal chart:
+${natalDataJson}
+
+Current transits:
+${transitsJson}
+
+Task: create a premium-quality personal forecast for this specific part of the day.
+
+Rules:
+- This is a premium layer and must feel much stronger than the free daily layer.
+- It should feel closer to the user's real state, decisions, relationships, money, and tension points.
+- Keep it personal, emotionally accurate, and modern.
+- No mystical fluff, no gimmicks, no vague empty reassurance.
+- The text should feel like a living astrology companion, not a generic horoscope.
+- Use the slot (${slot}) to change the rhythm and practical emphasis.
+
+Return strict JSON with these fields:
+- headline: one strong slot-specific line, max 90 chars
+- summary: 1-2 sentences for this part of the day
+- focus: the main thing to hold today in this slot
+- relationships: short guidance for closeness, communication, or emotional contact
+- money: short guidance for work, money, or practical decisions
+- guidance: 1-2 sentences of direct orientation
+
+Return only JSON.`;
+};
 
 export interface SynastryAIResponse {
   compatibilityScore: number;

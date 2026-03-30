@@ -168,9 +168,9 @@ export interface SynastryResult {
 
 export interface DailyHoroscope {
   date: string;
-  mood: string;
-  color: string;
-  number: number;
+  mood?: string;
+  color?: string;
+  number?: number;
   content: string;
   /** Up to three practical tips when the model returns them */
   advice?: string[];
@@ -180,6 +180,31 @@ export interface DailyHoroscope {
   source?: 'cache' | 'generated' | 'generated-not-persisted' | 'cache-after-wait';
   code?: 'PRIMARY_CHART_MISSING' | 'GENERATION_IN_PROGRESS' | 'DAILY_CACHE_READ_FAILED' | 'DAILY_PERSIST_FAILED';
   message?: string;
+}
+
+export interface ForecastDailyReading {
+  date: string;
+  headline: string;
+  summary: string;
+  chance: string;
+  risk: string;
+  focus: string;
+  reading: string;
+  context: string;
+  advice: string[];
+}
+
+export type ForecastDaypartSlot = 'morning' | 'day' | 'evening';
+
+export interface ForecastDaypartReading {
+  date: string;
+  slot: ForecastDaypartSlot;
+  headline: string;
+  summary: string;
+  focus: string;
+  relationships: string;
+  money: string;
+  guidance: string;
 }
 
 export interface WeeklyHoroscope {

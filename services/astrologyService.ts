@@ -1,4 +1,4 @@
-import { UserProfile, NatalChartData, DailyHoroscope, SynastryResult, UserEvolution, OracleChatResponse, OracleHistoryEntry } from "../types";
+import { UserProfile, NatalChartData, DailyHoroscope, SynastryResult, UserEvolution, OracleChatResponse, OracleHistoryEntry, ForecastDailyReading, ForecastDaypartReading, ForecastDaypartSlot } from "../types";
 import { SYSTEM_INSTRUCTION_ASTRA } from "../constants";
 import { getElementForSign } from "../lib/zodiac-utils";
 
@@ -25,6 +25,214 @@ type ApiErrorWithCode = Error & {
   status?: number;
   code?: string;
   details?: any;
+};
+
+type ContentApiResponse<T> = {
+  interpretation?: {
+    content: T;
+  } | null;
+  source?: string;
+  chartId?: number | null;
+  cacheKey?: string;
+  entitlement?: unknown;
+};
+
+const DAILY_FORECAST_HEADLINE_FALLBACK: Record<'ru' | 'en', string> = {
+  ru: 'Сегодня важно держаться за главное',
+  en: 'Today is about holding on to what matters',
+};
+
+const DAILY_FORECAST_SUMMARY_FALLBACK: Record<'ru' | 'en', string> = {
+  ru: 'День просит меньше суеты и больше внутренней собранности.',
+  en: 'The day asks for less noise and more inner steadiness.',
+};
+
+function buildApiError(
+  fallbackMessage: string,
+  status?: number,
+  code?: string,
+  details?: any
+): ApiErrorWithCode {
+  const error = new Error(fallbackMessage) as ApiErrorWithCode;
+  error.status = status;
+  error.code = code;
+  error.details = details;
+  return error;
+}
+
+async function fetchContentApi<T>(
+  url: string,
+  init: RequestInit,
+  options?: { notFoundAsNull?: boolean }
+): Promise<ContentApiResponse<T> | null> {
+  const response = await fetch(url, init);
+  if (response.status === 404 && options?.notFoundAsNull) {
+    return null;
+  }
+
+  if (!response.ok) {
+    let errorMessage = `Request failed: ${response.status} ${response.statusText}`;
+    let errorCode: string | undefined;
+    let errorDetails: any;
+
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.message || errorData.error || errorMessage;
+      errorCode = errorData.code;
+      errorDetails = errorData.details;
+    } catch {
+      const errorText = await response.text().catch(() => '');
+      errorMessage = errorText || errorMessage;
+    }
+
+    throw buildApiError(errorMessage, response.status, errorCode, errorDetails);
+  }
+
+  return await response.json() as ContentApiResponse<T>;
+}
+
+function getLegacyHoroscopeSource(source?: string): DailyHoroscope['source'] {
+  if (source === 'generated') return 'generated';
+  if (source === 'generated-not-persisted') return 'generated-not-persisted';
+  return 'cache';
+}
+
+export function mapForecastDailyToLegacyHoroscope(
+  reading: ForecastDailyReading,
+  options?: {
+    source?: string;
+    persisted?: boolean;
+    code?: DailyHoroscope['code'];
+    message?: string;
+  }
+): DailyHoroscope {
+  return {
+    date: reading.date,
+    content: reading.reading,
+    advice: [reading.chance, reading.risk, reading.focus].filter(Boolean),
+    moonImpact: reading.context,
+    transitFocus: reading.focus,
+    persisted: options?.persisted,
+    source: getLegacyHoroscopeSource(options?.source),
+    code: options?.code,
+    message: options?.message,
+  };
+}
+
+export function mapLegacyHoroscopeToForecastDailyReading(
+  horoscope: DailyHoroscope,
+  language: 'ru' | 'en'
+): ForecastDailyReading {
+  return {
+    date: horoscope.date || '',
+    headline: horoscope.transitFocus || horoscope.advice?.[2] || horoscope.advice?.[0] || DAILY_FORECAST_HEADLINE_FALLBACK[language],
+    summary: horoscope.moonImpact || horoscope.transitFocus || DAILY_FORECAST_SUMMARY_FALLBACK[language],
+    chance: horoscope.advice?.[0] || DAILY_FORECAST_SUMMARY_FALLBACK[language],
+    risk: horoscope.advice?.[1] || DAILY_FORECAST_SUMMARY_FALLBACK[language],
+    focus: horoscope.transitFocus || horoscope.advice?.[2] || horoscope.advice?.[0] || DAILY_FORECAST_HEADLINE_FALLBACK[language],
+    reading: horoscope.content || DAILY_FORECAST_SUMMARY_FALLBACK[language],
+    context: horoscope.moonImpact || horoscope.transitFocus || DAILY_FORECAST_SUMMARY_FALLBACK[language],
+    advice: (horoscope.advice || []).map((item) => String(item).trim()).filter(Boolean).slice(0, 3),
+  };
+}
+
+export const getDailyForecastLayer = async (
+  profile: UserProfile,
+  chartData: NatalChartData
+): Promise<ForecastDailyReading> => {
+  const url = `${API_BASE_URL}/api/content/forecast/daily`;
+  log.info('[getDailyForecastLayer] Starting request', { userId: profile.id });
+
+  const data = await fetchContentApi<ForecastDailyReading>(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      userId: profile.id,
+      profile,
+      chartData,
+    }),
+  });
+
+  const reading = data?.interpretation?.content;
+  if (!reading) {
+    throw buildApiError('Daily forecast content is missing');
+  }
+
+  return reading;
+};
+
+export const getCachedDailyForecastLayer = async (
+  userId: string,
+  chartId?: number | null
+): Promise<ForecastDailyReading | null> => {
+  if (!userId) return null;
+
+  const params = new URLSearchParams({ userId });
+  if (chartId != null) {
+    params.set('chartId', String(chartId));
+  }
+
+  const url = `${API_BASE_URL}/api/content/forecast/daily?${params.toString()}`;
+  log.info('[getCachedDailyForecastLayer] Starting request', { userId, chartId: chartId ?? null });
+
+  const data = await fetchContentApi<ForecastDailyReading>(
+    url,
+    { method: 'GET', cache: 'no-store' },
+    { notFoundAsNull: true }
+  );
+
+  return data?.interpretation?.content ?? null;
+};
+
+export const getPremiumDaypartForecast = async (
+  profile: UserProfile,
+  chartData: NatalChartData,
+  slot: ForecastDaypartSlot
+): Promise<ForecastDaypartReading> => {
+  const url = `${API_BASE_URL}/api/content/forecast/daypart`;
+  log.info('[getPremiumDaypartForecast] Starting request', { userId: profile.id, slot });
+
+  const data = await fetchContentApi<ForecastDaypartReading>(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      userId: profile.id,
+      profile,
+      chartData,
+      slot,
+    }),
+  });
+
+  const reading = data?.interpretation?.content;
+  if (!reading) {
+    throw buildApiError(`Premium ${slot} forecast is missing`);
+  }
+
+  return reading;
+};
+
+export const getCachedPremiumDaypartForecast = async (
+  userId: string,
+  slot: ForecastDaypartSlot,
+  chartId?: number | null
+): Promise<ForecastDaypartReading | null> => {
+  if (!userId) return null;
+
+  const params = new URLSearchParams({ userId, slot });
+  if (chartId != null) {
+    params.set('chartId', String(chartId));
+  }
+
+  const url = `${API_BASE_URL}/api/content/forecast/daypart?${params.toString()}`;
+  log.info('[getCachedPremiumDaypartForecast] Starting request', { userId, slot, chartId: chartId ?? null });
+
+  const data = await fetchContentApi<ForecastDaypartReading>(
+    url,
+    { method: 'GET', cache: 'no-store' },
+    { notFoundAsNull: true }
+  );
+
+  return data?.interpretation?.content ?? null;
 };
 
 /**
@@ -364,7 +572,7 @@ export const calculateFullSynastry = async (
  * API проверяет БД - если гороскоп за сегодня уже есть, возвращает его.
  * Генерация происходит только один раз в сутки.
  */
-export const getDailyHoroscope = async (profile: UserProfile, chartData: NatalChartData): Promise<DailyHoroscope> => {
+const legacyGetDailyHoroscopeViaAstrologyEndpoint = async (profile: UserProfile, chartData: NatalChartData): Promise<DailyHoroscope> => {
   const url = `${API_BASE_URL}/api/astrology/daily-horoscope`;
   log.info('[getDailyHoroscope] Starting request', { userId: profile.id });
 
@@ -605,7 +813,7 @@ export const getDeepDiveAnalysis = async (
   }
 };
 
-export const getCachedDailyHoroscope = async (
+const legacyGetCachedDailyHoroscopeViaAstrologyEndpoint = async (
   userId: string,
   language: 'ru' | 'en' = 'ru'
 ): Promise<DailyHoroscope | null> => {
@@ -649,6 +857,44 @@ export const getCachedDailyHoroscope = async (
       error: error?.message,
     });
     throw error;
+  }
+};
+
+export const getDailyHoroscope = async (profile: UserProfile, chartData: NatalChartData): Promise<DailyHoroscope> => {
+  try {
+    log.info('[getDailyHoroscope] Loading forecast_v2 daily layer', { userId: profile.id });
+    const reading = await getDailyForecastLayer(profile, chartData);
+    return mapForecastDailyToLegacyHoroscope(reading, {
+      source: 'generated',
+      persisted: true,
+    });
+  } catch (error: any) {
+    log.error('[getDailyHoroscope] Forecast v2 request failed, falling back to legacy endpoint', {
+      error: error?.message,
+    });
+    return legacyGetDailyHoroscopeViaAstrologyEndpoint(profile, chartData);
+  }
+};
+
+export const getCachedDailyHoroscope = async (
+  userId: string,
+  language: 'ru' | 'en' = 'ru'
+): Promise<DailyHoroscope | null> => {
+  try {
+    log.info('[getCachedDailyHoroscope] Loading cached forecast_v2 daily layer', { userId, language });
+    const reading = await getCachedDailyForecastLayer(userId);
+    if (!reading) return null;
+
+    return mapForecastDailyToLegacyHoroscope(reading, {
+      source: 'cache',
+      persisted: true,
+    });
+  } catch (error: any) {
+    log.warn('[getCachedDailyHoroscope] Forecast v2 cache request failed, falling back to legacy endpoint', {
+      userId,
+      error: error?.message,
+    });
+    return legacyGetCachedDailyHoroscopeViaAstrologyEndpoint(userId, language);
   }
 };
 

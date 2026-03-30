@@ -1,25 +1,21 @@
 import React, { memo } from 'react';
+import { ForecastDailyReading, Language } from '../../types';
 import { getText } from '../../constants';
-import { Language } from '../../types';
 import { FormattedAiText } from '../ui/FormattedAiText';
 import { READING_SECTION_PAD } from '../layout/ReadingLayout';
 
 interface HoroscopeContentProps {
-  content: string;
-  moonImpact?: string;
-  transitFocus?: string;
-  advice?: string[];
+  reading: ForecastDailyReading;
   language: Language;
 }
 
-export const HoroscopeContent = memo<HoroscopeContentProps>(({ 
-  content, 
-  moonImpact, 
-  transitFocus,
-  advice,
-  language 
-}) => {
-  const tips = (advice || []).map((s) => String(s).trim()).filter(Boolean);
+export const HoroscopeContent = memo<HoroscopeContentProps>(({ reading, language }) => {
+  const tips = (reading.advice || []).map((item) => String(item).trim()).filter(Boolean).slice(0, 3);
+  const matters = [
+    { label: getText(language, 'horoscope.chance_title'), value: reading.chance },
+    { label: getText(language, 'horoscope.risk_title'), value: reading.risk },
+    { label: getText(language, 'horoscope.focus_title'), value: reading.focus },
+  ];
 
   return (
     <div className="space-y-3 sm:space-y-3.5">
@@ -27,53 +23,52 @@ export const HoroscopeContent = memo<HoroscopeContentProps>(({
         <p className="lumia-label tracking-[0.2em]">{getText(language, 'horoscope.reading_title')}</p>
         <p className="lumia-muted mt-1.5 text-sm leading-relaxed">{getText(language, 'horoscope.reading_body')}</p>
 
-        <div className="mx-auto mt-4 w-full max-w-reading">
-          <FormattedAiText text={content} variant="article" className="lumia-prose" />
+        <div className="mt-4 space-y-3.5">
+          <div className="border-b border-astro-border/20 pb-3.5">
+            <h2 className="font-serif text-xl text-astro-text sm:text-2xl">{reading.headline}</h2>
+            <p className="lumia-muted mt-2 text-sm leading-relaxed sm:text-[15px]">{reading.summary}</p>
+          </div>
+
+          <div className="mx-auto w-full max-w-reading">
+            <FormattedAiText text={reading.reading} variant="article" className="lumia-prose" />
+          </div>
         </div>
       </div>
 
-      {(moonImpact || transitFocus) && (
-        <div className={`lumia-glass rounded-2xl ${READING_SECTION_PAD}`}>
-          <p className="lumia-label tracking-[0.2em]">{getText(language, 'horoscope.context_title')}</p>
-          <p className="lumia-muted mt-1.5 text-sm leading-relaxed">{getText(language, 'horoscope.context_body')}</p>
+      <div className={`lumia-glass rounded-2xl ${READING_SECTION_PAD}`}>
+        <p className="lumia-label tracking-[0.2em]">{getText(language, 'horoscope.what_matters_title')}</p>
+        <p className="lumia-muted mt-1.5 text-sm leading-relaxed">{getText(language, 'horoscope.what_matters_body')}</p>
 
-          <div className="mt-3 grid gap-2.5 sm:grid-cols-2 sm:gap-3">
-            {moonImpact && (
-              <div className="lumia-glass-inset p-3.5 sm:p-4">
-                <h3 className="text-sm font-semibold text-astro-text sm:text-[15px]">
-                  {getText(language, 'horoscope.moon_impact_title')}
-                </h3>
-                <div className="mt-2">
-                  <FormattedAiText text={moonImpact} variant="article" className="lumia-prose" />
-                </div>
-              </div>
-            )}
-
-            {transitFocus && (
-              <div className="lumia-glass-inset p-3.5 sm:p-4">
-                <h3 className="text-sm font-semibold text-astro-text sm:text-[15px]">
-                  {getText(language, 'horoscope.transit_focus_title')}
-                </h3>
-                <div className="mt-2">
-                  <FormattedAiText text={transitFocus} variant="article" className="lumia-prose" />
-                </div>
-              </div>
-            )}
-          </div>
+        <div className="mt-4 space-y-3">
+          {matters.map((item) => (
+            <div key={item.label} className="border-b border-astro-border/15 pb-3 last:border-b-0 last:pb-0">
+              <p className="lumia-label text-[10px] tracking-[0.16em]">{item.label}</p>
+              <p className="mt-1.5 text-[15px] leading-relaxed text-astro-text sm:text-base">{item.value}</p>
+            </div>
+          ))}
         </div>
-      )}
+      </div>
+
+      <div className={`lumia-glass rounded-2xl ${READING_SECTION_PAD}`}>
+        <p className="lumia-label tracking-[0.2em]">{getText(language, 'horoscope.context_title')}</p>
+        <p className="lumia-muted mt-1.5 text-sm leading-relaxed">{getText(language, 'horoscope.context_body')}</p>
+
+        <div className="mt-4">
+          <FormattedAiText text={reading.context} variant="article" className="lumia-prose" />
+        </div>
+      </div>
 
       {tips.length > 0 && (
         <div className={`lumia-glass rounded-2xl ${READING_SECTION_PAD}`}>
           <p className="lumia-label tracking-[0.2em]">{getText(language, 'horoscope.advice_title')}</p>
           <ul className="mt-3 space-y-2 sm:space-y-2.5">
-            {tips.map((line, i) => (
+            {tips.map((line, index) => (
               <li
-                key={i}
+                key={index}
                 className="lumia-glass-inset flex gap-3 px-3.5 py-3 text-[15px] leading-relaxed text-astro-text sm:text-base sm:leading-relaxed"
               >
                 <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-astro-highlight/14 text-xs font-semibold text-astro-highlight ring-1 ring-astro-highlight/18 sm:h-8 sm:w-8 sm:text-sm">
-                  {i + 1}
+                  {index + 1}
                 </span>
                 <span className="min-w-0 pt-0.5 [text-wrap:pretty]">{line}</span>
               </li>
