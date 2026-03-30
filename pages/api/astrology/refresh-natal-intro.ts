@@ -2,7 +2,8 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { getVerifiedTelegramUser } from '../../../lib/adminAuth';
 import { db } from '../../../lib/db';
 import { spendLumi } from '../../../services/lumiService';
-import { generateNatalIntroWithOpenAI } from '../../../lib/natal-intro-ai';
+import { generateNatalAnchorReading } from '../../../lib/natalContent';
+import { mapNatalAnchorToLegacyIntro } from '../../../lib/natalReadings';
 import { withRateLimit, RATE_LIMIT_CONFIGS } from '../../../lib/rateLimit';
 
 const COST_LUMI = 250;
@@ -45,7 +46,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       });
     }
 
-    const intro = await generateNatalIntroWithOpenAI(profile, chartData);
+    const reading = await generateNatalAnchorReading(profile, chartData);
+    const intro = mapNatalAnchorToLegacyIntro(reading);
     if (!intro || intro.length < 50) {
       await db.lumi_transactions.add(String(userId).trim(), COST_LUMI, 'refund');
       const refunded = await db.lumi_transactions.getBalance(String(userId).trim());
@@ -58,6 +60,35 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
     try {
       await db.interpretations.set(cacheKey, 'natal_intro', 'default', intro);
+      if (effectiveChartId != null) {
+        await db.content_interpretations.upsertByChart(effectiveChartId, {
+          accessTier: 'free',
+          contentSurface: 'natal',
+          contentVariant: 'anchor',
+          cacheKey: 'default',
+          inputHash: 'default',
+          content: reading,
+          modelTier: 'base',
+          isPersistent: true,
+          canRegenerateForLumi: true,
+          regenerationCostLumi: COST_LUMI,
+          legacySource: 'natal_v2.anchor.refresh',
+        }, String(userId).trim());
+      } else {
+        await db.content_interpretations.upsertByUser(String(userId).trim(), {
+          accessTier: 'free',
+          contentSurface: 'natal',
+          contentVariant: 'anchor',
+          cacheKey: 'default',
+          inputHash: 'default',
+          content: reading,
+          modelTier: 'base',
+          isPersistent: true,
+          canRegenerateForLumi: true,
+          regenerationCostLumi: COST_LUMI,
+          legacySource: 'natal_v2.anchor.refresh',
+        });
+      }
     } catch (dbErr: any) {
       await db.lumi_transactions.add(String(userId).trim(), COST_LUMI, 'refund');
       const refunded = await db.lumi_transactions.getBalance(String(userId).trim());
@@ -71,6 +102,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     return res.status(200).json({
       success: true,
       intro,
+      reading,
       newBalance,
       costLumi: COST_LUMI,
     });

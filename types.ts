@@ -207,6 +207,26 @@ export interface ForecastDaypartReading {
   guidance: string;
 }
 
+export interface NatalAnchorReading {
+  headline: string;
+  summary: string;
+  reading: string;
+  strengths: string[];
+  patterns: string[];
+}
+
+export interface NatalLivingReading {
+  periodKey: string;
+  headline: string;
+  summary: string;
+  activeTheme: string;
+  strength: string;
+  vulnerability: string;
+  relationships: string;
+  money: string;
+  guidance: string;
+}
+
 export interface WeeklyHoroscope {
   weekRange: string;
   theme: string;

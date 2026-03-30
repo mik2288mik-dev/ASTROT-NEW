@@ -843,6 +843,25 @@ export interface DaypartForecastAIResponse {
   guidance: string;
 }
 
+export interface NatalAnchorAIResponse {
+  headline: string;
+  summary: string;
+  reading: string;
+  strengths: string[];
+  patterns: string[];
+}
+
+export interface NatalLivingAIResponse {
+  headline: string;
+  summary: string;
+  activeTheme: string;
+  strength: string;
+  vulnerability: string;
+  relationships: string;
+  money: string;
+  guidance: string;
+}
+
 export interface WeeklyForecastAIResponse {
   theme: string;
   advice: string;
@@ -941,6 +960,83 @@ Return strict JSON with these fields:
 - relationships: short guidance for closeness, communication, or emotional contact
 - money: short guidance for work, money, or practical decisions
 - guidance: 1-2 sentences of direct orientation
+
+Return only JSON.`;
+};
+
+export const createNatalAnchorPrompt = (
+  natalData: NatalChartData,
+  profile: UserProfile
+): string => {
+  const natalDataJson = JSON.stringify(natalData, null, 2);
+  const displayName = profile.name || 'the user';
+
+  return `User: ${displayName}
+Language: ${profile.language}
+
+Natal chart:
+${natalDataJson}
+
+Task: create the free natal anchor layer for Lumia.
+
+Rules:
+- This is the user's serious base reading, not teaser junk.
+- It must feel personal, emotionally accurate, modern, and grounded in real natal calculation.
+- Explain the person, not astrology mechanics.
+- Focus on character, emotional habits, relationship style, strengths, decision style, and repeating life patterns.
+- No mystical fluff, no fate spam, no empty praise, no cheap sales language.
+- No long lists of planets/houses/aspects. Translate the chart into human language.
+- The free layer should feel valuable and complete, while still leaving room for a stronger premium living layer later.
+
+Return strict JSON with these fields:
+- headline: one strong line about the user's core nature, max 90 chars
+- summary: 1-2 sentences explaining the overall tone of the base chart
+- reading: 3-5 short paragraphs separated by "\\n\\n"
+- strengths: exactly 3 short bullets about real strengths
+- patterns: exactly 3 short bullets about repeating inner or life patterns
+
+Return only JSON.`;
+};
+
+export const createNatalLivingPrompt = (
+  natalData: NatalChartData,
+  profile: UserProfile,
+  periodKey: string,
+  transits?: any
+): string => {
+  const natalDataJson = JSON.stringify(natalData, null, 2);
+  const transitsJson = JSON.stringify(transits || {}, null, 2);
+  const displayName = profile.name || 'the user';
+
+  return `Period: ${periodKey}
+User: ${displayName}
+Language: ${profile.language}
+
+Natal chart:
+${natalDataJson}
+
+Current transits and live influences:
+${transitsJson}
+
+Task: create Lumia's premium living natal layer for this period.
+
+Rules:
+- This is not a static natal summary and not just more text.
+- It must feel like a living personal astrology companion that explains what is activated right now.
+- Focus on the main theme of the period, strength, vulnerability, relationships, money/goals, and direct guidance.
+- Be personal, emotionally precise, serious, modern, and useful.
+- No mystical fluff, no vague filler, no decorative astrology language.
+- Premium must feel dramatically stronger than the free natal anchor.
+
+Return strict JSON with these fields:
+- headline: one strong current-period line, max 90 chars
+- summary: 1-2 sentences on the period tone
+- activeTheme: what is being activated most strongly now
+- strength: where the user's current power is
+- vulnerability: where current pressure or sensitivity is
+- relationships: how this period changes closeness, trust, or contact
+- money: how this period affects money, work, goals, or practical direction
+- guidance: 2-3 sentences of direct orientation for the user
 
 Return only JSON.`;
 };

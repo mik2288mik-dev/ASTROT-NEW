@@ -1,6 +1,7 @@
-import { UserProfile, NatalChartData, DailyHoroscope, SynastryResult, UserEvolution, OracleChatResponse, OracleHistoryEntry, ForecastDailyReading, ForecastDaypartReading, ForecastDaypartSlot } from "../types";
+import { UserProfile, NatalChartData, DailyHoroscope, SynastryResult, UserEvolution, OracleChatResponse, OracleHistoryEntry, ForecastDailyReading, ForecastDaypartReading, ForecastDaypartSlot, NatalAnchorReading, NatalLivingReading } from "../types";
 import { SYSTEM_INSTRUCTION_ASTRA } from "../constants";
 import { getElementForSign } from "../lib/zodiac-utils";
+import { coerceNatalAnchorReading, coerceNatalLivingReading, getCurrentNatalPeriodKey, mapNatalAnchorToLegacyIntro } from "../lib/natalReadings";
 
 // API base URL - используем локальные Next.js API routes
 const API_BASE_URL = typeof window !== 'undefined' ? '' : process.env.NEXT_PUBLIC_API_URL || '';
@@ -235,6 +236,115 @@ export const getCachedPremiumDaypartForecast = async (
   return data?.interpretation?.content ?? null;
 };
 
+export const getNatalAnchorLayer = async (
+  profile: UserProfile,
+  chartData: NatalChartData,
+  chartId?: number | null
+): Promise<NatalAnchorReading> => {
+  const url = `${API_BASE_URL}/api/content/natal/anchor`;
+  log.info('[getNatalAnchorLayer] Starting request', { userId: profile.id, chartId: chartId ?? null });
+
+  const data = await fetchContentApi<NatalAnchorReading>(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      userId: profile.id,
+      profile,
+      chartData,
+      chartId: chartId ?? undefined,
+    }),
+  });
+
+  const reading = data?.interpretation?.content;
+  if (!reading) {
+    throw buildApiError('Natal anchor content is missing');
+  }
+
+  return coerceNatalAnchorReading(reading, profile.language === 'en' ? 'en' : 'ru');
+};
+
+export const getCachedNatalAnchorLayer = async (
+  userId: string,
+  language: 'ru' | 'en' = 'ru',
+  chartId?: number | null
+): Promise<NatalAnchorReading | null> => {
+  if (!userId) return null;
+
+  const params = new URLSearchParams({ userId });
+  if (chartId != null) {
+    params.set('chartId', String(chartId));
+  }
+
+  const url = `${API_BASE_URL}/api/content/natal/anchor?${params.toString()}`;
+  log.info('[getCachedNatalAnchorLayer] Starting request', { userId, chartId: chartId ?? null });
+
+  const data = await fetchContentApi<NatalAnchorReading>(
+    url,
+    { method: 'GET', cache: 'no-store' },
+    { notFoundAsNull: true }
+  );
+
+  return data?.interpretation?.content
+    ? coerceNatalAnchorReading(data.interpretation.content, language)
+    : null;
+};
+
+export const getPremiumNatalLivingLayer = async (
+  profile: UserProfile,
+  chartData: NatalChartData,
+  chartId?: number | null,
+  periodKey = getCurrentNatalPeriodKey()
+): Promise<NatalLivingReading> => {
+  const url = `${API_BASE_URL}/api/content/natal/living`;
+  log.info('[getPremiumNatalLivingLayer] Starting request', { userId: profile.id, chartId: chartId ?? null, periodKey });
+
+  const data = await fetchContentApi<NatalLivingReading>(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      userId: profile.id,
+      profile,
+      chartData,
+      chartId: chartId ?? undefined,
+      periodKey,
+    }),
+  });
+
+  const reading = data?.interpretation?.content;
+  if (!reading) {
+    throw buildApiError('Natal living content is missing');
+  }
+
+  return coerceNatalLivingReading(reading, profile.language === 'en' ? 'en' : 'ru', periodKey);
+};
+
+export const getCachedPremiumNatalLivingLayer = async (
+  userId: string,
+  language: 'ru' | 'en' = 'ru',
+  chartId?: number | null,
+  periodKey = getCurrentNatalPeriodKey()
+): Promise<NatalLivingReading | null> => {
+  if (!userId) return null;
+
+  const params = new URLSearchParams({ userId, periodKey });
+  if (chartId != null) {
+    params.set('chartId', String(chartId));
+  }
+
+  const url = `${API_BASE_URL}/api/content/natal/living?${params.toString()}`;
+  log.info('[getCachedPremiumNatalLivingLayer] Starting request', { userId, chartId: chartId ?? null, periodKey });
+
+  const data = await fetchContentApi<NatalLivingReading>(
+    url,
+    { method: 'GET', cache: 'no-store' },
+    { notFoundAsNull: true }
+  );
+
+  return data?.interpretation?.content
+    ? coerceNatalLivingReading(data.interpretation.content, language, periodKey)
+    : null;
+};
+
 /**
  * Calculate natal chart - calls backend API
  * 
@@ -369,22 +479,24 @@ export const getNatalIntro = async (
   chartData: NatalChartData,
   chartId?: number | null
 ): Promise<string> => {
-  const url = `${API_BASE_URL}/api/astrology/natal-intro`;
-  log.info('[getNatalIntro] Starting request', { userId: profile.id, chartId });
-
   try {
-    log.info(`[getNatalIntro] Sending POST request to: ${url}`);
-    const startTime = Date.now();
+    log.info('[getNatalIntro] Loading natal_v2 anchor layer', {
+      userId: profile.id,
+      chartId: chartId ?? null,
+    });
+    const reading = await getNatalAnchorLayer(profile, chartData, chartId);
+    return mapNatalAnchorToLegacyIntro(reading);
+  } catch (error: any) {
+    log.error('[getNatalIntro] natal_v2 request failed, falling back to legacy endpoint', {
+      error: error?.message,
+    });
+
+    const url = `${API_BASE_URL}/api/astrology/natal-intro`;
+    log.info(`[getNatalIntro] Sending legacy POST request to: ${url}`);
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ profile, chartData, chartId: chartId ?? undefined })
-    });
-
-    const duration = Date.now() - startTime;
-    log.info(`[getNatalIntro] Response received in ${duration}ms`, {
-      status: response.status,
-      ok: response.ok
     });
 
     if (!response.ok) {
@@ -402,12 +514,6 @@ export const getNatalIntro = async (
         errorMessage = errorText || errorMessage;
       }
 
-      log.error(`[getNatalIntro] Server returned error status ${response.status}`, {
-        errorMessage,
-        errorCode,
-        errorDetails
-      });
-
       const apiError = new Error(errorMessage) as ApiErrorWithCode;
       apiError.status = response.status;
       apiError.code = errorCode;
@@ -416,26 +522,7 @@ export const getNatalIntro = async (
     }
 
     const data = await response.json();
-    const intro = data.intro;
-
-    log.info('[getNatalIntro] Natal intro received', {
-      introLength: intro?.length || 0
-    });
-
-    return intro;
-  } catch (error: any) {
-    log.error('[getNatalIntro] Error occurred', {
-      error: error.message,
-      stack: error.stack
-    });
-    
-    // Fallback
-    const fallback = profile.language === 'ru' 
-      ? `Привет, ${profile.name || 'друг'}! Я изучила твою натальную карту и готова рассказать о тебе много интересного.`
-      : `Hi, ${profile.name || 'friend'}! I've studied your natal chart and I'm ready to tell you many interesting things.`;
-    
-    void fallback;
-    throw error;
+    return data.intro;
   }
 };
 

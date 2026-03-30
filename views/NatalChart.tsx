@@ -1,501 +1,541 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { NatalChartData, UserProfile } from '../types';
+import React, { useEffect, useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
+import type { NatalAnchorReading, NatalChartData, NatalLivingReading, UserProfile } from '../types';
 import { getText, getZodiacSign } from '../constants';
-import { getOrGenerateDeepDive } from '../services/contentGenerationService';
-import { getNatalIntro } from '../services/astrologyService';
+import {
+  getCachedNatalAnchorLayer,
+  getCachedPremiumNatalLivingLayer,
+  getNatalAnchorLayer,
+  getPremiumNatalLivingLayer,
+} from '../services/astrologyService';
 import { saveProfile } from '../services/storageService';
 import { getTelegramInitDataHeaders } from '../services/sessionService';
-import { motion, AnimatePresence } from 'framer-motion';
+import { coerceNatalAnchorReading, mapNatalAnchorToLegacyIntro } from '../lib/natalReadings';
 import { Loading } from '../components/ui/Loading';
 import { FormattedAiText } from '../components/ui/FormattedAiText';
 import { READING_PAGE_CLASS, READING_SECTION_PAD } from '../components/layout/ReadingLayout';
-import { stripRedundantIntroGreeting } from '../lib/strip-intro-greeting';
 
 const NATAL_INTRO_REFRESH_COST = 250;
 
 interface NatalChartProps {
-    data: NatalChartData | null;
-    profile: UserProfile;
-    chartId?: number;
-    requestPremium: () => void;
-    onUpdateProfile?: (profile: UserProfile) => void;
-    onOpenCharts?: () => void;
-    onBalanceUpdate?: (balance: number) => void;
+  data: NatalChartData | null;
+  profile: UserProfile;
+  chartId?: number;
+  requestPremium: () => void;
+  onUpdateProfile?: (profile: UserProfile) => void;
+  onOpenCharts?: () => void;
+  onBalanceUpdate?: (balance: number) => void;
 }
 
-type DeepDiveTopicId = 'personality' | 'love' | 'career' | 'weakness' | 'karma';
-
-type TopicMeta = {
-    id: DeepDiveTopicId;
-    marker: string;
-    titleKey: string;
-    teaserKey: string;
-    free: boolean;
-};
-
 const PLANET_SYMBOLS: Record<string, string> = {
-    sun: '☉',
-    moon: '☽',
-    mercury: '☿',
-    venus: '♀',
-    mars: '♂',
-    rising: '↑',
-    ascendant: '↑',
+  sun: '☉',
+  moon: '☽',
+  mercury: '☿',
+  venus: '♀',
+  mars: '♂',
+  rising: '↑',
+  ascendant: '↑',
 };
 
 const PLANET_NAMES: Record<string, { ru: string; en: string }> = {
-    sun: { ru: 'Солнце', en: 'Sun' },
-    moon: { ru: 'Луна', en: 'Moon' },
-    rising: { ru: 'Асцендент', en: 'Rising' },
-    mercury: { ru: 'Меркурий', en: 'Mercury' },
-    venus: { ru: 'Венера', en: 'Venus' },
-    mars: { ru: 'Марс', en: 'Mars' },
+  sun: { ru: 'Солнце', en: 'Sun' },
+  moon: { ru: 'Луна', en: 'Moon' },
+  rising: { ru: 'Асцендент', en: 'Rising' },
+  mercury: { ru: 'Меркурий', en: 'Mercury' },
+  venus: { ru: 'Венера', en: 'Venus' },
+  mars: { ru: 'Марс', en: 'Mars' },
 };
 
 const PLANET_MEANINGS: Record<string, { ru: string; en: string }> = {
-    sun: { ru: 'твоя основа', en: 'your core' },
-    moon: { ru: 'эмоции и ритм', en: 'your emotional rhythm' },
-    rising: { ru: 'то, как ты входишь в мир', en: 'how you meet the world' },
-    mercury: { ru: 'мышление', en: 'mind' },
-    venus: { ru: 'близость', en: 'love style' },
-    mars: { ru: 'драйв', en: 'drive' },
+  sun: { ru: 'твоя основа', en: 'your core' },
+  moon: { ru: 'эмоции и ритм', en: 'emotions and rhythm' },
+  rising: { ru: 'то, как ты входишь в мир', en: 'how you meet the world' },
+  mercury: { ru: 'мышление', en: 'mind' },
+  venus: { ru: 'близость', en: 'closeness' },
+  mars: { ru: 'драйв', en: 'drive' },
 };
 
-const TOPICS: TopicMeta[] = [
-    { id: 'personality', marker: '01', titleKey: 'chart.section_personality', teaserKey: 'chart.topic_personality_teaser', free: true },
-    { id: 'love', marker: '02', titleKey: 'chart.section_love', teaserKey: 'chart.topic_love_teaser', free: false },
-    { id: 'career', marker: '03', titleKey: 'chart.section_career', teaserKey: 'chart.topic_career_teaser', free: false },
-    { id: 'weakness', marker: '04', titleKey: 'chart.section_weakness', teaserKey: 'chart.topic_weakness_teaser', free: false },
-    { id: 'karma', marker: '05', titleKey: 'chart.section_karma', teaserKey: 'chart.topic_karma_teaser', free: false },
-];
+type DetailLineProps = {
+  label: string;
+  value: string;
+};
 
-export const NatalChart: React.FC<NatalChartProps> = ({ data, profile, chartId, requestPremium, onUpdateProfile, onOpenCharts, onBalanceUpdate }) => {
-    const [expandedTopic, setExpandedTopic] = useState<DeepDiveTopicId | null>('personality');
-    const [topicContent, setTopicContent] = useState<Record<string, string>>({});
-    const [loadingTopic, setLoadingTopic] = useState<DeepDiveTopicId | null>(null);
-    const [natalIntro, setNatalIntro] = useState<string>('');
-    const [isLoadingIntro, setIsLoadingIntro] = useState(true);
-    const [refreshIntroBusy, setRefreshIntroBusy] = useState(false);
-    const [hasTelegramAuth, setHasTelegramAuth] = useState(false);
-    const introLoadedRef = useRef(false);
-    const apiInFlightRef = useRef(false);
+const DetailLine: React.FC<DetailLineProps> = ({ label, value }) => (
+  <div className="border-b border-astro-border/15 pb-3 last:border-b-0 last:pb-0">
+    <p className="lumia-label text-[10px] tracking-[0.16em]">{label}</p>
+    <p className="mt-1.5 whitespace-pre-line text-[15px] leading-relaxed text-astro-text sm:text-base">
+      {value}
+    </p>
+  </div>
+);
 
-    const lang = profile.language;
+const ListBlock: React.FC<{ title: string; items: string[] }> = ({ title, items }) => (
+  <div className="space-y-3">
+    <p className="lumia-label tracking-[0.18em]">{title}</p>
+    <ul className="space-y-2.5">
+      {items.map((item, index) => (
+        <li
+          key={`${title}-${index}`}
+          className="lumia-glass-inset flex gap-3 px-3.5 py-3 text-[15px] leading-relaxed text-astro-text sm:text-base"
+        >
+          <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-astro-highlight/14 text-xs font-semibold text-astro-highlight ring-1 ring-astro-highlight/18 sm:h-8 sm:w-8 sm:text-sm">
+            {index + 1}
+          </span>
+          <span className="min-w-0 pt-0.5 [text-wrap:pretty]">{item}</span>
+        </li>
+      ))}
+    </ul>
+  </div>
+);
 
-    if (!data || !data.sun || !data.moon) {
-        return <Loading />;
+export const NatalChart: React.FC<NatalChartProps> = ({
+  data,
+  profile,
+  chartId,
+  requestPremium,
+  onUpdateProfile,
+  onOpenCharts,
+  onBalanceUpdate,
+}) => {
+  const lang = profile.language === 'en' ? 'en' : 'ru';
+  const cachedLegacyIntro = !chartId && profile.generatedContent?.natalIntro
+    ? coerceNatalAnchorReading(profile.generatedContent.natalIntro, lang)
+    : null;
+
+  const [anchorReading, setAnchorReading] = useState<NatalAnchorReading | null>(cachedLegacyIntro);
+  const [livingReading, setLivingReading] = useState<NatalLivingReading | null>(null);
+  const [anchorLoading, setAnchorLoading] = useState(!cachedLegacyIntro);
+  const [livingLoading, setLivingLoading] = useState(profile.isPremium);
+  const [livingError, setLivingError] = useState<string | null>(null);
+  const [refreshAnchorBusy, setRefreshAnchorBusy] = useState(false);
+  const [hasTelegramAuth, setHasTelegramAuth] = useState(false);
+  const hasChartData = !!(data?.sun && data?.moon);
+
+  const updateProfileAnchorCache = (reading: NatalAnchorReading, nextBalance?: number) => {
+    if (chartId) {
+      if (typeof nextBalance === 'number') {
+        onUpdateProfile?.({ ...profile, lumiBalance: nextBalance });
+      }
+      return;
     }
 
-    useEffect(() => {
-        introLoadedRef.current = false;
-        apiInFlightRef.current = false;
-        setNatalIntro('');
-        setTopicContent({});
-        setExpandedTopic('personality');
-    }, [chartId, data.sun.sign]);
+    const intro = mapNatalAnchorToLegacyIntro(reading);
+    const currentIntro = profile.generatedContent?.natalIntro || '';
+    const currentBalance = profile.lumiBalance;
+    if (currentIntro === intro && (typeof nextBalance !== 'number' || nextBalance === currentBalance)) {
+      return;
+    }
 
-    useEffect(() => {
-        setHasTelegramAuth(Object.keys(getTelegramInitDataHeaders()).length > 0);
-    }, []);
+    const nextProfile: UserProfile = {
+      ...profile,
+      lumiBalance: typeof nextBalance === 'number' ? nextBalance : profile.lumiBalance,
+      generatedContent: {
+        ...(profile.generatedContent || { timestamps: {} }),
+        natalIntro: intro,
+        timestamps: {
+          ...(profile.generatedContent?.timestamps || {}),
+          natalIntroGenerated: Date.now(),
+        },
+      },
+    };
 
-    useEffect(() => {
-        if (chartId) return;
-        const cached = profile.generatedContent?.natalIntro;
-        if (cached && cached.length > 50) {
-            setNatalIntro(cached);
-            setIsLoadingIntro(false);
-            introLoadedRef.current = true;
-        }
-    }, [chartId, profile.generatedContent?.natalIntro]);
+    onUpdateProfile?.(nextProfile);
+    saveProfile(nextProfile).catch(console.error);
+  };
 
-    useEffect(() => {
-        const cached = !chartId && profile.generatedContent?.natalIntro;
-        if (cached && cached.length > 50) {
-            setNatalIntro(cached);
-            setIsLoadingIntro(false);
-            introLoadedRef.current = true;
-            return;
-        }
+  useEffect(() => {
+    setHasTelegramAuth(Object.keys(getTelegramInitDataHeaders()).length > 0);
+  }, []);
 
-        if (introLoadedRef.current || apiInFlightRef.current) return;
+  useEffect(() => {
+    setAnchorReading(cachedLegacyIntro);
+    setAnchorLoading(!cachedLegacyIntro);
+    setLivingReading(null);
+    setLivingLoading(profile.isPremium);
+    setLivingError(null);
+  }, [cachedLegacyIntro, chartId, data?.sun?.sign, profile.isPremium]);
 
-        apiInFlightRef.current = true;
-        setIsLoadingIntro(true);
+  useEffect(() => {
+    let cancelled = false;
 
-        getNatalIntro(profile, data, chartId)
-            .then((intro) => {
-                if (intro && intro.length > 50) {
-                    setNatalIntro(intro);
-                    introLoadedRef.current = true;
-                    if (!chartId) {
-                        const updated: UserProfile = {
-                            ...profile,
-                            generatedContent: {
-                                ...(profile.generatedContent || {}),
-                                natalIntro: intro,
-                                timestamps: profile.generatedContent?.timestamps || {},
-                            },
-                        };
-                        onUpdateProfile?.(updated);
-                        saveProfile(updated).catch(console.error);
-                    }
-                }
-            })
-            .catch(console.error)
-            .finally(() => {
-                apiInFlightRef.current = false;
-                setIsLoadingIntro(false);
-            });
-    }, [chartId, data.sun.sign, onUpdateProfile, profile, profile.generatedContent?.natalIntro]);
+    const loadAnchor = async () => {
+      if (!data) {
+        setAnchorLoading(false);
+        return;
+      }
 
-    useEffect(() => {
-        if (!expandedTopic || chartId) return;
-        const analyses = profile.generatedContent?.deepDiveAnalyses as Record<string, string | undefined> | undefined;
-        const cached = analyses?.[expandedTopic];
+      try {
+        const cached = await getCachedNatalAnchorLayer(String(profile.id), lang, chartId);
+        if (cancelled) return;
+
         if (cached) {
-            setTopicContent((prev) => ({ ...prev, [expandedTopic]: cached }));
+          setAnchorReading(cached);
+          setAnchorLoading(false);
+          if (!chartId) {
+            updateProfileAnchorCache(cached);
+          }
+          return;
         }
-    }, [chartId, expandedTopic, profile.generatedContent?.deepDiveAnalyses]);
 
-    useEffect(() => {
-        if (!expandedTopic) return;
+        const generated = await getNatalAnchorLayer(profile, data, chartId);
+        if (cancelled) return;
+        setAnchorReading(generated);
+        setAnchorLoading(false);
+        if (!chartId) {
+          updateProfileAnchorCache(generated);
+        }
+      } catch (error) {
+        console.error(error);
+        if (!cancelled) {
+          setAnchorReading((current) => current || cachedLegacyIntro);
+          setAnchorLoading(false);
+        }
+      }
+    };
 
-        const analyses = !chartId ? profile.generatedContent?.deepDiveAnalyses : undefined;
-        const cached = analyses ? (analyses as Record<string, string | undefined>)[expandedTopic] : undefined;
+    void loadAnchor();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    cachedLegacyIntro,
+    chartId,
+    data,
+    lang,
+    profile.birthDate,
+    profile.birthPlace,
+    profile.birthTime,
+    profile.id,
+    profile.language,
+    profile.name,
+  ]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadLiving = async () => {
+      if (!data) {
+        setLivingReading(null);
+        setLivingLoading(false);
+        setLivingError(null);
+        return;
+      }
+
+      if (!profile.isPremium) {
+        setLivingReading(null);
+        setLivingLoading(false);
+        setLivingError(null);
+        return;
+      }
+
+      setLivingLoading(true);
+      setLivingError(null);
+
+      try {
+        const cached = await getCachedPremiumNatalLivingLayer(String(profile.id), lang, chartId);
+        if (cancelled) return;
+
         if (cached) {
-            setTopicContent((prev) => ({ ...prev, [expandedTopic]: cached }));
-            return;
+          setLivingReading(cached);
+          setLivingLoading(false);
+          return;
         }
 
-        if (topicContent[expandedTopic]) return;
-
-        const topic = TOPICS.find((item) => item.id === expandedTopic);
-        if (!topic?.free && !profile.isPremium) return;
-
-        setLoadingTopic(expandedTopic);
-        getOrGenerateDeepDive(profile, data, expandedTopic, chartId)
-            .then((content) => {
-                if (content) {
-                    setTopicContent((prev) => ({ ...prev, [expandedTopic]: content }));
-                }
-            })
-            .catch(console.error)
-            .finally(() => setLoadingTopic(null));
-    }, [chartId, data, expandedTopic, profile, profile.generatedContent?.deepDiveAnalyses, profile.isPremium, topicContent]);
-
-    const handleTopicSelect = (topicId: DeepDiveTopicId) => {
-        const topic = TOPICS.find((item) => item.id === topicId);
-        if (!topic?.free && !profile.isPremium) {
-            requestPremium();
-            return;
+        const generated = await getPremiumNatalLivingLayer(profile, data, chartId);
+        if (cancelled) return;
+        setLivingReading(generated);
+        setLivingLoading(false);
+      } catch (error: any) {
+        console.error(error);
+        if (!cancelled) {
+          setLivingReading(null);
+          setLivingLoading(false);
+          setLivingError(error?.message || getText(lang, 'chart.living_error'));
         }
-        setExpandedTopic(topicId);
+      }
     };
 
-    const mainPlanets = [
-        { id: 'sun', data: data.sun },
-        { id: 'moon', data: data.moon },
-        { id: 'rising', data: data.rising },
-    ];
+    void loadLiving();
 
-    const otherPlanets = [
-        { id: 'mercury', data: data.mercury },
-        { id: 'venus', data: data.venus },
-        { id: 'mars', data: data.mars },
-    ].filter((planet) => planet.data);
-
-    const lumiBalance = profile.lumiBalance ?? 0;
-    const refreshIntroDisabled = refreshIntroBusy || lumiBalance < NATAL_INTRO_REFRESH_COST;
-
-    const handleRefreshIntro = async () => {
-        const headers = getTelegramInitDataHeaders();
-        if (!Object.keys(headers).length || refreshIntroBusy) return;
-        setRefreshIntroBusy(true);
-        try {
-            const res = await fetch('/api/astrology/refresh-natal-intro', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', ...headers },
-                body: JSON.stringify({
-                    userId: profile.id,
-                    profile,
-                    chartData: data,
-                    chartId: chartId ?? undefined,
-                }),
-            });
-            const payload = await res.json().catch(() => ({}));
-            if (!res.ok) {
-                throw new Error(payload.message || payload.error || 'refresh failed');
-            }
-            const intro = payload.intro as string;
-            if (intro && intro.length > 50) {
-                setNatalIntro(intro);
-                introLoadedRef.current = true;
-                const newBal = typeof payload.newBalance === 'number' ? payload.newBalance : profile.lumiBalance;
-                if (!chartId) {
-                    const updated: UserProfile = {
-                        ...profile,
-                        lumiBalance: newBal,
-                        generatedContent: {
-                            ...(profile.generatedContent || {}),
-                            natalIntro: intro,
-                            timestamps: profile.generatedContent?.timestamps || {},
-                        },
-                    };
-                    onUpdateProfile?.(updated);
-                    saveProfile(updated).catch(console.error);
-                } else if (typeof payload.newBalance === 'number') {
-                    onUpdateProfile?.({ ...profile, lumiBalance: newBal });
-                }
-                if (typeof payload.newBalance === 'number') {
-                    onBalanceUpdate?.(payload.newBalance);
-                }
-            }
-        } catch (e) {
-            console.error(e);
-        } finally {
-            setRefreshIntroBusy(false);
-        }
+    return () => {
+      cancelled = true;
     };
+  }, [
+    chartId,
+    data,
+    lang,
+    profile.birthDate,
+    profile.birthPlace,
+    profile.birthTime,
+    profile.id,
+    profile.isPremium,
+    profile.language,
+    profile.name,
+  ]);
 
-    const localizedSun = getZodiacSign(lang, data.sun.sign);
-    const localizedMoon = getZodiacSign(lang, data.moon.sign);
-    const greeting = `${getText(lang, 'chart.greeting')}, ${profile.name || getText(lang, 'chart.friend')}`;
-    const soulPhrase = lang === 'ru'
-        ? `${localizedSun} с лунным ритмом ${localizedMoon}`
-        : `${localizedSun} with a ${localizedMoon} emotional rhythm`;
-    const displayedIntro = stripRedundantIntroGreeting(natalIntro || data.summary || '', profile.name);
+  const handleRefreshAnchor = async () => {
+    const headers = getTelegramInitDataHeaders();
+    if (!Object.keys(headers).length || refreshAnchorBusy || !data) return;
 
-    const freeTopic = TOPICS.find((item) => item.free)!;
-    const premiumTopics = TOPICS.filter((item) => !item.free);
+    setRefreshAnchorBusy(true);
+    try {
+      const res = await fetch('/api/astrology/refresh-natal-intro', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...headers },
+        body: JSON.stringify({
+          userId: profile.id,
+          profile,
+          chartData: data,
+          chartId: chartId ?? undefined,
+        }),
+      });
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(payload.message || payload.error || 'refresh failed');
+      }
 
-    const activeTopicMeta = expandedTopic ? TOPICS.find((t) => t.id === expandedTopic) : null;
-    const activeContent = expandedTopic ? topicContent[expandedTopic] : '';
-    const activeLoading = expandedTopic ? loadingTopic === expandedTopic : false;
+      const nextReading = payload.reading
+        ? coerceNatalAnchorReading(payload.reading, lang)
+        : payload.intro
+          ? coerceNatalAnchorReading(payload.intro, lang)
+          : null;
 
-    const chipWrapClass = 'grid w-full grid-cols-1 gap-2 min-[360px]:grid-cols-2 sm:gap-2.5';
+      if (nextReading) {
+        setAnchorReading(nextReading);
+        updateProfileAnchorCache(nextReading, typeof payload.newBalance === 'number' ? payload.newBalance : undefined);
+      } else if (typeof payload.newBalance === 'number') {
+        onUpdateProfile?.({ ...profile, lumiBalance: payload.newBalance });
+      }
 
-    const LockIcon = ({ className = '' }: { className?: string }) => (
-        <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-            <rect x="5" y="11" width="14" height="10" rx="2" />
-            <path d="M8 11V8a4 4 0 0 1 8 0v3" />
-        </svg>
-    );
+      if (typeof payload.newBalance === 'number') {
+        onBalanceUpdate?.(payload.newBalance);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setRefreshAnchorBusy(false);
+    }
+  };
 
-    const renderTopicChip = (topic: TopicMeta) => {
-        const selected = expandedTopic === topic.id;
-        const locked = !topic.free && !profile.isPremium;
-        return (
-            <button
-                key={topic.id}
-                type="button"
-                role="tab"
-                aria-selected={selected}
-                aria-label={
-                    locked
-                        ? `${getText(lang, topic.titleKey)} — ${lang === 'ru' ? 'доступно в Premium' : 'Premium'}`
-                        : getText(lang, topic.titleKey)
-                }
-                onClick={() => (locked ? requestPremium() : handleTopicSelect(topic.id))}
-                className={`flex min-h-[3rem] w-full items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-left text-[14px] font-medium leading-snug transition-all sm:min-h-[3.25rem] sm:px-3.5 sm:text-[15px] ${
-                    locked
-                        ? 'border-astro-border/40 bg-astro-bg/15 text-astro-subtext/90'
-                        : selected
-                          ? 'border-astro-highlight/35 bg-astro-highlight/8 text-astro-text'
-                          : 'border-astro-border/60 bg-astro-card/50 text-astro-text hover:border-astro-highlight/20 hover:bg-astro-bg/20'
-                }`}
-            >
-                <span className="min-w-0 flex-1 [text-wrap:balance]">{getText(lang, topic.titleKey)}</span>
-                {locked && <LockIcon className="shrink-0 text-astro-subtext/50" />}
-            </button>
-        );
-    };
+  const localizedSun = data?.sun?.sign ? getZodiacSign(lang, data.sun.sign) : '—';
+  const localizedMoon = data?.moon?.sign ? getZodiacSign(lang, data.moon.sign) : '—';
+  const localizedRising = data?.rising?.sign ? getZodiacSign(lang, data.rising.sign) : '—';
+  const lumiBalance = profile.lumiBalance ?? 0;
+  const refreshAnchorDisabled = refreshAnchorBusy || lumiBalance < NATAL_INTRO_REFRESH_COST;
 
-    return (
-        <div className={`min-h-full screen-pb pb-10 ${READING_PAGE_CLASS}`}>
-            <motion.section initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="pt-6">
-                <div
-                    className={`rounded-2xl border border-astro-border/80 bg-gradient-to-b from-astro-card to-astro-card/60 shadow-soft sm:rounded-3xl ${READING_SECTION_PAD}`}
-                >
-                    <div className="border-b border-astro-border/30 pb-5">
-                        <h1 className="font-serif text-2xl font-semibold tracking-tight text-astro-text sm:text-[1.75rem]">
-                            {greeting}
-                        </h1>
-                        <p className="mt-2 text-sm leading-relaxed text-astro-subtext sm:text-[15px]">{soulPhrase}</p>
-                    </div>
+  const mainPlanets = useMemo(
+    () => [
+      { id: 'sun', data: data?.sun ?? null },
+      { id: 'moon', data: data?.moon ?? null },
+      { id: 'rising', data: data?.rising ?? null },
+    ],
+    [data]
+  );
 
-                    <div className="pt-6">
-                        {isLoadingIntro && !displayedIntro ? (
-                            <div className="flex items-center justify-center py-10">
-                                <div className="h-5 w-5 animate-spin rounded-full border-2 border-astro-highlight border-t-transparent" />
-                            </div>
-                        ) : (
-                            <FormattedAiText text={displayedIntro} variant="article" className="lumia-prose mx-auto max-w-reading" />
-                        )}
-                    </div>
-                    {hasTelegramAuth && (
-                        <div className="mt-4">
-                            <button
-                                type="button"
-                                onClick={() => void handleRefreshIntro()}
-                                disabled={refreshIntroDisabled}
-                                className="w-full rounded-xl border border-astro-border/80 bg-astro-bg/20 px-4 py-3 text-left text-sm font-medium text-astro-text transition-colors hover:border-astro-highlight/35 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                                {refreshIntroBusy
-                                    ? getText(lang, 'chart.refresh_intro_loading')
-                                    : getText(lang, 'chart.refresh_intro_cta').replace(
-                                        '{cost}',
-                                        String(NATAL_INTRO_REFRESH_COST)
-                                    )}
-                            </button>
-                            {lumiBalance < NATAL_INTRO_REFRESH_COST && (
-                                <p className="mt-2 text-center text-xs text-astro-subtext">
-                                    {getText(lang, 'chart.refresh_intro_insufficient')}
-                                </p>
-                            )}
-                        </div>
-                    )}
-                </div>
-            </motion.section>
+  const otherPlanets = useMemo(
+    () => [
+      { id: 'mercury', data: data?.mercury ?? null },
+      { id: 'venus', data: data?.venus ?? null },
+      { id: 'mars', data: data?.mars ?? null },
+    ].filter((planet) => planet.data),
+    [data]
+  );
 
-            <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-6 sm:mt-7">
-                <div className={`rounded-2xl border border-astro-border/80 bg-astro-card/60 sm:rounded-3xl ${READING_SECTION_PAD}`}>
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
-                        {getText(lang, 'chart.core_title')}
-                    </p>
-                    <p className="mt-2 text-sm leading-relaxed text-astro-subtext">
-                        {getText(lang, 'chart.core_body')}
-                    </p>
+  if (!hasChartData) {
+    return <Loading />;
+  }
 
-                    <div className="mt-4 space-y-2">
-                        {mainPlanets.map((planet) => (
-                            <div
-                                key={planet.id}
-                                className="rounded-xl border border-astro-border/50 bg-astro-bg/20 px-3 py-2.5 sm:flex sm:items-center sm:gap-4 sm:px-4 sm:py-3"
-                            >
-                                <div className="flex items-center gap-3 sm:flex-1 sm:gap-4">
-                                    <span className="shrink-0 text-lg text-astro-highlight/90 sm:text-xl">{PLANET_SYMBOLS[planet.id]}</span>
-                                    <div className="min-w-0 flex-1">
-                                        <p className="text-[10px] font-medium uppercase tracking-wider text-astro-subtext">
-                                            {PLANET_NAMES[planet.id]?.[lang]}
-                                        </p>
-                                        <p className="mt-0.5 text-base font-semibold text-astro-text sm:text-lg">
-                                            {planet.data?.sign ? getZodiacSign(lang, planet.data.sign) : '—'}
-                                        </p>
-                                    </div>
-                                </div>
-                                <p className="mt-2 pl-10 text-xs leading-snug text-astro-subtext sm:mt-0 sm:max-w-[46%] sm:flex-none sm:pl-0 sm:text-right sm:text-[13px]">
-                                    {PLANET_MEANINGS[planet.id]?.[lang]}
-                                </p>
-                            </div>
-                        ))}
-                    </div>
+  return (
+    <div className={`min-h-full screen-pb pb-10 ${READING_PAGE_CLASS}`}>
+      <motion.section initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="pt-6">
+        <div className={`lumia-glass rounded-2xl ${READING_SECTION_PAD}`}>
+          <p className="lumia-label tracking-[0.2em]">{getText(lang, 'chart.anchor_label')}</p>
+          <h1 className="mt-2 font-serif text-2xl tracking-tight text-astro-text sm:text-[1.95rem]">
+            {anchorReading?.headline || getText(lang, 'chart.anchor_title')}
+          </h1>
+          <p className="lumia-muted mt-2 text-sm leading-relaxed sm:text-[15px]">
+            {anchorReading?.summary || getText(lang, 'chart.anchor_body')}
+          </p>
 
-                    <div className="mt-4 flex flex-wrap gap-2">
-                        {otherPlanets.map((planet) => (
-                            <span
-                                key={planet.id}
-                                className="inline-flex items-center gap-2 rounded-full border border-astro-border/70 bg-astro-bg/25 px-3 py-2 text-xs text-astro-subtext"
-                            >
-                                <span className="text-astro-highlight">{PLANET_SYMBOLS[planet.id]}</span>
-                                <span>{PLANET_NAMES[planet.id]?.[lang]}</span>
-                                <span>·</span>
-                                <span>{planet.data?.sign ? getZodiacSign(lang, planet.data.sign) : '—'}</span>
-                            </span>
-                        ))}
-                    </div>
+          <div className="mt-4 border-t border-astro-border/15 pt-4 text-xs leading-relaxed text-astro-subtext sm:text-[13px]">
+            <p>
+              {lang === 'ru'
+                ? `Солнце в ${localizedSun}, Луна в ${localizedMoon}, Асцендент в ${localizedRising}.`
+                : `Sun in ${localizedSun}, Moon in ${localizedMoon}, Rising in ${localizedRising}.`}
+            </p>
+            <p className="mt-1.5">{getText(lang, 'chart.anchor_persistent_note')}</p>
+          </div>
 
-                    <p className="mt-4 text-[11px] leading-relaxed text-astro-subtext/85">
-                        {getText(lang, 'chart.chart_legend')}
-                    </p>
-                </div>
-            </motion.section>
-
-            {onOpenCharts && (
-                <div className="mt-5">
-                    <button
-                        onClick={onOpenCharts}
-                        className="w-full rounded-2xl border border-astro-border/70 bg-astro-bg/15 px-4 py-3 text-left transition-colors hover:border-astro-highlight/30"
-                    >
-                        <div className="flex items-center justify-between gap-4">
-                            <div className="min-w-0">
-                                <p className="text-[10px] uppercase tracking-widest text-astro-subtext">
-                                    {getText(lang, 'chart.my_charts_title')}
-                                </p>
-                                <p className="mt-1 text-sm text-astro-text">
-                                    {getText(lang, 'chart.my_charts_body')}
-                                </p>
-                            </div>
-                            <span className="shrink-0 text-xs font-medium text-astro-highlight">
-                                {getText(lang, 'chart.my_charts_cta')}
-                            </span>
-                        </div>
-                    </button>
-                </div>
+          <div className="mt-5">
+            {anchorLoading && !anchorReading ? (
+              <div className="flex items-center justify-center py-10">
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-astro-highlight border-t-transparent" />
+              </div>
+            ) : anchorReading ? (
+              <FormattedAiText text={anchorReading.reading} variant="article" className="lumia-prose mx-auto max-w-reading" />
+            ) : (
+              <p className="lumia-muted text-sm leading-relaxed">{getText(lang, 'chart.anchor_loading')}</p>
             )}
+          </div>
 
-            <section className="mt-7 sm:mt-8">
-                <div className={`rounded-2xl border border-astro-border/80 bg-astro-card/55 sm:rounded-3xl ${READING_SECTION_PAD}`}>
-                    <h2 className="font-serif text-xl text-astro-text sm:text-2xl">{getText(lang, 'chart.deeper')}</h2>
-                    <p className="mt-2 max-w-prose text-sm leading-relaxed text-astro-subtext sm:text-[15px]">
-                        {getText(lang, 'chart.deeper_intro')}
-                    </p>
-
-                    <div className="mt-5 space-y-4">
-                        <div className={`${chipWrapClass}`} role="tablist" aria-label={getText(lang, 'chart.deeper')}>
-                            {renderTopicChip(freeTopic)}
-                            {premiumTopics.map((t) => renderTopicChip(t))}
-                        </div>
-
-                        <div className="rounded-xl border border-astro-border/60 bg-astro-bg/15 p-5 sm:rounded-2xl sm:p-6 md:p-7">
-                            {activeTopicMeta && (
-                                <div className="mb-5 border-b border-astro-border/40 pb-5">
-                                    <h3 className="font-serif text-lg text-astro-text sm:text-xl">
-                                        {getText(lang, activeTopicMeta.titleKey)}
-                                    </h3>
-                                    <p className="mt-2 text-sm leading-relaxed text-astro-subtext sm:text-[15px]">
-                                        {getText(lang, activeTopicMeta.teaserKey)}
-                                    </p>
-                                </div>
-                            )}
-                            <AnimatePresence mode="wait">
-                                <motion.div
-                                    key={expandedTopic || 'none'}
-                                    initial={{ opacity: 0, y: 6 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -4 }}
-                                    transition={{ duration: 0.18 }}
-                                >
-                                    {activeLoading ? (
-                                        <div className="flex min-h-[140px] items-center justify-center py-6">
-                                            <div className="h-6 w-6 animate-spin rounded-full border-2 border-astro-highlight/40 border-t-astro-highlight" />
-                                        </div>
-                                    ) : activeContent ? (
-                                        <FormattedAiText
-                                            text={activeContent}
-                                            variant="article"
-                                            className="lumia-prose mx-auto max-w-reading"
-                                        />
-                                    ) : (
-                                        <p className="py-4 text-center text-sm text-astro-subtext">
-                                            {getText(lang, 'chart.loading_wisdom')}
-                                        </p>
-                                    )}
-                                </motion.div>
-                            </AnimatePresence>
-                        </div>
-
-                        {!profile.isPremium && (
-                            <button
-                                type="button"
-                                onClick={requestPremium}
-                                className="w-full rounded-xl border border-astro-border/60 bg-astro-bg/15 py-3.5 text-sm font-semibold text-astro-text transition-colors hover:border-astro-highlight/30 hover:bg-astro-highlight/5"
-                            >
-                                {getText(lang, 'chart.unlock_full')}
-                            </button>
-                        )}
-                    </div>
-                </div>
-            </section>
+          {hasTelegramAuth && (
+            <div className="mt-5">
+              <button
+                type="button"
+                onClick={() => void handleRefreshAnchor()}
+                disabled={refreshAnchorDisabled}
+                className="w-full rounded-xl bg-astro-highlight/12 px-4 py-3 text-left text-sm font-medium text-astro-highlight ring-1 ring-astro-highlight/28 transition-[box-shadow] hover:ring-astro-highlight/45 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {refreshAnchorBusy
+                  ? getText(lang, 'chart.refresh_intro_loading')
+                  : getText(lang, 'chart.refresh_intro_cta').replace('{cost}', String(NATAL_INTRO_REFRESH_COST))}
+              </button>
+              {lumiBalance < NATAL_INTRO_REFRESH_COST && (
+                <p className="mt-2 text-center text-xs text-astro-subtext">
+                  {getText(lang, 'chart.refresh_intro_insufficient')}
+                </p>
+              )}
+            </div>
+          )}
         </div>
-    );
+      </motion.section>
+
+      {anchorReading && (
+        <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-4 sm:mt-5">
+          <div className={`lumia-glass rounded-2xl ${READING_SECTION_PAD}`}>
+            <div className="grid gap-5 lg:grid-cols-2">
+              <ListBlock title={getText(lang, 'chart.anchor_strengths_title')} items={anchorReading.strengths} />
+              <ListBlock title={getText(lang, 'chart.anchor_patterns_title')} items={anchorReading.patterns} />
+            </div>
+          </div>
+        </motion.section>
+      )}
+
+      <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-6 sm:mt-7">
+        <div className={`lumia-glass rounded-2xl ${READING_SECTION_PAD}`}>
+          <p className="lumia-label tracking-[0.2em]">{getText(lang, 'chart.core_title')}</p>
+          <p className="lumia-muted mt-1.5 text-sm leading-relaxed">{getText(lang, 'chart.core_body')}</p>
+
+          <div className="mt-4 space-y-2.5">
+            {mainPlanets.map((planet) => (
+              <div
+                key={planet.id}
+                className="lumia-glass-inset rounded-2xl px-3.5 py-3 sm:flex sm:items-center sm:gap-4 sm:px-4 sm:py-3.5"
+              >
+                <div className="flex items-center gap-3 sm:flex-1 sm:gap-4">
+                  <span className="shrink-0 text-lg text-astro-highlight/90 sm:text-xl">{PLANET_SYMBOLS[planet.id]}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="lumia-label text-[10px] tracking-[0.16em]">{PLANET_NAMES[planet.id]?.[lang]}</p>
+                    <p className="mt-0.5 text-base font-semibold text-astro-text sm:text-lg">
+                      {planet.data?.sign ? getZodiacSign(lang, planet.data.sign) : '—'}
+                    </p>
+                  </div>
+                </div>
+                <p className="mt-2 pl-10 text-xs leading-snug text-astro-subtext sm:mt-0 sm:max-w-[46%] sm:flex-none sm:pl-0 sm:text-right sm:text-[13px]">
+                  {PLANET_MEANINGS[planet.id]?.[lang]}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            {otherPlanets.map((planet) => (
+              <span
+                key={planet.id}
+                className="inline-flex items-center gap-2 rounded-full border border-astro-border/55 bg-astro-bg/18 px-3 py-2 text-xs text-astro-subtext"
+              >
+                <span className="text-astro-highlight">{PLANET_SYMBOLS[planet.id]}</span>
+                <span>{PLANET_NAMES[planet.id]?.[lang]}</span>
+                <span>·</span>
+                <span>{planet.data?.sign ? getZodiacSign(lang, planet.data.sign) : '—'}</span>
+              </span>
+            ))}
+          </div>
+
+          <p className="mt-4 text-[11px] leading-relaxed text-astro-subtext/85">
+            {getText(lang, 'chart.chart_legend')}
+          </p>
+        </div>
+      </motion.section>
+
+      {onOpenCharts && (
+        <div className="mt-5">
+          <button
+            onClick={onOpenCharts}
+            className="w-full rounded-2xl border border-astro-border/60 bg-astro-bg/14 px-4 py-3 text-left transition-colors hover:border-astro-highlight/30"
+          >
+            <div className="flex items-center justify-between gap-4">
+              <div className="min-w-0">
+                <p className="lumia-label tracking-[0.18em]">{getText(lang, 'chart.my_charts_title')}</p>
+                <p className="mt-1.5 text-sm leading-relaxed text-astro-text">
+                  {getText(lang, 'chart.my_charts_body')}
+                </p>
+              </div>
+              <span className="shrink-0 text-xs font-medium text-astro-highlight">
+                {getText(lang, 'chart.my_charts_cta')}
+              </span>
+            </div>
+          </button>
+        </div>
+      )}
+
+      <section className="mt-7 sm:mt-8">
+        <div className={`lumia-glass rounded-2xl ${READING_SECTION_PAD}`}>
+          <p className="lumia-label tracking-[0.2em]">{getText(lang, 'chart.living_label')}</p>
+          <h2 className="mt-2 font-serif text-xl text-astro-text sm:text-2xl">{getText(lang, 'chart.living_title')}</h2>
+          <p className="lumia-muted mt-2 max-w-prose text-sm leading-relaxed sm:text-[15px]">
+            {getText(lang, 'chart.living_body')}
+          </p>
+
+          {profile.isPremium ? (
+            <div className="mt-5">
+              {livingLoading ? (
+                <div className="flex min-h-[180px] items-center justify-center">
+                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-astro-highlight/40 border-t-astro-highlight" />
+                </div>
+              ) : livingReading ? (
+                <div className="space-y-5">
+                  <div className="border-b border-astro-border/20 pb-4">
+                    <h3 className="font-serif text-lg text-astro-text sm:text-xl">{livingReading.headline}</h3>
+                    <p className="lumia-muted mt-2 text-sm leading-relaxed sm:text-[15px]">{livingReading.summary}</p>
+                  </div>
+
+                  <div className="space-y-3">
+                    <DetailLine label={getText(lang, 'chart.living_active_theme')} value={livingReading.activeTheme} />
+                    <DetailLine label={getText(lang, 'chart.living_strength')} value={livingReading.strength} />
+                    <DetailLine label={getText(lang, 'chart.living_vulnerability')} value={livingReading.vulnerability} />
+                    <DetailLine label={getText(lang, 'chart.living_relationships')} value={livingReading.relationships} />
+                    <DetailLine label={getText(lang, 'chart.living_money')} value={livingReading.money} />
+                    <DetailLine label={getText(lang, 'chart.living_guidance')} value={livingReading.guidance} />
+                  </div>
+                </div>
+              ) : (
+                <p className="lumia-muted text-sm leading-relaxed">
+                  {livingError || getText(lang, 'chart.living_loading')}
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="mt-5 rounded-2xl border border-astro-border/55 bg-astro-bg/14 p-4 sm:p-5">
+              <p className="text-base font-semibold text-astro-text">{getText(lang, 'chart.living_premium_title')}</p>
+              <p className="lumia-muted mt-2 text-sm leading-relaxed">
+                {getText(lang, 'chart.living_premium_body')}
+              </p>
+              <p className="mt-3 text-xs leading-relaxed text-astro-subtext">
+                {getText(lang, 'chart.living_premium_note')}
+              </p>
+              <button
+                type="button"
+                onClick={requestPremium}
+                className="mt-4 w-full rounded-xl bg-astro-highlight/12 px-4 py-3 text-sm font-medium text-astro-highlight ring-1 ring-astro-highlight/28 transition-[box-shadow] hover:ring-astro-highlight/45"
+              >
+                {getText(lang, 'chart.living_premium_cta')}
+              </button>
+            </div>
+          )}
+        </div>
+      </section>
+    </div>
+  );
 };
