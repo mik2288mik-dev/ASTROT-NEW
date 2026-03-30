@@ -73,10 +73,17 @@ async function hydrateGeneratedContent(userId: string) {
   try {
     const todayKey = getMoscowTodayKey();
     const dailyHoroscope = await db.daily_natal_cards.getForPrimaryUser(userId, todayKey);
-    if (dailyHoroscope) {
-      generatedContent.dailyHoroscope = dailyHoroscope;
-      generatedContent.timestamps.dailyHoroscopeGenerated = Date.now();
-      hasContent = true;
+    if (dailyHoroscope && typeof dailyHoroscope === 'object') {
+      const row = dailyHoroscope as Record<string, unknown>;
+      const content = row.content;
+      if (typeof content === 'string' && content.length > 0) {
+        generatedContent.dailyHoroscope = {
+          ...row,
+          date: typeof row.date === 'string' && row.date ? row.date : todayKey,
+        } as typeof generatedContent.dailyHoroscope;
+        generatedContent.timestamps.dailyHoroscopeGenerated = Date.now();
+        hasContent = true;
+      }
     }
   } catch (e: any) {
     log.warn('[hydrateGeneratedContent] Failed to hydrate dailyHoroscope', {

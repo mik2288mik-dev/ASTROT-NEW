@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useMemo, memo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, memo } from 'react';
 import { UserProfile, NatalChartData, DailyHoroscope } from '../types';
 import { getOrGenerateHoroscope } from '../services/contentGenerationService';
+import { getCachedDailyHoroscope } from '../services/astrologyService';
 import { Loading } from '../components/ui/Loading';
 import { ZodiacHeader } from '../components/Horoscope/ZodiacHeader';
 import { HoroscopeContent } from '../components/Horoscope/HoroscopeContent';
@@ -29,9 +30,23 @@ const getStaleNotice = (language: string) =>
 const getFallbackError = (language: string) =>
     getText(language as 'ru' | 'en', 'horoscope.fallback_error');
 
+function isValidHoroscopeForToday(cached: DailyHoroscope | null | undefined, today: string): cached is DailyHoroscope {
+    if (!cached?.content || cached.content.length === 0) return false;
+    if (cached.date === today) return true;
+    if (!cached.date) return true;
+    return false;
+}
+
 export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdateProfile, onOpenChart, onRequestPremium }) => {
+    const profileRef = useRef(profile);
+    profileRef.current = profile;
+
     const [horoscope, setHoroscope] = useState<DailyHoroscope | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(() => {
+        const t = getMoscowTodayKey();
+        const c = profile.generatedContent?.dailyHoroscope;
+        return !isValidHoroscopeForToday(c, t);
+    });
     const [statusMessage, setStatusMessage] = useState<string | null>(null);
     const [isStale, setIsStale] = useState(false);
 
@@ -65,11 +80,12 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
     useEffect(() => {
         const cached = profile.generatedContent?.dailyHoroscope;
         const today = getMoscowTodayKey();
-        if (cached && cached.date === today && cached.content && cached.content.length > 0) {
-            setHoroscope(cached);
+        if (isValidHoroscopeForToday(cached, today)) {
+            const normalized = { ...cached!, date: cached!.date || today };
+            setHoroscope(normalized);
             setIsStale(false);
             setStatusMessage(
-                cached.persisted === false || cached.code === 'DAILY_PERSIST_FAILED'
+                normalized.persisted === false || normalized.code === 'DAILY_PERSIST_FAILED'
                     ? getPersistNotice(language)
                     : null
             );
@@ -93,18 +109,55 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
             const today = getMoscowTodayKey();
             const cachedHoroscope = profile.generatedContent?.dailyHoroscope;
 
-            if (cachedHoroscope && cachedHoroscope.date === today && cachedHoroscope.content && cachedHoroscope.content.length > 0) {
+            const applyHoroscope = (raw: DailyHoroscope) => {
+                const data = { ...raw, date: raw.date || today };
+                setHoroscope(data);
+                setIsStale(false);
+                setStatusMessage(
+                    data.persisted === false || data.code === 'DAILY_PERSIST_FAILED'
+                        ? getPersistNotice(language)
+                        : null
+                );
+                if (onUpdateProfile) {
+                    const p = profileRef.current;
+                    const updatedProfile = { ...p };
+                    if (!updatedProfile.generatedContent) {
+                        updatedProfile.generatedContent = { timestamps: {} };
+                    } else {
+                        updatedProfile.generatedContent = { ...updatedProfile.generatedContent };
+                    }
+                    updatedProfile.generatedContent.dailyHoroscope = data;
+                    updatedProfile.generatedContent.timestamps = {
+                        ...(updatedProfile.generatedContent.timestamps || {}),
+                        dailyHoroscopeGenerated: Date.now(),
+                    };
+                    onUpdateProfile(updatedProfile);
+                }
+                setLoading(false);
+            };
+
+            if (isValidHoroscopeForToday(cachedHoroscope, today)) {
                 if (!cancelled) {
-                    setHoroscope(cachedHoroscope);
-                    setIsStale(false);
-                    setStatusMessage(
-                        cachedHoroscope.persisted === false || cachedHoroscope.code === 'DAILY_PERSIST_FAILED'
-                            ? getPersistNotice(language)
-                            : null
-                    );
-                    setLoading(false);
+                    applyHoroscope(cachedHoroscope!);
                 }
                 return;
+            }
+
+            try {
+                const fromDb = await getCachedDailyHoroscope(
+                    String(profile.id),
+                    profile.language === 'en' ? 'en' : 'ru'
+                );
+                if (cancelled) return;
+                if (fromDb?.content && fromDb.content.length > 0) {
+                    const d = { ...fromDb, date: fromDb.date || today };
+                    if (d.date === today) {
+                        applyHoroscope(d);
+                        return;
+                    }
+                }
+            } catch {
+                /* сеть / ошибка чтения кэша — ниже POST с проверкой БД на сервере */
             }
 
             if (!cancelled) {
@@ -117,33 +170,10 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
 
             for (let attempt = 0; attempt < 2; attempt++) {
                 try {
-                    const data = await getOrGenerateHoroscope(profile, chartData);
+                    const data = await getOrGenerateHoroscope(profileRef.current, chartData);
                     if (cancelled) return;
 
-                    setHoroscope(data);
-                    setIsStale(false);
-                    setStatusMessage(
-                        data.persisted === false || data.code === 'DAILY_PERSIST_FAILED'
-                            ? getPersistNotice(language)
-                            : null
-                    );
-
-                    if (onUpdateProfile) {
-                        const updatedProfile = { ...profile };
-                        if (!updatedProfile.generatedContent) {
-                            updatedProfile.generatedContent = {
-                                timestamps: {}
-                            };
-                        }
-                        updatedProfile.generatedContent.dailyHoroscope = data;
-                        updatedProfile.generatedContent.timestamps = {
-                            ...(updatedProfile.generatedContent.timestamps || {}),
-                            dailyHoroscopeGenerated: Date.now(),
-                        };
-                        onUpdateProfile(updatedProfile);
-                    }
-
-                    setLoading(false);
+                    applyHoroscope(data);
                     return;
                 } catch (error: any) {
                     lastError = error as HoroscopeApiError;
@@ -159,9 +189,10 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
 
             if (cancelled) return;
 
-            if (cachedHoroscope && cachedHoroscope.content) {
-                const stale = cachedHoroscope.date !== today;
-                setHoroscope(cachedHoroscope);
+            const fallback = profileRef.current.generatedContent?.dailyHoroscope;
+            if (fallback?.content) {
+                const stale = fallback.date !== today;
+                setHoroscope(fallback);
                 setIsStale(stale);
                 setStatusMessage(lastError?.message || (stale ? getStaleNotice(language) : null));
             } else {
@@ -177,7 +208,7 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
         return () => {
             cancelled = true;
         };
-    }, [profile.id, profile.generatedContent?.dailyHoroscope?.date, chartData?.sun?.sign, language, onUpdateProfile]);
+    }, [profile.id, profile.generatedContent?.dailyHoroscope, profile.language, chartData?.sun?.sign, language, onUpdateProfile]);
 
     if (loading) {
         return <Loading message={getText(language, 'horoscope.loading')} />;
