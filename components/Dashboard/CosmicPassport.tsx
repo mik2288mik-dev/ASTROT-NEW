@@ -34,9 +34,9 @@ export const CosmicPassport = memo<CosmicPassportProps>(
             : `Sun · ${sunLabel}`;
 
     return (
-      <div className="lumia-glass relative overflow-hidden rounded-2xl">
+      <div className="lumia-glass relative overflow-hidden rounded-[30px]">
         <div
-          className="pointer-events-none absolute inset-0 bg-gradient-to-br from-astro-text/[0.05] via-transparent to-transparent"
+          className="pointer-events-none absolute inset-0 bg-gradient-to-br from-astro-text/[0.04] via-transparent to-transparent"
           aria-hidden
         />
 
@@ -57,7 +57,7 @@ export const CosmicPassport = memo<CosmicPassportProps>(
           </svg>
         </button>
 
-        <div className="relative px-4 pb-4 pt-4 pr-12 sm:px-5 sm:pb-5 sm:pr-14 sm:pt-5">
+        <div className="relative px-5 pb-5 pt-5 pr-12 sm:px-6 sm:pb-6 sm:pr-14 sm:pt-6">
           <div className="flex items-center gap-3.5">
             <div className="relative h-[50px] w-[50px] shrink-0 sm:h-[54px] sm:w-[54px]">
               {photoUrl ? (
@@ -91,8 +91,8 @@ export const CosmicPassport = memo<CosmicPassportProps>(
             </div>
           </div>
 
-          <div className="mt-4 border-t border-astro-border/35 pt-3.5">
-            <p className="max-w-[38ch] text-sm leading-relaxed text-astro-text/92">
+          <div className="mt-4">
+            <p className="max-w-[40ch] text-sm leading-relaxed text-astro-text/92">
               {getText(lang, 'dashboard.identity_body')}
             </p>
           </div>

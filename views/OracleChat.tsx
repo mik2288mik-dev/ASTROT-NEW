@@ -36,8 +36,8 @@ const getOracleUiText = (lang: 'ru' | 'en') => ({
   openPremium: lang === 'ru' ? 'Открыть Premium' : 'Open Premium',
   loadingHistory: lang === 'ru' ? 'Загружаю ваши вопросы...' : 'Loading your recent questions...',
   premiumRequired: lang === 'ru'
-    ? 'Оракул доступен только в Lumia Premium.'
-    : 'Oracle is available only in Lumia Premium.',
+    ? 'Более глубокие личные ответы доступны в Lumia Premium.'
+    : 'Deeper personal answers are available in Lumia Premium.',
 });
 
 export const OracleChat: React.FC<OracleChatProps> = ({ profile, onPremiumRequired }) => {
@@ -269,7 +269,9 @@ export const OracleChat: React.FC<OracleChatProps> = ({ profile, onPremiumRequir
   return (
     <div className="flex h-full w-full flex-col bg-astro-bg">
       <div className="shrink-0 border-b border-astro-border bg-astro-bg/95 p-4 text-center backdrop-blur">
-        <h2 className="font-serif text-sm font-bold uppercase tracking-widest text-astro-text">Lumia Oracle</h2>
+        <h2 className="font-serif text-sm font-bold uppercase tracking-widest text-astro-text">
+          {getText(profile.language, 'oracle.title')}
+        </h2>
       </div>
 
       <div className="scrollbar-hide flex-1 overflow-y-auto p-4">

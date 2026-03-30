@@ -1,5 +1,10 @@
 # Lumia Product Constitution
 
+Связанные документы:
+
+- [LUMIA_MASTER_REBUILD_ROADMAP.md](./LUMIA_MASTER_REBUILD_ROADMAP.md)
+- [LUMIA_PRODUCT_MODEL.md](./LUMIA_PRODUCT_MODEL.md)
+
 Этот документ фиксирует новую обязательную рамку Lumia до следующих продуктовых итераций.
 
 Важно:

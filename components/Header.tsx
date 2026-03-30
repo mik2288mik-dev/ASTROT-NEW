@@ -27,7 +27,7 @@ export const Header: React.FC<HeaderProps> = ({ profile, view, onBack, onOpenWal
             chart: { ru: 'Натальная карта', en: 'Natal Chart' },
             charts: { ru: 'Мои карты', en: 'My Charts' },
             horoscope: { ru: 'Гороскоп', en: 'Horoscope' },
-            oracle: { ru: 'Оракул', en: 'Oracle' },
+            oracle: { ru: 'Спросить Lumia', en: 'Ask Lumia' },
             synastry: { ru: 'Совместимость', en: 'Synastry' },
             wallet: { ru: 'Кошелёк Lumi', en: 'Lumi Wallet' },
             settings: { ru: 'Настройки', en: 'Settings' },

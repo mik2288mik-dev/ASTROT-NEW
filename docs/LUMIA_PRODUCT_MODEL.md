@@ -1,5 +1,10 @@
 # Lumia Product Model
 
+Связанные документы:
+
+- [LUMIA_MASTER_REBUILD_ROADMAP.md](./LUMIA_MASTER_REBUILD_ROADMAP.md)
+- [LUMIA_PRODUCT_CONSTITUTION.md](./LUMIA_PRODUCT_CONSTITUTION.md)
+
 Этот документ фиксирует базовую продуктовую модель Lumia. Он нужен как опорная рамка для
 будущих решений по UX, copy, paywall, контентным слоям, API и структуре БД.
 

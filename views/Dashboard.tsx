@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, memo, useCallback, useRef } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { UserProfile, NatalChartData, ViewState } from '../types';
 import { getText } from '../constants';
 import { Loading } from '../components/ui/Loading';
@@ -27,12 +27,12 @@ const trimDashboardText = (value: string, maxLength: number): string => {
     const slice = value.slice(0, maxLength).trim();
     const lastSpace = slice.lastIndexOf(' ');
     const safeCut = lastSpace > Math.floor(maxLength * 0.6) ? lastSpace : maxLength;
-    return `${slice.slice(0, safeCut).trim()}…`;
+    return `${slice.slice(0, safeCut).trim()}...`;
 };
 
 const splitIntoDashboardSentences = (value: string): string[] =>
     value
-        .split(/(?<=[.!?…])\s+/)
+        .split(/(?<=[.!?])\s+/)
         .map((part) => cleanDashboardText(part))
         .filter(Boolean);
 
@@ -44,9 +44,10 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
     const displayName = useMemo(() => tgUser?.first_name || profile.name, [tgUser?.first_name, profile.name]);
     const photoUrl = useMemo(() => tgUser?.photo_url, [tgUser?.photo_url]);
 
-    const horoscopeDateLabel = useMemo(() => {
-        return formatLumiaDate(dailyHoroscope?.date || getMoscowTodayKey(), language);
-    }, [dailyHoroscope?.date, language]);
+    const horoscopeDateLabel = useMemo(
+        () => formatLumiaDate(dailyHoroscope?.date || getMoscowTodayKey(), language),
+        [dailyHoroscope?.date, language]
+    );
 
     const cleanedContent = useMemo(() => cleanDashboardText(dailyHoroscope?.content), [dailyHoroscope?.content]);
     const contentSentences = useMemo(() => splitIntoDashboardSentences(cleanedContent), [cleanedContent]);
@@ -68,7 +69,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
             contentSentences[0] ||
             getText(language, 'dashboard.hero_fallback_title');
 
-        return trimDashboardText(candidate.replace(/[.!?…]+$/u, '').trim(), 84);
+        return trimDashboardText(candidate.replace(/[.!?]+$/u, '').trim(), 84);
     }, [adviceLines, contentSentences, language, transitFocus]);
 
     const heroSupport = useMemo(() => {
@@ -76,7 +77,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
         if (!candidate) return null;
 
         const normalized = trimDashboardText(candidate, 148);
-        if (normalized.replace(/[.!?…]+$/u, '') === heroHeadline) {
+        if (normalized.replace(/[.!?]+$/u, '') === heroHeadline) {
             return null;
         }
 
@@ -109,6 +110,20 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
         ],
         [adviceLines, contentSentences, language, moonImpact, transitFocus]
     );
+
+    const natalHighlights = useMemo(
+        () => [
+            getText(profile.language, 'dashboard.natal_point_character'),
+            getText(profile.language, 'dashboard.natal_point_love'),
+            getText(profile.language, 'dashboard.natal_point_strengths'),
+            getText(profile.language, 'dashboard.natal_point_patterns'),
+        ],
+        [profile.language]
+    );
+
+    const questionsSupport = profile.isPremium
+        ? getText(profile.language, 'dashboard.questions_support_premium')
+        : getText(profile.language, 'dashboard.questions_support_free');
 
     const handleNavigateHoroscope = useCallback(() => onNavigate('horoscope'), [onNavigate]);
     const handleNavigateChart = useCallback(() => onNavigate('chart'), [onNavigate]);
@@ -146,7 +161,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
                     setDailyHoroscope(dbCached);
                 }
             } catch {
-                // Dashboard remains stable without forcing generation on load
+                // Dashboard remains stable without forcing generation on load.
             }
         };
 
@@ -184,7 +199,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
     if (!chartData) return <Loading message={getText(profile.language, 'loading')} />;
 
     return (
-        <div className="space-y-3.5 px-4 py-4 screen-pb sm:px-4 sm:py-4">
+        <div className="space-y-4 px-4 py-4 screen-pb sm:space-y-5 sm:px-4 sm:py-4">
             <CosmicPassport
                 profile={profile}
                 chartData={chartData}
@@ -193,7 +208,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
                 onOpenSettings={onOpenSettings}
             />
 
-            <section className="lumia-glass rounded-2xl p-4 sm:p-[18px]">
+            <section className="lumia-glass rounded-[28px] px-5 py-5 sm:px-6 sm:py-6">
                 <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
                         <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
@@ -204,13 +219,13 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
                         </h2>
                     </div>
                     {horoscopeDateLabel && (
-                        <span className="shrink-0 rounded-full bg-astro-text/[0.06] px-2.5 py-1 text-[11px] text-astro-subtext">
+                        <span className="shrink-0 rounded-full border border-astro-border/45 bg-astro-text/[0.04] px-2.5 py-1 text-[11px] text-astro-subtext">
                             {horoscopeDateLabel}
                         </span>
                     )}
                 </div>
 
-                <p className="mt-4 max-w-[36ch] text-sm leading-relaxed text-astro-subtext">
+                <p className="mt-4 max-w-[38ch] text-sm leading-relaxed text-astro-subtext">
                     {getText(profile.language, 'dashboard.hero_body')}
                 </p>
 
@@ -223,13 +238,13 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
                 <button
                     onClick={handleNavigateHoroscope}
                     type="button"
-                    className="mt-4 inline-flex items-center gap-2 rounded-full border border-astro-highlight/28 bg-astro-highlight/12 px-4 py-2.5 text-sm font-medium text-astro-highlight transition-[box-shadow,background-color] hover:bg-astro-highlight/16 hover:ring-1 hover:ring-astro-highlight/20"
+                    className="mt-5 inline-flex items-center gap-2 rounded-full border border-astro-highlight/28 bg-astro-highlight/12 px-4 py-2.5 text-sm font-medium text-astro-highlight transition-[box-shadow,background-color] hover:bg-astro-highlight/16 hover:ring-1 hover:ring-astro-highlight/20"
                 >
                     {getText(profile.language, 'dashboard.hero_cta')}
                 </button>
             </section>
 
-            <section className="lumia-glass rounded-2xl p-4 sm:p-[18px]">
+            <section className="lumia-glass rounded-[28px] px-5 py-5 sm:px-6 sm:py-6">
                 <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
                     {getText(profile.language, 'dashboard.matters_label')}
                 </p>
@@ -240,11 +255,16 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
                     {getText(profile.language, 'dashboard.matters_body')}
                 </p>
 
-                <div className="mt-4 space-y-2.5">
-                    {todayPoints.map((item) => (
-                        <div key={item.label} className="rounded-2xl border border-astro-border/55 bg-astro-text/[0.04] px-4 py-3.5">
+                <div className="mt-5">
+                    {todayPoints.map((item, index) => (
+                        <div
+                            key={item.label}
+                            className={`grid gap-1.5 py-3 first:pt-0 last:pb-0 md:grid-cols-[88px_minmax(0,1fr)] md:gap-4 ${
+                                index > 0 ? 'border-t border-astro-border/40' : ''
+                            }`}
+                        >
                             <p className="text-[10px] uppercase tracking-[0.18em] text-astro-subtext">{item.label}</p>
-                            <p className="mt-1.5 text-[15px] leading-[1.6] text-astro-text [text-wrap:pretty]">
+                            <p className="text-[15px] leading-[1.65] text-astro-text [text-wrap:pretty]">
                                 {item.value}
                             </p>
                         </div>
@@ -252,7 +272,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
                 </div>
             </section>
 
-            <section className="lumia-glass rounded-2xl p-4 sm:p-[18px]">
+            <section className="lumia-glass rounded-[28px] px-5 py-5 sm:px-6 sm:py-6">
                 <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
                     {getText(profile.language, 'dashboard.natal_label')}
                 </p>
@@ -263,73 +283,89 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
                     {getText(profile.language, 'dashboard.natal_body')}
                 </p>
 
-                <div className="mt-4 flex flex-wrap gap-2">
-                    {[
-                        getText(profile.language, 'dashboard.natal_point_character'),
-                        getText(profile.language, 'dashboard.natal_point_love'),
-                        getText(profile.language, 'dashboard.natal_point_strengths'),
-                        getText(profile.language, 'dashboard.natal_point_patterns'),
-                    ].map((point) => (
-                        <span
-                            key={point}
-                            className="rounded-full border border-astro-border/55 bg-astro-text/[0.04] px-3 py-1.5 text-[11px] text-astro-text/92"
-                        >
-                            {point}
-                        </span>
+                <div className="mt-5 grid gap-2 sm:grid-cols-2 sm:gap-x-5">
+                    {natalHighlights.map((point) => (
+                        <div key={point} className="flex items-start gap-2.5">
+                            <span className="mt-[9px] h-1.5 w-1.5 shrink-0 rounded-full bg-astro-highlight/60" />
+                            <p className="text-sm leading-relaxed text-astro-text/92">{point}</p>
+                        </div>
                     ))}
                 </div>
 
-                <p className="mt-4 text-xs leading-relaxed text-astro-subtext">
+                <p className="mt-5 max-w-[42ch] text-xs leading-relaxed text-astro-subtext">
                     {getText(profile.language, 'dashboard.natal_note')}
                 </p>
 
                 <button
                     onClick={handleNavigateChart}
                     type="button"
-                    className="mt-4 inline-flex items-center gap-2 rounded-full border border-astro-border/70 bg-astro-card/60 px-4 py-2.5 text-sm font-medium text-astro-text transition-[box-shadow,border-color] hover:border-astro-highlight/32 hover:ring-1 hover:ring-astro-highlight/18"
+                    className="mt-5 inline-flex items-center gap-2 rounded-full border border-astro-border/70 bg-astro-card/60 px-4 py-2.5 text-sm font-medium text-astro-text transition-[box-shadow,border-color] hover:border-astro-highlight/32 hover:ring-1 hover:ring-astro-highlight/18"
                 >
                     {getText(profile.language, 'dashboard.natal_cta')}
                 </button>
             </section>
 
-            <div className="grid grid-cols-2 gap-2.5">
-                <button
-                    onClick={handleNavigateSynastry}
-                    type="button"
-                    className="lumia-glass rounded-2xl p-3.5 text-left transition-[transform,box-shadow] hover:ring-1 hover:ring-astro-highlight/22 active:scale-[0.99] sm:p-4"
-                >
-                    <span className="text-xl text-pink-400/90">♥</span>
-                    <h3 className="mb-0.5 mt-2 font-serif text-sm text-astro-text">
-                        {getText(profile.language, 'dashboard.menu_synastry')}
+            <section className="px-1 pt-1">
+                <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
+                    {getText(profile.language, 'dashboard.next_label')}
+                </p>
+                <div className="mt-2 max-w-[36ch]">
+                    <h3 className="font-serif text-xl text-astro-text">
+                        {getText(profile.language, 'dashboard.next_title')}
                     </h3>
-                    <p className="text-[10px] text-astro-subtext">{getText(profile.language, 'dashboard.synastry_subtitle')}</p>
-                    <p className="mt-1 text-[10px] text-astro-subtext">
-                        {getText(profile.language, 'dashboard.synastry_hint')}
+                    <p className="mt-2 text-sm leading-relaxed text-astro-subtext">
+                        {getText(profile.language, 'dashboard.next_body')}
                     </p>
-                    {!profile.isPremium && (
-                        <span className="mt-1 block text-[9px] uppercase tracking-wider text-astro-highlight">
-                            {getText(profile.language, 'dashboard.synastry_free')}
-                        </span>
-                    )}
-                </button>
+                </div>
 
-                <button
-                    onClick={handleNavigateOracle}
-                    type="button"
-                    className="lumia-glass relative rounded-2xl p-3.5 text-left transition-[transform,box-shadow] hover:ring-1 hover:ring-astro-highlight/22 active:scale-[0.99] sm:p-4"
-                >
-                    {!profile.isPremium && (
-                        <span className="absolute right-2 top-2 rounded-full bg-astro-highlight/20 px-2 py-0.5 text-[9px] font-bold uppercase text-astro-highlight">
-                            {getText(profile.language, 'dashboard.premium_badge')}
+                <div className="mt-4 space-y-3 md:grid md:grid-cols-[minmax(0,1.12fr)_minmax(0,0.88fr)] md:gap-3 md:space-y-0">
+                    <button
+                        onClick={handleNavigateSynastry}
+                        type="button"
+                        className="lumia-glass group rounded-[26px] px-5 py-4 text-left transition-[transform,box-shadow] hover:ring-1 hover:ring-astro-highlight/22 active:scale-[0.995] sm:px-6 sm:py-5"
+                    >
+                        <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
+                            {getText(profile.language, 'dashboard.synastry_label')}
+                        </p>
+                        <h3 className="mt-2 font-serif text-[22px] leading-tight text-astro-text">
+                            {getText(profile.language, 'dashboard.menu_synastry')}
+                        </h3>
+                        <p className="mt-2 max-w-[34ch] text-sm leading-relaxed text-astro-subtext">
+                            {getText(profile.language, 'dashboard.synastry_body')}
+                        </p>
+                        <p className="mt-3 text-xs leading-relaxed text-astro-subtext">
+                            {getText(profile.language, 'dashboard.synastry_hint')}
+                        </p>
+                        <span className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-astro-text transition-colors group-hover:text-astro-highlight">
+                            {getText(profile.language, 'dashboard.synastry_cta')}
+                            <span aria-hidden="true">-&gt;</span>
                         </span>
-                    )}
-                    <span className="text-xl text-blue-400/90">✧</span>
-                    <h3 className="mb-0.5 mt-2 font-serif text-sm text-astro-text">
-                        {getText(profile.language, 'dashboard.menu_oracle')}
-                    </h3>
-                    <p className="text-[10px] text-astro-subtext">{getText(profile.language, 'dashboard.oracle_subtitle')}</p>
-                </button>
-            </div>
+                    </button>
+
+                    <button
+                        onClick={handleNavigateOracle}
+                        type="button"
+                        className="lumia-glass group rounded-[26px] px-5 py-4 text-left transition-[transform,box-shadow] hover:ring-1 hover:ring-astro-highlight/22 active:scale-[0.995] sm:px-6 sm:py-5"
+                    >
+                        <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
+                            {getText(profile.language, 'dashboard.questions_label')}
+                        </p>
+                        <h3 className="mt-2 font-serif text-[22px] leading-tight text-astro-text">
+                            {getText(profile.language, 'dashboard.menu_oracle')}
+                        </h3>
+                        <p className="mt-2 max-w-[32ch] text-sm leading-relaxed text-astro-subtext">
+                            {getText(profile.language, 'dashboard.questions_body')}
+                        </p>
+                        <p className={`mt-3 text-xs leading-relaxed ${profile.isPremium ? 'text-astro-subtext' : 'text-astro-highlight/85'}`}>
+                            {questionsSupport}
+                        </p>
+                        <span className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-astro-text transition-colors group-hover:text-astro-highlight">
+                            {getText(profile.language, 'dashboard.questions_cta')}
+                            <span aria-hidden="true">-&gt;</span>
+                        </span>
+                    </button>
+                </div>
+            </section>
         </div>
     );
 });
