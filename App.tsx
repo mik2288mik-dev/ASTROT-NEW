@@ -446,12 +446,6 @@ const App: React.FC = () => {
     const navigateTo = (newView: ViewState) => {
         if (!profile) return;
         
-        // Premium Gating - показываем Paywall только для Oracle
-        // Synastry доступна всем, но с ограниченным функционалом для бесплатных пользователей
-        if (!profile.isPremium && newView === 'oracle') {
-            setView('paywall');
-            return;
-        }
         if (newView === 'chart') {
             setActiveChartId(undefined);
             setChartReturnView('dashboard');
@@ -576,7 +570,12 @@ const App: React.FC = () => {
                         onClose={() => setView('dashboard')}
                     />
                 ) : view === 'oracle' ? (
-                    <OracleChat profile={profile} onPremiumRequired={() => setView('paywall')} />
+                    <OracleChat
+                        profile={profile}
+                        onPremiumRequired={() => setView('paywall')}
+                        onOpenWallet={() => openWallet('oracle')}
+                        onUpdateProfile={handleProfileUpdate}
+                    />
                 ) : view === 'synastry' ? (
                     <Synastry
                         profile={profile}

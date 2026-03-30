@@ -1,4 +1,4 @@
-import { UserProfile, NatalChartData, DailyHoroscope, SynastryResult, UserEvolution, OracleChatResponse, OracleHistoryEntry, ForecastDailyReading, ForecastDaypartReading, ForecastDaypartSlot, NatalAnchorReading, NatalLivingReading } from "../types";
+import { UserProfile, NatalChartData, DailyHoroscope, SynastryResult, UserEvolution, OracleChatResponse, OracleHistoryEntry, ForecastDailyReading, ForecastDaypartReading, ForecastDaypartSlot, NatalAnchorReading, NatalLivingReading, AskLumiaState, AskLumiaTier } from "../types";
 import { SYSTEM_INSTRUCTION_ASTRA } from "../constants";
 import { getElementForSign } from "../lib/zodiac-utils";
 import { coerceNatalAnchorReading, coerceNatalLivingReading, getCurrentNatalPeriodKey, mapNatalAnchorToLegacyIntro } from "../lib/natalReadings";
@@ -1043,8 +1043,39 @@ const legacyChatWithAstra = async (history: { role: 'user' | 'model', text: stri
 
 void legacyChatWithAstra;
 
+export const getAskLumiaState = async (userId: string): Promise<AskLumiaState> => {
+  const url = `${API_BASE_URL}/api/content/question/ask?userId=${encodeURIComponent(userId || '')}`;
+  log.info('[getAskLumiaState] Starting request', { userId });
+
+  const response = await fetch(url, { method: 'GET', cache: 'no-store' });
+  if (!response.ok) {
+    let errorMessage = `Failed to load Ask Lumia state: ${response.status} ${response.statusText}`;
+    let errorCode: string | undefined;
+    let errorDetails: any = null;
+
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.message || errorData.error || errorMessage;
+      errorCode = errorData.code;
+      errorDetails = errorData.details;
+    } catch {
+      const errorText = await response.text().catch(() => 'Unable to read error response');
+      errorMessage = errorText || errorMessage;
+    }
+
+    const apiError = new Error(errorMessage) as ApiErrorWithCode;
+    apiError.status = response.status;
+    apiError.code = errorCode;
+    apiError.details = errorDetails;
+    throw apiError;
+  }
+
+  const data = await response.json();
+  return data.state as AskLumiaState;
+};
+
 export const getOracleHistory = async (profile: UserProfile, limit = 12): Promise<OracleHistoryEntry[]> => {
-  const url = `${API_BASE_URL}/api/astrology/chat?userId=${encodeURIComponent(profile.id || '')}&limit=${limit}`;
+  const url = `${API_BASE_URL}/api/content/question/history?userId=${encodeURIComponent(profile.id || '')}&limit=${limit}`;
   log.info('[getOracleHistory] Starting history request', {
     userId: profile.id,
     limit,
@@ -1052,7 +1083,7 @@ export const getOracleHistory = async (profile: UserProfile, limit = 12): Promis
 
   try {
     const startTime = Date.now();
-    const response = await fetch(url);
+    const response = await fetch(url, { cache: 'no-store' });
     const duration = Date.now() - startTime;
 
     log.info(`[getOracleHistory] Response received in ${duration}ms`, {
@@ -1097,13 +1128,15 @@ export const getOracleHistory = async (profile: UserProfile, limit = 12): Promis
 export const chatWithAstra = async (
   history: { role: 'user' | 'model', text: string }[],
   message: string,
-  profile: UserProfile
+  profile: UserProfile,
+  requestedTier?: AskLumiaTier
 ): Promise<OracleChatResponse> => {
-  const url = `${API_BASE_URL}/api/astrology/chat`;
-  log.info('[chatWithAstra] Starting chat request', {
+  const url = `${API_BASE_URL}/api/content/question/ask`;
+  log.info('[chatWithAstra] Starting Ask Lumia request', {
     messageLength: message.length,
     historyLength: history.length,
-    userId: profile.id
+    userId: profile.id,
+    requestedTier: requestedTier || 'auto',
   });
 
   try {
@@ -1116,6 +1149,8 @@ export const chatWithAstra = async (
         userId: profile.id,
         history,
         message,
+        requestedTier,
+        allowLumiSpend: requestedTier === 'lumi',
         systemInstruction: SYSTEM_INSTRUCTION_ASTRA
       })
     });
@@ -1128,7 +1163,7 @@ export const chatWithAstra = async (
     });
 
     if (!response.ok) {
-      let errorMessage = `Failed to chat with Astra: ${response.status} ${response.statusText}`;
+      let errorMessage = `Failed to ask Lumia: ${response.status} ${response.statusText}`;
       let errorCode: string | undefined;
       let errorDetails: any = null;
 
@@ -1136,7 +1171,7 @@ export const chatWithAstra = async (
         const errorData = await response.json();
         errorMessage = errorData.message || errorData.error || errorMessage;
         errorCode = errorData.code;
-        errorDetails = errorData.details;
+        errorDetails = errorData.details || errorData.state;
       } catch {
         const errorText = await response.text().catch(() => 'Unable to read error response');
         errorMessage = errorText || errorMessage;
@@ -1152,7 +1187,8 @@ export const chatWithAstra = async (
     const data = await response.json() as OracleChatResponse;
     log.info('[chatWithAstra] Successfully received response', {
       responseLength: data.answer?.length || 0,
-      reusedRecent: !!data.reusedRecent
+      reusedRecent: !!data.reusedRecent,
+      tier: data.tier || 'unknown',
     });
     return data;
   } catch (error: any) {

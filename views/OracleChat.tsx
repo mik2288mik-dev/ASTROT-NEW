@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { ChatMessage, UserProfile } from '../types';
-import { chatWithAstra, getOracleHistory } from '../services/astrologyService';
+import type { AskLumiaState, AskLumiaTier, ChatMessage, UserProfile } from '../types';
+import { chatWithAstra, getAskLumiaState, getOracleHistory } from '../services/astrologyService';
 import { getText } from '../constants';
 
 const MIN_QUESTION_LENGTH = 3;
@@ -11,6 +11,8 @@ const HISTORY_LIMIT = 12;
 interface OracleChatProps {
   profile: UserProfile;
   onPremiumRequired?: () => void;
+  onOpenWallet?: () => void;
+  onUpdateProfile?: (profile: UserProfile) => void;
 }
 
 type SubmitOptions = {
@@ -18,36 +20,53 @@ type SubmitOptions = {
   failedMessageId?: string | null;
 };
 
-const getOracleUiText = (lang: 'ru' | 'en') => ({
-  emptyQuestion: lang === 'ru' ? 'Введите вопрос для Lumia.' : 'Enter a question for Lumia.',
-  shortQuestion: lang === 'ru'
-    ? 'Вопрос слишком короткий. Добавьте немного контекста.'
-    : 'Your question is too short. Add a little more detail.',
-  longQuestion: lang === 'ru'
-    ? 'Вопрос слишком длинный. Сократите его и попробуйте снова.'
-    : 'Your question is too long. Shorten it and try again.',
-  historyError: lang === 'ru'
-    ? 'Не удалось загрузить последние вопросы. Можно спросить снова.'
-    : 'Could not load your recent questions. You can still ask a new one.',
-  sendError: lang === 'ru'
-    ? 'Lumia сейчас не смогла ответить. Попробуйте ещё раз.'
-    : 'Lumia could not answer right now. Please try again.',
-  retry: lang === 'ru' ? 'Повторить' : 'Retry',
-  openPremium: lang === 'ru' ? 'Открыть Premium' : 'Open Premium',
-  loadingHistory: lang === 'ru' ? 'Загружаю ваши вопросы...' : 'Loading your recent questions...',
-  premiumRequired: lang === 'ru'
-    ? 'Более глубокие личные ответы доступны в Lumia Premium.'
-    : 'Deeper personal answers are available in Lumia Premium.',
-});
+function getSendLabel(lang: 'ru' | 'en', state: AskLumiaState | null) {
+  if (!state) return getText(lang, 'oracle.send_free');
+  if (state.nextTier === 'premium') return getText(lang, 'oracle.send_premium');
+  if (state.nextTier === 'lumi') {
+    return getText(lang, 'oracle.send_lumi').replace('{cost}', String(state.lumiCost));
+  }
+  return getText(lang, 'oracle.send_free');
+}
 
-export const OracleChat: React.FC<OracleChatProps> = ({ profile, onPremiumRequired }) => {
+function getStateStrings(lang: 'ru' | 'en', state: AskLumiaState | null) {
+  if (!state || state.nextTier === 'free') {
+    return {
+      label: getText(lang, 'oracle.state_free_label'),
+      title: getText(lang, 'oracle.state_free_title'),
+      body: getText(lang, 'oracle.state_free_body'),
+    };
+  }
+
+  if (state.nextTier === 'lumi') {
+    return {
+      label: getText(lang, 'oracle.state_lumi_label'),
+      title: getText(lang, 'oracle.state_lumi_title').replace('{cost}', String(state.lumiCost)),
+      body: getText(lang, 'oracle.state_lumi_body'),
+    };
+  }
+
+  return {
+    label: getText(lang, 'oracle.state_premium_label'),
+    title: getText(lang, 'oracle.state_premium_title'),
+    body: getText(lang, 'oracle.state_premium_body'),
+  };
+}
+
+export const OracleChat: React.FC<OracleChatProps> = ({
+  profile,
+  onPremiumRequired,
+  onOpenWallet,
+  onUpdateProfile,
+}) => {
   const lang = profile.language === 'en' ? 'en' : 'ru';
-  const uiText = useMemo(() => getOracleUiText(lang), [lang]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(true);
+  const [stateLoading, setStateLoading] = useState(true);
+  const [questionState, setQuestionState] = useState<AskLumiaState | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [errorCode, setErrorCode] = useState<string | null>(null);
@@ -57,9 +76,15 @@ export const OracleChat: React.FC<OracleChatProps> = ({ profile, onPremiumRequir
   const buildIntroMessage = useCallback((): ChatMessage => ({
     id: 'init',
     role: 'model',
-    text: getText(profile.language, 'oracle.intro'),
+    text: getText(lang, 'oracle.intro'),
     timestamp: Date.now(),
-  }), [profile.language]);
+  }), [lang]);
+
+  const syncBalance = useCallback((balance?: number) => {
+    if (typeof balance !== 'number' || !onUpdateProfile) return;
+    if ((profile.lumiBalance ?? 0) === balance) return;
+    onUpdateProfile({ ...profile, lumiBalance: balance });
+  }, [onUpdateProfile, profile]);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -68,6 +93,33 @@ export const OracleChat: React.FC<OracleChatProps> = ({ profile, onPremiumRequir
   useEffect(() => {
     scrollToBottom();
   }, [messages, loading, scrollToBottom]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadState = async () => {
+      setStateLoading(true);
+      try {
+        const nextState = await getAskLumiaState(String(profile.id || ''));
+        if (cancelled) return;
+        setQuestionState(nextState);
+        syncBalance(nextState.lumiBalance);
+      } catch (stateError: any) {
+        if (cancelled) return;
+        setError(stateError?.message || getText(lang, 'oracle.send_error'));
+        setErrorCode(stateError?.code || null);
+      } finally {
+        if (!cancelled) {
+          setStateLoading(false);
+        }
+      }
+    };
+
+    void loadState();
+    return () => {
+      cancelled = true;
+    };
+  }, [lang, profile.id, syncBalance]);
 
   useEffect(() => {
     let cancelled = false;
@@ -112,7 +164,7 @@ export const OracleChat: React.FC<OracleChatProps> = ({ profile, onPremiumRequir
         if (cancelled) return;
 
         setMessages((current) => (current.length ? current : [buildIntroMessage()]));
-        setError(historyError?.message || uiText.historyError);
+        setError(historyError?.message || getText(lang, 'oracle.history_error'));
         setErrorCode(historyError?.code || null);
       } finally {
         if (!cancelled) {
@@ -121,20 +173,20 @@ export const OracleChat: React.FC<OracleChatProps> = ({ profile, onPremiumRequir
       }
     };
 
-    loadHistory();
+    void loadHistory();
 
     return () => {
       cancelled = true;
     };
-  }, [buildIntroMessage, profile, uiText.historyError]);
+  }, [buildIntroMessage, lang, profile]);
 
   const validateQuestion = useCallback((question: string) => {
     const normalized = question.trim();
-    if (!normalized) return uiText.emptyQuestion;
-    if (normalized.length < MIN_QUESTION_LENGTH) return uiText.shortQuestion;
-    if (normalized.length > MAX_QUESTION_LENGTH) return uiText.longQuestion;
+    if (!normalized) return getText(lang, 'oracle.empty_question');
+    if (normalized.length < MIN_QUESTION_LENGTH) return getText(lang, 'oracle.short_question');
+    if (normalized.length > MAX_QUESTION_LENGTH) return getText(lang, 'oracle.long_question');
     return null;
-  }, [uiText.emptyQuestion, uiText.longQuestion, uiText.shortQuestion]);
+  }, [lang]);
 
   const buildHistoryForRequest = useCallback((messageIdToSkip?: string | null) => (
     messages
@@ -142,16 +194,20 @@ export const OracleChat: React.FC<OracleChatProps> = ({ profile, onPremiumRequir
       .map((message) => ({ role: message.role, text: message.text }))
   ), [messages]);
 
-  const submitQuestion = useCallback(async (
-    rawQuestion: string,
-    options: SubmitOptions
-  ) => {
+  const submitQuestion = useCallback(async (rawQuestion: string, options: SubmitOptions) => {
     const normalizedQuestion = rawQuestion.trim();
     const validationError = validateQuestion(normalizedQuestion);
 
     if (validationError) {
       setError(validationError);
       setErrorCode('VALIDATION_ERROR');
+      return;
+    }
+
+    const requestedTier: AskLumiaTier = questionState?.nextTier || (profile.isPremium ? 'premium' : 'free');
+    if (requestedTier === 'lumi' && questionState && !questionState.hasEnoughLumi) {
+      setError(getText(lang, 'oracle.state_lumi_low'));
+      setErrorCode('INSUFFICIENT_LUMI');
       return;
     }
 
@@ -180,7 +236,8 @@ export const OracleChat: React.FC<OracleChatProps> = ({ profile, onPremiumRequir
       const result = await chatWithAstra(
         buildHistoryForRequest(options.failedMessageId),
         normalizedQuestion,
-        profile
+        profile,
+        requestedTier
       );
 
       const botMsg: ChatMessage = {
@@ -194,21 +251,40 @@ export const OracleChat: React.FC<OracleChatProps> = ({ profile, onPremiumRequir
       setFailedQuestion(null);
       setFailedMessageId(null);
       setInput('');
+
+      if (result.state) {
+        setQuestionState(result.state);
+      }
+      if (typeof result.lumiBalance === 'number') {
+        syncBalance(result.lumiBalance);
+      }
     } catch (submitError: any) {
-      setError(submitError?.message || uiText.sendError);
+      setError(submitError?.message || getText(lang, 'oracle.send_error'));
       setErrorCode(submitError?.code || null);
       setFailedQuestion(normalizedQuestion);
       setFailedMessageId(userMessageId);
       setInput(normalizedQuestion);
+
+      if (submitError?.details?.lumiBalance && typeof submitError.details.lumiBalance === 'number') {
+        syncBalance(submitError.details.lumiBalance);
+      }
+
+      try {
+        const nextState = await getAskLumiaState(String(profile.id || ''));
+        setQuestionState(nextState);
+        syncBalance(nextState.lumiBalance);
+      } catch {
+        // keep existing state
+      }
     } finally {
       setLoading(false);
     }
-  }, [buildHistoryForRequest, profile, uiText.sendError, validateQuestion]);
+  }, [buildHistoryForRequest, lang, profile, questionState, syncBalance, validateQuestion]);
 
   const handleSend = useCallback(() => {
-    if (!input.trim() || loading) return;
+    if (!input.trim() || loading || stateLoading) return;
     void submitQuestion(input, { appendUserMessage: true });
-  }, [input, loading, submitQuestion]);
+  }, [input, loading, stateLoading, submitQuestion]);
 
   const handleRetry = useCallback(() => {
     if (loading) return;
@@ -223,60 +299,67 @@ export const OracleChat: React.FC<OracleChatProps> = ({ profile, onPremiumRequir
 
     setError(null);
     setErrorCode(null);
-    setLoadingHistory(true);
-    setMessages((current) => (current.length ? current : [buildIntroMessage()]));
-    void getOracleHistory(profile, HISTORY_LIMIT)
-      .then((historyItems) => {
-        if (!historyItems.length) {
-          setMessages([buildIntroMessage()]);
-          return;
-        }
+  }, [failedMessageId, failedQuestion, loading, submitQuestion]);
 
-        const mappedMessages = historyItems
-          .slice()
-          .reverse()
-          .flatMap((item, index) => {
-            const timestamp = new Date(item.createdAt).getTime() || Date.now();
-            return [
-              {
-                id: `history-question-${index}-${timestamp}`,
-                role: 'user' as const,
-                text: item.question,
-                timestamp,
-              },
-              {
-                id: `history-answer-${index}-${timestamp}`,
-                role: 'model' as const,
-                text: item.answer,
-                timestamp: timestamp + 1,
-              },
-            ];
-          });
-
-        setMessages(mappedMessages);
-      })
-      .catch((historyError: any) => {
-        setError(historyError?.message || uiText.historyError);
-        setErrorCode(historyError?.code || null);
-      })
-      .finally(() => {
-        setLoadingHistory(false);
-      });
-  }, [buildIntroMessage, failedMessageId, failedQuestion, loading, profile, submitQuestion, uiText.historyError]);
-
-  const inputDisabled = loading || errorCode === 'PREMIUM_REQUIRED';
+  const inputDisabled = loading || stateLoading;
+  const sendDisabled = inputDisabled || !input.trim() || (!!questionState && questionState.nextTier === 'lumi' && !questionState.hasEnoughLumi);
+  const sendLabel = getSendLabel(lang, questionState);
+  const stateCopy = getStateStrings(lang, questionState);
 
   return (
     <div className="flex h-full w-full flex-col bg-astro-bg">
-      <div className="shrink-0 border-b border-astro-border bg-astro-bg/95 p-4 text-center backdrop-blur">
-        <h2 className="font-serif text-sm font-bold uppercase tracking-widest text-astro-text">
-          {getText(profile.language, 'oracle.title')}
-        </h2>
+      <div className="shrink-0 border-b border-astro-border/30 bg-astro-bg/90 backdrop-blur-xl">
+        <div className="px-4 pt-5 pb-4">
+          <div className="lumia-glass rounded-2xl px-4 py-4 sm:px-5 sm:py-5">
+            <p className="lumia-label tracking-[0.2em]">{getText(lang, 'oracle.hero_label')}</p>
+            <h1 className="mt-2 font-serif text-2xl text-astro-text sm:text-[1.95rem]">
+              {getText(lang, 'oracle.hero_title')}
+            </h1>
+            <p className="lumia-muted mt-2 text-sm leading-relaxed sm:text-[15px]">
+              {getText(lang, 'oracle.hero_body')}
+            </p>
+          </div>
+
+          <div className="mt-3 rounded-2xl border border-astro-border/55 bg-astro-card/45 px-4 py-4 sm:px-5">
+            <p className="lumia-label tracking-[0.18em]">{stateCopy.label}</p>
+            <p className="mt-2 text-base font-semibold text-astro-text sm:text-lg">{stateCopy.title}</p>
+            <p className="lumia-muted mt-2 text-sm leading-relaxed">{stateCopy.body}</p>
+
+            {questionState?.nextTier === 'lumi' && !questionState.hasEnoughLumi && (
+              <p className="mt-3 text-xs leading-relaxed text-amber-300">
+                {getText(lang, 'oracle.state_lumi_low')}
+              </p>
+            )}
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              {questionState?.nextTier !== 'premium' && onPremiumRequired && (
+                <button
+                  type="button"
+                  onClick={onPremiumRequired}
+                  className="rounded-full border border-astro-highlight/35 bg-astro-highlight/10 px-3.5 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-astro-highlight transition-colors hover:border-astro-highlight/50 hover:bg-astro-highlight/15"
+                >
+                  {getText(lang, 'oracle.state_open_premium')}
+                </button>
+              )}
+              {questionState?.nextTier === 'lumi' && onOpenWallet && (
+                <button
+                  type="button"
+                  onClick={onOpenWallet}
+                  className="rounded-full border border-astro-border/60 bg-astro-bg/12 px-3.5 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-astro-text transition-colors hover:border-astro-highlight/30"
+                >
+                  {getText(lang, 'oracle.state_open_wallet')}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="scrollbar-hide flex-1 overflow-y-auto p-4">
+      <div className="scrollbar-hide flex-1 overflow-y-auto px-4 py-4">
+        <p className="lumia-label mb-3 tracking-[0.18em]">{getText(lang, 'oracle.history_label')}</p>
+
         {loadingHistory && messages.length === 0 ? (
-          <div className="pt-8 text-center text-sm text-astro-subtext">{uiText.loadingHistory}</div>
+          <div className="pt-8 text-center text-sm text-astro-subtext">{getText(lang, 'oracle.loading_history')}</div>
         ) : (
           <div className="space-y-4">
             {messages.map((msg) => (
@@ -287,10 +370,10 @@ export const OracleChat: React.FC<OracleChatProps> = ({ profile, onPremiumRequir
                 className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`max-w-[85%] rounded-2xl p-4 text-sm leading-relaxed ${
+                  className={`max-w-[88%] rounded-3xl px-4 py-3 text-[15px] leading-relaxed sm:max-w-[82%] sm:text-base ${
                     msg.role === 'user'
-                      ? 'rounded-br-sm bg-astro-text font-medium text-astro-bg'
-                      : 'rounded-bl-sm border border-astro-border bg-astro-card font-light text-astro-text'
+                      ? 'rounded-br-md bg-astro-text text-astro-bg'
+                      : 'rounded-bl-md border border-astro-border/55 bg-astro-card/55 text-astro-text'
                   }`}
                 >
                   {msg.text}
@@ -298,9 +381,15 @@ export const OracleChat: React.FC<OracleChatProps> = ({ profile, onPremiumRequir
               </motion.div>
             ))}
 
+            {!loadingHistory && messages.length === 0 && (
+              <div className="rounded-2xl border border-dashed border-astro-border/45 bg-astro-card/25 px-4 py-5 text-sm leading-relaxed text-astro-subtext">
+                {getText(lang, 'oracle.history_empty')}
+              </div>
+            )}
+
             {loading && (
               <div className="flex justify-start">
-                <div className="flex space-x-2 rounded-2xl rounded-bl-sm border border-astro-border bg-astro-card px-4 py-3">
+                <div className="flex space-x-2 rounded-3xl rounded-bl-md border border-astro-border/55 bg-astro-card/55 px-4 py-3">
                   <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-astro-subtext" style={{ animationDelay: '0ms' }} />
                   <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-astro-subtext" style={{ animationDelay: '150ms' }} />
                   <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-astro-subtext" style={{ animationDelay: '300ms' }} />
@@ -314,57 +403,82 @@ export const OracleChat: React.FC<OracleChatProps> = ({ profile, onPremiumRequir
       </div>
 
       <div
-        className="shrink-0 border-t border-astro-border bg-astro-card p-4"
-        style={{ paddingBottom: 'calc(6rem + env(safe-area-inset-bottom, 0px))' }}
+        className="shrink-0 border-t border-astro-border/30 bg-astro-bg/94 backdrop-blur-xl"
+        style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 10px)' }}
       >
-        {error && (
-          <div className="mb-3 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-200">
-            <p>{error}</p>
-            <div className="mt-3 flex gap-2">
-              {errorCode === 'PREMIUM_REQUIRED' && onPremiumRequired ? (
-                <button
-                  onClick={onPremiumRequired}
-                  className="rounded-lg border border-astro-highlight/40 px-3 py-2 text-xs font-semibold uppercase tracking-widest text-astro-highlight"
-                >
-                  {uiText.openPremium}
-                </button>
-              ) : (
-                <button
-                  onClick={handleRetry}
-                  disabled={loading}
-                  className="rounded-lg border border-astro-highlight/40 px-3 py-2 text-xs font-semibold uppercase tracking-widest text-astro-highlight disabled:opacity-50"
-                >
-                  {uiText.retry}
-                </button>
-              )}
+        <div className="px-4 pt-4 pb-3">
+          {error && (
+            <div className="mb-3 rounded-2xl border border-red-500/30 bg-red-500/8 p-3 text-sm text-red-200">
+              <p>{error}</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {errorCode === 'PREMIUM_REQUIRED' && onPremiumRequired ? (
+                  <button
+                    type="button"
+                    onClick={onPremiumRequired}
+                    className="rounded-full border border-astro-highlight/35 bg-astro-highlight/10 px-3.5 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-astro-highlight"
+                  >
+                    {getText(lang, 'oracle.open_premium')}
+                  </button>
+                ) : errorCode === 'INSUFFICIENT_LUMI' && onOpenWallet ? (
+                  <button
+                    type="button"
+                    onClick={onOpenWallet}
+                    className="rounded-full border border-astro-border/60 bg-astro-bg/12 px-3.5 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-astro-text"
+                  >
+                    {getText(lang, 'oracle.state_open_wallet')}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleRetry}
+                    disabled={loading}
+                    className="rounded-full border border-astro-highlight/35 bg-astro-highlight/10 px-3.5 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-astro-highlight disabled:opacity-50"
+                  >
+                    {getText(lang, 'oracle.retry')}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="rounded-2xl border border-astro-border/55 bg-astro-card/45 px-4 py-4">
+            <p className="lumia-label tracking-[0.18em]">{getText(lang, 'oracle.composer_label')}</p>
+            <p className="lumia-muted mt-2 text-sm leading-relaxed">{getText(lang, 'oracle.composer_body')}</p>
+
+            <div className="mt-4 rounded-2xl border border-astro-border/55 bg-astro-bg/16 px-4 py-3 transition-colors focus-within:border-astro-highlight/35">
+              <textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                  }
+                }}
+                placeholder={getText(lang, 'oracle.placeholder')}
+                className="min-h-[76px] w-full resize-none bg-transparent text-[15px] leading-relaxed text-astro-text outline-none placeholder:text-astro-subtext sm:text-base"
+                disabled={inputDisabled}
+              />
+            </div>
+
+            <div className="mt-4 flex items-center justify-between gap-3">
+              <p className="text-xs leading-relaxed text-astro-subtext">
+                {questionState?.nextTier === 'lumi'
+                  ? `${questionState.lumiBalance} Lumi`
+                  : questionState?.nextTier === 'premium'
+                    ? getText(lang, 'oracle.state_premium_label')
+                    : getText(lang, 'oracle.state_free_label')}
+              </p>
+              <button
+                type="button"
+                onClick={handleSend}
+                disabled={sendDisabled}
+                className="rounded-full bg-astro-highlight px-4 py-2.5 text-xs font-semibold uppercase tracking-[0.16em] text-white transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {loading ? getText(lang, 'oracle.thinking') : sendLabel}
+              </button>
             </div>
           </div>
-        )}
-
-        <div className="flex items-center gap-2 rounded-full border border-astro-border bg-astro-bg px-4 py-3 shadow-sm transition-colors focus-within:border-astro-highlight">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                handleSend();
-              }
-            }}
-            placeholder={getText(profile.language, 'oracle.placeholder')}
-            className="flex-1 bg-transparent text-sm text-astro-text outline-none placeholder-astro-subtext"
-            disabled={inputDisabled}
-          />
-          <button
-            onClick={handleSend}
-            disabled={inputDisabled || !input.trim()}
-            className="rounded-full bg-astro-highlight p-2 text-white transition-transform hover:scale-105 disabled:opacity-50"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-            </svg>
-          </button>
         </div>
       </div>
     </div>

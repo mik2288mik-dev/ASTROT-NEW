@@ -346,10 +346,25 @@ export interface OracleHistoryEntry {
   createdAt: string;
 }
 
+export type AskLumiaTier = 'free' | 'lumi' | 'premium';
+
+export interface AskLumiaState {
+  nextTier: AskLumiaTier;
+  freeStarterAvailable: boolean;
+  isPremium: boolean;
+  lumiCost: number;
+  lumiBalance: number;
+  hasEnoughLumi: boolean;
+}
+
 export interface OracleChatResponse {
   answer: string;
   createdAt: string;
   reusedRecent?: boolean;
+  tier?: AskLumiaTier;
+  lumiSpent?: number;
+  lumiBalance?: number;
+  state?: AskLumiaState;
 }
 
 export type AdminPremiumFilter = 'all' | 'premium' | 'free';

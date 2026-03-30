@@ -294,6 +294,17 @@ export async function unlockContentLayer(options: ContentLayerOptions & { lumiCo
     return { unlock, chartId, cacheKey, via: 'lumi' };
   }
 
+  const existing = await db.content_unlocks.getLatestActive(options.userId, {
+    accessTier: 'free',
+    contentSurface: options.contentSurface,
+    contentVariant: options.contentVariant,
+    chartId,
+    cacheKey,
+  });
+  if (existing) {
+    return { unlock: existing, chartId, cacheKey, via: 'free' };
+  }
+
   const unlock = await db.content_unlocks.add({
     userId: options.userId,
     chartId,
