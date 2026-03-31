@@ -1,16 +1,18 @@
-import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { UserProfile, NatalChartData, ViewState } from '../types';
+import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { ForecastDailyReading, UserProfile, NatalChartData, ViewState } from '../types';
 import { getText } from '../constants';
 import { Loading } from '../components/ui/Loading';
 import { CosmicPassport } from '../components/Dashboard/CosmicPassport';
 import { formatLumiaDate, getMoscowTodayKey } from '../lib/date-utils';
-import { getCachedDailyHoroscope } from '../services/astrologyService';
+import { getCachedDailyForecastLayer, mapLegacyHoroscopeToForecastDailyReading } from '../services/astrologyService';
 
 type DashboardView = Extract<ViewState, 'chart' | 'horoscope' | 'synastry' | 'oracle'>;
 
 interface DashboardProps {
     profile: UserProfile;
     chartData: NatalChartData | null;
+    /** Активная карта в приложении; для кеша прогноза в content layer */
+    activeChartId?: number;
     onNavigate: (view: DashboardView) => void;
     onOpenSettings: () => void;
 }
@@ -36,44 +38,49 @@ const splitIntoDashboardSentences = (value: string): string[] =>
         .map((part) => cleanDashboardText(part))
         .filter(Boolean);
 
-export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate, onOpenSettings }) => {
+export const Dashboard = memo<DashboardProps>(({ profile, chartData, activeChartId, onNavigate, onOpenSettings }) => {
     const [tgUser, setTgUser] = useState<any>(null);
-    const [dailyHoroscope, setDailyHoroscope] = useState<any>(null);
+    const [dailyReading, setDailyReading] = useState<ForecastDailyReading | null>(null);
 
     const language = useMemo(() => profile.language, [profile.language]);
+    const langKey = useMemo(() => (profile.language === 'en' ? 'en' : 'ru') as 'ru' | 'en', [profile.language]);
     const displayName = useMemo(() => tgUser?.first_name || profile.name, [tgUser?.first_name, profile.name]);
     const photoUrl = useMemo(() => tgUser?.photo_url, [tgUser?.photo_url]);
 
     const horoscopeDateLabel = useMemo(
-        () => formatLumiaDate(dailyHoroscope?.date || getMoscowTodayKey(), language),
-        [dailyHoroscope?.date, language]
+        () => formatLumiaDate(dailyReading?.date || getMoscowTodayKey(), language),
+        [dailyReading?.date, language]
     );
 
-    const cleanedContent = useMemo(() => cleanDashboardText(dailyHoroscope?.content), [dailyHoroscope?.content]);
-    const contentSentences = useMemo(() => splitIntoDashboardSentences(cleanedContent), [cleanedContent]);
     const adviceLines = useMemo(
         () =>
-            (Array.isArray(dailyHoroscope?.advice) ? dailyHoroscope.advice : [])
+            (Array.isArray(dailyReading?.advice) ? dailyReading.advice : [])
                 .map((item: string) => cleanDashboardText(item))
                 .filter(Boolean)
                 .slice(0, 3),
-        [dailyHoroscope?.advice]
+        [dailyReading?.advice]
     );
-    const transitFocus = useMemo(() => cleanDashboardText(dailyHoroscope?.transitFocus), [dailyHoroscope?.transitFocus]);
-    const moonImpact = useMemo(() => cleanDashboardText(dailyHoroscope?.moonImpact), [dailyHoroscope?.moonImpact]);
+    const readingSentences = useMemo(
+        () => splitIntoDashboardSentences(cleanDashboardText(dailyReading?.reading)),
+        [dailyReading?.reading]
+    );
 
     const heroHeadline = useMemo(() => {
-        const candidate =
+        const raw =
+            cleanDashboardText(dailyReading?.headline) ||
             adviceLines[0] ||
-            transitFocus ||
-            contentSentences[0] ||
+            readingSentences[0] ||
             getText(language, 'dashboard.hero_fallback_title');
-
-        return trimDashboardText(candidate.replace(/[.!?]+$/u, '').trim(), 84);
-    }, [adviceLines, contentSentences, language, transitFocus]);
+        return trimDashboardText(raw.replace(/[.!?]+$/u, '').trim(), 84);
+    }, [adviceLines, dailyReading?.headline, language, readingSentences]);
 
     const heroSupport = useMemo(() => {
-        const candidate = transitFocus || contentSentences.find((sentence) => sentence !== adviceLines[0]) || '';
+        const summary = cleanDashboardText(dailyReading?.summary);
+        const candidate =
+            summary ||
+            readingSentences.find((s) => s !== adviceLines[0]) ||
+            cleanDashboardText(dailyReading?.context) ||
+            '';
         if (!candidate) return null;
 
         const normalized = trimDashboardText(candidate, 148);
@@ -82,33 +89,42 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
         }
 
         return normalized;
-    }, [adviceLines, contentSentences, heroHeadline, transitFocus]);
+    }, [adviceLines, dailyReading?.context, dailyReading?.summary, heroHeadline, readingSentences]);
 
     const todayPoints = useMemo(
         () => [
             {
                 label: getText(language, 'dashboard.chance'),
                 value: trimDashboardText(
-                    adviceLines[0] || contentSentences[0] || getText(language, 'dashboard.fallback_chance'),
+                    cleanDashboardText(dailyReading?.chance) ||
+                        adviceLines[0] ||
+                        readingSentences[0] ||
+                        getText(language, 'dashboard.fallback_chance'),
                     116
                 ),
             },
             {
                 label: getText(language, 'dashboard.risk'),
                 value: trimDashboardText(
-                    adviceLines[1] || moonImpact || contentSentences[1] || getText(language, 'dashboard.fallback_risk'),
+                    cleanDashboardText(dailyReading?.risk) ||
+                        adviceLines[1] ||
+                        readingSentences[1] ||
+                        getText(language, 'dashboard.fallback_risk'),
                     116
                 ),
             },
             {
                 label: getText(language, 'dashboard.focus'),
                 value: trimDashboardText(
-                    transitFocus || adviceLines[2] || contentSentences[0] || getText(language, 'dashboard.fallback_focus'),
+                    cleanDashboardText(dailyReading?.focus) ||
+                        adviceLines[2] ||
+                        readingSentences[0] ||
+                        getText(language, 'dashboard.fallback_focus'),
                     116
                 ),
             },
         ],
-        [adviceLines, contentSentences, language, moonImpact, transitFocus]
+        [adviceLines, dailyReading?.chance, dailyReading?.focus, dailyReading?.risk, language, readingSentences]
     );
 
     const natalHighlights = useMemo(
@@ -138,63 +154,44 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, onNavigate,
     }, []);
 
     useEffect(() => {
-        const cached = profile.generatedContent?.dailyHoroscope;
-        const today = getMoscowTodayKey();
-        if (cached && cached.date === today && cached.content) {
-            setDailyHoroscope(cached);
-        } else {
-            setDailyHoroscope(null);
-        }
-    }, [profile.generatedContent?.dailyHoroscope]);
-
-    useEffect(() => {
         let cancelled = false;
-        const cached = profile.generatedContent?.dailyHoroscope;
         const today = getMoscowTodayKey();
-        if (!profile.id) return;
-        if (cached && cached.date === today && cached.content) return;
 
-        const loadCachedHoroscope = async () => {
-            try {
-                const dbCached = await getCachedDailyHoroscope(profile.id!, profile.language);
-                if (!cancelled && dbCached?.date === today && dbCached.content) {
-                    setDailyHoroscope(dbCached);
-                }
-            } catch {
-                // Dashboard remains stable without forcing generation on load.
+        const fromLegacy = (): ForecastDailyReading | null => {
+            const legacy = profile.generatedContent?.dailyHoroscope;
+            if (legacy?.date === today && legacy.content) {
+                return mapLegacyHoroscopeToForecastDailyReading(legacy, langKey);
             }
+            return null;
         };
 
-        void loadCachedHoroscope();
+        const run = async () => {
+            let next = fromLegacy();
+            if (!profile.id) {
+                if (!cancelled) setDailyReading(next);
+                return;
+            }
+            try {
+                const apiReading = await getCachedDailyForecastLayer(String(profile.id), activeChartId);
+                if (
+                    !cancelled &&
+                    apiReading &&
+                    apiReading.date === today &&
+                    (apiReading.headline || apiReading.reading)
+                ) {
+                    next = apiReading;
+                }
+            } catch {
+                /* дашборд остаётся стабильным без принудительной генерации */
+            }
+            if (!cancelled) setDailyReading(next);
+        };
+
+        void run();
         return () => {
             cancelled = true;
         };
-    }, [profile.generatedContent?.dailyHoroscope, profile.id, profile.language]);
-
-    const dataLoadedRef = useRef(false);
-    const profileIdRef = useRef(profile.id);
-    const zodiacSignRef = useRef(chartData?.sun?.sign);
-
-    useEffect(() => {
-        const profileIdChanged = profileIdRef.current !== profile.id;
-        const zodiacSignChanged = zodiacSignRef.current !== chartData?.sun?.sign;
-
-        if (dataLoadedRef.current && !profileIdChanged && !zodiacSignChanged) {
-            return;
-        }
-
-        profileIdRef.current = profile.id;
-        zodiacSignRef.current = chartData?.sun?.sign;
-        dataLoadedRef.current = true;
-
-        const cachedHoroscope = profile.generatedContent?.dailyHoroscope;
-        const today = getMoscowTodayKey();
-        if (cachedHoroscope && cachedHoroscope.date === today && cachedHoroscope.content) {
-            setDailyHoroscope(cachedHoroscope);
-        } else {
-            setDailyHoroscope(null);
-        }
-    }, [profile.id, chartData?.sun?.sign, profile.generatedContent?.dailyHoroscope]);
+    }, [activeChartId, langKey, profile.generatedContent?.dailyHoroscope, profile.id]);
 
     if (!chartData) return <Loading message={getText(profile.language, 'loading')} />;
 

@@ -656,7 +656,8 @@ const App: React.FC = () => {
                     <div className="h-full overflow-y-auto scrollbar-hide">
                         <Dashboard 
                             profile={profile} 
-                            chartData={chartData} 
+                            chartData={chartData}
+                            activeChartId={activeChartId}
                             onNavigate={(newView) => {
                                 if (newView === 'synastry') {
                                     setSynastryPrefill(null);

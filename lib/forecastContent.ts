@@ -221,7 +221,7 @@ export async function generatePremiumDaypartForecast(
       ],
       response_format: { type: 'json_object' },
       temperature: 0.85,
-      max_tokens: 1200,
+      max_tokens: 1650,
     });
 
     const content = completion.choices[0]?.message?.content || '{}';

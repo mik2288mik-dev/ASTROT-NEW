@@ -13,6 +13,7 @@
 
 - [LUMIA_PRODUCT_CONSTITUTION.md](./LUMIA_PRODUCT_CONSTITUTION.md)
 - [LUMIA_PRODUCT_MODEL.md](./LUMIA_PRODUCT_MODEL.md)
+- [LUMIA_CONTENT_TIER_SPEC.md](./LUMIA_CONTENT_TIER_SPEC.md)
 - [MULTI_CHART_DB_ARCHITECTURE.md](./MULTI_CHART_DB_ARCHITECTURE.md)
 
 ## 1. Базовый порядок
@@ -307,12 +308,15 @@ Admin остаётся supporting subsystem и не ведёт consumer roadmap.
 
 ## 13. Ближайший следующий шаг
 
-Ближайший следующий implementation step:
+Состояние на текущую итерацию:
 
-- **Dashboard Phase 2**
+- **Dashboard Phase 2** — реализована иерархия главного экрана (hero, «что важно», натал, вторичные действия); дальнейшие правки — через acceptance criteria конституции и спеку слоёв.
+- **Content-tier spec** — зафиксирована в [LUMIA_CONTENT_TIER_SPEC.md](./LUMIA_CONTENT_TIER_SPEC.md) (матрица `tier × surface × variant` и ссылки на код).
 
-После него:
+Ближайшие implementation-фокусы:
 
-- отдельная `content-tier architecture spec`
+1. Выровнять **forecast** (free daily + premium dayparts) с конституцией: единый контракт данных на дашборде и экране прогноза, без consumer-gimmicks, усиленное различие Premium.
+2. Закрепить **natal anchor vs living** в UX-копирайте и документации экрана — см. [NATAL_SCREEN_IA.md](./NATAL_SCREEN_IA.md) (экран [NatalChart.tsx](../views/NatalChart.tsx) уже реализует anchor + living).
+3. Дальше по порядку roadmap: **synastry/questions** под ту же матрицу, затем **Lumi economy**, **AIR UI**, admin/notifications, cleanup.
 
-Это и есть текущий главный рабочий порядок Lumia.
+Это текущий рабочий порядок Lumia.

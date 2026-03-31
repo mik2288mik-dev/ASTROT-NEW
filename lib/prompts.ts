@@ -902,6 +902,7 @@ Rules:
 - Speak to the user as a real person, not as a zodiac sign.
 - The result must feel personal, emotionally precise, modern, and useful.
 - Focus on emotions, relationships, money, decisions, pressure, opportunity, and direction.
+- This is the free daily layer: one coherent reading for the whole day. Do not split the day into morning/day/evening here — that is reserved for premium.
 - No mystical fluff.
 - No "color of the day", "number of the day", moon gimmicks, or decorative astrology.
 - No vague filler. Be concrete and human.
@@ -946,8 +947,9 @@ ${transitsJson}
 Task: create a premium-quality personal forecast for this specific part of the day.
 
 Rules:
-- This is a premium layer and must feel much stronger than the free daily layer.
+- This is a premium layer and must feel much stronger than the free daily layer — not longer for its own sake, but sharper, more situational, and more emotionally precise.
 - It should feel closer to the user's real state, decisions, relationships, money, and tension points.
+- Explicitly differ from a single-day summary: this slice is about how the day *feels and behaves* in this part of the day (energy, social tone, practical risk).
 - Keep it personal, emotionally accurate, and modern.
 - No mystical fluff, no gimmicks, no vague empty reassurance.
 - The text should feel like a living astrology companion, not a generic horoscope.

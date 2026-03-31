@@ -1,3 +1,4 @@
+/** Natal screen: anchor (free, persistent) + living (premium). IA: docs/NATAL_SCREEN_IA.md */
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import type { NatalAnchorReading, NatalChartData, NatalLivingReading, UserProfile } from '../types';

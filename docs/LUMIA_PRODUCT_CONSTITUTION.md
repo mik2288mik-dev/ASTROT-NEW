@@ -4,6 +4,8 @@
 
 - [LUMIA_MASTER_REBUILD_ROADMAP.md](./LUMIA_MASTER_REBUILD_ROADMAP.md)
 - [LUMIA_PRODUCT_MODEL.md](./LUMIA_PRODUCT_MODEL.md)
+- [LUMIA_CONTENT_TIER_SPEC.md](./LUMIA_CONTENT_TIER_SPEC.md) (матрица слоёв и привязка к коду)
+- [NATAL_SCREEN_IA.md](./NATAL_SCREEN_IA.md) (экран натала: основа и живой слой)
 
 Этот документ фиксирует новую обязательную рамку Lumia до следующих продуктовых итераций.
 
