@@ -50,9 +50,16 @@ module.exports = {
         'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
       },
       spacing: {
-        'reading': '0.75em',
-        air: '1.5rem',
-      }
+        reading: '0.75em',
+        air: 'var(--space-air)',
+        'air-sm': 'var(--space-air-sm)',
+        'air-lg': 'var(--space-air-lg)',
+      },
+      borderRadius: {
+        air: 'var(--radius-air)',
+        'air-sm': 'var(--radius-air-sm)',
+        'air-panel': 'var(--radius-air-panel)',
+      },
     },
   },
   plugins: [],

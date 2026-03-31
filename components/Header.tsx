@@ -52,7 +52,8 @@ export const Header: React.FC<HeaderProps> = ({ profile, view, onBack, onOpenWal
                         {!isHub && (
                             <button
                                 onClick={onBack}
-                                className="flex items-center gap-1.5 text-astro-subtext hover:text-astro-text active:opacity-70 transition-colors"
+                                type="button"
+                                className="flex min-h-[44px] min-w-[44px] items-center gap-1.5 rounded-lg px-2 -ml-2 text-astro-subtext hover:text-astro-text active:opacity-70 transition-colors"
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -77,9 +78,10 @@ export const Header: React.FC<HeaderProps> = ({ profile, view, onBack, onOpenWal
                     <div className="w-20 flex justify-end">
                         {!isHub && hasLumi && (
                             <button
+                                type="button"
                                 onClick={onOpenWallet}
                                 aria-label={getText(profile.language, 'header.wallet')}
-                                className="relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-astro-border/70 bg-astro-card/60 text-astro-subtext transition-colors hover:border-astro-highlight/35 hover:text-astro-text"
+                                className="relative inline-flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-astro-border/70 bg-astro-card/60 text-astro-subtext transition-colors hover:border-astro-highlight/35 hover:text-astro-text"
                             >
                                 <span className="text-sm leading-none">✦</span>
                                 <span className="absolute -right-1 -top-1 min-w-[18px] rounded-full border border-astro-bg bg-astro-highlight px-1.5 py-0.5 text-[9px] font-semibold leading-none text-white">
@@ -93,8 +95,9 @@ export const Header: React.FC<HeaderProps> = ({ profile, view, onBack, onOpenWal
                 {isHub && (
                     <div className="mt-1.5 flex justify-center">
                         <button
+                            type="button"
                             onClick={onOpenWallet}
-                            className="inline-flex items-center gap-2 rounded-full border border-astro-border/70 bg-astro-card/60 px-3.5 py-1.5 text-xs font-medium text-astro-text shadow-sm transition-colors hover:border-astro-highlight/35 hover:bg-astro-card/80"
+                            className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-astro-border/70 bg-astro-card/60 px-4 py-2 text-xs font-medium text-astro-text shadow-sm transition-colors hover:border-astro-highlight/35 hover:bg-astro-card/80"
                         >
                             <span className="text-yellow-400 text-sm leading-none">✦</span>
                             <span>{lumiValue} Lumi</span>

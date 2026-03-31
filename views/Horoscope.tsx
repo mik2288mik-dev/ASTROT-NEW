@@ -21,7 +21,8 @@ import { ZodiacHeader } from '../components/Horoscope/ZodiacHeader';
 import { HoroscopeContent } from '../components/Horoscope/HoroscopeContent';
 import { formatLumiaDate, getMoscowTodayKey } from '../lib/date-utils';
 import { getText } from '../constants';
-import { READING_PAGE_CLASS, READING_SECTION_PAD } from '../components/layout/ReadingLayout';
+import { READING_GLASS_SECTION_CLASS, READING_PAGE_CLASS } from '../components/layout/ReadingLayout';
+import { ReadingScreenShell } from '../components/layout/ScreenShell';
 
 interface HoroscopeProps {
     profile: UserProfile;
@@ -303,7 +304,7 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
     if (!dailyReading || !chartData) {
         return (
             <div className={`flex min-h-full items-center justify-center py-8 ${READING_PAGE_CLASS}`}>
-                <div className={`lumia-glass w-full rounded-2xl text-center sm:rounded-2xl ${READING_SECTION_PAD}`}>
+                <div className={`${READING_GLASS_SECTION_CLASS} w-full text-center`}>
                     <p className="lumia-label tracking-[0.2em]">{getText(language, 'horoscope.today_layer_label')}</p>
                     <h1 className="mt-2 font-serif text-xl text-astro-text sm:text-2xl">
                         {getText(language, 'horoscope.empty_title')}
@@ -315,7 +316,7 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
                         <button
                             type="button"
                             onClick={onOpenChart}
-                            className="mt-4 w-full rounded-xl bg-astro-highlight/12 px-4 py-2.5 text-sm font-medium text-astro-highlight ring-1 ring-astro-highlight/28 transition-[box-shadow] hover:ring-astro-highlight/45"
+                            className="mt-4 flex min-h-[44px] w-full items-center justify-center rounded-xl bg-astro-highlight/12 px-4 py-2.5 text-sm font-medium text-astro-highlight ring-1 ring-astro-highlight/28 transition-[box-shadow] hover:ring-astro-highlight/45"
                         >
                             {getText(language, 'horoscope.empty_cta')}
                         </button>
@@ -326,8 +327,8 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
     }
 
     return (
-        <div className={`min-h-screen space-y-3 pt-4 screen-pb sm:space-y-3.5 ${READING_PAGE_CLASS}`}>
-            <section className={`lumia-glass rounded-2xl sm:rounded-2xl ${READING_SECTION_PAD}`}>
+        <ReadingScreenShell>
+            <section className={READING_GLASS_SECTION_CLASS}>
                 <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                         <p className="lumia-label tracking-[0.2em]">{getText(language, 'horoscope.today_layer_label')}</p>
@@ -357,7 +358,7 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
                 )}
             </section>
 
-            <section className={`lumia-glass rounded-2xl sm:rounded-2xl ${READING_SECTION_PAD}`}>
+            <section className={READING_GLASS_SECTION_CLASS}>
                 <p className="lumia-label tracking-[0.2em]">{getText(language, 'horoscope.foundation_label')}</p>
                 <p className="lumia-muted mt-1.5 text-sm leading-relaxed">{getText(language, 'horoscope.foundation_body')}</p>
                 <div className="mt-3">
@@ -367,7 +368,7 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
 
             <HoroscopeContent reading={dailyReading} language={language} />
 
-            <section className={`lumia-glass rounded-2xl sm:rounded-2xl ${READING_SECTION_PAD}`}>
+            <section className={READING_GLASS_SECTION_CLASS}>
                 <p className="lumia-label tracking-[0.2em]">
                     {getText(language, profile.isPremium ? 'horoscope.dayparts_label' : 'horoscope.premium_label')}
                 </p>
@@ -434,7 +435,7 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
                             <button
                                 type="button"
                                 onClick={onRequestPremium}
-                                className="mt-3 text-sm font-medium text-astro-highlight"
+                                className="mt-3 inline-flex min-h-[44px] items-center text-sm font-medium text-astro-highlight"
                             >
                                 {getText(language, 'horoscope.premium_cta')}
                             </button>
@@ -443,7 +444,7 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
                 )}
             </section>
 
-            <section className={`lumia-glass rounded-2xl sm:rounded-2xl ${READING_SECTION_PAD}`}>
+            <section className={READING_GLASS_SECTION_CLASS}>
                 <p className="lumia-label tracking-[0.2em]">{getText(language, 'horoscope.bridge_label')}</p>
                 <h2 className="mt-1.5 font-serif text-lg text-astro-text sm:text-xl">
                     {getText(language, 'horoscope.bridge_title')}
@@ -454,13 +455,13 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
                     <button
                         type="button"
                         onClick={onOpenChart}
-                        className="mt-4 w-full rounded-xl bg-astro-highlight/12 px-4 py-2.5 text-sm font-medium text-astro-highlight ring-1 ring-astro-highlight/28 transition-[box-shadow] hover:ring-astro-highlight/45"
+                        className="mt-4 flex min-h-[44px] w-full items-center justify-center rounded-xl bg-astro-highlight/12 px-4 py-2.5 text-sm font-medium text-astro-highlight ring-1 ring-astro-highlight/28 transition-[box-shadow] hover:ring-astro-highlight/45"
                     >
                         {getText(language, 'horoscope.open_chart')}
                     </button>
                 )}
             </section>
-        </div>
+        </ReadingScreenShell>
     );
 });
 

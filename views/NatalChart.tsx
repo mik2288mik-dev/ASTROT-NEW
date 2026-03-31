@@ -14,7 +14,8 @@ import { getTelegramInitDataHeaders } from '../services/sessionService';
 import { coerceNatalAnchorReading, mapNatalAnchorToLegacyIntro } from '../lib/natalReadings';
 import { Loading } from '../components/ui/Loading';
 import { FormattedAiText } from '../components/ui/FormattedAiText';
-import { READING_PAGE_CLASS, READING_SECTION_PAD } from '../components/layout/ReadingLayout';
+import { READING_GLASS_SECTION_CLASS } from '../components/layout/ReadingLayout';
+import { ReadingScreenShell } from '../components/layout/ScreenShell';
 
 const NATAL_INTRO_REFRESH_COST = 250;
 
@@ -348,9 +349,9 @@ export const NatalChart: React.FC<NatalChartProps> = ({
   }
 
   return (
-    <div className={`min-h-full screen-pb pb-10 ${READING_PAGE_CLASS}`}>
-      <motion.section initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="pt-6">
-        <div className={`lumia-glass rounded-2xl ${READING_SECTION_PAD}`}>
+    <ReadingScreenShell className="pb-6">
+      <motion.section initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="pt-4">
+        <div className={READING_GLASS_SECTION_CLASS}>
           <p className="lumia-label tracking-[0.2em]">{getText(lang, 'chart.anchor_label')}</p>
           <h1 className="mt-2 font-serif text-2xl tracking-tight text-astro-text sm:text-[1.95rem]">
             {anchorReading?.headline || getText(lang, 'chart.anchor_title')}
@@ -386,7 +387,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({
                 type="button"
                 onClick={() => void handleRefreshAnchor()}
                 disabled={refreshAnchorDisabled}
-                className="w-full rounded-xl bg-astro-highlight/12 px-4 py-3 text-left text-sm font-medium text-astro-highlight ring-1 ring-astro-highlight/28 transition-[box-shadow] hover:ring-astro-highlight/45 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex min-h-[44px] w-full items-center rounded-xl bg-astro-highlight/12 px-4 py-3 text-left text-sm font-medium text-astro-highlight ring-1 ring-astro-highlight/28 transition-[box-shadow] hover:ring-astro-highlight/45 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {refreshAnchorBusy
                   ? getText(lang, 'chart.refresh_intro_loading')
@@ -404,7 +405,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({
 
       {anchorReading && (
         <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-4 sm:mt-5">
-          <div className={`lumia-glass rounded-2xl ${READING_SECTION_PAD}`}>
+          <div className={READING_GLASS_SECTION_CLASS}>
             <div className="grid gap-5 lg:grid-cols-2">
               <ListBlock title={getText(lang, 'chart.anchor_strengths_title')} items={anchorReading.strengths} />
               <ListBlock title={getText(lang, 'chart.anchor_patterns_title')} items={anchorReading.patterns} />
@@ -414,7 +415,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({
       )}
 
       <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-6 sm:mt-7">
-        <div className={`lumia-glass rounded-2xl ${READING_SECTION_PAD}`}>
+        <div className={READING_GLASS_SECTION_CLASS}>
           <p className="lumia-label tracking-[0.2em]">{getText(lang, 'chart.core_title')}</p>
           <p className="lumia-muted mt-1.5 text-sm leading-relaxed">{getText(lang, 'chart.core_body')}</p>
 
@@ -422,7 +423,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({
             {mainPlanets.map((planet) => (
               <div
                 key={planet.id}
-                className="lumia-glass-inset rounded-2xl px-3.5 py-3 sm:flex sm:items-center sm:gap-4 sm:px-4 sm:py-3.5"
+                className="lumia-glass-inset rounded-air-sm px-3.5 py-3 sm:flex sm:items-center sm:gap-4 sm:px-4 sm:py-3.5"
               >
                 <div className="flex items-center gap-3 sm:flex-1 sm:gap-4">
                   <span className="shrink-0 text-lg text-astro-highlight/90 sm:text-xl">{PLANET_SYMBOLS[planet.id]}</span>
@@ -464,7 +465,8 @@ export const NatalChart: React.FC<NatalChartProps> = ({
         <div className="mt-5">
           <button
             onClick={onOpenCharts}
-            className="w-full rounded-2xl border border-astro-border/60 bg-astro-bg/14 px-4 py-3 text-left transition-colors hover:border-astro-highlight/30"
+            type="button"
+            className="flex min-h-[44px] w-full items-center rounded-air-panel border border-astro-border/60 bg-astro-bg/14 px-4 py-3 text-left transition-colors hover:border-astro-highlight/30"
           >
             <div className="flex items-center justify-between gap-4">
               <div className="min-w-0">
@@ -482,7 +484,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({
       )}
 
       <section className="mt-7 sm:mt-8">
-        <div className={`lumia-glass rounded-2xl ${READING_SECTION_PAD}`}>
+        <div className={READING_GLASS_SECTION_CLASS}>
           <p className="lumia-label tracking-[0.2em]">{getText(lang, 'chart.living_label')}</p>
           <h2 className="mt-2 font-serif text-xl text-astro-text sm:text-2xl">{getText(lang, 'chart.living_title')}</h2>
           <p className="lumia-muted mt-2 max-w-prose text-sm leading-relaxed sm:text-[15px]">
@@ -518,7 +520,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({
               )}
             </div>
           ) : (
-            <div className="mt-5 rounded-2xl border border-astro-border/55 bg-astro-bg/14 p-4 sm:p-5">
+            <div className="mt-5 rounded-air-panel border border-astro-border/55 bg-astro-bg/14 p-4 sm:p-5">
               <p className="text-base font-semibold text-astro-text">{getText(lang, 'chart.living_premium_title')}</p>
               <p className="lumia-muted mt-2 text-sm leading-relaxed">
                 {getText(lang, 'chart.living_premium_body')}
@@ -529,7 +531,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({
               <button
                 type="button"
                 onClick={requestPremium}
-                className="mt-4 w-full rounded-xl bg-astro-highlight/12 px-4 py-3 text-sm font-medium text-astro-highlight ring-1 ring-astro-highlight/28 transition-[box-shadow] hover:ring-astro-highlight/45"
+                className="mt-4 flex min-h-[44px] w-full items-center justify-center rounded-xl bg-astro-highlight/12 px-4 py-3 text-sm font-medium text-astro-highlight ring-1 ring-astro-highlight/28 transition-[box-shadow] hover:ring-astro-highlight/45"
               >
                 {getText(lang, 'chart.living_premium_cta')}
               </button>
@@ -537,6 +539,6 @@ export const NatalChart: React.FC<NatalChartProps> = ({
           )}
         </div>
       </section>
-    </div>
+    </ReadingScreenShell>
   );
 };

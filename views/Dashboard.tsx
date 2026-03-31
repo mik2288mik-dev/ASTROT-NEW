@@ -5,6 +5,7 @@ import { Loading } from '../components/ui/Loading';
 import { CosmicPassport } from '../components/Dashboard/CosmicPassport';
 import { formatLumiaDate, getMoscowTodayKey } from '../lib/date-utils';
 import { getCachedDailyForecastLayer, mapLegacyHoroscopeToForecastDailyReading } from '../services/astrologyService';
+import { ScreenShell, AirSection } from '../components/layout/ScreenShell';
 
 type DashboardView = Extract<ViewState, 'chart' | 'horoscope' | 'synastry' | 'oracle'>;
 
@@ -196,7 +197,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, activeChart
     if (!chartData) return <Loading message={getText(profile.language, 'loading')} />;
 
     return (
-        <div className="space-y-4 px-4 py-4 screen-pb sm:space-y-5 sm:px-4 sm:py-4">
+        <ScreenShell className="pt-2">
             <CosmicPassport
                 profile={profile}
                 chartData={chartData}
@@ -205,7 +206,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, activeChart
                 onOpenSettings={onOpenSettings}
             />
 
-            <section className="lumia-glass rounded-[28px] px-5 py-5 sm:px-6 sm:py-6">
+            <AirSection>
                 <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
                         <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
@@ -235,13 +236,13 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, activeChart
                 <button
                     onClick={handleNavigateHoroscope}
                     type="button"
-                    className="mt-5 inline-flex items-center gap-2 rounded-full border border-astro-highlight/28 bg-astro-highlight/12 px-4 py-2.5 text-sm font-medium text-astro-highlight transition-[box-shadow,background-color] hover:bg-astro-highlight/16 hover:ring-1 hover:ring-astro-highlight/20"
+                    className="mt-5 inline-flex min-h-[44px] items-center gap-2 rounded-full border border-astro-highlight/28 bg-astro-highlight/12 px-5 py-2.5 text-sm font-medium text-astro-highlight transition-[box-shadow,background-color] hover:bg-astro-highlight/16 hover:ring-1 hover:ring-astro-highlight/20"
                 >
                     {getText(profile.language, 'dashboard.hero_cta')}
                 </button>
-            </section>
+            </AirSection>
 
-            <section className="lumia-glass rounded-[28px] px-5 py-5 sm:px-6 sm:py-6">
+            <AirSection>
                 <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
                     {getText(profile.language, 'dashboard.matters_label')}
                 </p>
@@ -267,9 +268,9 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, activeChart
                         </div>
                     ))}
                 </div>
-            </section>
+            </AirSection>
 
-            <section className="lumia-glass rounded-[28px] px-5 py-5 sm:px-6 sm:py-6">
+            <AirSection>
                 <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
                     {getText(profile.language, 'dashboard.natal_label')}
                 </p>
@@ -296,13 +297,13 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, activeChart
                 <button
                     onClick={handleNavigateChart}
                     type="button"
-                    className="mt-5 inline-flex items-center gap-2 rounded-full border border-astro-border/70 bg-astro-card/60 px-4 py-2.5 text-sm font-medium text-astro-text transition-[box-shadow,border-color] hover:border-astro-highlight/32 hover:ring-1 hover:ring-astro-highlight/18"
+                    className="mt-5 inline-flex min-h-[44px] items-center gap-2 rounded-full border border-astro-border/70 bg-astro-card/60 px-5 py-2.5 text-sm font-medium text-astro-text transition-[box-shadow,border-color] hover:border-astro-highlight/32 hover:ring-1 hover:ring-astro-highlight/18"
                 >
                     {getText(profile.language, 'dashboard.natal_cta')}
                 </button>
-            </section>
+            </AirSection>
 
-            <section className="px-1 pt-1">
+            <AirSection variant="plain">
                 <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
                     {getText(profile.language, 'dashboard.next_label')}
                 </p>
@@ -319,7 +320,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, activeChart
                     <button
                         onClick={handleNavigateSynastry}
                         type="button"
-                        className="lumia-glass group rounded-[26px] px-5 py-4 text-left transition-[transform,box-shadow] hover:ring-1 hover:ring-astro-highlight/22 active:scale-[0.995] sm:px-6 sm:py-5"
+                        className="lumia-glass group rounded-air-panel px-5 py-4 text-left transition-[transform,box-shadow] hover:ring-1 hover:ring-astro-highlight/22 active:scale-[0.995] sm:px-6 sm:py-5"
                     >
                         <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
                             {getText(profile.language, 'dashboard.synastry_label')}
@@ -342,7 +343,7 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, activeChart
                     <button
                         onClick={handleNavigateOracle}
                         type="button"
-                        className="lumia-glass group rounded-[26px] px-5 py-4 text-left transition-[transform,box-shadow] hover:ring-1 hover:ring-astro-highlight/22 active:scale-[0.995] sm:px-6 sm:py-5"
+                        className="lumia-glass group rounded-air-panel px-5 py-4 text-left transition-[transform,box-shadow] hover:ring-1 hover:ring-astro-highlight/22 active:scale-[0.995] sm:px-6 sm:py-5"
                     >
                         <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
                             {getText(profile.language, 'dashboard.questions_label')}
@@ -362,8 +363,8 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, activeChart
                         </span>
                     </button>
                 </div>
-            </section>
-        </div>
+            </AirSection>
+        </ScreenShell>
     );
 });
 

@@ -12,6 +12,7 @@ import { Loading } from '../components/ui/Loading';
 import { formatLumiReasonLabel } from '../lib/lumiReasonTaxonomy';
 import { getText } from '../constants';
 import { REFERRAL_INVITEE_LUMI, REFERRAL_INVITER_LUMI } from '../lib/referralEconomy';
+import { ScreenShell, AIR_GLASS_PANEL_CLASS } from '../components/layout/ScreenShell';
 
 interface WalletProps {
   profile: UserProfile;
@@ -194,8 +195,8 @@ export const Wallet: React.FC<WalletProps> = ({ profile, onUpdateProfile }) => {
   }
 
   return (
-    <div className="p-4 space-y-6 screen-pb">
-      <div className="rounded-2xl border border-astro-border bg-astro-card p-5 space-y-3">
+    <ScreenShell className="pt-2">
+      <div className={`${AIR_GLASS_PANEL_CLASS} space-y-3`}>
         <p className="text-[10px] uppercase tracking-widest text-astro-subtext">
           Lumi Wallet
         </p>
@@ -209,7 +210,7 @@ export const Wallet: React.FC<WalletProps> = ({ profile, onUpdateProfile }) => {
         </p>
       </div>
 
-      <div className="rounded-2xl border border-astro-highlight/30 bg-gradient-to-b from-astro-highlight/10 to-astro-card p-5 space-y-4">
+      <div className={`${AIR_GLASS_PANEL_CLASS} space-y-4 border border-astro-highlight/28 bg-gradient-to-b from-astro-highlight/12 to-astro-card/90`}>
         <div>
           <h2 className="font-serif text-lg text-astro-text">{wt('roulette_title')}</h2>
           <p className="mt-2 text-sm text-astro-subtext leading-relaxed">{wt('roulette_subtitle')}</p>
@@ -231,7 +232,7 @@ export const Wallet: React.FC<WalletProps> = ({ profile, onUpdateProfile }) => {
           type="button"
           disabled={rouletteClaimed || rouletteBusy}
           onClick={() => void handleRoulette()}
-          className={`w-full rounded-xl px-4 py-3 text-sm font-semibold transition-transform ${
+          className={`flex min-h-[44px] w-full items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold transition-transform ${
             rouletteBusy ? 'animate-pulse bg-astro-highlight/40 text-white' : ''
           } ${
             rouletteClaimed
@@ -247,7 +248,7 @@ export const Wallet: React.FC<WalletProps> = ({ profile, onUpdateProfile }) => {
         </button>
       </div>
 
-      <div className="rounded-2xl border border-astro-border bg-astro-card p-5 space-y-4">
+      <div className={`${AIR_GLASS_PANEL_CLASS} space-y-4`}>
         <div>
           <h2 className="font-serif text-lg text-astro-text">{wt('referral_title')}</h2>
           <p className="mt-2 text-sm text-astro-subtext leading-relaxed">
@@ -273,14 +274,14 @@ export const Wallet: React.FC<WalletProps> = ({ profile, onUpdateProfile }) => {
                   <button
                     type="button"
                     onClick={() => void copyToClipboard(inviteLink, 'link')}
-                    className="rounded-xl border border-astro-border px-4 py-2 text-sm font-medium text-astro-text hover:border-astro-highlight/50"
+                    className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-astro-border px-4 py-2 text-sm font-medium text-astro-text hover:border-astro-highlight/50"
                   >
                     {copyHint === 'link' ? wt('referral_copied') : wt('referral_copy_link')}
                   </button>
                   <button
                     type="button"
                     onClick={openTelegramShare}
-                    className="rounded-xl bg-astro-highlight/15 px-4 py-2 text-sm font-medium text-astro-highlight hover:bg-astro-highlight/25"
+                    className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-astro-highlight/15 px-4 py-2 text-sm font-medium text-astro-highlight hover:bg-astro-highlight/25"
                   >
                     Telegram
                   </button>
@@ -290,7 +291,7 @@ export const Wallet: React.FC<WalletProps> = ({ profile, onUpdateProfile }) => {
                 <button
                   type="button"
                   onClick={() => void copyToClipboard(profile.refCode!, 'code')}
-                  className="rounded-xl border border-astro-border px-4 py-2 text-sm font-medium text-astro-text hover:border-astro-highlight/50"
+                  className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-astro-border px-4 py-2 text-sm font-medium text-astro-text hover:border-astro-highlight/50"
                 >
                   {copyHint === 'code' ? wt('referral_copied') : wt('referral_copy_code')}
                 </button>
@@ -300,7 +301,7 @@ export const Wallet: React.FC<WalletProps> = ({ profile, onUpdateProfile }) => {
         )}
       </div>
 
-      <div className="rounded-2xl border border-astro-border bg-astro-card p-5 space-y-3">
+      <div className={`${AIR_GLASS_PANEL_CLASS} space-y-3`}>
         <h2 className="font-serif text-lg text-astro-text">
           {T(lang, 'Как получать Lumi', 'How you earn Lumi')}
         </h2>
@@ -355,7 +356,7 @@ export const Wallet: React.FC<WalletProps> = ({ profile, onUpdateProfile }) => {
         )}
       </div>
 
-      <div className="rounded-2xl border border-astro-border bg-astro-card p-5 space-y-4">
+      <div className={`${AIR_GLASS_PANEL_CLASS} space-y-4`}>
         <div>
           <h2 className="font-serif text-lg text-astro-text">
             {T(lang, 'Пополнить Lumi', 'Top up Lumi')}
@@ -371,7 +372,7 @@ export const Wallet: React.FC<WalletProps> = ({ profile, onUpdateProfile }) => {
               key={pack.id}
               onClick={() => handleTopUp(pack)}
               disabled={!!actionLoading}
-              className="w-full rounded-xl border border-astro-border bg-astro-bg/30 p-4 text-left hover:border-astro-highlight/40 transition-colors disabled:opacity-50"
+              className="flex min-h-[44px] w-full items-center rounded-xl border border-astro-border bg-astro-bg/30 p-4 text-left hover:border-astro-highlight/40 transition-colors disabled:opacity-50"
             >
               <div className="flex items-center justify-between gap-4">
                 <div>
@@ -388,7 +389,7 @@ export const Wallet: React.FC<WalletProps> = ({ profile, onUpdateProfile }) => {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-astro-border bg-astro-card p-5 space-y-3">
+      <div className={`${AIR_GLASS_PANEL_CLASS} space-y-3`}>
         <h2 className="font-serif text-lg text-astro-text">
           {T(lang, 'На что тратится Lumi', 'What Lumi is spent on')}
         </h2>
@@ -411,7 +412,7 @@ export const Wallet: React.FC<WalletProps> = ({ profile, onUpdateProfile }) => {
         </ul>
       </div>
 
-      <div className="rounded-2xl border border-astro-border bg-astro-card p-5 space-y-4">
+      <div className={`${AIR_GLASS_PANEL_CLASS} space-y-4`}>
         <div className="flex items-center justify-between gap-4">
           <h2 className="font-serif text-lg text-astro-text">
             {T(lang, 'История операций', 'Transaction history')}
@@ -456,6 +457,6 @@ export const Wallet: React.FC<WalletProps> = ({ profile, onUpdateProfile }) => {
           </div>
         )}
       </div>
-    </div>
+    </ScreenShell>
   );
 };

@@ -307,10 +307,10 @@ export const OracleChat: React.FC<OracleChatProps> = ({
   const stateCopy = getStateStrings(lang, questionState);
 
   return (
-    <div className="flex h-full w-full flex-col bg-astro-bg">
+    <div className="flex h-full min-h-0 w-full flex-col bg-astro-bg">
       <div className="shrink-0 border-b border-astro-border/30 bg-astro-bg/90 backdrop-blur-xl">
-        <div className="px-4 pt-5 pb-4">
-          <div className="lumia-glass rounded-2xl px-4 py-4 sm:px-5 sm:py-5">
+        <div className="space-y-air-sm px-4 pt-4 pb-3 sm:px-5">
+          <div className="lumia-glass rounded-air-panel px-4 py-4 sm:px-5 sm:py-5">
             <p className="lumia-label tracking-[0.2em]">{getText(lang, 'oracle.hero_label')}</p>
             <h1 className="mt-2 font-serif text-2xl text-astro-text sm:text-[1.95rem]">
               {getText(lang, 'oracle.hero_title')}
@@ -336,7 +336,7 @@ export const OracleChat: React.FC<OracleChatProps> = ({
                 <button
                   type="button"
                   onClick={onPremiumRequired}
-                  className="rounded-full border border-astro-highlight/35 bg-astro-highlight/10 px-3.5 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-astro-highlight transition-colors hover:border-astro-highlight/50 hover:bg-astro-highlight/15"
+                  className="inline-flex min-h-[44px] items-center rounded-full border border-astro-highlight/35 bg-astro-highlight/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-astro-highlight transition-colors hover:border-astro-highlight/50 hover:bg-astro-highlight/15"
                 >
                   {getText(lang, 'oracle.state_open_premium')}
                 </button>
@@ -345,7 +345,7 @@ export const OracleChat: React.FC<OracleChatProps> = ({
                 <button
                   type="button"
                   onClick={onOpenWallet}
-                  className="rounded-full border border-astro-border/60 bg-astro-bg/12 px-3.5 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-astro-text transition-colors hover:border-astro-highlight/30"
+                  className="inline-flex min-h-[44px] items-center rounded-full border border-astro-border/60 bg-astro-bg/12 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-astro-text transition-colors hover:border-astro-highlight/30"
                 >
                   {getText(lang, 'oracle.state_open_wallet')}
                 </button>
@@ -355,13 +355,13 @@ export const OracleChat: React.FC<OracleChatProps> = ({
         </div>
       </div>
 
-      <div className="scrollbar-hide flex-1 overflow-y-auto px-4 py-4">
-        <p className="lumia-label mb-3 tracking-[0.18em]">{getText(lang, 'oracle.history_label')}</p>
+      <div className="scrollbar-hide min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5">
+        <p className="lumia-label mb-air-sm tracking-[0.18em]">{getText(lang, 'oracle.history_label')}</p>
 
         {loadingHistory && messages.length === 0 ? (
           <div className="pt-8 text-center text-sm text-astro-subtext">{getText(lang, 'oracle.loading_history')}</div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-air">
             {messages.map((msg) => (
               <motion.div
                 key={msg.id}
@@ -406,7 +406,7 @@ export const OracleChat: React.FC<OracleChatProps> = ({
         className="shrink-0 border-t border-astro-border/30 bg-astro-bg/94 backdrop-blur-xl"
         style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 10px)' }}
       >
-        <div className="px-4 pt-4 pb-3">
+        <div className="px-4 pt-4 pb-3 sm:px-5">
           {error && (
             <div className="mb-3 rounded-2xl border border-red-500/30 bg-red-500/8 p-3 text-sm text-red-200">
               <p>{error}</p>
@@ -441,7 +441,7 @@ export const OracleChat: React.FC<OracleChatProps> = ({
             </div>
           )}
 
-          <div className="rounded-2xl border border-astro-border/55 bg-astro-card/45 px-4 py-4">
+          <div className="rounded-air-panel border border-astro-border/55 bg-astro-card/45 px-4 py-4">
             <p className="lumia-label tracking-[0.18em]">{getText(lang, 'oracle.composer_label')}</p>
             <p className="lumia-muted mt-2 text-sm leading-relaxed">{getText(lang, 'oracle.composer_body')}</p>
 
@@ -473,7 +473,7 @@ export const OracleChat: React.FC<OracleChatProps> = ({
                 type="button"
                 onClick={handleSend}
                 disabled={sendDisabled}
-                className="rounded-full bg-astro-highlight px-4 py-2.5 text-xs font-semibold uppercase tracking-[0.16em] text-white transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full bg-astro-highlight px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.16em] text-white transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {loading ? getText(lang, 'oracle.thinking') : sendLabel}
               </button>

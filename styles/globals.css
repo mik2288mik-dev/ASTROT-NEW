@@ -16,6 +16,13 @@
   --border-color: rgba(255, 255, 255, 0.055);
   --orbit-color: rgba(255, 255, 255, 0.12);
   --shadow-color: rgba(0, 0, 0, 0.5);
+  /* Phase 8 AIR — vertical rhythm (fluid on narrow viewports) */
+  --space-air-sm: clamp(0.75rem, 3vw, 1rem);
+  --space-air: clamp(1rem, 4vw, 1.5rem);
+  --space-air-lg: clamp(1.25rem, 5vw, 2rem);
+  --radius-air: 1rem;
+  --radius-air-sm: 0.75rem;
+  --radius-air-panel: 1.75rem;
 }
 
 body.theme-light {
@@ -234,6 +241,22 @@ body.theme-light .shadow-glow {
   transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
+}
+
+/* Keyboard / focus ring (WCAG-friendly; theme-aware) */
+:focus-visible {
+  outline: 2px solid var(--highlight);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* Better Typography for Reading */

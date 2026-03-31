@@ -575,7 +575,7 @@ const App: React.FC = () => {
             />
             
             <main 
-                className="flex-1 relative w-full max-w-md mx-auto overflow-hidden min-h-0"
+                className="flex-1 relative w-full max-w-md md:max-w-reading-wide mx-auto overflow-hidden min-h-0"
                 style={{ paddingLeft: 'env(safe-area-inset-left, 0px)', paddingRight: 'env(safe-area-inset-right, 0px)' }}
             >
                 {view === 'admin' ? (

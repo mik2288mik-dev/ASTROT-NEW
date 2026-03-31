@@ -7,6 +7,7 @@ import { Loading } from '../components/ui/Loading';
 import { getApproximateSunSignByDate } from '../lib/zodiac-utils';
 import { toDateInputValue, formatLumiaDate } from '../lib/date-utils';
 import { SYNASTRY_EXTENDED_LUMI_COST } from '../lib/synastryExtended';
+import { ScreenShell, AIR_GLASS_PANEL_CLASS } from '../components/layout/ScreenShell';
 
 type SynastryPrefill = {
     source: 'saved-chart' | 'manual';
@@ -216,8 +217,8 @@ export const Synastry: React.FC<SynastryProps> = ({
     }
 
     return (
-        <div className="min-h-screen max-w-2xl mx-auto px-5 py-6 space-y-5 screen-pb">
-            <section className="rounded-[24px] border border-astro-border/80 bg-gradient-to-b from-astro-card to-astro-card/65 p-5 shadow-sm">
+        <ScreenShell className="mx-auto max-w-reading-wide pt-3">
+            <section className={`${AIR_GLASS_PANEL_CLASS} bg-gradient-to-b from-astro-card/95 to-astro-card/50`}>
                 <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
                     {t('synastry.hero_kicker')}
                 </p>
@@ -231,7 +232,7 @@ export const Synastry: React.FC<SynastryProps> = ({
 
             {!result ? (
                 <div className="space-y-5">
-                    <div className="rounded-[24px] border border-astro-border/80 bg-astro-card/60 p-5 space-y-4">
+                    <div className="rounded-air-panel border border-astro-border/80 bg-astro-card/60 p-5 space-y-4">
                         <div className="rounded-2xl border border-astro-border/70 bg-astro-bg/25 p-4 space-y-3">
                             <div className="flex items-start justify-between gap-4">
                                 <div>
@@ -526,7 +527,7 @@ export const Synastry: React.FC<SynastryProps> = ({
                 </div>
             ) : (
                 <div className="space-y-5">
-                    <div className="rounded-[24px] border border-astro-border/80 bg-astro-card/60 p-5 space-y-4">
+                    <div className="rounded-air-panel border border-astro-border/80 bg-astro-card/60 p-5 space-y-4">
                         <div className="flex items-start justify-between gap-4">
                             <div>
                                 <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
@@ -692,6 +693,6 @@ export const Synastry: React.FC<SynastryProps> = ({
                     </div>
                 </div>
             )}
-        </div>
+        </ScreenShell>
     );
 };

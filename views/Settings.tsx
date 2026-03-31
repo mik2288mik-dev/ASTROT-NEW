@@ -5,6 +5,7 @@ import { getText } from '../constants';
 import { saveProfile } from '../services/storageService';
 import { requestStarsPayment } from '../services/telegramService';
 import { getWeatherSettings, saveWeatherCity } from '../services/weatherService';
+import { ScreenShell, AIR_GLASS_PANEL_CLASS } from '../components/layout/ScreenShell';
 
 interface SettingsProps {
     profile: UserProfile;
@@ -132,8 +133,8 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
     };
 
     return (
-        <div className="mx-auto max-w-2xl space-y-3 px-4 py-4 screen-pb sm:space-y-3.5">
-            <section className="lumia-glass rounded-2xl p-4 sm:p-[18px]">
+        <ScreenShell className="mx-auto max-w-reading-wide pt-2">
+            <section className={sectionClass}>
                 <p className="lumia-label tracking-[0.2em]">{getText(profile.language, 'settings.subscription')}</p>
                 <h2 className="mt-1.5 font-serif text-xl text-astro-text sm:text-2xl">
                     {profile.isPremium ? getText(profile.language, 'settings.plan_pro') : getText(profile.language, 'settings.plan_basic')}
@@ -386,10 +387,10 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
             )}
 
             <div className="pt-1 text-center">
-                 <button className="text-[10px] uppercase tracking-widest text-astro-subtext transition-colors hover:text-astro-text">
+                 <button type="button" className="min-h-[44px] px-3 text-[10px] uppercase tracking-widest text-astro-subtext transition-colors hover:text-astro-text">
                      {getText(profile.language, 'settings.restore')}
                  </button>
             </div>
-        </div>
+        </ScreenShell>
     );
 };

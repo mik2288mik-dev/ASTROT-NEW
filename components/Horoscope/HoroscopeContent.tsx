@@ -2,7 +2,7 @@ import React, { memo } from 'react';
 import { ForecastDailyReading, Language } from '../../types';
 import { getText } from '../../constants';
 import { FormattedAiText } from '../ui/FormattedAiText';
-import { READING_SECTION_PAD } from '../layout/ReadingLayout';
+import { READING_GLASS_SECTION_CLASS } from '../layout/ReadingLayout';
 
 interface HoroscopeContentProps {
   reading: ForecastDailyReading;
@@ -18,8 +18,8 @@ export const HoroscopeContent = memo<HoroscopeContentProps>(({ reading, language
   ];
 
   return (
-    <div className="space-y-3 sm:space-y-3.5">
-      <div className={`lumia-glass rounded-2xl ${READING_SECTION_PAD}`}>
+    <div className="space-y-air">
+      <div className={READING_GLASS_SECTION_CLASS}>
         <p className="lumia-label tracking-[0.2em]">{getText(language, 'horoscope.reading_title')}</p>
         <p className="lumia-muted mt-1.5 text-sm leading-relaxed">{getText(language, 'horoscope.reading_body')}</p>
 
@@ -35,7 +35,7 @@ export const HoroscopeContent = memo<HoroscopeContentProps>(({ reading, language
         </div>
       </div>
 
-      <div className={`lumia-glass rounded-2xl ${READING_SECTION_PAD}`}>
+      <div className={READING_GLASS_SECTION_CLASS}>
         <p className="lumia-label tracking-[0.2em]">{getText(language, 'horoscope.what_matters_title')}</p>
         <p className="lumia-muted mt-1.5 text-sm leading-relaxed">{getText(language, 'horoscope.what_matters_body')}</p>
 
@@ -49,7 +49,7 @@ export const HoroscopeContent = memo<HoroscopeContentProps>(({ reading, language
         </div>
       </div>
 
-      <div className={`lumia-glass rounded-2xl ${READING_SECTION_PAD}`}>
+      <div className={READING_GLASS_SECTION_CLASS}>
         <p className="lumia-label tracking-[0.2em]">{getText(language, 'horoscope.context_title')}</p>
         <p className="lumia-muted mt-1.5 text-sm leading-relaxed">{getText(language, 'horoscope.context_body')}</p>
 
@@ -59,7 +59,7 @@ export const HoroscopeContent = memo<HoroscopeContentProps>(({ reading, language
       </div>
 
       {tips.length > 0 && (
-        <div className={`lumia-glass rounded-2xl ${READING_SECTION_PAD}`}>
+        <div className={READING_GLASS_SECTION_CLASS}>
           <p className="lumia-label tracking-[0.2em]">{getText(language, 'horoscope.advice_title')}</p>
           <ul className="mt-3 space-y-2 sm:space-y-2.5">
             {tips.map((line, index) => (
