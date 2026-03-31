@@ -9,6 +9,7 @@ const TARGET_SEGMENTS = new Set([
   'all',
   'premium',
   'free',
+  'lumi',
   'active_7d',
   'inactive_3d',
   'inactive_7d',

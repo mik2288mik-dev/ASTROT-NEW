@@ -29,6 +29,7 @@ const EMPTY_OVERVIEW: AdminUsersOverview = {
   totalUsers: 0,
   activePremiumUsers: 0,
   totalLumiBalance: 0,
+  lumiEconomyUsers: 0,
   activeUsers7d: 0,
   needAttentionUsers: 0,
 };
@@ -230,6 +231,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onPatchOwnProfi
         segment: 'premium' as AdminUserSegment,
       },
       {
+        id: 'lumi_economy',
+        label: getAdminText(lang, 'metric_lumi_economy'),
+        value: overview.lumiEconomyUsers,
+        section: 'users' as AdminBackofficeSection,
+        segment: 'lumi' as AdminUserSegment,
+      },
+      {
         id: 'active',
         label: getAdminText(lang, 'metric_active'),
         value: overview.activeUsers7d,
@@ -247,6 +255,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onPatchOwnProfi
     [
       lang,
       overview.activePremiumUsers,
+      overview.lumiEconomyUsers,
       overview.activeUsers7d,
       overview.needAttentionUsers,
       overview.totalUsers,
@@ -314,15 +323,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onPatchOwnProfi
   const breadcrumbHome = lang === 'ru' ? 'Админ' : 'Admin';
 
   return (
-    <div
-      className="admin-app-bg fixed inset-0 z-[60] admin-scroll"
-      style={{
-        paddingTop: 'env(safe-area-inset-top, 0px)',
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-        paddingLeft: 'env(safe-area-inset-left, 0px)',
-        paddingRight: 'env(safe-area-inset-right, 0px)',
-      }}
-    >
+    <div className="admin-app-bg fixed inset-0 z-[60] flex max-h-[100dvh] min-h-0 flex-col overflow-hidden">
+      <div
+        className="flex min-h-0 flex-1 flex-col overflow-hidden"
+        style={{
+          paddingTop: 'env(safe-area-inset-top, 0px)',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+          paddingLeft: 'env(safe-area-inset-left, 0px)',
+          paddingRight: 'env(safe-area-inset-right, 0px)',
+        }}
+      >
       {sidebarOpen ? (
         <button
           type="button"
@@ -333,7 +343,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onPatchOwnProfi
       ) : null}
 
       <div className="admin-dash-root">
-        <aside className="admin-dash-sidebar admin-scroll" data-open={sidebarOpen}>
+        <aside className="admin-dash-sidebar flex flex-col" data-open={sidebarOpen}>
           <div className="flex flex-col border-b border-white/[0.06] px-3 py-4">
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0">
@@ -362,7 +372,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onPatchOwnProfi
             </div>
           ) : null}
 
-          <nav className="flex-1 overflow-y-auto py-2 pb-6">
+          <nav className="admin-scroll flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden py-2 pb-4">
             <p className="admin-dash-nav-group">{lang === 'ru' ? 'Разделы' : 'Sections'}</p>
             {ADMIN_PRIMARY_SECTIONS.map((section) => (
               <NavButton
@@ -428,33 +438,36 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onPatchOwnProfi
             </div>
           </header>
 
-          <div className="admin-dash-content">
-            <p className="mb-4 max-w-3xl text-sm leading-relaxed text-slate-400">
-              {sectionDescription(lang, activeSection)}
-            </p>
+          <div className="admin-dash-content admin-scroll">
+            <div className="admin-dash-workspace">
+              <p className="mb-5 max-w-3xl text-[13px] leading-relaxed text-slate-400 sm:text-sm">
+                {sectionDescription(lang, activeSection)}
+              </p>
 
-            <div className="admin-dash-kpi-row">
-              {summaryChips.map((chip) => (
-                <button
-                  key={chip.id}
-                  type="button"
-                  data-active={activeSection === 'users' && userSegment === chip.segment}
-                  className="admin-dash-kpi-card"
-                  onClick={() => {
-                    setUserSegment(chip.segment);
-                    setActiveSection('users');
-                    closeSidebar();
-                  }}
-                >
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">{chip.label}</p>
-                  <p className="mt-1 text-2xl font-semibold tabular-nums text-white">{chip.value}</p>
-                </button>
-              ))}
+              <div className="admin-dash-kpi-row mb-6">
+                {summaryChips.map((chip) => (
+                  <button
+                    key={chip.id}
+                    type="button"
+                    data-active={activeSection === 'users' && userSegment === chip.segment}
+                    className="admin-dash-kpi-card text-left"
+                    onClick={() => {
+                      setUserSegment(chip.segment);
+                      setActiveSection('users');
+                      closeSidebar();
+                    }}
+                  >
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">{chip.label}</p>
+                    <p className="mt-1 text-2xl font-semibold tabular-nums text-white">{chip.value}</p>
+                  </button>
+                ))}
+              </div>
+
+              <div className="min-w-0 pb-2">{renderSection()}</div>
             </div>
-
-            <div className="min-w-0">{renderSection()}</div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

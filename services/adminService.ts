@@ -99,6 +99,7 @@ export async function fetchAdminUsers(params?: {
       totalUsers: 0,
       activePremiumUsers: 0,
       totalLumiBalance: 0,
+      lumiEconomyUsers: 0,
       activeUsers7d: 0,
       needAttentionUsers: 0,
     },

@@ -39,7 +39,7 @@ export const AdminStateBanner: React.FC<{
         : 'border-sky-400/25 bg-sky-400/10 text-sky-100';
 
   return (
-    <div className={`rounded-[22px] border px-4 py-3 text-sm leading-6 shadow-[0_10px_32px_rgba(0,0,0,0.12)] ${toneClass}`}>
+    <div className={`rounded-[1.75rem] border px-4 py-3 text-sm leading-6 shadow-[0_10px_32px_rgba(0,0,0,0.12)] ${toneClass}`}>
       {children}
     </div>
   );
@@ -86,7 +86,7 @@ export const AdminEmptyState: React.FC<{
   body: string;
   action?: React.ReactNode;
 }> = ({ title, body, action }) => (
-  <div className="rounded-[26px] border border-dashed border-white/10 bg-white/[0.02] px-5 py-10 text-center">
+  <div className="rounded-[1.75rem] border border-dashed border-white/10 bg-white/[0.02] px-5 py-10 text-center">
     <h3 className="admin-heading text-[24px] text-white">{title}</h3>
     <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-slate-400">{body}</p>
     {action ? <div className="mt-5 flex justify-center">{action}</div> : null}

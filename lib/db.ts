@@ -72,6 +72,7 @@ type AdminDbUserSegment =
   | 'all'
   | 'premium'
   | 'free'
+  | 'lumi'
   | 'active_7d'
   | 'inactive_3d'
   | 'inactive_7d'
@@ -85,6 +86,7 @@ type AdminDbNotificationSegment =
   | 'all'
   | 'premium'
   | 'free'
+  | 'lumi'
   | 'active_7d'
   | 'inactive_3d'
   | 'inactive_7d'
@@ -217,6 +219,7 @@ function getAdminUserSegmentSql(paramIndex: number) {
     $${paramIndex} = 'all'
     OR ($${paramIndex} = 'premium' AND premium_until IS NOT NULL AND premium_until > NOW())
     OR ($${paramIndex} = 'free' AND (premium_until IS NULL OR premium_until <= NOW()))
+    OR ($${paramIndex} = 'lumi' AND (premium_until IS NULL OR premium_until <= NOW()) AND lumi_balance > 0)
     OR ($${paramIndex} = 'active_7d' AND last_seen_at >= NOW() - INTERVAL '7 days')
     OR ($${paramIndex} = 'inactive_3d' AND (last_seen_at IS NULL OR last_seen_at < NOW() - INTERVAL '3 days'))
     OR ($${paramIndex} = 'inactive_7d' AND (last_seen_at IS NULL OR last_seen_at < NOW() - INTERVAL '7 days'))
@@ -2578,6 +2581,7 @@ export const db = {
           total_users: 0,
           active_premium_users: 0,
           total_lumi_balance: 0,
+          lumi_economy_users: 0,
           active_users_7d: 0,
           need_attention_users: 0,
         };
@@ -2591,6 +2595,7 @@ export const db = {
              COUNT(*)::int AS total_users,
              COUNT(*) FILTER (WHERE premium_until IS NOT NULL AND premium_until > NOW())::int AS active_premium_users,
              COALESCE(SUM(lumi_balance), 0)::int AS total_lumi_balance,
+             COUNT(*) FILTER (WHERE (premium_until IS NULL OR premium_until <= NOW()) AND lumi_balance > 0)::int AS lumi_economy_users,
              COUNT(*) FILTER (WHERE last_seen_at >= NOW() - INTERVAL '7 days')::int AS active_users_7d,
              COUNT(*) FILTER (WHERE ${ADMIN_NEED_ATTENTION_SQL})::int AS need_attention_users
            FROM user_metrics`
@@ -2600,6 +2605,7 @@ export const db = {
           total_users: 0,
           active_premium_users: 0,
           total_lumi_balance: 0,
+          lumi_economy_users: 0,
           active_users_7d: 0,
           need_attention_users: 0,
         };

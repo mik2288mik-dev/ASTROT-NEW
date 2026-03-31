@@ -8,6 +8,7 @@ function isValidSegment(value: unknown): value is AdminNotificationTargetSegment
   return value === 'all'
     || value === 'premium'
     || value === 'free'
+    || value === 'lumi'
     || value === 'active_7d'
     || value === 'inactive_3d'
     || value === 'inactive_7d'

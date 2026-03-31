@@ -385,6 +385,7 @@ export type AdminUserSegment =
   | 'all'
   | 'premium'
   | 'free'
+  | 'lumi'
   | 'active_7d'
   | 'inactive_3d'
   | 'inactive_7d'
@@ -419,6 +420,8 @@ export interface AdminUsersOverview {
   totalUsers: number;
   activePremiumUsers: number;
   totalLumiBalance: number;
+  /** Non-premium users with lumi_balance > 0 (Lumi economy, not subscription). */
+  lumiEconomyUsers: number;
   activeUsers7d: number;
   needAttentionUsers: number;
 }
@@ -475,6 +478,7 @@ export type AdminNotificationTargetSegment =
   | 'all'
   | 'premium'
   | 'free'
+  | 'lumi'
   | 'active_7d'
   | 'inactive_3d'
   | 'inactive_7d'

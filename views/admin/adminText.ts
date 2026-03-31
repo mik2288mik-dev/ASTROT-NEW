@@ -22,6 +22,7 @@ const ADMIN_TEXT = {
     metric_premium: 'Premium',
     metric_active: 'Активны 7 дн.',
     metric_attention: 'Нужно внимание',
+    metric_lumi_economy: 'Lumi (не Premium)',
 
     search_users: 'Поиск по имени или Telegram ID',
     filter_all: 'Все',
@@ -38,6 +39,7 @@ const ADMIN_TEXT = {
     segment_all: 'Все',
     segment_premium: 'Premium',
     segment_free: 'Free',
+    segment_lumi: 'Lumi (баланс > 0)',
     segment_active_7d: 'Активны 7 дн.',
     segment_inactive_3d: 'Не были 3 дня',
     segment_inactive_7d: 'Не были 7 дней',
@@ -217,6 +219,7 @@ const ADMIN_TEXT = {
     metric_premium: 'Premium',
     metric_active: 'Active 7d',
     metric_attention: 'Attention',
+    metric_lumi_economy: 'Lumi economy',
 
     search_users: 'Search by name or Telegram ID',
     filter_all: 'All',
@@ -233,6 +236,7 @@ const ADMIN_TEXT = {
     segment_all: 'All',
     segment_premium: 'Premium',
     segment_free: 'Free',
+    segment_lumi: 'Lumi (balance > 0)',
     segment_active_7d: 'Active 7d',
     segment_inactive_3d: 'Inactive 3d',
     segment_inactive_7d: 'Inactive 7d',

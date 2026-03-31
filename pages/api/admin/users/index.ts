@@ -31,6 +31,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       : 'all';
     const segment = req.query.segment === 'premium'
       || req.query.segment === 'free'
+      || req.query.segment === 'lumi'
       || req.query.segment === 'active_7d'
       || req.query.segment === 'inactive_3d'
       || req.query.segment === 'inactive_7d'

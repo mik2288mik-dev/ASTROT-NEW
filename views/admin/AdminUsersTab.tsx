@@ -40,7 +40,7 @@ interface AdminUsersTabProps {
 }
 
 const FILTERS: AdminPremiumFilter[] = ['all', 'premium', 'free'];
-const SEGMENTS: AdminUserSegment[] = ['all', 'premium', 'free', 'active_7d', 'inactive_3d', 'inactive_7d', 'inactive_30d', 'need_attention'];
+const SEGMENTS: AdminUserSegment[] = ['all', 'premium', 'free', 'lumi', 'active_7d', 'inactive_3d', 'inactive_7d', 'inactive_30d', 'need_attention'];
 const PAGE_SIZES = [25, 50, 100];
 
 const formatDateTime = (lang: 'ru' | 'en', value?: string | null) => {
@@ -68,6 +68,7 @@ const getSegmentLabel = (lang: 'ru' | 'en', segment: AdminUserSegment) => {
     all: getAdminText(lang, 'segment_all'),
     premium: getAdminText(lang, 'segment_premium'),
     free: getAdminText(lang, 'segment_free'),
+    lumi: getAdminText(lang, 'segment_lumi'),
     active_7d: getAdminText(lang, 'segment_active_7d'),
     inactive_3d: getAdminText(lang, 'segment_inactive_3d'),
     inactive_7d: getAdminText(lang, 'segment_inactive_7d'),
@@ -125,6 +126,8 @@ export const AdminUsersTab: React.FC<AdminUsersTabProps> = ({
         return usersList.overview.activeUsers7d;
       case 'need_attention':
         return usersList.overview.needAttentionUsers;
+      case 'lumi':
+        return usersList.overview.lumiEconomyUsers;
       default:
         return usersList.pagination.total;
     }
@@ -133,6 +136,7 @@ export const AdminUsersTab: React.FC<AdminUsersTabProps> = ({
     usersList.overview.activePremiumUsers,
     usersList.overview.activeUsers7d,
     usersList.overview.needAttentionUsers,
+    usersList.overview.lumiEconomyUsers,
     usersList.pagination.total,
   ]);
 

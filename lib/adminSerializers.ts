@@ -218,6 +218,7 @@ export function serializeAdminUsersOverview(row: any) {
     totalUsers: Number(row.total_users ?? 0),
     activePremiumUsers: Number(row.active_premium_users ?? 0),
     totalLumiBalance: Number(row.total_lumi_balance ?? 0),
+    lumiEconomyUsers: Number(row.lumi_economy_users ?? 0),
     activeUsers7d: Number(row.active_users_7d ?? 0),
     needAttentionUsers: Number(row.need_attention_users ?? 0),
   };

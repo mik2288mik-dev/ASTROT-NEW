@@ -9,7 +9,7 @@
 
 ## Цели трека
 
-- Поддержка новых content tiers (`free` / `lumi` / `premium`) в сегментации и шаблонах.
+- Поддержка новых content tiers (`free` / `lumi` / `premium`) в сегментации и шаблонах. В админке сегмент **`lumi`** = не Premium и `lumi_balance > 0` (см. [PHASE_2_9_STATUS_AND_GAPS.md](./PHASE_2_9_STATUS_AND_GAPS.md)).
 - Редактируемые шаблоны уведомлений и предпросмотр.
 - Сегментация аудитории (premium, активность, need attention — см. admin users).
 - В перспективе: нормальные recurring-настройки уведомлений для пользователя (не блокирует consumer core).

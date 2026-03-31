@@ -43,7 +43,7 @@ interface AdminNotificationsTabProps {
   onChangeSection?: (section: AdminNotificationSection) => void;
 }
 
-const SEGMENTS: AdminNotificationTargetSegment[] = ['all', 'premium', 'free', 'active_7d', 'inactive_3d', 'inactive_7d', 'inactive_30d', 'need_attention'];
+const SEGMENTS: AdminNotificationTargetSegment[] = ['all', 'premium', 'free', 'lumi', 'active_7d', 'inactive_3d', 'inactive_7d', 'inactive_30d', 'need_attention'];
 const KINDS: Array<AdminNotificationTemplateKind | 'all'> = ['all', 'both', 'personal', 'broadcast'];
 const HISTORY_MODES: AdminNotificationModeFilter[] = ['all', 'personal', 'broadcast'];
 const HISTORY_RESULTS: AdminHistoryResultFilter[] = ['all', 'success', 'partial', 'failed'];
@@ -61,6 +61,7 @@ const segmentLabel = (lang: 'ru' | 'en', value: AdminNotificationTargetSegment) 
     all: getAdminText(lang, 'segment_all'),
     premium: getAdminText(lang, 'segment_premium'),
     free: getAdminText(lang, 'segment_free'),
+    lumi: getAdminText(lang, 'segment_lumi'),
     active_7d: getAdminText(lang, 'segment_active_7d'),
     inactive_3d: getAdminText(lang, 'segment_inactive_3d'),
     inactive_7d: getAdminText(lang, 'segment_inactive_7d'),
