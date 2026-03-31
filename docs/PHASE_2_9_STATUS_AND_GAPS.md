@@ -8,7 +8,7 @@
 |----------|------|--------|-------------|
 | 2 | Dashboard Phase 2 | **Сделано** | [views/Dashboard.tsx](../views/Dashboard.tsx): hero из прогноза, блок «что важно», натал, вторичные CTA; [AIR_UI_ROLLOUT.md](./AIR_UI_ROLLOUT.md) помечает Dashboard как Done. |
 | 3 | Content-tier spec + словарь | **Сделано** | [LUMIA_CONTENT_TIER_SPEC.md](./LUMIA_CONTENT_TIER_SPEC.md) — матрица tier×surface×variant, UI-имена (Ask Lumia, без Regenerate в copy). Открытые вопросы спеки: Deep Dive naming, weekly/monthly forecast. |
-| 4 | Forecast rebuild | **В основном сделано** | Free daily + premium dayparts в коде и спеке. **Зазор:** отдельные consumer endpoints weekly/monthly — в backlog спеки §5. |
+| 4 | Forecast rebuild | **В основном сделано** | Free daily + premium dayparts; недельный/месячный слои в `content/forecast/weekly` и `monthly` (free краткий / premium полный), UI в Horoscope. Legacy astrology weekly/monthly помечены заголовками deprecation. |
 | 5 | Natal anchor + living | **Сделано** | Спека и API `content/natal/anchor`, `living`; экран [NatalChart.tsx](../views/NatalChart.tsx). |
 | 6 | Questions + Synastry | **Сделано** | Зафиксировано в roadmap §6 и в спеке (free / Lumi / Premium). |
 | 7 | Lumi economy | **Частично** | Кошелёк, стрики, рулетка, рефералы в [Wallet.tsx](../views/Wallet.tsx), [lumiReasonTaxonomy.ts](../lib/lumiReasonTaxonomy.ts). **Зазоры:** roadmap перечисляет reposts и прочие петли — оценивать по продуктовому приоритету; углубление copy/онбординга «зачем Lumi». |

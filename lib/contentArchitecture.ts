@@ -6,7 +6,7 @@ import type {
   ContentUnlock,
 } from '../types';
 import { db } from './db';
-import { getMoscowTodayKey } from './date-utils';
+import { getMoscowIsoWeekKey, getMoscowMonthKey, getMoscowTodayKey } from './date-utils';
 
 const log = {
   info: (message: string, data?: any) => {
@@ -49,6 +49,8 @@ function getDefaultCacheKey(surface: ContentSurface, variant: ContentVariant) {
   if (surface === 'forecast' && (variant === 'morning' || variant === 'day' || variant === 'evening')) {
     return `${getMoscowTodayKey()}:${variant}`;
   }
+  if (surface === 'forecast' && variant === 'weekly') return getMoscowIsoWeekKey();
+  if (surface === 'forecast' && variant === 'monthly') return getMoscowMonthKey();
   if (surface === 'natal' && variant === 'living') return getCurrentMonthKey();
   return 'default';
 }

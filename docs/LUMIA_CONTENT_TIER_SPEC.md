@@ -26,6 +26,10 @@
 |-------------|---------|---------|---------------------------|----------------|----------------|
 | free | forecast | daily | Один личный прогноз на день (базовая интерпретация) | `POST/GET /api/content/forecast/daily` | [views/Horoscope.tsx](../views/Horoscope.tsx), [views/Dashboard.tsx](../views/Dashboard.tsx) |
 | premium | forecast | morning / day / evening | Слой дня по частям: утро, день, вечер (другой класс интерпретации) | `POST/GET /api/content/forecast/daypart` + `slot` | [views/Horoscope.tsx](../views/Horoscope.tsx), [services/astrologyService.ts](../services/astrologyService.ts) |
+| free | forecast | weekly | Короткий недельный ориентир (ISO-неделя, Москва) | `POST/GET /api/content/forecast/weekly` (`tier` на POST: `free`) | [views/Horoscope.tsx](../views/Horoscope.tsx) |
+| premium | forecast | weekly | Полный недельный слой (тема, риски, отношения, работа, разбор) | `POST/GET /api/content/forecast/weekly` (`tier: premium`) | то же |
+| free | forecast | monthly | Компактный месячный фокус (`YYYY-MM` по Москве) | `POST/GET /api/content/forecast/monthly` | то же |
+| premium | forecast | monthly | Развёрнутый месячный слой | `POST/GET /api/content/forecast/monthly` (`tier: premium`) | то же |
 | free | natal | anchor | Постоянная «основа» карты (не самопроизвольно перезаписывается) | `POST/GET /api/content/natal/anchor` | [views/NatalChart.tsx](../views/NatalChart.tsx) |
 | premium | natal | living | Живой слой периода (тема, активации, отношения, деньги) | `POST/GET /api/content/natal/living` | [views/NatalChart.tsx](../views/NatalChart.tsx) |
 | free | question | brief | Стартовый бесплатный вопрос (лимит через unlock) | `POST/GET /api/content/question/ask` | [views/OracleChat.tsx](../views/OracleChat.tsx) |
@@ -35,7 +39,7 @@
 | lumi | synastry | one_off | Средний слой (связь, напряжение, навигация, контекст типа связи), разовый unlock + кэш | `POST /api/content/synastry/extended` (`allowLumiSpend`) | то же |
 | premium | synastry | (legacy `full`) | Полный глубокий разбор | `POST /api/astrology/synastry-full` (entitlement по БД) | то же |
 
-Генерация текста прогноза: [lib/forecastContent.ts](../lib/forecastContent.ts), промпты: [lib/prompts.ts](../lib/prompts.ts) (`createDailyForecastV2Prompt`, `createDaypartForecastPrompt`).
+Генерация текста прогноза: [lib/forecastContent.ts](../lib/forecastContent.ts), промпты: [lib/prompts.ts](../lib/prompts.ts) (`createDailyForecastV2Prompt`, `createDaypartForecastPrompt`, неделя/месяц: `createFreeWeeklyForecastPrompt`, `createPremiumWeeklyForecastPrompt`, `createFreeMonthlyForecastPrompt`, `createPremiumMonthlyForecastPrompt`).
 
 Unlock / интерпретации в БД: [lib/contentArchitecture.ts](../lib/contentArchitecture.ts), `db.content_interpretations`, `db.content_unlocks`.
 
@@ -62,7 +66,7 @@ Unlock / интерпретации в БД: [lib/contentArchitecture.ts](../lib
 ## 5. Backlog / известные зазоры
 
 - **Synastry**: Lumi-слой пишет в `content_interpretations` + `synastry_cache` (`mode: extended`); free/full по-прежнему на legacy `synastry-brief` / `synastry-full` (кэш `brief`/`full`). При желании позже — единый маршрут `requestedTier`.
-- **Weekly / monthly** forecast: варианты в типах; отдельные consumer endpoints — по мере Phase 4 roadmap.
+- **Weekly / monthly** forecast: реализовано в `content/forecast/weekly` и `monthly`; legacy `pages/api/astrology/weekly-horoscope` / `monthly-horoscope` помечены как устаревающие мосты.
 - **Lumi reason taxonomy** (earn / spend / purchase / system): код и подписи в [lib/lumiReasonTaxonomy.ts](../lib/lumiReasonTaxonomy.ts); расширять при новых `reason` в БД.
 
 ## 6. История
@@ -70,3 +74,4 @@ Unlock / интерпретации в БД: [lib/contentArchitecture.ts](../lib
 - 2026-03: первая версия спеки после Dashboard Phase 2, forecast/dayparts, Ask Lumia и natal anchor/living в UI.
 - 2026-03: Phase 6 — три слоя синастрии (free / Lumi extended / Premium full) и выравнивание копирайта вопросов.
 - 2026-03: Phase 7 (часть) — таксономия причин Lumi в `lib/lumiReasonTaxonomy.ts`, кошелёк и admin на общих подписях.
+- 2026-03: Phase 4 (часть) — недельный и месячный прогноз в content-архитектуре (free краткий / premium полный).

@@ -1114,3 +1114,205 @@ export interface ExtendedSynastryAIResponse {
   compatibilityScore?: number;
 }
 
+/** Content v2: free weekly (короткий слой). */
+export interface FreeWeeklyForecastV2AIResponse {
+  headline: string;
+  summary: string;
+  focus: string;
+}
+
+/** Content v2: premium weekly (полный слой). */
+export interface PremiumWeeklyForecastV2AIResponse {
+  headline: string;
+  summary: string;
+  focus: string;
+  theme: string;
+  opportunities: string;
+  challenges: string;
+  relationships: string;
+  career: string;
+  guidance: string;
+  reading: string;
+}
+
+export interface FreeMonthlyForecastV2AIResponse {
+  headline: string;
+  summary: string;
+  focus: string;
+}
+
+export interface PremiumMonthlyForecastV2AIResponse {
+  headline: string;
+  summary: string;
+  focus: string;
+  theme: string;
+  opportunities: string;
+  challenges: string;
+  relationships: string;
+  money: string;
+  guidance: string;
+  reading: string;
+}
+
+export const createFreeWeeklyForecastPrompt = (
+  natalData: NatalChartData,
+  profile: UserProfile,
+  periodKey: string,
+  periodLabel: string,
+  transits?: any
+): string => {
+  const natalDataJson = JSON.stringify(natalData, null, 2);
+  const transitsJson = JSON.stringify(transits || {}, null, 2);
+  const displayName = profile.name || 'the user';
+
+  return `Forecast period (ISO week): ${periodKey}
+Human-readable range: ${periodLabel}
+
+User: ${displayName}
+Language: ${profile.language}
+
+Natal chart:
+${natalDataJson}
+
+Current transits (context):
+${transitsJson}
+
+Task: Lumia FREE weekly layer — one honest, compact orientation for this calendar week.
+
+Rules:
+- Short and useful: this is not the premium deep layer.
+- Personal, modern, emotionally precise; no mystical fluff.
+- No color/number/lucky day gimmicks. No moon-sign fluff for entertainment.
+- Speak to the real person; connect week-scale tone to chart + transits.
+
+Return strict JSON:
+- headline: max 90 chars, one strong line for the week
+- summary: 1-2 sentences
+- focus: one clear practical focus for the week
+
+Return only JSON.`;
+};
+
+export const createPremiumWeeklyForecastPrompt = (
+  natalData: NatalChartData,
+  profile: UserProfile,
+  periodKey: string,
+  periodLabel: string,
+  transits?: any
+): string => {
+  const natalDataJson = JSON.stringify(natalData, null, 2);
+  const transitsJson = JSON.stringify(transits || {}, null, 2);
+  const displayName = profile.name || 'the user';
+
+  return `Forecast period (ISO week): ${periodKey}
+Human-readable range: ${periodLabel}
+
+User: ${displayName}
+Language: ${profile.language}
+
+Natal chart:
+${natalDataJson}
+
+Current transits:
+${transitsJson}
+
+Task: Lumia PREMIUM weekly layer — full-class forecast for the week (stronger than free, not just longer).
+
+Rules:
+- Emotionally precise, situational, useful for decisions, relationships, work/money, tension, opportunity.
+- Clearly richer than the free weekly teaser; different class of interpretation.
+- No gimmicks (no color/number games). No vague filler.
+
+Return strict JSON:
+- headline: max 90 chars
+- summary: 2-3 sentences
+- focus: one line
+- theme: 2-5 words naming the week
+- opportunities: 1-2 sentences
+- challenges: 1-2 sentences
+- relationships: 2-3 sentences
+- career: 2-3 sentences (work, money, direction)
+- guidance: 2-3 sentences direct orientation
+- reading: 3-5 short paragraphs separated by "\\n\\n"
+
+Return only JSON.`;
+};
+
+export const createFreeMonthlyForecastPrompt = (
+  natalData: NatalChartData,
+  profile: UserProfile,
+  periodKey: string,
+  periodLabel: string,
+  transits?: any
+): string => {
+  const natalDataJson = JSON.stringify(natalData, null, 2);
+  const transitsJson = JSON.stringify(transits || {}, null, 2);
+  const displayName = profile.name || 'the user';
+
+  return `Forecast month: ${periodKey} (${periodLabel})
+
+User: ${displayName}
+Language: ${profile.language}
+
+Natal chart:
+${natalDataJson}
+
+Transits context:
+${transitsJson}
+
+Task: Lumia FREE monthly layer — compact month orientation.
+
+Rules:
+- Brief but serious; personal; no gimmicks.
+
+Return strict JSON:
+- headline: max 90 chars
+- summary: 1-2 sentences
+- focus: one line for the month
+
+Return only JSON.`;
+};
+
+export const createPremiumMonthlyForecastPrompt = (
+  natalData: NatalChartData,
+  profile: UserProfile,
+  periodKey: string,
+  periodLabel: string,
+  transits?: any
+): string => {
+  const natalDataJson = JSON.stringify(natalData, null, 2);
+  const transitsJson = JSON.stringify(transits || {}, null, 2);
+  const displayName = profile.name || 'the user';
+
+  return `Forecast month: ${periodKey} (${periodLabel})
+
+User: ${displayName}
+Language: ${profile.language}
+
+Natal chart:
+${natalDataJson}
+
+Transits:
+${transitsJson}
+
+Task: Lumia PREMIUM monthly layer — deep month reading (premium class, not inflated length).
+
+Rules:
+- Themes, tradeoffs, relationships, money/work, guidance; emotionally accurate.
+- No gimmicks.
+
+Return strict JSON:
+- headline: max 90 chars
+- summary: 2-3 sentences
+- focus: one line
+- theme: 2-5 words
+- opportunities: 2-3 sentences
+- challenges: 2-3 sentences
+- relationships: 2-4 sentences
+- money: 2-4 sentences
+- guidance: 2-3 sentences
+- reading: 4-6 short paragraphs separated by "\\n\\n"
+
+Return only JSON.`;
+};
+

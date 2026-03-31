@@ -27,6 +27,9 @@ export default async function handler(
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  res.setHeader('X-Lumia-Legacy-Endpoint', 'weekly-horoscope');
+  res.setHeader('Warning', '299 - "Deprecated: prefer /api/content/forecast/weekly"');
+
   try {
     const { profile, chartData } = req.body;
     const lang = profile?.language === 'ru';

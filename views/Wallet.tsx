@@ -9,7 +9,7 @@ import {
 import { getAllLumiPacks, type LumiPack } from '../services/lumiPacks';
 import { requestLumiPackPayment } from '../services/telegramService';
 import { Loading } from '../components/ui/Loading';
-import { formatLumiReasonLabel } from '../lib/lumiReasonTaxonomy';
+import { formatLumiReasonLabel, listLumiReasonKeysByFlow } from '../lib/lumiReasonTaxonomy';
 import { getText } from '../constants';
 import { REFERRAL_INVITEE_LUMI, REFERRAL_INVITER_LUMI } from '../lib/referralEconomy';
 import { ScreenShell, AIR_GLASS_PANEL_CLASS } from '../components/layout/ScreenShell';
@@ -299,6 +299,28 @@ export const Wallet: React.FC<WalletProps> = ({ profile, onUpdateProfile }) => {
             </div>
           </>
         )}
+      </div>
+
+      <div className={`${AIR_GLASS_PANEL_CLASS} space-y-4`}>
+        <div>
+          <h2 className="font-serif text-lg text-astro-text">{wt('taxonomy_title')}</h2>
+          <p className="mt-2 text-sm text-astro-subtext leading-relaxed">{wt('taxonomy_intro')}</p>
+        </div>
+        <div className="grid gap-5 sm:grid-cols-3">
+          {(['earn', 'spend', 'purchase'] as const).map((flow) => {
+            const titleKey = flow === 'earn' ? 'taxonomy_earn' : flow === 'spend' ? 'taxonomy_spend' : 'taxonomy_purchase';
+            return (
+              <div key={flow}>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-astro-subtext">{wt(titleKey)}</p>
+                <ul className="mt-2 space-y-1.5 text-xs leading-relaxed text-astro-text/90">
+                  {listLumiReasonKeysByFlow(flow).map((key) => (
+                    <li key={key}>{formatLumiReasonLabel(lang, key)}</li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       <div className={`${AIR_GLASS_PANEL_CLASS} space-y-3`}>

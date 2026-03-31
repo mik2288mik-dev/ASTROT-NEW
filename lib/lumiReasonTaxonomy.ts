@@ -148,3 +148,10 @@ export function formatLumiReasonLabel(lang: 'ru' | 'en', reason: string): string
   if (entry) return lang === 'ru' ? entry.ru : entry.en;
   return reason.replace(/_/g, ' ');
 }
+
+/** Stable keys for a flow (for Wallet glossary and admin tooling). */
+export function listLumiReasonKeysByFlow(flow: LumiReasonFlow): string[] {
+  return (Object.keys(LUMI_REASON_TAXONOMY) as string[])
+    .filter((k) => LUMI_REASON_TAXONOMY[k]?.flow === flow)
+    .sort((a, b) => a.localeCompare(b));
+}

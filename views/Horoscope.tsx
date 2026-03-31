@@ -4,10 +4,14 @@ import {
     ForecastDailyReading,
     ForecastDaypartReading,
     ForecastDaypartSlot,
+    ForecastMonthlyReading,
+    ForecastWeeklyReading,
     NatalChartData,
     UserProfile,
 } from '../types';
 import {
+    ensureMonthlyForecastLayer,
+    ensureWeeklyForecastLayer,
     getCachedDailyForecastLayer,
     getCachedDailyHoroscope,
     getDailyForecastLayer,
@@ -19,7 +23,7 @@ import {
 import { Loading } from '../components/ui/Loading';
 import { ZodiacHeader } from '../components/Horoscope/ZodiacHeader';
 import { HoroscopeContent } from '../components/Horoscope/HoroscopeContent';
-import { formatLumiaDate, getMoscowTodayKey } from '../lib/date-utils';
+import { formatLumiaDate, getMoscowIsoWeekKey, getMoscowMonthKey, getMoscowTodayKey } from '../lib/date-utils';
 import { getText } from '../constants';
 import { READING_GLASS_SECTION_CLASS, READING_PAGE_CLASS } from '../components/layout/ReadingLayout';
 import { ReadingScreenShell } from '../components/layout/ScreenShell';
@@ -81,6 +85,13 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
     const [statusMessage, setStatusMessage] = useState<string | null>(null);
     const [daypartsStatus, setDaypartsStatus] = useState<string | null>(null);
     const [isStale, setIsStale] = useState(false);
+    const [weeklyReading, setWeeklyReading] = useState<ForecastWeeklyReading | null>(null);
+    const [monthlyReading, setMonthlyReading] = useState<ForecastMonthlyReading | null>(null);
+    const [periodLoading, setPeriodLoading] = useState(false);
+    const [periodError, setPeriodError] = useState<string | null>(null);
+
+    const weekKey = useMemo(() => getMoscowIsoWeekKey(), []);
+    const monthKey = useMemo(() => getMoscowMonthKey(), []);
 
     const syncLegacyIntoProfile = (legacy: DailyHoroscope) => {
         if (!onUpdateProfile) return;
@@ -297,6 +308,50 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
         };
     }, [chartData, language, profile.id, profile.isPremium]);
 
+    useEffect(() => {
+        let cancelled = false;
+
+        const loadPeriodLayers = async () => {
+            if (!chartData || !profile.id) {
+                if (!cancelled) {
+                    setWeeklyReading(null);
+                    setMonthlyReading(null);
+                    setPeriodLoading(false);
+                    setPeriodError(null);
+                }
+                return;
+            }
+
+            setPeriodLoading(true);
+            setPeriodError(null);
+
+            try {
+                const [w, m] = await Promise.all([
+                    ensureWeeklyForecastLayer(profileRef.current, chartData, weekKey),
+                    ensureMonthlyForecastLayer(profileRef.current, chartData, monthKey),
+                ]);
+                if (!cancelled) {
+                    setWeeklyReading(w);
+                    setMonthlyReading(m);
+                }
+            } catch (e: any) {
+                if (!cancelled) {
+                    setPeriodError(e?.message || getText(language, 'horoscope.period_error'));
+                    setWeeklyReading(null);
+                    setMonthlyReading(null);
+                }
+            } finally {
+                if (!cancelled) setPeriodLoading(false);
+            }
+        };
+
+        void loadPeriodLayers();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [chartData, language, monthKey, profile.id, profile.isPremium, weekKey]);
+
     if (loading) {
         return <Loading message={getText(language, 'horoscope.loading')} />;
     }
@@ -441,6 +496,176 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
                             </button>
                         </div>
                     )
+                )}
+            </section>
+
+            <section className={READING_GLASS_SECTION_CLASS}>
+                <p className="lumia-label tracking-[0.2em]">{getText(language, 'horoscope.weekly_label')}</p>
+                <h2 className="mt-1.5 font-serif text-lg text-astro-text sm:text-xl">{getText(language, 'horoscope.weekly_title')}</h2>
+                <p className="lumia-muted mt-1.5 text-sm leading-relaxed">{getText(language, 'horoscope.weekly_body')}</p>
+
+                {periodLoading && (
+                    <div className="lumia-glass-inset mt-4 px-4 py-3 text-sm lumia-muted">
+                        {getText(language, 'horoscope.period_loading')}
+                    </div>
+                )}
+
+                {periodError && !periodLoading && (
+                    <div className="lumia-glass-inset mt-4 px-4 py-3 text-sm text-amber-200/90">{periodError}</div>
+                )}
+
+                {weeklyReading && !periodLoading && (
+                    <div className="mt-4 space-y-4">
+                        <p className="text-[11px] uppercase tracking-wider text-astro-subtext">{weeklyReading.periodLabel}</p>
+                        <h3 className="font-serif text-lg text-astro-text sm:text-xl">{weeklyReading.headline}</h3>
+                        <p className="text-sm leading-relaxed text-astro-text sm:text-[15px]">{weeklyReading.summary}</p>
+                        <div>
+                            <p className="lumia-label text-[10px] tracking-[0.16em]">{getText(language, 'horoscope.focus_title')}</p>
+                            <p className="mt-1 text-sm leading-relaxed text-astro-text">{weeklyReading.focus}</p>
+                        </div>
+
+                        {profile.isPremium && weeklyReading.theme ? (
+                            <div className="space-y-3 rounded-2xl border border-astro-border/40 bg-astro-card/30 p-4">
+                                <div>
+                                    <p className="lumia-label text-[10px] tracking-[0.16em]">{getText(language, 'horoscope.period_theme')}</p>
+                                    <p className="mt-1 text-sm font-medium text-astro-text">{weeklyReading.theme}</p>
+                                </div>
+                                {weeklyReading.opportunities ? (
+                                    <div>
+                                        <p className="lumia-label text-[10px] tracking-[0.16em]">{getText(language, 'horoscope.period_opportunities')}</p>
+                                        <p className="mt-1 text-sm leading-relaxed text-astro-text">{weeklyReading.opportunities}</p>
+                                    </div>
+                                ) : null}
+                                {weeklyReading.challenges ? (
+                                    <div>
+                                        <p className="lumia-label text-[10px] tracking-[0.16em]">{getText(language, 'horoscope.period_challenges')}</p>
+                                        <p className="mt-1 text-sm leading-relaxed text-astro-text">{weeklyReading.challenges}</p>
+                                    </div>
+                                ) : null}
+                                {weeklyReading.relationships ? (
+                                    <div>
+                                        <p className="lumia-label text-[10px] tracking-[0.16em]">{getText(language, 'horoscope.period_relationships')}</p>
+                                        <p className="mt-1 text-sm leading-relaxed text-astro-text">{weeklyReading.relationships}</p>
+                                    </div>
+                                ) : null}
+                                {weeklyReading.career ? (
+                                    <div>
+                                        <p className="lumia-label text-[10px] tracking-[0.16em]">{getText(language, 'horoscope.period_career')}</p>
+                                        <p className="mt-1 text-sm leading-relaxed text-astro-text">{weeklyReading.career}</p>
+                                    </div>
+                                ) : null}
+                                {weeklyReading.guidance ? (
+                                    <div>
+                                        <p className="lumia-label text-[10px] tracking-[0.16em]">{getText(language, 'horoscope.period_guidance')}</p>
+                                        <p className="mt-1 text-sm leading-relaxed text-astro-text">{weeklyReading.guidance}</p>
+                                    </div>
+                                ) : null}
+                                {weeklyReading.reading ? (
+                                    <div>
+                                        <p className="lumia-label text-[10px] tracking-[0.16em]">{getText(language, 'horoscope.period_reading')}</p>
+                                        <div className="mt-2 space-y-3 text-sm leading-relaxed text-astro-text whitespace-pre-line [text-wrap:pretty]">
+                                            {weeklyReading.reading}
+                                        </div>
+                                    </div>
+                                ) : null}
+                            </div>
+                        ) : null}
+
+                        {!profile.isPremium && onRequestPremium ? (
+                            <div className="rounded-2xl border border-astro-highlight/16 bg-astro-highlight/[0.06] px-4 py-4">
+                                <p className="text-sm leading-relaxed text-astro-text">
+                                    {getText(language, 'horoscope.period_premium_hint_weekly')}
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={onRequestPremium}
+                                    className="mt-3 inline-flex min-h-[44px] items-center text-sm font-medium text-astro-highlight"
+                                >
+                                    {getText(language, 'horoscope.premium_cta')}
+                                </button>
+                            </div>
+                        ) : null}
+                    </div>
+                )}
+            </section>
+
+            <section className={READING_GLASS_SECTION_CLASS}>
+                <p className="lumia-label tracking-[0.2em]">{getText(language, 'horoscope.monthly_label')}</p>
+                <h2 className="mt-1.5 font-serif text-lg text-astro-text sm:text-xl">{getText(language, 'horoscope.monthly_title')}</h2>
+                <p className="lumia-muted mt-1.5 text-sm leading-relaxed">{getText(language, 'horoscope.monthly_body')}</p>
+
+                {monthlyReading && !periodLoading && (
+                    <div className="mt-4 space-y-4">
+                        <p className="text-[11px] uppercase tracking-wider text-astro-subtext">{monthlyReading.periodLabel}</p>
+                        <h3 className="font-serif text-lg text-astro-text sm:text-xl">{monthlyReading.headline}</h3>
+                        <p className="text-sm leading-relaxed text-astro-text sm:text-[15px]">{monthlyReading.summary}</p>
+                        <div>
+                            <p className="lumia-label text-[10px] tracking-[0.16em]">{getText(language, 'horoscope.focus_title')}</p>
+                            <p className="mt-1 text-sm leading-relaxed text-astro-text">{monthlyReading.focus}</p>
+                        </div>
+
+                        {profile.isPremium && monthlyReading.theme ? (
+                            <div className="space-y-3 rounded-2xl border border-astro-border/40 bg-astro-card/30 p-4">
+                                <div>
+                                    <p className="lumia-label text-[10px] tracking-[0.16em]">{getText(language, 'horoscope.period_theme')}</p>
+                                    <p className="mt-1 text-sm font-medium text-astro-text">{monthlyReading.theme}</p>
+                                </div>
+                                {monthlyReading.opportunities ? (
+                                    <div>
+                                        <p className="lumia-label text-[10px] tracking-[0.16em]">{getText(language, 'horoscope.period_opportunities')}</p>
+                                        <p className="mt-1 text-sm leading-relaxed text-astro-text">{monthlyReading.opportunities}</p>
+                                    </div>
+                                ) : null}
+                                {monthlyReading.challenges ? (
+                                    <div>
+                                        <p className="lumia-label text-[10px] tracking-[0.16em]">{getText(language, 'horoscope.period_challenges')}</p>
+                                        <p className="mt-1 text-sm leading-relaxed text-astro-text">{monthlyReading.challenges}</p>
+                                    </div>
+                                ) : null}
+                                {monthlyReading.relationships ? (
+                                    <div>
+                                        <p className="lumia-label text-[10px] tracking-[0.16em]">{getText(language, 'horoscope.period_relationships')}</p>
+                                        <p className="mt-1 text-sm leading-relaxed text-astro-text">{monthlyReading.relationships}</p>
+                                    </div>
+                                ) : null}
+                                {monthlyReading.money ? (
+                                    <div>
+                                        <p className="lumia-label text-[10px] tracking-[0.16em]">{getText(language, 'horoscope.period_money')}</p>
+                                        <p className="mt-1 text-sm leading-relaxed text-astro-text">{monthlyReading.money}</p>
+                                    </div>
+                                ) : null}
+                                {monthlyReading.guidance ? (
+                                    <div>
+                                        <p className="lumia-label text-[10px] tracking-[0.16em]">{getText(language, 'horoscope.period_guidance')}</p>
+                                        <p className="mt-1 text-sm leading-relaxed text-astro-text">{monthlyReading.guidance}</p>
+                                    </div>
+                                ) : null}
+                                {monthlyReading.reading ? (
+                                    <div>
+                                        <p className="lumia-label text-[10px] tracking-[0.16em]">{getText(language, 'horoscope.period_reading')}</p>
+                                        <div className="mt-2 space-y-3 text-sm leading-relaxed text-astro-text whitespace-pre-line [text-wrap:pretty]">
+                                            {monthlyReading.reading}
+                                        </div>
+                                    </div>
+                                ) : null}
+                            </div>
+                        ) : null}
+
+                        {!profile.isPremium && onRequestPremium ? (
+                            <div className="rounded-2xl border border-astro-highlight/16 bg-astro-highlight/[0.06] px-4 py-4">
+                                <p className="text-sm leading-relaxed text-astro-text">
+                                    {getText(language, 'horoscope.period_premium_hint_monthly')}
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={onRequestPremium}
+                                    className="mt-3 inline-flex min-h-[44px] items-center text-sm font-medium text-astro-highlight"
+                                >
+                                    {getText(language, 'horoscope.premium_cta')}
+                                </button>
+                            </div>
+                        ) : null}
+                    </div>
                 )}
             </section>
 

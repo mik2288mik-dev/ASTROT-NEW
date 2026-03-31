@@ -106,6 +106,9 @@ export default async function handler(
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  res.setHeader('X-Lumia-Legacy-Endpoint', 'daily-horoscope');
+  res.setHeader('Warning', '299 - "Deprecated: prefer /api/content/forecast/daily"');
+
   const startTime = Date.now();
   const dateKey = getMoscowTodayKey();
 

@@ -1,4 +1,4 @@
-import { UserProfile, NatalChartData, DailyHoroscope, SynastryResult, UserEvolution, OracleChatResponse, OracleHistoryEntry, ForecastDailyReading, ForecastDaypartReading, ForecastDaypartSlot, NatalAnchorReading, NatalLivingReading, AskLumiaState, AskLumiaTier } from "../types";
+import { UserProfile, NatalChartData, DailyHoroscope, SynastryResult, UserEvolution, OracleChatResponse, OracleHistoryEntry, ForecastDailyReading, ForecastDaypartReading, ForecastDaypartSlot, ForecastMonthlyReading, ForecastWeeklyReading, NatalAnchorReading, NatalLivingReading, AskLumiaState, AskLumiaTier } from "../types";
 import { SYSTEM_INSTRUCTION_ASTRA } from "../constants";
 import { getElementForSign } from "../lib/zodiac-utils";
 import { coerceNatalAnchorReading, coerceNatalLivingReading, getCurrentNatalPeriodKey, mapNatalAnchorToLegacyIntro } from "../lib/natalReadings";
@@ -234,6 +234,172 @@ export const getCachedPremiumDaypartForecast = async (
   );
 
   return data?.interpretation?.content ?? null;
+};
+
+function coerceForecastWeeklyReading(raw: any): ForecastWeeklyReading {
+  if (!raw || typeof raw !== 'object') {
+    return { periodKey: '', periodLabel: '', headline: '', summary: '', focus: '' };
+  }
+  return {
+    periodKey: String(raw.periodKey ?? ''),
+    periodLabel: String(raw.periodLabel ?? ''),
+    headline: String(raw.headline ?? ''),
+    summary: String(raw.summary ?? ''),
+    focus: String(raw.focus ?? ''),
+    theme: raw.theme != null ? String(raw.theme) : undefined,
+    opportunities: raw.opportunities != null ? String(raw.opportunities) : undefined,
+    challenges: raw.challenges != null ? String(raw.challenges) : undefined,
+    relationships: raw.relationships != null ? String(raw.relationships) : undefined,
+    career: raw.career != null ? String(raw.career) : undefined,
+    guidance: raw.guidance != null ? String(raw.guidance) : undefined,
+    reading: raw.reading != null ? String(raw.reading) : undefined,
+  };
+}
+
+function coerceForecastMonthlyReading(raw: any): ForecastMonthlyReading {
+  if (!raw || typeof raw !== 'object') {
+    return { periodKey: '', periodLabel: '', headline: '', summary: '', focus: '' };
+  }
+  return {
+    periodKey: String(raw.periodKey ?? ''),
+    periodLabel: String(raw.periodLabel ?? ''),
+    headline: String(raw.headline ?? ''),
+    summary: String(raw.summary ?? ''),
+    focus: String(raw.focus ?? ''),
+    theme: raw.theme != null ? String(raw.theme) : undefined,
+    opportunities: raw.opportunities != null ? String(raw.opportunities) : undefined,
+    challenges: raw.challenges != null ? String(raw.challenges) : undefined,
+    relationships: raw.relationships != null ? String(raw.relationships) : undefined,
+    money: raw.money != null ? String(raw.money) : undefined,
+    guidance: raw.guidance != null ? String(raw.guidance) : undefined,
+    reading: raw.reading != null ? String(raw.reading) : undefined,
+  };
+}
+
+export const getCachedWeeklyForecastLayer = async (
+  userId: string,
+  chartId?: number | null,
+  period?: string
+): Promise<ForecastWeeklyReading | null> => {
+  if (!userId) return null;
+  const params = new URLSearchParams({ userId });
+  if (chartId != null) params.set('chartId', String(chartId));
+  if (period) params.set('period', period);
+  const url = `${API_BASE_URL}/api/content/forecast/weekly?${params.toString()}`;
+  const data = await fetchContentApi<ForecastWeeklyReading>(
+    url,
+    { method: 'GET', cache: 'no-store' },
+    { notFoundAsNull: true }
+  );
+  const c = data?.interpretation?.content;
+  return c ? coerceForecastWeeklyReading(c) : null;
+};
+
+export const ensureWeeklyForecastLayer = async (
+  profile: UserProfile,
+  chartData: NatalChartData,
+  period?: string
+): Promise<ForecastWeeklyReading> => {
+  const userId = String(profile.id || '');
+  if (!userId) throw buildApiError('userId is required', 400);
+
+  const cached = await getCachedWeeklyForecastLayer(userId, undefined, period);
+  if (cached?.headline) return cached;
+
+  const tier = profile.isPremium ? 'premium' : 'free';
+  const url = `${API_BASE_URL}/api/content/forecast/weekly`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      userId,
+      profile,
+      chartData,
+      period,
+      tier,
+    }),
+  });
+
+  if (!response.ok) {
+    let errorMessage = `Weekly forecast failed: ${response.status}`;
+    let errorCode: string | undefined;
+    try {
+      const err = await response.json();
+      errorMessage = err.message || err.error || errorMessage;
+      errorCode = err.code;
+    } catch {
+      /* ignore */
+    }
+    throw buildApiError(errorMessage, response.status, errorCode);
+  }
+
+  const data = (await response.json()) as { interpretation?: { content: ForecastWeeklyReading } };
+  const c = data?.interpretation?.content;
+  if (!c) throw buildApiError('Weekly forecast content is missing', 500);
+  return coerceForecastWeeklyReading(c);
+};
+
+export const getCachedMonthlyForecastLayer = async (
+  userId: string,
+  chartId?: number | null,
+  period?: string
+): Promise<ForecastMonthlyReading | null> => {
+  if (!userId) return null;
+  const params = new URLSearchParams({ userId });
+  if (chartId != null) params.set('chartId', String(chartId));
+  if (period) params.set('period', period);
+  const url = `${API_BASE_URL}/api/content/forecast/monthly?${params.toString()}`;
+  const data = await fetchContentApi<ForecastMonthlyReading>(
+    url,
+    { method: 'GET', cache: 'no-store' },
+    { notFoundAsNull: true }
+  );
+  const c = data?.interpretation?.content;
+  return c ? coerceForecastMonthlyReading(c) : null;
+};
+
+export const ensureMonthlyForecastLayer = async (
+  profile: UserProfile,
+  chartData: NatalChartData,
+  period?: string
+): Promise<ForecastMonthlyReading> => {
+  const userId = String(profile.id || '');
+  if (!userId) throw buildApiError('userId is required', 400);
+
+  const cached = await getCachedMonthlyForecastLayer(userId, undefined, period);
+  if (cached?.headline) return cached;
+
+  const tier = profile.isPremium ? 'premium' : 'free';
+  const url = `${API_BASE_URL}/api/content/forecast/monthly`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      userId,
+      profile,
+      chartData,
+      period,
+      tier,
+    }),
+  });
+
+  if (!response.ok) {
+    let errorMessage = `Monthly forecast failed: ${response.status}`;
+    let errorCode: string | undefined;
+    try {
+      const err = await response.json();
+      errorMessage = err.message || err.error || errorMessage;
+      errorCode = err.code;
+    } catch {
+      /* ignore */
+    }
+    throw buildApiError(errorMessage, response.status, errorCode);
+  }
+
+  const data = (await response.json()) as { interpretation?: { content: ForecastMonthlyReading } };
+  const c = data?.interpretation?.content;
+  if (!c) throw buildApiError('Monthly forecast content is missing', 500);
+  return coerceForecastMonthlyReading(c);
 };
 
 export const getNatalAnchorLayer = async (
@@ -813,10 +979,8 @@ export const calculateExtendedSynastry = async (
 
 
 /**
- * Get daily horoscope
- * 
- * API проверяет БД - если гороскоп за сегодня уже есть, возвращает его.
- * Генерация происходит только один раз в сутки.
+ * Legacy bridge: `/api/astrology/daily-horoscope` (deprecated; prefer `content/forecast/daily`).
+ * Used only when the content API path fails, until the bridge can be removed safely.
  */
 const legacyGetDailyHoroscopeViaAstrologyEndpoint = async (profile: UserProfile, chartData: NatalChartData): Promise<DailyHoroscope> => {
   const url = `${API_BASE_URL}/api/astrology/daily-horoscope`;

@@ -1,4 +1,5 @@
 import type { Language } from '../types';
+import { endOfISOWeek, getISOWeek, getISOWeekYear, parseISO, setISOWeek, startOfISOWeek } from 'date-fns';
 
 export const MOSCOW_TIME_ZONE = 'Europe/Moscow';
 
@@ -89,4 +90,104 @@ export function formatLumiaDate(value: DateLike, language: Language | string = '
     month: 'long',
     year: 'numeric',
   }).format(normalizedDate);
+}
+
+/** ISO week key for current calendar day in Moscow (e.g. `2026-W13`). */
+export function getMoscowIsoWeekKey(now: Date = new Date()): string {
+  const { year, month, day } = getDatePartsForTimeZone(now, MOSCOW_TIME_ZONE);
+  const d = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day), 12, 0, 0));
+  const y = getISOWeekYear(d);
+  const w = getISOWeek(d);
+  return `${y}-W${String(w).padStart(2, '0')}`;
+}
+
+/** Calendar month in Moscow `YYYY-MM`. */
+export function getMoscowMonthKey(now: Date = new Date()): string {
+  const { year, month } = getDatePartsForTimeZone(now, MOSCOW_TIME_ZONE);
+  return `${year}-${month}`;
+}
+
+const ISO_WEEK_KEY = /^(\d{4})-W(\d{2})$/;
+const MONTH_KEY = /^(\d{4})-(\d{2})$/;
+
+export function isValidMoscowIsoWeekKey(key: string): boolean {
+  return ISO_WEEK_KEY.test(String(key || '').trim());
+}
+
+export function isValidMoscowMonthKey(key: string): boolean {
+  const m = MONTH_KEY.exec(String(key || '').trim());
+  if (!m) return false;
+  const mo = Number(m[2]);
+  return mo >= 1 && mo <= 12;
+}
+
+function utcDateKey(d: Date): string {
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+}
+
+/** Monday–Sunday date range label for an ISO week (UTC boundaries of ISO week). */
+export function formatIsoWeekPeriodLabel(periodKey: string, language: Language | string = 'ru'): string {
+  const m = ISO_WEEK_KEY.exec(periodKey.trim());
+  if (!m) return periodKey;
+  const year = Number(m[1]);
+  const week = Number(m[2]);
+  const ref = parseISO(`${year}-01-04T12:00:00.000Z`);
+  const withWeek = setISOWeek(ref, week);
+  const start = startOfISOWeek(withWeek);
+  const end = endOfISOWeek(withWeek);
+  const locale = language === 'ru' ? 'ru-RU' : 'en-US';
+  const opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short' };
+  if (start.getUTCFullYear() !== end.getUTCFullYear()) {
+    opts.year = 'numeric';
+  }
+  const a = new Intl.DateTimeFormat(locale, { ...opts, timeZone: 'UTC' }).format(start);
+  const b = new Intl.DateTimeFormat(locale, { ...opts, year: 'numeric', timeZone: 'UTC' }).format(end);
+  return `${a} — ${b}`;
+}
+
+export function formatMonthPeriodLabel(periodKey: string, language: Language | string = 'ru'): string {
+  const m = MONTH_KEY.exec(periodKey.trim());
+  if (!m) return periodKey;
+  const y = Number(m[1]);
+  const mo = Number(m[2]) - 1;
+  const d = new Date(Date.UTC(y, mo, 1, 12, 0, 0));
+  return new Intl.DateTimeFormat(language === 'ru' ? 'ru-RU' : 'en-US', {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(d);
+}
+
+export function isoWeekToValidRangeUtc(periodKey: string): { validFrom: string; validTo: string } {
+  const m = ISO_WEEK_KEY.exec(periodKey.trim());
+  if (!m) {
+    const today = getMoscowTodayKey();
+    return { validFrom: `${today}T00:00:00.000Z`, validTo: `${today}T23:59:59.999Z` };
+  }
+  const year = Number(m[1]);
+  const week = Number(m[2]);
+  const ref = parseISO(`${year}-01-04T12:00:00.000Z`);
+  const withWeek = setISOWeek(ref, week);
+  const start = startOfISOWeek(withWeek);
+  const end = endOfISOWeek(withWeek);
+  return {
+    validFrom: `${utcDateKey(start)}T00:00:00.000Z`,
+    validTo: `${utcDateKey(end)}T23:59:59.999Z`,
+  };
+}
+
+export function monthKeyToValidRangeUtc(periodKey: string): { validFrom: string; validTo: string } {
+  const m = MONTH_KEY.exec(periodKey.trim());
+  if (!m) {
+    const today = getMoscowTodayKey();
+    return { validFrom: `${today}T00:00:00.000Z`, validTo: `${today}T23:59:59.999Z` };
+  }
+  const y = Number(m[1]);
+  const mo = Number(m[2]);
+  const start = new Date(Date.UTC(y, mo - 1, 1, 0, 0, 0, 0));
+  const end = new Date(Date.UTC(y, mo, 0, 23, 59, 59, 999));
+  return {
+    validFrom: `${utcDateKey(start)}T00:00:00.000Z`,
+    validTo: `${utcDateKey(end)}T23:59:59.999Z`,
+  };
 }

@@ -3,6 +3,8 @@ import type {
   ForecastDailyReading,
   ForecastDaypartReading,
   ForecastDaypartSlot,
+  ForecastMonthlyReading,
+  ForecastWeeklyReading,
   NatalChartData,
   UserProfile,
 } from '../types';
@@ -11,12 +13,20 @@ import {
   addLanguageInstruction,
   createDailyForecastV2Prompt,
   createDaypartForecastPrompt,
+  createFreeMonthlyForecastPrompt,
+  createFreeWeeklyForecastPrompt,
+  createPremiumMonthlyForecastPrompt,
+  createPremiumWeeklyForecastPrompt,
   DailyForecastV2AIResponse,
   DaypartForecastAIResponse,
+  FreeMonthlyForecastV2AIResponse,
+  FreeWeeklyForecastV2AIResponse,
+  PremiumMonthlyForecastV2AIResponse,
+  PremiumWeeklyForecastV2AIResponse,
 } from './prompts';
 import { getOpenAIInterpretationModel } from './appSettings';
 import { getCurrentTransits } from './transits-calculator';
-import { getMoscowTodayKey } from './date-utils';
+import { formatIsoWeekPeriodLabel, formatMonthPeriodLabel, getMoscowTodayKey } from './date-utils';
 
 const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
@@ -229,5 +239,325 @@ export async function generatePremiumDaypartForecast(
     return normalizeDaypartForecast(parsed, lang, dateKey, slot);
   } catch {
     return buildDaypartFallback(lang, dateKey, slot);
+  }
+}
+
+function buildFreeWeeklyFallback(lang: 'ru' | 'en', periodKey: string, periodLabel: string): ForecastWeeklyReading {
+  return lang === 'ru'
+    ? {
+        periodKey,
+        periodLabel,
+        headline: 'Неделя просит ясности и ровного шага',
+        summary: 'Сейчас полезнее держать фокус на главном и не распылять силы на второстепенные драмы.',
+        focus: 'Выбери одну линию на неделю и поддерживай её спокойной дисциплиной.',
+      }
+    : {
+        periodKey,
+        periodLabel,
+        headline: 'This week rewards clarity and steady pacing',
+        summary: 'It helps to protect your focus and avoid spending energy on side noise.',
+        focus: 'Pick one meaningful line for the week and support it with calm consistency.',
+      };
+}
+
+function buildPremiumWeeklyFallback(lang: 'ru' | 'en', periodKey: string, periodLabel: string): ForecastWeeklyReading {
+  const base = buildFreeWeeklyFallback(lang, periodKey, periodLabel);
+  return lang === 'ru'
+    ? {
+        ...base,
+        theme: 'Сборка и направление',
+        opportunities: 'Появляется шанс укрепить то, что уже начал работать, если не убежать в суету.',
+        challenges: 'Риск — перегруз контактами и обещаниями; легче ошибиться там, где нужна точность.',
+        relationships: 'В близости важнее честность без резкости: меньше додумываний, больше прямых формулировок.',
+        career: 'Практические решения лучше принимать с паузой: сначала критерий, потом действие.',
+        guidance: 'Держи неделю как серию спокойных шагов: меньше импульса, больше опоры на факты и ощущения.',
+        reading:
+          'Неделя не про «успеть всё», а про то, чтобы твоя энергия не утекала в чужие срочности.\n\nЕсли заранее обозначить главный приоритет, проще заметить, где ты реально продвигаешься, а где только реагируешь.\n\nВ отношениях выигрывает ясный тон: не обесценивать чувства, но и не раздувать недопонимание.',
+      }
+    : {
+        ...base,
+        theme: 'Direction and consolidation',
+        opportunities: 'You can strengthen what already works if you do not scatter your attention.',
+        challenges: 'Overload from social noise and promises can blur judgment where precision matters.',
+        relationships: 'Closeness needs honesty without sharpness: fewer assumptions, clearer words.',
+        career: 'Practical choices benefit from a pause: criteria first, then action.',
+        guidance: 'Treat the week as calm steps: less impulse, more grounding in facts and felt truth.',
+        reading:
+          'This week is less about doing everything and more about not leaking energy into other people’s urgency.\n\nIf you name one real priority early, it becomes easier to see real progress versus reactive motion.\n\nIn relationships, a clear tone wins: respect feelings without inflating misunderstandings.',
+      };
+}
+
+function buildFreeMonthlyFallback(lang: 'ru' | 'en', periodKey: string, periodLabel: string): ForecastMonthlyReading {
+  return lang === 'ru'
+    ? {
+        periodKey,
+        periodLabel,
+        headline: 'Месяц про ритм и устойчивость',
+        summary: 'Фон месяца просит не гнаться за скоростью, а выстроить понятную для себя последовательность.',
+        focus: 'Закрепи одну привычку или одно направление, которое реально поддержит тебя.',
+      }
+    : {
+        periodKey,
+        periodLabel,
+        headline: 'A month for rhythm and steadiness',
+        summary: 'The month favors a clear sequence over constant rushing.',
+        focus: 'Anchor one habit or direction that genuinely supports you.',
+      };
+}
+
+function buildPremiumMonthlyFallback(lang: 'ru' | 'en', periodKey: string, periodLabel: string): ForecastMonthlyReading {
+  const base = buildFreeMonthlyFallback(lang, periodKey, periodLabel);
+  return lang === 'ru'
+    ? {
+        ...base,
+        theme: 'Сборка ресурса',
+        opportunities: 'Есть пространство укрепить финансовую и эмоциональную базу через простые правила.',
+        challenges: 'Перегруз и сравнение с другими могут сбить с собственного критерия успеха.',
+        relationships: 'Тема месяца — зрелые границы: близость без самопожертвования.',
+        money: 'Практика месяца: отделять импульсные траты от стратегических решений.',
+        guidance: 'Раз в неделю возвращайся к вопросу: что сейчас действительно двигает меня вперёд.',
+        reading:
+          'Месяц хорошо работает, если ты позволяешь себе более длинный горизонт, чем «сегодня вечером».\n\nВ отношениях полезно говорить о потребностях прямо, без обвинений — это снижает фон тревоги.\n\nВ деньгах и работе выигрывает простая система: мало правил, но выполняемых.\n\nЕсли удерживать один главный вектор, к концу месяца легче почувствовать, что ты не только выжил, а собрался.',
+      }
+    : {
+        ...base,
+        theme: 'Building reserves',
+        opportunities: 'You can strengthen emotional and practical foundations with a few clear rules.',
+        challenges: 'Overload and comparison can blur your own definition of progress.',
+        relationships: 'The month favors mature boundaries: closeness without self-erasure.',
+        money: 'Separate impulsive spending from decisions that match a longer plan.',
+        guidance: 'Once a week ask what is truly moving you forward right now.',
+        reading:
+          'This month works better when you allow a longer horizon than “tonight.”\n\nIn relationships, naming needs directly without blame lowers ambient anxiety.\n\nIn money and work, a few consistent rules beat constant improvisation.\n\nIf you keep one main vector, by month’s end it is easier to feel gathered, not just busy.',
+      };
+}
+
+function normalizeFreeWeekly(
+  raw: Partial<FreeWeeklyForecastV2AIResponse> | null | undefined,
+  lang: 'ru' | 'en',
+  periodKey: string,
+  periodLabel: string
+): ForecastWeeklyReading {
+  const fb = buildFreeWeeklyFallback(lang, periodKey, periodLabel);
+  return {
+    periodKey,
+    periodLabel,
+    headline: cleanLine(raw?.headline, fb.headline),
+    summary: cleanLine(raw?.summary, fb.summary),
+    focus: cleanLine(raw?.focus, fb.focus),
+  };
+}
+
+function normalizePremiumWeekly(
+  raw: Partial<PremiumWeeklyForecastV2AIResponse> | null | undefined,
+  lang: 'ru' | 'en',
+  periodKey: string,
+  periodLabel: string
+): ForecastWeeklyReading {
+  const fb = buildPremiumWeeklyFallback(lang, periodKey, periodLabel);
+  return {
+    periodKey,
+    periodLabel,
+    headline: cleanLine(raw?.headline, fb.headline),
+    summary: cleanLine(raw?.summary, fb.summary),
+    focus: cleanLine(raw?.focus, fb.focus),
+    theme: cleanLine(raw?.theme, fb.theme ?? ''),
+    opportunities: cleanLine(raw?.opportunities, fb.opportunities ?? ''),
+    challenges: cleanLine(raw?.challenges, fb.challenges ?? ''),
+    relationships: cleanLine(raw?.relationships, fb.relationships ?? ''),
+    career: cleanLine(raw?.career, fb.career ?? ''),
+    guidance: cleanLine(raw?.guidance, fb.guidance ?? ''),
+    reading: cleanLine(raw?.reading, fb.reading ?? ''),
+  };
+}
+
+function normalizeFreeMonthly(
+  raw: Partial<FreeMonthlyForecastV2AIResponse> | null | undefined,
+  lang: 'ru' | 'en',
+  periodKey: string,
+  periodLabel: string
+): ForecastMonthlyReading {
+  const fb = buildFreeMonthlyFallback(lang, periodKey, periodLabel);
+  return {
+    periodKey,
+    periodLabel,
+    headline: cleanLine(raw?.headline, fb.headline),
+    summary: cleanLine(raw?.summary, fb.summary),
+    focus: cleanLine(raw?.focus, fb.focus),
+  };
+}
+
+function normalizePremiumMonthly(
+  raw: Partial<PremiumMonthlyForecastV2AIResponse> | null | undefined,
+  lang: 'ru' | 'en',
+  periodKey: string,
+  periodLabel: string
+): ForecastMonthlyReading {
+  const fb = buildPremiumMonthlyFallback(lang, periodKey, periodLabel);
+  return {
+    periodKey,
+    periodLabel,
+    headline: cleanLine(raw?.headline, fb.headline),
+    summary: cleanLine(raw?.summary, fb.summary),
+    focus: cleanLine(raw?.focus, fb.focus),
+    theme: cleanLine(raw?.theme, fb.theme ?? ''),
+    opportunities: cleanLine(raw?.opportunities, fb.opportunities ?? ''),
+    challenges: cleanLine(raw?.challenges, fb.challenges ?? ''),
+    relationships: cleanLine(raw?.relationships, fb.relationships ?? ''),
+    money: cleanLine(raw?.money, fb.money ?? ''),
+    guidance: cleanLine(raw?.guidance, fb.guidance ?? ''),
+    reading: cleanLine(raw?.reading, fb.reading ?? ''),
+  };
+}
+
+export async function generateFreeWeeklyForecast(
+  profile: UserProfile,
+  chartData: NatalChartData,
+  periodKey: string,
+  periodLabel?: string
+): Promise<ForecastWeeklyReading> {
+  const lang: 'ru' | 'en' = profile.language === 'en' ? 'en' : 'ru';
+  const label = periodLabel || formatIsoWeekPeriodLabel(periodKey, lang);
+  const transits = await getCurrentTransits(new Date());
+
+  if (!openai) {
+    return buildFreeWeeklyFallback(lang, periodKey, label);
+  }
+
+  try {
+    const prompt = addLanguageInstruction(
+      createFreeWeeklyForecastPrompt(chartData, profile, periodKey, label, transits),
+      lang
+    );
+    const model = await getForecastModel('base');
+    const completion = await openai.chat.completions.create({
+      model,
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT_ASTRA },
+        { role: 'user', content: prompt },
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.72,
+      max_tokens: 900,
+    });
+    const content = completion.choices[0]?.message?.content || '{}';
+    const parsed = JSON.parse(content) as FreeWeeklyForecastV2AIResponse;
+    return normalizeFreeWeekly(parsed, lang, periodKey, label);
+  } catch {
+    return buildFreeWeeklyFallback(lang, periodKey, label);
+  }
+}
+
+export async function generatePremiumWeeklyForecast(
+  profile: UserProfile,
+  chartData: NatalChartData,
+  periodKey: string,
+  periodLabel?: string
+): Promise<ForecastWeeklyReading> {
+  const lang: 'ru' | 'en' = profile.language === 'en' ? 'en' : 'ru';
+  const label = periodLabel || formatIsoWeekPeriodLabel(periodKey, lang);
+  const transits = await getCurrentTransits(new Date());
+
+  if (!openai) {
+    return buildPremiumWeeklyFallback(lang, periodKey, label);
+  }
+
+  try {
+    const prompt = addLanguageInstruction(
+      createPremiumWeeklyForecastPrompt(chartData, profile, periodKey, label, transits),
+      lang
+    );
+    const model = await getForecastModel('premium');
+    const completion = await openai.chat.completions.create({
+      model,
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT_ASTRA },
+        { role: 'user', content: prompt },
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.82,
+      max_tokens: 2200,
+    });
+    const content = completion.choices[0]?.message?.content || '{}';
+    const parsed = JSON.parse(content) as PremiumWeeklyForecastV2AIResponse;
+    return normalizePremiumWeekly(parsed, lang, periodKey, label);
+  } catch {
+    return buildPremiumWeeklyFallback(lang, periodKey, label);
+  }
+}
+
+export async function generateFreeMonthlyForecast(
+  profile: UserProfile,
+  chartData: NatalChartData,
+  periodKey: string,
+  periodLabel?: string
+): Promise<ForecastMonthlyReading> {
+  const lang: 'ru' | 'en' = profile.language === 'en' ? 'en' : 'ru';
+  const label = periodLabel || formatMonthPeriodLabel(periodKey, lang);
+  const transits = await getCurrentTransits(new Date());
+
+  if (!openai) {
+    return buildFreeMonthlyFallback(lang, periodKey, label);
+  }
+
+  try {
+    const prompt = addLanguageInstruction(
+      createFreeMonthlyForecastPrompt(chartData, profile, periodKey, label, transits),
+      lang
+    );
+    const model = await getForecastModel('base');
+    const completion = await openai.chat.completions.create({
+      model,
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT_ASTRA },
+        { role: 'user', content: prompt },
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.72,
+      max_tokens: 900,
+    });
+    const content = completion.choices[0]?.message?.content || '{}';
+    const parsed = JSON.parse(content) as FreeMonthlyForecastV2AIResponse;
+    return normalizeFreeMonthly(parsed, lang, periodKey, label);
+  } catch {
+    return buildFreeMonthlyFallback(lang, periodKey, label);
+  }
+}
+
+export async function generatePremiumMonthlyForecast(
+  profile: UserProfile,
+  chartData: NatalChartData,
+  periodKey: string,
+  periodLabel?: string
+): Promise<ForecastMonthlyReading> {
+  const lang: 'ru' | 'en' = profile.language === 'en' ? 'en' : 'ru';
+  const label = periodLabel || formatMonthPeriodLabel(periodKey, lang);
+  const transits = await getCurrentTransits(new Date());
+
+  if (!openai) {
+    return buildPremiumMonthlyFallback(lang, periodKey, label);
+  }
+
+  try {
+    const prompt = addLanguageInstruction(
+      createPremiumMonthlyForecastPrompt(chartData, profile, periodKey, label, transits),
+      lang
+    );
+    const model = await getForecastModel('premium');
+    const completion = await openai.chat.completions.create({
+      model,
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT_ASTRA },
+        { role: 'user', content: prompt },
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.82,
+      max_tokens: 2600,
+    });
+    const content = completion.choices[0]?.message?.content || '{}';
+    const parsed = JSON.parse(content) as PremiumMonthlyForecastV2AIResponse;
+    return normalizePremiumMonthly(parsed, lang, periodKey, label);
+  } catch {
+    return buildPremiumMonthlyFallback(lang, periodKey, label);
   }
 }

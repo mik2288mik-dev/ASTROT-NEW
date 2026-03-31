@@ -220,6 +220,38 @@ export interface ForecastDaypartReading {
   guidance: string;
 }
 
+/** Free tier: короткий слой; Premium — дополнительные поля заполнены. */
+export interface ForecastWeeklyReading {
+  periodKey: string;
+  periodLabel: string;
+  headline: string;
+  summary: string;
+  focus: string;
+  theme?: string;
+  opportunities?: string;
+  challenges?: string;
+  relationships?: string;
+  career?: string;
+  guidance?: string;
+  reading?: string;
+}
+
+/** Free tier: короткий слой; Premium — развёрнутый период. */
+export interface ForecastMonthlyReading {
+  periodKey: string;
+  periodLabel: string;
+  headline: string;
+  summary: string;
+  focus: string;
+  theme?: string;
+  opportunities?: string;
+  challenges?: string;
+  relationships?: string;
+  money?: string;
+  guidance?: string;
+  reading?: string;
+}
+
 export interface NatalAnchorReading {
   headline: string;
   summary: string;

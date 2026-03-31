@@ -327,6 +327,12 @@ export const TRANSLATIONS = {
       referral_bot_hint:
         "Добавь в .env переменную NEXT_PUBLIC_TELEGRAM_BOT_USERNAME (имя бота без @), чтобы собрать ссылку автоматически.",
       referral_share_text: "Загляни в Lumia — персональная астрология в Telegram.",
+      taxonomy_title: "Категории в истории",
+      taxonomy_intro:
+        "Подписи совпадают с причинами в списке операций: начисления, траты и покупки пакетов.",
+      taxonomy_earn: "Как можно получить",
+      taxonomy_spend: "На что может уходить",
+      taxonomy_purchase: "Покупки",
     },
     settings: {
       title: "Настройки",
@@ -447,7 +453,25 @@ export const TRANSLATIONS = {
       empty_cta: "Открыть натал",
       persist_notice: "Показываю свежий прогноз, но он ещё не сохранён.",
       stale_notice: "Показываю последний доступный прогноз, пока новый слой дня недоступен.",
-      fallback_error: "Не удалось загрузить прогноз дня"
+      fallback_error: "Не удалось загрузить прогноз дня",
+      weekly_label: "Недельный слой",
+      weekly_title: "Твоя неделя по карте",
+      weekly_body: "Короткий ориентир на календарную неделю. В Premium — развёрнутый слой с темой, рисками и фокусом по отношениям и работе.",
+      monthly_label: "Месячный слой",
+      monthly_title: "Твой месяц по карте",
+      monthly_body: "Компактный фокус месяца. В Premium — глубокий разбор темы, отношений и денег.",
+      period_loading: "Собираю неделю и месяц...",
+      period_theme: "Тема периода",
+      period_opportunities: "Возможности",
+      period_challenges: "Напряжения",
+      period_relationships: "Отношения",
+      period_career: "Работа и направление",
+      period_money: "Деньги и практика",
+      period_guidance: "Ориентация",
+      period_reading: "Разбор",
+      period_premium_hint_weekly: "В Lumia Premium доступен полный недельный прогноз — отдельный класс интерпретации.",
+      period_premium_hint_monthly: "В Lumia Premium доступен полный месячный прогноз.",
+      period_error: "Не удалось загрузить слой периода"
     },
     planets: {
       sun: "Солнце", moon: "Луна", mercury: "Меркурий", venus: "Венера", 
@@ -774,6 +798,11 @@ export const TRANSLATIONS = {
       referral_bot_hint:
         "Set NEXT_PUBLIC_TELEGRAM_BOT_USERNAME in .env (bot name without @) to build the invite link automatically.",
       referral_share_text: "Try Lumia — personal astrology in Telegram.",
+      taxonomy_title: "Categories in history",
+      taxonomy_intro: "These labels match transaction reasons: earnings, spending, and pack purchases.",
+      taxonomy_earn: "How you can earn",
+      taxonomy_spend: "What Lumi can be spent on",
+      taxonomy_purchase: "Purchases",
     },
     settings: {
       title: "Settings",
@@ -894,7 +923,25 @@ export const TRANSLATIONS = {
       empty_cta: "Open natal",
       persist_notice: "Showing a fresh forecast, but it has not been saved yet.",
       stale_notice: "Showing the latest available forecast while a fresh daily layer is unavailable.",
-      fallback_error: "Failed to load today’s forecast"
+      fallback_error: "Failed to load today’s forecast",
+      weekly_label: "Weekly layer",
+      weekly_title: "Your week through the chart",
+      weekly_body: "A short orientation for the calendar week. Premium adds a full layer with theme, tensions, and focus for relationships and work.",
+      monthly_label: "Monthly layer",
+      monthly_title: "Your month through the chart",
+      monthly_body: "A compact monthly focus. Premium adds a deep read on theme, relationships, and money.",
+      period_loading: "Preparing week and month...",
+      period_theme: "Theme",
+      period_opportunities: "Openings",
+      period_challenges: "Tensions",
+      period_relationships: "Relationships",
+      period_career: "Work and direction",
+      period_money: "Money and practice",
+      period_guidance: "Guidance",
+      period_reading: "Reading",
+      period_premium_hint_weekly: "Lumia Premium includes the full weekly forecast — a separate class of interpretation.",
+      period_premium_hint_monthly: "Lumia Premium includes the full monthly forecast.",
+      period_error: "Could not load this period layer"
     },
     planets: {
       sun: "Sun", moon: "Moon", mercury: "Mercury", venus: "Venus", 

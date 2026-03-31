@@ -8,6 +8,7 @@
 
 ## Кандидаты на проверку
 
+- Legacy ответы помечаются заголовками `X-Lumia-Legacy-Endpoint` и `Warning` на `daily-horoscope`, `weekly-horoscope`, `monthly-horoscope`; основной контракт — `content/forecast/*`.
 - Дублирующие consumer-пути (legacy `daily-horoscope` vs `content/forecast/daily`) — свести к одному контракту на клиенте, оставить мост только при необходимости.
 - Устаревшие имена surface в UI (внутренний `Oracle` vs «Спросить Lumia» — уже зафиксировано в спеке §3).
 - Виджетные gimmicks вне главного пути (цвет дня, число дня и т.д. — конституция §2, §9).
