@@ -6,6 +6,7 @@ import { getText, getZodiacSign } from '../constants';
 import { Loading } from '../components/ui/Loading';
 import { getApproximateSunSignByDate } from '../lib/zodiac-utils';
 import { toDateInputValue, formatLumiaDate } from '../lib/date-utils';
+import { SYNASTRY_EXTENDED_LUMI_COST } from '../lib/synastryExtended';
 
 type SynastryPrefill = {
     source: 'saved-chart' | 'manual';
@@ -45,6 +46,18 @@ export const Synastry: React.FC<SynastryProps> = ({
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [slotActionLoading, setSlotActionLoading] = useState(false);
+    const [allowLumiConsent, setAllowLumiConsent] = useState(false);
+
+    const extendedCost = SYNASTRY_EXTENDED_LUMI_COST;
+    const t = (key: string, replacements?: Record<string, string>) => {
+        let s = getText(profile.language, key);
+        if (replacements) {
+            for (const [k, v] of Object.entries(replacements)) {
+                s = s.replace(`{${k}}`, v);
+            }
+        }
+        return s;
+    };
 
     const loadCharts = async () => {
         if (!profile.id) return;
@@ -141,8 +154,15 @@ export const Synastry: React.FC<SynastryProps> = ({
         }
     };
 
-    const handleCalculate = async (mode: 'brief' | 'full') => {
+    const partnerChartIdForRequest =
+        partnerInputMode === 'charts' && selectedPartnerChartId != null ? selectedPartnerChartId : undefined;
+
+    const runSynastry = async (mode: 'brief' | 'extended' | 'full') => {
         if (!partnerName || !partnerDate) return;
+        if (mode === 'extended' && !allowLumiConsent) {
+            setError(t('synastry.error_lumi_consent'));
+            return;
+        }
         if (mode === 'full' && !profile.isPremium) {
             requestPremium();
             return;
@@ -152,7 +172,7 @@ export const Synastry: React.FC<SynastryProps> = ({
         setError(null);
 
         try {
-            const data = await getOrGenerateSynastry(
+            const { result: data, lumiBalance } = await getOrGenerateSynastry(
                 profile,
                 partnerName,
                 partnerDate,
@@ -160,12 +180,25 @@ export const Synastry: React.FC<SynastryProps> = ({
                 partnerPlace || undefined,
                 relationshipType,
                 mode,
-                partnerInputMode === 'charts' && selectedPartnerChartId != null ? selectedPartnerChartId : undefined
+                partnerChartIdForRequest,
+                mode === 'extended' ? { allowLumiSpend: true } : undefined
             );
             setResult(data);
+            if (typeof lumiBalance === 'number') {
+                onUpdateProfile?.({ ...profile, lumiBalance });
+            }
         } catch (e: any) {
             console.error('[Synastry] Error calculating synastry:', e);
-            setError(e?.message || 'Failed to calculate synastry');
+            const code = e?.code as string | undefined;
+            if (code === 'INSUFFICIENT_LUMI') {
+                setError(t('synastry.error_insufficient_lumi'));
+            } else if (code === 'LUMI_REQUIRED') {
+                setError(t('synastry.error_lumi_required'));
+            } else if (code === 'PREMIUM_REQUIRED') {
+                setError(e?.message || t('synastry.full_btn'));
+            } else {
+                setError(e?.message || 'Failed to calculate synastry');
+            }
         } finally {
             setLoading(false);
         }
@@ -186,13 +219,13 @@ export const Synastry: React.FC<SynastryProps> = ({
         <div className="min-h-screen max-w-2xl mx-auto px-5 py-6 space-y-5 screen-pb">
             <section className="rounded-[24px] border border-astro-border/80 bg-gradient-to-b from-astro-card to-astro-card/65 p-5 shadow-sm">
                 <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
-                    {getText(profile.language, 'synastry.title')}
+                    {t('synastry.hero_kicker')}
                 </p>
                 <h1 className="mt-2 font-serif text-2xl text-astro-text">
-                    {getText(profile.language, 'synastry.title')}
+                    {t('synastry.headline')}
                 </h1>
                 <p className="mt-3 text-sm leading-relaxed text-astro-subtext">
-                    {getText(profile.language, 'synastry.desc')}
+                    {t('synastry.desc')}
                 </p>
             </section>
 
@@ -446,28 +479,48 @@ export const Synastry: React.FC<SynastryProps> = ({
                             </div>
                         )}
 
-                        <div className="rounded-2xl border border-astro-border/70 bg-astro-bg/20 p-4">
+                        <div className="rounded-2xl border border-astro-border/70 bg-astro-bg/20 p-4 space-y-3">
                             <p className="text-[10px] uppercase tracking-[0.18em] text-astro-subtext">
                                 {getText(profile.language, 'synastry.cta_label')}
                             </p>
-                            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <p className="text-xs text-astro-subtext leading-relaxed">
+                                {t('synastry.extended_hint')}
+                            </p>
+                            <div className="mt-1 grid grid-cols-1 gap-3 sm:grid-cols-3">
                                 <button
                                     type="button"
-                                    onClick={() => handleCalculate('brief')}
+                                    onClick={() => void runSynastry('brief')}
                                     disabled={!canSubmit}
                                     className="w-full rounded-xl bg-astro-highlight px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
                                 >
-                                    {getText(profile.language, 'synastry.brief_btn')}
+                                    {t('synastry.brief_btn')}
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={() => handleCalculate('full')}
+                                    onClick={() => void runSynastry('extended')}
+                                    disabled={!canSubmit}
+                                    className="w-full rounded-xl border border-astro-highlight/50 bg-astro-highlight/10 px-4 py-3 text-sm font-semibold text-astro-highlight disabled:opacity-50"
+                                >
+                                    {t('synastry.extended_btn', { cost: String(extendedCost) })}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => void runSynastry('full')}
                                     disabled={!canSubmit}
                                     className="w-full rounded-xl border border-astro-border px-4 py-3 text-sm font-semibold text-astro-text disabled:opacity-50"
                                 >
-                                    {getText(profile.language, 'synastry.full_btn')}
+                                    {t('synastry.full_btn')}
                                 </button>
                             </div>
+                            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-astro-border/60 bg-astro-bg/15 px-3 py-3 text-sm text-astro-subtext">
+                                <input
+                                    type="checkbox"
+                                    className="mt-1 h-4 w-4 shrink-0 rounded border-astro-border text-astro-highlight focus:ring-astro-highlight"
+                                    checked={allowLumiConsent}
+                                    onChange={(e) => setAllowLumiConsent(e.target.checked)}
+                                />
+                                <span>{t('synastry.lumi_consent', { cost: String(extendedCost) })}</span>
+                            </label>
                         </div>
                     </div>
                 </div>
@@ -517,6 +570,38 @@ export const Synastry: React.FC<SynastryProps> = ({
                                         <p className="text-sm text-astro-text">{result.briefOverview.challenges}</p>
                                     </div>
                                 </div>
+                                {result.briefOverview.tips && result.briefOverview.tips.length > 0 && (
+                                    <div className="rounded-2xl border border-astro-border/70 p-4">
+                                        <p className="text-[10px] uppercase tracking-widest text-astro-subtext mb-2">
+                                            {t('synastry.tips_label')}
+                                        </p>
+                                        <ul className="list-disc space-y-1 pl-4 text-sm text-astro-text">
+                                            {result.briefOverview.tips.map((tip, i) => (
+                                                <li key={i}>{tip}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {result.extendedOverview && (
+                            <div className="space-y-3">
+                                {(
+                                    [
+                                        ['synastry.extended_connection', result.extendedOverview.connection],
+                                        ['synastry.extended_tension', result.extendedOverview.tension],
+                                        ['synastry.extended_navigation', result.extendedOverview.navigation],
+                                        ['synastry.extended_bond', result.extendedOverview.bondContext],
+                                    ] as const
+                                ).map(([labelKey, text]) => (
+                                    <div key={labelKey} className="rounded-2xl border border-astro-highlight/25 bg-astro-highlight/5 p-4">
+                                        <p className="text-[10px] uppercase tracking-widest text-astro-highlight mb-2">
+                                            {t(labelKey)}
+                                        </p>
+                                        <p className="text-sm text-astro-text">{text}</p>
+                                    </div>
+                                ))}
                             </div>
                         )}
 
@@ -532,14 +617,70 @@ export const Synastry: React.FC<SynastryProps> = ({
                                         <p className="text-sm text-astro-text">{section}</p>
                                     </div>
                                 ))}
+                                {result.fullAnalysis.recommendations &&
+                                    result.fullAnalysis.recommendations.length > 0 && (
+                                        <div className="rounded-2xl border border-astro-border/70 p-4">
+                                            <p className="text-[10px] uppercase tracking-widest text-astro-subtext mb-2">
+                                                {t('synastry.tips_label')}
+                                            </p>
+                                            <ul className="list-disc space-y-1 pl-4 text-sm text-astro-text">
+                                                {result.fullAnalysis.recommendations.map((rec, i) => (
+                                                    <li key={i}>{rec}</li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
                             </div>
                         )}
+
+                        <div className="space-y-2">
+                            {!result.extendedOverview && (
+                                <>
+                                    <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-astro-border/60 bg-astro-bg/15 px-3 py-3 text-sm text-astro-subtext">
+                                        <input
+                                            type="checkbox"
+                                            className="mt-1 h-4 w-4 shrink-0 rounded border-astro-border text-astro-highlight focus:ring-astro-highlight"
+                                            checked={allowLumiConsent}
+                                            onChange={(e) => setAllowLumiConsent(e.target.checked)}
+                                        />
+                                        <span>{t('synastry.lumi_consent', { cost: String(extendedCost) })}</span>
+                                    </label>
+                                    <button
+                                        type="button"
+                                        onClick={() => void runSynastry('extended')}
+                                        disabled={!allowLumiConsent}
+                                        className="w-full rounded-xl border border-astro-highlight/50 bg-astro-highlight/10 px-4 py-3 text-sm font-semibold text-astro-highlight disabled:opacity-50"
+                                    >
+                                        {t('synastry.add_extended_btn', { cost: String(extendedCost) })}
+                                    </button>
+                                </>
+                            )}
+                            {!result.fullAnalysis &&
+                                (profile.isPremium ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => void runSynastry('full')}
+                                        className="w-full rounded-xl border border-astro-border px-4 py-3 text-sm font-semibold text-astro-text"
+                                    >
+                                        {t('synastry.add_full_btn')}
+                                    </button>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={() => requestPremium()}
+                                        className="w-full rounded-xl border border-astro-border px-4 py-3 text-sm font-semibold text-astro-text"
+                                    >
+                                        {t('synastry.full_btn')}
+                                    </button>
+                                ))}
+                        </div>
 
                         <button
                             type="button"
                             onClick={() => {
                                 setResult(null);
                                 setError(null);
+                                setAllowLumiConsent(false);
                                 if (partnerCharts.length > 0) {
                                     setPartnerInputMode('charts');
                                 }

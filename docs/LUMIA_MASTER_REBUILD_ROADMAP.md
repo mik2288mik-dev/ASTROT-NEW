@@ -148,6 +148,8 @@ Natal screen должен ясно показывать разницу межд�
 
 ## 6. Phase 6 — Questions and Synastry Rebuild
 
+**Статус (2026-03):** реализовано в продукте — синастрия: free brief, Lumi extended (`/api/content/synastry/extended`), Premium full с проверкой entitlement на сервере; кэш клиента по `chart_${id}`; спека: [LUMIA_CONTENT_TIER_SPEC.md](./LUMIA_CONTENT_TIER_SPEC.md).
+
 Цель: усилить два самых эмоциональных продукта Lumia.
 
 ### Questions

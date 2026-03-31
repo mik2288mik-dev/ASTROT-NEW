@@ -563,6 +563,45 @@ ${natalData2Json}
 };
 
 /**
+ * Синастрия — средний слой (разовый Lumi): глубже бесплатного краткого, но не полный premium-разбор.
+ */
+export const createExtendedSynastryPrompt = (
+  natalData1: NatalChartData,
+  profile1: UserProfile,
+  natalData2: NatalChartData,
+  partnerName: string,
+  relationshipType: string = 'романтика'
+): string => {
+  const natalData1Json = JSON.stringify(natalData1, null, 2);
+  const natalData2Json = JSON.stringify(natalData2, null, 2);
+
+  return `Here are natal chart A (JSON):
+${natalData1Json}
+
+Here are natal chart B (JSON):
+${natalData2Json}
+
+Person A: ${profile1.name}. Person B: ${partnerName}. Bond type: ${relationshipType} (romance, friendship, family, or work — interpret accordingly).
+
+Task: write a mid-depth compatibility reading for Lumia. It must feel clearly richer than a one-paragraph teaser, but still more compact than a full premium essay. No astrology jargon (no houses, aspects, planet names as labels). Speak to real emotions, contact, money/practicality when relevant, and tension without fear-mongering.
+
+Rules:
+- Adapt tone and examples to the bond type (e.g. work: collaboration and boundaries; family: care and roles; friendship: loyalty and space).
+- Concrete, warm, adult voice. No mystical fluff.
+- No "color of the day" style gimmicks.
+
+Return strict JSON with:
+- summary: one strong line (max 120 chars)
+- connection: 2 short paragraphs (use \\n\\n between them) on what actually links these two
+- tension: 1-2 short paragraphs on the main friction or misunderstanding pattern
+- navigation: 1-2 short paragraphs on how to move through the week together (practical, humane)
+- bondContext: 1 short paragraph naming what this bond asks of both people in this relationship type
+- compatibilityScore: integer 0-100 (soft estimate, not a scientific claim; avoid extremes unless clearly justified)
+
+Return only JSON.`;
+};
+
+/**
  * Промпт для совместимости (Синастрия) - ПОЛНЫЙ РЕЖИМ (премиум)
  * 
  * Глубокий разбор для премиум пользователей
@@ -1064,5 +1103,14 @@ export interface FullSynastryAIResponse {
   difficulties: string;
   recommendations: string[];
   potential: string;
+}
+
+export interface ExtendedSynastryAIResponse {
+  summary: string;
+  connection: string;
+  tension: string;
+  navigation: string;
+  bondContext: string;
+  compatibilityScore?: number;
 }
 

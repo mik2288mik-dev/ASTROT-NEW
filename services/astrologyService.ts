@@ -526,6 +526,70 @@ export const getNatalIntro = async (
   }
 };
 
+/** Приводит ответ brief API (плоский JSON или с briefOverview) к SynastryResult для UI. */
+export function normalizeBriefSynastryPayload(raw: any): SynastryResult {
+  if (!raw || typeof raw !== 'object') {
+    return { summary: '—' };
+  }
+  if (raw.briefOverview && typeof raw.briefOverview === 'object') {
+    return {
+      summary: String(raw.summary ?? '').trim() || String(raw.briefOverview.introduction ?? '').trim() || '—',
+      compatibilityScore: typeof raw.compatibilityScore === 'number' ? raw.compatibilityScore : undefined,
+      briefOverview: raw.briefOverview,
+    };
+  }
+  if (
+    raw.introduction != null ||
+    raw.harmony != null ||
+    raw.challenges != null ||
+    raw.tips != null
+  ) {
+    const tips = Array.isArray(raw.tips) ? raw.tips.map((t: any) => String(t)) : [];
+    return {
+      summary: String(raw.summary ?? raw.introduction ?? '').trim() || '—',
+      compatibilityScore: typeof raw.compatibilityScore === 'number' ? raw.compatibilityScore : undefined,
+      briefOverview: {
+        introduction: String(raw.introduction ?? ''),
+        harmony: String(raw.harmony ?? ''),
+        challenges: String(raw.challenges ?? ''),
+        tips,
+      },
+    };
+  }
+  return raw as SynastryResult;
+}
+
+/** Приводит ответ full API к SynastryResult для UI. */
+export function normalizeFullSynastryPayload(raw: any): SynastryResult {
+  if (!raw || typeof raw !== 'object') {
+    return { summary: '—' };
+  }
+  if (raw.fullAnalysis && typeof raw.fullAnalysis === 'object') {
+    return {
+      summary: String(raw.summary ?? '').trim() || '—',
+      compatibilityScore: typeof raw.compatibilityScore === 'number' ? raw.compatibilityScore : undefined,
+      fullAnalysis: raw.fullAnalysis,
+    };
+  }
+  if (raw.generalTheme != null || raw.attraction != null || raw.difficulties != null) {
+    const rec = Array.isArray(raw.recommendations)
+      ? raw.recommendations.map((x: any) => String(x))
+      : [];
+    return {
+      summary: String(raw.summary ?? '').trim() || '—',
+      compatibilityScore: typeof raw.compatibilityScore === 'number' ? raw.compatibilityScore : undefined,
+      fullAnalysis: {
+        generalTheme: String(raw.generalTheme ?? ''),
+        attraction: String(raw.attraction ?? ''),
+        difficulties: String(raw.difficulties ?? ''),
+        recommendations: rec,
+        potential: String(raw.potential ?? ''),
+      },
+    };
+  }
+  return raw as SynastryResult;
+}
+
 /**
  * Краткий обзор синастрии (бесплатный) - тизер для всех пользователей
  */
@@ -567,24 +631,33 @@ export const calculateBriefSynastry = async (
     });
 
     if (!response.ok) {
-      const errorText = await response.text().catch(() => 'Unable to read error response');
-      log.error(`[calculateBriefSynastry] Server returned error status ${response.status}`, {
-        status: response.status,
-        statusText: response.statusText,
-        errorBody: errorText
-      });
-      throw new Error(`Failed to calculate brief synastry: ${response.status} ${response.statusText}`);
+      let errorMessage = `Failed to calculate brief synastry: ${response.status} ${response.statusText}`;
+      let errorCode: string | undefined;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorData.error || errorMessage;
+        errorCode = errorData.code;
+      } catch {
+        const errorText = await response.text().catch(() => 'Unable to read error response');
+        log.error(`[calculateBriefSynastry] Server returned error status ${response.status}`, {
+          status: response.status,
+          errorBody: errorText
+        });
+      }
+      const apiError = new Error(errorMessage) as ApiErrorWithCode;
+      apiError.status = response.status;
+      apiError.code = errorCode;
+      throw apiError;
     }
 
-    const result = await response.json() as SynastryResult;
+    const raw = await response.json();
     log.info('[calculateBriefSynastry] Successfully calculated brief synastry');
-    return result;
+    return normalizeBriefSynastryPayload(raw);
   } catch (error: any) {
     log.error('[calculateBriefSynastry] Error occurred', {
       error: error.message,
       stack: error.stack
     });
-    // Пробрасываем ошибку вместо fallback
     throw error;
   }
 };
@@ -630,26 +703,112 @@ export const calculateFullSynastry = async (
     });
 
     if (!response.ok) {
-      const errorText = await response.text().catch(() => 'Unable to read error response');
-      log.error(`[calculateFullSynastry] Server returned error status ${response.status}`, {
-        status: response.status,
-        statusText: response.statusText,
-        errorBody: errorText
-      });
-      throw new Error(`Failed to calculate full synastry: ${response.status} ${response.statusText}`);
+      let errorMessage = `Failed to calculate full synastry: ${response.status} ${response.statusText}`;
+      let errorCode: string | undefined;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorData.error || errorMessage;
+        errorCode = errorData.code;
+      } catch {
+        const errorText = await response.text().catch(() => 'Unable to read error response');
+        log.error(`[calculateFullSynastry] Server returned error status ${response.status}`, {
+          status: response.status,
+          errorBody: errorText
+        });
+      }
+      const apiError = new Error(errorMessage) as ApiErrorWithCode;
+      apiError.status = response.status;
+      apiError.code = errorCode;
+      throw apiError;
     }
 
-    const result = await response.json() as SynastryResult;
+    const raw = await response.json();
     log.info('[calculateFullSynastry] Successfully calculated full synastry');
-    return result;
+    return normalizeFullSynastryPayload(raw);
   } catch (error: any) {
     log.error('[calculateFullSynastry] Error occurred', {
       error: error.message,
       stack: error.stack
     });
-    // Пробрасываем ошибку вместо fallback
     throw error;
   }
+};
+
+export type SynastryExtendedApiOutcome = {
+  result: SynastryResult;
+  lumiSpent: number;
+  lumiBalance: number;
+  fromCache: boolean;
+};
+
+/**
+ * Средний слой синастрии (Lumi): разовый unlock, кэш на сервере.
+ */
+export const calculateExtendedSynastry = async (
+  profile: UserProfile,
+  partnerName: string,
+  partnerDate: string,
+  partnerTime?: string,
+  partnerPlace?: string,
+  relationshipType?: string,
+  partnerChartId?: number,
+  allowLumiSpend?: boolean
+): Promise<SynastryExtendedApiOutcome> => {
+  const url = `${API_BASE_URL}/api/content/synastry/extended`;
+  log.info('[calculateExtendedSynastry] Starting', { partnerName, partnerDate, allowLumiSpend });
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      profile,
+      partnerName,
+      partnerDate,
+      partnerTime,
+      partnerPlace,
+      language: profile.language,
+      relationshipType,
+      partnerChartId,
+      allowLumiSpend: !!allowLumiSpend,
+    }),
+  });
+
+  if (!response.ok) {
+    let errorMessage = `Synastry extended failed: ${response.status}`;
+    let errorCode: string | undefined;
+    let details: any;
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.message || errorData.error || errorMessage;
+      errorCode = errorData.code;
+      details = {
+        lumiCost: errorData.lumiCost,
+        lumiBalance: errorData.lumiBalance,
+      };
+    } catch {
+      const errorText = await response.text().catch(() => '');
+      errorMessage = errorText || errorMessage;
+    }
+    const apiError = new Error(errorMessage) as ApiErrorWithCode;
+    apiError.status = response.status;
+    apiError.code = errorCode;
+    apiError.details = details;
+    throw apiError;
+  }
+
+  const data = (await response.json()) as {
+    result: SynastryResult;
+    lumiSpent?: number;
+    lumiBalance?: number;
+    fromCache?: boolean;
+  };
+
+  return {
+    result: data.result,
+    lumiSpent: data.lumiSpent ?? 0,
+    lumiBalance: data.lumiBalance ?? profile.lumiBalance ?? 0,
+    fromCache: !!data.fromCache,
+  };
 };
 
 

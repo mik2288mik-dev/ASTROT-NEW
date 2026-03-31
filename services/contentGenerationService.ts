@@ -1,4 +1,4 @@
-import { UserProfile, NatalChartData, UserGeneratedContent, DailyHoroscope } from "../types";
+import { UserProfile, NatalChartData, UserGeneratedContent, DailyHoroscope, SynastryResult } from "../types";
 import { getNatalIntro, getDailyHoroscope, getDeepDiveAnalysis, getCachedDailyHoroscope } from "./astrologyService";
 import { saveProfile } from "./storageService";
 import { getMoscowTodayKey } from "../lib/date-utils";
@@ -387,6 +387,28 @@ export const getOrGenerateHoroscope = async (
   return horoscope;
 };
 
+function mergeSynastryCacheLayers(entry: {
+  briefResult?: SynastryResult;
+  extendedResult?: SynastryResult;
+  fullResult?: SynastryResult;
+}): SynastryResult {
+  const b = entry.briefResult;
+  const e = entry.extendedResult;
+  const f = entry.fullResult;
+  return {
+    summary: f?.summary || e?.summary || b?.summary || '—',
+    compatibilityScore: f?.compatibilityScore ?? e?.compatibilityScore ?? b?.compatibilityScore,
+    briefOverview: b?.briefOverview,
+    extendedOverview: e?.extendedOverview,
+    fullAnalysis: f?.fullAnalysis,
+  };
+}
+
+export type SynastryGenerationOutcome = {
+  result: SynastryResult;
+  lumiBalance?: number;
+};
+
 /**
  * Получает или генерирует синастрию для конкретного партнера
  */
@@ -397,76 +419,59 @@ export const getOrGenerateSynastry = async (
   partnerTime?: string,
   partnerPlace?: string,
   relationshipType?: string,
-  mode: 'brief' | 'full' = 'brief',
-  partnerChartId?: number
-): Promise<any> => {
+  mode: 'brief' | 'extended' | 'full' = 'brief',
+  partnerChartId?: number,
+  opts?: { allowLumiSpend?: boolean }
+): Promise<SynastryGenerationOutcome> => {
   log.info(`[getOrGenerateSynastry] Getting synastry for partner: ${partnerName}`, {
     userId: profile.id,
     mode,
     hasGeneratedContent: !!profile.generatedContent
   });
 
-  // Создаем уникальный ключ для партнера (на основе имени и даты рождения)
   const partnerId = partnerChartId
     ? `chart_${partnerChartId}`
     : `${partnerName.toLowerCase().trim()}_${partnerDate}`;
 
-  // Проверяем, есть ли уже сохраненная синастрия
-  const cachedSynastry = partnerChartId ? null : profile.generatedContent?.synastries?.[partnerId];
-  
-  if (cachedSynastry) {
-    if (mode === 'brief' && cachedSynastry.briefResult) {
+  if (!profile.generatedContent) {
+    profile.generatedContent = {
+      deepDiveAnalyses: {},
+      synastries: {},
+      timestamps: {}
+    };
+  }
+  if (!profile.generatedContent.synastries) {
+    profile.generatedContent.synastries = {};
+  }
+
+  const cachedEntry = profile.generatedContent.synastries[partnerId];
+
+  if (cachedEntry) {
+    if (mode === 'brief' && cachedEntry.briefResult) {
       log.info(`[getOrGenerateSynastry] Using cached brief synastry for ${partnerName}`);
-      return cachedSynastry.briefResult;
+      return { result: mergeSynastryCacheLayers(cachedEntry) };
     }
-    if (mode === 'full' && cachedSynastry.fullResult) {
+    if (mode === 'extended' && cachedEntry.extendedResult) {
+      log.info(`[getOrGenerateSynastry] Using cached extended synastry for ${partnerName}`);
+      return { result: mergeSynastryCacheLayers(cachedEntry) };
+    }
+    if (mode === 'full' && cachedEntry.fullResult) {
       log.info(`[getOrGenerateSynastry] Using cached full synastry for ${partnerName}`);
-      return cachedSynastry.fullResult;
+      return { result: mergeSynastryCacheLayers(cachedEntry) };
     }
   }
 
-  // Если нет кэша - генерируем
   log.info(`[getOrGenerateSynastry] Generating new ${mode} synastry for ${partnerName}`);
-  
-  try {
-    const { calculateBriefSynastry, calculateFullSynastry } = await import('./astrologyService');
-    
-    let result: any;
-    if (mode === 'brief') {
-      result = await calculateBriefSynastry(
-        profile,
-        partnerName,
-        partnerDate,
-        partnerTime,
-        partnerPlace,
-        relationshipType,
-        partnerChartId
-      );
-    } else {
-      result = await calculateFullSynastry(
-        profile,
-        partnerName,
-        partnerDate,
-        partnerTime,
-        partnerPlace,
-        relationshipType,
-        partnerChartId
-      );
-    }
 
-    // Сохраняем результат в кэш
-    if (!profile.generatedContent) {
-      profile.generatedContent = {
-        deepDiveAnalyses: {},
-        synastries: {},
-        timestamps: {}
-      };
-    }
-    if (!profile.generatedContent.synastries) {
-      profile.generatedContent.synastries = {};
-    }
-    if (!profile.generatedContent.synastries[partnerId]) {
-      profile.generatedContent.synastries[partnerId] = {
+  try {
+    const {
+      calculateBriefSynastry,
+      calculateFullSynastry,
+      calculateExtendedSynastry,
+    } = await import('./astrologyService');
+
+    if (!profile.generatedContent.synastries![partnerId]) {
+      profile.generatedContent.synastries![partnerId] = {
         partnerName,
         partnerDate,
         partnerChartId,
@@ -474,17 +479,50 @@ export const getOrGenerateSynastry = async (
         timestamp: Date.now()
       };
     }
-    profile.generatedContent.synastries[partnerId].partnerChartId = partnerChartId;
-    profile.generatedContent.synastries[partnerId].source = partnerChartId ? 'saved-chart' : 'manual';
-    profile.generatedContent.synastries[partnerId].timestamp = Date.now();
+    const entry = profile.generatedContent.synastries![partnerId];
+    entry.partnerChartId = partnerChartId;
+    entry.partnerName = partnerName;
+    entry.partnerDate = partnerDate;
+    entry.source = partnerChartId ? 'saved-chart' : 'manual';
+    entry.timestamp = Date.now();
+
+    let lumiBalanceOut: number | undefined;
 
     if (mode === 'brief') {
-      profile.generatedContent.synastries[partnerId].briefResult = result;
+      entry.briefResult = await calculateBriefSynastry(
+        profile,
+        partnerName,
+        partnerDate,
+        partnerTime,
+        partnerPlace,
+        relationshipType,
+        partnerChartId
+      );
+    } else if (mode === 'extended') {
+      const ext = await calculateExtendedSynastry(
+        profile,
+        partnerName,
+        partnerDate,
+        partnerTime,
+        partnerPlace,
+        relationshipType,
+        partnerChartId,
+        opts?.allowLumiSpend
+      );
+      entry.extendedResult = ext.result;
+      lumiBalanceOut = ext.lumiBalance;
     } else {
-      profile.generatedContent.synastries[partnerId].fullResult = result;
+      entry.fullResult = await calculateFullSynastry(
+        profile,
+        partnerName,
+        partnerDate,
+        partnerTime,
+        partnerPlace,
+        relationshipType,
+        partnerChartId
+      );
     }
 
-    // Сохраняем профиль
     try {
       await saveProfile(profile);
       log.info(`[getOrGenerateSynastry] Synastry saved for ${partnerName}`);
@@ -492,7 +530,10 @@ export const getOrGenerateSynastry = async (
       log.error(`[getOrGenerateSynastry] Failed to save synastry for ${partnerName}`, error);
     }
 
-    return result;
+    return {
+      result: mergeSynastryCacheLayers(entry),
+      ...(typeof lumiBalanceOut === 'number' ? { lumiBalance: lumiBalanceOut } : {}),
+    };
   } catch (error) {
     log.error(`[getOrGenerateSynastry] Failed to generate synastry for ${partnerName}`, error);
     throw error;

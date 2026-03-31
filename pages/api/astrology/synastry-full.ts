@@ -5,6 +5,7 @@ import { calculateNatalChart } from '../../../lib/swisseph-calculator';
 import { db } from '../../../lib/db';
 import { SYSTEM_PROMPT_ASTRA, createFullSynastryPrompt, addLanguageInstruction, FullSynastryAIResponse } from '../../../lib/prompts';
 import { getOpenAIInterpretationModel } from '../../../lib/appSettings';
+import { getPremiumEntitlementState } from '../../../lib/contentArchitecture';
 
 const log = {
   info: (message: string, data?: any) => {
@@ -42,15 +43,29 @@ export default async function handler(
       });
     }
 
-    if (!profile.isPremium) {
-      return res.status(403).json({
-        error: 'Premium required',
-        message: 'Full synastry analysis is available only for premium users'
+    const currentLanguage = language === 'en' ? 'en' : 'ru';
+    const langRu = currentLanguage === 'ru';
+
+    const userId = String(profile?.id || '').trim();
+    if (!userId) {
+      return res.status(400).json({
+        error: 'Bad request',
+        message: 'User id is required for full synastry',
       });
     }
 
-    const currentLanguage = language === 'en' ? 'en' : 'ru';
-    const lang = currentLanguage === 'ru';
+    const { isPremium } = await getPremiumEntitlementState(userId);
+    if (!isPremium) {
+      return res.status(403).json({
+        code: 'PREMIUM_REQUIRED',
+        error: 'Premium required',
+        message: langRu
+          ? 'Полный разбор совместимости доступен по Lumia Premium. Средний слой можно открыть один раз за Lumi на экране синастрии.'
+          : 'Full compatibility analysis is available with Lumia Premium. The mid-depth layer can be unlocked once with Lumi on the Synastry screen.',
+      });
+    }
+
+    const lang = langRu;
 
     let primaryChartRecord: any = null;
     let partnerChartRecord: any = null;

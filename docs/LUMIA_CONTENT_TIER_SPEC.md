@@ -31,7 +31,9 @@
 | free | question | brief | Стартовый бесплатный вопрос (лимит через unlock) | `POST/GET /api/content/question/ask` | [views/OracleChat.tsx](../views/OracleChat.tsx) |
 | lumi | question | one_off | Разовый вопрос за Lumi | то же | то же |
 | premium | question | full | Вопросы в рамках Premium | то же | то же |
-| — | synastry | brief / full / one_off | Задекларировано в типах; продуктовые варианты **в процессе выравнивания** с legacy synastry API | Legacy: `/api/astrology/synastry-*` | [views/Synastry.tsx](../views/Synastry.tsx) (проверять при синхронизации) |
+| free | synastry | (legacy `brief`) | Короткий бесплатный вход по двум картам | `POST /api/astrology/synastry-brief` | [views/Synastry.tsx](../views/Synastry.tsx) |
+| lumi | synastry | one_off | Средний слой (связь, напряжение, навигация, контекст типа связи), разовый unlock + кэш | `POST /api/content/synastry/extended` (`allowLumiSpend`) | то же |
+| premium | synastry | (legacy `full`) | Полный глубокий разбор | `POST /api/astrology/synastry-full` (entitlement по БД) | то же |
 
 Генерация текста прогноза: [lib/forecastContent.ts](../lib/forecastContent.ts), промпты: [lib/prompts.ts](../lib/prompts.ts) (`createDailyForecastV2Prompt`, `createDaypartForecastPrompt`).
 
@@ -59,10 +61,11 @@ Unlock / интерпретации в БД: [lib/contentArchitecture.ts](../lib
 
 ## 5. Backlog / известные зазоры
 
-- **Synastry**: формальное выравнивание `free / lumi / premium` с `content_interpretations` vs текущие synastry endpoints.
+- **Synastry**: Lumi-слой пишет в `content_interpretations` + `synastry_cache` (`mode: extended`); free/full по-прежнему на legacy `synastry-brief` / `synastry-full` (кэш `brief`/`full`). При желании позже — единый маршрут `requestedTier`.
 - **Weekly / monthly** forecast: варианты в типах; отдельные consumer endpoints — по мере Phase 4 roadmap.
 - **Lumi reason taxonomy** для earn/spend — Phase 7 roadmap, не блокирует эту спеку.
 
 ## 6. История
 
 - 2026-03: первая версия спеки после Dashboard Phase 2, forecast/dayparts, Ask Lumia и natal anchor/living в UI.
+- 2026-03: Phase 6 — три слоя синастрии (free / Lumi extended / Premium full) и выравнивание копирайта вопросов.

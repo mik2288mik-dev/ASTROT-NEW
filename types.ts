@@ -124,6 +124,7 @@ export interface UserGeneratedContent {
       partnerChartId?: number;
       source?: 'saved-chart' | 'manual';
       briefResult?: SynastryResult;
+      extendedResult?: SynastryResult;
       fullResult?: SynastryResult;
       timestamp: number;
     };
@@ -150,6 +151,14 @@ export interface SynastryResult {
     tips: string[]; // 3-4 подсказки как лучше обходиться друг с другом
   };
   
+  // Средний слой (Lumi) — глубже brief, компактнее full
+  extendedOverview?: {
+    connection: string;
+    tension: string;
+    navigation: string;
+    bondContext: string;
+  };
+
   // Полный режим (премиум) - глубокий разбор
   fullAnalysis?: {
     generalTheme: string; // Общая тема связи (1-2 абзаца)
