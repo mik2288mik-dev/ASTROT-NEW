@@ -2,6 +2,7 @@ import { UserProfile, NatalChartData, DailyHoroscope, SynastryResult, UserEvolut
 import { SYSTEM_INSTRUCTION_ASTRA } from "../constants";
 import { getElementForSign } from "../lib/zodiac-utils";
 import { coerceNatalAnchorReading, coerceNatalLivingReading, getCurrentNatalPeriodKey, mapNatalAnchorToLegacyIntro } from "../lib/natalReadings";
+import { isForecastLegacyFallbackEnabled } from "../lib/forecastLegacyConfig";
 
 // API base URL - используем локальные Next.js API routes
 const API_BASE_URL = typeof window !== 'undefined' ? '' : process.env.NEXT_PUBLIC_API_URL || '';
@@ -1279,6 +1280,12 @@ export const getDailyHoroscope = async (profile: UserProfile, chartData: NatalCh
       persisted: true,
     });
   } catch (error: any) {
+    if (!isForecastLegacyFallbackEnabled()) {
+      log.error('[getDailyHoroscope] Forecast v2 failed; legacy fallback disabled', {
+        error: error?.message,
+      });
+      throw error;
+    }
     log.error('[getDailyHoroscope] Forecast v2 request failed, falling back to legacy endpoint', {
       error: error?.message,
     });
@@ -1300,6 +1307,13 @@ export const getCachedDailyHoroscope = async (
       persisted: true,
     });
   } catch (error: any) {
+    if (!isForecastLegacyFallbackEnabled()) {
+      log.warn('[getCachedDailyHoroscope] Forecast v2 cache failed; legacy fallback disabled', {
+        userId,
+        error: error?.message,
+      });
+      return null;
+    }
     log.warn('[getCachedDailyHoroscope] Forecast v2 cache request failed, falling back to legacy endpoint', {
       userId,
       error: error?.message,

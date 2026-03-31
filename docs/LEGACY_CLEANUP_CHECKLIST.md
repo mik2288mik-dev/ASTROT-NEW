@@ -8,6 +8,7 @@
 
 ## Кандидаты на проверку
 
+- Инвентаризация вызовов daily legacy и флаг отключения моста: [LEGACY_FORECAST_CALLS.md](./LEGACY_FORECAST_CALLS.md) (`NEXT_PUBLIC_FORECAST_LEGACY_FALLBACK=0`).
 - Legacy ответы помечаются заголовками `X-Lumia-Legacy-Endpoint` и `Warning` на `daily-horoscope`, `weekly-horoscope`, `monthly-horoscope`; основной контракт — `content/forecast/*`.
 - Дублирующие consumer-пути (legacy `daily-horoscope` vs `content/forecast/daily`) — свести к одному контракту на клиенте, оставить мост только при необходимости.
 - Устаревшие имена surface в UI (внутренний `Oracle` vs «Спросить Lumia» — уже зафиксировано в спеке §3).
