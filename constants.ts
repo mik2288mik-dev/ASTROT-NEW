@@ -302,6 +302,32 @@ export const TRANSLATIONS = {
       saved_list_title: "Сохранённые карты",
       result_title: "Чтение совместимости"
     },
+    lumi_wallet: {
+      roulette_title: "Ежедневная награда",
+      roulette_subtitle:
+        "Один раз в сутки (UTC) — переменная сумма Lumi. Чаще небольшие награды, иногда заметный бонус — честная случайность без обмана.",
+      roulette_cta: "Получить награду",
+      roulette_spinning: "Считаем…",
+      roulette_won: "+{amount} Lumi",
+      roulette_tier_spark: "Искра",
+      roulette_tier_glow: "Свечение",
+      roulette_tier_beam: "Луч",
+      roulette_tier_aurora: "Аврора",
+      roulette_done: "Сегодняшняя награда уже получена. Загляни завтра.",
+      roulette_cta_done: "На сегодня всё",
+      roulette_next_utc: "Следующая награда — завтра (по UTC).",
+      roulette_error: "Не удалось получить награду. Попробуй позже.",
+      referral_title: "Пригласить друга",
+      referral_body:
+        "Поделись ссылкой с Mini App: друг открывает Lumia по твоему коду, вы оба получаете Lumi один раз (после первого успешного применения кода).",
+      referral_applied: "Ты уже пришёл по чьей-то ссылке — спасибо, бонус начислен ранее.",
+      referral_copy_link: "Скопировать ссылку",
+      referral_copy_code: "Скопировать код",
+      referral_copied: "Скопировано",
+      referral_bot_hint:
+        "Добавь в .env переменную NEXT_PUBLIC_TELEGRAM_BOT_USERNAME (имя бота без @), чтобы собрать ссылку автоматически.",
+      referral_share_text: "Загляни в Lumia — персональная астрология в Telegram.",
+    },
     settings: {
       title: "Настройки",
       profile: "Профиль",
@@ -722,6 +748,32 @@ export const TRANSLATIONS = {
       selected_partner_title: "Selected partner",
       saved_list_title: "Saved charts",
       result_title: "Compatibility overview"
+    },
+    lumi_wallet: {
+      roulette_title: "Daily reward",
+      roulette_subtitle:
+        "Once per UTC day — variable Lumi. Mostly small wins, sometimes a bigger bump: fair randomness, no fake wheels.",
+      roulette_cta: "Claim reward",
+      roulette_spinning: "Drawing…",
+      roulette_won: "+{amount} Lumi",
+      roulette_tier_spark: "Spark",
+      roulette_tier_glow: "Glow",
+      roulette_tier_beam: "Beam",
+      roulette_tier_aurora: "Aurora",
+      roulette_done: "You already claimed today’s reward. Come back tomorrow.",
+      roulette_cta_done: "All set for today",
+      roulette_next_utc: "Next reward unlocks tomorrow (UTC).",
+      roulette_error: "Could not claim the reward. Try again later.",
+      referral_title: "Invite a friend",
+      referral_body:
+        "Share your Mini App link: when they open Lumia with your code, you both receive a one-time Lumi bonus (first successful claim only).",
+      referral_applied: "You already joined through someone’s link — thanks, the bonus was applied earlier.",
+      referral_copy_link: "Copy link",
+      referral_copy_code: "Copy code",
+      referral_copied: "Copied",
+      referral_bot_hint:
+        "Set NEXT_PUBLIC_TELEGRAM_BOT_USERNAME in .env (bot name without @) to build the invite link automatically.",
+      referral_share_text: "Try Lumia — personal astrology in Telegram.",
     },
     settings: {
       title: "Settings",

@@ -176,6 +176,8 @@ Natal screen должен ясно показывать разницу межд�
 
 Цель: сделать Lumi полноценной продуктовой экономикой.
 
+Частично в коде: таксономия причин earn/spend/purchase/system и подписи транзакций — [lib/lumiReasonTaxonomy.ts](../lib/lumiReasonTaxonomy.ts); кошелёк — [Wallet.tsx](../views/Wallet.tsx); ежедневный вход и бонусы серии — `processDailyLogin` / `streakService` / БД.
+
 ### Earn loops
 
 - daily login
@@ -203,6 +205,8 @@ Wallet должен ясно объяснять:
 
 ## 8. Phase 8 — AIR UI Design System Rollout
 
+Чеклист порядка экранов: [AIR_UI_ROLLOUT.md](./AIR_UI_ROLLOUT.md).
+
 Дизайн внедряется не одним редизайном, а экран за экраном.
 
 Зафиксированное направление:
@@ -229,6 +233,8 @@ Wallet должен ясно объяснять:
 
 ## 9. Support Track — Admin and Notifications
 
+Ориентир для трека: [ADMIN_NOTIFICATIONS_SUPPORT.md](./ADMIN_NOTIFICATIONS_SUPPORT.md).
+
 Admin остаётся supporting subsystem и не ведёт consumer roadmap.
 
 Его задача:
@@ -244,6 +250,8 @@ Admin остаётся supporting subsystem и не ведёт consumer roadmap.
 - admin не становится главным продуктовым потоком, пока не собран consumer core
 
 ## 10. Final Cleanup Track
+
+Чеклист: [LEGACY_CLEANUP_CHECKLIST.md](./LEGACY_CLEANUP_CHECKLIST.md).
 
 После сборки нового consumer core проводится cleanup старой модели.
 
@@ -312,13 +320,17 @@ Admin остаётся supporting subsystem и не ведёт consumer roadmap.
 
 Состояние на текущую итерацию:
 
-- **Dashboard Phase 2** — реализована иерархия главного экрана (hero, «что важно», натал, вторичные действия); дальнейшие правки — через acceptance criteria конституции и спеку слоёв.
-- **Content-tier spec** — зафиксирована в [LUMIA_CONTENT_TIER_SPEC.md](./LUMIA_CONTENT_TIER_SPEC.md) (матрица `tier × surface × variant` и ссылки на код).
+- **Dashboard Phase 2** — иерархия главного экрана (hero, «что важно», натал, вторичные действия); итерации — по конституции и [LUMIA_CONTENT_TIER_SPEC.md](./LUMIA_CONTENT_TIER_SPEC.md).
+- **Content-tier spec** — матрица `tier × surface × variant` и ссылки на код в [LUMIA_CONTENT_TIER_SPEC.md](./LUMIA_CONTENT_TIER_SPEC.md).
+- **Phase 6 (Questions + Synastry)** — закрыта в продукте (см. §6 выше): три слоя синастрии, вопросы free/Lumi/Premium.
 
 Ближайшие implementation-фокусы:
 
-1. Выровнять **forecast** (free daily + premium dayparts) с конституцией: единый контракт данных на дашборде и экране прогноза, без consumer-gimmicks, усиленное различие Premium.
-2. Закрепить **natal anchor vs living** в UX-копирайте и документации экрана — см. [NATAL_SCREEN_IA.md](./NATAL_SCREEN_IA.md) (экран [NatalChart.tsx](../views/NatalChart.tsx) уже реализует anchor + living).
-3. Дальше по порядку roadmap: **synastry/questions** под ту же матрицу, затем **Lumi economy**, **AIR UI**, admin/notifications, cleanup.
+1. **Phase 7 — Lumi economy**: углубление earn/spend (кошелёк, таксономия причин, новые петли начисления). База: [lib/lumiReasonTaxonomy.ts](../lib/lumiReasonTaxonomy.ts), [views/Wallet.tsx](../views/Wallet.tsx), ежедневный вход и серии уже в БД/API.
+2. **Phase 8 — AIR UI**: поэкранный rollout — [AIR_UI_ROLLOUT.md](./AIR_UI_ROLLOUT.md) (Tailwind: токен `spacing.air`).
+3. **Phase 9 — Support track**: admin и уведомления — [ADMIN_NOTIFICATIONS_SUPPORT.md](./ADMIN_NOTIFICATIONS_SUPPORT.md).
+4. **Phase 10 — Cleanup**: чеклист — [LEGACY_CLEANUP_CHECKLIST.md](./LEGACY_CLEANUP_CHECKLIST.md).
+
+Параллельно по зрелости продукта: **forecast** и **natal** остаются в зоне приёмки конституции (единый контракт, без gimmicks, якорь vs living) без смены номера фазы в §1.
 
 Это текущий рабочий порядок Lumia.

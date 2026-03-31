@@ -149,6 +149,13 @@ export default async function handler(
       const loginStreak = user.login_streak ?? 0;
       const chartSlots = user.chart_slots ?? 1;
 
+      let refCode: string | null = null;
+      try {
+        refCode = await db.users.ensureReferralCode(userId);
+      } catch (e: any) {
+        log.warn('[GET] ensureReferralCode failed', { userId, error: e?.message });
+      }
+
       const clientUser = {
         id: user.id,
         name: user.name,
@@ -166,6 +173,8 @@ export default async function handler(
         lumiBalance,
         loginStreak,
         chartSlots,
+        refCode: refCode || undefined,
+        referralApplied: user.referred_by != null && user.referred_by !== undefined,
       };
 
       return res.status(200).json(clientUser);
@@ -221,6 +230,13 @@ export default async function handler(
 
       const generatedContent = await hydrateGeneratedContent(userId);
 
+      let refCodePost: string | null = null;
+      try {
+        refCodePost = await db.users.ensureReferralCode(userId);
+      } catch (e: any) {
+        log.warn('[POST] ensureReferralCode failed', { userId, error: e?.message });
+      }
+
       const clientUser = {
         id: savedUser.id,
         name: savedUser.name,
@@ -238,6 +254,8 @@ export default async function handler(
         lumiBalance: refreshedUser?.lumi_balance ?? 0,
         loginStreak: refreshedUser?.login_streak ?? 0,
         chartSlots: refreshedUser?.chart_slots ?? 1,
+        refCode: refCodePost || undefined,
+        referralApplied: refreshedUser?.referred_by != null && refreshedUser?.referred_by !== undefined,
       };
 
       return res.status(200).json(clientUser);

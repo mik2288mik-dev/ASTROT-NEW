@@ -103,7 +103,13 @@ export const RATE_LIMIT_CONFIGS = {
   AI_PREMIUM: {
     windowMs: 60 * 1000,
     maxRequests: 30
-  }
+  },
+
+  /** Wallet actions: roulette spin, referral claim */
+  LUMI_ACTION: {
+    windowMs: 60 * 1000,
+    maxRequests: 20,
+  },
 };
 
 /**

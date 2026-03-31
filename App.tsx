@@ -1,7 +1,14 @@
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { UserProfile, NatalChartData, ViewState } from './types';
-import { getProfile, saveProfile, getLumiBalance, processDailyLogin, getChartData } from './services/storageService';
+import {
+    getProfile,
+    saveProfile,
+    getLumiBalance,
+    processDailyLogin,
+    getChartData,
+    runReferralFromStartParam,
+} from './services/storageService';
 import { getOrCalculateChart } from './services/chartService';
 import { generateAllContent } from './services/contentGenerationService';
 import { Onboarding } from './views/Onboarding';
@@ -172,6 +179,16 @@ const App: React.FC = () => {
                 const updatedProfile = { ...storedProfile, id: String(tgId), isAdmin };
                 setProfile(updatedProfile);
 
+                runReferralFromStartParam(String(tgId), (r) => {
+                    if (r.ok && typeof r.newBalance === 'number') {
+                        setProfile((p) =>
+                            p ? { ...p, lumiBalance: r.newBalance, referralApplied: true } : p
+                        );
+                    } else if (r.status === 409) {
+                        setProfile((p) => (p ? { ...p, referralApplied: true } : p));
+                    }
+                });
+
                 // Шаг 3: Загружаем карту через chartService
                 // Он сам проверит БД и рассчитает только если нужно
                 setLoadingProgress(50);
@@ -256,6 +273,16 @@ const App: React.FC = () => {
                     }
                 }
             }
+
+            runReferralFromStartParam(String(tgId), (r) => {
+                if (r.ok && typeof r.newBalance === 'number') {
+                    setProfile((p) =>
+                        p ? { ...p, lumiBalance: r.newBalance, referralApplied: true } : p
+                    );
+                } else if (r.status === 409) {
+                    setProfile((p) => (p ? { ...p, referralApplied: true } : p));
+                }
+            });
 
             // Шаг 2: Рассчитываем карту через chartService
             // API сам сохранит результат в БД (если БД доступна)

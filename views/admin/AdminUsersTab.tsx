@@ -26,6 +26,7 @@ import {
 import { formatAdminText, getAdminText } from './adminText';
 import { useAdminUserDetail } from './hooks/useAdminUserDetail';
 import { useAdminUsersList } from './hooks/useAdminUsersList';
+import { formatLumiReasonLabel } from '../../lib/lumiReasonTaxonomy';
 
 type AdminOwnProfilePatch = Partial<Pick<UserProfile, 'isPremium' | 'lumiBalance' | 'chartSlots' | 'loginStreak'>>;
 
@@ -94,17 +95,7 @@ const getSortLabel = (lang: 'ru' | 'en', value: AdminUserSortBy) => {
   }
 };
 
-const formatLumiReason = (lang: 'ru' | 'en', reason: string) => {
-  const map: Record<string, { ru: string; en: string }> = {
-    daily_login: { ru: 'Ежедневный вход', en: 'Daily login' },
-    streak_bonus: { ru: 'Бонус за серию входов', en: 'Streak bonus' },
-    chart_slot: { ru: 'Покупка слота для карты', en: 'Chart slot purchase' },
-    admin_lumi_add: { ru: 'Начисление Lumi от admin', en: 'Admin Lumi credit' },
-    admin_lumi_subtract: { ru: 'Списание Lumi от admin', en: 'Admin Lumi deduction' },
-    refund: { ru: 'Возврат', en: 'Refund' },
-  };
-  return map[reason]?.[lang] || reason.replaceAll('_', ' ');
-};
+const formatLumiReason = (lang: 'ru' | 'en', reason: string) => formatLumiReasonLabel(lang, reason);
 
 const getPremiumLabel = (lang: 'ru' | 'en', isPremium: boolean) => {
   if (isPremium) return 'Premium';

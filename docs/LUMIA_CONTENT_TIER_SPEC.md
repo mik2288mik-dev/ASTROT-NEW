@@ -63,9 +63,10 @@ Unlock / интерпретации в БД: [lib/contentArchitecture.ts](../lib
 
 - **Synastry**: Lumi-слой пишет в `content_interpretations` + `synastry_cache` (`mode: extended`); free/full по-прежнему на legacy `synastry-brief` / `synastry-full` (кэш `brief`/`full`). При желании позже — единый маршрут `requestedTier`.
 - **Weekly / monthly** forecast: варианты в типах; отдельные consumer endpoints — по мере Phase 4 roadmap.
-- **Lumi reason taxonomy** для earn/spend — Phase 7 roadmap, не блокирует эту спеку.
+- **Lumi reason taxonomy** (earn / spend / purchase / system): код и подписи в [lib/lumiReasonTaxonomy.ts](../lib/lumiReasonTaxonomy.ts); расширять при новых `reason` в БД.
 
 ## 6. История
 
 - 2026-03: первая версия спеки после Dashboard Phase 2, forecast/dayparts, Ask Lumia и natal anchor/living в UI.
 - 2026-03: Phase 6 — три слоя синастрии (free / Lumi extended / Premium full) и выравнивание копирайта вопросов.
+- 2026-03: Phase 7 (часть) — таксономия причин Lumi в `lib/lumiReasonTaxonomy.ts`, кошелёк и admin на общих подписях.

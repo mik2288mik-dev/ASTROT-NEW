@@ -230,6 +230,104 @@ export const getLumiWallet = async (userId: string, limit = 30): Promise<LumiWal
   };
 };
 
+export const getDailyRouletteStatus = async (
+  userId: string
+): Promise<{ claimedToday: boolean; lumiBalance: number }> => {
+  if (!userId) return { claimedToday: false, lumiBalance: 0 };
+  const url = `${API_BASE_URL}/api/users/lumi/daily-roulette?userId=${encodeURIComponent(userId)}`;
+  const res = await fetch(url, { cache: 'no-store' });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || err.error || `Roulette status failed: ${res.status}`);
+  }
+  const data = await res.json();
+  return {
+    claimedToday: !!data.claimedToday,
+    lumiBalance: data.lumiBalance ?? 0,
+  };
+};
+
+export type DailyRouletteSpinResult =
+  | { ok: true; amount: number; tier: string; lumiBalance: number }
+  | { ok: false; code: 'ALREADY_CLAIMED'; lumiBalance: number };
+
+export const postDailyRouletteSpin = async (userId: string): Promise<DailyRouletteSpinResult> => {
+  if (!userId) throw new Error('UserId is required');
+  const res = await fetch(`${API_BASE_URL}/api/users/lumi/daily-roulette`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.message || data.error || `Roulette spin failed: ${res.status}`);
+  }
+  if (data.ok === false && data.code === 'ALREADY_CLAIMED') {
+    return { ok: false, code: 'ALREADY_CLAIMED', lumiBalance: data.lumiBalance ?? 0 };
+  }
+  if (data.ok === true) {
+    return {
+      ok: true,
+      amount: data.amount,
+      tier: data.tier,
+      lumiBalance: data.lumiBalance,
+    };
+  }
+  throw new Error(data.message || 'Unexpected roulette response');
+};
+
+export type ReferralClaimApiResult = {
+  ok: boolean;
+  status: number;
+  newBalance?: number;
+  code?: string;
+};
+
+export const postReferralClaim = async (userId: string, inviteCode: string): Promise<ReferralClaimApiResult> => {
+  if (!userId || !inviteCode.trim()) {
+    return { ok: false, status: 400, code: 'MISSING' };
+  }
+  const res = await fetch(`${API_BASE_URL}/api/users/referral/claim`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId, inviteCode: inviteCode.trim() }),
+  });
+  const data = await res.json().catch(() => ({}));
+  return {
+    ok: res.ok,
+    status: res.status,
+    newBalance: data.newBalance,
+    code: data.code,
+  };
+};
+
+/**
+ * One session attempt: read Telegram start_param and claim referral if present.
+ */
+export function runReferralFromStartParam(
+  userId: string,
+  onResult?: (r: ReferralClaimApiResult) => void
+): void {
+  if (typeof window === 'undefined' || !userId) return;
+  const tg = (window as any).Telegram?.WebApp;
+  const sp = typeof tg?.initDataUnsafe?.start_param === 'string' ? tg.initDataUnsafe.start_param.trim() : '';
+  if (!sp) return;
+  const k = `lumi_ref_${userId}`;
+  try {
+    if (sessionStorage.getItem(k)) return;
+  } catch {
+    return;
+  }
+  void postReferralClaim(userId, sp).then((r) => {
+    try {
+      sessionStorage.setItem(k, '1');
+    } catch {
+      /* ignore */
+    }
+    onResult?.(r);
+  });
+}
+
 /**
  * Save chart data to Railway Database
  * WARNING: This is the ONLY persistence layer. No local storage fallback.

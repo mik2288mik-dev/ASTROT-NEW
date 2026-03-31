@@ -49,6 +49,10 @@ export interface UserProfile {
   lumiBalance?: number; // Lumi balance (internal app currency)
   loginStreak?: number; // Consecutive daily login count
   chartSlots?: number; // Max charts user can have
+  /** Personal invite code for Telegram startapp deep links */
+  refCode?: string;
+  /** User already linked to an inviter (one-time referral) */
+  referralApplied?: boolean;
   weatherCity?: string; // Город для погоды (например, "Moscow" или "Москва")
   
   // Все генерации пользователя (кэшируются)

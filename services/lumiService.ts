@@ -16,7 +16,7 @@ const log = {
   error: (msg: string, err?: any) => console.error(`[LumiService] ERROR: ${msg}`, err || ''),
 };
 
-/** Explicit reason strings - do not use vague or pattern-based reasons */
+/** Explicit reason strings - do not use vague or pattern-based reasons. UI labels: lib/lumiReasonTaxonomy.ts */
 export const LUMI_REASONS = {
   daily_login: 'daily_login',
   streak_bonus: 'streak_bonus',

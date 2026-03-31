@@ -1,9 +1,17 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { UserProfile, LumiTransaction } from '../types';
-import { getLumiWallet } from '../services/storageService';
+import {
+  getLumiWallet,
+  getDailyRouletteStatus,
+  postDailyRouletteSpin,
+  getProfile,
+} from '../services/storageService';
 import { getAllLumiPacks, type LumiPack } from '../services/lumiPacks';
 import { requestLumiPackPayment } from '../services/telegramService';
 import { Loading } from '../components/ui/Loading';
+import { formatLumiReasonLabel } from '../lib/lumiReasonTaxonomy';
+import { getText } from '../constants';
+import { REFERRAL_INVITEE_LUMI, REFERRAL_INVITER_LUMI } from '../lib/referralEconomy';
 
 interface WalletProps {
   profile: UserProfile;
@@ -12,32 +20,14 @@ interface WalletProps {
 
 const T = (lang: 'ru' | 'en', ru: string, en: string) => (lang === 'ru' ? ru : en);
 
-const formatTransactionReason = (lang: 'ru' | 'en', reason: string): string => {
-  const map: Record<string, { ru: string; en: string }> = {
-    daily_login: { ru: 'Ежедневный вход', en: 'Daily login' },
-    streak_bonus: { ru: 'Бонус за серию входов', en: 'Streak bonus' },
-    referral_bonus: { ru: 'Реферальный бонус', en: 'Referral bonus' },
-    roulette_win: { ru: 'Выигрыш в рулетке', en: 'Roulette win' },
-    deep_dive: { ru: 'Глубокий разбор', en: 'Deep dive' },
-    synastry: { ru: 'Синастрия', en: 'Synastry' },
-    question: { ru: 'Вопрос к Lumia', en: 'Question to Lumia' },
-    daily_card: { ru: 'Ежедневная карта', en: 'Daily card' },
-    chart_slot: { ru: 'Покупка слота для карты', en: 'Chart slot purchase' },
-    regenerate_natal: { ru: 'Повторная генерация натальной карты', en: 'Natal regeneration' },
-    regenerate_deep_dive: { ru: 'Повторная генерация deep dive', en: 'Deep dive regeneration' },
-    regenerate_synastry: { ru: 'Повторная генерация синастрии', en: 'Synastry regeneration' },
-    refresh_natal_intro: { ru: 'Обновление разбора карты', en: 'Chart summary refresh' },
-    premium_bonus: { ru: 'Бонус Premium', en: 'Premium bonus' },
-    admin_lumi_add: { ru: 'Начисление Lumi от admin', en: 'Admin Lumi credit' },
-    admin_lumi_subtract: { ru: 'Списание Lumi от admin', en: 'Admin Lumi deduction' },
-    refund: { ru: 'Возврат', en: 'Refund' },
-    lumi_pack_starter: { ru: 'Пакет Lumi: Стартовый', en: 'Lumi pack: Starter' },
-    lumi_pack_plus: { ru: 'Пакет Lumi: Plus', en: 'Lumi pack: Plus' },
-    lumi_pack_max: { ru: 'Пакет Lumi: Max', en: 'Lumi pack: Max' },
-  };
-
-  return map[reason]?.[lang] || reason.replace(/_/g, ' ');
-};
+function ruStreakPhrase(days: number): string {
+  const mod100 = days % 100;
+  const mod10 = days % 10;
+  if (mod100 >= 11 && mod100 <= 14) return `${days} дней подряд`;
+  if (mod10 === 1) return `${days} день подряд`;
+  if (mod10 >= 2 && mod10 <= 4) return `${days} дня подряд`;
+  return `${days} дней подряд`;
+}
 
 const formatTransactionTime = (lang: 'ru' | 'en', value: string) =>
   new Intl.DateTimeFormat(lang === 'ru' ? 'ru-RU' : 'en-US', {
@@ -56,8 +46,24 @@ export const Wallet: React.FC<WalletProps> = ({ profile, onUpdateProfile }) => {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [rouletteClaimed, setRouletteClaimed] = useState(false);
+  const [rouletteBusy, setRouletteBusy] = useState(false);
+  const [lastRouletteWin, setLastRouletteWin] = useState<{ amount: number; tier: string } | null>(null);
+  const [copyHint, setCopyHint] = useState<'link' | 'code' | null>(null);
 
   const packs = useMemo(() => getAllLumiPacks(), []);
+  const botUsername = (process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || '').replace(/^@/, '').trim();
+  const inviteLink =
+    botUsername && profile.refCode
+      ? `https://t.me/${botUsername}?startapp=${encodeURIComponent(profile.refCode)}`
+      : '';
+
+  const streak = profile.loginStreak ?? 0;
+  const streakMilestones = [3, 7, 30] as const;
+  const nextStreakBonusDay = useMemo(() => {
+    const next = streakMilestones.find((d) => streak < d);
+    return next ?? null;
+  }, [streak]);
 
   const loadWallet = async (showLoader = true) => {
     if (!profile.id) return;
@@ -66,6 +72,12 @@ export const Wallet: React.FC<WalletProps> = ({ profile, onUpdateProfile }) => {
       const data = await getLumiWallet(profile.id, 40);
       setWallet(data);
       onUpdateProfile({ ...profile, lumiBalance: data.lumi_balance });
+      try {
+        const rs = await getDailyRouletteStatus(profile.id);
+        setRouletteClaimed(rs.claimedToday);
+      } catch {
+        setRouletteClaimed(false);
+      }
     } catch (walletError: any) {
       setError(walletError?.message || T(lang, 'Не удалось загрузить кошелёк', 'Failed to load wallet'));
     } finally {
@@ -73,9 +85,87 @@ export const Wallet: React.FC<WalletProps> = ({ profile, onUpdateProfile }) => {
     }
   };
 
+  const wt = (key: string, vars?: Record<string, string>) => {
+    let s = getText(profile.language, `lumi_wallet.${key}`);
+    if (vars) {
+      for (const [k, v] of Object.entries(vars)) {
+        s = s.replace(`{${k}}`, v);
+      }
+    }
+    return s;
+  };
+
+  const handleRoulette = async () => {
+    if (!profile.id || rouletteBusy || rouletteClaimed) return;
+    setRouletteBusy(true);
+    setError(null);
+    try {
+      const r = await postDailyRouletteSpin(profile.id);
+      if (r.ok) {
+        setLastRouletteWin({ amount: r.amount, tier: r.tier });
+        setRouletteClaimed(true);
+        onUpdateProfile({ ...profile, lumiBalance: r.lumiBalance });
+        await loadWallet(false);
+      } else {
+        setRouletteClaimed(true);
+        onUpdateProfile({ ...profile, lumiBalance: r.lumiBalance });
+      }
+    } catch (e: any) {
+      setError(e?.message || wt('roulette_error'));
+    } finally {
+      setRouletteBusy(false);
+    }
+  };
+
+  const copyToClipboard = async (text: string, kind: 'link' | 'code') => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopyHint(kind);
+      setTimeout(() => setCopyHint(null), 2000);
+    } catch {
+      setError(T(lang, 'Не удалось скопировать', 'Could not copy'));
+    }
+  };
+
+  const openTelegramShare = () => {
+    if (!inviteLink) return;
+    const url = encodeURIComponent(inviteLink);
+    const text = encodeURIComponent(wt('referral_share_text'));
+    const tgUrl = `https://t.me/share/url?url=${url}&text=${text}`;
+    const tw = (window as any).Telegram?.WebApp;
+    if (tw?.openTelegramLink) {
+      tw.openTelegramLink(tgUrl);
+    } else {
+      window.open(tgUrl, '_blank', 'noopener,noreferrer');
+    }
+  };
+
+  const tierLabel = (tier: string) => getText(profile.language, `lumi_wallet.roulette_tier_${tier}`);
+
   useEffect(() => {
     void loadWallet();
   }, [profile.id]);
+
+  useEffect(() => {
+    if (!profile.id || (profile.refCode && profile.refCode.length > 0)) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const p = await getProfile();
+        if (cancelled || !p?.refCode) return;
+        onUpdateProfile({
+          ...profile,
+          refCode: p.refCode,
+          referralApplied: p.referralApplied ?? profile.referralApplied,
+        });
+      } catch {
+        /* ignore */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [profile.id, profile.refCode]);
 
   const handleTopUp = async (pack: LumiPack) => {
     setActionLoading(pack.id);
@@ -110,13 +200,159 @@ export const Wallet: React.FC<WalletProps> = ({ profile, onUpdateProfile }) => {
           Lumi Wallet
         </p>
         <p className="font-serif text-3xl text-astro-text">{wallet.lumi_balance} Lumi</p>
-        <p className="text-sm text-astro-subtext">
+        <p className="text-sm text-astro-subtext leading-relaxed">
           {T(
             lang,
-            'Lumi — внутренняя валюта Lumia для слотов, повторных действий и следующих product flow.',
-            'Lumi is Lumia’s internal currency for slots, repeat actions, and next product flows.'
+            'Lumi — не «монетки ради монеток», а понятная валюта точечных действий: слоты карт, разовые вопросы и синастрия, обновления слоёв. Часть Lumi можно получать за регулярный вход; часть — купить пакетом.',
+            'Lumi is not random coins — it is the currency for specific actions: chart slots, one-off questions and synastry layers, and content refreshes. You can earn some through regular visits, and buy more when you need a boost.'
           )}
         </p>
+      </div>
+
+      <div className="rounded-2xl border border-astro-highlight/30 bg-gradient-to-b from-astro-highlight/10 to-astro-card p-5 space-y-4">
+        <div>
+          <h2 className="font-serif text-lg text-astro-text">{wt('roulette_title')}</h2>
+          <p className="mt-2 text-sm text-astro-subtext leading-relaxed">{wt('roulette_subtitle')}</p>
+        </div>
+        {lastRouletteWin && (
+          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+            <p className="font-semibold text-astro-text">
+              {wt('roulette_won', { amount: String(lastRouletteWin.amount) })}
+            </p>
+            <p className="text-xs text-astro-subtext mt-1">
+              {tierLabel(lastRouletteWin.tier)}
+            </p>
+          </div>
+        )}
+        {rouletteClaimed && !lastRouletteWin && (
+          <p className="text-xs text-astro-subtext">{wt('roulette_next_utc')}</p>
+        )}
+        <button
+          type="button"
+          disabled={rouletteClaimed || rouletteBusy}
+          onClick={() => void handleRoulette()}
+          className={`w-full rounded-xl px-4 py-3 text-sm font-semibold transition-transform ${
+            rouletteBusy ? 'animate-pulse bg-astro-highlight/40 text-white' : ''
+          } ${
+            rouletteClaimed
+              ? 'border border-astro-border text-astro-subtext cursor-not-allowed opacity-60'
+              : 'bg-astro-highlight text-white hover:opacity-95 active:scale-[0.99]'
+          }`}
+        >
+          {rouletteBusy
+            ? wt('roulette_spinning')
+            : rouletteClaimed
+              ? wt('roulette_cta_done')
+              : wt('roulette_cta')}
+        </button>
+      </div>
+
+      <div className="rounded-2xl border border-astro-border bg-astro-card p-5 space-y-4">
+        <div>
+          <h2 className="font-serif text-lg text-astro-text">{wt('referral_title')}</h2>
+          <p className="mt-2 text-sm text-astro-subtext leading-relaxed">
+            {wt('referral_body')}{' '}
+            <span className="text-astro-text">
+              +{REFERRAL_INVITER_LUMI} / +{REFERRAL_INVITEE_LUMI} Lumi
+            </span>
+          </p>
+        </div>
+        {profile.referralApplied ? (
+          <p className="text-sm text-astro-highlight/90">{wt('referral_applied')}</p>
+        ) : (
+          <>
+            {profile.refCode && (
+              <p className="font-mono text-lg tracking-widest text-astro-text">{profile.refCode}</p>
+            )}
+            {!botUsername && (
+              <p className="text-xs text-astro-subtext">{wt('referral_bot_hint')}</p>
+            )}
+            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+              {inviteLink ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => void copyToClipboard(inviteLink, 'link')}
+                    className="rounded-xl border border-astro-border px-4 py-2 text-sm font-medium text-astro-text hover:border-astro-highlight/50"
+                  >
+                    {copyHint === 'link' ? wt('referral_copied') : wt('referral_copy_link')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={openTelegramShare}
+                    className="rounded-xl bg-astro-highlight/15 px-4 py-2 text-sm font-medium text-astro-highlight hover:bg-astro-highlight/25"
+                  >
+                    Telegram
+                  </button>
+                </>
+              ) : null}
+              {profile.refCode ? (
+                <button
+                  type="button"
+                  onClick={() => void copyToClipboard(profile.refCode!, 'code')}
+                  className="rounded-xl border border-astro-border px-4 py-2 text-sm font-medium text-astro-text hover:border-astro-highlight/50"
+                >
+                  {copyHint === 'code' ? wt('referral_copied') : wt('referral_copy_code')}
+                </button>
+              ) : null}
+            </div>
+          </>
+        )}
+      </div>
+
+      <div className="rounded-2xl border border-astro-border bg-astro-card p-5 space-y-3">
+        <h2 className="font-serif text-lg text-astro-text">
+          {T(lang, 'Как получать Lumi', 'How you earn Lumi')}
+        </h2>
+        <ul className="list-disc space-y-2 pl-4 text-sm text-astro-subtext leading-relaxed">
+          <li>
+            {T(
+              lang,
+              'Первый заход на главный экран в новый календарный день — ежедневное начисление (уже работает в фоне).',
+              'Your first visit to the home screen on a new calendar day earns a daily reward (handled automatically).'
+            )}
+          </li>
+          <li>
+            {T(
+              lang,
+              'Серия дней подряд даёт дополнительные бонусы на отметках 3, 7 и 30 дней.',
+              'Login streaks add extra bonuses at 3, 7, and 30 consecutive days.'
+            )}
+          </li>
+          <li>
+            {T(
+              lang,
+              'Ежедневная награда в кошельке и приглашение друга по ссылке — см. блоки выше.',
+              'Daily reward in the wallet and inviting a friend via link — see the sections above.'
+            )}
+          </li>
+        </ul>
+        {streak > 0 && (
+          <div className="rounded-xl border border-astro-highlight/25 bg-astro-highlight/5 px-3 py-3 space-y-2">
+            <p className="text-sm text-astro-text">
+              {lang === 'ru'
+                ? `Сейчас серия: ${ruStreakPhrase(streak)}.`
+                : `Current streak: ${streak} day${streak === 1 ? '' : 's'}.`}
+              {nextStreakBonusDay != null
+                ? ` ${T(lang, `Следующий бонус серии — на ${nextStreakBonusDay}-м дне.`, `Next streak bonus unlocks on day ${nextStreakBonusDay}.`)}`
+                : ` ${T(lang, 'Вы уже прошли все стандартные вехи серии — держите ритм.', 'You have passed the usual streak milestones — keep the rhythm.')}`}
+            </p>
+            <div className="space-y-1">
+              <div className="flex justify-between text-[9px] uppercase tracking-wider text-astro-subtext">
+                <span>0</span>
+                <span>3</span>
+                <span>7</span>
+                <span>30</span>
+              </div>
+              <div className="h-1.5 overflow-hidden rounded-full bg-astro-border">
+                <div
+                  className="h-full rounded-full bg-astro-highlight/85 transition-[width] duration-500"
+                  style={{ width: `${Math.min(100, (streak / 30) * 100)}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="rounded-2xl border border-astro-border bg-astro-card p-5 space-y-4">
@@ -154,13 +390,25 @@ export const Wallet: React.FC<WalletProps> = ({ profile, onUpdateProfile }) => {
 
       <div className="rounded-2xl border border-astro-border bg-astro-card p-5 space-y-3">
         <h2 className="font-serif text-lg text-astro-text">
-          {T(lang, 'Где используется Lumi', 'Where Lumi is used')}
+          {T(lang, 'На что тратится Lumi', 'What Lumi is spent on')}
         </h2>
-        <div className="space-y-2 text-sm text-astro-subtext">
-          <p>{T(lang, 'Покупка дополнительных слотов для сохранённых карт', 'Buying extra slots for saved charts')}</p>
-          <p>{T(lang, 'Повторные платные действия и генерации внутри Lumia', 'Repeat paid actions and regenerations inside Lumia')}</p>
-          <p>{T(lang, 'Следующие продуктовые действия, завязанные на внутреннюю экономику', 'Next product actions connected to the in-app economy')}</p>
-        </div>
+        <ul className="list-disc space-y-2 pl-4 text-sm text-astro-subtext leading-relaxed">
+          <li>{T(lang, 'Дополнительные слоты для сохранённых карт.', 'Extra slots for saved charts.')}</li>
+          <li>
+            {T(
+              lang,
+              'Разовый личный вопрос и средний слой синастрии (когда открыт за Lumi).',
+              'One-off personal questions and the mid synastry layer (when unlocked with Lumi).'
+            )}
+          </li>
+          <li>
+            {T(
+              lang,
+              'Обновления и пересчёты контента там, где в продукте явно стоит цена в Lumi.',
+              'Content refreshes and recalculations wherever the product shows a Lumi price.'
+            )}
+          </li>
+        </ul>
       </div>
 
       <div className="rounded-2xl border border-astro-border bg-astro-card p-5 space-y-4">
@@ -192,7 +440,7 @@ export const Wallet: React.FC<WalletProps> = ({ profile, onUpdateProfile }) => {
                 >
                   <div>
                     <p className="text-sm font-medium text-astro-text">
-                      {formatTransactionReason(lang, transaction.reason)}
+                      {formatLumiReasonLabel(lang, transaction.reason)}
                     </p>
                     <p className="mt-1 text-xs text-astro-subtext">
                       {formatTransactionTime(lang, transaction.created_at)}

@@ -7,6 +7,13 @@
 
 import { Pool, Client } from 'pg';
 import { LEGACY_NOTIFICATION_SEEDS, SCHEDULED_NOTIFICATION_SEEDS } from './adminNotificationSeedCatalog';
+import { pickDailyRouletteReward } from './rouletteEconomy';
+import {
+  generateReferralCode,
+  normalizeReferralCode,
+  REFERRAL_INVITEE_LUMI,
+  REFERRAL_INVITER_LUMI,
+} from './referralEconomy';
 
 // Read DATABASE_URL from environment variables
 // This is set in Railway Variables or .env file
@@ -502,6 +509,17 @@ function toUserId(userId: string): string {
   return String(userId).trim();
 }
 
+/** Positive int32 for pg_advisory_xact_lock (per-user serialization). */
+function advisoryXactLockKey(userId: string): number {
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < userId.length; i++) {
+    h ^= userId.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  const n = h >>> 0;
+  return n % 2147483646 + 1;
+}
+
 /**
  * Lumia Database operations
  */
@@ -739,6 +757,133 @@ export const db = {
       } catch (error: any) {
         await client.query('ROLLBACK').catch(() => {});
         log.error('[DB] Error buyChartSlot', { error: error.message, userId });
+        throw error;
+      } finally {
+        client.release();
+      }
+    },
+
+    async ensureReferralCode(userId: string): Promise<string | null> {
+      const id = toUserId(userId);
+      if (!DATABASE_URL) return null;
+      const dbPool = getPool();
+      const existing = await dbPool.query('SELECT ref_code FROM users WHERE id = $1', [id]);
+      if (existing.rows.length === 0) return null;
+      const cur = existing.rows[0].ref_code;
+      if (cur && String(cur).trim()) return String(cur).trim().toUpperCase();
+
+      for (let attempt = 0; attempt < 12; attempt++) {
+        const code = generateReferralCode();
+        try {
+          const up = await dbPool.query(
+            `UPDATE users SET ref_code = $2 WHERE id = $1 AND (ref_code IS NULL OR btrim(ref_code::text) = '') RETURNING ref_code`,
+            [id, code]
+          );
+          if (up.rows.length > 0) return String(up.rows[0].ref_code).toUpperCase();
+          const again = await dbPool.query('SELECT ref_code FROM users WHERE id = $1', [id]);
+          if (again.rows[0]?.ref_code) return String(again.rows[0].ref_code).toUpperCase();
+        } catch (error: any) {
+          if (error.code === '23505') continue;
+          log.error('[DB] ensureReferralCode', { error: error.message, userId });
+          throw error;
+        }
+      }
+      return null;
+    },
+
+    /**
+     * One-time: invitee claims an inviter's ref_code. Credits both parties.
+     */
+    async claimReferralBonus(
+      inviteeId: string,
+      rawCode: string
+    ): Promise<{ inviteeGain: number; inviterGain: number; newBalance: number }> {
+      const id = toUserId(inviteeId);
+      const code = normalizeReferralCode(rawCode);
+      if (!code) {
+        const err = new Error('REFERRAL_INVALID_CODE');
+        (err as any).code = 'REFERRAL_INVALID_CODE';
+        throw err;
+      }
+
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      const dbPool = getPool();
+
+      const inviterQ = await dbPool.query('SELECT id FROM users WHERE UPPER(ref_code) = $1', [code]);
+      if (inviterQ.rows.length === 0) {
+        const err = new Error('REFERRAL_INVALID_CODE');
+        (err as any).code = 'REFERRAL_INVALID_CODE';
+        throw err;
+      }
+      const inviterId = String(inviterQ.rows[0].id);
+      if (inviterId === id) {
+        const err = new Error('REFERRAL_SELF');
+        (err as any).code = 'REFERRAL_SELF';
+        throw err;
+      }
+
+      const client = await dbPool.connect();
+      try {
+        await client.query('BEGIN');
+
+        const inv = await client.query(
+          `SELECT id, referred_by, lumi_balance FROM users WHERE id = $1 FOR UPDATE`,
+          [id]
+        );
+        if (inv.rows.length === 0) {
+          await client.query('ROLLBACK');
+          throw new Error('User not found');
+        }
+        if (inv.rows[0].referred_by != null) {
+          await client.query('ROLLBACK');
+          const err = new Error('REFERRAL_ALREADY_CLAIMED');
+          (err as any).code = 'REFERRAL_ALREADY_CLAIMED';
+          throw err;
+        }
+
+        const upd = await client.query(
+          `UPDATE users SET referred_by = $1 WHERE id = $2 AND referred_by IS NULL RETURNING id`,
+          [inviterId, id]
+        );
+        if (upd.rows.length === 0) {
+          await client.query('ROLLBACK');
+          const err = new Error('REFERRAL_ALREADY_CLAIMED');
+          (err as any).code = 'REFERRAL_ALREADY_CLAIMED';
+          throw err;
+        }
+
+        await client.query(
+          `UPDATE users SET lumi_balance = COALESCE(lumi_balance, 0) + $1 WHERE id = $2`,
+          [REFERRAL_INVITEE_LUMI, id]
+        );
+        await client.query(
+          `INSERT INTO lumi_transactions (user_id, amount, reason) VALUES ($1, $2, 'referral_bonus')`,
+          [id, REFERRAL_INVITEE_LUMI]
+        );
+
+        await client.query(
+          `UPDATE users SET lumi_balance = COALESCE(lumi_balance, 0) + $1 WHERE id = $2`,
+          [REFERRAL_INVITER_LUMI, inviterId]
+        );
+        await client.query(
+          `INSERT INTO lumi_transactions (user_id, amount, reason) VALUES ($1, $2, 'referral_bonus')`,
+          [inviterId, REFERRAL_INVITER_LUMI]
+        );
+
+        const bal = await client.query('SELECT lumi_balance FROM users WHERE id = $1', [id]);
+        const newBalance = bal.rows[0]?.lumi_balance ?? 0;
+        await client.query('COMMIT');
+        return {
+          inviteeGain: REFERRAL_INVITEE_LUMI,
+          inviterGain: REFERRAL_INVITER_LUMI,
+          newBalance,
+        };
+      } catch (error: any) {
+        await client.query('ROLLBACK').catch(() => {});
+        if (error?.code === 'REFERRAL_ALREADY_CLAIMED' || error?.code === 'REFERRAL_INVALID_CODE' || error?.code === 'REFERRAL_SELF') {
+          throw error;
+        }
+        log.error('[DB] claimReferralBonus', { error: error.message, inviteeId });
         throw error;
       } finally {
         client.release();
@@ -1982,6 +2127,79 @@ export const db = {
       } catch (error: any) {
         log.error('[DB] Error getting today spin count', { error: error.message, userId });
         throw error;
+      }
+    },
+
+    async hasClaimedUtcToday(userId: string): Promise<boolean> {
+      const id = toUserId(userId);
+      if (!DATABASE_URL) return false;
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          `SELECT 1 FROM lumi_transactions
+           WHERE user_id = $1 AND reason = 'roulette_win'
+           AND (created_at AT TIME ZONE 'UTC')::date = (CURRENT_TIMESTAMP AT TIME ZONE 'UTC')::date
+           LIMIT 1`,
+          [id]
+        );
+        return result.rows.length > 0;
+      } catch (error: any) {
+        log.error('[DB] hasClaimedUtcToday', { error: error.message, userId });
+        throw error;
+      }
+    },
+
+    /**
+     * One roulette credit per UTC day; serialized per user. Writes lumi_transactions + roulette_spins.
+     */
+    async spinDailyReward(userId: string): Promise<
+      | { ok: true; amount: number; tier: string; newBalance: number }
+      | { ok: false; code: 'ALREADY_CLAIMED'; newBalance: number }
+    > {
+      const id = toUserId(userId);
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+
+      const prize = pickDailyRouletteReward();
+      const dbPool = getPool();
+      const client = await dbPool.connect();
+      try {
+        await client.query('BEGIN');
+        await client.query('SELECT pg_advisory_xact_lock($1)', [advisoryXactLockKey(id)]);
+
+        const dup = await client.query(
+          `SELECT 1 FROM lumi_transactions
+           WHERE user_id = $1 AND reason = 'roulette_win'
+           AND (created_at AT TIME ZONE 'UTC')::date = (CURRENT_TIMESTAMP AT TIME ZONE 'UTC')::date
+           LIMIT 1`,
+          [id]
+        );
+        if (dup.rows.length > 0) {
+          const balRow = await client.query('SELECT lumi_balance FROM users WHERE id = $1', [id]);
+          const newBalance = balRow.rows[0]?.lumi_balance ?? 0;
+          await client.query('COMMIT');
+          return { ok: false, code: 'ALREADY_CLAIMED', newBalance };
+        }
+
+        await client.query(
+          `UPDATE users SET lumi_balance = COALESCE(lumi_balance, 0) + $1 WHERE id = $2`,
+          [prize.amount, id]
+        );
+        await client.query(
+          `INSERT INTO lumi_transactions (user_id, amount, reason) VALUES ($1, $2, 'roulette_win')`,
+          [id, prize.amount]
+        );
+        await client.query(`INSERT INTO roulette_spins (user_id, win_amount) VALUES ($1, $2)`, [id, prize.amount]);
+
+        const bal = await client.query('SELECT lumi_balance FROM users WHERE id = $1', [id]);
+        const newBalance = bal.rows[0]?.lumi_balance ?? 0;
+        await client.query('COMMIT');
+        return { ok: true, amount: prize.amount, tier: prize.tier, newBalance };
+      } catch (error: any) {
+        await client.query('ROLLBACK').catch(() => {});
+        log.error('[DB] spinDailyReward', { error: error.message, userId });
+        throw error;
+      } finally {
+        client.release();
       }
     },
   },

@@ -1,4 +1,7 @@
-/** @type {import('tailwindcss').Config} */
+/**
+ * @type {import('tailwindcss').Config}
+ * Phase 8 AIR UI: порядок экранов — docs/AIR_UI_ROLLOUT.md
+ */
 module.exports = {
   content: [
     './pages/**/*.{js,ts,jsx,tsx,mdx}',
@@ -48,6 +51,7 @@ module.exports = {
       },
       spacing: {
         'reading': '0.75em',
+        air: '1.5rem',
       }
     },
   },
