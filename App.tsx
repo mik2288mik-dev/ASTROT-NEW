@@ -111,19 +111,37 @@ const App: React.FC = () => {
         return cleanupFullscreenGuard;
     }, []);
 
+    const lumiaAirShell =
+        !!profile &&
+        !loading &&
+        view !== 'onboarding' &&
+        view !== 'hook' &&
+        view !== 'paywall';
+
     useEffect(() => {
-        const theme = profile?.theme || 'dark';
         const body = document.body;
+        body.classList.toggle('theme-lumia-air', lumiaAirShell);
+
+        const theme = profile?.theme || 'dark';
         if (theme === 'light') body.classList.add('theme-light');
         else body.classList.remove('theme-light');
 
         const tg = (window as any).Telegram?.WebApp;
         if (tg) {
-            const headerColor = theme === 'light' ? '#F5F2EB' : '#050505'; 
-            tg.setHeaderColor(headerColor);
-            tg.setBackgroundColor(headerColor);
+            if (lumiaAirShell) {
+                tg.setHeaderColor('#FDFCFB');
+                tg.setBackgroundColor('#FDFCFB');
+            } else {
+                const headerColor = theme === 'light' ? '#F5F2EB' : '#050505';
+                tg.setHeaderColor(headerColor);
+                tg.setBackgroundColor(headerColor);
+            }
         }
-    }, [profile?.theme]);
+
+        return () => {
+            body.classList.remove('theme-lumia-air');
+        };
+    }, [profile?.theme, lumiaAirShell]);
 
     useEffect(() => {
         // Защита от двойной загрузки
@@ -562,8 +580,12 @@ const App: React.FC = () => {
     }
 
     return (
-        <div className="relative isolate flex h-full w-full min-h-0 flex-col overflow-hidden text-astro-text font-sans selection:bg-astro-highlight selection:text-white">
-            <BackgroundLayers theme={profile.theme} view={view} />
+        <div
+            className={`relative isolate flex h-full w-full min-h-0 flex-col overflow-hidden font-sans selection:bg-astro-highlight selection:text-white ${
+                lumiaAirShell ? 'text-text-main' : 'text-astro-text'
+            }`}
+        >
+            <BackgroundLayers theme={profile.theme} view={view} lumiaAir={lumiaAirShell} />
             
             {/* Header handles Title, Settings button, and Back button */}
             <Header 
@@ -692,6 +714,8 @@ const App: React.FC = () => {
                                 navigateTo(newView);
                             }} 
                             onOpenSettings={() => setView('settings')}
+                            onRequestPremium={() => setShowPremiumPreview(true)}
+                            onOpenWallet={() => openWallet('dashboard')}
                         />
                     </div>
                 )}

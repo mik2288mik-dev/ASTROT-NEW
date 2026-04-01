@@ -17,6 +17,7 @@ interface SettingsProps {
 }
 
 export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPremiumPreview, onOpenAdmin, onOpenCharts, onOpenWallet }) => {
+    const [tgUser, setTgUser] = useState<{ first_name?: string; last_name?: string; photo_url?: string } | null>(null);
     const [editing, setEditing] = useState(false);
     const [tempName, setTempName] = useState(profile.name);
     const [tempPlace, setTempPlace] = useState(profile.birthPlace);
@@ -34,6 +35,20 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
     const languageLabel = profile.language === 'ru'
         ? getText(profile.language, 'settings.language_ru')
         : getText(profile.language, 'settings.language_en');
+
+    useEffect(() => {
+        const tg = (window as any).Telegram?.WebApp;
+        if (tg?.initDataUnsafe?.user) {
+            setTgUser(tg.initDataUnsafe.user);
+        }
+    }, []);
+
+    const profileDisplayName = (() => {
+        const u = tgUser;
+        const fromTg = [u?.first_name, u?.last_name].filter(Boolean).join(' ').trim();
+        return fromTg || profile.name || '—';
+    })();
+    const profilePhotoUrl = tgUser?.photo_url;
 
     // Загружаем настройки погоды из БД при монтировании
     useEffect(() => {
@@ -134,6 +149,28 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
 
     return (
         <ScreenShell className="mx-auto max-w-reading-wide pt-2">
+            <section className="glass-card rounded-[32px] p-6 airy-shadow mb-4 flex items-center gap-4">
+                {profilePhotoUrl ? (
+                    <img
+                        src={profilePhotoUrl}
+                        alt=""
+                        className="h-16 w-16 shrink-0 rounded-full object-cover border border-black/5"
+                    />
+                ) : (
+                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-black/5 bg-white/60 text-xl font-serif text-text-muted">
+                        {profileDisplayName.charAt(0).toUpperCase() || '?'}
+                    </div>
+                )}
+                <div className="min-w-0">
+                    <p className="serif text-2xl font-medium text-text-main truncate">{profileDisplayName}</p>
+                    {profile.id && (
+                        <p className="mt-0.5 text-xs text-text-muted/80">
+                            Telegram · ID {profile.id}
+                        </p>
+                    )}
+                </div>
+            </section>
+
             <section className={sectionClass}>
                 <p className="lumia-label tracking-[0.2em]">{getText(profile.language, 'settings.subscription')}</p>
                 <h2 className="mt-1.5 font-serif text-xl text-astro-text sm:text-2xl">

@@ -18,6 +18,8 @@ export const Header: React.FC<HeaderProps> = ({ profile, view, onBack, onOpenWal
     const isFunnel = view === 'onboarding' || view === 'hook' || view === 'paywall';
 
     if (isFunnel) return null;
+    /** Lumia Studio AIR hub — own top bar (LUMIA + gear + lock), no global header */
+    if (isHub) return null;
 
     const hasLumi = typeof profile.lumiBalance === 'number';
     const lumiValue = Math.max(0, profile.lumiBalance ?? 0);

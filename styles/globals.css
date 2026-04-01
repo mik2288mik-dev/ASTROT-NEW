@@ -41,6 +41,43 @@ body.theme-light {
   --shadow-color: rgba(60, 47, 47, 0.05);
 }
 
+/* Lumia Studio AIR — warm shell (Google Studio lumia 2.0) */
+body.theme-lumia-air {
+  background-color: #fdfcfb !important;
+  color: #2d2d2d !important;
+  --bg-primary: #fdfcfb;
+  --bg-card: rgba(255, 255, 255, 0.72);
+  --text-main: #2d2d2d;
+  --text-sub: #717171;
+  --accent-primary: #2d2d2d;
+  --accent-secondary: #d4af37;
+  --highlight: #d4af37;
+  --border-color: rgba(0, 0, 0, 0.06);
+  --orbit-color: rgba(0, 0, 0, 0.08);
+  --shadow-color: rgba(0, 0, 0, 0.04);
+}
+
+body.theme-lumia-air #__next {
+  background-color: #fdfcfb !important;
+}
+
+.serif,
+.font-lumia-serif {
+  font-family: 'Cormorant Garamond', 'Times New Roman', serif;
+}
+
+.glass-card {
+  @apply bg-white/70 backdrop-blur-md border border-white/20 shadow-sm;
+}
+
+.airy-shadow {
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.04);
+}
+
+body.theme-lumia-air ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.06);
+}
+
 /* 
    CRITICAL SCROLL FIX: 
    position: fixed + width/height 100% prevents the whole browser window 

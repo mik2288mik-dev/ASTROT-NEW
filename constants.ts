@@ -145,7 +145,12 @@ export const TRANSLATIONS = {
       my_charts_subtitle: "Управление картами и слотами",
       charts_overview_title: "Сохранённые карты",
       charts_overview_hint: "Сохранённые карты можно быстро использовать в синастрии и других сценариях Lumia.",
-      charts_overview_cta: "Открыть карты"
+      charts_overview_cta: "Открыть карты",
+      lumia_subtitle: "Твой путь к себе",
+      studio_tab_natal: "Карта",
+      studio_tab_union: "Союз",
+      studio_tab_horoscope: "Гороскоп",
+      studio_wallet_hint: "Баланс Lumi",
     },
     chart: {
       title: "Твоя Натальная Карта",
@@ -616,7 +621,12 @@ export const TRANSLATIONS = {
       my_charts_subtitle: "Manage charts & slots",
       charts_overview_title: "Saved charts",
       charts_overview_hint: "Saved charts can be reused in Synastry and future Lumia flows.",
-      charts_overview_cta: "Open charts"
+      charts_overview_cta: "Open charts",
+      lumia_subtitle: "Your path inward",
+      studio_tab_natal: "Chart",
+      studio_tab_union: "Union",
+      studio_tab_horoscope: "Horoscope",
+      studio_wallet_hint: "Lumi balance",
     },
     chart: {
       title: "Natal Chart",

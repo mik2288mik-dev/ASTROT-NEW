@@ -24,7 +24,12 @@ module.exports = {
           highlight: 'var(--highlight)',
           border: 'var(--border-color)',
           orbit: 'var(--orbit-color)',
-        }
+        },
+        /** Lumia Studio AIR (Google) — matches lumia 2.0/src/index.css */
+        'bg-warm': '#FDFCFB',
+        'accent-gold': '#D4AF37',
+        'text-main': '#2D2D2D',
+        'text-muted': '#717171',
       },
       fontSize: {
         'base': ['1rem', { lineHeight: '1.6' }],
