@@ -129,8 +129,8 @@ const App: React.FC = () => {
         const tg = (window as any).Telegram?.WebApp;
         if (tg) {
             if (lumiaAirShell) {
-                tg.setHeaderColor('#FDFCFB');
-                tg.setBackgroundColor('#FDFCFB');
+                tg.setHeaderColor('#FFFFFF');
+                tg.setBackgroundColor('#FFFFFF');
             } else {
                 const headerColor = theme === 'light' ? '#F5F2EB' : '#050505';
                 tg.setHeaderColor(headerColor);
@@ -715,7 +715,6 @@ const App: React.FC = () => {
                             }} 
                             onOpenSettings={() => setView('settings')}
                             onRequestPremium={() => setShowPremiumPreview(true)}
-                            onOpenWallet={() => openWallet('dashboard')}
                         />
                     </div>
                 )}

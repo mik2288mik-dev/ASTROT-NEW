@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { ForecastDailyReading, UserProfile, NatalChartData, ViewState } from '../types';
 import { getText } from '../constants';
 import { Loading } from '../components/ui/Loading';
@@ -20,7 +20,6 @@ interface DashboardProps {
     onNavigate: (view: DashboardView) => void;
     onOpenSettings: () => void;
     onRequestPremium: () => void;
-    onOpenWallet: () => void;
 }
 
 const cleanDashboardText = (value?: string | null): string =>
@@ -44,7 +43,7 @@ const splitIntoDashboardSentences = (value: string): string[] =>
         .filter(Boolean);
 
 export const Dashboard = memo<DashboardProps>(
-    ({ profile, chartData, activeChartId, onNavigate, onOpenSettings, onRequestPremium, onOpenWallet }) => {
+    ({ profile, chartData, activeChartId, onNavigate, onOpenSettings, onRequestPremium }) => {
         const [activeTab, setActiveTab] = useState<StudioTab>('natal');
         const [dailyReading, setDailyReading] = useState<ForecastDailyReading | null>(null);
 
@@ -185,8 +184,6 @@ export const Dashboard = memo<DashboardProps>(
             };
         }, [activeChartId, langKey, profile.generatedContent?.dailyHoroscope, profile.id]);
 
-        const lumiValue = Math.max(0, profile.lumiBalance ?? 0);
-
         if (!chartData) return <Loading message={getText(profile.language, 'loading')} />;
 
         const tabs: { id: StudioTab; label: string }[] = [
@@ -196,7 +193,12 @@ export const Dashboard = memo<DashboardProps>(
         ];
 
         return (
-            <div className="min-h-full max-w-md mx-auto relative px-6 pt-10 pb-24 text-text-main">
+            <div
+                className="min-h-full max-w-md mx-auto relative px-6 pb-24 text-text-main"
+                style={{
+                    paddingTop: 'max(0.75rem, env(safe-area-inset-top, 0px))',
+                }}
+            >
                 <LumiaStudioHeader
                     subtitle={getText(language, 'dashboard.lumia_subtitle')}
                     isPremium={!!profile.isPremium}
@@ -204,32 +206,34 @@ export const Dashboard = memo<DashboardProps>(
                     onPremiumClick={onRequestPremium}
                 />
 
-                <button
-                    type="button"
-                    onClick={onOpenWallet}
-                    className="mb-6 w-full flex items-center justify-center gap-2 rounded-full border border-black/5 bg-white/50 py-2.5 text-xs font-medium text-text-muted transition-colors hover:border-black/10 hover:text-text-main"
-                >
-                    <span className="text-accent-gold">✦</span>
-                    <span>
-                        {lumiValue} Lumi · {getText(language, 'dashboard.studio_wallet_hint')}
-                    </span>
-                </button>
-
-                <div className="flex bg-white/50 p-1 rounded-full border border-black/5 mb-8">
-                    {tabs.map((tab) => (
-                        <button
-                            key={tab.id}
-                            type="button"
-                            onClick={() => setActiveTab(tab.id)}
-                            className={cn(
-                                'flex-1 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-all',
-                                activeTab === tab.id ? 'bg-white text-text-main shadow-sm' : 'text-text-muted'
-                            )}
-                        >
-                            {tab.label}
-                        </button>
-                    ))}
-                </div>
+                <LayoutGroup id="studioTabs">
+                    <div className="relative flex rounded-full p-1 mb-8 backdrop-blur-2xl bg-white/30 ring-1 ring-white/80 shadow-[0_8px_32px_-14px_rgba(0,0,0,0.06)]">
+                        {tabs.map((tab) => (
+                            <button
+                                key={tab.id}
+                                type="button"
+                                onClick={() => setActiveTab(tab.id)}
+                                className="relative z-0 flex min-h-[44px] flex-1 items-center justify-center px-1"
+                            >
+                                {activeTab === tab.id && (
+                                    <motion.div
+                                        layoutId="studioTabIndicator"
+                                        className="absolute inset-y-1 left-1 right-1 rounded-full bg-white/95 shadow-sm ring-1 ring-black/[0.05]"
+                                        transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+                                    />
+                                )}
+                                <span
+                                    className={cn(
+                                        'relative z-10 text-xs font-semibold uppercase tracking-wider',
+                                        activeTab === tab.id ? 'text-text-main' : 'text-text-muted'
+                                    )}
+                                >
+                                    {tab.label}
+                                </span>
+                            </button>
+                        ))}
+                    </div>
+                </LayoutGroup>
 
                 <AnimatePresence mode="wait">
                     <motion.div
@@ -242,7 +246,7 @@ export const Dashboard = memo<DashboardProps>(
                     >
                         {activeTab === 'natal' && (
                             <>
-                                <LumiaCard className="space-y-5">
+                                <LumiaCard variant="float" className="space-y-5">
                                     <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-text-muted/70 text-center">
                                         {getText(language, 'dashboard.natal_label')}
                                     </p>
@@ -282,7 +286,10 @@ export const Dashboard = memo<DashboardProps>(
                                     </LumiaButton>
                                 </LumiaCard>
 
-                                <LumiaCard className="space-y-3 bg-text-main text-white border-none">
+                                <LumiaCard
+                                    variant="float"
+                                    className="space-y-3 !bg-text-main/92 !text-white !ring-white/15 backdrop-blur-xl"
+                                >
                                     <p className="text-[10px] uppercase tracking-wider opacity-60">
                                         {getText(language, 'dashboard.questions_label')}
                                     </p>
@@ -299,7 +306,7 @@ export const Dashboard = memo<DashboardProps>(
                         )}
 
                         {activeTab === 'compatibility' && (
-                            <LumiaCard className="space-y-5 text-center">
+                            <LumiaCard variant="float" className="space-y-5 text-center">
                                 <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-accent-gold">
                                     {getText(language, 'dashboard.synastry_label')}
                                 </p>
@@ -315,7 +322,7 @@ export const Dashboard = memo<DashboardProps>(
                         )}
 
                         {activeTab === 'horoscope' && (
-                            <LumiaCard className="space-y-5">
+                            <LumiaCard variant="float" className="space-y-5">
                                 <div className="flex items-start justify-between gap-3">
                                     <div className="min-w-0">
                                         <p className="text-[10px] uppercase tracking-[0.2em] text-text-muted/70">

@@ -26,7 +26,7 @@ module.exports = {
           orbit: 'var(--orbit-color)',
         },
         /** Lumia Studio AIR (Google) — matches lumia 2.0/src/index.css */
-        'bg-warm': '#FDFCFB',
+        'bg-warm': '#FFFFFF',
         'accent-gold': '#D4AF37',
         'text-main': '#2D2D2D',
         'text-muted': '#717171',

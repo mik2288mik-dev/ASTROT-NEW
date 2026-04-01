@@ -115,17 +115,7 @@ export const BackgroundLayers: React.FC<BackgroundLayersProps> = ({
   const isSoftShell = view === 'wallet' || view === 'settings' || view === 'admin';
 
   if (lumiaAir) {
-    return (
-      <div className="fixed inset-0 -z-10 overflow-hidden bg-bg-warm">
-        <div
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background:
-              'radial-gradient(120% 80% at 50% -10%, rgba(212,175,55,0.06) 0%, transparent 55%), linear-gradient(180deg, #ffffff 0%, #fdfcfb 45%, #f7f4ef 100%)',
-          }}
-        />
-      </div>
-    );
+    return <div className="fixed inset-0 -z-10 overflow-hidden bg-white" aria-hidden />;
   }
 
   return (

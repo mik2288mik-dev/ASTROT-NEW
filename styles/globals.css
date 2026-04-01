@@ -41,12 +41,12 @@ body.theme-light {
   --shadow-color: rgba(60, 47, 47, 0.05);
 }
 
-/* Lumia Studio AIR — warm shell (Google Studio lumia 2.0) */
+/* Lumia Studio AIR — pure white float shell */
 body.theme-lumia-air {
-  background-color: #fdfcfb !important;
+  background-color: #ffffff !important;
   color: #2d2d2d !important;
-  --bg-primary: #fdfcfb;
-  --bg-card: rgba(255, 255, 255, 0.72);
+  --bg-primary: #ffffff;
+  --bg-card: rgba(255, 255, 255, 0.45);
   --text-main: #2d2d2d;
   --text-sub: #717171;
   --accent-primary: #2d2d2d;
@@ -58,7 +58,12 @@ body.theme-lumia-air {
 }
 
 body.theme-lumia-air #__next {
-  background-color: #fdfcfb !important;
+  background-color: #ffffff !important;
+}
+
+/* Float panels: no heavy “window”, light glass on white */
+.lumia-air-float {
+  @apply rounded-[28px] backdrop-blur-2xl bg-white/30 ring-1 ring-white/70 shadow-none;
 }
 
 .serif,

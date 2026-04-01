@@ -149,26 +149,43 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
 
     return (
         <ScreenShell className="mx-auto max-w-reading-wide pt-2">
-            <section className="glass-card rounded-[32px] p-6 airy-shadow mb-4 flex items-center gap-4">
-                {profilePhotoUrl ? (
-                    <img
-                        src={profilePhotoUrl}
-                        alt=""
-                        className="h-16 w-16 shrink-0 rounded-full object-cover border border-black/5"
-                    />
-                ) : (
-                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-black/5 bg-white/60 text-xl font-serif text-text-muted">
-                        {profileDisplayName.charAt(0).toUpperCase() || '?'}
+            <section className="rounded-[28px] p-5 mb-4 backdrop-blur-2xl bg-white/30 ring-1 ring-white/70 shadow-none">
+                <div className="flex items-center gap-4">
+                    {profilePhotoUrl ? (
+                        <img
+                            src={profilePhotoUrl}
+                            alt=""
+                            className="h-16 w-16 shrink-0 rounded-full object-cover border border-black/5"
+                        />
+                    ) : (
+                        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-black/5 bg-white/60 text-xl font-serif text-text-muted">
+                            {profileDisplayName.charAt(0).toUpperCase() || '?'}
+                        </div>
+                    )}
+                    <div className="min-w-0">
+                        <p className="serif text-2xl font-medium text-text-main truncate">{profileDisplayName}</p>
+                        {profile.id && (
+                            <p className="mt-0.5 text-xs text-text-muted/80">
+                                Telegram · ID {profile.id}
+                            </p>
+                        )}
+                    </div>
+                </div>
+                {onOpenWallet && (
+                    <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-black/[0.06] pt-4">
+                        <p className="text-sm text-text-muted">
+                            <span className="text-accent-gold">✦</span>{' '}
+                            <span className="font-medium text-text-main">{profile.lumiBalance ?? 0}</span> Lumi
+                        </p>
+                        <button
+                            type="button"
+                            onClick={onOpenWallet}
+                            className="min-h-[40px] rounded-full border border-black/8 bg-white/70 px-4 py-2 text-sm font-medium text-text-main transition-colors hover:bg-white"
+                        >
+                            {getText(profile.language, 'settings.wallet_title')} →
+                        </button>
                     </div>
                 )}
-                <div className="min-w-0">
-                    <p className="serif text-2xl font-medium text-text-main truncate">{profileDisplayName}</p>
-                    {profile.id && (
-                        <p className="mt-0.5 text-xs text-text-muted/80">
-                            Telegram · ID {profile.id}
-                        </p>
-                    )}
-                </div>
             </section>
 
             <section className={sectionClass}>
@@ -210,22 +227,6 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                             <p className="lumia-muted mt-1 text-sm">{getText(profile.language, 'settings.charts_body')}</p>
                         </div>
                         <span className="text-astro-subtext/70">→</span>
-                    </div>
-                </button>
-            )}
-
-            {onOpenWallet && (
-                <button onClick={onOpenWallet} className={rowCardClass}>
-                    <div className="flex items-center justify-between gap-4">
-                        <div>
-                            <h3 className="font-serif text-lg text-astro-text">
-                                {getText(profile.language, 'settings.wallet_title')}
-                            </h3>
-                            <p className="lumia-muted mt-1 text-sm">{getText(profile.language, 'settings.wallet_body')}</p>
-                        </div>
-                        <span className="rounded-full bg-astro-highlight/14 px-3 py-1 text-sm font-medium text-astro-highlight ring-1 ring-astro-highlight/20">
-                            {profile.lumiBalance ?? 0} Lumi
-                        </span>
                     </div>
                 </button>
             )}
