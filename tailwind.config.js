@@ -48,8 +48,10 @@ module.exports = {
         'glow': '0 0 15px var(--highlight)',
       },
       fontFamily: {
-        serif: ['"Cormorant Garamond"', 'Times New Roman', 'serif'],
+        /** Display / section titles — Outfit (no Times/Cormorant). `font-serif` maps here for legacy classes. */
+        serif: ['"Outfit"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
         sans: ['"Inter"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+        outfit: ['"Outfit"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
       },
       animation: {
         'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',

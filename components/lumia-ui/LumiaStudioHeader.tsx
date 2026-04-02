@@ -12,23 +12,21 @@ interface LumiaStudioHeaderProps {
  * AIR hub: текст LUMIA по центру; шестерёнка справа сверху.
  */
 export const LumiaStudioHeader: React.FC<LumiaStudioHeaderProps> = ({ onOpenSettings, settingsAriaLabel }) => (
-  <header className="relative mb-6">
+  <header className="mb-6 grid grid-cols-[2.75rem_minmax(0,1fr)_2.75rem] items-center gap-1 sm:grid-cols-[3rem_minmax(0,1fr)_3rem]">
+    <span className="pointer-events-none w-11 shrink-0 sm:w-12" aria-hidden />
+    <h1 className="text-center font-outfit text-3xl font-semibold leading-none tracking-[0.14em] text-text-main min-[400px]:text-4xl">
+      LUMIA
+    </h1>
     <button
       type="button"
       onClick={onOpenSettings}
       aria-label={settingsAriaLabel}
       className={cn(
-        'absolute right-0 top-0 z-10 flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full transition-all',
+        'z-10 flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center justify-self-end rounded-full transition-all',
         'bg-white/90 text-text-muted shadow-sm ring-1 ring-black/[0.08] hover:text-text-main'
       )}
     >
       <Settings className="h-5 w-5" strokeWidth={1.75} aria-hidden />
     </button>
-
-    <div className="flex justify-center px-2 pr-[3.25rem] min-[400px]:pr-14">
-      <h1 className="serif text-3xl font-medium leading-tight tracking-tight text-text-main min-[400px]:text-4xl">
-        LUMIA
-      </h1>
-    </div>
   </header>
 );

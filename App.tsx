@@ -632,16 +632,18 @@ const App: React.FC = () => {
                         onUpdateProfile={handleProfileUpdate}
                     />
                 ) : view === 'synastry' ? (
-                    <Synastry
-                        profile={profile}
-                        chartData={chartData}
-                        requestPremium={requestPremium}
-                        initialPrefill={synastryPrefill}
-                        onOpenCharts={() => openCharts('synastry')}
-                        onUpdateProfile={handleProfileUpdate}
-                    />
+                    <div className="lumia-main-scroll scrollbar-hide">
+                        <Synastry
+                            profile={profile}
+                            chartData={chartData}
+                            requestPremium={requestPremium}
+                            initialPrefill={synastryPrefill}
+                            onOpenCharts={() => openCharts('synastry')}
+                            onUpdateProfile={handleProfileUpdate}
+                        />
+                    </div>
                 ) : view === 'horoscope' ? (
-                    <div className="h-full overflow-y-auto scrollbar-hide">
+                    <div className="lumia-main-scroll scrollbar-hide">
                         <Horoscope 
                             profile={profile} 
                             chartData={chartData} 
@@ -651,7 +653,7 @@ const App: React.FC = () => {
                         />
                     </div>
                 ) : view === 'chart' ? (
-                    <div className="h-full overflow-y-auto scrollbar-hide">
+                    <div className="lumia-main-scroll scrollbar-hide">
                         <NatalChart 
                             data={chartData} 
                             profile={profile} 
@@ -663,7 +665,7 @@ const App: React.FC = () => {
                         />
                     </div>
                 ) : view === 'settings' ? (
-                    <div className="h-full overflow-y-auto scrollbar-hide">
+                    <div className="lumia-main-scroll scrollbar-hide">
                         <Settings 
                             profile={profile} 
                             onUpdate={handleProfileUpdate} 
@@ -674,7 +676,7 @@ const App: React.FC = () => {
                         />
                     </div>
                 ) : view === 'charts' ? (
-                    <div className="h-full overflow-y-auto scrollbar-hide">
+                    <div className="lumia-main-scroll scrollbar-hide">
                         <MyCharts 
                             profile={profile} 
                             onBack={() => setView(chartsReturnView)}
@@ -700,7 +702,7 @@ const App: React.FC = () => {
                         />
                     </div>
                 ) : view === 'wallet' ? (
-                    <div className="h-full overflow-y-auto scrollbar-hide">
+                    <div className="lumia-main-scroll scrollbar-hide">
                         <Wallet
                             profile={profile}
                             onUpdateProfile={handleProfileUpdate}
@@ -708,7 +710,7 @@ const App: React.FC = () => {
                     </div>
                 ) : (
                     // Default to Dashboard
-                    <div className="h-full overflow-y-auto scrollbar-hide">
+                    <div className="lumia-main-scroll scrollbar-hide">
                         <Dashboard 
                             profile={profile} 
                             chartData={chartData}

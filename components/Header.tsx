@@ -59,7 +59,7 @@ export const Header: React.FC<HeaderProps> = ({ profile, view, onBack, onOpenWal
                     </div>
 
                     <div className="flex min-w-0 items-center justify-center px-1">
-                        <h1 className="w-full truncate text-center text-[15px] font-semibold leading-tight text-astro-text">
+                        <h1 className="w-full truncate text-center font-outfit text-[15px] font-semibold leading-tight tracking-tight text-astro-text">
                             {getViewTitle()}
                         </h1>
                     </div>
