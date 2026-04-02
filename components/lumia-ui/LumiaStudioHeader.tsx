@@ -1,51 +1,40 @@
 import React from 'react';
-import { Lock, Settings, Star } from 'lucide-react';
+import Image from 'next/image';
+import { Settings } from 'lucide-react';
 import { cn } from '../../lib/cn';
 
 interface LumiaStudioHeaderProps {
-  subtitle: string;
-  isPremium: boolean;
   onOpenSettings: () => void;
-  onPremiumClick: () => void;
+  /** Localized e.g. getText(lang, 'nav.settings') */
+  settingsAriaLabel: string;
 }
 
 /**
- * AIR hub: brand constrained left; lock/star above, settings gear below (Telegram-safe).
+ * AIR hub: centered raster wordmark + settings below (Telegram-safe; no premium chip).
  */
-export const LumiaStudioHeader: React.FC<LumiaStudioHeaderProps> = ({
-  subtitle,
-  isPremium,
-  onOpenSettings,
-  onPremiumClick,
-}) => (
-  <header className="mb-6 flex items-center justify-between gap-3">
-    <div className="min-w-0 flex-1 pr-2">
-      <h1 className="serif text-3xl font-medium leading-[1.05] tracking-tight text-text-main min-[400px]:text-4xl">
-        LUMIA
-      </h1>
-      <p className="mt-1 text-xs tracking-wide text-text-muted opacity-60">{subtitle}</p>
+export const LumiaStudioHeader: React.FC<LumiaStudioHeaderProps> = ({ onOpenSettings, settingsAriaLabel }) => (
+  <header className="mb-6 flex flex-col items-center">
+    <div className="relative mx-auto h-[52px] w-[min(100%,240px)] min-[400px]:h-[60px] min-[400px]:w-[min(100%,280px)]">
+      <Image
+        src="/brand/lumia-wordmark-air.png"
+        alt="Lumia"
+        fill
+        className="object-contain object-center"
+        sizes="280px"
+        priority
+      />
     </div>
 
-    <div className="flex shrink-0 flex-col items-end gap-1.5">
-      <button
-        type="button"
-        onClick={onPremiumClick}
-        aria-label="Premium"
-        className={cn(
-          'p-2 rounded-full transition-all',
-          isPremium ? 'bg-accent-gold text-white' : 'bg-white/80 border border-black/[0.06] text-text-muted shadow-sm'
-        )}
-      >
-        {isPremium ? <Star className="w-5 h-5 fill-current" strokeWidth={1.75} /> : <Lock className="w-5 h-5" strokeWidth={1.75} />}
-      </button>
-      <button
-        type="button"
-        onClick={onOpenSettings}
-        aria-label="Settings"
-        className="p-2 rounded-full transition-all bg-white/80 border border-black/[0.06] text-text-muted hover:text-text-main shadow-sm"
-      >
-        <Settings className="w-5 h-5" strokeWidth={1.75} />
-      </button>
-    </div>
+    <button
+      type="button"
+      onClick={onOpenSettings}
+      aria-label={settingsAriaLabel}
+      className={cn(
+        'mt-4 flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full transition-all',
+        'bg-white/80 text-text-muted shadow-sm ring-1 ring-black/[0.06] hover:text-text-main'
+      )}
+    >
+      <Settings className="h-5 w-5" strokeWidth={1.75} aria-hidden />
+    </button>
   </header>
 );

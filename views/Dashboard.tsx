@@ -19,7 +19,6 @@ interface DashboardProps {
     activeChartId?: number;
     onNavigate: (view: DashboardView) => void;
     onOpenSettings: () => void;
-    onRequestPremium: () => void;
 }
 
 const cleanDashboardText = (value?: string | null): string =>
@@ -43,7 +42,7 @@ const splitIntoDashboardSentences = (value: string): string[] =>
         .filter(Boolean);
 
 export const Dashboard = memo<DashboardProps>(
-    ({ profile, chartData, activeChartId, onNavigate, onOpenSettings, onRequestPremium }) => {
+    ({ profile, chartData, activeChartId, onNavigate, onOpenSettings }) => {
         const [activeTab, setActiveTab] = useState<StudioTab>('natal');
         const [dailyReading, setDailyReading] = useState<ForecastDailyReading | null>(null);
 
@@ -193,12 +192,10 @@ export const Dashboard = memo<DashboardProps>(
         ];
 
         return (
-            <div className="min-h-full max-w-md mx-auto relative lumia-tg-screen-pad lumia-pad-bottom-tg-scroll text-text-main">
+            <div className="min-h-full max-w-md mx-auto relative lumia-tg-hub-pad lumia-pad-bottom-tg-scroll text-text-main">
                 <LumiaStudioHeader
-                    subtitle={getText(language, 'dashboard.lumia_subtitle')}
-                    isPremium={!!profile.isPremium}
                     onOpenSettings={onOpenSettings}
-                    onPremiumClick={onRequestPremium}
+                    settingsAriaLabel={getText(language, 'nav.settings')}
                 />
 
                 <LayoutGroup id="studioTabs">

@@ -157,13 +157,32 @@ html, body {
   padding-right: max(1.125rem, env(safe-area-inset-right, 0px), var(--tg-content-safe-area-inset-right, 0px));
 }
 
+/* Хаб Dashboard: запас под капсулы «Закрыть» / «⋯», если contentSafeArea мало */
+.lumia-tg-hub-pad {
+  padding-top: calc(
+    max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px)) + clamp(2.5rem, 11vw, 3.5rem)
+  );
+  padding-left: max(
+    1.125rem,
+    env(safe-area-inset-left, 0px),
+    var(--tg-content-safe-area-inset-left, 0px),
+    2.75rem
+  );
+  padding-right: max(
+    1.125rem,
+    env(safe-area-inset-right, 0px),
+    var(--tg-content-safe-area-inset-right, 0px),
+    2.75rem
+  );
+}
+
 .lumia-tg-main-gutter {
   padding-left: max(env(safe-area-inset-left, 0px), var(--tg-content-safe-area-inset-left, 0px));
   padding-right: max(env(safe-area-inset-right, 0px), var(--tg-content-safe-area-inset-right, 0px));
 }
 
 .lumia-pad-bottom-tg-scroll {
-  padding-bottom: calc(5.5rem + max(env(safe-area-inset-bottom, 0px), var(--tg-content-safe-area-inset-bottom, 0px)));
+  padding-bottom: calc(5rem + max(env(safe-area-inset-bottom, 0px), var(--tg-content-safe-area-inset-bottom, 0px)));
 }
 
 /* Верхняя панель приложения (не хаб): под крестик Telegram + боковые поля */
