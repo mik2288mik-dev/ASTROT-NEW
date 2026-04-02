@@ -14,6 +14,7 @@ import { getTelegramInitDataHeaders } from '../services/sessionService';
 import { coerceNatalAnchorReading, mapNatalAnchorToLegacyIntro } from '../lib/natalReadings';
 import { Loading } from '../components/ui/Loading';
 import { FormattedAiText } from '../components/ui/FormattedAiText';
+import { PremiumUpsellPanel } from '../components/PremiumUpsellPanel';
 import { READING_GLASS_SECTION_CLASS } from '../components/layout/ReadingLayout';
 import { ReadingScreenShell } from '../components/layout/ScreenShell';
 
@@ -375,7 +376,9 @@ export const NatalChart: React.FC<NatalChartProps> = ({
                 <div className="h-5 w-5 animate-spin rounded-full border-2 border-astro-highlight border-t-transparent" />
               </div>
             ) : anchorReading ? (
-              <FormattedAiText text={anchorReading.reading} variant="article" className="lumia-prose mx-auto max-w-reading" />
+              <div className="lumia-reading-inner-card mx-auto max-w-reading">
+                <FormattedAiText text={anchorReading.reading} variant="article" className="lumia-prose" />
+              </div>
             ) : (
               <p className="lumia-muted text-sm leading-relaxed">{getText(lang, 'chart.anchor_loading')}</p>
             )}
@@ -520,21 +523,15 @@ export const NatalChart: React.FC<NatalChartProps> = ({
               )}
             </div>
           ) : (
-            <div className="mt-5 rounded-air-panel border border-astro-border/55 bg-astro-bg/14 p-4 sm:p-5">
-              <p className="text-base font-semibold text-astro-text">{getText(lang, 'chart.living_premium_title')}</p>
-              <p className="lumia-muted mt-2 text-sm leading-relaxed">
-                {getText(lang, 'chart.living_premium_body')}
-              </p>
-              <p className="mt-3 text-xs leading-relaxed text-astro-subtext">
-                {getText(lang, 'chart.living_premium_note')}
-              </p>
-              <button
-                type="button"
-                onClick={requestPremium}
-                className="mt-4 flex min-h-[44px] w-full items-center justify-center rounded-xl bg-astro-highlight/12 px-4 py-3 text-sm font-medium text-astro-highlight ring-1 ring-astro-highlight/28 transition-[box-shadow] hover:ring-astro-highlight/45"
+            <div className="mt-5">
+              <PremiumUpsellPanel
+                title={getText(lang, 'chart.living_premium_title')}
+                footerNote={getText(lang, 'chart.living_premium_note')}
+                ctaLabel={getText(lang, 'chart.living_premium_cta')}
+                onCta={requestPremium}
               >
-                {getText(lang, 'chart.living_premium_cta')}
-              </button>
+                <p>{getText(lang, 'chart.living_premium_body')}</p>
+              </PremiumUpsellPanel>
             </div>
           )}
         </div>

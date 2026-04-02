@@ -28,20 +28,20 @@ export const PremiumPreview: React.FC<PremiumPreviewProps> = ({ language, onClos
             <motion.div 
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="bg-astro-bg w-full max-w-md rounded-2xl border border-astro-highlight p-6 relative overflow-hidden"
+                className="bg-astro-bg w-full max-w-md rounded-2xl border border-astro-border p-6 relative overflow-hidden"
             >
-                <div className="absolute -top-20 -right-20 w-64 h-64 bg-astro-highlight/20 rounded-full blur-3xl" aria-hidden />
+                <div className="absolute -top-20 -right-20 w-56 h-56 bg-accent-gold/10 rounded-full blur-3xl pointer-events-none" aria-hidden />
 
                 <button onClick={onClose} className="absolute top-4 right-4 text-astro-subtext hover:text-astro-text" aria-label="Close">×</button>
 
                 <h2 className="text-2xl font-bold font-serif text-astro-text mb-2 text-center">{getText(language, 'premium_preview.title')}</h2>
-                <p className="text-center text-[10px] uppercase tracking-widest text-astro-highlight">{getText(language, 'premium_preview.tagline')}</p>
+                <p className="text-center text-[10px] uppercase tracking-widest text-accent-gold">{getText(language, 'premium_preview.tagline')}</p>
                 <p className="mt-3 mb-8 text-center text-sm leading-relaxed text-astro-subtext">{getText(language, 'premium_preview.subtitle')}</p>
 
                 <div className="space-y-4 mb-8">
                     {features.map((f, i) => (
                         <div key={i} className="flex items-center gap-4 bg-astro-card p-3 rounded-lg border border-astro-border">
-                            <div className="w-8 h-8 rounded-full bg-astro-highlight/10 flex items-center justify-center text-[10px] font-semibold uppercase tracking-widest text-astro-highlight shrink-0">
+                            <div className="w-8 h-8 rounded-full bg-accent-gold/15 flex items-center justify-center text-[10px] font-semibold uppercase tracking-widest text-accent-gold shrink-0">
                                 {String(i + 1).padStart(2, '0')}
                             </div>
                             <div className="min-w-0">
@@ -54,7 +54,7 @@ export const PremiumPreview: React.FC<PremiumPreviewProps> = ({ language, onClos
 
                 <button 
                     onClick={onPurchase}
-                    className="w-full bg-astro-text text-astro-bg py-4 rounded-xl font-bold uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-[0.98] transition-transform shadow-glow"
+                    className="w-full bg-accent-gold text-white py-4 rounded-full font-bold uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-[0.98] transition-transform shadow-md ring-1 ring-black/10"
                 >
                     {getText(language, 'premium_preview.cta')}
                 </button>

@@ -28,6 +28,7 @@ import { formatLumiaDate, getMoscowIsoWeekKey, getMoscowMonthKey, getMoscowToday
 import { getText } from '../constants';
 import { READING_GLASS_SECTION_CLASS, READING_PAGE_CLASS } from '../components/layout/ReadingLayout';
 import { ReadingScreenShell } from '../components/layout/ScreenShell';
+import { PremiumUpsellPanel } from '../components/PremiumUpsellPanel';
 
 interface HoroscopeProps {
     profile: UserProfile;
@@ -516,17 +517,13 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
                     </div>
                 ) : (
                     onRequestPremium && (
-                        <div className="mt-4 rounded-2xl border border-astro-highlight/16 bg-astro-highlight/[0.06] px-4 py-4">
-                            <p className="text-sm leading-relaxed text-astro-text">
-                                {getText(language, 'horoscope.premium_supporting_line')}
-                            </p>
-                            <button
-                                type="button"
-                                onClick={onRequestPremium}
-                                className="mt-3 inline-flex min-h-[44px] items-center text-sm font-medium text-astro-highlight"
+                        <div className="mt-4">
+                            <PremiumUpsellPanel
+                                ctaLabel={getText(language, 'horoscope.premium_cta')}
+                                onCta={onRequestPremium}
                             >
-                                {getText(language, 'horoscope.premium_cta')}
-                            </button>
+                                <p>{getText(language, 'horoscope.premium_supporting_line')}</p>
+                            </PremiumUpsellPanel>
                         </div>
                     )
                 )}
@@ -605,18 +602,14 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
                         ) : null}
 
                         {!profile.isPremium && onRequestPremium ? (
-                            <div className="rounded-2xl border border-astro-highlight/16 bg-astro-highlight/[0.06] px-4 py-4">
-                                <p className="text-sm leading-relaxed text-astro-text">
-                                    {getText(language, 'horoscope.period_premium_hint_weekly')}
-                                </p>
-                                <button
-                                    type="button"
-                                    onClick={onRequestPremium}
-                                    className="mt-3 inline-flex min-h-[44px] items-center text-sm font-medium text-astro-highlight"
-                                >
-                                    {getText(language, 'horoscope.premium_cta')}
-                                </button>
-                            </div>
+                            <PremiumUpsellPanel
+                                compact
+                                ctaLabel={getText(language, 'horoscope.premium_cta')}
+                                onCta={onRequestPremium}
+                                className="mt-4"
+                            >
+                                <p>{getText(language, 'horoscope.period_premium_hint_weekly')}</p>
+                            </PremiumUpsellPanel>
                         ) : null}
                     </div>
                 )}
@@ -685,18 +678,14 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
                         ) : null}
 
                         {!profile.isPremium && onRequestPremium ? (
-                            <div className="rounded-2xl border border-astro-highlight/16 bg-astro-highlight/[0.06] px-4 py-4">
-                                <p className="text-sm leading-relaxed text-astro-text">
-                                    {getText(language, 'horoscope.period_premium_hint_monthly')}
-                                </p>
-                                <button
-                                    type="button"
-                                    onClick={onRequestPremium}
-                                    className="mt-3 inline-flex min-h-[44px] items-center text-sm font-medium text-astro-highlight"
-                                >
-                                    {getText(language, 'horoscope.premium_cta')}
-                                </button>
-                            </div>
+                            <PremiumUpsellPanel
+                                compact
+                                ctaLabel={getText(language, 'horoscope.premium_cta')}
+                                onCta={onRequestPremium}
+                                className="mt-4"
+                            >
+                                <p>{getText(language, 'horoscope.period_premium_hint_monthly')}</p>
+                            </PremiumUpsellPanel>
                         ) : null}
                     </div>
                 )}

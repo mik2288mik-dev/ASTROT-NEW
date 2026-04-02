@@ -48,10 +48,10 @@ export const Paywall: React.FC<PaywallProps> = ({ profile, onPurchase, onClose }
                 className="w-full max-w-md space-y-8 relative"
             >
                 {/* Background Glow */}
-                <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-64 h-64 bg-astro-highlight/20 rounded-full blur-3xl pointer-events-none"></div>
+                <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-64 h-64 bg-accent-gold/15 rounded-full blur-3xl pointer-events-none"></div>
 
                 <div>
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-astro-highlight mb-3">
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-accent-gold mb-3">
                         {getText(profile.language, 'paywall.title')}
                     </p>
                     <h1 className="text-3xl font-serif font-bold text-astro-text mb-3">
@@ -72,7 +72,7 @@ export const Paywall: React.FC<PaywallProps> = ({ profile, onPurchase, onClose }
                                 transition={{ delay: i * 0.1 + 0.2 }}
                                 className="flex items-center gap-4"
                             >
-                                <div className="w-7 h-7 rounded-full bg-astro-highlight/15 flex items-center justify-center text-astro-highlight font-bold text-[10px] uppercase tracking-widest">
+                                <div className="w-7 h-7 rounded-full bg-accent-gold/15 flex items-center justify-center text-accent-gold font-bold text-[10px] uppercase tracking-widest">
                                     {String(i + 1).padStart(2, '0')}
                                 </div>
                                 <span className="text-astro-text text-sm font-medium">{feat}</span>
@@ -84,10 +84,9 @@ export const Paywall: React.FC<PaywallProps> = ({ profile, onPurchase, onClose }
                 <div className="pt-4">
                     <button 
                         onClick={onPurchase}
-                        className="w-full bg-astro-text text-astro-bg py-5 rounded-xl font-bold uppercase tracking-widest text-sm shadow-glow hover:scale-[1.02] transition-transform relative overflow-hidden"
+                        className="w-full bg-accent-gold text-white py-5 rounded-full font-bold uppercase tracking-widest text-sm shadow-md ring-1 ring-black/10 hover:scale-[1.02] active:scale-[0.99] transition-transform"
                     >
-                        <span className="relative z-10">{getText(profile.language, 'paywall.cta')}</span>
-                        <div className="absolute inset-0 bg-white/20 translate-y-full hover:translate-y-0 transition-transform duration-300"></div>
+                        {getText(profile.language, 'paywall.cta')}
                     </button>
                     <p className="mt-4 text-[10px] uppercase tracking-widest text-astro-subtext">
                         {getText(profile.language, 'paywall.footer')}

@@ -49,22 +49,25 @@ export const FormattedAiText = memo<FormattedAiTextProps>(({ text, className = '
   if (blocks.length === 0) return null;
 
   const articleP =
-    'font-serif text-[17px] leading-[1.8] tracking-[0.01em] text-astro-text text-justify sm:text-[18px] sm:leading-[1.8]';
+    'font-sans text-[17px] leading-[1.75] tracking-[0.01em] text-astro-text text-center sm:text-[18px] sm:leading-[1.8]';
   const defaultPBase =
     'font-sans text-[16px] leading-[1.7] tracking-[0.01em] text-astro-text [text-wrap:pretty] sm:text-[17px] sm:leading-[1.72]';
   const defaultP = paragraphClassName || (variant === 'article' ? articleP : defaultPBase);
   const blockGap = variant === 'article' ? 'space-y-7' : 'space-y-6';
   const listText =
     variant === 'article'
-      ? 'font-serif text-[16px] leading-[1.68] [text-wrap:pretty] sm:text-[17px] sm:leading-[1.72]'
+      ? 'font-sans text-[16px] leading-[1.68] [text-wrap:pretty] sm:text-[17px] sm:leading-[1.72]'
       : 'text-[16px] leading-[1.65]';
   const mdHeadingClass =
     variant === 'article'
-      ? 'font-serif text-[15px] font-semibold tracking-wide text-astro-text sm:text-base'
+      ? 'font-serif text-center text-[15px] font-semibold tracking-wide text-astro-text sm:text-base'
       : 'font-sans text-[15px] font-semibold tracking-wide text-astro-text sm:text-base';
 
+  const rootClass =
+    variant === 'article' ? `${blockGap} mx-auto w-full max-w-reading ${className}`.trim() : `${blockGap} ${className}`.trim();
+
   return (
-    <div className={`${blockGap} ${className}`}>
+    <div className={rootClass}>
       {blocks.map((block, bi) => {
         const lines = block.split('\n').map((l) => l.trim()).filter(Boolean);
         if (lines.length === 0) return null;
@@ -74,7 +77,7 @@ export const FormattedAiText = memo<FormattedAiTextProps>(({ text, className = '
           return (
             <ul
               key={bi}
-              className={`list-none space-y-3 border-l-2 border-astro-highlight/25 pl-4 text-astro-text sm:space-y-3.5 sm:pl-5 ${listText}`}
+              className={`list-none space-y-3 border-l-2 border-astro-highlight/25 pl-4 text-left text-astro-text sm:space-y-3.5 sm:pl-5 ${listText}`}
             >
               {lines.map((line, li) => (
                 <li key={li} className="relative pl-0 [text-wrap:pretty]">
@@ -91,7 +94,7 @@ export const FormattedAiText = memo<FormattedAiTextProps>(({ text, className = '
         if (isHeading) {
           const rest = lines.slice(1).join('\n');
           return (
-            <div key={bi} className="space-y-3">
+            <div key={bi} className={variant === 'article' ? 'space-y-3 text-center' : 'space-y-3'}>
               <h3 className={mdHeadingClass}>
                 {parseInlineFormatting(headText)}
               </h3>

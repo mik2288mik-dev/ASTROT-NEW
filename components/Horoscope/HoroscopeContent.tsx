@@ -30,7 +30,9 @@ export const HoroscopeContent = memo<HoroscopeContentProps>(({ reading, language
           </div>
 
           <div className="mx-auto w-full max-w-reading">
-            <FormattedAiText text={reading.reading} variant="article" className="lumia-prose" />
+            <div className="lumia-reading-inner-card">
+              <FormattedAiText text={reading.reading} variant="article" className="lumia-prose" />
+            </div>
           </div>
         </div>
       </div>
@@ -53,8 +55,10 @@ export const HoroscopeContent = memo<HoroscopeContentProps>(({ reading, language
         <p className="lumia-label tracking-[0.2em]">{getText(language, 'horoscope.context_title')}</p>
         <p className="lumia-muted mt-1.5 text-sm leading-relaxed">{getText(language, 'horoscope.context_body')}</p>
 
-        <div className="mt-4">
-          <FormattedAiText text={reading.context} variant="article" className="lumia-prose" />
+        <div className="mt-4 mx-auto w-full max-w-reading">
+          <div className="lumia-reading-inner-card">
+            <FormattedAiText text={reading.context} variant="article" className="lumia-prose" />
+          </div>
         </div>
       </div>
 

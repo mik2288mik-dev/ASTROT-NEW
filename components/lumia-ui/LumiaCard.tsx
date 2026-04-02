@@ -16,7 +16,7 @@ export const LumiaCard = ({
     return (
       <div
         className={cn(
-          'rounded-[28px] px-5 py-5 backdrop-blur-2xl bg-white/30 ring-1 ring-white/70 shadow-none',
+          'rounded-[28px] px-5 py-5 backdrop-blur-2xl bg-white/85 ring-1 ring-black/[0.06] shadow-[0_20px_60px_-24px_rgba(0,0,0,0.12)]',
           className
         )}
       >
