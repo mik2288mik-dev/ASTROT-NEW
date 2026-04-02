@@ -6,14 +6,16 @@ type LumiaLogoProps = {
   className?: string;
   /** Light text for dark / cosmic backgrounds */
   inverted?: boolean;
+  /** Тёмный текст — для белого фона (экран загрузки и т.п.) */
+  lightSurface?: boolean;
 };
 
 /**
  * Brand mark (crescent) + LUMIA wordmark — use until raster logo is added to /public.
  */
-export const LumiaLogo = memo<LumiaLogoProps>(({ variant = 'row', className = '', inverted = false }) => {
+export const LumiaLogo = memo<LumiaLogoProps>(({ variant = 'row', className = '', inverted = false, lightSurface = false }) => {
   const gradId = useId().replace(/:/g, '');
-  const textClass = inverted ? 'text-white/95' : 'text-astro-text';
+  const textClass = inverted ? 'text-white/95' : lightSurface ? 'text-[#2d2d2d]' : 'text-astro-text';
   const markClass = inverted ? 'text-violet-200' : 'text-astro-highlight';
 
   const mark = (

@@ -30,10 +30,10 @@ import { MyCharts } from './views/MyCharts';
 import { Wallet } from './views/Wallet';
 import { getAdminStatus } from './services/adminService';
 import { recordUserSession } from './services/sessionService';
-import { useSwipeBack } from './lib/useSwipeBack';
 import { BackgroundLayers } from './components/BackgroundLayers';
 import { installTelegramFullscreenGuard } from './lib/telegramFullscreen';
 import { applyTelegramSafeAreaCssVars, subscribeTelegramContentSafeAreaChanges } from './lib/telegramSafeAreaInsets';
+import { useSwipeBack } from './lib/useSwipeBack';
 
 // Get owner ID from environment variables for security
 const OWNER_ID = process.env.NEXT_PUBLIC_OWNER_ID || '';
@@ -569,7 +569,7 @@ const App: React.FC = () => {
         onSwipeBack: handleBack,
         enabled: canSwipeBack,
         threshold: 80,
-        edgeWidth: 25
+        edgeWidth: 25,
     });
 
     if (loading) {

@@ -28,7 +28,7 @@ export function useSwipeBack({
             const touch = e.touches[0];
             touchStartX.current = touch.clientX;
             touchStartY.current = touch.clientY;
-            
+
             // Проверяем, начался ли свайп от левого края
             isSwipeFromEdge.current = touch.clientX <= edgeWidth;
         };

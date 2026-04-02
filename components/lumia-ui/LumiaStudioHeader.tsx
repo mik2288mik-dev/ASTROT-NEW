@@ -1,5 +1,4 @@
 import React from 'react';
-import Image from 'next/image';
 import { Settings } from 'lucide-react';
 import { cn } from '../../lib/cn';
 
@@ -10,7 +9,7 @@ interface LumiaStudioHeaderProps {
 }
 
 /**
- * AIR hub: лого по центру; шестерёнка справа сверху — в зоне под системным меню Telegram (⋯).
+ * AIR hub: текст LUMIA по центру; шестерёнка справа сверху.
  */
 export const LumiaStudioHeader: React.FC<LumiaStudioHeaderProps> = ({ onOpenSettings, settingsAriaLabel }) => (
   <header className="relative mb-6">
@@ -26,18 +25,10 @@ export const LumiaStudioHeader: React.FC<LumiaStudioHeaderProps> = ({ onOpenSett
       <Settings className="h-5 w-5" strokeWidth={1.75} aria-hidden />
     </button>
 
-    {/* pr-* оставляет место под кнопку настроек справа */}
     <div className="flex justify-center px-2 pr-[3.25rem] min-[400px]:pr-14">
-      <div className="relative h-[56px] w-full max-w-[min(100%,268px)] min-[400px]:h-[64px] min-[400px]:max-w-[min(100%,300px)]">
-        <Image
-          src="/brand/lumia-logo-light.png"
-          alt="Lumia"
-          fill
-          className="object-contain object-center"
-          sizes="300px"
-          priority
-        />
-      </div>
+      <h1 className="serif text-3xl font-medium leading-tight tracking-tight text-text-main min-[400px]:text-4xl">
+        LUMIA
+      </h1>
     </div>
   </header>
 );

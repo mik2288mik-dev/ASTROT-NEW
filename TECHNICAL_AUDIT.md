@@ -60,7 +60,6 @@ ASTROT-NEW/
 ├── lib/                    # Утилиты, БД, астрология
 ├── styles/
 │   └── globals.css
-├── ASTROT_ASSETS/         # Фоны, оверлеи
 ├── __tests__/
 ├── scripts/
 │   └── migrate.ts

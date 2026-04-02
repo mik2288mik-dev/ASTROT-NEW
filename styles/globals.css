@@ -107,6 +107,9 @@ html, body {
   -webkit-tap-highlight-color: transparent;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Без pinch/double-tap zoom в WebView / Safari */
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
 }
 
 /* Responsive Typography Base */

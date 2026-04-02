@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import Image from 'next/image';
-import bgMainDeepSpace from '../../ASTROT_ASSETS/backgrounds/bg_main_deep_space.jpg.png';
 import { LumiaLogo } from '../brand/LumiaLogo';
 
 interface LoadingProps {
@@ -34,23 +32,11 @@ export const Loading: React.FC<LoadingProps> = ({ message, progress: externalPro
 
   return (
     <div
-      className="lumia-pad-top-tg fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden text-center"
+      className="lumia-pad-top-tg fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden bg-white text-center"
       style={{
         paddingBottom: 'max(env(safe-area-inset-bottom, 0px), var(--tg-content-safe-area-inset-bottom, 0px))',
       }}
     >
-      <div className="absolute inset-0">
-        <Image
-          src={bgMainDeepSpace}
-          alt=""
-          fill
-          priority
-          sizes="100vw"
-          className="object-cover object-center"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0618]/75 via-[#120b22]/65 to-[#0a0618]/85" />
-      </div>
-
       <motion.div
         className="relative z-10 flex flex-col items-center px-6"
         initial={{ opacity: 0, y: 12 }}
@@ -61,11 +47,11 @@ export const Loading: React.FC<LoadingProps> = ({ message, progress: externalPro
           animate={{ opacity: [0.85, 1, 0.85] }}
           transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
         >
-          <LumiaLogo variant="row" inverted className="scale-110 sm:scale-125" />
+          <LumiaLogo variant="row" lightSurface className="scale-110 sm:scale-125" />
         </motion.div>
 
         {message && (
-          <p className="mt-8 max-w-xs text-sm font-medium leading-relaxed text-white/80">{message}</p>
+          <p className="mt-8 max-w-xs text-sm font-medium leading-relaxed text-[#2d2d2d]/75">{message}</p>
         )}
 
         {progress > 0 && progress < 100 && (
@@ -73,10 +59,10 @@ export const Loading: React.FC<LoadingProps> = ({ message, progress: externalPro
             initial={{ opacity: 0, width: 0 }}
             animate={{ opacity: 1, width: 220 }}
             transition={{ delay: 0.35 }}
-            className="mt-6 h-0.5 overflow-hidden rounded-full bg-white/15"
+            className="mt-6 h-0.5 overflow-hidden rounded-full bg-black/[0.08]"
           >
             <motion.div
-              className="h-full rounded-full bg-violet-300/90"
+              className="h-full rounded-full bg-astro-highlight/80"
               style={{ width: `${progress}%` }}
               transition={{ duration: 0.25 }}
             />

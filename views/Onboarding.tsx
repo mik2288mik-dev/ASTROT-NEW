@@ -90,7 +90,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     };
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-astro-bg font-sans">
+        <div className="flex min-h-screen flex-col items-center justify-center bg-transparent p-6 font-sans text-[#2d2d2d]">
             <motion.div 
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -98,26 +98,26 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
             >
                 {/* Header */}
                 <div className="mb-16 text-center">
-                    <h1 className="text-5xl font-bold text-astro-text mb-3 font-serif tracking-tighter">
+                    <h1 className="mb-3 font-serif text-5xl font-bold tracking-tighter text-[#2d2d2d]">
                         Lumia
                     </h1>
-                    <p className="text-astro-subtext text-[10px] uppercase tracking-[0.4em]">
+                    <p className="text-[10px] uppercase tracking-[0.4em] text-[#717171]">
                         Персональный Оракул
                     </p>
                 </div>
 
-                <div className="bg-astro-card p-8 rounded-2xl border border-astro-border shadow-sm">
+                <div className="rounded-2xl border border-black/[0.08] bg-white/95 p-8 shadow-sm ring-1 ring-black/[0.04]">
                     {step === 1 && (
                         <motion.div initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="space-y-6">
                             <div>
-                                <label className="block text-[10px] uppercase tracking-widest font-bold text-astro-subtext mb-3">
+                                <label className="mb-3 block text-[10px] font-bold uppercase tracking-widest text-[#717171]">
                                     Ваше Имя
                                 </label>
                                 <input 
                                     type="text" 
                                     value={name} 
                                     onChange={(e) => setName(e.target.value)}
-                                    className="w-full bg-transparent border-b border-astro-border py-3 text-2xl text-astro-text focus:border-astro-highlight outline-none transition-colors font-serif placeholder-astro-subtext/20"
+                                    className="w-full border-b border-black/15 bg-transparent py-3 font-serif text-2xl text-[#2d2d2d] outline-none transition-colors placeholder:text-black/25 focus:border-astro-highlight"
                                     placeholder="Введите имя"
                                 />
                             </div>
@@ -127,14 +127,14 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                     {step === 2 && (
                         <motion.div initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="space-y-8">
                              <div>
-                                <label className="block text-[10px] uppercase tracking-widest font-bold text-astro-subtext mb-3">
+                                <label className="mb-3 block text-[10px] font-bold uppercase tracking-widest text-[#717171]">
                                     Дата Рождения
                                 </label>
                                 <input 
                                     type="date" 
                                     value={date} 
                                     onChange={(e) => setDate(e.target.value)}
-                                    className="w-full bg-transparent border-b border-astro-border py-3 text-xl text-astro-text focus:border-astro-highlight outline-none font-serif"
+                                    className="w-full border-b border-black/15 bg-transparent py-3 font-serif text-xl text-[#2d2d2d] outline-none focus:border-astro-highlight"
                                 />
                                 {predictedZodiacSign && (
                                     <motion.div 
@@ -145,21 +145,21 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                                         <div className="text-astro-highlight">
                                             Предполагаемый знак зодиака: <span className="font-bold">{predictedZodiacSign.ru}</span> ({predictedZodiacSign.en})
                                         </div>
-                                        <div className="text-astro-subtext text-xs mt-1">
+                                        <div className="mt-1 text-xs text-[#717171]">
                                             * Приблизительно по дате. Точный знак будет рассчитан после ввода времени и места рождения.
                                         </div>
                                     </motion.div>
                                 )}
                             </div>
                             <div>
-                                <label className="block text-[10px] uppercase tracking-widest font-bold text-astro-subtext mb-3">
+                                <label className="mb-3 block text-[10px] font-bold uppercase tracking-widest text-[#717171]">
                                     Время Рождения
                                 </label>
                                 <input 
                                     type="time" 
                                     value={time} 
                                     onChange={(e) => setTime(e.target.value)}
-                                    className="w-full bg-transparent border-b border-astro-border py-3 text-xl text-astro-text focus:border-astro-highlight outline-none font-serif"
+                                    className="w-full border-b border-black/15 bg-transparent py-3 font-serif text-xl text-[#2d2d2d] outline-none focus:border-astro-highlight"
                                 />
                             </div>
                         </motion.div>
@@ -168,14 +168,14 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                     {step === 3 && (
                         <motion.div initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="space-y-6">
                             <div>
-                                <label className="block text-[10px] uppercase tracking-widest font-bold text-astro-subtext mb-3">
+                                <label className="mb-3 block text-[10px] font-bold uppercase tracking-widest text-[#717171]">
                                     Место Рождения
                                 </label>
                                 <input 
                                     type="text" 
                                     value={place} 
                                     onChange={(e) => setPlace(e.target.value)}
-                                    className="w-full bg-transparent border-b border-astro-border py-3 text-xl text-astro-text focus:border-astro-highlight outline-none font-serif placeholder-astro-subtext/20"
+                                    className="w-full border-b border-black/15 bg-transparent py-3 font-serif text-xl text-[#2d2d2d] outline-none placeholder:text-black/25 focus:border-astro-highlight"
                                     placeholder="Москва, Россия"
                                 />
                             </div>
@@ -184,7 +184,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
                     <button 
                         onClick={handleNext}
-                        className="mt-12 w-full bg-astro-text text-astro-bg font-bold py-4 rounded-xl shadow-lg hover:opacity-90 transition-all active:scale-[0.98] tracking-widest uppercase text-[10px]"
+                        className="mt-12 w-full rounded-xl bg-[#2d2d2d] py-4 text-[10px] font-bold uppercase tracking-widest text-white shadow-lg transition-all hover:opacity-90 active:scale-[0.98]"
                     >
                         {step === 3 ? "Рассчитать Карту" : "Продолжить"}
                     </button>
@@ -192,7 +192,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                 
                 <div className="flex justify-center mt-10 space-x-2">
                     {[1, 2, 3].map(i => (
-                        <div key={i} className={`h-[2px] transition-all duration-500 ${step >= i ? 'w-8 bg-astro-highlight' : 'w-4 bg-astro-border'}`} />
+                        <div key={i} className={`h-[2px] transition-all duration-500 ${step >= i ? 'w-8 bg-astro-highlight' : 'w-4 bg-black/15'}`} />
                     ))}
                 </div>
             </motion.div>
