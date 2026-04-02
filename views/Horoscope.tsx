@@ -14,6 +14,7 @@ import {
     ensureWeeklyForecastLayer,
     getCachedDailyForecastLayer,
     getCachedDailyHoroscope,
+    getCachedPremiumDaypartForecast,
     getDailyForecastLayer,
     getDailyHoroscope,
     getPremiumDaypartForecast,
@@ -70,7 +71,7 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
     const profileRef = useRef(profile);
     profileRef.current = profile;
 
-    const today = useMemo(() => getMoscowTodayKey(), []);
+    const today = getMoscowTodayKey();
     const language = useMemo(() => profile.language, [profile.language]);
     const sunSign = useMemo(() => chartData?.sun?.sign || 'Aries', [chartData?.sun?.sign]);
 
@@ -90,8 +91,8 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
     const [periodLoading, setPeriodLoading] = useState(false);
     const [periodError, setPeriodError] = useState<string | null>(null);
 
-    const weekKey = useMemo(() => getMoscowIsoWeekKey(), []);
-    const monthKey = useMemo(() => getMoscowMonthKey(), []);
+    const weekKey = getMoscowIsoWeekKey();
+    const monthKey = getMoscowMonthKey();
 
     const syncLegacyIntoProfile = (legacy: DailyHoroscope) => {
         if (!onUpdateProfile) return;
@@ -257,7 +258,7 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
         return () => {
             cancelled = true;
         };
-    }, [chartData, language, onUpdateProfile, profile.generatedContent?.dailyHoroscope, profile.id, profile.language, today]);
+    }, [chartData, language, profile.id, today]);
 
     useEffect(() => {
         let cancelled = false;
@@ -272,12 +273,12 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
                 return;
             }
 
-            setDaypartsLoading(true);
             setDaypartsStatus(null);
 
-            const results = await Promise.allSettled(
+            const userId = String(profile.id);
+            const cachedPairs = await Promise.all(
                 DAYPART_SLOTS.map(async (slot) => {
-                    const reading = await getPremiumDaypartForecast(profileRef.current, chartData, slot);
+                    const reading = await getCachedPremiumDaypartForecast(userId, slot);
                     return [slot, reading] as const;
                 })
             );
@@ -285,20 +286,52 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
             if (cancelled) return;
 
             const next: Partial<Record<ForecastDaypartSlot, ForecastDaypartReading>> = {};
+            const slotsToGenerate: ForecastDaypartSlot[] = [];
+
+            for (const [slot, reading] of cachedPairs) {
+                if (reading) {
+                    next[slot] = reading;
+                } else {
+                    slotsToGenerate.push(slot);
+                }
+            }
+
+            setDayparts(next);
+
+            if (slotsToGenerate.length === 0) {
+                setDaypartsLoading(false);
+                setDaypartsStatus(null);
+                return;
+            }
+
+            setDaypartsLoading(true);
+
+            const results = await Promise.allSettled(
+                slotsToGenerate.map(async (slot) => {
+                    const reading = await getPremiumDaypartForecast(profileRef.current, chartData, slot);
+                    return [slot, reading] as const;
+                })
+            );
+
+            if (cancelled) return;
+
+            const merged: Partial<Record<ForecastDaypartSlot, ForecastDaypartReading>> = { ...next };
             const failures: string[] = [];
 
             for (const result of results) {
                 if (result.status === 'fulfilled') {
                     const [slot, reading] = result.value;
-                    next[slot] = reading;
+                    merged[slot] = reading;
                 } else {
                     failures.push(result.reason?.message || '');
                 }
             }
 
-            setDayparts(next);
+            setDayparts(merged);
             setDaypartsLoading(false);
-            setDaypartsStatus(Object.keys(next).length === 0 ? failures[0] || getFallbackError(language) : null);
+            setDaypartsStatus(
+                DAYPART_SLOTS.some((s) => merged[s]) ? null : failures[0] || getFallbackError(language)
+            );
         };
 
         void loadDayparts();

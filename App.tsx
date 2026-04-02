@@ -33,6 +33,7 @@ import { recordUserSession } from './services/sessionService';
 import { useSwipeBack } from './lib/useSwipeBack';
 import { BackgroundLayers } from './components/BackgroundLayers';
 import { installTelegramFullscreenGuard } from './lib/telegramFullscreen';
+import { applyTelegramSafeAreaCssVars, subscribeTelegramContentSafeAreaChanges } from './lib/telegramSafeAreaInsets';
 
 // Get owner ID from environment variables for security
 const OWNER_ID = process.env.NEXT_PUBLIC_OWNER_ID || '';
@@ -111,6 +112,11 @@ const App: React.FC = () => {
         return cleanupFullscreenGuard;
     }, []);
 
+    useEffect(() => {
+        applyTelegramSafeAreaCssVars();
+        return subscribeTelegramContentSafeAreaChanges(applyTelegramSafeAreaCssVars);
+    }, []);
+
     const lumiaAirShell =
         !!profile &&
         !loading &&
@@ -157,7 +163,10 @@ const App: React.FC = () => {
             for (let attempt = 0; attempt < 5; attempt++) {
                 const tg = (window as any).Telegram?.WebApp;
                 tgId = tg?.initDataUnsafe?.user?.id;
-                if (tgId) break;
+                if (tgId) {
+                    applyTelegramSafeAreaCssVars();
+                    break;
+                }
                 await new Promise(r => setTimeout(r, 300));
             }
 
@@ -596,10 +605,7 @@ const App: React.FC = () => {
                 onOpenWallet={() => openWallet(view)}
             />
             
-            <main 
-                className="flex-1 relative w-full max-w-md md:max-w-reading-wide mx-auto overflow-hidden min-h-0"
-                style={{ paddingLeft: 'env(safe-area-inset-left, 0px)', paddingRight: 'env(safe-area-inset-right, 0px)' }}
-            >
+            <main className="lumia-tg-main-gutter flex-1 relative w-full max-w-md md:max-w-reading-wide mx-auto overflow-hidden min-h-0">
                 {view === 'admin' ? (
                     <AdminPanel
                         profile={profile}

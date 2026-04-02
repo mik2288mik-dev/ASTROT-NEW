@@ -34,10 +34,9 @@ export const Loading: React.FC<LoadingProps> = ({ message, progress: externalPro
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden text-center"
+      className="lumia-pad-top-tg fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden text-center"
       style={{
-        paddingTop: 'env(safe-area-inset-top, 0px)',
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        paddingBottom: 'max(env(safe-area-inset-bottom, 0px), var(--tg-content-safe-area-inset-bottom, 0px))',
       }}
     >
       <div className="absolute inset-0">

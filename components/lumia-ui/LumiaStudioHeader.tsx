@@ -18,15 +18,15 @@ export const LumiaStudioHeader: React.FC<LumiaStudioHeaderProps> = ({
   onOpenSettings,
   onPremiumClick,
 }) => (
-  <header className="flex justify-between items-start gap-3 mb-8">
-    <div className="min-w-0 max-w-[58%] pr-2">
-      <h1 className="serif text-4xl max-[380px]:text-3xl font-medium tracking-tight text-text-main leading-tight">
+  <header className="mb-6 flex items-center justify-between gap-3">
+    <div className="min-w-0 flex-1 pr-2">
+      <h1 className="serif text-3xl font-medium leading-[1.05] tracking-tight text-text-main min-[400px]:text-4xl">
         LUMIA
       </h1>
-      <p className="text-text-muted text-xs tracking-wide opacity-60 mt-1">{subtitle}</p>
+      <p className="mt-1 text-xs tracking-wide text-text-muted opacity-60">{subtitle}</p>
     </div>
 
-    <div className="flex flex-col items-end gap-2 shrink-0 pt-0.5">
+    <div className="flex shrink-0 flex-col items-end gap-1.5">
       <button
         type="button"
         onClick={onPremiumClick}

@@ -193,12 +193,7 @@ export const Dashboard = memo<DashboardProps>(
         ];
 
         return (
-            <div
-                className="min-h-full max-w-md mx-auto relative px-6 pb-24 text-text-main"
-                style={{
-                    paddingTop: 'max(0.75rem, env(safe-area-inset-top, 0px))',
-                }}
-            >
+            <div className="min-h-full max-w-md mx-auto relative lumia-tg-screen-pad lumia-pad-bottom-tg-scroll text-text-main">
                 <LumiaStudioHeader
                     subtitle={getText(language, 'dashboard.lumia_subtitle')}
                     isPremium={!!profile.isPremium}
@@ -207,7 +202,7 @@ export const Dashboard = memo<DashboardProps>(
                 />
 
                 <LayoutGroup id="studioTabs">
-                    <div className="relative flex rounded-full p-1 mb-8 backdrop-blur-2xl bg-white/30 ring-1 ring-white/80 shadow-[0_8px_32px_-14px_rgba(0,0,0,0.06)]">
+                    <div className="relative mb-6 flex rounded-full p-1 backdrop-blur-2xl bg-white/30 ring-1 ring-white/80 shadow-[0_8px_32px_-14px_rgba(0,0,0,0.06)]">
                         {tabs.map((tab) => (
                             <button
                                 key={tab.id}
