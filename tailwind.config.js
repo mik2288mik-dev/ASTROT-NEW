@@ -48,7 +48,7 @@ module.exports = {
         'glow': '0 0 15px var(--highlight)',
       },
       fontFamily: {
-        serif: ['"Outfit"', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        serif: ['"Cormorant Garamond"', 'Times New Roman', 'serif'],
         sans: ['"Inter"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
       },
       animation: {

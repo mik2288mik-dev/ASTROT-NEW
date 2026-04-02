@@ -356,7 +356,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({
           <h1 className="mt-2 font-serif text-2xl tracking-tight text-astro-text sm:text-[1.95rem]">
             {anchorReading?.headline || getText(lang, 'chart.anchor_title')}
           </h1>
-          <p className="lumia-muted mt-2 text-sm leading-relaxed sm:text-[15px]">
+          <p className="lumia-reading-body lumia-muted mt-2">
             {anchorReading?.summary || getText(lang, 'chart.anchor_body')}
           </p>
 

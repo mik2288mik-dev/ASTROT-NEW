@@ -49,15 +49,19 @@ export const FormattedAiText = memo<FormattedAiTextProps>(({ text, className = '
   if (blocks.length === 0) return null;
 
   const articleP =
-    'font-sans text-[17px] leading-[1.72] tracking-[0.01em] text-astro-text [text-wrap:pretty] sm:text-[18px] sm:leading-[1.75]';
+    'font-serif text-[17px] leading-[1.8] tracking-[0.01em] text-astro-text text-justify sm:text-[18px] sm:leading-[1.8]';
   const defaultPBase =
     'font-sans text-[16px] leading-[1.7] tracking-[0.01em] text-astro-text [text-wrap:pretty] sm:text-[17px] sm:leading-[1.72]';
   const defaultP = paragraphClassName || (variant === 'article' ? articleP : defaultPBase);
   const blockGap = variant === 'article' ? 'space-y-7' : 'space-y-6';
   const listText =
     variant === 'article'
-      ? 'text-[16px] leading-[1.68] sm:text-[17px] sm:leading-[1.72]'
+      ? 'font-serif text-[16px] leading-[1.68] [text-wrap:pretty] sm:text-[17px] sm:leading-[1.72]'
       : 'text-[16px] leading-[1.65]';
+  const mdHeadingClass =
+    variant === 'article'
+      ? 'font-serif text-[15px] font-semibold tracking-wide text-astro-text sm:text-base'
+      : 'font-sans text-[15px] font-semibold tracking-wide text-astro-text sm:text-base';
 
   return (
     <div className={`${blockGap} ${className}`}>
@@ -88,7 +92,7 @@ export const FormattedAiText = memo<FormattedAiTextProps>(({ text, className = '
           const rest = lines.slice(1).join('\n');
           return (
             <div key={bi} className="space-y-3">
-              <h3 className="font-sans text-[15px] font-semibold tracking-wide text-astro-text sm:text-base">
+              <h3 className={mdHeadingClass}>
                 {parseInlineFormatting(headText)}
               </h3>
               {rest ? <p className={defaultP}>{parseInlineFormatting(rest)}</p> : null}

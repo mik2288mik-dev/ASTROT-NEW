@@ -26,7 +26,7 @@ export const HoroscopeContent = memo<HoroscopeContentProps>(({ reading, language
         <div className="mt-4 space-y-3.5">
           <div className="border-b border-astro-border/20 pb-3.5">
             <h2 className="font-serif text-xl text-astro-text sm:text-2xl">{reading.headline}</h2>
-            <p className="lumia-muted mt-2 text-sm leading-relaxed sm:text-[15px]">{reading.summary}</p>
+            <p className="lumia-reading-body lumia-muted mt-2">{reading.summary}</p>
           </div>
 
           <div className="mx-auto w-full max-w-reading">
@@ -43,7 +43,7 @@ export const HoroscopeContent = memo<HoroscopeContentProps>(({ reading, language
           {matters.map((item) => (
             <div key={item.label} className="border-b border-astro-border/15 pb-3 last:border-b-0 last:pb-0">
               <p className="lumia-label text-[10px] tracking-[0.16em]">{item.label}</p>
-              <p className="mt-1.5 text-[15px] leading-relaxed text-astro-text sm:text-base">{item.value}</p>
+              <p className="lumia-reading-body mt-1.5 text-astro-text">{item.value}</p>
             </div>
           ))}
         </div>

@@ -363,10 +363,26 @@ body.theme-light .shadow-glow {
   text-wrap: balance;
 }
 
-/* Long-form AI / editorial blocks (matches premium reader apps: measure + rhythm) */
+/* Long-form AI / editorial blocks (Cormorant stack; matches .serif / dashboard headlines) */
 .lumia-prose {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: 'Cormorant Garamond', 'Times New Roman', serif;
   font-feature-settings: 'kern' 1, 'liga' 1;
+}
+
+/* Shared reading rhythm for previews + short paragraphs (dashboard / horoscope / anchor) */
+.lumia-reading-body {
+  font-family: 'Cormorant Garamond', 'Times New Roman', serif;
+  font-feature-settings: 'kern' 1, 'liga' 1;
+  font-size: 0.9375rem;
+  line-height: 1.75;
+  text-align: justify;
+  text-wrap: pretty;
+}
+
+@media (min-width: 640px) {
+  .lumia-reading-body {
+    font-size: 1rem;
+  }
 }
 
 /* Custom Gradient Backgrounds */

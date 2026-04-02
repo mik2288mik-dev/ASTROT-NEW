@@ -320,7 +320,7 @@ export const Dashboard = memo<DashboardProps>(
                                         <p className="text-[10px] uppercase tracking-[0.2em] text-text-muted/70">
                                             {getText(language, 'dashboard.hero_label')}
                                         </p>
-                                        <h3 className="serif text-2xl mt-2 leading-tight text-text-main">{heroHeadline}</h3>
+                                        <h3 className="serif text-2xl mt-2 leading-snug text-text-main">{heroHeadline}</h3>
                                     </div>
                                     {horoscopeDateLabel && (
                                         <span className="shrink-0 rounded-full border border-black/5 bg-white/80 px-2.5 py-1 text-[11px] text-text-muted">
@@ -329,13 +329,13 @@ export const Dashboard = memo<DashboardProps>(
                                     )}
                                 </div>
                                 {heroSupport && (
-                                    <p className="text-sm leading-relaxed text-text-main/85 [text-wrap:pretty]">{heroSupport}</p>
+                                    <p className="lumia-reading-body text-text-main/85">{heroSupport}</p>
                                 )}
                                 <div className="space-y-3 border-t border-black/5 pt-4">
                                     {todayPoints.map((item) => (
                                         <div key={item.label} className="space-y-1">
                                             <p className="text-[10px] uppercase tracking-wider text-text-muted">{item.label}</p>
-                                            <p className="text-sm text-text-main/90 leading-relaxed">{item.value}</p>
+                                            <p className="lumia-reading-body text-text-main/90">{item.value}</p>
                                         </div>
                                     ))}
                                 </div>
