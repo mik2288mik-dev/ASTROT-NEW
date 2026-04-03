@@ -6,7 +6,6 @@ import { Loading } from '../components/ui/Loading';
 import { formatLumiaDate, getMoscowTodayKey } from '../lib/date-utils';
 import { getCachedDailyForecastLayer, mapLegacyHoroscopeToForecastDailyReading } from '../services/astrologyService';
 import { LumiaStudioHeader } from '../components/lumia-ui/LumiaStudioHeader';
-import { LumiaCard } from '../components/lumia-ui/LumiaCard';
 import { LumiaButton } from '../components/lumia-ui/LumiaButton';
 import { cn } from '../lib/cn';
 
@@ -194,29 +193,30 @@ export const Dashboard = memo<DashboardProps>(
         return (
             <div className="min-h-full max-w-md mx-auto relative lumia-tg-hub-pad lumia-pad-bottom-tg-scroll text-text-main">
                 <LumiaStudioHeader
+                    className="-mt-2 sm:-mt-2.5"
                     onOpenSettings={onOpenSettings}
                     settingsAriaLabel={getText(language, 'nav.settings')}
                 />
 
                 <LayoutGroup id="studioTabs">
-                    <div className="relative mb-6 flex rounded-full p-1 backdrop-blur-2xl bg-white/30 ring-1 ring-white/80 shadow-[0_8px_32px_-14px_rgba(0,0,0,0.06)]">
+                    <div className="relative mb-6 w-full rounded-full bg-black/[0.04] p-0.5">
                         {tabs.map((tab) => (
                             <button
                                 key={tab.id}
                                 type="button"
                                 onClick={() => setActiveTab(tab.id)}
-                                className="relative z-0 flex min-h-[44px] flex-1 items-center justify-center px-1"
+                                className="relative z-0 flex min-h-[38px] flex-1 items-center justify-center px-0.5 py-1 sm:min-h-[40px] sm:px-1"
                             >
                                 {activeTab === tab.id && (
                                     <motion.div
                                         layoutId="studioTabIndicator"
-                                        className="absolute inset-y-1 left-1 right-1 rounded-full bg-white/95 shadow-sm ring-1 ring-black/[0.05]"
+                                        className="absolute inset-y-0.5 left-0.5 right-0.5 rounded-full bg-white"
                                         transition={{ type: 'spring', stiffness: 420, damping: 34 }}
                                     />
                                 )}
                                 <span
                                     className={cn(
-                                        'relative z-10 text-xs font-semibold uppercase tracking-wider',
+                                        'relative z-10 text-center text-[10px] font-semibold uppercase leading-tight tracking-wide [text-wrap:balance] sm:text-[11px]',
                                         activeTab === tab.id ? 'text-text-main' : 'text-text-muted'
                                     )}
                                 >
@@ -238,7 +238,7 @@ export const Dashboard = memo<DashboardProps>(
                     >
                         {activeTab === 'natal' && (
                             <>
-                                <LumiaCard variant="float" className="space-y-5">
+                                <div className="space-y-5">
                                     <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-text-muted/70 text-center">
                                         {getText(language, 'dashboard.natal_label')}
                                     </p>
@@ -276,29 +276,22 @@ export const Dashboard = memo<DashboardProps>(
                                     <LumiaButton className="w-full" onClick={handleNavigateChart}>
                                         {getText(language, 'dashboard.natal_cta')}
                                     </LumiaButton>
-                                </LumiaCard>
+                                </div>
 
-                                <LumiaCard
-                                    variant="float"
-                                    className="space-y-3 !bg-text-main/92 !text-white !ring-white/15 backdrop-blur-xl"
-                                >
-                                    <p className="text-[10px] uppercase tracking-wider opacity-60">
+                                <div className="space-y-3 border-t border-black/[0.07] pt-8">
+                                    <p className="text-[10px] uppercase tracking-wider text-text-muted">
                                         {getText(language, 'dashboard.questions_label')}
                                     </p>
-                                    <p className="text-sm opacity-90 leading-relaxed">{questionsSupport}</p>
-                                    <LumiaButton
-                                        variant="secondary"
-                                        className="w-full bg-white text-text-main hover:bg-white/90"
-                                        onClick={handleNavigateOracle}
-                                    >
+                                    <p className="text-sm leading-relaxed text-text-main/90">{questionsSupport}</p>
+                                    <LumiaButton className="w-full" onClick={handleNavigateOracle}>
                                         {getText(language, 'dashboard.questions_cta')}
                                     </LumiaButton>
-                                </LumiaCard>
+                                </div>
                             </>
                         )}
 
                         {activeTab === 'compatibility' && (
-                            <LumiaCard variant="float" className="space-y-5 text-center">
+                            <div className="space-y-5 text-center">
                                 <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-accent-gold">
                                     {getText(language, 'dashboard.synastry_label')}
                                 </p>
@@ -310,11 +303,11 @@ export const Dashboard = memo<DashboardProps>(
                                 <LumiaButton className="w-full" onClick={handleNavigateSynastry}>
                                     {getText(language, 'dashboard.synastry_cta')}
                                 </LumiaButton>
-                            </LumiaCard>
+                            </div>
                         )}
 
                         {activeTab === 'horoscope' && (
-                            <LumiaCard variant="float" className="space-y-5">
+                            <div className="space-y-6">
                                 <div className="flex items-start justify-between gap-3">
                                     <div className="min-w-0">
                                         <p className="text-[10px] uppercase tracking-[0.2em] text-text-muted/70">
@@ -323,7 +316,7 @@ export const Dashboard = memo<DashboardProps>(
                                         <h3 className="serif text-2xl mt-2 leading-snug text-text-main">{heroHeadline}</h3>
                                     </div>
                                     {horoscopeDateLabel && (
-                                        <span className="shrink-0 rounded-full border border-black/5 bg-white/80 px-2.5 py-1 text-[11px] text-text-muted">
+                                        <span className="shrink-0 text-[11px] text-text-muted tabular-nums">
                                             {horoscopeDateLabel}
                                         </span>
                                     )}
@@ -331,7 +324,7 @@ export const Dashboard = memo<DashboardProps>(
                                 {heroSupport && (
                                     <p className="lumia-reading-body text-text-main/85">{heroSupport}</p>
                                 )}
-                                <div className="space-y-3 border-t border-black/5 pt-4">
+                                <div className="space-y-4">
                                     {todayPoints.map((item) => (
                                         <div key={item.label} className="space-y-1">
                                             <p className="text-[10px] uppercase tracking-wider text-text-muted">{item.label}</p>
@@ -342,7 +335,7 @@ export const Dashboard = memo<DashboardProps>(
                                 <LumiaButton variant="outline" className="w-full" onClick={handleNavigateHoroscope}>
                                     {getText(language, 'dashboard.hero_cta')}
                                 </LumiaButton>
-                            </LumiaCard>
+                            </div>
                         )}
                     </motion.div>
                 </AnimatePresence>

@@ -74,11 +74,18 @@ const App: React.FC = () => {
         return OWNER_ID && userId ? String(userId) === String(OWNER_ID) : !!storedIsAdmin;
     }, []);
 
+    const ADMIN_STATUS_TIMEOUT_MS = 4500;
+
     const resolveAuthoritativeAdminStatus = useCallback(async (userId?: string | number, storedIsAdmin?: boolean) => {
         const fallbackIsAdmin = getFallbackAdminStatus(userId, storedIsAdmin);
 
         try {
-            const result = await getAdminStatus();
+            const result = await Promise.race([
+                getAdminStatus(),
+                new Promise<{ isAdmin: boolean }>((_, reject) =>
+                    setTimeout(() => reject(new Error('admin-status-timeout')), ADMIN_STATUS_TIMEOUT_MS)
+                ),
+            ]);
             return result.isAdmin;
         } catch (error: any) {
             console.warn('[App] Failed to fetch authoritative admin status:', error?.message || error);
@@ -328,33 +335,29 @@ const App: React.FC = () => {
             });
             
             setChartData(generatedChart);
-            setLoadingProgress(70);
-
-            // Шаг 3: Генерируем контент для первого входа (не критично)
-            console.log('[App] Generating initial content...');
-            setLoadingProgress(80);
-            
-            try {
-                const allContent = await generateAllContent(fullProfile, generatedChart);
-                fullProfile.generatedContent = allContent;
-                
-                // Обновляем профиль только если получилось сохранить ранее
-                if (profileSaved && fullProfile.isSetup) {
-                    try {
-                        await saveProfile(fullProfile);
-                    } catch (e) {
-                        console.warn('[App] Failed to save content (non-critical):', e);
-                    }
-                }
-                setProfile(fullProfile);
-            } catch (contentError) {
-                console.error('[App] Content generation failed (non-critical):', contentError);
-            }
-            
             setLoadingProgress(100);
-            
-            // Переходим сразу в dashboard — чистый первый экран продукта
+
+            // Сразу уходим с лоадера: generateAllContent — несколько AI-вызовов и может «висеть» минутами.
             setTimeout(() => setView('dashboard'), 300);
+
+            void (async () => {
+                try {
+                    console.log('[App] Generating initial content (background, non-blocking)...');
+                    const allContent = await generateAllContent(fullProfile, generatedChart);
+                    setProfile((prev) => {
+                        if (!prev) return prev;
+                        const next = { ...prev, generatedContent: allContent };
+                        if (profileSaved && next.isSetup) {
+                            void saveProfile(next).catch((e) =>
+                                console.warn('[App] Failed to save generated content (non-critical):', e)
+                            );
+                        }
+                        return next;
+                    });
+                } catch (contentError) {
+                    console.error('[App] Background content generation failed (non-critical):', contentError);
+                }
+            })();
             
         } catch (error: any) {
             console.error('[App] Error during onboarding:', error);

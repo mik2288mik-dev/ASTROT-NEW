@@ -6,13 +6,23 @@ interface LumiaStudioHeaderProps {
   onOpenSettings: () => void;
   /** Localized e.g. getText(lang, 'nav.settings') */
   settingsAriaLabel: string;
+  className?: string;
 }
 
 /**
  * AIR hub: текст LUMIA по центру; шестерёнка справа сверху.
  */
-export const LumiaStudioHeader: React.FC<LumiaStudioHeaderProps> = ({ onOpenSettings, settingsAriaLabel }) => (
-  <header className="mb-6 grid grid-cols-[2.75rem_minmax(0,1fr)_2.75rem] items-center gap-1 sm:grid-cols-[3rem_minmax(0,1fr)_3rem]">
+export const LumiaStudioHeader: React.FC<LumiaStudioHeaderProps> = ({
+  onOpenSettings,
+  settingsAriaLabel,
+  className,
+}) => (
+  <header
+    className={cn(
+      'mb-4 grid grid-cols-[2.75rem_minmax(0,1fr)_2.75rem] items-center gap-1 sm:grid-cols-[3rem_minmax(0,1fr)_3rem]',
+      className
+    )}
+  >
     <span className="pointer-events-none w-11 shrink-0 sm:w-12" aria-hidden />
     <h1 className="text-center font-outfit text-3xl font-semibold leading-none tracking-[0.14em] text-text-main min-[400px]:text-4xl">
       LUMIA
