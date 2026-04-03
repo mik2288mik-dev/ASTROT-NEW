@@ -18,13 +18,6 @@ const log = {
   error: (msg: string, err?: any) => console.error(`[StreakService] ERROR: ${msg}`, err || ''),
 };
 
-const DAILY_REWARD = 3;
-const STREAK_BONUSES: Record<number, number> = {
-  3: 10,
-  7: 20,
-  30: 30,
-};
-
 export interface ProcessDailyLoginResult {
   awardedToday: boolean;
   dailyReward?: number;

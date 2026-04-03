@@ -3,10 +3,6 @@
  * Шутки генерируются на основе знаков Солнца, Луны и других планет
  */
 
-// Типы знаков
-type ZodiacSign = 'Aries' | 'Taurus' | 'Gemini' | 'Cancer' | 'Leo' | 'Virgo' | 
-                  'Libra' | 'Scorpio' | 'Sagittarius' | 'Capricorn' | 'Aquarius' | 'Pisces';
-
 // Характеристики знаков для шуток
 const SIGN_TRAITS: Record<string, { ru: string[]; en: string[] }> = {
     Aries: {

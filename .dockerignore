@@ -22,6 +22,7 @@ __tests__
 .git
 .gitignore
 .gitattributes
+.github
 
 # Documentation
 *.md
@@ -54,6 +55,7 @@ railway.json
 
 # Examples
 examples
+lumia 2.0
 
 # Logs
 logs

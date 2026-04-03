@@ -17,7 +17,6 @@ const log = {
 };
 
 const PREMIUM_DAYS = 7;
-const PREMIUM_STARS = 250;
 
 /** Premium bonus Lumi - not in spec, set to 0 to skip */
 const PREMIUM_BONUS_LUMI = 0;

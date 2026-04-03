@@ -11,6 +11,7 @@ const eslintConfig = [
       "node_modules/**",
       "out/**",
       "build/**",
+      "lumia 2.0/**",
       "**/*.d.ts",
     ],
   },

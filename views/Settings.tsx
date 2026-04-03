@@ -5,7 +5,7 @@ import { getText } from '../constants';
 import { saveProfile } from '../services/storageService';
 import { requestStarsPayment } from '../services/telegramService';
 import { getWeatherSettings, saveWeatherCity } from '../services/weatherService';
-import { ScreenShell, AIR_GLASS_PANEL_CLASS } from '../components/layout/ScreenShell';
+import { ScreenShell } from '../components/layout/ScreenShell';
 
 interface SettingsProps {
     profile: UserProfile;

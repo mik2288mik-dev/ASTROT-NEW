@@ -227,7 +227,7 @@ export const Dashboard = memo<DashboardProps>(
                 />
 
                 <LayoutGroup id="studioTabs">
-                    <div className="relative mb-6 w-full rounded-full bg-black/[0.04] p-0.5">
+                    <div className="relative mb-6 flex w-full items-stretch rounded-full bg-black/[0.04] p-0.5">
                         {tabs.map((tab) => (
                             <button
                                 key={tab.id}
@@ -244,7 +244,7 @@ export const Dashboard = memo<DashboardProps>(
                                 )}
                                 <span
                                     className={cn(
-                                        'relative z-10 text-center text-[10px] font-semibold uppercase leading-tight tracking-wide [text-wrap:balance] sm:text-[11px]',
+                                        'relative z-10 whitespace-nowrap text-center text-[10px] font-semibold leading-tight tracking-[0.02em] sm:text-[11px]',
                                         activeTab === tab.id ? 'text-text-main' : 'text-text-muted'
                                     )}
                                 >

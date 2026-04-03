@@ -4,7 +4,16 @@
  * Тестирует ключевые функции расчета натальной карты
  */
 
-import { getZodiacSign, getDegreeInSign } from '../lib/swisseph-calculator';
+jest.mock('swisseph-v2', () => ({
+  SEFLG_SWIEPH: 2,
+  SEFLG_SPEED: 256,
+  swe_set_ephe_path: jest.fn(),
+  swe_julday: jest.fn(),
+  swe_calc_ut: jest.fn(),
+  swe_houses: jest.fn(),
+}));
+
+const { getZodiacSign, getDegreeInSign } = require('../lib/swisseph-calculator');
 
 // Экспортируем внутренние функции для тестирования
 // В реальности эти функции могут быть приватными, но для тестов мы их тестируем
