@@ -189,13 +189,24 @@ export const updateContentIfNeeded = async (profile: UserProfile, chartData: Nat
     hasGeneratedContent: !!profile.generatedContent
   });
 
-  // Если контента вообще нет - генерируем все (первый вход)
-  if (!profile.generatedContent) {
-    log.info('[updateContentIfNeeded] No content found, generating all (first time)');
-    return await generateAllContent(profile, chartData);
+  const gc = profile.generatedContent;
+  const needsBootstrap =
+    !gc ||
+    !gc.natalIntro?.trim() ||
+    !gc.dailyHoroscope?.content;
+
+  if (needsBootstrap) {
+    log.info('[updateContentIfNeeded] Bootstrapping generated content (missing intro or daily)');
+    const fresh = await generateAllContent(profile, chartData);
+    try {
+      await saveProfile({ ...profile, generatedContent: fresh });
+    } catch (error) {
+      log.error('[updateContentIfNeeded] Failed to save profile after bootstrap', error);
+    }
+    return fresh;
   }
 
-  const existingContent = profile.generatedContent;
+  const existingContent = gc;
   const timestamps = existingContent.timestamps || {};
   let updated = false;
 

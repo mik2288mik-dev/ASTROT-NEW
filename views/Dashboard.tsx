@@ -2,7 +2,6 @@ import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { ForecastDailyReading, UserProfile, NatalChartData, ViewState } from '../types';
 import { getText } from '../constants';
-import { Loading } from '../components/ui/Loading';
 import { formatLumiaDate, getMoscowTodayKey } from '../lib/date-utils';
 import { getCachedDailyForecastLayer, mapLegacyHoroscopeToForecastDailyReading } from '../services/astrologyService';
 import { LumiaStudioHeader } from '../components/lumia-ui/LumiaStudioHeader';
@@ -182,7 +181,36 @@ export const Dashboard = memo<DashboardProps>(
             };
         }, [activeChartId, langKey, profile.generatedContent?.dailyHoroscope, profile.id]);
 
-        if (!chartData) return <Loading message={getText(profile.language, 'loading')} />;
+        if (!chartData) {
+            return (
+                <div className="min-h-full max-w-md mx-auto lumia-tg-hub-pad lumia-pad-bottom-tg-scroll px-1 text-text-main">
+                    <LumiaStudioHeader
+                        className="-mt-2 sm:-mt-2.5"
+                        onOpenSettings={onOpenSettings}
+                        settingsAriaLabel={getText(language, 'nav.settings')}
+                    />
+                    <div className="mt-4 space-y-4 text-center">
+                        <p className="font-medium text-text-main">{getText(language, 'dashboard.chart_load_failed_title')}</p>
+                        <p className="text-sm leading-relaxed text-text-muted">
+                            {getText(language, 'dashboard.chart_load_failed_body')}
+                        </p>
+                        <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:justify-center">
+                            <LumiaButton type="button" className="w-full sm:w-auto" onClick={() => window.location.reload()}>
+                                {getText(language, 'dashboard.chart_load_retry')}
+                            </LumiaButton>
+                            <LumiaButton
+                                type="button"
+                                variant="outline"
+                                className="w-full sm:w-auto"
+                                onClick={() => onNavigate('chart')}
+                            >
+                                {getText(language, 'dashboard.chart_load_open_chart')}
+                            </LumiaButton>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
 
         const tabs: { id: StudioTab; label: string }[] = [
             { id: 'natal', label: getText(language, 'dashboard.studio_tab_natal') },

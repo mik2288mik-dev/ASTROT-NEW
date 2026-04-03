@@ -8,12 +8,17 @@
  */
 
 import { NatalChartData, UserProfile } from '../types';
+import { fetchWithTimeout } from '../lib/fetchWithTimeout';
 
 const API_BASE_URL = typeof window !== 'undefined' ? '' : '';
+const CHART_FETCH_TIMEOUT_MS = 25_000;
 
 const log = {
   info: (message: string, data?: any) => {
     console.log(`[ChartService] ${message}`, data || '');
+  },
+  warn: (message: string, data?: any) => {
+    console.warn(`[ChartService] ${message}`, data || '');
   },
   error: (message: string, error?: any) => {
     console.error(`[ChartService] ERROR: ${message}`, error || '');
@@ -30,7 +35,15 @@ export async function getChartFromDB(userId: string): Promise<NatalChartData | n
   log.info(`[getChartFromDB] userId=${userId}`);
 
   const url = `${API_BASE_URL}/api/charts/${userId}`;
-  const response = await fetch(url);
+  let response: Response;
+  try {
+    response = await fetchWithTimeout(url, { method: 'GET' }, CHART_FETCH_TIMEOUT_MS);
+  } catch (err: any) {
+    log.warn('[getChartFromDB] Fetch failed (network/timeout), will try calculate', {
+      error: err?.message || err,
+    });
+    return null;
+  }
 
   if (response.status === 404) {
     log.info('[getChartFromDB] DB_MISS: no chart in DB');
@@ -38,20 +51,20 @@ export async function getChartFromDB(userId: string): Promise<NatalChartData | n
   }
 
   if (!response.ok) {
-    let message = `Server error: ${response.status}`;
-    try {
-      const errorData = await response.json();
-      message = errorData.message || errorData.error || message;
-    } catch {
-      // Ignore parsing errors and use the status-based message.
-    }
-    throw new Error(message);
+    log.warn('[getChartFromDB] Non-OK response, will try calculate', { status: response.status });
+    return null;
   }
 
-  const chartData = await response.json();
+  let chartData: NatalChartData;
+  try {
+    chartData = await response.json();
+  } catch {
+    log.warn('[getChartFromDB] Invalid JSON, will try calculate');
+    return null;
+  }
 
   if (!chartData || !chartData.sun || !chartData.moon) {
-    log.error('[getChartFromDB] Invalid chart data structure', {
+    log.warn('[getChartFromDB] Invalid chart payload, will try calculate', {
       hasData: !!chartData,
       hasSun: !!chartData?.sun,
       hasMoon: !!chartData?.moon,
@@ -78,18 +91,22 @@ async function calculateChart(profile: UserProfile): Promise<NatalChartData> {
 
   let response: Response;
   try {
-    response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userId: profile.id,
-        name: profile.name,
-        birthDate: profile.birthDate,
-        birthTime: profile.birthTime,
-        birthPlace: profile.birthPlace,
-        language: profile.language,
-      }),
-    });
+    response = await fetchWithTimeout(
+      url,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: profile.id,
+          name: profile.name,
+          birthDate: profile.birthDate,
+          birthTime: profile.birthTime,
+          birthPlace: profile.birthPlace,
+          language: profile.language,
+        }),
+      },
+      CHART_FETCH_TIMEOUT_MS
+    );
   } catch (fetchError: any) {
     log.error('[calculateChart] Network error', { error: fetchError.message });
     throw new Error('Ошибка сети. Проверьте интернет-соединение и попробуйте снова.');
@@ -150,7 +167,16 @@ export async function getOrCalculateChart(profile: UserProfile): Promise<NatalCh
 
   log.info('[getOrCalculateChart] No chart in DB, calculating...');
 
-  const calculationPromise = calculateChart(profile).finally(() => {
+  const CALC_HARD_CAP_MS = 70_000;
+  const calculationPromise = Promise.race([
+    calculateChart(profile),
+    new Promise<NatalChartData>((_, reject) =>
+      setTimeout(
+        () => reject(new Error('Превышено время ожидания расчёта карты.')),
+        CALC_HARD_CAP_MS
+      )
+    ),
+  ]).finally(() => {
     calculationInFlight.delete(userId);
   });
 
@@ -166,19 +192,23 @@ export async function forceRecalculateChart(profile: UserProfile): Promise<Natal
 
   const url = `${API_BASE_URL}/api/astrology/natal-chart`;
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      userId: profile.id,
-      name: profile.name,
-      birthDate: profile.birthDate,
-      birthTime: profile.birthTime,
-      birthPlace: profile.birthPlace,
-      language: profile.language,
-      forceRecalculate: true,
-    }),
-  });
+  const response = await fetchWithTimeout(
+    url,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: profile.id,
+        name: profile.name,
+        birthDate: profile.birthDate,
+        birthTime: profile.birthTime,
+        birthPlace: profile.birthPlace,
+        language: profile.language,
+        forceRecalculate: true,
+      }),
+    },
+    CHART_FETCH_TIMEOUT_MS
+  );
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: 'Unknown error' }));

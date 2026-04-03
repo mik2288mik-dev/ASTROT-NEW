@@ -10,7 +10,7 @@ import {
     runReferralFromStartParam,
 } from './services/storageService';
 import { getOrCalculateChart } from './services/chartService';
-import { generateAllContent } from './services/contentGenerationService';
+import { generateAllContent, updateContentIfNeeded } from './services/contentGenerationService';
 import { Onboarding } from './views/Onboarding';
 import { Dashboard } from './views/Dashboard';
 import { NatalChart } from './views/NatalChart';
@@ -64,11 +64,12 @@ const App: React.FC = () => {
     const [walletReturnView, setWalletReturnView] = useState<ViewState>('dashboard');
     const [chartReturnView, setChartReturnView] = useState<ViewState>('dashboard');
     
-    // Ref для предотвращения двойной загрузки
-    const dataLoadedRef = useRef(false);
     // Ref для однократного вызова daily login за сессию
     const dailyLoginProcessedRef = useRef(false);
     const lastSessionPingRef = useRef(0);
+    const chartHealGenRef = useRef(0);
+    const contentSyncGenRef = useRef(0);
+    const contentSyncedKeyRef = useRef<string | null>(null);
 
     const getFallbackAdminStatus = useCallback((userId?: string | number, storedIsAdmin?: boolean) => {
         return OWNER_ID && userId ? String(userId) === String(OWNER_ID) : !!storedIsAdmin;
@@ -157,17 +158,29 @@ const App: React.FC = () => {
     }, [profile?.theme, lumiaAirShell]);
 
     useEffect(() => {
-        // Защита от двойной загрузки
-        if (dataLoadedRef.current) return;
-        dataLoadedRef.current = true;
-        
+        let cancelled = false;
+        let safetyCleared = false;
+        const safetyTimer = window.setTimeout(() => {
+            if (cancelled || safetyCleared) return;
+            console.error('[App] Startup exceeded 40s — unlocking loading UI');
+            setLoadingProgress(100);
+            setLoading(false);
+        }, 40_000);
+
+        const clearSafety = () => {
+            if (safetyCleared) return;
+            safetyCleared = true;
+            window.clearTimeout(safetyTimer);
+        };
+
         const loadData = async () => {
             console.log('[App] === LOADING USER DATA ===');
             setLoadingProgress(10);
             
             // Ждём Telegram Web App (может загружаться асинхронно)
             let tgId: string | number | undefined;
-            for (let attempt = 0; attempt < 5; attempt++) {
+            for (let attempt = 0; attempt < 12; attempt++) {
+                if (cancelled) return;
                 const tg = (window as any).Telegram?.WebApp;
                 tgId = tg?.initDataUnsafe?.user?.id;
                 if (tgId) {
@@ -179,6 +192,7 @@ const App: React.FC = () => {
 
             if (!tgId) {
                 console.log('[App] No Telegram user ID found after retries, showing onboarding');
+                clearSafety();
                 setLoadingProgress(100);
                 setView('onboarding');
                 setLoading(false);
@@ -199,6 +213,7 @@ const App: React.FC = () => {
                 // Если профиля нет или он не настроен - показываем onboarding
                 if (!storedProfile || !storedProfile.isSetup) {
                     console.log('[App] No profile or not setup, showing onboarding');
+                    clearSafety();
                     setLoadingProgress(100);
                     setView('onboarding');
                     setLoading(false);
@@ -265,12 +280,93 @@ const App: React.FC = () => {
                 setLoadingProgress(100);
                 setView('onboarding');
             } finally {
-                setTimeout(() => setLoading(false), 300);
+                clearSafety();
+                if (!cancelled) {
+                    setTimeout(() => setLoading(false), 300);
+                }
             }
         };
         
-        loadData();
+        void loadData();
+        return () => {
+            cancelled = true;
+            clearSafety();
+        };
     }, [resolveAuthoritativeAdminStatus]);
+
+    // Догрузка карты, если после старта она не пришла (ошибка сети / таймаут GET).
+    useEffect(() => {
+        if (loading || view !== 'dashboard' || !profile?.id || chartData) return;
+
+        const gen = ++chartHealGenRef.current;
+        let cancelled = false;
+        const delays = [0, 2500, 8000];
+
+        const run = async () => {
+            for (const waitMs of delays) {
+                if (cancelled || gen !== chartHealGenRef.current) return;
+                if (waitMs > 0) {
+                    await new Promise((r) => setTimeout(r, waitMs));
+                }
+                if (cancelled || gen !== chartHealGenRef.current) return;
+                try {
+                    const chart = await getOrCalculateChart(profile);
+                    if (cancelled || gen !== chartHealGenRef.current) return;
+                    if (chart?.sun && chart?.moon) {
+                        setChartData(chart);
+                        return;
+                    }
+                } catch (e: any) {
+                    console.warn('[App] Chart heal attempt failed:', e?.message || e);
+                }
+            }
+        };
+
+        void run();
+        return () => {
+            cancelled = true;
+        };
+    }, [
+        loading,
+        view,
+        chartData,
+        profile?.id,
+        profile?.birthDate,
+        profile?.birthTime,
+        profile?.birthPlace,
+        profile?.name,
+        profile?.language,
+    ]);
+
+    // Гороскоп / интро / deep dive: добираем в фоне, если в БД пусто или обрыв после онбординга (бесплатно и премиум).
+    useEffect(() => {
+        if (!chartData || loading || view !== 'dashboard' || !profile?.id) {
+            if (!chartData) contentSyncedKeyRef.current = null;
+            return;
+        }
+
+        const syncKey = `${profile.id}:${chartData.sun?.sign ?? ''}-${chartData.moon?.sign ?? ''}`;
+        if (contentSyncedKeyRef.current === syncKey) return;
+        contentSyncedKeyRef.current = syncKey;
+
+        const gen = ++contentSyncGenRef.current;
+        const snapshot = profile;
+        const chartSnapshot = chartData;
+
+        void (async () => {
+            try {
+                const next = await updateContentIfNeeded(snapshot, chartSnapshot);
+                if (gen !== contentSyncGenRef.current) return;
+                setProfile((prev) => {
+                    if (!prev || prev.id !== snapshot.id) return prev;
+                    return { ...prev, generatedContent: next };
+                });
+            } catch (e: any) {
+                console.warn('[App] Content sync failed:', e?.message || e);
+                contentSyncedKeyRef.current = null;
+            }
+        })();
+    }, [loading, view, profile, chartData]);
 
     const handleOnboardingComplete = async (newProfile: UserProfile) => {
         console.log('[App] === ONBOARDING COMPLETE ===', {

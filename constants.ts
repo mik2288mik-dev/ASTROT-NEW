@@ -150,6 +150,11 @@ export const TRANSLATIONS = {
       studio_tab_natal: "Натальная карта",
       studio_tab_union: "Союз",
       studio_tab_horoscope: "Гороскоп",
+      chart_load_failed_title: "Карта не загрузилась",
+      chart_load_failed_body:
+        "Сеть или сервер долго не отвечают. Обнови страницу или открой натальную карту — расчёт попробует снова.",
+      chart_load_retry: "Обновить страницу",
+      chart_load_open_chart: "Открыть карту",
       studio_wallet_hint: "Баланс Lumi",
     },
     chart: {
@@ -626,6 +631,11 @@ export const TRANSLATIONS = {
       studio_tab_natal: "Natal chart",
       studio_tab_union: "Union",
       studio_tab_horoscope: "Horoscope",
+      chart_load_failed_title: "Chart didn’t load",
+      chart_load_failed_body:
+        "The network or server is taking too long. Refresh or open your natal chart to try again.",
+      chart_load_retry: "Refresh page",
+      chart_load_open_chart: "Open chart",
       studio_wallet_hint: "Lumi balance",
     },
     chart: {

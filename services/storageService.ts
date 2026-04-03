@@ -1,5 +1,12 @@
 import { UserProfile, NatalChartData, LumiWalletData } from "../types";
 import { toDateInputValue } from "../lib/date-utils";
+import { fetchWithTimeout } from "../lib/fetchWithTimeout";
+
+const PROFILE_FETCH_TIMEOUT_MS = 20_000;
+const PROFILE_SAVE_TIMEOUT_MS = 45_000;
+const CHART_GET_TIMEOUT_MS = 25_000;
+const PROFILE_FETCH_ATTEMPTS = 3;
+const PROFILE_FETCH_RETRY_DELAYS_MS = [0, 700, 1600];
 
 // Next.js API base URL - используем локальные API routes
 const API_BASE_URL = typeof window !== 'undefined' ? '' : process.env.NEXT_PUBLIC_API_URL || '';
@@ -63,11 +70,15 @@ export const saveProfile = async (profile: UserProfile): Promise<void> => {
     }
 
     const startTime = Date.now();
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: requestBody
-    });
+    const response = await fetchWithTimeout(
+      url,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: requestBody,
+      },
+      PROFILE_SAVE_TIMEOUT_MS
+    );
 
     const duration = Date.now() - startTime;
     log.info(`[saveProfile] Response received in ${duration}ms`, {
@@ -125,45 +136,54 @@ export const getProfile = async (): Promise<UserProfile | null> => {
   
   log.info(`[getProfile] Starting fetch for user: ${userId}`, { userId, tgId });
 
-  try {
-    // Always try to get from database via Next.js API
-    const url = `${API_BASE_URL}/api/users/${userId}`;
-    log.info(`[getProfile] Sending GET request to: ${url}`);
+  const url = `${API_BASE_URL}/api/users/${userId}`;
 
-    const startTime = Date.now();
-    const response = await fetch(url);
-    const duration = Date.now() - startTime;
-
-    log.info(`[getProfile] Response received in ${duration}ms`, {
-      status: response.status,
-      statusText: response.statusText,
-      ok: response.ok
-    });
-    
-    if (response.ok) {
-      const profile = await response.json() as UserProfile;
-      log.info(`[getProfile] Successfully loaded profile from database`, {
-        userId,
-        hasName: !!profile.name,
-        isSetup: profile.isSetup,
-        profileData: JSON.stringify(profile)
-      });
-      return profile;
-    } else if (response.status === 404) {
-      // Если данных нет в БД - возвращаем null (не используем localStorage)
-      log.info(`[getProfile] Profile not found in database (404), returning null`);
-      return null;
-    } else {
-      log.warn(`[getProfile] Unexpected status ${response.status}, returning null`);
+  for (let attempt = 0; attempt < PROFILE_FETCH_ATTEMPTS; attempt++) {
+    const delay = PROFILE_FETCH_RETRY_DELAYS_MS[attempt] ?? 0;
+    if (delay > 0) {
+      await new Promise((r) => setTimeout(r, delay));
     }
-  } catch (error: any) {
-    log.error('[getProfile] Error occurred during fetch', {
-      error: error.message,
-      stack: error.stack,
-      userId
-    });
+
+    try {
+      log.info(`[getProfile] GET attempt ${attempt + 1}/${PROFILE_FETCH_ATTEMPTS}: ${url}`);
+
+      const startTime = Date.now();
+      const response = await fetchWithTimeout(url, { method: 'GET' }, PROFILE_FETCH_TIMEOUT_MS);
+      const duration = Date.now() - startTime;
+
+      log.info(`[getProfile] Response received in ${duration}ms`, {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+        attempt: attempt + 1,
+      });
+
+      if (response.ok) {
+        const profile = await response.json() as UserProfile;
+        log.info(`[getProfile] Successfully loaded profile from database`, {
+          userId,
+          hasName: !!profile.name,
+          isSetup: profile.isSetup,
+        });
+        return profile;
+      }
+
+      if (response.status === 404) {
+        log.info(`[getProfile] Profile not found in database (404), returning null`);
+        return null;
+      }
+
+      log.warn(`[getProfile] HTTP ${response.status}, will retry if attempts left`);
+    } catch (error: any) {
+      log.warn('[getProfile] Request failed, will retry if attempts left', {
+        error: error?.message || error,
+        attempt: attempt + 1,
+        userId,
+      });
+    }
   }
 
+  log.error('[getProfile] All fetch attempts failed', { userId });
   return null;
 };
 
@@ -422,7 +442,7 @@ export const getChartData = async (): Promise<NatalChartData | null> => {
     log.info(`[getChartData] Sending GET request to: ${url}`);
 
     const startTime = Date.now();
-    const response = await fetch(url);
+    const response = await fetchWithTimeout(url, { method: 'GET' }, CHART_GET_TIMEOUT_MS);
     const duration = Date.now() - startTime;
 
     log.info(`[getChartData] Response received in ${duration}ms`, {
