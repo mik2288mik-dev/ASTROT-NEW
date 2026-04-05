@@ -176,21 +176,12 @@ html, body {
 
 /* Хаб Dashboard: запас под капсулы «Закрыть» / «⋯», если contentSafeArea мало */
 .lumia-tg-hub-pad {
-  padding-top: calc(
-    max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px)) + clamp(2.5rem, 11vw, 3.5rem)
-  );
-  padding-left: max(
-    1.125rem,
-    env(safe-area-inset-left, 0px),
-    var(--tg-content-safe-area-inset-left, 0px),
-    2.75rem
-  );
-  padding-right: max(
-    1.125rem,
-    env(safe-area-inset-right, 0px),
-    var(--tg-content-safe-area-inset-right, 0px),
-    2.75rem
-  );
+  --lumia-hub-safe-top: max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px));
+  --lumia-hub-safe-left: max(env(safe-area-inset-left, 0px), var(--tg-content-safe-area-inset-left, 0px));
+  --lumia-hub-safe-right: max(env(safe-area-inset-right, 0px), var(--tg-content-safe-area-inset-right, 0px));
+  padding-top: calc(var(--lumia-hub-safe-top) + clamp(1.125rem, 5.8vw, 1.95rem));
+  padding-left: max(0.9rem, var(--lumia-hub-safe-left));
+  padding-right: max(0.9rem, var(--lumia-hub-safe-right));
 }
 
 .lumia-tg-main-gutter {
@@ -211,12 +202,31 @@ html, body {
 
 /* Screen content bottom padding: base + safe-area for scroll clearance on iPhone */
 .screen-pb {
-  padding-bottom: calc(8rem + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(8rem + max(env(safe-area-inset-bottom, 0px), var(--tg-content-safe-area-inset-bottom, 0px)));
 }
 
 /* Screen content top padding for full-screen views without header (paywall, onboarding) */
 .screen-pt-safe {
   padding-top: calc(env(safe-area-inset-top, 0px) + 1rem);
+}
+
+@keyframes lumiaPulseEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.986);
+  }
+  62% {
+    opacity: 1;
+    transform: translateY(0) scale(1.004);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.lumia-pulse-enter {
+  animation: lumiaPulseEnter 520ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 h1, h2, h3, h4, h5, h6, .font-fashion {

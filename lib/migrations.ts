@@ -175,6 +175,7 @@ async function lumia001FullSchema(pool: Pool): Promise<void> {
       theme TEXT DEFAULT 'dark',
       is_admin BOOLEAN DEFAULT FALSE,
       weather_city TEXT,
+      dashboard_air_variant TEXT DEFAULT 'cloud-ribbon',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `);
@@ -876,6 +877,34 @@ async function lumia009ContentArchitecture(pool: Pool): Promise<void> {
   log.info('Migration lumia_009_content_architecture applied');
 }
 
+/**
+ * Dashboard AIR variant per user (lumia_010)
+ */
+async function lumia010DashboardAirVariant(pool: Pool): Promise<void> {
+  const migrationName = 'lumia_010_dashboard_air_variant';
+
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
+  log.info('Applying dashboard AIR variant migration...');
+
+  await pool.query(`
+    ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS dashboard_air_variant TEXT DEFAULT 'cloud-ribbon'
+  `);
+
+  await pool.query(`
+    UPDATE users
+    SET dashboard_air_variant = 'cloud-ribbon'
+    WHERE dashboard_air_variant IS NULL
+  `);
+
+  await markMigrationApplied(pool, migrationName);
+  log.info('Migration lumia_010_dashboard_air_variant applied');
+}
+
 async function verifyTablesExist(pool: Pool): Promise<void> {
   const required = [
     'users', 'natal_charts', 'interpretations', 'lumi_transactions', 'app_settings',
@@ -949,6 +978,7 @@ export async function runMigrations(): Promise<void> {
   await lumia007NotificationVisualHybrid(pool);
   await lumia008AdminNotificationEnhancements(pool);
   await lumia009ContentArchitecture(pool);
+  await lumia010DashboardAirVariant(pool);
   await verifyTablesExist(pool);
 
     log.info('All Lumia migrations completed successfully');

@@ -1,6 +1,12 @@
 
 export type Language = 'ru' | 'en';
 export type Theme = 'dark' | 'light';
+export type DashboardAirVariant =
+  | 'cloud-ribbon'
+  | 'aero-stack'
+  | 'orbit-focus'
+  | 'feather-cards'
+  | 'pulse-air';
 
 export interface UserEvolution {
   level: number;
@@ -54,6 +60,7 @@ export interface UserProfile {
   /** User already linked to an inviter (one-time referral) */
   referralApplied?: boolean;
   weatherCity?: string; // Город для погоды (например, "Moscow" или "Москва")
+  dashboardAirVariant?: DashboardAirVariant;
   
   // Все генерации пользователя (кэшируются)
   generatedContent?: UserGeneratedContent;

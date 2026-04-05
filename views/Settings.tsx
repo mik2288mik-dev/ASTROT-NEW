@@ -1,11 +1,15 @@
 
 import React, { useState, useEffect } from 'react';
-import { UserProfile, Language, Theme } from '../types';
+import { DashboardAirVariant, UserProfile, Language, Theme } from '../types';
 import { getText } from '../constants';
 import { saveProfile } from '../services/storageService';
 import { requestStarsPayment } from '../services/telegramService';
 import { getWeatherSettings, saveWeatherCity } from '../services/weatherService';
 import { ScreenShell } from '../components/layout/ScreenShell';
+import {
+    DASHBOARD_AIR_VARIANTS,
+    resolveDashboardAirVariant,
+} from '../lib/dashboardAirVariant';
 
 interface SettingsProps {
     profile: UserProfile;
@@ -35,6 +39,21 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
     const languageLabel = profile.language === 'ru'
         ? getText(profile.language, 'settings.language_ru')
         : getText(profile.language, 'settings.language_en');
+    const dashboardAirVariant = resolveDashboardAirVariant({
+        profileVariant: profile.dashboardAirVariant,
+        envVariant: process.env.NEXT_PUBLIC_DASHBOARD_AIR_VARIANT,
+    });
+    const dashboardVariantLabelKeyMap: Record<DashboardAirVariant, string> = {
+        'cloud-ribbon': 'settings.dashboard_air_cloud_ribbon',
+        'aero-stack': 'settings.dashboard_air_aero_stack',
+        'orbit-focus': 'settings.dashboard_air_orbit_focus',
+        'feather-cards': 'settings.dashboard_air_feather_cards',
+        'pulse-air': 'settings.dashboard_air_pulse_air',
+    };
+    const dashboardVariantLabel = getText(
+        profile.language,
+        dashboardVariantLabelKeyMap[dashboardAirVariant]
+    );
 
     useEffect(() => {
         const tg = (window as any).Telegram?.WebApp;
@@ -78,6 +97,16 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
         onUpdate(updated);
         saveProfile(updated).catch(error => {
             console.error('[Settings] Failed to save theme:', error);
+        });
+    };
+
+    const handleDashboardAirVariantChange = (variant: DashboardAirVariant) => {
+        if (variant === dashboardAirVariant) return;
+        const updated = { ...profile, dashboardAirVariant: variant };
+        console.log('[Settings] Dashboard AIR variant changed to:', variant);
+        onUpdate(updated);
+        saveProfile(updated).catch(error => {
+            console.error('[Settings] Failed to save dashboard AIR variant:', error);
         });
     };
 
@@ -259,6 +288,37 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M12 6a6 6 0 110 12 6 6 0 010-12z" />
                         </svg>
                     </button>
+                </div>
+            </div>
+
+            <div className={sectionClass}>
+                <div className="min-w-0 pr-2">
+                    <h3 className="font-serif text-lg text-astro-text">
+                        {getText(profile.language, 'settings.dashboard_air_title')}
+                    </h3>
+                    <p className="lumia-muted mt-1 text-sm leading-snug">
+                        {getText(profile.language, 'settings.dashboard_air_body')}
+                    </p>
+                    <p className="lumia-label mt-1.5 tracking-wider">{dashboardVariantLabel}</p>
+                </div>
+                <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    {DASHBOARD_AIR_VARIANTS.map((variant) => {
+                        const selected = variant === dashboardAirVariant;
+                        return (
+                            <button
+                                key={variant}
+                                type="button"
+                                onClick={() => handleDashboardAirVariantChange(variant)}
+                                className={`min-h-[44px] rounded-xl border px-3.5 py-2.5 text-left text-sm font-medium transition-colors ${
+                                    selected
+                                        ? 'border-astro-highlight/45 bg-white text-astro-text shadow-sm ring-1 ring-astro-highlight/25'
+                                        : 'border-astro-border bg-astro-text/[0.04] text-astro-subtext hover:border-astro-highlight/28 hover:text-astro-text'
+                                }`}
+                            >
+                                {getText(profile.language, dashboardVariantLabelKeyMap[variant])}
+                            </button>
+                        );
+                    })}
                 </div>
             </div>
 

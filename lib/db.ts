@@ -596,6 +596,7 @@ export const db = {
           theme: u.theme || 'dark',
           is_admin: u.is_admin ?? false,
           weather_city: u.weather_city,
+          dashboard_air_variant: u.dashboard_air_variant || 'cloud-ribbon',
           created_at: u.created_at,
           is_premium: isPremium,
           is_setup: !!(u.name && u.birth_date && u.birth_place),
@@ -623,6 +624,16 @@ export const db = {
         const finalWeatherCity = weatherCity != null && String(weatherCity).trim()
           ? String(weatherCity).trim()
           : null;
+        const dashboardAirVariant = merge('dashboard_air_variant', 'cloud-ribbon');
+        const finalDashboardAirVariant = [
+          'cloud-ribbon',
+          'aero-stack',
+          'orbit-focus',
+          'feather-cards',
+          'pulse-air',
+        ].includes(String(dashboardAirVariant))
+          ? String(dashboardAirVariant)
+          : 'cloud-ribbon';
         let premiumUntil = data.premium_until;
         if (premiumUntil === undefined && data.is_premium !== undefined) {
           premiumUntil = data.is_premium
@@ -636,8 +647,8 @@ export const db = {
             id, name, birth_date, birth_time, birth_place,
             latitude, longitude, sun_sign, moon_sign, ascendant,
             lumi_balance, premium_until, ref_code, referred_by,
-            login_streak, last_login, language, theme, is_admin, weather_city
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+            login_streak, last_login, language, theme, is_admin, weather_city, dashboard_air_variant
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
           ON CONFLICT (id) DO UPDATE SET
             name = COALESCE(EXCLUDED.name, users.name),
             birth_date = COALESCE(EXCLUDED.birth_date, users.birth_date),
@@ -653,7 +664,8 @@ export const db = {
             language = COALESCE(EXCLUDED.language, users.language),
             theme = COALESCE(EXCLUDED.theme, users.theme),
             is_admin = COALESCE(EXCLUDED.is_admin, users.is_admin),
-            weather_city = COALESCE(EXCLUDED.weather_city, users.weather_city)
+            weather_city = COALESCE(EXCLUDED.weather_city, users.weather_city),
+            dashboard_air_variant = COALESCE(EXCLUDED.dashboard_air_variant, users.dashboard_air_variant)
           RETURNING *`,
           [
             id,
@@ -676,6 +688,7 @@ export const db = {
             merge('theme', 'dark'),
             merge('is_admin', false),
             finalWeatherCity,
+            finalDashboardAirVariant,
           ]
         );
         const u = result.rows[0];
@@ -692,6 +705,7 @@ export const db = {
           is_premium: isPremium,
           is_admin: u.is_admin ?? false,
           weather_city: u.weather_city,
+          dashboard_air_variant: u.dashboard_air_variant || 'cloud-ribbon',
         };
       } catch (error: any) {
         log.error('[DB] Error setting user', { error: error.message, userId });
