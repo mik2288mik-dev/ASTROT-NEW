@@ -7,9 +7,11 @@ import { READING_GLASS_SECTION_CLASS } from '../layout/ReadingLayout';
 interface HoroscopeContentProps {
   reading: ForecastDailyReading;
   language: Language;
+  afterHoroscopeSlot?: React.ReactNode;
+  afterNatalSlot?: React.ReactNode;
 }
 
-export const HoroscopeContent = memo<HoroscopeContentProps>(({ reading, language }) => {
+export const HoroscopeContent = memo<HoroscopeContentProps>(({ reading, language, afterHoroscopeSlot, afterNatalSlot }) => {
   const tips = (reading.advice || []).map((item) => String(item).trim()).filter(Boolean).slice(0, 3);
   const matters = [
     { label: getText(language, 'horoscope.chance_title'), value: reading.chance },
@@ -24,15 +26,9 @@ export const HoroscopeContent = memo<HoroscopeContentProps>(({ reading, language
         <p className="lumia-muted mt-1.5 text-sm leading-relaxed">{getText(language, 'horoscope.reading_body')}</p>
 
         <div className="mt-4 space-y-3.5">
-          <div className="border-b border-astro-border/20 pb-3.5">
-            <h2 className="font-serif text-xl text-astro-text sm:text-2xl">{reading.headline}</h2>
-            <p className="lumia-reading-body lumia-muted mt-2">{reading.summary}</p>
-          </div>
-
-          <div className="mx-auto w-full max-w-reading">
-            <div className="lumia-reading-inner-card">
-              <FormattedAiText text={reading.reading} variant="article" className="lumia-prose" />
-            </div>
+          <div className="border-b border-astro-border/20 pb-4 text-center sm:pb-5">
+            <h2 className="lumia-reading-section-title text-astro-text">{reading.headline}</h2>
+            <p className="lumia-reading-intro lumia-muted mx-auto mt-3 max-w-reading-wide">{reading.summary}</p>
           </div>
         </div>
       </div>
@@ -51,14 +47,21 @@ export const HoroscopeContent = memo<HoroscopeContentProps>(({ reading, language
         </div>
       </div>
 
+      {afterHoroscopeSlot}
+
       <div className={READING_GLASS_SECTION_CLASS}>
         <p className="lumia-label tracking-[0.2em]">{getText(language, 'horoscope.context_title')}</p>
         <p className="lumia-muted mt-1.5 text-sm leading-relaxed">{getText(language, 'horoscope.context_body')}</p>
 
-        <div className="mt-4 mx-auto w-full max-w-reading">
+        <div className="mt-4 mx-auto w-full max-w-reading-wide">
           <div className="lumia-reading-inner-card">
-            <FormattedAiText text={reading.context} variant="article" className="lumia-prose" />
+            <FormattedAiText text={reading.reading} variant="article" className="lumia-prose" />
           </div>
+        </div>
+
+        <div className="mt-4 border-t border-astro-border/15 pt-4">
+          <p className="lumia-label text-[10px] tracking-[0.16em]">{getText(language, 'horoscope.context_note_title')}</p>
+          <p className="lumia-reading-body mt-1.5 text-astro-text">{reading.context}</p>
         </div>
       </div>
 
@@ -80,6 +83,8 @@ export const HoroscopeContent = memo<HoroscopeContentProps>(({ reading, language
           </ul>
         </div>
       )}
+
+      {afterNatalSlot}
     </div>
   );
 });

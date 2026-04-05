@@ -391,6 +391,7 @@ body.theme-light .shadow-glow {
 .lumia-prose {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-feature-settings: 'kern' 1, 'liga' 1;
+  text-rendering: optimizeLegibility;
 }
 
 /* Short preview copy: sans, left-aligned (dashboard / horoscope / anchor summaries) */
@@ -410,19 +411,53 @@ body.theme-light .shadow-glow {
   }
 }
 
+.lumia-reading-display {
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: clamp(2.15rem, 7vw, 3.1rem);
+  line-height: 1.03;
+  letter-spacing: -0.045em;
+  text-align: center;
+  text-wrap: balance;
+}
+
+.lumia-reading-section-title {
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: clamp(1.85rem, 5.8vw, 2.45rem);
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+  text-align: center;
+  text-wrap: balance;
+}
+
+.lumia-reading-intro {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-feature-settings: 'kern' 1, 'liga' 1;
+  font-size: 1rem;
+  line-height: 1.82;
+  text-align: center;
+  text-wrap: pretty;
+}
+
+@media (min-width: 640px) {
+  .lumia-reading-intro {
+    font-size: 1.05rem;
+    line-height: 1.9;
+  }
+}
+
 /* Inner sheet for long-form reading (second layer) */
 .lumia-reading-inner-card {
-  border-radius: 26px;
-  background-color: #f9f9f9;
-  padding: 1.5rem 1.25rem;
+  border-radius: 30px;
+  background-color: #faf9f6;
+  padding: 1.95rem 1.15rem;
   box-shadow:
-    0 16px 48px -28px rgba(0, 0, 0, 0.12),
-    0 0 0 1px rgba(0, 0, 0, 0.05);
+    0 18px 54px -32px rgba(0, 0, 0, 0.14),
+    0 0 0 1px rgba(0, 0, 0, 0.045);
 }
 
 @media (min-width: 640px) {
   .lumia-reading-inner-card {
-    padding: 1.75rem 1.5rem;
+    padding: 2.3rem 1.4rem;
   }
 }
 
@@ -738,6 +773,255 @@ a,
     border-color: rgba(34, 211, 238, 0.35);
     background: rgba(34, 211, 238, 0.08);
     box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.12);
+  }
+
+  .admin-dash-sidebar-card {
+    border-radius: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    background:
+      linear-gradient(180deg, rgba(34, 211, 238, 0.08), rgba(255, 255, 255, 0.02)),
+      rgba(9, 16, 28, 0.9);
+    padding: 0.95rem;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.04),
+      0 12px 30px rgba(0, 0, 0, 0.16);
+  }
+
+  .admin-dash-sidebar-stats {
+    display: grid;
+    gap: 0.6rem;
+    margin-top: 0.85rem;
+  }
+
+  .admin-dash-sidebar-stats > div {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    color: #cbd5e1;
+    font-size: 0.75rem;
+  }
+
+  .admin-dash-sidebar-stats > div span {
+    color: rgba(148, 163, 184, 0.84);
+  }
+
+  .admin-dash-sidebar-stats > div strong {
+    color: #f8fafc;
+    font-size: 0.95rem;
+    font-weight: 700;
+  }
+
+  .admin-mission-hero-grid {
+    display: grid;
+    gap: 1rem;
+  }
+
+  @media (min-width: 1180px) {
+    .admin-mission-hero-grid {
+      grid-template-columns: minmax(0, 1.35fr) minmax(18rem, 0.7fr);
+      align-items: stretch;
+    }
+  }
+
+  .admin-mission-summary-grid {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .admin-mission-summary-card {
+    border-radius: 1.1rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.04);
+    padding: 0.95rem 1rem;
+  }
+
+  .admin-mission-summary-card span {
+    display: block;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(148, 163, 184, 0.76);
+  }
+
+  .admin-mission-summary-card strong {
+    display: block;
+    margin-top: 0.45rem;
+    color: #f8fafc;
+    font-size: 1.8rem;
+    line-height: 1;
+    font-weight: 700;
+  }
+
+  .admin-mission-summary-card small {
+    display: block;
+    margin-top: 0.4rem;
+    color: rgba(203, 213, 225, 0.78);
+    font-size: 0.82rem;
+    line-height: 1.45;
+  }
+
+  .admin-mission-actions {
+    display: grid;
+    gap: 0.85rem;
+    margin-top: 1.2rem;
+  }
+
+  @media (min-width: 768px) {
+    .admin-mission-actions {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  .admin-mission-action-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 9.5rem;
+    border-radius: 1.15rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.025)),
+      rgba(7, 14, 26, 0.82);
+    padding: 1rem;
+    text-align: left;
+    transition:
+      transform 160ms ease,
+      border-color 160ms ease,
+      background-color 160ms ease,
+      box-shadow 160ms ease;
+  }
+
+  .admin-mission-action-card:hover {
+    transform: translateY(-1px);
+    border-color: rgba(34, 211, 238, 0.28);
+    background:
+      linear-gradient(180deg, rgba(34, 211, 238, 0.08), rgba(255, 255, 255, 0.03)),
+      rgba(7, 14, 26, 0.88);
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.18);
+  }
+
+  .admin-mission-action-title {
+    color: #f8fafc;
+    font-size: 1rem;
+    font-weight: 650;
+    line-height: 1.35;
+  }
+
+  .admin-mission-action-body {
+    margin-top: 0.55rem;
+    color: rgba(203, 213, 225, 0.82);
+    font-size: 0.88rem;
+    line-height: 1.55;
+  }
+
+  .admin-mission-action-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    color: #67e8f9;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+
+  .admin-mission-layout {
+    display: grid;
+    gap: 1.25rem;
+    align-items: start;
+  }
+
+  @media (min-width: 1280px) {
+    .admin-mission-layout {
+      grid-template-columns: minmax(0, 1fr) 20rem;
+    }
+  }
+
+  .admin-mission-rail {
+    min-width: 0;
+  }
+
+  .admin-mission-rail-sticky {
+    display: block;
+  }
+
+  @media (min-width: 1280px) {
+    .admin-mission-rail-sticky {
+      position: sticky;
+      top: 1.1rem;
+    }
+  }
+
+  .admin-mission-link-list {
+    display: grid;
+    gap: 0.65rem;
+  }
+
+  .admin-mission-link-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    width: 100%;
+    border-radius: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.03);
+    padding: 0.85rem 0.9rem;
+    text-align: left;
+    transition:
+      transform 160ms ease,
+      border-color 160ms ease,
+      background-color 160ms ease;
+  }
+
+  .admin-mission-link-item:hover {
+    transform: translateY(-1px);
+    border-color: rgba(125, 211, 252, 0.22);
+    background: rgba(255, 255, 255, 0.045);
+  }
+
+  .admin-mission-link-title {
+    color: #f8fafc;
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+
+  .admin-mission-link-hint {
+    color: rgba(148, 163, 184, 0.88);
+    font-size: 0.75rem;
+    line-height: 1.45;
+  }
+
+  .admin-mission-mini-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.7rem;
+  }
+
+  .admin-mission-mini-card {
+    border-radius: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.03);
+    padding: 0.85rem 0.9rem;
+  }
+
+  .admin-mission-mini-card span {
+    display: block;
+    color: rgba(148, 163, 184, 0.8);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .admin-mission-mini-card strong {
+    display: block;
+    margin-top: 0.45rem;
+    color: #f8fafc;
+    font-size: 1.05rem;
+    font-weight: 700;
   }
 
 

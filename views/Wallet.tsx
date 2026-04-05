@@ -2,8 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { UserProfile, LumiTransaction } from '../types';
 import {
   getLumiWallet,
-  getDailyRouletteStatus,
-  postDailyRouletteSpin,
   getProfile,
 } from '../services/storageService';
 import { getAllLumiPacks, type LumiPack } from '../services/lumiPacks';
@@ -13,6 +11,8 @@ import { formatLumiReasonLabel, listLumiReasonKeysByFlow } from '../lib/lumiReas
 import { getText } from '../constants';
 import { REFERRAL_INVITEE_LUMI, REFERRAL_INVITER_LUMI } from '../lib/referralEconomy';
 import { ScreenShell, AIR_GLASS_PANEL_CLASS } from '../components/layout/ScreenShell';
+import { DailyLumiWheelCard } from '../components/lumi/DailyLumiWheelCard';
+import { DailyLumiTasksCard } from '../components/lumi/DailyLumiTasksCard';
 
 interface WalletProps {
   profile: UserProfile;
@@ -47,9 +47,6 @@ export const Wallet: React.FC<WalletProps> = ({ profile, onUpdateProfile }) => {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [rouletteClaimed, setRouletteClaimed] = useState(false);
-  const [rouletteBusy, setRouletteBusy] = useState(false);
-  const [lastRouletteWin, setLastRouletteWin] = useState<{ amount: number; tier: string } | null>(null);
   const [copyHint, setCopyHint] = useState<'link' | 'code' | null>(null);
 
   const packs = useMemo(() => getAllLumiPacks(), []);
@@ -73,12 +70,6 @@ export const Wallet: React.FC<WalletProps> = ({ profile, onUpdateProfile }) => {
       const data = await getLumiWallet(profile.id, 40);
       setWallet(data);
       onUpdateProfile({ ...profile, lumiBalance: data.lumi_balance });
-      try {
-        const rs = await getDailyRouletteStatus(profile.id);
-        setRouletteClaimed(rs.claimedToday);
-      } catch {
-        setRouletteClaimed(false);
-      }
     } catch (walletError: any) {
       setError(walletError?.message || T(lang, 'Не удалось загрузить кошелёк', 'Failed to load wallet'));
     } finally {
@@ -94,28 +85,6 @@ export const Wallet: React.FC<WalletProps> = ({ profile, onUpdateProfile }) => {
       }
     }
     return s;
-  };
-
-  const handleRoulette = async () => {
-    if (!profile.id || rouletteBusy || rouletteClaimed) return;
-    setRouletteBusy(true);
-    setError(null);
-    try {
-      const r = await postDailyRouletteSpin(profile.id);
-      if (r.ok) {
-        setLastRouletteWin({ amount: r.amount, tier: r.tier });
-        setRouletteClaimed(true);
-        onUpdateProfile({ ...profile, lumiBalance: r.lumiBalance });
-        await loadWallet(false);
-      } else {
-        setRouletteClaimed(true);
-        onUpdateProfile({ ...profile, lumiBalance: r.lumiBalance });
-      }
-    } catch (e: any) {
-      setError(e?.message || wt('roulette_error'));
-    } finally {
-      setRouletteBusy(false);
-    }
   };
 
   const copyToClipboard = async (text: string, kind: 'link' | 'code') => {
@@ -140,8 +109,6 @@ export const Wallet: React.FC<WalletProps> = ({ profile, onUpdateProfile }) => {
       window.open(tgUrl, '_blank', 'noopener,noreferrer');
     }
   };
-
-  const tierLabel = (tier: string) => getText(profile.language, `lumi_wallet.roulette_tier_${tier}`);
 
   useEffect(() => {
     void loadWallet();
@@ -210,43 +177,24 @@ export const Wallet: React.FC<WalletProps> = ({ profile, onUpdateProfile }) => {
         </p>
       </div>
 
-      <div className={`${AIR_GLASS_PANEL_CLASS} space-y-4 border border-astro-highlight/28 bg-gradient-to-b from-astro-highlight/12 to-astro-card/90`}>
-        <div>
-          <h2 className="font-serif text-lg text-astro-text">{wt('roulette_title')}</h2>
-          <p className="mt-2 text-sm text-astro-subtext leading-relaxed">{wt('roulette_subtitle')}</p>
-        </div>
-        {lastRouletteWin && (
-          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
-            <p className="font-semibold text-astro-text">
-              {wt('roulette_won', { amount: String(lastRouletteWin.amount) })}
-            </p>
-            <p className="text-xs text-astro-subtext mt-1">
-              {tierLabel(lastRouletteWin.tier)}
-            </p>
-          </div>
-        )}
-        {rouletteClaimed && !lastRouletteWin && (
-          <p className="text-xs text-astro-subtext">{wt('roulette_next_utc')}</p>
-        )}
-        <button
-          type="button"
-          disabled={rouletteClaimed || rouletteBusy}
-          onClick={() => void handleRoulette()}
-          className={`flex min-h-[44px] w-full items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold transition-transform ${
-            rouletteBusy ? 'animate-pulse bg-astro-highlight/40 text-white' : ''
-          } ${
-            rouletteClaimed
-              ? 'border border-astro-border text-astro-subtext cursor-not-allowed opacity-60'
-              : 'bg-astro-highlight text-white hover:opacity-95 active:scale-[0.99]'
-          }`}
-        >
-          {rouletteBusy
-            ? wt('roulette_spinning')
-            : rouletteClaimed
-              ? wt('roulette_cta_done')
-              : wt('roulette_cta')}
-        </button>
-      </div>
+      <DailyLumiWheelCard
+        userId={profile.id}
+        language={profile.language}
+        onBalanceUpdate={(balance) => {
+          setWallet((current) => ({ ...current, lumi_balance: balance }));
+          onUpdateProfile({ ...profile, lumiBalance: balance });
+        }}
+        onSpinComplete={() => loadWallet(false)}
+      />
+
+      <DailyLumiTasksCard
+        userId={profile.id}
+        language={profile.language}
+        onBalanceUpdate={(balance) => {
+          setWallet((current) => ({ ...current, lumi_balance: balance }));
+          onUpdateProfile({ ...profile, lumiBalance: balance });
+        }}
+      />
 
       <div className={`${AIR_GLASS_PANEL_CLASS} space-y-4`}>
         <div>
@@ -331,8 +279,8 @@ export const Wallet: React.FC<WalletProps> = ({ profile, onUpdateProfile }) => {
           <li>
             {T(
               lang,
-              'Первый заход на главный экран в новый календарный день — ежедневное начисление (уже работает в фоне).',
-              'Your first visit to the home screen on a new calendar day earns a daily reward (handled automatically).'
+              'Ежедневное колесо Lumi можно крутить раз в 24 часа после спина. Чаще выпадет небольшой выигрыш, но иногда приходит крупный бонус.',
+              'The daily Lumi wheel can be spun once every 24 hours after your last spin. Most wins stay small, but sometimes you can hit a much bigger bonus.'
             )}
           </li>
           <li>
@@ -420,8 +368,8 @@ export const Wallet: React.FC<WalletProps> = ({ profile, onUpdateProfile }) => {
           <li>
             {T(
               lang,
-              'Разовый личный вопрос и средний слой синастрии (когда открыт за Lumi).',
-              'One-off personal questions and the mid synastry layer (when unlocked with Lumi).'
+              'Разовый полный ответ на вопрос и полный разбор синастрии (когда открыт за Lumi).',
+              'One-off full question answers and full synastry readings (when unlocked with Lumi).'
             )}
           </li>
           <li>

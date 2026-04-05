@@ -1,5 +1,6 @@
 import React, { memo, useMemo } from 'react';
 import type { AdminScheduledNotificationTemplate, NotificationSlot } from '../../../types';
+import { NOTIFICATION_SLOTS } from '../../../lib/notificationSlotCatalog';
 
 interface NotificationTemplateListProps {
   templates: AdminScheduledNotificationTemplate[];
@@ -15,12 +16,17 @@ interface NotificationTemplateListProps {
   visualLabelRu: Record<'none' | 'uploaded' | 'generated', string>;
 }
 
-const SLOT_LABEL: Record<string, string> = {
+const SLOT_LABEL: Record<NotificationSlot, string> = {
   morning: 'Утро',
   day: 'День',
   evening: 'Вечер',
+  daily_lumi: 'Ежедневные Lumi',
+  upsell: 'Без Premium',
+  promo: 'Промо',
   custom: 'Свой слот',
 };
+
+const QUICK_RUN_SLOTS: NotificationSlot[] = ['morning', 'day', 'evening', 'daily_lumi', 'upsell', 'promo'];
 
 export const NotificationTemplateList = memo<NotificationTemplateListProps>(
   ({
@@ -37,18 +43,15 @@ export const NotificationTemplateList = memo<NotificationTemplateListProps>(
     visualLabelRu,
   }) => {
     const bySlot = useMemo(() => {
-      const m: Record<string, AdminScheduledNotificationTemplate[]> = {
-        morning: [],
-        day: [],
-        evening: [],
-        custom: [],
-      };
+      const m = Object.fromEntries(
+        NOTIFICATION_SLOTS.map((slot) => [slot, [] as AdminScheduledNotificationTemplate[]])
+      ) as Record<NotificationSlot, AdminScheduledNotificationTemplate[]>;
       for (const t of templates) {
         const k = m[t.slot] ? t.slot : 'custom';
         m[k].push(t);
       }
-      for (const k of Object.keys(m)) {
-        m[k].sort((a, b) => (a.sortOrder !== b.sortOrder ? a.sortOrder - b.sortOrder : a.id - b.id));
+      for (const slot of NOTIFICATION_SLOTS) {
+        m[slot].sort((a, b) => (a.sortOrder !== b.sortOrder ? a.sortOrder - b.sortOrder : a.id - b.id));
       }
       return m;
     }, [templates]);
@@ -67,7 +70,7 @@ export const NotificationTemplateList = memo<NotificationTemplateListProps>(
         </div>
 
         <div className="flex flex-wrap gap-2 rounded-xl bg-astro-bg/30 p-2">
-          {(['morning', 'day', 'evening'] as const).map((s) => (
+          {QUICK_RUN_SLOTS.map((s) => (
             <button
               key={s}
               type="button"
@@ -85,7 +88,7 @@ export const NotificationTemplateList = memo<NotificationTemplateListProps>(
           <p className="text-sm text-astro-subtext">Пока нет шаблонов</p>
         ) : (
           <div className="space-y-4">
-            {(['morning', 'day', 'evening', 'custom'] as const).map((slotKey) => {
+            {NOTIFICATION_SLOTS.map((slotKey) => {
               const list = bySlot[slotKey] || [];
               if (!list.length) return null;
               return (

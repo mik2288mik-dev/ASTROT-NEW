@@ -4,7 +4,7 @@ import { createHash } from 'crypto';
 import { calculateNatalChart } from '../../../lib/swisseph-calculator';
 import { db } from '../../../lib/db';
 import { SYSTEM_PROMPT_ASTRA, createBriefSynastryPrompt, addLanguageInstruction, BriefSynastryAIResponse } from '../../../lib/prompts';
-import { getOpenAIInterpretationModel } from '../../../lib/appSettings';
+import { getOpenAIModelForContent } from '../../../lib/appSettings';
 import { validateSynastryInput, formatValidationErrors } from '../../../lib/validation';
 
 const log = {
@@ -115,21 +115,31 @@ export default async function handler(
       const fallbackResult = {
         briefOverview: {
           introduction: lang
-            ? `${profile?.name} и ${partnerName} создают интересную динамику. Каждый приносит свои уникальные качества.`
-            : `${profile?.name} and ${partnerName} create interesting dynamics. Each brings unique qualities.`,
+            ? `${profile?.name} и ${partnerName} быстро считывают друг друга, но эта связь особенно чувствительна к тону общения и темпу сближения.`
+            : `${profile?.name} and ${partnerName} tend to read each other quickly, but this bond is especially sensitive to tone and pace.`,
           harmony: lang
-            ? 'В этой связи есть естественное понимание друг друга. Вы оба цените искренность и открытость.'
-            : 'There is natural understanding in this connection. You both value honesty and openness.',
+            ? 'Здесь есть потенциал к живому обмену и ощущению, что рядом можно быть чуть честнее, чем обычно. Эта связь может давать чувство включённости и взаимного интереса.'
+            : 'There is potential here for lively exchange and the feeling that both people can be more honest than usual. This connection can create real engagement and curiosity.',
           challenges: lang
-            ? 'Иногда может возникать недопонимание из-за разных темпераментов. Важно давать друг другу пространство.'
-            : 'Sometimes misunderstandings may arise due to different temperaments. It is important to give each other space.',
+            ? 'Трение чаще появляется не из-за отсутствия симпатии, а из-за разных ожиданий и скорости реакции. Если главное не проговаривать сразу, оба могут додумывать лишнее.'
+            : 'Friction here is more likely to come from different expectations and response speeds than from lack of care. If the important part is not said clearly, both people may start filling in the blanks.',
           tips: lang
-            ? ['Слушайте друг друга внимательно', 'Цените различия как возможность для роста', 'Находите компромиссы', 'Поддерживайте открытую коммуникацию']
-            : ['Listen to each other attentively', 'Value differences as opportunities for growth', 'Find compromises', 'Keep communication open']
+            ? [
+                'Сразу проговаривать, что для тебя действительно важно',
+                'Не требовать одинаковой скорости реакции',
+                'Оставлять место и для близости, и для личного пространства',
+                'Возвращаться к разговору до того, как накопится напряжение'
+              ]
+            : [
+                'Say clearly what actually matters to you',
+                'Do not expect the same reaction speed from each other',
+                'Make room for both closeness and personal space',
+                'Return to the conversation before tension piles up'
+              ]
         },
         summary: lang
-          ? `Краткий обзор совместимости между ${profile?.name} и ${partnerName}.`
-          : `Brief compatibility overview between ${profile?.name} and ${partnerName}.`
+          ? `Краткий, но уже полезный взгляд на динамику между ${profile?.name} и ${partnerName}.`
+          : `A brief but already useful look at the dynamic between ${profile?.name} and ${partnerName}.`
       };
       return res.status(200).json(fallbackResult);
     }
@@ -143,7 +153,11 @@ export default async function handler(
     );
     const promptWithLang = addLanguageInstruction(userPrompt, currentLanguage);
 
-    const modelId = await getOpenAIInterpretationModel();
+    const { model: modelId } = await getOpenAIModelForContent({
+      accessTier: 'free',
+      contentSurface: 'synastry',
+      contentVariant: 'brief',
+    });
     const completion = await openai.chat.completions.create({
       model: modelId,
       messages: [

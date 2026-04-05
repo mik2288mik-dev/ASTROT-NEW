@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import type { ContentInterpretation, NatalChartData, NatalLivingReading, UserProfile } from '../../../../types';
+import { getOpenAIModelForContent } from '../../../../lib/appSettings';
 import { db } from '../../../../lib/db';
 import { getContentLayer, getPremiumEntitlementState } from '../../../../lib/contentArchitecture';
 import { generateNatalLivingReading } from '../../../../lib/natalContent';
@@ -178,6 +179,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const reading = await generateNatalLivingReading(context.profile, context.chartData, periodKey);
+  const { modelTier } = await getOpenAIModelForContent({
+    accessTier: 'premium',
+    contentSurface: 'natal',
+    contentVariant: 'living',
+  });
   const periodWindow = getPeriodWindow(periodKey);
   const interpretation = context.chartId != null
     ? await db.content_interpretations.upsertByChart(context.chartId, {
@@ -187,7 +193,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         cacheKey: periodKey,
         inputHash: periodKey,
         content: reading,
-        modelTier: 'premium',
+        modelTier,
         validFrom: periodWindow.validFrom,
         validTo: periodWindow.validTo,
         isPersistent: false,
@@ -201,7 +207,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         cacheKey: periodKey,
         inputHash: periodKey,
         content: reading,
-        modelTier: 'premium',
+        modelTier,
         validFrom: periodWindow.validFrom,
         validTo: periodWindow.validTo,
         isPersistent: false,

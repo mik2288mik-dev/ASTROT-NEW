@@ -12,7 +12,7 @@ import {
   addLanguageInstruction 
 } from '../../../lib/prompts';
 import { withRateLimit, RATE_LIMIT_CONFIGS } from '../../../lib/rateLimit';
-import { getOpenAIInterpretationModel } from '../../../lib/appSettings';
+import { getOpenAIModelForContent } from '../../../lib/appSettings';
 
 // Logging utility
 const log = {
@@ -98,7 +98,11 @@ async function regenerateNatalIntro(profile: any, chartData: any): Promise<strin
   const userPrompt = createFullNatalChartIntroPrompt(chartData, profile);
   const promptWithLang = addLanguageInstruction(userPrompt, lang ? 'ru' : 'en');
 
-  const modelId = await getOpenAIInterpretationModel();
+  const { model: modelId } = await getOpenAIModelForContent({
+    accessTier: 'free',
+    contentSurface: 'natal',
+    contentVariant: 'anchor',
+  });
   const completion = await openai.chat.completions.create({
     model: modelId,
     messages: [
@@ -146,7 +150,11 @@ async function regenerateDeepDive(profile: any, chartData: any, topic: string): 
 
   const promptWithLang = addLanguageInstruction(userPrompt, lang ? 'ru' : 'en');
 
-  const modelId = await getOpenAIInterpretationModel();
+  const { model: modelId } = await getOpenAIModelForContent({
+    accessTier: 'premium',
+    contentSurface: 'natal',
+    contentVariant: 'living',
+  });
   const completion = await openai.chat.completions.create({
     model: modelId,
     messages: [

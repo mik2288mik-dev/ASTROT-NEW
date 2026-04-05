@@ -12,9 +12,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
   try {
     if (req.method === 'GET') {
-      const claimed = await db.roulette_spins.hasClaimedUtcToday(userId.trim());
-      const balance = await db.lumi_transactions.getBalance(userId.trim());
-      return res.status(200).json({ claimedToday: claimed, lumiBalance: balance });
+      const status = await db.roulette_spins.getCooldownStatus(userId.trim());
+      return res.status(200).json(status);
     }
 
     if (req.method === 'POST') {
@@ -24,6 +23,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
           ok: false,
           code: result.code,
           lumiBalance: result.newBalance,
+          nextAvailableAt: result.nextAvailableAt,
         });
       }
       return res.status(200).json({
@@ -31,6 +31,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         amount: result.amount,
         tier: result.tier,
         lumiBalance: result.newBalance,
+        nextAvailableAt: result.nextAvailableAt,
       });
     }
 

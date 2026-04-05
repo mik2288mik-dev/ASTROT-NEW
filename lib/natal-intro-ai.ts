@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
 import { SYSTEM_PROMPT_ASTRA, createFullNatalChartIntroPrompt, addLanguageInstruction } from './prompts';
-import { getOpenAIInterpretationModel } from './appSettings';
+import { getOpenAIModelForContent } from './appSettings';
 
 const log = {
   warn: (m: string, d?: any) => console.warn(`[natal-intro-ai] ${m}`, d || ''),
@@ -17,27 +17,27 @@ export function generateFallbackNatalIntro(profile: any, chartData: any): string
   if (lang) {
     return `**Привет, ${name}!**
 
-Я изучила твою карту, и вот что вижу: у тебя сильная, узнаваемая энергия. Ты чувствуешь людей и ситуации глубже, чем кажется со стороны.
+Я уже вижу в твоей карте важную вещь: ты редко живёшь на поверхности. Даже если внешне ты держишься спокойно, внутри ты быстро считываешь людей, атмосферу и скрытые сигналы ситуации.
 
 **Твои сильные стороны:**
-• Твоя стихия ${element} даёт тебе особый подход к жизни
-• Ты легко находишь баланс между разными сторонами себя
-• У тебя есть природная способность понимать людей
+• Ты замечаешь нюансы там, где другие проходят мимо
+• Твоя стихия ${element} даёт тебе свой способ принимать решения и держать внутренний ритм
+• Когда ты доверяешь своему ощущению, ты довольно точно видишь главное
 
-**Что делает тебя особенным:**
-Ты можешь быть разным в зависимости от ситуации — и это твоя сила. Хочешь узнать больше о личности, любви, карьере и предназначении? Активируй Premium!`;
+**Что важно в тебе:**
+Ты не из тех, кто по-настоящему включается в жизнь формально. Тебе важно чувствовать смысл, контакт и внутреннюю честность. Это уже твоя основа. Дальше можно глубже раскрыть повторяющиеся сценарии, отношения и решения.`;
   }
   return `**Hi, ${name}!**
 
-I've studied your chart, and here's what I see: you have a strong, recognizable energy. You feel people and situations more deeply than it might seem from the outside.
+I can already see one important thing in your chart: you rarely live on the surface. Even if you seem calm from the outside, you pick up people, atmosphere, and hidden signals very quickly.
 
 **Your strengths:**
-• Your ${element} element gives you a special approach to life
-• You easily find balance between different sides of yourself
-• You have a natural ability to understand people
+• You notice nuance where others move too fast
+• Your ${element} element shapes the way you decide and hold your inner rhythm
+• When you trust your own sense, you usually see the core of things very clearly
 
-**What makes you special:**
-You can be different depending on the situation — and that's your strength. Want to learn more about your personality, love, career and life purpose? Activate Premium!`;
+**What matters about you:**
+You are not built for formal, disconnected living. Meaning, contact, and inner honesty matter to you. That is already your foundation. From here, the deeper layers can open patterns, relationships, and decisions in more detail.`;
 }
 
 export async function generateNatalIntroWithOpenAI(profile: any, chartData: any): Promise<string> {
@@ -55,7 +55,11 @@ export async function generateNatalIntroWithOpenAI(profile: any, chartData: any)
       { role: 'user', content: userPrompt },
     ];
 
-    const modelId = await getOpenAIInterpretationModel();
+    const { model: modelId } = await getOpenAIModelForContent({
+      accessTier: 'free',
+      contentSurface: 'natal',
+      contentVariant: 'anchor',
+    });
     const completion = await openai.chat.completions.create({
       model: modelId,
       messages,

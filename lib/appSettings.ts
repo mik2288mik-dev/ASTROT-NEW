@@ -1,3 +1,9 @@
+import type {
+  ContentAccessTier,
+  ContentModelTier,
+  ContentSurface,
+  ContentVariant,
+} from '../types';
 import { db } from './db';
 import {
   getInterpretationModelFromEnv,
@@ -34,4 +40,52 @@ export async function getOpenAIInterpretationModel(): Promise<string> {
 export function invalidateInterpretationModelCache(): void {
   cachedInterpretationModel = null;
   cacheLoaded = false;
+}
+
+type OpenAIContentModelOptions = {
+  accessTier: ContentAccessTier;
+  contentSurface?: ContentSurface;
+  contentVariant?: ContentVariant;
+};
+
+export type OpenAIContentModelAssignment = {
+  model: string;
+  modelTier: ContentModelTier;
+};
+
+function getConfiguredEnvModel(
+  key: 'OPENAI_BASE_MODEL' | 'OPENAI_FREE_MODEL' | 'OPENAI_PREMIUM_MODEL'
+): string | null {
+  return normalizeInterpretationModelId(process.env[key]);
+}
+
+export async function getOpenAIModelForContent(
+  options: OpenAIContentModelOptions
+): Promise<OpenAIContentModelAssignment> {
+  const sharedModel = await getOpenAIInterpretationModel();
+  const premiumModel = getConfiguredEnvModel('OPENAI_PREMIUM_MODEL') || sharedModel;
+  const freeHighQualityModel =
+    getConfiguredEnvModel('OPENAI_FREE_MODEL') ||
+    sharedModel ||
+    getConfiguredEnvModel('OPENAI_BASE_MODEL') ||
+    premiumModel;
+
+  if (options.accessTier === 'premium') {
+    return {
+      model: premiumModel,
+      modelTier: 'premium',
+    };
+  }
+
+  if (options.accessTier === 'lumi') {
+    return {
+      model: premiumModel,
+      modelTier: 'premium',
+    };
+  }
+
+  return {
+    model: freeHighQualityModel,
+    modelTier: freeHighQualityModel === premiumModel ? 'premium' : 'base',
+  };
 }

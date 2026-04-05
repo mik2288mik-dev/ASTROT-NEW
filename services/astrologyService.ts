@@ -1,8 +1,9 @@
-import { UserProfile, NatalChartData, DailyHoroscope, SynastryResult, UserEvolution, OracleChatResponse, OracleHistoryEntry, ForecastDailyReading, ForecastDaypartReading, ForecastDaypartSlot, ForecastMonthlyReading, ForecastWeeklyReading, NatalAnchorReading, NatalLivingReading, AskLumiaState, AskLumiaTier } from "../types";
+import { UserProfile, NatalChartData, DailyHoroscope, SynastryResult, UserEvolution, OracleChatResponse, OracleHistoryEntry, ForecastDailyReading, ForecastDaypartReading, ForecastDaypartSlot, ForecastMonthlyReading, ForecastWeeklyReading, NatalAnchorReading, NatalLivingReading, AskLumiaState, AskLumiaTier, ContentAccessTier } from "../types";
 import { SYSTEM_INSTRUCTION_ASTRA } from "../constants";
 import { getElementForSign } from "../lib/zodiac-utils";
 import { coerceNatalAnchorReading, coerceNatalLivingReading, getCurrentNatalPeriodKey, mapNatalAnchorToLegacyIntro } from "../lib/natalReadings";
 import { isForecastLegacyFallbackEnabled } from "../lib/forecastLegacyConfig";
+import { buildForecastFullDayUnlockCacheKey } from "../lib/forecastFullDay";
 
 // API base URL - используем локальные Next.js API routes
 const API_BASE_URL = typeof window !== 'undefined' ? '' : process.env.NEXT_PUBLIC_API_URL || '';
@@ -37,6 +38,8 @@ type ContentApiResponse<T> = {
   chartId?: number | null;
   cacheKey?: string;
   entitlement?: unknown;
+  lumiBalance?: number;
+  accessTier?: ContentAccessTier;
 };
 
 const DAILY_FORECAST_HEADLINE_FALLBACK: Record<'ru' | 'en', string> = {
@@ -191,8 +194,22 @@ export const getPremiumDaypartForecast = async (
   chartData: NatalChartData,
   slot: ForecastDaypartSlot
 ): Promise<ForecastDaypartReading> => {
+  const result = await getFullDaypartForecast(profile, chartData, slot, { accessTier: 'premium' });
+  return result.reading;
+};
+
+export const getFullDaypartForecast = async (
+  profile: UserProfile,
+  chartData: NatalChartData,
+  slot: ForecastDaypartSlot,
+  options?: {
+    accessTier?: 'premium' | 'lumi';
+    allowLumiSpend?: boolean;
+  }
+): Promise<{ reading: ForecastDaypartReading; lumiBalance?: number }> => {
+  const accessTier = options?.accessTier || 'premium';
   const url = `${API_BASE_URL}/api/content/forecast/daypart`;
-  log.info('[getPremiumDaypartForecast] Starting request', { userId: profile.id, slot });
+  log.info('[getFullDaypartForecast] Starting request', { userId: profile.id, slot, accessTier });
 
   const data = await fetchContentApi<ForecastDaypartReading>(url, {
     method: 'POST',
@@ -202,15 +219,20 @@ export const getPremiumDaypartForecast = async (
       profile,
       chartData,
       slot,
+      accessTier,
+      allowLumiSpend: !!options?.allowLumiSpend,
     }),
   });
 
   const reading = data?.interpretation?.content;
   if (!reading) {
-    throw buildApiError(`Premium ${slot} forecast is missing`);
+    throw buildApiError(`Full ${slot} forecast is missing`);
   }
 
-  return reading;
+  return {
+    reading,
+    lumiBalance: typeof data?.lumiBalance === 'number' ? data.lumiBalance : undefined,
+  };
 };
 
 export const getCachedPremiumDaypartForecast = async (
@@ -218,15 +240,39 @@ export const getCachedPremiumDaypartForecast = async (
   slot: ForecastDaypartSlot,
   chartId?: number | null
 ): Promise<ForecastDaypartReading | null> => {
+  return getCachedFullDaypartForecast(userId, slot, {
+    chartId,
+    accessTier: 'premium',
+  });
+};
+
+export const getCachedFullDaypartForecast = async (
+  userId: string,
+  slot: ForecastDaypartSlot,
+  options?: {
+    chartId?: number | null;
+    accessTier?: 'premium' | 'lumi';
+    dateKey?: string;
+  }
+): Promise<ForecastDaypartReading | null> => {
   if (!userId) return null;
+  const accessTier = options?.accessTier || 'premium';
+  const cacheKey = buildForecastFullDayUnlockCacheKey(options?.dateKey || '');
 
   const params = new URLSearchParams({ userId, slot });
-  if (chartId != null) {
-    params.set('chartId', String(chartId));
+  if (options?.chartId != null) {
+    params.set('chartId', String(options.chartId));
   }
+  params.set('accessTier', accessTier);
+  if (cacheKey) params.set('date', cacheKey);
 
   const url = `${API_BASE_URL}/api/content/forecast/daypart?${params.toString()}`;
-  log.info('[getCachedPremiumDaypartForecast] Starting request', { userId, slot, chartId: chartId ?? null });
+  log.info('[getCachedFullDaypartForecast] Starting request', {
+    userId,
+    slot,
+    chartId: options?.chartId ?? null,
+    accessTier,
+  });
 
   const data = await fetchContentApi<ForecastDaypartReading>(
     url,
@@ -909,7 +955,7 @@ export type SynastryExtendedApiOutcome = {
 };
 
 /**
- * Средний слой синастрии (Lumi): разовый unlock, кэш на сервере.
+ * Полный разбор синастрии через Lumi: тот же класс ответа, что и Premium, но как разовое unlock.
  */
 export const calculateExtendedSynastry = async (
   profile: UserProfile,
@@ -941,7 +987,7 @@ export const calculateExtendedSynastry = async (
   });
 
   if (!response.ok) {
-    let errorMessage = `Synastry extended failed: ${response.status}`;
+    let errorMessage = `Synastry Lumi full failed: ${response.status}`;
     let errorCode: string | undefined;
     let details: any;
     try {

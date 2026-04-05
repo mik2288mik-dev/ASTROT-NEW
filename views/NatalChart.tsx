@@ -354,14 +354,14 @@ export const NatalChart: React.FC<NatalChartProps> = ({
       <motion.section initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="pt-4">
         <div className={READING_GLASS_SECTION_CLASS}>
           <p className="lumia-label tracking-[0.2em]">{getText(lang, 'chart.anchor_label')}</p>
-          <h1 className="mt-2 font-serif text-2xl tracking-tight text-astro-text sm:text-[1.95rem]">
+          <h1 className="lumia-reading-display mt-3 text-astro-text">
             {anchorReading?.headline || getText(lang, 'chart.anchor_title')}
           </h1>
-          <p className="lumia-reading-body lumia-muted mt-2">
+          <p className="lumia-reading-intro lumia-muted mx-auto mt-4 max-w-reading-wide">
             {anchorReading?.summary || getText(lang, 'chart.anchor_body')}
           </p>
 
-          <div className="mt-4 border-t border-astro-border/15 pt-4 text-xs leading-relaxed text-astro-subtext sm:text-[13px]">
+          <div className="mx-auto mt-6 max-w-reading-wide border-t border-astro-border/15 pt-4 text-center text-xs leading-relaxed text-astro-subtext sm:text-[13px]">
             <p>
               {lang === 'ru'
                 ? `Солнце в ${localizedSun}, Луна в ${localizedMoon}, Асцендент в ${localizedRising}.`
@@ -376,7 +376,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({
                 <div className="h-5 w-5 animate-spin rounded-full border-2 border-astro-highlight border-t-transparent" />
               </div>
             ) : anchorReading ? (
-              <div className="lumia-reading-inner-card mx-auto max-w-reading">
+              <div className="lumia-reading-inner-card mx-auto max-w-reading-wide">
                 <FormattedAiText text={anchorReading.reading} variant="article" className="lumia-prose" />
               </div>
             ) : (

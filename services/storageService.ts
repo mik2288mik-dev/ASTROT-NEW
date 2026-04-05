@@ -1,4 +1,10 @@
-import { UserProfile, NatalChartData, LumiWalletData } from "../types";
+import {
+  UserProfile,
+  NatalChartData,
+  LumiWalletData,
+  DailyLumiTaskKey,
+  DailyLumiTasksStatus,
+} from "../types";
 import { toDateInputValue } from "../lib/date-utils";
 import { fetchWithTimeout } from "../lib/fetchWithTimeout";
 
@@ -250,10 +256,28 @@ export const getLumiWallet = async (userId: string, limit = 30): Promise<LumiWal
   };
 };
 
+export type DailyRouletteStatus = {
+  canSpin: boolean;
+  nextAvailableAt: string | null;
+  lastSpinAt: string | null;
+  lastWinAmount: number | null;
+  lastWinTier: string | null;
+  lumiBalance: number;
+};
+
 export const getDailyRouletteStatus = async (
   userId: string
-): Promise<{ claimedToday: boolean; lumiBalance: number }> => {
-  if (!userId) return { claimedToday: false, lumiBalance: 0 };
+): Promise<DailyRouletteStatus> => {
+  if (!userId) {
+    return {
+      canSpin: true,
+      nextAvailableAt: null,
+      lastSpinAt: null,
+      lastWinAmount: null,
+      lastWinTier: null,
+      lumiBalance: 0,
+    };
+  }
   const url = `${API_BASE_URL}/api/users/lumi/daily-roulette?userId=${encodeURIComponent(userId)}`;
   const res = await fetch(url, { cache: 'no-store' });
   if (!res.ok) {
@@ -262,14 +286,18 @@ export const getDailyRouletteStatus = async (
   }
   const data = await res.json();
   return {
-    claimedToday: !!data.claimedToday,
+    canSpin: data.canSpin !== false,
+    nextAvailableAt: data.nextAvailableAt ?? null,
+    lastSpinAt: data.lastSpinAt ?? null,
+    lastWinAmount: typeof data.lastWinAmount === 'number' ? data.lastWinAmount : null,
+    lastWinTier: data.lastWinTier ?? null,
     lumiBalance: data.lumiBalance ?? 0,
   };
 };
 
 export type DailyRouletteSpinResult =
-  | { ok: true; amount: number; tier: string; lumiBalance: number }
-  | { ok: false; code: 'ALREADY_CLAIMED'; lumiBalance: number };
+  | { ok: true; amount: number; tier: string; lumiBalance: number; nextAvailableAt: string | null }
+  | { ok: false; code: 'COOLDOWN'; lumiBalance: number; nextAvailableAt: string | null };
 
 export const postDailyRouletteSpin = async (userId: string): Promise<DailyRouletteSpinResult> => {
   if (!userId) throw new Error('UserId is required');
@@ -282,8 +310,13 @@ export const postDailyRouletteSpin = async (userId: string): Promise<DailyRoulet
   if (!res.ok) {
     throw new Error(data.message || data.error || `Roulette spin failed: ${res.status}`);
   }
-  if (data.ok === false && data.code === 'ALREADY_CLAIMED') {
-    return { ok: false, code: 'ALREADY_CLAIMED', lumiBalance: data.lumiBalance ?? 0 };
+  if (data.ok === false && data.code === 'COOLDOWN') {
+    return {
+      ok: false,
+      code: 'COOLDOWN',
+      lumiBalance: data.lumiBalance ?? 0,
+      nextAvailableAt: data.nextAvailableAt ?? null,
+    };
   }
   if (data.ok === true) {
     return {
@@ -291,9 +324,74 @@ export const postDailyRouletteSpin = async (userId: string): Promise<DailyRoulet
       amount: data.amount,
       tier: data.tier,
       lumiBalance: data.lumiBalance,
+      nextAvailableAt: data.nextAvailableAt ?? null,
     };
   }
   throw new Error(data.message || 'Unexpected roulette response');
+};
+
+export type DailyLumiTaskCompletionResult = DailyLumiTasksStatus & {
+  taskKey: DailyLumiTaskKey;
+  awarded: boolean;
+  amountAwarded: number;
+};
+
+export const getDailyLumiTasksStatus = async (userId: string): Promise<DailyLumiTasksStatus> => {
+  if (!userId) {
+    return {
+      date: '',
+      totalReward: 0,
+      earnedToday: 0,
+      completedCount: 0,
+      tasks: [],
+      lumiBalance: 0,
+    };
+  }
+
+  const url = `${API_BASE_URL}/api/users/lumi/daily-tasks?userId=${encodeURIComponent(userId)}`;
+  const res = await fetch(url, { cache: 'no-store' });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.message || data.error || `Daily tasks status failed: ${res.status}`);
+  }
+
+  return {
+    date: data.date ?? '',
+    totalReward: data.totalReward ?? 0,
+    earnedToday: data.earnedToday ?? 0,
+    completedCount: data.completedCount ?? 0,
+    tasks: Array.isArray(data.tasks) ? data.tasks : [],
+    lumiBalance: data.lumiBalance ?? 0,
+  };
+};
+
+export const completeDailyLumiTask = async (
+  userId: string,
+  taskKey: DailyLumiTaskKey
+): Promise<DailyLumiTaskCompletionResult> => {
+  if (!userId) throw new Error('UserId is required');
+
+  const res = await fetch(`${API_BASE_URL}/api/users/lumi/daily-tasks`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId, taskKey }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.message || data.error || `Daily task completion failed: ${res.status}`);
+  }
+
+  return {
+    taskKey,
+    awarded: !!data.awarded,
+    amountAwarded: data.amountAwarded ?? 0,
+    date: data.date ?? '',
+    totalReward: data.totalReward ?? 0,
+    earnedToday: data.earnedToday ?? 0,
+    completedCount: data.completedCount ?? 0,
+    tasks: Array.isArray(data.tasks) ? data.tasks : [],
+    lumiBalance: data.lumiBalance ?? 0,
+  };
 };
 
 export type ReferralClaimApiResult = {

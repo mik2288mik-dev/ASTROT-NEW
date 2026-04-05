@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import type { ContentInterpretation, NatalAnchorReading, NatalChartData, UserProfile } from '../../../../types';
+import { getOpenAIModelForContent } from '../../../../lib/appSettings';
 import { db } from '../../../../lib/db';
 import { getContentLayer } from '../../../../lib/contentArchitecture';
 import { generateNatalAnchorReading } from '../../../../lib/natalContent';
@@ -144,6 +145,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const reading = await generateNatalAnchorReading(context.profile, context.chartData);
+  const { modelTier } = await getOpenAIModelForContent({
+    accessTier: 'free',
+    contentSurface: 'natal',
+    contentVariant: 'anchor',
+  });
   const interpretation = context.chartId != null
     ? await db.content_interpretations.upsertByChart(context.chartId, {
         accessTier: 'free',
@@ -152,7 +158,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         cacheKey: 'default',
         inputHash: 'default',
         content: reading,
-        modelTier: 'base',
+        modelTier,
         isPersistent: true,
         canRegenerateForLumi: true,
         regenerationCostLumi: 250,
@@ -165,7 +171,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         cacheKey: 'default',
         inputHash: 'default',
         content: reading,
-        modelTier: 'base',
+        modelTier,
         isPersistent: true,
         canRegenerateForLumi: true,
         regenerationCostLumi: 250,

@@ -101,8 +101,8 @@ export const generateAllContent = async (profile: UserProfile, chartData: NatalC
       log.error('[generateAllContent] Failed to generate Natal Intro', error);
       // Используем fallback
       generatedContent.natalIntro = profile.language === 'ru'
-        ? `Привет, ${profile.name || 'друг'}! Я изучила твою натальную карту.`
-        : `Hi, ${profile.name || 'friend'}! I've studied your natal chart.`;
+        ? `Привет, ${profile.name || 'друг'}! Я уже собрала твою личную основу. Дальше покажу, что поможет тебе яснее видеть себя, отношения и важные решения.`
+        : `Hi, ${profile.name || 'friend'}! I've already gathered your personal foundation. Next I'll show what can help you see yourself, your relationships, and key decisions more clearly.`;
       generatedContent.timestamps.natalIntroGenerated = Date.now();
     }
 
@@ -411,7 +411,7 @@ function mergeSynastryCacheLayers(entry: {
     compatibilityScore: f?.compatibilityScore ?? e?.compatibilityScore ?? b?.compatibilityScore,
     briefOverview: b?.briefOverview,
     extendedOverview: e?.extendedOverview,
-    fullAnalysis: f?.fullAnalysis,
+    fullAnalysis: f?.fullAnalysis || e?.fullAnalysis,
   };
 }
 
@@ -462,11 +462,11 @@ export const getOrGenerateSynastry = async (
       log.info(`[getOrGenerateSynastry] Using cached brief synastry for ${partnerName}`);
       return { result: mergeSynastryCacheLayers(cachedEntry) };
     }
-    if (mode === 'extended' && cachedEntry.extendedResult) {
+    if (mode === 'extended' && (cachedEntry.extendedResult?.fullAnalysis || cachedEntry.fullResult)) {
       log.info(`[getOrGenerateSynastry] Using cached extended synastry for ${partnerName}`);
       return { result: mergeSynastryCacheLayers(cachedEntry) };
     }
-    if (mode === 'full' && cachedEntry.fullResult) {
+    if (mode === 'full' && (cachedEntry.fullResult || cachedEntry.extendedResult?.fullAnalysis)) {
       log.info(`[getOrGenerateSynastry] Using cached full synastry for ${partnerName}`);
       return { result: mergeSynastryCacheLayers(cachedEntry) };
     }

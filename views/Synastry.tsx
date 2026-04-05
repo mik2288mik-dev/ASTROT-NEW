@@ -1,9 +1,10 @@
-import React, { useState, useMemo, useEffect } from 'react';
+﻿import React, { useState, useMemo, useEffect } from 'react';
 import { UserProfile, SynastryResult, NatalChartData } from '../types';
 import { getOrGenerateSynastry } from '../services/contentGenerationService';
 import { getCharts, buyChartSlot, type ChartListItem } from '../services/storageService';
 import { getText, getZodiacSign } from '../constants';
 import { Loading } from '../components/ui/Loading';
+import { FormattedAiText } from '../components/ui/FormattedAiText';
 import { getApproximateSunSignByDate } from '../lib/zodiac-utils';
 import { toDateInputValue, formatLumiaDate } from '../lib/date-utils';
 import { SYNASTRY_EXTENDED_LUMI_COST } from '../lib/synastryExtended';
@@ -27,6 +28,24 @@ interface SynastryProps {
     onUpdateProfile?: (profile: UserProfile) => void;
 }
 
+const getSynastryEditorialText = (language: 'ru' | 'en') => ({
+    introTitle: language === 'ru' ? 'РљР°Рє РІС‹ РѕС‰СѓС‰Р°РµС‚РµСЃСЊ РґСЂСѓРі РґСЂСѓРіСѓ' : 'How you feel to each other',
+    generalTheme: language === 'ru' ? 'РћР±С‰Р°СЏ С‚РµРјР° СЃРІСЏР·Рё' : 'The shape of your bond',
+    attraction: language === 'ru' ? 'РџСЂРёС‚СЏР¶РµРЅРёРµ' : 'Attraction',
+    difficulties: language === 'ru' ? 'РЎР»РѕР¶РЅС‹Рµ РјРµСЃС‚Р°' : 'Challenges',
+    potential: language === 'ru' ? 'РџРѕС‚РµРЅС†РёР°Р» СЃРІСЏР·Рё' : 'Potential',
+    recommendations: language === 'ru' ? 'Р§С‚Рѕ РїРѕРјРѕР¶РµС‚ РІР°Рј С‚РѕС‡РЅРµРµ' : 'What will help most',
+});
+
+const SynastryEditorialSection: React.FC<{ title: string; text: string }> = ({ title, text }) => (
+    <section className="border-t border-astro-border/12 pt-7 first:border-t-0 first:pt-0 sm:pt-8">
+        <h3 className="lumia-reading-section-title text-astro-text">{title}</h3>
+        <div className="mt-4 sm:mt-5">
+            <FormattedAiText text={text} variant="article" className="lumia-prose" />
+        </div>
+    </section>
+);
+
 export const Synastry: React.FC<SynastryProps> = ({
     profile,
     chartData,
@@ -42,7 +61,7 @@ export const Synastry: React.FC<SynastryProps> = ({
     const [partnerDate, setPartnerDate] = useState('');
     const [partnerTime, setPartnerTime] = useState('');
     const [partnerPlace, setPartnerPlace] = useState('');
-    const [relationshipType, setRelationshipType] = useState('романтика');
+    const [relationshipType, setRelationshipType] = useState('СЂРѕРјР°РЅС‚РёРєР°');
     const [result, setResult] = useState<SynastryResult | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -50,6 +69,7 @@ export const Synastry: React.FC<SynastryProps> = ({
     const [allowLumiConsent, setAllowLumiConsent] = useState(false);
 
     const extendedCost = SYNASTRY_EXTENDED_LUMI_COST;
+    const readingText = getSynastryEditorialText(profile.language === 'en' ? 'en' : 'ru');
     const t = (key: string, replacements?: Record<string, string>) => {
         let s = getText(profile.language, key);
         if (replacements) {
@@ -83,6 +103,7 @@ export const Synastry: React.FC<SynastryProps> = ({
     const slotsTotal = profile.chartSlots ?? 1;
     const slotsFull = slotsUsed >= slotsTotal;
     const canBuySlot = (profile.lumiBalance ?? 0) >= 50;
+    const showLumiFullAction = !profile.isPremium;
 
     useEffect(() => {
         if (initialPrefill?.source === 'saved-chart' && initialPrefill.partnerChartId) {
@@ -160,11 +181,12 @@ export const Synastry: React.FC<SynastryProps> = ({
 
     const runSynastry = async (mode: 'brief' | 'extended' | 'full') => {
         if (!partnerName || !partnerDate) return;
-        if (mode === 'extended' && !allowLumiConsent) {
+        const effectiveMode = mode === 'extended' && profile.isPremium ? 'full' : mode;
+        if (effectiveMode === 'extended' && !allowLumiConsent) {
             setError(t('synastry.error_lumi_consent'));
             return;
         }
-        if (mode === 'full' && !profile.isPremium) {
+        if (effectiveMode === 'full' && !profile.isPremium) {
             requestPremium();
             return;
         }
@@ -180,9 +202,9 @@ export const Synastry: React.FC<SynastryProps> = ({
                 partnerTime || undefined,
                 partnerPlace || undefined,
                 relationshipType,
-                mode,
+                effectiveMode,
                 partnerChartIdForRequest,
-                mode === 'extended' ? { allowLumiSpend: true } : undefined
+                effectiveMode === 'extended' ? { allowLumiSpend: true } : undefined
             );
             setResult(data);
             if (typeof lumiBalance === 'number') {
@@ -242,7 +264,7 @@ export const Synastry: React.FC<SynastryProps> = ({
                                     <h3 className="font-serif text-base text-astro-text mt-1">{profile.name}</h3>
                                 </div>
                                 <span className="text-[10px] uppercase tracking-wider text-astro-highlight bg-astro-highlight/15 px-2 py-1 rounded-full">
-                                    {chartData?.sun?.sign ? getZodiacSign(profile.language, chartData.sun.sign) : '—'}
+                                    {chartData?.sun?.sign ? getZodiacSign(profile.language, chartData.sun.sign) : 'вЂ”'}
                                 </span>
                             </div>
                             <p className="text-xs text-astro-subtext">
@@ -345,7 +367,7 @@ export const Synastry: React.FC<SynastryProps> = ({
                                                 >
                                                     {slotActionLoading
                                                         ? getText(profile.language, 'charts.purchasing')
-                                                        : `${getText(profile.language, 'synastry.buy_slot')} • 50 Lumi`}
+                                                        : `${getText(profile.language, 'synastry.buy_slot')} вЂў 50 Lumi`}
                                                 </button>
                                             ) : (
                                                 <p className="text-xs text-astro-subtext">
@@ -367,12 +389,12 @@ export const Synastry: React.FC<SynastryProps> = ({
                                                     <p className="font-serif text-base text-astro-text">{selectedPartnerChart.name}</p>
                                                     <p className="text-xs text-astro-subtext mt-1">
                                                         {formatLumiaDate(selectedPartnerChart.birth_date, profile.language) || selectedPartnerChart.birth_date}
-                                                        {' • '}
+                                                        {' вЂў '}
                                                         {selectedPartnerChart.birth_place}
                                                     </p>
                                                     {selectedPartnerChart.chart_data?.sun?.sign && (
                                                         <p className="text-[10px] text-astro-highlight mt-2">
-                                                            ☉ {getZodiacSign(profile.language, selectedPartnerChart.chart_data.sun.sign)}
+                                                            в‰ {getZodiacSign(profile.language, selectedPartnerChart.chart_data.sun.sign)}
                                                         </p>
                                                     )}
                                                 </div>
@@ -391,7 +413,7 @@ export const Synastry: React.FC<SynastryProps> = ({
                                             >
                                                 <p className="font-medium text-astro-text">{chart.name}</p>
                                                 <p className="text-xs text-astro-subtext mt-1">
-                                                    {formatLumiaDate(chart.birth_date, profile.language) || chart.birth_date} • {chart.birth_place}
+                                                    {formatLumiaDate(chart.birth_date, profile.language) || chart.birth_date} вЂў {chart.birth_place}
                                                 </p>
                                             </button>
                                         ))
@@ -451,10 +473,10 @@ export const Synastry: React.FC<SynastryProps> = ({
                                             onChange={(e) => setRelationshipType(e.target.value)}
                                             className={fieldInputClass}
                                         >
-                                            <option value="романтика">{getText(profile.language, 'synastry.relationship_romantic')}</option>
-                                            <option value="дружба">{getText(profile.language, 'synastry.relationship_friendship')}</option>
-                                            <option value="семья">{getText(profile.language, 'synastry.relationship_family')}</option>
-                                            <option value="работа">{getText(profile.language, 'synastry.relationship_work')}</option>
+                                            <option value="СЂРѕРјР°РЅС‚РёРєР°">{getText(profile.language, 'synastry.relationship_romantic')}</option>
+                                            <option value="РґСЂСѓР¶Р±Р°">{getText(profile.language, 'synastry.relationship_friendship')}</option>
+                                            <option value="СЃРµРјСЊСЏ">{getText(profile.language, 'synastry.relationship_family')}</option>
+                                            <option value="СЂР°Р±РѕС‚Р°">{getText(profile.language, 'synastry.relationship_work')}</option>
                                         </select>
                                     </div>
                                 </div>
@@ -487,7 +509,7 @@ export const Synastry: React.FC<SynastryProps> = ({
                             <p className="text-xs text-astro-subtext leading-relaxed">
                                 {t('synastry.extended_hint')}
                             </p>
-                            <div className="mt-1 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                            <div className={`mt-1 grid grid-cols-1 gap-3 ${showLumiFullAction ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
                                 <button
                                     type="button"
                                     onClick={() => void runSynastry('brief')}
@@ -496,14 +518,16 @@ export const Synastry: React.FC<SynastryProps> = ({
                                 >
                                     {t('synastry.brief_btn')}
                                 </button>
-                                <button
-                                    type="button"
-                                    onClick={() => void runSynastry('extended')}
-                                    disabled={!canSubmit}
-                                    className="w-full rounded-xl border border-astro-highlight/50 bg-astro-highlight/10 px-4 py-3 text-sm font-semibold text-astro-highlight disabled:opacity-50"
-                                >
-                                    {t('synastry.extended_btn', { cost: String(extendedCost) })}
-                                </button>
+                                {showLumiFullAction && (
+                                    <button
+                                        type="button"
+                                        onClick={() => void runSynastry('extended')}
+                                        disabled={!canSubmit}
+                                        className="w-full rounded-xl border border-astro-highlight/50 bg-astro-highlight/10 px-4 py-3 text-sm font-semibold text-astro-highlight disabled:opacity-50"
+                                    >
+                                        {t('synastry.extended_btn', { cost: String(extendedCost) })}
+                                    </button>
+                                )}
                                 <button
                                     type="button"
                                     onClick={() => void runSynastry('full')}
@@ -513,186 +537,248 @@ export const Synastry: React.FC<SynastryProps> = ({
                                     {t('synastry.full_btn')}
                                 </button>
                             </div>
-                            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-astro-border/60 bg-astro-bg/15 px-3 py-3 text-sm text-astro-subtext">
-                                <input
-                                    type="checkbox"
-                                    className="mt-1 h-4 w-4 shrink-0 rounded border-astro-border text-astro-highlight focus:ring-astro-highlight"
-                                    checked={allowLumiConsent}
-                                    onChange={(e) => setAllowLumiConsent(e.target.checked)}
-                                />
-                                <span>{t('synastry.lumi_consent', { cost: String(extendedCost) })}</span>
-                            </label>
+                            {showLumiFullAction && (
+                                <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-astro-border/60 bg-astro-bg/15 px-3 py-3 text-sm text-astro-subtext">
+                                    <input
+                                        type="checkbox"
+                                        className="mt-1 h-4 w-4 shrink-0 rounded border-astro-border text-astro-highlight focus:ring-astro-highlight"
+                                        checked={allowLumiConsent}
+                                        onChange={(e) => setAllowLumiConsent(e.target.checked)}
+                                    />
+                                    <span>{t('synastry.lumi_consent', { cost: String(extendedCost) })}</span>
+                                </label>
+                            )}
                         </div>
                     </div>
                 </div>
             ) : (
                 <div className="space-y-5">
-                    <div className="rounded-air-panel border border-astro-border/80 bg-astro-card/60 p-5 space-y-4">
-                        <div className="flex items-start justify-between gap-4">
-                            <div>
-                                <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
-                                    {getText(profile.language, 'synastry.result_title')}
-                                </p>
-                                <h2 className="font-serif text-xl text-astro-text mt-1">
-                                    {profile.name} × {partnerName}
+                    <div className="rounded-air-panel border border-astro-border/80 bg-astro-card/60 p-5 sm:p-6">
+                        <div className="space-y-5">
+                            <div className="flex items-start justify-between gap-4">
+                                <div>
+                                    <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
+                                        {getText(profile.language, 'synastry.result_title')}
+                                    </p>
+                                </div>
+                                <span className="text-[10px] uppercase tracking-wider text-astro-highlight bg-astro-highlight/15 px-2 py-1 rounded-full">
+                                    {partnerInputMode === 'charts'
+                                        ? getText(profile.language, 'synastry.result_saved_badge')
+                                        : getText(profile.language, 'synastry.result_manual_badge')}
+                                </span>
+                            </div>
+
+                            <div className="text-center">
+                                <h2 className="lumia-reading-display text-astro-text">
+                                    {profile.name} / {partnerName}
                                 </h2>
                             </div>
-                            <span className="text-[10px] uppercase tracking-wider text-astro-highlight bg-astro-highlight/15 px-2 py-1 rounded-full">
-                                {partnerInputMode === 'charts'
-                                    ? getText(profile.language, 'synastry.result_saved_badge')
-                                    : getText(profile.language, 'synastry.result_manual_badge')}
-                            </span>
-                        </div>
 
-                        {result.compatibilityScore !== undefined && (
-                            <div className="inline-flex rounded-full border border-astro-highlight/30 bg-astro-highlight/10 px-4 py-2 text-2xl font-semibold text-astro-text">
-                                {result.compatibilityScore}/100
-                            </div>
-                        )}
-
-                        <p className="text-sm leading-relaxed text-astro-subtext">{result.summary}</p>
-
-                        {result.briefOverview && (
-                            <div className="space-y-3">
-                                <div className="rounded-2xl border border-astro-border/70 bg-astro-bg/20 p-4">
-                                    <p className="text-sm text-astro-text">{result.briefOverview.introduction}</p>
-                                </div>
-                                <div className="grid grid-cols-1 gap-3">
-                                    <div className="rounded-2xl border border-astro-border/70 p-4">
-                                        <p className="text-[10px] uppercase tracking-widest text-astro-subtext mb-2">
-                                            {getText(profile.language, 'synastry.emotional')}
-                                        </p>
-                                        <p className="text-sm text-astro-text">{result.briefOverview.harmony}</p>
-                                    </div>
-                                    <div className="rounded-2xl border border-astro-border/70 p-4">
-                                        <p className="text-[10px] uppercase tracking-widest text-astro-subtext mb-2">
-                                            {getText(profile.language, 'synastry.challenge')}
-                                        </p>
-                                        <p className="text-sm text-astro-text">{result.briefOverview.challenges}</p>
-                                    </div>
-                                </div>
-                                {result.briefOverview.tips && result.briefOverview.tips.length > 0 && (
-                                    <div className="rounded-2xl border border-astro-border/70 p-4">
-                                        <p className="text-[10px] uppercase tracking-widest text-astro-subtext mb-2">
-                                            {t('synastry.tips_label')}
-                                        </p>
-                                        <ul className="list-disc space-y-1 pl-4 text-sm text-astro-text">
-                                            {result.briefOverview.tips.map((tip, i) => (
-                                                <li key={i}>{tip}</li>
-                                            ))}
-                                        </ul>
+                            <div className="flex flex-wrap items-center justify-center gap-3">
+                                {result.compatibilityScore !== undefined && (
+                                    <div className="inline-flex rounded-full border border-astro-highlight/30 bg-astro-highlight/10 px-4 py-2 text-2xl font-semibold text-astro-text">
+                                        {result.compatibilityScore}/100
                                     </div>
                                 )}
+                                <span className="inline-flex rounded-full border border-astro-border/70 bg-astro-bg/20 px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] text-astro-subtext">
+                                    {t('synastry.relationship_type_label')}: {relationshipType}
+                                </span>
                             </div>
-                        )}
 
-                        {result.extendedOverview && (
-                            <div className="space-y-3">
-                                {(
-                                    [
-                                        ['synastry.extended_connection', result.extendedOverview.connection],
-                                        ['synastry.extended_tension', result.extendedOverview.tension],
-                                        ['synastry.extended_navigation', result.extendedOverview.navigation],
-                                        ['synastry.extended_bond', result.extendedOverview.bondContext],
-                                    ] as const
-                                ).map(([labelKey, text]) => (
-                                    <div key={labelKey} className="rounded-2xl border border-astro-highlight/25 bg-astro-highlight/5 p-4">
-                                        <p className="text-[10px] uppercase tracking-widest text-astro-highlight mb-2">
-                                            {t(labelKey)}
-                                        </p>
-                                        <p className="text-sm text-astro-text">{text}</p>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
+                            <p className="lumia-reading-intro lumia-muted mx-auto max-w-reading-wide">
+                                {result.summary}
+                            </p>
 
-                        {result.fullAnalysis && (
-                            <div className="space-y-3">
-                                {[
-                                    result.fullAnalysis.generalTheme,
-                                    result.fullAnalysis.attraction,
-                                    result.fullAnalysis.difficulties,
-                                    result.fullAnalysis.potential,
-                                ].map((section, index) => (
-                                    <div key={index} className="rounded-2xl border border-astro-border/70 p-4">
-                                        <p className="text-sm text-astro-text">{section}</p>
-                                    </div>
-                                ))}
-                                {result.fullAnalysis.recommendations &&
-                                    result.fullAnalysis.recommendations.length > 0 && (
-                                        <div className="rounded-2xl border border-astro-border/70 p-4">
-                                            <p className="text-[10px] uppercase tracking-widest text-astro-subtext mb-2">
-                                                {t('synastry.tips_label')}
-                                            </p>
-                                            <ul className="list-disc space-y-1 pl-4 text-sm text-astro-text">
-                                                {result.fullAnalysis.recommendations.map((rec, i) => (
-                                                    <li key={i}>{rec}</li>
+                            {(result.briefOverview || result.extendedOverview || result.fullAnalysis) && (
+                                <div className="mx-auto w-full max-w-reading-wide">
+                                    <div className="lumia-reading-inner-card space-y-8 sm:space-y-10">
+                                        {result.briefOverview && (
+                                            <>
+                                                <SynastryEditorialSection
+                                                    title={readingText.introTitle}
+                                                    text={result.briefOverview.introduction}
+                                                />
+                                                <SynastryEditorialSection
+                                                    title={getText(profile.language, 'synastry.emotional')}
+                                                    text={result.briefOverview.harmony}
+                                                />
+                                                <SynastryEditorialSection
+                                                    title={getText(profile.language, 'synastry.challenge')}
+                                                    text={result.briefOverview.challenges}
+                                                />
+                                                {result.briefOverview.tips && result.briefOverview.tips.length > 0 && (
+                                                    <section className="border-t border-astro-border/12 pt-7 sm:pt-8">
+                                                        <h3 className="lumia-reading-section-title text-astro-text">
+                                                            {t('synastry.tips_label')}
+                                                        </h3>
+                                                        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                                                            {result.briefOverview.tips.map((tip, i) => (
+                                                                <div
+                                                                    key={i}
+                                                                    className="lumia-glass-inset rounded-air-sm px-4 py-4 text-center"
+                                                                >
+                                                                    <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-astro-highlight/14 text-sm font-semibold text-astro-highlight ring-1 ring-astro-highlight/18">
+                                                                        {i + 1}
+                                                                    </span>
+                                                                    <p className="mt-3 text-[15px] leading-relaxed text-astro-text [text-wrap:pretty] sm:text-base sm:leading-relaxed">
+                                                                        {tip}
+                                                                    </p>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </section>
+                                                )}
+                                            </>
+                                        )}
+
+                                        {result.extendedOverview && (
+                                            <>
+                                                {(
+                                                    [
+                                                        ['synastry.extended_connection', result.extendedOverview.connection],
+                                                        ['synastry.extended_tension', result.extendedOverview.tension],
+                                                        ['synastry.extended_navigation', result.extendedOverview.navigation],
+                                                        ['synastry.extended_bond', result.extendedOverview.bondContext],
+                                                    ] as const
+                                                ).map(([labelKey, text]) => (
+                                                    <SynastryEditorialSection key={labelKey} title={t(labelKey)} text={text} />
                                                 ))}
-                                            </ul>
-                                        </div>
-                                    )}
-                            </div>
-                        )}
+                                            </>
+                                        )}
 
-                        <div className="space-y-2">
-                            {!result.extendedOverview && (
-                                <>
-                                    <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-astro-border/60 bg-astro-bg/15 px-3 py-3 text-sm text-astro-subtext">
-                                        <input
-                                            type="checkbox"
-                                            className="mt-1 h-4 w-4 shrink-0 rounded border-astro-border text-astro-highlight focus:ring-astro-highlight"
-                                            checked={allowLumiConsent}
-                                            onChange={(e) => setAllowLumiConsent(e.target.checked)}
-                                        />
-                                        <span>{t('synastry.lumi_consent', { cost: String(extendedCost) })}</span>
-                                    </label>
-                                    <button
-                                        type="button"
-                                        onClick={() => void runSynastry('extended')}
-                                        disabled={!allowLumiConsent}
-                                        className="w-full rounded-xl border border-astro-highlight/50 bg-astro-highlight/10 px-4 py-3 text-sm font-semibold text-astro-highlight disabled:opacity-50"
-                                    >
-                                        {t('synastry.add_extended_btn', { cost: String(extendedCost) })}
-                                    </button>
-                                </>
+                                        {result.fullAnalysis && (
+                                            <>
+                                                <SynastryEditorialSection
+                                                    title={readingText.generalTheme}
+                                                    text={result.fullAnalysis.generalTheme}
+                                                />
+                                                <SynastryEditorialSection
+                                                    title={readingText.attraction}
+                                                    text={result.fullAnalysis.attraction}
+                                                />
+                                                <SynastryEditorialSection
+                                                    title={readingText.difficulties}
+                                                    text={result.fullAnalysis.difficulties}
+                                                />
+                                                <SynastryEditorialSection
+                                                    title={readingText.potential}
+                                                    text={result.fullAnalysis.potential}
+                                                />
+                                                {result.fullAnalysis.recommendations &&
+                                                    result.fullAnalysis.recommendations.length > 0 && (
+                                                        <section className="border-t border-astro-border/12 pt-7 sm:pt-8">
+                                                            <h3 className="lumia-reading-section-title text-astro-text">
+                                                                {readingText.recommendations}
+                                                            </h3>
+                                                            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                                                                {result.fullAnalysis.recommendations.map((rec, i) => (
+                                                                    <div
+                                                                        key={i}
+                                                                        className="lumia-glass-inset rounded-air-sm px-4 py-4 text-center"
+                                                                    >
+                                                                        <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-astro-highlight/14 text-sm font-semibold text-astro-highlight ring-1 ring-astro-highlight/18">
+                                                                            {i + 1}
+                                                                        </span>
+                                                                        <p className="mt-3 text-[15px] leading-relaxed text-astro-text [text-wrap:pretty] sm:text-base sm:leading-relaxed">
+                                                                            {rec}
+                                                                        </p>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </section>
+                                                    )}
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
                             )}
-                            {!result.fullAnalysis &&
-                                (profile.isPremium ? (
-                                    <button
-                                        type="button"
-                                        onClick={() => void runSynastry('full')}
-                                        className="w-full rounded-xl border border-astro-border px-4 py-3 text-sm font-semibold text-astro-text"
-                                    >
-                                        {t('synastry.add_full_btn')}
-                                    </button>
-                                ) : (
-                                    <button
-                                        type="button"
-                                        onClick={() => requestPremium()}
-                                        className="w-full rounded-xl border border-astro-border px-4 py-3 text-sm font-semibold text-astro-text"
-                                    >
-                                        {t('synastry.full_btn')}
-                                    </button>
-                                ))}
-                        </div>
 
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setResult(null);
-                                setError(null);
-                                setAllowLumiConsent(false);
-                                if (partnerCharts.length > 0) {
-                                    setPartnerInputMode('charts');
-                                }
-                            }}
-                            className="w-full rounded-xl border border-astro-border px-4 py-3 text-sm font-semibold text-astro-text"
-                        >
-                            {getText(profile.language, 'synastry.compare_again')}
-                        </button>
+                            <div className="space-y-3.5 border-t border-astro-border/12 pt-5 sm:pt-6">
+                                {!result.fullAnalysis && (
+                                    <>
+                                        <div className="space-y-3">
+                                            <p className="text-center text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
+                                                {getText(profile.language, 'synastry.cta_label')}
+                                            </p>
+                                            {profile.isPremium ? (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => void runSynastry('full')}
+                                                    className="w-full rounded-[24px] bg-astro-highlight px-5 py-4 text-sm font-semibold text-white shadow-[0_18px_40px_-24px_rgba(201,166,88,0.65)] ring-1 ring-astro-highlight/30 transition-transform hover:scale-[1.01]"
+                                                >
+                                                    {t('synastry.add_full_btn')}
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => requestPremium()}
+                                                    className="w-full rounded-[24px] bg-astro-highlight px-5 py-4 text-sm font-semibold text-white shadow-[0_18px_40px_-24px_rgba(201,166,88,0.65)] ring-1 ring-astro-highlight/30 transition-transform hover:scale-[1.01]"
+                                                >
+                                                    {t('synastry.full_btn')}
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        {showLumiFullAction && (
+                                            <div className="rounded-[24px] border border-astro-highlight/28 bg-astro-highlight/[0.06] p-4 sm:p-5">
+                                                <div className="flex items-start justify-between gap-3">
+                                                    <div className="min-w-0">
+                                                        <p className="text-[10px] uppercase tracking-[0.18em] text-astro-highlight">
+                                                            Lumi
+                                                        </p>
+                                                        <p className="mt-2 text-sm leading-relaxed text-astro-text">
+                                                            {t('synastry.extended_hint')}
+                                                        </p>
+                                                    </div>
+                                                    <span className="shrink-0 rounded-full border border-astro-highlight/25 bg-astro-highlight/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-astro-highlight">
+                                                        {extendedCost} Lumi
+                                                    </span>
+                                                </div>
+
+                                                <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-[18px] border border-astro-border/55 bg-astro-bg/15 px-3.5 py-3 text-sm text-astro-subtext">
+                                                    <input
+                                                        type="checkbox"
+                                                        className="mt-1 h-4 w-4 shrink-0 rounded border-astro-border text-astro-highlight focus:ring-astro-highlight"
+                                                        checked={allowLumiConsent}
+                                                        onChange={(e) => setAllowLumiConsent(e.target.checked)}
+                                                    />
+                                                    <span>{t('synastry.lumi_consent', { cost: String(extendedCost) })}</span>
+                                                </label>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() => void runSynastry('extended')}
+                                                    disabled={!allowLumiConsent}
+                                                    className="mt-3 w-full rounded-[20px] border border-astro-highlight/50 bg-white/55 px-4 py-3 text-sm font-semibold text-astro-highlight backdrop-blur disabled:opacity-50"
+                                                >
+                                                    {t('synastry.add_extended_btn', { cost: String(extendedCost) })}
+                                                </button>
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setResult(null);
+                                    setError(null);
+                                    setAllowLumiConsent(false);
+                                    if (partnerCharts.length > 0) {
+                                        setPartnerInputMode('charts');
+                                    }
+                                }}
+                                className="w-full rounded-xl border border-astro-border px-4 py-3 text-sm font-semibold text-astro-text"
+                            >
+                                {getText(profile.language, 'synastry.compare_again')}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
         </ScreenShell>
     );
 };
+
+

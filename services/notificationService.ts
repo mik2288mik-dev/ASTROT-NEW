@@ -15,6 +15,21 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function matchesRepeatMode(repeatMode: string | null | undefined, zonedNow: Date): boolean {
+  const mode = String(repeatMode || 'daily').toLowerCase();
+  const weekday = zonedNow.getDay();
+
+  if (mode === 'weekdays') {
+    return weekday >= 1 && weekday <= 5;
+  }
+
+  if (mode === 'weekly') {
+    return weekday === 1;
+  }
+
+  return true;
+}
+
 export type ScheduledTemplateRow = Record<string, any>;
 
 export function resolveDefaultMiniAppUrl(): string {
@@ -251,7 +266,7 @@ export async function sendNotificationSlot(
   const result = await sendNotificationFromTemplate(template, {
     createdBy,
     mode: 'broadcast',
-    targetSegment: 'all',
+    targetSegment: (template.target_segment as AdminNotificationTargetSegment | null) || 'all',
   });
 
   await markRotationAfterSend(slot, rotationGroup, Number(template.id), index);
@@ -307,6 +322,7 @@ export async function getDueSchedulesThisMinute(now: Date = new Date()): Promise
           : String(st).slice(0, 5);
 
     if (timeStr !== currentHm) continue;
+    if (!matchesRepeatMode(s.repeat_mode, zoned)) continue;
 
     const slot = String(template.slot);
     const rg = template.rotation_group != null ? String(template.rotation_group) : null;
@@ -369,7 +385,7 @@ export async function runDueScheduledNotifications(createdBy: string, now: Date 
       const result = await sendNotificationFromTemplate(templateRow, {
         createdBy,
         mode: 'broadcast',
-        targetSegment: 'all',
+        targetSegment: (templateRow.target_segment as AdminNotificationTargetSegment | null) || 'all',
         scheduleTimezone: String(row.timezone || 'Europe/Moscow'),
       });
       await db.notification_schedules.updateLastSent(run.scheduleId);

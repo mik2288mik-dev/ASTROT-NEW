@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
 import { SYSTEM_PROMPT_ASTRA, createMonthlyForecastPrompt, addLanguageInstruction, MonthlyForecastAIResponse } from '../../../lib/prompts';
-import { getOpenAIInterpretationModel } from '../../../lib/appSettings';
+import { getOpenAIModelForContent } from '../../../lib/appSettings';
 import { CACHE_CONFIGS } from '../../../lib/cache';
 
 // Logging utility
@@ -66,7 +66,11 @@ export default async function handler(
     const userPrompt = createMonthlyForecastPrompt(chartData, profile, month);
     const promptWithLang = addLanguageInstruction(userPrompt, lang ? 'ru' : 'en');
 
-    const modelId = await getOpenAIInterpretationModel();
+    const { model: modelId } = await getOpenAIModelForContent({
+      accessTier: 'free',
+      contentSurface: 'forecast',
+      contentVariant: 'monthly',
+    });
     log.info('Sending request to OpenAI', {
       model: modelId,
       promptLength: promptWithLang.length

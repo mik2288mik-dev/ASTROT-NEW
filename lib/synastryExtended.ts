@@ -8,7 +8,7 @@ function readSynastryExtendedLumiCost(): number {
   return Number.isFinite(n) && n > 0 ? n : 180;
 }
 
-/** Разовый средний слой синастрии (Lumi). Сервер: `SYNASTRY_EXTENDED_LUMI_COST`; клиент: `NEXT_PUBLIC_SYNASTRY_EXTENDED_LUMI_COST`. */
+/** Разовое Lumi-открытие полного разбора синастрии. Сервер: `SYNASTRY_EXTENDED_LUMI_COST`; клиент: `NEXT_PUBLIC_SYNASTRY_EXTENDED_LUMI_COST`. */
 export const SYNASTRY_EXTENDED_LUMI_COST = readSynastryExtendedLumiCost();
 
 export function buildSynastryExtendedCacheKey(

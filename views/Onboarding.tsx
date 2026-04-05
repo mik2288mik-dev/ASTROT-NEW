@@ -1,9 +1,7 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserProfile } from '../types';
 import { motion } from 'framer-motion';
-import { getApproximateSunSignByDate } from '../lib/zodiac-utils';
-import { getZodiacSign } from '../constants';
 import { ensureTelegramFullscreen } from '../lib/telegramFullscreen';
 
 interface OnboardingProps {
@@ -16,21 +14,6 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     const [date, setDate] = useState("");
     const [time, setTime] = useState("");
     const [place, setPlace] = useState("");
-    
-    // Вычисляем предполагаемый знак зодиака на основе выбранной даты
-    const predictedZodiacSign = useMemo(() => {
-        if (!date) return null;
-        try {
-            const [year, month, day] = date.split('-').map(Number);
-            if (!year || !month || !day) return null;
-            const sign = getApproximateSunSignByDate(year, month, day);
-            const signRu = getZodiacSign('ru', sign);
-            const signEn = sign;
-            return { ru: signRu, en: signEn };
-        } catch {
-            return null;
-        }
-    }, [date]);
 
     // Telegram integration
     useEffect(() => {
@@ -40,6 +23,13 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         }
         ensureTelegramFullscreen();
     }, []);
+
+    const stepDescription =
+        step === 1
+            ? "Начнём с простого."
+            : step === 2
+                ? "Пара деталей, чтобы всё собрать точнее."
+                : "Последний шаг перед твоим личным разбором.";
 
     const handleNext = () => {
         // Валидация на каждом шаге
@@ -102,11 +92,23 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                         Lumia
                     </h1>
                     <p className="text-[10px] uppercase tracking-[0.4em] text-[#717171]">
-                        Персональный Оракул
+                        Ясность для жизни и решений
+                    </p>
+                    <p className="mx-auto mt-4 max-w-sm text-sm leading-relaxed text-[#5d5d5d]">
+                        Пара шагов, чтобы Lumia точнее подсветила то, что сейчас важно: выбор, отношения и твой внутренний фокус.
                     </p>
                 </div>
 
                 <div className="rounded-2xl border border-black/[0.08] bg-white/95 p-8 shadow-sm ring-1 ring-black/[0.04]">
+                    <div className="mb-8">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#717171]">
+                            Шаг {step} из 3
+                        </p>
+                        <p className="mt-2 text-sm leading-relaxed text-[#5d5d5d]">
+                            {stepDescription}
+                        </p>
+                    </div>
+
                     {step === 1 && (
                         <motion.div initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="space-y-6">
                             <div>
@@ -136,20 +138,6 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                                     onChange={(e) => setDate(e.target.value)}
                                     className="w-full border-b border-black/15 bg-transparent py-3 font-serif text-xl text-[#2d2d2d] outline-none focus:border-astro-highlight"
                                 />
-                                {predictedZodiacSign && (
-                                    <motion.div 
-                                        initial={{ opacity: 0, y: -5 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        className="mt-3 text-sm"
-                                    >
-                                        <div className="text-astro-highlight">
-                                            Предполагаемый знак зодиака: <span className="font-bold">{predictedZodiacSign.ru}</span> ({predictedZodiacSign.en})
-                                        </div>
-                                        <div className="mt-1 text-xs text-[#717171]">
-                                            * Приблизительно по дате. Точный знак будет рассчитан после ввода времени и места рождения.
-                                        </div>
-                                    </motion.div>
-                                )}
                             </div>
                             <div>
                                 <label className="mb-3 block text-[10px] font-bold uppercase tracking-widest text-[#717171]">

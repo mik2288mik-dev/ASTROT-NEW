@@ -88,6 +88,7 @@ async function migrationReset(pool: Pool): Promise<void> {
     'synastry_cache',
     'astro_questions',
     'daily_natal_cards',
+    'daily_task_completions',
     'daily_horoscopes',
     'roulette_spins',
     'lumi_transactions',
@@ -175,7 +176,6 @@ async function lumia001FullSchema(pool: Pool): Promise<void> {
       theme TEXT DEFAULT 'dark',
       is_admin BOOLEAN DEFAULT FALSE,
       weather_city TEXT,
-      dashboard_air_variant TEXT DEFAULT 'cloud-ribbon',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `);
@@ -235,6 +235,18 @@ async function lumia001FullSchema(pool: Pool): Promise<void> {
   `);
 
   await pool.query(`
+    CREATE TABLE daily_task_completions (
+      id SERIAL PRIMARY KEY,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      task_key TEXT NOT NULL,
+      task_date DATE NOT NULL,
+      lumi_awarded INTEGER NOT NULL DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE (user_id, task_key, task_date)
+    );
+  `);
+
+  await pool.query(`
     CREATE TABLE daily_horoscopes (
       id SERIAL PRIMARY KEY,
       zodiac_sign TEXT NOT NULL,
@@ -281,6 +293,8 @@ async function lumia001FullSchema(pool: Pool): Promise<void> {
     CREATE UNIQUE INDEX idx_interpretations_lookup ON interpretations(user_id, type, input_hash);
     CREATE INDEX idx_lumi_transactions_user ON lumi_transactions(user_id);
     CREATE INDEX idx_lumi_transactions_reason ON lumi_transactions(reason);
+    CREATE INDEX idx_daily_task_completions_user ON daily_task_completions(user_id);
+    CREATE INDEX idx_daily_task_completions_user_date ON daily_task_completions(user_id, task_date);
     CREATE INDEX idx_astro_questions_user ON astro_questions(user_id);
     CREATE INDEX idx_astro_questions_user_date ON astro_questions(user_id, created_at);
     CREATE INDEX idx_daily_horoscopes_date ON daily_horoscopes(date);
@@ -877,38 +891,59 @@ async function lumia009ContentArchitecture(pool: Pool): Promise<void> {
   log.info('Migration lumia_009_content_architecture applied');
 }
 
-/**
- * Dashboard AIR variant per user (lumia_010)
- */
-async function lumia010DashboardAirVariant(pool: Pool): Promise<void> {
-  const migrationName = 'lumia_010_dashboard_air_variant';
+async function lumia011RemoveDashboardAirVariant(pool: Pool): Promise<void> {
+  const migrationName = 'lumia_011_remove_dashboard_air_variant';
 
   if (await isMigrationApplied(pool, migrationName)) {
     log.info(`Migration ${migrationName} already applied, skipping`);
     return;
   }
 
-  log.info('Applying dashboard AIR variant migration...');
+  log.info('Removing dashboard AIR variant schema...');
 
   await pool.query(`
     ALTER TABLE users
-      ADD COLUMN IF NOT EXISTS dashboard_air_variant TEXT DEFAULT 'cloud-ribbon'
-  `);
-
-  await pool.query(`
-    UPDATE users
-    SET dashboard_air_variant = 'cloud-ribbon'
-    WHERE dashboard_air_variant IS NULL
+      DROP COLUMN IF EXISTS dashboard_air_variant
   `);
 
   await markMigrationApplied(pool, migrationName);
-  log.info('Migration lumia_010_dashboard_air_variant applied');
+  log.info('Migration lumia_011_remove_dashboard_air_variant applied');
+}
+
+async function lumia012DailyLumiTasks(pool: Pool): Promise<void> {
+  const migrationName = 'lumia_012_daily_lumi_tasks';
+
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
+  log.info('Applying daily Lumi tasks migration...');
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS daily_task_completions (
+      id SERIAL PRIMARY KEY,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      task_key TEXT NOT NULL,
+      task_date DATE NOT NULL,
+      lumi_awarded INTEGER NOT NULL DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE (user_id, task_key, task_date)
+    )
+  `);
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_daily_task_completions_user ON daily_task_completions(user_id)');
+  await pool.query(
+    'CREATE INDEX IF NOT EXISTS idx_daily_task_completions_user_date ON daily_task_completions(user_id, task_date)'
+  );
+
+  await markMigrationApplied(pool, migrationName);
+  log.info('Migration lumia_012_daily_lumi_tasks applied');
 }
 
 async function verifyTablesExist(pool: Pool): Promise<void> {
   const required = [
     'users', 'natal_charts', 'interpretations', 'lumi_transactions', 'app_settings',
-    'roulette_spins', 'daily_horoscopes', 'daily_natal_cards',
+    'roulette_spins', 'daily_horoscopes', 'daily_natal_cards', 'daily_task_completions',
     'astro_questions', 'dictionary', 'synastry_cache', 'star_payments',
     'content_interpretations', 'content_unlocks', 'premium_entitlements',
     'user_sessions',
@@ -978,7 +1013,8 @@ export async function runMigrations(): Promise<void> {
   await lumia007NotificationVisualHybrid(pool);
   await lumia008AdminNotificationEnhancements(pool);
   await lumia009ContentArchitecture(pool);
-  await lumia010DashboardAirVariant(pool);
+  await lumia011RemoveDashboardAirVariant(pool);
+  await lumia012DailyLumiTasks(pool);
   await verifyTablesExist(pool);
 
     log.info('All Lumia migrations completed successfully');

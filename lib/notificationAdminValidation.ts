@@ -1,8 +1,8 @@
 import type { AdminNotificationTargetSegment } from '../types';
 import { isValidGeneratedPreset } from './notificationCardPresets';
 
-const SLOTS = new Set(['morning', 'day', 'evening', 'custom']);
-const REPEAT = new Set(['daily']);
+const SLOTS = new Set(['morning', 'day', 'evening', 'daily_lumi', 'upsell', 'promo', 'custom']);
+const REPEAT = new Set(['daily', 'weekly', 'weekdays']);
 const VISUAL_MODES = new Set(['none', 'uploaded', 'generated']);
 const ZODIAC_MODES = new Set(['none', 'sun_sign', 'custom']);
 const TARGET_SEGMENTS = new Set([

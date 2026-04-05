@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
 import { SYSTEM_PROMPT_ASTRA, createDailyForecastPrompt, addLanguageInstruction, DailyForecastAIResponse } from '../../../lib/prompts';
-import { getOpenAIInterpretationModel } from '../../../lib/appSettings';
+import { getOpenAIModelForContent } from '../../../lib/appSettings';
 import { db } from '../../../lib/db';
 import { getCurrentTransits } from '../../../lib/transits-calculator';
 import { tryAcquireLock, releaseLock, LockKeys } from '../../../lib/serverLocks';
@@ -31,14 +31,14 @@ type DailySource = 'cache' | 'generated' | 'generated-not-persisted' | 'cache-af
 function buildFallbackHoroscope(lang: boolean, dateKey: string) {
   return {
     date: dateKey,
-    mood: lang ? 'Вдохновленный' : 'Inspired',
+    mood: lang ? 'Собранный день' : 'Steady day',
     color: 'Purple',
     number: 7,
     content: lang
-      ? 'Сегодня звезды благоприятствуют новым начинаниям.'
-      : 'Today the stars favor new beginnings.',
-    moonImpact: lang ? 'Луна усиливает интуицию.' : 'Moon enhances intuition.',
-    transitFocus: lang ? 'Меркурий способствует общению.' : 'Mercury favors communication.',
+      ? 'Сегодня тебе полезнее не разбрасываться, а держаться за один ясный приоритет. Чем меньше лишнего шума и поспешных реакций, тем легче увидеть, где у дня есть реальная опора.\n\nВ разговорах и решениях поможет спокойный темп. Сначала пойми, что для тебя действительно важно, и уже потом отвечай миру.'
+      : 'Today it will help more to stay with one clear priority than to scatter yourself. The less noise and rushed reaction you allow in, the easier it becomes to notice where the day is actually giving you support.\n\nA calmer pace will help in both conversation and decision-making. First notice what truly matters to you, then respond.',
+    moonImpact: lang ? 'Эмоциональный фон делает интуицию точнее, если не спешить.' : 'The emotional tone sharpens intuition when you do not rush.',
+    transitFocus: lang ? 'Главный акцент дня — ясность в выборе и спокойствие в контактах.' : 'The main emphasis of the day is clarity in choices and calm in contact.',
   };
 }
 
@@ -328,7 +328,11 @@ export default async function handler(
 
         const userPrompt = createDailyForecastPrompt(chartData, profile, currentDateStr, transits);
         const promptWithLang = addLanguageInstruction(userPrompt, lang ? 'ru' : 'en');
-        const modelId = await getOpenAIInterpretationModel();
+        const { model: modelId } = await getOpenAIModelForContent({
+          accessTier: 'free',
+          contentSurface: 'forecast',
+          contentVariant: 'daily',
+        });
 
         const genStartTime = Date.now();
         const completion = await openai.chat.completions.create({

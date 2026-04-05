@@ -19,6 +19,7 @@ import {
 import { NotificationsManager } from '../../components/Admin/Notifications/NotificationsManager';
 import { AdminBadge, AdminButton, AdminEmptyState, AdminInput, AdminSectionHeader, AdminSelect, AdminStateBanner, AdminSurface, AdminTextarea } from './AdminPrimitives';
 import { getAdminText } from './adminText';
+import { getNotificationSlotConfig, getNotificationSlotDefaultDeepLink, NOTIFICATION_SLOTS } from '../../lib/notificationSlotCatalog';
 
 type Props = {
   profile: UserProfile;
@@ -38,12 +39,15 @@ const SEGMENTS: AdminNotificationTargetSegment[] = [
   'need_attention',
 ];
 
-const SLOTS: NotificationSlot[] = ['morning', 'day', 'evening', 'custom'];
+const SLOTS: NotificationSlot[] = NOTIFICATION_SLOTS;
 
 const slotKey = (lang: 'ru' | 'en', slot: NotificationSlot) => {
   if (slot === 'morning') return getAdminText(lang, 'slot_morning');
   if (slot === 'day') return getAdminText(lang, 'slot_day');
   if (slot === 'evening') return getAdminText(lang, 'slot_evening');
+  if (slot === 'daily_lumi') return getAdminText(lang, 'slot_daily_lumi');
+  if (slot === 'upsell') return getAdminText(lang, 'slot_upsell');
+  if (slot === 'promo') return getAdminText(lang, 'slot_promo');
   return getAdminText(lang, 'slot_custom');
 };
 
@@ -63,10 +67,13 @@ const segmentLabel = (lang: 'ru' | 'en', segment: AdminNotificationTargetSegment
 };
 
 const defaultTimeBySlot: Record<NotificationSlot, string> = {
-  morning: '08:00',
-  day: '13:00',
-  evening: '20:00',
-  custom: '12:00',
+  morning: getNotificationSlotConfig('morning').defaultSendTime,
+  day: getNotificationSlotConfig('day').defaultSendTime,
+  evening: getNotificationSlotConfig('evening').defaultSendTime,
+  daily_lumi: getNotificationSlotConfig('daily_lumi').defaultSendTime,
+  upsell: getNotificationSlotConfig('upsell').defaultSendTime,
+  promo: getNotificationSlotConfig('promo').defaultSendTime,
+  custom: getNotificationSlotConfig('custom').defaultSendTime,
 };
 
 export const AdminAutomationTab: React.FC<Props> = ({ profile }) => {
@@ -83,10 +90,12 @@ export const AdminAutomationTab: React.FC<Props> = ({ profile }) => {
 
   const [name, setName] = useState('');
   const [slot, setSlot] = useState<NotificationSlot>('morning');
-  const [targetSegment, setTargetSegment] = useState<AdminNotificationTargetSegment>('all');
+  const [targetSegment, setTargetSegment] = useState<AdminNotificationTargetSegment>(
+    (getNotificationSlotConfig('morning').defaultTargetSegment || 'all') as AdminNotificationTargetSegment
+  );
   const [text, setText] = useState('');
   const [assetId, setAssetId] = useState<number | null>(null);
-  const [repeatMode, setRepeatMode] = useState<RepeatMode>('daily');
+  const [repeatMode, setRepeatMode] = useState<RepeatMode>(getNotificationSlotConfig('morning').defaultRepeatMode);
   const [sendTime, setSendTime] = useState('08:00');
   const [isActive, setIsActive] = useState(true);
 
@@ -116,6 +125,9 @@ export const AdminAutomationTab: React.FC<Props> = ({ profile }) => {
       morning: [],
       day: [],
       evening: [],
+      daily_lumi: [],
+      upsell: [],
+      promo: [],
       custom: [],
     };
     templates.forEach((template) => {
@@ -128,10 +140,10 @@ export const AdminAutomationTab: React.FC<Props> = ({ profile }) => {
     setSelectedId(null);
     setName('');
     setSlot('morning');
-    setTargetSegment('all');
+    setTargetSegment((getNotificationSlotConfig('morning').defaultTargetSegment || 'all') as AdminNotificationTargetSegment);
     setText('');
     setAssetId(null);
-    setRepeatMode('daily');
+    setRepeatMode(getNotificationSlotConfig('morning').defaultRepeatMode);
     setSendTime(defaultTimeBySlot.morning);
     setIsActive(true);
   };
@@ -173,6 +185,8 @@ export const AdminAutomationTab: React.FC<Props> = ({ profile }) => {
     setSaving(true);
     setError(null);
     try {
+      const existingTemplate = selectedId ? templates.find((template) => template.id === selectedId) || null : null;
+      const slotConfig = getNotificationSlotConfig(slot);
       const payload = {
         name: name.trim(),
         slot,
@@ -180,11 +194,11 @@ export const AdminAutomationTab: React.FC<Props> = ({ profile }) => {
         visualMode: assetId ? 'uploaded' : 'none',
         messageType: assetId ? 'photo' : 'text',
         text: text.trim(),
-        buttonText: '',
-        deepLink: '',
+        buttonText: existingTemplate?.buttonText || slotConfig.defaultButtonText,
+        deepLink: existingTemplate?.deepLink || getNotificationSlotDefaultDeepLink(slot),
         assetId,
         isActive,
-        notes: null,
+        notes: existingTemplate?.notes || (lang === 'en' ? slotConfig.notesEn : slotConfig.notesRu),
         schedules: [
           {
             sendTime,
@@ -348,9 +362,12 @@ export const AdminAutomationTab: React.FC<Props> = ({ profile }) => {
               <div className="grid gap-3 sm:grid-cols-2">
                 <AdminSelect value={slot} onChange={(event) => {
                   const next = event.target.value as NotificationSlot;
+                  const nextConfig = getNotificationSlotConfig(next);
                   setSlot(next);
                   if (!selectedId) {
                     setSendTime(defaultTimeBySlot[next]);
+                    setTargetSegment((nextConfig.defaultTargetSegment || 'all') as AdminNotificationTargetSegment);
+                    setRepeatMode(nextConfig.defaultRepeatMode);
                   }
                 }}>
                   {SLOTS.map((slotOption) => (

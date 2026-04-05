@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import type { NatalChartData, UserProfile } from '../../../../types';
+import { getOpenAIModelForContent } from '../../../../lib/appSettings';
 import { db } from '../../../../lib/db';
 import { generateFreeDailyForecast } from '../../../../lib/forecastContent';
 import { getContentLayer } from '../../../../lib/contentArchitecture';
@@ -131,6 +132,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const forecast = await generateFreeDailyForecast(context.profile, context.chartData, dateKey);
+  const { modelTier } = await getOpenAIModelForContent({
+    accessTier: 'free',
+    contentSurface: 'forecast',
+    contentVariant: 'daily',
+  });
   const interpretation = context.chartId != null
     ? await db.content_interpretations.upsertByChart(context.chartId, {
         accessTier: 'free',
@@ -139,7 +145,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         cacheKey: dateKey,
         inputHash: dateKey,
         content: forecast,
-        modelTier: 'base',
+        modelTier,
         validFrom: `${dateKey}T00:00:00.000Z`,
         validTo: `${dateKey}T23:59:59.999Z`,
         isPersistent: false,
@@ -153,7 +159,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         cacheKey: dateKey,
         inputHash: dateKey,
         content: forecast,
-        modelTier: 'base',
+        modelTier,
         validFrom: `${dateKey}T00:00:00.000Z`,
         validTo: `${dateKey}T23:59:59.999Z`,
         isPersistent: false,

@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import type { NatalChartData, UserProfile } from '../../../../types';
+import { getOpenAIModelForContent } from '../../../../lib/appSettings';
 import { db } from '../../../../lib/db';
 import { generateFreeWeeklyForecast, generatePremiumWeeklyForecast } from '../../../../lib/forecastContent';
 import { getContentLayer, getPremiumEntitlementState } from '../../../../lib/contentArchitecture';
@@ -170,6 +171,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const forecast = tierToGenerate === 'premium'
     ? await generatePremiumWeeklyForecast(context.profile, context.chartData, periodKey, periodLabel)
     : await generateFreeWeeklyForecast(context.profile, context.chartData, periodKey, periodLabel);
+  const { modelTier } = await getOpenAIModelForContent({
+    accessTier: tierToGenerate,
+    contentSurface: 'forecast',
+    contentVariant: 'weekly',
+  });
 
   const interpretation = context.chartId != null
     ? await db.content_interpretations.upsertByChart(context.chartId, {
@@ -179,7 +185,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         cacheKey: periodKey,
         inputHash: periodKey,
         content: forecast,
-        modelTier: tierToGenerate === 'premium' ? 'premium' : 'base',
+        modelTier,
         validFrom,
         validTo,
         isPersistent: false,
@@ -193,7 +199,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         cacheKey: periodKey,
         inputHash: periodKey,
         content: forecast,
-        modelTier: tierToGenerate === 'premium' ? 'premium' : 'base',
+        modelTier,
         validFrom,
         validTo,
         isPersistent: false,

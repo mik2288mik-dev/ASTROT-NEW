@@ -1,13 +1,6 @@
 
 export type Language = 'ru' | 'en';
 export type Theme = 'dark' | 'light';
-export type DashboardAirVariant =
-  | 'cloud-ribbon'
-  | 'aero-stack'
-  | 'orbit-focus'
-  | 'feather-cards'
-  | 'pulse-air';
-
 export interface UserEvolution {
   level: number;
   title: string; // e.g. "Seeker", "Awakened", "Master"
@@ -60,8 +53,7 @@ export interface UserProfile {
   /** User already linked to an inviter (one-time referral) */
   referralApplied?: boolean;
   weatherCity?: string; // Город для погоды (например, "Moscow" или "Москва")
-  dashboardAirVariant?: DashboardAirVariant;
-  
+
   // Все генерации пользователя (кэшируются)
   generatedContent?: UserGeneratedContent;
 }
@@ -162,7 +154,7 @@ export interface SynastryResult {
     tips: string[]; // 3-4 подсказки как лучше обходиться друг с другом
   };
   
-  // Средний слой (Lumi) — глубже brief, компактнее full
+  // Legacy Lumi shape kept for backward compatibility with older cached results
   extendedOverview?: {
     connection: string;
     tension: string;
@@ -575,7 +567,14 @@ export interface AdminNotificationSendResult {
   campaign: AdminNotificationHistoryItem;
 }
 
-export type NotificationSlot = 'morning' | 'day' | 'evening' | 'custom';
+export type NotificationSlot =
+  | 'morning'
+  | 'day'
+  | 'evening'
+  | 'daily_lumi'
+  | 'upsell'
+  | 'promo'
+  | 'custom';
 export type ScheduledNotificationMessageType = 'text' | 'photo';
 export type NotificationVisualMode = 'none' | 'uploaded' | 'generated';
 export type NotificationGeneratedZodiacMode = 'none' | 'sun_sign' | 'custom';
@@ -664,6 +663,24 @@ export interface LumiTransaction {
   amount: number;
   reason: string;
   created_at: string;
+}
+
+export type DailyLumiTaskKey = 'open_horoscope' | 'open_chart';
+
+export interface DailyLumiTaskStatusItem {
+  key: DailyLumiTaskKey;
+  reward: number;
+  completed: boolean;
+  completedAt: string | null;
+}
+
+export interface DailyLumiTasksStatus {
+  date: string;
+  totalReward: number;
+  earnedToday: number;
+  completedCount: number;
+  tasks: DailyLumiTaskStatusItem[];
+  lumiBalance: number;
 }
 
 export interface LumiWalletData {

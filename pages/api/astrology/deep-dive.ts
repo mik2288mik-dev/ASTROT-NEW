@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
 import { db } from '../../../lib/db';
 import { SYSTEM_PROMPT_ASTRA, createDeepDivePrompt, addLanguageInstruction } from '../../../lib/prompts';
-import { getOpenAIInterpretationModel } from '../../../lib/appSettings';
+import { getOpenAIModelForContent } from '../../../lib/appSettings';
 
 const TITLE_TO_KEY: Record<string, string> = {
   personality: 'personality', love: 'love', career: 'career', weakness: 'weakness', weaknesses: 'weakness', karma: 'karma',
@@ -97,7 +97,11 @@ export default async function handler(
     const userPrompt = createDeepDivePrompt(chartData, profile, topic);
     const promptWithLang = addLanguageInstruction(userPrompt, lang ? 'ru' : 'en');
 
-    const modelId = await getOpenAIInterpretationModel();
+    const { model: modelId } = await getOpenAIModelForContent({
+      accessTier: 'premium',
+      contentSurface: 'natal',
+      contentVariant: 'living',
+    });
     log.info('Sending request to OpenAI', {
       model: modelId,
       promptLength: promptWithLang.length

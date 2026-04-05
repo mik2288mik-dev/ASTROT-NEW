@@ -24,7 +24,7 @@ import {
   PremiumMonthlyForecastV2AIResponse,
   PremiumWeeklyForecastV2AIResponse,
 } from './prompts';
-import { getOpenAIInterpretationModel } from './appSettings';
+import { getOpenAIModelForContent } from './appSettings';
 import { getCurrentTransits } from './transits-calculator';
 import { formatIsoWeekPeriodLabel, formatMonthPeriodLabel, getMoscowTodayKey } from './date-utils';
 
@@ -94,31 +94,70 @@ function buildDaypartFallback(
   dateKey: string,
   slot: ForecastDaypartSlot
 ): ForecastDaypartReading {
-  const slotTitle =
-    lang === 'ru'
-      ? { morning: 'утро', day: 'день', evening: 'вечер' }[slot]
-      : { morning: 'morning', day: 'day', evening: 'evening' }[slot];
+  const ruCopy: Record<ForecastDaypartSlot, Omit<ForecastDaypartReading, 'date' | 'slot'>> = {
+    morning: {
+      headline: 'Утро требует собранного старта',
+      summary: 'Первая половина дня лучше раскрывается через ясный внутренний фокус, а не через резкий разгон.',
+      focus: 'Собери утро вокруг одного главного намерения, иначе мелкие срочности растащат внимание.',
+      relationships: 'В утреннем контакте лучше не угадывать настроение друг друга, а говорить проще и прямее.',
+      money: 'До обеда полезнее сверяться с приоритетом, чем бросаться в каждую задачу как в срочную.',
+      guidance: 'Это не время для хаотичного старта. Чем спокойнее ты задашь ритм утром, тем меньше лишнего давления понесёшь в день.',
+    },
+    day: {
+      headline: 'День проверяет твою точность',
+      summary: 'В центре дня растёт плотность решений, поэтому особенно важно не путать активность с реальным движением.',
+      focus: 'Держись ближе к тому, что даёт результат, а не только ощущение занятости.',
+      relationships: 'Днём напряжение чаще всего рождается из недосказанности и быстрого тона, а не из самой темы разговора.',
+      money: 'Практические решения лучше принимать по критерию, а не по импульсу или внешнему давлению.',
+      guidance: 'Середина дня любит ясную структуру. Если чувствуешь перегруз, не ускоряйся автоматически: сначала верни себе опору, потом выбирай следующий шаг.',
+    },
+    evening: {
+      headline: 'Вечер просит тишины и честности',
+      summary: 'К вечеру сильнее слышно то, что было вытеснено днём, поэтому полезнее снижать шум, а не добивать себя новыми задачами.',
+      focus: 'Смотри не только на события дня, но и на то, что они в тебе реально подняли.',
+      relationships: 'Вечером близость строится не на идеальном тоне, а на честном присутствии без защитной маски.',
+      money: 'Поздние решения лучше не принимать на усталости; вечер скорее для сверки, чем для резких разворотов.',
+      guidance: 'Эта часть дня лучше работает как мягкая настройка на себя. Заверши незавершённое по смыслу, а не пытайся выиграть у усталости дисциплиной.',
+    },
+  };
+
+  const enCopy: Record<ForecastDaypartSlot, Omit<ForecastDaypartReading, 'date' | 'slot'>> = {
+    morning: {
+      headline: 'Morning asks for a collected start',
+      summary: 'The first half of the day opens better through inner focus than through sudden acceleration.',
+      focus: 'Build the morning around one real intention or small urgencies will pull your attention apart.',
+      relationships: 'In morning contact, it helps to speak more plainly instead of trying to guess each other’s mood.',
+      money: 'Before noon, it is wiser to check priority first than to treat every task as urgent.',
+      guidance: 'This is not the time for a chaotic start. The calmer you set the rhythm in the morning, the less extra pressure you carry into the day.',
+    },
+    day: {
+      headline: 'The day tests your precision',
+      summary: 'In the middle of the day, decisions get denser, so it matters not to confuse activity with real movement.',
+      focus: 'Stay close to what creates an actual result, not just the feeling of being busy.',
+      relationships: 'Daytime tension often grows from unfinished communication and a rushed tone, not from the topic itself.',
+      money: 'Practical decisions work better when they follow a criterion instead of impulse or outside pressure.',
+      guidance: 'Midday responds well to structure. If you feel overloaded, do not speed up automatically: regain your footing first, then choose the next step.',
+    },
+    evening: {
+      headline: 'Evening asks for honesty and quiet',
+      summary: 'By evening, what was pushed aside during the day becomes easier to feel, so lowering the noise helps more than adding new tasks.',
+      focus: 'Notice not only what happened today, but what it actually stirred in you.',
+      relationships: 'At night, closeness grows less from perfect wording and more from honest presence without a defensive mask.',
+      money: 'Late decisions are better not made from fatigue; the evening is more for review than for hard turns.',
+      guidance: 'This part of the day works best as a gentle reset. Close what needs inner completion instead of trying to outrun tiredness with discipline.',
+    },
+  };
 
   return lang === 'ru'
     ? {
         date: dateKey,
         slot,
-        headline: `${slotTitle[0].toUpperCase()}${slotTitle.slice(1)} просит ясности`,
-        summary: 'Сейчас лучше действовать спокойнее и точнее, чем резче и быстрее.',
-        focus: 'Держись ближе к главному и не распыляй энергию.',
-        relationships: 'В контакте с людьми лучше выбирать честность без лишней резкости.',
-        money: 'Практические решения лучше принимать без давления и спешки.',
-        guidance: 'Это время дня лучше прожить собранно: меньше шума, больше внутренней опоры.',
+        ...ruCopy[slot],
       }
     : {
         date: dateKey,
         slot,
-        headline: `${slotTitle[0].toUpperCase()}${slotTitle.slice(1)} asks for clarity`,
-        summary: 'It helps to move with more calm precision than speed right now.',
-        focus: 'Stay close to what matters and do not split your energy.',
-        relationships: 'Choose honesty without extra sharpness in your interactions.',
-        money: 'Practical decisions work better without pressure or rush.',
-        guidance: 'This part of the day works best when you stay collected: less noise, more inner support.',
+        ...enCopy[slot],
       };
 }
 
@@ -161,10 +200,11 @@ function normalizeDaypartForecast(
 }
 
 async function getForecastModel(modelTier: 'base' | 'premium') {
-  if (modelTier === 'premium') {
-    return process.env.OPENAI_PREMIUM_MODEL?.trim() || (await getOpenAIInterpretationModel());
-  }
-  return process.env.OPENAI_BASE_MODEL?.trim() || (await getOpenAIInterpretationModel());
+  return getOpenAIModelForContent({
+    accessTier: modelTier === 'premium' ? 'premium' : 'free',
+    contentSurface: 'forecast',
+    contentVariant: modelTier === 'premium' ? 'day' : 'daily',
+  });
 }
 
 export async function generateFreeDailyForecast(
@@ -184,7 +224,7 @@ export async function generateFreeDailyForecast(
       createDailyForecastV2Prompt(chartData, profile, dateKey, transits),
       lang
     );
-    const model = await getForecastModel('base');
+    const { model } = await getForecastModel('base');
     const completion = await openai.chat.completions.create({
       model,
       messages: [
@@ -222,7 +262,7 @@ export async function generatePremiumDaypartForecast(
       createDaypartForecastPrompt(chartData, profile, dateKey, slot, transits),
       lang
     );
-    const model = await getForecastModel('premium');
+    const { model } = await getForecastModel('premium');
     const completion = await openai.chat.completions.create({
       model,
       messages: [
@@ -265,25 +305,31 @@ function buildPremiumWeeklyFallback(lang: 'ru' | 'en', periodKey: string, period
   return lang === 'ru'
     ? {
         ...base,
-        theme: 'Сборка и направление',
-        opportunities: 'Появляется шанс укрепить то, что уже начал работать, если не убежать в суету.',
-        challenges: 'Риск — перегруз контактами и обещаниями; легче ошибиться там, где нужна точность.',
-        relationships: 'В близости важнее честность без резкости: меньше додумываний, больше прямых формулировок.',
-        career: 'Практические решения лучше принимать с паузой: сначала критерий, потом действие.',
-        guidance: 'Держи неделю как серию спокойных шагов: меньше импульса, больше опоры на факты и ощущения.',
+        headline: 'Неделя просит зрелого фокуса и точных решений',
+        summary: 'Эта неделя не про внешний разгон, а про умение держать курс, когда вокруг становится плотнее по задачам, ожиданиям и контактам. Чем лучше ты видишь свой реальный приоритет, тем меньше шансов уйти в чужую срочность.',
+        focus: 'Собери неделю вокруг одной опорной линии и сверяй с ней решения, разговоры и нагрузку.',
+        theme: 'Фокус и разворот',
+        opportunities: 'У недели есть потенциал дать заметное продвижение там, где ты давно готов к следующему шагу, но раньше распылялся. Особенно хорошо сработает всё, что требует не героизма, а последовательности и внутренней собранности.',
+        challenges: 'Главный риск — перегруз обещаниями, фоновым напряжением и желанием успеть всё сразу. В такие недели человек чаще ошибается не в сути, а в темпе: берёт лишнее, отвечает раньше ясности или пытается держать под контролем всё вокруг.',
+        relationships: 'В отношениях эта неделя делает особенно заметным, где вы действительно слышите друг друга, а где общаетесь через догадки и напряжение. Чем проще и честнее будет тон, тем меньше поводов превращать чувствительную тему в накопленную обиду.',
+        career: 'В работе, деньгах и направлении лучше опираться на критерии и горизонт, а не на мгновенное чувство срочности. Если есть важный выбор, полезно смотреть не только на быстрый эффект, но и на то, что реально укрепляет твою позицию через неделю и дальше.',
+        guidance: 'Отнесись к этой неделе как к спокойной личной настройке курса, а не как к марафону на выживание. Убирай лишние реакции, не раздавай обещания авансом и чаще возвращайся к вопросу: что сейчас действительно двигает меня вперёд.',
         reading:
-          'Неделя не про «успеть всё», а про то, чтобы твоя энергия не утекала в чужие срочности.\n\nЕсли заранее обозначить главный приоритет, проще заметить, где ты реально продвигаешься, а где только реагируешь.\n\nВ отношениях выигрывает ясный тон: не обесценивать чувства, но и не раздувать недопонимание.',
+          'Неделя собирает вокруг тебя темы приоритета, личной точности и внутренней дисциплины. Будет полезно быстро замечать, где ты движешься по сути, а где просто реагируешь на плотность вокруг.\n\nХороший сценарий этой недели выглядит так: ты заранее обозначаешь, что для тебя главное, и из-за этого становишься спокойнее даже в нагруженные дни. Тогда энергия идёт не в защиту от хаоса, а в реальное продвижение.\n\nБолее сложный сценарий начинается там, где появляется желание всё удержать, никого не подвести и не выпасть из общего темпа. В таком режиме легко накопить раздражение, а потом сорваться либо в резкость, либо в усталое безразличие.\n\nВ отношениях неделя проверяет качество контакта. Если что-то задевает, лучше называть это раньше, чем внутри строить длинный внутренний монолог, который второй человек всё равно не слышит.\n\nВ работе и деньгах выигрывает зрелая избирательность. Не всё, что выглядит срочным, одинаково важно для твоего реального курса.',
       }
     : {
         ...base,
-        theme: 'Direction and consolidation',
-        opportunities: 'You can strengthen what already works if you do not scatter your attention.',
-        challenges: 'Overload from social noise and promises can blur judgment where precision matters.',
-        relationships: 'Closeness needs honesty without sharpness: fewer assumptions, clearer words.',
-        career: 'Practical choices benefit from a pause: criteria first, then action.',
-        guidance: 'Treat the week as calm steps: less impulse, more grounding in facts and felt truth.',
+        headline: 'This week asks for mature focus and precise choices',
+        summary: 'This is less a week of outer acceleration and more a week of holding your line when tasks, expectations, and contact become denser. The more clearly you see your real priority, the less likely you are to disappear into other people’s urgency.',
+        focus: 'Build the week around one supporting line and measure decisions, conversations, and workload against it.',
+        theme: 'Focus and course-correction',
+        opportunities: 'This week can bring real progress where you have long been ready for the next step but kept scattering yourself. What works best now is not intensity, but consistency and inner organization.',
+        challenges: 'The main risk is overload from promises, ambient tension, and the urge to handle everything at once. In weeks like this, people often miss not because they misunderstand the situation, but because they move too fast or take on too much.',
+        relationships: 'In relationships, the week highlights where you truly hear each other and where you communicate through assumptions and pressure. The simpler and more honest the tone, the less likely a sensitive topic turns into stored resentment.',
+        career: 'In work, money, and direction, it helps to follow criteria and horizon instead of instant urgency. If a real choice appears, look not only at the immediate effect, but at what actually strengthens your position over time.',
+        guidance: 'Treat this week as a calm personal course correction, not a survival sprint. Cut extra reactions, do not hand out promises too early, and keep returning to one question: what is genuinely moving me forward now?',
         reading:
-          'This week is less about doing everything and more about not leaking energy into other people’s urgency.\n\nIf you name one real priority early, it becomes easier to see real progress versus reactive motion.\n\nIn relationships, a clear tone wins: respect feelings without inflating misunderstandings.',
+          'This week gathers themes of priority, personal precision, and inner discipline around you. It helps to notice quickly where you are moving on purpose and where you are simply reacting to the density around you.\n\nThe stronger version of this week looks like this: you name what matters early, and that makes you calmer even in crowded days. Energy goes into progress instead of defense against chaos.\n\nThe harder version begins when you try to hold everything, disappoint no one, and stay inside everyone else’s pace. That is where irritation and fatigue quietly build.\n\nIn relationships, the week tests the quality of contact. If something is bothering you, it is better to name it before you build a long inner story the other person cannot hear.\n\nIn work and money, mature selectivity wins. Not everything that looks urgent deserves the same weight in your real direction.',
       };
 }
 
@@ -310,25 +356,31 @@ function buildPremiumMonthlyFallback(lang: 'ru' | 'en', periodKey: string, perio
   return lang === 'ru'
     ? {
         ...base,
-        theme: 'Сборка ресурса',
-        opportunities: 'Есть пространство укрепить финансовую и эмоциональную базу через простые правила.',
-        challenges: 'Перегруз и сравнение с другими могут сбить с собственного критерия успеха.',
-        relationships: 'Тема месяца — зрелые границы: близость без самопожертвования.',
-        money: 'Практика месяца: отделять импульсные траты от стратегических решений.',
-        guidance: 'Раз в неделю возвращайся к вопросу: что сейчас действительно двигает меня вперёд.',
+        headline: 'Месяц просит зрелой сборки и длинного взгляда',
+        summary: 'Этот месяц не столько про быстрые прорывы, сколько про выстраивание более взрослой опоры под себя: в ритме, отношениях, деньгах и выборе направления. Чем меньше ты живёшь от краткого импульса к краткому импульсу, тем сильнее начинает ощущаться внутренняя устойчивость.',
+        focus: 'Собирай месяц вокруг одной несущей линии: что ты реально укрепляешь, а не просто поддерживаешь по привычке.',
+        theme: 'Опора и взросление',
+        opportunities: 'У месяца хороший потенциал для перестройки своей базы: рабочих привычек, отношения к деньгам, внутренних правил и способов распределять силы. Это не самый эффектный путь снаружи, но один из самых сильных по результату на дистанции.',
+        challenges: 'Сложность месяца в том, что внешний шум может подталкивать к сравнению, спешке и ощущению, будто ты недостаточно быстро двигаешься. На этом фоне легко принять чужой ритм за свой и начать выгорать из-за задач, которые вообще не обязаны быть твоим главным вектором.',
+        relationships: 'В отношениях месяц поднимает тему зрелых границ и ясных договорённостей. Близость сейчас работает лучше там, где есть честность о потребностях, а не молчаливое ожидание, что другой сам догадается, как тебя поддержать.',
+        money: 'В деньгах и работе месяц просит разделить импульс и стратегию. Особенно полезно замечать, где решение даёт краткое облегчение, а где реально усиливает твою позицию, доход или чувство контроля над направлением.',
+        guidance: 'Проживай этот месяц как период внутренней сборки, а не как бесконечную гонку за подтверждением своей ценности. Возвращайся к длинному горизонту, чаще проверяй, что тебя действительно укрепляет, и не бойся пересобирать то, что давно держалось только на привычке.',
         reading:
-          'Месяц хорошо работает, если ты позволяешь себе более длинный горизонт, чем «сегодня вечером».\n\nВ отношениях полезно говорить о потребностях прямо, без обвинений — это снижает фон тревоги.\n\nВ деньгах и работе выигрывает простая система: мало правил, но выполняемых.\n\nЕсли удерживать один главный вектор, к концу месяца легче почувствовать, что ты не только выжил, а собрался.',
+          'Этот месяц медленно, но довольно настойчиво возвращает тебя к вопросу опоры: на чём ты сейчас стоишь внутренне, эмоционально и практически. Там, где раньше многое держалось на усилии и привычке, теперь важнее становится качество конструкции.\n\nХороший сценарий месяца выглядит не как эффектный рывок, а как постепенное взросление своего ритма. Ты начинаешь точнее выбирать, на что отдавать силы, что действительно имеет смысл поддерживать и где пора перестать изображать устойчивость вместо того, чтобы выстроить её заново.\n\nСложный сценарий включается, если пытаться жить в сравнении, спешке и постоянной проверке себя через внешние результаты. Тогда даже полезные шаги могут ощущаться как недостаточные, а эмоциональный фон становится тяжелее, чем этого требует сама реальность.\n\nВ отношениях месяц помогает увидеть, где близость строится на реальном контакте, а где на привычном молчании и самоотдаче. Чем яснее ты обозначаешь свои потребности и пределы, тем спокойнее становится сама связь.\n\nВ деньгах и работе месяц обучает взрослой избирательности. Не каждый шанс стоит включения, не каждая трата стоит облегчения, и не каждый проект должен становиться мерой твоей ценности.\n\nЕсли держать длинный взгляд и возвращаться к главному, к концу месяца легче почувствовать не просто усталость от дистанции, а реальную внутреннюю собранность.',
       }
     : {
         ...base,
-        theme: 'Building reserves',
-        opportunities: 'You can strengthen emotional and practical foundations with a few clear rules.',
-        challenges: 'Overload and comparison can blur your own definition of progress.',
-        relationships: 'The month favors mature boundaries: closeness without self-erasure.',
-        money: 'Separate impulsive spending from decisions that match a longer plan.',
-        guidance: 'Once a week ask what is truly moving you forward right now.',
+        headline: 'The month asks for mature structure and a longer view',
+        summary: 'This month is less about fast breakthroughs and more about building a steadier base under yourself in rhythm, relationships, money, and direction. The less you live from one short impulse to the next, the more inner stability starts to return.',
+        focus: 'Organize the month around one supporting line: what are you truly strengthening instead of simply maintaining by habit?',
+        theme: 'Grounding and maturity',
+        opportunities: 'The month carries strong potential for rebuilding your base: work habits, money decisions, inner rules, and the way you distribute energy. It may not look dramatic from the outside, but it can become one of the most useful periods for long-term strength.',
+        challenges: 'The difficulty is that outside noise may push you toward comparison, speed, and the feeling that you are not moving fast enough. In that state, it becomes easy to adopt someone else’s pace and quietly burn out in commitments that were never meant to define your direction.',
+        relationships: 'In relationships, the month raises the need for mature boundaries and clearer agreements. Closeness works better where needs are spoken honestly instead of being silently handed over as expectations.',
+        money: 'In money and work, the month asks you to separate impulse from strategy. It is especially useful to notice which decisions bring quick relief and which ones actually strengthen your position, income, or sense of direction.',
+        guidance: 'Live this month as a period of inner restructuring rather than an endless race for proof. Keep returning to the longer horizon, keep checking what genuinely strengthens you, and do not be afraid to rebuild what was being held together only by habit.',
         reading:
-          'This month works better when you allow a longer horizon than “tonight.”\n\nIn relationships, naming needs directly without blame lowers ambient anxiety.\n\nIn money and work, a few consistent rules beat constant improvisation.\n\nIf you keep one main vector, by month’s end it is easier to feel gathered, not just busy.',
+          'This month steadily brings you back to the question of foundation: what are you actually standing on emotionally, practically, and inwardly? Where things were previously held together by effort and habit, the quality of the structure now matters more.\n\nThe stronger version of this month is not a flashy leap, but a gradual maturing of your rhythm. You become more selective about what deserves energy, what is truly meaningful to support, and where you no longer need to perform stability instead of building it.\n\nThe harder version begins when you live in comparison, urgency, and constant self-checking through visible results. Then even good steps can feel insufficient, and the emotional weight becomes heavier than the reality itself.\n\nIn relationships, the month helps you see where closeness is built on real contact and where it is built on silence, overgiving, or habit. The clearer you become about needs and limits, the calmer the bond itself becomes.\n\nIn money and work, adult selectivity wins. Not every opportunity deserves your energy, not every expense deserves the comfort it promises, and not every project should become a measure of your value.\n\nIf you keep the longer view and return to what matters, by the end of the month you are more likely to feel not just tired from the distance, but genuinely gathered inside it.',
       };
 }
 
@@ -429,7 +481,7 @@ export async function generateFreeWeeklyForecast(
       createFreeWeeklyForecastPrompt(chartData, profile, periodKey, label, transits),
       lang
     );
-    const model = await getForecastModel('base');
+    const { model } = await getForecastModel('base');
     const completion = await openai.chat.completions.create({
       model,
       messages: [
@@ -467,7 +519,7 @@ export async function generatePremiumWeeklyForecast(
       createPremiumWeeklyForecastPrompt(chartData, profile, periodKey, label, transits),
       lang
     );
-    const model = await getForecastModel('premium');
+    const { model } = await getForecastModel('premium');
     const completion = await openai.chat.completions.create({
       model,
       messages: [
@@ -505,7 +557,7 @@ export async function generateFreeMonthlyForecast(
       createFreeMonthlyForecastPrompt(chartData, profile, periodKey, label, transits),
       lang
     );
-    const model = await getForecastModel('base');
+    const { model } = await getForecastModel('base');
     const completion = await openai.chat.completions.create({
       model,
       messages: [
@@ -543,7 +595,7 @@ export async function generatePremiumMonthlyForecast(
       createPremiumMonthlyForecastPrompt(chartData, profile, periodKey, label, transits),
       lang
     );
-    const model = await getForecastModel('premium');
+    const { model } = await getForecastModel('premium');
     const completion = await openai.chat.completions.create({
       model,
       messages: [

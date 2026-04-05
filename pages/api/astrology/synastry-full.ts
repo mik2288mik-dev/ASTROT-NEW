@@ -4,7 +4,7 @@ import { createHash } from 'crypto';
 import { calculateNatalChart } from '../../../lib/swisseph-calculator';
 import { db } from '../../../lib/db';
 import { SYSTEM_PROMPT_ASTRA, createFullSynastryPrompt, addLanguageInstruction, FullSynastryAIResponse } from '../../../lib/prompts';
-import { getOpenAIInterpretationModel } from '../../../lib/appSettings';
+import { getOpenAIModelForContent } from '../../../lib/appSettings';
 import { getPremiumEntitlementState } from '../../../lib/contentArchitecture';
 
 const log = {
@@ -60,8 +60,8 @@ export default async function handler(
         code: 'PREMIUM_REQUIRED',
         error: 'Premium required',
         message: langRu
-          ? 'Полный разбор совместимости доступен по Lumia Premium. Средний слой можно открыть один раз за Lumi на экране синастрии.'
-          : 'Full compatibility analysis is available with Lumia Premium. The mid-depth layer can be unlocked once with Lumi on the Synastry screen.',
+          ? 'Полный разбор совместимости доступен по Lumia Premium. Тот же полный разбор можно открыть разово за Lumi на экране синастрии.'
+          : 'Full compatibility analysis is available with Lumia Premium. The same full reading can be unlocked one-off with Lumi on the Synastry screen.',
       });
     }
 
@@ -119,24 +119,32 @@ export default async function handler(
       const fallbackResult = {
         fullAnalysis: {
           generalTheme: lang
-            ? `Связь между ${profile?.name} и ${partnerName} строится на взаимном росте и внимании друг к другу.`
-            : `The connection between ${profile?.name} and ${partnerName} is built on mutual growth and attention to each other.`,
+            ? `Связь между ${profile?.name} и ${partnerName} ощущается как пространство, где многое строится не на лёгкости самой по себе, а на взаимном росте, внимании и умении замечать друг друга по-настоящему. В такой паре особенно важно не просто нравиться друг другу, а учиться выдерживать разницу в темпе, чувствах и способах сближения.`
+            : `The connection between ${profile?.name} and ${partnerName} feels like a space built not only on ease, but on mutual growth, attention, and the ability to truly notice one another. In a bond like this, it matters not just to enjoy each other, but to handle differences in pace, emotion, and closeness with maturity.`,
           attraction: lang
-            ? `Вас притягивает ощущение, что рядом можно быть собой и при этом открывать новые стороны характера.`
-            : `You are drawn by the sense that you can be yourselves and still discover new sides of one another.`,
+            ? `Вас притягивает ощущение, что рядом можно быть собой и одновременно раскрываться шире, чем в одиночку. Часто именно такие пары особенно чувствуют живой интерес друг к другу в разговорах, в личной уязвимости и в моментах, где один помогает другому увидеть новую сторону себя.`
+            : `You are drawn by the sense that you can be yourselves and still open into more of who you are together. Bonds like this often feel especially alive in conversation, vulnerability, and in moments where one person helps the other see a new side of themselves.`,
           difficulties: lang
-            ? `Трудности чаще всего возникают из-за разного темпа, ожиданий и способа выражать чувства.`
-            : `Difficulties usually arise from different pacing, expectations, and emotional expression.`,
+            ? `Трудности чаще всего возникают не из отсутствия чувства, а из разного темпа, ожиданий и способа выражать эмоции. Один может хотеть больше ясности и прямоты, другой — больше времени, мягкости или внутренней безопасности; если это не проговаривать, напряжение легко уходит в обиды, дистанцию или попытку всё сгладить.`
+            : `Difficulties here usually come not from a lack of feeling, but from different pacing, expectations, and ways of expressing emotion. One person may want more clarity and directness while the other needs more time, softness, or inner safety; without naming that difference, tension can easily become distance, hurt, or overcompensation.`,
           recommendations: lang
-            ? ['Чаще обсуждайте ожидания', 'Не торопите друг друга в сложных разговорах', 'Поддерживайте общие ритуалы близости']
-            : ['Discuss expectations more often', 'Do not rush difficult conversations', 'Keep shared rituals of closeness'],
+            ? [
+                'Чаще проговаривайте ожидания до того, как они превращаются в обиду или молчаливое напряжение.',
+                'В сложных разговорах не торопите друг друга: сначала дайте смыслу проявиться, потом ищите решение.',
+                'Поддерживайте свои ритуалы близости, которые возвращают ощущение “мы на одной стороне”.',
+              ]
+            : [
+                'Talk about expectations before they harden into resentment or silent tension.',
+                'Do not rush difficult conversations; let the real meaning surface before trying to fix it.',
+                'Keep shared rituals of closeness that remind you that you are on the same side.',
+              ],
           potential: lang
-            ? `При зрелом подходе эта связь может стать сильным пространством для доверия, развития и глубокой близости.`
-            : `With a mature approach, this connection can become a strong space for trust, growth, and deep closeness.`
+            ? `При зрелом подходе эта связь может стать сильным пространством для доверия, глубокой близости и внутреннего развития обоих. У неё есть потенциал не просто дать яркие чувства, а научить вас более честной, устойчивой и бережной форме близости.`
+            : `With a mature approach, this connection can become a strong space for trust, deep closeness, and inner growth for both people. Its potential is not only to create strong feelings, but to teach a more honest, steady, and caring form of intimacy.`,
         },
         summary: lang
-          ? `Глубокий анализ совместимости между ${profile?.name} и ${partnerName}.`
-          : `Deep compatibility analysis between ${profile?.name} and ${partnerName}.`
+          ? `Глубокий разбор совместимости между ${profile?.name} и ${partnerName} с акцентом на динамику, напряжение и потенциал связи.`
+          : `A deep compatibility reading for ${profile?.name} and ${partnerName}, focused on dynamic, tension, and relational potential.`
       };
       return res.status(200).json(fallbackResult);
     }
@@ -150,7 +158,11 @@ export default async function handler(
     );
     const promptWithLang = addLanguageInstruction(userPrompt, currentLanguage);
 
-    const modelId = await getOpenAIInterpretationModel();
+    const { model: modelId } = await getOpenAIModelForContent({
+      accessTier: 'premium',
+      contentSurface: 'synastry',
+      contentVariant: 'full',
+    });
     const completion = await openai.chat.completions.create({
       model: modelId,
       messages: [

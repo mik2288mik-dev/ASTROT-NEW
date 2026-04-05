@@ -2,7 +2,6 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '../../../lib/db';
 import { getConfiguredOwnerId } from '../../../lib/adminAuth';
 import { getMoscowTodayKey, toDateInputValue } from '../../../lib/date-utils';
-import { resolveDashboardAirVariant } from '../../../lib/dashboardAirVariant';
 
 // Logging utility
 const log = {
@@ -171,7 +170,6 @@ export default async function handler(
         evolution: null,
         generatedContent,
         weatherCity: user.weather_city && user.weather_city.trim() ? user.weather_city.trim() : undefined,
-        dashboardAirVariant: resolveDashboardAirVariant({ profileVariant: user.dashboard_air_variant }),
         lumiBalance,
         loginStreak,
         chartSlots,
@@ -216,13 +214,6 @@ export default async function handler(
         weatherCityToSave = String(existingUser.weather_city).trim() || null;
       }
 
-      const dashboardAirVariantToSave = resolveDashboardAirVariant({
-        profileVariant:
-          userData.dashboardAirVariant !== undefined
-            ? String(userData.dashboardAirVariant)
-            : (existingUser?.dashboard_air_variant ?? null),
-      });
-
       const dbUser = {
         name: userData.name,
         birth_date: userData.birthDate,
@@ -232,7 +223,6 @@ export default async function handler(
         language: userData.language || 'ru',
         theme: userData.theme || 'dark',
         weather_city: weatherCityToSave,
-        dashboard_air_variant: dashboardAirVariantToSave,
       };
 
       const savedUser = await db.users.set(userId, dbUser);
@@ -261,7 +251,6 @@ export default async function handler(
         evolution: null,
         generatedContent,
         weatherCity: savedUser.weather_city && savedUser.weather_city.trim() ? savedUser.weather_city.trim() : undefined,
-        dashboardAirVariant: resolveDashboardAirVariant({ profileVariant: savedUser.dashboard_air_variant }),
         lumiBalance: refreshedUser?.lumi_balance ?? 0,
         loginStreak: refreshedUser?.login_streak ?? 0,
         chartSlots: refreshedUser?.chart_slots ?? 1,

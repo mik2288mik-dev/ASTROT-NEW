@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Lumi reason taxonomy (Phase 7): earn vs spend vs purchase vs system.
  * Single source for human-readable labels in Wallet, Admin, and future surfaces.
  * Reason strings in DB/API should stay stable snake_case; labels live here.
@@ -34,6 +34,16 @@ export const LUMI_REASON_TAXONOMY: Record<string, LumiReasonLabels> = {
     ru: 'Выигрыш в рулетке',
     en: 'Roulette win',
   },
+  daily_task_horoscope: {
+    flow: 'earn',
+    ru: 'Ежедневное задание: гороскоп',
+    en: 'Daily task: horoscope',
+  },
+  daily_task_chart: {
+    flow: 'earn',
+    ru: 'Ежедневное задание: карта',
+    en: 'Daily task: chart',
+  },
   premium_bonus: {
     flow: 'earn',
     ru: 'Бонус Premium',
@@ -52,8 +62,8 @@ export const LUMI_REASON_TAXONOMY: Record<string, LumiReasonLabels> = {
   },
   synastry_one_off: {
     flow: 'spend',
-    ru: 'Синастрия (разовый слой)',
-    en: 'Synastry (one-off layer)',
+    ru: 'Полный разбор совместимости',
+    en: 'Full compatibility reading',
   },
   question: {
     flow: 'spend',
@@ -62,8 +72,8 @@ export const LUMI_REASON_TAXONOMY: Record<string, LumiReasonLabels> = {
   },
   question_one_off: {
     flow: 'spend',
-    ru: 'Разовый вопрос',
-    en: 'One-off question',
+    ru: 'Полный ответ на вопрос',
+    en: 'Full question answer',
   },
   daily_card: {
     flow: 'spend',
@@ -82,8 +92,8 @@ export const LUMI_REASON_TAXONOMY: Record<string, LumiReasonLabels> = {
   },
   forecast_extra: {
     flow: 'spend',
-    ru: 'Дополнительный прогнозный слой',
-    en: 'Extra forecast layer',
+    ru: 'Полный слой дня',
+    en: 'Full day layer',
   },
   regenerate_natal: {
     flow: 'spend',

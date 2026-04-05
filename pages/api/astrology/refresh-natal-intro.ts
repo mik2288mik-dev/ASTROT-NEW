@@ -1,4 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { getOpenAIModelForContent } from '../../../lib/appSettings';
 import { getVerifiedTelegramUser } from '../../../lib/adminAuth';
 import { db } from '../../../lib/db';
 import { spendLumi } from '../../../services/lumiService';
@@ -60,6 +61,11 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
     try {
       await db.interpretations.set(cacheKey, 'natal_intro', 'default', intro);
+      const { modelTier } = await getOpenAIModelForContent({
+        accessTier: 'free',
+        contentSurface: 'natal',
+        contentVariant: 'anchor',
+      });
       if (effectiveChartId != null) {
         await db.content_interpretations.upsertByChart(effectiveChartId, {
           accessTier: 'free',
@@ -68,7 +74,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
           cacheKey: 'default',
           inputHash: 'default',
           content: reading,
-          modelTier: 'base',
+          modelTier,
           isPersistent: true,
           canRegenerateForLumi: true,
           regenerationCostLumi: COST_LUMI,
@@ -82,7 +88,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
           cacheKey: 'default',
           inputHash: 'default',
           content: reading,
-          modelTier: 'base',
+          modelTier,
           isPersistent: true,
           canRegenerateForLumi: true,
           regenerationCostLumi: COST_LUMI,

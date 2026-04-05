@@ -69,29 +69,29 @@ export function buildNatalLivingFallback(lang: 'ru' | 'en', periodKey: string): 
   return lang === 'ru'
     ? {
         periodKey,
-        headline: 'Сейчас в тебе активируется тема внутренней ясности',
+        headline: 'Сейчас для тебя включается период внутренней перенастройки',
         summary:
-          'Период просит меньше распыления и больше честности с собой. Это время, когда особенно важно не тратить силы на лишний шум.',
-        activeTheme: 'На первый план выходит пересборка приоритетов: где ты по-настоящему включён, а где давно живёшь на инерции.',
-        strength: 'Сейчас твоя сила в умении вовремя остановиться, увидеть главное и выбрать более точный ритм вместо хаотичной спешки.',
-        vulnerability: 'Уязвимость периода — сомнения и эмоциональная перегрузка там, где ты слишком долго пытаешься удержать то, что уже не даёт опоры.',
-        relationships: 'В отношениях этот период требует больше честности и меньше автоматических реакций. Лучше говорить прямо, чем делать вид, что всё в порядке.',
-        money: 'В деньгах и целях полезнее не разбрасываться. Сейчас выигрывает не скорость, а ясная стратегия и один действительно важный фокус.',
+          'Этот период просит не просто собранности, а более взрослой честности с собой: что тебя действительно питает, а что ты продолжаешь держать только по привычке, долгу или тревоге. Чем меньше внутреннего шума, тем точнее становится ощущение собственного курса.',
+        activeTheme: 'На первый план выходит пересборка приоритетов и внутренней опоры. Сейчас особенно заметно, где ты по-настоящему включён и растёшь, а где продолжаешь жить на инерции, потому что так было проще не менять привычный порядок.',
+        strength: 'Твоя сила сейчас в способности остановиться раньше перегруза, увидеть суть и не разменять себя на всё сразу. Это хороший период для более точных решений, зрелой избирательности и возвращения к тому, что действительно усиливает тебя, а не просто держит в движении.',
+        vulnerability: 'Уязвимость периода связана с соблазном слишком долго терпеть неясность, внутренне всё тащить на себе и откладывать честный пересмотр того, что уже перестало работать. Из-за этого может расти усталость, раздражение или чувство, будто сил меньше, чем есть на самом деле.',
+        relationships: 'В отношениях этот период делает важнее честность, чем привычную вежливую форму. Может сильнее цеплять всё, что связано с недосказанностью, эмоциональной дистанцией или ощущением, что твои реальные потребности остаются за кадром. Чем прямее и спокойнее ты называешь важное, тем меньше шансов уйти в накопленное напряжение.',
+        money: 'В деньгах, работе и целях период учит отличать движение от настоящего продвижения. Полезно смотреть, какие решения дают только краткое облегчение, а какие действительно укрепляют твою позицию, ресурс и долгий вектор. Сейчас выигрывает не скорость, а стратегия, в которой меньше лишнего и больше смысла.',
         guidance:
-          'Этот период лучше проживать не через давление на себя, а через собранность. Убирай лишнее, не бойся пересобирать приоритеты и держись ближе к тому, что действительно твоё.',
+          'Этот период лучше проживать не через давление на себя, а через точную внутреннюю настройку. Убирай лишнее, не бойся пересобирать приоритеты и регулярно возвращайся к вопросу: что из этого действительно моё, а что я просто продолжаю нести по инерции. Чем честнее будет этот ответ, тем спокойнее и сильнее ты пройдёшь этот этап.',
       }
     : {
         periodKey,
-        headline: 'A theme of inner clarity is being activated in you now',
+        headline: 'A period of inner recalibration is opening for you now',
         summary:
-          'This period asks for less scattering and more honesty with yourself. It is a time when extra noise costs too much energy.',
-        activeTheme: 'Your priorities are being reorganized: where you are truly alive and where you have been moving only by inertia.',
-        strength: 'Your current strength is the ability to pause, see what matters, and choose a more precise rhythm instead of chaotic speed.',
-        vulnerability: 'The main sensitivity now is doubt and emotional overload where you keep holding on to what no longer gives real support.',
-        relationships: 'In relationships this period asks for more honesty and fewer automatic reactions. It is better to speak directly than to pretend everything is fine.',
-        money: 'For money and goals, the wiser move is not to scatter yourself. Clarity and strategy matter more than speed right now.',
+          'This period asks for more than basic steadiness. It asks for a more adult honesty with yourself about what genuinely nourishes you and what you are still carrying out of habit, duty, or anxiety. The less inner noise you drag along, the clearer your direction becomes.',
+        activeTheme: 'Your priorities and inner support system are being reorganized. It becomes easier to see where you are truly alive and growing, and where you have been moving by inertia because change felt more disruptive than staying half-committed.',
+        strength: 'Your strength now is the ability to stop before overload, recognize what matters, and refuse to spend yourself on everything at once. This is a strong period for precise decisions, mature selectivity, and returning to what genuinely strengthens you instead of merely keeping you in motion.',
+        vulnerability: 'The main sensitivity now is the temptation to tolerate too much uncertainty, carry everything internally, and postpone an honest review of what has already stopped working. That can create fatigue, irritation, or the feeling that you have less strength than you actually do.',
+        relationships: 'In relationships, this period makes honesty more important than polished form. Anything tied to unspoken tension, emotional distance, or the feeling that your real needs stay offstage may hit harder. The more calmly and directly you name what matters, the less likely it is to turn into stored pressure.',
+        money: 'In money, work, and direction, this period teaches the difference between movement and real progress. It helps to notice which decisions bring only short relief and which ones actually strengthen your position, resources, and long-term vector. Speed matters less than strategy with fewer distractions and more meaning.',
         guidance:
-          'Live this period through steadiness rather than pressure. Remove what is extra, do not be afraid to reset priorities, and stay close to what is genuinely yours.',
+          'Live this period through precise inner recalibration rather than pressure. Remove what is extra, do not be afraid to reset priorities, and keep returning to one question: what here is genuinely mine, and what am I only continuing out of inertia? The more honest that answer becomes, the calmer and stronger this phase will feel.',
       };
 }
 

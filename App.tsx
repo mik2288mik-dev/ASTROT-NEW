@@ -8,6 +8,7 @@ import {
     processDailyLogin,
     getChartData,
     runReferralFromStartParam,
+    completeDailyLumiTask,
 } from './services/storageService';
 import { getOrCalculateChart } from './services/chartService';
 import { generateAllContent, updateContentIfNeeded } from './services/contentGenerationService';
@@ -34,6 +35,7 @@ import { BackgroundLayers } from './components/BackgroundLayers';
 import { installTelegramFullscreenGuard } from './lib/telegramFullscreen';
 import { applyTelegramSafeAreaCssVars, subscribeTelegramContentSafeAreaChanges } from './lib/telegramSafeAreaInsets';
 import { useSwipeBack } from './lib/useSwipeBack';
+import { getMoscowTodayKey } from './lib/date-utils';
 
 // Get owner ID from environment variables for security
 const OWNER_ID = process.env.NEXT_PUBLIC_OWNER_ID || '';
@@ -50,6 +52,23 @@ type SynastryPrefill = {
     partnerTime?: string;
     partnerPlace?: string;
 } | null;
+
+const NOTIFICATION_QUERY_VIEWS = new Set<ViewState>([
+    'dashboard',
+    'horoscope',
+    'wallet',
+    'synastry',
+    'oracle',
+    'settings',
+    'charts',
+]);
+
+function getRequestedViewFromQuery(): ViewState | null {
+    if (typeof window === 'undefined') return null;
+    const requested = new URLSearchParams(window.location.search).get('view');
+    if (!requested) return null;
+    return NOTIFICATION_QUERY_VIEWS.has(requested as ViewState) ? (requested as ViewState) : null;
+}
 
 const App: React.FC = () => {
     const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -70,6 +89,8 @@ const App: React.FC = () => {
     const chartHealGenRef = useRef(0);
     const contentSyncGenRef = useRef(0);
     const contentSyncedKeyRef = useRef<string | null>(null);
+    const requestedViewRef = useRef<ViewState | null>(null);
+    const dailyTaskSyncedRef = useRef<Record<string, string>>({});
 
     const getFallbackAdminStatus = useCallback((userId?: string | number, storedIsAdmin?: boolean) => {
         return OWNER_ID && userId ? String(userId) === String(OWNER_ID) : !!storedIsAdmin;
@@ -176,6 +197,7 @@ const App: React.FC = () => {
         const loadData = async () => {
             console.log('[App] === LOADING USER DATA ===');
             setLoadingProgress(10);
+            requestedViewRef.current = getRequestedViewFromQuery();
             
             // Ждём Telegram Web App (может загружаться асинхронно)
             let tgId: string | number | undefined;
@@ -253,19 +275,19 @@ const App: React.FC = () => {
                         });
                         setChartData(chart);
                         setLoadingProgress(100);
-                        setView('dashboard');
+                        setView(requestedViewRef.current || 'dashboard');
                     } else {
                         console.log('[App] Invalid chart data, going to dashboard');
                         setLoadingProgress(100);
                         setChartData(null);
-                        setView('dashboard');
+                        setView(requestedViewRef.current || 'dashboard');
                     }
                 } catch (chartError) {
                     console.error('[App] Error loading chart:', chartError);
                     setLoadingProgress(100);
                     // Профиль есть — не возвращаем в онбординг. Пробуем ещё раз через 2 сек.
                     setChartData(null);
-                    setView('dashboard');
+                    setView(requestedViewRef.current || 'dashboard');
                     setTimeout(async () => {
                         try {
                             const retryChart = await getOrCalculateChart(updatedProfile);
@@ -568,6 +590,44 @@ const App: React.FC = () => {
             });
     }, [view, profile?.id]);
 
+    const syncDailyTask = useCallback(
+        async (taskKey: 'open_horoscope' | 'open_chart') => {
+            if (!profile?.id) return;
+
+            const todayKey = getMoscowTodayKey();
+            const cacheKey = `${profile.id}:${taskKey}`;
+            if (dailyTaskSyncedRef.current[cacheKey] === todayKey) {
+                return;
+            }
+
+            try {
+                const result = await completeDailyLumiTask(profile.id, taskKey);
+                dailyTaskSyncedRef.current[cacheKey] = result.date || todayKey;
+                setProfile((prev) =>
+                    prev
+                        ? {
+                              ...prev,
+                              lumiBalance: result.lumiBalance,
+                          }
+                        : prev
+                );
+            } catch (error: any) {
+                console.warn('[App] Daily Lumi task failed (non-critical):', error?.message || error);
+            }
+        },
+        [profile?.id]
+    );
+
+    useEffect(() => {
+        if (!profile?.id || !chartData) return;
+
+        if (view === 'horoscope') {
+            void syncDailyTask('open_horoscope');
+        } else if (view === 'chart') {
+            void syncDailyTask('open_chart');
+        }
+    }, [chartData, profile?.id, syncDailyTask, view]);
+
     const requestPremium = async () => {
        if (!profile) return;
        console.log('[App] Requesting premium for user:', profile.id);
@@ -749,6 +809,7 @@ const App: React.FC = () => {
                             onUpdateProfile={handleProfileUpdate}
                             onOpenChart={() => setView('chart')}
                             onRequestPremium={() => setShowPremiumPreview(true)}
+                            onOpenWallet={() => openWallet('horoscope')}
                         />
                     </div>
                 ) : view === 'chart' ? (
@@ -814,6 +875,7 @@ const App: React.FC = () => {
                             profile={profile} 
                             chartData={chartData}
                             activeChartId={activeChartId}
+                            onBalanceUpdate={(balance) => setProfile((prev) => (prev ? { ...prev, lumiBalance: balance } : prev))}
                             onNavigate={(newView) => {
                                 if (newView === 'synastry') {
                                     setSynastryPrefill(null);

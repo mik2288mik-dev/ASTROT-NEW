@@ -1,8 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { requireAdminAccess, handleAdminError } from '../../../../lib/adminAuth';
+import { NOTIFICATION_SLOTS } from '../../../../lib/notificationSlotCatalog';
 import { sendNotificationSlot } from '../../../../services/notificationService';
 
-const SLOTS = new Set(['morning', 'day', 'evening', 'custom']);
+const SLOTS = new Set(NOTIFICATION_SLOTS);
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {

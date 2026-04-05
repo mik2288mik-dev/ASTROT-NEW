@@ -16,11 +16,24 @@ const SLOT_LABEL_RU: Record<string, string> = {
   morning: 'Утро',
   day: 'День',
   evening: 'Вечер',
+  daily_lumi: 'Lumi',
+  upsell: 'Premium',
+  promo: 'Промо',
+  custom: 'Lumia',
+};
+
+const SLOT_LABEL_EN: Record<string, string> = {
+  morning: 'Morning',
+  day: 'Day',
+  evening: 'Evening',
+  daily_lumi: 'Lumi',
+  upsell: 'Premium',
+  promo: 'Promo',
   custom: 'Lumia',
 };
 
 function slotLabel(slot: string, lang: string): string {
-  if (lang === 'en') return slot.charAt(0).toUpperCase() + slot.slice(1);
+  if (lang === 'en') return SLOT_LABEL_EN[slot] || SLOT_LABEL_EN.custom;
   return SLOT_LABEL_RU[slot] || SLOT_LABEL_RU.custom;
 }
 

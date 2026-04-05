@@ -8,7 +8,7 @@ import {
   NatalAnchorAIResponse,
   NatalLivingAIResponse,
 } from './prompts';
-import { getOpenAIInterpretationModel } from './appSettings';
+import { getOpenAIModelForContent } from './appSettings';
 import { getCurrentTransits } from './transits-calculator';
 import {
   buildNatalAnchorFallback,
@@ -23,10 +23,11 @@ const openai = process.env.OPENAI_API_KEY
   : null;
 
 async function getNatalModel(modelTier: 'base' | 'premium') {
-  if (modelTier === 'premium') {
-    return process.env.OPENAI_PREMIUM_MODEL?.trim() || (await getOpenAIInterpretationModel());
-  }
-  return process.env.OPENAI_BASE_MODEL?.trim() || (await getOpenAIInterpretationModel());
+  return getOpenAIModelForContent({
+    accessTier: modelTier === 'premium' ? 'premium' : 'free',
+    contentSurface: 'natal',
+    contentVariant: modelTier === 'premium' ? 'living' : 'anchor',
+  });
 }
 
 export async function generateNatalAnchorReading(
@@ -41,7 +42,7 @@ export async function generateNatalAnchorReading(
 
   try {
     const prompt = addLanguageInstruction(createNatalAnchorPrompt(chartData, profile), lang);
-    const model = await getNatalModel('base');
+    const { model } = await getNatalModel('base');
     const completion = await openai.chat.completions.create({
       model,
       messages: [
@@ -75,7 +76,7 @@ export async function generateNatalLivingReading(
 
   try {
     const prompt = addLanguageInstruction(createNatalLivingPrompt(chartData, profile, periodKey, transits), lang);
-    const model = await getNatalModel('premium');
+    const { model } = await getNatalModel('premium');
     const completion = await openai.chat.completions.create({
       model,
       messages: [

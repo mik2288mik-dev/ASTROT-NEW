@@ -26,6 +26,29 @@ type AdminRequestOptions = RequestInit & {
   bodyJson?: Record<string, any>;
 };
 
+export type AdminNotificationAiDraftScenario =
+  | 'morning'
+  | 'day'
+  | 'evening'
+  | 'daily_lumi'
+  | 'upsell'
+  | 'promo'
+  | 'reactivation'
+  | 'custom';
+
+export interface AdminNotificationAiDraftVariant {
+  label: string;
+  title: string;
+  bodyRu: string;
+  bodyEn: string;
+}
+
+export interface AdminNotificationAiDraftResponse {
+  variants: AdminNotificationAiDraftVariant[];
+  model: string | null;
+  source: 'openai' | 'fallback';
+}
+
 class AdminApiError extends Error {
   status: number;
   code?: string;
@@ -241,6 +264,18 @@ export async function sendNotification(payload: {
   bodyEn: string;
 }): Promise<AdminNotificationSendResult> {
   return adminRequest<AdminNotificationSendResult>('/api/admin/notifications/send', {
+    method: 'POST',
+    bodyJson: payload,
+  });
+}
+
+export async function generateAdminNotificationDrafts(payload: {
+  mode: 'personal' | 'broadcast';
+  targetSegment?: AdminNotificationTargetSegment | null;
+  scenario: AdminNotificationAiDraftScenario;
+  brief?: string;
+}): Promise<AdminNotificationAiDraftResponse> {
+  return adminRequest<AdminNotificationAiDraftResponse>('/api/admin/notifications/ai-drafts', {
     method: 'POST',
     bodyJson: payload,
   });

@@ -13,11 +13,11 @@ import {
     ensureMonthlyForecastLayer,
     ensureWeeklyForecastLayer,
     getCachedDailyForecastLayer,
+    getCachedFullDaypartForecast,
     getCachedDailyHoroscope,
-    getCachedPremiumDaypartForecast,
     getDailyForecastLayer,
     getDailyHoroscope,
-    getPremiumDaypartForecast,
+    getFullDaypartForecast,
     mapForecastDailyToLegacyHoroscope,
     mapLegacyHoroscopeToForecastDailyReading,
 } from '../services/astrologyService';
@@ -26,6 +26,7 @@ import { ZodiacHeader } from '../components/Horoscope/ZodiacHeader';
 import { HoroscopeContent } from '../components/Horoscope/HoroscopeContent';
 import { formatLumiaDate, getMoscowIsoWeekKey, getMoscowMonthKey, getMoscowTodayKey } from '../lib/date-utils';
 import { getText } from '../constants';
+import { FORECAST_FULL_DAY_LUMI_COST } from '../lib/forecastFullDay';
 import { READING_GLASS_SECTION_CLASS, READING_PAGE_CLASS } from '../components/layout/ReadingLayout';
 import { ReadingScreenShell } from '../components/layout/ScreenShell';
 import { PremiumUpsellPanel } from '../components/PremiumUpsellPanel';
@@ -36,11 +37,16 @@ interface HoroscopeProps {
     onUpdateProfile?: (profile: UserProfile) => void;
     onOpenChart?: () => void;
     onRequestPremium?: () => void;
+    onOpenWallet?: () => void;
 }
 
 type HoroscopeApiError = Error & {
     code?: string;
+    status?: number;
+    details?: any;
 };
+
+type FullDayAccess = 'premium' | 'lumi' | 'locked';
 
 const DAYPART_SLOTS: ForecastDaypartSlot[] = ['morning', 'day', 'evening'];
 
@@ -52,6 +58,23 @@ const getStaleNotice = (language: string) =>
 
 const getFallbackError = (language: string) =>
     getText(language as 'ru' | 'en', 'horoscope.fallback_error');
+
+function getFullDayStatusMessage(language: string, error: HoroscopeApiError | null | undefined) {
+    if (!error) return getFallbackError(language);
+
+    switch (error.code) {
+        case 'LUMI_REQUIRED':
+            return getText(language as 'ru' | 'en', 'horoscope.error_lumi_required').replace('{cost}', String(FORECAST_FULL_DAY_LUMI_COST));
+        case 'INSUFFICIENT_LUMI':
+            return getText(language as 'ru' | 'en', 'horoscope.error_insufficient_lumi');
+        case 'LUMI_CONSENT_REQUIRED':
+            return getText(language as 'ru' | 'en', 'horoscope.error_lumi_consent');
+        case 'FULL_DAY_LOCKED':
+            return getText(language as 'ru' | 'en', 'horoscope.premium_body');
+        default:
+            return error.message || getFallbackError(language);
+    }
+}
 
 function isValidHoroscopeForToday(cached: DailyHoroscope | null | undefined, today: string): cached is DailyHoroscope {
     if (!cached?.content || cached.content.length === 0) return false;
@@ -68,7 +91,7 @@ function getLegacyStatusMessage(language: string, legacy: DailyHoroscope | null 
     return legacy.message || null;
 }
 
-export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdateProfile, onOpenChart, onRequestPremium }) => {
+export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdateProfile, onOpenChart, onRequestPremium, onOpenWallet }) => {
     const profileRef = useRef(profile);
     profileRef.current = profile;
 
@@ -86,6 +109,9 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
     const [daypartsLoading, setDaypartsLoading] = useState(false);
     const [statusMessage, setStatusMessage] = useState<string | null>(null);
     const [daypartsStatus, setDaypartsStatus] = useState<string | null>(null);
+    const [daypartsErrorCode, setDaypartsErrorCode] = useState<string | null>(null);
+    const [fullDayAccess, setFullDayAccess] = useState<FullDayAccess>(() => (profile.isPremium ? 'premium' : 'locked'));
+    const [allowLumiConsent, setAllowLumiConsent] = useState(false);
     const [isStale, setIsStale] = useState(false);
     const [weeklyReading, setWeeklyReading] = useState<ForecastWeeklyReading | null>(null);
     const [monthlyReading, setMonthlyReading] = useState<ForecastMonthlyReading | null>(null);
@@ -94,6 +120,14 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
 
     const weekKey = getMoscowIsoWeekKey();
     const monthKey = getMoscowMonthKey();
+    const hasEnoughLumiForFullDay = (profile.lumiBalance ?? 0) >= FORECAST_FULL_DAY_LUMI_COST;
+    const showLockedFullDayUpsell = !profile.isPremium && fullDayAccess === 'locked';
+
+    const syncBalance = (balance?: number) => {
+        if (typeof balance !== 'number' || !onUpdateProfile) return;
+        if ((profileRef.current.lumiBalance ?? 0) === balance) return;
+        onUpdateProfile({ ...profileRef.current, lumiBalance: balance });
+    };
 
     const syncLegacyIntoProfile = (legacy: DailyHoroscope) => {
         if (!onUpdateProfile) return;
@@ -262,25 +296,81 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
     }, [chartData, language, profile.id, today]);
 
     useEffect(() => {
+        if (profile.isPremium) {
+            setFullDayAccess('premium');
+            setDaypartsErrorCode(null);
+        }
+    }, [profile.isPremium]);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        const detectLumiFullDay = async () => {
+            if (!chartData || !profile.id || profile.isPremium) {
+                if (!cancelled && !profile.isPremium) {
+                    setFullDayAccess('locked');
+                }
+                return;
+            }
+
+            try {
+                const morning = await getCachedFullDaypartForecast(String(profile.id), 'morning', {
+                    accessTier: 'lumi',
+                    dateKey: today,
+                });
+                if (!cancelled) {
+                    setFullDayAccess(morning ? 'lumi' : 'locked');
+                }
+            } catch (error: any) {
+                if (cancelled) return;
+                const apiError = error as HoroscopeApiError;
+                if (apiError.code === 'FULL_DAY_LOCKED' || apiError.status === 403 || apiError.status === 404) {
+                    setFullDayAccess('locked');
+                    return;
+                }
+                setDaypartsStatus(getFullDayStatusMessage(language, apiError));
+                setDaypartsErrorCode(apiError.code || null);
+            }
+        };
+
+        void detectLumiFullDay();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [chartData, language, profile.id, profile.isPremium, today]);
+
+    useEffect(() => {
         let cancelled = false;
 
         const loadDayparts = async () => {
-            if (!chartData || !profile.isPremium) {
+            if (!chartData || fullDayAccess === 'locked') {
                 if (!cancelled) {
                     setDayparts({});
                     setDaypartsLoading(false);
                     setDaypartsStatus(null);
+                    setDaypartsErrorCode(null);
                 }
                 return;
             }
 
             setDaypartsStatus(null);
+            setDaypartsErrorCode(null);
 
             const userId = String(profile.id);
+            const accessTier = fullDayAccess === 'premium' ? 'premium' : 'lumi';
             const cachedPairs = await Promise.all(
                 DAYPART_SLOTS.map(async (slot) => {
-                    const reading = await getCachedPremiumDaypartForecast(userId, slot);
-                    return [slot, reading] as const;
+                    try {
+                        const reading = await getCachedFullDaypartForecast(userId, slot, { accessTier, dateKey: today });
+                        return [slot, reading] as const;
+                    } catch (error: any) {
+                        const apiError = error as HoroscopeApiError;
+                        if (apiError.code === 'FULL_DAY_LOCKED' || apiError.status === 403 || apiError.status === 404) {
+                            return [slot, null] as const;
+                        }
+                        throw error;
+                    }
                 })
             );
 
@@ -309,8 +399,8 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
 
             const results = await Promise.allSettled(
                 slotsToGenerate.map(async (slot) => {
-                    const reading = await getPremiumDaypartForecast(profileRef.current, chartData, slot);
-                    return [slot, reading] as const;
+                    const result = await getFullDaypartForecast(profileRef.current, chartData, slot, { accessTier });
+                    return [slot, result.reading, result.lumiBalance] as const;
                 })
             );
 
@@ -318,18 +408,27 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
 
             const merged: Partial<Record<ForecastDaypartSlot, ForecastDaypartReading>> = { ...next };
             const failures: string[] = [];
+            let nextBalance: number | undefined;
 
             for (const result of results) {
                 if (result.status === 'fulfilled') {
-                    const [slot, reading] = result.value;
+                    const [slot, reading, lumiBalance] = result.value;
                     merged[slot] = reading;
+                    if (typeof lumiBalance === 'number') {
+                        nextBalance = lumiBalance;
+                    }
                 } else {
-                    failures.push(result.reason?.message || '');
+                    const apiError = result.reason as HoroscopeApiError;
+                    failures.push(getFullDayStatusMessage(language, apiError));
+                    setDaypartsErrorCode(apiError?.code || null);
                 }
             }
 
             setDayparts(merged);
             setDaypartsLoading(false);
+            if (typeof nextBalance === 'number') {
+                syncBalance(nextBalance);
+            }
             setDaypartsStatus(
                 DAYPART_SLOTS.some((s) => merged[s]) ? null : failures[0] || getFallbackError(language)
             );
@@ -340,7 +439,155 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
         return () => {
             cancelled = true;
         };
-    }, [chartData, language, profile.id, profile.isPremium]);
+    }, [chartData, fullDayAccess, language, profile.id, syncBalance, today]);
+
+    const unlockFullDayWithLumi = async () => {
+        if (!chartData) return;
+        if (!allowLumiConsent) {
+            const consentError = new Error(getText(language, 'horoscope.error_lumi_consent')) as HoroscopeApiError;
+            consentError.code = 'LUMI_CONSENT_REQUIRED';
+            setDaypartsErrorCode(consentError.code);
+            setDaypartsStatus(getFullDayStatusMessage(language, consentError));
+            return;
+        }
+
+        setDaypartsLoading(true);
+        setDaypartsStatus(null);
+        setDaypartsErrorCode(null);
+
+        try {
+            const morning = await getFullDaypartForecast(profileRef.current, chartData, 'morning', {
+                accessTier: 'lumi',
+                allowLumiSpend: true,
+            });
+
+            const rest = await Promise.all([
+                getFullDaypartForecast(profileRef.current, chartData, 'day', { accessTier: 'lumi' }),
+                getFullDaypartForecast(profileRef.current, chartData, 'evening', { accessTier: 'lumi' }),
+            ]);
+
+            setDayparts({
+                morning: morning.reading,
+                day: rest[0].reading,
+                evening: rest[1].reading,
+            });
+            setFullDayAccess('lumi');
+            setAllowLumiConsent(false);
+            setDaypartsStatus(null);
+            if (typeof morning.lumiBalance === 'number') {
+                syncBalance(morning.lumiBalance);
+            }
+        } catch (error: any) {
+            const apiError = error as HoroscopeApiError;
+            setDaypartsErrorCode(apiError.code || null);
+            setDaypartsStatus(getFullDayStatusMessage(language, apiError));
+        } finally {
+            setDaypartsLoading(false);
+        }
+    };
+
+    const renderFullDayLumiActions = (options?: { compact?: boolean }) => {
+        if (!showLockedFullDayUpsell) return null;
+
+        const compact = Boolean(options?.compact);
+        const stackClass = compact ? 'space-y-2.5' : 'space-y-3';
+        const noteClass = compact
+            ? 'rounded-2xl border border-astro-border/15 bg-white/72 px-4 py-3 text-sm leading-relaxed text-astro-text/80'
+            : 'lumia-glass-inset px-4 py-3 text-sm leading-relaxed text-astro-text/80';
+        const checkboxClass = compact
+            ? 'flex items-start gap-3 rounded-2xl border border-astro-border/15 bg-white/72 px-4 py-3 text-sm text-astro-text'
+            : 'lumia-glass-inset flex items-start gap-3 px-4 py-3 text-sm text-astro-text';
+        const buttonClass = compact
+            ? 'flex min-h-[44px] w-full items-center justify-center rounded-full border border-astro-border/70 bg-white px-4 py-3 text-sm font-semibold text-astro-text transition-[box-shadow] hover:ring-1 hover:ring-astro-highlight/25 disabled:opacity-60'
+            : 'flex min-h-[44px] w-full items-center justify-center rounded-xl border border-astro-border/70 bg-transparent px-4 py-3 text-sm font-medium text-astro-text disabled:opacity-60';
+
+        if (!hasEnoughLumiForFullDay) {
+            return (
+                <div className={stackClass}>
+                    <p className={noteClass}>
+                        {getText(language, 'horoscope.lumi_locked_note').replace('{cost}', String(FORECAST_FULL_DAY_LUMI_COST))}
+                    </p>
+                    {daypartsErrorCode === 'INSUFFICIENT_LUMI' && onOpenWallet ? (
+                        <button
+                            type="button"
+                            onClick={onOpenWallet}
+                            className={buttonClass}
+                        >
+                            {getText(language, 'oracle.state_open_wallet')}
+                        </button>
+                    ) : null}
+                </div>
+            );
+        }
+
+        return (
+            <div className={stackClass}>
+                <label className={checkboxClass}>
+                    <input
+                        type="checkbox"
+                        checked={allowLumiConsent}
+                        onChange={(event) => setAllowLumiConsent(event.target.checked)}
+                        className="mt-1 h-4 w-4 rounded border-astro-border/60 bg-transparent text-astro-highlight"
+                    />
+                    <span>{getText(language, 'horoscope.lumi_consent').replace('{cost}', String(FORECAST_FULL_DAY_LUMI_COST))}</span>
+                </label>
+
+                <button
+                    type="button"
+                    onClick={unlockFullDayWithLumi}
+                    disabled={daypartsLoading || !allowLumiConsent}
+                    className={buttonClass}
+                >
+                    {getText(language, 'horoscope.lumi_cta').replace('{cost}', String(FORECAST_FULL_DAY_LUMI_COST))}
+                </button>
+            </div>
+        );
+    };
+
+    const renderInlineFullDayUpsell = (kind: 'horoscope' | 'natal') => {
+        if (!showLockedFullDayUpsell) return null;
+
+        const titleKey =
+            kind === 'horoscope'
+                ? 'horoscope.inline_horoscope_title'
+                : 'horoscope.inline_natal_title';
+        const bodyKey =
+            kind === 'horoscope'
+                ? 'horoscope.inline_horoscope_body'
+                : 'horoscope.inline_natal_body';
+
+        return (
+            <section className={READING_GLASS_SECTION_CLASS}>
+                <p className="lumia-label tracking-[0.2em]">{getText(language, 'horoscope.premium_label')}</p>
+                <p className="mt-2 text-sm leading-relaxed text-astro-text/85">
+                    {getText(language, bodyKey)}
+                </p>
+
+                <div className="mt-4 space-y-3">
+                    {onRequestPremium ? (
+                        <PremiumUpsellPanel
+                            compact
+                            title={getText(language, titleKey)}
+                            footerNote={getText(language, 'horoscope.premium_supporting_line')}
+                            ctaLabel={getText(language, 'horoscope.premium_cta')}
+                            onCta={onRequestPremium}
+                        >
+                            <p>{getText(language, 'horoscope.premium_body')}</p>
+                        </PremiumUpsellPanel>
+                    ) : null}
+
+                    <p className="rounded-2xl border border-astro-border/15 bg-white/72 px-4 py-3 text-sm leading-relaxed text-astro-text/80">
+                        {getText(
+                            language,
+                            hasEnoughLumiForFullDay
+                                ? 'horoscope.lumi_ready_note'
+                                : 'horoscope.lumi_locked_note'
+                        ).replace('{cost}', String(FORECAST_FULL_DAY_LUMI_COST))}
+                    </p>
+                </div>
+            </section>
+        );
+    };
 
     useEffect(() => {
         let cancelled = false;
@@ -455,20 +702,25 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
                 </div>
             </section>
 
-            <HoroscopeContent reading={dailyReading} language={language} />
+            <HoroscopeContent
+                reading={dailyReading}
+                language={language}
+                afterHoroscopeSlot={renderInlineFullDayUpsell('horoscope')}
+                afterNatalSlot={renderInlineFullDayUpsell('natal')}
+            />
 
             <section className={READING_GLASS_SECTION_CLASS}>
                 <p className="lumia-label tracking-[0.2em]">
-                    {getText(language, profile.isPremium ? 'horoscope.dayparts_label' : 'horoscope.premium_label')}
+                    {getText(language, fullDayAccess === 'locked' ? 'horoscope.premium_label' : 'horoscope.dayparts_label')}
                 </p>
                 <h2 className="mt-1.5 font-serif text-lg text-astro-text sm:text-xl">
-                    {getText(language, profile.isPremium ? 'horoscope.dayparts_title' : 'horoscope.premium_title')}
+                    {getText(language, fullDayAccess === 'locked' ? 'horoscope.premium_title' : 'horoscope.dayparts_title')}
                 </h2>
                 <p className="lumia-muted mt-1.5 text-sm leading-relaxed">
-                    {getText(language, profile.isPremium ? 'horoscope.dayparts_body' : 'horoscope.premium_body')}
+                    {getText(language, fullDayAccess === 'locked' ? 'horoscope.premium_body' : 'horoscope.dayparts_body')}
                 </p>
 
-                {profile.isPremium ? (
+                {fullDayAccess !== 'locked' ? (
                     <div className="mt-4 space-y-3">
                         {daypartsLoading && (
                             <div className="lumia-glass-inset px-4 py-3 text-sm lumia-muted">
@@ -479,6 +731,12 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
                         {daypartsStatus && !daypartsLoading && (
                             <div className="lumia-glass-inset px-4 py-3 text-sm lumia-muted">
                                 {daypartsStatus}
+                            </div>
+                        )}
+
+                        {fullDayAccess === 'lumi' && !daypartsLoading && (
+                            <div className="lumia-glass-inset px-4 py-3 text-sm lumia-muted">
+                                {getText(language, 'horoscope.lumi_active_note')}
                             </div>
                         )}
 
@@ -516,16 +774,27 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
                         })}
                     </div>
                 ) : (
-                    onRequestPremium && (
-                        <div className="mt-4">
+                    <div className="mt-4 space-y-3">
+                        {daypartsStatus && (
+                            <div className="lumia-glass-inset px-4 py-3 text-sm lumia-muted">
+                                {daypartsStatus}
+                            </div>
+                        )}
+
+                        {onRequestPremium ? (
                             <PremiumUpsellPanel
+                                compact
+                                title={getText(language, 'horoscope.premium_title')}
+                                footerNote={getText(language, 'horoscope.premium_supporting_line')}
                                 ctaLabel={getText(language, 'horoscope.premium_cta')}
                                 onCta={onRequestPremium}
                             >
-                                <p>{getText(language, 'horoscope.premium_supporting_line')}</p>
+                                <p>{getText(language, 'horoscope.premium_body')}</p>
                             </PremiumUpsellPanel>
-                        </div>
-                    )
+                        ) : null}
+
+                        {renderFullDayLumiActions()}
+                    </div>
                 )}
             </section>
 

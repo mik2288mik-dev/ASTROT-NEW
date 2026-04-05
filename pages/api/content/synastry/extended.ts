@@ -1,15 +1,15 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
 import type { NatalChartData, SynastryResult, UserProfile } from '../../../../types';
+import { getOpenAIModelForContent } from '../../../../lib/appSettings';
 import { calculateNatalChart } from '../../../../lib/swisseph-calculator';
 import { db } from '../../../../lib/db';
 import {
   SYSTEM_PROMPT_ASTRA,
   addLanguageInstruction,
-  createExtendedSynastryPrompt,
-  ExtendedSynastryAIResponse,
+  createFullSynastryPrompt,
+  FullSynastryAIResponse,
 } from '../../../../lib/prompts';
-import { getOpenAIInterpretationModel } from '../../../../lib/appSettings';
 import { validateSynastryInput, formatValidationErrors } from '../../../../lib/validation';
 import { unlockContentLayer } from '../../../../lib/contentArchitecture';
 import { SYNASTRY_EXTENDED_LUMI_COST, buildSynastryExtendedCacheKey } from '../../../../lib/synastryExtended';
@@ -17,7 +17,7 @@ import { RATE_LIMIT_CONFIGS, withRateLimit } from '../../../../lib/rateLimit';
 
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 
-function mapExtendedToSynastryResult(raw: ExtendedSynastryAIResponse): SynastryResult {
+function mapLumiFullToSynastryResult(raw: FullSynastryAIResponse & { summary?: string; compatibilityScore?: number }): SynastryResult {
   const score =
     typeof raw.compatibilityScore === 'number' && Number.isFinite(raw.compatibilityScore)
       ? Math.min(100, Math.max(0, Math.round(raw.compatibilityScore)))
@@ -25,11 +25,14 @@ function mapExtendedToSynastryResult(raw: ExtendedSynastryAIResponse): SynastryR
   return {
     summary: String(raw.summary || '').trim() || '—',
     compatibilityScore: score,
-    extendedOverview: {
-      connection: String(raw.connection || '').trim(),
-      tension: String(raw.tension || '').trim(),
-      navigation: String(raw.navigation || '').trim(),
-      bondContext: String(raw.bondContext || '').trim(),
+    fullAnalysis: {
+      generalTheme: String(raw.generalTheme || '').trim(),
+      attraction: String(raw.attraction || '').trim(),
+      difficulties: String(raw.difficulties || '').trim(),
+      recommendations: Array.isArray(raw.recommendations)
+        ? raw.recommendations.map((item) => String(item || '').trim()).filter(Boolean)
+        : [],
+      potential: String(raw.potential || '').trim(),
     },
   };
 }
@@ -127,12 +130,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       );
       if (cached) {
         const parsed = typeof cached === 'string' ? JSON.parse(cached) : cached;
-        if (parsed?.extendedOverview || parsed?.summary) return parsed as SynastryResult;
+        if (parsed?.fullAnalysis) return parsed as SynastryResult;
       }
     }
 
     const row = await db.content_interpretations.get(userId, 'lumi', 'synastry', 'one_off', contentCacheKey);
-    if (row?.content && typeof row.content === 'object' && (row.content as SynastryResult).extendedOverview) {
+    if (row?.content && typeof row.content === 'object' && (row.content as SynastryResult).fullAnalysis) {
       return row.content as SynastryResult;
     }
     return null;
@@ -154,8 +157,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       error: 'Lumi required',
       code: 'LUMI_REQUIRED',
       message: langRu
-        ? `Средний разбор совместимости открывается за ${lumiCost} Lumi.`
-        : `The mid-depth compatibility layer opens for ${lumiCost} Lumi.`,
+        ? `Полный разбор совместимости открывается за ${lumiCost} Lumi.`
+        : `The full compatibility reading opens for ${lumiCost} Lumi.`,
       lumiCost,
       lumiBalance: user.lumi_balance ?? 0,
     });
@@ -211,6 +214,11 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   };
 
   const persist = async (payload: SynastryResult) => {
+    const { modelTier } = await getOpenAIModelForContent({
+      accessTier: 'lumi',
+      contentSurface: 'synastry',
+      contentVariant: 'one_off',
+    });
     if (primaryChartRecord?.id && partnerChartRecord?.id) {
       await db.synastry.set(
         primaryChartRecord.id,
@@ -230,10 +238,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
           cacheKey: contentCacheKey,
           inputHash: contentCacheKey,
           content: payload,
-          modelTier: 'base',
+          modelTier,
           isPersistent: true,
           canRegenerateForLumi: false,
-          legacySource: 'synastry.extended.lumi',
+          legacySource: 'synastry.full.lumi',
         },
         userId
       );
@@ -245,10 +253,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         cacheKey: contentCacheKey,
         inputHash: contentCacheKey,
         content: payload,
-        modelTier: 'base',
+        modelTier,
         isPersistent: true,
         canRegenerateForLumi: false,
-        legacySource: 'synastry.extended.lumi',
+        legacySource: 'synastry.full.lumi',
       });
     }
   };
@@ -259,27 +267,38 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (!openai) {
       resultPayload = {
         summary: langRu
-          ? `Средний разбор для ${profile.name} и ${partnerName}: больше контекста, чем в бесплатном слое.`
-          : `Mid-depth read for ${profile.name} and ${partnerName}: more context than the free layer.`,
-        compatibilityScore: 72,
-        extendedOverview: {
-          connection: langRu
-            ? 'Между вами есть живой обмен качествами: вы замечаете друг друга и реагируете по-разному на близость и границы.'
-            : 'There is a living exchange between you: you notice each other and respond differently to closeness and boundaries.',
-          tension: langRu
-            ? 'Напряжение чаще растёт из ожиданий и темпа, а не из «плохого характера». Имеет смысл называть это прямо и раньше.'
-            : 'Tension often grows from expectations and pacing, not from bad character. Naming it early helps.',
-          navigation: langRu
-            ? 'Договоритесь о одном простом правиле на неделю: как вы просите о внимании и как даёте паузу без исчезновения.'
-            : 'Agree on one simple rule for the week: how you ask for attention and how you pause without disappearing.',
-          bondContext: langRu
-            ? `В связи типа «${rel}» важно держать в фокусе уважение к ролям и честность о потребностях — без игры в догадки.`
-            : `For a bond like "${rel}", keep respect for roles and honesty about needs — without guessing games.`,
+          ? `Полный разбор совместимости для ${profile.name} и ${partnerName}: динамика, напряжение и потенциал этой пары.`
+          : `Full compatibility reading for ${profile.name} and ${partnerName}: dynamic, tension, and relational potential.`,
+        compatibilityScore: 74,
+        fullAnalysis: {
+          generalTheme: langRu
+            ? `Между вами есть связь, которая держится не только на притяжении, но и на внутреннем росте. Такие отношения сильнее раскрываются там, где оба готовы замечать различия в темпе, чувствах и ожиданиях, а не спорить с ними.`
+            : `There is a connection here that rests not only on attraction, but on mutual growth. Bonds like this become stronger when both people notice differences in pace, feeling, and expectation instead of fighting them.`,
+          attraction: langRu
+            ? `Вас притягивает ощущение живого отклика: рядом можно быть собой и при этом видеть в другом то, что расширяет собственный взгляд на близость. Часто именно это создаёт чувство, что связь не пустая, а по-настоящему включённая.`
+            : `You are drawn by the sense of real response: around each other, you can be yourselves and still see something that broadens your understanding of closeness. That is often what makes the bond feel genuinely alive instead of decorative.`,
+          difficulties: langRu
+            ? `Главные сложности обычно растут не из отсутствия чувства, а из разного способа проживать напряжение. Один может хотеть больше прямоты и ясности, другой — больше мягкости или времени; если это не проговаривать, связь быстро уходит в недопонимание или тихую дистанцию.`
+            : `The main difficulties usually do not come from a lack of feeling, but from different ways of moving through tension. One person may want clarity and directness while the other needs more softness or time; without naming that difference, the bond can slide into misunderstanding or quiet distance.`,
+          recommendations: langRu
+            ? [
+                'Проговаривайте ожидания раньше, чем они становятся скрытой обидой.',
+                'В чувствительных разговорах сначала уточняйте смысл, а не сразу защищайте свою позицию.',
+                'Сохраняйте маленькие ритуалы контакта, чтобы связь не жила только на напряжённых темах.',
+              ]
+            : [
+                'Name expectations before they harden into quiet resentment.',
+                'In sensitive conversations, clarify meaning before defending your position.',
+                'Keep small rituals of contact so the bond does not live only through tense moments.',
+              ],
+          potential: langRu
+            ? `У этой пары есть потенциал к глубокой, зрелой близости, если оба не будут прятать реальные потребности за молчанием или резкостью. Тогда связь может стать не только эмоционально сильной, но и устойчивой.`
+            : `This bond holds real potential for deep, mature closeness if both people stop hiding real needs behind silence or sharpness. In that case, the connection can become not only emotionally strong, but steady as well.`,
         },
       };
     } else {
       const userPrompt = addLanguageInstruction(
-        createExtendedSynastryPrompt(
+        createFullSynastryPrompt(
           userChartData as NatalChartData,
           profile as UserProfile,
           partnerChartData as NatalChartData,
@@ -288,7 +307,11 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         ),
         currentLanguage
       );
-      const modelId = await getOpenAIInterpretationModel();
+      const { model: modelId } = await getOpenAIModelForContent({
+        accessTier: 'lumi',
+        contentSurface: 'synastry',
+        contentVariant: 'one_off',
+      });
       const completion = await openai.chat.completions.create({
         model: modelId,
         messages: [
@@ -296,12 +319,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
           { role: 'user', content: userPrompt },
         ],
         response_format: { type: 'json_object' },
-        temperature: 0.78,
-        max_tokens: 2000,
+        temperature: 0.72,
+        max_tokens: 2500,
       });
       const content = completion.choices[0]?.message?.content || '{}';
-      const parsed = JSON.parse(content) as ExtendedSynastryAIResponse;
-      resultPayload = mapExtendedToSynastryResult(parsed);
+      const parsed = JSON.parse(content) as FullSynastryAIResponse & { summary?: string; compatibilityScore?: number };
+      resultPayload = mapLumiFullToSynastryResult(parsed);
     }
 
     await persist(resultPayload);

@@ -19,13 +19,17 @@ import {
   deleteNotificationSchedule,
   fetchGeneratedCardPreviewObjectUrl,
 } from '../../../services/adminService';
+import { NOTIFICATION_SLOTS } from '../../../lib/notificationSlotCatalog';
 
-const SLOTS: NotificationSlot[] = ['morning', 'day', 'evening', 'custom'];
+const SLOTS: NotificationSlot[] = NOTIFICATION_SLOTS;
 
 const SLOT_LABEL_RU: Record<NotificationSlot, string> = {
   morning: 'Утро',
   day: 'День',
   evening: 'Вечер',
+  daily_lumi: 'Ежедневные Lumi',
+  upsell: 'Без Premium',
+  promo: 'Промо',
   custom: 'Свой слот',
 };
 

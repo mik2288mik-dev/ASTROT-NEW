@@ -7,7 +7,7 @@
 
 import { Pool, Client } from 'pg';
 import { LEGACY_NOTIFICATION_SEEDS, SCHEDULED_NOTIFICATION_SEEDS } from './adminNotificationSeedCatalog';
-import { pickDailyRouletteReward } from './rouletteEconomy';
+import { getRouletteTierForAmount, pickDailyRouletteReward, ROULETTE_COOLDOWN_MS } from './rouletteEconomy';
 import {
   generateReferralCode,
   normalizeReferralCode,
@@ -108,6 +108,18 @@ type DbContentVariant =
   | 'one_off';
 type DbContentModelTier = 'base' | 'premium';
 type DbContentUnlockType = 'free' | 'premium' | 'lumi';
+type DbDailyLumiTaskKey = 'open_horoscope' | 'open_chart';
+
+const DAILY_LUMI_TASKS: Array<{
+  key: DbDailyLumiTaskKey;
+  reward: number;
+  reason: string;
+}> = [
+  { key: 'open_horoscope', reward: 5, reason: 'daily_task_horoscope' },
+  { key: 'open_chart', reward: 5, reason: 'daily_task_chart' },
+];
+
+const DAILY_LUMI_TASKS_MAP = new Map(DAILY_LUMI_TASKS.map((task) => [task.key, task]));
 
 function normalizeJsonColumn<T = any>(value: any): T {
   if (value == null) return value;
@@ -596,7 +608,6 @@ export const db = {
           theme: u.theme || 'dark',
           is_admin: u.is_admin ?? false,
           weather_city: u.weather_city,
-          dashboard_air_variant: u.dashboard_air_variant || 'cloud-ribbon',
           created_at: u.created_at,
           is_premium: isPremium,
           is_setup: !!(u.name && u.birth_date && u.birth_place),
@@ -624,16 +635,6 @@ export const db = {
         const finalWeatherCity = weatherCity != null && String(weatherCity).trim()
           ? String(weatherCity).trim()
           : null;
-        const dashboardAirVariant = merge('dashboard_air_variant', 'cloud-ribbon');
-        const finalDashboardAirVariant = [
-          'cloud-ribbon',
-          'aero-stack',
-          'orbit-focus',
-          'feather-cards',
-          'pulse-air',
-        ].includes(String(dashboardAirVariant))
-          ? String(dashboardAirVariant)
-          : 'cloud-ribbon';
         let premiumUntil = data.premium_until;
         if (premiumUntil === undefined && data.is_premium !== undefined) {
           premiumUntil = data.is_premium
@@ -647,8 +648,8 @@ export const db = {
             id, name, birth_date, birth_time, birth_place,
             latitude, longitude, sun_sign, moon_sign, ascendant,
             lumi_balance, premium_until, ref_code, referred_by,
-            login_streak, last_login, language, theme, is_admin, weather_city, dashboard_air_variant
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+            login_streak, last_login, language, theme, is_admin, weather_city
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
           ON CONFLICT (id) DO UPDATE SET
             name = COALESCE(EXCLUDED.name, users.name),
             birth_date = COALESCE(EXCLUDED.birth_date, users.birth_date),
@@ -664,8 +665,7 @@ export const db = {
             language = COALESCE(EXCLUDED.language, users.language),
             theme = COALESCE(EXCLUDED.theme, users.theme),
             is_admin = COALESCE(EXCLUDED.is_admin, users.is_admin),
-            weather_city = COALESCE(EXCLUDED.weather_city, users.weather_city),
-            dashboard_air_variant = COALESCE(EXCLUDED.dashboard_air_variant, users.dashboard_air_variant)
+            weather_city = COALESCE(EXCLUDED.weather_city, users.weather_city)
           RETURNING *`,
           [
             id,
@@ -688,7 +688,6 @@ export const db = {
             merge('theme', 'dark'),
             merge('is_admin', false),
             finalWeatherCity,
-            finalDashboardAirVariant,
           ]
         );
         const u = result.rows[0];
@@ -705,7 +704,6 @@ export const db = {
           is_premium: isPremium,
           is_admin: u.is_admin ?? false,
           weather_city: u.weather_city,
-          dashboard_air_variant: u.dashboard_air_variant || 'cloud-ribbon',
         };
       } catch (error: any) {
         log.error('[DB] Error setting user', { error: error.message, userId });
@@ -2147,31 +2145,84 @@ export const db = {
       }
     },
 
-    async hasClaimedUtcToday(userId: string): Promise<boolean> {
+    async getCooldownStatus(userId: string): Promise<{
+      canSpin: boolean;
+      nextAvailableAt: string | null;
+      lastSpinAt: string | null;
+      lastWinAmount: number | null;
+      lastWinTier: 'spark' | 'glow' | 'beam' | 'aurora' | null;
+      lumiBalance: number;
+    }> {
       const id = toUserId(userId);
-      if (!DATABASE_URL) return false;
+      if (!DATABASE_URL) {
+        return {
+          canSpin: true,
+          nextAvailableAt: null,
+          lastSpinAt: null,
+          lastWinAmount: null,
+          lastWinTier: null,
+          lumiBalance: 0,
+        };
+      }
       try {
         const dbPool = getPool();
-        const result = await dbPool.query(
-          `SELECT 1 FROM lumi_transactions
-           WHERE user_id = $1 AND reason = 'roulette_win'
-           AND (created_at AT TIME ZONE 'UTC')::date = (CURRENT_TIMESTAMP AT TIME ZONE 'UTC')::date
-           LIMIT 1`,
-          [id]
-        );
-        return result.rows.length > 0;
+        const [spinResult, balanceResult] = await Promise.all([
+          dbPool.query(
+            `SELECT win_amount, created_at
+             FROM roulette_spins
+             WHERE user_id = $1
+             ORDER BY created_at DESC
+             LIMIT 1`,
+            [id]
+          ),
+          dbPool.query(
+            `SELECT lumi_balance
+             FROM users
+             WHERE id = $1`,
+            [id]
+          ),
+        ]);
+
+        const latest = spinResult.rows[0] || null;
+        const lumiBalance = balanceResult.rows[0]?.lumi_balance ?? 0;
+
+        if (!latest?.created_at) {
+          return {
+            canSpin: true,
+            nextAvailableAt: null,
+            lastSpinAt: null,
+            lastWinAmount: null,
+            lastWinTier: null,
+            lumiBalance,
+          };
+        }
+
+        const lastSpinAt = new Date(latest.created_at);
+        const nextAvailableAt = new Date(lastSpinAt.getTime() + ROULETTE_COOLDOWN_MS);
+        const canSpin = nextAvailableAt.getTime() <= Date.now();
+        const lastWinAmount = Number(latest.win_amount ?? 0);
+
+        return {
+          canSpin,
+          nextAvailableAt: canSpin ? null : nextAvailableAt.toISOString(),
+          lastSpinAt: lastSpinAt.toISOString(),
+          lastWinAmount,
+          lastWinTier: getRouletteTierForAmount(lastWinAmount),
+          lumiBalance,
+        };
       } catch (error: any) {
-        log.error('[DB] hasClaimedUtcToday', { error: error.message, userId });
+        log.error('[DB] getCooldownStatus', { error: error.message, userId });
         throw error;
       }
     },
 
     /**
-     * One roulette credit per UTC day; serialized per user. Writes lumi_transactions + roulette_spins.
+     * One roulette credit per rolling 24h window; serialized per user.
+     * Writes lumi_transactions + roulette_spins.
      */
     async spinDailyReward(userId: string): Promise<
-      | { ok: true; amount: number; tier: string; newBalance: number }
-      | { ok: false; code: 'ALREADY_CLAIMED'; newBalance: number }
+      | { ok: true; amount: number; tier: string; newBalance: number; nextAvailableAt: string }
+      | { ok: false; code: 'COOLDOWN'; newBalance: number; nextAvailableAt: string }
     > {
       const id = toUserId(userId);
       if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
@@ -2183,18 +2234,22 @@ export const db = {
         await client.query('BEGIN');
         await client.query('SELECT pg_advisory_xact_lock($1)', [advisoryXactLockKey(id)]);
 
-        const dup = await client.query(
-          `SELECT 1 FROM lumi_transactions
-           WHERE user_id = $1 AND reason = 'roulette_win'
-           AND (created_at AT TIME ZONE 'UTC')::date = (CURRENT_TIMESTAMP AT TIME ZONE 'UTC')::date
+        const cooldown = await client.query(
+          `SELECT created_at
+           FROM roulette_spins
+           WHERE user_id = $1
+             AND created_at > CURRENT_TIMESTAMP - INTERVAL '24 hours'
+           ORDER BY created_at DESC
            LIMIT 1`,
           [id]
         );
-        if (dup.rows.length > 0) {
+        if (cooldown.rows.length > 0) {
+          const latestSpinAt = new Date(cooldown.rows[0].created_at);
+          const nextAvailableAt = new Date(latestSpinAt.getTime() + ROULETTE_COOLDOWN_MS).toISOString();
           const balRow = await client.query('SELECT lumi_balance FROM users WHERE id = $1', [id]);
           const newBalance = balRow.rows[0]?.lumi_balance ?? 0;
           await client.query('COMMIT');
-          return { ok: false, code: 'ALREADY_CLAIMED', newBalance };
+          return { ok: false, code: 'COOLDOWN', newBalance, nextAvailableAt };
         }
 
         await client.query(
@@ -2210,10 +2265,181 @@ export const db = {
         const bal = await client.query('SELECT lumi_balance FROM users WHERE id = $1', [id]);
         const newBalance = bal.rows[0]?.lumi_balance ?? 0;
         await client.query('COMMIT');
-        return { ok: true, amount: prize.amount, tier: prize.tier, newBalance };
+        return {
+          ok: true,
+          amount: prize.amount,
+          tier: prize.tier,
+          newBalance,
+          nextAvailableAt: new Date(Date.now() + ROULETTE_COOLDOWN_MS).toISOString(),
+        };
       } catch (error: any) {
         await client.query('ROLLBACK').catch(() => {});
         log.error('[DB] spinDailyReward', { error: error.message, userId });
+        throw error;
+      } finally {
+        client.release();
+      }
+    },
+  },
+
+  daily_task_completions: {
+    async getStatus(userId: string) {
+      const id = toUserId(userId);
+      if (!DATABASE_URL) {
+        return {
+          date: null,
+          totalReward: DAILY_LUMI_TASKS.reduce((sum, task) => sum + task.reward, 0),
+          earnedToday: 0,
+          completedCount: 0,
+          tasks: DAILY_LUMI_TASKS.map((task) => ({
+            key: task.key,
+            reward: task.reward,
+            completed: false,
+            completedAt: null,
+          })),
+          lumiBalance: 0,
+        };
+      }
+
+      try {
+        const dbPool = getPool();
+        const [todayResult, tasksResult, balanceResult] = await Promise.all([
+          dbPool.query(`SELECT (CURRENT_TIMESTAMP AT TIME ZONE 'Europe/Moscow')::date::text AS today`),
+          dbPool.query(
+            `SELECT task_key, lumi_awarded, created_at
+             FROM daily_task_completions
+             WHERE user_id = $1
+               AND task_date = (CURRENT_TIMESTAMP AT TIME ZONE 'Europe/Moscow')::date`,
+            [id]
+          ),
+          dbPool.query('SELECT lumi_balance FROM users WHERE id = $1', [id]),
+        ]);
+
+        const completions = new Map(
+          tasksResult.rows.map((row: any) => [
+            String(row.task_key),
+            {
+              amount: Number(row.lumi_awarded ?? 0),
+              completedAt: row.created_at ? new Date(row.created_at).toISOString() : null,
+            },
+          ])
+        );
+
+        const tasks = DAILY_LUMI_TASKS.map((task) => {
+          const completion = completions.get(task.key);
+          return {
+            key: task.key,
+            reward: task.reward,
+            completed: !!completion,
+            completedAt: completion?.completedAt ?? null,
+          };
+        });
+
+        return {
+          date: todayResult.rows[0]?.today ?? null,
+          totalReward: DAILY_LUMI_TASKS.reduce((sum, task) => sum + task.reward, 0),
+          earnedToday: tasks.reduce((sum, task) => sum + (task.completed ? task.reward : 0), 0),
+          completedCount: tasks.filter((task) => task.completed).length,
+          tasks,
+          lumiBalance: Number(balanceResult.rows[0]?.lumi_balance ?? 0),
+        };
+      } catch (error: any) {
+        log.error('[DB] daily_task_completions.getStatus', { error: error.message, userId });
+        throw error;
+      }
+    },
+
+    async complete(userId: string, taskKey: DbDailyLumiTaskKey) {
+      const id = toUserId(userId);
+      const task = DAILY_LUMI_TASKS_MAP.get(taskKey);
+      if (!task) {
+        const error = new Error(`Unsupported daily task key: ${taskKey}`);
+        (error as any).code = 'INVALID_TASK_KEY';
+        throw error;
+      }
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+
+      const dbPool = getPool();
+      const client = await dbPool.connect();
+      try {
+        await client.query('BEGIN');
+        await client.query('SELECT pg_advisory_xact_lock($1)', [advisoryXactLockKey(id)]);
+
+        const userRow = await client.query('SELECT id FROM users WHERE id = $1 FOR UPDATE', [id]);
+        if (userRow.rows.length === 0) {
+          await client.query('ROLLBACK');
+          throw new Error('User not found');
+        }
+
+        const insertResult = await client.query(
+          `INSERT INTO daily_task_completions (user_id, task_key, task_date, lumi_awarded)
+           VALUES ($1, $2, (CURRENT_TIMESTAMP AT TIME ZONE 'Europe/Moscow')::date, $3)
+           ON CONFLICT (user_id, task_key, task_date) DO NOTHING
+           RETURNING lumi_awarded`,
+          [id, task.key, task.reward]
+        );
+
+        const awarded = insertResult.rows.length > 0;
+        if (awarded) {
+          await client.query(
+            `UPDATE users
+             SET lumi_balance = COALESCE(lumi_balance, 0) + $1
+             WHERE id = $2`,
+            [task.reward, id]
+          );
+          await client.query(
+            `INSERT INTO lumi_transactions (user_id, amount, reason) VALUES ($1, $2, $3)`,
+            [id, task.reward, task.reason]
+          );
+        }
+
+        const statusRows = await client.query(
+          `SELECT task_key, lumi_awarded, created_at
+           FROM daily_task_completions
+           WHERE user_id = $1
+             AND task_date = (CURRENT_TIMESTAMP AT TIME ZONE 'Europe/Moscow')::date`,
+          [id]
+        );
+        const balanceRow = await client.query('SELECT lumi_balance FROM users WHERE id = $1', [id]);
+        const todayRow = await client.query(
+          `SELECT (CURRENT_TIMESTAMP AT TIME ZONE 'Europe/Moscow')::date::text AS today`
+        );
+
+        await client.query('COMMIT');
+
+        const completions = new Map(
+          statusRows.rows.map((row: any) => [
+            String(row.task_key),
+            {
+              amount: Number(row.lumi_awarded ?? 0),
+              completedAt: row.created_at ? new Date(row.created_at).toISOString() : null,
+            },
+          ])
+        );
+        const tasks = DAILY_LUMI_TASKS.map((entry) => {
+          const completion = completions.get(entry.key);
+          return {
+            key: entry.key,
+            reward: entry.reward,
+            completed: !!completion,
+            completedAt: completion?.completedAt ?? null,
+          };
+        });
+
+        return {
+          taskKey: task.key,
+          awarded,
+          amountAwarded: awarded ? task.reward : 0,
+          date: todayRow.rows[0]?.today ?? null,
+          totalReward: DAILY_LUMI_TASKS.reduce((sum, entry) => sum + entry.reward, 0),
+          earnedToday: tasks.reduce((sum, entry) => sum + (entry.completed ? entry.reward : 0), 0),
+          completedCount: tasks.filter((entry) => entry.completed).length,
+          tasks,
+          lumiBalance: Number(balanceRow.rows[0]?.lumi_balance ?? 0),
+        };
+      } catch (error: any) {
+        await client.query('ROLLBACK').catch(() => {});
+        log.error('[DB] daily_task_completions.complete', { error: error.message, userId, taskKey });
         throw error;
       } finally {
         client.release();

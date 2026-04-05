@@ -3,6 +3,7 @@ import type {
   AdminNotificationDeliveryLogItem,
   AdminScheduledNotificationAsset,
   AdminScheduledNotificationTemplate,
+  NotificationSlot,
   UserProfile,
 } from '../../../types';
 import {
@@ -152,7 +153,7 @@ export const NotificationsManager: React.FC<NotificationsManagerProps> = () => {
     }
   };
 
-  const handleRunSlot = async (slot: 'morning' | 'day' | 'evening' | 'custom') => {
+  const handleRunSlot = async (slot: NotificationSlot) => {
     try {
       const result = await runNotificationSlot(slot, null);
       setToast(`Slot run: template #${result.templateId ?? '—'}, ${result.successCount}/${result.totalRecipients}`);

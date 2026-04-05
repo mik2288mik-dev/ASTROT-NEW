@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import type { AskLumiaTier, ContentModelTier } from '../../../../types';
+import type { AskLumiaTier } from '../../../../types';
+import { getOpenAIModelForContent } from '../../../../lib/appSettings';
 import { db } from '../../../../lib/db';
 import { unlockContentLayer } from '../../../../lib/contentArchitecture';
 import {
@@ -80,10 +81,6 @@ function buildChartContext(user: any, primaryChart: any) {
   ].filter(Boolean);
 
   return lines.join('\n');
-}
-
-function getModelTierForQuestionTier(tier: AskLumiaTier): ContentModelTier {
-  return tier === 'free' ? 'base' : 'premium';
 }
 
 function getRequestedTier(value: unknown): AskLumiaTier | null {
@@ -231,6 +228,11 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
   const questionCacheKey = getQuestionCacheKey(normalizedQuestion);
   const variant = getQuestionVariantForTier(requestedTier);
+  const { modelTier } = await getOpenAIModelForContent({
+    accessTier: requestedTier === 'premium' ? 'premium' : requestedTier,
+    contentSurface: 'question',
+    contentVariant: variant,
+  });
   let currentBalance = state.lumiBalance;
   let lumiSpent = 0;
   let unlockCompleted = false;
@@ -280,7 +282,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         answer,
         tier: requestedTier,
       },
-      modelTier: getModelTierForQuestionTier(requestedTier),
+      modelTier,
       isPersistent: true,
       canRegenerateForLumi: false,
       legacySource: `ask_lumia.${requestedTier}`,

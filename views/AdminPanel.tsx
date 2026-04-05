@@ -9,7 +9,7 @@ import { AdminEconomyTab } from './admin/AdminEconomyTab';
 import { AdminNotificationsTab } from './admin/AdminNotificationsTab';
 import { AdminOverviewTab } from './admin/AdminOverviewTab';
 import { AdminUsersTab } from './admin/AdminUsersTab';
-import { AdminButton, AdminStateBanner } from './admin/AdminPrimitives';
+import { AdminBadge, AdminButton, AdminStateBanner, AdminSurface } from './admin/AdminPrimitives';
 import { getAdminText } from './admin/adminText';
 import {
   ADMIN_PRIMARY_SECTIONS,
@@ -177,6 +177,35 @@ const NavButton: React.FC<{
   </button>
 );
 
+const MissionActionCard: React.FC<{
+  title: string;
+  body: string;
+  meta: string;
+  onClick: () => void;
+}> = ({ title, body, meta, onClick }) => (
+  <button type="button" onClick={onClick} className="admin-mission-action-card">
+    <div>
+      <p className="admin-mission-action-title">{title}</p>
+      <p className="admin-mission-action-body">{body}</p>
+    </div>
+    <div className="admin-mission-action-footer">
+      <span>{meta}</span>
+      <span aria-hidden="true">→</span>
+    </div>
+  </button>
+);
+
+const MissionRailButton: React.FC<{
+  label: string;
+  hint: string;
+  onClick: () => void;
+}> = ({ label, hint, onClick }) => (
+  <button type="button" onClick={onClick} className="admin-mission-link-item">
+    <span className="admin-mission-link-title">{label}</span>
+    <span className="admin-mission-link-hint">{hint}</span>
+  </button>
+);
+
 export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onPatchOwnProfile, onClose }) => {
   const lang = profile.language === 'en' ? 'en' : 'ru';
   const [activeSection, setActiveSection] = useState<AdminBackofficeSection>('overview');
@@ -191,6 +220,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onPatchOwnProfi
   const goSection = (section: AdminBackofficeSection) => {
     setActiveSection(section);
     closeSidebar();
+  };
+
+  const goUsersSegment = (segment: AdminUserSegment) => {
+    setUserSegment(segment);
+    goSection('users');
   };
 
   useEffect(() => {
@@ -265,6 +299,95 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onPatchOwnProfi
   const openSection = (section: AdminBackofficeSection) => {
     setActiveSection(section);
   };
+
+  const premiumShare = overview.totalUsers > 0 ? Math.round((overview.activePremiumUsers / overview.totalUsers) * 100) : 0;
+  const lumiCoverage = overview.totalUsers > 0 ? Math.round((overview.lumiEconomyUsers / overview.totalUsers) * 100) : 0;
+  const attentionShare = overview.totalUsers > 0 ? Math.round((overview.needAttentionUsers / overview.totalUsers) * 100) : 0;
+
+  const missionActions = [
+    {
+      id: 'users',
+      title: lang === 'ru' ? 'Пользователи и сегменты' : 'Users and segments',
+      body:
+        lang === 'ru'
+          ? 'Быстро открыть аудитории, Premium, неактивных и тех, кому нужен фокус.'
+          : 'Open audiences, Premium, inactive users, and attention segments fast.',
+      meta:
+        lang === 'ru'
+          ? `${overview.needAttentionUsers} требуют внимания`
+          : `${overview.needAttentionUsers} need attention`,
+      onClick: () => goUsersSegment('need_attention'),
+    },
+    {
+      id: 'send',
+      title: lang === 'ru' ? 'Рассылки и кампании' : 'Sends and campaigns',
+      body:
+        lang === 'ru'
+          ? 'Перейти к ручным пушам, шаблонам и истории отправок без лишних шагов.'
+          : 'Jump into manual pushes, templates, and delivery history.',
+      meta: lang === 'ru' ? 'Центр коммуникаций' : 'Comms hub',
+      onClick: () => goSection('send'),
+    },
+    {
+      id: 'automation',
+      title: lang === 'ru' ? 'Авто-сценарии' : 'Automation',
+      body:
+        lang === 'ru'
+          ? 'Утро, день, вечер, Lumi и промо управляются из одного контура.'
+          : 'Morning, day, evening, Lumi, and promo flows in one place.',
+      meta: lang === 'ru' ? 'Daily control' : 'Daily control',
+      onClick: () => goSection('automation'),
+    },
+    {
+      id: 'economy',
+      title: lang === 'ru' ? 'Экономика и Premium' : 'Economy and Premium',
+      body:
+        lang === 'ru'
+          ? 'Проверить Lumi-движение, платежи и монетизацию без переходов по кругу.'
+          : 'Review Lumi movement, payments, and monetization without extra hops.',
+      meta: lang === 'ru' ? `${overview.lumiEconomyUsers} с Lumi` : `${overview.lumiEconomyUsers} with Lumi`,
+      onClick: () => goSection('economy'),
+    },
+  ];
+
+  const railActions = [
+    {
+      id: 'focus',
+      label: lang === 'ru' ? 'Нужно внимание' : 'Need attention',
+      hint: lang === 'ru' ? 'Users · проблемные сегменты' : 'Users · problem segments',
+      onClick: () => goUsersSegment('need_attention'),
+    },
+    {
+      id: 'premium',
+      label: lang === 'ru' ? 'Premium-аудитория' : 'Premium audience',
+      hint: lang === 'ru' ? 'Users · платящие' : 'Users · paying',
+      onClick: () => goUsersSegment('premium'),
+    },
+    {
+      id: 'send',
+      label: lang === 'ru' ? 'Запустить рассылку' : 'Launch send',
+      hint: lang === 'ru' ? 'Comms · ручной запуск' : 'Comms · manual launch',
+      onClick: () => goSection('send'),
+    },
+    {
+      id: 'templates',
+      label: lang === 'ru' ? 'Шаблоны и креативы' : 'Templates and creative',
+      hint: lang === 'ru' ? 'Notifications · library' : 'Notifications · library',
+      onClick: () => goSection('templates'),
+    },
+    {
+      id: 'automation',
+      label: lang === 'ru' ? 'Сценарии дня' : 'Day scenarios',
+      hint: lang === 'ru' ? 'Automation · morning/day/evening' : 'Automation · morning/day/evening',
+      onClick: () => goSection('automation'),
+    },
+    {
+      id: 'assets',
+      label: lang === 'ru' ? 'Визуалы и ассеты' : 'Visuals and assets',
+      hint: lang === 'ru' ? 'Media · карточки и изображения' : 'Media · cards and uploads',
+      onClick: () => goSection('assets'),
+    },
+  ];
 
   const renderSection = () => {
     switch (activeSection) {
@@ -366,6 +489,29 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onPatchOwnProfi
             <p className="mt-2 text-xs leading-relaxed text-slate-500">{getAdminText(lang, 'panel_subtitle')}</p>
           </div>
 
+          <div className="px-3 pt-3">
+            <div className="admin-dash-sidebar-card">
+              <div className="flex items-center justify-between gap-2">
+                <p className="admin-label">{lang === 'ru' ? 'Mission Control' : 'Mission Control'}</p>
+                <AdminBadge tone="info">{lang === 'ru' ? 'Плотный режим' : 'Dense mode'}</AdminBadge>
+              </div>
+              <div className="admin-dash-sidebar-stats">
+                <div>
+                  <span>{getAdminText(lang, 'metric_users')}</span>
+                  <strong>{overview.totalUsers}</strong>
+                </div>
+                <div>
+                  <span>{getAdminText(lang, 'metric_premium')}</span>
+                  <strong>{premiumShare}%</strong>
+                </div>
+                <div>
+                  <span>{getAdminText(lang, 'metric_attention')}</span>
+                  <strong>{overview.needAttentionUsers}</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {summaryError ? (
             <div className="px-3 py-3">
               <AdminStateBanner tone="info">{summaryError}</AdminStateBanner>
@@ -426,6 +572,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onPatchOwnProfi
               </h2>
             </div>
 
+            <div className="hidden items-center gap-2 xl:flex">
+              <AdminBadge tone="info">{lang === 'ru' ? 'Все контуры под рукой' : 'All controls in reach'}</AdminBadge>
+              <AdminBadge tone="neutral">{sectionDescription(lang, activeSection)}</AdminBadge>
+            </div>
+
             <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
               {activeSection !== 'send' ? (
                 <AdminButton tone="ghost" className="min-h-[2.5rem] text-xs" onClick={() => setActiveSection('send')}>
@@ -440,30 +591,137 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onPatchOwnProfi
 
           <div className="admin-dash-content admin-scroll">
             <div className="admin-dash-workspace">
-              <p className="mb-5 max-w-3xl text-[13px] leading-relaxed text-slate-400 sm:text-sm">
-                {sectionDescription(lang, activeSection)}
-              </p>
+              <AdminSurface className="px-5 py-5 sm:px-6 sm:py-6">
+                <div className="admin-mission-hero-grid">
+                  <div className="min-w-0">
+                    <p className="admin-label">{lang === 'ru' ? 'Mission Control' : 'Mission Control'}</p>
+                    <h2 className="admin-heading mt-3 text-[30px] leading-none text-white sm:text-[38px]">
+                      {lang === 'ru' ? 'Единый контур управления Lumia' : 'Unified Lumia control layer'}
+                    </h2>
+                    <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-300">
+                      {lang === 'ru'
+                        ? `Сейчас в фокусе: ${sectionLabel(lang, activeSection)}. Здесь всё важное вынесено в быстрые маршруты, метрики и рабочие панели, чтобы управлять продуктом без лишних переходов.`
+                        : `Current focus: ${sectionLabel(lang, activeSection)}. Key routes, metrics, and operator panels are surfaced here so you can manage the product without extra hops.`}
+                    </p>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <AdminBadge tone="info">{lang === 'ru' ? 'Mission Control' : 'Mission Control'}</AdminBadge>
+                      <AdminBadge tone="neutral">{sectionLabel(lang, activeSection)}</AdminBadge>
+                      <AdminBadge tone="neutral">
+                        {lang === 'ru' ? `${ADMIN_PRIMARY_SECTIONS.length + ADMIN_SECONDARY_SECTIONS.length} рабочих зон` : `${ADMIN_PRIMARY_SECTIONS.length + ADMIN_SECONDARY_SECTIONS.length} work zones`}
+                      </AdminBadge>
+                    </div>
+                  </div>
 
-              <div className="admin-dash-kpi-row mb-6">
-                {summaryChips.map((chip) => (
-                  <button
-                    key={chip.id}
-                    type="button"
-                    data-active={activeSection === 'users' && userSegment === chip.segment}
-                    className="admin-dash-kpi-card text-left"
-                    onClick={() => {
-                      setUserSegment(chip.segment);
-                      setActiveSection('users');
-                      closeSidebar();
-                    }}
-                  >
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">{chip.label}</p>
-                    <p className="mt-1 text-2xl font-semibold tabular-nums text-white">{chip.value}</p>
-                  </button>
-                ))}
+                  <div className="admin-mission-summary-grid">
+                    <div className="admin-mission-summary-card">
+                      <span>{lang === 'ru' ? 'Premium share' : 'Premium share'}</span>
+                      <strong>{premiumShare}%</strong>
+                      <small>
+                        {overview.activePremiumUsers}/{Math.max(overview.totalUsers, 1)} {lang === 'ru' ? 'пользователей' : 'users'}
+                      </small>
+                    </div>
+                    <div className="admin-mission-summary-card">
+                      <span>{lang === 'ru' ? 'Lumi coverage' : 'Lumi coverage'}</span>
+                      <strong>{lumiCoverage}%</strong>
+                      <small>
+                        {overview.lumiEconomyUsers} {lang === 'ru' ? 'в Lumi-экономике' : 'in Lumi economy'}
+                      </small>
+                    </div>
+                    <div className="admin-mission-summary-card">
+                      <span>{lang === 'ru' ? 'Attention load' : 'Attention load'}</span>
+                      <strong>{attentionShare}%</strong>
+                      <small>
+                        {overview.needAttentionUsers} {lang === 'ru' ? 'требуют фокуса' : 'need focus'}
+                      </small>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="admin-mission-actions">
+                  {missionActions.map((action) => (
+                    <MissionActionCard
+                      key={action.id}
+                      title={action.title}
+                      body={action.body}
+                      meta={action.meta}
+                      onClick={action.onClick}
+                    />
+                  ))}
+                </div>
+              </AdminSurface>
+
+              <div className="admin-mission-layout">
+                <div className="min-w-0">
+                  <div className="admin-dash-kpi-row mb-6 mt-6">
+                    {summaryChips.map((chip) => (
+                      <button
+                        key={chip.id}
+                        type="button"
+                        data-active={activeSection === 'users' && userSegment === chip.segment}
+                        className="admin-dash-kpi-card text-left"
+                        onClick={() => {
+                          setUserSegment(chip.segment);
+                          setActiveSection('users');
+                          closeSidebar();
+                        }}
+                      >
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">{chip.label}</p>
+                        <p className="mt-1 text-2xl font-semibold tabular-nums text-white">{chip.value}</p>
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="min-w-0 pb-2">{renderSection()}</div>
+                </div>
+
+                <aside className="admin-mission-rail">
+                  <div className="admin-mission-rail-sticky">
+                    <AdminSurface className="px-4 py-4">
+                      <div className="flex items-center justify-between gap-2">
+                        <div>
+                          <p className="admin-label">{lang === 'ru' ? 'Быстрые маршруты' : 'Fast lanes'}</p>
+                          <h3 className="admin-heading mt-2 text-xl text-white">
+                            {lang === 'ru' ? 'Основные контуры' : 'Primary flows'}
+                          </h3>
+                        </div>
+                        <AdminBadge tone="neutral">{lang === 'ru' ? 'UX dense' : 'UX dense'}</AdminBadge>
+                      </div>
+                      <div className="admin-mission-link-list mt-4">
+                        {railActions.map((action) => (
+                          <MissionRailButton
+                            key={action.id}
+                            label={action.label}
+                            hint={action.hint}
+                            onClick={action.onClick}
+                          />
+                        ))}
+                      </div>
+                    </AdminSurface>
+
+                    <AdminSurface className="mt-4 px-4 py-4">
+                      <p className="admin-label">{lang === 'ru' ? 'Live snapshot' : 'Live snapshot'}</p>
+                      <div className="admin-mission-mini-grid mt-4">
+                        <div className="admin-mission-mini-card">
+                          <span>{getAdminText(lang, 'metric_users')}</span>
+                          <strong>{overview.totalUsers}</strong>
+                        </div>
+                        <div className="admin-mission-mini-card">
+                          <span>{getAdminText(lang, 'metric_active')}</span>
+                          <strong>{overview.activeUsers7d}</strong>
+                        </div>
+                        <div className="admin-mission-mini-card">
+                          <span>{getAdminText(lang, 'metric_premium')}</span>
+                          <strong>{overview.activePremiumUsers}</strong>
+                        </div>
+                        <div className="admin-mission-mini-card">
+                          <span>{getAdminText(lang, 'metric_lumi_economy')}</span>
+                          <strong>{overview.lumiEconomyUsers}</strong>
+                        </div>
+                      </div>
+                    </AdminSurface>
+                  </div>
+                </aside>
               </div>
-
-              <div className="min-w-0 pb-2">{renderSection()}</div>
             </div>
           </div>
         </div>

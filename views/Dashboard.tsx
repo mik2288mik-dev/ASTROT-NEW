@@ -1,7 +1,6 @@
 import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import {
-  DashboardAirVariant,
   ForecastDailyReading,
   UserProfile,
   NatalChartData,
@@ -12,11 +11,9 @@ import { formatLumiaDate, getMoscowTodayKey } from '../lib/date-utils';
 import { getCachedDailyForecastLayer, mapLegacyHoroscopeToForecastDailyReading } from '../services/astrologyService';
 import { LumiaStudioHeader } from '../components/lumia-ui/LumiaStudioHeader';
 import { LumiaButton } from '../components/lumia-ui/LumiaButton';
+import { DailyLumiWheelCard } from '../components/lumi/DailyLumiWheelCard';
+import { DailyLumiTasksCard } from '../components/lumi/DailyLumiTasksCard';
 import { cn } from '../lib/cn';
-import {
-  DASHBOARD_AIR_DEFAULT,
-  resolveDashboardAirVariant,
-} from '../lib/dashboardAirVariant';
 
 type DashboardView = Extract<ViewState, 'chart' | 'horoscope' | 'synastry' | 'oracle'>;
 type StudioTab = 'natal' | 'compatibility' | 'horoscope';
@@ -27,6 +24,7 @@ interface DashboardProps {
   activeChartId?: number;
   onNavigate: (view: DashboardView) => void;
   onOpenSettings: () => void;
+  onBalanceUpdate?: (balance: number) => void;
 }
 
 const cleanDashboardText = (value?: string | null): string =>
@@ -50,28 +48,15 @@ const splitIntoDashboardSentences = (value: string): string[] =>
     .filter(Boolean);
 
 export const Dashboard = memo<DashboardProps>(
-  ({ profile, chartData, activeChartId, onNavigate, onOpenSettings }) => {
+  ({ profile, chartData, activeChartId, onNavigate, onOpenSettings, onBalanceUpdate }) => {
     const [activeTab, setActiveTab] = useState<StudioTab>('natal');
     const [dailyReading, setDailyReading] = useState<ForecastDailyReading | null>(null);
-    const [airVariant, setAirVariant] = useState<DashboardAirVariant>(
-      () =>
-        resolveDashboardAirVariant({
-          profileVariant: profile.dashboardAirVariant,
-          envVariant: process.env.NEXT_PUBLIC_DASHBOARD_AIR_VARIANT,
-        }) || DASHBOARD_AIR_DEFAULT
-    );
 
     const language = useMemo(() => profile.language, [profile.language]);
     const langKey = useMemo(
       () => (profile.language === 'en' ? 'en' : 'ru') as 'ru' | 'en',
       [profile.language]
     );
-
-    const isCloud = airVariant === 'cloud-ribbon';
-    const isAero = airVariant === 'aero-stack';
-    const isOrbit = airVariant === 'orbit-focus';
-    const isFeather = airVariant === 'feather-cards';
-    const isPulse = airVariant === 'pulse-air';
 
     const horoscopeDateLabel = useMemo(
       () => formatLumiaDate(dailyReading?.date || getMoscowTodayKey(), language),
@@ -175,20 +160,6 @@ export const Dashboard = memo<DashboardProps>(
     const handleNavigateOracle = useCallback(() => onNavigate('oracle'), [onNavigate]);
 
     useEffect(() => {
-      setAirVariant((current) => {
-        const next = resolveDashboardAirVariant({
-          profileVariant: profile.dashboardAirVariant,
-          queryVariant:
-            typeof window !== 'undefined'
-              ? new URLSearchParams(window.location.search).get('air')
-              : null,
-          envVariant: process.env.NEXT_PUBLIC_DASHBOARD_AIR_VARIANT,
-        });
-        return current === next ? current : next;
-      });
-    }, [profile.dashboardAirVariant]);
-
-    useEffect(() => {
       let cancelled = false;
       const today = getMoscowTodayKey();
 
@@ -234,63 +205,30 @@ export const Dashboard = memo<DashboardProps>(
 
     const tabShellClass = cn(
       'relative mb-4 flex w-full items-stretch rounded-full p-1 sm:mb-5',
-      isCloud && 'border border-black/[0.06] bg-white/56 shadow-[0_8px_20px_rgba(0,0,0,0.05)]',
-      isAero &&
-        'border border-black/[0.08] bg-gradient-to-r from-white/75 via-white/55 to-white/78 shadow-[0_10px_22px_rgba(0,0,0,0.07)]',
-      isOrbit && 'border border-black/[0.06] bg-white/60 shadow-[0_8px_20px_rgba(0,0,0,0.06)]',
-      isFeather && 'border border-black/[0.04] bg-white/72 shadow-[0_6px_16px_rgba(0,0,0,0.04)]',
-      isPulse &&
-        'border border-black/[0.1] bg-gradient-to-r from-white/88 via-white/64 to-white/86 shadow-[0_10px_24px_rgba(0,0,0,0.09)]'
+      'border border-black/[0.06] bg-white/56 shadow-[0_8px_20px_rgba(0,0,0,0.05)]'
     );
 
-    const tabButtonClass = cn(
-      'relative z-0 flex min-h-[44px] flex-1 items-center justify-center px-1 py-1',
-      isAero && 'min-h-[46px]'
-    );
+    const tabButtonClass = 'relative z-0 flex min-h-[44px] flex-1 items-center justify-center px-1 py-1';
 
-    const tabIndicatorClass = cn(
-      'absolute inset-y-0.5 left-0.5 right-0.5 rounded-full',
-      isCloud && 'bg-white',
-      isAero && 'bg-white/95 shadow-[0_6px_14px_rgba(0,0,0,0.09)]',
-      isOrbit && 'bg-white shadow-[0_7px_16px_rgba(0,0,0,0.08)]',
-      isFeather && 'bg-white/95',
-      isPulse && 'bg-gradient-to-r from-white via-[#fff9ee] to-white shadow-[0_8px_16px_rgba(212,175,55,0.28)]'
-    );
+    const tabIndicatorClass = 'absolute inset-y-0.5 left-0.5 right-0.5 rounded-full bg-white';
 
     const cardClass = cn(
       'rounded-[30px] p-5 sm:p-6',
-      isCloud &&
-        'lumia-glass border border-black/[0.06] bg-white/78 shadow-[0_20px_40px_rgba(0,0,0,0.06)]',
-      isAero &&
-        'lumia-glass bg-gradient-to-b from-white/92 via-white/80 to-white/62 shadow-[0_14px_30px_rgba(0,0,0,0.08)]',
-      isOrbit &&
-        'lumia-glass ring-1 ring-black/[0.04] bg-gradient-to-b from-white/88 to-white/66 shadow-[0_16px_32px_rgba(0,0,0,0.07)]',
-      isFeather &&
-        'border border-black/[0.045] bg-gradient-to-b from-white/90 to-white/64 backdrop-blur-[14px] shadow-[0_10px_24px_rgba(0,0,0,0.05)]',
-      isPulse &&
-        'lumia-glass bg-gradient-to-b from-white/94 to-white/72 shadow-[0_18px_34px_rgba(0,0,0,0.07)]'
+      'lumia-glass border border-black/[0.06] bg-white/78 shadow-[0_20px_40px_rgba(0,0,0,0.06)]'
     );
 
     const secondaryCardClass = cn(
       'rounded-[28px] p-5 sm:p-6',
-      isCloud && 'border border-black/[0.055] bg-white/74 shadow-[0_14px_30px_rgba(0,0,0,0.05)] backdrop-blur-xl',
-      isAero && 'border border-black/[0.07] bg-white/76 shadow-[0_10px_24px_rgba(0,0,0,0.06)] backdrop-blur-xl',
-      isOrbit && 'border border-black/[0.06] bg-white/78 shadow-[0_12px_26px_rgba(0,0,0,0.06)] backdrop-blur-xl',
-      isFeather && 'border border-black/[0.04] bg-gradient-to-b from-white/88 to-white/66 shadow-[0_8px_20px_rgba(0,0,0,0.04)]',
-      isPulse && 'border border-black/[0.08] bg-gradient-to-b from-white/92 to-white/72 shadow-[0_12px_26px_rgba(0,0,0,0.07)] backdrop-blur-xl'
+      'border border-black/[0.055] bg-white/74 shadow-[0_14px_30px_rgba(0,0,0,0.05)] backdrop-blur-xl'
     );
 
-    const motionTransition = isPulse
-      ? { type: 'spring' as const, stiffness: 500, damping: 32 }
-      : { type: 'spring' as const, stiffness: 420, damping: 34 };
-
-    const panelTransition = isPulse ? { duration: 0.24 } : { duration: 0.2 };
+    const motionTransition = { type: 'spring' as const, stiffness: 420, damping: 34 };
+    const panelTransition = { duration: 0.2 };
 
     if (!chartData) {
       return (
-        <div className={rootClass} data-air-variant={airVariant}>
+        <div className={rootClass}>
           <LumiaStudioHeader
-            variant={airVariant}
             onOpenSettings={onOpenSettings}
             settingsAriaLabel={getText(language, 'nav.settings')}
           />
@@ -325,9 +263,8 @@ export const Dashboard = memo<DashboardProps>(
     ];
 
     return (
-      <div className={rootClass} data-air-variant={airVariant}>
+      <div className={rootClass}>
         <LumiaStudioHeader
-          variant={airVariant}
           onOpenSettings={onOpenSettings}
           settingsAriaLabel={getText(language, 'nav.settings')}
         />
@@ -368,31 +305,23 @@ export const Dashboard = memo<DashboardProps>(
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={panelTransition}
-            className={cn('space-y-4 sm:space-y-5', isAero && 'space-y-5 sm:space-y-6', isPulse && 'lumia-pulse-enter')}
+            className="space-y-4 sm:space-y-5"
           >
             {activeTab === 'natal' && (
               <>
-                <section className={cn(cardClass, 'space-y-5', isAero && 'space-y-6')}>
+                <section className={cn(cardClass, 'space-y-5')}>
                   <p className="text-center text-[10px] font-bold uppercase tracking-[0.2em] text-text-muted/70">
                     {getText(language, 'dashboard.natal_label')}
                   </p>
 
-                  <div className={cn('grid grid-cols-3 gap-2 text-center', isOrbit && 'gap-3')}>
+                  <div className="grid grid-cols-3 gap-2 text-center">
                     {signRows.map((item) => (
-                      <div
-                        key={item.id}
-                        className={cn(
-                          isOrbit &&
-                            'rounded-full border border-black/[0.07] bg-white/74 px-2.5 py-3 shadow-[0_8px_16px_rgba(0,0,0,0.06)]'
-                        )}
-                      >
+                      <div key={item.id}>
                         <p className="text-[10px] uppercase text-text-muted/60">{item.symbol}</p>
                         <p className="serif mt-1 text-lg font-medium text-text-main">{item.value}</p>
                       </div>
                     ))}
                   </div>
-
-                  {isOrbit && <div aria-hidden className="h-px bg-gradient-to-r from-transparent via-black/[0.12] to-transparent" />}
 
                   <p className="px-1 text-center text-sm leading-relaxed text-text-muted">
                     {getText(language, 'dashboard.natal_body')}
@@ -402,10 +331,7 @@ export const Dashboard = memo<DashboardProps>(
                     {natalHighlights.map((point) => (
                       <li key={point} className="flex items-start gap-2 text-sm text-text-main/90">
                         <span
-                          className={cn(
-                            'mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full',
-                            isPulse ? 'bg-accent-gold' : 'bg-accent-gold/70'
-                          )}
+                          className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent-gold/70"
                         />
                         {point}
                       </li>
@@ -413,8 +339,8 @@ export const Dashboard = memo<DashboardProps>(
                   </ul>
 
                   <LumiaButton
-                    className={cn('min-h-[46px] w-full', isPulse && 'shadow-[0_10px_20px_rgba(212,175,55,0.22)]')}
-                    variant={isPulse ? 'secondary' : 'primary'}
+                    className="min-h-[46px] w-full"
+                    variant="primary"
                     onClick={handleNavigateChart}
                   >
                     {getText(language, 'dashboard.natal_cta')}
@@ -428,7 +354,7 @@ export const Dashboard = memo<DashboardProps>(
                   <p className="text-sm leading-relaxed text-text-main/90">{questionsSupport}</p>
                   <LumiaButton
                     className="min-h-[46px] w-full"
-                    variant={isPulse ? 'outline' : 'primary'}
+                    variant="primary"
                     onClick={handleNavigateOracle}
                   >
                     {getText(language, 'dashboard.questions_cta')}
@@ -438,7 +364,7 @@ export const Dashboard = memo<DashboardProps>(
             )}
 
             {activeTab === 'compatibility' && (
-              <section className={cn(cardClass, 'space-y-5 text-center', isAero && 'space-y-6')}>
+              <section className={cn(cardClass, 'space-y-5 text-center')}>
                 <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-accent-gold">
                   {getText(language, 'dashboard.synastry_label')}
                 </p>
@@ -448,8 +374,8 @@ export const Dashboard = memo<DashboardProps>(
                 </p>
                 <p className="text-xs italic text-text-muted/80">{getText(language, 'dashboard.synastry_hint')}</p>
                 <LumiaButton
-                  className={cn('min-h-[46px] w-full', isPulse && 'shadow-[0_10px_20px_rgba(212,175,55,0.2)]')}
-                  variant={isPulse ? 'secondary' : 'primary'}
+                  className="min-h-[46px] w-full"
+                  variant="primary"
                   onClick={handleNavigateSynastry}
                 >
                   {getText(language, 'dashboard.synastry_cta')}
@@ -485,8 +411,8 @@ export const Dashboard = memo<DashboardProps>(
                 </div>
 
                 <LumiaButton
-                  variant={isPulse ? 'secondary' : 'outline'}
-                  className={cn('min-h-[46px] w-full', isPulse && 'shadow-[0_10px_20px_rgba(212,175,55,0.2)]')}
+                  variant="outline"
+                  className="min-h-[46px] w-full"
                   onClick={handleNavigateHoroscope}
                 >
                   {getText(language, 'dashboard.hero_cta')}
@@ -495,6 +421,22 @@ export const Dashboard = memo<DashboardProps>(
             )}
           </motion.div>
         </AnimatePresence>
+
+        <DailyLumiWheelCard
+          userId={profile.id}
+          language={language}
+          compact
+          onBalanceUpdate={onBalanceUpdate}
+          className="mt-4 sm:mt-5"
+        />
+
+        <DailyLumiTasksCard
+          userId={profile.id}
+          language={language}
+          compact
+          onBalanceUpdate={onBalanceUpdate}
+          className="mt-4 sm:mt-5"
+        />
       </div>
     );
   }
