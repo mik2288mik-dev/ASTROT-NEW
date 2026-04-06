@@ -875,7 +875,7 @@ const App: React.FC = () => {
                             profile={profile} 
                             chartData={chartData}
                             activeChartId={activeChartId}
-                            onBalanceUpdate={(balance) => setProfile((prev) => (prev ? { ...prev, lumiBalance: balance } : prev))}
+                            onRequestPremium={() => setShowPremiumPreview(true)}
                             onNavigate={(newView) => {
                                 if (newView === 'synastry') {
                                     setSynastryPrefill(null);

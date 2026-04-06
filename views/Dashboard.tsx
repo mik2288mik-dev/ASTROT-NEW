@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
-import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   ForecastDailyReading,
   UserProfile,
@@ -11,9 +11,8 @@ import { formatLumiaDate, getMoscowTodayKey } from '../lib/date-utils';
 import { getCachedDailyForecastLayer, mapLegacyHoroscopeToForecastDailyReading } from '../services/astrologyService';
 import { LumiaStudioHeader } from '../components/lumia-ui/LumiaStudioHeader';
 import { LumiaButton } from '../components/lumia-ui/LumiaButton';
-import { DailyLumiWheelCard } from '../components/lumi/DailyLumiWheelCard';
-import { DailyLumiTasksCard } from '../components/lumi/DailyLumiTasksCard';
 import { cn } from '../lib/cn';
+import { coerceNatalAnchorReading } from '../lib/natalReadings';
 
 type DashboardView = Extract<ViewState, 'chart' | 'horoscope' | 'synastry' | 'oracle'>;
 type StudioTab = 'natal' | 'compatibility' | 'horoscope';
@@ -24,7 +23,7 @@ interface DashboardProps {
   activeChartId?: number;
   onNavigate: (view: DashboardView) => void;
   onOpenSettings: () => void;
-  onBalanceUpdate?: (balance: number) => void;
+  onRequestPremium?: () => void;
 }
 
 const cleanDashboardText = (value?: string | null): string =>
@@ -48,7 +47,7 @@ const splitIntoDashboardSentences = (value: string): string[] =>
     .filter(Boolean);
 
 export const Dashboard = memo<DashboardProps>(
-  ({ profile, chartData, activeChartId, onNavigate, onOpenSettings, onBalanceUpdate }) => {
+  ({ profile, chartData, activeChartId, onNavigate, onOpenSettings, onRequestPremium }) => {
     const [activeTab, setActiveTab] = useState<StudioTab>('natal');
     const [dailyReading, setDailyReading] = useState<ForecastDailyReading | null>(null);
 
@@ -135,27 +134,38 @@ export const Dashboard = memo<DashboardProps>(
       [adviceLines, dailyReading?.chance, dailyReading?.focus, dailyReading?.risk, language, readingSentences]
     );
 
-    const natalHighlights = useMemo(
-      () => [
-        getText(profile.language, 'dashboard.natal_point_character'),
-        getText(profile.language, 'dashboard.natal_point_love'),
-        getText(profile.language, 'dashboard.natal_point_strengths'),
-      ],
-      [profile.language]
-    );
-
     const questionsSupport = profile.isPremium
       ? getText(profile.language, 'dashboard.questions_support_premium')
       : getText(profile.language, 'dashboard.questions_support_free');
 
-    const signRows = [
-      { id: 'sun', symbol: '\u2609', value: chartData?.sun?.sign || '\u2014' },
-      { id: 'moon', symbol: '\u263D', value: chartData?.moon?.sign || '\u2014' },
-      { id: 'asc', symbol: 'ASC', value: chartData?.rising?.sign || '\u2014' },
-    ];
+    const natalAnchorPreview = useMemo(() => {
+      if (profile.generatedContent?.natalIntro) {
+        return coerceNatalAnchorReading(profile.generatedContent.natalIntro, langKey);
+      }
+
+      const summary = cleanDashboardText(chartData?.summary);
+      if (!summary) return null;
+
+      return {
+        headline: getText(language, 'dashboard.natal_title'),
+        summary,
+        reading: summary,
+        strengths: [],
+        patterns: [],
+      };
+    }, [chartData?.summary, langKey, language, profile.generatedContent?.natalIntro]);
+
+    const natalParagraphs = useMemo(() => {
+      const source = cleanDashboardText(natalAnchorPreview?.reading || natalAnchorPreview?.summary);
+      if (!source) return [];
+      return source
+        .split(/\n\s*\n/)
+        .map((part) => cleanDashboardText(part))
+        .filter(Boolean)
+        .slice(0, 1);
+    }, [natalAnchorPreview?.reading, natalAnchorPreview?.summary]);
 
     const handleNavigateHoroscope = useCallback(() => onNavigate('horoscope'), [onNavigate]);
-    const handleNavigateChart = useCallback(() => onNavigate('chart'), [onNavigate]);
     const handleNavigateSynastry = useCallback(() => onNavigate('synastry'), [onNavigate]);
     const handleNavigateOracle = useCallback(() => onNavigate('oracle'), [onNavigate]);
 
@@ -203,14 +213,10 @@ export const Dashboard = memo<DashboardProps>(
       'relative mx-auto min-h-full max-w-md lumia-tg-hub-pad lumia-pad-bottom-tg-scroll text-text-main'
     );
 
-    const tabShellClass = cn(
-      'relative mb-4 flex w-full items-stretch rounded-full p-1 sm:mb-5',
-      'border border-black/[0.06] bg-white/56 shadow-[0_8px_20px_rgba(0,0,0,0.05)]'
-    );
+    const tabShellClass = 'mb-5 border-b border-black/[0.07]';
 
-    const tabButtonClass = 'relative z-0 flex min-h-[44px] flex-1 items-center justify-center px-1 py-1';
-
-    const tabIndicatorClass = 'absolute inset-y-0.5 left-0.5 right-0.5 rounded-full bg-white';
+    const tabButtonClass =
+      'relative flex min-h-[40px] flex-1 items-center justify-center px-1 pb-3 pt-1';
 
     const cardClass = cn(
       'rounded-[30px] p-5 sm:p-6',
@@ -222,7 +228,6 @@ export const Dashboard = memo<DashboardProps>(
       'border border-black/[0.055] bg-white/74 shadow-[0_14px_30px_rgba(0,0,0,0.05)] backdrop-blur-xl'
     );
 
-    const motionTransition = { type: 'spring' as const, stiffness: 420, damping: 34 };
     const panelTransition = { duration: 0.2 };
 
     if (!chartData) {
@@ -269,25 +274,21 @@ export const Dashboard = memo<DashboardProps>(
           settingsAriaLabel={getText(language, 'nav.settings')}
         />
 
-        <LayoutGroup id="studioTabs">
-          <div className={tabShellClass}>
+        <div className={tabShellClass}>
+          <div className="flex items-center gap-4">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={tabButtonClass}
-              >
-                {activeTab === tab.id && (
-                  <motion.div
-                    layoutId="studioTabIndicator"
-                    className={tabIndicatorClass}
-                    transition={motionTransition}
-                  />
+                className={cn(
+                  tabButtonClass,
+                  activeTab === tab.id ? 'border-b border-black/85' : 'border-b border-transparent'
                 )}
+              >
                 <span
                   className={cn(
-                    'relative z-10 whitespace-nowrap text-center text-[10px] font-semibold leading-tight tracking-[0.02em] sm:text-[11px]',
+                    'whitespace-nowrap text-center text-[11px] font-medium leading-tight tracking-[0.02em] sm:text-xs',
                     activeTab === tab.id ? 'text-text-main' : 'text-text-muted'
                   )}
                 >
@@ -296,7 +297,7 @@ export const Dashboard = memo<DashboardProps>(
               </button>
             ))}
           </div>
-        </LayoutGroup>
+        </div>
 
         <AnimatePresence mode="wait">
           <motion.div
@@ -309,42 +310,40 @@ export const Dashboard = memo<DashboardProps>(
           >
             {activeTab === 'natal' && (
               <>
-                <section className={cn(cardClass, 'space-y-5')}>
-                  <p className="text-center text-[10px] font-bold uppercase tracking-[0.2em] text-text-muted/70">
-                    {getText(language, 'dashboard.natal_label')}
-                  </p>
+                <section className="px-1 pt-1">
+                  <div className="mx-auto max-w-reading-wide space-y-5">
+                    <div className="space-y-4 text-center">
+                      <h2 className="font-serif text-[2.1rem] leading-[1.06] text-text-main sm:text-[2.45rem]">
+                        {natalAnchorPreview?.headline || getText(language, 'dashboard.natal_title')}
+                      </h2>
+                      {natalParagraphs.map((paragraph, index) => (
+                        <p
+                          key={`${paragraph.slice(0, 24)}-${index}`}
+                          className="mx-auto max-w-[19.5rem] text-left text-[16px] leading-[1.9] tracking-[0.01em] text-text-main/82 sm:max-w-[21rem] sm:text-[17px]"
+                        >
+                          {paragraph}
+                        </p>
+                      ))}
+                    </div>
 
-                  <div className="grid grid-cols-3 gap-2 text-center">
-                    {signRows.map((item) => (
-                      <div key={item.id}>
-                        <p className="text-[10px] uppercase text-text-muted/60">{item.symbol}</p>
-                        <p className="serif mt-1 text-lg font-medium text-text-main">{item.value}</p>
+                    {!profile.isPremium && onRequestPremium ? (
+                      <div className="mx-auto max-w-[20.5rem] space-y-3 pt-2 text-center">
+                        <p className="font-serif text-[1.6rem] leading-[1.15] text-accent-gold sm:text-[1.8rem]">
+                          {getText(language, 'chart.living_premium_title')}
+                        </p>
+                        <p className="text-sm leading-relaxed text-text-main/78 sm:text-[15px]">
+                          {getText(language, 'chart.living_premium_body')}
+                        </p>
+                        <LumiaButton
+                          className="min-h-[48px] w-full"
+                          variant="primary"
+                          onClick={onRequestPremium}
+                        >
+                          {getText(language, 'chart.living_premium_cta')}
+                        </LumiaButton>
                       </div>
-                    ))}
+                    ) : null}
                   </div>
-
-                  <p className="px-1 text-center text-sm leading-relaxed text-text-muted">
-                    {getText(language, 'dashboard.natal_body')}
-                  </p>
-
-                  <ul className="space-y-2 px-1">
-                    {natalHighlights.map((point) => (
-                      <li key={point} className="flex items-start gap-2 text-sm text-text-main/90">
-                        <span
-                          className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent-gold/70"
-                        />
-                        {point}
-                      </li>
-                    ))}
-                  </ul>
-
-                  <LumiaButton
-                    className="min-h-[46px] w-full"
-                    variant="primary"
-                    onClick={handleNavigateChart}
-                  >
-                    {getText(language, 'dashboard.natal_cta')}
-                  </LumiaButton>
                 </section>
 
                 <section className={cn(secondaryCardClass, 'space-y-3')}>
@@ -422,21 +421,6 @@ export const Dashboard = memo<DashboardProps>(
           </motion.div>
         </AnimatePresence>
 
-        <DailyLumiWheelCard
-          userId={profile.id}
-          language={language}
-          compact
-          onBalanceUpdate={onBalanceUpdate}
-          className="mt-4 sm:mt-5"
-        />
-
-        <DailyLumiTasksCard
-          userId={profile.id}
-          language={language}
-          compact
-          onBalanceUpdate={onBalanceUpdate}
-          className="mt-4 sm:mt-5"
-        />
       </div>
     );
   }
