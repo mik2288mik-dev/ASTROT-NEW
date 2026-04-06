@@ -176,12 +176,12 @@ html, body {
 
 /* Хаб Dashboard: запас под капсулы «Закрыть» / «⋯», если contentSafeArea мало */
 .lumia-tg-hub-pad {
-  --lumia-hub-safe-top: max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px));
+  --lumia-hub-safe-top: max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), 24px);
   --lumia-hub-safe-left: max(env(safe-area-inset-left, 0px), var(--tg-content-safe-area-inset-left, 0px));
   --lumia-hub-safe-right: max(env(safe-area-inset-right, 0px), var(--tg-content-safe-area-inset-right, 0px));
-  padding-top: calc(var(--lumia-hub-safe-top) + clamp(1.125rem, 5.8vw, 1.95rem));
-  padding-left: max(0.9rem, var(--lumia-hub-safe-left));
-  padding-right: max(0.9rem, var(--lumia-hub-safe-right));
+  padding-top: calc(var(--lumia-hub-safe-top) + clamp(0.9rem, 4.6vw, 1.25rem));
+  padding-left: max(1rem, var(--lumia-hub-safe-left));
+  padding-right: max(1rem, var(--lumia-hub-safe-right));
 }
 
 .lumia-tg-main-gutter {

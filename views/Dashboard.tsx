@@ -13,6 +13,7 @@ import { LumiaStudioHeader } from '../components/lumia-ui/LumiaStudioHeader';
 import { LumiaButton } from '../components/lumia-ui/LumiaButton';
 import { cn } from '../lib/cn';
 import { coerceNatalAnchorReading } from '../lib/natalReadings';
+import { stripRedundantIntroGreeting } from '../lib/strip-intro-greeting';
 
 type DashboardView = Extract<ViewState, 'chart' | 'horoscope' | 'synastry' | 'oracle'>;
 type StudioTab = 'natal' | 'compatibility' | 'horoscope';
@@ -23,7 +24,6 @@ interface DashboardProps {
   activeChartId?: number;
   onNavigate: (view: DashboardView) => void;
   onOpenSettings: () => void;
-  onRequestPremium?: () => void;
 }
 
 const cleanDashboardText = (value?: string | null): string =>
@@ -47,7 +47,7 @@ const splitIntoDashboardSentences = (value: string): string[] =>
     .filter(Boolean);
 
 export const Dashboard = memo<DashboardProps>(
-  ({ profile, chartData, activeChartId, onNavigate, onOpenSettings, onRequestPremium }) => {
+  ({ profile, chartData, activeChartId, onNavigate, onOpenSettings }) => {
     const [activeTab, setActiveTab] = useState<StudioTab>('natal');
     const [dailyReading, setDailyReading] = useState<ForecastDailyReading | null>(null);
 
@@ -155,16 +155,27 @@ export const Dashboard = memo<DashboardProps>(
       };
     }, [chartData?.summary, langKey, language, profile.generatedContent?.natalIntro]);
 
-    const natalParagraphs = useMemo(() => {
-      const source = cleanDashboardText(natalAnchorPreview?.reading || natalAnchorPreview?.summary);
-      if (!source) return [];
-      return source
+    const natalPreviewText = useMemo(() => {
+      const rawSource =
+        String(natalAnchorPreview?.reading || '').trim() ||
+        String(natalAnchorPreview?.summary || '').trim() ||
+        String(chartData?.summary || '').trim();
+
+      if (!rawSource) return '';
+
+      const stripped = stripRedundantIntroGreeting(rawSource, profile.name);
+      const paragraphs = stripped
         .split(/\n\s*\n/)
         .map((part) => cleanDashboardText(part))
-        .filter(Boolean)
-        .slice(0, 1);
-    }, [natalAnchorPreview?.reading, natalAnchorPreview?.summary]);
+        .filter(Boolean);
 
+      const firstParagraph = paragraphs[0] || cleanDashboardText(stripped);
+      const sentences = splitIntoDashboardSentences(firstParagraph);
+      const preview = sentences.slice(0, 2).join(' ') || firstParagraph;
+      return trimDashboardText(preview, 260);
+    }, [chartData?.summary, natalAnchorPreview?.reading, natalAnchorPreview?.summary, profile.name]);
+
+    const handleNavigateChart = useCallback(() => onNavigate('chart'), [onNavigate]);
     const handleNavigateHoroscope = useCallback(() => onNavigate('horoscope'), [onNavigate]);
     const handleNavigateSynastry = useCallback(() => onNavigate('synastry'), [onNavigate]);
     const handleNavigateOracle = useCallback(() => onNavigate('oracle'), [onNavigate]);
@@ -213,10 +224,10 @@ export const Dashboard = memo<DashboardProps>(
       'relative mx-auto min-h-full max-w-md lumia-tg-hub-pad lumia-pad-bottom-tg-scroll text-text-main'
     );
 
-    const tabShellClass = 'mb-5 border-b border-black/[0.07]';
+    const tabShellClass = 'mb-7 border-b border-black/[0.07]';
 
     const tabButtonClass =
-      'relative flex min-h-[40px] flex-1 items-center justify-center px-1 pb-3 pt-1';
+      'relative flex min-h-[42px] flex-1 items-center justify-center px-1 pb-3 pt-1';
 
     const cardClass = cn(
       'rounded-[30px] p-5 sm:p-6',
@@ -275,7 +286,7 @@ export const Dashboard = memo<DashboardProps>(
         />
 
         <div className={tabShellClass}>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
@@ -288,7 +299,7 @@ export const Dashboard = memo<DashboardProps>(
               >
                 <span
                   className={cn(
-                    'whitespace-nowrap text-center text-[11px] font-medium leading-tight tracking-[0.02em] sm:text-xs',
+                    'whitespace-nowrap text-center text-[12px] font-medium leading-tight tracking-[0.01em] sm:text-[13px]',
                     activeTab === tab.id ? 'text-text-main' : 'text-text-muted'
                   )}
                 >
@@ -311,38 +322,28 @@ export const Dashboard = memo<DashboardProps>(
             {activeTab === 'natal' && (
               <>
                 <section className="px-1 pt-1">
-                  <div className="mx-auto max-w-reading-wide space-y-5">
-                    <div className="space-y-4 text-center">
-                      <h2 className="font-serif text-[2.1rem] leading-[1.06] text-text-main sm:text-[2.45rem]">
-                        {natalAnchorPreview?.headline || getText(language, 'dashboard.natal_title')}
+                  <div className="mx-auto max-w-[23.5rem] space-y-5 sm:max-w-[24.5rem]">
+                    <div className="space-y-4">
+                      <p className="text-[11px] uppercase tracking-[0.18em] text-text-muted/72">
+                        {getText(language, 'dashboard.natal_preview_label')}
+                      </p>
+                      <h2 className="font-serif text-[2rem] leading-[1.08] text-text-main sm:text-[2.2rem]">
+                        {getText(language, 'dashboard.natal_preview_title')}
                       </h2>
-                      {natalParagraphs.map((paragraph, index) => (
-                        <p
-                          key={`${paragraph.slice(0, 24)}-${index}`}
-                          className="mx-auto max-w-[19.5rem] text-left text-[16px] leading-[1.9] tracking-[0.01em] text-text-main/82 sm:max-w-[21rem] sm:text-[17px]"
-                        >
-                          {paragraph}
+                      {natalPreviewText ? (
+                        <p className="text-[16px] leading-[1.82] tracking-[0.005em] text-text-main/84 sm:text-[17px] sm:leading-[1.88]">
+                          {natalPreviewText}
                         </p>
-                      ))}
+                      ) : null}
                     </div>
 
-                    {!profile.isPremium && onRequestPremium ? (
-                      <div className="mx-auto max-w-[20.5rem] space-y-3 pt-2 text-center">
-                        <p className="font-serif text-[1.6rem] leading-[1.15] text-accent-gold sm:text-[1.8rem]">
-                          {getText(language, 'chart.living_premium_title')}
-                        </p>
-                        <p className="text-sm leading-relaxed text-text-main/78 sm:text-[15px]">
-                          {getText(language, 'chart.living_premium_body')}
-                        </p>
-                        <LumiaButton
-                          className="min-h-[48px] w-full"
-                          variant="primary"
-                          onClick={onRequestPremium}
-                        >
-                          {getText(language, 'chart.living_premium_cta')}
-                        </LumiaButton>
-                      </div>
-                    ) : null}
+                    <LumiaButton
+                      className="min-h-[48px] w-full"
+                      variant="primary"
+                      onClick={handleNavigateChart}
+                    >
+                      {getText(language, 'dashboard.natal_preview_cta')}
+                    </LumiaButton>
                   </div>
                 </section>
 

@@ -875,7 +875,6 @@ const App: React.FC = () => {
                             profile={profile} 
                             chartData={chartData}
                             activeChartId={activeChartId}
-                            onRequestPremium={() => setShowPremiumPreview(true)}
                             onNavigate={(newView) => {
                                 if (newView === 'synastry') {
                                     setSynastryPrefill(null);
