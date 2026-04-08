@@ -39,10 +39,10 @@ export async function getChartFromDB(userId: string): Promise<NatalChartData | n
   try {
     response = await fetchWithTimeout(url, { method: 'GET' }, CHART_FETCH_TIMEOUT_MS);
   } catch (err: any) {
-    log.warn('[getChartFromDB] Fetch failed (network/timeout), will try calculate', {
+    log.error('[getChartFromDB] Fetch failed (network/timeout)', {
       error: err?.message || err,
     });
-    return null;
+    throw new Error('Не удалось загрузить сохранённую карту из базы.');
   }
 
   if (response.status === 404) {
@@ -51,25 +51,26 @@ export async function getChartFromDB(userId: string): Promise<NatalChartData | n
   }
 
   if (!response.ok) {
-    log.warn('[getChartFromDB] Non-OK response, will try calculate', { status: response.status });
-    return null;
+    log.error('[getChartFromDB] Non-OK response', { status: response.status });
+    throw new Error(`Не удалось загрузить карту из базы: ${response.status}`);
   }
 
   let chartData: NatalChartData;
   try {
     chartData = await response.json();
   } catch {
-    log.warn('[getChartFromDB] Invalid JSON, will try calculate');
-    return null;
+    log.error('[getChartFromDB] Invalid JSON from storage');
+    throw new Error('Хранилище карты вернуло некорректный ответ.');
   }
 
-  if (!chartData || !chartData.sun || !chartData.moon) {
-    log.warn('[getChartFromDB] Invalid chart payload, will try calculate', {
+  if (!chartData || !chartData.sun || !chartData.moon || !chartData.rising) {
+    log.error('[getChartFromDB] Invalid chart payload from storage', {
       hasData: !!chartData,
       hasSun: !!chartData?.sun,
       hasMoon: !!chartData?.moon,
+      hasRising: !!chartData?.rising,
     });
-    return null;
+    throw new Error('Сохранённая карта неполная.');
   }
 
   log.info('[getChartFromDB] DB_HIT: chart found', {

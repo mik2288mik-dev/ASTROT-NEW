@@ -46,6 +46,7 @@ export default async function handler(
       log.info(`[GET] Fetching settings for userId=${userId}`);
       
       const user = await db.users.get(userId);
+      const primaryChart = await db.natal_charts.getPrimary(userId);
       
       if (!user) {
         log.info(`[GET] DB_MISS: no user for userId=${userId}`);
@@ -63,8 +64,8 @@ export default async function handler(
       return res.status(200).json({
         userId: user.id,
         city: user.weather_city || null,
-        lat: user.latitude ?? null,
-        lon: user.longitude ?? null,
+        lat: primaryChart?.latitude ?? null,
+        lon: primaryChart?.longitude ?? null,
         units: null,
         updatedAt: null
       });

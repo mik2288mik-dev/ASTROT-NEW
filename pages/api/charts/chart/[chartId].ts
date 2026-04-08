@@ -1,5 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '../../../../lib/db';
+import { createOrReuseCanonicalChart } from '../../../../lib/natalChartPersistence';
+import { isCanonicalNatalChartDataComplete } from '../../../../lib/natalChartCanonical';
 
 const log = {
   info: (msg: string, data?: any) => console.log(`[API/charts/chart] ${msg}`, data || ''),
@@ -17,10 +19,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     if (req.method === 'GET') {
-      const chart = await db.natal_charts.getById(id);
+      let chart = await db.natal_charts.getById(id);
       if (!chart) return res.status(404).json({ error: 'Chart not found' });
       if (userId && String(chart.user_id) !== String(userId)) {
         return res.status(403).json({ error: 'Chart does not belong to user' });
+      }
+      if (!isCanonicalNatalChartDataComplete(chart.chart_data) && chart.birth_date && chart.birth_place) {
+        const repaired = await createOrReuseCanonicalChart({
+          userId: String(chart.user_id),
+          name: chart.name || 'Моя карта',
+          birthDate: chart.birth_date,
+          birthTime: chart.birth_time || '12:00',
+          birthPlace: chart.birth_place,
+        });
+        chart = repaired.chart || chart;
       }
       return res.status(200).json(chart);
     }

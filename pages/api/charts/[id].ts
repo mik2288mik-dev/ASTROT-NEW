@@ -1,5 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '../../../lib/db';
+import { repairCanonicalChartForUser } from '../../../lib/natalChartPersistence';
+import { buildCanonicalNatalInputHash, isCanonicalNatalChartDataComplete } from '../../../lib/natalChartCanonical';
 
 const log = {
   info: (message: string, data?: any) => {
@@ -10,10 +12,7 @@ const log = {
   },
 };
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { id } = req.query;
   const userId = Array.isArray(id) ? id[0] : id;
 
@@ -21,77 +20,61 @@ export default async function handler(
     return res.status(400).json({ error: 'User ID is required' });
   }
 
-  log.info(`Request: ${req.method} /api/charts/${userId}`);
-
   try {
     if (req.method === 'GET') {
-      log.info(`[GET] Fetching chart for userId=${userId}`);
+      let chartRecord = await db.natal_charts.get(userId);
 
-      if (!process.env.DATABASE_URL) {
-        log.info('[GET] DATABASE_URL not configured, returning 404');
+      if (!chartRecord || !isCanonicalNatalChartDataComplete(chartRecord.chart_data)) {
+        const repaired = await repairCanonicalChartForUser(userId);
+        chartRecord = repaired?.chart || chartRecord;
+      }
+
+      if (!chartRecord || !chartRecord.chart_data || !isCanonicalNatalChartDataComplete(chartRecord.chart_data)) {
         return res.status(404).json({ error: 'Chart not found' });
       }
-
-      let chartRecord;
-      try {
-        chartRecord = await db.natal_charts.get(userId);
-      } catch (dbError: any) {
-        log.error('[GET] Database error', { error: dbError.message, userId });
-        return res.status(500).json({
-          error: 'Database error',
-          message: 'Failed to load chart from storage',
-        });
-      }
-
-      if (!chartRecord || !chartRecord.chart_data) {
-        log.info(`[GET] DB_MISS: no chart for userId=${userId}`);
-        return res.status(404).json({ error: 'Chart not found' });
-      }
-
-      const chartData = chartRecord.chart_data;
-
-      if (!chartData.sun || !chartData.moon) {
-        log.error('[GET] Invalid chart data structure', {
-          hasSun: !!chartData.sun,
-          hasMoon: !!chartData.moon,
-        });
-        return res.status(500).json({ error: 'Invalid chart data structure' });
-      }
-
-      log.info(`[GET] DB_HIT: returning chart for userId=${userId}`, {
-        sunSign: chartData.sun?.sign,
-        calculatedAt: chartRecord.calculated_at,
-      });
 
       res.setHeader('X-Chart-Source', 'database');
       res.setHeader('X-Chart-Calculated-At', chartRecord.calculated_at || 'unknown');
-
-      return res.status(200).json(chartData);
+      return res.status(200).json(chartRecord.chart_data);
     }
 
     if (req.method === 'POST' || req.method === 'PUT') {
       const chartData = req.body;
+      const user = await db.users.get(userId);
+      const birthDate = user?.birth_date;
+      const birthTime = user?.birth_time || '12:00';
+      const birthPlace = user?.birth_place;
 
       if (!chartData || !chartData.sun || !chartData.moon || !chartData.rising) {
-        log.error(`[${req.method}] Invalid chart data`, {
-          hasSun: !!chartData?.sun,
-          hasMoon: !!chartData?.moon,
-          hasRising: !!chartData?.rising,
-        });
         return res.status(400).json({
           error: 'Invalid chart data',
           message: 'Chart data must contain sun, moon, and rising positions',
         });
       }
 
-      log.info(`[${req.method}] Saving chart for userId=${userId}`, {
-        sunSign: chartData.sun?.sign,
+      if (!birthDate || !birthPlace) {
+        return res.status(400).json({
+          error: 'Missing birth data',
+          message: 'User birthDate and birthPlace are required for canonical chart persistence',
+        });
+      }
+
+      if (typeof chartData.latitude !== 'number' || typeof chartData.longitude !== 'number' || typeof chartData.timezone !== 'string') {
+        return res.status(400).json({
+          error: 'Missing canonical natal data',
+          message: 'Chart data must include latitude, longitude, and timezone',
+        });
+      }
+
+      const inputHash = buildCanonicalNatalInputHash({
+        birthDate,
+        birthTime,
+        latitude: chartData.latitude,
+        longitude: chartData.longitude,
+        timezone: chartData.timezone,
       });
 
-      const savedChart = await db.natal_charts.set(userId, chartData);
-
-      log.info(`[${req.method}] SAVED: chart saved for userId=${userId}`);
-
+      const savedChart = await db.natal_charts.set(userId, chartData, birthDate, birthTime, birthPlace, inputHash);
       return res.status(200).json(savedChart.chart_data);
     }
 

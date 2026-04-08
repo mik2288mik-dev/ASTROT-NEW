@@ -76,8 +76,27 @@ export enum ZodiacSign {
 export interface PlanetPosition {
   planet: string;
   sign: string;
-  house?: string;
+  degree?: number;
+  longitude?: number;
+  house?: string | number;
+  retrograde?: boolean;
+  speedLongitude?: number;
   description: string;
+}
+
+export interface NatalHouseData {
+  house: number;
+  sign: string;
+  degree: number;
+  longitude: number;
+}
+
+export interface NatalAspectData {
+  type: 'conjunction' | 'sextile' | 'square' | 'trine' | 'opposition';
+  angle: number;
+  orb: number;
+  from: string;
+  to: string;
 }
 
 export interface NatalChartData {
@@ -87,10 +106,18 @@ export interface NatalChartData {
   mercury: PlanetPosition | null;
   venus: PlanetPosition | null;
   mars: PlanetPosition | null;
+  jupiter?: PlanetPosition | null;
+  saturn?: PlanetPosition | null;
   
   // New Personalization Fields
   element: string; // Fire, Water, Air, Earth
   rulingPlanet: string; // e.g. Mars for Aries
+  latitude?: number;
+  longitude?: number;
+  timezone?: string;
+  houses?: NatalHouseData[];
+  aspects?: NatalAspectData[];
+  calculationVersion?: string;
   
   summary: string; 
   keywords?: {

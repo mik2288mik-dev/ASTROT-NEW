@@ -1,8 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { calculateNatalChart } from '../../../lib/swisseph-calculator';
 import { formatValidationErrors, validateNatalChartInput } from '../../../lib/validation';
 import { db } from '../../../lib/db';
 import { buyChartSlot, getChartSlotCost } from '../../../services/chartSlotService';
+import { createOrReuseCanonicalChart } from '../../../lib/natalChartPersistence';
 
 const log = {
   info: (msg: string, data?: any) => console.log(`[API/charts] ${msg}`, data || ''),
@@ -66,37 +66,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
       }
 
-      // Check slot capacity before starting the expensive calculation path.
-      const existingCharts = await db.natal_charts.getAll(userId);
-      const user = await db.users.get(userId);
-      const chartSlots = user?.chart_slots ?? 1;
-
-      if (existingCharts.length >= chartSlots) {
-        return res.status(403).json({
-          error: `Chart slots limit reached (${chartSlots}). Purchase more with Lumi.`,
-          code: 'SLOTS_LIMIT',
-        });
-      }
-
-      const resolvedChartData =
-        chartData ||
-        await calculateNatalChart(
-          name || 'My Chart',
-          birthDate,
-          normalizedBirthTime,
-          birthPlace
-        );
-
-      const chart = await db.natal_charts.create(userId, {
+      const result = await createOrReuseCanonicalChart({
+        userId,
         name: name || 'Моя карта',
         birthDate,
         birthTime: normalizedBirthTime,
         birthPlace,
-        chartData: resolvedChartData,
+        chartData,
+        language: userLanguage,
       });
 
-      log.info('Chart created', { userId, chartId: chart.id });
-      return res.status(200).json(chart);
+      log.info(result.reused ? 'Chart reused' : 'Chart created', {
+        userId,
+        chartId: result.chart.id,
+        reused: result.reused,
+      });
+
+      return res.status(200).json({
+        ...result.chart,
+        reused: result.reused,
+      });
     }
 
     return res.status(405).json({ error: 'Method not allowed' });

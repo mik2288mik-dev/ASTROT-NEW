@@ -1,4 +1,4 @@
-// Database connection utility for Railway
+﻿// Database connection utility for Railway
 // This file handles connection to Railway Database
 // 
 // Uses process.env.DATABASE_URL from environment variables
@@ -14,6 +14,15 @@ import {
   REFERRAL_INVITEE_LUMI,
   REFERRAL_INVITER_LUMI,
 } from './referralEconomy';
+import {
+  CANONICAL_NATAL_CALCULATION_VERSION,
+  buildCanonicalNatalInputHash,
+  hasCanonicalNatalRowFields,
+  isCanonicalNatalChartDataComplete,
+  normalizeBirthDateInput,
+  normalizeBirthPlaceInput,
+  normalizeBirthTimeInput,
+} from './natalChartCanonical';
 
 // Read DATABASE_URL from environment variables
 // This is set in Railway Variables or .env file
@@ -57,7 +66,7 @@ function detectDeviceLabel(telegramPlatform?: string | null, userAgent?: string 
   else if (ua.includes('mac os') || ua.includes('macintosh')) parts.push('macOS');
   else if (ua.includes('linux')) parts.push('Linux');
 
-  return parts.filter(Boolean).join(' • ') || 'Unknown device';
+  return parts.filter(Boolean).join(' вЂў ') || 'Unknown device';
 }
 
 function trimText(value?: string | null, maxLength = 1000): string | null {
@@ -260,34 +269,11 @@ function getAdminUserSortSql(sortBy: AdminDbUserSortBy, sortOrder: AdminDbSortOr
 }
 
 function normalizeBirthTimeValue(value?: string | null): string {
-  if (!value) return '12:00';
-  const trimmed = String(value).trim();
-  const match = trimmed.match(/^(\d{2}):(\d{2})/);
-  if (match) {
-    return `${match[1]}:${match[2]}`;
-  }
-  return trimmed;
+  return normalizeBirthTimeInput(value);
 }
 
 function normalizeBirthDateValue(value?: string | Date | null): string {
-  if (!value) return '';
-
-  if (value instanceof Date) {
-    return `${value.getUTCFullYear()}-${String(value.getUTCMonth() + 1).padStart(2, '0')}-${String(value.getUTCDate()).padStart(2, '0')}`;
-  }
-
-  const trimmed = String(value).trim();
-  const dateOnlyMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (dateOnlyMatch) {
-    return `${dateOnlyMatch[1]}-${dateOnlyMatch[2]}-${dateOnlyMatch[3]}`;
-  }
-
-  const parsed = new Date(trimmed);
-  if (!Number.isNaN(parsed.getTime())) {
-    return `${parsed.getUTCFullYear()}-${String(parsed.getUTCMonth() + 1).padStart(2, '0')}-${String(parsed.getUTCDate()).padStart(2, '0')}`;
-  }
-
-  return trimmed;
+  return normalizeBirthDateInput(value);
 }
 
 function normalizeOracleQuestion(value: string) {
@@ -1036,51 +1022,164 @@ export const db = {
   },
 
   natal_charts: {
+    _selectColumns: `
+      id, user_id, name,
+      sun, moon, ascendant, mercury, venus, mars, jupiter, saturn,
+      houses, aspects, chart_data,
+      latitude, longitude, timezone,
+      sun_sign, moon_sign, ascendant_sign,
+      input_hash, calculation_version,
+      birth_date, birth_time, birth_place,
+      is_primary, created_at, updated_at
+    `,
+
+    _hydrateChartData(row: any) {
+      const chartData = normalizeJsonColumn<any>(row.chart_data) || {};
+      const rising = chartData.rising || chartData.ascendant || normalizeJsonColumn(row.ascendant) || null;
+      return {
+        ...chartData,
+        sun: chartData.sun || normalizeJsonColumn(row.sun) || null,
+        moon: chartData.moon || normalizeJsonColumn(row.moon) || null,
+        rising,
+        mercury: chartData.mercury || normalizeJsonColumn(row.mercury) || null,
+        venus: chartData.venus || normalizeJsonColumn(row.venus) || null,
+        mars: chartData.mars || normalizeJsonColumn(row.mars) || null,
+        jupiter: chartData.jupiter || normalizeJsonColumn(row.jupiter) || null,
+        saturn: chartData.saturn || normalizeJsonColumn(row.saturn) || null,
+        houses: Array.isArray(chartData.houses) ? chartData.houses : normalizeJsonColumn(row.houses) || [],
+        aspects: Array.isArray(chartData.aspects) ? chartData.aspects : normalizeJsonColumn(row.aspects) || [],
+        latitude: typeof chartData.latitude === 'number' ? chartData.latitude : row.latitude,
+        longitude: typeof chartData.longitude === 'number' ? chartData.longitude : row.longitude,
+        timezone: chartData.timezone || row.timezone || null,
+        calculationVersion: chartData.calculationVersion || row.calculation_version || null,
+      };
+    },
+
     _rowToChart(row: any) {
+      const chartData = this._hydrateChartData(row);
       return {
         id: row.id,
         user_id: row.user_id,
         name: row.name || 'Моя карта',
-        chart_data: row.chart_data,
+        sun: normalizeJsonColumn(row.sun) || chartData.sun || null,
+        moon: normalizeJsonColumn(row.moon) || chartData.moon || null,
+        ascendant: normalizeJsonColumn(row.ascendant) || chartData.rising || null,
+        mercury: normalizeJsonColumn(row.mercury) || chartData.mercury || null,
+        venus: normalizeJsonColumn(row.venus) || chartData.venus || null,
+        mars: normalizeJsonColumn(row.mars) || chartData.mars || null,
+        jupiter: normalizeJsonColumn(row.jupiter) || chartData.jupiter || null,
+        saturn: normalizeJsonColumn(row.saturn) || chartData.saturn || null,
+        houses: normalizeJsonColumn(row.houses) || chartData.houses || [],
+        aspects: normalizeJsonColumn(row.aspects) || chartData.aspects || [],
+        chart_data: chartData,
         birth_date: row.birth_date,
         birth_time: row.birth_time,
         birth_place: row.birth_place,
+        latitude: row.latitude ?? chartData.latitude ?? null,
+        longitude: row.longitude ?? chartData.longitude ?? null,
+        timezone: row.timezone || chartData.timezone || null,
+        sun_sign: row.sun_sign || chartData.sun?.sign || null,
+        moon_sign: row.moon_sign || chartData.moon?.sign || null,
+        ascendant_sign: row.ascendant_sign || chartData.rising?.sign || null,
         input_hash: row.input_hash,
+        calculation_version: row.calculation_version || chartData.calculationVersion || null,
         is_primary: row.is_primary ?? true,
-        calculated_at: row.created_at,
+        calculated_at: row.updated_at || row.created_at,
         created_at: row.created_at,
-        updated_at: row.created_at,
+        updated_at: row.updated_at || row.created_at,
       };
     },
 
-    /** Primary chart for user (dashboard, horoscope, onboarding) */
+    _toPersistencePayload(data: { name?: string; birthDate: string; birthTime?: string; birthPlace: string; inputHash: string; chartData: any }) {
+      const chartData = data.chartData?.chart_data || data.chartData;
+      if (!chartData?.sun || !chartData?.moon || !chartData?.rising) {
+        throw new Error('Canonical natal chart data is incomplete');
+      }
+
+      const normalizedBirthDate = normalizeBirthDateValue(data.birthDate);
+      const normalizedBirthTime = normalizeBirthTimeValue(data.birthTime);
+      const normalizedBirthPlace = normalizeBirthPlaceInput(data.birthPlace);
+
+      return {
+        name: trimText(data.name, 120) || 'Моя карта',
+        birthDate: normalizedBirthDate || data.birthDate,
+        birthTime: normalizedBirthTime || data.birthTime || '12:00',
+        birthPlace: normalizedBirthPlace || data.birthPlace,
+        inputHash: data.inputHash,
+        chartData,
+        sun: chartData.sun,
+        moon: chartData.moon,
+        ascendant: chartData.rising || chartData.ascendant,
+        mercury: chartData.mercury || null,
+        venus: chartData.venus || null,
+        mars: chartData.mars || null,
+        jupiter: chartData.jupiter || null,
+        saturn: chartData.saturn || null,
+        houses: chartData.houses || [],
+        aspects: chartData.aspects || [],
+        latitude: chartData.latitude ?? null,
+        longitude: chartData.longitude ?? null,
+        timezone: chartData.timezone || null,
+        sunSign: chartData.sun?.sign || null,
+        moonSign: chartData.moon?.sign || null,
+        ascendantSign: (chartData.rising || chartData.ascendant)?.sign || null,
+        calculationVersion: chartData.calculationVersion || CANONICAL_NATAL_CALCULATION_VERSION,
+      };
+    },
+
+    async _queryOne(query: string, params: any[]) {
+      const dbPool = getPool();
+      const result = await dbPool.query(query, params);
+      if (result.rows.length === 0) return null;
+      return this._rowToChart(result.rows[0]);
+    },
+
+    async findByInputHash(userId: string, inputHash: string) {
+      const id = toUserId(userId);
+      if (!DATABASE_URL || !inputHash) return null;
+      try {
+        return await this._queryOne(
+          `SELECT ${this._selectColumns}
+           FROM natal_charts
+           WHERE user_id = $1 AND input_hash = $2
+           ORDER BY is_primary DESC NULLS LAST, id ASC
+           LIMIT 1`,
+          [id, inputHash]
+        );
+      } catch (error: any) {
+        log.error('[DB] Error finding chart by input hash', { error: error.message, userId });
+        throw error;
+      }
+    },
+
     async getPrimary(userId: string) {
       const id = toUserId(userId);
       if (!DATABASE_URL) return null;
       try {
-        const dbPool = getPool();
-        const result = await dbPool.query(
-          `SELECT id, user_id, name, chart_data, birth_date, birth_time, birth_place, input_hash, is_primary, created_at
-           FROM natal_charts WHERE user_id = $1 ORDER BY is_primary DESC NULLS LAST, id ASC LIMIT 1`,
+        return await this._queryOne(
+          `SELECT ${this._selectColumns}
+           FROM natal_charts
+           WHERE user_id = $1
+           ORDER BY is_primary DESC NULLS LAST, id ASC
+           LIMIT 1`,
           [id]
         );
-        if (result.rows.length === 0) return null;
-        return this._rowToChart(result.rows[0]);
       } catch (error: any) {
         log.error('[DB] Error getting primary chart', { error: error.message, userId });
         throw error;
       }
     },
 
-    /** All charts for user */
     async getAll(userId: string) {
       const id = toUserId(userId);
       if (!DATABASE_URL) return [];
       try {
         const dbPool = getPool();
         const result = await dbPool.query(
-          `SELECT id, user_id, name, chart_data, birth_date, birth_time, birth_place, input_hash, is_primary, created_at
-           FROM natal_charts WHERE user_id = $1 ORDER BY is_primary DESC NULLS LAST, id ASC`,
+          `SELECT ${this._selectColumns}
+           FROM natal_charts
+           WHERE user_id = $1
+           ORDER BY is_primary DESC NULLS LAST, id ASC`,
           [id]
         );
         return result.rows.map((r: any) => this._rowToChart(r));
@@ -1090,55 +1189,246 @@ export const db = {
       }
     },
 
-    /** Chart by id */
     async getById(chartId: number) {
       if (!DATABASE_URL) return null;
       try {
-        const dbPool = getPool();
-        const result = await dbPool.query(
-          `SELECT id, user_id, name, chart_data, birth_date, birth_time, birth_place, input_hash, is_primary, created_at
-           FROM natal_charts WHERE id = $1`,
+        return await this._queryOne(
+          `SELECT ${this._selectColumns}
+           FROM natal_charts
+           WHERE id = $1`,
           [chartId]
         );
-        if (result.rows.length === 0) return null;
-        return this._rowToChart(result.rows[0]);
       } catch (error: any) {
         log.error('[DB] Error getting chart by id', { error: error.message, chartId });
         throw error;
       }
     },
 
-    /** Create new chart. First chart gets is_primary=true. Checks chart_slots limit. */
-    async create(userId: string, data: { name: string; birthDate: string; birthTime?: string; birthPlace: string; chartData: any }) {
+    async _updateChartRow(client: any, chartId: number, payload: any, isPrimary: boolean) {
+      const result = await client.query(
+        `UPDATE natal_charts
+         SET name = $1,
+             sun = $2,
+             moon = $3,
+             ascendant = $4,
+             mercury = $5,
+             venus = $6,
+             mars = $7,
+             jupiter = $8,
+             saturn = $9,
+             houses = $10,
+             aspects = $11,
+             chart_data = $12,
+             latitude = $13,
+             longitude = $14,
+             timezone = $15,
+             sun_sign = $16,
+             moon_sign = $17,
+             ascendant_sign = $18,
+             input_hash = $19,
+             calculation_version = $20,
+             birth_date = $21,
+             birth_time = $22,
+             birth_place = $23,
+             is_primary = $24,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = $25
+         RETURNING ${this._selectColumns}`,
+        [
+          payload.name,
+          JSON.stringify(payload.sun),
+          JSON.stringify(payload.moon),
+          JSON.stringify(payload.ascendant),
+          JSON.stringify(payload.mercury),
+          JSON.stringify(payload.venus),
+          JSON.stringify(payload.mars),
+          JSON.stringify(payload.jupiter),
+          JSON.stringify(payload.saturn),
+          JSON.stringify(payload.houses),
+          JSON.stringify(payload.aspects),
+          JSON.stringify(payload.chartData),
+          payload.latitude,
+          payload.longitude,
+          payload.timezone,
+          payload.sunSign,
+          payload.moonSign,
+          payload.ascendantSign,
+          payload.inputHash,
+          payload.calculationVersion,
+          payload.birthDate,
+          payload.birthTime,
+          payload.birthPlace,
+          isPrimary,
+          chartId
+        ]
+      );
+      return this._rowToChart(result.rows[0]);
+    },
+
+    async _insertChartRow(client: any, userId: string, payload: any, isPrimary: boolean) {
       const id = toUserId(userId);
+      const result = await client.query(
+        `INSERT INTO natal_charts (
+          user_id, name,
+          sun, moon, ascendant, mercury, venus, mars, jupiter, saturn,
+          houses, aspects, chart_data,
+          latitude, longitude, timezone,
+          sun_sign, moon_sign, ascendant_sign,
+          input_hash, calculation_version,
+          birth_date, birth_time, birth_place,
+          is_primary
+        ) VALUES (
+          $1, $2,
+          $3, $4, $5, $6, $7, $8, $9, $10,
+          $11, $12, $13,
+          $14, $15, $16,
+          $17, $18, $19,
+          $20, $21,
+          $22, $23, $24,
+          $25
+        )
+        RETURNING ${this._selectColumns}`,
+        [
+          id,
+          payload.name,
+          JSON.stringify(payload.sun),
+          JSON.stringify(payload.moon),
+          JSON.stringify(payload.ascendant),
+          JSON.stringify(payload.mercury),
+          JSON.stringify(payload.venus),
+          JSON.stringify(payload.mars),
+          JSON.stringify(payload.jupiter),
+          JSON.stringify(payload.saturn),
+          JSON.stringify(payload.houses),
+          JSON.stringify(payload.aspects),
+          JSON.stringify(payload.chartData),
+          payload.latitude,
+          payload.longitude,
+          payload.timezone,
+          payload.sunSign,
+          payload.moonSign,
+          payload.ascendantSign,
+          payload.inputHash,
+          payload.calculationVersion,
+          payload.birthDate,
+          payload.birthTime,
+          payload.birthPlace,
+          isPrimary
+        ]
+      );
+      return this._rowToChart(result.rows[0]);
+    },
+
+    async persistPrimary(userId: string, data: { name?: string; birthDate: string; birthTime?: string; birthPlace: string; inputHash: string; chartData: any }) {
       if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      const id = toUserId(userId);
+      const payload = this._toPersistencePayload(data);
+      const client = await getPool().connect();
+
       try {
-        const dbPool = getPool();
-        const charts = await this.getAll(userId);
-        const user = await db.users.get(userId);
-        const slots = user?.chart_slots ?? 1;
-        if (charts.length >= slots) {
-          throw new Error(`Chart slots limit reached (${slots}). Purchase more with Lumi.`);
-        }
-        const normalizedBirthDate = normalizeBirthDateValue(data.birthDate);
-        const normalizedBirthTime = normalizeBirthTimeValue(data.birthTime);
-        const inputHash = Buffer.from(`${normalizedBirthDate}|${normalizedBirthTime}|${data.birthPlace}`).toString('base64').substring(0, 64);
-        const isPrimary = charts.length === 0;
-        const chartData = data.chartData?.chart_data || data.chartData;
-        const result = await dbPool.query(
-          `INSERT INTO natal_charts (user_id, name, birth_date, birth_time, birth_place, chart_data, input_hash, is_primary)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-           RETURNING id, user_id, name, chart_data, birth_date, birth_time, birth_place, input_hash, is_primary, created_at`,
-          [id, data.name || 'Моя карта', data.birthDate, data.birthTime || '12:00', data.birthPlace, JSON.stringify(chartData), inputHash, isPrimary]
+        await client.query('BEGIN');
+
+        const sameHashResult = await client.query(
+          `SELECT ${this._selectColumns}
+           FROM natal_charts
+           WHERE user_id = $1 AND input_hash = $2
+           ORDER BY is_primary DESC NULLS LAST, id ASC
+           LIMIT 1`,
+          [id, payload.inputHash]
         );
-        return this._rowToChart(result.rows[0]);
-      } catch (error: any) {
-        log.error('[DB] Error creating chart', { error: error.message, userId });
+        const sameHash = sameHashResult.rows[0] ? this._rowToChart(sameHashResult.rows[0]) : null;
+
+        const primaryResult = await client.query(
+          `SELECT ${this._selectColumns}
+           FROM natal_charts
+           WHERE user_id = $1
+           ORDER BY is_primary DESC NULLS LAST, id ASC
+           LIMIT 1`,
+          [id]
+        );
+        const primary = primaryResult.rows[0] ? this._rowToChart(primaryResult.rows[0]) : null;
+
+        await client.query('UPDATE natal_charts SET is_primary = FALSE WHERE user_id = $1', [id]);
+
+        const saved = sameHash
+          ? await this._updateChartRow(client, sameHash.id, payload, true)
+          : primary
+            ? await this._updateChartRow(client, primary.id, payload, true)
+            : await this._insertChartRow(client, userId, payload, true);
+
+        await client.query('COMMIT');
+        return saved;
+      } catch (error) {
+        await client.query('ROLLBACK');
         throw error;
+      } finally {
+        client.release();
       }
     },
 
-    /** Set chart as primary. Unsets previous primary. */
+    async create(userId: string, data: { name: string; birthDate: string; birthTime?: string; birthPlace: string; chartData: any; inputHash?: string }) {
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      const id = toUserId(userId);
+      const chartData = data.chartData?.chart_data || data.chartData;
+      const inferredInputHash = data.inputHash || (
+        typeof chartData?.latitude === 'number' &&
+        typeof chartData?.longitude === 'number' &&
+        typeof chartData?.timezone === 'string'
+          ? buildCanonicalNatalInputHash({
+              birthDate: data.birthDate,
+              birthTime: data.birthTime,
+              latitude: chartData.latitude,
+              longitude: chartData.longitude,
+              timezone: chartData.timezone,
+            })
+          : null
+      );
+
+      if (!inferredInputHash) {
+        throw new Error('Canonical chart input hash is required');
+      }
+
+      const payload = this._toPersistencePayload({ ...data, inputHash: inferredInputHash });
+      const client = await getPool().connect();
+
+      try {
+        await client.query('BEGIN');
+
+        const existingSameHashResult = await client.query(
+          `SELECT ${this._selectColumns}
+           FROM natal_charts
+           WHERE user_id = $1 AND input_hash = $2
+           ORDER BY is_primary DESC NULLS LAST, id ASC
+           LIMIT 1`,
+          [id, payload.inputHash]
+        );
+
+        if (existingSameHashResult.rows.length > 0) {
+          const existing = this._rowToChart(existingSameHashResult.rows[0]);
+          const saved = await this._updateChartRow(client, existing.id, payload, existing.is_primary);
+          await client.query('COMMIT');
+          return saved;
+        }
+
+        const countResult = await client.query('SELECT COUNT(*)::int AS total FROM natal_charts WHERE user_id = $1', [id]);
+        const chartsCount = countResult.rows[0]?.total ?? 0;
+        const user = await db.users.get(userId);
+        const slots = user?.chart_slots ?? 1;
+        if (chartsCount >= slots) {
+          throw new Error(`Chart slots limit reached (${slots}). Purchase more with Lumi.`);
+        }
+
+        const saved = await this._insertChartRow(client, userId, payload, chartsCount === 0);
+        await client.query('COMMIT');
+        return saved;
+      } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+      } finally {
+        client.release();
+      }
+    },
+
     async setPrimary(chartId: number) {
       if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
       try {
@@ -1146,7 +1436,7 @@ export const db = {
         const chart = await this.getById(chartId);
         if (!chart) throw new Error('Chart not found');
         await dbPool.query('UPDATE natal_charts SET is_primary = FALSE WHERE user_id = $1', [chart.user_id]);
-        await dbPool.query('UPDATE natal_charts SET is_primary = TRUE WHERE id = $1', [chartId]);
+        await dbPool.query('UPDATE natal_charts SET is_primary = TRUE, updated_at = CURRENT_TIMESTAMP WHERE id = $1', [chartId]);
         return { success: true };
       } catch (error: any) {
         log.error('[DB] Error setting primary chart', { error: error.message, chartId });
@@ -1154,7 +1444,6 @@ export const db = {
       }
     },
 
-    /** Delete chart */
     async delete(chartId: number) {
       if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
       try {
@@ -1165,7 +1454,7 @@ export const db = {
         if (chart.is_primary) {
           const remaining = await this.getAll(String(chart.user_id));
           if (remaining.length > 0) {
-            await dbPool.query('UPDATE natal_charts SET is_primary = TRUE WHERE id = $1', [remaining[0].id]);
+            await dbPool.query('UPDATE natal_charts SET is_primary = TRUE, updated_at = CURRENT_TIMESTAMP WHERE id = $1', [remaining[0].id]);
           }
         }
         return { success: true };
@@ -1175,55 +1464,137 @@ export const db = {
       }
     },
 
-    /** Legacy: get primary chart (alias for getPrimary) */
     async get(userId: string) {
       return this.getPrimary(userId);
     },
 
-    async needsRecalculation(userIdOrChartId: string | number, birthDate: string, birthTime: string, birthPlace: string): Promise<{ needsCalc: boolean; existingChart: any | null; reason: string }> {
+    async needsRecalculation(userIdOrChartId: string | number, birthDate: string, birthTime: string, birthPlace: string, inputHash?: string): Promise<{ needsCalc: boolean; existingChart: any | null; reason: string }> {
       const existing = typeof userIdOrChartId === 'number'
         ? await this.getById(userIdOrChartId)
         : await this.getPrimary(userIdOrChartId);
       if (!existing) return { needsCalc: true, existingChart: null, reason: 'NO_EXISTING_CHART' };
-      const inputChanged = existing.birth_date !== birthDate || existing.birth_time !== birthTime || existing.birth_place !== birthPlace;
-      if (inputChanged) return { needsCalc: true, existingChart: existing, reason: 'BIRTH_DATA_CHANGED' };
+
+      const normalizedBirthDate = normalizeBirthDateValue(birthDate);
+      const normalizedBirthTime = normalizeBirthTimeValue(birthTime);
+      const normalizedBirthPlace = normalizeBirthPlaceInput(birthPlace);
+      const inputChanged = inputHash
+        ? existing.input_hash !== inputHash
+        : normalizeBirthDateValue(existing.birth_date) !== normalizedBirthDate ||
+          normalizeBirthTimeValue(existing.birth_time) !== normalizedBirthTime ||
+          normalizeBirthPlaceInput(existing.birth_place) !== normalizedBirthPlace;
+
+      if (inputChanged) {
+        return { needsCalc: true, existingChart: existing, reason: 'BIRTH_DATA_CHANGED' };
+      }
+
       const chartData = existing.chart_data;
-      if (!chartData || !chartData.sun || !chartData.moon) return { needsCalc: true, existingChart: existing, reason: 'INVALID_CHART_DATA' };
+      const isCanonical = isCanonicalNatalChartDataComplete(chartData) && hasCanonicalNatalRowFields(existing);
+      if (!isCanonical) {
+        return { needsCalc: true, existingChart: existing, reason: 'INCOMPLETE_CANONICAL_CHART' };
+      }
+      if (existing.calculation_version !== CANONICAL_NATAL_CALCULATION_VERSION) {
+        return { needsCalc: true, existingChart: existing, reason: 'CALCULATION_VERSION_CHANGED' };
+      }
+
       return { needsCalc: false, existingChart: existing, reason: 'CACHE_HIT' };
     },
 
-    /** Legacy: upsert chart for user (primary or by input_hash). For multi-chart use create(). */
-    async set(userId: string, chartData: any, birthDate?: string, birthTime?: string, birthPlace?: string) {
-      const id = toUserId(userId);
-      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+    async set(userId: string, chartData: any, birthDate?: string, birthTime?: string, birthPlace?: string, inputHash?: string) {
+      const data = chartData.chart_data || chartData;
+      if (!birthDate || !birthPlace) {
+        throw new Error('birthDate and birthPlace are required for canonical chart persistence');
+      }
+
+      const resolvedInputHash = inputHash || (
+        typeof data?.latitude === 'number' &&
+        typeof data?.longitude === 'number' &&
+        typeof data?.timezone === 'string'
+          ? buildCanonicalNatalInputHash({
+              birthDate,
+              birthTime,
+              latitude: data.latitude,
+              longitude: data.longitude,
+              timezone: data.timezone,
+            })
+          : null
+      );
+
+      if (!resolvedInputHash) {
+        throw new Error('Canonical chart input hash is required');
+      }
+
+      return this.persistPrimary(userId, {
+        name: chartData?.name,
+        birthDate,
+        birthTime,
+        birthPlace,
+        inputHash: resolvedInputHash,
+        chartData: data,
+      });
+    },
+
+    async listRepairCandidates(limit = 200) {
+      if (!DATABASE_URL) return [];
       try {
         const dbPool = getPool();
-        const data = chartData.chart_data || chartData;
-        const normalizedBirthDate = normalizeBirthDateValue(birthDate);
-        const normalizedBirthTime = normalizeBirthTimeValue(birthTime);
-        const inputHash = normalizedBirthDate && birthPlace
-          ? Buffer.from(`${normalizedBirthDate}|${normalizedBirthTime}|${birthPlace}`).toString('base64').substring(0, 64)
-          : null;
-        const existing = await this.getPrimary(userId);
-        if (existing) {
-          const result = await dbPool.query(
-            `UPDATE natal_charts SET chart_data = $1, birth_date = $2, birth_time = $3, birth_place = $4, input_hash = $5
-             WHERE id = $6 RETURNING id, user_id, name, chart_data, birth_date, birth_time, birth_place, input_hash, is_primary, created_at`,
-            [JSON.stringify(data), normalizedBirthDate || birthDate, normalizedBirthTime || birthTime, birthPlace, inputHash, existing.id]
-          );
-          return this._rowToChart(result.rows[0]);
-        }
-        const charts = await this.getAll(userId);
-        const isPrimary = charts.length === 0;
         const result = await dbPool.query(
-          `INSERT INTO natal_charts (user_id, name, chart_data, birth_date, birth_time, birth_place, input_hash, is_primary)
-           VALUES ($1, 'Моя карта', $2, $3, $4, $5, $6, $7)
-           RETURNING id, user_id, name, chart_data, birth_date, birth_time, birth_place, input_hash, is_primary, created_at`,
-          [id, JSON.stringify(data), normalizedBirthDate || birthDate, normalizedBirthTime || birthTime, birthPlace, inputHash, isPrimary]
+          `WITH incomplete_charts AS (
+             SELECT
+               u.id AS user_id,
+               COALESCE(nc.name, u.name, 'Chart') AS display_name,
+               COALESCE(nc.birth_date, u.birth_date) AS birth_date,
+               COALESCE(nc.birth_time, u.birth_time, '12:00') AS birth_time,
+               COALESCE(nc.birth_place, u.birth_place) AS birth_place,
+               nc.id AS chart_id
+             FROM users u
+             JOIN natal_charts nc ON nc.user_id = u.id
+             WHERE COALESCE(nc.birth_date, u.birth_date) IS NOT NULL
+               AND COALESCE(nc.birth_place, u.birth_place) IS NOT NULL
+               AND (
+                 nc.latitude IS NULL OR
+                 nc.longitude IS NULL OR
+                 nc.timezone IS NULL OR
+                 nc.sun_sign IS NULL OR
+                 nc.moon_sign IS NULL OR
+                 nc.ascendant_sign IS NULL OR
+                 nc.calculation_version IS DISTINCT FROM $1
+               )
+           ),
+           missing_primary AS (
+             SELECT
+               u.id AS user_id,
+               COALESCE(u.name, 'Chart') AS display_name,
+               u.birth_date,
+               COALESCE(u.birth_time, '12:00') AS birth_time,
+               u.birth_place,
+               NULL::bigint AS chart_id
+             FROM users u
+             WHERE u.birth_date IS NOT NULL
+               AND u.birth_place IS NOT NULL
+               AND NOT EXISTS (
+                 SELECT 1 FROM natal_charts nc WHERE nc.user_id = u.id
+               )
+           )
+           SELECT *
+           FROM (
+             SELECT * FROM incomplete_charts
+             UNION ALL
+             SELECT * FROM missing_primary
+           ) candidates
+           ORDER BY user_id ASC, chart_id ASC NULLS FIRST
+           LIMIT $2`,
+          [CANONICAL_NATAL_CALCULATION_VERSION, limit]
         );
-        return this._rowToChart(result.rows[0]);
+        return result.rows.map((row: any) => ({
+          userId: String(row.user_id),
+          name: row.display_name || 'Chart',
+          birthDate: row.birth_date ? normalizeBirthDateValue(row.birth_date) : '',
+          birthTime: normalizeBirthTimeValue(row.birth_time || '12:00'),
+          birthPlace: row.birth_place || '',
+          chartId: row.chart_id ? Number(row.chart_id) : null,
+        }));
       } catch (error: any) {
-        log.error('[DB] Error setting chart', { error: error.message, userId });
+        log.error('[DB] Error listing canonical chart repair candidates', { error: error.message });
         throw error;
       }
     },
@@ -2509,7 +2880,7 @@ export const db = {
       try {
         const dbPool = getPool();
         const payload = typeof content === 'string' ? content : JSON.stringify(content);
-        // Partial unique index idx_daily_natal_cards_chart_date uses WHERE chart_id IS NOT NULL —
+        // Partial unique index idx_daily_natal_cards_chart_date uses WHERE chart_id IS NOT NULL вЂ”
         // ON CONFLICT must repeat that predicate or PostgreSQL rejects the upsert.
         // user_id comes from the chart row because legacy schema has NOT NULL on user_id.
         const result = await dbPool.query(
@@ -2934,7 +3305,7 @@ export const db = {
     },
   },
 
-  /** Legacy compose templates (admin “Send” tab) — table legacy_notification_templates */
+  /** Legacy compose templates (admin вЂњSendвЂќ tab) вЂ” table legacy_notification_templates */
   legacy_notification_templates: {
     async ensureSeeded() {
       if (!DATABASE_URL) return;
@@ -3132,7 +3503,7 @@ export const db = {
     },
   },
 
-  /** Scheduled / CMS notification templates — table notification_templates */
+  /** Scheduled / CMS notification templates вЂ” table notification_templates */
   scheduled_notification_templates: {
     async ensureSeeded() {
       if (!DATABASE_URL) return;

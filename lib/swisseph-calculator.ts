@@ -7,6 +7,7 @@ import path from 'path';
 import tzLookup from 'tz-lookup';
 import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 import * as swisseph from 'swisseph-v2';
+import { CANONICAL_NATAL_CALCULATION_VERSION, normalizeCoordinateForStorage } from './natalChartCanonical';
 
 // Logging utility
 const log = {
@@ -48,7 +49,25 @@ interface PlanetPosition {
   planet: string;
   sign: string;
   degree: number;
+  longitude: number;
+  retrograde: boolean;
+  speedLongitude: number;
   description: string;
+}
+
+interface NatalHouseData {
+  house: number;
+  sign: string;
+  degree: number;
+  longitude: number;
+}
+
+interface NatalAspectData {
+  type: 'conjunction' | 'sextile' | 'square' | 'trine' | 'opposition';
+  angle: number;
+  orb: number;
+  from: string;
+  to: string;
 }
 
 // Глобальная инициализация Swiss Ephemeris
@@ -459,6 +478,9 @@ function calculatePlanetPosition(
       planet: planetName,
       sign,
       degree: degreeInSign,
+      longitude,
+      retrograde: typeof result.speedLongitude === 'number' ? result.speedLongitude < 0 : false,
+      speedLongitude: typeof result.speedLongitude === 'number' ? result.speedLongitude : 0,
       description: getPlanetDescription(planetName)
     };
   } catch (error: any) {
@@ -468,14 +490,14 @@ function calculatePlanetPosition(
 }
 
 /**
- * Рассчитывает Асцендент (Rising Sign)
+ * Рассчитывает Асцендент и дома через Swiss Ephemeris
  */
-function calculateAscendant(
+function calculateAnglesAndHouses(
   swe: NonNullable<typeof sweInstance>,
   julday: number,
   lat: number,
   lon: number
-): PlanetPosition | null {
+): { ascendant: PlanetPosition; houses: NatalHouseData[] } | null {
   try {
     const result = swe.swe_houses(julday, lat, lon, 'P');
 
@@ -488,18 +510,33 @@ function calculateAscendant(
     
     const sign = getZodiacSign(ascendant);
     const degreeInSign = getDegreeInSign(ascendant);
+    const houses = Array.isArray(result.house)
+      ? result.house.slice(0, 12).map((longitude: number, index: number) => ({
+          house: index + 1,
+          sign: getZodiacSign(longitude),
+          degree: getDegreeInSign(longitude),
+          longitude,
+        }))
+      : [];
 
     log.info('Calculated Ascendant', { 
       ascendant: ascendant.toFixed(4), 
       sign, 
-      degreeInSign: degreeInSign.toFixed(2) 
+      degreeInSign: degreeInSign.toFixed(2),
+      houses: houses.length,
     });
 
     return {
-      planet: 'Ascendant',
-      sign,
-      degree: degreeInSign,
-      description: 'Your outer personality and first impressions.'
+      ascendant: {
+        planet: 'Ascendant',
+        sign,
+        degree: degreeInSign,
+        longitude: ascendant,
+        retrograde: false,
+        speedLongitude: 0,
+        description: 'Your outer personality and first impressions.'
+      },
+      houses,
     };
   } catch (error: any) {
     log.error('Error calculating ascendant', error);
@@ -552,6 +589,43 @@ function calculateRulingPlanet(sunSign: string): string {
   return getRulingPlanetUtil(sunSign as any) || 'Sun';
 }
 
+function angularDistance(a: number, b: number): number {
+  const diff = Math.abs(a - b) % 360;
+  return diff > 180 ? 360 - diff : diff;
+}
+
+function calculateAspects(positions: PlanetPosition[]): NatalAspectData[] {
+  const aspectDefs: Array<{ type: NatalAspectData['type']; angle: number; orb: number }> = [
+    { type: 'conjunction', angle: 0, orb: 8 },
+    { type: 'sextile', angle: 60, orb: 4 },
+    { type: 'square', angle: 90, orb: 6 },
+    { type: 'trine', angle: 120, orb: 6 },
+    { type: 'opposition', angle: 180, orb: 8 },
+  ];
+
+  const aspects: NatalAspectData[] = [];
+
+  for (let i = 0; i < positions.length; i += 1) {
+    for (let j = i + 1; j < positions.length; j += 1) {
+      const from = positions[i];
+      const to = positions[j];
+      const distance = angularDistance(from.longitude, to.longitude);
+      const matched = aspectDefs.find((aspect) => Math.abs(distance - aspect.angle) <= aspect.orb);
+      if (!matched) continue;
+
+      aspects.push({
+        type: matched.type,
+        angle: matched.angle,
+        orb: Number(Math.abs(distance - matched.angle).toFixed(2)),
+        from: from.planet,
+        to: to.planet,
+      });
+    }
+  }
+
+  return aspects;
+}
+
 /**
  * Рассчитывает полную натальную карту для человека
  */
@@ -562,8 +636,16 @@ export interface NatalChartResult {
   mercury: PlanetPosition | null;
   venus: PlanetPosition | null;
   mars: PlanetPosition | null;
+  jupiter: PlanetPosition | null;
+  saturn: PlanetPosition | null;
   element: string;
   rulingPlanet: string;
+  latitude: number;
+  longitude: number;
+  timezone: string;
+  houses: NatalHouseData[];
+  aspects: NatalAspectData[];
+  calculationVersion: string;
   summary: string;
 }
 
@@ -583,7 +665,8 @@ export async function calculateNatalChart(
   name: string,
   birthDate: string,
   birthTime: string,
-  birthPlace: string
+  birthPlace: string,
+  options?: { coordinates?: Coordinates }
 ): Promise<NatalChartResult> {
   const startTime = Date.now();
   
@@ -616,7 +699,7 @@ export async function calculateNatalChart(
     // Шаг 3: Получение координат места рождения
     let coords: Coordinates;
     try {
-      coords = await getCoordinates(birthPlace);
+      coords = options?.coordinates || await getCoordinates(birthPlace);
       log.info('✓ Coordinates obtained', {
         lat: coords.lat,
         lon: coords.lon,
@@ -717,13 +800,15 @@ export async function calculateNatalChart(
 
     // Шаг 6: Расчет положений планет
     log.info('Calculating planet positions...');
-    const [sun, moon, mercury, venus, mars, ascendant] = await Promise.all([
+    const [sun, moon, mercury, venus, mars, jupiter, saturn, angleData] = await Promise.all([
       Promise.resolve(calculatePlanetPosition(swe, julianDay, PLANETS.SUN, 'Sun')),
       Promise.resolve(calculatePlanetPosition(swe, julianDay, PLANETS.MOON, 'Moon')),
       Promise.resolve(calculatePlanetPosition(swe, julianDay, PLANETS.MERCURY, 'Mercury')),
       Promise.resolve(calculatePlanetPosition(swe, julianDay, PLANETS.VENUS, 'Venus')),
       Promise.resolve(calculatePlanetPosition(swe, julianDay, PLANETS.MARS, 'Mars')),
-      Promise.resolve(calculateAscendant(swe, julianDay, coords.lat, coords.lon))
+      Promise.resolve(calculatePlanetPosition(swe, julianDay, PLANETS.JUPITER, 'Jupiter')),
+      Promise.resolve(calculatePlanetPosition(swe, julianDay, PLANETS.SATURN, 'Saturn')),
+      Promise.resolve(calculateAnglesAndHouses(swe, julianDay, coords.lat, coords.lon))
     ]);
 
     // Шаг 7: Валидация результатов
@@ -733,9 +818,11 @@ export async function calculateNatalChart(
     if (!moon) {
       throw new Error('Failed to calculate Moon position');
     }
-    if (!ascendant) {
+    if (!angleData?.ascendant) {
       throw new Error('Failed to calculate Ascendant');
     }
+    const ascendant = angleData.ascendant;
+    const houses = angleData.houses;
 
     // Валидация знаков зодиака
     const validSigns = ZODIAC_SIGNS as readonly string[];
@@ -754,9 +841,12 @@ export async function calculateNatalChart(
     if (mercury) positions.push(mercury);
     if (venus) positions.push(venus);
     if (mars) positions.push(mars);
+    if (jupiter) positions.push(jupiter);
+    if (saturn) positions.push(saturn);
     
     const element = calculateElement(positions);
     const rulingPlanet = calculateRulingPlanet(sun.sign);
+    const aspects = calculateAspects(positions);
 
     // Шаг 9: Формирование результата
     const chartData: NatalChartResult = {
@@ -766,8 +856,16 @@ export async function calculateNatalChart(
       mercury: mercury || null,
       venus: venus || null,
       mars: mars || null,
+      jupiter: jupiter || null,
+      saturn: saturn || null,
       element,
       rulingPlanet,
+      latitude: normalizeCoordinateForStorage(coords.lat),
+      longitude: normalizeCoordinateForStorage(coords.lon),
+      timezone: coords.timezone,
+      houses,
+      aspects,
+      calculationVersion: CANONICAL_NATAL_CALCULATION_VERSION,
       summary: `Natal chart for ${name}, born on ${birthDate} at ${birthTime || '12:00'} in ${birthPlace}. Your chart reveals a ${element} dominant personality with ${sun.sign} Sun, ${moon.sign} Moon, and ${ascendant.sign} Rising.`
     };
 
@@ -797,7 +895,11 @@ export async function calculateNatalChart(
       rulingPlanet,
       hasMercury: !!mercury,
       hasVenus: !!venus,
-      hasMars: !!mars
+      hasMars: !!mars,
+      hasJupiter: !!jupiter,
+      hasSaturn: !!saturn,
+      houses: houses.length,
+      aspects: aspects.length,
     });
 
     return chartData;

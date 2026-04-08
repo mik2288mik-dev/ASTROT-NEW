@@ -196,11 +196,19 @@ async function lumia001FullSchema(pool: Pool): Promise<void> {
       houses JSONB,
       aspects JSONB,
       chart_data JSONB,
+      latitude DOUBLE PRECISION,
+      longitude DOUBLE PRECISION,
+      timezone TEXT,
+      sun_sign TEXT,
+      moon_sign TEXT,
+      ascendant_sign TEXT,
       input_hash TEXT,
+      calculation_version TEXT,
       birth_date DATE,
       birth_time TIME,
       birth_place TEXT,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `);
 
@@ -940,6 +948,58 @@ async function lumia012DailyLumiTasks(pool: Pool): Promise<void> {
   log.info('Migration lumia_012_daily_lumi_tasks applied');
 }
 
+async function lumia013CanonicalNatalPersistence(pool: Pool): Promise<void> {
+  const migrationName = 'lumia_013_canonical_natal_persistence';
+
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
+  log.info('Applying canonical natal persistence migration...');
+
+  await pool.query(`
+    ALTER TABLE natal_charts
+      ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION,
+      ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION,
+      ADD COLUMN IF NOT EXISTS timezone TEXT,
+      ADD COLUMN IF NOT EXISTS sun_sign TEXT,
+      ADD COLUMN IF NOT EXISTS moon_sign TEXT,
+      ADD COLUMN IF NOT EXISTS ascendant_sign TEXT,
+      ADD COLUMN IF NOT EXISTS calculation_version TEXT,
+      ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  `);
+
+  await pool.query(`
+    UPDATE natal_charts
+    SET
+      sun = COALESCE(sun, chart_data->'sun'),
+      moon = COALESCE(moon, chart_data->'moon'),
+      ascendant = COALESCE(ascendant, chart_data->'rising', chart_data->'ascendant'),
+      mercury = COALESCE(mercury, chart_data->'mercury'),
+      venus = COALESCE(venus, chart_data->'venus'),
+      mars = COALESCE(mars, chart_data->'mars'),
+      jupiter = COALESCE(jupiter, chart_data->'jupiter'),
+      saturn = COALESCE(saturn, chart_data->'saturn'),
+      houses = COALESCE(houses, chart_data->'houses'),
+      aspects = COALESCE(aspects, chart_data->'aspects'),
+      latitude = COALESCE(latitude, NULLIF(chart_data->>'latitude', '')::DOUBLE PRECISION),
+      longitude = COALESCE(longitude, NULLIF(chart_data->>'longitude', '')::DOUBLE PRECISION),
+      timezone = COALESCE(timezone, NULLIF(chart_data->>'timezone', '')),
+      sun_sign = COALESCE(sun_sign, chart_data->'sun'->>'sign'),
+      moon_sign = COALESCE(moon_sign, chart_data->'moon'->>'sign'),
+      ascendant_sign = COALESCE(ascendant_sign, COALESCE(chart_data->'rising'->>'sign', chart_data->'ascendant'->>'sign')),
+      calculation_version = COALESCE(calculation_version, NULLIF(chart_data->>'calculationVersion', '')),
+      updated_at = COALESCE(updated_at, created_at, CURRENT_TIMESTAMP)
+  `);
+
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_natal_charts_user_hash_v2 ON natal_charts(user_id, input_hash) WHERE input_hash IS NOT NULL');
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_natal_charts_user_primary_v2 ON natal_charts(user_id) WHERE is_primary = TRUE');
+
+  await markMigrationApplied(pool, migrationName);
+  log.info('Migration lumia_013_canonical_natal_persistence applied');
+}
+
 async function verifyTablesExist(pool: Pool): Promise<void> {
   const required = [
     'users', 'natal_charts', 'interpretations', 'lumi_transactions', 'app_settings',
@@ -1015,6 +1075,7 @@ export async function runMigrations(): Promise<void> {
   await lumia009ContentArchitecture(pool);
   await lumia011RemoveDashboardAirVariant(pool);
   await lumia012DailyLumiTasks(pool);
+  await lumia013CanonicalNatalPersistence(pool);
   await verifyTablesExist(pool);
 
     log.info('All Lumia migrations completed successfully');

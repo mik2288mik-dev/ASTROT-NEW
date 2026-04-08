@@ -553,12 +553,13 @@ export const getChartData = async (): Promise<NatalChartData | null> => {
       const chartData = await response.json() as NatalChartData;
       
       // Валидация данных карты перед возвратом
-      if (!chartData || !chartData.sun || !chartData.moon) {
+      if (!chartData || !chartData.sun || !chartData.moon || !chartData.rising) {
         log.error(`[getChartData] Invalid chart data received from database`, {
           userId,
           hasData: !!chartData,
           hasSun: !!chartData?.sun,
-          hasMoon: !!chartData?.moon
+          hasMoon: !!chartData?.moon,
+          hasRising: !!chartData?.rising,
         });
         return null;
       }

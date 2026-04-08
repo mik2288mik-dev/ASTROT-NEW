@@ -104,6 +104,7 @@ export async function resolveNotificationVisual(input: {
   }
 
   const user = await db.users.get(input.recipientUserId);
+  const primaryChart = await db.natal_charts.getPrimary(input.recipientUserId);
   const lang = input.recipientLanguage === 'en' ? 'en' : 'ru';
   const sunFromPreview = input.previewSunSign != null ? String(input.previewSunSign).trim() : '';
   const slot = String(template.slot || 'custom');
@@ -118,7 +119,7 @@ export async function resolveNotificationVisual(input: {
   const dateLabel = showDate ? formatDateLabel(lang, input.scheduleTimezone || undefined) : '';
   const slotLabelText = showSlot ? slotLabel(slot, lang) : '';
   const zodiacLine = zodiacLineForUser(template, {
-    sun_sign: sunFromPreview || user?.sun_sign,
+    sun_sign: sunFromPreview || primaryChart?.sun_sign || user?.sun_sign,
     language: user?.language || input.recipientLanguage,
   });
 
