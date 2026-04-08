@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
 import { db } from '../../../lib/db';
+import { hasDatabaseUrl } from '../../../lib/database-url';
 import { SYSTEM_PROMPT_ASTRA, createDeepDivePrompt, addLanguageInstruction } from '../../../lib/prompts';
 import { getOpenAIModelForContent } from '../../../lib/appSettings';
 
@@ -57,7 +58,7 @@ export default async function handler(
     const validTopics = ['personality', 'love', 'career', 'weakness', 'karma'];
     const topicKey = validTopics.includes(topicForLookup) ? topicForLookup : 'personality';
 
-    if (cacheKey && process.env.DATABASE_URL) {
+    if (cacheKey && hasDatabaseUrl()) {
       try {
         const cached = await db.interpretations.getByHash(cacheKey, `deep_dive_${topicKey}`, topicKey);
         if (cached?.content && cached.content.length > 50) {
@@ -129,7 +130,7 @@ export default async function handler(
     });
 
     const topicForDb = topicKey;
-    if (cacheKey && process.env.DATABASE_URL) {
+    if (cacheKey && hasDatabaseUrl()) {
       try {
         await db.interpretations.set(cacheKey, `deep_dive_${topicForDb}`, topicForDb, analysis);
       } catch (e: any) {

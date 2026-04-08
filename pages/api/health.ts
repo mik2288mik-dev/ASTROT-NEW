@@ -1,4 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { resolveDatabaseUrl } from '../../lib/database-url';
 
 /**
  * Health check endpoint for Railway deployment monitoring
@@ -6,7 +7,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
  */
 import { Pool } from 'pg';
 
-const DATABASE_URL = process.env.DATABASE_URL || '';
+const DATABASE_URL = resolveDatabaseUrl();
 
 /**
  * Health check endpoint - checks database connectivity and migrations

@@ -2,8 +2,9 @@
 // Full schema replacement: Astrot -> Lumia
 
 import { Pool } from 'pg';
+import { resolveDatabaseUrl } from './database-url';
 
-const DATABASE_URL = process.env.DATABASE_URL || '';
+const DATABASE_URL = resolveDatabaseUrl();
 
 const log = {
   info: (message: string, data?: any) => {
@@ -1053,7 +1054,7 @@ export async function runMigrations(): Promise<void> {
     log.info('Starting Lumia database migrations...');
 
     pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
+      connectionString: DATABASE_URL,
       ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
       connectionTimeoutMillis: 5000,
       idleTimeoutMillis: 10000,

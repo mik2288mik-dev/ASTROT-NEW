@@ -4,13 +4,17 @@
  * Run this script during deployment: npm run migrate
  */
 
-import { runMigrations } from '../lib/migrations';
+import { loadEnvConfig } from '@next/env';
+import { resolveDatabaseUrl } from '../lib/database-url';
+
+loadEnvConfig(process.cwd());
 
 async function main() {
   console.log('🚀 Starting database migrations...');
   
   // Check if DATABASE_URL is set
-  if (!process.env.DATABASE_URL) {
+  const dbUrl = resolveDatabaseUrl();
+  if (!dbUrl) {
     console.warn('⚠️ DATABASE_URL environment variable is not set');
     console.warn('Skipping migrations - database operations will be limited');
     console.warn('Please set DATABASE_URL in Railway environment variables');
@@ -19,7 +23,6 @@ async function main() {
   }
 
   // Log DATABASE_URL info (without sensitive data)
-  const dbUrl = process.env.DATABASE_URL;
   const urlMatch = dbUrl.match(/^postgres(ql)?:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/(.+)$/);
   if (urlMatch) {
     const [, , user, , host, port, database] = urlMatch;
@@ -33,6 +36,7 @@ async function main() {
   }
   
   try {
+    const { runMigrations } = await import('../lib/migrations');
     await runMigrations();
     console.log('✅ Migrations completed successfully');
     process.exit(0);

@@ -3,6 +3,7 @@ import OpenAI from 'openai';
 import { SYSTEM_PROMPT_ASTRA, createDailyForecastPrompt, addLanguageInstruction, DailyForecastAIResponse } from '../../../lib/prompts';
 import { getOpenAIModelForContent } from '../../../lib/appSettings';
 import { db } from '../../../lib/db';
+import { hasDatabaseUrl } from '../../../lib/database-url';
 import { getCurrentTransits } from '../../../lib/transits-calculator';
 import { tryAcquireLock, releaseLock, LockKeys } from '../../../lib/serverLocks';
 import { getMoscowTodayKey } from '../../../lib/date-utils';
@@ -124,7 +125,7 @@ export default async function handler(
         });
       }
 
-      if (!process.env.DATABASE_URL) {
+      if (!hasDatabaseUrl()) {
         return sendDailyError(
           res,
           lang,
@@ -167,7 +168,7 @@ export default async function handler(
 
     const { userId, profile, chartData } = req.body;
     const lang = profile?.language === 'ru';
-    const hasDatabase = !!process.env.DATABASE_URL;
+    const hasDatabase = hasDatabaseUrl();
 
     if (!userId || !profile || !chartData) {
       return res.status(400).json({

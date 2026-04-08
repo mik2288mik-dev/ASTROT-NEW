@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '../../../lib/db';
 import { getConfiguredOwnerId } from '../../../lib/adminAuth';
+import { hasDatabaseUrl } from '../../../lib/database-url';
 import { getMoscowTodayKey, toDateInputValue } from '../../../lib/date-utils';
 
 // Logging utility
@@ -119,7 +120,7 @@ export default async function handler(
       log.info(`[GET] Fetching user: ${userId}`);
       
       // Проверяем доступность БД
-      if (!process.env.DATABASE_URL) {
+      if (!hasDatabaseUrl()) {
         log.warn(`[GET] DATABASE_URL not configured, returning 404`);
         return res.status(404).json({ error: 'User not found' });
       }
@@ -189,7 +190,7 @@ export default async function handler(
       });
 
       // Проверяем доступность БД
-      if (!process.env.DATABASE_URL) {
+      if (!hasDatabaseUrl()) {
         log.error(`[${req.method}] DATABASE_URL not configured`);
         return res.status(500).json({ 
           error: 'Database not configured',

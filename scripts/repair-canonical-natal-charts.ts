@@ -1,7 +1,12 @@
 #!/usr/bin/env node
 
+import { loadEnvConfig } from '@next/env';
+import { resolveDatabaseUrl } from '../lib/database-url';
+
+loadEnvConfig(process.cwd());
+
 async function main() {
-  if (!process.env.DATABASE_URL) {
+  if (!resolveDatabaseUrl()) {
     console.warn('DATABASE_URL is not set. Repair skipped.');
     process.exit(0);
   }

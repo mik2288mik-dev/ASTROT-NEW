@@ -8,6 +8,7 @@
 import { Pool, Client } from 'pg';
 import { LEGACY_NOTIFICATION_SEEDS, SCHEDULED_NOTIFICATION_SEEDS } from './adminNotificationSeedCatalog';
 import { getRouletteTierForAmount, pickDailyRouletteReward, ROULETTE_COOLDOWN_MS } from './rouletteEconomy';
+import { resolveDatabaseUrl } from './database-url';
 import {
   generateReferralCode,
   normalizeReferralCode,
@@ -26,7 +27,7 @@ import {
 
 // Read DATABASE_URL from environment variables
 // This is set in Railway Variables or .env file
-const DATABASE_URL = process.env.DATABASE_URL || '';
+const DATABASE_URL = resolveDatabaseUrl();
 
 // Logging utility
 const log = {
@@ -370,10 +371,8 @@ export function getPool(): Pool {
       }
     }
     
-    // Use process.env.DATABASE_URL directly for connection
-    // This reads the connection string from environment variables
     pool = new Pool({
-      connectionString: process.env.DATABASE_URL, // Direct use of process.env.DATABASE_URL
+      connectionString: DATABASE_URL,
       ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
       max: 20,
       idleTimeoutMillis: 30000,
@@ -478,12 +477,12 @@ export async function initializeDatabase(): Promise<void> {
  * ```
  */
 export async function testDatabaseConnection(): Promise<void> {
-  if (!process.env.DATABASE_URL) {
+  if (!DATABASE_URL) {
     throw new Error('DATABASE_URL is not configured in environment variables');
   }
 
   const client = new Client({
-    connectionString: process.env.DATABASE_URL, // Read from environment
+    connectionString: DATABASE_URL,
   });
 
   try {
@@ -572,6 +571,15 @@ export const db = {
         );
         if (result.rows.length === 0) return null;
         const u = result.rows[0];
+        let primaryChart: any = null;
+        try {
+          primaryChart = await db.natal_charts.getPrimary(id);
+        } catch (chartError: any) {
+          log.warn('[DB] Failed to hydrate user with primary chart summary', {
+            userId: id,
+            error: chartError?.message,
+          });
+        }
         const isPremium = u.premium_until && new Date(u.premium_until) > new Date();
         return {
           id: String(u.id),
@@ -579,11 +587,11 @@ export const db = {
           birth_date: u.birth_date,
           birth_time: u.birth_time,
           birth_place: u.birth_place,
-          latitude: u.latitude,
-          longitude: u.longitude,
-          sun_sign: u.sun_sign,
-          moon_sign: u.moon_sign,
-          ascendant: u.ascendant,
+          latitude: primaryChart?.latitude ?? u.latitude,
+          longitude: primaryChart?.longitude ?? u.longitude,
+          sun_sign: primaryChart?.sun_sign ?? u.sun_sign,
+          moon_sign: primaryChart?.moon_sign ?? u.moon_sign,
+          ascendant: primaryChart?.ascendant_sign ?? u.ascendant,
           lumi_balance: u.lumi_balance ?? 0,
           premium_until: u.premium_until,
           ref_code: u.ref_code,
