@@ -87,15 +87,15 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
   const shellStyle = {
     paddingTop:
-      'calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px)) + max(env(safe-area-inset-bottom, 0px), var(--tg-content-safe-area-inset-bottom, 0px)) + 0.25rem)',
+      'calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px)) + max(env(safe-area-inset-bottom, 0px), var(--tg-content-safe-area-inset-bottom, 0px)) + 0.85rem)',
     paddingBottom:
-      'calc(max(env(safe-area-inset-bottom, 0px), var(--tg-content-safe-area-inset-bottom, 0px)) + 0.85rem)',
+      'calc(max(env(safe-area-inset-bottom, 0px), var(--tg-content-safe-area-inset-bottom, 0px)) + 1rem)',
     paddingLeft: 'max(1.15rem, env(safe-area-inset-left, 0px), var(--tg-content-safe-area-inset-left, 0px))',
     paddingRight: 'max(1.15rem, env(safe-area-inset-right, 0px), var(--tg-content-safe-area-inset-right, 0px))',
   } as const;
 
   return (
-    <div className="h-full overflow-hidden bg-white text-[#1f1f1f]" style={shellStyle}>
+    <div className="h-[100dvh] min-h-[100dvh] overflow-hidden bg-white text-[#1f1f1f]" style={shellStyle}>
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -111,10 +111,10 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
         <div className="mt-10">
           <h1 className="mb-0 max-w-[16rem] font-serif text-[2.45rem] leading-[0.97] tracking-[-0.05em] text-[#1f1f1f]">
-            Соберем твою карту
+            Данные для твоей карты
           </h1>
           <p className="mb-0 mt-5 max-w-[19rem] text-[15px] leading-[1.65] text-[#4f4b45]">
-            Нужны имя, дата, время и место рождения. По ним Lumia рассчитает карту точно, без общих шаблонов.
+            Имя, дата, время и место рождения помогают рассчитать карту точнее.
           </p>
         </div>
 
