@@ -46,22 +46,22 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
   const handleSubmit = () => {
     if (!name.trim()) {
-      setError('Добавь имя, чтобы Lumia обращалась к тебе лично.');
+      setError('Добавь имя, чтобы Lumia могла обращаться к тебе лично.');
       focusField('name');
       return;
     }
     if (!date) {
-      setError('Укажи дату рождения — без неё карта не соберётся точно.');
+      setError('Укажи дату рождения.');
       focusField('date');
       return;
     }
     if (!time) {
-      setError('Добавь время рождения — оно влияет на точность карты.');
+      setError('Укажи время рождения.');
       focusField('time');
       return;
     }
     if (!place.trim()) {
-      setError('Укажи место рождения, чтобы завершить расчёт карты.');
+      setError('Укажи место рождения.');
       focusField('place');
       return;
     }
@@ -83,47 +83,54 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   };
 
   const inputClassName =
-    'w-full border-b border-black/12 bg-transparent pb-3 pt-2 text-[1.1rem] leading-tight text-[#1f1f1f] outline-none transition-colors placeholder:text-black/22 focus:border-black/45';
+    'h-12 w-full rounded-[18px] border border-black/8 bg-white/88 px-4 text-[15px] leading-tight text-[#1f1f1f] outline-none transition-colors placeholder:text-black/24 focus:border-black/18 focus:bg-white';
 
-  const headerStyle = {
-    paddingTop: 'calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px)) + 1rem)',
-    paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--tg-content-safe-area-inset-bottom, 0px)) + 1.25rem)',
+  const shellStyle = {
+    paddingTop: 'calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px)) + 0.75rem)',
+    paddingBottom:
+      'calc(max(env(safe-area-inset-bottom, 0px), var(--tg-content-safe-area-inset-bottom, 0px)) + 0.75rem)',
+    paddingLeft: 'max(1rem, env(safe-area-inset-left, 0px), var(--tg-content-safe-area-inset-left, 0px))',
+    paddingRight: 'max(1rem, env(safe-area-inset-right, 0px), var(--tg-content-safe-area-inset-right, 0px))',
   } as const;
 
   return (
-    <div className="min-h-screen bg-white px-6 text-[#1f1f1f]" style={headerStyle}>
+    <div
+      className="h-full overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(228,218,203,0.55),transparent_38%),linear-gradient(180deg,#fffdfa_0%,#f4efe6_100%)] text-[#1f1f1f]"
+      style={shellStyle}
+    >
       <motion.div
-        initial={{ opacity: 0, y: 12 }}
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-        className="mx-auto flex min-h-[calc(100vh-2rem)] w-full max-w-md flex-col"
+        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+        className="mx-auto flex h-full w-full max-w-md flex-col overflow-hidden rounded-[30px] border border-white/70 bg-white/76 px-5 pb-5 pt-4 shadow-[0_24px_70px_rgba(43,32,18,0.08)] backdrop-blur-xl"
       >
-        <div className="pt-4">
-          <h1 className="font-serif text-[3.2rem] font-semibold leading-none tracking-[-0.05em] text-[#1f1f1f]">
-            LUMIA
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="mb-0 font-serif text-[2.5rem] font-semibold leading-none tracking-[-0.06em] text-[#1f1f1f]">
+              LUMIA
+            </p>
+            <p className="mb-0 mt-2 text-[9px] uppercase tracking-[0.3em] text-[#8b8479]">Твой путь к себе</p>
+          </div>
+
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#f3eee4] text-[11px] font-medium uppercase tracking-[0.18em] text-[#7c7264]">
+            01
+          </div>
+        </div>
+
+        <div className="mt-5">
+          <p className="mb-0 text-[10px] uppercase tracking-[0.22em] text-[#a1988d]">Первый шаг</p>
+          <h1 className="mb-0 mt-3 max-w-[15rem] font-serif text-[2.15rem] leading-[0.98] tracking-[-0.045em] text-[#1f1f1f]">
+            Соберем твою карту
           </h1>
-          <p className="mt-2 text-[10px] uppercase tracking-[0.34em] text-[#8a857d]">
-            Твой путь к себе
+          <p className="mb-0 mt-4 max-w-[20.5rem] text-[14px] leading-[1.6] text-[#514b44]">
+            Нужны имя, дата, время и место рождения. По ним Lumia рассчитает карту точно, без общих шаблонов.
           </p>
         </div>
 
-        <div className="pt-16">
-          <p className="text-[11px] uppercase tracking-[0.22em] text-[#a0988d]">Первый шаг</p>
-          <h2 className="mt-4 max-w-[18rem] font-serif text-[2.35rem] leading-[1.04] text-[#1f1f1f]">
-            Твоя карта начинается здесь
-          </h2>
-          <p className="mt-6 max-w-[21.5rem] text-[15px] leading-[1.85] text-[#4f4b45]">
-            Имя, дата, время и место рождения помогут Lumia собрать твой личный астрологический
-            рисунок — точно, бережно и без общих формулировок.
-          </p>
-        </div>
-
-        <div className="mt-14 flex-1">
-          <div className="space-y-8">
+        <div className="mt-5 rounded-[26px] border border-black/6 bg-[#faf6ee]/92 px-4 py-4 shadow-[0_12px_32px_rgba(34,26,18,0.05)]">
+          <div className="space-y-3.5">
             <label className="block">
-              <span className="mb-2 block text-[10px] uppercase tracking-[0.18em] text-[#8d877e]">
-                Имя
-              </span>
+              <span className="mb-1.5 block text-[10px] uppercase tracking-[0.18em] text-[#8e877d]">Имя</span>
               <input
                 ref={nameRef}
                 type="text"
@@ -137,42 +144,38 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
               />
             </label>
 
-            <label className="block">
-              <span className="mb-2 block text-[10px] uppercase tracking-[0.18em] text-[#8d877e]">
-                Дата рождения
-              </span>
-              <input
-                ref={dateRef}
-                type="date"
-                value={date}
-                onChange={(e) => {
-                  setDate(e.target.value);
-                  if (error) setError('');
-                }}
-                className={inputClassName}
-              />
-            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="block">
+                <span className="mb-1.5 block text-[10px] uppercase tracking-[0.18em] text-[#8e877d]">Дата</span>
+                <input
+                  ref={dateRef}
+                  type="date"
+                  value={date}
+                  onChange={(e) => {
+                    setDate(e.target.value);
+                    if (error) setError('');
+                  }}
+                  className={inputClassName}
+                />
+              </label>
+
+              <label className="block">
+                <span className="mb-1.5 block text-[10px] uppercase tracking-[0.18em] text-[#8e877d]">Время</span>
+                <input
+                  ref={timeRef}
+                  type="time"
+                  value={time}
+                  onChange={(e) => {
+                    setTime(e.target.value);
+                    if (error) setError('');
+                  }}
+                  className={inputClassName}
+                />
+              </label>
+            </div>
 
             <label className="block">
-              <span className="mb-2 block text-[10px] uppercase tracking-[0.18em] text-[#8d877e]">
-                Время рождения
-              </span>
-              <input
-                ref={timeRef}
-                type="time"
-                value={time}
-                onChange={(e) => {
-                  setTime(e.target.value);
-                  if (error) setError('');
-                }}
-                className={inputClassName}
-              />
-            </label>
-
-            <label className="block">
-              <span className="mb-2 block text-[10px] uppercase tracking-[0.18em] text-[#8d877e]">
-                Место рождения
-              </span>
+              <span className="mb-1.5 block text-[10px] uppercase tracking-[0.18em] text-[#8e877d]">Место рождения</span>
               <input
                 ref={placeRef}
                 type="text"
@@ -187,25 +190,21 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
             </label>
           </div>
 
-          <p className="mt-8 text-[12px] leading-[1.7] text-[#8a857d]">
-            Мы считаем карту профессионально: используем точные астрономические данные и расчёты
-            Swiss Ephemeris, чтобы интерпретация строилась не на общих шаблонах, а на твоих
-            реальных координатах рождения.
-          </p>
-
-          {error ? (
-            <p className="mt-5 text-[13px] leading-relaxed text-[#8d4a45]">{error}</p>
-          ) : (
-            <p className="mt-5 text-[13px] leading-relaxed text-[#6f6a63]">
-              Когда всё заполнено, откроется твой первый личный слой.
-            </p>
-          )}
+          <div className="mt-3.5 rounded-[18px] bg-white/78 px-3 py-2.5">
+            <p className="mb-0 text-[11px] leading-[1.5] text-[#6b6459]">Расчет на базе Swiss Ephemeris.</p>
+          </div>
         </div>
 
-        <div className="mt-10 flex items-center justify-between gap-4 pb-2">
-          <p className="max-w-[12rem] text-[12px] uppercase tracking-[0.16em] text-[#9a9387]">
-            Открыть карту
-          </p>
+        <div className="mt-auto pt-4">
+          <div className="min-h-[2.75rem]">
+            {error ? (
+              <p className="mb-0 text-[12px] leading-[1.45] text-[#9a4b45]">{error}</p>
+            ) : (
+              <p className="mb-0 text-[12px] leading-[1.45] text-[#756d63]">
+                Когда все заполнено, откроется твой первый личный слой.
+              </p>
+            )}
+          </div>
 
           <button
             type="button"
@@ -213,13 +212,21 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
             disabled={!canSubmit}
             aria-label="Открыть карту"
             className={[
-              'inline-flex h-[68px] w-[68px] shrink-0 items-center justify-center rounded-full transition-all duration-300',
+              'mt-3 flex h-14 w-full items-center justify-between rounded-full px-5 text-left transition-all duration-300',
               canSubmit
-                ? 'bg-[#232323] text-white shadow-[0_16px_28px_rgba(0,0,0,0.14)] active:scale-[0.97]'
-                : 'bg-[#efebe4] text-[#c0b7aa]',
+                ? 'bg-[#232323] text-white shadow-[0_16px_32px_rgba(0,0,0,0.14)] active:scale-[0.985]'
+                : 'bg-[#ebe5da] text-[#b7afa1]',
             ].join(' ')}
           >
-            <span className="text-[1.45rem] leading-none">→</span>
+            <span className="text-[12px] uppercase tracking-[0.2em]">Открыть карту</span>
+            <span
+              className={[
+                'flex h-9 w-9 items-center justify-center rounded-full text-[1.15rem] leading-none transition-colors',
+                canSubmit ? 'bg-white/12 text-white' : 'bg-white/55 text-[#b7afa1]',
+              ].join(' ')}
+            >
+              →
+            </span>
           </button>
         </div>
       </motion.div>

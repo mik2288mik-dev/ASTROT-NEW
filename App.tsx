@@ -737,10 +737,7 @@ const App: React.FC = () => {
 
     if (!profile || view === 'onboarding') {
         return (
-            <div 
-                className="relative isolate fixed inset-0 overflow-y-auto bg-transparent"
-                style={{ paddingTop: 'env(safe-area-inset-top, 0px)', paddingBottom: 'env(safe-area-inset-bottom, 0px)', paddingLeft: 'env(safe-area-inset-left, 0px)', paddingRight: 'env(safe-area-inset-right, 0px)' }}
-            >
+            <div className="relative isolate fixed inset-0 overflow-hidden bg-transparent">
                 <BackgroundLayers theme="dark" view="onboarding" />
                 <Onboarding onComplete={handleOnboardingComplete} />
             </div>
