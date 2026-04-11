@@ -197,7 +197,7 @@ export const Dashboard = memo<DashboardProps>(
       'relative mx-auto flex h-full min-h-0 w-full max-w-md flex-col overflow-hidden lumia-tg-hub-pad text-text-main'
     );
 
-    const tabShellClass = 'mb-7 border-b border-black/[0.07]';
+    const tabShellClass = '-mt-[6px] mb-5 border-b border-black/[0.07]';
 
     const tabButtonClass =
       'relative flex min-h-[42px] flex-1 items-center justify-center px-1 pb-3 pt-1';
@@ -252,6 +252,7 @@ export const Dashboard = memo<DashboardProps>(
             <LumiaStudioHeader
               onOpenSettings={onOpenSettings}
               settingsAriaLabel={getText(language, 'nav.settings')}
+              className="-mt-[6px] mb-4"
             />
 
             <section className={cn(cardClass, 'space-y-4 text-center')}>
@@ -296,6 +297,7 @@ export const Dashboard = memo<DashboardProps>(
           <LumiaStudioHeader
             onOpenSettings={onOpenSettings}
             settingsAriaLabel={getText(language, 'nav.settings')}
+            className="-mt-[6px] mb-4"
           />
 
           <div className={tabShellClass}>
@@ -330,7 +332,7 @@ export const Dashboard = memo<DashboardProps>(
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={panelTransition}
-              className="min-h-0 flex-1 space-y-4 sm:space-y-5"
+              className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain space-y-4 pr-0.5 sm:space-y-5"
             >
               {activeTab === 'natal' && (
                 <>

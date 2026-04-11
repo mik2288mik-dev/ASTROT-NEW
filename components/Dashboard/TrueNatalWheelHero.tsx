@@ -23,6 +23,7 @@ type PlacementKey =
 type PlacementSpec = {
   key: PlacementKey;
   symbol: string;
+  markerCode: { ru: string; en: string };
   label: { ru: string; en: string };
   data: PlanetPosition | null | undefined;
 };
@@ -101,14 +102,14 @@ const ZODIAC_SHORT_LABELS: Record<Language, Record<(typeof ZODIAC_ORDER)[number]
 const SIGN_INDEX = Object.fromEntries(ZODIAC_ORDER.map((sign, index) => [sign, index])) as Record<string, number>;
 
 const PLACEMENT_SPECS: PlacementSpec[] = [
-  { key: 'sun', symbol: '☉', label: { ru: 'Солнце', en: 'Sun' }, data: null },
-  { key: 'moon', symbol: '☽', label: { ru: 'Луна', en: 'Moon' }, data: null },
-  { key: 'mercury', symbol: '☿', label: { ru: 'Меркурий', en: 'Mercury' }, data: null },
-  { key: 'venus', symbol: '♀', label: { ru: 'Венера', en: 'Venus' }, data: null },
-  { key: 'mars', symbol: '♂', label: { ru: 'Марс', en: 'Mars' }, data: null },
-  { key: 'jupiter', symbol: '♃', label: { ru: 'Юпитер', en: 'Jupiter' }, data: null },
-  { key: 'saturn', symbol: '♄', label: { ru: 'Сатурн', en: 'Saturn' }, data: null },
-  { key: 'rising', symbol: '↑', label: { ru: 'ASC', en: 'ASC' }, data: null },
+  { key: 'sun', symbol: '☉', markerCode: { ru: 'С', en: 'Su' }, label: { ru: 'Солнце', en: 'Sun' }, data: null },
+  { key: 'moon', symbol: '☽', markerCode: { ru: 'Л', en: 'Mo' }, label: { ru: 'Луна', en: 'Moon' }, data: null },
+  { key: 'mercury', symbol: '☿', markerCode: { ru: 'Ме', en: 'Me' }, label: { ru: 'Меркурий', en: 'Mercury' }, data: null },
+  { key: 'venus', symbol: '♀', markerCode: { ru: 'Ве', en: 'Ve' }, label: { ru: 'Венера', en: 'Venus' }, data: null },
+  { key: 'mars', symbol: '♂', markerCode: { ru: 'Ма', en: 'Ma' }, label: { ru: 'Марс', en: 'Mars' }, data: null },
+  { key: 'jupiter', symbol: '♃', markerCode: { ru: 'Юп', en: 'Ju' }, label: { ru: 'Юпитер', en: 'Jupiter' }, data: null },
+  { key: 'saturn', symbol: '♄', markerCode: { ru: 'Са', en: 'Sa' }, label: { ru: 'Сатурн', en: 'Saturn' }, data: null },
+  { key: 'rising', symbol: '↑', markerCode: { ru: 'ASC', en: 'ASC' }, label: { ru: 'ASC', en: 'ASC' }, data: null },
 ];
 
 const PRIMARY_CALLOUT_SLOTS: Record<PlacementKey, PrimaryCalloutSlot> = {
@@ -304,10 +305,9 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
     );
 
     const aspectLines = useMemo(() => {
-      const fallbackKeys: PlacementKey[] = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn'];
       const rawAspects = Array.isArray(chartData.aspects) ? chartData.aspects : [];
 
-      const lines = rawAspects
+      return rawAspects
         .map((aspect: NatalAspectData) => {
           const fromKey = normalizeAspectKey(aspect.from);
           const toKey = normalizeAspectKey(aspect.to);
@@ -326,24 +326,7 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
         })
         .filter(Boolean)
         .sort((left, right) => (left?.orb ?? 0) - (right?.orb ?? 0))
-        .slice(0, 6) as Array<{
-        type: NatalAspectData['type'];
-        orb: number;
-        from: PlacementEntry;
-        to: PlacementEntry;
-      }>;
-
-      if (lines.length) return lines;
-
-      return fallbackKeys
-        .map((key, index) => {
-          const from = placementMap.get(key);
-          const to = placementMap.get(fallbackKeys[index + 1] as PlacementKey);
-          if (!from || !to) return null;
-          return { type: 'conjunction' as const, orb: index, from, to };
-        })
-        .filter(Boolean)
-        .slice(0, 3) as Array<{
+        .slice(0, 2) as Array<{
         type: NatalAspectData['type'];
         orb: number;
         from: PlacementEntry;
@@ -356,7 +339,7 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
       : { duration: 1.08, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] };
 
     return (
-      <div className="space-y-4">
+      <div className="space-y-4 pb-3">
         <div className="space-y-2">
           <motion.p
             animate={
@@ -407,12 +390,12 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
           />
         </div>
 
-        <div className="relative">
+        <div className="relative pt-1">
           <div
-            className="pointer-events-none absolute left-1/2 top-[8.7rem] h-[18.8rem] w-[18.8rem] -translate-x-1/2 -translate-y-1/2 rounded-full"
+            className="pointer-events-none absolute left-1/2 top-[9rem] h-[19.6rem] w-[19.6rem] -translate-x-1/2 -translate-y-1/2 rounded-full"
             style={{
               background:
-                'radial-gradient(circle at center, rgba(245,240,232,0.96) 0%, rgba(250,247,243,0.78) 39%, rgba(255,255,255,0) 74%)',
+                'radial-gradient(circle at center, rgba(245,240,232,0.96) 0%, rgba(252,248,242,0.82) 42%, rgba(255,255,255,0) 76%)',
             }}
             aria-hidden
           />
@@ -421,7 +404,7 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
             initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 18, scale: 0.985 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={wheelTransition}
-            className="relative mx-auto h-[18.25rem] w-[18.25rem]"
+            className="relative mx-auto h-[19rem] w-[19rem]"
           >
             <svg viewBox={`0 0 ${VIEWBOX} ${VIEWBOX}`} className="h-full w-full overflow-visible" aria-hidden>
               <defs>
@@ -508,8 +491,8 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                       y={labelPoint.y}
                       textAnchor="middle"
                       dominantBaseline="middle"
-                      fill="rgba(125,119,109,0.74)"
-                      style={{ fontSize: 8.5, letterSpacing: '0.08em', fontWeight: 600 }}
+                      fill="rgba(125,119,109,0.78)"
+                      style={{ fontSize: 8.9, letterSpacing: '0.08em', fontWeight: 600 }}
                     >
                       {getShortSignLabel(language, sign)}
                     </text>
@@ -519,8 +502,7 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
 
               {houseCusps.map((house) => {
                 const outer = polarPoint(house.longitude, HOUSE_RADIUS, wheelRotation);
-                const inner = polarPoint(house.longitude, 30, wheelRotation);
-                const labelPoint = polarPoint(house.longitude + 15, 57, wheelRotation);
+                const inner = polarPoint(house.longitude, 40, wheelRotation);
                 const emphatic = house.house === 1 || house.house === 4 || house.house === 7 || house.house === 10;
 
                 return (
@@ -530,19 +512,9 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                       y1={inner.y}
                       x2={outer.x}
                       y2={outer.y}
-                      stroke={emphatic ? 'rgba(31,31,31,0.18)' : 'rgba(31,31,31,0.09)'}
-                      strokeWidth={emphatic ? 1.05 : 0.78}
+                      stroke={emphatic ? 'rgba(31,31,31,0.17)' : 'rgba(31,31,31,0.07)'}
+                      strokeWidth={emphatic ? 1 : 0.68}
                     />
-                    <text
-                      x={labelPoint.x}
-                      y={labelPoint.y}
-                      textAnchor="middle"
-                      dominantBaseline="middle"
-                      fill="rgba(31,31,31,0.38)"
-                      style={{ fontSize: 8.5, letterSpacing: '0.08em', fontWeight: 600 }}
-                    >
-                      {house.house}
-                    </text>
                   </g>
                 );
               })}
@@ -552,12 +524,12 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                 const toPoint = polarPoint(aspect.to.longitude, ASPECT_RADIUS, wheelRotation);
                 const opacity =
                   aspect.type === 'opposition'
-                    ? 0.2
+                    ? 0.12
                     : aspect.type === 'square'
-                      ? 0.18
+                      ? 0.11
                       : aspect.type === 'trine'
-                        ? 0.16
-                        : 0.13;
+                        ? 0.1
+                        : 0.08;
 
                 return (
                   <motion.line
@@ -567,8 +539,8 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                     x2={toPoint.x}
                     y2={toPoint.y}
                     stroke={`rgba(31,31,31,${opacity})`}
-                    strokeWidth="0.85"
-                    strokeDasharray={aspect.type === 'sextile' ? '2.2 3.1' : undefined}
+                    strokeWidth="0.72"
+                    strokeDasharray={aspect.type === 'sextile' ? '2.2 3.4' : undefined}
                     initial={shouldReduceMotion ? false : { pathLength: 0, opacity: 0 }}
                     animate={shouldReduceMotion ? undefined : { pathLength: 1, opacity: 1 }}
                     transition={{
@@ -584,6 +556,7 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                 const anchorPoint = polarPoint(placement.longitude, PLANET_BASE_RADIUS, wheelRotation);
                 const markerPoint = polarPoint(placement.longitude, placement.orbitRadius, wheelRotation);
                 const isPrimary = PRIMARY_KEYS.includes(placement.key);
+                const markerCode = placement.markerCode[language];
 
                 return (
                   <motion.g
@@ -608,20 +581,32 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                     <circle
                       cx={markerPoint.x}
                       cy={markerPoint.y}
-                      r={isPrimary ? 13.2 : 10.9}
-                      fill={isPrimary ? '#1f1f1f' : 'rgba(255,255,255,0.98)'}
-                      stroke={isPrimary ? 'rgba(31,31,31,0.06)' : 'rgba(31,31,31,0.08)'}
+                      r={isPrimary ? 13.6 : 11.4}
+                      fill={isPrimary ? '#1f1f1f' : 'rgba(244,239,232,0.96)'}
+                      stroke={isPrimary ? 'rgba(31,31,31,0.06)' : 'rgba(166,152,129,0.28)'}
                       strokeWidth="1"
                     />
+                    {!isPrimary ? (
+                      <circle
+                        cx={markerPoint.x}
+                        cy={markerPoint.y}
+                        r="7.3"
+                        fill="rgba(255,255,255,0.88)"
+                      />
+                    ) : null}
                     <text
                       x={markerPoint.x}
                       y={markerPoint.y}
                       textAnchor="middle"
                       dominantBaseline="middle"
                       fill={isPrimary ? 'rgba(255,255,255,0.98)' : '#1f1f1f'}
-                      style={{ fontSize: isPrimary ? 12.4 : 11.2, fontWeight: 600 }}
+                      style={{
+                        fontSize: markerCode.length > 2 ? (isPrimary ? 7.4 : 6.4) : isPrimary ? 8.6 : 7.1,
+                        fontWeight: 700,
+                        letterSpacing: markerCode.length > 2 ? '0.03em' : '0.01em',
+                      }}
                     >
-                      {placement.symbol}
+                      {markerCode}
                     </text>
                   </motion.g>
                 );
@@ -680,7 +665,9 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
         <div className="grid grid-cols-3 gap-3">
           {primaryPlacements.map((placement) => (
             <div key={`primary-${placement.key}`} className="min-w-0 text-center">
-              <span className="block text-[18px] leading-none text-[#1f1f1f]">{placement.symbol}</span>
+              <span className="mx-auto flex h-8 w-8 items-center justify-center rounded-full bg-[#f4eee6] text-[10px] font-semibold tracking-[0.02em] text-[#1f1f1f]">
+                {placement.markerCode[language]}
+              </span>
               <span className="mt-1 block text-[9px] uppercase tracking-[0.16em] text-text-muted/82">
                 {placement.label[language]}
               </span>
@@ -701,7 +688,9 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
           >
             {secondaryPlacements.map((placement) => (
               <div key={`secondary-${placement.key}`} className="min-w-0 text-center">
-                <span className="block text-[14px] leading-none text-[#1f1f1f]">{placement.symbol}</span>
+                <span className="mx-auto flex h-7 w-7 items-center justify-center rounded-full bg-[#f7f2eb] text-[9px] font-semibold tracking-[0.02em] text-[#1f1f1f]">
+                  {placement.markerCode[language]}
+                </span>
                 <span className="mt-1 block truncate text-[8px] uppercase tracking-[0.14em] text-text-muted/78">
                   {placement.label[language]}
                 </span>
@@ -722,7 +711,7 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
           {getText(language, 'dashboard.natal_preview_cta')}
         </LumiaButton>
 
-        <div className="relative min-h-[1.6rem]">
+        <div className="relative min-h-[1.6rem] pt-0.5">
           <button
             type="button"
             onClick={() => setIsInfoOpen((current) => !current)}
@@ -735,15 +724,15 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
 
           <AnimatePresence initial={false}>
             {isInfoOpen ? (
-              <motion.div
-                initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 8, scale: 0.985 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 6, scale: 0.985 }}
+              <motion.p
+                initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 4 }}
                 transition={{ duration: shouldReduceMotion ? 0.18 : 0.28, ease: [0.22, 1, 0.36, 1] }}
-                className="absolute left-0 right-0 top-7 z-20 rounded-[20px] border border-black/[0.05] bg-white/92 px-4 py-3 text-[11px] leading-[1.6] text-text-main/82 shadow-[0_14px_34px_rgba(0,0,0,0.06)] backdrop-blur-xl"
+                className="max-w-[22.5rem] pt-2 text-[11px] leading-[1.6] text-text-main/76"
               >
                 {getInfoText(language)}
-              </motion.div>
+              </motion.p>
             ) : null}
           </AnimatePresence>
         </div>
