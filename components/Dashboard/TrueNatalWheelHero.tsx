@@ -1,5 +1,5 @@
-import React, { memo, useMemo } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
+import React, { memo, useMemo, useState } from 'react';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { getText, getZodiacSign } from '../../constants';
 import type {
   Language,
@@ -31,16 +31,26 @@ type PlacementEntry = PlacementSpec & {
   longitude: number;
   orbitRadius: number;
   signLabel: string;
+  shortSignLabel: string;
   degreeLabel: string | null;
+};
+
+type PrimaryCalloutSlot = {
+  x: number;
+  y: number;
+  connectorX: number;
+  connectorY: number;
+  anchor: 'start' | 'middle' | 'end';
 };
 
 const VIEWBOX = 320;
 const CENTER = VIEWBOX / 2;
-const OUTER_RADIUS = 132;
-const SIGN_RADIUS = 118;
-const PLANET_BASE_RADIUS = 92;
-const HOUSE_RADIUS = 86;
-const ASPECT_RADIUS = 61;
+const OUTER_RADIUS = 136;
+const SIGN_RADIUS = 119;
+const PLANET_BASE_RADIUS = 94;
+const HOUSE_RADIUS = 88;
+const ASPECT_RADIUS = 63;
+const PRIMARY_KEYS: PlacementKey[] = ['sun', 'moon', 'rising'];
 
 const ZODIAC_ORDER = [
   'Aries',
@@ -57,19 +67,35 @@ const ZODIAC_ORDER = [
   'Pisces',
 ] as const;
 
-const ZODIAC_SYMBOLS: Record<(typeof ZODIAC_ORDER)[number], string> = {
-  Aries: '♈',
-  Taurus: '♉',
-  Gemini: '♊',
-  Cancer: '♋',
-  Leo: '♌',
-  Virgo: '♍',
-  Libra: '♎',
-  Scorpio: '♏',
-  Sagittarius: '♐',
-  Capricorn: '♑',
-  Aquarius: '♒',
-  Pisces: '♓',
+const ZODIAC_SHORT_LABELS: Record<Language, Record<(typeof ZODIAC_ORDER)[number], string>> = {
+  ru: {
+    Aries: 'Овен',
+    Taurus: 'Тел',
+    Gemini: 'Бли',
+    Cancer: 'Рак',
+    Leo: 'Лев',
+    Virgo: 'Дев',
+    Libra: 'Вес',
+    Scorpio: 'Ско',
+    Sagittarius: 'Стр',
+    Capricorn: 'Коз',
+    Aquarius: 'Вод',
+    Pisces: 'Рыб',
+  },
+  en: {
+    Aries: 'Ari',
+    Taurus: 'Tau',
+    Gemini: 'Gem',
+    Cancer: 'Can',
+    Leo: 'Leo',
+    Virgo: 'Vir',
+    Libra: 'Lib',
+    Scorpio: 'Sco',
+    Sagittarius: 'Sag',
+    Capricorn: 'Cap',
+    Aquarius: 'Aqu',
+    Pisces: 'Pis',
+  },
 };
 
 const SIGN_INDEX = Object.fromEntries(ZODIAC_ORDER.map((sign, index) => [sign, index])) as Record<string, number>;
@@ -82,8 +108,19 @@ const PLACEMENT_SPECS: PlacementSpec[] = [
   { key: 'mars', symbol: '♂', label: { ru: 'Марс', en: 'Mars' }, data: null },
   { key: 'jupiter', symbol: '♃', label: { ru: 'Юпитер', en: 'Jupiter' }, data: null },
   { key: 'saturn', symbol: '♄', label: { ru: 'Сатурн', en: 'Saturn' }, data: null },
-  { key: 'rising', symbol: '↑', label: { ru: 'Асцендент', en: 'Ascendant' }, data: null },
+  { key: 'rising', symbol: '↑', label: { ru: 'ASC', en: 'ASC' }, data: null },
 ];
+
+const PRIMARY_CALLOUT_SLOTS: Record<PlacementKey, PrimaryCalloutSlot> = {
+  sun: { x: 44, y: 50, connectorX: 82, connectorY: 64, anchor: 'start' },
+  moon: { x: 276, y: 54, connectorX: 238, connectorY: 68, anchor: 'end' },
+  mercury: { x: 0, y: 0, connectorX: 0, connectorY: 0, anchor: 'start' },
+  venus: { x: 0, y: 0, connectorX: 0, connectorY: 0, anchor: 'start' },
+  mars: { x: 0, y: 0, connectorX: 0, connectorY: 0, anchor: 'start' },
+  jupiter: { x: 0, y: 0, connectorX: 0, connectorY: 0, anchor: 'start' },
+  saturn: { x: 0, y: 0, connectorX: 0, connectorY: 0, anchor: 'start' },
+  rising: { x: 160, y: 299, connectorX: 160, connectorY: 275, anchor: 'middle' },
+};
 
 const normalizeDegrees = (value: number): number => {
   const normalized = value % 360;
@@ -96,6 +133,9 @@ const getSignBaseLongitude = (sign?: string | null): number | null => {
   if (typeof index !== 'number') return null;
   return index * 30;
 };
+
+const getShortSignLabel = (language: Language, sign: string): string =>
+  ZODIAC_SHORT_LABELS[language][sign as keyof (typeof ZODIAC_SHORT_LABELS)[typeof language]] || sign;
 
 const resolveLongitude = (position?: PlanetPosition | null): number | null => {
   if (!position) return null;
@@ -163,6 +203,7 @@ interface TrueNatalWheelHeroProps {
 export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
   ({ chartData, language, onOpenChart }) => {
     const shouldReduceMotion = useReducedMotion();
+    const [isInfoOpen, setIsInfoOpen] = useState(false);
 
     const wheelRotation = useMemo(() => {
       const risingLongitude = resolveLongitude(chartData.rising);
@@ -219,6 +260,7 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
             longitude,
             orbitRadius: PLANET_BASE_RADIUS,
             signLabel,
+            shortSignLabel: getShortSignLabel(language, item.data.sign),
             degreeLabel: roundedDegree !== null ? `${roundedDegree}°` : null,
           };
         })
@@ -229,16 +271,16 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
 
       sorted.forEach((entry) => {
         const previous = adjusted[adjusted.length - 1];
-        let orbitRadius = PLANET_BASE_RADIUS;
+        let orbitRadius = PRIMARY_KEYS.includes(entry.key) ? PLANET_BASE_RADIUS + 2 : PLANET_BASE_RADIUS - 2;
 
         if (previous) {
           const gap = angularGap(entry.longitude, previous.longitude);
-          if (gap < 11) orbitRadius = previous.orbitRadius - 12;
-          if (gap < 7) orbitRadius = previous.orbitRadius - 18;
-          if (gap < 4) orbitRadius = previous.orbitRadius - 22;
+          if (gap < 12) orbitRadius = previous.orbitRadius - 12;
+          if (gap < 8) orbitRadius = previous.orbitRadius - 18;
+          if (gap < 5) orbitRadius = previous.orbitRadius - 24;
         }
 
-        if (orbitRadius < 62) orbitRadius = PLANET_BASE_RADIUS + 10;
+        if (orbitRadius < 64) orbitRadius = PLANET_BASE_RADIUS + 10;
         adjusted.push({ ...entry, orbitRadius });
       });
 
@@ -248,6 +290,16 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
 
     const placementMap = useMemo(
       () => new Map<PlacementKey, PlacementEntry>(placements.map((item) => [item.key, item])),
+      [placements]
+    );
+
+    const primaryPlacements = useMemo(
+      () => PRIMARY_KEYS.map((key) => placementMap.get(key)).filter(Boolean) as PlacementEntry[],
+      [placementMap]
+    );
+
+    const secondaryPlacements = useMemo(
+      () => placements.filter((placement) => !PRIMARY_KEYS.includes(placement.key)),
       [placements]
     );
 
@@ -299,57 +351,106 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
       }>;
     }, [chartData.aspects, placementMap]);
 
-    const ascPoint = useMemo(() => polarPoint(resolveLongitude(chartData.rising) ?? 180, OUTER_RADIUS + 12, wheelRotation), [
-      chartData.rising,
-      wheelRotation,
-    ]);
-
     const wheelTransition = shouldReduceMotion
       ? { duration: 0.24 }
-      : { duration: 1.05, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] };
+      : { duration: 1.08, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] };
 
     return (
       <div className="space-y-4">
-        <p className="text-[11px] uppercase tracking-[0.18em] text-text-muted/72">
-          {getText(language, 'dashboard.natal_preview_label')}
-        </p>
+        <div className="space-y-2">
+          <motion.p
+            animate={
+              shouldReduceMotion
+                ? undefined
+                : {
+                    opacity: [0.72, 1, 0.82, 1],
+                    x: [0, 1.4, 0],
+                    letterSpacing: ['0.08em', '0.11em', '0.08em'],
+                  }
+            }
+            transition={
+              shouldReduceMotion
+                ? undefined
+                : {
+                    duration: 9.2,
+                    ease: 'easeInOut',
+                    repeat: Infinity,
+                    repeatDelay: 6.5,
+                  }
+            }
+            className="text-[12px] tracking-[0.08em] text-text-muted/80"
+          >
+            Твоя натальная карта
+          </motion.p>
+
+          <motion.div
+            animate={
+              shouldReduceMotion
+                ? undefined
+                : {
+                    x: [0, 14, 0],
+                    opacity: [0.36, 0.95, 0.42],
+                  }
+            }
+            transition={
+              shouldReduceMotion
+                ? undefined
+                : {
+                    duration: 8.8,
+                    ease: 'easeInOut',
+                    repeat: Infinity,
+                    repeatDelay: 6,
+                  }
+            }
+            className="h-px w-16 rounded-full bg-gradient-to-r from-[#c9c1b7]/0 via-[#c9c1b7] to-[#c9c1b7]/0"
+            aria-hidden
+          />
+        </div>
 
         <div className="relative">
           <div
-            className="pointer-events-none absolute left-1/2 top-[7.2rem] h-[15.75rem] w-[15.75rem] -translate-x-1/2 -translate-y-1/2 rounded-full"
+            className="pointer-events-none absolute left-1/2 top-[8.7rem] h-[18.8rem] w-[18.8rem] -translate-x-1/2 -translate-y-1/2 rounded-full"
             style={{
               background:
-                'radial-gradient(circle at center, rgba(241,236,229,0.92) 0%, rgba(250,248,244,0.68) 38%, rgba(255,255,255,0) 72%)',
+                'radial-gradient(circle at center, rgba(245,240,232,0.96) 0%, rgba(250,247,243,0.78) 39%, rgba(255,255,255,0) 74%)',
             }}
             aria-hidden
           />
 
           <motion.div
-            initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 16, scale: 0.985 }}
+            initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 18, scale: 0.985 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={wheelTransition}
-            className="relative mx-auto h-[15rem] w-[15rem]"
+            className="relative mx-auto h-[18.25rem] w-[18.25rem]"
           >
             <svg viewBox={`0 0 ${VIEWBOX} ${VIEWBOX}`} className="h-full w-full overflow-visible" aria-hidden>
+              <defs>
+                <radialGradient id="lumiaWheelGlow" cx="50%" cy="46%" r="58%">
+                  <stop offset="0%" stopColor="rgba(255,255,255,0.98)" />
+                  <stop offset="64%" stopColor="rgba(252,249,245,0.92)" />
+                  <stop offset="100%" stopColor="rgba(248,244,238,0.82)" />
+                </radialGradient>
+              </defs>
+
               <motion.circle
                 cx={CENTER}
                 cy={CENTER}
                 r={OUTER_RADIUS}
-                fill="rgba(255,255,255,0.88)"
-                stroke="rgba(18,18,18,0.12)"
-                strokeWidth="1.2"
-                initial={shouldReduceMotion ? false : { pathLength: 0, opacity: 0.15 }}
+                fill="url(#lumiaWheelGlow)"
+                stroke="rgba(31,31,31,0.1)"
+                strokeWidth="1.1"
+                initial={shouldReduceMotion ? false : { pathLength: 0, opacity: 0.16 }}
                 animate={shouldReduceMotion ? undefined : { pathLength: 1, opacity: 1 }}
                 transition={wheelTransition}
               />
               <motion.circle
                 cx={CENTER}
                 cy={CENTER}
-                r={112}
-                fill="rgba(255,255,255,0.72)"
-                stroke="rgba(18,18,18,0.08)"
+                r={115}
+                fill="rgba(255,255,255,0.78)"
+                stroke="rgba(31,31,31,0.06)"
                 strokeWidth="1"
-                initial={shouldReduceMotion ? false : { pathLength: 0, opacity: 0.15 }}
+                initial={shouldReduceMotion ? false : { pathLength: 0, opacity: 0.12 }}
                 animate={shouldReduceMotion ? undefined : { pathLength: 1, opacity: 1 }}
                 transition={{ ...wheelTransition, delay: shouldReduceMotion ? 0 : 0.04 }}
               />
@@ -357,18 +458,23 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                 cx={CENTER}
                 cy={CENTER}
                 r={HOUSE_RADIUS}
-                fill="rgba(252,250,247,0.88)"
-                stroke="rgba(18,18,18,0.08)"
+                fill="rgba(253,251,248,0.94)"
+                stroke="rgba(31,31,31,0.07)"
                 strokeWidth="1"
-                initial={shouldReduceMotion ? false : { pathLength: 0, opacity: 0.15 }}
+                initial={shouldReduceMotion ? false : { pathLength: 0, opacity: 0.12 }}
                 animate={shouldReduceMotion ? undefined : { pathLength: 1, opacity: 1 }}
                 transition={{ ...wheelTransition, delay: shouldReduceMotion ? 0 : 0.08 }}
               />
 
-              {Array.from({ length: 36 }, (_, index) => {
-                const longitude = index * 10;
+              {Array.from({ length: 72 }, (_, index) => {
+                const longitude = index * 5;
                 const outer = polarPoint(longitude, OUTER_RADIUS, wheelRotation);
-                const inner = polarPoint(longitude, index % 3 === 0 ? OUTER_RADIUS - 10 : OUTER_RADIUS - 6, wheelRotation);
+                const inner = polarPoint(
+                  longitude,
+                  index % 6 === 0 ? OUTER_RADIUS - 10 : OUTER_RADIUS - 5,
+                  wheelRotation
+                );
+
                 return (
                   <line
                     key={`tick-${index}`}
@@ -376,16 +482,16 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                     y1={inner.y}
                     x2={outer.x}
                     y2={outer.y}
-                    stroke="rgba(18,18,18,0.12)"
-                    strokeWidth={index % 3 === 0 ? 1 : 0.7}
+                    stroke="rgba(31,31,31,0.1)"
+                    strokeWidth={index % 6 === 0 ? 0.95 : 0.55}
                   />
                 );
               })}
 
               {ZODIAC_ORDER.map((sign, index) => {
-                const separator = polarPoint(index * 30, OUTER_RADIUS - 12, wheelRotation);
+                const separator = polarPoint(index * 30, OUTER_RADIUS - 14, wheelRotation);
                 const separatorOuter = polarPoint(index * 30, OUTER_RADIUS, wheelRotation);
-                const glyphPoint = polarPoint(index * 30 + 15, SIGN_RADIUS, wheelRotation);
+                const labelPoint = polarPoint(index * 30 + 15, SIGN_RADIUS, wheelRotation);
 
                 return (
                   <g key={sign}>
@@ -394,18 +500,18 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                       y1={separator.y}
                       x2={separatorOuter.x}
                       y2={separatorOuter.y}
-                      stroke="rgba(18,18,18,0.16)"
-                      strokeWidth="1"
+                      stroke="rgba(31,31,31,0.14)"
+                      strokeWidth="0.9"
                     />
                     <text
-                      x={glyphPoint.x}
-                      y={glyphPoint.y}
+                      x={labelPoint.x}
+                      y={labelPoint.y}
                       textAnchor="middle"
                       dominantBaseline="middle"
-                      fill="rgba(31,31,31,0.62)"
-                      style={{ fontSize: 13, letterSpacing: '0.02em', fontWeight: 500 }}
+                      fill="rgba(125,119,109,0.74)"
+                      style={{ fontSize: 8.5, letterSpacing: '0.08em', fontWeight: 600 }}
                     >
-                      {ZODIAC_SYMBOLS[sign]}
+                      {getShortSignLabel(language, sign)}
                     </text>
                   </g>
                 );
@@ -413,8 +519,8 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
 
               {houseCusps.map((house) => {
                 const outer = polarPoint(house.longitude, HOUSE_RADIUS, wheelRotation);
-                const inner = polarPoint(house.longitude, 28, wheelRotation);
-                const labelPoint = polarPoint(house.longitude + 15, 54, wheelRotation);
+                const inner = polarPoint(house.longitude, 30, wheelRotation);
+                const labelPoint = polarPoint(house.longitude + 15, 57, wheelRotation);
                 const emphatic = house.house === 1 || house.house === 4 || house.house === 7 || house.house === 10;
 
                 return (
@@ -424,16 +530,16 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                       y1={inner.y}
                       x2={outer.x}
                       y2={outer.y}
-                      stroke={emphatic ? 'rgba(18,18,18,0.18)' : 'rgba(18,18,18,0.1)'}
-                      strokeWidth={emphatic ? 1.1 : 0.85}
+                      stroke={emphatic ? 'rgba(31,31,31,0.18)' : 'rgba(31,31,31,0.09)'}
+                      strokeWidth={emphatic ? 1.05 : 0.78}
                     />
                     <text
                       x={labelPoint.x}
                       y={labelPoint.y}
                       textAnchor="middle"
                       dominantBaseline="middle"
-                      fill="rgba(31,31,31,0.45)"
-                      style={{ fontSize: 8.5, letterSpacing: '0.08em', fontWeight: 500 }}
+                      fill="rgba(31,31,31,0.38)"
+                      style={{ fontSize: 8.5, letterSpacing: '0.08em', fontWeight: 600 }}
                     >
                       {house.house}
                     </text>
@@ -446,12 +552,12 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                 const toPoint = polarPoint(aspect.to.longitude, ASPECT_RADIUS, wheelRotation);
                 const opacity =
                   aspect.type === 'opposition'
-                    ? 0.22
+                    ? 0.2
                     : aspect.type === 'square'
-                      ? 0.2
+                      ? 0.18
                       : aspect.type === 'trine'
-                        ? 0.18
-                        : 0.15;
+                        ? 0.16
+                        : 0.13;
 
                 return (
                   <motion.line
@@ -461,13 +567,13 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                     x2={toPoint.x}
                     y2={toPoint.y}
                     stroke={`rgba(31,31,31,${opacity})`}
-                    strokeWidth="0.9"
-                    strokeDasharray={aspect.type === 'sextile' ? '2.4 3.4' : undefined}
+                    strokeWidth="0.85"
+                    strokeDasharray={aspect.type === 'sextile' ? '2.2 3.1' : undefined}
                     initial={shouldReduceMotion ? false : { pathLength: 0, opacity: 0 }}
                     animate={shouldReduceMotion ? undefined : { pathLength: 1, opacity: 1 }}
                     transition={{
-                      duration: shouldReduceMotion ? 0.2 : 0.85,
-                      delay: shouldReduceMotion ? 0 : 0.16 + index * 0.04,
+                      duration: shouldReduceMotion ? 0.18 : 0.82,
+                      delay: shouldReduceMotion ? 0 : 0.16 + index * 0.035,
                       ease: [0.22, 1, 0.36, 1],
                     }}
                   />
@@ -477,6 +583,7 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
               {placements.map((placement, index) => {
                 const anchorPoint = polarPoint(placement.longitude, PLANET_BASE_RADIUS, wheelRotation);
                 const markerPoint = polarPoint(placement.longitude, placement.orbitRadius, wheelRotation);
+                const isPrimary = PRIMARY_KEYS.includes(placement.key);
 
                 return (
                   <motion.g
@@ -485,7 +592,7 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                     animate={shouldReduceMotion ? undefined : { opacity: 1, scale: 1 }}
                     transition={{
                       duration: shouldReduceMotion ? 0.18 : 0.42,
-                      delay: shouldReduceMotion ? 0 : 0.22 + index * 0.035,
+                      delay: shouldReduceMotion ? 0 : 0.22 + index * 0.03,
                       ease: [0.22, 1, 0.36, 1],
                     }}
                   >
@@ -494,16 +601,16 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                       y1={anchorPoint.y}
                       x2={markerPoint.x}
                       y2={markerPoint.y}
-                      stroke="rgba(31,31,31,0.16)"
-                      strokeWidth="0.9"
+                      stroke={isPrimary ? 'rgba(31,31,31,0.24)' : 'rgba(31,31,31,0.14)'}
+                      strokeWidth={isPrimary ? 1 : 0.85}
                     />
-                    <circle cx={anchorPoint.x} cy={anchorPoint.y} r="2.1" fill="rgba(31,31,31,0.48)" />
+                    <circle cx={anchorPoint.x} cy={anchorPoint.y} r={isPrimary ? 2.4 : 2} fill="rgba(31,31,31,0.42)" />
                     <circle
                       cx={markerPoint.x}
                       cy={markerPoint.y}
-                      r="11.5"
-                      fill="rgba(255,255,255,0.96)"
-                      stroke="rgba(18,18,18,0.09)"
+                      r={isPrimary ? 13.2 : 10.9}
+                      fill={isPrimary ? '#1f1f1f' : 'rgba(255,255,255,0.98)'}
+                      stroke={isPrimary ? 'rgba(31,31,31,0.06)' : 'rgba(31,31,31,0.08)'}
                       strokeWidth="1"
                     />
                     <text
@@ -511,8 +618,8 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                       y={markerPoint.y}
                       textAnchor="middle"
                       dominantBaseline="middle"
-                      fill="#1f1f1f"
-                      style={{ fontSize: 12, fontWeight: 600 }}
+                      fill={isPrimary ? 'rgba(255,255,255,0.98)' : '#1f1f1f'}
+                      style={{ fontSize: isPrimary ? 12.4 : 11.2, fontWeight: 600 }}
                     >
                       {placement.symbol}
                     </text>
@@ -520,42 +627,66 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                 );
               })}
 
-              <line
-                x1={CENTER}
-                y1={CENTER}
-                x2={ascPoint.x}
-                y2={ascPoint.y}
-                stroke="rgba(18,18,18,0.16)"
-                strokeWidth="1.05"
-              />
-              <text
-                x={ascPoint.x}
-                y={ascPoint.y}
-                dx="-3"
-                dy="-4"
-                textAnchor="end"
-                fill="rgba(31,31,31,0.62)"
-                style={{ fontSize: 9.5, letterSpacing: '0.16em', fontWeight: 600 }}
-              >
-                ASC
-              </text>
+              {primaryPlacements.map((placement, index) => {
+                const slot = PRIMARY_CALLOUT_SLOTS[placement.key];
+                const markerPoint = polarPoint(placement.longitude, placement.orbitRadius, wheelRotation);
+                const textOffset =
+                  slot.anchor === 'start' ? 12 : slot.anchor === 'end' ? -12 : 0;
+
+                return (
+                  <motion.g
+                    key={`callout-${placement.key}`}
+                    initial={shouldReduceMotion ? false : { opacity: 0, y: placement.key === 'rising' ? 6 : -6 }}
+                    animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
+                    transition={{
+                      duration: shouldReduceMotion ? 0.18 : 0.48,
+                      delay: shouldReduceMotion ? 0 : 0.36 + index * 0.06,
+                      ease: [0.22, 1, 0.36, 1],
+                    }}
+                  >
+                    <path
+                      d={`M ${markerPoint.x} ${markerPoint.y} L ${slot.connectorX} ${slot.connectorY} L ${slot.x} ${slot.y}`}
+                      fill="none"
+                      stroke="rgba(31,31,31,0.16)"
+                      strokeWidth="0.95"
+                    />
+                    <circle cx={slot.connectorX} cy={slot.connectorY} r="2.3" fill="rgba(31,31,31,0.22)" />
+                    <text
+                      x={slot.x + textOffset}
+                      y={slot.y}
+                      textAnchor={slot.anchor}
+                      fill="rgba(31,31,31,0.58)"
+                      style={{ fontSize: 8.4, letterSpacing: '0.12em', fontWeight: 600 }}
+                    >
+                      {placement.label[language].toUpperCase()}
+                    </text>
+                    <text
+                      x={slot.x + textOffset}
+                      y={slot.y + 14}
+                      textAnchor={slot.anchor}
+                      fill="#1f1f1f"
+                      style={{ fontSize: 11.5, fontWeight: 600 }}
+                    >
+                      {placement.signLabel}
+                      {placement.degreeLabel ? ` ${placement.degreeLabel}` : ''}
+                    </text>
+                  </motion.g>
+                );
+              })}
             </svg>
           </motion.div>
         </div>
 
-        <div
-          className="grid gap-x-3 gap-y-4"
-          style={{ gridTemplateColumns: `repeat(${Math.min(4, Math.max(2, placements.length))}, minmax(0, 1fr))` }}
-        >
-          {placements.map((placement) => (
-            <div key={`placement-${placement.key}`} className="min-w-0 text-center">
-              <span className="block text-[15px] leading-none text-[#1f1f1f]">{placement.symbol}</span>
-              <span className="mt-1 block truncate text-[9px] uppercase tracking-[0.16em] text-text-muted/80">
+        <div className="grid grid-cols-3 gap-3">
+          {primaryPlacements.map((placement) => (
+            <div key={`primary-${placement.key}`} className="min-w-0 text-center">
+              <span className="block text-[18px] leading-none text-[#1f1f1f]">{placement.symbol}</span>
+              <span className="mt-1 block text-[9px] uppercase tracking-[0.16em] text-text-muted/82">
                 {placement.label[language]}
               </span>
-              <span className="mt-1 block text-[12px] leading-[1.15] text-text-main">{placement.signLabel}</span>
+              <span className="mt-1 block text-[13px] leading-[1.18] text-text-main">{placement.signLabel}</span>
               {placement.degreeLabel ? (
-                <span className="mt-0.5 block text-[10px] leading-none text-text-muted/76">
+                <span className="mt-0.5 block text-[10px] leading-none text-text-muted/78">
                   {placement.degreeLabel}
                 </span>
               ) : null}
@@ -563,15 +694,58 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
           ))}
         </div>
 
+        {secondaryPlacements.length ? (
+          <div
+            className="grid gap-x-2 gap-y-3"
+            style={{ gridTemplateColumns: `repeat(${Math.min(5, secondaryPlacements.length)}, minmax(0, 1fr))` }}
+          >
+            {secondaryPlacements.map((placement) => (
+              <div key={`secondary-${placement.key}`} className="min-w-0 text-center">
+                <span className="block text-[14px] leading-none text-[#1f1f1f]">{placement.symbol}</span>
+                <span className="mt-1 block truncate text-[8px] uppercase tracking-[0.14em] text-text-muted/78">
+                  {placement.label[language]}
+                </span>
+                <span className="mt-1 block truncate text-[11px] leading-none text-text-main">
+                  {placement.shortSignLabel}
+                </span>
+                {placement.degreeLabel ? (
+                  <span className="mt-0.5 block text-[9px] leading-none text-text-muted/72">
+                    {placement.degreeLabel}
+                  </span>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        ) : null}
+
         <LumiaButton className="min-h-[48px] w-full" variant="primary" onClick={onOpenChart}>
           {getText(language, 'dashboard.natal_preview_cta')}
         </LumiaButton>
 
-        <div className="flex items-start gap-2 pt-0.5 text-[11px] leading-[1.55] text-text-muted/78">
-          <span className="mt-[1px] inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-black/[0.08] text-[10px] font-medium text-text-main/72">
+        <div className="relative min-h-[1.6rem]">
+          <button
+            type="button"
+            onClick={() => setIsInfoOpen((current) => !current)}
+            aria-expanded={isInfoOpen}
+            aria-label={language === 'ru' ? 'О расчёте карты' : 'About this chart'}
+            className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-black/[0.08] text-[10px] font-medium text-text-main/72 transition-colors hover:border-black/[0.14] hover:text-text-main"
+          >
             i
-          </span>
-          <p>{getInfoText(language)}</p>
+          </button>
+
+          <AnimatePresence initial={false}>
+            {isInfoOpen ? (
+              <motion.div
+                initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 8, scale: 0.985 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 6, scale: 0.985 }}
+                transition={{ duration: shouldReduceMotion ? 0.18 : 0.28, ease: [0.22, 1, 0.36, 1] }}
+                className="absolute left-0 right-0 top-7 z-20 rounded-[20px] border border-black/[0.05] bg-white/92 px-4 py-3 text-[11px] leading-[1.6] text-text-main/82 shadow-[0_14px_34px_rgba(0,0,0,0.06)] backdrop-blur-xl"
+              >
+                {getInfoText(language)}
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
         </div>
       </div>
     );

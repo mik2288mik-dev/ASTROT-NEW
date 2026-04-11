@@ -335,7 +335,7 @@ export const Dashboard = memo<DashboardProps>(
               {activeTab === 'natal' && (
                 <>
                   <section className="px-1 pt-1">
-                    <div className="mx-auto max-w-[23.25rem] sm:max-w-[24rem]">
+                    <div className="mx-auto max-w-[24rem] sm:max-w-[24.75rem]">
                       <TrueNatalWheelHero
                         chartData={chartData}
                         language={language}
