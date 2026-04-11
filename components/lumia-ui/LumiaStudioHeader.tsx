@@ -16,44 +16,26 @@ export const LumiaStudioHeader: React.FC<LumiaStudioHeaderProps> = ({
   className,
 }) => {
   const shouldReduceMotion = useReducedMotion();
+  const brandLetters = ['L', 'U', 'M', 'I', 'A'];
   const settingsButtonClass =
     'z-10 inline-flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-full bg-white text-text-main ring-1 ring-black/[0.08] shadow-[0_4px_14px_rgba(0,0,0,0.035)] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/18';
-
-  const wordAnimate = shouldReduceMotion
-    ? undefined
-    : {
-        opacity: [1, 0.88, 1],
-        y: [0, -2, 0],
-        scale: [1, 1.018, 1],
-        letterSpacing: ['-0.065em', '-0.052em', '-0.065em'],
-      };
-
-  const wordTransition = shouldReduceMotion
-    ? undefined
-    : {
-        duration: 5.2,
-        ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
-        repeat: Infinity,
-        repeatDelay: 42,
-        delay: 10,
-      };
 
   const taglineAnimate = shouldReduceMotion
     ? undefined
     : {
-        opacity: [1, 0.68, 1],
+        opacity: [1, 0.76, 1],
         y: [0, -1, 0],
-        letterSpacing: ['0.32em', '0.35em', '0.32em'],
+        scale: [1, 1.006, 1],
       };
 
   const taglineTransition = shouldReduceMotion
     ? undefined
     : {
-        duration: 5.2,
+        duration: 1.1,
         ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
         repeat: Infinity,
-        repeatDelay: 42,
-        delay: 10.08,
+        repeatDelay: 34.4,
+        delay: 8.56,
       };
 
   return (
@@ -62,13 +44,36 @@ export const LumiaStudioHeader: React.FC<LumiaStudioHeaderProps> = ({
         <div aria-hidden className="h-11 w-11" />
         <div className="min-w-0 text-center">
           <div className="inline-flex flex-col items-center">
-            <motion.p
-              animate={wordAnimate}
-              transition={wordTransition}
-              className="mb-0 font-serif text-[2.9rem] font-semibold leading-none tracking-[-0.065em] text-[#1f1f1f]"
-            >
-              LUMIA
-            </motion.p>
+            <p className="mb-0 font-serif text-[2.9rem] font-semibold leading-none tracking-[-0.065em] text-[#1f1f1f]">
+              {brandLetters.map((letter, index) => (
+                <motion.span
+                  key={`${letter}-${index}`}
+                  className="inline-block"
+                  animate={
+                    shouldReduceMotion
+                      ? undefined
+                      : {
+                          y: [0, -3.2, 0],
+                          opacity: [1, 0.88, 1],
+                          scale: [1, 1.018, 1],
+                        }
+                  }
+                  transition={
+                    shouldReduceMotion
+                      ? undefined
+                      : {
+                          duration: 0.52,
+                          ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
+                          repeat: Infinity,
+                          repeatDelay: 34.8,
+                          delay: 8 + index * 0.09,
+                        }
+                  }
+                >
+                  {letter}
+                </motion.span>
+              ))}
+            </p>
             <motion.p
               animate={taglineAnimate}
               transition={taglineTransition}

@@ -262,53 +262,30 @@ export const Dashboard = memo<DashboardProps>(
         }
       : {
           hidden: {
-            opacity: 0.42,
-            y: 28,
-            clipPath: 'inset(100% 0 0 0)',
-            filter: 'blur(10px)',
+            opacity: 0,
+            y: 18,
+            filter: 'blur(8px)',
           },
           visible: {
             opacity: 1,
             y: 0,
-            clipPath: 'inset(0 0 0% 0)',
             filter: 'blur(0px)',
             transition: {
-              duration: 0.88,
+              duration: 0.72,
               ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
-              when: 'beforeChildren' as const,
-              delayChildren: 0.1,
             },
-          },
-        };
-
-    const revealItemVariants = shouldReduceMotion
-      ? {
-          hidden: { opacity: 0 },
-          visible: {
-            opacity: 1,
-            transition: { duration: 0.18, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] },
-          },
-        }
-      : {
-          hidden: { opacity: 0, y: 18 },
-          visible: {
-            opacity: 1,
-            y: 0,
-            transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] },
           },
         };
 
     if (!chartData) {
       return (
         <motion.div initial="hidden" animate="visible" variants={pageVariants} className={rootClass} style={rootStyle}>
-          <motion.div variants={revealItemVariants}>
-            <LumiaStudioHeader
-              onOpenSettings={onOpenSettings}
-              settingsAriaLabel={getText(language, 'nav.settings')}
-            />
-          </motion.div>
+          <LumiaStudioHeader
+            onOpenSettings={onOpenSettings}
+            settingsAriaLabel={getText(language, 'nav.settings')}
+          />
 
-          <motion.section variants={revealItemVariants} className={cn(cardClass, 'space-y-4 text-center')}>
+          <section className={cn(cardClass, 'space-y-4 text-center')}>
             <p className="font-medium text-text-main">{getText(language, 'dashboard.chart_load_failed_title')}</p>
             <p className="text-sm leading-relaxed text-text-muted">
               {getText(language, 'dashboard.chart_load_failed_body')}
@@ -326,7 +303,7 @@ export const Dashboard = memo<DashboardProps>(
                 {getText(language, 'dashboard.chart_load_open_chart')}
               </LumiaButton>
             </div>
-          </motion.section>
+          </section>
         </motion.div>
       );
     }
@@ -339,14 +316,12 @@ export const Dashboard = memo<DashboardProps>(
 
     return (
       <motion.div initial="hidden" animate="visible" variants={pageVariants} className={rootClass} style={rootStyle}>
-        <motion.div variants={revealItemVariants}>
-          <LumiaStudioHeader
-            onOpenSettings={onOpenSettings}
-            settingsAriaLabel={getText(language, 'nav.settings')}
-          />
-        </motion.div>
+        <LumiaStudioHeader
+          onOpenSettings={onOpenSettings}
+          settingsAriaLabel={getText(language, 'nav.settings')}
+        />
 
-        <motion.div variants={revealItemVariants} className={tabShellClass}>
+        <div className={tabShellClass}>
           <div className="flex items-center gap-3">
             {tabs.map((tab) => (
               <button
@@ -369,7 +344,7 @@ export const Dashboard = memo<DashboardProps>(
               </button>
             ))}
           </div>
-        </motion.div>
+        </div>
 
         <AnimatePresence mode="wait">
           <motion.div
