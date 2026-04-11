@@ -18,7 +18,7 @@ export const LumiaStudioHeader: React.FC<LumiaStudioHeaderProps> = ({
   const shouldReduceMotion = useReducedMotion();
   const brandLetters = ['L', 'U', 'M', 'I', 'A'];
   const settingsButtonClass =
-    'z-10 mt-4 inline-flex h-9 min-h-[36px] min-w-[36px] shrink-0 items-center justify-center rounded-full bg-white/86 px-2.5 text-text-main ring-1 ring-black/[0.045] shadow-[0_3px_10px_rgba(0,0,0,0.022)] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/14';
+    'z-10 mt-5 inline-flex h-8 w-8 min-h-[32px] min-w-[32px] shrink-0 items-center justify-center rounded-full bg-white/86 text-text-main ring-1 ring-black/[0.045] shadow-[0_3px_10px_rgba(0,0,0,0.02)] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/14';
 
   const taglineAnimate = shouldReduceMotion
     ? undefined
@@ -40,7 +40,7 @@ export const LumiaStudioHeader: React.FC<LumiaStudioHeaderProps> = ({
 
   return (
     <header className={cn('mb-5', className)}>
-      <div className="grid grid-cols-[44px_minmax(0,1fr)_40px] items-start gap-2">
+      <div className="grid grid-cols-[44px_minmax(0,1fr)_32px] items-start gap-2">
         <div aria-hidden className="h-11 w-11" />
         <div className="min-w-0 text-center">
           <div className="inline-flex flex-col items-center">
@@ -90,7 +90,7 @@ export const LumiaStudioHeader: React.FC<LumiaStudioHeaderProps> = ({
           aria-label={settingsAriaLabel}
           className={cn(settingsButtonClass, 'justify-self-end self-start')}
         >
-          <Settings className="h-[13px] w-[13px]" strokeWidth={1.7} aria-hidden />
+          <Settings className="h-[12px] w-[12px]" strokeWidth={1.7} aria-hidden />
         </button>
       </div>
     </header>
