@@ -68,6 +68,21 @@ const ZODIAC_ORDER = [
   'Pisces',
 ] as const;
 
+const ZODIAC_SYMBOLS: Record<(typeof ZODIAC_ORDER)[number], string> = {
+  Aries: '♈',
+  Taurus: '♉',
+  Gemini: '♊',
+  Cancer: '♋',
+  Leo: '♌',
+  Virgo: '♍',
+  Libra: '♎',
+  Scorpio: '♏',
+  Sagittarius: '♐',
+  Capricorn: '♑',
+  Aquarius: '♒',
+  Pisces: '♓',
+};
+
 const ZODIAC_SHORT_LABELS: Record<Language, Record<(typeof ZODIAC_ORDER)[number], string>> = {
   ru: {
     Aries: 'Овен',
@@ -342,7 +357,7 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
 
     return (
       <div className="space-y-4 pb-3">
-        <div className="space-y-2 text-center">
+        <div className="space-y-1 text-center">
           <p className="text-[14px] tracking-[0.04em] text-text-main/76">
             {titleGlyphs.map((glyph, index) => (
               <motion.span
@@ -352,7 +367,7 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                   shouldReduceMotion || glyph === ' '
                     ? undefined
                     : {
-                        y: [0, -2.6, 0],
+                        y: [0, -2.4, 0],
                         opacity: [0.76, 1, 0.76],
                       }
                 }
@@ -363,8 +378,8 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                         duration: 0.86,
                         ease: [0.22, 1, 0.36, 1],
                         repeat: Infinity,
-                        repeatDelay: 42,
-                        delay: 3.2 + index * 0.045,
+                        repeatDelay: 46,
+                        delay: 4 + index * 0.05,
                       }
                 }
               >
@@ -372,53 +387,6 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
               </motion.span>
             ))}
           </p>
-          <motion.p
-            animate={
-              shouldReduceMotion
-                ? undefined
-                : {
-                    opacity: [0.72, 1, 0.82, 1],
-                    x: [0, 1.4, 0],
-                    letterSpacing: ['0.08em', '0.11em', '0.08em'],
-                  }
-            }
-            transition={
-              shouldReduceMotion
-                ? undefined
-                : {
-                    duration: 9.2,
-                    ease: 'easeInOut',
-                    repeat: Infinity,
-                    repeatDelay: 6.5,
-                  }
-            }
-            className="hidden text-[12px] tracking-[0.08em] text-text-muted/80"
-          >
-            Твоя натальная карта
-          </motion.p>
-
-          <motion.div
-            animate={
-              shouldReduceMotion
-                ? undefined
-                : {
-                    x: [0, 14, 0],
-                    opacity: [0.36, 0.95, 0.42],
-                  }
-            }
-            transition={
-              shouldReduceMotion
-                ? undefined
-                : {
-                    duration: 8.8,
-                    ease: 'easeInOut',
-                    repeat: Infinity,
-                    repeatDelay: 6,
-                  }
-            }
-            className="mx-auto h-px w-24 rounded-full bg-gradient-to-r from-[#c9c1b7]/0 via-[#c9c1b7] to-[#c9c1b7]/0"
-            aria-hidden
-          />
         </div>
 
         <div className="relative pt-1">
@@ -532,9 +500,9 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                       textAnchor="middle"
                       dominantBaseline="middle"
                       fill="rgba(125,119,109,0.78)"
-                      style={{ fontSize: 8.9, letterSpacing: '0.08em', fontWeight: 600 }}
+                      style={{ fontSize: 12.1, letterSpacing: '0.02em', fontWeight: 600 }}
                     >
-                      {getShortSignLabel(language, sign)}
+                      {ZODIAC_SYMBOLS[sign]}
                     </text>
                   </g>
                 );
@@ -596,7 +564,7 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                 const anchorPoint = polarPoint(placement.longitude, PLANET_BASE_RADIUS, wheelRotation);
                 const markerPoint = polarPoint(placement.longitude, placement.orbitRadius, wheelRotation);
                 const isPrimary = PRIMARY_KEYS.includes(placement.key);
-                const markerCode = placement.markerCode[language];
+                const markerGlyph = placement.key === 'rising' ? 'ASC' : placement.symbol;
 
                 return (
                   <motion.g
@@ -641,12 +609,12 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                       dominantBaseline="middle"
                       fill={isPrimary ? 'rgba(255,255,255,0.98)' : '#1f1f1f'}
                       style={{
-                        fontSize: markerCode.length > 2 ? (isPrimary ? 7.4 : 6.4) : isPrimary ? 8.6 : 7.1,
+                        fontSize: markerGlyph.length > 2 ? (isPrimary ? 6.9 : 6.1) : isPrimary ? 12 : 10.1,
                         fontWeight: 700,
-                        letterSpacing: markerCode.length > 2 ? '0.03em' : '0.01em',
+                        letterSpacing: markerGlyph.length > 2 ? '0.03em' : '0.01em',
                       }}
                     >
-                      {markerCode}
+                      {markerGlyph}
                     </text>
                   </motion.g>
                 );
@@ -719,8 +687,8 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
         <div className="grid grid-cols-3 gap-3">
           {primaryPlacements.map((placement) => (
             <div key={`primary-${placement.key}`} className="min-w-0 text-center">
-              <span className="mx-auto flex h-8 w-8 items-center justify-center rounded-full bg-[#f4eee6] text-[10px] font-semibold tracking-[0.02em] text-[#1f1f1f]">
-                {placement.markerCode[language]}
+              <span className="mx-auto flex h-8 w-8 items-center justify-center rounded-full bg-[#f4eee6] text-[16px] font-semibold text-[#1f1f1f]">
+                {placement.key === 'rising' ? 'ASC' : placement.symbol}
               </span>
               <span className="mt-1 block text-[9px] uppercase tracking-[0.16em] text-text-muted/82">
                 {placement.label[language]}
@@ -742,8 +710,8 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
           >
             {secondaryPlacements.map((placement) => (
               <div key={`secondary-${placement.key}`} className="min-w-0 text-center">
-                <span className="mx-auto flex h-7 w-7 items-center justify-center rounded-full bg-[#f7f2eb] text-[9px] font-semibold tracking-[0.02em] text-[#1f1f1f]">
-                  {placement.markerCode[language]}
+                <span className="mx-auto flex h-7 w-7 items-center justify-center rounded-full bg-[#f7f2eb] text-[13px] font-semibold text-[#1f1f1f]">
+                  {placement.key === 'rising' ? 'ASC' : placement.symbol}
                 </span>
                 <span className="mt-1 block truncate text-[8px] uppercase tracking-[0.14em] text-text-muted/78">
                   {placement.label[language]}

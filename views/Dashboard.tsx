@@ -207,11 +207,6 @@ export const Dashboard = memo<DashboardProps>(
       'lumia-glass border border-black/[0.06] bg-white/78 shadow-[0_20px_40px_rgba(0,0,0,0.06)]'
     );
 
-    const secondaryCardClass = cn(
-      'rounded-[28px] p-5 sm:p-6',
-      'border border-black/[0.055] bg-white/74 shadow-[0_14px_30px_rgba(0,0,0,0.05)] backdrop-blur-xl'
-    );
-
     const panelTransition = { duration: 0.2 };
 
     const pageVariants = shouldReduceMotion
@@ -346,7 +341,7 @@ export const Dashboard = memo<DashboardProps>(
                     </div>
                   </section>
 
-                  <section className={cn(secondaryCardClass, 'space-y-3')}>
+                  <section className="space-y-3 border-t border-black/[0.05] px-1 pt-4">
                     <p className="text-[10px] uppercase tracking-wider text-text-muted">
                       {getText(language, 'dashboard.questions_label')}
                     </p>
