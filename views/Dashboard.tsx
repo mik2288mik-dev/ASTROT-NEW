@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
   ForecastDailyReading,
@@ -51,6 +51,7 @@ export const Dashboard = memo<DashboardProps>(
     const [activeTab, setActiveTab] = useState<StudioTab>('natal');
     const [dailyReading, setDailyReading] = useState<ForecastDailyReading | null>(null);
     const shouldReduceMotion = useReducedMotion();
+    const hasMountedRef = useRef(false);
 
     const language = useMemo(() => profile.language, [profile.language]);
     const langKey = useMemo(
@@ -221,8 +222,17 @@ export const Dashboard = memo<DashboardProps>(
       };
     }, [activeChartId, langKey, profile.generatedContent?.dailyHoroscope, profile.id]);
 
+    useEffect(() => {
+      hasMountedRef.current = true;
+    }, []);
+
+    const rootStyle = {
+      paddingBottom:
+        'calc(1rem + max(env(safe-area-inset-bottom, 0px), var(--tg-content-safe-area-inset-bottom, 0px)))',
+    } as const;
+
     const rootClass = cn(
-      'relative mx-auto min-h-full max-w-md lumia-tg-hub-pad lumia-pad-bottom-tg-scroll text-text-main'
+      'relative mx-auto flex h-full min-h-0 w-full max-w-md flex-col overflow-hidden lumia-tg-hub-pad text-text-main'
     );
 
     const tabShellClass = 'mb-7 border-b border-black/[0.07]';
@@ -252,18 +262,21 @@ export const Dashboard = memo<DashboardProps>(
         }
       : {
           hidden: {
-            opacity: 0.58,
-            clipPath: 'inset(0 0 100% 0)',
+            opacity: 0.42,
+            y: 28,
+            clipPath: 'inset(100% 0 0 0)',
+            filter: 'blur(10px)',
           },
           visible: {
             opacity: 1,
+            y: 0,
             clipPath: 'inset(0 0 0% 0)',
+            filter: 'blur(0px)',
             transition: {
-              duration: 0.82,
+              duration: 0.88,
               ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
               when: 'beforeChildren' as const,
-              delayChildren: 0.12,
-              staggerChildren: 0.08,
+              delayChildren: 0.1,
             },
           },
         };
@@ -277,17 +290,17 @@ export const Dashboard = memo<DashboardProps>(
           },
         }
       : {
-          hidden: { opacity: 0, y: -10 },
+          hidden: { opacity: 0, y: 18 },
           visible: {
             opacity: 1,
             y: 0,
-            transition: { duration: 0.42, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] },
+            transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] },
           },
         };
 
     if (!chartData) {
       return (
-        <motion.div initial="hidden" animate="visible" variants={pageVariants} className={rootClass}>
+        <motion.div initial="hidden" animate="visible" variants={pageVariants} className={rootClass} style={rootStyle}>
           <motion.div variants={revealItemVariants}>
             <LumiaStudioHeader
               onOpenSettings={onOpenSettings}
@@ -325,7 +338,7 @@ export const Dashboard = memo<DashboardProps>(
     ];
 
     return (
-      <motion.div initial="hidden" animate="visible" variants={pageVariants} className={rootClass}>
+      <motion.div initial="hidden" animate="visible" variants={pageVariants} className={rootClass} style={rootStyle}>
         <motion.div variants={revealItemVariants}>
           <LumiaStudioHeader
             onOpenSettings={onOpenSettings}
@@ -361,12 +374,11 @@ export const Dashboard = memo<DashboardProps>(
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
-            variants={revealItemVariants}
-            initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 12 }}
+            initial={hasMountedRef.current ? (shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 12 }) : false}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={panelTransition}
-            className="space-y-4 sm:space-y-5"
+            className="min-h-0 flex-1 space-y-4 sm:space-y-5"
           >
             {activeTab === 'natal' && (
               <>

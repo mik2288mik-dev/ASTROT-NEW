@@ -867,7 +867,7 @@ const App: React.FC = () => {
                     </div>
                 ) : (
                     // Default to Dashboard
-                    <div className="lumia-main-scroll scrollbar-hide">
+                    <div className="flex h-full min-h-0 overflow-hidden">
                         <Dashboard 
                             profile={profile} 
                             chartData={chartData}
