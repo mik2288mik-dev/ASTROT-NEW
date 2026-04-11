@@ -18,7 +18,7 @@ export const LumiaStudioHeader: React.FC<LumiaStudioHeaderProps> = ({
   const shouldReduceMotion = useReducedMotion();
   const brandLetters = ['L', 'U', 'M', 'I', 'A'];
   const settingsButtonClass =
-    'z-10 mt-5 inline-flex h-8 w-8 min-h-[32px] min-w-[32px] shrink-0 items-center justify-center rounded-full bg-white/86 text-text-main ring-1 ring-black/[0.045] shadow-[0_3px_10px_rgba(0,0,0,0.02)] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/14';
+    'z-10 mt-7 inline-flex h-8 w-8 min-h-[32px] min-w-[32px] shrink-0 items-center justify-center rounded-full bg-white/86 text-text-main ring-1 ring-black/[0.045] shadow-[0_3px_10px_rgba(0,0,0,0.02)] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/14';
 
   const taglineAnimate = shouldReduceMotion
     ? undefined

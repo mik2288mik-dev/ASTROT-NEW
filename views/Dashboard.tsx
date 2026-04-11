@@ -257,21 +257,21 @@ export const Dashboard = memo<DashboardProps>(
           hidden: { opacity: 0 },
           visible: {
             opacity: 1,
-            transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] },
+            transition: { duration: 0.32, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] },
           },
         }
       : {
           hidden: {
-            opacity: 0.35,
-            clipPath: 'inset(0 0 100% 0)',
-            filter: 'blur(7px)',
+            opacity: 0.22,
+            clipPath: 'inset(0 0 100% 0 round 0px)',
+            filter: 'blur(8px)',
           },
           visible: {
             opacity: 1,
-            clipPath: 'inset(0 0 0% 0)',
+            clipPath: 'inset(0 0 0% 0 round 0px)',
             filter: 'blur(0px)',
             transition: {
-              duration: 0.96,
+              duration: 1.28,
               ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
             },
           },
