@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
   ForecastDailyReading,
   UserProfile,
@@ -50,6 +50,7 @@ export const Dashboard = memo<DashboardProps>(
   ({ profile, chartData, activeChartId, onNavigate, onOpenSettings }) => {
     const [activeTab, setActiveTab] = useState<StudioTab>('natal');
     const [dailyReading, setDailyReading] = useState<ForecastDailyReading | null>(null);
+    const shouldReduceMotion = useReducedMotion();
 
     const language = useMemo(() => profile.language, [profile.language]);
     const langKey = useMemo(
@@ -241,15 +242,60 @@ export const Dashboard = memo<DashboardProps>(
 
     const panelTransition = { duration: 0.2 };
 
+    const pageVariants = shouldReduceMotion
+      ? {
+          hidden: { opacity: 0 },
+          visible: {
+            opacity: 1,
+            transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] },
+          },
+        }
+      : {
+          hidden: {
+            opacity: 0.58,
+            clipPath: 'inset(0 0 100% 0)',
+          },
+          visible: {
+            opacity: 1,
+            clipPath: 'inset(0 0 0% 0)',
+            transition: {
+              duration: 0.82,
+              ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
+              when: 'beforeChildren' as const,
+              delayChildren: 0.12,
+              staggerChildren: 0.08,
+            },
+          },
+        };
+
+    const revealItemVariants = shouldReduceMotion
+      ? {
+          hidden: { opacity: 0 },
+          visible: {
+            opacity: 1,
+            transition: { duration: 0.18, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] },
+          },
+        }
+      : {
+          hidden: { opacity: 0, y: -10 },
+          visible: {
+            opacity: 1,
+            y: 0,
+            transition: { duration: 0.42, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] },
+          },
+        };
+
     if (!chartData) {
       return (
-        <div className={rootClass}>
-          <LumiaStudioHeader
-            onOpenSettings={onOpenSettings}
-            settingsAriaLabel={getText(language, 'nav.settings')}
-          />
+        <motion.div initial="hidden" animate="visible" variants={pageVariants} className={rootClass}>
+          <motion.div variants={revealItemVariants}>
+            <LumiaStudioHeader
+              onOpenSettings={onOpenSettings}
+              settingsAriaLabel={getText(language, 'nav.settings')}
+            />
+          </motion.div>
 
-          <section className={cn(cardClass, 'space-y-4 text-center')}>
+          <motion.section variants={revealItemVariants} className={cn(cardClass, 'space-y-4 text-center')}>
             <p className="font-medium text-text-main">{getText(language, 'dashboard.chart_load_failed_title')}</p>
             <p className="text-sm leading-relaxed text-text-muted">
               {getText(language, 'dashboard.chart_load_failed_body')}
@@ -267,8 +313,8 @@ export const Dashboard = memo<DashboardProps>(
                 {getText(language, 'dashboard.chart_load_open_chart')}
               </LumiaButton>
             </div>
-          </section>
-        </div>
+          </motion.section>
+        </motion.div>
       );
     }
 
@@ -279,13 +325,15 @@ export const Dashboard = memo<DashboardProps>(
     ];
 
     return (
-      <div className={rootClass}>
-        <LumiaStudioHeader
-          onOpenSettings={onOpenSettings}
-          settingsAriaLabel={getText(language, 'nav.settings')}
-        />
+      <motion.div initial="hidden" animate="visible" variants={pageVariants} className={rootClass}>
+        <motion.div variants={revealItemVariants}>
+          <LumiaStudioHeader
+            onOpenSettings={onOpenSettings}
+            settingsAriaLabel={getText(language, 'nav.settings')}
+          />
+        </motion.div>
 
-        <div className={tabShellClass}>
+        <motion.div variants={revealItemVariants} className={tabShellClass}>
           <div className="flex items-center gap-3">
             {tabs.map((tab) => (
               <button
@@ -308,12 +356,13 @@ export const Dashboard = memo<DashboardProps>(
               </button>
             ))}
           </div>
-        </div>
+        </motion.div>
 
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
-            initial={{ opacity: 0, y: 12 }}
+            variants={revealItemVariants}
+            initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={panelTransition}
@@ -422,7 +471,7 @@ export const Dashboard = memo<DashboardProps>(
           </motion.div>
         </AnimatePresence>
 
-      </div>
+      </motion.div>
     );
   }
 );
