@@ -11,9 +11,8 @@ import { formatLumiaDate, getMoscowTodayKey } from '../lib/date-utils';
 import { getCachedDailyForecastLayer, mapLegacyHoroscopeToForecastDailyReading } from '../services/astrologyService';
 import { LumiaStudioHeader } from '../components/lumia-ui/LumiaStudioHeader';
 import { LumiaButton } from '../components/lumia-ui/LumiaButton';
+import { TrueNatalWheelHero } from '../components/Dashboard/TrueNatalWheelHero';
 import { cn } from '../lib/cn';
-import { coerceNatalAnchorReading } from '../lib/natalReadings';
-import { stripRedundantIntroGreeting } from '../lib/strip-intro-greeting';
 
 type DashboardView = Extract<ViewState, 'chart' | 'horoscope' | 'synastry' | 'oracle'>;
 type StudioTab = 'natal' | 'compatibility' | 'horoscope';
@@ -139,43 +138,6 @@ export const Dashboard = memo<DashboardProps>(
     const questionsSupport = profile.isPremium
       ? getText(profile.language, 'dashboard.questions_support_premium')
       : getText(profile.language, 'dashboard.questions_support_free');
-
-    const natalAnchorPreview = useMemo(() => {
-      if (profile.generatedContent?.natalIntro) {
-        return coerceNatalAnchorReading(profile.generatedContent.natalIntro, langKey);
-      }
-
-      const summary = cleanDashboardText(chartData?.summary);
-      if (!summary) return null;
-
-      return {
-        headline: getText(language, 'dashboard.natal_title'),
-        summary,
-        reading: summary,
-        strengths: [],
-        patterns: [],
-      };
-    }, [chartData?.summary, langKey, language, profile.generatedContent?.natalIntro]);
-
-    const natalPreviewText = useMemo(() => {
-      const rawSource =
-        String(natalAnchorPreview?.reading || '').trim() ||
-        String(natalAnchorPreview?.summary || '').trim() ||
-        String(chartData?.summary || '').trim();
-
-      if (!rawSource) return '';
-
-      const stripped = stripRedundantIntroGreeting(rawSource, profile.name);
-      const paragraphs = stripped
-        .split(/\n\s*\n/)
-        .map((part) => cleanDashboardText(part))
-        .filter(Boolean);
-
-      const firstParagraph = paragraphs[0] || cleanDashboardText(stripped);
-      const sentences = splitIntoDashboardSentences(firstParagraph);
-      const preview = sentences.slice(0, 2).join(' ') || firstParagraph;
-      return trimDashboardText(preview, 260);
-    }, [chartData?.summary, natalAnchorPreview?.reading, natalAnchorPreview?.summary, profile.name]);
 
     const handleNavigateChart = useCallback(() => onNavigate('chart'), [onNavigate]);
     const handleNavigateHoroscope = useCallback(() => onNavigate('horoscope'), [onNavigate]);
@@ -373,28 +335,12 @@ export const Dashboard = memo<DashboardProps>(
               {activeTab === 'natal' && (
                 <>
                   <section className="px-1 pt-1">
-                    <div className="mx-auto max-w-[23.5rem] space-y-5 sm:max-w-[24.5rem]">
-                      <div className="space-y-4">
-                        <p className="text-[11px] uppercase tracking-[0.18em] text-text-muted/72">
-                          {getText(language, 'dashboard.natal_preview_label')}
-                        </p>
-                        <h2 className="font-serif text-[2rem] leading-[1.08] text-text-main sm:text-[2.2rem]">
-                          {getText(language, 'dashboard.natal_preview_title')}
-                        </h2>
-                        {natalPreviewText ? (
-                          <p className="text-[16px] leading-[1.82] tracking-[0.005em] text-text-main/84 sm:text-[17px] sm:leading-[1.88]">
-                            {natalPreviewText}
-                          </p>
-                        ) : null}
-                      </div>
-
-                      <LumiaButton
-                        className="min-h-[48px] w-full"
-                        variant="primary"
-                        onClick={handleNavigateChart}
-                      >
-                        {getText(language, 'dashboard.natal_preview_cta')}
-                      </LumiaButton>
+                    <div className="mx-auto max-w-[23.25rem] sm:max-w-[24rem]">
+                      <TrueNatalWheelHero
+                        chartData={chartData}
+                        language={language}
+                        onOpenChart={handleNavigateChart}
+                      />
                     </div>
                   </section>
 
