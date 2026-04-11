@@ -2,6 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: 'Noto Sans Symbols 2 Local';
+  src: url('/fonts/NotoSansSymbols2-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   /* 
     THEME: MIDNIGHT FASHION (Default Dark)
@@ -70,6 +78,10 @@ body.theme-lumia-air #__next {
 .serif,
 .font-lumia-serif {
   font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.font-astro-symbols {
+  font-family: 'Noto Sans Symbols 2 Local', 'Noto Sans Symbols 2', 'Segoe UI Symbol', sans-serif;
 }
 
 /**

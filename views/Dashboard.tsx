@@ -332,7 +332,7 @@ export const Dashboard = memo<DashboardProps>(
               {activeTab === 'natal' && (
                 <>
                   <section className="px-1 pt-1">
-                    <div className="mx-auto max-w-[24rem] sm:max-w-[24.75rem]">
+                    <div className="mx-auto max-w-[25.5rem] sm:max-w-[26rem]">
                       <TrueNatalWheelHero
                         chartData={chartData}
                         language={language}
@@ -341,7 +341,7 @@ export const Dashboard = memo<DashboardProps>(
                     </div>
                   </section>
 
-                  <section className="space-y-3 border-t border-black/[0.05] px-1 pt-4">
+                  <section className="space-y-3 px-1 pt-3">
                     <p className="text-[10px] uppercase tracking-wider text-text-muted">
                       {getText(language, 'dashboard.questions_label')}
                     </p>

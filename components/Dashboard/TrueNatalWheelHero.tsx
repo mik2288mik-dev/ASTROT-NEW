@@ -51,7 +51,10 @@ const SIGN_RADIUS = 119;
 const PLANET_BASE_RADIUS = 94;
 const HOUSE_RADIUS = 88;
 const ASPECT_RADIUS = 63;
+const HOUSE_LABEL_RADIUS = 56;
 const PRIMARY_KEYS: PlacementKey[] = ['sun', 'moon', 'rising'];
+const ASTRO_FONT_STACK = '"Noto Sans Symbols 2 Local","Noto Sans Symbols 2","Segoe UI Symbol",sans-serif';
+const ORBIT_LANES = [12, -10, 22, -20, 31, -29] as const;
 
 const ZODIAC_ORDER = [
   'Aries',
@@ -188,6 +191,12 @@ const angularGap = (from: number, to: number): number => {
   return delta > 180 ? 360 - delta : delta;
 };
 
+const midpointLongitude = (start: number, end: number): number => {
+  const normalizedStart = normalizeDegrees(start);
+  const span = normalizeDegrees(end - normalizedStart);
+  return normalizeDegrees(normalizedStart + span / 2);
+};
+
 const normalizeAspectKey = (value: string): PlacementKey | null => {
   const key = value.trim().toLowerCase();
   if (key === 'ascendant' || key === 'asc' || key === 'rising') return 'rising';
@@ -245,6 +254,18 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
       }));
     }, [chartData.houses, chartData.rising]);
 
+    const houseLabels = useMemo(
+      () =>
+        houseCusps.map((house, index) => {
+          const nextHouse = houseCusps[(index + 1) % houseCusps.length];
+          return {
+            house: house.house,
+            longitude: midpointLongitude(house.longitude, nextHouse.longitude),
+          };
+        }),
+      [houseCusps]
+    );
+
     const placements = useMemo<PlacementEntry[]>(() => {
       const source = PLACEMENT_SPECS.map((item) => ({
         ...item,
@@ -286,19 +307,20 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
 
       const sorted = [...source].sort((left, right) => left.longitude - right.longitude);
       const adjusted: PlacementEntry[] = [];
+      let clusterLane = 0;
 
-      sorted.forEach((entry) => {
-        const previous = adjusted[adjusted.length - 1];
-        let orbitRadius = PRIMARY_KEYS.includes(entry.key) ? PLANET_BASE_RADIUS + 2 : PLANET_BASE_RADIUS - 2;
+      sorted.forEach((entry, index) => {
+        const previous = sorted[index - 1];
+        const inSameCluster = previous ? angularGap(entry.longitude, previous.longitude) < 11.5 : false;
 
-        if (previous) {
-          const gap = angularGap(entry.longitude, previous.longitude);
-          if (gap < 12) orbitRadius = previous.orbitRadius - 12;
-          if (gap < 8) orbitRadius = previous.orbitRadius - 18;
-          if (gap < 5) orbitRadius = previous.orbitRadius - 24;
-        }
+        clusterLane = inSameCluster ? clusterLane + 1 : 0;
 
-        if (orbitRadius < 64) orbitRadius = PLANET_BASE_RADIUS + 10;
+        const laneOffset = ORBIT_LANES[clusterLane % ORBIT_LANES.length];
+        const orbitRadius = Math.max(
+          64,
+          PLANET_BASE_RADIUS + laneOffset + (PRIMARY_KEYS.includes(entry.key) ? 2 : 0)
+        );
+
         adjusted.push({ ...entry, orbitRadius });
       });
 
@@ -343,7 +365,7 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
         })
         .filter(Boolean)
         .sort((left, right) => (left?.orb ?? 0) - (right?.orb ?? 0))
-        .slice(0, 2) as Array<{
+        .slice(0, 1) as Array<{
         type: NatalAspectData['type'];
         orb: number;
         from: PlacementEntry;
@@ -391,10 +413,10 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
 
         <div className="relative pt-1">
           <div
-            className="pointer-events-none absolute left-1/2 top-[9rem] h-[19.6rem] w-[19.6rem] -translate-x-1/2 -translate-y-1/2 rounded-full"
+            className="pointer-events-none absolute left-1/2 top-[9.5rem] h-[21rem] w-[21rem] -translate-x-1/2 -translate-y-1/2 rounded-full"
             style={{
               background:
-                'radial-gradient(circle at center, rgba(245,240,232,0.96) 0%, rgba(252,248,242,0.82) 42%, rgba(255,255,255,0) 76%)',
+                'radial-gradient(circle at center, rgba(246,241,234,0.98) 0%, rgba(251,247,242,0.92) 44%, rgba(255,255,255,0) 78%)',
             }}
             aria-hidden
           />
@@ -403,14 +425,14 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
             initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 18, scale: 0.985 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={wheelTransition}
-            className="relative mx-auto h-[19rem] w-[19rem]"
+            className="relative mx-auto h-[20.25rem] w-[20.25rem]"
           >
             <button
               type="button"
               onClick={() => setIsInfoOpen((current) => !current)}
               aria-expanded={isInfoOpen}
               aria-label={language === 'ru' ? 'О расчёте карты' : 'About this chart'}
-              className="absolute right-2 top-3 z-20 inline-flex h-6 w-6 items-center justify-center rounded-full border border-black/[0.08] bg-white/82 text-[11px] font-medium text-text-main/72 transition-colors hover:border-black/[0.14] hover:text-text-main"
+              className="absolute right-[0.8rem] top-[0.95rem] z-20 inline-flex h-6 w-6 items-center justify-center rounded-full border border-black/[0.07] bg-white/92 text-[11px] font-medium text-text-main/72 shadow-[0_6px_16px_rgba(0,0,0,0.03)] transition-colors hover:border-black/[0.14] hover:text-text-main"
             >
               i
             </button>
@@ -456,6 +478,23 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                 animate={shouldReduceMotion ? undefined : { pathLength: 1, opacity: 1 }}
                 transition={{ ...wheelTransition, delay: shouldReduceMotion ? 0 : 0.08 }}
               />
+              <circle
+                cx={CENTER}
+                cy={CENTER}
+                r={PLANET_BASE_RADIUS + 10}
+                fill="none"
+                stroke="rgba(166,152,129,0.08)"
+                strokeWidth="0.8"
+              />
+              <circle
+                cx={CENTER}
+                cy={CENTER}
+                r={PLANET_BASE_RADIUS - 16}
+                fill="none"
+                stroke="rgba(31,31,31,0.045)"
+                strokeWidth="0.75"
+                strokeDasharray="1.6 5.8"
+              />
 
               {Array.from({ length: 72 }, (_, index) => {
                 const longitude = index * 5;
@@ -499,8 +538,13 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                       y={labelPoint.y}
                       textAnchor="middle"
                       dominantBaseline="middle"
-                      fill="rgba(125,119,109,0.78)"
-                      style={{ fontSize: 12.1, letterSpacing: '0.02em', fontWeight: 600 }}
+                      fill="rgba(136,127,115,0.9)"
+                      style={{
+                        fontFamily: ASTRO_FONT_STACK,
+                        fontSize: 13.2,
+                        letterSpacing: '0',
+                        fontWeight: 400,
+                      }}
                     >
                       {ZODIAC_SYMBOLS[sign]}
                     </text>
@@ -524,6 +568,24 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                       strokeWidth={emphatic ? 1 : 0.68}
                     />
                   </g>
+                );
+              })}
+
+              {houseLabels.map((house) => {
+                const labelPoint = polarPoint(house.longitude, HOUSE_LABEL_RADIUS, wheelRotation);
+
+                return (
+                  <text
+                    key={`house-label-${house.house}`}
+                    x={labelPoint.x}
+                    y={labelPoint.y}
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    fill="rgba(31,31,31,0.34)"
+                    style={{ fontSize: 7.4, fontWeight: 500, letterSpacing: '0.02em' }}
+                  >
+                    {house.house}
+                  </text>
                 );
               })}
 
@@ -589,17 +651,17 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                     <circle
                       cx={markerPoint.x}
                       cy={markerPoint.y}
-                      r={isPrimary ? 13.6 : 11.4}
-                      fill={isPrimary ? '#1f1f1f' : 'rgba(244,239,232,0.96)'}
-                      stroke={isPrimary ? 'rgba(31,31,31,0.06)' : 'rgba(166,152,129,0.28)'}
-                      strokeWidth="1"
+                      r={isPrimary ? 15 : 12.4}
+                      fill={isPrimary ? 'rgba(255,252,248,0.99)' : 'rgba(252,249,244,0.99)'}
+                      stroke={isPrimary ? 'rgba(107,92,68,0.22)' : 'rgba(176,158,131,0.26)'}
+                      strokeWidth="0.95"
                     />
                     {!isPrimary ? (
                       <circle
                         cx={markerPoint.x}
                         cy={markerPoint.y}
-                        r="7.3"
-                        fill="rgba(255,255,255,0.88)"
+                        r="8"
+                        fill="rgba(247,240,230,0.94)"
                       />
                     ) : null}
                     <text
@@ -607,11 +669,12 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                       y={markerPoint.y}
                       textAnchor="middle"
                       dominantBaseline="middle"
-                      fill={isPrimary ? 'rgba(255,255,255,0.98)' : '#1f1f1f'}
+                      fill="rgba(44,39,33,0.96)"
                       style={{
-                        fontSize: markerGlyph.length > 2 ? (isPrimary ? 6.9 : 6.1) : isPrimary ? 12 : 10.1,
-                        fontWeight: 700,
-                        letterSpacing: markerGlyph.length > 2 ? '0.03em' : '0.01em',
+                        fontFamily: ASTRO_FONT_STACK,
+                        fontSize: markerGlyph.length > 2 ? (isPrimary ? 6.7 : 5.9) : isPrimary ? 12.9 : 10.7,
+                        fontWeight: 400,
+                        letterSpacing: markerGlyph.length > 2 ? '0.03em' : '0',
                       }}
                     >
                       {markerGlyph}
@@ -684,16 +747,25 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
           </AnimatePresence>
         </div>
 
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-x-3 gap-y-4 px-1">
           {primaryPlacements.map((placement) => (
-            <div key={`primary-${placement.key}`} className="min-w-0 text-center">
-              <span className="mx-auto flex h-8 w-8 items-center justify-center rounded-full bg-[#f4eee6] text-[16px] font-semibold text-[#1f1f1f]">
+            <div key={`primary-${placement.key}`} className="min-h-[5.6rem] min-w-0 text-center">
+              <span
+                className="mx-auto flex h-10 w-10 items-center justify-center rounded-full border border-[rgba(156,140,113,0.14)] bg-[rgba(247,241,233,0.92)] text-[#1f1f1f]"
+                style={{
+                  fontFamily: ASTRO_FONT_STACK,
+                  fontSize: placement.key === 'rising' ? '11px' : '17px',
+                  boxShadow: '0 8px 20px rgba(0,0,0,0.025)',
+                }}
+              >
                 {placement.key === 'rising' ? 'ASC' : placement.symbol}
               </span>
-              <span className="mt-1 block text-[9px] uppercase tracking-[0.16em] text-text-muted/82">
+              <span className="mt-1.5 block text-[9px] uppercase tracking-[0.16em] text-text-muted/82">
                 {placement.label[language]}
               </span>
-              <span className="mt-1 block text-[13px] leading-[1.18] text-text-main">{placement.signLabel}</span>
+              <span className="mt-1 block min-h-[2rem] text-[13px] font-medium leading-[1.15] text-text-main">
+                {placement.signLabel}
+              </span>
               {placement.degreeLabel ? (
                 <span className="mt-0.5 block text-[10px] leading-none text-text-muted/78">
                   {placement.degreeLabel}
@@ -704,19 +776,25 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
         </div>
 
         {secondaryPlacements.length ? (
-          <div
-            className="grid gap-x-2 gap-y-3"
-            style={{ gridTemplateColumns: `repeat(${Math.min(5, secondaryPlacements.length)}, minmax(0, 1fr))` }}
-          >
+          <div className="flex flex-wrap items-start justify-center gap-x-5 gap-y-4 px-2 pt-0.5">
             {secondaryPlacements.map((placement) => (
-              <div key={`secondary-${placement.key}`} className="min-w-0 text-center">
-                <span className="mx-auto flex h-7 w-7 items-center justify-center rounded-full bg-[#f7f2eb] text-[13px] font-semibold text-[#1f1f1f]">
+              <div
+                key={`secondary-${placement.key}`}
+                className="min-h-[4.95rem] min-w-[4.15rem] max-w-[4.5rem] flex-1 basis-[4.15rem] text-center"
+              >
+                <span
+                  className="mx-auto flex h-8 w-8 items-center justify-center rounded-full border border-[rgba(156,140,113,0.12)] bg-[rgba(248,243,236,0.94)] text-[#1f1f1f]"
+                  style={{
+                    fontFamily: ASTRO_FONT_STACK,
+                    fontSize: placement.key === 'rising' ? '9px' : '13px',
+                  }}
+                >
                   {placement.key === 'rising' ? 'ASC' : placement.symbol}
                 </span>
-                <span className="mt-1 block truncate text-[8px] uppercase tracking-[0.14em] text-text-muted/78">
+                <span className="mt-1 block text-[8px] uppercase tracking-[0.14em] text-text-muted/78">
                   {placement.label[language]}
                 </span>
-                <span className="mt-1 block truncate text-[11px] leading-none text-text-main">
+                <span className="mt-1 block min-h-[1.65rem] text-[11px] font-medium leading-tight text-text-main">
                   {placement.shortSignLabel}
                 </span>
                 {placement.degreeLabel ? (
@@ -732,32 +810,6 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
         <LumiaButton className="min-h-[48px] w-full" variant="primary" onClick={onOpenChart}>
           {getText(language, 'dashboard.natal_preview_cta')}
         </LumiaButton>
-
-        <div className="hidden relative min-h-[1.6rem] pt-0.5">
-          <button
-            type="button"
-            onClick={() => setIsInfoOpen((current) => !current)}
-            aria-expanded={isInfoOpen}
-            aria-label={language === 'ru' ? 'О расчёте карты' : 'About this chart'}
-            className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-black/[0.08] text-[10px] font-medium text-text-main/72 transition-colors hover:border-black/[0.14] hover:text-text-main"
-          >
-            i
-          </button>
-
-          <AnimatePresence initial={false}>
-            {isInfoOpen ? (
-              <motion.p
-                initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 4 }}
-                transition={{ duration: shouldReduceMotion ? 0.18 : 0.28, ease: [0.22, 1, 0.36, 1] }}
-                className="max-w-[22.5rem] pt-2 text-[11px] leading-[1.6] text-text-main/76"
-              >
-                {getInfoText(language)}
-              </motion.p>
-            ) : null}
-          </AnimatePresence>
-        </div>
       </div>
     );
   }
