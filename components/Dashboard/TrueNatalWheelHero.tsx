@@ -205,6 +205,8 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
   ({ chartData, language, onOpenChart }) => {
     const shouldReduceMotion = useReducedMotion();
     const [isInfoOpen, setIsInfoOpen] = useState(false);
+    const titleText = language === 'ru' ? 'Твоя натальная карта' : 'Your natal chart';
+    const titleGlyphs = useMemo(() => Array.from(titleText), [titleText]);
 
     const wheelRotation = useMemo(() => {
       const risingLongitude = resolveLongitude(chartData.rising);
@@ -340,7 +342,36 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
 
     return (
       <div className="space-y-4 pb-3">
-        <div className="space-y-2">
+        <div className="space-y-2 text-center">
+          <p className="text-[14px] tracking-[0.04em] text-text-main/76">
+            {titleGlyphs.map((glyph, index) => (
+              <motion.span
+                key={`title-${glyph}-${index}`}
+                className="inline-block"
+                animate={
+                  shouldReduceMotion || glyph === ' '
+                    ? undefined
+                    : {
+                        y: [0, -2.6, 0],
+                        opacity: [0.76, 1, 0.76],
+                      }
+                }
+                transition={
+                  shouldReduceMotion || glyph === ' '
+                    ? undefined
+                    : {
+                        duration: 0.86,
+                        ease: [0.22, 1, 0.36, 1],
+                        repeat: Infinity,
+                        repeatDelay: 42,
+                        delay: 3.2 + index * 0.045,
+                      }
+                }
+              >
+                {glyph === ' ' ? '\u00A0' : glyph}
+              </motion.span>
+            ))}
+          </p>
           <motion.p
             animate={
               shouldReduceMotion
@@ -361,7 +392,7 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                     repeatDelay: 6.5,
                   }
             }
-            className="text-[12px] tracking-[0.08em] text-text-muted/80"
+            className="hidden text-[12px] tracking-[0.08em] text-text-muted/80"
           >
             Твоя натальная карта
           </motion.p>
@@ -385,7 +416,7 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                     repeatDelay: 6,
                   }
             }
-            className="h-px w-16 rounded-full bg-gradient-to-r from-[#c9c1b7]/0 via-[#c9c1b7] to-[#c9c1b7]/0"
+            className="mx-auto h-px w-24 rounded-full bg-gradient-to-r from-[#c9c1b7]/0 via-[#c9c1b7] to-[#c9c1b7]/0"
             aria-hidden
           />
         </div>
@@ -406,6 +437,15 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
             transition={wheelTransition}
             className="relative mx-auto h-[19rem] w-[19rem]"
           >
+            <button
+              type="button"
+              onClick={() => setIsInfoOpen((current) => !current)}
+              aria-expanded={isInfoOpen}
+              aria-label={language === 'ru' ? 'О расчёте карты' : 'About this chart'}
+              className="absolute right-2 top-3 z-20 inline-flex h-6 w-6 items-center justify-center rounded-full border border-black/[0.08] bg-white/82 text-[11px] font-medium text-text-main/72 transition-colors hover:border-black/[0.14] hover:text-text-main"
+            >
+              i
+            </button>
             <svg viewBox={`0 0 ${VIEWBOX} ${VIEWBOX}`} className="h-full w-full overflow-visible" aria-hidden>
               <defs>
                 <radialGradient id="lumiaWheelGlow" cx="50%" cy="46%" r="58%">
@@ -660,6 +700,20 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
               })}
             </svg>
           </motion.div>
+
+          <AnimatePresence initial={false}>
+            {isInfoOpen ? (
+              <motion.p
+                initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 4 }}
+                transition={{ duration: shouldReduceMotion ? 0.18 : 0.28, ease: [0.22, 1, 0.36, 1] }}
+                className="mx-auto max-w-[18.5rem] pt-2 text-center text-[11px] leading-[1.6] text-text-main/74"
+              >
+                {getInfoText(language)}
+              </motion.p>
+            ) : null}
+          </AnimatePresence>
         </div>
 
         <div className="grid grid-cols-3 gap-3">
@@ -711,7 +765,7 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
           {getText(language, 'dashboard.natal_preview_cta')}
         </LumiaButton>
 
-        <div className="relative min-h-[1.6rem] pt-0.5">
+        <div className="hidden relative min-h-[1.6rem] pt-0.5">
           <button
             type="button"
             onClick={() => setIsInfoOpen((current) => !current)}
