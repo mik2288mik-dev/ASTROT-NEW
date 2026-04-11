@@ -262,16 +262,16 @@ export const Dashboard = memo<DashboardProps>(
         }
       : {
           hidden: {
-            opacity: 0,
-            y: 18,
-            filter: 'blur(8px)',
+            opacity: 0.35,
+            clipPath: 'inset(0 0 100% 0)',
+            filter: 'blur(7px)',
           },
           visible: {
             opacity: 1,
-            y: 0,
+            clipPath: 'inset(0 0 0% 0)',
             filter: 'blur(0px)',
             transition: {
-              duration: 0.72,
+              duration: 0.96,
               ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
             },
           },
@@ -279,32 +279,40 @@ export const Dashboard = memo<DashboardProps>(
 
     if (!chartData) {
       return (
-        <motion.div initial="hidden" animate="visible" variants={pageVariants} className={rootClass} style={rootStyle}>
-          <LumiaStudioHeader
-            onOpenSettings={onOpenSettings}
-            settingsAriaLabel={getText(language, 'nav.settings')}
-          />
+        <div className={rootClass} style={rootStyle}>
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={pageVariants}
+            className="relative flex min-h-0 flex-1 flex-col"
+            style={{ willChange: 'clip-path, opacity, filter' }}
+          >
+            <LumiaStudioHeader
+              onOpenSettings={onOpenSettings}
+              settingsAriaLabel={getText(language, 'nav.settings')}
+            />
 
-          <section className={cn(cardClass, 'space-y-4 text-center')}>
-            <p className="font-medium text-text-main">{getText(language, 'dashboard.chart_load_failed_title')}</p>
-            <p className="text-sm leading-relaxed text-text-muted">
-              {getText(language, 'dashboard.chart_load_failed_body')}
-            </p>
-            <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:justify-center">
-              <LumiaButton type="button" className="min-h-[46px] w-full sm:w-auto" onClick={() => window.location.reload()}>
-                {getText(language, 'dashboard.chart_load_retry')}
-              </LumiaButton>
-              <LumiaButton
-                type="button"
-                variant="outline"
-                className="min-h-[46px] w-full sm:w-auto"
-                onClick={() => onNavigate('chart')}
-              >
-                {getText(language, 'dashboard.chart_load_open_chart')}
-              </LumiaButton>
-            </div>
-          </section>
-        </motion.div>
+            <section className={cn(cardClass, 'space-y-4 text-center')}>
+              <p className="font-medium text-text-main">{getText(language, 'dashboard.chart_load_failed_title')}</p>
+              <p className="text-sm leading-relaxed text-text-muted">
+                {getText(language, 'dashboard.chart_load_failed_body')}
+              </p>
+              <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:justify-center">
+                <LumiaButton type="button" className="min-h-[46px] w-full sm:w-auto" onClick={() => window.location.reload()}>
+                  {getText(language, 'dashboard.chart_load_retry')}
+                </LumiaButton>
+                <LumiaButton
+                  type="button"
+                  variant="outline"
+                  className="min-h-[46px] w-full sm:w-auto"
+                  onClick={() => onNavigate('chart')}
+                >
+                  {getText(language, 'dashboard.chart_load_open_chart')}
+                </LumiaButton>
+              </div>
+            </section>
+          </motion.div>
+        </div>
       );
     }
 
@@ -315,150 +323,157 @@ export const Dashboard = memo<DashboardProps>(
     ];
 
     return (
-      <motion.div initial="hidden" animate="visible" variants={pageVariants} className={rootClass} style={rootStyle}>
-        <LumiaStudioHeader
-          onOpenSettings={onOpenSettings}
-          settingsAriaLabel={getText(language, 'nav.settings')}
-        />
+      <div className={rootClass} style={rootStyle}>
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={pageVariants}
+          className="relative flex min-h-0 flex-1 flex-col"
+          style={{ willChange: 'clip-path, opacity, filter' }}
+        >
+          <LumiaStudioHeader
+            onOpenSettings={onOpenSettings}
+            settingsAriaLabel={getText(language, 'nav.settings')}
+          />
 
-        <div className={tabShellClass}>
-          <div className="flex items-center gap-3">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id)}
-                className={cn(
-                  tabButtonClass,
-                  activeTab === tab.id ? 'border-b border-black/85' : 'border-b border-transparent'
-                )}
-              >
-                <span
+          <div className={tabShellClass}>
+            <div className="flex items-center gap-3">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
                   className={cn(
-                    'whitespace-nowrap text-center text-[12px] font-medium leading-tight tracking-[0.01em] sm:text-[13px]',
-                    activeTab === tab.id ? 'text-text-main' : 'text-text-muted'
+                    tabButtonClass,
+                    activeTab === tab.id ? 'border-b border-black/85' : 'border-b border-transparent'
                   )}
                 >
-                  {tab.label}
-                </span>
-              </button>
-            ))}
+                  <span
+                    className={cn(
+                      'whitespace-nowrap text-center text-[12px] font-medium leading-tight tracking-[0.01em] sm:text-[13px]',
+                      activeTab === tab.id ? 'text-text-main' : 'text-text-muted'
+                    )}
+                  >
+                    {tab.label}
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
 
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeTab}
-            initial={hasMountedRef.current ? (shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 12 }) : false}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={panelTransition}
-            className="min-h-0 flex-1 space-y-4 sm:space-y-5"
-          >
-            {activeTab === 'natal' && (
-              <>
-                <section className="px-1 pt-1">
-                  <div className="mx-auto max-w-[23.5rem] space-y-5 sm:max-w-[24.5rem]">
-                    <div className="space-y-4">
-                      <p className="text-[11px] uppercase tracking-[0.18em] text-text-muted/72">
-                        {getText(language, 'dashboard.natal_preview_label')}
-                      </p>
-                      <h2 className="font-serif text-[2rem] leading-[1.08] text-text-main sm:text-[2.2rem]">
-                        {getText(language, 'dashboard.natal_preview_title')}
-                      </h2>
-                      {natalPreviewText ? (
-                        <p className="text-[16px] leading-[1.82] tracking-[0.005em] text-text-main/84 sm:text-[17px] sm:leading-[1.88]">
-                          {natalPreviewText}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={hasMountedRef.current ? (shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 12 }) : false}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={panelTransition}
+              className="min-h-0 flex-1 space-y-4 sm:space-y-5"
+            >
+              {activeTab === 'natal' && (
+                <>
+                  <section className="px-1 pt-1">
+                    <div className="mx-auto max-w-[23.5rem] space-y-5 sm:max-w-[24.5rem]">
+                      <div className="space-y-4">
+                        <p className="text-[11px] uppercase tracking-[0.18em] text-text-muted/72">
+                          {getText(language, 'dashboard.natal_preview_label')}
                         </p>
-                      ) : null}
+                        <h2 className="font-serif text-[2rem] leading-[1.08] text-text-main sm:text-[2.2rem]">
+                          {getText(language, 'dashboard.natal_preview_title')}
+                        </h2>
+                        {natalPreviewText ? (
+                          <p className="text-[16px] leading-[1.82] tracking-[0.005em] text-text-main/84 sm:text-[17px] sm:leading-[1.88]">
+                            {natalPreviewText}
+                          </p>
+                        ) : null}
+                      </div>
+
+                      <LumiaButton
+                        className="min-h-[48px] w-full"
+                        variant="primary"
+                        onClick={handleNavigateChart}
+                      >
+                        {getText(language, 'dashboard.natal_preview_cta')}
+                      </LumiaButton>
                     </div>
+                  </section>
 
+                  <section className={cn(secondaryCardClass, 'space-y-3')}>
+                    <p className="text-[10px] uppercase tracking-wider text-text-muted">
+                      {getText(language, 'dashboard.questions_label')}
+                    </p>
+                    <p className="text-sm leading-relaxed text-text-main/90">{questionsSupport}</p>
                     <LumiaButton
-                      className="min-h-[48px] w-full"
+                      className="min-h-[46px] w-full"
                       variant="primary"
-                      onClick={handleNavigateChart}
+                      onClick={handleNavigateOracle}
                     >
-                      {getText(language, 'dashboard.natal_preview_cta')}
+                      {getText(language, 'dashboard.questions_cta')}
                     </LumiaButton>
-                  </div>
-                </section>
+                  </section>
+                </>
+              )}
 
-                <section className={cn(secondaryCardClass, 'space-y-3')}>
-                  <p className="text-[10px] uppercase tracking-wider text-text-muted">
-                    {getText(language, 'dashboard.questions_label')}
+              {activeTab === 'compatibility' && (
+                <section className={cn(cardClass, 'space-y-5 text-center')}>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-accent-gold">
+                    {getText(language, 'dashboard.synastry_label')}
                   </p>
-                  <p className="text-sm leading-relaxed text-text-main/90">{questionsSupport}</p>
+                  <h3 className="serif text-2xl text-text-main">{getText(language, 'dashboard.menu_synastry')}</h3>
+                  <p className="text-left text-sm leading-relaxed text-text-muted">
+                    {getText(language, 'dashboard.synastry_body')}
+                  </p>
+                  <p className="text-xs italic text-text-muted/80">{getText(language, 'dashboard.synastry_hint')}</p>
                   <LumiaButton
                     className="min-h-[46px] w-full"
                     variant="primary"
-                    onClick={handleNavigateOracle}
+                    onClick={handleNavigateSynastry}
                   >
-                    {getText(language, 'dashboard.questions_cta')}
+                    {getText(language, 'dashboard.synastry_cta')}
                   </LumiaButton>
                 </section>
-              </>
-            )}
+              )}
 
-            {activeTab === 'compatibility' && (
-              <section className={cn(cardClass, 'space-y-5 text-center')}>
-                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-accent-gold">
-                  {getText(language, 'dashboard.synastry_label')}
-                </p>
-                <h3 className="serif text-2xl text-text-main">{getText(language, 'dashboard.menu_synastry')}</h3>
-                <p className="text-left text-sm leading-relaxed text-text-muted">
-                  {getText(language, 'dashboard.synastry_body')}
-                </p>
-                <p className="text-xs italic text-text-muted/80">{getText(language, 'dashboard.synastry_hint')}</p>
-                <LumiaButton
-                  className="min-h-[46px] w-full"
-                  variant="primary"
-                  onClick={handleNavigateSynastry}
-                >
-                  {getText(language, 'dashboard.synastry_cta')}
-                </LumiaButton>
-              </section>
-            )}
-
-            {activeTab === 'horoscope' && (
-              <section className={cn(cardClass, 'space-y-6')}>
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-text-muted/70">
-                      {getText(language, 'dashboard.hero_label')}
-                    </p>
-                    <h3 className="serif mt-2 text-2xl leading-snug text-text-main">{heroHeadline}</h3>
-                  </div>
-                  {horoscopeDateLabel && (
-                    <span className="shrink-0 text-[11px] tabular-nums text-text-muted">
-                      {horoscopeDateLabel}
-                    </span>
-                  )}
-                </div>
-
-                {heroSupport && <p className="lumia-reading-body text-text-main/85">{heroSupport}</p>}
-
-                <div className="space-y-4">
-                  {todayPoints.map((item) => (
-                    <div key={item.label} className="space-y-1">
-                      <p className="text-[10px] uppercase tracking-wider text-text-muted">{item.label}</p>
-                      <p className="lumia-reading-body text-text-main/90">{item.value}</p>
+              {activeTab === 'horoscope' && (
+                <section className={cn(cardClass, 'space-y-6')}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[10px] uppercase tracking-[0.2em] text-text-muted/70">
+                        {getText(language, 'dashboard.hero_label')}
+                      </p>
+                      <h3 className="serif mt-2 text-2xl leading-snug text-text-main">{heroHeadline}</h3>
                     </div>
-                  ))}
-                </div>
+                    {horoscopeDateLabel && (
+                      <span className="shrink-0 text-[11px] tabular-nums text-text-muted">
+                        {horoscopeDateLabel}
+                      </span>
+                    )}
+                  </div>
 
-                <LumiaButton
-                  variant="outline"
-                  className="min-h-[46px] w-full"
-                  onClick={handleNavigateHoroscope}
-                >
-                  {getText(language, 'dashboard.hero_cta')}
-                </LumiaButton>
-              </section>
-            )}
-          </motion.div>
-        </AnimatePresence>
+                  {heroSupport && <p className="lumia-reading-body text-text-main/85">{heroSupport}</p>}
 
-      </motion.div>
+                  <div className="space-y-4">
+                    {todayPoints.map((item) => (
+                      <div key={item.label} className="space-y-1">
+                        <p className="text-[10px] uppercase tracking-wider text-text-muted">{item.label}</p>
+                        <p className="lumia-reading-body text-text-main/90">{item.value}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <LumiaButton
+                    variant="outline"
+                    className="min-h-[46px] w-full"
+                    onClick={handleNavigateHoroscope}
+                  >
+                    {getText(language, 'dashboard.hero_cta')}
+                  </LumiaButton>
+                </section>
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </motion.div>
+      </div>
     );
   }
 );

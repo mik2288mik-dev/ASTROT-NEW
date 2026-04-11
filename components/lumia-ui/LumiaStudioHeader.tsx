@@ -18,24 +18,24 @@ export const LumiaStudioHeader: React.FC<LumiaStudioHeaderProps> = ({
   const shouldReduceMotion = useReducedMotion();
   const brandLetters = ['L', 'U', 'M', 'I', 'A'];
   const settingsButtonClass =
-    'z-10 inline-flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-full bg-white text-text-main ring-1 ring-black/[0.08] shadow-[0_4px_14px_rgba(0,0,0,0.035)] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/18';
+    'z-10 mt-2 inline-flex h-10 w-10 min-h-[40px] min-w-[40px] shrink-0 items-center justify-center rounded-full bg-white/94 text-text-main ring-1 ring-black/[0.06] shadow-[0_4px_12px_rgba(0,0,0,0.03)] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/16';
 
   const taglineAnimate = shouldReduceMotion
     ? undefined
     : {
-        opacity: [1, 0.76, 1],
-        y: [0, -1, 0],
-        scale: [1, 1.006, 1],
+        opacity: [1, 0.94, 1, 0.97, 1],
+        x: [0, 0.35, -0.2, 0.18, 0],
+        y: [0, -0.7, 0.3, -0.45, 0],
       };
 
   const taglineTransition = shouldReduceMotion
     ? undefined
     : {
-        duration: 1.1,
-        ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
+        duration: 9.6,
+        ease: 'easeInOut' as const,
         repeat: Infinity,
-        repeatDelay: 34.4,
-        delay: 8.56,
+        repeatType: 'mirror' as const,
+        delay: 0.8,
       };
 
   return (
@@ -53,20 +53,21 @@ export const LumiaStudioHeader: React.FC<LumiaStudioHeaderProps> = ({
                     shouldReduceMotion
                       ? undefined
                       : {
-                          y: [0, -3.2, 0],
-                          opacity: [1, 0.88, 1],
-                          scale: [1, 1.018, 1],
+                          x: [0, 0.5, -0.32, 0.22, 0],
+                          y: [0, -1.05, 0.4, -0.72, 0],
+                          rotate: [0, -0.35, 0.22, -0.15, 0],
+                          opacity: [1, 0.96, 1, 0.98, 1],
                         }
                   }
                   transition={
                     shouldReduceMotion
                       ? undefined
                       : {
-                          duration: 0.52,
-                          ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
+                          duration: 10.5 + index * 0.55,
+                          ease: 'easeInOut' as const,
                           repeat: Infinity,
-                          repeatDelay: 34.8,
-                          delay: 8 + index * 0.09,
+                          repeatType: 'mirror' as const,
+                          delay: index * 0.55,
                         }
                   }
                 >
@@ -87,9 +88,9 @@ export const LumiaStudioHeader: React.FC<LumiaStudioHeaderProps> = ({
           type="button"
           onClick={onOpenSettings}
           aria-label={settingsAriaLabel}
-          className={cn(settingsButtonClass, 'justify-self-end')}
+          className={cn(settingsButtonClass, 'justify-self-end self-start')}
         >
-          <Settings className="h-[18px] w-[18px]" strokeWidth={1.8} aria-hidden />
+          <Settings className="h-[15px] w-[15px]" strokeWidth={1.75} aria-hidden />
         </button>
       </div>
     </header>
