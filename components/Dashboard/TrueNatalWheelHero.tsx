@@ -1,258 +1,323 @@
-import React, { memo, useMemo, useState } from 'react';
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { getText, getZodiacSign } from '../../constants';
+import { getZodiacSign } from '../../constants';
 import type {
   Language,
   NatalAspectData,
   NatalChartData,
   NatalHouseData,
-  PlanetPosition,
+  PlanetInsight,
+  PlanetInsightTag,
+  UserProfile,
 } from '../../types';
-import { LumiaButton } from '../lumia-ui/LumiaButton';
+import { getPlanetInsight } from '../../services/astrologyService';
+import { cn } from '../../lib/cn';
+import {
+  getPlanetDisplayName,
+  getPlanetMeta,
+  getPlanetPositionFromChart,
+  getZodiacElementStyle,
+  isPlanetInteractive,
+  normalizePlanetKey,
+  PLANET_BASE_RADIUS,
+  PLANET_COLLISION_RADII,
+  HOUSE_DOTTED_RADIUS,
+  HOUSE_RING_RADIUS,
+  INNER_CENTER_RADIUS,
+  NATAL_PLANET_ORDER,
+  OUTER_RIM_RADIUS,
+  WHEEL_CENTER,
+  WHEEL_VIEWBOX,
+  ZODIAC_GLYPHS,
+  ZODIAC_OUTER_RADIUS,
+  type NatalLayerMode,
+  type NatalPlanetKey,
+} from '../../lib/natalWheel';
+import { ZODIAC_SIGNS, type ZodiacSign } from '../../lib/zodiac-utils';
 
-type PlacementKey =
-  | 'sun'
-  | 'moon'
-  | 'mercury'
-  | 'venus'
-  | 'mars'
-  | 'jupiter'
-  | 'saturn'
-  | 'rising';
+const ASTRO_FONT_STACK =
+  '"Noto Sans Symbols 2 Local","Noto Sans Symbols 2","Segoe UI Symbol",sans-serif';
 
-type PlacementSpec = {
-  key: PlacementKey;
-  symbol: string;
-  markerCode: { ru: string; en: string };
-  label: { ru: string; en: string };
-  data: PlanetPosition | null | undefined;
-};
-
-type PlacementEntry = PlacementSpec & {
-  longitude: number;
-  orbitRadius: number;
-  signLabel: string;
-  shortSignLabel: string;
-  degreeLabel: string | null;
-};
-
-type PrimaryCalloutSlot = {
-  x: number;
-  y: number;
-  connectorX: number;
-  connectorY: number;
-  anchor: 'start' | 'middle' | 'end';
-};
-
-const VIEWBOX = 320;
-const CENTER = VIEWBOX / 2;
-const OUTER_RADIUS = 136;
-const SIGN_RADIUS = 119;
-const PLANET_BASE_RADIUS = 94;
-const HOUSE_RADIUS = 88;
-const ASPECT_RADIUS = 63;
-const HOUSE_LABEL_RADIUS = 56;
-const PRIMARY_KEYS: PlacementKey[] = ['sun', 'moon', 'rising'];
-const ASTRO_FONT_STACK = '"Noto Sans Symbols 2 Local","Noto Sans Symbols 2","Segoe UI Symbol",sans-serif';
-const ORBIT_LANES = [12, -10, 22, -20, 31, -29] as const;
-
-const ZODIAC_ORDER = [
-  'Aries',
-  'Taurus',
-  'Gemini',
-  'Cancer',
-  'Leo',
-  'Virgo',
-  'Libra',
-  'Scorpio',
-  'Sagittarius',
-  'Capricorn',
-  'Aquarius',
-  'Pisces',
-] as const;
-
-const ZODIAC_SYMBOLS: Record<(typeof ZODIAC_ORDER)[number], string> = {
-  Aries: '♈',
-  Taurus: '♉',
-  Gemini: '♊',
-  Cancer: '♋',
-  Leo: '♌',
-  Virgo: '♍',
-  Libra: '♎',
-  Scorpio: '♏',
-  Sagittarius: '♐',
-  Capricorn: '♑',
-  Aquarius: '♒',
-  Pisces: '♓',
-};
-
-const ZODIAC_SHORT_LABELS: Record<Language, Record<(typeof ZODIAC_ORDER)[number], string>> = {
-  ru: {
-    Aries: 'Овен',
-    Taurus: 'Тел',
-    Gemini: 'Бли',
-    Cancer: 'Рак',
-    Leo: 'Лев',
-    Virgo: 'Дев',
-    Libra: 'Вес',
-    Scorpio: 'Ско',
-    Sagittarius: 'Стр',
-    Capricorn: 'Коз',
-    Aquarius: 'Вод',
-    Pisces: 'Рыб',
-  },
-  en: {
-    Aries: 'Ari',
-    Taurus: 'Tau',
-    Gemini: 'Gem',
-    Cancer: 'Can',
-    Leo: 'Leo',
-    Virgo: 'Vir',
-    Libra: 'Lib',
-    Scorpio: 'Sco',
-    Sagittarius: 'Sag',
-    Capricorn: 'Cap',
-    Aquarius: 'Aqu',
-    Pisces: 'Pis',
-  },
-};
-
-const SIGN_INDEX = Object.fromEntries(ZODIAC_ORDER.map((sign, index) => [sign, index])) as Record<string, number>;
-
-const PLACEMENT_SPECS: PlacementSpec[] = [
-  { key: 'sun', symbol: '☉', markerCode: { ru: 'С', en: 'Su' }, label: { ru: 'Солнце', en: 'Sun' }, data: null },
-  { key: 'moon', symbol: '☽', markerCode: { ru: 'Л', en: 'Mo' }, label: { ru: 'Луна', en: 'Moon' }, data: null },
-  { key: 'mercury', symbol: '☿', markerCode: { ru: 'Ме', en: 'Me' }, label: { ru: 'Меркурий', en: 'Mercury' }, data: null },
-  { key: 'venus', symbol: '♀', markerCode: { ru: 'Ве', en: 'Ve' }, label: { ru: 'Венера', en: 'Venus' }, data: null },
-  { key: 'mars', symbol: '♂', markerCode: { ru: 'Ма', en: 'Ma' }, label: { ru: 'Марс', en: 'Mars' }, data: null },
-  { key: 'jupiter', symbol: '♃', markerCode: { ru: 'Юп', en: 'Ju' }, label: { ru: 'Юпитер', en: 'Jupiter' }, data: null },
-  { key: 'saturn', symbol: '♄', markerCode: { ru: 'Са', en: 'Sa' }, label: { ru: 'Сатурн', en: 'Saturn' }, data: null },
-  { key: 'rising', symbol: '↑', markerCode: { ru: 'ASC', en: 'ASC' }, label: { ru: 'ASC', en: 'ASC' }, data: null },
+const LOCKED_PLANET_RADIUS = 7;
+const HOUSE_LABEL_RADIUS = 60;
+const PLANET_TOUCH_RADIUS = 22;
+const PLANET_DEGREE_RADIUS_OFFSET = 20;
+const LEADER_LINE_TARGET_RADIUS = 100;
+const DEFAULT_PANEL_HEIGHT = 156;
+const EXPANDED_PANEL_HEIGHT = 288;
+const INTRO_TOTAL_MS = 900;
+const MAJOR_ASPECTS: NatalAspectData['type'][] = [
+  'conjunction',
+  'opposition',
+  'square',
+  'trine',
+  'sextile',
 ];
 
-const PRIMARY_CALLOUT_SLOTS: Record<PlacementKey, PrimaryCalloutSlot> = {
-  sun: { x: 44, y: 50, connectorX: 82, connectorY: 64, anchor: 'start' },
-  moon: { x: 276, y: 54, connectorX: 238, connectorY: 68, anchor: 'end' },
-  mercury: { x: 0, y: 0, connectorX: 0, connectorY: 0, anchor: 'start' },
-  venus: { x: 0, y: 0, connectorX: 0, connectorY: 0, anchor: 'start' },
-  mars: { x: 0, y: 0, connectorX: 0, connectorY: 0, anchor: 'start' },
-  jupiter: { x: 0, y: 0, connectorX: 0, connectorY: 0, anchor: 'start' },
-  saturn: { x: 0, y: 0, connectorX: 0, connectorY: 0, anchor: 'start' },
-  rising: { x: 160, y: 299, connectorX: 160, connectorY: 275, anchor: 'middle' },
+type DisplayPlanet = {
+  key: NatalPlanetKey;
+  rawLongitude: number;
+  adjustedDeg: number;
+  displayRadius: number;
+  visualRadius: number;
+  interactive: boolean;
+  locked: boolean;
+  label: string;
+  sign: string;
+  degree: number | null;
+  house: number | null;
+  retrograde: boolean;
+  lineTargetRadius: number | null;
 };
 
-const normalizeDegrees = (value: number): number => {
+type WheelAspectLine = {
+  id: string;
+  type: NatalAspectData['type'];
+  orb: number;
+  from: DisplayPlanet;
+  to: DisplayPlanet;
+};
+
+type ToastState = {
+  message: string;
+  cta?: string;
+};
+
+type TrueNatalWheelHeroProps = {
+  profile: UserProfile;
+  chartData: NatalChartData;
+  chartId?: number | null;
+  isPremium: boolean;
+  onRequestPremium: () => void;
+  shouldAnimateIntro?: boolean;
+  onIntroComplete?: () => void;
+};
+
+const toneClassMap: Record<NonNullable<PlanetInsightTag['tone']>, string> = {
+  water: 'bg-[#F5F8FF] text-[#2980B9]',
+  fire: 'bg-[#FFF5F5] text-[#C0392B]',
+  earth: 'bg-[#F5FFF7] text-[#27AE60]',
+  air: 'bg-[#FFFEF5] text-[#F39C12]',
+  neutral: 'bg-black/[0.04] text-text-muted',
+};
+
+const aspectStyles: Record<
+  NatalAspectData['type'],
+  { stroke: string; width: number; dash?: string }
+> = {
+  conjunction: { stroke: '#7B5EA7', width: 1.2 },
+  opposition: { stroke: '#E53935', width: 1 },
+  square: { stroke: '#E53935', width: 0.8 },
+  trine: { stroke: '#43A047', width: 1 },
+  sextile: { stroke: '#1E88E5', width: 0.7 },
+};
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function normalizeDegrees(value: number): number {
   const normalized = value % 360;
   return normalized < 0 ? normalized + 360 : normalized;
-};
+}
 
-const getSignBaseLongitude = (sign?: string | null): number | null => {
-  if (!sign) return null;
-  const index = SIGN_INDEX[sign];
-  if (typeof index !== 'number') return null;
-  return index * 30;
-};
+function toRadians(degree: number): number {
+  return (degree * Math.PI) / 180;
+}
 
-const getShortSignLabel = (language: Language, sign: string): string =>
-  ZODIAC_SHORT_LABELS[language][sign as keyof (typeof ZODIAC_SHORT_LABELS)[typeof language]] || sign;
-
-const resolveLongitude = (position?: PlanetPosition | null): number | null => {
-  if (!position) return null;
-  if (typeof position.longitude === 'number') {
-    return normalizeDegrees(position.longitude);
-  }
-  const signBase = getSignBaseLongitude(position.sign);
-  if (signBase === null) return null;
-  const degree = typeof position.degree === 'number' ? position.degree : 15;
-  return normalizeDegrees(signBase + (degree % 30));
-};
-
-const resolveHouseLongitude = (house: NatalHouseData): number => {
-  if (typeof house.longitude === 'number') {
-    return normalizeDegrees(house.longitude);
-  }
-  const signBase = getSignBaseLongitude(house.sign) ?? 0;
-  return normalizeDegrees(signBase + (house.degree % 30));
-};
-
-const toRadians = (degree: number): number => (degree * Math.PI) / 180;
-
-const polarPoint = (longitude: number, radius: number, rotation: number) => {
-  const angle = normalizeDegrees(longitude - rotation) - 90;
-  const radians = toRadians(angle);
+function polarPoint(degree: number, radius: number) {
+  const radians = toRadians(degree);
   return {
-    x: CENTER + Math.cos(radians) * radius,
-    y: CENTER + Math.sin(radians) * radius,
+    x: WHEEL_CENTER + Math.cos(radians) * radius,
+    y: WHEEL_CENTER + Math.sin(radians) * radius,
   };
-};
+}
 
-const angularGap = (from: number, to: number): number => {
-  const delta = Math.abs(normalizeDegrees(from - to));
-  return delta > 180 ? 360 - delta : delta;
-};
+function createRingSegmentPath(startDeg: number, endDeg: number, innerRadius: number, outerRadius: number) {
+  const outerStart = polarPoint(startDeg, outerRadius);
+  const outerEnd = polarPoint(endDeg, outerRadius);
+  const innerEnd = polarPoint(endDeg, innerRadius);
+  const innerStart = polarPoint(startDeg, innerRadius);
 
-const midpointLongitude = (start: number, end: number): number => {
+  return [
+    `M ${outerStart.x} ${outerStart.y}`,
+    `A ${outerRadius} ${outerRadius} 0 0 1 ${outerEnd.x} ${outerEnd.y}`,
+    `L ${innerEnd.x} ${innerEnd.y}`,
+    `A ${innerRadius} ${innerRadius} 0 0 0 ${innerStart.x} ${innerStart.y}`,
+    'Z',
+  ].join(' ');
+}
+
+function angularDistance(a: number, b: number) {
+  const diff = Math.abs(a - b) % 360;
+  return diff > 180 ? 360 - diff : diff;
+}
+
+function midpointDegree(start: number, end: number) {
   const normalizedStart = normalizeDegrees(start);
   const span = normalizeDegrees(end - normalizedStart);
   return normalizeDegrees(normalizedStart + span / 2);
-};
+}
 
-const normalizeAspectKey = (value: string): PlacementKey | null => {
-  const key = value.trim().toLowerCase();
-  if (key === 'ascendant' || key === 'asc' || key === 'rising') return 'rising';
-  if (
-    key === 'sun' ||
-    key === 'moon' ||
-    key === 'mercury' ||
-    key === 'venus' ||
-    key === 'mars' ||
-    key === 'jupiter' ||
-    key === 'saturn'
-  ) {
-    return key;
+function distanceBetweenTouches(first: React.Touch | Touch, second: React.Touch | Touch) {
+  const dx = first.clientX - second.clientX;
+  const dy = first.clientY - second.clientY;
+  return Math.hypot(dx, dy);
+}
+
+function resolveLongitude(position: { longitude?: number; sign?: string; degree?: number } | null | undefined) {
+  if (!position) return null;
+  if (typeof position.longitude === 'number' && Number.isFinite(position.longitude)) {
+    return normalizeDegrees(position.longitude);
   }
-  return null;
-};
+  const signIndex = ZODIAC_SIGNS.indexOf(String(position.sign || '') as ZodiacSign);
+  if (signIndex < 0) return null;
+  const degree = typeof position.degree === 'number' ? position.degree : 0;
+  return normalizeDegrees(signIndex * 30 + degree);
+}
 
-const getInfoText = (language: Language): string =>
-  language === 'ru'
-    ? 'Это твоя реальная натальная карта, рассчитанная по дате, времени и месту рождения. Положения планет, дома и Асцендент основаны на астрономических расчётах и отражают именно твои данные.'
-    : 'This is your real natal chart, calculated from your birth date, time, and place. Planet placements, houses, and the Ascendant are based on astronomical calculations and reflect your actual data.';
+function resolveHouseLongitude(house: NatalHouseData) {
+  if (typeof house.longitude === 'number' && Number.isFinite(house.longitude)) {
+    return normalizeDegrees(house.longitude);
+  }
+  const signIndex = ZODIAC_SIGNS.indexOf(String(house.sign || '') as ZodiacSign);
+  return normalizeDegrees((Math.max(signIndex, 0) * 30) + (house.degree || 0));
+}
 
-interface TrueNatalWheelHeroProps {
-  chartData: NatalChartData;
-  language: Language;
-  onOpenChart: () => void;
+function formatDegree(degree: number | null) {
+  return degree == null ? '—' : `${Math.round(degree)}°`;
+}
+
+function formatSignAndDegree(language: Language, sign: string, degree: number | null) {
+  return `${getZodiacSign(language, sign)} ${formatDegree(degree)}`;
+}
+
+function buildFallbackHouseCusps(chartData: NatalChartData): NatalHouseData[] {
+  const risingLongitude = resolveLongitude(chartData.rising) ?? 180;
+  return Array.from({ length: 12 }, (_, index) => {
+    const longitude = normalizeDegrees(risingLongitude + index * 30);
+    const signIndex = Math.floor(longitude / 30) % 12;
+    return {
+      house: index + 1,
+      sign: ZODIAC_SIGNS[signIndex],
+      degree: longitude % 30,
+      longitude,
+    };
+  });
+}
+
+function getOverviewHouseVisibility(house: number, mode: NatalLayerMode, isPremium: boolean) {
+  if (mode === 'details' && isPremium) return true;
+  return house === 1 || house === 4 || house === 7 || house === 10;
+}
+
+function getAspectOpacity(
+  focusedPlanet: NatalPlanetKey | null,
+  from: NatalPlanetKey,
+  to: NatalPlanetKey
+) {
+  if (!focusedPlanet) return 0.76;
+  return focusedPlanet === from || focusedPlanet === to ? 1 : 0.2;
+}
+
+function defaultInsightHint(language: Language) {
+  return language === 'en'
+    ? 'Tap a planet to see what it means in your chart'
+    : 'Нажми на планету, чтобы увидеть, что она значит в твоей карте';
+}
+
+function loadingInsightLabel(language: Language) {
+  return language === 'en' ? 'Preparing insight…' : 'Готовим инсайт…';
+}
+
+function errorInsightLabel(language: Language) {
+  return language === 'en'
+    ? 'The insight did not load yet. Try again.'
+    : 'Инсайт пока не загрузился. Попробуй ещё раз.';
 }
 
 export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
-  ({ chartData, language, onOpenChart }) => {
+  ({
+    profile,
+    chartData,
+    chartId,
+    isPremium,
+    onRequestPremium,
+    shouldAnimateIntro = false,
+    onIntroComplete,
+  }) => {
+    const language: Language = profile.language === 'en' ? 'en' : 'ru';
     const shouldReduceMotion = useReducedMotion();
-    const [isInfoOpen, setIsInfoOpen] = useState(false);
-    const titleText = language === 'ru' ? 'Твоя натальная карта' : 'Your natal chart';
-    const titleGlyphs = useMemo(() => Array.from(titleText), [titleText]);
+    const [layerMode, setLayerMode] = useState<NatalLayerMode>('overview');
+    const [selectedPlanet, setSelectedPlanet] = useState<NatalPlanetKey | null>(null);
+    const [insightState, setInsightState] = useState<{
+      status: 'idle' | 'loading' | 'ready' | 'error';
+      planetId: NatalPlanetKey | null;
+      content: PlanetInsight | null;
+    }>({
+      status: 'idle',
+      planetId: null,
+      content: null,
+    });
+    const [isPanelExpanded, setIsPanelExpanded] = useState(false);
+    const [toast, setToast] = useState<ToastState | null>(null);
+    const [isLockSheetOpen, setIsLockSheetOpen] = useState(false);
+    const [focusedAspectPlanet, setFocusedAspectPlanet] = useState<NatalPlanetKey | null>(null);
+    const [zoomScale, setZoomScale] = useState(1);
+    const [activeMiniTab, setActiveMiniTab] = useState<'natal' | 'transits' | 'synastry'>('natal');
 
-    const wheelRotation = useMemo(() => {
-      const risingLongitude = resolveLongitude(chartData.rising);
-      return risingLongitude !== null ? risingLongitude - 180 : 0;
-    }, [chartData.rising]);
+    const insightCacheRef = useRef<Partial<Record<NatalPlanetKey, PlanetInsight>>>({});
+    const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const panelTouchStartRef = useRef<number | null>(null);
+    const pinchStartDistanceRef = useRef<number | null>(null);
+    const pinchStartScaleRef = useRef<number>(1);
+    const isPinchingRef = useRef(false);
+    const lastTapTimestampRef = useRef(0);
+    const latestInsightRequestRef = useRef(0);
+
+    const introEnabled = shouldAnimateIntro && !shouldReduceMotion;
+
+    useEffect(() => {
+      if (!introEnabled || !onIntroComplete) return;
+      const timer = setTimeout(() => onIntroComplete(), INTRO_TOTAL_MS);
+      return () => clearTimeout(timer);
+    }, [introEnabled, onIntroComplete]);
+
+    useEffect(
+      () => () => {
+        if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+        if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+      },
+      []
+    );
+
+    const showToast = useCallback((nextToast: ToastState) => {
+      setToast(nextToast);
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+      toastTimerRef.current = setTimeout(() => setToast(null), 3200);
+    }, []);
 
     const houseCusps = useMemo(() => {
-      const houses =
-        chartData.houses && chartData.houses.length
-          ? [...chartData.houses].sort((left, right) => left.house - right.house)
-          : Array.from({ length: 12 }, (_, index) => ({
-              house: index + 1,
-              sign: ZODIAC_ORDER[index % 12],
-              degree: 0,
-              longitude: normalizeDegrees((resolveLongitude(chartData.rising) ?? 0) + index * 30),
-            }));
+      const base = Array.isArray(chartData.houses) && chartData.houses.length >= 12
+        ? [...chartData.houses].sort((left, right) => left.house - right.house)
+        : buildFallbackHouseCusps(chartData);
 
-      return houses.map((house) => ({
+      return base.map((house) => ({
         house: house.house,
-        longitude: resolveHouseLongitude(house),
+        rawLongitude: resolveHouseLongitude(house),
       }));
-    }, [chartData.houses, chartData.rising]);
+    }, [chartData]);
+
+    const ascDegree = useMemo(() => resolveLongitude(chartData.rising) ?? 180, [chartData.rising]);
+    const rotationOffset = useMemo(() => normalizeDegrees(ascDegree - 180), [ascDegree]);
 
     const houseLabels = useMemo(
       () =>
@@ -260,556 +325,758 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
           const nextHouse = houseCusps[(index + 1) % houseCusps.length];
           return {
             house: house.house,
-            longitude: midpointLongitude(house.longitude, nextHouse.longitude),
+            adjustedDeg: midpointDegree(
+              normalizeDegrees(house.rawLongitude - rotationOffset),
+              normalizeDegrees(nextHouse.rawLongitude - rotationOffset)
+            ),
           };
         }),
-      [houseCusps]
+      [houseCusps, rotationOffset]
     );
 
-    const placements = useMemo<PlacementEntry[]>(() => {
-      const source = PLACEMENT_SPECS.map((item) => ({
-        ...item,
-        data:
-          item.key === 'sun'
-            ? chartData.sun
-            : item.key === 'moon'
-              ? chartData.moon
-              : item.key === 'mercury'
-                ? chartData.mercury
-                : item.key === 'venus'
-                  ? chartData.venus
-                  : item.key === 'mars'
-                    ? chartData.mars
-                    : item.key === 'jupiter'
-                      ? chartData.jupiter
-                      : item.key === 'saturn'
-                        ? chartData.saturn
-                        : chartData.rising,
-      }))
-        .map((item) => {
-          const longitude = resolveLongitude(item.data);
-          if (longitude === null || !item.data?.sign) return null;
-          const signLabel = getZodiacSign(language, item.data.sign);
-          const roundedDegree =
-            typeof item.data.degree === 'number' && Number.isFinite(item.data.degree)
-              ? Math.round(item.data.degree)
+    const displayPlanets = useMemo<DisplayPlanet[]>(() => {
+      const base = NATAL_PLANET_ORDER.map((planetKey) => {
+        const position = getPlanetPositionFromChart(chartData, planetKey);
+        const rawLongitude = resolveLongitude(position);
+        if (rawLongitude == null || !position) return null;
+
+        const interactive = isPlanetInteractive(planetKey, layerMode, isPremium);
+        const house =
+          typeof position.house === 'number'
+            ? position.house
+            : typeof position.house === 'string' && position.house.trim()
+              ? Number(position.house)
               : null;
-          return {
-            ...item,
-            longitude,
-            orbitRadius: PLANET_BASE_RADIUS,
-            signLabel,
-            shortSignLabel: getShortSignLabel(language, item.data.sign),
-            degreeLabel: roundedDegree !== null ? `${roundedDegree}°` : null,
-          };
-        })
-        .filter(Boolean) as PlacementEntry[];
 
-      const sorted = [...source].sort((left, right) => left.longitude - right.longitude);
-      const adjusted: PlacementEntry[] = [];
-      let clusterLane = 0;
+        return {
+          key: planetKey,
+          rawLongitude,
+          adjustedDeg: normalizeDegrees(rawLongitude - rotationOffset),
+          displayRadius: PLANET_BASE_RADIUS,
+          visualRadius: interactive ? getPlanetMeta(planetKey).radius : LOCKED_PLANET_RADIUS,
+          interactive,
+          locked: !interactive,
+          label: getPlanetDisplayName(planetKey, language),
+          sign: position.sign,
+          degree: typeof position.degree === 'number' && Number.isFinite(position.degree) ? position.degree : null,
+          house: Number.isFinite(house) ? house : null,
+          retrograde: !!position.retrograde,
+          lineTargetRadius: null,
+        } satisfies DisplayPlanet;
+      }).filter(Boolean) as DisplayPlanet[];
 
-      sorted.forEach((entry, index) => {
-        const previous = sorted[index - 1];
-        const inSameCluster = previous ? angularGap(entry.longitude, previous.longitude) < 11.5 : false;
+      const resolved: DisplayPlanet[] = [];
+      [...base]
+        .sort((left, right) => left.adjustedDeg - right.adjustedDeg)
+        .forEach((planet) => {
+          let radiusIndex = 0;
+          while (
+            radiusIndex < PLANET_COLLISION_RADII.length - 1 &&
+            resolved.some(
+              (previous) =>
+                previous.displayRadius === PLANET_COLLISION_RADII[radiusIndex] &&
+                angularDistance(previous.adjustedDeg, planet.adjustedDeg) < 7
+            )
+          ) {
+            radiusIndex += 1;
+          }
 
-        clusterLane = inSameCluster ? clusterLane + 1 : 0;
+          const displayRadius = PLANET_COLLISION_RADII[radiusIndex];
+          resolved.push({
+            ...planet,
+            displayRadius,
+            lineTargetRadius: displayRadius !== PLANET_BASE_RADIUS ? LEADER_LINE_TARGET_RADIUS : null,
+          });
+        });
 
-        const laneOffset = ORBIT_LANES[clusterLane % ORBIT_LANES.length];
-        const orbitRadius = Math.max(
-          64,
-          PLANET_BASE_RADIUS + laneOffset + (PRIMARY_KEYS.includes(entry.key) ? 2 : 0)
-        );
+      return resolved.sort(
+        (left, right) => getPlanetMeta(left.key).order - getPlanetMeta(right.key).order
+      );
+    }, [chartData, isPremium, language, layerMode, rotationOffset]);
 
-        adjusted.push({ ...entry, orbitRadius });
-      });
-
-      const byKey = new Map(adjusted.map((entry) => [entry.key, entry]));
-      return source.map((entry) => byKey.get(entry.key) ?? entry);
-    }, [chartData, language]);
-
-    const placementMap = useMemo(
-      () => new Map<PlacementKey, PlacementEntry>(placements.map((item) => [item.key, item])),
-      [placements]
+    const displayPlanetMap = useMemo(
+      () => new Map(displayPlanets.map((planet) => [planet.key, planet])),
+      [displayPlanets]
     );
 
-    const primaryPlacements = useMemo(
-      () => PRIMARY_KEYS.map((key) => placementMap.get(key)).filter(Boolean) as PlacementEntry[],
-      [placementMap]
-    );
+    const aspectLines = useMemo<WheelAspectLine[]>(() => {
+      if (layerMode !== 'details' || !isPremium || !Array.isArray(chartData.aspects)) {
+        return [];
+      }
 
-    const secondaryPlacements = useMemo(
-      () => placements.filter((placement) => !PRIMARY_KEYS.includes(placement.key)),
-      [placements]
-    );
-
-    const aspectLines = useMemo(() => {
-      const rawAspects = Array.isArray(chartData.aspects) ? chartData.aspects : [];
-
-      return rawAspects
-        .map((aspect: NatalAspectData) => {
-          const fromKey = normalizeAspectKey(aspect.from);
-          const toKey = normalizeAspectKey(aspect.to);
+      return chartData.aspects
+        .filter((aspect) => MAJOR_ASPECTS.includes(aspect.type))
+        .map((aspect) => {
+          const fromKey = normalizePlanetKey(aspect.from);
+          const toKey = normalizePlanetKey(aspect.to);
           if (!fromKey || !toKey || fromKey === toKey) return null;
 
-          const from = placementMap.get(fromKey);
-          const to = placementMap.get(toKey);
+          const from = displayPlanetMap.get(fromKey);
+          const to = displayPlanetMap.get(toKey);
           if (!from || !to) return null;
 
           return {
+            id: `${fromKey}-${toKey}-${aspect.type}`,
             type: aspect.type,
             orb: aspect.orb,
             from,
             to,
           };
         })
-        .filter(Boolean)
-        .sort((left, right) => (left?.orb ?? 0) - (right?.orb ?? 0))
-        .slice(0, 1) as Array<{
-        type: NatalAspectData['type'];
-        orb: number;
-        from: PlacementEntry;
-        to: PlacementEntry;
-      }>;
-    }, [chartData.aspects, placementMap]);
+        .filter(Boolean) as WheelAspectLine[];
+    }, [chartData.aspects, displayPlanetMap, isPremium, layerMode]);
 
-    const wheelTransition = shouldReduceMotion
+    const handleLayerChange = useCallback(
+      (nextMode: NatalLayerMode) => {
+        if (nextMode === 'details' && !isPremium) {
+          setIsLockSheetOpen(true);
+          return;
+        }
+
+        setLayerMode(nextMode);
+        if (nextMode === 'overview') {
+          setActiveMiniTab('natal');
+          setFocusedAspectPlanet(null);
+        }
+      },
+      [isPremium]
+    );
+
+    const fetchInsightForPlanet = useCallback(
+      async (planetKey: NatalPlanetKey) => {
+        const cached = insightCacheRef.current[planetKey];
+        if (cached) {
+          setInsightState({ status: 'ready', planetId: planetKey, content: cached });
+          return;
+        }
+
+        if (!profile.id) {
+          setInsightState({ status: 'error', planetId: planetKey, content: null });
+          return;
+        }
+
+        const requestId = latestInsightRequestRef.current + 1;
+        latestInsightRequestRef.current = requestId;
+        setInsightState({ status: 'loading', planetId: planetKey, content: null });
+
+        try {
+          const insight = await getPlanetInsight(profile, chartData, planetKey, chartId);
+          insightCacheRef.current[planetKey] = insight;
+          if (latestInsightRequestRef.current === requestId) {
+            setInsightState({ status: 'ready', planetId: planetKey, content: insight });
+          }
+        } catch {
+          if (latestInsightRequestRef.current === requestId) {
+            setInsightState({ status: 'error', planetId: planetKey, content: null });
+          }
+        }
+      },
+      [chartData, chartId, profile]
+    );
+
+    const handlePlanetTap = useCallback(
+      (planetKey: NatalPlanetKey) => {
+        const planet = displayPlanetMap.get(planetKey);
+        if (!planet) return;
+
+        if (planet.locked) {
+          showToast({
+            message:
+              language === 'en'
+                ? `Unlock Premium to explore ${planet.label}`
+                : `Открой Premium, чтобы изучить ${planet.label}`,
+            cta: language === 'en' ? 'Open Premium' : 'Открыть Premium',
+          });
+          return;
+        }
+
+        setSelectedPlanet(planetKey);
+        setFocusedAspectPlanet(null);
+        void fetchInsightForPlanet(planetKey);
+      },
+      [displayPlanetMap, fetchInsightForPlanet, language, showToast]
+    );
+
+    const handlePlanetPressStart = useCallback((planetKey: NatalPlanetKey) => {
+      if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = setTimeout(() => {
+        setFocusedAspectPlanet(planetKey);
+      }, 440);
+    }, []);
+
+    const clearPlanetPress = useCallback(() => {
+      if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+      setFocusedAspectPlanet(null);
+    }, []);
+
+    const handleWheelTouchStart = useCallback((event: React.TouchEvent<HTMLDivElement>) => {
+      if (event.touches.length === 2) {
+        pinchStartDistanceRef.current = distanceBetweenTouches(event.touches[0], event.touches[1]);
+        pinchStartScaleRef.current = zoomScale;
+        isPinchingRef.current = true;
+      }
+    }, [zoomScale]);
+
+    const handleWheelTouchMove = useCallback((event: React.TouchEvent<HTMLDivElement>) => {
+      if (event.touches.length !== 2 || pinchStartDistanceRef.current == null) return;
+      event.preventDefault();
+      const nextDistance = distanceBetweenTouches(event.touches[0], event.touches[1]);
+      const ratio = nextDistance / pinchStartDistanceRef.current;
+      setZoomScale(clamp(pinchStartScaleRef.current * ratio, 1, 2.5));
+    }, []);
+
+    const handleWheelTouchEnd = useCallback((event: React.TouchEvent<HTMLDivElement>) => {
+      if (event.touches.length < 2) {
+        pinchStartDistanceRef.current = null;
+        pinchStartScaleRef.current = zoomScale;
+      }
+
+      if (isPinchingRef.current) {
+        if (event.touches.length === 0) {
+          isPinchingRef.current = false;
+        }
+        return;
+      }
+
+      const target = event.target as HTMLElement;
+      if (target.closest('[data-planet-touch=\"true\"]')) return;
+
+      const now = Date.now();
+      if (now - lastTapTimestampRef.current < 280) {
+        setZoomScale(1);
+        lastTapTimestampRef.current = 0;
+      } else {
+        lastTapTimestampRef.current = now;
+      }
+    }, [zoomScale]);
+
+    const handlePanelTouchStart = useCallback((event: React.TouchEvent<HTMLDivElement>) => {
+      panelTouchStartRef.current = event.touches[0]?.clientY ?? null;
+    }, []);
+
+    const handlePanelTouchEnd = useCallback((event: React.TouchEvent<HTMLDivElement>) => {
+      if (panelTouchStartRef.current == null) return;
+      const endY = event.changedTouches[0]?.clientY ?? panelTouchStartRef.current;
+      const delta = endY - panelTouchStartRef.current;
+      if (delta < -24) setIsPanelExpanded(true);
+      if (delta > 24) setIsPanelExpanded(false);
+      panelTouchStartRef.current = null;
+    }, []);
+
+    const selectedInsight = insightState.content;
+    const selectedPlanetMeta = selectedPlanet ? getPlanetMeta(selectedPlanet) : null;
+    const selectedPlanetData = selectedPlanet ? displayPlanetMap.get(selectedPlanet) || null : null;
+    const introTransition = shouldReduceMotion
       ? { duration: 0.24 }
-      : { duration: 1.08, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] };
+      : { duration: 0.34, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] };
 
     return (
-      <div className="space-y-4 pb-3">
-        <div className="space-y-1 text-center">
-          <p className="text-[14px] tracking-[0.04em] text-text-main/76">
-            {titleGlyphs.map((glyph, index) => (
-              <motion.span
-                key={`title-${glyph}-${index}`}
-                className="inline-block"
-                animate={
-                  shouldReduceMotion || glyph === ' '
-                    ? undefined
-                    : {
-                        y: [0, -2.4, 0],
-                        opacity: [0.76, 1, 0.76],
-                      }
-                }
-                transition={
-                  shouldReduceMotion || glyph === ' '
-                    ? undefined
-                    : {
-                        duration: 0.86,
-                        ease: [0.22, 1, 0.36, 1],
-                        repeat: Infinity,
-                        repeatDelay: 46,
-                        delay: 4 + index * 0.05,
-                      }
-                }
-              >
-                {glyph === ' ' ? '\u00A0' : glyph}
-              </motion.span>
-            ))}
-          </p>
+      <div className="relative flex h-full min-h-0 flex-col pb-1">
+        <div className="flex justify-center">
+          <div className="inline-flex rounded-full bg-black/[0.05] p-1 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.03)]">
+            {([
+              { id: 'overview', label: language === 'en' ? 'Overview' : 'Обзор' },
+              { id: 'details', label: language === 'en' ? 'Details 🔒' : 'Детали 🔒' },
+            ] as Array<{ id: NatalLayerMode; label: string }>).map((item) => {
+              const active = layerMode === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => handleLayerChange(item.id)}
+                  className={cn(
+                    'min-w-[7.1rem] rounded-full px-4 py-2 text-[13px] font-medium transition-all',
+                    active
+                      ? 'bg-white text-text-main shadow-[0_6px_16px_rgba(0,0,0,0.08)]'
+                      : 'text-text-muted hover:text-text-main'
+                  )}
+                >
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        <div className="relative pt-1">
-          <div
-            className="pointer-events-none absolute left-1/2 top-[9.5rem] h-[21rem] w-[21rem] -translate-x-1/2 -translate-y-1/2 rounded-full"
-            style={{
-              background:
-                'radial-gradient(circle at center, rgba(246,241,234,0.98) 0%, rgba(251,247,242,0.92) 44%, rgba(255,255,255,0) 78%)',
-            }}
-            aria-hidden
-          />
+        <div className="mt-4 flex min-h-0 flex-1 flex-col">
+          <div className="flex min-h-[15rem] flex-1 items-center justify-center">
+            <div className="relative mx-auto flex w-full max-w-[22.375rem] items-center justify-center">
+              <div
+                className="relative aspect-square w-full touch-none"
+                onTouchStart={handleWheelTouchStart}
+                onTouchMove={handleWheelTouchMove}
+                onTouchEnd={handleWheelTouchEnd}
+                onDoubleClick={() => setZoomScale(1)}
+                style={{ touchAction: 'none' }}
+              >
+                <motion.div
+                  animate={{ scale: zoomScale }}
+                  transition={shouldReduceMotion ? { duration: 0.2 } : { duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+                  className="h-full w-full"
+                  style={{ transformOrigin: '50% 50%' }}
+                >
+                  <svg viewBox={`0 0 ${WHEEL_VIEWBOX} ${WHEEL_VIEWBOX}`} className="h-full w-full overflow-visible">
+                    {ZODIAC_SIGNS.map((sign, index) => {
+                      const startRaw = index * 30;
+                      const endRaw = (index + 1) * 30;
+                      const startDeg = normalizeDegrees(startRaw - rotationOffset);
+                      const endDeg = normalizeDegrees(endRaw - rotationOffset);
+                      const midDeg = normalizeDegrees(startRaw + 15 - rotationOffset);
+                      const style = getZodiacElementStyle(sign);
+                      const glyphPoint = polarPoint(midDeg, (HOUSE_RING_RADIUS + ZODIAC_OUTER_RADIUS) / 2);
 
-          <motion.div
-            initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 18, scale: 0.985 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={wheelTransition}
-            className="relative mx-auto h-[20.25rem] w-[20.25rem]"
+                      return (
+                        <g key={sign}>
+                          <motion.path
+                            d={createRingSegmentPath(startDeg, endDeg, HOUSE_RING_RADIUS, ZODIAC_OUTER_RADIUS)}
+                            fill={style.fill}
+                            stroke={style.border}
+                            strokeWidth="0.5"
+                            initial={introEnabled ? { opacity: 0 } : false}
+                            animate={{ opacity: 1 }}
+                            transition={{ ...introTransition, delay: introEnabled ? 0.1 : 0 }}
+                          />
+                          <motion.text
+                            x={glyphPoint.x}
+                            y={glyphPoint.y}
+                            textAnchor="middle"
+                            dominantBaseline="middle"
+                            fill={style.text}
+                            style={{ fontFamily: ASTRO_FONT_STACK, fontSize: 10 }}
+                            initial={introEnabled ? { opacity: 0 } : false}
+                            animate={{ opacity: 1 }}
+                            transition={{ ...introTransition, delay: introEnabled ? 0.12 : 0 }}
+                          >
+                            {ZODIAC_GLYPHS[sign as ZodiacSign]}
+                          </motion.text>
+                        </g>
+                      );
+                    })}
+
+                    {ZODIAC_SIGNS.map((_, index) => {
+                      const degree = normalizeDegrees(index * 30 - rotationOffset);
+                      const inner = polarPoint(degree, HOUSE_RING_RADIUS);
+                      const outer = polarPoint(degree, ZODIAC_OUTER_RADIUS);
+                      return (
+                        <line
+                          key={`separator-${index}`}
+                          x1={inner.x}
+                          y1={inner.y}
+                          x2={outer.x}
+                          y2={outer.y}
+                          stroke="#E5E5EA"
+                          strokeWidth="0.5"
+                        />
+                      );
+                    })}
+
+                    <motion.circle
+                      cx={WHEEL_CENTER}
+                      cy={WHEEL_CENTER}
+                      r={OUTER_RIM_RADIUS}
+                      fill="none"
+                      stroke="#E5E5EA"
+                      strokeWidth="1"
+                      initial={introEnabled ? { opacity: 0 } : false}
+                      animate={{ opacity: 1 }}
+                      transition={introTransition}
+                    />
+                    <circle
+                      cx={WHEEL_CENTER}
+                      cy={WHEEL_CENTER}
+                      r={HOUSE_RING_RADIUS}
+                      fill="none"
+                      stroke="#E5E5EA"
+                      strokeWidth="0.5"
+                    />
+
+                    {houseCusps.map((house, index) => {
+                      const adjustedDeg = normalizeDegrees(house.rawLongitude - rotationOffset);
+                      const from = polarPoint(adjustedDeg, INNER_CENTER_RADIUS);
+                      const to = polarPoint(adjustedDeg, HOUSE_RING_RADIUS);
+                      const emphatic = house.house === 1 || house.house === 4 || house.house === 7 || house.house === 10;
+
+                      return (
+                        <motion.line
+                          key={`house-line-${house.house}-${index}`}
+                          x1={from.x}
+                          y1={from.y}
+                          x2={to.x}
+                          y2={to.y}
+                          stroke={emphatic ? '#BDBDBD' : '#E5E5EA'}
+                          strokeWidth={emphatic ? 1 : 0.5}
+                          initial={introEnabled ? { pathLength: 0, opacity: 0.1 } : false}
+                          animate={{ pathLength: 1, opacity: 1 }}
+                          transition={{ ...introTransition, delay: introEnabled ? 0.25 : 0 }}
+                        />
+                      );
+                    })}
+
+                    {houseLabels
+                      .filter((house) => getOverviewHouseVisibility(house.house, layerMode, isPremium))
+                      .map((house) => {
+                        const point = polarPoint(house.adjustedDeg, HOUSE_LABEL_RADIUS);
+                        return (
+                          <text
+                            key={`house-label-${house.house}`}
+                            x={point.x}
+                            y={point.y}
+                            textAnchor="middle"
+                            dominantBaseline="middle"
+                            fill="#BDBDBD"
+                            style={{ fontSize: 8, fontWeight: 500 }}
+                          >
+                            {house.house}
+                          </text>
+                        );
+                      })}
+
+                    <circle
+                      cx={WHEEL_CENTER}
+                      cy={WHEEL_CENTER}
+                      r={HOUSE_DOTTED_RADIUS}
+                      fill="none"
+                      stroke="#E5E5EA"
+                      strokeWidth="0.8"
+                      strokeDasharray="2 2"
+                    />
+                    <circle cx={WHEEL_CENTER} cy={WHEEL_CENTER} r={INNER_CENTER_RADIUS} fill="white" />
+
+                    {aspectLines.map((aspect) => {
+                      const style = aspectStyles[aspect.type];
+                      const from = polarPoint(aspect.from.adjustedDeg, aspect.from.displayRadius);
+                      const to = polarPoint(aspect.to.adjustedDeg, aspect.to.displayRadius);
+                      const opacity = getAspectOpacity(focusedAspectPlanet, aspect.from.key, aspect.to.key);
+                      return (
+                        <motion.line
+                          key={aspect.id}
+                          x1={from.x}
+                          y1={from.y}
+                          x2={to.x}
+                          y2={to.y}
+                          stroke={style.stroke}
+                          strokeWidth={style.width + (aspect.orb < 1 ? 0.3 : 0)}
+                          strokeDasharray={style.dash}
+                          initial={introEnabled ? { opacity: 0 } : false}
+                          animate={{ opacity }}
+                          transition={{ ...introTransition, delay: introEnabled ? 0.7 : 0 }}
+                        />
+                      );
+                    })}
+
+                    {displayPlanets.map((planet) => {
+                      if (planet.lineTargetRadius == null) return null;
+                      const from = polarPoint(planet.adjustedDeg, planet.displayRadius + planet.visualRadius);
+                      const to = polarPoint(planet.adjustedDeg, planet.lineTargetRadius);
+                      return (
+                        <line
+                          key={`leader-${planet.key}`}
+                          x1={from.x}
+                          y1={from.y}
+                          x2={to.x}
+                          y2={to.y}
+                          stroke="#E5E5EA"
+                          strokeWidth="0.8"
+                          strokeDasharray="2 2"
+                        />
+                      );
+                    })}
+
+                    {displayPlanets.map((planet, index) => {
+                      const meta = getPlanetMeta(planet.key);
+                      const point = polarPoint(planet.adjustedDeg, planet.displayRadius);
+                      const active = selectedPlanet === planet.key;
+                      const chipStroke = planet.locked ? '#E0E0E0' : meta.color;
+                      const glyphColor = planet.locked ? '#BDBDBD' : meta.color;
+                      return (
+                        <g key={planet.key}>
+                          <motion.circle
+                            cx={point.x}
+                            cy={point.y}
+                            r={planet.visualRadius}
+                            fill="white"
+                            stroke={chipStroke}
+                            strokeWidth={planet.locked ? 1 : 1.5}
+                            style={{ filter: 'drop-shadow(0 1px 4px rgba(0,0,0,0.10))' }}
+                            initial={introEnabled ? { opacity: 0, scale: 0.84 } : false}
+                            animate={{ opacity: 1, scale: active ? 1.03 : 1 }}
+                            transition={{
+                              duration: 0.26,
+                              ease: [0.22, 1, 0.36, 1],
+                              delay: introEnabled ? 0.4 + index * 0.06 : 0,
+                            }}
+                          />
+                          <text
+                            x={point.x}
+                            y={point.y}
+                            textAnchor="middle"
+                            dominantBaseline="middle"
+                            fill={glyphColor}
+                            style={{ fontFamily: ASTRO_FONT_STACK, fontSize: planet.visualRadius * 1.08, fontWeight: 500 }}
+                          >
+                            {meta.glyph}
+                          </text>
+                          {planet.retrograde && (
+                            <>
+                              <circle
+                                cx={point.x + planet.visualRadius - 1}
+                                cy={point.y - planet.visualRadius + 1}
+                                r={4}
+                                fill="white"
+                                stroke="#F6D9D8"
+                                strokeWidth="0.6"
+                              />
+                              <text
+                                x={point.x + planet.visualRadius - 1}
+                                y={point.y - planet.visualRadius + 1}
+                                textAnchor="middle"
+                                dominantBaseline="middle"
+                                fill="#E53935"
+                                style={{ fontSize: 6, fontWeight: 700 }}
+                              >
+                                R
+                              </text>
+                            </>
+                          )}
+                          {zoomScale > 1.5 && planet.degree != null && (
+                            <text
+                              x={polarPoint(planet.adjustedDeg, planet.displayRadius + PLANET_DEGREE_RADIUS_OFFSET).x}
+                              y={polarPoint(planet.adjustedDeg, planet.displayRadius + PLANET_DEGREE_RADIUS_OFFSET).y}
+                              textAnchor="middle"
+                              dominantBaseline="middle"
+                              fill="#6E6E73"
+                              style={{ fontSize: 7.5, fontWeight: 500 }}
+                            >
+                              {formatDegree(planet.degree)}
+                            </text>
+                          )}
+                          <circle
+                            cx={point.x}
+                            cy={point.y}
+                            r={PLANET_TOUCH_RADIUS}
+                            fill="transparent"
+                            data-planet-touch="true"
+                            onPointerDown={() => handlePlanetPressStart(planet.key)}
+                            onPointerUp={clearPlanetPress}
+                            onPointerLeave={clearPlanetPress}
+                            onPointerCancel={clearPlanetPress}
+                            onClick={() => handlePlanetTap(planet.key)}
+                            style={{ cursor: 'pointer' }}
+                          />
+                        </g>
+                      );
+                    })}
+                  </svg>
+                </motion.div>
+              </div>
+            </div>
+          </div>
+
+          {layerMode === 'details' && isPremium && (
+            <div className="mt-2 flex justify-center">
+              <div className="inline-flex gap-2 rounded-full bg-black/[0.04] px-1.5 py-1">
+                {([
+                  { id: 'natal', label: language === 'en' ? 'Natal' : 'Натальная', locked: false },
+                  { id: 'transits', label: language === 'en' ? 'Transits' : 'Транзиты', locked: true },
+                  { id: 'synastry', label: language === 'en' ? 'Synastry' : 'Синастрия', locked: true },
+                ] as const).map((tab) => {
+                  const active = activeMiniTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => {
+                        if (tab.locked) {
+                          showToast({
+                            message:
+                              language === 'en'
+                                ? `${tab.label} will appear here later`
+                                : `${tab.label} появятся здесь позже`,
+                          });
+                          return;
+                        }
+                        setActiveMiniTab(tab.id);
+                      }}
+                      className={cn(
+                        'rounded-full px-3 py-1.5 text-[11px] font-medium transition-all',
+                        active ? 'bg-white text-text-main shadow-[0_4px_10px_rgba(0,0,0,0.06)]' : 'text-text-muted'
+                      )}
+                    >
+                      {tab.label}
+                      {tab.locked ? ' 🔒' : ''}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <div
+            className="mt-4 overflow-hidden rounded-t-[20px] bg-white shadow-[0_-2px_12px_rgba(0,0,0,0.06)]"
+            style={{ height: isPanelExpanded ? EXPANDED_PANEL_HEIGHT : DEFAULT_PANEL_HEIGHT }}
+            onTouchStart={handlePanelTouchStart}
+            onTouchEnd={handlePanelTouchEnd}
           >
             <button
               type="button"
-              onClick={() => setIsInfoOpen((current) => !current)}
-              aria-expanded={isInfoOpen}
-              aria-label={language === 'ru' ? 'О расчёте карты' : 'About this chart'}
-              className="absolute right-[0.8rem] top-[0.95rem] z-20 inline-flex h-6 w-6 items-center justify-center rounded-full border border-black/[0.07] bg-white/92 text-[11px] font-medium text-text-main/72 shadow-[0_6px_16px_rgba(0,0,0,0.03)] transition-colors hover:border-black/[0.14] hover:text-text-main"
+              onClick={() => setIsPanelExpanded((current) => !current)}
+              className="flex w-full items-center justify-center px-5 pb-2 pt-3"
             >
-              i
+              <span className="h-1.5 w-10 rounded-full bg-black/[0.08]" />
+              <span className="sr-only">{language === 'en' ? 'Expand insight' : 'Развернуть инсайт'}</span>
             </button>
-            <svg viewBox={`0 0 ${VIEWBOX} ${VIEWBOX}`} className="h-full w-full overflow-visible" aria-hidden>
-              <defs>
-                <radialGradient id="lumiaWheelGlow" cx="50%" cy="46%" r="58%">
-                  <stop offset="0%" stopColor="rgba(255,255,255,0.98)" />
-                  <stop offset="64%" stopColor="rgba(252,249,245,0.92)" />
-                  <stop offset="100%" stopColor="rgba(248,244,238,0.82)" />
-                </radialGradient>
-              </defs>
 
-              <motion.circle
-                cx={CENTER}
-                cy={CENTER}
-                r={OUTER_RADIUS}
-                fill="url(#lumiaWheelGlow)"
-                stroke="rgba(31,31,31,0.1)"
-                strokeWidth="1.1"
-                initial={shouldReduceMotion ? false : { pathLength: 0, opacity: 0.16 }}
-                animate={shouldReduceMotion ? undefined : { pathLength: 1, opacity: 1 }}
-                transition={wheelTransition}
-              />
-              <motion.circle
-                cx={CENTER}
-                cy={CENTER}
-                r={115}
-                fill="rgba(255,255,255,0.78)"
-                stroke="rgba(31,31,31,0.06)"
-                strokeWidth="1"
-                initial={shouldReduceMotion ? false : { pathLength: 0, opacity: 0.12 }}
-                animate={shouldReduceMotion ? undefined : { pathLength: 1, opacity: 1 }}
-                transition={{ ...wheelTransition, delay: shouldReduceMotion ? 0 : 0.04 }}
-              />
-              <motion.circle
-                cx={CENTER}
-                cy={CENTER}
-                r={HOUSE_RADIUS}
-                fill="rgba(253,251,248,0.94)"
-                stroke="rgba(31,31,31,0.07)"
-                strokeWidth="1"
-                initial={shouldReduceMotion ? false : { pathLength: 0, opacity: 0.12 }}
-                animate={shouldReduceMotion ? undefined : { pathLength: 1, opacity: 1 }}
-                transition={{ ...wheelTransition, delay: shouldReduceMotion ? 0 : 0.08 }}
-              />
-              <circle
-                cx={CENTER}
-                cy={CENTER}
-                r={PLANET_BASE_RADIUS + 10}
-                fill="none"
-                stroke="rgba(166,152,129,0.08)"
-                strokeWidth="0.8"
-              />
-              <circle
-                cx={CENTER}
-                cy={CENTER}
-                r={PLANET_BASE_RADIUS - 16}
-                fill="none"
-                stroke="rgba(31,31,31,0.045)"
-                strokeWidth="0.75"
-                strokeDasharray="1.6 5.8"
-              />
+            <div className="flex h-[calc(100%-2rem)] flex-col px-5 pb-5">
+              {insightState.status === 'idle' || !selectedPlanet || !selectedPlanetMeta || !selectedPlanetData ? (
+                <div className="flex h-full flex-col items-center justify-center text-center">
+                  <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-full bg-black/[0.04] text-lg text-text-muted">☞</div>
+                  <p className="max-w-[15.5rem] text-[14px] leading-relaxed text-text-muted">{defaultInsightHint(language)}</p>
+                </div>
+              ) : insightState.status === 'loading' ? (
+                <div className="flex h-full flex-col justify-center">
+                  <div className="flex items-center gap-3">
+                    <div className="inline-flex h-9 w-9 items-center justify-center rounded-full border" style={{ borderColor: selectedPlanetMeta.color, color: selectedPlanetMeta.color }}>
+                      <span style={{ fontFamily: ASTRO_FONT_STACK }}>{selectedPlanetMeta.glyph}</span>
+                    </div>
+                    <div>
+                      <p className="text-[17px] font-medium text-text-main">{selectedPlanetData.label}</p>
+                      <p className="text-[13px] text-[#7B5EA7]">{formatSignAndDegree(language, selectedPlanetData.sign, selectedPlanetData.degree)}</p>
+                    </div>
+                  </div>
+                  <p className="mt-5 text-[14px] leading-relaxed text-text-muted">{loadingInsightLabel(language)}</p>
+                </div>
+              ) : insightState.status === 'error' || !selectedInsight ? (
+                <div className="flex h-full flex-col justify-center">
+                  <div className="flex items-center gap-3">
+                    <div className="inline-flex h-9 w-9 items-center justify-center rounded-full border" style={{ borderColor: selectedPlanetMeta.color, color: selectedPlanetMeta.color }}>
+                      <span style={{ fontFamily: ASTRO_FONT_STACK }}>{selectedPlanetMeta.glyph}</span>
+                    </div>
+                    <div>
+                      <p className="text-[17px] font-medium text-text-main">{selectedPlanetData.label}</p>
+                      <p className="text-[13px] text-[#7B5EA7]">{formatSignAndDegree(language, selectedPlanetData.sign, selectedPlanetData.degree)}</p>
+                    </div>
+                  </div>
+                  <p className="mt-5 text-[14px] leading-relaxed text-text-muted">{errorInsightLabel(language)}</p>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-start gap-3">
+                    <div className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border bg-white" style={{ borderColor: selectedPlanetMeta.color, color: selectedPlanetMeta.color }}>
+                      <span style={{ fontFamily: ASTRO_FONT_STACK, fontSize: 18 }}>{selectedPlanetMeta.glyph}</span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-[17px] font-medium text-text-main">{selectedInsight.title}</p>
+                          <p className="text-[13px] text-[#7B5EA7]">{formatSignAndDegree(language, selectedInsight.sign, selectedInsight.degree)}</p>
+                          <p className="mt-1 text-[12px] text-[#AEAEB2]">
+                            {selectedInsight.house ? (language === 'en' ? `House ${selectedInsight.house}` : `${selectedInsight.house} дом`) : (language === 'en' ? 'House is hidden' : 'Дом скрыт')}
+                          </p>
+                        </div>
+                        <button type="button" onClick={() => setIsPanelExpanded((current) => !current)} className="shrink-0 text-[15px] text-text-muted">
+                          {isPanelExpanded ? '↘' : '↗'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
 
-              {Array.from({ length: 72 }, (_, index) => {
-                const longitude = index * 5;
-                const outer = polarPoint(longitude, OUTER_RADIUS, wheelRotation);
-                const inner = polarPoint(
-                  longitude,
-                  index % 6 === 0 ? OUTER_RADIUS - 10 : OUTER_RADIUS - 5,
-                  wheelRotation
-                );
-
-                return (
-                  <line
-                    key={`tick-${index}`}
-                    x1={inner.x}
-                    y1={inner.y}
-                    x2={outer.x}
-                    y2={outer.y}
-                    stroke="rgba(31,31,31,0.1)"
-                    strokeWidth={index % 6 === 0 ? 0.95 : 0.55}
-                  />
-                );
-              })}
-
-              {ZODIAC_ORDER.map((sign, index) => {
-                const separator = polarPoint(index * 30, OUTER_RADIUS - 14, wheelRotation);
-                const separatorOuter = polarPoint(index * 30, OUTER_RADIUS, wheelRotation);
-                const labelPoint = polarPoint(index * 30 + 15, SIGN_RADIUS, wheelRotation);
-
-                return (
-                  <g key={sign}>
-                    <line
-                      x1={separator.x}
-                      y1={separator.y}
-                      x2={separatorOuter.x}
-                      y2={separatorOuter.y}
-                      stroke="rgba(31,31,31,0.14)"
-                      strokeWidth="0.9"
-                    />
-                    <text
-                      x={labelPoint.x}
-                      y={labelPoint.y}
-                      textAnchor="middle"
-                      dominantBaseline="middle"
-                      fill="rgba(136,127,115,0.9)"
-                      style={{
-                        fontFamily: ASTRO_FONT_STACK,
-                        fontSize: 13.2,
-                        letterSpacing: '0',
-                        fontWeight: 400,
-                      }}
-                    >
-                      {ZODIAC_SYMBOLS[sign]}
-                    </text>
-                  </g>
-                );
-              })}
-
-              {houseCusps.map((house) => {
-                const outer = polarPoint(house.longitude, HOUSE_RADIUS, wheelRotation);
-                const inner = polarPoint(house.longitude, 40, wheelRotation);
-                const emphatic = house.house === 1 || house.house === 4 || house.house === 7 || house.house === 10;
-
-                return (
-                  <g key={`house-${house.house}`}>
-                    <line
-                      x1={inner.x}
-                      y1={inner.y}
-                      x2={outer.x}
-                      y2={outer.y}
-                      stroke={emphatic ? 'rgba(31,31,31,0.17)' : 'rgba(31,31,31,0.07)'}
-                      strokeWidth={emphatic ? 1 : 0.68}
-                    />
-                  </g>
-                );
-              })}
-
-              {houseLabels.map((house) => {
-                const labelPoint = polarPoint(house.longitude, HOUSE_LABEL_RADIUS, wheelRotation);
-
-                return (
-                  <text
-                    key={`house-label-${house.house}`}
-                    x={labelPoint.x}
-                    y={labelPoint.y}
-                    textAnchor="middle"
-                    dominantBaseline="middle"
-                    fill="rgba(31,31,31,0.34)"
-                    style={{ fontSize: 7.4, fontWeight: 500, letterSpacing: '0.02em' }}
-                  >
-                    {house.house}
-                  </text>
-                );
-              })}
-
-              {aspectLines.map((aspect, index) => {
-                const fromPoint = polarPoint(aspect.from.longitude, ASPECT_RADIUS, wheelRotation);
-                const toPoint = polarPoint(aspect.to.longitude, ASPECT_RADIUS, wheelRotation);
-                const opacity =
-                  aspect.type === 'opposition'
-                    ? 0.12
-                    : aspect.type === 'square'
-                      ? 0.11
-                      : aspect.type === 'trine'
-                        ? 0.1
-                        : 0.08;
-
-                return (
-                  <motion.line
-                    key={`aspect-${aspect.from.key}-${aspect.to.key}-${index}`}
-                    x1={fromPoint.x}
-                    y1={fromPoint.y}
-                    x2={toPoint.x}
-                    y2={toPoint.y}
-                    stroke={`rgba(31,31,31,${opacity})`}
-                    strokeWidth="0.72"
-                    strokeDasharray={aspect.type === 'sextile' ? '2.2 3.4' : undefined}
-                    initial={shouldReduceMotion ? false : { pathLength: 0, opacity: 0 }}
-                    animate={shouldReduceMotion ? undefined : { pathLength: 1, opacity: 1 }}
-                    transition={{
-                      duration: shouldReduceMotion ? 0.18 : 0.82,
-                      delay: shouldReduceMotion ? 0 : 0.16 + index * 0.035,
-                      ease: [0.22, 1, 0.36, 1],
-                    }}
-                  />
-                );
-              })}
-
-              {placements.map((placement, index) => {
-                const anchorPoint = polarPoint(placement.longitude, PLANET_BASE_RADIUS, wheelRotation);
-                const markerPoint = polarPoint(placement.longitude, placement.orbitRadius, wheelRotation);
-                const isPrimary = PRIMARY_KEYS.includes(placement.key);
-                const markerGlyph = placement.key === 'rising' ? 'ASC' : placement.symbol;
-
-                return (
-                  <motion.g
-                    key={placement.key}
-                    initial={shouldReduceMotion ? false : { opacity: 0, scale: 0.88 }}
-                    animate={shouldReduceMotion ? undefined : { opacity: 1, scale: 1 }}
-                    transition={{
-                      duration: shouldReduceMotion ? 0.18 : 0.42,
-                      delay: shouldReduceMotion ? 0 : 0.22 + index * 0.03,
-                      ease: [0.22, 1, 0.36, 1],
-                    }}
-                  >
-                    <line
-                      x1={anchorPoint.x}
-                      y1={anchorPoint.y}
-                      x2={markerPoint.x}
-                      y2={markerPoint.y}
-                      stroke={isPrimary ? 'rgba(31,31,31,0.24)' : 'rgba(31,31,31,0.14)'}
-                      strokeWidth={isPrimary ? 1 : 0.85}
-                    />
-                    <circle cx={anchorPoint.x} cy={anchorPoint.y} r={isPrimary ? 2.4 : 2} fill="rgba(31,31,31,0.42)" />
-                    <circle
-                      cx={markerPoint.x}
-                      cy={markerPoint.y}
-                      r={isPrimary ? 15 : 12.4}
-                      fill={isPrimary ? 'rgba(255,252,248,0.99)' : 'rgba(252,249,244,0.99)'}
-                      stroke={isPrimary ? 'rgba(107,92,68,0.22)' : 'rgba(176,158,131,0.26)'}
-                      strokeWidth="0.95"
-                    />
-                    {!isPrimary ? (
-                      <circle
-                        cx={markerPoint.x}
-                        cy={markerPoint.y}
-                        r="8"
-                        fill="rgba(247,240,230,0.94)"
-                      />
-                    ) : null}
-                    <text
-                      x={markerPoint.x}
-                      y={markerPoint.y}
-                      textAnchor="middle"
-                      dominantBaseline="middle"
-                      fill="rgba(44,39,33,0.96)"
-                      style={{
-                        fontFamily: ASTRO_FONT_STACK,
-                        fontSize: markerGlyph.length > 2 ? (isPrimary ? 6.7 : 5.9) : isPrimary ? 12.9 : 10.7,
-                        fontWeight: 400,
-                        letterSpacing: markerGlyph.length > 2 ? '0.03em' : '0',
-                      }}
-                    >
-                      {markerGlyph}
-                    </text>
-                  </motion.g>
-                );
-              })}
-
-              {primaryPlacements.map((placement, index) => {
-                const slot = PRIMARY_CALLOUT_SLOTS[placement.key];
-                const markerPoint = polarPoint(placement.longitude, placement.orbitRadius, wheelRotation);
-                const textOffset =
-                  slot.anchor === 'start' ? 12 : slot.anchor === 'end' ? -12 : 0;
-
-                return (
-                  <motion.g
-                    key={`callout-${placement.key}`}
-                    initial={shouldReduceMotion ? false : { opacity: 0, y: placement.key === 'rising' ? 6 : -6 }}
-                    animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
-                    transition={{
-                      duration: shouldReduceMotion ? 0.18 : 0.48,
-                      delay: shouldReduceMotion ? 0 : 0.36 + index * 0.06,
-                      ease: [0.22, 1, 0.36, 1],
-                    }}
-                  >
-                    <path
-                      d={`M ${markerPoint.x} ${markerPoint.y} L ${slot.connectorX} ${slot.connectorY} L ${slot.x} ${slot.y}`}
-                      fill="none"
-                      stroke="rgba(31,31,31,0.16)"
-                      strokeWidth="0.95"
-                    />
-                    <circle cx={slot.connectorX} cy={slot.connectorY} r="2.3" fill="rgba(31,31,31,0.22)" />
-                    <text
-                      x={slot.x + textOffset}
-                      y={slot.y}
-                      textAnchor={slot.anchor}
-                      fill="rgba(31,31,31,0.58)"
-                      style={{ fontSize: 8.4, letterSpacing: '0.12em', fontWeight: 600 }}
-                    >
-                      {placement.label[language].toUpperCase()}
-                    </text>
-                    <text
-                      x={slot.x + textOffset}
-                      y={slot.y + 14}
-                      textAnchor={slot.anchor}
-                      fill="#1f1f1f"
-                      style={{ fontSize: 11.5, fontWeight: 600 }}
-                    >
-                      {placement.signLabel}
-                      {placement.degreeLabel ? ` ${placement.degreeLabel}` : ''}
-                    </text>
-                  </motion.g>
-                );
-              })}
-            </svg>
-          </motion.div>
-
-          <AnimatePresence initial={false}>
-            {isInfoOpen ? (
-              <motion.p
-                initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 4 }}
-                transition={{ duration: shouldReduceMotion ? 0.18 : 0.28, ease: [0.22, 1, 0.36, 1] }}
-                className="mx-auto max-w-[18.5rem] pt-2 text-center text-[11px] leading-[1.6] text-text-main/74"
-              >
-                {getInfoText(language)}
-              </motion.p>
-            ) : null}
-          </AnimatePresence>
-        </div>
-
-        <div className="grid grid-cols-3 gap-x-3 gap-y-4 px-1">
-          {primaryPlacements.map((placement) => (
-            <div key={`primary-${placement.key}`} className="min-h-[5.6rem] min-w-0 text-center">
-              <span
-                className="mx-auto flex h-10 w-10 items-center justify-center rounded-full border border-[rgba(156,140,113,0.14)] bg-[rgba(247,241,233,0.92)] text-[#1f1f1f]"
-                style={{
-                  fontFamily: ASTRO_FONT_STACK,
-                  fontSize: placement.key === 'rising' ? '11px' : '17px',
-                  boxShadow: '0 8px 20px rgba(0,0,0,0.025)',
-                }}
-              >
-                {placement.key === 'rising' ? 'ASC' : placement.symbol}
-              </span>
-              <span className="mt-1.5 block text-[9px] uppercase tracking-[0.16em] text-text-muted/82">
-                {placement.label[language]}
-              </span>
-              <span className="mt-1 block min-h-[2rem] text-[13px] font-medium leading-[1.15] text-text-main">
-                {placement.signLabel}
-              </span>
-              {placement.degreeLabel ? (
-                <span className="mt-0.5 block text-[10px] leading-none text-text-muted/78">
-                  {placement.degreeLabel}
-                </span>
-              ) : null}
+                  <div className={cn('mt-4 min-h-0', isPanelExpanded ? 'overflow-y-auto pr-1' : 'overflow-hidden')}>
+                    <p className="text-[14px] leading-[1.6] text-[#3A3A3C]">{selectedInsight.body}</p>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {selectedInsight.tags.map((tag) => (
+                        <span key={tag.id} className={cn('rounded-full px-3 py-1 text-[11px] font-medium', toneClassMap[tag.tone || 'neutral'])}>
+                          {tag.label}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
-          ))}
+          </div>
         </div>
 
-        {secondaryPlacements.length ? (
-          <div className="flex flex-wrap items-start justify-center gap-x-5 gap-y-4 px-2 pt-0.5">
-            {secondaryPlacements.map((placement) => (
-              <div
-                key={`secondary-${placement.key}`}
-                className="min-h-[4.95rem] min-w-[4.15rem] max-w-[4.5rem] flex-1 basis-[4.15rem] text-center"
-              >
-                <span
-                  className="mx-auto flex h-8 w-8 items-center justify-center rounded-full border border-[rgba(156,140,113,0.12)] bg-[rgba(248,243,236,0.94)] text-[#1f1f1f]"
-                  style={{
-                    fontFamily: ASTRO_FONT_STACK,
-                    fontSize: placement.key === 'rising' ? '9px' : '13px',
-                  }}
-                >
-                  {placement.key === 'rising' ? 'ASC' : placement.symbol}
-                </span>
-                <span className="mt-1 block text-[8px] uppercase tracking-[0.14em] text-text-muted/78">
-                  {placement.label[language]}
-                </span>
-                <span className="mt-1 block min-h-[1.65rem] text-[11px] font-medium leading-tight text-text-main">
-                  {placement.shortSignLabel}
-                </span>
-                {placement.degreeLabel ? (
-                  <span className="mt-0.5 block text-[9px] leading-none text-text-muted/72">
-                    {placement.degreeLabel}
-                  </span>
-                ) : null}
+        <AnimatePresence>
+          {toast && (
+            <motion.div
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              transition={{ duration: 0.22 }}
+              className="pointer-events-none absolute inset-x-3 bottom-[calc(156px+0.75rem)] z-30 rounded-2xl bg-white/95 px-4 py-3 shadow-[0_10px_24px_rgba(0,0,0,0.08)]"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-[13px] leading-relaxed text-text-main">{toast.message}</p>
+                {toast.cta && (
+                  <button
+                    type="button"
+                    onClick={onRequestPremium}
+                    className="pointer-events-auto shrink-0 text-[12px] font-medium text-[#7B5EA7]"
+                  >
+                    {toast.cta}
+                  </button>
+                )}
               </div>
-            ))}
-          </div>
-        ) : null}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        <LumiaButton className="min-h-[48px] w-full" variant="primary" onClick={onOpenChart}>
-          {getText(language, 'dashboard.natal_preview_cta')}
-        </LumiaButton>
+        <AnimatePresence>
+          {isLockSheetOpen && (
+            <>
+              <motion.button
+                type="button"
+                className="absolute inset-0 z-40 bg-black/20"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsLockSheetOpen(false)}
+              />
+              <motion.div
+                initial={{ y: 32, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: 24, opacity: 0 }}
+                transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+                className="absolute inset-x-3 bottom-3 z-50 rounded-[28px] bg-white px-5 pb-5 pt-4 shadow-[0_18px_40px_rgba(0,0,0,0.12)]"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.16em] text-text-muted">
+                      {language === 'en' ? 'Premium layer' : 'Премиум-слой'}
+                    </p>
+                    <h3 className="mt-2 text-[22px] font-semibold leading-tight text-text-main">
+                      {language === 'en' ? 'Details open the full chart' : 'Детали открывают полную карту'}
+                    </h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsLockSheetOpen(false)}
+                    className="text-[18px] text-text-muted"
+                    aria-label={language === 'en' ? 'Close sheet' : 'Закрыть'}
+                  >
+                    ×
+                  </button>
+                </div>
+                <p className="mt-3 text-[14px] leading-[1.6] text-text-muted">
+                  {language === 'en'
+                    ? 'Inside Details you will see all planets, major aspects, all house numbers, and deeper personal interpretations.'
+                    : 'Внутри Деталей откроются все планеты, мажорные аспекты, все номера домов и более глубокие персональные интерпретации.'}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsLockSheetOpen(false);
+                    onRequestPremium();
+                  }}
+                  className="mt-5 w-full rounded-full bg-text-main px-5 py-3 text-[14px] font-medium text-white"
+                >
+                  {language === 'en' ? 'Open Premium' : 'Открыть Premium'}
+                </button>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
       </div>
     );
   }

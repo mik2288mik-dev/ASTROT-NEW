@@ -23,6 +23,7 @@ interface DashboardProps {
   activeChartId?: number;
   onNavigate: (view: DashboardView) => void;
   onOpenSettings: () => void;
+  onRequestPremium: () => void;
 }
 
 const cleanDashboardText = (value?: string | null): string =>
@@ -46,9 +47,10 @@ const splitIntoDashboardSentences = (value: string): string[] =>
     .filter(Boolean);
 
 export const Dashboard = memo<DashboardProps>(
-  ({ profile, chartData, activeChartId, onNavigate, onOpenSettings }) => {
+  ({ profile, chartData, activeChartId, onNavigate, onOpenSettings, onRequestPremium }) => {
     const [activeTab, setActiveTab] = useState<StudioTab>('natal');
     const [dailyReading, setDailyReading] = useState<ForecastDailyReading | null>(null);
+    const [hasNatalHeroAnimated, setHasNatalHeroAnimated] = useState(false);
     const shouldReduceMotion = useReducedMotion();
     const hasMountedRef = useRef(false);
 
@@ -135,14 +137,8 @@ export const Dashboard = memo<DashboardProps>(
       [adviceLines, dailyReading?.chance, dailyReading?.focus, dailyReading?.risk, language, readingSentences]
     );
 
-    const questionsSupport = profile.isPremium
-      ? getText(profile.language, 'dashboard.questions_support_premium')
-      : getText(profile.language, 'dashboard.questions_support_free');
-
-    const handleNavigateChart = useCallback(() => onNavigate('chart'), [onNavigate]);
     const handleNavigateHoroscope = useCallback(() => onNavigate('horoscope'), [onNavigate]);
     const handleNavigateSynastry = useCallback(() => onNavigate('synastry'), [onNavigate]);
-    const handleNavigateOracle = useCallback(() => onNavigate('oracle'), [onNavigate]);
 
     useEffect(() => {
       let cancelled = false;
@@ -327,34 +323,27 @@ export const Dashboard = memo<DashboardProps>(
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={panelTransition}
-              className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain space-y-4 pr-0.5 sm:space-y-5"
+              className={cn(
+                'min-h-0 flex-1 pr-0.5',
+                activeTab === 'natal'
+                  ? 'overflow-hidden'
+                  : 'overflow-y-auto overscroll-y-contain space-y-4 sm:space-y-5'
+              )}
             >
               {activeTab === 'natal' && (
-                <>
-                  <section className="px-1 pt-1">
-                    <div className="mx-auto max-w-[25.5rem] sm:max-w-[26rem]">
+                <section className="flex h-full min-h-0 flex-col px-1 pt-1">
+                  <div className="mx-auto flex h-full min-h-0 w-full max-w-[25.5rem] flex-col sm:max-w-[26rem]">
                       <TrueNatalWheelHero
+                        profile={profile}
                         chartData={chartData}
-                        language={language}
-                        onOpenChart={handleNavigateChart}
+                        chartId={activeChartId}
+                        isPremium={profile.isPremium}
+                        onRequestPremium={onRequestPremium}
+                        shouldAnimateIntro={!hasNatalHeroAnimated}
+                        onIntroComplete={() => setHasNatalHeroAnimated(true)}
                       />
-                    </div>
-                  </section>
-
-                  <section className="space-y-3 px-1 pt-3">
-                    <p className="text-[10px] uppercase tracking-wider text-text-muted">
-                      {getText(language, 'dashboard.questions_label')}
-                    </p>
-                    <p className="text-sm leading-relaxed text-text-main/90">{questionsSupport}</p>
-                    <LumiaButton
-                      className="min-h-[46px] w-full"
-                      variant="primary"
-                      onClick={handleNavigateOracle}
-                    >
-                      {getText(language, 'dashboard.questions_cta')}
-                    </LumiaButton>
-                  </section>
-                </>
+                  </div>
+                </section>
               )}
 
               {activeTab === 'compatibility' && (

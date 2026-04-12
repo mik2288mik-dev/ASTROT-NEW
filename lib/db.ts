@@ -107,6 +107,7 @@ type DbContentSurface = 'natal' | 'forecast' | 'synastry' | 'question';
 type DbContentVariant =
   | 'anchor'
   | 'living'
+  | 'planet_insight'
   | 'daily'
   | 'morning'
   | 'day'

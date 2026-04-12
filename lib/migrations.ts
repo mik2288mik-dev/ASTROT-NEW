@@ -1001,6 +1001,40 @@ async function lumia013CanonicalNatalPersistence(pool: Pool): Promise<void> {
   log.info('Migration lumia_013_canonical_natal_persistence applied');
 }
 
+async function lumia014PlanetInsightVariant(pool: Pool): Promise<void> {
+  const migrationName = 'lumia_014_planet_insight_variant';
+
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
+  log.info('Applying planet insight content variant migration...');
+
+  await pool.query(`
+    ALTER TABLE content_interpretations
+      DROP CONSTRAINT IF EXISTS content_interpretations_variant
+  `);
+  await pool.query(`
+    ALTER TABLE content_interpretations
+      ADD CONSTRAINT content_interpretations_variant
+      CHECK (content_variant IN ('anchor', 'living', 'planet_insight', 'daily', 'morning', 'day', 'evening', 'weekly', 'monthly', 'brief', 'full', 'one_off'))
+  `);
+
+  await pool.query(`
+    ALTER TABLE content_unlocks
+      DROP CONSTRAINT IF EXISTS content_unlocks_variant
+  `);
+  await pool.query(`
+    ALTER TABLE content_unlocks
+      ADD CONSTRAINT content_unlocks_variant
+      CHECK (content_variant IN ('anchor', 'living', 'planet_insight', 'daily', 'morning', 'day', 'evening', 'weekly', 'monthly', 'brief', 'full', 'one_off'))
+  `);
+
+  await markMigrationApplied(pool, migrationName);
+  log.info('Migration lumia_014_planet_insight_variant applied');
+}
+
 async function verifyTablesExist(pool: Pool): Promise<void> {
   const required = [
     'users', 'natal_charts', 'interpretations', 'lumi_transactions', 'app_settings',
@@ -1077,6 +1111,7 @@ export async function runMigrations(): Promise<void> {
   await lumia011RemoveDashboardAirVariant(pool);
   await lumia012DailyLumiTasks(pool);
   await lumia013CanonicalNatalPersistence(pool);
+  await lumia014PlanetInsightVariant(pool);
   await verifyTablesExist(pool);
 
     log.info('All Lumia migrations completed successfully');

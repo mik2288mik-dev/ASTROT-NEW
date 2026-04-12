@@ -918,6 +918,11 @@ export interface NatalLivingAIResponse {
   guidance: string;
 }
 
+export interface PlanetInsightAIResponse {
+  title: string;
+  body: string;
+}
+
 export interface WeeklyForecastAIResponse {
   theme: string;
   advice: string;
@@ -1108,6 +1113,62 @@ Return strict JSON with these fields:
 - relationships: 2-3 sentences on how this period changes closeness, trust, or contact
 - money: 2-3 sentences on how this period affects money, work, goals, or practical direction
 - guidance: 3-4 sentences of direct orientation for the user
+
+Return only JSON.`;
+};
+
+export const createPlanetInsightPrompt = (
+  natalData: NatalChartData,
+  profile: UserProfile,
+  options: {
+    planetLabel: string;
+    planetSign: string;
+    planetDegree: number | null;
+    house: number | null;
+    anchorSummary: string;
+  }
+): string => {
+  const natalDataJson = JSON.stringify(
+    {
+      sun: natalData.sun,
+      moon: natalData.moon,
+      rising: natalData.rising,
+      target: {
+        planet: options.planetLabel,
+        sign: options.planetSign,
+        degree: options.planetDegree,
+        house: options.house,
+      },
+    },
+    null,
+    2
+  );
+  const displayName = profile.name || 'the user';
+
+  return `User: ${displayName}
+Language: ${profile.language}
+
+Core chart anchors:
+${natalDataJson}
+
+Reference summary:
+${options.anchorSummary}
+
+Task: write a short personal natal insight for one placement in Lumia's dashboard insight panel.
+
+Rules:
+- You are an astrologer-psychologist writing for a real person.
+- Explain what ${options.planetLabel} in ${options.planetSign}${options.house ? ` in house ${options.house}` : ''} means in this person's life.
+- Use warm, modern second-person language: you / your.
+- Keep it personal and concrete, with recognizable emotional or daily-life texture.
+- No mystical fluff, no fear language, no long astrology lectures.
+- No bullet lists.
+- The result should feel clear and intimate inside a compact mobile panel.
+- Keep the body to 2-3 sentences.
+
+Return strict JSON with:
+- title: a short title for this placement, max 70 chars
+- body: 2-3 sentences, compact but meaningful
 
 Return only JSON.`;
 };

@@ -1,9 +1,10 @@
-import { UserProfile, NatalChartData, DailyHoroscope, SynastryResult, UserEvolution, OracleChatResponse, OracleHistoryEntry, ForecastDailyReading, ForecastDaypartReading, ForecastDaypartSlot, ForecastMonthlyReading, ForecastWeeklyReading, NatalAnchorReading, NatalLivingReading, AskLumiaState, AskLumiaTier, ContentAccessTier } from "../types";
+import { UserProfile, NatalChartData, DailyHoroscope, SynastryResult, UserEvolution, OracleChatResponse, OracleHistoryEntry, ForecastDailyReading, ForecastDaypartReading, ForecastDaypartSlot, ForecastMonthlyReading, ForecastWeeklyReading, NatalAnchorReading, NatalLivingReading, AskLumiaState, AskLumiaTier, ContentAccessTier, PlanetInsight } from "../types";
 import { SYSTEM_INSTRUCTION_ASTRA } from "../constants";
 import { getElementForSign } from "../lib/zodiac-utils";
 import { coerceNatalAnchorReading, coerceNatalLivingReading, getCurrentNatalPeriodKey, mapNatalAnchorToLegacyIntro } from "../lib/natalReadings";
 import { isForecastLegacyFallbackEnabled } from "../lib/forecastLegacyConfig";
 import { buildForecastFullDayUnlockCacheKey } from "../lib/forecastFullDay";
+import type { NatalPlanetKey } from "../lib/natalWheel";
 
 // API base URL - используем локальные Next.js API routes
 const API_BASE_URL = typeof window !== 'undefined' ? '' : process.env.NEXT_PUBLIC_API_URL || '';
@@ -556,6 +557,60 @@ export const getCachedPremiumNatalLivingLayer = async (
   return data?.interpretation?.content
     ? coerceNatalLivingReading(data.interpretation.content, language, periodKey)
     : null;
+};
+
+export const getCachedPlanetInsight = async (
+  userId: string,
+  planetId: NatalPlanetKey,
+  language: 'ru' | 'en' = 'ru',
+  chartId?: number | null
+): Promise<PlanetInsight | null> => {
+  if (!userId) return null;
+
+  const params = new URLSearchParams({
+    userId,
+    planetId,
+    language,
+  });
+  if (chartId != null) {
+    params.set('chartId', String(chartId));
+  }
+
+  const url = `${API_BASE_URL}/api/content/natal/planet-insight?${params.toString()}`;
+  const data = await fetchContentApi<PlanetInsight>(
+    url,
+    { method: 'GET', cache: 'no-store' },
+    { notFoundAsNull: true }
+  );
+
+  return data?.interpretation?.content || null;
+};
+
+export const getPlanetInsight = async (
+  profile: UserProfile,
+  chartData: NatalChartData,
+  planetId: NatalPlanetKey,
+  chartId?: number | null
+): Promise<PlanetInsight> => {
+  const url = `${API_BASE_URL}/api/content/natal/planet-insight`;
+  const data = await fetchContentApi<PlanetInsight>(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      userId: profile.id,
+      profile,
+      chartData,
+      chartId: chartId ?? undefined,
+      planetId,
+    }),
+  });
+
+  const insight = data?.interpretation?.content;
+  if (!insight) {
+    throw buildApiError('Planet insight content is missing');
+  }
+
+  return insight;
 };
 
 /**

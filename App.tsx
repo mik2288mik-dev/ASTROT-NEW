@@ -879,6 +879,7 @@ const App: React.FC = () => {
                                 navigateTo(newView);
                             }} 
                             onOpenSettings={() => setView('settings')}
+                            onRequestPremium={() => setShowPremiumPreview(true)}
                         />
                     </div>
                 )}

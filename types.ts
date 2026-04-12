@@ -108,6 +108,10 @@ export interface NatalChartData {
   mars: PlanetPosition | null;
   jupiter?: PlanetPosition | null;
   saturn?: PlanetPosition | null;
+  uranus?: PlanetPosition | null;
+  neptune?: PlanetPosition | null;
+  pluto?: PlanetPosition | null;
+  chiron?: PlanetPosition | null;
   
   // New Personalization Fields
   element: string; // Fire, Water, Air, Earth
@@ -298,6 +302,22 @@ export interface NatalLivingReading {
   guidance: string;
 }
 
+export interface PlanetInsightTag {
+  id: string;
+  label: string;
+  tone?: 'water' | 'fire' | 'earth' | 'air' | 'neutral';
+}
+
+export interface PlanetInsight {
+  planetId: string;
+  title: string;
+  sign: string;
+  degree: number | null;
+  house: number | null;
+  body: string;
+  tags: PlanetInsightTag[];
+}
+
 export interface WeeklyHoroscope {
   weekRange: string;
   theme: string;
@@ -318,6 +338,7 @@ export type ContentSurface = 'natal' | 'forecast' | 'synastry' | 'question';
 export type ContentVariant =
   | 'anchor'
   | 'living'
+  | 'planet_insight'
   | 'daily'
   | 'morning'
   | 'day'
