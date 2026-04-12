@@ -1,0 +1,209 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 358 358" fill="none">
+  <defs>
+    <radialGradient id="pageGlow" cx="50%" cy="48%" r="54%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="58%" stop-color="#F8FBFF"/>
+      <stop offset="100%" stop-color="#EEF3FB"/>
+    </radialGradient>
+    <linearGradient id="outerRim" x1="50" y1="24" x2="304" y2="334" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#F2F6FC"/>
+    </linearGradient>
+    <linearGradient id="zodiacShell" x1="61" y1="49" x2="301" y2="309" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#173567"/>
+      <stop offset="38%" stop-color="#234A88"/>
+      <stop offset="64%" stop-color="#365B95"/>
+      <stop offset="100%" stop-color="#173567"/>
+    </linearGradient>
+    <radialGradient id="innerSky" cx="50%" cy="47%" r="62%">
+      <stop offset="0%" stop-color="#1F4D8F"/>
+      <stop offset="48%" stop-color="#193D73"/>
+      <stop offset="100%" stop-color="#102A55"/>
+    </radialGradient>
+    <radialGradient id="solarCore" cx="50%" cy="45%" r="60%">
+      <stop offset="0%" stop-color="#FFF3A7"/>
+      <stop offset="38%" stop-color="#FFD56D"/>
+      <stop offset="72%" stop-color="#FF9E3D"/>
+      <stop offset="100%" stop-color="#D95E1B"/>
+    </radialGradient>
+    <radialGradient id="pearl" cx="38%" cy="30%" r="72%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="58%" stop-color="#F7F8FC"/>
+      <stop offset="100%" stop-color="#D9E1F0"/>
+    </radialGradient>
+    <radialGradient id="shellAura" cx="50%" cy="50%" r="60%">
+      <stop offset="0%" stop-color="#74C6FF" stop-opacity="0.28"/>
+      <stop offset="52%" stop-color="#8B88FF" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#0E1B31" flood-opacity="0.12"/>
+    </filter>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="5"/>
+    </filter>
+    <style>
+      .zodiac-icon {
+        stroke: #627BA9;
+        stroke-width: 1.55;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .star {
+        fill: #FDFEFF;
+        opacity: 0.88;
+      }
+    </style>
+
+    <symbol id="icon-aries" viewBox="0 0 24 24">
+      <path class="zodiac-icon" d="M4.8 18c.8-4.8 2.8-8 7.2-8 4.4 0 6.4 3.2 7.2 8"/>
+      <path class="zodiac-icon" d="M9.4 10c-1.5-2.1-2.3-4.2-2.3-6.2"/>
+      <path class="zodiac-icon" d="M14.6 10c1.5-2.1 2.3-4.2 2.3-6.2"/>
+    </symbol>
+    <symbol id="icon-taurus" viewBox="0 0 24 24">
+      <circle class="zodiac-icon" cx="12" cy="14" r="4.6"/>
+      <path class="zodiac-icon" d="M6.6 7.8C7.8 4.7 9.6 3.4 12 3.4c2.4 0 4.2 1.3 5.4 4.4"/>
+    </symbol>
+    <symbol id="icon-gemini" viewBox="0 0 24 24">
+      <path class="zodiac-icon" d="M7 5.5h10M7 18.5h10"/>
+      <path class="zodiac-icon" d="M9 5.5c.5 3.1.5 6.7 0 13M15 5.5c-.5 3.1-.5 6.7 0 13"/>
+    </symbol>
+    <symbol id="icon-cancer" viewBox="0 0 24 24">
+      <circle class="zodiac-icon" cx="8.3" cy="9" r="2.1"/>
+      <circle class="zodiac-icon" cx="15.7" cy="15" r="2.1"/>
+      <path class="zodiac-icon" d="M6.2 9.2c0 3.7 2.9 6.5 6.4 6.5"/>
+      <path class="zodiac-icon" d="M17.8 14.8c0-3.7-2.9-6.5-6.4-6.5"/>
+    </symbol>
+    <symbol id="icon-leo" viewBox="0 0 24 24">
+      <circle class="zodiac-icon" cx="8.2" cy="9.6" r="2.2"/>
+      <path class="zodiac-icon" d="M10.5 9.4c2.9 0 5-2.2 5-4.9 0-1.1-.3-2-.9-2.8"/>
+      <path class="zodiac-icon" d="M10.4 10c3.8 0 6.6 2.7 6.6 6.2 0 1.6-.6 2.9-1.7 4"/>
+    </symbol>
+    <symbol id="icon-virgo" viewBox="0 0 24 24">
+      <path class="zodiac-icon" d="M6 18V7.1M10 18V7.1M14 18V7.1"/>
+      <path class="zodiac-icon" d="M6 11.2c.7-1 1.8-1.5 3-1.5 1.3 0 2.3.5 3 1.5.7-1 1.8-1.5 3-1.5 1.4 0 2.5.7 3.4 2.1"/>
+      <path class="zodiac-icon" d="M18.2 11.8v3.6c0 1.8-.9 3.3-2.7 4.2"/>
+    </symbol>
+    <symbol id="icon-libra" viewBox="0 0 24 24">
+      <path class="zodiac-icon" d="M4.8 16.8h14.4"/>
+      <path class="zodiac-icon" d="M7 12.7a5 5 0 0 1 10 0"/>
+      <path class="zodiac-icon" d="M4.8 14.2h14.4"/>
+    </symbol>
+    <symbol id="icon-scorpio" viewBox="0 0 24 24">
+      <path class="zodiac-icon" d="M6 18V7.1M10 18V7.1M14 18V7.1"/>
+      <path class="zodiac-icon" d="M6 11.2c.7-1 1.8-1.5 3-1.5 1.3 0 2.3.5 3 1.5.7-1 1.8-1.5 3-1.5 1.5 0 2.7.7 3.6 2.1"/>
+      <path class="zodiac-icon" d="M17.1 17.1h2.6v-2.6"/>
+      <path class="zodiac-icon" d="M16.1 18.1 19.7 14.5"/>
+    </symbol>
+    <symbol id="icon-sagittarius" viewBox="0 0 24 24">
+      <path class="zodiac-icon" d="M5.4 18.6 18.6 5.4"/>
+      <path class="zodiac-icon" d="M12.1 5.4h6.5v6.5"/>
+      <path class="zodiac-icon" d="M9.3 9.3h4.6v4.6"/>
+    </symbol>
+    <symbol id="icon-capricorn" viewBox="0 0 24 24">
+      <path class="zodiac-icon" d="M6 17.4c0-5 1.8-8 4.7-8 2.3 0 3.8 1.7 3.8 4.1 0 2.1-1.4 3.8-3.3 3.8-1.7 0-2.9-1-3.4-2.3 1 2.8 3.6 4.6 6.8 4.6 1.6 0 2.9-.4 4.1-1.3"/>
+    </symbol>
+    <symbol id="icon-aquarius" viewBox="0 0 24 24">
+      <path class="zodiac-icon" d="M5.2 9.3c1.4-1.6 2.7-2.4 4-2.4 1.7 0 2.7 1.8 4.3 1.8 1.4 0 2.6-.8 4.1-2.4"/>
+      <path class="zodiac-icon" d="M5.2 15.9c1.4-1.6 2.7-2.4 4-2.4 1.7 0 2.7 1.8 4.3 1.8 1.4 0 2.6-.8 4.1-2.4"/>
+    </symbol>
+    <symbol id="icon-pisces" viewBox="0 0 24 24">
+      <path class="zodiac-icon" d="M7.3 6.3c2 1.5 3.4 3.5 3.4 5.7s-1.4 4.2-3.4 5.7"/>
+      <path class="zodiac-icon" d="M16.7 6.3c-2 1.5-3.4 3.5-3.4 5.7s1.4 4.2 3.4 5.7"/>
+      <path class="zodiac-icon" d="M4.6 12h14.8"/>
+    </symbol>
+  </defs>
+
+  <circle cx="179" cy="179" r="164" fill="url(#pageGlow)"/>
+  <circle cx="179" cy="179" r="158" fill="url(#outerRim)" stroke="#DCE3F0" stroke-width="1.2" filter="url(#softShadow)"/>
+  <circle cx="179" cy="179" r="146.5" fill="#FFFFFF" stroke="#E8EDF6" stroke-width="0.8"/>
+  <circle cx="179" cy="179" r="143" fill="url(#zodiacShell)" stroke="#244778" stroke-width="1"/>
+  <circle cx="179" cy="179" r="118" fill="url(#innerSky)" stroke="#DCE6F7" stroke-width="0.8"/>
+  <circle cx="179" cy="179" r="142.5" fill="none" stroke="#96B3E0" stroke-opacity="0.22" stroke-width="0.8"/>
+  <circle cx="179" cy="179" r="134" fill="none" stroke="#7FA7D9" stroke-opacity="0.16" stroke-width="0.8"/>
+  <circle cx="179" cy="179" r="96" fill="none" stroke="#BAD4FF" stroke-opacity="0.18" stroke-width="0.8"/>
+  <circle cx="179" cy="179" r="82" fill="none" stroke="#BAD4FF" stroke-opacity="0.16" stroke-width="0.8"/>
+  <circle cx="179" cy="179" r="66" fill="none" stroke="#BAD4FF" stroke-opacity="0.13" stroke-width="0.8"/>
+  <circle cx="179" cy="179" r="50" fill="none" stroke="#BAD4FF" stroke-opacity="0.11" stroke-width="0.8"/>
+  <circle cx="179" cy="179" r="109" fill="url(#shellAura)" opacity="0.62"/>
+
+  <g stroke="#D7E4FB" stroke-opacity="0.36" stroke-width="0.9">
+    <line x1="289" y1="179" x2="335" y2="179"/>
+    <line x1="274.26" y1="234" x2="314.10" y2="257"/>
+    <line x1="234" y1="274.26" x2="257" y2="314.10"/>
+    <line x1="179" y1="289" x2="179" y2="335"/>
+    <line x1="124" y1="274.26" x2="101" y2="314.10"/>
+    <line x1="83.74" y1="234" x2="43.90" y2="257"/>
+    <line x1="69" y1="179" x2="23" y2="179"/>
+    <line x1="83.74" y1="124" x2="43.90" y2="101"/>
+    <line x1="124" y1="83.74" x2="101" y2="43.90"/>
+    <line x1="179" y1="69" x2="179" y2="23"/>
+    <line x1="234" y1="83.74" x2="257" y2="43.90"/>
+    <line x1="274.26" y1="124" x2="314.10" y2="101"/>
+  </g>
+
+  <g opacity="0.68">
+    <circle cx="309.40" cy="213.94" r="15" fill="url(#pearl)" stroke="#F8FBFF" stroke-width="1.1"/>
+    <circle cx="274.46" cy="274.46" r="15" fill="url(#pearl)" stroke="#F8FBFF" stroke-width="1.1"/>
+    <circle cx="213.94" cy="309.40" r="15" fill="url(#pearl)" stroke="#F8FBFF" stroke-width="1.1"/>
+    <circle cx="144.06" cy="309.40" r="15" fill="url(#pearl)" stroke="#F8FBFF" stroke-width="1.1"/>
+    <circle cx="83.54" cy="274.46" r="15" fill="url(#pearl)" stroke="#F8FBFF" stroke-width="1.1"/>
+    <circle cx="48.60" cy="213.94" r="15" fill="url(#pearl)" stroke="#F8FBFF" stroke-width="1.1"/>
+    <circle cx="48.60" cy="144.06" r="15" fill="url(#pearl)" stroke="#F8FBFF" stroke-width="1.1"/>
+    <circle cx="83.54" cy="83.54" r="15" fill="url(#pearl)" stroke="#F8FBFF" stroke-width="1.1"/>
+    <circle cx="144.06" cy="48.60" r="15" fill="url(#pearl)" stroke="#F8FBFF" stroke-width="1.1"/>
+    <circle cx="213.94" cy="48.60" r="15" fill="url(#pearl)" stroke="#F8FBFF" stroke-width="1.1"/>
+    <circle cx="274.46" cy="83.54" r="15" fill="url(#pearl)" stroke="#F8FBFF" stroke-width="1.1"/>
+    <circle cx="309.40" cy="144.06" r="15" fill="url(#pearl)" stroke="#F8FBFF" stroke-width="1.1"/>
+  </g>
+
+  <g opacity="0.88">
+    <use href="#icon-aries" x="297.40" y="201.94" width="24" height="24"/>
+    <use href="#icon-taurus" x="262.46" y="262.46" width="24" height="24"/>
+    <use href="#icon-gemini" x="201.94" y="297.40" width="24" height="24"/>
+    <use href="#icon-cancer" x="132.06" y="297.40" width="24" height="24"/>
+    <use href="#icon-leo" x="71.54" y="262.46" width="24" height="24"/>
+    <use href="#icon-virgo" x="36.60" y="201.94" width="24" height="24"/>
+    <use href="#icon-libra" x="36.60" y="132.06" width="24" height="24"/>
+    <use href="#icon-scorpio" x="71.54" y="71.54" width="24" height="24"/>
+    <use href="#icon-sagittarius" x="132.06" y="36.60" width="24" height="24"/>
+    <use href="#icon-capricorn" x="201.94" y="36.60" width="24" height="24"/>
+    <use href="#icon-aquarius" x="262.46" y="71.54" width="24" height="24"/>
+    <use href="#icon-pisces" x="297.40" y="132.06" width="24" height="24"/>
+  </g>
+
+  <g opacity="0.88">
+    <circle cx="110" cy="111" r="1.8" class="star"/>
+    <circle cx="148" cy="88" r="1.3" class="star"/>
+    <circle cx="221" cy="76" r="1.6" class="star"/>
+    <circle cx="262" cy="108" r="1.7" class="star"/>
+    <circle cx="283" cy="179" r="1.5" class="star"/>
+    <circle cx="252" cy="233" r="1.8" class="star"/>
+    <circle cx="224" cy="263" r="1.2" class="star"/>
+    <circle cx="181" cy="278" r="1.3" class="star"/>
+    <circle cx="127" cy="252" r="1.5" class="star"/>
+    <circle cx="85" cy="194" r="1.8" class="star"/>
+    <circle cx="96" cy="149" r="1.1" class="star"/>
+    <circle cx="133" cy="125" r="1.2" class="star"/>
+    <circle cx="240" cy="133" r="1.3" class="star"/>
+  </g>
+
+  <g opacity="0.9">
+    <circle cx="179" cy="179" r="38" fill="#E8F0FF" opacity="0.15" filter="url(#glow)"/>
+    <g stroke="#FFE39E" stroke-linecap="round" stroke-opacity="0.78">
+      <line x1="179" y1="110" x2="179" y2="128" stroke-width="2.2"/>
+      <line x1="179" y1="230" x2="179" y2="248" stroke-width="2.2"/>
+      <line x1="110" y1="179" x2="128" y2="179" stroke-width="2.2"/>
+      <line x1="230" y1="179" x2="248" y2="179" stroke-width="2.2"/>
+      <line x1="128" y1="128" x2="140" y2="140" stroke-width="1.9"/>
+      <line x1="218" y1="218" x2="230" y2="230" stroke-width="1.9"/>
+      <line x1="128" y1="230" x2="140" y2="218" stroke-width="1.9"/>
+      <line x1="218" y1="140" x2="230" y2="128" stroke-width="1.9"/>
+    </g>
+    <circle cx="179" cy="179" r="27" fill="url(#solarCore)" stroke="#FFE2A1" stroke-width="1.2"/>
+    <circle cx="179" cy="179" r="18" fill="#FFF8C2" opacity="0.46"/>
+    <circle cx="179" cy="179" r="7.5" fill="#FFFFFF" opacity="0.44"/>
+  </g>
+
+  <circle cx="179" cy="179" r="157.4" fill="none" stroke="#FFFFFF" stroke-opacity="0.62" stroke-width="0.9"/>
+</svg>

@@ -34,7 +34,7 @@ import {
 } from '../../lib/natalWheel';
 import { ZODIAC_SIGNS, type ZodiacSign } from '../../lib/zodiac-utils';
 import { getCachedPlanetInsight, getPlanetInsight } from '../../services/astrologyService';
-import { PlanetSymbolIcon, ZodiacIllustrationIcon } from './AstroWheelIcons';
+import { PlanetSymbolIcon } from './AstroWheelIcons';
 
 const LOCKED_PLANET_RADIUS = 7;
 const HOUSE_LABEL_RADIUS = 60;
@@ -42,14 +42,11 @@ const PLANET_TOUCH_RADIUS = 22;
 const PLANET_DEGREE_RADIUS_OFFSET = 18;
 const LEADER_LINE_TARGET_RADIUS = 98;
 const DEFAULT_PANEL_HEIGHT = 164;
-const EXPANDED_PANEL_HEIGHT = 296;
+const EXPANDED_PANEL_HEIGHT = 284;
 const INTRO_TOTAL_MS = 980;
-const ZODIAC_SEGMENT_INNER_RADIUS = HOUSE_RING_RADIUS + 10;
-const ZODIAC_SEGMENT_OUTER_RADIUS = OUTER_RIM_RADIUS - 10;
-const ZODIAC_ICON_RADIUS = OUTER_RIM_RADIUS - 24;
-const ZODIAC_ICON_SIZE = 16;
-const WHEEL_ART_BG_RADIUS = OUTER_RIM_RADIUS - 3;
-const ORBIT_GUIDE_RADIUS = HOUSE_RING_RADIUS - 16;
+const DEFAULT_PANEL_MIN_HEIGHT = 150;
+const ZODIAC_LABEL_RADIUS = OUTER_RIM_RADIUS - 6;
+const WHEEL_MEDALLION_SRC = '/brand/natal-wheel-luxe-medallion.svg';
 
 const MAJOR_ASPECTS: NatalAspectData['type'][] = ['conjunction', 'opposition', 'square', 'trine', 'sextile'];
 
@@ -112,14 +109,36 @@ const aspectStyles: Record<NatalAspectData['type'], { stroke: string; width: num
   sextile: { stroke: '#1E88E5', width: 0.72 },
 };
 
-const wheelSurfaceId = 'natal-wheel-surface';
-const wheelGlowId = 'natal-wheel-aura';
-const segmentGradientIds = {
-  Fire: 'natal-wheel-segment-fire',
-  Earth: 'natal-wheel-segment-earth',
-  Air: 'natal-wheel-segment-air',
-  Water: 'natal-wheel-segment-water',
-} as const;
+const zodiacShortLabels: Record<Language, Record<ZodiacSign, string>> = {
+  ru: {
+    Aries: 'ОВН',
+    Taurus: 'ТЕЛ',
+    Gemini: 'БЛЗ',
+    Cancer: 'РАК',
+    Leo: 'ЛЕВ',
+    Virgo: 'ДЕВ',
+    Libra: 'ВЕС',
+    Scorpio: 'СКО',
+    Sagittarius: 'СТР',
+    Capricorn: 'КОЗ',
+    Aquarius: 'ВОД',
+    Pisces: 'РЫБ',
+  },
+  en: {
+    Aries: 'ARI',
+    Taurus: 'TAU',
+    Gemini: 'GEM',
+    Cancer: 'CAN',
+    Leo: 'LEO',
+    Virgo: 'VIR',
+    Libra: 'LIB',
+    Scorpio: 'SCO',
+    Sagittarius: 'SAG',
+    Capricorn: 'CAP',
+    Aquarius: 'AQU',
+    Pisces: 'PIS',
+  },
+};
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
@@ -140,20 +159,6 @@ function polarPoint(degree: number, radius: number) {
     x: WHEEL_CENTER + Math.cos(radians) * radius,
     y: WHEEL_CENTER + Math.sin(radians) * radius,
   };
-}
-
-function createRingSegmentPath(startDeg: number, endDeg: number, innerRadius: number, outerRadius: number) {
-  const outerStart = polarPoint(startDeg, outerRadius);
-  const outerEnd = polarPoint(endDeg, outerRadius);
-  const innerEnd = polarPoint(endDeg, innerRadius);
-  const innerStart = polarPoint(startDeg, innerRadius);
-  return [
-    `M ${outerStart.x} ${outerStart.y}`,
-    `A ${outerRadius} ${outerRadius} 0 0 1 ${outerEnd.x} ${outerEnd.y}`,
-    `L ${innerEnd.x} ${innerEnd.y}`,
-    `A ${innerRadius} ${innerRadius} 0 0 0 ${innerStart.x} ${innerStart.y}`,
-    'Z',
-  ].join(' ');
 }
 
 function angularDistance(a: number, b: number) {
@@ -197,6 +202,10 @@ function formatDegree(degree: number | null) {
 
 function formatSignAndDegree(language: Language, sign: string, degree: number | null) {
   return `${getZodiacSign(language, sign)} ${formatDegree(degree)}`;
+}
+
+function getZodiacShortLabel(language: Language, sign: ZodiacSign) {
+  return zodiacShortLabels[language][sign];
 }
 
 function buildFallbackHouseCusps(chartData: NatalChartData): NatalHouseData[] {
@@ -567,6 +576,7 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
     const selectedPlanetMeta = selectedPlanet ? getPlanetMeta(selectedPlanet) : null;
     const selectedPlanetData = selectedPlanet ? displayPlanetMap.get(selectedPlanet) || null : null;
     const detailsCopy = detailsTeaserCopy(language);
+    const visibleToast = toast && !isDetailsTeaserVisible ? toast : null;
 
     return (
       <div className="relative flex h-full min-h-0 flex-col pb-1">
@@ -598,9 +608,8 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
         </div>
 
         <div className="mt-4 flex min-h-0 flex-1 flex-col">
-          <div className="flex min-h-[15rem] flex-1 items-center justify-center">
-            <div className="relative mx-auto flex w-full max-w-[22.75rem] items-center justify-center">
-              <div className="pointer-events-none absolute inset-[10%] rounded-full bg-[radial-gradient(circle_at_center,rgba(123,94,167,0.07),rgba(41,128,185,0.035)_44%,rgba(255,255,255,0)_72%)] blur-2xl" />
+          <div className="shrink-0">
+            <div className="relative mx-auto w-full max-w-[19.75rem]">
               <div
                 className="relative aspect-square w-full touch-none"
                 onTouchStart={handleWheelTouchStart}
@@ -609,157 +618,55 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                 onDoubleClick={() => setZoomScale(1)}
                 style={{ touchAction: 'none' }}
               >
+                <div className="pointer-events-none absolute inset-[5%] rounded-full bg-[radial-gradient(circle_at_center,rgba(251,208,125,0.18),rgba(123,94,167,0.12)_32%,rgba(49,122,196,0.1)_54%,rgba(255,255,255,0)_74%)] blur-[26px]" />
                 <motion.div
                   animate={{ scale: zoomScale }}
                   transition={shouldReduceMotion ? { duration: 0.2 } : { duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-                  className="h-full w-full"
+                  className="relative h-full w-full"
                   style={{ transformOrigin: '50% 50%' }}
                 >
-                  <svg viewBox={`0 0 ${WHEEL_VIEWBOX} ${WHEEL_VIEWBOX}`} className="h-full w-full overflow-visible">
-                    <defs>
-                      <radialGradient id={wheelSurfaceId} cx="50%" cy="46%" r="65%">
-                        <stop offset="0%" stopColor="#FFFFFF" />
-                        <stop offset="62%" stopColor="#FBFBFF" />
-                        <stop offset="100%" stopColor="#F7F8FC" />
-                      </radialGradient>
-                      <radialGradient id={wheelGlowId} cx="50%" cy="48%" r="60%">
-                        <stop offset="0%" stopColor="#7B5EA7" stopOpacity="0.08" />
-                        <stop offset="48%" stopColor="#2980B9" stopOpacity="0.045" />
-                        <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
-                      </radialGradient>
-                      <linearGradient id={segmentGradientIds.Fire} x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#FFFDFC" />
-                        <stop offset="100%" stopColor="#FFF0F0" />
-                      </linearGradient>
-                      <linearGradient id={segmentGradientIds.Earth} x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#FCFFFC" />
-                        <stop offset="100%" stopColor="#EFFAF1" />
-                      </linearGradient>
-                      <linearGradient id={segmentGradientIds.Air} x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#FFFDF7" />
-                        <stop offset="100%" stopColor="#FFF8E9" />
-                      </linearGradient>
-                      <linearGradient id={segmentGradientIds.Water} x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#FBFDFF" />
-                        <stop offset="100%" stopColor="#EEF4FF" />
-                      </linearGradient>
-                    </defs>
-
-                    <motion.circle
-                      cx={WHEEL_CENTER}
-                      cy={WHEEL_CENTER}
-                      r={WHEEL_ART_BG_RADIUS}
-                      fill={`url(#${wheelSurfaceId})`}
-                      initial={introEnabled ? { opacity: 0 } : false}
-                      animate={{ opacity: 1 }}
+                  <div
+                    className="pointer-events-none absolute inset-0"
+                    style={{ transform: `rotate(${-rotationOffset}deg)` }}
+                  >
+                    <motion.img
+                      src={WHEEL_MEDALLION_SRC}
+                      alt=""
+                      draggable={false}
+                      initial={introEnabled ? { opacity: 0, scale: 0.985 } : false}
+                      animate={{ opacity: 1, scale: 1 }}
                       transition={introTransition}
+                      className="h-full w-full select-none object-contain"
                     />
-                    <circle cx={WHEEL_CENTER} cy={WHEEL_CENTER} r={WHEEL_ART_BG_RADIUS} fill={`url(#${wheelGlowId})`} />
+                  </div>
 
+                  <svg viewBox={`0 0 ${WHEEL_VIEWBOX} ${WHEEL_VIEWBOX}`} className="absolute inset-0 h-full w-full overflow-visible">
                     {ZODIAC_SIGNS.map((sign, index) => {
-                      const startRaw = index * 30;
-                      const endRaw = (index + 1) * 30;
-                      const startDeg = normalizeDegrees(startRaw - rotationOffset);
-                      const endDeg = normalizeDegrees(endRaw - rotationOffset);
-                      const midDeg = normalizeDegrees(startRaw + 15 - rotationOffset);
+                      const midDeg = normalizeDegrees(index * 30 + 15 - rotationOffset);
+                      const labelPoint = polarPoint(midDeg, ZODIAC_LABEL_RADIUS);
+                      const dotPoint = polarPoint(midDeg, OUTER_RIM_RADIUS - 20);
                       const style = getZodiacElementStyle(sign);
-                      const iconPoint = polarPoint(midDeg, ZODIAC_ICON_RADIUS);
-                      const elementKey = style.tagTone === 'fire'
-                        ? 'Fire'
-                        : style.tagTone === 'earth'
-                          ? 'Earth'
-                          : style.tagTone === 'water'
-                            ? 'Water'
-                            : 'Air';
-
                       return (
-                        <g key={sign}>
-                          <motion.path
-                            d={createRingSegmentPath(startDeg, endDeg, ZODIAC_SEGMENT_INNER_RADIUS, ZODIAC_SEGMENT_OUTER_RADIUS)}
-                            fill={`url(#${segmentGradientIds[elementKey]})`}
-                            stroke={style.border}
-                            strokeWidth="0.65"
-                            opacity={0.88}
-                            initial={introEnabled ? { opacity: 0 } : false}
-                            animate={{ opacity: 1 }}
-                            transition={{ ...introTransition, delay: introEnabled ? 0.08 : 0 }}
-                          />
-                          <circle
-                            cx={iconPoint.x}
-                            cy={iconPoint.y}
-                            r={11}
-                            fill="rgba(255,255,255,0.94)"
-                            stroke="rgba(255,255,255,0.84)"
-                            strokeWidth="2.2"
-                            style={{ filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.06))' }}
-                          />
-                          <circle cx={iconPoint.x} cy={iconPoint.y} r={10} fill="rgba(255,255,255,0.9)" stroke={style.border} strokeWidth="0.8" />
-                          <ZodiacIllustrationIcon
-                            sign={sign as ZodiacSign}
-                            x={iconPoint.x - ZODIAC_ICON_SIZE / 2}
-                            y={iconPoint.y - ZODIAC_ICON_SIZE / 2}
-                            width={ZODIAC_ICON_SIZE}
-                            height={ZODIAC_ICON_SIZE}
-                            stroke={style.text}
-                            strokeWidth={1.55}
-                          />
-                          <circle cx={iconPoint.x} cy={iconPoint.y + 14.5} r={1.2} fill={style.text} opacity={0.2} />
+                        <g key={`sign-label-${sign}`}>
+                          <text
+                            x={labelPoint.x}
+                            y={labelPoint.y}
+                            textAnchor="middle"
+                            dominantBaseline="middle"
+                            fill="#344A6A"
+                            style={{ fontSize: 6.9, fontWeight: 700, letterSpacing: '0.08em' }}
+                          >
+                            {getZodiacShortLabel(language, sign as ZodiacSign)}
+                          </text>
+                          <circle cx={dotPoint.x} cy={dotPoint.y} r={1.35} fill={style.text} opacity={0.45} />
                         </g>
-                      );
-                    })}
-
-                    {ZODIAC_SIGNS.map((_, index) => {
-                      const degree = normalizeDegrees(index * 30 - rotationOffset);
-                      const inner = polarPoint(degree, HOUSE_RING_RADIUS);
-                      const outer = polarPoint(degree, ZODIAC_SEGMENT_OUTER_RADIUS + 2);
-                      return (
-                        <line
-                          key={`separator-${index}`}
-                          x1={inner.x}
-                          y1={inner.y}
-                          x2={outer.x}
-                          y2={outer.y}
-                          stroke="#E6E8F0"
-                          strokeWidth="0.65"
-                        />
-                      );
-                    })}
-
-                    <motion.circle
-                      cx={WHEEL_CENTER}
-                      cy={WHEEL_CENTER}
-                      r={OUTER_RIM_RADIUS}
-                      fill="none"
-                      stroke="#E5E8F2"
-                      strokeWidth="1"
-                      initial={introEnabled ? { opacity: 0 } : false}
-                      animate={{ opacity: 1 }}
-                      transition={introTransition}
-                    />
-                    <circle cx={WHEEL_CENTER} cy={WHEEL_CENTER} r={HOUSE_RING_RADIUS} fill="none" stroke="#E8EBF2" strokeWidth="0.7" />
-                    <circle cx={WHEEL_CENTER} cy={WHEEL_CENTER} r={ORBIT_GUIDE_RADIUS} fill="none" stroke="#F3F4F8" strokeWidth="0.75" />
-
-                    {Array.from({ length: 12 }, (_, index) => {
-                      const degree = index * 30 + 15;
-                      const inner = polarPoint(degree, INNER_CENTER_RADIUS + 8);
-                      const outer = polarPoint(degree, HOUSE_DOTTED_RADIUS - 8);
-                      return (
-                        <line
-                          key={`sunburst-${degree}`}
-                          x1={inner.x}
-                          y1={inner.y}
-                          x2={outer.x}
-                          y2={outer.y}
-                          stroke="#F5F4F8"
-                          strokeWidth="0.55"
-                        />
                       );
                     })}
 
                     {houseCusps.map((house, index) => {
                       const adjustedDeg = normalizeDegrees(house.rawLongitude - rotationOffset);
-                      const from = polarPoint(adjustedDeg, INNER_CENTER_RADIUS);
-                      const to = polarPoint(adjustedDeg, HOUSE_RING_RADIUS);
+                      const from = polarPoint(adjustedDeg, INNER_CENTER_RADIUS + 2);
+                      const to = polarPoint(adjustedDeg, HOUSE_RING_RADIUS - 2);
                       const emphatic = house.house === 1 || house.house === 4 || house.house === 7 || house.house === 10;
                       return (
                         <motion.line
@@ -768,8 +675,8 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                           y1={from.y}
                           x2={to.x}
                           y2={to.y}
-                          stroke={emphatic ? '#AEB5C4' : '#E6E8F0'}
-                          strokeWidth={emphatic ? 1 : 0.6}
+                          stroke={emphatic ? 'rgba(243,248,255,0.95)' : 'rgba(215,225,242,0.74)'}
+                          strokeWidth={emphatic ? 1.05 : 0.58}
                           initial={introEnabled ? { pathLength: 0, opacity: 0.1 } : false}
                           animate={{ pathLength: 1, opacity: 1 }}
                           transition={{ ...introTransition, delay: introEnabled ? 0.22 : 0 }}
@@ -777,28 +684,11 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                       );
                     })}
 
-                    {houseLabels.filter((house) => getOverviewHouseVisibility(house.house, layerMode, isPremium)).map((house) => {
-                      const point = polarPoint(house.adjustedDeg, HOUSE_LABEL_RADIUS);
-                      return (
-                        <g key={`house-label-${house.house}`}>
-                          <circle cx={point.x} cy={point.y} r={8.5} fill="rgba(255,255,255,0.88)" />
-                          <text x={point.x} y={point.y} textAnchor="middle" dominantBaseline="middle" fill="#9EA4B3" style={{ fontSize: 8, fontWeight: 600 }}>
-                            {house.house}
-                          </text>
-                        </g>
-                      );
-                    })}
-
-                    <circle cx={WHEEL_CENTER} cy={WHEEL_CENTER} r={HOUSE_DOTTED_RADIUS} fill="none" stroke="#E7EAF2" strokeWidth="0.85" strokeDasharray="2 3.5" />
-                    <circle cx={WHEEL_CENTER} cy={WHEEL_CENTER} r={INNER_CENTER_RADIUS} fill="white" stroke="#ECEFF5" strokeWidth="0.8" />
-                    <circle cx={WHEEL_CENTER} cy={WHEEL_CENTER} r={8} fill="rgba(123,94,167,0.07)" stroke="rgba(123,94,167,0.10)" />
-                    <circle cx={WHEEL_CENTER} cy={WHEEL_CENTER} r={2.4} fill="#7B5EA7" opacity={0.3} />
-
                     {aspectLines.map((aspect) => {
                       const style = aspectStyles[aspect.type];
                       const from = polarPoint(aspect.from.adjustedDeg, aspect.from.displayRadius);
                       const to = polarPoint(aspect.to.adjustedDeg, aspect.to.displayRadius);
-                      const opacity = getAspectOpacity(focusedAspectPlanet, aspect.from.key, aspect.to.key);
+                      const opacity = getAspectOpacity(focusedAspectPlanet, aspect.from.key, aspect.to.key) * 0.72;
                       return (
                         <motion.line
                           key={aspect.id}
@@ -807,7 +697,7 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                           x2={to.x}
                           y2={to.y}
                           stroke={style.stroke}
-                          strokeWidth={style.width + (aspect.orb < 1 ? 0.25 : 0)}
+                          strokeWidth={style.width + (aspect.orb < 1 ? 0.2 : 0)}
                           strokeDasharray={style.dash}
                           opacity={opacity}
                           initial={introEnabled ? { opacity: 0 } : false}
@@ -819,7 +709,7 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
 
                     {displayPlanets.map((planet) => {
                       if (planet.lineTargetRadius == null) return null;
-                      const from = polarPoint(planet.adjustedDeg, planet.displayRadius + planet.visualRadius);
+                      const from = polarPoint(planet.adjustedDeg, planet.displayRadius + Math.max(planet.visualRadius - 1.8, 8));
                       const to = polarPoint(planet.adjustedDeg, planet.lineTargetRadius);
                       return (
                         <line
@@ -828,39 +718,74 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                           y1={from.y}
                           x2={to.x}
                           y2={to.y}
-                          stroke="#D6DBE7"
-                          strokeWidth="0.85"
-                          strokeDasharray="2 2"
+                          stroke="#DCE5F6"
+                          strokeWidth="0.8"
+                          strokeDasharray="2 2.4"
+                          opacity="0.72"
                         />
                       );
                     })}
+
+                    {houseLabels
+                      .filter((house) => getOverviewHouseVisibility(house.house, layerMode, isPremium))
+                      .map((house) => {
+                        const point = polarPoint(house.adjustedDeg, HOUSE_LABEL_RADIUS);
+                        return (
+                          <text
+                            key={`house-label-${house.house}`}
+                            x={point.x}
+                            y={point.y}
+                            textAnchor="middle"
+                            dominantBaseline="middle"
+                            fill="rgba(246,250,255,0.88)"
+                            style={{ fontSize: 8, fontWeight: 600 }}
+                          >
+                            {house.house}
+                          </text>
+                        );
+                      })}
+
+                    <circle cx={WHEEL_CENTER} cy={WHEEL_CENTER} r={HOUSE_DOTTED_RADIUS} fill="none" stroke="rgba(224,233,247,0.82)" strokeWidth="0.8" strokeDasharray="2 3.8" />
+                    <circle cx={WHEEL_CENTER} cy={WHEEL_CENTER} r={INNER_CENTER_RADIUS} fill="rgba(255,255,255,0.18)" stroke="rgba(255,255,255,0.42)" strokeWidth="0.72" />
+                    <circle cx={WHEEL_CENTER} cy={WHEEL_CENTER} r={3.2} fill="rgba(255,255,255,0.82)" />
 
                     {displayPlanets.map((planet, index) => {
                       const meta = getPlanetMeta(planet.key);
                       const point = polarPoint(planet.adjustedDeg, planet.displayRadius);
                       const active = selectedPlanet === planet.key;
-                      const chipStroke = planet.locked ? '#D6DAE4' : meta.color;
-                      const chipFill = planet.locked ? '#FAFAFB' : '#FFFFFF';
-                      const iconSize = planet.locked ? planet.visualRadius * 1.05 : planet.visualRadius * 1.2;
+                      const chipRadius = planet.locked ? 6.8 : Math.max(planet.visualRadius - 1.8, 8.5);
+                      const chipStroke = planet.locked ? '#D6DDEA' : meta.color;
+                      const chipFill = planet.locked ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.98)';
+                      const iconSize = chipRadius * (planet.locked ? 1.04 : 1.14);
                       return (
                         <g key={planet.key}>
+                          {active ? (
+                            <circle
+                              cx={point.x}
+                              cy={point.y}
+                              r={chipRadius + 4}
+                              fill="none"
+                              stroke={`${meta.color}33`}
+                              strokeWidth="3"
+                            />
+                          ) : null}
                           <motion.circle
                             cx={point.x}
                             cy={point.y}
-                            r={planet.visualRadius}
+                            r={chipRadius}
                             fill={chipFill}
                             stroke={chipStroke}
-                            strokeWidth={planet.locked ? 1.1 : active ? 1.7 : 1.35}
-                            style={{ filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.08))' }}
+                            strokeWidth={planet.locked ? 1.05 : active ? 1.7 : 1.25}
+                            style={{ filter: 'drop-shadow(0 2px 7px rgba(5,19,46,0.18))' }}
                             initial={introEnabled ? { opacity: 0, scale: 0.82 } : false}
-                            animate={{ opacity: 1, scale: active ? 1.05 : 1 }}
+                            animate={{ opacity: 1, scale: active ? 1.03 : 1 }}
                             transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1], delay: introEnabled ? 0.38 + index * 0.055 : 0 }}
                           />
-                          {renderPlanetIcon(planet.key, point.x, point.y, iconSize, planet.locked ? '#B2B9C9' : meta.color, planet.locked)}
+                          {renderPlanetIcon(planet.key, point.x, point.y, iconSize, planet.locked ? '#AEB9CC' : meta.color, planet.locked)}
                           {planet.retrograde ? (
                             <>
-                              <circle cx={point.x + planet.visualRadius - 1} cy={point.y - planet.visualRadius + 1} r={4} fill="white" stroke="#F6D9D8" strokeWidth="0.6" />
-                              <text x={point.x + planet.visualRadius - 1} y={point.y - planet.visualRadius + 1} textAnchor="middle" dominantBaseline="middle" fill="#E53935" style={{ fontSize: 6, fontWeight: 700 }}>
+                              <circle cx={point.x + chipRadius - 0.6} cy={point.y - chipRadius + 0.8} r={4} fill="white" stroke="#F6D9D8" strokeWidth="0.6" />
+                              <text x={point.x + chipRadius - 0.6} y={point.y - chipRadius + 0.8} textAnchor="middle" dominantBaseline="middle" fill="#E53935" style={{ fontSize: 6, fontWeight: 700 }}>
                                 R
                               </text>
                             </>
@@ -871,8 +796,8 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                               y={polarPoint(planet.adjustedDeg, planet.displayRadius + PLANET_DEGREE_RADIUS_OFFSET).y}
                               textAnchor="middle"
                               dominantBaseline="middle"
-                              fill="#757C8E"
-                              style={{ fontSize: 7.5, fontWeight: 600 }}
+                              fill="rgba(246,250,255,0.92)"
+                              style={{ fontSize: 7.3, fontWeight: 600 }}
                             >
                               {formatDegree(planet.degree)}
                             </text>
@@ -940,7 +865,7 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 4 }}
                 transition={{ duration: 0.22 }}
-                className="mx-auto mt-3 w-full max-w-[21rem] rounded-[22px] border border-black/[0.04] bg-white/90 px-4 py-3 shadow-[0_12px_24px_rgba(0,0,0,0.04)]"
+                className="mx-auto mt-3 w-full max-w-[19.5rem] rounded-[22px] border border-black/[0.04] bg-white/92 px-4 py-3 shadow-[0_12px_24px_rgba(0,0,0,0.04)]"
               >
                 <div className="flex items-start gap-3">
                   <div className="mt-0.5 inline-flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full bg-[#F5F0FB] text-[#7B5EA7]">
@@ -963,9 +888,31 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
             ) : null}
           </AnimatePresence>
 
+          <AnimatePresence initial={false}>
+            {visibleToast ? (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 8 }}
+                transition={{ duration: 0.2 }}
+                className="mx-auto mt-3 w-full max-w-[19.5rem] rounded-[18px] border border-black/[0.04] bg-white/94 px-4 py-3 shadow-[0_10px_22px_rgba(0,0,0,0.06)]"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-[13px] leading-relaxed text-text-main">{visibleToast.message}</p>
+                  {visibleToast.cta ? (
+                    <button type="button" onClick={onRequestPremium} className="inline-flex shrink-0 items-center gap-1 text-[12px] font-medium text-[#7B5EA7]">
+                      <Sparkles className="h-3.5 w-3.5" strokeWidth={2} />
+                      {visibleToast.cta}
+                    </button>
+                  ) : null}
+                </div>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
+
           <div
-            className="mt-4 overflow-hidden rounded-t-[24px] border border-black/[0.04] bg-white/92 shadow-[0_-8px_28px_rgba(0,0,0,0.05)]"
-            style={{ height: isPanelExpanded ? EXPANDED_PANEL_HEIGHT : DEFAULT_PANEL_HEIGHT }}
+            className="mt-3 min-h-0 overflow-hidden rounded-t-[24px] border border-black/[0.04] bg-white/92 shadow-[0_-8px_28px_rgba(0,0,0,0.05)]"
+            style={{ height: isPanelExpanded ? EXPANDED_PANEL_HEIGHT : DEFAULT_PANEL_HEIGHT, minHeight: DEFAULT_PANEL_MIN_HEIGHT }}
             onTouchStart={handlePanelTouchStart}
             onTouchEnd={handlePanelTouchEnd}
           >
@@ -1062,27 +1009,6 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
           </div>
         </div>
 
-        <AnimatePresence>
-          {toast ? (
-            <motion.div
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 10 }}
-              transition={{ duration: 0.22 }}
-              className="pointer-events-none absolute inset-x-3 bottom-[calc(164px+0.8rem)] z-30 rounded-2xl border border-black/[0.04] bg-white/96 px-4 py-3 shadow-[0_10px_24px_rgba(0,0,0,0.08)]"
-            >
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-[13px] leading-relaxed text-text-main">{toast.message}</p>
-                {toast.cta ? (
-                  <button type="button" onClick={onRequestPremium} className="pointer-events-auto inline-flex shrink-0 items-center gap-1 text-[12px] font-medium text-[#7B5EA7]">
-                    <Sparkles className="h-3.5 w-3.5" strokeWidth={2} />
-                    {toast.cta}
-                  </button>
-                ) : null}
-              </div>
-            </motion.div>
-          ) : null}
-        </AnimatePresence>
       </div>
     );
   }
