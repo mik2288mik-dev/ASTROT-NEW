@@ -1,19 +1,14 @@
 import OpenAI from 'openai';
-import type { Language, NatalChartData, PlanetInsight, PlanetInsightTag, UserProfile } from '../types';
+import type { Language, NatalChartData, PlanetInsight, UserProfile } from '../types';
 import { getOpenAIModelForContent } from './appSettings';
 import {
   buildPlanetInsightCacheKey,
-  getHouseThemeLabel,
-  getLocalizedElement,
-  getLocalizedModality,
   getPlanetDisplayName,
   getPlanetPositionFromChart,
-  getModalityForSign,
-  getZodiacElementStyle,
   normalizePlanetKey,
   type NatalPlanetKey,
 } from './natalWheel';
-import { getElementForSign, type ZodiacSign } from './zodiac-utils';
+import { buildPlanetInsight } from './planetInsightContent';
 import {
   SYSTEM_PROMPT_ASTRA,
   addLanguageInstruction,
@@ -26,89 +21,6 @@ const openai = process.env.OPENAI_API_KEY
   : null;
 
 export const PLANET_INSIGHT_PROMPT_VERSION = 'planet_insight.v1';
-
-function trimSentence(value?: string | null): string {
-  return String(value || '').replace(/\s+/g, ' ').trim();
-}
-
-function buildPlanetInsightTags(
-  sign: string | null | undefined,
-  house: number | null | undefined,
-  language: Language
-): PlanetInsightTag[] {
-  const resolvedElement = sign ? getElementForSign(sign as ZodiacSign) : 'Air';
-  const elementTone = getZodiacElementStyle(sign).tagTone;
-
-  return [
-    {
-      id: 'element',
-      label: getLocalizedElement(language, resolvedElement),
-      tone: elementTone,
-    },
-    {
-      id: 'modality',
-      label: getLocalizedModality(language, getModalityForSign(sign)),
-      tone: 'neutral',
-    },
-    {
-      id: 'house',
-      label: getHouseThemeLabel(house, language),
-      tone: 'neutral',
-    },
-  ];
-}
-
-function buildFallbackBody(
-  planetLabel: string,
-  sign: string,
-  house: number | null,
-  language: Language
-): string {
-  if (language === 'en') {
-    return `${planetLabel} in ${sign}${house ? ` in house ${house}` : ''} shows how this part of you naturally moves through life. It tends to speak through recognizable habits, emotional tone, and the situations you return to when something matters.`;
-  }
-
-  return `${planetLabel} в знаке ${sign}${house ? ` и ${house} доме` : ''} показывает, как эта часть тебя естественно проявляется в жизни. Обычно она слышна в привычных реакциях, внутреннем тоне и в тех ситуациях, к которым ты возвращаешься, когда для тебя что-то по-настоящему важно.`;
-}
-
-function buildFallbackTitle(planetLabel: string, sign: string, language: Language): string {
-  if (language === 'en') {
-    return `${planetLabel} in ${sign}`;
-  }
-  return `${planetLabel} в ${sign}`;
-}
-
-export function buildPlanetInsight(
-  chartData: NatalChartData,
-  planetId: NatalPlanetKey,
-  language: Language,
-  content?: Partial<PlanetInsightAIResponse>
-): PlanetInsight {
-  const position = getPlanetPositionFromChart(chartData, planetId);
-  if (!position) {
-    throw new Error(`PLANET_POSITION_MISSING:${planetId}`);
-  }
-
-  const sign = String(position.sign || '').trim() || 'Unknown';
-  const house = typeof position.house === 'number' ? position.house : Number(position.house) || null;
-  const degree = typeof position.degree === 'number' && Number.isFinite(position.degree)
-    ? Math.round(position.degree)
-    : null;
-  const title = trimSentence(content?.title) || buildFallbackTitle(getPlanetDisplayName(planetId, language), sign, language);
-  const body =
-    trimSentence(content?.body) ||
-    buildFallbackBody(getPlanetDisplayName(planetId, language), sign, house, language);
-
-  return {
-    planetId,
-    title,
-    sign,
-    degree,
-    house,
-    body,
-    tags: buildPlanetInsightTags(sign, house, language),
-  };
-}
 
 export async function generatePlanetInsight(
   profile: UserProfile,
@@ -128,9 +40,10 @@ export async function generatePlanetInsight(
 
   const planetLabel = getPlanetDisplayName(planetId, language);
   const house = typeof position.house === 'number' ? position.house : Number(position.house) || null;
-  const degree = typeof position.degree === 'number' && Number.isFinite(position.degree)
-    ? Math.round(position.degree)
-    : null;
+  const degree =
+    typeof position.degree === 'number' && Number.isFinite(position.degree)
+      ? Math.round(position.degree)
+      : null;
   const anchorSummary = [
     `${getPlanetDisplayName('sun', language)}: ${chartData.sun?.sign || ''}`,
     `${getPlanetDisplayName('moon', language)}: ${chartData.moon?.sign || ''}`,
@@ -188,3 +101,5 @@ export function resolvePlanetInsightRequest(
     cacheKey: buildPlanetInsightCacheKey(planetId, language, calculationVersion),
   };
 }
+
+export { buildPlanetInsight } from './planetInsightContent';
