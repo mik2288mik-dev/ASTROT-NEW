@@ -44,12 +44,12 @@ const LEADER_LINE_TARGET_RADIUS = 98;
 const DEFAULT_PANEL_HEIGHT = 164;
 const EXPANDED_PANEL_HEIGHT = 296;
 const INTRO_TOTAL_MS = 980;
-const ZODIAC_SEGMENT_INNER_RADIUS = HOUSE_RING_RADIUS + 6;
-const ZODIAC_SEGMENT_OUTER_RADIUS = OUTER_RIM_RADIUS - 12;
-const ZODIAC_ICON_RADIUS = OUTER_RIM_RADIUS - 22;
-const ZODIAC_ICON_SIZE = 22;
-const WHEEL_ART_BG_RADIUS = OUTER_RIM_RADIUS - 2;
-const ORBIT_GUIDE_RADIUS = HOUSE_RING_RADIUS - 12;
+const ZODIAC_SEGMENT_INNER_RADIUS = HOUSE_RING_RADIUS + 10;
+const ZODIAC_SEGMENT_OUTER_RADIUS = OUTER_RIM_RADIUS - 10;
+const ZODIAC_ICON_RADIUS = OUTER_RIM_RADIUS - 24;
+const ZODIAC_ICON_SIZE = 16;
+const WHEEL_ART_BG_RADIUS = OUTER_RIM_RADIUS - 3;
+const ORBIT_GUIDE_RADIUS = HOUSE_RING_RADIUS - 16;
 
 const MAJOR_ASPECTS: NatalAspectData['type'][] = ['conjunction', 'opposition', 'square', 'trine', 'sextile'];
 
@@ -597,40 +597,10 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
           </div>
         </div>
 
-        <AnimatePresence initial={false}>
-          {!isPremium && isDetailsTeaserVisible && (
-            <motion.div
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.24 }}
-              className="mx-auto mt-3 w-full max-w-[21rem] rounded-[24px] border border-black/[0.05] bg-white/92 px-4 py-3 shadow-[0_14px_34px_rgba(0,0,0,0.05)]"
-            >
-              <div className="flex items-start gap-3">
-                <div className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#F4F0FB] text-[#7B5EA7]">
-                  <Info className="h-[18px] w-[18px]" strokeWidth={2.2} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[14px] font-medium leading-tight text-text-main">{detailsCopy.title}</p>
-                  <p className="mt-1 text-[12px] leading-[1.55] text-text-muted">{detailsCopy.body}</p>
-                  <button
-                    type="button"
-                    onClick={onRequestPremium}
-                    className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-[#7B5EA7]/16 bg-[#F7F2FD] px-3 py-1.5 text-[12px] font-medium text-[#7B5EA7]"
-                  >
-                    <Sparkles className="h-3.5 w-3.5" strokeWidth={2} />
-                    {detailsCopy.cta}
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
         <div className="mt-4 flex min-h-0 flex-1 flex-col">
           <div className="flex min-h-[15rem] flex-1 items-center justify-center">
             <div className="relative mx-auto flex w-full max-w-[22.75rem] items-center justify-center">
-              <div className="pointer-events-none absolute inset-[8%] rounded-full bg-[radial-gradient(circle_at_center,rgba(123,94,167,0.12),rgba(41,128,185,0.06)_42%,rgba(255,255,255,0)_72%)] blur-2xl" />
+              <div className="pointer-events-none absolute inset-[10%] rounded-full bg-[radial-gradient(circle_at_center,rgba(123,94,167,0.07),rgba(41,128,185,0.035)_44%,rgba(255,255,255,0)_72%)] blur-2xl" />
               <div
                 className="relative aspect-square w-full touch-none"
                 onTouchStart={handleWheelTouchStart}
@@ -653,8 +623,8 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                         <stop offset="100%" stopColor="#F7F8FC" />
                       </radialGradient>
                       <radialGradient id={wheelGlowId} cx="50%" cy="48%" r="60%">
-                        <stop offset="0%" stopColor="#7B5EA7" stopOpacity="0.14" />
-                        <stop offset="48%" stopColor="#2980B9" stopOpacity="0.08" />
+                        <stop offset="0%" stopColor="#7B5EA7" stopOpacity="0.08" />
+                        <stop offset="48%" stopColor="#2980B9" stopOpacity="0.045" />
                         <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
                       </radialGradient>
                       <linearGradient id={segmentGradientIds.Fire} x1="0%" y1="0%" x2="100%" y2="100%">
@@ -708,8 +678,8 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                             d={createRingSegmentPath(startDeg, endDeg, ZODIAC_SEGMENT_INNER_RADIUS, ZODIAC_SEGMENT_OUTER_RADIUS)}
                             fill={`url(#${segmentGradientIds[elementKey]})`}
                             stroke={style.border}
-                            strokeWidth="0.75"
-                            opacity={0.92}
+                            strokeWidth="0.65"
+                            opacity={0.88}
                             initial={introEnabled ? { opacity: 0 } : false}
                             animate={{ opacity: 1 }}
                             transition={{ ...introTransition, delay: introEnabled ? 0.08 : 0 }}
@@ -717,13 +687,13 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                           <circle
                             cx={iconPoint.x}
                             cy={iconPoint.y}
-                            r={13.5}
-                            fill="rgba(255,255,255,0.96)"
-                            stroke="rgba(255,255,255,0.92)"
-                            strokeWidth="3"
-                            style={{ filter: 'drop-shadow(0 6px 12px rgba(0,0,0,0.08))' }}
+                            r={11}
+                            fill="rgba(255,255,255,0.94)"
+                            stroke="rgba(255,255,255,0.84)"
+                            strokeWidth="2.2"
+                            style={{ filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.06))' }}
                           />
-                          <circle cx={iconPoint.x} cy={iconPoint.y} r={12} fill="rgba(255,255,255,0.92)" stroke={style.border} strokeWidth="0.9" />
+                          <circle cx={iconPoint.x} cy={iconPoint.y} r={10} fill="rgba(255,255,255,0.9)" stroke={style.border} strokeWidth="0.8" />
                           <ZodiacIllustrationIcon
                             sign={sign as ZodiacSign}
                             x={iconPoint.x - ZODIAC_ICON_SIZE / 2}
@@ -733,7 +703,7 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                             stroke={style.text}
                             strokeWidth={1.55}
                           />
-                          <circle cx={iconPoint.x} cy={iconPoint.y + 18.5} r={1.5} fill={style.text} opacity={0.34} />
+                          <circle cx={iconPoint.x} cy={iconPoint.y + 14.5} r={1.2} fill={style.text} opacity={0.2} />
                         </g>
                       );
                     })}
@@ -766,13 +736,13 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                       animate={{ opacity: 1 }}
                       transition={introTransition}
                     />
-                    <circle cx={WHEEL_CENTER} cy={WHEEL_CENTER} r={HOUSE_RING_RADIUS} fill="none" stroke="#E6E8F0" strokeWidth="0.8" />
-                    <circle cx={WHEEL_CENTER} cy={WHEEL_CENTER} r={ORBIT_GUIDE_RADIUS} fill="none" stroke="#F0F2F6" strokeWidth="0.9" />
+                    <circle cx={WHEEL_CENTER} cy={WHEEL_CENTER} r={HOUSE_RING_RADIUS} fill="none" stroke="#E8EBF2" strokeWidth="0.7" />
+                    <circle cx={WHEEL_CENTER} cy={WHEEL_CENTER} r={ORBIT_GUIDE_RADIUS} fill="none" stroke="#F3F4F8" strokeWidth="0.75" />
 
-                    {Array.from({ length: 24 }, (_, index) => {
-                      const degree = index * 15;
+                    {Array.from({ length: 12 }, (_, index) => {
+                      const degree = index * 30 + 15;
                       const inner = polarPoint(degree, INNER_CENTER_RADIUS + 8);
-                      const outer = polarPoint(degree, HOUSE_DOTTED_RADIUS - 4);
+                      const outer = polarPoint(degree, HOUSE_DOTTED_RADIUS - 8);
                       return (
                         <line
                           key={`sunburst-${degree}`}
@@ -780,8 +750,8 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                           y1={inner.y}
                           x2={outer.x}
                           y2={outer.y}
-                          stroke="#F2F1F7"
-                          strokeWidth="0.7"
+                          stroke="#F5F4F8"
+                          strokeWidth="0.55"
                         />
                       );
                     })}
@@ -819,7 +789,7 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                       );
                     })}
 
-                    <circle cx={WHEEL_CENTER} cy={WHEEL_CENTER} r={HOUSE_DOTTED_RADIUS} fill="none" stroke="#E4E7F0" strokeWidth="0.9" strokeDasharray="2.5 3.5" />
+                    <circle cx={WHEEL_CENTER} cy={WHEEL_CENTER} r={HOUSE_DOTTED_RADIUS} fill="none" stroke="#E7EAF2" strokeWidth="0.85" strokeDasharray="2 3.5" />
                     <circle cx={WHEEL_CENTER} cy={WHEEL_CENTER} r={INNER_CENTER_RADIUS} fill="white" stroke="#ECEFF5" strokeWidth="0.8" />
                     <circle cx={WHEEL_CENTER} cy={WHEEL_CENTER} r={8} fill="rgba(123,94,167,0.07)" stroke="rgba(123,94,167,0.10)" />
                     <circle cx={WHEEL_CENTER} cy={WHEEL_CENTER} r={2.4} fill="#7B5EA7" opacity={0.3} />
@@ -871,7 +841,7 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                       const active = selectedPlanet === planet.key;
                       const chipStroke = planet.locked ? '#D6DAE4' : meta.color;
                       const chipFill = planet.locked ? '#FAFAFB' : '#FFFFFF';
-                      const iconSize = planet.locked ? planet.visualRadius * 1.35 : planet.visualRadius * 1.55;
+                      const iconSize = planet.locked ? planet.visualRadius * 1.05 : planet.visualRadius * 1.2;
                       return (
                         <g key={planet.key}>
                           <motion.circle
@@ -880,8 +850,8 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                             r={planet.visualRadius}
                             fill={chipFill}
                             stroke={chipStroke}
-                            strokeWidth={planet.locked ? 1.2 : active ? 1.8 : 1.5}
-                            style={{ filter: 'drop-shadow(0 3px 10px rgba(0,0,0,0.10))' }}
+                            strokeWidth={planet.locked ? 1.1 : active ? 1.7 : 1.35}
+                            style={{ filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.08))' }}
                             initial={introEnabled ? { opacity: 0, scale: 0.82 } : false}
                             animate={{ opacity: 1, scale: active ? 1.05 : 1 }}
                             transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1], delay: introEnabled ? 0.38 + index * 0.055 : 0 }}
@@ -962,6 +932,36 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
               </div>
             </div>
           ) : null}
+
+          <AnimatePresence initial={false}>
+            {!isPremium && isDetailsTeaserVisible ? (
+              <motion.div
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 4 }}
+                transition={{ duration: 0.22 }}
+                className="mx-auto mt-3 w-full max-w-[21rem] rounded-[22px] border border-black/[0.04] bg-white/90 px-4 py-3 shadow-[0_12px_24px_rgba(0,0,0,0.04)]"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 inline-flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full bg-[#F5F0FB] text-[#7B5EA7]">
+                    <Info className="h-4 w-4" strokeWidth={2.1} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[13px] font-medium leading-tight text-text-main">{detailsCopy.title}</p>
+                    <p className="mt-1 text-[12px] leading-[1.5] text-text-muted">{detailsCopy.body}</p>
+                    <button
+                      type="button"
+                      onClick={onRequestPremium}
+                      className="mt-2.5 inline-flex items-center gap-1.5 rounded-full border border-[#7B5EA7]/14 bg-[#F7F2FD] px-3 py-1.5 text-[12px] font-medium text-[#7B5EA7]"
+                    >
+                      <Sparkles className="h-3.5 w-3.5" strokeWidth={2} />
+                      {detailsCopy.cta}
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
 
           <div
             className="mt-4 overflow-hidden rounded-t-[24px] border border-black/[0.04] bg-white/92 shadow-[0_-8px_28px_rgba(0,0,0,0.05)]"
