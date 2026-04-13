@@ -108,6 +108,7 @@ type DbContentVariant =
   | 'anchor'
   | 'living'
   | 'planet_insight'
+  | 'wheel_insight'
   | 'daily'
   | 'morning'
   | 'day'

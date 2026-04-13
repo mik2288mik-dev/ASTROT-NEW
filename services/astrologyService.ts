@@ -1,4 +1,4 @@
-import { UserProfile, NatalChartData, DailyHoroscope, SynastryResult, UserEvolution, OracleChatResponse, OracleHistoryEntry, ForecastDailyReading, ForecastDaypartReading, ForecastDaypartSlot, ForecastMonthlyReading, ForecastWeeklyReading, NatalAnchorReading, NatalLivingReading, AskLumiaState, AskLumiaTier, ContentAccessTier, PlanetInsight } from "../types";
+import { UserProfile, NatalChartData, DailyHoroscope, SynastryResult, UserEvolution, OracleChatResponse, OracleHistoryEntry, ForecastDailyReading, ForecastDaypartReading, ForecastDaypartSlot, ForecastMonthlyReading, ForecastWeeklyReading, NatalAnchorReading, NatalLivingReading, AskLumiaState, AskLumiaTier, ContentAccessTier, PlanetInsight, WheelInsight, WheelInsightEntityType } from "../types";
 import { SYSTEM_INSTRUCTION_ASTRA } from "../constants";
 import { getElementForSign } from "../lib/zodiac-utils";
 import { coerceNatalAnchorReading, coerceNatalLivingReading, getCurrentNatalPeriodKey, mapNatalAnchorToLegacyIntro } from "../lib/natalReadings";
@@ -608,6 +608,64 @@ export const getPlanetInsight = async (
   const insight = data?.interpretation?.content;
   if (!insight) {
     throw buildApiError('Planet insight content is missing');
+  }
+
+  return insight;
+};
+
+export const getCachedWheelInsight = async (
+  userId: string,
+  entityType: WheelInsightEntityType,
+  entityId: string,
+  language: 'ru' | 'en' = 'ru',
+  chartId?: number | null
+): Promise<WheelInsight | null> => {
+  if (!userId) return null;
+
+  const params = new URLSearchParams({
+    userId,
+    entityType,
+    entityId,
+    language,
+  });
+  if (chartId != null) {
+    params.set('chartId', String(chartId));
+  }
+
+  const url = `${API_BASE_URL}/api/content/natal/wheel-insight?${params.toString()}`;
+  const data = await fetchContentApi<WheelInsight>(
+    url,
+    { method: 'GET', cache: 'no-store' },
+    { notFoundAsNull: true }
+  );
+
+  return data?.interpretation?.content || null;
+};
+
+export const getWheelInsight = async (
+  profile: UserProfile,
+  chartData: NatalChartData,
+  entityType: WheelInsightEntityType,
+  entityId: string,
+  chartId?: number | null
+): Promise<WheelInsight> => {
+  const url = `${API_BASE_URL}/api/content/natal/wheel-insight`;
+  const data = await fetchContentApi<WheelInsight>(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      userId: profile.id,
+      profile,
+      chartData,
+      chartId: chartId ?? undefined,
+      entityType,
+      entityId,
+    }),
+  });
+
+  const insight = data?.interpretation?.content;
+  if (!insight) {
+    throw buildApiError('Wheel insight content is missing');
   }
 
   return insight;

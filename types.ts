@@ -318,6 +318,24 @@ export interface PlanetInsight {
   tags: PlanetInsightTag[];
 }
 
+export type WheelInsightEntityType = 'planet' | 'zodiac' | 'aspect' | 'house';
+
+export interface WheelInsightLegendItem {
+  id: string;
+  label: string;
+  color?: string;
+}
+
+export interface WheelInsight {
+  entityType: WheelInsightEntityType;
+  entityId: string;
+  title: string;
+  subtitle: string;
+  body: string;
+  tags: PlanetInsightTag[];
+  legend?: WheelInsightLegendItem[];
+}
+
 export interface WeeklyHoroscope {
   weekRange: string;
   theme: string;
@@ -339,6 +357,7 @@ export type ContentVariant =
   | 'anchor'
   | 'living'
   | 'planet_insight'
+  | 'wheel_insight'
   | 'daily'
   | 'morning'
   | 'day'
