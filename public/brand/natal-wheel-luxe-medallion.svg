@@ -119,6 +119,20 @@
   <circle cx="179" cy="179" r="146.5" fill="#FFFFFF" stroke="#E8EDF6" stroke-width="0.8"/>
   <circle cx="179" cy="179" r="143" fill="url(#zodiacShell)" stroke="#244778" stroke-width="1"/>
   <circle cx="179" cy="179" r="118" fill="url(#innerSky)" stroke="#DCE6F7" stroke-width="0.8"/>
+  <g stroke="#D5E2F6" stroke-opacity="0.36" stroke-width="0.9">
+    <line x1="179" y1="36" x2="179" y2="61"/>
+    <line x1="250.5" y1="55.2" x2="238" y2="76.8"/>
+    <line x1="302.8" y1="107.5" x2="281.2" y2="120"/>
+    <line x1="322" y1="179" x2="297" y2="179"/>
+    <line x1="302.8" y1="250.5" x2="281.2" y2="238"/>
+    <line x1="250.5" y1="302.8" x2="238" y2="281.2"/>
+    <line x1="179" y1="322" x2="179" y2="297"/>
+    <line x1="107.5" y1="302.8" x2="120" y2="281.2"/>
+    <line x1="55.2" y1="250.5" x2="76.8" y2="238"/>
+    <line x1="36" y1="179" x2="61" y2="179"/>
+    <line x1="55.2" y1="107.5" x2="76.8" y2="120"/>
+    <line x1="107.5" y1="55.2" x2="120" y2="76.8"/>
+  </g>
   <circle cx="179" cy="179" r="142.5" fill="none" stroke="#96B3E0" stroke-opacity="0.22" stroke-width="0.8"/>
   <circle cx="179" cy="179" r="134" fill="none" stroke="#7FA7D9" stroke-opacity="0.16" stroke-width="0.8"/>
   <circle cx="179" cy="179" r="96" fill="none" stroke="#BAD4FF" stroke-opacity="0.18" stroke-width="0.8"/>
@@ -142,34 +156,34 @@
     <line x1="274.26" y1="124" x2="314.10" y2="101"/>
   </g>
 
-  <g opacity="0.68">
-    <circle cx="309.40" cy="213.94" r="15" fill="url(#pearl)" stroke="#F8FBFF" stroke-width="1.1"/>
-    <circle cx="274.46" cy="274.46" r="15" fill="url(#pearl)" stroke="#F8FBFF" stroke-width="1.1"/>
-    <circle cx="213.94" cy="309.40" r="15" fill="url(#pearl)" stroke="#F8FBFF" stroke-width="1.1"/>
-    <circle cx="144.06" cy="309.40" r="15" fill="url(#pearl)" stroke="#F8FBFF" stroke-width="1.1"/>
-    <circle cx="83.54" cy="274.46" r="15" fill="url(#pearl)" stroke="#F8FBFF" stroke-width="1.1"/>
-    <circle cx="48.60" cy="213.94" r="15" fill="url(#pearl)" stroke="#F8FBFF" stroke-width="1.1"/>
-    <circle cx="48.60" cy="144.06" r="15" fill="url(#pearl)" stroke="#F8FBFF" stroke-width="1.1"/>
-    <circle cx="83.54" cy="83.54" r="15" fill="url(#pearl)" stroke="#F8FBFF" stroke-width="1.1"/>
-    <circle cx="144.06" cy="48.60" r="15" fill="url(#pearl)" stroke="#F8FBFF" stroke-width="1.1"/>
-    <circle cx="213.94" cy="48.60" r="15" fill="url(#pearl)" stroke="#F8FBFF" stroke-width="1.1"/>
-    <circle cx="274.46" cy="83.54" r="15" fill="url(#pearl)" stroke="#F8FBFF" stroke-width="1.1"/>
-    <circle cx="309.40" cy="144.06" r="15" fill="url(#pearl)" stroke="#F8FBFF" stroke-width="1.1"/>
+  <g opacity="0.88">
+    <circle cx="309.40" cy="213.94" r="17" fill="url(#pearl)" stroke="#F8FBFF" stroke-width="1.15"/>
+    <circle cx="274.46" cy="274.46" r="17" fill="url(#pearl)" stroke="#F8FBFF" stroke-width="1.15"/>
+    <circle cx="213.94" cy="309.40" r="17" fill="url(#pearl)" stroke="#F8FBFF" stroke-width="1.15"/>
+    <circle cx="144.06" cy="309.40" r="17" fill="url(#pearl)" stroke="#F8FBFF" stroke-width="1.15"/>
+    <circle cx="83.54" cy="274.46" r="17" fill="url(#pearl)" stroke="#F8FBFF" stroke-width="1.15"/>
+    <circle cx="48.60" cy="213.94" r="17" fill="url(#pearl)" stroke="#F8FBFF" stroke-width="1.15"/>
+    <circle cx="48.60" cy="144.06" r="17" fill="url(#pearl)" stroke="#F8FBFF" stroke-width="1.15"/>
+    <circle cx="83.54" cy="83.54" r="17" fill="url(#pearl)" stroke="#F8FBFF" stroke-width="1.15"/>
+    <circle cx="144.06" cy="48.60" r="17" fill="url(#pearl)" stroke="#F8FBFF" stroke-width="1.15"/>
+    <circle cx="213.94" cy="48.60" r="17" fill="url(#pearl)" stroke="#F8FBFF" stroke-width="1.15"/>
+    <circle cx="274.46" cy="83.54" r="17" fill="url(#pearl)" stroke="#F8FBFF" stroke-width="1.15"/>
+    <circle cx="309.40" cy="144.06" r="17" fill="url(#pearl)" stroke="#F8FBFF" stroke-width="1.15"/>
   </g>
 
   <g opacity="0.88">
-    <use href="#icon-aries" x="297.40" y="201.94" width="24" height="24"/>
-    <use href="#icon-taurus" x="262.46" y="262.46" width="24" height="24"/>
-    <use href="#icon-gemini" x="201.94" y="297.40" width="24" height="24"/>
-    <use href="#icon-cancer" x="132.06" y="297.40" width="24" height="24"/>
-    <use href="#icon-leo" x="71.54" y="262.46" width="24" height="24"/>
-    <use href="#icon-virgo" x="36.60" y="201.94" width="24" height="24"/>
-    <use href="#icon-libra" x="36.60" y="132.06" width="24" height="24"/>
-    <use href="#icon-scorpio" x="71.54" y="71.54" width="24" height="24"/>
-    <use href="#icon-sagittarius" x="132.06" y="36.60" width="24" height="24"/>
-    <use href="#icon-capricorn" x="201.94" y="36.60" width="24" height="24"/>
-    <use href="#icon-aquarius" x="262.46" y="71.54" width="24" height="24"/>
-    <use href="#icon-pisces" x="297.40" y="132.06" width="24" height="24"/>
+    <use href="#icon-aries" x="295.40" y="199.94" width="28" height="28"/>
+    <use href="#icon-taurus" x="260.46" y="260.46" width="28" height="28"/>
+    <use href="#icon-gemini" x="199.94" y="295.40" width="28" height="28"/>
+    <use href="#icon-cancer" x="130.06" y="295.40" width="28" height="28"/>
+    <use href="#icon-leo" x="69.54" y="260.46" width="28" height="28"/>
+    <use href="#icon-virgo" x="34.60" y="199.94" width="28" height="28"/>
+    <use href="#icon-libra" x="34.60" y="130.06" width="28" height="28"/>
+    <use href="#icon-scorpio" x="69.54" y="69.54" width="28" height="28"/>
+    <use href="#icon-sagittarius" x="130.06" y="34.60" width="28" height="28"/>
+    <use href="#icon-capricorn" x="199.94" y="34.60" width="28" height="28"/>
+    <use href="#icon-aquarius" x="260.46" y="69.54" width="28" height="28"/>
+    <use href="#icon-pisces" x="295.40" y="130.06" width="28" height="28"/>
   </g>
 
   <g opacity="0.88">

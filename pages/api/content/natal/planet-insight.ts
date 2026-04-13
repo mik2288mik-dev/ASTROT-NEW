@@ -68,10 +68,6 @@ function normalizeInsight(
   };
 }
 
-function isFreeInsightPlanet(planetId: NatalPlanetKey) {
-  return planetId === 'sun' || planetId === 'moon' || planetId === 'rising';
-}
-
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const userId = (req.method === 'GET' ? req.query.userId : req.body?.userId) as string | undefined;
   const chartIdRaw = req.method === 'GET' ? req.query.chartId : req.body?.chartId;
@@ -129,19 +125,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const isPremium = !!entitlement || !!context.profile.isPremium;
   const accessTier = isPremium ? 'premium' : 'free';
 
-  if (!isPremium && !isFreeInsightPlanet(planetRequest.planetId)) {
-    return res.status(403).json({
-      error: 'PREMIUM_REQUIRED',
-      code: 'PLANET_LOCKED',
-      message: language === 'ru'
-        ? 'Эта планета доступна в Premium.'
-        : 'This planet is available in Premium.',
-      details: {
-        planetId: planetRequest.planetId,
-      },
-    });
-  }
-
   const existing = await getContentLayer({
     userId: userId.trim(),
     chartId: context.chartId,
@@ -171,10 +154,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const profileForGeneration: UserProfile = {
-      ...context.profile,
-      isPremium,
-    };
+    const profileForGeneration: UserProfile = { ...context.profile, isPremium };
     const reading = await generatePlanetInsight(profileForGeneration, context.chartData, planetRequest.planetId);
     const { modelTier } = await getOpenAIModelForContent({
       accessTier,

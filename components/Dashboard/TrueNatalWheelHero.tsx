@@ -1,15 +1,7 @@
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AnimatePresence, animate, motion, useMotionValue, useMotionValueEvent, useReducedMotion } from 'framer-motion';
-import { Sparkles } from 'lucide-react';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { getZodiacSign } from '../../constants';
-import type {
-  Language,
-  NatalAspectData,
-  NatalChartData,
-  NatalHouseData,
-  PlanetInsight,
-  UserProfile,
-} from '../../types';
+import type { Language, NatalAspectData, NatalChartData, NatalHouseData, PlanetInsight, UserProfile } from '../../types';
 import { buildPlanetInsight } from '../../lib/planetInsightContent';
 import {
   getPlanetDisplayName,
@@ -30,25 +22,21 @@ import { ZODIAC_SIGNS, type ZodiacSign } from '../../lib/zodiac-utils';
 import { getCachedPlanetInsight, getPlanetInsight } from '../../services/astrologyService';
 import { PlanetSymbolIcon } from './AstroWheelIcons';
 
-const HOUSE_LABEL_RADIUS = 60;
+const HOUSE_LABEL_RADIUS = 61;
 const PLANET_TOUCH_RADIUS = 24;
-const PLANET_DEGREE_RADIUS_OFFSET = 16;
 const LEADER_LINE_TARGET_RADIUS = 98;
-const INTRO_TOTAL_MS = 980;
-const ZODIAC_LABEL_RADIUS = OUTER_RIM_RADIUS - 8;
+const INTRO_TOTAL_MS = 760;
+const ZODIAC_LABEL_RADIUS = OUTER_RIM_RADIUS - 9;
 const WHEEL_MEDALLION_SRC = '/brand/natal-wheel-luxe-medallion.svg';
-const FOCUS_SLOT_DEG = 315;
-const DRAG_START_THRESHOLD = 1.6;
-const INERTIA_STOP_THRESHOLD = 0.006;
-const MAX_SPIN_VELOCITY = 0.75;
-const PREVIEW_BODY_MAX = 148;
+const HOLD_DURATION_MS = 920;
+const PREVIEW_BODY_MAX = 188;
 
 const MAJOR_ASPECTS: NatalAspectData['type'][] = ['conjunction', 'opposition', 'square', 'trine', 'sextile'];
+const ANGULAR_HOUSES = new Set([1, 4, 7, 10]);
 
 type DisplayPlanet = {
   key: NatalPlanetKey;
   rawLongitude: number;
-  adjustedDeg: number;
   displayRadius: number;
   visualRadius: number;
   label: string;
@@ -56,7 +44,6 @@ type DisplayPlanet = {
   degree: number | null;
   house: number | null;
   retrograde: boolean;
-  previewOnly: boolean;
   lineTargetRadius: number | null;
 };
 
@@ -73,104 +60,47 @@ type InsightState = {
   planetId: NatalPlanetKey | null;
   content: PlanetInsight | null;
   isFallback: boolean;
-  previewOnly: boolean;
 };
 
 type TrueNatalWheelHeroProps = {
   profile: UserProfile;
   chartData: NatalChartData;
   chartId?: number | null;
-  isPremium: boolean;
-  onRequestPremium: () => void;
   shouldAnimateIntro?: boolean;
   onIntroComplete?: () => void;
-};
-
-type DragState = {
-  active: boolean;
-  pointerId: number | null;
-  startAngle: number;
-  startRotation: number;
-  lastAngle: number;
-  lastTimestamp: number;
-  velocity: number;
-  moved: boolean;
+  onOpenChart: () => void;
 };
 
 const aspectStyles: Record<NatalAspectData['type'], { stroke: string; width: number; dash?: string }> = {
-  conjunction: { stroke: '#9F88D4', width: 1.15 },
-  opposition: { stroke: '#F26A5C', width: 0.95 },
-  square: { stroke: '#F26A5C', width: 0.8 },
-  trine: { stroke: '#58B487', width: 0.92 },
-  sextile: { stroke: '#6EA7FF', width: 0.72 },
+  conjunction: { stroke: '#A287D4', width: 1.06 },
+  opposition: { stroke: '#E17366', width: 0.84 },
+  square: { stroke: '#E17366', width: 0.74 },
+  trine: { stroke: '#60B189', width: 0.82 },
+  sextile: { stroke: '#79A8F9', width: 0.68 },
 };
 
-const zodiacShortLabels: Record<Language, Record<ZodiacSign, string>> = {
-  ru: {
-    Aries: 'ОВН',
-    Taurus: 'ТЕЛ',
-    Gemini: 'БЛЗ',
-    Cancer: 'РАК',
-    Leo: 'ЛЕВ',
-    Virgo: 'ДЕВ',
-    Libra: 'ВЕС',
-    Scorpio: 'СКО',
-    Sagittarius: 'СТР',
-    Capricorn: 'КОЗ',
-    Aquarius: 'ВОД',
-    Pisces: 'РЫБ',
-  },
-  en: {
-    Aries: 'ARI',
-    Taurus: 'TAU',
-    Gemini: 'GEM',
-    Cancer: 'CAN',
-    Leo: 'LEO',
-    Virgo: 'VIR',
-    Libra: 'LIB',
-    Scorpio: 'SCO',
-    Sagittarius: 'SAG',
-    Capricorn: 'CAP',
-    Aquarius: 'AQU',
-    Pisces: 'PIS',
-  },
-};
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value));
-}
-
-function normalizeDegrees(value: number): number {
+const normalizeDegrees = (value: number) => {
   const normalized = value % 360;
   return normalized < 0 ? normalized + 360 : normalized;
-}
+};
 
-function shortestAngleDelta(from: number, to: number) {
-  return ((to - from + 540) % 360) - 180;
-}
+const toRadians = (degree: number) => ((degree - 90) * Math.PI) / 180;
 
-function toRadians(degree: number) {
-  return (degree * Math.PI) / 180;
-}
+const polarPoint = (degree: number, radius: number) => ({
+  x: WHEEL_CENTER + Math.cos(toRadians(degree)) * radius,
+  y: WHEEL_CENTER + Math.sin(toRadians(degree)) * radius,
+});
 
-function polarPoint(degree: number, radius: number) {
-  const radians = toRadians(degree);
-  return {
-    x: WHEEL_CENTER + Math.cos(radians) * radius,
-    y: WHEEL_CENTER + Math.sin(radians) * radius,
-  };
-}
-
-function midpointDegree(start: number, end: number) {
+const midpointDegree = (start: number, end: number) => {
   const normalizedStart = normalizeDegrees(start);
   const span = normalizeDegrees(end - normalizedStart);
   return normalizeDegrees(normalizedStart + span / 2);
-}
+};
 
-function angularDistance(a: number, b: number) {
+const angularDistance = (a: number, b: number) => {
   const diff = Math.abs(a - b) % 360;
   return diff > 180 ? 360 - diff : diff;
-}
+};
 
 function resolveLongitude(position: { longitude?: number; sign?: string; degree?: number } | null | undefined) {
   if (!position) return null;
@@ -190,99 +120,64 @@ function resolveHouseLongitude(house: NatalHouseData) {
   return normalizeDegrees(Math.max(signIndex, 0) * 30 + (house.degree || 0));
 }
 
-function formatDegree(degree: number | null) {
-  return degree == null ? '—' : `${Math.round(degree)}°`;
-}
-
-function formatSignAndDegree(language: Language, sign: string, degree: number | null) {
-  return `${getZodiacSign(language, sign)} ${formatDegree(degree)}`;
-}
-
-function getZodiacShortLabel(language: Language, sign: ZodiacSign) {
-  return zodiacShortLabels[language][sign];
-}
-
 function buildFallbackHouseCusps(chartData: NatalChartData): NatalHouseData[] {
   const risingLongitude = resolveLongitude(chartData.rising) ?? 180;
   return Array.from({ length: 12 }, (_, index) => {
     const longitude = normalizeDegrees(risingLongitude + index * 30);
     const signIndex = Math.floor(longitude / 30) % 12;
-    return {
-      house: index + 1,
-      sign: ZODIAC_SIGNS[signIndex],
-      degree: longitude % 30,
-      longitude,
-    };
+    return { house: index + 1, sign: ZODIAC_SIGNS[signIndex], degree: longitude % 30, longitude };
   });
 }
 
-function buildDefaultHint(language: Language) {
-  return language === 'en'
-    ? 'Rotate the wheel or tap a planet to feel how it sounds in your chart.'
-    : 'Прокрути колесо или нажми на планету, чтобы почувствовать, как она звучит в твоей карте.';
-}
+const formatDegree = (degree: number | null) => (degree == null ? '—' : `${Math.round(degree)}°`);
 
-function buildPremiumMicrocopy(language: Language, previewOnly: boolean, isPremium: boolean) {
-  if (isPremium) {
-    return language === 'en'
-      ? 'This is a live focus of your chart. Deeper readings will open inside the full card next.'
-      : 'Это живой фокус твоей карты. Более глубокие чтения мы раскроем уже внутри полной карты.';
-  }
-  if (previewOnly) {
-    return language === 'en'
-      ? 'Premium opens the full meaning of this planet and its links with the rest of your chart.'
-      : 'Premium раскрывает полный смысл этой планеты и её связи с остальной картой.';
-  }
-  return language === 'en'
-    ? 'The rest of the planets and deeper links between them open in Premium.'
-    : 'Остальные планеты и более глубокие связи между ними открываются в Premium.';
-}
-
-function loadingInsightLabel(language: Language) {
-  return language === 'en' ? 'Preparing your insight…' : 'Собираем твой инсайт…';
-}
+const formatSignAndDegree = (language: Language, sign: string, degree: number | null) =>
+  `${getZodiacSign(language, sign)} ${formatDegree(degree)}`;
 
 function previewText(body: string, maxLength = PREVIEW_BODY_MAX) {
   const normalized = String(body || '').replace(/\s+/g, ' ').trim();
   if (!normalized) return '';
   if (normalized.length <= maxLength) return normalized;
-  const firstTwoSentences = normalized.split(/(?<=[.!?])\s+/).slice(0, 2).join(' ').trim();
-  if (firstTwoSentences && firstTwoSentences.length <= maxLength + 24) return firstTwoSentences;
+  const firstTwo = normalized.split(/(?<=[.!?])\s+/).slice(0, 2).join(' ').trim();
+  if (firstTwo && firstTwo.length <= maxLength + 28) return firstTwo;
   const slice = normalized.slice(0, maxLength).trim();
   const lastSpace = slice.lastIndexOf(' ');
   const safeCut = lastSpace > Math.floor(maxLength * 0.65) ? lastSpace : maxLength;
   return `${slice.slice(0, safeCut).trim()}…`;
 }
 
-function resolvePointerAngle(event: React.PointerEvent<HTMLDivElement>, element: HTMLDivElement) {
-  const rect = element.getBoundingClientRect();
-  const centerX = rect.left + rect.width / 2;
-  const centerY = rect.top + rect.height / 2;
-  return (Math.atan2(event.clientY - centerY, event.clientX - centerX) * 180) / Math.PI;
-}
+const buildIdleHint = (language: Language) =>
+  language === 'en'
+    ? 'Tap a planet to feel how it sounds in your chart.'
+    : 'Нажми на планету, чтобы почувствовать, как она звучит в твоей карте.';
 
-function renderPlanetIcon(planet: NatalPlanetKey, x: number, y: number, size: number, color: string) {
-  return (
-    <PlanetSymbolIcon
-      planet={planet}
-      x={x - size / 2}
-      y={y - size / 2}
-      width={size}
-      height={size}
-      stroke={color}
-      strokeWidth={1.8}
-    />
-  );
-}
+const buildHoldHint = (language: Language) =>
+  language === 'en'
+    ? 'Hold the wheel to open your full natal card.'
+    : 'Удерживай круг, чтобы открыть полную натальную карту.';
 
-function getChipRadius(planet: NatalPlanetKey) {
-  if (planet === 'sun') return 11.4;
-  if (planet === 'moon' || planet === 'rising') return 10.4;
-  return 8.6;
-}
+const getChipRadius = (planet: NatalPlanetKey) => {
+  if (planet === 'sun') return 11.2;
+  if (planet === 'moon' || planet === 'rising') return 10.2;
+  return 8.3;
+};
+
+const getZodiacLongLabel = (language: Language, sign: ZodiacSign) => getZodiacSign(language, sign).toUpperCase();
+
+const renderPlanetIcon = (planet: NatalPlanetKey, x: number, y: number, size: number, color: string) => (
+  <PlanetSymbolIcon
+    planet={planet}
+    x={x - size / 2}
+    y={y - size / 2}
+    width={size}
+    height={size}
+    stroke={color}
+    strokeWidth={1.72}
+  />
+);
 
 export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
-  ({ profile, chartData, chartId, isPremium, shouldAnimateIntro = false, onIntroComplete }) => {
+  ({ profile, chartData, chartId, shouldAnimateIntro = false, onIntroComplete, onOpenChart }) => {
     const language: Language = profile.language === 'en' ? 'en' : 'ru';
     const shouldReduceMotion = useReducedMotion();
     const [selectedPlanet, setSelectedPlanet] = useState<NatalPlanetKey | null>(null);
@@ -291,58 +186,36 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
       planetId: null,
       content: null,
       isFallback: false,
-      previewOnly: false,
     });
+    const [holdProgress, setHoldProgress] = useState(0);
+    const [isHolding, setIsHolding] = useState(false);
 
-    const wheelRef = useRef<HTMLDivElement | null>(null);
-    const dragStateRef = useRef<DragState>({
-      active: false,
-      pointerId: null,
-      startAngle: 0,
-      startRotation: 0,
-      lastAngle: 0,
-      lastTimestamp: 0,
-      velocity: 0,
-      moved: false,
-    });
-    const suppressPlanetTapRef = useRef(false);
-    const inertiaFrameRef = useRef<number | null>(null);
-    const snapAnimationRef = useRef<ReturnType<typeof animate> | null>(null);
-    const insightCacheRef = useRef<Partial<Record<NatalPlanetKey, PlanetInsight>>>({});
+    const holdFrameRef = useRef<number | null>(null);
+    const holdPointerIdRef = useRef<number | null>(null);
+    const holdStartRef = useRef(0);
+    const holdTriggeredRef = useRef(false);
     const latestInsightRequestRef = useRef(0);
-    const rotationRef = useRef(0);
-    const wheelRotation = useMotionValue(0);
-
-    useMotionValueEvent(wheelRotation, 'change', (latest) => {
-      rotationRef.current = latest;
-    });
+    const insightCacheRef = useRef<Partial<Record<NatalPlanetKey, PlanetInsight>>>({});
 
     const introEnabled = shouldAnimateIntro && !shouldReduceMotion;
     const introTransition = shouldReduceMotion
-      ? { duration: 0.24 }
-      : { duration: 0.38, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] };
+      ? { duration: 0.22 }
+      : { duration: 0.42, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] };
 
     useEffect(() => {
       if (!introEnabled || !onIntroComplete) return;
-      const timer = setTimeout(() => onIntroComplete(), INTRO_TOTAL_MS);
-      return () => clearTimeout(timer);
+      const timer = window.setTimeout(() => onIntroComplete(), INTRO_TOTAL_MS);
+      return () => window.clearTimeout(timer);
     }, [introEnabled, onIntroComplete]);
 
-    useEffect(() => {
-      return () => {
-        if (inertiaFrameRef.current != null) cancelAnimationFrame(inertiaFrameRef.current);
-        snapAnimationRef.current?.stop();
-      };
+    const stopHoldLoop = useCallback(() => {
+      if (holdFrameRef.current != null) {
+        cancelAnimationFrame(holdFrameRef.current);
+        holdFrameRef.current = null;
+      }
     }, []);
 
-    const stopWheelMotion = useCallback(() => {
-      if (inertiaFrameRef.current != null) {
-        cancelAnimationFrame(inertiaFrameRef.current);
-        inertiaFrameRef.current = null;
-      }
-      snapAnimationRef.current?.stop();
-      snapAnimationRef.current = null;
-    }, []);
+    useEffect(() => () => stopHoldLoop(), [stopHoldLoop]);
 
     const houseCusps = useMemo(() => {
       const base =
@@ -353,25 +226,19 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
     }, [chartData]);
 
     const ascDegree = useMemo(() => resolveLongitude(chartData.rising) ?? 180, [chartData.rising]);
-    const rotationOffset = useMemo(() => normalizeDegrees(ascDegree - 180), [ascDegree]);
+    const wheelRotationDeg = useMemo(() => -(ascDegree - 180), [ascDegree]);
 
     const houseLabels = useMemo(
       () =>
         houseCusps.map((house, index) => {
           const nextHouse = houseCusps[(index + 1) % houseCusps.length];
-          return {
-            house: house.house,
-            adjustedDeg: midpointDegree(
-              normalizeDegrees(house.rawLongitude - rotationOffset),
-              normalizeDegrees(nextHouse.rawLongitude - rotationOffset)
-            ),
-          };
+          return { house: house.house, rawLongitude: midpointDegree(house.rawLongitude, nextHouse.rawLongitude) };
         }),
-      [houseCusps, rotationOffset]
+      [houseCusps]
     );
 
     const displayPlanets = useMemo<DisplayPlanet[]>(() => {
-      const base = NATAL_PLANET_ORDER.map((planetKey) => {
+      const planets = NATAL_PLANET_ORDER.map((planetKey) => {
         const position = getPlanetPositionFromChart(chartData, planetKey);
         const rawLongitude = resolveLongitude(position);
         if (rawLongitude == null || !position) return null;
@@ -386,7 +253,6 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
         return {
           key: planetKey,
           rawLongitude,
-          adjustedDeg: normalizeDegrees(rawLongitude - rotationOffset),
           displayRadius: PLANET_COLLISION_RADII[0],
           visualRadius: getChipRadius(planetKey),
           label: getPlanetDisplayName(planetKey, language),
@@ -394,24 +260,24 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
           degree: typeof position.degree === 'number' && Number.isFinite(position.degree) ? position.degree : null,
           house: Number.isFinite(house) ? house : null,
           retrograde: !!position.retrograde,
-          previewOnly: !isPremium && !getPlanetMeta(planetKey).freeInteractive,
           lineTargetRadius: null,
         } as DisplayPlanet;
       }).filter(Boolean) as DisplayPlanet[];
 
       const resolved: DisplayPlanet[] = [];
-      [...base].sort((a, b) => a.adjustedDeg - b.adjustedDeg).forEach((planet) => {
+      [...planets].sort((a, b) => a.rawLongitude - b.rawLongitude).forEach((planet) => {
         let radiusIndex = 0;
         while (
           radiusIndex < PLANET_COLLISION_RADII.length - 1 &&
           resolved.some(
             (prev) =>
               prev.displayRadius === PLANET_COLLISION_RADII[radiusIndex] &&
-              angularDistance(prev.adjustedDeg, planet.adjustedDeg) < 7
+              angularDistance(prev.rawLongitude, planet.rawLongitude) < 7
           )
         ) {
           radiusIndex += 1;
         }
+
         const displayRadius = PLANET_COLLISION_RADII[radiusIndex];
         resolved.push({
           ...planet,
@@ -421,7 +287,7 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
       });
 
       return resolved.sort((a, b) => getPlanetMeta(a.key).order - getPlanetMeta(b.key).order);
-    }, [chartData, isPremium, language, rotationOffset]);
+    }, [chartData, language]);
 
     const displayPlanetMap = useMemo(() => new Map(displayPlanets.map((planet) => [planet.key, planet])), [displayPlanets]);
 
@@ -450,25 +316,25 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
       async (planetKey: NatalPlanetKey) => {
         const cachedLocal = insightCacheRef.current[planetKey];
         if (cachedLocal) {
-          setInsightState({ status: 'ready', planetId: planetKey, content: cachedLocal, isFallback: false, previewOnly: false });
+          setInsightState({ status: 'ready', planetId: planetKey, content: cachedLocal, isFallback: false });
           return;
         }
 
         const fallbackInsight = buildPlanetInsight(chartData, planetKey, language);
         if (!profile.id) {
-          setInsightState({ status: 'ready', planetId: planetKey, content: fallbackInsight, isFallback: true, previewOnly: false });
+          setInsightState({ status: 'ready', planetId: planetKey, content: fallbackInsight, isFallback: true });
           return;
         }
 
         const requestId = latestInsightRequestRef.current + 1;
         latestInsightRequestRef.current = requestId;
-        setInsightState({ status: 'loading', planetId: planetKey, content: null, isFallback: false, previewOnly: false });
+        setInsightState({ status: 'loading', planetId: planetKey, content: null, isFallback: false });
 
         try {
           const cached = await getCachedPlanetInsight(String(profile.id), planetKey, language, chartId);
           if (cached && latestInsightRequestRef.current === requestId) {
             insightCacheRef.current[planetKey] = cached;
-            setInsightState({ status: 'ready', planetId: planetKey, content: cached, isFallback: false, previewOnly: false });
+            setInsightState({ status: 'ready', planetId: planetKey, content: cached, isFallback: false });
             return;
           }
         } catch {
@@ -479,524 +345,363 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
           const insight = await getPlanetInsight(profile, chartData, planetKey, chartId);
           insightCacheRef.current[planetKey] = insight;
           if (latestInsightRequestRef.current === requestId) {
-            setInsightState({ status: 'ready', planetId: planetKey, content: insight, isFallback: false, previewOnly: false });
+            setInsightState({ status: 'ready', planetId: planetKey, content: insight, isFallback: false });
           }
         } catch {
           if (latestInsightRequestRef.current === requestId) {
             insightCacheRef.current[planetKey] = fallbackInsight;
-            setInsightState({ status: 'ready', planetId: planetKey, content: fallbackInsight, isFallback: true, previewOnly: false });
+            setInsightState({ status: 'ready', planetId: planetKey, content: fallbackInsight, isFallback: true });
           }
         }
       },
       [chartData, chartId, language, profile]
     );
 
-    const focusPlanet = useCallback(
-      (planetKey: NatalPlanetKey) => {
-        const planet = displayPlanetMap.get(planetKey);
-        if (!planet) return;
-        stopWheelMotion();
-        const current = rotationRef.current;
-        const target = FOCUS_SLOT_DEG - planet.adjustedDeg;
-        const nextRotation = current + shortestAngleDelta(current, target);
-        if (shouldReduceMotion) {
-          wheelRotation.set(nextRotation);
-          return;
-        }
-        snapAnimationRef.current = animate(wheelRotation, nextRotation, {
-          type: 'spring',
-          stiffness: 120,
-          damping: 20,
-          mass: 0.8,
-        });
-      },
-      [displayPlanetMap, shouldReduceMotion, stopWheelMotion, wheelRotation]
-    );
-
-    const startInertia = useCallback(
-      (initialVelocity: number) => {
-        if (shouldReduceMotion || Math.abs(initialVelocity) < INERTIA_STOP_THRESHOLD) return;
-        stopWheelMotion();
-        let velocity = clamp(initialVelocity, -MAX_SPIN_VELOCITY, MAX_SPIN_VELOCITY);
-        let lastTime = performance.now();
-
-        const tick = (now: number) => {
-          const dt = now - lastTime;
-          lastTime = now;
-          wheelRotation.set(rotationRef.current + velocity * dt);
-          velocity *= Math.pow(0.93, dt / 16.67);
-          if (Math.abs(velocity) <= INERTIA_STOP_THRESHOLD) {
-            inertiaFrameRef.current = null;
-            return;
-          }
-          inertiaFrameRef.current = requestAnimationFrame(tick);
-        };
-
-        inertiaFrameRef.current = requestAnimationFrame(tick);
-      },
-      [shouldReduceMotion, stopWheelMotion, wheelRotation]
-    );
-
     const activatePlanet = useCallback(
       (planetKey: NatalPlanetKey) => {
-        if (suppressPlanetTapRef.current) return;
-        const planet = displayPlanetMap.get(planetKey);
-        if (!planet) return;
-
         setSelectedPlanet(planetKey);
-        focusPlanet(planetKey);
-
-        if (planet.previewOnly) {
-          const previewInsight = buildPlanetInsight(chartData, planetKey, language);
-          setInsightState({
-            status: 'ready',
-            planetId: planetKey,
-            content: previewInsight,
-            isFallback: true,
-            previewOnly: true,
-          });
-          return;
-        }
-
         void fetchInsightForPlanet(planetKey);
       },
-      [chartData, displayPlanetMap, fetchInsightForPlanet, focusPlanet, language]
+      [fetchInsightForPlanet]
     );
+
+    const beginHold = useCallback(
+      (pointerId: number) => {
+        stopHoldLoop();
+        holdPointerIdRef.current = pointerId;
+        holdStartRef.current = performance.now();
+        holdTriggeredRef.current = false;
+        setIsHolding(true);
+        setHoldProgress(0);
+
+        const tick = (now: number) => {
+          const progress = Math.min((now - holdStartRef.current) / HOLD_DURATION_MS, 1);
+          setHoldProgress(progress);
+          if (progress >= 1) {
+            holdTriggeredRef.current = true;
+            setIsHolding(false);
+            setHoldProgress(1);
+            holdFrameRef.current = null;
+            onOpenChart();
+            return;
+          }
+          holdFrameRef.current = requestAnimationFrame(tick);
+        };
+
+        holdFrameRef.current = requestAnimationFrame(tick);
+      },
+      [onOpenChart, stopHoldLoop]
+    );
+
+    const cancelHold = useCallback(() => {
+      stopHoldLoop();
+      holdPointerIdRef.current = null;
+      holdTriggeredRef.current = false;
+      setIsHolding(false);
+      setHoldProgress(0);
+    }, [stopHoldLoop]);
 
     const handleWheelPointerDown = useCallback(
       (event: React.PointerEvent<HTMLDivElement>) => {
-        if (!wheelRef.current) return;
-        stopWheelMotion();
-        const angle = resolvePointerAngle(event, wheelRef.current);
-        suppressPlanetTapRef.current = false;
-        dragStateRef.current = {
-          active: true,
-          pointerId: event.pointerId,
-          startAngle: angle,
-          startRotation: rotationRef.current,
-          lastAngle: angle,
-          lastTimestamp: performance.now(),
-          velocity: 0,
-          moved: false,
-        };
-        wheelRef.current.setPointerCapture(event.pointerId);
+        if ((event.target as HTMLElement).closest('[data-planet-touch=\"true\"]')) return;
+        beginHold(event.pointerId);
       },
-      [stopWheelMotion]
-    );
-
-    const handleWheelPointerMove = useCallback(
-      (event: React.PointerEvent<HTMLDivElement>) => {
-        const drag = dragStateRef.current;
-        if (!drag.active || drag.pointerId !== event.pointerId || !wheelRef.current) return;
-
-        const angle = resolvePointerAngle(event, wheelRef.current);
-        const deltaFromStart = shortestAngleDelta(drag.startAngle, angle);
-        wheelRotation.set(drag.startRotation + deltaFromStart);
-
-        const now = performance.now();
-        const deltaFromLast = shortestAngleDelta(drag.lastAngle, angle);
-        const dt = Math.max(now - drag.lastTimestamp, 1);
-        drag.velocity = clamp(deltaFromLast / dt, -MAX_SPIN_VELOCITY, MAX_SPIN_VELOCITY);
-        drag.lastAngle = angle;
-        drag.lastTimestamp = now;
-
-        if (!drag.moved && Math.abs(deltaFromStart) > DRAG_START_THRESHOLD) {
-          drag.moved = true;
-          suppressPlanetTapRef.current = true;
-        }
-      },
-      [wheelRotation]
+      [beginHold]
     );
 
     const handleWheelPointerUp = useCallback(
       (event: React.PointerEvent<HTMLDivElement>) => {
-        const drag = dragStateRef.current;
-        if (!drag.active || drag.pointerId !== event.pointerId) return;
-        drag.active = false;
-        drag.pointerId = null;
-        try {
-          wheelRef.current?.releasePointerCapture(event.pointerId);
-        } catch {
-          // ignore
-        }
-        if (drag.moved) {
-          startInertia(drag.velocity);
-          window.setTimeout(() => {
-            suppressPlanetTapRef.current = false;
-          }, 40);
-        }
+        if (holdPointerIdRef.current !== event.pointerId) return;
+        if (!holdTriggeredRef.current) cancelHold();
       },
-      [startInertia]
+      [cancelHold]
     );
 
-    const handleWheelPointerCancel = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
-      const drag = dragStateRef.current;
-      if (!drag.active || drag.pointerId !== event.pointerId) return;
-      drag.active = false;
-      drag.pointerId = null;
-      suppressPlanetTapRef.current = false;
-      try {
-        wheelRef.current?.releasePointerCapture(event.pointerId);
-      } catch {
-        // ignore
-      }
-    }, []);
+    const handleWheelPointerCancel = useCallback(
+      (event: React.PointerEvent<HTMLDivElement>) => {
+        if (holdPointerIdRef.current !== event.pointerId) return;
+        cancelHold();
+      },
+      [cancelHold]
+    );
 
     const selectedPlanetMeta = selectedPlanet ? getPlanetMeta(selectedPlanet) : null;
     const selectedPlanetData = selectedPlanet ? displayPlanetMap.get(selectedPlanet) || null : null;
     const selectedInsight = insightState.content;
-    const insightMicrocopy = useMemo(
-      () => buildPremiumMicrocopy(language, insightState.previewOnly, isPremium),
-      [insightState.previewOnly, isPremium, language]
-    );
+    const holdCircumference = 2 * Math.PI * (OUTER_RIM_RADIUS - 1.5);
 
     return (
       <div className="relative flex h-full min-h-0 flex-col pb-2">
-        <div className="mt-3 flex min-h-0 flex-1 flex-col">
+        <div className="mt-2 flex min-h-0 flex-1 flex-col">
           <div className="shrink-0">
-            <div className="relative mx-auto w-full max-w-[19.5rem]">
+            <div className="relative mx-auto w-full max-w-[20.25rem]">
               <div
-                ref={wheelRef}
-                className="relative aspect-square w-full select-none touch-none"
-                style={{ touchAction: 'none' }}
+                className="relative aspect-square w-full select-none"
                 onPointerDown={handleWheelPointerDown}
-                onPointerMove={handleWheelPointerMove}
                 onPointerUp={handleWheelPointerUp}
                 onPointerCancel={handleWheelPointerCancel}
+                onPointerLeave={cancelHold}
               >
-                <div className="pointer-events-none absolute inset-[4%] rounded-full bg-[radial-gradient(circle_at_center,rgba(255,210,120,0.20),rgba(130,112,205,0.10)_34%,rgba(91,145,219,0.09)_56%,rgba(255,255,255,0)_78%)] blur-[28px]" />
+                <div className="pointer-events-none absolute inset-[2.5%] rounded-full bg-[radial-gradient(circle_at_center,rgba(255,205,102,0.20),rgba(70,103,164,0.12)_38%,rgba(255,255,255,0)_74%)] blur-[22px]" />
 
                 <motion.div
-                  style={{ rotate: wheelRotation }}
                   className="relative h-full w-full"
-                  initial={introEnabled ? { opacity: 0, scale: 0.985 } : false}
-                  animate={{ opacity: 1, scale: 1 }}
+                  initial={introEnabled ? { opacity: 0, scale: 0.986, y: 10 } : false}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
                   transition={introTransition}
                 >
-                  <img
-                    src={WHEEL_MEDALLION_SRC}
-                    alt=""
-                    draggable={false}
-                    className="pointer-events-none absolute inset-0 h-full w-full object-contain"
-                  />
+                  <div className="absolute inset-0" style={{ transform: `rotate(${wheelRotationDeg}deg)` }}>
+                    <img
+                      src={WHEEL_MEDALLION_SRC}
+                      alt=""
+                      draggable={false}
+                      className="pointer-events-none absolute inset-0 h-full w-full object-contain"
+                    />
 
-                  <svg viewBox={`0 0 ${WHEEL_VIEWBOX} ${WHEEL_VIEWBOX}`} className="absolute inset-0 h-full w-full overflow-visible">
-                    {ZODIAC_SIGNS.map((sign, index) => {
-                      const midDeg = normalizeDegrees(index * 30 + 15 - rotationOffset);
-                      const labelPoint = polarPoint(midDeg, ZODIAC_LABEL_RADIUS);
-                      return (
-                        <text
-                          key={`sign-label-${sign}`}
-                          x={labelPoint.x}
-                          y={labelPoint.y}
-                          textAnchor="middle"
-                          dominantBaseline="middle"
-                          fill="rgba(248,251,255,0.96)"
-                          style={{ fontSize: 8.1, fontWeight: 700, letterSpacing: '0.08em' }}
-                        >
-                          {getZodiacShortLabel(language, sign as ZodiacSign)}
-                        </text>
-                      );
-                    })}
-
-                    {houseCusps.map((house, index) => {
-                      const adjustedDeg = normalizeDegrees(house.rawLongitude - rotationOffset);
-                      const from = polarPoint(adjustedDeg, INNER_CENTER_RADIUS + 2);
-                      const to = polarPoint(adjustedDeg, HOUSE_RING_RADIUS - 2);
-                      const emphatic = house.house === 1 || house.house === 4 || house.house === 7 || house.house === 10;
-                      return (
-                        <motion.line
-                          key={`house-line-${house.house}-${index}`}
-                          x1={from.x}
-                          y1={from.y}
-                          x2={to.x}
-                          y2={to.y}
-                          stroke={emphatic ? 'rgba(246,250,255,0.96)' : 'rgba(214,228,249,0.60)'}
-                          strokeWidth={emphatic ? 1.02 : 0.56}
-                          initial={introEnabled ? { pathLength: 0, opacity: 0.1 } : false}
-                          animate={{ pathLength: 1, opacity: 1 }}
-                          transition={{ ...introTransition, delay: introEnabled ? 0.22 : 0 }}
-                        />
-                      );
-                    })}
-
-                    {houseLabels
-                      .filter((house) => house.house === 1 || house.house === 4 || house.house === 7 || house.house === 10)
-                      .map((house) => {
-                        const point = polarPoint(house.adjustedDeg, HOUSE_LABEL_RADIUS);
+                    <svg viewBox={`0 0 ${WHEEL_VIEWBOX} ${WHEEL_VIEWBOX}`} className="absolute inset-0 h-full w-full overflow-visible">
+                      {ZODIAC_SIGNS.map((sign, index) => {
+                        const labelDeg = index * 30 + 15;
+                        const point = polarPoint(labelDeg, ZODIAC_LABEL_RADIUS);
+                        const flip = labelDeg > 90 && labelDeg < 270;
+                        const rotation = flip ? labelDeg + 270 : labelDeg + 90;
                         return (
                           <text
-                            key={`house-label-${house.house}`}
+                            key={`sign-label-${sign}`}
                             x={point.x}
                             y={point.y}
                             textAnchor="middle"
                             dominantBaseline="middle"
-                            fill="rgba(244,248,255,0.84)"
-                            style={{ fontSize: 8, fontWeight: 600 }}
+                            transform={`rotate(${rotation} ${point.x} ${point.y})`}
+                            fill="rgba(255,255,255,0.96)"
+                            style={{ fontSize: 7.1, fontWeight: 700, letterSpacing: '0.12em' }}
                           >
-                            {house.house}
+                            {getZodiacLongLabel(language, sign as ZodiacSign)}
                           </text>
                         );
                       })}
 
-                    {selectedAspectLines.map((aspect) => {
-                      const style = aspectStyles[aspect.type];
-                      const from = polarPoint(aspect.from.adjustedDeg, aspect.from.displayRadius);
-                      const to = polarPoint(aspect.to.adjustedDeg, aspect.to.displayRadius);
-                      return (
-                        <motion.line
-                          key={aspect.id}
-                          x1={from.x}
-                          y1={from.y}
-                          x2={to.x}
-                          y2={to.y}
-                          stroke={style.stroke}
-                          strokeWidth={style.width + (aspect.orb < 1 ? 0.18 : 0)}
-                          strokeDasharray={style.dash}
-                          opacity={0.72}
-                          initial={introEnabled ? { opacity: 0 } : false}
-                          animate={{ opacity: 0.72 }}
-                          transition={{ ...introTransition, delay: introEnabled ? 0.68 : 0 }}
-                        />
-                      );
-                    })}
+                      {houseCusps.map((house, index) => {
+                        const from = polarPoint(house.rawLongitude, INNER_CENTER_RADIUS + 1.5);
+                        const to = polarPoint(house.rawLongitude, HOUSE_RING_RADIUS - 2);
+                        const emphatic = ANGULAR_HOUSES.has(house.house);
+                        return (
+                          <motion.line
+                            key={`house-line-${house.house}-${index}`}
+                            x1={from.x}
+                            y1={from.y}
+                            x2={to.x}
+                            y2={to.y}
+                            stroke={emphatic ? 'rgba(255,255,255,0.78)' : 'rgba(215,230,251,0.36)'}
+                            strokeWidth={emphatic ? 0.96 : 0.48}
+                            initial={introEnabled ? { pathLength: 0, opacity: 0 } : false}
+                            animate={{ pathLength: 1, opacity: 1 }}
+                            transition={{ ...introTransition, delay: introEnabled ? 0.16 : 0 }}
+                          />
+                        );
+                      })}
 
-                    {displayPlanets.map((planet) => {
-                      if (planet.lineTargetRadius == null) return null;
-                      const from = polarPoint(planet.adjustedDeg, planet.displayRadius + Math.max(planet.visualRadius - 1.3, 8));
-                      const to = polarPoint(planet.adjustedDeg, planet.lineTargetRadius);
-                      return (
-                        <line
-                          key={`leader-${planet.key}`}
-                          x1={from.x}
-                          y1={from.y}
-                          x2={to.x}
-                          y2={to.y}
-                          stroke="rgba(220,229,246,0.72)"
-                          strokeWidth="0.76"
-                          strokeDasharray="2 2.5"
-                        />
-                      );
-                    })}
+                      {houseLabels
+                        .filter((house) => ANGULAR_HOUSES.has(house.house))
+                        .map((house) => {
+                          const point = polarPoint(house.rawLongitude, HOUSE_LABEL_RADIUS);
+                          return (
+                            <text
+                              key={`house-label-${house.house}`}
+                              x={point.x}
+                              y={point.y}
+                              textAnchor="middle"
+                              dominantBaseline="middle"
+                              fill="rgba(249,252,255,0.68)"
+                              style={{ fontSize: 8, fontWeight: 600 }}
+                            >
+                              {house.house}
+                            </text>
+                          );
+                        })}
 
-                    <circle
-                      cx={WHEEL_CENTER}
-                      cy={WHEEL_CENTER}
-                      r={HOUSE_DOTTED_RADIUS}
-                      fill="none"
-                      stroke="rgba(225,234,248,0.78)"
-                      strokeWidth="0.78"
-                      strokeDasharray="2 4"
-                    />
+                      {selectedAspectLines.map((aspect) => {
+                        const style = aspectStyles[aspect.type];
+                        const from = polarPoint(aspect.from.rawLongitude, aspect.from.displayRadius);
+                        const to = polarPoint(aspect.to.rawLongitude, aspect.to.displayRadius);
+                        return (
+                          <motion.line
+                            key={aspect.id}
+                            x1={from.x}
+                            y1={from.y}
+                            x2={to.x}
+                            y2={to.y}
+                            stroke={style.stroke}
+                            strokeWidth={style.width + (aspect.orb < 1 ? 0.14 : 0)}
+                            strokeDasharray={style.dash}
+                            opacity={0.7}
+                            initial={introEnabled ? { opacity: 0 } : false}
+                            animate={{ opacity: 0.7 }}
+                            transition={{ ...introTransition, delay: introEnabled ? 0.46 : 0 }}
+                          />
+                        );
+                      })}
 
-                    <circle
-                      cx={WHEEL_CENTER}
-                      cy={WHEEL_CENTER}
-                      r={INNER_CENTER_RADIUS}
-                      fill="rgba(255,255,255,0.18)"
-                      stroke="rgba(255,255,255,0.40)"
-                      strokeWidth="0.7"
-                    />
-                    <circle cx={WHEEL_CENTER} cy={WHEEL_CENTER} r={3} fill="rgba(255,255,255,0.86)" />
+                      {displayPlanets.map((planet) => {
+                        if (planet.lineTargetRadius == null) return null;
+                        const from = polarPoint(planet.rawLongitude, planet.displayRadius + Math.max(planet.visualRadius - 1.2, 8));
+                        const to = polarPoint(planet.rawLongitude, planet.lineTargetRadius);
+                        return (
+                          <line
+                            key={`leader-${planet.key}`}
+                            x1={from.x}
+                            y1={from.y}
+                            x2={to.x}
+                            y2={to.y}
+                            stroke="rgba(223,233,248,0.62)"
+                            strokeWidth="0.72"
+                            strokeDasharray="2 2.3"
+                          />
+                        );
+                      })}
 
-                    {displayPlanets.map((planet, index) => {
-                      const meta = getPlanetMeta(planet.key);
-                      const point = polarPoint(planet.adjustedDeg, planet.displayRadius);
-                      const active = selectedPlanet === planet.key;
-                      const iconSize = planet.visualRadius * 1.14;
-                      return (
-                        <g key={planet.key}>
-                          {active ? (
+                      <circle cx={WHEEL_CENTER} cy={WHEEL_CENTER} r={HOUSE_DOTTED_RADIUS} fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="0.74" strokeDasharray="2 4" />
+                      <circle cx={WHEEL_CENTER} cy={WHEEL_CENTER} r={INNER_CENTER_RADIUS} fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.32)" strokeWidth="0.6" />
+                      <circle cx={WHEEL_CENTER} cy={WHEEL_CENTER} r={2.7} fill="rgba(255,255,255,0.82)" />
+
+                      {displayPlanets.map((planet, index) => {
+                        const meta = getPlanetMeta(planet.key);
+                        const point = polarPoint(planet.rawLongitude, planet.displayRadius);
+                        const active = selectedPlanet === planet.key;
+                        const iconSize = planet.visualRadius * 1.1;
+                        return (
+                          <g key={planet.key}>
+                            {active ? (
+                              <motion.circle
+                                cx={point.x}
+                                cy={point.y}
+                                r={planet.visualRadius + 4.6}
+                                fill="none"
+                                stroke={`${meta.color}42`}
+                                strokeWidth="3"
+                                initial={false}
+                                animate={{ opacity: [0.54, 0.94, 0.54] }}
+                                transition={shouldReduceMotion ? { duration: 0.2 } : { duration: 2.6, repeat: Number.POSITIVE_INFINITY, ease: 'easeInOut' }}
+                              />
+                            ) : null}
+
+                            <motion.circle
+                              cx={point.x}
+                              cy={point.y}
+                              r={planet.visualRadius}
+                              fill="rgba(255,255,255,0.98)"
+                              stroke={meta.color}
+                              strokeWidth={active ? 1.56 : 1.1}
+                              style={{ filter: 'drop-shadow(0 2px 6px rgba(12,24,52,0.18))' }}
+                              initial={introEnabled ? { opacity: 0, scale: 0.82 } : false}
+                              animate={{ opacity: 1, scale: active ? 1.05 : 1 }}
+                              transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1], delay: introEnabled ? 0.24 + index * 0.05 : 0 }}
+                            />
+
+                            {renderPlanetIcon(planet.key, point.x, point.y, iconSize, meta.color)}
+
+                            {planet.retrograde ? (
+                              <>
+                                <circle cx={point.x + planet.visualRadius - 0.4} cy={point.y - planet.visualRadius + 0.5} r={3.7} fill="white" stroke="#F6D9D8" strokeWidth="0.56" />
+                                <text x={point.x + planet.visualRadius - 0.4} y={point.y - planet.visualRadius + 0.5} textAnchor="middle" dominantBaseline="middle" fill="#E53935" style={{ fontSize: 5.7, fontWeight: 700 }}>R</text>
+                              </>
+                            ) : null}
+
                             <circle
                               cx={point.x}
                               cy={point.y}
-                              r={planet.visualRadius + 4}
-                              fill="none"
-                              stroke={`${meta.color}40`}
-                              strokeWidth="3"
+                              r={PLANET_TOUCH_RADIUS}
+                              fill="transparent"
+                              data-planet-touch="true"
+                              onPointerDown={(event) => {
+                                event.stopPropagation();
+                                cancelHold();
+                              }}
+                              onPointerUp={(event) => {
+                                event.stopPropagation();
+                                activatePlanet(planet.key);
+                              }}
+                              style={{ cursor: 'pointer' }}
                             />
-                          ) : null}
+                          </g>
+                        );
+                      })}
+                    </svg>
+                  </div>
 
-                          <motion.circle
-                            cx={point.x}
-                            cy={point.y}
-                            r={planet.visualRadius}
-                            fill="rgba(255,255,255,0.98)"
-                            stroke={meta.color}
-                            strokeWidth={active ? 1.7 : 1.2}
-                            style={{ filter: 'drop-shadow(0 2px 7px rgba(6,18,42,0.18))' }}
-                            initial={introEnabled ? { opacity: 0, scale: 0.82 } : false}
-                            animate={{ opacity: 1, scale: active ? 1.04 : 1 }}
-                            transition={{
-                              duration: 0.28,
-                              ease: [0.22, 1, 0.36, 1],
-                              delay: introEnabled ? 0.38 + index * 0.055 : 0,
-                            }}
-                          />
+                  <motion.div
+                    aria-hidden
+                    className="pointer-events-none absolute left-1/2 top-1/2 h-[84px] w-[84px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,252,203,0.34),rgba(255,192,79,0.18)_46%,rgba(255,255,255,0)_74%)]"
+                    animate={shouldReduceMotion ? { opacity: 0.88, scale: 1 } : { opacity: [0.78, 0.95, 0.78], scale: [1, 1.032, 1] }}
+                    transition={shouldReduceMotion ? { duration: 0.18 } : { duration: 5.6, repeat: Number.POSITIVE_INFINITY, ease: 'easeInOut' }}
+                  />
 
-                          {renderPlanetIcon(planet.key, point.x, point.y, iconSize, meta.color)}
-
-                          {planet.retrograde ? (
-                            <>
-                              <circle
-                                cx={point.x + planet.visualRadius - 0.4}
-                                cy={point.y - planet.visualRadius + 0.5}
-                                r={4}
-                                fill="white"
-                                stroke="#F6D9D8"
-                                strokeWidth="0.6"
-                              />
-                              <text
-                                x={point.x + planet.visualRadius - 0.4}
-                                y={point.y - planet.visualRadius + 0.5}
-                                textAnchor="middle"
-                                dominantBaseline="middle"
-                                fill="#E53935"
-                                style={{ fontSize: 6, fontWeight: 700 }}
-                              >
-                                R
-                              </text>
-                            </>
-                          ) : null}
-
-                          {selectedPlanet === planet.key && planet.degree != null ? (
-                            <text
-                              x={polarPoint(planet.adjustedDeg, planet.displayRadius + PLANET_DEGREE_RADIUS_OFFSET).x}
-                              y={polarPoint(planet.adjustedDeg, planet.displayRadius + PLANET_DEGREE_RADIUS_OFFSET).y}
-                              textAnchor="middle"
-                              dominantBaseline="middle"
-                              fill="rgba(246,250,255,0.94)"
-                              style={{ fontSize: 7.1, fontWeight: 600 }}
-                            >
-                              {formatDegree(planet.degree)}
-                            </text>
-                          ) : null}
-
-                          <circle
-                            cx={point.x}
-                            cy={point.y}
-                            r={PLANET_TOUCH_RADIUS}
-                            fill="transparent"
-                            data-planet-touch="true"
-                            onPointerUp={(event) => {
-                              event.stopPropagation();
-                              activatePlanet(planet.key);
-                            }}
-                            style={{ cursor: 'pointer' }}
-                          />
-                        </g>
-                      );
-                    })}
+                  <svg viewBox={`0 0 ${WHEEL_VIEWBOX} ${WHEEL_VIEWBOX}`} className="pointer-events-none absolute inset-0 h-full w-full">
+                    <circle
+                      cx={WHEEL_CENTER}
+                      cy={WHEEL_CENTER}
+                      r={OUTER_RIM_RADIUS - 1.5}
+                      fill="none"
+                      stroke="rgba(123,94,167,0.36)"
+                      strokeWidth="2.2"
+                      strokeDasharray={holdCircumference}
+                      strokeDashoffset={holdCircumference * (1 - holdProgress)}
+                      strokeLinecap="round"
+                      opacity={isHolding || holdProgress > 0 ? 1 : 0}
+                      transform={`rotate(-90 ${WHEEL_CENTER} ${WHEEL_CENTER})`}
+                    />
                   </svg>
                 </motion.div>
-
-                <motion.div
-                  aria-hidden
-                  className="pointer-events-none absolute left-1/2 top-1/2 h-[72px] w-[72px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,250,193,0.35),rgba(255,205,95,0.18)_48%,rgba(255,255,255,0)_72%)]"
-                  animate={
-                    shouldReduceMotion
-                      ? { opacity: 0.82, scale: 1 }
-                      : { opacity: [0.78, 0.98, 0.78], scale: [1, 1.045, 1] }
-                  }
-                  transition={
-                    shouldReduceMotion
-                      ? { duration: 0.2 }
-                      : { duration: 5.4, repeat: Number.POSITIVE_INFINITY, ease: 'easeInOut' }
-                  }
-                />
               </div>
             </div>
           </div>
 
-          <div className="mx-auto mt-3 w-full max-w-[20rem] px-2">
+          <div className="mx-auto mt-3.5 w-full max-w-[20.5rem] px-1">
             <AnimatePresence mode="wait" initial={false}>
               {insightState.status === 'idle' || !selectedPlanet || !selectedPlanetMeta || !selectedPlanetData ? (
-                <motion.div
-                  key="idle"
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -4 }}
-                  transition={{ duration: 0.22 }}
-                  className="py-2 text-center"
-                >
-                  <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#F4F0FB]/75 text-[#7B5EA7]">
-                    <Sparkles className="h-4.5 w-4.5" strokeWidth={2.1} />
-                  </div>
-                  <p className="mx-auto max-w-[17rem] text-[14px] leading-[1.7] text-text-muted">{buildDefaultHint(language)}</p>
-                  <p className="mx-auto mt-3 max-w-[18rem] text-[12px] leading-relaxed text-text-muted/85">
-                    {buildPremiumMicrocopy(language, false, isPremium)}
-                  </p>
+                <motion.div key="idle" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.22 }} className="space-y-2.5 py-1 text-center">
+                  <p className="mx-auto max-w-[18rem] text-[14px] leading-[1.72] text-text-main/78">{buildIdleHint(language)}</p>
+                  <p className="mx-auto max-w-[18rem] text-[12px] leading-relaxed text-text-muted/78">{buildHoldHint(language)}</p>
                 </motion.div>
               ) : insightState.status === 'loading' ? (
-                <motion.div
-                  key="loading"
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -4 }}
-                  transition={{ duration: 0.22 }}
-                  className="py-2"
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="inline-flex h-10 w-10 items-center justify-center rounded-full border bg-white"
-                      style={{ borderColor: selectedPlanetMeta.color, color: selectedPlanetMeta.color }}
-                    >
-                      <PlanetSymbolIcon planet={selectedPlanet} width={20} height={20} stroke={selectedPlanetMeta.color} strokeWidth={1.9} />
+                <motion.div key="loading" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.22 }} className="space-y-3 py-1">
+                  <div className="flex items-center justify-center gap-3">
+                    <div className="inline-flex h-9.5 w-9.5 items-center justify-center rounded-full border bg-white" style={{ borderColor: selectedPlanetMeta.color, color: selectedPlanetMeta.color }}>
+                      <PlanetSymbolIcon planet={selectedPlanet} width={18} height={18} stroke={selectedPlanetMeta.color} strokeWidth={1.82} />
                     </div>
-                    <div>
-                      <p className="text-[17px] font-medium text-text-main">{selectedPlanetData.label}</p>
-                      <p className="text-[13px] text-[#7B5EA7]">{formatSignAndDegree(language, selectedPlanetData.sign, selectedPlanetData.degree)}</p>
+                    <div className="text-left">
+                      <p className="text-[16px] font-medium text-text-main">{selectedPlanetData.label}</p>
+                      <p className="text-[12.5px] text-[#7B5EA7]">{formatSignAndDegree(language, selectedPlanetData.sign, selectedPlanetData.degree)}</p>
                     </div>
                   </div>
-                  <div className="mt-4 flex items-center gap-2 text-[13px] text-text-muted">
-                    <span className="inline-flex h-4 w-4 animate-spin rounded-full border-2 border-black/[0.08] border-t-[#7B5EA7]" />
-                    {loadingInsightLabel(language)}
+                  <div className="mx-auto flex w-fit items-center gap-2 text-[12px] text-text-muted">
+                    <span className="inline-flex h-3.5 w-3.5 animate-spin rounded-full border-2 border-black/[0.08] border-t-[#7B5EA7]" />
+                    {language === 'en' ? 'Preparing your insight…' : 'Собираем твой инсайт…'}
                   </div>
-                  <div className="mt-3 space-y-2">
+                  <div className="mx-auto max-w-[18rem] space-y-2">
                     <div className="h-3 rounded-full bg-black/[0.04]" />
-                    <div className="h-3 w-[88%] rounded-full bg-black/[0.035]" />
-                    <div className="h-3 w-[71%] rounded-full bg-black/[0.03]" />
+                    <div className="h-3 w-[90%] rounded-full bg-black/[0.035]" />
+                    <div className="h-3 w-[73%] rounded-full bg-black/[0.03]" />
                   </div>
                 </motion.div>
               ) : (
-                <motion.div
-                  key={selectedPlanet}
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -4 }}
-                  transition={{ duration: 0.24 }}
-                  className="py-2"
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border bg-white"
-                      style={{ borderColor: selectedPlanetMeta.color, color: selectedPlanetMeta.color }}
-                    >
+                <motion.div key={selectedPlanet} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.24 }} className="space-y-3 py-1">
+                  <div className="flex items-center justify-center gap-3">
+                    <div className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border bg-white" style={{ borderColor: selectedPlanetMeta.color, color: selectedPlanetMeta.color }}>
                       <PlanetSymbolIcon planet={selectedPlanet} width={20} height={20} stroke={selectedPlanetMeta.color} strokeWidth={1.9} />
                     </div>
-                    <div className="min-w-0">
+                    <div className="min-w-0 text-left">
                       <p className="truncate text-[17px] font-medium text-text-main">{selectedInsight?.title}</p>
-                      <p className="text-[13px] text-[#7B5EA7]">
+                      <p className="text-[12.5px] text-[#7B5EA7]">
                         {selectedInsight ? formatSignAndDegree(language, selectedInsight.sign, selectedInsight.degree) : ''}
                         {selectedInsight?.house ? ` · ${language === 'en' ? `House ${selectedInsight.house}` : `${selectedInsight.house} дом`}` : ''}
                       </p>
                     </div>
                   </div>
 
-                  <p className="mt-4 text-[15px] leading-[1.72] text-text-main/86">
-                    {previewText(selectedInsight?.body || '')}
-                  </p>
-
-                  <p className="mt-3 text-[12px] leading-relaxed text-text-muted/85">{insightMicrocopy}</p>
-
-                  {insightState.isFallback && !insightState.previewOnly ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (selectedPlanet) void fetchInsightForPlanet(selectedPlanet);
-                      }}
-                      className="mt-2 inline-flex items-center gap-1 text-[12px] font-medium text-[#7B5EA7]"
-                    >
+                  <p className="mx-auto max-w-[18.5rem] text-center text-[14.5px] leading-[1.74] text-text-main/84">{previewText(selectedInsight?.body || '')}</p>
+                  <p className="mx-auto max-w-[18rem] text-center text-[12px] leading-relaxed text-text-muted/76">{buildHoldHint(language)}</p>
+                  {insightState.isFallback ? (
+                    <button type="button" onClick={() => { if (selectedPlanet) void fetchInsightForPlanet(selectedPlanet); }} className="mx-auto block text-[12px] font-medium text-[#7B5EA7]">
                       {language === 'en' ? 'Refresh this text' : 'Обновить этот текст'}
                     </button>
                   ) : null}

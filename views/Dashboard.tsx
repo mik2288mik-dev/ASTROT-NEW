@@ -23,7 +23,6 @@ interface DashboardProps {
   activeChartId?: number;
   onNavigate: (view: DashboardView) => void;
   onOpenSettings: () => void;
-  onRequestPremium: () => void;
 }
 
 const cleanDashboardText = (value?: string | null): string =>
@@ -46,9 +45,49 @@ const splitIntoDashboardSentences = (value: string): string[] =>
     .map((part) => cleanDashboardText(part))
     .filter(Boolean);
 
+const WavyTabLabel: React.FC<{
+  label: string;
+  active: boolean;
+  animateKey: number;
+  reduceMotion: boolean;
+}> = ({ label, active, animateKey, reduceMotion }) => {
+  const chars = Array.from(label);
+  const shouldWave = active && animateKey > 0 && !reduceMotion;
+
+  return (
+    <span
+      className={cn(
+        'inline-flex whitespace-nowrap text-center text-[12px] font-medium leading-tight tracking-[0.01em] sm:text-[13px]',
+        active ? 'text-text-main' : 'text-text-muted'
+      )}
+    >
+      {chars.map((char, index) => (
+        <motion.span
+          key={`${animateKey}-${index}-${char}`}
+          initial={false}
+          animate={shouldWave ? { y: [0, -3.5, 0], opacity: [0.92, 1, 0.92] } : { y: 0, opacity: 1 }}
+          transition={
+            shouldWave
+              ? {
+                  duration: 0.42,
+                  ease: [0.22, 1, 0.36, 1],
+                  delay: index * 0.028,
+                }
+              : { duration: 0.16 }
+          }
+          className="inline-block"
+        >
+          {char === ' ' ? '\u00A0' : char}
+        </motion.span>
+      ))}
+    </span>
+  );
+};
+
 export const Dashboard = memo<DashboardProps>(
-  ({ profile, chartData, activeChartId, onNavigate, onOpenSettings, onRequestPremium }) => {
+  ({ profile, chartData, activeChartId, onNavigate, onOpenSettings }) => {
     const [activeTab, setActiveTab] = useState<StudioTab>('natal');
+    const [tabWaveKey, setTabWaveKey] = useState(0);
     const [dailyReading, setDailyReading] = useState<ForecastDailyReading | null>(null);
     const [hasNatalHeroAnimated, setHasNatalHeroAnimated] = useState(false);
     const shouldReduceMotion = useReducedMotion();
@@ -297,20 +336,22 @@ export const Dashboard = memo<DashboardProps>(
                 <button
                   key={tab.id}
                   type="button"
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => {
+                    if (activeTab === tab.id) return;
+                    setActiveTab(tab.id);
+                    setTabWaveKey((current) => current + 1);
+                  }}
                   className={cn(
                     tabButtonClass,
                     activeTab === tab.id ? 'border-b border-black/85' : 'border-b border-transparent'
                   )}
                 >
-                  <span
-                    className={cn(
-                      'whitespace-nowrap text-center text-[12px] font-medium leading-tight tracking-[0.01em] sm:text-[13px]',
-                      activeTab === tab.id ? 'text-text-main' : 'text-text-muted'
-                    )}
-                  >
-                    {tab.label}
-                  </span>
+                  <WavyTabLabel
+                    label={tab.label}
+                    active={activeTab === tab.id}
+                    animateKey={activeTab === tab.id ? tabWaveKey : 0}
+                    reduceMotion={!!shouldReduceMotion}
+                  />
                 </button>
               ))}
             </div>
@@ -332,15 +373,14 @@ export const Dashboard = memo<DashboardProps>(
             >
               {activeTab === 'natal' && (
                 <section className="flex h-full min-h-0 flex-col px-1 pt-1">
-                  <div className="mx-auto flex h-full min-h-0 w-full max-w-[25.5rem] flex-col sm:max-w-[26rem]">
+                  <div className="mx-auto flex h-full min-h-0 w-full max-w-[26.5rem] flex-col sm:max-w-[27rem]">
                       <TrueNatalWheelHero
                         profile={profile}
                         chartData={chartData}
                         chartId={activeChartId}
-                        isPremium={profile.isPremium}
-                        onRequestPremium={onRequestPremium}
                         shouldAnimateIntro={!hasNatalHeroAnimated}
                         onIntroComplete={() => setHasNatalHeroAnimated(true)}
+                        onOpenChart={() => onNavigate('chart')}
                       />
                   </div>
                 </section>
