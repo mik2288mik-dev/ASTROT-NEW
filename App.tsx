@@ -737,7 +737,7 @@ const App: React.FC = () => {
 
     if (!profile || view === 'onboarding') {
         return (
-            <div className="relative isolate fixed inset-0 h-[100dvh] overflow-hidden bg-white">
+            <div className="relative isolate fixed inset-0 h-[100dvh] overflow-hidden">
                 <BackgroundLayers theme="dark" view="onboarding" />
                 <Onboarding onComplete={handleOnboardingComplete} />
             </div>

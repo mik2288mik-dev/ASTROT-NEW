@@ -12,7 +12,6 @@ import { getCachedDailyForecastLayer, mapLegacyHoroscopeToForecastDailyReading }
 import { LumiaStudioHeader } from '../components/lumia-ui/LumiaStudioHeader';
 import { LumiaButton } from '../components/lumia-ui/LumiaButton';
 import { TrueNatalWheelHero } from '../components/Dashboard/TrueNatalWheelHero';
-import { AuroraBackground } from '../components/ui/aurora-background';
 import { cn } from '../lib/cn';
 
 type DashboardView = Extract<ViewState, 'chart' | 'horoscope' | 'synastry' | 'oracle'>;
@@ -374,23 +373,16 @@ export const Dashboard = memo<DashboardProps>(
             >
               {activeTab === 'natal' && (
                 <section className="flex h-full min-h-0 flex-col px-1 pt-1">
-                  <AuroraBackground
-                    showRadialGradient={false}
-                    className="h-full min-h-0 justify-start overflow-hidden rounded-[32px] bg-transparent px-0 pb-0 pt-0 text-text-main dark:bg-transparent"
-                  >
-                    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_12%,rgba(255,255,255,0.72),rgba(255,255,255,0.18)_36%,rgba(255,255,255,0)_68%)]" />
-                    <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.55)_0%,rgba(255,255,255,0.16)_34%,rgba(255,255,255,0)_72%)]" />
-                    <div className="relative mx-auto flex h-full min-h-0 w-full max-w-[26.5rem] flex-col sm:max-w-[27rem]">
-                      <TrueNatalWheelHero
-                        profile={profile}
-                        chartData={chartData}
-                        chartId={activeChartId}
-                        shouldAnimateIntro={!hasNatalHeroAnimated}
-                        onIntroComplete={() => setHasNatalHeroAnimated(true)}
-                        onOpenChart={() => onNavigate('chart')}
-                      />
-                    </div>
-                  </AuroraBackground>
+                  <div className="relative mx-auto flex h-full min-h-0 w-full max-w-[26.5rem] flex-col sm:max-w-[27rem]">
+                    <TrueNatalWheelHero
+                      profile={profile}
+                      chartData={chartData}
+                      chartId={activeChartId}
+                      shouldAnimateIntro={!hasNatalHeroAnimated}
+                      onIntroComplete={() => setHasNatalHeroAnimated(true)}
+                      onOpenChart={() => onNavigate('chart')}
+                    />
+                  </div>
                 </section>
               )}
 
