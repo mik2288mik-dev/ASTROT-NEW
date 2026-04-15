@@ -1,6 +1,5 @@
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { getZodiacSign } from '../../constants';
 import type {
   Language,
   NatalAspectData,
@@ -39,9 +38,11 @@ const WHEEL_MEDALLION_SRC = '/brand/natal-wheel-luxe-medallion.svg';
 const PLANET_TOUCH_RADIUS = 24;
 const LEADER_LINE_TARGET_RADIUS = 98;
 const HOUSE_LABEL_RADIUS = 60;
-const ZODIAC_LABEL_RADIUS = 151;
-const ZODIAC_HIT_INNER_RADIUS = 114;
-const ZODIAC_HIT_OUTER_RADIUS = OUTER_RIM_RADIUS - 2;
+const OUTER_LABEL_OUTER_RADIUS = OUTER_RIM_RADIUS;
+const ZODIAC_BAND_INNER_RADIUS = 114;
+const ZODIAC_LABEL_RADIUS = 150.5;
+const ZODIAC_HIT_INNER_RADIUS = ZODIAC_BAND_INNER_RADIUS;
+const ZODIAC_HIT_OUTER_RADIUS = OUTER_LABEL_OUTER_RADIUS;
 const HOUSE_HIT_INNER_RADIUS = 28;
 const HOUSE_HIT_OUTER_RADIUS = HOUSE_RING_RADIUS - 2;
 const MAJOR_ASPECTS: NatalAspectData['type'][] = ['conjunction', 'opposition', 'square', 'trine', 'sextile'];
@@ -127,7 +128,7 @@ const angularDistance = (a: number, b: number) => {
 
 function buildIdleHint(language: Language) {
   return language === 'en'
-    ? 'Tap a planet, zodiac sign, aspect line, or house to see what it means in your chart.'
+    ? 'Tap a planet, zodiac sign, or aspect line to see what it means in your chart.'
     : 'Нажми на планету, знак, аспект или дом, чтобы увидеть, что именно он значит в твоей карте.';
 }
 
@@ -170,8 +171,8 @@ function getChipRadius(planet: NatalPlanetKey) {
   return 8.1;
 }
 
-function getZodiacLongLabel(language: Language, sign: ZodiacSign) {
-  return getZodiacSign(language, sign).toUpperCase();
+function getZodiacLongLabel(_language: Language, sign: ZodiacSign) {
+  return sign.toUpperCase();
 }
 
 function getZodiacFontSize(label: string) {

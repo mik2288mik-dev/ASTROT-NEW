@@ -1,3 +1,7 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
+const flattenColorPalette =
+  require('tailwindcss/lib/util/flattenColorPalette').default;
+
 /**
  * @type {import('tailwindcss').Config}
  * Phase 8 AIR UI: порядок экранов — docs/AIR_UI_ROLLOUT.md
@@ -11,6 +15,7 @@ module.exports = {
     './views/**/*.{js,ts,jsx,tsx,mdx}',
     './app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
@@ -55,6 +60,17 @@ module.exports = {
       },
       animation: {
         'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        aurora: 'aurora 60s linear infinite',
+      },
+      keyframes: {
+        aurora: {
+          from: {
+            backgroundPosition: '50% 50%, 50% 50%',
+          },
+          to: {
+            backgroundPosition: '350% 50%, 350% 50%',
+          },
+        },
       },
       spacing: {
         reading: '0.75em',
@@ -69,5 +85,16 @@ module.exports = {
       },
     },
   },
-  plugins: [],
+  plugins: [addVariablesForColors],
+}
+
+function addVariablesForColors({ addBase, theme }) {
+  const allColors = flattenColorPalette(theme('colors'));
+  const newVars = Object.fromEntries(
+    Object.entries(allColors).map(([key, value]) => [`--${key}`, value])
+  );
+
+  addBase({
+    ':root': newVars,
+  });
 }
