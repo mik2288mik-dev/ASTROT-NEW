@@ -739,7 +739,9 @@ const App: React.FC = () => {
         return (
             <div className="relative isolate fixed inset-0 h-[100dvh] overflow-hidden">
                 <BackgroundLayers theme="dark" view="onboarding" />
-                <Onboarding onComplete={handleOnboardingComplete} />
+                <div className="relative z-10 h-full">
+                    <Onboarding onComplete={handleOnboardingComplete} />
+                </div>
             </div>
         );
     }
@@ -761,7 +763,7 @@ const App: React.FC = () => {
                 onOpenWallet={() => openWallet(view)}
             />
             
-            <main className="lumia-tg-main-gutter flex-1 relative w-full max-w-md md:max-w-reading-wide mx-auto overflow-hidden min-h-0">
+            <main className="lumia-tg-main-gutter relative z-10 flex-1 w-full max-w-md md:max-w-reading-wide mx-auto overflow-hidden min-h-0">
                 {view === 'admin' ? (
                     <AdminPanel
                         profile={profile}
