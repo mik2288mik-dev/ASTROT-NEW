@@ -1,651 +1,496 @@
 import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
 import {
-    DailyHoroscope,
-    ForecastDailyReading,
-    ForecastDaypartReading,
-    ForecastDaypartSlot,
-    ForecastMonthlyReading,
-    ForecastWeeklyReading,
-    NatalChartData,
-    UserProfile,
+  DailyHoroscope,
+  ForecastDailyReading,
+  ForecastDaypartReading,
+  ForecastWeeklyReading,
+  NatalChartData,
+  UserProfile,
 } from '../types';
 import {
-    ensureMonthlyForecastLayer,
-    ensureWeeklyForecastLayer,
-    getCachedDailyForecastLayer,
-    getCachedFullDaypartForecast,
-    getCachedDailyHoroscope,
-    getDailyForecastLayer,
-    getDailyHoroscope,
-    getFullDaypartForecast,
-    mapForecastDailyToLegacyHoroscope,
-    mapLegacyHoroscopeToForecastDailyReading,
+  ensureWeeklyForecastLayer,
+  getCachedDailyForecastLayer,
+  getCachedDailyHoroscope,
+  getCachedFullDaypartForecast,
+  getCachedWeeklyForecastLayer,
+  getDailyForecastLayer,
+  getDailyHoroscope,
+  getFullDaypartForecast,
+  mapForecastDailyToLegacyHoroscope,
+  mapLegacyHoroscopeToForecastDailyReading,
 } from '../services/astrologyService';
 import { Loading } from '../components/ui/Loading';
-import { ZodiacHeader } from '../components/Horoscope/ZodiacHeader';
-import { HoroscopeContent } from '../components/Horoscope/HoroscopeContent';
-import { formatLumiaDate, getMoscowIsoWeekKey, getMoscowMonthKey, getMoscowTodayKey } from '../lib/date-utils';
-import { getText } from '../constants';
-import { FORECAST_FULL_DAY_LUMI_COST } from '../lib/forecastFullDay';
-import { READING_GLASS_SECTION_CLASS, READING_PAGE_CLASS } from '../components/layout/ReadingLayout';
+import { formatIsoWeekPeriodLabel, formatLumiaDate, getMoscowIsoWeekKey, getMoscowTodayKey } from '../lib/date-utils';
+import { getZodiacSign } from '../constants';
+import { READING_GLASS_SECTION_CLASS } from '../components/layout/ReadingLayout';
 import { ReadingScreenShell } from '../components/layout/ScreenShell';
 
 interface HoroscopeProps {
-    profile: UserProfile;
-    chartData: NatalChartData | null;
-    onUpdateProfile?: (profile: UserProfile) => void;
-    onOpenChart?: () => void;
+  profile: UserProfile;
+  chartData: NatalChartData | null;
+  onUpdateProfile?: (profile: UserProfile) => void;
+  onOpenChart?: () => void;
+  onRequestPremium?: () => void;
 }
 
-type HoroscopeApiError = Error & {
-    code?: string;
-    status?: number;
-    details?: any;
+const ZODIAC_DATES: Record<string, string> = {
+  Aries: '21.03 - 19.04',
+  Taurus: '20.04 - 20.05',
+  Gemini: '21.05 - 20.06',
+  Cancer: '21.06 - 22.07',
+  Leo: '23.07 - 22.08',
+  Virgo: '23.08 - 22.09',
+  Libra: '23.09 - 22.10',
+  Scorpio: '23.10 - 21.11',
+  Sagittarius: '22.11 - 21.12',
+  Capricorn: '22.12 - 19.01',
+  Aquarius: '20.01 - 18.02',
+  Pisces: '19.02 - 20.03',
 };
 
-type FullDayAccess = 'premium' | 'lumi' | 'locked';
-
-const DAYPART_SLOTS: ForecastDaypartSlot[] = ['morning', 'day', 'evening'];
-
-const getPersistNotice = (language: string) =>
-    getText(language as 'ru' | 'en', 'horoscope.persist_notice');
-
-const getStaleNotice = (language: string) =>
-    getText(language as 'ru' | 'en', 'horoscope.stale_notice');
-
-const getFallbackError = (language: string) =>
-    getText(language as 'ru' | 'en', 'horoscope.fallback_error');
-
-function getFullDayStatusMessage(language: string, error: HoroscopeApiError | null | undefined) {
-    if (!error) return getFallbackError(language);
-
-    switch (error.code) {
-        case 'LUMI_REQUIRED':
-            return getText(language as 'ru' | 'en', 'horoscope.error_lumi_required').replace('{cost}', String(FORECAST_FULL_DAY_LUMI_COST));
-        case 'INSUFFICIENT_LUMI':
-            return getText(language as 'ru' | 'en', 'horoscope.error_insufficient_lumi');
-        case 'LUMI_CONSENT_REQUIRED':
-            return getText(language as 'ru' | 'en', 'horoscope.error_lumi_consent');
-        case 'FULL_DAY_LOCKED':
-            return getText(language as 'ru' | 'en', 'horoscope.premium_body');
-        default:
-            return error.message || getFallbackError(language);
-    }
+function buildDailyFallback(
+  language: 'ru' | 'en',
+  sign: string,
+  dateKey: string
+): ForecastDailyReading {
+  const signLabel = getZodiacSign(language, sign);
+  return language === 'ru'
+    ? {
+        date: dateKey,
+        headline: 'День просит меньше суеты и больше внутренней собранности',
+        summary: `Сегодня для знака ${signLabel} полезнее держаться простого ритма и не разбрасываться на всё сразу.`,
+        chance: 'Один точный шаг сегодня даст больше, чем несколько поспешных решений.',
+        risk: 'Лишняя спешка и перегрузка мелкими задачами быстро забирают ясность.',
+        focus: 'Собери день вокруг одного действительно важного приоритета.',
+        reading:
+          'Сегодня лучше не пытаться выиграть у дня скоростью. Намного полезнее заметить, где тебе уже нужна внутренняя опора, и сохранить ритм без лишнего давления на себя.',
+        context:
+          'Общий фон дня усиливает чувствительность к перегрузке, поэтому спокойный фокус будет работать сильнее, чем резкий разгон.',
+        advice: [
+          'Не перегружай первую половину дня лишними решениями.',
+          'Оставь место для одного важного разговора или точного шага.',
+          'Не требуй от себя мгновенного результата там, где важнее устойчивость.',
+        ],
+      }
+    : {
+        date: dateKey,
+        headline: 'The day asks for less noise and more inner steadiness',
+        summary: `For ${signLabel} today works better through a simple rhythm than through rush.`,
+        chance: 'One clear step will do more than several rushed decisions.',
+        risk: 'Too much speed and scattered attention can quickly drain clarity.',
+        focus: 'Build the day around one priority that truly matters.',
+        reading:
+          'Today is not about trying to outrun the day. It is more useful to notice where you need an inner anchor and protect your rhythm without extra pressure.',
+        context:
+          'The overall tone amplifies sensitivity to overload, so calm focus works better than acceleration.',
+        advice: [
+          'Do not overload the first half of the day with extra decisions.',
+          'Leave room for one meaningful conversation or precise step.',
+          'Do not demand instant results where steadiness matters more.',
+        ],
+      };
 }
 
-function isValidHoroscopeForToday(cached: DailyHoroscope | null | undefined, today: string): cached is DailyHoroscope {
-    if (!cached?.content || cached.content.length === 0) return false;
-    if (cached.date === today) return true;
-    if (!cached.date) return true;
-    return false;
+function buildEveningFallback(language: 'ru' | 'en', dateKey: string): ForecastDaypartReading {
+  return language === 'ru'
+    ? {
+        date: dateKey,
+        slot: 'evening',
+        headline: 'Вечер лучше проживать спокойнее и честнее',
+        summary: 'К вечеру полезнее снижать шум и возвращаться к себе, а не добивать день новыми задачами.',
+        focus: 'Посмотри не только на события дня, но и на то, что они в тебе подняли.',
+        relationships: 'Близость вечером строится через честное присутствие, а не через правильные формулировки.',
+        money: 'Поздние решения лучше не принимать на усталости: вечер скорее для сверки, чем для резких разворотов.',
+        guidance: 'Заверши день мягко и без лишнего давления на себя.',
+      }
+    : {
+        date: dateKey,
+        slot: 'evening',
+        headline: 'Evening works better through quiet and honesty',
+        summary: 'By evening, lowering the noise helps more than adding new tasks.',
+        focus: 'Notice not only what happened today, but what it stirred in you.',
+        relationships: 'Closeness at night grows through honest presence rather than perfect wording.',
+        money: 'Late decisions are better not made from fatigue; evening is more for review than for hard turns.',
+        guidance: 'Close the day gently and without extra pressure on yourself.',
+      };
 }
 
-function getLegacyStatusMessage(language: string, legacy: DailyHoroscope | null | undefined) {
-    if (!legacy) return null;
-    if (legacy.persisted === false || legacy.code === 'DAILY_PERSIST_FAILED') {
-        return getPersistNotice(language);
-    }
-    return legacy.message || null;
+function buildWeeklyFallback(
+  language: 'ru' | 'en',
+  periodKey: string,
+  periodLabel: string
+): ForecastWeeklyReading {
+  return language === 'ru'
+    ? {
+        periodKey,
+        periodLabel,
+        headline: 'Неделя просит ясности и ровного шага',
+        summary: 'Сейчас полезнее держать фокус на главном и не распылять силы на второстепенное.',
+        focus: 'Выбери одну опорную линию на неделю и поддерживай её спокойной дисциплиной.',
+      }
+    : {
+        periodKey,
+        periodLabel,
+        headline: 'This week rewards clarity and steady pacing',
+        summary: 'It helps to protect your focus and avoid spending energy on side noise.',
+        focus: 'Pick one meaningful line for the week and support it with calm consistency.',
+      };
 }
 
-export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdateProfile, onOpenChart }) => {
+function Section({
+  label,
+  title,
+  intro,
+  children,
+}: {
+  label: string;
+  title: string;
+  intro?: string | null;
+  children?: React.ReactNode;
+}) {
+  return (
+    <section className={READING_GLASS_SECTION_CLASS}>
+      <p className="lumia-label tracking-[0.2em]">{label}</p>
+      <h2 className="mt-2 font-serif text-[1.9rem] leading-tight text-astro-text sm:text-[2.1rem]">
+        {title}
+      </h2>
+      {intro ? (
+        <p className="lumia-reading-intro lumia-muted mt-3 max-w-reading-wide">
+          {intro}
+        </p>
+      ) : null}
+      {children ? <div className="mt-5">{children}</div> : null}
+    </section>
+  );
+}
+
+function DetailLine({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="border-b border-astro-border/10 pb-4 last:border-b-0 last:pb-0">
+      <p className="lumia-label text-[10px] tracking-[0.16em]">{label}</p>
+      <p className="mt-1.5 text-[15px] leading-relaxed text-astro-text sm:text-base">{value}</p>
+    </div>
+  );
+}
+
+export const Horoscope = memo<HoroscopeProps>(
+  ({ profile, chartData, onUpdateProfile, onOpenChart, onRequestPremium }) => {
     const profileRef = useRef(profile);
     profileRef.current = profile;
 
+    const language = useMemo(() => (profile.language === 'en' ? 'en' : 'ru'), [profile.language]);
     const today = getMoscowTodayKey();
-    const language = useMemo(() => profile.language, [profile.language]);
-    const sunSign = useMemo(() => chartData?.sun?.sign || 'Aries', [chartData?.sun?.sign]);
-
-    const [dailyReading, setDailyReading] = useState<ForecastDailyReading | null>(() => {
-        const cached = profile.generatedContent?.dailyHoroscope;
-        if (!isValidHoroscopeForToday(cached, today)) return null;
-        return mapLegacyHoroscopeToForecastDailyReading(cached, language);
-    });
-    const [dayparts, setDayparts] = useState<Partial<Record<ForecastDaypartSlot, ForecastDaypartReading>>>({});
-    const [loading, setLoading] = useState(() => !isValidHoroscopeForToday(profile.generatedContent?.dailyHoroscope, today));
-    const [daypartsLoading, setDaypartsLoading] = useState(false);
-    const [statusMessage, setStatusMessage] = useState<string | null>(null);
-    const [daypartsStatus, setDaypartsStatus] = useState<string | null>(null);
-    const [fullDayAccess, setFullDayAccess] = useState<FullDayAccess>(() => (profile.isPremium ? 'premium' : 'locked'));
-    const [isStale, setIsStale] = useState(false);
-    const [weeklyReading, setWeeklyReading] = useState<ForecastWeeklyReading | null>(null);
-    const [monthlyReading, setMonthlyReading] = useState<ForecastMonthlyReading | null>(null);
-    const [periodLoading, setPeriodLoading] = useState(false);
-    const [periodError, setPeriodError] = useState<string | null>(null);
-
     const weekKey = getMoscowIsoWeekKey();
-    const monthKey = getMoscowMonthKey();
+    const sunSign = chartData?.sun?.sign || 'Aries';
+    const zodiacLabel = getZodiacSign(language, sunSign);
+    const zodiacDates = ZODIAC_DATES[sunSign] || '';
 
-    const syncBalance = (balance?: number) => {
-        if (typeof balance !== 'number' || !onUpdateProfile) return;
-        if ((profileRef.current.lumiBalance ?? 0) === balance) return;
-        onUpdateProfile({ ...profileRef.current, lumiBalance: balance });
-    };
+    const dailyFallback = useMemo(
+      () => buildDailyFallback(language, sunSign, today),
+      [language, sunSign, today]
+    );
+    const eveningFallback = useMemo(
+      () => buildEveningFallback(language, today),
+      [language, today]
+    );
+    const weeklyFallback = useMemo(
+      () => buildWeeklyFallback(language, weekKey, formatIsoWeekPeriodLabel(weekKey, language)),
+      [language, weekKey]
+    );
+
+    const [dailyReading, setDailyReading] = useState<ForecastDailyReading>(dailyFallback);
+    const [eveningReading, setEveningReading] = useState<ForecastDaypartReading | null>(
+      profile.isPremium ? eveningFallback : null
+    );
+    const [weeklyReading, setWeeklyReading] = useState<ForecastWeeklyReading | null>(
+      profile.isPremium ? weeklyFallback : null
+    );
 
     const syncLegacyIntoProfile = (legacy: DailyHoroscope) => {
-        if (!onUpdateProfile) return;
+      if (!onUpdateProfile) return;
 
-        const current = profileRef.current;
-        const nextProfile = { ...current };
-        if (!nextProfile.generatedContent) {
-            nextProfile.generatedContent = { timestamps: {} };
-        } else {
-            nextProfile.generatedContent = { ...nextProfile.generatedContent };
-        }
+      const current = profileRef.current;
+      const nextProfile = { ...current };
+      if (!nextProfile.generatedContent) {
+        nextProfile.generatedContent = { timestamps: {} };
+      } else {
+        nextProfile.generatedContent = { ...nextProfile.generatedContent };
+      }
 
-        nextProfile.generatedContent.dailyHoroscope = legacy;
-        nextProfile.generatedContent.timestamps = {
-            ...(nextProfile.generatedContent.timestamps || {}),
-            dailyHoroscopeGenerated: Date.now(),
-        };
-        onUpdateProfile(nextProfile);
-    };
-
-    const applyLegacyForecast = (
-        raw: DailyHoroscope,
-        options?: {
-            syncProfile?: boolean;
-            stale?: boolean;
-            statusMessage?: string | null;
-        }
-    ) => {
-        const normalized = { ...raw, date: raw.date || today };
-        setDailyReading(mapLegacyHoroscopeToForecastDailyReading(normalized, language));
-        setIsStale(Boolean(options?.stale));
-        setStatusMessage(options?.statusMessage ?? getLegacyStatusMessage(language, normalized));
-        setLoading(false);
-
-        if (options?.syncProfile) {
-            syncLegacyIntoProfile(normalized);
-        }
+      nextProfile.generatedContent.dailyHoroscope = legacy;
+      nextProfile.generatedContent.timestamps = {
+        ...(nextProfile.generatedContent.timestamps || {}),
+        dailyHoroscopeGenerated: Date.now(),
+      };
+      onUpdateProfile(nextProfile);
     };
 
     const applyDailyForecast = (
-        reading: ForecastDailyReading,
-        options?: {
-            syncProfile?: boolean;
-            source?: string;
-            statusMessage?: string | null;
-        }
+      reading: ForecastDailyReading,
+      options?: { syncProfile?: boolean; source?: string }
     ) => {
-        const normalized = mapForecastDailyToLegacyHoroscope(reading, {
+      setDailyReading(reading);
+
+      if (options?.syncProfile) {
+        syncLegacyIntoProfile(
+          mapForecastDailyToLegacyHoroscope(reading, {
             source: options?.source,
             persisted: true,
-            message: options?.statusMessage || undefined,
-        });
-
-        setDailyReading(reading);
-        setIsStale(false);
-        setStatusMessage(options?.statusMessage || null);
-        setLoading(false);
-
-        if (options?.syncProfile) {
-            syncLegacyIntoProfile(normalized);
-        }
+          })
+        );
+      }
     };
 
     useEffect(() => {
-        const cached = profile.generatedContent?.dailyHoroscope;
-        if (isValidHoroscopeForToday(cached, today)) {
-            applyLegacyForecast(cached, { syncProfile: false });
-        }
-    }, [language, profile.generatedContent?.dailyHoroscope, today]);
+      setDailyReading(dailyFallback);
+      setEveningReading(profile.isPremium ? eveningFallback : null);
+      setWeeklyReading(profile.isPremium ? weeklyFallback : null);
+    }, [dailyFallback, eveningFallback, profile.isPremium, weeklyFallback]);
 
     useEffect(() => {
-        let cancelled = false;
+      let cancelled = false;
 
-        const loadHoroscope = async () => {
-            if (!chartData) {
-                if (!cancelled) {
-                    setDailyReading(null);
-                    setStatusMessage(null);
-                    setLoading(false);
-                }
-                return;
-            }
+      const loadDaily = async () => {
+        if (!chartData) return;
 
-            const cachedLegacy = profile.generatedContent?.dailyHoroscope;
-            if (isValidHoroscopeForToday(cachedLegacy, today)) {
-                if (!cancelled) {
-                    applyLegacyForecast(cachedLegacy, { syncProfile: false });
-                }
-                return;
-            }
+        const legacy = profile.generatedContent?.dailyHoroscope;
+        if (legacy?.content?.length) {
+          setDailyReading(mapLegacyHoroscopeToForecastDailyReading(legacy, language));
+        }
 
-            try {
-                const cachedReading = await getCachedDailyForecastLayer(String(profile.id));
-                if (cancelled) return;
-                if (cachedReading) {
-                    applyDailyForecast(cachedReading, { syncProfile: true, source: 'cache' });
-                    return;
-                }
-            } catch {
-                // fallback below
-            }
+        try {
+          const cached = await getCachedDailyForecastLayer(String(profile.id));
+          if (cancelled) return;
+          if (cached) {
+            applyDailyForecast(cached, { syncProfile: true, source: 'cache' });
+            return;
+          }
+        } catch {}
 
-            try {
-                const cachedLegacyFromApi = await getCachedDailyHoroscope(
-                    String(profile.id),
-                    profile.language === 'en' ? 'en' : 'ru'
-                );
-                if (cancelled) return;
-                if (cachedLegacyFromApi?.content && cachedLegacyFromApi.content.length > 0) {
-                    applyLegacyForecast(cachedLegacyFromApi, { syncProfile: true });
-                    return;
-                }
-            } catch {
-                // fallback below
-            }
+        try {
+          const cachedLegacy = await getCachedDailyHoroscope(String(profile.id), language);
+          if (cancelled) return;
+          if (cachedLegacy?.content?.length) {
+            const mapped = mapLegacyHoroscopeToForecastDailyReading(cachedLegacy, language);
+            setDailyReading(mapped);
+            syncLegacyIntoProfile(cachedLegacy);
+            return;
+          }
+        } catch {}
 
+        try {
+          const generated = await getDailyForecastLayer(profileRef.current, chartData);
+          if (cancelled) return;
+          applyDailyForecast(generated, { syncProfile: true, source: 'generated' });
+          return;
+        } catch {}
+
+        try {
+          const legacyGenerated = await getDailyHoroscope(profileRef.current, chartData);
+          if (cancelled) return;
+          const mapped = mapLegacyHoroscopeToForecastDailyReading(legacyGenerated, language);
+          setDailyReading(mapped);
+          syncLegacyIntoProfile(legacyGenerated);
+        } catch {}
+      };
+
+      void loadDaily();
+
+      return () => {
+        cancelled = true;
+      };
+    }, [chartData, language, profile.generatedContent?.dailyHoroscope, profile.id]);
+
+    useEffect(() => {
+      let cancelled = false;
+
+      const loadPremiumLayers = async () => {
+        if (!chartData || !profile.isPremium) return;
+
+        try {
+          const cachedEvening = await getCachedFullDaypartForecast(String(profile.id), 'evening', {
+            accessTier: 'premium',
+            dateKey: today,
+          });
+          if (cancelled) return;
+
+          if (cachedEvening) {
+            setEveningReading(cachedEvening);
+          } else {
+            const generatedEvening = await getFullDaypartForecast(profileRef.current, chartData, 'evening', {
+              accessTier: 'premium',
+            });
             if (!cancelled) {
-                setLoading(true);
-                setStatusMessage(null);
-                setIsStale(false);
+              setEveningReading(generatedEvening.reading);
             }
+          }
+        } catch {}
 
-            let lastError: HoroscopeApiError | null = null;
+        try {
+          const cachedWeekly = await getCachedWeeklyForecastLayer(String(profile.id), undefined, weekKey);
+          if (cancelled) return;
 
-            try {
-                const reading = await getDailyForecastLayer(profileRef.current, chartData);
-                if (cancelled) return;
-                applyDailyForecast(reading, { syncProfile: true, source: 'generated' });
-                return;
-            } catch (error: any) {
-                lastError = error as HoroscopeApiError;
+          if (cachedWeekly) {
+            setWeeklyReading(cachedWeekly);
+          } else {
+            const generatedWeekly = await ensureWeeklyForecastLayer(profileRef.current, chartData, weekKey);
+            if (!cancelled) {
+              setWeeklyReading(generatedWeekly);
             }
+          }
+        } catch {}
+      };
 
-            try {
-                const legacy = await getDailyHoroscope(profileRef.current, chartData);
-                if (cancelled) return;
-                applyLegacyForecast(legacy, { syncProfile: true });
-                return;
-            } catch (error: any) {
-                lastError = error as HoroscopeApiError;
-            }
+      void loadPremiumLayers();
 
-            if (cancelled) return;
+      return () => {
+        cancelled = true;
+      };
+    }, [chartData, profile.id, profile.isPremium, today, weekKey]);
 
-            const fallback = profileRef.current.generatedContent?.dailyHoroscope;
-            if (fallback?.content) {
-                const stale = fallback.date !== today;
-                applyLegacyForecast(fallback, {
-                    syncProfile: false,
-                    stale,
-                    statusMessage: lastError?.message || (stale ? getStaleNotice(language) : null),
-                });
-                return;
-            }
-
-            setDailyReading(null);
-            setStatusMessage(lastError?.message || getFallbackError(language));
-            setLoading(false);
-        };
-
-        void loadHoroscope();
-
-        return () => {
-            cancelled = true;
-        };
-    }, [chartData, language, profile.id, today]);
-
-    useEffect(() => {
-        if (profile.isPremium) {
-            setFullDayAccess('premium');
-        }
-    }, [profile.isPremium]);
-
-    useEffect(() => {
-        let cancelled = false;
-
-        const detectLumiFullDay = async () => {
-            if (!chartData || !profile.id || profile.isPremium) {
-                if (!cancelled && !profile.isPremium) {
-                    setFullDayAccess('locked');
-                }
-                return;
-            }
-
-            try {
-                const morning = await getCachedFullDaypartForecast(String(profile.id), 'morning', {
-                    accessTier: 'lumi',
-                    dateKey: today,
-                });
-                if (!cancelled) {
-                    setFullDayAccess(morning ? 'lumi' : 'locked');
-                }
-            } catch (error: any) {
-                if (cancelled) return;
-                const apiError = error as HoroscopeApiError;
-                if (apiError.code === 'FULL_DAY_LOCKED' || apiError.status === 403 || apiError.status === 404) {
-                    setFullDayAccess('locked');
-                    return;
-                }
-                setDaypartsStatus(getFullDayStatusMessage(language, apiError));
-            }
-        };
-
-        void detectLumiFullDay();
-
-        return () => {
-            cancelled = true;
-        };
-    }, [chartData, language, profile.id, profile.isPremium, today]);
-
-    useEffect(() => {
-        let cancelled = false;
-
-        const loadDayparts = async () => {
-            if (!chartData || fullDayAccess === 'locked') {
-                if (!cancelled) {
-                    setDayparts({});
-                    setDaypartsLoading(false);
-                    setDaypartsStatus(null);
-                }
-                return;
-            }
-
-            setDaypartsStatus(null);
-
-            const userId = String(profile.id);
-            const accessTier = fullDayAccess === 'premium' ? 'premium' : 'lumi';
-            const cachedPairs = await Promise.all(
-                DAYPART_SLOTS.map(async (slot) => {
-                    try {
-                        const reading = await getCachedFullDaypartForecast(userId, slot, { accessTier, dateKey: today });
-                        return [slot, reading] as const;
-                    } catch (error: any) {
-                        const apiError = error as HoroscopeApiError;
-                        if (apiError.code === 'FULL_DAY_LOCKED' || apiError.status === 403 || apiError.status === 404) {
-                            return [slot, null] as const;
-                        }
-                        throw error;
-                    }
-                })
-            );
-
-            if (cancelled) return;
-
-            const next: Partial<Record<ForecastDaypartSlot, ForecastDaypartReading>> = {};
-            const slotsToGenerate: ForecastDaypartSlot[] = [];
-
-            for (const [slot, reading] of cachedPairs) {
-                if (reading) {
-                    next[slot] = reading;
-                } else {
-                    slotsToGenerate.push(slot);
-                }
-            }
-
-            setDayparts(next);
-
-            if (slotsToGenerate.length === 0) {
-                setDaypartsLoading(false);
-                setDaypartsStatus(null);
-                return;
-            }
-
-            setDaypartsLoading(true);
-
-            const results = await Promise.allSettled(
-                slotsToGenerate.map(async (slot) => {
-                    const result = await getFullDaypartForecast(profileRef.current, chartData, slot, { accessTier });
-                    return [slot, result.reading, result.lumiBalance] as const;
-                })
-            );
-
-            if (cancelled) return;
-
-            const merged: Partial<Record<ForecastDaypartSlot, ForecastDaypartReading>> = { ...next };
-            const failures: string[] = [];
-            let nextBalance: number | undefined;
-
-            for (const result of results) {
-                if (result.status === 'fulfilled') {
-                    const [slot, reading, lumiBalance] = result.value;
-                    merged[slot] = reading;
-                    if (typeof lumiBalance === 'number') {
-                        nextBalance = lumiBalance;
-                    }
-                } else {
-                    const apiError = result.reason as HoroscopeApiError;
-                    failures.push(getFullDayStatusMessage(language, apiError));
-                }
-            }
-
-            setDayparts(merged);
-            setDaypartsLoading(false);
-            if (typeof nextBalance === 'number') {
-                syncBalance(nextBalance);
-            }
-            setDaypartsStatus(
-                DAYPART_SLOTS.some((s) => merged[s]) ? null : failures[0] || getFallbackError(language)
-            );
-        };
-
-        void loadDayparts();
-
-        return () => {
-            cancelled = true;
-        };
-    }, [chartData, fullDayAccess, language, profile.id, syncBalance, today]);
-
-    useEffect(() => {
-        let cancelled = false;
-
-        const loadPeriodLayers = async () => {
-            if (!chartData || !profile.id) {
-                if (!cancelled) {
-                    setWeeklyReading(null);
-                    setMonthlyReading(null);
-                    setPeriodLoading(false);
-                    setPeriodError(null);
-                }
-                return;
-            }
-
-            setPeriodLoading(true);
-            setPeriodError(null);
-
-            try {
-                const [w, m] = await Promise.all([
-                    ensureWeeklyForecastLayer(profileRef.current, chartData, weekKey),
-                    ensureMonthlyForecastLayer(profileRef.current, chartData, monthKey),
-                ]);
-                if (!cancelled) {
-                    setWeeklyReading(w);
-                    setMonthlyReading(m);
-                }
-            } catch (e: any) {
-                if (!cancelled) {
-                    setPeriodError(e?.message || getText(language, 'horoscope.period_error'));
-                    setWeeklyReading(null);
-                    setMonthlyReading(null);
-                }
-            } finally {
-                if (!cancelled) setPeriodLoading(false);
-            }
-        };
-
-        void loadPeriodLayers();
-
-        return () => {
-            cancelled = true;
-        };
-    }, [chartData, language, monthKey, profile.id, profile.isPremium, weekKey]);
-
-    if (loading) {
-        return <Loading message={getText(language, 'horoscope.loading')} />;
+    if (!chartData) {
+      return <Loading />;
     }
 
-    if (!dailyReading || !chartData) {
-        return (
-            <div className={`flex min-h-full items-center justify-center py-8 ${READING_PAGE_CLASS}`}>
-                <div className="w-full text-center">
-                    <p className="lumia-label tracking-[0.2em]">{getText(language, 'horoscope.today_layer_label')}</p>
-                    <h1 className="mt-2 font-serif text-xl text-astro-text sm:text-2xl">
-                        {getText(language, 'horoscope.empty_title')}
-                    </h1>
-                    <p className="lumia-muted mt-2 text-sm leading-relaxed">
-                        {statusMessage || getText(language, 'horoscope.empty_body')}
-                    </p>
-                    {onOpenChart && (
-                        <button
-                            type="button"
-                            onClick={onOpenChart}
-                            className="mt-4 inline-flex items-center px-0 py-1 text-sm font-medium text-astro-highlight underline underline-offset-4 transition-opacity hover:opacity-70"
-                        >
-                            {getText(language, 'horoscope.empty_cta')}
-                        </button>
-                    )}
-                </div>
-            </div>
-        );
-    }
+    const quietCta =
+      profile.isPremium && onOpenChart
+        ? {
+            label: language === 'en' ? 'Open your chart' : 'К карте',
+            onClick: onOpenChart,
+          }
+        : !profile.isPremium && onRequestPremium
+          ? {
+              label: language === 'en' ? 'Open your personal layer' : 'Открыть личный слой',
+              onClick: onRequestPremium,
+            }
+          : null;
 
     return (
-        <ReadingScreenShell>
-            <section className="border-t-0 px-0 py-1 sm:py-1.5">
-                <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                        <p className="lumia-label tracking-[0.2em]">{getText(language, 'horoscope.today_layer_label')}</p>
-                        <h1 className="mt-1.5 font-serif text-xl text-astro-text sm:text-2xl">
-                            {getText(language, 'horoscope.title')}
-                        </h1>
-                    </div>
-                    {dailyReading.date && (
-                        <span className="shrink-0 text-[11px] uppercase tracking-[0.14em] text-astro-subtext">
-                            {formatLumiaDate(dailyReading.date, language)}
-                        </span>
-                    )}
-                </div>
+      <ReadingScreenShell className="pb-8">
+        <section className="border-t-0 pt-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="lumia-label tracking-[0.2em]">
+                {language === 'en' ? 'Horoscope' : 'Гороскоп'}
+              </p>
+              <h1 className="mt-2 font-serif text-[2rem] leading-tight text-astro-text sm:text-[2.2rem]">
+                {language === 'en' ? 'Your day by sign' : 'Твой день по знаку'}
+              </h1>
+            </div>
+            <span className="shrink-0 text-[11px] uppercase tracking-[0.14em] text-astro-subtext">
+              {formatLumiaDate(today, language)}
+            </span>
+          </div>
 
-                <div className="mt-4">
-                    <ZodiacHeader sunSign={sunSign} language={language} />
-                </div>
+          <div className="mt-5 border-t border-astro-border/10 pt-4">
+            <p className="lumia-label text-[10px] tracking-[0.16em]">
+              {language === 'en' ? 'Sun sign' : 'Солнце'}
+            </p>
+            <p className="mt-1 text-xl font-semibold text-astro-text sm:text-2xl">{zodiacLabel}</p>
+            <p className="mt-1 text-sm text-astro-subtext">{zodiacDates}</p>
+          </div>
+        </section>
 
-                {statusMessage && (
-                    <div
-                        className={`mt-3 border-t px-0 py-2.5 text-xs leading-relaxed ${
-                            isStale
-                                ? 'border-astro-border/12 lumia-muted'
-                                : 'border-astro-highlight/20 text-astro-text'
-                        }`}
-                    >
-                        {statusMessage}
-                    </div>
-                )}
-            </section>
+        {profile.isPremium ? (
+          <Section
+            label={language === 'en' ? 'Personal forecast' : 'Личный прогноз на сегодня'}
+            title={dailyReading.focus}
+            intro={dailyReading.summary}
+          >
+            <p className="text-[15px] leading-relaxed text-astro-text sm:text-base">{dailyReading.context}</p>
+          </Section>
+        ) : null}
 
-            <HoroscopeContent
-                reading={dailyReading}
-                language={language}
+        <Section
+          label={language === 'en' ? 'General rhythm of the day' : 'Общий ритм дня'}
+          title={dailyReading.headline}
+          intro={dailyReading.summary}
+        >
+          <p className="text-[15px] leading-relaxed text-astro-text sm:text-base">{dailyReading.reading}</p>
+        </Section>
+
+        <section className={READING_GLASS_SECTION_CLASS}>
+          <p className="lumia-label tracking-[0.2em]">
+            {language === 'en' ? 'What matters today' : 'Что важно сегодня'}
+          </p>
+          <div className="mt-4 space-y-4">
+            <DetailLine
+              label={language === 'en' ? 'Chance of the day' : 'Шанс дня'}
+              value={dailyReading.chance}
             />
+            <DetailLine
+              label={language === 'en' ? 'Risk of the day' : 'Риск дня'}
+              value={dailyReading.risk}
+            />
+            <DetailLine
+              label={language === 'en' ? 'Focus of the day' : 'Фокус дня'}
+              value={dailyReading.focus}
+            />
+          </div>
+        </section>
 
-            <section className={READING_GLASS_SECTION_CLASS}>
-                <p className="lumia-label tracking-[0.2em]">
-                    {getText(language, fullDayAccess === 'locked' ? 'horoscope.premium_label' : 'horoscope.dayparts_label')}
-                </p>
-                <h2 className="mt-1.5 font-serif text-lg text-astro-text sm:text-xl">
-                    {getText(language, fullDayAccess === 'locked' ? 'horoscope.premium_title' : 'horoscope.dayparts_title')}
-                </h2>
+        {profile.isPremium && eveningReading ? (
+          <Section
+            label={language === 'en' ? 'Evening' : 'Вечер'}
+            title={eveningReading.headline}
+            intro={eveningReading.summary}
+          >
+            <div className="space-y-4">
+              <DetailLine
+                label={language === 'en' ? 'Main tone' : 'Главный акцент'}
+                value={eveningReading.focus}
+              />
+              <DetailLine
+                label={language === 'en' ? 'Relationships' : 'Отношения'}
+                value={eveningReading.relationships}
+              />
+              <DetailLine
+                label={language === 'en' ? 'Guidance' : 'Как пройти вечер'}
+                value={eveningReading.guidance}
+              />
+            </div>
+          </Section>
+        ) : null}
 
-                {fullDayAccess === 'locked' ? (
-                    <div className="mt-4 border-t border-astro-border/10 pt-4">
-                        <p className="text-sm leading-relaxed text-astro-text/82">
-                            {getText(language, 'horoscope.premium_body')}
-                        </p>
-                    </div>
-                ) : (
-                    <div className="mt-4 space-y-5">
-                        {daypartsLoading ? (
-                            <p className="border-t border-astro-border/10 pt-4 text-sm leading-relaxed text-astro-subtext">
-                                {getText(language, 'horoscope.dayparts_loading')}
-                            </p>
-                        ) : null}
+        {profile.isPremium && weeklyReading ? (
+          <Section
+            label={language === 'en' ? 'Week' : 'Неделя'}
+            title={weeklyReading.headline}
+            intro={weeklyReading.summary}
+          >
+            <div className="space-y-4">
+              <DetailLine
+                label={language === 'en' ? 'Period' : 'Период'}
+                value={weeklyReading.periodLabel}
+              />
+              <DetailLine
+                label={language === 'en' ? 'Focus' : 'Главный фокус'}
+                value={weeklyReading.focus}
+              />
+            </div>
+          </Section>
+        ) : null}
 
-                        {daypartsStatus && !daypartsLoading ? (
-                            <p className="border-t border-astro-border/10 pt-4 text-sm leading-relaxed text-astro-subtext">
-                                {daypartsStatus}
-                            </p>
-                        ) : null}
-
-                        {fullDayAccess === 'lumi' && !daypartsLoading ? (
-                            <p className="text-xs leading-relaxed text-astro-subtext">
-                                {getText(language, 'horoscope.lumi_active_note')}
-                            </p>
-                        ) : null}
-
-                        {DAYPART_SLOTS.filter((slot) => dayparts[slot]).map((slot) => {
-                            const reading = dayparts[slot];
-                            if (!reading) return null;
-
-                            return (
-                                <div key={slot} className="border-t border-astro-border/10 pt-4">
-                                    <p className="lumia-label tracking-[0.16em]">{getText(language, `horoscope.slot_${slot}`)}</p>
-                                    <h3 className="mt-1.5 text-lg font-semibold text-astro-text sm:text-xl">{reading.headline}</h3>
-                                    <p className="mt-2 text-sm leading-relaxed text-astro-text/82">{reading.summary}</p>
-                                    <p className="mt-3 text-sm leading-relaxed text-astro-text">{reading.focus}</p>
-                                    <p className="mt-3 text-sm leading-relaxed text-astro-subtext">{reading.guidance}</p>
-                                </div>
-                            );
-                        })}
-                    </div>
-                )}
-            </section>
-
-            <section className={READING_GLASS_SECTION_CLASS}>
-                <p className="lumia-label tracking-[0.2em]">{getText(language, 'horoscope.weekly_label')}</p>
-                <h2 className="mt-1.5 font-serif text-lg text-astro-text sm:text-xl">{getText(language, 'horoscope.weekly_title')}</h2>
-
-                {periodLoading ? (
-                    <p className="mt-4 border-t border-astro-border/10 pt-4 text-sm leading-relaxed text-astro-subtext">
-                        {getText(language, 'horoscope.period_loading')}
-                    </p>
-                ) : null}
-
-                {periodError && !periodLoading ? (
-                    <p className="mt-4 border-t border-astro-border/10 pt-4 text-sm leading-relaxed text-astro-text/80">
-                        {periodError}
-                    </p>
-                ) : null}
-
-                {weeklyReading && !periodLoading ? (
-                    <div className="mt-4 border-t border-astro-border/10 pt-4">
-                        <p className="text-[11px] uppercase tracking-wider text-astro-subtext">{weeklyReading.periodLabel}</p>
-                        <h3 className="mt-2 font-serif text-lg text-astro-text sm:text-xl">{weeklyReading.headline}</h3>
-                        <p className="mt-2 text-sm leading-relaxed text-astro-text sm:text-[15px]">{weeklyReading.summary}</p>
-                        <p className="mt-3 text-sm leading-relaxed text-astro-subtext">{weeklyReading.focus}</p>
-                    </div>
-                ) : null}
-            </section>
-
-            <section className={READING_GLASS_SECTION_CLASS}>
-                <p className="lumia-label tracking-[0.2em]">{getText(language, 'horoscope.monthly_label')}</p>
-                <h2 className="mt-1.5 font-serif text-lg text-astro-text sm:text-xl">{getText(language, 'horoscope.monthly_title')}</h2>
-
-                {monthlyReading && !periodLoading ? (
-                    <div className="mt-4 border-t border-astro-border/10 pt-4">
-                        <p className="text-[11px] uppercase tracking-wider text-astro-subtext">{monthlyReading.periodLabel}</p>
-                        <h3 className="mt-2 font-serif text-lg text-astro-text sm:text-xl">{monthlyReading.headline}</h3>
-                        <p className="mt-2 text-sm leading-relaxed text-astro-text sm:text-[15px]">{monthlyReading.summary}</p>
-                        <p className="mt-3 text-sm leading-relaxed text-astro-subtext">{monthlyReading.focus}</p>
-                    </div>
-                ) : null}
-            </section>
-
-            {onOpenChart ? (
-                <section className={READING_GLASS_SECTION_CLASS}>
-                    <button
-                        type="button"
-                        onClick={onOpenChart}
-                        className="inline-flex items-center px-0 py-1 text-sm font-medium text-astro-highlight underline underline-offset-4 transition-opacity hover:opacity-70"
-                    >
-                        {getText(language, 'horoscope.empty_cta')}
-                    </button>
-                </section>
-            ) : null}
-        </ReadingScreenShell>
+        {quietCta ? (
+          <section className={READING_GLASS_SECTION_CLASS}>
+            <button
+              type="button"
+              onClick={quietCta.onClick}
+              className="inline-flex items-center px-0 py-1 text-sm font-medium text-astro-highlight underline underline-offset-4 transition-opacity hover:opacity-70"
+            >
+              {quietCta.label}
+            </button>
+          </section>
+        ) : null}
+      </ReadingScreenShell>
     );
-});
+  }
+);
 
 Horoscope.displayName = 'Horoscope';

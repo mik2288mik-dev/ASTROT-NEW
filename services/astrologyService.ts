@@ -4,6 +4,7 @@ import { getElementForSign } from "../lib/zodiac-utils";
 import { coerceNatalAnchorReading, coerceNatalLivingReading, getCurrentNatalPeriodKey, mapNatalAnchorToLegacyIntro } from "../lib/natalReadings";
 import { isForecastLegacyFallbackEnabled } from "../lib/forecastLegacyConfig";
 import { buildForecastFullDayUnlockCacheKey } from "../lib/forecastFullDay";
+import { fetchWithTimeout } from "../lib/fetchWithTimeout";
 import type { NatalPlanetKey } from "../lib/natalWheel";
 
 // API base URL - используем локальные Next.js API routes
@@ -69,9 +70,21 @@ function buildApiError(
 async function fetchContentApi<T>(
   url: string,
   init: RequestInit,
-  options?: { notFoundAsNull?: boolean }
+  options?: { notFoundAsNull?: boolean; timeoutMs?: number }
 ): Promise<ContentApiResponse<T> | null> {
-  const response = await fetch(url, init);
+  const method = String(init.method || 'GET').toUpperCase();
+  const timeoutMs = options?.timeoutMs ?? (method === 'GET' ? 4500 : 12000);
+
+  let response: Response;
+  try {
+    response = await fetchWithTimeout(url, init, timeoutMs);
+  } catch (error: any) {
+    if (error?.name === 'AbortError') {
+      throw buildApiError('Request timed out', 408, 'TIMEOUT');
+    }
+    throw error;
+  }
+
   if (response.status === 404 && options?.notFoundAsNull) {
     return null;
   }
@@ -356,7 +369,7 @@ export const ensureWeeklyForecastLayer = async (
 
   const tier = profile.isPremium ? 'premium' : 'free';
   const url = `${API_BASE_URL}/api/content/forecast/weekly`;
-  const response = await fetch(url, {
+  const data = await fetchContentApi<ForecastWeeklyReading>(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -367,21 +380,6 @@ export const ensureWeeklyForecastLayer = async (
       tier,
     }),
   });
-
-  if (!response.ok) {
-    let errorMessage = `Weekly forecast failed: ${response.status}`;
-    let errorCode: string | undefined;
-    try {
-      const err = await response.json();
-      errorMessage = err.message || err.error || errorMessage;
-      errorCode = err.code;
-    } catch {
-      /* ignore */
-    }
-    throw buildApiError(errorMessage, response.status, errorCode);
-  }
-
-  const data = (await response.json()) as { interpretation?: { content: ForecastWeeklyReading } };
   const c = data?.interpretation?.content;
   if (!c) throw buildApiError('Weekly forecast content is missing', 500);
   return coerceForecastWeeklyReading(c);
@@ -419,7 +417,7 @@ export const ensureMonthlyForecastLayer = async (
 
   const tier = profile.isPremium ? 'premium' : 'free';
   const url = `${API_BASE_URL}/api/content/forecast/monthly`;
-  const response = await fetch(url, {
+  const data = await fetchContentApi<ForecastMonthlyReading>(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -430,21 +428,6 @@ export const ensureMonthlyForecastLayer = async (
       tier,
     }),
   });
-
-  if (!response.ok) {
-    let errorMessage = `Monthly forecast failed: ${response.status}`;
-    let errorCode: string | undefined;
-    try {
-      const err = await response.json();
-      errorMessage = err.message || err.error || errorMessage;
-      errorCode = err.code;
-    } catch {
-      /* ignore */
-    }
-    throw buildApiError(errorMessage, response.status, errorCode);
-  }
-
-  const data = (await response.json()) as { interpretation?: { content: ForecastMonthlyReading } };
   const c = data?.interpretation?.content;
   if (!c) throw buildApiError('Monthly forecast content is missing', 500);
   return coerceForecastMonthlyReading(c);
@@ -1149,7 +1132,7 @@ const legacyGetDailyHoroscopeViaAstrologyEndpoint = async (profile: UserProfile,
   try {
     log.info(`[getDailyHoroscope] Sending POST request to: ${url}`);
     const startTime = Date.now();
-    const response = await fetch(url, {
+    const response = await fetchWithTimeout(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
@@ -1157,7 +1140,7 @@ const legacyGetDailyHoroscopeViaAstrologyEndpoint = async (profile: UserProfile,
         profile, 
         chartData 
       })
-    });
+    }, 12000);
 
     const duration = Date.now() - startTime;
     log.info(`[getDailyHoroscope] Response received in ${duration}ms`, {
@@ -1393,7 +1376,7 @@ const legacyGetCachedDailyHoroscopeViaAstrologyEndpoint = async (
   log.info('[getCachedDailyHoroscope] Starting request', { userId });
 
   try {
-    const response = await fetch(url, { method: 'GET', cache: 'no-store' });
+    const response = await fetchWithTimeout(url, { method: 'GET', cache: 'no-store' }, 4500);
     if (response.status === 404) {
       return null;
     }

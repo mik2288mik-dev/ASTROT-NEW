@@ -14,6 +14,7 @@ import {
   buildWheelInsight,
   resolveWheelInsightRequest,
 } from '../../lib/wheelInsightContent';
+import { getZodiacSign } from '../../constants';
 import {
   getPlanetMeta,
   getPlanetPositionFromChart,
@@ -37,7 +38,6 @@ const HOLD_DURATION_MS = 920;
 const WHEEL_MEDALLION_SRC = '/brand/natal-wheel-luxe-medallion.svg';
 const PLANET_TOUCH_RADIUS = 24;
 const LEADER_LINE_TARGET_RADIUS = 98;
-const HOUSE_LABEL_RADIUS = 60;
 const OUTER_LABEL_OUTER_RADIUS = OUTER_RIM_RADIUS;
 const ZODIAC_BAND_INNER_RADIUS = 114;
 const ZODIAC_LABEL_RADIUS = 150.5;
@@ -70,15 +70,8 @@ type WheelAspectLine = {
   to: DisplayPlanet;
 };
 
-type HouseZone = {
-  house: number;
-  start: number;
-  end: number;
-  labelLongitude: number;
-};
-
 type InsightState = {
-  status: 'idle' | 'loading' | 'ready';
+  status: 'idle' | 'ready';
   selection: SelectedEntity | null;
   content: WheelInsight | null;
   isFallback: boolean;
@@ -112,12 +105,6 @@ const polarPoint = (degree: number, radius: number) => ({
   x: WHEEL_CENTER + Math.cos(toRadians(degree)) * radius,
   y: WHEEL_CENTER + Math.sin(toRadians(degree)) * radius,
 });
-
-const midpointDegree = (start: number, end: number) => {
-  const normalizedStart = normalizeDegrees(start);
-  const span = normalizeDegrees(end - normalizedStart);
-  return normalizeDegrees(normalizedStart + span / 2);
-};
 
 const angularDistance = (a: number, b: number) => {
   const diff = Math.abs(a - b) % 360;
@@ -169,8 +156,8 @@ function getChipRadius(planet: NatalPlanetKey) {
   return 8.1;
 }
 
-function getZodiacLongLabel(_language: Language, sign: ZodiacSign) {
-  return sign.toUpperCase();
+function getZodiacLongLabel(language: Language, sign: ZodiacSign) {
+  return getZodiacSign(language, sign).toUpperCase();
 }
 
 function getZodiacFontSize(label: string) {
@@ -300,20 +287,6 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
     const ascDegree = useMemo(() => resolveLongitude(chartData.rising) ?? 180, [chartData.rising]);
     const wheelRotationDeg = useMemo(() => -(ascDegree - 180), [ascDegree]);
 
-    const houseZones = useMemo<HouseZone[]>(
-      () =>
-        houseCusps.map((house, index) => {
-          const nextHouse = houseCusps[(index + 1) % houseCusps.length];
-          return {
-            house: house.house,
-            start: house.rawLongitude,
-            end: nextHouse.rawLongitude,
-            labelLongitude: midpointDegree(house.rawLongitude, nextHouse.rawLongitude),
-          };
-        }),
-      [houseCusps]
-    );
-
     const displayPlanets = useMemo<DisplayPlanet[]>(() => {
       const planets = NATAL_PLANET_ORDER.map((planetKey) => {
         const position = chartData ? getPlanetPositionFromChart(chartData, planetKey) : null;
@@ -435,14 +408,14 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
       async (selection: SelectedEntity) => {
         const cacheId = buildSelectionKey(selection);
         if (insightCacheRef.current[cacheId]) {
-          setInsightState({
-            status: 'ready',
-            selection,
-            content: insightCacheRef.current[cacheId],
-            isFallback: false,
-          });
-          return;
-        }
+        setInsightState({
+          status: 'ready',
+          selection,
+          content: insightCacheRef.current[cacheId],
+          isFallback: false,
+        });
+        return;
+      }
 
         let request;
         try {
@@ -460,7 +433,7 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
 
         const requestId = latestInsightRequestRef.current + 1;
         latestInsightRequestRef.current = requestId;
-        setInsightState({ status: 'loading', selection, content: fallbackInsight, isFallback: false });
+        setInsightState({ status: 'ready', selection, content: fallbackInsight, isFallback: true });
 
         try {
           const cached = await getCachedWheelInsight(
@@ -489,12 +462,7 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
           if (latestInsightRequestRef.current === requestId) {
             setInsightState({ status: 'ready', selection, content: insight, isFallback: false });
           }
-        } catch {
-          if (latestInsightRequestRef.current === requestId) {
-            insightCacheRef.current[cacheId] = fallbackInsight;
-            setInsightState({ status: 'ready', selection, content: fallbackInsight, isFallback: true });
-          }
-        }
+        } catch {}
       },
       [chartData, chartId, language, profile]
     );
@@ -574,14 +542,20 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
     );
 
     const holdCircumference = 2 * Math.PI * (OUTER_RIM_RADIUS - 1.5);
-    const activeInsight = insightState.content || selectionPreview;
+    const currentSelectionKey = selectedEntity ? buildSelectionKey(selectedEntity) : null;
+    const resolvedInsightKey =
+      insightState.selection ? buildSelectionKey(insightState.selection) : null;
+    const activeInsight =
+      currentSelectionKey && currentSelectionKey === resolvedInsightKey
+        ? insightState.content || selectionPreview
+        : selectionPreview;
     const selectedPlanetMeta = selectedPlanetKey ? getPlanetMeta(selectedPlanetKey) : null;
 
     return (
       <div className="relative flex h-full min-h-0 flex-col pb-2">
         <div className="mt-1 flex min-h-0 flex-1 flex-col">
           <div className="shrink-0">
-            <div className="relative mx-auto w-full max-w-[22rem]">
+            <div className="relative mx-auto w-full max-w-[23.25rem]">
               <div
                 className="relative aspect-square w-full select-none"
                 onPointerDown={handleWheelPointerDown}
@@ -644,23 +618,6 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                               }}
                               style={{ cursor: 'pointer' }}
                             />
-                          </g>
-                        );
-                      })}
-                      {houseZones.map((house) => {
-                        const point = polarPoint(house.labelLongitude, HOUSE_LABEL_RADIUS);
-                        return (
-                          <g key={`house-${house.house}`}>
-                            <text
-                              x={point.x}
-                              y={point.y}
-                              textAnchor="middle"
-                              dominantBaseline="middle"
-                              fill="rgba(247,252,255,0.56)"
-                              style={{ fontSize: 7.2, fontWeight: 600 }}
-                            >
-                              {house.house}
-                            </text>
                           </g>
                         );
                       })}
@@ -842,25 +799,6 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                   <p className="mx-auto max-w-[18.8rem] text-[14px] leading-[1.72] text-text-main/78">{buildIdleHint(language)}</p>
                   <p className="mx-auto max-w-[18rem] text-[12px] leading-relaxed text-text-muted/78">{buildHoldHint(language)}</p>
                 </motion.div>
-              ) : insightState.status === 'loading' ? (
-                <motion.div key={`loading-${activeInsight.entityType}-${activeInsight.entityId}`} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.22 }} className="space-y-3 py-1 text-center">
-                  <div className="flex items-center justify-center gap-3">
-                    <EntityBadge insight={activeInsight} selectedPlanet={selectedPlanetKey} color={selectedPlanetMeta?.color || '#7B5EA7'} />
-                    <div className="min-w-0 text-left">
-                      <p className="truncate text-[17px] font-medium text-text-main">{activeInsight.title}</p>
-                      <p className="text-[12.5px] text-[#7B5EA7]">{activeInsight.subtitle}</p>
-                    </div>
-                  </div>
-                  <div className="mx-auto flex w-fit items-center gap-2 text-[12px] text-text-muted">
-                    <span className="inline-flex h-3.5 w-3.5 animate-spin rounded-full border-2 border-black/[0.08] border-t-[#7B5EA7]" />
-                    {language === 'en' ? 'Saving and loading your explanation…' : 'Сохраняем и подгружаем объяснение…'}
-                  </div>
-                  <p className="mx-auto max-w-[18rem] text-[13px] leading-relaxed text-text-muted/76">
-                    {language === 'en'
-                      ? 'We are saving this explanation to your chart and loading it from storage.'
-                      : 'Сохраняем это объяснение в твою карту и подгружаем его из хранилища.'}
-                  </p>
-                </motion.div>
               ) : (
                 <motion.div key={`${activeInsight.entityType}-${activeInsight.entityId}`} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.24 }} className="space-y-3 py-1 text-center">
                   <div className="flex items-center justify-center gap-3">
@@ -887,11 +825,6 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                     </div>
                   ) : null}
                   <p className="mx-auto max-w-[18rem] text-center text-[12px] leading-relaxed text-text-muted/76">{buildHoldHint(language)}</p>
-                  {insightState.isFallback ? (
-                    <button type="button" onClick={() => { if (selectedEntity) void fetchInsightForSelection(selectedEntity); }} className="mx-auto block text-[12px] font-medium text-[#7B5EA7]">
-                      {language === 'en' ? 'Refresh this explanation' : 'Обновить это объяснение'}
-                    </button>
-                  ) : null}
                 </motion.div>
               )}
             </AnimatePresence>

@@ -803,6 +803,7 @@ const App: React.FC = () => {
                             chartData={chartData} 
                             onUpdateProfile={handleProfileUpdate}
                             onOpenChart={() => setView('chart')}
+                            onRequestPremium={requestPremium}
                         />
                     </div>
                 ) : view === 'chart' ? (

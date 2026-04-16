@@ -1,86 +1,194 @@
 import React from 'react';
+import { Settings } from 'lucide-react';
 import { UserProfile, ViewState } from '../types';
 import { getText } from '../constants';
+
 interface HeaderProps {
-    profile: UserProfile | null;
-    view: ViewState;
-    onOpenSettings: () => void;
-    onBack: () => void;
-    onOpenWallet: () => void;
+  profile: UserProfile | null;
+  view: ViewState;
+  onOpenSettings: () => void;
+  onBack: () => void;
+  onOpenWallet: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ profile, view, onBack, onOpenWallet }) => {
-    if (!profile) return null;
+const DETAIL_TITLES: Partial<Record<ViewState, { ru: string; en: string }>> = {
+  chart: { ru: 'Натальная карта', en: 'Natal Chart' },
+  horoscope: { ru: 'Гороскоп', en: 'Horoscope' },
+};
 
-    const isHub = view === 'dashboard';
-    const isFunnel = view === 'onboarding' || view === 'hook' || view === 'paywall';
+const DEFAULT_TITLES: Partial<Record<ViewState, { ru: string; en: string }>> = {
+  chart: { ru: 'Натальная карта', en: 'Natal Chart' },
+  charts: { ru: 'Мои карты', en: 'My Charts' },
+  horoscope: { ru: 'Гороскоп', en: 'Horoscope' },
+  oracle: { ru: 'Спросить Lumia', en: 'Ask Lumia' },
+  synastry: { ru: 'Совместимость', en: 'Synastry' },
+  wallet: { ru: 'Кошелёк Lumi', en: 'Lumi Wallet' },
+  settings: { ru: 'Настройки', en: 'Settings' },
+  admin: { ru: 'Админ-панель', en: 'Admin Panel' },
+  dashboard: { ru: 'Lumia', en: 'Lumia' },
+};
 
-    if (isFunnel) return null;
-    /** Lumia Studio AIR hub — own top bar (LUMIA + gear + lock), no global header */
-    if (isHub) return null;
+function getDetailTitle(profile: UserProfile, view: ViewState) {
+  return DETAIL_TITLES[view]?.[profile.language] || 'Lumia';
+}
 
-    const hasLumi = typeof profile.lumiBalance === 'number';
-    const lumiValue = Math.max(0, profile.lumiBalance ?? 0);
+function getDefaultTitle(profile: UserProfile, view: ViewState) {
+  return DEFAULT_TITLES[view]?.[profile.language] || 'Lumia';
+}
 
-    const getViewTitle = () => {
-        const titles: Record<string, { ru: string; en: string }> = {
-            chart: { ru: 'Натальная карта', en: 'Natal Chart' },
-            charts: { ru: 'Мои карты', en: 'My Charts' },
-            horoscope: { ru: 'Гороскоп', en: 'Horoscope' },
-            oracle: { ru: 'Спросить Lumia', en: 'Ask Lumia' },
-            synastry: { ru: 'Совместимость', en: 'Synastry' },
-            wallet: { ru: 'Кошелёк Lumi', en: 'Lumi Wallet' },
-            settings: { ru: 'Настройки', en: 'Settings' },
-            admin: { ru: 'Админ-панель', en: 'Admin Panel' },
-            dashboard: { ru: 'Lumia', en: 'Lumia' },
-        };
-        return titles[view]?.[profile.language] || 'Lumia';
-    };
+function DetailStudioHeader({
+  profile,
+  view,
+  onBack,
+  onOpenSettings,
+  onOpenWallet,
+}: {
+  profile: UserProfile;
+  view: ViewState;
+  onBack: () => void;
+  onOpenSettings: () => void;
+  onOpenWallet: () => void;
+}) {
+  const hasLumi = typeof profile.lumiBalance === 'number';
+  const lumiValue = Math.max(0, profile.lumiBalance ?? 0);
+  const tagline = profile.language === 'en' ? 'Your path to self' : 'Твой путь к себе';
 
-    return (
-        <header className="lumia-tg-header-bar relative z-40 shrink-0 border-b border-black/[0.06] bg-white">
-            <div className="pt-1 pb-2.5">
-                <div className="grid min-h-[44px] grid-cols-[minmax(2.75rem,auto)_minmax(0,1fr)_minmax(2.75rem,auto)] items-center gap-2">
-                    <div className="flex min-w-0 items-center justify-start">
-                        {!isHub && (
-                            <button
-                                onClick={onBack}
-                                type="button"
-                                className="flex min-h-[44px] min-w-[44px] items-center gap-1 pr-1 text-astro-subtext transition-colors hover:text-astro-text active:opacity-70"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-                                </svg>
-                                <span className="max-[360px]:hidden text-xs font-medium tracking-wide">
-                                    {getText(profile.language, 'header.back')}
-                                </span>
-                            </button>
-                        )}
-                    </div>
+  return (
+    <header className="lumia-tg-header-bar relative z-40 shrink-0 border-b border-black/[0.06] bg-white">
+      <div className="pt-1 pb-2.5">
+        <div className="grid grid-cols-[minmax(2.75rem,auto)_minmax(0,1fr)_auto] items-start gap-2">
+          <div className="flex min-w-0 items-start justify-start">
+            <button
+              onClick={onBack}
+              type="button"
+              className="flex min-h-[44px] min-w-[44px] items-center gap-1 pr-1 text-astro-subtext transition-colors hover:text-astro-text active:opacity-70"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+              <span className="max-[360px]:hidden text-xs font-medium tracking-wide">
+                {getText(profile.language, 'header.back')}
+              </span>
+            </button>
+          </div>
 
-                    <div className="flex min-w-0 items-center justify-center px-1">
-                        <h1 className="w-full truncate text-center font-outfit text-[15px] font-semibold leading-tight tracking-tight text-astro-text">
-                            {getViewTitle()}
-                        </h1>
-                    </div>
-
-                    <div className="flex min-w-0 items-center justify-end">
-                        {!isHub && hasLumi && (
-                            <button
-                                type="button"
-                                onClick={onOpenWallet}
-                                aria-label={getText(profile.language, 'header.wallet')}
-                                className="relative inline-flex h-11 w-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-full border border-black/[0.08] bg-white text-astro-subtext transition-colors hover:text-astro-text"
-                            >
-                                <span className="text-sm leading-none">✦</span>
-                                <span className="absolute -right-1 -top-1 min-w-[18px] rounded-full border border-white bg-astro-highlight px-1.5 py-0.5 text-[9px] font-semibold leading-none text-white">
-                                    {lumiValue}
-                                </span>
-                            </button>
-                        )}
-                    </div>
-                </div>
+          <div className="min-w-0 px-1 text-center">
+            <div className="inline-flex flex-col items-center">
+              <p className="font-serif text-[2.5rem] font-semibold leading-none tracking-[-0.06em] text-[#1f1f1f]">
+                LUMIA
+              </p>
+              <p className="mt-1.5 text-[8px] uppercase tracking-[0.3em] text-[#8a857d]">
+                {tagline}
+              </p>
             </div>
-        </header>
+          </div>
+
+          <div className="flex min-w-0 items-start justify-end gap-2 pt-1">
+            {hasLumi ? (
+              <button
+                type="button"
+                onClick={onOpenWallet}
+                aria-label={getText(profile.language, 'header.wallet')}
+                className="relative inline-flex h-11 w-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-full border border-black/[0.08] bg-white text-text-main shadow-[0_4px_10px_rgba(0,0,0,0.03)] transition-colors hover:text-astro-text"
+              >
+                <span className="text-[12px] font-semibold leading-none">L</span>
+                <span className="absolute -right-1 -top-1 min-w-[18px] rounded-full border border-white bg-astro-highlight px-1.5 py-0.5 text-[9px] font-semibold leading-none text-white">
+                  {lumiValue}
+                </span>
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={onOpenSettings}
+              aria-label={getText(profile.language, 'nav.settings')}
+              className="mt-[1.55rem] inline-flex h-8 w-8 min-h-[32px] min-w-[32px] items-center justify-center rounded-full border border-black/[0.08] bg-white text-text-main shadow-[0_3px_10px_rgba(0,0,0,0.02)] transition-colors hover:text-astro-text"
+            >
+              <Settings className="h-[12px] w-[12px]" strokeWidth={1.7} aria-hidden />
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-3 border-t border-black/[0.06] pt-3 text-center">
+          <p className="text-[13px] font-medium tracking-[0.01em] text-text-main">
+            {getDetailTitle(profile, view)}
+          </p>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+export const Header: React.FC<HeaderProps> = ({
+  profile,
+  view,
+  onOpenSettings,
+  onBack,
+  onOpenWallet,
+}) => {
+  if (!profile) return null;
+
+  const isHub = view === 'dashboard';
+  const isFunnel = view === 'onboarding' || view === 'hook' || view === 'paywall';
+  const isStudioDetail = view === 'chart' || view === 'horoscope';
+
+  if (isFunnel || isHub) return null;
+  if (isStudioDetail) {
+    return (
+      <DetailStudioHeader
+        profile={profile}
+        view={view}
+        onBack={onBack}
+        onOpenSettings={onOpenSettings}
+        onOpenWallet={onOpenWallet}
+      />
     );
+  }
+
+  const hasLumi = typeof profile.lumiBalance === 'number';
+  const lumiValue = Math.max(0, profile.lumiBalance ?? 0);
+
+  return (
+    <header className="lumia-tg-header-bar relative z-40 shrink-0 border-b border-black/[0.06] bg-white">
+      <div className="pt-1 pb-2.5">
+        <div className="grid min-h-[44px] grid-cols-[minmax(2.75rem,auto)_minmax(0,1fr)_minmax(2.75rem,auto)] items-center gap-2">
+          <div className="flex min-w-0 items-center justify-start">
+            <button
+              onClick={onBack}
+              type="button"
+              className="flex min-h-[44px] min-w-[44px] items-center gap-1 pr-1 text-astro-subtext transition-colors hover:text-astro-text active:opacity-70"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+              <span className="max-[360px]:hidden text-xs font-medium tracking-wide">
+                {getText(profile.language, 'header.back')}
+              </span>
+            </button>
+          </div>
+
+          <div className="flex min-w-0 items-center justify-center px-1">
+            <h1 className="w-full truncate text-center font-outfit text-[15px] font-semibold leading-tight tracking-tight text-astro-text">
+              {getDefaultTitle(profile, view)}
+            </h1>
+          </div>
+
+          <div className="flex min-w-0 items-center justify-end">
+            {hasLumi ? (
+              <button
+                type="button"
+                onClick={onOpenWallet}
+                aria-label={getText(profile.language, 'header.wallet')}
+                className="relative inline-flex h-11 w-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-full border border-black/[0.08] bg-white text-astro-subtext transition-colors hover:text-astro-text"
+              >
+                <span className="text-[12px] font-semibold leading-none text-text-main">L</span>
+                <span className="absolute -right-1 -top-1 min-w-[18px] rounded-full border border-white bg-astro-highlight px-1.5 py-0.5 text-[9px] font-semibold leading-none text-white">
+                  {lumiValue}
+                </span>
+              </button>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </header>
+  );
 };
