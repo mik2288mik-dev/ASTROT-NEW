@@ -60,17 +60,6 @@ module.exports = {
       },
       animation: {
         'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-        aurora: 'aurora 60s linear infinite',
-      },
-      keyframes: {
-        aurora: {
-          from: {
-            backgroundPosition: '50% 50%, 50% 50%',
-          },
-          to: {
-            backgroundPosition: '350% 50%, 350% 50%',
-          },
-        },
       },
       spacing: {
         reading: '0.75em',

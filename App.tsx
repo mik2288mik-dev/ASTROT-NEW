@@ -31,7 +31,6 @@ import { MyCharts } from './views/MyCharts';
 import { Wallet } from './views/Wallet';
 import { getAdminStatus } from './services/adminService';
 import { recordUserSession } from './services/sessionService';
-import { BackgroundLayers } from './components/BackgroundLayers';
 import { installTelegramFullscreenGuard } from './lib/telegramFullscreen';
 import { applyTelegramSafeAreaCssVars, subscribeTelegramContentSafeAreaChanges } from './lib/telegramSafeAreaInsets';
 import { useSwipeBack } from './lib/useSwipeBack';
@@ -738,7 +737,6 @@ const App: React.FC = () => {
     if (!profile || view === 'onboarding') {
         return (
             <div className="relative isolate fixed inset-0 h-[100dvh] overflow-hidden">
-                <BackgroundLayers theme="dark" view="onboarding" />
                 <div className="relative z-10 h-full">
                     <Onboarding onComplete={handleOnboardingComplete} />
                 </div>
@@ -752,8 +750,6 @@ const App: React.FC = () => {
                 lumiaAirShell ? 'text-text-main' : 'text-astro-text'
             }`}
         >
-            <BackgroundLayers theme={profile.theme} view={view} lumiaAir={lumiaAirShell} />
-            
             {/* Header handles Title, Settings button, and Back button */}
             <Header 
                 profile={profile} 
@@ -807,8 +803,6 @@ const App: React.FC = () => {
                             chartData={chartData} 
                             onUpdateProfile={handleProfileUpdate}
                             onOpenChart={() => setView('chart')}
-                            onRequestPremium={() => setShowPremiumPreview(true)}
-                            onOpenWallet={() => openWallet('horoscope')}
                         />
                     </div>
                 ) : view === 'chart' ? (
@@ -819,7 +813,6 @@ const App: React.FC = () => {
                             chartId={activeChartId}
                             requestPremium={requestPremium}
                             onUpdateProfile={handleProfileUpdate}
-                            onBalanceUpdate={(balance) => setProfile((prev) => (prev ? { ...prev, lumiBalance: balance } : prev))}
                         />
                     </div>
                 ) : view === 'settings' ? (

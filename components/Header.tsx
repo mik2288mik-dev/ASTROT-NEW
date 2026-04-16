@@ -38,7 +38,7 @@ export const Header: React.FC<HeaderProps> = ({ profile, view, onBack, onOpenWal
     };
 
     return (
-        <header className="lumia-tg-header-bar shrink-0 relative z-40 border-b border-astro-border/40 bg-astro-bg/72 backdrop-blur-xl backdrop-saturate-150">
+        <header className="lumia-tg-header-bar relative z-40 shrink-0 border-b border-black/[0.06] bg-white">
             <div className="pt-1 pb-2.5">
                 <div className="grid min-h-[44px] grid-cols-[minmax(2.75rem,auto)_minmax(0,1fr)_minmax(2.75rem,auto)] items-center gap-2">
                     <div className="flex min-w-0 items-center justify-start">
@@ -46,7 +46,7 @@ export const Header: React.FC<HeaderProps> = ({ profile, view, onBack, onOpenWal
                             <button
                                 onClick={onBack}
                                 type="button"
-                                className="flex min-h-[44px] min-w-[44px] items-center gap-1 rounded-lg pr-1 text-astro-subtext hover:text-astro-text active:opacity-70 transition-colors"
+                                className="flex min-h-[44px] min-w-[44px] items-center gap-1 pr-1 text-astro-subtext transition-colors hover:text-astro-text active:opacity-70"
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -70,10 +70,10 @@ export const Header: React.FC<HeaderProps> = ({ profile, view, onBack, onOpenWal
                                 type="button"
                                 onClick={onOpenWallet}
                                 aria-label={getText(profile.language, 'header.wallet')}
-                                className="relative inline-flex h-11 w-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-full border border-astro-border/70 bg-astro-card/60 text-astro-subtext transition-colors hover:border-astro-highlight/35 hover:text-astro-text"
+                                className="relative inline-flex h-11 w-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-full border border-black/[0.08] bg-white text-astro-subtext transition-colors hover:text-astro-text"
                             >
                                 <span className="text-sm leading-none">✦</span>
-                                <span className="absolute -right-1 -top-1 min-w-[18px] rounded-full border border-astro-bg bg-astro-highlight px-1.5 py-0.5 text-[9px] font-semibold leading-none text-white">
+                                <span className="absolute -right-1 -top-1 min-w-[18px] rounded-full border border-white bg-astro-highlight px-1.5 py-0.5 text-[9px] font-semibold leading-none text-white">
                                     {lumiValue}
                                 </span>
                             </button>

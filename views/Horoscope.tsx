@@ -35,8 +35,6 @@ interface HoroscopeProps {
     chartData: NatalChartData | null;
     onUpdateProfile?: (profile: UserProfile) => void;
     onOpenChart?: () => void;
-    onRequestPremium?: () => void;
-    onOpenWallet?: () => void;
 }
 
 type HoroscopeApiError = Error & {
@@ -90,7 +88,7 @@ function getLegacyStatusMessage(language: string, legacy: DailyHoroscope | null 
     return legacy.message || null;
 }
 
-export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdateProfile, onOpenChart, onRequestPremium, onOpenWallet }) => {
+export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdateProfile, onOpenChart }) => {
     const profileRef = useRef(profile);
     profileRef.current = profile;
 
@@ -108,9 +106,7 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
     const [daypartsLoading, setDaypartsLoading] = useState(false);
     const [statusMessage, setStatusMessage] = useState<string | null>(null);
     const [daypartsStatus, setDaypartsStatus] = useState<string | null>(null);
-    const [daypartsErrorCode, setDaypartsErrorCode] = useState<string | null>(null);
     const [fullDayAccess, setFullDayAccess] = useState<FullDayAccess>(() => (profile.isPremium ? 'premium' : 'locked'));
-    const [allowLumiConsent, setAllowLumiConsent] = useState(false);
     const [isStale, setIsStale] = useState(false);
     const [weeklyReading, setWeeklyReading] = useState<ForecastWeeklyReading | null>(null);
     const [monthlyReading, setMonthlyReading] = useState<ForecastMonthlyReading | null>(null);
@@ -119,8 +115,6 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
 
     const weekKey = getMoscowIsoWeekKey();
     const monthKey = getMoscowMonthKey();
-    const hasEnoughLumiForFullDay = (profile.lumiBalance ?? 0) >= FORECAST_FULL_DAY_LUMI_COST;
-    const showLockedFullDayUpsell = !profile.isPremium && fullDayAccess === 'locked';
 
     const syncBalance = (balance?: number) => {
         if (typeof balance !== 'number' || !onUpdateProfile) return;
@@ -297,7 +291,6 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
     useEffect(() => {
         if (profile.isPremium) {
             setFullDayAccess('premium');
-            setDaypartsErrorCode(null);
         }
     }, [profile.isPremium]);
 
@@ -328,7 +321,6 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
                     return;
                 }
                 setDaypartsStatus(getFullDayStatusMessage(language, apiError));
-                setDaypartsErrorCode(apiError.code || null);
             }
         };
 
@@ -348,13 +340,11 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
                     setDayparts({});
                     setDaypartsLoading(false);
                     setDaypartsStatus(null);
-                    setDaypartsErrorCode(null);
                 }
                 return;
             }
 
             setDaypartsStatus(null);
-            setDaypartsErrorCode(null);
 
             const userId = String(profile.id);
             const accessTier = fullDayAccess === 'premium' ? 'premium' : 'lumi';
@@ -419,7 +409,6 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
                 } else {
                     const apiError = result.reason as HoroscopeApiError;
                     failures.push(getFullDayStatusMessage(language, apiError));
-                    setDaypartsErrorCode(apiError?.code || null);
                 }
             }
 
@@ -439,111 +428,6 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
             cancelled = true;
         };
     }, [chartData, fullDayAccess, language, profile.id, syncBalance, today]);
-
-    const unlockFullDayWithLumi = async () => {
-        if (!chartData) return;
-        if (!allowLumiConsent) {
-            const consentError = new Error(getText(language, 'horoscope.error_lumi_consent')) as HoroscopeApiError;
-            consentError.code = 'LUMI_CONSENT_REQUIRED';
-            setDaypartsErrorCode(consentError.code);
-            setDaypartsStatus(getFullDayStatusMessage(language, consentError));
-            return;
-        }
-
-        setDaypartsLoading(true);
-        setDaypartsStatus(null);
-        setDaypartsErrorCode(null);
-
-        try {
-            const morning = await getFullDaypartForecast(profileRef.current, chartData, 'morning', {
-                accessTier: 'lumi',
-                allowLumiSpend: true,
-            });
-
-            const rest = await Promise.all([
-                getFullDaypartForecast(profileRef.current, chartData, 'day', { accessTier: 'lumi' }),
-                getFullDaypartForecast(profileRef.current, chartData, 'evening', { accessTier: 'lumi' }),
-            ]);
-
-            setDayparts({
-                morning: morning.reading,
-                day: rest[0].reading,
-                evening: rest[1].reading,
-            });
-            setFullDayAccess('lumi');
-            setAllowLumiConsent(false);
-            setDaypartsStatus(null);
-            if (typeof morning.lumiBalance === 'number') {
-                syncBalance(morning.lumiBalance);
-            }
-        } catch (error: any) {
-            const apiError = error as HoroscopeApiError;
-            setDaypartsErrorCode(apiError.code || null);
-            setDaypartsStatus(getFullDayStatusMessage(language, apiError));
-        } finally {
-            setDaypartsLoading(false);
-        }
-    };
-
-    const renderFullDayLumiActions = (options?: { compact?: boolean }) => {
-        if (!showLockedFullDayUpsell) return null;
-
-        const compact = Boolean(options?.compact);
-        const stackClass = compact ? 'space-y-2.5' : 'space-y-3';
-        const noteClass = compact
-            ? 'border-t border-astro-border/12 px-0 py-3 text-sm leading-relaxed text-astro-text/80'
-            : 'border-t border-astro-border/12 px-0 py-3 text-sm leading-relaxed text-astro-text/80';
-        const checkboxClass = compact
-            ? 'flex items-start gap-3 border-t border-astro-border/12 px-0 py-3 text-sm text-astro-text'
-            : 'flex items-start gap-3 border-t border-astro-border/12 px-0 py-3 text-sm text-astro-text';
-        const buttonClass = compact
-            ? 'flex min-h-[44px] w-full items-center justify-center rounded-full border border-astro-border/50 bg-white/70 px-4 py-3 text-sm font-semibold text-astro-text transition-[box-shadow] hover:ring-1 hover:ring-black/8 disabled:opacity-60'
-            : 'flex min-h-[44px] w-full items-center justify-center rounded-full border border-astro-border/50 bg-white/70 px-4 py-3 text-sm font-medium text-astro-text transition-[box-shadow] hover:ring-1 hover:ring-black/8 disabled:opacity-60';
-
-        if (!hasEnoughLumiForFullDay) {
-            return (
-                <div className={stackClass}>
-                    <p className={noteClass}>
-                        {getText(language, 'horoscope.lumi_locked_note').replace('{cost}', String(FORECAST_FULL_DAY_LUMI_COST))}
-                    </p>
-                    {daypartsErrorCode === 'INSUFFICIENT_LUMI' && onOpenWallet ? (
-                        <button
-                            type="button"
-                            onClick={onOpenWallet}
-                            className={buttonClass}
-                        >
-                            {getText(language, 'oracle.state_open_wallet')}
-                        </button>
-                    ) : null}
-                </div>
-            );
-        }
-
-        return (
-            <div className={stackClass}>
-                <label className={checkboxClass}>
-                    <input
-                        type="checkbox"
-                        checked={allowLumiConsent}
-                        onChange={(event) => setAllowLumiConsent(event.target.checked)}
-                        className="mt-1 h-4 w-4 rounded border-astro-border/60 bg-transparent text-astro-highlight"
-                    />
-                    <span>{getText(language, 'horoscope.lumi_consent').replace('{cost}', String(FORECAST_FULL_DAY_LUMI_COST))}</span>
-                </label>
-
-                <button
-                    type="button"
-                    onClick={unlockFullDayWithLumi}
-                    disabled={daypartsLoading || !allowLumiConsent}
-                    className={buttonClass}
-                >
-                    {getText(language, 'horoscope.lumi_cta').replace('{cost}', String(FORECAST_FULL_DAY_LUMI_COST))}
-                </button>
-            </div>
-        );
-    };
-
-    const renderInlineFullDayUpsell = () => null;
 
     useEffect(() => {
         let cancelled = false;
@@ -608,7 +492,7 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
                         <button
                             type="button"
                             onClick={onOpenChart}
-                            className="mt-4 flex min-h-[44px] w-full items-center justify-center rounded-xl bg-astro-highlight/12 px-4 py-2.5 text-sm font-medium text-astro-highlight ring-1 ring-astro-highlight/28 transition-[box-shadow] hover:ring-astro-highlight/45"
+                            className="mt-4 inline-flex items-center px-0 py-1 text-sm font-medium text-astro-highlight underline underline-offset-4 transition-opacity hover:opacity-70"
                         >
                             {getText(language, 'horoscope.empty_cta')}
                         </button>
@@ -629,7 +513,7 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
                         </h1>
                     </div>
                     {dailyReading.date && (
-                        <span className="shrink-0 rounded-full bg-astro-text/[0.07] px-2.5 py-1 text-[11px] lumia-muted">
+                        <span className="shrink-0 text-[11px] uppercase tracking-[0.14em] text-astro-subtext">
                             {formatLumiaDate(dailyReading.date, language)}
                         </span>
                     )}
@@ -655,8 +539,6 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
             <HoroscopeContent
                 reading={dailyReading}
                 language={language}
-                afterHoroscopeSlot={renderInlineFullDayUpsell('horoscope')}
-                afterNatalSlot={renderInlineFullDayUpsell('natal')}
             />
 
             <section className={READING_GLASS_SECTION_CLASS}>
@@ -667,78 +549,46 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
                     {getText(language, fullDayAccess === 'locked' ? 'horoscope.premium_title' : 'horoscope.dayparts_title')}
                 </h2>
 
-                {fullDayAccess !== 'locked' ? (
-                    <div className="mt-4 space-y-3">
-                        {daypartsLoading && (
-                            <div className="border-t border-astro-border/12 px-0 py-3 text-sm lumia-muted">
+                {fullDayAccess === 'locked' ? (
+                    <div className="mt-4 border-t border-astro-border/10 pt-4">
+                        <p className="text-sm leading-relaxed text-astro-text/82">
+                            {getText(language, 'horoscope.premium_body')}
+                        </p>
+                    </div>
+                ) : (
+                    <div className="mt-4 space-y-5">
+                        {daypartsLoading ? (
+                            <p className="border-t border-astro-border/10 pt-4 text-sm leading-relaxed text-astro-subtext">
                                 {getText(language, 'horoscope.dayparts_loading')}
-                            </div>
-                        )}
+                            </p>
+                        ) : null}
 
-                        {daypartsStatus && !daypartsLoading && (
-                            <div className="border-t border-astro-border/12 px-0 py-3 text-sm lumia-muted">
+                        {daypartsStatus && !daypartsLoading ? (
+                            <p className="border-t border-astro-border/10 pt-4 text-sm leading-relaxed text-astro-subtext">
                                 {daypartsStatus}
-                            </div>
-                        )}
+                            </p>
+                        ) : null}
 
-                        {fullDayAccess === 'lumi' && !daypartsLoading && (
-                            <div className="border-t border-astro-border/12 px-0 py-3 text-sm lumia-muted">
+                        {fullDayAccess === 'lumi' && !daypartsLoading ? (
+                            <p className="text-xs leading-relaxed text-astro-subtext">
                                 {getText(language, 'horoscope.lumi_active_note')}
-                            </div>
-                        )}
+                            </p>
+                        ) : null}
 
                         {DAYPART_SLOTS.filter((slot) => dayparts[slot]).map((slot) => {
                             const reading = dayparts[slot];
                             if (!reading) return null;
 
-                            const details = [
-                                { label: getText(language, 'horoscope.daypart_focus_title'), value: reading.focus },
-                                { label: getText(language, 'horoscope.daypart_relationships_title'), value: reading.relationships },
-                                { label: getText(language, 'horoscope.daypart_money_title'), value: reading.money },
-                            ];
-
                             return (
-                                <div key={slot} className="border-t border-astro-border/12 px-0 py-4">
+                                <div key={slot} className="border-t border-astro-border/10 pt-4">
                                     <p className="lumia-label tracking-[0.16em]">{getText(language, `horoscope.slot_${slot}`)}</p>
                                     <h3 className="mt-1.5 text-lg font-semibold text-astro-text sm:text-xl">{reading.headline}</h3>
-                                    <p className="lumia-muted mt-2 text-sm leading-relaxed">{reading.summary}</p>
-
-                                    <div className="mt-4 space-y-2.5">
-                                        {details.map((item) => (
-                                            <div key={item.label} className="border-b border-astro-border/12 pb-2.5 last:border-b-0 last:pb-0">
-                                                <p className="lumia-label text-[10px] tracking-[0.16em]">{item.label}</p>
-                                                <p className="mt-1 text-sm leading-relaxed text-astro-text sm:text-[15px]">{item.value}</p>
-                                            </div>
-                                        ))}
-                                    </div>
-
-                                    <div className="mt-4">
-                                        <p className="lumia-label text-[10px] tracking-[0.16em]">{getText(language, 'horoscope.daypart_guidance_title')}</p>
-                                        <p className="mt-1.5 text-sm leading-relaxed text-astro-text sm:text-[15px]">{reading.guidance}</p>
-                                    </div>
+                                    <p className="mt-2 text-sm leading-relaxed text-astro-text/82">{reading.summary}</p>
+                                    <p className="mt-3 text-sm leading-relaxed text-astro-text">{reading.focus}</p>
+                                    <p className="mt-3 text-sm leading-relaxed text-astro-subtext">{reading.guidance}</p>
                                 </div>
                             );
                         })}
-                    </div>
-                ) : (
-                    <div className="mt-4 space-y-3">
-                        {daypartsStatus && (
-                            <div className="border-t border-astro-border/12 px-0 py-3 text-sm lumia-muted">
-                                {daypartsStatus}
-                            </div>
-                        )}
-
-                        {onRequestPremium ? (
-                            <button
-                                type="button"
-                                onClick={onRequestPremium}
-                                className="inline-flex min-h-[42px] items-center justify-center rounded-full border border-black/8 bg-white/72 px-4 py-2.5 text-sm font-medium text-text-main transition-[box-shadow] hover:ring-1 hover:ring-black/10"
-                            >
-                                {getText(language, 'horoscope.premium_cta')}
-                            </button>
-                        ) : null}
-
-                        {renderFullDayLumiActions()}
                     </div>
                 )}
             </section>
@@ -747,135 +597,53 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
                 <p className="lumia-label tracking-[0.2em]">{getText(language, 'horoscope.weekly_label')}</p>
                 <h2 className="mt-1.5 font-serif text-lg text-astro-text sm:text-xl">{getText(language, 'horoscope.weekly_title')}</h2>
 
-                {periodLoading && (
-                    <div className="mt-4 border-t border-astro-border/12 px-0 py-3 text-sm lumia-muted">
+                {periodLoading ? (
+                    <p className="mt-4 border-t border-astro-border/10 pt-4 text-sm leading-relaxed text-astro-subtext">
                         {getText(language, 'horoscope.period_loading')}
-                    </div>
-                )}
+                    </p>
+                ) : null}
 
-                {periodError && !periodLoading && (
-                    <div className="mt-4 border-t border-astro-border/12 px-0 py-3 text-sm text-astro-text/80">{periodError}</div>
-                )}
+                {periodError && !periodLoading ? (
+                    <p className="mt-4 border-t border-astro-border/10 pt-4 text-sm leading-relaxed text-astro-text/80">
+                        {periodError}
+                    </p>
+                ) : null}
 
-                {weeklyReading && !periodLoading && (
-                    <div className="mt-4 space-y-4">
+                {weeklyReading && !periodLoading ? (
+                    <div className="mt-4 border-t border-astro-border/10 pt-4">
                         <p className="text-[11px] uppercase tracking-wider text-astro-subtext">{weeklyReading.periodLabel}</p>
-                        <h3 className="font-serif text-lg text-astro-text sm:text-xl">{weeklyReading.headline}</h3>
-                        <p className="text-sm leading-relaxed text-astro-text sm:text-[15px]">{weeklyReading.summary}</p>
-                        <p className="text-sm leading-relaxed text-astro-text">{weeklyReading.focus}</p>
-
-                        {profile.isPremium && weeklyReading.theme ? (
-                            <div className="mt-2 space-y-3 border-t border-astro-border/12 pt-4">
-                                <div>
-                                    <p className="lumia-label text-[10px] tracking-[0.16em]">{getText(language, 'horoscope.period_theme')}</p>
-                                    <p className="mt-1 text-sm font-medium text-astro-text">{weeklyReading.theme}</p>
-                                </div>
-                                {weeklyReading.opportunities ? (
-                                    <div>
-                                        <p className="lumia-label text-[10px] tracking-[0.16em]">{getText(language, 'horoscope.period_opportunities')}</p>
-                                        <p className="mt-1 text-sm leading-relaxed text-astro-text">{weeklyReading.opportunities}</p>
-                                    </div>
-                                ) : null}
-                                {weeklyReading.challenges ? (
-                                    <div>
-                                        <p className="lumia-label text-[10px] tracking-[0.16em]">{getText(language, 'horoscope.period_challenges')}</p>
-                                        <p className="mt-1 text-sm leading-relaxed text-astro-text">{weeklyReading.challenges}</p>
-                                    </div>
-                                ) : null}
-                                {weeklyReading.relationships ? (
-                                    <div>
-                                        <p className="lumia-label text-[10px] tracking-[0.16em]">{getText(language, 'horoscope.period_relationships')}</p>
-                                        <p className="mt-1 text-sm leading-relaxed text-astro-text">{weeklyReading.relationships}</p>
-                                    </div>
-                                ) : null}
-                                {weeklyReading.career ? (
-                                    <div>
-                                        <p className="lumia-label text-[10px] tracking-[0.16em]">{getText(language, 'horoscope.period_career')}</p>
-                                        <p className="mt-1 text-sm leading-relaxed text-astro-text">{weeklyReading.career}</p>
-                                    </div>
-                                ) : null}
-                                {weeklyReading.guidance ? (
-                                    <div>
-                                        <p className="lumia-label text-[10px] tracking-[0.16em]">{getText(language, 'horoscope.period_guidance')}</p>
-                                        <p className="mt-1 text-sm leading-relaxed text-astro-text">{weeklyReading.guidance}</p>
-                                    </div>
-                                ) : null}
-                                {weeklyReading.reading ? (
-                                    <div>
-                                        <p className="lumia-label text-[10px] tracking-[0.16em]">{getText(language, 'horoscope.period_reading')}</p>
-                                        <div className="mt-2 space-y-3 text-sm leading-relaxed text-astro-text whitespace-pre-line [text-wrap:pretty]">
-                                            {weeklyReading.reading}
-                                        </div>
-                                    </div>
-                                ) : null}
-                            </div>
-                        ) : null}
-
+                        <h3 className="mt-2 font-serif text-lg text-astro-text sm:text-xl">{weeklyReading.headline}</h3>
+                        <p className="mt-2 text-sm leading-relaxed text-astro-text sm:text-[15px]">{weeklyReading.summary}</p>
+                        <p className="mt-3 text-sm leading-relaxed text-astro-subtext">{weeklyReading.focus}</p>
                     </div>
-                )}
+                ) : null}
             </section>
 
             <section className={READING_GLASS_SECTION_CLASS}>
                 <p className="lumia-label tracking-[0.2em]">{getText(language, 'horoscope.monthly_label')}</p>
                 <h2 className="mt-1.5 font-serif text-lg text-astro-text sm:text-xl">{getText(language, 'horoscope.monthly_title')}</h2>
 
-                {monthlyReading && !periodLoading && (
-                    <div className="mt-4 space-y-4">
+                {monthlyReading && !periodLoading ? (
+                    <div className="mt-4 border-t border-astro-border/10 pt-4">
                         <p className="text-[11px] uppercase tracking-wider text-astro-subtext">{monthlyReading.periodLabel}</p>
-                        <h3 className="font-serif text-lg text-astro-text sm:text-xl">{monthlyReading.headline}</h3>
-                        <p className="text-sm leading-relaxed text-astro-text sm:text-[15px]">{monthlyReading.summary}</p>
-                        <p className="text-sm leading-relaxed text-astro-text">{monthlyReading.focus}</p>
-
-                        {profile.isPremium && monthlyReading.theme ? (
-                            <div className="mt-2 space-y-3 border-t border-astro-border/12 pt-4">
-                                <div>
-                                    <p className="lumia-label text-[10px] tracking-[0.16em]">{getText(language, 'horoscope.period_theme')}</p>
-                                    <p className="mt-1 text-sm font-medium text-astro-text">{monthlyReading.theme}</p>
-                                </div>
-                                {monthlyReading.opportunities ? (
-                                    <div>
-                                        <p className="lumia-label text-[10px] tracking-[0.16em]">{getText(language, 'horoscope.period_opportunities')}</p>
-                                        <p className="mt-1 text-sm leading-relaxed text-astro-text">{monthlyReading.opportunities}</p>
-                                    </div>
-                                ) : null}
-                                {monthlyReading.challenges ? (
-                                    <div>
-                                        <p className="lumia-label text-[10px] tracking-[0.16em]">{getText(language, 'horoscope.period_challenges')}</p>
-                                        <p className="mt-1 text-sm leading-relaxed text-astro-text">{monthlyReading.challenges}</p>
-                                    </div>
-                                ) : null}
-                                {monthlyReading.relationships ? (
-                                    <div>
-                                        <p className="lumia-label text-[10px] tracking-[0.16em]">{getText(language, 'horoscope.period_relationships')}</p>
-                                        <p className="mt-1 text-sm leading-relaxed text-astro-text">{monthlyReading.relationships}</p>
-                                    </div>
-                                ) : null}
-                                {monthlyReading.money ? (
-                                    <div>
-                                        <p className="lumia-label text-[10px] tracking-[0.16em]">{getText(language, 'horoscope.period_money')}</p>
-                                        <p className="mt-1 text-sm leading-relaxed text-astro-text">{monthlyReading.money}</p>
-                                    </div>
-                                ) : null}
-                                {monthlyReading.guidance ? (
-                                    <div>
-                                        <p className="lumia-label text-[10px] tracking-[0.16em]">{getText(language, 'horoscope.period_guidance')}</p>
-                                        <p className="mt-1 text-sm leading-relaxed text-astro-text">{monthlyReading.guidance}</p>
-                                    </div>
-                                ) : null}
-                                {monthlyReading.reading ? (
-                                    <div>
-                                        <p className="lumia-label text-[10px] tracking-[0.16em]">{getText(language, 'horoscope.period_reading')}</p>
-                                        <div className="mt-2 space-y-3 text-sm leading-relaxed text-astro-text whitespace-pre-line [text-wrap:pretty]">
-                                            {monthlyReading.reading}
-                                        </div>
-                                    </div>
-                                ) : null}
-                            </div>
-                        ) : null}
-
+                        <h3 className="mt-2 font-serif text-lg text-astro-text sm:text-xl">{monthlyReading.headline}</h3>
+                        <p className="mt-2 text-sm leading-relaxed text-astro-text sm:text-[15px]">{monthlyReading.summary}</p>
+                        <p className="mt-3 text-sm leading-relaxed text-astro-subtext">{monthlyReading.focus}</p>
                     </div>
-                )}
+                ) : null}
             </section>
+
+            {onOpenChart ? (
+                <section className={READING_GLASS_SECTION_CLASS}>
+                    <button
+                        type="button"
+                        onClick={onOpenChart}
+                        className="inline-flex items-center px-0 py-1 text-sm font-medium text-astro-highlight underline underline-offset-4 transition-opacity hover:opacity-70"
+                    >
+                        {getText(language, 'horoscope.empty_cta')}
+                    </button>
+                </section>
+            ) : null}
         </ReadingScreenShell>
     );
 });

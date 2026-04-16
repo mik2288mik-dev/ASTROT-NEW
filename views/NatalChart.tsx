@@ -10,14 +10,11 @@ import {
   getPremiumNatalLivingLayer,
 } from '../services/astrologyService';
 import { saveProfile } from '../services/storageService';
-import { getTelegramInitDataHeaders } from '../services/sessionService';
 import { coerceNatalAnchorReading, mapNatalAnchorToLegacyIntro } from '../lib/natalReadings';
 import { Loading } from '../components/ui/Loading';
 import { FormattedAiText } from '../components/ui/FormattedAiText';
 import { READING_GLASS_SECTION_CLASS } from '../components/layout/ReadingLayout';
 import { ReadingScreenShell } from '../components/layout/ScreenShell';
-
-const NATAL_INTRO_REFRESH_COST = 250;
 
 interface NatalChartProps {
   data: NatalChartData | null;
@@ -25,7 +22,6 @@ interface NatalChartProps {
   chartId?: number;
   requestPremium: () => void;
   onUpdateProfile?: (profile: UserProfile) => void;
-  onBalanceUpdate?: (balance: number) => void;
 }
 
 const PLANET_SYMBOLS: Record<string, string> = {
@@ -62,7 +58,7 @@ type DetailLineProps = {
 };
 
 const DetailLine: React.FC<DetailLineProps> = ({ label, value }) => (
-  <div className="border-b border-astro-border/15 pb-3 last:border-b-0 last:pb-0">
+  <div className="border-b border-astro-border/10 pb-4 last:border-b-0 last:pb-0">
     <p className="lumia-label text-[10px] tracking-[0.16em]">{label}</p>
     <p className="mt-1.5 whitespace-pre-line text-[15px] leading-relaxed text-astro-text sm:text-base">
       {value}
@@ -73,19 +69,19 @@ const DetailLine: React.FC<DetailLineProps> = ({ label, value }) => (
 const ListBlock: React.FC<{ title: string; items: string[] }> = ({ title, items }) => (
   <div className="space-y-3">
     <p className="lumia-label tracking-[0.18em]">{title}</p>
-    <ul className="space-y-2.5">
+    <ol className="space-y-3">
       {items.map((item, index) => (
         <li
           key={`${title}-${index}`}
-          className="flex gap-3 border-b border-astro-border/12 px-0 py-3 text-[15px] leading-relaxed text-astro-text last:border-b-0 sm:text-base"
+          className="flex gap-3 border-b border-astro-border/10 pb-3 text-[15px] leading-relaxed text-astro-text last:border-b-0 last:pb-0 sm:text-base"
         >
-          <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-astro-highlight/14 text-xs font-semibold text-astro-highlight ring-1 ring-astro-highlight/18 sm:h-8 sm:w-8 sm:text-sm">
-            {index + 1}
+          <span className="shrink-0 pt-[1px] text-[12px] font-semibold text-astro-highlight/80">
+            {index + 1}.
           </span>
-          <span className="min-w-0 pt-0.5 [text-wrap:pretty]">{item}</span>
+          <span className="min-w-0 [text-wrap:pretty]">{item}</span>
         </li>
       ))}
-    </ul>
+    </ol>
   </div>
 );
 
@@ -95,20 +91,18 @@ export const NatalChart: React.FC<NatalChartProps> = ({
   chartId,
   requestPremium,
   onUpdateProfile,
-  onBalanceUpdate,
 }) => {
   const lang = profile.language === 'en' ? 'en' : 'ru';
-  const cachedLegacyIntro = !chartId && profile.generatedContent?.natalIntro
-    ? coerceNatalAnchorReading(profile.generatedContent.natalIntro, lang)
-    : null;
+  const cachedLegacyIntro =
+    !chartId && profile.generatedContent?.natalIntro
+      ? coerceNatalAnchorReading(profile.generatedContent.natalIntro, lang)
+      : null;
 
   const [anchorReading, setAnchorReading] = useState<NatalAnchorReading | null>(cachedLegacyIntro);
   const [livingReading, setLivingReading] = useState<NatalLivingReading | null>(null);
   const [anchorLoading, setAnchorLoading] = useState(!cachedLegacyIntro);
   const [livingLoading, setLivingLoading] = useState(profile.isPremium);
   const [livingError, setLivingError] = useState<string | null>(null);
-  const [refreshAnchorBusy, setRefreshAnchorBusy] = useState(false);
-  const [hasTelegramAuth, setHasTelegramAuth] = useState(false);
   const hasChartData = !!(data?.sun && data?.moon);
 
   const updateProfileAnchorCache = (reading: NatalAnchorReading, nextBalance?: number) => {
@@ -122,7 +116,10 @@ export const NatalChart: React.FC<NatalChartProps> = ({
     const intro = mapNatalAnchorToLegacyIntro(reading);
     const currentIntro = profile.generatedContent?.natalIntro || '';
     const currentBalance = profile.lumiBalance;
-    if (currentIntro === intro && (typeof nextBalance !== 'number' || nextBalance === currentBalance)) {
+    if (
+      currentIntro === intro &&
+      (typeof nextBalance !== 'number' || nextBalance === currentBalance)
+    ) {
       return;
     }
 
@@ -142,10 +139,6 @@ export const NatalChart: React.FC<NatalChartProps> = ({
     onUpdateProfile?.(nextProfile);
     saveProfile(nextProfile).catch(console.error);
   };
-
-  useEffect(() => {
-    setHasTelegramAuth(Object.keys(getTelegramInitDataHeaders()).length > 0);
-  }, []);
 
   useEffect(() => {
     setAnchorReading(cachedLegacyIntro);
@@ -171,9 +164,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({
         if (cached) {
           setAnchorReading(cached);
           setAnchorLoading(false);
-          if (!chartId) {
-            updateProfileAnchorCache(cached);
-          }
+          if (!chartId) updateProfileAnchorCache(cached);
           return;
         }
 
@@ -181,9 +172,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({
         if (cancelled) return;
         setAnchorReading(generated);
         setAnchorLoading(false);
-        if (!chartId) {
-          updateProfileAnchorCache(generated);
-        }
+        if (!chartId) updateProfileAnchorCache(generated);
       } catch (error) {
         console.error(error);
         if (!cancelled) {
@@ -274,55 +263,9 @@ export const NatalChart: React.FC<NatalChartProps> = ({
     profile.name,
   ]);
 
-  const handleRefreshAnchor = async () => {
-    const headers = getTelegramInitDataHeaders();
-    if (!Object.keys(headers).length || refreshAnchorBusy || !data) return;
-
-    setRefreshAnchorBusy(true);
-    try {
-      const res = await fetch('/api/astrology/refresh-natal-intro', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...headers },
-        body: JSON.stringify({
-          userId: profile.id,
-          profile,
-          chartData: data,
-          chartId: chartId ?? undefined,
-        }),
-      });
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(payload.message || payload.error || 'refresh failed');
-      }
-
-      const nextReading = payload.reading
-        ? coerceNatalAnchorReading(payload.reading, lang)
-        : payload.intro
-          ? coerceNatalAnchorReading(payload.intro, lang)
-          : null;
-
-      if (nextReading) {
-        setAnchorReading(nextReading);
-        updateProfileAnchorCache(nextReading, typeof payload.newBalance === 'number' ? payload.newBalance : undefined);
-      } else if (typeof payload.newBalance === 'number') {
-        onUpdateProfile?.({ ...profile, lumiBalance: payload.newBalance });
-      }
-
-      if (typeof payload.newBalance === 'number') {
-        onBalanceUpdate?.(payload.newBalance);
-      }
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setRefreshAnchorBusy(false);
-    }
-  };
-
   const localizedSun = data?.sun?.sign ? getZodiacSign(lang, data.sun.sign) : '—';
   const localizedMoon = data?.moon?.sign ? getZodiacSign(lang, data.moon.sign) : '—';
   const localizedRising = data?.rising?.sign ? getZodiacSign(lang, data.rising.sign) : '—';
-  const lumiBalance = profile.lumiBalance ?? 0;
-  const refreshAnchorDisabled = refreshAnchorBusy || lumiBalance < NATAL_INTRO_REFRESH_COST;
 
   const mainPlanets = useMemo(
     () => [
@@ -334,11 +277,12 @@ export const NatalChart: React.FC<NatalChartProps> = ({
   );
 
   const otherPlanets = useMemo(
-    () => [
-      { id: 'mercury', data: data?.mercury ?? null },
-      { id: 'venus', data: data?.venus ?? null },
-      { id: 'mars', data: data?.mars ?? null },
-    ].filter((planet) => planet.data),
+    () =>
+      [
+        { id: 'mercury', data: data?.mercury ?? null },
+        { id: 'venus', data: data?.venus ?? null },
+        { id: 'mars', data: data?.mars ?? null },
+      ].filter((planet) => planet.data),
     [data]
   );
 
@@ -358,7 +302,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({
             {anchorReading?.summary || getText(lang, 'chart.anchor_body')}
           </p>
 
-          <div className="mx-auto mt-6 max-w-reading-wide border-t border-astro-border/15 pt-4 text-center text-xs leading-relaxed text-astro-subtext sm:text-[13px]">
+          <div className="mx-auto mt-6 max-w-reading-wide border-t border-astro-border/10 pt-4 text-center text-xs leading-relaxed text-astro-subtext sm:text-[13px]">
             <p>
               {lang === 'ru'
                 ? `Солнце в ${localizedSun}, Луна в ${localizedMoon}, Асцендент в ${localizedRising}.`
@@ -366,7 +310,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({
             </p>
           </div>
 
-          <div className="mt-5">
+          <div className="mt-6">
             {anchorLoading && !anchorReading ? (
               <div className="flex items-center justify-center py-10">
                 <div className="h-5 w-5 animate-spin rounded-full border-2 border-astro-highlight border-t-transparent" />
@@ -379,33 +323,13 @@ export const NatalChart: React.FC<NatalChartProps> = ({
               <p className="lumia-muted text-sm leading-relaxed">{getText(lang, 'chart.anchor_loading')}</p>
             )}
           </div>
-
-          {hasTelegramAuth && (
-            <div className="mt-5">
-              <button
-                type="button"
-                onClick={() => void handleRefreshAnchor()}
-                disabled={refreshAnchorDisabled}
-                className="flex min-h-[44px] w-full items-center rounded-xl bg-astro-highlight/12 px-4 py-3 text-left text-sm font-medium text-astro-highlight ring-1 ring-astro-highlight/28 transition-[box-shadow] hover:ring-astro-highlight/45 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {refreshAnchorBusy
-                  ? getText(lang, 'chart.refresh_intro_loading')
-                  : getText(lang, 'chart.refresh_intro_cta').replace('{cost}', String(NATAL_INTRO_REFRESH_COST))}
-              </button>
-              {lumiBalance < NATAL_INTRO_REFRESH_COST && (
-                <p className="mt-2 text-center text-xs text-astro-subtext">
-                  {getText(lang, 'chart.refresh_intro_insufficient')}
-                </p>
-              )}
-            </div>
-          )}
         </div>
       </motion.section>
 
       {anchorReading && (
-        <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-4 sm:mt-5">
+        <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
           <div className={READING_GLASS_SECTION_CLASS}>
-            <div className="grid gap-5 lg:grid-cols-2">
+            <div className="grid gap-8 lg:grid-cols-2">
               <ListBlock title={getText(lang, 'chart.anchor_strengths_title')} items={anchorReading.strengths} />
               <ListBlock title={getText(lang, 'chart.anchor_patterns_title')} items={anchorReading.patterns} />
             </div>
@@ -413,68 +337,70 @@ export const NatalChart: React.FC<NatalChartProps> = ({
         </motion.section>
       )}
 
-      <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-6 sm:mt-7">
+      <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         <div className={READING_GLASS_SECTION_CLASS}>
           <p className="lumia-label tracking-[0.2em]">{getText(lang, 'chart.core_title')}</p>
-
-          <div className="mt-4 space-y-2.5">
+          <div className="mt-4 space-y-4">
             {mainPlanets.map((planet) => (
               <div
                 key={planet.id}
-                className="border-b border-astro-border/12 px-0 py-3 last:border-b-0 sm:flex sm:items-center sm:gap-4"
+                className="border-b border-astro-border/10 pb-4 last:border-b-0 last:pb-0 sm:flex sm:items-start sm:justify-between sm:gap-6"
               >
-                <div className="flex items-center gap-3 sm:flex-1 sm:gap-4">
-                  <span className="shrink-0 text-lg text-astro-highlight/90 sm:text-xl">{PLANET_SYMBOLS[planet.id]}</span>
-                  <div className="min-w-0 flex-1">
+                <div className="flex items-start gap-3">
+                  <span className="shrink-0 pt-0.5 text-lg text-astro-highlight/90 sm:text-xl">
+                    {PLANET_SYMBOLS[planet.id]}
+                  </span>
+                  <div>
                     <p className="lumia-label text-[10px] tracking-[0.16em]">{PLANET_NAMES[planet.id]?.[lang]}</p>
                     <p className="mt-0.5 text-base font-semibold text-astro-text sm:text-lg">
                       {planet.data?.sign ? getZodiacSign(lang, planet.data.sign) : '—'}
                     </p>
                   </div>
                 </div>
-                <p className="mt-2 pl-10 text-xs leading-snug text-astro-subtext sm:mt-0 sm:max-w-[46%] sm:flex-none sm:pl-0 sm:text-right sm:text-[13px]">
+                <p className="mt-2 text-sm leading-relaxed text-astro-subtext sm:mt-0 sm:max-w-[48%] sm:text-right">
                   {PLANET_MEANINGS[planet.id]?.[lang]}
                 </p>
               </div>
             ))}
           </div>
 
-          <div className="mt-4 flex flex-wrap gap-2">
-            {otherPlanets.map((planet) => (
-              <span
-                key={planet.id}
-                className="inline-flex items-center gap-2 rounded-full border border-astro-border/55 bg-astro-bg/18 px-3 py-2 text-xs text-astro-subtext"
-              >
-                <span className="text-astro-highlight">{PLANET_SYMBOLS[planet.id]}</span>
-                <span>{PLANET_NAMES[planet.id]?.[lang]}</span>
-                <span>·</span>
-                <span>{planet.data?.sign ? getZodiacSign(lang, planet.data.sign) : '—'}</span>
-              </span>
-            ))}
-          </div>
-
+          {otherPlanets.length > 0 ? (
+            <p className="mt-5 text-sm leading-relaxed text-astro-subtext">
+              {otherPlanets
+                .map((planet) =>
+                  `${PLANET_NAMES[planet.id]?.[lang]} — ${
+                    planet.data?.sign ? getZodiacSign(lang, planet.data.sign) : '—'
+                  }`
+                )
+                .join(' • ')}
+            </p>
+          ) : null}
         </div>
       </motion.section>
 
-      <section className="mt-7 sm:mt-8">
+      <section>
         <div className={READING_GLASS_SECTION_CLASS}>
           <p className="lumia-label tracking-[0.2em]">{getText(lang, 'chart.living_label')}</p>
-          <h2 className="mt-2 font-serif text-xl text-astro-text sm:text-2xl">{getText(lang, 'chart.living_title')}</h2>
+          <h2 className="mt-2 font-serif text-xl text-astro-text sm:text-2xl">
+            {getText(lang, 'chart.living_title')}
+          </h2>
 
           {profile.isPremium ? (
             <div className="mt-5">
               {livingLoading ? (
-                <div className="flex min-h-[180px] items-center justify-center">
+                <div className="flex min-h-[120px] items-center justify-center">
                   <div className="h-6 w-6 animate-spin rounded-full border-2 border-astro-highlight/40 border-t-astro-highlight" />
                 </div>
               ) : livingReading ? (
                 <div className="space-y-5">
-                  <div className="border-b border-astro-border/20 pb-4">
+                  <div className="border-b border-astro-border/10 pb-4">
                     <h3 className="font-serif text-lg text-astro-text sm:text-xl">{livingReading.headline}</h3>
-                    <p className="lumia-muted mt-2 text-sm leading-relaxed sm:text-[15px]">{livingReading.summary}</p>
+                    <p className="lumia-muted mt-2 text-sm leading-relaxed sm:text-[15px]">
+                      {livingReading.summary}
+                    </p>
                   </div>
 
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     <DetailLine label={getText(lang, 'chart.living_active_theme')} value={livingReading.activeTheme} />
                     <DetailLine label={getText(lang, 'chart.living_strength')} value={livingReading.strength} />
                     <DetailLine label={getText(lang, 'chart.living_vulnerability')} value={livingReading.vulnerability} />
@@ -490,17 +416,17 @@ export const NatalChart: React.FC<NatalChartProps> = ({
               )}
             </div>
           ) : (
-            <div className="mt-5">
-              <p className="max-w-prose text-sm leading-relaxed text-astro-text/80">
+            <div className="mt-5 space-y-3">
+              <p className="max-w-prose text-sm leading-relaxed text-astro-text/82">
                 {getText(lang, 'chart.living_premium_body')}
               </p>
-              <p className="mt-2 text-xs leading-relaxed text-astro-subtext">
+              <p className="text-xs leading-relaxed text-astro-subtext">
                 {getText(lang, 'chart.living_premium_note')}
               </p>
               <button
                 type="button"
                 onClick={requestPremium}
-                className="mt-4 inline-flex min-h-[42px] items-center justify-center rounded-full border border-black/8 bg-white/72 px-4 py-2.5 text-sm font-medium text-text-main transition-[box-shadow] hover:ring-1 hover:ring-black/10"
+                className="inline-flex items-center px-0 py-1 text-sm font-medium text-astro-highlight underline underline-offset-4 transition-opacity hover:opacity-70"
               >
                 {getText(lang, 'chart.living_premium_cta')}
               </button>
