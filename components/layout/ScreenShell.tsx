@@ -22,7 +22,7 @@ export const ReadingScreenShell = memo<{
   className?: string;
 }>(({ children, className = '' }) => (
   <div
-    className={`min-h-full space-y-air-lg pt-1 screen-pb mx-auto w-full max-w-reading-wide px-4 sm:px-5 ${className}`.trim()}
+    className={`min-h-full space-y-8 pt-1 screen-pb mx-auto w-full max-w-reading-wide px-4 sm:space-y-10 sm:px-5 ${className}`.trim()}
   >
     {children}
   </div>

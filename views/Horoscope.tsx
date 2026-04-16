@@ -29,7 +29,6 @@ import { getText } from '../constants';
 import { FORECAST_FULL_DAY_LUMI_COST } from '../lib/forecastFullDay';
 import { READING_GLASS_SECTION_CLASS, READING_PAGE_CLASS } from '../components/layout/ReadingLayout';
 import { ReadingScreenShell } from '../components/layout/ScreenShell';
-import { PremiumUpsellPanel } from '../components/PremiumUpsellPanel';
 
 interface HoroscopeProps {
     profile: UserProfile;
@@ -492,14 +491,14 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
         const compact = Boolean(options?.compact);
         const stackClass = compact ? 'space-y-2.5' : 'space-y-3';
         const noteClass = compact
-            ? 'rounded-2xl border border-astro-border/15 bg-white/72 px-4 py-3 text-sm leading-relaxed text-astro-text/80'
-            : 'lumia-glass-inset px-4 py-3 text-sm leading-relaxed text-astro-text/80';
+            ? 'border-t border-astro-border/12 px-0 py-3 text-sm leading-relaxed text-astro-text/80'
+            : 'border-t border-astro-border/12 px-0 py-3 text-sm leading-relaxed text-astro-text/80';
         const checkboxClass = compact
-            ? 'flex items-start gap-3 rounded-2xl border border-astro-border/15 bg-white/72 px-4 py-3 text-sm text-astro-text'
-            : 'lumia-glass-inset flex items-start gap-3 px-4 py-3 text-sm text-astro-text';
+            ? 'flex items-start gap-3 border-t border-astro-border/12 px-0 py-3 text-sm text-astro-text'
+            : 'flex items-start gap-3 border-t border-astro-border/12 px-0 py-3 text-sm text-astro-text';
         const buttonClass = compact
-            ? 'flex min-h-[44px] w-full items-center justify-center rounded-full border border-astro-border/70 bg-white px-4 py-3 text-sm font-semibold text-astro-text transition-[box-shadow] hover:ring-1 hover:ring-astro-highlight/25 disabled:opacity-60'
-            : 'flex min-h-[44px] w-full items-center justify-center rounded-xl border border-astro-border/70 bg-transparent px-4 py-3 text-sm font-medium text-astro-text disabled:opacity-60';
+            ? 'flex min-h-[44px] w-full items-center justify-center rounded-full border border-astro-border/50 bg-white/70 px-4 py-3 text-sm font-semibold text-astro-text transition-[box-shadow] hover:ring-1 hover:ring-black/8 disabled:opacity-60'
+            : 'flex min-h-[44px] w-full items-center justify-center rounded-full border border-astro-border/50 bg-white/70 px-4 py-3 text-sm font-medium text-astro-text transition-[box-shadow] hover:ring-1 hover:ring-black/8 disabled:opacity-60';
 
         if (!hasEnoughLumiForFullDay) {
             return (
@@ -544,50 +543,7 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
         );
     };
 
-    const renderInlineFullDayUpsell = (kind: 'horoscope' | 'natal') => {
-        if (!showLockedFullDayUpsell) return null;
-
-        const titleKey =
-            kind === 'horoscope'
-                ? 'horoscope.inline_horoscope_title'
-                : 'horoscope.inline_natal_title';
-        const bodyKey =
-            kind === 'horoscope'
-                ? 'horoscope.inline_horoscope_body'
-                : 'horoscope.inline_natal_body';
-
-        return (
-            <section className={READING_GLASS_SECTION_CLASS}>
-                <p className="lumia-label tracking-[0.2em]">{getText(language, 'horoscope.premium_label')}</p>
-                <p className="mt-2 text-sm leading-relaxed text-astro-text/85">
-                    {getText(language, bodyKey)}
-                </p>
-
-                <div className="mt-4 space-y-3">
-                    {onRequestPremium ? (
-                        <PremiumUpsellPanel
-                            compact
-                            title={getText(language, titleKey)}
-                            footerNote={getText(language, 'horoscope.premium_supporting_line')}
-                            ctaLabel={getText(language, 'horoscope.premium_cta')}
-                            onCta={onRequestPremium}
-                        >
-                            <p>{getText(language, 'horoscope.premium_body')}</p>
-                        </PremiumUpsellPanel>
-                    ) : null}
-
-                    <p className="rounded-2xl border border-astro-border/15 bg-white/72 px-4 py-3 text-sm leading-relaxed text-astro-text/80">
-                        {getText(
-                            language,
-                            hasEnoughLumiForFullDay
-                                ? 'horoscope.lumi_ready_note'
-                                : 'horoscope.lumi_locked_note'
-                        ).replace('{cost}', String(FORECAST_FULL_DAY_LUMI_COST))}
-                    </p>
-                </div>
-            </section>
-        );
-    };
+    const renderInlineFullDayUpsell = () => null;
 
     useEffect(() => {
         let cancelled = false;
@@ -640,7 +596,7 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
     if (!dailyReading || !chartData) {
         return (
             <div className={`flex min-h-full items-center justify-center py-8 ${READING_PAGE_CLASS}`}>
-                <div className={`${READING_GLASS_SECTION_CLASS} w-full text-center`}>
+                <div className="w-full text-center">
                     <p className="lumia-label tracking-[0.2em]">{getText(language, 'horoscope.today_layer_label')}</p>
                     <h1 className="mt-2 font-serif text-xl text-astro-text sm:text-2xl">
                         {getText(language, 'horoscope.empty_title')}
@@ -664,7 +620,7 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
 
     return (
         <ReadingScreenShell>
-            <section className={READING_GLASS_SECTION_CLASS}>
+            <section className="border-t-0 px-0 py-1 sm:py-1.5">
                 <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                         <p className="lumia-label tracking-[0.2em]">{getText(language, 'horoscope.today_layer_label')}</p>
@@ -679,27 +635,21 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
                     )}
                 </div>
 
-                <p className="lumia-muted mt-2 text-sm leading-relaxed">{getText(language, 'horoscope.subtitle')}</p>
+                <div className="mt-4">
+                    <ZodiacHeader sunSign={sunSign} language={language} />
+                </div>
 
                 {statusMessage && (
                     <div
-                        className={`mt-3 rounded-xl px-3.5 py-2.5 text-xs leading-relaxed ${
+                        className={`mt-3 border-t px-0 py-2.5 text-xs leading-relaxed ${
                             isStale
-                                ? 'lumia-glass-inset lumia-muted'
-                                : 'bg-astro-highlight/12 text-astro-text ring-1 ring-astro-highlight/25'
+                                ? 'border-astro-border/12 lumia-muted'
+                                : 'border-astro-highlight/20 text-astro-text'
                         }`}
                     >
                         {statusMessage}
                     </div>
                 )}
-            </section>
-
-            <section className={READING_GLASS_SECTION_CLASS}>
-                <p className="lumia-label tracking-[0.2em]">{getText(language, 'horoscope.foundation_label')}</p>
-                <p className="lumia-muted mt-1.5 text-sm leading-relaxed">{getText(language, 'horoscope.foundation_body')}</p>
-                <div className="mt-3">
-                    <ZodiacHeader sunSign={sunSign} language={language} />
-                </div>
             </section>
 
             <HoroscopeContent
@@ -716,26 +666,23 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
                 <h2 className="mt-1.5 font-serif text-lg text-astro-text sm:text-xl">
                     {getText(language, fullDayAccess === 'locked' ? 'horoscope.premium_title' : 'horoscope.dayparts_title')}
                 </h2>
-                <p className="lumia-muted mt-1.5 text-sm leading-relaxed">
-                    {getText(language, fullDayAccess === 'locked' ? 'horoscope.premium_body' : 'horoscope.dayparts_body')}
-                </p>
 
                 {fullDayAccess !== 'locked' ? (
                     <div className="mt-4 space-y-3">
                         {daypartsLoading && (
-                            <div className="lumia-glass-inset px-4 py-3 text-sm lumia-muted">
+                            <div className="border-t border-astro-border/12 px-0 py-3 text-sm lumia-muted">
                                 {getText(language, 'horoscope.dayparts_loading')}
                             </div>
                         )}
 
                         {daypartsStatus && !daypartsLoading && (
-                            <div className="lumia-glass-inset px-4 py-3 text-sm lumia-muted">
+                            <div className="border-t border-astro-border/12 px-0 py-3 text-sm lumia-muted">
                                 {daypartsStatus}
                             </div>
                         )}
 
                         {fullDayAccess === 'lumi' && !daypartsLoading && (
-                            <div className="lumia-glass-inset px-4 py-3 text-sm lumia-muted">
+                            <div className="border-t border-astro-border/12 px-0 py-3 text-sm lumia-muted">
                                 {getText(language, 'horoscope.lumi_active_note')}
                             </div>
                         )}
@@ -751,7 +698,7 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
                             ];
 
                             return (
-                                <div key={slot} className="lumia-glass-inset p-4 sm:p-4.5">
+                                <div key={slot} className="border-t border-astro-border/12 px-0 py-4">
                                     <p className="lumia-label tracking-[0.16em]">{getText(language, `horoscope.slot_${slot}`)}</p>
                                     <h3 className="mt-1.5 text-lg font-semibold text-astro-text sm:text-xl">{reading.headline}</h3>
                                     <p className="lumia-muted mt-2 text-sm leading-relaxed">{reading.summary}</p>
@@ -776,21 +723,19 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
                 ) : (
                     <div className="mt-4 space-y-3">
                         {daypartsStatus && (
-                            <div className="lumia-glass-inset px-4 py-3 text-sm lumia-muted">
+                            <div className="border-t border-astro-border/12 px-0 py-3 text-sm lumia-muted">
                                 {daypartsStatus}
                             </div>
                         )}
 
                         {onRequestPremium ? (
-                            <PremiumUpsellPanel
-                                compact
-                                title={getText(language, 'horoscope.premium_title')}
-                                footerNote={getText(language, 'horoscope.premium_supporting_line')}
-                                ctaLabel={getText(language, 'horoscope.premium_cta')}
-                                onCta={onRequestPremium}
+                            <button
+                                type="button"
+                                onClick={onRequestPremium}
+                                className="inline-flex min-h-[42px] items-center justify-center rounded-full border border-black/8 bg-white/72 px-4 py-2.5 text-sm font-medium text-text-main transition-[box-shadow] hover:ring-1 hover:ring-black/10"
                             >
-                                <p>{getText(language, 'horoscope.premium_body')}</p>
-                            </PremiumUpsellPanel>
+                                {getText(language, 'horoscope.premium_cta')}
+                            </button>
                         ) : null}
 
                         {renderFullDayLumiActions()}
@@ -801,16 +746,15 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
             <section className={READING_GLASS_SECTION_CLASS}>
                 <p className="lumia-label tracking-[0.2em]">{getText(language, 'horoscope.weekly_label')}</p>
                 <h2 className="mt-1.5 font-serif text-lg text-astro-text sm:text-xl">{getText(language, 'horoscope.weekly_title')}</h2>
-                <p className="lumia-muted mt-1.5 text-sm leading-relaxed">{getText(language, 'horoscope.weekly_body')}</p>
 
                 {periodLoading && (
-                    <div className="lumia-glass-inset mt-4 px-4 py-3 text-sm lumia-muted">
+                    <div className="mt-4 border-t border-astro-border/12 px-0 py-3 text-sm lumia-muted">
                         {getText(language, 'horoscope.period_loading')}
                     </div>
                 )}
 
                 {periodError && !periodLoading && (
-                    <div className="lumia-glass-inset mt-4 px-4 py-3 text-sm text-amber-200/90">{periodError}</div>
+                    <div className="mt-4 border-t border-astro-border/12 px-0 py-3 text-sm text-astro-text/80">{periodError}</div>
                 )}
 
                 {weeklyReading && !periodLoading && (
@@ -818,13 +762,10 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
                         <p className="text-[11px] uppercase tracking-wider text-astro-subtext">{weeklyReading.periodLabel}</p>
                         <h3 className="font-serif text-lg text-astro-text sm:text-xl">{weeklyReading.headline}</h3>
                         <p className="text-sm leading-relaxed text-astro-text sm:text-[15px]">{weeklyReading.summary}</p>
-                        <div>
-                            <p className="lumia-label text-[10px] tracking-[0.16em]">{getText(language, 'horoscope.focus_title')}</p>
-                            <p className="mt-1 text-sm leading-relaxed text-astro-text">{weeklyReading.focus}</p>
-                        </div>
+                        <p className="text-sm leading-relaxed text-astro-text">{weeklyReading.focus}</p>
 
                         {profile.isPremium && weeklyReading.theme ? (
-                            <div className="space-y-3 rounded-2xl border border-astro-border/40 bg-astro-card/30 p-4">
+                            <div className="mt-2 space-y-3 border-t border-astro-border/12 pt-4">
                                 <div>
                                     <p className="lumia-label text-[10px] tracking-[0.16em]">{getText(language, 'horoscope.period_theme')}</p>
                                     <p className="mt-1 text-sm font-medium text-astro-text">{weeklyReading.theme}</p>
@@ -870,16 +811,6 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
                             </div>
                         ) : null}
 
-                        {!profile.isPremium && onRequestPremium ? (
-                            <PremiumUpsellPanel
-                                compact
-                                ctaLabel={getText(language, 'horoscope.premium_cta')}
-                                onCta={onRequestPremium}
-                                className="mt-4"
-                            >
-                                <p>{getText(language, 'horoscope.period_premium_hint_weekly')}</p>
-                            </PremiumUpsellPanel>
-                        ) : null}
                     </div>
                 )}
             </section>
@@ -887,20 +818,16 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
             <section className={READING_GLASS_SECTION_CLASS}>
                 <p className="lumia-label tracking-[0.2em]">{getText(language, 'horoscope.monthly_label')}</p>
                 <h2 className="mt-1.5 font-serif text-lg text-astro-text sm:text-xl">{getText(language, 'horoscope.monthly_title')}</h2>
-                <p className="lumia-muted mt-1.5 text-sm leading-relaxed">{getText(language, 'horoscope.monthly_body')}</p>
 
                 {monthlyReading && !periodLoading && (
                     <div className="mt-4 space-y-4">
                         <p className="text-[11px] uppercase tracking-wider text-astro-subtext">{monthlyReading.periodLabel}</p>
                         <h3 className="font-serif text-lg text-astro-text sm:text-xl">{monthlyReading.headline}</h3>
                         <p className="text-sm leading-relaxed text-astro-text sm:text-[15px]">{monthlyReading.summary}</p>
-                        <div>
-                            <p className="lumia-label text-[10px] tracking-[0.16em]">{getText(language, 'horoscope.focus_title')}</p>
-                            <p className="mt-1 text-sm leading-relaxed text-astro-text">{monthlyReading.focus}</p>
-                        </div>
+                        <p className="text-sm leading-relaxed text-astro-text">{monthlyReading.focus}</p>
 
                         {profile.isPremium && monthlyReading.theme ? (
-                            <div className="space-y-3 rounded-2xl border border-astro-border/40 bg-astro-card/30 p-4">
+                            <div className="mt-2 space-y-3 border-t border-astro-border/12 pt-4">
                                 <div>
                                     <p className="lumia-label text-[10px] tracking-[0.16em]">{getText(language, 'horoscope.period_theme')}</p>
                                     <p className="mt-1 text-sm font-medium text-astro-text">{monthlyReading.theme}</p>
@@ -946,35 +873,7 @@ export const Horoscope = memo<HoroscopeProps>(({ profile, chartData, onUpdatePro
                             </div>
                         ) : null}
 
-                        {!profile.isPremium && onRequestPremium ? (
-                            <PremiumUpsellPanel
-                                compact
-                                ctaLabel={getText(language, 'horoscope.premium_cta')}
-                                onCta={onRequestPremium}
-                                className="mt-4"
-                            >
-                                <p>{getText(language, 'horoscope.period_premium_hint_monthly')}</p>
-                            </PremiumUpsellPanel>
-                        ) : null}
                     </div>
-                )}
-            </section>
-
-            <section className={READING_GLASS_SECTION_CLASS}>
-                <p className="lumia-label tracking-[0.2em]">{getText(language, 'horoscope.bridge_label')}</p>
-                <h2 className="mt-1.5 font-serif text-lg text-astro-text sm:text-xl">
-                    {getText(language, 'horoscope.bridge_title')}
-                </h2>
-                <p className="lumia-muted mt-1.5 text-sm leading-relaxed">{getText(language, 'horoscope.bridge_body')}</p>
-
-                {onOpenChart && (
-                    <button
-                        type="button"
-                        onClick={onOpenChart}
-                        className="mt-4 flex min-h-[44px] w-full items-center justify-center rounded-xl bg-astro-highlight/12 px-4 py-2.5 text-sm font-medium text-astro-highlight ring-1 ring-astro-highlight/28 transition-[box-shadow] hover:ring-astro-highlight/45"
-                    >
-                        {getText(language, 'horoscope.open_chart')}
-                    </button>
                 )}
             </section>
         </ReadingScreenShell>

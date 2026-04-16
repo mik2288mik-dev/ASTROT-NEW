@@ -1,5 +1,4 @@
 import React, { memo } from 'react';
-import { AIR_GLASS_PANEL_CLASS } from './ScreenShell';
 
 /**
  * Max-width reading column for long-form AI content (natal, horoscope).
@@ -7,11 +6,11 @@ import { AIR_GLASS_PANEL_CLASS } from './ScreenShell';
  */
 export const READING_PAGE_CLASS = 'mx-auto w-full max-w-reading-wide px-4 sm:px-5';
 
-/** Inner padding for glass sections; prefer `READING_GLASS_SECTION_CLASS` for full panel. */
-export const READING_SECTION_PAD = 'px-5 py-5 sm:px-6 sm:py-6';
+/** Reading sections in AIR mode: spacing only, no panel chrome. */
+export const READING_SECTION_PAD = 'px-0 py-0';
 
-/** Single import for `lumia-glass` forecast/natal panels. */
-export const READING_GLASS_SECTION_CLASS = AIR_GLASS_PANEL_CLASS;
+/** Natal / horoscope surfaces: no frames, only vertical rhythm. */
+export const READING_GLASS_SECTION_CLASS = 'border-t border-astro-border/10 px-0 pt-5 sm:pt-6';
 
 interface ReadingLayoutProps {
   children: React.ReactNode;

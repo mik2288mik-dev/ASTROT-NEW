@@ -819,7 +819,6 @@ const App: React.FC = () => {
                             chartId={activeChartId}
                             requestPremium={requestPremium}
                             onUpdateProfile={handleProfileUpdate}
-                            onOpenCharts={() => openCharts('chart')}
                             onBalanceUpdate={(balance) => setProfile((prev) => (prev ? { ...prev, lumiBalance: balance } : prev))}
                         />
                     </div>

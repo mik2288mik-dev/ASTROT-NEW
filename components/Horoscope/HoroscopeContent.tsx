@@ -54,9 +54,7 @@ export const HoroscopeContent = memo<HoroscopeContentProps>(({ reading, language
         <p className="lumia-muted mt-1.5 text-sm leading-relaxed">{getText(language, 'horoscope.context_body')}</p>
 
         <div className="mt-4 mx-auto w-full max-w-reading-wide">
-          <div className="lumia-reading-inner-card">
-            <FormattedAiText text={reading.reading} variant="article" className="lumia-prose" />
-          </div>
+          <FormattedAiText text={reading.reading} variant="article" className="lumia-prose" />
         </div>
 
         <div className="mt-4 border-t border-astro-border/15 pt-4">
@@ -72,7 +70,7 @@ export const HoroscopeContent = memo<HoroscopeContentProps>(({ reading, language
             {tips.map((line, index) => (
               <li
                 key={index}
-                className="lumia-glass-inset flex gap-3 px-3.5 py-3 text-[15px] leading-relaxed text-astro-text sm:text-base sm:leading-relaxed"
+                className="flex gap-3 border-b border-astro-border/12 px-0 py-3 text-[15px] leading-relaxed text-astro-text last:border-b-0 sm:text-base sm:leading-relaxed"
               >
                 <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-astro-highlight/14 text-xs font-semibold text-astro-highlight ring-1 ring-astro-highlight/18 sm:h-8 sm:w-8 sm:text-sm">
                   {index + 1}
