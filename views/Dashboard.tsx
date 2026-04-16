@@ -285,7 +285,6 @@ export const Dashboard = memo<DashboardProps>(
               onOpenStore={onOpenWallet}
               settingsAriaLabel={getText(language, 'nav.settings')}
               storeLabel={language === 'en' ? 'Store' : 'Магазин'}
-              storeBalance={profile.lumiBalance}
               className="-mt-[6px] mb-4"
             />
 
@@ -333,7 +332,6 @@ export const Dashboard = memo<DashboardProps>(
             onOpenStore={onOpenWallet}
             settingsAriaLabel={getText(language, 'nav.settings')}
             storeLabel={language === 'en' ? 'Store' : 'Магазин'}
-            storeBalance={profile.lumiBalance}
             className="-mt-[6px] mb-4"
           />
 

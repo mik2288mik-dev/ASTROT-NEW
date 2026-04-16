@@ -1,15 +1,13 @@
 import React from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { Settings } from 'lucide-react';
+import { Settings, ShoppingBag } from 'lucide-react';
 import { cn } from '../../lib/cn';
 
 interface LumiaStudioHeaderProps {
   onOpenSettings: () => void;
   onOpenStore: () => void;
-  /** Localized e.g. getText(lang, 'nav.settings') */
   settingsAriaLabel: string;
   storeLabel: string;
-  storeBalance?: number;
   className?: string;
 }
 
@@ -18,13 +16,12 @@ export const LumiaStudioHeader: React.FC<LumiaStudioHeaderProps> = ({
   onOpenStore,
   settingsAriaLabel,
   storeLabel,
-  storeBalance = 0,
   className,
 }) => {
   const shouldReduceMotion = useReducedMotion();
   const brandLetters = ['L', 'U', 'M', 'I', 'A'];
-  const settingsButtonClass =
-    'z-10 mt-[2.35rem] inline-flex h-8 w-8 min-h-[32px] min-w-[32px] shrink-0 items-center justify-center rounded-full bg-white/86 text-text-main ring-1 ring-black/[0.045] shadow-[0_3px_10px_rgba(0,0,0,0.02)] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/14';
+  const iconButtonClass =
+    'inline-flex h-8 w-8 min-h-[32px] min-w-[32px] shrink-0 items-center justify-center rounded-full border border-black/[0.08] bg-white text-text-main shadow-[0_3px_10px_rgba(0,0,0,0.02)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/14 hover:text-astro-text';
 
   const taglineAnimate = shouldReduceMotion
     ? undefined
@@ -46,7 +43,7 @@ export const LumiaStudioHeader: React.FC<LumiaStudioHeaderProps> = ({
 
   return (
     <header className={cn('mb-5', className)}>
-      <div className="grid grid-cols-[44px_minmax(0,1fr)_auto] items-start gap-2">
+      <div className="grid grid-cols-[44px_minmax(0,1fr)_44px] items-start gap-2">
         <div aria-hidden className="h-11 w-11" />
         <div className="min-w-0 text-center">
           <div className="inline-flex flex-col items-center">
@@ -86,27 +83,33 @@ export const LumiaStudioHeader: React.FC<LumiaStudioHeaderProps> = ({
               transition={taglineTransition}
               className="mb-0 mt-2 text-[9px] uppercase tracking-[0.32em] text-[#8a857d]"
             >
-              Твой путь к себе
+              ТВОЙ ПУТЬ К СЕБЕ
             </motion.p>
           </div>
         </div>
-        <div className="flex min-w-0 items-start justify-end gap-2 pt-1">
+        <div aria-hidden className="h-11 w-11" />
+      </div>
+
+      <div className="mt-2 grid grid-cols-[44px_minmax(0,1fr)_44px] items-start gap-2">
+        <div className="flex min-w-0 items-start justify-start">
           <button
             type="button"
             onClick={onOpenStore}
             aria-label={storeLabel}
-            className="relative inline-flex min-h-[44px] min-w-[44px] shrink-0 items-center gap-2 rounded-full border border-black/[0.08] bg-[#f7f3ea] px-3.5 py-2 text-text-main shadow-[0_4px_10px_rgba(0,0,0,0.03)] transition-colors hover:text-astro-text"
+            className={iconButtonClass}
           >
-            <span className="text-[12px] font-medium leading-none">{storeLabel}</span>
-            <span className="rounded-full border border-black/[0.06] bg-white px-2 py-[3px] text-[10px] font-semibold leading-none text-text-main">
-              {Math.max(0, storeBalance)}
-            </span>
+            <ShoppingBag className="h-[12px] w-[12px]" strokeWidth={1.7} aria-hidden />
           </button>
+        </div>
+
+        <div />
+
+        <div className="flex min-w-0 items-start justify-end">
           <button
             type="button"
             onClick={onOpenSettings}
             aria-label={settingsAriaLabel}
-            className={cn(settingsButtonClass, 'justify-self-end self-start')}
+            className={cn(iconButtonClass, 'justify-self-end self-start')}
           >
             <Settings className="h-[12px] w-[12px]" strokeWidth={1.7} aria-hidden />
           </button>
