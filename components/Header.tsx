@@ -41,7 +41,7 @@ function StudioChromeHeader({
   const tagline = profile.language === 'en' ? 'YOUR PATH TO SELF' : 'ТВОЙ ПУТЬ К СЕБЕ';
   const storeLabel = profile.language === 'en' ? 'Store' : 'Магазин';
   const iconButtonClass =
-    'inline-flex h-8 w-8 min-h-[32px] min-w-[32px] shrink-0 items-center justify-center rounded-full border border-black/[0.08] bg-white text-text-main shadow-[0_3px_10px_rgba(0,0,0,0.02)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/14 hover:text-astro-text';
+    'inline-flex h-[30px] w-[30px] min-h-[30px] min-w-[30px] shrink-0 items-center justify-center rounded-full border border-black/[0.08] bg-white text-text-main shadow-[0_3px_10px_rgba(0,0,0,0.02)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/14 hover:text-astro-text';
 
   return (
     <header className="lumia-tg-header-bar relative z-40 shrink-0 border-b border-black/[0.06] bg-white">
@@ -63,7 +63,7 @@ function StudioChromeHeader({
           <div aria-hidden className="h-11 w-11" />
         </div>
 
-        <div className="mt-2 grid grid-cols-[44px_minmax(0,1fr)_44px] items-start gap-2">
+        <div className="mt-0.5 grid grid-cols-[44px_minmax(0,1fr)_44px] items-start gap-2">
           <div className="flex min-w-0 items-start justify-start">
             <button
               type="button"
@@ -71,7 +71,7 @@ function StudioChromeHeader({
               aria-label={storeLabel}
               className={iconButtonClass}
             >
-              <ShoppingBag className="h-[12px] w-[12px]" strokeWidth={1.7} aria-hidden />
+              <ShoppingBag className="h-[11px] w-[11px]" strokeWidth={1.7} aria-hidden />
             </button>
           </div>
 
@@ -84,7 +84,7 @@ function StudioChromeHeader({
               aria-label={getText(profile.language, 'nav.settings')}
               className={iconButtonClass}
             >
-              <Settings className="h-[12px] w-[12px]" strokeWidth={1.7} aria-hidden />
+              <Settings className="h-[11px] w-[11px]" strokeWidth={1.7} aria-hidden />
             </button>
           </div>
         </div>

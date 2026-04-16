@@ -21,7 +21,7 @@ export const LumiaStudioHeader: React.FC<LumiaStudioHeaderProps> = ({
   const shouldReduceMotion = useReducedMotion();
   const brandLetters = ['L', 'U', 'M', 'I', 'A'];
   const iconButtonClass =
-    'inline-flex h-8 w-8 min-h-[32px] min-w-[32px] shrink-0 items-center justify-center rounded-full border border-black/[0.08] bg-white text-text-main shadow-[0_3px_10px_rgba(0,0,0,0.02)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/14 hover:text-astro-text';
+    'inline-flex h-[30px] w-[30px] min-h-[30px] min-w-[30px] shrink-0 items-center justify-center rounded-full border border-black/[0.08] bg-white text-text-main shadow-[0_3px_10px_rgba(0,0,0,0.02)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/14 hover:text-astro-text';
 
   const taglineAnimate = shouldReduceMotion
     ? undefined
@@ -90,7 +90,7 @@ export const LumiaStudioHeader: React.FC<LumiaStudioHeaderProps> = ({
         <div aria-hidden className="h-11 w-11" />
       </div>
 
-      <div className="mt-2 grid grid-cols-[44px_minmax(0,1fr)_44px] items-start gap-2">
+      <div className="mt-0.5 grid grid-cols-[44px_minmax(0,1fr)_44px] items-start gap-2">
         <div className="flex min-w-0 items-start justify-start">
           <button
             type="button"
@@ -98,7 +98,7 @@ export const LumiaStudioHeader: React.FC<LumiaStudioHeaderProps> = ({
             aria-label={storeLabel}
             className={iconButtonClass}
           >
-            <ShoppingBag className="h-[12px] w-[12px]" strokeWidth={1.7} aria-hidden />
+            <ShoppingBag className="h-[11px] w-[11px]" strokeWidth={1.7} aria-hidden />
           </button>
         </div>
 
@@ -111,7 +111,7 @@ export const LumiaStudioHeader: React.FC<LumiaStudioHeaderProps> = ({
             aria-label={settingsAriaLabel}
             className={cn(iconButtonClass, 'justify-self-end self-start')}
           >
-            <Settings className="h-[12px] w-[12px]" strokeWidth={1.7} aria-hidden />
+            <Settings className="h-[11px] w-[11px]" strokeWidth={1.7} aria-hidden />
           </button>
         </div>
       </div>
