@@ -874,6 +874,7 @@ const App: React.FC = () => {
                                 navigateTo(newView);
                             }} 
                             onOpenSettings={() => setView('settings')}
+                            onOpenWallet={() => openWallet('dashboard')}
                         />
                     </div>
                 )}

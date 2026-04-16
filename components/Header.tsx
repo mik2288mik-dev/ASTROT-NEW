@@ -40,9 +40,9 @@ function StudioChromeHeader({
   onOpenSettings: () => void;
   onOpenWallet: () => void;
 }) {
-  const hasLumi = typeof profile.lumiBalance === 'number';
   const lumiValue = Math.max(0, profile.lumiBalance ?? 0);
   const tagline = profile.language === 'en' ? 'Your path to self' : 'Твой путь к себе';
+  const storeLabel = profile.language === 'en' ? 'Store' : 'Магазин';
 
   return (
     <header className="lumia-tg-header-bar relative z-40 shrink-0 border-b border-black/[0.06] bg-white">
@@ -82,19 +82,17 @@ function StudioChromeHeader({
           </div>
 
           <div className="flex min-w-0 items-start justify-end gap-2 pt-1">
-            {hasLumi ? (
-              <button
-                type="button"
-                onClick={onOpenWallet}
-                aria-label={getText(profile.language, 'header.wallet')}
-                className="relative inline-flex h-11 w-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-full border border-black/[0.08] bg-white text-text-main shadow-[0_4px_10px_rgba(0,0,0,0.03)] transition-colors hover:text-astro-text"
-              >
-                <span className="text-[12px] font-semibold leading-none">L</span>
-                <span className="absolute -right-1 -top-1 min-w-[18px] rounded-full border border-white bg-astro-highlight px-1.5 py-0.5 text-[9px] font-semibold leading-none text-white">
-                  {lumiValue}
-                </span>
-              </button>
-            ) : null}
+            <button
+              type="button"
+              onClick={onOpenWallet}
+              aria-label={storeLabel}
+              className="relative inline-flex min-h-[44px] min-w-[44px] shrink-0 items-center gap-2 rounded-full border border-black/[0.08] bg-[#f7f3ea] px-3.5 py-2 text-text-main shadow-[0_4px_10px_rgba(0,0,0,0.03)] transition-colors hover:text-astro-text"
+            >
+              <span className="text-[12px] font-medium leading-none">{storeLabel}</span>
+              <span className="rounded-full border border-black/[0.06] bg-white px-2 py-[3px] text-[10px] font-semibold leading-none text-text-main">
+                {lumiValue}
+              </span>
+            </button>
 
             <button
               type="button"

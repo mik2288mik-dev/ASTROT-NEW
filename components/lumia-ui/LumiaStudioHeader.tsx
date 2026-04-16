@@ -5,14 +5,20 @@ import { cn } from '../../lib/cn';
 
 interface LumiaStudioHeaderProps {
   onOpenSettings: () => void;
+  onOpenStore: () => void;
   /** Localized e.g. getText(lang, 'nav.settings') */
   settingsAriaLabel: string;
+  storeLabel: string;
+  storeBalance?: number;
   className?: string;
 }
 
 export const LumiaStudioHeader: React.FC<LumiaStudioHeaderProps> = ({
   onOpenSettings,
+  onOpenStore,
   settingsAriaLabel,
+  storeLabel,
+  storeBalance = 0,
   className,
 }) => {
   const shouldReduceMotion = useReducedMotion();
@@ -40,7 +46,7 @@ export const LumiaStudioHeader: React.FC<LumiaStudioHeaderProps> = ({
 
   return (
     <header className={cn('mb-5', className)}>
-      <div className="grid grid-cols-[44px_minmax(0,1fr)_32px] items-start gap-2">
+      <div className="grid grid-cols-[44px_minmax(0,1fr)_auto] items-start gap-2">
         <div aria-hidden className="h-11 w-11" />
         <div className="min-w-0 text-center">
           <div className="inline-flex flex-col items-center">
@@ -84,14 +90,27 @@ export const LumiaStudioHeader: React.FC<LumiaStudioHeaderProps> = ({
             </motion.p>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={onOpenSettings}
-          aria-label={settingsAriaLabel}
-          className={cn(settingsButtonClass, 'justify-self-end self-start')}
-        >
-          <Settings className="h-[12px] w-[12px]" strokeWidth={1.7} aria-hidden />
-        </button>
+        <div className="flex min-w-0 items-start justify-end gap-2 pt-1">
+          <button
+            type="button"
+            onClick={onOpenStore}
+            aria-label={storeLabel}
+            className="relative inline-flex min-h-[44px] min-w-[44px] shrink-0 items-center gap-2 rounded-full border border-black/[0.08] bg-[#f7f3ea] px-3.5 py-2 text-text-main shadow-[0_4px_10px_rgba(0,0,0,0.03)] transition-colors hover:text-astro-text"
+          >
+            <span className="text-[12px] font-medium leading-none">{storeLabel}</span>
+            <span className="rounded-full border border-black/[0.06] bg-white px-2 py-[3px] text-[10px] font-semibold leading-none text-text-main">
+              {Math.max(0, storeBalance)}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={onOpenSettings}
+            aria-label={settingsAriaLabel}
+            className={cn(settingsButtonClass, 'justify-self-end self-start')}
+          >
+            <Settings className="h-[12px] w-[12px]" strokeWidth={1.7} aria-hidden />
+          </button>
+        </div>
       </div>
     </header>
   );

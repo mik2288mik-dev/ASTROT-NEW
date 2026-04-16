@@ -23,6 +23,7 @@ interface DashboardProps {
   activeChartId?: number;
   onNavigate: (view: DashboardView) => void;
   onOpenSettings: () => void;
+  onOpenWallet: () => void;
 }
 
 const cleanDashboardText = (value?: string | null): string =>
@@ -85,7 +86,7 @@ const WavyTabLabel: React.FC<{
 };
 
 export const Dashboard = memo<DashboardProps>(
-  ({ profile, chartData, activeChartId, onNavigate, onOpenSettings }) => {
+  ({ profile, chartData, activeChartId, onNavigate, onOpenSettings, onOpenWallet }) => {
     const [activeTab, setActiveTab] = useState<StudioTab>('natal');
     const [tabWaveKey, setTabWaveKey] = useState(0);
     const [dailyReading, setDailyReading] = useState<ForecastDailyReading | null>(null);
@@ -281,7 +282,10 @@ export const Dashboard = memo<DashboardProps>(
           >
             <LumiaStudioHeader
               onOpenSettings={onOpenSettings}
+              onOpenStore={onOpenWallet}
               settingsAriaLabel={getText(language, 'nav.settings')}
+              storeLabel={language === 'en' ? 'Store' : 'Магазин'}
+              storeBalance={profile.lumiBalance}
               className="-mt-[6px] mb-4"
             />
 
@@ -326,7 +330,10 @@ export const Dashboard = memo<DashboardProps>(
         >
           <LumiaStudioHeader
             onOpenSettings={onOpenSettings}
+            onOpenStore={onOpenWallet}
             settingsAriaLabel={getText(language, 'nav.settings')}
+            storeLabel={language === 'en' ? 'Store' : 'Магазин'}
+            storeBalance={profile.lumiBalance}
             className="-mt-[6px] mb-4"
           />
 
