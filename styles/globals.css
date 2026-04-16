@@ -446,7 +446,7 @@ body.theme-light .shadow-glow {
   font-feature-settings: 'kern' 1, 'liga' 1;
   font-size: 1rem;
   line-height: 1.82;
-  text-align: center;
+  text-align: left;
   text-wrap: pretty;
 }
 

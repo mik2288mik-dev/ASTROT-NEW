@@ -39,8 +39,8 @@ const PLANET_NAMES: Record<string, { ru: string; en: string }> = {
 };
 
 const PLANET_MEANINGS: Record<string, { ru: string; en: string }> = {
-  sun: { ru: 'твоя основа', en: 'your core' },
-  moon: { ru: 'эмоции и ритм', en: 'emotions and rhythm' },
+  sun: { ru: 'твой центр и характер', en: 'your core and character' },
+  moon: { ru: 'эмоции и внутренний ритм', en: 'emotions and inner rhythm' },
   rising: { ru: 'то, как ты входишь в мир', en: 'how you meet the world' },
 };
 
@@ -61,26 +61,61 @@ const sectionVariants = {
   visible: { opacity: 1, y: 0 },
 };
 
+function normalizeCopy(value?: string | null): string {
+  return String(value || '')
+    .replace(/\r\n/g, '\n')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+function isGreetingParagraph(value: string, lang: 'ru' | 'en') {
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) return false;
+  return lang === 'ru'
+    ? normalized.startsWith('привет')
+    : normalized.startsWith('hello') || normalized.startsWith('hi ');
+}
+
+function sanitizeShortCopy(value: string, lang: 'ru' | 'en'): string | null {
+  const normalized = normalizeCopy(value);
+  if (!normalized || isGreetingParagraph(normalized, lang)) return null;
+  return normalized;
+}
+
+function sanitizeLongCopy(value: string, lang: 'ru' | 'en', blocked: string[] = []): string {
+  const blockedSet = new Set(
+    blocked
+      .map((item) => normalizeCopy(item).toLowerCase())
+      .filter(Boolean)
+  );
+
+  const paragraphs = normalizeCopy(value)
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean)
+    .filter((paragraph) => !isGreetingParagraph(paragraph, lang))
+    .filter((paragraph) => !blockedSet.has(paragraph.toLowerCase()));
+
+  return paragraphs.join('\n\n');
+}
+
 function SectionTitle({
   label,
   title,
   intro,
 }: {
-  label: string;
+  label?: string | null;
   title: string;
   intro?: string | null;
 }) {
   return (
     <>
-      <p className="lumia-label tracking-[0.2em]">{label}</p>
+      {label ? <p className="lumia-label tracking-[0.2em]">{label}</p> : null}
       <h2 className="mt-2 font-serif text-[1.9rem] leading-tight text-astro-text sm:text-[2.15rem]">
         {title}
       </h2>
-      {intro ? (
-        <p className="lumia-reading-intro lumia-muted mt-3 max-w-reading-wide">
-          {intro}
-        </p>
-      ) : null}
+      {intro ? <p className="lumia-reading-intro lumia-muted mt-3 max-w-reading-wide">{intro}</p> : null}
     </>
   );
 }
@@ -211,12 +246,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [
-    chartId,
-    data,
-    lang,
-    profile,
-  ]);
+  }, [chartId, data, lang, profile]);
 
   useEffect(() => {
     let cancelled = false;
@@ -257,11 +287,6 @@ export const NatalChart: React.FC<NatalChartProps> = ({
   const localizedMoon = data?.moon?.sign ? getZodiacSign(lang, data.moon.sign) : '—';
   const localizedRising = data?.rising?.sign ? getZodiacSign(lang, data.rising.sign) : '—';
 
-  const anchorIntro =
-    lang === 'ru'
-      ? `Солнце в ${localizedSun}, Луна в ${localizedMoon}, Асцендент в ${localizedRising}.`
-      : `Sun in ${localizedSun}, Moon in ${localizedMoon}, Rising in ${localizedRising}.`;
-
   const mainPlanets = useMemo(
     () => [
       { id: 'sun', sign: localizedSun },
@@ -281,6 +306,18 @@ export const NatalChart: React.FC<NatalChartProps> = ({
     [data?.mars?.sign, data?.mercury?.sign, data?.venus?.sign, lang]
   );
 
+  const anchorHeadline =
+    sanitizeShortCopy(anchorReading.headline, lang) ||
+    (lang === 'ru' ? 'Твой внутренний ритм' : 'Your inner rhythm');
+  const anchorSummary = sanitizeShortCopy(anchorReading.summary, lang);
+  const anchorBody = sanitizeLongCopy(anchorReading.reading || anchorFallback.reading, lang, [
+    anchorReading.headline,
+    anchorReading.summary,
+  ]);
+  const anchorSignature =
+    lang === 'ru'
+      ? `Солнце в ${localizedSun} • Луна в ${localizedMoon} • Асцендент в ${localizedRising}`
+      : `Sun in ${localizedSun} • Moon in ${localizedMoon} • Rising in ${localizedRising}`;
   const livingContent = livingReading || livingFallback;
 
   if (!hasChartData) {
@@ -288,7 +325,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({
   }
 
   return (
-    <ReadingScreenShell className="pb-8">
+    <ReadingScreenShell className="bg-white pb-8">
       <motion.section
         initial="hidden"
         animate="visible"
@@ -296,22 +333,12 @@ export const NatalChart: React.FC<NatalChartProps> = ({
         transition={{ duration: 0.24 }}
         className="border-t-0 pt-4"
       >
-        <SectionTitle
-          label={lang === 'ru' ? 'О тебе' : 'About you'}
-          title={lang === 'ru' ? 'Твой внутренний ритм' : 'Your inner rhythm'}
-          intro={anchorReading.summary || anchorIntro}
-        />
+        <SectionTitle label={lang === 'ru' ? 'О тебе' : 'About you'} title={anchorHeadline} intro={anchorSummary} />
 
-        <p className="mt-5 text-sm leading-relaxed text-astro-subtext sm:text-[15px]">
-          {anchorIntro}
-        </p>
+        <p className="mt-4 text-sm leading-relaxed text-astro-subtext sm:text-[15px]">{anchorSignature}</p>
 
         <div className="mt-6 max-w-reading-wide">
-          <FormattedAiText
-            text={anchorReading.reading || anchorFallback.reading}
-            variant="article"
-            className="lumia-prose"
-          />
+          <FormattedAiText text={anchorBody} variant="article" className="lumia-prose" />
         </div>
       </motion.section>
 
@@ -350,16 +377,14 @@ export const NatalChart: React.FC<NatalChartProps> = ({
           {lang === 'ru' ? 'Твои ключевые акценты' : 'Your key anchors'}
         </p>
 
-        <div className="mt-4 space-y-4">
+        <div className="mt-4 space-y-3">
           {mainPlanets.map((planet) => (
-            <div
-              key={planet.id}
-              className="border-b border-astro-border/10 pb-4 last:border-b-0 last:pb-0"
-            >
-              <p className="lumia-label text-[10px] tracking-[0.16em]">
-                {PLANET_NAMES[planet.id]?.[lang]}
+            <div key={planet.id} className="border-b border-astro-border/10 pb-3 last:border-b-0 last:pb-0">
+              <p className="text-[15px] leading-relaxed text-astro-text sm:text-base">
+                <span className="font-medium">{PLANET_NAMES[planet.id]?.[lang]}</span>{' '}
+                <span className="text-astro-subtext">—</span>{' '}
+                <span className="font-medium">{planet.sign}</span>
               </p>
-              <p className="mt-1 text-lg font-medium text-astro-text">{planet.sign}</p>
               <p className="mt-1 text-sm leading-relaxed text-astro-subtext">
                 {PLANET_MEANINGS[planet.id]?.[lang]}
               </p>
@@ -368,7 +393,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({
         </div>
 
         {secondaryPlanets.length > 0 ? (
-          <p className="mt-5 text-sm leading-relaxed text-astro-subtext">
+          <p className="mt-4 text-sm leading-relaxed text-astro-subtext">
             {secondaryPlanets
               .map((planet) => `${PLANET_NAMES[planet.id]?.[lang]} — ${planet.sign}`)
               .join(' • ')}

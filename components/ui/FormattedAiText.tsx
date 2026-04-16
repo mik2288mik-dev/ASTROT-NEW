@@ -49,7 +49,7 @@ export const FormattedAiText = memo<FormattedAiTextProps>(({ text, className = '
   if (blocks.length === 0) return null;
 
   const articleP =
-    'font-sans text-[17px] leading-[1.9] tracking-[0.012em] text-astro-text text-center [text-wrap:pretty] sm:text-[18px] sm:leading-[1.95]';
+    'font-sans text-[17px] leading-[1.9] tracking-[0.012em] text-astro-text text-left [text-wrap:pretty] sm:text-[18px] sm:leading-[1.95]';
   const defaultPBase =
     'font-sans text-[16px] leading-[1.7] tracking-[0.01em] text-astro-text [text-wrap:pretty] sm:text-[17px] sm:leading-[1.72]';
   const defaultP = paragraphClassName || (variant === 'article' ? articleP : defaultPBase);
@@ -60,7 +60,7 @@ export const FormattedAiText = memo<FormattedAiTextProps>(({ text, className = '
       : 'text-[16px] leading-[1.65]';
   const mdHeadingClass =
     variant === 'article'
-      ? 'font-serif text-center text-[1.85rem] font-semibold leading-[1.08] tracking-[-0.04em] text-astro-text [text-wrap:balance] sm:text-[2.3rem] sm:leading-[1.06]'
+      ? 'font-serif text-left text-[1.85rem] font-semibold leading-[1.08] tracking-[-0.04em] text-astro-text [text-wrap:balance] sm:text-[2.3rem] sm:leading-[1.06]'
       : 'font-sans text-[15px] font-semibold tracking-wide text-astro-text sm:text-base';
 
   const rootClass =
@@ -96,7 +96,7 @@ export const FormattedAiText = memo<FormattedAiTextProps>(({ text, className = '
         if (isHeading) {
           const rest = lines.slice(1).join('\n');
           return (
-            <div key={bi} className={variant === 'article' ? 'space-y-4 text-center sm:space-y-5' : 'space-y-3'}>
+            <div key={bi} className={variant === 'article' ? 'space-y-4 sm:space-y-5' : 'space-y-3'}>
               <h3 className={mdHeadingClass}>
                 {parseInlineFormatting(headText)}
               </h3>

@@ -759,7 +759,7 @@ const App: React.FC = () => {
                 onOpenWallet={() => openWallet(view)}
             />
             
-            <main className="lumia-tg-main-gutter relative z-10 flex-1 w-full max-w-md md:max-w-reading-wide mx-auto overflow-hidden min-h-0">
+            <main className="lumia-tg-main-gutter relative z-10 flex-1 w-full max-w-md md:max-w-reading-wide mx-auto overflow-hidden min-h-0 bg-white">
                 {view === 'admin' ? (
                     <AdminPanel
                         profile={profile}

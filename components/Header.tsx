@@ -11,12 +11,7 @@ interface HeaderProps {
   onOpenWallet: () => void;
 }
 
-const DETAIL_TITLES: Partial<Record<ViewState, { ru: string; en: string }>> = {
-  chart: { ru: 'Натальная карта', en: 'Natal Chart' },
-  horoscope: { ru: 'Гороскоп', en: 'Horoscope' },
-};
-
-const DEFAULT_TITLES: Partial<Record<ViewState, { ru: string; en: string }>> = {
+const SCREEN_TITLES: Partial<Record<ViewState, { ru: string; en: string }>> = {
   chart: { ru: 'Натальная карта', en: 'Natal Chart' },
   charts: { ru: 'Мои карты', en: 'My Charts' },
   horoscope: { ru: 'Гороскоп', en: 'Horoscope' },
@@ -28,15 +23,11 @@ const DEFAULT_TITLES: Partial<Record<ViewState, { ru: string; en: string }>> = {
   dashboard: { ru: 'Lumia', en: 'Lumia' },
 };
 
-function getDetailTitle(profile: UserProfile, view: ViewState) {
-  return DETAIL_TITLES[view]?.[profile.language] || 'Lumia';
+function getScreenTitle(profile: UserProfile, view: ViewState) {
+  return SCREEN_TITLES[view]?.[profile.language] || 'Lumia';
 }
 
-function getDefaultTitle(profile: UserProfile, view: ViewState) {
-  return DEFAULT_TITLES[view]?.[profile.language] || 'Lumia';
-}
-
-function DetailStudioHeader({
+function StudioChromeHeader({
   profile,
   view,
   onBack,
@@ -63,7 +54,14 @@ function DetailStudioHeader({
               type="button"
               className="flex min-h-[44px] min-w-[44px] items-center gap-1 pr-1 text-astro-subtext transition-colors hover:text-astro-text active:opacity-70"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5 shrink-0"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2.5}
+              >
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
               </svg>
               <span className="max-[360px]:hidden text-xs font-medium tracking-wide">
@@ -97,6 +95,7 @@ function DetailStudioHeader({
                 </span>
               </button>
             ) : null}
+
             <button
               type="button"
               onClick={onOpenSettings}
@@ -110,7 +109,7 @@ function DetailStudioHeader({
 
         <div className="mt-3 border-t border-black/[0.06] pt-3 text-center">
           <p className="text-[13px] font-medium tracking-[0.01em] text-text-main">
-            {getDetailTitle(profile, view)}
+            {getScreenTitle(profile, view)}
           </p>
         </div>
       </div>
@@ -129,66 +128,16 @@ export const Header: React.FC<HeaderProps> = ({
 
   const isHub = view === 'dashboard';
   const isFunnel = view === 'onboarding' || view === 'hook' || view === 'paywall';
-  const isStudioDetail = view === 'chart' || view === 'horoscope';
 
   if (isFunnel || isHub) return null;
-  if (isStudioDetail) {
-    return (
-      <DetailStudioHeader
-        profile={profile}
-        view={view}
-        onBack={onBack}
-        onOpenSettings={onOpenSettings}
-        onOpenWallet={onOpenWallet}
-      />
-    );
-  }
-
-  const hasLumi = typeof profile.lumiBalance === 'number';
-  const lumiValue = Math.max(0, profile.lumiBalance ?? 0);
 
   return (
-    <header className="lumia-tg-header-bar relative z-40 shrink-0 border-b border-black/[0.06] bg-white">
-      <div className="pt-1 pb-2.5">
-        <div className="grid min-h-[44px] grid-cols-[minmax(2.75rem,auto)_minmax(0,1fr)_minmax(2.75rem,auto)] items-center gap-2">
-          <div className="flex min-w-0 items-center justify-start">
-            <button
-              onClick={onBack}
-              type="button"
-              className="flex min-h-[44px] min-w-[44px] items-center gap-1 pr-1 text-astro-subtext transition-colors hover:text-astro-text active:opacity-70"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-              </svg>
-              <span className="max-[360px]:hidden text-xs font-medium tracking-wide">
-                {getText(profile.language, 'header.back')}
-              </span>
-            </button>
-          </div>
-
-          <div className="flex min-w-0 items-center justify-center px-1">
-            <h1 className="w-full truncate text-center font-outfit text-[15px] font-semibold leading-tight tracking-tight text-astro-text">
-              {getDefaultTitle(profile, view)}
-            </h1>
-          </div>
-
-          <div className="flex min-w-0 items-center justify-end">
-            {hasLumi ? (
-              <button
-                type="button"
-                onClick={onOpenWallet}
-                aria-label={getText(profile.language, 'header.wallet')}
-                className="relative inline-flex h-11 w-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-full border border-black/[0.08] bg-white text-astro-subtext transition-colors hover:text-astro-text"
-              >
-                <span className="text-[12px] font-semibold leading-none text-text-main">L</span>
-                <span className="absolute -right-1 -top-1 min-w-[18px] rounded-full border border-white bg-astro-highlight px-1.5 py-0.5 text-[9px] font-semibold leading-none text-white">
-                  {lumiValue}
-                </span>
-              </button>
-            ) : null}
-          </div>
-        </div>
-      </div>
-    </header>
+    <StudioChromeHeader
+      profile={profile}
+      view={view}
+      onBack={onBack}
+      onOpenSettings={onOpenSettings}
+      onOpenWallet={onOpenWallet}
+    />
   );
 };
