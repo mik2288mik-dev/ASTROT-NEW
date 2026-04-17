@@ -285,7 +285,7 @@ export const Dashboard = memo<DashboardProps>(
               onOpenStore={onOpenWallet}
               settingsAriaLabel={getText(language, 'nav.settings')}
               storeLabel={language === 'en' ? 'Store' : 'Магазин'}
-              className="-mt-[10px] mb-3"
+              className="mb-3"
             />
 
             <section className={cn(cardClass, 'space-y-4 text-center')}>
@@ -332,7 +332,7 @@ export const Dashboard = memo<DashboardProps>(
             onOpenStore={onOpenWallet}
             settingsAriaLabel={getText(language, 'nav.settings')}
             storeLabel={language === 'en' ? 'Store' : 'Магазин'}
-            className="-mt-[10px] mb-3"
+            className="mb-3"
           />
 
           <div className={tabShellClass}>
