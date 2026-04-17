@@ -1,7 +1,7 @@
 import React from 'react';
-import { Settings, ShoppingBag } from 'lucide-react';
 import { UserProfile, ViewState } from '../types';
 import { getText } from '../constants';
+import { StudioBrandBlock } from './lumia-ui/StudioBrandBlock';
 
 interface HeaderProps {
   profile: UserProfile | null;
@@ -40,56 +40,19 @@ function StudioChromeHeader({
 }) {
   const tagline = profile.language === 'en' ? 'YOUR PATH TO SELF' : 'ТВОЙ ПУТЬ К СЕБЕ';
   const storeLabel = profile.language === 'en' ? 'Store' : 'Магазин';
-  const iconButtonClass =
-    'inline-flex h-[30px] w-[30px] min-h-[30px] min-w-[30px] shrink-0 items-center justify-center rounded-full border border-black/[0.08] bg-white text-text-main shadow-[0_3px_10px_rgba(0,0,0,0.02)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/14 hover:text-astro-text';
 
   return (
     <header className="lumia-tg-header-bar relative z-40 shrink-0 border-b border-black/[0.06] bg-white">
-      <div className="pt-1 pb-2.5">
-        <div className="grid grid-cols-[44px_minmax(0,1fr)_44px] items-start gap-2">
-          <div aria-hidden className="h-11 w-11" />
+      <div className="pt-0.5 pb-2">
+        <StudioBrandBlock
+          onOpenSettings={onOpenSettings}
+          onOpenStore={onOpenWallet}
+          settingsAriaLabel={getText(profile.language, 'nav.settings')}
+          storeLabel={storeLabel}
+          tagline={tagline}
+        />
 
-          <div className="min-w-0 text-center">
-            <div className="inline-flex flex-col items-center">
-              <p className="font-serif text-[2.5rem] font-semibold leading-none tracking-[-0.06em] text-[#1f1f1f]">
-                LUMIA
-              </p>
-              <p className="mt-1.5 text-[8px] uppercase tracking-[0.3em] text-[#8a857d]">
-                {tagline}
-              </p>
-            </div>
-          </div>
-
-          <div aria-hidden className="h-11 w-11" />
-        </div>
-
-        <div className="mt-0.5 grid grid-cols-[44px_minmax(0,1fr)_44px] items-start gap-2">
-          <div className="flex min-w-0 items-start justify-start">
-            <button
-              type="button"
-              onClick={onOpenWallet}
-              aria-label={storeLabel}
-              className={iconButtonClass}
-            >
-              <ShoppingBag className="h-[11px] w-[11px]" strokeWidth={1.7} aria-hidden />
-            </button>
-          </div>
-
-          <div />
-
-          <div className="flex min-w-0 items-start justify-end">
-            <button
-              type="button"
-              onClick={onOpenSettings}
-              aria-label={getText(profile.language, 'nav.settings')}
-              className={iconButtonClass}
-            >
-              <Settings className="h-[11px] w-[11px]" strokeWidth={1.7} aria-hidden />
-            </button>
-          </div>
-        </div>
-
-        <div className="mt-3 border-t border-black/[0.06] pt-3 text-center">
+        <div className="mt-2.5 border-t border-black/[0.06] pt-2.5 text-center">
           <p className="text-[13px] font-medium tracking-[0.01em] text-text-main">
             {getScreenTitle(profile, view)}
           </p>
