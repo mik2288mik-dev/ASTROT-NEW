@@ -8,6 +8,7 @@ interface LumiaStudioHeaderProps {
   settingsAriaLabel: string;
   storeLabel: string;
   className?: string;
+  children?: React.ReactNode;
 }
 
 export const LumiaStudioHeader: React.FC<LumiaStudioHeaderProps> = ({
@@ -16,16 +17,28 @@ export const LumiaStudioHeader: React.FC<LumiaStudioHeaderProps> = ({
   settingsAriaLabel,
   storeLabel,
   className,
+  children,
 }) => {
   return (
-    <header className={cn('mb-4', className)}>
-      <StudioBrandBlock
-        onOpenSettings={onOpenSettings}
-        onOpenStore={onOpenStore}
-        settingsAriaLabel={settingsAriaLabel}
-        storeLabel={storeLabel}
-        tagline="ТВОЙ ПУТЬ К СЕБЕ"
-      />
+    <header
+      className={cn(
+        'lumia-tg-header-bar relative z-40 shrink-0 border-b border-black/[0.06] bg-white',
+        className
+      )}
+    >
+      <div className="pt-0.5 pb-0">
+        <StudioBrandBlock
+          onOpenSettings={onOpenSettings}
+          onOpenStore={onOpenStore}
+          settingsAriaLabel={settingsAriaLabel}
+          storeLabel={storeLabel}
+          tagline="ТВОЙ ПУТЬ К СЕБЕ"
+        />
+
+        {children ? (
+          <div className="mt-2.5 border-t border-black/[0.06] pt-2.5">{children}</div>
+        ) : null}
+      </div>
     </header>
   );
 };

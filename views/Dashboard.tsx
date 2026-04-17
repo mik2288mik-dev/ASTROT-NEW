@@ -233,8 +233,6 @@ export const Dashboard = memo<DashboardProps>(
       'relative mx-auto flex h-full min-h-0 w-full max-w-md flex-col overflow-hidden lumia-tg-hub-pad text-text-main'
     );
 
-    const tabShellClass = '-mt-[6px] mb-5 border-b border-black/[0.07]';
-
     const tabButtonClass =
       'relative flex min-h-[42px] flex-1 items-center justify-center px-1 pb-3 pt-1';
 
@@ -333,9 +331,7 @@ export const Dashboard = memo<DashboardProps>(
             settingsAriaLabel={getText(language, 'nav.settings')}
             storeLabel={language === 'en' ? 'Store' : 'Магазин'}
             className="mb-3"
-          />
-
-          <div className={tabShellClass}>
+          >
             <div className="flex items-center gap-3">
               {tabs.map((tab) => (
                 <button
@@ -360,7 +356,7 @@ export const Dashboard = memo<DashboardProps>(
                 </button>
               ))}
             </div>
-          </div>
+          </LumiaStudioHeader>
 
           <AnimatePresence mode="wait">
             <motion.div
