@@ -35,9 +35,7 @@ export const LumiaStudioHeader: React.FC<LumiaStudioHeaderProps> = ({
           tagline="ТВОЙ ПУТЬ К СЕБЕ"
         />
 
-        {children ? (
-          <div className="mt-2.5 pt-2.5">{children}</div>
-        ) : null}
+        {children ? <div className="mt-1 pt-1">{children}</div> : null}
       </div>
     </header>
   );

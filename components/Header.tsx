@@ -52,7 +52,7 @@ function StudioChromeHeader({
           tagline={tagline}
         />
 
-        <div className="mt-2.5 pt-2.5 text-center">
+        <div className="mt-1 pt-1 text-center">
           <p className="text-[13px] font-medium tracking-[0.01em] text-text-main">
             {getScreenTitle(profile, view)}
           </p>
