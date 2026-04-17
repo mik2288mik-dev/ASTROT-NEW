@@ -25,7 +25,6 @@ export const LumiaStudioHeader: React.FC<LumiaStudioHeaderProps> = ({
         settingsAriaLabel={settingsAriaLabel}
         storeLabel={storeLabel}
         tagline="ТВОЙ ПУТЬ К СЕБЕ"
-        animated
       />
     </header>
   );
