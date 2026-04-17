@@ -52,12 +52,12 @@ export const StudioBrandBlock: React.FC<StudioBrandBlockProps> = ({
     : undefined;
 
   return (
-    <div className={cn('relative', className)}>
+    <div className={cn('relative pt-[2px]', className)}>
       <div className={brandGridClass}>
         <div aria-hidden className="h-10 w-10" />
         <div className="min-w-0 text-center">
           <div className="inline-flex flex-col items-center">
-            <p className="mb-0 font-serif text-[2.72rem] font-semibold leading-none tracking-[-0.065em] text-[#1f1f1f]">
+            <p className="mb-0 font-serif text-[2.9rem] font-semibold leading-none tracking-[-0.06em] text-[#1f1f1f]">
               {brandLetters.map((letter, index) =>
                 shouldAnimateBrand ? (
                   <motion.span
@@ -89,7 +89,7 @@ export const StudioBrandBlock: React.FC<StudioBrandBlockProps> = ({
             <motion.p
               animate={taglineAnimate}
               transition={taglineTransition}
-              className="mb-0 mt-[6px] text-[8px] uppercase tracking-[0.28em] text-[#8a857d]"
+              className="mb-0 mt-2 text-[9px] uppercase tracking-[0.32em] text-[#8a857d]"
             >
               {tagline}
             </motion.p>
