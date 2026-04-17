@@ -33,27 +33,11 @@ export const StudioBrandBlock: React.FC<StudioBrandBlockProps> = ({
 
   const shouldAnimateBrand = animated && !shouldReduceMotion;
 
-  const wordAnimate = shouldAnimateBrand
-    ? {
-        opacity: [1, 0.985, 1, 0.992, 1],
-        y: [0, -0.45, 0.18, -0.12, 0],
-      }
-    : undefined;
-
-  const wordTransition = shouldAnimateBrand
-    ? {
-        duration: 8.8,
-        ease: 'easeInOut' as const,
-        repeat: Infinity,
-        repeatType: 'mirror' as const,
-      }
-    : undefined;
-
   const taglineAnimate = shouldAnimateBrand
     ? {
         opacity: [1, 0.94, 1, 0.97, 1],
-        x: [0, 0.18, -0.12, 0.08, 0],
-        y: [0, -0.35, 0.16, -0.1, 0],
+        x: [0, 0.35, -0.2, 0.18, 0],
+        y: [0, -0.7, 0.3, -0.45, 0],
       }
     : undefined;
 
@@ -73,27 +57,24 @@ export const StudioBrandBlock: React.FC<StudioBrandBlockProps> = ({
         <div aria-hidden className="h-10 w-10" />
         <div className="min-w-0 text-center">
           <div className="inline-flex flex-col items-center">
-            <motion.p
-              animate={wordAnimate}
-              transition={wordTransition}
-              className="mb-0 inline-flex items-end font-serif text-[2.9rem] font-semibold leading-none tracking-[-0.06em] text-[#1f1f1f]"
-            >
+            <p className="relative top-[2px] mb-0 font-serif text-[2.9rem] font-semibold leading-none tracking-[-0.065em] text-[#1f1f1f]">
               {brandLetters.map((letter, index) =>
                 shouldAnimateBrand ? (
                   <motion.span
                     key={`${letter}-${index}`}
                     className="inline-block"
-                    style={{ transformOrigin: '50% 72%' }}
                     animate={{
-                      y: [0, -0.22, 0.08, -0.06, 0],
-                      opacity: [1, 0.985, 1, 0.992, 1],
+                      x: [0, 0.5, -0.32, 0.22, 0],
+                      y: [0, -1.05, 0.4, -0.72, 0],
+                      rotate: [0, -0.35, 0.22, -0.15, 0],
+                      opacity: [1, 0.96, 1, 0.98, 1],
                     }}
                     transition={{
-                      duration: 7.8 + index * 0.35,
+                      duration: 10.5 + index * 0.55,
                       ease: 'easeInOut',
                       repeat: Infinity,
                       repeatType: 'mirror',
-                      delay: index * 0.24,
+                      delay: index * 0.55,
                     }}
                   >
                     {letter}
@@ -104,7 +85,7 @@ export const StudioBrandBlock: React.FC<StudioBrandBlockProps> = ({
                   </span>
                 )
               )}
-            </motion.p>
+            </p>
             <motion.p
               animate={taglineAnimate}
               transition={taglineTransition}
