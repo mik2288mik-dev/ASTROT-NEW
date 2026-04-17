@@ -42,7 +42,7 @@ function StudioChromeHeader({
   const storeLabel = profile.language === 'en' ? 'Store' : 'Магазин';
 
   return (
-    <header className="lumia-tg-header-bar relative z-40 shrink-0 border-b border-black/[0.06] bg-white">
+    <header className="lumia-tg-header-bar relative z-40 shrink-0 bg-white">
       <div className="pt-0.5 pb-2">
         <StudioBrandBlock
           onOpenSettings={onOpenSettings}
@@ -52,7 +52,7 @@ function StudioChromeHeader({
           tagline={tagline}
         />
 
-        <div className="mt-2.5 border-t border-black/[0.06] pt-2.5 text-center">
+        <div className="mt-2.5 pt-2.5 text-center">
           <p className="text-[13px] font-medium tracking-[0.01em] text-text-main">
             {getScreenTitle(profile, view)}
           </p>

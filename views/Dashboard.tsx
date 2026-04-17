@@ -342,10 +342,7 @@ export const Dashboard = memo<DashboardProps>(
                     setActiveTab(tab.id);
                     setTabWaveKey((current) => current + 1);
                   }}
-                  className={cn(
-                    tabButtonClass,
-                    activeTab === tab.id ? 'border-b border-black/85' : 'border-b border-transparent'
-                  )}
+                  className={tabButtonClass}
                 >
                   <WavyTabLabel
                     label={tab.label}

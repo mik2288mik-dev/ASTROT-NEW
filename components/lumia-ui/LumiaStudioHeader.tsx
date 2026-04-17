@@ -22,7 +22,7 @@ export const LumiaStudioHeader: React.FC<LumiaStudioHeaderProps> = ({
   return (
     <header
       className={cn(
-        'lumia-tg-header-bar relative z-40 shrink-0 border-b border-black/[0.06] bg-white',
+        'lumia-tg-header-bar relative z-40 shrink-0 bg-white',
         className
       )}
     >
@@ -36,7 +36,7 @@ export const LumiaStudioHeader: React.FC<LumiaStudioHeaderProps> = ({
         />
 
         {children ? (
-          <div className="mt-2.5 border-t border-black/[0.06] pt-2.5">{children}</div>
+          <div className="mt-2.5 pt-2.5">{children}</div>
         ) : null}
       </div>
     </header>
