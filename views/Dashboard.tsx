@@ -230,7 +230,7 @@ export const Dashboard = memo<DashboardProps>(
     } as const;
 
     const rootClass = cn(
-      'relative mx-auto flex h-full min-h-0 w-full max-w-md flex-col overflow-hidden lumia-tg-hub-pad text-text-main'
+      'relative mx-auto flex h-full min-h-0 w-full max-w-md flex-col overflow-hidden text-text-main'
     );
 
     const tabButtonClass =
