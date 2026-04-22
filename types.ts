@@ -288,6 +288,10 @@ export interface NatalAnchorReading {
   reading: string;
   strengths: string[];
   patterns: string[];
+  threeAnchors: NatalReadingPoint[];
+  perceivedByOthers: string;
+  watchouts: string[];
+  dictionaryTerms: NatalDictionaryTerm[];
 }
 
 export interface NatalLivingReading {
@@ -300,6 +304,24 @@ export interface NatalLivingReading {
   relationships: string;
   money: string;
   guidance: string;
+  fullPersonality: string;
+  today: string;
+  daySituations: NatalReadingPoint[];
+  relationshipsToday: string;
+  workMoneyToday: string;
+  evening: string;
+  repeatingScenario: string;
+  questionOfDay: string;
+}
+
+export interface NatalReadingPoint {
+  title: string;
+  body: string;
+}
+
+export interface NatalDictionaryTerm {
+  term: string;
+  meaning: string;
 }
 
 export interface PlanetInsightTag {

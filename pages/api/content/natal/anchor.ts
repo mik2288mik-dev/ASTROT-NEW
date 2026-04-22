@@ -4,7 +4,11 @@ import { getOpenAIModelForContent } from '../../../../lib/appSettings';
 import { db } from '../../../../lib/db';
 import { getContentLayer } from '../../../../lib/contentArchitecture';
 import { generateNatalAnchorReading } from '../../../../lib/natalContent';
-import { coerceNatalAnchorReading } from '../../../../lib/natalReadings';
+import {
+  coerceNatalAnchorReading,
+  NATAL_ANCHOR_CACHE_KEY,
+  NATAL_ANCHOR_PROMPT_VERSION,
+} from '../../../../lib/natalReadings';
 
 function toProfile(user: any, fallback?: Partial<UserProfile>): UserProfile {
   return {
@@ -105,6 +109,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       accessTier: 'free',
       contentSurface: 'natal',
       contentVariant: 'anchor',
+      cacheKey: NATAL_ANCHOR_CACHE_KEY,
     });
 
     if (!result.interpretation) {
@@ -112,7 +117,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         error: 'NOT_FOUND',
         code: 'NATAL_ANCHOR_NOT_FOUND',
         message: context.profile.language === 'ru'
-          ? 'Базовый разбор карты пока не найден.'
+          ? 'Натальная карта пока не подготовлена.'
           : 'Base natal reading was not found yet.',
       });
     }
@@ -132,6 +137,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     accessTier: 'free',
     contentSurface: 'natal',
     contentVariant: 'anchor',
+    cacheKey: NATAL_ANCHOR_CACHE_KEY,
   });
 
   if (existing.interpretation) {
@@ -155,33 +161,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         accessTier: 'free',
         contentSurface: 'natal',
         contentVariant: 'anchor',
-        cacheKey: 'default',
-        inputHash: 'default',
+        cacheKey: NATAL_ANCHOR_CACHE_KEY,
+        inputHash: NATAL_ANCHOR_CACHE_KEY,
         content: reading,
         modelTier,
         isPersistent: true,
         canRegenerateForLumi: true,
         regenerationCostLumi: 250,
-        legacySource: 'natal_v2.anchor',
+        legacySource: NATAL_ANCHOR_PROMPT_VERSION,
       }, userId.trim())
     : await db.content_interpretations.upsertByUser(userId.trim(), {
         accessTier: 'free',
         contentSurface: 'natal',
         contentVariant: 'anchor',
-        cacheKey: 'default',
-        inputHash: 'default',
+        cacheKey: NATAL_ANCHOR_CACHE_KEY,
+        inputHash: NATAL_ANCHOR_CACHE_KEY,
         content: reading,
         modelTier,
         isPersistent: true,
         canRegenerateForLumi: true,
         regenerationCostLumi: 250,
-        legacySource: 'natal_v2.anchor',
+        legacySource: NATAL_ANCHOR_PROMPT_VERSION,
       });
 
   return res.status(200).json({
     interpretation: normalizeInterpretation(interpretation, context.profile.language),
     source: 'generated',
     chartId: context.chartId,
-    cacheKey: 'default',
+    cacheKey: NATAL_ANCHOR_CACHE_KEY,
   });
 }

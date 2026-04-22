@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { Settings, ShoppingBag } from 'lucide-react';
+import { Info, Settings, ShoppingBag } from 'lucide-react';
 import { cn } from '../../lib/cn';
 
 interface StudioBrandBlockProps {
@@ -9,6 +9,8 @@ interface StudioBrandBlockProps {
   settingsAriaLabel: string;
   storeLabel: string;
   tagline: string;
+  onOpenDictionary?: () => void;
+  dictionaryLabel?: string;
   animated?: boolean;
   className?: string;
 }
@@ -18,7 +20,7 @@ const brandLetters = ['L', 'U', 'M', 'I', 'A'];
 const iconButtonClass =
   'inline-flex h-[28px] w-[28px] min-h-[28px] min-w-[28px] shrink-0 items-center justify-center rounded-full border border-black/[0.08] bg-white text-text-main shadow-[0_3px_10px_rgba(0,0,0,0.02)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/14 hover:text-astro-text';
 
-const brandGridClass = 'grid grid-cols-[40px_minmax(0,1fr)_40px] items-start gap-2';
+const brandGridClass = 'grid grid-cols-[72px_minmax(0,1fr)_72px] items-start gap-2';
 
 export const StudioBrandBlock: React.FC<StudioBrandBlockProps> = ({
   onOpenSettings,
@@ -26,6 +28,8 @@ export const StudioBrandBlock: React.FC<StudioBrandBlockProps> = ({
   settingsAriaLabel,
   storeLabel,
   tagline,
+  onOpenDictionary,
+  dictionaryLabel,
   animated = false,
   className,
 }) => {
@@ -54,7 +58,7 @@ export const StudioBrandBlock: React.FC<StudioBrandBlockProps> = ({
   return (
     <div className={cn('relative pt-[2px]', className)}>
       <div className={brandGridClass}>
-        <div aria-hidden className="h-10 w-10" />
+        <div aria-hidden className="h-10 w-[72px]" />
         <div className="min-w-0 text-center">
           <div className="inline-flex flex-col items-center">
             <p className="relative top-[2px] mb-0 font-serif text-[2.9rem] font-semibold leading-none tracking-[-0.065em] text-[#1f1f1f]">
@@ -95,11 +99,21 @@ export const StudioBrandBlock: React.FC<StudioBrandBlockProps> = ({
             </motion.p>
           </div>
         </div>
-        <div aria-hidden className="h-10 w-10" />
+        <div aria-hidden className="h-10 w-[72px]" />
       </div>
 
       <div className={cn(brandGridClass, 'relative z-10 -mt-[12px]')}>
-        <div className="flex min-w-0 items-start justify-start">
+        <div className="flex min-w-0 items-start justify-start gap-1.5">
+          {onOpenDictionary ? (
+            <button
+              type="button"
+              onClick={onOpenDictionary}
+              aria-label={dictionaryLabel || 'Dictionary'}
+              className={iconButtonClass}
+            >
+              <Info className="h-[10px] w-[10px]" strokeWidth={1.8} aria-hidden />
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={onOpenStore}

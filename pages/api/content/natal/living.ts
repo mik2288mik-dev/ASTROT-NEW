@@ -4,7 +4,12 @@ import { getOpenAIModelForContent } from '../../../../lib/appSettings';
 import { db } from '../../../../lib/db';
 import { getContentLayer, getPremiumEntitlementState } from '../../../../lib/contentArchitecture';
 import { generateNatalLivingReading } from '../../../../lib/natalContent';
-import { coerceNatalLivingReading, getCurrentNatalPeriodKey } from '../../../../lib/natalReadings';
+import {
+  buildNatalLivingCacheKey,
+  coerceNatalLivingReading,
+  getCurrentNatalPeriodKey,
+  NATAL_LIVING_PROMPT_VERSION,
+} from '../../../../lib/natalReadings';
 
 function toProfile(user: any, fallback?: Partial<UserProfile>): UserProfile {
   return {
@@ -51,12 +56,22 @@ async function resolveContext(
 }
 
 function getPeriodWindow(periodKey: string) {
-  const [yearPart, monthPart] = periodKey.split('-');
+  const [yearPart, monthPart, dayPart] = periodKey.split('-');
   const year = Number.parseInt(yearPart || '', 10);
   const month = Number.parseInt(monthPart || '', 10);
+  const day = Number.parseInt(dayPart || '', 10);
 
   if (!Number.isFinite(year) || !Number.isFinite(month) || month < 1 || month > 12) {
     return { validFrom: null, validTo: null };
+  }
+
+  if (Number.isFinite(day) && day >= 1 && day <= 31) {
+    const start = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+    const end = new Date(Date.UTC(year, month - 1, day + 1, 0, 0, 0, 0));
+    return {
+      validFrom: start.toISOString(),
+      validTo: end.toISOString(),
+    };
   }
 
   const start = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0, 0));
@@ -90,6 +105,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const periodKey = req.method === 'GET'
     ? (typeof req.query.periodKey === 'string' && req.query.periodKey.trim() ? req.query.periodKey.trim() : getCurrentNatalPeriodKey())
     : (typeof req.body?.periodKey === 'string' && req.body.periodKey.trim() ? req.body.periodKey.trim() : getCurrentNatalPeriodKey());
+  const cacheKey = buildNatalLivingCacheKey(periodKey);
 
   if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -114,8 +130,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(409).json({
       error: 'PRIMARY_CHART_MISSING',
       message: context.profile.language === 'ru'
-        ? 'Для живого слоя нужна сохранённая натальная карта.'
-        : 'A saved natal chart is required for the living natal layer.',
+        ? 'Для этой части натальной карты нужна сохранённая карта.'
+        : 'A saved natal chart is required for this natal reading.',
     });
   }
 
@@ -125,8 +141,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       error: 'Premium required',
       code: 'PREMIUM_REQUIRED',
       message: context.profile.language === 'ru'
-        ? 'Живой слой карты доступен в Lumia Premium.'
-        : 'The living natal layer is available in Lumia Premium.',
+        ? 'Эта часть натальной карты доступна после открытия полного чтения.'
+        : 'This part of the natal reading is available after unlocking the full reading.',
     });
   }
 
@@ -137,7 +153,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       accessTier: 'premium',
       contentSurface: 'natal',
       contentVariant: 'living',
-      cacheKey: periodKey,
+      cacheKey,
     });
 
     if (!result.interpretation) {
@@ -145,8 +161,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         error: 'NOT_FOUND',
         code: 'NATAL_LIVING_NOT_FOUND',
         message: context.profile.language === 'ru'
-          ? 'Живой слой карты пока не подготовлен.'
-          : 'The living natal layer is not ready yet.',
+          ? 'Ежедневная интерпретация пока не подготовлена.'
+          : 'The daily natal reading is not ready yet.',
       });
     }
 
@@ -162,10 +178,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const existing = await getContentLayer({
     userId: userId.trim(),
     chartId: context.chartId,
-    accessTier: 'premium',
-    contentSurface: 'natal',
-    contentVariant: 'living',
-    cacheKey: periodKey,
+      accessTier: 'premium',
+      contentSurface: 'natal',
+      contentVariant: 'living',
+      cacheKey,
   });
 
   if (existing.interpretation) {
@@ -190,36 +206,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         accessTier: 'premium',
         contentSurface: 'natal',
         contentVariant: 'living',
-        cacheKey: periodKey,
-        inputHash: periodKey,
+        cacheKey,
+        inputHash: cacheKey,
         content: reading,
         modelTier,
         validFrom: periodWindow.validFrom,
         validTo: periodWindow.validTo,
         isPersistent: false,
         canRegenerateForLumi: false,
-        legacySource: 'natal_v2.living',
+        legacySource: NATAL_LIVING_PROMPT_VERSION,
       }, userId.trim())
     : await db.content_interpretations.upsertByUser(userId.trim(), {
         accessTier: 'premium',
         contentSurface: 'natal',
         contentVariant: 'living',
-        cacheKey: periodKey,
-        inputHash: periodKey,
+        cacheKey,
+        inputHash: cacheKey,
         content: reading,
         modelTier,
         validFrom: periodWindow.validFrom,
         validTo: periodWindow.validTo,
         isPersistent: false,
         canRegenerateForLumi: false,
-        legacySource: 'natal_v2.living',
+        legacySource: NATAL_LIVING_PROMPT_VERSION,
       });
 
   return res.status(200).json({
     interpretation: normalizeInterpretation(interpretation, context.profile.language, periodKey),
     source: 'generated',
     chartId: context.chartId,
-    cacheKey: periodKey,
+    cacheKey,
     entitlement: entitlement.entitlement,
   });
 }

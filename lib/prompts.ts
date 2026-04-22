@@ -903,19 +903,24 @@ export interface NatalAnchorAIResponse {
   headline: string;
   summary: string;
   reading: string;
+  threeAnchors: Array<{ title: string; body: string }>;
+  perceivedByOthers: string;
   strengths: string[];
-  patterns: string[];
+  watchouts: string[];
+  dictionaryTerms: Array<{ term: string; meaning: string }>;
 }
 
 export interface NatalLivingAIResponse {
   headline: string;
   summary: string;
-  activeTheme: string;
-  strength: string;
-  vulnerability: string;
-  relationships: string;
-  money: string;
-  guidance: string;
+  fullPersonality: string;
+  today: string;
+  daySituations: Array<{ title: string; body: string }>;
+  relationshipsToday: string;
+  workMoneyToday: string;
+  evening: string;
+  repeatingScenario: string;
+  questionOfDay: string;
 }
 
 export interface PlanetInsightAIResponse {
@@ -1054,26 +1059,31 @@ Language: ${profile.language}
 Natal chart:
 ${natalDataJson}
 
-Task: create the free natal anchor layer for Lumia.
+Task: create the user's natal chart reading for Lumia.
 
 Rules:
-- This is the user's serious base reading, not teaser junk.
+- This is the first complete natal reading a user sees. It must feel valuable on its own.
 - It must feel personal, emotionally accurate, modern, and grounded in real natal calculation.
 - The user should immediately feel "this is about me", not just "this sounds nice".
 - Explain the person, not astrology mechanics.
-- Focus on character, emotional habits, relationship style, strengths, decision style, and repeating life patterns.
-- Include 1-2 recognizable everyday examples inside the reading: how this shows up in choices, closeness, conflict, rhythm, or self-perception.
+- Focus on character, emotional habits, first impression, strengths, decision style, and what is worth noticing.
+- Include recognizable everyday examples inside the reading: choices, closeness, conflict, rhythm, self-perception.
 - No mystical fluff, no fate spam, no empty praise, no cheap sales language.
 - No long lists of planets/houses/aspects. Translate the chart into human language.
-- The free layer should feel valuable and complete enough to help the user understand themselves better, while still leaving room for a stronger premium living layer later.
-- Do not try to explain the entire life story or the current period in full detail. More depth, more examples, and stronger situational precision belong to premium.
+- Do not greet the user. Do not write "hello", "hi", "привет", or the user's name as an opener.
+- Do not use user-facing internal words: free, premium, layer, unlock, upsell, sale, trial, "бесплатный", "премиум", "слой", "живой слой", "твоя основа", "опорная карта".
+- Avoid mystical or fatalistic words such as destiny, magic, curse, karma as certainty, "судьба", "магия", "предначертано".
+- Keep language human and mature. No slang, no theatrical phrasing, no astrological conspiracy wording.
 
 Return strict JSON with these fields:
-- headline: one strong line about the user's core nature, max 90 chars
-- summary: 1-2 sentences explaining the overall tone of the base chart
-- reading: 3-5 short paragraphs separated by "\\n\\n"
-- strengths: exactly 3 short bullets about real strengths
-- patterns: exactly 3 short bullets about repeating inner or life patterns
+- headline: one strong user-facing title, max 80 chars
+- summary: 1-2 quiet sentences explaining the overall tone of the chart
+- reading: 5-7 short paragraphs separated by "\\n\\n"; no greeting and no name opener
+- threeAnchors: exactly 3 objects with title/body. Titles must be Sun/Moon/Rising in the response language; bodies explain them as human roles: character, emotions, first impression.
+- perceivedByOthers: 2-3 sentences about how people usually read this person and what they may misunderstand.
+- strengths: exactly 3 short observations with life examples.
+- watchouts: exactly 3 soft warnings without drama.
+- dictionaryTerms: 5-7 objects with term/meaning. Explain simple terms such as Sun, Moon, Rising, Sign, Aspect, House in everyday language.
 
 Return only JSON.`;
 };
@@ -1098,27 +1108,31 @@ ${natalDataJson}
 Current transits and live influences:
 ${transitsJson}
 
-Task: create Lumia's premium living natal layer for this period.
+Task: create today's personal natal reading for Lumia.
 
 Rules:
-- This is not a static natal summary and not just more text.
-- It must feel like a living premium consultation that explains what is activated right now and how it is likely to show up in real life.
-- Premium must be stronger than the free natal anchor through more depth, stronger situational precision, and more recognizable life scenarios.
-- Focus on the main theme of the period, strength, vulnerability, relationships, money/goals, and direct guidance.
-- Show how this period may affect choices, closeness, work rhythm, confidence, or pressure points when relevant.
+- This is a deeper daily reading inside the user's natal chart. It should feel precise, useful, and current.
+- Explain what is activated right now and how it may show up in real life today.
+- Focus on today's personal rhythm, concrete situations, relationships, work/money state, evening decompression, one repeating pattern, and one honest question.
+- Show how this period may affect choices, closeness, work rhythm, confidence, or pressure points with recognizable examples.
 - Be personal, emotionally precise, serious, modern, and useful.
 - No mystical fluff, no vague filler, no decorative astrology language.
 - Write like a calm, intelligent personal guide, not a therapist and not a fortune-teller.
+- Do not greet the user. Do not open with the user's name.
+- Do not use user-facing internal words: free, premium, layer, unlock, upsell, sale, trial, "бесплатный", "премиум", "слой", "живой слой", "твоя основа", "опорная карта".
+- Do not give medical, legal, or financial instructions. For work/money, speak about state, focus, pressure, and decision hygiene.
 
 Return strict JSON with these fields:
-- headline: one strong current-period line, max 90 chars
-- summary: 2-3 sentences on the period tone
-- activeTheme: what is being activated most strongly now
-- strength: where the user's current power is
-- vulnerability: where current pressure or sensitivity is
-- relationships: 2-3 sentences on how this period changes closeness, trust, or contact
-- money: 2-3 sentences on how this period affects money, work, goals, or practical direction
-- guidance: 3-4 sentences of direct orientation for the user
+- headline: one strong title for today, max 80 chars
+- summary: 1-2 sentences on today's tone
+- fullPersonality: 4-6 short paragraphs about how this person lives, reacts, chooses, and builds contact. This is a deeper but still readable personality interpretation.
+- today: 2-4 short paragraphs about what is activated today.
+- daySituations: exactly 3 objects with title/body. Titles should be concrete, e.g. "In conversation", "In work", "Inside yourself" / "В разговоре", "В делах", "Внутри себя".
+- relationshipsToday: 2-3 sentences on how to communicate today, where not to guess, where to ask directly.
+- workMoneyToday: 2-3 sentences about focus, state, decisions, anxiety, and practical rhythm. No financial advice.
+- evening: 2-3 sentences about what to release or understand by evening.
+- repeatingScenario: 2-3 sentences about one pattern especially worth seeing now.
+- questionOfDay: one honest question for self-observation.
 
 Return only JSON.`;
 };

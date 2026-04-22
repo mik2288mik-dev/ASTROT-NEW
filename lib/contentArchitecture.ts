@@ -147,6 +147,10 @@ async function loadLegacyForecastDaily(userId: string, chartId: number | null, c
 async function loadLegacyBridge(options: ContentLayerOptions & { chartId: number | null; cacheKey: string }) {
   const { userId, chartId, accessTier, contentSurface, contentVariant, cacheKey } = options;
 
+  if (cacheKey.includes('human-air')) {
+    return null;
+  }
+
   if (accessTier === 'free' && contentSurface === 'natal' && contentVariant === 'anchor') {
     return loadLegacyNatalAnchor(userId, chartId);
   }

@@ -6,6 +6,8 @@ import type {
 } from '../types';
 import { db } from './db';
 import {
+  DEFAULT_INTERPRETATION_MODEL,
+  DEFAULT_PREMIUM_INTERPRETATION_MODEL,
   getInterpretationModelFromEnv,
   INTERPRETATION_MODEL_SETTING_KEY,
   normalizeInterpretationModelId,
@@ -63,9 +65,16 @@ export async function getOpenAIModelForContent(
   options: OpenAIContentModelOptions
 ): Promise<OpenAIContentModelAssignment> {
   const sharedModel = await getOpenAIInterpretationModel();
-  const premiumModel = getConfiguredEnvModel('OPENAI_PREMIUM_MODEL') || sharedModel;
+  const isNatalAnchor = options.contentSurface === 'natal' && options.contentVariant === 'anchor';
+  const isNatalLiving = options.contentSurface === 'natal' && options.contentVariant === 'living';
+  const premiumModel =
+    getConfiguredEnvModel('OPENAI_PREMIUM_MODEL') ||
+    (isNatalLiving || sharedModel === DEFAULT_INTERPRETATION_MODEL
+      ? DEFAULT_PREMIUM_INTERPRETATION_MODEL
+      : sharedModel);
   const freeHighQualityModel =
     getConfiguredEnvModel('OPENAI_FREE_MODEL') ||
+    (isNatalAnchor ? DEFAULT_INTERPRETATION_MODEL : null) ||
     sharedModel ||
     getConfiguredEnvModel('OPENAI_BASE_MODEL') ||
     premiumModel;

@@ -9,6 +9,7 @@ interface HeaderProps {
   onOpenSettings: () => void;
   onBack: () => void;
   onOpenWallet: () => void;
+  onOpenDictionary?: () => void;
 }
 
 const SCREEN_TITLES: Partial<Record<ViewState, { ru: string; en: string }>> = {
@@ -32,14 +33,18 @@ function StudioChromeHeader({
   view,
   onOpenSettings,
   onOpenWallet,
+  onOpenDictionary,
 }: {
   profile: UserProfile;
   view: ViewState;
   onOpenSettings: () => void;
   onOpenWallet: () => void;
+  onOpenDictionary?: () => void;
 }) {
   const tagline = profile.language === 'en' ? 'YOUR PATH TO SELF' : 'ТВОЙ ПУТЬ К СЕБЕ';
   const storeLabel = profile.language === 'en' ? 'Store' : 'Магазин';
+  const dictionaryLabel = profile.language === 'en' ? 'Dictionary' : 'Словарь';
+  const showDictionary = view === 'chart';
 
   return (
     <header className="lumia-tg-header-bar relative z-40 shrink-0 bg-white">
@@ -50,6 +55,8 @@ function StudioChromeHeader({
           settingsAriaLabel={getText(profile.language, 'nav.settings')}
           storeLabel={storeLabel}
           tagline={tagline}
+          onOpenDictionary={showDictionary ? onOpenDictionary : undefined}
+          dictionaryLabel={dictionaryLabel}
         />
 
         <div className="mt-1 pt-1 text-center">
@@ -67,6 +74,7 @@ export const Header: React.FC<HeaderProps> = ({
   view,
   onOpenSettings,
   onOpenWallet,
+  onOpenDictionary,
 }) => {
   if (!profile) return null;
 
@@ -81,6 +89,7 @@ export const Header: React.FC<HeaderProps> = ({
       view={view}
       onOpenSettings={onOpenSettings}
       onOpenWallet={onOpenWallet}
+      onOpenDictionary={onOpenDictionary}
     />
   );
 };

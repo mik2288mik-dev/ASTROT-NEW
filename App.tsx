@@ -77,6 +77,7 @@ const App: React.FC = () => {
     const [loadingProgress, setLoadingProgress] = useState(0);
     const [view, setView] = useState<ViewState>('onboarding');
     const [showPremiumPreview, setShowPremiumPreview] = useState(false);
+    const [dictionaryOpenSignal, setDictionaryOpenSignal] = useState(0);
     const [synastryPrefill, setSynastryPrefill] = useState<SynastryPrefill>(null);
     const [chartsReturnView, setChartsReturnView] = useState<ViewState>('settings');
     const [walletReturnView, setWalletReturnView] = useState<ViewState>('dashboard');
@@ -757,6 +758,7 @@ const App: React.FC = () => {
                 onOpenSettings={() => setView('settings')}
                 onBack={handleBack}
                 onOpenWallet={() => openWallet(view)}
+                onOpenDictionary={() => setDictionaryOpenSignal((value) => value + 1)}
             />
             
             <main className="lumia-tg-main-gutter relative z-10 flex-1 w-full max-w-md md:max-w-reading-wide mx-auto overflow-hidden min-h-0 bg-white">
@@ -814,6 +816,7 @@ const App: React.FC = () => {
                             chartId={activeChartId}
                             requestPremium={requestPremium}
                             onUpdateProfile={handleProfileUpdate}
+                            dictionaryOpenSignal={dictionaryOpenSignal}
                         />
                     </div>
                 ) : view === 'settings' ? (

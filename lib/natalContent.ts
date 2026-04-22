@@ -30,6 +30,20 @@ async function getNatalModel(modelTier: 'base' | 'premium') {
   });
 }
 
+async function isFlaggedByModeration(content: unknown): Promise<boolean> {
+  if (!openai) return false;
+
+  try {
+    const moderation = await openai.moderations.create({
+      model: 'omni-moderation-latest',
+      input: JSON.stringify(content).slice(0, 12000),
+    });
+    return moderation.results.some((result) => result.flagged);
+  } catch {
+    return false;
+  }
+}
+
 export async function generateNatalAnchorReading(
   profile: UserProfile,
   chartData: NatalChartData
@@ -51,11 +65,14 @@ export async function generateNatalAnchorReading(
       ],
       response_format: { type: 'json_object' },
       temperature: 0.75,
-      max_tokens: 1800,
+      max_tokens: 2600,
     });
 
     const content = completion.choices[0]?.message?.content || '{}';
     const parsed = JSON.parse(content) as NatalAnchorAIResponse;
+    if (await isFlaggedByModeration(parsed)) {
+      return buildNatalAnchorFallback(lang);
+    }
     return coerceNatalAnchorReading(parsed, lang);
   } catch {
     return buildNatalAnchorFallback(lang);
@@ -85,11 +102,14 @@ export async function generateNatalLivingReading(
       ],
       response_format: { type: 'json_object' },
       temperature: 0.85,
-      max_tokens: 1600,
+      max_tokens: 3200,
     });
 
     const content = completion.choices[0]?.message?.content || '{}';
     const parsed = JSON.parse(content) as NatalLivingAIResponse;
+    if (await isFlaggedByModeration(parsed)) {
+      return buildNatalLivingFallback(lang, periodKey);
+    }
     return coerceNatalLivingReading(parsed, lang, periodKey);
   } catch {
     return buildNatalLivingFallback(lang, periodKey);

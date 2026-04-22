@@ -2,7 +2,8 @@
  * OpenAI chat models for Lumia AI interpretations (admin-configurable + env fallback).
  */
 
-export const DEFAULT_INTERPRETATION_MODEL = 'gpt-4o-mini';
+export const DEFAULT_INTERPRETATION_MODEL = 'gpt-5.4-mini';
+export const DEFAULT_PREMIUM_INTERPRETATION_MODEL = 'gpt-5.4';
 
 export const INTERPRETATION_MODEL_SETTING_KEY = 'openai_interpretation_model';
 
