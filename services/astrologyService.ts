@@ -1,7 +1,7 @@
-import { UserProfile, NatalChartData, DailyHoroscope, SynastryResult, UserEvolution, OracleChatResponse, OracleHistoryEntry, ForecastDailyReading, ForecastDaypartReading, ForecastDaypartSlot, ForecastMonthlyReading, ForecastWeeklyReading, NatalAnchorReading, NatalLivingReading, AskLumiaState, AskLumiaTier, ContentAccessTier, PlanetInsight, WheelInsight, WheelInsightEntityType } from "../types";
+import { UserProfile, NatalChartData, DailyHoroscope, SynastryResult, UserEvolution, OracleChatResponse, OracleHistoryEntry, ForecastDailyReading, ForecastDaypartReading, ForecastDaypartSlot, ForecastMonthlyReading, ForecastWeeklyReading, NatalAnchorReading, NatalFullReading, NatalLivingReading, AskLumiaState, AskLumiaTier, ContentAccessTier, PlanetInsight, WheelInsight, WheelInsightEntityType } from "../types";
 import { SYSTEM_INSTRUCTION_ASTRA } from "../constants";
 import { getElementForSign } from "../lib/zodiac-utils";
-import { coerceNatalAnchorReading, coerceNatalLivingReading, getCurrentNatalPeriodKey, mapNatalAnchorToLegacyIntro } from "../lib/natalReadings";
+import { coerceNatalAnchorReading, coerceNatalFullReading, coerceNatalLivingReading, getCurrentNatalPeriodKey, mapNatalAnchorToLegacyIntro } from "../lib/natalReadings";
 import { isForecastLegacyFallbackEnabled } from "../lib/forecastLegacyConfig";
 import { buildForecastFullDayUnlockCacheKey } from "../lib/forecastFullDay";
 import { fetchWithTimeout } from "../lib/fetchWithTimeout";
@@ -542,6 +542,59 @@ export const getCachedPremiumNatalLivingLayer = async (
     : null;
 };
 
+export const getPremiumNatalFullLayer = async (
+  profile: UserProfile,
+  chartData: NatalChartData,
+  chartId?: number | null
+): Promise<NatalFullReading> => {
+  const url = `${API_BASE_URL}/api/content/natal/full`;
+  log.info('[getPremiumNatalFullLayer] Starting request', { userId: profile.id, chartId: chartId ?? null });
+
+  const data = await fetchContentApi<NatalFullReading>(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      userId: profile.id,
+      profile,
+      chartData,
+      chartId: chartId ?? undefined,
+    }),
+  }, { timeoutMs: 18000 });
+
+  const reading = data?.interpretation?.content;
+  if (!reading) {
+    throw buildApiError('Natal full content is missing');
+  }
+
+  return coerceNatalFullReading(reading, profile.language === 'en' ? 'en' : 'ru', chartData);
+};
+
+export const getCachedPremiumNatalFullLayer = async (
+  userId: string,
+  language: 'ru' | 'en' = 'ru',
+  chartId?: number | null
+): Promise<NatalFullReading | null> => {
+  if (!userId) return null;
+
+  const params = new URLSearchParams({ userId });
+  if (chartId != null) {
+    params.set('chartId', String(chartId));
+  }
+
+  const url = `${API_BASE_URL}/api/content/natal/full?${params.toString()}`;
+  log.info('[getCachedPremiumNatalFullLayer] Starting request', { userId, chartId: chartId ?? null });
+
+  const data = await fetchContentApi<NatalFullReading>(
+    url,
+    { method: 'GET', cache: 'no-store' },
+    { notFoundAsNull: true }
+  );
+
+  return data?.interpretation?.content
+    ? coerceNatalFullReading(data.interpretation.content, language)
+    : null;
+};
+
 export const getCachedPlanetInsight = async (
   userId: string,
   planetId: NatalPlanetKey,
@@ -789,19 +842,19 @@ export const getNatalIntro = async (
   chartId?: number | null
 ): Promise<string> => {
   try {
-    log.info('[getNatalIntro] Loading natal_v2 anchor layer', {
+    log.info('[getNatalIntro] Loading canonical natal anchor layer', {
       userId: profile.id,
       chartId: chartId ?? null,
     });
     const reading = await getNatalAnchorLayer(profile, chartData, chartId);
     return mapNatalAnchorToLegacyIntro(reading);
   } catch (error: any) {
-    log.error('[getNatalIntro] natal_v2 request failed, falling back to legacy endpoint', {
+    log.error('[getNatalIntro] canonical anchor request failed, falling back to compatibility endpoint', {
       error: error?.message,
     });
 
     const url = `${API_BASE_URL}/api/astrology/natal-intro`;
-    log.info(`[getNatalIntro] Sending legacy POST request to: ${url}`);
+    log.info(`[getNatalIntro] Sending compatibility POST request to: ${url}`);
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

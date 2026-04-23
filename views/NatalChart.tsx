@@ -1,9 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import type {
+  AstroEvidenceItem,
   NatalAnchorReading,
   NatalChartData,
   NatalDictionaryTerm,
+  NatalFullReading,
   NatalLivingReading,
   NatalReadingPoint,
   UserProfile,
@@ -11,13 +13,16 @@ import type {
 import { getZodiacSign } from '../constants';
 import {
   getCachedNatalAnchorLayer,
+  getCachedPremiumNatalFullLayer,
   getCachedPremiumNatalLivingLayer,
   getNatalAnchorLayer,
+  getPremiumNatalFullLayer,
   getPremiumNatalLivingLayer,
 } from '../services/astrologyService';
 import { saveProfile } from '../services/storageService';
 import {
   buildNatalAnchorFallback,
+  buildNatalFullFallback,
   buildNatalLivingFallback,
   getCurrentNatalPeriodKey,
   mapNatalAnchorToLegacyIntro,
@@ -64,30 +69,8 @@ function normalizeCopy(value?: string | null): string {
     .trim();
 }
 
-function isGreetingParagraph(value: string, lang: Language) {
-  const normalized = value.trim().toLowerCase();
-  if (!normalized) return false;
-  return lang === 'ru'
-    ? normalized.startsWith('привет')
-    : normalized.startsWith('hello') || normalized.startsWith('hi ');
-}
-
-function sanitizeShortCopy(value: string | undefined, lang: Language): string | null {
-  const normalized = normalizeCopy(value);
-  if (!normalized || isGreetingParagraph(normalized, lang)) return null;
-  return normalized;
-}
-
-function sanitizeLongCopy(value: string | undefined, lang: Language, blocked: Array<string | null | undefined> = []) {
-  const blockedSet = new Set(blocked.map((item) => normalizeCopy(item).toLowerCase()).filter(Boolean));
-
-  return normalizeCopy(value)
-    .split(/\n{2,}/)
-    .map((paragraph) => paragraph.trim())
-    .filter(Boolean)
-    .filter((paragraph) => !isGreetingParagraph(paragraph, lang))
-    .filter((paragraph) => !blockedSet.has(paragraph.toLowerCase()))
-    .join('\n\n');
+function ParagraphText({ text }: { text: string }) {
+  return <FormattedAiText text={normalizeCopy(text)} variant="article" className="lumia-prose" />;
 }
 
 function AirSection({
@@ -114,8 +97,8 @@ function AirSection({
       initial="hidden"
       animate="visible"
       variants={sectionVariants}
-      transition={{ duration: 0.24 }}
-      className={`scroll-mt-28 border-t border-astro-border/10 pt-6 first:border-t-0 first:pt-1 ${className}`.trim()}
+      transition={{ duration: 0.22 }}
+      className={`scroll-mt-28 border-t border-astro-border/10 pt-7 first:border-t-0 first:pt-1 ${className}`.trim()}
     >
       {eyebrow ? <p className="lumia-label tracking-[0.2em]">{eyebrow}</p> : null}
       {title ? (
@@ -165,39 +148,31 @@ function QuietNavigator({
   );
 }
 
-function ParagraphText({ text }: { text: string }) {
-  return <FormattedAiText text={text} variant="article" className="lumia-prose" />;
-}
-
 function PointRows({
   points,
   numbered = false,
 }: {
-  points: Array<string | NatalReadingPoint>;
+  points: NatalReadingPoint[];
   numbered?: boolean;
 }) {
   return (
     <div className="space-y-0">
-      {points.map((point, index) => {
-        const title = typeof point === 'string' ? '' : point.title;
-        const body = typeof point === 'string' ? point : point.body;
-        return (
-          <div
-            key={`${title || body}-${index}`}
-            className="flex gap-3 border-t border-astro-border/10 py-4 first:border-t-0 first:pt-0 last:pb-0"
-          >
-            <span className="mt-[2px] flex h-5 min-w-5 items-center justify-center text-[12px] font-medium text-astro-highlight/85">
-              {numbered ? `${index + 1}.` : ''}
-            </span>
-            <div className="min-w-0">
-              {title ? <p className="text-[15px] font-medium leading-relaxed text-astro-text">{title}</p> : null}
-              <p className={`${title ? 'mt-1 ' : ''}text-[15px] leading-relaxed text-astro-text/88 sm:text-base`}>
-                {body}
-              </p>
-            </div>
+      {points.map((point, index) => (
+        <div
+          key={`${point.title || point.body}-${index}`}
+          className="flex gap-3 border-t border-astro-border/10 py-4 first:border-t-0 first:pt-0 last:pb-0"
+        >
+          <span className="mt-[2px] flex h-5 min-w-5 items-center justify-center text-[12px] font-medium text-astro-highlight/85">
+            {numbered ? `${index + 1}.` : ''}
+          </span>
+          <div className="min-w-0">
+            {point.title ? <p className="text-[15px] font-medium leading-relaxed text-astro-text">{point.title}</p> : null}
+            <p className={`${point.title ? 'mt-1 ' : ''}text-[15px] leading-relaxed text-astro-text/88 sm:text-base`}>
+              {point.body}
+            </p>
           </div>
-        );
-      })}
+        </div>
+      ))}
     </div>
   );
 }
@@ -211,20 +186,13 @@ function AnchorRows({
   lang: Language;
   signs: { sun: string; moon: string; rising: string };
 }) {
-  const signMap: Record<string, string> = {
-    sun: signs.sun,
-    moon: signs.moon,
-    rising: signs.rising,
-    солнце: signs.sun,
-    луна: signs.moon,
-    асцендент: signs.rising,
-  };
-
   return (
     <div className="space-y-0">
       {anchors.map((anchor, index) => {
         const normalized = anchor.title.toLowerCase();
-        const sign = signMap[normalized] || '';
+        const sign = normalized.includes('sun') || normalized.includes('солн') ? signs.sun
+          : normalized.includes('moon') || normalized.includes('лун') ? signs.moon
+            : signs.rising;
         return (
           <div
             key={`${anchor.title}-${index}`}
@@ -262,6 +230,32 @@ function DictionaryTerms({ terms }: { terms: NatalDictionaryTerm[] }) {
   );
 }
 
+function EvidenceLines({
+  evidence,
+  lang,
+}: {
+  evidence: AstroEvidenceItem[];
+  lang: Language;
+}) {
+  const visible = evidence.slice(0, 3);
+  if (!visible.length) return null;
+
+  return (
+    <div className="mb-5 space-y-2 border-l border-astro-highlight/25 pl-4">
+      {visible.map((item) => (
+        <p key={item.id} className="text-[13px] leading-relaxed text-astro-subtext">
+          <span className="text-astro-text/80">{item.label}</span>
+          {item.orb != null ? ` · ${item.orb.toFixed(1)}°` : ''}
+          {item.humanMeaning ? ` — ${item.humanMeaning}` : ''}
+        </p>
+      ))}
+      <p className="text-[11px] uppercase tracking-[0.18em] text-astro-subtext/70">
+        {lang === 'ru' ? 'по фактам карты' : 'from chart facts'}
+      </p>
+    </div>
+  );
+}
+
 function SecondaryPlanetLine({
   planets,
   lang,
@@ -276,7 +270,7 @@ function SecondaryPlanetLine({
     <p className="mt-5 text-[13px] leading-relaxed text-astro-subtext">
       {visible
         .map((planet) => `${PLANET_NAMES[planet.id]?.[lang] || planet.id} — ${planet.sign}`)
-        .join(' • ')}
+        .join(' · ')}
     </p>
   );
 }
@@ -291,18 +285,16 @@ export const NatalChart: React.FC<NatalChartProps> = ({
 }) => {
   const lang = profile.language === 'en' ? 'en' : 'ru';
   const periodKey = useMemo(() => getCurrentNatalPeriodKey(), []);
-  const anchorFallback = useMemo(() => buildNatalAnchorFallback(lang), [lang]);
-  const livingFallback = useMemo(() => buildNatalLivingFallback(lang, periodKey), [lang, periodKey]);
+  const anchorFallback = useMemo(() => buildNatalAnchorFallback(lang, data), [data, lang]);
+  const fullFallback = useMemo(() => buildNatalFullFallback(lang, data), [data, lang]);
+  const livingFallback = useMemo(() => buildNatalLivingFallback(lang, periodKey, data), [data, lang, periodKey]);
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
   const dictionaryRef = useRef<HTMLElement | null>(null);
 
-  const cachedLegacyIntro: NatalAnchorReading | null = null;
-
-  const [anchorReading, setAnchorReading] = useState<NatalAnchorReading>(cachedLegacyIntro || anchorFallback);
-  const [livingReading, setLivingReading] = useState<NatalLivingReading | null>(
-    profile.isPremium ? livingFallback : null
-  );
-  const [activeSection, setActiveSection] = useState('rhythm');
+  const [anchorReading, setAnchorReading] = useState<NatalAnchorReading>(anchorFallback);
+  const [fullReading, setFullReading] = useState<NatalFullReading | null>(profile.isPremium ? fullFallback : null);
+  const [livingReading, setLivingReading] = useState<NatalLivingReading | null>(profile.isPremium ? livingFallback : null);
+  const [activeSection, setActiveSection] = useState(profile.isPremium ? 'today' : 'portrait');
   const [baseExpanded, setBaseExpanded] = useState(!profile.isPremium);
 
   const hasChartData = !!(data?.sun && data?.moon);
@@ -348,10 +340,12 @@ export const NatalChart: React.FC<NatalChartProps> = ({
   );
 
   useEffect(() => {
-    setAnchorReading(cachedLegacyIntro || anchorFallback);
+    setAnchorReading(anchorFallback);
+    setFullReading(profile.isPremium ? fullFallback : null);
     setLivingReading(profile.isPremium ? livingFallback : null);
     setBaseExpanded(!profile.isPremium);
-  }, [anchorFallback, cachedLegacyIntro, livingFallback, profile.isPremium]);
+    setActiveSection(profile.isPremium ? 'today' : 'portrait');
+  }, [anchorFallback, fullFallback, livingFallback, profile.isPremium]);
 
   useEffect(() => {
     let cancelled = false;
@@ -388,37 +382,46 @@ export const NatalChart: React.FC<NatalChartProps> = ({
   useEffect(() => {
     let cancelled = false;
 
-    const loadLiving = async () => {
+    const loadPremiumReadings = async () => {
       if (!data || !profile.isPremium) return;
 
-      setLivingReading((current) => current || livingFallback);
-
       try {
-        const cached = await getCachedPremiumNatalLivingLayer(String(profile.id), lang, chartId, periodKey);
+        const [cachedLiving, cachedFull] = await Promise.all([
+          getCachedPremiumNatalLivingLayer(String(profile.id), lang, chartId, periodKey),
+          getCachedPremiumNatalFullLayer(String(profile.id), lang, chartId),
+        ]);
         if (cancelled) return;
 
-        if (cached) {
-          setLivingReading(cached);
-          return;
+        if (cachedLiving) setLivingReading(cachedLiving);
+        if (cachedFull) setFullReading(cachedFull);
+
+        const tasks: Promise<void>[] = [];
+        if (!cachedLiving) {
+          tasks.push(
+            getPremiumNatalLivingLayer(profile, data, chartId, periodKey)
+              .then((reading) => { if (!cancelled) setLivingReading(reading); })
+              .catch(console.error)
+          );
         }
-
-        const generated = await getPremiumNatalLivingLayer(profile, data, chartId, periodKey);
-        if (cancelled) return;
-        setLivingReading(generated);
+        if (!cachedFull) {
+          tasks.push(
+            getPremiumNatalFullLayer(profile, data, chartId)
+              .then((reading) => { if (!cancelled) setFullReading(reading); })
+              .catch(console.error)
+          );
+        }
+        await Promise.allSettled(tasks);
       } catch (error) {
         console.error(error);
-        if (!cancelled) {
-          setLivingReading((current) => current || livingFallback);
-        }
       }
     };
 
-    void loadLiving();
+    void loadPremiumReadings();
 
     return () => {
       cancelled = true;
     };
-  }, [chartId, data, lang, livingFallback, periodKey, profile]);
+  }, [chartId, data, lang, periodKey, profile]);
 
   useEffect(() => {
     const nodes = Object.values(sectionRefs.current).filter(Boolean) as HTMLElement[];
@@ -438,7 +441,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({
 
     nodes.forEach((node) => observer.observe(node));
     return () => observer.disconnect();
-  }, [anchorReading, livingReading, baseExpanded, profile.isPremium]);
+  }, [anchorReading, fullReading, livingReading, baseExpanded, profile.isPremium]);
 
   useEffect(() => {
     if (!dictionaryOpenSignal) return;
@@ -464,23 +467,9 @@ export const NatalChart: React.FC<NatalChartProps> = ({
     [data?.mars?.sign, data?.mercury?.sign, data?.venus?.sign, lang]
   );
 
-  const anchorHeadline =
-    sanitizeShortCopy(anchorReading.headline, lang) ||
-    (lang === 'ru' ? 'Твой внутренний ритм' : 'Your inner rhythm');
-  const anchorSummary = sanitizeShortCopy(anchorReading.summary, lang);
-  const anchorBody = sanitizeLongCopy(anchorReading.reading || anchorFallback.reading, lang, [
-    anchorReading.headline,
-    anchorReading.summary,
-  ]);
-  const livingContent = livingReading || livingFallback;
-  const dailyHeadline =
-    sanitizeShortCopy(livingContent.headline, lang) ||
-    (lang === 'ru' ? 'Сегодня для тебя' : 'Today for you');
-  const dailySummary = sanitizeShortCopy(livingContent.summary, lang);
-
   const freeSections: ReadingSection[] = useMemo(
     () => [
-      { id: 'rhythm', label: lang === 'ru' ? 'Ритм' : 'Rhythm' },
+      { id: 'portrait', label: lang === 'ru' ? 'Портрет' : 'Portrait' },
       { id: 'anchors', label: lang === 'ru' ? 'Акценты' : 'Anchors' },
       { id: 'others', label: lang === 'ru' ? 'Впечатление' : 'Impression' },
       { id: 'strengths', label: lang === 'ru' ? 'Сильное' : 'Strengths' },
@@ -495,10 +484,10 @@ export const NatalChart: React.FC<NatalChartProps> = ({
       { id: 'today', label: lang === 'ru' ? 'Сегодня' : 'Today' },
       { id: 'situations', label: lang === 'ru' ? 'Ситуации' : 'Situations' },
       { id: 'relationships', label: lang === 'ru' ? 'Отношения' : 'Relationships' },
-      { id: 'work-money', label: lang === 'ru' ? 'Работа' : 'Work' },
+      { id: 'work-money', label: lang === 'ru' ? 'Дела' : 'Work' },
       { id: 'evening', label: lang === 'ru' ? 'Вечер' : 'Evening' },
-      { id: 'pattern', label: lang === 'ru' ? 'Сценарий' : 'Pattern' },
-      { id: 'personality', label: lang === 'ru' ? 'Личность' : 'Personality' },
+      { id: 'full-map', label: lang === 'ru' ? 'Карта' : 'Chart' },
+      { id: 'dictionary', label: lang === 'ru' ? 'Словарь' : 'Dictionary' },
     ],
     [lang]
   );
@@ -510,21 +499,21 @@ export const NatalChart: React.FC<NatalChartProps> = ({
   const baseReading = (
     <>
       <AirSection
-        id="rhythm"
-        sectionRef={registerSection('rhythm')}
+        id="portrait"
+        sectionRef={registerSection('portrait')}
         eyebrow={lang === 'ru' ? 'О тебе' : 'About you'}
-        title={anchorHeadline}
-        intro={anchorSummary}
+        title={anchorReading.headline}
+        intro={anchorReading.summary}
       >
         <p className="mb-5 text-[13px] leading-relaxed text-astro-subtext">{anchorSignature}</p>
-        <ParagraphText text={anchorBody} />
+        <ParagraphText text={anchorReading.portrait || anchorReading.reading || anchorFallback.portrait} />
       </AirSection>
 
       <AirSection
         id="anchors"
         sectionRef={registerSection('anchors')}
         eyebrow={lang === 'ru' ? 'Три главных акцента' : 'Three main anchors'}
-        title={lang === 'ru' ? 'Как звучит твоя карта' : 'How your chart speaks'}
+        title={lang === 'ru' ? 'Характер, эмоции и первое впечатление' : 'Character, emotions, and first impression'}
       >
         <AnchorRows
           anchors={anchorReading.threeAnchors}
@@ -537,16 +526,16 @@ export const NatalChart: React.FC<NatalChartProps> = ({
       <AirSection
         id="others"
         sectionRef={registerSection('others')}
-        eyebrow={lang === 'ru' ? 'Как тебя считывают люди' : 'How people read you'}
+        eyebrow={lang === 'ru' ? 'Как тебя видят' : 'How people read you'}
         title={lang === 'ru' ? 'Первое впечатление не всегда всё объясняет' : 'First impression is not the whole story'}
       >
-        <ParagraphText text={sanitizeLongCopy(anchorReading.perceivedByOthers, lang)} />
+        <ParagraphText text={anchorReading.perceivedByOthers} />
       </AirSection>
 
       <AirSection
         id="strengths"
         sectionRef={registerSection('strengths')}
-        eyebrow={lang === 'ru' ? 'Что в тебе особенно заметно' : 'What stands out in you'}
+        eyebrow={lang === 'ru' ? 'Что у тебя получается естественно' : 'What comes naturally'}
       >
         <PointRows points={anchorReading.strengths} numbered />
       </AirSection>
@@ -554,12 +543,15 @@ export const NatalChart: React.FC<NatalChartProps> = ({
       <AirSection
         id="watchouts"
         sectionRef={registerSection('watchouts')}
-        eyebrow={lang === 'ru' ? 'Что важно замечать за собой' : 'What is worth noticing'}
+        eyebrow={lang === 'ru' ? 'Где ты чаще теряешь себя' : 'Where you may lose yourself'}
       >
         <PointRows points={anchorReading.watchouts} numbered />
       </AirSection>
     </>
   );
+
+  const daily = livingReading || livingFallback;
+  const full = fullReading || fullFallback;
 
   return (
     <ReadingScreenShell className="relative bg-white pb-10">
@@ -574,11 +566,12 @@ export const NatalChart: React.FC<NatalChartProps> = ({
           <AirSection
             id="today"
             sectionRef={registerSection('today')}
-            eyebrow={lang === 'ru' ? 'Сегодня для тебя' : 'Today for you'}
-            title={dailyHeadline}
-            intro={dailySummary}
+            eyebrow={lang === 'ru' ? 'Сегодня по карте' : 'Today through your chart'}
+            title={daily.headline}
+            intro={daily.summary}
           >
-            <ParagraphText text={sanitizeLongCopy(livingContent.today, lang)} />
+            <EvidenceLines evidence={daily.astroEvidence || []} lang={lang} />
+            <ParagraphText text={daily.whyToday} />
           </AirSection>
 
           <AirSection
@@ -586,25 +579,23 @@ export const NatalChart: React.FC<NatalChartProps> = ({
             sectionRef={registerSection('situations')}
             eyebrow={lang === 'ru' ? 'Ситуации дня' : 'Situations today'}
           >
-            <PointRows points={livingContent.daySituations} />
+            <PointRows points={daily.situations || daily.daySituations || []} />
           </AirSection>
 
           <AirSection
             id="relationships"
             sectionRef={registerSection('relationships')}
-            eyebrow={lang === 'ru' ? 'Отношения сегодня' : 'Relationships today'}
-            title={lang === 'ru' ? 'Говорить проще, чем додумывать' : 'Speak more simply than you guess'}
+            eyebrow={lang === 'ru' ? 'Отношения' : 'Relationships'}
           >
-            <ParagraphText text={sanitizeLongCopy(livingContent.relationshipsToday, lang)} />
+            <ParagraphText text={daily.relationships} />
           </AirSection>
 
           <AirSection
             id="work-money"
             sectionRef={registerSection('work-money')}
-            eyebrow={lang === 'ru' ? 'Работа и деньги сегодня' : 'Work and money today'}
-            title={lang === 'ru' ? 'Решения лучше принимать из ясности' : 'Decide from clarity'}
+            eyebrow={lang === 'ru' ? 'Работа и деньги' : 'Work and money'}
           >
-            <ParagraphText text={sanitizeLongCopy(livingContent.workMoneyToday, lang)} />
+            <ParagraphText text={daily.workMoney} />
           </AirSection>
 
           <AirSection
@@ -612,33 +603,55 @@ export const NatalChart: React.FC<NatalChartProps> = ({
             sectionRef={registerSection('evening')}
             eyebrow={lang === 'ru' ? 'Вечером' : 'In the evening'}
           >
-            <ParagraphText text={sanitizeLongCopy(livingContent.evening, lang)} />
-          </AirSection>
-
-          <AirSection
-            id="pattern"
-            sectionRef={registerSection('pattern')}
-            eyebrow={lang === 'ru' ? 'Повторяющийся сценарий' : 'Repeating pattern'}
-            title={lang === 'ru' ? 'Что стоит увидеть именно сейчас' : 'What is worth seeing now'}
-          >
-            <ParagraphText text={sanitizeLongCopy(livingContent.repeatingScenario, lang)} />
+            <ParagraphText text={daily.evening} />
             <div className="mt-6 border-t border-astro-border/10 pt-5">
               <p className="lumia-label tracking-[0.18em]">
                 {lang === 'ru' ? 'Вопрос дня' : 'Question of the day'}
               </p>
               <p className="mt-2 font-serif text-[1.35rem] leading-snug text-astro-text">
-                {livingContent.questionOfDay}
+                {daily.questionOfDay}
               </p>
             </div>
           </AirSection>
 
           <AirSection
-            id="personality"
-            sectionRef={registerSection('personality')}
-            eyebrow={lang === 'ru' ? 'Полная интерпретация личности' : 'Full personality reading'}
-            title={lang === 'ru' ? 'Как ты живёшь, реагируешь и выбираешь' : 'How you live, react, and choose'}
+            id="full-map"
+            sectionRef={registerSection('full-map')}
+            eyebrow={lang === 'ru' ? 'Полная карта' : 'Full chart'}
+            title={full.headline}
+            intro={full.summary}
           >
-            <ParagraphText text={sanitizeLongCopy(livingContent.fullPersonality, lang)} />
+            <EvidenceLines evidence={full.astroEvidence || []} lang={lang} />
+            <div className="space-y-8">
+              <div>
+                <p className="lumia-label tracking-[0.18em]">{lang === 'ru' ? 'Главная конфигурация' : 'Main configuration'}</p>
+                <div className="mt-3"><ParagraphText text={full.mainConfiguration} /></div>
+              </div>
+              <div>
+                <p className="lumia-label tracking-[0.18em]">{lang === 'ru' ? 'Как ты реагируешь' : 'How you react'}</p>
+                <div className="mt-3"><ParagraphText text={full.reactions} /></div>
+              </div>
+              <div>
+                <p className="lumia-label tracking-[0.18em]">{lang === 'ru' ? 'Как ты выбираешь' : 'How you choose'}</p>
+                <div className="mt-3"><ParagraphText text={full.choices} /></div>
+              </div>
+              <div>
+                <p className="lumia-label tracking-[0.18em]">{lang === 'ru' ? 'Как строишь близость' : 'How you build closeness'}</p>
+                <div className="mt-3"><ParagraphText text={full.closeness} /></div>
+              </div>
+              <div>
+                <p className="lumia-label tracking-[0.18em]">{lang === 'ru' ? 'Где твоя сила' : 'Where your strength is'}</p>
+                <div className="mt-3"><ParagraphText text={full.strengths} /></div>
+              </div>
+              <div>
+                <p className="lumia-label tracking-[0.18em]">{lang === 'ru' ? 'Где повторяется напряжение' : 'Where tension repeats'}</p>
+                <div className="mt-3"><ParagraphText text={full.tensionPattern} /></div>
+              </div>
+              <div>
+                <p className="lumia-label tracking-[0.18em]">{lang === 'ru' ? 'Как с этим обращаться' : 'How to work with it'}</p>
+                <div className="mt-3"><ParagraphText text={full.integration} /></div>
+              </div>
+            </div>
           </AirSection>
 
           <section className="border-t border-astro-border/10 pt-6">
@@ -649,7 +662,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({
             >
               <span>
                 <span className="lumia-label block tracking-[0.2em]">
-                  {lang === 'ru' ? 'Перечитать карту' : 'Read the chart again'}
+                  {lang === 'ru' ? 'Перечитать начало' : 'Read the beginning again'}
                 </span>
                 <span className="mt-2 block text-[13px] leading-relaxed text-astro-subtext">{anchorSignature}</span>
               </span>
@@ -667,7 +680,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({
               onClick={requestPremium}
               className="text-left text-[15px] font-medium leading-relaxed text-astro-highlight underline underline-offset-4 transition-opacity hover:opacity-70"
             >
-              {lang === 'ru' ? 'Продолжить карту глубже' : 'Continue deeper into the chart'}
+              {lang === 'ru' ? 'Открыть ежедневную карту' : 'Open the daily chart'}
             </button>
           </section>
         </>

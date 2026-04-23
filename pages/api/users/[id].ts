@@ -3,6 +3,15 @@ import { db } from '../../../lib/db';
 import { getConfiguredOwnerId } from '../../../lib/adminAuth';
 import { hasDatabaseUrl } from '../../../lib/database-url';
 import { getMoscowTodayKey, toDateInputValue } from '../../../lib/date-utils';
+import {
+  coerceNatalAnchorReading,
+  coerceNatalFullReading,
+  mapNatalAnchorToLegacyIntro,
+  NATAL_ANCHOR_CACHE_KEY,
+  NATAL_ANCHOR_PROMPT_VERSION,
+  NATAL_FULL_CACHE_KEY,
+  NATAL_FULL_PROMPT_VERSION,
+} from '../../../lib/natalReadings';
 
 // Logging utility
 const log = {
@@ -41,9 +50,13 @@ async function hydrateGeneratedContent(userId: string) {
   let hasContent = false;
 
   try {
-    const natalIntro = await db.interpretations.getByHash(userId, 'natal_intro', 'default');
-    if (natalIntro?.content) {
-      generatedContent.natalIntro = natalIntro.content;
+    const primaryChart = await db.natal_charts.getPrimary(userId);
+    const natalIntro = primaryChart?.id != null
+      ? await db.content_interpretations.getByChart(primaryChart.id, 'free', 'natal', 'anchor', NATAL_ANCHOR_CACHE_KEY)
+      : await db.content_interpretations.getByUser(userId, 'free', 'natal', 'anchor', NATAL_ANCHOR_CACHE_KEY);
+    if (natalIntro?.content && natalIntro.promptVersion === NATAL_ANCHOR_PROMPT_VERSION) {
+      const reading = coerceNatalAnchorReading(natalIntro.content, 'ru', primaryChart?.chart_data || null);
+      generatedContent.natalIntro = mapNatalAnchorToLegacyIntro(reading);
       const generatedAt = toUnixTimestamp(natalIntro.updatedAt);
       if (generatedAt) {
         generatedContent.timestamps.natalIntroGenerated = generatedAt;
@@ -55,16 +68,22 @@ async function hydrateGeneratedContent(userId: string) {
   }
 
   try {
-    const deepDiveTypes = ['deep_dive_personality', 'deep_dive_love', 'deep_dive_career', 'deep_dive_weakness', 'deep_dive_karma'];
-    const topics = ['personality', 'love', 'career', 'weakness', 'karma'];
-    const deepDiveAnalyses: Record<string, string> = {};
-    for (let i = 0; i < deepDiveTypes.length; i++) {
-      const row = await db.interpretations.getByHash(userId, deepDiveTypes[i], topics[i]);
-      if (row?.content) deepDiveAnalyses[topics[i]] = row.content;
-    }
-    if (Object.keys(deepDiveAnalyses).length > 0) {
+    const primaryChart = await db.natal_charts.getPrimary(userId);
+    const full = primaryChart?.id != null
+      ? await db.content_interpretations.getByChart(primaryChart.id, 'premium', 'natal', 'full', NATAL_FULL_CACHE_KEY)
+      : await db.content_interpretations.getByUser(userId, 'premium', 'natal', 'full', NATAL_FULL_CACHE_KEY);
+    if (full?.content && full.promptVersion === NATAL_FULL_PROMPT_VERSION) {
+      const reading = coerceNatalFullReading(full.content, 'ru', primaryChart?.chart_data || null);
+      const deepDiveAnalyses: Record<string, string> = {
+        personality: [reading.mainConfiguration, reading.reactions, reading.choices].filter(Boolean).join('\n\n'),
+        love: reading.closeness,
+        career: [reading.choices, reading.strengths].filter(Boolean).join('\n\n'),
+        weakness: [reading.tensionPattern, reading.integration].filter(Boolean).join('\n\n'),
+        karma: reading.integration,
+      };
       generatedContent.deepDiveAnalyses = deepDiveAnalyses;
-      generatedContent.timestamps.deepDiveGenerated = Date.now();
+      const generatedAt = toUnixTimestamp(full.updatedAt);
+      generatedContent.timestamps.deepDiveGenerated = generatedAt || Date.now();
       hasContent = true;
     }
   } catch (e: any) {

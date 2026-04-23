@@ -67,19 +67,27 @@ export async function getOpenAIModelForContent(
   const sharedModel = await getOpenAIInterpretationModel();
   const isNatalAnchor = options.contentSurface === 'natal' && options.contentVariant === 'anchor';
   const isNatalLiving = options.contentSurface === 'natal' && options.contentVariant === 'living';
+  const isNatalFull = options.contentSurface === 'natal' && options.contentVariant === 'full';
   const premiumModel =
     getConfiguredEnvModel('OPENAI_PREMIUM_MODEL') ||
-    (isNatalLiving || sharedModel === DEFAULT_INTERPRETATION_MODEL
+    (isNatalFull || sharedModel === DEFAULT_INTERPRETATION_MODEL
       ? DEFAULT_PREMIUM_INTERPRETATION_MODEL
       : sharedModel);
   const freeHighQualityModel =
     getConfiguredEnvModel('OPENAI_FREE_MODEL') ||
-    (isNatalAnchor ? DEFAULT_INTERPRETATION_MODEL : null) ||
+    (isNatalAnchor || isNatalLiving ? DEFAULT_INTERPRETATION_MODEL : null) ||
     sharedModel ||
     getConfiguredEnvModel('OPENAI_BASE_MODEL') ||
     premiumModel;
 
   if (options.accessTier === 'premium') {
+    if (isNatalLiving) {
+      return {
+        model: freeHighQualityModel,
+        modelTier: freeHighQualityModel === premiumModel ? 'premium' : 'base',
+      };
+    }
+
     return {
       model: premiumModel,
       modelTier: 'premium',

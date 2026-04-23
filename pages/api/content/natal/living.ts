@@ -43,10 +43,6 @@ async function resolveContext(
     ? await db.natal_charts.getById(chartId)
     : await db.natal_charts.getPrimary(userId);
 
-  if (!chart?.chart_data && !chartDataFallback) {
-    return { user, profile: toProfile(user, profileFallback), chartId: chart?.id ?? null, chartData: null };
-  }
-
   return {
     user,
     profile: toProfile(user, profileFallback),
@@ -55,46 +51,46 @@ async function resolveContext(
   };
 }
 
-function getPeriodWindow(periodKey: string) {
+function getMoscowPeriodWindow(periodKey: string) {
   const [yearPart, monthPart, dayPart] = periodKey.split('-');
   const year = Number.parseInt(yearPart || '', 10);
   const month = Number.parseInt(monthPart || '', 10);
   const day = Number.parseInt(dayPart || '', 10);
 
-  if (!Number.isFinite(year) || !Number.isFinite(month) || month < 1 || month > 12) {
+  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) {
     return { validFrom: null, validTo: null };
   }
 
-  if (Number.isFinite(day) && day >= 1 && day <= 31) {
-    const start = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
-    const end = new Date(Date.UTC(year, month - 1, day + 1, 0, 0, 0, 0));
-    return {
-      validFrom: start.toISOString(),
-      validTo: end.toISOString(),
-    };
-  }
-
-  const start = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0, 0));
-  const end = new Date(Date.UTC(year, month, 1, 0, 0, 0, 0));
+  const startUtc = new Date(Date.UTC(year, month - 1, day, -3, 0, 0, 0));
+  const endUtc = new Date(Date.UTC(year, month - 1, day + 1, -3, 0, 0, 0));
   return {
-    validFrom: start.toISOString(),
-    validTo: end.toISOString(),
+    validFrom: startUtc.toISOString(),
+    validTo: endUtc.toISOString(),
   };
 }
 
 function normalizeInterpretation(
   interpretation: ContentInterpretation | null | undefined,
   language: 'ru' | 'en',
-  periodKey: string
+  periodKey: string,
+  chartData?: NatalChartData | null
 ): ContentInterpretation<NatalLivingReading> | null {
   if (!interpretation) return null;
   return {
     ...interpretation,
-    content: coerceNatalLivingReading(interpretation.content, language, periodKey),
+    content: coerceNatalLivingReading(interpretation.content, language, periodKey, chartData),
   };
 }
 
+function isCurrentPromptVersion(interpretation: ContentInterpretation | null | undefined) {
+  return interpretation?.promptVersion === NATAL_LIVING_PROMPT_VERSION;
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== 'GET' && req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
   const userId = (req.method === 'GET' ? req.query.userId : req.body?.userId) as string | undefined;
   const chartIdRaw = req.method === 'GET' ? req.query.chartId : req.body?.chartId;
   const chartId = typeof chartIdRaw === 'string'
@@ -106,10 +102,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     ? (typeof req.query.periodKey === 'string' && req.query.periodKey.trim() ? req.query.periodKey.trim() : getCurrentNatalPeriodKey())
     : (typeof req.body?.periodKey === 'string' && req.body.periodKey.trim() ? req.body.periodKey.trim() : getCurrentNatalPeriodKey());
   const cacheKey = buildNatalLivingCacheKey(periodKey);
-
-  if (req.method !== 'GET' && req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
 
   if (!userId?.trim()) {
     return res.status(400).json({ error: 'Bad request', message: 'userId is required' });
@@ -130,8 +122,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(409).json({
       error: 'PRIMARY_CHART_MISSING',
       message: context.profile.language === 'ru'
-        ? 'Для этой части натальной карты нужна сохранённая карта.'
-        : 'A saved natal chart is required for this natal reading.',
+        ? 'Для ежедневной натальной карты нужна сохранённая карта рождения.'
+        : 'A saved natal chart is required for the daily natal reading.',
     });
   }
 
@@ -141,52 +133,43 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       error: 'Premium required',
       code: 'PREMIUM_REQUIRED',
       message: context.profile.language === 'ru'
-        ? 'Эта часть натальной карты доступна после открытия полного чтения.'
-        : 'This part of the natal reading is available after unlocking the full reading.',
-    });
-  }
-
-  if (req.method === 'GET') {
-    const result = await getContentLayer({
-      userId: userId.trim(),
-      chartId: context.chartId,
-      accessTier: 'premium',
-      contentSurface: 'natal',
-      contentVariant: 'living',
-      cacheKey,
-    });
-
-    if (!result.interpretation) {
-      return res.status(404).json({
-        error: 'NOT_FOUND',
-        code: 'NATAL_LIVING_NOT_FOUND',
-        message: context.profile.language === 'ru'
-          ? 'Ежедневная интерпретация пока не подготовлена.'
-          : 'The daily natal reading is not ready yet.',
-      });
-    }
-
-    return res.status(200).json({
-      interpretation: normalizeInterpretation(result.interpretation, context.profile.language, periodKey),
-      source: result.source,
-      chartId: result.chartId,
-      cacheKey: result.cacheKey,
-      entitlement: entitlement.entitlement,
+        ? 'Ежедневная карта открывается после доступа к полной карте.'
+        : 'The daily natal reading is available after unlocking the full chart.',
     });
   }
 
   const existing = await getContentLayer({
     userId: userId.trim(),
     chartId: context.chartId,
-      accessTier: 'premium',
-      contentSurface: 'natal',
-      contentVariant: 'living',
-      cacheKey,
+    accessTier: 'premium',
+    contentSurface: 'natal',
+    contentVariant: 'living',
+    cacheKey,
   });
 
-  if (existing.interpretation) {
+  if (req.method === 'GET') {
+    if (!existing.interpretation || !isCurrentPromptVersion(existing.interpretation)) {
+      return res.status(404).json({
+        error: 'NOT_FOUND',
+        code: existing.interpretation ? 'NATAL_LIVING_STALE' : 'NATAL_LIVING_NOT_FOUND',
+        message: context.profile.language === 'ru'
+          ? 'Ежедневная натальная карта ещё не подготовлена в новой версии.'
+          : 'The daily natal reading is not ready in the current version yet.',
+      });
+    }
+
     return res.status(200).json({
-      interpretation: normalizeInterpretation(existing.interpretation, context.profile.language, periodKey),
+      interpretation: normalizeInterpretation(existing.interpretation, context.profile.language, periodKey, context.chartData),
+      source: existing.source,
+      chartId: existing.chartId,
+      cacheKey: existing.cacheKey,
+      entitlement: entitlement.entitlement,
+    });
+  }
+
+  if (existing.interpretation && isCurrentPromptVersion(existing.interpretation)) {
+    return res.status(200).json({
+      interpretation: normalizeInterpretation(existing.interpretation, context.profile.language, periodKey, context.chartData),
       source: existing.source,
       chartId: existing.chartId,
       cacheKey: existing.cacheKey,
@@ -200,7 +183,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     contentSurface: 'natal',
     contentVariant: 'living',
   });
-  const periodWindow = getPeriodWindow(periodKey);
+  const periodWindow = getMoscowPeriodWindow(periodKey);
+
   const interpretation = context.chartId != null
     ? await db.content_interpretations.upsertByChart(context.chartId, {
         accessTier: 'premium',
@@ -210,11 +194,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         inputHash: cacheKey,
         content: reading,
         modelTier,
+        promptVersion: NATAL_LIVING_PROMPT_VERSION,
+        calculationVersion: context.chartData.calculationVersion || null,
         validFrom: periodWindow.validFrom,
         validTo: periodWindow.validTo,
         isPersistent: false,
         canRegenerateForLumi: false,
-        legacySource: NATAL_LIVING_PROMPT_VERSION,
+        legacySource: 'natal_content_unified_v3',
       }, userId.trim())
     : await db.content_interpretations.upsertByUser(userId.trim(), {
         accessTier: 'premium',
@@ -224,15 +210,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         inputHash: cacheKey,
         content: reading,
         modelTier,
+        promptVersion: NATAL_LIVING_PROMPT_VERSION,
+        calculationVersion: context.chartData.calculationVersion || null,
         validFrom: periodWindow.validFrom,
         validTo: periodWindow.validTo,
         isPersistent: false,
         canRegenerateForLumi: false,
-        legacySource: NATAL_LIVING_PROMPT_VERSION,
+        legacySource: 'natal_content_unified_v3',
       });
 
   return res.status(200).json({
-    interpretation: normalizeInterpretation(interpretation, context.profile.language, periodKey),
+    interpretation: normalizeInterpretation(interpretation, context.profile.language, periodKey, context.chartData),
     source: 'generated',
     chartId: context.chartId,
     cacheKey,

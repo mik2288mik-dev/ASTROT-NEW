@@ -1,152 +1,159 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import OpenAI from 'openai';
-import { db } from '../../../lib/db';
-import { hasDatabaseUrl } from '../../../lib/database-url';
-import { SYSTEM_PROMPT_ASTRA, createDeepDivePrompt, addLanguageInstruction } from '../../../lib/prompts';
+import type { NatalFullReading } from '../../../types';
 import { getOpenAIModelForContent } from '../../../lib/appSettings';
+import { db } from '../../../lib/db';
+import { generateNatalFullReading } from '../../../lib/natalContent';
+import {
+  coerceNatalFullReading,
+  NATAL_FULL_CACHE_KEY,
+  NATAL_FULL_PROMPT_VERSION,
+} from '../../../lib/natalReadings';
+import { withRateLimit, RATE_LIMIT_CONFIGS } from '../../../lib/rateLimit';
 
 const TITLE_TO_KEY: Record<string, string> = {
-  personality: 'personality', love: 'love', career: 'career', weakness: 'weakness', weaknesses: 'weakness', karma: 'karma',
-  'личность': 'personality', 'любовь': 'love', 'карьера': 'career', 'слабости': 'weakness', 'карма': 'karma',
+  personality: 'personality',
+  love: 'love',
+  career: 'career',
+  weakness: 'weakness',
+  weaknesses: 'weakness',
+  karma: 'karma',
+  'личность': 'personality',
+  'любовь': 'love',
+  'карьера': 'career',
+  'слабости': 'weakness',
+  'карма': 'karma',
 };
 
-// Logging utility
 const log = {
-  info: (message: string, data?: any) => {
-    console.log(`[API/astrology/deep-dive] ${message}`, data || '');
-  },
-  error: (message: string, error?: any) => {
-    console.error(`[API/astrology/deep-dive] ERROR: ${message}`, error || '');
-  },
+  info: (message: string, data?: any) => console.log(`[API/astrology/deep-dive] ${message}`, data || ''),
+  error: (message: string, error?: any) => console.error(`[API/astrology/deep-dive] ERROR: ${message}`, error || ''),
 };
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+function normalizeTopic(topic: unknown) {
+  const raw = String(topic || 'personality').trim().toLowerCase();
+  const mapped = TITLE_TO_KEY[raw] || raw;
+  return ['personality', 'love', 'career', 'weakness', 'karma'].includes(mapped) ? mapped : 'personality';
+}
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
+function sectionText(title: string, body: string) {
+  return `${title}\n\n${body}`.trim();
+}
+
+function selectDeepDiveText(reading: NatalFullReading, topicKey: string, lang: 'ru' | 'en') {
+  if (lang === 'en') {
+    switch (topicKey) {
+      case 'love':
+        return sectionText('How you build closeness', reading.closeness);
+      case 'career':
+        return sectionText('How you choose and act', `${reading.choices}\n\n${reading.strengths}`);
+      case 'weakness':
+        return sectionText('Where tension repeats', `${reading.tensionPattern}\n\n${reading.integration}`);
+      case 'karma':
+        return sectionText('How to work with the repeating pattern', reading.integration);
+      default:
+        return sectionText('Full personality interpretation', `${reading.mainConfiguration}\n\n${reading.reactions}\n\n${reading.choices}`);
+    }
+  }
+
+  switch (topicKey) {
+    case 'love':
+      return sectionText('Как ты строишь близость', reading.closeness);
+    case 'career':
+      return sectionText('Как ты выбираешь и действуешь', `${reading.choices}\n\n${reading.strengths}`);
+    case 'weakness':
+      return sectionText('Где повторяется напряжение', `${reading.tensionPattern}\n\n${reading.integration}`);
+    case 'karma':
+      return sectionText('Как с этим обращаться', reading.integration);
+    default:
+      return sectionText('Полная интерпретация личности', `${reading.mainConfiguration}\n\n${reading.reactions}\n\n${reading.choices}`);
+  }
+}
+
+async function readCurrentFull(userId: string, chartId: number | null, lang: 'ru' | 'en', chartData: any) {
+  const cached = chartId != null
+    ? await db.content_interpretations.getByChart(chartId, 'premium', 'natal', 'full', NATAL_FULL_CACHE_KEY)
+    : await db.content_interpretations.getByUser(userId, 'premium', 'natal', 'full', NATAL_FULL_CACHE_KEY);
+
+  if (!cached?.content || cached.promptVersion !== NATAL_FULL_PROMPT_VERSION) return null;
+  return coerceNatalFullReading(cached.content, lang, chartData);
+}
+
+async function upsertFull(userId: string, chartId: number | null, chartData: any, reading: NatalFullReading) {
+  const { modelTier } = await getOpenAIModelForContent({
+    accessTier: 'premium',
+    contentSurface: 'natal',
+    contentVariant: 'full',
+  });
+
+  const payload = {
+    accessTier: 'premium' as const,
+    contentSurface: 'natal' as const,
+    contentVariant: 'full' as const,
+    cacheKey: NATAL_FULL_CACHE_KEY,
+    inputHash: NATAL_FULL_CACHE_KEY,
+    content: reading,
+    modelTier,
+    promptVersion: NATAL_FULL_PROMPT_VERSION,
+    calculationVersion: chartData?.calculationVersion || null,
+    isPersistent: true,
+    canRegenerateForLumi: false,
+    legacySource: 'natal_content_unified_v3.legacy_deep_dive',
+  };
+
+  if (chartId != null) {
+    await db.content_interpretations.upsertByChart(chartId, payload, userId);
+  } else {
+    await db.content_interpretations.upsertByUser(userId, payload);
+  }
+}
+
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const { profile, topic, chartData, chartId } = req.body;
-    const lang = profile?.language === 'ru';
-
+    const { profile, topic, chartData, chartId } = req.body || {};
     if (!profile || !topic || !chartData) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Bad request',
-        message: 'Profile, topic, and chartData are required'
+        message: 'Profile, topic, and chartData are required',
       });
     }
 
-    const effectiveChartId = chartId != null ? parseInt(String(chartId), 10) : null;
-    const cacheKey = effectiveChartId ?? profile?.id;
+    const userId = String(profile.id || profile.name || '').trim();
+    if (!userId) {
+      return res.status(400).json({ error: 'Bad request', message: 'User id is required' });
+    }
+
+    const lang = profile.language === 'en' ? 'en' : 'ru';
+    const topicKey = normalizeTopic(topic);
+    const effectiveChartId = chartId != null ? Number.parseInt(String(chartId), 10) : null;
+    const safeChartId = Number.isFinite(effectiveChartId as number) ? effectiveChartId : null;
 
     log.info('Deep dive request received', {
-      userId: profile.id,
-      chartId: effectiveChartId,
-      topic,
-      language: lang ? 'ru' : 'en'
+      userId,
+      chartId: safeChartId,
+      topic: topicKey,
+      language: lang,
     });
 
-    const topicForLookup = typeof topic === 'string' ? (TITLE_TO_KEY[topic.toLowerCase()] || topic.toLowerCase()) : 'personality';
-    const validTopics = ['personality', 'love', 'career', 'weakness', 'karma'];
-    const topicKey = validTopics.includes(topicForLookup) ? topicForLookup : 'personality';
-
-    if (cacheKey && hasDatabaseUrl()) {
-      try {
-        const cached = await db.interpretations.getByHash(cacheKey, `deep_dive_${topicKey}`, topicKey);
-        if (cached?.content && cached.content.length > 50) {
-          return res.status(200).json({
-            analysis: cached.content,
-            persisted: true,
-            source: 'cache',
-          });
-        }
-      } catch (cacheError: any) {
-        log.error('Failed to read deep dive cache', {
-          error: cacheError.message,
-          userId: profile.id,
-          chartId: effectiveChartId,
-          topic: topicKey,
-        });
-        return res.status(500).json({
-          error: 'Cache read failed',
-          code: 'DEEP_DIVE_CACHE_READ_FAILED',
-          message: lang
-            ? 'Не удалось загрузить сохранённый глубокий разбор.'
-            : 'Failed to load the saved deep-dive analysis.',
-        });
-      }
+    const cached = await readCurrentFull(userId, safeChartId, lang, chartData);
+    if (cached) {
+      return res.status(200).json({
+        analysis: selectDeepDiveText(cached, topicKey, lang),
+        reading: cached,
+        persisted: true,
+        source: 'cache',
+      });
     }
 
-    // Проверяем наличие API ключа
-    if (!process.env.OPENAI_API_KEY) {
-      log.error('OpenAI API key not configured, using fallback');
-      const fallbackAnalysis = lang
-        ? `Глубокий анализ по теме "${topic}" для ${profile?.name}. Ваша карта показывает интересные аспекты в этой области.`
-        : `Deep analysis on "${topic}" for ${profile?.name}. Your chart shows interesting aspects in this area.`;
-      return res.status(200).json({ analysis: fallbackAnalysis });
-    }
-
-    // Создаём промпт с использованием нашей системы промптов
-    const userPrompt = createDeepDivePrompt(chartData, profile, topic);
-    const promptWithLang = addLanguageInstruction(userPrompt, lang ? 'ru' : 'en');
-
-    const { model: modelId } = await getOpenAIModelForContent({
-      accessTier: 'premium',
-      contentSurface: 'natal',
-      contentVariant: 'living',
-    });
-    log.info('Sending request to OpenAI', {
-      model: modelId,
-      promptLength: promptWithLang.length
-    });
-
-    // Отправляем запрос в OpenAI
-    const startTime = Date.now();
-    const completion = await openai.chat.completions.create({
-      model: modelId,
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT_ASTRA },
-        { role: 'user', content: promptWithLang }
-      ],
-      temperature: 0.7,
-      max_tokens: 1500,
-    });
-
-    const duration = Date.now() - startTime;
-    const analysis = completion.choices[0]?.message?.content || '';
-
-    log.info('OpenAI response received', {
-      duration: `${duration}ms`,
-      analysisLength: analysis.length,
-      tokensUsed: completion.usage?.total_tokens
-    });
-
-    const topicForDb = topicKey;
-    if (cacheKey && hasDatabaseUrl()) {
-      try {
-        await db.interpretations.set(cacheKey, `deep_dive_${topicForDb}`, topicForDb, analysis);
-      } catch (e: any) {
-        log.error('Failed to save deep dive to interpretations', e);
-        return res.status(500).json({
-          error: 'Persistence failed',
-          code: 'DEEP_DIVE_PERSIST_FAILED',
-          message: lang
-            ? 'Глубокий разбор сгенерирован, но не сохранился. Попробуйте позже.'
-            : 'The deep-dive analysis was generated but could not be saved. Please try again later.',
-        });
-      }
-    }
+    const reading = await generateNatalFullReading(profile, chartData);
+    await upsertFull(userId, safeChartId, chartData, reading);
 
     return res.status(200).json({
-      analysis,
+      analysis: selectDeepDiveText(reading, topicKey, lang),
+      reading,
       persisted: true,
       source: 'generated',
     });
@@ -154,23 +161,15 @@ export default async function handler(
     log.error('Error in deep dive handler', {
       error: error.message,
       code: error.code,
-      type: error.type
+      type: error.type,
     });
 
-    // Fallback на случай ошибки OpenAI
-    const { profile, topic } = req.body;
-    const lang = profile?.language === 'ru';
-    const fallbackAnalysis = lang
-      ? `Глубокий анализ по теме "${topic}" для ${profile?.name}. Ваша карта показывает интересные аспекты в этой области.`
-      : `Deep analysis on "${topic}" for ${profile?.name}. Your chart shows interesting aspects in this area.`;
-
-    void fallbackAnalysis;
     return res.status(500).json({
       error: 'Deep dive generation failed',
       code: error?.code || 'DEEP_DIVE_INTERNAL_ERROR',
-      message: lang
-        ? 'Не удалось получить глубокий разбор натальной карты.'
-        : 'Failed to load the deep-dive natal analysis.',
+      message: error?.message || 'Failed to load the natal interpretation.',
     });
   }
 }
+
+export default withRateLimit(handler, RATE_LIMIT_CONFIGS.AI_PREMIUM);

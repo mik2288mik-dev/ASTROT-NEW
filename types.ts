@@ -282,47 +282,76 @@ export interface ForecastMonthlyReading {
   reading?: string;
 }
 
-export interface NatalAnchorReading {
-  headline: string;
-  summary: string;
-  reading: string;
-  strengths: string[];
-  patterns: string[];
-  threeAnchors: NatalReadingPoint[];
-  perceivedByOthers: string;
-  watchouts: string[];
-  dictionaryTerms: NatalDictionaryTerm[];
-}
-
-export interface NatalLivingReading {
-  periodKey: string;
-  headline: string;
-  summary: string;
-  activeTheme: string;
-  strength: string;
-  vulnerability: string;
-  relationships: string;
-  money: string;
-  guidance: string;
-  fullPersonality: string;
-  today: string;
-  daySituations: NatalReadingPoint[];
-  relationshipsToday: string;
-  workMoneyToday: string;
-  evening: string;
-  repeatingScenario: string;
-  questionOfDay: string;
-}
-
 export interface NatalReadingPoint {
   title: string;
   body: string;
+  evidenceIds?: string[];
 }
 
 export interface NatalDictionaryTerm {
   term: string;
   meaning: string;
 }
+
+export interface AstroEvidenceItem {
+  id: string;
+  type: 'placement' | 'aspect' | 'transit' | 'house' | 'signature';
+  label: string;
+  detail: string;
+  humanMeaning?: string;
+  priority?: number;
+  planet?: string;
+  sign?: string;
+  house?: number | null;
+  aspectType?: string;
+  orb?: number | null;
+}
+
+export interface NatalAnchorReadingV3 {
+  headline: string;
+  summary: string;
+  portrait: string;
+  threeAnchors: NatalReadingPoint[];
+  perceivedByOthers: string;
+  strengths: NatalReadingPoint[];
+  watchouts: NatalReadingPoint[];
+  dictionaryTerms: NatalDictionaryTerm[];
+  astroEvidence: AstroEvidenceItem[];
+  /** Legacy bridge for older clients. Use `portrait` in new UI. */
+  reading?: string;
+}
+
+export interface NatalFullReadingV3 {
+  headline: string;
+  summary: string;
+  mainConfiguration: string;
+  reactions: string;
+  choices: string;
+  closeness: string;
+  strengths: string;
+  tensionPattern: string;
+  integration: string;
+  astroEvidence: AstroEvidenceItem[];
+}
+
+export interface NatalDailyReadingV3 {
+  periodKey: string;
+  headline: string;
+  summary: string;
+  whyToday: string;
+  situations: NatalReadingPoint[];
+  relationships: string;
+  workMoney: string;
+  evening: string;
+  questionOfDay: string;
+  astroEvidence: AstroEvidenceItem[];
+  /** Legacy bridge for older clients. Use `situations` in new UI. */
+  daySituations?: NatalReadingPoint[];
+}
+
+export type NatalAnchorReading = NatalAnchorReadingV3;
+export type NatalFullReading = NatalFullReadingV3;
+export type NatalLivingReading = NatalDailyReadingV3;
 
 export interface PlanetInsightTag {
   id: string;

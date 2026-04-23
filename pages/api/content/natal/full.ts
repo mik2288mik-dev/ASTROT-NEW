@@ -1,13 +1,13 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import type { ContentInterpretation, NatalAnchorReading, NatalChartData, UserProfile } from '../../../../types';
+import type { ContentInterpretation, NatalChartData, NatalFullReading, UserProfile } from '../../../../types';
 import { getOpenAIModelForContent } from '../../../../lib/appSettings';
 import { db } from '../../../../lib/db';
-import { getContentLayer } from '../../../../lib/contentArchitecture';
-import { generateNatalAnchorReading } from '../../../../lib/natalContent';
+import { getContentLayer, getPremiumEntitlementState } from '../../../../lib/contentArchitecture';
+import { generateNatalFullReading } from '../../../../lib/natalContent';
 import {
-  coerceNatalAnchorReading,
-  NATAL_ANCHOR_CACHE_KEY,
-  NATAL_ANCHOR_PROMPT_VERSION,
+  coerceNatalFullReading,
+  NATAL_FULL_CACHE_KEY,
+  NATAL_FULL_PROMPT_VERSION,
 } from '../../../../lib/natalReadings';
 
 function toProfile(user: any, fallback?: Partial<UserProfile>): UserProfile {
@@ -54,16 +54,16 @@ function normalizeInterpretation(
   interpretation: ContentInterpretation | null | undefined,
   language: 'ru' | 'en',
   chartData?: NatalChartData | null
-): ContentInterpretation<NatalAnchorReading> | null {
+): ContentInterpretation<NatalFullReading> | null {
   if (!interpretation) return null;
   return {
     ...interpretation,
-    content: coerceNatalAnchorReading(interpretation.content, language, chartData),
+    content: coerceNatalFullReading(interpretation.content, language, chartData),
   };
 }
 
 function isCurrentPromptVersion(interpretation: ContentInterpretation | null | undefined) {
-  return interpretation?.promptVersion === NATAL_ANCHOR_PROMPT_VERSION;
+  return interpretation?.promptVersion === NATAL_FULL_PROMPT_VERSION;
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -98,28 +98,39 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(409).json({
       error: 'PRIMARY_CHART_MISSING',
       message: context.profile.language === 'ru'
-        ? 'Для натальной карты нужна сохранённая карта рождения.'
-        : 'A saved natal chart is required for the natal reading.',
+        ? 'Для полной натальной карты нужна сохранённая карта рождения.'
+        : 'A saved natal chart is required for the full natal reading.',
+    });
+  }
+
+  const entitlement = await getPremiumEntitlementState(userId.trim());
+  if (!entitlement.isPremium) {
+    return res.status(403).json({
+      error: 'Premium required',
+      code: 'PREMIUM_REQUIRED',
+      message: context.profile.language === 'ru'
+        ? 'Полная карта открывается после доступа к полной карте.'
+        : 'The full natal reading is available after unlocking the full chart.',
     });
   }
 
   const existing = await getContentLayer({
     userId: userId.trim(),
     chartId: context.chartId,
-    accessTier: 'free',
+    accessTier: 'premium',
     contentSurface: 'natal',
-    contentVariant: 'anchor',
-    cacheKey: NATAL_ANCHOR_CACHE_KEY,
+    contentVariant: 'full',
+    cacheKey: NATAL_FULL_CACHE_KEY,
   });
 
   if (req.method === 'GET') {
     if (!existing.interpretation || !isCurrentPromptVersion(existing.interpretation)) {
       return res.status(404).json({
         error: 'NOT_FOUND',
-        code: existing.interpretation ? 'NATAL_ANCHOR_STALE' : 'NATAL_ANCHOR_NOT_FOUND',
+        code: existing.interpretation ? 'NATAL_FULL_STALE' : 'NATAL_FULL_NOT_FOUND',
         message: context.profile.language === 'ru'
-          ? 'Натальная карта ещё не подготовлена в новой версии.'
-          : 'The natal reading is not ready in the current version yet.',
+          ? 'Полная натальная карта ещё не подготовлена в новой версии.'
+          : 'The full natal reading is not ready in the current version yet.',
       });
     }
 
@@ -128,6 +139,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       source: existing.source,
       chartId: existing.chartId,
       cacheKey: existing.cacheKey,
+      entitlement: entitlement.entitlement,
     });
   }
 
@@ -137,45 +149,44 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       source: existing.source,
       chartId: existing.chartId,
       cacheKey: existing.cacheKey,
+      entitlement: entitlement.entitlement,
     });
   }
 
-  const reading = await generateNatalAnchorReading(context.profile, context.chartData);
+  const reading = await generateNatalFullReading(context.profile, context.chartData);
   const { modelTier } = await getOpenAIModelForContent({
-    accessTier: 'free',
+    accessTier: 'premium',
     contentSurface: 'natal',
-    contentVariant: 'anchor',
+    contentVariant: 'full',
   });
 
   const interpretation = context.chartId != null
     ? await db.content_interpretations.upsertByChart(context.chartId, {
-        accessTier: 'free',
+        accessTier: 'premium',
         contentSurface: 'natal',
-        contentVariant: 'anchor',
-        cacheKey: NATAL_ANCHOR_CACHE_KEY,
-        inputHash: NATAL_ANCHOR_CACHE_KEY,
+        contentVariant: 'full',
+        cacheKey: NATAL_FULL_CACHE_KEY,
+        inputHash: NATAL_FULL_CACHE_KEY,
         content: reading,
         modelTier,
-        promptVersion: NATAL_ANCHOR_PROMPT_VERSION,
+        promptVersion: NATAL_FULL_PROMPT_VERSION,
         calculationVersion: context.chartData.calculationVersion || null,
         isPersistent: true,
-        canRegenerateForLumi: true,
-        regenerationCostLumi: 250,
+        canRegenerateForLumi: false,
         legacySource: 'natal_content_unified_v3',
       }, userId.trim())
     : await db.content_interpretations.upsertByUser(userId.trim(), {
-        accessTier: 'free',
+        accessTier: 'premium',
         contentSurface: 'natal',
-        contentVariant: 'anchor',
-        cacheKey: NATAL_ANCHOR_CACHE_KEY,
-        inputHash: NATAL_ANCHOR_CACHE_KEY,
+        contentVariant: 'full',
+        cacheKey: NATAL_FULL_CACHE_KEY,
+        inputHash: NATAL_FULL_CACHE_KEY,
         content: reading,
         modelTier,
-        promptVersion: NATAL_ANCHOR_PROMPT_VERSION,
+        promptVersion: NATAL_FULL_PROMPT_VERSION,
         calculationVersion: context.chartData.calculationVersion || null,
         isPersistent: true,
-        canRegenerateForLumi: true,
-        regenerationCostLumi: 250,
+        canRegenerateForLumi: false,
         legacySource: 'natal_content_unified_v3',
       });
 
@@ -183,6 +194,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     interpretation: normalizeInterpretation(interpretation, context.profile.language, context.chartData),
     source: 'generated',
     chartId: context.chartId,
-    cacheKey: NATAL_ANCHOR_CACHE_KEY,
+    cacheKey: NATAL_FULL_CACHE_KEY,
+    entitlement: entitlement.entitlement,
   });
 }

@@ -1069,6 +1069,123 @@ async function lumia015WheelInsightVariant(pool: Pool): Promise<void> {
   log.info('Migration lumia_015_wheel_insight_variant applied');
 }
 
+async function lumia016NatalContentUnification(pool: Pool): Promise<void> {
+  const migrationName = 'lumia_016_natal_content_unification';
+
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
+  log.info('Applying natal content unification migration...');
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS natal_content_legacy_archive (
+      id BIGSERIAL PRIMARY KEY,
+      archived_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      source_table TEXT NOT NULL,
+      source_id TEXT,
+      user_id BIGINT,
+      chart_id BIGINT,
+      content_type TEXT,
+      access_tier TEXT,
+      content_surface TEXT,
+      content_variant TEXT,
+      cache_key TEXT,
+      prompt_version TEXT,
+      content JSONB,
+      legacy_row JSONB
+    )
+  `);
+
+  await pool.query(`
+    INSERT INTO natal_content_legacy_archive
+      (source_table, source_id, user_id, chart_id, content_type, cache_key, content, legacy_row)
+    SELECT
+      'interpretations',
+      i.id::TEXT,
+      i.user_id,
+      i.chart_id,
+      i.type::TEXT,
+      i.input_hash,
+      to_jsonb(i.content),
+      to_jsonb(i)
+    FROM interpretations i
+    WHERE i.type::TEXT IN (
+      'natal_intro',
+      'deep_dive_personality',
+      'deep_dive_love',
+      'deep_dive_career',
+      'deep_dive_weakness',
+      'deep_dive_karma'
+    )
+      AND NOT EXISTS (
+        SELECT 1
+        FROM natal_content_legacy_archive a
+        WHERE a.source_table = 'interpretations'
+          AND a.source_id = i.id::TEXT
+      )
+  `);
+
+  await pool.query(`
+    INSERT INTO natal_content_legacy_archive
+      (source_table, source_id, user_id, chart_id, content_type, access_tier, content_surface, content_variant, cache_key, prompt_version, content, legacy_row)
+    SELECT
+      'content_interpretations',
+      c.id::TEXT,
+      c.user_id,
+      c.chart_id,
+      c.content_variant,
+      c.access_tier,
+      c.content_surface,
+      c.content_variant,
+      c.cache_key,
+      c.prompt_version,
+      c.content,
+      to_jsonb(c)
+    FROM content_interpretations c
+    WHERE c.content_surface = 'natal'
+      AND c.content_variant IN ('anchor', 'living', 'full')
+      AND NOT (
+        (c.content_variant = 'anchor' AND c.cache_key = 'base' AND c.prompt_version = 'natal_anchor.editorial_v3')
+        OR (c.content_variant = 'full' AND c.cache_key = 'personality' AND c.prompt_version = 'natal_full.editorial_v3')
+        OR (c.content_variant = 'living' AND c.cache_key ~ '^\\d{4}-\\d{2}-\\d{2}$' AND c.prompt_version = 'natal_daily.editorial_v3')
+      )
+      AND NOT EXISTS (
+        SELECT 1
+        FROM natal_content_legacy_archive a
+        WHERE a.source_table = 'content_interpretations'
+          AND a.source_id = c.id::TEXT
+      )
+  `);
+
+  await pool.query(`
+    DELETE FROM interpretations
+    WHERE type::TEXT IN (
+      'natal_intro',
+      'deep_dive_personality',
+      'deep_dive_love',
+      'deep_dive_career',
+      'deep_dive_weakness',
+      'deep_dive_karma'
+    )
+  `);
+
+  await pool.query(`
+    DELETE FROM content_interpretations
+    WHERE content_surface = 'natal'
+      AND content_variant IN ('anchor', 'living', 'full')
+      AND NOT (
+        (content_variant = 'anchor' AND cache_key = 'base' AND prompt_version = 'natal_anchor.editorial_v3')
+        OR (content_variant = 'full' AND cache_key = 'personality' AND prompt_version = 'natal_full.editorial_v3')
+        OR (content_variant = 'living' AND cache_key ~ '^\\d{4}-\\d{2}-\\d{2}$' AND prompt_version = 'natal_daily.editorial_v3')
+      )
+  `);
+
+  await markMigrationApplied(pool, migrationName);
+  log.info('Migration lumia_016_natal_content_unification applied');
+}
+
 async function verifyTablesExist(pool: Pool): Promise<void> {
   const required = [
     'users', 'natal_charts', 'interpretations', 'lumi_transactions', 'app_settings',
@@ -1147,6 +1264,7 @@ export async function runMigrations(): Promise<void> {
   await lumia013CanonicalNatalPersistence(pool);
   await lumia014PlanetInsightVariant(pool);
   await lumia015WheelInsightVariant(pool);
+  await lumia016NatalContentUnification(pool);
   await verifyTablesExist(pool);
 
     log.info('All Lumia migrations completed successfully');

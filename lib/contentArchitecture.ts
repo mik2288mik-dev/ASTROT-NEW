@@ -33,11 +33,6 @@ type ContentLayerResult = {
   source: 'content_v1' | 'legacy_bridge' | 'miss';
 };
 
-function getCurrentMonthKey() {
-  const now = new Date();
-  return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
-}
-
 function getNextDateKey(dateKey: string) {
   const parsed = new Date(`${dateKey}T00:00:00.000Z`);
   parsed.setUTCDate(parsed.getUTCDate() + 1);
@@ -51,7 +46,9 @@ function getDefaultCacheKey(surface: ContentSurface, variant: ContentVariant) {
   }
   if (surface === 'forecast' && variant === 'weekly') return getMoscowIsoWeekKey();
   if (surface === 'forecast' && variant === 'monthly') return getMoscowMonthKey();
-  if (surface === 'natal' && variant === 'living') return getCurrentMonthKey();
+  if (surface === 'natal' && variant === 'anchor') return 'base';
+  if (surface === 'natal' && variant === 'full') return 'personality';
+  if (surface === 'natal' && variant === 'living') return getMoscowTodayKey();
   return 'default';
 }
 
@@ -70,59 +67,6 @@ async function upsertScopedInterpretation(
     return db.content_interpretations.upsertByChart(chartId, data, userId);
   }
   return db.content_interpretations.upsertByUser(userId, data);
-}
-
-async function loadLegacyNatalAnchor(userId: string, chartId: number | null) {
-  const scopeKey = chartId != null ? chartId : userId;
-  const cached = await db.interpretations.getByHash(scopeKey, 'natal_intro', 'default');
-  if (!cached?.content) return null;
-
-  return {
-    inputHash: 'default',
-    content: cached.content,
-    modelTier: 'base' as const,
-    isPersistent: true,
-    canRegenerateForLumi: true,
-    legacySource: 'interpretations.natal_intro',
-  };
-}
-
-async function loadLegacyNatalLiving(userId: string, chartId: number | null, cacheKey: string) {
-  const scopeKey = chartId != null ? chartId : userId;
-  const topics = [
-    { key: 'personality', legacyType: 'deep_dive_personality' },
-    { key: 'love', legacyType: 'deep_dive_love' },
-    { key: 'career', legacyType: 'deep_dive_career' },
-    { key: 'weakness', legacyType: 'deep_dive_weakness' },
-    { key: 'karma', legacyType: 'deep_dive_karma' },
-  ] as const;
-
-  const sections: Record<string, string> = {};
-  for (const topic of topics) {
-    const row = await db.interpretations.getByHash(scopeKey, topic.legacyType, topic.key);
-    if (row?.content) {
-      sections[topic.key] = row.content;
-    }
-  }
-
-  if (Object.keys(sections).length === 0) return null;
-
-  const [year, month] = cacheKey.split('-');
-  const validFrom = year && month ? `${cacheKey}-01T00:00:00.000Z` : null;
-
-  return {
-    inputHash: cacheKey,
-    content: {
-      periodKey: cacheKey,
-      sections,
-      migratedFrom: 'deep_dive_bundle',
-    },
-    modelTier: 'premium' as const,
-    validFrom,
-    isPersistent: false,
-    canRegenerateForLumi: false,
-    legacySource: 'interpretations.deep_dive_bundle',
-  };
 }
 
 async function loadLegacyForecastDaily(userId: string, chartId: number | null, cacheKey: string) {
@@ -147,15 +91,8 @@ async function loadLegacyForecastDaily(userId: string, chartId: number | null, c
 async function loadLegacyBridge(options: ContentLayerOptions & { chartId: number | null; cacheKey: string }) {
   const { userId, chartId, accessTier, contentSurface, contentVariant, cacheKey } = options;
 
-  if (cacheKey.includes('human-air')) {
+  if (contentSurface === 'natal' && (contentVariant === 'anchor' || contentVariant === 'living' || contentVariant === 'full')) {
     return null;
-  }
-
-  if (accessTier === 'free' && contentSurface === 'natal' && contentVariant === 'anchor') {
-    return loadLegacyNatalAnchor(userId, chartId);
-  }
-  if (accessTier === 'premium' && contentSurface === 'natal' && contentVariant === 'living') {
-    return loadLegacyNatalLiving(userId, chartId, cacheKey);
   }
   if (accessTier === 'free' && contentSurface === 'forecast' && contentVariant === 'daily') {
     return loadLegacyForecastDaily(userId, chartId, cacheKey);

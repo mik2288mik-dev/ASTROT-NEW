@@ -5,7 +5,7 @@
  * через AI (OpenAI, Gemini, Claude и т.д.)
  */
 
-import { NatalChartData, UserProfile } from "../types";
+import { AstroEvidenceItem, NatalChartData, UserProfile } from "../types";
 
 /**
  * Lumia System Prompt — глобальный тон для всех интерпретаций
@@ -902,25 +902,39 @@ export interface DaypartForecastAIResponse {
 export interface NatalAnchorAIResponse {
   headline: string;
   summary: string;
-  reading: string;
+  portrait: string;
   threeAnchors: Array<{ title: string; body: string }>;
   perceivedByOthers: string;
-  strengths: string[];
-  watchouts: string[];
+  strengths: Array<{ title: string; body: string; evidenceIds?: string[] }>;
+  watchouts: Array<{ title: string; body: string; evidenceIds?: string[] }>;
   dictionaryTerms: Array<{ term: string; meaning: string }>;
+  astroEvidence?: AstroEvidenceItem[];
 }
 
 export interface NatalLivingAIResponse {
+  periodKey: string;
   headline: string;
   summary: string;
-  fullPersonality: string;
-  today: string;
-  daySituations: Array<{ title: string; body: string }>;
-  relationshipsToday: string;
-  workMoneyToday: string;
+  whyToday: string;
+  situations: Array<{ title: string; body: string; evidenceIds?: string[] }>;
+  relationships: string;
+  workMoney: string;
   evening: string;
-  repeatingScenario: string;
   questionOfDay: string;
+  astroEvidence?: AstroEvidenceItem[];
+}
+
+export interface NatalFullAIResponse {
+  headline: string;
+  summary: string;
+  mainConfiguration: string;
+  reactions: string;
+  choices: string;
+  closeness: string;
+  strengths: string;
+  tensionPattern: string;
+  integration: string;
+  astroEvidence?: AstroEvidenceItem[];
 }
 
 export interface PlanetInsightAIResponse {
@@ -1135,6 +1149,184 @@ Return strict JSON with these fields:
 - questionOfDay: one honest question for self-observation.
 
 Return only JSON.`;
+};
+
+const NATAL_EDITORIAL_BANNED = [
+  'день просит',
+  'внутренняя точность',
+  'чужой шум',
+  'выбрать из ясности',
+  'пространство',
+  'слой',
+  'премиум',
+  'судьба',
+  'магия',
+  'day asks',
+  'inner precision',
+  'outside noise',
+  'choose from clarity',
+];
+
+function natalEvidenceJson(evidence: AstroEvidenceItem[] | undefined) {
+  return JSON.stringify((evidence || []).slice(0, 8), null, 2);
+}
+
+function natalEditorialRules(language: string) {
+  return `Language: ${language}
+
+Editorial standard:
+- Write as an astrologer-editor, not as a motivational quote generator.
+- Every section must clearly come from astroEvidence: planet/sign/house/aspect/transit -> human translation -> concrete life situation -> soft orientation.
+- Use only facts present in astroEvidence and the chart JSON. If a fact is not present, do not invent it.
+- Do not greet the user and do not open with the user's name.
+- Do not use internal product words: free, premium, layer, unlock, upsell, sale, trial, "бесплатный", "премиум", "слой", "живой слой", "твоя основа", "опорная карта".
+- Do not use fatalistic or mystical wording: destiny, magic, curse, "судьба", "магия", "предначертано".
+- Avoid these exact empty formulas: ${NATAL_EDITORIAL_BANNED.map((item) => `"${item}"`).join(', ')}.
+- No medical, legal, or financial advice. For money/work, speak about state, focus, pressure, and decision hygiene.
+- Short paragraphs. No emoji. No decorative symbols.
+- The text should feel personal because the chart facts are specific, not because it uses vague intimacy.`;
+}
+
+export const createNatalAnchorPromptV3 = (
+  natalData: NatalChartData,
+  profile: UserProfile,
+  astroEvidence: AstroEvidenceItem[] = []
+): string => {
+  const natalDataJson = JSON.stringify(natalData, null, 2);
+  const evidenceJson = natalEvidenceJson(astroEvidence);
+
+  return `${natalEditorialRules(profile.language)}
+
+Task: create the canonical base natal chart reading for Lumia.
+
+This is a complete first reading, not a teaser. It should be interesting to read on its own, but it should not pretend to be a full professional consultation.
+
+astroEvidence:
+${evidenceJson}
+
+Natal chart JSON:
+${natalDataJson}
+
+Required JSON shape:
+{
+  "headline": "max 80 chars",
+  "summary": "1-2 sentences; mention the main chart configuration without sounding dry",
+  "portrait": "5-7 short paragraphs. Each paragraph must be grounded in one evidence item and include a human-life example.",
+  "threeAnchors": [
+    { "title": "Sun/Solnce localized", "body": "character role with sign + house if present", "evidenceIds": ["placement:sun"] },
+    { "title": "Moon localized", "body": "emotional role with sign + house if present", "evidenceIds": ["placement:moon"] },
+    { "title": "Rising localized", "body": "first impression role with sign", "evidenceIds": ["placement:rising"] }
+  ],
+  "perceivedByOthers": "2-3 sentences about first impression, grounded in Rising/ASC evidence",
+  "strengths": [
+    { "title": "short concrete title", "body": "one grounded observation with a life example", "evidenceIds": ["..."] }
+  ],
+  "watchouts": [
+    { "title": "short concrete title", "body": "one soft warning without drama", "evidenceIds": ["..."] }
+  ],
+  "dictionaryTerms": [
+    { "term": "Sun/Moon/Rising/House/Aspect/Transit localized", "meaning": "plain-language meaning" }
+  ],
+  "astroEvidence": ${evidenceJson}
+}
+
+Rules for arrays:
+- threeAnchors: exactly 3.
+- strengths: exactly 3.
+- watchouts: exactly 3.
+- dictionaryTerms: 5-7.
+
+Return only valid JSON.`;
+};
+
+export const createNatalFullPrompt = (
+  natalData: NatalChartData,
+  profile: UserProfile,
+  astroEvidence: AstroEvidenceItem[] = []
+): string => {
+  const natalDataJson = JSON.stringify(natalData, null, 2);
+  const evidenceJson = natalEvidenceJson(astroEvidence);
+
+  return `${natalEditorialRules(profile.language)}
+
+Task: create the canonical full natal personality interpretation.
+
+This is a deeper reading than the base portrait. It must not repeat the base text. It should connect chart facts into behavior: how the person reacts, chooses, builds closeness, uses strength, repeats tension, and can work with it.
+
+astroEvidence:
+${evidenceJson}
+
+Natal chart JSON:
+${natalDataJson}
+
+Required JSON shape:
+{
+  "headline": "max 80 chars",
+  "summary": "1-2 sentences about the full reading",
+  "mainConfiguration": "2-4 paragraphs. Start from the strongest chart configuration and explain why it matters.",
+  "reactions": "2-4 paragraphs about emotional reactions, grounded in Moon/ASC/aspects.",
+  "choices": "2-4 paragraphs about decisions, speech, action style, grounded in Sun/Mercury/Mars.",
+  "closeness": "2-4 paragraphs about closeness and relationships, grounded in Moon/Venus/Mars/aspects.",
+  "strengths": "2-4 paragraphs about real strengths with examples, grounded in evidence.",
+  "tensionPattern": "2-4 paragraphs about a repeating tension; no drama, no fatalism.",
+  "integration": "2-4 paragraphs with practical orientation; no commands, no therapy language.",
+  "astroEvidence": ${evidenceJson}
+}
+
+Each section must include at least one explicit astrological source from astroEvidence and one concrete situation.
+Return only valid JSON.`;
+};
+
+export const createNatalLivingPromptV3 = (
+  natalData: NatalChartData,
+  profile: UserProfile,
+  periodKey: string,
+  transits?: any,
+  astroEvidence: AstroEvidenceItem[] = []
+): string => {
+  const natalDataJson = JSON.stringify(natalData, null, 2);
+  const transitsJson = JSON.stringify(transits || {}, null, 2);
+  const evidenceJson = natalEvidenceJson(astroEvidence);
+
+  return `${natalEditorialRules(profile.language)}
+
+Period: ${periodKey}
+
+Task: create today's personal natal reading from real transit evidence.
+
+Important:
+- Use only astroEvidence for "why today".
+- If astroEvidence contains no transit, be transparent and base the reading on the strongest natal facts plus today's general transits. Do not pretend there is a personal transit.
+- The reading must not sound like a generic horoscope. It should name the actual transit/aspect/placement, then translate it into a concrete human situation.
+
+astroEvidence:
+${evidenceJson}
+
+Current transits JSON:
+${transitsJson}
+
+Natal chart JSON:
+${natalDataJson}
+
+Required JSON shape:
+{
+  "periodKey": "${periodKey}",
+  "headline": "max 80 chars",
+  "summary": "1-2 sentences with the main factual reason for today",
+  "whyToday": "2-4 paragraphs. Must name the exact transit/aspect/placement from astroEvidence and explain how it may appear in real life.",
+  "situations": [
+    { "title": "In conversation / В разговоре", "body": "specific scenario tied to evidence", "evidenceIds": ["..."] },
+    { "title": "In work / В делах", "body": "specific scenario tied to evidence", "evidenceIds": ["..."] },
+    { "title": "Inside yourself / Внутри себя", "body": "specific scenario tied to evidence", "evidenceIds": ["..."] }
+  ],
+  "relationships": "2-3 sentences about communication and closeness today, tied to evidence",
+  "workMoney": "2-3 sentences about work/money state and focus, no financial advice",
+  "evening": "2-3 sentences about what to review or release by evening",
+  "questionOfDay": "one concrete self-observation question",
+  "astroEvidence": ${evidenceJson}
+}
+
+Return only valid JSON.`;
 };
 
 export const createPlanetInsightPrompt = (

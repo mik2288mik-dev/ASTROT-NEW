@@ -1,20 +1,33 @@
 import OpenAI from 'openai';
-import type { NatalAnchorReading, NatalLivingReading, NatalChartData, UserProfile } from '../types';
+import type {
+  NatalAnchorReading,
+  NatalChartData,
+  NatalFullReading,
+  NatalLivingReading,
+  UserProfile,
+} from '../types';
 import {
   SYSTEM_PROMPT_ASTRA,
   addLanguageInstruction,
-  createNatalAnchorPrompt,
-  createNatalLivingPrompt,
+  createNatalAnchorPromptV3,
+  createNatalFullPrompt,
+  createNatalLivingPromptV3,
   NatalAnchorAIResponse,
+  NatalFullAIResponse,
   NatalLivingAIResponse,
 } from './prompts';
 import { getOpenAIModelForContent } from './appSettings';
 import { getCurrentTransits } from './transits-calculator';
 import {
+  buildDailyAstroEvidence,
   buildNatalAnchorFallback,
+  buildNatalAstroEvidence,
+  buildNatalFullFallback,
   buildNatalLivingFallback,
   coerceNatalAnchorReading,
+  coerceNatalFullReading,
   coerceNatalLivingReading,
+  containsNatalBannedPhrase,
   getCurrentNatalPeriodKey,
 } from './natalReadings';
 
@@ -22,11 +35,11 @@ const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
 
-async function getNatalModel(modelTier: 'base' | 'premium') {
+async function getNatalModel(kind: 'anchor' | 'full' | 'living') {
   return getOpenAIModelForContent({
-    accessTier: modelTier === 'premium' ? 'premium' : 'free',
+    accessTier: kind === 'anchor' ? 'free' : 'premium',
     contentSurface: 'natal',
-    contentVariant: modelTier === 'premium' ? 'living' : 'anchor',
+    contentVariant: kind === 'full' ? 'full' : kind === 'living' ? 'living' : 'anchor',
   });
 }
 
@@ -44,38 +57,95 @@ async function isFlaggedByModeration(content: unknown): Promise<boolean> {
   }
 }
 
+async function createJsonCompletion<T>({
+  model,
+  prompt,
+  maxTokens,
+  temperature,
+}: {
+  model: string;
+  prompt: string;
+  maxTokens: number;
+  temperature: number;
+}): Promise<T> {
+  if (!openai) {
+    throw new Error('OPENAI_API_KEY is not configured');
+  }
+
+  const completion = await openai.chat.completions.create({
+    model,
+    messages: [
+      { role: 'system', content: SYSTEM_PROMPT_ASTRA },
+      { role: 'user', content: prompt },
+    ],
+    response_format: { type: 'json_object' },
+    temperature,
+    max_tokens: maxTokens,
+  });
+
+  const content = completion.choices[0]?.message?.content || '{}';
+  return JSON.parse(content) as T;
+}
+
 export async function generateNatalAnchorReading(
   profile: UserProfile,
   chartData: NatalChartData
 ): Promise<NatalAnchorReading> {
   const lang: 'ru' | 'en' = profile.language === 'en' ? 'en' : 'ru';
+  const evidence = buildNatalAstroEvidence(chartData, lang).slice(0, 8);
 
   if (!openai) {
-    return buildNatalAnchorFallback(lang);
+    return buildNatalAnchorFallback(lang, chartData);
   }
 
   try {
-    const prompt = addLanguageInstruction(createNatalAnchorPrompt(chartData, profile), lang);
-    const { model } = await getNatalModel('base');
-    const completion = await openai.chat.completions.create({
+    const prompt = addLanguageInstruction(createNatalAnchorPromptV3(chartData, profile, evidence), lang);
+    const { model } = await getNatalModel('anchor');
+    const parsed = await createJsonCompletion<NatalAnchorAIResponse>({
       model,
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT_ASTRA },
-        { role: 'user', content: prompt },
-      ],
-      response_format: { type: 'json_object' },
-      temperature: 0.75,
-      max_tokens: 2600,
+      prompt,
+      maxTokens: 3400,
+      temperature: 0.55,
     });
-
-    const content = completion.choices[0]?.message?.content || '{}';
-    const parsed = JSON.parse(content) as NatalAnchorAIResponse;
-    if (await isFlaggedByModeration(parsed)) {
-      return buildNatalAnchorFallback(lang);
+    const reading = coerceNatalAnchorReading({ ...parsed, astroEvidence: parsed.astroEvidence || evidence }, lang, chartData);
+    if (containsNatalBannedPhrase(reading) || await isFlaggedByModeration(reading)) {
+      return buildNatalAnchorFallback(lang, chartData);
     }
-    return coerceNatalAnchorReading(parsed, lang);
-  } catch {
-    return buildNatalAnchorFallback(lang);
+    return reading;
+  } catch (error) {
+    console.error('[NatalContent] Anchor generation failed', error);
+    return buildNatalAnchorFallback(lang, chartData);
+  }
+}
+
+export async function generateNatalFullReading(
+  profile: UserProfile,
+  chartData: NatalChartData
+): Promise<NatalFullReading> {
+  const lang: 'ru' | 'en' = profile.language === 'en' ? 'en' : 'ru';
+  const evidence = buildNatalAstroEvidence(chartData, lang).slice(0, 8);
+
+  if (!openai) {
+    return buildNatalFullFallback(lang, chartData);
+  }
+
+  try {
+    const prompt = addLanguageInstruction(createNatalFullPrompt(chartData, profile, evidence), lang);
+    const { model } = await getNatalModel('full');
+    const parsed = await createJsonCompletion<NatalFullAIResponse>({
+      model,
+      prompt,
+      maxTokens: 5200,
+      temperature: 0.5,
+    });
+    const reading = coerceNatalFullReading({ ...parsed, astroEvidence: parsed.astroEvidence || evidence }, lang, chartData);
+    if (containsNatalBannedPhrase(reading) || await isFlaggedByModeration(reading)) {
+      return buildNatalFullFallback(lang, chartData);
+    }
+    return reading;
+  } catch (error) {
+    console.error('[NatalContent] Full reading generation failed', error);
+    return buildNatalFullFallback(lang, chartData);
   }
 }
 
@@ -85,33 +155,41 @@ export async function generateNatalLivingReading(
   periodKey = getCurrentNatalPeriodKey()
 ): Promise<NatalLivingReading> {
   const lang: 'ru' | 'en' = profile.language === 'en' ? 'en' : 'ru';
-  const transits = await getCurrentTransits(new Date());
+  let transits = null;
+
+  try {
+    transits = await getCurrentTransits(new Date());
+  } catch (error) {
+    console.error('[NatalContent] Transit calculation failed', error);
+  }
+
+  const evidence = buildDailyAstroEvidence(chartData, transits, lang).slice(0, 5);
 
   if (!openai) {
-    return buildNatalLivingFallback(lang, periodKey);
+    return buildNatalLivingFallback(lang, periodKey, chartData, evidence);
   }
 
   try {
-    const prompt = addLanguageInstruction(createNatalLivingPrompt(chartData, profile, periodKey, transits), lang);
-    const { model } = await getNatalModel('premium');
-    const completion = await openai.chat.completions.create({
+    const prompt = addLanguageInstruction(createNatalLivingPromptV3(chartData, profile, periodKey, transits, evidence), lang);
+    const { model } = await getNatalModel('living');
+    const parsed = await createJsonCompletion<NatalLivingAIResponse>({
       model,
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT_ASTRA },
-        { role: 'user', content: prompt },
-      ],
-      response_format: { type: 'json_object' },
-      temperature: 0.85,
-      max_tokens: 3200,
+      prompt,
+      maxTokens: 3600,
+      temperature: 0.55,
     });
-
-    const content = completion.choices[0]?.message?.content || '{}';
-    const parsed = JSON.parse(content) as NatalLivingAIResponse;
-    if (await isFlaggedByModeration(parsed)) {
-      return buildNatalLivingFallback(lang, periodKey);
+    const reading = coerceNatalLivingReading(
+      { ...parsed, periodKey, astroEvidence: parsed.astroEvidence || evidence },
+      lang,
+      periodKey,
+      chartData
+    );
+    if (containsNatalBannedPhrase(reading) || await isFlaggedByModeration(reading)) {
+      return buildNatalLivingFallback(lang, periodKey, chartData, evidence);
     }
-    return coerceNatalLivingReading(parsed, lang, periodKey);
-  } catch {
-    return buildNatalLivingFallback(lang, periodKey);
+    return reading;
+  } catch (error) {
+    console.error('[NatalContent] Daily reading generation failed', error);
+    return buildNatalLivingFallback(lang, periodKey, chartData, evidence);
   }
 }

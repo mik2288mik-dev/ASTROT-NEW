@@ -4,7 +4,11 @@ import { getVerifiedTelegramUser } from '../../../lib/adminAuth';
 import { db } from '../../../lib/db';
 import { spendLumi } from '../../../services/lumiService';
 import { generateNatalAnchorReading } from '../../../lib/natalContent';
-import { mapNatalAnchorToLegacyIntro } from '../../../lib/natalReadings';
+import {
+  mapNatalAnchorToLegacyIntro,
+  NATAL_ANCHOR_CACHE_KEY,
+  NATAL_ANCHOR_PROMPT_VERSION,
+} from '../../../lib/natalReadings';
 import { withRateLimit, RATE_LIMIT_CONFIGS } from '../../../lib/rateLimit';
 
 const COST_LUMI = 250;
@@ -32,7 +36,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     }
 
     const effectiveChartId = chartId != null ? parseInt(String(chartId), 10) : null;
-    const cacheKey = effectiveChartId ?? userId;
 
     let newBalance: number;
     try {
@@ -60,7 +63,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     }
 
     try {
-      await db.interpretations.set(cacheKey, 'natal_intro', 'default', intro);
       const { modelTier } = await getOpenAIModelForContent({
         accessTier: 'free',
         contentSurface: 'natal',
@@ -71,28 +73,32 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
           accessTier: 'free',
           contentSurface: 'natal',
           contentVariant: 'anchor',
-          cacheKey: 'default',
-          inputHash: 'default',
+          cacheKey: NATAL_ANCHOR_CACHE_KEY,
+          inputHash: NATAL_ANCHOR_CACHE_KEY,
           content: reading,
           modelTier,
+          promptVersion: NATAL_ANCHOR_PROMPT_VERSION,
+          calculationVersion: chartData.calculationVersion || null,
           isPersistent: true,
           canRegenerateForLumi: true,
           regenerationCostLumi: COST_LUMI,
-          legacySource: 'natal_v2.anchor.refresh',
+          legacySource: 'natal_content_unified_v3.refresh',
         }, String(userId).trim());
       } else {
         await db.content_interpretations.upsertByUser(String(userId).trim(), {
           accessTier: 'free',
           contentSurface: 'natal',
           contentVariant: 'anchor',
-          cacheKey: 'default',
-          inputHash: 'default',
+          cacheKey: NATAL_ANCHOR_CACHE_KEY,
+          inputHash: NATAL_ANCHOR_CACHE_KEY,
           content: reading,
           modelTier,
+          promptVersion: NATAL_ANCHOR_PROMPT_VERSION,
+          calculationVersion: chartData.calculationVersion || null,
           isPersistent: true,
           canRegenerateForLumi: true,
           regenerationCostLumi: COST_LUMI,
-          legacySource: 'natal_v2.anchor.refresh',
+          legacySource: 'natal_content_unified_v3.refresh',
         });
       }
     } catch (dbErr: any) {
