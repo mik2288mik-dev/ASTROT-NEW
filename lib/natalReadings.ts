@@ -4,6 +4,7 @@ import type {
   NatalChartData,
   NatalDictionaryTerm,
   NatalFullReading,
+  NatalHumanSection,
   NatalLivingReading,
   NatalReadingPoint,
   PlanetPosition,
@@ -12,8 +13,8 @@ import type { CurrentTransits, PlanetTransit } from './transits-calculator';
 import { getMoscowTodayKey } from './date-utils';
 import { ZODIAC_SIGNS, type ZodiacSign } from './zodiac-utils';
 
-export const NATAL_ANCHOR_PROMPT_VERSION = 'natal_anchor.editorial_v3';
-export const NATAL_FULL_PROMPT_VERSION = 'natal_full.editorial_v3';
+export const NATAL_ANCHOR_PROMPT_VERSION = 'natal_anchor.planet_human_v4';
+export const NATAL_FULL_PROMPT_VERSION = 'natal_full.planet_human_v4';
 export const NATAL_LIVING_PROMPT_VERSION = 'natal_daily.editorial_v3';
 
 export const NATAL_ANCHOR_CACHE_KEY = 'base';
@@ -26,6 +27,11 @@ export const NATAL_CONTENT_ACTIVE_PROMPT_VERSIONS = [
 ] as const;
 
 export const NATAL_BANNED_PHRASES = [
+  'это читается через',
+  'может проявляться',
+  'здесь описывается',
+  'полезно проверить',
+  'тема связана с',
   'день просит',
   'внутренняя точность',
   'чужой шум',
@@ -133,6 +139,19 @@ const MAJOR_ASPECTS = [
   { type: 'opposition', angle: 180 },
 ] as const;
 
+const ANCHOR_SECTION_IDS = ['character', 'emotions', 'first-impression', 'thoughts', 'love', 'action'] as const;
+const FULL_SECTION_IDS = [
+  'character',
+  'emotions',
+  'first-impression',
+  'thoughts-speech',
+  'love',
+  'action',
+  'money-stability',
+  'intimacy',
+  'when-hard',
+] as const;
+
 export function buildNatalLivingCacheKey(periodKey: string) {
   return periodKey;
 }
@@ -155,13 +174,6 @@ function cleanParagraphs(value: unknown, fallback: string) {
     .replace(/\n{3,}/g, '\n\n')
     .trim();
   return normalized || fallback;
-}
-
-function splitParagraphs(value: unknown) {
-  return String(value || '')
-    .split(/\n\s*\n/)
-    .map((item) => item.replace(/\s+/g, ' ').trim())
-    .filter(Boolean);
 }
 
 function cleanPoints(value: unknown, fallbacks: NatalReadingPoint[], min = 1) {
@@ -492,164 +504,484 @@ function evidenceText(evidence: AstroEvidenceItem[], fallback: string) {
   return evidence[0]?.detail || evidence[0]?.label || fallback;
 }
 
-function anchorFallbackRu(chartData?: NatalChartData | null): NatalAnchorReading {
-  const evidence = buildNatalAstroEvidence(chartData, 'ru');
-  const sun = chartData?.sun;
-  const moon = chartData?.moon;
-  const rising = chartData?.rising;
-  const mercury = chartData?.mercury;
-  const venus = chartData?.venus;
-  const mars = chartData?.mars;
-  const aspect = evidence.find((item) => item.type === 'aspect');
-  const signature = sun && moon && rising
-    ? `Солнце в ${signLabel(sun.sign, 'ru')}, Луна в ${signLabel(moon.sign, 'ru')} и Асцендент в ${signLabel(rising.sign, 'ru')}`
-    : 'главные точки карты';
+function getEvidenceById(evidence: AstroEvidenceItem[], id: string) {
+  return evidence.find((item) => item.id === id);
+}
 
-  const portrait = [
-    `${signature} дают карте понятный каркас: характер реагирует через ${sun ? signLabel(sun.sign, 'ru') : 'знак Солнца'}, эмоции быстрее включаются через ${moon ? signLabel(moon.sign, 'ru') : 'Луну'}, а первое впечатление окрашено Асцендентом. Это не набор ярлыков, а три разные функции: как ты действуешь, что переживаешь внутри и как входишь в контакт.`,
-    mercury
-      ? `Меркурий в ${signLabel(mercury.sign, 'ru')}${houseNumber(mercury) ? ` в ${houseNumber(mercury)} доме` : ''} показывает, как ты собираешь мысли и объясняешь себя. В обычной ситуации это может быть заметно в том, как ты выбираешь слова: не просто отвечаешь, а стараешься уловить устройство разговора.`
-      : `По личным планетам карта показывает, что решения лучше понимать через конкретные реакции: что быстро цепляет внимание, где появляется напряжение и где становится проще говорить прямо.`,
-    venus || mars
-      ? `Венера${venus ? ` в ${signLabel(venus.sign, 'ru')}` : ''} и Марс${mars ? ` в ${signLabel(mars.sign, 'ru')}` : ''} описывают, как ты сближаешься и как действуешь. Здесь важны не красивые обещания, а реальный темп: когда можно идти навстречу, а когда телу и психике нужно больше времени.`
-      : `В отношениях и делах лучше работает не давление на себя, а наблюдение за собственным темпом: где включается интерес, где появляется сопротивление и где нужно больше ясности.`,
-    aspect
-      ? `${aspect.detail} В жизни это может проявляться как повторяющийся внутренний диалог: одна часть хочет быстрее решить вопрос, другая проверяет, безопасно ли вообще туда входить.`
-      : `Если карта кажется противоречивой, это нормально: разные части личности могут включаться в разное время. Важно смотреть не на один знак, а на то, как они работают вместе.`,
-  ].join('\n\n');
+function getAspectEvidenceForPlanet(evidence: AstroEvidenceItem[], planetKey: string, limit = 2) {
+  const needle = `:${normalizePlanetKey(planetKey)}`;
+  return evidence.filter((item) => item.type === 'aspect' && item.id.includes(needle)).slice(0, limit);
+}
+
+function getHardAspectEvidence(evidence: AstroEvidenceItem[], limit = 2) {
+  return evidence
+    .filter((item) => item.type === 'aspect' && (item.aspectType === 'square' || item.aspectType === 'opposition' || item.aspectType === 'conjunction'))
+    .slice(0, limit);
+}
+
+function placementSubtitle(key: string, position: PlanetPosition | null | undefined, lang: 'ru' | 'en') {
+  const sign = signLabel(position?.sign, lang, lang === 'ru');
+  const house = houseNumber(position);
+  const parts = [planetLabel(key, lang), lang === 'ru' ? `в ${sign}` : `in ${sign}`];
+  if (house) {
+    parts.push(lang === 'ru' ? `${house} дом` : `house ${house}`);
+  }
+  return parts.filter(Boolean).join(' · ');
+}
+
+function normalizePointBody(value: string) {
+  return cleanLine(value, '').replace(/\.$/, '');
+}
+
+function buildLegacyAnchorPointsFromSections(sections: NatalHumanSection[], ids: readonly string[]) {
+  return ids
+    .map((id) => sections.find((section) => section.id === id))
+    .filter(Boolean)
+    .map((section) => ({
+      title: section!.title,
+      body: normalizePointBody(section!.body.split('\n\n')[0] || section!.body),
+      evidenceIds: section!.evidenceIds,
+    }));
+}
+
+function deriveAnchorLegacyFields(reading: NatalAnchorReading) {
+  const character = reading.sections.find((section) => section.id === 'character');
+  const firstImpression = reading.sections.find((section) => section.id === 'first-impression');
+  const love = reading.sections.find((section) => section.id === 'love');
+  const emotions = reading.sections.find((section) => section.id === 'emotions');
+  const action = reading.sections.find((section) => section.id === 'action');
 
   return {
-    headline: 'Твой портрет по карте',
-    summary: `${signature}. Это первый ясный разбор характера, эмоционального ритма и того, как тебя обычно считывают люди.`,
-    portrait,
-    reading: portrait,
-    threeAnchors: [
-      {
-        title: 'Солнце',
-        body: sun
-          ? `Солнце в ${signLabel(sun.sign, 'ru')}${houseNumber(sun) ? ` в ${houseNumber(sun)} доме` : ''}: характер раскрывается через ${houseTheme(houseNumber(sun), 'ru')}.`
-          : 'Солнце показывает характер, волю и то, через что человек чувствует себя живым.',
-        evidenceIds: ['placement:sun'],
-      },
-      {
-        title: 'Луна',
-        body: moon
-          ? `Луна в ${signLabel(moon.sign, 'ru')}${houseNumber(moon) ? ` в ${houseNumber(moon)} доме` : ''}: эмоции и привычные реакции связаны с темой ${houseTheme(houseNumber(moon), 'ru')}.`
-          : 'Луна показывает эмоциональный темп: что быстро задевает, что успокаивает и как возвращается чувство безопасности.',
-        evidenceIds: ['placement:moon'],
-      },
-      {
-        title: 'Асцендент',
-        body: rising
-          ? `Асцендент в ${signLabel(rising.sign, 'ru')}: первое впечатление может быть сильнее и собраннее, чем то, что происходит внутри.`
-          : 'Асцендент показывает первое впечатление и способ входить в новые ситуации.',
-        evidenceIds: ['placement:rising'],
-      },
-    ],
-    perceivedByOthers: rising
-      ? `Люди часто сначала видят твой Асцендент в ${signLabel(rising.sign, 'ru')}: манеру держаться, смотреть, отвечать, выдерживать паузу. Из-за этого тебя могут считывать более собранным или закрытым человеком, чем ты ощущаешь себя внутри.`
-      : 'Первое впечатление может отличаться от внутреннего состояния: снаружи человек видит манеру держаться, а не всю глубину реакции.',
-    strengths: [
-      {
-        title: 'Ты замечаешь нюансы раньше слов',
-        body: moon
-          ? `Луна в ${signLabel(moon.sign, 'ru')} делает реакцию тонкой: ты часто понимаешь настроение разговора до того, как его проговорили.`
-          : 'Эмоциональная часть карты помогает быстро замечать, где разговор живой, а где человек говорит не всё.',
-        evidenceIds: ['placement:moon'],
-      },
-      {
-        title: 'Ты можешь выдерживать сложные состояния',
-        body: rising
-          ? `Асцендент в ${signLabel(rising.sign, 'ru')} добавляет собранность: в напряжённый момент ты не всегда показываешь, насколько многое происходит внутри.`
-          : 'В напряжённые моменты карта показывает способность собираться и не отдавать реакцию первому импульсу.',
-        evidenceIds: ['placement:rising'],
-      },
-      {
-        title: 'Ты лучше действуешь, когда понимаешь смысл',
-        body: sun
-          ? `Солнце в ${signLabel(sun.sign, 'ru')} связывает энергию с внутренним согласием: пустая активность быстрее забирает силы, чем дело, где понятно зачем.`
-          : 'Энергия сильнее держится там, где есть понятная причина продолжать.',
-        evidenceIds: ['placement:sun'],
-      },
-    ],
-    watchouts: [
-      {
-        title: 'Не бери на себя всё, что почувствовал',
-        body: moon
-          ? `Луна в ${signLabel(moon.sign, 'ru')} может быстро откликаться на состояние других. Полезно отделять свою реакцию от чужого напряжения.`
-          : 'Сильная чувствительность не означает, что каждую чужую эмоцию нужно разбирать как свою.',
-        evidenceIds: ['placement:moon'],
-      },
-      {
-        title: 'Не соглашайся раньше, чем понял своё отношение',
-        body: venus
-          ? `Венера в ${signLabel(venus.sign, 'ru')} может искать мягкий контакт, но согласие из вежливости потом создаёт внутреннюю тяжесть.`
-          : 'Если ответ нужен быстро, стоит хотя бы коротко проверить, правда ли ты хочешь соглашаться.',
-        evidenceIds: ['placement:venus'],
-      },
-      {
-        title: 'Не путай паузу с отказом от действия',
-        body: mars
-          ? `Марс в ${signLabel(mars.sign, 'ru')} показывает, что действие набирает силу, когда темп не навязан извне.`
-          : 'Иногда пауза нужна не для избегания, а чтобы действие стало точнее.',
-        evidenceIds: ['placement:mars'],
-      },
-    ],
-    dictionaryTerms: [
-      { term: 'Солнце', meaning: 'характер, воля и то, через что человек чувствует себя живым' },
-      { term: 'Луна', meaning: 'эмоциональная реакция, привычки и то, что даёт чувство безопасности' },
-      { term: 'Асцендент', meaning: 'первое впечатление и способ входить в новые ситуации' },
-      { term: 'Дом', meaning: 'сфера жизни, где проявляется планета: отношения, работа, дом, деньги, тело' },
-      { term: 'Аспект', meaning: 'связь между двумя планетами: где функции помогают друг другу или создают напряжение' },
-      { term: 'Транзит', meaning: 'текущее положение планет и его связь с твоей натальной картой' },
-    ],
-    astroEvidence: evidence,
+    summary: reading.lead,
+    portrait: reading.sections.map((section) => section.body).join('\n\n'),
+    reading: reading.sections.map((section) => section.body).join('\n\n'),
+    threeAnchors: buildLegacyAnchorPointsFromSections(reading.sections, ['character', 'emotions', 'first-impression']),
+    perceivedByOthers: firstImpression?.body || '',
+    strengths: [character, emotions, love]
+      .filter(Boolean)
+      .map((section) => ({
+        title: section!.title,
+        body: section!.examples[0] || normalizePointBody(section!.body.split('\n\n')[0] || section!.body),
+        evidenceIds: section!.evidenceIds,
+      })),
+    watchouts: [firstImpression, action, love]
+      .filter(Boolean)
+      .map((section) => ({
+        title: section!.title,
+        body: section!.examples[1] || section!.examples[0] || normalizePointBody(section!.body.split('\n\n')[0] || section!.body),
+        evidenceIds: section!.evidenceIds,
+      })),
   };
 }
 
-function anchorFallbackEn(chartData?: NatalChartData | null): NatalAnchorReading {
-  const evidence = buildNatalAstroEvidence(chartData, 'en');
+function deriveFullLegacyFields(reading: NatalFullReading) {
+  const find = (id: string) => reading.sections.find((section) => section.id === id);
+  return {
+    summary: reading.lead,
+    mainConfiguration: find('character')?.body || '',
+    reactions: find('emotions')?.body || '',
+    choices: [find('thoughts-speech')?.body, find('action')?.body].filter(Boolean).join('\n\n'),
+    closeness: [find('love')?.body, find('intimacy')?.body].filter(Boolean).join('\n\n'),
+    strengths: [find('money-stability')?.body, find('character')?.examples.join('\n'), find('action')?.examples.join('\n')]
+      .filter(Boolean)
+      .join('\n\n'),
+    tensionPattern: find('when-hard')?.body || '',
+    integration: reading.synthesis,
+  };
+}
+
+function sectionExamplesForPlanet(
+  sectionId: string,
+  lang: 'ru' | 'en',
+  placement: PlanetPosition | null | undefined,
+  variant: 'anchor' | 'full'
+) {
+  const house = houseNumber(placement);
+  const theme = houseTheme(house, lang);
+  if (lang === 'en') {
+    const examples: Record<string, string[]> = {
+      character: [
+        `You get more reliable when the choice touches ${theme}, not just external pressure.`,
+        `In a new situation you first look for what is real before giving full energy.`,
+        `When the reason is weak, motivation drops faster than others may expect.`,
+      ],
+      emotions: [
+        `Mood changes are often tied to ${theme}, not only to what is said out loud.`,
+        `You calm down faster when there is privacy, rhythm, and emotional clarity.`,
+        `If something feels off, the body usually notices before the mind explains it.`,
+      ],
+      'first-impression': [
+        `People may read the outer shell before they notice how much is happening inside.`,
+        `You rarely open at full volume from the first minute.`,
+        `First meetings often depend on whether there is trust in the room.`,
+      ],
+      thoughts: [
+        `You do better in conversation when the logic is clear and the tone is honest.`,
+        `If the topic feels empty, words become shorter or more selective.`,
+        `You often hear the structure of a conversation, not only its content.`,
+      ],
+      'thoughts-speech': [
+        `You speak best when the idea is clear and the context is not rushed.`,
+        `In argument, tone matters as much as logic.`,
+        `When you are unconvinced, your speech usually slows down before you openly disagree.`,
+      ],
+      love: [
+        `Closeness grows through pace and quality, not through loud promises.`,
+        `You notice whether care feels real very quickly.`,
+        `If there is pressure without trust, the heart closes earlier than the face shows.`,
+      ],
+      action: [
+        `Action becomes strongest when the next step is concrete.`,
+        `You rarely spend energy well on empty hurry.`,
+        `If timing feels wrong, resistance can be physical before it becomes verbal.`,
+      ],
+    };
+    return (examples[sectionId] || examples.character).slice(0, variant === 'anchor' ? 2 : 3);
+  }
+
+  const examples: Record<string, string[]> = {
+    character: [
+      `Когда выбор касается темы ${theme}, ты действуешь точнее, чем в ситуации чистого внешнего давления.`,
+      'В новой ситуации тебе важно понять, что здесь по-настоящему происходит, а уже потом вкладываться полностью.',
+      'Если смысл решения неясен, энергия уходит быстрее, чем это видно со стороны.',
+    ],
+    emotions: [
+      `Настроение часто цепляется не только за слова, но и за то, что происходит в теме ${theme}.`,
+      'Становится легче, когда есть тишина, предсказуемый ритм и ощущение, что чувства не надо оправдывать.',
+      'Если что-то не так, тело обычно замечает это раньше, чем появляется чёткое объяснение.',
+    ],
+    'first-impression': [
+      'Люди сначала считывают внешнюю манеру держаться и только потом замечают глубину внутренней реакции.',
+      'Ты редко раскрываешься в полную силу с первых минут общения.',
+      'Первый контакт очень зависит от того, есть ли в пространстве доверие и уважение к границам.',
+    ],
+    thoughts: [
+      'В разговоре тебе проще быть точным, когда логика ясна и тон честный.',
+      'Если тема кажется пустой, речь становится короче, а мысли уходят внутрь.',
+      'Ты часто слышишь не только слова, но и устройство разговора: кто уходит от сути, кто говорит прямо.',
+    ],
+    'thoughts-speech': [
+      'Ты лучше формулируешь, когда есть ясная мысль и нет давления на скорость ответа.',
+      'В споре для тебя важен не только аргумент, но и тон, с которым он подаётся.',
+      'Если внутреннего согласия нет, речь обычно замедляется раньше, чем ты прямо скажешь “нет”.',
+    ],
+    love: [
+      'Близость растёт через качество контакта и темп, а не через громкие обещания.',
+      'Ты довольно быстро чувствуешь, настоящее ли внимание перед тобой.',
+      'Если на тебя давят до появления доверия, сердце закрывается раньше, чем это видно по лицу.',
+    ],
+    action: [
+      'Действовать легче, когда следующий шаг конкретен и имеет смысл.',
+      'Суета сама по себе редко даёт тебе хороший результат.',
+      'Если момент выбран неудачно, сопротивление сначала ощущается телом, а уже потом становится словами.',
+    ],
+  };
+
+  return (examples[sectionId] || examples.character).slice(0, variant === 'anchor' ? 2 : 3);
+}
+
+function createHumanSection({
+  id,
+  title,
+  subtitle,
+  body,
+  examples,
+  astroSource,
+  evidenceIds,
+}: NatalHumanSection): NatalHumanSection {
+  return {
+    id,
+    title,
+    subtitle,
+    body: cleanParagraphs(body, ''),
+    examples: examples.map((item) => cleanLine(item, '')).filter(Boolean),
+    astroSource: cleanLine(astroSource, subtitle),
+    evidenceIds: evidenceIds.filter(Boolean),
+  };
+}
+
+function planetSection(
+  lang: 'ru' | 'en',
+  chartData: NatalChartData | null | undefined,
+  evidence: AstroEvidenceItem[],
+  planetKey: string,
+  id: string,
+  title: string,
+  variant: 'anchor' | 'full'
+): NatalHumanSection {
+  const position = getPlanet(chartData as NatalChartData, planetKey);
+  const placementEvidence = getEvidenceById(evidence, `placement:${normalizePlanetKey(planetKey)}`);
+  const aspects = getAspectEvidenceForPlanet(evidence, planetKey, variant === 'anchor' ? 1 : 2);
+  const evidenceIds = [placementEvidence?.id, ...aspects.map((item) => item.id)].filter(Boolean) as string[];
+  const subtitle = placementSubtitle(planetKey, position, lang);
+  const sourceLine = [placementEvidence?.label || subtitle, ...aspects.map((item) => item.label)].filter(Boolean).join(' · ');
+  const theme = houseTheme(houseNumber(position), lang);
+  const sign = signLabel(position?.sign, lang, lang === 'ru');
+  const label = planetLabel(planetKey, lang);
+  const aspectLine = aspects[0]?.detail;
+
+  const body = lang === 'ru'
+    ? [
+        `${label} в ${sign}${houseNumber(position) ? ` в ${houseNumber(position)} доме` : ''} задаёт эту часть карты через тему ${theme}. Здесь человек не играет роль, а показывает свой реальный способ реагировать на жизнь.`,
+        aspectLine
+          ? `${aspectLine} Поэтому этот сюжет не остаётся внутри теории: он заметен в конкретных сценах общения, выбора и внутреннего темпа.`
+          : `В обычной жизни это заметно не по красивым словам, а по повседневым решениям: где ты включаешься быстро, где держишь паузу и что действительно считаешь важным.`,
+      ].join('\n\n')
+    : [
+        `${label} in ${sign}${houseNumber(position) ? ` in house ${houseNumber(position)}` : ''} shapes this part of the chart through ${theme}. This is not theory; it is the real way the person responds to life.`,
+        aspectLine
+          ? `${aspectLine} That is why this theme shows up in concrete scenes of contact, decision, and timing.`
+          : `In real life it is visible through everyday choices: where you engage quickly, where you pause, and what actually feels worth the effort.`,
+      ].join('\n\n');
+
+  return createHumanSection({
+    id,
+    title,
+    subtitle,
+    body,
+    examples: sectionExamplesForPlanet(id, lang, position, variant),
+    astroSource: sourceLine || subtitle,
+    evidenceIds,
+  });
+}
+
+function buildMoneySection(
+  lang: 'ru' | 'en',
+  chartData: NatalChartData | null | undefined,
+  evidence: AstroEvidenceItem[]
+): NatalHumanSection {
+  const secondHouse = chartData?.houses?.find((house) => house.house === 2);
+  const venus = getPlanet(chartData as NatalChartData, 'venus');
+  const saturn = getPlanet(chartData as NatalChartData, 'saturn');
+  const evidenceIds = ['placement:venus', 'placement:saturn', 'placement:jupiter'].filter((id) => getEvidenceById(evidence, id));
+  const subtitle = lang === 'ru'
+    ? [
+        secondHouse?.sign ? `2 дом в ${signLabel(secondHouse.sign, lang, true)}` : null,
+        venus?.sign ? `Венера в ${signLabel(venus.sign, lang, true)}` : null,
+        saturn?.sign ? `Сатурн в ${signLabel(saturn.sign, lang, true)}` : null,
+      ].filter(Boolean).join(' · ')
+    : [
+        secondHouse?.sign ? `2nd house in ${signLabel(secondHouse.sign, lang)}` : null,
+        venus?.sign ? `Venus in ${signLabel(venus.sign, lang)}` : null,
+        saturn?.sign ? `Saturn in ${signLabel(saturn.sign, lang)}` : null,
+      ].filter(Boolean).join(' · ');
+
+  const body = lang === 'ru'
+    ? [
+        `${secondHouse?.sign ? `Тема денег идёт через знак ${signLabel(secondHouse.sign, lang, true)} во 2 доме` : 'Тема денег и устойчивости в карте читается через 2 дом, Венеру, Сатурн и Юпитер'}. Здесь важны не только доходы сами по себе, а отношение к опоре: на что ты готов опереться, что считаешь надёжным, а что вызывает лишнюю тревогу.`,
+        `${venus?.sign ? `Венера в ${signLabel(venus.sign, lang)}` : 'Венера'} показывает вкус к качеству и комфортный формат обмена, ${saturn?.sign ? `а Сатурн в ${signLabel(saturn.sign, lang)}` : 'а Сатурн'} — где включается осторожность и контроль. В жизни это видно по тому, тратишь ли ты из спокойствия или сначала пытаешься снять внутреннее напряжение покупкой, согласием или лишней экономией.`,
+      ].join('\n\n')
+    : [
+        `${secondHouse?.sign ? `Money is read through the 2nd house in ${signLabel(secondHouse.sign, lang)}` : 'Money and stability are read through the 2nd house, Venus, Saturn, and Jupiter'}. It is not only about income, but about what feels reliable enough to lean on.`,
+        `${venus?.sign ? `Venus in ${signLabel(venus.sign, lang)}` : 'Venus'} shows taste and comfort, while ${saturn?.sign ? `Saturn in ${signLabel(saturn.sign, lang)}` : 'Saturn'} shows where caution and control enter. In life this is visible in whether you spend from calm or from a wish to silence anxiety quickly.`,
+      ].join('\n\n');
+
+  return createHumanSection({
+    id: 'money-stability',
+    title: lang === 'ru' ? 'Деньги и устойчивость' : 'Money and stability',
+    subtitle: subtitle || (lang === 'ru' ? '2 дом · Венера · Сатурн' : '2nd house · Venus · Saturn'),
+    body,
+    examples: lang === 'ru'
+      ? [
+          'Денежные решения лучше получаются, когда сначала понятен мотив, а не только внешний результат.',
+          'Если опора расшатана, может тянуть то к жёсткому контролю, то к импульсивной компенсации.',
+          'Устойчивость растёт там, где есть ясные правила и ощущение, что цена решения тебе по силам.',
+        ]
+      : [
+          'Money choices work better when the motive is clear, not only the outcome.',
+          'When support feels unstable, control and impulse can alternate quickly.',
+          'Stability grows where rules are clear and the cost feels real but manageable.',
+        ],
+    astroSource: subtitle || (lang === 'ru' ? '2 дом · Венера · Сатурн' : '2nd house · Venus · Saturn'),
+    evidenceIds,
+  });
+}
+
+function buildIntimacySection(
+  lang: 'ru' | 'en',
+  chartData: NatalChartData | null | undefined,
+  evidence: AstroEvidenceItem[]
+): NatalHumanSection {
+  const venus = getPlanet(chartData as NatalChartData, 'venus');
+  const moon = getPlanet(chartData as NatalChartData, 'moon');
+  const house7 = chartData?.houses?.find((house) => house.house === 7);
+  const house8 = chartData?.houses?.find((house) => house.house === 8);
+  const evidenceIds = ['placement:venus', 'placement:moon'].filter((id) => getEvidenceById(evidence, id));
+  const subtitle = [
+    venus?.sign ? placementSubtitle('venus', venus, lang) : null,
+    moon?.sign ? placementSubtitle('moon', moon, lang) : null,
+  ].filter(Boolean).join(' · ');
+
+  const body = lang === 'ru'
+    ? [
+        `Близость в карте складывается не из одного признака, а из того, как вместе работают ${venus?.sign ? `Венера в ${signLabel(venus.sign, lang)}` : 'Венера'} и ${moon?.sign ? `Луна в ${signLabel(moon.sign, lang)}` : 'Луна'}. Одна часть показывает, как хочется любить и нравиться, другая — когда становится по-настоящему безопасно.`,
+        `${house7?.sign ? `7 дом в ${signLabel(house7.sign, lang, true)}` : 'Тема партнёрства'} и ${house8?.sign ? `8 дом в ${signLabel(house8.sign, lang, true)}` : 'тема доверия'} подсказывают, как быстро ты допускаешь другого человека ближе. На практике это видно в том, нужен ли тебе прямой разговор, время, телесное спокойствие или возможность сначала присмотреться.`,
+      ].join('\n\n')
+    : [
+        `Closeness is not read from one factor alone, but from how ${venus?.sign ? `Venus in ${signLabel(venus.sign, lang)}` : 'Venus'} and ${moon?.sign ? `Moon in ${signLabel(moon.sign, lang)}` : 'Moon'} work together. One part shows how affection moves, the other shows when it actually feels safe.`,
+        `${house7?.sign ? `The 7th house in ${signLabel(house7.sign, lang)}` : 'Partnership themes'} and ${house8?.sign ? `the 8th house in ${signLabel(house8.sign, lang)}` : 'trust themes'} show how quickly you let someone closer. In real life this appears through the need for direct conversation, time, physical calm, or the chance to observe first.`,
+      ].join('\n\n');
+
+  return createHumanSection({
+    id: 'intimacy',
+    title: lang === 'ru' ? 'Близость' : 'Intimacy',
+    subtitle: subtitle || (lang === 'ru' ? 'Венера · Луна · 7/8 дом' : 'Venus · Moon · 7th/8th house'),
+    body,
+    examples: lang === 'ru'
+      ? [
+          'Тебе проще открываться там, где слова и поведение совпадают.',
+          'Если доверие не появилось, красивый жест сам по себе не убеждает.',
+          'Важный разговор часто нужен раньше, чем ситуация становится критичной.',
+        ]
+      : [
+          'It is easier to open where words and behavior match.',
+          'Without trust, a beautiful gesture alone is not enough.',
+          'An important conversation is often needed earlier than the crisis point.',
+        ],
+    astroSource: subtitle || (lang === 'ru' ? 'Венера · Луна · 7/8 дом' : 'Venus · Moon · 7th/8th house'),
+    evidenceIds,
+  });
+}
+
+function buildWhenHardSection(
+  lang: 'ru' | 'en',
+  chartData: NatalChartData | null | undefined,
+  evidence: AstroEvidenceItem[]
+): NatalHumanSection {
+  const hardAspects = getHardAspectEvidence(evidence, 2);
+  const subtitle = hardAspects.map((item) => item.label).join(' · ');
+  const body = lang === 'ru'
+    ? [
+        `${hardAspects[0]?.detail || 'Когда в карте сталкиваются личные планеты, сложнее удерживать один устойчивый ритм.'} В трудный момент человек может одновременно хотеть защищаться, объяснять себя и быстро завершить ситуацию, даже если внутри ещё нет ясности.`,
+        `Это не приговор и не “плохая карта”. Скорее место, где особенно важно замечать собственный порог: в какой точке ты перестаёшь слышать себя и начинаешь действовать только из усталости, раздражения или спешки.`,
+      ].join('\n\n')
+    : [
+        `${hardAspects[0]?.detail || 'When personal planets collide in the chart, it becomes harder to keep one stable rhythm.'} Under pressure, a person may want to protect, explain, and end the situation quickly before clarity has actually arrived.`,
+        `This is not a flaw or a bad chart. It is the place where it matters most to notice the threshold where self-contact is lost and action starts coming only from fatigue, irritation, or haste.`,
+      ].join('\n\n');
+
+  return createHumanSection({
+    id: 'when-hard',
+    title: lang === 'ru' ? 'Когда становится сложно' : 'When it gets hard',
+    subtitle: subtitle || (lang === 'ru' ? 'Личные аспекты карты' : 'Personal chart aspects'),
+    body,
+    examples: lang === 'ru'
+      ? [
+          'Сложность часто начинается не с большой драмы, а с мелкой неясности, которую пришлось долго держать внутри.',
+          'Когда нарастает перегруз, желание быстро решить всё может стать сильнее, чем готовность честно назвать, что происходит.',
+          'Точнее всего помогает не ускорение, а короткая пауза до ответа.',
+        ]
+      : [
+          'Difficulty often starts not with drama, but with a small ambiguity carried too long alone.',
+          'When overload grows, ending the situation fast can feel easier than naming the truth.',
+          'What helps most is usually not speed, but a short pause before the response.',
+        ],
+    astroSource: subtitle || (lang === 'ru' ? 'Личные аспекты карты' : 'Personal chart aspects'),
+    evidenceIds: hardAspects.map((item) => item.id),
+  });
+}
+
+function buildAnchorSections(lang: 'ru' | 'en', chartData?: NatalChartData | null, evidence: AstroEvidenceItem[] = []) {
+  return [
+    planetSection(lang, chartData, evidence, 'sun', 'character', lang === 'ru' ? 'Характер' : 'Character', 'anchor'),
+    planetSection(lang, chartData, evidence, 'moon', 'emotions', lang === 'ru' ? 'Эмоции' : 'Emotions', 'anchor'),
+    planetSection(lang, chartData, evidence, 'rising', 'first-impression', lang === 'ru' ? 'Первое впечатление' : 'First impression', 'anchor'),
+    planetSection(lang, chartData, evidence, 'mercury', 'thoughts', lang === 'ru' ? 'Мысли' : 'Thoughts', 'anchor'),
+    planetSection(lang, chartData, evidence, 'venus', 'love', lang === 'ru' ? 'Любовь' : 'Love', 'anchor'),
+    planetSection(lang, chartData, evidence, 'mars', 'action', lang === 'ru' ? 'Действие' : 'Action', 'anchor'),
+  ];
+}
+
+function buildFullSections(lang: 'ru' | 'en', chartData?: NatalChartData | null, evidence: AstroEvidenceItem[] = []) {
+  return [
+    planetSection(lang, chartData, evidence, 'sun', 'character', lang === 'ru' ? 'Характер' : 'Character', 'full'),
+    planetSection(lang, chartData, evidence, 'moon', 'emotions', lang === 'ru' ? 'Эмоции' : 'Emotions', 'full'),
+    planetSection(lang, chartData, evidence, 'rising', 'first-impression', lang === 'ru' ? 'Первое впечатление' : 'First impression', 'full'),
+    planetSection(lang, chartData, evidence, 'mercury', 'thoughts-speech', lang === 'ru' ? 'Мысли и речь' : 'Thoughts and speech', 'full'),
+    planetSection(lang, chartData, evidence, 'venus', 'love', lang === 'ru' ? 'Любовь' : 'Love', 'full'),
+    planetSection(lang, chartData, evidence, 'mars', 'action', lang === 'ru' ? 'Действие' : 'Action', 'full'),
+    buildMoneySection(lang, chartData, evidence),
+    buildIntimacySection(lang, chartData, evidence),
+    buildWhenHardSection(lang, chartData, evidence),
+  ];
+}
+
+function defaultDictionaryTerms(lang: 'ru' | 'en'): NatalDictionaryTerm[] {
+  if (lang === 'en') {
+    return [
+      { term: 'Sun', meaning: 'character, will, and what makes you feel alive' },
+      { term: 'Moon', meaning: 'emotional reactions, habits, and what creates safety' },
+      { term: 'Rising', meaning: 'first impression and how you enter a situation' },
+      { term: 'Sign', meaning: 'the style through which a planet expresses itself' },
+      { term: 'House', meaning: 'the area of life where the planet becomes visible' },
+      { term: 'Aspect', meaning: 'a link between planets: where they support each other or argue' },
+    ];
+  }
+
+  return [
+    { term: 'Солнце', meaning: 'характер, воля и то, через что человек чувствует себя живым' },
+    { term: 'Луна', meaning: 'эмоции, привычные реакции и то, что даёт чувство безопасности' },
+    { term: 'Асцендент', meaning: 'первое впечатление и способ входить в новые ситуации' },
+    { term: 'Знак', meaning: 'стиль, через который проявляется планета или часть карты' },
+    { term: 'Дом', meaning: 'сфера жизни, где эта часть карты становится особенно заметной' },
+    { term: 'Аспект', meaning: 'связь между двумя планетами: где они поддерживают друг друга или спорят' },
+  ];
+}
+
+function buildAnchorLead(lang: 'ru' | 'en', chartData?: NatalChartData | null) {
   const sun = chartData?.sun;
   const moon = chartData?.moon;
   const rising = chartData?.rising;
-  const signature = sun && moon && rising
-    ? `Sun in ${signLabel(sun.sign, 'en')}, Moon in ${signLabel(moon.sign, 'en')}, Rising in ${signLabel(rising.sign, 'en')}`
-    : 'the main points of the chart';
-  const portrait = `${signature} gives the chart its first structure: character, emotional response, and first impression. The reading is not based on labels, but on how these functions work together in real situations.\n\n${evidenceText(evidence, 'The strongest placements show how you react, choose, and enter contact.')}`;
+  if (lang === 'en') {
+    return sun && moon && rising
+      ? `Sun in ${signLabel(sun.sign, lang)}, Moon in ${signLabel(moon.sign, lang)}, and Rising in ${signLabel(rising.sign, lang)} set the tone of the chart. This reading follows how those parts of you sound in real life.`
+      : 'This reading starts from the key personal planets and turns them into clear human language.';
+  }
 
-  return {
-    headline: 'Your chart portrait',
-    summary: `${signature}. A clear first reading of character, emotional rhythm, and how others tend to read you.`,
-    portrait,
-    reading: portrait,
-    threeAnchors: [
-      { title: 'Sun', body: buildPlacementMeaning('sun', sun, 'en'), evidenceIds: ['placement:sun'] },
-      { title: 'Moon', body: buildPlacementMeaning('moon', moon, 'en'), evidenceIds: ['placement:moon'] },
-      { title: 'Rising', body: buildPlacementMeaning('rising', rising, 'en'), evidenceIds: ['placement:rising'] },
-    ],
-    perceivedByOthers: rising
-      ? `People often meet your Rising in ${signLabel(rising.sign, 'en')} first: your posture, rhythm, and way of entering contact. That first impression may be more contained than what happens inside.`
-      : 'First impression does not always reveal the inner state.',
-    strengths: [
-      { title: 'You notice nuance early', body: 'Your chart shows sensitivity to tone, timing, and what remains unsaid.', evidenceIds: ['placement:moon'] },
-      { title: 'You can stay with complexity', body: 'There is an ability to hold tension before reacting.', evidenceIds: ['placement:rising'] },
-      { title: 'Meaning keeps you engaged', body: 'Energy is easier to sustain when the reason for acting is clear.', evidenceIds: ['placement:sun'] },
-    ],
-    watchouts: [
-      { title: 'Do not take every signal as your responsibility', body: 'Sensitivity works best with boundaries.', evidenceIds: ['placement:moon'] },
-      { title: 'Do not agree before you know your own position', body: 'A pause can protect the quality of the choice.', evidenceIds: ['placement:venus'] },
-      { title: 'Do not confuse pause with avoidance', body: 'Sometimes action becomes stronger after the tempo becomes yours.', evidenceIds: ['placement:mars'] },
-    ],
-    dictionaryTerms: [
-      { term: 'Sun', meaning: 'character, will, and what makes you feel alive' },
-      { term: 'Moon', meaning: 'emotional response, habits, and what creates safety' },
-      { term: 'Rising', meaning: 'first impression and how you enter new situations' },
-      { term: 'House', meaning: 'a life area where a planet expresses itself' },
-      { term: 'Aspect', meaning: 'a relationship between two planets' },
-      { term: 'Transit', meaning: 'a current planet position touching your natal chart' },
-    ],
-    astroEvidence: evidence,
+  return sun && moon && rising
+    ? `Солнце в ${signLabel(sun.sign, lang)}, Луна в ${signLabel(moon.sign, lang)} и Асцендент в ${signLabel(rising.sign, lang)} задают общий тон карты. Дальше она читается не как набор терминов, а как живой рисунок характера, чувств и привычек.`
+    : 'Эта карта начинается с личных планет и переводит их в понятный человеческий язык.';
+}
+
+function buildFullLead(lang: 'ru' | 'en', chartData?: NatalChartData | null) {
+  const sun = chartData?.sun;
+  const moon = chartData?.moon;
+  const rising = chartData?.rising;
+  if (lang === 'en') {
+    return sun && moon && rising
+      ? `${planetLabel('sun', lang)} in ${signLabel(sun.sign, lang)}, ${planetLabel('moon', lang)} in ${signLabel(moon.sign, lang)}, and Rising in ${signLabel(rising.sign, lang)} are only the beginning. This version goes deeper into speech, closeness, action, stability, and the places that become difficult under pressure.`
+      : 'This full chart goes deeper into how the person thinks, loves, acts, and handles pressure.';
+  }
+
+  return sun && moon && rising
+    ? `Солнце в ${signLabel(sun.sign, lang)}, Луна в ${signLabel(moon.sign, lang)} и Асцендент в ${signLabel(rising.sign, lang)} — только вход в карту. Дальше важны речь, любовь, действие, устойчивость и то, что особенно чувствуется под давлением.`
+    : 'Полная карта идёт глубже: в речь, любовь, действие, устойчивость и сложные места поведения.';
+}
+
+function anchorFallbackRu(chartData?: NatalChartData | null): NatalAnchorReading {
+  const astroEvidence = buildNatalAstroEvidence(chartData, 'ru');
+  const sections = buildAnchorSections('ru', chartData, astroEvidence);
+  const base: NatalAnchorReading = {
+    headline: 'Как ты устроен',
+    lead: buildAnchorLead('ru', chartData),
+    sections,
+    dictionaryTerms: defaultDictionaryTerms('ru'),
+    astroEvidence,
   };
+  return { ...base, ...deriveAnchorLegacyFields(base) };
+}
+
+function anchorFallbackEn(chartData?: NatalChartData | null): NatalAnchorReading {
+  const astroEvidence = buildNatalAstroEvidence(chartData, 'en');
+  const sections = buildAnchorSections('en', chartData, astroEvidence);
+  const base: NatalAnchorReading = {
+    headline: 'How your chart reads you',
+    lead: buildAnchorLead('en', chartData),
+    sections,
+    dictionaryTerms: defaultDictionaryTerms('en'),
+    astroEvidence,
+  };
+  return { ...base, ...deriveAnchorLegacyFields(base) };
 }
 
 export function buildNatalAnchorFallback(lang: 'ru' | 'en', chartData?: NatalChartData | null): NatalAnchorReading {
@@ -657,38 +989,144 @@ export function buildNatalAnchorFallback(lang: 'ru' | 'en', chartData?: NatalCha
 }
 
 export function buildNatalFullFallback(lang: 'ru' | 'en', chartData?: NatalChartData | null): NatalFullReading {
-  const anchor = buildNatalAnchorFallback(lang, chartData);
-  const evidence = anchor.astroEvidence;
-  const primary = evidenceText(evidence, lang === 'ru' ? 'В карте видны основные личные планеты и их связи.' : 'The chart shows the main personal placements and their links.');
-  const aspect = evidence.find((item) => item.type === 'aspect');
+  const astroEvidence = buildNatalAstroEvidence(chartData, lang);
+  const sections = buildFullSections(lang, chartData, astroEvidence);
+  const synthesis = lang === 'ru'
+    ? `Если собрать карту целиком, становится видно главное: характер, чувства, речь, любовь и действие работают не по отдельности, а одной системой. Поэтому самые точные решения здесь обычно рождаются не из спешки, а из момента, когда внутренняя правда и внешний шаг совпадают.`
+    : `Taken together, the chart shows one main thing: character, feelings, speech, love, and action do not work separately. The best decisions usually appear when inner truth and outer movement finally line up.`;
+  const base: NatalFullReading = {
+    headline: lang === 'ru' ? 'Как карта складывается в тебя' : 'How the chart comes together',
+    lead: buildFullLead(lang, chartData),
+    sections,
+    synthesis,
+    astroEvidence,
+  };
+  return { ...base, ...deriveFullLegacyFields(base) };
+}
 
-  if (lang === 'en') {
-    return {
-      headline: 'Full chart',
-      summary: 'A deeper reading built from placements, houses, and the strongest aspects.',
-      mainConfiguration: `${primary} This is the starting configuration for understanding how the chart works as a whole.`,
-      reactions: 'Emotional reactions are read through the Moon, its sign, house, and links to other planets.',
-      choices: 'Choice style is read through the Sun, Mercury, Venus, and Mars: how you decide, speak, move toward people, and act.',
-      closeness: 'Closeness is not described abstractly here; it is read through Venus, the Moon, and relationship-related houses.',
-      strengths: anchor.strengths.map((item) => `${item.title}: ${item.body}`).join('\n\n'),
-      tensionPattern: aspect?.detail || 'The strongest repeating tension is read through the tightest natal aspects.',
-      integration: 'The practical orientation is to notice which part of the chart is speaking before reacting.',
-      astroEvidence: evidence,
-    };
+function cleanExamples(value: unknown, fallback: string[], count: number) {
+  const items = Array.isArray(value)
+    ? value.map((item) => cleanLine(item, '')).filter(Boolean).slice(0, count)
+    : [];
+  return items.length === count ? items : fallback;
+}
+
+function cleanHumanSections(
+  value: unknown,
+  fallback: NatalHumanSection[],
+  expectedIds: readonly string[]
+) {
+  const rawSections = Array.isArray(value) ? value : [];
+  const fallbackMap = new Map(fallback.map((section) => [section.id, section]));
+  const normalized = expectedIds.map((expectedId) => {
+    const raw = rawSections.find((item) => {
+      if (!item || typeof item !== 'object') return false;
+      return cleanLine((item as NatalHumanSection).id, expectedId) === expectedId;
+    }) as Partial<NatalHumanSection> | undefined;
+    const safeFallback = fallbackMap.get(expectedId)!;
+    const evidenceIds = Array.isArray(raw?.evidenceIds)
+      ? raw!.evidenceIds.map(String).filter(Boolean).slice(0, 4)
+      : [];
+    if (!evidenceIds.length) return safeFallback;
+
+    return createHumanSection({
+      id: expectedId,
+      title: cleanLine(raw?.title, safeFallback.title),
+      subtitle: cleanLine(raw?.subtitle, safeFallback.subtitle),
+      body: cleanParagraphs(raw?.body, safeFallback.body),
+      examples: cleanExamples(raw?.examples, safeFallback.examples, safeFallback.examples.length),
+      astroSource: cleanLine(raw?.astroSource, safeFallback.astroSource),
+      evidenceIds,
+    });
+  });
+
+  const duplicateKey = new Set<string>();
+  for (const section of normalized) {
+    const key = `${section.title.toLowerCase()}::${section.body.toLowerCase()}`;
+    if (duplicateKey.has(key)) {
+      return fallback;
+    }
+    duplicateKey.add(key);
   }
 
-  return {
-    headline: 'Полная карта',
-    summary: 'Разбор личности по положениям планет, домам и самым сильным связям карты.',
-    mainConfiguration: `${primary} Это главная конфигурация, от которой дальше читаются реакции, выборы, близость и повторяющиеся напряжения.`,
-    reactions: `Эмоциональная реакция читается через Луну: её знак, дом и связи с другими планетами. ${anchor.threeAnchors[1]?.body || ''}`.trim(),
-    choices: 'Стиль выбора читается через Солнце, Меркурий, Венеру и Марс: как ты решаешь, говоришь, сближаешься и переходишь к действию.',
-    closeness: 'Близость здесь описывается не абстрактно, а через Венеру, Луну и темы домов: где нужен контакт, где граница, где появляется осторожность.',
-    strengths: anchor.strengths.map((item) => `${item.title}. ${item.body}`).join('\n\n'),
-    tensionPattern: aspect?.detail || 'Повторяющееся напряжение читается через самые точные аспекты карты: там чаще всего сталкиваются разные внутренние функции.',
-    integration: 'Практический ориентир простой: перед реакцией полезно понять, какая часть карты сейчас говорит — эмоция, привычная защита, желание близости или потребность действовать.',
-    astroEvidence: evidence,
+  return normalized;
+}
+
+export function validateNatalHumanSections(
+  sections: NatalHumanSection[] | undefined,
+  expectedIds: readonly string[]
+) {
+  if (!Array.isArray(sections) || sections.length !== expectedIds.length) return false;
+  const ids = sections.map((section) => section.id);
+  if (ids.some((id, index) => id !== expectedIds[index])) return false;
+  const seenBodies = new Set<string>();
+  for (const section of sections) {
+    if (!section.body || !section.subtitle || !section.astroSource) return false;
+    if (!Array.isArray(section.examples) || !section.examples.length) return false;
+    if (!Array.isArray(section.evidenceIds) || !section.evidenceIds.length) return false;
+    const bodyKey = section.body.toLowerCase().trim();
+    if (seenBodies.has(bodyKey)) return false;
+    seenBodies.add(bodyKey);
+  }
+  return true;
+}
+
+export function coerceNatalAnchorReading(
+  content: unknown,
+  lang: 'ru' | 'en',
+  chartData?: NatalChartData | null
+): NatalAnchorReading {
+  const fallback = buildNatalAnchorFallback(lang, chartData);
+
+  if (typeof content === 'string') {
+    return fallback;
+  }
+
+  const raw = (content && typeof content === 'object' ? content : {}) as Partial<NatalAnchorReading> & {
+    patterns?: string[];
+    portrait?: string;
+    perceivedByOthers?: string;
   };
+
+  const sections = Array.isArray(raw.sections) && raw.sections.length
+    ? cleanHumanSections(raw.sections, fallback.sections, ANCHOR_SECTION_IDS)
+    : fallback.sections;
+
+  const reading: NatalAnchorReading = {
+    headline: cleanLine(raw.headline, fallback.headline),
+    lead: cleanParagraphs(raw.lead || raw.summary, fallback.lead),
+    sections,
+    dictionaryTerms: cleanDictionary(raw.dictionaryTerms, fallback.dictionaryTerms),
+    astroEvidence: Array.isArray(raw.astroEvidence) && raw.astroEvidence.length
+      ? raw.astroEvidence.slice(0, 12)
+      : fallback.astroEvidence,
+  };
+
+  return { ...reading, ...deriveAnchorLegacyFields(reading) };
+}
+
+export function coerceNatalFullReading(
+  content: unknown,
+  lang: 'ru' | 'en',
+  chartData?: NatalChartData | null
+): NatalFullReading {
+  const fallback = buildNatalFullFallback(lang, chartData);
+  const raw = (content && typeof content === 'object' ? content : {}) as Partial<NatalFullReading>;
+  const sections = Array.isArray(raw.sections) && raw.sections.length
+    ? cleanHumanSections(raw.sections, fallback.sections, FULL_SECTION_IDS)
+    : fallback.sections;
+
+  const reading: NatalFullReading = {
+    headline: cleanLine(raw.headline, fallback.headline),
+    lead: cleanParagraphs(raw.lead || raw.summary, fallback.lead),
+    sections,
+    synthesis: cleanParagraphs(raw.synthesis || raw.integration, fallback.synthesis),
+    astroEvidence: Array.isArray(raw.astroEvidence) && raw.astroEvidence.length
+      ? raw.astroEvidence.slice(0, 12)
+      : fallback.astroEvidence,
+  };
+
+  return { ...reading, ...deriveFullLegacyFields(reading) };
 }
 
 export function buildNatalLivingFallback(
@@ -756,62 +1194,6 @@ export function buildNatalLivingFallback(
   };
 }
 
-export function coerceNatalAnchorReading(
-  content: unknown,
-  lang: 'ru' | 'en',
-  chartData?: NatalChartData | null
-): NatalAnchorReading {
-  const fallback = buildNatalAnchorFallback(lang, chartData);
-
-  if (typeof content === 'string') {
-    const paragraphs = splitParagraphs(content);
-    const portrait = paragraphs.join('\n\n') || fallback.portrait;
-    return { ...fallback, portrait, reading: portrait };
-  }
-
-  const raw = (content && typeof content === 'object' ? content : {}) as Partial<NatalAnchorReading> & {
-    patterns?: string[];
-  };
-  const portrait = cleanParagraphs(raw.portrait || raw.reading, fallback.portrait);
-  return {
-    headline: cleanLine(raw.headline, fallback.headline),
-    summary: cleanLine(raw.summary, fallback.summary),
-    portrait,
-    reading: portrait,
-    threeAnchors: cleanPoints(raw.threeAnchors, fallback.threeAnchors, 3).slice(0, 3),
-    perceivedByOthers: cleanParagraphs(raw.perceivedByOthers, fallback.perceivedByOthers),
-    strengths: cleanPoints(raw.strengths, fallback.strengths, 3).slice(0, 3),
-    watchouts: cleanPoints(raw.watchouts || raw.patterns, fallback.watchouts, 3).slice(0, 3),
-    dictionaryTerms: cleanDictionary(raw.dictionaryTerms, fallback.dictionaryTerms),
-    astroEvidence: Array.isArray(raw.astroEvidence) && raw.astroEvidence.length
-      ? raw.astroEvidence.slice(0, 10)
-      : fallback.astroEvidence,
-  };
-}
-
-export function coerceNatalFullReading(
-  content: unknown,
-  lang: 'ru' | 'en',
-  chartData?: NatalChartData | null
-): NatalFullReading {
-  const fallback = buildNatalFullFallback(lang, chartData);
-  const raw = (content && typeof content === 'object' ? content : {}) as Partial<NatalFullReading>;
-  return {
-    headline: cleanLine(raw.headline, fallback.headline),
-    summary: cleanLine(raw.summary, fallback.summary),
-    mainConfiguration: cleanParagraphs(raw.mainConfiguration, fallback.mainConfiguration),
-    reactions: cleanParagraphs(raw.reactions, fallback.reactions),
-    choices: cleanParagraphs(raw.choices, fallback.choices),
-    closeness: cleanParagraphs(raw.closeness, fallback.closeness),
-    strengths: cleanParagraphs(raw.strengths, fallback.strengths),
-    tensionPattern: cleanParagraphs(raw.tensionPattern, fallback.tensionPattern),
-    integration: cleanParagraphs(raw.integration, fallback.integration),
-    astroEvidence: Array.isArray(raw.astroEvidence) && raw.astroEvidence.length
-      ? raw.astroEvidence.slice(0, 10)
-      : fallback.astroEvidence,
-  };
-}
-
 export function coerceNatalLivingReading(
   content: unknown,
   lang: 'ru' | 'en',
@@ -850,5 +1232,5 @@ export function coerceNatalLivingReading(
 }
 
 export function mapNatalAnchorToLegacyIntro(reading: NatalAnchorReading) {
-  return [reading.summary, reading.portrait || reading.reading].filter(Boolean).join('\n\n').trim();
+  return [reading.lead, ...reading.sections.map((section) => section.body)].filter(Boolean).join('\n\n').trim();
 }

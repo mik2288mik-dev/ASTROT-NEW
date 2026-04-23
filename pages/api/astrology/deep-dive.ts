@@ -40,32 +40,40 @@ function sectionText(title: string, body: string) {
 }
 
 function selectDeepDiveText(reading: NatalFullReading, topicKey: string, lang: 'ru' | 'en') {
+  const closeness = reading.closeness || '';
+  const choices = reading.choices || '';
+  const strengths = reading.strengths || '';
+  const tensionPattern = reading.tensionPattern || '';
+  const integration = reading.integration || '';
+  const mainConfiguration = reading.mainConfiguration || '';
+  const reactions = reading.reactions || '';
+
   if (lang === 'en') {
     switch (topicKey) {
       case 'love':
-        return sectionText('How you build closeness', reading.closeness);
+        return sectionText('How you build closeness', closeness);
       case 'career':
-        return sectionText('How you choose and act', `${reading.choices}\n\n${reading.strengths}`);
+        return sectionText('How you choose and act', `${choices}\n\n${strengths}`);
       case 'weakness':
-        return sectionText('Where tension repeats', `${reading.tensionPattern}\n\n${reading.integration}`);
+        return sectionText('Where tension repeats', `${tensionPattern}\n\n${integration}`);
       case 'karma':
-        return sectionText('How to work with the repeating pattern', reading.integration);
+        return sectionText('How to work with the repeating pattern', integration);
       default:
-        return sectionText('Full personality interpretation', `${reading.mainConfiguration}\n\n${reading.reactions}\n\n${reading.choices}`);
+        return sectionText('Full personality interpretation', `${mainConfiguration}\n\n${reactions}\n\n${choices}`);
     }
   }
 
   switch (topicKey) {
     case 'love':
-      return sectionText('Как ты строишь близость', reading.closeness);
+      return sectionText('Как ты строишь близость', closeness);
     case 'career':
-      return sectionText('Как ты выбираешь и действуешь', `${reading.choices}\n\n${reading.strengths}`);
+      return sectionText('Как ты выбираешь и действуешь', `${choices}\n\n${strengths}`);
     case 'weakness':
-      return sectionText('Где повторяется напряжение', `${reading.tensionPattern}\n\n${reading.integration}`);
+      return sectionText('Где повторяется напряжение', `${tensionPattern}\n\n${integration}`);
     case 'karma':
-      return sectionText('Как с этим обращаться', reading.integration);
+      return sectionText('Как с этим обращаться', integration);
     default:
-      return sectionText('Полная интерпретация личности', `${reading.mainConfiguration}\n\n${reading.reactions}\n\n${reading.choices}`);
+      return sectionText('Полная интерпретация личности', `${mainConfiguration}\n\n${reactions}\n\n${choices}`);
   }
 }
 
@@ -97,7 +105,7 @@ async function upsertFull(userId: string, chartId: number | null, chartData: any
     calculationVersion: chartData?.calculationVersion || null,
     isPersistent: true,
     canRegenerateForLumi: false,
-    legacySource: 'natal_content_unified_v3.legacy_deep_dive',
+    legacySource: 'natal_content_unified_v4.legacy_deep_dive',
   };
 
   if (chartId != null) {

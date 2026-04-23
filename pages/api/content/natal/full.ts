@@ -173,7 +173,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         calculationVersion: context.chartData.calculationVersion || null,
         isPersistent: true,
         canRegenerateForLumi: false,
-        legacySource: 'natal_content_unified_v3',
+        legacySource: 'natal_content_unified_v4',
       }, userId.trim())
     : await db.content_interpretations.upsertByUser(userId.trim(), {
         accessTier: 'premium',
@@ -187,7 +187,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         calculationVersion: context.chartData.calculationVersion || null,
         isPersistent: true,
         canRegenerateForLumi: false,
-        legacySource: 'natal_content_unified_v3',
+        legacySource: 'natal_content_unified_v4',
       });
 
   return res.status(200).json({

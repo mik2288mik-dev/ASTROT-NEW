@@ -82,7 +82,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         isPersistent: true,
         canRegenerateForLumi: true,
         regenerationCostLumi: 250,
-        legacySource: 'natal_content_unified_v3.legacy_intro',
+        legacySource: 'natal_content_unified_v4.legacy_intro',
       }, userId || null);
     } else if (userId) {
       await db.content_interpretations.upsertByUser(userId, {
@@ -98,7 +98,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         isPersistent: true,
         canRegenerateForLumi: true,
         regenerationCostLumi: 250,
-        legacySource: 'natal_content_unified_v3.legacy_intro',
+        legacySource: 'natal_content_unified_v4.legacy_intro',
       });
     }
 

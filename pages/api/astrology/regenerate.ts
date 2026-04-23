@@ -94,7 +94,7 @@ async function upsertAnchor(userId: string, chartId: number | null, chartData: a
     isPersistent: true,
     canRegenerateForLumi: true,
     regenerationCostLumi: 250,
-    legacySource: 'natal_content_unified_v3.regenerate',
+    legacySource: 'natal_content_unified_v4.regenerate',
   };
 
   if (chartId != null) {
@@ -123,7 +123,7 @@ async function upsertFull(userId: string, chartId: number | null, chartData: any
     calculationVersion: chartData?.calculationVersion || null,
     isPersistent: true,
     canRegenerateForLumi: false,
-    legacySource: 'natal_content_unified_v3.regenerate',
+    legacySource: 'natal_content_unified_v4.regenerate',
   };
 
   if (chartId != null) {

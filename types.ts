@@ -293,6 +293,16 @@ export interface NatalDictionaryTerm {
   meaning: string;
 }
 
+export interface NatalHumanSection {
+  id: string;
+  title: string;
+  subtitle: string;
+  body: string;
+  examples: string[];
+  astroSource: string;
+  evidenceIds: string[];
+}
+
 export interface AstroEvidenceItem {
   id: string;
   type: 'placement' | 'aspect' | 'transit' | 'house' | 'signature';
@@ -307,31 +317,37 @@ export interface AstroEvidenceItem {
   orb?: number | null;
 }
 
-export interface NatalAnchorReadingV3 {
+export interface NatalAnchorReadingV4 {
   headline: string;
-  summary: string;
-  portrait: string;
-  threeAnchors: NatalReadingPoint[];
-  perceivedByOthers: string;
-  strengths: NatalReadingPoint[];
-  watchouts: NatalReadingPoint[];
+  lead: string;
+  sections: NatalHumanSection[];
   dictionaryTerms: NatalDictionaryTerm[];
   astroEvidence: AstroEvidenceItem[];
-  /** Legacy bridge for older clients. Use `portrait` in new UI. */
+  /** Legacy bridges kept for older APIs while UI uses `sections`. */
+  summary?: string;
+  portrait?: string;
+  threeAnchors?: NatalReadingPoint[];
+  perceivedByOthers?: string;
+  strengths?: NatalReadingPoint[];
+  watchouts?: NatalReadingPoint[];
   reading?: string;
 }
 
-export interface NatalFullReadingV3 {
+export interface NatalFullReadingV4 {
   headline: string;
-  summary: string;
-  mainConfiguration: string;
-  reactions: string;
-  choices: string;
-  closeness: string;
-  strengths: string;
-  tensionPattern: string;
-  integration: string;
+  lead: string;
+  sections: NatalHumanSection[];
+  synthesis: string;
   astroEvidence: AstroEvidenceItem[];
+  /** Legacy bridges kept for older APIs while UI uses `sections`. */
+  summary?: string;
+  mainConfiguration?: string;
+  reactions?: string;
+  choices?: string;
+  closeness?: string;
+  strengths?: string;
+  tensionPattern?: string;
+  integration?: string;
 }
 
 export interface NatalDailyReadingV3 {
@@ -349,8 +365,8 @@ export interface NatalDailyReadingV3 {
   daySituations?: NatalReadingPoint[];
 }
 
-export type NatalAnchorReading = NatalAnchorReadingV3;
-export type NatalFullReading = NatalFullReadingV3;
+export type NatalAnchorReading = NatalAnchorReadingV4;
+export type NatalFullReading = NatalFullReadingV4;
 export type NatalLivingReading = NatalDailyReadingV3;
 
 export interface PlanetInsightTag {

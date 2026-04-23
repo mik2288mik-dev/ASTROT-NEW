@@ -161,7 +161,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         isPersistent: true,
         canRegenerateForLumi: true,
         regenerationCostLumi: 250,
-        legacySource: 'natal_content_unified_v3',
+        legacySource: 'natal_content_unified_v4',
       }, userId.trim())
     : await db.content_interpretations.upsertByUser(userId.trim(), {
         accessTier: 'free',
@@ -176,7 +176,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         isPersistent: true,
         canRegenerateForLumi: true,
         regenerationCostLumi: 250,
-        legacySource: 'natal_content_unified_v3',
+        legacySource: 'natal_content_unified_v4',
       });
 
   return res.status(200).json({

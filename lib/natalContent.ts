@@ -29,6 +29,7 @@ import {
   coerceNatalLivingReading,
   containsNatalBannedPhrase,
   getCurrentNatalPeriodKey,
+  validateNatalHumanSections,
 } from './natalReadings';
 
 const openai = process.env.OPENAI_API_KEY
@@ -108,7 +109,11 @@ export async function generateNatalAnchorReading(
       temperature: 0.55,
     });
     const reading = coerceNatalAnchorReading({ ...parsed, astroEvidence: parsed.astroEvidence || evidence }, lang, chartData);
-    if (containsNatalBannedPhrase(reading) || await isFlaggedByModeration(reading)) {
+    if (
+      !validateNatalHumanSections(reading.sections, ['character', 'emotions', 'first-impression', 'thoughts', 'love', 'action']) ||
+      containsNatalBannedPhrase(reading) ||
+      await isFlaggedByModeration(reading)
+    ) {
       return buildNatalAnchorFallback(lang, chartData);
     }
     return reading;
@@ -139,7 +144,14 @@ export async function generateNatalFullReading(
       temperature: 0.5,
     });
     const reading = coerceNatalFullReading({ ...parsed, astroEvidence: parsed.astroEvidence || evidence }, lang, chartData);
-    if (containsNatalBannedPhrase(reading) || await isFlaggedByModeration(reading)) {
+    if (
+      !validateNatalHumanSections(
+        reading.sections,
+        ['character', 'emotions', 'first-impression', 'thoughts-speech', 'love', 'action', 'money-stability', 'intimacy', 'when-hard']
+      ) ||
+      containsNatalBannedPhrase(reading) ||
+      await isFlaggedByModeration(reading)
+    ) {
       return buildNatalFullFallback(lang, chartData);
     }
     return reading;

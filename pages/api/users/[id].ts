@@ -76,10 +76,10 @@ async function hydrateGeneratedContent(userId: string) {
       const reading = coerceNatalFullReading(full.content, 'ru', primaryChart?.chart_data || null);
       const deepDiveAnalyses: Record<string, string> = {
         personality: [reading.mainConfiguration, reading.reactions, reading.choices].filter(Boolean).join('\n\n'),
-        love: reading.closeness,
+        love: reading.closeness || '',
         career: [reading.choices, reading.strengths].filter(Boolean).join('\n\n'),
         weakness: [reading.tensionPattern, reading.integration].filter(Boolean).join('\n\n'),
-        karma: reading.integration,
+        karma: reading.integration || '',
       };
       generatedContent.deepDiveAnalyses = deepDiveAnalyses;
       const generatedAt = toUnixTimestamp(full.updatedAt);

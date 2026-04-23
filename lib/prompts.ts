@@ -5,7 +5,7 @@
  * через AI (OpenAI, Gemini, Claude и т.д.)
  */
 
-import { AstroEvidenceItem, NatalChartData, UserProfile } from "../types";
+import { AstroEvidenceItem, NatalChartData, NatalHumanSection, UserProfile } from "../types";
 
 /**
  * Lumia System Prompt — глобальный тон для всех интерпретаций
@@ -901,12 +901,8 @@ export interface DaypartForecastAIResponse {
 
 export interface NatalAnchorAIResponse {
   headline: string;
-  summary: string;
-  portrait: string;
-  threeAnchors: Array<{ title: string; body: string }>;
-  perceivedByOthers: string;
-  strengths: Array<{ title: string; body: string; evidenceIds?: string[] }>;
-  watchouts: Array<{ title: string; body: string; evidenceIds?: string[] }>;
+  lead: string;
+  sections: NatalHumanSection[];
   dictionaryTerms: Array<{ term: string; meaning: string }>;
   astroEvidence?: AstroEvidenceItem[];
 }
@@ -926,14 +922,9 @@ export interface NatalLivingAIResponse {
 
 export interface NatalFullAIResponse {
   headline: string;
-  summary: string;
-  mainConfiguration: string;
-  reactions: string;
-  choices: string;
-  closeness: string;
-  strengths: string;
-  tensionPattern: string;
-  integration: string;
+  lead: string;
+  sections: NatalHumanSection[];
+  synthesis: string;
   astroEvidence?: AstroEvidenceItem[];
 }
 
@@ -1152,6 +1143,11 @@ Return only JSON.`;
 };
 
 const NATAL_EDITORIAL_BANNED = [
+  'это читается через',
+  'может проявляться',
+  'здесь описывается',
+  'полезно проверить',
+  'тема связана с',
   'день просит',
   'внутренняя точность',
   'чужой шум',
@@ -1197,9 +1193,9 @@ export const createNatalAnchorPromptV3 = (
 
   return `${natalEditorialRules(profile.language)}
 
-Task: create the canonical base natal chart reading for Lumia.
+Task: create the canonical natal reading for Lumia in a human planet-by-planet format.
 
-This is a complete first reading, not a teaser. It should be interesting to read on its own, but it should not pretend to be a full professional consultation.
+This is a complete first reading, not a teaser. It should feel like a real personal chart, grounded in planets, signs, houses, and aspects, but written in clean human language.
 
 astroEvidence:
 ${evidenceJson}
@@ -1210,30 +1206,32 @@ ${natalDataJson}
 Required JSON shape:
 {
   "headline": "max 80 chars",
-  "summary": "1-2 sentences; mention the main chart configuration without sounding dry",
-  "portrait": "5-7 short paragraphs. Each paragraph must be grounded in one evidence item and include a human-life example.",
-  "threeAnchors": [
-    { "title": "Sun/Solnce localized", "body": "character role with sign + house if present", "evidenceIds": ["placement:sun"] },
-    { "title": "Moon localized", "body": "emotional role with sign + house if present", "evidenceIds": ["placement:moon"] },
-    { "title": "Rising localized", "body": "first impression role with sign", "evidenceIds": ["placement:rising"] }
-  ],
-  "perceivedByOthers": "2-3 sentences about first impression, grounded in Rising/ASC evidence",
-  "strengths": [
-    { "title": "short concrete title", "body": "one grounded observation with a life example", "evidenceIds": ["..."] }
-  ],
-  "watchouts": [
-    { "title": "short concrete title", "body": "one soft warning without drama", "evidenceIds": ["..."] }
+  "lead": "1-2 sentences about the tone of the whole chart",
+  "sections": [
+    {
+      "id": "character",
+      "title": "Характер / localized equivalent",
+      "subtitle": "short subtitle with placement, e.g. Солнце в Рыбах · 4 дом",
+      "body": "2-4 short paragraphs. Must include astro source -> human meaning -> concrete life example.",
+      "examples": ["exactly 2 short life examples"],
+      "astroSource": "one compact plain-language astro source line",
+      "evidenceIds": ["placement:sun", "aspect:sun:..."]
+    }
   ],
   "dictionaryTerms": [
-    { "term": "Sun/Moon/Rising/House/Aspect/Transit localized", "meaning": "plain-language meaning" }
+    { "term": "Sun/Moon/Rising/House/Aspect localized", "meaning": "plain-language meaning" }
   ],
   "astroEvidence": ${evidenceJson}
 }
 
+Rules for sections:
+- exactly 6 sections in this order: character, emotions, first-impression, thoughts, love, action.
+- section titles should be human, localized, and not theoretical.
+- every section must include at least one concrete life example and at least one evidence id.
+- do not repeat the same thesis between sections.
+- do not explain astrology theory.
+
 Rules for arrays:
-- threeAnchors: exactly 3.
-- strengths: exactly 3.
-- watchouts: exactly 3.
 - dictionaryTerms: 5-7.
 
 Return only valid JSON.`;
@@ -1249,9 +1247,9 @@ export const createNatalFullPrompt = (
 
   return `${natalEditorialRules(profile.language)}
 
-Task: create the canonical full natal personality interpretation.
+Task: create the canonical full natal personality interpretation in a human planet-by-planet format.
 
-This is a deeper reading than the base portrait. It must not repeat the base text. It should connect chart facts into behavior: how the person reacts, chooses, builds closeness, uses strength, repeats tension, and can work with it.
+This is deeper than the base reading. It must not repeat the base text. It should connect chart facts into behavior: how the person reacts, chooses, speaks, loves, acts, handles money, builds closeness, and what usually becomes difficult under pressure.
 
 astroEvidence:
 ${evidenceJson}
@@ -1262,18 +1260,29 @@ ${natalDataJson}
 Required JSON shape:
 {
   "headline": "max 80 chars",
-  "summary": "1-2 sentences about the full reading",
-  "mainConfiguration": "2-4 paragraphs. Start from the strongest chart configuration and explain why it matters.",
-  "reactions": "2-4 paragraphs about emotional reactions, grounded in Moon/ASC/aspects.",
-  "choices": "2-4 paragraphs about decisions, speech, action style, grounded in Sun/Mercury/Mars.",
-  "closeness": "2-4 paragraphs about closeness and relationships, grounded in Moon/Venus/Mars/aspects.",
-  "strengths": "2-4 paragraphs about real strengths with examples, grounded in evidence.",
-  "tensionPattern": "2-4 paragraphs about a repeating tension; no drama, no fatalism.",
-  "integration": "2-4 paragraphs with practical orientation; no commands, no therapy language.",
+  "lead": "1-2 sentences about what makes this chart recognizable",
+  "sections": [
+    {
+      "id": "character",
+      "title": "localized human section title",
+      "subtitle": "compact placement line",
+      "body": "2-4 short paragraphs",
+      "examples": ["exactly 3 short life examples"],
+      "astroSource": "compact astro source line",
+      "evidenceIds": ["..."]
+    }
+  ],
+  "synthesis": "2-3 short paragraphs tying the chart together without repeating all sections",
   "astroEvidence": ${evidenceJson}
 }
 
-Each section must include at least one explicit astrological source from astroEvidence and one concrete situation.
+Rules for sections:
+- exactly 9 sections in this order: character, emotions, first-impression, thoughts-speech, love, action, money-stability, intimacy, when-hard.
+- every section must include at least one explicit astrological source from astroEvidence and one concrete life example.
+- do not use titles about power, tension, layers, lessons, destiny, or daily forecast.
+- do not explain astrology theory.
+- do not repeat the same sentence idea across sections.
+
 Return only valid JSON.`;
 };
 
