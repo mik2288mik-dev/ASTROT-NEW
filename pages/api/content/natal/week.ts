@@ -6,6 +6,8 @@ import {
   saveReading,
 } from '../../../../lib/natalReading/apiHelper';
 import { generateWeek } from '../../../../lib/natalReading/generate';
+import { buildWeekFallback } from '../../../../lib/natalReading/fallbacks';
+import { serializeChartForPrompt } from '../../../../lib/natalReading/chartSerializer';
 import {
   NATAL_READING_WEEK_PROMPT,
   readingWeekCacheKey,
@@ -49,10 +51,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const saved = await saveReading(ctx, cacheOpts, week);
     return res.status(200).json({ interpretation: saved, source: 'generated' });
   } catch (error) {
-    console.error('[natal/week] generation failed', error);
-    return res.status(500).json({
-      error: 'GENERATION_FAILED',
-      message: error instanceof Error ? error.message : 'Generation failed',
-    });
+    console.error(
+      '[natal/week] generation failed:',
+      error instanceof Error ? error.message : error
+    );
+    const fallback = buildWeekFallback(serializeChartForPrompt(ctx.profile, ctx.chartData!));
+    // Week cache anyway expires at end of week, so we just keep the original validTo
+    try {
+      const saved = await saveReading(ctx, cacheOpts, fallback);
+      return res.status(200).json({ interpretation: saved, source: 'fallback' });
+    } catch {
+      return res.status(200).json({
+        interpretation: { content: fallback, promptVersion: cacheOpts.promptVersion },
+        source: 'fallback-inline',
+      });
+    }
   }
 }

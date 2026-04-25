@@ -7,6 +7,8 @@ import {
   saveReading,
 } from '../../../../lib/natalReading/apiHelper';
 import { generateToday } from '../../../../lib/natalReading/generate';
+import { buildTodayFallback } from '../../../../lib/natalReading/fallbacks';
+import { serializeChartForPrompt } from '../../../../lib/natalReading/chartSerializer';
 import {
   NATAL_READING_TODAY_PROMPT,
   readingTodayCacheKey,
@@ -57,10 +59,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const saved = await saveReading(ctx, cacheOpts, today);
     return res.status(200).json({ interpretation: saved, source: 'generated' });
   } catch (error) {
-    console.error('[natal/today] generation failed', error);
-    return res.status(500).json({
-      error: 'GENERATION_FAILED',
-      message: error instanceof Error ? error.message : 'Generation failed',
-    });
+    console.error(
+      '[natal/today] generation failed:',
+      error instanceof Error ? error.message : error
+    );
+    const fallback = buildTodayFallback(serializeChartForPrompt(ctx.profile, ctx.chartData!));
+    // Today cache anyway expires at end of day
+    try {
+      const saved = await saveReading(ctx, cacheOpts, fallback);
+      return res.status(200).json({ interpretation: saved, source: 'fallback' });
+    } catch {
+      return res.status(200).json({
+        interpretation: { content: fallback, promptVersion: cacheOpts.promptVersion },
+        source: 'fallback-inline',
+      });
+    }
   }
 }

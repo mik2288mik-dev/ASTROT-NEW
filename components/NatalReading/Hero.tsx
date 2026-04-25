@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import type { NatalReadingArchetype } from '../../lib/natalReading/types';
 import { ARCHETYPE_FADE_MS, ARCHETYPE_ROTATION_MS, SIGN_GLYPH } from './constants';
-import { SkeletonLine } from './Skeleton';
 
 type HeroProps = {
   name: string;
@@ -9,7 +8,8 @@ type HeroProps = {
   birthTime: string;
   birthPlace: string;
   signature: { sun: string; moon: string; rising: string; mc?: string };
-  archetypes: NatalReadingArchetype[] | null; // null = loading
+  archetypes: NatalReadingArchetype[] | null;
+  loadingArchetypes?: boolean;
 };
 
 function metaLine(date: string, time: string, place: string): string {
@@ -26,6 +26,14 @@ function Chip({ glyph, label }: { glyph: string; label: string }) {
   );
 }
 
+/** A safe default archetype that always renders even before the API returns. */
+function defaultArchetype(sun: string, moon: string): NatalReadingArchetype {
+  return {
+    title: `${sun} и ${moon}`,
+    subtitle: 'Твоя натальная карта собрана и готова — читай дальше',
+  };
+}
+
 export const Hero: React.FC<HeroProps> = ({
   name,
   birthDate,
@@ -33,23 +41,30 @@ export const Hero: React.FC<HeroProps> = ({
   birthPlace,
   signature,
   archetypes,
+  loadingArchetypes = false,
 }) => {
+  const fallback = useMemo(
+    () => defaultArchetype(signature.sun, signature.moon),
+    [signature.sun, signature.moon]
+  );
+
+  const list = archetypes && archetypes.length ? archetypes : [fallback];
   const [idx, setIdx] = useState(0);
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
-    if (!archetypes || archetypes.length < 2) return;
+    if (list.length < 2) return;
     const interval = setInterval(() => {
       setVisible(false);
       setTimeout(() => {
-        setIdx((prev) => (prev + 1) % archetypes.length);
+        setIdx((prev) => (prev + 1) % list.length);
         setVisible(true);
       }, ARCHETYPE_FADE_MS);
     }, ARCHETYPE_ROTATION_MS);
     return () => clearInterval(interval);
-  }, [archetypes]);
+  }, [list.length]);
 
-  const current = archetypes && archetypes.length ? archetypes[idx] : null;
+  const current = list[Math.min(idx, list.length - 1)];
 
   return (
     <section className="px-5 pt-7 pb-8">
@@ -60,21 +75,21 @@ export const Hero: React.FC<HeroProps> = ({
       <h1
         className="mt-3 font-lora text-[27px] leading-[1.2] tracking-[-0.005em] text-[#1f1f1f]"
         style={{
-          opacity: archetypes ? (visible ? 1 : 0) : 0.5,
+          opacity: loadingArchetypes && !archetypes ? 0.4 : visible ? 1 : 0,
           transition: `opacity ${ARCHETYPE_FADE_MS}ms ease`,
         }}
       >
-        {current ? current.title : <SkeletonLine width="80%" />}
+        {current.title}
       </h1>
 
       <p
         className="mt-2 font-lora italic text-[15px] leading-[1.55] text-[#5e5e5e]"
         style={{
-          opacity: archetypes ? (visible ? 1 : 0) : 0.5,
+          opacity: loadingArchetypes && !archetypes ? 0.4 : visible ? 1 : 0,
           transition: `opacity ${ARCHETYPE_FADE_MS}ms ease`,
         }}
       >
-        {current ? current.subtitle : <SkeletonLine width="60%" />}
+        {current.subtitle}
       </p>
 
       <p className="mt-3 text-[13px] text-[#9a9a9a]">{name}</p>

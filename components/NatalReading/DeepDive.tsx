@@ -1,4 +1,13 @@
 import React, { useState } from 'react';
+import {
+  Briefcase,
+  Compass,
+  Heart,
+  HeartPulse,
+  Lock,
+  Sparkles,
+  type LucideIcon,
+} from 'lucide-react';
 import type {
   NatalReadingDeepDive,
   NatalReadingDeepDiveKey,
@@ -8,16 +17,16 @@ import { SkeletonParagraph } from './Skeleton';
 
 type DiveTopic = {
   key: NatalReadingDeepDiveKey;
-  icon: string;
+  Icon: LucideIcon;
   title: string;
   subtitle: string;
-  preview: string; // shown as blurred preview text
+  preview: string;
 };
 
 const DIVE_TOPICS: DiveTopic[] = [
   {
     key: 'love',
-    icon: '❤',
+    Icon: Heart,
     title: 'Любовь и отношения',
     subtitle: 'Венера · VII дом · паттерны',
     preview:
@@ -25,7 +34,7 @@ const DIVE_TOPICS: DiveTopic[] = [
   },
   {
     key: 'career',
-    icon: '💼',
+    Icon: Briefcase,
     title: 'Карьера и деньги',
     subtitle: 'Солнце X · Марс XI · Сатурн VIII',
     preview:
@@ -33,7 +42,7 @@ const DIVE_TOPICS: DiveTopic[] = [
   },
   {
     key: 'health',
-    icon: '🌙',
+    Icon: HeartPulse,
     title: 'Здоровье и энергия',
     subtitle: 'Луна VI · Плутон · тело',
     preview:
@@ -41,7 +50,7 @@ const DIVE_TOPICS: DiveTopic[] = [
   },
   {
     key: 'karma',
-    icon: '☊',
+    Icon: Compass,
     title: 'Кармическая задача',
     subtitle: 'Северный Узел · VIII дом · миссия',
     preview:
@@ -49,20 +58,13 @@ const DIVE_TOPICS: DiveTopic[] = [
   },
   {
     key: 'strengths',
-    icon: '⭐',
+    Icon: Sparkles,
     title: 'Сильные стороны и зоны роста',
     subtitle: 'Полный психологический разбор',
     preview:
       'Тебя ценят за то, чего ты сам в себе не замечаешь. И страдаешь от того, чего другие в тебе не видят. Здесь — обе стороны, без сглаживаний.',
   },
 ];
-
-const LockIcon: React.FC = () => (
-  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>
-    <rect x="3" y="7" width="10" height="6" rx="1.5" stroke="#6f4ea8" strokeWidth="1.2" />
-    <path d="M5.5 7V5a2.5 2.5 0 015 0v2" stroke="#6f4ea8" strokeWidth="1.2" />
-  </svg>
-);
 
 type Props = {
   isPremium: boolean;
@@ -79,6 +81,7 @@ const Card: React.FC<{
   onClick: () => void;
 }> = ({ topic, state, data, onClick }) => {
   const isLocked = state === 'locked';
+  const Icon = topic.Icon;
 
   return (
     <div className="border-t border-[#f2f2f2] py-6 first:border-t-0 first:pt-0">
@@ -88,21 +91,27 @@ const Card: React.FC<{
         className="flex w-full items-start justify-between gap-4 text-left"
       >
         <div className="min-w-0 flex-1">
-          <p className="font-lora text-[17px] leading-[1.3] text-[#1f1f1f]">
-            <span className="mr-1.5">{topic.icon}</span>
-            {topic.title}
+          <p className="flex items-center gap-2.5 font-lora text-[17px] leading-[1.3] text-[#1f1f1f]">
+            <Icon size={17} strokeWidth={1.6} className="shrink-0 text-[#5e5e5e]" />
+            <span>{topic.title}</span>
           </p>
-          <p className="mt-1 text-[12px] uppercase tracking-[0.16em] text-[#9a9a9a]">
+          <p className="mt-1 pl-[27px] text-[12px] uppercase tracking-[0.16em] text-[#9a9a9a]">
             {topic.subtitle}
           </p>
         </div>
         <span className="mt-1 shrink-0 text-[13px] text-[#6f4ea8]">
-          {state === 'open' ? '↑ Скрыть' : isLocked ? <LockIcon /> : 'Открыть →'}
+          {state === 'open' ? (
+            'Скрыть'
+          ) : isLocked ? (
+            <Lock size={14} strokeWidth={1.6} />
+          ) : (
+            'Открыть →'
+          )}
         </span>
       </button>
 
       {state === 'open' && data ? (
-        <div className="mt-4">
+        <div className="mt-4 pl-[27px]">
           <div className="font-lora text-[14.5px] leading-[1.8] text-[#2d2d2d] whitespace-pre-line">
             {data.body}
           </div>
@@ -121,11 +130,11 @@ const Card: React.FC<{
           ) : null}
         </div>
       ) : state === 'loading' ? (
-        <div className="mt-4">
+        <div className="mt-4 pl-[27px]">
           <SkeletonParagraph lines={5} />
         </div>
       ) : (
-        <div className="mt-3 relative">
+        <div className="mt-3 pl-[27px]">
           <p
             className="font-lora text-[14px] leading-[1.7] text-[#3a3a3a] select-none"
             style={{ filter: isLocked ? 'blur(4.5px)' : 'blur(3px)' }}

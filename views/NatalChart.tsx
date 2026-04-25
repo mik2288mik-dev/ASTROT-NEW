@@ -164,27 +164,19 @@ export const NatalChart: React.FC<NatalChartProps> = ({
           mc: serialized.mc.sign,
         }}
         archetypes={portrait?.archetypes ?? null}
+        loadingArchetypes={loadingPortrait}
       />
 
       <div className="h-px w-full bg-[#f2f2f2]" />
       <Portrait data={portrait} loading={loadingPortrait} />
-      {errPortrait ? (
-        <p className="px-5 -mt-6 mb-4 text-[12.5px] text-[#c97c7c]">{errPortrait}</p>
-      ) : null}
 
       <Planets chart={serialized} />
 
       <Houses chart={serialized} />
 
       <Aspects data={aspects} loading={loadingAspects} />
-      {errAspects ? (
-        <p className="px-5 -mt-6 mb-4 text-[12.5px] text-[#c97c7c]">{errAspects}</p>
-      ) : null}
 
       <Week data={week} loading={loadingWeek} />
-      {errWeek ? (
-        <p className="px-5 -mt-6 mb-4 text-[12.5px] text-[#c97c7c]">{errWeek}</p>
-      ) : null}
 
       <div className="h-px w-full bg-[#f2f2f2]" />
 
@@ -214,9 +206,6 @@ export const NatalChart: React.FC<NatalChartProps> = ({
         onOpen={openDive}
         onUnlockPremium={requestPremium}
       />
-      {diveError ? (
-        <p className="px-5 -mt-6 mb-4 text-[12.5px] text-[#c97c7c]">{diveError}</p>
-      ) : null}
     </div>
   );
 };

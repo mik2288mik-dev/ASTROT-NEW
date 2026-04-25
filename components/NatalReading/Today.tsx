@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Briefcase, Heart, Lock, Zap, type LucideIcon } from 'lucide-react';
 import type { NatalReadingToday } from '../../lib/natalReading/types';
 import { SectionLabel } from './SectionLabel';
 import { SkeletonParagraph } from './Skeleton';
@@ -21,34 +22,29 @@ function dateLabel(): string {
   });
 }
 
-const LENS_LABEL: Record<Lens, string> = {
-  love: '❤  В любви',
-  work: '💼  В работе',
-  energy: '⚡  Энергия',
+const LENS: Record<Lens, { Icon: LucideIcon; label: string }> = {
+  love: { Icon: Heart, label: 'В любви' },
+  work: { Icon: Briefcase, label: 'В работе' },
+  energy: { Icon: Zap, label: 'Энергия' },
 };
-
-const LockIcon: React.FC = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
-    <rect x="3" y="7" width="10" height="6" rx="1.5" stroke="#6f4ea8" strokeWidth="1.2" />
-    <path d="M5.5 7V5a2.5 2.5 0 015 0v2" stroke="#6f4ea8" strokeWidth="1.2" />
-  </svg>
-);
 
 const Pill: React.FC<{
   active: boolean;
+  Icon: LucideIcon;
+  label: string;
   onClick: () => void;
-  children: React.ReactNode;
-}> = ({ active, onClick, children }) => (
+}> = ({ active, Icon, label, onClick }) => (
   <button
     type="button"
     onClick={onClick}
-    className={`rounded-[20px] px-3.5 py-1.5 text-[12.5px] transition ${
+    className={`flex items-center gap-1.5 rounded-[20px] px-3.5 py-1.5 text-[12.5px] transition ${
       active
         ? 'bg-[#1f1f1f] text-white'
         : 'border border-[#ececec] bg-white text-[#3a3a3a] hover:border-[#d8d8d8]'
     }`}
   >
-    {children}
+    <Icon size={14} strokeWidth={1.7} />
+    <span>{label}</span>
   </button>
 );
 
@@ -91,8 +87,8 @@ export const Today: React.FC<Props> = ({
                 onClick={onUnlockPremium}
                 className="flex items-center gap-2 rounded-[20px] bg-[#1f1f1f] px-4 py-2 text-[13px] text-white transition hover:bg-[#000]"
               >
-                <LockIcon />
-                Открыть
+                <Lock size={14} strokeWidth={1.6} />
+                <span>Открыть</span>
               </button>
             </div>
           </div>
@@ -111,14 +107,14 @@ export const Today: React.FC<Props> = ({
               </p>
 
               <div className="mt-5 flex flex-wrap gap-2">
-                {(Object.keys(LENS_LABEL) as Lens[]).map((k) => (
+                {(Object.keys(LENS) as Lens[]).map((k) => (
                   <Pill
                     key={k}
                     active={lens === k}
+                    Icon={LENS[k].Icon}
+                    label={LENS[k].label}
                     onClick={() => setLens(lens === k ? null : k)}
-                  >
-                    {LENS_LABEL[k]}
-                  </Pill>
+                  />
                 ))}
               </div>
 

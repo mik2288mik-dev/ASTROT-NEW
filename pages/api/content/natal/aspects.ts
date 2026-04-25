@@ -5,6 +5,8 @@ import {
   saveReading,
 } from '../../../../lib/natalReading/apiHelper';
 import { generateAspects } from '../../../../lib/natalReading/generate';
+import { buildAspectsFallback } from '../../../../lib/natalReading/fallbacks';
+import { serializeChartForPrompt } from '../../../../lib/natalReading/chartSerializer';
 import {
   NATAL_READING_ASPECTS_KEY,
   NATAL_READING_ASPECTS_PROMPT,
@@ -44,10 +46,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const saved = await saveReading(ctx, cacheOpts, aspects);
     return res.status(200).json({ interpretation: saved, source: 'generated' });
   } catch (error) {
-    console.error('[natal/aspects] generation failed', error);
-    return res.status(500).json({
-      error: 'GENERATION_FAILED',
-      message: error instanceof Error ? error.message : 'Generation failed',
-    });
+    console.error(
+      '[natal/aspects] generation failed:',
+      error instanceof Error ? error.message : error
+    );
+    const fallback = buildAspectsFallback(serializeChartForPrompt(ctx.profile, ctx.chartData!));
+    const fallbackTtl = new Date(Date.now() + 6 * 60 * 60 * 1000);
+    try {
+      const saved = await saveReading(ctx, { ...cacheOpts, validTo: fallbackTtl, isPersistent: false }, fallback);
+      return res.status(200).json({ interpretation: saved, source: 'fallback' });
+    } catch {
+      return res.status(200).json({
+        interpretation: { content: fallback, promptVersion: cacheOpts.promptVersion },
+        source: 'fallback-inline',
+      });
+    }
   }
 }

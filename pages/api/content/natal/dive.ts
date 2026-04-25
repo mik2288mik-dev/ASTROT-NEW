@@ -6,6 +6,8 @@ import {
   saveReading,
 } from '../../../../lib/natalReading/apiHelper';
 import { generateDeepDive } from '../../../../lib/natalReading/generate';
+import { buildDeepDiveFallback } from '../../../../lib/natalReading/fallbacks';
+import { serializeChartForPrompt } from '../../../../lib/natalReading/chartSerializer';
 import {
   NATAL_READING_DIVE_PROMPT,
   readingDiveCacheKey,
@@ -71,10 +73,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const saved = await saveReading(ctx, cacheOpts, dive);
     return res.status(200).json({ interpretation: saved, source: 'generated', topic });
   } catch (error) {
-    console.error('[natal/dive] generation failed', error);
-    return res.status(500).json({
-      error: 'GENERATION_FAILED',
-      message: error instanceof Error ? error.message : 'Generation failed',
-    });
+    console.error(
+      `[natal/dive:${topic}] generation failed:`,
+      error instanceof Error ? error.message : error
+    );
+    const fallback = buildDeepDiveFallback(topic, serializeChartForPrompt(ctx.profile, ctx.chartData!));
+    const fallbackTtl = new Date(Date.now() + 6 * 60 * 60 * 1000);
+    try {
+      const saved = await saveReading(ctx, { ...cacheOpts, validTo: fallbackTtl, isPersistent: false }, fallback);
+      return res.status(200).json({ interpretation: saved, source: 'fallback', topic });
+    } catch {
+      return res.status(200).json({
+        interpretation: { content: fallback, promptVersion: cacheOpts.promptVersion },
+        source: 'fallback-inline',
+        topic,
+      });
+    }
   }
 }
