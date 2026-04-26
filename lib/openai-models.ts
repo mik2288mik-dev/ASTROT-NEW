@@ -4,10 +4,11 @@
 
 export const DEFAULT_INTERPRETATION_MODEL = 'gpt-5.4-mini';
 export const DEFAULT_PREMIUM_INTERPRETATION_MODEL = 'gpt-5.4';
+export const DEFAULT_WHEEL_INSIGHT_MODEL = 'gpt-5.5';
 
 export const INTERPRETATION_MODEL_SETTING_KEY = 'openai_interpretation_model';
 
-/** Curated list: GPT-4 family through GPT-5.4 variants (exact API ids depend on OpenAI account). */
+/** Curated list: GPT-4 family through GPT-5.5 variants (exact API ids depend on OpenAI account). */
 export const INTERPRETATION_MODEL_OPTIONS: Array<{ id: string; label: string }> = [
   { id: 'gpt-4o', label: 'GPT-4o' },
   { id: 'gpt-4o-mini', label: 'GPT-4o mini' },
@@ -25,6 +26,7 @@ export const INTERPRETATION_MODEL_OPTIONS: Array<{ id: string; label: string }> 
   { id: 'gpt-5.4', label: 'GPT-5.4' },
   { id: 'gpt-5.4-mini', label: 'GPT-5.4 mini' },
   { id: 'gpt-5.4-nano', label: 'GPT-5.4 nano' },
+  { id: 'gpt-5.5', label: 'GPT-5.5' },
 ];
 
 const ALLOWED_IDS = new Set(INTERPRETATION_MODEL_OPTIONS.map((m) => m.id));

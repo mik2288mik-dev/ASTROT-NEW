@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import type { ChatCompletion } from 'openai/resources/chat/completions';
 import type { Language, NatalChartData, UserProfile, WheelInsight } from '../types';
 import { getOpenAIModelForContent } from './appSettings';
 import {
@@ -20,7 +21,7 @@ const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
 
-export const WHEEL_INSIGHT_PROMPT_VERSION = 'wheel_insight.v1';
+export const WHEEL_INSIGHT_PROMPT_VERSION = 'wheel_insight.v2.air';
 
 function buildEntitySummary(
   chartData: NatalChartData,
@@ -96,22 +97,40 @@ export async function generateWheelInsight(
       }),
       language
     );
-    const { model } = await getOpenAIModelForContent({
+    const primary = await getOpenAIModelForContent({
       accessTier: 'free',
       contentSurface: 'natal',
       contentVariant: 'wheel_insight',
     });
-
-    const completion = await openai.chat.completions.create({
-      model,
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT_ASTRA },
-        { role: 'user', content: prompt },
-      ],
-      response_format: { type: 'json_object' },
-      temperature: 0.82,
-      max_tokens: 560,
+    const fallback = await getOpenAIModelForContent({
+      accessTier: 'premium',
+      contentSurface: 'natal',
+      contentVariant: 'full',
     });
+    const models = Array.from(new Set([primary.model, fallback.model].filter(Boolean)));
+
+    let completion: ChatCompletion | null = null;
+    for (const model of models) {
+      try {
+        completion = await openai.chat.completions.create({
+          model,
+          messages: [
+            { role: 'system', content: SYSTEM_PROMPT_ASTRA },
+            { role: 'user', content: prompt },
+          ],
+          response_format: { type: 'json_object' },
+          temperature: 0.74,
+          max_tokens: 460,
+        });
+        break;
+      } catch {
+        completion = null;
+      }
+    }
+
+    if (!completion) {
+      return buildWheelInsight(chartData, request, language);
+    }
 
     const raw = completion.choices[0]?.message?.content || '{}';
     const parsed = JSON.parse(raw) as WheelInsightAIResponse;

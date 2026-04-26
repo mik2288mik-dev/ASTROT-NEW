@@ -1435,22 +1435,26 @@ ${options.coreAnchors}
 Target entity:
 ${options.entitySummary}
 
-Task: write a short personal explanation for one interactive element inside Lumia's natal wheel.
+Task: write a short personal AIR-style explanation for one interactive element inside Lumia's natal wheel.
 
 Rules:
 - The entity can be a planet, zodiac sign, aspect, or house.
 - Speak to the user in warm, modern second-person language.
 - Make it clear, intimate, and useful.
 - Explain the meaning of this entity inside the person's real natal chart, not astrology in the abstract.
+- For zodiac signs, explain how the sign acts in this chart through planets/points if present; do not give a generic textbook definition.
+- For planets and points, name what this function does in the chart and how its sign/house colors it.
+- For aspects, explain the relationship between the two planets in plain language.
+- Do not use the phrases "active points", "mutable", "fixed", "cardinal", "мутабельный", "фиксированный", "кардинальный", or "активные точки".
 - No bullet lists.
 - No mystical fluff, no fear language, no long lectures.
-- Keep it compact for a mobile inline rail.
-- The body should be 2-3 sentences.
+- Keep it compact for a mobile inline AIR surface.
+- The body should be 1-2 short sentences.
 
 Return strict JSON with:
 - title: a short title, max 70 chars
 - subtitle: a compact subtitle, max 90 chars
-- body: 2-3 meaningful sentences
+- body: 1-2 meaningful sentences
 
 Return only JSON.`;
 };

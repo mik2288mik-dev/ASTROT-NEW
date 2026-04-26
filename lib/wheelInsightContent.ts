@@ -10,8 +10,6 @@ import type {
 import { buildPlanetInsight } from './planetInsightContent';
 import {
   getLocalizedElement,
-  getLocalizedModality,
-  getModalityForSign,
   getPlanetDisplayName,
   getPlanetPositionFromChart,
   getZodiacElementStyle,
@@ -22,6 +20,8 @@ import {
 import { getElementForSign, ZODIAC_SIGNS, type ZodiacSign } from './zodiac-utils';
 
 export type WheelInsightEntityType = 'planet' | 'zodiac' | 'aspect' | 'house';
+
+export const WHEEL_INSIGHT_CACHE_VERSION = 'v2.air';
 
 export type WheelAspectEntity = {
   entityType: 'aspect';
@@ -232,7 +232,7 @@ export function buildWheelInsightCacheKey(
   calculationVersion?: string | null
 ) {
   const safeVersion = compact(calculationVersion) || 'default';
-  return `wheel:${entityType}:${entityId}:lang:${normalizeLanguage(language)}:calc:${safeVersion}`;
+  return `wheel:${WHEEL_INSIGHT_CACHE_VERSION}:${entityType}:${entityId}:lang:${normalizeLanguage(language)}:calc:${safeVersion}`;
 }
 
 export function resolveWheelInsightRequest(
@@ -315,53 +315,57 @@ function buildPlanetWheelInsight(
     title: compact(content?.title) || insight.title,
     subtitle: compact(content?.subtitle) || `${signLabel} ${formatDegree(insight.degree)} · ${houseLabel}`,
     body: compact(content?.body) || insight.body,
-    tags: insight.tags,
+    tags: insight.tags.filter((tag) => tag.id !== 'modality').slice(0, 2),
   };
 }
 
 function buildZodiacTags(sign: ZodiacSign, language: Language, planetsInSign: NatalPlanetKey[]): PlanetInsightTag[] {
   const element = getElementForSign(sign);
-  return [
+  const planetLabel =
+    planetsInSign.length > 0
+      ? planetsInSign
+          .map((planetKey) => getPlanetDisplayName(planetKey, language))
+          .slice(0, 2)
+          .join(', ')
+      : language === 'en'
+        ? 'Background tone'
+        : 'Фоновый стиль';
+
+  const tags: PlanetInsightTag[] = [
     {
       id: 'element',
-      label: getLocalizedElement(language, element),
+      label: language === 'en'
+        ? `${getLocalizedElement(language, element)} element`
+        : `Стихия: ${getLocalizedElement(language, element)}`,
       tone: ELEMENT_TAG_TONES[element],
     },
     {
-      id: 'modality',
-      label: getLocalizedModality(language, getModalityForSign(sign)),
-      tone: 'neutral',
-    },
-    {
-      id: 'planets',
-      label:
-        language === 'en'
-          ? `${planetsInSign.length} active point${planetsInSign.length === 1 ? '' : 's'}`
-          : `${planetsInSign.length} активн${planetsInSign.length === 1 ? 'ая точка' : 'ых точки'}`,
+      id: planetsInSign.length > 0 ? 'planets' : 'role',
+      label: planetLabel,
       tone: 'neutral',
     },
   ];
+
+  return tags;
 }
 
 function buildZodiacFallbackBody(chartData: NatalChartData, sign: ZodiacSign, language: Language) {
   const signLabel = getZodiacSign(language, sign);
-  const element = getLocalizedElement(language, getElementForSign(sign));
-  const modality = getLocalizedModality(language, getModalityForSign(sign));
   const planetsInSign = listPlanetsInSign(chartData, sign)
     .map((planetKey) => getPlanetDisplayName(planetKey, language))
     .slice(0, 3);
 
   if (language === 'en') {
-    const emphasis = planetsInSign.length
-      ? ` In your chart this is especially noticeable through ${planetsInSign.join(', ')}.`
-      : '';
-    return `${signLabel} brings a ${element.toLowerCase()} tone and a ${modality.toLowerCase()} rhythm into the parts of life it touches. It shows how your energy naturally moves when you trust your own pace.${emphasis}`;
+    if (planetsInSign.length) {
+      return `${signLabel} is not just a symbol here: it comes through ${planetsInSign.join(', ')}. This shows where your chart uses this sign as a living style of reaction, desire, and choice.`;
+    }
+    return `${signLabel} works as a quieter backdrop in this wheel. It still colors the way a theme opens, but it does not need to dominate the chart to matter.`;
   }
 
-  const emphasis = planetsInSign.length
-    ? ` В твоей карте это особенно слышно через ${planetsInSign.join(', ')}.`
-    : '';
-  return `${signLabel} приносит в карту ${element.toLowerCase()} стихию и ${modality.toLowerCase()} ритм. Так звучит та часть тебя, которая легче всего проявляется, когда ты доверяешь своему естественному темпу.${emphasis}`;
+  if (planetsInSign.length) {
+    return `${signLabel} здесь не просто значок на круге: он проявляется через ${planetsInSign.join(', ')}. Так карта показывает, где этот знак становится живым стилем реакции, желания и выбора.`;
+  }
+  return `${signLabel} в этом колесе работает тише, как фон для темы. Он не обязан быть главным акцентом, чтобы окрашивать то, как эта часть карты раскрывается.`;
 }
 
 function buildZodiacWheelInsight(
@@ -371,15 +375,13 @@ function buildZodiacWheelInsight(
   content?: WheelInsightContentOverride
 ): WheelInsight {
   const signLabel = getZodiacSign(language, request.entityId);
-  const element = getLocalizedElement(language, getElementForSign(request.entityId));
-  const modality = getLocalizedModality(language, getModalityForSign(request.entityId));
   const planetsInSign = listPlanetsInSign(chartData, request.entityId);
 
   return {
     entityType: 'zodiac',
     entityId: request.entityId,
     title: compact(content?.title) || signLabel,
-    subtitle: compact(content?.subtitle) || `${element} · ${modality}`,
+    subtitle: compact(content?.subtitle) || (language === 'en' ? 'How this sign sounds in your chart' : 'Как этот знак звучит в твоей карте'),
     body: compact(content?.body) || buildZodiacFallbackBody(chartData, request.entityId, language),
     tags: buildZodiacTags(request.entityId, language, planetsInSign),
   };

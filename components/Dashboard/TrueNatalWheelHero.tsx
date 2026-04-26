@@ -1,10 +1,11 @@
-import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { memo, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { ArrowRight } from 'lucide-react';
 import type {
   Language,
   NatalAspectData,
   NatalChartData,
-  NatalHouseData,
+  PlanetInsightTag,
   UserProfile,
   WheelInsight,
   WheelInsightEntityType,
@@ -19,10 +20,6 @@ import {
   getPlanetMeta,
   getPlanetPositionFromChart,
   normalizePlanetKey,
-  PLANET_COLLISION_RADII,
-  HOUSE_DOTTED_RADIUS,
-  HOUSE_RING_RADIUS,
-  INNER_CENTER_RADIUS,
   NATAL_PLANET_ORDER,
   OUTER_RIM_RADIUS,
   WHEEL_CENTER,
@@ -30,27 +27,32 @@ import {
   type NatalPlanetKey,
 } from '../../lib/natalWheel';
 import { ZODIAC_SIGNS, type ZodiacSign } from '../../lib/zodiac-utils';
-import { PlanetSymbolIcon } from './AstroWheelIcons';
+import { getCachedWheelInsight, getWheelInsight } from '../../services/astrologyService';
+import { PlanetSymbolIcon, ZodiacIllustrationIcon } from './AstroWheelIcons';
 
 const INTRO_TOTAL_MS = 760;
-const HOLD_DURATION_MS = 920;
 const WHEEL_MEDALLION_SRC = '/zodiac_wheel_transparent_optimized.webp';
-const PLANET_TOUCH_RADIUS = 33;
-const LEADER_LINE_TARGET_RADIUS = 106;
-const OUTER_LABEL_OUTER_RADIUS = OUTER_RIM_RADIUS;
-const ZODIAC_BAND_INNER_RADIUS = 114;
-const ZODIAC_LABEL_RADIUS = 148.6;
-const ZODIAC_HIT_INNER_RADIUS = ZODIAC_BAND_INNER_RADIUS;
-const ZODIAC_HIT_OUTER_RADIUS = OUTER_LABEL_OUTER_RADIUS;
-const HOUSE_HIT_INNER_RADIUS = INNER_CENTER_RADIUS + 3;
-const HOUSE_HIT_OUTER_RADIUS = HOUSE_RING_RADIUS - 2;
-const HOUSE_LABEL_RADIUS = HOUSE_RING_RADIUS - 10;
+const ZODIAC_HIT_INNER_RADIUS = 107;
+const ZODIAC_HIT_OUTER_RADIUS = 166;
+const ZODIAC_LABEL_RADIUS = 151.8;
+const ZODIAC_ICON_PRESS_RADIUS = 129;
 const ZODIAC_SECTOR_HALF_SPAN = 15;
+const PLANET_TOUCH_RADIUS = 25;
+const SUN_TOUCH_RADIUS = 31;
+const ASPECT_TOUCH_RADIUS = 5.3;
+const PLANET_MIN_GAP = 5.5;
 const MAJOR_ASPECTS: NatalAspectData['type'][] = ['conjunction', 'opposition', 'square', 'trine', 'sextile'];
 
+type InteractiveEntityType = Extract<WheelInsightEntityType, 'planet' | 'zodiac' | 'aspect'>;
+
 type SelectedEntity = {
-  entityType: WheelInsightEntityType;
+  entityType: InteractiveEntityType;
   entityId: string;
+};
+
+type WheelPoint = {
+  x: number;
+  y: number;
 };
 
 type DisplayPlanet = {
@@ -62,7 +64,7 @@ type DisplayPlanet = {
   degree: number | null;
   house: number | null;
   retrograde: boolean;
-  lineTargetRadius: number | null;
+  point: WheelPoint;
 };
 
 type WheelAspectLine = {
@@ -71,14 +73,6 @@ type WheelAspectLine = {
   orb: number;
   from: DisplayPlanet;
   to: DisplayPlanet;
-};
-
-type WheelHouseSegment = {
-  house: number;
-  rawLongitude: number;
-  endLongitude: number;
-  labelLongitude: number;
-  sign: string;
 };
 
 type TrueNatalWheelHeroProps = {
@@ -92,11 +86,39 @@ type TrueNatalWheelHeroProps = {
 
 const aspectStyles: Record<NatalAspectData['type'], { stroke: string; width: number; dash?: string }> = {
   conjunction: { stroke: '#A287D4', width: 1.06 },
-  opposition: { stroke: '#E17366', width: 0.88 },
-  square: { stroke: '#E17366', width: 0.78 },
-  trine: { stroke: '#60B189', width: 0.86 },
-  sextile: { stroke: '#79A8F9', width: 0.72 },
+  opposition: { stroke: '#E17366', width: 0.92 },
+  square: { stroke: '#E17366', width: 0.86 },
+  trine: { stroke: '#54A86F', width: 0.94 },
+  sextile: { stroke: '#6E9EF5', width: 0.84, dash: '2.8 2.4' },
 };
+
+const PLANET_ORBIT_LANES = [58, 80, 102, 68, 91, 108] as const;
+
+const PLANET_PREFERRED_LANE: Record<NatalPlanetKey, number> = {
+  sun: 0,
+  moon: 0,
+  rising: 5,
+  mercury: 1,
+  venus: 2,
+  mars: 3,
+  jupiter: 4,
+  saturn: 1,
+  uranus: 2,
+  neptune: 3,
+  pluto: 4,
+  chiron: 0,
+};
+
+const FORBIDDEN_TAG_WORDS = [
+  'mutable',
+  'fixed',
+  'cardinal',
+  'active point',
+  'активн',
+  'мутаб',
+  'фиксирован',
+  'кардин',
+];
 
 const normalizeDegrees = (value: number) => {
   const normalized = value % 360;
@@ -105,75 +127,66 @@ const normalizeDegrees = (value: number) => {
 
 const toRadians = (degree: number) => ((degree - 90) * Math.PI) / 180;
 
-const polarPoint = (degree: number, radius: number) => ({
+const polarPoint = (degree: number, radius: number): WheelPoint => ({
   x: WHEEL_CENTER + Math.cos(toRadians(degree)) * radius,
   y: WHEEL_CENTER + Math.sin(toRadians(degree)) * radius,
 });
+
+const distance = (a: WheelPoint, b: WheelPoint) => Math.hypot(a.x - b.x, a.y - b.y);
 
 const angularDistance = (a: number, b: number) => {
   const diff = Math.abs(a - b) % 360;
   return diff > 180 ? 360 - diff : diff;
 };
 
-function buildIdleHint(language: Language) {
-  return language === 'en'
-    ? 'Tap a sign, planet, house, or aspect line. The wheel will show the exact layer you touched without opening the full reading.'
-    : 'Нажми знак, планету, дом или линию аспекта. Круг сразу покажет тот слой, которого ты коснулся, без перехода в полный разбор.';
+function distanceToSegment(point: WheelPoint, start: WheelPoint, end: WheelPoint) {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const lengthSquared = dx * dx + dy * dy;
+  if (lengthSquared === 0) return distance(point, start);
+  const projection = Math.max(
+    0,
+    Math.min(1, ((point.x - start.x) * dx + (point.y - start.y) * dy) / lengthSquared)
+  );
+  return Math.hypot(point.x - (start.x + projection * dx), point.y - (start.y + projection * dy));
 }
 
-function buildHoldHint(language: Language) {
+function angleFromPoint(point: WheelPoint) {
+  const radians = Math.atan2(point.y - WHEEL_CENTER, point.x - WHEEL_CENTER);
+  return normalizeDegrees((radians * 180) / Math.PI + 90);
+}
+
+function buildIdleHint(language: Language) {
   return language === 'en'
-    ? 'For the deeper interpretation, open the full natal card.'
-    : 'Глубокий разбор оставим для полной натальной карты.';
+    ? 'Tap a sign, planet, or aspect line right on the wheel. A short reading for that layer appears here.'
+    : 'Нажимай знак, планету или линию аспекта прямо на колесе. Здесь появится короткое объяснение этого слоя в твоей карте.';
 }
 
 function buildIdleTitle(language: Language) {
-  return language === 'en' ? 'Interactive Natal Wheel' : 'Интерактивное колесо';
+  return language === 'en' ? 'Natal wheel' : 'Натальное колесо';
+}
+
+function buildOpenChartLabel(language: Language) {
+  return language === 'en' ? 'Open full chart' : 'Открыть карту';
 }
 
 function buildLayerLabels(language: Language) {
   return language === 'en'
-    ? ['Signs', 'Planets', 'Houses', 'Aspects']
-    : ['Знаки', 'Планеты', 'Дома', 'Аспекты'];
+    ? ['Signs', 'Planets', 'Aspects']
+    : ['Знаки', 'Планеты', 'Аспекты'];
 }
 
 function getEntityKicker(language: Language, insight: WheelInsight) {
   if (language === 'en') {
-    if (insight.entityType === 'planet') return 'Planet';
-    if (insight.entityType === 'zodiac') return 'Zodiac sign';
-    if (insight.entityType === 'house') return 'House';
-    return 'Aspect';
+    if (insight.entityType === 'planet') return insight.entityId === 'rising' ? 'Point' : 'Planet';
+    if (insight.entityType === 'zodiac') return 'Sign';
+    if (insight.entityType === 'aspect') return 'Aspect line';
+    return 'Layer';
   }
-  if (insight.entityType === 'planet') return 'Планета';
+  if (insight.entityType === 'planet') return insight.entityId === 'rising' ? 'Точка' : 'Планета';
   if (insight.entityType === 'zodiac') return 'Знак';
-  if (insight.entityType === 'house') return 'Дом';
-  return 'Аспект';
-}
-
-function buildWheelMicroBody(language: Language, insight: WheelInsight) {
-  if (language === 'en') {
-    if (insight.entityType === 'zodiac') {
-      return 'This is the tone of a sector. Look at the highlighted planets: they show where this sign speaks louder in the chart.';
-    }
-    if (insight.entityType === 'planet') {
-      return 'This point carries a specific function. The sign shows its style, the house shows the life area, and the lines show its connections.';
-    }
-    if (insight.entityType === 'house') {
-      return 'This is a life stage of the chart. Planets inside show what is active here, while the sign on the cusp sets the opening tone.';
-    }
-    return 'This line is a dialogue between two planets. Soft links show flow, tense links show a theme that asks for tuning.';
-  }
-
-  if (insight.entityType === 'zodiac') {
-    return 'Это тон сектора. Смотри на подсвеченные планеты: они показывают, где этот знак в твоей карте звучит заметнее.';
-  }
-  if (insight.entityType === 'planet') {
-    return 'Это активная точка карты. Знак показывает стиль, дом — сферу жизни, а линии — связи с другими частями карты.';
-  }
-  if (insight.entityType === 'house') {
-    return 'Это жизненная сцена карты. Планеты внутри показывают, что здесь включено, а знак на входе задает тон темы.';
-  }
-  return 'Эта линия показывает диалог двух планет. Мягкие связи дают поток, напряженные помогают увидеть настройку.';
+  if (insight.entityType === 'aspect') return 'Линия аспекта';
+  return 'Слой';
 }
 
 function resolveLongitude(position: { longitude?: number; sign?: string; degree?: number } | null | undefined) {
@@ -186,28 +199,11 @@ function resolveLongitude(position: { longitude?: number; sign?: string; degree?
   return normalizeDegrees(signIndex * 30 + (typeof position.degree === 'number' ? position.degree : 0));
 }
 
-function resolveHouseLongitude(house: NatalHouseData) {
-  if (typeof house.longitude === 'number' && Number.isFinite(house.longitude)) {
-    return normalizeDegrees(house.longitude);
-  }
-  const signIndex = ZODIAC_SIGNS.indexOf(String(house.sign || '') as ZodiacSign);
-  return normalizeDegrees(Math.max(signIndex, 0) * 30 + (house.degree || 0));
-}
-
-function buildFallbackHouseCusps(chartData: NatalChartData): NatalHouseData[] {
-  const risingLongitude = resolveLongitude(chartData.rising) ?? 180;
-  return Array.from({ length: 12 }, (_, index) => {
-    const longitude = normalizeDegrees(risingLongitude + index * 30);
-    const signIndex = Math.floor(longitude / 30) % 12;
-    return { house: index + 1, sign: ZODIAC_SIGNS[signIndex], degree: longitude % 30, longitude };
-  });
-}
-
-function getChipRadius(planet: NatalPlanetKey) {
-  if (planet === 'sun') return 15.8;
-  if (planet === 'moon' || planet === 'rising') return 14.6;
-  if (planet === 'chiron') return 12.4;
-  return 13.2;
+function getPlanetVisualRadius(planet: NatalPlanetKey) {
+  if (planet === 'sun') return 22;
+  if (planet === 'moon' || planet === 'rising') return 12.8;
+  if (planet === 'chiron') return 10.6;
+  return 11.6;
 }
 
 function getZodiacLongLabel(language: Language, sign: ZodiacSign) {
@@ -215,10 +211,10 @@ function getZodiacLongLabel(language: Language, sign: ZodiacSign) {
 }
 
 function getZodiacFontSize(label: string) {
-  if (label.length >= 10) return 7.1;
-  if (label.length >= 8) return 7.45;
-  if (label.length >= 6) return 7.9;
-  return 8.45;
+  if (label.length >= 10) return 7.45;
+  if (label.length >= 8) return 7.85;
+  if (label.length >= 6) return 8.35;
+  return 8.9;
 }
 
 function getZodiacSectorAngles(index: number) {
@@ -246,18 +242,218 @@ function describeRingSegment(start: number, end: number, innerRadius: number, ou
   ].join(' ');
 }
 
+function resolveZodiacFromPoint(point: WheelPoint): ZodiacSign | null {
+  const radius = distance(point, { x: WHEEL_CENTER, y: WHEEL_CENTER });
+  if (radius < ZODIAC_HIT_INNER_RADIUS || radius > ZODIAC_HIT_OUTER_RADIUS) return null;
+  const angle = angleFromPoint(point);
+  const index = Math.floor((angle + ZODIAC_SECTOR_HALF_SPAN) / 30) % ZODIAC_SIGNS.length;
+  return ZODIAC_SIGNS[index];
+}
+
+function visibleTags(tags: PlanetInsightTag[] | undefined) {
+  return (tags || [])
+    .filter((tag) => {
+      const label = tag.label.toLowerCase();
+      return !FORBIDDEN_TAG_WORDS.some((word) => label.includes(word));
+    })
+    .slice(0, 2);
+}
+
+function getPointerInViewBox(event: React.PointerEvent<HTMLDivElement>, element: HTMLDivElement | null): WheelPoint | null {
+  if (!element) return null;
+  const rect = element.getBoundingClientRect();
+  if (!rect.width || !rect.height) return null;
+  return {
+    x: ((event.clientX - rect.left) / rect.width) * WHEEL_VIEWBOX,
+    y: ((event.clientY - rect.top) / rect.height) * WHEEL_VIEWBOX,
+  };
+}
+
+function resolveSelectionFromPoint(
+  point: WheelPoint,
+  planets: DisplayPlanet[],
+  aspects: WheelAspectLine[]
+): SelectedEntity | null {
+  const planetHit = planets
+    .map((planet) => {
+      const hitRadius = planet.key === 'sun' ? SUN_TOUCH_RADIUS : PLANET_TOUCH_RADIUS;
+      return {
+        planet,
+        distance: distance(point, planet.point),
+        hitRadius,
+      };
+    })
+    .filter((item) => item.distance <= item.hitRadius)
+    .sort((a, b) => a.distance - b.distance)[0];
+
+  if (planetHit) {
+    return { entityType: 'planet', entityId: planetHit.planet.key };
+  }
+
+  const aspectHit = aspects
+    .map((aspect) => ({
+      aspect,
+      distance: distanceToSegment(point, aspect.from.point, aspect.to.point),
+    }))
+    .filter((item) => item.distance <= ASPECT_TOUCH_RADIUS)
+    .sort((a, b) => a.distance - b.distance)[0];
+
+  if (aspectHit) {
+    return { entityType: 'aspect', entityId: aspectHit.aspect.entityId };
+  }
+
+  const sign = resolveZodiacFromPoint(point);
+  return sign ? { entityType: 'zodiac', entityId: sign } : null;
+}
+
+function SelectedBadge({
+  insight,
+  language,
+}: {
+  insight: WheelInsight | null;
+  language: Language;
+}) {
+  if (!insight) {
+    return (
+      <div className="grid h-12 w-12 place-items-center rounded-full bg-[#F4F6FA] text-[18px] font-semibold text-[#7B5EA7]">
+        {language === 'en' ? 'L' : 'Л'}
+      </div>
+    );
+  }
+
+  if (insight.entityType === 'planet') {
+    const planet = insight.entityId as NatalPlanetKey;
+    const meta = getPlanetMeta(planet);
+    return (
+      <div className="grid h-12 w-12 place-items-center rounded-full border border-white/80 bg-[radial-gradient(circle_at_34%_24%,#ffffff_0%,#f7f2e8_48%,#d6dfec_100%)] shadow-[0_6px_18px_rgba(31,41,55,0.10)]">
+        <PlanetSymbolIcon planet={planet} width={27} height={27} stroke={meta.color} strokeWidth={1.75} />
+      </div>
+    );
+  }
+
+  if (insight.entityType === 'zodiac') {
+    return (
+      <div className="grid h-12 w-12 place-items-center rounded-full bg-[#F5F7FB] text-[#17365F] shadow-[inset_0_0_0_1px_rgba(23,54,95,0.08)]">
+        <ZodiacIllustrationIcon sign={insight.entityId as ZodiacSign} width={29} height={29} stroke="#17365F" strokeWidth={1.85} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative grid h-12 w-12 place-items-center rounded-full bg-[#F8F5FF] shadow-[inset_0_0_0_1px_rgba(123,94,167,0.16)]">
+      <span className="absolute h-[2px] w-8 rotate-[-28deg] rounded-full bg-[#7B5EA7]" />
+      <span className="absolute left-3 top-4 h-2.5 w-2.5 rounded-full bg-white ring-2 ring-[#7B5EA7]" />
+      <span className="absolute bottom-4 right-3 h-2.5 w-2.5 rounded-full bg-white ring-2 ring-[#7B5EA7]" />
+    </div>
+  );
+}
+
+function PlanetMedallion({
+  planet,
+  active,
+  related,
+  shouldReduceMotion,
+  gradientId,
+}: {
+  planet: DisplayPlanet;
+  active: boolean;
+  related: boolean;
+  shouldReduceMotion: boolean;
+  gradientId: string;
+}) {
+  if (planet.key === 'sun') return null;
+
+  const meta = getPlanetMeta(planet.key);
+  const iconSize = planet.visualRadius * 1.45;
+  const mutedOpacity = related ? 1 : 0.74;
+
+  return (
+    <motion.g
+      initial={false}
+      animate={{ scale: active ? 1.1 : 1, opacity: mutedOpacity }}
+      transition={{ duration: shouldReduceMotion ? 0.12 : 0.22, ease: [0.22, 1, 0.36, 1] }}
+      style={{ transformOrigin: `${planet.point.x}px ${planet.point.y}px` }}
+    >
+      {active ? (
+        <motion.circle
+          cx={planet.point.x}
+          cy={planet.point.y}
+          r={planet.visualRadius + 5.2}
+          fill="none"
+          stroke={`${meta.color}66`}
+          strokeWidth="2.6"
+          initial={false}
+          animate={shouldReduceMotion ? { opacity: 0.82 } : { opacity: [0.38, 0.9, 0.38] }}
+          transition={shouldReduceMotion ? { duration: 0.12 } : { duration: 2.3, repeat: Number.POSITIVE_INFINITY, ease: 'easeInOut' }}
+        />
+      ) : null}
+      <circle
+        cx={planet.point.x}
+        cy={planet.point.y}
+        r={planet.visualRadius + 1.5}
+        fill="rgba(255,255,255,0.58)"
+        opacity={0.78}
+      />
+      <circle
+        cx={planet.point.x}
+        cy={planet.point.y}
+        r={planet.visualRadius}
+        fill={`url(#${gradientId})`}
+        stroke={meta.color}
+        strokeWidth={active ? 1.65 : 1.05}
+        style={{ filter: 'drop-shadow(0 4px 8px rgba(12,24,52,0.18))' }}
+      />
+      <circle
+        cx={planet.point.x - planet.visualRadius * 0.28}
+        cy={planet.point.y - planet.visualRadius * 0.36}
+        r={planet.visualRadius * 0.28}
+        fill="rgba(255,255,255,0.72)"
+      />
+      <PlanetSymbolIcon
+        planet={planet.key}
+        x={planet.point.x - iconSize / 2}
+        y={planet.point.y - iconSize / 2}
+        width={iconSize}
+        height={iconSize}
+        stroke={meta.color}
+        strokeWidth={1.82}
+      />
+      {planet.retrograde ? (
+        <>
+          <circle
+            cx={planet.point.x + planet.visualRadius - 0.5}
+            cy={planet.point.y - planet.visualRadius + 0.5}
+            r={3.3}
+            fill="white"
+            stroke="#F1D7D2"
+            strokeWidth="0.58"
+          />
+          <text
+            x={planet.point.x + planet.visualRadius - 0.5}
+            y={planet.point.y - planet.visualRadius + 0.6}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fill="#D94B42"
+            style={{ fontSize: 5.2, fontWeight: 800 }}
+          >
+            R
+          </text>
+        </>
+      ) : null}
+    </motion.g>
+  );
+}
+
 export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
-  ({ profile, chartData, shouldAnimateIntro = false, onIntroComplete, onOpenChart }) => {
+  ({ profile, chartData, chartId = null, shouldAnimateIntro = false, onIntroComplete, onOpenChart }) => {
     const language: Language = profile.language === 'en' ? 'en' : 'ru';
     const shouldReduceMotion = useReducedMotion();
+    const gradientPrefix = useId().replace(/:/g, '');
+    const medallionGradientId = `${gradientPrefix}-planet-medallion`;
+    const zodiacGlowId = `${gradientPrefix}-zodiac-glow`;
+    const wheelRef = useRef<HTMLDivElement | null>(null);
     const [selectedEntity, setSelectedEntity] = useState<SelectedEntity | null>(null);
-    const [holdProgress, setHoldProgress] = useState(0);
-    const [isHolding, setIsHolding] = useState(false);
-
-    const holdFrameRef = useRef<number | null>(null);
-    const holdPointerIdRef = useRef<number | null>(null);
-    const holdStartRef = useRef(0);
-    const holdTriggeredRef = useRef(false);
+    const [remoteInsight, setRemoteInsight] = useState<WheelInsight | null>(null);
 
     const introEnabled = shouldAnimateIntro && !shouldReduceMotion;
     const introTransition = shouldReduceMotion
@@ -269,39 +465,6 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
       const timer = window.setTimeout(() => onIntroComplete(), INTRO_TOTAL_MS);
       return () => window.clearTimeout(timer);
     }, [introEnabled, onIntroComplete]);
-
-    const stopHoldLoop = useCallback(() => {
-      if (holdFrameRef.current != null) {
-        cancelAnimationFrame(holdFrameRef.current);
-        holdFrameRef.current = null;
-      }
-    }, []);
-
-    useEffect(() => () => stopHoldLoop(), [stopHoldLoop]);
-
-    const houseCusps = useMemo(() => {
-      const base =
-        Array.isArray(chartData.houses) && chartData.houses.length >= 12
-          ? [...chartData.houses].sort((a, b) => a.house - b.house)
-          : buildFallbackHouseCusps(chartData);
-      return base.map((house) => ({
-        house: house.house,
-        rawLongitude: resolveHouseLongitude(house),
-        sign: house.sign,
-      }));
-    }, [chartData]);
-
-    const houseSegments = useMemo<WheelHouseSegment[]>(() => {
-      return houseCusps.map((house, index) => {
-        const next = houseCusps[(index + 1) % houseCusps.length] || house;
-        const span = normalizeDegrees(next.rawLongitude - house.rawLongitude) || 30;
-        return {
-          ...house,
-          endLongitude: next.rawLongitude,
-          labelLongitude: normalizeDegrees(house.rawLongitude + span / 2),
-        };
-      });
-    }, [houseCusps]);
 
     const displayPlanets = useMemo<DisplayPlanet[]>(() => {
       const planets = NATAL_PLANET_ORDER.map((planetKey) => {
@@ -319,39 +482,67 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
         return {
           key: planetKey,
           rawLongitude,
-          displayRadius: PLANET_COLLISION_RADII[0],
-          visualRadius: getChipRadius(planetKey),
+          displayRadius: planetKey === 'sun' ? 0 : PLANET_ORBIT_LANES[PLANET_PREFERRED_LANE[planetKey]],
+          visualRadius: getPlanetVisualRadius(planetKey),
           sign: position.sign,
           degree: typeof position.degree === 'number' && Number.isFinite(position.degree) ? position.degree : null,
           house: Number.isFinite(house) ? house : null,
           retrograde: !!position.retrograde,
-          lineTargetRadius: null,
+          point: planetKey === 'sun' ? { x: WHEEL_CENTER, y: WHEEL_CENTER } : polarPoint(rawLongitude, PLANET_ORBIT_LANES[PLANET_PREFERRED_LANE[planetKey]]),
         } as DisplayPlanet;
       }).filter(Boolean) as DisplayPlanet[];
 
-      const resolved: DisplayPlanet[] = [];
-      [...planets].sort((a, b) => a.rawLongitude - b.rawLongitude).forEach((planet) => {
-        let radiusIndex = 0;
-        while (
-          radiusIndex < PLANET_COLLISION_RADII.length - 1 &&
-          resolved.some(
-            (prev) =>
-              prev.displayRadius === PLANET_COLLISION_RADII[radiusIndex] &&
-              angularDistance(prev.rawLongitude, planet.rawLongitude) < 10.5
-          )
-        ) {
-          radiusIndex += 1;
-        }
+      const resolved: DisplayPlanet[] = planets.filter((planet) => planet.key === 'sun');
 
-        const displayRadius = PLANET_COLLISION_RADII[radiusIndex];
-        resolved.push({
-          ...planet,
-          displayRadius,
-          lineTargetRadius: displayRadius !== PLANET_COLLISION_RADII[0] ? LEADER_LINE_TARGET_RADIUS : null,
+      [...planets]
+        .filter((planet) => planet.key !== 'sun')
+        .sort((a, b) => a.rawLongitude - b.rawLongitude)
+        .forEach((planet) => {
+          const preferredLane = PLANET_PREFERRED_LANE[planet.key];
+          const lanes = PLANET_ORBIT_LANES.map((_, offset) => (preferredLane + offset) % PLANET_ORBIT_LANES.length);
+          let best: DisplayPlanet | null = null;
+          let bestScore = -Number.POSITIVE_INFINITY;
+
+          lanes.forEach((laneIndex) => {
+            const displayRadius = PLANET_ORBIT_LANES[laneIndex];
+            const point = polarPoint(planet.rawLongitude, displayRadius);
+            const nearest = resolved
+              .filter((prev) => prev.key !== 'sun')
+              .reduce((min, prev) => Math.min(min, distance(point, prev.point) - (planet.visualRadius + prev.visualRadius)), Number.POSITIVE_INFINITY);
+            const anglePenalty = resolved.some((prev) => prev.key !== 'sun' && angularDistance(prev.rawLongitude, planet.rawLongitude) < 7)
+              ? 6
+              : 0;
+            const score = nearest - Math.abs(laneIndex - preferredLane) * 1.8 - anglePenalty;
+            if (score > bestScore) {
+              bestScore = score;
+              best = {
+                ...planet,
+                displayRadius,
+                point,
+              };
+            }
+          });
+
+          resolved.push(best || planet);
         });
-      });
 
-      return resolved.sort((a, b) => getPlanetMeta(a.key).order - getPlanetMeta(b.key).order);
+      return resolved
+        .map((planet) => {
+          if (planet.key === 'sun') return planet;
+          const crowded = resolved.some(
+            (other) =>
+              other.key !== planet.key &&
+              other.key !== 'sun' &&
+              distance(planet.point, other.point) < planet.visualRadius + other.visualRadius + PLANET_MIN_GAP
+          );
+          return crowded
+            ? {
+                ...planet,
+                visualRadius: Math.max(10.2, planet.visualRadius - 0.8),
+              }
+            : planet;
+        })
+        .sort((a, b) => getPlanetMeta(a.key).order - getPlanetMeta(b.key).order);
     }, [chartData]);
 
     const displayPlanetMap = useMemo(
@@ -385,53 +576,23 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
       selectedEntity?.entityType === 'planet' ? (selectedEntity.entityId as NatalPlanetKey) : null;
     const selectedZodiacSign =
       selectedEntity?.entityType === 'zodiac' ? (selectedEntity.entityId as ZodiacSign) : null;
-    const selectedHouseNumber =
-      selectedEntity?.entityType === 'house' && Number.isFinite(Number(selectedEntity.entityId))
-        ? Number(selectedEntity.entityId)
-        : null;
     const selectedAspect =
       selectedEntity?.entityType === 'aspect'
         ? aspectLines.find((aspect) => aspect.entityId === selectedEntity.entityId) || null
         : null;
 
-    const highlightedHouseNumbers = useMemo(() => {
-      const houses = new Set<number>();
-      if (selectedHouseNumber != null) houses.add(selectedHouseNumber);
-      if (selectedPlanetKey) {
-        const house = displayPlanetMap.get(selectedPlanetKey)?.house;
-        if (house != null) houses.add(house);
-      }
-      if (selectedAspect) {
-        if (selectedAspect.from.house != null) houses.add(selectedAspect.from.house);
-        if (selectedAspect.to.house != null) houses.add(selectedAspect.to.house);
-      }
-      if (selectedZodiacSign) {
-        displayPlanets.forEach((planet) => {
-          if (planet.sign === selectedZodiacSign && planet.house != null) houses.add(planet.house);
-        });
-      }
-      return houses;
-    }, [displayPlanetMap, displayPlanets, selectedAspect, selectedHouseNumber, selectedPlanetKey, selectedZodiacSign]);
-
     const linkedAspectLines = useMemo(() => {
       if (selectedPlanetKey) {
         return aspectLines.filter((aspect) => aspect.from.key === selectedPlanetKey || aspect.to.key === selectedPlanetKey);
       }
-      if (selectedAspect) {
-        return [selectedAspect];
-      }
+      if (selectedAspect) return [selectedAspect];
       if (selectedZodiacSign) {
         return aspectLines.filter(
           (aspect) => aspect.from.sign === selectedZodiacSign || aspect.to.sign === selectedZodiacSign
         );
       }
-      if (selectedHouseNumber != null) {
-        return aspectLines.filter(
-          (aspect) => aspect.from.house === selectedHouseNumber || aspect.to.house === selectedHouseNumber
-        );
-      }
       return [];
-    }, [aspectLines, selectedAspect, selectedHouseNumber, selectedPlanetKey, selectedZodiacSign]);
+    }, [aspectLines, selectedAspect, selectedPlanetKey, selectedZodiacSign]);
 
     const selectionPreview = useMemo(() => {
       if (!selectedEntity) return null;
@@ -448,83 +609,61 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
       }
     }, [chartData, language, selectedEntity]);
 
-    const cancelHold = useCallback(() => {
-      stopHoldLoop();
-      holdPointerIdRef.current = null;
-      holdTriggeredRef.current = false;
-      setIsHolding(false);
-      setHoldProgress(0);
-    }, [stopHoldLoop]);
+    useEffect(() => {
+      setRemoteInsight(null);
+      const userId = profile.id;
+      if (!selectedEntity || !userId) return;
 
-    const stopHoldAndPropagation = useCallback((event: React.PointerEvent<SVGElement>) => {
-      event.stopPropagation();
-      cancelHold();
-    }, [cancelHold]);
-
-    const activateSelection = useCallback(
-      (selection: SelectedEntity) => {
-        cancelHold();
-        setSelectedEntity(selection);
-      },
-      [cancelHold]
-    );
-
-    const beginHold = useCallback(
-      (pointerId: number) => {
-        stopHoldLoop();
-        holdPointerIdRef.current = pointerId;
-        holdStartRef.current = performance.now();
-        holdTriggeredRef.current = false;
-        setIsHolding(true);
-        setHoldProgress(0);
-
-        const tick = (now: number) => {
-          const progress = Math.min((now - holdStartRef.current) / HOLD_DURATION_MS, 1);
-          setHoldProgress(progress);
-          if (progress >= 1) {
-            holdTriggeredRef.current = true;
-            setIsHolding(false);
-            setHoldProgress(1);
-            holdFrameRef.current = null;
-            onOpenChart();
+      let cancelled = false;
+      const loadInsight = async () => {
+        try {
+          const cached = await getCachedWheelInsight(
+            userId,
+            selectedEntity.entityType,
+            selectedEntity.entityId,
+            language,
+            chartId
+          );
+          if (cancelled) return;
+          if (cached) {
+            setRemoteInsight(cached);
             return;
           }
-          holdFrameRef.current = requestAnimationFrame(tick);
-        };
 
-        holdFrameRef.current = requestAnimationFrame(tick);
-      },
-      [onOpenChart, stopHoldLoop]
-    );
+          const generated = await getWheelInsight(
+            profile,
+            chartData,
+            selectedEntity.entityType,
+            selectedEntity.entityId,
+            chartId
+          );
+          if (!cancelled) setRemoteInsight(generated);
+        } catch {
+          if (!cancelled) setRemoteInsight(null);
+        }
+      };
 
-    const handleWheelPointerDown = useCallback(
-      (event: React.PointerEvent<HTMLDivElement>) => {
-        if ((event.target as HTMLElement).closest('[data-wheel-entity="true"]')) return;
-        beginHold(event.pointerId);
-      },
-      [beginHold]
-    );
+      void loadInsight();
+      return () => {
+        cancelled = true;
+      };
+    }, [chartData, chartId, language, profile, selectedEntity]);
 
     const handleWheelPointerUp = useCallback(
       (event: React.PointerEvent<HTMLDivElement>) => {
-        if (holdPointerIdRef.current !== event.pointerId) return;
-        if (!holdTriggeredRef.current) cancelHold();
+        const point = getPointerInViewBox(event, wheelRef.current);
+        if (!point) return;
+        const selection = resolveSelectionFromPoint(point, displayPlanets, aspectLines);
+        if (selection) {
+          setSelectedEntity(selection);
+        }
       },
-      [cancelHold]
+      [aspectLines, displayPlanets]
     );
 
-    const handleWheelPointerCancel = useCallback(
-      (event: React.PointerEvent<HTMLDivElement>) => {
-        if (holdPointerIdRef.current !== event.pointerId) return;
-        cancelHold();
-      },
-      [cancelHold]
-    );
-
-    const holdCircumference = 2 * Math.PI * (OUTER_RIM_RADIUS - 1.5);
-    const activeInsight = selectionPreview;
+    const activeInsight = remoteInsight || selectionPreview;
     const selectedInsightKicker = activeInsight ? getEntityKicker(language, activeInsight) : null;
-    const selectedInsightBody = activeInsight ? buildWheelMicroBody(language, activeInsight) : null;
+    const selectedInsightTags = activeInsight ? visibleTags(activeInsight.tags) : [];
     const layerLabels = buildLayerLabels(language);
 
     return (
@@ -533,11 +672,9 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
           <div className="shrink-0">
             <div className="relative mx-auto w-full max-w-[25.5rem]">
               <div
-                className="relative aspect-square w-full select-none"
-                onPointerDown={handleWheelPointerDown}
+                ref={wheelRef}
+                className="relative aspect-square w-full select-none touch-manipulation"
                 onPointerUp={handleWheelPointerUp}
-                onPointerCancel={handleWheelPointerCancel}
-                onPointerLeave={cancelHold}
               >
                 <motion.div
                   className="relative h-full w-full"
@@ -545,284 +682,164 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   transition={introTransition}
                 >
-                  <div className="absolute inset-0">
-                    <img
-                      src={WHEEL_MEDALLION_SRC}
-                      alt=""
-                      draggable={false}
-                      className="pointer-events-none absolute inset-0 h-full w-full object-contain"
-                    />
-                    <svg viewBox={`0 0 ${WHEEL_VIEWBOX} ${WHEEL_VIEWBOX}`} className="absolute inset-0 h-full w-full overflow-visible">
-                      {ZODIAC_SIGNS.map((sign, index) => {
-                        const { start, end, center: labelDeg } = getZodiacSectorAngles(index);
-                        const label = getZodiacLongLabel(language, sign as ZodiacSign);
-                        const point = polarPoint(labelDeg, ZODIAC_LABEL_RADIUS);
-                        const flip = labelDeg > 90 && labelDeg < 270;
-                        const rotation = flip ? labelDeg + 180 : labelDeg;
-                        const isActive = selectedZodiacSign === sign;
+                  <img
+                    src={WHEEL_MEDALLION_SRC}
+                    alt=""
+                    draggable={false}
+                    className="pointer-events-none absolute inset-0 h-full w-full object-contain"
+                  />
+                  <svg
+                    viewBox={`0 0 ${WHEEL_VIEWBOX} ${WHEEL_VIEWBOX}`}
+                    className="pointer-events-none absolute inset-0 h-full w-full overflow-visible"
+                  >
+                    <defs>
+                      <radialGradient id={medallionGradientId} cx="34%" cy="26%" r="72%">
+                        <stop offset="0%" stopColor="#FFFFFF" />
+                        <stop offset="48%" stopColor="#F7F2E7" />
+                        <stop offset="100%" stopColor="#D9E2EF" />
+                      </radialGradient>
+                      <filter id={zodiacGlowId} x="-35%" y="-35%" width="170%" height="170%">
+                        <feDropShadow dx="0" dy="2.2" stdDeviation="2.8" floodColor="#17365F" floodOpacity="0.18" />
+                      </filter>
+                    </defs>
+
+                    {selectedZodiacSign ? (
+                      (() => {
+                        const index = ZODIAC_SIGNS.indexOf(selectedZodiacSign);
+                        const { start, end, center } = getZodiacSectorAngles(index);
+                        const iconPoint = polarPoint(center, ZODIAC_ICON_PRESS_RADIUS);
                         return (
-                          <g key={`zodiac-${sign}`}>
-                            {isActive ? (
-                              <path
-                                d={describeRingSegment(start, end, ZODIAC_HIT_INNER_RADIUS, ZODIAC_HIT_OUTER_RADIUS)}
-                                fill="rgba(30,74,126,0.10)"
-                                stroke="rgba(30,74,126,0.38)"
-                                strokeWidth="0.9"
-                              />
-                            ) : null}
-                            <text
-                              x={point.x}
-                              y={point.y}
-                              textAnchor="middle"
-                              dominantBaseline="middle"
-                              transform={`rotate(${rotation} ${point.x} ${point.y})`}
-                              fill={isActive ? '#111827' : '#163762'}
-                              stroke="rgba(255,255,255,0.74)"
-                              strokeWidth="0.55"
-                              paintOrder="stroke"
-                              style={{ fontSize: getZodiacFontSize(label), fontWeight: 800, letterSpacing: '0.03em' }}
-                            >
-                              {label}
-                            </text>
-                            <path
+                          <g>
+                            <motion.path
                               d={describeRingSegment(start, end, ZODIAC_HIT_INNER_RADIUS, ZODIAC_HIT_OUTER_RADIUS)}
-                              fill="transparent"
-                              data-wheel-entity="true"
-                              onPointerDown={stopHoldAndPropagation}
-                              onPointerUp={(event) => {
-                                event.stopPropagation();
-                                activateSelection({ entityType: 'zodiac', entityId: sign });
-                              }}
-                              style={{ cursor: 'pointer' }}
+                              fill="rgba(255,255,255,0.16)"
+                              stroke="rgba(23,54,95,0.36)"
+                              strokeWidth="1.05"
+                              initial={false}
+                              animate={{ opacity: [0.74, 0.98, 0.74] }}
+                              transition={shouldReduceMotion ? { duration: 0.14 } : { duration: 2.2, repeat: Number.POSITIVE_INFINITY, ease: 'easeInOut' }}
+                              filter={`url(#${zodiacGlowId})`}
                             />
-                          </g>
-                        );
-                      })}
-                      {houseSegments.map((segment) => {
-                        const active = highlightedHouseNumbers.has(segment.house);
-                        const labelPoint = polarPoint(segment.labelLongitude, HOUSE_LABEL_RADIUS);
-                        return (
-                          <g
-                            key={`house-zone-${segment.house}`}
-                            data-wheel-entity="true"
-                            onPointerDown={stopHoldAndPropagation}
-                            onPointerUp={(event) => {
-                              event.stopPropagation();
-                              activateSelection({ entityType: 'house', entityId: String(segment.house) });
-                            }}
-                            style={{ cursor: 'pointer' }}
-                          >
-                            {active ? (
-                              <motion.path
-                                d={describeRingSegment(segment.rawLongitude, segment.endLongitude, HOUSE_HIT_INNER_RADIUS, HOUSE_HIT_OUTER_RADIUS)}
-                                fill="rgba(255,244,214,0.11)"
-                                stroke="rgba(255,230,176,0.42)"
-                                strokeWidth="0.7"
-                                initial={false}
-                                animate={{ opacity: [0.62, 0.92, 0.62] }}
-                                transition={shouldReduceMotion ? { duration: 0.18 } : { duration: 2.8, repeat: Number.POSITIVE_INFINITY, ease: 'easeInOut' }}
-                              />
-                            ) : (
-                              <path
-                                d={describeRingSegment(segment.rawLongitude, segment.endLongitude, HOUSE_HIT_INNER_RADIUS, HOUSE_HIT_OUTER_RADIUS)}
-                                fill="transparent"
-                              />
-                            )}
-                            <circle
-                              cx={labelPoint.x}
-                              cy={labelPoint.y}
-                              r={active ? 5.8 : 5.2}
-                              fill={active ? 'rgba(255,250,238,0.96)' : 'rgba(255,255,255,0.74)'}
-                              stroke={active ? 'rgba(226,177,84,0.82)' : 'rgba(214,229,252,0.48)'}
-                              strokeWidth={active ? 0.86 : 0.58}
-                            />
-                            <text
-                              x={labelPoint.x}
-                              y={labelPoint.y + 0.2}
-                              textAnchor="middle"
-                              dominantBaseline="middle"
-                              fill={active ? '#8A5B18' : 'rgba(235,242,255,0.86)'}
-                              style={{ fontSize: 5.6, fontWeight: 700 }}
-                            >
-                              {segment.house}
-                            </text>
-                          </g>
-                        );
-                      })}
-                      {houseCusps.map((house) => {
-                        const from = polarPoint(house.rawLongitude, INNER_CENTER_RADIUS + 1.5);
-                        const to = polarPoint(house.rawLongitude, HOUSE_RING_RADIUS - 2);
-                        return (
-                          <motion.line
-                            key={`house-line-${house.house}`}
-                            x1={from.x}
-                            y1={from.y}
-                            x2={to.x}
-                            y2={to.y}
-                            stroke="rgba(214,229,252,0.34)"
-                            strokeWidth={house.house % 3 === 1 ? 0.86 : 0.48}
-                            initial={introEnabled ? { pathLength: 0, opacity: 0 } : false}
-                            animate={{ pathLength: 1, opacity: 1 }}
-                            transition={{ ...introTransition, delay: introEnabled ? 0.14 : 0 }}
-                          />
-                        );
-                      })}
-                      <circle cx={WHEEL_CENTER} cy={WHEEL_CENTER} r={HOUSE_DOTTED_RADIUS} fill="none" stroke="rgba(255,255,255,0.14)" strokeWidth="0.7" strokeDasharray="2 4" />
-                      {aspectLines.map((aspect) => {
-                        const style = aspectStyles[aspect.type];
-                        const from = polarPoint(aspect.from.rawLongitude, aspect.from.displayRadius);
-                        const to = polarPoint(aspect.to.rawLongitude, aspect.to.displayRadius);
-                        const active =
-                          selectedAspect?.entityId === aspect.entityId ||
-                          linkedAspectLines.some((item) => item.entityId === aspect.entityId);
-                        const dimmed =
-                          !!selectedEntity &&
-                          !active &&
-                          !(
-                            selectedEntity.entityType === 'zodiac' &&
-                            (aspect.from.sign === selectedZodiacSign || aspect.to.sign === selectedZodiacSign)
-                          );
-                        return (
-                          <g key={aspect.entityId}>
-                            <line
-                              x1={from.x}
-                              y1={from.y}
-                              x2={to.x}
-                              y2={to.y}
-                              stroke={style.stroke}
-                              strokeWidth={active ? style.width + 0.38 : style.width}
-                              strokeDasharray={style.dash}
-                              opacity={active ? 0.88 : dimmed ? 0.07 : 0.22}
-                              style={{ filter: active ? `drop-shadow(0 0 3px ${style.stroke})` : undefined }}
-                            />
-                            <line
-                              x1={from.x}
-                              y1={from.y}
-                              x2={to.x}
-                              y2={to.y}
-                              stroke="transparent"
-                              strokeWidth={12}
-                              data-wheel-entity="true"
-                              onPointerDown={stopHoldAndPropagation}
-                              onPointerUp={(event) => {
-                                event.stopPropagation();
-                                activateSelection({ entityType: 'aspect', entityId: aspect.entityId });
-                              }}
-                              style={{ cursor: 'pointer' }}
-                            />
-                          </g>
-                        );
-                      })}
-                      {displayPlanets.map((planet) => {
-                        if (planet.lineTargetRadius == null) return null;
-                        const from = polarPoint(planet.rawLongitude, planet.displayRadius + Math.max(planet.visualRadius - 1.2, 8));
-                        const to = polarPoint(planet.rawLongitude, planet.lineTargetRadius);
-                        return (
-                          <line
-                            key={`leader-${planet.key}`}
-                            x1={from.x}
-                            y1={from.y}
-                            x2={to.x}
-                            y2={to.y}
-                            stroke="rgba(224,233,248,0.56)"
-                            strokeWidth="0.72"
-                            strokeDasharray="2 2.3"
-                          />
-                        );
-                      })}
-                      <circle cx={WHEEL_CENTER} cy={WHEEL_CENTER} r={INNER_CENTER_RADIUS} fill="rgba(255,255,255,0.10)" stroke="rgba(255,255,255,0.28)" strokeWidth="0.6" />
-                      <circle cx={WHEEL_CENTER} cy={WHEEL_CENTER} r={2.6} fill="rgba(255,255,255,0.84)" />
-                      {displayPlanets.map((planet, index) => {
-                        const meta = getPlanetMeta(planet.key);
-                        const point = polarPoint(planet.rawLongitude, planet.displayRadius);
-                        const selectedByPlanet = selectedPlanetKey === planet.key;
-                        const selectedByAspect = !!selectedAspect && (selectedAspect.from.key === planet.key || selectedAspect.to.key === planet.key);
-                        const selectedByZodiac = selectedZodiacSign != null && planet.sign === selectedZodiacSign;
-                        const selectedByHouse = selectedHouseNumber != null && planet.house === selectedHouseNumber;
-                        const active = selectedByPlanet || selectedByAspect || selectedByZodiac || selectedByHouse;
-                        const iconSize = planet.visualRadius * 1.18;
-                        return (
-                          <g key={planet.key}>
-                            {active ? (
-                              <motion.circle
-                                cx={point.x}
-                                cy={point.y}
-                                r={planet.visualRadius + 4.5}
-                                fill="none"
-                                stroke={`${meta.color}55`}
-                                strokeWidth="2.8"
-                                initial={false}
-                                animate={{ opacity: [0.46, 0.88, 0.46] }}
-                                transition={shouldReduceMotion ? { duration: 0.18 } : { duration: 2.4, repeat: Number.POSITIVE_INFINITY, ease: 'easeInOut' }}
-                              />
-                            ) : null}
                             <motion.circle
-                              cx={point.x}
-                              cy={point.y}
-                              r={planet.visualRadius}
-                              fill="rgba(255,255,255,0.985)"
-                              stroke={meta.color}
-                              strokeWidth={active ? 1.52 : 1.04}
-                              style={{ filter: 'drop-shadow(0 2px 6px rgba(12,24,52,0.18))' }}
-                              initial={introEnabled ? { opacity: 0, scale: 0.82 } : false}
-                              animate={{ opacity: 1, scale: active ? 1.04 : 1 }}
-                              transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1], delay: introEnabled ? 0.22 + index * 0.04 : 0 }}
-                            />
-                            <PlanetSymbolIcon
-                              planet={planet.key}
-                              x={point.x - iconSize / 2}
-                              y={point.y - iconSize / 2}
-                              width={iconSize}
-                              height={iconSize}
-                              stroke={meta.color}
-                              strokeWidth={1.7}
-                            />
-                            {planet.retrograde ? (
-                              <>
-                                <circle cx={point.x + planet.visualRadius - 0.3} cy={point.y - planet.visualRadius + 0.5} r={3.6} fill="white" stroke="#F6D9D8" strokeWidth="0.56" />
-                                <text x={point.x + planet.visualRadius - 0.3} y={point.y - planet.visualRadius + 0.5} textAnchor="middle" dominantBaseline="middle" fill="#E53935" style={{ fontSize: 5.6, fontWeight: 700 }}>
-                                  R
-                                </text>
-                              </>
-                            ) : null}
-                            <circle
-                              cx={point.x}
-                              cy={point.y}
-                              r={PLANET_TOUCH_RADIUS}
-                              fill="transparent"
-                              data-wheel-entity="true"
-                              onPointerDown={stopHoldAndPropagation}
-                              onPointerUp={(event) => {
-                                event.stopPropagation();
-                                activateSelection({ entityType: 'planet', entityId: planet.key });
-                              }}
-                              style={{ cursor: 'pointer' }}
+                              cx={iconPoint.x}
+                              cy={iconPoint.y}
+                              r="24"
+                              fill="rgba(16,39,74,0.12)"
+                              stroke="rgba(221,189,111,0.72)"
+                              strokeWidth="1.1"
+                              initial={false}
+                              animate={{ scale: shouldReduceMotion ? 1 : [0.96, 1, 0.96] }}
+                              transition={shouldReduceMotion ? { duration: 0.14 } : { duration: 1.8, repeat: Number.POSITIVE_INFINITY, ease: 'easeInOut' }}
+                              style={{ transformOrigin: `${iconPoint.x}px ${iconPoint.y}px` }}
                             />
                           </g>
                         );
-                      })}
-                    </svg>
-                  </div>
-                  <svg viewBox={`0 0 ${WHEEL_VIEWBOX} ${WHEEL_VIEWBOX}`} className="pointer-events-none absolute inset-0 h-full w-full">
+                      })()
+                    ) : null}
+
+                    {ZODIAC_SIGNS.map((sign, index) => {
+                      const { center } = getZodiacSectorAngles(index);
+                      const label = getZodiacLongLabel(language, sign);
+                      const point = polarPoint(center, ZODIAC_LABEL_RADIUS);
+                      const flip = center > 90 && center < 270;
+                      const rotation = flip ? center + 180 : center;
+                      const isActive = selectedZodiacSign === sign;
+                      return (
+                        <text
+                          key={`zodiac-label-${sign}`}
+                          x={point.x}
+                          y={point.y}
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                          transform={`rotate(${rotation} ${point.x} ${point.y})`}
+                          fill={isActive ? '#111827' : '#17365F'}
+                          stroke="rgba(255,255,255,0.82)"
+                          strokeWidth="0.62"
+                          paintOrder="stroke"
+                          style={{
+                            fontSize: getZodiacFontSize(label),
+                            fontWeight: 850,
+                            letterSpacing: 0,
+                          }}
+                        >
+                          {label}
+                        </text>
+                      );
+                    })}
+
+                    {aspectLines.map((aspect) => {
+                      const style = aspectStyles[aspect.type];
+                      const active =
+                        selectedAspect?.entityId === aspect.entityId ||
+                        linkedAspectLines.some((item) => item.entityId === aspect.entityId);
+                      const dimmed =
+                        !!selectedEntity &&
+                        !active &&
+                        !(
+                          selectedEntity.entityType === 'zodiac' &&
+                          (aspect.from.sign === selectedZodiacSign || aspect.to.sign === selectedZodiacSign)
+                        );
+                      return (
+                        <line
+                          key={aspect.entityId}
+                          x1={aspect.from.point.x}
+                          y1={aspect.from.point.y}
+                          x2={aspect.to.point.x}
+                          y2={aspect.to.point.y}
+                          stroke={style.stroke}
+                          strokeWidth={active ? style.width + 0.58 : style.width}
+                          strokeDasharray={style.dash}
+                          opacity={active ? 0.72 : dimmed ? 0.05 : 0.16}
+                          strokeLinecap="round"
+                          style={{ filter: active ? `drop-shadow(0 0 3px ${style.stroke})` : undefined }}
+                        />
+                      );
+                    })}
+
+                    <circle
+                      cx={WHEEL_CENTER}
+                      cy={WHEEL_CENTER}
+                      r={selectedPlanetKey === 'sun' ? 29 : 24}
+                      fill={selectedPlanetKey === 'sun' ? 'rgba(255,202,98,0.16)' : 'rgba(255,202,98,0.06)'}
+                      stroke={selectedPlanetKey === 'sun' ? 'rgba(236,165,50,0.82)' : 'rgba(236,165,50,0.38)'}
+                      strokeWidth={selectedPlanetKey === 'sun' ? 1.8 : 0.82}
+                      style={{ filter: selectedPlanetKey === 'sun' ? 'drop-shadow(0 0 8px rgba(236,165,50,0.38))' : undefined }}
+                    />
+
+                    {displayPlanets.map((planet) => {
+                      const selectedByPlanet = selectedPlanetKey === planet.key;
+                      const selectedByAspect = !!selectedAspect && (selectedAspect.from.key === planet.key || selectedAspect.to.key === planet.key);
+                      const selectedByZodiac = selectedZodiacSign != null && planet.sign === selectedZodiacSign;
+                      const related = !selectedEntity || selectedByPlanet || selectedByAspect || selectedByZodiac;
+                      const active = selectedByPlanet || selectedByAspect || selectedByZodiac;
+                      return (
+                        <PlanetMedallion
+                          key={planet.key}
+                          planet={planet}
+                          active={active}
+                          related={related}
+                          shouldReduceMotion={!!shouldReduceMotion}
+                          gradientId={medallionGradientId}
+                        />
+                      );
+                    })}
+
                     <circle
                       cx={WHEEL_CENTER}
                       cy={WHEEL_CENTER}
                       r={OUTER_RIM_RADIUS - 1.5}
                       fill="none"
-                      stroke="rgba(123,94,167,0.34)"
-                      strokeWidth="2.1"
-                      strokeDasharray={holdCircumference}
-                      strokeDashoffset={holdCircumference * (1 - holdProgress)}
-                      strokeLinecap="round"
-                      opacity={isHolding || holdProgress > 0 ? 1 : 0}
-                      transform={`rotate(-90 ${WHEEL_CENTER} ${WHEEL_CENTER})`}
+                      stroke="rgba(123,94,167,0.18)"
+                      strokeWidth="1"
+                      opacity="0.72"
                     />
                   </svg>
                 </motion.div>
               </div>
             </div>
           </div>
-          <div className="mx-auto mt-2.5 w-full max-w-[23.5rem] px-3">
+
+          <div className="mx-auto mt-3 w-full max-w-[23.75rem] px-3">
             <AnimatePresence mode="wait" initial={false}>
               {!activeInsight ? (
                 <motion.div
@@ -831,13 +848,16 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -4 }}
                   transition={{ duration: 0.22 }}
-                  className="space-y-2 text-left"
+                  className="space-y-3 text-left"
                 >
-                  <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#7B5EA7]">{buildIdleTitle(language)}</p>
-                    <p className="mt-1 text-[14px] leading-[1.55] text-text-main/78">{buildIdleHint(language)}</p>
+                  <div className="flex items-start gap-3">
+                    <SelectedBadge insight={null} language={language} />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#7B5EA7]">{buildIdleTitle(language)}</p>
+                      <p className="mt-1 text-[14px] leading-[1.5] text-text-main/80">{buildIdleHint(language)}</p>
+                    </div>
                   </div>
-                  <div className="flex flex-wrap gap-1.5 pt-0.5">
+                  <div className="flex flex-wrap gap-1.5">
                     {layerLabels.map((label) => (
                       <span
                         key={label}
@@ -847,7 +867,14 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                       </span>
                     ))}
                   </div>
-                  <p className="text-[12px] leading-relaxed text-text-muted/76">{buildHoldHint(language)}</p>
+                  <button
+                    type="button"
+                    onClick={onOpenChart}
+                    className="inline-flex h-10 items-center gap-2 rounded-full bg-[#1F2937] px-4 text-[13px] font-semibold text-white shadow-[0_8px_20px_rgba(31,41,55,0.18)] transition active:scale-[0.98]"
+                  >
+                    {buildOpenChartLabel(language)}
+                    <ArrowRight size={15} strokeWidth={2.2} />
+                  </button>
                 </motion.div>
               ) : (
                 <motion.div
@@ -856,34 +883,34 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -4 }}
                   transition={{ duration: 0.24 }}
-                  className="space-y-2.5 text-left"
+                  className="space-y-3 text-left"
                 >
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#7B5EA7]">{selectedInsightKicker}</p>
-                    <p className="mt-0.5 truncate text-[22px] font-semibold leading-tight text-text-main">{activeInsight.title}</p>
-                    <p className="mt-1 text-[13px] leading-snug text-text-muted">{activeInsight.subtitle}</p>
+                  <div className="flex items-start gap-3">
+                    <SelectedBadge insight={activeInsight} language={language} />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#7B5EA7]">{selectedInsightKicker}</p>
+                      <p className="mt-0.5 text-[23px] font-semibold leading-tight text-text-main">{activeInsight.title}</p>
+                      <p className="mt-1 text-[13px] leading-snug text-text-muted">{activeInsight.subtitle}</p>
+                    </div>
                   </div>
-                  <p className="text-[14.5px] leading-[1.55] text-text-main/82">{selectedInsightBody}</p>
-                  {activeInsight.tags?.length ? (
+                  <p className="text-[14.5px] leading-[1.52] text-text-main/84">{activeInsight.body}</p>
+                  {selectedInsightTags.length ? (
                     <div className="flex flex-wrap items-center gap-1.5">
-                      {activeInsight.tags.map((tag) => (
-                        <span key={tag.id} className="rounded-full bg-[#F4F6FA] px-2.5 py-1 text-[11.5px] leading-tight text-text-muted/86">
+                      {selectedInsightTags.map((tag) => (
+                        <span key={tag.id} className="rounded-full bg-[#F4F6FA] px-2.5 py-1 text-[11.5px] leading-tight text-text-muted/88">
                           {tag.label}
                         </span>
                       ))}
                     </div>
                   ) : null}
-                  {activeInsight.legend?.length ? (
-                    <div className="grid gap-1.5 pt-0.5 text-[12px] text-text-muted/82">
-                      {activeInsight.legend.map((item) => (
-                        <div key={item.id} className="flex items-center gap-2">
-                          <span className="inline-block h-[2px] w-4 rounded-full" style={{ backgroundColor: item.color || '#7B5EA7' }} />
-                          <span>{item.label}</span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : null}
-                  <p className="text-[12px] leading-relaxed text-text-muted/72">{buildHoldHint(language)}</p>
+                  <button
+                    type="button"
+                    onClick={onOpenChart}
+                    className="inline-flex h-10 items-center gap-2 rounded-full bg-[#1F2937] px-4 text-[13px] font-semibold text-white shadow-[0_8px_20px_rgba(31,41,55,0.18)] transition active:scale-[0.98]"
+                  >
+                    {buildOpenChartLabel(language)}
+                    <ArrowRight size={15} strokeWidth={2.2} />
+                  </button>
                 </motion.div>
               )}
             </AnimatePresence>
