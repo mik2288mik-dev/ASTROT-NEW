@@ -41,7 +41,7 @@ export const ZODIAC_OUTER_RADIUS = 130;
 export const ZODIAC_GLYPH_RADIUS = 119;
 export const OUTER_RIM_RADIUS = 158;
 export const PLANET_BASE_RADIUS = 88;
-export const PLANET_COLLISION_RADII = [88, 73, 58] as const;
+export const PLANET_COLLISION_RADII = [94, 76, 58] as const;
 
 export const NATAL_PLANET_ORDER: NatalPlanetKey[] = [
   'sun',
@@ -292,4 +292,3 @@ export function buildPlanetInsightCacheKey(
   const safeVersion = String(calculationVersion || 'default').trim() || 'default';
   return `planet:${planetId}:lang:${language === 'en' ? 'en' : 'ru'}:calc:${safeVersion}`;
 }
-
