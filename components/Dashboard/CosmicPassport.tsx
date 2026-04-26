@@ -2,6 +2,7 @@ import React, { memo } from 'react';
 import Image from 'next/image';
 import { UserProfile, NatalChartData } from '../../types';
 import { getText, getZodiacSign } from '../../constants';
+import { PlanetIcon } from '../icons/PlanetIcon';
 
 interface CosmicPassportProps {
   profile: UserProfile;
@@ -20,18 +21,45 @@ export const CosmicPassport = memo<CosmicPassportProps>(
     const sameSign = moonLabel && moonLabel === sunLabel;
     const displayNameFinal = profile.name?.trim() || displayName;
 
-    const signsLine =
-      lang === 'ru'
-        ? sameSign
-          ? `☉☽ ${sunLabel}`
-          : moonLabel
-            ? `☉ ${sunLabel} · ☽ ${moonLabel}`
-            : `☉ ${sunLabel}`
-        : sameSign
-          ? `Sun & Moon · ${sunLabel}`
-          : moonLabel
-            ? `Sun ${sunLabel} · Moon ${moonLabel}`
-            : `Sun · ${sunLabel}`;
+    const renderSignsLine = () => {
+      if (lang !== 'ru') {
+        return (
+          <span>
+            {sameSign
+              ? `Sun & Moon · ${sunLabel}`
+              : moonLabel
+                ? `Sun ${sunLabel} · Moon ${moonLabel}`
+                : `Sun · ${sunLabel}`}
+          </span>
+        );
+      }
+      if (sameSign) {
+        return (
+          <span className="inline-flex items-center gap-1.5">
+            <PlanetIcon planet="sun" size={12} stroke="currentColor" />
+            <PlanetIcon planet="moon" size={12} stroke="currentColor" />
+            <span>{sunLabel}</span>
+          </span>
+        );
+      }
+      if (moonLabel) {
+        return (
+          <span className="inline-flex items-center gap-1.5">
+            <PlanetIcon planet="sun" size={12} stroke="currentColor" />
+            <span>{sunLabel}</span>
+            <span className="text-astro-subtext/55">·</span>
+            <PlanetIcon planet="moon" size={12} stroke="currentColor" />
+            <span>{moonLabel}</span>
+          </span>
+        );
+      }
+      return (
+        <span className="inline-flex items-center gap-1.5">
+          <PlanetIcon planet="sun" size={12} stroke="currentColor" />
+          <span>{sunLabel}</span>
+        </span>
+      );
+    };
 
     return (
       <div className="lumia-glass relative overflow-hidden rounded-[30px]">
@@ -87,7 +115,7 @@ export const CosmicPassport = memo<CosmicPassportProps>(
               <h1 className="truncate font-serif text-[22px] font-semibold leading-tight tracking-tight text-astro-text sm:text-[26px]">
                 {displayNameFinal}
               </h1>
-              <p className="mt-1 text-[13px] leading-snug text-astro-subtext sm:text-sm">{signsLine}</p>
+              <p className="mt-1 text-[13px] leading-snug text-astro-subtext sm:text-sm">{renderSignsLine()}</p>
             </div>
           </div>
 

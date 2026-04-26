@@ -1,7 +1,9 @@
 import React from 'react';
 import type { SerializedChartForPrompt } from '../../lib/natalReading/chartSerializer';
 import { Divider, SectionLabel } from './SectionLabel';
-import { HOUSE_TOPICS, SIGN_GLYPH } from './constants';
+import { HOUSE_TOPICS } from './constants';
+import { ZodiacIcon } from '../icons/ZodiacIcon';
+import { PlanetIcon } from '../icons/PlanetIcon';
 
 type Props = { chart: SerializedChartForPrompt };
 
@@ -16,24 +18,22 @@ export const Houses: React.FC<Props> = ({ chart }) => {
 
   return (
     <section className="px-5 pt-7 pb-7">
-      <SectionLabel tier="free">Асцендент и дома</SectionLabel>
+      <SectionLabel>Асцендент и дома</SectionLabel>
 
       <div className="mt-5 space-y-4">
         <div>
           <p className="text-[10px] uppercase tracking-[0.2em] text-[#8a8a8a]">
             Асцендент
           </p>
-          <p className="mt-1.5 font-lora text-[15px] leading-[1.7] text-[#2d2d2d]">
-            <span className="font-astro-symbols mr-2 text-[15px] text-[#5e5e5e]">
-              {SIGN_GLYPH[chart.asc.sign] || '↑'}
+          <div className="mt-1.5 flex items-center gap-2">
+            <PlanetIcon planet="asc" size={15} stroke="#5e5e5e" />
+            <span className="font-lora text-[15px] leading-[1.7] text-[#2d2d2d]">
+              {chart.asc.sign}
             </span>
-            {chart.asc.sign}
-            <span className="ml-2 font-mono text-[12.5px] text-[#9a9a9a]">
-              {chart.asc.deg}
-            </span>
-            <span className="block mt-1 font-lora text-[13.5px] leading-[1.65] text-[#5e5e5e]">
-              Твоя «маска» во внешнем мире — то, как тебя считывают при первой встрече.
-            </span>
+            <span className="font-mono text-[12.5px] text-[#9a9a9a]">{chart.asc.deg}</span>
+          </div>
+          <p className="mt-1.5 font-lora text-[13.5px] leading-[1.65] text-[#5e5e5e]">
+            Твоя «маска» во внешнем мире — то, как тебя считывают при первой встрече.
           </p>
         </div>
 
@@ -41,19 +41,17 @@ export const Houses: React.FC<Props> = ({ chart }) => {
           <p className="text-[10px] uppercase tracking-[0.2em] text-[#8a8a8a]">
             Середина Неба (MC)
           </p>
-          <p className="mt-1.5 font-lora text-[15px] leading-[1.7] text-[#2d2d2d]">
-            <span className="font-astro-symbols mr-2 text-[15px] text-[#5e5e5e]">
-              {SIGN_GLYPH[chart.mc.sign] || 'MC'}
+          <div className="mt-1.5 flex items-center gap-2">
+            <PlanetIcon planet="mc" size={15} stroke="#5e5e5e" />
+            <span className="font-lora text-[15px] leading-[1.7] text-[#2d2d2d]">
+              {chart.mc.sign}
             </span>
-            {chart.mc.sign}
             {chart.mc.deg ? (
-              <span className="ml-2 font-mono text-[12.5px] text-[#9a9a9a]">
-                {chart.mc.deg}
-              </span>
+              <span className="font-mono text-[12.5px] text-[#9a9a9a]">{chart.mc.deg}</span>
             ) : null}
-            <span className="block mt-1 font-lora text-[13.5px] leading-[1.65] text-[#5e5e5e]">
-              Карьерные устремления и общественный образ.
-            </span>
+          </div>
+          <p className="mt-1.5 font-lora text-[13.5px] leading-[1.65] text-[#5e5e5e]">
+            Карьерные устремления и общественный образ.
           </p>
         </div>
       </div>
@@ -66,11 +64,9 @@ export const Houses: React.FC<Props> = ({ chart }) => {
               <span className="w-7 shrink-0 font-mono text-[12px] text-[#9a9a9a]">
                 {h.num}
               </span>
-              <span className="w-24 shrink-0 font-lora text-[14px] text-[#1f1f1f]">
-                <span className="font-astro-symbols mr-1.5 text-[#bdbdbd]">
-                  {SIGN_GLYPH[h.sign] || ''}
-                </span>
-                {h.sign}
+              <span className="flex w-24 shrink-0 items-center gap-1.5">
+                <ZodiacIcon sign={h.sign} size={13} stroke="#bdbdbd" />
+                <span className="font-lora text-[14px] text-[#1f1f1f]">{h.sign}</span>
               </span>
               <span className="flex-1 font-lora text-[13.5px] text-[#5e5e5e]">
                 {HOUSE_TOPICS[h.num] || ''}

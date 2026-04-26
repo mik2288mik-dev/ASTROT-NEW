@@ -12,6 +12,7 @@ import {
 import { Loading } from '../components/ui/Loading';
 import { getText, getZodiacSign } from '../constants';
 import { formatLumiaDate } from '../lib/date-utils';
+import { PlanetIcon } from '../components/icons/PlanetIcon';
 
 interface MyChartsProps {
   profile: UserProfile;
@@ -329,7 +330,10 @@ export const MyCharts: React.FC<MyChartsProps> = ({
                       {formattedBirthDate} • {chart.birth_place}
                     </p>
                     {sunSign && (
-                      <p className="mt-1 text-[10px] uppercase tracking-[0.14em] text-astro-subtext">☉ {signLabel}</p>
+                      <p className="mt-1 inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.14em] text-astro-subtext">
+                        <PlanetIcon planet="sun" size={11} stroke="currentColor" />
+                        <span>{signLabel}</span>
+                      </p>
                     )}
                   <div className="mt-4 flex flex-wrap gap-2">
                     {onChartSelect && (

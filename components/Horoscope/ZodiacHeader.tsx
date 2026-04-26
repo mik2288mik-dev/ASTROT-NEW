@@ -1,26 +1,12 @@
 import React, { memo } from 'react';
 import { Language } from '../../types';
 import { getText, getZodiacSign } from '../../constants';
+import { ZodiacIcon } from '../icons/ZodiacIcon';
 
 interface ZodiacHeaderProps {
   sunSign: string;
   language: Language;
 }
-
-const ZODIAC_SYMBOLS: Record<string, string> = {
-  Aries: '♈',
-  Taurus: '♉',
-  Gemini: '♊',
-  Cancer: '♋',
-  Leo: '♌',
-  Virgo: '♍',
-  Libra: '♎',
-  Scorpio: '♏',
-  Sagittarius: '♐',
-  Capricorn: '♑',
-  Aquarius: '♒',
-  Pisces: '♓',
-};
 
 const ZODIAC_DATES: Record<string, string> = {
   Aries: '21.03 - 19.04',
@@ -41,20 +27,17 @@ const ZODIAC_DATES: Record<string, string> = {
  * Sun sign row: typography leads; glyph is a quiet accent (not a hero mark).
  */
 export const ZodiacHeader = memo<ZodiacHeaderProps>(({ sunSign, language }) => {
-  const zodiacSymbol = ZODIAC_SYMBOLS[sunSign] || '♈';
   const zodiacDates = ZODIAC_DATES[sunSign] || '';
   const zodiacName = getZodiacSign(language, sunSign);
 
   return (
     <div className="border-b border-astro-border/25 pb-3.5">
       <p className="lumia-label tracking-[0.16em]">{getText(language, 'planets.sun')}</p>
-      <div className="mt-1.5 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+      <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
         <h2 className="font-sans text-xl font-semibold tracking-tight text-astro-text sm:text-2xl">
           {zodiacName}
         </h2>
-        <span className="text-[15px] text-astro-subtext/55 sm:text-base" aria-hidden>
-          {zodiacSymbol}
-        </span>
+        <ZodiacIcon sign={sunSign} size={16} stroke="currentColor" className="text-astro-subtext/60" />
       </div>
       <p className="lumia-muted mt-1 text-sm sm:text-[15px]">{zodiacDates}</p>
     </div>

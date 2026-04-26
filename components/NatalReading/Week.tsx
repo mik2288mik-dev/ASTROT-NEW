@@ -19,7 +19,7 @@ function weekRangeLabel(): string {
 export const Week: React.FC<Props> = ({ data, loading }) => {
   return (
     <section className="px-5 pt-7 pb-7">
-      <SectionLabel tier="free" hint="на этой неделе">
+      <SectionLabel hint="на этой неделе">
         Прогноз на неделю
       </SectionLabel>
 

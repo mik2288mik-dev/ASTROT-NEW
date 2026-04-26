@@ -172,7 +172,7 @@ export const DeepDive: React.FC<Props> = ({
 
   return (
     <section className="px-5 pt-7 pb-10">
-      <SectionLabel tier="premium">Глубокий разбор</SectionLabel>
+      <SectionLabel>Глубокий разбор</SectionLabel>
 
       <div className="mt-5">
         {DIVE_TOPICS.map((t) => {

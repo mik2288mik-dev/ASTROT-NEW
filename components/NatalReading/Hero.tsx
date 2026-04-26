@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import type { NatalReadingArchetype } from '../../lib/natalReading/types';
-import { ARCHETYPE_FADE_MS, ARCHETYPE_ROTATION_MS, SIGN_GLYPH } from './constants';
+import { ARCHETYPE_FADE_MS, ARCHETYPE_ROTATION_MS } from './constants';
+import { ZodiacIcon } from '../icons/ZodiacIcon';
+import { PlanetIcon } from '../icons/PlanetIcon';
 
 type HeroProps = {
   name: string;
@@ -17,10 +19,21 @@ function metaLine(date: string, time: string, place: string): string {
   return parts.join(' · ');
 }
 
-function Chip({ glyph, label }: { glyph: string; label: string }) {
+function SignChip({
+  planet,
+  sign,
+  label,
+}: {
+  planet?: 'sun' | 'moon' | 'asc' | 'mc';
+  sign: string;
+  label: string;
+}) {
   return (
     <span className="inline-flex items-center gap-1.5 rounded-[20px] border border-[#ececec] bg-white px-3 py-1 text-[12px] text-[#3a3a3a]">
-      <span className="font-astro-symbols text-[13px] leading-none">{glyph}</span>
+      {planet ? (
+        <PlanetIcon planet={planet} size={13} stroke="#5e5e5e" />
+      ) : null}
+      <ZodiacIcon sign={sign} size={13} stroke="#5e5e5e" />
       <span className="leading-none">{label}</span>
     </span>
   );
@@ -95,11 +108,11 @@ export const Hero: React.FC<HeroProps> = ({
       <p className="mt-3 text-[13px] text-[#9a9a9a]">{name}</p>
 
       <div className="mt-5 flex flex-wrap gap-1.5">
-        <Chip glyph={SIGN_GLYPH[signature.sun] || '☉'} label={`Солнце · ${signature.sun}`} />
-        <Chip glyph={SIGN_GLYPH[signature.moon] || '☽'} label={`Луна · ${signature.moon}`} />
-        <Chip glyph={SIGN_GLYPH[signature.rising] || '↑'} label={`Асц · ${signature.rising}`} />
+        <SignChip planet="sun" sign={signature.sun} label={`Солнце · ${signature.sun}`} />
+        <SignChip planet="moon" sign={signature.moon} label={`Луна · ${signature.moon}`} />
+        <SignChip planet="asc" sign={signature.rising} label={`Асц · ${signature.rising}`} />
         {signature.mc ? (
-          <Chip glyph={SIGN_GLYPH[signature.mc] || 'MC'} label={`MC · ${signature.mc}`} />
+          <SignChip planet="mc" sign={signature.mc} label={`MC · ${signature.mc}`} />
         ) : null}
       </div>
     </section>

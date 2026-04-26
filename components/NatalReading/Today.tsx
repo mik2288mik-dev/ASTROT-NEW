@@ -60,7 +60,7 @@ export const Today: React.FC<Props> = ({
 
   return (
     <section className="px-5 pt-7 pb-7">
-      <SectionLabel tier="premium" hint="обновляется каждый день">
+      <SectionLabel hint="обновляется каждый день">
         Сегодня · {dateLabel()}
       </SectionLabel>
 

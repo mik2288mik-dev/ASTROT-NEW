@@ -11,7 +11,7 @@ const ENERGY_DOT_COLORS = ['#c9a55a', '#9b87c4', '#3f8a6c'];
 export const Portrait: React.FC<Props> = ({ data, loading }) => {
   return (
     <section className="px-5 pt-7 pb-7">
-      <SectionLabel tier="free">Психологический портрет</SectionLabel>
+      <SectionLabel>Психологический портрет</SectionLabel>
 
       <div className="mt-5">
         {loading || !data ? (

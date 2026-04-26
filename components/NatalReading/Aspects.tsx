@@ -31,7 +31,7 @@ function Badge({ label, color }: { label: string; color: string }) {
 export const Aspects: React.FC<Props> = ({ data, loading }) => {
   return (
     <section className="px-5 pt-7 pb-7">
-      <SectionLabel tier="free">Ключевые аспекты</SectionLabel>
+      <SectionLabel>Ключевые аспекты</SectionLabel>
 
       <ul className="mt-5 space-y-5">
         {loading || !data

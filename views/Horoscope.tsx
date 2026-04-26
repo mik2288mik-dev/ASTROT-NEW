@@ -1,5 +1,5 @@
 import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
-import { Heart, Briefcase, Zap, Lock, Sparkles, type LucideIcon } from 'lucide-react';
+import { Heart, Briefcase, Zap, Lock, type LucideIcon } from 'lucide-react';
 import {
   DailyHoroscope,
   ForecastDailyReading,
@@ -22,7 +22,6 @@ import {
 } from '../services/astrologyService';
 import { Loading } from '../components/ui/Loading';
 import {
-  formatIsoWeekPeriodLabel,
   formatLumiaDate,
   getMoscowIsoWeekKey,
   getMoscowTodayKey,
@@ -31,8 +30,8 @@ import { getZodiacSign } from '../constants';
 import { getMoonPhase } from '../lib/horoscope/moonPhase';
 import { getQuestionOfDay } from '../lib/horoscope/questionOfDay';
 import { MoonPhaseIcon } from '../components/Horoscope/MoonPhaseIcon';
-import { SectionLabel } from '../components/NatalReading/SectionLabel';
-import { SIGN_GLYPH } from '../components/NatalReading/constants';
+import { SectionLabel, Divider } from '../components/NatalReading/SectionLabel';
+import { ZodiacIcon } from '../components/icons/ZodiacIcon';
 
 interface HoroscopeProps {
   profile: UserProfile;
@@ -67,14 +66,14 @@ function buildDailyFallback(
     ? {
         date: dateKey,
         headline: 'Ровный ритм важнее скорости',
-        summary: `Сегодня для знака ${signLabel} полезнее держаться простого ритма, чем разгоняться на всём подряд.`,
+        summary: `Сегодня для ${signLabel} полезнее держаться простого ритма, чем разгоняться на всём подряд.`,
         chance: 'Один точный шаг сегодня даст больше, чем несколько поспешных решений.',
         risk: 'Лишняя спешка и перегрузка мелкими задачами быстро забирают ясность.',
         focus: 'Один настоящий приоритет на день — этого достаточно.',
         reading:
           'Сегодня день не про то, чтобы выиграть гонку. Он про то, чтобы заметить, где у тебя уже сбит ритм, и аккуратно вернуть его. Не давить, не торопить — двигаться так, как тебе удобно.',
         context:
-          'Общий фон дня усиливает чувствительность к перегрузке. Спокойный фокус сегодня работает сильнее, чем резкий разгон.',
+          'Личный фон дня усиливает чувствительность к перегрузке. Спокойный фокус сегодня работает сильнее, чем резкий разгон.',
         advice: [
           'Не перегружай первую половину дня лишними решениями',
           'Оставь место для одного важного разговора или точного шага',
@@ -91,7 +90,7 @@ function buildDailyFallback(
         reading:
           'Today is not about outrunning the day. It is more useful to notice where you have lost your rhythm and gently bring it back.',
         context:
-          'The overall tone amplifies sensitivity to overload. Calm focus works better than acceleration.',
+          'Your personal weather amplifies sensitivity to overload. Calm focus works better than acceleration.',
         advice: [
           'Do not overload the first half of the day with extra decisions',
           'Leave room for one meaningful conversation or precise step',
@@ -126,43 +125,30 @@ function buildEveningFallback(language: 'ru' | 'en', dateKey: string): ForecastD
 
 function buildWeeklyFallback(
   language: 'ru' | 'en',
-  periodKey: string,
-  periodLabel: string
+  periodKey: string
 ): ForecastWeeklyReading {
   return language === 'ru'
     ? {
         periodKey,
-        periodLabel,
+        periodLabel: '',
         headline: 'Неделя ясности и ровного шага',
         summary: 'Сейчас полезнее держать фокус на главном и не распылять силы на второстепенное.',
         focus: 'Выбери одну опорную линию на неделю и поддерживай её спокойной дисциплиной.',
       }
     : {
         periodKey,
-        periodLabel,
+        periodLabel: '',
         headline: 'A week that rewards clarity and steady pacing',
         summary: 'It helps to protect your focus and avoid spending energy on side noise.',
         focus: 'Pick one meaningful line for the week and support it with calm consistency.',
       };
 }
 
-/* ----------------------- UI helpers ----------------------- */
-
-const Divider: React.FC = () => <div className="h-px w-full bg-[#f2f2f2]" />;
-
-const InsightBox: React.FC<{ label: string; children: React.ReactNode }> = ({
-  label,
-  children,
-}) => (
-  <div className="px-5 py-4" style={{ background: '#f9f9f9' }}>
-    <p className="text-[10px] uppercase tracking-[0.2em] text-[#8a8a8a]">{label}</p>
-    <p className="mt-2 font-lora italic text-[14.5px] leading-[1.75] text-[#3a3a3a]">{children}</p>
-  </div>
-);
+/* ---------- shared UI bits ---------- */
 
 const KeyValueRow: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <li className="flex items-baseline gap-3 border-t border-[#f2f2f2] py-3 first:border-t-0 first:pt-0">
-    <span className="w-[90px] shrink-0 text-[11px] uppercase tracking-[0.16em] text-[#9a9a9a]">
+    <span className="w-[78px] shrink-0 text-[11px] uppercase tracking-[0.16em] text-[#9a9a9a]">
       {label}
     </span>
     <span className="flex-1 font-lora text-[14.5px] leading-[1.7] text-[#2d2d2d]">{value}</span>
@@ -220,7 +206,7 @@ export const Horoscope = memo<HoroscopeProps>(
       [language, today]
     );
     const weeklyFallback = useMemo(
-      () => buildWeeklyFallback(language, weekKey, formatIsoWeekPeriodLabel(weekKey, language)),
+      () => buildWeeklyFallback(language, weekKey),
       [language, weekKey]
     );
 
@@ -366,45 +352,33 @@ export const Horoscope = memo<HoroscopeProps>(
 
     if (!chartData) return <Loading />;
 
-    /** Premium "three lenses" — pull the most relevant slot for each angle. */
+    /** Personal lenses for premium — pulled from evening data, not from daily,
+     *  to avoid repeating what we already showed in the main "Сегодня" block. */
     const lensTexts: Record<Lens, string> = {
       love:
         eveningReading?.relationships ||
-        dailyReading.advice?.[0] ||
         'Сегодня в близости важнее присутствие, чем правильные слова.',
       work:
         eveningReading?.money ||
-        dailyReading.advice?.[1] ||
         'В делах день про точные шаги, а не про размах.',
       energy:
         eveningReading?.guidance ||
-        dailyReading.advice?.[2] ||
         'Тело сегодня просит ровного ритма — без рывков.',
     };
 
     return (
       <div className="min-h-full bg-white pb-16 font-sans">
-        {/* HERO */}
-        <section className="px-5 pt-7 pb-7">
+        {/* HERO — quiet identity strip, no big headline */}
+        <section className="px-5 pt-7 pb-6">
           <p className="text-[11px] uppercase tracking-[0.2em] text-[#9a9a9a]">
             {language === 'en' ? 'Horoscope' : 'Гороскоп'} · {formatLumiaDate(today, language)}
           </p>
-          <h1 className="mt-3 font-lora text-[27px] leading-[1.2] tracking-[-0.005em] text-[#1f1f1f]">
-            {dailyReading.headline}
-          </h1>
-          <p className="mt-3 font-lora italic text-[14.5px] leading-[1.55] text-[#5e5e5e]">
-            {dailyReading.summary}
-          </p>
 
-          <div className="mt-5 flex flex-wrap items-center gap-1.5">
+          <div className="mt-4 flex flex-wrap items-center gap-1.5">
             <span className="inline-flex items-center gap-1.5 rounded-[20px] border border-[#ececec] bg-white px-3 py-1 text-[12px] text-[#3a3a3a]">
-              <span className="font-astro-symbols text-[13px] leading-none">
-                {SIGN_GLYPH[zodiacLabel] || ''}
-              </span>
+              <ZodiacIcon sign={sunSign} size={14} />
               <span>{zodiacLabel}</span>
-              {zodiacDates ? (
-                <span className="text-[#9a9a9a]"> · {zodiacDates}</span>
-              ) : null}
+              {zodiacDates ? <span className="text-[#9a9a9a]"> · {zodiacDates}</span> : null}
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-[20px] border border-[#ececec] bg-white px-3 py-1 text-[12px] text-[#3a3a3a]">
               <MoonPhaseIcon slot={moon.slot} size={14} />
@@ -417,44 +391,21 @@ export const Horoscope = memo<HoroscopeProps>(
 
         <Divider />
 
-        {/* MOON PHASE */}
+        {/* СЕГОДНЯ — single, unified daily block */}
         <section className="px-5 pt-7 pb-7">
-          <SectionLabel tier="free">
-            {language === 'en' ? 'Moon today' : 'Луна сегодня'}
+          <SectionLabel>
+            {language === 'en' ? 'Today' : 'Сегодня'}
           </SectionLabel>
-          <div className="mt-5 flex items-start gap-4">
-            <div className="shrink-0 rounded-full p-2.5" style={{ background: '#f4f4f4' }}>
-              <MoonPhaseIcon slot={moon.slot} size={28} />
-            </div>
-            <div className="min-w-0">
-              <p className="font-lora text-[16px] leading-[1.4] text-[#1f1f1f]">{moon.label}</p>
-              <p className="mt-2 font-lora text-[14.5px] leading-[1.8] text-[#3a3a3a]">
-                {moon.meaning}
-              </p>
-            </div>
-          </div>
-        </section>
 
-        <Divider />
+          <h1 className="mt-5 font-lora text-[20px] leading-[1.3] tracking-[-0.005em] text-[#1f1f1f]">
+            {dailyReading.headline}
+          </h1>
 
-        {/* GENERAL READING (free) */}
-        <section className="px-5 pt-7 pb-7">
-          <SectionLabel tier="free">
-            {language === 'en' ? 'General rhythm' : 'Общий ритм дня'}
-          </SectionLabel>
-          <p className="mt-5 font-lora text-[15px] leading-[1.85] text-[#2d2d2d] whitespace-pre-line">
+          <p className="mt-4 font-lora text-[15px] leading-[1.85] text-[#2d2d2d] whitespace-pre-line">
             {dailyReading.reading}
           </p>
-        </section>
 
-        <Divider />
-
-        {/* CHANCE / RISK / FOCUS */}
-        <section className="px-5 pt-7 pb-7">
-          <SectionLabel tier="free">
-            {language === 'en' ? 'What matters today' : 'Что важно сегодня'}
-          </SectionLabel>
-          <ul className="mt-5">
+          <ul className="mt-6">
             <KeyValueRow
               label={language === 'en' ? 'Chance' : 'Шанс'}
               value={dailyReading.chance}
@@ -468,42 +419,49 @@ export const Horoscope = memo<HoroscopeProps>(
               value={dailyReading.focus}
             />
           </ul>
+
+          {dailyReading.advice && dailyReading.advice[0] ? (
+            <p className="mt-5 font-lora italic text-[14px] leading-[1.7] text-[#5e5e5e]">
+              — {dailyReading.advice[0]}
+            </p>
+          ) : null}
         </section>
 
         <Divider />
 
-        {/* ADVICE — single most relevant action */}
-        {dailyReading.advice && dailyReading.advice.length ? (
-          <>
-            <section className="px-5 pt-7 pb-7">
-              <SectionLabel tier="free">
-                {language === 'en' ? 'One thing for today' : 'Одно дело сегодня'}
-              </SectionLabel>
-              <p className="mt-5 font-lora text-[15px] leading-[1.8] text-[#2d2d2d]">
-                {dailyReading.advice[0]}
-              </p>
-            </section>
-            <Divider />
-          </>
-        ) : null}
-
-        {/* QUESTION OF DAY */}
+        {/* ЛУНА */}
         <section className="px-5 pt-7 pb-7">
-          <SectionLabel tier="free">
-            {language === 'en' ? 'A question for you' : 'Вопрос дня'}
-          </SectionLabel>
-          <div className="mt-5">
-            <InsightBox label={language === 'en' ? 'Sit with it' : 'Подумай над этим'}>
-              {todayQuestion}
-            </InsightBox>
+          <SectionLabel>{language === 'en' ? 'Moon today' : 'Луна сегодня'}</SectionLabel>
+          <div className="mt-5 flex items-start gap-4">
+            <div className="shrink-0 rounded-full p-2.5" style={{ background: '#f4f4f4' }}>
+              <MoonPhaseIcon slot={moon.slot} size={26} />
+            </div>
+            <div className="min-w-0">
+              <p className="font-lora text-[16px] leading-[1.4] text-[#1f1f1f]">{moon.label}</p>
+              <p className="mt-2 font-lora text-[14.5px] leading-[1.8] text-[#3a3a3a]">
+                {moon.meaning}
+              </p>
+            </div>
           </div>
         </section>
 
         <Divider />
 
-        {/* PERSONAL FORECAST (premium) */}
+        {/* ВОПРОС ДНЯ */}
         <section className="px-5 pt-7 pb-7">
-          <SectionLabel tier="premium">
+          <SectionLabel>{language === 'en' ? 'A question for you' : 'Вопрос дня'}</SectionLabel>
+          <div className="mt-5 px-5 py-4" style={{ background: '#f9f9f9' }}>
+            <p className="font-lora italic text-[14.5px] leading-[1.75] text-[#3a3a3a]">
+              {todayQuestion}
+            </p>
+          </div>
+        </section>
+
+        <Divider />
+
+        {/* ЛИЧНЫЙ ПРОГНОЗ — premium */}
+        <section className="px-5 pt-7 pb-7">
+          <SectionLabel>
             {language === 'en' ? 'Your personal forecast' : 'Личный прогноз по карте'}
           </SectionLabel>
 
@@ -541,8 +499,8 @@ export const Horoscope = memo<HoroscopeProps>(
               ) : null}
             </>
           ) : (
-            <div className="mt-5 relative overflow-hidden rounded-[12px] border border-[#f0f0f0] px-5 py-7">
-              <div className="select-none" style={{ filter: 'blur(5px)' }} aria-hidden>
+            <div className="mt-5 relative overflow-hidden border border-[#f0f0f0]">
+              <div className="select-none px-5 py-7" style={{ filter: 'blur(5px)' }} aria-hidden>
                 <p className="font-lora text-[15px] leading-[1.8] text-[#2d2d2d]">
                   Сегодня твоя личная карта откликается на день определённым образом —
                   и в одних делах энергия будет твоей, а в других стоит подождать.
@@ -562,52 +520,39 @@ export const Horoscope = memo<HoroscopeProps>(
           )}
         </section>
 
-        {/* EVENING (premium) */}
+        {/* ВЕЧЕР — premium */}
         {profile.isPremium && eveningReading ? (
           <>
             <Divider />
             <section className="px-5 pt-7 pb-7">
-              <SectionLabel tier="premium">
-                {language === 'en' ? 'Evening' : 'Вечер'}
-              </SectionLabel>
+              <SectionLabel>{language === 'en' ? 'Evening' : 'Вечер'}</SectionLabel>
               <p className="mt-5 font-lora text-[16px] leading-[1.4] text-[#1f1f1f]">
                 {eveningReading.headline}
               </p>
-              <p className="mt-3 font-lora text-[14.5px] leading-[1.8] text-[#2d2d2d]">
-                {eveningReading.summary}
-              </p>
-              <p className="mt-4 font-lora italic text-[14px] leading-[1.7] text-[#5e5e5e]">
+              <p className="mt-3 font-lora italic text-[14px] leading-[1.7] text-[#5e5e5e]">
                 {eveningReading.guidance}
               </p>
             </section>
           </>
         ) : null}
 
-        {/* WEEK (premium) */}
+        {/* НЕДЕЛЯ — premium */}
         {profile.isPremium && weeklyReading ? (
           <>
             <Divider />
             <section className="px-5 pt-7 pb-7">
-              <SectionLabel tier="premium" hint={weeklyReading.periodLabel}>
-                {language === 'en' ? 'This week' : 'На этой неделе'}
-              </SectionLabel>
+              <SectionLabel>{language === 'en' ? 'This week' : 'На этой неделе'}</SectionLabel>
               <p className="mt-5 font-lora text-[16px] leading-[1.4] text-[#1f1f1f]">
                 {weeklyReading.headline}
               </p>
-              <p className="mt-3 font-lora text-[14.5px] leading-[1.8] text-[#2d2d2d]">
-                {weeklyReading.summary}
+              <p className="mt-3 font-lora text-[14.5px] leading-[1.8] text-[#3a3a3a]">
+                {weeklyReading.focus}
               </p>
-              <div className="mt-4 flex items-start gap-2.5">
-                <Sparkles size={14} strokeWidth={1.6} className="mt-1 text-[#9b87c4]" />
-                <p className="font-lora text-[14px] leading-[1.7] text-[#3a3a3a]">
-                  {weeklyReading.focus}
-                </p>
-              </div>
             </section>
           </>
         ) : null}
 
-        {/* CTA for non-premium */}
+        {/* CTA / Open chart */}
         {!profile.isPremium ? (
           <>
             <Divider />
