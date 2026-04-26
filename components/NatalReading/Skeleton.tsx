@@ -15,7 +15,6 @@ const shimmerStyle: React.CSSProperties = {
 };
 
 export const ShimmerStyles = () => (
-  // eslint-disable-next-line react/no-unknown-property
   <style>{shimmerKeyframes}</style>
 );
 
