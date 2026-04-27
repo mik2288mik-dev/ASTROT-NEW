@@ -4,6 +4,7 @@ import {
   ForecastDailyReading,
   UserProfile,
   NatalChartData,
+  NatalChartMode,
   ViewState,
 } from '../types';
 import { getText } from '../constants';
@@ -11,7 +12,7 @@ import { formatLumiaDate, getMoscowTodayKey } from '../lib/date-utils';
 import { getCachedDailyForecastLayer, mapLegacyHoroscopeToForecastDailyReading } from '../services/astrologyService';
 import { LumiaStudioHeader } from '../components/lumia-ui/LumiaStudioHeader';
 import { LumiaButton } from '../components/lumia-ui/LumiaButton';
-import { TrueNatalWheelHero } from '../components/Dashboard/TrueNatalWheelHero';
+import { NatalGatewayCarousel } from '../components/Dashboard/NatalGatewayCarousel';
 import { cn } from '../lib/cn';
 
 type DashboardView = Extract<ViewState, 'chart' | 'horoscope' | 'synastry' | 'oracle'>;
@@ -22,6 +23,7 @@ interface DashboardProps {
   chartData: NatalChartData | null;
   activeChartId?: number;
   onNavigate: (view: DashboardView) => void;
+  onOpenNatalMode: (mode: NatalChartMode) => void;
   onOpenSettings: () => void;
   onOpenWallet: () => void;
 }
@@ -86,11 +88,10 @@ const WavyTabLabel: React.FC<{
 };
 
 export const Dashboard = memo<DashboardProps>(
-  ({ profile, chartData, activeChartId, onNavigate, onOpenSettings, onOpenWallet }) => {
+  ({ profile, chartData, activeChartId, onNavigate, onOpenNatalMode, onOpenSettings, onOpenWallet }) => {
     const [activeTab, setActiveTab] = useState<StudioTab>('natal');
     const [tabWaveKey, setTabWaveKey] = useState(0);
     const [dailyReading, setDailyReading] = useState<ForecastDailyReading | null>(null);
-    const [hasNatalHeroAnimated, setHasNatalHeroAnimated] = useState(false);
     const shouldReduceMotion = useReducedMotion();
     const hasMountedRef = useRef(false);
 
@@ -372,13 +373,9 @@ export const Dashboard = memo<DashboardProps>(
               {activeTab === 'natal' && (
                 <section className="flex h-full min-h-0 flex-col px-1 pt-1">
                   <div className="relative mx-auto flex h-full min-h-0 w-full max-w-[26.5rem] flex-col sm:max-w-[27rem]">
-                    <TrueNatalWheelHero
+                    <NatalGatewayCarousel
                       profile={profile}
-                      chartData={chartData}
-                      chartId={activeChartId}
-                      shouldAnimateIntro={!hasNatalHeroAnimated}
-                      onIntroComplete={() => setHasNatalHeroAnimated(true)}
-                      onOpenChart={() => onNavigate('chart')}
+                      onOpenMode={onOpenNatalMode}
                     />
                   </div>
                 </section>

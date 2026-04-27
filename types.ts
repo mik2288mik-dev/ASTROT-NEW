@@ -895,6 +895,8 @@ export interface LumiWalletData {
 
 export type ViewState = 'onboarding' | 'hook' | 'paywall' | 'dashboard' | 'chart' | 'horoscope' | 'synastry' | 'oracle' | 'settings' | 'admin' | 'charts' | 'wallet';
 
+export type NatalChartMode = 'human' | 'wheel';
+
 // Cached text types
 export interface CachedText<T = any> {
   data: T;

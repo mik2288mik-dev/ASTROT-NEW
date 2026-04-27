@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { UserProfile, NatalChartData, ViewState } from './types';
+import { UserProfile, NatalChartData, ViewState, NatalChartMode } from './types';
 import {
     getProfile,
     saveProfile,
@@ -82,6 +82,7 @@ const App: React.FC = () => {
     const [chartsReturnView, setChartsReturnView] = useState<ViewState>('settings');
     const [walletReturnView, setWalletReturnView] = useState<ViewState>('dashboard');
     const [chartReturnView, setChartReturnView] = useState<ViewState>('dashboard');
+    const [chartOpenMode, setChartOpenMode] = useState<NatalChartMode>('human');
     
     // Ref для однократного вызова daily login за сессию
     const dailyLoginProcessedRef = useRef(false);
@@ -662,9 +663,18 @@ const App: React.FC = () => {
         if (newView === 'chart') {
             setActiveChartId(undefined);
             setChartReturnView('dashboard');
+            setChartOpenMode('human');
         }
         setView(newView);
     };
+
+    const openNatalMode = useCallback((mode: NatalChartMode) => {
+        if (!profile) return;
+        setActiveChartId(undefined);
+        setChartReturnView('dashboard');
+        setChartOpenMode(mode);
+        setView('chart');
+    }, [profile]);
 
     const refreshPrimaryChartState = useCallback(async () => {
         try {
@@ -804,7 +814,10 @@ const App: React.FC = () => {
                             profile={profile} 
                             chartData={chartData} 
                             onUpdateProfile={handleProfileUpdate}
-                            onOpenChart={() => setView('chart')}
+                            onOpenChart={() => {
+                                setChartOpenMode('human');
+                                setView('chart');
+                            }}
                             onRequestPremium={requestPremium}
                         />
                     </div>
@@ -817,6 +830,7 @@ const App: React.FC = () => {
                             requestPremium={requestPremium}
                             onUpdateProfile={handleProfileUpdate}
                             dictionaryOpenSignal={dictionaryOpenSignal}
+                            initialMode={chartOpenMode}
                         />
                     </div>
                 ) : view === 'settings' ? (
@@ -852,6 +866,7 @@ const App: React.FC = () => {
                                 setChartData(chartData);
                                 setActiveChartId(chartId);
                                 setChartReturnView('charts');
+                                setChartOpenMode('human');
                                 setView('chart');
                             }}
                         />
@@ -876,6 +891,7 @@ const App: React.FC = () => {
                                 }
                                 navigateTo(newView);
                             }} 
+                            onOpenNatalMode={openNatalMode}
                             onOpenSettings={() => setView('settings')}
                             onOpenWallet={() => openWallet('dashboard')}
                         />

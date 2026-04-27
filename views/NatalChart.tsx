@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import type {
   NatalChartData,
+  NatalChartMode,
   UserProfile,
 } from '../types';
 import { serializeChartForPrompt } from '../lib/natalReading/chartSerializer';
@@ -29,11 +30,13 @@ import { Today } from '../components/NatalReading/Today';
 import { DeepDive } from '../components/NatalReading/DeepDive';
 import { ShimmerStyles } from '../components/NatalReading/Skeleton';
 import { HumanReport } from '../components/NatalReading/HumanReport';
+import { TrueNatalWheelHero } from '../components/Dashboard/TrueNatalWheelHero';
 
 interface NatalChartProps {
   data: NatalChartData | null;
   profile: UserProfile;
   chartId?: number;
+  initialMode?: NatalChartMode;
   requestPremium: () => void;
   onUpdateProfile?: (profile: UserProfile) => void;
   dictionaryOpenSignal?: number; // unused in new layout, kept for back-compat
@@ -43,10 +46,11 @@ export const NatalChart: React.FC<NatalChartProps> = ({
   data,
   profile,
   chartId,
+  initialMode = 'human',
   requestPremium,
   onUpdateProfile,
 }) => {
-  const [readingMode, setReadingMode] = useState<'human' | 'classic'>('human');
+  const [readingMode, setReadingMode] = useState<NatalChartMode>(initialMode);
   const [portrait, setPortrait] = useState<NatalReadingPortrait | null>(null);
   const [aspects, setAspects] = useState<NatalReadingAspects | null>(null);
   const [week, setWeek] = useState<NatalReadingWeek | null>(null);
@@ -67,13 +71,17 @@ export const NatalChart: React.FC<NatalChartProps> = ({
   const userId = profile.id ? String(profile.id) : '';
   const isPremium = !!profile.isPremium;
 
+  useEffect(() => {
+    setReadingMode(initialMode);
+  }, [initialMode]);
+
   const serialized = useMemo(() => {
     if (!data) return null;
     return serializeChartForPrompt(profile, data);
   }, [data, profile]);
 
   useEffect(() => {
-    if (!userId || !data || readingMode !== 'classic') return;
+    if (!userId || !data || readingMode !== 'wheel') return;
     let cancelled = false;
     setLoadingPortrait(true);
     setLoadingAspects(true);
@@ -99,7 +107,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({
   }, [userId, data, chartId, readingMode]);
 
   useEffect(() => {
-    if (!userId || !data || !isPremium || readingMode !== 'classic') return;
+    if (!userId || !data || !isPremium || readingMode !== 'wheel') return;
     let cancelled = false;
     setLoadingToday(true);
     setErrToday(null);
@@ -155,18 +163,18 @@ export const NatalChart: React.FC<NatalChartProps> = ({
                 : 'text-[#777]'
             }`}
           >
-            Новая интерпретация
+            Карта личности
           </button>
           <button
             type="button"
-            onClick={() => setReadingMode('classic')}
+            onClick={() => setReadingMode('wheel')}
             className={`min-h-[38px] rounded-full px-3 text-[13px] font-medium transition ${
-              readingMode === 'classic'
+              readingMode === 'wheel'
                 ? 'bg-white text-[#1f1f1f] shadow-[0_6px_18px_rgba(0,0,0,0.08)]'
                 : 'text-[#777]'
             }`}
           >
-            Текущий разбор
+            Натальный круг
           </button>
         </div>
       </div>
@@ -181,6 +189,20 @@ export const NatalChart: React.FC<NatalChartProps> = ({
         />
       ) : (
         <>
+
+      <section className="px-2 pb-4 pt-1">
+        <div className="mx-auto min-h-[650px] w-full max-w-[27rem]">
+          <TrueNatalWheelHero
+            profile={profile}
+            chartData={data}
+            chartId={chartId}
+            shouldAnimateIntro
+            onOpenChart={() => setReadingMode('human')}
+          />
+        </div>
+      </section>
+
+      <div className="h-px w-full bg-[#f2f2f2]" />
 
       <Hero
         name={profile.name}
