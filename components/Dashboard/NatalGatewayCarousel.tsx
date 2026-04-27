@@ -1,6 +1,6 @@
 import React, { memo, useMemo, useRef, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
-import { motion, useReducedMotion, type PanInfo } from 'framer-motion';
+import { animate, motion, useMotionValue, useReducedMotion, type PanInfo } from 'framer-motion';
 import type { NatalChartMode, UserProfile } from '../../types';
 import { cn } from '../../lib/cn';
 
@@ -52,7 +52,7 @@ function getCoverflowMotion(offset: number) {
   if (abs === 0) {
     return {
       x: 'calc(-50% + 0px)',
-      y: 0,
+      y: 18,
       scale: 1,
       rotateY: 0,
       opacity: 1,
@@ -63,22 +63,22 @@ function getCoverflowMotion(offset: number) {
 
   if (abs === 1) {
     return {
-      x: `calc(-50% + ${side * 184}px)`,
-      y: 16,
-      scale: 0.88,
-      rotateY: side * -11,
-      opacity: 0.68,
+      x: `calc(-50% + ${side * 210}px)`,
+      y: 36,
+      scale: 0.84,
+      rotateY: side * -14,
+      opacity: 0.78,
       zIndex: 24,
       filter: 'blur(0.15px)',
     };
   }
 
   return {
-    x: `calc(-50% + ${side * 292}px)`,
-    y: 34,
-    scale: 0.76,
-    rotateY: side * -18,
-    opacity: 0.2,
+    x: `calc(-50% + ${side * 330}px)`,
+    y: 58,
+    scale: 0.72,
+    rotateY: side * -22,
+    opacity: 0.12,
     zIndex: 8,
     filter: 'blur(0.7px)',
   };
@@ -101,6 +101,7 @@ export const NatalGatewayCarousel = memo<NatalGatewayCarouselProps>(
   ({ profile, onOpenMode, onOpenSynastry, onOpenHoroscope }) => {
     const [activeIndex, setActiveIndex] = useState(0);
     const lastDragAtRef = useRef(0);
+    const dragX = useMotionValue(0);
     const shouldReduceMotion = useReducedMotion();
     const language = profile.language === 'en' ? 'en' : 'ru';
 
@@ -213,6 +214,11 @@ export const NatalGatewayCarousel = memo<NatalGatewayCarouselProps>(
     const handleDragEnd = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
       const shouldGoNext = info.offset.x < -52 || info.velocity.x < -420;
       const shouldGoPrev = info.offset.x > 52 || info.velocity.x > 420;
+      if (shouldReduceMotion) {
+        dragX.set(0);
+      } else {
+        animate(dragX, 0, { type: 'spring', stiffness: 260, damping: 28, mass: 0.85 });
+      }
       if (!shouldGoNext && !shouldGoPrev) return;
 
       lastDragAtRef.current = Date.now();
@@ -231,14 +237,15 @@ export const NatalGatewayCarousel = memo<NatalGatewayCarouselProps>(
     };
 
     return (
-      <div className="relative flex min-h-[29.5rem] flex-1 flex-col overflow-hidden pb-2 pt-1">
+      <div className="relative flex min-h-[31rem] flex-1 flex-col justify-center overflow-hidden pb-2 pt-6">
         <motion.div
           drag={shouldReduceMotion ? false : 'x'}
-          dragConstraints={{ left: 0, right: 0 }}
-          dragElastic={0.11}
+          dragConstraints={{ left: -168, right: 168 }}
+          dragElastic={0.08}
+          dragMomentum={false}
           onDragEnd={handleDragEnd}
-          className="relative min-h-[26.5rem] flex-1 overflow-visible px-4 [perspective:1200px]"
-          style={{ touchAction: 'pan-y' }}
+          style={{ x: dragX, touchAction: 'pan-y' }}
+          className="relative min-h-[28rem] flex-1 cursor-grab overflow-visible px-4 active:cursor-grabbing [perspective:1400px]"
         >
           {COVERFLOW_OFFSETS.map((offset) => {
             const cardIndex = mod(activeIndex + offset, cards.length);
@@ -260,7 +267,7 @@ export const NatalGatewayCarousel = memo<NatalGatewayCarouselProps>(
                   ease: [0.22, 1, 0.36, 1],
                 }}
                 className={cn(
-                  'absolute left-1/2 top-2 h-[min(54dvh,28rem)] min-h-[23rem] max-h-[28.5rem] w-[min(78vw,21rem)] overflow-hidden rounded-[32px] text-left outline-none',
+                  'absolute left-1/2 top-4 h-[min(57dvh,29.25rem)] min-h-[24.25rem] max-h-[29.5rem] w-[min(82vw,22rem)] overflow-hidden rounded-[32px] text-left outline-none',
                   'ring-1 ring-black/[0.05] focus-visible:ring-2 focus-visible:ring-[#7B5EA7]/45',
                   isActive
                     ? 'shadow-[0_24px_54px_rgba(31,41,55,0.15)]'
@@ -347,7 +354,7 @@ export const NatalGatewayCarousel = memo<NatalGatewayCarouselProps>(
           })}
         </motion.div>
 
-        <div className="flex shrink-0 items-center justify-center gap-2 pb-2 pt-1">
+        <div className="flex shrink-0 items-center justify-center gap-2 pb-2 pt-3">
           {cards.map((card, index) => (
             <button
               key={`dot-${card.id}`}
