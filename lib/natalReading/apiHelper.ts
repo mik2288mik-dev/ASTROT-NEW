@@ -75,7 +75,7 @@ export async function resolveReadingContext(
 }
 
 export type CachedReadingOptions = {
-  accessTier: 'free' | 'premium';
+  accessTier: 'free' | 'premium' | 'lumi';
   contentVariant:
     | 'anchor'
     | 'living'
@@ -91,6 +91,7 @@ export type CachedReadingOptions = {
     | 'full'
     | 'one_off';
   cacheKey: string;
+  inputHash?: string;
   promptVersion: string;
   modelTier?: 'base' | 'premium';
   isPersistent?: boolean;
@@ -118,6 +119,7 @@ export async function getCachedReading<T>(
   });
   const ip = layer.interpretation as ContentInterpretation<T> | null;
   if (!ip) return null;
+  if (opts.inputHash && ip.inputHash !== opts.inputHash) return null;
   if (ip.promptVersion !== opts.promptVersion) return null;
   if (ip.validTo) {
     const validUntil = new Date(ip.validTo).getTime();
@@ -137,9 +139,9 @@ export async function saveReading<T>(
     contentSurface: 'natal' as const,
     contentVariant: opts.contentVariant,
     cacheKey: opts.cacheKey,
-    inputHash: opts.cacheKey,
+    inputHash: opts.inputHash ?? opts.cacheKey,
     content,
-    modelTier: (opts.modelTier ?? (opts.accessTier === 'premium' ? 'premium' : 'base')) as
+    modelTier: (opts.modelTier ?? (opts.accessTier === 'free' ? 'base' : 'premium')) as
       | 'base'
       | 'premium',
     promptVersion: opts.promptVersion,

@@ -369,6 +369,77 @@ export type NatalAnchorReading = NatalAnchorReadingV4;
 export type NatalFullReading = NatalFullReadingV4;
 export type NatalLivingReading = NatalDailyReadingV3;
 
+export type InterpretationAccess = 'free' | 'paid' | 'premium';
+
+export type InterpretationSectionKey =
+  | 'base_portrait'
+  | 'main_formula'
+  | 'sun_code'
+  | 'moon_code'
+  | 'ascendant_code'
+  | 'strengths'
+  | 'growth_zones'
+  | 'how_others_see_you'
+  | 'emotional_world'
+  | 'self_relationship'
+  | 'main_advice'
+  | 'summary'
+  | 'today_by_chart'
+  | 'work_business'
+  | 'love_relationships'
+  | 'money_stability'
+  | 'goals_actions'
+  | 'friendship_social'
+  | 'family_home'
+  | 'shadow_patterns'
+  | 'potential_purpose'
+  | 'communication_conflicts'
+  | 'energy_recovery'
+  | 'personal_growth_scenario'
+  | 'daily_overview'
+  | 'daily_work_business'
+  | 'daily_love'
+  | 'daily_money'
+  | 'daily_goals'
+  | 'daily_communication'
+  | 'daily_friendship'
+  | 'daily_family'
+  | 'daily_energy'
+  | 'daily_risks'
+  | 'daily_best_action'
+  | 'daily_advice';
+
+export interface InterpretationSection {
+  key: InterpretationSectionKey;
+  title: string;
+  subtitle?: string;
+  access: InterpretationAccess;
+  isLocked?: boolean;
+  teaser?: string;
+  content: string;
+  bullets?: string[];
+  ctaLabel?: string;
+}
+
+export interface NatalInterpretationReport {
+  userName: string;
+  birthData: {
+    birthDate: string;
+    birthTime?: string | null;
+    birthPlace: string;
+  };
+  calculatedAt: string;
+  freeSections: InterpretationSection[];
+  paidSections: InterpretationSection[];
+  premiumSections?: InterpretationSection[];
+  shortCard: {
+    title: string;
+    keywords: string[];
+    text: string;
+    advice: string;
+  };
+}
+
 export interface PlanetInsightTag {
   id: string;
   label: string;

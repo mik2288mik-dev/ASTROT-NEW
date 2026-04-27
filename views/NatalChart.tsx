@@ -28,6 +28,7 @@ import { Week } from '../components/NatalReading/Week';
 import { Today } from '../components/NatalReading/Today';
 import { DeepDive } from '../components/NatalReading/DeepDive';
 import { ShimmerStyles } from '../components/NatalReading/Skeleton';
+import { HumanReport } from '../components/NatalReading/HumanReport';
 
 interface NatalChartProps {
   data: NatalChartData | null;
@@ -43,7 +44,9 @@ export const NatalChart: React.FC<NatalChartProps> = ({
   profile,
   chartId,
   requestPremium,
+  onUpdateProfile,
 }) => {
+  const [readingMode, setReadingMode] = useState<'human' | 'classic'>('human');
   const [portrait, setPortrait] = useState<NatalReadingPortrait | null>(null);
   const [aspects, setAspects] = useState<NatalReadingAspects | null>(null);
   const [week, setWeek] = useState<NatalReadingWeek | null>(null);
@@ -54,16 +57,12 @@ export const NatalChart: React.FC<NatalChartProps> = ({
   const [loadingWeek, setLoadingWeek] = useState(true);
   const [loadingToday, setLoadingToday] = useState(false);
 
-  const [errPortrait, setErrPortrait] = useState<string | null>(null);
-  const [errAspects, setErrAspects] = useState<string | null>(null);
-  const [errWeek, setErrWeek] = useState<string | null>(null);
   const [errToday, setErrToday] = useState<string | null>(null);
 
   const [dives, setDives] = useState<Partial<Record<NatalReadingDeepDiveKey, NatalReadingDeepDive>>>(
     {}
   );
   const [diveLoading, setDiveLoading] = useState<NatalReadingDeepDiveKey | null>(null);
-  const [diveError, setDiveError] = useState<string | null>(null);
 
   const userId = profile.id ? String(profile.id) : '';
   const isPremium = !!profile.isPremium;
@@ -74,14 +73,11 @@ export const NatalChart: React.FC<NatalChartProps> = ({
   }, [data, profile]);
 
   useEffect(() => {
-    if (!userId || !data) return;
+    if (!userId || !data || readingMode !== 'classic') return;
     let cancelled = false;
     setLoadingPortrait(true);
     setLoadingAspects(true);
     setLoadingWeek(true);
-    setErrPortrait(null);
-    setErrAspects(null);
-    setErrWeek(null);
     Promise.allSettled([
       loadPortrait(userId, chartId),
       loadAspects(userId, chartId),
@@ -89,24 +85,21 @@ export const NatalChart: React.FC<NatalChartProps> = ({
     ]).then(([p, a, w]) => {
       if (cancelled) return;
       if (p.status === 'fulfilled') setPortrait(p.value);
-      else setErrPortrait(p.reason?.message || 'Не удалось загрузить портрет');
       setLoadingPortrait(false);
 
       if (a.status === 'fulfilled') setAspects(a.value);
-      else setErrAspects(a.reason?.message || 'Не удалось загрузить аспекты');
       setLoadingAspects(false);
 
       if (w.status === 'fulfilled') setWeek(w.value);
-      else setErrWeek(w.reason?.message || 'Не удалось загрузить прогноз');
       setLoadingWeek(false);
     });
     return () => {
       cancelled = true;
     };
-  }, [userId, data, chartId]);
+  }, [userId, data, chartId, readingMode]);
 
   useEffect(() => {
-    if (!userId || !data || !isPremium) return;
+    if (!userId || !data || !isPremium || readingMode !== 'classic') return;
     let cancelled = false;
     setLoadingToday(true);
     setErrToday(null);
@@ -123,18 +116,17 @@ export const NatalChart: React.FC<NatalChartProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [userId, data, chartId, isPremium]);
+  }, [userId, data, chartId, isPremium, readingMode]);
 
   const openDive = async (key: NatalReadingDeepDiveKey) => {
     if (!userId || !data) return;
     if (dives[key]) return;
     setDiveLoading(key);
-    setDiveError(null);
     try {
       const result = await loadDeepDive(userId, key, chartId);
       setDives((prev) => ({ ...prev, [key]: result }));
     } catch (e) {
-      setDiveError(e instanceof Error ? e.message : 'Не удалось загрузить раздел');
+      console.warn('[NatalChart] Deep dive load failed', e);
     } finally {
       setDiveLoading(null);
     }
@@ -151,6 +143,44 @@ export const NatalChart: React.FC<NatalChartProps> = ({
   return (
     <div className="bg-white min-h-full pb-16 font-sans">
       <ShimmerStyles />
+
+      <div className="sticky top-0 z-20 bg-white/92 px-5 pb-3 pt-4 backdrop-blur-xl">
+        <div className="grid grid-cols-2 rounded-full bg-[#f4f4f4] p-1">
+          <button
+            type="button"
+            onClick={() => setReadingMode('human')}
+            className={`min-h-[38px] rounded-full px-3 text-[13px] font-medium transition ${
+              readingMode === 'human'
+                ? 'bg-white text-[#1f1f1f] shadow-[0_6px_18px_rgba(0,0,0,0.08)]'
+                : 'text-[#777]'
+            }`}
+          >
+            Новая интерпретация
+          </button>
+          <button
+            type="button"
+            onClick={() => setReadingMode('classic')}
+            className={`min-h-[38px] rounded-full px-3 text-[13px] font-medium transition ${
+              readingMode === 'classic'
+                ? 'bg-white text-[#1f1f1f] shadow-[0_6px_18px_rgba(0,0,0,0.08)]'
+                : 'text-[#777]'
+            }`}
+          >
+            Текущий разбор
+          </button>
+        </div>
+      </div>
+
+      {readingMode === 'human' ? (
+        <HumanReport
+          profile={profile}
+          chartData={data}
+          chartId={chartId}
+          requestPremium={requestPremium}
+          onUpdateProfile={onUpdateProfile}
+        />
+      ) : (
+        <>
 
       <Hero
         name={profile.name}
@@ -206,6 +236,8 @@ export const NatalChart: React.FC<NatalChartProps> = ({
         onOpen={openDive}
         onUnlockPremium={requestPremium}
       />
+        </>
+      )}
     </div>
   );
 };
