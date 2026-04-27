@@ -884,7 +884,6 @@ const App: React.FC = () => {
                         <Dashboard 
                             profile={profile} 
                             chartData={chartData}
-                            activeChartId={activeChartId}
                             onNavigate={(newView) => {
                                 if (newView === 'synastry') {
                                     setSynastryPrefill(null);
