@@ -1,6 +1,6 @@
-import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { memo, useMemo, useRef, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion, useReducedMotion, type PanInfo } from 'framer-motion';
 import type { NatalChartMode, UserProfile } from '../../types';
 import { cn } from '../../lib/cn';
 
@@ -23,8 +23,10 @@ type GatewayCard = {
   action: () => void;
 };
 
-function realIndex(loopIndex: number, total: number) {
-  return ((loopIndex % total) + total) % total;
+const COVERFLOW_OFFSETS = [-2, -1, 0, 1, 2] as const;
+
+function mod(value: number, total: number) {
+  return ((value % total) + total) % total;
 }
 
 function hapticSelection() {
@@ -43,14 +45,62 @@ function hapticImpact() {
   }
 }
 
+function getCoverflowMotion(offset: number) {
+  const side = Math.sign(offset);
+  const abs = Math.abs(offset);
+
+  if (abs === 0) {
+    return {
+      x: 'calc(-50% + 0px)',
+      y: 0,
+      scale: 1,
+      rotateY: 0,
+      opacity: 1,
+      zIndex: 40,
+      filter: 'blur(0px)',
+    };
+  }
+
+  if (abs === 1) {
+    return {
+      x: `calc(-50% + ${side * 184}px)`,
+      y: 16,
+      scale: 0.88,
+      rotateY: side * -11,
+      opacity: 0.68,
+      zIndex: 24,
+      filter: 'blur(0.15px)',
+    };
+  }
+
+  return {
+    x: `calc(-50% + ${side * 292}px)`,
+    y: 34,
+    scale: 0.76,
+    rotateY: side * -18,
+    opacity: 0.2,
+    zIndex: 8,
+    filter: 'blur(0.7px)',
+  };
+}
+
+function overlayClass(tone: GatewayCard['tone']) {
+  if (tone === 'dark') {
+    return 'bg-[linear-gradient(90deg,rgba(5,12,28,0.84)_0%,rgba(5,12,28,0.58)_43%,rgba(5,12,28,0.10)_100%)]';
+  }
+  if (tone === 'rose') {
+    return 'bg-[linear-gradient(90deg,rgba(255,250,246,0.93)_0%,rgba(255,241,235,0.68)_45%,rgba(117,78,96,0.10)_100%)]';
+  }
+  if (tone === 'sky') {
+    return 'bg-[linear-gradient(90deg,rgba(255,252,244,0.93)_0%,rgba(243,247,255,0.70)_45%,rgba(133,173,218,0.10)_100%)]';
+  }
+  return 'bg-[linear-gradient(90deg,rgba(255,252,245,0.94)_0%,rgba(255,252,245,0.72)_45%,rgba(255,252,245,0.12)_100%)]';
+}
+
 export const NatalGatewayCarousel = memo<NatalGatewayCarouselProps>(
   ({ profile, onOpenMode, onOpenSynastry, onOpenHoroscope }) => {
-    const trackRef = useRef<HTMLDivElement | null>(null);
-    const scrollEndRef = useRef<number | null>(null);
-    const frameRef = useRef<number | null>(null);
-    const loopIndexRef = useRef(0);
-    const activeIndexRef = useRef(0);
     const [activeIndex, setActiveIndex] = useState(0);
+    const lastDragAtRef = useRef(0);
     const shouldReduceMotion = useReducedMotion();
     const language = profile.language === 'en' ? 'en' : 'ru';
 
@@ -152,137 +202,75 @@ export const NatalGatewayCarousel = memo<NatalGatewayCarouselProps>(
       [language, onOpenHoroscope, onOpenMode, onOpenSynastry]
     );
 
-    const loopCards = useMemo(
-      () => [...cards, ...cards, ...cards].map((card, loopIndex) => ({ card, loopIndex })),
-      [cards]
-    );
-
-    const scrollToLoopIndex = useCallback((nextLoopIndex: number, behavior: ScrollBehavior = 'smooth') => {
-      const track = trackRef.current;
-      const target = track?.children[nextLoopIndex] as HTMLElement | undefined;
-      if (!track || !target) return;
-      const left = target.offsetLeft - (track.clientWidth - target.clientWidth) / 2;
-      track.scrollTo({ left, behavior });
-      loopIndexRef.current = nextLoopIndex;
-    }, []);
-
-    useEffect(() => {
-      const startIndex = cards.length;
-      loopIndexRef.current = startIndex;
-      activeIndexRef.current = 0;
-      setActiveIndex(0);
-      window.setTimeout(() => scrollToLoopIndex(startIndex, 'auto'), 0);
-    }, [cards.length, scrollToLoopIndex]);
-
-    useEffect(() => {
-      return () => {
-        if (scrollEndRef.current) window.clearTimeout(scrollEndRef.current);
-        if (frameRef.current) window.cancelAnimationFrame(frameRef.current);
-      };
-    }, []);
-
-    const updateNearestCard = useCallback(() => {
-      const track = trackRef.current;
-      if (!track) return;
-
-      const center = track.scrollLeft + track.clientWidth / 2;
-      let nearestLoopIndex = loopIndexRef.current;
-      let nearestDistance = Number.POSITIVE_INFINITY;
-
-      Array.from(track.children).forEach((child, index) => {
-        const item = child as HTMLElement;
-        const itemCenter = item.offsetLeft + item.clientWidth / 2;
-        const distance = Math.abs(itemCenter - center);
-        if (distance < nearestDistance) {
-          nearestDistance = distance;
-          nearestLoopIndex = index;
-        }
+    const moveTo = (nextIndex: number) => {
+      setActiveIndex((current) => {
+        const resolved = mod(nextIndex, cards.length);
+        if (resolved !== current) hapticSelection();
+        return resolved;
       });
+    };
 
-      const nextActiveIndex = realIndex(nearestLoopIndex, cards.length);
-      loopIndexRef.current = nearestLoopIndex;
+    const handleDragEnd = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+      const shouldGoNext = info.offset.x < -52 || info.velocity.x < -420;
+      const shouldGoPrev = info.offset.x > 52 || info.velocity.x > 420;
+      if (!shouldGoNext && !shouldGoPrev) return;
 
-      if (nextActiveIndex !== activeIndexRef.current) {
-        activeIndexRef.current = nextActiveIndex;
-        setActiveIndex(nextActiveIndex);
-        hapticSelection();
-      }
-    }, [cards.length]);
+      lastDragAtRef.current = Date.now();
+      moveTo(activeIndex + (shouldGoNext ? 1 : -1));
+    };
 
-    const recenterIfNeeded = useCallback(() => {
-      const total = cards.length;
-      const current = loopIndexRef.current;
-      if (current < total) {
-        scrollToLoopIndex(current + total, 'auto');
-      } else if (current >= total * 2) {
-        scrollToLoopIndex(current - total, 'auto');
-      }
-    }, [cards.length, scrollToLoopIndex]);
-
-    const handleScroll = useCallback(() => {
-      if (frameRef.current) window.cancelAnimationFrame(frameRef.current);
-      frameRef.current = window.requestAnimationFrame(updateNearestCard);
-
-      if (scrollEndRef.current) window.clearTimeout(scrollEndRef.current);
-      scrollEndRef.current = window.setTimeout(recenterIfNeeded, 130);
-    }, [recenterIfNeeded, updateNearestCard]);
-
-    const openCard = (card: GatewayCard, loopIndex: number) => {
-      if (loopIndex !== loopIndexRef.current) {
-        hapticSelection();
-        scrollToLoopIndex(loopIndex);
+    const openCard = (card: GatewayCard, offset: number) => {
+      if (Date.now() - lastDragAtRef.current < 180) return;
+      if (offset !== 0) {
+        moveTo(activeIndex + offset);
         return;
       }
+
       hapticImpact();
       card.action();
     };
 
-    const overlayClass = (tone: GatewayCard['tone']) => {
-      if (tone === 'dark') {
-        return 'bg-[linear-gradient(90deg,rgba(5,12,28,0.84)_0%,rgba(5,12,28,0.58)_43%,rgba(5,12,28,0.10)_100%)]';
-      }
-      if (tone === 'rose') {
-        return 'bg-[linear-gradient(90deg,rgba(255,250,246,0.92)_0%,rgba(255,241,235,0.68)_45%,rgba(117,78,96,0.10)_100%)]';
-      }
-      if (tone === 'sky') {
-        return 'bg-[linear-gradient(90deg,rgba(255,252,244,0.92)_0%,rgba(243,247,255,0.70)_45%,rgba(133,173,218,0.10)_100%)]';
-      }
-      return 'bg-[linear-gradient(90deg,rgba(255,252,245,0.94)_0%,rgba(255,252,245,0.72)_45%,rgba(255,252,245,0.12)_100%)]';
-    };
-
     return (
-      <div className="relative flex h-full min-h-[34rem] flex-col overflow-hidden pb-2 pt-1">
-        <div
-          ref={trackRef}
-          onScroll={handleScroll}
-          className="scrollbar-hide flex min-h-0 flex-1 snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain px-6 pb-5 pt-1"
-          style={{
-            scrollBehavior: shouldReduceMotion ? 'auto' : 'smooth',
-            WebkitOverflowScrolling: 'touch',
-            touchAction: 'pan-x',
-          }}
+      <div className="relative flex min-h-[29.5rem] flex-1 flex-col overflow-hidden pb-2 pt-1">
+        <motion.div
+          drag={shouldReduceMotion ? false : 'x'}
+          dragConstraints={{ left: 0, right: 0 }}
+          dragElastic={0.11}
+          onDragEnd={handleDragEnd}
+          className="relative min-h-[26.5rem] flex-1 overflow-visible px-4 [perspective:1200px]"
+          style={{ touchAction: 'pan-y' }}
         >
-          {loopCards.map(({ card, loopIndex }) => {
-            const isActive = activeIndex === realIndex(loopIndex, cards.length);
+          {COVERFLOW_OFFSETS.map((offset) => {
+            const cardIndex = mod(activeIndex + offset, cards.length);
+            const card = cards[cardIndex];
+            const motionState = getCoverflowMotion(offset);
+            const isActive = offset === 0;
             const textIsLight = card.tone === 'dark';
+
             return (
               <motion.button
-                key={`${card.id}-${loopIndex}`}
+                key={`${card.id}-${offset}`}
                 type="button"
-                onClick={() => openCard(card, loopIndex)}
-                whileTap={!shouldReduceMotion ? { scale: 0.985 } : undefined}
-                animate={{
-                  scale: isActive ? 1 : 0.94,
-                  opacity: isActive ? 1 : 0.76,
+                onClick={() => openCard(card, offset)}
+                initial={false}
+                animate={motionState}
+                whileTap={isActive && !shouldReduceMotion ? { scale: 0.975 } : undefined}
+                transition={{
+                  duration: shouldReduceMotion ? 0.1 : 0.38,
+                  ease: [0.22, 1, 0.36, 1],
                 }}
-                transition={{ duration: shouldReduceMotion ? 0.08 : 0.22, ease: [0.22, 1, 0.36, 1] }}
                 className={cn(
-                  'relative my-1 h-[calc(100%-0.5rem)] min-h-[31.5rem] basis-[84%] shrink-0 snap-center overflow-hidden rounded-[34px] text-left outline-none',
+                  'absolute left-1/2 top-2 h-[min(54dvh,28rem)] min-h-[23rem] max-h-[28.5rem] w-[min(78vw,21rem)] overflow-hidden rounded-[32px] text-left outline-none',
                   'ring-1 ring-black/[0.05] focus-visible:ring-2 focus-visible:ring-[#7B5EA7]/45',
                   isActive
                     ? 'shadow-[0_24px_54px_rgba(31,41,55,0.15)]'
-                    : 'shadow-[0_16px_34px_rgba(31,41,55,0.10)]'
+                    : 'shadow-[0_14px_30px_rgba(31,41,55,0.10)]'
                 )}
+                style={{
+                  transformStyle: 'preserve-3d',
+                  transformOrigin: '50% 58%',
+                }}
+                aria-label={card.title}
               >
                 <img
                   src={card.image}
@@ -290,11 +278,11 @@ export const NatalGatewayCarousel = memo<NatalGatewayCarouselProps>(
                   draggable={false}
                   className={cn(
                     'pointer-events-none absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out',
-                    isActive ? 'scale-100' : 'scale-[1.035]'
+                    isActive ? 'scale-100' : 'scale-[1.04]'
                   )}
                 />
                 <span className={cn('absolute inset-0', overlayClass(card.tone))} />
-                <span className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-white/28 to-transparent" />
+                <span className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-white/28 to-transparent" />
                 <span className="relative z-10 flex h-full flex-col justify-between p-5">
                   <span>
                     <span
@@ -309,7 +297,7 @@ export const NatalGatewayCarousel = memo<NatalGatewayCarouselProps>(
                     </span>
                     <span
                       className={cn(
-                        'serif mt-4 block max-w-[13.8rem] text-[2.45rem] leading-[0.96]',
+                        'serif mt-4 block max-w-[13.5rem] text-[clamp(2.1rem,9vw,2.52rem)] leading-[0.96]',
                         textIsLight ? 'text-white' : 'text-[#202024]'
                       )}
                     >
@@ -317,7 +305,7 @@ export const NatalGatewayCarousel = memo<NatalGatewayCarouselProps>(
                     </span>
                     <span
                       className={cn(
-                        'mt-4 block max-w-[14.75rem] text-[14px] leading-relaxed',
+                        'mt-4 block max-w-[14.5rem] text-[14px] leading-relaxed',
                         textIsLight ? 'text-white/78' : 'text-[#4b4b50]'
                       )}
                     >
@@ -357,28 +345,21 @@ export const NatalGatewayCarousel = memo<NatalGatewayCarouselProps>(
               </motion.button>
             );
           })}
-        </div>
+        </motion.div>
 
-        <div className="pointer-events-none absolute bottom-3 left-0 right-0 z-10 flex justify-center">
-          <div className="pointer-events-auto flex items-center gap-2 rounded-full bg-white/72 px-3 py-2 shadow-[0_12px_28px_rgba(31,41,55,0.10)] ring-1 ring-black/[0.05] backdrop-blur-xl">
-            {cards.map((card, index) => (
-              <button
-                key={`dot-${card.id}`}
-                type="button"
-                onClick={() => {
-                  hapticSelection();
-                  activeIndexRef.current = index;
-                  setActiveIndex(index);
-                  scrollToLoopIndex(cards.length + index);
-                }}
-                className={cn(
-                  'h-2 rounded-full transition-all duration-300',
-                  index === activeIndex ? 'w-7 bg-[#1f1f1f]' : 'w-2 bg-black/16'
-                )}
-                aria-label={card.title}
-              />
-            ))}
-          </div>
+        <div className="flex shrink-0 items-center justify-center gap-2 pb-2 pt-1">
+          {cards.map((card, index) => (
+            <button
+              key={`dot-${card.id}`}
+              type="button"
+              onClick={() => moveTo(index)}
+              className={cn(
+                'h-2 rounded-full transition-all duration-300',
+                index === activeIndex ? 'w-7 bg-[#1f1f1f]' : 'w-2 bg-black/16'
+              )}
+              aria-label={card.title}
+            />
+          ))}
         </div>
       </div>
     );
