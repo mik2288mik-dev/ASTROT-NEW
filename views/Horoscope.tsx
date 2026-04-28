@@ -28,7 +28,8 @@ import { getMoonPhase } from '../lib/horoscope/moonPhase';
 import { getQuestionOfDay } from '../lib/horoscope/questionOfDay';
 import { MoonPhaseIcon } from '../components/Horoscope/MoonPhaseIcon';
 import { Divider, SectionLabel } from '../components/NatalReading/SectionLabel';
-import { resolveZodiacKey, ZodiacIcon } from '../components/icons/ZodiacIcon';
+import { ZodiacIcon } from '../components/icons/ZodiacIcon';
+import { getHoroscopeBackground } from '../lib/visualBackgrounds';
 
 interface HoroscopeProps {
   profile: UserProfile;
@@ -227,8 +228,7 @@ export const Horoscope = memo<HoroscopeProps>(
     const sunSign = chartData?.sun?.sign || 'Aries';
     const zodiacLabel = getZodiacSign(language, sunSign);
     const zodiacDates = ZODIAC_DATES[sunSign] || '';
-    const zodiacBackgroundKey = resolveZodiacKey(sunSign) || 'aries';
-    const zodiacBackground = `/horoscope-zodiac/${zodiacBackgroundKey}.webp`;
+    const zodiacBackground = getHoroscopeBackground(sunSign);
 
     const moon = useMemo(() => getMoonPhase(new Date()), []);
     const todayQuestion = useMemo(() => getQuestionOfDay(sunSign), [sunSign]);
@@ -439,31 +439,38 @@ export const Horoscope = memo<HoroscopeProps>(
       <div
         className="min-h-full pb-16 font-sans"
         style={{
-          backgroundImage: `linear-gradient(180deg, rgba(255,255,255,0.82) 0%, rgba(255,255,255,0.90) 28%, rgba(255,255,255,0.96) 68%, rgba(255,255,255,1) 100%), url(${zodiacBackground})`,
+          backgroundImage: `linear-gradient(180deg, rgba(255,255,255,0.30) 0%, rgba(255,255,255,0.54) 28%, rgba(255,255,255,0.88) 64%, rgba(255,255,255,0.98) 100%), url(${zodiacBackground})`,
           backgroundPosition: 'center top',
           backgroundRepeat: 'no-repeat',
           backgroundSize: 'cover',
         }}
       >
-        <section className="px-5 pb-6 pt-7">
-          <p className="text-[11px] uppercase tracking-[0.2em] text-[#9a9a9a]">
+        <section className="flex min-h-[34dvh] flex-col justify-end px-5 pb-7 pt-10">
+          <p className="text-[10.5px] uppercase tracking-[0.22em] text-[#77747a]">
             {language === 'en' ? 'Today by your chart' : 'Сегодня по моей карте'} ·{' '}
             {formatLumiaDate(today, language)}
           </p>
 
           <div className="mt-4 flex flex-wrap items-center gap-1.5">
-            <span className="inline-flex items-center gap-1.5 rounded-[20px] border border-[#ececec] bg-white px-3 py-1 text-[12px] text-[#3a3a3a]">
+            <span className="inline-flex items-center gap-1.5 rounded-[20px] border border-white/70 bg-white/58 px-3 py-1 text-[12px] text-[#2f3034] shadow-[0_12px_30px_rgba(0,0,0,0.04)] backdrop-blur-xl">
               <ZodiacIcon sign={sunSign} size={14} />
               <span>{zodiacLabel}</span>
               {zodiacDates ? <span className="text-[#9a9a9a]"> · {zodiacDates}</span> : null}
             </span>
-            <span className="inline-flex items-center gap-1.5 rounded-[20px] border border-[#ececec] bg-white px-3 py-1 text-[12px] text-[#3a3a3a]">
+            <span className="inline-flex items-center gap-1.5 rounded-[20px] border border-white/70 bg-white/58 px-3 py-1 text-[12px] text-[#2f3034] shadow-[0_12px_30px_rgba(0,0,0,0.04)] backdrop-blur-xl">
               <MoonPhaseIcon slot={moon.slot} size={14} />
               <span>
                 {moon.shortLabel} · {moon.illumination}%
               </span>
             </span>
           </div>
+
+          <h1 className="mt-7 max-w-[19rem] text-[clamp(2.35rem,12vw,3.35rem)] leading-[0.98] tracking-[-0.02em] text-[#202024]">
+            {language === 'en' ? 'Today for your map' : 'День по твоей карте'}
+          </h1>
+          <p className="mt-4 max-w-[18rem] text-[15px] leading-relaxed text-[#3f3d42]">
+            {dailyReading.summary}
+          </p>
         </section>
 
         <Divider />
@@ -471,11 +478,11 @@ export const Horoscope = memo<HoroscopeProps>(
         <section className="px-5 pb-7 pt-7">
           <SectionLabel>{language === 'en' ? 'Main energy of the day' : 'Главная энергия дня'}</SectionLabel>
 
-          <h1 className="mt-5 font-lora text-[22px] leading-[1.25] tracking-[-0.005em] text-[#1f1f1f]">
+          <h2 className="mt-5 max-w-[21rem] text-[23px] leading-[1.18] tracking-[-0.01em] text-[#1f1f1f]">
             {dailyReading.headline}
-          </h1>
+          </h2>
 
-          <p className="mt-4 whitespace-pre-line font-lora text-[15px] leading-[1.85] text-[#2d2d2d]">
+          <p className="mt-4 whitespace-pre-line text-[15px] leading-[1.78] text-[#2d2d2d]">
             {dailyReading.reading}
           </p>
 
@@ -511,8 +518,8 @@ export const Horoscope = memo<HoroscopeProps>(
 
         <section className="px-5 pb-7 pt-7">
           <SectionLabel>{language === 'en' ? 'Question of the day' : 'Вопрос дня'}</SectionLabel>
-          <div className="mt-5 rounded-[24px] bg-[#f9f9f9] px-5 py-4">
-            <p className="font-lora text-[14.5px] italic leading-[1.75] text-[#3a3a3a]">{todayQuestion}</p>
+          <div className="mt-5 rounded-[24px] bg-white/42 px-5 py-4 ring-1 ring-black/[0.04] backdrop-blur-xl">
+            <p className="text-[14.5px] italic leading-[1.75] text-[#3a3a3a]">{todayQuestion}</p>
           </div>
         </section>
 
@@ -550,7 +557,7 @@ export const Horoscope = memo<HoroscopeProps>(
               ) : null}
             </>
           ) : (
-            <div className="mt-5 rounded-[28px] border border-[#f0f0f0] bg-[#fbfaf7] p-5">
+            <div className="mt-5 rounded-[28px] bg-white/46 p-5 ring-1 ring-black/[0.05] backdrop-blur-xl">
               <div className="flex items-start gap-3">
                 <div className="rounded-full bg-white p-2.5 shadow-sm">
                   <Lock size={16} strokeWidth={1.7} />

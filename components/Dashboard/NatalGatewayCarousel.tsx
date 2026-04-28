@@ -202,20 +202,20 @@ export const NatalGatewayCarousel = memo<NatalGatewayCarouselProps>(
           ? [
               {
                 id: 'human',
-                kicker: 'Your chart',
-                title: 'Your Natal Map',
-                subtitle: 'A deep reading of your character, strengths, and life areas.',
-                cta: 'Open map',
-                chips: ['Portrait', 'Strength', 'Life areas'],
+                kicker: 'Natal map',
+                title: 'Your Inner Map',
+                subtitle: 'A personal reading of character, strengths, patterns, and life areas.',
+                cta: 'Open reading',
+                chips: ['Portrait', 'Strengths', 'Life areas'],
                 image: '/natal-gateway/personality-map.webp',
                 tone: 'light',
                 action: () => onOpenMode('human'),
               },
               {
                 id: 'wheel',
-                kicker: 'Planets',
-                title: 'Natal Wheel',
-                subtitle: 'The planet layout from the moment you were born.',
+                kicker: 'Birth sky',
+                title: 'Planet Wheel',
+                subtitle: 'Signs, planets, and aspects in the sky at your birth moment.',
                 cta: 'Open wheel',
                 chips: ['Signs', 'Planets', 'Aspects'],
                 image: '/natal-gateway/natal-wheel.webp',
@@ -224,9 +224,9 @@ export const NatalGatewayCarousel = memo<NatalGatewayCarouselProps>(
               },
               {
                 id: 'synastry',
-                kicker: 'Connection',
+                kicker: 'Union',
                 title: 'Bond Map',
-                subtitle: 'How two charts sound together: attraction, closeness, and growth.',
+                subtitle: 'How two charts meet: attraction, closeness, tension, and growth.',
                 cta: 'Open bond',
                 chips: ['Attraction', 'Dialogue', 'Closeness'],
                 image: '/natal-gateway/synastry-union.webp',
@@ -235,9 +235,9 @@ export const NatalGatewayCarousel = memo<NatalGatewayCarouselProps>(
               },
               {
                 id: 'horoscope',
-                kicker: 'Today',
-                title: 'Today by Your Chart',
-                subtitle: 'A personal focus of the day based on your natal map.',
+                kicker: 'Daily focus',
+                title: 'Today for You',
+                subtitle: 'A personal daily guide from your full natal map, not a generic sign forecast.',
                 cta: 'Open today',
                 chips: ['Focus', 'Advice', 'Energy'],
                 image: '/natal-gateway/daily-horoscope.webp',
@@ -248,20 +248,20 @@ export const NatalGatewayCarousel = memo<NatalGatewayCarouselProps>(
           : [
               {
                 id: 'human',
-                kicker: 'Твоя карта',
-                title: 'Твоя натальная карта',
-                subtitle: 'Глубокий разбор характера, сильных сторон и жизненных сфер.',
-                cta: 'Открыть карту',
-                chips: ['Портрет', 'Сила', 'Сферы жизни'],
+                kicker: 'Натальная карта',
+                title: 'Твоя внутренняя карта',
+                subtitle: 'Живой разбор характера, сильных сторон, сценариев и жизненных сфер.',
+                cta: 'Открыть разбор',
+                chips: ['Портрет', 'Сильные стороны', 'Сферы жизни'],
                 image: '/natal-gateway/personality-map.webp',
                 tone: 'light',
                 action: () => onOpenMode('human'),
               },
               {
                 id: 'wheel',
-                kicker: 'Планеты',
-                title: 'Натальный круг',
-                subtitle: 'Расположение планет в момент твоего рождения.',
+                kicker: 'Небо рождения',
+                title: 'Круг планет',
+                subtitle: 'Знаки, планеты и аспекты в момент твоего рождения.',
                 cta: 'Открыть круг',
                 chips: ['Знаки', 'Планеты', 'Аспекты'],
                 image: '/natal-gateway/natal-wheel.webp',
@@ -270,10 +270,10 @@ export const NatalGatewayCarousel = memo<NatalGatewayCarouselProps>(
               },
               {
                 id: 'synastry',
-                kicker: 'Связь',
+                kicker: 'Союз',
                 title: 'Карта связи',
-                subtitle: 'Как ваши карты звучат вместе: притяжение, близость и точки роста.',
-                cta: 'Открыть связь',
+                subtitle: 'Как ваши карты встречаются: притяжение, близость, напряжение и рост.',
+                cta: 'Открыть союз',
                 chips: ['Притяжение', 'Диалог', 'Близость'],
                 image: '/natal-gateway/synastry-union.webp',
                 tone: 'rose',
@@ -281,9 +281,9 @@ export const NatalGatewayCarousel = memo<NatalGatewayCarouselProps>(
               },
               {
                 id: 'horoscope',
-                kicker: 'Сегодня',
-                title: 'Сегодня по карте',
-                subtitle: 'Личный фокус дня по твоей натальной карте.',
+                kicker: 'Фокус дня',
+                title: 'Сегодня для тебя',
+                subtitle: 'Личный прогноз дня по полной карте, а не общий текст по знаку.',
                 cta: 'Открыть день',
                 chips: ['Фокус', 'Совет', 'Энергия'],
                 image: '/natal-gateway/daily-horoscope.webp',
@@ -370,7 +370,7 @@ export const NatalGatewayCarousel = memo<NatalGatewayCarouselProps>(
           const card = cards[mod(activeIndex + offset, cards.length)];
           return (
             <GatewaySlide
-              key={`${activeIndex}-${offset}`}
+              key={`${card.id}-${offset}`}
               card={card}
               offset={offset}
               viewportWidth={viewportWidth}
@@ -387,7 +387,7 @@ export const NatalGatewayCarousel = memo<NatalGatewayCarouselProps>(
           dragMomentum={false}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
-          style={{ touchAction: 'pan-y' }}
+          style={{ x: dragX, touchAction: 'pan-y' }}
           className="absolute inset-0 z-20 cursor-grab active:cursor-grabbing"
         />
 

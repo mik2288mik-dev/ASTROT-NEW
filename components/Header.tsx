@@ -10,14 +10,15 @@ interface HeaderProps {
   onBack: () => void;
   onOpenWallet: () => void;
   onOpenDictionary?: () => void;
+  visualBackdrop?: boolean;
 }
 
 const SCREEN_TITLES: Partial<Record<ViewState, { ru: string; en: string }>> = {
   chart: { ru: 'Натальная карта', en: 'Natal Chart' },
   charts: { ru: 'Мои карты', en: 'My Charts' },
-  horoscope: { ru: 'Гороскоп', en: 'Horoscope' },
+  horoscope: { ru: 'День по карте', en: 'Today by Chart' },
   oracle: { ru: 'Спросить Lumia', en: 'Ask Lumia' },
-  synastry: { ru: 'Совместимость', en: 'Synastry' },
+  synastry: { ru: 'Карта связи', en: 'Bond Map' },
   wallet: { ru: 'Магазин', en: 'Store' },
   settings: { ru: 'Настройки', en: 'Settings' },
   admin: { ru: 'Админ-панель', en: 'Admin Panel' },
@@ -34,12 +35,14 @@ function StudioChromeHeader({
   onOpenSettings,
   onOpenWallet,
   onOpenDictionary,
+  visualBackdrop = false,
 }: {
   profile: UserProfile;
   view: ViewState;
   onOpenSettings: () => void;
   onOpenWallet: () => void;
   onOpenDictionary?: () => void;
+  visualBackdrop?: boolean;
 }) {
   const tagline = profile.language === 'en' ? 'YOUR PATH TO SELF' : 'ТВОЙ ПУТЬ К СЕБЕ';
   const storeLabel = profile.language === 'en' ? 'Store' : 'Магазин';
@@ -47,8 +50,14 @@ function StudioChromeHeader({
   const showDictionary = view === 'chart';
 
   return (
-    <header className="lumia-tg-header-bar relative z-40 shrink-0 bg-white">
-      <div className="pt-0.5 pb-2">
+    <header className={`lumia-tg-header-bar relative z-40 shrink-0 ${visualBackdrop ? 'bg-transparent' : 'bg-white'}`}>
+      <div
+        className={`pt-0.5 pb-2 ${
+          visualBackdrop
+            ? 'bg-gradient-to-b from-white/82 via-white/54 to-transparent backdrop-blur-[2px]'
+            : ''
+        }`}
+      >
         <StudioBrandBlock
           onOpenSettings={onOpenSettings}
           onOpenStore={onOpenWallet}
@@ -75,6 +84,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenSettings,
   onOpenWallet,
   onOpenDictionary,
+  visualBackdrop,
 }) => {
   if (!profile) return null;
 
@@ -90,6 +100,7 @@ export const Header: React.FC<HeaderProps> = ({
       onOpenSettings={onOpenSettings}
       onOpenWallet={onOpenWallet}
       onOpenDictionary={onOpenDictionary}
+      visualBackdrop={visualBackdrop}
     />
   );
 };

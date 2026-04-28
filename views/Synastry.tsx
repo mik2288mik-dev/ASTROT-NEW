@@ -8,7 +8,7 @@ import { FormattedAiText } from '../components/ui/FormattedAiText';
 import { getApproximateSunSignByDate } from '../lib/zodiac-utils';
 import { toDateInputValue, formatLumiaDate } from '../lib/date-utils';
 import { SYNASTRY_EXTENDED_LUMI_COST } from '../lib/synastryExtended';
-import { ScreenShell, AIR_GLASS_PANEL_CLASS } from '../components/layout/ScreenShell';
+import { ScreenShell } from '../components/layout/ScreenShell';
 import { getSynastryBackground } from '../lib/visualBackgrounds';
 
 type SynastryPrefill = {
@@ -234,7 +234,7 @@ export const Synastry: React.FC<SynastryProps> = ({
     const canSubmit = Boolean(partnerName && partnerDate);
     const synastryBackground = getSynastryBackground(result?.compatibilityScore);
     const fieldLabelClass = 'mb-2 block text-[10px] uppercase tracking-[0.18em] text-astro-subtext';
-    const fieldInputClass = 'w-full border-b border-astro-border bg-transparent py-3 text-sm text-astro-text outline-none transition-colors focus:border-astro-highlight';
+    const fieldInputClass = 'w-full border-b border-black/10 bg-transparent py-3 text-sm text-astro-text outline-none transition-colors focus:border-astro-highlight';
 
     if (loading) {
         return <Loading message={getText(profile.language, 'synastry.loading')} />;
@@ -244,29 +244,29 @@ export const Synastry: React.FC<SynastryProps> = ({
         <div
             className="min-h-full pb-8 font-sans"
             style={{
-                backgroundImage: `linear-gradient(180deg, rgba(255,255,255,0.76) 0%, rgba(255,255,255,0.90) 34%, rgba(255,255,255,0.98) 78%, rgba(255,255,255,1) 100%), url(${synastryBackground})`,
+                backgroundImage: `linear-gradient(180deg, rgba(255,255,255,0.34) 0%, rgba(255,255,255,0.62) 36%, rgba(255,255,255,0.90) 74%, rgba(255,255,255,0.98) 100%), url(${synastryBackground})`,
                 backgroundPosition: 'center top',
                 backgroundRepeat: 'no-repeat',
                 backgroundSize: 'cover',
             }}
         >
-        <ScreenShell className="mx-auto max-w-reading-wide pt-3">
-            <section className={`${AIR_GLASS_PANEL_CLASS} bg-gradient-to-b from-astro-card/95 to-astro-card/50`}>
-                <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
+        <ScreenShell className="mx-auto max-w-reading-wide pt-8">
+            <section className="px-1 pb-2 pt-[9dvh]">
+                <p className="text-[10px] uppercase tracking-[0.24em] text-astro-subtext">
                     {t('synastry.hero_kicker')}
                 </p>
-                <h1 className="mt-2 font-serif text-2xl text-astro-text">
+                <h1 className="mt-3 max-w-[21rem] text-[clamp(2.35rem,11vw,3.25rem)] leading-[0.98] tracking-[-0.02em] text-astro-text">
                     {t('synastry.headline')}
                 </h1>
-                <p className="mt-3 text-sm leading-relaxed text-astro-subtext">
+                <p className="mt-4 max-w-[21rem] text-[15px] leading-relaxed text-astro-subtext">
                     {t('synastry.desc')}
                 </p>
             </section>
 
             {!result ? (
                 <div className="space-y-5">
-                    <div className="rounded-air-panel border border-astro-border/80 bg-astro-card/60 p-5 space-y-4">
-                        <div className="rounded-2xl border border-astro-border/70 bg-astro-bg/25 p-4 space-y-3">
+                    <div className="space-y-4 rounded-[32px] bg-white/38 p-5 shadow-[0_24px_70px_rgba(55,44,30,0.07)] ring-1 ring-white/62 backdrop-blur-2xl">
+                        <div className="space-y-3 rounded-[24px] bg-white/34 p-4 ring-1 ring-black/[0.04] backdrop-blur-xl">
                             <div className="flex items-start justify-between gap-4">
                                 <div>
                                     <p className="text-[10px] uppercase tracking-widest text-astro-subtext">
@@ -283,11 +283,11 @@ export const Synastry: React.FC<SynastryProps> = ({
                             </p>
                         </div>
 
-                        <div className="rounded-2xl border border-astro-border/70 bg-astro-bg/20 p-4">
+                        <div className="rounded-[24px] bg-white/30 p-4 ring-1 ring-black/[0.04] backdrop-blur-xl">
                             <p className="text-[10px] uppercase tracking-[0.18em] text-astro-subtext">
                                 {getText(profile.language, 'synastry.mode_label')}
                             </p>
-                            <div className="mt-3 flex gap-2 rounded-2xl border border-astro-border bg-astro-bg/30 p-1">
+                            <div className="mt-3 flex gap-2 rounded-[20px] bg-white/38 p-1 ring-1 ring-black/[0.04]">
                             <button
                                 type="button"
                                 onClick={() => {
@@ -321,7 +321,7 @@ export const Synastry: React.FC<SynastryProps> = ({
                             </div>
                         </div>
 
-                        <div className="rounded-2xl border border-astro-border/70 bg-astro-bg/20 p-4 space-y-2">
+                        <div className="space-y-2 rounded-[24px] bg-white/28 p-4 ring-1 ring-black/[0.04] backdrop-blur-xl">
                             <div className="flex items-start justify-between gap-3">
                                 <div>
                                     <p className="text-[10px] uppercase tracking-[0.18em] text-astro-subtext">
@@ -351,7 +351,7 @@ export const Synastry: React.FC<SynastryProps> = ({
 
                         {partnerInputMode === 'charts' ? (
                             partnerCharts.length === 0 ? (
-                                <div className="rounded-2xl border border-astro-border bg-astro-bg/20 p-5 text-center space-y-3">
+                                <div className="space-y-3 rounded-[24px] bg-white/30 p-5 text-center ring-1 ring-black/[0.04] backdrop-blur-xl">
                                     <p className="text-base font-medium text-astro-text">
                                         {getText(profile.language, 'synastry.no_saved_title')}
                                     </p>
@@ -391,7 +391,7 @@ export const Synastry: React.FC<SynastryProps> = ({
                             ) : (
                                 <div className="space-y-3">
                                     {selectedPartnerChart ? (
-                                        <div className="rounded-2xl border border-astro-highlight/30 bg-astro-highlight/10 p-4">
+                                        <div className="rounded-[24px] bg-astro-highlight/10 p-4 ring-1 ring-astro-highlight/20">
                                             <p className="text-[10px] uppercase tracking-[0.18em] text-astro-highlight">
                                                 {getText(profile.language, 'synastry.selected_partner_title')}
                                             </p>
@@ -420,7 +420,7 @@ export const Synastry: React.FC<SynastryProps> = ({
                                                 key={chart.id}
                                                 type="button"
                                                 onClick={() => handleSelectChartAsPartner(chart)}
-                                                className="w-full bg-astro-bg/20 border border-astro-border rounded-2xl p-4 text-left hover:border-astro-highlight/40 transition-colors"
+                                                className="w-full rounded-[22px] bg-white/30 p-4 text-left ring-1 ring-black/[0.04] transition-colors hover:ring-astro-highlight/30"
                                             >
                                                 <p className="font-medium text-astro-text">{chart.name}</p>
                                                 <p className="text-xs text-astro-subtext mt-1">
@@ -432,7 +432,7 @@ export const Synastry: React.FC<SynastryProps> = ({
                                 </div>
                             )
                         ) : (
-                            <div className="rounded-2xl border border-astro-border/70 bg-astro-bg/15 p-4 space-y-4">
+                            <div className="space-y-4 rounded-[24px] bg-white/30 p-4 ring-1 ring-black/[0.04] backdrop-blur-xl">
                                 <div>
                                     <label className={fieldLabelClass}>
                                         {getText(profile.language, 'synastry.partner_name')}
@@ -508,12 +508,12 @@ export const Synastry: React.FC<SynastryProps> = ({
                         )}
 
                         {error && (
-                            <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">
+                            <div className="rounded-[20px] bg-red-500/10 p-3 text-sm text-red-700 ring-1 ring-red-500/20">
                                 {error}
                             </div>
                         )}
 
-                        <div className="rounded-2xl border border-astro-border/70 bg-astro-bg/20 p-4 space-y-3">
+                        <div className="space-y-3 rounded-[24px] bg-white/32 p-4 ring-1 ring-black/[0.04] backdrop-blur-xl">
                             <p className="text-[10px] uppercase tracking-[0.18em] text-astro-subtext">
                                 {getText(profile.language, 'synastry.cta_label')}
                             </p>
@@ -549,7 +549,7 @@ export const Synastry: React.FC<SynastryProps> = ({
                                 </button>
                             </div>
                             {showLumiFullAction && (
-                                <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-astro-border/60 bg-astro-bg/15 px-3 py-3 text-sm text-astro-subtext">
+                                <label className="flex cursor-pointer items-start gap-3 rounded-[20px] bg-white/34 px-3 py-3 text-sm text-astro-subtext ring-1 ring-black/[0.04]">
                                     <input
                                         type="checkbox"
                                         className="mt-1 h-4 w-4 shrink-0 rounded border-astro-border text-astro-highlight focus:ring-astro-highlight"
@@ -564,7 +564,7 @@ export const Synastry: React.FC<SynastryProps> = ({
                 </div>
             ) : (
                 <div className="space-y-5">
-                    <div className="rounded-air-panel border border-astro-border/80 bg-astro-card/60 p-5 sm:p-6">
+                    <div className="rounded-[32px] bg-white/40 p-5 shadow-[0_24px_70px_rgba(55,44,30,0.07)] ring-1 ring-white/62 backdrop-blur-2xl sm:p-6">
                         <div className="space-y-5">
                             <div className="flex items-start justify-between gap-4">
                                 <div>
@@ -602,7 +602,7 @@ export const Synastry: React.FC<SynastryProps> = ({
 
                             {(result.briefOverview || result.extendedOverview || result.fullAnalysis) && (
                                 <div className="mx-auto w-full max-w-reading-wide">
-                                    <div className="rounded-air-panel border border-astro-border/55 bg-astro-bg/20 p-5 sm:p-6 space-y-8 sm:space-y-10">
+                                    <div className="space-y-8 rounded-[28px] bg-white/24 p-5 ring-1 ring-black/[0.04] backdrop-blur-xl sm:space-y-10 sm:p-6">
                                         {result.briefOverview && (
                                             <>
                                                 <SynastryEditorialSection

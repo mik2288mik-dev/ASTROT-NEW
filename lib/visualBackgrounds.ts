@@ -73,3 +73,23 @@ export function getSynastryBackground(score?: number | null): string {
   const bucket = Math.min(9, Math.floor(normalized / 10));
   return `/synastry-backgrounds/bond-${String(bucket).padStart(2, '0')}.webp`;
 }
+
+const HOROSCOPE_BACKGROUND_BY_SIGN: Record<string, string> = {
+  aries: 'aries',
+  taurus: 'taurus',
+  gemini: 'gemini',
+  cancer: 'cancer',
+  leo: 'leo',
+  virgo: 'virgo',
+  libra: 'libra',
+  scorpio: 'scorpio',
+  sagittarius: 'sagittarius',
+  capricorn: 'capricorn',
+  aquarius: 'aquarius',
+  pisces: 'pisces',
+};
+
+export function getHoroscopeBackground(sign?: string | null): string {
+  const key = sign ? sign.trim().toLowerCase() : 'aries';
+  return `/horoscope-zodiac/${HOROSCOPE_BACKGROUND_BY_SIGN[key] || 'aries'}.webp`;
+}

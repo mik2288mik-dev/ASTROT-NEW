@@ -35,6 +35,7 @@ import { installTelegramFullscreenGuard } from './lib/telegramFullscreen';
 import { applyTelegramSafeAreaCssVars, subscribeTelegramContentSafeAreaChanges } from './lib/telegramSafeAreaInsets';
 import { useSwipeBack } from './lib/useSwipeBack';
 import { getMoscowTodayKey } from './lib/date-utils';
+import { getHoroscopeBackground, getSynastryBackground } from './lib/visualBackgrounds';
 
 // Get owner ID from environment variables for security
 const OWNER_ID = process.env.NEXT_PUBLIC_OWNER_ID || '';
@@ -755,12 +756,27 @@ const App: React.FC = () => {
         );
     }
 
+    const visualAppBackground =
+        view === 'horoscope'
+            ? getHoroscopeBackground(chartData?.sun?.sign)
+            : view === 'synastry'
+              ? getSynastryBackground(null)
+              : null;
+
     return (
         <div
             className={`relative isolate flex h-full w-full min-h-0 flex-col overflow-hidden font-sans selection:bg-astro-highlight selection:text-white ${
                 lumiaAirShell ? 'text-text-main' : 'text-astro-text'
             }`}
         >
+            {visualAppBackground ? (
+                <div
+                    className="pointer-events-none absolute inset-0 z-0 bg-cover bg-center"
+                    style={{
+                        backgroundImage: `linear-gradient(180deg, rgba(255,255,255,0.50) 0%, rgba(255,255,255,0.68) 32%, rgba(255,255,255,0.94) 100%), url(${visualAppBackground})`,
+                    }}
+                />
+            ) : null}
             {/* Header handles Title, Settings button, and Back button */}
             <Header 
                 profile={profile} 
@@ -769,9 +785,14 @@ const App: React.FC = () => {
                 onBack={handleBack}
                 onOpenWallet={() => openWallet(view)}
                 onOpenDictionary={() => setDictionaryOpenSignal((value) => value + 1)}
+                visualBackdrop={!!visualAppBackground}
             />
             
-            <main className="lumia-tg-main-gutter relative z-10 flex-1 w-full max-w-md md:max-w-reading-wide mx-auto overflow-hidden min-h-0 bg-white">
+            <main
+                className={`lumia-tg-main-gutter relative z-10 flex-1 w-full max-w-md md:max-w-reading-wide mx-auto overflow-hidden min-h-0 ${
+                    visualAppBackground ? 'bg-transparent' : 'bg-white'
+                }`}
+            >
                 {view === 'admin' ? (
                     <AdminPanel
                         profile={profile}
