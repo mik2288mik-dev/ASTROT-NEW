@@ -1,15 +1,6 @@
-import React, { memo, useMemo, useRef, useState } from 'react';
+import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
-import {
-  animate,
-  motion,
-  useDragControls,
-  useMotionValue,
-  useReducedMotion,
-  useTransform,
-  type MotionValue,
-  type PanInfo,
-} from 'framer-motion';
+import { animate, motion, useMotionValue, useReducedMotion, useTransform, type MotionValue, type PanInfo } from 'framer-motion';
 import type { NatalChartMode, UserProfile } from '../../types';
 import { cn } from '../../lib/cn';
 
@@ -32,8 +23,7 @@ type GatewayCard = {
   action: () => void;
 };
 
-const CARD_STEP = 206;
-const COVERFLOW_SLOTS = [-3, -2, -1, 0, 1, 2, 3] as const;
+const SLIDE_OFFSETS = [-1, 0, 1] as const;
 
 function mod(value: number, total: number) {
   return ((value % total) + total) % total;
@@ -61,176 +51,123 @@ function hapticImpact() {
   }
 }
 
-function getCoverflowVisual(relativeOffset: number) {
-  const side = Math.sign(relativeOffset);
-  const abs = Math.min(Math.abs(relativeOffset), 3);
-  const eased = Math.pow(abs, 0.92);
-  const x = side * (abs <= 1 ? CARD_STEP * eased : CARD_STEP + (abs - 1) * 118);
-  const y = 24 + abs * 17;
-  const scale = abs <= 1 ? 1 - abs * 0.13 : 0.87 - (abs - 1) * 0.1;
-  const rotateY = side * -13 * Math.min(abs, 1.85);
-  const opacity = abs <= 1 ? 1 - abs * 0.18 : abs <= 2 ? 0.82 - (abs - 1) * 0.42 : 0.09;
-  const blur = abs <= 1 ? 0 : (abs - 1) * 0.45;
-
-  return {
-    x,
-    y,
-    scale: Math.max(scale, 0.58),
-    rotateY,
-    opacity: Math.max(opacity, 0),
-    filter: `blur(${blur}px)`,
-    zIndex: Math.round(80 - abs * 14),
-  };
-}
-
-function overlayClass(tone: GatewayCard['tone']) {
+function slideOverlayClass(tone: GatewayCard['tone']) {
   if (tone === 'dark') {
-    return 'bg-[linear-gradient(90deg,rgba(5,12,28,0.84)_0%,rgba(5,12,28,0.58)_43%,rgba(5,12,28,0.10)_100%)]';
+    return 'bg-[linear-gradient(180deg,rgba(255,255,255,0.76)_0%,rgba(255,255,255,0.24)_25%,rgba(7,13,28,0.20)_48%,rgba(5,9,20,0.86)_100%)]';
   }
   if (tone === 'rose') {
-    return 'bg-[linear-gradient(90deg,rgba(255,250,246,0.93)_0%,rgba(255,241,235,0.68)_45%,rgba(117,78,96,0.10)_100%)]';
+    return 'bg-[linear-gradient(180deg,rgba(255,255,255,0.80)_0%,rgba(255,250,247,0.35)_31%,rgba(89,54,72,0.13)_56%,rgba(255,242,237,0.90)_100%)]';
   }
   if (tone === 'sky') {
-    return 'bg-[linear-gradient(90deg,rgba(255,252,244,0.93)_0%,rgba(243,247,255,0.70)_45%,rgba(133,173,218,0.10)_100%)]';
+    return 'bg-[linear-gradient(180deg,rgba(255,255,255,0.82)_0%,rgba(246,249,255,0.30)_30%,rgba(93,132,178,0.12)_58%,rgba(248,251,255,0.92)_100%)]';
   }
-  return 'bg-[linear-gradient(90deg,rgba(255,252,245,0.94)_0%,rgba(255,252,245,0.72)_45%,rgba(255,252,245,0.12)_100%)]';
+  return 'bg-[linear-gradient(180deg,rgba(255,255,255,0.86)_0%,rgba(255,252,245,0.36)_30%,rgba(255,252,245,0.18)_58%,rgba(255,250,242,0.94)_100%)]';
 }
 
-type GatewayCardViewProps = {
+function textClass(tone: GatewayCard['tone']) {
+  return tone === 'dark' ? 'text-white' : 'text-[#202024]';
+}
+
+function mutedTextClass(tone: GatewayCard['tone']) {
+  return tone === 'dark' ? 'text-white/76' : 'text-[#4f4c50]';
+}
+
+type GatewaySlideProps = {
   card: GatewayCard;
-  loopIndex: number;
-  slotOffset: number;
-  progress: MotionValue<number>;
-  shouldReduceMotion: boolean;
-  onPointerDown: (event: React.PointerEvent<HTMLButtonElement>) => void;
-  onOpen: (card: GatewayCard, slotOffset: number) => void;
+  offset: number;
+  viewportWidth: number;
+  dragX: MotionValue<number>;
+  onOpen: (card: GatewayCard) => void;
 };
 
-const GatewayCardView = memo<GatewayCardViewProps>(
-  ({ card, loopIndex, slotOffset, progress, shouldReduceMotion, onPointerDown, onOpen }) => {
-    const textIsLight = card.tone === 'dark';
-    const isCenterSlot = slotOffset === 0;
-    const relativeOffset = useTransform(progress, (latest) => loopIndex - latest);
-    const x = useTransform(relativeOffset, (latest) => {
-      const visual = getCoverflowVisual(latest);
-      return `calc(-50% + ${visual.x}px)`;
-    });
-    const y = useTransform(relativeOffset, (latest) => getCoverflowVisual(latest).y);
-    const scale = useTransform(relativeOffset, (latest) => getCoverflowVisual(latest).scale);
-    const rotateY = useTransform(relativeOffset, (latest) => getCoverflowVisual(latest).rotateY);
-    const opacity = useTransform(relativeOffset, (latest) => getCoverflowVisual(latest).opacity);
-    const filter = useTransform(relativeOffset, (latest) => getCoverflowVisual(latest).filter);
-    const zIndex = useTransform(relativeOffset, (latest) => getCoverflowVisual(latest).zIndex);
+const GatewaySlide = memo<GatewaySlideProps>(({ card, offset, viewportWidth, dragX, onOpen }) => {
+  const x = useTransform(dragX, (latest) => latest + offset * viewportWidth);
+  const imageX = useTransform(dragX, (latest) => (latest / Math.max(viewportWidth, 1)) * -24 - offset * 8);
+  const contentX = useTransform(dragX, (latest) => (latest / Math.max(viewportWidth, 1)) * -34);
+  const contentOpacity = useTransform(dragX, [-viewportWidth * 0.56, 0, viewportWidth * 0.56], [0.42, 1, 0.42]);
+  const textIsLight = card.tone === 'dark';
 
-    return (
-      <motion.button
-        type="button"
-        onPointerDown={onPointerDown}
-        onClick={() => onOpen(card, slotOffset)}
-        initial={false}
-        whileTap={isCenterSlot && !shouldReduceMotion ? { scale: 0.975 } : undefined}
-        className={cn(
-          'absolute left-1/2 top-6 h-[clamp(25rem,58dvh,30rem)] w-[min(84vw,22.5rem)] overflow-hidden rounded-[32px] text-left outline-none',
-          'ring-1 ring-black/[0.05] focus-visible:ring-2 focus-visible:ring-[#7B5EA7]/45',
-          isCenterSlot
-            ? 'shadow-[0_26px_58px_rgba(31,41,55,0.16)]'
-            : 'shadow-[0_14px_32px_rgba(31,41,55,0.10)]'
-        )}
-        style={{
-          x,
-          y,
-          scale,
-          rotateY,
-          opacity,
-          filter,
-          zIndex,
-          pointerEvents: Math.abs(slotOffset) <= 2 ? 'auto' : 'none',
-          transformStyle: 'preserve-3d',
-          transformOrigin: '50% 58%',
-          willChange: 'transform, opacity, filter',
-        }}
-        tabIndex={isCenterSlot ? 0 : -1}
-        aria-label={card.title}
-        aria-hidden={!isCenterSlot && Math.abs(slotOffset) > 1}
+  return (
+    <motion.section
+      className="absolute inset-0 overflow-hidden"
+      style={{
+        x,
+        zIndex: offset === 0 ? 30 : 10,
+        pointerEvents: 'none',
+        willChange: 'transform',
+      }}
+      aria-hidden={offset !== 0}
+    >
+      <motion.img
+        src={card.image}
+        alt=""
+        draggable={false}
+        className="pointer-events-none absolute inset-0 h-full w-full scale-[1.04] object-cover"
+        style={{ x: imageX, willChange: 'transform' }}
+      />
+      <div className={cn('pointer-events-none absolute inset-0', slideOverlayClass(card.tone))} />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[12.5rem] bg-gradient-to-b from-white/90 via-white/58 to-transparent" />
+
+      <motion.div
+        className="pointer-events-none absolute inset-x-0 bottom-0 z-30 px-6 pb-[calc(1.4rem+max(env(safe-area-inset-bottom,0px),var(--tg-content-safe-area-inset-bottom,0px)))]"
+        style={{ x: contentX, opacity: contentOpacity }}
       >
-        <img
-          src={card.image}
-          alt=""
-          draggable={false}
-          className={cn(
-            'pointer-events-none absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out',
-            isCenterSlot ? 'scale-100' : 'scale-[1.04]'
-          )}
-        />
-        <span className={cn('absolute inset-0', overlayClass(card.tone))} />
-        <span className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-white/28 to-transparent" />
-        <span className="relative z-10 flex h-full flex-col justify-between p-5">
-          <span>
-            <span
-              className={cn(
-                'inline-flex rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em]',
-                textIsLight ? 'bg-white/14 text-white/84 ring-1 ring-white/20' : 'bg-white/70 text-[#7B5EA7] ring-1 ring-black/[0.04]'
-              )}
-            >
-              {card.kicker}
-            </span>
-            <span
-              className={cn(
-                'serif mt-4 block max-w-[13.5rem] text-[clamp(2.18rem,9.4vw,2.64rem)] leading-[0.96]',
-                textIsLight ? 'text-white' : 'text-[#202024]'
-              )}
-            >
-              {card.title}
-            </span>
-            <span className={cn('mt-4 block max-w-[14.5rem] text-[14px] leading-relaxed', textIsLight ? 'text-white/78' : 'text-[#4b4b50]')}>
-              {card.subtitle}
-            </span>
-          </span>
+        <div className="mx-auto max-w-[23rem]">
+          <p
+            className={cn(
+              'mb-3 inline-flex rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] backdrop-blur-xl',
+              textIsLight ? 'bg-white/12 text-white/82 ring-1 ring-white/18' : 'bg-white/58 text-[#7B5EA7] ring-1 ring-black/[0.04]'
+            )}
+          >
+            {card.kicker}
+          </p>
 
-          <span>
-            <span className="mb-4 flex flex-wrap gap-1.5">
-              {card.chips.map((chip) => (
-                <span
-                  key={chip}
-                  className={cn(
-                    'rounded-full px-2.5 py-1 text-[11px] font-medium',
-                    textIsLight ? 'bg-white/12 text-white/78 ring-1 ring-white/15' : 'bg-white/66 text-[#4b4652] ring-1 ring-black/[0.04]'
-                  )}
-                >
-                  {chip}
-                </span>
-              ))}
-            </span>
-            <span
-              className={cn(
-                'inline-flex h-10 items-center gap-2 rounded-full px-4 text-[13px] font-semibold',
-                textIsLight
-                  ? 'bg-white text-[#14213D] shadow-[0_12px_24px_rgba(0,0,0,0.18)]'
-                  : 'bg-[#1f1f1f] text-white shadow-[0_12px_24px_rgba(31,31,31,0.16)]'
-              )}
-            >
-              {card.cta}
-              <ArrowRight size={15} strokeWidth={2.1} />
-            </span>
-          </span>
-        </span>
-      </motion.button>
-    );
-  }
-);
+          <h2 className={cn('serif mb-4 max-w-[16rem] text-[clamp(2.5rem,12vw,3.25rem)] leading-[0.92]', textClass(card.tone))}>{card.title}</h2>
+          <p className={cn('mb-5 max-w-[18.5rem] text-[15px] leading-relaxed', mutedTextClass(card.tone))}>{card.subtitle}</p>
 
-GatewayCardView.displayName = 'GatewayCardView';
+          <div className="mb-5 flex max-w-[20rem] flex-wrap gap-1.5">
+            {card.chips.map((chip) => (
+              <span
+                key={chip}
+                className={cn(
+                  'rounded-full px-2.5 py-1 text-[11px] font-medium backdrop-blur-xl',
+                  textIsLight ? 'bg-white/12 text-white/78 ring-1 ring-white/15' : 'bg-white/56 text-[#4b4652] ring-1 ring-black/[0.04]'
+                )}
+              >
+                {chip}
+              </span>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => onOpen(card)}
+            className={cn(
+              'pointer-events-auto inline-flex h-12 items-center gap-2 rounded-full px-5 text-[14px] font-semibold transition-transform active:scale-[0.98]',
+              textIsLight
+                ? 'bg-white text-[#14213D] shadow-[0_16px_28px_rgba(0,0,0,0.18)]'
+                : 'bg-[#1f1f1f] text-white shadow-[0_16px_28px_rgba(31,31,31,0.16)]'
+            )}
+          >
+            {card.cta}
+            <ArrowRight size={16} strokeWidth={2.1} />
+          </button>
+        </div>
+      </motion.div>
+    </motion.section>
+  );
+});
+
+GatewaySlide.displayName = 'GatewaySlide';
 
 export const NatalGatewayCarousel = memo<NatalGatewayCarouselProps>(
   ({ profile, onOpenMode, onOpenSynastry, onOpenHoroscope }) => {
-    const [centerIndex, setCenterIndex] = useState(0);
-    const centerIndexRef = useRef(0);
-    const lastDragAtRef = useRef(0);
-    const dragStartCenterRef = useRef(0);
-    const progress = useMotionValue(0);
-    const dragX = useMotionValue(0);
-    const dragControls = useDragControls();
+    const rootRef = useRef<HTMLDivElement | null>(null);
+    const activeIndexRef = useRef(0);
     const animationRef = useRef<{ stop: () => void } | null>(null);
+    const [activeIndex, setActiveIndex] = useState(0);
+    const [viewportWidth, setViewportWidth] = useState(390);
+    const dragX = useMotionValue(0);
     const shouldReduceMotion = useReducedMotion();
     const language = profile.language === 'en' ? 'en' : 'ru';
 
@@ -332,129 +269,105 @@ export const NatalGatewayCarousel = memo<NatalGatewayCarouselProps>(
       [language, onOpenHoroscope, onOpenMode, onOpenSynastry]
     );
 
-    const activeIndex = mod(centerIndex, cards.length);
+    useEffect(() => {
+      const node = rootRef.current;
+      if (!node) return;
 
-    const commitCenterIndex = (nextCenterIndex: number) => {
-      centerIndexRef.current = nextCenterIndex;
-      setCenterIndex(nextCenterIndex);
-      progress.set(nextCenterIndex);
+      const updateWidth = () => setViewportWidth(Math.max(node.getBoundingClientRect().width, 320));
+      updateWidth();
+      const observer = new ResizeObserver(updateWidth);
+      observer.observe(node);
+      return () => observer.disconnect();
+    }, []);
+
+    const commitIndex = (nextIndex: number) => {
+      const resolved = mod(nextIndex, cards.length);
+      activeIndexRef.current = resolved;
+      setActiveIndex(resolved);
+      dragX.set(0);
     };
 
-    const settleToCenter = (nextCenterIndex: number, velocity = 0) => {
-      const target = Math.round(nextCenterIndex);
-      const current = centerIndexRef.current;
-      if (target !== current) hapticSelection();
+    const settle = (direction: -1 | 0 | 1, velocity = 0) => {
       animationRef.current?.stop();
 
+      if (direction !== 0) hapticSelection();
+
       if (shouldReduceMotion) {
-        commitCenterIndex(target);
-        dragX.set(0);
+        commitIndex(activeIndexRef.current + direction);
         return;
       }
 
-      animationRef.current = animate(progress, target, {
+      const targetX = direction === 0 ? 0 : -direction * viewportWidth;
+      animationRef.current = animate(dragX, targetX, {
         type: 'spring',
-        stiffness: 245,
-        damping: 29,
-        mass: 0.82,
+        stiffness: direction === 0 ? 290 : 235,
+        damping: direction === 0 ? 31 : 28,
+        mass: 0.88,
         velocity,
-        onComplete: () => commitCenterIndex(target),
+        onComplete: () => commitIndex(activeIndexRef.current + direction),
       });
-
-      animate(dragX, 0, { type: 'spring', stiffness: 300, damping: 30, mass: 0.8 });
-    };
-
-    const moveToCardIndex = (cardIndex: number) => {
-      const delta = shortestDelta(mod(centerIndexRef.current, cards.length), cardIndex, cards.length);
-      if (delta === 0) return;
-      settleToCenter(centerIndexRef.current + delta);
-    };
-
-    const handlePointerDown = (event: React.PointerEvent<HTMLButtonElement>) => {
-      if (shouldReduceMotion) return;
-      dragControls.start(event, { snapToCursor: false });
     };
 
     const handleDragStart = () => {
       animationRef.current?.stop();
-      dragStartCenterRef.current = centerIndexRef.current;
-    };
-
-    const handleDrag = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-      progress.set(dragStartCenterRef.current - info.offset.x / CARD_STEP);
     };
 
     const handleDragEnd = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-      const distanceStep = Math.round(-info.offset.x / CARD_STEP);
-      const flingStep = info.velocity.x < -460 ? 1 : info.velocity.x > 460 ? -1 : 0;
-      let step = Math.max(-2, Math.min(2, distanceStep || flingStep));
-
-      if (step === 0 && Math.abs(info.offset.x) > 58) {
-        step = info.offset.x < 0 ? 1 : -1;
-      }
-
-      if (Math.abs(info.offset.x) > 8) {
-        lastDragAtRef.current = Date.now();
-      }
-
-      const target = dragStartCenterRef.current + step;
-      settleToCenter(target, -info.velocity.x / CARD_STEP);
+      const threshold = viewportWidth * 0.18;
+      const direction = info.offset.x < -threshold || info.velocity.x < -460 ? 1 : info.offset.x > threshold || info.velocity.x > 460 ? -1 : 0;
+      settle(direction, info.velocity.x);
     };
 
-    const openCard = (card: GatewayCard, slotOffset: number) => {
-      if (Date.now() - lastDragAtRef.current < 180) return;
-      if (slotOffset !== 0) {
-        settleToCenter(centerIndexRef.current + slotOffset);
+    const moveToIndex = (index: number) => {
+      const delta = shortestDelta(activeIndexRef.current, index, cards.length);
+      if (delta === 0) return;
+      if (Math.abs(delta) === 1 || Math.abs(delta) === cards.length - 1) {
+        settle(delta > 0 ? 1 : -1);
         return;
       }
+      hapticSelection();
+      commitIndex(index);
+    };
 
+    const openCard = (card: GatewayCard) => {
       hapticImpact();
       card.action();
     };
 
     return (
-      <div className="relative flex min-h-[34rem] flex-1 flex-col justify-start overflow-hidden pb-2 pt-10">
-        <div className="relative min-h-[31rem] flex-1 overflow-visible px-4 [perspective:1500px]">
-          {COVERFLOW_SLOTS.map((slotOffset) => {
-            const loopIndex = centerIndex + slotOffset;
-            const card = cards[mod(loopIndex, cards.length)];
-
-            return (
-              <GatewayCardView
-                key={loopIndex}
-                card={card}
-                loopIndex={loopIndex}
-                slotOffset={slotOffset}
-                progress={progress}
-                shouldReduceMotion={Boolean(shouldReduceMotion)}
-                onPointerDown={handlePointerDown}
-                onOpen={openCard}
-              />
-            );
-          })}
+      <div ref={rootRef} className="absolute inset-0 z-0 overflow-hidden bg-[#f7f4ef]">
+        {SLIDE_OFFSETS.map((offset) => {
+          const card = cards[mod(activeIndex + offset, cards.length)];
+          return (
+            <GatewaySlide
+              key={`${activeIndex}-${offset}`}
+              card={card}
+              offset={offset}
+              viewportWidth={viewportWidth}
+              dragX={dragX}
+              onOpen={openCard}
+            />
+          );
+        })}
 
           <motion.div
             drag={shouldReduceMotion ? false : 'x'}
-            dragControls={dragControls}
-            dragListener={false}
-            dragConstraints={{ left: -CARD_STEP * 1.8, right: CARD_STEP * 1.8 }}
-            dragElastic={0.06}
-            dragMomentum={false}
-            onDragStart={handleDragStart}
-            onDrag={handleDrag}
-            onDragEnd={handleDragEnd}
-            style={{ x: dragX, touchAction: 'pan-y' }}
-            className="pointer-events-none absolute inset-0 z-[90]"
+          dragConstraints={{ left: -viewportWidth, right: viewportWidth }}
+          dragElastic={0.03}
+          dragMomentum={false}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+          style={{ x: dragX, touchAction: 'pan-y' }}
+            className="absolute inset-0 z-20 cursor-grab active:cursor-grabbing"
           />
-        </div>
 
-        <div className="flex shrink-0 items-center justify-center gap-2 pb-2 pt-3">
+        <div className="pointer-events-none absolute inset-x-0 bottom-[calc(0.6rem+max(env(safe-area-inset-bottom,0px),var(--tg-content-safe-area-inset-bottom,0px)))] z-40 flex items-center justify-center gap-2">
           {cards.map((card, index) => (
             <button
               key={`dot-${card.id}`}
               type="button"
-              onClick={() => moveToCardIndex(index)}
-              className={cn('h-2 rounded-full transition-all duration-300', index === activeIndex ? 'w-7 bg-[#1f1f1f]' : 'w-2 bg-black/16')}
+              onClick={() => moveToIndex(index)}
+              className={cn('pointer-events-auto h-2 rounded-full bg-black/22 transition-all duration-300', index === activeIndex ? 'w-7 bg-[#1f1f1f]' : 'w-2')}
               aria-label={card.title}
             />
           ))}

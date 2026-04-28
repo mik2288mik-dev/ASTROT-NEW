@@ -118,24 +118,20 @@ export const Dashboard = memo<DashboardProps>(
           className="relative flex min-h-0 flex-1 flex-col"
           style={{ willChange: 'clip-path, opacity, filter' }}
         >
+          <NatalGatewayCarousel
+            profile={profile}
+            onOpenMode={onOpenNatalMode}
+            onOpenSynastry={() => onNavigate('synastry')}
+            onOpenHoroscope={() => onNavigate('horoscope')}
+          />
+
           <LumiaStudioHeader
             onOpenSettings={onOpenSettings}
             onOpenStore={onOpenWallet}
             settingsAriaLabel={getText(language, 'nav.settings')}
             storeLabel={language === 'en' ? 'Store' : 'Магазин'}
-            className="mb-2"
+            className="relative z-40 mb-0 bg-transparent"
           />
-
-          <section className="flex min-h-0 flex-1 flex-col px-1">
-            <div className="relative mx-auto flex h-full min-h-0 w-full max-w-[27rem] flex-col">
-              <NatalGatewayCarousel
-                profile={profile}
-                onOpenMode={onOpenNatalMode}
-                onOpenSynastry={() => onNavigate('synastry')}
-                onOpenHoroscope={() => onNavigate('horoscope')}
-              />
-            </div>
-          </section>
         </motion.div>
       </div>
     );
