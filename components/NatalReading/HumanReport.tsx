@@ -23,6 +23,7 @@ import {
   type HumanReadingError,
 } from '../../services/natalReadingService';
 import { PlanetIcon } from '../icons/PlanetIcon';
+import { getNatalReadingBackground } from '../../lib/visualBackgrounds';
 
 type Props = {
   profile: UserProfile;
@@ -81,27 +82,43 @@ function formatError(error: unknown): string {
   return 'Не удалось загрузить раздел. Попробуйте еще раз.';
 }
 
-const SectionText: React.FC<{ section: InterpretationSection }> = ({ section }) => (
-  <section className="border-t border-[#efefef] py-7 first:border-t-0">
-    <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#8c6bb1]">
-      {section.subtitle || section.title}
-    </p>
-    <h3 className="mt-2 font-lora text-[22px] leading-tight text-[#1f1f1f]">{section.title}</h3>
-    <p className="mt-4 whitespace-pre-line font-lora text-[15px] leading-[1.85] text-[#2d2d2d]">
-      {section.content}
-    </p>
-    {section.bullets && section.bullets.length > 0 ? (
-      <ul className="mt-5 space-y-2.5">
-        {section.bullets.map((item, index) => (
-          <li key={`${section.key}-${index}`} className="flex gap-2.5 text-[14px] leading-relaxed text-[#333]">
-            <span className="mt-[8px] h-[5px] w-[5px] shrink-0 rounded-full bg-[#c9a55a]" />
-            <span>{item}</span>
-          </li>
-        ))}
-      </ul>
-    ) : null}
-  </section>
-);
+const SectionText: React.FC<{ section: InterpretationSection }> = ({ section }) => {
+  const background = getNatalReadingBackground(section.key);
+
+  return (
+    <section
+      data-reading-section-key={section.key}
+      className="relative -mx-5 overflow-hidden border-t border-[#efefef] px-5 py-7 first:border-t-0 sm:py-8"
+    >
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 z-0 bg-cover bg-center"
+        style={{
+          backgroundImage: `linear-gradient(180deg, rgba(255,255,255,0.82) 0%, rgba(255,255,255,0.92) 46%, rgba(255,255,255,0.985) 100%), url(${background})`,
+        }}
+      />
+      <div className="relative z-10">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#8c6bb1]">
+          {section.subtitle || section.title}
+        </p>
+        <h3 className="mt-2 font-lora text-[22px] leading-tight text-[#1f1f1f]">{section.title}</h3>
+        <p className="mt-4 whitespace-pre-line font-lora text-[15px] leading-[1.85] text-[#2d2d2d]">
+          {section.content}
+        </p>
+        {section.bullets && section.bullets.length > 0 ? (
+          <ul className="mt-5 space-y-2.5">
+            {section.bullets.map((item, index) => (
+              <li key={`${section.key}-${index}`} className="flex gap-2.5 text-[14px] leading-relaxed text-[#333]">
+                <span className="mt-[8px] h-[5px] w-[5px] shrink-0 rounded-full bg-[#c9a55a]" />
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
+    </section>
+  );
+};
 
 const PaidSectionCard: React.FC<{
   sectionKey: HumanPaidSectionKey;
@@ -149,9 +166,18 @@ const DailySectionButton: React.FC<{
   onOpen: () => void;
 }> = ({ sectionKey, isPremium, isLoading, opened, onOpen }) => {
   const meta = HUMAN_DAILY_SECTION_META[sectionKey];
+  const background = getNatalReadingBackground(sectionKey);
   return (
-    <div className="border-t border-[#efefef] py-5">
-      <button
+    <div className="relative -mx-5 overflow-hidden border-t border-[#efefef] px-5 py-5">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 z-0 bg-cover bg-center"
+        style={{
+          backgroundImage: `linear-gradient(180deg, rgba(255,255,255,0.86) 0%, rgba(255,255,255,0.94) 56%, rgba(255,255,255,0.99) 100%), url(${background})`,
+        }}
+      />
+      <div className="relative z-10">
+        <button
         type="button"
         onClick={onOpen}
         disabled={isLoading}
@@ -166,9 +192,9 @@ const DailySectionButton: React.FC<{
         <span className="mt-1 shrink-0 rounded-full bg-[#f7f5fb] px-3 py-1 text-[12px] text-[#6f4ea8]">
           {isLoading ? '...' : isPremium ? 'Открыть' : 'Premium'}
         </span>
-      </button>
-      {opened ? (
-        <div className="mt-4">
+        </button>
+        {opened ? (
+          <div className="mt-4">
           <p className="whitespace-pre-line font-lora text-[14.5px] leading-[1.8] text-[#2d2d2d]">{opened.content}</p>
           {opened.bullets?.length ? (
             <div className="mt-4 flex flex-wrap gap-2">
@@ -179,8 +205,9 @@ const DailySectionButton: React.FC<{
               ))}
             </div>
           ) : null}
-        </div>
-      ) : null}
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 };
@@ -341,7 +368,15 @@ export const HumanReport: React.FC<Props> = ({
   }
 
   return (
-    <article className="bg-white px-5 pb-16 pt-6">
+    <article
+      className="bg-white px-5 pb-16 pt-6"
+      style={{
+        backgroundImage: `linear-gradient(180deg, rgba(255,255,255,0.78) 0%, rgba(255,255,255,0.94) 34%, rgba(255,255,255,1) 72%), url(${getNatalReadingBackground('base_portrait')})`,
+        backgroundPosition: 'center top',
+        backgroundRepeat: 'no-repeat',
+        backgroundSize: 'cover',
+      }}
+    >
       <header className="pb-7">
         <p className="text-[11px] uppercase tracking-[0.22em] text-[#9a9a9a]">
           {report.birthData.birthDate}

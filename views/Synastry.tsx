@@ -9,6 +9,7 @@ import { getApproximateSunSignByDate } from '../lib/zodiac-utils';
 import { toDateInputValue, formatLumiaDate } from '../lib/date-utils';
 import { SYNASTRY_EXTENDED_LUMI_COST } from '../lib/synastryExtended';
 import { ScreenShell, AIR_GLASS_PANEL_CLASS } from '../components/layout/ScreenShell';
+import { getSynastryBackground } from '../lib/visualBackgrounds';
 
 type SynastryPrefill = {
     source: 'saved-chart' | 'manual';
@@ -29,12 +30,12 @@ interface SynastryProps {
 }
 
 const getSynastryEditorialText = (language: 'ru' | 'en') => ({
-    introTitle: language === 'ru' ? 'РљР°Рє РІС‹ РѕС‰СѓС‰Р°РµС‚РµСЃСЊ РґСЂСѓРі РґСЂСѓРіСѓ' : 'How you feel to each other',
-    generalTheme: language === 'ru' ? 'РћР±С‰Р°СЏ С‚РµРјР° СЃРІСЏР·Рё' : 'The shape of your bond',
-    attraction: language === 'ru' ? 'РџСЂРёС‚СЏР¶РµРЅРёРµ' : 'Attraction',
-    difficulties: language === 'ru' ? 'РЎР»РѕР¶РЅС‹Рµ РјРµСЃС‚Р°' : 'Challenges',
-    potential: language === 'ru' ? 'РџРѕС‚РµРЅС†РёР°Р» СЃРІСЏР·Рё' : 'Potential',
-    recommendations: language === 'ru' ? 'Р§С‚Рѕ РїРѕРјРѕР¶РµС‚ РІР°Рј С‚РѕС‡РЅРµРµ' : 'What will help most',
+    introTitle: language === 'ru' ? 'Как вы ощущаетесь друг другу' : 'How you feel to each other',
+    generalTheme: language === 'ru' ? 'Общая тема связи' : 'The shape of your bond',
+    attraction: language === 'ru' ? 'Притяжение' : 'Attraction',
+    difficulties: language === 'ru' ? 'Сложные места' : 'Challenges',
+    potential: language === 'ru' ? 'Потенциал связи' : 'Potential',
+    recommendations: language === 'ru' ? 'Что поможет вам точнее' : 'What will help most',
 });
 
 const SynastryEditorialSection: React.FC<{ title: string; text: string }> = ({ title, text }) => (
@@ -61,7 +62,7 @@ export const Synastry: React.FC<SynastryProps> = ({
     const [partnerDate, setPartnerDate] = useState('');
     const [partnerTime, setPartnerTime] = useState('');
     const [partnerPlace, setPartnerPlace] = useState('');
-    const [relationshipType, setRelationshipType] = useState('СЂРѕРјР°РЅС‚РёРєР°');
+    const [relationshipType, setRelationshipType] = useState('романтика');
     const [result, setResult] = useState<SynastryResult | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -231,6 +232,7 @@ export const Synastry: React.FC<SynastryProps> = ({
         ? getText(profile.language, 'synastry.selected_saved')
         : getText(profile.language, 'synastry.selected_manual');
     const canSubmit = Boolean(partnerName && partnerDate);
+    const synastryBackground = getSynastryBackground(result?.compatibilityScore);
     const fieldLabelClass = 'mb-2 block text-[10px] uppercase tracking-[0.18em] text-astro-subtext';
     const fieldInputClass = 'w-full border-b border-astro-border bg-transparent py-3 text-sm text-astro-text outline-none transition-colors focus:border-astro-highlight';
 
@@ -239,6 +241,15 @@ export const Synastry: React.FC<SynastryProps> = ({
     }
 
     return (
+        <div
+            className="min-h-full pb-8 font-sans"
+            style={{
+                backgroundImage: `linear-gradient(180deg, rgba(255,255,255,0.76) 0%, rgba(255,255,255,0.90) 34%, rgba(255,255,255,0.98) 78%, rgba(255,255,255,1) 100%), url(${synastryBackground})`,
+                backgroundPosition: 'center top',
+                backgroundRepeat: 'no-repeat',
+                backgroundSize: 'cover',
+            }}
+        >
         <ScreenShell className="mx-auto max-w-reading-wide pt-3">
             <section className={`${AIR_GLASS_PANEL_CLASS} bg-gradient-to-b from-astro-card/95 to-astro-card/50`}>
                 <p className="text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
@@ -264,7 +275,7 @@ export const Synastry: React.FC<SynastryProps> = ({
                                     <h3 className="font-serif text-base text-astro-text mt-1">{profile.name}</h3>
                                 </div>
                                 <span className="text-[10px] uppercase tracking-wider text-astro-highlight bg-astro-highlight/15 px-2 py-1 rounded-full">
-                                    {chartData?.sun?.sign ? getZodiacSign(profile.language, chartData.sun.sign) : 'вЂ”'}
+                                    {chartData?.sun?.sign ? getZodiacSign(profile.language, chartData.sun.sign) : '—'}
                                 </span>
                             </div>
                             <p className="text-xs text-astro-subtext">
@@ -367,7 +378,7 @@ export const Synastry: React.FC<SynastryProps> = ({
                                                 >
                                                     {slotActionLoading
                                                         ? getText(profile.language, 'charts.purchasing')
-                                                        : `${getText(profile.language, 'synastry.buy_slot')} вЂў 50 Lumi`}
+                                                        : `${getText(profile.language, 'synastry.buy_slot')} • 50 Lumi`}
                                                 </button>
                                             ) : (
                                                 <p className="text-xs text-astro-subtext">
@@ -389,12 +400,12 @@ export const Synastry: React.FC<SynastryProps> = ({
                                                     <p className="font-serif text-base text-astro-text">{selectedPartnerChart.name}</p>
                                                     <p className="text-xs text-astro-subtext mt-1">
                                                         {formatLumiaDate(selectedPartnerChart.birth_date, profile.language) || selectedPartnerChart.birth_date}
-                                                        {' вЂў '}
+                                                        {' • '}
                                                         {selectedPartnerChart.birth_place}
                                                     </p>
                                                     {selectedPartnerChart.chart_data?.sun?.sign && (
                                                         <p className="text-[10px] text-astro-highlight mt-2">
-                                                            в‰ {getZodiacSign(profile.language, selectedPartnerChart.chart_data.sun.sign)}
+                                                            ☉ {getZodiacSign(profile.language, selectedPartnerChart.chart_data.sun.sign)}
                                                         </p>
                                                     )}
                                                 </div>
@@ -413,7 +424,7 @@ export const Synastry: React.FC<SynastryProps> = ({
                                             >
                                                 <p className="font-medium text-astro-text">{chart.name}</p>
                                                 <p className="text-xs text-astro-subtext mt-1">
-                                                    {formatLumiaDate(chart.birth_date, profile.language) || chart.birth_date} вЂў {chart.birth_place}
+                                                    {formatLumiaDate(chart.birth_date, profile.language) || chart.birth_date} • {chart.birth_place}
                                                 </p>
                                             </button>
                                         ))
@@ -473,10 +484,10 @@ export const Synastry: React.FC<SynastryProps> = ({
                                             onChange={(e) => setRelationshipType(e.target.value)}
                                             className={fieldInputClass}
                                         >
-                                            <option value="СЂРѕРјР°РЅС‚РёРєР°">{getText(profile.language, 'synastry.relationship_romantic')}</option>
-                                            <option value="РґСЂСѓР¶Р±Р°">{getText(profile.language, 'synastry.relationship_friendship')}</option>
-                                            <option value="СЃРµРјСЊСЏ">{getText(profile.language, 'synastry.relationship_family')}</option>
-                                            <option value="СЂР°Р±РѕС‚Р°">{getText(profile.language, 'synastry.relationship_work')}</option>
+                                            <option value="романтика">{getText(profile.language, 'synastry.relationship_romantic')}</option>
+                                            <option value="дружба">{getText(profile.language, 'synastry.relationship_friendship')}</option>
+                                            <option value="семья">{getText(profile.language, 'synastry.relationship_family')}</option>
+                                            <option value="работа">{getText(profile.language, 'synastry.relationship_work')}</option>
                                         </select>
                                     </div>
                                 </div>
@@ -591,7 +602,7 @@ export const Synastry: React.FC<SynastryProps> = ({
 
                             {(result.briefOverview || result.extendedOverview || result.fullAnalysis) && (
                                 <div className="mx-auto w-full max-w-reading-wide">
-                                    <div className="lumia-reading-inner-card space-y-8 sm:space-y-10">
+                                    <div className="rounded-air-panel border border-astro-border/55 bg-astro-bg/20 p-5 sm:p-6 space-y-8 sm:space-y-10">
                                         {result.briefOverview && (
                                             <>
                                                 <SynastryEditorialSection
@@ -778,7 +789,6 @@ export const Synastry: React.FC<SynastryProps> = ({
                 </div>
             )}
         </ScreenShell>
+        </div>
     );
 };
-
-
