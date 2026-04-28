@@ -1258,6 +1258,46 @@ async function lumia017NatalHumanReadingV4Archive(pool: Pool): Promise<void> {
   log.info('Migration lumia_017_natal_human_reading_v4_archive applied');
 }
 
+async function lumia018NotificationFrequencyPreference(pool: Pool): Promise<void> {
+  const migrationName = 'lumia_018_notification_frequency_preference';
+
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
+  log.info('Applying notification frequency preference migration...');
+
+  await pool.query(`
+    ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS notification_frequency TEXT DEFAULT 'important'
+  `);
+
+  await pool.query(`
+    UPDATE users
+    SET notification_frequency = 'important'
+    WHERE notification_frequency IS NULL
+  `);
+
+  await pool.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'users_notification_frequency_check'
+      ) THEN
+        ALTER TABLE users
+          ADD CONSTRAINT users_notification_frequency_check
+          CHECK (notification_frequency IN ('quiet', 'important', 'daily', 'twice_daily'));
+      END IF;
+    END $$;
+  `);
+
+  await markMigrationApplied(pool, migrationName);
+  log.info('Migration lumia_018_notification_frequency_preference applied');
+}
+
 async function verifyTablesExist(pool: Pool): Promise<void> {
   const required = [
     'users', 'natal_charts', 'interpretations', 'lumi_transactions', 'app_settings',
@@ -1338,6 +1378,7 @@ export async function runMigrations(): Promise<void> {
   await lumia015WheelInsightVariant(pool);
   await lumia016NatalContentUnification(pool);
   await lumia017NatalHumanReadingV4Archive(pool);
+  await lumia018NotificationFrequencyPreference(pool);
   await verifyTablesExist(pool);
 
     log.info('All Lumia migrations completed successfully');

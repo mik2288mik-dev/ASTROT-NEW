@@ -1,6 +1,7 @@
 
 export type Language = 'ru' | 'en';
 export type Theme = 'dark' | 'light';
+export type NotificationFrequency = 'quiet' | 'important' | 'daily' | 'twice_daily';
 export interface UserEvolution {
   level: number;
   title: string; // e.g. "Seeker", "Awakened", "Master"
@@ -52,6 +53,7 @@ export interface UserProfile {
   refCode?: string;
   /** User already linked to an inviter (one-time referral) */
   referralApplied?: boolean;
+  notificationFrequency?: NotificationFrequency;
   weatherCity?: string; // Город для погоды (например, "Moscow" или "Москва")
 
   // Все генерации пользователя (кэшируются)

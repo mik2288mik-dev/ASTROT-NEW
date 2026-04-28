@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { UserProfile, Language, Theme } from '../types';
+import { UserProfile, Language, Theme, NotificationFrequency } from '../types';
 import { getText } from '../constants';
 import { saveProfile } from '../services/storageService';
 import { requestStarsPayment } from '../services/telegramService';
@@ -16,6 +16,56 @@ interface SettingsProps {
     onOpenWallet?: () => void;
 }
 
+const NOTIFICATION_FREQUENCIES: NotificationFrequency[] = ['quiet', 'important', 'daily', 'twice_daily'];
+
+const notificationLabels: Record<NotificationFrequency, { ru: string; en: string; ruBody: string; enBody: string }> = {
+    quiet: {
+        ru: 'Тихо',
+        en: 'Quiet',
+        ruBody: 'Без ежедневных напоминаний.',
+        enBody: 'No daily reminders.',
+    },
+    important: {
+        ru: 'Только важное',
+        en: 'Important only',
+        ruBody: 'Луна, события и сильные личные акценты.',
+        enBody: 'Moon, events, and strong personal accents.',
+    },
+    daily: {
+        ru: 'Каждый день',
+        en: 'Every day',
+        ruBody: 'Один теплый фокус дня.',
+        enBody: 'One warm daily focus.',
+    },
+    twice_daily: {
+        ru: 'Утро + вечер',
+        en: 'Morning + evening',
+        ruBody: 'Мягкий старт и спокойное закрытие дня.',
+        enBody: 'A soft start and calm close.',
+    },
+};
+
+const notificationPreferenceKey = (userId?: string) => `lumia.notificationFrequency.${userId || 'anonymous'}`;
+
+function readStoredNotificationFrequency(userId?: string): NotificationFrequency | null {
+    if (typeof window === 'undefined') return null;
+    try {
+        const value = window.localStorage.getItem(notificationPreferenceKey(userId));
+        return NOTIFICATION_FREQUENCIES.includes(value as NotificationFrequency) ? (value as NotificationFrequency) : null;
+    } catch {
+        return null;
+    }
+}
+
+function storeNotificationFrequency(userId: string | undefined, frequency: NotificationFrequency) {
+    if (typeof window === 'undefined') return;
+    try {
+        window.localStorage.setItem(notificationPreferenceKey(userId), frequency);
+    } catch {
+        /* Preference remains in memory for the current session. */
+    }
+}
+
 export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPremiumPreview, onOpenAdmin, onOpenCharts, onOpenWallet }) => {
     const [tgUser, setTgUser] = useState<{ first_name?: string; last_name?: string; photo_url?: string } | null>(null);
     const [editing, setEditing] = useState(false);
@@ -25,6 +75,9 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
     const [tempWeatherCity, setTempWeatherCity] = useState('');
     const [currentWeatherCity, setCurrentWeatherCity] = useState<string | null>(null);
     const [weatherLoading, setWeatherLoading] = useState(false);
+    const [notificationFrequency, setNotificationFrequency] = useState<NotificationFrequency>(
+        profile.notificationFrequency || 'important'
+    );
     const sectionClass = 'lumia-glass rounded-2xl p-4 sm:p-[18px]';
     const rowCardClass =
         'lumia-glass w-full rounded-2xl p-4 text-left transition-[transform,box-shadow] hover:ring-1 hover:ring-astro-highlight/22 active:scale-[0.99] sm:p-[18px]';
@@ -42,6 +95,12 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
             setTgUser(tg.initDataUnsafe.user);
         }
     }, []);
+
+    useEffect(() => {
+        setNotificationFrequency(
+            readStoredNotificationFrequency(profile.id) || profile.notificationFrequency || 'important'
+        );
+    }, [profile.id, profile.notificationFrequency]);
 
     const profileDisplayName = (() => {
         const u = tgUser;
@@ -78,6 +137,16 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
         onUpdate(updated);
         saveProfile(updated).catch(error => {
             console.error('[Settings] Failed to save theme:', error);
+        });
+    };
+
+    const handleNotificationFrequencyChange = (frequency: NotificationFrequency) => {
+        setNotificationFrequency(frequency);
+        storeNotificationFrequency(profile.id, frequency);
+        const updated = { ...profile, notificationFrequency: frequency };
+        onUpdate(updated);
+        saveProfile(updated).catch(error => {
+            console.error('[Settings] Failed to save notification preference:', error);
         });
     };
 
@@ -275,6 +344,47 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                 >
                     {getText(profile.language, 'settings.switch_lang')}
                 </button>
+            </div>
+
+            <div className={sectionClass}>
+                <div className="flex items-start justify-between gap-4">
+                    <div>
+                        <h3 className="font-serif text-lg text-astro-text">
+                            {profile.language === 'en' ? 'Notifications' : 'Оповещения'}
+                        </h3>
+                        <p className="lumia-muted mt-1 text-sm leading-snug">
+                            {profile.language === 'en'
+                                ? 'Choose how often Lumia should gently return you to the day.'
+                                : 'Выбери, как часто Lumia будет мягко возвращать тебя к дню.'}
+                        </p>
+                    </div>
+                </div>
+                <div className="mt-4 grid grid-cols-1 gap-2">
+                    {NOTIFICATION_FREQUENCIES.map((frequency) => {
+                        const label = notificationLabels[frequency];
+                        const active = notificationFrequency === frequency;
+                        return (
+                            <button
+                                key={frequency}
+                                type="button"
+                                aria-pressed={active}
+                                onClick={() => handleNotificationFrequencyChange(frequency)}
+                                className={`rounded-2xl px-4 py-3 text-left transition-[background,box-shadow,transform] active:scale-[0.99] ${
+                                    active
+                                        ? 'bg-astro-text text-white shadow-sm ring-1 ring-astro-text/10'
+                                        : 'bg-white/56 text-astro-text ring-1 ring-black/[0.05] hover:bg-white/78'
+                                }`}
+                            >
+                                <span className="block text-sm font-semibold">
+                                    {profile.language === 'en' ? label.en : label.ru}
+                                </span>
+                                <span className={`mt-1 block text-xs leading-relaxed ${active ? 'text-white/72' : 'text-text-muted'}`}>
+                                    {profile.language === 'en' ? label.enBody : label.ruBody}
+                                </span>
+                            </button>
+                        );
+                    })}
+                </div>
             </div>
 
             <div className={sectionClass}>

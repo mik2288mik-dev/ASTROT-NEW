@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { db } from '../../../lib/db';
+import { db, getPool } from '../../../lib/db';
 import { getConfiguredOwnerId } from '../../../lib/adminAuth';
 import { hasDatabaseUrl } from '../../../lib/database-url';
 import { getMoscowTodayKey, toDateInputValue } from '../../../lib/date-utils';
@@ -37,6 +37,40 @@ function resolveIsAdmin(userId: string, dbIsAdmin: boolean | undefined): boolean
   const ownerId = getConfiguredOwnerId();
   if (ownerId && String(userId) === String(ownerId)) return true;
   return !!dbIsAdmin;
+}
+
+const NOTIFICATION_FREQUENCIES = new Set(['quiet', 'important', 'daily', 'twice_daily']);
+
+function normalizeNotificationFrequency(value: unknown): string | null {
+  const normalized = typeof value === 'string' ? value.trim() : '';
+  return NOTIFICATION_FREQUENCIES.has(normalized) ? normalized : null;
+}
+
+async function getNotificationFrequency(userId: string): Promise<string | null> {
+  if (!hasDatabaseUrl()) return null;
+  try {
+    const result = await getPool().query(
+      'SELECT notification_frequency FROM users WHERE id = $1 LIMIT 1',
+      [userId]
+    );
+    return normalizeNotificationFrequency(result.rows[0]?.notification_frequency);
+  } catch (e: any) {
+    log.warn('[notificationFrequency] Failed to read preference', { userId, error: e?.message });
+    return null;
+  }
+}
+
+async function saveNotificationFrequency(userId: string, value: unknown): Promise<void> {
+  const normalized = normalizeNotificationFrequency(value);
+  if (!normalized || !hasDatabaseUrl()) return;
+  try {
+    await getPool().query(
+      'UPDATE users SET notification_frequency = $1 WHERE id = $2',
+      [normalized, userId]
+    );
+  } catch (e: any) {
+    log.warn('[notificationFrequency] Failed to save preference', { userId, error: e?.message });
+  }
 }
 
 async function hydrateGeneratedContent(userId: string) {
@@ -168,6 +202,7 @@ export default async function handler(
       const lumiBalance = user.lumi_balance ?? 0;
       const loginStreak = user.login_streak ?? 0;
       const chartSlots = user.chart_slots ?? 1;
+      const notificationFrequency = await getNotificationFrequency(userId);
 
       let refCode: string | null = null;
       try {
@@ -193,6 +228,7 @@ export default async function handler(
         lumiBalance,
         loginStreak,
         chartSlots,
+        notificationFrequency: notificationFrequency || undefined,
         refCode: refCode || undefined,
         referralApplied: user.referred_by != null && user.referred_by !== undefined,
       };
@@ -246,7 +282,9 @@ export default async function handler(
       };
 
       const savedUser = await db.users.set(userId, dbUser);
+      await saveNotificationFrequency(userId, userData.notificationFrequency);
       const refreshedUser = await db.users.get(userId);
+      const notificationFrequency = await getNotificationFrequency(userId);
 
       const generatedContent = await hydrateGeneratedContent(userId);
 
@@ -274,6 +312,7 @@ export default async function handler(
         lumiBalance: refreshedUser?.lumi_balance ?? 0,
         loginStreak: refreshedUser?.login_streak ?? 0,
         chartSlots: refreshedUser?.chart_slots ?? 1,
+        notificationFrequency: notificationFrequency || undefined,
         refCode: refCodePost || undefined,
         referralApplied: refreshedUser?.referred_by != null && refreshedUser?.referred_by !== undefined,
       };

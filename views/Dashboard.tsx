@@ -32,6 +32,7 @@ export const Dashboard = memo<DashboardProps>(
       paddingBottom:
         'calc(1rem + max(env(safe-area-inset-bottom, 0px), var(--tg-content-safe-area-inset-bottom, 0px)))',
     } as const;
+    const gatewayRootStyle = { paddingBottom: 0 } as const;
 
     const rootClass = cn(
       'relative mx-auto flex h-full min-h-0 w-full max-w-md flex-col overflow-hidden text-text-main'
@@ -110,7 +111,7 @@ export const Dashboard = memo<DashboardProps>(
     }
 
     return (
-      <div className={rootClass} style={rootStyle}>
+      <div className={rootClass} style={gatewayRootStyle}>
         <motion.div
           initial="hidden"
           animate="visible"
