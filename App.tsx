@@ -762,6 +762,12 @@ const App: React.FC = () => {
             : view === 'synastry'
               ? getSynastryBackground(null)
               : null;
+    const visualAppBackgroundLayer =
+        view === 'horoscope'
+            ? `linear-gradient(180deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.34) 34%, rgba(255,255,255,0.68) 100%), url(${visualAppBackground})`
+            : visualAppBackground
+              ? `linear-gradient(180deg, rgba(255,255,255,0.50) 0%, rgba(255,255,255,0.68) 32%, rgba(255,255,255,0.94) 100%), url(${visualAppBackground})`
+              : null;
 
     return (
         <div
@@ -773,7 +779,7 @@ const App: React.FC = () => {
                 <div
                     className="pointer-events-none absolute inset-0 z-0 bg-cover bg-center"
                     style={{
-                        backgroundImage: `linear-gradient(180deg, rgba(255,255,255,0.50) 0%, rgba(255,255,255,0.68) 32%, rgba(255,255,255,0.94) 100%), url(${visualAppBackground})`,
+                        backgroundImage: visualAppBackgroundLayer || undefined,
                     }}
                 />
             ) : null}

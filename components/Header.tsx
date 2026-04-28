@@ -16,7 +16,7 @@ interface HeaderProps {
 const SCREEN_TITLES: Partial<Record<ViewState, { ru: string; en: string }>> = {
   chart: { ru: 'Натальная карта', en: 'Natal Chart' },
   charts: { ru: 'Мои карты', en: 'My Charts' },
-  horoscope: { ru: 'День по карте', en: 'Today by Chart' },
+  horoscope: { ru: 'Гороскоп', en: 'Horoscope' },
   oracle: { ru: 'Спросить Lumia', en: 'Ask Lumia' },
   synastry: { ru: 'Карта связи', en: 'Bond Map' },
   wallet: { ru: 'Магазин', en: 'Store' },
@@ -48,6 +48,7 @@ function StudioChromeHeader({
   const storeLabel = profile.language === 'en' ? 'Store' : 'Магазин';
   const dictionaryLabel = profile.language === 'en' ? 'Dictionary' : 'Словарь';
   const showDictionary = view === 'chart';
+  const showScreenTitle = view !== 'horoscope';
 
   return (
     <header className={`lumia-tg-header-bar relative z-40 shrink-0 ${visualBackdrop ? 'bg-transparent' : 'bg-white'}`}>
@@ -68,11 +69,13 @@ function StudioChromeHeader({
           dictionaryLabel={dictionaryLabel}
         />
 
-        <div className="mt-1 pt-1 text-center">
-          <p className="text-[13px] font-medium tracking-[0.01em] text-text-main">
-            {getScreenTitle(profile, view)}
-          </p>
-        </div>
+        {showScreenTitle ? (
+          <div className="mt-1 pt-1 text-center">
+            <p className="text-[13px] font-medium tracking-[0.01em] text-text-main">
+              {getScreenTitle(profile, view)}
+            </p>
+          </div>
+        ) : null}
       </div>
     </header>
   );

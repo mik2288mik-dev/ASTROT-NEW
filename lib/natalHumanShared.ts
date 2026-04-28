@@ -6,6 +6,7 @@ export const HUMAN_PAID_PROMPT_VERSION = 'lumia-human-v1.paid';
 export const HUMAN_DAILY_PROMPT_VERSION = 'lumia-human-v1.daily';
 
 export const HUMAN_PAID_LUMI_COST = 300;
+export const HUMAN_DAILY_LUMI_COST = 35;
 export const HUMAN_BASE_CACHE_KEY = 'human_v1.base';
 
 export const HUMAN_FREE_SECTION_KEYS = [

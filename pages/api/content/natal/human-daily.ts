@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import type { InterpretationSection } from '../../../../types';
+import type { ContentAccessTier, InterpretationSection } from '../../../../types';
 import { db } from '../../../../lib/db';
-import { getPremiumEntitlementState } from '../../../../lib/contentArchitecture';
+import { getPremiumEntitlementState, unlockContentLayer } from '../../../../lib/contentArchitecture';
 import { getMoscowTodayKey } from '../../../../lib/date-utils';
 import {
   ensureValidContext,
@@ -14,6 +14,7 @@ import {
   generateHumanDailySection,
 } from '../../../../lib/natalHumanInterpretation';
 import {
+  HUMAN_DAILY_LUMI_COST,
   HUMAN_DAILY_PROMPT_VERSION,
   humanDailyCacheKey,
   isHumanDailySectionKey,
@@ -21,6 +22,11 @@ import {
 } from '../../../../lib/natalHumanShared';
 
 export const config = { maxDuration: 90 };
+
+type ResolvedDailyAccess = {
+  accessTier: Extract<ContentAccessTier, 'premium' | 'lumi'>;
+  entitlement: Awaited<ReturnType<typeof getPremiumEntitlementState>>['entitlement'];
+};
 
 function readSectionKey(req: NextApiRequest): HumanDailySectionKey | null {
   const raw = (req.method === 'GET' ? req.query.sectionKey : req.body?.sectionKey) as string | undefined;
@@ -48,6 +54,31 @@ function getMoscowDayWindow(dateKey: string) {
   };
 }
 
+async function resolveDailyAccess(
+  userId: string,
+  chartId: number | null,
+  cacheKey: string
+): Promise<ResolvedDailyAccess | null> {
+  const entitlement = await getPremiumEntitlementState(userId);
+  if (entitlement.isPremium) {
+    return { accessTier: 'premium', entitlement: entitlement.entitlement };
+  }
+
+  const unlock = await db.content_unlocks.getLatestActive(userId, {
+    accessTier: 'lumi',
+    contentSurface: 'natal',
+    contentVariant: 'living',
+    chartId,
+    cacheKey,
+  });
+
+  if (unlock) {
+    return { accessTier: 'lumi', entitlement: entitlement.entitlement };
+  }
+
+  return null;
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const ready = await ensureValidContext(req, res);
   if (!ready) return;
@@ -62,16 +93,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
-  const entitlement = await getPremiumEntitlementState(userId);
-  if (!entitlement.isPremium) {
-    return res.status(403).json({
-      error: 'PREMIUM_REQUIRED',
-      code: 'PREMIUM_REQUIRED',
-      message: 'Ежедневные персональные разборы доступны в Lumia Premium.',
-      lumiBalance: ctx.user.lumi_balance ?? 0,
-    });
-  }
-
   const cacheKey = humanDailyCacheKey(dateKey, sectionKey);
   const inputHash = buildHumanInputHash({
     profile: ctx.profile,
@@ -81,8 +102,66 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     promptVersion: HUMAN_DAILY_PROMPT_VERSION,
   });
   const window = getMoscowDayWindow(dateKey);
+  let access = await resolveDailyAccess(userId, ctx.chartId, cacheKey);
+
+  if (req.method === 'GET' && !access) {
+    return res.status(403).json({
+      error: 'HUMAN_DAILY_LOCKED',
+      code: 'HUMAN_DAILY_LOCKED',
+      message: `Персональный слой дня доступен в Premium или открывается разово за ${HUMAN_DAILY_LUMI_COST} Lumi.`,
+      lumiCost: HUMAN_DAILY_LUMI_COST,
+      lumiBalance: ctx.user.lumi_balance ?? 0,
+    });
+  }
+
+  if (!access) {
+    const requestedAccessTier = req.body?.accessTier === 'lumi' ? 'lumi' : 'premium';
+    const allowLumiSpend = Boolean(req.body?.allowLumiSpend);
+
+    if (requestedAccessTier !== 'lumi' || !allowLumiSpend) {
+      return res.status(409).json({
+        error: 'LUMI_REQUIRED',
+        code: 'LUMI_REQUIRED',
+        message: `Этот персональный слой можно открыть за ${HUMAN_DAILY_LUMI_COST} Lumi. Подтвердите списание.`,
+        lumiCost: HUMAN_DAILY_LUMI_COST,
+        lumiBalance: ctx.user.lumi_balance ?? 0,
+      });
+    }
+
+    const balance = await db.lumi_transactions.getBalance(userId);
+    if (balance < HUMAN_DAILY_LUMI_COST) {
+      return res.status(402).json({
+        error: 'INSUFFICIENT_LUMI',
+        code: 'INSUFFICIENT_LUMI',
+        message: 'Недостаточно Lumi для открытия персонального слоя дня.',
+        lumiCost: HUMAN_DAILY_LUMI_COST,
+        lumiBalance: balance,
+      });
+    }
+
+    await unlockContentLayer({
+      userId,
+      chartId: ctx.chartId,
+      accessTier: 'lumi',
+      contentSurface: 'natal',
+      contentVariant: 'living',
+      cacheKey,
+      lumiCost: HUMAN_DAILY_LUMI_COST,
+    });
+
+    access = await resolveDailyAccess(userId, ctx.chartId, cacheKey);
+  }
+
+  if (!access) {
+    return res.status(500).json({
+      error: 'HUMAN_DAILY_UNLOCK_FAILED',
+      code: 'HUMAN_DAILY_UNLOCK_FAILED',
+      message: 'Не удалось открыть персональный слой дня.',
+    });
+  }
+
   const cacheOpts = {
-    accessTier: 'premium' as const,
+    accessTier: access.accessTier,
     contentVariant: 'living' as const,
     cacheKey,
     inputHash,
@@ -101,7 +180,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({
       interpretation: cached,
       source: 'human_v1',
-      entitlement: entitlement.entitlement,
+      entitlement: access.entitlement,
+      accessTier: access.accessTier,
       lumiBalance: ctx.user.lumi_balance ?? 0,
     });
   }
@@ -110,7 +190,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({
       interpretation: cached,
       source: 'human_v1',
-      entitlement: entitlement.entitlement,
+      entitlement: access.entitlement,
+      accessTier: access.accessTier,
       lumiBalance: ctx.user.lumi_balance ?? 0,
     });
   }
@@ -122,7 +203,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({
       interpretation: saved,
       source: 'generated',
-      entitlement: entitlement.entitlement,
+      entitlement: access.entitlement,
+      accessTier: access.accessTier,
       lumiBalance,
     });
   } catch (error) {
@@ -132,7 +214,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({
       interpretation: saved || { content: fallback, promptVersion: cacheOpts.promptVersion },
       source: saved ? 'fallback' : 'fallback-inline',
-      entitlement: entitlement.entitlement,
+      entitlement: access.entitlement,
+      accessTier: access.accessTier,
       lumiBalance: ctx.user.lumi_balance ?? 0,
     });
   }

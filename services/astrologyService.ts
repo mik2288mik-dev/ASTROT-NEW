@@ -203,6 +203,36 @@ export const getCachedDailyForecastLayer = async (
   return data?.interpretation?.content ?? null;
 };
 
+export const loadDailySignHoroscope = async (
+  sign: string,
+  date: string,
+  language: 'ru' | 'en' = 'ru'
+): Promise<ForecastDailyReading> => {
+  const params = new URLSearchParams({ sign, date, language });
+  const url = `${API_BASE_URL}/api/content/horoscope/sign-daily?${params.toString()}`;
+  log.info('[loadDailySignHoroscope] Starting request', { sign, date, language });
+
+  let response = await fetchWithTimeout(url, { method: 'GET', cache: 'no-store' }, 4500);
+  if (response.status === 404) {
+    response = await fetchWithTimeout(`${API_BASE_URL}/api/content/horoscope/sign-daily`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sign, date, language }),
+    }, 12000);
+  }
+
+  if (!response.ok) {
+    throw buildApiError(`Sign horoscope failed: ${response.status} ${response.statusText}`, response.status);
+  }
+
+  const payload = await response.json();
+  if (!payload?.reading) {
+    throw buildApiError('Sign horoscope content is missing');
+  }
+
+  return payload.reading as ForecastDailyReading;
+};
+
 export const getPremiumDaypartForecast = async (
   profile: UserProfile,
   chartData: NatalChartData,

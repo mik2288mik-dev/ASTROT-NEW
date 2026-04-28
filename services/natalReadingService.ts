@@ -225,9 +225,28 @@ export async function loadHumanDailySection(
   userId: string,
   sectionKey: HumanDailySectionKey,
   chartId?: number,
-  date?: string
+  date?: string,
+  options?: {
+    accessTier?: 'premium' | 'lumi';
+    allowLumiSpend?: boolean;
+  }
 ): Promise<HumanReadingResult<InterpretationSection>> {
+  if (options?.allowLumiSpend) {
+    return postHuman<InterpretationSection>('human-daily', userId, {
+      chartId,
+      sectionKey,
+      date,
+      accessTier: 'lumi',
+      allowLumiSpend: true,
+    });
+  }
+
   const cached = await getHuman<InterpretationSection>('human-daily', userId, { chartId, sectionKey, date });
   if (cached?.content) return cached;
-  return postHuman<InterpretationSection>('human-daily', userId, { chartId, sectionKey, date });
+  return postHuman<InterpretationSection>('human-daily', userId, {
+    chartId,
+    sectionKey,
+    date,
+    accessTier: options?.accessTier,
+  });
 }

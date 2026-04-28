@@ -1,35 +1,19 @@
 import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
-import { Briefcase, Coins, Heart, Lock, MessageCircle, Sparkles, Zap, type LucideIcon } from 'lucide-react';
-import {
-  DailyHoroscope,
+import { ArrowRight, BriefcaseBusiness, ChevronDown, Heart, Lock, Sparkles, WalletCards } from 'lucide-react';
+import type {
   ForecastDailyReading,
   ForecastDaypartReading,
-  ForecastDaypartSlot,
-  ForecastWeeklyReading,
+  InterpretationSection,
   NatalChartData,
   UserProfile,
 } from '../types';
-import {
-  ensureWeeklyForecastLayer,
-  getCachedDailyForecastLayer,
-  getCachedDailyHoroscope,
-  getCachedFullDaypartForecast,
-  getCachedWeeklyForecastLayer,
-  getDailyForecastLayer,
-  getDailyHoroscope,
-  getFullDaypartForecast,
-  mapForecastDailyToLegacyHoroscope,
-  mapLegacyHoroscopeToForecastDailyReading,
-} from '../services/astrologyService';
-import { Loading } from '../components/ui/Loading';
-import { formatLumiaDate, getMoscowIsoWeekKey, getMoscowTodayKey } from '../lib/date-utils';
+import { getFullDaypartForecast, loadDailySignHoroscope } from '../services/astrologyService';
+import { loadHumanDailySection, type HumanReadingError } from '../services/natalReadingService';
+import { formatLumiaDate, getMoscowTodayKey } from '../lib/date-utils';
 import { getZodiacSign } from '../constants';
-import { getMoonPhase } from '../lib/horoscope/moonPhase';
-import { getQuestionOfDay } from '../lib/horoscope/questionOfDay';
-import { MoonPhaseIcon } from '../components/Horoscope/MoonPhaseIcon';
-import { Divider, SectionLabel } from '../components/NatalReading/SectionLabel';
-import { ZodiacIcon } from '../components/icons/ZodiacIcon';
 import { getHoroscopeBackground } from '../lib/visualBackgrounds';
+import { ZodiacIcon } from '../components/icons/ZodiacIcon';
+import type { HumanDailySectionKey } from '../lib/natalHumanShared';
 
 interface HoroscopeProps {
   profile: UserProfile;
@@ -39,602 +23,602 @@ interface HoroscopeProps {
   onRequestPremium?: () => void;
 }
 
-const ZODIAC_DATES: Record<string, string> = {
-  Aries: '21.03 — 19.04',
-  Taurus: '20.04 — 20.05',
-  Gemini: '21.05 — 20.06',
-  Cancer: '21.06 — 22.07',
-  Leo: '23.07 — 22.08',
-  Virgo: '23.08 — 22.09',
-  Libra: '23.09 — 22.10',
-  Scorpio: '23.10 — 21.11',
-  Sagittarius: '22.11 — 21.12',
-  Capricorn: '22.12 — 19.01',
-  Aquarius: '20.01 — 18.02',
-  Pisces: '19.02 — 20.03',
+const ZODIAC_SIGNS = [
+  ['Aries', '21.03 - 19.04'],
+  ['Taurus', '20.04 - 20.05'],
+  ['Gemini', '21.05 - 20.06'],
+  ['Cancer', '21.06 - 22.07'],
+  ['Leo', '23.07 - 22.08'],
+  ['Virgo', '23.08 - 22.09'],
+  ['Libra', '23.09 - 22.10'],
+  ['Scorpio', '23.10 - 21.11'],
+  ['Sagittarius', '22.11 - 21.12'],
+  ['Capricorn', '22.12 - 19.01'],
+  ['Aquarius', '20.01 - 18.02'],
+  ['Pisces', '19.02 - 20.03'],
+] as const;
+
+type ZodiacKey = (typeof ZODIAC_SIGNS)[number][0];
+type HoroscopeLayer = 'sign' | 'chart' | 'love' | 'work_money';
+
+type LayerConfig = {
+  id: HoroscopeLayer;
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  cta: string;
+  price?: number;
+  icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
+  background: string;
 };
 
-type Lens = 'work' | 'love' | 'money' | 'communication' | 'energy';
+const LAYER_PRICES: Record<Exclude<HoroscopeLayer, 'sign'>, number> = {
+  chart: 50,
+  love: 35,
+  work_money: 35,
+};
 
-function buildDailyFallback(language: 'ru' | 'en', sign: string, dateKey: string): ForecastDailyReading {
-  const signLabel = getZodiacSign(language, sign);
-
-  return language === 'ru'
-    ? {
-        date: dateKey,
-        headline: 'День лучше раскрывается через ясность и мягкий фокус',
-        summary: `Сегодня ${signLabel} важнее не ускоряться, а выбрать один честный приоритет.`,
-        chance: 'Есть шанс аккуратно сдвинуть важное дело, если не распыляться на чужой шум.',
-        risk: 'Главный риск дня — взять на себя слишком много и потерять внутреннюю ясность.',
-        focus: 'Выберите один участок дня, где нужен спокойный, конкретный шаг.',
-        reading:
-          'Сегодня карта лучше работает не через резкий рывок, а через собранность. День может подсветить, где вы уже устали от лишних задач, разговоров или ожиданий. Чем честнее вы отделите главное от второстепенного, тем легче станет действовать без напряжения.',
-        context:
-          'Это не общий прогноз по знаку: здесь важен ваш личный ритм карты. День просит меньше суеты и больше внутренней точности.',
-        advice: [
-          'Не начинайте день с десяти мелких решений',
-          'Оставьте место для одного спокойного разговора или точного шага',
-          'Не доказывайте всем и себе, что можете все сразу',
-        ],
-      }
-    : {
-        date: dateKey,
-        headline: 'The day opens through clarity and gentle focus',
-        summary: `For ${signLabel}, today works better through one honest priority than speed.`,
-        chance: 'You can move an important thing forward if you avoid scattering attention.',
-        risk: 'The main risk is taking on too much and losing inner clarity.',
-        focus: 'Choose one area of the day that needs a calm, concrete step.',
-        reading:
-          'Today works better through steadiness than a hard push. The day may show where you are tired of extra tasks, conversations, or expectations. The more clearly you separate what matters from what is just noise, the easier action becomes.',
-        context:
-          'This is not a generic sign forecast: your personal chart rhythm matters here.',
-        advice: [
-          'Do not start the day with ten small decisions',
-          'Leave space for one calm conversation or precise step',
-          'Do not prove that you can handle everything at once',
-        ],
-      };
+function normalizeSign(sign?: string | null): ZodiacKey {
+  const found = ZODIAC_SIGNS.find(([key]) => key.toLowerCase() === String(sign || '').toLowerCase());
+  return (found?.[0] || 'Aries') as ZodiacKey;
 }
 
-function buildDaypartFallback(
-  language: 'ru' | 'en',
-  dateKey: string,
-  slot: ForecastDaypartSlot
-): ForecastDaypartReading {
-  const ruMeta = {
-    morning: {
-      headline: 'Утро просит бережного входа в день',
-      summary: 'Начните с простого порядка: тело, пространство, первый понятный шаг.',
-      focus: 'Не хватайтесь за все сразу.',
-      relationships: 'В общении утром лучше меньше додумывать и больше уточнять.',
-      money: 'Финансовые решения утром полезнее сверить, чем ускорять.',
-      guidance: 'Дайте себе мягкий старт без лишнего давления.',
-    },
-    day: {
-      headline: 'Днем важен один рабочий фокус',
-      summary: 'Середина дня подходит для конкретного дела, которое можно довести до видимого результата.',
-      focus: 'Выберите одну задачу и закройте ее аккуратно.',
-      relationships: 'Договариваться легче через конкретику, а не намеки.',
-      money: 'День хорош для порядка в деньгах, планах и обязательствах.',
-      guidance: 'Не распыляйтесь: сегодня выигрывает точность.',
-    },
-    evening: {
-      headline: 'Вечер возвращает к себе',
-      summary: 'К вечеру лучше снижать шум, а не добивать день новыми задачами.',
-      focus: 'Посмотрите не только на события дня, но и на то, что они в вас подняли.',
-      relationships: 'Близость вечером строится через честное присутствие, а не правильные слова.',
-      money: 'Поздние решения лучше не принимать на усталости — вечер для сверки.',
-      guidance: 'Завершите день мягко, без давления на себя.',
-    },
-  } satisfies Record<ForecastDaypartSlot, Omit<ForecastDaypartReading, 'date' | 'slot'>>;
+function haptic(kind: 'select' | 'open' = 'select') {
+  try {
+    const webApp = (window as any)?.Telegram?.WebApp;
+    if (kind === 'open') {
+      webApp?.HapticFeedback?.impactOccurred?.('light');
+    } else {
+      webApp?.HapticFeedback?.selectionChanged?.();
+    }
+  } catch {}
+}
 
-  const enMeta = {
-    morning: {
-      headline: 'Morning asks for a gentle start',
-      summary: 'Begin with simple order: body, space, and one clear first step.',
-      focus: 'Do not grab everything at once.',
-      relationships: 'In the morning, clarify more and assume less.',
-      money: 'Money decisions are better reviewed than rushed.',
-      guidance: 'Give yourself a soft start without extra pressure.',
-    },
-    day: {
-      headline: 'Midday rewards one working focus',
-      summary: 'The middle of the day supports one practical task with a visible result.',
-      focus: 'Choose one task and close it cleanly.',
-      relationships: 'Agreements work better through specifics than hints.',
-      money: 'The day is useful for order in money, plans, and commitments.',
-      guidance: 'Do not scatter: precision wins today.',
-    },
-    evening: {
-      headline: 'Evening brings you back to yourself',
-      summary: 'By evening, lowering the noise helps more than adding new tasks.',
-      focus: 'Notice not only what happened today, but what it stirred in you.',
-      relationships: 'Closeness grows through honest presence rather than perfect wording.',
-      money: 'Late decisions are better not made from fatigue — evening is for review.',
-      guidance: 'Close the day gently and without extra pressure.',
-    },
-  } satisfies Record<ForecastDaypartSlot, Omit<ForecastDaypartReading, 'date' | 'slot'>>;
+function buildSignFallback(sign: ZodiacKey, date: string, language: 'ru' | 'en'): ForecastDailyReading {
+  const signLabel = getZodiacSign(language, sign);
+  if (language === 'en') {
+    return {
+      date,
+      headline: `${signLabel}: choose one honest rhythm`,
+      summary: `Today ${signLabel} feels steadier when the day is not overloaded with other people’s urgency.`,
+      chance: 'A simple decision can return a sense of calm control.',
+      risk: 'The soft risk is answering too quickly before the real priority is clear.',
+      focus: 'Choose one thing and give it a small, visible step.',
+      reading:
+        `For ${signLabel}, today is less about speed and more about choosing the right pace. Do not turn every signal around you into a command. Notice what actually deserves your attention and let the rest stay in the background.\n\nThis is a good day to move through one clean action instead of many scattered attempts. The clearer your inner yes or no, the easier it becomes to protect your energy.`,
+      context: 'This is a general zodiac horoscope. The personal layer uses your full natal chart.',
+      advice: ['Keep the day simple.', 'Do not answer from pressure.', 'Let one small action carry the day.'],
+    };
+  }
 
   return {
-    date: dateKey,
-    slot,
-    ...(language === 'ru' ? ruMeta[slot] : enMeta[slot]),
+    date,
+    headline: `${signLabel}: выберите один честный ритм`,
+    summary: `Сегодня ${signLabel} легче держит опору, когда день не перегружен чужой срочностью.`,
+    chance: 'Простой выбор может вернуть ощущение спокойного контроля.',
+    risk: 'Мягкий риск дня - отвечать слишком быстро, пока настоящий приоритет ещё не ясен.',
+    focus: 'Выберите одно дело и сделайте по нему небольшой, но видимый шаг.',
+    reading:
+      `Для знака ${signLabel} этот день не про скорость, а про правильный темп. Не превращайте каждый сигнал вокруг в команду к действию. Заметьте, что правда требует внимания, а остальное оставьте фоном.\n\nСегодня лучше сработает одно чистое действие, чем много разрозненных попыток. Чем яснее внутреннее «да» или «нет», тем легче беречь силы и не расплескать день.`,
+    context: 'Это общий гороскоп по знаку. Персональный слой строится по полной натальной карте.',
+    advice: ['Упростите день.', 'Не отвечайте из давления.', 'Пусть одно маленькое действие соберёт ритм.'],
   };
 }
 
-function buildWeeklyFallback(language: 'ru' | 'en', periodKey: string): ForecastWeeklyReading {
-  return language === 'ru'
-    ? {
-        periodKey,
-        periodLabel: '',
-        headline: 'Неделя ясности и ровного шага',
-        summary: 'Сейчас полезнее держать фокус на главном и не распылять силы на второстепенное.',
-        focus: 'Выберите одну опорную линию на неделю и поддерживайте ее спокойной дисциплиной.',
-      }
-    : {
-        periodKey,
-        periodLabel: '',
-        headline: 'A week that rewards clarity and steady pacing',
-        summary: 'Protect your focus and avoid spending energy on side noise.',
-        focus: 'Pick one meaningful line for the week and support it with calm consistency.',
-      };
+function getLayerConfigs(selectedSign: ZodiacKey): LayerConfig[] {
+  return [
+    {
+      id: 'sign',
+      eyebrow: 'free',
+      title: 'Гороскоп знака',
+      subtitle: 'Общий прогноз на сегодня по вашему знаку.',
+      cta: 'Читать',
+      icon: Sparkles,
+      background: getHoroscopeBackground(selectedSign),
+    },
+    {
+      id: 'chart',
+      eyebrow: 'premium / lumi',
+      title: 'По моей карте',
+      subtitle: 'Личный день по натальной карте и текущему фону.',
+      cta: 'Открыть слой',
+      price: LAYER_PRICES.chart,
+      icon: WalletCards,
+      background: '/natal-gateway/daily-horoscope.webp',
+    },
+    {
+      id: 'love',
+      eyebrow: 'premium / lumi',
+      title: 'Любовь сегодня',
+      subtitle: 'Эмоции, близость и разговоры без лишних догадок.',
+      cta: 'Открыть сферу',
+      price: LAYER_PRICES.love,
+      icon: Heart,
+      background: '/natal-gateway/synastry-union.webp',
+    },
+    {
+      id: 'work_money',
+      eyebrow: 'premium / lumi',
+      title: 'Работа и деньги',
+      subtitle: 'Фокус, решения, темп и денежная собранность.',
+      cta: 'Открыть сферу',
+      price: LAYER_PRICES.work_money,
+      icon: BriefcaseBusiness,
+      background: '/natal-gateway/personality-map.webp',
+    },
+  ];
 }
 
-const KeyValueRow: React.FC<{ label: string; value: string }> = ({ label, value }) => (
-  <li className="flex items-baseline gap-3 border-t border-[#f2f2f2] py-3 first:border-t-0 first:pt-0">
-    <span className="w-[92px] shrink-0 text-[11px] uppercase tracking-[0.16em] text-[#9a9a9a]">
-      {label}
-    </span>
-    <span className="flex-1 font-lora text-[14.5px] leading-[1.7] text-[#2d2d2d]">{value}</span>
-  </li>
-);
+function splitParagraphs(text?: string) {
+  return String(text || '')
+    .split(/\n{2,}|\r\n{2,}/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
 
-const Pill: React.FC<{
-  active: boolean;
-  Icon: LucideIcon;
-  label: string;
-  onClick: () => void;
-}> = ({ active, Icon, label, onClick }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    className={`flex items-center gap-1.5 rounded-[20px] px-3.5 py-1.5 text-[12.5px] transition ${
-      active
-        ? 'bg-[#1f1f1f] text-white'
-        : 'border border-[#ececec] bg-white text-[#3a3a3a] hover:border-[#d8d8d8]'
-    }`}
-  >
-    <Icon size={14} strokeWidth={1.7} />
-    <span>{label}</span>
-  </button>
-);
+function SignPicker({
+  language,
+  selectedSign,
+  onSelect,
+}: {
+  language: 'ru' | 'en';
+  selectedSign: ZodiacKey;
+  onSelect: (sign: ZodiacKey) => void;
+}) {
+  return (
+    <div className="mt-4 grid grid-cols-3 gap-2">
+      {ZODIAC_SIGNS.map(([sign]) => {
+        const active = sign === selectedSign;
+        return (
+          <button
+            key={sign}
+            type="button"
+            onClick={() => onSelect(sign)}
+            className={`min-h-[52px] rounded-[18px] border px-2 text-left transition ${
+              active
+                ? 'border-[#1f1f1f]/20 bg-white/86 shadow-[0_16px_38px_rgba(0,0,0,0.08)]'
+                : 'border-white/55 bg-white/44'
+            }`}
+          >
+            <span className="flex items-center gap-2 text-[13px] font-medium text-[#202024]">
+              <ZodiacIcon sign={sign} size={15} />
+              {getZodiacSign(language, sign)}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
-const DaypartCard: React.FC<{ title: string; reading: ForecastDaypartReading }> = ({ title, reading }) => (
-  <div className="rounded-[24px] border border-[#f0f0f0] bg-[#fbfaf7] px-4 py-4">
-    <p className="text-[10px] uppercase tracking-[0.18em] text-[#9a9a9a]">{title}</p>
-    <h3 className="mt-2 font-lora text-[16px] leading-[1.35] text-[#1f1f1f]">{reading.headline}</h3>
-    <p className="mt-2 font-lora text-[14px] leading-[1.65] text-[#3a3a3a]">{reading.summary}</p>
-  </div>
-);
+function LayerCarousel({
+  layers,
+  activeLayer,
+  premium,
+  onSelect,
+}: {
+  layers: LayerConfig[];
+  activeLayer: HoroscopeLayer;
+  premium: boolean;
+  onSelect: (layer: HoroscopeLayer) => void;
+}) {
+  return (
+    <div className="-mx-5 mt-7 overflow-x-auto px-5 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="flex snap-x gap-3">
+        {layers.map((layer) => {
+          const Icon = layer.icon;
+          const active = layer.id === activeLayer;
+          const locked = layer.id !== 'sign' && !premium;
+          return (
+            <button
+              key={layer.id}
+              type="button"
+              onClick={() => {
+                haptic();
+                onSelect(layer.id);
+              }}
+              className={`relative h-[8.6rem] w-[12.9rem] shrink-0 snap-center overflow-hidden rounded-[28px] text-left transition duration-300 active:scale-[0.985] ${
+                active ? 'scale-100 shadow-[0_22px_70px_rgba(0,0,0,0.18)]' : 'scale-[0.96] opacity-86'
+              }`}
+              style={{
+                backgroundImage: `linear-gradient(120deg, rgba(10,11,18,0.66), rgba(10,11,18,0.18)), url(${layer.background})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+              }}
+            >
+              <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-white/10" />
+              <div className="relative flex h-full flex-col justify-between p-4 text-white">
+                <div className="flex items-center justify-between">
+                  <span className="rounded-full border border-white/20 bg-white/12 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-white/86 backdrop-blur-md">
+                    {layer.eyebrow}
+                  </span>
+                  <span className="rounded-full bg-white/14 p-2 backdrop-blur-md">
+                    {locked ? <Lock size={14} /> : <Icon size={14} strokeWidth={1.7} />}
+                  </span>
+                </div>
+                <div>
+                  <h3 className="text-[19px] font-semibold leading-[1.05] tracking-[-0.01em]">{layer.title}</h3>
+                  <p className="mt-1.5 line-clamp-2 text-[11.5px] leading-snug text-white/78">{layer.subtitle}</p>
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
-export const Horoscope = memo<HoroscopeProps>(
+function KeyLine({ label, value }: { label: string; value?: string }) {
+  if (!value) return null;
+  return (
+    <div className="border-t border-white/45 py-4 first:border-t-0">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#817d86]">{label}</p>
+      <p className="mt-2 text-[15px] leading-relaxed text-[#2b2b2f]">{value}</p>
+    </div>
+  );
+}
+
+function LockedLayer({
+  config,
+  error,
+  onUnlock,
+  onPremium,
+  loading,
+}: {
+  config: LayerConfig;
+  error?: string | null;
+  onUnlock: () => void;
+  onPremium?: () => void;
+  loading: boolean;
+}) {
+  return (
+    <div className="rounded-[32px] border border-white/62 bg-white/58 p-5 shadow-[0_22px_80px_rgba(40,36,30,0.10)] backdrop-blur-2xl">
+      <div className="flex items-start gap-3">
+        <div className="rounded-full bg-white p-3 shadow-sm">
+          <Lock size={17} strokeWidth={1.7} />
+        </div>
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#8d739c]">личный слой</p>
+          <h2 className="mt-2 text-[24px] font-semibold leading-tight tracking-[-0.02em] text-[#202024]">
+            {config.title}
+          </h2>
+          <p className="mt-3 text-[15px] leading-relaxed text-[#57545d]">{config.subtitle}</p>
+        </div>
+      </div>
+
+      {error ? <p className="mt-4 text-[13px] leading-relaxed text-[#7d5960]">{error}</p> : null}
+
+      <div className="mt-5 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={onUnlock}
+          disabled={loading}
+          className="inline-flex min-h-[46px] items-center justify-center gap-2 rounded-full bg-[#1f1f1f] px-5 text-[14px] font-semibold text-white disabled:opacity-60"
+        >
+          {loading ? 'Открываю...' : `Открыть за ${config.price || 35} Lumi`}
+          <ArrowRight size={16} />
+        </button>
+        <button
+          type="button"
+          onClick={onPremium}
+          className="inline-flex min-h-[46px] items-center justify-center rounded-full border border-black/8 bg-white/58 px-5 text-[14px] font-semibold text-[#202024]"
+        >
+          Premium
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function PersonalDay({ reading }: { reading: ForecastDaypartReading }) {
+  return (
+    <div className="rounded-[32px] border border-white/62 bg-white/58 p-5 shadow-[0_22px_80px_rgba(40,36,30,0.10)] backdrop-blur-2xl">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#8d739c]">по моей карте</p>
+      <h2 className="mt-3 text-[25px] font-semibold leading-tight tracking-[-0.02em] text-[#202024]">
+        {reading.headline}
+      </h2>
+      <p className="mt-4 text-[15px] leading-relaxed text-[#3d3a40]">{reading.summary}</p>
+      <div className="mt-5">
+        <KeyLine label="Фокус" value={reading.focus} />
+        <KeyLine label="Отношения" value={reading.relationships} />
+        <KeyLine label="Деньги" value={reading.money} />
+        <KeyLine label="Что делать" value={reading.guidance} />
+      </div>
+    </div>
+  );
+}
+
+function HumanSectionBlock({ section }: { section: InterpretationSection }) {
+  const paragraphs = splitParagraphs(section.content);
+  return (
+    <div className="rounded-[32px] border border-white/62 bg-white/58 p-5 shadow-[0_22px_80px_rgba(40,36,30,0.10)] backdrop-blur-2xl">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#8d739c]">персонально</p>
+      <h2 className="mt-3 text-[25px] font-semibold leading-tight tracking-[-0.02em] text-[#202024]">
+        {section.title}
+      </h2>
+      {section.subtitle ? <p className="mt-2 text-[14px] leading-relaxed text-[#706d75]">{section.subtitle}</p> : null}
+      <div className="mt-5 space-y-4">
+        {paragraphs.slice(0, 4).map((paragraph, index) => (
+          <p key={index} className="text-[15.5px] leading-[1.72] text-[#2f2d33]">
+            {paragraph}
+          </p>
+        ))}
+      </div>
+      {section.bullets?.length ? (
+        <div className="mt-5 grid gap-2">
+          {section.bullets.slice(0, 4).map((bullet) => (
+            <p key={bullet} className="rounded-[18px] bg-white/48 px-4 py-3 text-[13.5px] leading-relaxed text-[#36333a]">
+              {bullet}
+            </p>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+export const Horoscope: React.FC<HoroscopeProps> = memo(
   ({ profile, chartData, onUpdateProfile, onOpenChart, onRequestPremium }) => {
-    const profileRef = useRef(profile);
-    profileRef.current = profile;
-
-    const language = useMemo(() => (profile.language === 'en' ? 'en' : 'ru'), [profile.language]);
+    const language = profile.language === 'en' ? 'en' : 'ru';
     const today = getMoscowTodayKey();
-    const weekKey = getMoscowIsoWeekKey();
-    const sunSign = chartData?.sun?.sign || 'Aries';
-    const zodiacLabel = getZodiacSign(language, sunSign);
-    const zodiacDates = ZODIAC_DATES[sunSign] || '';
-    const zodiacBackground = getHoroscopeBackground(sunSign);
-
-    const moon = useMemo(() => getMoonPhase(new Date()), []);
-    const todayQuestion = useMemo(() => getQuestionOfDay(sunSign), [sunSign]);
-
-    const dailyFallback = useMemo(
-      () => buildDailyFallback(language, sunSign, today),
-      [language, sunSign, today]
-    );
-    const daypartFallbacks = useMemo(
-      () => ({
-        morning: buildDaypartFallback(language, today, 'morning'),
-        day: buildDaypartFallback(language, today, 'day'),
-        evening: buildDaypartFallback(language, today, 'evening'),
-      }),
-      [language, today]
-    );
-    const weeklyFallback = useMemo(
-      () => buildWeeklyFallback(language, weekKey),
-      [language, weekKey]
-    );
-
-    const [dailyReading, setDailyReading] = useState<ForecastDailyReading>(dailyFallback);
-    const [dayparts, setDayparts] = useState<Record<ForecastDaypartSlot, ForecastDaypartReading | null>>({
-      morning: profile.isPremium ? daypartFallbacks.morning : null,
-      day: profile.isPremium ? daypartFallbacks.day : null,
-      evening: profile.isPremium ? daypartFallbacks.evening : null,
-    });
-    const [weeklyReading, setWeeklyReading] = useState<ForecastWeeklyReading | null>(
-      profile.isPremium ? weeklyFallback : null
-    );
-    const [lens, setLens] = useState<Lens | null>(null);
-
-    const syncLegacyIntoProfile = (legacy: DailyHoroscope) => {
-      if (!onUpdateProfile) return;
-      const current = profileRef.current;
-      const nextProfile = { ...current };
-      if (!nextProfile.generatedContent) {
-        nextProfile.generatedContent = { timestamps: {} };
-      } else {
-        nextProfile.generatedContent = { ...nextProfile.generatedContent };
-      }
-      nextProfile.generatedContent.dailyHoroscope = legacy;
-      nextProfile.generatedContent.timestamps = {
-        ...(nextProfile.generatedContent.timestamps || {}),
-        dailyHoroscopeGenerated: Date.now(),
-      };
-      onUpdateProfile(nextProfile);
-    };
-
-    const applyDailyForecast = (
-      reading: ForecastDailyReading,
-      options?: { syncProfile?: boolean; source?: string }
-    ) => {
-      setDailyReading(reading);
-      if (options?.syncProfile) {
-        syncLegacyIntoProfile(
-          mapForecastDailyToLegacyHoroscope(reading, {
-            source: options?.source,
-            persisted: true,
-          })
-        );
-      }
-    };
+    const userId = String(profile.id || '');
+    const profileRef = useRef(profile);
 
     useEffect(() => {
-      setDailyReading(dailyFallback);
-      setDayparts({
-        morning: profile.isPremium ? daypartFallbacks.morning : null,
-        day: profile.isPremium ? daypartFallbacks.day : null,
-        evening: profile.isPremium ? daypartFallbacks.evening : null,
-      });
-      setWeeklyReading(profile.isPremium ? weeklyFallback : null);
-    }, [dailyFallback, daypartFallbacks, profile.isPremium, weeklyFallback]);
+      profileRef.current = profile;
+    }, [profile]);
+
+    const initialSign = useMemo(() => normalizeSign(chartData?.sun?.sign), [chartData?.sun?.sign]);
+    const [selectedSign, setSelectedSign] = useState<ZodiacKey>(initialSign);
+    const [activeLayer, setActiveLayer] = useState<HoroscopeLayer>('sign');
+    const [showSignPicker, setShowSignPicker] = useState(false);
+    const [signReading, setSignReading] = useState<ForecastDailyReading>(() =>
+      buildSignFallback(initialSign, today, language)
+    );
+    const [personalDay, setPersonalDay] = useState<ForecastDaypartReading | null>(null);
+    const [loveSection, setLoveSection] = useState<InterpretationSection | null>(null);
+    const [workSection, setWorkSection] = useState<InterpretationSection | null>(null);
+    const [loadingLayer, setLoadingLayer] = useState<HoroscopeLayer | null>(null);
+    const [layerError, setLayerError] = useState<string | null>(null);
+
+    useEffect(() => {
+      setSelectedSign(initialSign);
+    }, [initialSign]);
 
     useEffect(() => {
       let cancelled = false;
-      const loadDaily = async () => {
-        if (!chartData) return;
-        const legacy = profile.generatedContent?.dailyHoroscope;
-        if (legacy?.content?.length) {
-          setDailyReading(mapLegacyHoroscopeToForecastDailyReading(legacy, language));
+      setSignReading(buildSignFallback(selectedSign, today, language));
+      const load = async () => {
+        try {
+          const reading = await loadDailySignHoroscope(selectedSign, today, language);
+          if (!cancelled) setSignReading(reading);
+        } catch {}
+      };
+      void load();
+      return () => {
+        cancelled = true;
+      };
+    }, [language, selectedSign, today]);
+
+    const layers = useMemo(() => getLayerConfigs(selectedSign), [selectedSign]);
+    const activeConfig = layers.find((item) => item.id === activeLayer) || layers[0];
+    const zodiacLabel = getZodiacSign(language, selectedSign);
+    const zodiacDate = ZODIAC_SIGNS.find(([sign]) => sign === selectedSign)?.[1] || '';
+    const background = getHoroscopeBackground(selectedSign);
+
+    const updateLumiBalance = (lumiBalance?: number) => {
+      if (typeof lumiBalance !== 'number' || !onUpdateProfile) return;
+      onUpdateProfile({ ...profileRef.current, lumiBalance });
+    };
+
+    const getFriendlyError = (error: unknown, fallback: string) => {
+      const err = error as HumanReadingError;
+      if (err?.code === 'INSUFFICIENT_LUMI') {
+        return 'На балансе не хватает Lumi. Можно открыть Premium или пополнить кошелёк.';
+      }
+      if (err?.status === 403 || err?.status === 409) {
+        return fallback;
+      }
+      return 'Не получилось загрузить слой. Попробуйте ещё раз чуть позже.';
+    };
+
+    const loadLayer = async (layer: HoroscopeLayer, spendLumi = false) => {
+      if (layer === 'sign') return;
+      if (!userId || !chartData) {
+        setLayerError('Для персонального слоя нужна сохранённая натальная карта.');
+        return;
+      }
+
+      setLoadingLayer(layer);
+      setLayerError(null);
+
+      try {
+        if (layer === 'chart') {
+          const result = await getFullDaypartForecast(profileRef.current, chartData, 'day', {
+            accessTier: profileRef.current.isPremium ? 'premium' : 'lumi',
+            allowLumiSpend: spendLumi,
+          });
+          setPersonalDay(result.reading);
+          updateLumiBalance(result.lumiBalance);
         }
-        try {
-          const cached = await getCachedDailyForecastLayer(String(profile.id));
-          if (cancelled) return;
-          if (cached) {
-            applyDailyForecast(cached, { syncProfile: true, source: 'cache' });
-            return;
-          }
-        } catch {}
-        try {
-          const cachedLegacy = await getCachedDailyHoroscope(String(profile.id), language);
-          if (cancelled) return;
-          if (cachedLegacy?.content?.length) {
-            const mapped = mapLegacyHoroscopeToForecastDailyReading(cachedLegacy, language);
-            setDailyReading(mapped);
-            syncLegacyIntoProfile(cachedLegacy);
-            return;
-          }
-        } catch {}
-        try {
-          const generated = await getDailyForecastLayer(profileRef.current, chartData);
-          if (cancelled) return;
-          applyDailyForecast(generated, { syncProfile: true, source: 'generated' });
-          return;
-        } catch {}
-        try {
-          const legacyGenerated = await getDailyHoroscope(profileRef.current, chartData);
-          if (cancelled) return;
-          const mapped = mapLegacyHoroscopeToForecastDailyReading(legacyGenerated, language);
-          setDailyReading(mapped);
-          syncLegacyIntoProfile(legacyGenerated);
-        } catch {}
-      };
-      void loadDaily();
-      return () => {
-        cancelled = true;
-      };
-    }, [chartData, language, profile.generatedContent?.dailyHoroscope, profile.id]);
 
-    useEffect(() => {
-      let cancelled = false;
-      const loadPremiumLayers = async () => {
-        if (!chartData || !profile.isPremium) return;
+        if (layer === 'love') {
+          const result = await loadHumanDailySection(userId, 'daily_love' as HumanDailySectionKey, undefined, today, {
+            accessTier: profileRef.current.isPremium ? 'premium' : 'lumi',
+            allowLumiSpend: spendLumi,
+          });
+          setLoveSection(result.content);
+          updateLumiBalance(result.lumiBalance);
+        }
 
-        const slots: ForecastDaypartSlot[] = ['morning', 'day', 'evening'];
-        await Promise.all(
-          slots.map(async (slot) => {
-            try {
-              const cached = await getCachedFullDaypartForecast(String(profile.id), slot, {
-                accessTier: 'premium',
-                dateKey: today,
-              });
-              if (cancelled) return;
-              if (cached) {
-                setDayparts((prev) => ({ ...prev, [slot]: cached }));
-                return;
-              }
-              const generated = await getFullDaypartForecast(profileRef.current, chartData, slot, {
-                accessTier: 'premium',
-              });
-              if (!cancelled) {
-                setDayparts((prev) => ({ ...prev, [slot]: generated.reading }));
-              }
-            } catch {}
-          })
+        if (layer === 'work_money') {
+          const result = await loadHumanDailySection(
+            userId,
+            'daily_work_business' as HumanDailySectionKey,
+            undefined,
+            today,
+            {
+              accessTier: profileRef.current.isPremium ? 'premium' : 'lumi',
+              allowLumiSpend: spendLumi,
+            }
+          );
+          setWorkSection(result.content);
+          updateLumiBalance(result.lumiBalance);
+        }
+
+        haptic('open');
+      } catch (error) {
+        setLayerError(
+          getFriendlyError(
+            error,
+            `Этот слой можно открыть в Premium или разово за ${activeConfig.price || 35} Lumi.`
+          )
         );
-
-        try {
-          const cachedWeekly = await getCachedWeeklyForecastLayer(String(profile.id), undefined, weekKey);
-          if (cancelled) return;
-          if (cachedWeekly) {
-            setWeeklyReading(cachedWeekly);
-          } else {
-            const generatedWeekly = await ensureWeeklyForecastLayer(profileRef.current, chartData, weekKey);
-            if (!cancelled) setWeeklyReading(generatedWeekly);
-          }
-        } catch {}
-      };
-      void loadPremiumLayers();
-      return () => {
-        cancelled = true;
-      };
-    }, [chartData, profile.id, profile.isPremium, today, weekKey]);
-
-    if (!chartData) return <Loading />;
-
-    const lensTexts: Record<Lens, string> = {
-      work:
-        dayparts.day?.guidance ||
-        dayparts.day?.focus ||
-        (language === 'en'
-          ? 'In work, choose one money or project area and bring it into a cleaner shape.'
-          : 'В работе выберите один денежный или проектный участок и доведите его до более ясного вида.'),
-      love:
-        dayparts.evening?.relationships ||
-        (language === 'en'
-          ? 'In closeness today, calm presence is stronger than perfect wording.'
-          : 'В близости сегодня спокойное присутствие сильнее, чем идеально подобранные слова.'),
-      money:
-        dayparts.day?.money ||
-        dayparts.evening?.money ||
-        (language === 'en'
-          ? 'Money decisions work better through review and order than impulse.'
-          : 'Денежные решения сегодня лучше идут через порядок и сверку, а не через импульс.'),
-      communication:
-        dailyReading.context ||
-        (language === 'en'
-          ? 'Today it helps to clarify instead of guessing what the other person meant.'
-          : 'Сегодня полезнее уточнять, чем додумывать за другого человека.'),
-      energy:
-        dayparts.morning?.guidance ||
-        dayparts.evening?.guidance ||
-        (language === 'en'
-          ? 'Your energy is steadier when the day has fewer unnecessary decisions.'
-          : 'Энергия держится ровнее, когда в дне меньше лишних решений.'),
+      } finally {
+        setLoadingLayer(null);
+      }
     };
 
-    const lensConfig: Array<{ id: Lens; icon: LucideIcon; ru: string; en: string }> = [
-      { id: 'work', icon: Briefcase, ru: 'Работа', en: 'Work' },
-      { id: 'love', icon: Heart, ru: 'Любовь', en: 'Love' },
-      { id: 'money', icon: Coins, ru: 'Деньги', en: 'Money' },
-      { id: 'communication', icon: MessageCircle, ru: 'Общение', en: 'Talks' },
-      { id: 'energy', icon: Zap, ru: 'Энергия', en: 'Energy' },
-    ];
+    useEffect(() => {
+      if (activeLayer === 'sign') return;
+      const alreadyLoaded =
+        (activeLayer === 'chart' && personalDay) ||
+        (activeLayer === 'love' && loveSection) ||
+        (activeLayer === 'work_money' && workSection);
+      if (alreadyLoaded) return;
+      void loadLayer(activeLayer, false);
+    }, [activeLayer]);
+
+    const selectLayer = (layer: HoroscopeLayer) => {
+      setActiveLayer(layer);
+      setLayerError(null);
+    };
+
+    const chooseSign = (sign: ZodiacKey) => {
+      haptic();
+      setSelectedSign(sign);
+      setActiveLayer('sign');
+      setShowSignPicker(false);
+    };
+
+    const renderLayerContent = () => {
+      if (activeLayer === 'sign') {
+        return (
+          <div className="rounded-[32px] border border-white/60 bg-white/54 p-5 shadow-[0_22px_80px_rgba(40,36,30,0.10)] backdrop-blur-2xl">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#8d739c]">гороскоп знака</p>
+            <h2 className="mt-3 text-[25px] font-semibold leading-tight tracking-[-0.02em] text-[#202024]">
+              {signReading.headline}
+            </h2>
+            <div className="mt-5 space-y-4">
+              {splitParagraphs(signReading.reading).map((paragraph, index) => (
+                <p key={index} className="text-[15.5px] leading-[1.72] text-[#2f2d33]">
+                  {paragraph}
+                </p>
+              ))}
+            </div>
+            <div className="mt-5">
+              <KeyLine label="Лучший шаг" value={signReading.focus} />
+              <KeyLine label="Возможность" value={signReading.chance} />
+              <KeyLine label="Мягкий риск" value={signReading.risk} />
+            </div>
+          </div>
+        );
+      }
+
+      if (activeLayer === 'chart' && personalDay) return <PersonalDay reading={personalDay} />;
+      if (activeLayer === 'love' && loveSection) return <HumanSectionBlock section={loveSection} />;
+      if (activeLayer === 'work_money' && workSection) return <HumanSectionBlock section={workSection} />;
+
+      return (
+        <LockedLayer
+          config={activeConfig}
+          error={layerError}
+          loading={loadingLayer === activeLayer}
+          onUnlock={() => void loadLayer(activeLayer, true)}
+          onPremium={onRequestPremium}
+        />
+      );
+    };
 
     return (
       <div
-        className="min-h-full pb-16 font-sans"
+        className="min-h-full pb-12 font-sans"
         style={{
-          backgroundImage: `linear-gradient(180deg, rgba(255,255,255,0.30) 0%, rgba(255,255,255,0.54) 28%, rgba(255,255,255,0.88) 64%, rgba(255,255,255,0.98) 100%), url(${zodiacBackground})`,
+          backgroundImage: `linear-gradient(90deg, rgba(250,247,239,0.90) 0%, rgba(250,247,239,0.70) 42%, rgba(250,247,239,0.18) 70%, rgba(250,247,239,0.02) 100%), linear-gradient(180deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.12) 54%, rgba(255,255,255,0.90) 100%), url(${background})`,
           backgroundPosition: 'center top',
           backgroundRepeat: 'no-repeat',
           backgroundSize: 'cover',
         }}
       >
-        <section className="flex min-h-[34dvh] flex-col justify-end px-5 pb-7 pt-10">
-          <p className="text-[10.5px] uppercase tracking-[0.22em] text-[#77747a]">
-            {language === 'en' ? 'Today by your chart' : 'Сегодня по моей карте'} ·{' '}
-            {formatLumiaDate(today, language)}
-          </p>
-
-          <div className="mt-4 flex flex-wrap items-center gap-1.5">
-            <span className="inline-flex items-center gap-1.5 rounded-[20px] border border-white/70 bg-white/58 px-3 py-1 text-[12px] text-[#2f3034] shadow-[0_12px_30px_rgba(0,0,0,0.04)] backdrop-blur-xl">
-              <ZodiacIcon sign={sunSign} size={14} />
-              <span>{zodiacLabel}</span>
-              {zodiacDates ? <span className="text-[#9a9a9a]"> · {zodiacDates}</span> : null}
-            </span>
-            <span className="inline-flex items-center gap-1.5 rounded-[20px] border border-white/70 bg-white/58 px-3 py-1 text-[12px] text-[#2f3034] shadow-[0_12px_30px_rgba(0,0,0,0.04)] backdrop-blur-xl">
-              <MoonPhaseIcon slot={moon.slot} size={14} />
-              <span>
-                {moon.shortLabel} · {moon.illumination}%
+        <section className="flex min-h-[calc(100dvh-8.25rem)] flex-col justify-end px-5 pb-7 pt-10">
+          <div className="max-w-[21rem]">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.23em] text-[#817d86]">
+              Гороскоп · {formatLumiaDate(today, language)}
+            </p>
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowSignPicker((value) => !value)}
+                className="inline-flex min-h-[38px] items-center gap-2 rounded-full border border-white/65 bg-white/56 px-3 text-[13px] font-medium text-[#24242a] shadow-[0_12px_32px_rgba(0,0,0,0.06)] backdrop-blur-xl"
+              >
+                <ZodiacIcon sign={selectedSign} size={16} />
+                {zodiacLabel}
+                <span className="text-[#8d8890]">· {zodiacDate}</span>
+                <ChevronDown size={15} className={showSignPicker ? 'rotate-180 transition' : 'transition'} />
+              </button>
+              <span className="inline-flex min-h-[38px] items-center rounded-full border border-white/60 bg-white/42 px-3 text-[12px] text-[#615e66] backdrop-blur-xl">
+                общий прогноз
               </span>
-            </span>
-          </div>
+            </div>
 
-          <h1 className="mt-7 max-w-[19rem] text-[clamp(2.35rem,12vw,3.35rem)] leading-[0.98] tracking-[-0.02em] text-[#202024]">
-            {language === 'en' ? 'Today for your map' : 'День по твоей карте'}
-          </h1>
-          <p className="mt-4 max-w-[18rem] text-[15px] leading-relaxed text-[#3f3d42]">
-            {dailyReading.summary}
-          </p>
+            {showSignPicker ? (
+              <SignPicker language={language} selectedSign={selectedSign} onSelect={chooseSign} />
+            ) : null}
+
+            <h1 className="mt-8 text-[clamp(3.1rem,15vw,4.7rem)] font-semibold leading-[0.9] tracking-[-0.055em] text-[#202024]">
+              Гороскоп
+            </h1>
+            <p className="mt-5 max-w-[18.5rem] text-[17px] leading-[1.55] text-[#393840]">
+              {signReading.summary}
+            </p>
+
+            <button
+              type="button"
+              onClick={() => {
+                haptic('open');
+                setActiveLayer('sign');
+                document.getElementById('horoscope-reading')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
+              className="mt-7 inline-flex min-h-[54px] items-center justify-center gap-3 rounded-full bg-[#1f1f1f] px-6 text-[15px] font-semibold text-white shadow-[0_20px_48px_rgba(0,0,0,0.18)] active:scale-[0.985]"
+            >
+              Читать сегодня
+              <ArrowRight size={18} />
+            </button>
+          </div>
         </section>
 
-        <Divider />
+        <section id="horoscope-reading" className="px-5 pb-8">
+          <LayerCarousel
+            layers={layers}
+            activeLayer={activeLayer}
+            premium={profile.isPremium}
+            onSelect={selectLayer}
+          />
 
-        <section className="px-5 pb-7 pt-7">
-          <SectionLabel>{language === 'en' ? 'Main energy of the day' : 'Главная энергия дня'}</SectionLabel>
+          <div className="mt-5">{renderLayerContent()}</div>
 
-          <h2 className="mt-5 max-w-[21rem] text-[23px] leading-[1.18] tracking-[-0.01em] text-[#1f1f1f]">
-            {dailyReading.headline}
-          </h2>
-
-          <p className="mt-4 whitespace-pre-line text-[15px] leading-[1.78] text-[#2d2d2d]">
-            {dailyReading.reading}
-          </p>
-
-          <ul className="mt-6">
-            <KeyValueRow label={language === 'en' ? 'Best step' : 'Лучший шаг'} value={dailyReading.focus} />
-            <KeyValueRow label={language === 'en' ? 'Chance' : 'Возможность'} value={dailyReading.chance} />
-            <KeyValueRow label={language === 'en' ? 'Soft risk' : 'Мягкий риск'} value={dailyReading.risk} />
-          </ul>
-
-          {dailyReading.advice?.[0] ? (
-            <p className="mt-5 font-lora text-[14px] italic leading-[1.7] text-[#5e5e5e]">
-              {dailyReading.advice[0]}
-            </p>
+          {activeLayer === 'chart' && personalDay && onOpenChart ? (
+            <button
+              type="button"
+              onClick={onOpenChart}
+              className="mt-5 inline-flex min-h-[44px] items-center gap-2 rounded-full bg-white/58 px-4 text-[13px] font-semibold text-[#202024] shadow-sm backdrop-blur-xl"
+            >
+              Открыть натальную карту
+              <ArrowRight size={15} />
+            </button>
           ) : null}
         </section>
-
-        <Divider />
-
-        <section className="px-5 pb-7 pt-7">
-          <SectionLabel>{language === 'en' ? 'Moon today' : 'Луна сегодня'}</SectionLabel>
-          <div className="mt-5 flex items-start gap-4">
-            <div className="shrink-0 rounded-full bg-[#f4f4f4] p-2.5">
-              <MoonPhaseIcon slot={moon.slot} size={26} />
-            </div>
-            <div className="min-w-0">
-              <p className="font-lora text-[16px] leading-[1.4] text-[#1f1f1f]">{moon.label}</p>
-              <p className="mt-2 font-lora text-[14.5px] leading-[1.8] text-[#3a3a3a]">{moon.meaning}</p>
-            </div>
-          </div>
-        </section>
-
-        <Divider />
-
-        <section className="px-5 pb-7 pt-7">
-          <SectionLabel>{language === 'en' ? 'Question of the day' : 'Вопрос дня'}</SectionLabel>
-          <div className="mt-5 rounded-[24px] bg-white/42 px-5 py-4 ring-1 ring-black/[0.04] backdrop-blur-xl">
-            <p className="text-[14.5px] italic leading-[1.75] text-[#3a3a3a]">{todayQuestion}</p>
-          </div>
-        </section>
-
-        <Divider />
-
-        <section className="px-5 pb-7 pt-7">
-          <SectionLabel>
-            {language === 'en' ? 'Personal layers' : 'Персональные слои дня'}
-          </SectionLabel>
-
-          {profile.isPremium ? (
-            <>
-              <div className="mt-5 grid gap-3">
-                <DaypartCard title={language === 'en' ? 'Morning' : 'Утро'} reading={dayparts.morning || daypartFallbacks.morning} />
-                <DaypartCard title={language === 'en' ? 'Day' : 'День'} reading={dayparts.day || daypartFallbacks.day} />
-                <DaypartCard title={language === 'en' ? 'Evening' : 'Вечер'} reading={dayparts.evening || daypartFallbacks.evening} />
-              </div>
-
-              <p className="mt-6 font-lora text-[15px] leading-[1.85] text-[#2d2d2d]">{dailyReading.context}</p>
-
-              <div className="mt-5 flex flex-wrap gap-2">
-                {lensConfig.map((item) => (
-                  <Pill
-                    key={item.id}
-                    active={lens === item.id}
-                    Icon={item.icon}
-                    label={language === 'en' ? item.en : item.ru}
-                    onClick={() => setLens(lens === item.id ? null : item.id)}
-                  />
-                ))}
-              </div>
-
-              {lens ? (
-                <p className="mt-4 font-lora text-[14.5px] leading-[1.8] text-[#2d2d2d]">{lensTexts[lens]}</p>
-              ) : null}
-            </>
-          ) : (
-            <div className="mt-5 rounded-[28px] bg-white/46 p-5 ring-1 ring-black/[0.05] backdrop-blur-xl">
-              <div className="flex items-start gap-3">
-                <div className="rounded-full bg-white p-2.5 shadow-sm">
-                  <Lock size={16} strokeWidth={1.7} />
-                </div>
-                <div>
-                  <h3 className="font-lora text-[18px] leading-[1.35] text-[#1f1f1f]">
-                    {language === 'en' ? 'Open the full day' : 'Открыть полный день'}
-                  </h3>
-                  <p className="mt-2 text-[14px] leading-relaxed text-[#5f5f5f]">
-                    {language === 'en'
-                      ? 'Morning, day, evening, work, love, money, communication, and energy by your chart.'
-                      : 'Утро, день, вечер, работа, любовь, деньги, общение и энергия по твоей карте.'}
-                  </p>
-                  <div className="mt-4 flex flex-wrap gap-2 text-[11px] font-medium text-[#4b4652]">
-                    <span className="rounded-full bg-white px-2.5 py-1">Premium</span>
-                    <span className="rounded-full bg-white px-2.5 py-1">40–60 Lumi</span>
-                    <span className="rounded-full bg-white px-2.5 py-1">
-                      {language === 'en' ? 'Sphere 25–40 Lumi' : 'Сфера 25–40 Lumi'}
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={onRequestPremium}
-                    className="mt-5 inline-flex min-h-[42px] items-center gap-2 rounded-full bg-[#1f1f1f] px-5 text-[13px] font-semibold text-white"
-                  >
-                    <Sparkles size={15} strokeWidth={1.7} />
-                    {language === 'en' ? 'See options' : 'Посмотреть доступ'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-        </section>
-
-        {profile.isPremium && weeklyReading ? (
-          <>
-            <Divider />
-            <section className="px-5 pb-7 pt-7">
-              <SectionLabel>{language === 'en' ? 'This week' : 'На этой неделе'}</SectionLabel>
-              <p className="mt-5 font-lora text-[16px] leading-[1.4] text-[#1f1f1f]">{weeklyReading.headline}</p>
-              <p className="mt-3 font-lora text-[14.5px] leading-[1.8] text-[#3a3a3a]">{weeklyReading.focus}</p>
-            </section>
-          </>
-        ) : null}
-
-        {!profile.isPremium ? (
-          <>
-            <Divider />
-            <section className="px-5 pb-10 pt-7">
-              <p className="font-lora text-[15px] leading-[1.8] text-[#2d2d2d]">
-                {language === 'en'
-                  ? 'The deeper layer is built from your full chart, not only your Sun sign.'
-                  : 'Глубокий слой дня строится по полной карте, а не только по знаку Солнца.'}
-              </p>
-              <button
-                type="button"
-                onClick={onRequestPremium}
-                className="mt-5 rounded-[20px] bg-[#1f1f1f] px-5 py-2.5 text-[13px] text-white"
-              >
-                {language === 'en' ? 'Open personal day' : 'Открыть личный день'}
-              </button>
-            </section>
-          </>
-        ) : onOpenChart ? (
-          <>
-            <Divider />
-            <section className="px-5 pb-10 pt-7">
-              <button
-                type="button"
-                onClick={onOpenChart}
-                className="text-[14px] text-[#6f4ea8] underline underline-offset-4"
-              >
-                {language === 'en' ? 'Open your natal map →' : 'К твоей натальной карте →'}
-              </button>
-            </section>
-          </>
-        ) : null}
       </div>
     );
   }
