@@ -21,6 +21,7 @@ interface HoroscopeProps {
   onUpdateProfile?: (profile: UserProfile) => void;
   onOpenChart?: () => void;
   onRequestPremium?: () => void;
+  onBackgroundSignChange?: (sign: string | null) => void;
 }
 
 const ZODIAC_SIGNS = [
@@ -202,9 +203,75 @@ function LayerCarousel({
   premium: boolean;
   onSelect: (layer: HoroscopeLayer) => void;
 }) {
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const itemRefs = useRef<Partial<Record<HoroscopeLayer, HTMLButtonElement | null>>>({});
+  const activeRef = useRef(activeLayer);
+  const frameRef = useRef<number | null>(null);
+  const scrollSelectionRef = useRef(false);
+
+  useEffect(() => {
+    activeRef.current = activeLayer;
+    if (scrollSelectionRef.current) return;
+    const root = scrollRef.current;
+    const item = itemRefs.current[activeLayer];
+    if (!root || !item) return;
+    const left = item.offsetLeft - (root.clientWidth - item.clientWidth) / 2;
+    root.scrollTo({ left, behavior: 'smooth' });
+  }, [activeLayer]);
+
+  useEffect(
+    () => () => {
+      if (frameRef.current !== null) window.cancelAnimationFrame(frameRef.current);
+    },
+    []
+  );
+
+  const handleScroll = () => {
+    const root = scrollRef.current;
+    if (!root || frameRef.current !== null) return;
+
+    frameRef.current = window.requestAnimationFrame(() => {
+      frameRef.current = null;
+      const rootCenter = root.scrollLeft + root.clientWidth / 2;
+      let nextLayer = activeRef.current;
+      let bestDistance = Number.POSITIVE_INFINITY;
+
+      layers.forEach((layer) => {
+        const item = itemRefs.current[layer.id];
+        if (!item) return;
+        const itemCenter = item.offsetLeft + item.clientWidth / 2;
+        const distance = Math.abs(itemCenter - rootCenter);
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          nextLayer = layer.id;
+        }
+      });
+
+      if (nextLayer !== activeRef.current) {
+        activeRef.current = nextLayer;
+        scrollSelectionRef.current = true;
+        haptic();
+        onSelect(nextLayer);
+        window.setTimeout(() => {
+          scrollSelectionRef.current = false;
+        }, 120);
+      }
+    });
+  };
+
   return (
-    <div className="-mx-5 mt-7 overflow-x-auto px-5 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      <div className="flex snap-x gap-3">
+    <div
+      ref={scrollRef}
+      onScroll={handleScroll}
+      className="-mx-5 mt-7 overflow-x-auto scroll-smooth pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+    >
+      <div
+        className="flex snap-x snap-mandatory gap-3"
+        style={{
+          paddingLeft: 'max(1.25rem, calc((100vw - min(80vw, 22rem)) / 2))',
+          paddingRight: 'max(1.25rem, calc((100vw - min(80vw, 22rem)) / 2))',
+        }}
+      >
         {layers.map((layer) => {
           const Icon = layer.icon;
           const active = layer.id === activeLayer;
@@ -212,33 +279,38 @@ function LayerCarousel({
           return (
             <button
               key={layer.id}
+              ref={(node) => {
+                itemRefs.current[layer.id] = node;
+              }}
               type="button"
               onClick={() => {
                 haptic();
                 onSelect(layer.id);
               }}
-              className={`relative h-[8.6rem] w-[12.9rem] shrink-0 snap-center overflow-hidden rounded-[28px] text-left transition duration-300 active:scale-[0.985] ${
-                active ? 'scale-100 shadow-[0_22px_70px_rgba(0,0,0,0.18)]' : 'scale-[0.96] opacity-86'
+              className={`relative h-[13.2rem] w-[min(80vw,22rem)] shrink-0 snap-center overflow-hidden rounded-[30px] text-left transition duration-300 active:scale-[0.985] ${
+                active ? 'scale-100 shadow-[0_24px_78px_rgba(0,0,0,0.18)]' : 'scale-[0.94] opacity-80'
               }`}
               style={{
-                backgroundImage: `linear-gradient(120deg, rgba(10,11,18,0.66), rgba(10,11,18,0.18)), url(${layer.background})`,
+                backgroundImage: `linear-gradient(90deg, rgba(9,10,15,0.70), rgba(9,10,15,0.30) 54%, rgba(9,10,15,0.06)), url(${layer.background})`,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
               }}
             >
-              <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-white/10" />
-              <div className="relative flex h-full flex-col justify-between p-4 text-white">
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-white/12" />
+              <div className="relative flex h-full flex-col justify-between p-5 text-white">
                 <div className="flex items-center justify-between">
-                  <span className="rounded-full border border-white/20 bg-white/12 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-white/86 backdrop-blur-md">
+                  <span className="rounded-full border border-white/22 bg-white/12 px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-white/88 backdrop-blur-md">
                     {layer.eyebrow}
                   </span>
-                  <span className="rounded-full bg-white/14 p-2 backdrop-blur-md">
-                    {locked ? <Lock size={14} /> : <Icon size={14} strokeWidth={1.7} />}
+                  <span className="rounded-full bg-white/14 p-2.5 backdrop-blur-md">
+                    {locked ? <Lock size={15} /> : <Icon size={15} strokeWidth={1.7} />}
                   </span>
                 </div>
                 <div>
-                  <h3 className="text-[19px] font-semibold leading-[1.05] tracking-[-0.01em]">{layer.title}</h3>
-                  <p className="mt-1.5 line-clamp-2 text-[11.5px] leading-snug text-white/78">{layer.subtitle}</p>
+                  <h3 className="max-w-[14rem] text-[26px] font-semibold leading-[0.98] tracking-[-0.03em]">
+                    {layer.title}
+                  </h3>
+                  <p className="mt-2 max-w-[16rem] text-[13px] leading-snug text-white/78">{layer.subtitle}</p>
                 </div>
               </div>
             </button>
@@ -252,10 +324,33 @@ function LayerCarousel({
 function KeyLine({ label, value }: { label: string; value?: string }) {
   if (!value) return null;
   return (
-    <div className="border-t border-white/45 py-4 first:border-t-0">
+    <div className="border-t border-black/10 py-4 first:border-t-0">
       <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#817d86]">{label}</p>
       <p className="mt-2 text-[15px] leading-relaxed text-[#2b2b2f]">{value}</p>
     </div>
+  );
+}
+
+function ReadingSurface({
+  eyebrow,
+  title,
+  subtitle,
+  children,
+}: {
+  eyebrow: string;
+  title: string;
+  subtitle?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <article className="px-1 pb-3 pt-2">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#8d739c]">{eyebrow}</p>
+      <h2 className="mt-3 text-[28px] font-semibold leading-[1.05] tracking-[-0.035em] text-[#202024]">
+        {title}
+      </h2>
+      {subtitle ? <p className="mt-3 text-[15px] leading-relaxed text-[#64616a]">{subtitle}</p> : null}
+      <div className="mt-5">{children}</div>
+    </article>
   );
 }
 
@@ -273,9 +368,9 @@ function LockedLayer({
   loading: boolean;
 }) {
   return (
-    <div className="rounded-[32px] border border-white/62 bg-white/58 p-5 shadow-[0_22px_80px_rgba(40,36,30,0.10)] backdrop-blur-2xl">
+    <article className="px-1 pb-3 pt-2">
       <div className="flex items-start gap-3">
-        <div className="rounded-full bg-white p-3 shadow-sm">
+        <div className="rounded-full border border-black/8 bg-white/58 p-3 shadow-sm backdrop-blur-xl">
           <Lock size={17} strokeWidth={1.7} />
         </div>
         <div className="min-w-0">
@@ -307,38 +402,28 @@ function LockedLayer({
           Premium
         </button>
       </div>
-    </div>
+    </article>
   );
 }
 
 function PersonalDay({ reading }: { reading: ForecastDaypartReading }) {
   return (
-    <div className="rounded-[32px] border border-white/62 bg-white/58 p-5 shadow-[0_22px_80px_rgba(40,36,30,0.10)] backdrop-blur-2xl">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#8d739c]">по моей карте</p>
-      <h2 className="mt-3 text-[25px] font-semibold leading-tight tracking-[-0.02em] text-[#202024]">
-        {reading.headline}
-      </h2>
-      <p className="mt-4 text-[15px] leading-relaxed text-[#3d3a40]">{reading.summary}</p>
-      <div className="mt-5">
+    <ReadingSurface eyebrow="по моей карте" title={reading.headline} subtitle={reading.summary}>
+      <div>
         <KeyLine label="Фокус" value={reading.focus} />
         <KeyLine label="Отношения" value={reading.relationships} />
         <KeyLine label="Деньги" value={reading.money} />
         <KeyLine label="Что делать" value={reading.guidance} />
       </div>
-    </div>
+    </ReadingSurface>
   );
 }
 
 function HumanSectionBlock({ section }: { section: InterpretationSection }) {
   const paragraphs = splitParagraphs(section.content);
   return (
-    <div className="rounded-[32px] border border-white/62 bg-white/58 p-5 shadow-[0_22px_80px_rgba(40,36,30,0.10)] backdrop-blur-2xl">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#8d739c]">персонально</p>
-      <h2 className="mt-3 text-[25px] font-semibold leading-tight tracking-[-0.02em] text-[#202024]">
-        {section.title}
-      </h2>
-      {section.subtitle ? <p className="mt-2 text-[14px] leading-relaxed text-[#706d75]">{section.subtitle}</p> : null}
-      <div className="mt-5 space-y-4">
+    <ReadingSurface eyebrow="персонально" title={section.title} subtitle={section.subtitle}>
+      <div className="space-y-4">
         {paragraphs.slice(0, 4).map((paragraph, index) => (
           <p key={index} className="text-[15.5px] leading-[1.72] text-[#2f2d33]">
             {paragraph}
@@ -348,18 +433,18 @@ function HumanSectionBlock({ section }: { section: InterpretationSection }) {
       {section.bullets?.length ? (
         <div className="mt-5 grid gap-2">
           {section.bullets.slice(0, 4).map((bullet) => (
-            <p key={bullet} className="rounded-[18px] bg-white/48 px-4 py-3 text-[13.5px] leading-relaxed text-[#36333a]">
+            <p key={bullet} className="border-t border-black/10 py-3 text-[13.5px] leading-relaxed text-[#36333a]">
               {bullet}
             </p>
           ))}
         </div>
       ) : null}
-    </div>
+    </ReadingSurface>
   );
 }
 
 export const Horoscope: React.FC<HoroscopeProps> = memo(
-  ({ profile, chartData, onUpdateProfile, onOpenChart, onRequestPremium }) => {
+  ({ profile, chartData, onUpdateProfile, onOpenChart, onRequestPremium, onBackgroundSignChange }) => {
     const language = profile.language === 'en' ? 'en' : 'ru';
     const today = getMoscowTodayKey();
     const userId = String(profile.id || '');
@@ -387,6 +472,11 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
     }, [initialSign]);
 
     useEffect(() => {
+      onBackgroundSignChange?.(selectedSign);
+      return () => onBackgroundSignChange?.(null);
+    }, [onBackgroundSignChange, selectedSign]);
+
+    useEffect(() => {
       let cancelled = false;
       setSignReading(buildSignFallback(selectedSign, today, language));
       const load = async () => {
@@ -405,8 +495,6 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
     const activeConfig = layers.find((item) => item.id === activeLayer) || layers[0];
     const zodiacLabel = getZodiacSign(language, selectedSign);
     const zodiacDate = ZODIAC_SIGNS.find(([sign]) => sign === selectedSign)?.[1] || '';
-    const background = getHoroscopeBackground(selectedSign);
-
     const updateLumiBalance = (lumiBalance?: number) => {
       if (typeof lumiBalance !== 'number' || !onUpdateProfile) return;
       onUpdateProfile({ ...profileRef.current, lumiBalance });
@@ -505,12 +593,8 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
     const renderLayerContent = () => {
       if (activeLayer === 'sign') {
         return (
-          <div className="rounded-[32px] border border-white/60 bg-white/54 p-5 shadow-[0_22px_80px_rgba(40,36,30,0.10)] backdrop-blur-2xl">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#8d739c]">гороскоп знака</p>
-            <h2 className="mt-3 text-[25px] font-semibold leading-tight tracking-[-0.02em] text-[#202024]">
-              {signReading.headline}
-            </h2>
-            <div className="mt-5 space-y-4">
+          <ReadingSurface eyebrow="гороскоп знака" title={signReading.headline}>
+            <div className="space-y-4">
               {splitParagraphs(signReading.reading).map((paragraph, index) => (
                 <p key={index} className="text-[15.5px] leading-[1.72] text-[#2f2d33]">
                   {paragraph}
@@ -522,7 +606,7 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
               <KeyLine label="Возможность" value={signReading.chance} />
               <KeyLine label="Мягкий риск" value={signReading.risk} />
             </div>
-          </div>
+          </ReadingSurface>
         );
       }
 
@@ -542,16 +626,8 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
     };
 
     return (
-      <div
-        className="min-h-full pb-12 font-sans"
-        style={{
-          backgroundImage: `linear-gradient(90deg, rgba(250,247,239,0.90) 0%, rgba(250,247,239,0.70) 42%, rgba(250,247,239,0.18) 70%, rgba(250,247,239,0.02) 100%), linear-gradient(180deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.12) 54%, rgba(255,255,255,0.90) 100%), url(${background})`,
-          backgroundPosition: 'center top',
-          backgroundRepeat: 'no-repeat',
-          backgroundSize: 'cover',
-        }}
-      >
-        <section className="flex min-h-[calc(100dvh-8.25rem)] flex-col justify-end px-5 pb-7 pt-10">
+      <div className="min-h-full pb-12 font-sans">
+        <section className="flex min-h-[58dvh] flex-col justify-end px-5 pb-8 pt-4">
           <div className="max-w-[21rem]">
             <p className="text-[10px] font-semibold uppercase tracking-[0.23em] text-[#817d86]">
               Гороскоп · {formatLumiaDate(today, language)}

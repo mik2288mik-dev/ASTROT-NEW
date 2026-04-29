@@ -49,12 +49,13 @@ function StudioChromeHeader({
   const dictionaryLabel = profile.language === 'en' ? 'Dictionary' : 'Словарь';
   const showDictionary = view === 'chart';
   const showScreenTitle = view !== 'horoscope';
+  const visualWash = visualBackdrop && view !== 'horoscope';
 
   return (
     <header className={`lumia-tg-header-bar relative z-40 shrink-0 ${visualBackdrop ? 'bg-transparent' : 'bg-white'}`}>
       <div
         className={`pt-0.5 pb-2 ${
-          visualBackdrop
+          visualWash
             ? 'bg-gradient-to-b from-white/82 via-white/54 to-transparent backdrop-blur-[2px]'
             : ''
         }`}

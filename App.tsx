@@ -84,6 +84,7 @@ const App: React.FC = () => {
     const [walletReturnView, setWalletReturnView] = useState<ViewState>('dashboard');
     const [chartReturnView, setChartReturnView] = useState<ViewState>('dashboard');
     const [chartOpenMode, setChartOpenMode] = useState<NatalChartMode>('human');
+    const [horoscopeBackgroundSign, setHoroscopeBackgroundSign] = useState<string | null>(null);
     
     // Ref для однократного вызова daily login за сессию
     const dailyLoginProcessedRef = useRef(false);
@@ -758,13 +759,13 @@ const App: React.FC = () => {
 
     const visualAppBackground =
         view === 'horoscope'
-            ? getHoroscopeBackground(chartData?.sun?.sign)
+            ? getHoroscopeBackground(horoscopeBackgroundSign || chartData?.sun?.sign)
             : view === 'synastry'
               ? getSynastryBackground(null)
               : null;
     const visualAppBackgroundLayer =
         view === 'horoscope'
-            ? `linear-gradient(180deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.34) 34%, rgba(255,255,255,0.68) 100%), url(${visualAppBackground})`
+            ? `linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.08) 36%, rgba(255,255,255,0.24) 100%), url(${visualAppBackground})`
             : visualAppBackground
               ? `linear-gradient(180deg, rgba(255,255,255,0.50) 0%, rgba(255,255,255,0.68) 32%, rgba(255,255,255,0.94) 100%), url(${visualAppBackground})`
               : null;
@@ -846,6 +847,7 @@ const App: React.FC = () => {
                                 setView('chart');
                             }}
                             onRequestPremium={requestPremium}
+                            onBackgroundSignChange={setHoroscopeBackgroundSign}
                         />
                     </div>
                 ) : view === 'chart' ? (

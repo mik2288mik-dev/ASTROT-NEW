@@ -29,6 +29,8 @@ const ZODIAC_KEYS = [
 
 type ZodiacKey = (typeof ZODIAC_KEYS)[number];
 
+const SIGN_HOROSCOPE_PROMPT_VERSION = 'air-v2';
+
 function readSign(req: NextApiRequest): ZodiacKey | null {
   const raw = String((req.method === 'GET' ? req.query.sign : req.body?.sign) || '').trim();
   const normalized = ZODIAC_KEYS.find((key) => key.toLowerCase() === raw.toLowerCase());
@@ -101,7 +103,7 @@ function buildFallback(sign: ZodiacKey, date: string, language: Language): Forec
 
 function normalizeReading(raw: Partial<ForecastDailyReading> | null, sign: ZodiacKey, date: string, language: Language) {
   const fallback = buildFallback(sign, date, language);
-  return {
+  const normalized = {
     date,
     headline: cleanLine(raw?.headline, fallback.headline),
     summary: cleanLine(raw?.summary, fallback.summary),
@@ -112,6 +114,23 @@ function normalizeReading(raw: Partial<ForecastDailyReading> | null, sign: Zodia
     context: cleanLine(raw?.context, fallback.context),
     advice: cleanAdvice(raw?.advice, fallback.advice),
   } satisfies ForecastDailyReading;
+
+  const joined = [
+    normalized.headline,
+    normalized.summary,
+    normalized.reading,
+    normalized.focus,
+    normalized.chance,
+    normalized.risk,
+  ].join(' ');
+  const staleOrGeneric =
+    /зв[её]зды\s+благоволят|stars?\s+align|Aries|Taurus|Gemini|Cancer|Leo|Virgo|Libra|Scorpio|Sagittarius|Capricorn|Aquarius|Pisces/i.test(
+      joined
+    ) ||
+    joined.includes('undefined') ||
+    joined.includes('null');
+
+  return language === 'ru' && staleOrGeneric ? fallback : normalized;
 }
 
 function parseCached(content: unknown, sign: ZodiacKey, date: string, language: Language): ForecastDailyReading | null {
@@ -138,11 +157,11 @@ async function generateSignReading(sign: ZodiacKey, date: string, language: Lang
   const system =
     language === 'en'
       ? 'You write warm, useful daily zodiac horoscopes. No fatalism, no medical/financial/legal promises, no generic fluff. Return only valid JSON.'
-      : 'Ты пишешь тёплые, полезные ежедневные гороскопы по знаку. Без фатализма, медицинских/финансовых/юридических обещаний и общей воды. Верни только валидный JSON.';
+      : 'Ты пишешь тёплые, полезные ежедневные гороскопы по знаку для приложения Lumia. Без фатализма, медицинских/финансовых/юридических обещаний, клише вроде “звёзды благоволят” и общей воды. Не используй английские названия знаков. Верни только валидный JSON.';
   const user =
     language === 'en'
       ? `Create a general daily horoscope for ${signLabel} on ${date}. It is free zodiac content, not a full natal chart forecast. Return JSON with fields: headline, summary, chance, risk, focus, reading, context, advice. The reading must be 2 short paragraphs, human, practical, and inviting.`
-      : `Создай общий ежедневный гороскоп для знака ${signLabel} на ${date}. Это бесплатный гороскоп по знаку, не прогноз по полной натальной карте. Верни JSON с полями: headline, summary, chance, risk, focus, reading, context, advice. Reading: 2 коротких абзаца, живо, понятно, практично, с желанием читать дальше.`;
+      : `Создай общий ежедневный гороскоп для знака ${signLabel} на ${date}. Это бесплатный гороскоп по знаку, не прогноз по полной натальной карте. Верни JSON с полями: headline, summary, chance, risk, focus, reading, context, advice. Reading: 2 коротких абзаца, живо, понятно, практично, с желанием читать дальше. Не пиши “звёзды благоволят”, “вселенная говорит”, “энергия Марса и Юпитера” без реального смысла, не используй Aries/Virgo/Pisces и другие английские названия.`;
 
   try {
     const { model } = await getOpenAIModelForContent({
@@ -184,7 +203,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
-  const cacheKey = `${sign.toLowerCase()}:${language}`;
+  const cacheKey = `${sign.toLowerCase()}:${language}:${SIGN_HOROSCOPE_PROMPT_VERSION}`;
   const cached = await db.daily_horoscopes.get(cacheKey, date).catch(() => null);
   const cachedReading = parseCached(cached, sign, date, language);
 
