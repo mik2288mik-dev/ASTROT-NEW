@@ -84,7 +84,10 @@ const App: React.FC = () => {
     const [walletReturnView, setWalletReturnView] = useState<ViewState>('dashboard');
     const [chartReturnView, setChartReturnView] = useState<ViewState>('dashboard');
     const [chartOpenMode, setChartOpenMode] = useState<NatalChartMode>('human');
-    const [horoscopeBackgroundSign, setHoroscopeBackgroundSign] = useState<string | null>(null);
+    const [horoscopeBackground, setHoroscopeBackground] = useState<{
+        sign: string | null;
+        tone: 'sign' | 'chart' | 'love' | 'work';
+    }>({ sign: null, tone: 'sign' });
     
     // Ref для однократного вызова daily login за сессию
     const dailyLoginProcessedRef = useRef(false);
@@ -759,13 +762,21 @@ const App: React.FC = () => {
 
     const visualAppBackground =
         view === 'horoscope'
-            ? getHoroscopeBackground(horoscopeBackgroundSign || chartData?.sun?.sign)
+            ? getHoroscopeBackground(horoscopeBackground.sign || chartData?.sun?.sign)
             : view === 'synastry'
               ? getSynastryBackground(null)
               : null;
+    const horoscopeVisualLayer =
+        horoscopeBackground.tone === 'love'
+            ? `linear-gradient(180deg, rgba(255,248,250,0.08) 0%, rgba(255,238,244,0.16) 36%, rgba(255,246,249,0.36) 100%), url(${visualAppBackground})`
+            : horoscopeBackground.tone === 'chart'
+              ? `linear-gradient(180deg, rgba(246,251,255,0.06) 0%, rgba(229,241,255,0.14) 36%, rgba(246,250,255,0.32) 100%), url(${visualAppBackground})`
+              : horoscopeBackground.tone === 'work'
+                ? `linear-gradient(180deg, rgba(255,253,244,0.08) 0%, rgba(241,235,211,0.16) 36%, rgba(255,252,242,0.36) 100%), url(${visualAppBackground})`
+                : `linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.08) 36%, rgba(255,255,255,0.24) 100%), url(${visualAppBackground})`;
     const visualAppBackgroundLayer =
         view === 'horoscope'
-            ? `linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.08) 36%, rgba(255,255,255,0.24) 100%), url(${visualAppBackground})`
+            ? horoscopeVisualLayer
             : visualAppBackground
               ? `linear-gradient(180deg, rgba(255,255,255,0.50) 0%, rgba(255,255,255,0.68) 32%, rgba(255,255,255,0.94) 100%), url(${visualAppBackground})`
               : null;
@@ -847,7 +858,9 @@ const App: React.FC = () => {
                                 setView('chart');
                             }}
                             onRequestPremium={requestPremium}
-                            onBackgroundSignChange={setHoroscopeBackgroundSign}
+                            onBackgroundChange={(next) =>
+                                setHoroscopeBackground(next || { sign: null, tone: 'sign' })
+                            }
                         />
                     </div>
                 ) : view === 'chart' ? (

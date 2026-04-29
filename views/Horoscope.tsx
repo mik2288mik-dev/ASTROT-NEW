@@ -1,5 +1,14 @@
 import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowRight, BriefcaseBusiness, ChevronDown, Heart, Lock, Sparkles, WalletCards } from 'lucide-react';
+import { ArrowRight, BriefcaseBusiness, ChevronDown, Heart, Sparkles, WalletCards } from 'lucide-react';
+import {
+  animate,
+  motion,
+  useMotionValue,
+  useReducedMotion,
+  useTransform,
+  type MotionValue,
+  type PanInfo,
+} from 'framer-motion';
 import type {
   ForecastDailyReading,
   ForecastDaypartReading,
@@ -11,9 +20,15 @@ import { getFullDaypartForecast, loadDailySignHoroscope } from '../services/astr
 import { loadHumanDailySection, type HumanReadingError } from '../services/natalReadingService';
 import { formatLumiaDate, getMoscowTodayKey } from '../lib/date-utils';
 import { getZodiacSign } from '../constants';
+import { cn } from '../lib/cn';
 import { getHoroscopeBackground } from '../lib/visualBackgrounds';
 import { ZodiacIcon } from '../components/icons/ZodiacIcon';
+import { SparklesCore } from '../components/ui/sparkles';
 import type { HumanDailySectionKey } from '../lib/natalHumanShared';
+
+type HoroscopeLayer = 'sign' | 'chart' | 'love' | 'work_money';
+type HoroscopeTone = 'sign' | 'chart' | 'love' | 'work';
+type HoroscopeBackgroundState = { sign: string | null; tone: HoroscopeTone };
 
 interface HoroscopeProps {
   profile: UserProfile;
@@ -21,7 +36,7 @@ interface HoroscopeProps {
   onUpdateProfile?: (profile: UserProfile) => void;
   onOpenChart?: () => void;
   onRequestPremium?: () => void;
-  onBackgroundSignChange?: (sign: string | null) => void;
+  onBackgroundChange?: (state: HoroscopeBackgroundState | null) => void;
 }
 
 const ZODIAC_SIGNS = [
@@ -40,7 +55,6 @@ const ZODIAC_SIGNS = [
 ] as const;
 
 type ZodiacKey = (typeof ZODIAC_SIGNS)[number][0];
-type HoroscopeLayer = 'sign' | 'chart' | 'love' | 'work_money';
 
 type LayerConfig = {
   id: HoroscopeLayer;
@@ -49,6 +63,7 @@ type LayerConfig = {
   subtitle: string;
   cta: string;
   price?: number;
+  tone: HoroscopeTone;
   icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
   background: string;
 };
@@ -58,6 +73,12 @@ const LAYER_PRICES: Record<Exclude<HoroscopeLayer, 'sign'>, number> = {
   love: 35,
   work_money: 35,
 };
+
+const SLIDE_OFFSETS = [-1, 0, 1] as const;
+
+function mod(value: number, total: number) {
+  return ((value % total) + total) % total;
+}
 
 function normalizeSign(sign?: string | null): ZodiacKey {
   const found = ZODIAC_SIGNS.find(([key]) => key.toLowerCase() === String(sign || '').toLowerCase());
@@ -72,7 +93,9 @@ function haptic(kind: 'select' | 'open' = 'select') {
     } else {
       webApp?.HapticFeedback?.selectionChanged?.();
     }
-  } catch {}
+  } catch {
+    /* Telegram haptics are optional */
+  }
 }
 
 function buildSignFallback(sign: ZodiacKey, date: string, language: 'ru' | 'en'): ForecastDailyReading {
@@ -107,15 +130,17 @@ function buildSignFallback(sign: ZodiacKey, date: string, language: 'ru' | 'en')
 }
 
 function getLayerConfigs(selectedSign: ZodiacKey): LayerConfig[] {
+  const zodiacBackground = getHoroscopeBackground(selectedSign);
   return [
     {
       id: 'sign',
       eyebrow: 'free',
       title: 'Гороскоп знака',
       subtitle: 'Общий прогноз на сегодня по вашему знаку.',
-      cta: 'Читать',
+      cta: 'Выбрать знак',
+      tone: 'sign',
       icon: Sparkles,
-      background: getHoroscopeBackground(selectedSign),
+      background: zodiacBackground,
     },
     {
       id: 'chart',
@@ -124,8 +149,9 @@ function getLayerConfigs(selectedSign: ZodiacKey): LayerConfig[] {
       subtitle: 'Личный день по натальной карте и текущему фону.',
       cta: 'Открыть слой',
       price: LAYER_PRICES.chart,
+      tone: 'chart',
       icon: WalletCards,
-      background: '/natal-gateway/daily-horoscope.webp',
+      background: zodiacBackground,
     },
     {
       id: 'love',
@@ -134,8 +160,9 @@ function getLayerConfigs(selectedSign: ZodiacKey): LayerConfig[] {
       subtitle: 'Эмоции, близость и разговоры без лишних догадок.',
       cta: 'Открыть сферу',
       price: LAYER_PRICES.love,
+      tone: 'love',
       icon: Heart,
-      background: '/natal-gateway/synastry-union.webp',
+      background: zodiacBackground,
     },
     {
       id: 'work_money',
@@ -144,17 +171,75 @@ function getLayerConfigs(selectedSign: ZodiacKey): LayerConfig[] {
       subtitle: 'Фокус, решения, темп и денежная собранность.',
       cta: 'Открыть сферу',
       price: LAYER_PRICES.work_money,
+      tone: 'work',
       icon: BriefcaseBusiness,
-      background: '/natal-gateway/personality-map.webp',
+      background: zodiacBackground,
     },
   ];
 }
 
-function splitParagraphs(text?: string) {
+function splitParagraphs(text?: string, limit = 2) {
   return String(text || '')
     .split(/\n{2,}|\r\n{2,}/)
     .map((item) => item.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .slice(0, limit);
+}
+
+function slideOverlayClass(tone: HoroscopeTone) {
+  if (tone === 'chart') {
+    return 'bg-[linear-gradient(180deg,rgba(246,251,255,0.50)_0%,rgba(232,241,255,0.35)_32%,rgba(220,232,252,0.18)_58%,rgba(248,251,255,0.82)_100%)]';
+  }
+  if (tone === 'love') {
+    return 'bg-[linear-gradient(180deg,rgba(255,248,249,0.56)_0%,rgba(255,234,239,0.35)_34%,rgba(235,190,204,0.14)_58%,rgba(255,247,248,0.84)_100%)]';
+  }
+  if (tone === 'work') {
+    return 'bg-[linear-gradient(180deg,rgba(251,249,238,0.58)_0%,rgba(240,235,212,0.36)_34%,rgba(206,198,160,0.13)_58%,rgba(255,252,242,0.86)_100%)]';
+  }
+  return 'bg-[linear-gradient(180deg,rgba(255,255,255,0.44)_0%,rgba(255,251,242,0.34)_34%,rgba(255,255,255,0.12)_58%,rgba(255,250,240,0.82)_100%)]';
+}
+
+function sparkleColor(tone: HoroscopeTone) {
+  if (tone === 'love') return '#f5b8ca';
+  if (tone === 'work') return '#d5bd7d';
+  if (tone === 'chart') return '#93b7e8';
+  return '#ffffff';
+}
+
+function SparkleTitle({
+  tone,
+  children,
+  className,
+}: {
+  tone: HoroscopeTone;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className="relative">
+      <h1
+        className={cn(
+          'max-w-[19rem] font-semibold leading-[0.97] tracking-[-0.052em] text-[#202024]',
+          className
+        )}
+      >
+        {children}
+      </h1>
+      <div className="pointer-events-none relative mt-3 h-9 w-[min(18rem,78vw)] overflow-hidden [mask-image:radial-gradient(190px_52px_at_35%_0%,white_0%,white_36%,transparent_82%)]">
+        <div className="absolute left-0 top-1 h-px w-[78%] bg-gradient-to-r from-transparent via-white/90 to-transparent blur-[1px]" />
+        <div className="absolute left-0 top-1 h-px w-[70%] bg-gradient-to-r from-transparent via-[#8c6bb3]/38 to-transparent" />
+        <SparklesCore
+          background="transparent"
+          minSize={0.32}
+          maxSize={0.9}
+          particleDensity={36}
+          particleColor={sparkleColor(tone)}
+          speed={0.75}
+          className="absolute inset-0 h-full w-full"
+        />
+      </div>
+    </div>
+  );
 }
 
 function SignPicker({
@@ -167,7 +252,7 @@ function SignPicker({
   onSelect: (sign: ZodiacKey) => void;
 }) {
   return (
-    <div className="mt-4 grid grid-cols-3 gap-2">
+    <div className="mt-3 grid max-h-[14.5rem] grid-cols-3 gap-2 overflow-y-auto pr-1">
       {ZODIAC_SIGNS.map(([sign]) => {
         const active = sign === selectedSign;
         return (
@@ -175,14 +260,13 @@ function SignPicker({
             key={sign}
             type="button"
             onClick={() => onSelect(sign)}
-            className={`min-h-[52px] rounded-[18px] border px-2 text-left transition ${
-              active
-                ? 'border-[#1f1f1f]/20 bg-white/86 shadow-[0_16px_38px_rgba(0,0,0,0.08)]'
-                : 'border-white/55 bg-white/44'
-            }`}
+            className={cn(
+              'min-h-[46px] rounded-[17px] border px-2 text-left backdrop-blur-xl transition active:scale-[0.98]',
+              active ? 'border-black/12 bg-white/78 shadow-sm' : 'border-white/42 bg-white/34'
+            )}
           >
-            <span className="flex items-center gap-2 text-[13px] font-medium text-[#202024]">
-              <ZodiacIcon sign={sign} size={15} />
+            <span className="flex items-center gap-2 text-[12.5px] font-medium text-[#202024]">
+              <ZodiacIcon sign={sign} size={14} />
               {getZodiacSign(language, sign)}
             </span>
           </button>
@@ -192,259 +276,182 @@ function SignPicker({
   );
 }
 
-function LayerCarousel({
-  layers,
-  activeLayer,
-  premium,
-  onSelect,
-}: {
-  layers: LayerConfig[];
-  activeLayer: HoroscopeLayer;
-  premium: boolean;
-  onSelect: (layer: HoroscopeLayer) => void;
-}) {
-  const scrollRef = useRef<HTMLDivElement | null>(null);
-  const itemRefs = useRef<Partial<Record<HoroscopeLayer, HTMLButtonElement | null>>>({});
-  const activeRef = useRef(activeLayer);
-  const frameRef = useRef<number | null>(null);
-  const scrollSelectionRef = useRef(false);
-
-  useEffect(() => {
-    activeRef.current = activeLayer;
-    if (scrollSelectionRef.current) return;
-    const root = scrollRef.current;
-    const item = itemRefs.current[activeLayer];
-    if (!root || !item) return;
-    const left = item.offsetLeft - (root.clientWidth - item.clientWidth) / 2;
-    root.scrollTo({ left, behavior: 'smooth' });
-  }, [activeLayer]);
-
-  useEffect(
-    () => () => {
-      if (frameRef.current !== null) window.cancelAnimationFrame(frameRef.current);
-    },
-    []
-  );
-
-  const handleScroll = () => {
-    const root = scrollRef.current;
-    if (!root || frameRef.current !== null) return;
-
-    frameRef.current = window.requestAnimationFrame(() => {
-      frameRef.current = null;
-      const rootCenter = root.scrollLeft + root.clientWidth / 2;
-      let nextLayer = activeRef.current;
-      let bestDistance = Number.POSITIVE_INFINITY;
-
-      layers.forEach((layer) => {
-        const item = itemRefs.current[layer.id];
-        if (!item) return;
-        const itemCenter = item.offsetLeft + item.clientWidth / 2;
-        const distance = Math.abs(itemCenter - rootCenter);
-        if (distance < bestDistance) {
-          bestDistance = distance;
-          nextLayer = layer.id;
-        }
-      });
-
-      if (nextLayer !== activeRef.current) {
-        activeRef.current = nextLayer;
-        scrollSelectionRef.current = true;
-        haptic();
-        onSelect(nextLayer);
-        window.setTimeout(() => {
-          scrollSelectionRef.current = false;
-        }, 120);
-      }
-    });
-  };
-
-  return (
-    <div
-      ref={scrollRef}
-      onScroll={handleScroll}
-      className="-mx-5 mt-7 overflow-x-auto scroll-smooth pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-    >
-      <div
-        className="flex snap-x snap-mandatory gap-3"
-        style={{
-          paddingLeft: 'max(1.25rem, calc((100vw - min(80vw, 22rem)) / 2))',
-          paddingRight: 'max(1.25rem, calc((100vw - min(80vw, 22rem)) / 2))',
-        }}
-      >
-        {layers.map((layer) => {
-          const Icon = layer.icon;
-          const active = layer.id === activeLayer;
-          const locked = layer.id !== 'sign' && !premium;
-          return (
-            <button
-              key={layer.id}
-              ref={(node) => {
-                itemRefs.current[layer.id] = node;
-              }}
-              type="button"
-              onClick={() => {
-                haptic();
-                onSelect(layer.id);
-              }}
-              className={`relative h-[13.2rem] w-[min(80vw,22rem)] shrink-0 snap-center overflow-hidden rounded-[30px] text-left transition duration-300 active:scale-[0.985] ${
-                active ? 'scale-100 shadow-[0_24px_78px_rgba(0,0,0,0.18)]' : 'scale-[0.94] opacity-80'
-              }`}
-              style={{
-                backgroundImage: `linear-gradient(90deg, rgba(9,10,15,0.70), rgba(9,10,15,0.30) 54%, rgba(9,10,15,0.06)), url(${layer.background})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-              }}
-            >
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-white/12" />
-              <div className="relative flex h-full flex-col justify-between p-5 text-white">
-                <div className="flex items-center justify-between">
-                  <span className="rounded-full border border-white/22 bg-white/12 px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-white/88 backdrop-blur-md">
-                    {layer.eyebrow}
-                  </span>
-                  <span className="rounded-full bg-white/14 p-2.5 backdrop-blur-md">
-                    {locked ? <Lock size={15} /> : <Icon size={15} strokeWidth={1.7} />}
-                  </span>
-                </div>
-                <div>
-                  <h3 className="max-w-[14rem] text-[26px] font-semibold leading-[0.98] tracking-[-0.03em]">
-                    {layer.title}
-                  </h3>
-                  <p className="mt-2 max-w-[16rem] text-[13px] leading-snug text-white/78">{layer.subtitle}</p>
-                </div>
-              </div>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 function KeyLine({ label, value }: { label: string; value?: string }) {
   if (!value) return null;
   return (
-    <div className="border-t border-black/10 py-4 first:border-t-0">
+    <div className="border-t border-black/10 py-3.5 first:border-t-0">
       <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#817d86]">{label}</p>
-      <p className="mt-2 text-[15px] leading-relaxed text-[#2b2b2f]">{value}</p>
+      <p className="mt-1.5 text-[14.5px] leading-relaxed text-[#2b2b2f]">{value}</p>
     </div>
   );
 }
 
-function ReadingSurface({
-  eyebrow,
-  title,
-  subtitle,
-  children,
-}: {
-  eyebrow: string;
-  title: string;
-  subtitle?: string;
+type HoroscopeSlideProps = {
+  layer: LayerConfig;
+  offset: number;
+  viewportWidth: number;
+  dragX: MotionValue<number>;
   children: React.ReactNode;
-}) {
-  return (
-    <article className="px-1 pb-3 pt-2">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#8d739c]">{eyebrow}</p>
-      <h2 className="mt-3 text-[28px] font-semibold leading-[1.05] tracking-[-0.035em] text-[#202024]">
-        {title}
-      </h2>
-      {subtitle ? <p className="mt-3 text-[15px] leading-relaxed text-[#64616a]">{subtitle}</p> : null}
-      <div className="mt-5">{children}</div>
-    </article>
-  );
-}
+};
 
-function LockedLayer({
-  config,
-  error,
-  onUnlock,
-  onPremium,
-  loading,
+const HoroscopeSlide = memo<HoroscopeSlideProps>(({ layer, offset, viewportWidth, dragX, children }) => {
+  const x = useTransform(dragX, (latest) => latest + offset * viewportWidth);
+  const contentX = useTransform(dragX, (latest) => (latest / Math.max(viewportWidth, 1)) * -26);
+  const contentOpacity = useTransform(
+    dragX,
+    [-viewportWidth * 0.58, 0, viewportWidth * 0.58],
+    [0.42, 1, 0.42]
+  );
+
+  return (
+    <motion.section
+      className="absolute inset-0 overflow-hidden"
+      style={{
+        x,
+        zIndex: offset === 0 ? 30 : 10,
+        pointerEvents: 'none',
+        willChange: 'transform',
+      }}
+      aria-hidden={offset !== 0}
+    >
+      <div className={cn('pointer-events-none absolute inset-0', slideOverlayClass(layer.tone))} />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-white/26 to-transparent" />
+
+      <motion.div
+        className="pointer-events-none absolute inset-x-0 inset-y-0 z-30 px-5 pb-[calc(3.25rem+max(env(safe-area-inset-bottom,0px),var(--tg-content-safe-area-inset-bottom,0px)))] pt-[clamp(0.75rem,2.5vh,1.4rem)]"
+        style={{ x: contentX, opacity: contentOpacity }}
+      >
+        <div className="pointer-events-auto mx-auto flex h-full max-w-[23rem] flex-col">{children}</div>
+      </motion.div>
+    </motion.section>
+  );
+});
+
+HoroscopeSlide.displayName = 'HoroscopeSlide';
+
+function HoroscopeSwipeDeck({
+  layers,
+  activeIndex,
+  onIndexChange,
+  renderSlide,
 }: {
-  config: LayerConfig;
-  error?: string | null;
-  onUnlock: () => void;
-  onPremium?: () => void;
-  loading: boolean;
+  layers: LayerConfig[];
+  activeIndex: number;
+  onIndexChange: (index: number) => void;
+  renderSlide: (layer: LayerConfig) => React.ReactNode;
 }) {
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const activeIndexRef = useRef(activeIndex);
+  const animationRef = useRef<{ stop: () => void } | null>(null);
+  const [viewportWidth, setViewportWidth] = useState(390);
+  const dragX = useMotionValue(0);
+  const shouldReduceMotion = useReducedMotion();
+
+  useEffect(() => {
+    activeIndexRef.current = activeIndex;
+  }, [activeIndex]);
+
+  useEffect(() => {
+    const node = rootRef.current;
+    if (!node) return;
+
+    const updateWidth = () => setViewportWidth(Math.max(node.getBoundingClientRect().width, 320));
+    updateWidth();
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
+  const commitIndex = (nextIndex: number) => {
+    const resolved = mod(nextIndex, layers.length);
+    activeIndexRef.current = resolved;
+    onIndexChange(resolved);
+    dragX.set(0);
+  };
+
+  const settle = (direction: -1 | 0 | 1, velocity = 0) => {
+    animationRef.current?.stop();
+
+    if (direction !== 0) haptic('select');
+
+    if (shouldReduceMotion) {
+      commitIndex(activeIndexRef.current + direction);
+      return;
+    }
+
+    const targetX = direction === 0 ? 0 : -direction * viewportWidth;
+    animationRef.current = animate(dragX, targetX, {
+      type: 'spring',
+      stiffness: direction === 0 ? 300 : 238,
+      damping: direction === 0 ? 32 : 29,
+      mass: 0.88,
+      velocity,
+      onComplete: () => commitIndex(activeIndexRef.current + direction),
+    });
+  };
+
+  const handleDragEnd = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    const threshold = viewportWidth * 0.16;
+    const direction =
+      info.offset.x < -threshold || info.velocity.x < -420
+        ? 1
+        : info.offset.x > threshold || info.velocity.x > 420
+          ? -1
+          : 0;
+    settle(direction, info.velocity.x);
+  };
+
   return (
-    <article className="px-1 pb-3 pt-2">
-      <div className="flex items-start gap-3">
-        <div className="rounded-full border border-black/8 bg-white/58 p-3 shadow-sm backdrop-blur-xl">
-          <Lock size={17} strokeWidth={1.7} />
-        </div>
-        <div className="min-w-0">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#8d739c]">личный слой</p>
-          <h2 className="mt-2 text-[24px] font-semibold leading-tight tracking-[-0.02em] text-[#202024]">
-            {config.title}
-          </h2>
-          <p className="mt-3 text-[15px] leading-relaxed text-[#57545d]">{config.subtitle}</p>
-        </div>
-      </div>
+    <div ref={rootRef} className="relative h-full min-h-[calc(100dvh-10.75rem)] overflow-hidden">
+      {SLIDE_OFFSETS.map((offset) => {
+        const layer = layers[mod(activeIndex + offset, layers.length)];
+        return (
+          <HoroscopeSlide
+            key={`${layer.id}-${offset}`}
+            layer={layer}
+            offset={offset}
+            viewportWidth={viewportWidth}
+            dragX={dragX}
+          >
+            {renderSlide(layer)}
+          </HoroscopeSlide>
+        );
+      })}
 
-      {error ? <p className="mt-4 text-[13px] leading-relaxed text-[#7d5960]">{error}</p> : null}
+      <motion.div
+        drag={shouldReduceMotion ? false : 'x'}
+        dragConstraints={{ left: -viewportWidth, right: viewportWidth }}
+        dragElastic={0.035}
+        dragMomentum={false}
+        onDragStart={() => animationRef.current?.stop()}
+        onDragEnd={handleDragEnd}
+        style={{ x: dragX, touchAction: 'pan-y' }}
+        className="absolute inset-0 z-20 cursor-grab active:cursor-grabbing"
+      />
 
-      <div className="mt-5 flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={onUnlock}
-          disabled={loading}
-          className="inline-flex min-h-[46px] items-center justify-center gap-2 rounded-full bg-[#1f1f1f] px-5 text-[14px] font-semibold text-white disabled:opacity-60"
-        >
-          {loading ? 'Открываю...' : `Открыть за ${config.price || 35} Lumi`}
-          <ArrowRight size={16} />
-        </button>
-        <button
-          type="button"
-          onClick={onPremium}
-          className="inline-flex min-h-[46px] items-center justify-center rounded-full border border-black/8 bg-white/58 px-5 text-[14px] font-semibold text-[#202024]"
-        >
-          Premium
-        </button>
-      </div>
-    </article>
-  );
-}
-
-function PersonalDay({ reading }: { reading: ForecastDaypartReading }) {
-  return (
-    <ReadingSurface eyebrow="по моей карте" title={reading.headline} subtitle={reading.summary}>
-      <div>
-        <KeyLine label="Фокус" value={reading.focus} />
-        <KeyLine label="Отношения" value={reading.relationships} />
-        <KeyLine label="Деньги" value={reading.money} />
-        <KeyLine label="Что делать" value={reading.guidance} />
-      </div>
-    </ReadingSurface>
-  );
-}
-
-function HumanSectionBlock({ section }: { section: InterpretationSection }) {
-  const paragraphs = splitParagraphs(section.content);
-  return (
-    <ReadingSurface eyebrow="персонально" title={section.title} subtitle={section.subtitle}>
-      <div className="space-y-4">
-        {paragraphs.slice(0, 4).map((paragraph, index) => (
-          <p key={index} className="text-[15.5px] leading-[1.72] text-[#2f2d33]">
-            {paragraph}
-          </p>
+      <div className="pointer-events-none absolute inset-x-0 bottom-[calc(0.72rem+max(env(safe-area-inset-bottom,0px),var(--tg-content-safe-area-inset-bottom,0px)))] z-40 flex items-center justify-center gap-2">
+        {layers.map((layer, index) => (
+          <button
+            key={`horoscope-dot-${layer.id}`}
+            type="button"
+            onClick={() => {
+              haptic();
+              commitIndex(index);
+            }}
+            className={cn(
+              'pointer-events-auto h-2 rounded-full bg-black/20 transition-all duration-300',
+              index === activeIndex ? 'w-7 bg-[#1f1f1f]' : 'w-2'
+            )}
+            aria-label={layer.title}
+          />
         ))}
       </div>
-      {section.bullets?.length ? (
-        <div className="mt-5 grid gap-2">
-          {section.bullets.slice(0, 4).map((bullet) => (
-            <p key={bullet} className="border-t border-black/10 py-3 text-[13.5px] leading-relaxed text-[#36333a]">
-              {bullet}
-            </p>
-          ))}
-        </div>
-      ) : null}
-    </ReadingSurface>
+    </div>
   );
 }
 
 export const Horoscope: React.FC<HoroscopeProps> = memo(
-  ({ profile, chartData, onUpdateProfile, onOpenChart, onRequestPremium, onBackgroundSignChange }) => {
+  ({ profile, chartData, onUpdateProfile, onOpenChart, onRequestPremium, onBackgroundChange }) => {
     const language = profile.language === 'en' ? 'en' : 'ru';
     const today = getMoscowTodayKey();
     const userId = String(profile.id || '');
@@ -456,7 +463,7 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
 
     const initialSign = useMemo(() => normalizeSign(chartData?.sun?.sign), [chartData?.sun?.sign]);
     const [selectedSign, setSelectedSign] = useState<ZodiacKey>(initialSign);
-    const [activeLayer, setActiveLayer] = useState<HoroscopeLayer>('sign');
+    const [activeIndex, setActiveIndex] = useState(0);
     const [showSignPicker, setShowSignPicker] = useState(false);
     const [signReading, setSignReading] = useState<ForecastDailyReading>(() =>
       buildSignFallback(initialSign, today, language)
@@ -471,10 +478,16 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
       setSelectedSign(initialSign);
     }, [initialSign]);
 
+    const layers = useMemo(() => getLayerConfigs(selectedSign), [selectedSign]);
+    const activeConfig = layers[activeIndex] || layers[0];
+    const activeLayer = activeConfig.id;
+    const zodiacLabel = getZodiacSign(language, selectedSign);
+    const zodiacDate = ZODIAC_SIGNS.find(([sign]) => sign === selectedSign)?.[1] || '';
+
     useEffect(() => {
-      onBackgroundSignChange?.(selectedSign);
-      return () => onBackgroundSignChange?.(null);
-    }, [onBackgroundSignChange, selectedSign]);
+      onBackgroundChange?.({ sign: selectedSign, tone: activeConfig.tone });
+      return () => onBackgroundChange?.(null);
+    }, [activeConfig.tone, onBackgroundChange, selectedSign]);
 
     useEffect(() => {
       let cancelled = false;
@@ -491,10 +504,6 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
       };
     }, [language, selectedSign, today]);
 
-    const layers = useMemo(() => getLayerConfigs(selectedSign), [selectedSign]);
-    const activeConfig = layers.find((item) => item.id === activeLayer) || layers[0];
-    const zodiacLabel = getZodiacSign(language, selectedSign);
-    const zodiacDate = ZODIAC_SIGNS.find(([sign]) => sign === selectedSign)?.[1] || '';
     const updateLumiBalance = (lumiBalance?: number) => {
       if (typeof lumiBalance !== 'number' || !onUpdateProfile) return;
       onUpdateProfile({ ...profileRef.current, lumiBalance });
@@ -558,10 +567,7 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
         haptic('open');
       } catch (error) {
         setLayerError(
-          getFriendlyError(
-            error,
-            `Этот слой можно открыть в Premium или разово за ${activeConfig.price || 35} Lumi.`
-          )
+          getFriendlyError(error, `Этот слой можно открыть в Premium или разово за ${activeConfig.price || 35} Lumi.`)
         );
       } finally {
         setLoadingLayer(null);
@@ -578,123 +584,178 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
       void loadLayer(activeLayer, false);
     }, [activeLayer]);
 
-    const selectLayer = (layer: HoroscopeLayer) => {
-      setActiveLayer(layer);
-      setLayerError(null);
-    };
-
     const chooseSign = (sign: ZodiacKey) => {
       haptic();
       setSelectedSign(sign);
-      setActiveLayer('sign');
+      setActiveIndex(0);
       setShowSignPicker(false);
+      setLayerError(null);
     };
 
-    const renderLayerContent = () => {
-      if (activeLayer === 'sign') {
-        return (
-          <ReadingSurface eyebrow="гороскоп знака" title={signReading.headline}>
-            <div className="space-y-4">
-              {splitParagraphs(signReading.reading).map((paragraph, index) => (
-                <p key={index} className="text-[15.5px] leading-[1.72] text-[#2f2d33]">
-                  {paragraph}
-                </p>
-              ))}
-            </div>
-            <div className="mt-5">
-              <KeyLine label="Лучший шаг" value={signReading.focus} />
-              <KeyLine label="Возможность" value={signReading.chance} />
-              <KeyLine label="Мягкий риск" value={signReading.risk} />
-            </div>
-          </ReadingSurface>
-        );
-      }
-
-      if (activeLayer === 'chart' && personalDay) return <PersonalDay reading={personalDay} />;
-      if (activeLayer === 'love' && loveSection) return <HumanSectionBlock section={loveSection} />;
-      if (activeLayer === 'work_money' && workSection) return <HumanSectionBlock section={workSection} />;
-
+    const renderLockedLayer = (layer: LayerConfig) => {
+      const Icon = layer.icon;
       return (
-        <LockedLayer
-          config={activeConfig}
-          error={layerError}
-          loading={loadingLayer === activeLayer}
-          onUnlock={() => void loadLayer(activeLayer, true)}
-          onPremium={onRequestPremium}
-        />
+        <div className="mt-auto max-h-full overflow-y-auto pb-2 pr-1">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/40 bg-white/40 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#7b6b82] backdrop-blur-xl">
+            <Icon size={14} strokeWidth={1.7} />
+            {layer.eyebrow}
+          </div>
+          <SparkleTitle tone={layer.tone} className="max-w-[18rem] text-[clamp(2.2rem,10vw,3.05rem)]">
+            {layer.title}
+          </SparkleTitle>
+          <p className="mt-4 max-w-[19rem] text-[16px] leading-[1.55] text-[#3f3d45]">{layer.subtitle}</p>
+          <p className="mt-4 max-w-[19rem] text-[14.5px] leading-relaxed text-[#625f68]">
+            Этот слой связывает день с вашей картой. Его можно открыть точечно за Lumi или читать каждый день в
+            Premium.
+          </p>
+          {layerError ? <p className="mt-3 text-[13px] leading-relaxed text-[#7d5960]">{layerError}</p> : null}
+          <div className="mt-6 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => void loadLayer(layer.id, true)}
+              disabled={loadingLayer === layer.id}
+              className="inline-flex min-h-[50px] items-center justify-center gap-2 rounded-full bg-[#1f1f1f] px-5 text-[14px] font-semibold text-white shadow-[0_18px_42px_rgba(0,0,0,0.16)] disabled:opacity-60"
+            >
+              {loadingLayer === layer.id ? 'Открываю...' : `Открыть за ${layer.price || 35} Lumi`}
+              <ArrowRight size={16} />
+            </button>
+            <button
+              type="button"
+              onClick={onRequestPremium}
+              className="inline-flex min-h-[50px] items-center justify-center rounded-full border border-black/8 bg-white/52 px-5 text-[14px] font-semibold text-[#202024] backdrop-blur-xl"
+            >
+              Premium
+            </button>
+          </div>
+        </div>
       );
     };
 
-    return (
-      <div className="min-h-full pb-12 font-sans">
-        <section className="flex min-h-[58dvh] flex-col justify-end px-5 pb-8 pt-4">
-          <div className="max-w-[21rem]">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.23em] text-[#817d86]">
-              Гороскоп · {formatLumiaDate(today, language)}
-            </p>
-            <div className="mt-4 flex flex-wrap items-center gap-2">
+    const renderSignSlide = () => {
+      const paragraphs = splitParagraphs(signReading.reading, 2);
+      return (
+        <div className="flex h-full min-h-0 flex-col">
+          <div className="pt-1">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={() => setShowSignPicker((value) => !value)}
-                className="inline-flex min-h-[38px] items-center gap-2 rounded-full border border-white/65 bg-white/56 px-3 text-[13px] font-medium text-[#24242a] shadow-[0_12px_32px_rgba(0,0,0,0.06)] backdrop-blur-xl"
+                className="inline-flex min-h-[38px] items-center gap-2 rounded-full border border-white/58 bg-white/54 px-3 text-[13px] font-medium text-[#24242a] shadow-[0_12px_32px_rgba(0,0,0,0.05)] backdrop-blur-xl"
               >
                 <ZodiacIcon sign={selectedSign} size={16} />
                 {zodiacLabel}
                 <span className="text-[#8d8890]">· {zodiacDate}</span>
                 <ChevronDown size={15} className={showSignPicker ? 'rotate-180 transition' : 'transition'} />
               </button>
-              <span className="inline-flex min-h-[38px] items-center rounded-full border border-white/60 bg-white/42 px-3 text-[12px] text-[#615e66] backdrop-blur-xl">
-                общий прогноз
+              <span className="inline-flex min-h-[38px] items-center rounded-full border border-white/48 bg-white/34 px-3 text-[12px] text-[#66636b] backdrop-blur-xl">
+                {formatLumiaDate(today, language)}
               </span>
             </div>
-
             {showSignPicker ? (
               <SignPicker language={language} selectedSign={selectedSign} onSelect={chooseSign} />
             ) : null}
-
-            <h1 className="mt-8 text-[clamp(3.1rem,15vw,4.7rem)] font-semibold leading-[0.9] tracking-[-0.055em] text-[#202024]">
-              Гороскоп
-            </h1>
-            <p className="mt-5 max-w-[18.5rem] text-[17px] leading-[1.55] text-[#393840]">
-              {signReading.summary}
-            </p>
-
-            <button
-              type="button"
-              onClick={() => {
-                haptic('open');
-                setActiveLayer('sign');
-                document.getElementById('horoscope-reading')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-              }}
-              className="mt-7 inline-flex min-h-[54px] items-center justify-center gap-3 rounded-full bg-[#1f1f1f] px-6 text-[15px] font-semibold text-white shadow-[0_20px_48px_rgba(0,0,0,0.18)] active:scale-[0.985]"
-            >
-              Читать сегодня
-              <ArrowRight size={18} />
-            </button>
           </div>
-        </section>
 
-        <section id="horoscope-reading" className="px-5 pb-8">
-          <LayerCarousel
-            layers={layers}
-            activeLayer={activeLayer}
-            premium={profile.isPremium}
-            onSelect={selectLayer}
-          />
+          <div className="mt-auto max-h-[calc(100%-4.2rem)] overflow-y-auto pb-2 pr-1">
+            <p className="mb-3 inline-flex rounded-full border border-white/42 bg-white/38 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#7b6b82] backdrop-blur-xl">
+              Гороскоп знака
+            </p>
+            <SparkleTitle tone="sign" className="max-w-[18.8rem] text-[clamp(2.15rem,9.2vw,2.9rem)]">
+              {zodiacLabel}: гороскоп на сегодня
+            </SparkleTitle>
+            <p className="mt-1 max-w-[19rem] text-[16.5px] leading-[1.55] text-[#34333a]">{signReading.summary}</p>
+            <div className="mt-4 space-y-3">
+              {paragraphs.map((paragraph, index) => (
+                <p key={index} className="max-w-[19.5rem] text-[14.5px] leading-[1.62] text-[#47444c]">
+                  {paragraph}
+                </p>
+              ))}
+            </div>
+            <div className="mt-4 max-w-[20rem]">
+              <KeyLine label="Лучший шаг" value={signReading.focus} />
+              <KeyLine label="Мягкий риск" value={signReading.risk} />
+            </div>
+          </div>
+        </div>
+      );
+    };
 
-          <div className="mt-5">{renderLayerContent()}</div>
+    const renderPersonalDay = (reading: ForecastDaypartReading) => (
+      <div className="mt-auto max-h-full overflow-y-auto pb-2 pr-1">
+        <p className="mb-3 inline-flex rounded-full border border-white/42 bg-white/38 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#6d778c] backdrop-blur-xl">
+          По моей карте
+        </p>
+        <SparkleTitle tone="chart" className="max-w-[19rem] text-[clamp(2.1rem,9.5vw,2.85rem)]">
+          {reading.headline}
+        </SparkleTitle>
+        <p className="mt-1 max-w-[19.2rem] text-[15.5px] leading-[1.6] text-[#3d3a40]">{reading.summary}</p>
+        <div className="mt-4 max-w-[20rem]">
+          <KeyLine label="Фокус" value={reading.focus} />
+          <KeyLine label="Отношения" value={reading.relationships} />
+          <KeyLine label="Деньги" value={reading.money} />
+          <KeyLine label="Что делать" value={reading.guidance} />
+        </div>
+        {onOpenChart ? (
+          <button
+            type="button"
+            onClick={onOpenChart}
+            className="mt-4 inline-flex min-h-[44px] items-center gap-2 rounded-full bg-white/56 px-4 text-[13px] font-semibold text-[#202024] shadow-sm backdrop-blur-xl"
+          >
+            Открыть натальную карту
+            <ArrowRight size={15} />
+          </button>
+        ) : null}
+      </div>
+    );
 
-          {activeLayer === 'chart' && personalDay && onOpenChart ? (
-            <button
-              type="button"
-              onClick={onOpenChart}
-              className="mt-5 inline-flex min-h-[44px] items-center gap-2 rounded-full bg-white/58 px-4 text-[13px] font-semibold text-[#202024] shadow-sm backdrop-blur-xl"
-            >
-              Открыть натальную карту
-              <ArrowRight size={15} />
-            </button>
-          ) : null}
-        </section>
+    const renderHumanSection = (section: InterpretationSection, layer: LayerConfig) => (
+      <div className="mt-auto max-h-full overflow-y-auto pb-2 pr-1">
+        <p className="mb-3 inline-flex rounded-full border border-white/42 bg-white/38 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#7b6b82] backdrop-blur-xl">
+          {layer.title}
+        </p>
+        <SparkleTitle tone={layer.tone} className="max-w-[19rem] text-[clamp(2.05rem,9vw,2.75rem)]">
+          {section.title}
+        </SparkleTitle>
+        {section.subtitle ? (
+          <p className="mt-1 max-w-[19rem] text-[14.5px] leading-relaxed text-[#68646e]">{section.subtitle}</p>
+        ) : null}
+        <div className="mt-4 space-y-3">
+          {splitParagraphs(section.content, 3).map((paragraph, index) => (
+            <p key={index} className="max-w-[19.5rem] text-[14.5px] leading-[1.62] text-[#3b3840]">
+              {paragraph}
+            </p>
+          ))}
+        </div>
+        {section.bullets?.length ? (
+          <div className="mt-4 max-w-[20rem]">
+            {section.bullets.slice(0, 3).map((bullet) => (
+              <KeyLine key={bullet} label="Важно" value={bullet} />
+            ))}
+          </div>
+        ) : null}
+      </div>
+    );
+
+    const renderSlide = (layer: LayerConfig) => {
+      if (layer.id === 'sign') return renderSignSlide();
+      if (layer.id === 'chart' && personalDay) return renderPersonalDay(personalDay);
+      if (layer.id === 'love' && loveSection) return renderHumanSection(loveSection, layer);
+      if (layer.id === 'work_money' && workSection) return renderHumanSection(workSection, layer);
+      return renderLockedLayer(layer);
+    };
+
+    return (
+      <div className="h-full min-h-full font-sans">
+        <HoroscopeSwipeDeck
+          layers={layers}
+          activeIndex={activeIndex}
+          onIndexChange={(index) => {
+            setActiveIndex(index);
+            setLayerError(null);
+            setShowSignPicker(false);
+          }}
+          renderSlide={renderSlide}
+        />
       </div>
     );
   }

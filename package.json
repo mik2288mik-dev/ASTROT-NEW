@@ -15,6 +15,9 @@
     "repair:natal-charts": "tsx scripts/repair-canonical-natal-charts.ts"
   },
   "dependencies": {
+    "@tsparticles/engine": "^3.9.1",
+    "@tsparticles/react": "^3.0.0",
+    "@tsparticles/slim": "^3.9.1",
     "@types/pg": "^8.10.9",
     "axios": "^1.13.2",
     "clsx": "^2.1.1",
