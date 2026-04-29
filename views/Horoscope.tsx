@@ -15,12 +15,11 @@ import type {
   NatalChartData,
   UserProfile,
 } from '../types';
-import { getFullDaypartForecast, loadDailySignHoroscope } from '../services/astrologyService';
-import { loadHumanDailySection, type HumanReadingError } from '../services/natalReadingService';
+import { getCachedFullDaypartForecast, getFullDaypartForecast, loadDailySignHoroscope } from '../services/astrologyService';
+import { getCachedHumanDailySection, loadHumanDailySection, type HumanReadingError } from '../services/natalReadingService';
 import { formatLumiaDate, getMoscowTodayKey } from '../lib/date-utils';
 import { getZodiacSign } from '../constants';
 import { cn } from '../lib/cn';
-import { getHoroscopeBackground } from '../lib/visualBackgrounds';
 import { ZodiacIcon } from '../components/icons/ZodiacIcon';
 import type { HumanDailySectionKey } from '../lib/natalHumanShared';
 
@@ -31,9 +30,11 @@ type HoroscopeBackgroundState = { sign: string | null; tone: HoroscopeTone };
 interface HoroscopeProps {
   profile: UserProfile;
   chartData: NatalChartData | null;
+  chartId?: number | null;
   onUpdateProfile?: (profile: UserProfile) => void;
   onOpenChart?: () => void;
   onRequestPremium?: () => void;
+  onOpenWallet?: () => void;
   onBackgroundChange?: (state: HoroscopeBackgroundState | null) => void;
 }
 
@@ -56,14 +57,11 @@ type ZodiacKey = (typeof ZODIAC_SIGNS)[number][0];
 
 type LayerConfig = {
   id: HoroscopeLayer;
-  eyebrow: string;
   title: string;
   subtitle: string;
-  cta: string;
   price?: number;
   tone: HoroscopeTone;
   icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
-  background: string;
 };
 
 const LAYER_PRICES: Record<Exclude<HoroscopeLayer, 'sign'>, number> = {
@@ -127,51 +125,38 @@ function buildSignFallback(sign: ZodiacKey, date: string, language: 'ru' | 'en')
   };
 }
 
-function getLayerConfigs(selectedSign: ZodiacKey): LayerConfig[] {
-  const zodiacBackground = getHoroscopeBackground(selectedSign);
+function getLayerConfigs(): LayerConfig[] {
   return [
     {
       id: 'sign',
-      eyebrow: 'free',
-      title: 'Гороскоп знака',
-      subtitle: 'Общий прогноз на сегодня по вашему знаку.',
-      cta: 'Выбрать знак',
+      title: 'Гороскоп',
+      subtitle: 'Общий прогноз по знаку на сегодня.',
       tone: 'sign',
       icon: Sparkles,
-      background: zodiacBackground,
     },
     {
       id: 'chart',
-      eyebrow: 'premium / lumi',
-      title: 'По моей карте',
-      subtitle: 'Личный день по натальной карте и текущему фону.',
-      cta: 'Открыть слой',
+      title: 'Личный прогноз',
+      subtitle: 'День, собранный по вашей натальной карте и текущему небу.',
       price: LAYER_PRICES.chart,
       tone: 'chart',
       icon: WalletCards,
-      background: zodiacBackground,
     },
     {
       id: 'love',
-      eyebrow: 'premium / lumi',
       title: 'Любовь сегодня',
       subtitle: 'Эмоции, близость и разговоры без лишних догадок.',
-      cta: 'Открыть сферу',
       price: LAYER_PRICES.love,
       tone: 'love',
       icon: Heart,
-      background: zodiacBackground,
     },
     {
       id: 'work_money',
-      eyebrow: 'premium / lumi',
       title: 'Работа и деньги',
       subtitle: 'Фокус, решения, темп и денежная собранность.',
-      cta: 'Открыть сферу',
       price: LAYER_PRICES.work_money,
       tone: 'work',
       icon: BriefcaseBusiness,
-      background: zodiacBackground,
     },
   ];
 }
@@ -259,7 +244,7 @@ function SignPicker({
   onSelect: (sign: ZodiacKey) => void;
 }) {
   return (
-    <div className="mt-3 grid max-h-[14.5rem] grid-cols-3 gap-2 overflow-y-auto pr-1">
+    <div className="mt-4 grid max-h-[14.5rem] grid-cols-3 gap-x-4 gap-y-3 overflow-y-auto pr-1">
       {ZODIAC_SIGNS.map(([sign]) => {
         const active = sign === selectedSign;
         return (
@@ -268,8 +253,8 @@ function SignPicker({
             type="button"
             onClick={() => onSelect(sign)}
             className={cn(
-              'min-h-[46px] rounded-[17px] border px-2 text-left backdrop-blur-xl transition active:scale-[0.98]',
-              active ? 'border-black/12 bg-white/78 shadow-sm' : 'border-white/42 bg-white/34'
+              'min-h-[34px] border-b pb-1 text-left transition active:scale-[0.98]',
+              active ? 'border-[#1f1f1f] text-[#1f1f1f]' : 'border-black/10 text-[#68646e]'
             )}
           >
             <span className="flex items-center gap-2 text-[12.5px] font-medium text-[#202024]">
@@ -325,7 +310,7 @@ const HoroscopeSlide = memo<HoroscopeSlideProps>(({ layer, offset, viewportWidth
       <div className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-white/26 to-transparent" />
 
       <motion.div
-        className="pointer-events-none absolute inset-x-0 inset-y-0 z-30 px-5 pb-[calc(3.25rem+max(env(safe-area-inset-bottom,0px),var(--tg-content-safe-area-inset-bottom,0px)))] pt-[clamp(0.75rem,2.5vh,1.4rem)]"
+        className="pointer-events-none absolute inset-x-0 inset-y-0 z-30 px-5 pb-[calc(3.25rem+max(env(safe-area-inset-bottom,0px),var(--tg-content-safe-area-inset-bottom,0px)))] pt-[calc(max(env(safe-area-inset-top,0px),var(--tg-content-safe-area-inset-top,0px))+15.75rem)]"
         style={{ x: contentX, opacity: contentOpacity }}
       >
         <div className="pointer-events-auto mx-auto flex h-full max-w-[23rem] flex-col">{children}</div>
@@ -501,7 +486,7 @@ function HoroscopeSwipeDeck({
   return (
     <div
       ref={rootRef}
-      className="relative h-full min-h-[calc(100dvh-10.75rem)] overflow-hidden"
+      className="relative h-full min-h-full overflow-hidden"
       style={{ touchAction: 'pan-y' }}
       onPointerDown={beginPointer}
       onPointerMove={movePointer}
@@ -547,7 +532,7 @@ function HoroscopeSwipeDeck({
 }
 
 export const Horoscope: React.FC<HoroscopeProps> = memo(
-  ({ profile, chartData, onUpdateProfile, onOpenChart, onRequestPremium, onBackgroundChange }) => {
+  ({ profile, chartData, chartId, onUpdateProfile, onOpenChart, onRequestPremium, onOpenWallet, onBackgroundChange }) => {
     const language = profile.language === 'en' ? 'en' : 'ru';
     const today = getMoscowTodayKey();
     const userId = String(profile.id || '');
@@ -574,11 +559,9 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
       setSelectedSign(initialSign);
     }, [initialSign]);
 
-    const layers = useMemo(() => getLayerConfigs(selectedSign), [selectedSign]);
+    const layers = useMemo(() => getLayerConfigs(), []);
     const activeConfig = layers[activeIndex] || layers[0];
-    const activeLayer = activeConfig.id;
     const zodiacLabel = getZodiacSign(language, selectedSign);
-    const zodiacDate = ZODIAC_SIGNS.find(([sign]) => sign === selectedSign)?.[1] || '';
 
     useEffect(() => {
       onBackgroundChange?.({ sign: selectedSign, tone: activeConfig.tone });
@@ -599,6 +582,39 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
         cancelled = true;
       };
     }, [language, selectedSign, today]);
+
+    useEffect(() => {
+      if (!userId || !chartData) return;
+      let cancelled = false;
+
+      const hydrateCachedLayers = async () => {
+        const forecastAccessTier = profileRef.current.isPremium ? 'premium' : 'lumi';
+        const [cachedDay, cachedLove, cachedWork] = await Promise.allSettled([
+          getCachedFullDaypartForecast(userId, 'day', {
+            chartId: chartId ?? null,
+            accessTier: forecastAccessTier,
+            dateKey: today,
+          }),
+          getCachedHumanDailySection(userId, 'daily_love' as HumanDailySectionKey, chartId ?? undefined, today),
+          getCachedHumanDailySection(
+            userId,
+            'daily_work_business' as HumanDailySectionKey,
+            chartId ?? undefined,
+            today
+          ),
+        ]);
+
+        if (cancelled) return;
+        if (cachedDay.status === 'fulfilled' && cachedDay.value) setPersonalDay(cachedDay.value);
+        if (cachedLove.status === 'fulfilled' && cachedLove.value?.content) setLoveSection(cachedLove.value.content);
+        if (cachedWork.status === 'fulfilled' && cachedWork.value?.content) setWorkSection(cachedWork.value.content);
+      };
+
+      void hydrateCachedLayers();
+      return () => {
+        cancelled = true;
+      };
+    }, [chartData, chartId, today, userId]);
 
     const updateLumiBalance = (lumiBalance?: number) => {
       if (typeof lumiBalance !== 'number' || !onUpdateProfile) return;
@@ -637,7 +653,7 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
         }
 
         if (layer === 'love') {
-          const result = await loadHumanDailySection(userId, 'daily_love' as HumanDailySectionKey, undefined, today, {
+          const result = await loadHumanDailySection(userId, 'daily_love' as HumanDailySectionKey, chartId ?? undefined, today, {
             accessTier: profileRef.current.isPremium ? 'premium' : 'lumi',
             allowLumiSpend: spendLumi,
           });
@@ -649,7 +665,7 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
           const result = await loadHumanDailySection(
             userId,
             'daily_work_business' as HumanDailySectionKey,
-            undefined,
+            chartId ?? undefined,
             today,
             {
               accessTier: profileRef.current.isPremium ? 'premium' : 'lumi',
@@ -670,16 +686,6 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
       }
     };
 
-    useEffect(() => {
-      if (activeLayer === 'sign') return;
-      const alreadyLoaded =
-        (activeLayer === 'chart' && personalDay) ||
-        (activeLayer === 'love' && loveSection) ||
-        (activeLayer === 'work_money' && workSection);
-      if (alreadyLoaded) return;
-      void loadLayer(activeLayer, false);
-    }, [activeLayer]);
-
     const chooseSign = (sign: ZodiacKey) => {
       haptic();
       setSelectedSign(sign);
@@ -690,38 +696,70 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
 
     const renderLockedLayer = (layer: LayerConfig) => {
       const Icon = layer.icon;
+      const price = layer.price || 35;
+      const lumiBalance = Number(profileRef.current.lumiBalance || 0);
+      const isPremium = !!profileRef.current.isPremium;
+      const canPayWithLumi = lumiBalance >= price;
+      const primaryLabel = loadingLayer === layer.id
+        ? 'Открываю...'
+        : isPremium
+          ? 'Открыть прогноз'
+          : canPayWithLumi
+          ? `Открыть за ${price} Lumi`
+          : 'Пополнить Lumi';
+      const handlePrimaryAction = () => {
+        haptic('open');
+        if (isPremium) {
+          void loadLayer(layer.id, false);
+          return;
+        }
+        if (!canPayWithLumi) {
+          if (onOpenWallet) onOpenWallet();
+          else onRequestPremium?.();
+          return;
+        }
+        void loadLayer(layer.id, true);
+      };
+
       return (
-        <div className="mt-auto max-h-full overflow-y-auto pb-2 pr-1">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/40 bg-white/40 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#7b6b82] backdrop-blur-xl">
-            <Icon size={14} strokeWidth={1.7} />
-            {layer.eyebrow}
+        <div className="relative flex h-full min-h-0 flex-col justify-end overflow-hidden pb-2">
+          <div className="pointer-events-none absolute -right-7 top-[18%] opacity-[0.13]">
+            <Icon size={168} strokeWidth={0.8} />
           </div>
-          <SparkleTitle tone={layer.tone} className="max-w-[18rem] text-[clamp(2.2rem,10vw,3.05rem)]">
-            {layer.title}
-          </SparkleTitle>
-          <p className="mt-4 max-w-[19rem] text-[16px] leading-[1.55] text-[#3f3d45]">{layer.subtitle}</p>
-          <p className="mt-4 max-w-[19rem] text-[14.5px] leading-relaxed text-[#625f68]">
-            Этот слой связывает день с вашей картой. Его можно открыть точечно за Lumi или читать каждый день в
-            Premium.
-          </p>
-          {layerError ? <p className="mt-3 text-[13px] leading-relaxed text-[#7d5960]">{layerError}</p> : null}
-          <div className="mt-6 flex flex-wrap gap-2">
+          <div className="pointer-events-none absolute left-2 top-[24%] h-28 w-28 rounded-full bg-white/20 blur-3xl" />
+
+          <div className="relative max-w-[min(82vw,22rem)] pb-2">
+            <SparkleTitle tone={layer.tone} className="max-w-[min(82vw,22rem)] text-[clamp(2.35rem,10vw,3.2rem)]">
+              {layer.title}
+            </SparkleTitle>
+            <p className="mt-2 max-w-[min(82vw,22rem)] text-[17px] leading-[1.58] text-[#34323a]">
+              {layer.subtitle}
+            </p>
+            <p className="mt-5 max-w-[min(82vw,21rem)] text-[14.5px] leading-relaxed text-[#625f68]">
+              Этот прогноз можно открыть разово или читать каждый день вместе с Premium.
+            </p>
+            {layerError ? <p className="mt-4 text-[13px] leading-relaxed text-[#7d5960]">{layerError}</p> : null}
+          </div>
+
+          <div className="relative mt-6 flex flex-wrap gap-3">
             <button
               type="button"
-              onClick={() => void loadLayer(layer.id, true)}
+              onClick={handlePrimaryAction}
               disabled={loadingLayer === layer.id}
-              className="inline-flex min-h-[50px] items-center justify-center gap-2 rounded-full bg-[#1f1f1f] px-5 text-[14px] font-semibold text-white shadow-[0_18px_42px_rgba(0,0,0,0.16)] disabled:opacity-60"
+              className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-full bg-[#1f1f1f] px-5 text-[14px] font-semibold text-white shadow-[0_18px_42px_rgba(0,0,0,0.16)] disabled:opacity-60"
             >
-              {loadingLayer === layer.id ? 'Открываю...' : `Открыть за ${layer.price || 35} Lumi`}
+              {primaryLabel}
               <ArrowRight size={16} />
             </button>
-            <button
-              type="button"
-              onClick={onRequestPremium}
-              className="inline-flex min-h-[50px] items-center justify-center rounded-full border border-black/8 bg-white/52 px-5 text-[14px] font-semibold text-[#202024] backdrop-blur-xl"
-            >
-              Premium
-            </button>
+            {!isPremium ? (
+              <button
+                type="button"
+                onClick={onRequestPremium}
+                className="inline-flex min-h-[52px] items-center justify-center rounded-full bg-white/58 px-5 text-[14px] font-semibold text-[#202024] shadow-[0_12px_34px_rgba(0,0,0,0.08)] backdrop-blur-xl"
+              >
+                Открыть Premium
+              </button>
+            ) : null}
           </div>
         </div>
       );
@@ -732,20 +770,18 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
       return (
         <div className="flex h-full min-h-0 flex-col">
           <div className="pt-1">
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 text-[13px] font-medium text-[#5f5b64]">
               <button
                 type="button"
                 onClick={() => setShowSignPicker((value) => !value)}
-                className="inline-flex min-h-[38px] items-center gap-2 rounded-full border border-white/58 bg-white/54 px-3 text-[13px] font-medium text-[#24242a] shadow-[0_12px_32px_rgba(0,0,0,0.05)] backdrop-blur-xl"
+                className="inline-flex items-center gap-2 text-[#24242a] transition active:scale-[0.985]"
               >
                 <ZodiacIcon sign={selectedSign} size={16} />
                 {zodiacLabel}
-                <span className="text-[#8d8890]">· {zodiacDate}</span>
-                <ChevronDown size={15} className={showSignPicker ? 'rotate-180 transition' : 'transition'} />
+                <ChevronDown size={14} className={showSignPicker ? 'rotate-180 transition' : 'transition'} />
               </button>
-              <span className="inline-flex min-h-[38px] items-center rounded-full border border-white/48 bg-white/34 px-3 text-[12px] text-[#66636b] backdrop-blur-xl">
-                {formatLumiaDate(today, language)}
-              </span>
+              <span className="text-[#928d96]">·</span>
+              <span>{formatLumiaDate(today, language)}</span>
             </div>
             {showSignPicker ? (
               <SignPicker language={language} selectedSign={selectedSign} onSelect={chooseSign} />
@@ -753,21 +789,18 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
           </div>
 
           <div className="mt-auto max-h-[calc(100%-4.2rem)] overflow-y-auto pb-2 pr-1">
-            <p className="mb-3 inline-flex rounded-full border border-white/42 bg-white/38 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#7b6b82] backdrop-blur-xl">
-              Гороскоп знака
-            </p>
-            <SparkleTitle tone="sign" className="max-w-[18.8rem] text-[clamp(2.15rem,9.2vw,2.9rem)]">
-              {zodiacLabel}: гороскоп на сегодня
+            <SparkleTitle tone="sign" className="max-w-[min(82vw,22rem)] text-[clamp(2.65rem,13vw,4.05rem)]">
+              Гороскоп
             </SparkleTitle>
-            <p className="mt-1 max-w-[19rem] text-[16.5px] leading-[1.55] text-[#34333a]">{signReading.summary}</p>
+            <p className="mt-2 max-w-[min(82vw,22rem)] text-[17px] leading-[1.58] text-[#34333a]">{signReading.summary}</p>
             <div className="mt-4 space-y-3">
               {paragraphs.map((paragraph, index) => (
-                <p key={index} className="max-w-[19.5rem] text-[14.5px] leading-[1.62] text-[#47444c]">
+                <p key={index} className="max-w-[min(82vw,22rem)] text-[15px] leading-[1.68] text-[#47444c]">
                   {paragraph}
                 </p>
               ))}
             </div>
-            <div className="mt-4 max-w-[20rem]">
+            <div className="mt-4 max-w-[min(82vw,22rem)]">
               <KeyLine label="Лучший шаг" value={signReading.focus} />
               <KeyLine label="Мягкий риск" value={signReading.risk} />
             </div>
@@ -778,15 +811,14 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
 
     const renderPersonalDay = (reading: ForecastDaypartReading) => (
       <div className="mt-auto max-h-full overflow-y-auto pb-2 pr-1">
-        <p className="mb-3 inline-flex rounded-full border border-white/42 bg-white/38 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#6d778c] backdrop-blur-xl">
-          По моей карте
-        </p>
-        <SparkleTitle tone="chart" className="max-w-[19rem] text-[clamp(2.1rem,9.5vw,2.85rem)]">
-          {reading.headline}
+        <SparkleTitle tone="chart" className="max-w-[min(82vw,22rem)] text-[clamp(2.35rem,10vw,3.2rem)]">
+          Личный прогноз
         </SparkleTitle>
-        <p className="mt-1 max-w-[19.2rem] text-[15.5px] leading-[1.6] text-[#3d3a40]">{reading.summary}</p>
-        <div className="mt-4 max-w-[20rem]">
-          <KeyLine label="Фокус" value={reading.focus} />
+        <p className="mt-2 max-w-[min(82vw,22rem)] text-[17px] leading-[1.58] text-[#34333a]">
+          {reading.summary || reading.headline}
+        </p>
+        <div className="mt-4 max-w-[min(82vw,22rem)]">
+          <KeyLine label="Фокус дня" value={reading.focus} />
           <KeyLine label="Отношения" value={reading.relationships} />
           <KeyLine label="Деньги" value={reading.money} />
           <KeyLine label="Что делать" value={reading.guidance} />
@@ -795,9 +827,9 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
           <button
             type="button"
             onClick={onOpenChart}
-            className="mt-4 inline-flex min-h-[44px] items-center gap-2 rounded-full bg-white/56 px-4 text-[13px] font-semibold text-[#202024] shadow-sm backdrop-blur-xl"
+            className="mt-4 inline-flex min-h-[40px] items-center gap-2 text-[13px] font-semibold text-[#202024] underline decoration-black/20 underline-offset-4"
           >
-            Открыть натальную карту
+            Открыть карту
             <ArrowRight size={15} />
           </button>
         ) : null}
@@ -806,24 +838,21 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
 
     const renderHumanSection = (section: InterpretationSection, layer: LayerConfig) => (
       <div className="mt-auto max-h-full overflow-y-auto pb-2 pr-1">
-        <p className="mb-3 inline-flex rounded-full border border-white/42 bg-white/38 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#7b6b82] backdrop-blur-xl">
+        <SparkleTitle tone={layer.tone} className="max-w-[min(82vw,22rem)] text-[clamp(2.25rem,9.4vw,3rem)]">
           {layer.title}
-        </p>
-        <SparkleTitle tone={layer.tone} className="max-w-[19rem] text-[clamp(2.05rem,9vw,2.75rem)]">
-          {section.title}
         </SparkleTitle>
         {section.subtitle ? (
-          <p className="mt-1 max-w-[19rem] text-[14.5px] leading-relaxed text-[#68646e]">{section.subtitle}</p>
+          <p className="mt-2 max-w-[min(82vw,22rem)] text-[15px] leading-relaxed text-[#68646e]">{section.subtitle}</p>
         ) : null}
         <div className="mt-4 space-y-3">
           {splitParagraphs(section.content, 3).map((paragraph, index) => (
-            <p key={index} className="max-w-[19.5rem] text-[14.5px] leading-[1.62] text-[#3b3840]">
+            <p key={index} className="max-w-[min(82vw,22rem)] text-[15px] leading-[1.66] text-[#3b3840]">
               {paragraph}
             </p>
           ))}
         </div>
         {section.bullets?.length ? (
-          <div className="mt-4 max-w-[20rem]">
+          <div className="mt-4 max-w-[min(82vw,22rem)]">
             {section.bullets.slice(0, 3).map((bullet) => (
               <KeyLine key={bullet} label="Важно" value={bullet} />
             ))}

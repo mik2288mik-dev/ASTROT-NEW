@@ -250,3 +250,20 @@ export async function loadHumanDailySection(
     accessTier: options?.accessTier,
   });
 }
+
+export async function getCachedHumanDailySection(
+  userId: string,
+  sectionKey: HumanDailySectionKey,
+  chartId?: number,
+  date?: string
+): Promise<HumanReadingResult<InterpretationSection> | null> {
+  try {
+    return await getHuman<InterpretationSection>('human-daily', userId, { chartId, sectionKey, date });
+  } catch (error) {
+    const err = error as HumanReadingError;
+    if (err?.status === 403 || err?.status === 404 || err?.status === 409) {
+      return null;
+    }
+    throw error;
+  }
+}

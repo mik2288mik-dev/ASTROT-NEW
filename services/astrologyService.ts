@@ -318,11 +318,19 @@ export const getCachedFullDaypartForecast = async (
     accessTier,
   });
 
-  const data = await fetchContentApi<ForecastDaypartReading>(
-    url,
-    { method: 'GET', cache: 'no-store' },
-    { notFoundAsNull: true }
-  );
+  let data: ContentApiResponse<ForecastDaypartReading> | null = null;
+  try {
+    data = await fetchContentApi<ForecastDaypartReading>(
+      url,
+      { method: 'GET', cache: 'no-store' },
+      { notFoundAsNull: true }
+    );
+  } catch (error: any) {
+    if (error?.status === 403 || error?.status === 409) {
+      return null;
+    }
+    throw error;
+  }
 
   return data?.interpretation?.content ?? null;
 };

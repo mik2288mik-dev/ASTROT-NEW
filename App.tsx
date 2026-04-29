@@ -738,7 +738,12 @@ const App: React.FC = () => {
     }, []);
 
     // Свайп назад от левого края (как в iOS)
-    const canSwipeBack = view !== 'dashboard' && view !== 'onboarding' && view !== 'hook' && view !== 'paywall';
+    const canSwipeBack =
+        view !== 'dashboard' &&
+        view !== 'onboarding' &&
+        view !== 'hook' &&
+        view !== 'paywall' &&
+        view !== 'horoscope';
     useSwipeBack({
         onSwipeBack: handleBack,
         enabled: canSwipeBack,
@@ -852,12 +857,14 @@ const App: React.FC = () => {
                         <Horoscope 
                             profile={profile} 
                             chartData={chartData} 
+                            chartId={activeChartId}
                             onUpdateProfile={handleProfileUpdate}
                             onOpenChart={() => {
                                 setChartOpenMode('human');
                                 setView('chart');
                             }}
                             onRequestPremium={requestPremium}
+                            onOpenWallet={() => openWallet('horoscope')}
                             onBackgroundChange={(next) =>
                                 setHoroscopeBackground(next || { sign: null, tone: 'sign' })
                             }

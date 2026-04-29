@@ -49,10 +49,17 @@ function StudioChromeHeader({
   const dictionaryLabel = profile.language === 'en' ? 'Dictionary' : 'Словарь';
   const showDictionary = view === 'chart';
   const showScreenTitle = view !== 'horoscope';
+  const isHoroscope = view === 'horoscope';
   const visualWash = visualBackdrop && view !== 'horoscope';
 
   return (
-    <header className={`lumia-tg-header-bar relative z-40 shrink-0 ${visualBackdrop ? 'bg-transparent' : 'bg-white'}`}>
+    <header
+      className={`lumia-tg-header-bar z-40 ${
+        isHoroscope
+          ? 'pointer-events-auto absolute inset-x-0 top-0 bg-transparent'
+          : `relative shrink-0 ${visualBackdrop ? 'bg-transparent' : 'bg-white'}`
+      }`}
+    >
       <div
         className={`pt-0.5 pb-2 ${
           visualWash
