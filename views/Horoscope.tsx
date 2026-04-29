@@ -7,7 +7,6 @@ import {
   useReducedMotion,
   useTransform,
   type MotionValue,
-  type PanInfo,
 } from 'framer-motion';
 import type {
   ForecastDailyReading,
@@ -23,7 +22,6 @@ import { getZodiacSign } from '../constants';
 import { cn } from '../lib/cn';
 import { getHoroscopeBackground } from '../lib/visualBackgrounds';
 import { ZodiacIcon } from '../components/icons/ZodiacIcon';
-import { SparklesCore } from '../components/ui/sparkles';
 import type { HumanDailySectionKey } from '../lib/natalHumanShared';
 
 type HoroscopeLayer = 'sign' | 'chart' | 'love' | 'work_money';
@@ -225,17 +223,26 @@ function SparkleTitle({
       >
         {children}
       </h1>
-      <div className="pointer-events-none relative mt-3 h-9 w-[min(18rem,78vw)] overflow-hidden [mask-image:radial-gradient(190px_52px_at_35%_0%,white_0%,white_36%,transparent_82%)]">
-        <div className="absolute left-0 top-1 h-px w-[78%] bg-gradient-to-r from-transparent via-white/90 to-transparent blur-[1px]" />
-        <div className="absolute left-0 top-1 h-px w-[70%] bg-gradient-to-r from-transparent via-[#8c6bb3]/38 to-transparent" />
-        <SparklesCore
-          background="transparent"
-          minSize={0.32}
-          maxSize={0.9}
-          particleDensity={36}
-          particleColor={sparkleColor(tone)}
-          speed={0.75}
-          className="absolute inset-0 h-full w-full"
+      <div className="pointer-events-none relative mt-3 h-7 w-[min(18rem,78vw)] overflow-hidden [mask-image:radial-gradient(190px_46px_at_35%_0%,white_0%,white_38%,transparent_82%)]">
+        <div
+          className="absolute left-0 top-1 h-px w-[78%] bg-gradient-to-r from-transparent via-white/90 to-transparent blur-[1px]"
+          style={{ boxShadow: `0 0 18px ${sparkleColor(tone)}` }}
+        />
+        <div
+          className="absolute left-0 top-1 h-px w-[70%] bg-gradient-to-r from-transparent to-transparent"
+          style={{ backgroundImage: `linear-gradient(90deg, transparent, ${sparkleColor(tone)}99, transparent)` }}
+        />
+        <span
+          className="absolute left-[18%] top-0 h-1.5 w-1.5 rounded-full opacity-70"
+          style={{ backgroundColor: sparkleColor(tone), boxShadow: `0 0 14px ${sparkleColor(tone)}` }}
+        />
+        <span
+          className="absolute left-[52%] top-2 h-1 w-1 rounded-full opacity-50"
+          style={{ backgroundColor: sparkleColor(tone), boxShadow: `0 0 12px ${sparkleColor(tone)}` }}
+        />
+        <span
+          className="absolute left-[76%] top-1 h-1.5 w-1.5 rounded-full opacity-45"
+          style={{ backgroundColor: sparkleColor(tone), boxShadow: `0 0 12px ${sparkleColor(tone)}` }}
         />
       </div>
     </div>
@@ -343,6 +350,17 @@ function HoroscopeSwipeDeck({
   const rootRef = useRef<HTMLDivElement | null>(null);
   const activeIndexRef = useRef(activeIndex);
   const animationRef = useRef<{ stop: () => void } | null>(null);
+  const pointerRef = useRef<{
+    id: number;
+    startX: number;
+    startY: number;
+    lastX: number;
+    lastTime: number;
+    velocityX: number;
+    isDragging: boolean;
+    cancelled: boolean;
+  } | null>(null);
+  const justDraggedRef = useRef(false);
   const [viewportWidth, setViewportWidth] = useState(390);
   const dragX = useMotionValue(0);
   const shouldReduceMotion = useReducedMotion();
@@ -369,6 +387,11 @@ function HoroscopeSwipeDeck({
     dragX.set(0);
   };
 
+  const clampDrag = (value: number) => {
+    const limit = viewportWidth * 0.98;
+    return Math.max(-limit, Math.min(limit, value));
+  };
+
   const settle = (direction: -1 | 0 | 1, velocity = 0) => {
     animationRef.current?.stop();
 
@@ -390,19 +413,103 @@ function HoroscopeSwipeDeck({
     });
   };
 
-  const handleDragEnd = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+  const handleRelease = (offsetX: number, velocityX: number) => {
     const threshold = viewportWidth * 0.16;
     const direction =
-      info.offset.x < -threshold || info.velocity.x < -420
+      offsetX < -threshold || velocityX < -420
         ? 1
-        : info.offset.x > threshold || info.velocity.x > 420
+        : offsetX > threshold || velocityX > 420
           ? -1
           : 0;
-    settle(direction, info.velocity.x);
+    settle(direction, velocityX);
+  };
+
+  const beginPointer = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (shouldReduceMotion || event.pointerType === 'mouse' && event.button !== 0) return;
+    animationRef.current?.stop();
+    pointerRef.current = {
+      id: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      lastX: event.clientX,
+      lastTime: performance.now(),
+      velocityX: 0,
+      isDragging: false,
+      cancelled: false,
+    };
+  };
+
+  const movePointer = (event: React.PointerEvent<HTMLDivElement>) => {
+    const state = pointerRef.current;
+    if (!state || state.id !== event.pointerId || state.cancelled) return;
+
+    const offsetX = event.clientX - state.startX;
+    const offsetY = event.clientY - state.startY;
+    const absX = Math.abs(offsetX);
+    const absY = Math.abs(offsetY);
+
+    if (!state.isDragging) {
+      if (absY > 10 && absY > absX * 1.15) {
+        pointerRef.current = null;
+        return;
+      }
+      if (absX < 8 || absX < absY * 1.1) return;
+      state.isDragging = true;
+      justDraggedRef.current = true;
+      event.currentTarget.setPointerCapture?.(event.pointerId);
+    }
+
+    const now = performance.now();
+    const elapsed = Math.max(now - state.lastTime, 16);
+    state.velocityX = ((event.clientX - state.lastX) / elapsed) * 1000;
+    state.lastX = event.clientX;
+    state.lastTime = now;
+    dragX.set(clampDrag(offsetX));
+    event.preventDefault();
+  };
+
+  const endPointer = (event: React.PointerEvent<HTMLDivElement>) => {
+    const state = pointerRef.current;
+    if (!state || state.id !== event.pointerId) return;
+    pointerRef.current = null;
+
+    if (!state.isDragging) return;
+    const offsetX = dragX.get();
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
+    handleRelease(offsetX, state.velocityX);
+    window.setTimeout(() => {
+      justDraggedRef.current = false;
+    }, 80);
+  };
+
+  const cancelPointer = (event: React.PointerEvent<HTMLDivElement>) => {
+    const state = pointerRef.current;
+    if (!state || state.id !== event.pointerId) return;
+    pointerRef.current = null;
+    settle(0);
+    window.setTimeout(() => {
+      justDraggedRef.current = false;
+    }, 80);
+  };
+
+  const preventGhostClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (!justDraggedRef.current) return;
+    event.preventDefault();
+    event.stopPropagation();
   };
 
   return (
-    <div ref={rootRef} className="relative h-full min-h-[calc(100dvh-10.75rem)] overflow-hidden">
+    <div
+      ref={rootRef}
+      className="relative h-full min-h-[calc(100dvh-10.75rem)] overflow-hidden"
+      style={{ touchAction: 'pan-y' }}
+      onPointerDown={beginPointer}
+      onPointerMove={movePointer}
+      onPointerUp={endPointer}
+      onPointerCancel={cancelPointer}
+      onLostPointerCapture={cancelPointer}
+      onClickCapture={preventGhostClick}
+    >
       {SLIDE_OFFSETS.map((offset) => {
         const layer = layers[mod(activeIndex + offset, layers.length)];
         return (
@@ -417,17 +524,6 @@ function HoroscopeSwipeDeck({
           </HoroscopeSlide>
         );
       })}
-
-      <motion.div
-        drag={shouldReduceMotion ? false : 'x'}
-        dragConstraints={{ left: -viewportWidth, right: viewportWidth }}
-        dragElastic={0.035}
-        dragMomentum={false}
-        onDragStart={() => animationRef.current?.stop()}
-        onDragEnd={handleDragEnd}
-        style={{ x: dragX, touchAction: 'pan-y' }}
-        className="absolute inset-0 z-20 cursor-grab active:cursor-grabbing"
-      />
 
       <div className="pointer-events-none absolute inset-x-0 bottom-[calc(0.72rem+max(env(safe-area-inset-bottom,0px),var(--tg-content-safe-area-inset-bottom,0px)))] z-40 flex items-center justify-center gap-2">
         {layers.map((layer, index) => (
