@@ -21,6 +21,7 @@ import { formatLumiaDate, getMoscowTodayKey } from '../lib/date-utils';
 import { getZodiacSign } from '../constants';
 import { cn } from '../lib/cn';
 import { ZodiacIcon } from '../components/icons/ZodiacIcon';
+import { useSwipeBack } from '../lib/useSwipeBack';
 import type { HumanDailySectionKey } from '../lib/natalHumanShared';
 
 type HoroscopeLayer = 'sign' | 'chart' | 'love' | 'work_money';
@@ -35,6 +36,7 @@ interface HoroscopeProps {
   onOpenChart?: () => void;
   onRequestPremium?: () => void;
   onOpenWallet?: () => void;
+  onBackToChart?: () => void;
   onBackgroundChange?: (state: HoroscopeBackgroundState | null) => void;
 }
 
@@ -72,8 +74,8 @@ const LAYER_PRICES: Record<Exclude<HoroscopeLayer, 'sign'>, number> = {
 
 const SLIDE_OFFSETS = [-1, 0, 1] as const;
 
-function mod(value: number, total: number) {
-  return ((value % total) + total) % total;
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
 }
 
 function normalizeSign(sign?: string | null): ZodiacKey {
@@ -335,29 +337,24 @@ function HoroscopeSwipeDeck({
   const rootRef = useRef<HTMLDivElement | null>(null);
   const activeIndexRef = useRef(activeIndex);
   const animationRef = useRef<{ stop: () => void } | null>(null);
-  const pointerRef = useRef<{
-    id: number;
-    startX: number;
-    startY: number;
-    lastX: number;
-    lastTime: number;
-    velocityX: number;
-    isDragging: boolean;
-    cancelled: boolean;
-  } | null>(null);
-  const justDraggedRef = useRef(false);
+  const holdTimeoutRef = useRef<number | null>(null);
+  const pressStartedAtRef = useRef(0);
   const [viewportWidth, setViewportWidth] = useState(390);
+  const [progress, setProgress] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
   const dragX = useMotionValue(0);
   const shouldReduceMotion = useReducedMotion();
+  const STORY_DURATION_MS = 6200;
+  const HOLD_DELAY_MS = 180;
 
   useEffect(() => {
     activeIndexRef.current = activeIndex;
+    setProgress(0);
   }, [activeIndex]);
 
   useEffect(() => {
     const node = rootRef.current;
     if (!node) return;
-
     const updateWidth = () => setViewportWidth(Math.max(node.getBoundingClientRect().width, 320));
     updateWidth();
     const observer = new ResizeObserver(updateWidth);
@@ -365,174 +362,131 @@ function HoroscopeSwipeDeck({
     return () => observer.disconnect();
   }, []);
 
+  useEffect(() => {
+    if (isPaused || activeIndexRef.current >= layers.length - 1) return;
+    let raf = 0;
+    let lastTs = performance.now();
+
+    const tick = (ts: number) => {
+      const elapsed = ts - lastTs;
+      lastTs = ts;
+      setProgress((prev) => {
+        const next = prev + elapsed / STORY_DURATION_MS;
+        if (next >= 1) {
+          window.setTimeout(() => moveBy(1), 0);
+          return 0;
+        }
+        return next;
+      });
+      raf = window.requestAnimationFrame(tick);
+    };
+
+    raf = window.requestAnimationFrame(tick);
+    return () => window.cancelAnimationFrame(raf);
+  }, [isPaused, activeIndex, layers.length]);
+
   const commitIndex = (nextIndex: number) => {
-    const resolved = mod(nextIndex, layers.length);
+    const resolved = clamp(nextIndex, 0, layers.length - 1);
     activeIndexRef.current = resolved;
     onIndexChange(resolved);
     dragX.set(0);
+    setProgress(0);
   };
 
-  const clampDrag = (value: number) => {
-    const limit = viewportWidth * 0.98;
-    return Math.max(-limit, Math.min(limit, value));
-  };
-
-  const settle = (direction: -1 | 0 | 1, velocity = 0) => {
+  const settle = (direction: -1 | 1) => {
     animationRef.current?.stop();
-
-    if (direction !== 0) haptic('select');
+    const canMove = (direction === -1 && activeIndexRef.current > 0) || (direction === 1 && activeIndexRef.current < layers.length - 1);
+    const resolvedDirection = canMove ? direction : 0;
+    if (resolvedDirection === 0) return;
+    haptic('select');
 
     if (shouldReduceMotion) {
-      commitIndex(activeIndexRef.current + direction);
+      commitIndex(activeIndexRef.current + resolvedDirection);
       return;
     }
 
-    const targetX = direction === 0 ? 0 : -direction * viewportWidth;
+    const targetX = -resolvedDirection * viewportWidth;
     animationRef.current = animate(dragX, targetX, {
       type: 'spring',
-      stiffness: direction === 0 ? 300 : 238,
-      damping: direction === 0 ? 32 : 29,
+      stiffness: 238,
+      damping: 29,
       mass: 0.88,
-      velocity,
-      onComplete: () => commitIndex(activeIndexRef.current + direction),
+      onComplete: () => commitIndex(activeIndexRef.current + resolvedDirection),
     });
   };
 
-  const handleRelease = (offsetX: number, velocityX: number) => {
-    const threshold = viewportWidth * 0.16;
-    const direction =
-      offsetX < -threshold || velocityX < -420
-        ? 1
-        : offsetX > threshold || velocityX > 420
-          ? -1
-          : 0;
-    settle(direction, velocityX);
-  };
+  const moveBy = (direction: -1 | 1) => settle(direction);
 
-  const beginPointer = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (shouldReduceMotion || event.pointerType === 'mouse' && event.button !== 0) return;
-    animationRef.current?.stop();
-    pointerRef.current = {
-      id: event.pointerId,
-      startX: event.clientX,
-      startY: event.clientY,
-      lastX: event.clientX,
-      lastTime: performance.now(),
-      velocityX: 0,
-      isDragging: false,
-      cancelled: false,
-    };
-  };
-
-  const movePointer = (event: React.PointerEvent<HTMLDivElement>) => {
-    const state = pointerRef.current;
-    if (!state || state.id !== event.pointerId || state.cancelled) return;
-
-    const offsetX = event.clientX - state.startX;
-    const offsetY = event.clientY - state.startY;
-    const absX = Math.abs(offsetX);
-    const absY = Math.abs(offsetY);
-
-    if (!state.isDragging) {
-      if (absY > 10 && absY > absX * 1.15) {
-        pointerRef.current = null;
-        return;
-      }
-      if (absX < 8 || absX < absY * 1.1) return;
-      state.isDragging = true;
-      justDraggedRef.current = true;
-      event.currentTarget.setPointerCapture?.(event.pointerId);
+  const clearHold = () => {
+    if (holdTimeoutRef.current) {
+      window.clearTimeout(holdTimeoutRef.current);
+      holdTimeoutRef.current = null;
     }
-
-    const now = performance.now();
-    const elapsed = Math.max(now - state.lastTime, 16);
-    state.velocityX = ((event.clientX - state.lastX) / elapsed) * 1000;
-    state.lastX = event.clientX;
-    state.lastTime = now;
-    dragX.set(clampDrag(offsetX));
-    event.preventDefault();
   };
 
-  const endPointer = (event: React.PointerEvent<HTMLDivElement>) => {
-    const state = pointerRef.current;
-    if (!state || state.id !== event.pointerId) return;
-    pointerRef.current = null;
-
-    if (!state.isDragging) return;
-    const offsetX = dragX.get();
-    event.currentTarget.releasePointerCapture?.(event.pointerId);
-    handleRelease(offsetX, state.velocityX);
-    window.setTimeout(() => {
-      justDraggedRef.current = false;
-    }, 80);
+  const startPress = () => {
+    pressStartedAtRef.current = performance.now();
+    clearHold();
+    holdTimeoutRef.current = window.setTimeout(() => setIsPaused(true), HOLD_DELAY_MS);
   };
 
-  const cancelPointer = (event: React.PointerEvent<HTMLDivElement>) => {
-    const state = pointerRef.current;
-    if (!state || state.id !== event.pointerId) return;
-    pointerRef.current = null;
-    settle(0);
-    window.setTimeout(() => {
-      justDraggedRef.current = false;
-    }, 80);
-  };
-
-  const preventGhostClick = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (!justDraggedRef.current) return;
-    event.preventDefault();
-    event.stopPropagation();
+  const endPress = (direction: -1 | 1) => {
+    const heldLong = performance.now() - pressStartedAtRef.current >= HOLD_DELAY_MS;
+    clearHold();
+    setIsPaused(false);
+    if (!heldLong) moveBy(direction);
   };
 
   return (
-    <div
-      ref={rootRef}
-      className="relative h-full min-h-full overflow-hidden"
-      style={{ touchAction: 'pan-y' }}
-      onPointerDown={beginPointer}
-      onPointerMove={movePointer}
-      onPointerUp={endPointer}
-      onPointerCancel={cancelPointer}
-      onLostPointerCapture={cancelPointer}
-      onClickCapture={preventGhostClick}
-    >
+    <div ref={rootRef} className="relative h-full min-h-full overflow-hidden" style={{ touchAction: 'pan-y' }}>
       {SLIDE_OFFSETS.map((offset) => {
-        const layer = layers[mod(activeIndex + offset, layers.length)];
+        const targetIndex = activeIndex + offset;
+        const layer = layers[targetIndex];
+        if (!layer) return null;
         return (
-          <HoroscopeSlide
-            key={`${layer.id}-${offset}`}
-            layer={layer}
-            offset={offset}
-            viewportWidth={viewportWidth}
-            dragX={dragX}
-          >
+          <HoroscopeSlide key={`${layer.id}-${offset}`} layer={layer} offset={offset} viewportWidth={viewportWidth} dragX={dragX}>
             {renderSlide(layer)}
           </HoroscopeSlide>
         );
       })}
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-[calc(0.72rem+max(env(safe-area-inset-bottom,0px),var(--tg-content-safe-area-inset-bottom,0px)))] z-40 flex items-center justify-center gap-2">
-        {layers.map((layer, index) => (
-          <button
-            key={`horoscope-dot-${layer.id}`}
-            type="button"
-            onClick={() => {
-              haptic();
-              commitIndex(index);
-            }}
-            className={cn(
-              'pointer-events-auto h-2 rounded-full bg-black/20 transition-all duration-300',
-              index === activeIndex ? 'w-7 bg-[#1f1f1f]' : 'w-2'
-            )}
-            aria-label={layer.title}
-          />
-        ))}
+      <div className="pointer-events-none absolute inset-x-4 top-[calc(max(env(safe-area-inset-top,0px),var(--tg-content-safe-area-inset-top,0px))+0.55rem)] z-40 flex items-center gap-1.5">
+        {layers.map((layer, index) => {
+          const value = index < activeIndex ? 1 : index === activeIndex ? progress : 0;
+          return (
+            <button key={`horoscope-segment-${layer.id}`} type="button" onClick={() => commitIndex(index)} className="pointer-events-auto h-1.5 flex-1 overflow-hidden rounded-full bg-black/14" aria-label={layer.title}>
+              <span className="block h-full rounded-full bg-[#1f1f1f] transition-[width] duration-150" style={{ width: `${value * 100}%` }} />
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="absolute inset-x-0 top-0 z-40 h-[44vh]">
+        <button
+          type="button"
+          aria-label="Previous story"
+          className="absolute left-0 top-0 h-full w-1/2"
+          onPointerDown={startPress}
+          onPointerUp={() => endPress(-1)}
+          onPointerCancel={() => { clearHold(); setIsPaused(false); }}
+          onPointerLeave={() => { clearHold(); setIsPaused(false); }}
+        />
+        <button
+          type="button"
+          aria-label="Next story"
+          className="absolute right-0 top-0 h-full w-1/2"
+          onPointerDown={startPress}
+          onPointerUp={() => endPress(1)}
+          onPointerCancel={() => { clearHold(); setIsPaused(false); }}
+          onPointerLeave={() => { clearHold(); setIsPaused(false); }}
+        />
       </div>
     </div>
   );
 }
 
 export const Horoscope: React.FC<HoroscopeProps> = memo(
-  ({ profile, chartData, chartId, onUpdateProfile, onOpenChart, onRequestPremium, onOpenWallet, onBackgroundChange }) => {
+  ({ profile, chartData, chartId, onUpdateProfile, onOpenChart, onRequestPremium, onOpenWallet, onBackToChart, onBackgroundChange }) => {
     const language = profile.language === 'en' ? 'en' : 'ru';
     const today = getMoscowTodayKey();
     const userId = String(profile.id || '');
@@ -861,6 +815,14 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
       </div>
     );
 
+
+    useSwipeBack({
+      enabled: !!onBackToChart,
+      onSwipeBack: () => onBackToChart?.(),
+      threshold: 72,
+      edgeWidth: 34,
+    });
+
     const renderSlide = (layer: LayerConfig) => {
       if (layer.id === 'sign') return renderSignSlide();
       if (layer.id === 'chart' && personalDay) return renderPersonalDay(personalDay);
@@ -871,6 +833,16 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
 
     return (
       <div className="h-full min-h-full font-sans">
+        {onBackToChart ? (
+          <button
+            type="button"
+            onClick={onBackToChart}
+            className="absolute left-4 top-[calc(max(env(safe-area-inset-top,0px),var(--tg-content-safe-area-inset-top,0px))+0.65rem)] z-50 rounded-full bg-white/72 px-3 py-1.5 text-[12px] font-semibold text-[#1f1f1f] backdrop-blur-md"
+          >
+            ← К натальной карте
+          </button>
+        ) : null}
+
         <HoroscopeSwipeDeck
           layers={layers}
           activeIndex={activeIndex}
