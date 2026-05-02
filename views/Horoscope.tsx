@@ -450,13 +450,13 @@ function HoroscopeSwipeDeck({
         );
       })}
 
-      <div className="pointer-events-none absolute inset-x-4 top-[calc(max(env(safe-area-inset-top,0px),var(--tg-content-safe-area-inset-top,0px))+0.55rem)] z-40 flex items-center gap-1.5">
+      <div className="pointer-events-none absolute inset-x-3 top-[calc(max(env(safe-area-inset-top,0px),var(--tg-content-safe-area-inset-top,0px))+0.35rem)] z-40 flex items-center gap-1">
         {layers.map((layer, index) => {
           const value = index < activeIndex ? 1 : index === activeIndex ? progress : 0;
           return (
-            <button key={`horoscope-segment-${layer.id}`} type="button" onClick={() => commitIndex(index)} className="pointer-events-auto h-1.5 flex-1 overflow-hidden rounded-full bg-black/14" aria-label={layer.title}>
-              <span className="block h-full rounded-full bg-[#1f1f1f] transition-[width] duration-150" style={{ width: `${value * 100}%` }} />
-            </button>
+            <div key={`horoscope-segment-${layer.id}`} className="h-[2px] flex-1 overflow-hidden rounded-full bg-black/10" aria-hidden>
+              <span className="block h-full rounded-full bg-black/70 transition-[width] duration-100" style={{ width: `${value * 100}%` }} />
+            </div>
           );
         })}
       </div>
