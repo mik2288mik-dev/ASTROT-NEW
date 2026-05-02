@@ -101,8 +101,9 @@ export const Header: React.FC<HeaderProps> = ({
 
   const isHub = view === 'dashboard';
   const isFunnel = view === 'onboarding' || view === 'hook' || view === 'paywall';
+  const isHoroscopeStories = view === 'horoscope';
 
-  if (isFunnel || isHub) return null;
+  if (isFunnel || isHub || isHoroscopeStories) return null;
 
   return (
     <StudioChromeHeader
