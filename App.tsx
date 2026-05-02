@@ -865,6 +865,10 @@ const App: React.FC = () => {
                             }}
                             onRequestPremium={requestPremium}
                             onOpenWallet={() => openWallet('horoscope')}
+                            onBackToChart={() => {
+                                setChartOpenMode('human');
+                                setView('chart');
+                            }}
                             onBackgroundChange={(next) =>
                                 setHoroscopeBackground(next || { sign: null, tone: 'sign' })
                             }
