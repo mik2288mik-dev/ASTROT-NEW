@@ -833,6 +833,16 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
 
     return (
       <div className="h-full min-h-full font-sans">
+        {onBackToChart ? (
+          <button
+            type="button"
+            onClick={onBackToChart}
+            className="absolute left-4 top-[calc(max(env(safe-area-inset-top,0px),var(--tg-content-safe-area-inset-top,0px))+0.65rem)] z-50 rounded-full bg-white/72 px-3 py-1.5 text-[12px] font-semibold text-[#1f1f1f] backdrop-blur-md"
+          >
+            ← К натальной карте
+          </button>
+        ) : null}
+
         <HoroscopeSwipeDeck
           layers={layers}
           activeIndex={activeIndex}
