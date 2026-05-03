@@ -469,7 +469,6 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
     const chooseSign = (sign: ZodiacKey) => {
       haptic();
       setSelectedSign(sign);
-      setActiveIndex(0);
       setShowSignPicker(false);
       setLayerError(null);
     };
