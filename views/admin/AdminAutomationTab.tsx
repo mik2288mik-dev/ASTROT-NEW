@@ -66,6 +66,59 @@ const segmentLabel = (lang: 'ru' | 'en', segment: AdminNotificationTargetSegment
   return labels[segment];
 };
 
+
+const AUTOMATION_SMART_PRESETS: Array<{
+  id: string;
+  slot: NotificationSlot;
+  segment: AdminNotificationTargetSegment;
+  repeatMode: RepeatMode;
+  sendTime: string;
+  titleRu: string;
+  textRu: string;
+  textEn: string;
+}> = [
+  {
+    id: 'morning_horoscope',
+    slot: 'morning',
+    segment: 'all',
+    repeatMode: 'daily',
+    sendTime: '08:00',
+    titleRu: 'Утренний гороскоп + карта дня',
+    textRu: 'Доброе утро! Твой гороскоп по знаку уже готов, а в карте дня видно личный ритм утра. Зайди в Lumia и начни день точнее.',
+    textEn: 'Good morning! Your zodiac horoscope is ready, and the day card already shows your personal morning rhythm. Open Lumia to start with clarity.',
+  },
+  {
+    id: 'day_focus',
+    slot: 'day',
+    segment: 'active_7d',
+    repeatMode: 'weekdays',
+    sendTime: '13:00',
+    titleRu: 'Дневной фокус по карте',
+    textRu: 'Середина дня: проверь гороскоп по знаку и текущий дневной слой натальной карты, чтобы вернуть фокус и не распыляться.',
+    textEn: 'Midday check-in: review your zodiac horoscope and current natal day layer to regain focus and avoid noise.',
+  },
+  {
+    id: 'evening_reflection',
+    slot: 'evening',
+    segment: 'all',
+    repeatMode: 'daily',
+    sendTime: '20:00',
+    titleRu: 'Вечернее завершение дня',
+    textRu: 'Вечерний слой уже готов: как прожился день по твоему знаку и что подсвечивает карта на завтра. Открой Lumia перед сном.',
+    textEn: 'Your evening layer is ready: how the day unfolded for your sign and what your card highlights for tomorrow. Open Lumia before sleep.',
+  },
+  {
+    id: 'reactivation_7d',
+    slot: 'custom',
+    segment: 'inactive_7d',
+    repeatMode: 'weekly',
+    sendTime: '12:30',
+    titleRu: 'Возврат после 7 дней',
+    textRu: 'Мы обновили твой гороскоп по знаку и карту текущего периода. Возвращайся в Lumia — там уже новый личный ориентир.',
+    textEn: 'Your sign horoscope and current period card are refreshed. Come back to Lumia — your new personal guidance is waiting.',
+  },
+];
+
 const defaultTimeBySlot: Record<NotificationSlot, string> = {
   morning: getNotificationSlotConfig('morning').defaultSendTime,
   day: getNotificationSlotConfig('day').defaultSendTime,
@@ -257,6 +310,21 @@ export const AdminAutomationTab: React.FC<Props> = ({ profile }) => {
     }
   };
 
+
+  const applySmartPreset = (presetId: string) => {
+    const preset = AUTOMATION_SMART_PRESETS.find((item) => item.id === presetId);
+    if (!preset) return;
+    setSelectedId(null);
+    setName(preset.titleRu);
+    setSlot(preset.slot);
+    setTargetSegment(preset.segment);
+    setRepeatMode(preset.repeatMode);
+    setSendTime(preset.sendTime);
+    setText(lang === 'en' ? preset.textEn : preset.textRu);
+    setIsActive(true);
+    setMessage(lang === 'en' ? 'Preset applied. Review and save.' : 'Пресет применён. Проверьте и сохраните.');
+  };
+
   return (
     <div className="space-y-5">
       {message ? <AdminStateBanner tone="success">{message}</AdminStateBanner> : null}
@@ -302,7 +370,8 @@ export const AdminAutomationTab: React.FC<Props> = ({ profile }) => {
                 SLOTS.map((slotOption) => {
                   const list = groupedTemplates[slotOption];
                   if (list.length === 0) return null;
-                  return (
+                
+  return (
                     <div key={slotOption}>
                       <p className="admin-label mb-3">{slotKey(lang, slotOption)}</p>
                       <div className="space-y-3">
@@ -357,6 +426,16 @@ export const AdminAutomationTab: React.FC<Props> = ({ profile }) => {
             </div>
 
             <div className="mt-5 space-y-4">
+              <div className="admin-surface-muted p-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">{lang === 'ru' ? 'Смарт-сценарии' : 'Smart scenarios'}</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {AUTOMATION_SMART_PRESETS.map((preset) => (
+                    <AdminButton key={preset.id} tone="secondary" onClick={() => applySmartPreset(preset.id)}>
+                      {preset.titleRu}
+                    </AdminButton>
+                  ))}
+                </div>
+              </div>
               <AdminInput value={name} onChange={(event) => setName(event.target.value)} placeholder={getAdminText(lang, 'title')} />
 
               <div className="grid gap-3 sm:grid-cols-2">
