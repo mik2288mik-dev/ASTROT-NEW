@@ -89,6 +89,7 @@ export const DailyLumiWheelCard: React.FC<DailyLumiWheelCardProps> = ({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [rotation, setRotation] = useState(0);
+  const rotationRef = useRef(0);
   const [countdownMs, setCountdownMs] = useState(0);
   const [lastWin, setLastWin] = useState<{ amount: number; tier: RouletteTier } | null>(null);
   const spinTimeoutRef = useRef<number | null>(null);
@@ -135,6 +136,10 @@ export const DailyLumiWheelCard: React.FC<DailyLumiWheelCardProps> = ({
       }
     };
   }, [loadStatus]);
+
+  useEffect(() => {
+    rotationRef.current = rotation;
+  }, [rotation]);
 
   useEffect(() => {
     if (!status?.nextAvailableAt) {
@@ -189,8 +194,10 @@ export const DailyLumiWheelCard: React.FC<DailyLumiWheelCardProps> = ({
       }
 
       const targetIndex = getRandomSegmentIndex(result.tier as RouletteTier);
-      const nextRotation = buildTargetRotation(rotation, targetIndex);
-      setRotation(nextRotation);
+      setRotation((current) => {
+        const base = Number.isFinite(current) ? current : rotationRef.current;
+        return buildTargetRotation(base, targetIndex);
+      });
 
       if (spinTimeoutRef.current) {
         window.clearTimeout(spinTimeoutRef.current);

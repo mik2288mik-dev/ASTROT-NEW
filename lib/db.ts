@@ -67,7 +67,7 @@ function detectDeviceLabel(telegramPlatform?: string | null, userAgent?: string 
   else if (ua.includes('mac os') || ua.includes('macintosh')) parts.push('macOS');
   else if (ua.includes('linux')) parts.push('Linux');
 
-  return parts.filter(Boolean).join(' вЂў ') || 'Unknown device';
+  return parts.filter(Boolean).join(' • ') || 'Unknown device';
 }
 
 function trimText(value?: string | null, maxLength = 1000): string | null {
@@ -2890,7 +2890,7 @@ export const db = {
       try {
         const dbPool = getPool();
         const payload = typeof content === 'string' ? content : JSON.stringify(content);
-        // Partial unique index idx_daily_natal_cards_chart_date uses WHERE chart_id IS NOT NULL вЂ”
+        // Partial unique index idx_daily_natal_cards_chart_date uses WHERE chart_id IS NOT NULL —
         // ON CONFLICT must repeat that predicate or PostgreSQL rejects the upsert.
         // user_id comes from the chart row because legacy schema has NOT NULL on user_id.
         const result = await dbPool.query(
@@ -3315,7 +3315,7 @@ export const db = {
     },
   },
 
-  /** Legacy compose templates (admin вЂњSendвЂќ tab) вЂ” table legacy_notification_templates */
+  /** Legacy compose templates (admin "Send" tab) — table legacy_notification_templates */
   legacy_notification_templates: {
     async ensureSeeded() {
       if (!DATABASE_URL) return;
@@ -3513,7 +3513,7 @@ export const db = {
     },
   },
 
-  /** Scheduled / CMS notification templates вЂ” table notification_templates */
+  /** Scheduled / CMS notification templates — table notification_templates */
   scheduled_notification_templates: {
     async ensureSeeded() {
       if (!DATABASE_URL) return;
