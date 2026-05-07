@@ -239,6 +239,54 @@ export interface ForecastDailyReading {
   advice: string[];
 }
 
+export type TodayMetricKey = 'resource' | 'stress' | 'love' | 'focus';
+
+export interface TodayMetricPoint {
+  date: string;
+  value: number;
+}
+
+export interface TodayMetric {
+  key: TodayMetricKey;
+  label: string;
+  value: number;
+  description: string;
+  history: TodayMetricPoint[];
+}
+
+export type HoroscopeReactionKey = 'spot_on' | 'funny' | 'gentle' | 'not_mine';
+
+export interface HoroscopeReactionCount {
+  key: HoroscopeReactionKey;
+  label: string;
+  count: number;
+}
+
+export interface HoroscopeReactionSummary {
+  userReaction: HoroscopeReactionKey | null;
+  counts: HoroscopeReactionCount[];
+  total: number;
+}
+
+export interface TodayOverview {
+  date: string;
+  dateLabel: string;
+  sign: string;
+  signLabel: string;
+  headline: string;
+  summary: string;
+  phrase: string;
+  bestAction: string;
+  softRisk: string;
+  horoscopeExcerpt: string;
+  joke: string;
+  comparison: string;
+  metrics: TodayMetric[];
+  personalForecast: ForecastDailyReading;
+  signHoroscope: ForecastDailyReading;
+  reactions: HoroscopeReactionSummary;
+}
+
 export type ForecastDaypartSlot = 'morning' | 'day' | 'evening';
 
 export interface ForecastDaypartReading {

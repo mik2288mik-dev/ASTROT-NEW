@@ -85,6 +85,7 @@ async function migrationReset(pool: Pool): Promise<void> {
     'notification_campaigns',
     'legacy_notification_templates',
     'user_sessions',
+    'horoscope_reactions',
     'star_payments',
     'synastry_cache',
     'astro_questions',
@@ -1298,6 +1299,42 @@ async function lumia018NotificationFrequencyPreference(pool: Pool): Promise<void
   log.info('Migration lumia_018_notification_frequency_preference applied');
 }
 
+async function lumia019HoroscopeReactions(pool: Pool): Promise<void> {
+  const migrationName = 'lumia_019_horoscope_reactions';
+
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
+  log.info('Applying horoscope reactions migration...');
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS horoscope_reactions (
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      zodiac_sign TEXT NOT NULL,
+      reaction_date DATE NOT NULL,
+      reaction_key TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE (user_id, zodiac_sign, reaction_date),
+      CONSTRAINT horoscope_reactions_key_check
+        CHECK (reaction_key IN ('spot_on', 'funny', 'gentle', 'not_mine'))
+    )
+  `);
+
+  await pool.query(
+    'CREATE INDEX IF NOT EXISTS idx_horoscope_reactions_sign_date ON horoscope_reactions(zodiac_sign, reaction_date)'
+  );
+  await pool.query(
+    'CREATE INDEX IF NOT EXISTS idx_horoscope_reactions_user_date ON horoscope_reactions(user_id, reaction_date)'
+  );
+
+  await markMigrationApplied(pool, migrationName);
+  log.info('Migration lumia_019_horoscope_reactions applied');
+}
+
 async function verifyTablesExist(pool: Pool): Promise<void> {
   const required = [
     'users', 'natal_charts', 'interpretations', 'lumi_transactions', 'app_settings',
@@ -1313,6 +1350,7 @@ async function verifyTablesExist(pool: Pool): Promise<void> {
     'notification_schedules',
     'notification_rotation_state',
     'notification_delivery_log',
+    'horoscope_reactions',
   ];
   const missing: string[] = [];
   for (const t of required) {
@@ -1379,6 +1417,7 @@ export async function runMigrations(): Promise<void> {
   await lumia016NatalContentUnification(pool);
   await lumia017NatalHumanReadingV4Archive(pool);
   await lumia018NotificationFrequencyPreference(pool);
+  await lumia019HoroscopeReactions(pool);
   await verifyTablesExist(pool);
 
     log.info('All Lumia migrations completed successfully');

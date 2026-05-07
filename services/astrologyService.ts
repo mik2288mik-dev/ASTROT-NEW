@@ -1,4 +1,4 @@
-import { UserProfile, NatalChartData, DailyHoroscope, SynastryResult, UserEvolution, OracleChatResponse, OracleHistoryEntry, ForecastDailyReading, ForecastDaypartReading, ForecastDaypartSlot, ForecastMonthlyReading, ForecastWeeklyReading, NatalAnchorReading, NatalFullReading, NatalLivingReading, AskLumiaState, AskLumiaTier, ContentAccessTier, PlanetInsight, WheelInsight, WheelInsightEntityType } from "../types";
+import { UserProfile, NatalChartData, DailyHoroscope, SynastryResult, UserEvolution, OracleChatResponse, OracleHistoryEntry, ForecastDailyReading, ForecastDaypartReading, ForecastDaypartSlot, ForecastMonthlyReading, ForecastWeeklyReading, NatalAnchorReading, NatalFullReading, NatalLivingReading, AskLumiaState, AskLumiaTier, ContentAccessTier, PlanetInsight, WheelInsight, WheelInsightEntityType, TodayOverview, HoroscopeReactionKey, HoroscopeReactionSummary } from "../types";
 import { SYSTEM_INSTRUCTION_ASTRA } from "../constants";
 import { getElementForSign } from "../lib/zodiac-utils";
 import { coerceNatalAnchorReading, coerceNatalFullReading, coerceNatalLivingReading, getCurrentNatalPeriodKey, mapNatalAnchorToLegacyIntro } from "../lib/natalReadings";
@@ -231,6 +231,61 @@ export const loadDailySignHoroscope = async (
   }
 
   return payload.reading as ForecastDailyReading;
+};
+
+export const getTodayOverview = async (
+  profile: UserProfile,
+  chartData: NatalChartData,
+  chartId?: number | null,
+  date?: string
+): Promise<TodayOverview> => {
+  if (!profile.id) {
+    throw buildApiError('Profile id is required');
+  }
+
+  const body = {
+    userId: profile.id,
+    profile,
+    chartData,
+    chartId,
+    date,
+  };
+  const response = await fetchWithTimeout(`${API_BASE_URL}/api/content/today/overview`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  }, 18000);
+
+  if (!response.ok) {
+    throw buildApiError(`Today overview failed: ${response.status} ${response.statusText}`, response.status);
+  }
+
+  const payload = await response.json();
+  if (!payload?.overview) {
+    throw buildApiError('Today overview content is missing');
+  }
+  return payload.overview as TodayOverview;
+};
+
+export const setHoroscopeReaction = async (
+  userId: string,
+  sign: string,
+  date: string,
+  reactionKey: HoroscopeReactionKey,
+  language: 'ru' | 'en' = 'ru'
+): Promise<HoroscopeReactionSummary> => {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/api/content/horoscope/reactions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId, sign, date, reactionKey, language }),
+  }, 6000);
+
+  if (!response.ok) {
+    throw buildApiError(`Horoscope reaction failed: ${response.status} ${response.statusText}`, response.status);
+  }
+
+  const payload = await response.json();
+  return payload.summary as HoroscopeReactionSummary;
 };
 
 export const getPremiumDaypartForecast = async (

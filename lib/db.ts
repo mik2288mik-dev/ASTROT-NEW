@@ -121,6 +121,7 @@ type DbContentVariant =
 type DbContentModelTier = 'base' | 'premium';
 type DbContentUnlockType = 'free' | 'premium' | 'lumi';
 type DbDailyLumiTaskKey = 'open_horoscope' | 'open_chart';
+type DbHoroscopeReactionKey = 'spot_on' | 'funny' | 'gentle' | 'not_mine';
 
 const DAILY_LUMI_TASKS: Array<{
   key: DbDailyLumiTaskKey;
@@ -2857,6 +2858,83 @@ export const db = {
         return { success: true };
       } catch (error: any) {
         log.error('[DB] Error setting daily horoscope', { error: error.message, zodiacSign, date });
+        throw error;
+      }
+    },
+  },
+
+  /** horoscope_reactions - one daily reaction per user/sign/date */
+  horoscope_reactions: {
+    _emptySummary(userReaction: DbHoroscopeReactionKey | null = null) {
+      const keys: DbHoroscopeReactionKey[] = ['spot_on', 'funny', 'gentle', 'not_mine'];
+      return {
+        userReaction,
+        counts: keys.map((key) => ({ key, label: key, count: 0 })),
+        total: 0,
+      };
+    },
+
+    async getSummary(userId: string, zodiacSign: string, date: string) {
+      const id = toUserId(userId);
+      const sign = String(zodiacSign || '').trim();
+      if (!DATABASE_URL) return this._emptySummary();
+
+      try {
+        const dbPool = getPool();
+        const [countsResult, ownResult] = await Promise.all([
+          dbPool.query(
+            `SELECT reaction_key, COUNT(*)::int AS count
+             FROM horoscope_reactions
+             WHERE zodiac_sign = $1 AND reaction_date = $2::date
+             GROUP BY reaction_key`,
+            [sign, date]
+          ),
+          dbPool.query(
+            `SELECT reaction_key
+             FROM horoscope_reactions
+             WHERE user_id = $1 AND zodiac_sign = $2 AND reaction_date = $3::date
+             LIMIT 1`,
+            [id, sign, date]
+          ),
+        ]);
+
+        const summary = this._emptySummary((ownResult.rows[0]?.reaction_key ?? null) as DbHoroscopeReactionKey | null);
+        const countMap = new Map(countsResult.rows.map((row: any) => [String(row.reaction_key), Number(row.count ?? 0)]));
+        summary.counts = summary.counts.map((item) => ({
+          ...item,
+          count: countMap.get(item.key) ?? 0,
+        }));
+        summary.total = summary.counts.reduce((sum, item) => sum + item.count, 0);
+        return summary;
+      } catch (error: any) {
+        log.error('[DB] Error getting horoscope reactions summary', { error: error.message, userId, zodiacSign, date });
+        throw error;
+      }
+    },
+
+    async set(userId: string, zodiacSign: string, date: string, reactionKey: DbHoroscopeReactionKey) {
+      const id = toUserId(userId);
+      const sign = String(zodiacSign || '').trim();
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+
+      try {
+        const dbPool = getPool();
+        await dbPool.query(
+          `INSERT INTO horoscope_reactions (user_id, zodiac_sign, reaction_date, reaction_key)
+           VALUES ($1, $2, $3::date, $4)
+           ON CONFLICT (user_id, zodiac_sign, reaction_date)
+           DO UPDATE SET reaction_key = EXCLUDED.reaction_key, updated_at = CURRENT_TIMESTAMP`,
+          [id, sign, date, reactionKey]
+        );
+        return this.getSummary(userId, sign, date);
+      } catch (error: any) {
+        log.error('[DB] Error setting horoscope reaction', {
+          error: error.message,
+          userId,
+          zodiacSign,
+          date,
+          reactionKey,
+        });
         throw error;
       }
     },
