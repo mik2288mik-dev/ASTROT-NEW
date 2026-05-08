@@ -287,6 +287,8 @@ export interface TodayOverview {
   reactions: HoroscopeReactionSummary;
 }
 
+export type HoroscopeLayer = 'sign' | 'chart' | 'love' | 'work_money';
+
 export type ForecastDaypartSlot = 'morning' | 'day' | 'evening';
 
 export interface ForecastDaypartReading {

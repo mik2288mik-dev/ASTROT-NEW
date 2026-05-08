@@ -242,7 +242,16 @@ export async function buildTodayMetrics(
 function clipText(text: string, max = 190) {
   const clean = text.replace(/\s+/g, ' ').trim();
   if (clean.length <= max) return clean;
-  return `${clean.slice(0, max - 1).trim()}…`;
+  const sentences = clean.match(/[^.!?。！？]+[.!?。！？]+/g) || [];
+  let result = '';
+  for (const sentence of sentences) {
+    const next = `${result}${sentence}`.trim();
+    if (next.length > max) break;
+    result = `${next} `;
+  }
+  if (result.trim().length >= 60) return result.trim();
+  const boundary = clean.lastIndexOf(' ', max - 1);
+  return `${clean.slice(0, boundary > 80 ? boundary : max - 1).trim()}…`;
 }
 
 function firstParagraph(text: string) {

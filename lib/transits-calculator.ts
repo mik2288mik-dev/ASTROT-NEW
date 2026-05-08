@@ -5,9 +5,6 @@
  * и их интерпретации для прогнозов
  */
 
-import { calculateNatalChart } from './swisseph-calculator';
-import { getApproximateSunSignByDate } from './zodiac-utils';
-
 // Logging utility
 const log = {
   info: (message: string, data?: any) => {
@@ -45,6 +42,75 @@ export interface CurrentTransits {
   saturn?: PlanetTransit;
   moonPhase?: string;
   summary?: string;
+  source?: 'swisseph' | 'algorithmic';
+}
+
+const ZODIAC_SIGNS = [
+  'Aries',
+  'Taurus',
+  'Gemini',
+  'Cancer',
+  'Leo',
+  'Virgo',
+  'Libra',
+  'Scorpio',
+  'Sagittarius',
+  'Capricorn',
+  'Aquarius',
+  'Pisces',
+];
+
+function normalizeDegree(value: number): number {
+  const next = value % 360;
+  return next < 0 ? next + 360 : next;
+}
+
+function toRadians(value: number): number {
+  return (value * Math.PI) / 180;
+}
+
+function daysSinceJ2000(date: Date): number {
+  const j2000 = Date.UTC(2000, 0, 1, 12, 0, 0, 0);
+  return (date.getTime() - j2000) / 86_400_000;
+}
+
+function transitFromLongitude(
+  planet: string,
+  longitude: number,
+  description: (sign: string) => string
+): PlanetTransit {
+  const normalized = normalizeDegree(longitude);
+  const signIndex = Math.floor(normalized / 30) % 12;
+  const sign = ZODIAC_SIGNS[signIndex] || 'Aries';
+  return {
+    planet,
+    sign,
+    degree: Number((normalized % 30).toFixed(2)),
+    description: description(sign),
+  };
+}
+
+function calculateApproximateLongitudes(date: Date) {
+  const n = daysSinceJ2000(date);
+  const meanSun = normalizeDegree(280.460 + 0.9856474 * n);
+  const sunAnomaly = normalizeDegree(357.528 + 0.9856003 * n);
+  const sun = normalizeDegree(
+    meanSun + 1.915 * Math.sin(toRadians(sunAnomaly)) + 0.020 * Math.sin(toRadians(2 * sunAnomaly))
+  );
+
+  const moonMean = normalizeDegree(218.316 + 13.176396 * n);
+  const moonAnomaly = normalizeDegree(134.963 + 13.064993 * n);
+  const moon = normalizeDegree(moonMean + 6.289 * Math.sin(toRadians(moonAnomaly)));
+
+  // Lightweight geocentric approximations: enough for daily rhythm metrics when
+  // native Swiss bindings are unavailable, without returning static fake data.
+  const mercury = normalizeDegree(sun + 23 * Math.sin((2 * Math.PI * n) / 116));
+  const venus = normalizeDegree(sun + 37 * Math.sin((2 * Math.PI * n) / 584));
+  const mars = normalizeDegree(355.433 + 0.524039 * n + 8 * Math.sin((2 * Math.PI * n) / 780));
+  const jupiter = normalizeDegree(34.351 + 0.083086 * n);
+  const saturn = normalizeDegree(50.077 + 0.033459 * n);
+
+  return { sun, moon, mercury, venus, mars, jupiter, saturn };
 }
 
 /**
@@ -59,6 +125,7 @@ export async function getCurrentTransits(date?: Date): Promise<CurrentTransits> 
   log.info('Calculating current transits', { date: dateString });
 
   try {
+    const { calculateNatalChart } = await import('./swisseph-calculator');
     // Используем Swiss Ephemeris для расчёта текущих положений планет
     // Передаём фиктивное имя и место, так как нам нужны только положения планет
     const transitChart = await calculateNatalChart(
@@ -104,7 +171,8 @@ export async function getCurrentTransits(date?: Date): Promise<CurrentTransits> 
         description: `Марс в ${transitChart.mars.sign}, влияя на энергию и действия`
       } : undefined,
       moonPhase,
-      summary: `Текущие астрологические влияния на ${new Date(dateString).toLocaleDateString('ru-RU')}`
+      summary: `Текущие астрологические влияния на ${new Date(dateString).toLocaleDateString('ru-RU')}`,
+      source: 'swisseph',
     };
 
     log.info('Transits calculated successfully', {
@@ -120,8 +188,7 @@ export async function getCurrentTransits(date?: Date): Promise<CurrentTransits> 
       date: dateString
     });
 
-    // Возвращаем упрощённые транзиты на основе даты
-    return getSimplifiedTransits(targetDate);
+    return getAlgorithmicTransits(targetDate);
   }
 }
 
@@ -130,46 +197,23 @@ export async function getCurrentTransits(date?: Date): Promise<CurrentTransits> 
  * 
  * Используется когда Swiss Ephemeris недоступен
  */
-function getSimplifiedTransits(date: Date): CurrentTransits {
+function getAlgorithmicTransits(date: Date): CurrentTransits {
   const dateString = date.toISOString().split('T')[0];
-  
-  // Упрощённое определение знака Солнца по дате
-  const sunSign = getSunSignByDate(date);
+  const longitudes = calculateApproximateLongitudes(date);
   
   return {
     date: dateString,
-    sun: {
-      planet: 'Sun',
-      sign: sunSign,
-      degree: 15,
-      description: `Солнце сейчас в ${sunSign}`
-    },
-    moon: {
-      planet: 'Moon',
-      sign: 'Cancer', // Упрощённо
-      degree: 10,
-      description: 'Луна влияет на эмоциональный фон'
-    },
-    moonPhase: 'Растущая',
-    summary: `Текущие астрологические влияния на ${date.toLocaleDateString('ru-RU')}`
+    sun: transitFromLongitude('Sun', longitudes.sun, (sign) => `Солнце сейчас в ${sign}`),
+    moon: transitFromLongitude('Moon', longitudes.moon, (sign) => `Луна сейчас в ${sign}`),
+    mercury: transitFromLongitude('Mercury', longitudes.mercury, (sign) => `Меркурий сейчас в ${sign}`),
+    venus: transitFromLongitude('Venus', longitudes.venus, (sign) => `Венера сейчас в ${sign}`),
+    mars: transitFromLongitude('Mars', longitudes.mars, (sign) => `Марс сейчас в ${sign}`),
+    jupiter: transitFromLongitude('Jupiter', longitudes.jupiter, (sign) => `Юпитер сейчас в ${sign}`),
+    saturn: transitFromLongitude('Saturn', longitudes.saturn, (sign) => `Сатурн сейчас в ${sign}`),
+    moonPhase: getMoonPhase(longitudes.moon),
+    summary: `Текущие астрологические влияния на ${date.toLocaleDateString('ru-RU')}`,
+    source: 'algorithmic',
   };
-}
-
-/**
- * Определить знак Солнца по дате (упрощённо)
- * 
- * Использует централизованную функцию для избежания дублирования кода.
- * 
- * @param date - Дата для определения знака
- * @returns Приблизительный знак зодиака
- */
-function getSunSignByDate(date: Date): string {
-  const month = date.getMonth() + 1;
-  const day = date.getDate();
-  const year = date.getFullYear();
-
-  // Используем централизованную функцию для избежания дублирования
-  return getApproximateSunSignByDate(year, month, day);
 }
 
 /**

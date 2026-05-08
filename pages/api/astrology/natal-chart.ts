@@ -3,6 +3,7 @@ import { validateNatalChartInput, formatValidationErrors } from '../../../lib/va
 import { withRateLimit, RATE_LIMIT_CONFIGS } from '../../../lib/rateLimit';
 import { repairCanonicalChartForUser, ensureCanonicalPrimaryChart } from '../../../lib/natalChartPersistence';
 import { tryAcquireLock, releaseLock, LockKeys } from '../../../lib/serverLocks';
+import { invalidUserIdPayload, isValidUserId } from '../../../lib/userId';
 
 const log = {
   info: (message: string, data?: any) => {
@@ -30,15 +31,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
   try {
     const { userId, name, birthDate, birthTime, birthPlace, language, forceRecalculate } = req.body || {};
-    if (!userId || !String(userId).trim()) {
-      return res.status(400).json({
-        error: 'Validation failed',
-        message: 'userId is required',
-      });
+    const userLanguage = language === 'en' ? 'en' : 'ru';
+    if (!isValidUserId(userId)) {
+      return res.status(400).json(invalidUserIdPayload(userLanguage));
     }
     const normalizedBirthTime = birthTime || '12:00';
     const effectiveUserId = String(userId).trim();
-    const userLanguage = language === 'en' ? 'en' : 'ru';
 
     const validation = validateNatalChartInput({
       name,
@@ -128,6 +126,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     } else if (errorMsg.includes('chart slots limit')) {
       statusCode = 403;
     } else if (errorMsg.includes('ephemeris') || errorMsg.includes('initialize')) {
+      statusCode = 503;
       message = userLanguage === 'ru'
         ? 'Ошибка астрологических расчётов. Попробуйте позже.'
         : 'Astrology calculation error. Please try again later.';

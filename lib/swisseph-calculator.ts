@@ -6,7 +6,6 @@ import axios from 'axios';
 import path from 'path';
 import tzLookup from 'tz-lookup';
 import { fromZonedTime, toZonedTime } from 'date-fns-tz';
-import * as swisseph from 'swisseph-v2';
 import { CANONICAL_NATAL_CALCULATION_VERSION, normalizeCoordinateForStorage } from './natalChartCanonical';
 
 // Logging utility
@@ -75,6 +74,49 @@ interface NatalAspectData {
 // Глобальная инициализация Swiss Ephemeris
 let sweInstance: any = null;
 let isInitialized = false;
+let swissephModule: any = null;
+let swissephLoadError: Error | null = null;
+
+function loadSwissEphemerisModule() {
+  if (swissephModule) return swissephModule;
+  if (swissephLoadError) throw swissephLoadError;
+
+  try {
+    // Keep the native binding import lazy so API routes can validate requests and
+    // return controlled errors if the ephemeris is unavailable during runtime.
+    swissephModule = require('swisseph-v2');
+    return swissephModule;
+  } catch (error: any) {
+    swissephLoadError = new Error(
+      `Swiss Ephemeris native module is unavailable: ${error?.message || 'failed to load swisseph-v2'}`
+    );
+    (swissephLoadError as any).code = 'EPHEMERIS_UNAVAILABLE';
+    (swissephLoadError as any).cause = error;
+    throw swissephLoadError;
+  }
+}
+
+export function getSwissEphemerisHealth(): { ok: boolean; code?: string; message?: string } {
+  try {
+    const swe = loadSwissEphemerisModule();
+    const requiredMethods = ['swe_calc_ut', 'swe_julday', 'swe_houses', 'swe_set_ephe_path'];
+    const missingMethods = requiredMethods.filter((method) => typeof swe?.[method] !== 'function');
+    if (missingMethods.length) {
+      return {
+        ok: false,
+        code: 'EPHEMERIS_UNAVAILABLE',
+        message: `Swiss Ephemeris is missing methods: ${missingMethods.join(', ')}`,
+      };
+    }
+    return { ok: true };
+  } catch (error: any) {
+    return {
+      ok: false,
+      code: 'EPHEMERIS_UNAVAILABLE',
+      message: error?.message || 'Swiss Ephemeris native module is unavailable',
+    };
+  }
+}
 
 /**
  * Инициализация Swiss Ephemeris Native
@@ -88,8 +130,7 @@ function initSwissEph() {
   try {
     log.info('Initializing Swiss Ephemeris Native...');
     
-    // swisseph-v2 уже инициализирован при импорте
-    sweInstance = swisseph;
+    sweInstance = loadSwissEphemerisModule();
     
     if (!sweInstance) {
       throw new Error('Swiss Ephemeris instance is null after initialization');
@@ -460,7 +501,7 @@ function calculatePlanetPosition(
 ): PlanetPosition | null {
   try {
     // Используем флаги для точных расчетов: SEFLG_SWIEPH | SEFLG_SPEED
-    const flags = swisseph.SEFLG_SWIEPH | swisseph.SEFLG_SPEED;
+    const flags = swe.SEFLG_SWIEPH | swe.SEFLG_SPEED;
     const result = swe.swe_calc_ut(julday, planetId, flags);
     
     if (!result || typeof result.longitude !== 'number') {

@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import type {
   HoroscopeReactionKey,
+  HoroscopeLayer,
   NatalChartData,
   NatalChartMode,
   TodayMetric,
@@ -31,6 +32,7 @@ interface DashboardProps {
   profile: UserProfile;
   chartData: NatalChartData | null;
   onNavigate: (view: DashboardView) => void;
+  onOpenHoroscopeLayer: (layer: HoroscopeLayer) => void;
   onOpenNatalMode: (mode: NatalChartMode) => void;
   onOpenSettings: () => void;
   onOpenWallet: () => void;
@@ -179,6 +181,7 @@ function TodaySection({
   busyReaction,
   onReact,
   onOpenHoroscope,
+  onRetry,
 }: {
   overview: TodayOverview | null;
   loading: boolean;
@@ -187,14 +190,19 @@ function TodaySection({
   busyReaction: HoroscopeReactionKey | null;
   onReact: (reaction: HoroscopeReactionKey) => void;
   onOpenHoroscope: () => void;
+  onRetry: () => void;
 }) {
   const fallbackDate = language === 'en' ? 'Today' : 'Сегодня';
-  const title = overview?.headline || (language === 'en' ? 'Today is asking for one clear rhythm' : 'Сегодня важно поймать свой ритм');
-  const summary =
-    overview?.summary ||
-    (language === 'en'
-      ? 'I am gathering your personal day through the chart and today’s sky.'
-      : 'Собираю твой день по карте и текущему небу.');
+  const title = overview?.headline || (loading
+    ? language === 'en' ? 'Gathering your day' : 'Собираю твой день'
+    : language === 'en' ? 'Your day did not load yet' : 'Твой день пока не загрузился');
+  const summary = overview?.summary || (loading
+    ? language === 'en'
+      ? 'Lumia is calculating the chart, sky, horoscope, and rhythm metrics.'
+      : 'Lumia считает карту, текущее небо, гороскоп и показатели ритма.'
+    : language === 'en'
+      ? 'Try again or open the horoscope while the day layer refreshes.'
+      : 'Попробуй ещё раз или открой гороскоп, пока дневной слой обновляется.');
 
   return (
     <section className="pt-2">
@@ -214,34 +222,38 @@ function TodaySection({
 
       <p className="mt-3 max-w-[22rem] text-[15px] leading-relaxed tracking-normal text-[#5f5964]">{summary}</p>
 
-      <div className="mt-5 grid grid-cols-2 gap-2.5">
-        {overview?.metrics?.length
-          ? overview.metrics.map((metric) => <MetricTile key={metric.key} metric={metric} />)
-          : Array.from({ length: 4 }, (_, index) => <SkeletonMetric key={index} />)}
-      </div>
+      {overview?.metrics?.length || loading ? (
+        <div className="mt-5 grid grid-cols-2 gap-2.5">
+          {overview?.metrics?.length
+            ? overview.metrics.map((metric) => <MetricTile key={metric.key} metric={metric} />)
+            : Array.from({ length: 4 }, (_, index) => <SkeletonMetric key={index} />)}
+        </div>
+      ) : null}
 
-      <div className="mt-5 divide-y divide-black/[0.07] rounded-[24px] border border-black/[0.06] bg-white/76 px-4 shadow-[0_18px_44px_rgba(0,0,0,0.05)]">
-        <InsightLine
-          label={language === 'en' ? `${overview?.signLabel || 'Zodiac'} horoscope` : `Гороскоп ${overview?.signLabel || 'по знаку'}`}
-          value={overview?.horoscopeExcerpt || (language === 'en' ? 'The zodiac layer is almost ready.' : 'Общий гороскоп уже почти готов.')}
-          icon={<MessageCircleHeart size={15} strokeWidth={1.8} />}
-        />
-        <InsightLine
-          label={language === 'en' ? 'Phrase of the day' : 'Фраза дня'}
-          value={overview?.phrase || title}
-          icon={<Sparkles size={15} strokeWidth={1.8} />}
-        />
-        <InsightLine
-          label={language === 'en' ? 'Best step' : 'Лучший шаг'}
-          value={overview?.bestAction || (language === 'en' ? 'Choose one priority.' : 'Выбери один приоритет.')}
-          icon={<Target size={15} strokeWidth={1.8} />}
-        />
-        <InsightLine
-          label={language === 'en' ? 'Soft risk' : 'Мягкий риск'}
-          value={overview?.softRisk || (language === 'en' ? 'Do not answer from pressure.' : 'Не отвечай из давления.')}
-          icon={<Sparkles size={15} strokeWidth={1.8} />}
-        />
-      </div>
+      {overview ? (
+        <div className="mt-5 divide-y divide-black/[0.07] rounded-[24px] border border-black/[0.06] bg-white/76 px-4 shadow-[0_18px_44px_rgba(0,0,0,0.05)]">
+          <InsightLine
+            label={language === 'en' ? `${overview.signLabel} horoscope` : `Гороскоп ${overview.signLabel}`}
+            value={overview.horoscopeExcerpt}
+            icon={<MessageCircleHeart size={15} strokeWidth={1.8} />}
+          />
+          <InsightLine
+            label={language === 'en' ? 'Phrase of the day' : 'Фраза дня'}
+            value={overview.phrase}
+            icon={<Sparkles size={15} strokeWidth={1.8} />}
+          />
+          <InsightLine
+            label={language === 'en' ? 'Best step' : 'Лучший шаг'}
+            value={overview.bestAction}
+            icon={<Target size={15} strokeWidth={1.8} />}
+          />
+          <InsightLine
+            label={language === 'en' ? 'Soft risk' : 'Мягкий риск'}
+            value={overview.softRisk}
+            icon={<Sparkles size={15} strokeWidth={1.8} />}
+          />
+        </div>
+      ) : null}
 
       {overview ? (
         <>
@@ -255,7 +267,14 @@ function TodaySection({
 
       {error ? (
         <div className="mt-4 rounded-[18px] border border-[#d9b9b0] bg-[#fff7f4] px-4 py-3 text-[13px] leading-relaxed text-[#8a5147]">
-          {error}
+          <p>{error}</p>
+          <button
+            type="button"
+            onClick={onRetry}
+            className="mt-3 inline-flex min-h-[36px] items-center rounded-full bg-white px-3 text-[12px] font-semibold text-[#6f4038] shadow-[0_8px_18px_rgba(0,0,0,0.06)] active:scale-[0.98]"
+          >
+            {language === 'en' ? 'Try again' : 'Повторить'}
+          </button>
         </div>
       ) : null}
 
@@ -277,17 +296,23 @@ function TodaySection({
   );
 }
 
-function PremiumEntryRow({ language, onOpenHoroscope }: { language: 'ru' | 'en'; onOpenHoroscope: () => void }) {
+function PremiumEntryRow({
+  language,
+  onOpenLayer,
+}: {
+  language: 'ru' | 'en';
+  onOpenLayer: (layer: HoroscopeLayer) => void;
+}) {
   const items = language === 'en'
     ? [
-        { title: 'Personal day', icon: Lock },
-        { title: 'Love today', icon: Heart },
-        { title: 'Work and money', icon: BriefcaseBusiness },
+        { title: 'Personal day', icon: Lock, layer: 'chart' as const },
+        { title: 'Love today', icon: Heart, layer: 'love' as const },
+        { title: 'Work and money', icon: BriefcaseBusiness, layer: 'work_money' as const },
       ]
     : [
-        { title: 'Личный день', icon: Lock },
-        { title: 'Любовь сегодня', icon: Heart },
-        { title: 'Работа и деньги', icon: BriefcaseBusiness },
+        { title: 'Личный день', icon: Lock, layer: 'chart' as const },
+        { title: 'Любовь сегодня', icon: Heart, layer: 'love' as const },
+        { title: 'Работа и деньги', icon: BriefcaseBusiness, layer: 'work_money' as const },
       ];
 
   return (
@@ -299,11 +324,11 @@ function PremiumEntryRow({ language, onOpenHoroscope }: { language: 'ru' | 'en';
         <span className="text-[11px] font-medium tracking-normal text-[#8a838d]">Premium / Lumi</span>
       </div>
       <div className="grid grid-cols-3 gap-2">
-        {items.map(({ title, icon: Icon }) => (
+        {items.map(({ title, icon: Icon, layer }) => (
           <button
             key={title}
             type="button"
-            onClick={onOpenHoroscope}
+            onClick={() => onOpenLayer(layer)}
             className="flex min-h-[82px] flex-col justify-between rounded-[18px] border border-black/[0.06] bg-white/78 p-3 text-left shadow-[0_10px_26px_rgba(0,0,0,0.04)] active:scale-[0.985]"
           >
             <Icon size={17} strokeWidth={1.8} className="text-[#38333a]" />
@@ -413,7 +438,7 @@ function GatewaySection({
 }
 
 export const Dashboard = memo<DashboardProps>(
-  ({ profile, chartData, onNavigate, onOpenNatalMode, onOpenSettings, onOpenWallet }) => {
+  ({ profile, chartData, onNavigate, onOpenHoroscopeLayer, onOpenNatalMode, onOpenSettings, onOpenWallet }) => {
     const shouldReduceMotion = useReducedMotion();
     const language = profile.language === 'en' ? 'en' : 'ru';
     const todayKey = useMemo(() => getMoscowTodayKey(), []);
@@ -461,7 +486,7 @@ export const Dashboard = memo<DashboardProps>(
           },
         };
 
-    useEffect(() => {
+    const loadOverview = React.useCallback(() => {
       if (!profile.id || !chartData) return;
       let cancelled = false;
       setLoadingOverview(true);
@@ -473,12 +498,27 @@ export const Dashboard = memo<DashboardProps>(
         })
         .catch((error: any) => {
           if (!cancelled) {
-            setOverviewError(
-              error?.message ||
-                (language === 'en'
-                  ? 'Could not load your day yet.'
-                  : 'Пока не удалось загрузить твой день.')
-            );
+            const status = Number(error?.status || 0);
+            const code = String(error?.code || '');
+            if (code === 'INVALID_USER_ID' || status === 400) {
+              setOverviewError(
+                language === 'en'
+                  ? 'Open Lumia through Telegram so the app can identify your profile.'
+                  : 'Открой Lumia через Telegram, чтобы приложение смогло определить профиль.'
+              );
+            } else if (code === 'CHART_REQUIRED' || status === 409) {
+              setOverviewError(
+                language === 'en'
+                  ? 'A saved natal chart is required for your day.'
+                  : 'Для твоего дня нужна сохранённая натальная карта.'
+              );
+            } else {
+              setOverviewError(
+                language === 'en'
+                  ? 'Your day did not load. Try again in a moment.'
+                  : 'Твой день не загрузился. Попробуй ещё раз через пару секунд.'
+              );
+            }
           }
         })
         .finally(() => {
@@ -490,9 +530,11 @@ export const Dashboard = memo<DashboardProps>(
       };
     }, [chartData, language, profile, todayKey]);
 
-    const openHoroscope = () => {
+    useEffect(() => loadOverview(), [loadOverview]);
+
+    const openHoroscope = (layer: HoroscopeLayer = 'sign') => {
       haptic('open');
-      onNavigate('horoscope');
+      onOpenHoroscopeLayer(layer);
     };
 
     const openNatal = () => {
@@ -587,13 +629,16 @@ export const Dashboard = memo<DashboardProps>(
                 language={language}
                 busyReaction={busyReaction}
                 onReact={handleReaction}
-                onOpenHoroscope={openHoroscope}
+                onOpenHoroscope={() => openHoroscope('sign')}
+                onRetry={() => {
+                  void loadOverview();
+                }}
               />
-              <PremiumEntryRow language={language} onOpenHoroscope={openHoroscope} />
+              {overview ? <PremiumEntryRow language={language} onOpenLayer={openHoroscope} /> : null}
               <GatewaySection
                 language={language}
                 onOpenNatal={openNatal}
-                onOpenHoroscope={openHoroscope}
+                onOpenHoroscope={() => openHoroscope('sign')}
                 onOpenSynastry={openSynastry}
               />
             </div>

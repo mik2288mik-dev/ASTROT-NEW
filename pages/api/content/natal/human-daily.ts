@@ -9,7 +9,6 @@ import {
   saveReading,
 } from '../../../../lib/natalReading/apiHelper';
 import {
-  buildHumanDailyFallback,
   buildHumanInputHash,
   generateHumanDailySection,
 } from '../../../../lib/natalHumanInterpretation';
@@ -209,13 +208,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   } catch (error) {
     console.error(`[natal/human-daily:${sectionKey}] generation failed:`, error instanceof Error ? error.message : error);
-    const fallback = buildHumanDailyFallback(ctx.profile, ctx.chartData!, sectionKey, dateKey);
-    const saved = await saveReading(ctx, cacheOpts, fallback).catch(() => null);
-    return res.status(200).json({
-      interpretation: saved || { content: fallback, promptVersion: cacheOpts.promptVersion },
-      source: saved ? 'fallback' : 'fallback-inline',
-      entitlement: access.entitlement,
-      accessTier: access.accessTier,
+    return res.status(503).json({
+      error: 'CONTENT_GENERATION_UNAVAILABLE',
+      code: 'CONTENT_GENERATION_UNAVAILABLE',
+      message: 'Этот слой сейчас не удалось сгенерировать. Попробуй ещё раз.',
       lumiBalance: ctx.user.lumi_balance ?? 0,
     });
   }

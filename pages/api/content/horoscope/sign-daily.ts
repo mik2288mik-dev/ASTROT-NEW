@@ -19,6 +19,11 @@ function readLanguage(req: NextApiRequest): Language {
   return raw === 'en' ? 'en' : 'ru';
 }
 
+function readStrict(req: NextApiRequest): boolean {
+  const raw = req.method === 'GET' ? req.query.strict : req.body?.strict;
+  return raw === true || raw === 'true' || raw === '1';
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -27,6 +32,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const sign = normalizeZodiacKey(String((req.method === 'GET' ? req.query.sign : req.body?.sign) || ''));
   const date = readDate(req);
   const language = readLanguage(req);
+  const strict = readStrict(req);
 
   if (!sign) {
     return res.status(400).json({
@@ -43,6 +49,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({ reading: cached, source: 'cache' });
   }
 
-  const reading = await getOrGenerateSignDailyHoroscope(sign, date, language);
-  return res.status(200).json({ reading, source: 'generated' });
+  try {
+    const reading = await getOrGenerateSignDailyHoroscope(sign, date, language, {
+      allowStaticFallback: !strict,
+    });
+    return res.status(200).json({ reading, source: 'generated' });
+  } catch (error: any) {
+    const status = error?.status === 503 ? 503 : 500;
+    const code = error?.code || (status === 503 ? 'CONTENT_GENERATION_UNAVAILABLE' : 'SIGN_HOROSCOPE_FAILED');
+    return res.status(status).json({
+      error: code,
+      code,
+      message:
+        language === 'en'
+          ? 'The horoscope could not be generated right now. Please try again.'
+          : 'Гороскоп сейчас не удалось сгенерировать. Попробуй ещё раз.',
+    });
+  }
 }

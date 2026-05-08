@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '../../../lib/db';
 import { repairCanonicalChartForUser } from '../../../lib/natalChartPersistence';
 import { buildCanonicalNatalInputHash, isCanonicalNatalChartDataComplete } from '../../../lib/natalChartCanonical';
+import { invalidUserIdPayload, isValidUserId } from '../../../lib/userId';
 
 const log = {
   info: (message: string, data?: any) => {
@@ -14,11 +15,12 @@ const log = {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { id } = req.query;
-  const userId = Array.isArray(id) ? id[0] : id;
+  const rawUserId = Array.isArray(id) ? id[0] : id;
 
-  if (!userId) {
-    return res.status(400).json({ error: 'User ID is required' });
+  if (!isValidUserId(rawUserId)) {
+    return res.status(400).json(invalidUserIdPayload('ru'));
   }
+  const userId = String(rawUserId).trim();
 
   try {
     if (req.method === 'GET') {

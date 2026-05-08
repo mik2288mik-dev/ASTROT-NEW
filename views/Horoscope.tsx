@@ -4,6 +4,7 @@ import { motion, useTransform, type MotionValue } from 'framer-motion';
 import type {
   ForecastDailyReading,
   ForecastDaypartReading,
+  HoroscopeLayer,
   InterpretationSection,
   NatalChartData,
   UserProfile,
@@ -17,7 +18,6 @@ import { ZodiacIcon } from '../components/icons/ZodiacIcon';
 import { useSwipeBack } from '../lib/useSwipeBack';
 import type { HumanDailySectionKey } from '../lib/natalHumanShared';
 
-type HoroscopeLayer = 'sign' | 'chart' | 'love' | 'work_money';
 type HoroscopeTone = 'sign' | 'chart' | 'love' | 'work';
 type HoroscopeBackgroundState = { sign: string | null; tone: HoroscopeTone };
 
@@ -31,6 +31,7 @@ interface HoroscopeProps {
   onOpenWallet?: () => void;
   onBackToChart?: () => void;
   onBackgroundChange?: (state: HoroscopeBackgroundState | null) => void;
+  initialLayer?: HoroscopeLayer;
 }
 
 const ZODIAC_SIGNS = [
@@ -83,37 +84,6 @@ function haptic(kind: 'select' | 'open' = 'select') {
   } catch {
     /* Telegram haptics are optional */
   }
-}
-
-function buildSignFallback(sign: ZodiacKey, date: string, language: 'ru' | 'en'): ForecastDailyReading {
-  const signLabel = getZodiacSign(language, sign);
-  if (language === 'en') {
-    return {
-      date,
-      headline: `${signLabel}: choose one honest rhythm`,
-      summary: `Today ${signLabel} feels steadier when the day is not overloaded with other people’s urgency.`,
-      chance: 'A simple decision can return a sense of calm control.',
-      risk: 'The soft risk is answering too quickly before the real priority is clear.',
-      focus: 'Choose one thing and give it a small, visible step.',
-      reading:
-        `For ${signLabel}, today is less about speed and more about choosing the right pace. Do not turn every signal around you into a command. Notice what actually deserves your attention and let the rest stay in the background.\n\nThis is a good day to move through one clean action instead of many scattered attempts. The clearer your inner yes or no, the easier it becomes to protect your energy.`,
-      context: 'This is a general zodiac horoscope. The personal layer uses your full natal chart.',
-      advice: ['Keep the day simple.', 'Do not answer from pressure.', 'Let one small action carry the day.'],
-    };
-  }
-
-  return {
-    date,
-    headline: `${signLabel}: выберите один честный ритм`,
-    summary: `Сегодня ${signLabel} легче держит опору, когда день не перегружен чужой срочностью.`,
-    chance: 'Простой выбор может вернуть ощущение спокойного контроля.',
-    risk: 'Мягкий риск дня - отвечать слишком быстро, пока настоящий приоритет ещё не ясен.',
-    focus: 'Выберите одно дело и сделайте по нему небольшой, но видимый шаг.',
-    reading:
-      `Для знака ${signLabel} этот день не про скорость, а про правильный темп. Не превращайте каждый сигнал вокруг в команду к действию. Заметьте, что правда требует внимания, а остальное оставьте фоном.\n\nСегодня лучше сработает одно чистое действие, чем много разрозненных попыток. Чем яснее внутреннее «да» или «нет», тем легче беречь силы и не расплескать день.`,
-    context: 'Это общий гороскоп по знаку. Персональный слой строится по полной натальной карте.',
-    advice: ['Упростите день.', 'Не отвечайте из давления.', 'Пусть одно маленькое действие соберёт ритм.'],
-  };
 }
 
 function getLayerConfigs(): LayerConfig[] {
@@ -313,11 +283,29 @@ const HoroscopeSlide = memo<HoroscopeSlideProps>(({ layer, offset, viewportWidth
 HoroscopeSlide.displayName = 'HoroscopeSlide';
 
 export const Horoscope: React.FC<HoroscopeProps> = memo(
-  ({ profile, chartData, chartId, onUpdateProfile, onOpenChart, onRequestPremium, onOpenWallet, onBackToChart, onBackgroundChange }) => {
+  ({
+    profile,
+    chartData,
+    chartId,
+    initialLayer = 'sign',
+    onUpdateProfile,
+    onOpenChart,
+    onRequestPremium,
+    onOpenWallet,
+    onBackToChart,
+    onBackgroundChange,
+  }) => {
     const language = profile.language === 'en' ? 'en' : 'ru';
     const today = getMoscowTodayKey();
     const userId = String(profile.id || '');
     const profileRef = useRef(profile);
+    const layerRefs = useRef<Record<HoroscopeLayer, HTMLElement | null>>({
+      sign: null,
+      chart: null,
+      love: null,
+      work_money: null,
+    });
+    const autoOpenedLayerRef = useRef<string | null>(null);
 
     useEffect(() => {
       profileRef.current = profile;
@@ -326,9 +314,9 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
     const initialSign = useMemo(() => normalizeSign(chartData?.sun?.sign), [chartData?.sun?.sign]);
     const [selectedSign, setSelectedSign] = useState<ZodiacKey>(initialSign);
     const [showSignPicker, setShowSignPicker] = useState(false);
-    const [signReading, setSignReading] = useState<ForecastDailyReading>(() =>
-      buildSignFallback(initialSign, today, language)
-    );
+    const [signReading, setSignReading] = useState<ForecastDailyReading | null>(null);
+    const [signLoading, setSignLoading] = useState(false);
+    const [signError, setSignError] = useState<string | null>(null);
     const [personalDay, setPersonalDay] = useState<ForecastDaypartReading | null>(null);
     const [loveSection, setLoveSection] = useState<InterpretationSection | null>(null);
     const [workSection, setWorkSection] = useState<InterpretationSection | null>(null);
@@ -340,7 +328,7 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
     }, [initialSign]);
 
     const layers = useMemo(() => getLayerConfigs(), []);
-    const activeConfig = layers[0];
+    const activeConfig = layers.find((layer) => layer.id === initialLayer) || layers[0];
     const zodiacLabel = getZodiacSign(language, selectedSign);
 
     useEffect(() => {
@@ -348,20 +336,35 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
       return () => onBackgroundChange?.(null);
     }, [activeConfig.tone, onBackgroundChange, selectedSign]);
 
-    useEffect(() => {
+    const loadSignReading = React.useCallback(() => {
       let cancelled = false;
-      setSignReading(buildSignFallback(selectedSign, today, language));
-      const load = async () => {
-        try {
-          const reading = await loadDailySignHoroscope(selectedSign, today, language);
+      setSignLoading(true);
+      setSignError(null);
+      setSignReading(null);
+
+      loadDailySignHoroscope(selectedSign, today, language)
+        .then((reading) => {
           if (!cancelled) setSignReading(reading);
-        } catch {}
-      };
-      void load();
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setSignError(
+              language === 'en'
+                ? 'The horoscope did not load. Please try again.'
+                : 'Гороскоп не загрузился. Попробуй ещё раз.'
+            );
+          }
+        })
+        .finally(() => {
+          if (!cancelled) setSignLoading(false);
+        });
+
       return () => {
         cancelled = true;
       };
     }, [language, selectedSign, today]);
+
+    useEffect(() => loadSignReading(), [loadSignReading]);
 
     useEffect(() => {
       if (!userId || !chartData) return;
@@ -405,6 +408,9 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
       const err = error as HumanReadingError;
       if (err?.code === 'INSUFFICIENT_LUMI') {
         return 'На балансе не хватает Lumi. Можно открыть Premium или пополнить кошелёк.';
+      }
+      if (err?.code === 'CONTENT_GENERATION_UNAVAILABLE' || err?.status === 503) {
+        return 'Слой сейчас не сгенерировался. Попробуйте ещё раз: если доступ уже открыт, повторного списания не будет.';
       }
       if (err?.status === 403 || err?.status === 409) {
         return fallback;
@@ -458,13 +464,26 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
 
         haptic('open');
       } catch (error) {
+        const currentLayer = layers.find((item) => item.id === layer);
         setLayerError(
-          getFriendlyError(error, `Этот слой можно открыть в Premium или разово за ${activeConfig.price || 35} Lumi.`)
+          getFriendlyError(error, `Этот слой можно открыть в Premium или разово за ${currentLayer?.price || 35} Lumi.`)
         );
       } finally {
         setLoadingLayer(null);
       }
     };
+
+    useEffect(() => {
+      const key = `${initialLayer}:${today}:${userId}:${profile.isPremium ? 'premium' : 'basic'}`;
+      window.requestAnimationFrame(() => {
+        layerRefs.current[initialLayer]?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      });
+
+      if (initialLayer !== 'sign' && profile.isPremium && autoOpenedLayerRef.current !== key) {
+        autoOpenedLayerRef.current = key;
+        void loadLayer(initialLayer, false);
+      }
+    }, [initialLayer, profile.isPremium, today, userId]);
 
     const chooseSign = (sign: ZodiacKey) => {
       haptic();
@@ -545,7 +564,7 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
     };
 
     const renderSignSlide = () => {
-      const paragraphs = splitParagraphs(signReading.reading, 2);
+      const paragraphs = splitParagraphs(signReading?.reading, 2);
       return (
         <div className="flex h-full min-h-0 flex-col">
           <div className="pt-1">
@@ -571,18 +590,43 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
             <SparkleTitle tone="sign" className="max-w-[min(82vw,22rem)] text-[clamp(2.65rem,13vw,4.05rem)]">
               Гороскоп
             </SparkleTitle>
-            <p className="mt-2 max-w-[min(82vw,22rem)] text-[17px] leading-[1.58] text-[#34333a]">{signReading.summary}</p>
-            <div className="mt-4 space-y-3">
-              {paragraphs.map((paragraph, index) => (
-                <p key={index} className="max-w-[min(82vw,22rem)] text-[15px] leading-[1.68] text-[#47444c]">
-                  {paragraph}
+            {signLoading ? (
+              <div className="mt-4 max-w-[min(82vw,22rem)] space-y-3" aria-busy="true">
+                <div className="h-4 w-4/5 animate-pulse rounded-full bg-black/10" />
+                <div className="h-3 w-full animate-pulse rounded-full bg-black/10" />
+                <div className="h-3 w-2/3 animate-pulse rounded-full bg-black/10" />
+              </div>
+            ) : signError ? (
+              <div className="mt-4 max-w-[min(82vw,22rem)] rounded-[18px] border border-[#d9b9b0] bg-white/64 px-4 py-3 text-[13px] leading-relaxed text-[#7d5960]">
+                <p>{signError}</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void loadSignReading();
+                  }}
+                  className="mt-3 inline-flex min-h-[36px] items-center rounded-full bg-white px-3 text-[12px] font-semibold text-[#202024]"
+                >
+                  {language === 'en' ? 'Try again' : 'Повторить'}
+                </button>
+              </div>
+            ) : signReading ? (
+              <>
+                <p className="mt-2 max-w-[min(82vw,22rem)] text-[17px] leading-[1.58] text-[#34333a]">
+                  {signReading.summary}
                 </p>
-              ))}
-            </div>
-            <div className="mt-4 max-w-[min(82vw,22rem)]">
-              <KeyLine label="Лучший шаг" value={signReading.focus} />
-              <KeyLine label="Мягкий риск" value={signReading.risk} />
-            </div>
+                <div className="mt-4 space-y-3">
+                  {paragraphs.map((paragraph, index) => (
+                    <p key={index} className="max-w-[min(82vw,22rem)] text-[15px] leading-[1.68] text-[#47444c]">
+                      {paragraph}
+                    </p>
+                  ))}
+                </div>
+                <div className="mt-4 max-w-[min(82vw,22rem)]">
+                  <KeyLine label="Лучший шаг" value={signReading.focus} />
+                  <KeyLine label="Мягкий риск" value={signReading.risk} />
+                </div>
+              </>
+            ) : null}
           </div>
         </div>
       );
@@ -659,7 +703,13 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
               (layer.id === 'work_money' && !!workSection);
 
             return (
-              <section key={layer.id} className="rounded-[22px] border border-black/10 bg-white/68 p-4 shadow-[0_8px_24px_rgba(0,0,0,0.04)] backdrop-blur-md">
+              <section
+                key={layer.id}
+                ref={(node) => {
+                  layerRefs.current[layer.id] = node;
+                }}
+                className="rounded-[22px] border border-black/10 bg-white/68 p-4 shadow-[0_8px_24px_rgba(0,0,0,0.04)] backdrop-blur-md"
+              >
                 {layer.id === 'sign'
                   ? renderSignSlide()
                   : layer.id === 'chart' && personalDay

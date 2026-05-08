@@ -9,6 +9,7 @@
 
 import { NatalChartData, UserProfile } from '../types';
 import { fetchWithTimeout } from '../lib/fetchWithTimeout';
+import { assertValidUserId } from '../lib/userId';
 
 const API_BASE_URL = typeof window !== 'undefined' ? '' : '';
 const CHART_FETCH_TIMEOUT_MS = 25_000;
@@ -32,9 +33,10 @@ const calculationInFlight = new Map<string, Promise<NatalChartData>>();
  * Returns null only for a real 404. Any other failure is treated as a storage error.
  */
 export async function getChartFromDB(userId: string): Promise<NatalChartData | null> {
+  const safeUserId = assertValidUserId(userId);
   log.info(`[getChartFromDB] userId=${userId}`);
 
-  const url = `${API_BASE_URL}/api/charts/${userId}`;
+  const url = `${API_BASE_URL}/api/charts/${safeUserId}`;
   let response: Response;
   try {
     response = await fetchWithTimeout(url, { method: 'GET' }, CHART_FETCH_TIMEOUT_MS);
@@ -86,7 +88,8 @@ export async function getChartFromDB(userId: string): Promise<NatalChartData | n
  * The API is responsible for cache validation and persistence.
  */
 async function calculateChart(profile: UserProfile): Promise<NatalChartData> {
-  log.info(`[calculateChart] Calculating for userId=${profile.id}`);
+  const safeUserId = assertValidUserId(profile.id);
+  log.info(`[calculateChart] Calculating for userId=${safeUserId}`);
 
   const url = `${API_BASE_URL}/api/astrology/natal-chart`;
 
@@ -98,7 +101,7 @@ async function calculateChart(profile: UserProfile): Promise<NatalChartData> {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: profile.id,
+          userId: safeUserId,
           name: profile.name,
           birthDate: profile.birthDate,
           birthTime: profile.birthTime,
@@ -151,7 +154,7 @@ async function calculateChart(profile: UserProfile): Promise<NatalChartData> {
  * Only falls back to calculation when the chart is genuinely absent.
  */
 export async function getOrCalculateChart(profile: UserProfile): Promise<NatalChartData> {
-  const userId = profile.id || 'anonymous';
+  const userId = assertValidUserId(profile.id);
 
   log.info(`[getOrCalculateChart] userId=${userId}`);
 
@@ -187,7 +190,7 @@ export async function getOrCalculateChart(profile: UserProfile): Promise<NatalCh
 }
 
 export async function forceRecalculateChart(profile: UserProfile): Promise<NatalChartData> {
-  const userId = profile.id || 'anonymous';
+  const userId = assertValidUserId(profile.id);
 
   log.info(`[forceRecalculateChart] Force recalculating for userId=${userId}`);
 
@@ -199,7 +202,7 @@ export async function forceRecalculateChart(profile: UserProfile): Promise<Natal
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        userId: profile.id,
+        userId,
         name: profile.name,
         birthDate: profile.birthDate,
         birthTime: profile.birthTime,

@@ -12,6 +12,7 @@ import {
   NATAL_FULL_CACHE_KEY,
   NATAL_FULL_PROMPT_VERSION,
 } from '../../../lib/natalReadings';
+import { invalidUserIdPayload, isValidUserId } from '../../../lib/userId';
 
 // Logging utility
 const log = {
@@ -155,11 +156,12 @@ export default async function handler(
   res: NextApiResponse
 ) {
   const { id } = req.query;
-  const userId = Array.isArray(id) ? id[0] : id;
+  const rawUserId = Array.isArray(id) ? id[0] : id;
 
-  if (!userId) {
-    return res.status(400).json({ error: 'User ID is required' });
+  if (!isValidUserId(rawUserId)) {
+    return res.status(400).json(invalidUserIdPayload('ru'));
   }
+  const userId = String(rawUserId).trim();
 
   log.info(`Request received`, {
     method: req.method,

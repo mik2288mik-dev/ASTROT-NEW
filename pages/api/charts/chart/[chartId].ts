@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '../../../../lib/db';
 import { createOrReuseCanonicalChart } from '../../../../lib/natalChartPersistence';
 import { isCanonicalNatalChartDataComplete } from '../../../../lib/natalChartCanonical';
+import { invalidUserIdPayload, isValidUserId } from '../../../../lib/userId';
 
 const log = {
   info: (msg: string, data?: any) => console.log(`[API/charts/chart] ${msg}`, data || ''),
@@ -21,6 +22,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method === 'GET') {
       let chart = await db.natal_charts.getById(id);
       if (!chart) return res.status(404).json({ error: 'Chart not found' });
+      if (userId && !isValidUserId(userId)) {
+        return res.status(400).json(invalidUserIdPayload('ru'));
+      }
       if (userId && String(chart.user_id) !== String(userId)) {
         return res.status(403).json({ error: 'Chart does not belong to user' });
       }
@@ -38,8 +42,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     if (req.method === 'DELETE') {
-      if (!userId) {
-        return res.status(400).json({ error: 'userId is required for delete' });
+      if (!isValidUserId(userId)) {
+        return res.status(400).json(invalidUserIdPayload('ru'));
       }
       const chart = await db.natal_charts.getById(id);
       if (!chart) return res.status(404).json({ error: 'Chart not found' });

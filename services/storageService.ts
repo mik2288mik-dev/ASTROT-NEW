@@ -7,6 +7,7 @@ import {
 } from "../types";
 import { toDateInputValue } from "../lib/date-utils";
 import { fetchWithTimeout } from "../lib/fetchWithTimeout";
+import { isValidUserId } from "../lib/userId";
 
 const PROFILE_FETCH_TIMEOUT_MS = 20_000;
 const PROFILE_SAVE_TIMEOUT_MS = 45_000;
@@ -42,7 +43,7 @@ log.info('StorageService initialized', {
 export const saveProfile = async (profile: UserProfile): Promise<void> => {
   const userId = profile.id;
   
-  if (!userId) {
+  if (!isValidUserId(userId)) {
       log.error('[saveProfile] Cannot save profile without userId');
       throw new Error('User ID is required for saving');
   }
@@ -204,7 +205,7 @@ export const processDailyLogin = async (userId: string): Promise<{
   streak: number;
   newBalance: number;
 }> => {
-  if (!userId) throw new Error('UserId is required');
+  if (!isValidUserId(userId)) throw new Error('UserId is required');
   const url = `${API_BASE_URL}/api/users/daily-login`;
   const res = await fetch(url, {
     method: 'POST',
@@ -222,7 +223,7 @@ export const processDailyLogin = async (userId: string): Promise<{
  * Fetch current Lumi balance from API (for refresh after add/spend)
  */
 export const getLumiBalance = async (userId: string): Promise<number> => {
-  if (!userId) {
+  if (!isValidUserId(userId)) {
     throw new Error('UserId is required');
   }
 
@@ -238,7 +239,7 @@ export const getLumiBalance = async (userId: string): Promise<number> => {
 };
 
 export const getLumiWallet = async (userId: string, limit = 30): Promise<LumiWalletData> => {
-  if (!userId) {
+  if (!isValidUserId(userId)) {
     return { lumi_balance: 0, transactions: [] };
   }
 
@@ -268,7 +269,7 @@ export type DailyRouletteStatus = {
 export const getDailyRouletteStatus = async (
   userId: string
 ): Promise<DailyRouletteStatus> => {
-  if (!userId) {
+  if (!isValidUserId(userId)) {
     return {
       canSpin: true,
       nextAvailableAt: null,
@@ -300,7 +301,7 @@ export type DailyRouletteSpinResult =
   | { ok: false; code: 'COOLDOWN'; lumiBalance: number; nextAvailableAt: string | null };
 
 export const postDailyRouletteSpin = async (userId: string): Promise<DailyRouletteSpinResult> => {
-  if (!userId) throw new Error('UserId is required');
+  if (!isValidUserId(userId)) throw new Error('UserId is required');
   const res = await fetch(`${API_BASE_URL}/api/users/lumi/daily-roulette`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -337,7 +338,7 @@ export type DailyLumiTaskCompletionResult = DailyLumiTasksStatus & {
 };
 
 export const getDailyLumiTasksStatus = async (userId: string): Promise<DailyLumiTasksStatus> => {
-  if (!userId) {
+  if (!isValidUserId(userId)) {
     return {
       date: '',
       totalReward: 0,
@@ -369,7 +370,7 @@ export const completeDailyLumiTask = async (
   userId: string,
   taskKey: DailyLumiTaskKey
 ): Promise<DailyLumiTaskCompletionResult> => {
-  if (!userId) throw new Error('UserId is required');
+  if (!isValidUserId(userId)) throw new Error('UserId is required');
 
   const res = await fetch(`${API_BASE_URL}/api/users/lumi/daily-tasks`, {
     method: 'POST',
@@ -620,7 +621,7 @@ const normalizeChartListItem = (chart: ChartListItem): ChartListItem => ({
  * Get all charts for user (multi-chart flow)
  */
 export const getCharts = async (userId: string): Promise<ChartsResponse> => {
-  if (!userId) throw new Error('UserId is required');
+  if (!isValidUserId(userId)) throw new Error('UserId is required');
   const url = `${API_BASE_URL}/api/charts?userId=${encodeURIComponent(userId)}`;
   const res = await fetch(url);
   if (!res.ok) {
@@ -641,7 +642,7 @@ export const createChart = async (
   userId: string,
   data: { name: string; birthDate: string; birthTime?: string; birthPlace: string; chartData?: any; language?: string }
 ): Promise<ChartListItem> => {
-  if (!userId) throw new Error('UserId is required');
+  if (!isValidUserId(userId)) throw new Error('UserId is required');
   const url = `${API_BASE_URL}/api/charts`;
   const res = await fetch(url, {
     method: 'POST',
@@ -660,7 +661,7 @@ export const createChart = async (
  * Buy one additional chart slot with Lumi
  */
 export const buyChartSlot = async (userId: string): Promise<{ newBalance: number; chartSlots: number }> => {
-  if (!userId) throw new Error('UserId is required');
+  if (!isValidUserId(userId)) throw new Error('UserId is required');
   const url = `${API_BASE_URL}/api/charts`;
   const res = await fetch(url, {
     method: 'POST',
@@ -679,7 +680,7 @@ export const buyChartSlot = async (userId: string): Promise<{ newBalance: number
  * Delete a chart (reassigns primary if needed)
  */
 export const deleteChart = async (chartId: number, userId: string): Promise<void> => {
-  if (!userId) throw new Error('UserId is required');
+  if (!isValidUserId(userId)) throw new Error('UserId is required');
   const url = `${API_BASE_URL}/api/charts/chart/${chartId}?userId=${encodeURIComponent(userId)}`;
   const res = await fetch(url, { method: 'DELETE' });
   if (!res.ok) {
@@ -692,7 +693,7 @@ export const deleteChart = async (chartId: number, userId: string): Promise<void
  * Set a chart as primary
  */
 export const setPrimaryChart = async (chartId: number, userId: string): Promise<void> => {
-  if (!userId) throw new Error('UserId is required');
+  if (!isValidUserId(userId)) throw new Error('UserId is required');
   const url = `${API_BASE_URL}/api/charts/set-primary`;
   const res = await fetch(url, {
     method: 'PATCH',

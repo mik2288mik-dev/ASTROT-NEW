@@ -10,6 +10,7 @@ import {
   buildForecastFullDayUnlockCacheKey,
   FORECAST_FULL_DAY_LUMI_COST,
 } from '../../../../lib/forecastFullDay';
+import { invalidUserIdPayload, isValidUserId } from '../../../../lib/userId';
 
 const ALLOWED_SLOTS = new Set(['morning', 'day', 'evening']);
 
@@ -122,8 +123,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  if (!userId?.trim() || !slot) {
-    return res.status(400).json({ error: 'Bad request', message: 'userId and slot are required' });
+  const languageFromRequest = req.method === 'POST' && req.body?.profile?.language === 'en' ? 'en' : 'ru';
+  if (!isValidUserId(userId)) {
+    return res.status(400).json(invalidUserIdPayload(languageFromRequest));
+  }
+  const safeUserId = String(userId).trim();
+
+  if (!slot) {
+    return res.status(400).json({ error: 'Bad request', message: 'slot is required' });
   }
 
   if (!ALLOWED_SLOTS.has(slot)) {
@@ -131,7 +138,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const context = await resolveContext(
-    userId.trim(),
+    safeUserId,
     Number.isFinite(chartId as number) ? chartId : null,
     req.method === 'POST' ? req.body?.profile : undefined,
     req.method === 'POST' ? req.body?.chartData : undefined
@@ -154,7 +161,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const unlockCacheKey = buildForecastFullDayUnlockCacheKey(dateKey);
   const cacheKey = buildForecastDaypartCacheKey(dateKey, slot);
   const lumiCost = FORECAST_FULL_DAY_LUMI_COST;
-  let access = await resolveAccess(userId.trim(), context.chartId, unlockCacheKey);
+  let access = await resolveAccess(safeUserId, context.chartId, unlockCacheKey);
 
   if (req.method === 'GET') {
     if (!access) {
@@ -168,7 +175,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const result = await getContentLayer({
-      userId: userId.trim(),
+      userId: safeUserId,
       chartId: context.chartId,
       accessTier: access.accessTier,
       contentSurface: 'forecast',
@@ -208,7 +215,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    const balanceBefore = await db.lumi_transactions.getBalance(userId.trim());
+    const balanceBefore = await db.lumi_transactions.getBalance(safeUserId);
     if (balanceBefore < lumiCost) {
       return res.status(402).json({
         error: 'Insufficient Lumi',
@@ -220,7 +227,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     await unlockContentLayer({
-      userId: userId.trim(),
+      userId: safeUserId,
       chartId: context.chartId,
       accessTier: 'lumi',
       contentSurface: 'forecast',
@@ -229,7 +236,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       lumiCost,
     });
 
-    access = await resolveAccess(userId.trim(), context.chartId, unlockCacheKey);
+    access = await resolveAccess(safeUserId, context.chartId, unlockCacheKey);
   }
 
   if (!access) {
@@ -243,7 +250,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const existing = await getContentLayer({
-    userId: userId.trim(),
+    userId: safeUserId,
     chartId: context.chartId,
     accessTier: access.accessTier,
     contentSurface: 'forecast',
@@ -252,7 +259,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   });
 
   if (existing.interpretation) {
-    const lumiBalance = await db.lumi_transactions.getBalance(userId.trim());
+    const lumiBalance = await db.lumi_transactions.getBalance(safeUserId);
     return res.status(200).json({
       interpretation: existing.interpretation,
       source: existing.source,
@@ -264,7 +271,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
-  const forecast = await generatePremiumDaypartForecast(context.profile, context.chartData, slot, dateKey);
+  let forecast;
+  try {
+    forecast = await generatePremiumDaypartForecast(context.profile, context.chartData, slot, dateKey, {
+      allowStaticFallback: false,
+    });
+  } catch (error: any) {
+    const status = error?.status === 503 ? 503 : 500;
+    const code = error?.code || (status === 503 ? 'CONTENT_GENERATION_UNAVAILABLE' : 'FORECAST_DAYPART_FAILED');
+    return res.status(status).json({
+      error: code,
+      code,
+      message:
+        lang === 'ru'
+          ? 'Этот слой сейчас не удалось сгенерировать. Попробуй ещё раз.'
+          : 'This layer could not be generated right now. Please try again.',
+    });
+  }
   const { modelTier } = await getOpenAIModelForContent({
     accessTier: access.accessTier,
     contentSurface: 'forecast',
@@ -284,8 +307,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         isPersistent: false,
         canRegenerateForLumi: false,
         legacySource: `forecast_v2.${slot}.${access.accessTier}`,
-      }, userId.trim())
-    : await db.content_interpretations.upsertByUser(userId.trim(), {
+      }, safeUserId)
+    : await db.content_interpretations.upsertByUser(safeUserId, {
         accessTier: access.accessTier,
         contentSurface: 'forecast',
         contentVariant: slot,
@@ -300,7 +323,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         legacySource: `forecast_v2.${slot}.${access.accessTier}`,
       });
 
-  const lumiBalance = await db.lumi_transactions.getBalance(userId.trim());
+  const lumiBalance = await db.lumi_transactions.getBalance(safeUserId);
 
   return res.status(200).json({
     interpretation,

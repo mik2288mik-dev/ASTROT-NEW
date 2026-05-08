@@ -151,10 +151,20 @@ function parseCached(
 async function generateSignReading(
   sign: ZodiacKey,
   date: string,
-  language: Language
+  language: Language,
+  options?: { allowStaticFallback?: boolean }
 ): Promise<ForecastDailyReading> {
   const fallback = buildSignDailyFallback(sign, date, language);
-  if (!openai) return fallback;
+  const allowStaticFallback = options?.allowStaticFallback !== false;
+  if (!openai) {
+    if (!allowStaticFallback) {
+      const error = new Error('OpenAI content generation is not configured') as Error & { code?: string; status?: number };
+      error.code = 'CONTENT_GENERATION_UNAVAILABLE';
+      error.status = 503;
+      throw error;
+    }
+    return fallback;
+  }
 
   const signLabel = getZodiacSign(language, sign);
   const system =
@@ -184,8 +194,17 @@ async function generateSignReading(
     });
     const parsed = JSON.parse(completion.choices[0]?.message?.content || '{}');
     return normalizeReading(parsed, sign, date, language);
-  } catch (error) {
+  } catch (error: any) {
     console.error('[horoscope/sign-daily] generation failed:', error instanceof Error ? error.message : error);
+    if (!allowStaticFallback) {
+      const nextError = new Error(error?.message || 'Sign horoscope generation failed') as Error & {
+        code?: string;
+        status?: number;
+      };
+      nextError.code = 'CONTENT_GENERATION_UNAVAILABLE';
+      nextError.status = 503;
+      throw nextError;
+    }
     return fallback;
   }
 }
@@ -206,12 +225,13 @@ export async function getCachedSignDailyHoroscope(
 export async function getOrGenerateSignDailyHoroscope(
   sign: ZodiacKey,
   date: string,
-  language: Language
+  language: Language,
+  options?: { allowStaticFallback?: boolean }
 ): Promise<ForecastDailyReading> {
   const cached = await getCachedSignDailyHoroscope(sign, date, language);
   if (cached) return cached;
 
-  const reading = await generateSignReading(sign, date, language);
+  const reading = await generateSignReading(sign, date, language, options);
   await db.daily_horoscopes.set(cacheKeyForSign(sign, language), date, JSON.stringify(reading)).catch((error) => {
     console.error('[horoscope/sign-daily] cache write failed:', error instanceof Error ? error.message : error);
   });

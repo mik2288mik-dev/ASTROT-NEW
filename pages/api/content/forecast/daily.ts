@@ -5,6 +5,7 @@ import { db } from '../../../../lib/db';
 import { generateFreeDailyForecast } from '../../../../lib/forecastContent';
 import { getContentLayer } from '../../../../lib/contentArchitecture';
 import { getMoscowTodayKey } from '../../../../lib/date-utils';
+import { invalidUserIdPayload, isValidUserId } from '../../../../lib/userId';
 
 function toProfile(user: any, fallback?: Partial<UserProfile>): UserProfile {
   return {
@@ -61,12 +62,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  if (!userId?.trim()) {
-    return res.status(400).json({ error: 'Bad request', message: 'userId is required' });
+  const languageFromRequest = req.method === 'POST' && req.body?.profile?.language === 'en' ? 'en' : 'ru';
+  if (!isValidUserId(userId)) {
+    return res.status(400).json(invalidUserIdPayload(languageFromRequest));
   }
+  const safeUserId = String(userId).trim();
 
   const context = await resolveContext(
-    userId.trim(),
+    safeUserId,
     Number.isFinite(chartId as number) ? chartId : null,
     req.method === 'POST' ? req.body?.profile : undefined,
     req.method === 'POST' ? req.body?.chartData : undefined
@@ -87,7 +90,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (req.method === 'GET') {
     const result = await getContentLayer({
-      userId: userId.trim(),
+      userId: safeUserId,
       chartId: context.chartId,
       accessTier: 'free',
       contentSurface: 'forecast',
@@ -114,7 +117,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const existing = await getContentLayer({
-    userId: userId.trim(),
+    userId: safeUserId,
     chartId: context.chartId,
     accessTier: 'free',
     contentSurface: 'forecast',
@@ -151,8 +154,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         isPersistent: false,
         canRegenerateForLumi: false,
         legacySource: 'forecast_v2.daily',
-      }, userId.trim())
-    : await db.content_interpretations.upsertByUser(userId.trim(), {
+      }, safeUserId)
+    : await db.content_interpretations.upsertByUser(safeUserId, {
         accessTier: 'free',
         contentSurface: 'forecast',
         contentVariant: 'daily',

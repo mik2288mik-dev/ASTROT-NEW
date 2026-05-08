@@ -5,6 +5,7 @@ import { getMoscowTodayKey } from '../../../../lib/date-utils';
 import { normalizeZodiacKey } from '../../../../lib/horoscope/signDaily';
 import { hydrateReactionSummaryLabels } from '../../../../lib/todayOverview';
 import { RATE_LIMIT_CONFIGS, withRateLimit } from '../../../../lib/rateLimit';
+import { invalidUserIdPayload, isValidUserId } from '../../../../lib/userId';
 
 const REACTION_KEYS = new Set<HoroscopeReactionKey>(['spot_on', 'funny', 'gentle', 'not_mine']);
 
@@ -30,8 +31,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   const date = readDate(req);
   const language = readLanguage(req);
 
-  if (!userId) {
-    return res.status(400).json({ error: 'BAD_REQUEST', message: 'userId is required' });
+  if (!isValidUserId(userId)) {
+    return res.status(400).json(invalidUserIdPayload(language));
   }
   if (!sign) {
     return res.status(400).json({ error: 'BAD_REQUEST', message: 'sign must be one of the zodiac keys' });

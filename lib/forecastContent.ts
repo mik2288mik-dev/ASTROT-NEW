@@ -210,12 +210,20 @@ async function getForecastModel(modelTier: 'base' | 'premium') {
 export async function generateFreeDailyForecast(
   profile: UserProfile,
   chartData: NatalChartData,
-  dateKey = getMoscowTodayKey()
+  dateKey = getMoscowTodayKey(),
+  options?: { allowStaticFallback?: boolean }
 ): Promise<ForecastDailyReading> {
   const lang: 'ru' | 'en' = profile.language === 'en' ? 'en' : 'ru';
   const transits = await getCurrentTransits(new Date());
+  const allowStaticFallback = options?.allowStaticFallback !== false;
 
   if (!openai) {
+    if (!allowStaticFallback) {
+      const error = new Error('OpenAI content generation is not configured') as Error & { code?: string; status?: number };
+      error.code = 'CONTENT_GENERATION_UNAVAILABLE';
+      error.status = 503;
+      throw error;
+    }
     return buildDailyFallback(lang, dateKey);
   }
 
@@ -239,7 +247,16 @@ export async function generateFreeDailyForecast(
     const content = completion.choices[0]?.message?.content || '{}';
     const parsed = JSON.parse(content) as DailyForecastV2AIResponse;
     return normalizeDailyForecast(parsed, lang, dateKey);
-  } catch {
+  } catch (error: any) {
+    if (!allowStaticFallback) {
+      const nextError = new Error(error?.message || 'Daily forecast generation failed') as Error & {
+        code?: string;
+        status?: number;
+      };
+      nextError.code = 'CONTENT_GENERATION_UNAVAILABLE';
+      nextError.status = 503;
+      throw nextError;
+    }
     return buildDailyFallback(lang, dateKey);
   }
 }
@@ -248,12 +265,20 @@ export async function generatePremiumDaypartForecast(
   profile: UserProfile,
   chartData: NatalChartData,
   slot: ForecastDaypartSlot,
-  dateKey = getMoscowTodayKey()
+  dateKey = getMoscowTodayKey(),
+  options?: { allowStaticFallback?: boolean }
 ): Promise<ForecastDaypartReading> {
   const lang: 'ru' | 'en' = profile.language === 'en' ? 'en' : 'ru';
   const transits = await getCurrentTransits(new Date());
+  const allowStaticFallback = options?.allowStaticFallback !== false;
 
   if (!openai) {
+    if (!allowStaticFallback) {
+      const error = new Error('OpenAI content generation is not configured') as Error & { code?: string; status?: number };
+      error.code = 'CONTENT_GENERATION_UNAVAILABLE';
+      error.status = 503;
+      throw error;
+    }
     return buildDaypartFallback(lang, dateKey, slot);
   }
 
@@ -277,7 +302,16 @@ export async function generatePremiumDaypartForecast(
     const content = completion.choices[0]?.message?.content || '{}';
     const parsed = JSON.parse(content) as DaypartForecastAIResponse;
     return normalizeDaypartForecast(parsed, lang, dateKey, slot);
-  } catch {
+  } catch (error: any) {
+    if (!allowStaticFallback) {
+      const nextError = new Error(error?.message || 'Daypart forecast generation failed') as Error & {
+        code?: string;
+        status?: number;
+      };
+      nextError.code = 'CONTENT_GENERATION_UNAVAILABLE';
+      nextError.status = 503;
+      throw nextError;
+    }
     return buildDaypartFallback(lang, dateKey, slot);
   }
 }

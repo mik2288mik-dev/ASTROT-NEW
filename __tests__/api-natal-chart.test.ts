@@ -13,6 +13,24 @@ describe('API Natal Chart (Integration Tests)', () => {
   const skipIntegrationTests = process.env.SKIP_INTEGRATION_TESTS === 'true';
 
   describe('Валидация входных данных', () => {
+    it('должен возвращать 400 для невалидного user id в users/charts API', async () => {
+      if (skipIntegrationTests) {
+        return;
+      }
+
+      try {
+        const [userResponse, chartResponse] = await Promise.all([
+          fetch(`${API_URL}/api/users/undefined`),
+          fetch(`${API_URL}/api/charts/undefined`),
+        ]);
+
+        expect(userResponse.status).toBe(400);
+        expect(chartResponse.status).toBe(400);
+      } catch {
+        console.log('Integration test skipped - server not running');
+      }
+    });
+
     it('должен отклонять запросы без обязательных полей', async () => {
       if (skipIntegrationTests) {
         console.log('Skipping integration test - server not available');

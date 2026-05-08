@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { UserProfile, NatalChartData, ViewState, NatalChartMode } from './types';
+import { UserProfile, NatalChartData, ViewState, NatalChartMode, HoroscopeLayer } from './types';
 import {
     getProfile,
     saveProfile,
@@ -36,6 +36,7 @@ import { applyTelegramSafeAreaCssVars, subscribeTelegramContentSafeAreaChanges }
 import { useSwipeBack } from './lib/useSwipeBack';
 import { getMoscowTodayKey } from './lib/date-utils';
 import { getHoroscopeBackground, getSynastryBackground } from './lib/visualBackgrounds';
+import { isValidUserId } from './lib/userId';
 
 // Get owner ID from environment variables for security
 const OWNER_ID = process.env.NEXT_PUBLIC_OWNER_ID || '';
@@ -84,6 +85,7 @@ const App: React.FC = () => {
     const [walletReturnView, setWalletReturnView] = useState<ViewState>('dashboard');
     const [chartReturnView, setChartReturnView] = useState<ViewState>('dashboard');
     const [chartOpenMode, setChartOpenMode] = useState<NatalChartMode>('human');
+    const [horoscopeInitialLayer, setHoroscopeInitialLayer] = useState<HoroscopeLayer>('sign');
     const [horoscopeBackground, setHoroscopeBackground] = useState<{
         sign: string | null;
         tone: 'sign' | 'chart' | 'love' | 'work';
@@ -218,7 +220,7 @@ const App: React.FC = () => {
                 await new Promise(r => setTimeout(r, 300));
             }
 
-            if (!tgId) {
+            if (!isValidUserId(tgId)) {
                 console.log('[App] No Telegram user ID found after retries, showing onboarding');
                 clearSafety();
                 setLoadingProgress(100);
@@ -405,6 +407,13 @@ const App: React.FC = () => {
         const tg = (window as any).Telegram?.WebApp;
         const tgUser = tg?.initDataUnsafe?.user;
         const tgId = tgUser?.id;
+        if (!isValidUserId(tgId)) {
+            console.error('[App] Cannot complete onboarding without a valid Telegram user id');
+            window.alert?.('Открой Lumia через Telegram, чтобы приложение смогло сохранить профиль и карту.');
+            setView('onboarding');
+            setLoading(false);
+            return;
+        }
         const isAdmin = await resolveAuthoritativeAdminStatus(tgId, false);
         const fullProfile = { ...newProfile, id: String(tgId), isAdmin };
 
@@ -681,6 +690,11 @@ const App: React.FC = () => {
         setView('chart');
     }, [profile]);
 
+    const openHoroscopeLayer = useCallback((layer: HoroscopeLayer) => {
+        setHoroscopeInitialLayer(layer);
+        setView('horoscope');
+    }, []);
+
     const refreshPrimaryChartState = useCallback(async () => {
         try {
             const freshChart = await getChartData();
@@ -858,6 +872,7 @@ const App: React.FC = () => {
                             profile={profile} 
                             chartData={chartData} 
                             chartId={activeChartId}
+                            initialLayer={horoscopeInitialLayer}
                             onUpdateProfile={handleProfileUpdate}
                             onOpenChart={() => {
                                 setChartOpenMode('human');
@@ -943,6 +958,7 @@ const App: React.FC = () => {
                                 }
                                 navigateTo(newView);
                             }} 
+                            onOpenHoroscopeLayer={openHoroscopeLayer}
                             onOpenNatalMode={openNatalMode}
                             onOpenSettings={() => setView('settings')}
                             onOpenWallet={() => openWallet('dashboard')}

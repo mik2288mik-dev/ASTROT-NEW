@@ -7,6 +7,7 @@ import { getMoscowTodayKey } from '../../../../lib/date-utils';
 import { generateFreeDailyForecast } from '../../../../lib/forecastContent';
 import { getOrGenerateSignDailyHoroscope, normalizeZodiacKey } from '../../../../lib/horoscope/signDaily';
 import { buildTodayOverview, hydrateReactionSummaryLabels } from '../../../../lib/todayOverview';
+import { invalidUserIdPayload, isValidUserId } from '../../../../lib/userId';
 
 export const config = { maxDuration: 90 };
 
@@ -71,7 +72,9 @@ async function getOrCreatePersonalForecast(
     return existing.interpretation.content as ForecastDailyReading;
   }
 
-  const forecast = await generateFreeDailyForecast(profile, chartData, dateKey);
+  const forecast = await generateFreeDailyForecast(profile, chartData, dateKey, {
+    allowStaticFallback: false,
+  });
   const { modelTier } = await getOpenAIModelForContent({
     accessTier: 'free',
     contentSurface: 'forecast',
@@ -123,8 +126,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       : null;
   const dateKey = readDate(req);
 
-  if (!userId) {
-    return res.status(400).json({ error: 'BAD_REQUEST', message: 'userId is required' });
+  const languageFromRequest = req.method === 'POST' && req.body?.profile?.language === 'en' ? 'en' : 'ru';
+  if (!isValidUserId(userId)) {
+    return res.status(400).json(invalidUserIdPayload(languageFromRequest));
   }
 
   try {
@@ -141,7 +145,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (!context.chartData) {
       return res.status(409).json({
-        error: 'PRIMARY_CHART_MISSING',
+        error: 'CHART_REQUIRED',
+        code: 'CHART_REQUIRED',
         message: context.profile.language === 'ru'
           ? 'Для твоего дня нужна сохранённая натальная карта.'
           : 'A saved natal chart is required for your day.',
@@ -152,7 +157,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const sign = normalizeZodiacKey(context.chartData.sun?.sign) || 'Aries';
     const [personalForecast, signHoroscope, rawReactions] = await Promise.all([
       getOrCreatePersonalForecast(userId, context.chartId, context.profile, context.chartData, dateKey),
-      getOrGenerateSignDailyHoroscope(sign, dateKey, language),
+      getOrGenerateSignDailyHoroscope(sign, dateKey, language, { allowStaticFallback: false }),
       db.horoscope_reactions.getSummary(userId, sign, dateKey).catch(() => null),
     ]);
 
@@ -172,6 +177,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   } catch (error: any) {
     console.error('[API/content/today/overview]', error?.message || error);
-    return res.status(500).json({ error: 'TODAY_OVERVIEW_FAILED', message: error?.message || 'Failed' });
+    const status = error?.status === 503 ? 503 : 500;
+    const code = error?.code || (status === 503 ? 'CONTENT_GENERATION_UNAVAILABLE' : 'TODAY_OVERVIEW_FAILED');
+    return res.status(status).json({
+      error: code,
+      code,
+      message:
+        status === 503
+          ? 'Дневной слой сейчас не удалось сгенерировать. Попробуй ещё раз.'
+          : 'Не удалось собрать твой день. Попробуй ещё раз.',
+    });
   }
 }

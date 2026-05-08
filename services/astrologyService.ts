@@ -5,6 +5,7 @@ import { coerceNatalAnchorReading, coerceNatalFullReading, coerceNatalLivingRead
 import { isForecastLegacyFallbackEnabled } from "../lib/forecastLegacyConfig";
 import { buildForecastFullDayUnlockCacheKey } from "../lib/forecastFullDay";
 import { fetchWithTimeout } from "../lib/fetchWithTimeout";
+import { isValidUserId } from "../lib/userId";
 import type { NatalPlanetKey } from "../lib/natalWheel";
 
 // API base URL - используем локальные Next.js API routes
@@ -217,12 +218,17 @@ export const loadDailySignHoroscope = async (
     response = await fetchWithTimeout(`${API_BASE_URL}/api/content/horoscope/sign-daily`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sign, date, language }),
+      body: JSON.stringify({ sign, date, language, strict: true }),
     }, 12000);
   }
 
   if (!response.ok) {
-    throw buildApiError(`Sign horoscope failed: ${response.status} ${response.statusText}`, response.status);
+    const errorData = await response.json().catch(() => ({}));
+    throw buildApiError(
+      errorData.message || `Sign horoscope failed: ${response.status} ${response.statusText}`,
+      response.status,
+      errorData.code || errorData.error
+    );
   }
 
   const payload = await response.json();
@@ -239,7 +245,7 @@ export const getTodayOverview = async (
   chartId?: number | null,
   date?: string
 ): Promise<TodayOverview> => {
-  if (!profile.id) {
+  if (!isValidUserId(profile.id)) {
     throw buildApiError('Profile id is required');
   }
 
@@ -257,7 +263,12 @@ export const getTodayOverview = async (
   }, 18000);
 
   if (!response.ok) {
-    throw buildApiError(`Today overview failed: ${response.status} ${response.statusText}`, response.status);
+    const errorData = await response.json().catch(() => ({}));
+    throw buildApiError(
+      errorData.message || `Today overview failed: ${response.status} ${response.statusText}`,
+      response.status,
+      errorData.code || errorData.error
+    );
   }
 
   const payload = await response.json();
@@ -274,6 +285,9 @@ export const setHoroscopeReaction = async (
   reactionKey: HoroscopeReactionKey,
   language: 'ru' | 'en' = 'ru'
 ): Promise<HoroscopeReactionSummary> => {
+  if (!isValidUserId(userId)) {
+    throw buildApiError('User id is required', 400, 'INVALID_USER_ID');
+  }
   const response = await fetchWithTimeout(`${API_BASE_URL}/api/content/horoscope/reactions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -281,7 +295,12 @@ export const setHoroscopeReaction = async (
   }, 6000);
 
   if (!response.ok) {
-    throw buildApiError(`Horoscope reaction failed: ${response.status} ${response.statusText}`, response.status);
+    const errorData = await response.json().catch(() => ({}));
+    throw buildApiError(
+      errorData.message || `Horoscope reaction failed: ${response.status} ${response.statusText}`,
+      response.status,
+      errorData.code || errorData.error
+    );
   }
 
   const payload = await response.json();

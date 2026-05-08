@@ -3,6 +3,7 @@ import { formatValidationErrors, validateNatalChartInput } from '../../../lib/va
 import { db } from '../../../lib/db';
 import { buyChartSlot, getChartSlotCost } from '../../../services/chartSlotService';
 import { createOrReuseCanonicalChart } from '../../../lib/natalChartPersistence';
+import { invalidUserIdPayload, isValidUserId } from '../../../lib/userId';
 
 const log = {
   info: (msg: string, data?: any) => console.log(`[API/charts] ${msg}`, data || ''),
@@ -12,8 +13,8 @@ const log = {
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const userId = (req.query.userId as string) || req.body?.userId;
 
-  if (!userId?.trim()) {
-    return res.status(400).json({ error: 'userId is required' });
+  if (!isValidUserId(userId)) {
+    return res.status(400).json(invalidUserIdPayload('ru'));
   }
 
   try {

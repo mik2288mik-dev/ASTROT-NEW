@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '../../../lib/db';
+import { invalidUserIdPayload, isValidUserId } from '../../../lib/userId';
 
 const log = {
   info: (msg: string, data?: any) => console.log(`[API/charts/set-primary] ${msg}`, data || ''),
@@ -13,8 +14,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const { chartId, userId } = req.body || req.query;
 
-  if (!chartId || !userId) {
-    return res.status(400).json({ error: 'chartId and userId are required' });
+  if (!chartId) {
+    return res.status(400).json({ error: 'chartId is required' });
+  }
+
+  if (!isValidUserId(userId)) {
+    return res.status(400).json(invalidUserIdPayload('ru'));
   }
 
   const chartIdNum = parseInt(String(chartId), 10);
