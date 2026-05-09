@@ -226,15 +226,40 @@ export async function getOrGenerateSignDailyHoroscope(
   sign: ZodiacKey,
   date: string,
   language: Language,
-  options?: { allowStaticFallback?: boolean }
+  options?: { allowStaticFallback?: boolean; requirePersistence?: boolean }
 ): Promise<ForecastDailyReading> {
   const cached = await getCachedSignDailyHoroscope(sign, date, language);
   if (cached) return cached;
 
   const reading = await generateSignReading(sign, date, language, options);
-  await db.daily_horoscopes.set(cacheKeyForSign(sign, language), date, JSON.stringify(reading)).catch((error) => {
+  try {
+    await db.daily_horoscopes.set(cacheKeyForSign(sign, language), date, JSON.stringify(reading));
+  } catch (error: any) {
     console.error('[horoscope/sign-daily] cache write failed:', error instanceof Error ? error.message : error);
-  });
+    if (options?.requirePersistence) {
+      const nextError = new Error(error?.message || 'Sign horoscope persistence failed') as Error & {
+        code?: string;
+        status?: number;
+      };
+      nextError.code = 'SIGN_HOROSCOPE_PERSIST_FAILED';
+      nextError.status = 500;
+      throw nextError;
+    }
+  }
+
+  if (options?.requirePersistence) {
+    const persisted = await getCachedSignDailyHoroscope(sign, date, language);
+    if (!persisted) {
+      const error = new Error('Sign horoscope was not persisted') as Error & {
+        code?: string;
+        status?: number;
+      };
+      error.code = 'SIGN_HOROSCOPE_PERSIST_FAILED';
+      error.status = 500;
+      throw error;
+    }
+    return persisted;
+  }
 
   return reading;
 }

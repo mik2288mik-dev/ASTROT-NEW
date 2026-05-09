@@ -1,4 +1,4 @@
-import { UserProfile, NatalChartData, DailyHoroscope, SynastryResult, UserEvolution, OracleChatResponse, OracleHistoryEntry, ForecastDailyReading, ForecastDaypartReading, ForecastDaypartSlot, ForecastMonthlyReading, ForecastWeeklyReading, NatalAnchorReading, NatalFullReading, NatalLivingReading, AskLumiaState, AskLumiaTier, ContentAccessTier, PlanetInsight, WheelInsight, WheelInsightEntityType, TodayOverview, HoroscopeReactionKey, HoroscopeReactionSummary } from "../types";
+import { UserProfile, NatalChartData, DailyHoroscope, SynastryResult, UserEvolution, OracleChatResponse, OracleHistoryEntry, ForecastDailyReading, ForecastDaypartReading, ForecastDaypartSlot, ForecastMonthlyReading, ForecastWeeklyReading, NatalAnchorReading, NatalFullReading, NatalLivingReading, AskLumiaState, AskLumiaTier, ContentAccessTier, PlanetInsight, WheelInsight, WheelInsightEntityType, TodayOverview, TodayOverviewResult, HoroscopeReactionKey, HoroscopeReactionSummary } from "../types";
 import { SYSTEM_INSTRUCTION_ASTRA } from "../constants";
 import { getElementForSign } from "../lib/zodiac-utils";
 import { coerceNatalAnchorReading, coerceNatalFullReading, coerceNatalLivingReading, getCurrentNatalPeriodKey, mapNatalAnchorToLegacyIntro } from "../lib/natalReadings";
@@ -244,7 +244,7 @@ export const getTodayOverview = async (
   chartData: NatalChartData,
   chartId?: number | null,
   date?: string
-): Promise<TodayOverview> => {
+): Promise<TodayOverviewResult> => {
   if (!isValidUserId(profile.id)) {
     throw buildApiError('Profile id is required');
   }
@@ -256,11 +256,34 @@ export const getTodayOverview = async (
     chartId,
     date,
   };
-  const response = await fetchWithTimeout(`${API_BASE_URL}/api/content/today/overview`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  }, 18000);
+  let response: Response;
+  try {
+    response = await fetchWithTimeout(`${API_BASE_URL}/api/content/today/overview`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }, 60000);
+  } catch (error: any) {
+    if (error?.name === 'AbortError') {
+      return {
+        status: 'generating',
+        code: 'GENERATION_IN_PROGRESS',
+        retryAfterMs: 3000,
+        chartId: chartId ?? null,
+      };
+    }
+    throw error;
+  }
+
+  if (response.status === 202) {
+    const payload = await response.json().catch(() => ({}));
+    return {
+      status: 'generating',
+      code: 'GENERATION_IN_PROGRESS',
+      retryAfterMs: Number(payload.retryAfterMs || 2500),
+      chartId: typeof payload.chartId === 'number' ? payload.chartId : null,
+    };
+  }
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
@@ -275,7 +298,12 @@ export const getTodayOverview = async (
   if (!payload?.overview) {
     throw buildApiError('Today overview content is missing');
   }
-  return payload.overview as TodayOverview;
+  return {
+    status: 'ready',
+    overview: payload.overview as TodayOverview,
+    chartId: typeof payload.chartId === 'number' ? payload.chartId : null,
+    source: String(payload.source || 'today_overview_v1'),
+  };
 };
 
 export const setHoroscopeReaction = async (

@@ -287,6 +287,20 @@ export interface TodayOverview {
   reactions: HoroscopeReactionSummary;
 }
 
+export type TodayOverviewResult =
+  | {
+      status: 'ready';
+      overview: TodayOverview;
+      chartId: number | null;
+      source: string;
+    }
+  | {
+      status: 'generating';
+      code: 'GENERATION_IN_PROGRESS';
+      retryAfterMs: number;
+      chartId: number | null;
+    };
+
 export type HoroscopeLayer = 'sign' | 'chart' | 'love' | 'work_money';
 
 export type ForecastDaypartSlot = 'morning' | 'day' | 'evening';

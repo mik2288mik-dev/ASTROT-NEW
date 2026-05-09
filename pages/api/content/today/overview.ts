@@ -5,11 +5,45 @@ import { getOpenAIModelForContent } from '../../../../lib/appSettings';
 import { getContentLayer } from '../../../../lib/contentArchitecture';
 import { getMoscowTodayKey } from '../../../../lib/date-utils';
 import { generateFreeDailyForecast } from '../../../../lib/forecastContent';
-import { getOrGenerateSignDailyHoroscope, normalizeZodiacKey } from '../../../../lib/horoscope/signDaily';
+import {
+  getCachedSignDailyHoroscope,
+  getOrGenerateSignDailyHoroscope,
+  normalizeZodiacKey,
+} from '../../../../lib/horoscope/signDaily';
+import { LockKeys, releaseLock, tryAcquireLock } from '../../../../lib/serverLocks';
 import { buildTodayOverview, hydrateReactionSummaryLabels } from '../../../../lib/todayOverview';
 import { invalidUserIdPayload, isValidUserId } from '../../../../lib/userId';
 
 export const config = { maxDuration: 90 };
+
+const GENERATION_RETRY_AFTER_MS = 2500;
+
+type ApiErrorWithCode = Error & {
+  code?: string;
+  status?: number;
+};
+
+function buildApiError(message: string, code: string, status = 500): ApiErrorWithCode {
+  const error = new Error(message) as ApiErrorWithCode;
+  error.code = code;
+  error.status = status;
+  return error;
+}
+
+function isForecastDailyReading(value: unknown): value is ForecastDailyReading {
+  const reading = value as ForecastDailyReading | null;
+  return !!reading &&
+    typeof reading === 'object' &&
+    typeof reading.date === 'string' &&
+    typeof reading.headline === 'string' &&
+    typeof reading.summary === 'string' &&
+    typeof reading.chance === 'string' &&
+    typeof reading.risk === 'string' &&
+    typeof reading.focus === 'string' &&
+    typeof reading.reading === 'string' &&
+    typeof reading.context === 'string' &&
+    Array.isArray(reading.advice);
+}
 
 function toProfile(user: any, fallback?: Partial<UserProfile>): UserProfile {
   return {
@@ -52,13 +86,11 @@ async function resolveContext(
   };
 }
 
-async function getOrCreatePersonalForecast(
+async function getSavedPersonalForecast(
   userId: string,
   chartId: number | null,
-  profile: UserProfile,
-  chartData: NatalChartData,
   dateKey: string
-): Promise<ForecastDailyReading> {
+): Promise<ForecastDailyReading | null> {
   const existing = await getContentLayer({
     userId,
     chartId,
@@ -68,8 +100,23 @@ async function getOrCreatePersonalForecast(
     cacheKey: dateKey,
   });
 
-  if (existing.interpretation?.content) {
+  if (isForecastDailyReading(existing.interpretation?.content)) {
     return existing.interpretation.content as ForecastDailyReading;
+  }
+
+  return null;
+}
+
+async function generateAndPersistPersonalForecast(
+  userId: string,
+  chartId: number | null,
+  profile: UserProfile,
+  chartData: NatalChartData,
+  dateKey: string
+): Promise<ForecastDailyReading> {
+  const existing = await getSavedPersonalForecast(userId, chartId, dateKey);
+  if (existing) {
+    return existing;
   }
 
   const forecast = await generateFreeDailyForecast(profile, chartData, dateKey, {
@@ -102,7 +149,12 @@ async function getOrCreatePersonalForecast(
     await db.content_interpretations.upsertByUser(userId, data);
   }
 
-  return forecast;
+  const persisted = await getSavedPersonalForecast(userId, chartId, dateKey);
+  if (!persisted) {
+    throw buildApiError('Personal daily forecast was not persisted', 'FORECAST_DAILY_PERSIST_FAILED');
+  }
+
+  return persisted;
 }
 
 function readDate(req: NextApiRequest): string {
@@ -155,26 +207,84 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const language = context.profile.language === 'en' ? 'en' : 'ru';
     const sign = normalizeZodiacKey(context.chartData.sun?.sign) || 'Aries';
-    const [personalForecast, signHoroscope, rawReactions] = await Promise.all([
-      getOrCreatePersonalForecast(userId, context.chartId, context.profile, context.chartData, dateKey),
-      getOrGenerateSignDailyHoroscope(sign, dateKey, language, { allowStaticFallback: false }),
+    const [savedPersonalForecast, savedSignHoroscope, rawReactions] = await Promise.all([
+      getSavedPersonalForecast(userId, context.chartId, dateKey),
+      getCachedSignDailyHoroscope(sign, dateKey, language),
       db.horoscope_reactions.getSummary(userId, sign, dateKey).catch(() => null),
     ]);
 
-    const overview = await buildTodayOverview({
-      profileLanguage: language,
-      chartData: context.chartData,
-      dateKey,
-      personalForecast,
-      signHoroscope,
-      reactions: hydrateReactionSummaryLabels(rawReactions, language),
-    });
+    if (savedPersonalForecast && savedSignHoroscope) {
+      const overview = await buildTodayOverview({
+        profileLanguage: language,
+        chartData: context.chartData,
+        dateKey,
+        personalForecast: savedPersonalForecast,
+        signHoroscope: savedSignHoroscope,
+        reactions: hydrateReactionSummaryLabels(rawReactions, language),
+      });
 
-    return res.status(200).json({
-      overview,
-      chartId: context.chartId,
-      source: 'today_overview_v1',
-    });
+      return res.status(200).json({
+        status: 'ready',
+        overview,
+        chartId: context.chartId,
+        source: 'today_overview_v1',
+      });
+    }
+
+    const lockKey = LockKeys.todayOverview(userId, context.chartId, dateKey);
+    if (!tryAcquireLock(lockKey, 'today-overview-generation')) {
+      return res.status(202).json({
+        status: 'generating',
+        code: 'GENERATION_IN_PROGRESS',
+        retryAfterMs: GENERATION_RETRY_AFTER_MS,
+        chartId: context.chartId,
+      });
+    }
+
+    try {
+      await Promise.all([
+        savedPersonalForecast
+          ? Promise.resolve(savedPersonalForecast)
+          : generateAndPersistPersonalForecast(userId, context.chartId, context.profile, context.chartData, dateKey),
+        savedSignHoroscope
+          ? Promise.resolve(savedSignHoroscope)
+          : getOrGenerateSignDailyHoroscope(sign, dateKey, language, {
+              allowStaticFallback: false,
+              requirePersistence: true,
+            }),
+      ]);
+
+      const [personalForecast, signHoroscope, latestReactions] = await Promise.all([
+        getSavedPersonalForecast(userId, context.chartId, dateKey),
+        getCachedSignDailyHoroscope(sign, dateKey, language),
+        db.horoscope_reactions.getSummary(userId, sign, dateKey).catch(() => null),
+      ]);
+
+      if (!personalForecast) {
+        throw buildApiError('Personal daily forecast was not available after generation', 'FORECAST_DAILY_PERSIST_FAILED');
+      }
+      if (!signHoroscope) {
+        throw buildApiError('Sign horoscope was not available after generation', 'SIGN_HOROSCOPE_PERSIST_FAILED');
+      }
+
+      const overview = await buildTodayOverview({
+        profileLanguage: language,
+        chartData: context.chartData,
+        dateKey,
+        personalForecast,
+        signHoroscope,
+        reactions: hydrateReactionSummaryLabels(latestReactions, language),
+      });
+
+      return res.status(200).json({
+        status: 'ready',
+        overview,
+        chartId: context.chartId,
+        source: 'today_overview_v1',
+      });
+    } finally {
+      releaseLock(lockKey);
+    }
   } catch (error: any) {
     console.error('[API/content/today/overview]', error?.message || error);
     const status = error?.status === 503 ? 503 : 500;

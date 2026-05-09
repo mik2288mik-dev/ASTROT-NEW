@@ -31,6 +31,7 @@ type DashboardView = Extract<ViewState, 'chart' | 'horoscope' | 'synastry'>;
 interface DashboardProps {
   profile: UserProfile;
   chartData: NatalChartData | null;
+  chartId?: number | null;
   onNavigate: (view: DashboardView) => void;
   onOpenHoroscopeLayer: (layer: HoroscopeLayer) => void;
   onOpenNatalMode: (mode: NatalChartMode) => void;
@@ -180,7 +181,6 @@ function TodaySection({
   language,
   busyReaction,
   onReact,
-  onOpenHoroscope,
   onRetry,
 }: {
   overview: TodayOverview | null;
@@ -189,7 +189,6 @@ function TodaySection({
   language: 'ru' | 'en';
   busyReaction: HoroscopeReactionKey | null;
   onReact: (reaction: HoroscopeReactionKey) => void;
-  onOpenHoroscope: () => void;
   onRetry: () => void;
 }) {
   const fallbackDate = language === 'en' ? 'Today' : 'Сегодня';
@@ -278,15 +277,6 @@ function TodaySection({
         </div>
       ) : null}
 
-      <button
-        type="button"
-        onClick={onOpenHoroscope}
-        className="mt-5 inline-flex min-h-[44px] items-center gap-2 rounded-full bg-[#202024] px-4 text-[13px] font-semibold tracking-normal text-white shadow-[0_16px_32px_rgba(0,0,0,0.12)] active:scale-[0.98]"
-      >
-        {language === 'en' ? 'Open the full day' : 'Открыть весь день'}
-        <ArrowRight size={15} strokeWidth={2} />
-      </button>
-
       {loading && overview ? (
         <p className="mt-3 text-[12px] tracking-normal text-[#8f8992]">
           {language === 'en' ? 'Refreshing today’s rhythm...' : 'Обновляю ритм дня...'}
@@ -355,11 +345,11 @@ function GatewayCard({
     <button
       type="button"
       onClick={onClick}
-      className="group relative min-h-[132px] overflow-hidden rounded-[22px] text-left shadow-[0_16px_36px_rgba(0,0,0,0.08)] active:scale-[0.99]"
+      className="group relative h-[156px] w-full overflow-hidden rounded-[22px] text-left shadow-[0_16px_36px_rgba(0,0,0,0.08)] active:scale-[0.99]"
     >
       <img src={image} alt="" className="absolute inset-0 h-full w-full object-cover transition duration-500 group-active:scale-[1.03]" />
       <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(16,16,18,0.72)_0%,rgba(16,16,18,0.42)_52%,rgba(16,16,18,0.10)_100%)]" />
-      <div className="relative flex min-h-[132px] max-w-[72%] flex-col justify-end p-4 text-white">
+      <div className="relative flex h-full max-w-[72%] flex-col justify-end p-4 text-white">
         <h3 className="text-[20px] font-semibold leading-tight tracking-normal">{title}</h3>
         <p className="mt-1 text-[12.5px] leading-snug tracking-normal text-white/78">{subtitle}</p>
         <span className="mt-3 inline-flex h-8 w-8 items-center justify-center rounded-full bg-white text-[#202024]">
@@ -438,7 +428,7 @@ function GatewaySection({
 }
 
 export const Dashboard = memo<DashboardProps>(
-  ({ profile, chartData, onNavigate, onOpenHoroscopeLayer, onOpenNatalMode, onOpenSettings, onOpenWallet }) => {
+  ({ profile, chartData, chartId = null, onNavigate, onOpenHoroscopeLayer, onOpenNatalMode, onOpenSettings, onOpenWallet }) => {
     const shouldReduceMotion = useReducedMotion();
     const language = profile.language === 'en' ? 'en' : 'ru';
     const todayKey = useMemo(() => getMoscowTodayKey(), []);
@@ -446,6 +436,7 @@ export const Dashboard = memo<DashboardProps>(
     const [loadingOverview, setLoadingOverview] = useState(false);
     const [overviewError, setOverviewError] = useState<string | null>(null);
     const [busyReaction, setBusyReaction] = useState<HoroscopeReactionKey | null>(null);
+    const overviewRetryRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const rootStyle = {
       paddingBottom:
@@ -489,12 +480,27 @@ export const Dashboard = memo<DashboardProps>(
     const loadOverview = React.useCallback(() => {
       if (!profile.id || !chartData) return;
       let cancelled = false;
+      if (overviewRetryRef.current) {
+        clearTimeout(overviewRetryRef.current);
+        overviewRetryRef.current = null;
+      }
       setLoadingOverview(true);
       setOverviewError(null);
 
-      getTodayOverview(profile, chartData, undefined, todayKey)
-        .then((nextOverview) => {
-          if (!cancelled) setOverview(nextOverview);
+      getTodayOverview(profile, chartData, chartId, todayKey)
+        .then((result) => {
+          if (cancelled) return;
+          if (result.status === 'generating') {
+            const retryAfterMs = Math.max(1200, Math.min(result.retryAfterMs || 2500, 8000));
+            overviewRetryRef.current = setTimeout(() => {
+              overviewRetryRef.current = null;
+              void loadOverview();
+            }, retryAfterMs);
+            return;
+          }
+
+          setOverview(result.overview);
+          setLoadingOverview(false);
         })
         .catch((error: any) => {
           if (!cancelled) {
@@ -519,16 +525,18 @@ export const Dashboard = memo<DashboardProps>(
                   : 'Твой день не загрузился. Попробуй ещё раз через пару секунд.'
               );
             }
+            setLoadingOverview(false);
           }
-        })
-        .finally(() => {
-          if (!cancelled) setLoadingOverview(false);
         });
 
       return () => {
         cancelled = true;
+        if (overviewRetryRef.current) {
+          clearTimeout(overviewRetryRef.current);
+          overviewRetryRef.current = null;
+        }
       };
-    }, [chartData, language, profile, todayKey]);
+    }, [chartData, chartId, language, profile, todayKey]);
 
     useEffect(() => loadOverview(), [loadOverview]);
 
@@ -629,7 +637,6 @@ export const Dashboard = memo<DashboardProps>(
                 language={language}
                 busyReaction={busyReaction}
                 onReact={handleReaction}
-                onOpenHoroscope={() => openHoroscope('sign')}
                 onRetry={() => {
                   void loadOverview();
                 }}
