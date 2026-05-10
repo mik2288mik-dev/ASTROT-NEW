@@ -35,6 +35,19 @@ module.exports = {
         'accent-gold': '#D4AF37',
         'text-main': '#2D2D2D',
         'text-muted': '#717171',
+        lumiaHome: {
+          bg: 'var(--lumia-home-bg)',
+          surface: 'var(--lumia-home-surface)',
+          surfaceSoft: 'var(--lumia-home-surface-soft)',
+          text: 'var(--lumia-home-text)',
+          muted: 'var(--lumia-home-muted)',
+          purple: 'var(--lumia-home-purple)',
+          purpleDeep: 'var(--lumia-home-purple-deep)',
+          lavender: 'var(--lumia-home-lavender)',
+          plum: 'var(--lumia-home-plum)',
+          peach: 'var(--lumia-home-peach)',
+          line: 'var(--lumia-home-line)',
+        },
       },
       fontSize: {
         'base': ['1rem', { lineHeight: '1.6' }],
@@ -57,6 +70,8 @@ module.exports = {
         serif: ['"Outfit"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
         sans: ['"Inter"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
         outfit: ['"Outfit"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+        lumiaHome: ['"Manrope"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+        lumiaHomeDisplay: ['"Geologica"', '"Manrope"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
         lora: ['"Lora"', 'Georgia', 'Cambria', 'Times New Roman', 'serif'],
       },
       animation: {
