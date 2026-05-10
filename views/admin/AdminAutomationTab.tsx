@@ -94,8 +94,8 @@ const AUTOMATION_SMART_PRESETS: Array<{
     repeatMode: 'weekdays',
     sendTime: '13:00',
     titleRu: 'Дневной фокус по карте',
-    textRu: 'Середина дня: проверь гороскоп по знаку и текущий дневной слой натальной карты, чтобы вернуть фокус и не распыляться.',
-    textEn: 'Midday check-in: review your zodiac horoscope and current natal day layer to regain focus and avoid noise.',
+    textRu: 'Середина дня: проверь гороскоп по знаку и текущий дневной фокус натальной карты, чтобы вернуть внимание и не распыляться.',
+    textEn: 'Midday check-in: review your zodiac horoscope and current natal day focus to regain clarity and avoid noise.',
   },
   {
     id: 'evening_reflection',
@@ -104,8 +104,8 @@ const AUTOMATION_SMART_PRESETS: Array<{
     repeatMode: 'daily',
     sendTime: '20:00',
     titleRu: 'Вечернее завершение дня',
-    textRu: 'Вечерний слой уже готов: как прожился день по твоему знаку и что подсвечивает карта на завтра. Открой Lumia перед сном.',
-    textEn: 'Your evening layer is ready: how the day unfolded for your sign and what your card highlights for tomorrow. Open Lumia before sleep.',
+    textRu: 'Вечерний разбор уже доступен: как прожился день по твоему знаку и что подсвечивает карта на завтра. Открой Lumia перед сном.',
+    textEn: 'Your evening reading is available: how the day unfolded for your sign and what your chart highlights for tomorrow. Open Lumia before sleep.',
   },
   {
     id: 'reactivation_7d',

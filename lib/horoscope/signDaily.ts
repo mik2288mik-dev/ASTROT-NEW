@@ -63,7 +63,7 @@ export function buildSignDailyFallback(
       focus: 'Pick one priority and give it a calm, visible step.',
       reading:
         `For ${signLabel}, the day is less about proving something and more about finding the right pace. Notice where you are being pulled into noise, hurry, or other people’s expectations. The useful move is to return to one clear intention and act from there.\n\nIf you keep the day simple, you can feel more collected and less dependent on outside pressure. Let the horoscope be a small compass: not a prediction, but a way to choose your next step with more steadiness.`,
-      context: 'This is a general zodiac horoscope. The deeper personal layer opens through your full natal chart.',
+    context: 'This is a general zodiac horoscope. A more precise personal reading opens through your full natal chart.',
       advice: [
         'Do not turn one mood into a whole conclusion.',
         'Say yes only where your body also relaxes a little.',
@@ -81,7 +81,7 @@ export function buildSignDailyFallback(
     focus: 'Выберите один приоритет и сделайте по нему небольшой, но видимый шаг.',
     reading:
       `Для знака ${signLabel} этот день не про доказательство силы, а про точный темп. Обратите внимание, где вас уводит в спешку, лишние ожидания или желание всё сразу объяснить. Полезнее вернуться к одному ясному намерению и действовать от него.\n\nЕсли упростить день, станет легче почувствовать собранность и не зависеть от внешнего давления. Пусть гороскоп будет не приговором, а маленьким компасом: он помогает выбрать следующий шаг спокойнее и честнее.`,
-    context: 'Это общий гороскоп по знаку. Более точный личный слой открывается через полную натальную карту.',
+    context: 'Это общий гороскоп по знаку. Более точный личный разбор открывается через полную натальную карту.',
     advice: [
       'Не превращайте одно настроение в большой вывод.',
       'Соглашайтесь только там, где внутри становится чуть спокойнее.',

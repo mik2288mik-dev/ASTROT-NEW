@@ -350,8 +350,8 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
           if (!cancelled) {
             setSignError(
               language === 'en'
-                ? 'The horoscope did not load. Please try again.'
-                : 'Гороскоп не загрузился. Попробуй ещё раз.'
+                ? 'The horoscope is temporarily unavailable. Please try again.'
+                : 'Гороскоп сейчас недоступен. Попробуй ещё раз.'
             );
           }
         })
@@ -410,18 +410,18 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
         return 'На балансе не хватает Lumi. Можно открыть Premium или пополнить кошелёк.';
       }
       if (err?.code === 'CONTENT_GENERATION_UNAVAILABLE' || err?.status === 503) {
-        return 'Слой сейчас не сгенерировался. Попробуйте ещё раз: если доступ уже открыт, повторного списания не будет.';
+        return 'Прогноз сейчас не подготовился. Попробуйте ещё раз: если доступ уже открыт, повторного списания не будет.';
       }
       if (err?.status === 403 || err?.status === 409) {
         return fallback;
       }
-      return 'Не получилось загрузить слой. Попробуйте ещё раз чуть позже.';
+      return 'Не получилось открыть прогноз. Попробуйте ещё раз чуть позже.';
     };
 
     const loadLayer = async (layer: HoroscopeLayer, spendLumi = false) => {
       if (layer === 'sign') return;
       if (!userId || !chartData) {
-        setLayerError('Для персонального слоя нужна сохранённая натальная карта.');
+        setLayerError('Для персонального прогноза нужна сохранённая натальная карта.');
         return;
       }
 
@@ -466,7 +466,7 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
       } catch (error) {
         const currentLayer = layers.find((item) => item.id === layer);
         setLayerError(
-          getFriendlyError(error, `Этот слой можно открыть в Premium или разово за ${currentLayer?.price || 35} Lumi.`)
+          getFriendlyError(error, `Этот прогноз можно открыть в Premium или разово за ${currentLayer?.price || 35} Lumi.`)
         );
       } finally {
         setLoadingLayer(null);

@@ -74,7 +74,7 @@ const AI_DRAFT_SCENARIOS: Array<{
     labelRu: 'Утро',
     labelEn: 'Morning',
     hintRu: 'Утренний вход: гороскоп дня и дневная натальная карта.',
-    hintEn: 'Morning entry: daily horoscope and daily natal layer.',
+    hintEn: 'Morning entry: daily horoscope and daily natal reading.',
   },
   {
     value: 'day',
@@ -101,15 +101,15 @@ const AI_DRAFT_SCENARIOS: Array<{
     value: 'upsell',
     labelRu: 'Полный день',
     labelEn: 'Full day upsell',
-    hintRu: 'Продать полный и точный слой дня через Premium или разовый Lumi unlock.',
-    hintEn: 'Sell the full precise day layer through Premium or a one-off Lumi unlock.',
+    hintRu: 'Продать полный и точный разбор дня через Premium или разовый Lumi unlock.',
+    hintEn: 'Sell the full precise day reading through Premium or a one-off Lumi unlock.',
   },
   {
     value: 'promo',
     labelRu: 'Промо',
     labelEn: 'Promo',
-    hintRu: 'Промо paid-разборов, совместимости и глубоких слоёв.',
-    hintEn: 'Promote paid readings, compatibility, and deeper layers.',
+    hintRu: 'Промо paid-разборов, совместимости и глубоких материалов.',
+    hintEn: 'Promote paid readings, compatibility, and deeper materials.',
   },
   {
     value: 'reactivation',

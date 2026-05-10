@@ -54,7 +54,7 @@ function buildAskLumiaPrompt(options: GenerateAskLumiaAnswerOptions) {
     : 'No relevant prior conversation.';
 
   const tierInstruction = options.tier === 'free'
-    ? `Answer as Lumia's free starter layer.
+    ? `Answer as Lumia's starter reading.
 
 Requirements:
 - Give one direct personal answer grounded in the chart context that already feels helpful, not teaser bait.
@@ -105,7 +105,7 @@ Output:
 function buildQuestionFallback(question: string, language: 'ru' | 'en', tier: AskLumiaTier) {
   if (language === 'ru') {
     if (tier === 'premium') {
-      return `Сейчас по этому вопросу важнее не пытаться мгновенно всё решить, а увидеть, где у тебя на самом деле главный внутренний узел. Напряжение здесь, скорее всего, собирается не из одной детали, а из нескольких слоёв сразу: что ты чувствуешь, что стараешься удержать, чего боишься коснуться и где уже устал жить в подвешенности.
+      return `Сейчас по этому вопросу важнее не пытаться мгновенно всё решить, а увидеть, где у тебя на самом деле главный внутренний узел. Напряжение здесь, скорее всего, собирается не из одной детали, а из нескольких частей сразу: что ты чувствуешь, что стараешься удержать, чего боишься коснуться и где уже устал жить в подвешенности.
 
 Если смотреть честно, ответ для тебя сейчас не в резком движении, а в более точной внутренней позиции. Например, в таких ситуациях человек часто колеблется между желанием всё прояснить сразу и попыткой ещё немного потерпеть, чтобы не сталкиваться с неприятной правдой. Но именно это зависание обычно и съедает больше всего сил.
 
@@ -124,7 +124,7 @@ function buildQuestionFallback(question: string, language: 'ru' | 'en', tier: As
   }
 
   if (tier === 'premium') {
-    return `With this question, the most important thing right now is not to force a fast solution, but to see where the real inner knot is. The pressure here is likely not coming from one detail, but from several layers at once: what you feel, what you are trying to hold together, what you fear naming, and where uncertainty has already become exhausting.
+    return `With this question, the most important thing right now is not to force a fast solution, but to see where the real inner knot is. The pressure here is likely not coming from one detail, but from several parts at once: what you feel, what you are trying to hold together, what you fear naming, and where uncertainty has already become exhausting.
 
 The answer for you now is not in a dramatic move, but in a more honest internal position. In situations like this, people often swing between wanting immediate clarity and avoiding the one truth that would actually change the situation. That swing creates more pressure than the situation itself.
 

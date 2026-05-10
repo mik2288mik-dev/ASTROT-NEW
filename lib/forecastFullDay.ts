@@ -7,7 +7,7 @@ function readForecastFullDayLumiCost() {
 }
 
 /**
- * One-off Lumi unlock for the same full daily layer that Premium opens.
+ * One-off Lumi unlock for the same full daily reading that Premium opens.
  * Server reads `FORECAST_FULL_DAY_LUMI_COST`; client can read `NEXT_PUBLIC_FORECAST_FULL_DAY_LUMI_COST`.
  */
 export const FORECAST_FULL_DAY_LUMI_COST = readForecastFullDayLumiCost();

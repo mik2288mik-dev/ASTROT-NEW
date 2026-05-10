@@ -67,8 +67,8 @@ export const NOTIFICATION_SLOT_CONFIG: Record<NotificationSlot, NotificationSlot
     defaultRepeatMode: 'daily',
     targetView: 'horoscope',
     defaultButtonText: 'Открыть день',
-    notesRu: 'Вечерние уведомления. Ведут в экран дня для вечернего слоя и мягкого завершения дня.',
-    notesEn: 'Evening notifications. Deep-link into the day screen for the evening layer and a softer close of the day.',
+    notesRu: 'Вечерние уведомления. Ведут в экран дня для вечернего разбора и мягкого завершения дня.',
+    notesEn: 'Evening notifications. Deep-link into the day screen for the evening reading and a softer close of the day.',
   },
   daily_lumi: {
     slot: 'daily_lumi',

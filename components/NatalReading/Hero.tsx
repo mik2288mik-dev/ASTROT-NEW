@@ -43,7 +43,7 @@ function SignChip({
 function defaultArchetype(sun: string, moon: string): NatalReadingArchetype {
   return {
     title: `${sun} и ${moon}`,
-    subtitle: 'Твоя натальная карта собрана и готова — читай дальше',
+    subtitle: 'Главные акценты карты уже видны: читай интерпретацию ниже',
   };
 }
 

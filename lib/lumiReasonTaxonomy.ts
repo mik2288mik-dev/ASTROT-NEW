@@ -87,13 +87,13 @@ export const LUMI_REASON_TAXONOMY: Record<string, LumiReasonLabels> = {
   },
   natal_recalculation: {
     flow: 'spend',
-    ru: 'Пересчёт / натальный слой (Lumi)',
-    en: 'Natal layer unlock (Lumi)',
+    ru: 'Пересчёт натального разбора (Lumi)',
+    en: 'Natal reading recalculation (Lumi)',
   },
   forecast_extra: {
     flow: 'spend',
-    ru: 'Полный слой дня',
-    en: 'Full day layer',
+    ru: 'Полный разбор дня',
+    en: 'Full day reading',
   },
   regenerate_natal: {
     flow: 'spend',

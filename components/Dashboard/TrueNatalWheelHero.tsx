@@ -75,9 +75,10 @@ type TrueNatalWheelHeroProps = {
   profile: UserProfile;
   chartData: NatalChartData;
   chartId?: number | null;
+  variant?: 'full' | 'embedded';
   shouldAnimateIntro?: boolean;
   onIntroComplete?: () => void;
-  onOpenChart: () => void;
+  onOpenChart?: () => void;
 };
 
 const aspectStyles: Record<NatalAspectData['type'], { stroke: string; width: number; dash?: string }> = {
@@ -179,8 +180,8 @@ function distanceToSegment(point: WheelPoint, start: WheelPoint, end: WheelPoint
 
 function buildIdleHint(language: Language) {
   return language === 'en'
-    ? 'Tap a sign, planet, or aspect line right on the wheel. A short reading for that layer appears here.'
-    : 'Нажимай знак, планету или линию аспекта прямо на колесе. Здесь появится короткое объяснение этого слоя в твоей карте.';
+    ? 'Tap a sign, planet, or aspect line right on the wheel. A short reading for that part of the chart appears here.'
+    : 'Нажимай знак, планету или линию аспекта прямо на колесе. Здесь появится короткое объяснение этой части карты.';
 }
 
 function buildIdleTitle(language: Language) {
@@ -202,12 +203,12 @@ function getEntityKicker(language: Language, insight: WheelInsight) {
     if (insight.entityType === 'planet') return insight.entityId === 'rising' ? 'Point' : 'Planet';
     if (insight.entityType === 'zodiac') return 'Sign';
     if (insight.entityType === 'aspect') return 'Aspect line';
-    return 'Layer';
+    return 'Reading';
   }
   if (insight.entityType === 'planet') return insight.entityId === 'rising' ? 'Точка' : 'Планета';
   if (insight.entityType === 'zodiac') return 'Знак';
   if (insight.entityType === 'aspect') return 'Линия аспекта';
-  return 'Слой';
+  return 'Раздел';
 }
 
 function resolveLongitude(position: { longitude?: number; sign?: string; degree?: number } | null | undefined) {
@@ -479,8 +480,9 @@ function PressedWheelCutout({
 }
 
 export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
-  ({ profile, chartData, chartId = null, shouldAnimateIntro = false, onIntroComplete, onOpenChart }) => {
+  ({ profile, chartData, chartId = null, variant = 'full', shouldAnimateIntro = false, onIntroComplete, onOpenChart }) => {
     const language: Language = profile.language === 'en' ? 'en' : 'ru';
+    const isEmbedded = variant === 'embedded';
     const shouldReduceMotion = useReducedMotion();
     const clipPrefix = useId().replace(/:/g, '');
     const sunClipId = `${clipPrefix}-sun`;
@@ -627,6 +629,7 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
     }, [aspectLines, selectedAspect, selectedPlanetKey, selectedZodiacSign]);
 
     const selectionPreview = useMemo(() => {
+      if (isEmbedded) return null;
       if (!selectedEntity) return null;
       try {
         const { request } = resolveWheelInsightRequest(
@@ -639,12 +642,12 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
       } catch {
         return null;
       }
-    }, [chartData, language, selectedEntity]);
+    }, [chartData, isEmbedded, language, selectedEntity]);
 
     useEffect(() => {
       setRemoteInsight(null);
       const userId = profile.id;
-      if (!selectedEntity || !userId) return;
+      if (isEmbedded || !selectedEntity || !userId) return;
 
       let cancelled = false;
       const loadInsight = async () => {
@@ -679,7 +682,7 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
       return () => {
         cancelled = true;
       };
-    }, [chartData, chartId, language, profile, selectedEntity]);
+    }, [chartData, chartId, isEmbedded, language, profile, selectedEntity]);
 
     const handleWheelPointerDown = useCallback(
       (event: React.PointerEvent<HTMLDivElement>) => {
@@ -709,15 +712,15 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
     const activeInsight = remoteInsight || selectionPreview;
     const selectedInsightKicker = activeInsight ? getEntityKicker(language, activeInsight) : null;
     const selectedInsightTags = activeInsight ? visibleTags(activeInsight.tags) : [];
-    const layerLabels = buildLayerLabels(language);
+    const layerLabels = isEmbedded ? [] : buildLayerLabels(language);
     const selectedKey = entityKey(selectedEntity);
     const pressedKey = entityKey(pressedEntity);
 
     return (
-      <div className="relative flex h-full min-h-0 flex-col pb-2">
+      <div className={`relative flex min-h-0 flex-col pb-2 ${isEmbedded ? 'h-auto' : 'h-full'}`}>
         <div className="mt-1 flex min-h-0 flex-1 flex-col">
           <div className="shrink-0">
-            <div className="relative mx-auto w-full max-w-[25.5rem]">
+            <div className={`relative mx-auto w-full ${isEmbedded ? 'max-w-[23.25rem]' : 'max-w-[25.5rem]'}`}>
               <div
                 ref={wheelRef}
                 className="relative aspect-square w-full select-none touch-manipulation"
@@ -854,17 +857,20 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
             </div>
           </div>
 
-          <div className="mx-auto mt-2 flex w-full max-w-[23.75rem] justify-center px-3">
-            <button
-              type="button"
-              onClick={onOpenChart}
-              className="inline-flex h-10 items-center gap-2 rounded-full bg-[#1F2937] px-4 text-[13px] font-semibold text-white shadow-[0_8px_20px_rgba(31,41,55,0.18)] transition active:scale-[0.98]"
-            >
-              {buildOpenChartLabel(language)}
-              <ArrowRight size={15} strokeWidth={2.2} />
-            </button>
-          </div>
+          {!isEmbedded && onOpenChart ? (
+            <div className="mx-auto mt-2 flex w-full max-w-[23.75rem] justify-center px-3">
+              <button
+                type="button"
+                onClick={onOpenChart}
+                className="inline-flex h-10 items-center gap-2 rounded-full bg-[#1F2937] px-4 text-[13px] font-semibold text-white shadow-[0_8px_20px_rgba(31,41,55,0.18)] transition active:scale-[0.98]"
+              >
+                {buildOpenChartLabel(language)}
+                <ArrowRight size={15} strokeWidth={2.2} />
+              </button>
+            </div>
+          ) : null}
 
+          {!isEmbedded ? (
           <div className="mx-auto mt-3 w-full max-w-[23.75rem] px-3">
             <AnimatePresence mode="wait" initial={false}>
               {!activeInsight ? (
@@ -925,6 +931,7 @@ export const TrueNatalWheelHero = memo<TrueNatalWheelHeroProps>(
               )}
             </AnimatePresence>
           </div>
+          ) : null}
         </div>
       </div>
     );

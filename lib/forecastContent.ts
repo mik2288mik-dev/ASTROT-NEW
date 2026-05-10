@@ -214,8 +214,24 @@ export async function generateFreeDailyForecast(
   options?: { allowStaticFallback?: boolean }
 ): Promise<ForecastDailyReading> {
   const lang: 'ru' | 'en' = profile.language === 'en' ? 'en' : 'ru';
-  const transits = await getCurrentTransits(new Date());
   const allowStaticFallback = options?.allowStaticFallback !== false;
+  const fallback = buildDailyFallback(lang, dateKey);
+  let transits;
+
+  try {
+    transits = await getCurrentTransits(new Date());
+  } catch (error: any) {
+    if (!allowStaticFallback) {
+      const nextError = new Error(error?.message || 'Transit calculation failed') as Error & {
+        code?: string;
+        status?: number;
+      };
+      nextError.code = 'CONTENT_GENERATION_UNAVAILABLE';
+      nextError.status = 503;
+      throw nextError;
+    }
+    return fallback;
+  }
 
   if (!openai) {
     if (!allowStaticFallback) {
@@ -224,7 +240,7 @@ export async function generateFreeDailyForecast(
       error.status = 503;
       throw error;
     }
-    return buildDailyFallback(lang, dateKey);
+    return fallback;
   }
 
   try {
@@ -257,7 +273,7 @@ export async function generateFreeDailyForecast(
       nextError.status = 503;
       throw nextError;
     }
-    return buildDailyFallback(lang, dateKey);
+    return fallback;
   }
 }
 

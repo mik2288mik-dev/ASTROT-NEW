@@ -171,8 +171,8 @@ export const Wallet: React.FC<WalletProps> = ({ profile, onUpdateProfile }) => {
         <p className="text-sm text-astro-subtext leading-relaxed">
           {T(
             lang,
-            'Lumi — не «монетки ради монеток», а понятная валюта точечных действий: слоты карт, разовые вопросы и синастрия, обновления слоёв. Часть Lumi можно получать за регулярный вход; часть — купить пакетом.',
-            'Lumi is not random coins — it is the currency for specific actions: chart slots, one-off questions and synastry layers, and content refreshes. You can earn some through regular visits, and buy more when you need a boost.'
+            'Lumi — не «монетки ради монеток», а понятная валюта точечных действий: слоты карт, разовые вопросы, синастрия и обновления разборов. Часть Lumi можно получать за регулярный вход; часть — купить пакетом.',
+            'Lumi is not random coins — it is the currency for specific actions: chart slots, one-off questions, synastry, and content refreshes. You can earn some through regular visits, and buy more when you need a boost.'
           )}
         </p>
       </div>

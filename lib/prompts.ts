@@ -66,7 +66,7 @@ ${natalDataJson}
 • НЕ пиши «Солнце в X», «Луна в Y»
 • Основной фокус — живой, личный, эмоционально цепляющий текст на языке жизни
 • Текст должен чувствоваться астрологически обоснованным, но читаться как психологический портрет
-• Бесплатный слой уже должен быть ценным сам по себе, но не пытаться раскрыть все нюансы карты сразу
+• Короткий разбор уже должен быть ценным сам по себе, но не пытаться раскрыть все нюансы карты сразу
 • Дай 1–2 узнаваемых жизненных наблюдения: как это проявляется в выборе, близости, внутреннем ритме или реакции на давление
 
 Формат ответа (обычный текст, НЕ JSON):
@@ -174,7 +174,7 @@ ${transitsJson}
 – Текущие транзиты к натальной карте (это самое важное!). Сравнивай планеты из транзитов с планетами натальной карты.
 – Лунный день и фазу Луны (из транзитов).
 – Общий фон дня.
-– Это бесплатный слой: он уже должен быть полезным и узнаваемым, но не пытаться разобрать весь день по микросценариям и частям суток.
+– Это короткий разбор: он уже должен быть полезным и узнаваемым, но не пытаться разобрать весь день по микросценариям и частям суток.
 – Человек должен почувствовать: «да, именно так мой день сейчас и ощущается».
 
 Формат ответа (строго JSON-объект, без markdown вокруг):
@@ -555,9 +555,9 @@ ${natalData2Json}
 – это не сухая астрология, а живое описание динамики между людьми;
 – не используй слова вроде «аспект», «квадратура», «тригон», «седьмой дом» и т.п.;
 – опирайся на смыслы: кто что даёт друг другу, где легко, где чувствительно, в чём может быть урок.
-– Бесплатный слой должен уже давать полезное и узнаваемое ощущение этой связи, а не быть пустым тизером.
+– Короткий разбор должен уже давать полезное и узнаваемое ощущение этой связи, а не быть пустым тизером.
 – Покажи один главный узор связи, одну мягкую точку трения и один понятный способ обходиться друг с другом.
-– Не пытайся охватить все нюансы: больше глубины, примеров и точности остаётся для следующих слоёв.
+– Не пытайся охватить все нюансы: больше глубины, примеров и точности остаётся для следующих разборов.
 
 Формат ответа:
 
@@ -678,7 +678,7 @@ ${natalData2Json}
 – не оценивай связь как «хорошая/плохая», говори о потенциалах, уроках и особенностях;
 – не используй сложный астрологический язык — ни знаков, ни домов, ни аспектов, только живые описания: характеры, реакции, переживания, сценарии;
 – стиль тёплый, поддерживающий, честный, без запугивания и фатализма;
-– это premium-слой: он должен ощущаться заметно глубже brief-версии за счёт нюансов, жизненных сценариев и точности в описании динамики;
+– это premium-разбор: он должен ощущаться заметно глубже brief-версии за счёт нюансов, жизненных сценариев и точности в описании динамики;
 – пиши так, будто говоришь с живыми людьми, которые пришли на спокойную личную консультацию и хотят понять, «что между нами и как нам быть».
 
 Выведи результат в формате JSON с полями: generalTheme, attraction, difficulties, recommendations (массив), potential.`;
@@ -1030,7 +1030,7 @@ ${transitsJson}
 Task: create a premium-quality personal forecast for this specific part of the day.
 
 Rules:
-- This is the full daily layer used by Lumia Premium and by the one-off Lumi unlock. It must feel meaningfully stronger than the free daily layer through deeper nuance, sharper situational precision, and a richer sense of what is happening in real life.
+- This is the full daily reading used by Lumia Premium and by the one-off Lumi unlock. It must feel meaningfully stronger than the free daily reading through deeper nuance, sharper situational precision, and a richer sense of what is happening in real life.
 - It should feel close to the user's real state, decisions, relationships, money, and tension points in this exact part of the day.
 - Explicitly differ from a single-day summary: this slice is about how the day *feels and behaves* in this part of the day (energy, social tone, practical risk, inner tempo).
 - Treat it like a full daily natal card segment: mix the user's inner state with concrete situations, triggers, and moments that may surface in this slot.
@@ -1491,14 +1491,14 @@ export interface ExtendedSynastryAIResponse {
   compatibilityScore?: number;
 }
 
-/** Content v2: free weekly (короткий слой). */
+/** Content v2: free weekly (короткий разбор). */
 export interface FreeWeeklyForecastV2AIResponse {
   headline: string;
   summary: string;
   focus: string;
 }
 
-/** Content v2: premium weekly (полный слой). */
+/** Content v2: premium weekly (полный разбор). */
 export interface PremiumWeeklyForecastV2AIResponse {
   headline: string;
   summary: string;

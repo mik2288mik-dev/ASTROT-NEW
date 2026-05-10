@@ -354,8 +354,8 @@ export const HumanReport: React.FC<Props> = ({
   if (error || !report) {
     return (
       <div className="px-5 py-10">
-        <p className="font-lora text-[20px] text-[#1f1f1f]">Разбор пока не загрузился</p>
-        <p className="mt-2 text-sm leading-relaxed text-[#666]">{error || 'Попробуйте открыть экран еще раз.'}</p>
+        <p className="font-lora text-[20px] text-[#1f1f1f]">Интерпретация сейчас недоступна</p>
+        <p className="mt-2 text-sm leading-relaxed text-[#666]">{error || 'Обновите экран через несколько секунд.'}</p>
         <button
           type="button"
           onClick={() => window.location.reload()}
@@ -384,7 +384,7 @@ export const HumanReport: React.FC<Props> = ({
           {report.birthData.birthPlace ? ` · ${report.birthData.birthPlace}` : ''}
         </p>
         <h1 className="mt-3 font-lora text-[29px] leading-[1.12] text-[#1f1f1f]">
-          {report.userName}, ваша карта готова
+          {report.userName}, главный портрет
         </h1>
         <div className="mt-5 border-l-2 border-[#c9a55a] pl-4">
           <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#8c6bb1]">
@@ -421,7 +421,7 @@ export const HumanReport: React.FC<Props> = ({
               Как карта проявляется в жизни
             </h2>
             <p className="mt-3 text-[14px] leading-relaxed text-[#5e5e5e]">
-              Базовый портрет уже открыт. Ниже - сферы, где карта становится практичной: отношения, работа, деньги, действия, окружение и личный рост.
+              Ниже - сферы, где карта становится практичной: отношения, работа, деньги, действия, окружение и личный рост.
             </p>
           </div>
         </div>
@@ -441,8 +441,8 @@ export const HumanReport: React.FC<Props> = ({
       </section>
 
       <section className="border-t border-[#efefef] py-8">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#8c6bb1]">Premium daily</p>
-        <h2 className="mt-2 font-lora text-[24px] leading-tight text-[#1f1f1f]">Ежедневная карта</h2>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#8c6bb1]">Ежедневная интерпретация</p>
+        <h2 className="mt-2 font-lora text-[24px] leading-tight text-[#1f1f1f]">Карта сегодня</h2>
         <p className="mt-3 text-[14px] leading-relaxed text-[#5e5e5e]">
           Каждый день карта оживает через текущие транзиты: где фокус, где риск, что лучше сделать и как бережнее пройти день.
         </p>
