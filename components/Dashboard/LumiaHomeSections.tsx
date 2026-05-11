@@ -1,7 +1,6 @@
-import React, { useEffect, useId, useState } from 'react';
+import React, { useId } from 'react';
 import {
   ArrowRight,
-  Bell,
   BookOpen,
   HeartHandshake,
   Lock,
@@ -9,141 +8,16 @@ import {
   Sparkles,
   Star,
 } from 'lucide-react';
-import type { HoroscopeLayer, UserProfile } from '../../types';
 import {
   LumiaHomeBottomNavItem,
-  LumiaHomeIconButton,
   LumiaHomeLargeCard,
   LumiaHomePrimaryButton,
-  LumiaHomeStoryCircle,
 } from './LumiaHomePrimitives';
 import {
   getLumiaHomeCopy,
   LUMIA_HOME_PREVIEW_ITEMS,
   type LumiaHomeLanguage,
 } from './lumiaHomeContent';
-
-export function LumiaHomeHeader({
-  profile,
-  language,
-  onOpenSettings,
-}: {
-  profile: UserProfile;
-  language: LumiaHomeLanguage;
-  onOpenSettings: () => void;
-}) {
-  const copy = getLumiaHomeCopy(language);
-  const initial = (profile.name || 'L').trim().slice(0, 1).toUpperCase();
-  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    try {
-      const tgUser = (window as any)?.Telegram?.WebApp?.initDataUnsafe?.user;
-      setPhotoUrl(typeof tgUser?.photo_url === 'string' ? tgUser.photo_url : null);
-    } catch {
-      setPhotoUrl(null);
-    }
-  }, []);
-
-  return (
-    <header className="px-[var(--lumia-home-page-x)] pb-3 pt-[calc(max(env(safe-area-inset-top,0px),var(--tg-content-safe-area-inset-top,0px))+0.7rem)]">
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2.5">
-        <div className="min-w-0">
-          <p className="relative top-[1px] mb-0 font-serif text-[clamp(2.8rem,13.1vw,3.85rem)] font-semibold leading-none tracking-[-0.065em] text-[#1f1f1f]">
-            LUMIA
-          </p>
-          <p className="mb-0 mt-2 font-lumiaHome text-[9px] font-medium uppercase leading-none tracking-[0.32em] text-[#8a857d]">
-            {copy.tagline}
-          </p>
-        </div>
-
-        <div className="flex shrink-0 items-center gap-2 pt-1">
-          <LumiaHomeIconButton aria-label={copy.notifications} onClick={onOpenSettings}>
-            <Bell size={20} strokeWidth={2.05} />
-            <span className="lumia-home-notification-dot" aria-hidden />
-          </LumiaHomeIconButton>
-          <button
-            type="button"
-            onClick={onOpenSettings}
-            aria-label={copy.settings}
-            className="lumia-home-avatar-button active:scale-[0.98]"
-          >
-            {photoUrl ? (
-              <img src={photoUrl} alt="" className="h-full w-full object-cover" draggable={false} />
-            ) : (
-              initial
-            )}
-          </button>
-        </div>
-      </div>
-    </header>
-  );
-}
-
-export function LumiaHomeStoriesRow({
-  profile,
-  language,
-  onOpenHoroscope,
-}: {
-  profile: UserProfile;
-  language: LumiaHomeLanguage;
-  onOpenHoroscope: (layer: HoroscopeLayer) => void;
-}) {
-  const copy = getLumiaHomeCopy(language).stories;
-  const locked = !profile.isPremium;
-  const stories = [
-    {
-      id: 'today',
-      label: copy.today,
-      imageSrc: '/natal-gateway/daily-horoscope-v2.webp',
-      active: true,
-      locked: false,
-      onClick: () => onOpenHoroscope('sign'),
-    },
-    {
-      id: 'love',
-      label: copy.love,
-      imageSrc: '/natal-gateway/synastry-union-v2.webp',
-      active: false,
-      locked,
-      onClick: () => onOpenHoroscope('love'),
-    },
-    {
-      id: 'money',
-      label: copy.money,
-      imageSrc: '/natal-backgrounds/work-money.webp',
-      active: false,
-      locked,
-      onClick: () => onOpenHoroscope('work_money'),
-    },
-    {
-      id: 'work',
-      label: copy.work,
-      imageSrc: '/natal-gateway/personality-map-v2.webp',
-      active: false,
-      locked,
-      onClick: () => onOpenHoroscope('work_money'),
-    },
-    {
-      id: 'rhythm',
-      label: copy.rhythm,
-      imageSrc: '/natal-backgrounds/daily.webp',
-      active: false,
-      locked,
-      onClick: () => onOpenHoroscope('chart'),
-    },
-  ];
-
-  return (
-    <section className="-mx-[var(--lumia-home-page-x)] overflow-hidden pb-1">
-      <div className="scrollbar-hide flex gap-2.5 overflow-x-auto px-[var(--lumia-home-page-x)] pb-2 pt-1">
-        {stories.map((story) => (
-          <LumiaHomeStoryCircle key={story.id} {...story} />
-        ))}
-      </div>
-    </section>
-  );
-}
 
 export function LumiaHomeHeroCard({
   language,

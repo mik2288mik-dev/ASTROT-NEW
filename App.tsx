@@ -79,13 +79,14 @@ const App: React.FC = () => {
     const [loadingProgress, setLoadingProgress] = useState(0);
     const [view, setView] = useState<ViewState>('onboarding');
     const [showPremiumPreview, setShowPremiumPreview] = useState(false);
-    const [dictionaryOpenSignal, setDictionaryOpenSignal] = useState(0);
+    const [dictionaryOpenSignal] = useState(0);
     const [synastryPrefill, setSynastryPrefill] = useState<SynastryPrefill>(null);
     const [chartsReturnView, setChartsReturnView] = useState<ViewState>('settings');
     const [walletReturnView, setWalletReturnView] = useState<ViewState>('dashboard');
     const [chartReturnView, setChartReturnView] = useState<ViewState>('dashboard');
     const [chartOpenMode, setChartOpenMode] = useState<NatalChartMode>('human');
     const [horoscopeInitialLayer, setHoroscopeInitialLayer] = useState<HoroscopeLayer>('sign');
+    const [homeHeaderCollapse, setHomeHeaderCollapse] = useState(0);
     const [horoscopeBackground, setHoroscopeBackground] = useState<{
         sign: string | null;
         tone: 'sign' | 'chart' | 'love' | 'work';
@@ -695,6 +696,17 @@ const App: React.FC = () => {
         setView('horoscope');
     }, []);
 
+    const handleHomeHeaderCollapseChange = useCallback((nextProgress: number) => {
+        const normalized = Math.min(1, Math.max(0, Number.isFinite(nextProgress) ? nextProgress : 0));
+        setHomeHeaderCollapse((current) => (Math.abs(current - normalized) < 0.012 ? current : normalized));
+    }, []);
+
+    useEffect(() => {
+        if (view !== 'dashboard') {
+            setHomeHeaderCollapse(0);
+        }
+    }, [view]);
+
     const refreshPrimaryChartState = useCallback(async () => {
         try {
             const freshChart = await getChartData();
@@ -819,10 +831,8 @@ const App: React.FC = () => {
                 profile={profile} 
                 view={view} 
                 onOpenSettings={() => setView('settings')}
-                onBack={handleBack}
-                onOpenWallet={() => openWallet(view)}
-                onOpenDictionary={() => setDictionaryOpenSignal((value) => value + 1)}
-                visualBackdrop={!!visualAppBackground}
+                onOpenHoroscopeLayer={openHoroscopeLayer}
+                collapseProgress={homeHeaderCollapse}
             />
             
             <main
@@ -961,8 +971,7 @@ const App: React.FC = () => {
                             }} 
                             onOpenHoroscopeLayer={openHoroscopeLayer}
                             onOpenNatalMode={openNatalMode}
-                            onOpenSettings={() => setView('settings')}
-                            onOpenWallet={() => openWallet('dashboard')}
+                            onHeaderCollapseProgressChange={handleHomeHeaderCollapseChange}
                         />
                     </div>
                 )}
