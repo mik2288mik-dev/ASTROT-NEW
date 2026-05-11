@@ -7,7 +7,7 @@ interface HeaderProps {
   view: ViewState;
   onOpenSettings: () => void;
   onOpenHoroscopeLayer: (layer: HoroscopeLayer) => void;
-  collapseProgress?: number;
+  dashboardScrollRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -15,7 +15,7 @@ export const Header: React.FC<HeaderProps> = ({
   view,
   onOpenSettings,
   onOpenHoroscopeLayer,
-  collapseProgress = 0,
+  dashboardScrollRef,
 }) => {
   if (!profile) return null;
 
@@ -28,7 +28,7 @@ export const Header: React.FC<HeaderProps> = ({
     <LumiaAppHeader
       profile={profile}
       view={view}
-      collapseProgress={view === 'dashboard' ? collapseProgress : 0}
+      scrollContainerRef={view === 'dashboard' ? dashboardScrollRef : undefined}
       onOpenSettings={onOpenSettings}
       onOpenHoroscopeLayer={onOpenHoroscopeLayer}
     />

@@ -86,7 +86,6 @@ const App: React.FC = () => {
     const [chartReturnView, setChartReturnView] = useState<ViewState>('dashboard');
     const [chartOpenMode, setChartOpenMode] = useState<NatalChartMode>('human');
     const [horoscopeInitialLayer, setHoroscopeInitialLayer] = useState<HoroscopeLayer>('sign');
-    const [homeHeaderCollapse, setHomeHeaderCollapse] = useState(0);
     const [horoscopeBackground, setHoroscopeBackground] = useState<{
         sign: string | null;
         tone: 'sign' | 'chart' | 'love' | 'work';
@@ -100,6 +99,7 @@ const App: React.FC = () => {
     const contentSyncedKeyRef = useRef<string | null>(null);
     const requestedViewRef = useRef<ViewState | null>(null);
     const dailyTaskSyncedRef = useRef<Record<string, string>>({});
+    const dashboardScrollRef = useRef<HTMLDivElement | null>(null);
 
     const getFallbackAdminStatus = useCallback((userId?: string | number, storedIsAdmin?: boolean) => {
         return OWNER_ID && userId ? String(userId) === String(OWNER_ID) : !!storedIsAdmin;
@@ -696,17 +696,6 @@ const App: React.FC = () => {
         setView('horoscope');
     }, []);
 
-    const handleHomeHeaderCollapseChange = useCallback((nextProgress: number) => {
-        const normalized = Math.min(1, Math.max(0, Number.isFinite(nextProgress) ? nextProgress : 0));
-        setHomeHeaderCollapse((current) => (Math.abs(current - normalized) < 0.012 ? current : normalized));
-    }, []);
-
-    useEffect(() => {
-        if (view !== 'dashboard') {
-            setHomeHeaderCollapse(0);
-        }
-    }, [view]);
-
     const refreshPrimaryChartState = useCallback(async () => {
         try {
             const freshChart = await getChartData();
@@ -832,7 +821,7 @@ const App: React.FC = () => {
                 view={view} 
                 onOpenSettings={() => setView('settings')}
                 onOpenHoroscopeLayer={openHoroscopeLayer}
-                collapseProgress={homeHeaderCollapse}
+                dashboardScrollRef={dashboardScrollRef}
             />
             
             <main
@@ -971,7 +960,7 @@ const App: React.FC = () => {
                             }} 
                             onOpenHoroscopeLayer={openHoroscopeLayer}
                             onOpenNatalMode={openNatalMode}
-                            onHeaderCollapseProgressChange={handleHomeHeaderCollapseChange}
+                            scrollRef={dashboardScrollRef}
                         />
                     </div>
                 )}

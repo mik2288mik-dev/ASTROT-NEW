@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useEffect, useRef } from 'react';
+import React, { memo } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import type {
   HoroscopeLayer,
@@ -23,7 +23,7 @@ interface DashboardProps {
   onNavigate: (view: DashboardView) => void;
   onOpenHoroscopeLayer: (layer: HoroscopeLayer) => void;
   onOpenNatalMode: (mode: NatalChartMode) => void;
-  onHeaderCollapseProgressChange?: (progress: number) => void;
+  scrollRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 function haptic(kind: 'select' | 'open' = 'select') {
@@ -37,9 +37,8 @@ function haptic(kind: 'select' | 'open' = 'select') {
 }
 
 export const Dashboard = memo<DashboardProps>(
-  ({ profile, onNavigate, onOpenHoroscopeLayer, onOpenNatalMode, onHeaderCollapseProgressChange }) => {
+  ({ profile, onNavigate, onOpenHoroscopeLayer, onOpenNatalMode, scrollRef }) => {
     const shouldReduceMotion = useReducedMotion();
-    const lastCollapseProgressRef = useRef(-1);
     const language = profile.language === 'en' ? 'en' : 'ru';
     const pageVariants = shouldReduceMotion
       ? {
@@ -86,22 +85,6 @@ export const Dashboard = memo<DashboardProps>(
       onNavigate('oracle');
     };
 
-    const handleScroll = useCallback(
-      (event: React.UIEvent<HTMLDivElement>) => {
-        const progress = Math.min(1, Math.max(0, event.currentTarget.scrollTop / 96));
-        if (Math.abs(progress - lastCollapseProgressRef.current) < 0.012) return;
-        lastCollapseProgressRef.current = progress;
-        onHeaderCollapseProgressChange?.(progress);
-      },
-      [onHeaderCollapseProgressChange]
-    );
-
-    useEffect(() => {
-      lastCollapseProgressRef.current = 0;
-      onHeaderCollapseProgressChange?.(0);
-      return () => onHeaderCollapseProgressChange?.(0);
-    }, [onHeaderCollapseProgressChange]);
-
     return (
       <div className="lumia-home-screen relative mx-auto flex h-full min-h-0 w-full max-w-md flex-col overflow-hidden">
         <motion.div
@@ -111,7 +94,7 @@ export const Dashboard = memo<DashboardProps>(
           className="relative flex min-h-0 flex-1 flex-col"
           style={{ willChange: 'transform, opacity, filter' }}
         >
-          <div className="lumia-main-scroll scrollbar-hide" onScroll={handleScroll}>
+          <div className="lumia-main-scroll scrollbar-hide" ref={scrollRef}>
             <div className="lumia-home-scroll-content space-y-[var(--lumia-home-gap-lg)] px-[var(--lumia-home-page-x)]">
               <LumiaHomeHeroCard language={language} onOpen={() => openHoroscope('sign')} />
               <LumiaHomePulseCard language={language} />

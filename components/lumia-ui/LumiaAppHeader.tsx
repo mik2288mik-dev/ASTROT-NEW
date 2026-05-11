@@ -1,6 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import {
+  motion,
+  useReducedMotion,
+  useMotionValueEvent,
+  useScroll,
+  useSpring,
+  useTransform,
+} from 'framer-motion';
 import { Bell } from 'lucide-react';
-import type { CSSProperties } from 'react';
+import type { RefObject } from 'react';
 import type { HoroscopeLayer, UserProfile, ViewState } from '../../types';
 import { LumiaHomeIconButton, LumiaHomeStoryCircle } from '../Dashboard/LumiaHomePrimitives';
 import { getLumiaHomeCopy, type LumiaHomeLanguage } from '../Dashboard/lumiaHomeContent';
@@ -10,7 +18,7 @@ type LumiaStoryId = 'today' | 'love' | 'money' | 'work' | 'rhythm';
 type LumiaAppHeaderProps = {
   profile: UserProfile;
   view: ViewState;
-  collapseProgress?: number;
+  scrollContainerRef?: RefObject<HTMLDivElement | null>;
   onOpenSettings: () => void;
   onOpenHoroscopeLayer: (layer: HoroscopeLayer) => void;
 };
@@ -25,31 +33,91 @@ const SCREEN_TITLES: Partial<Record<ViewState, { ru: string; en: string }>> = {
   admin: { ru: 'Админ-панель', en: 'Admin Panel' },
 };
 
-function clamp01(value: number) {
-  if (!Number.isFinite(value)) return 0;
-  return Math.min(1, Math.max(0, value));
-}
-
 function getScreenTitle(profile: UserProfile, view: ViewState) {
   const language = profile.language === 'en' ? 'en' : 'ru';
   return SCREEN_TITLES[view]?.[language] || null;
 }
 
+function LumiaMiniStoryCircle({
+  label,
+  imageSrc,
+  active,
+  locked,
+  onClick,
+}: {
+  label: string;
+  imageSrc: string;
+  active?: boolean;
+  locked?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      onClick={onClick}
+      className="lumia-app-mini-story-button"
+      data-active={active ? 'true' : undefined}
+      data-locked={locked ? 'true' : undefined}
+    >
+      <img src={imageSrc} alt="" draggable={false} className="h-full w-full object-cover" />
+      <span className="lumia-app-mini-story-wash" aria-hidden />
+      {locked ? <span className="lumia-app-mini-story-lock" aria-hidden /> : null}
+    </button>
+  );
+}
+
 export function LumiaAppHeader({
   profile,
   view,
-  collapseProgress = 0,
+  scrollContainerRef,
   onOpenSettings,
   onOpenHoroscopeLayer,
 }: LumiaAppHeaderProps) {
   const language: LumiaHomeLanguage = profile.language === 'en' ? 'en' : 'ru';
   const copy = getLumiaHomeCopy(language);
-  const progress = clamp01(collapseProgress);
   const initial = (profile.name || 'L').trim().slice(0, 1).toUpperCase();
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const locked = !profile.isPremium;
   const screenTitle = getScreenTitle(profile, view);
   const activeStory: LumiaStoryId | null = view === 'dashboard' ? 'today' : null;
+  const shouldReduceMotion = useReducedMotion();
+  const isDashboard = view === 'dashboard' && !!scrollContainerRef;
+  const { scrollY } = useScroll({
+    container: scrollContainerRef as RefObject<HTMLElement | null> | undefined,
+  });
+  const rawProgress = useTransform(scrollY, [0, 120], [0, isDashboard ? 1 : 0], { clamp: true });
+  const smoothProgress = useSpring(0, {
+    stiffness: 420,
+    damping: 42,
+    mass: 0.8,
+    restDelta: 0.001,
+  });
+  const progress = shouldReduceMotion ? rawProgress : smoothProgress;
+
+  const headerHeight = useTransform(progress, [0, 1], [216, 72]);
+  const expandedOpacity = useTransform(progress, [0, 0.55, 1], [1, 0.2, 0]);
+  const expandedY = useTransform(progress, [0, 1], [0, -28]);
+  const expandedScale = useTransform(progress, [0, 1], [1, 0.86]);
+  const actionOpacity = useTransform(progress, [0, 0.4, 1], [1, 0.15, 0]);
+  const actionY = useTransform(progress, [0, 1], [0, -18]);
+  const storiesOpacity = useTransform(progress, [0, 0.55, 1], [1, 0.28, 0]);
+  const storiesY = useTransform(progress, [0, 1], [0, -22]);
+  const storiesScale = useTransform(progress, [0, 1], [1, 0.82]);
+  const miniOpacity = useTransform(progress, [0, 0.38, 0.74], [0, 0, 1]);
+  const miniY = useTransform(progress, [0, 1], [12, 0]);
+  const miniScale = useTransform(progress, [0, 1], [0.94, 1]);
+
+  useMotionValueEvent(rawProgress, 'change', (latest) => {
+    if (shouldReduceMotion) return;
+    smoothProgress.set(latest);
+  });
+
+  useEffect(() => {
+    if (shouldReduceMotion) return;
+    smoothProgress.jump(rawProgress.get());
+  }, [rawProgress, shouldReduceMotion, smoothProgress]);
 
   useEffect(() => {
     try {
@@ -101,80 +169,41 @@ export function LumiaAppHeader({
     [copy.stories.love, copy.stories.money, copy.stories.rhythm, copy.stories.today, copy.stories.work, locked, onOpenHoroscopeLayer]
   );
 
-  const headerStyle = {
-    '--lumia-app-collapse': progress,
-  } as CSSProperties;
-  const logoStyle: CSSProperties = {
-    fontSize: `${2.9 - progress * 0.88}rem`,
-    transform: `translateY(${-progress * 2}px)`,
-  };
-  const taglineStyle: CSSProperties = {
-    opacity: Math.max(0, 1 - progress * 1.35),
-    maxHeight: `${Math.max(0, (1 - progress) * 16)}px`,
-    marginTop: `${Math.max(0, (1 - progress) * 8)}px`,
-  };
-  const titleStyle: CSSProperties = {
-    opacity: Math.max(0, 1 - progress * 1.25),
-    maxHeight: `${screenTitle ? Math.max(0, (1 - progress) * 24) : 0}px`,
-    marginTop: `${screenTitle ? Math.max(0, (1 - progress) * 8) : 0}px`,
-  };
-  const storiesStyle: CSSProperties = {
-    opacity: Math.max(0, 1 - progress * 1.15),
-    maxHeight: `${Math.max(0, (1 - progress) * 124)}px`,
-    transform: `translateY(${-progress * 12}px) scale(${1 - progress * 0.04})`,
-  };
-
   return (
-    <header
+    <motion.header
       className="lumia-app-header"
       data-view={view}
-      data-collapsed={progress > 0.72 ? 'true' : undefined}
-      style={headerStyle}
+      style={{ height: headerHeight }}
     >
-      <div className="lumia-app-header-inner">
-        <div className="lumia-app-brand-grid">
-          <div aria-hidden className="lumia-app-header-side" />
-
+      <div className="lumia-app-header-canvas">
+        <motion.div
+          className="lumia-app-expanded-brand-layer"
+          style={{ opacity: expandedOpacity, y: expandedY, scale: expandedScale }}
+        >
           <div className="lumia-app-brand-center">
-            <p className="lumia-app-logo" style={logoStyle}>
-              LUMIA
-            </p>
-            <p className="lumia-app-tagline" style={taglineStyle}>
-              {copy.tagline}
-            </p>
+            <p className="lumia-app-logo">LUMIA</p>
+            <p className="lumia-app-tagline">{copy.tagline}</p>
+            {screenTitle ? <p className="lumia-app-screen-title">{screenTitle}</p> : null}
           </div>
 
-          <div className="lumia-app-header-actions">
-            <LumiaHomeIconButton
-              aria-label={copy.notifications}
-              onClick={onOpenSettings}
-              className="lumia-app-action-button"
-            >
+          <motion.div
+            className="lumia-app-header-actions"
+            style={{ opacity: actionOpacity, y: actionY }}
+          >
+            <LumiaHomeIconButton aria-label={copy.notifications} onClick={onOpenSettings} className="lumia-app-action-button">
               <Bell size={18} strokeWidth={2.05} />
               <span className="lumia-home-notification-dot" aria-hidden />
             </LumiaHomeIconButton>
-            <button
-              type="button"
-              onClick={onOpenSettings}
-              aria-label={copy.settings}
-              className="lumia-home-avatar-button lumia-app-avatar-button active:scale-[0.98]"
-            >
-              {photoUrl ? (
-                <img src={photoUrl} alt="" className="h-full w-full object-cover" draggable={false} />
-              ) : (
-                initial
-              )}
+            <button type="button" onClick={onOpenSettings} aria-label={copy.settings} className="lumia-home-avatar-button lumia-app-avatar-button active:scale-[0.98]">
+              {photoUrl ? <img src={photoUrl} alt="" className="h-full w-full object-cover" draggable={false} /> : initial}
             </button>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
 
-        {screenTitle ? (
-          <p className="lumia-app-screen-title" style={titleStyle}>
-            {screenTitle}
-          </p>
-        ) : null}
-
-        <div className="lumia-app-stories-shell" style={storiesStyle}>
+        <motion.div
+          className="lumia-app-expanded-stories-layer"
+          style={{ opacity: storiesOpacity, y: storiesY, scale: storiesScale }}
+        >
           <div className="scrollbar-hide lumia-app-stories-scroll">
             {stories.map((story) => (
               <LumiaHomeStoryCircle
@@ -187,8 +216,26 @@ export function LumiaAppHeader({
               />
             ))}
           </div>
-        </div>
+        </motion.div>
+
+        <motion.div
+          className="lumia-app-compact-stories-rail"
+          style={{ opacity: miniOpacity, y: miniY, scale: miniScale }}
+        >
+          <div className="scrollbar-hide lumia-app-mini-stories-scroll">
+            {stories.map((story) => (
+              <LumiaMiniStoryCircle
+                key={story.id}
+                label={story.label}
+                imageSrc={story.imageSrc}
+                active={activeStory === story.id}
+                locked={story.locked}
+                onClick={story.onClick}
+              />
+            ))}
+          </div>
+        </motion.div>
       </div>
-    </header>
+    </motion.header>
   );
 }
