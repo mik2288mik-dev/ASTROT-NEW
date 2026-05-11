@@ -57,14 +57,14 @@ function LumiaCompactStoryItem({
   locked?: boolean;
   onClick: () => void;
 }) {
-  const expandedOffsets = [-148, -74, 0, 74, 148];
-  const compactOffsets = [-32, -16, 0, 16, 32];
-  const collapsedOpacity = index < 3 ? 1 : index === 3 ? 0.72 : 0.48;
-  const x = useTransform(progress, [0, 1], [expandedOffsets[index] ?? 0, compactOffsets[index] ?? 0]);
-  const scale = useTransform(progress, [0, 0.52, 1], [0.68, 0.84, 1]);
-  const opacity = useTransform(progress, [0, 0.38, 0.72, 1], [0, 0, 0.72, collapsedOpacity]);
-  const y = useTransform(progress, [0, 1], [12, 0]);
-  const zIndex = active ? 40 : 30 - Math.abs(index - 2) * 4 - index;
+  const expandedOffsets = [-156, -78, 0, 78, 156];
+  const compactOffsets = [-26, -13, 0, 13, 26];
+  const collapsedOpacity = index < 3 ? 1 : index === 3 ? 0.66 : 0.38;
+  const x = useTransform(progress, [0, 0.48, 1], [expandedOffsets[index] ?? 0, compactOffsets[index] ?? 0, compactOffsets[index] ?? 0]);
+  const scale = useTransform(progress, [0, 0.42, 0.72, 1], [0.62, 0.68, 0.9, 1]);
+  const opacity = useTransform(progress, [0, 0.34, 0.64, 1], [0, 0, 0.88, collapsedOpacity]);
+  const y = useTransform(progress, [0, 0.64, 1], [18, 8, 0]);
+  const zIndex = active ? 60 : 50 - index * 4;
 
   return (
     <motion.button
@@ -79,7 +79,6 @@ function LumiaCompactStoryItem({
     >
       <img src={imageSrc} alt="" draggable={false} className="h-full w-full object-cover" />
       <span className="lumia-app-mini-story-wash" aria-hidden />
-      {locked ? <span className="lumia-app-mini-story-lock" aria-hidden /> : null}
     </motion.button>
   );
 }
@@ -103,11 +102,11 @@ export function LumiaAppHeader({
   const { scrollY } = useScroll({
     container: scrollContainerRef as RefObject<HTMLElement | null> | undefined,
   });
-  const rawProgress = useTransform(scrollY, [0, 120], [0, isDashboard ? 1 : 0], { clamp: true });
-  const smoothProgress = useSpring(0, {
-    stiffness: 420,
-    damping: 42,
-    mass: 0.8,
+  const rawProgress = useTransform(scrollY, [0, 150], [0, isDashboard ? 1 : 0], { clamp: true });
+  const smoothProgress = useSpring(rawProgress, {
+    stiffness: 360,
+    damping: 44,
+    mass: 0.85,
     restDelta: 0.001,
   });
   const progress = shouldReduceMotion ? rawProgress : smoothProgress;
@@ -115,36 +114,31 @@ export function LumiaAppHeader({
   const clusterProgress = isDashboard ? progress : staticExpandedProgress;
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  const headerHeight = useTransform(progress, [0, 0.38, 1], [220, 184, 74]);
-  const expandedOpacity = useTransform(progress, [0, 0.52, 0.92], [1, 0.34, 0]);
-  const expandedY = useTransform(progress, [0, 1], [0, -34]);
-  const expandedScale = useTransform(progress, [0, 1], [1, 0.88]);
-  const actionOpacity = useTransform(progress, [0, 0.34, 0.7], [1, 0.26, 0]);
-  const actionY = useTransform(progress, [0, 1], [0, -22]);
-  const storiesOpacity = useTransform(progress, [0, 0.58, 0.9], [1, 0.5, 0]);
-  const storiesY = useTransform(progress, [0, 0.55, 1], [0, -14, -34]);
-  const storiesScale = useTransform(progress, [0, 1], [1, 0.58]);
-  const storyLabelOpacity = useTransform(progress, [0, 0.26, 0.58], [1, 0.18, 0]);
-  const miniOpacity = useTransform(progress, [0, 0.38, 0.76], [0, 0, 1]);
-  const miniY = useTransform(progress, [0, 1], [14, 0]);
-  const miniScale = useTransform(progress, [0, 1], [0.94, 1]);
+  const headerBodyHeight = useTransform(progress, [0, 0.48, 1], [214, 138, 48]);
+  const headerHeight = useTransform(headerBodyHeight, (latest) => `calc(var(--lumia-app-safe-top) + ${latest}px)`);
+  const expandedOpacity = useTransform(progress, [0, 0.42, 0.78], [1, 0.4, 0]);
+  const expandedY = useTransform(progress, [0, 1], [0, -42]);
+  const expandedScale = useTransform(progress, [0, 1], [1, 0.9]);
+  const actionOpacity = useTransform(progress, [0, 0.28, 0.58], [1, 0.32, 0]);
+  const actionY = useTransform(progress, [0, 1], [0, -28]);
+  const storiesOpacity = useTransform(progress, [0, 0.46, 0.78], [1, 0.48, 0]);
+  const storiesY = useTransform(progress, [0, 0.52, 1], [0, -40, -78]);
+  const storiesScale = useTransform(progress, [0, 0.62, 1], [1, 0.74, 0.46]);
+  const storyLabelOpacity = useTransform(progress, [0, 0.18, 0.42], [1, 0.2, 0]);
+  const miniOpacity = useTransform(progress, [0, 0.32, 0.68], [0, 0, 1]);
+  const miniY = useTransform(progress, [0, 0.58, 1], [18, 8, 0]);
+  const miniScale = useTransform(progress, [0, 0.62, 1], [0.88, 0.94, 1]);
 
   useMotionValueEvent(rawProgress, 'change', (latest) => {
     setIsCollapsed((current) => {
-      const next = latest > 0.66;
+      const next = latest > 0.68;
       return current === next ? current : next;
     });
-    if (shouldReduceMotion) return;
-    smoothProgress.set(latest);
   });
 
   useEffect(() => {
-    if (shouldReduceMotion) {
-      setIsCollapsed(rawProgress.get() > 0.66);
-      return;
-    }
-    smoothProgress.jump(rawProgress.get());
-  }, [rawProgress, shouldReduceMotion, smoothProgress]);
+    setIsCollapsed(rawProgress.get() > 0.68);
+  }, [rawProgress]);
 
   useEffect(() => {
     try {
