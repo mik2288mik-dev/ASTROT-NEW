@@ -1,0 +1,100 @@
+{
+  "generatedAt": "2026-05-11T18:03:20.473Z",
+  "count": 10,
+  "source": "imagegen-curated",
+  "style": "premium-commercial-horoscope-moments-v1",
+  "width": 2048,
+  "height": 2048,
+  "assets": [
+    {
+      "id": "today-focus",
+      "title": "Today Focus",
+      "promptTheme": "daily focus",
+      "format": "webp",
+      "width": 2048,
+      "height": 2048,
+      "src": "/horoscope-moment-assets/01-today-focus.webp"
+    },
+    {
+      "id": "love",
+      "title": "Love",
+      "promptTheme": "relationship moment",
+      "format": "webp",
+      "width": 2048,
+      "height": 2048,
+      "src": "/horoscope-moment-assets/02-love.webp"
+    },
+    {
+      "id": "money",
+      "title": "Money",
+      "promptTheme": "financial clarity",
+      "format": "webp",
+      "width": 2048,
+      "height": 2048,
+      "src": "/horoscope-moment-assets/03-money.webp"
+    },
+    {
+      "id": "work",
+      "title": "Work",
+      "promptTheme": "career focus",
+      "format": "webp",
+      "width": 2048,
+      "height": 2048,
+      "src": "/horoscope-moment-assets/04-work.webp"
+    },
+    {
+      "id": "personal-rhythm",
+      "title": "Personal Rhythm",
+      "promptTheme": "body and mood",
+      "format": "webp",
+      "width": 2048,
+      "height": 2048,
+      "src": "/horoscope-moment-assets/05-personal-rhythm.webp"
+    },
+    {
+      "id": "moon",
+      "title": "Moon",
+      "promptTheme": "lunar mood",
+      "format": "webp",
+      "width": 2048,
+      "height": 2048,
+      "src": "/horoscope-moment-assets/06-moon.webp"
+    },
+    {
+      "id": "energy-peak",
+      "title": "Energy Peak",
+      "promptTheme": "productive energy peak",
+      "format": "webp",
+      "width": 2048,
+      "height": 2048,
+      "src": "/horoscope-moment-assets/07-energy-peak.webp"
+    },
+    {
+      "id": "boundaries",
+      "title": "Boundaries",
+      "promptTheme": "do not act from anxiety",
+      "format": "webp",
+      "width": 2048,
+      "height": 2048,
+      "src": "/horoscope-moment-assets/08-boundaries.webp"
+    },
+    {
+      "id": "forecast",
+      "title": "Forecast",
+      "promptTheme": "day outlook",
+      "format": "webp",
+      "width": 2048,
+      "height": 2048,
+      "src": "/horoscope-moment-assets/09-forecast.webp"
+    },
+    {
+      "id": "full-analysis",
+      "title": "Full Analysis",
+      "promptTheme": "love money work rhythm together",
+      "format": "webp",
+      "width": 2048,
+      "height": 2048,
+      "src": "/horoscope-moment-assets/10-full-analysis.webp"
+    }
+  ]
+}
