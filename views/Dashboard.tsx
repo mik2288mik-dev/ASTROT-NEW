@@ -100,7 +100,7 @@ export const Dashboard = memo<DashboardProps>(
           <LumiaHomeHeader profile={profile} language={language} onOpenSettings={onOpenSettings} />
 
           <div className="lumia-main-scroll scrollbar-hide">
-            <div className="space-y-[1.35rem] px-[var(--lumia-home-page-x)] pb-[calc(8.6rem+max(env(safe-area-inset-bottom,0px),var(--tg-content-safe-area-inset-bottom,0px)))]">
+            <div className="lumia-home-scroll-content space-y-[var(--lumia-home-gap-lg)] px-[var(--lumia-home-page-x)]">
               <LumiaHomeStoriesRow profile={profile} language={language} onOpenHoroscope={openHoroscope} />
               <LumiaHomeHeroCard language={language} onOpen={() => openHoroscope('sign')} />
               <LumiaHomePulseCard language={language} />

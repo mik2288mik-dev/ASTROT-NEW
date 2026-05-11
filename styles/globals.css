@@ -48,20 +48,21 @@
   --lumia-home-rose: #f4b8c7;
   --lumia-home-line: rgba(42, 16, 88, 0.1);
   --lumia-home-white-soft: rgba(255, 255, 255, 0.82);
-  --lumia-home-page-x: 1.25rem;
-  --lumia-home-gap-sm: 0.75rem;
-  --lumia-home-gap-md: 1rem;
-  --lumia-home-gap-lg: 1.35rem;
+  --lumia-home-page-x: 1rem;
+  --lumia-home-gap-sm: 0.6rem;
+  --lumia-home-gap-md: 0.85rem;
+  --lumia-home-gap-lg: 1.05rem;
   --lumia-home-radius-story: 999px;
   --lumia-home-radius-button: 999px;
-  --lumia-home-radius-card: 1.75rem;
-  --lumia-home-radius-panel: 2rem;
-  --lumia-home-radius-nav: 1.8rem;
-  --lumia-home-story-size: clamp(5.15rem, 20vw, 5.55rem);
-  --lumia-home-icon-size: 3.15rem;
-  --lumia-home-shadow-card: 0 24px 60px rgba(42, 16, 88, 0.1);
-  --lumia-home-shadow-lifted: 0 18px 42px rgba(100, 43, 216, 0.22);
-  --lumia-home-shadow-nav: 0 14px 42px rgba(42, 16, 88, 0.12);
+  --lumia-home-radius-card: 1.35rem;
+  --lumia-home-radius-panel: 1.55rem;
+  --lumia-home-radius-nav: 1.45rem;
+  --lumia-home-story-size: clamp(4rem, 17.2vw, 4.5rem);
+  --lumia-home-icon-size: 2.45rem;
+  --lumia-home-nav-height: 4.75rem;
+  --lumia-home-shadow-card: 0 16px 38px rgba(42, 16, 88, 0.08);
+  --lumia-home-shadow-lifted: 0 12px 28px rgba(100, 43, 216, 0.18);
+  --lumia-home-shadow-nav: 0 10px 30px rgba(42, 16, 88, 0.12);
   --lumia-home-font-sans: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --lumia-home-font-display: 'Geologica', 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
@@ -139,6 +140,15 @@ body.theme-lumia-air #__next {
   font-family: var(--lumia-home-font-sans);
 }
 
+.lumia-home-screen .lumia-main-scroll {
+  flex: 1 1 auto;
+  height: auto;
+}
+
+.lumia-home-scroll-content {
+  padding-bottom: var(--lumia-home-gap-lg);
+}
+
 .lumia-home-display {
   color: var(--lumia-home-text);
   font-family: var(--lumia-home-font-display);
@@ -169,13 +179,13 @@ body.theme-lumia-air #__next {
 .lumia-home-primary-button,
 .lumia-home-secondary-button {
   display: inline-flex;
-  min-height: 3.5rem;
+  min-height: 3rem;
   align-items: center;
   justify-content: center;
-  gap: 0.7rem;
+  gap: 0.6rem;
   border-radius: var(--lumia-home-radius-button);
-  padding: 0.95rem 1.45rem;
-  font-size: 1rem;
+  padding: 0.78rem 1.15rem;
+  font-size: 0.94rem;
   font-weight: 800;
   line-height: 1;
   transition:
@@ -211,8 +221,7 @@ body.theme-lumia-air #__next {
   position: relative;
   overflow: hidden;
   border-radius: var(--lumia-home-radius-card);
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  background: var(--lumia-home-surface);
+  border: 0;
   box-shadow: var(--lumia-home-shadow-card);
 }
 
@@ -224,18 +233,18 @@ body.theme-lumia-air #__next {
   align-items: center;
   justify-content: center;
   border-radius: var(--lumia-home-radius-story);
-  border: 1px solid rgba(100, 43, 216, 0.1);
+  border: 1px solid rgba(100, 43, 216, 0.08);
   background: rgba(255, 255, 255, 0.76);
   color: var(--lumia-home-purple-deep);
-  box-shadow: 0 12px 30px rgba(42, 16, 88, 0.09);
+  box-shadow: 0 8px 22px rgba(42, 16, 88, 0.07);
 }
 
 .lumia-home-notification-dot {
   position: absolute;
-  top: 0.55rem;
-  right: 0.58rem;
-  width: 0.56rem;
-  height: 0.56rem;
+  top: 0.44rem;
+  right: 0.46rem;
+  width: 0.48rem;
+  height: 0.48rem;
   border-radius: 999px;
   border: 2px solid #ffffff;
   background: var(--lumia-home-purple);
@@ -243,32 +252,32 @@ body.theme-lumia-air #__next {
 
 .lumia-home-avatar-button {
   display: flex;
-  width: 3.65rem;
-  height: 3.65rem;
+  width: 2.9rem;
+  height: 2.9rem;
   align-items: center;
   justify-content: center;
   overflow: hidden;
   border-radius: var(--lumia-home-radius-story);
-  border: 3px solid rgba(238, 230, 255, 0.92);
+  border: 2px solid rgba(238, 230, 255, 0.92);
   background:
     radial-gradient(circle at 65% 20%, rgba(255, 226, 214, 0.96), transparent 44%),
     linear-gradient(135deg, #ffffff, var(--lumia-home-lavender));
   color: var(--lumia-home-purple-deep);
   font-family: var(--lumia-home-font-display);
-  font-size: 1.15rem;
+  font-size: 1rem;
   font-weight: 800;
   box-shadow:
     0 0 0 1px rgba(100, 43, 216, 0.12),
-    0 14px 32px rgba(42, 16, 88, 0.13);
+    0 10px 24px rgba(42, 16, 88, 0.12);
 }
 
 .lumia-home-story-button {
   display: inline-flex;
-  width: 5.92rem;
-  min-width: 5.92rem;
+  width: 4.75rem;
+  min-width: 4.75rem;
   flex-direction: column;
   align-items: center;
-  gap: 0.72rem;
+  gap: 0.48rem;
   border: 0;
   background: transparent;
   color: var(--lumia-home-text);
@@ -285,11 +294,11 @@ body.theme-lumia-air #__next {
   justify-content: center;
   overflow: visible;
   border-radius: var(--lumia-home-radius-story);
-  border: 2px solid rgba(22, 7, 47, 0.12);
+  border: 1.5px solid rgba(22, 7, 47, 0.14);
   background: var(--lumia-home-surface);
   box-shadow:
-    0 0 0 4px rgba(255, 255, 255, 0.9),
-    0 13px 30px rgba(42, 16, 88, 0.11);
+    0 0 0 2px rgba(255, 255, 255, 0.9),
+    0 8px 20px rgba(42, 16, 88, 0.09);
   transition:
     border-color 180ms ease,
     box-shadow 180ms ease,
@@ -300,9 +309,9 @@ body.theme-lumia-air #__next {
 .lumia-home-story-button[data-active='true'] .lumia-home-story-ring {
   border-color: var(--lumia-home-purple);
   box-shadow:
-    0 0 0 4px rgba(255, 255, 255, 0.96),
-    0 0 0 6px rgba(100, 43, 216, 0.32),
-    0 17px 36px rgba(100, 43, 216, 0.2);
+    0 0 0 2px rgba(255, 255, 255, 0.96),
+    0 0 0 4px rgba(100, 43, 216, 0.32),
+    0 10px 24px rgba(100, 43, 216, 0.16);
 }
 
 .lumia-home-story-ring > img,
@@ -339,9 +348,9 @@ body.theme-lumia-air #__next {
 }
 
 .lumia-home-story-label {
-  max-width: 5.92rem;
+  max-width: 4.75rem;
   color: var(--lumia-home-text);
-  font-size: 0.94rem;
+  font-size: 0.78rem;
   font-weight: 800;
   line-height: 1.08;
   text-wrap: balance;
@@ -354,18 +363,18 @@ body.theme-lumia-air #__next {
 
 .lumia-home-story-lock {
   position: absolute;
-  right: -0.22rem;
-  bottom: -0.16rem;
+  right: -0.12rem;
+  bottom: -0.08rem;
   display: inline-flex;
-  width: 1.58rem;
-  height: 1.58rem;
+  width: 1.25rem;
+  height: 1.25rem;
   align-items: center;
   justify-content: center;
   border-radius: var(--lumia-home-radius-story);
-  border: 2px solid #ffffff;
+  border: 1.5px solid #ffffff;
   background: var(--lumia-home-surface);
   color: var(--lumia-home-purple-deep);
-  box-shadow: 0 10px 22px rgba(42, 16, 88, 0.14);
+  box-shadow: 0 6px 14px rgba(42, 16, 88, 0.14);
 }
 
 .lumia-home-story-button[data-locked='true'] .lumia-home-story-ring {
@@ -390,12 +399,12 @@ body.theme-lumia-air #__next {
   align-items: center;
   gap: 0.15rem;
   border-radius: var(--lumia-home-radius-nav);
-  border: 1px solid rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.86);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(255, 255, 255, 0.74)),
     rgba(255, 255, 255, 0.78);
   box-shadow:
-    0 18px 46px rgba(42, 16, 88, 0.13),
+    0 12px 30px rgba(42, 16, 88, 0.12),
     0 1px 0 rgba(255, 255, 255, 0.9) inset;
   backdrop-filter: blur(22px) saturate(1.12);
   -webkit-backdrop-filter: blur(22px) saturate(1.12);
@@ -404,13 +413,13 @@ body.theme-lumia-air #__next {
 .lumia-home-bottom-nav-item {
   display: inline-flex;
   min-width: 0;
-  min-height: 4.25rem;
+  min-height: 3.55rem;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.34rem;
+  gap: 0.24rem;
   border: 0;
-  border-radius: 1.35rem;
+  border-radius: 1.1rem;
   background: transparent;
   color: rgba(22, 7, 47, 0.7);
   transition:
@@ -421,8 +430,8 @@ body.theme-lumia-air #__next {
 
 .lumia-home-bottom-nav-icon {
   display: inline-flex;
-  width: 2.18rem;
-  height: 2.18rem;
+  width: 1.75rem;
+  height: 1.75rem;
   align-items: center;
   justify-content: center;
   border-radius: 999px;
@@ -434,7 +443,7 @@ body.theme-lumia-air #__next {
 }
 
 .lumia-home-bottom-nav-label {
-  font-size: 0.78rem;
+  font-size: 0.69rem;
   font-weight: 800;
   line-height: 1.05;
   white-space: nowrap;
@@ -450,21 +459,21 @@ body.theme-lumia-air #__next {
 }
 
 .lumia-home-bottom-nav-item[data-center='true'] .lumia-home-bottom-nav-icon {
-  width: 4.18rem;
-  height: 4.18rem;
+  width: 3.15rem;
+  height: 3.15rem;
   border-radius: var(--lumia-home-radius-story);
   background: linear-gradient(135deg, var(--lumia-home-purple), #7b43e7);
   color: #ffffff;
   box-shadow:
-    0 18px 42px rgba(100, 43, 216, 0.28),
+    0 12px 30px rgba(100, 43, 216, 0.24),
     0 1px 0 rgba(255, 255, 255, 0.28) inset;
-  transform: translateY(-0.42rem);
+  transform: translateY(-0.24rem);
 }
 
 .lumia-home-bottom-nav-item[data-center='true'] .lumia-home-bottom-nav-label {
-  margin-top: -0.35rem;
+  margin-top: -0.2rem;
   color: var(--lumia-home-purple);
-  font-size: 0.78rem;
+  font-size: 0.69rem;
   letter-spacing: 0.02em;
 }
 
@@ -474,19 +483,20 @@ body.theme-lumia-air #__next {
 
 @media (max-width: 380px) {
   :root {
-    --lumia-home-page-x: 1rem;
-    --lumia-home-story-size: 4.95rem;
-    --lumia-home-icon-size: 2.75rem;
+    --lumia-home-page-x: 0.9rem;
+    --lumia-home-story-size: 3.95rem;
+    --lumia-home-icon-size: 2.35rem;
+    --lumia-home-nav-height: 4.55rem;
   }
 
   .lumia-home-story-button {
-    width: 5.22rem;
-    min-width: 5.22rem;
+    width: 4.55rem;
+    min-width: 4.55rem;
   }
 
   .lumia-home-story-label {
-    max-width: 5.22rem;
-    font-size: 0.86rem;
+    max-width: 4.55rem;
+    font-size: 0.74rem;
   }
 }
 

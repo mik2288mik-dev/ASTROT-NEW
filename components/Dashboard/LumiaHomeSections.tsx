@@ -46,20 +46,20 @@ export function LumiaHomeHeader({
   }, []);
 
   return (
-    <header className="px-[var(--lumia-home-page-x)] pb-4 pt-[calc(max(env(safe-area-inset-top,0px),var(--tg-content-safe-area-inset-top,0px))+0.9rem)]">
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+    <header className="px-[var(--lumia-home-page-x)] pb-3 pt-[calc(max(env(safe-area-inset-top,0px),var(--tg-content-safe-area-inset-top,0px))+0.7rem)]">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2.5">
         <div className="min-w-0">
-          <p className="mb-0 font-lumiaHomeDisplay text-[clamp(3.25rem,15.8vw,5.15rem)] font-extrabold leading-[0.8] tracking-normal text-lumiaHome-purpleDeep">
+          <p className="relative top-[1px] mb-0 font-serif text-[clamp(2.8rem,13.1vw,3.85rem)] font-semibold leading-none tracking-[-0.065em] text-[#1f1f1f]">
             LUMIA
           </p>
-          <p className="mb-0 mt-3 font-lumiaHome text-[0.72rem] font-bold uppercase leading-none tracking-[0.27em] text-lumiaHome-muted">
+          <p className="mb-0 mt-2 font-lumiaHome text-[9px] font-medium uppercase leading-none tracking-[0.32em] text-[#8a857d]">
             {copy.tagline}
           </p>
         </div>
 
-        <div className="flex shrink-0 items-center gap-3 pt-1.5">
+        <div className="flex shrink-0 items-center gap-2 pt-1">
           <LumiaHomeIconButton aria-label={copy.notifications} onClick={onOpenSettings}>
-            <Bell size={23} strokeWidth={2.05} />
+            <Bell size={20} strokeWidth={2.05} />
             <span className="lumia-home-notification-dot" aria-hidden />
           </LumiaHomeIconButton>
           <button
@@ -135,8 +135,8 @@ export function LumiaHomeStoriesRow({
   ];
 
   return (
-    <section className="overflow-hidden pb-2">
-      <div className="scrollbar-hide flex gap-3 overflow-x-auto px-[var(--lumia-home-page-x)] pb-3 pt-1.5">
+    <section className="-mx-[var(--lumia-home-page-x)] overflow-hidden pb-1">
+      <div className="scrollbar-hide flex gap-2.5 overflow-x-auto px-[var(--lumia-home-page-x)] pb-2 pt-1">
         {stories.map((story) => (
           <LumiaHomeStoryCircle key={story.id} {...story} />
         ))}
@@ -156,38 +156,38 @@ export function LumiaHomeHeroCard({
   const titleLines = copy.heroTitle.split('\n');
 
   return (
-    <LumiaHomeLargeCard className="lumia-home-hero-card min-h-[29.5rem] bg-lumiaHome-peach">
+    <LumiaHomeLargeCard className="lumia-home-hero-card min-h-[20.75rem] bg-lumiaHome-peach shadow-[0_16px_40px_rgba(42,16,88,0.1)]">
       <img
         src="/lumia-home/daily-hero-editorial-v1.webp"
         alt=""
         draggable={false}
-        className="absolute inset-0 h-full w-full object-cover object-[58%_center]"
+        className="absolute inset-0 h-full w-full object-cover object-[62%_center]"
       />
-      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,244,235,0.98)_0%,rgba(255,239,230,0.91)_38%,rgba(255,235,224,0.46)_63%,rgba(255,235,224,0.06)_100%)]" />
-      <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#fff0e7]/90 via-[#fff0e7]/28 to-transparent" />
-      <div className="absolute -left-16 top-12 h-64 w-64 rounded-full bg-white/52 blur-3xl" />
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,244,235,0.98)_0%,rgba(255,239,230,0.9)_46%,rgba(255,235,224,0.42)_72%,rgba(255,235,224,0.08)_100%)]" />
+      <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-[#fff0e7]/88 via-[#fff0e7]/24 to-transparent" />
+      <div className="absolute -left-20 top-10 h-56 w-56 rounded-full bg-white/44 blur-3xl" />
 
-      <div className="relative z-10 flex min-h-[29.5rem] max-w-[78%] flex-col justify-between px-5 py-6 sm:px-6">
+      <div className="relative z-10 flex min-h-[20.75rem] max-w-[92%] flex-col justify-between px-4 py-[1.125rem] sm:px-5">
         <div>
-          <p className="mb-0 font-lumiaHome text-[0.86rem] font-extrabold uppercase tracking-[0.08em] text-lumiaHome-purpleDeep/82">
+          <p className="mb-0 font-lumiaHome text-[0.72rem] font-extrabold uppercase tracking-[0.07em] text-lumiaHome-purpleDeep/82">
             {copy.heroDate}
           </p>
-          <h1 className="lumia-home-display mb-0 mt-7 max-w-[20rem] text-[clamp(3.28rem,13.9vw,4.75rem)] uppercase leading-[0.92]">
+          <h1 className="lumia-home-display mb-0 mt-4 max-w-[21.5rem] text-[clamp(1.58rem,6.75vw,2.45rem)] uppercase leading-[0.98]">
             {titleLines.map((line) => (
-              <span key={line} className="block">
+              <span key={line} className="block whitespace-nowrap">
                 {line}
               </span>
             ))}
           </h1>
-          <p className="lumia-home-body mb-0 mt-6 max-w-[19rem] whitespace-pre-line text-[1.08rem] font-semibold leading-[1.55] text-lumiaHome-purpleDeep">
+          <p className="lumia-home-body mb-0 mt-3.5 max-w-[17rem] whitespace-pre-line text-[0.86rem] font-semibold leading-[1.45] text-lumiaHome-purpleDeep">
             {copy.heroSummary}
           </p>
         </div>
 
-        <LumiaHomePrimaryButton onClick={onOpen} className="mt-8 w-fit px-5 py-4 shadow-[0_18px_42px_rgba(100,43,216,0.28)]">
+        <LumiaHomePrimaryButton onClick={onOpen} className="mt-5 w-fit px-4 py-2.5 shadow-[0_12px_30px_rgba(100,43,216,0.24)]">
           {copy.heroCta}
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-lumiaHome-purple">
-            <ArrowRight size={21} strokeWidth={2.4} />
+          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-lumiaHome-purple">
+            <ArrowRight size={18} strokeWidth={2.4} />
           </span>
         </LumiaHomePrimaryButton>
       </div>
@@ -202,7 +202,7 @@ function PulseWave() {
   const glowId = `pulseGlow-${safeId}`;
 
   return (
-    <div className="relative mt-5 h-[8.6rem] overflow-hidden rounded-[1.35rem]">
+    <div className="relative mt-3.5 h-[5.55rem] overflow-hidden rounded-[1.05rem]">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_49%_26%,rgba(255,214,190,0.32),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.055),rgba(255,255,255,0.015))]" />
       <svg className="absolute inset-0 h-full w-full" viewBox="0 0 420 140" preserveAspectRatio="none" aria-hidden>
         <defs>
@@ -260,16 +260,16 @@ function PulseWave() {
 function PulseZone({ title, body }: { title: string; body: string }) {
   return (
     <div className="min-w-0 text-center">
-      <p className="mb-0 font-lumiaHome text-[1rem] font-extrabold leading-tight text-white">{title}</p>
-      <p className="mb-0 mt-1 font-lumiaHome text-[0.9rem] font-semibold leading-tight text-white/72">{body}</p>
+      <p className="mb-0 font-lumiaHome text-[0.82rem] font-extrabold leading-tight text-white">{title}</p>
+      <p className="mb-0 mt-0.5 font-lumiaHome text-[0.72rem] font-semibold leading-tight text-white/72">{body}</p>
     </div>
   );
 }
 
 function PulseTakeaway({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-[4.4rem] items-center justify-center rounded-[1.05rem] bg-white/[0.065] px-2.5 text-center ring-1 ring-white/[0.075]">
-      <p className="mb-0 font-lumiaHome text-[0.87rem] font-extrabold leading-snug text-white">{children}</p>
+    <div className="flex min-h-[2.85rem] items-center justify-center rounded-[0.8rem] bg-white/[0.075] px-2 text-center ring-1 ring-white/[0.08]">
+      <p className="mb-0 font-lumiaHome text-[0.68rem] font-extrabold leading-snug text-white">{children}</p>
     </div>
   );
 }
@@ -280,25 +280,25 @@ export function LumiaHomePulseCard({ language }: { language: LumiaHomeLanguage }
   const peakText = `${pulse.peak} ${pulse.peakText}`;
 
   return (
-    <LumiaHomeLargeCard className="bg-lumiaHome-purpleDeep px-4 py-5 text-white shadow-[0_24px_64px_rgba(22,7,47,0.26)]">
+    <LumiaHomeLargeCard className="bg-lumiaHome-purpleDeep px-3.5 py-3.5 text-white shadow-[0_18px_44px_rgba(22,7,47,0.23)]">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_54%_6%,rgba(255,226,214,0.18),transparent_34%),radial-gradient(circle_at_15%_108%,rgba(100,43,216,0.35),transparent_38%)]" />
       <div className="relative z-10">
         <div className="flex items-center justify-between gap-3 px-1">
-          <h2 className="mb-0 font-lumiaHomeDisplay text-[1.42rem] font-extrabold uppercase leading-none tracking-normal text-white">
+          <h2 className="mb-0 font-lumiaHomeDisplay text-[0.98rem] font-extrabold uppercase leading-none tracking-normal text-white">
             {copy.pulseTitle}
           </h2>
-          <Sparkles size={19} className="text-[#f7b7ff]" strokeWidth={2.1} aria-hidden />
+          <Sparkles size={17} className="text-[#f7b7ff]" strokeWidth={2.1} aria-hidden />
         </div>
 
         <PulseWave />
 
-        <div className="mt-4 grid grid-cols-3 gap-2 border-b border-white/10 px-1 pb-5">
+        <div className="mt-3 grid grid-cols-3 gap-2 border-b border-white/10 px-1 pb-3">
           <PulseZone title={pulse.morning} body={pulse.morningText} />
           <PulseZone title={pulse.day} body={pulse.dayText} />
           <PulseZone title={pulse.evening} body={pulse.eveningText} />
         </div>
 
-        <div className="mt-4 grid grid-cols-3 gap-2">
+        <div className="mt-2.5 grid grid-cols-3 gap-2">
           <PulseTakeaway>{pulse.moon}</PulseTakeaway>
           <PulseTakeaway>{peakText}</PulseTakeaway>
           <PulseTakeaway>{pulse.avoid}</PulseTakeaway>
@@ -319,15 +319,15 @@ function FullReadingPreview({
 }) {
   return (
     <span
-      className="relative inline-flex h-10 w-10 shrink-0 overflow-visible rounded-full border border-white/28 bg-white/10 p-[2px] shadow-[0_9px_20px_rgba(0,0,0,0.18)]"
+      className="relative inline-flex h-8 w-8 shrink-0 overflow-visible rounded-full border border-white/28 bg-white/10 p-[2px] shadow-[0_7px_16px_rgba(0,0,0,0.16)]"
       aria-label={label}
       title={label}
     >
       <img src={imageSrc} alt="" draggable={false} className="h-full w-full rounded-full object-cover" />
       <span className="absolute inset-[2px] rounded-full bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(22,7,47,0.18))]" />
       {locked ? (
-        <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border border-white bg-white text-lumiaHome-purpleDeep shadow-[0_8px_18px_rgba(0,0,0,0.18)]">
-          <Lock size={11} strokeWidth={2.35} />
+        <span className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full border border-white bg-white text-lumiaHome-purpleDeep shadow-[0_6px_14px_rgba(0,0,0,0.16)]">
+          <Lock size={9} strokeWidth={2.35} />
         </span>
       ) : null}
     </span>
@@ -347,27 +347,27 @@ export function LumiaHomeForecastCard({
     <button
       type="button"
       onClick={onOpen}
-      className="lumia-home-large-card min-h-[18rem] bg-[#fff6f1] p-4 text-left shadow-[0_18px_42px_rgba(42,16,88,0.09)] active:scale-[0.99]"
+      className="lumia-home-large-card min-h-[14.6rem] bg-[#fff6f1] p-3.5 text-left shadow-[0_14px_34px_rgba(42,16,88,0.08)] active:scale-[0.99]"
     >
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_88%_18%,rgba(238,230,255,0.94),transparent_48%),radial-gradient(circle_at_16%_96%,rgba(255,226,214,0.9),transparent_52%)]" />
       <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-white/38 to-transparent" />
 
       <div className="relative z-10 flex h-full flex-col justify-between">
         <div>
-          <p className="mb-0 font-lumiaHome text-[0.76rem] font-extrabold uppercase tracking-[0.075em] text-lumiaHome-purple">
+          <p className="mb-0 font-lumiaHome text-[0.64rem] font-extrabold uppercase tracking-[0.07em] text-lumiaHome-purple">
             {forecast.label}
           </p>
-          <h3 className="mb-0 mt-7 whitespace-pre-line font-lumiaHomeDisplay text-[1.68rem] font-extrabold leading-[1.02] tracking-normal text-lumiaHome-purpleDeep">
+          <h3 className="mb-0 mt-5 whitespace-pre-line font-lumiaHomeDisplay text-[1.27rem] font-extrabold leading-[1.04] tracking-normal text-lumiaHome-purpleDeep">
             {forecast.title}
           </h3>
-          <p className="mb-0 mt-4 whitespace-pre-line font-lumiaHome text-[0.96rem] font-semibold leading-[1.46] text-lumiaHome-purpleDeep/76">
+          <p className="mb-0 mt-3 whitespace-pre-line font-lumiaHome text-[0.82rem] font-semibold leading-[1.42] text-lumiaHome-purpleDeep/76">
             {forecast.body}
           </p>
         </div>
 
-        <span className="mt-6 inline-flex min-h-[3.25rem] w-full items-center justify-between gap-3 rounded-full border border-lumiaHome-purple/28 bg-white/66 px-4 font-lumiaHome text-[0.94rem] font-extrabold text-lumiaHome-purple shadow-[0_12px_28px_rgba(100,43,216,0.08)]">
+        <span className="mt-5 inline-flex min-h-[2.75rem] w-full items-center justify-between gap-2 rounded-full border border-lumiaHome-purple/24 bg-white/70 px-3.5 font-lumiaHome text-[0.8rem] font-extrabold text-lumiaHome-purple shadow-[0_10px_22px_rgba(100,43,216,0.07)]">
           <span className="min-w-0 leading-tight">{forecast.cta}</span>
-          <ArrowRight size={20} strokeWidth={2.35} />
+          <ArrowRight size={17} strokeWidth={2.35} />
         </span>
       </div>
     </button>
@@ -390,36 +390,36 @@ export function LumiaHomePremiumTeaseCard({
     <button
       type="button"
       onClick={onOpen}
-      className="lumia-home-large-card min-h-[18rem] bg-lumiaHome-plum p-4 text-left text-white shadow-[0_22px_52px_rgba(42,16,88,0.2)] active:scale-[0.99]"
+      className="lumia-home-large-card min-h-[14.6rem] bg-lumiaHome-plum p-3.5 text-left text-white shadow-[0_16px_38px_rgba(42,16,88,0.18)] active:scale-[0.99]"
     >
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_76%_9%,rgba(215,196,255,0.34),transparent_42%),radial-gradient(circle_at_8%_95%,rgba(244,184,199,0.28),transparent_42%)]" />
       <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#211137]/82 to-transparent" />
       {!isUnlocked ? (
-        <span className="absolute right-4 top-4 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-white/12 text-white ring-1 ring-white/18">
-          <Lock size={16} strokeWidth={2.2} />
+        <span className="absolute right-3.5 top-3.5 z-20 flex h-6 w-6 items-center justify-center rounded-full bg-white/12 text-white ring-1 ring-white/18">
+          <Lock size={13} strokeWidth={2.2} />
         </span>
       ) : null}
 
       <div className="relative z-10 flex h-full flex-col justify-between">
         <div>
-          <p className="mb-0 pr-8 font-lumiaHome text-[0.76rem] font-extrabold uppercase tracking-[0.075em] text-white/72">
+          <p className="mb-0 pr-7 font-lumiaHome text-[0.64rem] font-extrabold uppercase tracking-[0.07em] text-white/72">
             {full.label}
           </p>
-          <h3 className="mb-0 mt-7 whitespace-pre-line pr-1 font-lumiaHomeDisplay text-[1.54rem] font-extrabold leading-[1.04] tracking-normal text-white">
+          <h3 className="mb-0 mt-5 whitespace-pre-line pr-1 font-lumiaHomeDisplay text-[1.16rem] font-extrabold leading-[1.08] tracking-normal text-white">
             {full.title}
           </h3>
         </div>
 
-        <div className="mt-5">
-          <div className="mb-4 flex items-center gap-2">
+        <div className="mt-4">
+          <div className="mb-3 flex items-center gap-1.5">
             {previewItems.map((item) => (
               <FullReadingPreview key={item.label} {...item} locked={!isUnlocked} />
             ))}
           </div>
 
-          <span className="inline-flex min-h-[3.55rem] w-full items-center justify-between gap-2 rounded-full bg-white px-4 font-lumiaHome text-[0.86rem] font-extrabold text-lumiaHome-purple shadow-[0_14px_30px_rgba(0,0,0,0.16)]">
+          <span className="inline-flex min-h-[2.8rem] w-full items-center justify-between gap-2 rounded-full bg-white px-3.5 font-lumiaHome text-[0.76rem] font-extrabold text-lumiaHome-purple shadow-[0_10px_24px_rgba(0,0,0,0.14)]">
             <span className="min-w-0 leading-tight">{full.cta}</span>
-            <ArrowRight className="shrink-0" size={20} strokeWidth={2.35} />
+            <ArrowRight className="shrink-0" size={17} strokeWidth={2.35} />
           </span>
         </div>
       </div>
@@ -439,7 +439,7 @@ export function LumiaHomeContentCards({
   onOpenFull: () => void;
 }) {
   return (
-    <section className="grid grid-cols-2 gap-3.5">
+    <section className="grid grid-cols-2 gap-3">
       <LumiaHomeForecastCard language={language} onOpen={onOpenForecast} />
       <LumiaHomePremiumTeaseCard language={language} isUnlocked={isPremium} onOpen={onOpenFull} />
     </section>
@@ -462,22 +462,22 @@ export function LumiaHomeBottomNavigation({
   const nav = getLumiaHomeCopy(language).nav;
 
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 px-4 pb-[calc(0.65rem+max(env(safe-area-inset-bottom,0px),var(--tg-content-safe-area-inset-bottom,0px)))]">
-      <nav className="lumia-home-bottom-nav pointer-events-auto px-2 py-1.5" aria-label="Lumia">
-        <LumiaHomeBottomNavItem active label={nav.today} icon={<Sparkles size={23} strokeWidth={2.15} />} />
-        <LumiaHomeBottomNavItem label={nav.chart} icon={<Map size={23} strokeWidth={2.1} />} onClick={onOpenNatal} />
+    <div className="pointer-events-none z-30 shrink-0 px-3 pb-[calc(0.5rem+max(env(safe-area-inset-bottom,0px),var(--tg-content-safe-area-inset-bottom,0px)))] pt-2">
+      <nav className="lumia-home-bottom-nav pointer-events-auto px-1.5 py-1" aria-label="Lumia">
+        <LumiaHomeBottomNavItem active label={nav.today} icon={<Sparkles size={20} strokeWidth={2.15} />} />
+        <LumiaHomeBottomNavItem label={nav.chart} icon={<Map size={20} strokeWidth={2.1} />} onClick={onOpenNatal} />
         <LumiaHomeBottomNavItem
           center
           label={nav.lumia}
-          icon={<Star size={30} fill="currentColor" strokeWidth={1.65} />}
+          icon={<Star size={24} fill="currentColor" strokeWidth={1.65} />}
           onClick={onOpenForecast}
         />
         <LumiaHomeBottomNavItem
           label={nav.union}
-          icon={<HeartHandshake size={24} strokeWidth={2.05} />}
+          icon={<HeartHandshake size={21} strokeWidth={2.05} />}
           onClick={onOpenSynastry}
         />
-        <LumiaHomeBottomNavItem label={nav.diary} icon={<BookOpen size={23} strokeWidth={2.05} />} onClick={onOpenDiary} />
+        <LumiaHomeBottomNavItem label={nav.diary} icon={<BookOpen size={20} strokeWidth={2.05} />} onClick={onOpenDiary} />
       </nav>
     </div>
   );

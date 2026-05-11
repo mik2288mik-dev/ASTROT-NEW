@@ -91,7 +91,7 @@ export function LumiaHomeStoryCircle({
         <span className="lumia-home-story-image-wash" />
         {locked ? (
           <span className="lumia-home-story-lock">
-            <Lock size={15} strokeWidth={2.2} />
+            <Lock size={12} strokeWidth={2.25} />
           </span>
         ) : null}
       </span>
