@@ -1,0 +1,1006 @@
+{
+  "generatedAt": "2026-05-11T15:53:07.878Z",
+  "count": 100,
+  "assets": [
+    {
+      "id": "core.today",
+      "category": "core",
+      "slug": "today",
+      "motif": "sunrise",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/001-core-today.webp"
+    },
+    {
+      "id": "core.love",
+      "category": "core",
+      "slug": "love",
+      "motif": "heart",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/002-core-love.webp"
+    },
+    {
+      "id": "core.money",
+      "category": "core",
+      "slug": "money",
+      "motif": "crystal",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/003-core-money.webp"
+    },
+    {
+      "id": "core.work",
+      "category": "core",
+      "slug": "work",
+      "motif": "desk",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/004-core-work.webp"
+    },
+    {
+      "id": "core.personal-rhythm",
+      "category": "core",
+      "slug": "personal-rhythm",
+      "motif": "moonwave",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/005-core-personal-rhythm.webp"
+    },
+    {
+      "id": "zodiac.aries",
+      "category": "zodiac",
+      "slug": "aries",
+      "motif": "horns",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/006-zodiac-aries.webp"
+    },
+    {
+      "id": "zodiac.taurus",
+      "category": "zodiac",
+      "slug": "taurus",
+      "motif": "bull",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/007-zodiac-taurus.webp"
+    },
+    {
+      "id": "zodiac.gemini",
+      "category": "zodiac",
+      "slug": "gemini",
+      "motif": "twins",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/008-zodiac-gemini.webp"
+    },
+    {
+      "id": "zodiac.cancer",
+      "category": "zodiac",
+      "slug": "cancer",
+      "motif": "moonwave",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/009-zodiac-cancer.webp"
+    },
+    {
+      "id": "zodiac.leo",
+      "category": "zodiac",
+      "slug": "leo",
+      "motif": "sun",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/010-zodiac-leo.webp"
+    },
+    {
+      "id": "zodiac.virgo",
+      "category": "zodiac",
+      "slug": "virgo",
+      "motif": "leaf",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/011-zodiac-virgo.webp"
+    },
+    {
+      "id": "zodiac.libra",
+      "category": "zodiac",
+      "slug": "libra",
+      "motif": "balance",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/012-zodiac-libra.webp"
+    },
+    {
+      "id": "zodiac.scorpio",
+      "category": "zodiac",
+      "slug": "scorpio",
+      "motif": "comet",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/013-zodiac-scorpio.webp"
+    },
+    {
+      "id": "zodiac.sagittarius",
+      "category": "zodiac",
+      "slug": "sagittarius",
+      "motif": "arrow",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/014-zodiac-sagittarius.webp"
+    },
+    {
+      "id": "zodiac.capricorn",
+      "category": "zodiac",
+      "slug": "capricorn",
+      "motif": "mountain",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/015-zodiac-capricorn.webp"
+    },
+    {
+      "id": "zodiac.aquarius",
+      "category": "zodiac",
+      "slug": "aquarius",
+      "motif": "waves",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/016-zodiac-aquarius.webp"
+    },
+    {
+      "id": "zodiac.pisces",
+      "category": "zodiac",
+      "slug": "pisces",
+      "motif": "orbit",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/017-zodiac-pisces.webp"
+    },
+    {
+      "id": "planets.sun",
+      "category": "planets",
+      "slug": "sun",
+      "motif": "sun",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/018-planets-sun.webp"
+    },
+    {
+      "id": "planets.moon",
+      "category": "planets",
+      "slug": "moon",
+      "motif": "moon",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/019-planets-moon.webp"
+    },
+    {
+      "id": "planets.mercury",
+      "category": "planets",
+      "slug": "mercury",
+      "motif": "orbit",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/020-planets-mercury.webp"
+    },
+    {
+      "id": "planets.venus",
+      "category": "planets",
+      "slug": "venus",
+      "motif": "heart",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/021-planets-venus.webp"
+    },
+    {
+      "id": "planets.mars",
+      "category": "planets",
+      "slug": "mars",
+      "motif": "arrow",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/022-planets-mars.webp"
+    },
+    {
+      "id": "planets.jupiter",
+      "category": "planets",
+      "slug": "jupiter",
+      "motif": "rings",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/023-planets-jupiter.webp"
+    },
+    {
+      "id": "planets.saturn",
+      "category": "planets",
+      "slug": "saturn",
+      "motif": "rings",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/024-planets-saturn.webp"
+    },
+    {
+      "id": "planets.uranus",
+      "category": "planets",
+      "slug": "uranus",
+      "motif": "crystal",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/025-planets-uranus.webp"
+    },
+    {
+      "id": "planets.neptune",
+      "category": "planets",
+      "slug": "neptune",
+      "motif": "waves",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/026-planets-neptune.webp"
+    },
+    {
+      "id": "planets.pluto",
+      "category": "planets",
+      "slug": "pluto",
+      "motif": "eclipse",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/027-planets-pluto.webp"
+    },
+    {
+      "id": "planets.ascendant",
+      "category": "planets",
+      "slug": "ascendant",
+      "motif": "sunrise",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/028-planets-ascendant.webp"
+    },
+    {
+      "id": "planets.chiron",
+      "category": "planets",
+      "slug": "chiron",
+      "motif": "leaf",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/029-planets-chiron.webp"
+    },
+    {
+      "id": "moon.new-moon",
+      "category": "moon",
+      "slug": "new-moon",
+      "motif": "eclipse",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/030-moon-new-moon.webp"
+    },
+    {
+      "id": "moon.waxing-crescent",
+      "category": "moon",
+      "slug": "waxing-crescent",
+      "motif": "crescent",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/031-moon-waxing-crescent.webp"
+    },
+    {
+      "id": "moon.first-quarter",
+      "category": "moon",
+      "slug": "first-quarter",
+      "motif": "halfmoon",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/032-moon-first-quarter.webp"
+    },
+    {
+      "id": "moon.waxing-gibbous",
+      "category": "moon",
+      "slug": "waxing-gibbous",
+      "motif": "moon",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/033-moon-waxing-gibbous.webp"
+    },
+    {
+      "id": "moon.full-moon",
+      "category": "moon",
+      "slug": "full-moon",
+      "motif": "fullmoon",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/034-moon-full-moon.webp"
+    },
+    {
+      "id": "moon.waning-gibbous",
+      "category": "moon",
+      "slug": "waning-gibbous",
+      "motif": "moon",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/035-moon-waning-gibbous.webp"
+    },
+    {
+      "id": "moon.last-quarter",
+      "category": "moon",
+      "slug": "last-quarter",
+      "motif": "halfmoon",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/036-moon-last-quarter.webp"
+    },
+    {
+      "id": "moon.waning-crescent",
+      "category": "moon",
+      "slug": "waning-crescent",
+      "motif": "crescent",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/037-moon-waning-crescent.webp"
+    },
+    {
+      "id": "elements.fire",
+      "category": "elements",
+      "slug": "fire",
+      "motif": "flame",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/038-elements-fire.webp"
+    },
+    {
+      "id": "elements.earth",
+      "category": "elements",
+      "slug": "earth",
+      "motif": "mountain",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/039-elements-earth.webp"
+    },
+    {
+      "id": "elements.air",
+      "category": "elements",
+      "slug": "air",
+      "motif": "ribbon",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/040-elements-air.webp"
+    },
+    {
+      "id": "elements.water",
+      "category": "elements",
+      "slug": "water",
+      "motif": "waves",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/041-elements-water.webp"
+    },
+    {
+      "id": "daily.morning-clarity",
+      "category": "daily",
+      "slug": "morning-clarity",
+      "motif": "sunrise",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/042-daily-morning-clarity.webp"
+    },
+    {
+      "id": "daily.noon-focus",
+      "category": "daily",
+      "slug": "noon-focus",
+      "motif": "sun",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/043-daily-noon-focus.webp"
+    },
+    {
+      "id": "daily.evening-reset",
+      "category": "daily",
+      "slug": "evening-reset",
+      "motif": "moonwave",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/044-daily-evening-reset.webp"
+    },
+    {
+      "id": "daily.rest",
+      "category": "daily",
+      "slug": "rest",
+      "motif": "crescent",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/045-daily-rest.webp"
+    },
+    {
+      "id": "daily.flow",
+      "category": "daily",
+      "slug": "flow",
+      "motif": "waves",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/046-daily-flow.webp"
+    },
+    {
+      "id": "daily.decision",
+      "category": "daily",
+      "slug": "decision",
+      "motif": "arrow",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/047-daily-decision.webp"
+    },
+    {
+      "id": "daily.calm",
+      "category": "daily",
+      "slug": "calm",
+      "motif": "orbit",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/048-daily-calm.webp"
+    },
+    {
+      "id": "daily.energy",
+      "category": "daily",
+      "slug": "energy",
+      "motif": "flame",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/049-daily-energy.webp"
+    },
+    {
+      "id": "daily.protection",
+      "category": "daily",
+      "slug": "protection",
+      "motif": "rings",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/050-daily-protection.webp"
+    },
+    {
+      "id": "daily.cleanse",
+      "category": "daily",
+      "slug": "cleanse",
+      "motif": "leaf",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/051-daily-cleanse.webp"
+    },
+    {
+      "id": "daily.boundary",
+      "category": "daily",
+      "slug": "boundary",
+      "motif": "eclipse",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/052-daily-boundary.webp"
+    },
+    {
+      "id": "daily.inspiration",
+      "category": "daily",
+      "slug": "inspiration",
+      "motif": "comet",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/053-daily-inspiration.webp"
+    },
+    {
+      "id": "love.attraction",
+      "category": "love",
+      "slug": "attraction",
+      "motif": "heart",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/054-love-attraction.webp"
+    },
+    {
+      "id": "love.tenderness",
+      "category": "love",
+      "slug": "tenderness",
+      "motif": "ribbon",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/055-love-tenderness.webp"
+    },
+    {
+      "id": "love.honesty",
+      "category": "love",
+      "slug": "honesty",
+      "motif": "sunrise",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/056-love-honesty.webp"
+    },
+    {
+      "id": "love.intimacy",
+      "category": "love",
+      "slug": "intimacy",
+      "motif": "orbit",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/057-love-intimacy.webp"
+    },
+    {
+      "id": "love.repair",
+      "category": "love",
+      "slug": "repair",
+      "motif": "leaf",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/058-love-repair.webp"
+    },
+    {
+      "id": "love.desire",
+      "category": "love",
+      "slug": "desire",
+      "motif": "flame",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/059-love-desire.webp"
+    },
+    {
+      "id": "love.distance",
+      "category": "love",
+      "slug": "distance",
+      "motif": "moon",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/060-love-distance.webp"
+    },
+    {
+      "id": "love.trust",
+      "category": "love",
+      "slug": "trust",
+      "motif": "rings",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/061-love-trust.webp"
+    },
+    {
+      "id": "love.chemistry",
+      "category": "love",
+      "slug": "chemistry",
+      "motif": "comet",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/062-love-chemistry.webp"
+    },
+    {
+      "id": "love.devotion",
+      "category": "love",
+      "slug": "devotion",
+      "motif": "heart",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/063-love-devotion.webp"
+    },
+    {
+      "id": "love.self-love",
+      "category": "love",
+      "slug": "self-love",
+      "motif": "crystal",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/064-love-self-love.webp"
+    },
+    {
+      "id": "love.partnership",
+      "category": "love",
+      "slug": "partnership",
+      "motif": "balance",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/065-love-partnership.webp"
+    },
+    {
+      "id": "work-money.focus-desk",
+      "category": "work-money",
+      "slug": "focus-desk",
+      "motif": "desk",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/066-work-money-focus-desk.webp"
+    },
+    {
+      "id": "work-money.deep-work",
+      "category": "work-money",
+      "slug": "deep-work",
+      "motif": "crystal",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/067-work-money-deep-work.webp"
+    },
+    {
+      "id": "work-money.launch",
+      "category": "work-money",
+      "slug": "launch",
+      "motif": "comet",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/068-work-money-launch.webp"
+    },
+    {
+      "id": "work-money.negotiation",
+      "category": "work-money",
+      "slug": "negotiation",
+      "motif": "balance",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/069-work-money-negotiation.webp"
+    },
+    {
+      "id": "work-money.savings",
+      "category": "work-money",
+      "slug": "savings",
+      "motif": "rings",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/070-work-money-savings.webp"
+    },
+    {
+      "id": "work-money.abundance",
+      "category": "work-money",
+      "slug": "abundance",
+      "motif": "leaf",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/071-work-money-abundance.webp"
+    },
+    {
+      "id": "work-money.craft",
+      "category": "work-money",
+      "slug": "craft",
+      "motif": "mountain",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/072-work-money-craft.webp"
+    },
+    {
+      "id": "work-money.planning",
+      "category": "work-money",
+      "slug": "planning",
+      "motif": "orbit",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/073-work-money-planning.webp"
+    },
+    {
+      "id": "work-money.courage",
+      "category": "work-money",
+      "slug": "courage",
+      "motif": "flame",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/074-work-money-courage.webp"
+    },
+    {
+      "id": "work-money.career-path",
+      "category": "work-money",
+      "slug": "career-path",
+      "motif": "arrow",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/075-work-money-career-path.webp"
+    },
+    {
+      "id": "work-money.money-flow",
+      "category": "work-money",
+      "slug": "money-flow",
+      "motif": "waves",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/076-work-money-money-flow.webp"
+    },
+    {
+      "id": "work-money.leadership",
+      "category": "work-money",
+      "slug": "leadership",
+      "motif": "sun",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/077-work-money-leadership.webp"
+    },
+    {
+      "id": "natal.inner-child",
+      "category": "natal",
+      "slug": "inner-child",
+      "motif": "sunrise",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/078-natal-inner-child.webp"
+    },
+    {
+      "id": "natal.shadow",
+      "category": "natal",
+      "slug": "shadow",
+      "motif": "eclipse",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/079-natal-shadow.webp"
+    },
+    {
+      "id": "natal.strength",
+      "category": "natal",
+      "slug": "strength",
+      "motif": "mountain",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/080-natal-strength.webp"
+    },
+    {
+      "id": "natal.destiny",
+      "category": "natal",
+      "slug": "destiny",
+      "motif": "orbit",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/081-natal-destiny.webp"
+    },
+    {
+      "id": "natal.intuition",
+      "category": "natal",
+      "slug": "intuition",
+      "motif": "moon",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/082-natal-intuition.webp"
+    },
+    {
+      "id": "natal.grounding",
+      "category": "natal",
+      "slug": "grounding",
+      "motif": "leaf",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/083-natal-grounding.webp"
+    },
+    {
+      "id": "natal.creativity",
+      "category": "natal",
+      "slug": "creativity",
+      "motif": "ribbon",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/084-natal-creativity.webp"
+    },
+    {
+      "id": "natal.voice",
+      "category": "natal",
+      "slug": "voice",
+      "motif": "waves",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/085-natal-voice.webp"
+    },
+    {
+      "id": "natal.transformation",
+      "category": "natal",
+      "slug": "transformation",
+      "motif": "comet",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/086-natal-transformation.webp"
+    },
+    {
+      "id": "natal.confidence",
+      "category": "natal",
+      "slug": "confidence",
+      "motif": "sun",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/087-natal-confidence.webp"
+    },
+    {
+      "id": "natal.values",
+      "category": "natal",
+      "slug": "values",
+      "motif": "crystal",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/088-natal-values.webp"
+    },
+    {
+      "id": "natal.growth",
+      "category": "natal",
+      "slug": "growth",
+      "motif": "leaf",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/089-natal-growth.webp"
+    },
+    {
+      "id": "union.first-meeting",
+      "category": "union",
+      "slug": "first-meeting",
+      "motif": "sunrise",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/090-union-first-meeting.webp"
+    },
+    {
+      "id": "union.harmony",
+      "category": "union",
+      "slug": "harmony",
+      "motif": "rings",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/091-union-harmony.webp"
+    },
+    {
+      "id": "union.tension",
+      "category": "union",
+      "slug": "tension",
+      "motif": "eclipse",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/092-union-tension.webp"
+    },
+    {
+      "id": "union.mirror",
+      "category": "union",
+      "slug": "mirror",
+      "motif": "balance",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/093-union-mirror.webp"
+    },
+    {
+      "id": "union.dialogue",
+      "category": "union",
+      "slug": "dialogue",
+      "motif": "waves",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/094-union-dialogue.webp"
+    },
+    {
+      "id": "union.bond",
+      "category": "union",
+      "slug": "bond",
+      "motif": "orbit",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/095-union-bond.webp"
+    },
+    {
+      "id": "union.passion",
+      "category": "union",
+      "slug": "passion",
+      "motif": "flame",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/096-union-passion.webp"
+    },
+    {
+      "id": "union.healing",
+      "category": "union",
+      "slug": "healing",
+      "motif": "leaf",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/097-union-healing.webp"
+    },
+    {
+      "id": "union.choice",
+      "category": "union",
+      "slug": "choice",
+      "motif": "arrow",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/098-union-choice.webp"
+    },
+    {
+      "id": "union.long-term",
+      "category": "union",
+      "slug": "long-term",
+      "motif": "mountain",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/099-union-long-term.webp"
+    },
+    {
+      "id": "union.orbit",
+      "category": "union",
+      "slug": "orbit",
+      "motif": "orbit",
+      "width": 2048,
+      "height": 2048,
+      "format": "webp",
+      "src": "/lumia-story-assets/100-union-orbit.webp"
+    }
+  ]
+}
