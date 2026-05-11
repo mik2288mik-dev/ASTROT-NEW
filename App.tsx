@@ -144,6 +144,11 @@ const App: React.FC = () => {
 
     useEffect(() => {
         const tg = (window as any).Telegram?.WebApp;
+        tg?.ready?.();
+        tg?.expand?.();
+        tg?.setHeaderColor?.('#F8F3FF');
+        tg?.setBackgroundColor?.('#F8F3FF');
+        tg?.setBottomBarColor?.('#FFFFFF');
         tg?.enableClosingConfirmation?.();
 
         const cleanupFullscreenGuard = installTelegramFullscreenGuard();
@@ -173,12 +178,14 @@ const App: React.FC = () => {
         const tg = (window as any).Telegram?.WebApp;
         if (tg) {
             if (lumiaAirShell) {
-                tg.setHeaderColor('#FFFFFF');
-                tg.setBackgroundColor('#FFFFFF');
+                tg.setHeaderColor?.('#F8F3FF');
+                tg.setBackgroundColor?.('#F8F3FF');
+                tg.setBottomBarColor?.('#FFFFFF');
             } else {
                 const headerColor = theme === 'light' ? '#F5F2EB' : '#050505';
-                tg.setHeaderColor(headerColor);
-                tg.setBackgroundColor(headerColor);
+                tg.setHeaderColor?.(headerColor);
+                tg.setBackgroundColor?.(headerColor);
+                tg.setBottomBarColor?.(headerColor);
             }
         }
 
@@ -803,7 +810,7 @@ const App: React.FC = () => {
 
     return (
         <div
-            className={`relative isolate flex h-full w-full min-h-0 flex-col overflow-hidden font-sans selection:bg-astro-highlight selection:text-white ${
+            className={`lumia-app-shell relative isolate flex w-full min-h-0 flex-col overflow-hidden font-sans selection:bg-astro-highlight selection:text-white ${
                 lumiaAirShell ? 'text-text-main' : 'text-astro-text'
             }`}
         >
@@ -820,8 +827,8 @@ const App: React.FC = () => {
                 profile={profile} 
                 view={view} 
                 onOpenSettings={() => setView('settings')}
-                onOpenHoroscopeLayer={openHoroscopeLayer}
-                dashboardScrollRef={dashboardScrollRef}
+            onOpenHoroscopeLayer={openHoroscopeLayer}
+            dashboardScrollRef={dashboardScrollRef}
             />
             
             <main
@@ -960,6 +967,7 @@ const App: React.FC = () => {
                             }} 
                             onOpenHoroscopeLayer={openHoroscopeLayer}
                             onOpenNatalMode={openNatalMode}
+                            onOpenSettings={() => setView('settings')}
                             scrollRef={dashboardScrollRef}
                         />
                     </div>

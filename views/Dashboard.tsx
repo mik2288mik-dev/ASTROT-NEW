@@ -13,6 +13,7 @@ import {
   LumiaHomeHeroCard,
   LumiaHomePulseCard,
 } from '../components/Dashboard/LumiaHomeSections';
+import { CollapsibleHomeHeader } from '../components/lumia-ui/CollapsibleHomeHeader';
 
 type DashboardView = Extract<ViewState, 'chart' | 'horoscope' | 'synastry' | 'oracle'>;
 
@@ -23,6 +24,7 @@ interface DashboardProps {
   onNavigate: (view: DashboardView) => void;
   onOpenHoroscopeLayer: (layer: HoroscopeLayer) => void;
   onOpenNatalMode: (mode: NatalChartMode) => void;
+  onOpenSettings: () => void;
   scrollRef?: React.RefObject<HTMLDivElement | null>;
 }
 
@@ -37,7 +39,7 @@ function haptic(kind: 'select' | 'open' = 'select') {
 }
 
 export const Dashboard = memo<DashboardProps>(
-  ({ profile, onNavigate, onOpenHoroscopeLayer, onOpenNatalMode, scrollRef }) => {
+  ({ profile, onNavigate, onOpenHoroscopeLayer, onOpenNatalMode, onOpenSettings, scrollRef }) => {
     const shouldReduceMotion = useReducedMotion();
     const language = profile.language === 'en' ? 'en' : 'ru';
     const pageVariants = shouldReduceMotion
@@ -95,6 +97,12 @@ export const Dashboard = memo<DashboardProps>(
           style={{ willChange: 'transform, opacity, filter' }}
         >
           <div className="lumia-main-scroll scrollbar-hide" ref={scrollRef}>
+            <CollapsibleHomeHeader
+              profile={profile}
+              scrollRef={scrollRef}
+              onOpenSettings={onOpenSettings}
+              onOpenHoroscopeLayer={onOpenHoroscopeLayer}
+            />
             <div className="lumia-home-scroll-content space-y-[var(--lumia-home-gap-lg)] px-[var(--lumia-home-page-x)]">
               <LumiaHomeHeroCard language={language} onOpen={() => openHoroscope('sign')} />
               <LumiaHomePulseCard language={language} />

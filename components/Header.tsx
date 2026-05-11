@@ -21,14 +21,15 @@ export const Header: React.FC<HeaderProps> = ({
 
   const isFunnel = view === 'onboarding' || view === 'hook' || view === 'paywall';
   const isStoriesViewer = view === 'horoscope';
+  const isDashboard = view === 'dashboard';
 
-  if (isFunnel || isStoriesViewer) return null;
+  if (isFunnel || isStoriesViewer || isDashboard) return null;
 
   return (
     <LumiaAppHeader
       profile={profile}
       view={view}
-      scrollContainerRef={view === 'dashboard' ? dashboardScrollRef : undefined}
+      scrollContainerRef={undefined}
       onOpenSettings={onOpenSettings}
       onOpenHoroscopeLayer={onOpenHoroscopeLayer}
     />

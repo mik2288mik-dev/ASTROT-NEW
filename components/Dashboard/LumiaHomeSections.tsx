@@ -336,7 +336,7 @@ export function LumiaHomeBottomNavigation({
   const nav = getLumiaHomeCopy(language).nav;
 
   return (
-    <div className="pointer-events-none z-30 shrink-0 px-3 pb-[calc(0.5rem+max(env(safe-area-inset-bottom,0px),var(--tg-content-safe-area-inset-bottom,0px)))] pt-2">
+    <div className="lumia-home-bottom-nav-shell pointer-events-none">
       <nav className="lumia-home-bottom-nav pointer-events-auto px-1.5 py-1" aria-label="Lumia">
         <LumiaHomeBottomNavItem active label={nav.today} icon={<Sparkles size={20} strokeWidth={2.15} />} />
         <LumiaHomeBottomNavItem label={nav.chart} icon={<Map size={20} strokeWidth={2.1} />} onClick={onOpenNatal} />

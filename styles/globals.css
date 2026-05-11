@@ -126,6 +126,7 @@ body.theme-lumia-air #__next {
   height: 100%;
   min-height: 0;
   max-height: 100%;
+  overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
@@ -311,11 +312,167 @@ body.theme-lumia-air #__next {
 
 .lumia-home-screen .lumia-main-scroll {
   flex: 1 1 auto;
-  height: auto;
+  height: 100%;
 }
 
 .lumia-home-scroll-content {
-  padding-bottom: var(--lumia-home-gap-lg);
+  padding-bottom: calc(var(--lumia-home-nav-height) + max(env(safe-area-inset-bottom, 0px), var(--tg-safe-area-inset-bottom, 0px), var(--tg-content-safe-area-inset-bottom, 0px)) + 2rem);
+}
+
+.lumia-home-collapsible-header {
+  --lumia-home-content-safe-top: max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px), 24px);
+  --lumia-home-story-size: clamp(4rem, 17vw, 4.4rem);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  box-sizing: border-box;
+  overflow: hidden;
+  padding-right: max(var(--lumia-home-page-x), env(safe-area-inset-right, 0px), var(--tg-content-safe-area-inset-right, 0px), var(--tg-safe-area-inset-right, 0px));
+  padding-left: max(var(--lumia-home-page-x), env(safe-area-inset-left, 0px), var(--tg-content-safe-area-inset-left, 0px), var(--tg-safe-area-inset-left, 0px));
+  background:
+    radial-gradient(circle at 84% 0%, rgba(238, 230, 255, 0.86), transparent 18rem),
+    radial-gradient(circle at 8% 46%, rgba(255, 226, 214, 0.62), transparent 18rem),
+    linear-gradient(180deg, rgba(251, 247, 242, 0.98), rgba(251, 247, 242, 0.9)),
+    var(--lumia-home-bg);
+  color: var(--lumia-home-text);
+  font-family: var(--lumia-home-font-sans);
+  transform: translateZ(0);
+  will-change: height;
+}
+
+.lumia-home-header-solid {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-bottom: 1px solid rgba(42, 16, 88, 0.06);
+  background: rgba(251, 247, 242, 0.92);
+  box-shadow: 0 8px 24px rgba(42, 16, 88, 0.06);
+  backdrop-filter: blur(18px) saturate(1.06);
+  -webkit-backdrop-filter: blur(18px) saturate(1.06);
+  pointer-events: none;
+}
+
+.lumia-home-expanded-brand-row,
+.lumia-home-compact-brand-row,
+.lumia-home-stories-layer {
+  position: absolute;
+  right: 0;
+  left: 0;
+  margin: 0 auto;
+  width: 100%;
+  max-width: 28rem;
+  will-change: transform, opacity;
+}
+
+.lumia-home-expanded-brand-row {
+  top: calc(var(--lumia-home-content-safe-top) + 0.55rem);
+  z-index: 3;
+  transform-origin: top center;
+  pointer-events: auto;
+}
+
+.lumia-home-expanded-brand-center {
+  min-width: 0;
+  text-align: center;
+}
+
+.lumia-home-expanded-wordmark,
+.lumia-home-compact-wordmark {
+  margin: 0;
+  color: #202020;
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.065em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.lumia-home-expanded-wordmark {
+  font-size: clamp(2.55rem, 11.2vw, 2.9rem);
+}
+
+.lumia-home-expanded-tagline {
+  margin: 0.48rem 0 0;
+  color: #8a857d;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.32em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.lumia-home-expanded-actions,
+.lumia-home-compact-actions {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.45rem;
+}
+
+.lumia-home-expanded-actions {
+  top: 3.8rem;
+  right: max(0.85rem, var(--lumia-home-page-x));
+}
+
+.lumia-home-compact-brand-row {
+  top: calc(var(--lumia-home-content-safe-top) + 0.3rem);
+  z-index: 4;
+  display: flex;
+  height: 3rem;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.lumia-home-compact-wordmark {
+  font-size: 2.02rem;
+}
+
+.lumia-home-compact-actions {
+  right: max(0.85rem, var(--lumia-home-page-x));
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: auto;
+}
+
+.lumia-home-header-icon-button {
+  width: 2.25rem;
+  height: 2.25rem;
+}
+
+.lumia-home-header-avatar-button {
+  width: 2.55rem;
+  height: 2.55rem;
+}
+
+.lumia-home-stories-layer {
+  top: calc(var(--lumia-home-content-safe-top) + 6.4rem);
+  z-index: 2;
+  transform-origin: top center;
+}
+
+.lumia-home-stories-layer .lumia-home-story-label {
+  opacity: var(--lumia-story-label-opacity, 1);
+  transition: none;
+}
+
+.lumia-home-stories-scroll {
+  display: flex;
+  gap: clamp(0.9rem, 3.6vw, 1.1rem);
+  overflow-x: auto;
+  padding: 0.45rem max(0.85rem, var(--lumia-home-page-x)) 0.62rem;
+  scroll-padding-inline: max(0.85rem, var(--lumia-home-page-x));
+}
+
+.lumia-home-bottom-nav-shell {
+  z-index: 35;
+  flex-shrink: 0;
+  padding: 0.5rem 0.75rem calc(0.5rem + max(env(safe-area-inset-bottom, 0px), var(--tg-safe-area-inset-bottom, 0px), var(--tg-content-safe-area-inset-bottom, 0px)));
+}
+
+.lumia-home-bottom-nav-shell .lumia-home-bottom-nav {
+  pointer-events: auto;
 }
 
 .lumia-home-display {
@@ -735,11 +892,18 @@ html, body {
 }
 
 #__next {
-  height: 100%;
+  height: var(--tg-viewport-stable-height, 100dvh);
+  min-height: var(--tg-viewport-stable-height, 100dvh);
   width: 100%;
   display: flex;
   flex-direction: column;
   background-color: var(--bg-primary);
+}
+
+.lumia-app-shell {
+  height: var(--tg-viewport-stable-height, 100dvh);
+  min-height: var(--tg-viewport-stable-height, 100dvh);
+  max-height: var(--tg-viewport-stable-height, 100dvh);
 }
 
 /* Telegram Mini App / iPhone safe-area: use env() when viewport-fit=cover is set */
@@ -753,6 +917,12 @@ html, body {
   --tg-content-safe-area-inset-bottom: 0px;
   --tg-content-safe-area-inset-left: 0px;
   --tg-content-safe-area-inset-right: 0px;
+  --tg-safe-area-inset-top: 0px;
+  --tg-safe-area-inset-bottom: 0px;
+  --tg-safe-area-inset-left: 0px;
+  --tg-safe-area-inset-right: 0px;
+  --tg-viewport-height: 100dvh;
+  --tg-viewport-stable-height: 100dvh;
 }
 
 /*

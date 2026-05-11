@@ -14,6 +14,8 @@ type WebAppInsets = {
 type TelegramWebAppLike = {
   contentSafeAreaInset?: WebAppInsets;
   safeAreaInset?: WebAppInsets;
+  viewportHeight?: number;
+  viewportStableHeight?: number;
   onEvent?: (event: string, handler: () => void) => void;
   offEvent?: (event: string, handler: () => void) => void;
 };
@@ -37,10 +39,26 @@ function applyInsetVars(
 export function applyTelegramSafeAreaCssVars(): void {
   if (typeof document === 'undefined') return;
   const wa = (window as any).Telegram?.WebApp as TelegramWebAppLike | undefined;
-  if (!wa) return;
   const root = document.documentElement;
+
+  if (!wa) {
+    root.style.setProperty('--tg-viewport-height', '100dvh');
+    root.style.setProperty('--tg-viewport-stable-height', '100dvh');
+    return;
+  }
+
   applyInsetVars(root, 'tg-content-safe-area-inset', wa.contentSafeAreaInset);
   applyInsetVars(root, 'tg-safe-area-inset', wa.safeAreaInset);
+
+  if (typeof wa.viewportHeight === 'number' && Number.isFinite(wa.viewportHeight) && wa.viewportHeight > 0) {
+    root.style.setProperty('--tg-viewport-height', `${wa.viewportHeight}px`);
+  }
+
+  if (typeof wa.viewportStableHeight === 'number' && Number.isFinite(wa.viewportStableHeight) && wa.viewportStableHeight > 0) {
+    root.style.setProperty('--tg-viewport-stable-height', `${wa.viewportStableHeight}px`);
+  } else if (typeof wa.viewportHeight === 'number' && Number.isFinite(wa.viewportHeight) && wa.viewportHeight > 0) {
+    root.style.setProperty('--tg-viewport-stable-height', `${wa.viewportHeight}px`);
+  }
 }
 
 export function subscribeTelegramContentSafeAreaChanges(handler: () => void): () => void {
@@ -48,9 +66,11 @@ export function subscribeTelegramContentSafeAreaChanges(handler: () => void): ()
   if (!wa?.onEvent || !wa?.offEvent) {
     return () => {};
   }
+  wa.onEvent('viewportChanged', handler);
   wa.onEvent('contentSafeAreaChanged', handler);
   wa.onEvent('safeAreaChanged', handler);
   return () => {
+    wa.offEvent?.('viewportChanged', handler);
     wa.offEvent?.('contentSafeAreaChanged', handler);
     wa.offEvent?.('safeAreaChanged', handler);
   };
