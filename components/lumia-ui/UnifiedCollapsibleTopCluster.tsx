@@ -163,7 +163,7 @@ export function UnifiedCollapsibleTopCluster({
           style={{ opacity: compactClusterOpacity, x: compactClusterX, y: compactClusterY, scale: compactClusterScale }}
           aria-hidden
         >
-          {stories.slice(0, 5).map((story, index) => (
+          {stories.slice(0, 3).map((story, index) => (
             <span
               key={story.id}
               className="lumia-home-compact-story"

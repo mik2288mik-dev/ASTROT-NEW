@@ -325,8 +325,8 @@ body.theme-lumia-air #__next {
   overflow: hidden;
   flex-shrink: 0;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(255, 255, 255, 0.94)),
-    var(--lumia-home-bg);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.28)),
+    transparent;
   color: var(--lumia-home-text);
   font-family: var(--lumia-home-font-sans);
   transform: translateZ(0);
@@ -342,15 +342,15 @@ body.theme-lumia-air #__next {
 
 .lumia-home-top-cluster-bg {
   z-index: 0;
-  border-bottom: 1px solid rgba(42, 22, 51, 0.07);
-  background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(18px) saturate(1.02);
-  -webkit-backdrop-filter: blur(18px) saturate(1.02);
+  border-bottom: 1px solid rgba(42, 22, 51, 0.04);
+  background: rgba(255, 255, 255, 0.62);
+  backdrop-filter: blur(24px) saturate(1.08);
+  -webkit-backdrop-filter: blur(24px) saturate(1.08);
 }
 
 .lumia-home-top-cluster-shadow {
   z-index: 1;
-  box-shadow: 0 10px 26px rgba(42, 22, 51, 0.07);
+  box-shadow: 0 8px 22px rgba(42, 22, 51, 0.045);
 }
 
 .lumia-home-top-scene {
@@ -405,17 +405,17 @@ body.theme-lumia-air #__next {
 
 .lumia-home-top-actions {
   position: absolute;
-  top: 3.45rem;
+  top: 2.78rem;
   right: max(0.9rem, var(--lumia-home-page-x));
   z-index: 4;
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 0.24rem;
-  min-height: 2.75rem;
-  padding: 0.22rem;
+  gap: 0.12rem;
+  min-height: 2.26rem;
+  padding: 0.18rem;
   border: 1px solid rgba(255, 255, 255, 0.74);
-  border-radius: 1.55rem;
+  border-radius: 1.35rem;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.52)),
     rgba(255, 255, 255, 0.46);
@@ -452,16 +452,16 @@ body.theme-lumia-air #__next {
 }
 
 .lumia-home-header-icon-button {
-  width: 2.14rem;
-  height: 2.14rem;
+  width: 1.76rem;
+  height: 1.76rem;
   border-color: transparent;
   background: transparent;
   box-shadow: none;
 }
 
 .lumia-home-header-avatar-button {
-  width: 2.28rem;
-  height: 2.28rem;
+  width: 1.98rem;
+  height: 1.98rem;
   border-width: 1.5px;
   box-shadow:
     0 0 0 1px rgba(90, 47, 88, 0.08),
@@ -478,11 +478,11 @@ body.theme-lumia-air #__next {
 
 .lumia-home-compact-story-cluster {
   position: absolute;
-  top: 0.84rem;
-  left: calc(50% - 5rem);
+  top: 0.14rem;
+  left: calc(50% - 7.15rem);
   z-index: 5;
   display: inline-flex;
-  width: 5.1rem;
+  width: 4.2rem;
   height: 2rem;
   align-items: center;
   pointer-events: none;
@@ -493,8 +493,8 @@ body.theme-lumia-air #__next {
 .lumia-home-compact-story {
   position: relative;
   display: inline-flex;
-  width: 1.85rem;
-  height: 1.85rem;
+  width: 1.78rem;
+  height: 1.78rem;
   flex: 0 0 auto;
   overflow: hidden;
   border-radius: 999px;
@@ -506,11 +506,14 @@ body.theme-lumia-air #__next {
 }
 
 .lumia-home-compact-story + .lumia-home-compact-story {
-  margin-left: -0.62rem;
+  margin-left: -0.58rem;
 }
 
 .lumia-home-compact-story[data-active='true'] {
-  border-color: rgba(90, 47, 88, 0.9);
+  border-color: transparent;
+  background:
+    linear-gradient(#ffffff, #ffffff) padding-box,
+    conic-gradient(from 218deg, #1fca86 0deg, #08aeea 118deg, #3562ff 236deg, #1fca86 360deg) border-box;
   box-shadow:
     0 0 0 1px rgba(90, 47, 88, 0.22),
     0 6px 14px rgba(90, 47, 88, 0.18);
@@ -698,11 +701,14 @@ body.theme-lumia-air #__next {
 }
 
 .lumia-home-story-button[data-active='true'] .lumia-home-story-ring {
-  border-color: var(--lumia-home-purple);
+  border-color: transparent;
+  background:
+    linear-gradient(#ffffff, #ffffff) padding-box,
+    conic-gradient(from 218deg, #20c988 0deg, #07aee9 118deg, #3562ff 236deg, #20c988 360deg) border-box;
   box-shadow:
     0 0 0 2px rgba(255, 255, 255, 0.96),
-    0 0 0 3px rgba(90, 47, 88, 0.2),
-    0 10px 24px rgba(90, 47, 88, 0.13);
+    0 0 0 3px rgba(32, 201, 136, 0.14),
+    0 10px 24px rgba(42, 22, 51, 0.12);
 }
 
 .lumia-home-story-ring > img,
