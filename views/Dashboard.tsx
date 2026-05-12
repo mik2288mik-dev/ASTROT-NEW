@@ -13,7 +13,7 @@ import {
   LumiaHomeHeroCard,
   LumiaHomePulseCard,
 } from '../components/Dashboard/LumiaHomeSections';
-import { CollapsibleHomeHeader } from '../components/lumia-ui/CollapsibleHomeHeader';
+import { UnifiedCollapsibleTopCluster } from '../components/lumia-ui/UnifiedCollapsibleTopCluster';
 
 type DashboardView = Extract<ViewState, 'chart' | 'horoscope' | 'synastry' | 'oracle'>;
 
@@ -97,7 +97,7 @@ export const Dashboard = memo<DashboardProps>(
           style={{ willChange: 'transform, opacity, filter' }}
         >
           <div className="lumia-main-scroll scrollbar-hide" ref={scrollRef}>
-            <CollapsibleHomeHeader
+            <UnifiedCollapsibleTopCluster
               profile={profile}
               scrollRef={scrollRef}
               onOpenSettings={onOpenSettings}

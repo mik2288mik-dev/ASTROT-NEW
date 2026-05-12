@@ -33,20 +33,21 @@
   --radius-air-panel: 1.75rem;
 
   /* Lumia Home 2026: editorial consumer mobile foundation */
-  --lumia-home-bg: #fbf7f2;
-  --lumia-home-bg-wash: #fffdf9;
+  --lumia-home-bg: #f8f1ec;
+  --lumia-home-bg-wash: #fffaf6;
   --lumia-home-surface: #ffffff;
-  --lumia-home-surface-soft: #f4eefb;
-  --lumia-home-text: #140b2f;
-  --lumia-home-muted: #696070;
-  --lumia-home-purple: #642bd8;
-  --lumia-home-purple-deep: #16072f;
-  --lumia-home-plum: #37204f;
-  --lumia-home-lavender: #eee6ff;
-  --lumia-home-lavender-strong: #d7c4ff;
-  --lumia-home-peach: #ffe2d6;
-  --lumia-home-rose: #f4b8c7;
-  --lumia-home-line: rgba(42, 16, 88, 0.1);
+  --lumia-home-surface-soft: #f1e6ed;
+  --lumia-home-text: #211622;
+  --lumia-home-muted: #73666d;
+  --lumia-home-purple: #5a2f58;
+  --lumia-home-purple-deep: #2a1633;
+  --lumia-home-plum: #3a1f46;
+  --lumia-home-lavender: #eadfe8;
+  --lumia-home-lavender-strong: #d8c3d4;
+  --lumia-home-peach: #f2d4c4;
+  --lumia-home-rose: #d8a7a0;
+  --lumia-home-orchid: #8f6c8f;
+  --lumia-home-line: rgba(42, 22, 51, 0.1);
   --lumia-home-white-soft: rgba(255, 255, 255, 0.82);
   --lumia-home-page-x: 1rem;
   --lumia-home-gap-sm: 0.6rem;
@@ -57,12 +58,12 @@
   --lumia-home-radius-card: 1.35rem;
   --lumia-home-radius-panel: 1.55rem;
   --lumia-home-radius-nav: 1.45rem;
-  --lumia-home-story-size: clamp(4rem, 17vw, 4.25rem);
+  --lumia-home-story-size: clamp(4.25rem, 18vw, 4.5rem);
   --lumia-home-icon-size: 2.45rem;
   --lumia-home-nav-height: 4.75rem;
-  --lumia-home-shadow-card: 0 16px 38px rgba(42, 16, 88, 0.08);
-  --lumia-home-shadow-lifted: 0 12px 28px rgba(100, 43, 216, 0.18);
-  --lumia-home-shadow-nav: 0 10px 30px rgba(42, 16, 88, 0.12);
+  --lumia-home-shadow-card: 0 16px 38px rgba(42, 22, 51, 0.08);
+  --lumia-home-shadow-lifted: 0 12px 28px rgba(90, 47, 88, 0.18);
+  --lumia-home-shadow-nav: 0 10px 30px rgba(42, 22, 51, 0.12);
   --lumia-home-font-sans: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --lumia-home-font-display: 'Geologica', 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
@@ -134,8 +135,8 @@ body.theme-lumia-air #__next {
 
 .lumia-home-screen {
   background:
-    radial-gradient(circle at 84% 4%, rgba(238, 230, 255, 0.9), transparent 26rem),
-    radial-gradient(circle at 8% 20%, rgba(255, 226, 214, 0.7), transparent 22rem),
+    radial-gradient(circle at 84% 4%, rgba(234, 223, 232, 0.84), transparent 26rem),
+    radial-gradient(circle at 8% 20%, rgba(242, 212, 196, 0.66), transparent 22rem),
     var(--lumia-home-bg);
   color: var(--lumia-home-text);
   font-family: var(--lumia-home-font-sans);
@@ -156,7 +157,7 @@ body.theme-lumia-air #__next {
     #ffffff;
   color: var(--lumia-home-text);
   font-family: var(--lumia-home-font-sans);
-  box-shadow: 0 1px 0 rgba(42, 16, 88, 0.04);
+  box-shadow: 0 1px 0 rgba(42, 22, 51, 0.04);
   backdrop-filter: blur(18px) saturate(1.05);
   -webkit-backdrop-filter: blur(18px) saturate(1.05);
 }
@@ -319,20 +320,19 @@ body.theme-lumia-air #__next {
   padding-bottom: calc(var(--lumia-home-nav-height) + max(env(safe-area-inset-bottom, 0px), var(--tg-safe-area-inset-bottom, 0px), var(--tg-content-safe-area-inset-bottom, 0px)) + 2rem);
 }
 
-.lumia-home-collapsible-header {
+.lumia-home-top-cluster {
   --lumia-home-content-safe-top: max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px), 24px);
-  --lumia-home-story-size: clamp(4rem, 17vw, 4.4rem);
+  --lumia-home-story-size: 4.5rem;
   position: sticky;
   top: 0;
   z-index: 50;
   box-sizing: border-box;
   overflow: hidden;
-  padding-right: max(var(--lumia-home-page-x), env(safe-area-inset-right, 0px), var(--tg-content-safe-area-inset-right, 0px), var(--tg-safe-area-inset-right, 0px));
-  padding-left: max(var(--lumia-home-page-x), env(safe-area-inset-left, 0px), var(--tg-content-safe-area-inset-left, 0px), var(--tg-safe-area-inset-left, 0px));
+  flex-shrink: 0;
   background:
-    radial-gradient(circle at 84% 0%, rgba(238, 230, 255, 0.86), transparent 18rem),
-    radial-gradient(circle at 8% 46%, rgba(255, 226, 214, 0.62), transparent 18rem),
-    linear-gradient(180deg, rgba(251, 247, 242, 0.98), rgba(251, 247, 242, 0.9)),
+    radial-gradient(circle at 84% 0%, rgba(234, 223, 232, 0.78), transparent 18rem),
+    radial-gradient(circle at 8% 46%, rgba(242, 212, 196, 0.62), transparent 18rem),
+    linear-gradient(180deg, rgba(248, 241, 236, 0.98), rgba(248, 241, 236, 0.9)),
     var(--lumia-home-bg);
   color: var(--lumia-home-text);
   font-family: var(--lumia-home-font-sans);
@@ -340,100 +340,106 @@ body.theme-lumia-air #__next {
   will-change: height;
 }
 
-.lumia-home-header-solid {
+.lumia-home-top-cluster-bg,
+.lumia-home-top-cluster-shadow {
   position: absolute;
   inset: 0;
-  z-index: 0;
-  border-bottom: 1px solid rgba(42, 16, 88, 0.06);
-  background: rgba(251, 247, 242, 0.92);
-  box-shadow: 0 8px 24px rgba(42, 16, 88, 0.06);
-  backdrop-filter: blur(18px) saturate(1.06);
-  -webkit-backdrop-filter: blur(18px) saturate(1.06);
   pointer-events: none;
 }
 
-.lumia-home-expanded-brand-row,
-.lumia-home-compact-brand-row,
-.lumia-home-stories-layer {
+.lumia-home-top-cluster-bg {
+  z-index: 0;
+  border-bottom: 1px solid rgba(42, 22, 51, 0.07);
+  background: rgba(248, 241, 236, 0.92);
+  backdrop-filter: blur(18px) saturate(1.02);
+  -webkit-backdrop-filter: blur(18px) saturate(1.02);
+}
+
+.lumia-home-top-cluster-shadow {
+  z-index: 1;
+  box-shadow: 0 10px 26px rgba(42, 22, 51, 0.07);
+}
+
+.lumia-home-top-scene {
   position: absolute;
+  top: var(--lumia-home-content-safe-top);
   right: 0;
   left: 0;
-  margin: 0 auto;
-  width: 100%;
+  z-index: 2;
+  height: 214px;
   max-width: 28rem;
-  will-change: transform, opacity;
+  margin: 0 auto;
+  overflow: visible;
+  padding-right: max(var(--lumia-home-page-x), env(safe-area-inset-right, 0px), var(--tg-content-safe-area-inset-right, 0px), var(--tg-safe-area-inset-right, 0px));
+  padding-left: max(var(--lumia-home-page-x), env(safe-area-inset-left, 0px), var(--tg-content-safe-area-inset-left, 0px), var(--tg-safe-area-inset-left, 0px));
 }
 
-.lumia-home-expanded-brand-row {
-  top: calc(var(--lumia-home-content-safe-top) + 0.55rem);
+.lumia-home-brand {
+  position: absolute;
+  top: 0.45rem;
+  right: max(4.25rem, var(--lumia-home-page-x));
+  left: max(4.25rem, var(--lumia-home-page-x));
   z-index: 3;
-  transform-origin: top center;
-  pointer-events: auto;
-}
-
-.lumia-home-expanded-brand-center {
   min-width: 0;
   text-align: center;
+  transform-origin: top center;
+  will-change: transform;
 }
 
-.lumia-home-expanded-wordmark,
-.lumia-home-compact-wordmark {
+.lumia-home-wordmark {
   margin: 0;
   color: #202020;
   font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: clamp(2.55rem, 11.2vw, 2.9rem);
   font-weight: 600;
   letter-spacing: -0.065em;
   line-height: 1;
   white-space: nowrap;
+  transform-origin: top center;
+  will-change: transform;
 }
 
-.lumia-home-expanded-wordmark {
-  font-size: clamp(2.55rem, 11.2vw, 2.9rem);
-}
-
-.lumia-home-expanded-tagline {
+.lumia-home-tagline {
   margin: 0.48rem 0 0;
-  color: #8a857d;
+  color: #8a7d81;
   font-size: 9px;
   font-weight: 500;
   letter-spacing: 0.32em;
   line-height: 1;
   text-transform: uppercase;
+  will-change: transform, opacity;
 }
 
-.lumia-home-expanded-actions,
-.lumia-home-compact-actions {
+.lumia-home-top-actions {
   position: absolute;
+  top: 2.75rem;
+  right: max(0.9rem, var(--lumia-home-page-x));
+  z-index: 4;
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 0.45rem;
+  gap: 0.42rem;
+  transform-origin: top right;
+  will-change: transform;
 }
 
-.lumia-home-expanded-actions {
-  top: 3.8rem;
-  right: max(0.85rem, var(--lumia-home-page-x));
+.lumia-home-stories-strip {
+  position: absolute;
+  top: 6.45rem;
+  right: 0;
+  left: 0;
+  z-index: 2;
+  transform-origin: top center;
+  will-change: transform, opacity;
 }
 
-.lumia-home-compact-brand-row {
-  top: calc(var(--lumia-home-content-safe-top) + 0.3rem);
-  z-index: 4;
-  display: flex;
-  height: 3rem;
-  align-items: center;
-  justify-content: center;
+.lumia-home-stories-strip:not([data-interactive='true']) {
   pointer-events: none;
 }
 
-.lumia-home-compact-wordmark {
-  font-size: 2.02rem;
-}
-
-.lumia-home-compact-actions {
-  right: max(0.85rem, var(--lumia-home-page-x));
-  top: 50%;
-  transform: translateY(-50%);
-  pointer-events: auto;
+.lumia-home-stories-strip .lumia-home-story-label {
+  opacity: var(--lumia-story-label-opacity, 1);
+  transition: none;
 }
 
 .lumia-home-header-icon-button {
@@ -444,17 +450,6 @@ body.theme-lumia-air #__next {
 .lumia-home-header-avatar-button {
   width: 2.55rem;
   height: 2.55rem;
-}
-
-.lumia-home-stories-layer {
-  top: calc(var(--lumia-home-content-safe-top) + 6.4rem);
-  z-index: 2;
-  transform-origin: top center;
-}
-
-.lumia-home-stories-layer .lumia-home-story-label {
-  opacity: var(--lumia-story-label-opacity, 1);
-  transition: none;
 }
 
 .lumia-home-stories-scroll {
@@ -522,17 +517,17 @@ body.theme-lumia-air #__next {
 }
 
 .lumia-home-primary-button {
-  border: 1px solid rgba(100, 43, 216, 0.16);
-  background: linear-gradient(135deg, var(--lumia-home-purple), #7b43e7);
+  border: 1px solid rgba(90, 47, 88, 0.16);
+  background: linear-gradient(135deg, var(--lumia-home-purple), #7c586f);
   color: #ffffff;
   box-shadow: var(--lumia-home-shadow-lifted);
 }
 
 .lumia-home-secondary-button {
-  border: 1px solid rgba(100, 43, 216, 0.22);
+  border: 1px solid rgba(90, 47, 88, 0.22);
   background: rgba(255, 255, 255, 0.72);
   color: var(--lumia-home-purple);
-  box-shadow: 0 12px 32px rgba(42, 16, 88, 0.07);
+  box-shadow: 0 12px 32px rgba(42, 22, 51, 0.07);
 }
 
 .lumia-home-primary-button:active,
@@ -559,10 +554,10 @@ body.theme-lumia-air #__next {
   align-items: center;
   justify-content: center;
   border-radius: var(--lumia-home-radius-story);
-  border: 1px solid rgba(100, 43, 216, 0.08);
+  border: 1px solid rgba(90, 47, 88, 0.08);
   background: rgba(255, 255, 255, 0.76);
   color: var(--lumia-home-purple-deep);
-  box-shadow: 0 8px 22px rgba(42, 16, 88, 0.07);
+  box-shadow: 0 8px 22px rgba(42, 22, 51, 0.07);
 }
 
 .lumia-home-notification-dot {
@@ -593,8 +588,8 @@ body.theme-lumia-air #__next {
   font-size: 1rem;
   font-weight: 800;
   box-shadow:
-    0 0 0 1px rgba(100, 43, 216, 0.12),
-    0 10px 24px rgba(42, 16, 88, 0.12);
+    0 0 0 1px rgba(90, 47, 88, 0.12),
+    0 10px 24px rgba(42, 22, 51, 0.12);
 }
 
 .lumia-home-story-button {
@@ -624,7 +619,7 @@ body.theme-lumia-air #__next {
   background: var(--lumia-home-surface);
   box-shadow:
     0 0 0 2px rgba(255, 255, 255, 0.9),
-    0 8px 20px rgba(42, 16, 88, 0.09);
+    0 8px 20px rgba(42, 22, 51, 0.09);
   transition:
     border-color 180ms ease,
     box-shadow 180ms ease,
@@ -636,8 +631,8 @@ body.theme-lumia-air #__next {
   border-color: var(--lumia-home-purple);
   box-shadow:
     0 0 0 2px rgba(255, 255, 255, 0.96),
-    0 0 0 4px rgba(100, 43, 216, 0.32),
-    0 10px 24px rgba(100, 43, 216, 0.16);
+    0 0 0 3px rgba(90, 47, 88, 0.2),
+    0 10px 24px rgba(90, 47, 88, 0.13);
 }
 
 .lumia-home-story-ring > img,
@@ -700,7 +695,7 @@ body.theme-lumia-air #__next {
   border: 1.5px solid #ffffff;
   background: var(--lumia-home-surface);
   color: var(--lumia-home-purple-deep);
-  box-shadow: 0 6px 14px rgba(42, 16, 88, 0.14);
+  box-shadow: 0 6px 14px rgba(42, 22, 51, 0.14);
 }
 
 .lumia-home-story-button[data-locked='true'] .lumia-home-story-ring {
@@ -716,7 +711,7 @@ body.theme-lumia-air #__next {
 }
 
 .lumia-home-story-button[data-locked='true'] .lumia-home-story-label {
-  color: rgba(20, 11, 47, 0.72);
+  color: rgba(33, 22, 34, 0.72);
 }
 
 .lumia-home-bottom-nav {
@@ -730,7 +725,7 @@ body.theme-lumia-air #__next {
     linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(255, 255, 255, 0.74)),
     rgba(255, 255, 255, 0.78);
   box-shadow:
-    0 12px 30px rgba(42, 16, 88, 0.12),
+    0 12px 30px rgba(42, 22, 51, 0.12),
     0 1px 0 rgba(255, 255, 255, 0.9) inset;
   backdrop-filter: blur(22px) saturate(1.12);
   -webkit-backdrop-filter: blur(22px) saturate(1.12);
@@ -747,7 +742,7 @@ body.theme-lumia-air #__next {
   border: 0;
   border-radius: 1.1rem;
   background: transparent;
-  color: rgba(22, 7, 47, 0.7);
+  color: rgba(42, 22, 51, 0.68);
   transition:
     color 180ms ease,
     transform 180ms ease,
@@ -780,20 +775,20 @@ body.theme-lumia-air #__next {
 }
 
 .lumia-home-bottom-nav-item[data-active='true'] .lumia-home-bottom-nav-icon {
-  background: rgba(100, 43, 216, 0.1);
-  box-shadow: 0 8px 18px rgba(100, 43, 216, 0.09);
+  background: rgba(90, 47, 88, 0.1);
+  box-shadow: 0 8px 18px rgba(90, 47, 88, 0.09);
 }
 
 .lumia-home-bottom-nav-item[data-center='true'] .lumia-home-bottom-nav-icon {
-  width: 3.15rem;
-  height: 3.15rem;
+  width: 2.92rem;
+  height: 2.92rem;
   border-radius: var(--lumia-home-radius-story);
-  background: linear-gradient(135deg, var(--lumia-home-purple), #7b43e7);
+  background: linear-gradient(135deg, var(--lumia-home-purple-deep), var(--lumia-home-purple));
   color: #ffffff;
   box-shadow:
-    0 12px 30px rgba(100, 43, 216, 0.24),
+    0 10px 24px rgba(42, 22, 51, 0.18),
     0 1px 0 rgba(255, 255, 255, 0.28) inset;
-  transform: translateY(-0.24rem);
+  transform: translateY(-0.18rem);
 }
 
 .lumia-home-bottom-nav-item[data-center='true'] .lumia-home-bottom-nav-label {
@@ -804,7 +799,7 @@ body.theme-lumia-air #__next {
 }
 
 .lumia-home-bottom-nav-item:not([data-center='true']):active .lumia-home-bottom-nav-icon {
-  background: rgba(100, 43, 216, 0.08);
+  background: rgba(90, 47, 88, 0.08);
 }
 
 @media (max-width: 380px) {

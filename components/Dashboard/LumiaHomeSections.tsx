@@ -30,7 +30,7 @@ export function LumiaHomeHeroCard({
   const titleLines = copy.heroTitle.split('\n');
 
   return (
-    <LumiaHomeLargeCard className="lumia-home-hero-card min-h-[20.75rem] bg-lumiaHome-peach shadow-[0_16px_40px_rgba(42,16,88,0.1)]">
+    <LumiaHomeLargeCard className="lumia-home-hero-card min-h-[20.75rem] bg-lumiaHome-peach shadow-[0_16px_40px_rgba(42,22,51,0.1)]">
       <img
         src="/lumia-home/daily-hero-editorial-v1.webp"
         alt=""
@@ -38,7 +38,7 @@ export function LumiaHomeHeroCard({
         className="absolute inset-0 h-full w-full object-cover object-[62%_center]"
       />
       <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,244,235,0.98)_0%,rgba(255,239,230,0.9)_46%,rgba(255,235,224,0.42)_72%,rgba(255,235,224,0.08)_100%)]" />
-      <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-[#fff0e7]/88 via-[#fff0e7]/24 to-transparent" />
+      <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-[#f6ded2]/88 via-[#f6ded2]/24 to-transparent" />
       <div className="absolute -left-20 top-10 h-56 w-56 rounded-full bg-white/44 blur-3xl" />
 
       <div className="relative z-10 flex min-h-[20.75rem] max-w-[92%] flex-col justify-between px-4 py-[1.125rem] sm:px-5">
@@ -58,7 +58,7 @@ export function LumiaHomeHeroCard({
           </p>
         </div>
 
-        <LumiaHomePrimaryButton onClick={onOpen} className="mt-5 w-fit px-4 py-2.5 shadow-[0_12px_30px_rgba(100,43,216,0.24)]">
+        <LumiaHomePrimaryButton onClick={onOpen} className="mt-5 w-fit px-4 py-2.5 shadow-[0_12px_30px_rgba(90,47,88,0.22)]">
           {copy.heroCta}
           <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-lumiaHome-purple">
             <ArrowRight size={18} strokeWidth={2.4} />
@@ -81,22 +81,22 @@ function PulseWave() {
       <svg className="absolute inset-0 h-full w-full" viewBox="0 0 420 140" preserveAspectRatio="none" aria-hidden>
         <defs>
           <linearGradient id={lineId} x1="0" x2="1" y1="0" y2="0">
-            <stop offset="0%" stopColor="#6f4df5" />
-            <stop offset="42%" stopColor="#f064c4" />
-            <stop offset="68%" stopColor="#ffb17d" />
-            <stop offset="100%" stopColor="#7c4df0" />
+            <stop offset="0%" stopColor="#8f6c8f" />
+            <stop offset="42%" stopColor="#d8a7a0" />
+            <stop offset="68%" stopColor="#d7ad73" />
+            <stop offset="100%" stopColor="#6f4d68" />
           </linearGradient>
           <linearGradient id={fillId} x1="0" x2="0" y1="0" y2="1">
             <stop offset="0%" stopColor="#ffb17d" stopOpacity="0.42" />
-            <stop offset="55%" stopColor="#8a4df0" stopOpacity="0.14" />
-            <stop offset="100%" stopColor="#16072f" stopOpacity="0" />
+            <stop offset="55%" stopColor="#8f6c8f" stopOpacity="0.12" />
+            <stop offset="100%" stopColor="#2a1633" stopOpacity="0" />
           </linearGradient>
           <filter id={glowId} x="-20%" y="-80%" width="140%" height="240%">
             <feGaussianBlur stdDeviation="5" result="blur" />
             <feColorMatrix
               in="blur"
               type="matrix"
-              values="1 0 0 0 0.72 0 1 0 0 0.35 0 0 1 0 1 0 0 0 0.55 0"
+              values="1 0 0 0 0.56 0 1 0 0 0.42 0 0 1 0 0.52 0 0 0 0.34 0"
               result="glow"
             />
             <feMerge>
@@ -155,13 +155,13 @@ export function LumiaHomePulseCard({ language }: { language: LumiaHomeLanguage }
 
   return (
     <LumiaHomeLargeCard className="bg-lumiaHome-purpleDeep px-3.5 py-3.5 text-white shadow-[0_18px_44px_rgba(22,7,47,0.23)]">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_54%_6%,rgba(255,226,214,0.18),transparent_34%),radial-gradient(circle_at_15%_108%,rgba(100,43,216,0.35),transparent_38%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_54%_6%,rgba(216,167,160,0.2),transparent_34%),radial-gradient(circle_at_15%_108%,rgba(90,47,88,0.3),transparent_38%)]" />
       <div className="relative z-10">
         <div className="flex items-center justify-between gap-3 px-1">
           <h2 className="mb-0 font-lumiaHomeDisplay text-[0.98rem] font-extrabold uppercase leading-none tracking-normal text-white">
             {copy.pulseTitle}
           </h2>
-          <Sparkles size={17} className="text-[#f7b7ff]" strokeWidth={2.1} aria-hidden />
+          <Sparkles size={17} className="text-[#d8a7a0]" strokeWidth={2.1} aria-hidden />
         </div>
 
         <PulseWave />
@@ -239,7 +239,7 @@ export function LumiaHomeForecastCard({
           </p>
         </div>
 
-        <span className="mt-5 inline-flex min-h-[2.75rem] w-full items-center justify-between gap-2 rounded-full border border-lumiaHome-purple/24 bg-white/70 px-3.5 font-lumiaHome text-[0.8rem] font-extrabold text-lumiaHome-purple shadow-[0_10px_22px_rgba(100,43,216,0.07)]">
+        <span className="mt-5 inline-flex min-h-[2.75rem] w-full items-center justify-between gap-2 rounded-full border border-lumiaHome-purple/24 bg-white/70 px-3.5 font-lumiaHome text-[0.8rem] font-extrabold text-lumiaHome-purple shadow-[0_10px_22px_rgba(90,47,88,0.07)]">
           <span className="min-w-0 leading-tight">{forecast.cta}</span>
           <ArrowRight size={17} strokeWidth={2.35} />
         </span>
@@ -267,7 +267,7 @@ export function LumiaHomePremiumTeaseCard({
       className="lumia-home-large-card min-h-[14.6rem] bg-lumiaHome-plum p-3.5 text-left text-white shadow-[0_16px_38px_rgba(42,16,88,0.18)] active:scale-[0.99]"
     >
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_76%_9%,rgba(215,196,255,0.34),transparent_42%),radial-gradient(circle_at_8%_95%,rgba(244,184,199,0.28),transparent_42%)]" />
-      <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#211137]/82 to-transparent" />
+      <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#211622]/82 to-transparent" />
       {!isUnlocked ? (
         <span className="absolute right-3.5 top-3.5 z-20 flex h-6 w-6 items-center justify-center rounded-full bg-white/12 text-white ring-1 ring-white/18">
           <Lock size={13} strokeWidth={2.2} />
