@@ -359,7 +359,7 @@ body.theme-lumia-air #__next {
   right: 0;
   left: 0;
   z-index: 2;
-  height: 214px;
+  height: 204px;
   max-width: 28rem;
   margin: 0 auto;
   overflow: visible;
@@ -369,9 +369,9 @@ body.theme-lumia-air #__next {
 
 .lumia-home-brand {
   position: absolute;
-  top: 0.45rem;
-  right: max(4.25rem, var(--lumia-home-page-x));
-  left: max(4.25rem, var(--lumia-home-page-x));
+  top: 0.28rem;
+  right: max(5.35rem, var(--lumia-home-page-x));
+  left: max(5.35rem, var(--lumia-home-page-x));
   z-index: 3;
   min-width: 0;
   text-align: center;
@@ -405,20 +405,32 @@ body.theme-lumia-air #__next {
 
 .lumia-home-top-actions {
   position: absolute;
-  top: 2.75rem;
+  top: 0.34rem;
   right: max(0.9rem, var(--lumia-home-page-x));
   z-index: 4;
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 0.42rem;
+  gap: 0.24rem;
+  min-height: 2.75rem;
+  padding: 0.22rem;
+  border: 1px solid rgba(255, 255, 255, 0.74);
+  border-radius: 1.55rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.52)),
+    rgba(255, 255, 255, 0.46);
+  box-shadow:
+    0 10px 26px rgba(42, 22, 51, 0.1),
+    0 1px 0 rgba(255, 255, 255, 0.9) inset;
+  backdrop-filter: blur(22px) saturate(1.12);
+  -webkit-backdrop-filter: blur(22px) saturate(1.12);
   transform-origin: top right;
   will-change: transform;
 }
 
 .lumia-home-stories-strip {
   position: absolute;
-  top: 6.45rem;
+  top: 5.45rem;
   right: 0;
   left: 0;
   z-index: 2;
@@ -436,13 +448,20 @@ body.theme-lumia-air #__next {
 }
 
 .lumia-home-header-icon-button {
-  width: 2.25rem;
-  height: 2.25rem;
+  width: 2.14rem;
+  height: 2.14rem;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
 }
 
 .lumia-home-header-avatar-button {
-  width: 2.55rem;
-  height: 2.55rem;
+  width: 2.28rem;
+  height: 2.28rem;
+  border-width: 1.5px;
+  box-shadow:
+    0 0 0 1px rgba(90, 47, 88, 0.08),
+    0 8px 18px rgba(42, 22, 51, 0.1);
 }
 
 .lumia-home-stories-scroll {
@@ -451,6 +470,52 @@ body.theme-lumia-air #__next {
   overflow-x: auto;
   padding: 0.45rem max(0.85rem, var(--lumia-home-page-x)) 0.62rem;
   scroll-padding-inline: max(0.85rem, var(--lumia-home-page-x));
+}
+
+.lumia-home-compact-story-cluster {
+  position: absolute;
+  top: 0.82rem;
+  left: max(1.05rem, var(--lumia-home-page-x));
+  z-index: 5;
+  display: inline-flex;
+  width: 5.4rem;
+  height: 2rem;
+  align-items: center;
+  pointer-events: none;
+  transform-origin: left center;
+  will-change: transform, opacity;
+}
+
+.lumia-home-compact-story {
+  position: relative;
+  display: inline-flex;
+  width: 1.85rem;
+  height: 1.85rem;
+  flex: 0 0 auto;
+  overflow: hidden;
+  border-radius: 999px;
+  border: 1.5px solid rgba(255, 255, 255, 0.96);
+  background: #ffffff;
+  box-shadow:
+    0 0 0 1px rgba(42, 22, 51, 0.08),
+    0 5px 12px rgba(42, 22, 51, 0.12);
+}
+
+.lumia-home-compact-story + .lumia-home-compact-story {
+  margin-left: -0.62rem;
+}
+
+.lumia-home-compact-story[data-active='true'] {
+  border-color: rgba(90, 47, 88, 0.9);
+  box-shadow:
+    0 0 0 1px rgba(90, 47, 88, 0.22),
+    0 6px 14px rgba(90, 47, 88, 0.18);
+}
+
+.lumia-home-compact-story img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .lumia-home-bottom-nav-shell {

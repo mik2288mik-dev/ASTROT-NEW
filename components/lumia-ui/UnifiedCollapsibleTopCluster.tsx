@@ -18,7 +18,7 @@ type UnifiedCollapsibleTopClusterProps = {
   onOpenHoroscopeLayer: (layer: HoroscopeLayer) => void;
 };
 
-const COLLAPSE_DISTANCE = 110;
+const COLLAPSE_DISTANCE = 132;
 
 function clampProgress(value: number) {
   return Math.max(0, Math.min(1, value));
@@ -85,21 +85,25 @@ export function UnifiedCollapsibleTopCluster({
     }
   }, []);
 
-  const bodyHeight = useTransform(progressValue, [0, 1], [214, 58]);
+  const bodyHeight = useTransform(progressValue, [0, 1], [204, 64]);
   const clusterHeight = useTransform(bodyHeight, (latest) => `calc(var(--lumia-home-content-safe-top) + ${latest}px)`);
-  const solidOpacity = useTransform(progress, [0, 0.45, 1], [0, 0.58, 1]);
-  const shadowOpacity = useTransform(progress, [0, 0.42, 1], [0, 0.34, 1]);
-  const logoScale = useTransform(progress, [0, 1], [1, 0.62]);
+  const solidOpacity = useTransform(progress, [0, 0.34, 1], [0, 0.56, 1]);
+  const shadowOpacity = useTransform(progress, [0, 0.42, 1], [0, 0.24, 1]);
+  const logoScale = useTransform(progress, [0, 1], [1, 0.6]);
   const logoY = useTransform(progress, [0, 1], [0, -8]);
-  const brandY = useTransform(progress, [0, 1], [0, -2]);
-  const subtitleOpacity = useTransform(progress, [0, 0.34, 0.68], [1, 0.22, 0]);
-  const subtitleY = useTransform(progress, [0, 1], [0, -8]);
-  const actionsScale = useTransform(progress, [0, 1], [1, 0.86]);
-  const actionsY = useTransform(progress, [0, 1], [0, -20]);
-  const storiesOpacity = useTransform(progress, [0, 0.38, 0.82], [1, 0.5, 0]);
-  const storiesY = useTransform(progress, [0, 1], [0, -24]);
-  const storiesScale = useTransform(progress, [0, 1], [1, 0.88]);
-  const labelOpacity = useTransform(progress, [0, 0.18, 0.48], [1, 0.3, 0]);
+  const brandY = useTransform(progress, [0, 1], [0, -3]);
+  const subtitleOpacity = useTransform(progress, [0, 0.22, 0.48], [1, 0.3, 0]);
+  const subtitleY = useTransform(progress, [0, 1], [0, -10]);
+  const actionsScale = useTransform(progress, [0, 1], [1, 0.94]);
+  const actionsY = useTransform(progress, [0, 1], [0, -2]);
+  const storiesOpacity = useTransform(progress, [0, 0.45, 0.86], [1, 0.52, 0]);
+  const storiesY = useTransform(progress, [0, 1], [0, -62]);
+  const storiesScale = useTransform(progress, [0, 1], [1, 0.68]);
+  const labelOpacity = useTransform(progress, [0, 0.15, 0.38], [1, 0.25, 0]);
+  const compactClusterOpacity = useTransform(progress, [0, 0.46, 0.78, 1], [0, 0, 0.7, 1]);
+  const compactClusterX = useTransform(progress, [0, 1], [-34, 0]);
+  const compactClusterY = useTransform(progress, [0, 1], [18, 0]);
+  const compactClusterScale = useTransform(progress, [0, 1], [0.84, 1]);
 
   const stories = useMemo(
     () => [
@@ -148,6 +152,23 @@ export function UnifiedCollapsibleTopCluster({
       <motion.div className="lumia-home-top-cluster-shadow" style={{ opacity: shadowOpacity }} aria-hidden />
 
       <div className="lumia-home-top-scene">
+        <motion.div
+          className="lumia-home-compact-story-cluster"
+          style={{ opacity: compactClusterOpacity, x: compactClusterX, y: compactClusterY, scale: compactClusterScale }}
+          aria-hidden
+        >
+          {stories.slice(0, 5).map((story, index) => (
+            <span
+              key={story.id}
+              className="lumia-home-compact-story"
+              data-active={story.id === 'today' ? 'true' : undefined}
+              style={{ zIndex: 20 - index } as React.CSSProperties}
+            >
+              <img src={story.imageSrc} alt="" draggable={false} />
+            </span>
+          ))}
+        </motion.div>
+
         <motion.div className="lumia-home-brand" style={{ y: brandY }}>
           <motion.p className="lumia-home-wordmark" style={{ scale: logoScale, y: logoY }}>
             LUMIA
