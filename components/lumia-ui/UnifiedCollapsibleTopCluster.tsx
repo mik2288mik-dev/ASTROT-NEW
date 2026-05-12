@@ -43,6 +43,7 @@ export function UnifiedCollapsibleTopCluster({
   const progress = shouldReduceMotion ? progressValue : visualProgress;
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [storiesInteractive, setStoriesInteractive] = useState(true);
+  const [actionsInteractive, setActionsInteractive] = useState(true);
   const initial = (profile.name || 'L').trim().slice(0, 1).toUpperCase();
   const locked = !profile.isPremium;
 
@@ -57,6 +58,10 @@ export function UnifiedCollapsibleTopCluster({
       progressValue.set(next);
       setStoriesInteractive((current) => {
         const shouldBeInteractive = next <= 0.72;
+        return current === shouldBeInteractive ? current : shouldBeInteractive;
+      });
+      setActionsInteractive((current) => {
+        const shouldBeInteractive = next <= 0.48;
         return current === shouldBeInteractive ? current : shouldBeInteractive;
       });
     };
@@ -94,15 +99,16 @@ export function UnifiedCollapsibleTopCluster({
   const brandY = useTransform(progress, [0, 1], [0, -3]);
   const subtitleOpacity = useTransform(progress, [0, 0.22, 0.48], [1, 0.3, 0]);
   const subtitleY = useTransform(progress, [0, 1], [0, -10]);
+  const actionsOpacity = useTransform(progress, [0, 0.26, 0.58], [1, 0.32, 0]);
   const actionsScale = useTransform(progress, [0, 1], [1, 0.94]);
-  const actionsY = useTransform(progress, [0, 1], [0, -2]);
+  const actionsY = useTransform(progress, [0, 1], [0, -14]);
   const storiesOpacity = useTransform(progress, [0, 0.45, 0.86], [1, 0.52, 0]);
   const storiesY = useTransform(progress, [0, 1], [0, -62]);
   const storiesScale = useTransform(progress, [0, 1], [1, 0.68]);
   const labelOpacity = useTransform(progress, [0, 0.15, 0.38], [1, 0.25, 0]);
   const compactClusterOpacity = useTransform(progress, [0, 0.46, 0.78, 1], [0, 0, 0.7, 1]);
-  const compactClusterX = useTransform(progress, [0, 1], [-34, 0]);
-  const compactClusterY = useTransform(progress, [0, 1], [18, 0]);
+  const compactClusterX = useTransform(progress, [0, 1], [-18, 0]);
+  const compactClusterY = useTransform(progress, [0, 1], [16, 0]);
   const compactClusterScale = useTransform(progress, [0, 1], [0.84, 1]);
 
   const stories = useMemo(
@@ -178,7 +184,11 @@ export function UnifiedCollapsibleTopCluster({
           </motion.p>
         </motion.div>
 
-        <motion.div className="lumia-home-top-actions" style={{ scale: actionsScale, y: actionsY }}>
+        <motion.div
+          className="lumia-home-top-actions"
+          data-interactive={actionsInteractive ? 'true' : undefined}
+          style={{ opacity: actionsOpacity, scale: actionsScale, y: actionsY }}
+        >
           <LumiaHomeIconButton aria-label={copy.notifications} onClick={onOpenSettings} className="lumia-home-header-icon-button">
             <Bell size={17} strokeWidth={2.05} />
             <span className="lumia-home-notification-dot" aria-hidden />

@@ -405,7 +405,7 @@ body.theme-lumia-air #__next {
 
 .lumia-home-top-actions {
   position: absolute;
-  top: 0.34rem;
+  top: 3.45rem;
   right: max(0.9rem, var(--lumia-home-page-x));
   z-index: 4;
   display: inline-flex;
@@ -428,9 +428,13 @@ body.theme-lumia-air #__next {
   will-change: transform;
 }
 
+.lumia-home-top-actions:not([data-interactive='true']) {
+  pointer-events: none;
+}
+
 .lumia-home-stories-strip {
   position: absolute;
-  top: 5.45rem;
+  top: 5.62rem;
   right: 0;
   left: 0;
   z-index: 2;
@@ -474,11 +478,11 @@ body.theme-lumia-air #__next {
 
 .lumia-home-compact-story-cluster {
   position: absolute;
-  top: 0.82rem;
-  left: max(1.05rem, var(--lumia-home-page-x));
+  top: 0.84rem;
+  left: calc(50% - 5rem);
   z-index: 5;
   display: inline-flex;
-  width: 5.4rem;
+  width: 5.1rem;
   height: 2rem;
   align-items: center;
   pointer-events: none;
