@@ -44,9 +44,8 @@ export function getLumiaHomeCopy(language: LumiaHomeLanguage) {
       nav: {
         today: 'Today',
         chart: 'Map',
-        lumia: 'LUMIA',
+        horoscope: 'Horoscope',
         union: 'Union',
-        diary: 'Diary',
       },
     };
   }
@@ -93,9 +92,8 @@ export function getLumiaHomeCopy(language: LumiaHomeLanguage) {
     nav: {
       today: 'Сегодня',
       chart: 'Карта',
-      lumia: 'LUMIA',
+      horoscope: 'Гороскоп',
       union: 'Союз',
-      diary: 'Дневник',
     },
   };
 }

@@ -82,11 +82,6 @@ export const Dashboard = memo<DashboardProps>(
       onNavigate('synastry');
     };
 
-    const openDiary = () => {
-      haptic('open');
-      onNavigate('oracle');
-    };
-
     return (
       <div className="lumia-home-screen relative mx-auto flex h-full min-h-0 w-full max-w-md flex-col overflow-hidden">
         <motion.div
@@ -120,7 +115,6 @@ export const Dashboard = memo<DashboardProps>(
             onOpenNatal={openNatal}
             onOpenForecast={() => openHoroscope('sign')}
             onOpenSynastry={openSynastry}
-            onOpenDiary={openDiary}
           />
         </motion.div>
       </div>

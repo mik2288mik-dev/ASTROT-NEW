@@ -1,12 +1,11 @@
 import React, { useId } from 'react';
 import {
   ArrowRight,
-  BookOpen,
   HeartHandshake,
   Lock,
   Map,
   Sparkles,
-  Star,
+  SunMoon,
 } from 'lucide-react';
 import {
   LumiaHomeBottomNavItem,
@@ -325,13 +324,11 @@ export function LumiaHomeBottomNavigation({
   onOpenNatal,
   onOpenForecast,
   onOpenSynastry,
-  onOpenDiary,
 }: {
   language: LumiaHomeLanguage;
   onOpenNatal: () => void;
   onOpenForecast: () => void;
   onOpenSynastry: () => void;
-  onOpenDiary: () => void;
 }) {
   const nav = getLumiaHomeCopy(language).nav;
 
@@ -340,18 +337,12 @@ export function LumiaHomeBottomNavigation({
       <nav className="lumia-home-bottom-nav pointer-events-auto px-1.5 py-1" aria-label="Lumia">
         <LumiaHomeBottomNavItem active label={nav.today} icon={<Sparkles size={20} strokeWidth={2.15} />} />
         <LumiaHomeBottomNavItem label={nav.chart} icon={<Map size={20} strokeWidth={2.1} />} onClick={onOpenNatal} />
-        <LumiaHomeBottomNavItem
-          center
-          label={nav.lumia}
-          icon={<Star size={24} fill="currentColor" strokeWidth={1.65} />}
-          onClick={onOpenForecast}
-        />
+        <LumiaHomeBottomNavItem label={nav.horoscope} icon={<SunMoon size={20} strokeWidth={2.1} />} onClick={onOpenForecast} />
         <LumiaHomeBottomNavItem
           label={nav.union}
           icon={<HeartHandshake size={21} strokeWidth={2.05} />}
           onClick={onOpenSynastry}
         />
-        <LumiaHomeBottomNavItem label={nav.diary} icon={<BookOpen size={20} strokeWidth={2.05} />} onClick={onOpenDiary} />
       </nav>
     </div>
   );
