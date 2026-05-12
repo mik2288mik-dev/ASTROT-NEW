@@ -29,7 +29,7 @@ interface HoroscopeProps {
   onOpenChart?: () => void;
   onRequestPremium?: () => void;
   onOpenWallet?: () => void;
-  onBackToChart?: () => void;
+  onBack?: () => void | Promise<void>;
   onBackgroundChange?: (state: HoroscopeBackgroundState | null) => void;
   initialLayer?: HoroscopeLayer;
 }
@@ -292,7 +292,7 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
     onOpenChart,
     onRequestPremium,
     onOpenWallet,
-    onBackToChart,
+    onBack,
     onBackgroundChange,
   }) => {
     const language = profile.language === 'en' ? 'en' : 'ru';
@@ -686,8 +686,10 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
 
 
     useSwipeBack({
-      enabled: !!onBackToChart,
-      onSwipeBack: () => onBackToChart?.(),
+      enabled: !!onBack,
+      onSwipeBack: () => {
+        void onBack?.();
+      },
       threshold: 72,
       edgeWidth: 34,
     });

@@ -100,6 +100,8 @@ const App: React.FC = () => {
     const requestedViewRef = useRef<ViewState | null>(null);
     const dailyTaskSyncedRef = useRef<Record<string, string>>({});
     const dashboardScrollRef = useRef<HTMLDivElement | null>(null);
+    const viewRef = useRef<ViewState>('onboarding');
+    const navigationHistoryRef = useRef<ViewState[]>([]);
 
     const getFallbackAdminStatus = useCallback((userId?: string | number, storedIsAdmin?: boolean) => {
         return OWNER_ID && userId ? String(userId) === String(OWNER_ID) : !!storedIsAdmin;
@@ -124,6 +126,10 @@ const App: React.FC = () => {
         }
     }, [getFallbackAdminStatus]);
 
+    useEffect(() => {
+        viewRef.current = view;
+    }, [view]);
+
     const trackSessionActivity = useCallback(async (force = false) => {
         if (!profile?.id || typeof window === 'undefined') return;
 
@@ -146,8 +152,8 @@ const App: React.FC = () => {
         const tg = (window as any).Telegram?.WebApp;
         tg?.ready?.();
         tg?.expand?.();
-        tg?.setHeaderColor?.('#F8F3FF');
-        tg?.setBackgroundColor?.('#F8F3FF');
+        tg?.setHeaderColor?.('#FFFFFF');
+        tg?.setBackgroundColor?.('#FFFFFF');
         tg?.setBottomBarColor?.('#FFFFFF');
         tg?.enableClosingConfirmation?.();
 
@@ -178,8 +184,8 @@ const App: React.FC = () => {
         const tg = (window as any).Telegram?.WebApp;
         if (tg) {
             if (lumiaAirShell) {
-                tg.setHeaderColor?.('#F8F3FF');
-                tg.setBackgroundColor?.('#F8F3FF');
+                tg.setHeaderColor?.('#FFFFFF');
+                tg.setBackgroundColor?.('#FFFFFF');
                 tg.setBottomBarColor?.('#FFFFFF');
             } else {
                 const headerColor = theme === 'light' ? '#F5F2EB' : '#050505';
@@ -678,30 +684,47 @@ const App: React.FC = () => {
        }
     };
 
-    // Navigation Logic
-    const navigateTo = (newView: ViewState) => {
+    // Navigation logic: user-facing screens should return to the screen they were opened from.
+    const pushReturnView = useCallback((fromView: ViewState) => {
+        if (fromView === 'onboarding' || fromView === 'hook' || fromView === 'paywall') return;
+        const stack = navigationHistoryRef.current;
+        if (stack[stack.length - 1] !== fromView) {
+            navigationHistoryRef.current = [...stack, fromView].slice(-12);
+        }
+    }, []);
+
+    const navigateTo = useCallback((newView: ViewState, options?: { replace?: boolean }) => {
         if (!profile) return;
-        
+        const currentView = viewRef.current;
+        if (newView === currentView) return;
+
+        if (!options?.replace) {
+            pushReturnView(currentView);
+        }
+
         if (newView === 'chart') {
             setActiveChartId(undefined);
-            setChartReturnView('dashboard');
+            setChartReturnView(currentView === 'chart' ? 'dashboard' : currentView);
             setChartOpenMode('human');
         }
+
         setView(newView);
-    };
+    }, [profile, pushReturnView]);
 
     const openNatalMode = useCallback((mode: NatalChartMode) => {
         if (!profile) return;
+        const currentView = viewRef.current;
+        pushReturnView(currentView);
         setActiveChartId(undefined);
-        setChartReturnView('dashboard');
+        setChartReturnView(currentView === 'chart' ? 'dashboard' : currentView);
         setChartOpenMode(mode);
         setView('chart');
-    }, [profile]);
+    }, [profile, pushReturnView]);
 
     const openHoroscopeLayer = useCallback((layer: HoroscopeLayer) => {
         setHoroscopeInitialLayer(layer);
-        setView('horoscope');
-    }, []);
+        navigateTo('horoscope');
+    }, [navigateTo]);
 
     const refreshPrimaryChartState = useCallback(async () => {
         try {
@@ -714,22 +737,21 @@ const App: React.FC = () => {
     }, []);
 
     const handleBack = useCallback(async () => {
-        // Keep screen-specific return paths explicit for management flows.
-        if (view === 'admin') {
-            setView('settings');
-            return;
-        }
-        if (view === 'charts') {
-            setView(chartsReturnView);
-            return;
-        }
-        if (view === 'wallet') {
-            setView(walletReturnView);
-            return;
-        }
-        if (view === 'chart') {
-            const returnView = activeChartId ? chartReturnView : 'dashboard';
+        const currentView = viewRef.current;
+        const fallbackView =
+            currentView === 'admin'
+                ? 'settings'
+                : currentView === 'charts'
+                  ? chartsReturnView
+                  : currentView === 'wallet'
+                    ? walletReturnView
+                    : currentView === 'chart'
+                      ? chartReturnView
+                      : 'dashboard';
+        const returnView = navigationHistoryRef.current.pop() || fallbackView;
 
+        // Keep screen-specific return paths explicit for management flows.
+        if (currentView === 'chart') {
             if (activeChartId) {
                 await refreshPrimaryChartState();
             } else {
@@ -740,24 +762,23 @@ const App: React.FC = () => {
             setView(returnView);
             return;
         }
-        // Otherwise return to Hub
-        setView('dashboard');
-    }, [activeChartId, chartReturnView, chartsReturnView, refreshPrimaryChartState, view, walletReturnView]);
+        setView(returnView);
+    }, [activeChartId, chartReturnView, chartsReturnView, refreshPrimaryChartState, walletReturnView]);
 
     const openCharts = useCallback((returnView: ViewState) => {
         setChartsReturnView(returnView);
-        setView('charts');
-    }, []);
+        navigateTo('charts');
+    }, [navigateTo]);
 
     const openSynastryWithPrefill = useCallback((prefill: SynastryPrefill) => {
         setSynastryPrefill(prefill);
-        setView('synastry');
-    }, []);
+        navigateTo('synastry');
+    }, [navigateTo]);
 
     const openWallet = useCallback((returnView: ViewState) => {
         setWalletReturnView(returnView);
-        setView('wallet');
-    }, []);
+        navigateTo('wallet');
+    }, [navigateTo]);
 
     // Свайп назад от левого края (как в iOS)
     const canSwipeBack =
@@ -826,7 +847,7 @@ const App: React.FC = () => {
             <Header 
                 profile={profile} 
                 view={view} 
-                onOpenSettings={() => setView('settings')}
+                onOpenSettings={() => navigateTo('settings')}
             onOpenHoroscopeLayer={openHoroscopeLayer}
             dashboardScrollRef={dashboardScrollRef}
             />
@@ -840,7 +861,9 @@ const App: React.FC = () => {
                     <AdminPanel
                         profile={profile}
                         onPatchOwnProfile={handleAdminOwnProfilePatch}
-                        onClose={() => setView('settings')}
+                        onClose={() => {
+                            void handleBack();
+                        }}
                     />
                 ) : view === 'hook' && chartData ? (
                     <HookChat 
@@ -882,14 +905,11 @@ const App: React.FC = () => {
                             onUpdateProfile={handleProfileUpdate}
                             onOpenChart={() => {
                                 setChartOpenMode('human');
-                                setView('chart');
+                                navigateTo('chart');
                             }}
                             onRequestPremium={requestPremium}
                             onOpenWallet={() => openWallet('horoscope')}
-                            onBackToChart={() => {
-                                setChartOpenMode('human');
-                                setView('chart');
-                            }}
+                            onBack={handleBack}
                             onBackgroundChange={(next) =>
                                 setHoroscopeBackground(next || { sign: null, tone: 'sign' })
                             }
@@ -913,7 +933,7 @@ const App: React.FC = () => {
                             profile={profile} 
                             onUpdate={handleProfileUpdate} 
                             onShowPremiumPreview={() => setShowPremiumPreview(true)}
-                            onOpenAdmin={() => setView('admin')}
+                            onOpenAdmin={() => navigateTo('admin')}
                             onOpenCharts={() => openCharts('settings')}
                             onOpenWallet={() => openWallet('settings')}
                         />
@@ -922,7 +942,9 @@ const App: React.FC = () => {
                     <div className="lumia-main-scroll scrollbar-hide">
                         <MyCharts 
                             profile={profile} 
-                            onBack={() => setView(chartsReturnView)}
+                            onBack={() => {
+                                void handleBack();
+                            }}
                             onProfileUpdate={handleProfileUpdate}
                             onOpenWallet={() => openWallet('charts')}
                             onPrimaryChartUpdated={refreshPrimaryChartState}
@@ -941,6 +963,7 @@ const App: React.FC = () => {
                                 setActiveChartId(chartId);
                                 setChartReturnView('charts');
                                 setChartOpenMode('human');
+                                pushReturnView(viewRef.current);
                                 setView('chart');
                             }}
                         />
@@ -967,7 +990,7 @@ const App: React.FC = () => {
                             }} 
                             onOpenHoroscopeLayer={openHoroscopeLayer}
                             onOpenNatalMode={openNatalMode}
-                            onOpenSettings={() => setView('settings')}
+                            onOpenSettings={() => navigateTo('settings')}
                             scrollRef={dashboardScrollRef}
                         />
                     </div>

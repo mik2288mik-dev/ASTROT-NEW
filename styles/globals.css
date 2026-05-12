@@ -33,10 +33,10 @@
   --radius-air-panel: 1.75rem;
 
   /* Lumia Home 2026: editorial consumer mobile foundation */
-  --lumia-home-bg: #f8f1ec;
-  --lumia-home-bg-wash: #fffaf6;
+  --lumia-home-bg: #ffffff;
+  --lumia-home-bg-wash: #ffffff;
   --lumia-home-surface: #ffffff;
-  --lumia-home-surface-soft: #f1e6ed;
+  --lumia-home-surface-soft: #f7f7f7;
   --lumia-home-text: #211622;
   --lumia-home-muted: #73666d;
   --lumia-home-purple: #5a2f58;
@@ -134,10 +134,7 @@ body.theme-lumia-air #__next {
 }
 
 .lumia-home-screen {
-  background:
-    radial-gradient(circle at 84% 4%, rgba(234, 223, 232, 0.84), transparent 26rem),
-    radial-gradient(circle at 8% 20%, rgba(242, 212, 196, 0.66), transparent 22rem),
-    var(--lumia-home-bg);
+  background: var(--lumia-home-bg);
   color: var(--lumia-home-text);
   font-family: var(--lumia-home-font-sans);
 }
@@ -164,9 +161,7 @@ body.theme-lumia-air #__next {
 
 .lumia-app-header[data-view='dashboard'] {
   background:
-    radial-gradient(circle at 84% 0%, rgba(238, 230, 255, 0.86), transparent 18rem),
-    radial-gradient(circle at 8% 46%, rgba(255, 226, 214, 0.62), transparent 18rem),
-    linear-gradient(180deg, rgba(251, 247, 242, 0.98), rgba(251, 247, 242, 0.9)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.94)),
     var(--lumia-home-bg);
 }
 
@@ -330,9 +325,7 @@ body.theme-lumia-air #__next {
   overflow: hidden;
   flex-shrink: 0;
   background:
-    radial-gradient(circle at 84% 0%, rgba(234, 223, 232, 0.78), transparent 18rem),
-    radial-gradient(circle at 8% 46%, rgba(242, 212, 196, 0.62), transparent 18rem),
-    linear-gradient(180deg, rgba(248, 241, 236, 0.98), rgba(248, 241, 236, 0.9)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(255, 255, 255, 0.94)),
     var(--lumia-home-bg);
   color: var(--lumia-home-text);
   font-family: var(--lumia-home-font-sans);
@@ -350,7 +343,7 @@ body.theme-lumia-air #__next {
 .lumia-home-top-cluster-bg {
   z-index: 0;
   border-bottom: 1px solid rgba(42, 22, 51, 0.07);
-  background: rgba(248, 241, 236, 0.92);
+  background: rgba(255, 255, 255, 0.94);
   backdrop-filter: blur(18px) saturate(1.02);
   -webkit-backdrop-filter: blur(18px) saturate(1.02);
 }
