@@ -1,4 +1,4 @@
-import React, { useId } from 'react';
+import React, { useEffect, useId, useState } from 'react';
 import {
   ArrowRight,
   HeartHandshake,
@@ -17,6 +17,7 @@ import {
   LUMIA_HOME_PREVIEW_ITEMS,
   type LumiaHomeLanguage,
 } from './lumiaHomeContent';
+import type { UserProfile } from '../../types';
 
 export function LumiaHomeHeroCard({
   language,
@@ -321,16 +322,32 @@ export function LumiaHomeContentCards({
 
 export function LumiaHomeBottomNavigation({
   language,
+  profile,
   onOpenNatal,
   onOpenForecast,
   onOpenSynastry,
+  onOpenSettings,
 }: {
   language: LumiaHomeLanguage;
+  profile: UserProfile;
   onOpenNatal: () => void;
   onOpenForecast: () => void;
   onOpenSynastry: () => void;
+  onOpenSettings: () => void;
 }) {
   const nav = getLumiaHomeCopy(language).nav;
+  const copy = getLumiaHomeCopy(language);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const initial = (profile.name || 'L').trim().slice(0, 1).toUpperCase();
+
+  useEffect(() => {
+    try {
+      const tgUser = (window as any)?.Telegram?.WebApp?.initDataUnsafe?.user;
+      setPhotoUrl(typeof tgUser?.photo_url === 'string' ? tgUser.photo_url : null);
+    } catch {
+      setPhotoUrl(null);
+    }
+  }, []);
 
   return (
     <div className="lumia-home-bottom-nav-shell pointer-events-none">
@@ -344,6 +361,14 @@ export function LumiaHomeBottomNavigation({
           onClick={onOpenSynastry}
         />
       </nav>
+      <button
+        type="button"
+        className="lumia-home-bottom-avatar-action pointer-events-auto"
+        aria-label={copy.settings}
+        onClick={onOpenSettings}
+      >
+        {photoUrl ? <img src={photoUrl} alt="" draggable={false} /> : <span>{initial}</span>}
+      </button>
     </div>
   );
 }

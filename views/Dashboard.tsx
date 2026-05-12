@@ -95,7 +95,6 @@ export const Dashboard = memo<DashboardProps>(
             <UnifiedCollapsibleTopCluster
               profile={profile}
               scrollRef={scrollRef}
-              onOpenSettings={onOpenSettings}
               onOpenHoroscopeLayer={onOpenHoroscopeLayer}
             />
             <div className="lumia-home-scroll-content space-y-[var(--lumia-home-gap-lg)] px-[var(--lumia-home-page-x)]">
@@ -112,9 +111,11 @@ export const Dashboard = memo<DashboardProps>(
 
           <LumiaHomeBottomNavigation
             language={language}
+            profile={profile}
             onOpenNatal={openNatal}
             onOpenForecast={() => openHoroscope('sign')}
             onOpenSynastry={openSynastry}
+            onOpenSettings={onOpenSettings}
           />
         </motion.div>
       </div>
