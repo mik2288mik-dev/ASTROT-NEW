@@ -1,3 +1,5 @@
+import { getTelegramCssVars, lumiaDebugLog } from './lumiaDebug';
+
 /**
  * Telegram Mini App (Bot API 8+): device insets vs content insets.
  * contentSafeAreaInset — зона без пересечения с UI Telegram (крестик, заголовок чата).
@@ -44,6 +46,10 @@ export function applyTelegramSafeAreaCssVars(): void {
   if (!wa) {
     root.style.setProperty('--tg-viewport-height', '100dvh');
     root.style.setProperty('--tg-viewport-stable-height', '100dvh');
+    lumiaDebugLog('viewport_change', {
+      source: 'fallback_no_telegram',
+      cssVars: getTelegramCssVars(),
+    });
     return;
   }
 
@@ -59,6 +65,15 @@ export function applyTelegramSafeAreaCssVars(): void {
   } else if (typeof wa.viewportHeight === 'number' && Number.isFinite(wa.viewportHeight) && wa.viewportHeight > 0) {
     root.style.setProperty('--tg-viewport-stable-height', `${wa.viewportHeight}px`);
   }
+
+  lumiaDebugLog('viewport_change', {
+    source: 'telegram_webapp',
+    viewportHeight: wa.viewportHeight,
+    viewportStableHeight: wa.viewportStableHeight,
+    safeAreaInset: wa.safeAreaInset,
+    contentSafeAreaInset: wa.contentSafeAreaInset,
+    cssVars: getTelegramCssVars(),
+  });
 }
 
 export function subscribeTelegramContentSafeAreaChanges(handler: () => void): () => void {

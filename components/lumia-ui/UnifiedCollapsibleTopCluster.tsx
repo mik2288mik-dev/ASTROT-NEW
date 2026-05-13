@@ -7,6 +7,7 @@ import {
   useTransform,
 } from 'framer-motion';
 import type { HoroscopeLayer, UserProfile } from '../../types';
+import { captureLumiaHomeLayout, lumiaDebugLog } from '../../lib/lumiaDebug';
 import { LumiaHomeStoryCircle } from '../Dashboard/LumiaHomePrimitives';
 import { getLumiaHomeCopy, type LumiaHomeLanguage } from '../Dashboard/lumiaHomeContent';
 
@@ -16,7 +17,9 @@ type UnifiedCollapsibleTopClusterProps = {
   onOpenHoroscopeLayer: (layer: HoroscopeLayer) => void;
 };
 
-const COLLAPSE_DISTANCE = 132;
+const EXPANDED_BODY_HEIGHT = 184;
+const COLLAPSED_BODY_HEIGHT = 48;
+const COLLAPSE_DISTANCE = 118;
 
 function clampProgress(value: number) {
   return Math.max(0, Math.min(1, value));
@@ -31,6 +34,8 @@ export function UnifiedCollapsibleTopCluster({
   const copy = getLumiaHomeCopy(language);
   const shouldReduceMotion = useReducedMotion();
   const progressValue = useMotionValue(0);
+  const lastDebugSampleRef = React.useRef(0);
+  const lastDebugPhaseRef = React.useRef('');
   const visualProgress = useSpring(progressValue, {
     stiffness: 360,
     damping: 44,
@@ -50,8 +55,27 @@ export function UnifiedCollapsibleTopCluster({
       frame = 0;
       const next = clampProgress(node.scrollTop / COLLAPSE_DISTANCE);
       progressValue.set(next);
+      const phase = next >= 0.92 ? 'collapsed' : next <= 0.08 ? 'expanded' : 'transition';
+      const now = Date.now();
+      if (phase !== lastDebugPhaseRef.current || now - lastDebugSampleRef.current > 350) {
+        lastDebugPhaseRef.current = phase;
+        lastDebugSampleRef.current = now;
+        lumiaDebugLog('scroll_sample', {
+          scrollTop: Math.round(node.scrollTop),
+          progress: Math.round(next * 1000) / 1000,
+          scrollHeight: node.scrollHeight,
+          clientHeight: node.clientHeight,
+        });
+        lumiaDebugLog('collapse_state', {
+          phase,
+          scrollTop: Math.round(node.scrollTop),
+          progress: Math.round(next * 1000) / 1000,
+          headerHeight: `safeTop + ${Math.round(EXPANDED_BODY_HEIGHT + (COLLAPSED_BODY_HEIGHT - EXPANDED_BODY_HEIGHT) * next)}px`,
+          compactRailHeight: COLLAPSED_BODY_HEIGHT,
+        });
+      }
       setStoriesInteractive((current) => {
-        const shouldBeInteractive = next <= 0.72;
+        const shouldBeInteractive = next <= 0.56;
         return current === shouldBeInteractive ? current : shouldBeInteractive;
       });
     };
@@ -61,6 +85,7 @@ export function UnifiedCollapsibleTopCluster({
     };
 
     update();
+    window.setTimeout(() => captureLumiaHomeLayout('home_header_mount'), 160);
     node.addEventListener('scroll', requestUpdate, { passive: true });
     window.addEventListener('resize', requestUpdate);
 
@@ -71,24 +96,22 @@ export function UnifiedCollapsibleTopCluster({
     };
   }, [progressValue, scrollRef]);
 
-  const bodyHeight = useTransform(progressValue, [0, 1], [204, 64]);
+  const bodyHeight = useTransform(progress, [0, 1], [EXPANDED_BODY_HEIGHT, COLLAPSED_BODY_HEIGHT]);
   const clusterHeight = useTransform(bodyHeight, (latest) => `calc(var(--lumia-home-content-safe-top) + ${latest}px)`);
-  const solidOpacity = useTransform(progress, [0, 0.34, 1], [0, 0.56, 1]);
-  const shadowOpacity = useTransform(progress, [0, 0.42, 1], [0, 0.24, 1]);
-  const logoScale = useTransform(progress, [0, 1], [1, 0.6]);
-  const logoY = useTransform(progress, [0, 1], [0, -8]);
-  const brandX = useTransform(progress, [0, 1], [0, 22]);
-  const brandY = useTransform(progress, [0, 1], [0, -3]);
-  const subtitleOpacity = useTransform(progress, [0, 0.22, 0.48], [1, 0.3, 0]);
-  const subtitleY = useTransform(progress, [0, 1], [0, -10]);
-  const storiesOpacity = useTransform(progress, [0, 0.45, 0.86], [1, 0.52, 0]);
-  const storiesY = useTransform(progress, [0, 1], [0, -62]);
-  const storiesScale = useTransform(progress, [0, 1], [1, 0.68]);
-  const labelOpacity = useTransform(progress, [0, 0.15, 0.38], [1, 0.25, 0]);
-  const compactClusterOpacity = useTransform(progress, [0, 0.46, 0.78, 1], [0, 0, 0.7, 1]);
-  const compactClusterX = useTransform(progress, [0, 1], [-10, 0]);
-  const compactClusterY = useTransform(progress, [0, 1], [10, 0]);
-  const compactClusterScale = useTransform(progress, [0, 1], [0.88, 1]);
+  const solidOpacity = useTransform(progress, [0, 0.44, 1], [0, 0.18, 0.56]);
+  const shadowOpacity = useTransform(progress, [0, 0.58, 1], [0, 0.04, 0.12]);
+  const expandedBrandOpacity = useTransform(progress, [0, 0.24, 0.54], [1, 0.48, 0]);
+  const expandedBrandY = useTransform(progress, [0, 1], [0, -30]);
+  const expandedBrandScale = useTransform(progress, [0, 1], [1, 0.9]);
+  const subtitleOpacity = useTransform(progress, [0, 0.2, 0.42], [1, 0.28, 0]);
+  const subtitleY = useTransform(progress, [0, 1], [0, -8]);
+  const storiesOpacity = useTransform(progress, [0, 0.34, 0.64], [1, 0.36, 0]);
+  const storiesY = useTransform(progress, [0, 1], [0, -72]);
+  const storiesScale = useTransform(progress, [0, 1], [1, 0.7]);
+  const labelOpacity = useTransform(progress, [0, 0.12, 0.32], [1, 0.22, 0]);
+  const compactRowOpacity = useTransform(progress, [0, 0.52, 0.78, 1], [0, 0, 0.88, 1]);
+  const compactRowY = useTransform(progress, [0, 0.6, 1], [-5, -5, 0]);
+  const compactRowScale = useTransform(progress, [0, 0.72, 1], [0.82, 0.94, 1]);
 
   const stories = useMemo(
     () => [
@@ -138,26 +161,32 @@ export function UnifiedCollapsibleTopCluster({
 
       <div className="lumia-home-top-scene">
         <motion.div
-          className="lumia-home-compact-story-cluster"
-          style={{ opacity: compactClusterOpacity, x: compactClusterX, y: compactClusterY, scale: compactClusterScale }}
+          className="lumia-home-compact-row"
+          style={{ opacity: compactRowOpacity, y: compactRowY, scale: compactRowScale }}
           aria-hidden
         >
-          {stories.slice(0, 3).map((story, index) => (
-            <span
-              key={story.id}
-              className="lumia-home-compact-story"
-              data-active={story.id === 'today' ? 'true' : undefined}
-              style={{ zIndex: 20 - index } as React.CSSProperties}
-            >
-              <img src={story.imageSrc} alt="" draggable={false} />
-            </span>
-          ))}
+          <div className="lumia-home-compact-story-cluster">
+            {stories.slice(0, 3).map((story, index) => (
+              <span
+                key={story.id}
+                className="lumia-home-compact-story"
+                data-active={story.id === 'today' ? 'true' : undefined}
+                style={{ zIndex: 20 - index } as React.CSSProperties}
+              >
+                <img src={story.imageSrc} alt="" draggable={false} />
+              </span>
+            ))}
+          </div>
+          <p className="lumia-home-compact-logo">LUMIA</p>
         </motion.div>
 
-        <motion.div className="lumia-home-brand" style={{ x: brandX, y: brandY }}>
-          <motion.p className="lumia-home-wordmark" style={{ scale: logoScale, y: logoY }}>
+        <motion.div
+          className="lumia-home-brand"
+          style={{ opacity: expandedBrandOpacity, y: expandedBrandY, scale: expandedBrandScale }}
+        >
+          <p className="lumia-home-wordmark">
             LUMIA
-          </motion.p>
+          </p>
           <motion.p className="lumia-home-tagline" style={{ opacity: subtitleOpacity, y: subtitleY }}>
             {copy.tagline}
           </motion.p>

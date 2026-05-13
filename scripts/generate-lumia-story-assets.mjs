@@ -195,7 +195,6 @@ function rings(rng, palette) {
 function motif(motifName, palette, rng) {
   const light = palette[3];
   const mid = palette[2];
-  const accent = palette[1];
   const stroke = `stroke="${light}" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" fill="none"`;
   switch (motifName) {
     case 'heart':

@@ -14,6 +14,7 @@ import {
   LumiaHomePulseCard,
 } from '../components/Dashboard/LumiaHomeSections';
 import { UnifiedCollapsibleTopCluster } from '../components/lumia-ui/UnifiedCollapsibleTopCluster';
+import { captureLumiaHomeLayout, lumiaDebugLog } from '../lib/lumiaDebug';
 
 type DashboardView = Extract<ViewState, 'chart' | 'horoscope' | 'synastry' | 'oracle'>;
 
@@ -81,6 +82,23 @@ export const Dashboard = memo<DashboardProps>(
       haptic('open');
       onNavigate('synastry');
     };
+
+    React.useEffect(() => {
+      lumiaDebugLog('home_mount', {
+        profileState: {
+          hasProfile: true,
+          isPremium: !!profile.isPremium,
+          language: profile.language || 'ru',
+          isSetup: !!profile.isSetup,
+        },
+      });
+      const t1 = window.setTimeout(() => captureLumiaHomeLayout('home_mount_120ms'), 120);
+      const t2 = window.setTimeout(() => captureLumiaHomeLayout('home_mount_700ms'), 700);
+      return () => {
+        window.clearTimeout(t1);
+        window.clearTimeout(t2);
+      };
+    }, [profile.isPremium, profile.isSetup, profile.language]);
 
     return (
       <div className="lumia-home-screen relative mx-auto flex h-full min-h-0 w-full max-w-md flex-col overflow-hidden">

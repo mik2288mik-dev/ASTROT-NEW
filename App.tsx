@@ -37,6 +37,8 @@ import { useSwipeBack } from './lib/useSwipeBack';
 import { getMoscowTodayKey } from './lib/date-utils';
 import { getHoroscopeBackground, getSynastryBackground } from './lib/visualBackgrounds';
 import { isValidUserId } from './lib/userId';
+import { LumiaDebugOverlay } from './components/lumia-ui/LumiaDebugOverlay';
+import { captureLumiaHomeLayout, installLumiaDebugGlobal, lumiaDebugLog } from './lib/lumiaDebug';
 
 // Get owner ID from environment variables for security
 const OWNER_ID = process.env.NEXT_PUBLIC_OWNER_ID || '';
@@ -127,8 +129,25 @@ const App: React.FC = () => {
     }, [getFallbackAdminStatus]);
 
     useEffect(() => {
+        installLumiaDebugGlobal();
         viewRef.current = view;
-    }, [view]);
+        lumiaDebugLog('navigation', {
+            action: 'view_state',
+            view,
+            historyDepth: navigationHistoryRef.current.length,
+            profileState: profile
+                ? {
+                    hasProfile: true,
+                    isPremium: !!profile.isPremium,
+                    language: profile.language || 'ru',
+                    isSetup: !!profile.isSetup,
+                }
+                : { hasProfile: false },
+        });
+        if (view === 'dashboard') {
+            window.setTimeout(() => captureLumiaHomeLayout('view_dashboard'), 180);
+        }
+    }, [profile?.isPremium, profile?.isSetup, profile?.language, view]);
 
     const trackSessionActivity = useCallback(async (force = false) => {
         if (!profile?.id || typeof window === 'undefined') return;
@@ -156,6 +175,14 @@ const App: React.FC = () => {
         tg?.setBackgroundColor?.('#FFFFFF');
         tg?.setBottomBarColor?.('#FFFFFF');
         tg?.enableClosingConfirmation?.();
+        lumiaDebugLog('telegram_init', {
+            platform: tg?.platform,
+            version: tg?.version,
+            viewportHeight: tg?.viewportHeight,
+            viewportStableHeight: tg?.viewportStableHeight,
+            safeAreaInset: tg?.safeAreaInset,
+            contentSafeAreaInset: tg?.contentSafeAreaInset,
+        });
 
         const cleanupFullscreenGuard = installTelegramFullscreenGuard();
         return cleanupFullscreenGuard;
@@ -690,6 +717,11 @@ const App: React.FC = () => {
         const stack = navigationHistoryRef.current;
         if (stack[stack.length - 1] !== fromView) {
             navigationHistoryRef.current = [...stack, fromView].slice(-12);
+            lumiaDebugLog('navigation', {
+                action: 'push_return',
+                from: fromView,
+                history: navigationHistoryRef.current,
+            });
         }
     }, []);
 
@@ -701,6 +733,14 @@ const App: React.FC = () => {
         if (!options?.replace) {
             pushReturnView(currentView);
         }
+
+        lumiaDebugLog('navigation', {
+            action: 'navigate_to',
+            from: currentView,
+            to: newView,
+            replace: !!options?.replace,
+            historyBeforeSet: navigationHistoryRef.current,
+        });
 
         if (newView === 'chart') {
             setActiveChartId(undefined);
@@ -715,6 +755,14 @@ const App: React.FC = () => {
         if (!profile) return;
         const currentView = viewRef.current;
         pushReturnView(currentView);
+        lumiaDebugLog('navigation', {
+            action: 'open_natal_mode',
+            from: currentView,
+            to: 'chart',
+            mode,
+            returnView: currentView === 'chart' ? 'dashboard' : currentView,
+            historyBeforeSet: navigationHistoryRef.current,
+        });
         setActiveChartId(undefined);
         setChartReturnView(currentView === 'chart' ? 'dashboard' : currentView);
         setChartOpenMode(mode);
@@ -722,6 +770,13 @@ const App: React.FC = () => {
     }, [profile, pushReturnView]);
 
     const openHoroscopeLayer = useCallback((layer: HoroscopeLayer) => {
+        lumiaDebugLog('navigation', {
+            action: 'open_horoscope_layer',
+            from: viewRef.current,
+            to: 'horoscope',
+            layer,
+            historyBeforeSet: navigationHistoryRef.current,
+        });
         setHoroscopeInitialLayer(layer);
         navigateTo('horoscope');
     }, [navigateTo]);
@@ -749,6 +804,18 @@ const App: React.FC = () => {
                       ? chartReturnView
                       : 'dashboard';
         const returnView = navigationHistoryRef.current.pop() || fallbackView;
+
+        lumiaDebugLog('navigation', {
+            action: 'go_back',
+            from: currentView,
+            to: returnView,
+            fallbackView,
+            chartReturnView,
+            chartsReturnView,
+            walletReturnView,
+            historyAfterPop: navigationHistoryRef.current,
+            activeChartId: !!activeChartId,
+        });
 
         // Keep screen-specific return paths explicit for management flows.
         if (currentView === 'chart') {
@@ -959,6 +1026,13 @@ const App: React.FC = () => {
                                 });
                             }}
                             onChartSelect={(chartData, chartId) => {
+                                lumiaDebugLog('navigation', {
+                                    action: 'select_saved_chart',
+                                    from: viewRef.current,
+                                    to: 'chart',
+                                    returnView: 'charts',
+                                    chartId: !!chartId,
+                                });
                                 setChartData(chartData);
                                 setActiveChartId(chartId);
                                 setChartReturnView('charts');
@@ -1000,6 +1074,7 @@ const App: React.FC = () => {
             {showPremiumPreview && (
                 <PremiumPreview language={profile?.language || 'ru'} onClose={() => setShowPremiumPreview(false)} onPurchase={requestPremium} />
             )}
+            <LumiaDebugOverlay />
         </div>
     );
 };
