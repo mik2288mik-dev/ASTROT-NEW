@@ -96,7 +96,7 @@ export function UnifiedCollapsibleTopCluster({
     };
   }, [progressValue, scrollRef]);
 
-  const bodyHeight = useTransform(progress, [0, 1], [EXPANDED_BODY_HEIGHT, COLLAPSED_BODY_HEIGHT]);
+  const bodyHeight = useTransform(progressValue, [0, 1], [EXPANDED_BODY_HEIGHT, COLLAPSED_BODY_HEIGHT]);
   const clusterHeight = useTransform(bodyHeight, (latest) => `calc(var(--lumia-home-content-safe-top) + ${latest}px)`);
   const solidOpacity = useTransform(progress, [0, 0.44, 1], [0, 0.18, 0.56]);
   const shadowOpacity = useTransform(progress, [0, 0.58, 1], [0, 0.04, 0.12]);

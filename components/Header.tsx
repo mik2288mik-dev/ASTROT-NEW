@@ -1,21 +1,17 @@
 import React from 'react';
-import type { HoroscopeLayer, UserProfile, ViewState } from '../types';
+import type { UserProfile, ViewState } from '../types';
 import { LumiaAppHeader } from './lumia-ui/LumiaAppHeader';
 
 interface HeaderProps {
   profile: UserProfile | null;
   view: ViewState;
-  onOpenSettings: () => void;
-  onOpenHoroscopeLayer: (layer: HoroscopeLayer) => void;
-  dashboardScrollRef?: React.RefObject<HTMLDivElement | null>;
+  scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   profile,
   view,
-  onOpenSettings,
-  onOpenHoroscopeLayer,
-  dashboardScrollRef,
+  scrollContainerRef,
 }) => {
   if (!profile) return null;
 
@@ -29,9 +25,7 @@ export const Header: React.FC<HeaderProps> = ({
     <LumiaAppHeader
       profile={profile}
       view={view}
-      scrollContainerRef={undefined}
-      onOpenSettings={onOpenSettings}
-      onOpenHoroscopeLayer={onOpenHoroscopeLayer}
+      scrollContainerRef={scrollContainerRef}
     />
   );
 };

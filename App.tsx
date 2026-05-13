@@ -102,6 +102,7 @@ const App: React.FC = () => {
     const requestedViewRef = useRef<ViewState | null>(null);
     const dailyTaskSyncedRef = useRef<Record<string, string>>({});
     const dashboardScrollRef = useRef<HTMLDivElement | null>(null);
+    const appScrollRef = useRef<HTMLDivElement | null>(null);
     const viewRef = useRef<ViewState>('onboarding');
     const navigationHistoryRef = useRef<ViewState[]>([]);
 
@@ -914,9 +915,7 @@ const App: React.FC = () => {
             <Header 
                 profile={profile} 
                 view={view} 
-                onOpenSettings={() => navigateTo('settings')}
-            onOpenHoroscopeLayer={openHoroscopeLayer}
-            dashboardScrollRef={dashboardScrollRef}
+                scrollContainerRef={appScrollRef}
             />
             
             <main
@@ -952,7 +951,7 @@ const App: React.FC = () => {
                         onUpdateProfile={handleProfileUpdate}
                     />
                 ) : view === 'synastry' ? (
-                    <div className="lumia-main-scroll scrollbar-hide">
+                    <div className="lumia-main-scroll scrollbar-hide" ref={appScrollRef}>
                         <Synastry
                             profile={profile}
                             chartData={chartData}
@@ -963,7 +962,7 @@ const App: React.FC = () => {
                         />
                     </div>
                 ) : view === 'horoscope' ? (
-                    <div className="lumia-main-scroll scrollbar-hide">
+                    <div className="lumia-main-scroll scrollbar-hide" ref={appScrollRef}>
                         <Horoscope 
                             profile={profile} 
                             chartData={chartData} 
@@ -983,7 +982,7 @@ const App: React.FC = () => {
                         />
                     </div>
                 ) : view === 'chart' ? (
-                    <div className="lumia-main-scroll scrollbar-hide">
+                    <div className="lumia-main-scroll scrollbar-hide" ref={appScrollRef}>
                         <NatalChart 
                             data={chartData} 
                             profile={profile} 
@@ -995,7 +994,7 @@ const App: React.FC = () => {
                         />
                     </div>
                 ) : view === 'settings' ? (
-                    <div className="lumia-main-scroll scrollbar-hide">
+                    <div className="lumia-main-scroll scrollbar-hide" ref={appScrollRef}>
                         <Settings 
                             profile={profile} 
                             onUpdate={handleProfileUpdate} 
@@ -1006,7 +1005,7 @@ const App: React.FC = () => {
                         />
                     </div>
                 ) : view === 'charts' ? (
-                    <div className="lumia-main-scroll scrollbar-hide">
+                    <div className="lumia-main-scroll scrollbar-hide" ref={appScrollRef}>
                         <MyCharts 
                             profile={profile} 
                             onBack={() => {
@@ -1043,7 +1042,7 @@ const App: React.FC = () => {
                         />
                     </div>
                 ) : view === 'wallet' ? (
-                    <div className="lumia-main-scroll scrollbar-hide">
+                    <div className="lumia-main-scroll scrollbar-hide" ref={appScrollRef}>
                         <Wallet
                             profile={profile}
                             onUpdateProfile={handleProfileUpdate}
