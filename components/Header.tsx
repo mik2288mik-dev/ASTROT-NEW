@@ -16,10 +16,10 @@ export const Header: React.FC<HeaderProps> = ({
   if (!profile) return null;
 
   const isFunnel = view === 'onboarding' || view === 'hook' || view === 'paywall';
-  const isStoriesViewer = view === 'horoscope';
   const isDashboard = view === 'dashboard';
+  const isAdmin = view === 'admin';
 
-  if (isFunnel || isStoriesViewer || isDashboard) return null;
+  if (isFunnel || isDashboard || isAdmin) return null;
 
   return (
     <LumiaAppHeader

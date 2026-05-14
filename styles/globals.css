@@ -33,21 +33,27 @@
   --radius-air-panel: 1.75rem;
 
   /* Lumia Home 2026: editorial consumer mobile foundation */
+  --lumia-pop-red: #ef233c;
+  --lumia-pop-yellow: #ffd400;
+  --lumia-pop-orange: #ff7a00;
+  --lumia-pop-green: #18c964;
+  --lumia-pop-blue: #00a7ff;
+  --lumia-pop-berry: #8b1cff;
   --lumia-home-bg: #ffffff;
   --lumia-home-bg-wash: #ffffff;
   --lumia-home-surface: #ffffff;
-  --lumia-home-surface-soft: #f7f7f7;
-  --lumia-home-text: #211622;
-  --lumia-home-muted: #73666d;
-  --lumia-home-purple: #5a2f58;
-  --lumia-home-purple-deep: #2a1633;
-  --lumia-home-plum: #3a1f46;
-  --lumia-home-lavender: #eadfe8;
-  --lumia-home-lavender-strong: #d8c3d4;
-  --lumia-home-peach: #f2d4c4;
-  --lumia-home-rose: #d8a7a0;
-  --lumia-home-orchid: #8f6c8f;
-  --lumia-home-line: rgba(42, 22, 51, 0.1);
+  --lumia-home-surface-soft: #fff4dc;
+  --lumia-home-text: #171314;
+  --lumia-home-muted: #665a55;
+  --lumia-home-purple: var(--lumia-pop-red);
+  --lumia-home-purple-deep: #171314;
+  --lumia-home-plum: #5010a8;
+  --lumia-home-lavender: #e7f7ff;
+  --lumia-home-lavender-strong: #bdeeff;
+  --lumia-home-peach: #ffe45c;
+  --lumia-home-rose: var(--lumia-pop-orange);
+  --lumia-home-orchid: var(--lumia-pop-berry);
+  --lumia-home-line: rgba(23, 19, 20, 0.1);
   --lumia-home-white-soft: rgba(255, 255, 255, 0.82);
   --lumia-home-page-x: 1rem;
   --lumia-home-gap-sm: 0.6rem;
@@ -61,9 +67,9 @@
   --lumia-home-story-size: clamp(4.25rem, 18vw, 4.5rem);
   --lumia-home-icon-size: 2.45rem;
   --lumia-home-nav-height: 4.35rem;
-  --lumia-home-shadow-card: 0 16px 38px rgba(42, 22, 51, 0.08);
-  --lumia-home-shadow-lifted: 0 12px 28px rgba(90, 47, 88, 0.18);
-  --lumia-home-shadow-nav: 0 10px 30px rgba(42, 22, 51, 0.12);
+  --lumia-home-shadow-card: 0 18px 40px rgba(239, 35, 60, 0.1);
+  --lumia-home-shadow-lifted: 0 14px 30px rgba(239, 35, 60, 0.26);
+  --lumia-home-shadow-nav: 0 12px 34px rgba(23, 19, 20, 0.14);
   --lumia-home-font-sans: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --lumia-home-font-display: 'Geologica', 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
@@ -146,19 +152,22 @@ body.theme-lumia-air #__next {
   z-index: 40;
   flex-shrink: 0;
   box-sizing: border-box;
-  overflow: hidden;
+  height: calc(var(--lumia-app-safe-top) + var(--lumia-app-compact-rail-height));
+  overflow: visible;
   padding-top: 0;
   background: transparent;
   color: var(--lumia-home-text);
   font-family: var(--lumia-home-font-sans);
   transform: translateZ(0);
-  will-change: height;
 }
 
 .lumia-app-header-bg,
 .lumia-app-header-shadow {
   position: absolute;
-  inset: 0;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: calc(var(--lumia-app-safe-top) + var(--lumia-app-compact-rail-height));
   pointer-events: none;
 }
 
@@ -174,6 +183,12 @@ body.theme-lumia-air #__next {
 .lumia-app-header-shadow {
   z-index: 1;
   box-shadow: 0 8px 18px rgba(42, 22, 51, 0.04);
+}
+
+.lumia-app-header-spacer {
+  height: 64px;
+  flex: 0 0 64px;
+  pointer-events: none;
 }
 
 .lumia-app-header-canvas {
@@ -278,19 +293,22 @@ body.theme-lumia-air #__next {
   top: 0;
   z-index: 50;
   box-sizing: border-box;
-  overflow: hidden;
+  height: calc(var(--lumia-home-content-safe-top) + var(--lumia-home-compact-rail-height));
+  overflow: visible;
   flex-shrink: 0;
   background: transparent;
   color: var(--lumia-home-text);
   font-family: var(--lumia-home-font-sans);
   transform: translateZ(0);
-  will-change: height;
 }
 
 .lumia-home-top-cluster-bg,
 .lumia-home-top-cluster-shadow {
   position: absolute;
-  inset: 0;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: calc(var(--lumia-home-content-safe-top) + var(--lumia-home-compact-rail-height));
   pointer-events: none;
 }
 
@@ -306,6 +324,12 @@ body.theme-lumia-air #__next {
 .lumia-home-top-cluster-shadow {
   z-index: 1;
   box-shadow: 0 8px 18px rgba(42, 22, 51, 0.04);
+}
+
+.lumia-home-top-spacer {
+  height: 136px;
+  flex: 0 0 136px;
+  pointer-events: none;
 }
 
 .lumia-debug-overlay {
@@ -525,10 +549,10 @@ body.theme-lumia-air #__next {
   border-color: transparent;
   background:
     linear-gradient(#ffffff, #ffffff) padding-box,
-    conic-gradient(from 218deg, #1fca86 0deg, #08aeea 118deg, #3562ff 236deg, #1fca86 360deg) border-box;
+    conic-gradient(from 218deg, var(--lumia-pop-red) 0deg, var(--lumia-pop-yellow) 118deg, var(--lumia-pop-orange) 236deg, var(--lumia-pop-red) 360deg) border-box;
   box-shadow:
-    0 0 0 1px rgba(90, 47, 88, 0.22),
-    0 6px 14px rgba(90, 47, 88, 0.18);
+    0 0 0 1px rgba(239, 35, 60, 0.22),
+    0 6px 14px rgba(239, 35, 60, 0.18);
 }
 
 .lumia-home-compact-story img {
@@ -582,14 +606,15 @@ body.theme-lumia-air #__next {
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.76);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.5)),
-    rgba(255, 255, 255, 0.46);
+    radial-gradient(circle at 68% 20%, rgba(255, 212, 0, 0.38), transparent 42%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(255, 255, 255, 0.58)),
+    rgba(255, 255, 255, 0.5);
   color: var(--lumia-home-purple-deep);
   font-family: var(--lumia-home-font-display);
   font-size: 1.08rem;
   font-weight: 800;
   box-shadow:
-    0 16px 38px rgba(42, 22, 51, 0.14),
+    0 16px 38px rgba(239, 35, 60, 0.16),
     0 1px 0 rgba(255, 255, 255, 0.9) inset;
   backdrop-filter: blur(28px) saturate(1.16);
   -webkit-backdrop-filter: blur(28px) saturate(1.16);
@@ -612,9 +637,9 @@ body.theme-lumia-air #__next {
   justify-content: center;
   border-radius: 999px;
   background:
-    radial-gradient(circle at 65% 20%, rgba(255, 226, 214, 0.98), transparent 48%),
-    linear-gradient(135deg, #ffffff, var(--lumia-home-lavender));
-  box-shadow: 0 0 0 1px rgba(90, 47, 88, 0.1);
+    radial-gradient(circle at 65% 20%, rgba(255, 212, 0, 0.98), transparent 48%),
+    linear-gradient(135deg, #ffffff, #ffe9ec);
+  box-shadow: 0 0 0 1px rgba(239, 35, 60, 0.14);
 }
 
 .lumia-home-bottom-avatar-action:active {
@@ -668,17 +693,19 @@ body.theme-lumia-air #__next {
 }
 
 .lumia-home-primary-button {
-  border: 1px solid rgba(90, 47, 88, 0.16);
-  background: linear-gradient(135deg, var(--lumia-home-purple), #7c586f);
+  border: 1px solid rgba(239, 35, 60, 0.26);
+  background: linear-gradient(135deg, var(--lumia-pop-red) 0%, var(--lumia-pop-orange) 58%, var(--lumia-pop-yellow) 118%);
   color: #ffffff;
-  box-shadow: var(--lumia-home-shadow-lifted);
+  box-shadow:
+    var(--lumia-home-shadow-lifted),
+    0 1px 0 rgba(255, 255, 255, 0.42) inset;
 }
 
 .lumia-home-secondary-button {
-  border: 1px solid rgba(90, 47, 88, 0.22);
-  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(239, 35, 60, 0.24);
+  background: rgba(255, 255, 255, 0.82);
   color: var(--lumia-home-purple);
-  box-shadow: 0 12px 32px rgba(42, 22, 51, 0.07);
+  box-shadow: 0 12px 32px rgba(239, 35, 60, 0.08);
 }
 
 .lumia-home-primary-button:active,
@@ -758,6 +785,9 @@ body.theme-lumia-air #__next {
 }
 
 .lumia-home-story-ring {
+  --lumia-story-ring-a: var(--lumia-pop-red);
+  --lumia-story-ring-b: var(--lumia-pop-yellow);
+  --lumia-story-ring-c: var(--lumia-pop-orange);
   position: relative;
   display: inline-flex;
   width: var(--lumia-home-story-size);
@@ -766,11 +796,11 @@ body.theme-lumia-air #__next {
   justify-content: center;
   overflow: visible;
   border-radius: var(--lumia-home-radius-story);
-  border: 1.5px solid rgba(22, 7, 47, 0.14);
+  border: 1.5px solid rgba(23, 19, 20, 0.14);
   background: var(--lumia-home-surface);
   box-shadow:
-    0 0 0 2px rgba(255, 255, 255, 0.9),
-    0 8px 20px rgba(42, 22, 51, 0.09);
+    0 0 0 2px rgba(255, 255, 255, 0.92),
+    0 8px 20px rgba(23, 19, 20, 0.1);
   transition:
     border-color 180ms ease,
     box-shadow 180ms ease,
@@ -782,11 +812,35 @@ body.theme-lumia-air #__next {
   border-color: transparent;
   background:
     linear-gradient(#ffffff, #ffffff) padding-box,
-    conic-gradient(from 218deg, #20c988 0deg, #07aee9 118deg, #3562ff 236deg, #20c988 360deg) border-box;
+    conic-gradient(from 218deg, var(--lumia-story-ring-a) 0deg, var(--lumia-story-ring-b) 112deg, var(--lumia-story-ring-c) 236deg, var(--lumia-story-ring-a) 360deg) border-box;
   box-shadow:
     0 0 0 2px rgba(255, 255, 255, 0.96),
-    0 0 0 3px rgba(32, 201, 136, 0.14),
-    0 10px 24px rgba(42, 22, 51, 0.12);
+    0 0 0 4px rgba(255, 212, 0, 0.18),
+    0 10px 24px rgba(239, 35, 60, 0.16);
+}
+
+.lumia-home-story-button:nth-child(2) .lumia-home-story-ring {
+  --lumia-story-ring-a: #ff2e88;
+  --lumia-story-ring-b: var(--lumia-pop-red);
+  --lumia-story-ring-c: var(--lumia-pop-berry);
+}
+
+.lumia-home-story-button:nth-child(3) .lumia-home-story-ring {
+  --lumia-story-ring-a: var(--lumia-pop-green);
+  --lumia-story-ring-b: var(--lumia-pop-yellow);
+  --lumia-story-ring-c: var(--lumia-pop-blue);
+}
+
+.lumia-home-story-button:nth-child(4) .lumia-home-story-ring {
+  --lumia-story-ring-a: var(--lumia-pop-blue);
+  --lumia-story-ring-b: var(--lumia-pop-berry);
+  --lumia-story-ring-c: var(--lumia-pop-orange);
+}
+
+.lumia-home-story-button:nth-child(5) .lumia-home-story-ring {
+  --lumia-story-ring-a: var(--lumia-pop-orange);
+  --lumia-story-ring-b: var(--lumia-pop-yellow);
+  --lumia-story-ring-c: var(--lumia-pop-red);
 }
 
 .lumia-home-story-ring > img,
@@ -877,10 +931,10 @@ body.theme-lumia-air #__next {
   border-radius: 1.7rem;
   border: 1px solid rgba(255, 255, 255, 0.72);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.48)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.58)),
     rgba(255, 255, 255, 0.42);
   box-shadow:
-    0 16px 42px rgba(42, 22, 51, 0.14),
+    0 16px 42px rgba(239, 35, 60, 0.14),
     0 1px 0 rgba(255, 255, 255, 0.86) inset;
   backdrop-filter: blur(28px) saturate(1.18);
   -webkit-backdrop-filter: blur(28px) saturate(1.18);
@@ -897,7 +951,7 @@ body.theme-lumia-air #__next {
   border: 0;
   border-radius: 1.1rem;
   background: transparent;
-  color: rgba(42, 22, 51, 0.68);
+  color: rgba(23, 19, 20, 0.68);
   transition:
     color 180ms ease,
     transform 180ms ease,
@@ -930,18 +984,18 @@ body.theme-lumia-air #__next {
 }
 
 .lumia-home-bottom-nav-item[data-active='true'] .lumia-home-bottom-nav-icon {
-  background: rgba(90, 47, 88, 0.1);
-  box-shadow: 0 8px 18px rgba(90, 47, 88, 0.09);
+  background: linear-gradient(135deg, rgba(255, 212, 0, 0.34), rgba(239, 35, 60, 0.14));
+  box-shadow: 0 8px 18px rgba(239, 35, 60, 0.14);
 }
 
 .lumia-home-bottom-nav-item[data-center='true'] .lumia-home-bottom-nav-icon {
   width: 2.92rem;
   height: 2.92rem;
   border-radius: var(--lumia-home-radius-story);
-  background: linear-gradient(135deg, var(--lumia-home-purple-deep), var(--lumia-home-purple));
+  background: linear-gradient(135deg, var(--lumia-pop-red), var(--lumia-pop-orange));
   color: #ffffff;
   box-shadow:
-    0 10px 24px rgba(42, 22, 51, 0.18),
+    0 10px 24px rgba(239, 35, 60, 0.22),
     0 1px 0 rgba(255, 255, 255, 0.28) inset;
   transform: translateY(-0.18rem);
 }

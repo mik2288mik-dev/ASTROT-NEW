@@ -944,14 +944,18 @@ const App: React.FC = () => {
                         onClose={() => setView('dashboard')}
                     />
                 ) : view === 'oracle' ? (
-                    <OracleChat
-                        profile={profile}
-                        onPremiumRequired={() => setView('paywall')}
-                        onOpenWallet={() => openWallet('oracle')}
-                        onUpdateProfile={handleProfileUpdate}
-                    />
+                    <div className="lumia-main-scroll scrollbar-hide" ref={appScrollRef}>
+                        <div className="lumia-app-header-spacer" aria-hidden />
+                        <OracleChat
+                            profile={profile}
+                            onPremiumRequired={() => setView('paywall')}
+                            onOpenWallet={() => openWallet('oracle')}
+                            onUpdateProfile={handleProfileUpdate}
+                        />
+                    </div>
                 ) : view === 'synastry' ? (
                     <div className="lumia-main-scroll scrollbar-hide" ref={appScrollRef}>
+                        <div className="lumia-app-header-spacer" aria-hidden />
                         <Synastry
                             profile={profile}
                             chartData={chartData}
@@ -963,6 +967,7 @@ const App: React.FC = () => {
                     </div>
                 ) : view === 'horoscope' ? (
                     <div className="lumia-main-scroll scrollbar-hide" ref={appScrollRef}>
+                        <div className="lumia-app-header-spacer" aria-hidden />
                         <Horoscope 
                             profile={profile} 
                             chartData={chartData} 
@@ -983,6 +988,7 @@ const App: React.FC = () => {
                     </div>
                 ) : view === 'chart' ? (
                     <div className="lumia-main-scroll scrollbar-hide" ref={appScrollRef}>
+                        <div className="lumia-app-header-spacer" aria-hidden />
                         <NatalChart 
                             data={chartData} 
                             profile={profile} 
@@ -995,6 +1001,7 @@ const App: React.FC = () => {
                     </div>
                 ) : view === 'settings' ? (
                     <div className="lumia-main-scroll scrollbar-hide" ref={appScrollRef}>
+                        <div className="lumia-app-header-spacer" aria-hidden />
                         <Settings 
                             profile={profile} 
                             onUpdate={handleProfileUpdate} 
@@ -1006,6 +1013,7 @@ const App: React.FC = () => {
                     </div>
                 ) : view === 'charts' ? (
                     <div className="lumia-main-scroll scrollbar-hide" ref={appScrollRef}>
+                        <div className="lumia-app-header-spacer" aria-hidden />
                         <MyCharts 
                             profile={profile} 
                             onBack={() => {
@@ -1043,6 +1051,7 @@ const App: React.FC = () => {
                     </div>
                 ) : view === 'wallet' ? (
                     <div className="lumia-main-scroll scrollbar-hide" ref={appScrollRef}>
+                        <div className="lumia-app-header-spacer" aria-hidden />
                         <Wallet
                             profile={profile}
                             onUpdateProfile={handleProfileUpdate}

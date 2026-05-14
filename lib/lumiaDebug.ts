@@ -156,6 +156,9 @@ export function captureLumiaHomeLayout(source = 'manual', extra?: Record<string,
   if (!isLumiaDebugEnabled()) return;
 
   const header = rectFor('.lumia-home-top-cluster');
+  const headerSpacer = rectFor('.lumia-home-top-spacer');
+  const appHeader = rectFor('.lumia-app-header');
+  const appHeaderSpacer = rectFor('.lumia-app-header-spacer');
   const compactRow = rectFor('.lumia-home-compact-row');
   const compactStories = rectFor('.lumia-home-compact-story-cluster');
   const compactLogo = rectFor('.lumia-home-compact-logo');
@@ -182,6 +185,9 @@ export function captureLumiaHomeLayout(source = 'manual', extra?: Record<string,
     rects: {
       scroll,
       header,
+      headerSpacer,
+      appHeader,
+      appHeaderSpacer,
       logo,
       wordmark,
       compactRow,
@@ -202,14 +208,18 @@ export function captureLumiaHomeLayout(source = 'manual', extra?: Record<string,
           ? round((compactStories.top + compactStories.height / 2) - (compactLogo.top + compactLogo.height / 2))
           : null,
       compactRailHeight: compactRow?.height ?? null,
+      homeHeaderStableHeight: header?.height ?? null,
+      homeSpacerHeight: headerSpacer?.height ?? null,
+      appHeaderStableHeight: appHeader?.height ?? null,
+      appSpacerHeight: appHeaderSpacer?.height ?? null,
     },
     flags: {
       overlapsTelegramTop:
         !!header && header.top < telegramTopInset - 1,
       storiesClipped:
-        !!header &&
+        !!scroll &&
         !!expandedStories &&
-        (expandedStories.bottom > header.bottom + 1 || expandedStories.top < header.top - 1),
+        (expandedStories.bottom > scroll.bottom + 1 || expandedStories.top < scroll.top - 1),
       compactStoriesClipped:
         !!header &&
         !!compactStories &&

@@ -30,16 +30,16 @@ export function LumiaHomeHeroCard({
   const titleLines = copy.heroTitle.split('\n');
 
   return (
-    <LumiaHomeLargeCard className="lumia-home-hero-card min-h-[20.75rem] bg-lumiaHome-peach shadow-[0_16px_40px_rgba(42,22,51,0.1)]">
+    <LumiaHomeLargeCard className="lumia-home-hero-card min-h-[20.75rem] bg-[#ffe45c] shadow-[0_18px_44px_rgba(239,35,60,0.16)]">
       <img
         src="/lumia-home/daily-hero-editorial-v1.webp"
         alt=""
         draggable={false}
         className="absolute inset-0 h-full w-full object-cover object-[62%_center]"
       />
-      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,244,235,0.98)_0%,rgba(255,239,230,0.9)_46%,rgba(255,235,224,0.42)_72%,rgba(255,235,224,0.08)_100%)]" />
-      <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-[#f6ded2]/88 via-[#f6ded2]/24 to-transparent" />
-      <div className="absolute -left-20 top-10 h-56 w-56 rounded-full bg-white/44 blur-3xl" />
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,247,211,0.98)_0%,rgba(255,228,92,0.84)_38%,rgba(255,122,0,0.26)_68%,rgba(255,122,0,0.06)_100%)]" />
+      <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-[#ffd400]/78 via-[#ff7a00]/18 to-transparent" />
+      <div className="absolute -left-20 top-10 h-56 w-56 rounded-full bg-white/52 blur-3xl" />
 
       <div className="relative z-10 flex min-h-[20.75rem] max-w-[92%] flex-col justify-between px-4 py-[1.125rem] sm:px-5">
         <div>
@@ -81,14 +81,14 @@ function PulseWave() {
       <svg className="absolute inset-0 h-full w-full" viewBox="0 0 420 140" preserveAspectRatio="none" aria-hidden>
         <defs>
           <linearGradient id={lineId} x1="0" x2="1" y1="0" y2="0">
-            <stop offset="0%" stopColor="#8f6c8f" />
-            <stop offset="42%" stopColor="#d8a7a0" />
-            <stop offset="68%" stopColor="#d7ad73" />
-            <stop offset="100%" stopColor="#6f4d68" />
+            <stop offset="0%" stopColor="#00a7ff" />
+            <stop offset="42%" stopColor="#18c964" />
+            <stop offset="68%" stopColor="#ffd400" />
+            <stop offset="100%" stopColor="#ff7a00" />
           </linearGradient>
           <linearGradient id={fillId} x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="#ffb17d" stopOpacity="0.42" />
-            <stop offset="55%" stopColor="#8f6c8f" stopOpacity="0.12" />
+            <stop offset="0%" stopColor="#ffd400" stopOpacity="0.5" />
+            <stop offset="55%" stopColor="#ef233c" stopOpacity="0.16" />
             <stop offset="100%" stopColor="#2a1633" stopOpacity="0" />
           </linearGradient>
           <filter id={glowId} x="-20%" y="-80%" width="140%" height="240%">
@@ -154,14 +154,14 @@ export function LumiaHomePulseCard({ language }: { language: LumiaHomeLanguage }
   const peakText = `${pulse.peak} ${pulse.peakText}`;
 
   return (
-    <LumiaHomeLargeCard className="bg-lumiaHome-purpleDeep px-3.5 py-3.5 text-white shadow-[0_18px_44px_rgba(22,7,47,0.23)]">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_54%_6%,rgba(216,167,160,0.2),transparent_34%),radial-gradient(circle_at_15%_108%,rgba(90,47,88,0.3),transparent_38%)]" />
+    <LumiaHomeLargeCard className="bg-[linear-gradient(135deg,#18072c_0%,#5010a8_54%,#ef233c_126%)] px-3.5 py-3.5 text-white shadow-[0_18px_44px_rgba(139,28,255,0.24)]">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_54%_6%,rgba(255,212,0,0.28),transparent_34%),radial-gradient(circle_at_15%_108%,rgba(0,167,255,0.24),transparent_38%)]" />
       <div className="relative z-10">
         <div className="flex items-center justify-between gap-3 px-1">
           <h2 className="mb-0 font-lumiaHomeDisplay text-[0.98rem] font-extrabold uppercase leading-none tracking-normal text-white">
             {copy.pulseTitle}
           </h2>
-          <Sparkles size={17} className="text-[#d8a7a0]" strokeWidth={2.1} aria-hidden />
+          <Sparkles size={17} className="text-[#ffd400]" strokeWidth={2.1} aria-hidden />
         </div>
 
         <PulseWave />
@@ -221,9 +221,9 @@ export function LumiaHomeForecastCard({
     <button
       type="button"
       onClick={onOpen}
-      className="lumia-home-large-card min-h-[14.6rem] bg-[#fff6f1] p-3.5 text-left shadow-[0_14px_34px_rgba(42,16,88,0.08)] active:scale-[0.99]"
+      className="lumia-home-large-card min-h-[14.6rem] bg-[#fff7d3] p-3.5 text-left shadow-[0_14px_34px_rgba(255,122,0,0.12)] active:scale-[0.99]"
     >
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_88%_18%,rgba(238,230,255,0.94),transparent_48%),radial-gradient(circle_at_16%_96%,rgba(255,226,214,0.9),transparent_52%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_88%_18%,rgba(0,167,255,0.22),transparent_48%),radial-gradient(circle_at_16%_96%,rgba(255,122,0,0.28),transparent_52%)]" />
       <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-white/38 to-transparent" />
 
       <div className="relative z-10 flex h-full flex-col justify-between">
@@ -264,10 +264,10 @@ export function LumiaHomePremiumTeaseCard({
     <button
       type="button"
       onClick={onOpen}
-      className="lumia-home-large-card min-h-[14.6rem] bg-lumiaHome-plum p-3.5 text-left text-white shadow-[0_16px_38px_rgba(42,16,88,0.18)] active:scale-[0.99]"
+      className="lumia-home-large-card min-h-[14.6rem] bg-[linear-gradient(145deg,#8b1cff_0%,#ef233c_58%,#ff7a00_126%)] p-3.5 text-left text-white shadow-[0_16px_38px_rgba(239,35,60,0.22)] active:scale-[0.99]"
     >
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_76%_9%,rgba(215,196,255,0.34),transparent_42%),radial-gradient(circle_at_8%_95%,rgba(244,184,199,0.28),transparent_42%)]" />
-      <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#211622]/82 to-transparent" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_76%_9%,rgba(255,212,0,0.34),transparent_42%),radial-gradient(circle_at_8%_95%,rgba(0,167,255,0.24),transparent_42%)]" />
+      <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#171314]/70 to-transparent" />
       {!isUnlocked ? (
         <span className="absolute right-3.5 top-3.5 z-20 flex h-6 w-6 items-center justify-center rounded-full bg-white/12 text-white ring-1 ring-white/18">
           <Lock size={13} strokeWidth={2.2} />
