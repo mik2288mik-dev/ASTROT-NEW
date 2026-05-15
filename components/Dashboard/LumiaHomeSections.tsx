@@ -108,6 +108,15 @@ function dominantLayer(layers: TodayPulseLayers): TodayPulseLayerKey {
   return PULSE_LAYER_ORDER.reduce((best, key) => (layers[key] > layers[best] ? key : best), 'energy' as TodayPulseLayerKey);
 }
 
+function pulseHeatBackground(point: TodayPulsePoint) {
+  if (point.tone === 'caution') return 'linear-gradient(180deg,#ff4d6d 0%,#ef233c 100%)';
+  if (point.tone === 'restore') return 'linear-gradient(180deg,#6ee7ff 0%,#00a7ff 100%)';
+  if (point.score >= 76) return 'linear-gradient(180deg,#fff06a 0%,#ff9f1c 100%)';
+  if (point.score >= 64) return 'linear-gradient(180deg,#72f7a8 0%,#18c964 100%)';
+  if (point.score >= 52) return 'linear-gradient(180deg,#56d6ff 0%,#00a7ff 100%)';
+  return 'linear-gradient(180deg,#9b7cff 0%,#5b2ee5 100%)';
+}
+
 function formatPulseDate(dateKey: string, language: LumiaHomeLanguage) {
   const [year, month, day] = dateKey.split('-').map(Number);
   const date = new Date(Date.UTC(year || 1970, (month || 1) - 1, day || 1, 12, 0, 0));
@@ -163,7 +172,7 @@ function PulseChart({
   const keyHours = new Set(pulse.keyMoments.map((point) => point.hour));
 
   return (
-    <div className="lumia-home-pulse-chart relative mt-3.5 h-[8.7rem] overflow-hidden rounded-[1.05rem]">
+    <div className="lumia-home-pulse-chart relative mt-3.5 h-[9.6rem] overflow-hidden rounded-[1.05rem]">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_49%_22%,rgba(255,214,190,0.24),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.075),rgba(255,255,255,0.015))]" />
       <svg className="absolute inset-0 h-full w-full" viewBox="0 0 420 150" preserveAspectRatio="none" aria-label="Пульс дня">
         <defs>
@@ -230,6 +239,34 @@ function PulseChart({
         })}
         <line x1={selectedXY.x} x2={selectedXY.x} y1="18" y2="140" stroke="rgba(255,255,255,0.16)" strokeWidth="1.5" strokeDasharray="4 6" />
       </svg>
+      <div
+        className="absolute inset-x-3 bottom-7 grid h-3 gap-[2px]"
+        style={{ gridTemplateColumns: 'repeat(24, minmax(0, 1fr))' }}
+        aria-label="Тепловая карта пульса дня"
+      >
+        {pulse.points.map((point) => {
+          const isSelected = point.hour === selected.hour;
+          const isKey = keyHours.has(point.hour);
+          return (
+            <button
+              key={`heat-${point.time}`}
+              type="button"
+              aria-label={`${point.time}: ${point.score}`}
+              title={`${point.time} · ${point.score}`}
+              onClick={() => onSelect(point)}
+              className={[
+                'h-full min-w-0 rounded-full transition-transform active:scale-y-125',
+                isSelected ? 'ring-2 ring-white shadow-[0_0_14px_rgba(255,255,255,0.58)]' : '',
+                isKey && !isSelected ? 'ring-1 ring-white/[0.34]' : '',
+              ].join(' ')}
+              style={{
+                background: pulseHeatBackground(point),
+                opacity: isSelected ? 1 : isKey ? 0.92 : 0.62 + point.score / 280,
+              }}
+            />
+          );
+        })}
+      </div>
       <div className="absolute inset-x-3 bottom-2 flex justify-between font-lumiaHome text-[0.56rem] font-extrabold text-white/45">
         <span>00</span>
         <span>06</span>
