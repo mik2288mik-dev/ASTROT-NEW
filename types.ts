@@ -254,6 +254,72 @@ export interface TodayMetric {
   history: TodayMetricPoint[];
 }
 
+export type TodayPulseLayerKey = 'energy' | 'focus' | 'emotions' | 'money' | 'relationships';
+export type TodayPulsePhase = 'restore' | 'entry' | 'focus_peak' | 'decisions' | 'relationships' | 'reflection';
+export type TodayPulseTone = 'calm' | 'rise' | 'peak' | 'social' | 'caution' | 'restore';
+
+export interface TodayPulseLayers {
+  energy: number;
+  focus: number;
+  emotions: number;
+  money: number;
+  relationships: number;
+}
+
+export interface TodayPulsePoint {
+  time: string;
+  hour: number;
+  score: number;
+  layers: TodayPulseLayers;
+  phase: TodayPulsePhase;
+  title: string;
+  summary: string;
+  reasons: string[];
+  bestFor: string[];
+  avoid: string[];
+  tone: TodayPulseTone;
+  isKeyMoment: boolean;
+}
+
+export interface TodayPulseWindow {
+  start: string;
+  end: string;
+  label: string;
+  summary: string;
+  score: number;
+  dominantLayer: TodayPulseLayerKey;
+  tone: TodayPulseTone;
+}
+
+export interface TodayPulse {
+  date: string;
+  timezone: string;
+  generatedAt: string;
+  source: 'swisseph' | 'algorithmic' | 'mixed';
+  currentTime: string;
+  currentPoint: TodayPulsePoint;
+  peakPoint: TodayPulsePoint;
+  layers: TodayPulseLayers;
+  points: TodayPulsePoint[];
+  windows: TodayPulseWindow[];
+  keyMoments: TodayPulsePoint[];
+  calculationVersion: string;
+}
+
+export type TodayPulseResult =
+  | {
+      status: 'ready';
+      pulse: TodayPulse;
+      chartId: number | null;
+      source: string;
+    }
+  | {
+      status: 'needs_setup';
+      code: 'PROFILE_BIRTH_DATA_REQUIRED';
+      message: string;
+      actionLabel: string;
+    };
+
 export type HoroscopeReactionKey = 'spot_on' | 'funny' | 'gentle' | 'not_mine';
 
 export interface HoroscopeReactionCount {

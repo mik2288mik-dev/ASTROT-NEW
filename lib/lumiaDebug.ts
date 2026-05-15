@@ -166,6 +166,9 @@ export function captureLumiaHomeLayout(source = 'manual', extra?: Record<string,
   const logo = rectFor('.lumia-home-brand');
   const wordmark = rectFor('.lumia-home-wordmark');
   const hero = rectFor('.lumia-home-hero-card');
+  const pulseCard = rectFor('.lumia-home-pulse-card');
+  const pulseChart = rectFor('.lumia-home-pulse-chart');
+  const pulseDetail = rectFor('.lumia-home-pulse-detail');
   const bottomNav = rectFor('.lumia-home-bottom-nav-shell');
   const scroll = rectFor('.lumia-main-scroll');
   const lastContent = rectFor('.lumia-home-scroll-content > :last-child');
@@ -195,6 +198,9 @@ export function captureLumiaHomeLayout(source = 'manual', extra?: Record<string,
       compactLogo,
       expandedStories,
       hero,
+      pulseCard,
+      pulseChart,
+      pulseDetail,
       lastContent,
       bottomNav,
     },

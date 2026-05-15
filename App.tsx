@@ -1065,6 +1065,7 @@ const App: React.FC = () => {
                             chartData={chartData}
                             chartId={activeChartId ?? null}
                             onOpenHoroscopeLayer={openHoroscopeLayer}
+                            onOpenSettings={openBottomAvatar}
                             scrollRef={dashboardScrollRef}
                         />
                     </div>

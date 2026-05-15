@@ -1,4 +1,4 @@
-import { UserProfile, NatalChartData, DailyHoroscope, SynastryResult, UserEvolution, OracleChatResponse, OracleHistoryEntry, ForecastDailyReading, ForecastDaypartReading, ForecastDaypartSlot, ForecastMonthlyReading, ForecastWeeklyReading, NatalAnchorReading, NatalFullReading, NatalLivingReading, AskLumiaState, AskLumiaTier, ContentAccessTier, PlanetInsight, WheelInsight, WheelInsightEntityType, TodayOverview, TodayOverviewResult, HoroscopeReactionKey, HoroscopeReactionSummary } from "../types";
+import { UserProfile, NatalChartData, DailyHoroscope, SynastryResult, UserEvolution, OracleChatResponse, OracleHistoryEntry, ForecastDailyReading, ForecastDaypartReading, ForecastDaypartSlot, ForecastMonthlyReading, ForecastWeeklyReading, NatalAnchorReading, NatalFullReading, NatalLivingReading, AskLumiaState, AskLumiaTier, ContentAccessTier, PlanetInsight, WheelInsight, WheelInsightEntityType, TodayOverview, TodayOverviewResult, TodayPulseResult, HoroscopeReactionKey, HoroscopeReactionSummary } from "../types";
 import { SYSTEM_INSTRUCTION_ASTRA } from "../constants";
 import { getElementForSign } from "../lib/zodiac-utils";
 import { coerceNatalAnchorReading, coerceNatalFullReading, coerceNatalLivingReading, getCurrentNatalPeriodKey, mapNatalAnchorToLegacyIntro } from "../lib/natalReadings";
@@ -304,6 +304,57 @@ export const getTodayOverview = async (
     chartId: typeof payload.chartId === 'number' ? payload.chartId : null,
     source: String(payload.source || 'today_overview_v1'),
   };
+};
+
+export const getTodayPulse = async (
+  profile: UserProfile,
+  chartData: NatalChartData | null,
+  chartId?: number | null,
+  date?: string
+): Promise<TodayPulseResult> => {
+  if (!isValidUserId(profile.id)) {
+    throw buildApiError('Profile id is required');
+  }
+
+  const response = await fetchWithTimeout(`${API_BASE_URL}/api/content/today/pulse`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      userId: profile.id,
+      profile,
+      chartData,
+      chartId,
+      date,
+    }),
+  }, 60000);
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw buildApiError(
+      errorData.message || `Today pulse failed: ${response.status} ${response.statusText}`,
+      response.status,
+      errorData.code || errorData.error
+    );
+  }
+
+  const payload = await response.json();
+  if (payload?.status === 'ready' && payload?.pulse) {
+    return {
+      status: 'ready',
+      pulse: payload.pulse,
+      chartId: typeof payload.chartId === 'number' ? payload.chartId : null,
+      source: String(payload.source || 'today_pulse_v1'),
+    };
+  }
+  if (payload?.status === 'needs_setup') {
+    return {
+      status: 'needs_setup',
+      code: 'PROFILE_BIRTH_DATA_REQUIRED',
+      message: String(payload.message || 'Add birth data to calculate the day pulse.'),
+      actionLabel: String(payload.actionLabel || 'Complete profile'),
+    };
+  }
+  throw buildApiError('Today pulse payload is invalid');
 };
 
 export const setHoroscopeReaction = async (

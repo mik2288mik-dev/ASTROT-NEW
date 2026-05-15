@@ -591,6 +591,40 @@ function calculateAnglesAndHouses(
   }
 }
 
+export function calculatePlanetaryTransitsAt(date: Date) {
+  const swe = getNativeCalculator();
+  const utcTimeInHours = date.getUTCHours() + date.getUTCMinutes() / 60 + date.getUTCSeconds() / 3600;
+  const julianDay = swe.swe_julday(
+    date.getUTCFullYear(),
+    date.getUTCMonth() + 1,
+    date.getUTCDate(),
+    utcTimeInHours,
+    1
+  );
+
+  const sun = calculatePlanetPosition(swe, julianDay, PLANETS.SUN, 'Sun');
+  const moon = calculatePlanetPosition(swe, julianDay, PLANETS.MOON, 'Moon');
+  const mercury = calculatePlanetPosition(swe, julianDay, PLANETS.MERCURY, 'Mercury');
+  const venus = calculatePlanetPosition(swe, julianDay, PLANETS.VENUS, 'Venus');
+  const mars = calculatePlanetPosition(swe, julianDay, PLANETS.MARS, 'Mars');
+  const jupiter = calculatePlanetPosition(swe, julianDay, PLANETS.JUPITER, 'Jupiter');
+  const saturn = calculatePlanetPosition(swe, julianDay, PLANETS.SATURN, 'Saturn');
+
+  if (!sun || !moon) {
+    throw new Error('Transit calculation did not return required Sun/Moon positions');
+  }
+
+  return {
+    sun,
+    moon,
+    mercury,
+    venus,
+    mars,
+    jupiter,
+    saturn,
+  };
+}
+
 /**
  * Определяет доминирующий элемент (стихию) на основе положений планет
  */

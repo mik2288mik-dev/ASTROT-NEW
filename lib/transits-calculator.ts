@@ -121,21 +121,13 @@ function calculateApproximateLongitudes(date: Date) {
 export async function getCurrentTransits(date?: Date): Promise<CurrentTransits> {
   const targetDate = date || new Date();
   const dateString = targetDate.toISOString().split('T')[0];
+  const timeString = targetDate.toISOString().slice(11, 16);
   
-  log.info('Calculating current transits', { date: dateString });
+  log.info('Calculating current transits', { date: dateString, time: timeString });
 
   try {
-    const { calculateNatalChart } = await import('./swisseph-calculator');
-    // Используем Swiss Ephemeris для расчёта текущих положений планет
-    // Передаём фиктивное имя и место, так как нам нужны только положения планет
-    const transitChart = await calculateNatalChart(
-      'Transit',
-      dateString,
-      '12:00',
-      'Greenwich, UK' // Используем Гринвич как универсальную точку
-    );
-
-    // Определяем фазу Луны (упрощённо, на основе знака)
+    const { calculatePlanetaryTransitsAt } = await import('./swisseph-calculator');
+    const transitChart = calculatePlanetaryTransitsAt(targetDate);
     const moonPhase = getMoonPhase(transitChart.moon.degree);
 
     const transits: CurrentTransits = {
@@ -185,7 +177,8 @@ export async function getCurrentTransits(date?: Date): Promise<CurrentTransits> 
   } catch (error: any) {
     log.error('Failed to calculate transits', {
       error: error.message,
-      date: dateString
+      date: dateString,
+      time: timeString
     });
 
     return getAlgorithmicTransits(targetDate);
