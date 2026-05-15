@@ -38,13 +38,14 @@ function NatalCircleIcon(props: IconProps) {
   );
 }
 
-function UnionHeartHandsIcon(props: IconProps) {
+function UnionProfilesIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M14 22.2s-8.55-4.9-9.64-9.8C3.64 9.17 5.62 6.9 8.18 6.9c1.58 0 2.88.76 3.67 1.93.42.62 1.88.62 2.3 0 .79-1.17 2.09-1.93 3.67-1.93 2.56 0 4.54 2.27 3.82 5.5C20.55 17.3 14 22.2 14 22.2Z" strokeWidth="2.05" />
-      <path d="M8 13.65l2.22-2.04c.66-.6 1.5-.66 2.22-.15l1.08.77c.46.33 1.06.3 1.47-.08l1.11-1.02" strokeWidth="1.8" opacity="0.78" />
-      <path d="M9.12 14.86l3.46 3.18c.8.74 2.04.74 2.84 0l3.46-3.18" strokeWidth="1.9" opacity="0.9" />
-      <path d="M11.08 16.66l.92-.86M13.48 18.36l1.04-1M16.92 16.66l-.92-.86" strokeWidth="1.48" opacity="0.64" />
+      <circle cx="10.6" cy="10.3" r="3.45" strokeWidth="2.05" />
+      <circle cx="17.4" cy="10.3" r="3.45" strokeWidth="2.05" opacity="0.72" />
+      <path d="M4.6 21.1c.78-3.55 3.05-5.45 6-5.45 1.32 0 2.42.38 3.4 1.12.98-.74 2.08-1.12 3.4-1.12 2.95 0 5.22 1.9 6 5.45" strokeWidth="2.15" />
+      <path d="M11.9 17.48c.64.6 1.34.9 2.1.9s1.46-.3 2.1-.9" strokeWidth="1.6" opacity="0.68" />
+      <path d="M14 15.95v2.3" strokeWidth="1.55" opacity="0.58" />
     </svg>
   );
 }
@@ -109,7 +110,7 @@ export function LumiaBottomTabBar({
       id: 'union',
       label: labels.union,
       active: view === 'synastry',
-      icon: <UnionHeartHandsIcon />,
+      icon: <UnionProfilesIcon />,
       onClick: onOpenSynastry,
     },
     {

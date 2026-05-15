@@ -636,7 +636,7 @@ body.theme-lumia-air #__next {
 .lumia-bottom-tab-bar {
   position: relative;
   display: grid;
-  width: min(100%, 19.6rem);
+  width: min(100%, 18.4rem);
   min-height: var(--lumia-bottom-tab-height);
   grid-template-columns: repeat(4, minmax(0, 1fr));
   align-items: center;
@@ -645,16 +645,16 @@ body.theme-lumia-air #__next {
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.74);
   background:
-    radial-gradient(circle at 16% 8%, rgba(255, 255, 255, 0.54), transparent 34%),
-    radial-gradient(circle at 86% 12%, rgba(255, 255, 255, 0.26), transparent 38%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.06)),
-    rgba(255, 255, 255, 0.08);
+    radial-gradient(circle at 16% 8%, rgba(255, 255, 255, 0.34), transparent 34%),
+    radial-gradient(circle at 86% 12%, rgba(255, 255, 255, 0.14), transparent 38%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.025)),
+    rgba(255, 255, 255, 0.035);
   box-shadow:
-    0 14px 30px rgba(23, 19, 20, 0.1),
-    0 1px 0 rgba(255, 255, 255, 0.56) inset,
-    0 -1px 0 rgba(255, 255, 255, 0.22) inset;
-  backdrop-filter: blur(18px) saturate(1.82) brightness(1.08);
-  -webkit-backdrop-filter: blur(18px) saturate(1.82) brightness(1.08);
+    0 14px 30px rgba(23, 19, 20, 0.085),
+    0 1px 0 rgba(255, 255, 255, 0.42) inset,
+    0 -1px 0 rgba(255, 255, 255, 0.14) inset;
+  backdrop-filter: blur(12px) saturate(1.95) brightness(1.07);
+  -webkit-backdrop-filter: blur(12px) saturate(1.95) brightness(1.07);
 }
 
 .lumia-bottom-tab-bar::before,
@@ -668,19 +668,19 @@ body.theme-lumia-air #__next {
 .lumia-bottom-tab-bar::before {
   z-index: 0;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.04) 46%, rgba(255, 255, 255, 0.14)),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.2), transparent 18%, transparent 82%, rgba(255, 255, 255, 0.12));
-  opacity: 0.64;
+    linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.015) 46%, rgba(255, 255, 255, 0.08)),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.12), transparent 18%, transparent 82%, rgba(255, 255, 255, 0.08));
+  opacity: 0.5;
 }
 
 .lumia-bottom-tab-bar::after {
   z-index: 1;
   border-radius: inherit;
   box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.32) inset,
-    0 9px 18px rgba(255, 255, 255, 0.18) inset;
+    0 0 0 1px rgba(255, 255, 255, 0.26) inset,
+    0 8px 16px rgba(255, 255, 255, 0.11) inset;
   mix-blend-mode: screen;
-  opacity: 0.58;
+  opacity: 0.44;
 }
 
 .lumia-bottom-tab-item {
@@ -729,7 +729,7 @@ body.theme-lumia-air #__next {
   max-width: 100%;
   overflow: hidden;
   color: rgba(15, 15, 15, 0.86);
-  font-size: 0.68rem;
+  font-size: 0.66rem;
   font-weight: 800;
   line-height: 1;
   text-overflow: ellipsis;
