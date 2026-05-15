@@ -600,7 +600,7 @@ body.theme-lumia-air #__next {
 .lumia-bottom-tab-bar {
   position: relative;
   display: grid;
-  width: min(100%, 21.05rem);
+  width: min(100%, 19.6rem);
   min-height: var(--lumia-bottom-tab-height);
   grid-template-columns: repeat(4, minmax(0, 1fr));
   align-items: center;
@@ -609,16 +609,16 @@ body.theme-lumia-air #__next {
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.74);
   background:
-    radial-gradient(circle at 16% 8%, rgba(255, 255, 255, 0.82), transparent 34%),
-    radial-gradient(circle at 86% 12%, rgba(255, 255, 255, 0.46), transparent 38%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.46), rgba(255, 255, 255, 0.18)),
-    rgba(255, 255, 255, 0.18);
+    radial-gradient(circle at 16% 8%, rgba(255, 255, 255, 0.54), transparent 34%),
+    radial-gradient(circle at 86% 12%, rgba(255, 255, 255, 0.26), transparent 38%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.06)),
+    rgba(255, 255, 255, 0.08);
   box-shadow:
-    0 16px 34px rgba(23, 19, 20, 0.14),
-    0 1px 0 rgba(255, 255, 255, 0.74) inset,
-    0 -1px 0 rgba(255, 255, 255, 0.36) inset;
-  backdrop-filter: blur(22px) saturate(1.55) brightness(1.08);
-  -webkit-backdrop-filter: blur(22px) saturate(1.55) brightness(1.08);
+    0 14px 30px rgba(23, 19, 20, 0.1),
+    0 1px 0 rgba(255, 255, 255, 0.56) inset,
+    0 -1px 0 rgba(255, 255, 255, 0.22) inset;
+  backdrop-filter: blur(18px) saturate(1.82) brightness(1.08);
+  -webkit-backdrop-filter: blur(18px) saturate(1.82) brightness(1.08);
 }
 
 .lumia-bottom-tab-bar::before,
@@ -632,19 +632,19 @@ body.theme-lumia-air #__next {
 .lumia-bottom-tab-bar::before {
   z-index: 0;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.68), rgba(255, 255, 255, 0.08) 46%, rgba(255, 255, 255, 0.22)),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.34), transparent 18%, transparent 82%, rgba(255, 255, 255, 0.2));
-  opacity: 0.74;
+    linear-gradient(180deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.04) 46%, rgba(255, 255, 255, 0.14)),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.2), transparent 18%, transparent 82%, rgba(255, 255, 255, 0.12));
+  opacity: 0.64;
 }
 
 .lumia-bottom-tab-bar::after {
   z-index: 1;
   border-radius: inherit;
   box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.4) inset,
-    0 9px 18px rgba(255, 255, 255, 0.3) inset;
+    0 0 0 1px rgba(255, 255, 255, 0.32) inset,
+    0 9px 18px rgba(255, 255, 255, 0.18) inset;
   mix-blend-mode: screen;
-  opacity: 0.72;
+  opacity: 0.58;
 }
 
 .lumia-bottom-tab-item {

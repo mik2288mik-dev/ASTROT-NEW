@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { lumiaImpactHaptic } from './haptics';
 
 interface UseSwipeBackOptions {
     onSwipeBack: () => void;
@@ -42,6 +43,7 @@ export function useSwipeBack({
 
             // Свайп вправо от левого края, с учётом что вертикальный свайп не должен срабатывать
             if (deltaX > threshold && deltaY < threshold) {
+                lumiaImpactHaptic('soft', 180);
                 onSwipeBack();
             }
 

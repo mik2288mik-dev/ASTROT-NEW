@@ -5,6 +5,7 @@ import {
   useSpring,
   type MotionValue,
 } from 'framer-motion';
+import { lumiaImpactHaptic } from '../../lib/haptics';
 import { lumiaDebugLog } from '../../lib/lumiaDebug';
 
 type UseCollapsibleHeaderProgressOptions = {
@@ -13,6 +14,7 @@ type UseCollapsibleHeaderProgressOptions = {
   source: string;
   expandedBodyHeight: number;
   collapsedBodyHeight: number;
+  hapticEdges?: boolean;
 };
 
 type CollapsibleHeaderProgress = {
@@ -36,6 +38,7 @@ export function useCollapsibleHeaderProgress({
   source,
   expandedBodyHeight,
   collapsedBodyHeight,
+  hapticEdges = false,
 }: UseCollapsibleHeaderProgressOptions): CollapsibleHeaderProgress {
   const shouldReduceMotion = useReducedMotion();
   const rawProgress = useMotionValue(0);
@@ -47,6 +50,7 @@ export function useCollapsibleHeaderProgress({
   });
   const lastDebugSampleRef = useRef(0);
   const lastDebugPhaseRef = useRef('');
+  const lastHapticPhaseRef = useRef<string | null>(null);
   const lastFrameRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -67,6 +71,18 @@ export function useCollapsibleHeaderProgress({
 
       lastFrameRef.current = now;
       rawProgress.set(next);
+
+      if (hapticEdges) {
+        const previousHapticPhase = lastHapticPhaseRef.current;
+        if (
+          previousHapticPhase !== null &&
+          phase !== previousHapticPhase &&
+          (phase === 'expanded' || phase === 'collapsed')
+        ) {
+          lumiaImpactHaptic('soft', 220);
+        }
+        lastHapticPhaseRef.current = phase;
+      }
 
       if (phase !== lastDebugPhaseRef.current || now - lastDebugSampleRef.current > 350) {
         lastDebugPhaseRef.current = phase;
@@ -99,7 +115,7 @@ export function useCollapsibleHeaderProgress({
       node.removeEventListener('scroll', requestUpdate);
       window.removeEventListener('resize', requestUpdate);
     };
-  }, [collapsedBodyHeight, collapseDistance, expandedBodyHeight, rawProgress, scrollRef, source]);
+  }, [collapsedBodyHeight, collapseDistance, expandedBodyHeight, hapticEdges, rawProgress, scrollRef, source]);
 
   return {
     rawProgress,

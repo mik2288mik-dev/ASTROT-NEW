@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import type { UserProfile, ViewState } from '../../types';
 import { cn } from '../../lib/cn';
+import { lumiaSelectionHaptic } from '../../lib/haptics';
 
 type LumiaBottomTabBarProps = {
   profile: UserProfile;
@@ -37,13 +38,13 @@ function NatalCircleIcon(props: IconProps) {
   );
 }
 
-function UnionRingsIcon(props: IconProps) {
+function UnionHandshakeIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <circle cx="10.8" cy="14" r="6.1" strokeWidth="2.15" />
-      <circle cx="17.2" cy="14" r="6.1" strokeWidth="2.15" opacity="0.72" />
-      <path d="M12.1 10.3c1.22.84 2.17 2.16 2.58 3.7-.41 1.54-1.36 2.86-2.58 3.7" strokeWidth="1.65" opacity="0.9" />
-      <path d="M15.9 10.3c-1.22.84-2.17 2.16-2.58 3.7.41 1.54 1.36 2.86 2.58 3.7" strokeWidth="1.65" opacity="0.56" />
+      <path d="M4.9 13.4l3.25-3.28c1.14-1.15 2.68-1.37 4.02-.58l1.83 1.08 1.83-1.08c1.34-.79 2.88-.57 4.02.58l3.25 3.28" strokeWidth="2.05" />
+      <path d="M9 14.1l2.42-2.34c.7-.68 1.5-.74 2.26-.18l1.22.9c.5.36 1.1.34 1.56-.08l1.3-1.2" strokeWidth="2.05" />
+      <path d="M8.4 15.2l4.7 4.62c.52.5 1.34.5 1.86 0l4.64-4.58" strokeWidth="2.25" />
+      <path d="M11.1 17.84l1.08-1.08M13.5 20.1l1.15-1.15M16 17.84l-1.08-1.08" strokeWidth="1.75" opacity="0.72" />
     </svg>
   );
 }
@@ -64,14 +65,6 @@ function getBottomNavLabels(language: UserProfile['language']) {
     union: 'Союз',
     avatar: 'Настройки',
   };
-}
-
-function haptic() {
-  try {
-    (window as any)?.Telegram?.WebApp?.HapticFeedback?.selectionChanged?.();
-  } catch {
-    /* Telegram haptics are optional */
-  }
 }
 
 export function LumiaBottomTabBar({
@@ -116,7 +109,7 @@ export function LumiaBottomTabBar({
       id: 'union',
       label: labels.union,
       active: view === 'synastry',
-      icon: <UnionRingsIcon />,
+      icon: <UnionHandshakeIcon />,
       onClick: onOpenSynastry,
     },
     {
@@ -143,7 +136,7 @@ export function LumiaBottomTabBar({
             aria-label={item.label}
             aria-current={item.active ? 'page' : undefined}
             onClick={() => {
-              haptic();
+              lumiaSelectionHaptic();
               item.onClick();
             }}
           >

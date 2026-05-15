@@ -4,6 +4,7 @@ import {
   useTransform,
 } from 'framer-motion';
 import type { HoroscopeLayer, UserProfile } from '../../types';
+import { lumiaImpactHaptic } from '../../lib/haptics';
 import { captureLumiaHomeLayout } from '../../lib/lumiaDebug';
 import { LumiaHomeStoryCircle } from '../Dashboard/LumiaHomePrimitives';
 import { getLumiaHomeCopy, type LumiaHomeLanguage } from '../Dashboard/lumiaHomeContent';
@@ -32,6 +33,7 @@ export function UnifiedCollapsibleTopCluster({
     source: 'home',
     expandedBodyHeight: EXPANDED_BODY_HEIGHT,
     collapsedBodyHeight: COLLAPSED_BODY_HEIGHT,
+    hapticEdges: true,
   });
   const locked = !profile.isPremium;
 
@@ -62,35 +64,50 @@ export function UnifiedCollapsibleTopCluster({
         label: copy.stories.today,
         imageSrc: '/horoscope-moment-assets/01-today-focus.webp',
         locked: false,
-        onClick: () => onOpenHoroscopeLayer('sign'),
+        onClick: () => {
+          lumiaImpactHaptic('light');
+          onOpenHoroscopeLayer('sign');
+        },
       },
       {
         id: 'love',
         label: copy.stories.love,
         imageSrc: '/horoscope-moment-assets/02-love.webp',
         locked,
-        onClick: () => onOpenHoroscopeLayer('love'),
+        onClick: () => {
+          lumiaImpactHaptic('light');
+          onOpenHoroscopeLayer('love');
+        },
       },
       {
         id: 'money',
         label: copy.stories.money,
         imageSrc: '/horoscope-moment-assets/03-money.webp',
         locked,
-        onClick: () => onOpenHoroscopeLayer('work_money'),
+        onClick: () => {
+          lumiaImpactHaptic('light');
+          onOpenHoroscopeLayer('work_money');
+        },
       },
       {
         id: 'work',
         label: copy.stories.work,
         imageSrc: '/horoscope-moment-assets/04-work.webp',
         locked,
-        onClick: () => onOpenHoroscopeLayer('work_money'),
+        onClick: () => {
+          lumiaImpactHaptic('light');
+          onOpenHoroscopeLayer('work_money');
+        },
       },
       {
         id: 'rhythm',
         label: copy.stories.rhythm,
         imageSrc: '/horoscope-moment-assets/05-personal-rhythm.webp',
         locked,
-        onClick: () => onOpenHoroscopeLayer('chart'),
+        onClick: () => {
+          lumiaImpactHaptic('light');
+          onOpenHoroscopeLayer('chart');
+        },
       },
     ],
     [copy.stories.love, copy.stories.money, copy.stories.rhythm, copy.stories.today, copy.stories.work, locked, onOpenHoroscopeLayer]
