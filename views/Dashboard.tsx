@@ -154,13 +154,13 @@ export const Dashboard = memo<DashboardProps>(
               onOpenHoroscopeLayer={onOpenHoroscopeLayer}
             />
             <div className="lumia-home-scroll-content space-y-[var(--lumia-home-gap-lg)] px-[var(--lumia-home-page-x)]">
-              <LumiaHomeHeroCard language={language} onOpen={() => openHoroscope('sign')} />
               <LumiaHomePulseCard
                 language={language}
                 pulseResult={pulseResult}
                 isLoading={isPulseLoading}
                 onSetup={onOpenSettings}
               />
+              <LumiaHomeHeroCard language={language} onOpen={() => openHoroscope('sign')} />
               <LumiaHomeContentCards
                 language={language}
                 isPremium={profile.isPremium}

@@ -108,6 +108,16 @@ function dominantLayer(layers: TodayPulseLayers): TodayPulseLayerKey {
   return PULSE_LAYER_ORDER.reduce((best, key) => (layers[key] > layers[best] ? key : best), 'energy' as TodayPulseLayerKey);
 }
 
+function formatPulseDate(dateKey: string, language: LumiaHomeLanguage) {
+  const [year, month, day] = dateKey.split('-').map(Number);
+  const date = new Date(Date.UTC(year || 1970, (month || 1) - 1, day || 1, 12, 0, 0));
+  return new Intl.DateTimeFormat(language === 'ru' ? 'ru-RU' : 'en-US', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'long',
+  }).format(date);
+}
+
 function PulseLayerChip({
   language,
   layerKey,
@@ -398,10 +408,19 @@ export function LumiaHomePulseCard({
                 {copy.pulseTitle}
               </h2>
               <p className="mb-0 mt-1 font-lumiaHome text-[0.62rem] font-extrabold uppercase tracking-[0.07em] text-white/48">
-                {pulse.currentTime} · {language === 'ru' ? 'локальный ритм' : 'local rhythm'}
+                {formatPulseDate(pulse.date, language)} · {language === 'ru' ? 'локальный ритм' : 'local rhythm'}
               </p>
             </div>
-            <Sparkles size={17} className="text-[#ffd400]" strokeWidth={2.1} aria-hidden />
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                type="button"
+                onClick={() => selectPoint(pulse.currentPoint)}
+                className="inline-flex min-h-[2rem] items-center justify-center rounded-full border border-white/14 bg-white/[0.12] px-2.5 font-lumiaHome text-[0.66rem] font-extrabold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.13)] backdrop-blur-xl active:bg-white/[0.18]"
+              >
+                {language === 'ru' ? 'Сейчас' : 'Now'} {pulse.currentTime}
+              </button>
+              <Sparkles size={17} className="text-[#ffd400]" strokeWidth={2.1} aria-hidden />
+            </div>
           </div>
           <PulseChart pulse={pulse} selected={selectedPoint} onSelect={selectPoint} />
           <div className="mt-2 grid grid-cols-3 gap-2">
