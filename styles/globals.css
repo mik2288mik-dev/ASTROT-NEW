@@ -599,21 +599,21 @@ body.theme-lumia-air #__next {
 
 .lumia-bottom-tab-bar {
   display: grid;
-  width: min(100%, 27.6rem);
+  width: clamp(18.8rem, calc(100% - 4.75rem), 21.6rem);
   min-height: var(--lumia-bottom-tab-height);
   grid-template-columns: repeat(4, minmax(0, 1fr));
   align-items: center;
-  gap: 0.08rem;
-  border-radius: 2rem;
-  border: 1px solid rgba(255, 255, 255, 0.78);
+  gap: 0;
+  border-radius: 1.95rem;
+  border: 1px solid rgba(255, 255, 255, 0.84);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.7)),
-    rgba(255, 255, 255, 0.66);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.7)),
+    rgba(255, 255, 255, 0.58);
   box-shadow:
-    0 16px 38px rgba(23, 19, 20, 0.12),
+    0 14px 34px rgba(23, 19, 20, 0.11),
     0 1px 0 rgba(255, 255, 255, 0.92) inset;
-  backdrop-filter: blur(30px) saturate(1.16);
-  -webkit-backdrop-filter: blur(30px) saturate(1.16);
+  backdrop-filter: blur(32px) saturate(1.18);
+  -webkit-backdrop-filter: blur(32px) saturate(1.18);
 }
 
 .lumia-bottom-tab-item {
@@ -627,7 +627,7 @@ body.theme-lumia-air #__next {
   border: 0;
   border-radius: 1.45rem;
   background: transparent;
-  color: rgba(23, 19, 20, 0.62);
+  color: rgba(15, 15, 15, 0.78);
   font-family: var(--lumia-home-font-sans);
   letter-spacing: 0;
   -webkit-tap-highlight-color: transparent;
@@ -643,18 +643,25 @@ body.theme-lumia-air #__next {
 
 .lumia-bottom-tab-icon {
   display: inline-flex;
-  width: 1.76rem;
-  height: 1.76rem;
+  width: 1.74rem;
+  height: 1.74rem;
   align-items: center;
   justify-content: center;
   color: currentColor;
 }
 
+.lumia-bottom-tab-icon svg {
+  width: 1.72rem;
+  height: 1.72rem;
+  display: block;
+}
+
 .lumia-bottom-tab-label {
   max-width: 100%;
   overflow: hidden;
-  font-size: 0.69rem;
-  font-weight: 750;
+  color: rgba(15, 15, 15, 0.86);
+  font-size: 0.68rem;
+  font-weight: 800;
   line-height: 1;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -665,6 +672,7 @@ body.theme-lumia-air #__next {
 }
 
 .lumia-bottom-tab-item.is-active .lumia-bottom-tab-label {
+  color: rgba(15, 15, 15, 0.95);
   font-weight: 850;
 }
 
