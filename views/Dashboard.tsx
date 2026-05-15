@@ -3,12 +3,9 @@ import { motion, useReducedMotion } from 'framer-motion';
 import type {
   HoroscopeLayer,
   NatalChartData,
-  NatalChartMode,
   UserProfile,
-  ViewState,
 } from '../types';
 import {
-  LumiaHomeBottomNavigation,
   LumiaHomeContentCards,
   LumiaHomeHeroCard,
   LumiaHomePulseCard,
@@ -16,16 +13,11 @@ import {
 import { UnifiedCollapsibleTopCluster } from '../components/lumia-ui/UnifiedCollapsibleTopCluster';
 import { captureLumiaHomeLayout, lumiaDebugLog } from '../lib/lumiaDebug';
 
-type DashboardView = Extract<ViewState, 'chart' | 'horoscope' | 'synastry' | 'oracle'>;
-
 interface DashboardProps {
   profile: UserProfile;
   chartData: NatalChartData | null;
   chartId?: number | null;
-  onNavigate: (view: DashboardView) => void;
   onOpenHoroscopeLayer: (layer: HoroscopeLayer) => void;
-  onOpenNatalMode: (mode: NatalChartMode) => void;
-  onOpenSettings: () => void;
   scrollRef?: React.RefObject<HTMLDivElement | null>;
 }
 
@@ -40,7 +32,7 @@ function haptic(kind: 'select' | 'open' = 'select') {
 }
 
 export const Dashboard = memo<DashboardProps>(
-  ({ profile, onNavigate, onOpenHoroscopeLayer, onOpenNatalMode, onOpenSettings, scrollRef }) => {
+  ({ profile, onOpenHoroscopeLayer, scrollRef }) => {
     const shouldReduceMotion = useReducedMotion();
     const language = profile.language === 'en' ? 'en' : 'ru';
     const pageVariants = shouldReduceMotion
@@ -71,16 +63,6 @@ export const Dashboard = memo<DashboardProps>(
     const openHoroscope = (layer: HoroscopeLayer = 'sign') => {
       haptic('open');
       onOpenHoroscopeLayer(layer);
-    };
-
-    const openNatal = () => {
-      haptic('open');
-      onOpenNatalMode('human');
-    };
-
-    const openSynastry = () => {
-      haptic('open');
-      onNavigate('synastry');
     };
 
     React.useEffect(() => {
@@ -126,15 +108,6 @@ export const Dashboard = memo<DashboardProps>(
               />
             </div>
           </div>
-
-          <LumiaHomeBottomNavigation
-            language={language}
-            profile={profile}
-            onOpenNatal={openNatal}
-            onOpenForecast={() => openHoroscope('sign')}
-            onOpenSynastry={openSynastry}
-            onOpenSettings={onOpenSettings}
-          />
         </motion.div>
       </div>
     );

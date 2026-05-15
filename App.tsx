@@ -38,6 +38,7 @@ import { getMoscowTodayKey } from './lib/date-utils';
 import { getHoroscopeBackground, getSynastryBackground } from './lib/visualBackgrounds';
 import { isValidUserId } from './lib/userId';
 import { LumiaDebugOverlay } from './components/lumia-ui/LumiaDebugOverlay';
+import { LumiaBottomTabBar } from './components/lumia-ui/LumiaBottomTabBar';
 import { captureLumiaHomeLayout, installLumiaDebugGlobal, lumiaDebugLog } from './lib/lumiaDebug';
 
 // Get owner ID from environment variables for security
@@ -752,24 +753,6 @@ const App: React.FC = () => {
         setView(newView);
     }, [profile, pushReturnView]);
 
-    const openNatalMode = useCallback((mode: NatalChartMode) => {
-        if (!profile) return;
-        const currentView = viewRef.current;
-        pushReturnView(currentView);
-        lumiaDebugLog('navigation', {
-            action: 'open_natal_mode',
-            from: currentView,
-            to: 'chart',
-            mode,
-            returnView: currentView === 'chart' ? 'dashboard' : currentView,
-            historyBeforeSet: navigationHistoryRef.current,
-        });
-        setActiveChartId(undefined);
-        setChartReturnView(currentView === 'chart' ? 'dashboard' : currentView);
-        setChartOpenMode(mode);
-        setView('chart');
-    }, [profile, pushReturnView]);
-
     const openHoroscopeLayer = useCallback((layer: HoroscopeLayer) => {
         lumiaDebugLog('navigation', {
             action: 'open_horoscope_layer',
@@ -846,6 +829,23 @@ const App: React.FC = () => {
     const openWallet = useCallback((returnView: ViewState) => {
         setWalletReturnView(returnView);
         navigateTo('wallet');
+    }, [navigateTo]);
+
+    const openBottomToday = useCallback(() => {
+        navigateTo('dashboard', { replace: true });
+    }, [navigateTo]);
+
+    const openBottomNatal = useCallback(() => {
+        navigateTo('chart', { replace: true });
+    }, [navigateTo]);
+
+    const openBottomSynastry = useCallback(() => {
+        setSynastryPrefill(null);
+        navigateTo('synastry', { replace: true });
+    }, [navigateTo]);
+
+    const openBottomAvatar = useCallback(() => {
+        navigateTo('settings', { replace: true });
     }, [navigateTo]);
 
     // Свайп назад от левого края (как в iOS)
@@ -954,7 +954,7 @@ const App: React.FC = () => {
                         />
                     </div>
                 ) : view === 'synastry' ? (
-                    <div className="lumia-main-scroll scrollbar-hide" ref={appScrollRef}>
+                    <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
                         <div className="lumia-app-header-spacer" aria-hidden />
                         <Synastry
                             profile={profile}
@@ -987,7 +987,7 @@ const App: React.FC = () => {
                         />
                     </div>
                 ) : view === 'chart' ? (
-                    <div className="lumia-main-scroll scrollbar-hide" ref={appScrollRef}>
+                    <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
                         <div className="lumia-app-header-spacer" aria-hidden />
                         <NatalChart 
                             data={chartData} 
@@ -1000,7 +1000,7 @@ const App: React.FC = () => {
                         />
                     </div>
                 ) : view === 'settings' ? (
-                    <div className="lumia-main-scroll scrollbar-hide" ref={appScrollRef}>
+                    <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
                         <div className="lumia-app-header-spacer" aria-hidden />
                         <Settings 
                             profile={profile} 
@@ -1064,20 +1064,23 @@ const App: React.FC = () => {
                             profile={profile} 
                             chartData={chartData}
                             chartId={activeChartId ?? null}
-                            onNavigate={(newView) => {
-                                if (newView === 'synastry') {
-                                    setSynastryPrefill(null);
-                                }
-                                navigateTo(newView);
-                            }} 
                             onOpenHoroscopeLayer={openHoroscopeLayer}
-                            onOpenNatalMode={openNatalMode}
-                            onOpenSettings={() => navigateTo('settings')}
                             scrollRef={dashboardScrollRef}
                         />
                     </div>
                 )}
             </main>
+
+            {profile ? (
+                <LumiaBottomTabBar
+                    profile={profile}
+                    view={view}
+                    onOpenToday={openBottomToday}
+                    onOpenNatal={openBottomNatal}
+                    onOpenSynastry={openBottomSynastry}
+                    onOpenAvatar={openBottomAvatar}
+                />
+            ) : null}
 
             {showPremiumPreview && (
                 <PremiumPreview language={profile?.language || 'ru'} onClose={() => setShowPremiumPreview(false)} onPurchase={requestPremium} />

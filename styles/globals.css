@@ -66,7 +66,11 @@
   --lumia-home-radius-nav: 1.45rem;
   --lumia-home-story-size: clamp(4.25rem, 18vw, 4.5rem);
   --lumia-home-icon-size: 2.45rem;
-  --lumia-home-nav-height: 4.35rem;
+  --lumia-bottom-tab-height: 4.28rem;
+  --lumia-bottom-tab-safe-bottom: max(env(safe-area-inset-bottom, 0px), var(--tg-safe-area-inset-bottom, 0px), var(--tg-content-safe-area-inset-bottom, 0px));
+  --lumia-bottom-tab-bottom-gap: 0.48rem;
+  --lumia-bottom-tab-clearance: calc(var(--lumia-bottom-tab-height) + var(--lumia-bottom-tab-safe-bottom) + 1.6rem);
+  --lumia-home-nav-height: var(--lumia-bottom-tab-height);
   --lumia-home-shadow-card: 0 18px 40px rgba(239, 35, 60, 0.1);
   --lumia-home-shadow-lifted: 0 14px 30px rgba(239, 35, 60, 0.26);
   --lumia-home-shadow-nav: 0 12px 34px rgba(23, 19, 20, 0.14);
@@ -130,6 +134,7 @@ body.theme-lumia-air #__next {
  * overscroll-behavior reduces rubber-banding chaining to the host WebView.
  */
 .lumia-main-scroll {
+  box-sizing: border-box;
   height: 100%;
   min-height: 0;
   max-height: 100%;
@@ -281,8 +286,13 @@ body.theme-lumia-air #__next {
   height: 100%;
 }
 
+.lumia-main-scroll.lumia-bottom-tab-scroll {
+  padding-bottom: var(--lumia-bottom-tab-clearance);
+  scroll-padding-bottom: var(--lumia-bottom-tab-clearance);
+}
+
 .lumia-home-scroll-content {
-  padding-bottom: calc(var(--lumia-home-nav-height) + max(env(safe-area-inset-bottom, 0px), var(--tg-safe-area-inset-bottom, 0px), var(--tg-content-safe-area-inset-bottom, 0px)) + 2.4rem);
+  padding-bottom: var(--lumia-bottom-tab-clearance);
 }
 
 .lumia-home-top-cluster {
@@ -570,6 +580,129 @@ body.theme-lumia-air #__next {
   letter-spacing: 0;
   line-height: 1;
   white-space: nowrap;
+}
+
+.lumia-bottom-tab-shell {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 80;
+  display: flex;
+  justify-content: center;
+  padding:
+    0
+    max(0.72rem, env(safe-area-inset-left, 0px), var(--tg-content-safe-area-inset-left, 0px))
+    calc(var(--lumia-bottom-tab-bottom-gap) + var(--lumia-bottom-tab-safe-bottom))
+    max(0.72rem, env(safe-area-inset-right, 0px), var(--tg-content-safe-area-inset-right, 0px));
+}
+
+.lumia-bottom-tab-bar {
+  display: grid;
+  width: min(100%, 27.6rem);
+  min-height: var(--lumia-bottom-tab-height);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: center;
+  gap: 0.08rem;
+  border-radius: 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.7)),
+    rgba(255, 255, 255, 0.66);
+  box-shadow:
+    0 16px 38px rgba(23, 19, 20, 0.12),
+    0 1px 0 rgba(255, 255, 255, 0.92) inset;
+  backdrop-filter: blur(30px) saturate(1.16);
+  -webkit-backdrop-filter: blur(30px) saturate(1.16);
+}
+
+.lumia-bottom-tab-item {
+  display: inline-flex;
+  min-width: 0;
+  min-height: 3.75rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.16rem;
+  border: 0;
+  border-radius: 1.45rem;
+  background: transparent;
+  color: rgba(23, 19, 20, 0.62);
+  font-family: var(--lumia-home-font-sans);
+  letter-spacing: 0;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    color 160ms ease,
+    transform 160ms ease,
+    background-color 160ms ease;
+}
+
+.lumia-bottom-tab-item:active {
+  transform: scale(0.97);
+}
+
+.lumia-bottom-tab-icon {
+  display: inline-flex;
+  width: 1.76rem;
+  height: 1.76rem;
+  align-items: center;
+  justify-content: center;
+  color: currentColor;
+}
+
+.lumia-bottom-tab-label {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 0.69rem;
+  font-weight: 750;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lumia-bottom-tab-item.is-active {
+  color: var(--lumia-home-purple);
+}
+
+.lumia-bottom-tab-item.is-active .lumia-bottom-tab-label {
+  font-weight: 850;
+}
+
+.lumia-bottom-tab-avatar {
+  display: inline-flex;
+  width: 1.82rem;
+  height: 1.82rem;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 65% 22%, rgba(255, 212, 0, 0.9), transparent 48%),
+    linear-gradient(135deg, #ffffff, #ffe9ec);
+  color: var(--lumia-home-purple-deep);
+  font-size: 0.78rem;
+  font-weight: 850;
+  box-shadow:
+    0 0 0 1px rgba(23, 19, 20, 0.08),
+    0 1px 0 rgba(255, 255, 255, 0.9) inset;
+}
+
+.lumia-bottom-tab-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.lumia-bottom-tab-avatar > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lumia-bottom-tab-item.is-active .lumia-bottom-tab-avatar {
+  box-shadow:
+    0 0 0 2px rgba(239, 35, 60, 0.24),
+    0 1px 0 rgba(255, 255, 255, 0.9) inset;
 }
 
 .lumia-home-bottom-nav-shell {
@@ -1016,7 +1149,8 @@ body.theme-lumia-air #__next {
     --lumia-home-page-x: 0.9rem;
     --lumia-home-story-size: 3.95rem;
     --lumia-home-icon-size: 2.35rem;
-    --lumia-home-nav-height: 4.2rem;
+    --lumia-bottom-tab-height: 4.2rem;
+    --lumia-home-nav-height: var(--lumia-bottom-tab-height);
   }
 
   .lumia-home-top-cluster {
