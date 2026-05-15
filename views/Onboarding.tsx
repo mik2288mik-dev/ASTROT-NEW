@@ -103,10 +103,10 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         className="mx-auto flex h-full w-full max-w-md flex-col"
       >
         <div>
-          <p className="mb-0 font-serif text-[2.9rem] font-semibold leading-none tracking-[-0.065em] text-[#1f1f1f]">
+          <p className="lumia-brand-wordmark">
             LUMIA
           </p>
-          <p className="mb-0 mt-2 text-[9px] uppercase tracking-[0.32em] text-[#8a857d]">Твой путь к себе</p>
+          <p className="lumia-brand-tagline">Твой путь к себе</p>
         </div>
 
         <div className="mt-10">

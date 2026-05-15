@@ -61,7 +61,7 @@ export const StudioBrandBlock: React.FC<StudioBrandBlockProps> = ({
         <div aria-hidden className="h-10 w-[72px]" />
         <div className="min-w-0 text-center">
           <div className="inline-flex flex-col items-center">
-            <p className="relative top-[2px] mb-0 font-serif text-[2.9rem] font-semibold leading-none tracking-[-0.065em] text-[#1f1f1f]">
+            <p className="lumia-brand-wordmark relative top-[2px]">
               {brandLetters.map((letter, index) =>
                 shouldAnimateBrand ? (
                   <motion.span
@@ -93,7 +93,7 @@ export const StudioBrandBlock: React.FC<StudioBrandBlockProps> = ({
             <motion.p
               animate={taglineAnimate}
               transition={taglineTransition}
-              className="mb-0 mt-2 text-[9px] uppercase tracking-[0.32em] text-[#8a857d]"
+              className="lumia-brand-tagline"
             >
               {tagline}
             </motion.p>

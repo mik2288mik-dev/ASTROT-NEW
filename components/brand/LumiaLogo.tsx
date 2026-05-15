@@ -50,7 +50,7 @@ export const LumiaLogo = memo<LumiaLogoProps>(({ variant = 'row', className = ''
     <span className={`inline-flex items-center gap-2.5 ${className}`}>
       {mark}
       <span
-        className={`font-serif text-lg font-semibold tracking-[0.12em] sm:text-xl ${textClass}`}
+        className={`lumia-brand-wordmark-row ${textClass}`}
         style={{ fontFeatureSettings: '"smcp" 0' }}
       >
         LUMIA
