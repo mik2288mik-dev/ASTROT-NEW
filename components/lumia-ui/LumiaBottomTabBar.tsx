@@ -37,12 +37,13 @@ function NatalCircleIcon(props: IconProps) {
   );
 }
 
-function UnionOrbitIcon(props: IconProps) {
+function UnionRingsIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M10.2 9.2c-3 0-5.4 2.34-5.4 5.22s2.4 5.22 5.4 5.22c2.02 0 3.32-.86 4.76-2.5L17.9 14c1.2-1.3 2.22-1.86 3.66-1.86 2.04 0 3.64 1.42 3.64 3.24s-1.6 3.24-3.64 3.24c-1.5 0-2.5-.6-3.78-1.9" strokeWidth="2.25" />
-      <path d="M17.8 18.8c3 0 5.4-2.34 5.4-5.22s-2.4-5.22-5.4-5.22c-2.02 0-3.32.86-4.76 2.5L10.1 14c-1.2 1.3-2.22 1.86-3.66 1.86-2.04 0-3.64-1.42-3.64-3.24S4.4 9.38 6.44 9.38c1.5 0 2.5.6 3.78 1.9" strokeWidth="2.25" opacity="0.72" />
-      <circle cx="14" cy="14" r="1.25" fill="currentColor" stroke="none" />
+      <circle cx="10.8" cy="14" r="6.1" strokeWidth="2.15" />
+      <circle cx="17.2" cy="14" r="6.1" strokeWidth="2.15" opacity="0.72" />
+      <path d="M12.1 10.3c1.22.84 2.17 2.16 2.58 3.7-.41 1.54-1.36 2.86-2.58 3.7" strokeWidth="1.65" opacity="0.9" />
+      <path d="M15.9 10.3c-1.22.84-2.17 2.16-2.58 3.7.41 1.54 1.36 2.86 2.58 3.7" strokeWidth="1.65" opacity="0.56" />
     </svg>
   );
 }
@@ -115,7 +116,7 @@ export function LumiaBottomTabBar({
       id: 'union',
       label: labels.union,
       active: view === 'synastry',
-      icon: <UnionOrbitIcon />,
+      icon: <UnionRingsIcon />,
       onClick: onOpenSynastry,
     },
     {

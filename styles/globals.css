@@ -589,34 +589,67 @@ body.theme-lumia-air #__next {
   left: 0;
   z-index: 80;
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
   padding:
     0
-    max(0.72rem, env(safe-area-inset-left, 0px), var(--tg-content-safe-area-inset-left, 0px))
+    max(4.8rem, env(safe-area-inset-right, 0px), var(--tg-content-safe-area-inset-right, 0px))
     calc(var(--lumia-bottom-tab-bottom-gap) + var(--lumia-bottom-tab-safe-bottom))
-    max(0.72rem, env(safe-area-inset-right, 0px), var(--tg-content-safe-area-inset-right, 0px));
+    max(1.18rem, env(safe-area-inset-left, 0px), var(--tg-content-safe-area-inset-left, 0px));
 }
 
 .lumia-bottom-tab-bar {
+  position: relative;
   display: grid;
-  width: clamp(18.8rem, calc(100% - 4.75rem), 21.6rem);
+  width: min(100%, 21.05rem);
   min-height: var(--lumia-bottom-tab-height);
   grid-template-columns: repeat(4, minmax(0, 1fr));
   align-items: center;
   gap: 0;
   border-radius: 1.95rem;
-  border: 1px solid rgba(255, 255, 255, 0.84);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.74);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.7)),
-    rgba(255, 255, 255, 0.58);
+    radial-gradient(circle at 16% 8%, rgba(255, 255, 255, 0.82), transparent 34%),
+    radial-gradient(circle at 86% 12%, rgba(255, 255, 255, 0.46), transparent 38%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.46), rgba(255, 255, 255, 0.18)),
+    rgba(255, 255, 255, 0.18);
   box-shadow:
-    0 14px 34px rgba(23, 19, 20, 0.11),
-    0 1px 0 rgba(255, 255, 255, 0.92) inset;
-  backdrop-filter: blur(32px) saturate(1.18);
-  -webkit-backdrop-filter: blur(32px) saturate(1.18);
+    0 16px 34px rgba(23, 19, 20, 0.14),
+    0 1px 0 rgba(255, 255, 255, 0.74) inset,
+    0 -1px 0 rgba(255, 255, 255, 0.36) inset;
+  backdrop-filter: blur(22px) saturate(1.55) brightness(1.08);
+  -webkit-backdrop-filter: blur(22px) saturate(1.55) brightness(1.08);
+}
+
+.lumia-bottom-tab-bar::before,
+.lumia-bottom-tab-bar::after {
+  position: absolute;
+  inset: 0;
+  content: '';
+  pointer-events: none;
+}
+
+.lumia-bottom-tab-bar::before {
+  z-index: 0;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.68), rgba(255, 255, 255, 0.08) 46%, rgba(255, 255, 255, 0.22)),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.34), transparent 18%, transparent 82%, rgba(255, 255, 255, 0.2));
+  opacity: 0.74;
+}
+
+.lumia-bottom-tab-bar::after {
+  z-index: 1;
+  border-radius: inherit;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.4) inset,
+    0 9px 18px rgba(255, 255, 255, 0.3) inset;
+  mix-blend-mode: screen;
+  opacity: 0.72;
 }
 
 .lumia-bottom-tab-item {
+  position: relative;
+  z-index: 2;
   display: inline-flex;
   min-width: 0;
   min-height: 3.75rem;
