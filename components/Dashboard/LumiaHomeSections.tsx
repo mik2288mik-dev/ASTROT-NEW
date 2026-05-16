@@ -86,6 +86,13 @@ const PULSE_LAYER_LABELS: Record<LumiaHomeLanguage, Record<TodayPulseLayerKey, s
 
 const PULSE_LAYER_ORDER: TodayPulseLayerKey[] = ['energy', 'focus', 'emotions', 'money', 'relationships'];
 
+const PULSE_SCORE_BANDS = [
+  { min: 0, max: 49, label: { ru: 'спад', en: 'low' }, color: '#2f5f7a' },
+  { min: 50, max: 63, label: { ru: 'ровно', en: 'steady' }, color: '#00a7ff' },
+  { min: 64, max: 75, label: { ru: 'сильно', en: 'strong' }, color: '#18c964' },
+  { min: 76, max: 100, label: { ru: 'пик', en: 'peak' }, color: '#ffb000' },
+];
+
 function pointToXY(point: TodayPulsePoint) {
   return {
     x: 12 + (point.hour / 23) * 396,
@@ -108,13 +115,36 @@ function dominantLayer(layers: TodayPulseLayers): TodayPulseLayerKey {
   return PULSE_LAYER_ORDER.reduce((best, key) => (layers[key] > layers[best] ? key : best), 'energy' as TodayPulseLayerKey);
 }
 
+function pulseScoreBand(score: number) {
+  return PULSE_SCORE_BANDS.find((band) => score >= band.min && score <= band.max) || PULSE_SCORE_BANDS[1];
+}
+
+function pulseScoreMeaning(score: number, language: LumiaHomeLanguage) {
+  if (language === 'en') {
+    if (score >= 76) return 'Best action slot: take the main task while energy and focus are both high.';
+    if (score >= 64) return 'Strong slot: good for work, messages, decisions, and visible progress.';
+    if (score >= 50) return 'Steady slot: keep a clean pace, finish small tasks, and avoid overload.';
+    return 'Low slot: reduce pressure, restore, simplify, and postpone heavy choices.';
+  }
+  if (score >= 76) return 'Лучшее окно для действия: энергия и фокус достаточно высокие, бери главную задачу.';
+  if (score >= 64) return 'Сильное окно: подходит для работы, переписок, решений и заметного прогресса.';
+  if (score >= 50) return 'Ровный слот: держи спокойный темп, закрывай мелкое и не перегружай день.';
+  return 'Спад: снижай давление, восстанавливайся и переноси тяжелые решения.';
+}
+
+function pulseIndexGuide(language: LumiaHomeLanguage) {
+  return language === 'ru'
+    ? 'Индекс 0-100: выше - больше энергии, фокуса и действия; ниже - восстановление и простой темп.'
+    : 'Index 0-100: higher means more energy, focus, and action; lower means recovery and a simple pace.';
+}
+
 function pulseHeatBackground(point: TodayPulsePoint) {
-  if (point.tone === 'caution') return 'linear-gradient(180deg,#ff4d6d 0%,#ef233c 100%)';
-  if (point.tone === 'restore') return 'linear-gradient(180deg,#6ee7ff 0%,#00a7ff 100%)';
-  if (point.score >= 76) return 'linear-gradient(180deg,#fff06a 0%,#ff9f1c 100%)';
-  if (point.score >= 64) return 'linear-gradient(180deg,#72f7a8 0%,#18c964 100%)';
-  if (point.score >= 52) return 'linear-gradient(180deg,#56d6ff 0%,#00a7ff 100%)';
-  return 'linear-gradient(180deg,#9b7cff 0%,#5b2ee5 100%)';
+  if (point.tone === 'caution') return 'linear-gradient(180deg,#ff4d6d 0%,#e50914 100%)';
+  if (point.tone === 'restore') return 'linear-gradient(180deg,#7ddfff 0%,#00a7ff 100%)';
+  if (point.score >= 76) return 'linear-gradient(180deg,#ffe45c 0%,#ff7a00 100%)';
+  if (point.score >= 64) return 'linear-gradient(180deg,#82f2a4 0%,#18c964 100%)';
+  if (point.score >= 52) return 'linear-gradient(180deg,#61d8ff 0%,#00a7ff 100%)';
+  return 'linear-gradient(180deg,#6fb7d6 0%,#2f5f7a 100%)';
 }
 
 function formatPulseDate(dateKey: string, language: LumiaHomeLanguage) {
@@ -149,15 +179,23 @@ function PulseLayerChip({
         {PULSE_LAYER_LABELS[language][layerKey]}
       </p>
       <p className="mb-0 mt-1 font-lumiaHomeDisplay text-[0.88rem] font-extrabold leading-none text-white">{value}</p>
+      <div className="mt-1 h-1 overflow-hidden rounded-full bg-white/12">
+        <div
+          className="h-full rounded-full bg-[linear-gradient(90deg,#00a7ff,#18c964,#ffd400,#ff7a00)]"
+          style={{ width: `${Math.max(8, Math.min(100, value))}%` }}
+        />
+      </div>
     </div>
   );
 }
 
 function PulseChart({
+  language,
   pulse,
   selected,
   onSelect,
 }: {
+  language: LumiaHomeLanguage;
   pulse: TodayPulse;
   selected: TodayPulsePoint;
   onSelect: (point: TodayPulsePoint) => void;
@@ -170,22 +208,31 @@ function PulseChart({
   const selectedXY = pointToXY(selected);
   const peakHour = pulse.peakPoint.hour;
   const keyHours = new Set(pulse.keyMoments.map((point) => point.hour));
+  const selectedBand = pulseScoreBand(selected.score);
 
   return (
-    <div className="lumia-home-pulse-chart relative mt-3.5 h-[9.6rem] overflow-hidden rounded-[1.05rem]">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_49%_22%,rgba(255,214,190,0.24),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.075),rgba(255,255,255,0.015))]" />
+    <div className="lumia-home-pulse-chart relative mt-3.5 h-[12.2rem] overflow-hidden rounded-[1.05rem]">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_48%_16%,rgba(255,228,92,0.22),transparent_32%),radial-gradient(circle_at_94%_72%,rgba(229,9,20,0.18),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.018))]" />
+      <div className="absolute left-3 right-3 top-2 flex items-center justify-between gap-2">
+        <div className="min-w-0 rounded-full border border-white/12 bg-black/18 px-2.5 py-1.5 font-lumiaHome text-[0.62rem] font-extrabold text-white/78 backdrop-blur-xl">
+          {selected.time} · {language === 'ru' ? 'индекс' : 'index'} {selected.score}/100 · {selectedBand.label[language]}
+        </div>
+        <div className="rounded-full border border-white/12 bg-white/[0.11] px-2 py-1 font-lumiaHome text-[0.58rem] font-extrabold uppercase text-white/54 backdrop-blur-xl">
+          {language === 'ru' ? 'лучшее' : 'best'} {pulse.peakPoint.time} · {pulse.peakPoint.score}
+        </div>
+      </div>
       <svg className="absolute inset-0 h-full w-full" viewBox="0 0 420 150" preserveAspectRatio="none" aria-label="Пульс дня">
         <defs>
           <linearGradient id={lineId} x1="0" x2="1" y1="0" y2="0">
             <stop offset="0%" stopColor="#00a7ff" />
             <stop offset="36%" stopColor="#18c964" />
             <stop offset="67%" stopColor="#ffd400" />
-            <stop offset="100%" stopColor="#ef233c" />
+            <stop offset="100%" stopColor="#e50914" />
           </linearGradient>
           <linearGradient id={fillId} x1="0" x2="0" y1="0" y2="1">
             <stop offset="0%" stopColor="#ffd400" stopOpacity="0.36" />
-            <stop offset="58%" stopColor="#ef233c" stopOpacity="0.12" />
-            <stop offset="100%" stopColor="#18072c" stopOpacity="0" />
+            <stop offset="58%" stopColor="#e50914" stopOpacity="0.11" />
+            <stop offset="100%" stopColor="#111111" stopOpacity="0" />
           </linearGradient>
           <filter id={glowId} x="-20%" y="-80%" width="140%" height="240%">
             <feGaussianBlur stdDeviation="4.5" result="blur" />
@@ -206,7 +253,7 @@ function PulseChart({
           const x = 12 + (hour / 23) * 396;
           return <line key={hour} x1={x} x2={x} y1="18" y2="140" stroke="rgba(255,255,255,0.08)" strokeWidth="1" />;
         })}
-        <path d={path} fill="none" stroke="rgba(255,255,255,0.13)" strokeWidth="13" strokeLinecap="round" />
+        <path d={path} fill="none" stroke="rgba(255,255,255,0.13)" strokeWidth="12" strokeLinecap="round" />
         <path d={path} fill="none" stroke={`url(#${lineId})`} strokeWidth="5" strokeLinecap="round" filter={`url(#${glowId})`} />
         {pulse.points.map((point) => {
           const { x, y } = pointToXY(point);
@@ -239,8 +286,27 @@ function PulseChart({
         })}
         <line x1={selectedXY.x} x2={selectedXY.x} y1="18" y2="140" stroke="rgba(255,255,255,0.16)" strokeWidth="1.5" strokeDasharray="4 6" />
       </svg>
+      <div className="absolute inset-x-3 bottom-[4.05rem] flex gap-1.5">
+        {pulse.windows.map((window) => {
+          const start = Number.parseInt(window.start.slice(0, 2), 10);
+          const endRaw = window.end === '00:00' ? 24 : Number.parseInt(window.end.slice(0, 2), 10);
+          const duration = Math.max(1, endRaw - start);
+          return (
+            <button
+              key={`${window.start}-${window.end}`}
+              type="button"
+              onClick={() => onSelect(pulse.points[start] || selected)}
+              className="min-w-0 rounded-full border border-white/10 bg-black/18 px-1.5 py-1 text-center font-lumiaHome text-[0.52rem] font-extrabold uppercase leading-none text-white/58 backdrop-blur-xl"
+              style={{ flex: `${duration} 1 0` }}
+              title={`${window.start}-${window.end}`}
+            >
+              <span className="block truncate">{window.label}</span>
+            </button>
+          );
+        })}
+      </div>
       <div
-        className="absolute inset-x-3 bottom-7 grid h-3 gap-[2px]"
+        className="absolute inset-x-3 bottom-[2.55rem] grid h-[1.15rem] gap-[2px]"
         style={{ gridTemplateColumns: 'repeat(24, minmax(0, 1fr))' }}
         aria-label="Тепловая карта пульса дня"
       >
@@ -255,7 +321,7 @@ function PulseChart({
               title={`${point.time} · ${point.score}`}
               onClick={() => onSelect(point)}
               className={[
-                'h-full min-w-0 rounded-full transition-transform active:scale-y-125',
+                'h-full min-w-0 rounded-[0.32rem] transition-transform active:scale-y-125',
                 isSelected ? 'ring-2 ring-white shadow-[0_0_14px_rgba(255,255,255,0.58)]' : '',
                 isKey && !isSelected ? 'ring-1 ring-white/[0.34]' : '',
               ].join(' ')}
@@ -267,12 +333,20 @@ function PulseChart({
           );
         })}
       </div>
-      <div className="absolute inset-x-3 bottom-2 flex justify-between font-lumiaHome text-[0.56rem] font-extrabold text-white/45">
+      <div className="absolute inset-x-3 bottom-[1.45rem] flex justify-between font-lumiaHome text-[0.56rem] font-extrabold text-white/45">
         <span>00</span>
         <span>06</span>
         <span>12</span>
         <span>18</span>
         <span>00</span>
+      </div>
+      <div className="absolute inset-x-3 bottom-2 flex items-center justify-between gap-1.5">
+        {PULSE_SCORE_BANDS.map((band) => (
+          <div key={band.label.ru} className="flex min-w-0 items-center gap-1 font-lumiaHome text-[0.5rem] font-extrabold uppercase text-white/48">
+            <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: band.color }} />
+            <span className="truncate">{band.min}-{band.max} {band.label[language]}</span>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -306,6 +380,20 @@ function PulseDetail({
         {point.summary}
       </p>
 
+      <div className="mt-3 rounded-[0.9rem] bg-white/[0.12] p-2.5 ring-1 ring-white/[0.1]">
+        <div className="flex items-center justify-between gap-2">
+          <p className="mb-0 font-lumiaHome text-[0.6rem] font-extrabold uppercase tracking-[0.07em] text-white/48">
+            {language === 'ru' ? 'Что значит индекс' : 'Index meaning'}
+          </p>
+          <p className="mb-0 font-lumiaHomeDisplay text-[0.95rem] font-extrabold leading-none text-[#ffd400]">
+            {point.score}/100
+          </p>
+        </div>
+        <p className="mb-0 mt-1.5 font-lumiaHome text-[0.7rem] font-bold leading-snug text-white">
+          {pulseScoreMeaning(point.score, language)}
+        </p>
+      </div>
+
       <div className="mt-3 grid grid-cols-5 gap-1.5">
         {PULSE_LAYER_ORDER.map((key) => (
           <PulseLayerChip key={key} language={language} layerKey={key} value={point.layers[key]} active={key === dominant} />
@@ -327,7 +415,10 @@ function PulseDetail({
         </div>
       </div>
 
-      <div className="mt-3 space-y-1.5">
+      <div className="mt-3 space-y-1.5 rounded-[0.85rem] bg-black/10 p-2.5 ring-1 ring-white/[0.07]">
+        <p className="mb-1 font-lumiaHome text-[0.58rem] font-extrabold uppercase tracking-[0.07em] text-white/42">
+          {language === 'ru' ? 'Почему так посчитано' : 'Why this score'}
+        </p>
         {point.reasons.slice(0, 3).map((reason) => (
           <p key={reason} className="mb-0 font-lumiaHome text-[0.67rem] font-semibold leading-snug text-white/64">
             {reason}
@@ -431,8 +522,8 @@ export function LumiaHomePulseCard({
   };
 
   return (
-    <LumiaHomeLargeCard className="lumia-home-pulse-card bg-[linear-gradient(135deg,#18072c_0%,#5010a8_54%,#ef233c_126%)] px-3.5 py-3.5 text-white shadow-[0_18px_44px_rgba(139,28,255,0.24)]">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_54%_6%,rgba(255,212,0,0.28),transparent_34%),radial-gradient(circle_at_15%_108%,rgba(0,167,255,0.24),transparent_38%)]" />
+    <LumiaHomeLargeCard className="lumia-home-pulse-card bg-[linear-gradient(135deg,#101010_0%,#241315_46%,#7f1225_86%,#ff7a00_145%)] px-3.5 py-3.5 text-white shadow-[0_18px_44px_rgba(229,9,20,0.18)]">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_62%_5%,rgba(255,228,92,0.24),transparent_34%),radial-gradient(circle_at_8%_108%,rgba(0,167,255,0.22),transparent_38%),radial-gradient(circle_at_92%_92%,rgba(229,9,20,0.22),transparent_34%)]" />
       {isLoading ? (
         <PulseLoadingState language={language} />
       ) : pulseResult?.status === 'needs_setup' ? (
@@ -447,6 +538,9 @@ export function LumiaHomePulseCard({
               <p className="mb-0 mt-1 font-lumiaHome text-[0.62rem] font-extrabold uppercase tracking-[0.07em] text-white/48">
                 {formatPulseDate(pulse.date, language)} · {language === 'ru' ? 'локальный ритм' : 'local rhythm'}
               </p>
+              <p className="mb-0 mt-1 max-w-[13.5rem] font-lumiaHome text-[0.68rem] font-bold leading-snug text-white/70">
+                {pulseIndexGuide(language)}
+              </p>
             </div>
             <div className="flex shrink-0 items-center gap-2">
               <button
@@ -459,7 +553,7 @@ export function LumiaHomePulseCard({
               <Sparkles size={17} className="text-[#ffd400]" strokeWidth={2.1} aria-hidden />
             </div>
           </div>
-          <PulseChart pulse={pulse} selected={selectedPoint} onSelect={selectPoint} />
+          <PulseChart language={language} pulse={pulse} selected={selectedPoint} onSelect={selectPoint} />
           <div className="mt-2 grid grid-cols-3 gap-2">
             {pulse.windows.slice(1, 4).map((window) => (
               <button
@@ -473,7 +567,7 @@ export function LumiaHomePulseCard({
                 className="min-h-[2.75rem] rounded-[0.8rem] bg-white/[0.075] px-2 text-center ring-1 ring-white/[0.08] transition-colors active:bg-white/[0.14]"
               >
                 <p className="mb-0 font-lumiaHome text-[0.7rem] font-extrabold leading-tight text-white">{window.label}</p>
-                <p className="mb-0 mt-0.5 font-lumiaHome text-[0.62rem] font-bold leading-tight text-white/56">{window.score}</p>
+                <p className="mb-0 mt-0.5 font-lumiaHome text-[0.62rem] font-bold leading-tight text-white/56">{window.score}/100</p>
               </button>
             ))}
           </div>

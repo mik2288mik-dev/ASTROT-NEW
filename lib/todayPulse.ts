@@ -378,19 +378,54 @@ function buildPointText(
   layers: TodayPulseLayers,
   transits: CurrentTransits,
   dominant: TodayPulseLayerKey,
-  hasHouses: boolean
+  hasHouses: boolean,
+  score: number
 ) {
   const moon = getZodiacSign(language, normalizeSign(transits.moon.sign));
   const mercury = transits.mercury ? getZodiacSign(language, normalizeSign(transits.mercury.sign)) : null;
   const venus = transits.venus ? getZodiacSign(language, normalizeSign(transits.venus.sign)) : null;
   const dominantLabel = LAYER_LABELS[language][dominant];
   const cautious = phaseConfig.phase === 'relationships' && layers.emotions < 46;
-  const title = cautious
-    ? language === 'ru' ? 'Эмоциональный шум' : 'Emotional noise'
-    : phaseConfig.label[language];
-  const summary = language === 'ru'
-    ? `${phaseConfig.summary.ru} Сильнее всего сейчас включен слой: ${dominantLabel}.`
-    : `${phaseConfig.summary.en} The strongest layer now is ${dominantLabel}.`;
+  const titleByPhase: Record<TodayPulsePhase, Record<Language, string>> = {
+    restore: { ru: 'Восстановление', en: 'Recovery' },
+    entry: { ru: 'Мягкий старт', en: 'Soft start' },
+    focus_peak: { ru: score >= 72 ? 'Пик фокуса' : 'Рабочее окно', en: score >= 72 ? 'Focus peak' : 'Work window' },
+    decisions: { ru: 'Решения и связи', en: 'Decisions and links' },
+    relationships: { ru: cautious ? 'Осторожнее с эмоциями' : 'Контакт и люди', en: cautious ? 'Careful with emotions' : 'People and connection' },
+    reflection: { ru: 'Закрыть день', en: 'Close the day' },
+  };
+  const summaryByPhase: Record<TodayPulsePhase, Record<Language, string>> = {
+    restore: {
+      ru: score >= 50 ? 'Можно спокойно восстановиться и закрыть простые хвосты.' : 'Не разгоняйся: это окно для сна, тишины и восстановления.',
+      en: score >= 50 ? 'A calm recovery window for simple loose ends.' : 'Do not push: this is for sleep, quiet, and recovery.',
+    },
+    entry: {
+      ru: 'Начни с порядка: план, быт, короткие задачи, без резкого старта.',
+      en: 'Start with order: plan, basics, short tasks, no hard launch.',
+    },
+    focus_peak: {
+      ru: score >= 72 ? 'Лучшее окно для главной задачи, документов, текста и планирования.' : 'Фокус есть, но лучше держать одну задачу и не распыляться.',
+      en: score >= 72 ? 'Best window for the main task, documents, writing, and planning.' : 'Focus is available, but keep it to one task.',
+    },
+    decisions: {
+      ru: 'Подходит для звонков, договоренностей, быстрых решений и рабочих правок.',
+      en: 'Good for calls, agreements, quick decisions, and work edits.',
+    },
+    relationships: {
+      ru: cautious ? 'Чувствительность выше обычного: не выясняй отношения на скорости.' : 'Хорошее окно для контакта, поддержки, личных разговоров и командных дел.',
+      en: cautious ? 'Sensitivity is higher: avoid rushing emotional talks.' : 'Good for contact, support, personal talks, and teamwork.',
+    },
+    reflection: {
+      ru: 'Закрывай день: итоги, дневник, душ, тишина, без новых тяжелых решений.',
+      en: 'Close the day: notes, shower, quiet, no new heavy decisions.',
+    },
+  };
+  const title = titleByPhase[phaseConfig.phase][language];
+  const summary = `${summaryByPhase[phaseConfig.phase][language]} ${
+    language === 'ru'
+      ? `Сильнее всего сейчас: ${dominantLabel}.`
+      : `Strongest right now: ${dominantLabel}.`
+  }`;
   const reasons = [
     language === 'ru'
       ? `Луна в ${moon} задает эмоциональный фон этого часа.`
@@ -418,7 +453,7 @@ function buildPointText(
   return { title, summary, reasons: reasons.slice(0, 4) };
 }
 
-function bestFor(language: Language, phase: TodayPulsePhase, dominant: TodayPulseLayerKey) {
+function bestFor(language: Language, phase: TodayPulsePhase) {
   const ru: Record<TodayPulsePhase, string[]> = {
     restore: ['сон', 'тишина', 'мягкое восстановление'],
     entry: ['план дня', 'порядок', 'первые простые задачи'],
@@ -436,10 +471,7 @@ function bestFor(language: Language, phase: TodayPulsePhase, dominant: TodayPuls
     reflection: ['close the day', 'journal', 'quiet without extra stimuli'],
   };
   const list = language === 'ru' ? ru[phase] : en[phase];
-  const layerHint = language === 'ru'
-    ? `усилить ${LAYER_LABELS.ru[dominant]}`
-    : `use ${LAYER_LABELS.en[dominant]}`;
-  return [layerHint, ...list].slice(0, 3);
+  return list.slice(0, 3);
 }
 
 function avoidFor(language: Language, phase: TodayPulsePhase, tone: TodayPulseTone) {
@@ -468,7 +500,7 @@ function buildPoint(
   const dominant = dominantLayer(layers);
   const score = calculateScore(layers, phase);
   const hasHouses = Array.isArray(chartData.houses) && chartData.houses.length >= 12;
-  const text = buildPointText(language, phaseConfig, layers, transits, dominant, hasHouses);
+  const text = buildPointText(language, phaseConfig, layers, transits, dominant, hasHouses, score);
   const tone: TodayPulseTone = phase === 'relationships' && layers.emotions < 46
     ? 'caution'
     : score >= 72
@@ -483,7 +515,7 @@ function buildPoint(
     title: text.title,
     summary: text.summary,
     reasons: text.reasons,
-    bestFor: bestFor(language, phase, dominant),
+    bestFor: bestFor(language, phase),
     avoid: avoidFor(language, phase, tone),
     tone,
     isKeyMoment: false,
