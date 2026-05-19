@@ -71,12 +71,33 @@ export function LumiaHomeHeroCard({
   );
 }
 
-function pointToOrbitXY(point: TodayPulsePoint) {
+function pointToWalletXY(point: TodayPulsePoint) {
   const progress = Math.max(0, Math.min(1, point.hour / 23));
+  const scoreProgress = Math.max(0, Math.min(1, (point.score - 35) / 65));
   return {
     x: 18 + progress * 324,
-    y: 70 - Math.sin(Math.PI * progress) * 38,
+    y: 76 - scoreProgress * 42,
   };
+}
+
+function buildWalletPulsePath(points: TodayPulsePoint[]) {
+  if (!points.length) return '';
+  const coords = points.map(pointToWalletXY);
+  return coords.reduce((path, point, index) => {
+    if (index === 0) return `M ${point.x.toFixed(1)} ${point.y.toFixed(1)}`;
+    const prev = coords[index - 1];
+    const midX = (prev.x + point.x) / 2;
+    return `${path} C ${midX.toFixed(1)} ${prev.y.toFixed(1)}, ${midX.toFixed(1)} ${point.y.toFixed(1)}, ${point.x.toFixed(1)} ${point.y.toFixed(1)}`;
+  }, '');
+}
+
+function buildWalletAreaPath(points: TodayPulsePoint[]) {
+  const linePath = buildWalletPulsePath(points);
+  if (!linePath || !points.length) return '';
+  const coords = points.map(pointToWalletXY);
+  const first = coords[0];
+  const last = coords[coords.length - 1];
+  return `${linePath} L ${last.x.toFixed(1)} 86 L ${first.x.toFixed(1)} 86 Z`;
 }
 
 function formatPulseDate(dateKey: string, language: LumiaHomeLanguage) {
@@ -245,10 +266,13 @@ function PulseChart({
   onSelectPoint: (point: TodayPulsePoint) => void;
 }) {
   const safeId = useId().replace(/:/g, '');
-  const orbitId = `pulseOrbit-${safeId}`;
-  const glowId = `pulseOrbitGlow-${safeId}`;
+  const lineId = `pulseWalletLine-${safeId}`;
+  const areaId = `pulseWalletArea-${safeId}`;
+  const glowId = `pulseWalletGlow-${safeId}`;
+  const linePath = useMemo(() => buildWalletPulsePath(pulse.points), [pulse.points]);
+  const areaPath = useMemo(() => buildWalletAreaPath(pulse.points), [pulse.points]);
   const moments = useMemo(() => buildTimelineMoments(pulse, language), [language, pulse]);
-  const selectedXY = pointToOrbitXY(selectedPoint);
+  const selectedXY = pointToWalletXY(selectedPoint);
   const selectedIsMoment = moments.some((moment) => moment.point.hour === selectedPoint.hour);
   const handleKeySelect = (event: React.KeyboardEvent<SVGGElement>, point: TodayPulsePoint) => {
     if (event.key === 'Enter' || event.key === ' ') {
@@ -258,16 +282,21 @@ function PulseChart({
   };
 
   return (
-    <div className="lumia-home-pulse-chart relative mt-3 h-[6.15rem] overflow-hidden rounded-[1.05rem] border border-white/45 bg-white/20">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_8%_18%,rgba(124,77,255,0.14),transparent_34%),radial-gradient(circle_at_92%_72%,rgba(255,138,0,0.18),transparent_34%),linear-gradient(135deg,rgba(255,255,255,0.58),rgba(255,239,217,0.16)_52%,rgba(255,227,240,0.28))]" />
-      <svg className="absolute inset-x-0 top-0 h-[4.65rem] w-full" viewBox="0 0 360 96" preserveAspectRatio="none" aria-label="Пульс дня">
+    <div className="lumia-home-pulse-chart relative mt-3 h-[6.2rem] overflow-hidden rounded-[1.05rem] border border-white/38 bg-white/[0.16]">
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.46),rgba(255,255,255,0.08)),radial-gradient(circle_at_16%_16%,rgba(0,167,255,0.10),transparent_34%),radial-gradient(circle_at_90%_92%,rgba(255,122,0,0.12),transparent_36%)]" />
+      <svg className="absolute inset-x-0 top-0 h-[4.9rem] w-full" viewBox="0 0 360 92" preserveAspectRatio="none" aria-label="Пульс дня">
         <defs>
-          <linearGradient id={orbitId} x1="0" x2="1" y1="0" y2="0">
-            <stop offset="0%" stopColor="#7c4dff" />
-            <stop offset="34%" stopColor="#ef3b62" />
-            <stop offset="58%" stopColor="#ff8a00" />
-            <stop offset="78%" stopColor="#f7c843" />
-            <stop offset="100%" stopColor="#805ad5" />
+          <linearGradient id={lineId} x1="0" x2="1" y1="0" y2="0">
+            <stop offset="0%" stopColor="#00a7ff" />
+            <stop offset="34%" stopColor="#8b1cff" />
+            <stop offset="57%" stopColor="#ef233c" />
+            <stop offset="76%" stopColor="#ff7a00" />
+            <stop offset="100%" stopColor="#ffd400" />
+          </linearGradient>
+          <linearGradient id={areaId} x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor="#ff7a00" stopOpacity="0.22" />
+            <stop offset="42%" stopColor="#ef233c" stopOpacity="0.10" />
+            <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
           </linearGradient>
           <filter id={glowId} x="-20%" y="-80%" width="140%" height="240%">
             <feGaussianBlur stdDeviation="4" result="blur" />
@@ -277,10 +306,12 @@ function PulseChart({
             </feMerge>
           </filter>
         </defs>
-        <path d="M 18 70 C 86 18, 274 18, 342 70" fill="none" stroke="rgba(48,19,45,0.08)" strokeWidth="9" strokeLinecap="round" />
-        <path d="M 18 70 C 86 18, 274 18, 342 70" fill="none" stroke={`url(#${orbitId})`} strokeWidth="4.6" strokeLinecap="round" filter={`url(#${glowId})`} />
+        <path d="M 18 86 H 342" fill="none" stroke="rgba(48,19,45,0.065)" strokeWidth="1" strokeLinecap="round" />
+        <path d={areaPath} fill={`url(#${areaId})`} />
+        <path d={linePath} fill="none" stroke="rgba(48,19,45,0.08)" strokeWidth="8" strokeLinecap="round" />
+        <path d={linePath} fill="none" stroke={`url(#${lineId})`} strokeWidth="4.2" strokeLinecap="round" filter={`url(#${glowId})`} />
         {moments.map((moment) => {
-          const { x, y } = pointToOrbitXY(moment.point);
+          const { x, y } = pointToWalletXY(moment.point);
           const isSelected = moment.point.hour === selectedPoint.hour;
           const isCurrent = moment.point.hour === pulse.currentPoint.hour;
           return (
@@ -293,26 +324,29 @@ function PulseChart({
               onKeyDown={(event) => handleKeySelect(event, moment.point)}
               className="cursor-pointer outline-none"
             >
-              <circle cx={x} cy={y} r={isSelected ? 14 : 9} fill={isSelected ? 'rgba(255,138,0,0.20)' : 'rgba(255,255,255,0.32)'} />
-              <circle cx={x} cy={y} r={isSelected ? 9 : 5.6} fill="#fffaf1" stroke={moment.color} strokeWidth={isSelected ? 4 : 2.4} />
-              <circle cx={x} cy={y} r={isSelected ? 3.4 : 2.5} fill={moment.color} />
+              <circle cx={x} cy={y} r="16" fill="transparent" />
+              <circle cx={x} cy={y} r={isSelected ? 12 : 7.8} fill={isSelected ? 'rgba(255,255,255,0.58)' : 'rgba(255,255,255,0.28)'} />
+              <circle cx={x} cy={y} r={isSelected ? 7.6 : 4.9} fill="#fffaf1" stroke={moment.color} strokeWidth={isSelected ? 3.8 : 2.1} />
+              <circle cx={x} cy={y} r={isSelected ? 2.9 : 2.1} fill={moment.color} />
               {isCurrent && !isSelected ? (
-                <circle cx={x} cy={y} r="11.5" fill="none" stroke="rgba(239,59,98,0.28)" strokeWidth="2.2" strokeDasharray="3 3" />
+                <circle cx={x} cy={y} r="10.4" fill="none" stroke="rgba(239,59,98,0.28)" strokeWidth="2" strokeDasharray="3 3" />
               ) : null}
             </g>
           );
         })}
         {!selectedIsMoment ? (
           <g>
-            <circle cx={selectedXY.x} cy={selectedXY.y} r="14" fill="rgba(255,138,0,0.20)" />
-            <circle cx={selectedXY.x} cy={selectedXY.y} r="9" fill="#fffaf1" stroke="#ff9f1c" strokeWidth="4" />
-            <circle cx={selectedXY.x} cy={selectedXY.y} r="3.4" fill="#ff7a00" />
+            <circle cx={selectedXY.x} cy={selectedXY.y} r="12" fill="rgba(255,255,255,0.58)" />
+            <circle cx={selectedXY.x} cy={selectedXY.y} r="7.6" fill="#fffaf1" stroke="#ff9f1c" strokeWidth="3.8" />
+            <circle cx={selectedXY.x} cy={selectedXY.y} r="2.9" fill="#ff7a00" />
           </g>
         ) : null}
       </svg>
-      <div className="pointer-events-none absolute left-2.5 right-2.5 top-1 flex items-center justify-between font-lumiaHome text-[0.55rem] font-extrabold text-[#5f5761]/48">
+      <div className="pointer-events-none absolute left-2.5 right-2.5 top-1.5 flex items-center justify-between font-lumiaHome text-[0.55rem] font-extrabold text-[#5f5761]/46">
         <span>00</span>
+        <span>06</span>
         <span>12</span>
+        <span>18</span>
         <span>24</span>
       </div>
       <div className="absolute inset-x-1.5 bottom-1 grid grid-cols-5 gap-1">
@@ -324,8 +358,8 @@ function PulseChart({
               type="button"
               onClick={() => onSelectPoint(moment.point)}
               className={[
-                'min-w-0 rounded-full px-1 py-1 text-center font-lumiaHome leading-none transition',
-                isSelected ? 'bg-white/74 text-[#30132d] shadow-[0_8px_18px_rgba(122,59,8,0.12)]' : 'text-[#6f6870]/82',
+                'min-w-0 px-1 py-1 text-center font-lumiaHome leading-none transition',
+                isSelected ? 'text-[#30132d]' : 'text-[#6f6870]/72',
               ].join(' ')}
             >
               <span className="block truncate text-[0.58rem] font-extrabold">{moment.shortLabel}</span>
