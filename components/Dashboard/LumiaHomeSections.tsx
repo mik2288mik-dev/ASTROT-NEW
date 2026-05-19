@@ -342,7 +342,7 @@ function PulseLoadingState({ language }: { language: LumiaHomeLanguage }) {
   return (
     <div className="relative z-10">
       <div className="flex items-center justify-between gap-3 px-1">
-        <h2 className="mb-0 font-lumiaHomeDisplay text-[0.86rem] font-extrabold uppercase leading-none tracking-[0.04em] text-[#af1f72]">
+        <h2 className="lumia-pulse-kicker mb-0">
           {language === 'ru' ? 'Пульс дня' : 'Day pulse'}
         </h2>
         <div className="h-8 w-[6.5rem] animate-pulse rounded-full bg-[#f8dca9]/70" />
@@ -361,7 +361,7 @@ function PulseSetupState({ language, onSetup }: { language: LumiaHomeLanguage; o
   return (
     <div className="relative z-10">
       <div className="flex items-center justify-between gap-3 px-1">
-        <h2 className="mb-0 font-lumiaHomeDisplay text-[0.86rem] font-extrabold uppercase leading-none tracking-[0.04em] text-[#af1f72]">
+        <h2 className="lumia-pulse-kicker mb-0">
           {language === 'ru' ? 'Пульс дня' : 'Day pulse'}
         </h2>
         <Sparkles size={17} className="text-[#ff9f1c]" strokeWidth={2.1} aria-hidden />
@@ -452,7 +452,7 @@ export function LumiaHomePulseCard({
         <div className="relative z-10">
           <div className="flex items-start justify-between gap-2 px-0.5">
             <div className="min-w-0">
-              <h2 className="mb-0 font-lumiaHomeDisplay text-[0.86rem] font-extrabold uppercase leading-none tracking-[0.04em] text-[#af1f72]">
+              <h2 className="lumia-pulse-kicker mb-0">
                 {copy.pulseTitle}
               </h2>
               <p className="mb-0 mt-1 font-lumiaHome text-[0.77rem] font-bold leading-none text-[#6f6870]">

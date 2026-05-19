@@ -76,6 +76,7 @@
   --lumia-home-shadow-nav: 0 12px 34px rgba(23, 19, 20, 0.14);
   --lumia-home-font-sans: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --lumia-home-font-display: 'Geologica', 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --lumia-home-font-pulse-kicker: 'Sofia Sans Extra Condensed', 'Geologica', 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --lumia-brand-wordmark-font: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --lumia-brand-wordmark-weight: 700;
   --lumia-brand-wordmark-letter-spacing: 0;
@@ -915,6 +916,24 @@ body.theme-lumia-air #__next {
   letter-spacing: 0;
   line-height: 0.98;
   text-wrap: balance;
+}
+
+.lumia-pulse-kicker {
+  display: inline-block;
+  background: linear-gradient(98deg, #ef233c 0%, #ff4f68 42%, #ff7a00 100%);
+  color: transparent;
+  font-family: var(--lumia-home-font-pulse-kicker);
+  font-size: 1.04rem;
+  font-style: italic;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 0.86;
+  text-transform: uppercase;
+  transform: skewX(-4deg);
+  transform-origin: left center;
+  -webkit-background-clip: text;
+  background-clip: text;
+  text-shadow: 0 8px 18px rgba(239, 35, 60, 0.12);
 }
 
 .lumia-home-body {
