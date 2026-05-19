@@ -41,8 +41,8 @@ export function UnifiedCollapsibleTopCluster({
     window.setTimeout(() => captureLumiaHomeLayout('home_header_mount'), 160);
   }, []);
 
-  const solidOpacity = useTransform(visualProgress, [0, 0.44, 1], [0, 0.18, 0.56]);
-  const shadowOpacity = useTransform(visualProgress, [0, 0.58, 1], [0, 0.04, 0.12]);
+  const solidOpacity = useTransform(rawProgress, [0, 0.46, 1], [0, 0.12, 0.38]);
+  const shadowOpacity = useTransform(rawProgress, [0, 0.62, 1], [0, 0.018, 0.055]);
   const expandedBrandOpacity = useTransform(visualProgress, [0, 0.24, 0.54], [1, 0.48, 0]);
   const expandedBrandY = useTransform(rawProgress, [0, 1], [0, -98]);
   const expandedBrandScale = useTransform(visualProgress, [0, 1], [1, 0.9]);

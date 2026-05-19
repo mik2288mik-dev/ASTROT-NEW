@@ -172,7 +172,6 @@ export const Dashboard = memo<DashboardProps>(
                 pulseResult={pulseResult}
                 isLoading={isPulseLoading}
                 onSetup={onOpenSettings}
-                onOpenFullRhythm={() => openHoroscope('chart')}
               />
               <LumiaHomeHeroCard language={language} onOpen={() => openHoroscope('sign')} />
               <LumiaHomeContentCards
