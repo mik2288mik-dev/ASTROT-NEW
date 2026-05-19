@@ -877,7 +877,7 @@ body.theme-lumia-air #__next {
   background: linear-gradient(98deg, #ef233c 0%, #ff4f68 42%, #ff7a00 100%);
   color: transparent;
   font-family: var(--lumia-home-font-pulse-kicker);
-  font-size: 1.04rem;
+  font-size: clamp(1.82rem, 8.4vw, 2.08rem);
   font-style: italic;
   font-weight: 900;
   letter-spacing: 0;
