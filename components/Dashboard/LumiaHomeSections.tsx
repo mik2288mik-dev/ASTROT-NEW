@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useMemo, useState } from 'react';
+import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import {
   ArrowRight,
   Check,
@@ -269,80 +269,113 @@ function PulseChart({
   const lineId = `pulseWalletLine-${safeId}`;
   const areaId = `pulseWalletArea-${safeId}`;
   const glowId = `pulseWalletGlow-${safeId}`;
+  const chartRef = useRef<HTMLDivElement | null>(null);
   const linePath = useMemo(() => buildWalletPulsePath(pulse.points), [pulse.points]);
   const areaPath = useMemo(() => buildWalletAreaPath(pulse.points), [pulse.points]);
   const moments = useMemo(() => buildTimelineMoments(pulse, language), [language, pulse]);
   const selectedXY = pointToWalletXY(selectedPoint);
   const selectedIsMoment = moments.some((moment) => moment.point.hour === selectedPoint.hour);
+  const selectedProgress = Math.max(0, Math.min(1, selectedPoint.hour / 23));
+  const selectedPillTransform =
+    selectedProgress < 0.14 ? 'translateX(0)' : selectedProgress > 0.86 ? 'translateX(-100%)' : 'translateX(-50%)';
+  const selectedPillLabel = selectedPoint.time;
   const handleKeySelect = (event: React.KeyboardEvent<SVGGElement>, point: TodayPulsePoint) => {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
       onSelectPoint(point);
     }
   };
+  const handleChartPointer = (event: React.PointerEvent<HTMLDivElement>) => {
+    const rect = chartRef.current?.getBoundingClientRect();
+    if (!rect || rect.width <= 0) return;
+    const ratio = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+    const targetHour = Math.round(ratio * 23);
+    const point =
+      pulse.points.find((item) => item.hour === targetHour) ||
+      pulse.points.reduce((closest, item) =>
+        Math.abs(item.hour - targetHour) < Math.abs(closest.hour - targetHour) ? item : closest,
+      );
+    onSelectPoint(point);
+  };
 
   return (
-    <div className="lumia-home-pulse-chart relative mt-3 h-[6.2rem] overflow-hidden rounded-[1.05rem] border border-white/38 bg-white/[0.16]">
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.46),rgba(255,255,255,0.08)),radial-gradient(circle_at_16%_16%,rgba(0,167,255,0.10),transparent_34%),radial-gradient(circle_at_90%_92%,rgba(255,122,0,0.12),transparent_36%)]" />
-      <svg className="absolute inset-x-0 top-0 h-[4.9rem] w-full" viewBox="0 0 360 92" preserveAspectRatio="none" aria-label="Пульс дня">
-        <defs>
-          <linearGradient id={lineId} x1="0" x2="1" y1="0" y2="0">
-            <stop offset="0%" stopColor="#00a7ff" />
-            <stop offset="34%" stopColor="#8b1cff" />
-            <stop offset="57%" stopColor="#ef233c" />
-            <stop offset="76%" stopColor="#ff7a00" />
-            <stop offset="100%" stopColor="#ffd400" />
-          </linearGradient>
-          <linearGradient id={areaId} x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="#ff7a00" stopOpacity="0.22" />
-            <stop offset="42%" stopColor="#ef233c" stopOpacity="0.10" />
-            <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
-          </linearGradient>
-          <filter id={glowId} x="-20%" y="-80%" width="140%" height="240%">
-            <feGaussianBlur stdDeviation="4" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        </defs>
-        <path d="M 18 86 H 342" fill="none" stroke="rgba(48,19,45,0.065)" strokeWidth="1" strokeLinecap="round" />
-        <path d={areaPath} fill={`url(#${areaId})`} />
-        <path d={linePath} fill="none" stroke="rgba(48,19,45,0.08)" strokeWidth="8" strokeLinecap="round" />
-        <path d={linePath} fill="none" stroke={`url(#${lineId})`} strokeWidth="4.2" strokeLinecap="round" filter={`url(#${glowId})`} />
-        {moments.map((moment) => {
-          const { x, y } = pointToWalletXY(moment.point);
-          const isSelected = moment.point.hour === selectedPoint.hour;
-          const isCurrent = moment.point.hour === pulse.currentPoint.hour;
-          return (
-            <g
-              key={moment.id}
-              role="button"
-              tabIndex={0}
-              aria-label={`${moment.label} ${moment.point.time}`}
-              onClick={() => onSelectPoint(moment.point)}
-              onKeyDown={(event) => handleKeySelect(event, moment.point)}
-              className="cursor-pointer outline-none"
-            >
-              <circle cx={x} cy={y} r="16" fill="transparent" />
-              <circle cx={x} cy={y} r={isSelected ? 12 : 7.8} fill={isSelected ? 'rgba(255,255,255,0.58)' : 'rgba(255,255,255,0.28)'} />
-              <circle cx={x} cy={y} r={isSelected ? 7.6 : 4.9} fill="#fffaf1" stroke={moment.color} strokeWidth={isSelected ? 3.8 : 2.1} />
-              <circle cx={x} cy={y} r={isSelected ? 2.9 : 2.1} fill={moment.color} />
-              {isCurrent && !isSelected ? (
-                <circle cx={x} cy={y} r="10.4" fill="none" stroke="rgba(239,59,98,0.28)" strokeWidth="2" strokeDasharray="3 3" />
-              ) : null}
+    <div className="lumia-home-pulse-chart relative mt-3 h-[7.2rem] overflow-hidden rounded-[1.1rem] border border-white/42 bg-white/[0.18] shadow-[inset_0_1px_0_rgba(255,255,255,0.52)]">
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.58),rgba(255,255,255,0.08)),radial-gradient(circle_at_18%_0%,rgba(0,167,255,0.09),transparent_34%),radial-gradient(circle_at_96%_92%,rgba(255,122,0,0.12),transparent_38%)]" />
+      <div ref={chartRef} className="absolute inset-x-2 top-1.5 h-[5.25rem] cursor-pointer touch-pan-y" onPointerDown={handleChartPointer}>
+        <div
+          className="pointer-events-none absolute top-0 z-10 rounded-full bg-white/76 px-2 py-0.5 font-lumiaHome text-[0.58rem] font-extrabold leading-none text-[#30132d] shadow-[0_8px_18px_rgba(48,19,45,0.08)]"
+          style={{ left: `${selectedProgress * 100}%`, transform: selectedPillTransform }}
+        >
+          {selectedPillLabel}
+        </div>
+        <svg className="absolute inset-0 h-full w-full" viewBox="0 0 360 104" preserveAspectRatio="none" aria-label="Пульс дня">
+          <defs>
+            <linearGradient id={lineId} x1="0" x2="1" y1="0" y2="0">
+              <stop offset="0%" stopColor="#00a7ff" />
+              <stop offset="36%" stopColor="#8b1cff" />
+              <stop offset="58%" stopColor="#ef233c" />
+              <stop offset="78%" stopColor="#ff7a00" />
+              <stop offset="100%" stopColor="#ffd400" />
+            </linearGradient>
+            <linearGradient id={areaId} x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stopColor="#ff7a00" stopOpacity="0.20" />
+              <stop offset="52%" stopColor="#ef233c" stopOpacity="0.08" />
+              <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+            </linearGradient>
+            <filter id={glowId} x="-20%" y="-80%" width="140%" height="240%">
+              <feGaussianBlur stdDeviation="3.2" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+          {[0, 6, 12, 18, 24].map((hour) => {
+            const x = 18 + (Math.min(hour, 23) / 23) * 324;
+            return <line key={hour} x1={x} x2={x} y1="22" y2="88" stroke="rgba(48,19,45,0.055)" strokeWidth="1" />;
+          })}
+          {[40, 63, 86].map((y) => (
+            <line key={y} x1="18" x2="342" y1={y} y2={y} stroke="rgba(48,19,45,0.05)" strokeWidth="1" />
+          ))}
+          <path d={areaPath} fill={`url(#${areaId})`} />
+          <path d={linePath} fill="none" stroke="rgba(48,19,45,0.065)" strokeWidth="8" strokeLinecap="round" />
+          <path d={linePath} fill="none" stroke={`url(#${lineId})`} strokeWidth="4.2" strokeLinecap="round" filter={`url(#${glowId})`} />
+          <line x1={selectedXY.x} x2={selectedXY.x} y1="22" y2="88" stroke="rgba(48,19,45,0.16)" strokeWidth="1.2" strokeDasharray="3 4" />
+          {moments.map((moment) => {
+            const { x, y } = pointToWalletXY(moment.point);
+            const isSelected = moment.point.hour === selectedPoint.hour;
+            const isCurrent = moment.point.hour === pulse.currentPoint.hour;
+            return (
+              <g
+                key={moment.id}
+                role="button"
+                tabIndex={0}
+                aria-label={`${moment.label} ${moment.point.time}`}
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={() => onSelectPoint(moment.point)}
+                onKeyDown={(event) => handleKeySelect(event, moment.point)}
+                className="cursor-pointer outline-none"
+              >
+                <circle cx={x} cy={y} r="17" fill="transparent" />
+                <circle cx={x} cy={y} r={isSelected ? 12 : 7.6} fill={isSelected ? 'rgba(255,255,255,0.62)' : 'rgba(255,255,255,0.30)'} />
+                <circle cx={x} cy={y} r={isSelected ? 7.2 : 4.8} fill="#fffaf1" stroke={moment.color} strokeWidth={isSelected ? 3.6 : 2.1} />
+                <circle cx={x} cy={y} r={isSelected ? 2.8 : 2} fill={moment.color} />
+                {isCurrent && !isSelected ? (
+                  <circle cx={x} cy={y} r="10.2" fill="none" stroke="rgba(239,59,98,0.28)" strokeWidth="2" strokeDasharray="3 3" />
+                ) : null}
+              </g>
+            );
+          })}
+          {!selectedIsMoment ? (
+            <g>
+              <circle cx={selectedXY.x} cy={selectedXY.y} r="12" fill="rgba(255,255,255,0.62)" />
+              <circle cx={selectedXY.x} cy={selectedXY.y} r="7.2" fill="#fffaf1" stroke="#ff9f1c" strokeWidth="3.6" />
+              <circle cx={selectedXY.x} cy={selectedXY.y} r="2.8" fill="#ff7a00" />
             </g>
-          );
-        })}
-        {!selectedIsMoment ? (
-          <g>
-            <circle cx={selectedXY.x} cy={selectedXY.y} r="12" fill="rgba(255,255,255,0.58)" />
-            <circle cx={selectedXY.x} cy={selectedXY.y} r="7.6" fill="#fffaf1" stroke="#ff9f1c" strokeWidth="3.8" />
-            <circle cx={selectedXY.x} cy={selectedXY.y} r="2.9" fill="#ff7a00" />
-          </g>
-        ) : null}
-      </svg>
-      <div className="pointer-events-none absolute left-2.5 right-2.5 top-1.5 flex items-center justify-between font-lumiaHome text-[0.55rem] font-extrabold text-[#5f5761]/46">
+          ) : null}
+        </svg>
+      </div>
+      <div className="pointer-events-none absolute inset-x-4 bottom-[1.52rem] flex items-center justify-between font-lumiaHome text-[0.56rem] font-extrabold text-[#5f5761]/52">
         <span>00</span>
         <span>06</span>
         <span>12</span>
