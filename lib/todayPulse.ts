@@ -103,23 +103,6 @@ const PHASES: PhaseConfig[] = [
   },
 ];
 
-const LAYER_LABELS: Record<Language, Record<TodayPulseLayerKey, string>> = {
-  ru: {
-    energy: 'энергия',
-    focus: 'фокус',
-    emotions: 'эмоции',
-    money: 'деньги',
-    relationships: 'контакт',
-  },
-  en: {
-    energy: 'energy',
-    focus: 'focus',
-    emotions: 'emotions',
-    money: 'money',
-    relationships: 'connection',
-  },
-};
-
 function pad2(value: number) {
   return String(value).padStart(2, '0');
 }
@@ -384,7 +367,6 @@ function buildPointText(
   const moon = getZodiacSign(language, normalizeSign(transits.moon.sign));
   const mercury = transits.mercury ? getZodiacSign(language, normalizeSign(transits.mercury.sign)) : null;
   const venus = transits.venus ? getZodiacSign(language, normalizeSign(transits.venus.sign)) : null;
-  const dominantLabel = LAYER_LABELS[language][dominant];
   const cautious = phaseConfig.phase === 'relationships' && layers.emotions < 46;
   const titleByPhase: Record<TodayPulsePhase, Record<Language, string>> = {
     restore: { ru: 'Восстановление', en: 'Recovery' },
@@ -420,12 +402,30 @@ function buildPointText(
       en: 'Close the day: notes, shower, quiet, no new heavy decisions.',
     },
   };
+  const dominantSummary: Record<TodayPulseLayerKey, Record<Language, string>> = {
+    energy: {
+      ru: 'Есть ресурс на движение, но выиграет не скорость, а ровный темп.',
+      en: 'There is energy for movement, but a steady pace wins over speed.',
+    },
+    focus: {
+      ru: 'Фокус есть, но день не любит хаос. Выбери одну задачу и доведи ее до конца.',
+      en: 'Focus is available, but the day dislikes chaos. Choose one task and finish it.',
+    },
+    emotions: {
+      ru: 'Эмоции звучат громче обычного: отвечай после паузы, не на импульсе.',
+      en: 'Emotions are louder than usual: answer after a pause, not from impulse.',
+    },
+    money: {
+      ru: 'Хорошо идут расчеты, покупки, бюджет и решения, где важна конкретика.',
+      en: 'Good for numbers, purchases, budget, and decisions that need specifics.',
+    },
+    relationships: {
+      ru: 'Лучше идут диалоги, поддержка и договоренности без давления.',
+      en: 'Dialogue, support, and agreements work better without pressure.',
+    },
+  };
   const title = titleByPhase[phaseConfig.phase][language];
-  const summary = `${summaryByPhase[phaseConfig.phase][language]} ${
-    language === 'ru'
-      ? `Сильнее всего сейчас: ${dominantLabel}.`
-      : `Strongest right now: ${dominantLabel}.`
-  }`;
+  const summary = `${summaryByPhase[phaseConfig.phase][language]} ${dominantSummary[dominant][language]}`;
   const reasons = [
     language === 'ru'
       ? `Луна в ${moon} задает эмоциональный фон этого часа.`

@@ -306,6 +306,38 @@ export const getTodayOverview = async (
   };
 };
 
+const TODAY_PULSE_CLIENT_CACHE_TTL_MS = 10 * 60 * 1000;
+const todayPulseClientCache = new Map<string, { result?: TodayPulseResult; promise?: Promise<TodayPulseResult>; expiresAt: number }>();
+
+function todayPulseClientCacheKey(profile: UserProfile, chartId?: number | null, date?: string, chartData?: NatalChartData | null) {
+  const chartFingerprint = chartData
+    ? [
+        chartData.sun?.sign,
+        chartData.sun?.longitude ?? chartData.sun?.degree,
+        chartData.moon?.sign,
+        chartData.moon?.longitude ?? chartData.moon?.degree,
+        chartData.rising?.sign,
+        chartData.rising?.longitude ?? chartData.rising?.degree,
+      ].join('|')
+    : 'no-chart';
+  return [
+    profile.id || 'anonymous',
+    chartId ?? 'primary',
+    date || 'today',
+    profile.language || 'ru',
+    profile.birthDate || 'no-date',
+    profile.birthTime || 'no-time',
+    profile.birthPlace || 'no-place',
+    chartFingerprint,
+  ].join(':');
+}
+
+export function getCachedTodayPulse(profile: UserProfile, chartId?: number | null, date?: string, chartData?: NatalChartData | null): TodayPulseResult | null {
+  const entry = todayPulseClientCache.get(todayPulseClientCacheKey(profile, chartId, date, chartData));
+  if (!entry || !entry.result || entry.expiresAt <= Date.now()) return null;
+  return entry.result;
+}
+
 export const getTodayPulse = async (
   profile: UserProfile,
   chartData: NatalChartData | null,
@@ -316,45 +348,64 @@ export const getTodayPulse = async (
     throw buildApiError('Profile id is required');
   }
 
-  const response = await fetchWithTimeout(`${API_BASE_URL}/api/content/today/pulse`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      userId: profile.id,
-      profile,
-      chartData,
-      chartId,
-      date,
-    }),
-  }, 60000);
+  const cacheKey = todayPulseClientCacheKey(profile, chartId, date, chartData);
+  const cached = todayPulseClientCache.get(cacheKey);
+  if (cached?.result && cached.expiresAt > Date.now()) return cached.result;
+  if (cached?.promise && cached.expiresAt > Date.now()) return cached.promise;
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw buildApiError(
-      errorData.message || `Today pulse failed: ${response.status} ${response.statusText}`,
-      response.status,
-      errorData.code || errorData.error
-    );
-  }
+  const expiresAt = Date.now() + TODAY_PULSE_CLIENT_CACHE_TTL_MS;
+  const promise = (async (): Promise<TodayPulseResult> => {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/api/content/today/pulse`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: profile.id,
+        profile,
+        chartData,
+        chartId,
+        date,
+      }),
+    }, 60000);
 
-  const payload = await response.json();
-  if (payload?.status === 'ready' && payload?.pulse) {
-    return {
-      status: 'ready',
-      pulse: payload.pulse,
-      chartId: typeof payload.chartId === 'number' ? payload.chartId : null,
-      source: String(payload.source || 'today_pulse_v1'),
-    };
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw buildApiError(
+        errorData.message || `Today pulse failed: ${response.status} ${response.statusText}`,
+        response.status,
+        errorData.code || errorData.error
+      );
+    }
+
+    const payload = await response.json();
+    if (payload?.status === 'ready' && payload?.pulse) {
+      return {
+        status: 'ready',
+        pulse: payload.pulse,
+        chartId: typeof payload.chartId === 'number' ? payload.chartId : null,
+        source: String(payload.source || 'today_pulse_v1'),
+      };
+    }
+    if (payload?.status === 'needs_setup') {
+      return {
+        status: 'needs_setup',
+        code: 'PROFILE_BIRTH_DATA_REQUIRED',
+        message: String(payload.message || 'Add birth data to calculate the day pulse.'),
+        actionLabel: String(payload.actionLabel || 'Complete profile'),
+      };
+    }
+    throw buildApiError('Today pulse payload is invalid');
+  })();
+
+  todayPulseClientCache.set(cacheKey, { promise, expiresAt });
+
+  try {
+    const result = await promise;
+    todayPulseClientCache.set(cacheKey, { result, expiresAt });
+    return result;
+  } catch (error) {
+    todayPulseClientCache.delete(cacheKey);
+    throw error;
   }
-  if (payload?.status === 'needs_setup') {
-    return {
-      status: 'needs_setup',
-      code: 'PROFILE_BIRTH_DATA_REQUIRED',
-      message: String(payload.message || 'Add birth data to calculate the day pulse.'),
-      actionLabel: String(payload.actionLabel || 'Complete profile'),
-    };
-  }
-  throw buildApiError('Today pulse payload is invalid');
 };
 
 export const setHoroscopeReaction = async (

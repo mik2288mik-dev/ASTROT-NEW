@@ -13,7 +13,7 @@ import {
 } from '../components/Dashboard/LumiaHomeSections';
 import { UnifiedCollapsibleTopCluster } from '../components/lumia-ui/UnifiedCollapsibleTopCluster';
 import { captureLumiaHomeLayout, lumiaDebugLog } from '../lib/lumiaDebug';
-import { getTodayPulse } from '../services/astrologyService';
+import { getCachedTodayPulse, getTodayPulse } from '../services/astrologyService';
 
 interface DashboardProps {
   profile: UserProfile;
@@ -38,8 +38,12 @@ export const Dashboard = memo<DashboardProps>(
   ({ profile, chartData, chartId, onOpenHoroscopeLayer, onOpenSettings, scrollRef }) => {
     const shouldReduceMotion = useReducedMotion();
     const language = profile.language === 'en' ? 'en' : 'ru';
-    const [pulseResult, setPulseResult] = React.useState<TodayPulseResult | null>(null);
-    const [isPulseLoading, setIsPulseLoading] = React.useState(true);
+    const cachedPulse = React.useMemo(
+      () => getCachedTodayPulse(profile, chartId ?? null, undefined, chartData),
+      [chartData, chartId, profile.birthDate, profile.birthPlace, profile.birthTime, profile.id, profile.language]
+    );
+    const [pulseResult, setPulseResult] = React.useState<TodayPulseResult | null>(cachedPulse);
+    const [isPulseLoading, setIsPulseLoading] = React.useState(!cachedPulse);
     const pageVariants = shouldReduceMotion
       ? {
           hidden: { opacity: 0 },
@@ -82,6 +86,15 @@ export const Dashboard = memo<DashboardProps>(
             : 'Add birth date and place so Lumia can calculate your personal day pulse.',
           actionLabel: language === 'ru' ? 'Заполнить профиль' : 'Complete profile',
         });
+        return () => {
+          alive = false;
+        };
+      }
+
+      const cached = getCachedTodayPulse(profile, chartId ?? null, undefined, chartData);
+      if (cached) {
+        setPulseResult(cached);
+        setIsPulseLoading(false);
         return () => {
           alive = false;
         };
@@ -159,6 +172,7 @@ export const Dashboard = memo<DashboardProps>(
                 pulseResult={pulseResult}
                 isLoading={isPulseLoading}
                 onSetup={onOpenSettings}
+                onOpenFullRhythm={() => openHoroscope('chart')}
               />
               <LumiaHomeHeroCard language={language} onOpen={() => openHoroscope('sign')} />
               <LumiaHomeContentCards
