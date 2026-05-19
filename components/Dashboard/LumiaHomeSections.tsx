@@ -488,8 +488,8 @@ export function LumiaHomePulseCard({
           <PulseChart language={language} pulse={pulse} selectedPoint={selectedPoint} onSelectPoint={handleSelectPoint} />
 
           <div className="mt-3 space-y-2">
-            <div className="flex items-center gap-2.5 rounded-[1rem] bg-white/58 px-2.5 py-2.5 shadow-[inset_0_0_0_1px_rgba(48,19,45,0.052)]">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#f6bf56] text-white shadow-[0_8px_15px_rgba(246,191,86,0.24)]">
+            <div className="flex items-center gap-2.5 rounded-[1rem] bg-[#f3fff8]/58 px-2.5 py-2.5 shadow-[inset_0_0_0_1px_rgba(24,201,100,0.09)]">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#18c964] text-white shadow-[0_8px_15px_rgba(24,201,100,0.24)]">
                 <Check size={16} strokeWidth={2.7} />
               </span>
               <div className="min-w-0">
@@ -501,8 +501,8 @@ export function LumiaHomePulseCard({
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2.5 rounded-[1rem] bg-[#f8f1ff]/58 px-2.5 py-2.5 shadow-[inset_0_0_0_1px_rgba(48,19,45,0.047)]">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#9b6fd3] text-white shadow-[0_8px_15px_rgba(155,111,211,0.21)]">
+            <div className="flex items-center gap-2.5 rounded-[1rem] bg-[#fff2f4]/58 px-2.5 py-2.5 shadow-[inset_0_0_0_1px_rgba(239,35,60,0.08)]">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#ef233c] text-white shadow-[0_8px_15px_rgba(239,35,60,0.22)]">
                 <X size={16} strokeWidth={2.7} />
               </span>
               <div className="min-w-0">
