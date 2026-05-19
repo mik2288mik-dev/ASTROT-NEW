@@ -480,15 +480,7 @@ export function LumiaHomePulseCard({
             <p className="mb-0 mt-1.5 font-lumiaHomeDisplay text-[1rem] font-extrabold leading-none text-[#ef3b62]">
               {currentRange}
             </p>
-            <p
-              className="mb-0 mt-2 max-w-[20.5rem] font-lumiaHome text-[0.82rem] font-semibold leading-[1.34] text-[#2f2b31]"
-              style={{
-                display: '-webkit-box',
-                WebkitBoxOrient: 'vertical',
-                WebkitLineClamp: 2,
-                overflow: 'hidden',
-              }}
-            >
+            <p className="mb-0 mt-2 max-w-[20.5rem] font-lumiaHome text-[0.82rem] font-semibold leading-[1.34] text-[#2f2b31]">
               {currentSummary}
             </p>
           </div>
@@ -504,7 +496,7 @@ export function LumiaHomePulseCard({
                 <p className="mb-0 font-lumiaHome text-[0.8rem] font-extrabold leading-tight text-[#2f2b31]">
                   {language === 'ru' ? 'Лучше сейчас' : 'Best now'}
                 </p>
-                <p className="mb-0 mt-0.5 truncate font-lumiaHome text-[0.74rem] font-semibold leading-snug text-[#6f6870]">
+                <p className="mb-0 mt-0.5 font-lumiaHome text-[0.74rem] font-semibold leading-snug text-[#6f6870]">
                   {bestNow}
                 </p>
               </div>
@@ -517,7 +509,7 @@ export function LumiaHomePulseCard({
                 <p className="mb-0 font-lumiaHome text-[0.8rem] font-extrabold leading-tight text-[#2f2b31]">
                   {language === 'ru' ? 'Не стоит' : 'Avoid'}
                 </p>
-                <p className="mb-0 mt-0.5 truncate font-lumiaHome text-[0.74rem] font-semibold leading-snug text-[#6f6870]">
+                <p className="mb-0 mt-0.5 font-lumiaHome text-[0.74rem] font-semibold leading-snug text-[#6f6870]">
                   {avoidNow}
                 </p>
               </div>
