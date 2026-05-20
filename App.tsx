@@ -967,7 +967,6 @@ const App: React.FC = () => {
                     </div>
                 ) : view === 'horoscope' ? (
                     <div className="lumia-main-scroll scrollbar-hide" ref={appScrollRef}>
-                        <div className="lumia-app-header-spacer" aria-hidden />
                         <Horoscope 
                             profile={profile} 
                             chartData={chartData} 

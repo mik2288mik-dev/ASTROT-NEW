@@ -159,7 +159,7 @@ body.theme-lumia-air #__next {
   --lumia-app-safe-top: max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px), 24px);
   --lumia-app-compact-rail-height: 48px;
   position: relative;
-  z-index: 40;
+  z-index: 50;
   flex-shrink: 0;
   box-sizing: border-box;
   height: calc(var(--lumia-app-safe-top) + var(--lumia-app-compact-rail-height));
@@ -169,35 +169,12 @@ body.theme-lumia-air #__next {
   color: var(--lumia-home-text);
   font-family: var(--lumia-home-font-sans);
   transform: translateZ(0);
-}
-
-.lumia-app-header-bg,
-.lumia-app-header-shadow {
-  position: absolute;
-  top: 0;
-  right: 0;
-  left: 0;
-  height: calc(var(--lumia-app-safe-top) + var(--lumia-app-compact-rail-height));
-  pointer-events: none;
-}
-
-.lumia-app-header-bg {
-  z-index: 0;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.42)),
-    rgba(255, 255, 255, 0.22);
-  backdrop-filter: blur(18px) saturate(1.08);
-  -webkit-backdrop-filter: blur(18px) saturate(1.08);
-}
-
-.lumia-app-header-shadow {
-  z-index: 1;
-  box-shadow: 0 8px 18px rgba(42, 22, 51, 0.04);
+  isolation: isolate;
 }
 
 .lumia-app-header-spacer {
-  height: 64px;
-  flex: 0 0 64px;
+  height: 136px;
+  flex: 0 0 136px;
   pointer-events: none;
 }
 
@@ -208,7 +185,7 @@ body.theme-lumia-air #__next {
   left: 0;
   width: 100%;
   max-width: 28rem;
-  height: calc(100% - var(--lumia-app-safe-top));
+  height: 184px;
   margin: 0 auto;
   overflow: visible;
   padding-right: max(var(--lumia-home-page-x), env(safe-area-inset-right, 0px), var(--tg-content-safe-area-inset-right, 0px), var(--tg-safe-area-inset-right, 0px));
@@ -217,9 +194,12 @@ body.theme-lumia-air #__next {
 
 .lumia-app-expanded-brand-layer {
   position: absolute;
-  inset: 0.08rem 0 auto;
+  top: 0.08rem;
+  right: max(5.35rem, var(--lumia-home-page-x));
+  left: max(5.35rem, var(--lumia-home-page-x));
   z-index: 3;
-  min-height: 5rem;
+  min-width: 0;
+  text-align: center;
   transform-origin: top center;
   will-change: transform, opacity;
 }
@@ -270,8 +250,8 @@ body.theme-lumia-air #__next {
 }
 
 .lumia-app-logo {
-  margin-bottom: 0;
-  color: #1f1f1f;
+  margin: 0;
+  color: #202020;
   font-family: var(--lumia-brand-wordmark-font);
   font-size: clamp(2.5rem, 10.8vw, 2.86rem);
   font-weight: var(--lumia-brand-wordmark-weight);
@@ -282,9 +262,8 @@ body.theme-lumia-air #__next {
 }
 
 .lumia-app-tagline {
-  margin-bottom: 0;
-  margin-top: var(--lumia-brand-tagline-gap);
-  color: #8a857d;
+  margin: var(--lumia-brand-tagline-gap) 0 0;
+  color: #8a7d81;
   font-size: 9px;
   font-weight: 500;
   letter-spacing: 0;
@@ -302,8 +281,8 @@ body.theme-lumia-air #__next {
   height: var(--lumia-app-compact-rail-height);
   align-items: center;
   justify-content: center;
-  transform-origin: top center;
   pointer-events: none;
+  transform-origin: center center;
   will-change: transform, opacity;
 }
 
@@ -312,7 +291,7 @@ body.theme-lumia-air #__next {
   color: #202020;
   font-family: var(--lumia-brand-wordmark-font);
   font-size: 1.72rem;
-  font-weight: 750;
+  font-weight: 760;
   letter-spacing: var(--lumia-brand-wordmark-letter-spacing);
   line-height: 1;
   white-space: nowrap;
