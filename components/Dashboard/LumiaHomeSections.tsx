@@ -3,12 +3,26 @@ import {
   ArrowRight,
   Check,
   Clock3,
+  MessageCircle,
   Lock,
   Moon,
+  PiggyBank,
+  ShoppingBag,
   Sparkles,
+  Users,
+  Briefcase,
   X,
 } from 'lucide-react';
-import type { TodayPulse, TodayPulsePhase, TodayPulsePoint, TodayPulseResult } from '../../types';
+import type {
+  ActionTimingKey,
+  ActionTimingRecommendation,
+  DailyCheckInInput,
+  TodayAssistantHomeResult,
+  TodayPulse,
+  TodayPulsePhase,
+  TodayPulsePoint,
+  TodayPulseResult,
+} from '../../types';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
 import { lumiaDebugLog } from '../../lib/lumiaDebug';
 import {
@@ -599,6 +613,333 @@ export function LumiaHomePulseCard({
       ) : (
         <PulseLoadingState language={language} />
       )}
+    </LumiaHomeLargeCard>
+  );
+}
+
+const ACTION_META: Record<ActionTimingKey, {
+  ru: string;
+  en: string;
+  icon: React.ComponentType<{ size?: number; strokeWidth?: number }>;
+}> = {
+  message: { ru: 'Написать', en: 'Message', icon: MessageCircle },
+  money: { ru: 'Деньги', en: 'Money', icon: PiggyBank },
+  purchase: { ru: 'Купить', en: 'Buy', icon: ShoppingBag },
+  serious_talk: { ru: 'Поговорить', en: 'Talk', icon: Users },
+  work: { ru: 'Работа', en: 'Work', icon: Briefcase },
+  rest: { ru: 'Отдых', en: 'Rest', icon: Moon },
+};
+
+const CHECKIN_OPTIONS = {
+  focus: [
+    { value: 'low', ru: 'низкий', en: 'low' },
+    { value: 'normal', ru: 'норм', en: 'ok' },
+    { value: 'high', ru: 'высокий', en: 'high' },
+  ],
+  mood: [
+    { value: 'heavy', ru: 'тяжело', en: 'heavy' },
+    { value: 'steady', ru: 'ровно', en: 'steady' },
+    { value: 'good', ru: 'хорошо', en: 'good' },
+  ],
+  people: [
+    { value: 'social', ru: 'общение', en: 'contact' },
+    { value: 'quiet', ru: 'тишина', en: 'quiet' },
+  ],
+  forecastFit: [
+    { value: 'yes', ru: 'да', en: 'yes' },
+    { value: 'partial', ru: 'частично', en: 'partly' },
+    { value: 'no', ru: 'нет', en: 'no' },
+  ],
+} as const;
+
+function TodayAssistantSkeleton({ language }: { language: LumiaHomeLanguage }) {
+  return (
+    <LumiaHomeLargeCard className="border border-[#30132d]/[0.06] bg-white/70 px-4 py-4">
+      <div className="h-4 w-36 animate-pulse rounded-full bg-black/10" />
+      <div className="mt-4 h-14 animate-pulse rounded-[1rem] bg-black/8" />
+      <div className="mt-3 grid grid-cols-3 gap-2">
+        <div className="h-11 animate-pulse rounded-full bg-black/8" />
+        <div className="h-11 animate-pulse rounded-full bg-black/8" />
+        <div className="h-11 animate-pulse rounded-full bg-black/8" />
+      </div>
+      <p className="sr-only">{language === 'ru' ? 'Загрузка Сегодня' : 'Loading Today'}</p>
+    </LumiaHomeLargeCard>
+  );
+}
+
+function segmentedClass(active: boolean) {
+  return [
+    'min-h-[2.25rem] rounded-full px-3 py-2 text-[0.75rem] font-extrabold transition-colors',
+    active ? 'bg-[#202020] text-white' : 'bg-white/58 text-[#4f4851]',
+  ].join(' ');
+}
+
+function DailyCheckInCard({
+  language,
+  initial,
+  isSubmitting,
+  onSubmit,
+}: {
+  language: LumiaHomeLanguage;
+  initial?: DailyCheckInInput;
+  isSubmitting: boolean;
+  onSubmit: (input: DailyCheckInInput) => Promise<void>;
+}) {
+  const [form, setForm] = useState<DailyCheckInInput>(initial || {
+    focus: 'normal',
+    mood: 'steady',
+    people: 'quiet',
+    forecastFit: 'partial',
+  });
+  const setField = <K extends keyof DailyCheckInInput>(key: K, value: DailyCheckInInput[K]) => {
+    lumiaSelectionHaptic(55);
+    setForm((prev) => ({ ...prev, [key]: value }));
+  };
+  const labels = language === 'ru'
+    ? { focus: 'Фокус', mood: 'Настроение', people: 'Люди', forecastFit: 'Прогноз попал?', submit: 'Записать день' }
+    : { focus: 'Focus', mood: 'Mood', people: 'People', forecastFit: 'Forecast fit?', submit: 'Save day' };
+
+  return (
+    <div className="mt-3 space-y-3">
+      {(Object.keys(CHECKIN_OPTIONS) as Array<keyof DailyCheckInInput>).map((key) => (
+        <div key={key}>
+          <p className="mb-1.5 font-lumiaHome text-[0.72rem] font-extrabold uppercase tracking-[0.07em] text-[#817982]">
+            {labels[key]}
+          </p>
+          <div className="flex gap-1.5 rounded-[1.1rem] bg-white/38 p-1 shadow-[inset_0_0_0_1px_rgba(48,19,45,0.055)]">
+            {CHECKIN_OPTIONS[key].map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                className={segmentedClass(form[key] === option.value)}
+                onClick={() => setField(key, option.value as never)}
+              >
+                {language === 'ru' ? option.ru : option.en}
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+      <button
+        type="button"
+        disabled={isSubmitting}
+        onClick={() => void onSubmit(form)}
+        className="min-h-[2.9rem] w-full rounded-full bg-[#202020] px-4 py-3 font-lumiaHome text-[0.85rem] font-extrabold text-white disabled:opacity-60"
+      >
+        {isSubmitting ? (language === 'ru' ? 'Сохраняю...' : 'Saving...') : labels.submit}
+      </button>
+    </div>
+  );
+}
+
+function ActionTimingResultView({
+  language,
+  recommendation,
+}: {
+  language: LumiaHomeLanguage;
+  recommendation: ActionTimingRecommendation;
+}) {
+  const stateLabel = recommendation.state === 'now'
+    ? (language === 'ru' ? 'Лучше сейчас' : 'Best now')
+    : recommendation.state === 'later'
+      ? (language === 'ru' ? 'Лучше позже' : 'Better later')
+      : (language === 'ru' ? 'Ровный день' : 'Even day');
+  return (
+    <div className="mt-3 rounded-[1.2rem] bg-white/54 px-3.5 py-3 shadow-[inset_0_0_0_1px_rgba(48,19,45,0.06)]">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="mb-0 font-lumiaHome text-[0.68rem] font-extrabold uppercase tracking-[0.08em] text-[#ef3b62]">
+            {stateLabel}
+          </p>
+          <h4 className="mb-0 mt-1 font-lumiaHome text-[1rem] font-extrabold leading-tight text-[#30132d]">
+            {recommendation.title}
+          </h4>
+        </div>
+        <span className="rounded-full bg-[#fff1c9] px-2.5 py-1 font-lumiaHome text-[0.72rem] font-extrabold text-[#7a3b08]">
+          {recommendation.bestWindow.start}-{recommendation.bestWindow.end}
+        </span>
+      </div>
+      <p className="mb-0 mt-2 font-lumiaHome text-[0.78rem] font-semibold leading-snug text-[#5f5861]">
+        {recommendation.summary}
+      </p>
+      <p className="mb-0 mt-2 font-lumiaHome text-[0.72rem] font-bold leading-snug text-[#817982]">
+        {recommendation.caution}
+      </p>
+    </div>
+  );
+}
+
+function ActionTimingCard({
+  language,
+  quickActions,
+  onSelectAction,
+}: {
+  language: LumiaHomeLanguage;
+  quickActions: ActionTimingRecommendation[];
+  onSelectAction: (key: ActionTimingKey) => Promise<ActionTimingRecommendation>;
+}) {
+  const [selected, setSelected] = useState<ActionTimingKey | null>(quickActions[0]?.actionKey || null);
+  const [result, setResult] = useState<ActionTimingRecommendation | null>(quickActions[0] || null);
+  const [loadingKey, setLoadingKey] = useState<ActionTimingKey | null>(null);
+
+  const select = async (key: ActionTimingKey) => {
+    setSelected(key);
+    setResult(quickActions.find((item) => item.actionKey === key) || null);
+    setLoadingKey(key);
+    lumiaSelectionHaptic(55);
+    try {
+      const next = await onSelectAction(key);
+      setResult(next);
+    } finally {
+      setLoadingKey(null);
+    }
+  };
+
+  return (
+    <div className="mt-3">
+      <div className="grid grid-cols-3 gap-2">
+        {(Object.keys(ACTION_META) as ActionTimingKey[]).map((key) => {
+          const meta = ACTION_META[key];
+          const Icon = meta.icon;
+          const active = selected === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => void select(key)}
+              className={[
+                'min-h-[3.25rem] rounded-[1rem] px-2 py-2 text-left transition-colors',
+                active ? 'bg-[#202020] text-white' : 'bg-white/52 text-[#30132d]',
+              ].join(' ')}
+            >
+              <Icon size={16} strokeWidth={2.2} />
+              <span className="mt-1 block font-lumiaHome text-[0.72rem] font-extrabold leading-none">
+                {language === 'ru' ? meta.ru : meta.en}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      {loadingKey ? (
+        <div className="mt-3 h-[6.1rem] animate-pulse rounded-[1.2rem] bg-white/44" />
+      ) : result ? (
+        <ActionTimingResultView language={language} recommendation={result} />
+      ) : null}
+    </div>
+  );
+}
+
+export function TodayAssistantCard({
+  language,
+  assistantResult,
+  isLoading,
+  onSetup,
+  onSubmitCheckIn,
+  onSelectAction,
+}: {
+  language: LumiaHomeLanguage;
+  assistantResult?: TodayAssistantHomeResult | null;
+  isLoading: boolean;
+  onSetup?: () => void;
+  onSubmitCheckIn: (input: DailyCheckInInput) => Promise<void>;
+  onSelectAction: (key: ActionTimingKey) => Promise<ActionTimingRecommendation>;
+}) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  if (isLoading) return <TodayAssistantSkeleton language={language} />;
+  if (!assistantResult) return null;
+  if (assistantResult.status === 'needs_setup') {
+    return <PulseSetupState language={language} onSetup={onSetup} />;
+  }
+
+  const isEvening = assistantResult.dayMode === 'evening';
+  const completed = assistantResult.checkIn.status === 'completed';
+  const title = isEvening
+    ? (completed ? (language === 'ru' ? 'День записан' : 'Day saved') : (language === 'ru' ? 'Попало / не попало' : 'Hit or miss'))
+    : assistantResult.dayMode === 'morning'
+      ? (language === 'ru' ? 'Сегодня коротко' : 'Today in short')
+      : (language === 'ru' ? 'Когда лучше?' : 'When is better?');
+  const subtitle = isEvening
+    ? (completed
+        ? assistantResult.accuracySummary.summary
+        : (language === 'ru' ? 'Закрой день за 10 секунд. Так Lumia начнёт подстраивать подсказки под реальность.' : 'Close the day in 10 seconds so Lumia can learn from reality.'))
+    : (language === 'ru'
+        ? 'Выбери действие, а Lumia подскажет: сейчас, позже или без сильного преимущества.'
+        : 'Choose an action, and Lumia will say: now, later, or no strong edge.');
+
+  const submit = async (input: DailyCheckInInput) => {
+    setIsSubmitting(true);
+    lumiaSelectionHaptic(80);
+    try {
+      await onSubmitCheckIn(input);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <LumiaHomeLargeCard className="border border-[#30132d]/[0.06] bg-[linear-gradient(145deg,#ffffff_0%,#fff7df_52%,#fff0f4_100%)] px-4 py-4 text-[#30132d] shadow-[0_14px_34px_rgba(160,68,86,0.10)]">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_5%_0%,rgba(255,212,0,0.18),transparent_33%),radial-gradient(circle_at_102%_70%,rgba(239,35,60,0.11),transparent_34%)]" />
+      <div className="relative z-10">
+        <p className="mb-0 font-lumiaHome text-[0.72rem] font-extrabold uppercase tracking-[0.08em] text-[#ef3b62]">
+          {assistantResult.dayMode === 'evening' ? (language === 'ru' ? 'Вечерняя точность' : 'Evening accuracy') : (language === 'ru' ? 'Личный помощник' : 'Personal assistant')}
+        </p>
+        <h3 className="mb-0 mt-1 font-lumiaHomeDisplay text-[1.42rem] font-extrabold leading-tight text-[#30132d]">
+          {title}
+        </h3>
+        <p className="mb-0 mt-2 font-lumiaHome text-[0.8rem] font-semibold leading-snug text-[#5f5861]">
+          {subtitle}
+        </p>
+
+        {isEvening ? (
+          completed ? (
+            <div className="mt-3 rounded-[1.2rem] bg-white/54 px-3.5 py-3 shadow-[inset_0_0_0_1px_rgba(48,19,45,0.06)]">
+              <p className="mb-0 font-lumiaHome text-[0.68rem] font-extrabold uppercase tracking-[0.08em] text-[#ef3b62]">
+                {assistantResult.accuracySummary.title}
+              </p>
+              <p className="mb-0 mt-2 font-lumiaHome text-[0.82rem] font-semibold leading-snug text-[#5f5861]">
+                {assistantResult.accuracySummary.summary}
+              </p>
+            </div>
+          ) : (
+            <DailyCheckInCard
+              language={language}
+              isSubmitting={isSubmitting}
+              onSubmit={submit}
+            />
+          )
+        ) : (
+          <ActionTimingCard
+            language={language}
+            quickActions={assistantResult.quickActions}
+            onSelectAction={onSelectAction}
+          />
+        )}
+
+        <div className="mt-3 rounded-[1rem] bg-white/46 px-3 py-2.5 shadow-[inset_0_0_0_1px_rgba(48,19,45,0.055)]">
+          <div className="flex items-start gap-2">
+            <span className="mt-0.5 text-[#ff9f1c]">
+              <Sparkles size={15} strokeWidth={2.4} />
+            </span>
+            <div className="min-w-0">
+              <p className="mb-0 font-lumiaHome text-[0.78rem] font-extrabold leading-tight text-[#30132d]">
+                {assistantResult.patternTeaser.title}
+              </p>
+              <p className="mb-0 mt-1 font-lumiaHome text-[0.72rem] font-semibold leading-snug text-[#6f6870]">
+                {assistantResult.patternTeaser.summary}
+              </p>
+            </div>
+          </div>
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#30132d]/10">
+            <div
+              className="h-full rounded-full bg-[linear-gradient(90deg,#ef233c,#ff7a00,#ffd400)]"
+              style={{
+                width: `${Math.max(8, Math.min(100, Math.round((assistantResult.patternTeaser.progress.current / assistantResult.patternTeaser.progress.target) * 100)))}%`,
+              }}
+            />
+          </div>
+        </div>
+      </div>
     </LumiaHomeLargeCard>
   );
 }

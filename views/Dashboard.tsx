@@ -1,19 +1,28 @@
 import React, { memo } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import type {
+  ActionTimingKey,
+  ActionTimingRecommendation,
+  DailyCheckInInput,
   HoroscopeLayer,
   NatalChartData,
-  TodayPulseResult,
+  TodayAssistantHomeResult,
   UserProfile,
 } from '../types';
 import {
   LumiaHomeContentCards,
   LumiaHomeHeroCard,
   LumiaHomePulseCard,
+  TodayAssistantCard,
 } from '../components/Dashboard/LumiaHomeSections';
 import { UnifiedCollapsibleTopCluster } from '../components/lumia-ui/UnifiedCollapsibleTopCluster';
 import { captureLumiaHomeLayout, lumiaDebugLog } from '../lib/lumiaDebug';
-import { getCachedTodayPulse, getTodayPulse } from '../services/astrologyService';
+import {
+  getActionTimingRecommendation,
+  getCachedTodayAssistantHome,
+  getTodayAssistantHome,
+  submitDailyCheckIn,
+} from '../services/astrologyService';
 
 interface DashboardProps {
   profile: UserProfile;
@@ -38,12 +47,24 @@ export const Dashboard = memo<DashboardProps>(
   ({ profile, chartData, chartId, onOpenHoroscopeLayer, onOpenSettings, scrollRef }) => {
     const shouldReduceMotion = useReducedMotion();
     const language = profile.language === 'en' ? 'en' : 'ru';
-    const cachedPulse = React.useMemo(
-      () => getCachedTodayPulse(profile, chartId ?? null, undefined, chartData),
+    const cachedAssistant = React.useMemo(
+      () => getCachedTodayAssistantHome(profile, chartId ?? null, undefined, chartData),
       [chartData, chartId, profile.birthDate, profile.birthPlace, profile.birthTime, profile.id, profile.language]
     );
-    const [pulseResult, setPulseResult] = React.useState<TodayPulseResult | null>(cachedPulse);
-    const [isPulseLoading, setIsPulseLoading] = React.useState(!cachedPulse);
+    const [assistantResult, setAssistantResult] = React.useState<TodayAssistantHomeResult | null>(cachedAssistant);
+    const [isAssistantLoading, setIsAssistantLoading] = React.useState(!cachedAssistant);
+    const pulseResult = React.useMemo(() => {
+      if (!assistantResult) return null;
+      if (assistantResult.status === 'ready') {
+        return {
+          status: 'ready' as const,
+          pulse: assistantResult.pulse,
+          chartId: assistantResult.chartId,
+          source: assistantResult.source,
+        };
+      }
+      return assistantResult;
+    }, [assistantResult]);
     const pageVariants = shouldReduceMotion
       ? {
           hidden: { opacity: 0 },
@@ -77,8 +98,8 @@ export const Dashboard = memo<DashboardProps>(
     React.useEffect(() => {
       let alive = true;
       if (!profile.id) {
-        setIsPulseLoading(false);
-        setPulseResult({
+        setIsAssistantLoading(false);
+        setAssistantResult({
           status: 'needs_setup',
           code: 'PROFILE_BIRTH_DATA_REQUIRED',
           message: language === 'ru'
@@ -91,34 +112,42 @@ export const Dashboard = memo<DashboardProps>(
         };
       }
 
-      const cached = getCachedTodayPulse(profile, chartId ?? null, undefined, chartData);
+      const cached = getCachedTodayAssistantHome(profile, chartId ?? null, undefined, chartData);
       if (cached) {
-        setPulseResult(cached);
-        setIsPulseLoading(false);
+        setAssistantResult(cached);
+        setIsAssistantLoading(false);
         return () => {
           alive = false;
         };
       }
 
-      setIsPulseLoading(true);
-      lumiaDebugLog('pulse_request', {
+      setIsAssistantLoading(true);
+      lumiaDebugLog('today_home_request', {
         chartId: chartId ?? null,
         hasChartData: !!chartData,
         language,
       });
-      getTodayPulse(profile, chartData, chartId ?? null)
+      getTodayAssistantHome(profile, chartData, chartId ?? null)
         .then((result) => {
           if (!alive) return;
-          setPulseResult(result);
-          setIsPulseLoading(false);
+          setAssistantResult(result);
+          setIsAssistantLoading(false);
+          if (result.status === 'ready') {
+            lumiaDebugLog('today_home_ready', {
+              dayMode: result.dayMode,
+              chartId: result.chartId,
+              historyCount: result.accuracySummary.historyCount,
+              checkIn: result.checkIn.status,
+            });
+          }
         })
         .catch((error: any) => {
           if (!alive) return;
-          lumiaDebugLog('pulse_api_error', {
+          lumiaDebugLog('today_home_error', {
             message: error?.message || String(error),
             code: error?.code || null,
           });
-          setPulseResult({
+          setAssistantResult({
             status: 'needs_setup',
             code: 'PROFILE_BIRTH_DATA_REQUIRED',
             message: language === 'ru'
@@ -126,7 +155,7 @@ export const Dashboard = memo<DashboardProps>(
               : 'Check birth data in settings so Lumia can calculate the day pulse.',
             actionLabel: language === 'ru' ? 'Открыть настройки' : 'Open settings',
           });
-          setIsPulseLoading(false);
+          setIsAssistantLoading(false);
         });
 
       return () => {
@@ -151,6 +180,63 @@ export const Dashboard = memo<DashboardProps>(
       };
     }, [profile.isPremium, profile.isSetup, profile.language]);
 
+    const handleSubmitCheckIn = React.useCallback(async (input: DailyCheckInInput) => {
+      const result = await submitDailyCheckIn(profile, chartData, chartId ?? null, input);
+      setAssistantResult((prev) => {
+        if (!prev || prev.status !== 'ready') return prev;
+        return {
+          ...prev,
+          checkIn: { status: 'completed', entry: result.checkIn },
+          accuracySummary: result.accuracySummary,
+          patternTeaser: result.patternTeaser,
+          insights: result.insights,
+        };
+      });
+      lumiaDebugLog('checkin_submit', {
+        chartId: chartId ?? null,
+        focus: input.focus,
+        mood: input.mood,
+        people: input.people,
+        forecastFit: input.forecastFit,
+        historyCount: result.accuracySummary.historyCount,
+      });
+    }, [chartData, chartId, profile]);
+
+    const handleSelectAction = React.useCallback(async (actionKey: ActionTimingKey): Promise<ActionTimingRecommendation> => {
+      const recommendation = await getActionTimingRecommendation(profile, chartData, chartId ?? null, actionKey);
+      lumiaDebugLog('action_timing_select', {
+        actionKey,
+        state: recommendation.state,
+        confidence: recommendation.confidence,
+        window: recommendation.bestWindow,
+      });
+      return recommendation;
+    }, [chartData, chartId, profile]);
+
+    const assistantFirst =
+      assistantResult?.status === 'ready' &&
+      (assistantResult.dayMode === 'morning' || assistantResult.dayMode === 'evening');
+
+    const pulseCard = (
+      <LumiaHomePulseCard
+        language={language}
+        pulseResult={pulseResult}
+        isLoading={isAssistantLoading}
+        onSetup={onOpenSettings}
+      />
+    );
+
+    const assistantCard = (
+      <TodayAssistantCard
+        language={language}
+        assistantResult={assistantResult}
+        isLoading={isAssistantLoading}
+        onSetup={onOpenSettings}
+        onSubmitCheckIn={handleSubmitCheckIn}
+        onSelectAction={handleSelectAction}
+      />
+    );
+
     return (
       <div className="lumia-home-screen relative mx-auto flex h-full min-h-0 w-full max-w-md flex-col overflow-hidden">
         <motion.div
@@ -167,12 +253,8 @@ export const Dashboard = memo<DashboardProps>(
               onOpenHoroscopeLayer={onOpenHoroscopeLayer}
             />
             <div className="lumia-home-scroll-content space-y-[var(--lumia-home-gap-lg)] px-[var(--lumia-home-page-x)]">
-              <LumiaHomePulseCard
-                language={language}
-                pulseResult={pulseResult}
-                isLoading={isPulseLoading}
-                onSetup={onOpenSettings}
-              />
+              {assistantFirst ? assistantCard : pulseCard}
+              {assistantFirst ? pulseCard : assistantCard}
               <LumiaHomeHeroCard language={language} onOpen={() => openHoroscope('sign')} />
               <LumiaHomeContentCards
                 language={language}

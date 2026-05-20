@@ -1335,6 +1335,84 @@ async function lumia019HoroscopeReactions(pool: Pool): Promise<void> {
   log.info('Migration lumia_019_horoscope_reactions applied');
 }
 
+async function lumia020DailyFeedbackAssistant(pool: Pool): Promise<void> {
+  const migrationName = 'lumia_020_daily_feedback_assistant';
+
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
+  log.info('Applying daily feedback assistant migration...');
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS daily_checkins (
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      chart_id BIGINT REFERENCES natal_charts(id) ON DELETE CASCADE,
+      checkin_date DATE NOT NULL,
+      timezone TEXT NOT NULL DEFAULT 'Europe/Moscow',
+      focus_key TEXT NOT NULL,
+      mood_key TEXT NOT NULL,
+      people_key TEXT NOT NULL,
+      forecast_fit_key TEXT NOT NULL,
+      pulse_time TEXT NOT NULL,
+      pulse_phase TEXT NOT NULL,
+      pulse_score INTEGER NOT NULL DEFAULT 0,
+      pulse_layers JSONB NOT NULL DEFAULT '{}'::jsonb,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT daily_checkins_focus_check CHECK (focus_key IN ('low', 'normal', 'high')),
+      CONSTRAINT daily_checkins_mood_check CHECK (mood_key IN ('heavy', 'steady', 'good')),
+      CONSTRAINT daily_checkins_people_check CHECK (people_key IN ('social', 'quiet')),
+      CONSTRAINT daily_checkins_fit_check CHECK (forecast_fit_key IN ('yes', 'partial', 'no'))
+    )
+  `);
+  await pool.query('CREATE UNIQUE INDEX IF NOT EXISTS idx_daily_checkins_chart_date ON daily_checkins(user_id, chart_id, checkin_date) WHERE chart_id IS NOT NULL');
+  await pool.query('CREATE UNIQUE INDEX IF NOT EXISTS idx_daily_checkins_user_date ON daily_checkins(user_id, checkin_date) WHERE chart_id IS NULL');
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_daily_checkins_user_recent ON daily_checkins(user_id, checkin_date DESC)');
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS action_timing_events (
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      chart_id BIGINT REFERENCES natal_charts(id) ON DELETE CASCADE,
+      event_date DATE NOT NULL,
+      timezone TEXT NOT NULL DEFAULT 'Europe/Moscow',
+      action_key TEXT NOT NULL,
+      recommendation_state TEXT NOT NULL,
+      best_start TEXT NOT NULL,
+      best_end TEXT NOT NULL,
+      selected_hour INTEGER NOT NULL,
+      confidence INTEGER NOT NULL DEFAULT 0,
+      recommendation JSONB NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT action_timing_key_check CHECK (action_key IN ('message', 'money', 'purchase', 'serious_talk', 'work', 'rest')),
+      CONSTRAINT action_timing_state_check CHECK (recommendation_state IN ('now', 'later', 'no_edge'))
+    )
+  `);
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_action_timing_events_user_date ON action_timing_events(user_id, event_date DESC)');
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_action_timing_events_action ON action_timing_events(action_key, created_at DESC)');
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS personal_pattern_insights (
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      chart_id BIGINT REFERENCES natal_charts(id) ON DELETE CASCADE,
+      insight_key TEXT NOT NULL,
+      window_days INTEGER NOT NULL,
+      insight JSONB NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  await pool.query('CREATE UNIQUE INDEX IF NOT EXISTS idx_personal_pattern_insights_chart ON personal_pattern_insights(user_id, chart_id, insight_key) WHERE chart_id IS NOT NULL');
+  await pool.query('CREATE UNIQUE INDEX IF NOT EXISTS idx_personal_pattern_insights_user ON personal_pattern_insights(user_id, insight_key) WHERE chart_id IS NULL');
+
+  await markMigrationApplied(pool, migrationName);
+  log.info('Migration lumia_020_daily_feedback_assistant applied');
+}
+
 async function verifyTablesExist(pool: Pool): Promise<void> {
   const required = [
     'users', 'natal_charts', 'interpretations', 'lumi_transactions', 'app_settings',
@@ -1351,6 +1429,9 @@ async function verifyTablesExist(pool: Pool): Promise<void> {
     'notification_rotation_state',
     'notification_delivery_log',
     'horoscope_reactions',
+    'daily_checkins',
+    'action_timing_events',
+    'personal_pattern_insights',
   ];
   const missing: string[] = [];
   for (const t of required) {
@@ -1418,6 +1499,7 @@ export async function runMigrations(): Promise<void> {
   await lumia017NatalHumanReadingV4Archive(pool);
   await lumia018NotificationFrequencyPreference(pool);
   await lumia019HoroscopeReactions(pool);
+  await lumia020DailyFeedbackAssistant(pool);
   await verifyTablesExist(pool);
 
     log.info('All Lumia migrations completed successfully');

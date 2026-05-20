@@ -24,6 +24,15 @@ import {
   normalizeBirthPlaceInput,
   normalizeBirthTimeInput,
 } from './natalChartCanonical';
+import type {
+  ActionTimingKey,
+  ActionTimingRecommendation,
+  DailyCheckIn,
+  DailyCheckInInput,
+  PersonalPatternInsight,
+  TodayPulseLayers,
+  TodayPulsePhase,
+} from '../types';
 
 // Read DATABASE_URL from environment variables
 // This is set in Railway Variables or .env file
@@ -144,6 +153,44 @@ function normalizeJsonColumn<T = any>(value: any): T {
     }
   }
   return value as T;
+}
+
+function dateKeyFromDb(value: any): string {
+  if (!value) return '';
+  if (typeof value === 'string') return value.slice(0, 10);
+  return new Date(value).toISOString().slice(0, 10);
+}
+
+function isoFromDb(value: any): string {
+  return value ? new Date(value).toISOString() : new Date().toISOString();
+}
+
+const EMPTY_TODAY_PULSE_LAYERS: TodayPulseLayers = {
+  energy: 0,
+  focus: 0,
+  emotions: 0,
+  money: 0,
+  relationships: 0,
+};
+
+function mapDailyCheckInRow(row: any): DailyCheckIn {
+  return {
+    id: Number(row.id),
+    userId: String(row.user_id),
+    chartId: row.chart_id != null ? Number(row.chart_id) : null,
+    date: dateKeyFromDb(row.checkin_date),
+    timezone: row.timezone || 'Europe/Moscow',
+    focus: row.focus_key,
+    mood: row.mood_key,
+    people: row.people_key,
+    forecastFit: row.forecast_fit_key,
+    pulseTime: row.pulse_time || '00:00',
+    pulsePhase: (row.pulse_phase || 'restore') as TodayPulsePhase,
+    pulseScore: Number(row.pulse_score ?? 0),
+    pulseLayers: normalizeJsonColumn<TodayPulseLayers>(row.pulse_layers) || EMPTY_TODAY_PULSE_LAYERS,
+    createdAt: isoFromDb(row.created_at),
+    updatedAt: isoFromDb(row.updated_at),
+  };
 }
 
 function mapContentInterpretationRow(row: any) {
@@ -2935,6 +2982,259 @@ export const db = {
           date,
           reactionKey,
         });
+        throw error;
+      }
+    },
+  },
+
+  /** daily_checkins - evening feedback loop for personal Today assistant */
+  daily_checkins: {
+    async getForDate(userId: string, chartId: number | null, date: string) {
+      const id = toUserId(userId);
+      if (!DATABASE_URL) return null;
+      try {
+        const dbPool = getPool();
+        const result = chartId != null
+          ? await dbPool.query(
+              `SELECT *
+               FROM daily_checkins
+               WHERE user_id = $1 AND chart_id = $2 AND checkin_date = $3::date
+               LIMIT 1`,
+              [id, chartId, date]
+            )
+          : await dbPool.query(
+              `SELECT *
+               FROM daily_checkins
+               WHERE user_id = $1 AND chart_id IS NULL AND checkin_date = $2::date
+               LIMIT 1`,
+              [id, date]
+            );
+        return result.rows[0] ? mapDailyCheckInRow(result.rows[0]) : null;
+      } catch (error: any) {
+        log.error('[DB] Error getting daily check-in', { error: error.message, userId, chartId, date });
+        throw error;
+      }
+    },
+
+    async listRecent(userId: string, chartId: number | null, limit = 30) {
+      const id = toUserId(userId);
+      if (!DATABASE_URL) return [];
+      try {
+        const dbPool = getPool();
+        const cappedLimit = Math.max(1, Math.min(90, Math.floor(limit)));
+        const result = chartId != null
+          ? await dbPool.query(
+              `SELECT *
+               FROM daily_checkins
+               WHERE user_id = $1 AND chart_id = $2
+               ORDER BY checkin_date DESC
+               LIMIT $3`,
+              [id, chartId, cappedLimit]
+            )
+          : await dbPool.query(
+              `SELECT *
+               FROM daily_checkins
+               WHERE user_id = $1
+               ORDER BY checkin_date DESC
+               LIMIT $2`,
+              [id, cappedLimit]
+            );
+        return result.rows.map(mapDailyCheckInRow);
+      } catch (error: any) {
+        log.error('[DB] Error listing recent daily check-ins', { error: error.message, userId, chartId });
+        throw error;
+      }
+    },
+
+    async upsert(
+      userId: string,
+      chartId: number | null,
+      date: string,
+      timezone: string,
+      input: DailyCheckInInput,
+      pulse: {
+        time: string;
+        phase: TodayPulsePhase;
+        score: number;
+        layers: TodayPulseLayers;
+      }
+    ) {
+      const id = toUserId(userId);
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      try {
+        const dbPool = getPool();
+        const params = [
+          id,
+          chartId,
+          date,
+          timezone || 'Europe/Moscow',
+          input.focus,
+          input.mood,
+          input.people,
+          input.forecastFit,
+          pulse.time,
+          pulse.phase,
+          pulse.score,
+          JSON.stringify(pulse.layers),
+        ];
+        const result = chartId != null
+          ? await dbPool.query(
+              `INSERT INTO daily_checkins
+                (user_id, chart_id, checkin_date, timezone, focus_key, mood_key, people_key, forecast_fit_key, pulse_time, pulse_phase, pulse_score, pulse_layers)
+               VALUES ($1, $2, $3::date, $4, $5, $6, $7, $8, $9, $10, $11, $12::jsonb)
+               ON CONFLICT (user_id, chart_id, checkin_date) WHERE chart_id IS NOT NULL
+               DO UPDATE SET
+                 timezone = EXCLUDED.timezone,
+                 focus_key = EXCLUDED.focus_key,
+                 mood_key = EXCLUDED.mood_key,
+                 people_key = EXCLUDED.people_key,
+                 forecast_fit_key = EXCLUDED.forecast_fit_key,
+                 pulse_time = EXCLUDED.pulse_time,
+                 pulse_phase = EXCLUDED.pulse_phase,
+                 pulse_score = EXCLUDED.pulse_score,
+                 pulse_layers = EXCLUDED.pulse_layers,
+                 updated_at = CURRENT_TIMESTAMP
+               RETURNING *`,
+              params
+            )
+          : await dbPool.query(
+              `INSERT INTO daily_checkins
+                (user_id, chart_id, checkin_date, timezone, focus_key, mood_key, people_key, forecast_fit_key, pulse_time, pulse_phase, pulse_score, pulse_layers)
+               VALUES ($1, NULL, $3::date, $4, $5, $6, $7, $8, $9, $10, $11, $12::jsonb)
+               ON CONFLICT (user_id, checkin_date) WHERE chart_id IS NULL
+               DO UPDATE SET
+                 timezone = EXCLUDED.timezone,
+                 focus_key = EXCLUDED.focus_key,
+                 mood_key = EXCLUDED.mood_key,
+                 people_key = EXCLUDED.people_key,
+                 forecast_fit_key = EXCLUDED.forecast_fit_key,
+                 pulse_time = EXCLUDED.pulse_time,
+                 pulse_phase = EXCLUDED.pulse_phase,
+                 pulse_score = EXCLUDED.pulse_score,
+                 pulse_layers = EXCLUDED.pulse_layers,
+                 updated_at = CURRENT_TIMESTAMP
+               RETURNING *`,
+              params
+            );
+        return mapDailyCheckInRow(result.rows[0]);
+      } catch (error: any) {
+        log.error('[DB] Error upserting daily check-in', { error: error.message, userId, chartId, date });
+        throw error;
+      }
+    },
+  },
+
+  /** action_timing_events - chosen "when better?" actions and recommendation snapshots */
+  action_timing_events: {
+    async listRecent(userId: string, chartId: number | null, limit = 60) {
+      const id = toUserId(userId);
+      if (!DATABASE_URL) return [];
+      try {
+        const dbPool = getPool();
+        const cappedLimit = Math.max(1, Math.min(120, Math.floor(limit)));
+        const result = chartId != null
+          ? await dbPool.query(
+              `SELECT action_key, recommendation
+               FROM action_timing_events
+               WHERE user_id = $1 AND chart_id = $2
+               ORDER BY created_at DESC
+               LIMIT $3`,
+              [id, chartId, cappedLimit]
+            )
+          : await dbPool.query(
+              `SELECT action_key, recommendation
+               FROM action_timing_events
+               WHERE user_id = $1
+               ORDER BY created_at DESC
+               LIMIT $2`,
+              [id, cappedLimit]
+            );
+        return result.rows.map((row: any) => ({
+          actionKey: row.action_key as ActionTimingKey,
+          recommendation: normalizeJsonColumn<ActionTimingRecommendation>(row.recommendation),
+        }));
+      } catch (error: any) {
+        log.error('[DB] Error listing action timing events', { error: error.message, userId, chartId });
+        throw error;
+      }
+    },
+
+    async create(
+      userId: string,
+      chartId: number | null,
+      date: string,
+      timezone: string,
+      recommendation: ActionTimingRecommendation
+    ) {
+      const id = toUserId(userId);
+      if (!DATABASE_URL) return null;
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          `INSERT INTO action_timing_events
+            (user_id, chart_id, event_date, timezone, action_key, recommendation_state, best_start, best_end, selected_hour, confidence, recommendation)
+           VALUES ($1, $2, $3::date, $4, $5, $6, $7, $8, $9, $10, $11::jsonb)
+           RETURNING id`,
+          [
+            id,
+            chartId,
+            date,
+            timezone || 'Europe/Moscow',
+            recommendation.actionKey,
+            recommendation.state,
+            recommendation.bestWindow.start,
+            recommendation.bestWindow.end,
+            recommendation.targetPoint.hour,
+            recommendation.confidence,
+            JSON.stringify(recommendation),
+          ]
+        );
+        return Number(result.rows[0]?.id ?? 0);
+      } catch (error: any) {
+        log.error('[DB] Error creating action timing event', { error: error.message, userId, chartId, date });
+        throw error;
+      }
+    },
+  },
+
+  /** personal_pattern_insights - cached pattern cards derived from check-ins */
+  personal_pattern_insights: {
+    async upsertMany(userId: string, chartId: number | null, insights: PersonalPatternInsight[]) {
+      const id = toUserId(userId);
+      if (!DATABASE_URL || insights.length === 0) return [];
+      try {
+        const dbPool = getPool();
+        const saved: PersonalPatternInsight[] = [];
+        for (const insight of insights) {
+          const params = [
+            id,
+            chartId,
+            insight.id,
+            insight.windowDays,
+            JSON.stringify(insight),
+          ];
+          const result = chartId != null
+            ? await dbPool.query(
+                `INSERT INTO personal_pattern_insights (user_id, chart_id, insight_key, window_days, insight)
+                 VALUES ($1, $2, $3, $4, $5::jsonb)
+                 ON CONFLICT (user_id, chart_id, insight_key) WHERE chart_id IS NOT NULL
+                 DO UPDATE SET window_days = EXCLUDED.window_days, insight = EXCLUDED.insight, updated_at = CURRENT_TIMESTAMP
+                 RETURNING insight`,
+                params
+              )
+            : await dbPool.query(
+                `INSERT INTO personal_pattern_insights (user_id, chart_id, insight_key, window_days, insight)
+                 VALUES ($1, NULL, $3, $4, $5::jsonb)
+                 ON CONFLICT (user_id, insight_key) WHERE chart_id IS NULL
+                 DO UPDATE SET window_days = EXCLUDED.window_days, insight = EXCLUDED.insight, updated_at = CURRENT_TIMESTAMP
+                 RETURNING insight`,
+                params
+              );
+          saved.push(normalizeJsonColumn<PersonalPatternInsight>(result.rows[0]?.insight));
+        }
+        return saved.filter(Boolean);
+      } catch (error: any) {
+        log.error('[DB] Error upserting personal pattern insights', { error: error.message, userId, chartId });
         throw error;
       }
     },

@@ -320,6 +320,120 @@ export type TodayPulseResult =
       actionLabel: string;
     };
 
+export type DailyCheckInFocus = 'low' | 'normal' | 'high';
+export type DailyCheckInMood = 'heavy' | 'steady' | 'good';
+export type DailyCheckInPeople = 'social' | 'quiet';
+export type DailyCheckInForecastFit = 'yes' | 'partial' | 'no';
+
+export interface DailyCheckInInput {
+  focus: DailyCheckInFocus;
+  mood: DailyCheckInMood;
+  people: DailyCheckInPeople;
+  forecastFit: DailyCheckInForecastFit;
+}
+
+export interface DailyCheckIn extends DailyCheckInInput {
+  id: number;
+  userId: string;
+  chartId: number | null;
+  date: string;
+  timezone: string;
+  pulseTime: string;
+  pulsePhase: TodayPulsePhase;
+  pulseScore: number;
+  pulseLayers: TodayPulseLayers;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ActionTimingKey = 'message' | 'money' | 'purchase' | 'serious_talk' | 'work' | 'rest';
+export type ActionTimingState = 'now' | 'later' | 'no_edge';
+
+export interface ActionTimingRecommendation {
+  actionKey: ActionTimingKey;
+  state: ActionTimingState;
+  title: string;
+  summary: string;
+  bestWindow: {
+    start: string;
+    end: string;
+    label: string;
+    score: number;
+  };
+  targetPoint: TodayPulsePoint;
+  confidence: number;
+  reasons: string[];
+  caution: string;
+  date: string;
+  timezone: string;
+  generatedAt: string;
+}
+
+export interface TodayAssistantAccuracySummary {
+  historyCount: number;
+  title: string;
+  summary: string;
+  bestMatchedLayer: 'focus' | 'mood' | 'people' | 'overall' | 'none';
+  forecastFitRate: number;
+  progressToInsight: {
+    current: number;
+    target: number;
+  };
+}
+
+export interface PersonalPatternInsight {
+  id: string;
+  kind: 'first_repeat' | 'focus' | 'people' | 'month';
+  windowDays: 7 | 14 | 30;
+  title: string;
+  summary: string;
+  evidence: string;
+  confidence: number;
+}
+
+export interface PersonalPatternTeaser {
+  state: 'collecting' | 'ready';
+  title: string;
+  summary: string;
+  progress: {
+    current: number;
+    target: number;
+  };
+}
+
+export type TodayAssistantDayMode = 'morning' | 'day' | 'evening';
+
+export type TodayAssistantHomeResult =
+  | {
+      status: 'ready';
+      pulse: TodayPulse;
+      chartId: number | null;
+      source: string;
+      dayMode: TodayAssistantDayMode;
+      checkIn: {
+        status: 'open' | 'completed';
+        entry?: DailyCheckIn;
+      };
+      quickActions: ActionTimingRecommendation[];
+      accuracySummary: TodayAssistantAccuracySummary;
+      patternTeaser: PersonalPatternTeaser;
+      insights: PersonalPatternInsight[];
+    }
+  | {
+      status: 'needs_setup';
+      code: 'PROFILE_BIRTH_DATA_REQUIRED';
+      message: string;
+      actionLabel: string;
+    };
+
+export interface DailyCheckInSubmitResult {
+  status: 'saved';
+  checkIn: DailyCheckIn;
+  accuracySummary: TodayAssistantAccuracySummary;
+  patternTeaser: PersonalPatternTeaser;
+  insights: PersonalPatternInsight[];
+}
+
 export type HoroscopeReactionKey = 'spot_on' | 'funny' | 'gentle' | 'not_mine';
 
 export interface HoroscopeReactionCount {

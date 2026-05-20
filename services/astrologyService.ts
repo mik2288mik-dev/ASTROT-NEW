@@ -1,4 +1,4 @@
-import { UserProfile, NatalChartData, DailyHoroscope, SynastryResult, UserEvolution, OracleChatResponse, OracleHistoryEntry, ForecastDailyReading, ForecastDaypartReading, ForecastDaypartSlot, ForecastMonthlyReading, ForecastWeeklyReading, NatalAnchorReading, NatalFullReading, NatalLivingReading, AskLumiaState, AskLumiaTier, ContentAccessTier, PlanetInsight, WheelInsight, WheelInsightEntityType, TodayOverview, TodayOverviewResult, TodayPulseResult, HoroscopeReactionKey, HoroscopeReactionSummary } from "../types";
+import { UserProfile, NatalChartData, DailyHoroscope, SynastryResult, UserEvolution, OracleChatResponse, OracleHistoryEntry, ForecastDailyReading, ForecastDaypartReading, ForecastDaypartSlot, ForecastMonthlyReading, ForecastWeeklyReading, NatalAnchorReading, NatalFullReading, NatalLivingReading, AskLumiaState, AskLumiaTier, ContentAccessTier, PlanetInsight, WheelInsight, WheelInsightEntityType, TodayOverview, TodayOverviewResult, TodayPulseResult, HoroscopeReactionKey, HoroscopeReactionSummary, TodayAssistantHomeResult, DailyCheckInInput, DailyCheckInSubmitResult, ActionTimingKey, ActionTimingRecommendation } from "../types";
 import { SYSTEM_INSTRUCTION_ASTRA } from "../constants";
 import { getElementForSign } from "../lib/zodiac-utils";
 import { coerceNatalAnchorReading, coerceNatalFullReading, coerceNatalLivingReading, getCurrentNatalPeriodKey, mapNatalAnchorToLegacyIntro } from "../lib/natalReadings";
@@ -406,6 +406,208 @@ export const getTodayPulse = async (
     todayPulseClientCache.delete(cacheKey);
     throw error;
   }
+};
+
+const TODAY_ASSISTANT_CLIENT_CACHE_TTL_MS = 10 * 60 * 1000;
+const todayAssistantClientCache = new Map<string, { result?: TodayAssistantHomeResult; promise?: Promise<TodayAssistantHomeResult>; expiresAt: number }>();
+
+function todayAssistantClientCacheKey(profile: UserProfile, chartId?: number | null, date?: string, chartData?: NatalChartData | null) {
+  return todayPulseClientCacheKey(profile, chartId, date, chartData);
+}
+
+function assistantToPulseResult(result: TodayAssistantHomeResult): TodayPulseResult {
+  if (result.status === 'ready') {
+    return {
+      status: 'ready',
+      pulse: result.pulse,
+      chartId: result.chartId,
+      source: result.source,
+    };
+  }
+  return result;
+}
+
+export function getCachedTodayAssistantHome(
+  profile: UserProfile,
+  chartId?: number | null,
+  date?: string,
+  chartData?: NatalChartData | null
+): TodayAssistantHomeResult | null {
+  const entry = todayAssistantClientCache.get(todayAssistantClientCacheKey(profile, chartId, date, chartData));
+  if (!entry || !entry.result || entry.expiresAt <= Date.now()) return null;
+  return entry.result;
+}
+
+function setCachedTodayAssistantHome(
+  profile: UserProfile,
+  result: TodayAssistantHomeResult,
+  chartId?: number | null,
+  date?: string,
+  chartData?: NatalChartData | null
+) {
+  const expiresAt = Date.now() + TODAY_ASSISTANT_CLIENT_CACHE_TTL_MS;
+  todayAssistantClientCache.set(todayAssistantClientCacheKey(profile, chartId, date, chartData), { result, expiresAt });
+  todayPulseClientCache.set(todayPulseClientCacheKey(profile, chartId, date, chartData), {
+    result: assistantToPulseResult(result),
+    expiresAt,
+  });
+}
+
+export const getTodayAssistantHome = async (
+  profile: UserProfile,
+  chartData: NatalChartData | null,
+  chartId?: number | null,
+  date?: string
+): Promise<TodayAssistantHomeResult> => {
+  if (!isValidUserId(profile.id)) {
+    throw buildApiError('Profile id is required');
+  }
+
+  const cacheKey = todayAssistantClientCacheKey(profile, chartId, date, chartData);
+  const cached = todayAssistantClientCache.get(cacheKey);
+  if (cached?.result && cached.expiresAt > Date.now()) return cached.result;
+  if (cached?.promise && cached.expiresAt > Date.now()) return cached.promise;
+
+  const expiresAt = Date.now() + TODAY_ASSISTANT_CLIENT_CACHE_TTL_MS;
+  const promise = (async (): Promise<TodayAssistantHomeResult> => {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/api/content/today/home`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: profile.id,
+        profile,
+        chartData,
+        chartId,
+        date,
+      }),
+    }, 60000);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw buildApiError(
+        errorData.message || `Today home failed: ${response.status} ${response.statusText}`,
+        response.status,
+        errorData.code || errorData.error
+      );
+    }
+
+    const payload = await response.json();
+    if (payload?.status === 'ready' && payload?.pulse) {
+      return payload as TodayAssistantHomeResult;
+    }
+    if (payload?.status === 'needs_setup') {
+      return {
+        status: 'needs_setup',
+        code: 'PROFILE_BIRTH_DATA_REQUIRED',
+        message: String(payload.message || 'Add birth data to calculate Today.'),
+        actionLabel: String(payload.actionLabel || 'Complete profile'),
+      };
+    }
+    throw buildApiError('Today home payload is invalid');
+  })();
+
+  todayAssistantClientCache.set(cacheKey, { promise, expiresAt });
+
+  try {
+    const result = await promise;
+    setCachedTodayAssistantHome(profile, result, chartId, date, chartData);
+    return result;
+  } catch (error) {
+    todayAssistantClientCache.delete(cacheKey);
+    throw error;
+  }
+};
+
+export const submitDailyCheckIn = async (
+  profile: UserProfile,
+  chartData: NatalChartData | null,
+  chartId: number | null | undefined,
+  checkIn: DailyCheckInInput,
+  date?: string
+): Promise<DailyCheckInSubmitResult> => {
+  if (!isValidUserId(profile.id)) {
+    throw buildApiError('Profile id is required');
+  }
+
+  const response = await fetchWithTimeout(`${API_BASE_URL}/api/content/today/checkin`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      userId: profile.id,
+      profile,
+      chartData,
+      chartId,
+      date,
+      checkIn,
+    }),
+  }, 60000);
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw buildApiError(
+      errorData.message || `Daily check-in failed: ${response.status} ${response.statusText}`,
+      response.status,
+      errorData.code || errorData.error
+    );
+  }
+
+  const payload = await response.json();
+  if (payload?.status !== 'saved' || !payload?.checkIn) {
+    throw buildApiError('Daily check-in payload is invalid');
+  }
+
+  const cached = getCachedTodayAssistantHome(profile, chartId, date, chartData);
+  if (cached?.status === 'ready') {
+    setCachedTodayAssistantHome(profile, {
+      ...cached,
+      checkIn: { status: 'completed', entry: payload.checkIn },
+      accuracySummary: payload.accuracySummary,
+      patternTeaser: payload.patternTeaser,
+      insights: payload.insights || [],
+    }, chartId, date, chartData);
+  }
+
+  return payload as DailyCheckInSubmitResult;
+};
+
+export const getActionTimingRecommendation = async (
+  profile: UserProfile,
+  chartData: NatalChartData | null,
+  chartId: number | null | undefined,
+  actionKey: ActionTimingKey,
+  date?: string
+): Promise<ActionTimingRecommendation> => {
+  if (!isValidUserId(profile.id)) {
+    throw buildApiError('Profile id is required');
+  }
+
+  const response = await fetchWithTimeout(`${API_BASE_URL}/api/content/today/action-time`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      userId: profile.id,
+      profile,
+      chartData,
+      chartId,
+      actionKey,
+      date,
+    }),
+  }, 60000);
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw buildApiError(
+      errorData.message || `Action timing failed: ${response.status} ${response.statusText}`,
+      response.status,
+      errorData.code || errorData.error
+    );
+  }
+
+  const payload = await response.json();
+  if (payload?.status !== 'ready' || !payload?.recommendation) {
+    throw buildApiError('Action timing payload is invalid');
+  }
+  return payload.recommendation as ActionTimingRecommendation;
 };
 
 export const setHoroscopeReaction = async (
