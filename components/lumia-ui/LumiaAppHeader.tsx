@@ -14,9 +14,9 @@ type LumiaAppHeaderProps = {
   scrollContainerRef?: RefObject<HTMLDivElement | null>;
 };
 
-const EXPANDED_BODY_HEIGHT = 184;
+const EXPANDED_BODY_HEIGHT = 104;
 const COLLAPSED_BODY_HEIGHT = 48;
-const COLLAPSE_DISTANCE = 118;
+const COLLAPSE_DISTANCE = 92;
 
 export function LumiaAppHeader({
   profile,
@@ -35,8 +35,8 @@ export function LumiaAppHeader({
   });
 
   const expandedOpacity = useTransform(visualProgress, [0, 0.24, 0.54], [1, 0.48, 0]);
-  const expandedY = useTransform(rawProgress, [0, 1], [0, -98]);
-  const expandedScale = useTransform(visualProgress, [0, 1], [1, 0.9]);
+  const expandedY = useTransform(rawProgress, [0, 1], [0, -58]);
+  const expandedScale = useTransform(visualProgress, [0, 1], [1, 0.92]);
   const taglineOpacity = useTransform(visualProgress, [0, 0.2, 0.42], [1, 0.28, 0]);
   const taglineY = useTransform(rawProgress, [0, 1], [0, -12]);
   const compactOpacity = useTransform(visualProgress, [0, 0.52, 0.78, 1], [0, 0, 0.88, 1]);

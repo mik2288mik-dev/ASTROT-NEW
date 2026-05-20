@@ -250,8 +250,8 @@ export const Synastry: React.FC<SynastryProps> = ({
                 backgroundSize: 'cover',
             }}
         >
-        <ScreenShell className="mx-auto max-w-reading-wide pt-8">
-            <section className="px-1 pb-2 pt-[9dvh]">
+        <ScreenShell className="mx-auto max-w-reading-wide pt-2">
+            <section className="px-1 pb-2 pt-2">
                 <p className="text-[10px] uppercase tracking-[0.24em] text-astro-subtext">
                     {t('synastry.hero_kicker')}
                 </p>
