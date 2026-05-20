@@ -351,24 +351,6 @@ body.theme-lumia-air #__next {
   isolation: isolate;
 }
 
-.lumia-home-top-cluster-bg {
-  position: absolute;
-  top: 0;
-  right: 0;
-  left: 0;
-  height: calc(var(--lumia-home-content-safe-top) + var(--lumia-home-compact-rail-height));
-  pointer-events: none;
-}
-
-.lumia-home-top-cluster-bg {
-  z-index: 0;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.06)),
-    rgba(255, 255, 255, 0.035);
-  backdrop-filter: blur(18px) saturate(1.28) brightness(1.02);
-  -webkit-backdrop-filter: blur(18px) saturate(1.28) brightness(1.02);
-}
-
 .lumia-home-top-spacer {
   height: 136px;
   flex: 0 0 136px;

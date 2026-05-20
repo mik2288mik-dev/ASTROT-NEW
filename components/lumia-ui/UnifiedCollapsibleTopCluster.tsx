@@ -41,7 +41,6 @@ export function UnifiedCollapsibleTopCluster({
     window.setTimeout(() => captureLumiaHomeLayout('home_header_mount'), 160);
   }, []);
 
-  const solidOpacity = useTransform(rawProgress, [0, 0.46, 1], [0, 0.16, 0.34]);
   const expandedBrandOpacity = useTransform(visualProgress, [0, 0.24, 0.54], [1, 0.48, 0]);
   const expandedBrandY = useTransform(rawProgress, [0, 1], [0, -98]);
   const expandedBrandScale = useTransform(visualProgress, [0, 1], [1, 0.9]);
@@ -115,8 +114,6 @@ export function UnifiedCollapsibleTopCluster({
   return (
     <>
       <motion.header className="lumia-home-top-cluster">
-        <motion.div className="lumia-home-top-cluster-bg" style={{ opacity: solidOpacity }} aria-hidden />
-
         <div className="lumia-home-top-scene">
           <motion.div
             className="lumia-home-compact-row"
