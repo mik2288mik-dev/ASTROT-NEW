@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { UserProfile, NatalChartData, ViewState, NatalChartMode, HoroscopeLayer } from './types';
+import { UserProfile, NatalChartData, ViewState, NatalChartMode, HoroscopeLayer, NatalInterpretationReport } from './types';
 import {
     getProfile,
     saveProfile,
@@ -40,6 +40,11 @@ import { isValidUserId } from './lib/userId';
 import { LumiaDebugOverlay } from './components/lumia-ui/LumiaDebugOverlay';
 import { LumiaBottomTabBar } from './components/lumia-ui/LumiaBottomTabBar';
 import { captureLumiaHomeLayout, installLumiaDebugGlobal, lumiaDebugLog } from './lib/lumiaDebug';
+import {
+    clearHumanReadingSessionCache,
+    getHumanBaseReportCached,
+    prefetchHumanBaseReport,
+} from './services/natalReadingService';
 
 // Get owner ID from environment variables for security
 const OWNER_ID = process.env.NEXT_PUBLIC_OWNER_ID || '';
@@ -56,6 +61,21 @@ type SynastryPrefill = {
     partnerTime?: string;
     partnerPlace?: string;
 } | null;
+
+type ChartLoadState = 'idle' | 'loading' | 'ready' | 'error';
+
+function getPrimaryChartLoadKey(profile: UserProfile): string {
+    return [
+        profile.id || '',
+        profile.birthDate || '',
+        profile.birthTime || '',
+        profile.birthPlace || '',
+    ].join('|');
+}
+
+function wait(ms: number): Promise<null> {
+    return new Promise((resolve) => setTimeout(() => resolve(null), ms));
+}
 
 const NOTIFICATION_QUERY_VIEWS = new Set<ViewState>([
     'dashboard',
@@ -97,6 +117,8 @@ function getNotificationLaunchParams(): NotificationLaunchParams | null {
 const App: React.FC = () => {
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [chartData, setChartData] = useState<NatalChartData | null>(null);
+    const [chartLoadState, setChartLoadState] = useState<ChartLoadState>('idle');
+    const [preloadedHumanReport, setPreloadedHumanReport] = useState<NatalInterpretationReport | null>(null);
     const [activeChartId, setActiveChartId] = useState<number | undefined>(undefined);
     const [loading, setLoading] = useState(true);
     const [loadingProgress, setLoadingProgress] = useState(0);
@@ -117,9 +139,14 @@ const App: React.FC = () => {
     // Ref для однократного вызова daily login за сессию
     const dailyLoginProcessedRef = useRef(false);
     const lastSessionPingRef = useRef(0);
-    const chartHealGenRef = useRef(0);
     const contentSyncGenRef = useRef(0);
     const contentSyncedKeyRef = useRef<string | null>(null);
+    const primaryChartSessionRef = useRef<{
+        key: string;
+        data: NatalChartData | null;
+        promise: Promise<NatalChartData | null> | null;
+    }>({ key: '', data: null, promise: null });
+    const primaryChartDataRef = useRef<NatalChartData | null>(null);
     const requestedViewRef = useRef<ViewState | null>(null);
     const notificationLaunchRef = useRef<NotificationLaunchParams | null>(null);
     const notificationAttributionSentRef = useRef(false);
@@ -152,6 +179,79 @@ const App: React.FC = () => {
             return fallbackIsAdmin;
         }
     }, [getFallbackAdminStatus]);
+
+    const prefetchBaseReportForChart = useCallback(async (
+        targetProfile: UserProfile,
+        targetChartId?: number,
+        timeoutMs = 9000
+    ) => {
+        const userId = targetProfile.id ? String(targetProfile.id) : '';
+        if (!userId) return null;
+
+        const cached = getHumanBaseReportCached(userId, targetChartId);
+        if (cached) {
+            setPreloadedHumanReport(cached);
+            return cached;
+        }
+
+        const request = prefetchHumanBaseReport(userId, targetChartId)
+            .then((report) => {
+                setPreloadedHumanReport(report);
+                return report;
+            })
+            .catch((error: any) => {
+                console.warn('[App] Human base prefetch failed:', error?.message || error);
+                return null;
+            });
+
+        return Promise.race([request, wait(timeoutMs)]);
+    }, []);
+
+    const loadPrimaryChartOnce = useCallback(async (targetProfile: UserProfile): Promise<NatalChartData | null> => {
+        const key = getPrimaryChartLoadKey(targetProfile);
+        const current = primaryChartSessionRef.current;
+
+        if (current.key === key && current.data?.sun && current.data?.moon && current.data?.rising) {
+            setChartData(current.data);
+            setChartLoadState('ready');
+            return current.data;
+        }
+
+        if (current.key === key && current.promise) {
+            return current.promise;
+        }
+
+        setChartLoadState('loading');
+        setPreloadedHumanReport(null);
+
+        const promise = getOrCalculateChart(targetProfile)
+            .then((chart) => {
+                if (chart?.sun && chart?.moon && chart?.rising) {
+                    primaryChartSessionRef.current = { key, data: chart, promise: null };
+                    primaryChartDataRef.current = chart;
+                    setChartData(chart);
+                    setChartLoadState('ready');
+                    return chart;
+                }
+
+                primaryChartSessionRef.current = { key, data: null, promise: null };
+                primaryChartDataRef.current = null;
+                setChartData(null);
+                setChartLoadState('error');
+                return null;
+            })
+            .catch((error: any) => {
+                console.error('[App] Primary chart load failed:', error?.message || error);
+                primaryChartSessionRef.current = { key, data: null, promise: null };
+                primaryChartDataRef.current = null;
+                setChartData(null);
+                setChartLoadState('error');
+                return null;
+            });
+
+        primaryChartSessionRef.current = { key, data: null, promise };
+        return promise;
+    }, []);
 
     useEffect(() => {
         installLumiaDebugGlobal();
@@ -336,43 +436,25 @@ const App: React.FC = () => {
                     }
                 });
 
-                // Шаг 3: Загружаем карту через chartService
-                // Он сам проверит БД и рассчитает только если нужно
+                // Шаг 3: Загружаем карту один раз на входе в приложение.
                 setLoadingProgress(50);
-                console.log('[App] Loading chart via chartService...');
-                
-                try {
-                    const chart = await getOrCalculateChart(updatedProfile);
-                    
-                    if (chart && chart.sun && chart.moon) {
-                        console.log('[App] Chart loaded successfully:', {
-                            sunSign: chart.sun.sign,
-                            moonSign: chart.moon.sign
-                        });
-                        setChartData(chart);
-                        setLoadingProgress(100);
-                        setView(requestedViewRef.current || 'dashboard');
-                    } else {
-                        console.log('[App] Invalid chart data, going to dashboard');
-                        setLoadingProgress(100);
-                        setChartData(null);
-                        setView(requestedViewRef.current || 'dashboard');
-                    }
-                } catch (chartError) {
-                    console.error('[App] Error loading chart:', chartError);
-                    setLoadingProgress(100);
-                    // Профиль есть — не возвращаем в онбординг. Пробуем ещё раз через 2 сек.
-                    setChartData(null);
-                    setView(requestedViewRef.current || 'dashboard');
-                    setTimeout(async () => {
-                        try {
-                            const retryChart = await getOrCalculateChart(updatedProfile);
-                            if (retryChart?.sun && retryChart?.moon) {
-                                setChartData(retryChart);
-                            }
-                        } catch {}
-                    }, 2000);
+                console.log('[App] Loading primary chart once...');
+
+                const chart = await loadPrimaryChartOnce(updatedProfile);
+
+                if (chart?.sun && chart?.moon) {
+                    console.log('[App] Chart loaded successfully:', {
+                        sunSign: chart.sun.sign,
+                        moonSign: chart.moon.sign
+                    });
+                    setLoadingProgress(78);
+                    await prefetchBaseReportForChart(updatedProfile);
+                } else {
+                    console.log('[App] Chart unavailable after startup load, going to dashboard');
                 }
+
+                setLoadingProgress(100);
+                setView(requestedViewRef.current || 'dashboard');
             } catch (error) {
                 console.error('[App] Error loading user data:', error);
                 setLoadingProgress(100);
@@ -390,51 +472,7 @@ const App: React.FC = () => {
             cancelled = true;
             clearSafety();
         };
-    }, [resolveAuthoritativeAdminStatus]);
-
-    // Догрузка карты, если после старта она не пришла (ошибка сети / таймаут GET).
-    useEffect(() => {
-        if (loading || view !== 'dashboard' || !profile?.id || chartData) return;
-
-        const gen = ++chartHealGenRef.current;
-        let cancelled = false;
-        const delays = [0, 2500, 8000];
-
-        const run = async () => {
-            for (const waitMs of delays) {
-                if (cancelled || gen !== chartHealGenRef.current) return;
-                if (waitMs > 0) {
-                    await new Promise((r) => setTimeout(r, waitMs));
-                }
-                if (cancelled || gen !== chartHealGenRef.current) return;
-                try {
-                    const chart = await getOrCalculateChart(profile);
-                    if (cancelled || gen !== chartHealGenRef.current) return;
-                    if (chart?.sun && chart?.moon) {
-                        setChartData(chart);
-                        return;
-                    }
-                } catch (e: any) {
-                    console.warn('[App] Chart heal attempt failed:', e?.message || e);
-                }
-            }
-        };
-
-        void run();
-        return () => {
-            cancelled = true;
-        };
-    }, [
-        loading,
-        view,
-        chartData,
-        profile?.id,
-        profile?.birthDate,
-        profile?.birthTime,
-        profile?.birthPlace,
-        profile?.name,
-        profile?.language,
-    ]);
+    }, [loadPrimaryChartOnce, prefetchBaseReportForChart, resolveAuthoritativeAdminStatus]);
 
     // Гороскоп / интро / deep dive: добираем в фоне, если в БД пусто или обрыв после онбординга (бесплатно и премиум).
     useEffect(() => {
@@ -534,8 +572,15 @@ const App: React.FC = () => {
                 sunSign: generatedChart.sun.sign,
                 moonSign: generatedChart.moon.sign
             });
-            
+
+            const primaryKey = getPrimaryChartLoadKey(fullProfile);
+            primaryChartSessionRef.current = { key: primaryKey, data: generatedChart, promise: null };
+            primaryChartDataRef.current = generatedChart;
+            clearHumanReadingSessionCache(fullProfile.id);
+            setChartLoadState('ready');
             setChartData(generatedChart);
+            setLoadingProgress(78);
+            await prefetchBaseReportForChart(fullProfile);
             setLoadingProgress(100);
 
             // Сразу уходим с лоадера: generateAllContent — несколько AI-вызовов и может «висеть» минутами.
@@ -785,6 +830,9 @@ const App: React.FC = () => {
 
         if (newView === 'chart') {
             setActiveChartId(undefined);
+            if (primaryChartDataRef.current) {
+                setChartData(primaryChartDataRef.current);
+            }
             setChartReturnView(currentView === 'chart' ? 'dashboard' : currentView);
             setChartOpenMode('human');
         }
@@ -807,12 +855,22 @@ const App: React.FC = () => {
     const refreshPrimaryChartState = useCallback(async () => {
         try {
             const freshChart = await getChartData();
+            if (profile?.id) {
+                const key = getPrimaryChartLoadKey(profile);
+                primaryChartSessionRef.current = { key, data: freshChart, promise: null };
+                primaryChartDataRef.current = freshChart;
+                clearHumanReadingSessionCache(String(profile.id));
+                setPreloadedHumanReport(null);
+                void prefetchBaseReportForChart(profile);
+            }
+            setChartLoadState(freshChart?.sun && freshChart?.moon ? 'ready' : 'error');
             setChartData(freshChart);
             setActiveChartId(undefined);
         } catch (error) {
             console.error('[App] Failed to refresh primary chart state:', error);
+            setChartLoadState('error');
         }
-    }, []);
+    }, [prefetchBaseReportForChart, profile]);
 
     const handleBack = useCallback(async () => {
         const currentView = viewRef.current;
@@ -843,7 +901,10 @@ const App: React.FC = () => {
         // Keep screen-specific return paths explicit for management flows.
         if (currentView === 'chart') {
             if (activeChartId) {
-                await refreshPrimaryChartState();
+                if (primaryChartDataRef.current) {
+                    setChartData(primaryChartDataRef.current);
+                }
+                setActiveChartId(undefined);
             } else {
                 setActiveChartId(undefined);
             }
@@ -853,7 +914,7 @@ const App: React.FC = () => {
             return;
         }
         setView(returnView);
-    }, [activeChartId, chartReturnView, chartsReturnView, refreshPrimaryChartState, walletReturnView]);
+    }, [activeChartId, chartReturnView, chartsReturnView, walletReturnView]);
 
     const openCharts = useCallback((returnView: ViewState) => {
         setChartsReturnView(returnView);
@@ -1032,7 +1093,9 @@ const App: React.FC = () => {
                             profile={profile} 
                             chartId={activeChartId}
                             requestPremium={requestPremium}
+                            onOpenWallet={() => openWallet('chart')}
                             onUpdateProfile={handleProfileUpdate}
+                            preloadedReport={activeChartId ? null : preloadedHumanReport}
                             dictionaryOpenSignal={dictionaryOpenSignal}
                             initialMode={chartOpenMode}
                         />

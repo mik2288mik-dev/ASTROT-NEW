@@ -43,11 +43,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!cached) {
       return res.status(404).json({ error: 'NOT_FOUND', code: 'HUMAN_BASE_NOT_READY' });
     }
-    return res.status(200).json({ interpretation: cached, source: 'human_v1' });
+    return res.status(200).json({ interpretation: cached, source: 'human_v2' });
   }
 
   if (cached) {
-    return res.status(200).json({ interpretation: cached, source: 'human_v1' });
+    return res.status(200).json({ interpretation: cached, source: 'human_v2' });
   }
 
   try {

@@ -110,6 +110,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       message: `Персональный слой дня доступен в Premium или открывается разово за ${HUMAN_DAILY_LUMI_COST} Lumi.`,
       lumiCost: HUMAN_DAILY_LUMI_COST,
       lumiBalance: ctx.user.lumi_balance ?? 0,
+      premiumAvailable: true,
     });
   }
 
@@ -124,6 +125,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         message: `Этот персональный слой можно открыть за ${HUMAN_DAILY_LUMI_COST} Lumi. Подтвердите списание.`,
         lumiCost: HUMAN_DAILY_LUMI_COST,
         lumiBalance: ctx.user.lumi_balance ?? 0,
+        premiumAvailable: true,
       });
     }
 
@@ -135,6 +137,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         message: 'Недостаточно Lumi для открытия персонального слоя дня.',
         lumiCost: HUMAN_DAILY_LUMI_COST,
         lumiBalance: balance,
+        premiumAvailable: true,
       });
     }
 
@@ -178,7 +181,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     return res.status(200).json({
       interpretation: cached,
-      source: 'human_v1',
+      source: 'human_v2',
       entitlement: access.entitlement,
       accessTier: access.accessTier,
       lumiBalance: ctx.user.lumi_balance ?? 0,
@@ -188,7 +191,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (cached) {
     return res.status(200).json({
       interpretation: cached,
-      source: 'human_v1',
+      source: 'human_v2',
       entitlement: access.entitlement,
       accessTier: access.accessTier,
       lumiBalance: ctx.user.lumi_balance ?? 0,

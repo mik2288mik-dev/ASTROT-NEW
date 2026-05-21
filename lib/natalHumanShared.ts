@@ -1,42 +1,33 @@
 import type { InterpretationSection, InterpretationSectionKey } from '../types';
 
-export const HUMAN_INTERPRETATION_PROMPT_VERSION = 'lumia-human-v1';
-export const HUMAN_BASE_PROMPT_VERSION = 'lumia-human-v1.base';
-export const HUMAN_PAID_PROMPT_VERSION = 'lumia-human-v1.paid';
-export const HUMAN_DAILY_PROMPT_VERSION = 'lumia-human-v1.daily';
+export const HUMAN_INTERPRETATION_PROMPT_VERSION = 'lumia-human-v2';
+export const HUMAN_BASE_PROMPT_VERSION = 'lumia-human-v2.base';
+export const HUMAN_PAID_PROMPT_VERSION = 'lumia-human-v2.paid';
+export const HUMAN_DAILY_PROMPT_VERSION = 'lumia-human-v2.daily';
 
 export const HUMAN_PAID_LUMI_COST = 300;
 export const HUMAN_DAILY_LUMI_COST = 35;
-export const HUMAN_BASE_CACHE_KEY = 'human_v1.base';
+export const HUMAN_BASE_CACHE_KEY = 'human_v2.base';
 
 export const HUMAN_FREE_SECTION_KEYS = [
   'base_portrait',
   'main_formula',
-  'sun_code',
-  'moon_code',
-  'ascendant_code',
   'strengths',
   'growth_zones',
-  'how_others_see_you',
-  'emotional_world',
-  'self_relationship',
   'main_advice',
-  'summary',
 ] as const satisfies readonly InterpretationSectionKey[];
 
 export const HUMAN_PAID_SECTION_KEYS = [
-  'today_by_chart',
   'work_business',
   'love_relationships',
   'money_stability',
-  'goals_actions',
-  'friendship_social',
   'family_home',
-  'shadow_patterns',
-  'potential_purpose',
   'communication_conflicts',
   'energy_recovery',
-  'personal_growth_scenario',
+  'friendship_social',
+  'goals_actions',
+  'shadow_patterns',
+  'potential_purpose',
 ] as const satisfies readonly InterpretationSectionKey[];
 
 export const HUMAN_DAILY_SECTION_KEYS = [
@@ -66,12 +57,6 @@ export type HumanSectionMeta = {
 };
 
 export const HUMAN_PAID_SECTION_META: Record<HumanPaidSectionKey, HumanSectionMeta> = {
-  today_by_chart: {
-    key: 'today_by_chart',
-    title: 'Сегодня по карте',
-    subtitle: 'Как карта звучит именно сейчас',
-    teaser: 'Что сегодня может включиться в вашей карте и где лучше действовать спокойнее, точнее, честнее.',
-  },
   work_business: {
     key: 'work_business',
     title: 'Работа и бизнес',
@@ -131,12 +116,6 @@ export const HUMAN_PAID_SECTION_META: Record<HumanPaidSectionKey, HumanSectionMe
     title: 'Энергия и восстановление',
     subtitle: 'Ресурс, нагрузка, личный темп',
     teaser: 'Что вас восстанавливает, что перегружает и какой темп подходит именно вам.',
-  },
-  personal_growth_scenario: {
-    key: 'personal_growth_scenario',
-    title: 'Личный сценарий роста',
-    subtitle: 'Как соединить сильные стороны в одну линию',
-    teaser: 'Какой путь роста показывает карта и какие решения помогают вам становиться сильнее без насилия над собой.',
   },
 };
 
@@ -227,11 +206,11 @@ export function isHumanDailySectionKey(value: string): value is HumanDailySectio
 }
 
 export function humanPaidCacheKey(sectionKey: HumanPaidSectionKey): string {
-  return `human_v1.paid.${sectionKey}`;
+  return `human_v2.paid.${sectionKey}`;
 }
 
 export function humanDailyCacheKey(dateKey: string, sectionKey: HumanDailySectionKey): string {
-  return `human_v1.daily.${dateKey}.${sectionKey}`;
+  return `human_v2.daily.${dateKey}.${sectionKey}`;
 }
 
 export function buildLockedPaidSections(): InterpretationSection[] {
@@ -245,7 +224,7 @@ export function buildLockedPaidSections(): InterpretationSection[] {
       isLocked: true,
       teaser: meta.teaser,
       content: '',
-      ctaLabel: `Открыть за ${HUMAN_PAID_LUMI_COST} Lumi`,
+      ctaLabel: 'Прочитать все о себе',
     };
   });
 }

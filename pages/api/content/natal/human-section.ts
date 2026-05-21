@@ -89,6 +89,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         message: `Раздел открывается в Premium или разово за ${HUMAN_PAID_LUMI_COST} Lumi.`,
         lumiCost: HUMAN_PAID_LUMI_COST,
         lumiBalance: ctx.user.lumi_balance ?? 0,
+        premiumAvailable: true,
       });
     }
   }
@@ -104,6 +105,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         message: `Раздел можно открыть за ${HUMAN_PAID_LUMI_COST} Lumi. Подтвердите списание.`,
         lumiCost: HUMAN_PAID_LUMI_COST,
         lumiBalance: ctx.user.lumi_balance ?? 0,
+        premiumAvailable: true,
       });
     }
 
@@ -115,6 +117,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         message: 'Недостаточно Lumi для открытия раздела.',
         lumiCost: HUMAN_PAID_LUMI_COST,
         lumiBalance: balance,
+        premiumAvailable: true,
       });
     }
 
@@ -153,7 +156,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const lumiBalance = await db.lumi_transactions.getBalance(userId);
     return res.status(200).json({
       interpretation: cached,
-      source: 'human_v1',
+      source: 'human_v2',
       accessTier: access.accessTier,
       lumiBalance,
     });

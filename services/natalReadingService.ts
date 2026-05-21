@@ -92,7 +92,68 @@ export type HumanReadingError = Error & {
   code?: string;
   lumiCost?: number;
   lumiBalance?: number;
+  premiumAvailable?: boolean;
 };
+
+const baseReportCache = new Map<string, NatalInterpretationReport>();
+const baseReportInFlight = new Map<string, Promise<NatalInterpretationReport>>();
+const paidSectionCache = new Map<string, HumanReadingResult<InterpretationSection>>();
+const paidSectionInFlight = new Map<string, Promise<HumanReadingResult<InterpretationSection>>>();
+const dailySectionCache = new Map<string, HumanReadingResult<InterpretationSection>>();
+const dailySectionInFlight = new Map<string, Promise<HumanReadingResult<InterpretationSection>>>();
+
+function chartKey(chartId?: number): string {
+  return chartId != null ? String(chartId) : 'primary';
+}
+
+function baseKey(userId: string, chartId?: number): string {
+  return `${userId}:${chartKey(chartId)}`;
+}
+
+function paidKey(userId: string, sectionKey: HumanPaidSectionKey, chartId?: number): string {
+  return `${userId}:${chartKey(chartId)}:${sectionKey}`;
+}
+
+function dailyKey(userId: string, sectionKey: HumanDailySectionKey, chartId?: number, date?: string): string {
+  return `${userId}:${chartKey(chartId)}:${date || 'today'}:${sectionKey}`;
+}
+
+function clearMapByPrefix<T>(map: Map<string, T>, prefix: string): void {
+  Array.from(map.keys()).forEach((key) => {
+    if (key.startsWith(prefix)) map.delete(key);
+  });
+}
+
+export function clearHumanReadingSessionCache(userId?: string, chartId?: number): void {
+  if (!userId) {
+    baseReportCache.clear();
+    baseReportInFlight.clear();
+    paidSectionCache.clear();
+    paidSectionInFlight.clear();
+    dailySectionCache.clear();
+    dailySectionInFlight.clear();
+    return;
+  }
+
+  if (chartId != null) {
+    const exactBaseKey = baseKey(userId, chartId);
+    baseReportCache.delete(exactBaseKey);
+    baseReportInFlight.delete(exactBaseKey);
+  } else {
+    clearMapByPrefix(baseReportCache, `${userId}:`);
+    clearMapByPrefix(baseReportInFlight, `${userId}:`);
+  }
+
+  const prefix = `${userId}:${chartId != null ? `${chartKey(chartId)}:` : ''}`;
+  clearMapByPrefix(paidSectionCache, prefix);
+  clearMapByPrefix(paidSectionInFlight, prefix);
+  clearMapByPrefix(dailySectionCache, prefix);
+  clearMapByPrefix(dailySectionInFlight, prefix);
+}
+
+export function getHumanBaseReportCached(userId: string, chartId?: number): NatalInterpretationReport | null {
+  return baseReportCache.get(baseKey(userId, chartId)) || null;
+}
 
 function buildHumanUrl(
   endpoint: HumanEndpoint,
@@ -117,6 +178,7 @@ async function readHumanError(response: Response, fallback: string): Promise<Hum
   err.code = payload.code;
   err.lumiCost = typeof payload.lumiCost === 'number' ? payload.lumiCost : undefined;
   err.lumiBalance = typeof payload.lumiBalance === 'number' ? payload.lumiBalance : undefined;
+  err.premiumAvailable = typeof payload.premiumAvailable === 'boolean' ? payload.premiumAvailable : undefined;
   return err;
 }
 
@@ -187,10 +249,28 @@ export async function loadHumanBaseReport(
   userId: string,
   chartId?: number
 ): Promise<NatalInterpretationReport> {
-  const cached = await getHuman<NatalInterpretationReport>('human-base', userId, { chartId });
-  if (cached?.content) return cached.content;
-  const generated = await postHuman<NatalInterpretationReport>('human-base', userId, { chartId });
-  return generated.content;
+  const key = baseKey(userId, chartId);
+  const memoryCached = baseReportCache.get(key);
+  if (memoryCached) return memoryCached;
+
+  const existing = baseReportInFlight.get(key);
+  if (existing) return existing;
+
+  const request = (async () => {
+    const cached = await getHuman<NatalInterpretationReport>('human-base', userId, { chartId });
+    const content = cached?.content || (await postHuman<NatalInterpretationReport>('human-base', userId, { chartId })).content;
+    baseReportCache.set(key, content);
+    return content;
+  })().finally(() => {
+    baseReportInFlight.delete(key);
+  });
+
+  baseReportInFlight.set(key, request);
+  return request;
+}
+
+export function prefetchHumanBaseReport(userId: string, chartId?: number): Promise<NatalInterpretationReport> {
+  return loadHumanBaseReport(userId, chartId);
 }
 
 export async function loadHumanPaidSection(
@@ -202,23 +282,40 @@ export async function loadHumanPaidSection(
     allowLumiSpend?: boolean;
   }
 ): Promise<HumanReadingResult<InterpretationSection>> {
-  if (options?.allowLumiSpend) {
-    return postHuman<InterpretationSection>('human-section', userId, {
-      chartId,
-      sectionKey,
-      accessTier: 'lumi',
-      allowLumiSpend: true,
-    });
-  }
+  const key = paidKey(userId, sectionKey, chartId);
+  const memoryCached = paidSectionCache.get(key);
+  if (memoryCached?.content) return memoryCached;
 
-  const cached = await getHuman<InterpretationSection>('human-section', userId, { chartId, sectionKey });
-  if (cached?.content) return cached;
+  const existing = paidSectionInFlight.get(key);
+  if (existing) return existing;
 
-  return postHuman<InterpretationSection>('human-section', userId, {
-    chartId,
-    sectionKey,
-    accessTier: options?.accessTier,
+  const request = (async () => {
+    let result: HumanReadingResult<InterpretationSection>;
+    if (options?.allowLumiSpend) {
+      result = await postHuman<InterpretationSection>('human-section', userId, {
+        chartId,
+        sectionKey,
+        accessTier: 'lumi',
+        allowLumiSpend: true,
+      });
+    } else {
+      const cached = await getHuman<InterpretationSection>('human-section', userId, { chartId, sectionKey });
+      result = cached?.content
+        ? cached
+        : await postHuman<InterpretationSection>('human-section', userId, {
+            chartId,
+            sectionKey,
+            accessTier: options?.accessTier,
+          });
+    }
+    paidSectionCache.set(key, result);
+    return result;
+  })().finally(() => {
+    paidSectionInFlight.delete(key);
   });
+
+  paidSectionInFlight.set(key, request);
+  return request;
 }
 
 export async function loadHumanDailySection(
@@ -231,24 +328,42 @@ export async function loadHumanDailySection(
     allowLumiSpend?: boolean;
   }
 ): Promise<HumanReadingResult<InterpretationSection>> {
-  if (options?.allowLumiSpend) {
-    return postHuman<InterpretationSection>('human-daily', userId, {
-      chartId,
-      sectionKey,
-      date,
-      accessTier: 'lumi',
-      allowLumiSpend: true,
-    });
-  }
+  const key = dailyKey(userId, sectionKey, chartId, date);
+  const memoryCached = dailySectionCache.get(key);
+  if (memoryCached?.content) return memoryCached;
 
-  const cached = await getHuman<InterpretationSection>('human-daily', userId, { chartId, sectionKey, date });
-  if (cached?.content) return cached;
-  return postHuman<InterpretationSection>('human-daily', userId, {
-    chartId,
-    sectionKey,
-    date,
-    accessTier: options?.accessTier,
+  const existing = dailySectionInFlight.get(key);
+  if (existing) return existing;
+
+  const request = (async () => {
+    let result: HumanReadingResult<InterpretationSection>;
+    if (options?.allowLumiSpend) {
+      result = await postHuman<InterpretationSection>('human-daily', userId, {
+        chartId,
+        sectionKey,
+        date,
+        accessTier: 'lumi',
+        allowLumiSpend: true,
+      });
+    } else {
+      const cached = await getHuman<InterpretationSection>('human-daily', userId, { chartId, sectionKey, date });
+      result = cached?.content
+        ? cached
+        : await postHuman<InterpretationSection>('human-daily', userId, {
+            chartId,
+            sectionKey,
+            date,
+            accessTier: options?.accessTier,
+          });
+    }
+    dailySectionCache.set(key, result);
+    return result;
+  })().finally(() => {
+    dailySectionInFlight.delete(key);
   });
+
+  dailySectionInFlight.set(key, request);
+  return request;
 }
 
 export async function getCachedHumanDailySection(

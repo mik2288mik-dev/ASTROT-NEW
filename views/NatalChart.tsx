@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import type {
   NatalChartData,
   NatalChartMode,
+  NatalInterpretationReport,
   UserProfile,
 } from '../types';
 import { ShimmerStyles } from '../components/NatalReading/Skeleton';
@@ -14,7 +15,9 @@ interface NatalChartProps {
   chartId?: number;
   initialMode?: NatalChartMode;
   requestPremium: () => void;
+  onOpenWallet?: () => void;
   onUpdateProfile?: (profile: UserProfile) => void;
+  preloadedReport?: NatalInterpretationReport | null;
   dictionaryOpenSignal?: number; // unused in the single-page layout, kept for back-compat
 }
 
@@ -24,7 +27,9 @@ export const NatalChart: React.FC<NatalChartProps> = ({
   chartId,
   initialMode = 'human',
   requestPremium,
+  onOpenWallet,
   onUpdateProfile,
+  preloadedReport,
 }) => {
   const wheelSectionRef = useRef<HTMLElement | null>(null);
 
@@ -53,7 +58,9 @@ export const NatalChart: React.FC<NatalChartProps> = ({
         chartData={data}
         chartId={chartId}
         requestPremium={requestPremium}
+        onOpenWallet={onOpenWallet}
         onUpdateProfile={onUpdateProfile}
+        preloadedReport={preloadedReport}
       />
 
       <section ref={wheelSectionRef} className="border-t border-[#efefef] bg-white px-4 pb-12 pt-8">

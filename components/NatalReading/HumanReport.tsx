@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ChevronDown, Lock, Sparkles } from 'lucide-react';
+import { ChevronDown, Crown, Lock, Sparkles, WalletCards, X } from 'lucide-react';
 import type {
   InterpretationSection,
   NatalChartData,
@@ -9,6 +9,7 @@ import type {
 import {
   HUMAN_DAILY_SECTION_KEYS,
   HUMAN_DAILY_SECTION_META,
+  HUMAN_FREE_SECTION_KEYS,
   HUMAN_PAID_LUMI_COST,
   HUMAN_PAID_SECTION_KEYS,
   HUMAN_PAID_SECTION_META,
@@ -17,6 +18,7 @@ import {
 } from '../../lib/natalHumanShared';
 import { getMoscowTodayKey } from '../../lib/date-utils';
 import {
+  getHumanBaseReportCached,
   loadHumanBaseReport,
   loadHumanDailySection,
   loadHumanPaidSection,
@@ -24,13 +26,16 @@ import {
 } from '../../services/natalReadingService';
 import { PlanetIcon } from '../icons/PlanetIcon';
 import { getNatalReadingBackground } from '../../lib/visualBackgrounds';
+import { FormattedAiText } from '../ui/FormattedAiText';
 
 type Props = {
   profile: UserProfile;
   chartData: NatalChartData;
   chartId?: number;
   requestPremium: () => void;
+  onOpenWallet?: () => void;
   onUpdateProfile?: (profile: UserProfile) => void;
+  preloadedReport?: NatalInterpretationReport | null;
 };
 
 const SIGN_RU: Record<string, string> = {
@@ -77,80 +82,79 @@ function formatError(error: unknown): string {
   if (e?.code === 'INSUFFICIENT_LUMI') {
     return `Недостаточно Lumi. Нужно ${e.lumiCost ?? HUMAN_PAID_LUMI_COST}, сейчас ${e.lumiBalance ?? 0}.`;
   }
-  if (e?.code === 'PREMIUM_REQUIRED') return 'Этот раздел доступен в Premium.';
+  if (e?.code === 'PREMIUM_REQUIRED' || e?.code === 'HUMAN_SECTION_LOCKED') {
+    return 'Этот раздел можно открыть через Premium или за Lumi.';
+  }
   if (e?.message) return e.message;
   return 'Не удалось загрузить раздел. Попробуйте еще раз.';
 }
 
-const SectionText: React.FC<{ section: InterpretationSection }> = ({ section }) => {
-  const background = getNatalReadingBackground(section.key);
-
-  return (
-    <section
-      data-reading-section-key={section.key}
-      className="relative -mx-5 overflow-hidden border-t border-[#efefef] px-5 py-7 first:border-t-0 sm:py-8"
-    >
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 z-0 bg-cover bg-center"
-        style={{
-          backgroundImage: `linear-gradient(180deg, rgba(255,255,255,0.82) 0%, rgba(255,255,255,0.92) 46%, rgba(255,255,255,0.985) 100%), url(${background})`,
-        }}
+const SectionText: React.FC<{ section: InterpretationSection }> = ({ section }) => (
+  <section data-reading-section-key={section.key} className="border-t border-[#eeeeee] py-8 first:border-t-0 sm:py-10">
+    <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8c6bb1]">
+      {section.subtitle || section.title}
+    </p>
+    <h3 className="mt-2 font-sans text-[26px] font-semibold leading-[1.08] tracking-[-0.02em] text-[#1f1f1f] sm:text-[30px]">
+      {section.title}
+    </h3>
+    <div className="mt-5">
+      <FormattedAiText
+        text={section.content}
+        variant="article"
+        className="max-w-none"
+        paragraphClassName="font-sans text-[16.5px] leading-[1.82] text-[#2d2d2d] [text-wrap:pretty] sm:text-[17.5px] sm:leading-[1.9]"
       />
-      <div className="relative z-10">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#8c6bb1]">
-          {section.subtitle || section.title}
-        </p>
-        <h3 className="mt-2 font-lora text-[22px] leading-tight text-[#1f1f1f]">{section.title}</h3>
-        <p className="mt-4 whitespace-pre-line font-lora text-[15px] leading-[1.85] text-[#2d2d2d]">
-          {section.content}
-        </p>
-        {section.bullets && section.bullets.length > 0 ? (
-          <ul className="mt-5 space-y-2.5">
-            {section.bullets.map((item, index) => (
-              <li key={`${section.key}-${index}`} className="flex gap-2.5 text-[14px] leading-relaxed text-[#333]">
-                <span className="mt-[8px] h-[5px] w-[5px] shrink-0 rounded-full bg-[#c9a55a]" />
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-      </div>
-    </section>
-  );
-};
+    </div>
+    {section.bullets?.length ? (
+      <ul className="mt-6 space-y-3 border-l-2 border-[#d8c18a] pl-4">
+        {section.bullets.map((item, index) => (
+          <li key={`${section.key}-${index}`} className="font-sans text-[14.5px] leading-relaxed text-[#3a3a3a]">
+            {item}
+          </li>
+        ))}
+      </ul>
+    ) : null}
+  </section>
+);
 
-const PaidSectionCard: React.FC<{
+const LockedPreview: React.FC<{
   sectionKey: HumanPaidSectionKey;
-  isPremium: boolean;
   isLoading: boolean;
   opened?: InterpretationSection;
   onOpen: () => void;
-}> = ({ sectionKey, isPremium, isLoading, opened, onOpen }) => {
+}> = ({ sectionKey, isLoading, opened, onOpen }) => {
   const meta = HUMAN_PAID_SECTION_META[sectionKey];
+
   if (opened) {
-    return (
-      <div className="border-t border-[#efefef] py-6">
-        <SectionText section={opened} />
-      </div>
-    );
+    return <SectionText section={opened} />;
   }
+
   return (
     <button
       type="button"
       onClick={onOpen}
       disabled={isLoading}
-      className="group w-full border-t border-[#efefef] py-5 text-left transition disabled:opacity-60"
+      className="group w-full border-t border-[#eeeeee] py-6 text-left transition disabled:opacity-60"
     >
       <div className="flex items-start gap-3">
-        <span className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#f7f5fb] text-[#6f4ea8]">
-          <Lock size={15} strokeWidth={1.7} />
+        <span className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#f6f1fb] text-[#7150a7]">
+          <Lock size={15} strokeWidth={1.9} />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block font-lora text-[18px] leading-tight text-[#1f1f1f]">{meta.title}</span>
-          <span className="mt-1.5 block text-[13.5px] leading-relaxed text-[#5e5e5e]">{meta.teaser}</span>
-          <span className="mt-3 inline-flex items-center rounded-full bg-[#f7f7f7] px-3 py-1 text-[12px] text-[#3a3a3a]">
-            {isLoading ? 'Готовим раздел...' : isPremium ? 'Открыть раздел' : `Открыть за ${HUMAN_PAID_LUMI_COST} Lumi`}
+          <span className="block font-sans text-[19px] font-semibold leading-tight tracking-[-0.01em] text-[#1f1f1f]">
+            {meta.title}
+          </span>
+          <span className="mt-2 block font-sans text-[14px] leading-relaxed text-[#626262]">{meta.teaser}</span>
+          <span className="relative mt-4 block max-h-[4.8rem] overflow-hidden rounded-[18px] bg-[#fafafa] px-4 py-3">
+            <span className="block select-none font-sans text-[14px] leading-[1.65] text-[#2f2f2f] blur-[2.5px]">
+              В полном разборе здесь будет личный текст о том, как эта тема проявляется именно в вашей карте:
+              где сила, что может мешать и как с этим обращаться без давления на себя.
+            </span>
+            <span className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/10 via-white/45 to-white" />
+          </span>
+          <span className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#1f1f1f] px-4 py-2 text-[13px] font-medium text-white">
+            <Sparkles size={14} strokeWidth={2} />
+            {isLoading ? 'Готовим раздел...' : 'Прочитать все о себе'}
           </span>
         </span>
       </div>
@@ -166,36 +170,33 @@ const DailySectionButton: React.FC<{
   onOpen: () => void;
 }> = ({ sectionKey, isPremium, isLoading, opened, onOpen }) => {
   const meta = HUMAN_DAILY_SECTION_META[sectionKey];
-  const background = getNatalReadingBackground(sectionKey);
   return (
-    <div className="relative -mx-5 overflow-hidden border-t border-[#efefef] px-5 py-5">
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 z-0 bg-cover bg-center"
-        style={{
-          backgroundImage: `linear-gradient(180deg, rgba(255,255,255,0.86) 0%, rgba(255,255,255,0.94) 56%, rgba(255,255,255,0.99) 100%), url(${background})`,
-        }}
-      />
-      <div className="relative z-10">
-        <button
+    <div className="border-t border-[#eeeeee] py-5">
+      <button
         type="button"
         onClick={onOpen}
         disabled={isLoading}
         className="flex w-full items-start justify-between gap-4 text-left disabled:opacity-60"
       >
-        <span>
-          <span className="block font-lora text-[17px] leading-tight text-[#1f1f1f]">{meta.title}</span>
-          <span className="mt-1.5 block text-[13.5px] leading-relaxed text-[#666]">
+        <span className="min-w-0">
+          <span className="block font-sans text-[17px] font-semibold leading-tight tracking-[-0.01em] text-[#1f1f1f]">
+            {meta.title}
+          </span>
+          <span className="mt-1.5 block font-sans text-[13.5px] leading-relaxed text-[#666]">
             {opened ? opened.subtitle || meta.subtitle : meta.teaser}
           </span>
         </span>
         <span className="mt-1 shrink-0 rounded-full bg-[#f7f5fb] px-3 py-1 text-[12px] text-[#6f4ea8]">
           {isLoading ? '...' : isPremium ? 'Открыть' : 'Premium'}
         </span>
-        </button>
-        {opened ? (
-          <div className="mt-4">
-          <p className="whitespace-pre-line font-lora text-[14.5px] leading-[1.8] text-[#2d2d2d]">{opened.content}</p>
+      </button>
+      {opened ? (
+        <div className="mt-5">
+          <FormattedAiText
+            text={opened.content}
+            className="max-w-none"
+            paragraphClassName="font-sans text-[15.5px] leading-[1.78] text-[#2d2d2d] [text-wrap:pretty]"
+          />
           {opened.bullets?.length ? (
             <div className="mt-4 flex flex-wrap gap-2">
               {opened.bullets.map((item, index) => (
@@ -205,8 +206,79 @@ const DailySectionButton: React.FC<{
               ))}
             </div>
           ) : null}
-          </div>
-        ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+};
+
+const NatalUnlockSheet: React.FC<{
+  sectionKey: HumanPaidSectionKey;
+  balance: number;
+  isLoading: boolean;
+  onClose: () => void;
+  onPremium: () => void;
+  onLumi: () => void;
+  onWallet?: () => void;
+}> = ({ sectionKey, balance, isLoading, onClose, onPremium, onLumi, onWallet }) => {
+  const meta = HUMAN_PAID_SECTION_META[sectionKey];
+  const hasEnoughLumi = balance >= HUMAN_PAID_LUMI_COST;
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/38 px-3 pb-3">
+      <button type="button" aria-label="Закрыть" className="absolute inset-0 cursor-default" onClick={onClose} />
+      <div className="relative w-full max-w-md rounded-[28px] bg-white px-5 pb-5 pt-4 shadow-[0_24px_80px_rgba(0,0,0,0.24)]">
+        <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-[#dfdfdf]" />
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-[#f5f5f5] text-[#444]"
+          aria-label="Закрыть"
+        >
+          <X size={17} strokeWidth={2} />
+        </button>
+
+        <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8c6bb1]">Полный раздел карты</p>
+        <h3 className="mt-2 max-w-[18rem] font-sans text-[24px] font-semibold leading-[1.08] tracking-[-0.02em] text-[#1f1f1f]">
+          {meta.title}
+        </h3>
+        <p className="mt-3 font-sans text-[14.5px] leading-relaxed text-[#5f5f5f]">{meta.teaser}</p>
+
+        <div className="mt-5 grid gap-2.5">
+          <button
+            type="button"
+            onClick={onPremium}
+            disabled={isLoading}
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-[#1f1f1f] px-5 py-3 text-[14px] font-semibold text-white disabled:opacity-60"
+          >
+            <Crown size={16} strokeWidth={2} />
+            Открыть Premium
+          </button>
+          {hasEnoughLumi ? (
+            <button
+              type="button"
+              onClick={onLumi}
+              disabled={isLoading}
+              className="flex w-full items-center justify-center gap-2 rounded-full bg-[#f4f1fb] px-5 py-3 text-[14px] font-semibold text-[#5f3c98] disabled:opacity-60"
+            >
+              <WalletCards size={16} strokeWidth={2} />
+              {isLoading ? 'Открываем...' : `Открыть за ${HUMAN_PAID_LUMI_COST} Lumi`}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onWallet}
+              disabled={!onWallet || isLoading}
+              className="flex w-full items-center justify-center gap-2 rounded-full bg-[#f4f1fb] px-5 py-3 text-[14px] font-semibold text-[#5f3c98] disabled:opacity-50"
+            >
+              <WalletCards size={16} strokeWidth={2} />
+              Пополнить Lumi
+            </button>
+          )}
+        </div>
+        <p className="mt-3 text-center font-sans text-[12.5px] leading-relaxed text-[#777]">
+          На балансе {balance} Lumi. Разовое открытие сохраняется для этой темы.
+        </p>
       </div>
     </div>
   );
@@ -226,7 +298,7 @@ const TechnicalDetails: React.FC<{ chartData: NatalChartData }> = ({ chartData }
   }).filter(Boolean);
 
   return (
-    <details className="border-t border-[#efefef] py-6">
+    <details className="border-t border-[#eeeeee] py-6">
       <summary className="flex cursor-pointer list-none items-center justify-between text-[13px] font-medium text-[#3a3a3a]">
         <span>Подробные положения планет</span>
         <ChevronDown size={16} strokeWidth={1.7} />
@@ -253,23 +325,47 @@ export const HumanReport: React.FC<Props> = ({
   chartData,
   chartId,
   requestPremium,
+  onOpenWallet,
   onUpdateProfile,
+  preloadedReport,
 }) => {
-  const [report, setReport] = useState<NatalInterpretationReport | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [report, setReport] = useState<NatalInterpretationReport | null>(preloadedReport || null);
+  const [loading, setLoading] = useState(!preloadedReport);
   const [error, setError] = useState<string | null>(null);
   const [paidSections, setPaidSections] = useState<Partial<Record<HumanPaidSectionKey, InterpretationSection>>>({});
   const [dailySections, setDailySections] = useState<Partial<Record<HumanDailySectionKey, InterpretationSection>>>({});
   const [paidLoading, setPaidLoading] = useState<HumanPaidSectionKey | null>(null);
   const [dailyLoading, setDailyLoading] = useState<HumanDailySectionKey | null>(null);
   const [sectionError, setSectionError] = useState<string | null>(null);
+  const [unlockTarget, setUnlockTarget] = useState<HumanPaidSectionKey | null>(null);
 
   const userId = profile.id ? String(profile.id) : '';
   const isPremium = !!profile.isPremium;
   const todayKey = useMemo(() => getMoscowTodayKey(), []);
+  const visibleFreeKeys = useMemo(() => new Set<string>(HUMAN_FREE_SECTION_KEYS), []);
+  const visibleFreeSections = useMemo(
+    () => (report?.freeSections || []).filter((section) => visibleFreeKeys.has(section.key)),
+    [report?.freeSections, visibleFreeKeys]
+  );
 
   useEffect(() => {
-    if (!userId) return;
+    if (preloadedReport) {
+      setReport(preloadedReport);
+      setLoading(false);
+      setError(null);
+    }
+  }, [preloadedReport]);
+
+  useEffect(() => {
+    if (!userId || preloadedReport) return;
+    const cached = getHumanBaseReportCached(userId, chartId);
+    if (cached) {
+      setReport(cached);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -286,23 +382,11 @@ export const HumanReport: React.FC<Props> = ({
     return () => {
       cancelled = true;
     };
-  }, [chartId, userId]);
+  }, [chartId, preloadedReport, userId]);
 
-  const handleOpenPaid = async (key: HumanPaidSectionKey) => {
+  const openPaidSection = async (key: HumanPaidSectionKey, allowLumiSpend: boolean) => {
     if (!userId || paidLoading) return;
     setSectionError(null);
-
-    const allowLumiSpend = !isPremium;
-    if (allowLumiSpend) {
-      const balance = profile.lumiBalance ?? 0;
-      if (balance < HUMAN_PAID_LUMI_COST) {
-        setSectionError(`Для раздела нужно ${HUMAN_PAID_LUMI_COST} Lumi. Сейчас на балансе ${balance}.`);
-        return;
-      }
-      const ok = window.confirm(`Открыть раздел "${HUMAN_PAID_SECTION_META[key].title}" за ${HUMAN_PAID_LUMI_COST} Lumi?`);
-      if (!ok) return;
-    }
-
     setPaidLoading(key);
     try {
       const result = await loadHumanPaidSection(userId, key, chartId, {
@@ -313,11 +397,21 @@ export const HumanReport: React.FC<Props> = ({
       if (typeof result.lumiBalance === 'number') {
         onUpdateProfile?.({ ...profile, lumiBalance: result.lumiBalance });
       }
+      setUnlockTarget(null);
     } catch (err) {
       setSectionError(formatError(err));
     } finally {
       setPaidLoading(null);
     }
+  };
+
+  const handleOpenPaid = (key: HumanPaidSectionKey) => {
+    if (isPremium) {
+      void openPaidSection(key, false);
+      return;
+    }
+    setSectionError(null);
+    setUnlockTarget(key);
   };
 
   const handleOpenDaily = async (key: HumanDailySectionKey) => {
@@ -340,8 +434,8 @@ export const HumanReport: React.FC<Props> = ({
 
   if (loading) {
     return (
-      <div className="px-5 py-10">
-        <p className="text-[11px] uppercase tracking-[0.22em] text-[#9a9a9a]">Готовим новую интерпретацию</p>
+      <div className="mx-auto w-full max-w-reading-wide px-5 py-10">
+        <p className="text-[11px] uppercase tracking-[0.22em] text-[#9a9a9a]">Готовим интерпретацию карты</p>
         <div className="mt-5 space-y-3">
           {Array.from({ length: 5 }).map((_, index) => (
             <div key={index} className="h-4 rounded-full bg-[#f1f1f1]" style={{ width: `${92 - index * 9}%` }} />
@@ -353,129 +447,166 @@ export const HumanReport: React.FC<Props> = ({
 
   if (error || !report) {
     return (
-      <div className="px-5 py-10">
-        <p className="font-lora text-[20px] text-[#1f1f1f]">Интерпретация сейчас недоступна</p>
-        <p className="mt-2 text-sm leading-relaxed text-[#666]">{error || 'Обновите экран через несколько секунд.'}</p>
+      <div className="mx-auto w-full max-w-reading-wide px-5 py-10">
+        <p className="font-sans text-[22px] font-semibold tracking-[-0.02em] text-[#1f1f1f]">Интерпретация сейчас недоступна</p>
+        <p className="mt-2 text-sm leading-relaxed text-[#666]">{error || 'Попробуйте открыть карту еще раз через несколько секунд.'}</p>
         <button
           type="button"
-          onClick={() => window.location.reload()}
+          onClick={() => {
+            setLoading(true);
+            setError(null);
+            void loadHumanBaseReport(userId, chartId)
+              .then(setReport)
+              .catch((err) => setError(formatError(err)))
+              .finally(() => setLoading(false));
+          }}
           className="mt-5 rounded-full bg-[#1f1f1f] px-5 py-2.5 text-[13px] text-white"
         >
-          Обновить
+          Повторить
         </button>
       </div>
     );
   }
 
   return (
-    <article
-      className="bg-white px-5 pb-16 pt-6"
-      style={{
-        backgroundImage: `linear-gradient(180deg, rgba(255,255,255,0.78) 0%, rgba(255,255,255,0.94) 34%, rgba(255,255,255,1) 72%), url(${getNatalReadingBackground('base_portrait')})`,
-        backgroundPosition: 'center top',
-        backgroundRepeat: 'no-repeat',
-        backgroundSize: 'cover',
-      }}
-    >
-      <header className="pb-7">
-        <p className="text-[11px] uppercase tracking-[0.22em] text-[#9a9a9a]">
-          {report.birthData.birthDate}
-          {report.birthData.birthTime ? ` · ${report.birthData.birthTime}` : ''}
-          {report.birthData.birthPlace ? ` · ${report.birthData.birthPlace}` : ''}
-        </p>
-        <h1 className="mt-3 font-lora text-[29px] leading-[1.12] text-[#1f1f1f]">
-          {report.userName}, главный портрет
-        </h1>
-        <div className="mt-5 border-l-2 border-[#c9a55a] pl-4">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#8c6bb1]">
-            {report.shortCard.title || 'Главная энергия карты'}
+    <article className="relative bg-white pb-16 pt-6">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 h-[24rem] bg-cover bg-center"
+        style={{
+          backgroundImage: `linear-gradient(180deg, rgba(255,255,255,0.74) 0%, rgba(255,255,255,0.94) 50%, #fff 100%), url(${getNatalReadingBackground('base_portrait')})`,
+        }}
+      />
+
+      <div className="relative z-10 mx-auto w-full max-w-reading-wide px-5">
+        <header className="pb-8">
+          <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8c6bb1]">
+            Натальная карта
           </p>
-          <p className="mt-2 font-lora text-[16px] leading-[1.65] text-[#2d2d2d]">{report.shortCard.text}</p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {report.shortCard.keywords.map((keyword) => (
-              <span key={keyword} className="rounded-full bg-[#f7f7f7] px-3 py-1 text-[12px] text-[#3a3a3a]">
-                {keyword}
-              </span>
+          <h1 className="mt-3 font-sans text-[36px] font-semibold leading-[1.02] tracking-[-0.035em] text-[#1f1f1f] sm:text-[44px]">
+            {report.userName}, главный портрет
+          </h1>
+          <p className="mt-4 max-w-[36rem] font-sans text-[15px] leading-relaxed text-[#666]">
+            Разбор основан на расчетах по дате, времени и месту рождения. В бесплатной версии открыт базовый слой, а глубокие темы можно раскрыть через Premium или Lumi.
+          </p>
+          <p className="mt-3 font-sans text-[12.5px] leading-relaxed text-[#888]">
+            {report.birthData.birthDate}
+            {report.birthData.birthTime ? ` · ${report.birthData.birthTime}` : ''}
+            {report.birthData.birthPlace ? ` · ${report.birthData.birthPlace}` : ''}
+          </p>
+
+          <div className="mt-7 border-l-2 border-[#d8c18a] pl-4">
+            <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8c6bb1]">
+              {report.shortCard.title || 'Главная энергия карты'}
+            </p>
+            <p className="mt-3 font-sans text-[17px] leading-[1.75] text-[#2d2d2d] [text-wrap:pretty]">{report.shortCard.text}</p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {report.shortCard.keywords.map((keyword) => (
+                <span key={keyword} className="rounded-full bg-[#f7f7f7] px-3 py-1 text-[12px] text-[#3a3a3a]">
+                  {keyword}
+                </span>
+              ))}
+            </div>
+            <p className="mt-4 font-sans text-[14px] italic leading-relaxed text-[#666]">{report.shortCard.advice}</p>
+          </div>
+        </header>
+
+        <div>
+          {visibleFreeSections.map((section) => (
+            <SectionText key={section.key} section={section} />
+          ))}
+        </div>
+
+        <section className="border-t border-[#eeeeee] py-9">
+          <div className="flex items-start gap-3">
+            <span className="mt-1 text-[#c9a55a]">
+              <Sparkles size={18} strokeWidth={1.8} />
+            </span>
+            <div>
+              <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8c6bb1]">Полный разбор</p>
+              <h2 className="mt-2 font-sans text-[28px] font-semibold leading-[1.08] tracking-[-0.02em] text-[#1f1f1f]">
+                Темы, которые раскрывают карту глубже
+              </h2>
+              <p className="mt-3 font-sans text-[14.5px] leading-relaxed text-[#5e5e5e]">
+                Здесь карта переходит из общего портрета в жизненные сферы: отношения, работа, деньги, дом, общение, ресурс и личный вектор.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-6">
+            {HUMAN_PAID_SECTION_KEYS.map((key) => (
+              <LockedPreview
+                key={key}
+                sectionKey={key}
+                isLoading={paidLoading === key}
+                opened={paidSections[key]}
+                onOpen={() => handleOpenPaid(key)}
+              />
             ))}
           </div>
-          <p className="mt-3 text-[13.5px] italic leading-relaxed text-[#666]">{report.shortCard.advice}</p>
-        </div>
-      </header>
+        </section>
 
-      <div>
-        {report.freeSections.map((section) => (
-          <SectionText key={section.key} section={section} />
-        ))}
+        <section className="border-t border-[#eeeeee] py-9">
+          <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8c6bb1]">Ежедневная интерпретация</p>
+          <h2 className="mt-2 font-sans text-[28px] font-semibold leading-[1.08] tracking-[-0.02em] text-[#1f1f1f]">Карта сегодня</h2>
+          <p className="mt-3 font-sans text-[14.5px] leading-relaxed text-[#5e5e5e]">
+            Отдельный Premium-слой: как постоянная карта звучит на фоне сегодняшних расчетов, без обещаний и прямых указаний.
+          </p>
+
+          <div className="mt-6">
+            {HUMAN_DAILY_SECTION_KEYS.map((key) => (
+              <DailySectionButton
+                key={key}
+                sectionKey={key}
+                isPremium={isPremium}
+                isLoading={dailyLoading === key}
+                opened={dailySections[key]}
+                onOpen={() => handleOpenDaily(key)}
+              />
+            ))}
+          </div>
+
+          {!isPremium ? (
+            <button
+              type="button"
+              onClick={requestPremium}
+              className="mt-5 w-full rounded-full bg-[#1f1f1f] px-5 py-3 text-[13px] font-medium text-white"
+            >
+              Открыть Premium
+            </button>
+          ) : null}
+        </section>
+
+        {sectionError ? (
+          <p className="border-t border-[#eeeeee] py-4 text-[13px] leading-relaxed text-[#b05c5c]">{sectionError}</p>
+        ) : null}
+
+        <section className="border-t border-[#eeeeee] py-6">
+          <p className="font-sans text-[12.5px] leading-relaxed text-[#777]">
+            Это ознакомательная интерпретация на основе астрологических расчетов по вашим данным рождения. Она не является прямым указанием к действию и не заменяет медицинские, юридические, финансовые или иные профессиональные рекомендации.
+          </p>
+        </section>
+
+        <TechnicalDetails chartData={chartData} />
       </div>
 
-      <section className="border-t border-[#efefef] py-8">
-        <div className="flex items-start gap-3">
-          <span className="mt-1 text-[#c9a55a]">
-            <Sparkles size={18} strokeWidth={1.7} />
-          </span>
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#8c6bb1]">
-              Полный разбор
-            </p>
-            <h2 className="mt-2 font-lora text-[24px] leading-tight text-[#1f1f1f]">
-              Как карта проявляется в жизни
-            </h2>
-            <p className="mt-3 text-[14px] leading-relaxed text-[#5e5e5e]">
-              Ниже - сферы, где карта становится практичной: отношения, работа, деньги, действия, окружение и личный рост.
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-5">
-          {HUMAN_PAID_SECTION_KEYS.map((key) => (
-            <PaidSectionCard
-              key={key}
-              sectionKey={key}
-              isPremium={isPremium}
-              isLoading={paidLoading === key}
-              opened={paidSections[key]}
-              onOpen={() => handleOpenPaid(key)}
-            />
-          ))}
-        </div>
-      </section>
-
-      <section className="border-t border-[#efefef] py-8">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#8c6bb1]">Ежедневная интерпретация</p>
-        <h2 className="mt-2 font-lora text-[24px] leading-tight text-[#1f1f1f]">Карта сегодня</h2>
-        <p className="mt-3 text-[14px] leading-relaxed text-[#5e5e5e]">
-          Каждый день карта оживает через текущие транзиты: где фокус, где риск, что лучше сделать и как бережнее пройти день.
-        </p>
-
-        <div className="mt-5">
-          {HUMAN_DAILY_SECTION_KEYS.map((key) => (
-            <DailySectionButton
-              key={key}
-              sectionKey={key}
-              isPremium={isPremium}
-              isLoading={dailyLoading === key}
-              opened={dailySections[key]}
-              onOpen={() => handleOpenDaily(key)}
-            />
-          ))}
-        </div>
-
-        {!isPremium ? (
-          <button
-            type="button"
-            onClick={requestPremium}
-            className="mt-5 w-full rounded-full bg-[#1f1f1f] px-5 py-3 text-[13px] font-medium text-white"
-          >
-            Открыть Premium
-          </button>
-        ) : null}
-      </section>
-
-      {sectionError ? (
-        <p className="border-t border-[#efefef] py-4 text-[13px] leading-relaxed text-[#b05c5c]">{sectionError}</p>
+      {unlockTarget ? (
+        <NatalUnlockSheet
+          sectionKey={unlockTarget}
+          balance={profile.lumiBalance ?? 0}
+          isLoading={paidLoading === unlockTarget}
+          onClose={() => setUnlockTarget(null)}
+          onPremium={() => {
+            setUnlockTarget(null);
+            requestPremium();
+          }}
+          onLumi={() => void openPaidSection(unlockTarget, true)}
+          onWallet={() => {
+            setUnlockTarget(null);
+            onOpenWallet?.();
+          }}
+        />
       ) : null}
-
-      <TechnicalDetails chartData={chartData} />
     </article>
   );
 };
