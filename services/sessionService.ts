@@ -82,3 +82,55 @@ export async function recordNotificationAttribution(payload: {
     console.warn('[Notifications] Attribution failed:', error?.message || error);
   });
 }
+
+export async function recordUserAppEvent(payload: {
+  eventType: string;
+  section?: string | null;
+  source?: string | null;
+  eventPayload?: Record<string, any>;
+}): Promise<void> {
+  if (typeof window === 'undefined') return;
+
+  const initData = getTelegramInitData();
+  if (!initData || !payload.eventType) return;
+
+  await fetch(`${API_BASE}/api/users/events`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      [INIT_DATA_HEADER]: initData,
+    },
+    body: JSON.stringify(payload),
+  }).catch((error) => {
+    console.warn('[UserEvents] Failed:', error?.message || error);
+  });
+}
+
+export async function updateUserNotificationSettings(payload: {
+  enabled?: boolean;
+  morningEnabled?: boolean;
+  dayEnabled?: boolean;
+  eveningEnabled?: boolean;
+  reactivationEnabled?: boolean;
+  timezone?: string | null;
+}): Promise<boolean> {
+  if (typeof window === 'undefined') return false;
+
+  const initData = getTelegramInitData();
+  if (!initData) return false;
+
+  try {
+    const response = await fetch(`${API_BASE}/api/users/notification-settings`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        [INIT_DATA_HEADER]: initData,
+      },
+      body: JSON.stringify(payload),
+    });
+    return response.ok;
+  } catch (error: any) {
+    console.warn('[Notifications] Settings update failed:', error?.message || error);
+    return false;
+  }
+}

@@ -686,6 +686,83 @@ export interface NatalInterpretationReport {
   };
 }
 
+export type NatalStoryCardId =
+  | 'first_impression'
+  | 'inner_base'
+  | 'strengths'
+  | 'overload'
+  | 'relationships'
+  | 'today_bridge';
+
+export type NatalStoryCta =
+  | 'read_deeper'
+  | 'open_today'
+  | 'open_checkin'
+  | 'scroll_full_report'
+  | 'save_card';
+
+export interface ProfileCard {
+  id: string;
+  order: number;
+  title: string;
+  subtitle?: string;
+  chips: string[];
+  shortText: string;
+  freeText: string;
+  premiumText?: string;
+  freeBullets?: string[];
+  premiumBullets?: string[];
+  teaser?: string;
+  isPremiumLocked: boolean;
+  sourceKeys: string[];
+  sourceDebug?: string[];
+  confidence: 'high' | 'medium' | 'low';
+  visualKey?: string;
+  primaryCta?: {
+    label: string;
+    action: string;
+    deepLink?: string;
+  };
+  secondaryCta?: {
+    label: string;
+    action: string;
+  };
+}
+
+export interface NatalStoryCard extends ProfileCard {
+  id: NatalStoryCardId;
+  index: number;
+  order: number;
+  eyebrow: string;
+  chipHints?: Record<string, string>;
+  summaryShort: string;
+  shortText: string;
+  bodyFree: string;
+  freeText: string;
+  bodyPremium?: string;
+  premiumText?: string;
+  tease: string;
+  previewBullet?: string;
+  ctaPrimary: {
+    type: NatalStoryCta;
+    label: string;
+  };
+  ctaSecondary?: {
+    type: NatalStoryCta;
+    label: string;
+  };
+  illustrationKey:
+    | 'hero_halo_portrait'
+    | 'hero_core_rings'
+    | 'hero_strength_spark'
+    | 'hero_noise_fade'
+    | 'hero_dual_orbit'
+    | 'hero_path_focus';
+  paidSectionKey?: InterpretationSectionKey;
+}
+
+export type NatalStoryShareFormat = 'story' | 'feed';
+
 export interface PlanetInsightTag {
   id: string;
   label: string;

@@ -3,10 +3,12 @@ import type {
   NatalChartData,
   NatalChartMode,
   NatalInterpretationReport,
+  NatalStoryCardId,
   UserProfile,
 } from '../types';
 import { ShimmerStyles } from '../components/NatalReading/Skeleton';
 import { HumanReport } from '../components/NatalReading/HumanReport';
+import { NatalStoryDeck } from '../components/NatalReading/NatalStoryDeck';
 import { TrueNatalWheelHero } from '../components/Dashboard/TrueNatalWheelHero';
 
 interface NatalChartProps {
@@ -14,9 +16,12 @@ interface NatalChartProps {
   profile: UserProfile;
   chartId?: number;
   initialMode?: NatalChartMode;
-  requestPremium: () => void;
+  requestPremium: (source?: string, payload?: Record<string, any>) => void | Promise<void>;
   onOpenWallet?: () => void;
   onUpdateProfile?: (profile: UserProfile) => void;
+  onOpenTodaySection: (section: 'pulse' | 'checkin') => void;
+  onBack?: () => void;
+  initialStoryCardId?: NatalStoryCardId | null;
   preloadedReport?: NatalInterpretationReport | null;
   dictionaryOpenSignal?: number; // unused in the single-page layout, kept for back-compat
 }
@@ -29,9 +34,13 @@ export const NatalChart: React.FC<NatalChartProps> = ({
   requestPremium,
   onOpenWallet,
   onUpdateProfile,
+  onOpenTodaySection,
+  onBack,
+  initialStoryCardId,
   preloadedReport,
 }) => {
   const wheelSectionRef = useRef<HTMLElement | null>(null);
+  const fullReportRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (initialMode !== 'wheel' || !data) return;
@@ -53,15 +62,32 @@ export const NatalChart: React.FC<NatalChartProps> = ({
     <div className="min-h-full bg-white pb-16 font-sans">
       <ShimmerStyles />
 
-      <HumanReport
+      <NatalStoryDeck
         profile={profile}
         chartData={data}
         chartId={chartId}
         requestPremium={requestPremium}
         onOpenWallet={onOpenWallet}
         onUpdateProfile={onUpdateProfile}
-        preloadedReport={preloadedReport}
+        onOpenTodaySection={onOpenTodaySection}
+        onBack={onBack}
+        initialCardId={initialStoryCardId}
+        onScrollToFullReport={() => {
+          fullReportRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        }}
       />
+
+      <section ref={fullReportRef} className="scroll-mt-8">
+        <HumanReport
+          profile={profile}
+          chartData={data}
+          chartId={chartId}
+          requestPremium={requestPremium}
+          onOpenWallet={onOpenWallet}
+          onUpdateProfile={onUpdateProfile}
+          preloadedReport={preloadedReport}
+        />
+      </section>
 
       <section ref={wheelSectionRef} className="border-t border-[#efefef] bg-white px-4 pb-12 pt-8">
         <div className="mx-auto w-full max-w-[27rem]">

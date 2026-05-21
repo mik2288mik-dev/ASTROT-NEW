@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { UserProfile, NatalChartData, ViewState, NatalChartMode, HoroscopeLayer, NatalInterpretationReport } from './types';
+import { UserProfile, NatalChartData, ViewState, NatalChartMode, HoroscopeLayer, NatalInterpretationReport, NatalStoryCardId } from './types';
 import {
     getProfile,
     saveProfile,
@@ -30,7 +30,7 @@ import { Synastry } from './views/Synastry';
 import { MyCharts } from './views/MyCharts';
 import { Wallet } from './views/Wallet';
 import { getAdminStatus } from './services/adminService';
-import { recordNotificationAttribution, recordUserSession } from './services/sessionService';
+import { recordNotificationAttribution, recordUserAppEvent, recordUserSession } from './services/sessionService';
 import { installTelegramFullscreenGuard } from './lib/telegramFullscreen';
 import { applyTelegramSafeAreaCssVars, subscribeTelegramContentSafeAreaChanges } from './lib/telegramSafeAreaInsets';
 import { useSwipeBack } from './lib/useSwipeBack';
@@ -45,6 +45,7 @@ import {
     getHumanBaseReportCached,
     prefetchHumanBaseReport,
 } from './services/natalReadingService';
+import { resolveNatalStoryCardId } from './lib/natalStory';
 
 // Get owner ID from environment variables for security
 const OWNER_ID = process.env.NEXT_PUBLIC_OWNER_ID || '';
@@ -114,6 +115,17 @@ function getNotificationLaunchParams(): NotificationLaunchParams | null {
     };
 }
 
+function getRequestedStoryCardFromLaunch(): NatalStoryCardId | null {
+    if (typeof window === 'undefined') return null;
+    const params = new URLSearchParams(window.location.search);
+    const queryCard = params.get('storyCard') || params.get('card');
+    const tg = (window as any).Telegram?.WebApp;
+    const startParam = typeof tg?.initDataUnsafe?.start_param === 'string'
+        ? tg.initDataUnsafe.start_param
+        : '';
+    return resolveNatalStoryCardId(queryCard) || resolveNatalStoryCardId(startParam);
+}
+
 const App: React.FC = () => {
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [chartData, setChartData] = useState<NatalChartData | null>(null);
@@ -154,6 +166,7 @@ const App: React.FC = () => {
     const dashboardScrollRef = useRef<HTMLDivElement | null>(null);
     const appScrollRef = useRef<HTMLDivElement | null>(null);
     const [initialTodaySection, setInitialTodaySection] = useState<string | null>(null);
+    const [initialStoryCardId, setInitialStoryCardId] = useState<NatalStoryCardId | null>(null);
     const viewRef = useRef<ViewState>('onboarding');
     const navigationHistoryRef = useRef<ViewState[]>([]);
 
@@ -394,6 +407,7 @@ const App: React.FC = () => {
             console.log('[App] === LOADING USER DATA ===');
             setLoadingProgress(10);
             requestedViewRef.current = getRequestedViewFromQuery();
+            setInitialStoryCardId(getRequestedStoryCardFromLaunch());
             notificationLaunchRef.current = getNotificationLaunchParams();
             setInitialTodaySection(notificationLaunchRef.current?.section || null);
             
@@ -792,12 +806,21 @@ const App: React.FC = () => {
         }
     }, [chartData, profile?.id, syncDailyTask, view]);
 
-    const requestPremium = async () => {
+    const requestPremium = async (source = 'app', eventPayload?: Record<string, any>) => {
        if (!profile) return;
        console.log('[App] Requesting premium for user:', profile.id);
        const success = await requestStarsPayment(profile);
        if (success) {
            console.log('[App] Premium payment successful, refreshing profile...');
+           void recordUserAppEvent({
+               eventType: 'natal_upgrade_success',
+               section: source === 'natal_story_unlock' ? 'natal_story' : 'premium',
+               source,
+               eventPayload: {
+                   entry_point: source,
+                   ...(eventPayload || {}),
+               },
+           });
            try {
                for (let i = 0; i <= 2; i++) {
                    if (i > 0) await new Promise((r) => setTimeout(r, 1200));
@@ -857,6 +880,7 @@ const App: React.FC = () => {
             }
             setChartReturnView(currentView === 'chart' ? 'dashboard' : currentView);
             setChartOpenMode('human');
+            setInitialStoryCardId(null);
         }
 
         setView(newView);
@@ -954,7 +978,13 @@ const App: React.FC = () => {
     }, [navigateTo]);
 
     const openBottomToday = useCallback(() => {
+        setInitialTodaySection(null);
         navigateTo('dashboard', { replace: true });
+    }, [navigateTo]);
+
+    const openTodaySectionFromChart = useCallback((section: 'pulse' | 'checkin') => {
+        setInitialTodaySection(section);
+        navigateTo('dashboard');
     }, [navigateTo]);
 
     const openBottomNatal = useCallback(() => {
@@ -1121,6 +1151,11 @@ const App: React.FC = () => {
                             requestPremium={requestPremium}
                             onOpenWallet={() => openWallet('chart')}
                             onUpdateProfile={handleProfileUpdate}
+                            onOpenTodaySection={openTodaySectionFromChart}
+                            onBack={() => {
+                                void handleBack();
+                            }}
+                            initialStoryCardId={initialStoryCardId}
                             preloadedReport={activeChartId ? null : preloadedHumanReport}
                             dictionaryOpenSignal={dictionaryOpenSignal}
                             initialMode={chartOpenMode}
@@ -1171,6 +1206,7 @@ const App: React.FC = () => {
                                 setActiveChartId(chartId);
                                 setChartReturnView('charts');
                                 setChartOpenMode('human');
+                                setInitialStoryCardId(null);
                                 pushReturnView(viewRef.current);
                                 setView('chart');
                             }}

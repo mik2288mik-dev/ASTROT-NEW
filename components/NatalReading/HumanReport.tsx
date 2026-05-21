@@ -212,7 +212,7 @@ const DailySectionButton: React.FC<{
   );
 };
 
-const NatalUnlockSheet: React.FC<{
+export const NatalUnlockSheet: React.FC<{
   sectionKey: HumanPaidSectionKey;
   balance: number;
   isLoading: boolean;

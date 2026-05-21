@@ -10,6 +10,9 @@ import type {
   ContentAccessTier,
   InterpretationSection,
   NatalInterpretationReport,
+  NatalStoryCardId,
+  NatalStoryShareFormat,
+  ProfileCard,
 } from '../types';
 import type {
   HumanDailySectionKey,
@@ -95,6 +98,16 @@ export type HumanReadingError = Error & {
   premiumAvailable?: boolean;
 };
 
+export type NatalProfileCardsResponse = {
+  profileCards: ProfileCard[];
+  meta?: {
+    version?: string;
+    chartId?: number | null;
+    generatedAt?: string;
+    isPremium?: boolean;
+  };
+};
+
 const baseReportCache = new Map<string, NatalInterpretationReport>();
 const baseReportInFlight = new Map<string, Promise<NatalInterpretationReport>>();
 const paidSectionCache = new Map<string, HumanReadingResult<InterpretationSection>>();
@@ -169,6 +182,37 @@ function buildHumanUrl(
   if (options?.sectionKey) params.set('sectionKey', options.sectionKey);
   if (options?.date) params.set('date', options.date);
   return `/api/content/natal/${endpoint}?${params.toString()}`;
+}
+
+function buildProfileCardsUrl(
+  userId: string,
+  options?: {
+    chartId?: number;
+    localHour?: number;
+    todayText?: string | null;
+  }
+) {
+  const params = new URLSearchParams({ userId });
+  if (options?.chartId) params.set('chartId', String(options.chartId));
+  if (typeof options?.localHour === 'number' && Number.isFinite(options.localHour)) {
+    params.set('localHour', String(options.localHour));
+  }
+  if (options?.todayText) params.set('todayText', options.todayText);
+  return `/api/content/natal/profile-cards?${params.toString()}`;
+}
+
+function buildProfileCardShareUrl(
+  userId: string,
+  cardId: NatalStoryCardId,
+  options?: {
+    chartId?: number;
+    format?: NatalStoryShareFormat;
+  }
+) {
+  const params = new URLSearchParams({ userId, cardId });
+  if (options?.chartId) params.set('chartId', String(options.chartId));
+  params.set('format', options?.format || 'story');
+  return `/api/content/natal/profile-card-share?${params.toString()}`;
 }
 
 async function readHumanError(response: Response, fallback: string): Promise<HumanReadingError> {
@@ -381,4 +425,38 @@ export async function getCachedHumanDailySection(
     }
     throw error;
   }
+}
+
+export async function loadNatalProfileCards(
+  userId: string,
+  chartId?: number,
+  options?: {
+    localHour?: number;
+    todayText?: string | null;
+  }
+): Promise<NatalProfileCardsResponse> {
+  const response = await fetch(buildProfileCardsUrl(userId, { chartId, ...options }), {
+    method: 'GET',
+    cache: 'no-store',
+  });
+  if (!response.ok) {
+    throw await readHumanError(response, `Failed (${response.status})`);
+  }
+  return response.json() as Promise<NatalProfileCardsResponse>;
+}
+
+export async function loadNatalStoryShareImage(
+  userId: string,
+  cardId: NatalStoryCardId,
+  chartId?: number,
+  format: NatalStoryShareFormat = 'story'
+): Promise<Blob> {
+  const response = await fetch(buildProfileCardShareUrl(userId, cardId, { chartId, format }), {
+    method: 'GET',
+    cache: 'no-store',
+  });
+  if (!response.ok) {
+    throw await readHumanError(response, `Failed (${response.status})`);
+  }
+  return response.blob();
 }
