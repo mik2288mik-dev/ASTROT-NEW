@@ -23,6 +23,7 @@ import type {
   TodayPulsePoint,
   TodayPulseResult,
 } from '../../types';
+import { buildTodayCheckInReference, type TodayCheckInReference } from '../../lib/todayCheckInReference';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
 import { lumiaDebugLog } from '../../lib/lumiaDebug';
 import {
@@ -669,9 +670,66 @@ function TodayAssistantSkeleton({ language }: { language: LumiaHomeLanguage }) {
 
 function segmentedClass(active: boolean) {
   return [
-    'min-h-[2.25rem] rounded-full px-3 py-2 text-[0.75rem] font-extrabold transition-colors',
+    'min-h-[2.35rem] min-w-0 flex-1 whitespace-nowrap rounded-full px-3 py-2 text-[0.78rem] font-extrabold transition-colors',
     active ? 'bg-[#202020] text-white' : 'bg-white/58 text-[#4f4851]',
   ].join(' ');
+}
+
+function TodayCheckInReferenceCard({
+  language,
+  reference,
+}: {
+  language: LumiaHomeLanguage;
+  reference: TodayCheckInReference;
+}) {
+  return (
+    <div className="mt-3 rounded-[1.2rem] bg-white/56 px-3.5 py-3 shadow-[inset_0_0_0_1px_rgba(48,19,45,0.06)]">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="mb-0 font-lumiaHome text-[0.68rem] font-extrabold uppercase tracking-[0.08em] text-[#ef3b62]">
+            {language === 'ru' ? 'С чем сверяем' : 'What we compare'}
+          </p>
+          <h4 className="mb-0 mt-1 font-lumiaHome text-[0.98rem] font-extrabold leading-tight text-[#30132d]">
+            {reference.title}
+          </h4>
+        </div>
+        {reference.bestSlotRange ? (
+          <span className="shrink-0 rounded-full bg-[#fff1c9] px-2.5 py-1 font-lumiaHome text-[0.68rem] font-extrabold leading-none text-[#7a3b08]">
+            {reference.bestSlotRange}
+          </span>
+        ) : null}
+      </div>
+
+      <p
+        className="mb-0 mt-2 font-lumiaHome text-[0.78rem] font-semibold leading-snug text-[#514b54]"
+        style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
+      >
+        {reference.summary}
+      </p>
+
+      {reference.bestSlotLabel ? (
+        <p className="mb-0 mt-2 font-lumiaHome text-[0.7rem] font-bold leading-snug text-[#817982]">
+          {language === 'ru' ? 'Лучший ориентир' : 'Best cue'}: <span className="text-[#30132d]">{reference.bestSlotLabel}</span>
+        </p>
+      ) : null}
+
+      {reference.bestFor.length > 0 ? (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {reference.bestFor.map((item) => (
+            <span key={item} className="rounded-full bg-[#f3fff8]/78 px-2.5 py-1 font-lumiaHome text-[0.68rem] font-extrabold text-[#2f7c4c]">
+              {item}
+            </span>
+          ))}
+        </div>
+      ) : null}
+
+      {reference.avoid ? (
+        <p className="mb-0 mt-2 font-lumiaHome text-[0.72rem] font-bold leading-snug text-[#8a6670]">
+          {language === 'ru' ? 'Лучше не тащить' : 'Better not to force'}: {reference.avoid}
+        </p>
+      ) : null}
+    </div>
+  );
 }
 
 function DailyCheckInCard({
@@ -698,14 +756,22 @@ function DailyCheckInCard({
   const labels = language === 'ru'
     ? { focus: 'Фокус', mood: 'Настроение', people: 'Люди', forecastFit: 'Прогноз попал?', submit: 'Записать день' }
     : { focus: 'Focus', mood: 'Mood', people: 'People', forecastFit: 'Forecast fit?', submit: 'Save day' };
+  const forecastHint = language === 'ru' ? 'Сравни с прогнозом выше' : 'Compare with the forecast above';
 
   return (
     <div className="mt-3 space-y-3">
       {(Object.keys(CHECKIN_OPTIONS) as Array<keyof DailyCheckInInput>).map((key) => (
         <div key={key}>
-          <p className="mb-1.5 font-lumiaHome text-[0.72rem] font-extrabold uppercase tracking-[0.07em] text-[#817982]">
+          <p className="mb-0 font-lumiaHome text-[0.72rem] font-extrabold uppercase tracking-[0.07em] text-[#817982]">
             {labels[key]}
           </p>
+          {key === 'forecastFit' ? (
+            <p className="mb-1.5 mt-0.5 font-lumiaHome text-[0.68rem] font-bold leading-none text-[#9a909b]">
+              {forecastHint}
+            </p>
+          ) : (
+            <div className="mb-1.5" />
+          )}
           <div className="flex gap-1.5 rounded-[1.1rem] bg-white/38 p-1 shadow-[inset_0_0_0_1px_rgba(48,19,45,0.055)]">
             {CHECKIN_OPTIONS[key].map((option) => (
               <button
@@ -854,6 +920,7 @@ export function TodayAssistantCard({
 
   const isEvening = assistantResult.dayMode === 'evening';
   const completed = assistantResult.checkIn.status === 'completed';
+  const checkInReference = buildTodayCheckInReference(isEvening ? assistantResult.pulse : null, language);
   const title = isEvening
     ? (completed ? (language === 'ru' ? 'День записан' : 'Day saved') : (language === 'ru' ? 'Попало / не попало' : 'Hit or miss'))
     : assistantResult.dayMode === 'morning'
@@ -881,10 +948,17 @@ export function TodayAssistantCard({
     <LumiaHomeLargeCard className="border border-[#30132d]/[0.06] bg-[linear-gradient(145deg,#ffffff_0%,#fff7df_52%,#fff0f4_100%)] px-4 py-4 text-[#30132d] shadow-[0_14px_34px_rgba(160,68,86,0.10)]">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_5%_0%,rgba(255,212,0,0.18),transparent_33%),radial-gradient(circle_at_102%_70%,rgba(239,35,60,0.11),transparent_34%)]" />
       <div className="relative z-10">
-        <p className="mb-0 font-lumiaHome text-[0.72rem] font-extrabold uppercase tracking-[0.08em] text-[#ef3b62]">
-          {assistantResult.dayMode === 'evening' ? (language === 'ru' ? 'Вечерняя точность' : 'Evening accuracy') : (language === 'ru' ? 'Личный помощник' : 'Personal assistant')}
-        </p>
-        <h3 className="mb-0 mt-1 font-lumiaHomeDisplay text-[1.42rem] font-extrabold leading-tight text-[#30132d]">
+        <div className="flex items-center justify-between gap-2">
+          <p className="mb-0 font-lumiaHome text-[0.72rem] font-extrabold uppercase tracking-[0.08em] text-[#ef3b62]">
+            {assistantResult.dayMode === 'evening' ? (language === 'ru' ? 'Вечерняя точность' : 'Evening accuracy') : (language === 'ru' ? 'Личный помощник' : 'Personal assistant')}
+          </p>
+          {isEvening && checkInReference.dateLabel ? (
+            <span className="shrink-0 rounded-full bg-white/60 px-2.5 py-1 font-lumiaHome text-[0.68rem] font-extrabold leading-none text-[#817982] shadow-[inset_0_0_0_1px_rgba(48,19,45,0.06)]">
+              {checkInReference.dateLabel}
+            </span>
+          ) : null}
+        </div>
+        <h3 className="mb-0 mt-1 font-lumiaHomeDisplay text-[clamp(1.55rem,7vw,2.12rem)] font-extrabold leading-[0.98] tracking-normal text-[#30132d]">
           {title}
         </h3>
         <p className="mb-0 mt-2 font-lumiaHome text-[0.8rem] font-semibold leading-snug text-[#5f5861]">
@@ -892,22 +966,25 @@ export function TodayAssistantCard({
         </p>
 
         {isEvening ? (
-          completed ? (
-            <div className="mt-3 rounded-[1.2rem] bg-white/54 px-3.5 py-3 shadow-[inset_0_0_0_1px_rgba(48,19,45,0.06)]">
-              <p className="mb-0 font-lumiaHome text-[0.68rem] font-extrabold uppercase tracking-[0.08em] text-[#ef3b62]">
-                {assistantResult.accuracySummary.title}
-              </p>
-              <p className="mb-0 mt-2 font-lumiaHome text-[0.82rem] font-semibold leading-snug text-[#5f5861]">
-                {assistantResult.accuracySummary.summary}
-              </p>
-            </div>
-          ) : (
-            <DailyCheckInCard
-              language={language}
-              isSubmitting={isSubmitting}
-              onSubmit={submit}
-            />
-          )
+          <>
+            <TodayCheckInReferenceCard language={language} reference={checkInReference} />
+            {completed ? (
+              <div className="mt-3 rounded-[1.2rem] bg-white/54 px-3.5 py-3 shadow-[inset_0_0_0_1px_rgba(48,19,45,0.06)]">
+                <p className="mb-0 font-lumiaHome text-[0.68rem] font-extrabold uppercase tracking-[0.08em] text-[#ef3b62]">
+                  {assistantResult.accuracySummary.title}
+                </p>
+                <p className="mb-0 mt-2 font-lumiaHome text-[0.82rem] font-semibold leading-snug text-[#5f5861]">
+                  {assistantResult.accuracySummary.summary}
+                </p>
+              </div>
+            ) : (
+              <DailyCheckInCard
+                language={language}
+                isSubmitting={isSubmitting}
+                onSubmit={submit}
+              />
+            )}
+          </>
         ) : (
           <ActionTimingCard
             language={language}

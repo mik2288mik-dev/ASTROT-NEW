@@ -5,6 +5,7 @@ import {
   buildPatternTeaser,
   buildPersonalPatterns,
 } from '../lib/todayAssistant';
+import { buildTodayCheckInReference } from '../lib/todayCheckInReference';
 
 function point(hour: number, score: number, phase: any, layers: any, tone: any = 'calm') {
   return {
@@ -106,5 +107,27 @@ describe('today assistant', () => {
     expect(summary.historyCount).toBe(7);
     expect(summary.forecastFitRate).toBeGreaterThan(0);
     expect(summary.progressToInsight.current).toBeLessThanOrEqual(summary.progressToInsight.target);
+  });
+
+  it('builds an evening check-in reference from the day pulse', () => {
+    const reference = buildTodayCheckInReference(pulse, 'ru');
+
+    expect(reference.isFallback).toBe(false);
+    expect(reference.title).toBe(pulse.currentPoint.title);
+    expect(reference.summary).toBe(pulse.currentPoint.summary);
+    expect(reference.dateLabel).toContain('мая');
+    expect(reference.bestSlotRange).toBe('10:00-14:00');
+    expect(reference.bestSlotLabel).toBe('Пик фокуса');
+    expect(reference.bestFor).toEqual(['план']);
+    expect(reference.avoid).toBe('спешка');
+  });
+
+  it('uses a neutral check-in reference fallback without a fake best slot', () => {
+    const reference = buildTodayCheckInReference(null, 'ru');
+
+    expect(reference.isFallback).toBe(true);
+    expect(reference.title).toContain('общее ощущение дня');
+    expect(reference.bestSlotRange).toBeNull();
+    expect(reference.bestSlotLabel).toBeNull();
   });
 });
