@@ -173,8 +173,8 @@ body.theme-lumia-air #__next {
 }
 
 .lumia-app-header-spacer {
-  height: 14px;
-  flex: 0 0 14px;
+  height: 8px;
+  flex: 0 0 8px;
   pointer-events: none;
 }
 
@@ -185,9 +185,10 @@ body.theme-lumia-air #__next {
   left: 0;
   width: 100%;
   max-width: 28rem;
-  height: 104px;
+  height: 64px;
   margin: 0 auto;
   overflow: visible;
+  pointer-events: none;
   padding-right: max(var(--lumia-home-page-x), env(safe-area-inset-right, 0px), var(--tg-content-safe-area-inset-right, 0px), var(--tg-safe-area-inset-right, 0px));
   padding-left: max(var(--lumia-home-page-x), env(safe-area-inset-left, 0px), var(--tg-content-safe-area-inset-left, 0px), var(--tg-safe-area-inset-left, 0px));
 }

@@ -274,6 +274,28 @@ const App: React.FC = () => {
         }
     }, [profile?.isPremium, profile?.isSetup, profile?.language, view]);
 
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+
+        const resetScroll = () => {
+            const scrollContainer =
+                view === 'dashboard' ? dashboardScrollRef.current : appScrollRef.current;
+            scrollContainer?.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+        };
+
+        const frame = window.requestAnimationFrame(resetScroll);
+        let nestedFrame: number | null = null;
+        const lateFrame = window.requestAnimationFrame(() => {
+            nestedFrame = window.requestAnimationFrame(resetScroll);
+        });
+
+        return () => {
+            window.cancelAnimationFrame(frame);
+            window.cancelAnimationFrame(lateFrame);
+            if (nestedFrame != null) window.cancelAnimationFrame(nestedFrame);
+        };
+    }, [loading, view]);
+
     const trackSessionActivity = useCallback(async (force = false) => {
         if (!profile?.id || typeof window === 'undefined') return;
 
