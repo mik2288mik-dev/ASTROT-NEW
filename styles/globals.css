@@ -158,7 +158,8 @@ body.theme-lumia-air #__next {
 .lumia-app-header {
   --lumia-app-safe-top: max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px), 24px);
   --lumia-app-compact-rail-height: 48px;
-  position: relative;
+  position: sticky;
+  top: 0;
   z-index: 50;
   flex-shrink: 0;
   box-sizing: border-box;
@@ -170,6 +171,7 @@ body.theme-lumia-air #__next {
   font-family: var(--lumia-home-font-sans);
   transform: translateZ(0);
   isolation: isolate;
+  pointer-events: none;
 }
 
 .lumia-app-header-spacer {

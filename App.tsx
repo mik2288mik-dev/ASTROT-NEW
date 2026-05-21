@@ -1018,6 +1018,16 @@ const App: React.FC = () => {
             : visualAppBackground
               ? `linear-gradient(180deg, rgba(255,255,255,0.50) 0%, rgba(255,255,255,0.68) 32%, rgba(255,255,255,0.94) 100%), url(${visualAppBackground})`
               : null;
+    const renderAppScrollHeader = () => (
+        <>
+            <Header
+                profile={profile}
+                view={view}
+                scrollContainerRef={appScrollRef}
+            />
+            <div className="lumia-app-header-spacer" aria-hidden />
+        </>
+    );
 
     return (
         <div
@@ -1033,13 +1043,7 @@ const App: React.FC = () => {
                     }}
                 />
             ) : null}
-            {/* Header handles Title, Settings button, and Back button */}
-            <Header 
-                profile={profile} 
-                view={view} 
-                scrollContainerRef={appScrollRef}
-            />
-            
+
             <main
                 className={`lumia-tg-main-gutter relative z-10 flex-1 w-full max-w-md md:max-w-reading-wide mx-auto overflow-hidden min-h-0 ${
                     visualAppBackground ? 'bg-transparent' : 'bg-white'
@@ -1067,7 +1071,7 @@ const App: React.FC = () => {
                     />
                 ) : view === 'oracle' ? (
                     <div className="lumia-main-scroll scrollbar-hide" ref={appScrollRef}>
-                        <div className="lumia-app-header-spacer" aria-hidden />
+                        {renderAppScrollHeader()}
                         <OracleChat
                             profile={profile}
                             onPremiumRequired={() => setView('paywall')}
@@ -1077,7 +1081,7 @@ const App: React.FC = () => {
                     </div>
                 ) : view === 'synastry' ? (
                     <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
-                        <div className="lumia-app-header-spacer" aria-hidden />
+                        {renderAppScrollHeader()}
                         <Synastry
                             profile={profile}
                             chartData={chartData}
@@ -1109,7 +1113,7 @@ const App: React.FC = () => {
                     </div>
                 ) : view === 'chart' ? (
                     <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
-                        <div className="lumia-app-header-spacer" aria-hidden />
+                        {renderAppScrollHeader()}
                         <NatalChart 
                             data={chartData} 
                             profile={profile} 
@@ -1124,7 +1128,7 @@ const App: React.FC = () => {
                     </div>
                 ) : view === 'settings' ? (
                     <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
-                        <div className="lumia-app-header-spacer" aria-hidden />
+                        {renderAppScrollHeader()}
                         <Settings 
                             profile={profile} 
                             onUpdate={handleProfileUpdate} 
@@ -1136,7 +1140,7 @@ const App: React.FC = () => {
                     </div>
                 ) : view === 'charts' ? (
                     <div className="lumia-main-scroll scrollbar-hide" ref={appScrollRef}>
-                        <div className="lumia-app-header-spacer" aria-hidden />
+                        {renderAppScrollHeader()}
                         <MyCharts 
                             profile={profile} 
                             onBack={() => {
@@ -1174,7 +1178,7 @@ const App: React.FC = () => {
                     </div>
                 ) : view === 'wallet' ? (
                     <div className="lumia-main-scroll scrollbar-hide" ref={appScrollRef}>
-                        <div className="lumia-app-header-spacer" aria-hidden />
+                        {renderAppScrollHeader()}
                         <Wallet
                             profile={profile}
                             onUpdateProfile={handleProfileUpdate}
