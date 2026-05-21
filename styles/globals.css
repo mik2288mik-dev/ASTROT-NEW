@@ -173,8 +173,8 @@ body.theme-lumia-air #__next {
 }
 
 .lumia-app-header-spacer {
-  height: 56px;
-  flex: 0 0 56px;
+  height: 14px;
+  flex: 0 0 14px;
   pointer-events: none;
 }
 

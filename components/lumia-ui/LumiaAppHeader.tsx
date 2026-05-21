@@ -14,9 +14,9 @@ type LumiaAppHeaderProps = {
   scrollContainerRef?: RefObject<HTMLDivElement | null>;
 };
 
-const EXPANDED_BODY_HEIGHT = 104;
+const EXPANDED_BODY_HEIGHT = 64;
 const COLLAPSED_BODY_HEIGHT = 48;
-const COLLAPSE_DISTANCE = 92;
+const COLLAPSE_DISTANCE = 64;
 
 export function LumiaAppHeader({
   profile,
