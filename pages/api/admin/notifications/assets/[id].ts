@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { requireAdminAccess, handleAdminError } from '../../../../../lib/adminAuth';
 import { db } from '../../../../../lib/db';
+import { notificationEngineAdminDb } from '../../../../../lib/adminNotificationEngineDb';
 import { deleteNotificationAssetFile } from '../../../../../services/notificationAssetService';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -12,6 +13,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     await requireAdminAccess(req);
+
+    if (req.method === 'PATCH' || req.method === 'PUT') {
+      const asset = await notificationEngineAdminDb.updateAsset(id, req.body || {});
+      if (!asset) {
+        return res.status(404).json({ error: 'NOT_FOUND', message: 'Asset not found' });
+      }
+      return res.status(200).json({ asset });
+    }
 
     if (req.method !== 'DELETE') {
       return res.status(405).json({ error: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' });

@@ -1,5 +1,6 @@
 import type { AdminNotificationTargetSegment } from '../types';
 import { isValidGeneratedPreset } from './notificationCardPresets';
+import { findForbiddenNotificationTerms, findUnknownNotificationVariables } from './notificationEngineRules';
 
 const SLOTS = new Set(['morning', 'day', 'evening', 'daily_lumi', 'upsell', 'promo', 'custom']);
 const REPEAT = new Set(['daily', 'weekly', 'weekdays']);
@@ -27,6 +28,26 @@ const MAX_GEN_TITLE = 120;
 const MAX_GEN_SUB = 200;
 const MAX_GEN_ACCENT = 100;
 const MAX_GEN_ZODIAC_CUSTOM = 80;
+
+export function validateNotificationHumanText(text: string): { ok: true } | { ok: false; error: string; message: string } {
+  const forbidden = findForbiddenNotificationTerms(text);
+  if (forbidden.length > 0) {
+    return {
+      ok: false,
+      error: 'FORBIDDEN_NOTIFICATION_TONE',
+      message: 'Notification text contains forbidden heavy astrology wording',
+    };
+  }
+  const unknown = findUnknownNotificationVariables(text);
+  if (unknown.length > 0) {
+    return {
+      ok: false,
+      error: 'UNKNOWN_NOTIFICATION_VARIABLE',
+      message: `Unknown notification variable: ${unknown.join(', ')}`,
+    };
+  }
+  return { ok: true };
+}
 
 export function parseHHMM(value: unknown): string | null {
   if (typeof value !== 'string') return null;
@@ -175,6 +196,11 @@ export function parseTemplatePayload(body: any): { ok: true; data: TemplatePaylo
 
   if (visualMode === 'none' && !text.trim()) {
     return { ok: false, error: 'TEXT_REQUIRED', message: 'Text is required when visual mode is none' };
+  }
+
+  const humanText = validateNotificationHumanText([name, text, buttonText].join('\n'));
+  if (!humanText.ok) {
+    return humanText;
   }
 
   return {

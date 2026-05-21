@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { requireAdminAccess, handleAdminError } from '../../../../lib/adminAuth';
 import { parseTemplatePayload } from '../../../../lib/notificationAdminValidation';
 import { resolveCaption, resolveReplyMarkup, resolveDefaultMiniAppUrl } from '../../../../services/notificationService';
+import { previewNotificationScenario } from '../../../../services/notificationEngine';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -9,7 +10,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    await requireAdminAccess(req);
+    const access = await requireAdminAccess(req);
+    const scenarioId = Number(req.body?.scenarioId);
+    const templateId = Number(req.body?.templateId);
+    if (Number.isFinite(scenarioId) && scenarioId > 0) {
+      const at = req.body?.date && req.body?.time
+        ? new Date(`${String(req.body.date)}T${String(req.body.time).slice(0, 5)}:00.000Z`)
+        : undefined;
+      const preview = await previewNotificationScenario({
+        scenarioId,
+        templateId: Number.isFinite(templateId) && templateId > 0 ? templateId : null,
+        userId: String(req.body?.userId || access.requesterId),
+        now: at,
+      });
+      return res.status(200).json({ preview });
+    }
+
     const parsed = parseTemplatePayload(req.body);
     if (!parsed.ok) {
       return res.status(400).json({ error: parsed.error, message: parsed.message });

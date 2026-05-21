@@ -1029,6 +1029,77 @@ export type NotificationSlot =
 export type ScheduledNotificationMessageType = 'text' | 'photo';
 export type NotificationVisualMode = 'none' | 'uploaded' | 'generated';
 export type NotificationGeneratedZodiacMode = 'none' | 'sun_sign' | 'custom';
+export type NotificationDayPart = 'morning' | 'day' | 'evening' | 'reactivation';
+export type NotificationImageMode = 'auto' | 'manual' | 'none';
+
+export interface AdminNotificationScenario {
+  id: number;
+  key: string;
+  name: string;
+  description: string;
+  enabled: boolean;
+  dayPart: NotificationDayPart;
+  timeWindowStart: string;
+  timeWindowEnd: string;
+  timezoneMode: string;
+  priority: number;
+  triggerRuleJson: Record<string, any>;
+  audienceRuleJson: Record<string, any>;
+  maxPerDay: number;
+  cooldownHours: number;
+  imageMode: NotificationImageMode | string;
+  imageStrategyJson: Record<string, any>;
+  defaultMediaAssetId: number | null;
+  deepLink: string;
+  buttons: Array<Record<string, any>>;
+  templatesCount: number;
+  activeTemplatesCount: number;
+  lastSentAt: string | null;
+  sentCount: number;
+  clickedCount: number;
+  ctr: number;
+  errorCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminNotificationScenarioPayload {
+  name: string;
+  description: string;
+  enabled: boolean;
+  dayPart: NotificationDayPart;
+  timeWindowStart: string;
+  timeWindowEnd: string;
+  priority: number;
+  triggerRuleJson: Record<string, any>;
+  audienceRuleJson: Record<string, any>;
+  maxPerDay: number;
+  cooldownHours: number;
+  imageMode: NotificationImageMode | string;
+  imageStrategyJson: Record<string, any>;
+  defaultMediaAssetId: number | null;
+  deepLink: string;
+  buttons: Array<Record<string, any>>;
+}
+
+export interface AdminNotificationTemplatePayload {
+  id?: number | null;
+  scenarioId?: number | null;
+  name?: string | null;
+  slot?: NotificationSlot | string | null;
+  targetSegment?: AdminNotificationTargetSegment | null;
+  title?: string | null;
+  body?: string | null;
+  text?: string | null;
+  buttonText?: string | null;
+  deepLink?: string | null;
+  assetId?: number | null;
+  isActive?: boolean;
+  tags?: string[];
+  weight?: number;
+  visualMode?: NotificationVisualMode;
+  notes?: string | null;
+}
 
 export interface AdminScheduledNotificationAsset {
   id: number;
@@ -1037,17 +1108,30 @@ export interface AdminScheduledNotificationAsset {
   mimeType: string;
   fileSize: number;
   refCount: number;
+  telegramFileId?: string | null;
+  title?: string | null;
+  category?: string;
+  tags?: string[];
+  mood?: string | null;
+  dayPart?: string | null;
+  enabled?: boolean;
+  lastUsedAt?: string | null;
+  cooldownDays?: number;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface AdminScheduledNotificationTemplate {
   id: number;
+  scenarioId?: number | null;
+  scenarioKey?: string | null;
   name: string;
   slot: NotificationSlot;
   targetSegment: AdminNotificationTargetSegment | null;
   messageType: ScheduledNotificationMessageType;
   visualMode: NotificationVisualMode;
+  title?: string;
+  body?: string;
   text: string;
   buttonText: string;
   deepLink: string;
@@ -1055,6 +1139,9 @@ export interface AdminScheduledNotificationTemplate {
   assetPublicUrl: string | null;
   assetMimeType: string | null;
   assetFileName: string | null;
+  tags?: string[];
+  weight?: number;
+  lastUsedAt?: string | null;
   generatedPreset: string | null;
   generatedTitle: string | null;
   generatedSubtitle: string | null;
@@ -1070,6 +1157,44 @@ export interface AdminScheduledNotificationTemplate {
   createdAt: string;
   updatedAt: string;
   schedules?: AdminNotificationSchedule[];
+}
+
+export interface AdminNotificationEngineStats {
+  sent: number;
+  delivered: number;
+  clicked: number;
+  ctr: number;
+  checkinCompleted: number;
+  openedApp: number;
+  disabledNotifications: number;
+  errors: number;
+  byScenario: Array<{
+    scenarioKey: string;
+    sent: number;
+    clicked: number;
+    ctr: number;
+    errors: number;
+  }>;
+  bestTemplates: Array<{
+    templateId: number;
+    title: string;
+    sent: number;
+    clicked: number;
+    ctr: number;
+  }>;
+  worstTemplates: Array<{
+    templateId: number;
+    title: string;
+    sent: number;
+    clicked: number;
+    ctr: number;
+  }>;
+  bestTimeWindows: Array<{
+    label: string;
+    sent: number;
+    clicked: number;
+    ctr: number;
+  }>;
 }
 
 export interface AdminNotificationSchedule {

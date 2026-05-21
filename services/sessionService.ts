@@ -55,3 +55,30 @@ export async function recordUserSession(telegramPlatform?: string | null): Promi
     throw new Error(payload.message || payload.error || `Session tracking failed: ${response.status}`);
   }
 }
+
+export async function recordNotificationAttribution(payload: {
+  source?: string | null;
+  scenario?: string | null;
+  nl?: string | number | null;
+  section?: string | null;
+  eventType?: 'click' | 'open';
+}): Promise<void> {
+  if (typeof window === 'undefined') return;
+
+  const initData = getTelegramInitData();
+  if (!initData) return;
+
+  await fetch(`${API_BASE}/api/notifications/attribution`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      [INIT_DATA_HEADER]: initData,
+    },
+    body: JSON.stringify({
+      ...payload,
+      eventType: payload.eventType || 'click',
+    }),
+  }).catch((error) => {
+    console.warn('[Notifications] Attribution failed:', error?.message || error);
+  });
+}

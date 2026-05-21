@@ -8,6 +8,13 @@ import {
 import { resolveNotificationVisual, getVisualMode } from './notificationVisualResolver';
 import type { AdminNotificationTargetSegment } from '../types';
 
+export {
+  previewNotificationScenario,
+  recordNotificationAttribution,
+  runNotificationEngineCron,
+  sendTestScenarioNotification,
+} from './notificationEngine';
+
 const BROADCAST_CHUNK_SIZE = 20;
 const BROADCAST_CHUNK_DELAY_MS = 250;
 

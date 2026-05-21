@@ -3,6 +3,7 @@
 
 import { Pool } from 'pg';
 import { resolveDatabaseUrl } from './database-url';
+import { NOTIFICATION_SCENARIO_SEEDS } from './notificationScenarioCatalog';
 
 const DATABASE_URL = resolveDatabaseUrl();
 
@@ -1413,6 +1414,233 @@ async function lumia020DailyFeedbackAssistant(pool: Pool): Promise<void> {
   log.info('Migration lumia_020_daily_feedback_assistant applied');
 }
 
+async function lumia021NotificationScenarioEngine(pool: Pool): Promise<void> {
+  const migrationName = 'lumia_021_notification_scenario_engine';
+
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
+  log.info('Applying notification scenario engine migration...');
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS notification_scenarios (
+      id BIGSERIAL PRIMARY KEY,
+      key TEXT UNIQUE NOT NULL,
+      name TEXT NOT NULL,
+      description TEXT NOT NULL DEFAULT '',
+      enabled BOOLEAN NOT NULL DEFAULT FALSE,
+      day_part TEXT NOT NULL,
+      time_window_start TIME NOT NULL,
+      time_window_end TIME NOT NULL,
+      timezone_mode TEXT NOT NULL DEFAULT 'user_local',
+      priority INTEGER NOT NULL DEFAULT 0,
+      trigger_rule_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+      audience_rule_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+      max_per_day INTEGER NOT NULL DEFAULT 1,
+      cooldown_hours INTEGER NOT NULL DEFAULT 20,
+      image_mode TEXT NOT NULL DEFAULT 'auto',
+      image_strategy_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+      default_media_asset_id BIGINT REFERENCES notification_assets(id) ON DELETE SET NULL,
+      deep_link TEXT NOT NULL DEFAULT 'today',
+      buttons JSONB NOT NULL DEFAULT '[]'::jsonb,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT notification_scenarios_day_part_check
+        CHECK (day_part IN ('morning', 'day', 'evening', 'reactivation')),
+      CONSTRAINT notification_scenarios_image_mode_check
+        CHECK (image_mode IN ('auto', 'manual', 'none'))
+    )
+  `);
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_notification_scenarios_enabled ON notification_scenarios(enabled)');
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_notification_scenarios_day_part ON notification_scenarios(day_part, priority DESC)');
+
+  await pool.query(`
+    ALTER TABLE notification_templates
+      ADD COLUMN IF NOT EXISTS scenario_id BIGINT REFERENCES notification_scenarios(id) ON DELETE CASCADE,
+      ADD COLUMN IF NOT EXISTS title TEXT NOT NULL DEFAULT '',
+      ADD COLUMN IF NOT EXISTS body TEXT NOT NULL DEFAULT '',
+      ADD COLUMN IF NOT EXISTS tags JSONB NOT NULL DEFAULT '[]'::jsonb,
+      ADD COLUMN IF NOT EXISTS weight INTEGER NOT NULL DEFAULT 100,
+      ADD COLUMN IF NOT EXISTS last_used_at TIMESTAMP
+  `);
+  await pool.query(`
+    UPDATE notification_templates
+    SET body = COALESCE(NULLIF(body, ''), text),
+        title = COALESCE(NULLIF(title, ''), name)
+    WHERE scenario_id IS NULL
+  `);
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_notification_templates_scenario ON notification_templates(scenario_id, is_active)');
+  await pool.query('CREATE UNIQUE INDEX IF NOT EXISTS idx_notification_templates_scenario_name ON notification_templates(scenario_id, name) WHERE scenario_id IS NOT NULL');
+
+  await pool.query(`
+    ALTER TABLE notification_assets
+      ADD COLUMN IF NOT EXISTS telegram_file_id TEXT,
+      ADD COLUMN IF NOT EXISTS title TEXT,
+      ADD COLUMN IF NOT EXISTS category TEXT NOT NULL DEFAULT 'day',
+      ADD COLUMN IF NOT EXISTS tags JSONB NOT NULL DEFAULT '[]'::jsonb,
+      ADD COLUMN IF NOT EXISTS mood TEXT,
+      ADD COLUMN IF NOT EXISTS day_part TEXT,
+      ADD COLUMN IF NOT EXISTS enabled BOOLEAN NOT NULL DEFAULT TRUE,
+      ADD COLUMN IF NOT EXISTS last_used_at TIMESTAMP,
+      ADD COLUMN IF NOT EXISTS cooldown_days INTEGER NOT NULL DEFAULT 30
+  `);
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_notification_assets_category ON notification_assets(category)');
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_notification_assets_enabled ON notification_assets(enabled)');
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS notification_logs (
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+      scenario_id BIGINT REFERENCES notification_scenarios(id) ON DELETE SET NULL,
+      scenario_key TEXT NOT NULL,
+      template_id BIGINT REFERENCES notification_templates(id) ON DELETE SET NULL,
+      media_asset_id BIGINT REFERENCES notification_assets(id) ON DELETE SET NULL,
+      status TEXT NOT NULL,
+      sent_at TIMESTAMP,
+      clicked_at TIMESTAMP,
+      opened_at TIMESTAMP,
+      telegram_message_id BIGINT,
+      error TEXT,
+      payload_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_notification_logs_user_sent ON notification_logs(user_id, sent_at DESC)');
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_notification_logs_scenario ON notification_logs(scenario_key, created_at DESC)');
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_notification_logs_template ON notification_logs(template_id)');
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_notification_logs_media ON notification_logs(media_asset_id)');
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS user_notification_settings (
+      user_id BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      enabled BOOLEAN NOT NULL DEFAULT TRUE,
+      morning_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+      day_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+      evening_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+      reactivation_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+      timezone TEXT,
+      quiet_hours_start TIME NOT NULL DEFAULT '22:30',
+      quiet_hours_end TIME NOT NULL DEFAULT '08:00',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS user_notification_state (
+      user_id BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      last_notification_at TIMESTAMP,
+      notifications_sent_today INTEGER NOT NULL DEFAULT 0,
+      sent_today_date DATE,
+      last_opened_at TIMESTAMP,
+      last_click_at TIMESTAMP,
+      days_without_click INTEGER NOT NULL DEFAULT 0,
+      last_checkin_at TIMESTAMP,
+      checkin_streak INTEGER NOT NULL DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS user_app_events (
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+      event_type TEXT NOT NULL,
+      scenario_key TEXT,
+      notification_log_id BIGINT REFERENCES notification_logs(id) ON DELETE SET NULL,
+      section TEXT,
+      source TEXT,
+      occurred_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      payload_json JSONB NOT NULL DEFAULT '{}'::jsonb
+    )
+  `);
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_user_app_events_user_time ON user_app_events(user_id, occurred_at DESC)');
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_user_app_events_notification ON user_app_events(notification_log_id)');
+
+  await pool.query(`
+    UPDATE notification_templates
+    SET is_active = FALSE, updated_at = CURRENT_TIMESTAMP
+    WHERE scenario_id IS NULL
+  `);
+
+  for (const seed of NOTIFICATION_SCENARIO_SEEDS) {
+    const scenarioResult = await pool.query(
+      `INSERT INTO notification_scenarios (
+         key, name, description, enabled, day_part, time_window_start, time_window_end, timezone_mode,
+         priority, trigger_rule_json, audience_rule_json, max_per_day, cooldown_hours, image_mode,
+         image_strategy_json, deep_link, buttons
+       )
+       VALUES ($1, $2, $3, FALSE, $4, $5::time, $6::time, 'user_local', $7, $8::jsonb, $9::jsonb,
+         $10, $11, $12, $13::jsonb, $14, $15::jsonb)
+       ON CONFLICT (key) DO UPDATE SET
+         name = EXCLUDED.name,
+         description = EXCLUDED.description,
+         day_part = EXCLUDED.day_part,
+         time_window_start = EXCLUDED.time_window_start,
+         time_window_end = EXCLUDED.time_window_end,
+         priority = EXCLUDED.priority,
+         trigger_rule_json = EXCLUDED.trigger_rule_json,
+         audience_rule_json = EXCLUDED.audience_rule_json,
+         max_per_day = EXCLUDED.max_per_day,
+         cooldown_hours = EXCLUDED.cooldown_hours,
+         image_strategy_json = EXCLUDED.image_strategy_json,
+         deep_link = EXCLUDED.deep_link,
+         buttons = EXCLUDED.buttons,
+         updated_at = CURRENT_TIMESTAMP
+       RETURNING id`,
+      [
+        seed.key,
+        seed.name,
+        seed.description,
+        seed.dayPart,
+        seed.timeWindowStart,
+        seed.timeWindowEnd,
+        seed.priority,
+        JSON.stringify(seed.triggerRule),
+        JSON.stringify(seed.audienceRule),
+        seed.maxPerDay,
+        seed.cooldownHours,
+        seed.imageMode,
+        JSON.stringify({ tags: seed.imageTags, dayPart: seed.dayPart }),
+        seed.deepLinkSection,
+        JSON.stringify([{ text: seed.buttonText, section: seed.deepLinkSection }]),
+      ]
+    );
+    const scenarioId = Number(scenarioResult.rows[0]?.id);
+    for (let index = 0; index < seed.templates.length; index += 1) {
+      const template = seed.templates[index];
+      await pool.query(
+        `INSERT INTO notification_templates (
+           scenario_id, name, slot, target_segment, message_type, title, body, text, button_text,
+           deep_link, is_active, sort_order, tags, weight, visual_mode, notes
+         )
+         VALUES ($1, $2, $3, $4, 'text', $5, $6, $6, $7, $8, TRUE, $9, $10::jsonb, $11, 'none', $12)
+         ON CONFLICT (scenario_id, name) WHERE scenario_id IS NOT NULL DO NOTHING`,
+        [
+          scenarioId,
+          `${seed.name} · ${String(index + 1).padStart(2, '0')}`,
+          seed.dayPart === 'reactivation' ? 'custom' : seed.dayPart,
+          (seed.audienceRule.segment as string) || null,
+          template.title,
+          template.body,
+          template.buttonText || seed.buttonText,
+          seed.deepLinkSection,
+          index,
+          JSON.stringify(template.tags || []),
+          template.weight || 100,
+          seed.description,
+        ]
+      );
+    }
+  }
+
+  await markMigrationApplied(pool, migrationName);
+  log.info('Migration lumia_021_notification_scenario_engine applied');
+}
+
 async function verifyTablesExist(pool: Pool): Promise<void> {
   const required = [
     'users', 'natal_charts', 'interpretations', 'lumi_transactions', 'app_settings',
@@ -1432,6 +1660,11 @@ async function verifyTablesExist(pool: Pool): Promise<void> {
     'daily_checkins',
     'action_timing_events',
     'personal_pattern_insights',
+    'notification_scenarios',
+    'notification_logs',
+    'user_notification_settings',
+    'user_notification_state',
+    'user_app_events',
   ];
   const missing: string[] = [];
   for (const t of required) {
@@ -1500,6 +1733,7 @@ export async function runMigrations(): Promise<void> {
   await lumia018NotificationFrequencyPreference(pool);
   await lumia019HoroscopeReactions(pool);
   await lumia020DailyFeedbackAssistant(pool);
+  await lumia021NotificationScenarioEngine(pool);
   await verifyTablesExist(pool);
 
     log.info('All Lumia migrations completed successfully');

@@ -31,6 +31,7 @@ interface DashboardProps {
   onOpenHoroscopeLayer: (layer: HoroscopeLayer) => void;
   onOpenSettings?: () => void;
   scrollRef?: React.RefObject<HTMLDivElement | null>;
+  initialTodaySection?: string | null;
 }
 
 function haptic(kind: 'select' | 'open' = 'select') {
@@ -44,9 +45,12 @@ function haptic(kind: 'select' | 'open' = 'select') {
 }
 
 export const Dashboard = memo<DashboardProps>(
-  ({ profile, chartData, chartId, onOpenHoroscopeLayer, onOpenSettings, scrollRef }) => {
+  ({ profile, chartData, chartId, onOpenHoroscopeLayer, onOpenSettings, scrollRef, initialTodaySection }) => {
     const shouldReduceMotion = useReducedMotion();
     const language = profile.language === 'en' ? 'en' : 'ru';
+    const pulseRef = React.useRef<HTMLDivElement | null>(null);
+    const assistantRef = React.useRef<HTMLDivElement | null>(null);
+    const deepLinkScrollDoneRef = React.useRef(false);
     const cachedAssistant = React.useMemo(
       () => getCachedTodayAssistantHome(profile, chartId ?? null, undefined, chartData),
       [chartData, chartId, profile.birthDate, profile.birthPlace, profile.birthTime, profile.id, profile.language]
@@ -180,6 +184,24 @@ export const Dashboard = memo<DashboardProps>(
       };
     }, [profile.isPremium, profile.isSetup, profile.language]);
 
+    React.useEffect(() => {
+      if (!initialTodaySection || deepLinkScrollDoneRef.current) return;
+      if (isAssistantLoading && initialTodaySection !== 'pulse') return;
+
+      const target =
+        initialTodaySection === 'pulse'
+          ? pulseRef.current
+          : initialTodaySection === 'checkin' || initialTodaySection === 'best-time' || initialTodaySection === 'mini-win'
+            ? assistantRef.current
+            : null;
+      if (!target) return;
+
+      deepLinkScrollDoneRef.current = true;
+      window.setTimeout(() => {
+        target.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      }, 180);
+    }, [initialTodaySection, isAssistantLoading]);
+
     const handleSubmitCheckIn = React.useCallback(async (input: DailyCheckInInput) => {
       const result = await submitDailyCheckIn(profile, chartData, chartId ?? null, input);
       setAssistantResult((prev) => {
@@ -218,23 +240,27 @@ export const Dashboard = memo<DashboardProps>(
       (assistantResult.dayMode === 'morning' || assistantResult.dayMode === 'evening');
 
     const pulseCard = (
-      <LumiaHomePulseCard
-        language={language}
-        pulseResult={pulseResult}
-        isLoading={isAssistantLoading}
-        onSetup={onOpenSettings}
-      />
+      <div ref={pulseRef} data-today-section="pulse">
+        <LumiaHomePulseCard
+          language={language}
+          pulseResult={pulseResult}
+          isLoading={isAssistantLoading}
+          onSetup={onOpenSettings}
+        />
+      </div>
     );
 
     const assistantCard = (
-      <TodayAssistantCard
-        language={language}
-        assistantResult={assistantResult}
-        isLoading={isAssistantLoading}
-        onSetup={onOpenSettings}
-        onSubmitCheckIn={handleSubmitCheckIn}
-        onSelectAction={handleSelectAction}
-      />
+      <div ref={assistantRef} data-today-section="assistant">
+        <TodayAssistantCard
+          language={language}
+          assistantResult={assistantResult}
+          isLoading={isAssistantLoading}
+          onSetup={onOpenSettings}
+          onSubmitCheckIn={handleSubmitCheckIn}
+          onSelectAction={handleSelectAction}
+        />
+      </div>
     );
 
     return (

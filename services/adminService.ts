@@ -1,7 +1,11 @@
 import {
   type AdminLumiActionResult,
   type AdminNotificationDeliveryLogItem,
+  type AdminNotificationEngineStats,
   type AdminNotificationSchedule,
+  type AdminNotificationScenario,
+  type AdminNotificationScenarioPayload,
+  type AdminNotificationTemplatePayload,
   type AdminHistoryResultFilter,
   type AdminNotificationHistoryResponse,
   type AdminNotificationModeFilter,
@@ -288,6 +292,53 @@ export async function fetchScheduledNotificationTemplates(): Promise<AdminSchedu
   return data.templates || [];
 }
 
+export async function fetchNotificationScenarios(): Promise<AdminNotificationScenario[]> {
+  const data = await adminRequest<{ scenarios: AdminNotificationScenario[] }>('/api/admin/notifications/scenarios');
+  return data.scenarios || [];
+}
+
+export async function updateNotificationScenario(
+  id: number,
+  payload: Partial<AdminNotificationScenarioPayload>
+): Promise<AdminNotificationScenario> {
+  const data = await adminRequest<{ scenario: AdminNotificationScenario }>(
+    `/api/admin/notifications/scenarios/${id}`,
+    { method: 'PATCH', bodyJson: payload }
+  );
+  return data.scenario;
+}
+
+export async function fetchEngineNotificationTemplates(
+  scenarioId?: number | null
+): Promise<AdminScheduledNotificationTemplate[]> {
+  const suffix = scenarioId ? `?scenarioId=${encodeURIComponent(String(scenarioId))}` : '';
+  const data = await adminRequest<{ templates: AdminScheduledNotificationTemplate[] }>(
+    `/api/admin/notifications/templates${suffix}`
+  );
+  return data.templates || [];
+}
+
+export async function createEngineNotificationTemplate(
+  payload: AdminNotificationTemplatePayload
+): Promise<AdminScheduledNotificationTemplate> {
+  const data = await adminRequest<{ template: AdminScheduledNotificationTemplate }>(
+    '/api/admin/notifications/templates',
+    { method: 'POST', bodyJson: payload as Record<string, any> }
+  );
+  return data.template;
+}
+
+export async function updateEngineNotificationTemplate(
+  id: number,
+  payload: AdminNotificationTemplatePayload
+): Promise<AdminScheduledNotificationTemplate> {
+  const data = await adminRequest<{ template: AdminScheduledNotificationTemplate }>(
+    `/api/admin/notifications/templates/${id}`,
+    { method: 'PATCH', bodyJson: payload as Record<string, any> }
+  );
+  return data.template;
+}
+
 export async function fetchScheduledNotificationTemplate(
   id: number
 ): Promise<AdminScheduledNotificationTemplate> {
@@ -364,6 +415,17 @@ export async function deleteNotificationAsset(id: number): Promise<void> {
   await adminRequest(`/api/admin/notifications/assets/${id}`, { method: 'DELETE' });
 }
 
+export async function updateNotificationAsset(
+  id: number,
+  payload: Partial<AdminScheduledNotificationAsset>
+): Promise<AdminScheduledNotificationAsset> {
+  const data = await adminRequest<{ asset: AdminScheduledNotificationAsset }>(
+    `/api/admin/notifications/assets/${id}`,
+    { method: 'PATCH', bodyJson: payload as Record<string, any> }
+  );
+  return data.asset;
+}
+
 export async function createNotificationSchedule(payload: Record<string, unknown>): Promise<AdminNotificationSchedule> {
   const data = await adminRequest<{ schedule: AdminNotificationSchedule }>(
     '/api/admin/notifications/schedules',
@@ -425,6 +487,16 @@ export async function previewScheduledNotification(payload: Record<string, unkno
   return adminRequest('/api/admin/notifications/preview', { method: 'POST', bodyJson: payload });
 }
 
+export async function previewEngineNotification(payload: {
+  scenarioId: number;
+  templateId?: number | null;
+  userId?: string | null;
+  date?: string | null;
+  time?: string | null;
+}): Promise<{ preview: Record<string, any> }> {
+  return adminRequest('/api/admin/notifications/preview', { method: 'POST', bodyJson: payload as Record<string, any> });
+}
+
 export async function sendScheduledNotificationTest(templateId: number): Promise<{
   success: boolean;
   successCount: number;
@@ -436,6 +508,40 @@ export async function sendScheduledNotificationTest(templateId: number): Promise
     method: 'POST',
     bodyJson: { templateId },
   });
+}
+
+export async function sendEngineNotificationTest(payload: {
+  scenarioId: number;
+  templateId?: number | null;
+  userId?: string | null;
+}): Promise<{
+  success: boolean;
+  successCount: number;
+  failureCount: number;
+  totalRecipients: number;
+  errorSummary: string | null;
+  logId?: number;
+  dryRun?: boolean;
+}> {
+  return adminRequest('/api/admin/notifications/send-test', {
+    method: 'POST',
+    bodyJson: payload as Record<string, any>,
+  });
+}
+
+export async function runNotificationEngine(payload?: { dryRun?: boolean; limit?: number }): Promise<{
+  success: boolean;
+  result: Record<string, any>;
+}> {
+  return adminRequest('/api/admin/notifications/engine-run', {
+    method: 'POST',
+    bodyJson: payload || { dryRun: true, limit: 25 },
+  });
+}
+
+export async function fetchNotificationEngineStats(): Promise<AdminNotificationEngineStats> {
+  const data = await adminRequest<{ stats: AdminNotificationEngineStats }>('/api/admin/notifications/stats');
+  return data.stats;
 }
 
 export async function runNotificationSlot(slot: string, rotationGroup?: string | null): Promise<{

@@ -1,11 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { requireAdminAccess, handleAdminError } from '../../../../../lib/adminAuth';
-import { db } from '../../../../../lib/db';
-import {
-  serializeScheduledNotificationTemplate,
-  serializeNotificationSchedule,
-} from '../../../../../lib/adminSerializers';
-import { parseTemplatePayload, existingRowToTemplatePayload } from '../../../../../lib/notificationAdminValidation';
+import { notificationEngineAdminDb } from '../../../../../lib/adminNotificationEngineDb';
+import { validateNotificationHumanText } from '../../../../../lib/notificationAdminValidation';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const rawId = req.query.id;
@@ -18,18 +14,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     await requireAdminAccess(req);
 
     if (req.method === 'GET') {
-      const row = await db.scheduled_notification_templates.getById(id);
-      if (!row) {
+      const template = await notificationEngineAdminDb.getTemplate(id);
+      if (!template) {
         return res.status(404).json({ error: 'NOT_FOUND', message: 'Template not found' });
       }
-      const base = serializeScheduledNotificationTemplate(row);
-      const schedRows = await db.notification_schedules.listByTemplate(id);
-      return res.status(200).json({
-        template: {
-          ...base,
-          schedules: schedRows.map(serializeNotificationSchedule),
-        },
-      });
+      return res.status(200).json({ template });
     }
 
     if (req.method === 'PATCH') {
@@ -37,49 +26,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (!onlyActive) {
         return res.status(400).json({ error: 'INVALID_PATCH', message: 'Only isActive toggle supported' });
       }
-      const existing = await db.scheduled_notification_templates.getById(id);
-      if (!existing) {
-        return res.status(404).json({ error: 'NOT_FOUND', message: 'Template not found' });
-      }
-      const payload = existingRowToTemplatePayload(existing, { isActive: req.body.isActive });
-      const updated = await db.scheduled_notification_templates.update(id, payload);
-      const full = await db.scheduled_notification_templates.getById(id);
-      const row = full || updated;
-      const base = serializeScheduledNotificationTemplate(row);
-      const schedRows = await db.notification_schedules.listByTemplate(id);
-      return res.status(200).json({
-        template: { ...base, schedules: schedRows.map(serializeNotificationSchedule) },
-      });
+      const existing = await notificationEngineAdminDb.getTemplate(id);
+      if (!existing) return res.status(404).json({ error: 'NOT_FOUND', message: 'Template not found' });
+      const template = await notificationEngineAdminDb.saveTemplate({ ...existing, id, isActive: req.body.isActive });
+      return res.status(200).json({ template });
     }
 
     if (req.method === 'PUT') {
-      const parsed = parseTemplatePayload(req.body);
-      if (!parsed.ok) {
-        return res.status(400).json({ error: parsed.error, message: parsed.message });
-      }
-      const existingBefore = await db.scheduled_notification_templates.getById(id);
+      const humanText = validateNotificationHumanText([req.body?.title, req.body?.body, req.body?.text, req.body?.buttonText].join('\n'));
+      if (!humanText.ok) return res.status(400).json({ error: humanText.error, message: humanText.message });
+      const existingBefore = await notificationEngineAdminDb.getTemplate(id);
       if (!existingBefore) {
         return res.status(404).json({ error: 'NOT_FOUND', message: 'Template not found' });
       }
-      const sortOrder = Number(existingBefore.sort_order ?? 0);
-      const updated = await db.scheduled_notification_templates.update(id, {
-        ...parsed.data,
-        sortOrder,
-        rotationGroup: null,
-      });
-      if (!updated) {
-        return res.status(404).json({ error: 'NOT_FOUND', message: 'Template not found' });
-      }
-      const full = await db.scheduled_notification_templates.getById(id);
-      const base = serializeScheduledNotificationTemplate(full);
-      const schedRows = await db.notification_schedules.listByTemplate(id);
-      return res.status(200).json({
-        template: { ...base, schedules: schedRows.map(serializeNotificationSchedule) },
-      });
+      const template = await notificationEngineAdminDb.saveTemplate({ ...req.body, id });
+      return res.status(200).json({ template });
     }
 
     if (req.method === 'DELETE') {
-      const ok = await db.scheduled_notification_templates.delete(id);
+      const ok = await notificationEngineAdminDb.deleteTemplate(id);
       if (!ok) {
         return res.status(404).json({ error: 'NOT_FOUND', message: 'Template not found' });
       }

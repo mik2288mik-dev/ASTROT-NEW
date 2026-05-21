@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { runDueScheduledNotifications } from '../../../services/notificationService';
+import { runNotificationEngineCron } from '../../../services/notificationService';
 
 /**
  * Trigger daily notification sends. Protect with CRON_SECRET.
@@ -18,7 +18,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const results = await runDueScheduledNotifications('cron');
+    const results = await runNotificationEngineCron('cron');
     return res.status(200).json({ ok: true, results });
   } catch (e: any) {
     return res.status(500).json({ ok: false, error: e?.message || 'error' });

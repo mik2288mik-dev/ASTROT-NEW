@@ -9,6 +9,19 @@ function isEffectiveAdmin(userId: string | number, dbIsAdmin: boolean | undefine
   return !!dbIsAdmin;
 }
 
+function jsonArray(value: any): string[] {
+  if (Array.isArray(value)) return value.map((item) => String(item)).filter(Boolean);
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed.map((item) => String(item)).filter(Boolean) : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
 export function serializeAdminUserSummary(row: any) {
   return {
     id: String(row.id),
@@ -101,11 +114,15 @@ export function serializeScheduledNotificationTemplate(row: any) {
     vm === 'uploaded' || vm === 'generated' ? vm : 'none';
   return {
     id: Number(row.id),
+    scenarioId: row.scenario_id != null ? Number(row.scenario_id) : null,
+    scenarioKey: row.scenario_key ?? null,
     name: row.name || '',
     slot: row.slot || 'custom',
     targetSegment: row.target_segment ?? null,
     messageType: row.message_type === 'photo' ? 'photo' : 'text',
     visualMode,
+    title: row.title || '',
+    body: row.body || row.text || '',
     text: row.text || '',
     buttonText: row.button_text || '',
     deepLink: row.deep_link || '',
@@ -113,6 +130,9 @@ export function serializeScheduledNotificationTemplate(row: any) {
     assetPublicUrl: row.asset_public_url || null,
     assetMimeType: row.asset_mime_type || null,
     assetFileName: row.asset_file_name || null,
+    tags: jsonArray(row.tags),
+    weight: Number(row.weight ?? 100),
+    lastUsedAt: row.last_used_at ?? null,
     generatedPreset: row.generated_preset ?? null,
     generatedTitle: row.generated_title ?? null,
     generatedSubtitle: row.generated_subtitle ?? null,
@@ -138,6 +158,15 @@ export function serializeNotificationAsset(row: any) {
     mimeType: row.mime_type || '',
     fileSize: Number(row.file_size ?? 0),
     refCount: Number(row.ref_count ?? 0),
+    telegramFileId: row.telegram_file_id ?? null,
+    title: row.title ?? null,
+    category: row.category || 'day',
+    tags: jsonArray(row.tags),
+    mood: row.mood ?? null,
+    dayPart: row.day_part ?? null,
+    enabled: row.enabled !== false,
+    lastUsedAt: row.last_used_at ?? null,
+    cooldownDays: Number(row.cooldown_days ?? 30),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

@@ -30,7 +30,7 @@ import { Synastry } from './views/Synastry';
 import { MyCharts } from './views/MyCharts';
 import { Wallet } from './views/Wallet';
 import { getAdminStatus } from './services/adminService';
-import { recordUserSession } from './services/sessionService';
+import { recordNotificationAttribution, recordUserSession } from './services/sessionService';
 import { installTelegramFullscreenGuard } from './lib/telegramFullscreen';
 import { applyTelegramSafeAreaCssVars, subscribeTelegramContentSafeAreaChanges } from './lib/telegramSafeAreaInsets';
 import { useSwipeBack } from './lib/useSwipeBack';
@@ -74,6 +74,26 @@ function getRequestedViewFromQuery(): ViewState | null {
     return NOTIFICATION_QUERY_VIEWS.has(requested as ViewState) ? (requested as ViewState) : null;
 }
 
+type NotificationLaunchParams = {
+    source: string | null;
+    scenario: string | null;
+    nl: string | null;
+    section: string | null;
+};
+
+function getNotificationLaunchParams(): NotificationLaunchParams | null {
+    if (typeof window === 'undefined') return null;
+    const params = new URLSearchParams(window.location.search);
+    const source = params.get('source');
+    if (source !== 'tg_notification') return null;
+    return {
+        source,
+        scenario: params.get('scenario'),
+        nl: params.get('nl'),
+        section: params.get('todaySection') || null,
+    };
+}
+
 const App: React.FC = () => {
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [chartData, setChartData] = useState<NatalChartData | null>(null);
@@ -101,9 +121,12 @@ const App: React.FC = () => {
     const contentSyncGenRef = useRef(0);
     const contentSyncedKeyRef = useRef<string | null>(null);
     const requestedViewRef = useRef<ViewState | null>(null);
+    const notificationLaunchRef = useRef<NotificationLaunchParams | null>(null);
+    const notificationAttributionSentRef = useRef(false);
     const dailyTaskSyncedRef = useRef<Record<string, string>>({});
     const dashboardScrollRef = useRef<HTMLDivElement | null>(null);
     const appScrollRef = useRef<HTMLDivElement | null>(null);
+    const [initialTodaySection, setInitialTodaySection] = useState<string | null>(null);
     const viewRef = useRef<ViewState>('onboarding');
     const navigationHistoryRef = useRef<ViewState[]>([]);
 
@@ -249,6 +272,8 @@ const App: React.FC = () => {
             console.log('[App] === LOADING USER DATA ===');
             setLoadingProgress(10);
             requestedViewRef.current = getRequestedViewFromQuery();
+            notificationLaunchRef.current = getNotificationLaunchParams();
+            setInitialTodaySection(notificationLaunchRef.current?.section || null);
             
             // Ждём Telegram Web App (может загружаться асинхронно)
             let tgId: string | number | undefined;
@@ -608,6 +633,20 @@ const App: React.FC = () => {
             refreshLumiOnDashboard();
         }
     }, [view, profile?.id, refreshLumiOnDashboard]);
+
+    useEffect(() => {
+        if (!profile?.id || notificationAttributionSentRef.current) return;
+        const launch = notificationLaunchRef.current;
+        if (!launch?.source) return;
+        notificationAttributionSentRef.current = true;
+        void recordNotificationAttribution({
+            source: launch.source,
+            scenario: launch.scenario,
+            nl: launch.nl,
+            section: launch.section,
+            eventType: 'click',
+        });
+    }, [profile?.id]);
 
     useEffect(() => {
         if (!profile?.id || typeof document === 'undefined') return;
@@ -1066,6 +1105,7 @@ const App: React.FC = () => {
                             onOpenHoroscopeLayer={openHoroscopeLayer}
                             onOpenSettings={openBottomAvatar}
                             scrollRef={dashboardScrollRef}
+                            initialTodaySection={initialTodaySection}
                         />
                     </div>
                 )}

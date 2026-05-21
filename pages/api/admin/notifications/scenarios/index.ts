@@ -9,8 +9,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     await requireAdminAccess(req);
-    const assets = await notificationEngineAdminDb.listAssets();
-    return res.status(200).json({ assets });
+    await notificationEngineAdminDb.ensureScenarioSeeds();
+    const scenarios = await notificationEngineAdminDb.listScenarios();
+    return res.status(200).json({ scenarios });
   } catch (error) {
     return handleAdminError(res, error);
   }

@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { requireAdminAccess, handleAdminError } from '../../../../lib/adminAuth';
-import { sendTestNotification } from '../../../../services/notificationService';
+import { sendTestNotification, sendTestScenarioNotification } from '../../../../services/notificationService';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -9,7 +9,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const access = await requireAdminAccess(req);
+    const scenarioId = Number(req.body?.scenarioId);
     const templateId = Number(req.body?.templateId);
+    if (Number.isFinite(scenarioId) && scenarioId > 0) {
+      const result = await sendTestScenarioNotification({
+        scenarioId,
+        templateId: Number.isFinite(templateId) && templateId > 0 ? templateId : null,
+        userId: String(req.body?.userId || access.requesterId),
+      });
+      return res.status(200).json({
+        success: true,
+        successCount: result.successCount,
+        failureCount: result.failureCount,
+        totalRecipients: result.totalRecipients,
+        errorSummary: result.errorSummary,
+        logId: result.logId,
+        dryRun: result.dryRun,
+      });
+    }
+
     if (!Number.isFinite(templateId) || templateId < 1) {
       return res.status(400).json({ error: 'TEMPLATE_ID_REQUIRED', message: 'templateId is required' });
     }
