@@ -7,6 +7,7 @@ import type {
   UserProfile,
 } from '../../types';
 import {
+  HUMAN_DAILY_LUMI_COST,
   HUMAN_DAILY_SECTION_KEYS,
   HUMAN_DAILY_SECTION_META,
   HUMAN_FREE_SECTION_KEYS,
@@ -284,6 +285,78 @@ export const NatalUnlockSheet: React.FC<{
   );
 };
 
+const NatalDailyUnlockSheet: React.FC<{
+  sectionKey: HumanDailySectionKey;
+  balance: number;
+  isLoading: boolean;
+  onClose: () => void;
+  onPremium: () => void;
+  onLumi: () => void;
+  onWallet?: () => void;
+}> = ({ sectionKey, balance, isLoading, onClose, onPremium, onLumi, onWallet }) => {
+  const meta = HUMAN_DAILY_SECTION_META[sectionKey];
+  const hasEnoughLumi = balance >= HUMAN_DAILY_LUMI_COST;
+
+  return (
+    <div className="fixed inset-0 z-[150] flex items-end justify-center bg-black/38 px-3 pb-3">
+      <button type="button" aria-label="Закрыть" className="absolute inset-0 cursor-default" onClick={onClose} />
+      <div className="relative w-full max-w-md rounded-[28px] bg-white px-5 pb-5 pt-4 shadow-[0_24px_80px_rgba(0,0,0,0.24)]">
+        <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-[#dfdfdf]" />
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-[#f5f5f5] text-[#444]"
+          aria-label="Закрыть"
+        >
+          <X size={17} strokeWidth={2} />
+        </button>
+
+        <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8c6bb1]">Ежедневная интерпретация</p>
+        <h3 className="mt-2 max-w-[18rem] font-sans text-[24px] font-semibold leading-[1.08] tracking-[-0.02em] text-[#1f1f1f]">
+          {meta.title}
+        </h3>
+        <p className="mt-3 font-sans text-[14.5px] leading-relaxed text-[#5f5f5f]">{meta.teaser}</p>
+
+        <div className="mt-5 grid gap-2.5">
+          <button
+            type="button"
+            onClick={onPremium}
+            disabled={isLoading}
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-[#1f1f1f] px-5 py-3 text-[14px] font-semibold text-white disabled:opacity-60"
+          >
+            <Crown size={16} strokeWidth={2} />
+            Открыть Premium
+          </button>
+          {hasEnoughLumi ? (
+            <button
+              type="button"
+              onClick={onLumi}
+              disabled={isLoading}
+              className="flex w-full items-center justify-center gap-2 rounded-full bg-[#f4f1fb] px-5 py-3 text-[14px] font-semibold text-[#5f3c98] disabled:opacity-60"
+            >
+              <WalletCards size={16} strokeWidth={2} />
+              {isLoading ? 'Открываем...' : `Открыть за ${HUMAN_DAILY_LUMI_COST} Lumi`}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onWallet}
+              disabled={!onWallet || isLoading}
+              className="flex w-full items-center justify-center gap-2 rounded-full bg-[#f4f1fb] px-5 py-3 text-[14px] font-semibold text-[#5f3c98] disabled:opacity-50"
+            >
+              <WalletCards size={16} strokeWidth={2} />
+              Пополнить Lumi
+            </button>
+          )}
+        </div>
+        <p className="mt-3 text-center font-sans text-[12.5px] leading-relaxed text-[#777]">
+          На балансе {balance} Lumi. Ежедневный слой обновляется каждый день.
+        </p>
+      </div>
+    </div>
+  );
+};
+
 const TechnicalDetails: React.FC<{ chartData: NatalChartData }> = ({ chartData }) => {
   const planets = PLANET_LABELS.map((item) => {
     const position = chartData[item.key] as any;
@@ -338,6 +411,7 @@ export const HumanReport: React.FC<Props> = ({
   const [dailyLoading, setDailyLoading] = useState<HumanDailySectionKey | null>(null);
   const [sectionError, setSectionError] = useState<string | null>(null);
   const [unlockTarget, setUnlockTarget] = useState<HumanPaidSectionKey | null>(null);
+  const [unlockDailyTarget, setUnlockDailyTarget] = useState<HumanDailySectionKey | null>(null);
 
   const userId = profile.id ? String(profile.id) : '';
   const isPremium = !!profile.isPremium;
@@ -414,17 +488,29 @@ export const HumanReport: React.FC<Props> = ({
     setUnlockTarget(key);
   };
 
-  const handleOpenDaily = async (key: HumanDailySectionKey) => {
-    if (!isPremium) {
-      requestPremium();
+  const handleOpenDaily = (key: HumanDailySectionKey) => {
+    if (isPremium) {
+      void openDailyPaidSection(key, false);
       return;
     }
+    setSectionError(null);
+    setUnlockDailyTarget(key);
+  };
+
+  const openDailyPaidSection = async (key: HumanDailySectionKey, allowLumiSpend: boolean) => {
     if (!userId || dailyLoading) return;
     setSectionError(null);
     setDailyLoading(key);
     try {
-      const result = await loadHumanDailySection(userId, key, chartId, todayKey);
+      const result = await loadHumanDailySection(userId, key, chartId, todayKey, {
+        accessTier: allowLumiSpend ? 'lumi' : 'premium',
+        allowLumiSpend,
+      });
       setDailySections((current) => ({ ...current, [key]: result.content }));
+      if (typeof result.lumiBalance === 'number') {
+        onUpdateProfile?.({ ...profile, lumiBalance: result.lumiBalance });
+      }
+      setUnlockDailyTarget(null);
     } catch (err) {
       setSectionError(formatError(err));
     } finally {
@@ -603,6 +689,24 @@ export const HumanReport: React.FC<Props> = ({
           onLumi={() => void openPaidSection(unlockTarget, true)}
           onWallet={() => {
             setUnlockTarget(null);
+            onOpenWallet?.();
+          }}
+        />
+      ) : null}
+
+      {unlockDailyTarget ? (
+        <NatalDailyUnlockSheet
+          sectionKey={unlockDailyTarget}
+          balance={profile.lumiBalance ?? 0}
+          isLoading={dailyLoading === unlockDailyTarget}
+          onClose={() => setUnlockDailyTarget(null)}
+          onPremium={() => {
+            setUnlockDailyTarget(null);
+            requestPremium();
+          }}
+          onLumi={() => void openDailyPaidSection(unlockDailyTarget, true)}
+          onWallet={() => {
+            setUnlockDailyTarget(null);
             onOpenWallet?.();
           }}
         />
