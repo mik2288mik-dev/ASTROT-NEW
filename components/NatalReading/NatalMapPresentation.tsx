@@ -221,9 +221,6 @@ function CoverCard({
                 <p className="mb-0 font-lumiaHome text-[0.72rem] font-extrabold uppercase tracking-[0.18em] text-[#B6FF3B]">
                   Общая натальная карта
                 </p>
-                <h1 className="mb-0 mt-3 max-w-[20rem] font-lumiaHomeDisplay text-[clamp(2.05rem,9vw,2.95rem)] font-extrabold leading-[0.96] tracking-normal">
-                  Разбор по твоим данным
-                </h1>
               </div>
               <button
                 type="button"
