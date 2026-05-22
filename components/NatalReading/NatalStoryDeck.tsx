@@ -23,6 +23,7 @@ import {
   setLastNatalStoryCard,
   syncNatalStoryStateFromCloud,
 } from '../../lib/natalStory';
+import { buildNatalProfileCards } from '../../lib/natalProfileCards';
 import {
   loadNatalStoryShareImage,
   loadNatalProfileCards,
@@ -162,6 +163,23 @@ function getPaidKey(card: NatalStoryCard): HumanPaidSectionKey | null {
     : null;
 }
 
+function buildLocalProfileCardsFallback(
+  profile: UserProfile,
+  chartData: NatalChartData,
+  localHour: number
+): ProfileCard[] {
+  try {
+    return buildNatalProfileCards({
+      profile: { ...profile, isPremium: !!profile.isPremium },
+      chartData,
+      isPremium: !!profile.isPremium,
+      todayContext: { localHour },
+    });
+  } catch {
+    return [];
+  }
+}
+
 function HeroVisual({ card }: { card: NatalStoryCard }) {
   const tone = {
     hero_halo_portrait: {
@@ -197,10 +215,10 @@ function HeroVisual({ card }: { card: NatalStoryCard }) {
   }[card.illustrationKey];
 
   return (
-    <div className={cn('relative h-[9.75rem] overflow-hidden rounded-[22px] bg-gradient-to-br', tone.base)}>
+    <div className={cn('relative h-[7.65rem] overflow-hidden rounded-[20px] bg-gradient-to-br min-[390px]:h-[8.65rem]', tone.base)}>
       <div className="absolute inset-0 opacity-70 [background-image:radial-gradient(circle_at_22%_18%,rgba(255,255,255,0.92),transparent_28%),radial-gradient(circle_at_84%_26%,rgba(255,255,255,0.54),transparent_22%),radial-gradient(circle_at_62%_86%,rgba(255,255,255,0.78),transparent_32%)]" />
       <div className={cn('absolute left-1/2 top-1/2 h-28 w-28 -translate-x-1/2 -translate-y-1/2 rounded-full border', tone.line)} />
-      <div className={cn('absolute left-1/2 top-1/2 h-44 w-44 -translate-x-1/2 -translate-y-1/2 rounded-full border', tone.line)} />
+      <div className={cn('absolute left-1/2 top-1/2 h-40 w-40 -translate-x-1/2 -translate-y-1/2 rounded-full border', tone.line)} />
       <div className={cn('absolute right-10 top-9 h-3 w-3 rounded-full shadow-[0_0_26px_rgba(140,107,232,0.35)]', tone.accent)} />
       <div className={cn('absolute bottom-8 left-10 h-2.5 w-2.5 rounded-full opacity-70', tone.accent)} />
       <div className="absolute left-[21%] top-[32%] h-12 w-12 rounded-full bg-white/55 shadow-[0_18px_48px_rgba(80,68,95,0.12)] backdrop-blur-md" />
@@ -273,10 +291,10 @@ function StoryCardSurface({
 }) {
   const hint = activeChip ? card.chipHints?.[activeChip] : null;
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-[28px] border border-white/80 bg-white/86 p-4 shadow-[0_24px_70px_rgba(47,37,70,0.13)] backdrop-blur-xl">
+    <div className="flex h-full flex-col overflow-hidden rounded-[26px] border border-white/80 bg-white/88 p-3.5 shadow-[0_24px_70px_rgba(47,37,70,0.13)] backdrop-blur-xl min-[390px]:p-4">
       <HeroVisual card={card} />
-      <div className="mt-4 flex items-center gap-2">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#8c6be8] text-white shadow-[0_10px_24px_rgba(140,107,232,0.25)]">
+      <div className="mt-3 flex items-center gap-2 min-[390px]:mt-4">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#8c6be8] text-white shadow-[0_10px_24px_rgba(140,107,232,0.25)] min-[390px]:h-9 min-[390px]:w-9">
           <Sparkles size={17} strokeWidth={1.9} />
         </span>
         <p className="min-w-0 truncate text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8c6be8]">
@@ -284,25 +302,25 @@ function StoryCardSurface({
         </p>
       </div>
       <h2
-        className="mt-3 font-sans text-[32px] font-semibold leading-[1.02] tracking-normal text-[#111117]"
+        className="mt-2.5 font-sans text-[clamp(1.55rem,6.5vw,2rem)] font-semibold leading-[1.02] tracking-normal text-[#111117]"
         style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
       >
         {card.title}
       </h2>
       <p
-        className="mt-3 text-[15.5px] leading-[1.5] text-[#4b4b56]"
+        className="mt-2.5 text-[14.5px] leading-[1.42] text-[#4b4b56] min-[390px]:text-[15.5px]"
         style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
       >
         {card.summaryShort}
       </p>
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="mt-3 flex flex-wrap gap-1.5 min-[390px]:gap-2">
         {card.chips.map((chip) => (
           <button
             key={chip}
             type="button"
             onClick={() => onChip(chip)}
             className={cn(
-              'min-h-[34px] rounded-full border px-3 text-[13px] font-medium transition',
+              'min-h-[32px] rounded-full border px-2.5 text-[12.5px] font-medium transition min-[390px]:min-h-[34px] min-[390px]:px-3 min-[390px]:text-[13px]',
               activeChip === chip
                 ? 'border-[#8c6be8]/45 bg-[#f1ebff] text-[#6242a8]'
                 : 'border-[#ece8f2] bg-white/72 text-[#5b5962]'
@@ -312,7 +330,7 @@ function StoryCardSurface({
           </button>
         ))}
       </div>
-      <div className="mt-3 min-h-[2.6rem]">
+      <div className="mt-2.5 min-h-[2.15rem]">
         {hint ? (
           <p className="rounded-[16px] bg-[#f8f6fb] px-3 py-2 text-[12.5px] leading-relaxed text-[#5a5562]">
             {hint}
@@ -380,10 +398,10 @@ function StorySheet({
         style={{
           maxHeight: expanded
             ? 'calc(var(--tg-viewport-stable-height, 100dvh) - max(0.75rem,var(--tg-content-safe-area-inset-bottom,0px)))'
-            : 'calc(var(--tg-viewport-stable-height, 100dvh) * 0.72)',
+            : 'min(34rem, calc(var(--tg-viewport-stable-height, 100dvh) * 0.7))',
           minHeight: expanded
             ? 'calc(var(--tg-viewport-stable-height, 100dvh) * 0.86)'
-            : 'min(28rem, calc(var(--tg-viewport-stable-height, 100dvh) * 0.56))',
+            : 'min(25rem, calc(var(--tg-viewport-stable-height, 100dvh) * 0.54))',
         }}
         role="dialog"
         aria-modal="true"
@@ -418,7 +436,7 @@ function StorySheet({
             ))}
           </div>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-5 pt-5" onScroll={handleScroll}>
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-[calc(1.25rem+var(--tg-content-safe-area-inset-bottom,0px))] pt-5" onScroll={handleScroll}>
           {isPaidLoading ? (
             <div className="space-y-3 py-3">
               <div className="h-4 w-11/12 rounded-full bg-[#f1f1f1]" />
@@ -616,17 +634,26 @@ export const NatalStoryDeck = memo<NatalStoryDeckProps>(
     }, []);
 
     useEffect(() => {
-      if (!userId) return;
+      const localHour = new Date().getHours();
+      if (!userId) {
+        setProfileCards(buildLocalProfileCardsFallback(profile, chartData, localHour));
+        setLoading(false);
+        setError(null);
+        return;
+      }
       let cancelled = false;
       setLoading(true);
       setError(null);
-      const localHour = new Date().getHours();
       loadNatalProfileCards(userId, chartId, { localHour })
         .then((result) => {
           if (!cancelled) setProfileCards(result.profileCards || []);
         })
         .catch((err) => {
-          if (!cancelled) setError(formatStoryError(err));
+          if (!cancelled) {
+            const fallbackCards = buildLocalProfileCardsFallback(profile, chartData, localHour);
+            setProfileCards(fallbackCards);
+            setError(fallbackCards.length ? null : formatStoryError(err));
+          }
         })
         .finally(() => {
           if (!cancelled) setLoading(false);
@@ -634,7 +661,7 @@ export const NatalStoryDeck = memo<NatalStoryDeckProps>(
       return () => {
         cancelled = true;
       };
-    }, [chartId, userId]);
+    }, [chartData, chartId, profile, userId]);
 
     const cards = useMemo(
       () => adaptProfileCardsToStoryCards(profileCards),
@@ -942,7 +969,7 @@ export const NatalStoryDeck = memo<NatalStoryDeckProps>(
 
     return (
       <section
-        className="relative isolate overflow-hidden bg-[#fbfafc] px-5 pb-7 pt-3"
+        className="relative isolate overflow-hidden bg-[#fbfafc] px-4 pb-[calc(1rem+var(--tg-content-safe-area-inset-bottom,0px))] pt-2 min-[390px]:px-5 min-[390px]:pt-3"
         style={{ minHeight: 'calc(var(--tg-viewport-stable-height, 100dvh) - 7.75rem)' }}
       >
         <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_8%_6%,rgba(140,107,232,0.16),transparent_32%),radial-gradient(circle_at_96%_28%,rgba(239,184,114,0.16),transparent_30%),linear-gradient(180deg,#ffffff_0%,#fbfafc_48%,#f7f4fb_100%)]" />
@@ -962,7 +989,7 @@ export const NatalStoryDeck = memo<NatalStoryDeckProps>(
           </button>
         </div>
 
-        <h1 className="mt-4 max-w-[20rem] text-[40px] font-semibold leading-[1.04] tracking-normal text-[#111117]">
+        <h1 className="mt-3 max-w-[20rem] text-[clamp(2rem,8.4vw,2.5rem)] font-semibold leading-[1.04] tracking-normal text-[#111117] min-[390px]:mt-4">
           Твоя карта в коротких карточках
         </h1>
 
@@ -979,12 +1006,16 @@ export const NatalStoryDeck = memo<NatalStoryDeckProps>(
           </button>
         ) : null}
 
-        <div className="relative mt-5 h-[30rem] max-h-[calc(var(--tg-viewport-stable-height,100dvh)-19rem)] min-h-[27rem]">
+        <div
+          className="relative mt-4 min-h-[24.25rem] min-[390px]:mt-5"
+          style={{ height: 'clamp(24.25rem, calc(var(--tg-viewport-stable-height, 100dvh) - 18.75rem), 30rem)' }}
+        >
           {nextCards.reverse().map((card, stackIndex) => (
             <div
               key={`${card.id}-stack-${stackIndex}`}
-              className="absolute inset-x-3 top-7 h-[27rem] rounded-[28px] border border-white/80 bg-white/62 shadow-[0_20px_54px_rgba(47,37,70,0.08)]"
+              className="absolute inset-x-3 top-7 rounded-[28px] border border-white/80 bg-white/62 shadow-[0_20px_54px_rgba(47,37,70,0.08)]"
               style={{
+                height: 'calc(100% - 1.9rem)',
                 transform: `translateY(${(nextCards.length - stackIndex) * 20}px) rotate(${stackIndex === 0 ? '-2deg' : '2deg'}) scale(${0.96 - stackIndex * 0.035})`,
                 opacity: 0.92 - stackIndex * 0.18,
               }}
@@ -1000,7 +1031,7 @@ export const NatalStoryDeck = memo<NatalStoryDeckProps>(
           ))}
 
           <motion.div
-            className="absolute inset-x-0 top-0 z-20 h-[28.6rem] touch-pan-y"
+            className="absolute inset-x-0 top-0 z-20 h-full touch-pan-y"
             drag={reduceMotion || !dragEnabled ? false : 'x'}
             dragConstraints={{ left: 0, right: 0 }}
             dragElastic={0.08}

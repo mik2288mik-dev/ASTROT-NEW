@@ -114,6 +114,8 @@ const paidSectionCache = new Map<string, HumanReadingResult<InterpretationSectio
 const paidSectionInFlight = new Map<string, Promise<HumanReadingResult<InterpretationSection>>>();
 const dailySectionCache = new Map<string, HumanReadingResult<InterpretationSection>>();
 const dailySectionInFlight = new Map<string, Promise<HumanReadingResult<InterpretationSection>>>();
+const profileCardsCache = new Map<string, NatalProfileCardsResponse>();
+const profileCardsInFlight = new Map<string, Promise<NatalProfileCardsResponse>>();
 
 function chartKey(chartId?: number): string {
   return chartId != null ? String(chartId) : 'primary';
@@ -131,6 +133,13 @@ function dailyKey(userId: string, sectionKey: HumanDailySectionKey, chartId?: nu
   return `${userId}:${chartKey(chartId)}:${date || 'today'}:${sectionKey}`;
 }
 
+function profileCardsKey(userId: string, chartId?: number, localHour?: number, todayText?: string | null): string {
+  const hour = typeof localHour === 'number' && Number.isFinite(localHour) ? localHour : new Date().getHours();
+  const dayPart = hour >= 18 ? 'evening' : 'day';
+  const date = new Date().toISOString().slice(0, 10);
+  return `${userId}:${chartKey(chartId)}:${date}:${dayPart}:${todayText || ''}`;
+}
+
 function clearMapByPrefix<T>(map: Map<string, T>, prefix: string): void {
   Array.from(map.keys()).forEach((key) => {
     if (key.startsWith(prefix)) map.delete(key);
@@ -145,6 +154,8 @@ export function clearHumanReadingSessionCache(userId?: string, chartId?: number)
     paidSectionInFlight.clear();
     dailySectionCache.clear();
     dailySectionInFlight.clear();
+    profileCardsCache.clear();
+    profileCardsInFlight.clear();
     return;
   }
 
@@ -162,6 +173,16 @@ export function clearHumanReadingSessionCache(userId?: string, chartId?: number)
   clearMapByPrefix(paidSectionInFlight, prefix);
   clearMapByPrefix(dailySectionCache, prefix);
   clearMapByPrefix(dailySectionInFlight, prefix);
+  clearMapByPrefix(profileCardsCache, prefix);
+  clearMapByPrefix(profileCardsInFlight, prefix);
+}
+
+export function getNatalProfileCardsCached(
+  userId: string,
+  chartId?: number,
+  options?: { localHour?: number; todayText?: string | null }
+): NatalProfileCardsResponse | null {
+  return profileCardsCache.get(profileCardsKey(userId, chartId, options?.localHour, options?.todayText)) || null;
 }
 
 export function getHumanBaseReportCached(userId: string, chartId?: number): NatalInterpretationReport | null {
@@ -435,14 +456,32 @@ export async function loadNatalProfileCards(
     todayText?: string | null;
   }
 ): Promise<NatalProfileCardsResponse> {
-  const response = await fetch(buildProfileCardsUrl(userId, { chartId, ...options }), {
-    method: 'GET',
-    cache: 'no-store',
-  });
-  if (!response.ok) {
-    throw await readHumanError(response, `Failed (${response.status})`);
+  const key = profileCardsKey(userId, chartId, options?.localHour, options?.todayText);
+  const cached = profileCardsCache.get(key);
+  if (cached) return cached;
+
+  const existing = profileCardsInFlight.get(key);
+  if (existing) return existing;
+
+  const promise = (async () => {
+    const response = await fetch(buildProfileCardsUrl(userId, { chartId, ...options }), {
+      method: 'GET',
+      cache: 'no-store',
+    });
+    if (!response.ok) {
+      throw await readHumanError(response, `Failed (${response.status})`);
+    }
+    const payload = await response.json() as NatalProfileCardsResponse;
+    profileCardsCache.set(key, payload);
+    return payload;
+  })();
+
+  profileCardsInFlight.set(key, promise);
+  try {
+    return await promise;
+  } finally {
+    profileCardsInFlight.delete(key);
   }
-  return response.json() as Promise<NatalProfileCardsResponse>;
 }
 
 export async function loadNatalStoryShareImage(

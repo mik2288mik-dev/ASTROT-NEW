@@ -9,6 +9,7 @@ import {
   syncNatalStoryStateFromCloud,
 } from '../lib/natalStory';
 import { normalizeNatalStoryShareFormat, renderNatalStoryShareSvg } from '../lib/natalStoryShareRenderer';
+import { clearHumanReadingSessionCache, loadNatalProfileCards } from '../services/natalReadingService';
 import type { NatalChartData, UserProfile } from '../types';
 
 const profile: UserProfile = {
@@ -187,5 +188,34 @@ describe('natal story share renderer', () => {
     expect(feed.height).toBe(1350);
     expect(story.svg).toContain('LUMIA');
     expect(normalizeNatalStoryShareFormat('unknown')).toBe('story');
+  });
+});
+
+describe('natal profile cards service cache', () => {
+  beforeEach(() => {
+    clearHumanReadingSessionCache();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('does not fetch profileCards again for the same session key', async () => {
+    const payload = {
+      profileCards: buildNatalProfileCards({ profile, chartData, isPremium: false }),
+      meta: { version: 'test' },
+    };
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => payload,
+    });
+    (global as any).fetch = fetchMock;
+
+    const first = await loadNatalProfileCards('123', 7, { localHour: 13 });
+    const second = await loadNatalProfileCards('123', 7, { localHour: 13 });
+
+    expect(first.profileCards).toHaveLength(6);
+    expect(second).toBe(first);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });

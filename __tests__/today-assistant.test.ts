@@ -113,21 +113,24 @@ describe('today assistant', () => {
     const reference = buildTodayCheckInReference(pulse, 'ru');
 
     expect(reference.isFallback).toBe(false);
-    expect(reference.title).toBe(pulse.currentPoint.title);
-    expect(reference.summary).toBe(pulse.currentPoint.summary);
+    expect(reference.forecastTitle).toBe(pulse.currentPoint.title);
+    expect(reference.forecastSummary).toBe(pulse.currentPoint.summary);
     expect(reference.dateLabel).toContain('мая');
     expect(reference.bestSlotRange).toBe('10:00-14:00');
     expect(reference.bestSlotLabel).toBe('Пик фокуса');
     expect(reference.bestFor).toEqual(['план']);
     expect(reference.avoid).toBe('спешка');
+    expect(reference.expected.focus.value).toBe('normal');
+    expect(reference.initialInput.focus).toBe('normal');
   });
 
   it('uses a neutral check-in reference fallback without a fake best slot', () => {
     const reference = buildTodayCheckInReference(null, 'ru');
 
     expect(reference.isFallback).toBe(true);
-    expect(reference.title).toContain('общее ощущение дня');
+    expect(reference.forecastTitle).toContain('общее ощущение дня');
     expect(reference.bestSlotRange).toBeNull();
     expect(reference.bestSlotLabel).toBeNull();
+    expect(reference.initialInput.forecastFit).toBe('partial');
   });
 });
