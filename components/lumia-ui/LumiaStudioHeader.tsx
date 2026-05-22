@@ -32,7 +32,7 @@ export const LumiaStudioHeader: React.FC<LumiaStudioHeaderProps> = ({
           onOpenStore={onOpenStore}
           settingsAriaLabel={settingsAriaLabel}
           storeLabel={storeLabel}
-          tagline="ТВОЙ ПУТЬ К СЕБЕ"
+          tagline="ПЕРСОНАЛЬНАЯ КАРТА И ДЕНЬ"
         />
 
         {children ? <div className="mt-1 pt-1">{children}</div> : null}

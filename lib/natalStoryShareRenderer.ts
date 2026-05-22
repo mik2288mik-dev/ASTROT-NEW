@@ -12,6 +12,12 @@ const ACCENT_BY_VISUAL: Record<string, { a: string; b: string; c: string }> = {
   hero_noise_fade: { a: '#d8748a', b: '#fff1f4', c: '#f7fbff' },
   hero_dual_orbit: { a: '#e0785e', b: '#fff0e8', c: '#f4f8ff' },
   hero_path_focus: { a: '#5268d8', b: '#edf1ff', c: '#fff8ef' },
+  'first-impression': { a: '#7A55FF', b: '#f3edff', c: '#fff7f0' },
+  decisions: { a: '#15C7FF', b: '#eaf7ff', c: '#fff8ec' },
+  communication: { a: '#FFB13B', b: '#fff2cf', c: '#f6fff0' },
+  blockers: { a: '#FF4CB7', b: '#fff0f5', c: '#eef9ff' },
+  strengths: { a: '#5E35FF', b: '#edf1ff', c: '#f5fff0' },
+  relationships: { a: '#FF6F61', b: '#fff0eb', c: '#eef9ff' },
 };
 
 function escapeXml(value: string) {
@@ -55,7 +61,7 @@ export function normalizeNatalStoryShareFormat(value: unknown): NatalStoryShareF
 
 export function renderNatalStoryShareSvg(card: ProfileCard, format: NatalStoryShareFormat = 'story') {
   const { width, height } = FORMAT_SIZE[format];
-  const accent = ACCENT_BY_VISUAL[String(card.visualKey || '')] || ACCENT_BY_VISUAL.hero_halo_portrait;
+  const accent = ACCENT_BY_VISUAL[String(card.assetKey || '')] || ACCENT_BY_VISUAL[String(card.visualKey || '')] || ACCENT_BY_VISUAL.hero_halo_portrait;
   const titleLines = wrapText(card.title, format === 'story' ? 17 : 20, 3);
   const summaryLines = wrapText(card.shortText, format === 'story' ? 34 : 38, format === 'story' ? 5 : 4);
   const chipY = format === 'story' ? 1188 : 875;
@@ -94,14 +100,14 @@ export function renderNatalStoryShareSvg(card: ProfileCard, format: NatalStorySh
       <circle cx="${width * 0.5}" cy="${format === 'story' ? 410 : 310}" r="${format === 'story' ? 148 : 118}" fill="rgba(255,255,255,0.34)" stroke="rgba(255,255,255,0.8)" stroke-width="2" filter="url(#softShadow)"/>
       <path d="M180 ${format === 'story' ? 452 : 338} C 340 ${format === 'story' ? 255 : 204}, 526 ${format === 'story' ? 598 : 438}, 900 ${format === 'story' ? 330 : 245}" stroke="#15151b" stroke-opacity="0.12" stroke-width="5" fill="none" stroke-linecap="round"/>
       <text x="84" y="${format === 'story' ? 166 : 132}" font-size="34" font-weight="800" letter-spacing="7" fill="${accent.a}">LUMIA</text>
-      <text x="84" y="${format === 'story' ? 222 : 182}" font-size="25" font-weight="600" letter-spacing="8" fill="#77717d">ТВОЙ ПУТЬ К СЕБЕ</text>
-      <text x="84" y="${titleY - 92}" font-size="25" font-weight="800" letter-spacing="7" fill="${accent.a}">${escapeXml(card.subtitle || 'О ТЕБЕ')}</text>
+      <text x="84" y="${format === 'story' ? 222 : 182}" font-size="25" font-weight="600" letter-spacing="8" fill="#77717d">ПЕРСОНАЛЬНАЯ КАРТА</text>
+      <text x="84" y="${titleY - 92}" font-size="25" font-weight="800" letter-spacing="7" fill="${accent.a}">${escapeXml(card.subtitle || 'РАЗБОР')}</text>
       ${textBlock(titleLines, 84, titleY, 72, 84, 800)}
       ${textBlock(summaryLines, 84, summaryY, 36, 54, 500, '#33323b')}
       ${chips}
       <rect x="84" y="${height - 222}" width="${width - 168}" height="104" rx="52" fill="${accent.a}" />
-      <text x="${width / 2}" y="${height - 158}" text-anchor="middle" font-size="34" font-weight="800" fill="#ffffff">Открыть свою карту</text>
-      <text x="${width / 2}" y="${height - 68}" text-anchor="middle" font-size="24" font-weight="600" fill="#77717d">lumia · natal story</text>
+      <text x="${width / 2}" y="${height - 158}" text-anchor="middle" font-size="34" font-weight="800" fill="#ffffff">Открыть общий разбор</text>
+      <text x="${width / 2}" y="${height - 68}" text-anchor="middle" font-size="24" font-weight="600" fill="#77717d">lumia · карта</text>
     </svg>
   `;
 

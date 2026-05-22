@@ -49,6 +49,34 @@ const chartData: NatalChartData = {
   summary: '',
 };
 
+const fogForbidden =
+  /(внутри|глубок|мягко|тонко|энергия|вибраци|ритм|поток|опора|внутренний мир|раскрываешь|считыва|твоя сила|ресурс|состояние|фокус души|путь к себе|акцент карты|карта говорит|проявляешь|бережно|осознанно|эмоциональная глубина|кармич|зв[её]зды говорят|мистич|✨|🌙|🔮)/iu;
+
+function cardCopy(card: ReturnType<typeof buildNatalProfileCards>[number]) {
+  return [
+    card.title,
+    card.subtitle,
+    card.shortText,
+    card.freeText,
+    card.premiumText,
+    card.teaser,
+    card.body?.life,
+    card.body?.plus,
+    card.body?.risk,
+    card.body?.action,
+    card.premiumBody?.work,
+    card.premiumBody?.relationships,
+    card.premiumBody?.money,
+    card.premiumBody?.recommendation,
+    card.premiumBody?.why,
+    card.primaryCta?.label,
+    card.secondaryCta?.label,
+    ...(card.chips || []),
+    ...(card.freeBullets || []),
+    ...(card.premiumBullets || []),
+  ].filter(Boolean).join('\n');
+}
+
 describe('natal profile cards mapper', () => {
   it('builds six ordered profile cards from existing chart calculations', () => {
     const cards = buildNatalProfileCards({ profile, chartData, isPremium: false, todayContext: { localHour: 13 } });
@@ -61,57 +89,55 @@ describe('natal profile cards mapper', () => {
       'relationships',
       'today_bridge',
     ]);
+    expect(cards.map((card) => card.title)).toEqual([
+      'Как ты ведёшь себя с новыми людьми',
+      'Как ты принимаешь решения',
+      'Как ты общаешься',
+      'Как ты в отношениях',
+      'Что тебя сбивает',
+      'Где у тебя получается лучше всего',
+    ]);
     expect(cards.map((card) => card.order)).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(cards.every((card) => card.mapperVersion === 'profile_cards.v2')).toBe(true);
     expect(cards.every((card) => card.chips.length >= 2 && card.shortText.length > 20)).toBe(true);
+    expect(cards.every((card) => card.body?.life && card.body?.plus && card.body?.risk && card.body?.action)).toBe(true);
+    expect(cards.every((card) => card.assetKey && card.sourceKeys.length && card.confidence)).toBe(true);
   });
 
-  it('keeps the story-front free of heavy astrological terminology', () => {
-    const forbidden = /(2 дом|транзит|аспект|Луна касается|натальный акцент)/i;
+  it('keeps card copy concrete and free of esoteric fog', () => {
     const cards = buildNatalProfileCards({ profile, chartData, isPremium: false });
 
     for (const card of cards) {
-      expect(card.title).not.toMatch(forbidden);
-      expect(card.shortText).not.toMatch(forbidden);
-      expect(card.freeText).not.toMatch(forbidden);
+      expect(cardCopy(card)).not.toMatch(fogForbidden);
+      expect(card.shortText).toMatch(/[.?!]$/);
+      expect(card.freeText).toMatch(/Пример|Например|Где это видно|Что делать/);
     }
   });
 
-  it('marks cards 3-5 as locked for free users and open for premium users', () => {
+  it('keeps the whole six-card general map available for free users', () => {
     const freeCards = buildNatalProfileCards({ profile, chartData, isPremium: false });
     const premiumCards = buildNatalProfileCards({ profile: { ...profile, isPremium: true }, chartData, isPremium: true });
 
-    expect(freeCards.filter((card) => card.isPremiumLocked).map((card) => card.id)).toEqual([
-      'strengths',
-      'overload',
-      'relationships',
-    ]);
+    expect(freeCards.some((card) => card.isPremiumLocked)).toBe(false);
     expect(premiumCards.some((card) => card.isPremiumLocked)).toBe(false);
+    expect(freeCards.every((card) => card.primaryCta?.action === 'read_deeper')).toBe(true);
   });
 
-  it('switches the sixth card CTA after 18:00', () => {
-    const day = buildNatalProfileCards({ profile, chartData, todayContext: { localHour: 12 } });
-    const evening = buildNatalProfileCards({ profile, chartData, todayContext: { localHour: 21 } });
-
-    expect(day[5].primaryCta?.action).toBe('open_today');
-    expect(evening[5].primaryCta?.action).toBe('open_checkin');
-  });
-
-  it('lets real today context shape the sixth card without frontend recalculation', () => {
+  it('keeps today context as metadata without turning the general map into a day forecast', () => {
     const cards = buildNatalProfileCards({
       profile,
       chartData,
       todayContext: {
         localHour: 14,
         shortText: 'Сегодня лучше выбрать одно главное и не распыляться.',
-        bestWindowLabel: '14:00-16:00: лучший момент для фокуса',
+        bestWindowLabel: '14:00-16:00: лучший момент для задач',
         checkinCompleted: true,
         recentActionCount: 2,
       },
     });
 
-    expect(cards[5].shortText).toContain('одно главное');
-    expect(cards[5].freeText).toContain('14:00-16:00');
-    expect(cards[5].freeBullets?.join(' ')).toContain('Check-in');
+    expect(cards[5].primaryCta?.action).toBe('read_deeper');
+    expect(cards[5].title).toBe('Где у тебя получается лучше всего');
     expect(cards[5].sourceDebug?.join(' ')).toContain('recentActions:2');
   });
 
@@ -132,7 +158,8 @@ describe('natal profile cards mapper', () => {
 
     expect(storyCards).toHaveLength(6);
     expect(storyCards[0].summaryShort).toBe(profileCards[0].shortText);
-    expect(storyCards[2].paidSectionKey).toBe('potential_purpose');
+    expect(storyCards[2].paidSectionKey).toBeUndefined();
+    expect(storyCards[2].ctaPrimary.label).toBe('Разобрать общение');
   });
 });
 
@@ -158,6 +185,7 @@ describe('natal story local state helpers', () => {
 
   it('resolves aliases and stores saved story cards safely', () => {
     expect(resolveNatalStoryCardId('card4_overload')).toBe('overload');
+    expect(resolveNatalStoryCardId('card5_blockers')).toBe('relationships');
 
     const saved = saveNatalStoryCard('overload');
     expect(saved.savedCardIds).toEqual(['overload']);
@@ -187,6 +215,7 @@ describe('natal story share renderer', () => {
     expect(story.height).toBe(1920);
     expect(feed.height).toBe(1350);
     expect(story.svg).toContain('LUMIA');
+    expect(story.svg).not.toMatch(fogForbidden);
     expect(normalizeNatalStoryShareFormat('unknown')).toBe('story');
   });
 });

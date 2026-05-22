@@ -26,19 +26,26 @@ const CARD_ALIASES: Record<string, NatalStoryCardId> = {
   inner_base: 'inner_base',
   card3: 'strengths',
   card3_strengths: 'strengths',
+  card3_communication: 'strengths',
+  communication: 'strengths',
   strength: 'strengths',
   strengths: 'strengths',
   card4: 'overload',
   card4_overload: 'overload',
+  card4_stress: 'overload',
+  card4_relationships: 'overload',
   overload: 'overload',
   stress: 'overload',
   card5: 'relationships',
   card5_relationships: 'relationships',
+  card5_blockers: 'relationships',
+  blockers: 'relationships',
   relationship: 'relationships',
   relationships: 'relationships',
   people: 'relationships',
   card6: 'today_bridge',
   card6_today_bridge: 'today_bridge',
+  card6_strengths: 'today_bridge',
   today: 'today_bridge',
   today_bridge: 'today_bridge',
 };
@@ -72,11 +79,7 @@ const PROFILE_ACTION_TO_CTA: Record<string, NatalStoryCta> = {
   save_card: 'save_card',
 };
 
-const PAID_KEY_BY_CARD: Partial<Record<NatalStoryCardId, NatalStoryCard['paidSectionKey']>> = {
-  strengths: 'potential_purpose',
-  overload: 'energy_recovery',
-  relationships: 'love_relationships',
-};
+const PAID_KEY_BY_CARD: Partial<Record<NatalStoryCardId, NatalStoryCard['paidSectionKey']>> = {};
 
 export function isNatalStoryCardId(value: unknown): value is NatalStoryCardId {
   return typeof value === 'string' && NATAL_STORY_CARD_IDS.includes(value as NatalStoryCardId);
@@ -121,11 +124,11 @@ export function adaptProfileCardsToStoryCards(profileCards: ProfileCard[]): Nata
         freeText,
         bodyPremium: premiumText,
         premiumText,
-        tease: profileCard.teaser || 'Ещё внутри: больше контекста и примеров из жизни.',
+        tease: profileCard.teaser || 'В полном разборе: больше примеров и объяснение по карте.',
         previewBullet: profileCard.freeBullets?.[0] || profileCard.teaser,
         ctaPrimary: {
           type: ctaType,
-          label: profileCard.primaryCta?.label || (ctaType === 'read_deeper' ? 'Читать глубже' : 'Открыть'),
+          label: profileCard.primaryCta?.label || (ctaType === 'read_deeper' ? 'Разобрать дальше' : 'Открыть'),
         },
         ctaSecondary: profileCard.secondaryCta
           ? {

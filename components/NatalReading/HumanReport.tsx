@@ -487,7 +487,7 @@ export const HumanReport: React.FC<Props> = ({
             {report.userName}, главный портрет
           </h1>
           <p className="mt-4 max-w-[36rem] font-sans text-[15px] leading-relaxed text-[#666]">
-            Разбор основан на расчетах по дате, времени и месту рождения. В бесплатной версии открыт базовый слой, а глубокие темы можно раскрыть через Premium или Lumi.
+            Разбор основан на расчетах по дате, времени и месту рождения. В бесплатной версии открыт общий слой, а подробные темы можно открыть через Premium или Lumi.
           </p>
           <p className="mt-3 font-sans text-[12.5px] leading-relaxed text-[#888]">
             {report.birthData.birthDate}
@@ -497,7 +497,7 @@ export const HumanReport: React.FC<Props> = ({
 
           <div className="mt-7 border-l-2 border-[#d8c18a] pl-4">
             <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8c6bb1]">
-              {report.shortCard.title || 'Главная энергия карты'}
+              {report.shortCard.title || 'Главный вывод по карте'}
             </p>
             <p className="mt-3 font-sans text-[17px] leading-[1.75] text-[#2d2d2d] [text-wrap:pretty]">{report.shortCard.text}</p>
             <div className="mt-4 flex flex-wrap gap-2">
@@ -525,10 +525,10 @@ export const HumanReport: React.FC<Props> = ({
             <div>
               <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8c6bb1]">Полный разбор</p>
               <h2 className="mt-2 font-sans text-[28px] font-semibold leading-[1.08] tracking-[-0.02em] text-[#1f1f1f]">
-                Темы, которые раскрывают карту глубже
+                Подробные темы полной карты
               </h2>
               <p className="mt-3 font-sans text-[14.5px] leading-relaxed text-[#5e5e5e]">
-                Здесь карта переходит из общего портрета в жизненные сферы: отношения, работа, деньги, дом, общение, ресурс и личный вектор.
+                Здесь общий разбор переходит в конкретные сферы: отношения, работа, деньги, дом, общение, решения и повторяющиеся сценарии.
               </p>
             </div>
           </div>

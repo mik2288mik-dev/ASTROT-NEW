@@ -36,13 +36,16 @@ describe('natal reading service session cache', () => {
     jest.restoreAllMocks();
   });
 
-  it('keeps free and paid v2 section pools intentionally small', () => {
+  it('keeps free and paid v2 section pools stable', () => {
     expect(HUMAN_FREE_SECTION_KEYS).toEqual([
       'base_portrait',
       'main_formula',
+      'how_others_see_you',
+      'emotional_world',
       'strengths',
       'growth_zones',
       'main_advice',
+      'summary',
     ]);
     expect(HUMAN_PAID_SECTION_KEYS).toEqual([
       'work_business',

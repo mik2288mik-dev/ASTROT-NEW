@@ -354,8 +354,8 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                         </h3>
                         <p className="lumia-muted mt-1 text-sm leading-snug">
                             {profile.language === 'en'
-                                ? 'Choose how often Lumia should gently return you to the day.'
-                                : 'Выбери, как часто Lumia будет мягко возвращать тебя к дню.'}
+                                ? 'Choose how often Lumia should bring you back to the day.'
+                                : 'Выбери, как часто Lumia будет возвращать тебя к дню.'}
                         </p>
                     </div>
                 </div>

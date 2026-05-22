@@ -118,7 +118,7 @@ function getNotificationLaunchParams(): NotificationLaunchParams | null {
 function getRequestedStoryCardFromLaunch(): NatalStoryCardId | null {
     if (typeof window === 'undefined') return null;
     const params = new URLSearchParams(window.location.search);
-    const queryCard = params.get('storyCard') || params.get('card');
+    const queryCard = params.get('storyCard') || params.get('card') || params.get('startapp');
     const tg = (window as any).Telegram?.WebApp;
     const startParam = typeof tg?.initDataUnsafe?.start_param === 'string'
         ? tg.initDataUnsafe.start_param
@@ -142,6 +142,7 @@ const App: React.FC = () => {
     const [walletReturnView, setWalletReturnView] = useState<ViewState>('dashboard');
     const [chartReturnView, setChartReturnView] = useState<ViewState>('dashboard');
     const [chartOpenMode, setChartOpenMode] = useState<NatalChartMode>('human');
+    const [isNatalViewerOpen, setIsNatalViewerOpen] = useState(false);
     const [horoscopeInitialLayer, setHoroscopeInitialLayer] = useState<HoroscopeLayer>('sign');
     const [horoscopeBackground, setHoroscopeBackground] = useState<{
         sign: string | null;
@@ -169,6 +170,12 @@ const App: React.FC = () => {
     const [initialStoryCardId, setInitialStoryCardId] = useState<NatalStoryCardId | null>(null);
     const viewRef = useRef<ViewState>('onboarding');
     const navigationHistoryRef = useRef<ViewState[]>([]);
+
+    useEffect(() => {
+        if (view !== 'chart' && isNatalViewerOpen) {
+            setIsNatalViewerOpen(false);
+        }
+    }, [isNatalViewerOpen, view]);
 
     const getFallbackAdminStatus = useCallback((userId?: string | number, storedIsAdmin?: boolean) => {
         return OWNER_ID && userId ? String(userId) === String(OWNER_ID) : !!storedIsAdmin;
@@ -406,8 +413,9 @@ const App: React.FC = () => {
         const loadData = async () => {
             console.log('[App] === LOADING USER DATA ===');
             setLoadingProgress(10);
-            requestedViewRef.current = getRequestedViewFromQuery();
-            setInitialStoryCardId(getRequestedStoryCardFromLaunch());
+            const requestedStoryCard = getRequestedStoryCardFromLaunch();
+            requestedViewRef.current = getRequestedViewFromQuery() || (requestedStoryCard ? 'chart' : null);
+            setInitialStoryCardId(requestedStoryCard);
             notificationLaunchRef.current = getNotificationLaunchParams();
             setInitialTodaySection(notificationLaunchRef.current?.section || null);
             
@@ -881,6 +889,9 @@ const App: React.FC = () => {
             setChartReturnView(currentView === 'chart' ? 'dashboard' : currentView);
             setChartOpenMode('human');
             setInitialStoryCardId(null);
+            setIsNatalViewerOpen(false);
+        } else {
+            setIsNatalViewerOpen(false);
         }
 
         setView(newView);
@@ -1155,6 +1166,7 @@ const App: React.FC = () => {
                             onBack={() => {
                                 void handleBack();
                             }}
+                            onViewerOpenChange={setIsNatalViewerOpen}
                             initialStoryCardId={initialStoryCardId}
                             preloadedReport={activeChartId ? null : preloadedHumanReport}
                             dictionaryOpenSignal={dictionaryOpenSignal}
@@ -1207,6 +1219,7 @@ const App: React.FC = () => {
                                 setChartReturnView('charts');
                                 setChartOpenMode('human');
                                 setInitialStoryCardId(null);
+                                setIsNatalViewerOpen(false);
                                 pushReturnView(viewRef.current);
                                 setView('chart');
                             }}
@@ -1236,7 +1249,7 @@ const App: React.FC = () => {
                 )}
             </main>
 
-            {profile ? (
+            {profile && !(view === 'chart' && isNatalViewerOpen) ? (
                 <LumiaBottomTabBar
                     profile={profile}
                     view={view}

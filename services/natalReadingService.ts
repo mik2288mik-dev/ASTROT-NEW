@@ -102,6 +102,7 @@ export type NatalProfileCardsResponse = {
   profileCards: ProfileCard[];
   meta?: {
     version?: string;
+    mapperVersion?: string;
     chartId?: number | null;
     generatedAt?: string;
     isPremium?: boolean;

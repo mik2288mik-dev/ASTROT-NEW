@@ -3,7 +3,7 @@ export type LumiaHomeLanguage = 'ru' | 'en';
 export function getLumiaHomeCopy(language: LumiaHomeLanguage) {
   if (language === 'en') {
     return {
-      tagline: 'YOUR PATH TO SELF',
+      tagline: 'PERSONAL MAP AND DAY',
       notifications: 'Notifications',
       settings: 'Settings',
       stories: {
@@ -11,7 +11,7 @@ export function getLumiaHomeCopy(language: LumiaHomeLanguage) {
         love: 'Love',
         money: 'Money',
         work: 'Work',
-        rhythm: 'Personal rhythm',
+        rhythm: 'Personal day',
       },
       heroDate: 'May 10, Saturday',
       heroTitle: 'CLEAR THE NOISE —\nTHE DAY GETS LIGHTER',
@@ -38,7 +38,7 @@ export function getLumiaHomeCopy(language: LumiaHomeLanguage) {
       },
       full: {
         label: 'Full day reading',
-        title: 'Love, money,\nwork and personal\nrhythm — in one\nissue.',
+        title: 'Love, money,\nwork and personal\nday — in one\nissue.',
         cta: 'Open full reading',
       },
       nav: {
@@ -51,7 +51,7 @@ export function getLumiaHomeCopy(language: LumiaHomeLanguage) {
   }
 
   return {
-    tagline: 'ТВОЙ ПУТЬ К СЕБЕ',
+    tagline: 'ПЕРСОНАЛЬНАЯ КАРТА И ДЕНЬ',
     notifications: 'Уведомления',
     settings: 'Настройки',
     stories: {
@@ -59,7 +59,7 @@ export function getLumiaHomeCopy(language: LumiaHomeLanguage) {
       love: 'Любовь',
       money: 'Деньги',
       work: 'Работа',
-      rhythm: 'Личный ритм',
+      rhythm: 'Личный день',
     },
     heroDate: '10 мая, суббота',
     heroTitle: 'НАВЕДИ ПОРЯДОК —\nСТАНЕТ ЛЕГЧЕ',
@@ -86,7 +86,7 @@ export function getLumiaHomeCopy(language: LumiaHomeLanguage) {
     },
     full: {
       label: 'ПОЛНЫЙ РАЗБОР ДНЯ',
-      title: 'Любовь, деньги,\nработа и личный\nритм — в одном\nвыпуске.',
+      title: 'Любовь, деньги,\nработа и личный\nдень — в одном\nвыпуске.',
       cta: 'Открыть полный разбор',
     },
     nav: {
@@ -105,12 +105,12 @@ export const LUMIA_HOME_PREVIEW_ITEMS = {
     { label: 'Любовь', imageSrc: '/natal-gateway/synastry-union-v2.webp' },
     { label: 'Деньги', imageSrc: '/natal-backgrounds/work-money.webp' },
     { label: 'Работа', imageSrc: '/natal-backgrounds/strengths.webp' },
-    { label: 'Личный ритм', imageSrc: '/natal-backgrounds/daily.webp' },
+    { label: 'Личный день', imageSrc: '/natal-backgrounds/daily.webp' },
   ],
   en: [
     { label: 'Love', imageSrc: '/natal-gateway/synastry-union-v2.webp' },
     { label: 'Money', imageSrc: '/natal-backgrounds/work-money.webp' },
     { label: 'Work', imageSrc: '/natal-backgrounds/strengths.webp' },
-    { label: 'Personal rhythm', imageSrc: '/natal-backgrounds/daily.webp' },
+    { label: 'Personal day', imageSrc: '/natal-backgrounds/daily.webp' },
   ],
 } as const;

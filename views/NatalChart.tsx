@@ -8,7 +8,7 @@ import type {
 } from '../types';
 import { ShimmerStyles } from '../components/NatalReading/Skeleton';
 import { HumanReport } from '../components/NatalReading/HumanReport';
-import { NatalStoryDeck } from '../components/NatalReading/NatalStoryDeck';
+import { NatalMapPresentation } from '../components/NatalReading/NatalMapPresentation';
 import { TrueNatalWheelHero } from '../components/Dashboard/TrueNatalWheelHero';
 
 interface NatalChartProps {
@@ -21,6 +21,7 @@ interface NatalChartProps {
   onUpdateProfile?: (profile: UserProfile) => void;
   onOpenTodaySection: (section: 'pulse' | 'checkin') => void;
   onBack?: () => void;
+  onViewerOpenChange?: (open: boolean) => void;
   initialStoryCardId?: NatalStoryCardId | null;
   preloadedReport?: NatalInterpretationReport | null;
   dictionaryOpenSignal?: number; // unused in the single-page layout, kept for back-compat
@@ -36,6 +37,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({
   onUpdateProfile,
   onOpenTodaySection,
   onBack,
+  onViewerOpenChange,
   initialStoryCardId,
   preloadedReport,
 }) => {
@@ -62,7 +64,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({
     <div className="min-h-full bg-white pb-16 font-sans">
       <ShimmerStyles />
 
-      <NatalStoryDeck
+      <NatalMapPresentation
         profile={profile}
         chartData={data}
         chartId={chartId}
@@ -71,6 +73,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({
         onUpdateProfile={onUpdateProfile}
         onOpenTodaySection={onOpenTodaySection}
         onBack={onBack}
+        onViewerOpenChange={onViewerOpenChange}
         initialCardId={initialStoryCardId}
         onScrollToFullReport={() => {
           fullReportRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });

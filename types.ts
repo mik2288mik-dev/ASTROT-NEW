@@ -707,12 +707,26 @@ export type NatalStoryCta =
 export interface ProfileCard {
   id: string;
   order: number;
+  mapperVersion?: string;
   title: string;
   subtitle?: string;
   chips: string[];
   shortText: string;
+  body?: {
+    life: string;
+    plus: string;
+    risk: string;
+    action?: string;
+  };
   freeText: string;
   premiumText?: string;
+  premiumBody?: {
+    work: string;
+    relationships: string;
+    money: string;
+    recommendation: string;
+    why: string;
+  };
   freeBullets?: string[];
   premiumBullets?: string[];
   teaser?: string;
@@ -721,6 +735,7 @@ export interface ProfileCard {
   sourceDebug?: string[];
   confidence: 'high' | 'medium' | 'low';
   visualKey?: string;
+  assetKey?: string;
   primaryCta?: {
     label: string;
     action: string;

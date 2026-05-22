@@ -431,6 +431,7 @@ export function runReferralFromStartParam(
   const tg = (window as any).Telegram?.WebApp;
   const sp = typeof tg?.initDataUnsafe?.start_param === 'string' ? tg.initDataUnsafe.start_param.trim() : '';
   if (!sp) return;
+  if (/^(card\d|today_|checkin_|chart_|natal_)/i.test(sp)) return;
   const k = `lumi_ref_${userId}`;
   try {
     if (sessionStorage.getItem(k)) return;

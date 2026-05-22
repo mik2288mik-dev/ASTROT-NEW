@@ -306,7 +306,7 @@ export const Wallet: React.FC<WalletProps> = ({ profile, onUpdateProfile }) => {
                 : `Current streak: ${streak} day${streak === 1 ? '' : 's'}.`}
               {nextStreakBonusDay != null
                 ? ` ${T(lang, `Следующий бонус серии — на ${nextStreakBonusDay}-м дне.`, `Next streak bonus unlocks on day ${nextStreakBonusDay}.`)}`
-                : ` ${T(lang, 'Вы уже прошли все стандартные вехи серии — держите ритм.', 'You have passed the usual streak milestones — keep the rhythm.')}`}
+                : ` ${T(lang, 'Вы уже прошли все стандартные вехи серии — продолжайте серию.', 'You have passed the usual streak milestones — keep the streak going.')}`}
             </p>
             <div className="space-y-1">
               <div className="flex justify-between text-[9px] uppercase tracking-wider text-astro-subtext">

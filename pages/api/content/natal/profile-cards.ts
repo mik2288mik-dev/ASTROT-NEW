@@ -98,6 +98,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       profileCards,
       meta: {
         version: NATAL_PROFILE_CARDS_VERSION,
+        mapperVersion: NATAL_PROFILE_CARDS_VERSION,
         chartId: valid.ctx.chartId,
         generatedAt: new Date().toISOString(),
         isPremium: premium,

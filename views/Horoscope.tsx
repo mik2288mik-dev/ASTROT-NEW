@@ -98,7 +98,7 @@ function getLayerConfigs(): LayerConfig[] {
     {
       id: 'chart',
       title: 'Личный прогноз',
-      subtitle: 'День, собранный по вашей натальной карте и текущему небу.',
+      subtitle: 'Персональный разбор дня по карте рождения и текущей дате.',
       price: LAYER_PRICES.chart,
       tone: 'chart',
       icon: WalletCards,
