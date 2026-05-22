@@ -187,93 +187,6 @@ function BodyRows({ card }: { card: NatalStoryCard }) {
   );
 }
 
-function CoverCard({
-  cards,
-  loading,
-  error,
-  onOpen,
-  onInfo,
-  onFullReport,
-}: {
-  cards: NatalStoryCard[];
-  loading: boolean;
-  error: string | null;
-  onOpen: () => void;
-  onInfo: () => void;
-  onFullReport: () => void;
-}) {
-  const first = cards[0];
-  return (
-    <section className="relative overflow-hidden bg-[#fffaf7] px-4 pb-9 pt-4">
-      <div className="mx-auto w-full max-w-[27rem]">
-        <div className="relative min-h-[35rem] overflow-hidden rounded-[2rem] bg-[#171126] text-white shadow-[0_24px_74px_rgba(31,22,54,0.24)]">
-          <img
-            src="/lumia-natal-viewer/cover.webp"
-            alt=""
-            draggable={false}
-            onError={hideBrokenImage}
-            className="absolute inset-0 h-full w-full object-cover"
-          />
-          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(23,17,38,0.22)_0%,rgba(23,17,38,0.48)_44%,rgba(23,17,38,0.94)_100%)]" />
-          <div className="relative z-10 flex min-h-[35rem] flex-col p-5">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="mb-0 font-lumiaHome text-[0.72rem] font-extrabold uppercase tracking-[0.18em] text-[#B6FF3B]">
-                  Общая натальная карта
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={onInfo}
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/14 text-white backdrop-blur-md"
-                aria-label="Информация о расчёте"
-              >
-                <MoreHorizontal size={21} strokeWidth={2.2} />
-              </button>
-            </div>
-
-            <div className="mt-auto">
-              <p className="mb-0 max-w-[21rem] font-lumiaHome text-[0.98rem] font-semibold leading-snug text-white/88">
-                {first?.shortText || 'Коротко и по делу: как ты общаешься, принимаешь решения, строишь отношения и где чаще ошибаешься.'}
-              </p>
-              <div className="mt-5 grid grid-cols-3 gap-2">
-                {(cards.length ? cards.slice(0, 6) : Array.from({ length: 6 }, () => null)).map((card, index) => (
-                  <div key={card ? card.id : index} className="rounded-[1rem] bg-white/12 px-3 py-2.5 backdrop-blur-md">
-                    <p className="mb-0 font-lumiaHome text-[0.7rem] font-extrabold text-white/56">{index + 1}/6</p>
-                    <p className="mb-0 mt-1 line-clamp-2 font-lumiaHome text-[0.75rem] font-extrabold leading-tight text-white">
-                      {card ? card.title : 'Загрузка'}
-                    </p>
-                  </div>
-                ))}
-              </div>
-              {error ? (
-                <p className="mb-0 mt-4 rounded-[1rem] bg-white/14 px-3 py-2 font-lumiaHome text-[0.78rem] font-semibold leading-snug text-white/82">
-                  {error}
-                </p>
-              ) : null}
-              <button
-                type="button"
-                disabled={loading || !cards.length}
-                onClick={onOpen}
-                className="mt-5 flex min-h-[3.35rem] w-full items-center justify-center rounded-full bg-white px-5 font-lumiaHome text-[1rem] font-extrabold text-[#171126] disabled:opacity-60"
-              >
-                Смотреть карты
-              </button>
-              <button
-                type="button"
-                onClick={onFullReport}
-                className="mt-3 flex min-h-[2.7rem] w-full items-center justify-center rounded-full bg-white/13 px-5 font-lumiaHome text-[0.86rem] font-extrabold text-white/80"
-              >
-                Читать подробный разбор ↓
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 function ViewerCard({
   card,
   saved,
@@ -979,14 +892,6 @@ export const NatalMapPresentation = memo<NatalMapPresentationProps>(
 
     return (
       <>
-        <CoverCard
-          cards={cards}
-          loading={loading}
-          error={error}
-          onOpen={() => openViewer(null)}
-          onInfo={() => setInfoOpen(true)}
-          onFullReport={onScrollToFullReport}
-        />
         {viewerOpen && cards.length ? (
           <NatalCardViewer
             cards={cards}
