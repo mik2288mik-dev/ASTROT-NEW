@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Bookmark, Check, ChevronLeft, Lock, MoreHorizontal, Share2, X } from 'lucide-react';
+import { Bookmark, Check, Crown, Lock, MoreHorizontal, Share2, WalletCards, X } from 'lucide-react';
 import { animate, motion, useDragControls, useMotionValue, useReducedMotion, type PanInfo } from 'framer-motion';
 import type {
   InterpretationSection,
@@ -33,7 +33,6 @@ import {
 } from '../../services/natalReadingService';
 import { recordUserAppEvent } from '../../services/sessionService';
 import { FormattedAiText } from '../ui/FormattedAiText';
-import { NatalUnlockSheet } from './HumanReport';
 
 type NatalMapPresentationProps = {
   profile: UserProfile;
@@ -261,14 +260,14 @@ function CoverCard({
                 onClick={onOpen}
                 className="mt-5 flex min-h-[3.35rem] w-full items-center justify-center rounded-full bg-white px-5 font-lumiaHome text-[1rem] font-extrabold text-[#171126] disabled:opacity-60"
               >
-                Открыть общий разбор
+                Смотреть карты
               </button>
               <button
                 type="button"
                 onClick={onFullReport}
-                className="mt-3 flex min-h-[2.7rem] w-full items-center justify-center rounded-full bg-white/13 px-5 font-lumiaHome text-[0.86rem] font-extrabold text-white"
+                className="mt-3 flex min-h-[2.7rem] w-full items-center justify-center rounded-full bg-white/13 px-5 font-lumiaHome text-[0.86rem] font-extrabold text-white/80"
               >
-                Полный разбор
+                Читать подробный разбор ↓
               </button>
             </div>
           </div>
@@ -284,12 +283,14 @@ function ViewerCard({
   onPrimary,
   onSave,
   onShare,
+  showPrimaryCta = true,
 }: {
   card: NatalStoryCard;
   saved: boolean;
   onPrimary: () => void;
   onSave: () => void;
   onShare: () => void;
+  showPrimaryCta?: boolean;
 }) {
   return (
     <article className="flex h-full min-h-0 flex-col overflow-hidden rounded-[1.8rem] bg-[#FFF7F2] p-3.5 text-[#171126] shadow-[0_20px_58px_rgba(31,22,54,0.18)]">
@@ -318,14 +319,16 @@ function ViewerCard({
       </p>
       <BodyRows card={card} />
       <div className="mt-auto pt-2.5">
-        <button
-          type="button"
-          onClick={onPrimary}
-          className="flex min-h-[2.85rem] w-full items-center justify-center rounded-full bg-[#171126] px-5 font-lumiaHome text-[0.9rem] font-extrabold text-white"
-        >
-          {card.ctaPrimary.label}
-        </button>
-        <div className="mt-2 grid grid-cols-2 gap-2">
+        {showPrimaryCta ? (
+          <button
+            type="button"
+            onClick={onPrimary}
+            className="flex min-h-[2.85rem] w-full items-center justify-center rounded-full bg-[#171126] px-5 font-lumiaHome text-[0.9rem] font-extrabold text-white"
+          >
+            {card.ctaPrimary.label}
+          </button>
+        ) : null}
+        <div className={cn('grid grid-cols-2 gap-2', showPrimaryCta ? 'mt-2' : '')}>
           <button
             type="button"
             onClick={onSave}
@@ -350,13 +353,17 @@ function ViewerCard({
 
 function DetailsSheet({
   card,
+  isPremium,
   isLocked,
   paidSection,
   isLoading,
   error,
   onClose,
-  onUnlock,
+  onPremium,
+  onLumi,
+  onWallet,
   onFullReport,
+  lumiBalance,
 }: {
   card: NatalStoryCard;
   isPremium: boolean;
@@ -365,10 +372,14 @@ function DetailsSheet({
   isLoading: boolean;
   error: string | null;
   onClose: () => void;
-  onUnlock: () => void;
+  onPremium: () => void;
+  onLumi: () => void;
+  onWallet?: () => void;
   onFullReport: () => void;
+  lumiBalance: number;
 }) {
   const text = isLocked ? card.freeText : structuredPremiumText(card, paidSection);
+  const hasEnoughLumi = lumiBalance >= HUMAN_PAID_LUMI_COST;
 
   return (
     <div className="fixed inset-0 z-[120] flex items-end justify-center bg-[#171126]/44 px-3 pb-[max(0.75rem,var(--tg-content-safe-area-inset-bottom,0px))]">
@@ -422,17 +433,47 @@ function DetailsSheet({
                   <Lock size={17} strokeWidth={2.3} />
                 </span>
                 <div className="min-w-0">
-                  <p className="mb-0 font-lumiaHome text-[1rem] font-extrabold text-[#171126]">Открыть полный разбор</p>
+                  <p className="mb-0 font-lumiaHome text-[1rem] font-extrabold text-[#171126]">Доступно в полной версии</p>
                   <p className="mb-0 mt-1 font-lumiaHome text-[0.84rem] font-semibold leading-snug text-[#5b526a]">{card.tease}</p>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={onUnlock}
-                className="mt-4 min-h-[2.9rem] w-full rounded-full bg-[#171126] px-5 font-lumiaHome text-[0.9rem] font-extrabold text-white"
-              >
-                Открыть полный разбор
-              </button>
+              <div className="mt-4 grid gap-2.5">
+                {!isPremium ? (
+                  <button
+                    type="button"
+                    onClick={onPremium}
+                    disabled={isLoading}
+                    className="flex min-h-[2.9rem] w-full items-center justify-center gap-2 rounded-full bg-[#171126] px-5 font-lumiaHome text-[0.9rem] font-extrabold text-white disabled:opacity-60"
+                  >
+                    <Crown size={16} strokeWidth={2} />
+                    Открыть Premium
+                  </button>
+                ) : null}
+                {hasEnoughLumi ? (
+                  <button
+                    type="button"
+                    onClick={onLumi}
+                    disabled={isLoading}
+                    className="flex min-h-[2.9rem] w-full items-center justify-center gap-2 rounded-full bg-white px-5 font-lumiaHome text-[0.9rem] font-extrabold text-[#332846] disabled:opacity-60"
+                  >
+                    <WalletCards size={16} strokeWidth={2} />
+                    {isLoading ? 'Открываем...' : `Открыть за ${HUMAN_PAID_LUMI_COST} Lumi`}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={onWallet}
+                    disabled={!onWallet || isLoading}
+                    className="flex min-h-[2.9rem] w-full items-center justify-center gap-2 rounded-full bg-white px-5 font-lumiaHome text-[0.9rem] font-extrabold text-[#332846] disabled:opacity-50"
+                  >
+                    <WalletCards size={16} strokeWidth={2} />
+                    Пополнить Lumi
+                  </button>
+                )}
+              </div>
+              <p className="mt-3 text-center font-lumiaHome text-[0.78rem] font-semibold text-[#6f6582]">
+                На балансе {lumiBalance} Lumi. Разовое открытие сохраняется для этой темы.
+              </p>
             </div>
           ) : null}
           {error ? <p className="mb-0 mt-4 font-lumiaHome text-[0.84rem] font-semibold leading-snug text-[#b54747]">{error}</p> : null}
@@ -441,7 +482,7 @@ function DetailsSheet({
             onClick={onFullReport}
             className="mt-5 min-h-[2.75rem] w-full rounded-full bg-[#f5f2fb] px-4 font-lumiaHome text-[0.86rem] font-extrabold text-[#5E35FF]"
           >
-            Перейти к полному разбору
+            К полному разбору ↓
           </button>
         </div>
       </section>
@@ -521,8 +562,8 @@ function NatalCardViewer({
   const [savedCards, setSavedCards] = useState<NatalStoryCardId[]>(() => getSavedNatalStoryState().savedCardIds);
   const [paidSections, setPaidSections] = useState<PaidSectionState>({});
   const [paidLoading, setPaidLoading] = useState<HumanPaidSectionKey | null>(null);
-  const [unlockTarget, setUnlockTarget] = useState<HumanPaidSectionKey | null>(null);
   const [sectionError, setSectionError] = useState<string | null>(null);
+  const [isTelegram, setIsTelegram] = useState(false);
   const dragX = useMotionValue(0);
   const dragControls = useDragControls();
   const reduceMotion = useReducedMotion();
@@ -533,6 +574,7 @@ function NatalCardViewer({
   useEffect(() => {
     try {
       const tg = (window as any).Telegram?.WebApp;
+      setIsTelegram(!!tg);
       tg?.ready?.();
       tg?.expand?.();
       tg?.requestFullscreen?.();
@@ -730,18 +772,20 @@ function NatalCardViewer({
         className="relative z-10 flex h-full min-h-0 flex-col px-4 pb-[calc(0.75rem+var(--tg-content-safe-area-inset-bottom,0px))] pt-[calc(0.65rem+var(--tg-content-safe-area-inset-top,0px))]"
         style={{ height: 'var(--tg-viewport-stable-height, 100dvh)' }}
       >
-        <header className="grid min-h-[3.25rem] grid-cols-[5rem_1fr_3rem] items-center gap-2">
-          <button
-            type="button"
-            onClick={handleBack}
-            className="flex min-h-[2.65rem] items-center gap-1 rounded-full bg-white/12 px-3 font-lumiaHome text-[0.82rem] font-extrabold text-white"
-          >
-            <ChevronLeft size={18} strokeWidth={2.4} />
-            Назад
-          </button>
+        <header className={cn('grid min-h-[3.25rem] items-center gap-2', isTelegram ? 'grid-cols-[1fr_3rem]' : 'grid-cols-[3rem_1fr_3rem]')}>
+          {!isTelegram ? (
+            <button
+              type="button"
+              onClick={closeViewer}
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-white/12 text-white"
+              aria-label="Закрыть"
+            >
+              <X size={20} strokeWidth={2.2} />
+            </button>
+          ) : null}
           <div className="text-center">
             <p className="mb-0 font-lumiaHome text-[0.78rem] font-extrabold uppercase tracking-[0.14em] text-white/62">
-              Карта {activeIndex + 1}/6
+              Карта {activeIndex + 1}/{cards.length}
             </p>
             <div className="mt-2 grid grid-cols-6 gap-1">
               {cards.map((card, index) => (
@@ -758,7 +802,7 @@ function NatalCardViewer({
           <button
             type="button"
             onClick={() => setInfoOpen(true)}
-            className="flex min-h-[2.65rem] items-center justify-center rounded-full bg-white/12 text-white"
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-white/12 text-white"
             aria-label="Информация"
           >
             <MoreHorizontal size={20} strokeWidth={2.2} />
@@ -786,25 +830,28 @@ function NatalCardViewer({
             onPrimary={() => handlePrimary(activeCard)}
             onSave={() => handleSave(activeCard)}
             onShare={() => void handleShare(activeCard)}
+            showPrimaryCta={!isTelegram}
           />
         </motion.div>
 
-        <footer className="grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={() => (activeIndex > 0 ? moveTo(activeIndex - 1, 'prev_tap') : closeViewer())}
-            className="min-h-[3rem] rounded-full bg-white/12 font-lumiaHome text-[0.8rem] font-extrabold text-white"
-          >
-            {activeIndex > 0 ? 'Назад' : 'Закрыть'}
-          </button>
-          <button
-            type="button"
-            onClick={() => (activeIndex < cards.length - 1 ? moveTo(activeIndex + 1, 'next_tap') : closeViewer())}
-            className="min-h-[3rem] rounded-full bg-[#B6FF3B] font-lumiaHome text-[0.8rem] font-extrabold text-[#171126]"
-          >
-            {activeIndex < cards.length - 1 ? 'Дальше' : 'Готово'}
-          </button>
-        </footer>
+        {!isTelegram ? (
+          <footer className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => (activeIndex > 0 ? moveTo(activeIndex - 1, 'prev_tap') : closeViewer())}
+              className="min-h-[3rem] rounded-full bg-white/12 font-lumiaHome text-[0.8rem] font-extrabold text-white"
+            >
+              {activeIndex > 0 ? 'Назад' : 'Закрыть'}
+            </button>
+            <button
+              type="button"
+              onClick={() => (activeIndex < cards.length - 1 ? moveTo(activeIndex + 1, 'next_tap') : closeViewer())}
+              className="min-h-[3rem] rounded-full bg-[#B6FF3B] font-lumiaHome text-[0.8rem] font-extrabold text-[#171126]"
+            >
+              {activeIndex < cards.length - 1 ? 'Дальше' : 'Готово'}
+            </button>
+          </footer>
+        ) : null}
       </div>
 
       {sheetCard ? (
@@ -815,16 +862,33 @@ function NatalCardViewer({
           isLoading={paidLoading === paidKeyForSheet}
           isLocked={isSheetLocked}
           error={sectionError}
+          lumiBalance={profile.lumiBalance ?? 0}
           onClose={() => {
             setSheetCardId(null);
             setNatalStoryExpandedCard(null);
             setSectionError(null);
           }}
-          onUnlock={() => {
+          onPremium={() => {
             const key = getPaidKey(sheetCard);
-            if (!key) return;
-            setUnlockTarget(key);
-            fireViewerEvent('paywall_view', { card_id: sheetCard.id, section_key: key });
+            const card = cards.find((item) => getPaidKey(item) === key);
+            fireViewerEvent('trial_start', { card_id: card?.id, source: 'natal_viewer' });
+            setSheetCardId(null);
+            setNatalStoryExpandedCard(null);
+            void requestPremium('natal_viewer_unlock', { card_id: card?.id, section_key: key });
+          }}
+          onLumi={() => {
+            const key = getPaidKey(sheetCard);
+            if (!key || paidLoading) return;
+            void loadPaid(key, true).then((content) => {
+              if (content) {
+                // sheetCardId stays set, DetailsSheet re-renders with unlocked content
+              }
+            });
+          }}
+          onWallet={() => {
+            setSheetCardId(null);
+            setNatalStoryExpandedCard(null);
+            onOpenWallet?.();
           }}
           onFullReport={() => {
             setSheetCardId(null);
@@ -836,36 +900,6 @@ function NatalCardViewer({
       ) : null}
 
       {infoOpen ? <InfoSheet profile={profile} chartData={chartData} onClose={() => setInfoOpen(false)} /> : null}
-
-      {unlockTarget ? (
-        <NatalUnlockSheet
-          sectionKey={unlockTarget}
-          balance={profile.lumiBalance ?? 0}
-          isLoading={paidLoading === unlockTarget}
-          onClose={() => setUnlockTarget(null)}
-          onPremium={() => {
-            const target = unlockTarget;
-            const card = cards.find((item) => getPaidKey(item) === target);
-            fireViewerEvent('trial_start', { card_id: card?.id, source: 'natal_viewer' });
-            setUnlockTarget(null);
-            void requestPremium('natal_viewer_unlock', { card_id: card?.id, section_key: target });
-          }}
-          onLumi={() => {
-            const target = unlockTarget;
-            void loadPaid(target, true).then((content) => {
-              if (content) {
-                setUnlockTarget(null);
-                const card = cards.find((item) => getPaidKey(item) === target);
-                if (card) setSheetCardId(card.id);
-              }
-            });
-          }}
-          onWallet={() => {
-            setUnlockTarget(null);
-            onOpenWallet?.();
-          }}
-        />
-      ) : null}
     </div>
   );
 }

@@ -225,7 +225,7 @@ export const NatalUnlockSheet: React.FC<{
   const hasEnoughLumi = balance >= HUMAN_PAID_LUMI_COST;
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/38 px-3 pb-3">
+    <div className="fixed inset-0 z-[150] flex items-end justify-center bg-black/38 px-3 pb-3">
       <button type="button" aria-label="Закрыть" className="absolute inset-0 cursor-default" onClick={onClose} />
       <div className="relative w-full max-w-md rounded-[28px] bg-white px-5 pb-5 pt-4 shadow-[0_24px_80px_rgba(0,0,0,0.24)]">
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-[#dfdfdf]" />
