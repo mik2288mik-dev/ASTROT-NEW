@@ -4,8 +4,10 @@ import type {
   DailyCheckInMood,
   DailyCheckInPeople,
   TodayPulse,
+  TodayPulsePoint,
   TodayPulseWindow,
 } from '../types';
+import type { TodayCheckInDateMode } from './todayCheckInDate';
 
 type Language = 'ru' | 'en';
 
@@ -31,6 +33,11 @@ export type TodayCheckInReference = {
   };
   initialInput: DailyCheckInInput;
   isFallback: boolean;
+};
+
+type BuildTodayCheckInReferenceOptions = {
+  dateMode?: TodayCheckInDateMode;
+  dateOverride?: string | null;
 };
 
 const RU_FOCUS: Record<DailyCheckInFocus, TodayCheckInExpectedValue> = {
@@ -112,13 +119,17 @@ const FORECAST_FIT: Record<Language, TodayCheckInExpectedValue> = {
   },
 };
 
-function formatReferenceDate(dateKey: string, language: Language) {
+function formatReferenceDate(dateKey: string, language: Language, dateMode: TodayCheckInDateMode = 'same_day') {
   const [year, month, day] = dateKey.split('-').map(Number);
   const date = new Date(Date.UTC(year || 1970, (month || 1) - 1, day || 1, 12, 0, 0));
-  return new Intl.DateTimeFormat(language === 'ru' ? 'ru-RU' : 'en-US', {
+  const label = new Intl.DateTimeFormat(language === 'ru' ? 'ru-RU' : 'en-US', {
     day: 'numeric',
     month: 'long',
   }).format(date);
+  if (dateMode === 'previous_day_tail') {
+    return language === 'ru' ? `за ${label}` : `for ${label}`;
+  }
+  return label;
 }
 
 function timeToHour(time: string) {
@@ -132,34 +143,45 @@ function windowContainsHour(window: TodayPulseWindow, hour: number) {
   return hour >= start && hour < end;
 }
 
-function pickReferenceWindow(pulse: TodayPulse): TodayPulseWindow | null {
-  const peakHour = Number(pulse.peakPoint?.hour);
-  const currentHour = Number(pulse.currentPoint?.hour);
+function isDayPoint(point: TodayPulsePoint | null | undefined) {
+  return !!point && point.hour >= 6 && point.hour < 22;
+}
+
+export function pickTodayCheckInReferencePoint(pulse: TodayPulse): TodayPulsePoint {
+  if (isDayPoint(pulse.peakPoint)) return pulse.peakPoint;
+  const dayPoints = pulse.points.filter(isDayPoint);
+  if (dayPoints.length > 0) {
+    return dayPoints.slice().sort((a, b) => b.score - a.score || a.hour - b.hour)[0];
+  }
+  return pulse.peakPoint || pulse.currentPoint;
+}
+
+function pickReferenceWindow(pulse: TodayPulse, referencePoint: TodayPulsePoint): TodayPulseWindow | null {
+  const referenceHour = Number(referencePoint.hour);
   return (
-    pulse.windows.find((window) => Number.isFinite(peakHour) && windowContainsHour(window, peakHour)) ||
-    pulse.windows.find((window) => Number.isFinite(currentHour) && windowContainsHour(window, currentHour)) ||
+    pulse.windows.find((window) => Number.isFinite(referenceHour) && windowContainsHour(window, referenceHour)) ||
     pulse.windows.slice().sort((a, b) => b.score - a.score)[0] ||
     null
   );
 }
 
-function expectedFocus(pulse: TodayPulse): DailyCheckInFocus {
-  const focus = Number(pulse.currentPoint.layers?.focus ?? pulse.layers?.focus ?? 50);
-  if (pulse.currentPoint.phase === 'focus_peak' || focus >= 70 || pulse.currentPoint.score >= 76) return 'high';
-  if (pulse.currentPoint.phase === 'restore' || pulse.currentPoint.tone === 'restore' || focus <= 44) return 'low';
+function expectedFocus(point: TodayPulsePoint, pulse: TodayPulse): DailyCheckInFocus {
+  const focus = Number(point.layers?.focus ?? pulse.layers?.focus ?? 50);
+  if (point.phase === 'focus_peak' || focus >= 70 || point.score >= 76) return 'high';
+  if (point.phase === 'restore' || point.tone === 'restore' || focus <= 44) return 'low';
   return 'normal';
 }
 
-function expectedMood(pulse: TodayPulse): DailyCheckInMood {
-  const emotions = Number(pulse.currentPoint.layers?.emotions ?? pulse.layers?.emotions ?? 50);
-  if (pulse.currentPoint.tone === 'caution' || pulse.currentPoint.tone === 'restore' || emotions <= 42) return 'heavy';
-  if (pulse.currentPoint.tone === 'rise' || pulse.currentPoint.tone === 'peak' || emotions >= 68) return 'good';
+function expectedMood(point: TodayPulsePoint, pulse: TodayPulse): DailyCheckInMood {
+  const emotions = Number(point.layers?.emotions ?? pulse.layers?.emotions ?? 50);
+  if (point.tone === 'caution' || point.tone === 'restore' || emotions <= 42) return 'heavy';
+  if (point.tone === 'rise' || point.tone === 'peak' || emotions >= 68) return 'good';
   return 'steady';
 }
 
-function expectedPeople(pulse: TodayPulse): DailyCheckInPeople {
-  const relationships = Number(pulse.currentPoint.layers?.relationships ?? pulse.layers?.relationships ?? 50);
-  if (pulse.currentPoint.phase === 'relationships' || pulse.currentPoint.tone === 'social' || relationships >= 62) return 'social';
+function expectedPeople(point: TodayPulsePoint, pulse: TodayPulse): DailyCheckInPeople {
+  const relationships = Number(point.layers?.relationships ?? pulse.layers?.relationships ?? 50);
+  if (point.phase === 'relationships' || point.tone === 'social' || relationships >= 62) return 'social';
   return 'quiet';
 }
 
@@ -171,7 +193,8 @@ function dictionary(language: Language) {
 
 export function buildTodayCheckInReference(
   pulse: TodayPulse | null | undefined,
-  language: Language = 'ru'
+  language: Language = 'ru',
+  options: BuildTodayCheckInReferenceOptions = {}
 ): TodayCheckInReference {
   const copy = dictionary(language);
 
@@ -203,10 +226,11 @@ export function buildTodayCheckInReference(
     };
   }
 
-  const focus = expectedFocus(pulse);
-  const mood = expectedMood(pulse);
-  const people = expectedPeople(pulse);
-  const referenceWindow = pickReferenceWindow(pulse);
+  const referencePoint = pickTodayCheckInReferencePoint(pulse);
+  const focus = expectedFocus(referencePoint, pulse);
+  const mood = expectedMood(referencePoint, pulse);
+  const people = expectedPeople(referencePoint, pulse);
+  const referenceWindow = pickReferenceWindow(pulse, referencePoint);
   const initialInput: DailyCheckInInput = {
     focus,
     mood,
@@ -215,13 +239,15 @@ export function buildTodayCheckInReference(
   };
 
   return {
-    forecastTitle: pulse.currentPoint.title,
-    forecastSummary: pulse.currentPoint.summary,
-    dateLabel: pulse.date ? formatReferenceDate(pulse.date, language) : null,
+    forecastTitle: referencePoint.title,
+    forecastSummary: referencePoint.summary,
+    dateLabel: (options.dateOverride || pulse.date)
+      ? formatReferenceDate(options.dateOverride || pulse.date, language, options.dateMode)
+      : null,
     bestSlotLabel: referenceWindow?.label || null,
     bestSlotRange: referenceWindow ? `${referenceWindow.start}-${referenceWindow.end}` : null,
-    bestFor: (pulse.currentPoint.bestFor || []).slice(0, 3),
-    avoid: pulse.currentPoint.avoid?.[0] || null,
+    bestFor: (referencePoint.bestFor || []).slice(0, 3),
+    avoid: referencePoint.avoid?.[0] || null,
     expected: {
       focus: copy.focus[focus],
       mood: copy.mood[mood],

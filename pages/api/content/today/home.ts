@@ -8,6 +8,7 @@ import {
   buildQuickActionRecommendations,
   getTodayAssistantDayMode,
 } from '../../../../lib/todayAssistant';
+import { getTodayCheckInDateInfo } from '../../../../lib/todayCheckInDate';
 import { invalidUserIdPayload, isValidUserId } from '../../../../lib/userId';
 import {
   readOptionalChartId,
@@ -55,8 +56,23 @@ export default async function handler(
       });
     }
 
+    const checkInDateInfo = getTodayCheckInDateInfo(resolved.pulse);
+    let checkInPulse = resolved.pulse;
+    if (checkInDateInfo.mode === 'previous_day_tail' && checkInDateInfo.date !== resolved.pulse.date) {
+      const previousResolved = await resolveTodayPulseForUser({
+        userId,
+        chartId: resolved.chartId,
+        dateKey: checkInDateInfo.date,
+        profileFallback: req.body?.profile,
+        chartDataFallback: req.body?.chartData,
+      }).catch(() => null);
+      if (previousResolved?.status === 'ready') {
+        checkInPulse = previousResolved.pulse;
+      }
+    }
+
     const [todayCheckIn, checkins, actionEvents] = await Promise.all([
-      db.daily_checkins.getForDate(userId, resolved.chartId, resolved.pulse.date).catch(() => null),
+      db.daily_checkins.getForDate(userId, resolved.chartId, checkInDateInfo.date).catch(() => null),
       db.daily_checkins.listRecent(userId, resolved.chartId, 30).catch(() => []),
       db.action_timing_events.listRecent(userId, resolved.chartId, 60).catch(() => []),
     ]);
@@ -71,6 +87,9 @@ export default async function handler(
       chartId: resolved.chartId,
       source: resolved.source,
       dayMode: getTodayAssistantDayMode(resolved.pulse),
+      checkInPulse,
+      checkInDate: checkInDateInfo.date,
+      checkInDateMode: checkInDateInfo.mode,
       checkIn: todayCheckIn
         ? { status: 'completed', entry: todayCheckIn }
         : { status: 'open' },

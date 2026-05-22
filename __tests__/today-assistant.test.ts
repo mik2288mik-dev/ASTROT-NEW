@@ -1,4 +1,4 @@
-import type { DailyCheckIn, TodayPulse } from '../types';
+import type { DailyCheckIn, TodayAssistantHomeResult, TodayPulse } from '../types';
 import {
   buildAccuracySummary,
   buildActionTimingRecommendation,
@@ -6,6 +6,8 @@ import {
   buildPersonalPatterns,
 } from '../lib/todayAssistant';
 import { buildTodayCheckInReference } from '../lib/todayCheckInReference';
+import { getTodayCheckInDateInfo } from '../lib/todayCheckInDate';
+import { shouldShowTodayAssistantFirst } from '../lib/todayAssistantPriority';
 
 function point(hour: number, score: number, phase: any, layers: any, tone: any = 'calm') {
   return {
@@ -113,15 +115,29 @@ describe('today assistant', () => {
     const reference = buildTodayCheckInReference(pulse, 'ru');
 
     expect(reference.isFallback).toBe(false);
-    expect(reference.forecastTitle).toBe(pulse.currentPoint.title);
-    expect(reference.forecastSummary).toBe(pulse.currentPoint.summary);
+    expect(reference.forecastTitle).toBe(pulse.peakPoint.title);
+    expect(reference.forecastSummary).toBe(pulse.peakPoint.summary);
     expect(reference.dateLabel).toContain('мая');
     expect(reference.bestSlotRange).toBe('10:00-14:00');
     expect(reference.bestSlotLabel).toBe('Пик фокуса');
     expect(reference.bestFor).toEqual(['план']);
     expect(reference.avoid).toBe('спешка');
-    expect(reference.expected.focus.value).toBe('normal');
-    expect(reference.initialInput.focus).toBe('normal');
+    expect(reference.expected.focus.value).toBe('high');
+    expect(reference.initialInput.focus).toBe('high');
+  });
+
+  it('keeps evening reference coherent when the current point is night restore', () => {
+    const nightPulse = {
+      ...pulse,
+      currentTime: '02:30',
+      currentPoint: point(2, 62, 'restore', { ...baseLayers, focus: 32, emotions: 72 }, 'restore'),
+    } satisfies TodayPulse;
+    const reference = buildTodayCheckInReference(nightPulse, 'ru');
+
+    expect(reference.forecastTitle).toBe(nightPulse.peakPoint.title);
+    expect(reference.bestSlotRange).toBe('10:00-14:00');
+    expect(reference.forecastTitle).not.toBe('Восстановление');
+    expect(reference.expected.focus.value).toBe('high');
   });
 
   it('uses a neutral check-in reference fallback without a fake best slot', () => {
@@ -132,5 +148,58 @@ describe('today assistant', () => {
     expect(reference.bestSlotRange).toBeNull();
     expect(reference.bestSlotLabel).toBeNull();
     expect(reference.initialInput.forecastFit).toBe('partial');
+  });
+
+  it('marks after-midnight check-in as the previous evening tail', () => {
+    expect(getTodayCheckInDateInfo({ date: '2026-05-22', currentTime: '02:30' })).toEqual({
+      date: '2026-05-21',
+      mode: 'previous_day_tail',
+    });
+    expect(buildTodayCheckInReference(pulse, 'ru', {
+      dateMode: 'previous_day_tail',
+      dateOverride: '2026-05-21',
+    }).dateLabel).toContain('за 21 мая');
+  });
+
+  it('keeps Pulse first unless the assistant has a concrete action reason', () => {
+    const ready: Extract<TodayAssistantHomeResult, { status: 'ready' }> = {
+      status: 'ready',
+      pulse,
+      chartId: 7,
+      source: 'test',
+      dayMode: 'day',
+      checkIn: { status: 'open' },
+      quickActions: [],
+      accuracySummary: buildAccuracySummary([], 'ru'),
+      patternTeaser: buildPatternTeaser([], [], 'ru'),
+      insights: [],
+    };
+
+    expect(shouldShowTodayAssistantFirst(ready)).toBe(false);
+    expect(shouldShowTodayAssistantFirst({
+      ...ready,
+      pulse: { ...pulse, currentTime: '09:20' },
+      dayMode: 'morning',
+    })).toBe(true);
+    expect(shouldShowTodayAssistantFirst({
+      ...ready,
+      pulse: { ...pulse, currentTime: '11:18' },
+      dayMode: 'morning',
+    })).toBe(false);
+    expect(shouldShowTodayAssistantFirst({
+      ...ready,
+      dayMode: 'day',
+      pulse: { ...pulse, currentPoint: { ...pulse.currentPoint, isKeyMoment: true } },
+    })).toBe(true);
+    expect(shouldShowTodayAssistantFirst({
+      ...ready,
+      dayMode: 'evening',
+      checkIn: { status: 'completed', entry: checkIn(20) },
+    })).toBe(false);
+    expect(shouldShowTodayAssistantFirst({
+      ...ready,
+      dayMode: 'evening',
+      checkIn: { status: 'open' },
+    })).toBe(true);
   });
 });

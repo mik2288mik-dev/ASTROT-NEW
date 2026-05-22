@@ -410,6 +410,9 @@ export type TodayAssistantHomeResult =
       chartId: number | null;
       source: string;
       dayMode: TodayAssistantDayMode;
+      checkInPulse?: TodayPulse;
+      checkInDate?: string;
+      checkInDateMode?: 'same_day' | 'previous_day_tail';
       checkIn: {
         status: 'open' | 'completed';
         entry?: DailyCheckIn;

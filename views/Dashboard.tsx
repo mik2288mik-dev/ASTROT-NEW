@@ -17,6 +17,7 @@ import {
 } from '../components/Dashboard/LumiaHomeSections';
 import { UnifiedCollapsibleTopCluster } from '../components/lumia-ui/UnifiedCollapsibleTopCluster';
 import { captureLumiaHomeLayout, lumiaDebugLog } from '../lib/lumiaDebug';
+import { shouldShowTodayAssistantFirst } from '../lib/todayAssistantPriority';
 import {
   getActionTimingRecommendation,
   getCachedTodayAssistantHome,
@@ -235,9 +236,7 @@ export const Dashboard = memo<DashboardProps>(
       return recommendation;
     }, [chartData, chartId, profile]);
 
-    const assistantFirst =
-      assistantResult?.status === 'ready' &&
-      (assistantResult.dayMode === 'morning' || assistantResult.dayMode === 'evening');
+    const assistantFirst = shouldShowTodayAssistantFirst(assistantResult);
 
     const pulseCard = (
       <div ref={pulseRef} data-today-section="pulse">

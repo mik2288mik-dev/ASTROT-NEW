@@ -846,6 +846,11 @@ body.theme-lumia-air #__next {
   text-shadow: 0 8px 18px rgba(239, 35, 60, 0.12);
 }
 
+.lumia-pulse-kicker--compact {
+  font-size: clamp(1.22rem, 5.85vw, 1.58rem);
+  line-height: 0.9;
+}
+
 .lumia-home-body {
   color: var(--lumia-home-muted);
   font-family: var(--lumia-home-font-sans);

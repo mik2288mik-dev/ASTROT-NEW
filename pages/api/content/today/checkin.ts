@@ -7,6 +7,8 @@ import {
   buildPatternTeaser,
   buildPersonalPatterns,
 } from '../../../../lib/todayAssistant';
+import { getTodayCheckInDateInfo } from '../../../../lib/todayCheckInDate';
+import { pickTodayCheckInReferencePoint } from '../../../../lib/todayCheckInReference';
 import { invalidUserIdPayload, isValidUserId } from '../../../../lib/userId';
 import {
   readOptionalChartId,
@@ -56,17 +58,33 @@ export default async function handler(
       return res.status(400).json({ error: resolved.code, message: resolved.message });
     }
 
+    const checkInDateInfo = getTodayCheckInDateInfo(resolved.pulse);
+    let checkInPulse = resolved.pulse;
+    if (checkInDateInfo.mode === 'previous_day_tail' && checkInDateInfo.date !== resolved.pulse.date) {
+      const previousResolved = await resolveTodayPulseForUser({
+        userId,
+        chartId: resolved.chartId,
+        dateKey: checkInDateInfo.date,
+        profileFallback: req.body?.profile,
+        chartDataFallback: req.body?.chartData,
+      }).catch(() => null);
+      if (previousResolved?.status === 'ready') {
+        checkInPulse = previousResolved.pulse;
+      }
+    }
+    const referencePoint = pickTodayCheckInReferencePoint(checkInPulse);
+
     const checkIn = await db.daily_checkins.upsert(
       userId,
       resolved.chartId,
-      resolved.pulse.date,
-      resolved.pulse.timezone,
+      checkInDateInfo.date,
+      checkInPulse.timezone,
       input,
       {
-        time: resolved.pulse.currentPoint.time,
-        phase: resolved.pulse.currentPoint.phase,
-        score: resolved.pulse.currentPoint.score,
-        layers: resolved.pulse.currentPoint.layers,
+        time: referencePoint.time,
+        phase: referencePoint.phase,
+        score: referencePoint.score,
+        layers: referencePoint.layers,
       }
     );
     const [checkins, actionEvents] = await Promise.all([

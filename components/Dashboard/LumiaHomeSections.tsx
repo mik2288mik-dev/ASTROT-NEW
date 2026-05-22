@@ -720,7 +720,7 @@ function TodayCheckInReferenceCard({
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="mb-0 font-lumiaHome text-[0.72rem] font-extrabold uppercase tracking-[0.08em] text-[#ef3b62]">
-            {language === 'ru' ? 'Сегодня LUMIA ожидала' : 'Today LUMIA expected'}
+            {language === 'ru' ? 'Сегодня сверяем вот это' : 'Compare against this'}
           </p>
           <h4 className="mb-0 mt-1 font-lumiaHomeDisplay text-[clamp(1.18rem,5.1vw,1.5rem)] font-extrabold leading-[1.03] tracking-normal text-[#30132d]">
             {reference.forecastTitle}
@@ -742,17 +742,22 @@ function TodayCheckInReferenceCard({
 
       {reference.bestSlotLabel ? (
         <p className="mb-0 mt-2 font-lumiaHome text-[0.74rem] font-bold leading-snug text-[#817982]">
-          {language === 'ru' ? 'Лучший ориентир' : 'Best cue'}: <span className="text-[#30132d]">{reference.bestSlotLabel}</span>
+          {language === 'ru' ? 'Главный ориентир' : 'Main cue'}: <span className="text-[#30132d]">{reference.bestSlotLabel}</span>
         </p>
       ) : null}
 
       {reference.bestFor.length > 0 ? (
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          {reference.bestFor.map((item) => (
-            <span key={item} className="rounded-full bg-[#f3fff8]/78 px-2.5 py-1 font-lumiaHome text-[0.68rem] font-extrabold text-[#2f7c4c]">
-              {item}
-            </span>
-          ))}
+        <div className="mt-2">
+          <p className="mb-1 font-lumiaHome text-[0.68rem] font-extrabold uppercase tracking-[0.06em] text-[#2f7c4c]">
+            {language === 'ru' ? 'Подходило' : 'Worked for'}
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {reference.bestFor.map((item) => (
+              <span key={item} className="rounded-full bg-[#f3fff8]/78 px-2.5 py-1 font-lumiaHome text-[0.68rem] font-extrabold text-[#2f7c4c]">
+                {item}
+              </span>
+            ))}
+          </div>
         </div>
       ) : null}
 
@@ -768,14 +773,19 @@ function TodayCheckInReferenceCard({
 function CheckInExpectation({
   reference,
   field,
+  language,
 }: {
   reference: TodayCheckInReference;
   field: keyof DailyCheckInInput;
+  language: LumiaHomeLanguage;
 }) {
   const expected = reference.expected[field];
   return (
     <div className="mb-2 rounded-[1rem] bg-white/42 px-3 py-2 shadow-[inset_0_0_0_1px_rgba(48,19,45,0.045)]">
-      <p className="mb-0 font-lumiaHome text-[0.72rem] font-bold leading-snug text-[#817982]">
+      <p className="mb-0 font-lumiaHome text-[0.66rem] font-extrabold uppercase tracking-[0.06em] text-[#ef3b62]">
+        {language === 'ru' ? 'Ожидание LUMIA' : 'LUMIA expected'}: <span className="text-[#30132d]">{expected.label}</span>
+      </p>
+      <p className="mb-0 mt-1 font-lumiaHome text-[0.72rem] font-bold leading-snug text-[#817982]">
         {expected.hint}
       </p>
     </div>
@@ -810,7 +820,7 @@ function DailyCheckInCard({
           <p className="mb-1.5 font-lumiaHome text-[0.74rem] font-extrabold uppercase tracking-[0.07em] text-[#817982]">
             {labels[key]}
           </p>
-          <CheckInExpectation reference={reference} field={key} />
+          <CheckInExpectation language={language} reference={reference} field={key} />
           <div className="flex gap-1.5 rounded-[1.1rem] bg-white/38 p-1 shadow-[inset_0_0_0_1px_rgba(48,19,45,0.055)]">
             {CHECKIN_OPTIONS[key].map((option) => (
               <button
@@ -1016,9 +1026,16 @@ export function TodayAssistantCard({
   const isEvening = assistantResult.dayMode === 'evening';
   const completed = assistantResult.checkIn.status === 'completed';
   const hasSavedCheckIn = completed && !!assistantResult.checkIn.entry;
-  const checkInReference = buildTodayCheckInReference(isEvening ? assistantResult.pulse : null, language);
+  const checkInReference = buildTodayCheckInReference(
+    isEvening ? (assistantResult.checkInPulse || assistantResult.pulse) : null,
+    language,
+    {
+      dateMode: assistantResult.checkInDateMode,
+      dateOverride: assistantResult.checkInDate,
+    }
+  );
   const title = isEvening
-    ? (hasSavedCheckIn && !isEditingCheckIn ? (language === 'ru' ? 'День сохранен' : 'Day saved') : (language === 'ru' ? 'Сверим день' : 'Compare the day'))
+    ? (hasSavedCheckIn && !isEditingCheckIn ? (language === 'ru' ? 'День сохранён' : 'Day saved') : (language === 'ru' ? 'Сверим день' : 'Compare the day'))
     : assistantResult.dayMode === 'morning'
       ? (language === 'ru' ? 'Сегодня коротко' : 'Today in short')
       : (language === 'ru' ? 'Когда лучше?' : 'When is better?');
@@ -1049,13 +1066,13 @@ export function TodayAssistantCard({
       <div className="relative z-10">
         <div className="flex items-start justify-between gap-2">
           {assistantResult.dayMode === 'evening' ? (
-            <h2 className="lumia-pulse-kicker mb-0 max-w-[13.5rem]">
+            <h2 className="lumia-pulse-kicker lumia-pulse-kicker--compact mb-0 max-w-[14.5rem]">
               {language === 'ru' ? 'Вечерняя точность' : 'Evening accuracy'}
             </h2>
           ) : (
-            <p className="mb-0 font-lumiaHome text-[0.72rem] font-extrabold uppercase tracking-[0.08em] text-[#ef3b62]">
+            <h2 className="lumia-pulse-kicker lumia-pulse-kicker--compact mb-0 max-w-[14.5rem]">
               {language === 'ru' ? 'Личный помощник' : 'Personal assistant'}
-            </p>
+            </h2>
           )}
           {isEvening && checkInReference.dateLabel ? (
             <span className="mt-1 shrink-0 rounded-full bg-white/66 px-2.5 py-1.5 font-lumiaHome text-[0.72rem] font-extrabold leading-none text-[#817982] shadow-[inset_0_0_0_1px_rgba(48,19,45,0.06)]">
