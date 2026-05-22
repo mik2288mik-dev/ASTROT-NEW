@@ -56,6 +56,19 @@ const SEGMENTS: AdminNotificationTargetSegment[] = [
   'inactive_7d',
   'inactive_30d',
   'need_attention',
+  'new_user_no_birth_data',
+  'birth_data_no_time',
+  'free_natal_ready_not_opened',
+  'free_natal_opened_no_premium',
+  'daily_active_free',
+  'daily_active_premium',
+  'inactive_2_days',
+  'inactive_14_days',
+  'love_interested',
+  'money_interested',
+  'work_interested',
+  'assistant_user',
+  'high_intent_premium',
 ];
 const KINDS: Array<AdminNotificationTemplateKind | 'all'> = ['all', 'both', 'personal', 'broadcast'];
 const HISTORY_MODES: AdminNotificationModeFilter[] = ['all', 'personal', 'broadcast'];
@@ -158,6 +171,19 @@ const segmentLabel = (lang: 'ru' | 'en', value: AdminNotificationTargetSegment) 
     inactive_7d: getAdminText(lang, 'segment_inactive_7d'),
     inactive_30d: getAdminText(lang, 'segment_inactive_30d'),
     need_attention: getAdminText(lang, 'segment_attention'),
+    new_user_no_birth_data: lang === 'ru' ? 'Нет данных рождения' : 'No birth data',
+    birth_data_no_time: lang === 'ru' ? 'Нет времени рождения' : 'No birth time',
+    free_natal_ready_not_opened: lang === 'ru' ? 'Карта готова' : 'Natal ready',
+    free_natal_opened_no_premium: lang === 'ru' ? 'Карта открыта, free' : 'Natal opened, free',
+    daily_active_free: lang === 'ru' ? 'Активные free' : 'Active free',
+    daily_active_premium: lang === 'ru' ? 'Активные premium' : 'Active premium',
+    inactive_2_days: lang === 'ru' ? 'Неактивны 2 дня' : 'Inactive 2 days',
+    inactive_14_days: lang === 'ru' ? 'Неактивны 14 дней' : 'Inactive 14 days',
+    love_interested: lang === 'ru' ? 'Интерес: любовь' : 'Interest: love',
+    money_interested: lang === 'ru' ? 'Интерес: деньги' : 'Interest: money',
+    work_interested: lang === 'ru' ? 'Интерес: работа' : 'Interest: work',
+    assistant_user: lang === 'ru' ? 'Помощник' : 'Assistant users',
+    high_intent_premium: lang === 'ru' ? 'Premium intent' : 'Premium intent',
   };
   return labels[value];
 };

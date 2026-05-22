@@ -16,6 +16,19 @@ const TARGET_SEGMENTS = new Set([
   'inactive_7d',
   'inactive_30d',
   'need_attention',
+  'new_user_no_birth_data',
+  'birth_data_no_time',
+  'free_natal_ready_not_opened',
+  'free_natal_opened_no_premium',
+  'daily_active_free',
+  'daily_active_premium',
+  'inactive_2_days',
+  'inactive_14_days',
+  'love_interested',
+  'money_interested',
+  'work_interested',
+  'assistant_user',
+  'high_intent_premium',
 ]);
 
 const MAX_TEXT = 4000;

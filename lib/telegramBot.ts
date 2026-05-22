@@ -6,17 +6,48 @@ type TelegramSendResult = {
   error?: string;
 };
 
-function buildInlineKeyboardUrl(deepLink: string, buttonText: string): Array<Array<{ text: string; url: string }>> | undefined {
+export type TelegramInlineKeyboardButton = {
+  text: string;
+  url?: string;
+  callback_data?: string;
+};
+
+export type TelegramReplyMarkup = {
+  inline_keyboard: TelegramInlineKeyboardButton[][];
+};
+
+function buildInlineKeyboardUrl(deepLink: string, buttonText: string): TelegramInlineKeyboardButton[][] | undefined {
   const url = String(deepLink || '').trim();
   const text = String(buttonText || '').trim();
   if (!url || !text) return undefined;
   return [[{ text, url }]];
 }
 
+export function buildRetentionInlineKeyboard(input: {
+  deepLink: string;
+  buttonText: string;
+  notificationId?: number | null;
+  notificationType?: string | null;
+}): TelegramReplyMarkup | undefined {
+  const primary = buildInlineKeyboardUrl(input.deepLink, input.buttonText);
+  if (!primary) return undefined;
+  const id = input.notificationId && Number.isFinite(Number(input.notificationId))
+    ? String(input.notificationId)
+    : '';
+  const type = String(input.notificationType || '').replace(/[^a-zA-Z0-9_:-]/g, '').slice(0, 64);
+  const secondary: TelegramInlineKeyboardButton[] = [];
+  if (id) secondary.push({ text: 'Позже', callback_data: `notif:later:${id}` });
+  if (id && type) secondary.push({ text: 'Не присылать такое', callback_data: `notif:mute_type:${id}:${type}` });
+  if (id) secondary.push({ text: 'Выключить уведомления', callback_data: `notif:disable_all:${id}` });
+  return {
+    inline_keyboard: secondary.length ? [...primary, secondary] : primary,
+  };
+}
+
 export async function sendTelegramTextMessage(
   chatId: string,
   text: string,
-  options?: { replyMarkup?: { inline_keyboard: Array<Array<{ text: string; url: string }>> } }
+  options?: { replyMarkup?: TelegramReplyMarkup }
 ): Promise<TelegramSendResult> {
   if (!BOT_TOKEN) {
     return {
@@ -71,7 +102,7 @@ export async function sendTelegramPhotoBuffer(
   buffer: Buffer,
   fileName: string,
   caption: string,
-  options?: { replyMarkup?: { inline_keyboard: Array<Array<{ text: string; url: string }>> } }
+  options?: { replyMarkup?: TelegramReplyMarkup }
 ): Promise<TelegramSendResult> {
   if (!BOT_TOKEN) {
     return { ok: false, error: 'BOT_TOKEN is not configured' };
@@ -118,7 +149,7 @@ export async function sendTelegramPhotoMessage(
   chatId: string,
   photoUrl: string,
   caption: string,
-  options?: { replyMarkup?: { inline_keyboard: Array<Array<{ text: string; url: string }>> } }
+  options?: { replyMarkup?: TelegramReplyMarkup }
 ): Promise<TelegramSendResult> {
   if (!BOT_TOKEN) {
     return {
@@ -167,6 +198,31 @@ export async function sendTelegramPhotoMessage(
       ok: false,
       error: error?.message || 'Telegram sendPhoto failed',
     };
+  }
+}
+
+export async function answerTelegramCallbackQuery(
+  callbackQueryId: string,
+  text?: string
+): Promise<{ ok: boolean; error?: string }> {
+  if (!BOT_TOKEN) return { ok: false, error: 'BOT_TOKEN is not configured' };
+  try {
+    const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/answerCallbackQuery`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        callback_query_id: callbackQueryId,
+        text: text || undefined,
+        show_alert: false,
+      }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || payload?.ok === false) {
+      return { ok: false, error: payload?.description || `answerCallbackQuery failed: ${response.status}` };
+    }
+    return { ok: true };
+  } catch (error: any) {
+    return { ok: false, error: error?.message || 'answerCallbackQuery failed' };
   }
 }
 

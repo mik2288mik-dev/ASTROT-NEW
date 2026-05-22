@@ -27,6 +27,7 @@ import {
 import type {
   ActionTimingKey,
   ActionTimingRecommendation,
+  AdminNotificationTargetSegment,
   DailyCheckIn,
   DailyCheckInInput,
   PersonalPatternInsight,
@@ -101,16 +102,7 @@ type AdminDbUserSortBy = 'last_seen' | 'created_at' | 'lumi_balance' | 'premium_
 type AdminDbSortOrder = 'asc' | 'desc';
 type AdminDbNotificationMode = 'all' | 'personal' | 'broadcast';
 type AdminDbNotificationResult = 'all' | 'success' | 'partial' | 'failed';
-type AdminDbNotificationSegment =
-  | 'all'
-  | 'premium'
-  | 'free'
-  | 'lumi'
-  | 'active_7d'
-  | 'inactive_3d'
-  | 'inactive_7d'
-  | 'inactive_30d'
-  | 'need_attention';
+type AdminDbNotificationSegment = AdminNotificationTargetSegment;
 type DbContentAccessTier = 'free' | 'premium' | 'lumi';
 type DbContentSurface = 'natal' | 'forecast' | 'synastry' | 'question';
 type DbContentVariant =
@@ -257,6 +249,8 @@ const ADMIN_USER_METRICS_CTE = `
       u.id,
       u.name,
       u.language,
+      u.birth_date,
+      u.birth_time,
       u.premium_until,
       COALESCE(u.lumi_balance, 0) AS lumi_balance,
       COALESCE(u.login_streak, 0) AS login_streak,
@@ -297,6 +291,16 @@ function getAdminUserSegmentSql(paramIndex: number) {
     OR ($${paramIndex} = 'inactive_7d' AND (last_seen_at IS NULL OR last_seen_at < NOW() - INTERVAL '7 days'))
     OR ($${paramIndex} = 'inactive_30d' AND (last_seen_at IS NULL OR last_seen_at < NOW() - INTERVAL '30 days'))
     OR ($${paramIndex} = 'need_attention' AND ${ADMIN_NEED_ATTENTION_SQL})
+    OR ($${paramIndex} = 'new_user_no_birth_data' AND birth_date IS NULL)
+    OR ($${paramIndex} = 'birth_data_no_time' AND birth_date IS NOT NULL AND birth_time IS NULL)
+    OR ($${paramIndex} = 'free_natal_ready_not_opened' AND (premium_until IS NULL OR premium_until <= NOW()) AND saved_charts_count > 0)
+    OR ($${paramIndex} = 'free_natal_opened_no_premium' AND (premium_until IS NULL OR premium_until <= NOW()) AND saved_charts_count > 0)
+    OR ($${paramIndex} = 'daily_active_free' AND (premium_until IS NULL OR premium_until <= NOW()) AND last_seen_at >= NOW() - INTERVAL '7 days')
+    OR ($${paramIndex} = 'daily_active_premium' AND premium_until IS NOT NULL AND premium_until > NOW() AND last_seen_at >= NOW() - INTERVAL '7 days')
+    OR ($${paramIndex} = 'inactive_2_days' AND (last_seen_at IS NULL OR last_seen_at < NOW() - INTERVAL '2 days'))
+    OR ($${paramIndex} = 'inactive_14_days' AND (last_seen_at IS NULL OR last_seen_at < NOW() - INTERVAL '14 days'))
+    OR ($${paramIndex} IN ('love_interested', 'money_interested', 'work_interested', 'assistant_user') AND last_seen_at >= NOW() - INTERVAL '30 days')
+    OR ($${paramIndex} = 'high_intent_premium' AND (premium_until IS NULL OR premium_until <= NOW()) AND saved_charts_count > 0)
   )`;
 }
 

@@ -4,6 +4,7 @@
 import { Pool } from 'pg';
 import { resolveDatabaseUrl } from './database-url';
 import { NOTIFICATION_SCENARIO_SEEDS } from './notificationScenarioCatalog';
+import { RETENTION_NOTIFICATION_SCENARIO_SEEDS } from './retentionNotificationCatalog';
 
 const DATABASE_URL = resolveDatabaseUrl();
 
@@ -1641,6 +1642,215 @@ async function lumia021NotificationScenarioEngine(pool: Pool): Promise<void> {
   log.info('Migration lumia_021_notification_scenario_engine applied');
 }
 
+async function lumia022RetentionNotificationQueue(pool: Pool): Promise<void> {
+  const migrationName = 'lumia_022_retention_notification_queue';
+
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
+  log.info('Applying retention notification queue migration...');
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS scheduled_notifications (
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      notification_type TEXT NOT NULL,
+      segment TEXT,
+      campaign_id BIGINT REFERENCES notification_campaigns(id) ON DELETE SET NULL,
+      scenario_id BIGINT REFERENCES notification_scenarios(id) ON DELETE SET NULL,
+      template_id BIGINT REFERENCES notification_templates(id) ON DELETE SET NULL,
+      notification_log_id BIGINT REFERENCES notification_logs(id) ON DELETE SET NULL,
+      status TEXT NOT NULL DEFAULT 'scheduled',
+      scheduled_at TIMESTAMP NOT NULL,
+      locked_at TIMESTAMP,
+      sent_at TIMESTAMP,
+      attempt_count INTEGER NOT NULL DEFAULT 0,
+      next_retry_at TIMESTAMP,
+      reason TEXT,
+      local_date DATE,
+      dedupe_key TEXT,
+      payload_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+      telegram_message_id BIGINT,
+      error TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT scheduled_notifications_status_check
+        CHECK (status IN ('scheduled', 'sending', 'sent', 'failed', 'skipped', 'cancelled'))
+    )
+  `);
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_scheduled_notifications_due ON scheduled_notifications(status, scheduled_at, next_retry_at)');
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_scheduled_notifications_user ON scheduled_notifications(user_id, scheduled_at DESC)');
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_scheduled_notifications_type ON scheduled_notifications(notification_type, scheduled_at DESC)');
+  await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_scheduled_notifications_dedupe
+    ON scheduled_notifications(user_id, notification_type, local_date, dedupe_key)
+    WHERE status IN ('scheduled', 'sending', 'sent')
+      AND local_date IS NOT NULL
+      AND dedupe_key IS NOT NULL
+  `);
+
+  await pool.query(`
+    ALTER TABLE user_notification_settings
+      ADD COLUMN IF NOT EXISTS daily_card_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+      ADD COLUMN IF NOT EXISTS pulse_day_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+      ADD COLUMN IF NOT EXISTS love_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+      ADD COLUMN IF NOT EXISTS money_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+      ADD COLUMN IF NOT EXISTS work_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+      ADD COLUMN IF NOT EXISTS assistant_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+      ADD COLUMN IF NOT EXISTS natal_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+      ADD COLUMN IF NOT EXISTS premium_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+      ADD COLUMN IF NOT EXISTS synastry_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+      ADD COLUMN IF NOT EXISTS evening_summary_enabled BOOLEAN NOT NULL DEFAULT TRUE
+  `);
+  await pool.query(`ALTER TABLE user_notification_settings ALTER COLUMN quiet_hours_start SET DEFAULT '22:00'`);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS notification_events (
+      id BIGSERIAL PRIMARY KEY,
+      notification_id BIGINT REFERENCES scheduled_notifications(id) ON DELETE SET NULL,
+      notification_log_id BIGINT REFERENCES notification_logs(id) ON DELETE SET NULL,
+      campaign_id BIGINT REFERENCES notification_campaigns(id) ON DELETE SET NULL,
+      user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+      notification_type TEXT,
+      event_type TEXT NOT NULL,
+      screen TEXT,
+      source TEXT,
+      metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_notification_events_user_time ON notification_events(user_id, created_at DESC)');
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_notification_events_notification ON notification_events(notification_id)');
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_notification_events_type ON notification_events(notification_type, event_type, created_at DESC)');
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS daily_cards (
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      chart_id BIGINT REFERENCES natal_charts(id) ON DELETE SET NULL,
+      date DATE NOT NULL,
+      theme TEXT NOT NULL DEFAULT '',
+      summary TEXT NOT NULL DEFAULT '',
+      love_text TEXT NOT NULL DEFAULT '',
+      work_text TEXT NOT NULL DEFAULT '',
+      money_text TEXT NOT NULL DEFAULT '',
+      caution_text TEXT NOT NULL DEFAULT '',
+      advice_text TEXT NOT NULL DEFAULT '',
+      payload_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+      generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE (user_id, date)
+    )
+  `);
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_daily_cards_user_date ON daily_cards(user_id, date DESC)');
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS pulse_day_entries (
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      chart_id BIGINT REFERENCES natal_charts(id) ON DELETE SET NULL,
+      date DATE NOT NULL,
+      window_start TIME NOT NULL,
+      window_end TIME NOT NULL,
+      category TEXT NOT NULL DEFAULT 'general',
+      recommendation TEXT NOT NULL DEFAULT '',
+      score INTEGER NOT NULL DEFAULT 0,
+      payload_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+      generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE (user_id, date, window_start, category)
+    )
+  `);
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_pulse_day_entries_user_date ON pulse_day_entries(user_id, date, window_start)');
+
+  await pool.query(`
+    ALTER TABLE notification_campaigns
+      ADD COLUMN IF NOT EXISTS name TEXT,
+      ADD COLUMN IF NOT EXISTS type TEXT,
+      ADD COLUMN IF NOT EXISTS segment TEXT,
+      ADD COLUMN IF NOT EXISTS schedule_rule JSONB NOT NULL DEFAULT '{}'::jsonb,
+      ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'draft',
+      ADD COLUMN IF NOT EXISTS start_at TIMESTAMP,
+      ADD COLUMN IF NOT EXISTS end_at TIMESTAMP,
+      ADD COLUMN IF NOT EXISTS max_sends_per_user INTEGER NOT NULL DEFAULT 1,
+      ADD COLUMN IF NOT EXISTS ab_test_enabled BOOLEAN NOT NULL DEFAULT FALSE
+  `);
+
+  for (const seed of RETENTION_NOTIFICATION_SCENARIO_SEEDS) {
+    const scenarioResult = await pool.query(
+      `INSERT INTO notification_scenarios (
+         key, name, description, enabled, day_part, time_window_start, time_window_end, timezone_mode,
+         priority, trigger_rule_json, audience_rule_json, max_per_day, cooldown_hours, image_mode,
+         image_strategy_json, deep_link, buttons
+       )
+       VALUES ($1, $2, $3, FALSE, $4, $5::time, $6::time, 'user_local', $7, '{}'::jsonb, $8::jsonb,
+         $9, $10, 'auto', $11::jsonb, $12, $13::jsonb)
+       ON CONFLICT (key) DO UPDATE SET
+         name = EXCLUDED.name,
+         description = EXCLUDED.description,
+         day_part = EXCLUDED.day_part,
+         time_window_start = EXCLUDED.time_window_start,
+         time_window_end = EXCLUDED.time_window_end,
+         priority = EXCLUDED.priority,
+         audience_rule_json = EXCLUDED.audience_rule_json,
+         max_per_day = EXCLUDED.max_per_day,
+         cooldown_hours = EXCLUDED.cooldown_hours,
+         image_strategy_json = EXCLUDED.image_strategy_json,
+         deep_link = EXCLUDED.deep_link,
+         buttons = EXCLUDED.buttons,
+         updated_at = CURRENT_TIMESTAMP
+       RETURNING id`,
+      [
+        seed.key,
+        seed.name,
+        seed.description,
+        seed.dayPart,
+        seed.timeWindowStart,
+        seed.timeWindowEnd,
+        seed.priority,
+        JSON.stringify({ segment: seed.segment }),
+        seed.maxPerDay,
+        seed.cooldownHours,
+        JSON.stringify({ tags: seed.imageTags, dayPart: seed.dayPart }),
+        seed.deepLinkSection,
+        JSON.stringify([{ text: seed.templates[0]?.buttonText || 'Открыть', section: seed.deepLinkSection }]),
+      ]
+    );
+    const scenarioId = Number(scenarioResult.rows[0]?.id);
+    for (let index = 0; index < seed.templates.length; index += 1) {
+      const item = seed.templates[index];
+      await pool.query(
+        `INSERT INTO notification_templates (
+           scenario_id, name, slot, target_segment, message_type, title, body, text, button_text,
+           deep_link, is_active, sort_order, tags, weight, visual_mode, notes
+         )
+         VALUES ($1, $2, $3, $4, 'text', $5, $6, $6, $7, $8, TRUE, $9, $10::jsonb, $11, 'none', $12)
+         ON CONFLICT (scenario_id, name) WHERE scenario_id IS NOT NULL DO NOTHING`,
+        [
+          scenarioId,
+          `${seed.name} · ${String(index + 1).padStart(2, '0')}`,
+          seed.dayPart === 'reactivation' ? 'custom' : seed.dayPart,
+          seed.segment,
+          item.title,
+          item.body,
+          item.buttonText,
+          seed.deepLinkSection,
+          index,
+          JSON.stringify(item.tags),
+          item.weight || 100,
+          seed.description,
+        ]
+      );
+    }
+  }
+
+  await markMigrationApplied(pool, migrationName);
+  log.info('Migration lumia_022_retention_notification_queue applied');
+}
+
 async function verifyTablesExist(pool: Pool): Promise<void> {
   const required = [
     'users', 'natal_charts', 'interpretations', 'lumi_transactions', 'app_settings',
@@ -1665,6 +1875,10 @@ async function verifyTablesExist(pool: Pool): Promise<void> {
     'user_notification_settings',
     'user_notification_state',
     'user_app_events',
+    'scheduled_notifications',
+    'notification_events',
+    'daily_cards',
+    'pulse_day_entries',
   ];
   const missing: string[] = [];
   for (const t of required) {
@@ -1734,6 +1948,7 @@ export async function runMigrations(): Promise<void> {
   await lumia019HoroscopeReactions(pool);
   await lumia020DailyFeedbackAssistant(pool);
   await lumia021NotificationScenarioEngine(pool);
+  await lumia022RetentionNotificationQueue(pool);
   await verifyTablesExist(pool);
 
     log.info('All Lumia migrations completed successfully');

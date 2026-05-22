@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { requireAdminAccess, handleAdminError } from '../../../../lib/adminAuth';
-import { runNotificationEngineCron } from '../../../../services/notificationService';
+import { dispatchScheduledNotifications, planRetentionNotifications } from '../../../../services/notificationRetentionService';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -10,10 +10,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const access = await requireAdminAccess(req);
     const limit = Number(req.body?.limit);
-    const result = await runNotificationEngineCron(access.requesterId, new Date(), {
-      dryRun: req.body?.dryRun !== false,
+    const dryRun = req.body?.dryRun !== false;
+    const planner = await planRetentionNotifications('admin-campaign-runner', new Date(), {
+      dryRun,
       limit: Number.isFinite(limit) && limit > 0 ? Math.min(limit, 500) : 50,
     });
+    const dispatcher = dryRun
+      ? { ok: true, total: 0, successCount: 0, failureCount: 0, results: [] }
+      : await dispatchScheduledNotifications(new Date(), Number.isFinite(limit) && limit > 0 ? Math.min(limit, 500) : 50);
+    const result = { createdBy: access.requesterId, planner, dispatcher };
     return res.status(200).json({ success: true, result });
   } catch (error) {
     return handleAdminError(res, error);

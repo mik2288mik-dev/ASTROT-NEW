@@ -1,5 +1,6 @@
 import { getPool } from './db';
 import { NOTIFICATION_SCENARIO_SEEDS } from './notificationScenarioCatalog';
+import { RETENTION_NOTIFICATION_SCENARIO_SEEDS } from './retentionNotificationCatalog';
 import type {
   AdminNotificationEngineStats,
   AdminNotificationScenario,
@@ -145,7 +146,45 @@ function cleanPayloadText(value: any, max = 4000): string {
 export const notificationEngineAdminDb = {
   async ensureScenarioSeeds() {
     const pool = getPool();
-    for (const seed of NOTIFICATION_SCENARIO_SEEDS) {
+    const seeds = [
+      ...NOTIFICATION_SCENARIO_SEEDS.map((seed) => ({
+        key: seed.key,
+        name: seed.name,
+        description: seed.description,
+        dayPart: seed.dayPart,
+        timeWindowStart: seed.timeWindowStart,
+        timeWindowEnd: seed.timeWindowEnd,
+        priority: seed.priority,
+        audienceRule: seed.audienceRule,
+        triggerRule: seed.triggerRule,
+        maxPerDay: seed.maxPerDay,
+        cooldownHours: seed.cooldownHours,
+        imageMode: seed.imageMode,
+        imageTags: seed.imageTags,
+        buttonText: seed.buttonText,
+        deepLinkSection: seed.deepLinkSection,
+        templates: seed.templates,
+      })),
+      ...RETENTION_NOTIFICATION_SCENARIO_SEEDS.map((seed) => ({
+        key: seed.key,
+        name: seed.name,
+        description: seed.description,
+        dayPart: seed.dayPart,
+        timeWindowStart: seed.timeWindowStart,
+        timeWindowEnd: seed.timeWindowEnd,
+        priority: seed.priority,
+        audienceRule: { segment: seed.segment },
+        triggerRule: {},
+        maxPerDay: seed.maxPerDay,
+        cooldownHours: seed.cooldownHours,
+        imageMode: 'auto' as const,
+        imageTags: seed.imageTags,
+        buttonText: seed.templates[0]?.buttonText || 'Открыть',
+        deepLinkSection: seed.deepLinkSection,
+        templates: seed.templates,
+      })),
+    ];
+    for (const seed of seeds) {
       const result = await pool.query(
         `INSERT INTO notification_scenarios (
            key, name, description, enabled, day_part, time_window_start, time_window_end, timezone_mode,
@@ -467,22 +506,23 @@ export const notificationEngineAdminDb = {
     const pool = getPool();
     const overview = await pool.query(
       `SELECT
-         COUNT(*) FILTER (WHERE status = 'sent')::int AS sent,
-         COUNT(*) FILTER (WHERE status = 'sent')::int AS delivered,
-         COUNT(*) FILTER (WHERE clicked_at IS NOT NULL)::int AS clicked,
-         COUNT(*) FILTER (WHERE opened_at IS NOT NULL)::int AS opened_app,
-         COUNT(*) FILTER (WHERE status = 'failed')::int AS errors
-       FROM notification_logs
-       WHERE created_at >= NOW() - INTERVAL '30 days'`
+         (SELECT COUNT(*)::int FROM scheduled_notifications WHERE status = 'sent' AND created_at >= NOW() - INTERVAL '30 days') AS sent,
+         (SELECT COUNT(*)::int FROM scheduled_notifications WHERE status = 'sent' AND created_at >= NOW() - INTERVAL '30 days') AS delivered,
+         (SELECT COUNT(*)::int FROM notification_events WHERE event_type = 'clicked' AND created_at >= NOW() - INTERVAL '30 days') AS clicked,
+         (SELECT COUNT(*)::int FROM notification_events WHERE event_type IN ('opened_app', 'opened_target_screen') AND created_at >= NOW() - INTERVAL '30 days') AS opened_app,
+         (SELECT COUNT(*)::int FROM notification_events WHERE event_type = 'disabled_all' AND created_at >= NOW() - INTERVAL '30 days') AS disabled_notifications,
+         (SELECT COUNT(*)::int FROM scheduled_notifications WHERE status = 'failed' AND created_at >= NOW() - INTERVAL '30 days') AS errors`
     );
     const scenarios = await pool.query(
-      `SELECT scenario_key,
-              COUNT(*) FILTER (WHERE status = 'sent')::int AS sent,
-              COUNT(*) FILTER (WHERE clicked_at IS NOT NULL)::int AS clicked,
-              COUNT(*) FILTER (WHERE status = 'failed')::int AS errors
-       FROM notification_logs
-       WHERE created_at >= NOW() - INTERVAL '30 days'
-       GROUP BY scenario_key
+      `SELECT COALESCE(sn.notification_type, l.scenario_key) AS scenario_key,
+              COUNT(sn.id) FILTER (WHERE sn.status = 'sent')::int AS sent,
+              COUNT(e.id) FILTER (WHERE e.event_type = 'clicked')::int AS clicked,
+              COUNT(sn.id) FILTER (WHERE sn.status = 'failed')::int AS errors
+       FROM scheduled_notifications sn
+       LEFT JOIN notification_logs l ON l.id = sn.notification_log_id
+       LEFT JOIN notification_events e ON e.notification_id = sn.id
+       WHERE sn.created_at >= NOW() - INTERVAL '30 days'
+       GROUP BY COALESCE(sn.notification_type, l.scenario_key)
        ORDER BY sent DESC
        LIMIT 20`
     );
@@ -507,7 +547,7 @@ export const notificationEngineAdminDb = {
       ctr: sent > 0 ? clicked / sent : 0,
       checkinCompleted: 0,
       openedApp: Number(row.opened_app ?? 0),
-      disabledNotifications: 0,
+      disabledNotifications: Number(row.disabled_notifications ?? 0),
       errors: Number(row.errors ?? 0),
       byScenario: scenarios.rows.map((item: any) => ({
         scenarioKey: String(item.scenario_key || ''),

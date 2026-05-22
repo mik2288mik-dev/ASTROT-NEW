@@ -1060,7 +1060,20 @@ export type AdminNotificationTargetSegment =
   | 'inactive_3d'
   | 'inactive_7d'
   | 'inactive_30d'
-  | 'need_attention';
+  | 'need_attention'
+  | 'new_user_no_birth_data'
+  | 'birth_data_no_time'
+  | 'free_natal_ready_not_opened'
+  | 'free_natal_opened_no_premium'
+  | 'daily_active_free'
+  | 'daily_active_premium'
+  | 'inactive_2_days'
+  | 'inactive_14_days'
+  | 'love_interested'
+  | 'money_interested'
+  | 'work_interested'
+  | 'assistant_user'
+  | 'high_intent_premium';
 export type AdminNotificationModeFilter = 'all' | 'personal' | 'broadcast';
 export type AdminHistoryResultFilter = 'all' | 'success' | 'partial' | 'failed';
 
@@ -1290,6 +1303,56 @@ export interface AdminNotificationEngineStats {
     clicked: number;
     ctr: number;
   }>;
+}
+
+export type RetentionNotificationStatus =
+  | 'scheduled'
+  | 'sending'
+  | 'sent'
+  | 'failed'
+  | 'skipped'
+  | 'cancelled';
+
+export interface AdminScheduledNotificationQueueItem {
+  id: number;
+  userId: string;
+  userName: string | null;
+  notificationType: string;
+  segment: string | null;
+  status: RetentionNotificationStatus;
+  scheduledAt: string;
+  sentAt: string | null;
+  attemptCount: number;
+  campaignId: number | null;
+  scenarioId: number | null;
+  scenarioKey: string | null;
+  templateId: number | null;
+  reason: string | null;
+  title: string;
+  body: string;
+  buttonText: string;
+  deepLink: string;
+  telegramMessageId: number | null;
+  error: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminNotificationCampaignQueueItem {
+  id: number;
+  name: string;
+  type: string;
+  segment: string | null;
+  status: string;
+  startAt: string | null;
+  endAt: string | null;
+  maxSendsPerUser: number;
+  abTestEnabled: boolean;
+  totalRecipients: number;
+  successCount: number;
+  failedCount: number;
+  sentAt: string | null;
+  createdAt: string;
 }
 
 export interface AdminNotificationSchedule {

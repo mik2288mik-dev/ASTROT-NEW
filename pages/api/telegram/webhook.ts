@@ -1,6 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { activatePremium } from '../../../services/premiumService';
 import { activateLumiPackPurchase } from '../../../services/lumiTopUpService';
+import { answerTelegramCallbackQuery } from '../../../lib/telegramBot';
+import { handleNotificationCallback } from '../../../services/notificationRetentionService';
 
 const log = {
   info: (msg: string, data?: any) => console.log(`[API/telegram/webhook] ${msg}`, data || ''),
@@ -44,6 +46,12 @@ interface TelegramUpdate {
   update_id: number;
   message?: Message;
   pre_checkout_query?: unknown;
+  callback_query?: {
+    id: string;
+    data?: string;
+    from?: { id: number };
+    message?: { chat?: { id: number }; message_id?: number };
+  };
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -75,6 +83,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       } catch (e: any) {
         log.error('Failed to answer pre-checkout', { error: e.message });
       }
+    }
+    return res.status(200).json({ ok: true });
+  }
+
+  if (update.callback_query) {
+    const callback = update.callback_query;
+    const data = String(callback.data || '');
+    if (data.startsWith('notif:') && callback.from?.id) {
+      try {
+        const result = await handleNotificationCallback({
+          callbackQueryId: callback.id,
+          userId: String(callback.from.id),
+          data,
+        });
+        if (process.env.BOT_TOKEN) {
+          await answerTelegramCallbackQuery(callback.id, result.message).catch(() => undefined);
+        }
+      } catch (error: any) {
+        log.error('Failed to process notification callback', { error: error.message });
+        if (process.env.BOT_TOKEN) {
+          await answerTelegramCallbackQuery(callback.id, 'Не удалось обработать действие').catch(() => undefined);
+        }
+      }
+      return res.status(200).json({ ok: true });
     }
     return res.status(200).json({ ok: true });
   }

@@ -13,7 +13,9 @@ import {
   type AdminNotificationTargetSegment,
   type AdminNotificationTemplate,
   type AdminNotificationTemplateKind,
+  type AdminNotificationCampaignQueueItem,
   type AdminPremiumFilter,
+  type AdminScheduledNotificationQueueItem,
   type AdminScheduledNotificationAsset,
   type AdminScheduledNotificationTemplate,
   type AdminSortOrder,
@@ -542,6 +544,41 @@ export async function runNotificationEngine(payload?: { dryRun?: boolean; limit?
 export async function fetchNotificationEngineStats(): Promise<AdminNotificationEngineStats> {
   const data = await adminRequest<{ stats: AdminNotificationEngineStats }>('/api/admin/notifications/stats');
   return data.stats;
+}
+
+export async function fetchScheduledNotificationQueue(
+  limit = 100,
+  status?: string | null
+): Promise<AdminScheduledNotificationQueueItem[]> {
+  const query = new URLSearchParams({ limit: String(limit) });
+  if (status) query.set('status', status);
+  const data = await adminRequest<{ queue: AdminScheduledNotificationQueueItem[] }>(
+    `/api/admin/notifications/queue?${query.toString()}`
+  );
+  return data.queue || [];
+}
+
+export async function retryQueuedNotification(id: number): Promise<boolean> {
+  const data = await adminRequest<{ success: boolean }>('/api/admin/notifications/queue', {
+    method: 'POST',
+    bodyJson: { id, action: 'retry' },
+  });
+  return data.success;
+}
+
+export async function cancelQueuedNotification(id: number): Promise<boolean> {
+  const data = await adminRequest<{ success: boolean }>('/api/admin/notifications/queue', {
+    method: 'POST',
+    bodyJson: { id, action: 'cancel' },
+  });
+  return data.success;
+}
+
+export async function fetchRetentionCampaigns(limit = 100): Promise<AdminNotificationCampaignQueueItem[]> {
+  const data = await adminRequest<{ campaigns: AdminNotificationCampaignQueueItem[] }>(
+    `/api/admin/notifications/campaigns?limit=${encodeURIComponent(String(limit))}`
+  );
+  return data.campaigns || [];
 }
 
 export async function runNotificationSlot(slot: string, rotationGroup?: string | null): Promise<{

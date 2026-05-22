@@ -41,16 +41,45 @@ export type NotificationDayContextLike = {
 };
 
 const VARIABLE_RE = /\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g;
+const EXTRA_NOTIFICATION_VARIABLES = [
+  'daily_theme',
+  'daily_summary',
+  'pulse_window',
+  'best_action',
+  'avoid_action',
+  'interest_topic',
+  'locked_topic',
+  'days_inactive',
+  'unfinished_action',
+] as const;
+
+const STRICT_LUMIA_FORBIDDEN_PATTERNS = [
+  /зв[её]зды\s+говорят/i,
+  /судьб[аыеу]/i,
+  /магическ/i,
+  /энергетик/i,
+  /энергия/i,
+  /вибрац/i,
+  /портал/i,
+  /открой\s+сердце/i,
+  /удач[аиуе]/i,
+  /гороскоп\s+для\s+всех/i,
+  /зайди\s+в\s+приложение/i,
+  /твой\s+гороскоп\s+готов/i,
+  /не\s+пропусти\s+удачу/i,
+  /кармическ/i,
+  /предначертан/i,
+];
 
 export function findForbiddenNotificationTerms(text: string): string[] {
   const value = String(text || '');
-  return NOTIFICATION_FORBIDDEN_PATTERNS
+  return [...NOTIFICATION_FORBIDDEN_PATTERNS, ...STRICT_LUMIA_FORBIDDEN_PATTERNS]
     .filter((pattern) => pattern.test(value))
     .map((pattern) => pattern.source);
 }
 
 export function findUnknownNotificationVariables(text: string): string[] {
-  const known = new Set<string>(NOTIFICATION_VARIABLES as readonly string[]);
+  const known = new Set<string>([...NOTIFICATION_VARIABLES, ...EXTRA_NOTIFICATION_VARIABLES] as readonly string[]);
   const unknown = new Set<string>();
   for (const match of String(text || '').matchAll(VARIABLE_RE)) {
     const name = match[1];
@@ -173,6 +202,10 @@ export function buildNotificationDeepLink(input: {
   section: string;
   scenarioKey?: string | null;
   logId?: number | null;
+  notificationId?: number | null;
+  campaignId?: number | null;
+  segment?: string | null;
+  variant?: string | null;
   extra?: Record<string, string | number | boolean | null | undefined>;
 }): string {
   const base = String(input.baseUrl || '').trim();
@@ -189,24 +222,54 @@ export function buildNotificationDeepLink(input: {
   url.searchParams.set('source', 'tg_notification');
   if (input.scenarioKey) url.searchParams.set('scenario', input.scenarioKey);
   if (input.logId != null) url.searchParams.set('nl', String(input.logId));
+  if (input.notificationId != null) url.searchParams.set('notification_id', String(input.notificationId));
+  if (input.campaignId != null) url.searchParams.set('campaign_id', String(input.campaignId));
+  if (input.segment) url.searchParams.set('segment', input.segment);
+  if (input.variant) url.searchParams.set('variant', input.variant);
 
-  if (section === 'pulse') {
+  if (section === 'daily_card') {
     url.searchParams.set('view', 'dashboard');
+    url.searchParams.set('screen', 'daily_card');
+    url.searchParams.set('todaySection', 'daily-card');
+  } else if (section === 'pulse' || section === 'pulse_day') {
+    url.searchParams.set('view', 'dashboard');
+    url.searchParams.set('screen', 'pulse_day');
     url.searchParams.set('todaySection', 'pulse');
   } else if (section === 'checkin') {
     url.searchParams.set('view', 'dashboard');
+    url.searchParams.set('screen', 'checkin');
     url.searchParams.set('todaySection', 'checkin');
   } else if (section === 'best-time') {
     url.searchParams.set('view', 'dashboard');
+    url.searchParams.set('screen', 'best_time');
     url.searchParams.set('todaySection', 'best-time');
   } else if (section === 'mini-win') {
     url.searchParams.set('view', 'dashboard');
+    url.searchParams.set('screen', 'mini_win');
     url.searchParams.set('todaySection', 'mini-win');
+  } else if (section === 'natal' || section === 'natal_free') {
+    url.searchParams.set('view', 'chart');
+    url.searchParams.set('screen', 'natal_free');
+  } else if (section === 'natal_full') {
+    url.searchParams.set('view', 'chart');
+    url.searchParams.set('screen', 'natal_full');
+  } else if (section === 'love' || section === 'money' || section === 'work') {
+    url.searchParams.set('view', 'dashboard');
+    url.searchParams.set('screen', section);
+    url.searchParams.set('story', section);
+  } else if (section === 'assistant') {
+    url.searchParams.set('view', 'dashboard');
+    url.searchParams.set('screen', 'assistant');
+    url.searchParams.set('todaySection', 'assistant');
+  } else if (section === 'synastry') {
+    url.searchParams.set('view', 'synastry');
+    url.searchParams.set('screen', 'synastry');
   } else if (section === 'premium') {
     url.searchParams.set('view', 'wallet');
-    url.searchParams.set('todaySection', 'premium');
+    url.searchParams.set('screen', 'premium');
   } else {
     url.searchParams.set('view', 'dashboard');
+    url.searchParams.set('screen', 'today');
     url.searchParams.set('todaySection', 'today');
   }
 

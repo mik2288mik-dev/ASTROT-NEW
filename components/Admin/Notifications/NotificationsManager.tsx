@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type {
   AdminNotificationEngineStats,
+  AdminNotificationCampaignQueueItem,
   AdminNotificationScenario,
+  AdminScheduledNotificationQueueItem,
   AdminScheduledNotificationAsset,
   AdminScheduledNotificationTemplate,
   NotificationDayPart,
@@ -9,15 +11,19 @@ import type {
 } from '../../../types';
 import {
   createEngineNotificationTemplate,
+  cancelQueuedNotification,
   deleteNotificationAsset,
   deleteScheduledNotificationTemplate,
   fetchEngineNotificationTemplates,
+  fetchRetentionCampaigns,
+  fetchScheduledNotificationQueue,
   fetchNotificationAssets,
   fetchNotificationEngineStats,
   fetchNotificationScenarios,
   previewEngineNotification,
   runNotificationEngine,
   sendEngineNotificationTest,
+  retryQueuedNotification,
   updateEngineNotificationTemplate,
   updateNotificationAsset,
   updateNotificationScenario,
@@ -39,9 +45,11 @@ interface NotificationsManagerProps {
   profile: UserProfile;
 }
 
-type EngineTab = 'scenarios' | 'templates' | 'media' | 'preview' | 'stats' | 'manual';
+type EngineTab = 'scenarios' | 'queue' | 'campaigns' | 'templates' | 'media' | 'preview' | 'stats' | 'manual';
 
 const TABS: Array<{ id: EngineTab; label: string }> = [
+  { id: 'queue', label: 'Очередь' },
+  { id: 'campaigns', label: 'Кампании' },
   { id: 'scenarios', label: 'Сценарии' },
   { id: 'templates', label: 'Шаблоны' },
   { id: 'media', label: 'Медиатека' },
@@ -88,6 +96,15 @@ const KNOWN_VARIABLES = [
   '{{good_for}}',
   '{{better_later}}',
   '{{minutes_to_slot}}',
+  '{{daily_theme}}',
+  '{{daily_summary}}',
+  '{{pulse_window}}',
+  '{{best_action}}',
+  '{{avoid_action}}',
+  '{{interest_topic}}',
+  '{{locked_topic}}',
+  '{{days_inactive}}',
+  '{{unfinished_action}}',
 ];
 
 function jsonText(value: unknown) {
@@ -127,6 +144,8 @@ export const NotificationsManager: React.FC<NotificationsManagerProps> = ({ prof
   const [templates, setTemplates] = useState<AdminScheduledNotificationTemplate[]>([]);
   const [assets, setAssets] = useState<AdminScheduledNotificationAsset[]>([]);
   const [stats, setStats] = useState<AdminNotificationEngineStats | null>(null);
+  const [queue, setQueue] = useState<AdminScheduledNotificationQueueItem[]>([]);
+  const [campaigns, setCampaigns] = useState<AdminNotificationCampaignQueueItem[]>([]);
   const [selectedScenarioId, setSelectedScenarioId] = useState<number | null>(null);
   const [scenarioDraft, setScenarioDraft] = useState<AdminNotificationScenario | null>(null);
   const [triggerJson, setTriggerJson] = useState('{}');
@@ -162,16 +181,20 @@ export const NotificationsManager: React.FC<NotificationsManagerProps> = ({ prof
     setLoading(true);
     setError(null);
     try {
-      const [scenarioRows, templateRows, assetRows, statsPayload] = await Promise.all([
+      const [scenarioRows, templateRows, assetRows, statsPayload, queueRows, campaignRows] = await Promise.all([
         fetchNotificationScenarios(),
         fetchEngineNotificationTemplates(),
         fetchNotificationAssets(),
         fetchNotificationEngineStats(),
+        fetchScheduledNotificationQueue(100),
+        fetchRetentionCampaigns(100),
       ]);
       setScenarios(scenarioRows);
       setTemplates(templateRows);
       setAssets(assetRows);
       setStats(statsPayload);
+      setQueue(queueRows);
+      setCampaigns(campaignRows);
       setSelectedScenarioId((prev) => prev || scenarioRows[0]?.id || null);
       setPreviewScenarioId((prev) => prev || scenarioRows[0]?.id || null);
     } catch (loadError: any) {
@@ -627,6 +650,98 @@ export const NotificationsManager: React.FC<NotificationsManagerProps> = ({ prof
             )}
           </AdminSurface>
         </div>
+      ) : null}
+
+      {tab === 'queue' ? (
+        <AdminSurface className="p-5">
+          <AdminSectionHeader
+            title="Очередь отправки"
+            subtitle="Сюда попадают только уже выбранные движком уведомления. Telegram sender отправляет сообщения только из этой очереди."
+            action={<AdminButton tone="secondary" onClick={() => void loadAll()} disabled={loading}>Обновить</AdminButton>}
+          />
+          <div className="mt-5 overflow-x-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead className="text-xs uppercase tracking-[0.18em] text-slate-500">
+                <tr>
+                  <th className="px-3 py-2">ID</th>
+                  <th className="px-3 py-2">Статус</th>
+                  <th className="px-3 py-2">Тип</th>
+                  <th className="px-3 py-2">Пользователь</th>
+                  <th className="px-3 py-2">Когда</th>
+                  <th className="px-3 py-2">Текст</th>
+                  <th className="px-3 py-2">Действия</th>
+                </tr>
+              </thead>
+              <tbody>
+                {queue.map((item) => (
+                  <tr key={item.id} className="border-t border-white/10 align-top">
+                    <td className="px-3 py-3 text-slate-400">#{item.id}</td>
+                    <td className="px-3 py-3"><AdminBadge tone={item.status === 'failed' ? 'warning' : item.status === 'sent' ? 'success' : 'neutral'}>{item.status}</AdminBadge></td>
+                    <td className="px-3 py-3 text-white">{item.notificationType}<div className="mt-1 text-xs text-slate-500">{item.segment || 'all'}</div></td>
+                    <td className="px-3 py-3 text-slate-300">{item.userName || item.userId}<div className="mt-1 text-xs text-slate-500">{item.userId}</div></td>
+                    <td className="px-3 py-3 text-slate-300">{item.scheduledAt ? new Date(item.scheduledAt).toLocaleString('ru-RU') : ''}</td>
+                    <td className="max-w-[360px] px-3 py-3">
+                      <p className="font-semibold text-white">{item.title}</p>
+                      <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-400">{item.body}</p>
+                      {item.error ? <p className="mt-1 text-xs text-rose-300">{item.error}</p> : null}
+                    </td>
+                    <td className="px-3 py-3">
+                      <div className="flex flex-wrap gap-2">
+                        <AdminButton
+                          tone="secondary"
+                          onClick={async () => {
+                            await retryQueuedNotification(item.id);
+                            await loadAll();
+                          }}
+                          disabled={item.status !== 'failed' && item.status !== 'skipped'}
+                        >
+                          Retry
+                        </AdminButton>
+                        <AdminButton
+                          tone="danger"
+                          onClick={async () => {
+                            await cancelQueuedNotification(item.id);
+                            await loadAll();
+                          }}
+                          disabled={item.status !== 'scheduled' && item.status !== 'failed'}
+                        >
+                          Cancel
+                        </AdminButton>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {!queue.length ? <AdminEmptyState title="Очередь пустая" body="Planner jobs добавят сюда scheduled notifications после включения сценариев." /> : null}
+          </div>
+        </AdminSurface>
+      ) : null}
+
+      {tab === 'campaigns' ? (
+        <AdminSurface className="p-5">
+          <AdminSectionHeader
+            title="Кампании"
+            subtitle="Здесь видны ручные и retention-кампании: сегмент, статус, отправки и ошибки. Разовая рассылка остаётся отдельным инструментом."
+          />
+          <div className="mt-5 grid gap-3">
+            {campaigns.map((item) => (
+              <div key={item.id} className="admin-surface-muted flex flex-wrap items-center justify-between gap-4 p-4">
+                <div>
+                  <p className="text-sm font-semibold text-white">{item.name}</p>
+                  <p className="mt-1 text-xs text-slate-400">{item.type} · {item.segment || 'all'} · #{item.id}</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <AdminBadge>{item.status}</AdminBadge>
+                  <AdminBadge>{item.successCount}/{item.totalRecipients} sent</AdminBadge>
+                  {item.failedCount ? <AdminBadge tone="warning">{item.failedCount} failed</AdminBadge> : null}
+                  {item.abTestEnabled ? <AdminBadge tone="info">A/B</AdminBadge> : null}
+                </div>
+              </div>
+            ))}
+            {!campaigns.length ? <AdminEmptyState title="Кампаний пока нет" body="Manual campaigns и будущие retention campaigns появятся здесь." /> : null}
+          </div>
+        </AdminSurface>
       ) : null}
 
       {tab === 'templates' ? (
