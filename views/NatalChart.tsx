@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import type {
   NatalChartData,
   NatalChartMode,
@@ -8,6 +8,8 @@ import type {
 } from '../types';
 import { ShimmerStyles } from '../components/NatalReading/Skeleton';
 import { HumanReport } from '../components/NatalReading/HumanReport';
+import { NatalMapPresentation } from '../components/NatalReading/NatalMapPresentation';
+import { TrueNatalWheelHero } from '../components/Dashboard/TrueNatalWheelHero';
 
 interface NatalChartProps {
   data: NatalChartData | null;
@@ -34,14 +36,21 @@ export const NatalChart: React.FC<NatalChartProps> = ({
   onOpenWallet,
   onUpdateProfile,
   onOpenTodaySection,
+  onBack,
   onViewerOpenChange,
+  initialStoryCardId,
   preloadedReport,
 }) => {
-  useEffect(() => {
-    onViewerOpenChange?.(false);
-  }, [onViewerOpenChange]);
+  const wheelSectionRef = useRef<HTMLElement | null>(null);
+  const fullReportRef = useRef<HTMLElement | null>(null);
 
-  void initialMode;
+  useEffect(() => {
+    if (initialMode !== 'wheel' || !data) return;
+    const timer = window.setTimeout(() => {
+      wheelSectionRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    }, 260);
+    return () => window.clearTimeout(timer);
+  }, [data, initialMode]);
 
   if (!data) {
     return (
@@ -52,9 +61,10 @@ export const NatalChart: React.FC<NatalChartProps> = ({
   }
 
   return (
-    <div className="min-h-full bg-white pb-16 font-sans text-[#1f1f1f]">
+    <div className="min-h-full bg-white pb-16 font-sans">
       <ShimmerStyles />
-      <HumanReport
+
+      <NatalMapPresentation
         profile={profile}
         chartData={data}
         chartId={chartId}
@@ -62,8 +72,45 @@ export const NatalChart: React.FC<NatalChartProps> = ({
         onOpenWallet={onOpenWallet}
         onUpdateProfile={onUpdateProfile}
         onOpenTodaySection={onOpenTodaySection}
-        preloadedReport={preloadedReport}
+        onBack={onBack}
+        onViewerOpenChange={onViewerOpenChange}
+        initialCardId={initialStoryCardId}
+        onScrollToFullReport={() => {
+          fullReportRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        }}
       />
+
+      <section ref={fullReportRef} className="scroll-mt-8">
+        <HumanReport
+          profile={profile}
+          chartData={data}
+          chartId={chartId}
+          requestPremium={requestPremium}
+          onOpenWallet={onOpenWallet}
+          onUpdateProfile={onUpdateProfile}
+          preloadedReport={preloadedReport}
+        />
+      </section>
+
+      <section ref={wheelSectionRef} className="border-t border-[#efefef] bg-white px-4 pb-12 pt-8">
+        <div className="mx-auto w-full max-w-[27rem]">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#8c6bb1]">
+            Натальное колесо
+          </p>
+          <h2 className="mt-2 font-lora text-[24px] leading-tight text-[#1f1f1f]">
+            Круг карты
+          </h2>
+          <div className="mt-5">
+            <TrueNatalWheelHero
+              profile={profile}
+              chartData={data}
+              chartId={chartId}
+              variant="embedded"
+              shouldAnimateIntro
+            />
+          </div>
+        </div>
+      </section>
     </div>
   );
 };

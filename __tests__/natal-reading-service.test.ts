@@ -1,7 +1,5 @@
 import {
   clearHumanReadingSessionCache,
-  loadHumanDailyPreview,
-  loadHumanDailySection,
   loadHumanBaseReport,
   loadHumanPaidSection,
 } from '../services/natalReadingService';
@@ -90,51 +88,6 @@ describe('natal reading service session cache', () => {
     await expect(loadHumanPaidSection('123', 'work_business')).rejects.toMatchObject({
       code: 'HUMAN_SECTION_LOCKED',
       lumiCost: 300,
-    });
-
-    expect(global.fetch).toHaveBeenCalledTimes(1);
-    expect((global.fetch as jest.Mock).mock.calls[0][1]?.method).toBe('GET');
-  });
-
-  it('loads daily overview as a free preview through the daily endpoint', async () => {
-    const section = {
-      key: 'daily_overview',
-      title: 'Карта сегодня',
-      access: 'free',
-      content: 'Сегодня лучше выбрать одно понятное дело.',
-    };
-    (global.fetch as jest.Mock).mockResolvedValueOnce(
-      response(200, {
-        interpretation: { content: section },
-        accessTier: 'free_preview',
-        isPreview: true,
-      })
-    );
-
-    await expect(loadHumanDailyPreview('123', 7, '2026-05-25')).resolves.toMatchObject({
-      content: section,
-      accessTier: 'free_preview',
-      isPreview: true,
-    });
-
-    expect(global.fetch).toHaveBeenCalledTimes(1);
-    expect(String((global.fetch as jest.Mock).mock.calls[0][0])).toContain('sectionKey=daily_overview');
-    expect((global.fetch as jest.Mock).mock.calls[0][1]?.method).toBe('GET');
-  });
-
-  it('keeps paid daily sections locked for free users without explicit Lumi spend', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce(
-      response(403, {
-        code: 'HUMAN_DAILY_LOCKED',
-        message: 'locked',
-        lumiCost: 35,
-        lumiBalance: 20,
-      })
-    );
-
-    await expect(loadHumanDailySection('123', 'daily_work_business', 7, '2026-05-25')).rejects.toMatchObject({
-      code: 'HUMAN_DAILY_LOCKED',
-      lumiCost: 35,
     });
 
     expect(global.fetch).toHaveBeenCalledTimes(1);

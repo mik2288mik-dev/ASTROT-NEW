@@ -87,8 +87,7 @@ type HumanEndpoint = 'human-base' | 'human-section' | 'human-daily';
 export type HumanReadingResult<T> = {
   content: T;
   lumiBalance?: number;
-  accessTier?: ContentAccessTier | 'free_preview';
-  isPreview?: boolean;
+  accessTier?: ContentAccessTier;
 };
 
 export type HumanReadingError = Error & {
@@ -282,7 +281,6 @@ async function postHuman<T>(
     content: payload.interpretation?.content as T,
     lumiBalance: typeof payload.lumiBalance === 'number' ? payload.lumiBalance : undefined,
     accessTier: payload.accessTier,
-    isPreview: !!payload.isPreview,
   };
 }
 
@@ -310,7 +308,6 @@ async function getHuman<T>(
     content: payload.interpretation?.content as T,
     lumiBalance: typeof payload.lumiBalance === 'number' ? payload.lumiBalance : undefined,
     accessTier: payload.accessTier,
-    isPreview: !!payload.isPreview,
   };
 }
 
@@ -433,14 +430,6 @@ export async function loadHumanDailySection(
 
   dailySectionInFlight.set(key, request);
   return request;
-}
-
-export function loadHumanDailyPreview(
-  userId: string,
-  chartId?: number,
-  date?: string
-): Promise<HumanReadingResult<InterpretationSection>> {
-  return loadHumanDailySection(userId, 'daily_overview', chartId, date);
 }
 
 export async function getCachedHumanDailySection(
