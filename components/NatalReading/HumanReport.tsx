@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, Crown, Lock, Sparkles, WalletCards, X } from 'lucide-react';
 import type {
   InterpretationSection,
@@ -26,7 +26,6 @@ import {
   type HumanReadingError,
 } from '../../services/natalReadingService';
 import { PlanetIcon } from '../icons/PlanetIcon';
-import { getNatalReadingBackground } from '../../lib/visualBackgrounds';
 import { FormattedAiText } from '../ui/FormattedAiText';
 
 type Props = {
@@ -412,6 +411,7 @@ export const HumanReport: React.FC<Props> = ({
   const [sectionError, setSectionError] = useState<string | null>(null);
   const [unlockTarget, setUnlockTarget] = useState<HumanPaidSectionKey | null>(null);
   const [unlockDailyTarget, setUnlockDailyTarget] = useState<HumanDailySectionKey | null>(null);
+  const dailyOverviewRequestedKeyRef = useRef<string | null>(null);
 
   const userId = profile.id ? String(profile.id) : '';
   const isPremium = !!profile.isPremium;
@@ -457,6 +457,37 @@ export const HumanReport: React.FC<Props> = ({
       cancelled = true;
     };
   }, [chartId, preloadedReport, userId]);
+
+  useEffect(() => {
+    if (!userId || !report || dailySections.daily_overview) return;
+    const requestKey = `${userId}:${chartId ?? 'primary'}:${todayKey}`;
+    if (dailyOverviewRequestedKeyRef.current === requestKey) return;
+    dailyOverviewRequestedKeyRef.current = requestKey;
+
+    let cancelled = false;
+    setDailyLoading('daily_overview');
+    loadHumanDailySection(userId, 'daily_overview', chartId, todayKey)
+      .then((result) => {
+        if (!cancelled) {
+          setDailySections((current) => ({ ...current, daily_overview: result.content }));
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          dailyOverviewRequestedKeyRef.current = null;
+          setSectionError(formatError(err));
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setDailyLoading((current) => (current === 'daily_overview' ? null : current));
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [chartId, dailySections.daily_overview, report, todayKey, userId]);
 
   const openPaidSection = async (key: HumanPaidSectionKey, allowLumiSpend: boolean) => {
     if (!userId || paidLoading) return;
@@ -506,10 +537,14 @@ export const HumanReport: React.FC<Props> = ({
     setSectionError(null);
     setDailyLoading(key);
     try {
-      const result = await loadHumanDailySection(userId, key, chartId, todayKey, {
-        accessTier: allowLumiSpend ? 'lumi' : 'premium',
-        allowLumiSpend,
-      });
+      const accessOptions =
+        key === 'daily_overview' && !allowLumiSpend
+          ? undefined
+          : {
+              accessTier: allowLumiSpend ? ('lumi' as const) : ('premium' as const),
+              allowLumiSpend,
+            };
+      const result = await loadHumanDailySection(userId, key, chartId, todayKey, accessOptions);
       setDailySections((current) => ({ ...current, [key]: result.content }));
       if (typeof result.lumiBalance === 'number') {
         onUpdateProfile?.({ ...profile, lumiBalance: result.lumiBalance });
@@ -560,14 +595,6 @@ export const HumanReport: React.FC<Props> = ({
 
   return (
     <article className="relative bg-white pb-16 pt-6">
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 h-[24rem] bg-cover bg-center"
-        style={{
-          backgroundImage: `linear-gradient(180deg, rgba(255,255,255,0.74) 0%, rgba(255,255,255,0.94) 50%, #fff 100%), url(${getNatalReadingBackground('base_portrait')})`,
-        }}
-      />
-
       <div className="relative z-10 mx-auto w-full max-w-reading-wide px-5">
         <header className="pb-8">
           <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8c6bb1]">

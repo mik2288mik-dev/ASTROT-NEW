@@ -9,7 +9,6 @@ import { getApproximateSunSignByDate } from '../lib/zodiac-utils';
 import { toDateInputValue, formatLumiaDate } from '../lib/date-utils';
 import { SYNASTRY_EXTENDED_LUMI_COST } from '../lib/synastryExtended';
 import { ScreenShell } from '../components/layout/ScreenShell';
-import { getSynastryBackground } from '../lib/visualBackgrounds';
 
 type SynastryPrefill = {
     source: 'saved-chart' | 'manual';
@@ -232,7 +231,6 @@ export const Synastry: React.FC<SynastryProps> = ({
         ? getText(profile.language, 'synastry.selected_saved')
         : getText(profile.language, 'synastry.selected_manual');
     const canSubmit = Boolean(partnerName && partnerDate);
-    const synastryBackground = getSynastryBackground(result?.compatibilityScore);
     const fieldLabelClass = 'mb-2 block text-[10px] uppercase tracking-[0.18em] text-astro-subtext';
     const fieldInputClass = 'w-full border-b border-black/10 bg-transparent py-3 text-sm text-astro-text outline-none transition-colors focus:border-astro-highlight';
 
@@ -241,15 +239,7 @@ export const Synastry: React.FC<SynastryProps> = ({
     }
 
     return (
-        <div
-            className="min-h-full pb-8 font-sans"
-            style={{
-                backgroundImage: `linear-gradient(180deg, rgba(255,255,255,0.34) 0%, rgba(255,255,255,0.62) 36%, rgba(255,255,255,0.90) 74%, rgba(255,255,255,0.98) 100%), url(${synastryBackground})`,
-                backgroundPosition: 'center top',
-                backgroundRepeat: 'no-repeat',
-                backgroundSize: 'cover',
-            }}
-        >
+        <div className="min-h-full bg-white pb-8 font-sans">
         <ScreenShell className="mx-auto max-w-reading-wide pt-2">
             <section className="px-1 pb-2 pt-2">
                 <p className="text-[10px] uppercase tracking-[0.24em] text-astro-subtext">

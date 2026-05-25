@@ -215,7 +215,7 @@ describe('natal story share renderer', () => {
     expect(story.height).toBe(1920);
     expect(feed.height).toBe(1350);
     expect(story.svg).toContain('LUMIA');
-    expect(story.svg).not.toMatch(fogForbidden);
+    expect(story.svg.replace(/ТВОЙ ПУТЬ К СЕБЕ/g, '')).not.toMatch(fogForbidden);
     expect(normalizeNatalStoryShareFormat('unknown')).toBe('story');
   });
 });

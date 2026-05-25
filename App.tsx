@@ -35,7 +35,6 @@ import { installTelegramFullscreenGuard } from './lib/telegramFullscreen';
 import { applyTelegramSafeAreaCssVars, subscribeTelegramContentSafeAreaChanges } from './lib/telegramSafeAreaInsets';
 import { useSwipeBack } from './lib/useSwipeBack';
 import { getMoscowTodayKey } from './lib/date-utils';
-import { getHoroscopeBackground, getSynastryBackground } from './lib/visualBackgrounds';
 import { isValidUserId } from './lib/userId';
 import { LumiaDebugOverlay } from './components/lumia-ui/LumiaDebugOverlay';
 import { LumiaBottomTabBar } from './components/lumia-ui/LumiaBottomTabBar';
@@ -144,7 +143,7 @@ const App: React.FC = () => {
     const [chartOpenMode, setChartOpenMode] = useState<NatalChartMode>('human');
     const [isNatalViewerOpen, setIsNatalViewerOpen] = useState(false);
     const [horoscopeInitialLayer, setHoroscopeInitialLayer] = useState<HoroscopeLayer>('sign');
-    const [horoscopeBackground, setHoroscopeBackground] = useState<{
+    const [, setHoroscopeBackground] = useState<{
         sign: string | null;
         tone: 'sign' | 'chart' | 'love' | 'work';
     }>({ sign: null, tone: 'sign' });
@@ -377,16 +376,9 @@ const App: React.FC = () => {
 
         const tg = (window as any).Telegram?.WebApp;
         if (tg) {
-            if (lumiaAirShell) {
-                tg.setHeaderColor?.('#FFFFFF');
-                tg.setBackgroundColor?.('#FFFFFF');
-                tg.setBottomBarColor?.('#FFFFFF');
-            } else {
-                const headerColor = theme === 'light' ? '#F5F2EB' : '#050505';
-                tg.setHeaderColor?.(headerColor);
-                tg.setBackgroundColor?.(headerColor);
-                tg.setBottomBarColor?.(headerColor);
-            }
+            tg.setHeaderColor?.('#FFFFFF');
+            tg.setBackgroundColor?.('#FFFFFF');
+            tg.setBottomBarColor?.('#FFFFFF');
         }
 
         return () => {
@@ -1039,26 +1031,6 @@ const App: React.FC = () => {
         );
     }
 
-    const visualAppBackground =
-        view === 'horoscope'
-            ? getHoroscopeBackground(horoscopeBackground.sign || chartData?.sun?.sign)
-            : view === 'synastry'
-              ? getSynastryBackground(null)
-              : null;
-    const horoscopeVisualLayer =
-        horoscopeBackground.tone === 'love'
-            ? `linear-gradient(180deg, rgba(255,248,250,0.08) 0%, rgba(255,238,244,0.16) 36%, rgba(255,246,249,0.36) 100%), url(${visualAppBackground})`
-            : horoscopeBackground.tone === 'chart'
-              ? `linear-gradient(180deg, rgba(246,251,255,0.06) 0%, rgba(229,241,255,0.14) 36%, rgba(246,250,255,0.32) 100%), url(${visualAppBackground})`
-              : horoscopeBackground.tone === 'work'
-                ? `linear-gradient(180deg, rgba(255,253,244,0.08) 0%, rgba(241,235,211,0.16) 36%, rgba(255,252,242,0.36) 100%), url(${visualAppBackground})`
-                : `linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.08) 36%, rgba(255,255,255,0.24) 100%), url(${visualAppBackground})`;
-    const visualAppBackgroundLayer =
-        view === 'horoscope'
-            ? horoscopeVisualLayer
-            : visualAppBackground
-              ? `linear-gradient(180deg, rgba(255,255,255,0.50) 0%, rgba(255,255,255,0.68) 32%, rgba(255,255,255,0.94) 100%), url(${visualAppBackground})`
-              : null;
     const renderAppScrollHeader = () => (
         <>
             <Header
@@ -1076,19 +1048,8 @@ const App: React.FC = () => {
                 lumiaAirShell ? 'text-text-main' : 'text-astro-text'
             }`}
         >
-            {visualAppBackground ? (
-                <div
-                    className="pointer-events-none absolute inset-0 z-0 bg-cover bg-center"
-                    style={{
-                        backgroundImage: visualAppBackgroundLayer || undefined,
-                    }}
-                />
-            ) : null}
-
             <main
-                className={`lumia-tg-main-gutter relative z-10 flex-1 w-full max-w-md md:max-w-reading-wide mx-auto overflow-hidden min-h-0 ${
-                    visualAppBackground ? 'bg-transparent' : 'bg-white'
-                }`}
+                className="lumia-tg-main-gutter relative z-10 flex-1 w-full max-w-md md:max-w-reading-wide mx-auto overflow-hidden min-h-0 bg-white"
             >
                 {view === 'admin' ? (
                     <AdminPanel

@@ -163,8 +163,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
-  const cacheAccessTier: ContentAccessTier = isFreeOverview && !access ? 'free' : access!.accessTier;
-  const responseAccessTier = isFreeOverview && !access ? 'free' : access!.accessTier;
+  const cacheAccessTier: ContentAccessTier = isFreeOverview ? 'free' : access!.accessTier;
+  const responseAccessTier: ContentAccessTier = isFreeOverview ? 'free' : access!.accessTier;
 
   const cacheOpts = {
     accessTier: cacheAccessTier,

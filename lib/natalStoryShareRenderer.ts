@@ -100,7 +100,7 @@ export function renderNatalStoryShareSvg(card: ProfileCard, format: NatalStorySh
       <circle cx="${width * 0.5}" cy="${format === 'story' ? 410 : 310}" r="${format === 'story' ? 148 : 118}" fill="rgba(255,255,255,0.34)" stroke="rgba(255,255,255,0.8)" stroke-width="2" filter="url(#softShadow)"/>
       <path d="M180 ${format === 'story' ? 452 : 338} C 340 ${format === 'story' ? 255 : 204}, 526 ${format === 'story' ? 598 : 438}, 900 ${format === 'story' ? 330 : 245}" stroke="#15151b" stroke-opacity="0.12" stroke-width="5" fill="none" stroke-linecap="round"/>
       <text x="84" y="${format === 'story' ? 166 : 132}" font-size="34" font-weight="800" letter-spacing="7" fill="${accent.a}">LUMIA</text>
-      <text x="84" y="${format === 'story' ? 222 : 182}" font-size="25" font-weight="600" letter-spacing="8" fill="#77717d">ПЕРСОНАЛЬНАЯ КАРТА</text>
+      <text x="84" y="${format === 'story' ? 222 : 182}" font-size="25" font-weight="600" letter-spacing="8" fill="#77717d">ТВОЙ ПУТЬ К СЕБЕ</text>
       <text x="84" y="${titleY - 92}" font-size="25" font-weight="800" letter-spacing="7" fill="${accent.a}">${escapeXml(card.subtitle || 'РАЗБОР')}</text>
       ${textBlock(titleLines, 84, titleY, 72, 84, 800)}
       ${textBlock(summaryLines, 84, summaryY, 36, 54, 500, '#33323b')}

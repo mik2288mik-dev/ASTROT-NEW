@@ -3,7 +3,7 @@ export type LumiaHomeLanguage = 'ru' | 'en';
 export function getLumiaHomeCopy(language: LumiaHomeLanguage) {
   if (language === 'en') {
     return {
-      tagline: 'PERSONAL MAP AND DAY',
+      tagline: 'YOUR PATH TO YOURSELF',
       notifications: 'Notifications',
       settings: 'Settings',
       stories: {
@@ -51,7 +51,7 @@ export function getLumiaHomeCopy(language: LumiaHomeLanguage) {
   }
 
   return {
-    tagline: 'ПЕРСОНАЛЬНАЯ КАРТА И ДЕНЬ',
+    tagline: 'ТВОЙ ПУТЬ К СЕБЕ',
     notifications: 'Уведомления',
     settings: 'Настройки',
     stories: {

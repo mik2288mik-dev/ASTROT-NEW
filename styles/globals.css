@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+html,
+body,
+#__next {
+  background: #ffffff !important;
+}
+
 @font-face {
   font-family: 'Noto Sans Symbols 2 Local';
   src: url('/fonts/NotoSansSymbols2-Regular.ttf') format('truetype');
@@ -1314,7 +1320,7 @@ html, body {
   width: 100%;
   display: flex;
   flex-direction: column;
-  background-color: var(--bg-primary);
+  background-color: #ffffff !important;
 }
 
 .lumia-app-shell {
