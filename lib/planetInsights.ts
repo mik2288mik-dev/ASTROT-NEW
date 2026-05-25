@@ -7,7 +7,7 @@ import {
   getPlanetPositionFromChart,
   normalizePlanetKey,
   type NatalPlanetKey,
-} from './natalWheel';
+} from './natalPlanetMeta';
 import { buildPlanetInsight } from './planetInsightContent';
 import {
   SYSTEM_PROMPT_ASTRA,

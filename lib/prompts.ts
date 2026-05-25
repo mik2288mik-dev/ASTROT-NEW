@@ -933,12 +933,6 @@ export interface PlanetInsightAIResponse {
   body: string;
 }
 
-export interface WheelInsightAIResponse {
-  title: string;
-  subtitle: string;
-  body: string;
-}
-
 export interface WeeklyForecastAIResponse {
   theme: string;
   advice: string;
@@ -1390,71 +1384,6 @@ Rules:
 Return strict JSON with:
 - title: a short title for this placement, max 70 chars
 - body: 2-3 sentences, compact but meaningful
-
-Return only JSON.`;
-};
-
-export const createWheelInsightPrompt = (
-  natalData: NatalChartData,
-  profile: UserProfile,
-  options: {
-    entityType: 'planet' | 'zodiac' | 'aspect' | 'house';
-    entityLabel: string;
-    entitySubtitle: string;
-    entitySummary: string;
-    coreAnchors: string;
-  }
-): string => {
-  const displayName = profile.name || 'the user';
-  const snapshot = JSON.stringify(
-    {
-      sun: natalData.sun,
-      moon: natalData.moon,
-      rising: natalData.rising,
-      houses: natalData.houses,
-      aspects: natalData.aspects,
-      target: {
-        entityType: options.entityType,
-        label: options.entityLabel,
-        subtitle: options.entitySubtitle,
-      },
-    },
-    null,
-    2
-  );
-
-  return `User: ${displayName}
-Language: ${profile.language}
-
-Natal chart snapshot:
-${snapshot}
-
-Core anchors:
-${options.coreAnchors}
-
-Target entity:
-${options.entitySummary}
-
-Task: write a short personal AIR-style explanation for one interactive element inside Lumia's natal wheel.
-
-Rules:
-- The entity can be a planet, zodiac sign, aspect, or house.
-- Speak to the user in warm, modern second-person language.
-- Make it clear, intimate, and useful.
-- Explain the meaning of this entity inside the person's real natal chart, not astrology in the abstract.
-- For zodiac signs, explain how the sign acts in this chart through planets/points if present; do not give a generic textbook definition.
-- For planets and points, name what this function does in the chart and how its sign/house colors it.
-- For aspects, explain the relationship between the two planets in plain language.
-- Do not use the phrases "active points", "mutable", "fixed", "cardinal", "мутабельный", "фиксированный", "кардинальный", or "активные точки".
-- No bullet lists.
-- No mystical fluff, no fear language, no long lectures.
-- Keep it compact for a mobile inline AIR surface.
-- The body should be 1-2 short sentences.
-
-Return strict JSON with:
-- title: a short title, max 70 chars
-- subtitle: a compact subtitle, max 90 chars
-- body: 1-2 meaningful sentences
 
 Return only JSON.`;
 };

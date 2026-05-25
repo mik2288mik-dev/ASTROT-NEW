@@ -8,7 +8,7 @@ import {
   getModalityForSign,
   getZodiacElementStyle,
   type NatalPlanetKey,
-} from './natalWheel';
+} from './natalPlanetMeta';
 import { getElementForSign, type ZodiacSign } from './zodiac-utils';
 
 function compact(value?: string | null): string {

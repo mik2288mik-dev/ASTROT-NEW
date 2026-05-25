@@ -80,7 +80,6 @@ export type CachedReadingOptions = {
     | 'anchor'
     | 'living'
     | 'planet_insight'
-    | 'wheel_insight'
     | 'daily'
     | 'morning'
     | 'day'

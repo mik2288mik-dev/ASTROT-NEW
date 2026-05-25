@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { UserProfile, NatalChartData, ViewState, NatalChartMode, HoroscopeLayer, NatalInterpretationReport, NatalStoryCardId } from './types';
+import { UserProfile, NatalChartData, ViewState, HoroscopeLayer, NatalInterpretationReport } from './types';
 import {
     getProfile,
     saveProfile,
@@ -44,7 +44,6 @@ import {
     getHumanBaseReportCached,
     prefetchHumanBaseReport,
 } from './services/natalReadingService';
-import { resolveNatalStoryCardId } from './lib/natalStory';
 
 // Get owner ID from environment variables for security
 const OWNER_ID = process.env.NEXT_PUBLIC_OWNER_ID || '';
@@ -114,17 +113,6 @@ function getNotificationLaunchParams(): NotificationLaunchParams | null {
     };
 }
 
-function getRequestedStoryCardFromLaunch(): NatalStoryCardId | null {
-    if (typeof window === 'undefined') return null;
-    const params = new URLSearchParams(window.location.search);
-    const queryCard = params.get('storyCard') || params.get('card') || params.get('startapp');
-    const tg = (window as any).Telegram?.WebApp;
-    const startParam = typeof tg?.initDataUnsafe?.start_param === 'string'
-        ? tg.initDataUnsafe.start_param
-        : '';
-    return resolveNatalStoryCardId(queryCard) || resolveNatalStoryCardId(startParam);
-}
-
 const App: React.FC = () => {
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [chartData, setChartData] = useState<NatalChartData | null>(null);
@@ -135,13 +123,10 @@ const App: React.FC = () => {
     const [loadingProgress, setLoadingProgress] = useState(0);
     const [view, setView] = useState<ViewState>('onboarding');
     const [showPremiumPreview, setShowPremiumPreview] = useState(false);
-    const [dictionaryOpenSignal] = useState(0);
     const [synastryPrefill, setSynastryPrefill] = useState<SynastryPrefill>(null);
     const [chartsReturnView, setChartsReturnView] = useState<ViewState>('settings');
     const [walletReturnView, setWalletReturnView] = useState<ViewState>('dashboard');
     const [chartReturnView, setChartReturnView] = useState<ViewState>('dashboard');
-    const [chartOpenMode, setChartOpenMode] = useState<NatalChartMode>('human');
-    const [isNatalViewerOpen, setIsNatalViewerOpen] = useState(false);
     const [horoscopeInitialLayer, setHoroscopeInitialLayer] = useState<HoroscopeLayer>('sign');
     const [, setHoroscopeBackground] = useState<{
         sign: string | null;
@@ -166,15 +151,8 @@ const App: React.FC = () => {
     const dashboardScrollRef = useRef<HTMLDivElement | null>(null);
     const appScrollRef = useRef<HTMLDivElement | null>(null);
     const [initialTodaySection, setInitialTodaySection] = useState<string | null>(null);
-    const [initialStoryCardId, setInitialStoryCardId] = useState<NatalStoryCardId | null>(null);
     const viewRef = useRef<ViewState>('onboarding');
     const navigationHistoryRef = useRef<ViewState[]>([]);
-
-    useEffect(() => {
-        if (view !== 'chart' && isNatalViewerOpen) {
-            setIsNatalViewerOpen(false);
-        }
-    }, [isNatalViewerOpen, view]);
 
     const getFallbackAdminStatus = useCallback((userId?: string | number, storedIsAdmin?: boolean) => {
         return OWNER_ID && userId ? String(userId) === String(OWNER_ID) : !!storedIsAdmin;
@@ -405,9 +383,7 @@ const App: React.FC = () => {
         const loadData = async () => {
             console.log('[App] === LOADING USER DATA ===');
             setLoadingProgress(10);
-            const requestedStoryCard = getRequestedStoryCardFromLaunch();
-            requestedViewRef.current = getRequestedViewFromQuery() || (requestedStoryCard ? 'chart' : null);
-            setInitialStoryCardId(requestedStoryCard);
+            requestedViewRef.current = getRequestedViewFromQuery();
             notificationLaunchRef.current = getNotificationLaunchParams();
             setInitialTodaySection(notificationLaunchRef.current?.section || null);
             
@@ -879,11 +855,6 @@ const App: React.FC = () => {
                 setChartData(primaryChartDataRef.current);
             }
             setChartReturnView(currentView === 'chart' ? 'dashboard' : currentView);
-            setChartOpenMode('human');
-            setInitialStoryCardId(null);
-            setIsNatalViewerOpen(false);
-        } else {
-            setIsNatalViewerOpen(false);
         }
 
         setView(newView);
@@ -983,11 +954,6 @@ const App: React.FC = () => {
     const openBottomToday = useCallback(() => {
         setInitialTodaySection(null);
         navigateTo('dashboard', { replace: true });
-    }, [navigateTo]);
-
-    const openTodaySectionFromChart = useCallback((section: 'pulse' | 'checkin') => {
-        setInitialTodaySection(section);
-        navigateTo('dashboard');
     }, [navigateTo]);
 
     const openBottomNatal = useCallback(() => {
@@ -1102,7 +1068,6 @@ const App: React.FC = () => {
                             initialLayer={horoscopeInitialLayer}
                             onUpdateProfile={handleProfileUpdate}
                             onOpenChart={() => {
-                                setChartOpenMode('human');
                                 navigateTo('chart');
                             }}
                             onRequestPremium={requestPremium}
@@ -1123,15 +1088,7 @@ const App: React.FC = () => {
                             requestPremium={requestPremium}
                             onOpenWallet={() => openWallet('chart')}
                             onUpdateProfile={handleProfileUpdate}
-                            onOpenTodaySection={openTodaySectionFromChart}
-                            onBack={() => {
-                                void handleBack();
-                            }}
-                            onViewerOpenChange={setIsNatalViewerOpen}
-                            initialStoryCardId={initialStoryCardId}
                             preloadedReport={activeChartId ? null : preloadedHumanReport}
-                            dictionaryOpenSignal={dictionaryOpenSignal}
-                            initialMode={chartOpenMode}
                         />
                     </div>
                 ) : view === 'settings' ? (
@@ -1178,9 +1135,6 @@ const App: React.FC = () => {
                                 setChartData(chartData);
                                 setActiveChartId(chartId);
                                 setChartReturnView('charts');
-                                setChartOpenMode('human');
-                                setInitialStoryCardId(null);
-                                setIsNatalViewerOpen(false);
                                 pushReturnView(viewRef.current);
                                 setView('chart');
                             }}
@@ -1210,7 +1164,7 @@ const App: React.FC = () => {
                 )}
             </main>
 
-            {profile && !(view === 'chart' && isNatalViewerOpen) ? (
+            {profile ? (
                 <LumiaBottomTabBar
                     profile={profile}
                     view={view}

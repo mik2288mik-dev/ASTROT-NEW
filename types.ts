@@ -797,24 +797,6 @@ export interface PlanetInsight {
   tags: PlanetInsightTag[];
 }
 
-export type WheelInsightEntityType = 'planet' | 'zodiac' | 'aspect' | 'house';
-
-export interface WheelInsightLegendItem {
-  id: string;
-  label: string;
-  color?: string;
-}
-
-export interface WheelInsight {
-  entityType: WheelInsightEntityType;
-  entityId: string;
-  title: string;
-  subtitle: string;
-  body: string;
-  tags: PlanetInsightTag[];
-  legend?: WheelInsightLegendItem[];
-}
-
 export interface WeeklyHoroscope {
   weekRange: string;
   theme: string;
@@ -836,7 +818,6 @@ export type ContentVariant =
   | 'anchor'
   | 'living'
   | 'planet_insight'
-  | 'wheel_insight'
   | 'daily'
   | 'morning'
   | 'day'
@@ -1423,8 +1404,6 @@ export interface LumiWalletData {
 }
 
 export type ViewState = 'onboarding' | 'hook' | 'paywall' | 'dashboard' | 'chart' | 'horoscope' | 'synastry' | 'oracle' | 'settings' | 'admin' | 'charts' | 'wallet';
-
-export type NatalChartMode = 'human' | 'wheel';
 
 // Cached text types
 export interface CachedText<T = any> {

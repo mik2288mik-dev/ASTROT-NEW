@@ -9,7 +9,7 @@ import {
   resolvePlanetInsightRequest,
 } from '../../../../lib/planetInsights';
 import { buildPlanetInsight } from '../../../../lib/planetInsightContent';
-import { type NatalPlanetKey } from '../../../../lib/natalWheel';
+import { type NatalPlanetKey } from '../../../../lib/natalPlanetMeta';
 
 function toProfile(user: any, fallback?: Partial<UserProfile>): UserProfile {
   return {

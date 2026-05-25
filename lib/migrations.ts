@@ -833,7 +833,7 @@ async function lumia009ContentArchitecture(pool: Pool): Promise<void> {
       CONSTRAINT content_interpretations_scope CHECK ((chart_id IS NOT NULL) OR (user_id IS NOT NULL)),
       CONSTRAINT content_interpretations_access_tier CHECK (access_tier IN ('free', 'premium', 'lumi')),
       CONSTRAINT content_interpretations_surface CHECK (content_surface IN ('natal', 'forecast', 'synastry', 'question')),
-      CONSTRAINT content_interpretations_variant CHECK (content_variant IN ('anchor', 'living', 'planet_insight', 'wheel_insight', 'daily', 'morning', 'day', 'evening', 'weekly', 'monthly', 'brief', 'full', 'one_off')),
+      CONSTRAINT content_interpretations_variant CHECK (content_variant IN ('anchor', 'living', 'planet_insight', 'daily', 'morning', 'day', 'evening', 'weekly', 'monthly', 'brief', 'full', 'one_off')),
       CONSTRAINT content_interpretations_model CHECK (model_tier IN ('base', 'premium'))
     )
   `);
@@ -859,7 +859,7 @@ async function lumia009ContentArchitecture(pool: Pool): Promise<void> {
       revoked_at TIMESTAMP,
       CONSTRAINT content_unlocks_access_tier CHECK (access_tier IN ('free', 'premium', 'lumi')),
       CONSTRAINT content_unlocks_surface CHECK (content_surface IN ('natal', 'forecast', 'synastry', 'question')),
-      CONSTRAINT content_unlocks_variant CHECK (content_variant IN ('anchor', 'living', 'planet_insight', 'wheel_insight', 'daily', 'morning', 'day', 'evening', 'weekly', 'monthly', 'brief', 'full', 'one_off')),
+      CONSTRAINT content_unlocks_variant CHECK (content_variant IN ('anchor', 'living', 'planet_insight', 'daily', 'morning', 'day', 'evening', 'weekly', 'monthly', 'brief', 'full', 'one_off')),
       CONSTRAINT content_unlocks_type CHECK (unlock_type IN ('free', 'premium', 'lumi'))
     )
   `);
@@ -1036,40 +1036,6 @@ async function lumia014PlanetInsightVariant(pool: Pool): Promise<void> {
 
   await markMigrationApplied(pool, migrationName);
   log.info('Migration lumia_014_planet_insight_variant applied');
-}
-
-async function lumia015WheelInsightVariant(pool: Pool): Promise<void> {
-  const migrationName = 'lumia_015_wheel_insight_variant';
-
-  if (await isMigrationApplied(pool, migrationName)) {
-    log.info(`Migration ${migrationName} already applied, skipping`);
-    return;
-  }
-
-  log.info('Applying wheel insight content variant migration...');
-
-  await pool.query(`
-    ALTER TABLE content_interpretations
-      DROP CONSTRAINT IF EXISTS content_interpretations_variant
-  `);
-  await pool.query(`
-    ALTER TABLE content_interpretations
-      ADD CONSTRAINT content_interpretations_variant
-      CHECK (content_variant IN ('anchor', 'living', 'planet_insight', 'wheel_insight', 'daily', 'morning', 'day', 'evening', 'weekly', 'monthly', 'brief', 'full', 'one_off'))
-  `);
-
-  await pool.query(`
-    ALTER TABLE content_unlocks
-      DROP CONSTRAINT IF EXISTS content_unlocks_variant
-  `);
-  await pool.query(`
-    ALTER TABLE content_unlocks
-      ADD CONSTRAINT content_unlocks_variant
-      CHECK (content_variant IN ('anchor', 'living', 'planet_insight', 'wheel_insight', 'daily', 'morning', 'day', 'evening', 'weekly', 'monthly', 'brief', 'full', 'one_off'))
-  `);
-
-  await markMigrationApplied(pool, migrationName);
-  log.info('Migration lumia_015_wheel_insight_variant applied');
 }
 
 async function lumia016NatalContentUnification(pool: Pool): Promise<void> {
@@ -1941,7 +1907,6 @@ export async function runMigrations(): Promise<void> {
   await lumia012DailyLumiTasks(pool);
   await lumia013CanonicalNatalPersistence(pool);
   await lumia014PlanetInsightVariant(pool);
-  await lumia015WheelInsightVariant(pool);
   await lumia016NatalContentUnification(pool);
   await lumia017NatalHumanReadingV4Archive(pool);
   await lumia018NotificationFrequencyPreference(pool);

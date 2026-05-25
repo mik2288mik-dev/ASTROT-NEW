@@ -8,7 +8,6 @@ import { db } from './db';
 import {
   DEFAULT_INTERPRETATION_MODEL,
   DEFAULT_PREMIUM_INTERPRETATION_MODEL,
-  DEFAULT_WHEEL_INSIGHT_MODEL,
   getInterpretationModelFromEnv,
   INTERPRETATION_MODEL_SETTING_KEY,
   normalizeInterpretationModelId,
@@ -57,7 +56,7 @@ export type OpenAIContentModelAssignment = {
 };
 
 function getConfiguredEnvModel(
-  key: 'OPENAI_BASE_MODEL' | 'OPENAI_FREE_MODEL' | 'OPENAI_PREMIUM_MODEL' | 'OPENAI_WHEEL_INSIGHT_MODEL'
+  key: 'OPENAI_BASE_MODEL' | 'OPENAI_FREE_MODEL' | 'OPENAI_PREMIUM_MODEL'
 ): string | null {
   return normalizeInterpretationModelId(process.env[key]);
 }
@@ -69,7 +68,6 @@ export async function getOpenAIModelForContent(
   const isNatalAnchor = options.contentSurface === 'natal' && options.contentVariant === 'anchor';
   const isNatalLiving = options.contentSurface === 'natal' && options.contentVariant === 'living';
   const isNatalFull = options.contentSurface === 'natal' && options.contentVariant === 'full';
-  const isWheelInsight = options.contentSurface === 'natal' && options.contentVariant === 'wheel_insight';
   const premiumModel =
     getConfiguredEnvModel('OPENAI_PREMIUM_MODEL') ||
     (isNatalFull || sharedModel === DEFAULT_INTERPRETATION_MODEL
@@ -81,13 +79,6 @@ export async function getOpenAIModelForContent(
     sharedModel ||
     getConfiguredEnvModel('OPENAI_BASE_MODEL') ||
     premiumModel;
-
-  if (isWheelInsight) {
-    return {
-      model: getConfiguredEnvModel('OPENAI_WHEEL_INSIGHT_MODEL') || DEFAULT_WHEEL_INSIGHT_MODEL,
-      modelTier: 'premium',
-    };
-  }
 
   if (options.accessTier === 'premium') {
     if (isNatalLiving) {
