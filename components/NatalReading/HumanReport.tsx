@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ChevronDown, Crown, Lock, Sparkles, WalletCards, X } from 'lucide-react';
+import { ChevronDown, Crown, Lock, WalletCards, X } from 'lucide-react';
 import type {
   InterpretationSection,
   NatalChartData,
@@ -8,7 +8,6 @@ import type {
 } from '../../types';
 import {
   HUMAN_DAILY_LUMI_COST,
-  HUMAN_DAILY_SECTION_KEYS,
   HUMAN_DAILY_SECTION_META,
   HUMAN_FREE_SECTION_KEYS,
   HUMAN_PAID_LUMI_COST,
@@ -21,12 +20,12 @@ import { getMoscowTodayKey } from '../../lib/date-utils';
 import {
   getHumanBaseReportCached,
   loadHumanBaseReport,
+  loadHumanDailyPreview,
   loadHumanDailySection,
   loadHumanPaidSection,
   type HumanReadingError,
 } from '../../services/natalReadingService';
 import { PlanetIcon } from '../icons/PlanetIcon';
-import { getNatalReadingBackground } from '../../lib/visualBackgrounds';
 import { FormattedAiText } from '../ui/FormattedAiText';
 
 type Props = {
@@ -36,6 +35,7 @@ type Props = {
   requestPremium: () => void;
   onOpenWallet?: () => void;
   onUpdateProfile?: (profile: UserProfile) => void;
+  onOpenTodaySection?: (section: 'pulse' | 'checkin') => void;
   preloadedReport?: NatalInterpretationReport | null;
 };
 
@@ -69,6 +69,40 @@ const PLANET_LABELS: Array<{ key: keyof NatalChartData; label: string; icon: str
   { key: 'rising', label: 'Асцендент', icon: 'asc' },
 ];
 
+const DAILY_OVERVIEW_KEY: HumanDailySectionKey = 'daily_overview';
+const DAILY_DEPTH_KEYS: Array<{ key: HumanDailySectionKey; title: string; subtitle: string; lockedLabel: string }> = [
+  {
+    key: 'daily_work_business',
+    title: 'Работа и деньги',
+    subtitle: 'Что сегодня делать с задачами, сроками и покупками.',
+    lockedLabel: 'Открыть тему',
+  },
+  {
+    key: 'daily_love',
+    title: 'Отношения',
+    subtitle: 'Как говорить с близкими и где не додумывать за другого.',
+    lockedLabel: 'Разобрать отношения',
+  },
+  {
+    key: 'daily_goals',
+    title: 'Решения',
+    subtitle: 'Какой выбор сегодня лучше упростить до конкретного шага.',
+    lockedLabel: 'Посмотреть решения',
+  },
+  {
+    key: 'daily_risks',
+    title: 'Где быть аккуратнее',
+    subtitle: 'Что сегодня может сбить с толку или заставить спешить.',
+    lockedLabel: 'Посмотреть риски',
+  },
+  {
+    key: 'daily_best_action',
+    title: 'Что сделать сегодня',
+    subtitle: 'Один понятный шаг, который даст больше всего пользы.',
+    lockedLabel: 'Открыть шаг дня',
+  },
+];
+
 function ruSign(sign?: string | null): string {
   const value = String(sign || '').trim();
   return SIGN_RU[value] || value || 'знак не определен';
@@ -92,7 +126,7 @@ function formatError(error: unknown): string {
 
 const SectionText: React.FC<{ section: InterpretationSection }> = ({ section }) => (
   <section data-reading-section-key={section.key} className="border-t border-[#eeeeee] py-8 first:border-t-0 sm:py-10">
-    <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8c6bb1]">
+    <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#777]">
       {section.subtitle || section.title}
     </p>
     <h3 className="mt-2 font-sans text-[26px] font-semibold leading-[1.08] tracking-[-0.02em] text-[#1f1f1f] sm:text-[30px]">
@@ -107,7 +141,7 @@ const SectionText: React.FC<{ section: InterpretationSection }> = ({ section }) 
       />
     </div>
     {section.bullets?.length ? (
-      <ul className="mt-6 space-y-3 border-l-2 border-[#d8c18a] pl-4">
+      <ul className="mt-6 space-y-3 border-l-2 border-[#dddddd] pl-4">
         {section.bullets.map((item, index) => (
           <li key={`${section.key}-${index}`} className="font-sans text-[14.5px] leading-relaxed text-[#3a3a3a]">
             {item}
@@ -148,14 +182,13 @@ const LockedPreview: React.FC<{
           <span className="mt-2 block font-sans text-[14px] leading-relaxed text-[#626262]">{meta.teaser}</span>
           <span className="relative mt-4 block max-h-[4.8rem] overflow-hidden rounded-[18px] bg-[#fafafa] px-4 py-3">
             <span className="block select-none font-sans text-[14px] leading-[1.65] text-[#2f2f2f] blur-[2.5px]">
-              В полном разборе здесь будет личный текст о том, как эта тема проявляется именно в вашей карте:
-              где сила, что может мешать и как с этим обращаться без давления на себя.
+              В полном разборе здесь будет личный текст о том, как эта тема видна в жизни:
+              где она помогает, что может мешать и что делать в обычных ситуациях.
             </span>
             <span className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/10 via-white/45 to-white" />
           </span>
           <span className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#1f1f1f] px-4 py-2 text-[13px] font-medium text-white">
-            <Sparkles size={14} strokeWidth={2} />
-            {isLoading ? 'Готовим раздел...' : 'Прочитать все о себе'}
+            {isLoading ? 'Готовим раздел...' : 'Открыть полный разбор'}
           </span>
         </span>
       </div>
@@ -168,9 +201,14 @@ const DailySectionButton: React.FC<{
   isPremium: boolean;
   isLoading: boolean;
   opened?: InterpretationSection;
+  title?: string;
+  subtitle?: string;
+  lockedLabel?: string;
+  error?: string | null;
   onOpen: () => void;
-}> = ({ sectionKey, isPremium, isLoading, opened, onOpen }) => {
+}> = ({ sectionKey, isPremium, isLoading, opened, title, subtitle, lockedLabel, error, onOpen }) => {
   const meta = HUMAN_DAILY_SECTION_META[sectionKey];
+  const isPreview = sectionKey === DAILY_OVERVIEW_KEY;
   return (
     <div className="border-t border-[#eeeeee] py-5">
       <button
@@ -181,14 +219,14 @@ const DailySectionButton: React.FC<{
       >
         <span className="min-w-0">
           <span className="block font-sans text-[17px] font-semibold leading-tight tracking-[-0.01em] text-[#1f1f1f]">
-            {meta.title}
+            {title || meta.title}
           </span>
           <span className="mt-1.5 block font-sans text-[13.5px] leading-relaxed text-[#666]">
-            {opened ? opened.subtitle || meta.subtitle : meta.teaser}
+            {opened ? opened.subtitle || subtitle || meta.subtitle : subtitle || meta.teaser}
           </span>
         </span>
         <span className="mt-1 shrink-0 rounded-full bg-[#f7f5fb] px-3 py-1 text-[12px] text-[#6f4ea8]">
-          {isLoading ? '...' : isPremium ? 'Открыть' : 'Premium'}
+          {isLoading ? '...' : isPreview ? 'Бесплатно' : isPremium ? 'Открыть' : lockedLabel || 'Premium'}
         </span>
       </button>
       {opened ? (
@@ -208,6 +246,11 @@ const DailySectionButton: React.FC<{
             </div>
           ) : null}
         </div>
+      ) : null}
+      {error ? (
+        <p className="mt-3 rounded-[16px] bg-[#fff6f6] px-3 py-2 text-[12.5px] leading-relaxed text-[#a64d4d]">
+          {error}
+        </p>
       ) : null}
     </div>
   );
@@ -311,7 +354,7 @@ const NatalDailyUnlockSheet: React.FC<{
           <X size={17} strokeWidth={2} />
         </button>
 
-        <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8c6bb1]">Ежедневная интерпретация</p>
+        <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#777]">Карта сегодня</p>
         <h3 className="mt-2 max-w-[18rem] font-sans text-[24px] font-semibold leading-[1.08] tracking-[-0.02em] text-[#1f1f1f]">
           {meta.title}
         </h3>
@@ -350,7 +393,7 @@ const NatalDailyUnlockSheet: React.FC<{
           )}
         </div>
         <p className="mt-3 text-center font-sans text-[12.5px] leading-relaxed text-[#777]">
-          На балансе {balance} Lumi. Ежедневный слой обновляется каждый день.
+          На балансе {balance} Lumi. Дневной разбор обновляется каждый день.
         </p>
       </div>
     </div>
@@ -373,7 +416,7 @@ const TechnicalDetails: React.FC<{ chartData: NatalChartData }> = ({ chartData }
   return (
     <details className="border-t border-[#eeeeee] py-6">
       <summary className="flex cursor-pointer list-none items-center justify-between text-[13px] font-medium text-[#3a3a3a]">
-        <span>Подробные положения планет</span>
+        <span>Почему так по карте?</span>
         <ChevronDown size={16} strokeWidth={1.7} />
       </summary>
       <ul className="mt-4 divide-y divide-[#f3f3f3]">
@@ -400,6 +443,7 @@ export const HumanReport: React.FC<Props> = ({
   requestPremium,
   onOpenWallet,
   onUpdateProfile,
+  onOpenTodaySection,
   preloadedReport,
 }) => {
   const [report, setReport] = useState<NatalInterpretationReport | null>(preloadedReport || null);
@@ -410,12 +454,14 @@ export const HumanReport: React.FC<Props> = ({
   const [paidLoading, setPaidLoading] = useState<HumanPaidSectionKey | null>(null);
   const [dailyLoading, setDailyLoading] = useState<HumanDailySectionKey | null>(null);
   const [sectionError, setSectionError] = useState<string | null>(null);
+  const [dailyErrors, setDailyErrors] = useState<Partial<Record<HumanDailySectionKey, string>>>({});
   const [unlockTarget, setUnlockTarget] = useState<HumanPaidSectionKey | null>(null);
   const [unlockDailyTarget, setUnlockDailyTarget] = useState<HumanDailySectionKey | null>(null);
 
   const userId = profile.id ? String(profile.id) : '';
   const isPremium = !!profile.isPremium;
   const todayKey = useMemo(() => getMoscowTodayKey(), []);
+  const todayCtaSection = useMemo<'pulse' | 'checkin'>(() => (new Date().getHours() >= 18 ? 'checkin' : 'pulse'), []);
   const visibleFreeKeys = useMemo(() => new Set<string>(HUMAN_FREE_SECTION_KEYS), []);
   const visibleFreeSections = useMemo(
     () => (report?.freeSections || []).filter((section) => visibleFreeKeys.has(section.key)),
@@ -458,6 +504,30 @@ export const HumanReport: React.FC<Props> = ({
     };
   }, [chartId, preloadedReport, userId]);
 
+  useEffect(() => {
+    if (!userId || !report || dailySections[DAILY_OVERVIEW_KEY] || dailyErrors[DAILY_OVERVIEW_KEY] || dailyLoading) return;
+    let cancelled = false;
+    setDailyLoading(DAILY_OVERVIEW_KEY);
+    setDailyErrors((current) => ({ ...current, [DAILY_OVERVIEW_KEY]: undefined }));
+    loadHumanDailyPreview(userId, chartId, todayKey)
+      .then((result) => {
+        if (!cancelled) {
+          setDailySections((current) => ({ ...current, [DAILY_OVERVIEW_KEY]: result.content }));
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setDailyErrors((current) => ({ ...current, [DAILY_OVERVIEW_KEY]: formatError(err) }));
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setDailyLoading(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [chartId, dailyErrors, dailyLoading, dailySections, report, todayKey, userId]);
+
   const openPaidSection = async (key: HumanPaidSectionKey, allowLumiSpend: boolean) => {
     if (!userId || paidLoading) return;
     setSectionError(null);
@@ -489,6 +559,10 @@ export const HumanReport: React.FC<Props> = ({
   };
 
   const handleOpenDaily = (key: HumanDailySectionKey) => {
+    if (key === DAILY_OVERVIEW_KEY) {
+      void openDailyPaidSection(key, false);
+      return;
+    }
     if (isPremium) {
       void openDailyPaidSection(key, false);
       return;
@@ -500,6 +574,7 @@ export const HumanReport: React.FC<Props> = ({
   const openDailyPaidSection = async (key: HumanDailySectionKey, allowLumiSpend: boolean) => {
     if (!userId || dailyLoading) return;
     setSectionError(null);
+    setDailyErrors((current) => ({ ...current, [key]: undefined }));
     setDailyLoading(key);
     try {
       const result = await loadHumanDailySection(userId, key, chartId, todayKey, {
@@ -512,7 +587,7 @@ export const HumanReport: React.FC<Props> = ({
       }
       setUnlockDailyTarget(null);
     } catch (err) {
-      setSectionError(formatError(err));
+      setDailyErrors((current) => ({ ...current, [key]: formatError(err) }));
     } finally {
       setDailyLoading(null);
     }
@@ -555,25 +630,17 @@ export const HumanReport: React.FC<Props> = ({
   }
 
   return (
-    <article className="relative bg-white pb-16 pt-6">
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 h-[24rem] bg-cover bg-center"
-        style={{
-          backgroundImage: `linear-gradient(180deg, rgba(255,255,255,0.74) 0%, rgba(255,255,255,0.94) 50%, #fff 100%), url(${getNatalReadingBackground('base_portrait')})`,
-        }}
-      />
-
+    <article className="relative bg-white pb-16 pt-2">
       <div className="relative z-10 mx-auto w-full max-w-reading-wide px-5">
-        <header className="pb-8">
-          <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8c6bb1]">
-            Натальная карта
+        <header className="border-b border-[#eeeeee] pb-8">
+          <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#777]">
+            Общая натальная карта
           </p>
           <h1 className="mt-3 font-sans text-[36px] font-semibold leading-[1.02] tracking-[-0.035em] text-[#1f1f1f] sm:text-[44px]">
-            {report.userName}, главный портрет
+            {report.userName}, твой разбор
           </h1>
           <p className="mt-4 max-w-[36rem] font-sans text-[15px] leading-relaxed text-[#666]">
-            Разбор основан на расчетах по дате, времени и месту рождения. В бесплатной версии открыт общий слой, а подробные темы можно открыть через Premium или Lumi.
+            Разбор построен по дате, времени и месту рождения. Сначала показываем понятные выводы, а технические детали можно открыть ниже в блоке «Почему так по карте».
           </p>
           <p className="mt-3 font-sans text-[12.5px] leading-relaxed text-[#888]">
             {report.birthData.birthDate}
@@ -581,9 +648,9 @@ export const HumanReport: React.FC<Props> = ({
             {report.birthData.birthPlace ? ` · ${report.birthData.birthPlace}` : ''}
           </p>
 
-          <div className="mt-7 border-l-2 border-[#d8c18a] pl-4">
-            <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8c6bb1]">
-              {report.shortCard.title || 'Главный вывод по карте'}
+          <div className="mt-7 rounded-[24px] border border-[#ededed] bg-white px-5 py-5 shadow-[0_12px_28px_rgba(0,0,0,0.035)]">
+            <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#777]">
+              Главный вывод
             </p>
             <p className="mt-3 font-sans text-[17px] leading-[1.75] text-[#2d2d2d] [text-wrap:pretty]">{report.shortCard.text}</p>
             <div className="mt-4 flex flex-wrap gap-2">
@@ -593,7 +660,7 @@ export const HumanReport: React.FC<Props> = ({
                 </span>
               ))}
             </div>
-            <p className="mt-4 font-sans text-[14px] italic leading-relaxed text-[#666]">{report.shortCard.advice}</p>
+            <p className="mt-4 rounded-[18px] bg-[#fafafa] px-4 py-3 font-sans text-[14px] leading-relaxed text-[#555]">{report.shortCard.advice}</p>
           </div>
         </header>
 
@@ -604,19 +671,14 @@ export const HumanReport: React.FC<Props> = ({
         </div>
 
         <section className="border-t border-[#eeeeee] py-9">
-          <div className="flex items-start gap-3">
-            <span className="mt-1 text-[#c9a55a]">
-              <Sparkles size={18} strokeWidth={1.8} />
-            </span>
-            <div>
-              <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8c6bb1]">Полный разбор</p>
-              <h2 className="mt-2 font-sans text-[28px] font-semibold leading-[1.08] tracking-[-0.02em] text-[#1f1f1f]">
-                Подробные темы полной карты
-              </h2>
-              <p className="mt-3 font-sans text-[14.5px] leading-relaxed text-[#5e5e5e]">
-                Здесь общий разбор переходит в конкретные сферы: отношения, работа, деньги, дом, общение, решения и повторяющиеся сценарии.
-              </p>
-            </div>
+          <div>
+            <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#777]">Полный разбор</p>
+            <h2 className="mt-2 font-sans text-[28px] font-semibold leading-[1.08] tracking-[-0.02em] text-[#1f1f1f]">
+              Темы, которые можно открыть отдельно
+            </h2>
+            <p className="mt-3 font-sans text-[14.5px] leading-relaxed text-[#5e5e5e]">
+              Бесплатная часть даёт общий разбор. В полной версии темы разбираются по сферам: отношения, работа, деньги, дом, общение, решения и повторяющиеся реакции.
+            </p>
           </div>
 
           <div className="mt-6">
@@ -633,33 +695,66 @@ export const HumanReport: React.FC<Props> = ({
         </section>
 
         <section className="border-t border-[#eeeeee] py-9">
-          <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8c6bb1]">Ежедневная интерпретация</p>
+          <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#777]">Карта сегодня</p>
           <h2 className="mt-2 font-sans text-[28px] font-semibold leading-[1.08] tracking-[-0.02em] text-[#1f1f1f]">Карта сегодня</h2>
           <p className="mt-3 font-sans text-[14.5px] leading-relaxed text-[#5e5e5e]">
-            Отдельный Premium-слой: как постоянная карта звучит на фоне сегодняшних расчетов, без обещаний и прямых указаний.
+            Это не общий гороскоп по знаку. Блок строится по твоей карте рождения и текущей дате: что сегодня важно, где не спешить и какой шаг сделать первым.
           </p>
 
-          <div className="mt-6">
-            {HUMAN_DAILY_SECTION_KEYS.map((key) => (
+          <div className="mt-6 rounded-[24px] border border-[#ededed] bg-white px-4 shadow-[0_12px_28px_rgba(0,0,0,0.035)]">
+            <DailySectionButton
+              sectionKey={DAILY_OVERVIEW_KEY}
+              title="Карта сегодня"
+              subtitle="Бесплатный короткий обзор дня по твоей карте."
+              isPremium={isPremium}
+              isLoading={dailyLoading === DAILY_OVERVIEW_KEY}
+              opened={dailySections[DAILY_OVERVIEW_KEY]}
+              error={dailyErrors[DAILY_OVERVIEW_KEY]}
+              onOpen={() => handleOpenDaily(DAILY_OVERVIEW_KEY)}
+            />
+          </div>
+
+          {onOpenTodaySection ? (
+            <button
+              type="button"
+              onClick={() => onOpenTodaySection(todayCtaSection)}
+              className="mt-4 w-full rounded-full border border-[#e8e8e8] bg-white px-5 py-3 text-[13px] font-semibold text-[#1f1f1f] shadow-[0_8px_20px_rgba(0,0,0,0.035)]"
+            >
+              {todayCtaSection === 'checkin' ? 'Отметить день' : 'Открыть пульс дня'}
+            </button>
+          ) : null}
+
+          <div className="mt-5 rounded-[24px] border border-[#ededed] bg-white px-4 shadow-[0_12px_28px_rgba(0,0,0,0.035)]">
+            {DAILY_DEPTH_KEYS.map((item) => (
               <DailySectionButton
-                key={key}
-                sectionKey={key}
+                key={item.key}
+                sectionKey={item.key}
+                title={item.title}
+                subtitle={item.subtitle}
+                lockedLabel={item.lockedLabel}
                 isPremium={isPremium}
-                isLoading={dailyLoading === key}
-                opened={dailySections[key]}
-                onOpen={() => handleOpenDaily(key)}
+                isLoading={dailyLoading === item.key}
+                opened={dailySections[item.key]}
+                error={dailyErrors[item.key]}
+                onOpen={() => handleOpenDaily(item.key)}
               />
             ))}
           </div>
 
           {!isPremium ? (
-            <button
-              type="button"
-              onClick={requestPremium}
-              className="mt-5 w-full rounded-full bg-[#1f1f1f] px-5 py-3 text-[13px] font-medium text-white"
-            >
-              Открыть Premium
-            </button>
+            <div className="mt-5 rounded-[24px] border border-[#ededed] bg-[#fafafa] px-5 py-5">
+              <p className="font-sans text-[16px] font-semibold tracking-[-0.01em] text-[#1f1f1f]">Нужен подробный дневной разбор?</p>
+              <p className="mt-2 font-sans text-[13.5px] leading-relaxed text-[#666]">
+                В Premium открываются отдельные темы дня: работа и деньги, отношения, решения, риски и лучший шаг.
+              </p>
+              <button
+                type="button"
+                onClick={requestPremium}
+                className="mt-4 w-full rounded-full bg-[#1f1f1f] px-5 py-3 text-[13px] font-medium text-white"
+              >
+                Открыть полный разбор
+              </button>
+            </div>
           ) : null}
         </section>
 

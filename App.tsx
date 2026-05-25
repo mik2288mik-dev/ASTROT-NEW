@@ -35,7 +35,7 @@ import { installTelegramFullscreenGuard } from './lib/telegramFullscreen';
 import { applyTelegramSafeAreaCssVars, subscribeTelegramContentSafeAreaChanges } from './lib/telegramSafeAreaInsets';
 import { useSwipeBack } from './lib/useSwipeBack';
 import { getMoscowTodayKey } from './lib/date-utils';
-import { getHoroscopeBackground, getSynastryBackground } from './lib/visualBackgrounds';
+import { getHoroscopeBackground } from './lib/visualBackgrounds';
 import { isValidUserId } from './lib/userId';
 import { LumiaDebugOverlay } from './components/lumia-ui/LumiaDebugOverlay';
 import { LumiaBottomTabBar } from './components/lumia-ui/LumiaBottomTabBar';
@@ -1042,9 +1042,7 @@ const App: React.FC = () => {
     const visualAppBackground =
         view === 'horoscope'
             ? getHoroscopeBackground(horoscopeBackground.sign || chartData?.sun?.sign)
-            : view === 'synastry'
-              ? getSynastryBackground(null)
-              : null;
+            : null;
     const horoscopeVisualLayer =
         horoscopeBackground.tone === 'love'
             ? `linear-gradient(180deg, rgba(255,248,250,0.08) 0%, rgba(255,238,244,0.16) 36%, rgba(255,246,249,0.36) 100%), url(${visualAppBackground})`

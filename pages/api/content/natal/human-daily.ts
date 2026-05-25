@@ -10,6 +10,7 @@ import {
 } from '../../../../lib/natalReading/apiHelper';
 import {
   buildHumanInputHash,
+  buildHumanDailyFallback,
   generateHumanDailySection,
 } from '../../../../lib/natalHumanInterpretation';
 import {
@@ -26,6 +27,10 @@ type ResolvedDailyAccess = {
   accessTier: Extract<ContentAccessTier, 'premium' | 'lumi'>;
   entitlement: Awaited<ReturnType<typeof getPremiumEntitlementState>>['entitlement'];
 };
+
+function isFreeDailyOverview(sectionKey: HumanDailySectionKey): boolean {
+  return sectionKey === 'daily_overview';
+}
 
 function readSectionKey(req: NextApiRequest): HumanDailySectionKey | null {
   const raw = (req.method === 'GET' ? req.query.sectionKey : req.body?.sectionKey) as string | undefined;
@@ -102,8 +107,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   });
   const window = getMoscowDayWindow(dateKey);
   let access = await resolveDailyAccess(userId, ctx.chartId, cacheKey);
+  const freeDailyOverview = isFreeDailyOverview(sectionKey);
 
-  if (req.method === 'GET' && !access) {
+  if (req.method === 'GET' && !access && !freeDailyOverview) {
     return res.status(403).json({
       error: 'HUMAN_DAILY_LOCKED',
       code: 'HUMAN_DAILY_LOCKED',
@@ -114,7 +120,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
-  if (!access) {
+  if (!access && !freeDailyOverview) {
     const requestedAccessTier = req.body?.accessTier === 'lumi' ? 'lumi' : 'premium';
     const allowLumiSpend = Boolean(req.body?.allowLumiSpend);
 
@@ -154,7 +160,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     access = await resolveDailyAccess(userId, ctx.chartId, cacheKey);
   }
 
-  if (!access) {
+  if (!access && !freeDailyOverview) {
     return res.status(500).json({
       error: 'HUMAN_DAILY_UNLOCK_FAILED',
       code: 'HUMAN_DAILY_UNLOCK_FAILED',
@@ -162,8 +168,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
+  const responseAccessTier = freeDailyOverview && !access ? 'free_preview' : access!.accessTier;
+  const cacheAccessTier: ContentAccessTier = freeDailyOverview ? 'free' : access!.accessTier;
+
   const cacheOpts = {
-    accessTier: access.accessTier,
+    accessTier: cacheAccessTier,
     contentVariant: 'living' as const,
     cacheKey,
     inputHash,
@@ -182,8 +191,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({
       interpretation: cached,
       source: 'human_v2',
-      entitlement: access.entitlement,
-      accessTier: access.accessTier,
+      entitlement: access?.entitlement ?? null,
+      accessTier: responseAccessTier,
+      isPreview: freeDailyOverview,
       lumiBalance: ctx.user.lumi_balance ?? 0,
     });
   }
@@ -192,8 +202,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({
       interpretation: cached,
       source: 'human_v2',
-      entitlement: access.entitlement,
-      accessTier: access.accessTier,
+      entitlement: access?.entitlement ?? null,
+      accessTier: responseAccessTier,
+      isPreview: freeDailyOverview,
       lumiBalance: ctx.user.lumi_balance ?? 0,
     });
   }
@@ -205,17 +216,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({
       interpretation: saved,
       source: 'generated',
-      entitlement: access.entitlement,
-      accessTier: access.accessTier,
+      entitlement: access?.entitlement ?? null,
+      accessTier: responseAccessTier,
+      isPreview: freeDailyOverview,
       lumiBalance,
     });
   } catch (error) {
     console.error(`[natal/human-daily:${sectionKey}] generation failed:`, error instanceof Error ? error.message : error);
-    return res.status(503).json({
-      error: 'CONTENT_GENERATION_UNAVAILABLE',
-      code: 'CONTENT_GENERATION_UNAVAILABLE',
-      message: 'Этот слой сейчас не удалось сгенерировать. Попробуй ещё раз.',
-      lumiBalance: ctx.user.lumi_balance ?? 0,
+    const fallback = buildHumanDailyFallback(ctx.profile, ctx.chartData!, sectionKey, dateKey);
+    const saved = await saveReading(
+      ctx,
+      { ...cacheOpts, isPersistent: false, validTo: window.validTo ?? new Date(Date.now() + 6 * 60 * 60 * 1000) },
+      fallback
+    ).catch(() => null);
+    const lumiBalance = await db.lumi_transactions.getBalance(userId);
+    return res.status(200).json({
+      interpretation: saved || { content: fallback, promptVersion: cacheOpts.promptVersion },
+      source: saved ? 'fallback' : 'fallback-inline',
+      entitlement: access?.entitlement ?? null,
+      accessTier: responseAccessTier,
+      isPreview: freeDailyOverview,
+      lumiBalance,
     });
   }
 }
