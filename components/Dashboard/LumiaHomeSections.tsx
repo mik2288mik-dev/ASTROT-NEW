@@ -1,12 +1,18 @@
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import {
   ArrowRight,
+  CalendarDays,
   Check,
   Clock3,
+  Compass,
   MessageCircle,
+  Heart,
+  Layers3,
   Lock,
+  Map as MapIcon,
   Moon,
   PiggyBank,
+  Repeat2,
   ShoppingBag,
   Sparkles,
   Users,
@@ -35,6 +41,16 @@ import {
   LUMIA_HOME_PREVIEW_ITEMS,
   type LumiaHomeLanguage,
 } from './lumiaHomeContent';
+
+export type LumiaHomeAction =
+  | 'daily_card'
+  | 'natal'
+  | 'assistant'
+  | 'synastry'
+  | 'love'
+  | 'money'
+  | 'work'
+  | 'rhythm';
 
 export function LumiaHomeHeroCard({
   language,
@@ -83,6 +99,307 @@ export function LumiaHomeHeroCard({
         </LumiaHomePrimaryButton>
       </div>
     </LumiaHomeLargeCard>
+  );
+}
+
+function getHomeSectionText(language: LumiaHomeLanguage) {
+  if (language === 'en') {
+    return {
+      dailyHero: {
+        kicker: 'Today by your chart',
+        title: 'Today by your chart',
+        loading: 'Building your personal day summary...',
+        fallback: 'A short personal day summary: what to do, where to slow down, and what to check in the evening.',
+        windowLabel: 'Best window',
+        button: 'Open reading',
+      },
+      quickTitle: 'Quick actions',
+      quickSubtitle: 'Choose a section and go straight to the right action.',
+      forYouTitle: 'For you',
+      premiumLabel: 'Premium',
+      quickActions: {
+        daily_card: ['Day card', 'What to do today and where not to push', 'Open'],
+        natal: ['Natal chart', 'Character, relationships, and work in plain language', 'Open'],
+        assistant: ['Assistant', 'Write, buy, talk, work, or wait?', 'Ask'],
+        synastry: ['Union', 'See how you match with another person', 'Check'],
+        love: ['Love', 'What matters in relationships today', 'Open'],
+        money: ['Money', 'Where not to buy on impulse', 'Open'],
+        work: ['Work', 'A better window for focused tasks', 'Open'],
+        rhythm: ['Personal rhythm', 'Evening check-in and repeated patterns', 'Mark'],
+      },
+      forYou: {
+        full_map: ['Full chart', 'Relationships, money, work, decisions, and repeated patterns'],
+        week: ['Week card', 'Main topics, stronger days, and careful days'],
+        relations: ['Full relationship chart', 'Where contact is easy and where conflicts repeat'],
+        money_work: ['Money and work deeper', 'How to choose tasks and spending moments'],
+        patterns: ['Repeating patterns', 'What you tend to repeat and how to change it'],
+        synastry: ['Synastry', 'A comparison of two charts in normal language'],
+      },
+    } as const;
+  }
+
+  return {
+    dailyHero: {
+      kicker: 'Сегодня по твоей карте',
+      title: 'Сегодня по твоей карте',
+      loading: 'Собираем персональный разбор дня...',
+      fallback: 'Короткий разбор дня: что лучше делать, где не давить и что проверить вечером.',
+      windowLabel: 'Лучшее окно',
+      button: 'Открыть разбор',
+    },
+    quickTitle: 'Быстрые действия',
+    quickSubtitle: 'Выбери раздел и сразу переходи к нужному действию.',
+    forYouTitle: 'Для тебя',
+    premiumLabel: 'Premium',
+    quickActions: {
+      daily_card: ['Карта дня', 'Что сегодня лучше делать, а где не давить', 'Открыть'],
+      natal: ['Натальная карта', 'Разбор характера, отношений и работы простым языком', 'Открыть'],
+      assistant: ['Личный помощник', 'Написать, купить, поговорить или подождать?', 'Спросить'],
+      synastry: ['Союз', 'Посмотри, как вы совпадаете', 'Проверить'],
+      love: ['Любовь', 'Что сегодня важно в отношениях', 'Открыть'],
+      money: ['Деньги', 'Где лучше не покупать на эмоциях', 'Открыть'],
+      work: ['Работа', 'Лучшее окно для фокуса', 'Открыть'],
+      rhythm: ['Личный ритм', 'Вечерняя отметка и личные повторения', 'Отметить'],
+    },
+    forYou: {
+      full_map: ['Полная карта', 'Отношения, деньги, работа, решения и повторяющиеся сценарии'],
+      week: ['Карта недели', 'Главные темы, сильные дни и осторожные дни'],
+      relations: ['Полная карта отношений', 'Где контакт проще и где чаще спорите'],
+      money_work: ['Деньги и работа глубже', 'Как выбирать задачи, покупки и моменты для решений'],
+      patterns: ['Повторяющиеся сценарии', 'Что ты часто повторяешь и как это менять'],
+      synastry: ['Синастрия', 'Сравнение двух карт нормальным языком'],
+    },
+  } as const;
+}
+
+function resolveHeroWindow(pulse: TodayPulse | null) {
+  if (!pulse) return null;
+  const target = pulse.peakPoint || pulse.currentPoint;
+  return formatWindowRange(target, pulse);
+}
+
+export function LumiaHomeDailyHeroCard({
+  language,
+  pulseResult,
+  isLoading,
+  onOpen,
+}: {
+  language: LumiaHomeLanguage;
+  pulseResult: TodayPulseResult | null;
+  isLoading: boolean;
+  onOpen: () => void;
+}) {
+  const copy = getHomeSectionText(language);
+  const pulse = pulseResult?.status === 'ready' ? pulseResult.pulse : null;
+  const title = copy.dailyHero.title;
+  const summary = pulse?.currentPoint?.summary || (isLoading ? copy.dailyHero.loading : copy.dailyHero.fallback);
+  const windowRange = resolveHeroWindow(pulse);
+  const dateLabel = pulse ? formatPulseDate(pulse.date, language) : copy.dailyHero.kicker;
+  const bestFor = pulse?.currentPoint?.bestFor?.slice(0, 2) || [];
+
+  return (
+    <LumiaHomeLargeCard className="min-h-[16.5rem] border border-[#30132d]/[0.055] bg-[linear-gradient(135deg,#ffffff_0%,#fff5dc_50%,#ffe8f1_100%)] px-4 py-4 text-[#30132d] shadow-[0_18px_42px_rgba(239,59,98,0.12)]">
+      <div className="absolute -right-14 -top-16 h-48 w-48 rounded-full bg-[#ff4f86]/18 blur-2xl" />
+      <div className="absolute right-3 top-5 h-28 w-28 rounded-[2rem] bg-[linear-gradient(145deg,#ff3f6e_0%,#ff8a00_58%,#ffe76a_100%)] opacity-95 shadow-[0_18px_42px_rgba(239,59,98,0.2)]" />
+      <div className="absolute right-8 top-10 h-16 w-16 rounded-full bg-white/62 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.72)]" />
+      <div className="absolute right-11 top-14 h-10 w-10 rounded-full border-[7px] border-[#30132d]/80 bg-transparent" />
+      <div className="absolute bottom-0 left-0 h-24 w-full bg-gradient-to-t from-white/50 to-transparent" />
+
+      <div className="relative z-10 flex min-h-[15rem] max-w-[19.4rem] flex-col justify-between">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="mb-0 font-lumiaHome text-[0.68rem] font-extrabold uppercase tracking-[0.08em] text-[#ef3b62]">
+              {copy.dailyHero.kicker}
+            </p>
+            <span className="rounded-full bg-white/74 px-2.5 py-1 font-lumiaHome text-[0.68rem] font-extrabold leading-none text-[#817982] shadow-[inset_0_0_0_1px_rgba(48,19,45,0.06)]">
+              {dateLabel}
+            </span>
+          </div>
+          <h1 className="mb-0 mt-3 max-w-[15.2rem] font-lumiaHomeDisplay text-[clamp(2rem,8vw,2.65rem)] font-extrabold leading-[0.94] tracking-normal text-[#30132d]">
+            {title}
+          </h1>
+          <p className="mb-0 mt-3 max-w-[17.8rem] font-lumiaHome text-[0.88rem] font-semibold leading-[1.36] text-[#4a444d]">
+            {summary}
+          </p>
+        </div>
+
+        <div className="mt-4">
+          {windowRange ? (
+            <span className="mb-2 inline-flex rounded-full bg-[#fff1c9] px-3 py-1.5 font-lumiaHome text-[0.76rem] font-extrabold text-[#7a3b08]">
+              {copy.dailyHero.windowLabel}: {windowRange}
+            </span>
+          ) : null}
+          {bestFor.length ? (
+            <div className="mb-3 flex flex-wrap gap-1.5">
+              {bestFor.map((item) => (
+                <span key={item} className="rounded-full bg-white/70 px-2.5 py-1 font-lumiaHome text-[0.7rem] font-extrabold text-[#2f7c4c]">
+                  {item}
+                </span>
+              ))}
+            </div>
+          ) : null}
+          <LumiaHomePrimaryButton onClick={onOpen} className="w-fit px-4 py-2.5 shadow-[0_12px_30px_rgba(90,47,88,0.2)]">
+            {copy.dailyHero.button}
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-lumiaHome-purple">
+              <ArrowRight size={18} strokeWidth={2.4} />
+            </span>
+          </LumiaHomePrimaryButton>
+        </div>
+      </div>
+    </LumiaHomeLargeCard>
+  );
+}
+
+type HomeActionConfig = {
+  id: LumiaHomeAction;
+  icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
+  tone: string;
+  premium?: boolean;
+};
+
+const QUICK_ACTION_CONFIG: HomeActionConfig[] = [
+  { id: 'daily_card', icon: CalendarDays, tone: 'from-[#fff5d7] via-[#ffe9bf] to-[#ffe8ef]' },
+  { id: 'natal', icon: MapIcon, tone: 'from-[#f7f3ff] via-[#efe9ff] to-[#ffeef6]' },
+  { id: 'assistant', icon: MessageCircle, tone: 'from-[#fffdf1] via-[#fff0c5] to-[#fff7df]' },
+  { id: 'synastry', icon: Users, tone: 'from-[#fff0f5] via-[#ffe1ec] to-[#fff4e6]' },
+  { id: 'love', icon: Heart, tone: 'from-[#fff1f6] via-[#ffe0eb] to-[#fff6fa]', premium: true },
+  { id: 'money', icon: PiggyBank, tone: 'from-[#f2fff7] via-[#dffff0] to-[#fff6d8]', premium: true },
+  { id: 'work', icon: Briefcase, tone: 'from-[#f2f7ff] via-[#e5eeff] to-[#fff4dd]', premium: true },
+  { id: 'rhythm', icon: Compass, tone: 'from-[#fff8e8] via-[#fff0d3] to-[#f3efff]' },
+];
+
+export function LumiaHomeQuickActionCards({
+  language,
+  isPremium,
+  onAction,
+}: {
+  language: LumiaHomeLanguage;
+  isPremium: boolean;
+  onAction: (action: LumiaHomeAction) => void;
+}) {
+  const copy = getHomeSectionText(language);
+
+  return (
+    <section className="-mx-[var(--lumia-home-page-x)] overflow-hidden">
+      <div className="mb-3 px-[var(--lumia-home-page-x)]">
+        <h2 className="mb-0 font-lumiaHomeDisplay text-[1.35rem] font-extrabold leading-tight text-[#30132d]">
+          {copy.quickTitle}
+        </h2>
+        <p className="mb-0 mt-1 font-lumiaHome text-[0.78rem] font-semibold leading-snug text-[#746c76]">
+          {copy.quickSubtitle}
+        </p>
+      </div>
+
+      <div className="scrollbar-hide flex gap-3 overflow-x-auto px-[var(--lumia-home-page-x)] pb-1">
+        {QUICK_ACTION_CONFIG.map((item) => {
+          const [title, body, cta] = copy.quickActions[item.id];
+          const Icon = item.icon;
+          const showPremium = item.premium && !isPremium;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => onAction(item.id)}
+              className={`relative flex min-h-[9.25rem] w-[10.65rem] min-w-[10.65rem] flex-col justify-between overflow-hidden rounded-[1.55rem] bg-gradient-to-br ${item.tone} p-3.5 text-left shadow-[0_14px_32px_rgba(48,19,45,0.08)] active:scale-[0.99]`}
+            >
+              <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-white/52 blur-xl" />
+              <div className="relative z-10 flex items-start justify-between gap-2">
+                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/74 text-[#30132d] shadow-[inset_0_0_0_1px_rgba(48,19,45,0.05)]">
+                  <Icon size={21} strokeWidth={2.25} />
+                </span>
+                {showPremium ? (
+                  <span className="rounded-full bg-white/68 px-2 py-1 font-lumiaHome text-[0.58rem] font-extrabold uppercase tracking-[0.04em] text-[#ef3b62]">
+                    {copy.premiumLabel}
+                  </span>
+                ) : null}
+              </div>
+              <div className="relative z-10 mt-4">
+                <h3 className="mb-0 font-lumiaHomeDisplay text-[1.13rem] font-extrabold leading-[1.02] text-[#30132d]">
+                  {title}
+                </h3>
+                <p className="mb-0 mt-1.5 font-lumiaHome text-[0.74rem] font-semibold leading-snug text-[#5f5861]">
+                  {body}
+                </p>
+                <span className="mt-3 inline-flex items-center gap-1.5 font-lumiaHome text-[0.72rem] font-extrabold text-[#ef3b62]">
+                  {cta}
+                  <ArrowRight size={14} strokeWidth={2.4} />
+                </span>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+const FOR_YOU_CONFIG: Array<{
+  id: keyof ReturnType<typeof getHomeSectionText>['forYou'];
+  action: LumiaHomeAction;
+  icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
+}> = [
+  { id: 'full_map', action: 'natal', icon: Layers3 },
+  { id: 'week', action: 'daily_card', icon: CalendarDays },
+  { id: 'relations', action: 'synastry', icon: Users },
+  { id: 'money_work', action: 'work', icon: ShoppingBag },
+  { id: 'patterns', action: 'natal', icon: Repeat2 },
+  { id: 'synastry', action: 'synastry', icon: Users },
+];
+
+export function LumiaHomeForYouCards({
+  language,
+  isPremium,
+  onAction,
+}: {
+  language: LumiaHomeLanguage;
+  isPremium: boolean;
+  onAction: (action: LumiaHomeAction) => void;
+}) {
+  const copy = getHomeSectionText(language);
+
+  return (
+    <section>
+      <div className="mb-3 flex items-end justify-between gap-3">
+        <h2 className="mb-0 font-lumiaHomeDisplay text-[1.35rem] font-extrabold leading-tight text-[#30132d]">
+          {copy.forYouTitle}
+        </h2>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        {FOR_YOU_CONFIG.map((item) => {
+          const [title, body] = copy.forYou[item.id];
+          const Icon = item.icon;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => onAction(item.action)}
+              className="relative min-h-[8.7rem] overflow-hidden rounded-[1.35rem] border border-[#30132d]/[0.055] bg-white px-3.5 py-3.5 text-left shadow-[0_12px_28px_rgba(48,19,45,0.06)] active:scale-[0.99]"
+            >
+              <div className="absolute right-0 top-0 h-20 w-20 rounded-bl-[2rem] bg-[linear-gradient(135deg,#fff1c9,#ffe5ef)]" />
+              <div className="relative z-10 flex h-full flex-col justify-between">
+                <div className="flex items-start justify-between gap-2">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-[#fff4dc] text-[#ef3b62]">
+                    <Icon size={19} strokeWidth={2.2} />
+                  </span>
+                  {!isPremium ? (
+                    <Lock size={15} strokeWidth={2.2} className="text-[#b5adb7]" />
+                  ) : null}
+                </div>
+                <div className="mt-3">
+                  <h3 className="mb-0 font-lumiaHome text-[0.92rem] font-extrabold leading-tight text-[#30132d]">
+                    {title}
+                  </h3>
+                  <p className="mb-0 mt-1.5 font-lumiaHome text-[0.7rem] font-semibold leading-snug text-[#6f6870]">
+                    {body}
+                  </p>
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 

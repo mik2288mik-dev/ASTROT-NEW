@@ -1,5 +1,4 @@
 import React from 'react';
-import { Lock } from 'lucide-react';
 import { cn } from '../../lib/cn';
 
 type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement>;
@@ -52,51 +51,6 @@ export function LumiaHomeLargeCard({ className, children, ...props }: LargeCardP
     <section className={cn('lumia-home-large-card', className)} {...props}>
       {children}
     </section>
-  );
-}
-
-type StoryCircleProps = Omit<ButtonProps, 'children'> & {
-  label: string;
-  imageSrc?: string;
-  icon?: React.ReactNode;
-  active?: boolean;
-  locked?: boolean;
-};
-
-export function LumiaHomeStoryCircle({
-  label,
-  imageSrc,
-  icon,
-  active = false,
-  locked = false,
-  className,
-  type = 'button',
-  ...props
-}: StoryCircleProps) {
-  return (
-    <button
-      type={type}
-      className={cn('lumia-home-story-button', className)}
-      data-active={active ? 'true' : undefined}
-      data-locked={locked ? 'true' : undefined}
-      aria-label={props['aria-label'] || label}
-      {...props}
-    >
-      <span className="lumia-home-story-ring" aria-hidden>
-        {imageSrc ? (
-          <img src={imageSrc} alt="" draggable={false} className="h-full w-full object-cover" />
-        ) : (
-          <span className="lumia-home-story-placeholder">{icon}</span>
-        )}
-        <span className="lumia-home-story-image-wash" />
-        {locked ? (
-          <span className="lumia-home-story-lock">
-            <Lock size={12} strokeWidth={2.25} />
-          </span>
-        ) : null}
-      </span>
-      <span className="lumia-home-story-label">{label}</span>
-    </button>
   );
 }
 

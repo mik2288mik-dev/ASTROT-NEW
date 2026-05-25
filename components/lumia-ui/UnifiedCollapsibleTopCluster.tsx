@@ -1,29 +1,29 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect } from 'react';
 import {
   motion,
   useTransform,
 } from 'framer-motion';
-import type { HoroscopeLayer, UserProfile } from '../../types';
-import { lumiaImpactHaptic } from '../../lib/haptics';
+import { MoreHorizontal, Settings2, UserCircle } from 'lucide-react';
+import type { UserProfile } from '../../types';
 import { captureLumiaHomeLayout } from '../../lib/lumiaDebug';
-import { LumiaHomeStoryCircle } from '../Dashboard/LumiaHomePrimitives';
+import { LumiaHomeIconButton } from '../Dashboard/LumiaHomePrimitives';
 import { getLumiaHomeCopy, type LumiaHomeLanguage } from '../Dashboard/lumiaHomeContent';
 import { useCollapsibleHeaderProgress } from './useCollapsibleHeaderProgress';
 
 type UnifiedCollapsibleTopClusterProps = {
   profile: UserProfile;
   scrollRef?: React.RefObject<HTMLDivElement | null>;
-  onOpenHoroscopeLayer: (layer: HoroscopeLayer) => void;
+  onOpenSettings?: () => void;
 };
 
-const EXPANDED_BODY_HEIGHT = 184;
+const EXPANDED_BODY_HEIGHT = 96;
 const COLLAPSED_BODY_HEIGHT = 48;
-const COLLAPSE_DISTANCE = 118;
+const COLLAPSE_DISTANCE = 74;
 
 export function UnifiedCollapsibleTopCluster({
   profile,
   scrollRef,
-  onOpenHoroscopeLayer,
+  onOpenSettings,
 }: UnifiedCollapsibleTopClusterProps) {
   const language: LumiaHomeLanguage = profile.language === 'en' ? 'en' : 'ru';
   const copy = getLumiaHomeCopy(language);
@@ -35,7 +35,6 @@ export function UnifiedCollapsibleTopCluster({
     collapsedBodyHeight: COLLAPSED_BODY_HEIGHT,
     hapticEdges: true,
   });
-  const locked = !profile.isPremium;
 
   useEffect(() => {
     window.setTimeout(() => captureLumiaHomeLayout('home_header_mount'), 160);
@@ -46,70 +45,9 @@ export function UnifiedCollapsibleTopCluster({
   const expandedBrandScale = useTransform(visualProgress, [0, 1], [1, 0.9]);
   const subtitleOpacity = useTransform(visualProgress, [0, 0.2, 0.42], [1, 0.28, 0]);
   const subtitleY = useTransform(rawProgress, [0, 1], [0, -12]);
-  const storiesOpacity = useTransform(visualProgress, [0, 0.34, 0.64], [1, 0.36, 0]);
-  const storiesY = useTransform(rawProgress, [0, 1], [0, -124]);
-  const storiesScale = useTransform(visualProgress, [0, 1], [1, 0.7]);
-  const storiesPointerEvents = useTransform(rawProgress, (latest) => (latest <= 0.56 ? 'auto' : 'none'));
-  const labelOpacity = useTransform(visualProgress, [0, 0.12, 0.32], [1, 0.22, 0]);
   const compactRowOpacity = useTransform(visualProgress, [0, 0.52, 0.78, 1], [0, 0, 0.88, 1]);
   const compactRowY = useTransform(rawProgress, [0, 1], [-5, 0]);
   const compactRowScale = useTransform(visualProgress, [0, 0.72, 1], [0.82, 0.94, 1]);
-
-  const stories = useMemo(
-    () => [
-      {
-        id: 'today',
-        label: copy.stories.today,
-        imageSrc: '/horoscope-moment-assets/01-today-focus.webp',
-        locked: false,
-        onClick: () => {
-          lumiaImpactHaptic('light');
-          onOpenHoroscopeLayer('sign');
-        },
-      },
-      {
-        id: 'love',
-        label: copy.stories.love,
-        imageSrc: '/horoscope-moment-assets/02-love.webp',
-        locked,
-        onClick: () => {
-          lumiaImpactHaptic('light');
-          onOpenHoroscopeLayer('love');
-        },
-      },
-      {
-        id: 'money',
-        label: copy.stories.money,
-        imageSrc: '/horoscope-moment-assets/03-money.webp',
-        locked,
-        onClick: () => {
-          lumiaImpactHaptic('light');
-          onOpenHoroscopeLayer('work_money');
-        },
-      },
-      {
-        id: 'work',
-        label: copy.stories.work,
-        imageSrc: '/horoscope-moment-assets/04-work.webp',
-        locked,
-        onClick: () => {
-          lumiaImpactHaptic('light');
-          onOpenHoroscopeLayer('work_money');
-        },
-      },
-      {
-        id: 'rhythm',
-        label: copy.stories.rhythm,
-        imageSrc: '/horoscope-moment-assets/05-personal-rhythm.webp',
-        locked,
-        onClick: () => {
-          lumiaImpactHaptic('light');
-          onOpenHoroscopeLayer('chart');
-        },
-      },
-    ],
-    [copy.stories.love, copy.stories.money, copy.stories.rhythm, copy.stories.today, copy.stories.work, locked, onOpenHoroscopeLayer]
-  );
 
   return (
     <>
@@ -120,18 +58,6 @@ export function UnifiedCollapsibleTopCluster({
             style={{ opacity: compactRowOpacity, y: compactRowY, scale: compactRowScale }}
             aria-hidden
           >
-            <div className="lumia-home-compact-story-cluster">
-              {stories.slice(0, 3).map((story, index) => (
-                <span
-                  key={story.id}
-                  className="lumia-home-compact-story"
-                  data-active={story.id === 'today' ? 'true' : undefined}
-                  style={{ zIndex: 20 - index } as React.CSSProperties}
-                >
-                  <img src={story.imageSrc} alt="" draggable={false} />
-                </span>
-              ))}
-            </div>
             <p className="lumia-home-compact-logo">LUMIA</p>
           </motion.div>
 
@@ -148,21 +74,37 @@ export function UnifiedCollapsibleTopCluster({
           </motion.div>
 
           <motion.div
-            className="lumia-home-stories-strip"
-            style={{ opacity: storiesOpacity, y: storiesY, scale: storiesScale, pointerEvents: storiesPointerEvents, '--lumia-story-label-opacity': labelOpacity } as any}
+            className="lumia-home-top-actions"
+            data-interactive="true"
+            style={{ opacity: expandedBrandOpacity }}
           >
-            <div className="scrollbar-hide lumia-home-stories-scroll">
-              {stories.map((story) => (
-                <LumiaHomeStoryCircle
-                  key={story.id}
-                  label={story.label}
-                  imageSrc={story.imageSrc}
-                  active={story.id === 'today'}
-                  locked={story.locked}
-                  onClick={story.onClick}
-                />
-              ))}
-            </div>
+            <LumiaHomeIconButton
+              className="lumia-home-header-avatar-button"
+              aria-label={language === 'ru' ? 'Профиль' : 'Profile'}
+              onClick={onOpenSettings}
+            >
+              {profile.name ? (
+                <span className="text-[0.82rem] font-extrabold uppercase leading-none">
+                  {profile.name.trim().slice(0, 1)}
+                </span>
+              ) : (
+                <UserCircle size={17} strokeWidth={2.15} />
+              )}
+            </LumiaHomeIconButton>
+            <LumiaHomeIconButton
+              className="lumia-home-header-icon-button"
+              aria-label={language === 'ru' ? 'Настройки' : 'Settings'}
+              onClick={onOpenSettings}
+            >
+              <Settings2 size={17} strokeWidth={2.15} />
+            </LumiaHomeIconButton>
+            <LumiaHomeIconButton
+              className="lumia-home-header-icon-button"
+              aria-label={language === 'ru' ? 'Меню' : 'Menu'}
+              onClick={onOpenSettings}
+            >
+              <MoreHorizontal size={18} strokeWidth={2.15} />
+            </LumiaHomeIconButton>
           </motion.div>
         </div>
       </motion.header>

@@ -13,7 +13,7 @@ export const lumiaHomeTokens = {
     line: 'var(--lumia-home-line)',
   },
   radius: {
-    story: 'var(--lumia-home-radius-story)',
+    pill: 'var(--lumia-home-radius-pill)',
     button: 'var(--lumia-home-radius-button)',
     card: 'var(--lumia-home-radius-card)',
     panel: 'var(--lumia-home-radius-panel)',
