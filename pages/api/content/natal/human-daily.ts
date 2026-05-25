@@ -102,8 +102,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   });
   const window = getMoscowDayWindow(dateKey);
   let access = await resolveDailyAccess(userId, ctx.chartId, cacheKey);
+  const isFreeOverview = sectionKey === 'daily_overview';
 
-  if (req.method === 'GET' && !access) {
+  if (req.method === 'GET' && !access && !isFreeOverview) {
     return res.status(403).json({
       error: 'HUMAN_DAILY_LOCKED',
       code: 'HUMAN_DAILY_LOCKED',
@@ -114,7 +115,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
-  if (!access) {
+  if (!access && !isFreeOverview) {
     const requestedAccessTier = req.body?.accessTier === 'lumi' ? 'lumi' : 'premium';
     const allowLumiSpend = Boolean(req.body?.allowLumiSpend);
 
@@ -154,7 +155,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     access = await resolveDailyAccess(userId, ctx.chartId, cacheKey);
   }
 
-  if (!access) {
+  if (!access && !isFreeOverview) {
     return res.status(500).json({
       error: 'HUMAN_DAILY_UNLOCK_FAILED',
       code: 'HUMAN_DAILY_UNLOCK_FAILED',
@@ -162,8 +163,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
+  const cacheAccessTier: ContentAccessTier = isFreeOverview && !access ? 'free' : access!.accessTier;
+  const responseAccessTier = isFreeOverview && !access ? 'free' : access!.accessTier;
+
   const cacheOpts = {
-    accessTier: access.accessTier,
+    accessTier: cacheAccessTier,
     contentVariant: 'living' as const,
     cacheKey,
     inputHash,
@@ -182,8 +186,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({
       interpretation: cached,
       source: 'human_v2',
-      entitlement: access.entitlement,
-      accessTier: access.accessTier,
+      entitlement: access?.entitlement ?? null,
+      accessTier: responseAccessTier,
       lumiBalance: ctx.user.lumi_balance ?? 0,
     });
   }
@@ -192,8 +196,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({
       interpretation: cached,
       source: 'human_v2',
-      entitlement: access.entitlement,
-      accessTier: access.accessTier,
+      entitlement: access?.entitlement ?? null,
+      accessTier: responseAccessTier,
       lumiBalance: ctx.user.lumi_balance ?? 0,
     });
   }
@@ -205,8 +209,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({
       interpretation: saved,
       source: 'generated',
-      entitlement: access.entitlement,
-      accessTier: access.accessTier,
+      entitlement: access?.entitlement ?? null,
+      accessTier: responseAccessTier,
       lumiBalance,
     });
   } catch (error) {

@@ -489,6 +489,10 @@ export const HumanReport: React.FC<Props> = ({
   };
 
   const handleOpenDaily = (key: HumanDailySectionKey) => {
+    if (key === 'daily_overview') {
+      void openDailyPaidSection(key, false);
+      return;
+    }
     if (isPremium) {
       void openDailyPaidSection(key, false);
       return;
@@ -644,7 +648,7 @@ export const HumanReport: React.FC<Props> = ({
               <DailySectionButton
                 key={key}
                 sectionKey={key}
-                isPremium={isPremium}
+                isPremium={isPremium || key === 'daily_overview'}
                 isLoading={dailyLoading === key}
                 opened={dailySections[key]}
                 onOpen={() => handleOpenDaily(key)}

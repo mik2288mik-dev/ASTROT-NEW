@@ -1,6 +1,7 @@
 import {
   clearHumanReadingSessionCache,
   loadHumanBaseReport,
+  loadHumanDailySection,
   loadHumanPaidSection,
 } from '../services/natalReadingService';
 import { HUMAN_FREE_SECTION_KEYS, HUMAN_PAID_SECTION_KEYS } from '../lib/natalHumanShared';
@@ -88,6 +89,47 @@ describe('natal reading service session cache', () => {
     await expect(loadHumanPaidSection('123', 'work_business')).rejects.toMatchObject({
       code: 'HUMAN_SECTION_LOCKED',
       lumiCost: 300,
+    });
+
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect((global.fetch as jest.Mock).mock.calls[0][1]?.method).toBe('GET');
+  });
+
+  it('opens daily_overview for free users without Lumi confirmation', async () => {
+    const section = {
+      key: 'daily_overview',
+      title: 'Тема дня',
+      access: 'free',
+      content: 'Сегодня лучше выбрать одно понятное дело.',
+    };
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce(response(404, { error: 'NOT_FOUND' }))
+      .mockResolvedValueOnce(response(200, { interpretation: { content: section }, accessTier: 'free' }));
+
+    await expect(loadHumanDailySection('123', 'daily_overview', 7, '2026-05-25')).resolves.toMatchObject({
+      content: section,
+      accessTier: 'free',
+    });
+
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+    expect((global.fetch as jest.Mock).mock.calls[0][1]?.method).toBe('GET');
+    expect((global.fetch as jest.Mock).mock.calls[1][1]?.method).toBe('POST');
+    expect(JSON.parse((global.fetch as jest.Mock).mock.calls[1][1]?.body).allowLumiSpend).toBe(false);
+  });
+
+  it('keeps paid daily sections locked for free users without explicit Lumi spend', async () => {
+    (global.fetch as jest.Mock).mockResolvedValueOnce(
+      response(403, {
+        code: 'HUMAN_DAILY_LOCKED',
+        message: 'locked',
+        lumiCost: 35,
+        lumiBalance: 20,
+      })
+    );
+
+    await expect(loadHumanDailySection('123', 'daily_work_business', 7, '2026-05-25')).rejects.toMatchObject({
+      code: 'HUMAN_DAILY_LOCKED',
+      lumiCost: 35,
     });
 
     expect(global.fetch).toHaveBeenCalledTimes(1);

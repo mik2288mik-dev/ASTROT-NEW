@@ -106,7 +106,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
           <p className="lumia-brand-wordmark">
             LUMIA
           </p>
-          <p className="lumia-brand-tagline">Персональная карта и день</p>
+          <p className="lumia-brand-tagline">ТВОЙ ПУТЬ К СЕБЕ</p>
         </div>
 
         <div className="mt-10">
