@@ -54,6 +54,45 @@ export function LumiaHomeLargeCard({ className, children, ...props }: LargeCardP
   );
 }
 
+type QuickActionCardProps = Omit<ButtonProps, 'children'> & {
+  title: string;
+  body: string;
+  icon: React.ReactNode;
+  active?: boolean;
+  locked?: boolean;
+};
+
+export function LumiaHomeQuickActionCard({
+  title,
+  body,
+  icon,
+  active = false,
+  locked = false,
+  className,
+  type = 'button',
+  ...props
+}: QuickActionCardProps) {
+  return (
+    <button
+      type={type}
+      className={cn('lumia-home-quick-action-card', className)}
+      data-active={active ? 'true' : undefined}
+      data-locked={locked ? 'true' : undefined}
+      aria-label={props['aria-label'] || title}
+      {...props}
+    >
+      <span className="lumia-home-quick-action-icon" aria-hidden>
+        {icon}
+      </span>
+      <span className="lumia-home-quick-action-copy">
+        <span className="lumia-home-quick-action-title">{title}</span>
+        <span className="lumia-home-quick-action-body">{body}</span>
+      </span>
+      {locked ? <span className="lumia-home-quick-action-lock">Premium</span> : null}
+    </button>
+  );
+}
+
 type BottomNavItemProps = ButtonProps & {
   label: string;
   icon: React.ReactNode;

@@ -960,15 +960,6 @@ const App: React.FC = () => {
         navigateTo('chart', { replace: true });
     }, [navigateTo]);
 
-    const openHomeNatal = useCallback(() => {
-        navigateTo('chart');
-    }, [navigateTo]);
-
-    const openHomeSynastry = useCallback(() => {
-        setSynastryPrefill(null);
-        navigateTo('synastry');
-    }, [navigateTo]);
-
     const openBottomSynastry = useCallback(() => {
         setSynastryPrefill(null);
         navigateTo('synastry', { replace: true });
@@ -1165,8 +1156,6 @@ const App: React.FC = () => {
                             chartData={chartData}
                             chartId={activeChartId ?? null}
                             onOpenHoroscopeLayer={openHoroscopeLayer}
-                            onOpenNatal={openHomeNatal}
-                            onOpenSynastry={openHomeSynastry}
                             onOpenSettings={openBottomAvatar}
                             scrollRef={dashboardScrollRef}
                             initialTodaySection={initialTodaySection}

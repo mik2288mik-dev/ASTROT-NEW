@@ -6,8 +6,34 @@ export function getLumiaHomeCopy(language: LumiaHomeLanguage) {
       tagline: 'YOUR PATH TO YOURSELF',
       notifications: 'Notifications',
       settings: 'Settings',
+      quickActions: {
+        today: {
+          title: 'Today',
+          body: 'Open the day reading',
+        },
+        dayCard: {
+          title: 'Day card',
+          body: 'What to do and where not to push',
+        },
+        love: {
+          title: 'Love',
+          body: 'What matters in relationships today',
+        },
+        money: {
+          title: 'Money',
+          body: 'Where not to buy on impulse',
+        },
+        work: {
+          title: 'Work',
+          body: 'Best window for focus',
+        },
+        rhythm: {
+          title: 'Personal day',
+          body: 'Evening check-in and patterns',
+        },
+      },
       heroDate: 'May 10, Saturday',
-      heroTitle: 'CLEAR THE NOISE —\nTHE DAY GETS LIGHTER',
+      heroTitle: 'CLEAR THE NOISE -\nTHE DAY GETS LIGHTER',
       heroSummary: 'A day for finishing things,\ncaring for yourself, and financial clarity.',
       heroCta: "Take today's focus",
       pulseTitle: 'Daily pulse',
@@ -31,7 +57,7 @@ export function getLumiaHomeCopy(language: LumiaHomeLanguage) {
       },
       full: {
         label: 'Full day reading',
-        title: 'Love, money,\nwork and personal\nday — in one\nissue.',
+        title: 'Love, money,\nwork and personal\nday - in one\nissue.',
         cta: 'Open full reading',
       },
       nav: {
@@ -47,8 +73,34 @@ export function getLumiaHomeCopy(language: LumiaHomeLanguage) {
     tagline: 'ТВОЙ ПУТЬ К СЕБЕ',
     notifications: 'Уведомления',
     settings: 'Настройки',
+    quickActions: {
+      today: {
+        title: 'Сегодня',
+        body: 'Открыть разбор дня',
+      },
+      dayCard: {
+        title: 'Карта дня',
+        body: 'Что делать, а где не давить',
+      },
+      love: {
+        title: 'Любовь',
+        body: 'Что важно в отношениях сегодня',
+      },
+      money: {
+        title: 'Деньги',
+        body: 'Где не покупать на эмоциях',
+      },
+      work: {
+        title: 'Работа',
+        body: 'Лучшее окно для фокуса',
+      },
+      rhythm: {
+        title: 'Личный день',
+        body: 'Вечерняя отметка и повторения',
+      },
+    },
     heroDate: '10 мая, суббота',
-    heroTitle: 'НАВЕДИ ПОРЯДОК —\nСТАНЕТ ЛЕГЧЕ',
+    heroTitle: 'НАВЕДИ ПОРЯДОК -\nСТАНЕТ ЛЕГЧЕ',
     heroSummary: 'День подходит для завершения дел,\nзаботы о себе и финансовой ясности.',
     heroCta: 'Принять фокус дня',
     pulseTitle: 'ПУЛЬС ДНЯ',
@@ -72,7 +124,7 @@ export function getLumiaHomeCopy(language: LumiaHomeLanguage) {
     },
     full: {
       label: 'ПОЛНЫЙ РАЗБОР ДНЯ',
-      title: 'Любовь, деньги,\nработа и личный\nдень — в одном\nвыпуске.',
+      title: 'Любовь, деньги,\nработа и личный\nдень - в одном\nвыпуске.',
       cta: 'Открыть полный разбор',
     },
     nav: {

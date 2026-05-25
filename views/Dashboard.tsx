@@ -10,15 +10,14 @@ import type {
   UserProfile,
 } from '../types';
 import {
-  LumiaHomeDailyHeroCard,
-  LumiaHomeForYouCards,
+  LumiaHomeContentCards,
+  LumiaHomeHeroCard,
   LumiaHomePulseCard,
-  LumiaHomeQuickActionCards,
   TodayAssistantCard,
-  type LumiaHomeAction,
 } from '../components/Dashboard/LumiaHomeSections';
 import { UnifiedCollapsibleTopCluster } from '../components/lumia-ui/UnifiedCollapsibleTopCluster';
 import { captureLumiaHomeLayout, lumiaDebugLog } from '../lib/lumiaDebug';
+import { shouldShowTodayAssistantFirst } from '../lib/todayAssistantPriority';
 import {
   getActionTimingRecommendation,
   getCachedTodayAssistantHome,
@@ -31,8 +30,6 @@ interface DashboardProps {
   chartData: NatalChartData | null;
   chartId?: number | null;
   onOpenHoroscopeLayer: (layer: HoroscopeLayer) => void;
-  onOpenNatal: () => void;
-  onOpenSynastry: () => void;
   onOpenSettings?: () => void;
   scrollRef?: React.RefObject<HTMLDivElement | null>;
   initialTodaySection?: string | null;
@@ -49,7 +46,7 @@ function haptic(kind: 'select' | 'open' = 'select') {
 }
 
 export const Dashboard = memo<DashboardProps>(
-  ({ profile, chartData, chartId, onOpenHoroscopeLayer, onOpenNatal, onOpenSynastry, onOpenSettings, scrollRef, initialTodaySection }) => {
+  ({ profile, chartData, chartId, onOpenHoroscopeLayer, onOpenSettings, scrollRef, initialTodaySection }) => {
     const shouldReduceMotion = useReducedMotion();
     const language = profile.language === 'en' ? 'en' : 'ru';
     const pulseRef = React.useRef<HTMLDivElement | null>(null);
@@ -97,6 +94,11 @@ export const Dashboard = memo<DashboardProps>(
             },
           },
         };
+
+    const openHoroscope = (layer: HoroscopeLayer = 'sign') => {
+      haptic('open');
+      onOpenHoroscopeLayer(layer);
+    };
 
     React.useEffect(() => {
       let alive = true;
@@ -234,37 +236,7 @@ export const Dashboard = memo<DashboardProps>(
       return recommendation;
     }, [chartData, chartId, profile]);
 
-    const scrollToAssistant = React.useCallback(() => {
-      haptic('open');
-      assistantRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
-    }, []);
-
-    const handleHomeAction = React.useCallback((action: LumiaHomeAction) => {
-      haptic('open');
-      if (action === 'daily_card') {
-        onOpenHoroscopeLayer('chart');
-        return;
-      }
-      if (action === 'natal') {
-        onOpenNatal();
-        return;
-      }
-      if (action === 'assistant' || action === 'rhythm') {
-        scrollToAssistant();
-        return;
-      }
-      if (action === 'synastry') {
-        onOpenSynastry();
-        return;
-      }
-      if (action === 'love') {
-        onOpenHoroscopeLayer('love');
-        return;
-      }
-      if (action === 'money' || action === 'work') {
-        onOpenHoroscopeLayer('work_money');
-      }
-    }, [onOpenHoroscopeLayer, onOpenNatal, onOpenSynastry, scrollToAssistant]);
+    const assistantFirst = shouldShowTodayAssistantFirst(assistantResult);
 
     const pulseCard = (
       <div ref={pulseRef} data-today-section="pulse">
@@ -303,26 +275,17 @@ export const Dashboard = memo<DashboardProps>(
             <UnifiedCollapsibleTopCluster
               profile={profile}
               scrollRef={scrollRef}
-              onOpenSettings={onOpenSettings}
+              onOpenHoroscopeLayer={onOpenHoroscopeLayer}
             />
             <div className="lumia-home-scroll-content space-y-[var(--lumia-home-gap-lg)] px-[var(--lumia-home-page-x)]">
-              <LumiaHomeDailyHeroCard
-                language={language}
-                pulseResult={pulseResult}
-                isLoading={isAssistantLoading}
-                onOpen={() => handleHomeAction('daily_card')}
-              />
-              <LumiaHomeQuickActionCards
+              {assistantFirst ? assistantCard : pulseCard}
+              {assistantFirst ? pulseCard : assistantCard}
+              <LumiaHomeHeroCard language={language} onOpen={() => openHoroscope('sign')} />
+              <LumiaHomeContentCards
                 language={language}
                 isPremium={profile.isPremium}
-                onAction={handleHomeAction}
-              />
-              {pulseCard}
-              {assistantCard}
-              <LumiaHomeForYouCards
-                language={language}
-                isPremium={profile.isPremium}
-                onAction={handleHomeAction}
+                onOpenForecast={() => openHoroscope('sign')}
+                onOpenFull={() => openHoroscope('chart')}
               />
             </div>
           </div>
