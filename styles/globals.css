@@ -338,8 +338,8 @@ body.theme-lumia-air #__next {
 }
 
 .lumia-home-top-spacer {
-  height: 136px;
-  flex: 0 0 136px;
+  height: 304px;
+  flex: 0 0 304px;
   pointer-events: none;
 }
 
@@ -393,7 +393,7 @@ body.theme-lumia-air #__next {
   right: 0;
   left: 0;
   z-index: 2;
-  height: 184px;
+  height: 330px;
   max-width: 28rem;
   margin: 0 auto;
   overflow: visible;
@@ -468,7 +468,7 @@ body.theme-lumia-air #__next {
 
 .lumia-home-action-strip {
   position: absolute;
-  top: 3.74rem;
+  top: 4.45rem;
   right: 0;
   left: 0;
   z-index: 2;
@@ -495,9 +495,9 @@ body.theme-lumia-air #__next {
 
 .lumia-home-action-scroll {
   display: flex;
-  gap: 0.72rem;
+  gap: 0.88rem;
   overflow-x: auto;
-  padding: 0.32rem max(0.85rem, var(--lumia-home-page-x)) 0.68rem;
+  padding: 0.42rem max(0.95rem, var(--lumia-home-page-x)) 1rem;
   scroll-padding-inline: max(0.85rem, var(--lumia-home-page-x));
 }
 
@@ -917,126 +917,36 @@ body.theme-lumia-air #__next {
 
 .lumia-home-quick-action-card {
   position: relative;
-  display: grid;
-  width: clamp(8.7rem, 40vw, 10.15rem);
-  min-width: clamp(8.7rem, 40vw, 10.15rem);
-  min-height: 6.05rem;
-  grid-template-columns: 2rem minmax(0, 1fr);
-  align-content: start;
-  align-items: start;
-  gap: 0.55rem;
+  display: block;
+  width: clamp(10.6rem, 44vw, 11.7rem);
+  min-width: clamp(10.6rem, 44vw, 11.7rem);
+  aspect-ratio: 2 / 3;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.78);
-  border-radius: 1.2rem;
-  background:
-    radial-gradient(circle at 92% 8%, rgba(255, 255, 255, 0.86), transparent 32%),
-    linear-gradient(135deg, rgba(255, 246, 215, 0.96), rgba(255, 220, 228, 0.88));
-  color: var(--lumia-home-purple-deep);
-  padding: 0.78rem;
-  text-align: left;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 1.62rem;
+  background: #ffffff;
+  padding: 0;
   box-shadow:
-    0 14px 30px rgba(239, 35, 60, 0.12),
-    0 1px 0 rgba(255, 255, 255, 0.72) inset;
+    0 20px 42px rgba(54, 24, 54, 0.14),
+    0 1px 0 rgba(255, 255, 255, 0.95) inset;
   transition:
     transform 180ms ease,
     box-shadow 180ms ease,
     border-color 180ms ease;
 }
 
-.lumia-home-quick-action-card[data-tone='rose'] {
-  background:
-    radial-gradient(circle at 92% 8%, rgba(255, 255, 255, 0.88), transparent 32%),
-    linear-gradient(135deg, rgba(255, 238, 226, 0.96), rgba(255, 210, 226, 0.9));
-}
-
-.lumia-home-quick-action-card[data-tone='pink'] {
-  background:
-    radial-gradient(circle at 92% 8%, rgba(255, 255, 255, 0.88), transparent 32%),
-    linear-gradient(135deg, rgba(255, 235, 245, 0.96), rgba(255, 210, 226, 0.9));
-}
-
-.lumia-home-quick-action-card[data-tone='mint'] {
-  background:
-    radial-gradient(circle at 92% 8%, rgba(255, 255, 255, 0.88), transparent 32%),
-    linear-gradient(135deg, rgba(235, 255, 244, 0.96), rgba(218, 247, 229, 0.9));
-}
-
-.lumia-home-quick-action-card[data-tone='blue'] {
-  background:
-    radial-gradient(circle at 92% 8%, rgba(255, 255, 255, 0.88), transparent 32%),
-    linear-gradient(135deg, rgba(231, 247, 255, 0.98), rgba(226, 232, 255, 0.9));
-}
-
-.lumia-home-quick-action-card[data-tone='violet'] {
-  background:
-    radial-gradient(circle at 92% 8%, rgba(255, 255, 255, 0.88), transparent 32%),
-    linear-gradient(135deg, rgba(242, 235, 255, 0.98), rgba(232, 222, 255, 0.9));
-}
-
 .lumia-home-quick-action-card[data-active='true'] {
   border-color: rgba(239, 35, 60, 0.22);
   box-shadow:
-    0 18px 34px rgba(239, 35, 60, 0.16),
-    0 1px 0 rgba(255, 255, 255, 0.82) inset;
+    0 24px 52px rgba(239, 35, 60, 0.18),
+    0 1px 0 rgba(255, 255, 255, 0.95) inset;
 }
 
-.lumia-home-quick-action-card[data-locked='true'] {
-  color: rgba(33, 22, 34, 0.78);
-}
-
-.lumia-home-quick-action-icon {
-  display: inline-flex;
-  width: 1.95rem;
-  height: 1.95rem;
-  align-items: center;
-  justify-content: center;
-  border-radius: 0.82rem;
-  background: rgba(255, 255, 255, 0.76);
-  color: var(--lumia-pop-red);
-  box-shadow: 0 8px 18px rgba(239, 35, 60, 0.09);
-}
-
-.lumia-home-quick-action-copy {
-  display: grid;
-  min-width: 0;
-  gap: 0.28rem;
-}
-
-.lumia-home-quick-action-title {
-  color: var(--lumia-home-purple-deep);
-  font-family: var(--lumia-home-font-display);
-  font-size: 0.96rem;
-  font-weight: 900;
-  letter-spacing: 0;
-  line-height: 1.02;
-}
-
-.lumia-home-quick-action-body {
-  display: -webkit-box;
-  overflow: hidden;
-  color: rgba(33, 22, 34, 0.68);
-  font-size: 0.69rem;
-  font-weight: 750;
-  letter-spacing: 0;
-  line-height: 1.2;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-}
-
-.lumia-home-quick-action-lock {
-  position: absolute;
-  right: 0.62rem;
-  bottom: 0.58rem;
-  display: inline-flex;
-  min-height: 1.18rem;
-  align-items: center;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.76);
-  color: rgba(80, 16, 168, 0.82);
-  font-size: 0.58rem;
-  font-weight: 900;
-  line-height: 1;
-  padding: 0.26rem 0.46rem;
+.lumia-home-quick-action-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .lumia-home-bottom-nav {
@@ -1145,22 +1055,12 @@ body.theme-lumia-air #__next {
   }
 
   .lumia-home-action-scroll {
-    gap: 0.56rem;
+    gap: 0.72rem;
   }
 
   .lumia-home-quick-action-card {
-    width: 8.15rem;
-    min-width: 8.15rem;
-    min-height: 5.92rem;
-    padding: 0.68rem;
-  }
-
-  .lumia-home-quick-action-title {
-    font-size: 0.9rem;
-  }
-
-  .lumia-home-quick-action-body {
-    font-size: 0.66rem;
+    width: 9.85rem;
+    min-width: 9.85rem;
   }
 }
 

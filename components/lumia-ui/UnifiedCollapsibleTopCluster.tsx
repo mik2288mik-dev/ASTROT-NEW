@@ -3,14 +3,6 @@ import {
   motion,
   useTransform,
 } from 'framer-motion';
-import {
-  BriefcaseBusiness,
-  CalendarDays,
-  Heart,
-  PiggyBank,
-  Sparkles,
-  SunMedium,
-} from 'lucide-react';
 import type { HoroscopeLayer, UserProfile } from '../../types';
 import { lumiaImpactHaptic } from '../../lib/haptics';
 import { captureLumiaHomeLayout } from '../../lib/lumiaDebug';
@@ -24,9 +16,9 @@ type UnifiedCollapsibleTopClusterProps = {
   onOpenHoroscopeLayer: (layer: HoroscopeLayer) => void;
 };
 
-const EXPANDED_BODY_HEIGHT = 184;
+const EXPANDED_BODY_HEIGHT = 330;
 const COLLAPSED_BODY_HEIGHT = 48;
-const COLLAPSE_DISTANCE = 118;
+const COLLAPSE_DISTANCE = 172;
 
 export function UnifiedCollapsibleTopCluster({
   profile,
@@ -43,8 +35,6 @@ export function UnifiedCollapsibleTopCluster({
     collapsedBodyHeight: COLLAPSED_BODY_HEIGHT,
     hapticEdges: true,
   });
-  const locked = !profile.isPremium;
-
   useEffect(() => {
     window.setTimeout(() => captureLumiaHomeLayout('home_header_mount'), 160);
   }, []);
@@ -55,8 +45,8 @@ export function UnifiedCollapsibleTopCluster({
   const subtitleOpacity = useTransform(visualProgress, [0, 0.2, 0.42], [1, 0.28, 0]);
   const subtitleY = useTransform(rawProgress, [0, 1], [0, -12]);
   const actionsOpacity = useTransform(visualProgress, [0, 0.34, 0.64], [1, 0.36, 0]);
-  const actionsY = useTransform(rawProgress, [0, 1], [0, -124]);
-  const actionsScale = useTransform(visualProgress, [0, 1], [1, 0.72]);
+  const actionsY = useTransform(rawProgress, [0, 1], [0, -236]);
+  const actionsScale = useTransform(visualProgress, [0, 1], [1, 0.68]);
   const actionsPointerEvents = useTransform(rawProgress, (latest) => (latest <= 0.56 ? 'auto' : 'none'));
   const compactRowOpacity = useTransform(visualProgress, [0, 0.52, 0.78, 1], [0, 0, 0.88, 1]);
   const compactRowY = useTransform(rawProgress, [0, 1], [-5, 0]);
@@ -67,34 +57,16 @@ export function UnifiedCollapsibleTopCluster({
       {
         id: 'today',
         title: copy.quickActions.today.title,
-        body: copy.quickActions.today.body,
-        icon: <SunMedium size={20} strokeWidth={2.4} />,
-        locked: false,
-        tone: 'sun',
+        imageSrc: '/lumia-home/quick-actions/horoscope-today.webp',
         onClick: () => {
           lumiaImpactHaptic('light');
           onOpenHoroscopeLayer('sign');
         },
       },
       {
-        id: 'day-card',
-        title: copy.quickActions.dayCard.title,
-        body: copy.quickActions.dayCard.body,
-        icon: <CalendarDays size={20} strokeWidth={2.4} />,
-        locked: false,
-        tone: 'rose',
-        onClick: () => {
-          lumiaImpactHaptic('light');
-          onOpenHoroscopeLayer('chart');
-        },
-      },
-      {
         id: 'love',
         title: copy.quickActions.love.title,
-        body: copy.quickActions.love.body,
-        icon: <Heart size={20} strokeWidth={2.4} />,
-        locked,
-        tone: 'pink',
+        imageSrc: '/lumia-home/quick-actions/love.webp',
         onClick: () => {
           lumiaImpactHaptic('light');
           onOpenHoroscopeLayer('love');
@@ -103,10 +75,7 @@ export function UnifiedCollapsibleTopCluster({
       {
         id: 'money',
         title: copy.quickActions.money.title,
-        body: copy.quickActions.money.body,
-        icon: <PiggyBank size={20} strokeWidth={2.4} />,
-        locked,
-        tone: 'mint',
+        imageSrc: '/lumia-home/quick-actions/money.webp',
         onClick: () => {
           lumiaImpactHaptic('light');
           onOpenHoroscopeLayer('work_money');
@@ -115,10 +84,7 @@ export function UnifiedCollapsibleTopCluster({
       {
         id: 'work',
         title: copy.quickActions.work.title,
-        body: copy.quickActions.work.body,
-        icon: <BriefcaseBusiness size={20} strokeWidth={2.4} />,
-        locked,
-        tone: 'blue',
+        imageSrc: '/lumia-home/quick-actions/work.webp',
         onClick: () => {
           lumiaImpactHaptic('light');
           onOpenHoroscopeLayer('work_money');
@@ -127,10 +93,7 @@ export function UnifiedCollapsibleTopCluster({
       {
         id: 'rhythm',
         title: copy.quickActions.rhythm.title,
-        body: copy.quickActions.rhythm.body,
-        icon: <Sparkles size={20} strokeWidth={2.4} />,
-        locked,
-        tone: 'violet',
+        imageSrc: '/lumia-home/quick-actions/personal-rhythm.webp',
         onClick: () => {
           lumiaImpactHaptic('light');
           onOpenHoroscopeLayer('chart');
@@ -138,19 +101,11 @@ export function UnifiedCollapsibleTopCluster({
       },
     ],
     [
-      copy.quickActions.dayCard.body,
-      copy.quickActions.dayCard.title,
-      copy.quickActions.love.body,
       copy.quickActions.love.title,
-      copy.quickActions.money.body,
       copy.quickActions.money.title,
-      copy.quickActions.rhythm.body,
       copy.quickActions.rhythm.title,
-      copy.quickActions.today.body,
       copy.quickActions.today.title,
-      copy.quickActions.work.body,
       copy.quickActions.work.title,
-      locked,
       onOpenHoroscopeLayer,
     ]
   );
@@ -188,11 +143,8 @@ export function UnifiedCollapsibleTopCluster({
                 <LumiaHomeQuickActionCard
                   key={action.id}
                   title={action.title}
-                  body={action.body}
-                  icon={action.icon}
+                  imageSrc={action.imageSrc}
                   active={action.id === 'today'}
-                  locked={action.locked}
-                  data-tone={action.tone}
                   onClick={action.onClick}
                 />
               ))}

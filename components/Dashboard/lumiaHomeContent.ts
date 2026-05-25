@@ -8,7 +8,7 @@ export function getLumiaHomeCopy(language: LumiaHomeLanguage) {
       settings: 'Settings',
       quickActions: {
         today: {
-          title: 'Today',
+          title: 'Today horoscope',
           body: 'Open the day reading',
         },
         dayCard: {
@@ -75,7 +75,7 @@ export function getLumiaHomeCopy(language: LumiaHomeLanguage) {
     settings: 'Настройки',
     quickActions: {
       today: {
-        title: 'Сегодня',
+        title: 'Гороскоп сегодня',
         body: 'Открыть разбор дня',
       },
       dayCard: {
@@ -95,7 +95,7 @@ export function getLumiaHomeCopy(language: LumiaHomeLanguage) {
         body: 'Лучшее окно для фокуса',
       },
       rhythm: {
-        title: 'Личный день',
+        title: 'Личный ритм',
         body: 'Вечерняя отметка и повторения',
       },
     },
@@ -143,7 +143,7 @@ export const LUMIA_HOME_PREVIEW_ITEMS = {
     { label: 'Любовь', imageSrc: '/natal-gateway/synastry-union-v2.webp' },
     { label: 'Деньги', imageSrc: '/natal-backgrounds/work-money.webp' },
     { label: 'Работа', imageSrc: '/natal-backgrounds/strengths.webp' },
-    { label: 'Личный день', imageSrc: '/natal-backgrounds/daily.webp' },
+    { label: 'Личный ритм', imageSrc: '/natal-backgrounds/daily.webp' },
   ],
   en: [
     { label: 'Love', imageSrc: '/natal-gateway/synastry-union-v2.webp' },
