@@ -1,29 +1,47 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect } from 'react';
 import {
   motion,
   useTransform,
 } from 'framer-motion';
-import type { HoroscopeLayer, UserProfile } from '../../types';
-import { lumiaImpactHaptic } from '../../lib/haptics';
+import type { NatalChartData, UserProfile } from '../../types';
+import { getZodiacSign } from '../../constants';
+import { getApproximateSunSignByDate } from '../../lib/zodiac-utils';
 import { captureLumiaHomeLayout } from '../../lib/lumiaDebug';
-import { LumiaHomeQuickActionCard } from '../Dashboard/LumiaHomePrimitives';
 import { getLumiaHomeCopy, type LumiaHomeLanguage } from '../Dashboard/lumiaHomeContent';
 import { useCollapsibleHeaderProgress } from './useCollapsibleHeaderProgress';
 
 type UnifiedCollapsibleTopClusterProps = {
   profile: UserProfile;
+  chartData?: NatalChartData | null;
   scrollRef?: React.RefObject<HTMLDivElement | null>;
-  onOpenHoroscopeLayer: (layer: HoroscopeLayer) => void;
 };
 
-const EXPANDED_BODY_HEIGHT = 330;
+const EXPANDED_BODY_HEIGHT = 204;
 const COLLAPSED_BODY_HEIGHT = 48;
-const COLLAPSE_DISTANCE = 172;
+const COLLAPSE_DISTANCE = 132;
+
+function formatBirthDate(dateKey: string | undefined, language: LumiaHomeLanguage) {
+  if (!dateKey) return language === 'ru' ? 'дата не указана' : 'date missing';
+  const [year, month, day] = dateKey.split('-').map(Number);
+  if (!year || !month || !day) return dateKey;
+  return new Intl.DateTimeFormat(language === 'ru' ? 'ru-RU' : 'en-US', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date(Date.UTC(year, month - 1, day, 12, 0, 0)));
+}
+
+function resolveSunSign(profile: UserProfile, chartData: NatalChartData | null | undefined) {
+  if (chartData?.sun?.sign) return chartData.sun.sign;
+  const [year, month, day] = (profile.birthDate || '').split('-').map(Number);
+  if (!year || !month || !day) return null;
+  return getApproximateSunSignByDate(year, month, day);
+}
 
 export function UnifiedCollapsibleTopCluster({
   profile,
+  chartData,
   scrollRef,
-  onOpenHoroscopeLayer,
 }: UnifiedCollapsibleTopClusterProps) {
   const language: LumiaHomeLanguage = profile.language === 'en' ? 'en' : 'ru';
   const copy = getLumiaHomeCopy(language);
@@ -35,8 +53,19 @@ export function UnifiedCollapsibleTopCluster({
     collapsedBodyHeight: COLLAPSED_BODY_HEIGHT,
     hapticEdges: true,
   });
+  const [photoUrl, setPhotoUrl] = React.useState<string | null>(null);
+
   useEffect(() => {
     window.setTimeout(() => captureLumiaHomeLayout('home_header_mount'), 160);
+  }, []);
+
+  useEffect(() => {
+    try {
+      const tgUser = (window as any)?.Telegram?.WebApp?.initDataUnsafe?.user;
+      setPhotoUrl(typeof tgUser?.photo_url === 'string' ? tgUser.photo_url : null);
+    } catch {
+      setPhotoUrl(null);
+    }
   }, []);
 
   const expandedBrandOpacity = useTransform(visualProgress, [0, 0.24, 0.54], [1, 0.48, 0]);
@@ -44,71 +73,20 @@ export function UnifiedCollapsibleTopCluster({
   const expandedBrandScale = useTransform(visualProgress, [0, 1], [1, 0.9]);
   const subtitleOpacity = useTransform(visualProgress, [0, 0.2, 0.42], [1, 0.28, 0]);
   const subtitleY = useTransform(rawProgress, [0, 1], [0, -12]);
-  const actionsOpacity = useTransform(visualProgress, [0, 0.34, 0.64], [1, 0.36, 0]);
-  const actionsY = useTransform(rawProgress, [0, 1], [0, -236]);
-  const actionsScale = useTransform(visualProgress, [0, 1], [1, 0.68]);
-  const actionsPointerEvents = useTransform(rawProgress, (latest) => (latest <= 0.56 ? 'auto' : 'none'));
+  const passportOpacity = useTransform(visualProgress, [0, 0.38, 0.72], [1, 0.42, 0]);
+  const passportY = useTransform(rawProgress, [0, 1], [0, -118]);
+  const passportScale = useTransform(visualProgress, [0, 1], [1, 0.88]);
   const compactRowOpacity = useTransform(visualProgress, [0, 0.52, 0.78, 1], [0, 0, 0.88, 1]);
   const compactRowY = useTransform(rawProgress, [0, 1], [-5, 0]);
   const compactRowScale = useTransform(visualProgress, [0, 0.72, 1], [0.82, 0.94, 1]);
 
-  const actions = useMemo(
-    () => [
-      {
-        id: 'today',
-        title: copy.quickActions.today.title,
-        imageSrc: '/lumia-home/quick-actions/horoscope-today.webp',
-        onClick: () => {
-          lumiaImpactHaptic('light');
-          onOpenHoroscopeLayer('sign');
-        },
-      },
-      {
-        id: 'love',
-        title: copy.quickActions.love.title,
-        imageSrc: '/lumia-home/quick-actions/love.webp',
-        onClick: () => {
-          lumiaImpactHaptic('light');
-          onOpenHoroscopeLayer('love');
-        },
-      },
-      {
-        id: 'money',
-        title: copy.quickActions.money.title,
-        imageSrc: '/lumia-home/quick-actions/money.webp',
-        onClick: () => {
-          lumiaImpactHaptic('light');
-          onOpenHoroscopeLayer('work_money');
-        },
-      },
-      {
-        id: 'work',
-        title: copy.quickActions.work.title,
-        imageSrc: '/lumia-home/quick-actions/work.webp',
-        onClick: () => {
-          lumiaImpactHaptic('light');
-          onOpenHoroscopeLayer('work_money');
-        },
-      },
-      {
-        id: 'rhythm',
-        title: copy.quickActions.rhythm.title,
-        imageSrc: '/lumia-home/quick-actions/personal-rhythm.webp',
-        onClick: () => {
-          lumiaImpactHaptic('light');
-          onOpenHoroscopeLayer('chart');
-        },
-      },
-    ],
-    [
-      copy.quickActions.love.title,
-      copy.quickActions.money.title,
-      copy.quickActions.rhythm.title,
-      copy.quickActions.today.title,
-      copy.quickActions.work.title,
-      onOpenHoroscopeLayer,
-    ]
-  );
+  const displayName = profile.name?.trim() || 'LUMIA';
+  const initial = displayName.slice(0, 1).toUpperCase();
+  const sunSign = resolveSunSign(profile, chartData);
+  const signLabel = sunSign ? getZodiacSign(profile.language, sunSign) : (language === 'ru' ? 'знак не указан' : 'sign missing');
+  const birthDate = formatBirthDate(profile.birthDate, language);
+  const birthTime = profile.birthTime || (language === 'ru' ? 'время не указано' : 'time missing');
+  const birthPlace = profile.birthPlace?.trim() || (language === 'ru' ? 'город не указан' : 'place missing');
 
   return (
     <>
@@ -135,19 +113,21 @@ export function UnifiedCollapsibleTopCluster({
           </motion.div>
 
           <motion.div
-            className="lumia-home-action-strip"
-            style={{ opacity: actionsOpacity, y: actionsY, scale: actionsScale, pointerEvents: actionsPointerEvents }}
+            className="lumia-home-passport"
+            style={{ opacity: passportOpacity, y: passportY, scale: passportScale }}
           >
-            <div className="scrollbar-hide lumia-home-action-scroll">
-              {actions.map((action) => (
-                <LumiaHomeQuickActionCard
-                  key={action.id}
-                  title={action.title}
-                  imageSrc={action.imageSrc}
-                  active={action.id === 'today'}
-                  onClick={action.onClick}
-                />
-              ))}
+            <div className="lumia-home-passport-card">
+              <div className="lumia-home-passport-avatar" aria-hidden>
+                {photoUrl ? <img src={photoUrl} alt="" draggable={false} /> : <span>{initial}</span>}
+              </div>
+              <div className="lumia-home-passport-copy">
+                <div className="lumia-home-passport-main">
+                  <p className="lumia-home-passport-name">{displayName}</p>
+                  <span className="lumia-home-passport-sign">{signLabel}</span>
+                </div>
+                <p className="lumia-home-passport-meta">{birthDate} · {birthTime}</p>
+                <p className="lumia-home-passport-place">{birthPlace}</p>
+              </div>
             </div>
           </motion.div>
         </div>

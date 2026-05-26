@@ -338,8 +338,8 @@ body.theme-lumia-air #__next {
 }
 
 .lumia-home-top-spacer {
-  height: 304px;
-  flex: 0 0 304px;
+  height: 176px;
+  flex: 0 0 176px;
   pointer-events: none;
 }
 
@@ -393,7 +393,7 @@ body.theme-lumia-air #__next {
   right: 0;
   left: 0;
   z-index: 2;
-  height: 330px;
+  height: 204px;
   max-width: 28rem;
   margin: 0 auto;
   overflow: visible;
@@ -476,6 +476,123 @@ body.theme-lumia-air #__next {
   will-change: transform, opacity;
 }
 
+.lumia-home-passport {
+  position: absolute;
+  top: 4.4rem;
+  right: max(var(--lumia-home-page-x), env(safe-area-inset-right, 0px), var(--tg-content-safe-area-inset-right, 0px), var(--tg-safe-area-inset-right, 0px));
+  left: max(var(--lumia-home-page-x), env(safe-area-inset-left, 0px), var(--tg-content-safe-area-inset-left, 0px), var(--tg-safe-area-inset-left, 0px));
+  z-index: 2;
+  transform-origin: top center;
+  will-change: transform, opacity;
+}
+
+.lumia-home-passport-card {
+  display: flex;
+  min-height: 6.15rem;
+  align-items: center;
+  gap: 0.9rem;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  border-radius: 1.6rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.68)),
+    rgba(255, 255, 255, 0.64);
+  box-shadow:
+    0 18px 42px rgba(54, 24, 54, 0.1),
+    0 1px 0 rgba(255, 255, 255, 0.88) inset;
+  padding: 0.82rem 0.9rem;
+  backdrop-filter: blur(24px) saturate(1.15);
+}
+
+.lumia-home-passport-avatar {
+  display: flex;
+  width: 3.65rem;
+  height: 3.65rem;
+  flex: 0 0 3.65rem;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 1.25rem;
+  background:
+    radial-gradient(circle at 28% 18%, rgba(255, 255, 255, 0.9), transparent 34%),
+    linear-gradient(135deg, rgba(255, 230, 132, 0.96), rgba(255, 115, 147, 0.9));
+  color: var(--lumia-home-purple-deep);
+  font-family: var(--lumia-home-font-display);
+  font-size: 1.5rem;
+  font-weight: 900;
+  box-shadow:
+    0 12px 28px rgba(239, 35, 60, 0.16),
+    0 0 0 1px rgba(255, 255, 255, 0.82) inset;
+}
+
+.lumia-home-passport-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.lumia-home-passport-copy {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.lumia-home-passport-main {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.lumia-home-passport-name {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--lumia-home-purple-deep);
+  font-family: var(--lumia-home-font-display);
+  font-size: clamp(1.16rem, 5.15vw, 1.48rem);
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1.02;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lumia-home-passport-sign {
+  display: inline-flex;
+  min-height: 1.55rem;
+  flex: 0 0 auto;
+  align-items: center;
+  border-radius: 999px;
+  background: rgba(239, 35, 60, 0.08);
+  color: var(--lumia-pop-red);
+  font-size: 0.68rem;
+  font-weight: 900;
+  line-height: 1;
+  padding: 0.32rem 0.56rem;
+}
+
+.lumia-home-passport-meta,
+.lumia-home-passport-place {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lumia-home-passport-meta {
+  margin-top: 0.34rem;
+  color: rgba(33, 22, 34, 0.78);
+  font-size: 0.8rem;
+  font-weight: 760;
+  line-height: 1.2;
+}
+
+.lumia-home-passport-place {
+  margin-top: 0.16rem;
+  color: rgba(33, 22, 34, 0.56);
+  font-size: 0.74rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
 .lumia-home-header-icon-button {
   width: 1.76rem;
   height: 1.76rem;
@@ -499,6 +616,19 @@ body.theme-lumia-air #__next {
   overflow-x: auto;
   padding: 0.42rem max(0.95rem, var(--lumia-home-page-x)) 1rem;
   scroll-padding-inline: max(0.85rem, var(--lumia-home-page-x));
+}
+
+.lumia-home-content-actions {
+  margin-right: calc(var(--lumia-home-page-x) * -1);
+  margin-left: calc(var(--lumia-home-page-x) * -1);
+}
+
+.lumia-home-content-action-scroll {
+  display: flex;
+  gap: 0.88rem;
+  overflow-x: auto;
+  padding: 0.2rem var(--lumia-home-page-x) 0.95rem;
+  scroll-padding-inline: var(--lumia-home-page-x);
 }
 
 .lumia-home-compact-row {
@@ -655,43 +785,6 @@ body.theme-lumia-air #__next {
 .lumia-bottom-tab-item.is-active .lumia-bottom-tab-label {
   color: rgba(18, 18, 18, 0.98);
   font-weight: 850;
-}
-
-.lumia-bottom-tab-avatar {
-  display: inline-flex;
-  width: 2.02rem;
-  height: 2.02rem;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  border-radius: 999px;
-  background:
-    radial-gradient(circle at 65% 22%, rgba(255, 212, 0, 0.9), transparent 48%),
-    linear-gradient(135deg, #ffffff, #ffe9ec);
-  color: var(--lumia-home-purple-deep);
-  font-size: 0.84rem;
-  font-weight: 850;
-  box-shadow:
-    0 0 0 1px rgba(23, 19, 20, 0.08),
-    0 1px 0 rgba(255, 255, 255, 0.9) inset;
-}
-
-.lumia-bottom-tab-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.lumia-bottom-tab-avatar > span {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.lumia-bottom-tab-item.is-active .lumia-bottom-tab-avatar {
-  box-shadow:
-    0 0 0 1px rgba(23, 19, 20, 0.12),
-    0 1px 0 rgba(255, 255, 255, 0.94) inset;
 }
 
 .lumia-home-bottom-nav-shell {

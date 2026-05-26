@@ -15,6 +15,8 @@ import {
   LumiaHomePulseCard,
   TodayAssistantCard,
 } from '../components/Dashboard/LumiaHomeSections';
+import { LumiaHomeQuickActionCard } from '../components/Dashboard/LumiaHomePrimitives';
+import { getLumiaHomeCopy } from '../components/Dashboard/lumiaHomeContent';
 import { UnifiedCollapsibleTopCluster } from '../components/lumia-ui/UnifiedCollapsibleTopCluster';
 import { captureLumiaHomeLayout, lumiaDebugLog } from '../lib/lumiaDebug';
 import { shouldShowTodayAssistantFirst } from '../lib/todayAssistantPriority';
@@ -237,6 +239,42 @@ export const Dashboard = memo<DashboardProps>(
     }, [chartData, chartId, profile]);
 
     const assistantFirst = shouldShowTodayAssistantFirst(assistantResult);
+    const homeCopy = React.useMemo(() => getLumiaHomeCopy(language), [language]);
+    const quickActions = React.useMemo(
+      () => [
+        {
+          id: 'today',
+          title: homeCopy.quickActions.today.title,
+          imageSrc: '/lumia-home/quick-actions/horoscope-today.webp',
+          onClick: () => openHoroscope('sign'),
+        },
+        {
+          id: 'love',
+          title: homeCopy.quickActions.love.title,
+          imageSrc: '/lumia-home/quick-actions/love.webp',
+          onClick: () => openHoroscope('love'),
+        },
+        {
+          id: 'money',
+          title: homeCopy.quickActions.money.title,
+          imageSrc: '/lumia-home/quick-actions/money.webp',
+          onClick: () => openHoroscope('work_money'),
+        },
+        {
+          id: 'work',
+          title: homeCopy.quickActions.work.title,
+          imageSrc: '/lumia-home/quick-actions/work.webp',
+          onClick: () => openHoroscope('work_money'),
+        },
+        {
+          id: 'rhythm',
+          title: homeCopy.quickActions.rhythm.title,
+          imageSrc: '/lumia-home/quick-actions/personal-rhythm.webp',
+          onClick: () => openHoroscope('chart'),
+        },
+      ],
+      [homeCopy, openHoroscope]
+    );
 
     const pulseCard = (
       <div ref={pulseRef} data-today-section="pulse">
@@ -274,10 +312,26 @@ export const Dashboard = memo<DashboardProps>(
           <div className="lumia-main-scroll scrollbar-hide" ref={scrollRef}>
             <UnifiedCollapsibleTopCluster
               profile={profile}
+              chartData={chartData}
               scrollRef={scrollRef}
-              onOpenHoroscopeLayer={onOpenHoroscopeLayer}
             />
             <div className="lumia-home-scroll-content space-y-[var(--lumia-home-gap-lg)] px-[var(--lumia-home-page-x)]">
+              <section
+                className="lumia-home-content-actions"
+                aria-label={language === 'ru' ? 'Быстрые разделы' : 'Quick sections'}
+              >
+                <div className="scrollbar-hide lumia-home-content-action-scroll">
+                  {quickActions.map((action) => (
+                    <LumiaHomeQuickActionCard
+                      key={action.id}
+                      title={action.title}
+                      imageSrc={action.imageSrc}
+                      active={action.id === 'today'}
+                      onClick={action.onClick}
+                    />
+                  ))}
+                </div>
+              </section>
               {assistantFirst ? assistantCard : pulseCard}
               {assistantFirst ? pulseCard : assistantCard}
               <LumiaHomeHeroCard language={language} onOpen={() => openHoroscope('sign')} />

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import type { UserProfile, ViewState } from '../../types';
 import { cn } from '../../lib/cn';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
@@ -50,13 +50,25 @@ function UnionProfilesIcon(props: IconProps) {
   );
 }
 
+function SettingsGearIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path
+        d="M11.7 4.2c.58-1.5 3.02-1.5 3.6 0l.35.9c.18.46.55.82 1.02.99.47.18.98.15 1.43-.06l.86-.41c1.47-.7 3.2 1.03 2.5 2.5l-.41.86c-.21.45-.24.96-.06 1.43.17.47.53.84.99 1.02l.9.35c1.5.58 1.5 3.02 0 3.6l-.9.35c-.46.18-.82.55-.99 1.02-.18.47-.15.98.06 1.43l.41.86c.7 1.47-1.03 3.2-2.5 2.5l-.86-.41c-.45-.21-.96-.24-1.43-.06-.47.17-.84.53-1.02.99l-.35.9c-.58 1.5-3.02 1.5-3.6 0l-.35-.9c-.18-.46-.55-.82-1.02-.99-.47-.18-.98-.15-1.43.06l-.86.41c-1.47.7-3.2-1.03-2.5-2.5l.41-.86c.21-.45.24-.96.06-1.43-.17-.47-.53-.84-.99-1.02l-.9-.35c-1.5-.58-1.5-3.02 0-3.6l.9-.35c.46-.18.82-.55.99-1.02.18-.47.15-.98-.06-1.43l-.41-.86c-.7-1.47 1.03-3.2 2.5-2.5l.86.41c.45.21.96.24 1.43.06.47-.17.84-.53 1.02-.99l.35-.9Z"
+        strokeWidth="1.85"
+      />
+      <circle cx="13.5" cy="13.8" r="3.75" strokeWidth="2.05" />
+    </svg>
+  );
+}
+
 function getBottomNavLabels(language: UserProfile['language']) {
   if (language === 'en') {
     return {
       today: 'Today',
       chart: 'Map',
       union: 'Union',
-      avatar: 'Settings',
+      settings: 'Settings',
     };
   }
 
@@ -64,7 +76,7 @@ function getBottomNavLabels(language: UserProfile['language']) {
     today: 'Сегодня',
     chart: 'Карта',
     union: 'Союз',
-    avatar: 'Настройки',
+    settings: 'Настройки',
   };
 }
 
@@ -76,18 +88,7 @@ export function LumiaBottomTabBar({
   onOpenSynastry,
   onOpenAvatar,
 }: LumiaBottomTabBarProps) {
-  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const labels = getBottomNavLabels(profile.language);
-  const initial = (profile.name || 'L').trim().slice(0, 1).toUpperCase();
-
-  useEffect(() => {
-    try {
-      const tgUser = (window as any)?.Telegram?.WebApp?.initDataUnsafe?.user;
-      setPhotoUrl(typeof tgUser?.photo_url === 'string' ? tgUser.photo_url : null);
-    } catch {
-      setPhotoUrl(null);
-    }
-  }, []);
 
   if (!SHOW_ON.includes(view)) return null;
 
@@ -114,14 +115,10 @@ export function LumiaBottomTabBar({
       onClick: onOpenSynastry,
     },
     {
-      id: 'avatar',
-      label: labels.avatar,
+      id: 'settings',
+      label: labels.settings,
       active: view === 'settings',
-      icon: (
-        <span className="lumia-bottom-tab-avatar" aria-hidden>
-          {photoUrl ? <img src={photoUrl} alt="" draggable={false} /> : <span>{initial}</span>}
-        </span>
-      ),
+      icon: <SettingsGearIcon />,
       onClick: onOpenAvatar,
     },
   ];
