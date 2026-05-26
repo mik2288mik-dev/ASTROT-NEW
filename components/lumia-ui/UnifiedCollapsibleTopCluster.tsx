@@ -6,6 +6,7 @@ import {
 import type { NatalChartData, UserProfile } from '../../types';
 import { getZodiacSign } from '../../constants';
 import { getApproximateSunSignByDate } from '../../lib/zodiac-utils';
+import { formatPassportBirthLine, getZodiacCardBackground } from '../../lib/zodiacCardBackgrounds';
 import { captureLumiaHomeLayout } from '../../lib/lumiaDebug';
 import { getLumiaHomeCopy, type LumiaHomeLanguage } from '../Dashboard/lumiaHomeContent';
 import { useCollapsibleHeaderProgress } from './useCollapsibleHeaderProgress';
@@ -19,17 +20,6 @@ type UnifiedCollapsibleTopClusterProps = {
 const EXPANDED_BODY_HEIGHT = 204;
 const COLLAPSED_BODY_HEIGHT = 48;
 const COLLAPSE_DISTANCE = 132;
-
-function formatBirthDate(dateKey: string | undefined, language: LumiaHomeLanguage) {
-  if (!dateKey) return language === 'ru' ? 'дата не указана' : 'date missing';
-  const [year, month, day] = dateKey.split('-').map(Number);
-  if (!year || !month || !day) return dateKey;
-  return new Intl.DateTimeFormat(language === 'ru' ? 'ru-RU' : 'en-US', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  }).format(new Date(Date.UTC(year, month - 1, day, 12, 0, 0)));
-}
 
 function resolveSunSign(profile: UserProfile, chartData: NatalChartData | null | undefined) {
   if (chartData?.sun?.sign) return chartData.sun.sign;
@@ -83,10 +73,15 @@ export function UnifiedCollapsibleTopCluster({
   const displayName = profile.name?.trim() || 'LUMIA';
   const initial = displayName.slice(0, 1).toUpperCase();
   const sunSign = resolveSunSign(profile, chartData);
-  const signLabel = sunSign ? getZodiacSign(profile.language, sunSign) : (language === 'ru' ? 'знак не указан' : 'sign missing');
-  const birthDate = formatBirthDate(profile.birthDate, language);
-  const birthTime = profile.birthTime || (language === 'ru' ? 'время не указано' : 'time missing');
-  const birthPlace = profile.birthPlace?.trim() || (language === 'ru' ? 'город не указан' : 'place missing');
+  const signLabel = sunSign ? getZodiacSign(profile.language, sunSign) : (language === 'ru' ? 'Знак не указан' : 'Sign missing');
+  const birthLine = formatPassportBirthLine(profile, language);
+  const passportBackground = getZodiacCardBackground(
+    sunSign,
+    [profile.id, profile.birthDate, sunSign].filter(Boolean).join(':'),
+  );
+  const passportStyle = {
+    '--lumia-passport-bg': passportBackground ? `url("${passportBackground}")` : 'none',
+  } as React.CSSProperties;
 
   return (
     <>
@@ -116,7 +111,7 @@ export function UnifiedCollapsibleTopCluster({
             className="lumia-home-passport"
             style={{ opacity: passportOpacity, y: passportY, scale: passportScale }}
           >
-            <div className="lumia-home-passport-card">
+            <div className="lumia-home-passport-card" style={passportStyle}>
               <div className="lumia-home-passport-avatar" aria-hidden>
                 {photoUrl ? <img src={photoUrl} alt="" draggable={false} /> : <span>{initial}</span>}
               </div>
@@ -125,8 +120,7 @@ export function UnifiedCollapsibleTopCluster({
                   <p className="lumia-home-passport-name">{displayName}</p>
                   <span className="lumia-home-passport-sign">{signLabel}</span>
                 </div>
-                <p className="lumia-home-passport-meta">{birthDate} · {birthTime}</p>
-                <p className="lumia-home-passport-place">{birthPlace}</p>
+                <p className="lumia-home-passport-meta">{birthLine}</p>
               </div>
             </div>
           </motion.div>
