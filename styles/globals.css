@@ -628,9 +628,9 @@ body.theme-lumia-air #__next {
 
 .lumia-home-content-action-scroll {
   display: flex;
-  gap: 0.88rem;
+  gap: 1rem;
   overflow-x: auto;
-  padding: 0.2rem calc(var(--lumia-home-page-x) + 2.2rem) 0.95rem var(--lumia-home-page-x);
+  padding: 0.25rem calc(var(--lumia-home-page-x) + 3rem) 1.05rem var(--lumia-home-page-x);
   scroll-padding-inline: var(--lumia-home-page-x);
 }
 
@@ -1014,16 +1014,16 @@ body.theme-lumia-air #__next {
 .lumia-home-quick-action-card {
   position: relative;
   display: block;
-  width: clamp(10.6rem, 44vw, 11.7rem);
-  min-width: clamp(10.6rem, 44vw, 11.7rem);
+  width: clamp(11.25rem, 47vw, 12.15rem);
+  min-width: clamp(11.25rem, 47vw, 12.15rem);
   aspect-ratio: 2 / 3;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  border-radius: 1.62rem;
+  border: 0;
+  border-radius: 1.58rem;
   background: #ffffff;
   padding: 0;
   box-shadow:
-    0 20px 42px rgba(54, 24, 54, 0.14),
+    0 18px 38px rgba(31, 22, 54, 0.12),
     0 1px 0 rgba(255, 255, 255, 0.95) inset;
   transition:
     transform 180ms ease,
@@ -1032,9 +1032,8 @@ body.theme-lumia-air #__next {
 }
 
 .lumia-home-quick-action-card[data-active='true'] {
-  border-color: rgba(239, 35, 60, 0.22);
   box-shadow:
-    0 24px 52px rgba(239, 35, 60, 0.18),
+    0 20px 42px rgba(239, 35, 60, 0.13),
     0 1px 0 rgba(255, 255, 255, 0.95) inset;
 }
 
@@ -1155,8 +1154,8 @@ body.theme-lumia-air #__next {
   }
 
   .lumia-home-quick-action-card {
-    width: 9.85rem;
-    min-width: 9.85rem;
+    width: 10.5rem;
+    min-width: 10.5rem;
   }
 }
 
