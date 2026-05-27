@@ -18,6 +18,10 @@ import {
 import { LumiaHomeQuickActionCard } from '../components/Dashboard/LumiaHomePrimitives';
 import { getLumiaHomeCopy } from '../components/Dashboard/lumiaHomeContent';
 import { UnifiedCollapsibleTopCluster } from '../components/lumia-ui/UnifiedCollapsibleTopCluster';
+import {
+  HOME_VIDEO_CARD_ORDER,
+  resolveHomeCardVideosForDate,
+} from '../lib/homeCardVideos';
 import { captureLumiaHomeLayout, lumiaDebugLog } from '../lib/lumiaDebug';
 import { shouldShowTodayAssistantFirst } from '../lib/todayAssistantPriority';
 import {
@@ -47,33 +51,12 @@ function haptic(kind: 'select' | 'open' = 'select') {
   }
 }
 
-const CARD_VIDEO_SOURCES = {
-  horoscope: [
-    { src: '/assets/card-videos/horoscope/loop.mp4', poster: '/assets/card-videos/horoscope/poster.webp' },
-    { src: '/assets/card-videos/horoscope/loop-02.mp4', poster: '/assets/card-videos/horoscope/poster-02.webp' },
-    { src: '/assets/card-videos/horoscope/loop-03.mp4', poster: '/assets/card-videos/horoscope/poster-03.webp' },
-  ],
-  love: [
-    { src: '/assets/card-videos/love/loop.mp4', poster: '/assets/card-videos/love/poster.webp' },
-    { src: '/assets/card-videos/love/loop-02.mp4', poster: '/assets/card-videos/love/poster-02.webp' },
-    { src: '/assets/card-videos/love/loop-03.mp4', poster: '/assets/card-videos/love/poster-03.webp' },
-  ],
-  money: [
-    { src: '/assets/card-videos/money/loop.mp4', poster: '/assets/card-videos/money/poster.webp' },
-    { src: '/assets/card-videos/money/loop-02.mp4', poster: '/assets/card-videos/money/poster-02.webp' },
-    { src: '/assets/card-videos/money/loop-03.mp4', poster: '/assets/card-videos/money/poster-03.webp' },
-  ],
-  work: [
-    { src: '/assets/card-videos/work/loop.mp4', poster: '/assets/card-videos/work/poster.webp' },
-    { src: '/assets/card-videos/work/loop-02.mp4', poster: '/assets/card-videos/work/poster-02.webp' },
-    { src: '/assets/card-videos/work/loop-03.mp4', poster: '/assets/card-videos/work/poster-03.webp' },
-  ],
-  rhythm: [
-    { src: '/assets/card-videos/rhythm/loop.mp4', poster: '/assets/card-videos/rhythm/poster.webp' },
-    { src: '/assets/card-videos/rhythm/loop-02.mp4', poster: '/assets/card-videos/rhythm/poster-02.webp' },
-    { src: '/assets/card-videos/rhythm/loop-03.mp4', poster: '/assets/card-videos/rhythm/poster-03.webp' },
-  ],
-} as const;
+function localDateKey(date = new Date()) {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getDate()}`.padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
 export const Dashboard = memo<DashboardProps>(
   ({ profile, chartData, chartId, onOpenHoroscopeLayer, onOpenSettings, scrollRef, initialTodaySection }) => {
@@ -268,55 +251,55 @@ export const Dashboard = memo<DashboardProps>(
 
     const assistantFirst = shouldShowTodayAssistantFirst(assistantResult);
     const homeCopy = React.useMemo(() => getLumiaHomeCopy(language), [language]);
+    const quickActionVideoDate = pulseResult?.status === 'ready' ? pulseResult.pulse.date : localDateKey();
+    const resolvedQuickActionVideos = React.useMemo(
+      () => resolveHomeCardVideosForDate(quickActionVideoDate, HOME_VIDEO_CARD_ORDER),
+      [quickActionVideoDate]
+    );
     const quickActions = React.useMemo(
       () => [
         {
-          id: 'today',
+          id: 'today' as const,
           title: homeCopy.quickActions.today.title,
           body: homeCopy.quickActions.today.body,
-          imageSrc: '/lumia-home/quick-actions/horoscope-today.webp',
-          videoSources: CARD_VIDEO_SOURCES.horoscope,
-          videoVariantOffset: 0,
+          imageSrc: resolvedQuickActionVideos.horoscope.poster || '/lumia-home/quick-actions/horoscope-today.webp',
+          videoAsset: resolvedQuickActionVideos.horoscope.video,
           onClick: () => openHoroscope('sign'),
         },
         {
-          id: 'love',
+          id: 'love' as const,
           title: homeCopy.quickActions.love.title,
           body: homeCopy.quickActions.love.body,
-          imageSrc: '/lumia-home/quick-actions/love.webp',
-          videoSources: CARD_VIDEO_SOURCES.love,
-          videoVariantOffset: 1,
+          imageSrc: resolvedQuickActionVideos.love.poster || '/lumia-home/quick-actions/love.webp',
+          videoAsset: resolvedQuickActionVideos.love.video,
           onClick: () => openHoroscope('love'),
         },
         {
-          id: 'money',
+          id: 'money' as const,
           title: homeCopy.quickActions.money.title,
           body: homeCopy.quickActions.money.body,
-          imageSrc: '/lumia-home/quick-actions/money.webp',
-          videoSources: CARD_VIDEO_SOURCES.money,
-          videoVariantOffset: 2,
+          imageSrc: resolvedQuickActionVideos.money.poster || '/lumia-home/quick-actions/money.webp',
+          videoAsset: resolvedQuickActionVideos.money.video,
           onClick: () => openHoroscope('work_money'),
         },
         {
-          id: 'work',
+          id: 'work' as const,
           title: homeCopy.quickActions.work.title,
           body: homeCopy.quickActions.work.body,
-          imageSrc: '/lumia-home/quick-actions/work.webp',
-          videoSources: CARD_VIDEO_SOURCES.work,
-          videoVariantOffset: 0,
+          imageSrc: resolvedQuickActionVideos.work.poster || '/lumia-home/quick-actions/work.webp',
+          videoAsset: resolvedQuickActionVideos.work.video,
           onClick: () => openHoroscope('work_money'),
         },
         {
-          id: 'rhythm',
+          id: 'rhythm' as const,
           title: homeCopy.quickActions.rhythm.title,
           body: homeCopy.quickActions.rhythm.body,
-          imageSrc: '/lumia-home/quick-actions/personal-rhythm.webp',
-          videoSources: CARD_VIDEO_SOURCES.rhythm,
-          videoVariantOffset: 1,
+          imageSrc: resolvedQuickActionVideos.rhythm.poster || '/lumia-home/quick-actions/personal-rhythm.webp',
+          videoAsset: resolvedQuickActionVideos.rhythm.video,
           onClick: () => openHoroscope('chart'),
         },
       ],
-      [homeCopy, openHoroscope]
+      [homeCopy, openHoroscope, resolvedQuickActionVideos]
     );
 
     const pulseCard = (
@@ -370,8 +353,7 @@ export const Dashboard = memo<DashboardProps>(
                       title={action.title}
                       body={action.body}
                       imageSrc={action.imageSrc}
-                      videoSources={action.videoSources}
-                      videoVariantOffset={action.videoVariantOffset}
+                      videoAsset={action.videoAsset}
                       active={action.id === 'today'}
                       onClick={action.onClick}
                     />

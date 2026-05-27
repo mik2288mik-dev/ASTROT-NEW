@@ -17,9 +17,9 @@ type UnifiedCollapsibleTopClusterProps = {
   scrollRef?: React.RefObject<HTMLDivElement | null>;
 };
 
-const EXPANDED_BODY_HEIGHT = 164;
+const EXPANDED_BODY_HEIGHT = 150;
 const COLLAPSED_BODY_HEIGHT = 48;
-const COLLAPSE_DISTANCE = 104;
+const COLLAPSE_DISTANCE = 96;
 
 function resolveSunSign(profile: UserProfile, chartData: NatalChartData | null | undefined) {
   if (chartData?.sun?.sign) return chartData.sun.sign;
@@ -64,7 +64,7 @@ export function UnifiedCollapsibleTopCluster({
   const subtitleOpacity = useTransform(visualProgress, [0, 0.2, 0.42], [1, 0.28, 0]);
   const subtitleY = useTransform(rawProgress, [0, 1], [0, -12]);
   const passportOpacity = useTransform(visualProgress, [0, 0.38, 0.72], [1, 0.42, 0]);
-  const passportY = useTransform(rawProgress, [0, 1], [0, -88]);
+  const passportY = useTransform(rawProgress, [0, 1], [0, -76]);
   const passportScale = useTransform(visualProgress, [0, 1], [1, 0.94]);
   const compactRowOpacity = useTransform(visualProgress, [0, 0.52, 0.78, 1], [0, 0, 0.88, 1]);
   const compactRowY = useTransform(rawProgress, [0, 1], [-5, 0]);

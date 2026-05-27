@@ -314,9 +314,9 @@ function PulseChart({
   };
 
   return (
-    <div className="lumia-home-pulse-chart relative mt-3.5 h-[10.4rem] overflow-hidden rounded-[1.18rem] bg-white shadow-[inset_0_0_0_1px_rgba(17,19,23,0.08),0_12px_26px_rgba(17,19,23,0.04)]">
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(244,247,250,0.82),rgba(255,255,255,0.18)),radial-gradient(circle_at_82%_8%,rgba(0,166,106,0.10),transparent_30%),radial-gradient(circle_at_12%_80%,rgba(21,94,239,0.08),transparent_34%)]" />
-      <div ref={chartRef} className="absolute inset-x-2 top-2 h-[7.05rem] cursor-pointer touch-pan-y" onPointerDown={handleChartPointer}>
+    <div className="lumia-home-pulse-chart relative mt-3.5 h-[8.9rem] overflow-hidden rounded-[1.02rem] bg-[#F8FBFF]/80 shadow-[inset_0_0_0_1px_rgba(17,19,23,0.045)]">
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(244,247,250,0.42)),radial-gradient(circle_at_82%_12%,rgba(0,166,106,0.08),transparent_28%),radial-gradient(circle_at_14%_78%,rgba(21,94,239,0.06),transparent_32%)]" />
+      <div ref={chartRef} className="absolute inset-x-2 top-2 h-[5.95rem] cursor-pointer touch-pan-y" onPointerDown={handleChartPointer}>
         <div
           className="pointer-events-none absolute top-0 z-10 rounded-full bg-white px-2 py-0.5 font-lumiaHome text-[0.58rem] font-extrabold leading-none text-[#111317] shadow-[0_8px_18px_rgba(17,19,23,0.08)]"
           style={{ left: `${selectedProgress * 100}%`, transform: selectedPillTransform }}
@@ -337,7 +337,7 @@ function PulseChart({
               <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
             </linearGradient>
             <filter id={glowId} x="-20%" y="-80%" width="140%" height="240%">
-              <feGaussianBlur stdDeviation="3.2" result="blur" />
+              <feGaussianBlur stdDeviation="2.4" result="blur" />
               <feMerge>
                 <feMergeNode in="blur" />
                 <feMergeNode in="SourceGraphic" />
@@ -352,9 +352,9 @@ function PulseChart({
             <line key={y} x1="22" x2="338" y1={y} y2={y} stroke="rgba(17,19,23,0.055)" strokeWidth="1" />
           ))}
           <path d={areaPath} fill={`url(#${areaId})`} />
-          <path d={linePath} fill="none" stroke="rgba(17,19,23,0.055)" strokeWidth="9" strokeLinecap="round" />
-          <path d={linePath} fill="none" stroke={`url(#${lineId})`} strokeWidth="4.8" strokeLinecap="round" filter={`url(#${glowId})`} />
-          <line x1={selectedXY.x} x2={selectedXY.x} y1="20" y2="116" stroke="rgba(21,94,239,0.42)" strokeWidth="1.4" />
+          <path d={linePath} fill="none" stroke="rgba(17,19,23,0.045)" strokeWidth="7.2" strokeLinecap="round" />
+          <path d={linePath} fill="none" stroke={`url(#${lineId})`} strokeWidth="3.8" strokeLinecap="round" filter={`url(#${glowId})`} />
+          <line x1={selectedXY.x} x2={selectedXY.x} y1="22" y2="112" stroke="rgba(21,94,239,0.36)" strokeWidth="1.2" />
           {moments.map((moment) => {
             const { x, y } = pointToWalletXY(moment.point);
             const isSelected = moment.point.hour === selectedPoint.hour;
@@ -389,14 +389,14 @@ function PulseChart({
           ) : null}
         </svg>
       </div>
-      <div className="pointer-events-none absolute inset-x-5 bottom-[2.14rem] flex items-center justify-between font-lumiaHome text-[0.56rem] font-extrabold text-[#606772]/62">
+      <div className="pointer-events-none absolute inset-x-5 bottom-[1.78rem] flex items-center justify-between font-lumiaHome text-[0.56rem] font-extrabold text-[#606772]/62">
         <span>00</span>
         <span>06</span>
         <span>12</span>
         <span>18</span>
         <span>24</span>
       </div>
-      <div className="absolute inset-x-2 bottom-1.5 grid grid-cols-5 gap-1">
+      <div className="absolute inset-x-2 bottom-1 grid grid-cols-5 gap-1">
         {moments.map((moment) => {
           const isSelected = moment.point.hour === selectedPoint.hour;
           return (

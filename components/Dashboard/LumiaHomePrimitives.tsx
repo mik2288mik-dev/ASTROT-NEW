@@ -1,5 +1,6 @@
 import React from 'react';
 import { cn } from '../../lib/cn';
+import type { HomeCardVideoAsset } from '../../lib/homeCardVideos';
 
 type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement>;
 
@@ -58,11 +59,7 @@ type QuickActionCardProps = Omit<ButtonProps, 'children'> & {
   title: string;
   imageSrc: string;
   body?: string;
-  videoSources?: ReadonlyArray<{
-    src: string;
-    poster: string;
-  }>;
-  videoVariantOffset?: number;
+  videoAsset?: HomeCardVideoAsset | null;
   active?: boolean;
 };
 
@@ -70,8 +67,7 @@ export function LumiaHomeQuickActionCard({
   title,
   imageSrc,
   body,
-  videoSources = [],
-  videoVariantOffset = 0,
+  videoAsset = null,
   active = false,
   className,
   type = 'button',
@@ -79,20 +75,17 @@ export function LumiaHomeQuickActionCard({
 }: QuickActionCardProps) {
   const rootRef = React.useRef<HTMLButtonElement | null>(null);
   const videoRef = React.useRef<HTMLVideoElement | null>(null);
-  const [variantIndex, setVariantIndex] = React.useState(0);
   const [canLoadVideo, setCanLoadVideo] = React.useState(false);
   const [isVisible, setIsVisible] = React.useState(false);
-  const selectedVideo = videoSources[variantIndex] || videoSources[0] || null;
+  const [videoReady, setVideoReady] = React.useState(false);
+  const selectedVideo = videoAsset;
   const posterSrc = selectedVideo?.poster || imageSrc;
 
   React.useEffect(() => {
-    if (!videoSources.length) return;
-    const now = new Date();
-    const daySeed = Math.floor(
-      Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) / 86_400_000,
-    );
-    setVariantIndex((daySeed + videoVariantOffset) % videoSources.length);
-  }, [videoSources, videoVariantOffset]);
+    setCanLoadVideo(false);
+    setIsVisible(false);
+    setVideoReady(false);
+  }, [selectedVideo?.src]);
 
   React.useEffect(() => {
     const element = rootRef.current;
@@ -156,12 +149,16 @@ export function LumiaHomeQuickActionCard({
         <video
           ref={videoRef}
           className="lumia-home-quick-action-video"
+          data-ready={videoReady && canLoadVideo ? 'true' : 'false'}
           src={canLoadVideo ? selectedVideo.src : undefined}
           poster={posterSrc}
           muted
           loop
           playsInline
           preload="metadata"
+          onCanPlay={() => setVideoReady(true)}
+          onLoadedData={() => setVideoReady(true)}
+          onError={() => setVideoReady(false)}
           aria-hidden
         />
       ) : null}
