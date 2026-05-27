@@ -39,27 +39,36 @@ body,
   --radius-air-panel: 1.75rem;
 
   /* Lumia Home 2026: editorial consumer mobile foundation */
-  --lumia-pop-red: #ef233c;
-  --lumia-pop-yellow: #ffd400;
-  --lumia-pop-orange: #ff7a00;
-  --lumia-pop-green: #18c964;
-  --lumia-pop-blue: #00a7ff;
-  --lumia-pop-berry: #8b1cff;
+  --lumia-brand-primary: #155eef;
+  --lumia-brand-primary-dark: #0b3aa8;
+  --lumia-brand-positive: #00a66a;
+  --lumia-brand-negative: #e11937;
+  --lumia-brand-ink: #111317;
+  --lumia-brand-muted: #606772;
+  --lumia-brand-line: rgba(17, 19, 23, 0.1);
+  --lumia-brand-surface: #ffffff;
+  --lumia-brand-surface-soft: #f4f7fa;
+  --lumia-pop-red: var(--lumia-brand-primary);
+  --lumia-pop-yellow: var(--lumia-brand-positive);
+  --lumia-pop-orange: #0f766e;
+  --lumia-pop-green: var(--lumia-brand-positive);
+  --lumia-pop-blue: var(--lumia-brand-primary);
+  --lumia-pop-berry: #2347b8;
   --lumia-home-bg: #ffffff;
   --lumia-home-bg-wash: #ffffff;
   --lumia-home-surface: #ffffff;
-  --lumia-home-surface-soft: #fff4dc;
-  --lumia-home-text: #171314;
-  --lumia-home-muted: #665a55;
-  --lumia-home-purple: var(--lumia-pop-red);
-  --lumia-home-purple-deep: #171314;
-  --lumia-home-plum: #5010a8;
-  --lumia-home-lavender: #e7f7ff;
-  --lumia-home-lavender-strong: #bdeeff;
-  --lumia-home-peach: #ffe45c;
-  --lumia-home-rose: var(--lumia-pop-orange);
-  --lumia-home-orchid: var(--lumia-pop-berry);
-  --lumia-home-line: rgba(23, 19, 20, 0.1);
+  --lumia-home-surface-soft: var(--lumia-brand-surface-soft);
+  --lumia-home-text: var(--lumia-brand-ink);
+  --lumia-home-muted: var(--lumia-brand-muted);
+  --lumia-home-purple: var(--lumia-brand-primary);
+  --lumia-home-purple-deep: var(--lumia-brand-ink);
+  --lumia-home-plum: var(--lumia-brand-primary-dark);
+  --lumia-home-lavender: #eaf1ff;
+  --lumia-home-lavender-strong: #c9d9ff;
+  --lumia-home-peach: var(--lumia-brand-surface-soft);
+  --lumia-home-rose: var(--lumia-brand-positive);
+  --lumia-home-orchid: var(--lumia-brand-primary);
+  --lumia-home-line: var(--lumia-brand-line);
   --lumia-home-white-soft: rgba(255, 255, 255, 0.82);
   --lumia-home-page-x: 1rem;
   --lumia-home-gap-sm: 0.6rem;
@@ -76,8 +85,8 @@ body,
   --lumia-bottom-tab-bottom-gap: 0.38rem;
   --lumia-bottom-tab-clearance: calc(var(--lumia-bottom-tab-height) + var(--lumia-bottom-tab-safe-bottom) + 1.6rem);
   --lumia-home-nav-height: var(--lumia-bottom-tab-height);
-  --lumia-home-shadow-card: 0 18px 40px rgba(239, 35, 60, 0.1);
-  --lumia-home-shadow-lifted: 0 14px 30px rgba(239, 35, 60, 0.26);
+  --lumia-home-shadow-card: 0 16px 34px rgba(17, 19, 23, 0.08);
+  --lumia-home-shadow-lifted: 0 14px 30px rgba(21, 94, 239, 0.22);
   --lumia-home-shadow-nav: 0 12px 34px rgba(23, 19, 20, 0.14);
   --lumia-home-font-sans: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --lumia-home-font-display: 'Geologica', 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -316,7 +325,7 @@ body.theme-lumia-air #__next {
 }
 
 .lumia-home-scroll-content {
-  margin-top: -1.82rem;
+  margin-top: -0.88rem;
   padding-bottom: var(--lumia-bottom-tab-clearance);
 }
 
@@ -338,8 +347,8 @@ body.theme-lumia-air #__next {
 }
 
 .lumia-home-top-spacer {
-  height: 176px;
-  flex: 0 0 176px;
+  height: 146px;
+  flex: 0 0 146px;
   pointer-events: none;
 }
 
@@ -393,7 +402,7 @@ body.theme-lumia-air #__next {
   right: 0;
   left: 0;
   z-index: 2;
-  height: 204px;
+  height: 176px;
   max-width: 28rem;
   margin: 0 auto;
   overflow: visible;
@@ -478,7 +487,7 @@ body.theme-lumia-air #__next {
 
 .lumia-home-passport {
   position: absolute;
-  top: 4.4rem;
+  top: 4.18rem;
   right: max(var(--lumia-home-page-x), env(safe-area-inset-right, 0px), var(--tg-content-safe-area-inset-right, 0px), var(--tg-safe-area-inset-right, 0px));
   left: max(var(--lumia-home-page-x), env(safe-area-inset-left, 0px), var(--tg-content-safe-area-inset-left, 0px), var(--tg-safe-area-inset-left, 0px));
   z-index: 2;
@@ -488,30 +497,30 @@ body.theme-lumia-air #__next {
 
 .lumia-home-passport-card {
   display: flex;
-  min-height: 6.15rem;
+  min-height: 4.75rem;
   align-items: center;
-  gap: 0.9rem;
+  gap: 0.72rem;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.78);
-  border-radius: 1.6rem;
+  border-radius: 1.38rem;
   background:
-    linear-gradient(90deg, rgba(19, 24, 30, 0.62) 0%, rgba(19, 24, 30, 0.44) 36%, rgba(19, 24, 30, 0.16) 62%, rgba(19, 24, 30, 0) 100%),
+    linear-gradient(90deg, rgba(17, 19, 23, 0.48) 0%, rgba(17, 19, 23, 0.34) 36%, rgba(17, 19, 23, 0.10) 64%, rgba(17, 19, 23, 0) 100%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0)),
     var(--lumia-passport-bg),
-    linear-gradient(135deg, #eaf8ff 0%, #f8f0ff 48%, #fff5e6 100%);
+    linear-gradient(135deg, #eaf1ff 0%, #f4f7fa 58%, #ffffff 100%);
   background-position: center;
   background-size: cover;
   box-shadow:
-    0 18px 42px rgba(31, 22, 54, 0.12),
+    0 12px 28px rgba(17, 19, 23, 0.08),
     0 1px 0 rgba(255, 255, 255, 0.74) inset;
-  padding: 0.82rem 0.9rem;
+  padding: 0.62rem 0.72rem;
 }
 
 .lumia-home-passport-avatar {
   display: flex;
-  width: 3.65rem;
-  height: 3.65rem;
-  flex: 0 0 3.65rem;
+  width: 2.88rem;
+  height: 2.88rem;
+  flex: 0 0 2.88rem;
   align-items: center;
   justify-content: center;
   overflow: hidden;
@@ -550,7 +559,7 @@ body.theme-lumia-air #__next {
   overflow: hidden;
   color: #ffffff;
   font-family: var(--lumia-home-font-display);
-  font-size: clamp(1.16rem, 5.15vw, 1.48rem);
+  font-size: clamp(1.02rem, 4.45vw, 1.26rem);
   font-weight: 900;
   letter-spacing: 0;
   line-height: 1.02;
@@ -561,10 +570,10 @@ body.theme-lumia-air #__next {
 
 .lumia-home-passport-sign {
   display: block;
-  margin-top: 0.22rem;
+  margin-top: 0.16rem;
   overflow: hidden;
   color: rgba(255, 255, 255, 0.96);
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 850;
   line-height: 1.08;
   text-overflow: ellipsis;
@@ -580,9 +589,9 @@ body.theme-lumia-air #__next {
 }
 
 .lumia-home-passport-meta {
-  margin-top: 0.3rem;
+  margin-top: 0.2rem;
   color: rgba(255, 255, 255, 0.92);
-  font-size: 0.8rem;
+  font-size: 0.72rem;
   font-weight: 760;
   line-height: 1.2;
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.24);
@@ -628,10 +637,15 @@ body.theme-lumia-air #__next {
 
 .lumia-home-content-action-scroll {
   display: flex;
-  gap: 1rem;
+  gap: 0.92rem;
   overflow-x: auto;
-  padding: 0.25rem calc(var(--lumia-home-page-x) + 3rem) 1.05rem var(--lumia-home-page-x);
+  overscroll-behavior-x: contain;
+  padding: 0.2rem calc(var(--lumia-home-page-x) + 3.35rem) 1rem var(--lumia-home-page-x);
+  scroll-behavior: smooth;
+  scroll-snap-type: x proximity;
   scroll-padding-inline: var(--lumia-home-page-x);
+  touch-action: pan-x pan-y;
+  -webkit-overflow-scrolling: touch;
 }
 
 .lumia-home-compact-row {
@@ -824,7 +838,7 @@ body.theme-lumia-air #__next {
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.76);
   background:
-    radial-gradient(circle at 68% 20%, rgba(255, 212, 0, 0.38), transparent 42%),
+    radial-gradient(circle at 68% 20%, rgba(21, 94, 239, 0.14), transparent 42%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(255, 255, 255, 0.58)),
     rgba(255, 255, 255, 0.5);
   color: var(--lumia-home-purple-deep);
@@ -832,7 +846,7 @@ body.theme-lumia-air #__next {
   font-size: 1.08rem;
   font-weight: 800;
   box-shadow:
-    0 16px 38px rgba(239, 35, 60, 0.16),
+    0 16px 38px rgba(21, 94, 239, 0.12),
     0 1px 0 rgba(255, 255, 255, 0.9) inset;
   backdrop-filter: blur(28px) saturate(1.16);
   -webkit-backdrop-filter: blur(28px) saturate(1.16);
@@ -855,9 +869,9 @@ body.theme-lumia-air #__next {
   justify-content: center;
   border-radius: 999px;
   background:
-    radial-gradient(circle at 65% 20%, rgba(255, 212, 0, 0.98), transparent 48%),
-    linear-gradient(135deg, #ffffff, #ffe9ec);
-  box-shadow: 0 0 0 1px rgba(239, 35, 60, 0.14);
+    radial-gradient(circle at 65% 20%, rgba(21, 94, 239, 0.22), transparent 48%),
+    linear-gradient(135deg, #ffffff, #eef4ff);
+  box-shadow: 0 0 0 1px rgba(21, 94, 239, 0.14);
 }
 
 .lumia-home-bottom-avatar-action:active {
@@ -875,7 +889,7 @@ body.theme-lumia-air #__next {
 
 .lumia-pulse-kicker {
   display: inline-block;
-  background: linear-gradient(98deg, #ef233c 0%, #ff4f68 42%, #ff7a00 100%);
+  background: linear-gradient(98deg, var(--lumia-brand-primary) 0%, #0b7dff 48%, var(--lumia-brand-positive) 100%);
   color: transparent;
   font-family: var(--lumia-home-font-pulse-kicker);
   font-size: clamp(1.82rem, 8.4vw, 2.08rem);
@@ -888,7 +902,7 @@ body.theme-lumia-air #__next {
   transform-origin: left center;
   -webkit-background-clip: text;
   background-clip: text;
-  text-shadow: 0 8px 18px rgba(239, 35, 60, 0.12);
+  text-shadow: 0 8px 18px rgba(21, 94, 239, 0.12);
 }
 
 .lumia-pulse-kicker--compact {
@@ -934,8 +948,8 @@ body.theme-lumia-air #__next {
 }
 
 .lumia-home-primary-button {
-  border: 1px solid rgba(239, 35, 60, 0.26);
-  background: linear-gradient(135deg, var(--lumia-pop-red) 0%, var(--lumia-pop-orange) 58%, var(--lumia-pop-yellow) 118%);
+  border: 1px solid rgba(21, 94, 239, 0.26);
+  background: linear-gradient(135deg, var(--lumia-brand-primary) 0%, #0b7dff 100%);
   color: #ffffff;
   box-shadow:
     var(--lumia-home-shadow-lifted),
@@ -943,10 +957,10 @@ body.theme-lumia-air #__next {
 }
 
 .lumia-home-secondary-button {
-  border: 1px solid rgba(239, 35, 60, 0.24);
+  border: 1px solid rgba(21, 94, 239, 0.22);
   background: rgba(255, 255, 255, 0.82);
   color: var(--lumia-home-purple);
-  box-shadow: 0 12px 32px rgba(239, 35, 60, 0.08);
+  box-shadow: 0 12px 32px rgba(21, 94, 239, 0.08);
 }
 
 .lumia-home-primary-button:active,
@@ -1014,8 +1028,8 @@ body.theme-lumia-air #__next {
 .lumia-home-quick-action-card {
   position: relative;
   display: block;
-  width: clamp(11.25rem, 47vw, 12.15rem);
-  min-width: clamp(11.25rem, 47vw, 12.15rem);
+  width: clamp(11.1rem, 46vw, 12.1rem);
+  min-width: clamp(11.1rem, 46vw, 12.1rem);
   aspect-ratio: 2 / 3;
   overflow: hidden;
   border: 0;
@@ -1023,8 +1037,10 @@ body.theme-lumia-air #__next {
   background: #ffffff;
   padding: 0;
   box-shadow:
-    0 18px 38px rgba(31, 22, 54, 0.12),
+    0 16px 34px rgba(17, 19, 23, 0.11),
     0 1px 0 rgba(255, 255, 255, 0.95) inset;
+  scroll-snap-align: start;
+  scroll-snap-stop: normal;
   transition:
     transform 180ms ease,
     box-shadow 180ms ease,
@@ -1033,7 +1049,7 @@ body.theme-lumia-air #__next {
 
 .lumia-home-quick-action-card[data-active='true'] {
   box-shadow:
-    0 20px 42px rgba(239, 35, 60, 0.13),
+    0 18px 38px rgba(21, 94, 239, 0.15),
     0 1px 0 rgba(255, 255, 255, 0.95) inset;
 }
 
@@ -1042,6 +1058,8 @@ body.theme-lumia-air #__next {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  pointer-events: none;
+  user-select: none;
 }
 
 .lumia-home-bottom-nav {
@@ -1056,7 +1074,7 @@ body.theme-lumia-air #__next {
     linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.58)),
     rgba(255, 255, 255, 0.42);
   box-shadow:
-    0 16px 42px rgba(239, 35, 60, 0.14),
+    0 16px 42px rgba(17, 19, 23, 0.10),
     0 1px 0 rgba(255, 255, 255, 0.86) inset;
   backdrop-filter: blur(28px) saturate(1.18);
   -webkit-backdrop-filter: blur(28px) saturate(1.18);
@@ -1106,18 +1124,18 @@ body.theme-lumia-air #__next {
 }
 
 .lumia-home-bottom-nav-item[data-active='true'] .lumia-home-bottom-nav-icon {
-  background: linear-gradient(135deg, rgba(255, 212, 0, 0.34), rgba(239, 35, 60, 0.14));
-  box-shadow: 0 8px 18px rgba(239, 35, 60, 0.14);
+  background: linear-gradient(135deg, rgba(21, 94, 239, 0.14), rgba(0, 166, 106, 0.10));
+  box-shadow: 0 8px 18px rgba(21, 94, 239, 0.12);
 }
 
 .lumia-home-bottom-nav-item[data-center='true'] .lumia-home-bottom-nav-icon {
   width: 2.92rem;
   height: 2.92rem;
   border-radius: var(--lumia-home-radius-pill);
-  background: linear-gradient(135deg, var(--lumia-pop-red), var(--lumia-pop-orange));
+  background: linear-gradient(135deg, var(--lumia-brand-primary), #0b7dff);
   color: #ffffff;
   box-shadow:
-    0 10px 24px rgba(239, 35, 60, 0.22),
+    0 10px 24px rgba(21, 94, 239, 0.20),
     0 1px 0 rgba(255, 255, 255, 0.28) inset;
   transform: translateY(-0.18rem);
 }

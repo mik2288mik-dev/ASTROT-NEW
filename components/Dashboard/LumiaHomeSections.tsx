@@ -47,15 +47,15 @@ export function LumiaHomeHeroCard({
   const titleLines = copy.heroTitle.split('\n');
 
   return (
-    <LumiaHomeLargeCard className="lumia-home-hero-card min-h-[20.75rem] bg-[#ffe45c] shadow-[0_18px_44px_rgba(239,35,60,0.16)]">
+    <LumiaHomeLargeCard className="lumia-home-hero-card min-h-[20.75rem] bg-white shadow-[0_16px_36px_rgba(17,19,23,0.08)]">
       <img
         src="/lumia-home/daily-hero-editorial-v1.webp"
         alt=""
         draggable={false}
         className="absolute inset-0 h-full w-full object-cover object-[62%_center]"
       />
-      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,247,211,0.98)_0%,rgba(255,228,92,0.84)_38%,rgba(255,122,0,0.26)_68%,rgba(255,122,0,0.06)_100%)]" />
-      <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-[#ffd400]/78 via-[#ff7a00]/18 to-transparent" />
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.98)_0%,rgba(244,247,250,0.88)_42%,rgba(21,94,239,0.14)_72%,rgba(21,94,239,0.04)_100%)]" />
+      <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-white/80 via-[#155EEF]/10 to-transparent" />
       <div className="absolute -left-20 top-10 h-56 w-56 rounded-full bg-white/52 blur-3xl" />
 
       <div className="relative z-10 flex min-h-[20.75rem] max-w-[92%] flex-col justify-between px-4 py-[1.125rem] sm:px-5">
@@ -178,7 +178,7 @@ function buildTimelineMoments(pulse: TodayPulse, language: LumiaHomeLanguage) {
       targetHour: 6,
       label: language === 'ru' ? 'утро' : 'morning',
       shortLabel: language === 'ru' ? 'утро' : 'am',
-      color: '#7c4dff',
+      color: '#155EEF',
     },
     {
       id: 'peak',
@@ -186,7 +186,7 @@ function buildTimelineMoments(pulse: TodayPulse, language: LumiaHomeLanguage) {
       targetHour: pulse.peakPoint.hour,
       label: language === 'ru' ? 'пик' : 'peak',
       shortLabel: language === 'ru' ? 'пик' : 'peak',
-      color: '#ef3b62',
+      color: '#00A66A',
     },
     {
       id: 'contact',
@@ -194,7 +194,7 @@ function buildTimelineMoments(pulse: TodayPulse, language: LumiaHomeLanguage) {
       targetHour: 17,
       label: language === 'ru' ? 'контакт' : 'contact',
       shortLabel: language === 'ru' ? 'связь' : 'talk',
-      color: '#ff8a00',
+      color: '#0B7DFF',
     },
     {
       id: 'slow',
@@ -202,7 +202,7 @@ function buildTimelineMoments(pulse: TodayPulse, language: LumiaHomeLanguage) {
       targetHour: 21,
       label: language === 'ru' ? 'спад' : 'slow',
       shortLabel: language === 'ru' ? 'спад' : 'slow',
-      color: '#00a7ff',
+      color: '#606772',
     },
     {
       id: 'restore',
@@ -210,7 +210,7 @@ function buildTimelineMoments(pulse: TodayPulse, language: LumiaHomeLanguage) {
       targetHour: 23,
       label: language === 'ru' ? 'восстановление' : 'restore',
       shortLabel: language === 'ru' ? 'восст.' : 'rest',
-      color: '#805ad5',
+      color: '#155EEF',
     },
   ];
 
@@ -327,14 +327,13 @@ function PulseChart({
           <defs>
             <linearGradient id={lineId} x1="0" x2="1" y1="0" y2="0">
               <stop offset="0%" stopColor="#00a7ff" />
-              <stop offset="36%" stopColor="#8b1cff" />
-              <stop offset="58%" stopColor="#ef233c" />
-              <stop offset="78%" stopColor="#ff7a00" />
-              <stop offset="100%" stopColor="#ffd400" />
+              <stop offset="36%" stopColor="#155EEF" />
+              <stop offset="66%" stopColor="#00A66A" />
+              <stop offset="100%" stopColor="#155EEF" />
             </linearGradient>
             <linearGradient id={areaId} x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stopColor="#ff7a00" stopOpacity="0.20" />
-              <stop offset="52%" stopColor="#ef233c" stopOpacity="0.08" />
+              <stop offset="0%" stopColor="#155EEF" stopOpacity="0.16" />
+              <stop offset="52%" stopColor="#00A66A" stopOpacity="0.07" />
               <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
             </linearGradient>
             <filter id={glowId} x="-20%" y="-80%" width="140%" height="240%">
@@ -355,7 +354,7 @@ function PulseChart({
           <path d={areaPath} fill={`url(#${areaId})`} />
           <path d={linePath} fill="none" stroke="rgba(48,19,45,0.065)" strokeWidth="8" strokeLinecap="round" />
           <path d={linePath} fill="none" stroke={`url(#${lineId})`} strokeWidth="4.2" strokeLinecap="round" filter={`url(#${glowId})`} />
-          <line x1={selectedXY.x} x2={selectedXY.x} y1="18" y2="90" stroke="rgba(239,35,60,0.42)" strokeWidth="1.4" />
+          <line x1={selectedXY.x} x2={selectedXY.x} y1="18" y2="90" stroke="rgba(21,94,239,0.42)" strokeWidth="1.4" />
           {moments.map((moment) => {
             const { x, y } = pointToWalletXY(moment.point);
             const isSelected = moment.point.hour === selectedPoint.hour;
@@ -373,10 +372,10 @@ function PulseChart({
               >
                 <circle cx={x} cy={y} r="17" fill="transparent" />
                 <circle cx={x} cy={y} r={isSelected ? 12 : 7.6} fill={isSelected ? 'rgba(255,255,255,0.62)' : 'rgba(255,255,255,0.30)'} />
-                <circle cx={x} cy={y} r={isSelected ? 7.2 : 4.8} fill="#fffaf1" stroke={moment.color} strokeWidth={isSelected ? 3.6 : 2.1} />
+                <circle cx={x} cy={y} r={isSelected ? 7.2 : 4.8} fill="#ffffff" stroke={moment.color} strokeWidth={isSelected ? 3.6 : 2.1} />
                 <circle cx={x} cy={y} r={isSelected ? 2.8 : 2} fill={moment.color} />
                 {isCurrent && !isSelected ? (
-                  <circle cx={x} cy={y} r="10.2" fill="none" stroke="rgba(239,59,98,0.28)" strokeWidth="2" strokeDasharray="3 3" />
+                  <circle cx={x} cy={y} r="10.2" fill="none" stroke="rgba(21,94,239,0.28)" strokeWidth="2" strokeDasharray="3 3" />
                 ) : null}
               </g>
             );
@@ -384,8 +383,8 @@ function PulseChart({
           {!selectedIsMoment ? (
             <g>
               <circle cx={selectedXY.x} cy={selectedXY.y} r="12" fill="rgba(255,255,255,0.62)" />
-              <circle cx={selectedXY.x} cy={selectedXY.y} r="7.2" fill="#fffaf1" stroke="#ff9f1c" strokeWidth="3.6" />
-              <circle cx={selectedXY.x} cy={selectedXY.y} r="2.8" fill="#ff7a00" />
+              <circle cx={selectedXY.x} cy={selectedXY.y} r="7.2" fill="#ffffff" stroke="#155EEF" strokeWidth="3.6" />
+              <circle cx={selectedXY.x} cy={selectedXY.y} r="2.8" fill="#155EEF" />
             </g>
           ) : null}
         </svg>
@@ -427,7 +426,7 @@ function PulseLoadingState({ language }: { language: LumiaHomeLanguage }) {
         <h2 className="lumia-pulse-kicker mb-0">
           {language === 'ru' ? 'ПУЛЬС ДНЯ' : 'Day pulse'}
         </h2>
-        <div className="h-8 w-[6.5rem] animate-pulse rounded-full bg-[#f8dca9]/70" />
+        <div className="h-8 w-[6.5rem] animate-pulse rounded-full bg-[#F4F7FA]" />
       </div>
       <div className="mt-3 h-[4.8rem] max-w-[17rem] animate-pulse rounded-[1rem] bg-white/62" />
       <div className="mt-3 h-[6.15rem] animate-pulse rounded-[1.05rem] bg-white/45" />
@@ -446,7 +445,7 @@ function PulseSetupState({ language, onSetup }: { language: LumiaHomeLanguage; o
         <h2 className="lumia-pulse-kicker mb-0">
           {language === 'ru' ? 'Пульс дня' : 'Day pulse'}
         </h2>
-        <Sparkles size={17} className="text-[#ff9f1c]" strokeWidth={2.1} aria-hidden />
+        <Sparkles size={17} className="text-[#155EEF]" strokeWidth={2.1} aria-hidden />
       </div>
       <div className="mt-3 rounded-[1.05rem] bg-white/62 p-3 ring-1 ring-[#30132d]/[0.07]">
         <p className="mb-0 font-lumiaHomeDisplay text-[1.05rem] font-extrabold leading-tight text-[#30132d]">
@@ -524,7 +523,7 @@ export function LumiaHomePulseCard({
 
   return (
     <LumiaHomeLargeCard className="lumia-home-pulse-card rounded-[1.55rem] border border-[#30132d]/[0.055] bg-white px-4 py-4 text-[#30132d] shadow-[0_14px_34px_rgba(31,22,54,0.055)]">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_0%,rgba(255,159,28,0.10),transparent_32%),radial-gradient(circle_at_94%_32%,rgba(24,201,100,0.08),transparent_32%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_0%,rgba(21,94,239,0.08),transparent_32%),radial-gradient(circle_at_94%_32%,rgba(0,166,106,0.07),transparent_32%)]" />
       {isLoading ? (
         <PulseLoadingState language={language} />
       ) : pulseResult?.status === 'needs_setup' ? (
@@ -558,7 +557,7 @@ export function LumiaHomePulseCard({
             <h3 className="mb-0 font-lumiaHomeDisplay text-[clamp(1.56rem,7.1vw,2.18rem)] font-extrabold leading-[0.96] tracking-normal text-[#30132d]">
               {selectedPoint.title}
             </h3>
-            <p className="mb-0 mt-1.5 font-lumiaHomeDisplay text-[1rem] font-extrabold leading-none text-[#ef3b62]">
+            <p className="mb-0 mt-1.5 font-lumiaHomeDisplay text-[1rem] font-extrabold leading-none text-[#155EEF]">
               {currentRange}
             </p>
             <p className="mb-0 mt-2 max-w-[20.5rem] font-lumiaHome text-[0.82rem] font-semibold leading-[1.34] text-[#2f2b31]">
@@ -569,8 +568,8 @@ export function LumiaHomePulseCard({
           <PulseChart language={language} pulse={pulse} selectedPoint={selectedPoint} onSelectPoint={handleSelectPoint} />
 
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
-            <div className="flex items-center gap-2.5 rounded-[1.05rem] bg-[#f7fff9] px-2.5 py-2.5 shadow-[inset_0_0_0_1px_rgba(24,201,100,0.10)]">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#18c964]/14 text-[#0f9f4d]">
+            <div className="flex items-center gap-2.5 rounded-[1.05rem] bg-white px-2.5 py-2.5 shadow-[inset_0_0_0_1px_rgba(0,166,106,0.16)]">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#F4F7FA] text-[#00A66A]">
                 <Check size={16} strokeWidth={2.7} />
               </span>
               <div className="min-w-0">
@@ -582,8 +581,8 @@ export function LumiaHomePulseCard({
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2.5 rounded-[1.05rem] bg-[#fff5f6] px-2.5 py-2.5 shadow-[inset_0_0_0_1px_rgba(239,35,60,0.09)]">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#ef233c]/13 text-[#ef233c]">
+            <div className="flex items-center gap-2.5 rounded-[1.05rem] bg-white px-2.5 py-2.5 shadow-[inset_0_0_0_1px_rgba(225,25,55,0.16)]">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#F4F7FA] text-[#E11937]">
                 <X size={16} strokeWidth={2.7} />
               </span>
               <div className="min-w-0">
@@ -600,7 +599,7 @@ export function LumiaHomePulseCard({
           <div className="mt-2.5 divide-y divide-[#30132d]/[0.065] px-0.5">
             {nextCues.map((cue) => (
               <div key={`${cue.time}-${cue.text}`} className="flex items-center gap-2.5 py-2">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#fff2d1] text-[#f29b20]">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#F4F7FA] text-[#155EEF]">
                   {cue.icon === 'restore' ? <Moon size={14} strokeWidth={2.5} /> : <Sparkles size={13} strokeWidth={2.5} />}
                 </span>
                 <p className="mb-0 font-lumiaHome text-[0.77rem] font-semibold leading-snug text-[#4f4851]">
@@ -720,7 +719,7 @@ function TodayCheckInReferenceCard({
     <div className="mt-3 rounded-[1.35rem] bg-white/64 px-3.5 py-3.5 shadow-[inset_0_0_0_1px_rgba(48,19,45,0.07)]">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="mb-0 font-lumiaHome text-[0.72rem] font-extrabold uppercase tracking-[0.08em] text-[#ef3b62]">
+          <p className="mb-0 font-lumiaHome text-[0.72rem] font-extrabold uppercase tracking-[0.08em] text-[#155EEF]">
             {language === 'ru' ? 'Сегодня сверяем вот это' : 'Compare against this'}
           </p>
           <h4 className="mb-0 mt-1 font-lumiaHomeDisplay text-[clamp(1.18rem,5.1vw,1.5rem)] font-extrabold leading-[1.03] tracking-normal text-[#30132d]">
@@ -728,7 +727,7 @@ function TodayCheckInReferenceCard({
           </h4>
         </div>
         {reference.bestSlotRange ? (
-          <span className="shrink-0 rounded-full bg-[#fff1c9] px-2.5 py-1.5 font-lumiaHome text-[0.72rem] font-extrabold leading-none text-[#7a3b08]">
+          <span className="shrink-0 rounded-full bg-white px-2.5 py-1.5 font-lumiaHome text-[0.72rem] font-extrabold leading-none text-[#155EEF] shadow-[inset_0_0_0_1px_rgba(21,94,239,0.18)]">
             {reference.bestSlotRange}
           </span>
         ) : null}
@@ -783,7 +782,7 @@ function CheckInExpectation({
   const expected = reference.expected[field];
   return (
     <div className="mb-2 rounded-[1rem] bg-white/42 px-3 py-2 shadow-[inset_0_0_0_1px_rgba(48,19,45,0.045)]">
-      <p className="mb-0 font-lumiaHome text-[0.66rem] font-extrabold uppercase tracking-[0.06em] text-[#ef3b62]">
+      <p className="mb-0 font-lumiaHome text-[0.66rem] font-extrabold uppercase tracking-[0.06em] text-[#155EEF]">
         {language === 'ru' ? 'Ожидание LUMIA' : 'LUMIA expected'}: <span className="text-[#30132d]">{expected.label}</span>
       </p>
       <p className="mb-0 mt-1 font-lumiaHome text-[0.72rem] font-bold leading-snug text-[#817982]">
@@ -869,7 +868,7 @@ function CompletedCheckInCard({
     <div className="mt-3 rounded-[1.25rem] bg-white/58 px-3.5 py-3 shadow-[inset_0_0_0_1px_rgba(48,19,45,0.06)]">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="mb-0 font-lumiaHome text-[0.68rem] font-extrabold uppercase tracking-[0.08em] text-[#ef3b62]">
+          <p className="mb-0 font-lumiaHome text-[0.68rem] font-extrabold uppercase tracking-[0.08em] text-[#155EEF]">
             {labels.saved}
           </p>
           <h4 className="mb-0 mt-1 font-lumiaHomeDisplay text-[1.15rem] font-extrabold leading-tight text-[#30132d]">
@@ -917,7 +916,7 @@ function ActionTimingResultView({
       : (language === 'ru' ? 'Ровный день' : 'Even day');
   return (
     <div className="mt-4 flex items-start gap-3 border-t border-[#171217]/[0.07] pt-3.5">
-      <div className="relative flex h-[3.55rem] w-[3.55rem] shrink-0 items-center justify-center rounded-full bg-[radial-gradient(circle_at_32%_28%,#fff7da_0%,#ffd47a_46%,#ff9f1c_100%)] shadow-[0_14px_30px_rgba(255,159,28,0.28)]">
+      <div className="relative flex h-[3.55rem] w-[3.55rem] shrink-0 items-center justify-center rounded-full bg-[radial-gradient(circle_at_32%_28%,#ffffff_0%,#dbe6ff_44%,#155EEF_100%)] shadow-[0_14px_30px_rgba(21,94,239,0.20)]">
         <div className="absolute inset-[0.42rem] rounded-full border border-white/70" />
       </div>
       <div className="min-w-0 flex-1">
@@ -1068,7 +1067,7 @@ export function TodayAssistantCard({
 
   return (
     <LumiaHomeLargeCard className="lumia-home-assistant-card rounded-[1.55rem] border border-[#30132d]/[0.055] bg-white px-4 py-4 text-[#30132d] shadow-[0_14px_34px_rgba(31,22,54,0.055)]">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_5%_0%,rgba(255,159,28,0.10),transparent_30%),radial-gradient(circle_at_100%_46%,rgba(239,35,60,0.07),transparent_34%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_5%_0%,rgba(21,94,239,0.07),transparent_30%),radial-gradient(circle_at_100%_46%,rgba(0,166,106,0.06),transparent_34%)]" />
       <div className="relative z-10">
         <div className="flex items-start justify-between gap-2">
           {assistantResult.dayMode === 'evening' ? (
@@ -1107,7 +1106,7 @@ export function TodayAssistantCard({
                   }}
                 />
                 <div className="mt-3 rounded-[1.2rem] bg-white/48 px-3.5 py-3 shadow-[inset_0_0_0_1px_rgba(48,19,45,0.05)]">
-                  <p className="mb-0 font-lumiaHome text-[0.68rem] font-extrabold uppercase tracking-[0.08em] text-[#ef3b62]">
+                  <p className="mb-0 font-lumiaHome text-[0.68rem] font-extrabold uppercase tracking-[0.08em] text-[#155EEF]">
                     {assistantResult.accuracySummary.title}
                   </p>
                   <p className="mb-0 mt-2 font-lumiaHome text-[0.82rem] font-semibold leading-snug text-[#5f5861]">
@@ -1135,7 +1134,7 @@ export function TodayAssistantCard({
 
         <div className="mt-3 border-t border-[#171217]/[0.07] pt-3">
           <div className="flex items-start gap-2">
-            <span className="mt-0.5 text-[#ff9f1c]">
+            <span className="mt-0.5 text-[#155EEF]">
               <Sparkles size={15} strokeWidth={2.4} />
             </span>
             <div className="min-w-0">
@@ -1149,7 +1148,7 @@ export function TodayAssistantCard({
           </div>
           <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#30132d]/10">
             <div
-              className="h-full rounded-full bg-[linear-gradient(90deg,#ef233c,#ff7a00,#ffd400)]"
+              className="h-full rounded-full bg-[linear-gradient(90deg,#155EEF,#00A66A)]"
               style={{
                 width: `${Math.max(8, Math.min(100, Math.round((assistantResult.patternTeaser.progress.current / assistantResult.patternTeaser.progress.target) * 100)))}%`,
               }}
@@ -1200,9 +1199,9 @@ export function LumiaHomeForecastCard({
     <button
       type="button"
       onClick={onOpen}
-      className="lumia-home-large-card min-h-[14.6rem] bg-[#fff7d3] p-3.5 text-left shadow-[0_14px_34px_rgba(255,122,0,0.12)] active:scale-[0.99]"
+      className="lumia-home-large-card min-h-[14.6rem] bg-white p-3.5 text-left shadow-[0_14px_34px_rgba(17,19,23,0.08)] active:scale-[0.99]"
     >
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_88%_18%,rgba(0,167,255,0.22),transparent_48%),radial-gradient(circle_at_16%_96%,rgba(255,122,0,0.28),transparent_52%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_88%_18%,rgba(21,94,239,0.14),transparent_48%),radial-gradient(circle_at_16%_96%,rgba(0,166,106,0.10),transparent_52%)]" />
       <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-white/38 to-transparent" />
 
       <div className="relative z-10 flex h-full flex-col justify-between">
@@ -1243,9 +1242,9 @@ export function LumiaHomePremiumTeaseCard({
     <button
       type="button"
       onClick={onOpen}
-      className="lumia-home-large-card min-h-[14.6rem] bg-[linear-gradient(145deg,#8b1cff_0%,#ef233c_58%,#ff7a00_126%)] p-3.5 text-left text-white shadow-[0_16px_38px_rgba(239,35,60,0.22)] active:scale-[0.99]"
+      className="lumia-home-large-card min-h-[14.6rem] bg-[linear-gradient(145deg,#111317_0%,#155EEF_64%,#00A66A_132%)] p-3.5 text-left text-white shadow-[0_16px_38px_rgba(21,94,239,0.18)] active:scale-[0.99]"
     >
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_76%_9%,rgba(255,212,0,0.34),transparent_42%),radial-gradient(circle_at_8%_95%,rgba(0,167,255,0.24),transparent_42%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_76%_9%,rgba(255,255,255,0.16),transparent_42%),radial-gradient(circle_at_8%_95%,rgba(0,166,106,0.24),transparent_42%)]" />
       <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#171314]/70 to-transparent" />
       {!isUnlocked ? (
         <span className="absolute right-3.5 top-3.5 z-20 flex h-6 w-6 items-center justify-center rounded-full bg-white/12 text-white ring-1 ring-white/18">

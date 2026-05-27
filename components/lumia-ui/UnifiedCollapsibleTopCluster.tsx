@@ -17,9 +17,9 @@ type UnifiedCollapsibleTopClusterProps = {
   scrollRef?: React.RefObject<HTMLDivElement | null>;
 };
 
-const EXPANDED_BODY_HEIGHT = 204;
+const EXPANDED_BODY_HEIGHT = 176;
 const COLLAPSED_BODY_HEIGHT = 48;
-const COLLAPSE_DISTANCE = 132;
+const COLLAPSE_DISTANCE = 112;
 
 function resolveSunSign(profile: UserProfile, chartData: NatalChartData | null | undefined) {
   if (chartData?.sun?.sign) return chartData.sun.sign;
@@ -59,13 +59,13 @@ export function UnifiedCollapsibleTopCluster({
   }, []);
 
   const expandedBrandOpacity = useTransform(visualProgress, [0, 0.24, 0.54], [1, 0.48, 0]);
-  const expandedBrandY = useTransform(rawProgress, [0, 1], [0, -98]);
+  const expandedBrandY = useTransform(rawProgress, [0, 1], [0, -86]);
   const expandedBrandScale = useTransform(visualProgress, [0, 1], [1, 0.9]);
   const subtitleOpacity = useTransform(visualProgress, [0, 0.2, 0.42], [1, 0.28, 0]);
   const subtitleY = useTransform(rawProgress, [0, 1], [0, -12]);
   const passportOpacity = useTransform(visualProgress, [0, 0.38, 0.72], [1, 0.42, 0]);
-  const passportY = useTransform(rawProgress, [0, 1], [0, -118]);
-  const passportScale = useTransform(visualProgress, [0, 1], [1, 0.88]);
+  const passportY = useTransform(rawProgress, [0, 1], [0, -96]);
+  const passportScale = useTransform(visualProgress, [0, 1], [1, 0.92]);
   const compactRowOpacity = useTransform(visualProgress, [0, 0.52, 0.78, 1], [0, 0, 0.88, 1]);
   const compactRowY = useTransform(rawProgress, [0, 1], [-5, 0]);
   const compactRowScale = useTransform(visualProgress, [0, 0.72, 1], [0.82, 0.94, 1]);
