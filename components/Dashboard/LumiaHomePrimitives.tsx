@@ -62,6 +62,7 @@ type QuickActionCardProps = Omit<ButtonProps, 'children'> & {
     src: string;
     poster: string;
   }>;
+  videoVariantOffset?: number;
   active?: boolean;
 };
 
@@ -70,6 +71,7 @@ export function LumiaHomeQuickActionCard({
   imageSrc,
   body,
   videoSources = [],
+  videoVariantOffset = 0,
   active = false,
   className,
   type = 'button',
@@ -89,9 +91,8 @@ export function LumiaHomeQuickActionCard({
     const daySeed = Math.floor(
       Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) / 86_400_000,
     );
-    const titleSeed = Array.from(title).reduce((sum, char) => sum + char.charCodeAt(0), 0);
-    setVariantIndex((daySeed + titleSeed) % videoSources.length);
-  }, [title, videoSources]);
+    setVariantIndex((daySeed + videoVariantOffset) % videoSources.length);
+  }, [videoSources, videoVariantOffset]);
 
   React.useEffect(() => {
     const element = rootRef.current;

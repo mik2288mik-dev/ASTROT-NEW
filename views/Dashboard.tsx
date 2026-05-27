@@ -276,6 +276,7 @@ export const Dashboard = memo<DashboardProps>(
           body: homeCopy.quickActions.today.body,
           imageSrc: '/lumia-home/quick-actions/horoscope-today.webp',
           videoSources: CARD_VIDEO_SOURCES.horoscope,
+          videoVariantOffset: 0,
           onClick: () => openHoroscope('sign'),
         },
         {
@@ -284,6 +285,7 @@ export const Dashboard = memo<DashboardProps>(
           body: homeCopy.quickActions.love.body,
           imageSrc: '/lumia-home/quick-actions/love.webp',
           videoSources: CARD_VIDEO_SOURCES.love,
+          videoVariantOffset: 1,
           onClick: () => openHoroscope('love'),
         },
         {
@@ -292,6 +294,7 @@ export const Dashboard = memo<DashboardProps>(
           body: homeCopy.quickActions.money.body,
           imageSrc: '/lumia-home/quick-actions/money.webp',
           videoSources: CARD_VIDEO_SOURCES.money,
+          videoVariantOffset: 2,
           onClick: () => openHoroscope('work_money'),
         },
         {
@@ -300,6 +303,7 @@ export const Dashboard = memo<DashboardProps>(
           body: homeCopy.quickActions.work.body,
           imageSrc: '/lumia-home/quick-actions/work.webp',
           videoSources: CARD_VIDEO_SOURCES.work,
+          videoVariantOffset: 0,
           onClick: () => openHoroscope('work_money'),
         },
         {
@@ -308,6 +312,7 @@ export const Dashboard = memo<DashboardProps>(
           body: homeCopy.quickActions.rhythm.body,
           imageSrc: '/lumia-home/quick-actions/personal-rhythm.webp',
           videoSources: CARD_VIDEO_SOURCES.rhythm,
+          videoVariantOffset: 1,
           onClick: () => openHoroscope('chart'),
         },
       ],
@@ -366,6 +371,7 @@ export const Dashboard = memo<DashboardProps>(
                       body={action.body}
                       imageSrc={action.imageSrc}
                       videoSources={action.videoSources}
+                      videoVariantOffset={action.videoVariantOffset}
                       active={action.id === 'today'}
                       onClick={action.onClick}
                     />

@@ -90,8 +90,8 @@ function pointToWalletXY(point: TodayPulsePoint) {
   const progress = Math.max(0, Math.min(1, point.hour / 23));
   const scoreProgress = Math.max(0, Math.min(1, (point.score - 35) / 65));
   return {
-    x: 18 + progress * 324,
-    y: 76 - scoreProgress * 42,
+    x: 22 + progress * 316,
+    y: 98 - scoreProgress * 62,
   };
 }
 
@@ -112,7 +112,7 @@ function buildWalletAreaPath(points: TodayPulsePoint[]) {
   const coords = points.map(pointToWalletXY);
   const first = coords[0];
   const last = coords[coords.length - 1];
-  return `${linePath} L ${last.x.toFixed(1)} 86 L ${first.x.toFixed(1)} 86 Z`;
+  return `${linePath} L ${last.x.toFixed(1)} 112 L ${first.x.toFixed(1)} 112 Z`;
 }
 
 function formatPulseDate(dateKey: string, language: LumiaHomeLanguage) {
@@ -314,16 +314,16 @@ function PulseChart({
   };
 
   return (
-    <div className="lumia-home-pulse-chart relative mt-3 h-[7.65rem] overflow-hidden">
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.18),rgba(255,255,255,0)),radial-gradient(circle_at_72%_12%,rgba(24,201,100,0.09),transparent_30%),radial-gradient(circle_at_96%_92%,rgba(124,77,255,0.08),transparent_34%)]" />
-      <div ref={chartRef} className="absolute inset-x-2 top-1.5 h-[5.25rem] cursor-pointer touch-pan-y" onPointerDown={handleChartPointer}>
+    <div className="lumia-home-pulse-chart relative mt-3.5 h-[10.4rem] overflow-hidden rounded-[1.18rem] bg-white shadow-[inset_0_0_0_1px_rgba(17,19,23,0.08),0_12px_26px_rgba(17,19,23,0.04)]">
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(244,247,250,0.82),rgba(255,255,255,0.18)),radial-gradient(circle_at_82%_8%,rgba(0,166,106,0.10),transparent_30%),radial-gradient(circle_at_12%_80%,rgba(21,94,239,0.08),transparent_34%)]" />
+      <div ref={chartRef} className="absolute inset-x-2 top-2 h-[7.05rem] cursor-pointer touch-pan-y" onPointerDown={handleChartPointer}>
         <div
-          className="pointer-events-none absolute top-0 z-10 rounded-full bg-white/76 px-2 py-0.5 font-lumiaHome text-[0.58rem] font-extrabold leading-none text-[#30132d] shadow-[0_8px_18px_rgba(48,19,45,0.08)]"
+          className="pointer-events-none absolute top-0 z-10 rounded-full bg-white px-2 py-0.5 font-lumiaHome text-[0.58rem] font-extrabold leading-none text-[#111317] shadow-[0_8px_18px_rgba(17,19,23,0.08)]"
           style={{ left: `${selectedProgress * 100}%`, transform: selectedPillTransform }}
         >
           {selectedPillLabel}
         </div>
-        <svg className="absolute inset-0 h-full w-full" viewBox="0 0 360 104" preserveAspectRatio="none" aria-label="Пульс дня">
+        <svg className="absolute inset-0 h-full w-full" viewBox="0 0 360 132" preserveAspectRatio="none" aria-label="Пульс дня">
           <defs>
             <linearGradient id={lineId} x1="0" x2="1" y1="0" y2="0">
               <stop offset="0%" stopColor="#00a7ff" />
@@ -345,16 +345,16 @@ function PulseChart({
             </filter>
           </defs>
           {[0, 6, 12, 18, 24].map((hour) => {
-            const x = 18 + (Math.min(hour, 23) / 23) * 324;
-            return <line key={hour} x1={x} x2={x} y1="22" y2="88" stroke="rgba(48,19,45,0.055)" strokeWidth="1" />;
+            const x = 22 + (Math.min(hour, 23) / 23) * 316;
+            return <line key={hour} x1={x} x2={x} y1="26" y2="112" stroke="rgba(17,19,23,0.065)" strokeWidth="1" />;
           })}
-          {[40, 63, 86].map((y) => (
-            <line key={y} x1="18" x2="342" y1={y} y2={y} stroke="rgba(48,19,45,0.05)" strokeWidth="1" />
+          {[36, 60, 84, 108].map((y) => (
+            <line key={y} x1="22" x2="338" y1={y} y2={y} stroke="rgba(17,19,23,0.055)" strokeWidth="1" />
           ))}
           <path d={areaPath} fill={`url(#${areaId})`} />
-          <path d={linePath} fill="none" stroke="rgba(48,19,45,0.065)" strokeWidth="8" strokeLinecap="round" />
-          <path d={linePath} fill="none" stroke={`url(#${lineId})`} strokeWidth="4.2" strokeLinecap="round" filter={`url(#${glowId})`} />
-          <line x1={selectedXY.x} x2={selectedXY.x} y1="18" y2="90" stroke="rgba(21,94,239,0.42)" strokeWidth="1.4" />
+          <path d={linePath} fill="none" stroke="rgba(17,19,23,0.055)" strokeWidth="9" strokeLinecap="round" />
+          <path d={linePath} fill="none" stroke={`url(#${lineId})`} strokeWidth="4.8" strokeLinecap="round" filter={`url(#${glowId})`} />
+          <line x1={selectedXY.x} x2={selectedXY.x} y1="20" y2="116" stroke="rgba(21,94,239,0.42)" strokeWidth="1.4" />
           {moments.map((moment) => {
             const { x, y } = pointToWalletXY(moment.point);
             const isSelected = moment.point.hour === selectedPoint.hour;
@@ -389,14 +389,14 @@ function PulseChart({
           ) : null}
         </svg>
       </div>
-      <div className="pointer-events-none absolute inset-x-4 bottom-[1.52rem] flex items-center justify-between font-lumiaHome text-[0.56rem] font-extrabold text-[#5f5761]/52">
+      <div className="pointer-events-none absolute inset-x-5 bottom-[2.14rem] flex items-center justify-between font-lumiaHome text-[0.56rem] font-extrabold text-[#606772]/62">
         <span>00</span>
         <span>06</span>
         <span>12</span>
         <span>18</span>
         <span>24</span>
       </div>
-      <div className="absolute inset-x-1.5 bottom-1 grid grid-cols-5 gap-1">
+      <div className="absolute inset-x-2 bottom-1.5 grid grid-cols-5 gap-1">
         {moments.map((moment) => {
           const isSelected = moment.point.hour === selectedPoint.hour;
           return (
@@ -915,26 +915,25 @@ function ActionTimingResultView({
       ? (language === 'ru' ? 'Лучше позже' : 'Better later')
       : (language === 'ru' ? 'Ровный день' : 'Even day');
   return (
-    <div className="mt-4 flex items-start gap-3 border-t border-[#171217]/[0.07] pt-3.5">
-      <div className="relative flex h-[3.55rem] w-[3.55rem] shrink-0 items-center justify-center rounded-full bg-[radial-gradient(circle_at_32%_28%,#ffffff_0%,#dbe6ff_44%,#155EEF_100%)] shadow-[0_14px_30px_rgba(21,94,239,0.20)]">
-        <div className="absolute inset-[0.42rem] rounded-full border border-white/70" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-start justify-between gap-2">
-          <p className="mb-0 font-lumiaHome text-[0.74rem] font-extrabold leading-tight text-[#30132d]">
-            {stateLabel}
-          </p>
-          <span className="shrink-0 font-lumiaHomeDisplay text-[1.08rem] font-extrabold leading-none text-[#30132d]">
+    <div className="mt-3.5 border-t border-[#171217]/[0.07] pt-3.5">
+      <div className="rounded-[1.14rem] bg-white px-3.5 py-3 shadow-[inset_0_0_0_1px_rgba(17,19,23,0.08),0_10px_24px_rgba(17,19,23,0.035)]">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="mb-0 font-lumiaHome text-[0.72rem] font-extrabold uppercase tracking-[0.055em] leading-tight text-[#155EEF]">
+              {stateLabel}
+            </p>
+            <h4 className="mb-0 mt-1 font-lumiaHomeDisplay text-[1rem] font-extrabold leading-tight text-[#111317]">
+              {recommendation.title}
+            </h4>
+          </div>
+          <span className="shrink-0 rounded-full bg-[#F4F7FA] px-2.5 py-1.5 font-lumiaHomeDisplay text-[1rem] font-extrabold leading-none text-[#111317] shadow-[inset_0_0_0_1px_rgba(17,19,23,0.08)]">
             {recommendation.bestWindow.start}-{recommendation.bestWindow.end}
           </span>
         </div>
-        <h4 className="mb-0 mt-1 font-lumiaHome text-[0.92rem] font-extrabold leading-tight text-[#30132d]">
-          {recommendation.title}
-        </h4>
-        <p className="mb-0 mt-1.5 font-lumiaHome text-[0.76rem] font-semibold leading-snug text-[#5f5861]">
+        <p className="mb-0 mt-2 font-lumiaHome text-[0.78rem] font-semibold leading-snug text-[#4f5660]">
           {recommendation.summary}
         </p>
-        <p className="mb-0 mt-1 font-lumiaHome text-[0.71rem] font-bold leading-snug text-[#817982]">
+        <p className="mb-0 mt-1.5 font-lumiaHome text-[0.72rem] font-bold leading-snug text-[#606772]">
           {recommendation.caution}
         </p>
       </div>
