@@ -47,6 +47,34 @@ function haptic(kind: 'select' | 'open' = 'select') {
   }
 }
 
+const CARD_VIDEO_SOURCES = {
+  horoscope: [
+    { src: '/assets/card-videos/horoscope/loop.mp4', poster: '/assets/card-videos/horoscope/poster.webp' },
+    { src: '/assets/card-videos/horoscope/loop-02.mp4', poster: '/assets/card-videos/horoscope/poster-02.webp' },
+    { src: '/assets/card-videos/horoscope/loop-03.mp4', poster: '/assets/card-videos/horoscope/poster-03.webp' },
+  ],
+  love: [
+    { src: '/assets/card-videos/love/loop.mp4', poster: '/assets/card-videos/love/poster.webp' },
+    { src: '/assets/card-videos/love/loop-02.mp4', poster: '/assets/card-videos/love/poster-02.webp' },
+    { src: '/assets/card-videos/love/loop-03.mp4', poster: '/assets/card-videos/love/poster-03.webp' },
+  ],
+  money: [
+    { src: '/assets/card-videos/money/loop.mp4', poster: '/assets/card-videos/money/poster.webp' },
+    { src: '/assets/card-videos/money/loop-02.mp4', poster: '/assets/card-videos/money/poster-02.webp' },
+    { src: '/assets/card-videos/money/loop-03.mp4', poster: '/assets/card-videos/money/poster-03.webp' },
+  ],
+  work: [
+    { src: '/assets/card-videos/work/loop.mp4', poster: '/assets/card-videos/work/poster.webp' },
+    { src: '/assets/card-videos/work/loop-02.mp4', poster: '/assets/card-videos/work/poster-02.webp' },
+    { src: '/assets/card-videos/work/loop-03.mp4', poster: '/assets/card-videos/work/poster-03.webp' },
+  ],
+  rhythm: [
+    { src: '/assets/card-videos/rhythm/loop.mp4', poster: '/assets/card-videos/rhythm/poster.webp' },
+    { src: '/assets/card-videos/rhythm/loop-02.mp4', poster: '/assets/card-videos/rhythm/poster-02.webp' },
+    { src: '/assets/card-videos/rhythm/loop-03.mp4', poster: '/assets/card-videos/rhythm/poster-03.webp' },
+  ],
+} as const;
+
 export const Dashboard = memo<DashboardProps>(
   ({ profile, chartData, chartId, onOpenHoroscopeLayer, onOpenSettings, scrollRef, initialTodaySection }) => {
     const shouldReduceMotion = useReducedMotion();
@@ -245,31 +273,41 @@ export const Dashboard = memo<DashboardProps>(
         {
           id: 'today',
           title: homeCopy.quickActions.today.title,
+          body: homeCopy.quickActions.today.body,
           imageSrc: '/lumia-home/quick-actions/horoscope-today.webp',
+          videoSources: CARD_VIDEO_SOURCES.horoscope,
           onClick: () => openHoroscope('sign'),
         },
         {
           id: 'love',
           title: homeCopy.quickActions.love.title,
+          body: homeCopy.quickActions.love.body,
           imageSrc: '/lumia-home/quick-actions/love.webp',
+          videoSources: CARD_VIDEO_SOURCES.love,
           onClick: () => openHoroscope('love'),
         },
         {
           id: 'money',
           title: homeCopy.quickActions.money.title,
+          body: homeCopy.quickActions.money.body,
           imageSrc: '/lumia-home/quick-actions/money.webp',
+          videoSources: CARD_VIDEO_SOURCES.money,
           onClick: () => openHoroscope('work_money'),
         },
         {
           id: 'work',
           title: homeCopy.quickActions.work.title,
+          body: homeCopy.quickActions.work.body,
           imageSrc: '/lumia-home/quick-actions/work.webp',
+          videoSources: CARD_VIDEO_SOURCES.work,
           onClick: () => openHoroscope('work_money'),
         },
         {
           id: 'rhythm',
           title: homeCopy.quickActions.rhythm.title,
+          body: homeCopy.quickActions.rhythm.body,
           imageSrc: '/lumia-home/quick-actions/personal-rhythm.webp',
+          videoSources: CARD_VIDEO_SOURCES.rhythm,
           onClick: () => openHoroscope('chart'),
         },
       ],
@@ -325,7 +363,9 @@ export const Dashboard = memo<DashboardProps>(
                     <LumiaHomeQuickActionCard
                       key={action.id}
                       title={action.title}
+                      body={action.body}
                       imageSrc={action.imageSrc}
+                      videoSources={action.videoSources}
                       active={action.id === 'today'}
                       onClick={action.onClick}
                     />
