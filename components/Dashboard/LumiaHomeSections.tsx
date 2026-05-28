@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ArrowRight,
   Check,
@@ -86,35 +86,6 @@ export function LumiaHomeHeroCard({
   );
 }
 
-function pointToWalletXY(point: TodayPulsePoint) {
-  const progress = Math.max(0, Math.min(1, point.hour / 23));
-  const scoreProgress = Math.max(0, Math.min(1, (point.score - 35) / 65));
-  return {
-    x: 22 + progress * 316,
-    y: 98 - scoreProgress * 62,
-  };
-}
-
-function buildWalletPulsePath(points: TodayPulsePoint[]) {
-  if (!points.length) return '';
-  const coords = points.map(pointToWalletXY);
-  return coords.reduce((path, point, index) => {
-    if (index === 0) return `M ${point.x.toFixed(1)} ${point.y.toFixed(1)}`;
-    const prev = coords[index - 1];
-    const midX = (prev.x + point.x) / 2;
-    return `${path} C ${midX.toFixed(1)} ${prev.y.toFixed(1)}, ${midX.toFixed(1)} ${point.y.toFixed(1)}, ${point.x.toFixed(1)} ${point.y.toFixed(1)}`;
-  }, '');
-}
-
-function buildWalletAreaPath(points: TodayPulsePoint[]) {
-  const linePath = buildWalletPulsePath(points);
-  if (!linePath || !points.length) return '';
-  const coords = points.map(pointToWalletXY);
-  const first = coords[0];
-  const last = coords[coords.length - 1];
-  return `${linePath} L ${last.x.toFixed(1)} 112 L ${first.x.toFixed(1)} 112 Z`;
-}
-
 function formatPulseDate(dateKey: string, language: LumiaHomeLanguage) {
   const [year, month, day] = dateKey.split('-').map(Number);
   const date = new Date(Date.UTC(year || 1970, (month || 1) - 1, day || 1, 12, 0, 0));
@@ -144,14 +115,6 @@ function phaseStartPoint(pulse: TodayPulse, phase: TodayPulsePhase) {
   return pulse.points.find((point) => point.phase === phase) || null;
 }
 
-type TimelineMoment = {
-  id: string;
-  point: TodayPulsePoint;
-  label: string;
-  shortLabel: string;
-  color: string;
-};
-
 function pickUniquePulsePoint(
   pulse: TodayPulse,
   preferred: TodayPulsePoint | null | undefined,
@@ -170,65 +133,64 @@ function pickUniquePulsePoint(
   return candidates[0] || preferred || pulse.points[targetHour] || pulse.points[0];
 }
 
-function buildTimelineMoments(pulse: TodayPulse, language: LumiaHomeLanguage) {
-  const definitions = [
+type PulseTimelineSlot = {
+  id: 'now' | 'later' | 'restore';
+  point: TodayPulsePoint;
+  label: string;
+  helper: string;
+  timeLabel: string;
+};
+
+function findFuturePhasePoint(pulse: TodayPulse, currentHour: number, phases: TodayPulsePhase[]) {
+  return pulse.points.find((point) => point.hour > currentHour && phases.includes(point.phase)) || null;
+}
+
+function buildPulseTimelineSlots(pulse: TodayPulse, language: LumiaHomeLanguage): PulseTimelineSlot[] {
+  const currentHour = pulse.currentPoint.hour;
+  const usedHours = new Set<number>();
+
+  const nowPoint = pickUniquePulsePoint(pulse, pulse.currentPoint, currentHour, usedHours) || pulse.points[0];
+  if (!nowPoint) return [];
+  usedHours.add(nowPoint.hour);
+
+  const laterPreferred =
+    findFuturePhasePoint(pulse, currentHour, currentHour < pulse.peakPoint.hour ? ['focus_peak', 'decisions', 'relationships'] : ['relationships', 'decisions', 'reflection']) ||
+    pulse.points.find((point) => point.hour > currentHour && point.score >= pulse.currentPoint.score - 4) ||
+    pulse.peakPoint;
+  const laterPoint = pickUniquePulsePoint(pulse, laterPreferred, Math.min(23, currentHour + 4), usedHours) || nowPoint;
+  usedHours.add(laterPoint.hour);
+
+  const restorePreferred =
+    findFuturePhasePoint(pulse, currentHour, ['reflection', 'restore']) ||
+    phaseStartPoint(pulse, 'restore') ||
+    phaseStartPoint(pulse, 'reflection') ||
+    pulse.points[21] ||
+    pulse.points[pulse.points.length - 1];
+  const restorePoint = pickUniquePulsePoint(pulse, restorePreferred, 21, usedHours) || laterPoint;
+
+  return [
     {
-      id: 'morning',
-      preferred: phaseStartPoint(pulse, 'entry') || pulse.points[6],
-      targetHour: 6,
-      label: language === 'ru' ? 'утро' : 'morning',
-      shortLabel: language === 'ru' ? 'утро' : 'am',
-      color: '#155EEF',
+      id: 'now',
+      point: nowPoint,
+      label: language === 'ru' ? 'Сейчас' : 'Now',
+      helper: language === 'ru' ? 'ориентир момента' : 'current cue',
+      timeLabel: pulse.currentTime,
     },
     {
-      id: 'peak',
-      preferred: pulse.peakPoint,
-      targetHour: pulse.peakPoint.hour,
-      label: language === 'ru' ? 'пик' : 'peak',
-      shortLabel: language === 'ru' ? 'пик' : 'peak',
-      color: '#00A66A',
-    },
-    {
-      id: 'contact',
-      preferred: phaseStartPoint(pulse, 'relationships') || phaseStartPoint(pulse, 'decisions') || pulse.points[17],
-      targetHour: 17,
-      label: language === 'ru' ? 'контакт' : 'contact',
-      shortLabel: language === 'ru' ? 'связь' : 'talk',
-      color: '#0B7DFF',
-    },
-    {
-      id: 'slow',
-      preferred: phaseStartPoint(pulse, 'reflection') || pulse.points[21],
-      targetHour: 21,
-      label: language === 'ru' ? 'спад' : 'slow',
-      shortLabel: language === 'ru' ? 'спад' : 'slow',
-      color: '#606772',
+      id: 'later',
+      point: laterPoint,
+      label: language === 'ru' ? 'Позже' : 'Later',
+      helper: language === 'ru' ? 'следующее окно' : 'next window',
+      timeLabel: formatWindowRange(laterPoint, pulse),
     },
     {
       id: 'restore',
-      preferred: phaseStartPoint(pulse, 'restore') || pulse.points[23] || pulse.points[0],
-      targetHour: 23,
-      label: language === 'ru' ? 'восстановление' : 'restore',
-      shortLabel: language === 'ru' ? 'восст.' : 'rest',
-      color: '#155EEF',
+      point: restorePoint,
+      label: language === 'ru' ? 'Вечер' : 'Evening',
+      helper: language === 'ru' ? 'мягкое завершение' : 'soft landing',
+      timeLabel: formatWindowRange(restorePoint, pulse),
     },
   ];
-
-  const seen = new Set<number>();
-  return definitions
-    .map((item): TimelineMoment | null => {
-      const point = pickUniquePulsePoint(pulse, item.preferred, item.targetHour, seen);
-      if (!point) return null;
-      seen.add(point.hour);
-      return {
-        id: item.id,
-        point,
-        label: item.label,
-        shortLabel: item.shortLabel,
-        color: item.color,
-      };
-    })
-    .filter((item): item is TimelineMoment => !!item);
 }
 
 function buildNextCues(pulse: TodayPulse, point: TodayPulsePoint, language: LumiaHomeLanguage) {
@@ -269,7 +231,7 @@ function normalizeSummary(summary: string) {
   return summary.replace(/\s*Сильнее всего сейчас:.+$/u, '').replace(/\s*Strongest right now:.+$/u, '').trim();
 }
 
-function PulseChart({
+function PulseTimeline({
   language,
   pulse,
   selectedPoint,
@@ -280,148 +242,30 @@ function PulseChart({
   selectedPoint: TodayPulsePoint;
   onSelectPoint: (point: TodayPulsePoint) => void;
 }) {
-  const safeId = useId().replace(/:/g, '');
-  const lineId = `pulseWalletLine-${safeId}`;
-  const areaId = `pulseWalletArea-${safeId}`;
-  const glowId = `pulseWalletGlow-${safeId}`;
-  const chartRef = useRef<HTMLDivElement | null>(null);
-  const linePath = useMemo(() => buildWalletPulsePath(pulse.points), [pulse.points]);
-  const areaPath = useMemo(() => buildWalletAreaPath(pulse.points), [pulse.points]);
-  const moments = useMemo(() => buildTimelineMoments(pulse, language), [language, pulse]);
-  const selectedXY = pointToWalletXY(selectedPoint);
-  const selectedIsMoment = moments.some((moment) => moment.point.hour === selectedPoint.hour);
-  const selectedProgress = Math.max(0, Math.min(1, selectedPoint.hour / 23));
-  const selectedPillTransform =
-    selectedProgress < 0.14 ? 'translate(0,-62%)' : selectedProgress > 0.86 ? 'translate(-100%,-62%)' : 'translate(-50%,-62%)';
-  const selectedPillLabel = selectedPoint.time;
-  const axisHours = [0, 6, 12, 16, 18, 21, 24];
-  const handleKeySelect = (event: React.KeyboardEvent<SVGGElement>, point: TodayPulsePoint) => {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      onSelectPoint(point);
-    }
-  };
-  const handleChartPointer = (event: React.PointerEvent<HTMLDivElement>) => {
-    const rect = chartRef.current?.getBoundingClientRect();
-    if (!rect || rect.width <= 0) return;
-    const ratio = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
-    const targetHour = Math.round(ratio * 23);
-    const point =
-      pulse.points.find((item) => item.hour === targetHour) ||
-      pulse.points.reduce((closest, item) =>
-        Math.abs(item.hour - targetHour) < Math.abs(closest.hour - targetHour) ? item : closest,
-      );
-    onSelectPoint(point);
-  };
+  const slots = useMemo(() => buildPulseTimelineSlots(pulse, language), [language, pulse]);
 
   return (
-    <div className="lumia-home-pulse-chart relative mt-3 h-[7.95rem] overflow-visible bg-transparent">
-      <div ref={chartRef} className="absolute inset-x-0 top-2 h-[5.48rem] cursor-pointer touch-pan-y" onPointerDown={handleChartPointer}>
-        <div
-          className="pointer-events-none absolute top-0 z-10 font-lumiaHome text-[0.62rem] font-extrabold leading-none text-[#111317]"
-          style={{ left: `${selectedProgress * 100}%`, transform: selectedPillTransform }}
-        >
-          {selectedPillLabel}
-        </div>
-        <svg className="absolute inset-0 h-full w-full" viewBox="0 0 360 132" preserveAspectRatio="none" aria-label="Пульс дня">
-          <defs>
-            <linearGradient id={lineId} x1="0" x2="1" y1="0" y2="0">
-              <stop offset="0%" stopColor="#00a7ff" />
-              <stop offset="36%" stopColor="#155EEF" />
-              <stop offset="66%" stopColor="#00A66A" />
-              <stop offset="100%" stopColor="#155EEF" />
-            </linearGradient>
-            <linearGradient id={areaId} x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stopColor="#155EEF" stopOpacity="0.16" />
-              <stop offset="52%" stopColor="#00A66A" stopOpacity="0.07" />
-              <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
-            </linearGradient>
-            <filter id={glowId} x="-20%" y="-80%" width="140%" height="240%">
-              <feGaussianBlur stdDeviation="2.4" result="blur" />
-              <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-          </defs>
-          {axisHours.map((hour) => {
-            const x = 22 + (Math.min(hour, 23) / 23) * 316;
-            return <line key={hour} x1={x} x2={x} y1="28" y2="112" stroke="rgba(17,19,23,0.055)" strokeWidth="1" />;
-          })}
-          {[36, 60, 84, 108].map((y) => (
-            <line key={y} x1="22" x2="338" y1={y} y2={y} stroke="rgba(17,19,23,0.042)" strokeWidth="1" />
-          ))}
-          <path d={areaPath} fill={`url(#${areaId})`} />
-          <path d={linePath} fill="none" stroke="rgba(17,19,23,0.026)" strokeWidth="4.2" strokeLinecap="round" />
-          <path d={linePath} fill="none" stroke={`url(#${lineId})`} strokeWidth="2.9" strokeLinecap="round" filter={`url(#${glowId})`} />
-          <line x1={selectedXY.x} x2={selectedXY.x} y1="24" y2="114" stroke="rgba(21,94,239,0.34)" strokeWidth="1.2" />
-          {moments.map((moment) => {
-            const { x, y } = pointToWalletXY(moment.point);
-            const isSelected = moment.point.hour === selectedPoint.hour;
-            const isCurrent = moment.point.hour === pulse.currentPoint.hour;
-            return (
-              <g
-                key={moment.id}
-                role="button"
-                tabIndex={0}
-                aria-label={`${moment.label} ${moment.point.time}`}
-                onPointerDown={(event) => event.stopPropagation()}
-                onClick={() => onSelectPoint(moment.point)}
-                onKeyDown={(event) => handleKeySelect(event, moment.point)}
-                className="cursor-pointer outline-none"
-              >
-                <circle cx={x} cy={y} r="17" fill="transparent" />
-                <circle cx={x} cy={y} r={isSelected ? 12 : 7.6} fill={isSelected ? 'rgba(255,255,255,0.62)' : 'rgba(255,255,255,0.30)'} />
-                <circle cx={x} cy={y} r={isSelected ? 7.2 : 4.8} fill="#ffffff" stroke={moment.color} strokeWidth={isSelected ? 3.6 : 2.1} />
-                <circle cx={x} cy={y} r={isSelected ? 2.8 : 2} fill={moment.color} />
-                {isCurrent && !isSelected ? (
-                  <circle cx={x} cy={y} r="10.2" fill="none" stroke="rgba(21,94,239,0.28)" strokeWidth="2" strokeDasharray="3 3" />
-                ) : null}
-              </g>
-            );
-          })}
-          {!selectedIsMoment ? (
-            <g>
-              <circle cx={selectedXY.x} cy={selectedXY.y} r="12" fill="rgba(255,255,255,0.62)" />
-              <circle cx={selectedXY.x} cy={selectedXY.y} r="7.2" fill="#ffffff" stroke="#155EEF" strokeWidth="3.6" />
-              <circle cx={selectedXY.x} cy={selectedXY.y} r="2.8" fill="#155EEF" />
-            </g>
-          ) : null}
-        </svg>
-      </div>
-      <div className="pointer-events-none absolute inset-x-0 bottom-[1.68rem] h-3 font-lumiaHome text-[0.56rem] font-extrabold text-[#606772]/66">
-        {axisHours.map((hour) => (
-          <span
-            key={hour}
-            className="absolute top-0"
-            style={{
-              left: `${(hour / 24) * 100}%`,
-              transform: hour === 0 ? 'translateX(0)' : hour === 24 ? 'translateX(-100%)' : 'translateX(-50%)',
-            }}
+    <div className="lumia-pulse-timeline" role="group" aria-label={language === 'ru' ? 'Ритм дня' : 'Day rhythm'}>
+      {slots.map((slot) => {
+        const active = slot.point.hour === selectedPoint.hour;
+        return (
+          <button
+            key={slot.id}
+            type="button"
+            aria-pressed={active}
+            data-active={active ? 'true' : undefined}
+            className="lumia-pulse-slot"
+            onClick={() => onSelectPoint(slot.point)}
           >
-            {hour}
-          </span>
-        ))}
-      </div>
-      <div className="absolute inset-x-0 bottom-0 grid grid-cols-5 gap-1">
-        {moments.map((moment) => {
-          const isSelected = moment.point.hour === selectedPoint.hour;
-          return (
-            <button
-              key={moment.id}
-              type="button"
-              onClick={() => onSelectPoint(moment.point)}
-              className={[
-                'min-w-0 px-1 py-1 text-center font-lumiaHome leading-none transition',
-                isSelected ? 'text-[#30132d]' : 'text-[#6f6870]/72',
-              ].join(' ')}
-            >
-              <span className="block truncate text-[0.58rem] font-extrabold">{moment.shortLabel}</span>
-              <span className="mt-0.5 block text-[0.52rem] font-bold opacity-75">{moment.point.time.slice(0, 2)}</span>
-            </button>
-          );
-        })}
-      </div>
+            <span className="lumia-pulse-slot-head">
+              <span className="lumia-pulse-slot-label">{slot.label}</span>
+              <span className="lumia-pulse-slot-time">{slot.timeLabel}</span>
+            </span>
+            <span className="lumia-pulse-slot-title">{slot.point.title}</span>
+            <span className="lumia-pulse-slot-helper">{slot.helper}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -571,7 +415,7 @@ export function LumiaHomePulseCard({
             </p>
           </div>
 
-          <PulseChart language={language} pulse={pulse} selectedPoint={selectedPoint} onSelectPoint={handleSelectPoint} />
+          <PulseTimeline language={language} pulse={pulse} selectedPoint={selectedPoint} onSelectPoint={handleSelectPoint} />
 
           <div className="mt-3 grid grid-cols-2 gap-3">
             <div className="air-row">
@@ -635,7 +479,7 @@ const ACTION_META: Record<ActionTimingKey, {
   rest: { ru: 'Отдых', en: 'Rest', icon: Moon },
 };
 
-const ACTION_ORDER: ActionTimingKey[] = ['message', 'serious_talk', 'purchase', 'money', 'work', 'rest'];
+const ACTION_ORDER: ActionTimingKey[] = ['message', 'serious_talk', 'purchase', 'work'];
 
 const CHECKIN_OPTIONS = {
   focus: [
@@ -921,27 +765,22 @@ function ActionTimingResultView({
       ? (language === 'ru' ? 'Лучше позже' : 'Better later')
       : (language === 'ru' ? 'Ровный день' : 'Even day');
   return (
-    <div className="mt-3.5">
-      <div className="air-divider" />
-      <div className="air-row pt-3.5">
-        <div className="min-w-0">
-          <p className="mb-0 font-lumiaHome text-[0.78rem] font-extrabold uppercase tracking-[0.055em] leading-tight text-[#155EEF]">
-            {stateLabel} <span className="text-[#606772]/72">{'\u00b7'}</span>{' '}
-            <span className="font-lumiaHomeDisplay text-[1rem] tracking-normal text-[#111317]">
-              {recommendation.bestWindow.start}-{recommendation.bestWindow.end}
-            </span>
-          </p>
-          <h4 className="mb-0 mt-1.5 font-lumiaHomeDisplay text-[1.05rem] font-extrabold leading-tight text-[#111317]">
-            {recommendation.title}
-          </h4>
-          <p className="mb-0 mt-2 font-lumiaHome text-[0.78rem] font-semibold leading-snug text-[#4f5660]">
-            {recommendation.summary}
-          </p>
-          <p className="mb-0 mt-1.5 font-lumiaHome text-[0.72rem] font-bold leading-snug text-[#606772]">
-            {recommendation.caution}
-          </p>
-        </div>
+    <div className="lumia-assistant-result-panel">
+      <div className="lumia-assistant-result-top">
+        <p className="lumia-assistant-result-state">{stateLabel}</p>
+        <p className="lumia-assistant-result-window">
+          {recommendation.bestWindow.start}-{recommendation.bestWindow.end}
+        </p>
       </div>
+      <h4 className="lumia-assistant-result-title">
+        {recommendation.title}
+      </h4>
+      <p className="lumia-assistant-result-summary">
+        {recommendation.summary}
+      </p>
+      <p className="lumia-assistant-result-caution">
+        {recommendation.caution}
+      </p>
     </div>
   );
 }
@@ -973,34 +812,36 @@ function ActionTimingCard({
   };
 
   return (
-    <div className="mt-3">
-      <div className="scrollbar-hide -mx-4 flex gap-2 overflow-x-auto px-4 pb-1.5">
+    <div className="mt-3.5">
+      <div className="lumia-assistant-action-grid">
         {ACTION_ORDER.map((key) => {
           const meta = ACTION_META[key];
           const Icon = meta.icon;
           const active = selected === key;
+          const label = key === 'work'
+            ? (language === 'ru' ? 'Делать' : 'Do')
+            : (language === 'ru' ? meta.ru : meta.en);
           return (
             <button
               key={key}
               type="button"
               onClick={() => void select(key)}
-              className={[
-                'inline-flex min-h-[2.72rem] shrink-0 items-center gap-2 rounded-full px-3.5 py-2 text-left transition-colors',
-                active
-                  ? 'bg-[#111317] text-white shadow-[0_10px_22px_rgba(17,19,23,0.12)]'
-                  : 'bg-[#F4F7FA]/78 text-[#30132d] shadow-none',
-              ].join(' ')}
+              aria-pressed={active}
+              data-active={active ? 'true' : undefined}
+              className="lumia-assistant-action-button"
             >
-              <Icon size={17} strokeWidth={2.25} />
-              <span className="block whitespace-nowrap font-lumiaHome text-[0.74rem] font-extrabold leading-none">
-                {language === 'ru' ? meta.ru : meta.en}
+              <span className="lumia-assistant-action-icon">
+                <Icon size={18} strokeWidth={2.25} />
+              </span>
+              <span className="lumia-assistant-action-label">
+                {label}
               </span>
             </button>
           );
         })}
       </div>
       {loadingKey ? (
-        <div className="mt-3 h-[5.4rem] animate-pulse rounded-[1.1rem] bg-[#F4F7FA]/70" />
+        <div className="lumia-assistant-result-loading" />
       ) : result ? (
         <ActionTimingResultView language={language} recommendation={result} />
       ) : null}
