@@ -988,6 +988,57 @@ body.theme-lumia-air #__next {
   box-shadow: var(--lumia-home-shadow-card);
 }
 
+.surface-air {
+  border: 0 !important;
+  background: #ffffff;
+  box-shadow: 0 14px 38px rgba(17, 19, 23, 0.045);
+}
+
+.surface-air-soft {
+  border: 0 !important;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(244, 247, 250, 0.58));
+  box-shadow: none;
+}
+
+.air-divider {
+  height: 1px;
+  width: 100%;
+  background: rgba(17, 19, 23, 0.065);
+}
+
+.air-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.68rem;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.air-row-icon {
+  display: inline-flex;
+  width: 2rem;
+  height: 2rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: rgba(244, 247, 250, 0.86);
+}
+
+.air-row-icon--positive {
+  color: var(--lumia-brand-positive);
+}
+
+.air-row-icon--negative {
+  color: var(--lumia-brand-negative);
+}
+
+.air-row-icon--neutral {
+  color: var(--lumia-brand-primary);
+}
+
 .lumia-home-icon-button {
   display: inline-flex;
   width: var(--lumia-home-icon-size);

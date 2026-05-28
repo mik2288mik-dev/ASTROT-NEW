@@ -292,8 +292,9 @@ function PulseChart({
   const selectedIsMoment = moments.some((moment) => moment.point.hour === selectedPoint.hour);
   const selectedProgress = Math.max(0, Math.min(1, selectedPoint.hour / 23));
   const selectedPillTransform =
-    selectedProgress < 0.14 ? 'translateX(0)' : selectedProgress > 0.86 ? 'translateX(-100%)' : 'translateX(-50%)';
+    selectedProgress < 0.14 ? 'translate(0,-62%)' : selectedProgress > 0.86 ? 'translate(-100%,-62%)' : 'translate(-50%,-62%)';
   const selectedPillLabel = selectedPoint.time;
+  const axisHours = [0, 6, 12, 16, 18, 21, 24];
   const handleKeySelect = (event: React.KeyboardEvent<SVGGElement>, point: TodayPulsePoint) => {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
@@ -314,11 +315,10 @@ function PulseChart({
   };
 
   return (
-    <div className="lumia-home-pulse-chart relative mt-3.5 h-[8.9rem] overflow-hidden rounded-[1.02rem] bg-[#F8FBFF]/80 shadow-[inset_0_0_0_1px_rgba(17,19,23,0.045)]">
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(244,247,250,0.42)),radial-gradient(circle_at_82%_12%,rgba(0,166,106,0.08),transparent_28%),radial-gradient(circle_at_14%_78%,rgba(21,94,239,0.06),transparent_32%)]" />
-      <div ref={chartRef} className="absolute inset-x-2 top-2 h-[5.95rem] cursor-pointer touch-pan-y" onPointerDown={handleChartPointer}>
+    <div className="lumia-home-pulse-chart relative mt-3.5 h-[8.45rem] overflow-visible bg-transparent">
+      <div ref={chartRef} className="absolute inset-x-0 top-2 h-[5.82rem] cursor-pointer touch-pan-y" onPointerDown={handleChartPointer}>
         <div
-          className="pointer-events-none absolute top-0 z-10 rounded-full bg-white px-2 py-0.5 font-lumiaHome text-[0.58rem] font-extrabold leading-none text-[#111317] shadow-[0_8px_18px_rgba(17,19,23,0.08)]"
+          className="pointer-events-none absolute top-0 z-10 font-lumiaHome text-[0.62rem] font-extrabold leading-none text-[#111317]"
           style={{ left: `${selectedProgress * 100}%`, transform: selectedPillTransform }}
         >
           {selectedPillLabel}
@@ -344,17 +344,17 @@ function PulseChart({
               </feMerge>
             </filter>
           </defs>
-          {[0, 6, 12, 18, 24].map((hour) => {
+          {axisHours.map((hour) => {
             const x = 22 + (Math.min(hour, 23) / 23) * 316;
-            return <line key={hour} x1={x} x2={x} y1="26" y2="112" stroke="rgba(17,19,23,0.065)" strokeWidth="1" />;
+            return <line key={hour} x1={x} x2={x} y1="28" y2="112" stroke="rgba(17,19,23,0.055)" strokeWidth="1" />;
           })}
           {[36, 60, 84, 108].map((y) => (
-            <line key={y} x1="22" x2="338" y1={y} y2={y} stroke="rgba(17,19,23,0.055)" strokeWidth="1" />
+            <line key={y} x1="22" x2="338" y1={y} y2={y} stroke="rgba(17,19,23,0.042)" strokeWidth="1" />
           ))}
           <path d={areaPath} fill={`url(#${areaId})`} />
-          <path d={linePath} fill="none" stroke="rgba(17,19,23,0.045)" strokeWidth="7.2" strokeLinecap="round" />
-          <path d={linePath} fill="none" stroke={`url(#${lineId})`} strokeWidth="3.8" strokeLinecap="round" filter={`url(#${glowId})`} />
-          <line x1={selectedXY.x} x2={selectedXY.x} y1="22" y2="112" stroke="rgba(21,94,239,0.36)" strokeWidth="1.2" />
+          <path d={linePath} fill="none" stroke="rgba(17,19,23,0.035)" strokeWidth="5.4" strokeLinecap="round" />
+          <path d={linePath} fill="none" stroke={`url(#${lineId})`} strokeWidth="3.2" strokeLinecap="round" filter={`url(#${glowId})`} />
+          <line x1={selectedXY.x} x2={selectedXY.x} y1="24" y2="114" stroke="rgba(21,94,239,0.34)" strokeWidth="1.2" />
           {moments.map((moment) => {
             const { x, y } = pointToWalletXY(moment.point);
             const isSelected = moment.point.hour === selectedPoint.hour;
@@ -389,14 +389,21 @@ function PulseChart({
           ) : null}
         </svg>
       </div>
-      <div className="pointer-events-none absolute inset-x-5 bottom-[1.78rem] flex items-center justify-between font-lumiaHome text-[0.56rem] font-extrabold text-[#606772]/62">
-        <span>00</span>
-        <span>06</span>
-        <span>12</span>
-        <span>18</span>
-        <span>24</span>
+      <div className="pointer-events-none absolute inset-x-0 bottom-[1.82rem] h-3 font-lumiaHome text-[0.56rem] font-extrabold text-[#606772]/66">
+        {axisHours.map((hour) => (
+          <span
+            key={hour}
+            className="absolute top-0"
+            style={{
+              left: `${(hour / 24) * 100}%`,
+              transform: hour === 0 ? 'translateX(0)' : hour === 24 ? 'translateX(-100%)' : 'translateX(-50%)',
+            }}
+          >
+            {hour}
+          </span>
+        ))}
       </div>
-      <div className="absolute inset-x-2 bottom-1 grid grid-cols-5 gap-1">
+      <div className="absolute inset-x-0 bottom-0 grid grid-cols-5 gap-1">
         {moments.map((moment) => {
           const isSelected = moment.point.hour === selectedPoint.hour;
           return (
@@ -522,8 +529,8 @@ export function LumiaHomePulseCard({
   const avoidNow = selectedPoint?.avoid.slice(0, 3).join(' · ') || '';
 
   return (
-    <LumiaHomeLargeCard className="lumia-home-pulse-card rounded-[1.55rem] border border-[#30132d]/[0.055] bg-white px-4 py-4 text-[#30132d] shadow-[0_14px_34px_rgba(31,22,54,0.055)]">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_0%,rgba(21,94,239,0.08),transparent_32%),radial-gradient(circle_at_94%_32%,rgba(0,166,106,0.07),transparent_32%)]" />
+    <LumiaHomeLargeCard className="lumia-home-pulse-card surface-air rounded-[1.55rem] bg-white px-4 py-4 text-[#30132d]">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_0%,rgba(21,94,239,0.035),transparent_32%),radial-gradient(circle_at_94%_32%,rgba(0,166,106,0.032),transparent_32%)]" />
       {isLoading ? (
         <PulseLoadingState language={language} />
       ) : pulseResult?.status === 'needs_setup' ? (
@@ -539,7 +546,7 @@ export function LumiaHomePulseCard({
                 {formatPulseDate(pulse.date, language)}
               </p>
             </div>
-            <div className="flex shrink-0 items-center rounded-full bg-white px-2.5 py-1.5 text-[#4f4851] shadow-[inset_0_0_0_1px_rgba(48,19,45,0.08),0_8px_18px_rgba(48,19,45,0.04)]">
+            <div className="flex shrink-0 items-center rounded-full bg-[#F4F7FA]/82 px-2.5 py-1.5 text-[#4f4851]">
               <Clock3 size={15} strokeWidth={2.2} aria-hidden />
               <button
                 type="button"
@@ -567,9 +574,9 @@ export function LumiaHomePulseCard({
 
           <PulseChart language={language} pulse={pulse} selectedPoint={selectedPoint} onSelectPoint={handleSelectPoint} />
 
-          <div className="mt-3 grid gap-2 sm:grid-cols-2">
-            <div className="flex items-center gap-2.5 rounded-[1.05rem] bg-white px-2.5 py-2.5 shadow-[inset_0_0_0_1px_rgba(0,166,106,0.16)]">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#F4F7FA] text-[#00A66A]">
+          <div className="mt-3.5 grid gap-1.5 sm:grid-cols-2">
+            <div className="air-row">
+              <span className="air-row-icon air-row-icon--positive">
                 <Check size={16} strokeWidth={2.7} />
               </span>
               <div className="min-w-0">
@@ -581,8 +588,8 @@ export function LumiaHomePulseCard({
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2.5 rounded-[1.05rem] bg-white px-2.5 py-2.5 shadow-[inset_0_0_0_1px_rgba(225,25,55,0.16)]">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#F4F7FA] text-[#E11937]">
+            <div className="air-row">
+              <span className="air-row-icon air-row-icon--negative">
                 <X size={16} strokeWidth={2.7} />
               </span>
               <div className="min-w-0">
@@ -596,10 +603,10 @@ export function LumiaHomePulseCard({
             </div>
           </div>
 
-          <div className="mt-2.5 divide-y divide-[#30132d]/[0.065] px-0.5">
+          <div className="mt-2.5 divide-y divide-[#111317]/[0.065] px-0.5">
             {nextCues.map((cue) => (
-              <div key={`${cue.time}-${cue.text}`} className="flex items-center gap-2.5 py-2">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#F4F7FA] text-[#155EEF]">
+              <div key={`${cue.time}-${cue.text}`} className="air-row py-2">
+                <span className="air-row-icon air-row-icon--neutral h-6 w-6">
                   {cue.icon === 'restore' ? <Moon size={14} strokeWidth={2.5} /> : <Sparkles size={13} strokeWidth={2.5} />}
                 </span>
                 <p className="mb-0 font-lumiaHome text-[0.77rem] font-semibold leading-snug text-[#4f4851]">
@@ -716,7 +723,7 @@ function TodayCheckInReferenceCard({
   reference: TodayCheckInReference;
 }) {
   return (
-    <div className="mt-3 rounded-[1.35rem] bg-white/64 px-3.5 py-3.5 shadow-[inset_0_0_0_1px_rgba(48,19,45,0.07)]">
+    <div className="surface-air-soft mt-3 rounded-[1.2rem] px-3.5 py-3.5">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="mb-0 font-lumiaHome text-[0.72rem] font-extrabold uppercase tracking-[0.08em] text-[#155EEF]">
@@ -727,7 +734,7 @@ function TodayCheckInReferenceCard({
           </h4>
         </div>
         {reference.bestSlotRange ? (
-          <span className="shrink-0 rounded-full bg-white px-2.5 py-1.5 font-lumiaHome text-[0.72rem] font-extrabold leading-none text-[#155EEF] shadow-[inset_0_0_0_1px_rgba(21,94,239,0.18)]">
+          <span className="shrink-0 rounded-full bg-white/72 px-2.5 py-1.5 font-lumiaHome text-[0.72rem] font-extrabold leading-none text-[#155EEF]">
             {reference.bestSlotRange}
           </span>
         ) : null}
@@ -753,7 +760,7 @@ function TodayCheckInReferenceCard({
           </p>
           <div className="flex flex-wrap gap-1.5">
             {reference.bestFor.map((item) => (
-              <span key={item} className="rounded-full bg-[#f3fff8]/78 px-2.5 py-1 font-lumiaHome text-[0.68rem] font-extrabold text-[#2f7c4c]">
+              <span key={item} className="rounded-full bg-[#F4F7FA]/82 px-2.5 py-1 font-lumiaHome text-[0.68rem] font-extrabold text-[#00A66A]">
                 {item}
               </span>
             ))}
@@ -781,7 +788,7 @@ function CheckInExpectation({
 }) {
   const expected = reference.expected[field];
   return (
-    <div className="mb-2 rounded-[1rem] bg-white/42 px-3 py-2 shadow-[inset_0_0_0_1px_rgba(48,19,45,0.045)]">
+    <div className="mb-2">
       <p className="mb-0 font-lumiaHome text-[0.66rem] font-extrabold uppercase tracking-[0.06em] text-[#155EEF]">
         {language === 'ru' ? 'Ожидание LUMIA' : 'LUMIA expected'}: <span className="text-[#30132d]">{expected.label}</span>
       </p>
@@ -821,7 +828,7 @@ function DailyCheckInCard({
             {labels[key]}
           </p>
           <CheckInExpectation language={language} reference={reference} field={key} />
-          <div className="flex gap-1.5 rounded-[1.1rem] bg-white/38 p-1 shadow-[inset_0_0_0_1px_rgba(48,19,45,0.055)]">
+          <div className="flex gap-1.5 rounded-[1.1rem] bg-[#F4F7FA]/72 p-1">
             {CHECKIN_OPTIONS[key].map((option) => (
               <button
                 key={option.value}
@@ -865,7 +872,7 @@ function CompletedCheckInCard({
   }));
 
   return (
-    <div className="mt-3 rounded-[1.25rem] bg-white/58 px-3.5 py-3 shadow-[inset_0_0_0_1px_rgba(48,19,45,0.06)]">
+    <div className="surface-air-soft mt-3 rounded-[1.2rem] px-3.5 py-3">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="mb-0 font-lumiaHome text-[0.68rem] font-extrabold uppercase tracking-[0.08em] text-[#155EEF]">
@@ -875,13 +882,13 @@ function CompletedCheckInCard({
             {labels.savedTitle}
           </h4>
         </div>
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#f3fff8] text-[#2f7c4c]">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#F4F7FA] text-[#00A66A]">
           <Check size={16} strokeWidth={2.8} />
         </span>
       </div>
       <div className="mt-3 grid grid-cols-2 gap-2">
         {items.map((item) => (
-          <div key={item.key} className="rounded-[0.95rem] bg-white/54 px-3 py-2 shadow-[inset_0_0_0_1px_rgba(48,19,45,0.045)]">
+          <div key={item.key} className="rounded-[0.95rem] bg-white/58 px-3 py-2">
             <p className="mb-0 font-lumiaHome text-[0.62rem] font-extrabold uppercase tracking-[0.06em] text-[#8d8490]">
               {item.label}
             </p>
@@ -894,7 +901,7 @@ function CompletedCheckInCard({
       <button
         type="button"
         onClick={onEdit}
-        className="mt-3 min-h-[2.55rem] w-full rounded-full bg-white/72 px-4 py-2.5 font-lumiaHome text-[0.82rem] font-extrabold text-[#30132d] shadow-[inset_0_0_0_1px_rgba(48,19,45,0.08)]"
+        className="mt-3 min-h-[2.55rem] w-full rounded-full bg-[#F4F7FA]/82 px-4 py-2.5 font-lumiaHome text-[0.82rem] font-extrabold text-[#30132d]"
       >
         {labels.edit}
       </button>
@@ -915,27 +922,26 @@ function ActionTimingResultView({
       ? (language === 'ru' ? 'Лучше позже' : 'Better later')
       : (language === 'ru' ? 'Ровный день' : 'Even day');
   return (
-    <div className="mt-3.5 border-t border-[#171217]/[0.07] pt-3.5">
-      <div className="rounded-[1.14rem] bg-white px-3.5 py-3 shadow-[inset_0_0_0_1px_rgba(17,19,23,0.08),0_10px_24px_rgba(17,19,23,0.035)]">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="mb-0 font-lumiaHome text-[0.72rem] font-extrabold uppercase tracking-[0.055em] leading-tight text-[#155EEF]">
-              {stateLabel}
-            </p>
-            <h4 className="mb-0 mt-1 font-lumiaHomeDisplay text-[1rem] font-extrabold leading-tight text-[#111317]">
-              {recommendation.title}
-            </h4>
-          </div>
-          <span className="shrink-0 rounded-full bg-[#F4F7FA] px-2.5 py-1.5 font-lumiaHomeDisplay text-[1rem] font-extrabold leading-none text-[#111317] shadow-[inset_0_0_0_1px_rgba(17,19,23,0.08)]">
-            {recommendation.bestWindow.start}-{recommendation.bestWindow.end}
-          </span>
+    <div className="mt-3.5">
+      <div className="air-divider" />
+      <div className="air-row pt-3.5">
+        <div className="min-w-0">
+          <p className="mb-0 font-lumiaHome text-[0.78rem] font-extrabold uppercase tracking-[0.055em] leading-tight text-[#155EEF]">
+            {stateLabel} <span className="text-[#606772]/72">{'\u00b7'}</span>{' '}
+            <span className="font-lumiaHomeDisplay text-[1rem] tracking-normal text-[#111317]">
+              {recommendation.bestWindow.start}-{recommendation.bestWindow.end}
+            </span>
+          </p>
+          <h4 className="mb-0 mt-1.5 font-lumiaHomeDisplay text-[1.05rem] font-extrabold leading-tight text-[#111317]">
+            {recommendation.title}
+          </h4>
+          <p className="mb-0 mt-2 font-lumiaHome text-[0.78rem] font-semibold leading-snug text-[#4f5660]">
+            {recommendation.summary}
+          </p>
+          <p className="mb-0 mt-1.5 font-lumiaHome text-[0.72rem] font-bold leading-snug text-[#606772]">
+            {recommendation.caution}
+          </p>
         </div>
-        <p className="mb-0 mt-2 font-lumiaHome text-[0.78rem] font-semibold leading-snug text-[#4f5660]">
-          {recommendation.summary}
-        </p>
-        <p className="mb-0 mt-1.5 font-lumiaHome text-[0.72rem] font-bold leading-snug text-[#606772]">
-          {recommendation.caution}
-        </p>
       </div>
     </div>
   );
@@ -982,8 +988,8 @@ function ActionTimingCard({
               className={[
                 'inline-flex min-h-[2.72rem] shrink-0 items-center gap-2 rounded-full px-3.5 py-2 text-left transition-colors',
                 active
-                  ? 'bg-[#202020] text-white shadow-[0_12px_26px_rgba(20,20,20,0.18)]'
-                  : 'bg-white text-[#30132d] shadow-[inset_0_0_0_1px_rgba(48,19,45,0.08),0_8px_18px_rgba(48,19,45,0.035)]',
+                  ? 'bg-[#111317] text-white shadow-[0_10px_22px_rgba(17,19,23,0.12)]'
+                  : 'bg-[#F4F7FA]/78 text-[#30132d] shadow-none',
               ].join(' ')}
             >
               <Icon size={17} strokeWidth={2.25} />
@@ -995,7 +1001,7 @@ function ActionTimingCard({
         })}
       </div>
       {loadingKey ? (
-        <div className="mt-3 h-[6.1rem] animate-pulse rounded-[1.2rem] bg-white/44" />
+        <div className="mt-3 h-[5.4rem] animate-pulse rounded-[1.1rem] bg-[#F4F7FA]/70" />
       ) : result ? (
         <ActionTimingResultView language={language} recommendation={result} />
       ) : null}
@@ -1065,8 +1071,8 @@ export function TodayAssistantCard({
   };
 
   return (
-    <LumiaHomeLargeCard className="lumia-home-assistant-card rounded-[1.55rem] border border-[#30132d]/[0.055] bg-white px-4 py-4 text-[#30132d] shadow-[0_14px_34px_rgba(31,22,54,0.055)]">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_5%_0%,rgba(21,94,239,0.07),transparent_30%),radial-gradient(circle_at_100%_46%,rgba(0,166,106,0.06),transparent_34%)]" />
+    <LumiaHomeLargeCard className="lumia-home-assistant-card surface-air rounded-[1.55rem] bg-white px-4 py-4 text-[#30132d]">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_5%_0%,rgba(21,94,239,0.032),transparent_30%),radial-gradient(circle_at_100%_46%,rgba(0,166,106,0.028),transparent_34%)]" />
       <div className="relative z-10">
         <div className="flex items-start justify-between gap-2">
           {assistantResult.dayMode === 'evening' ? (
@@ -1079,7 +1085,7 @@ export function TodayAssistantCard({
             </h2>
           )}
           {isEvening && checkInReference.dateLabel ? (
-            <span className="mt-1 shrink-0 rounded-full bg-white/66 px-2.5 py-1.5 font-lumiaHome text-[0.72rem] font-extrabold leading-none text-[#817982] shadow-[inset_0_0_0_1px_rgba(48,19,45,0.06)]">
+            <span className="mt-1 shrink-0 rounded-full bg-[#F4F7FA]/82 px-2.5 py-1.5 font-lumiaHome text-[0.72rem] font-extrabold leading-none text-[#606772]">
               {checkInReference.dateLabel}
             </span>
           ) : null}
@@ -1104,7 +1110,7 @@ export function TodayAssistantCard({
                     setIsEditingCheckIn(true);
                   }}
                 />
-                <div className="mt-3 rounded-[1.2rem] bg-white/48 px-3.5 py-3 shadow-[inset_0_0_0_1px_rgba(48,19,45,0.05)]">
+                <div className="surface-air-soft mt-3 rounded-[1.1rem] px-3.5 py-3">
                   <p className="mb-0 font-lumiaHome text-[0.68rem] font-extrabold uppercase tracking-[0.08em] text-[#155EEF]">
                     {assistantResult.accuracySummary.title}
                   </p>
