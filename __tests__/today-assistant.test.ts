@@ -180,7 +180,7 @@ describe('today assistant', () => {
       ...ready,
       pulse: { ...pulse, currentTime: '09:20' },
       dayMode: 'morning',
-    })).toBe(true);
+    })).toBe(false);
     expect(shouldShowTodayAssistantFirst({
       ...ready,
       pulse: { ...pulse, currentTime: '11:18' },
@@ -189,8 +189,8 @@ describe('today assistant', () => {
     expect(shouldShowTodayAssistantFirst({
       ...ready,
       dayMode: 'day',
-      pulse: { ...pulse, currentPoint: { ...pulse.currentPoint, isKeyMoment: true } },
-    })).toBe(true);
+      pulse: { ...pulse, currentPoint: { ...pulse.currentPoint, isKeyMoment: true, score: 90 } },
+    })).toBe(false);
     expect(shouldShowTodayAssistantFirst({
       ...ready,
       dayMode: 'evening',

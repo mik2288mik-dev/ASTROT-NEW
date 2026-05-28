@@ -315,8 +315,8 @@ function PulseChart({
   };
 
   return (
-    <div className="lumia-home-pulse-chart relative mt-3.5 h-[8.45rem] overflow-visible bg-transparent">
-      <div ref={chartRef} className="absolute inset-x-0 top-2 h-[5.82rem] cursor-pointer touch-pan-y" onPointerDown={handleChartPointer}>
+    <div className="lumia-home-pulse-chart relative mt-3 h-[7.95rem] overflow-visible bg-transparent">
+      <div ref={chartRef} className="absolute inset-x-0 top-2 h-[5.48rem] cursor-pointer touch-pan-y" onPointerDown={handleChartPointer}>
         <div
           className="pointer-events-none absolute top-0 z-10 font-lumiaHome text-[0.62rem] font-extrabold leading-none text-[#111317]"
           style={{ left: `${selectedProgress * 100}%`, transform: selectedPillTransform }}
@@ -352,8 +352,8 @@ function PulseChart({
             <line key={y} x1="22" x2="338" y1={y} y2={y} stroke="rgba(17,19,23,0.042)" strokeWidth="1" />
           ))}
           <path d={areaPath} fill={`url(#${areaId})`} />
-          <path d={linePath} fill="none" stroke="rgba(17,19,23,0.035)" strokeWidth="5.4" strokeLinecap="round" />
-          <path d={linePath} fill="none" stroke={`url(#${lineId})`} strokeWidth="3.2" strokeLinecap="round" filter={`url(#${glowId})`} />
+          <path d={linePath} fill="none" stroke="rgba(17,19,23,0.026)" strokeWidth="4.2" strokeLinecap="round" />
+          <path d={linePath} fill="none" stroke={`url(#${lineId})`} strokeWidth="2.9" strokeLinecap="round" filter={`url(#${glowId})`} />
           <line x1={selectedXY.x} x2={selectedXY.x} y1="24" y2="114" stroke="rgba(21,94,239,0.34)" strokeWidth="1.2" />
           {moments.map((moment) => {
             const { x, y } = pointToWalletXY(moment.point);
@@ -389,7 +389,7 @@ function PulseChart({
           ) : null}
         </svg>
       </div>
-      <div className="pointer-events-none absolute inset-x-0 bottom-[1.82rem] h-3 font-lumiaHome text-[0.56rem] font-extrabold text-[#606772]/66">
+      <div className="pointer-events-none absolute inset-x-0 bottom-[1.68rem] h-3 font-lumiaHome text-[0.56rem] font-extrabold text-[#606772]/66">
         {axisHours.map((hour) => (
           <span
             key={hour}
@@ -529,8 +529,7 @@ export function LumiaHomePulseCard({
   const avoidNow = selectedPoint?.avoid.slice(0, 3).join(' · ') || '';
 
   return (
-    <LumiaHomeLargeCard className="lumia-home-pulse-card surface-air rounded-[1.55rem] bg-white px-4 py-4 text-[#30132d]">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_0%,rgba(21,94,239,0.035),transparent_32%),radial-gradient(circle_at_94%_32%,rgba(0,166,106,0.032),transparent_32%)]" />
+    <LumiaHomeLargeCard className="lumia-home-pulse-card surface-air rounded-none bg-transparent px-0 py-4 text-[#30132d]">
       {isLoading ? (
         <PulseLoadingState language={language} />
       ) : pulseResult?.status === 'needs_setup' ? (
@@ -574,10 +573,10 @@ export function LumiaHomePulseCard({
 
           <PulseChart language={language} pulse={pulse} selectedPoint={selectedPoint} onSelectPoint={handleSelectPoint} />
 
-          <div className="mt-3.5 grid gap-1.5 sm:grid-cols-2">
+          <div className="mt-3 grid grid-cols-2 gap-3">
             <div className="air-row">
               <span className="air-row-icon air-row-icon--positive">
-                <Check size={16} strokeWidth={2.7} />
+                <Check size={15} strokeWidth={2.7} />
               </span>
               <div className="min-w-0">
                 <p className="mb-0 font-lumiaHome text-[0.8rem] font-extrabold leading-tight text-[#2f2b31]">
@@ -590,7 +589,7 @@ export function LumiaHomePulseCard({
             </div>
             <div className="air-row">
               <span className="air-row-icon air-row-icon--negative">
-                <X size={16} strokeWidth={2.7} />
+                <X size={15} strokeWidth={2.7} />
               </span>
               <div className="min-w-0">
                 <p className="mb-0 font-lumiaHome text-[0.8rem] font-extrabold leading-tight text-[#2f2b31]">
@@ -603,9 +602,9 @@ export function LumiaHomePulseCard({
             </div>
           </div>
 
-          <div className="mt-2.5 divide-y divide-[#111317]/[0.065] px-0.5">
+          <div className="mt-3 grid grid-cols-2 gap-3 px-0.5">
             {nextCues.map((cue) => (
-              <div key={`${cue.time}-${cue.text}`} className="air-row py-2">
+              <div key={`${cue.time}-${cue.text}`} className="air-row">
                 <span className="air-row-icon air-row-icon--neutral h-6 w-6">
                   {cue.icon === 'restore' ? <Moon size={14} strokeWidth={2.5} /> : <Sparkles size={13} strokeWidth={2.5} />}
                 </span>
@@ -1071,8 +1070,7 @@ export function TodayAssistantCard({
   };
 
   return (
-    <LumiaHomeLargeCard className="lumia-home-assistant-card surface-air rounded-[1.55rem] bg-white px-4 py-4 text-[#30132d]">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_5%_0%,rgba(21,94,239,0.032),transparent_30%),radial-gradient(circle_at_100%_46%,rgba(0,166,106,0.028),transparent_34%)]" />
+    <LumiaHomeLargeCard className="lumia-home-assistant-card surface-air rounded-none bg-transparent px-0 py-4 text-[#30132d]">
       <div className="relative z-10">
         <div className="flex items-start justify-between gap-2">
           {assistantResult.dayMode === 'evening' ? (

@@ -157,6 +157,7 @@ body.theme-lumia-air #__next {
   height: 100%;
   min-height: 0;
   max-height: 100%;
+  background: #ffffff;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior-y: contain;
@@ -164,7 +165,7 @@ body.theme-lumia-air #__next {
 }
 
 .lumia-home-screen {
-  background: var(--lumia-home-bg);
+  background: #ffffff;
   color: var(--lumia-home-text);
   font-family: var(--lumia-home-font-sans);
 }
@@ -317,6 +318,7 @@ body.theme-lumia-air #__next {
 .lumia-home-screen .lumia-main-scroll {
   flex: 1 1 auto;
   height: 100%;
+  background: #ffffff;
 }
 
 .lumia-main-scroll.lumia-bottom-tab-scroll {
@@ -327,6 +329,7 @@ body.theme-lumia-air #__next {
 .lumia-home-scroll-content {
   margin-top: -1.92rem;
   padding-bottom: var(--lumia-bottom-tab-clearance);
+  background: #ffffff;
 }
 
 .lumia-home-top-cluster {
@@ -990,8 +993,8 @@ body.theme-lumia-air #__next {
 
 .surface-air {
   border: 0 !important;
-  background: #ffffff;
-  box-shadow: 0 14px 38px rgba(17, 19, 23, 0.045);
+  background: transparent;
+  box-shadow: none;
 }
 
 .surface-air-soft {
