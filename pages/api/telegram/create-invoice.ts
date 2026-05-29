@@ -1,7 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import {
   buildInvoicePayload,
-  getStarsAmountForInvoiceType,
   type StarsInvoiceType,
 } from '../../../lib/starsInvoiceCatalog';
 
@@ -51,20 +50,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
-  const BOT_TOKEN = process.env.BOT_TOKEN;
-  if (!BOT_TOKEN) {
-    log.info('BOT_TOKEN not set, returning sim mode');
-    return res.status(200).json({
-      invoiceUrl: null,
-      simMode: true,
-      message: 'Use simulated payment flow (BOT_TOKEN not configured)',
-      type,
-      starsAmount: getStarsAmountForInvoiceType(type as StarsInvoiceType),
-    });
-  }
-
+  let product;
   try {
-    const product = buildInvoicePayload({
+    product = buildInvoicePayload({
       userId: String(userId).trim(),
       type: type as StarsInvoiceType,
       chartId: chartId != null ? Number(chartId) : null,
@@ -72,7 +60,42 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       date: date != null ? String(date) : null,
       sectionKey: sectionKey != null ? String(sectionKey) : null,
     });
+  } catch (error: any) {
+    const code = error?.message || 'INVOICE_BUILD_FAILED';
+    log.error('Error building invoice payload', { error: error.message, type, userId });
+    return res.status(code === 'CACHE_KEY_REQUIRED' || code.startsWith('INVALID_') ? 400 : 500).json({
+      error: 'Failed to create invoice',
+      code,
+      message: error.message,
+    });
+  }
 
+  const paymentNonce = product.payload.n != null ? String(product.payload.n) : null;
+  const invoiceResponseBase = {
+    invoiceType: type,
+    type,
+    starsAmount: product.starsAmount,
+    paymentNonce,
+    contentSurface: product.contentSurface,
+    contentVariant: product.contentVariant,
+    cacheKey: product.cacheKey,
+    chartId: product.chartId,
+    payload: product.payload,
+  };
+
+  const BOT_TOKEN = process.env.BOT_TOKEN;
+  if (!BOT_TOKEN) {
+    log.info('BOT_TOKEN not set, returning sim mode');
+    return res.status(200).json({
+      ...invoiceResponseBase,
+      invoiceUrl: null,
+      invoiceLink: null,
+      simMode: true,
+      message: 'Use simulated payment flow (BOT_TOKEN not configured)',
+    });
+  }
+
+  try {
     const payload = JSON.stringify(product.payload);
     if (payload.length > 128) {
       return res.status(400).json({ error: 'Payload too long', code: 'PAYLOAD_TOO_LONG' });
@@ -105,26 +128,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       userId,
       type,
       starsAmount: product.starsAmount,
+      paymentNonce,
       invoiceUrl: invoiceUrl?.substring(0, 50) + '...',
     });
 
     return res.status(200).json({
+      ...invoiceResponseBase,
       invoiceUrl,
+      invoiceLink: invoiceUrl,
       simMode: false,
-      type,
-      starsAmount: product.starsAmount,
-      contentSurface: product.contentSurface,
-      contentVariant: product.contentVariant,
-      cacheKey: product.cacheKey,
-      chartId: product.chartId,
-      payload: product.payload,
     });
   } catch (error: any) {
-    const code = error?.message || 'INVOICE_BUILD_FAILED';
     log.error('Error creating invoice', { error: error.message, type, userId });
-    return res.status(code === 'CACHE_KEY_REQUIRED' || code.startsWith('INVALID_') ? 400 : 500).json({
+    return res.status(500).json({
       error: 'Failed to create invoice',
-      code,
       message: error.message,
     });
   }

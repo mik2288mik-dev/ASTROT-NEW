@@ -18,7 +18,7 @@ import {
   sanitizeQuestionHistory,
 } from '../../../../lib/questionContent';
 import { RATE_LIMIT_CONFIGS, withRateLimit } from '../../../../lib/rateLimit';
-import { unlockContentAfterStarsPayment } from '../../../../lib/starsContentUnlock';
+import { unlockContentAfterStarsPayment, unlockContentAfterStarsPaymentNonce, StarsPaymentError } from '../../../../lib/starsContentUnlock';
 
 const MIN_QUESTION_LENGTH = 3;
 const MAX_QUESTION_LENGTH = 500;
@@ -49,6 +49,10 @@ function mapErrorMessage(code: string, lang: 'ru' | 'en', starsCost = ASK_LUMIA_
     STARS_PAYMENT_REQUIRED: {
       ru: `Следующий вопрос можно открыть за ${starsCost} Stars.`,
       en: `The next question can be opened for ${starsCost} Stars.`,
+    },
+    STARS_PAYMENT_PENDING: {
+      ru: 'Платёж ещё подтверждается. Подождите пару секунд.',
+      en: 'Payment is still being confirmed. Please wait a moment.',
     },
     PREMIUM_REQUIRED: {
       ru: 'Глубокий уровень ответов доступен в Lumia Premium.',
@@ -92,7 +96,8 @@ function buildStarsPayload(starsCost: number) {
   return {
     starsCost,
     starsPaymentRequired: true,
-    /** @deprecated Legacy alias */
+    invoiceType: 'ask_lumia_one_off' as const,
+    canCreateInvoice: true,
   };
 }
 
@@ -166,6 +171,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   const starsPaymentChargeId = String(
     req.body?.starsPaymentChargeId || req.body?.telegramPaymentChargeId || ''
   ).trim();
+  const paymentNonce = String(req.body?.paymentNonce || '').trim();
 
   logger.info({
     scope: 'ask-lumia',
@@ -189,6 +195,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     metadata: {
       questionLength: normalizedQuestion.length,
       requestedTier,
+      hasPaymentNonce: !!paymentNonce,
+      hasStarsPaymentChargeId: !!starsPaymentChargeId,
     },
   });
 
@@ -210,24 +218,60 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     });
   }
 
-  if (requestedTier === 'stars' && !starsPaymentChargeId) {
-    logger.warn({
-      scope: 'ask-lumia',
-      event: 'ask_lumia_stars_payment_required',
-      userId,
-      surface: 'question',
-      variant,
-      accessTier: requestedTier,
-      errorCode: 'STARS_PAYMENT_REQUIRED',
-      metadata: { starsCost },
-    });
-    return res.status(409).json({
-      error: 'Stars payment required',
-      code: 'STARS_PAYMENT_REQUIRED',
-      message: mapErrorMessage('STARS_PAYMENT_REQUIRED', lang, starsCost),
-      state,
-      ...buildStarsPayload(starsCost),
-    });
+  if (requestedTier === 'stars') {
+    const hasPaymentCredential = !!paymentNonce || !!starsPaymentChargeId;
+    if (!hasPaymentCredential) {
+      logger.warn({
+        scope: 'ask-lumia',
+        event: 'ask_lumia_stars_payment_required',
+        userId,
+        surface: 'question',
+        variant,
+        accessTier: requestedTier,
+        errorCode: 'STARS_PAYMENT_REQUIRED',
+        metadata: { starsCost, hasPaymentNonce: false, paymentStatus: 'missing' },
+      });
+      return res.status(409).json({
+        error: 'Stars payment required',
+        code: 'STARS_PAYMENT_REQUIRED',
+        message: mapErrorMessage('STARS_PAYMENT_REQUIRED', lang, starsCost),
+        state,
+        ...buildStarsPayload(starsCost),
+      });
+    }
+
+    if (paymentNonce) {
+      const confirmedPayment = await db.star_payments.findConfirmedUnconsumedForPayload({
+        userId,
+        paymentType: 'content_unlock',
+        contentSurface: 'question',
+        contentVariant: 'one_off',
+        starsAmount: starsCost,
+        nonce: paymentNonce,
+      });
+
+      logger.info({
+        scope: 'ask-lumia',
+        event: 'ask_lumia_stars_payment_lookup',
+        userId,
+        surface: 'question',
+        metadata: {
+          hasPaymentNonce: true,
+          paymentStatus: confirmedPayment ? 'confirmed' : 'pending',
+        },
+      });
+
+      if (!confirmedPayment) {
+        return res.status(409).json({
+          error: 'Stars payment pending',
+          code: 'STARS_PAYMENT_PENDING',
+          message: mapErrorMessage('STARS_PAYMENT_PENDING', lang, starsCost),
+          retryAfterMs: 1200,
+          state,
+          ...buildStarsPayload(starsCost),
+        });
+      }
+    }
   }
 
   const duplicate = await db.astro_questions.findRecentDuplicate(userId, normalizedQuestion, DUPLICATE_WINDOW_SECONDS);
@@ -314,15 +358,55 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         cacheKey: ASK_LUMIA_FREE_STARTER_CACHE_KEY,
       });
     } else if (requestedTier === 'stars') {
-      const unlockResult = await unlockContentAfterStarsPayment({
-        userId,
-        contentSurface: 'question',
-        contentVariant: 'one_off',
-        cacheKey: questionCacheKey,
-        starsAmount: starsCost,
-        starsPaymentChargeId,
-        allowUnscopedCacheKey: true,
-      });
+      let unlockResult;
+      try {
+        if (paymentNonce) {
+          unlockResult = await unlockContentAfterStarsPaymentNonce({
+            userId,
+            contentSurface: 'question',
+            contentVariant: 'one_off',
+            cacheKey: questionCacheKey,
+            starsAmount: starsCost,
+            paymentNonce,
+            allowUnscopedCacheKey: true,
+          });
+        } else {
+          unlockResult = await unlockContentAfterStarsPayment({
+            userId,
+            contentSurface: 'question',
+            contentVariant: 'one_off',
+            cacheKey: questionCacheKey,
+            starsAmount: starsCost,
+            starsPaymentChargeId,
+            allowUnscopedCacheKey: true,
+          });
+        }
+      } catch (unlockError: any) {
+        const unlockCode = unlockError instanceof StarsPaymentError
+          ? unlockError.code
+          : unlockError?.code || 'STARS_PAYMENT_FAILED';
+        const statusCode = unlockCode === 'STARS_PAYMENT_PENDING' ? 409 : 402;
+        logger.warn({
+          scope: 'ask-lumia',
+          event: 'ask_lumia_stars_unlock_failed',
+          userId,
+          surface: 'question',
+          errorCode: unlockCode,
+          metadata: {
+            hasPaymentNonce: !!paymentNonce,
+            paymentStatus: unlockCode,
+          },
+        });
+        return res.status(statusCode).json({
+          error: 'Stars payment unlock failed',
+          code: unlockCode,
+          message: unlockCode === 'STARS_PAYMENT_PENDING'
+            ? mapErrorMessage('STARS_PAYMENT_PENDING', lang, starsCost)
+            : mapErrorMessage('STARS_PAYMENT_REQUIRED', lang, starsCost),
+          retryAfterMs: unlockCode === 'STARS_PAYMENT_PENDING' ? 1200 : undefined,
+          state: await getAskLumiaState(userId),
+        });
+      }
       starsSpent = unlockResult.unlock?.metadata?.starsAmount ?? starsCost;
     } else {
       await unlockContentLayer({

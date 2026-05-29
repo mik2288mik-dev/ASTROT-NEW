@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { activatePremium } from '../../../services/premiumService';
 import { db } from '../../../lib/db';
+import { getStarsAmountForInvoiceType } from '../../../lib/starsInvoiceCatalog';
 
 const log = {
   info: (msg: string, data?: any) => console.log(`[API/subscriptions/activate] ${msg}`, data || ''),
@@ -43,6 +44,42 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         error: 'Lumi packs deprecated',
         code: 'LUMI_PACKS_DEPRECATED',
         message: 'Lumi packs are no longer available. Use Telegram Stars one-off unlocks or Premium.',
+      });
+    }
+
+    if (type === 'ask_lumia_one_off') {
+      const paymentNonce = String(req.body?.paymentNonce || req.query.paymentNonce || '').trim();
+      if (!paymentNonce) {
+        return res.status(400).json({ error: 'paymentNonce is required for ask_lumia_one_off sim activation' });
+      }
+
+      const starsAmount = getStarsAmountForInvoiceType('ask_lumia_one_off');
+      const simChargeId = `sim_ask_lumia_${userId}_${paymentNonce}`;
+      await db.star_payments.recordFromWebhook({
+        telegramPaymentChargeId: simChargeId,
+        userId,
+        starsAmount,
+        paymentType: 'content_unlock',
+        contentSurface: 'question',
+        contentVariant: 'one_off',
+        payloadJson: {
+          u: userId,
+          t: 'ask_lumia_one_off',
+          a: starsAmount,
+          n: paymentNonce,
+          s: 'question',
+          v: 'one_off',
+        },
+        status: 'confirmed',
+      });
+
+      return res.status(200).json({
+        success: true,
+        activated: true,
+        simMode: true,
+        type,
+        paymentNonce,
+        starsAmount,
       });
     }
 

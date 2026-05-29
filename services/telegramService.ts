@@ -2,6 +2,160 @@ import { UserProfile } from '../types';
 
 const API_BASE = typeof window !== 'undefined' ? '' : process.env.NEXT_PUBLIC_API_URL || '';
 
+export type StarsOneOffPaymentInput = {
+  userId: string;
+  type: 'ask_lumia_one_off';
+  chartId?: number;
+  cacheKey?: string;
+  sectionKey?: string;
+  date?: string;
+};
+
+export type StarsOneOffPaymentResult = {
+  status: 'paid' | 'cancelled' | 'failed';
+  paymentNonce: string | null;
+  starsAmount: number;
+};
+
+/**
+ * Request Stars one-off payment via Telegram invoice.
+ * Returns paymentNonce for server-side webhook confirmation — client `paid` status is not final unlock.
+ */
+export async function requestStarsOneOffPayment(
+  input: StarsOneOffPaymentInput
+): Promise<StarsOneOffPaymentResult> {
+  const userId = String(input.userId || '').trim();
+  if (!userId) {
+    return { status: 'failed', paymentNonce: null, starsAmount: 0 };
+  }
+
+  const tg = typeof window !== 'undefined' ? (window as any).Telegram?.WebApp : null;
+
+  try {
+    const res = await fetch(`${API_BASE}/api/telegram/create-invoice`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId,
+        type: input.type,
+        chartId: input.chartId,
+        cacheKey: input.cacheKey,
+        sectionKey: input.sectionKey,
+        date: input.date,
+      }),
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      console.warn('[TelegramService] create-invoice failed', data?.code || data?.error);
+      return { status: 'failed', paymentNonce: null, starsAmount: 0 };
+    }
+
+    const paymentNonce = data.paymentNonce != null ? String(data.paymentNonce) : null;
+    const starsAmount = Number(data.starsAmount) || 0;
+    const invoiceLink = data.invoiceLink || data.invoiceUrl;
+
+    if (invoiceLink && tg?.openInvoice) {
+      const invoiceStatus = await new Promise<string>((resolve) => {
+        tg.openInvoice(invoiceLink, (status: string) => resolve(status || 'failed'));
+      });
+
+      if (invoiceStatus === 'paid') {
+        return { status: 'paid', paymentNonce, starsAmount };
+      }
+      if (invoiceStatus === 'cancelled') {
+        return { status: 'cancelled', paymentNonce, starsAmount };
+      }
+      return { status: 'failed', paymentNonce, starsAmount };
+    }
+
+    if (data.simMode && paymentNonce) {
+      const simOk = await simOneOffPaymentFlow(tg, userId, paymentNonce, starsAmount);
+      return {
+        status: simOk ? 'paid' : 'cancelled',
+        paymentNonce,
+        starsAmount,
+      };
+    }
+
+    if (!tg?.openInvoice && !data.simMode) {
+      console.warn('[TelegramService] Telegram WebApp openInvoice unavailable');
+      return { status: 'failed', paymentNonce, starsAmount };
+    }
+
+    return { status: 'failed', paymentNonce, starsAmount };
+  } catch (err: any) {
+    console.error('[TelegramService] One-off payment error:', err?.message);
+    return { status: 'failed', paymentNonce: null, starsAmount: 0 };
+  }
+}
+
+async function simOneOffPaymentFlow(
+  tg: any,
+  userId: string,
+  paymentNonce: string,
+  starsAmount: number
+): Promise<boolean> {
+  const message = `Simulate Ask Lumia one-off payment for ${starsAmount} Stars?`;
+
+  if (!tg) {
+    const ok = typeof window !== 'undefined' && window.confirm(message);
+    if (!ok) return false;
+    return activateSimOneOff(userId, paymentNonce);
+  }
+
+  const hasPopup = tg.isVersionAtLeast ? tg.isVersionAtLeast('6.2') : false;
+  if (!hasPopup) {
+    const ok = typeof window !== 'undefined' && window.confirm(message);
+    if (!ok) return false;
+    return activateSimOneOff(userId, paymentNonce);
+  }
+
+  return new Promise((resolve) => {
+    tg.showPopup(
+      {
+        title: 'Ask Lumia one-off',
+        message,
+        buttons: [
+          { id: 'pay', type: 'default', text: `Pay ${starsAmount} stars` },
+          { id: 'cancel', type: 'destructive', text: 'Cancel' },
+        ],
+      },
+      (buttonId: string) => {
+        if (buttonId === 'pay') {
+          if (tg.MainButton) tg.MainButton.showProgress();
+          activateSimOneOff(userId, paymentNonce)
+            .then((ok) => {
+              if (tg.MainButton) tg.MainButton.hideProgress();
+              resolve(ok);
+            })
+            .catch(() => {
+              if (tg.MainButton) tg.MainButton.hideProgress();
+              resolve(false);
+            });
+        } else {
+          resolve(false);
+        }
+      }
+    );
+  });
+}
+
+async function activateSimOneOff(userId: string, paymentNonce: string): Promise<boolean> {
+  const res = await fetch(`${API_BASE}/api/subscriptions/activate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      userId,
+      simMode: true,
+      type: 'ask_lumia_one_off',
+      paymentNonce,
+    }),
+  });
+  const data = await res.json();
+  return data.success === true;
+}
+
 /**
  * Request Premium payment via Telegram Stars.
  * - With BOT_TOKEN: creates real invoice, opens via openInvoice

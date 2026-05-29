@@ -2386,6 +2386,55 @@ export const db = {
         throw error;
       }
     },
+
+    async findConfirmedUnconsumedForPayload(options: {
+      userId: string;
+      paymentType: string;
+      contentSurface: string;
+      contentVariant: string;
+      starsAmount: number;
+      nonce: string;
+    }) {
+      const id = toUserId(options.userId);
+      const nonce = String(options.nonce || '').trim();
+      if (!nonce) return null;
+      if (!DATABASE_URL) return null;
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          `SELECT *
+           FROM star_payments
+           WHERE user_id = $1
+             AND status = 'confirmed'
+             AND consumed_at IS NULL
+             AND stars_amount = $2
+             AND payment_type = $3
+             AND content_surface = $4
+             AND content_variant = $5
+             AND (
+               payload_json->>'n' = $6
+               OR payload_json->>'nonce' = $6
+             )
+           ORDER BY created_at DESC
+           LIMIT 1`,
+          [
+            id,
+            options.starsAmount,
+            options.paymentType,
+            options.contentSurface,
+            options.contentVariant,
+            nonce,
+          ]
+        );
+        return result.rows[0] ? mapStarPaymentRow(result.rows[0]) : null;
+      } catch (error: any) {
+        log.error('[DB] Error finding star payment by payload', {
+          error: error.message,
+          userId: options.userId,
+        });
+        throw error;
+      }
+    },
   },
 
 

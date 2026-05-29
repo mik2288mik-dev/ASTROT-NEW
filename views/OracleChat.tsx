@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import type { AskLumiaState, AskLumiaTier, ChatMessage, UserProfile } from '../types';
-import { chatWithAstra, getAskLumiaState, getOracleHistory } from '../services/astrologyService';
+import { chatWithAstra, getAskLumiaState, getOracleHistory, askLumiaWithStarsPayment } from '../services/astrologyService';
+import { requestStarsOneOffPayment } from '../services/telegramService';
 import { getText } from '../constants';
 
 const MIN_QUESTION_LENGTH = 3;
@@ -72,6 +73,8 @@ export const OracleChat: React.FC<OracleChatProps> = ({
   const [errorCode, setErrorCode] = useState<string | null>(null);
   const [failedQuestion, setFailedQuestion] = useState<string | null>(null);
   const [failedMessageId, setFailedMessageId] = useState<string | null>(null);
+  const [verifyingPayment, setVerifyingPayment] = useState(false);
+  const [pendingStarsQuestion, setPendingStarsQuestion] = useState<string | null>(null);
 
   const buildIntroMessage = useCallback((): ChatMessage => ({
     id: 'init',
@@ -187,6 +190,114 @@ export const OracleChat: React.FC<OracleChatProps> = ({
       .map((message) => ({ role: message.role, text: message.text }))
   ), [messages]);
 
+  const submitStarsQuestion = useCallback(async (rawQuestion: string, options: SubmitOptions) => {
+    const normalizedQuestion = rawQuestion.trim();
+    const validationError = validateQuestion(normalizedQuestion);
+
+    if (validationError) {
+      setError(validationError);
+      setErrorCode('VALIDATION_ERROR');
+      return;
+    }
+
+    setLoading(true);
+    setVerifyingPayment(false);
+    setError(null);
+    setErrorCode(null);
+    setPendingStarsQuestion(normalizedQuestion);
+
+    const shouldAppendUserMessage = options.appendUserMessage;
+    const userMessageId = shouldAppendUserMessage ? `user-${Date.now()}` : options.failedMessageId || null;
+
+    if (shouldAppendUserMessage) {
+      const userMessage: ChatMessage = {
+        id: userMessageId || `user-${Date.now()}`,
+        role: 'user',
+        text: normalizedQuestion,
+        timestamp: Date.now(),
+      };
+
+      setMessages((prev) => [...prev, userMessage]);
+      setInput('');
+      setFailedQuestion(null);
+      setFailedMessageId(null);
+    }
+
+    try {
+      const payment = await requestStarsOneOffPayment({
+        userId: String(profile.id || ''),
+        type: 'ask_lumia_one_off',
+      });
+
+      if (payment.status === 'cancelled') {
+        setError(
+          lang === 'ru'
+            ? 'Оплата отменена. Можно открыть ответ за Stars или оформить Premium.'
+            : 'Payment cancelled. You can unlock with Stars or get Premium.'
+        );
+        setErrorCode('STARS_PAYMENT_CANCELLED');
+        setFailedQuestion(normalizedQuestion);
+        setFailedMessageId(userMessageId);
+        setInput(normalizedQuestion);
+        return;
+      }
+
+      if (payment.status !== 'paid' || !payment.paymentNonce) {
+        setError(
+          lang === 'ru'
+            ? 'Не удалось открыть оплату Stars. Попробуйте ещё раз или оформите Premium.'
+            : 'Could not open Stars payment. Try again or get Premium.'
+        );
+        setErrorCode('STARS_PAYMENT_FAILED');
+        setFailedQuestion(normalizedQuestion);
+        setFailedMessageId(userMessageId);
+        setInput(normalizedQuestion);
+        return;
+      }
+
+      setVerifyingPayment(true);
+      const result = await askLumiaWithStarsPayment(
+        buildHistoryForRequest(options.failedMessageId),
+        normalizedQuestion,
+        profile,
+        payment.paymentNonce
+      );
+
+      const botMsg: ChatMessage = {
+        id: `oracle-answer-${Date.now()}`,
+        role: 'model',
+        text: result.answer,
+        timestamp: Date.now(),
+      };
+
+      setMessages((prev) => [...prev, botMsg]);
+      setFailedQuestion(null);
+      setFailedMessageId(null);
+      setPendingStarsQuestion(null);
+      setInput('');
+
+      if (result.state) {
+        setQuestionState(result.state);
+      }
+    } catch (submitError: any) {
+      setError(submitError?.message || getText(lang, 'oracle.send_error'));
+      setErrorCode(submitError?.code || null);
+      setFailedQuestion(normalizedQuestion);
+      setFailedMessageId(userMessageId);
+      setInput(normalizedQuestion);
+
+      try {
+        const nextState = await getAskLumiaState(String(profile.id || ''));
+        setQuestionState(nextState);
+      } catch {
+        // keep existing state
+      }
+    } finally {
+      setVerifyingPayment(false);
+      setLoading(false);
+    }
+  }, [buildHistoryForRequest, lang, profile, validateQuestion]);
+
   const submitQuestion = useCallback(async (rawQuestion: string, options: SubmitOptions) => {
     const normalizedQuestion = rawQuestion.trim();
     const validationError = validateQuestion(normalizedQuestion);
@@ -199,8 +310,7 @@ export const OracleChat: React.FC<OracleChatProps> = ({
 
     const requestedTier: AskLumiaTier = questionState?.nextTier || (profile.isPremium ? 'premium' : 'free');
     if (requestedTier === 'stars' && questionState?.starsPaymentRequired) {
-      setError(getText(lang, 'oracle.state_lumi_body').replace(/Lumi/gi, 'Stars'));
-      setErrorCode('STARS_PAYMENT_REQUIRED');
+      await submitStarsQuestion(normalizedQuestion, options);
       return;
     }
 
@@ -255,6 +365,10 @@ export const OracleChat: React.FC<OracleChatProps> = ({
       setFailedMessageId(userMessageId);
       setInput(normalizedQuestion);
 
+      if (submitError?.code === 'STARS_PAYMENT_REQUIRED') {
+        setPendingStarsQuestion(normalizedQuestion);
+      }
+
       try {
         const nextState = await getAskLumiaState(String(profile.id || ''));
         setQuestionState(nextState);
@@ -264,7 +378,16 @@ export const OracleChat: React.FC<OracleChatProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [buildHistoryForRequest, lang, profile, questionState, validateQuestion]);
+  }, [buildHistoryForRequest, lang, profile, questionState, submitStarsQuestion, validateQuestion]);
+
+  const handleStarsUnlock = useCallback(() => {
+    const question = (pendingStarsQuestion || failedQuestion || input).trim();
+    if (!question || loading || stateLoading) return;
+    void submitStarsQuestion(question, {
+      appendUserMessage: !messages.some((message) => message.role === 'user' && message.text === question),
+      failedMessageId,
+    });
+  }, [failedMessageId, failedQuestion, input, loading, messages, pendingStarsQuestion, stateLoading, submitStarsQuestion]);
 
   const handleSend = useCallback(() => {
     if (!input.trim() || loading || stateLoading) return;
@@ -312,11 +435,25 @@ export const OracleChat: React.FC<OracleChatProps> = ({
 
             {questionState?.nextTier === 'stars' && questionState.starsPaymentRequired && (
               <p className="mt-3 text-xs leading-relaxed text-amber-300">
-                {getText(lang, 'oracle.state_lumi_body').replace(/Lumi/gi, 'Stars')}
+                {lang === 'ru'
+                  ? `Открыть глубокий ответ за ${questionState.starsCost ?? 0} Stars. Или получить всё в Premium.`
+                  : `Unlock a deep answer for ${questionState.starsCost ?? 0} Stars. Or get everything in Premium.`}
               </p>
             )}
 
             <div className="mt-4 flex flex-wrap gap-2">
+              {questionState?.nextTier === 'stars' && questionState.starsPaymentRequired && (
+                <button
+                  type="button"
+                  onClick={handleStarsUnlock}
+                  disabled={loading || stateLoading || (!input.trim() && !pendingStarsQuestion && !failedQuestion)}
+                  className="inline-flex min-h-[44px] items-center rounded-full border border-astro-highlight/35 bg-astro-highlight/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-astro-highlight transition-colors hover:border-astro-highlight/50 hover:bg-astro-highlight/15 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {lang === 'ru'
+                    ? `Открыть за ${questionState.starsCost ?? 0} Stars`
+                    : `Unlock for ${questionState.starsCost ?? 0} Stars`}
+                </button>
+              )}
               {questionState?.nextTier !== 'premium' && onPremiumRequired && (
                 <button
                   type="button"
@@ -366,9 +503,17 @@ export const OracleChat: React.FC<OracleChatProps> = ({
             {loading && (
               <div className="flex justify-start">
                 <div className="flex space-x-2 rounded-3xl rounded-bl-md border border-astro-border/55 bg-astro-card/55 px-4 py-3">
-                  <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-astro-subtext" style={{ animationDelay: '0ms' }} />
-                  <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-astro-subtext" style={{ animationDelay: '150ms' }} />
-                  <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-astro-subtext" style={{ animationDelay: '300ms' }} />
+                  {verifyingPayment ? (
+                    <span className="text-sm text-astro-subtext">
+                      {lang === 'ru' ? 'Проверяем оплату…' : 'Verifying payment…'}
+                    </span>
+                  ) : (
+                    <>
+                      <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-astro-subtext" style={{ animationDelay: '0ms' }} />
+                      <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-astro-subtext" style={{ animationDelay: '150ms' }} />
+                      <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-astro-subtext" style={{ animationDelay: '300ms' }} />
+                    </>
+                  )}
                 </div>
               </div>
             )}
@@ -395,14 +540,16 @@ export const OracleChat: React.FC<OracleChatProps> = ({
                   >
                     {getText(lang, 'oracle.open_premium')}
                   </button>
-                ) : errorCode === 'STARS_PAYMENT_REQUIRED' ? (
+                ) : errorCode === 'STARS_PAYMENT_REQUIRED' || errorCode === 'STARS_PAYMENT_FAILED' ? (
                   <button
                     type="button"
-                    onClick={handleRetry}
-                    disabled={loading}
+                    onClick={handleStarsUnlock}
+                    disabled={loading || (!input.trim() && !pendingStarsQuestion && !failedQuestion)}
                     className="rounded-full border border-astro-highlight/35 bg-astro-highlight/10 px-3.5 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-astro-highlight disabled:opacity-50"
                   >
-                    {getText(lang, 'oracle.retry')}
+                    {lang === 'ru'
+                      ? `Открыть за ${questionState?.starsCost ?? 0} Stars`
+                      : `Unlock for ${questionState?.starsCost ?? 0} Stars`}
                   </button>
                 ) : (
                   <button

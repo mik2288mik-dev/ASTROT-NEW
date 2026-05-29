@@ -56,27 +56,18 @@ export async function consumeStarsPaymentForUnlock(paymentId: number, unlockId: 
   }
 }
 
-export async function unlockContentAfterStarsPayment(options: {
-  userId: string;
-  chartId?: number | null;
-  contentSurface: ContentSurface;
-  contentVariant: ContentVariant;
-  cacheKey?: string;
-  starsAmount: number;
-  starsPaymentChargeId: string;
-  allowUnscopedCacheKey?: boolean;
-}) {
-  const verified = await verifyStarsPaymentForUnlock({
-    userId: options.userId,
-    telegramPaymentChargeId: options.starsPaymentChargeId,
-    starsAmount: options.starsAmount,
-    contentSurface: options.contentSurface,
-    contentVariant: options.contentVariant,
-    chartId: options.chartId,
-    cacheKey: options.cacheKey,
-    allowUnscopedCacheKey: options.allowUnscopedCacheKey,
-  });
-
+async function unlockContentAfterVerifiedPayment(
+  verified: Awaited<ReturnType<typeof verifyStarsPaymentForUnlock>>,
+  options: {
+    userId: string;
+    chartId?: number | null;
+    contentSurface: ContentSurface;
+    contentVariant: ContentVariant;
+    cacheKey?: string;
+    starsAmount: number;
+    starsPaymentChargeId: string;
+  }
+) {
   if (verified.alreadyConsumed && verified.unlock) {
     return {
       unlock: verified.unlock,
@@ -120,6 +111,109 @@ export async function unlockContentAfterStarsPayment(options: {
   }
 
   return unlockResult;
+}
+
+export async function unlockContentAfterStarsPaymentNonce(options: {
+  userId: string;
+  chartId?: number | null;
+  contentSurface: ContentSurface;
+  contentVariant: ContentVariant;
+  cacheKey?: string;
+  starsAmount: number;
+  paymentNonce: string;
+  allowUnscopedCacheKey?: boolean;
+}) {
+  const paymentNonce = String(options.paymentNonce || '').trim();
+  if (!paymentNonce) {
+    throw new StarsPaymentError('STARS_PAYMENT_NONCE_REQUIRED');
+  }
+
+  const payment = await db.star_payments.findConfirmedUnconsumedForPayload({
+    userId: options.userId,
+    paymentType: 'content_unlock',
+    contentSurface: options.contentSurface,
+    contentVariant: options.contentVariant,
+    starsAmount: options.starsAmount,
+    nonce: paymentNonce,
+  });
+
+  if (!payment) {
+    throw new StarsPaymentError('STARS_PAYMENT_PENDING');
+  }
+
+  const result = verifyStarPaymentForUnlock(payment, {
+    userId: options.userId,
+    telegramPaymentChargeId: payment.telegram_payment_charge_id,
+    starsAmount: options.starsAmount,
+    contentSurface: options.contentSurface,
+    contentVariant: options.contentVariant,
+    chartId: options.chartId,
+    cacheKey: options.cacheKey,
+    allowUnscopedCacheKey: options.allowUnscopedCacheKey,
+  });
+
+  if (!result.ok) {
+    throw new StarsPaymentError(result.code);
+  }
+
+  if (result.alreadyConsumed) {
+    const unlockId = result.payment.consumed_by_unlock_id;
+    if (unlockId) {
+      const unlock = await db.content_unlocks.getById(unlockId);
+      if (unlock) {
+        const sameTarget =
+          unlock.contentSurface === options.contentSurface &&
+          unlock.contentVariant === options.contentVariant &&
+          (options.cacheKey ? unlock.cacheKey === options.cacheKey : true);
+        if (sameTarget) {
+          return {
+            unlock,
+            chartId: unlock.chartId,
+            cacheKey: unlock.cacheKey || options.cacheKey || '',
+            via: 'stars' as const,
+          };
+        }
+      }
+    }
+    throw new StarsPaymentError('STARS_PAYMENT_ALREADY_CONSUMED');
+  }
+
+  return unlockContentAfterVerifiedPayment(
+    { payment: result.payment, alreadyConsumed: false, unlock: null },
+    {
+      userId: options.userId,
+      chartId: options.chartId,
+      contentSurface: options.contentSurface,
+      contentVariant: options.contentVariant,
+      cacheKey: options.cacheKey,
+      starsAmount: options.starsAmount,
+      starsPaymentChargeId: payment.telegram_payment_charge_id,
+    }
+  );
+}
+
+export async function unlockContentAfterStarsPayment(options: {
+  userId: string;
+  chartId?: number | null;
+  contentSurface: ContentSurface;
+  contentVariant: ContentVariant;
+  cacheKey?: string;
+  starsAmount: number;
+  starsPaymentChargeId: string;
+  allowUnscopedCacheKey?: boolean;
+}) {
+  const verified = await verifyStarsPaymentForUnlock({
+    userId: options.userId,
+    telegramPaymentChargeId: options.starsPaymentChargeId,
+    starsAmount: options.starsAmount,
+    contentSurface: options.contentSurface,
+    contentVariant: options.contentVariant,
+    chartId: options.chartId,
+    cacheKey: options.cacheKey,
+    allowUnscopedCacheKey: options.allowUnscopedCacheKey,
+  });
+
+  return unlockContentAfterVerifiedPayment(verified, options);
 }
 
 /** @deprecated Client-supplied charge ids must never create payments. Use unlockContentAfterStarsPayment. */

@@ -2041,20 +2041,32 @@ export const getOracleHistory = async (profile: UserProfile, limit = 12): Promis
   }
 };
 
+export type AskLumiaRequestOptions = {
+  starsPaymentChargeId?: string;
+  paymentNonce?: string;
+  invoiceType?: string;
+};
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 export const chatWithAstra = async (
   history: { role: 'user' | 'model', text: string }[],
   message: string,
   profile: UserProfile,
   requestedTier?: AskLumiaTier,
-  starsPaymentChargeId?: string
+  paymentOptions?: AskLumiaRequestOptions | string
 ): Promise<OracleChatResponse> => {
   const url = `${API_BASE_URL}/api/content/question/ask`;
   const normalizedTier = (requestedTier as string | undefined) === 'lumi' ? 'stars' : requestedTier;
+  const resolvedOptions: AskLumiaRequestOptions = typeof paymentOptions === 'string'
+    ? { starsPaymentChargeId: paymentOptions }
+    : (paymentOptions || {});
   log.info('[chatWithAstra] Starting Ask Lumia request', {
     messageLength: message.length,
     historyLength: history.length,
     userId: profile.id,
     requestedTier: normalizedTier || 'auto',
+    hasPaymentNonce: !!resolvedOptions.paymentNonce,
   });
 
   try {
@@ -2068,7 +2080,9 @@ export const chatWithAstra = async (
         history,
         message,
         requestedTier: normalizedTier,
-        starsPaymentChargeId,
+        starsPaymentChargeId: resolvedOptions.starsPaymentChargeId,
+        paymentNonce: resolvedOptions.paymentNonce,
+        invoiceType: resolvedOptions.invoiceType || 'ask_lumia_one_off',
         systemInstruction: SYSTEM_INSTRUCTION_ASTRA
       })
     });
@@ -2090,6 +2104,9 @@ export const chatWithAstra = async (
         errorMessage = errorData.message || errorData.error || errorMessage;
         errorCode = errorData.code;
         errorDetails = errorData.details || errorData.state;
+        if (errorData.retryAfterMs != null) {
+          errorDetails = { ...(errorDetails || {}), retryAfterMs: errorData.retryAfterMs };
+        }
       } catch {
         const errorText = await response.text().catch(() => 'Unable to read error response');
         errorMessage = errorText || errorMessage;
@@ -2117,3 +2134,31 @@ export const chatWithAstra = async (
     throw error;
   }
 };
+
+export async function askLumiaWithStarsPayment(
+  history: { role: 'user' | 'model', text: string }[],
+  message: string,
+  profile: UserProfile,
+  paymentNonce: string,
+  maxRetries = 5
+): Promise<OracleChatResponse> {
+  let lastError: any = null;
+
+  for (let attempt = 0; attempt < maxRetries; attempt += 1) {
+    try {
+      return await chatWithAstra(history, message, profile, 'stars', {
+        paymentNonce,
+        invoiceType: 'ask_lumia_one_off',
+      });
+    } catch (error: any) {
+      lastError = error;
+      if (error?.code !== 'STARS_PAYMENT_PENDING' || attempt >= maxRetries - 1) {
+        throw error;
+      }
+      const retryAfterMs = Number(error?.details?.retryAfterMs) || 1200;
+      await sleep(retryAfterMs);
+    }
+  }
+
+  throw lastError || new Error('Ask Lumia stars payment failed');
+}
