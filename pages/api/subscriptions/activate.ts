@@ -83,6 +83,54 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
+    if (type === 'forecast_full_day') {
+      const paymentNonce = String(req.body?.paymentNonce || req.query.paymentNonce || '').trim();
+      const dateKey = String(req.body?.date || req.query.date || req.body?.cacheKey || req.query.cacheKey || '').trim();
+      if (!paymentNonce) {
+        return res.status(400).json({ error: 'paymentNonce is required for forecast_full_day sim activation' });
+      }
+      if (!dateKey) {
+        return res.status(400).json({ error: 'date or cacheKey is required for forecast_full_day sim activation' });
+      }
+
+      const starsAmount = getStarsAmountForInvoiceType('forecast_full_day');
+      const chartIdRaw = req.body?.chartId ?? req.query.chartId;
+      const chartId = chartIdRaw != null && chartIdRaw !== '' ? Number(chartIdRaw) : null;
+      const simChargeId = `sim_forecast_full_day_${userId}_${paymentNonce}`;
+      await db.star_payments.recordFromWebhook({
+        telegramPaymentChargeId: simChargeId,
+        userId,
+        starsAmount,
+        paymentType: 'content_unlock',
+        contentSurface: 'forecast',
+        contentVariant: 'full',
+        chartId: Number.isFinite(chartId as number) ? Number(chartId) : null,
+        cacheKey: dateKey,
+        payloadJson: {
+          u: userId,
+          t: 'forecast_full_day',
+          a: starsAmount,
+          n: paymentNonce,
+          s: 'forecast',
+          v: 'full',
+          k: dateKey,
+          ...(Number.isFinite(chartId as number) ? { i: Number(chartId) } : {}),
+        },
+        status: 'confirmed',
+      });
+
+      return res.status(200).json({
+        success: true,
+        activated: true,
+        simMode: true,
+        type,
+        paymentNonce,
+        starsAmount,
+        date: dateKey,
+        cacheKey: dateKey,
+      });
+    }
+
     const starsAmount = 250;
     const result = await activatePremium(userId, chargeId, starsAmount);
 

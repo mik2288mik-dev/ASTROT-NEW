@@ -17,7 +17,7 @@ import {
   FORECAST_FULL_DAY_STARS_COST,
 } from '../../../../lib/forecastFullDay';
 import { logger } from '../../../../lib/logger';
-import { unlockContentAfterStarsPayment } from '../../../../lib/starsContentUnlock';
+import { unlockContentAfterStarsPayment, unlockContentAfterStarsPaymentNonce, StarsPaymentError } from '../../../../lib/starsContentUnlock';
 import { invalidUserIdPayload, isValidUserId } from '../../../../lib/userId';
 
 const ALLOWED_SLOTS = new Set(['morning', 'day', 'evening']);
@@ -73,15 +73,24 @@ function getLockedMessage(lang: 'ru' | 'en', starsCost: number) {
 
 function getStarsRequiredMessage(lang: 'ru' | 'en', starsCost: number) {
   return lang === 'ru'
-    ? `Полный день открывается за ${starsCost} Stars через Telegram payment.`
-    : `The full day opens for ${starsCost} Stars via Telegram payment.`;
+    ? `Полный прогноз дня можно открыть за ${starsCost} Stars.`
+    : `The full day forecast can be unlocked for ${starsCost} Stars.`;
 }
 
-function buildLockedPayload(lang: 'ru' | 'en', starsCost: number) {
+function getStarsPendingMessage(lang: 'ru' | 'en') {
+  return lang === 'ru'
+    ? 'Платёж ещё подтверждается. Подождите пару секунд.'
+    : 'Payment is still being confirmed. Please wait a moment.';
+}
+
+function buildLockedPayload(starsCost: number, dateKey: string, unlockCacheKey: string) {
   return {
     starsCost,
     starsPaymentRequired: true,
-    /** @deprecated Legacy alias for starsCost */
+    invoiceType: 'forecast_full_day' as const,
+    canCreateInvoice: true,
+    date: dateKey,
+    cacheKey: unlockCacheKey,
   };
 }
 
@@ -207,6 +216,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const starsPaymentChargeId = req.method === 'POST'
     ? String(req.body?.starsPaymentChargeId || req.body?.telegramPaymentChargeId || '').trim()
     : '';
+  const paymentNonce = req.method === 'POST'
+    ? String(req.body?.paymentNonce || '').trim()
+    : '';
   const dateKey = req.method === 'GET'
     ? (typeof req.query.date === 'string' && req.query.date.trim() ? req.query.date.trim() : getMoscowTodayKey())
     : (typeof req.body?.date === 'string' && req.body.date.trim() ? req.body.date.trim() : getMoscowTodayKey());
@@ -272,7 +284,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         error: 'Full day locked',
         code: 'FULL_DAY_LOCKED',
         message: getLockedMessage(lang, starsCost),
-        ...buildLockedPayload(lang, starsCost),
+        ...buildLockedPayload(starsCost, dateKey, unlockCacheKey),
       });
     }
 
@@ -306,7 +318,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   if (!access) {
-    if (!starsPaymentChargeId) {
+    const hasPaymentCredential = !!paymentNonce || !!starsPaymentChargeId;
+    if (!hasPaymentCredential) {
       logger.warn({
         scope: 'forecast-daypart',
         event: 'stars_payment_required',
@@ -315,35 +328,103 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         surface: 'forecast',
         variant: slot,
         errorCode: 'STARS_PAYMENT_REQUIRED',
-        metadata: { starsCost },
+        metadata: { starsCost, hasPaymentNonce: false, paymentStatus: 'missing', dateKey },
       });
       return res.status(409).json({
         error: 'Stars payment required',
         code: 'STARS_PAYMENT_REQUIRED',
         message: getStarsRequiredMessage(lang, starsCost),
-        ...buildLockedPayload(lang, starsCost),
+        ...buildLockedPayload(starsCost, dateKey, unlockCacheKey),
       });
     }
 
-    try {
-      await unlockContentAfterStarsPayment({
+    if (paymentNonce) {
+      const confirmedPayment = await db.star_payments.findConfirmedUnconsumedForPayload({
         userId: safeUserId,
-        chartId: context.chartId,
+        paymentType: 'content_unlock',
         contentSurface: 'forecast',
         contentVariant: 'full',
-        cacheKey: unlockCacheKey,
         starsAmount: starsCost,
-        starsPaymentChargeId,
+        nonce: paymentNonce,
+        cacheKey: unlockCacheKey,
       });
+
+      logger.info({
+        scope: 'forecast-daypart',
+        event: 'stars_payment_lookup',
+        userId: safeUserId,
+        chartId: context.chartId,
+        surface: 'forecast',
+        variant: slot,
+        metadata: {
+          hasPaymentNonce: true,
+          paymentStatus: confirmedPayment ? 'confirmed' : 'pending',
+          dateKey,
+        },
+      });
+
+      if (!confirmedPayment) {
+        return res.status(409).json({
+          error: 'Stars payment pending',
+          code: 'STARS_PAYMENT_PENDING',
+          message: getStarsPendingMessage(lang),
+          retryAfterMs: 1200,
+          ...buildLockedPayload(starsCost, dateKey, unlockCacheKey),
+        });
+      }
+    }
+
+    try {
+      if (paymentNonce) {
+        await unlockContentAfterStarsPaymentNonce({
+          userId: safeUserId,
+          chartId: context.chartId,
+          contentSurface: 'forecast',
+          contentVariant: 'full',
+          cacheKey: unlockCacheKey,
+          starsAmount: starsCost,
+          paymentNonce,
+        });
+      } else {
+        await unlockContentAfterStarsPayment({
+          userId: safeUserId,
+          chartId: context.chartId,
+          contentSurface: 'forecast',
+          contentVariant: 'full',
+          cacheKey: unlockCacheKey,
+          starsAmount: starsCost,
+          starsPaymentChargeId,
+        });
+      }
     } catch (error: any) {
-      const code = error?.message || 'FORECAST_FULL_UNLOCK_FAILED';
-      return res.status(code === 'STARS_PAYMENT_REQUIRED' ? 409 : 500).json({
+      const unlockCode = error instanceof StarsPaymentError
+        ? error.code
+        : error?.message || 'FORECAST_FULL_UNLOCK_FAILED';
+      const statusCode = unlockCode === 'STARS_PAYMENT_PENDING' ? 409 : 500;
+      logger.warn({
+        scope: 'forecast-daypart',
+        event: 'stars_unlock_failed',
+        userId: safeUserId,
+        chartId: context.chartId,
+        surface: 'forecast',
+        variant: slot,
+        errorCode: unlockCode,
+        metadata: {
+          hasPaymentNonce: !!paymentNonce,
+          paymentStatus: unlockCode,
+          dateKey,
+        },
+      });
+      return res.status(statusCode).json({
         error: 'Unlock failed',
-        code,
-        message: lang === 'ru'
-          ? 'Не получилось подтвердить оплату Stars для полного слоя дня.'
-          : 'Failed to confirm Telegram Stars payment for the full day layer.',
-        ...buildLockedPayload(lang, starsCost),
+        code: unlockCode,
+        message: unlockCode === 'STARS_PAYMENT_PENDING'
+          ? getStarsPendingMessage(lang)
+          : (lang === 'ru'
+            ? 'Не получилось подтвердить оплату Stars для полного слоя дня.'
+            : 'Failed to confirm Telegram Stars payment for the full day layer.'),
+        retryAfterMs: unlockCode === 'STARS_PAYMENT_PENDING' ? 1200 : undefined,
+        ...buildLockedPayload(starsCost, dateKey, unlockCacheKey),
       });
     }
 

@@ -4,14 +4,17 @@ import { motion, useTransform, type MotionValue } from 'framer-motion';
 import type {
   ForecastDailyReading,
   ForecastDaypartReading,
+  ForecastDaypartSlot,
   HoroscopeLayer,
   InterpretationSection,
   NatalChartData,
   UserProfile,
 } from '../types';
-import { getCachedFullDaypartForecast, getFullDaypartForecast, loadDailySignHoroscope } from '../services/astrologyService';
+import { getCachedFullDaypartForecast, getFullDaypartForecast, getFullDaypartForecastWithStarsPayment, loadDailySignHoroscope } from '../services/astrologyService';
 import { getCachedHumanDailySection, loadHumanDailySection, type HumanReadingError } from '../services/natalReadingService';
 import { formatLumiaDate, getMoscowTodayKey } from '../lib/date-utils';
+import { FORECAST_FULL_DAY_STARS_COST } from '../lib/forecastFullDay';
+import { requestStarsOneOffPayment } from '../services/telegramService';
 import { getZodiacSign } from '../constants';
 import { cn } from '../lib/cn';
 import { ZodiacIcon } from '../components/icons/ZodiacIcon';
@@ -60,7 +63,7 @@ type LayerConfig = {
 };
 
 const LAYER_PRICES: Record<Exclude<HoroscopeLayer, 'sign'>, number> = {
-  chart: 50,
+  chart: FORECAST_FULL_DAY_STARS_COST,
   love: 35,
   work_money: 35,
 };
@@ -319,6 +322,7 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
     const [loveSection, setLoveSection] = useState<InterpretationSection | null>(null);
     const [workSection, setWorkSection] = useState<InterpretationSection | null>(null);
     const [loadingLayer, setLoadingLayer] = useState<HoroscopeLayer | null>(null);
+    const [verifyingPayment, setVerifyingPayment] = useState(false);
     const [layerError, setLayerError] = useState<string | null>(null);
 
     useEffect(() => {
@@ -400,7 +404,14 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
     const getFriendlyError = (error: unknown, fallback: string) => {
       const err = error as HumanReadingError;
       if (err?.code === 'STARS_PAYMENT_REQUIRED') {
-        return 'Этот прогноз открывается разово за Stars через Telegram payment.';
+        return language === 'ru'
+          ? `Полный прогноз дня можно открыть за ${FORECAST_FULL_DAY_STARS_COST} Stars.`
+          : `The full day forecast can be unlocked for ${FORECAST_FULL_DAY_STARS_COST} Stars.`;
+      }
+      if (err?.code === 'STARS_PAYMENT_PENDING') {
+        return language === 'ru'
+          ? 'Платёж ещё подтверждается. Подождите пару секунд.'
+          : 'Payment is still being confirmed. Please wait a moment.';
       }
       if (err?.code === 'CONTENT_GENERATION_UNAVAILABLE' || err?.status === 503) {
         return 'Прогноз сейчас не подготовился. Попробуйте ещё раз: если доступ уже открыт, повторного списания не будет.';
@@ -409,6 +420,81 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
         return fallback;
       }
       return 'Не получилось открыть прогноз. Попробуйте ещё раз чуть позже.';
+    };
+
+    const warmForecastDayparts = async (slots: ForecastDaypartSlot[]) => {
+      if (!chartData) return;
+      await Promise.allSettled(
+        slots.map((slot) =>
+          getFullDaypartForecast(profileRef.current, chartData, slot, {
+            accessTier: 'stars',
+            date: today,
+          }).catch(() => undefined)
+        )
+      );
+    };
+
+    const handleForecastFullDayStarsUnlock = async () => {
+      if (!userId || !chartData) {
+        setLayerError('Для персонального прогноза нужна сохранённая натальная карта.');
+        return;
+      }
+
+      setLoadingLayer('chart');
+      setVerifyingPayment(false);
+      setLayerError(null);
+
+      try {
+        const payment = await requestStarsOneOffPayment({
+          userId,
+          type: 'forecast_full_day',
+          chartId: chartId ?? undefined,
+          date: today,
+          cacheKey: today,
+        });
+
+        if (payment.status === 'cancelled') {
+          setLayerError(
+            language === 'ru'
+              ? 'Оплата отменена. Можно открыть полный день за Stars или оформить Premium.'
+              : 'Payment cancelled. Unlock the full day with Stars or get Premium.'
+          );
+          return;
+        }
+
+        if (payment.status !== 'paid' || !payment.paymentNonce) {
+          setLayerError(
+            language === 'ru'
+              ? 'Не удалось открыть оплату Stars. Попробуйте ещё раз или оформите Premium.'
+              : 'Could not open Stars payment. Try again or get Premium.'
+          );
+          return;
+        }
+
+        setVerifyingPayment(true);
+        const result = await getFullDaypartForecastWithStarsPayment(
+          profileRef.current,
+          chartData,
+          'day',
+          payment.paymentNonce,
+          { date: today }
+        );
+        setPersonalDay(result.reading);
+        await warmForecastDayparts(['morning', 'evening']);
+        haptic('open');
+      } catch (error) {
+        setLayerError(
+          getFriendlyError(
+            error,
+            language === 'ru'
+              ? `Полный день можно открыть за ${FORECAST_FULL_DAY_STARS_COST} Stars.`
+              : `The full day can be unlocked for ${FORECAST_FULL_DAY_STARS_COST} Stars.`
+          )
+        );
+      } finally {
+        setVerifyingPayment(false);
+        setLoadingLayer(null);
+      }
     };
 
     const loadLayer = async (layer: HoroscopeLayer) => {
@@ -481,17 +567,26 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
 
     const renderLockedLayer = (layer: LayerConfig) => {
       const Icon = layer.icon;
-      const price = layer.price || 35;
+      const price = layer.id === 'chart' ? FORECAST_FULL_DAY_STARS_COST : (layer.price || 35);
       const isPremium = !!profileRef.current.isPremium;
+      const isChartLayer = layer.id === 'chart';
       const primaryLabel = loadingLayer === layer.id
-        ? 'Открываю...'
+        ? (verifyingPayment && isChartLayer
+          ? (language === 'ru' ? 'Проверяем оплату…' : 'Verifying payment…')
+          : (language === 'ru' ? 'Открываю...' : 'Opening...'))
         : isPremium
-          ? 'Открыть прогноз'
-          : `Открыть за ${price} Stars`;
+          ? (language === 'ru' ? 'Открыть прогноз' : 'Open forecast')
+          : isChartLayer
+            ? (language === 'ru' ? `Открыть полный день за ${price} Stars` : `Unlock full day for ${price} Stars`)
+            : (language === 'ru' ? `Открыть за ${price} Stars` : `Unlock for ${price} Stars`);
       const handlePrimaryAction = () => {
         haptic('open');
         if (isPremium) {
           void loadLayer(layer.id);
+          return;
+        }
+        if (isChartLayer) {
+          void handleForecastFullDayStarsUnlock();
           return;
         }
         void loadLayer(layer.id);
@@ -512,7 +607,11 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
               {layer.subtitle}
             </p>
             <p className="mt-5 max-w-[min(82vw,21rem)] text-[14.5px] leading-relaxed text-[#625f68]">
-              Этот прогноз можно открыть разово или читать каждый день вместе с Premium.
+              {isChartLayer
+                ? (language === 'ru'
+                  ? 'Полный день можно открыть за Stars или читать каждый день в Premium.'
+                  : 'Unlock the full day with Stars or read it every day with Premium.')
+                : 'Этот прогноз можно открыть разово или читать каждый день вместе с Premium.'}
             </p>
             {layerError ? <p className="mt-4 text-[13px] leading-relaxed text-[#7d5960]">{layerError}</p> : null}
           </div>
@@ -533,7 +632,7 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
                 onClick={onRequestPremium}
                 className="inline-flex min-h-[52px] items-center justify-center rounded-full bg-white/58 px-5 text-[14px] font-semibold text-[#202024] shadow-[0_12px_34px_rgba(0,0,0,0.08)] backdrop-blur-xl"
               >
-                Открыть Premium
+                {language === 'ru' ? 'Получить всё в Premium' : 'Get everything in Premium'}
               </button>
             ) : null}
           </div>

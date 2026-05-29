@@ -2394,11 +2394,15 @@ export const db = {
       contentVariant: string;
       starsAmount: number;
       nonce: string;
+      cacheKey?: string | null;
     }) {
       const id = toUserId(options.userId);
       const nonce = String(options.nonce || '').trim();
       if (!nonce) return null;
       if (!DATABASE_URL) return null;
+      const cacheKey = options.cacheKey != null && String(options.cacheKey).trim()
+        ? String(options.cacheKey).trim()
+        : null;
       try {
         const dbPool = getPool();
         const result = await dbPool.query(
@@ -2415,6 +2419,7 @@ export const db = {
                payload_json->>'n' = $6
                OR payload_json->>'nonce' = $6
              )
+             AND ($7::text IS NULL OR cache_key IS NULL OR cache_key = $7)
            ORDER BY created_at DESC
            LIMIT 1`,
           [
@@ -2424,6 +2429,7 @@ export const db = {
             options.contentSurface,
             options.contentVariant,
             nonce,
+            cacheKey,
           ]
         );
         return result.rows[0] ? mapStarPaymentRow(result.rows[0]) : null;

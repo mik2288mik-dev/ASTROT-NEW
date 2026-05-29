@@ -2,9 +2,11 @@ import { UserProfile } from '../types';
 
 const API_BASE = typeof window !== 'undefined' ? '' : process.env.NEXT_PUBLIC_API_URL || '';
 
+export type StarsOneOffPaymentType = 'ask_lumia_one_off' | 'forecast_full_day';
+
 export type StarsOneOffPaymentInput = {
   userId: string;
-  type: 'ask_lumia_one_off';
+  type: StarsOneOffPaymentType;
   chartId?: number;
   cacheKey?: string;
   sectionKey?: string;
@@ -70,7 +72,7 @@ export async function requestStarsOneOffPayment(
     }
 
     if (data.simMode && paymentNonce) {
-      const simOk = await simOneOffPaymentFlow(tg, userId, paymentNonce, starsAmount);
+      const simOk = await simOneOffPaymentFlow(tg, input, paymentNonce, starsAmount);
       return {
         status: simOk ? 'paid' : 'cancelled',
         paymentNonce,
@@ -92,29 +94,31 @@ export async function requestStarsOneOffPayment(
 
 async function simOneOffPaymentFlow(
   tg: any,
-  userId: string,
+  input: StarsOneOffPaymentInput,
   paymentNonce: string,
   starsAmount: number
 ): Promise<boolean> {
-  const message = `Simulate Ask Lumia one-off payment for ${starsAmount} Stars?`;
+  const userId = String(input.userId || '').trim();
+  const productLabel = input.type === 'forecast_full_day' ? 'Full day forecast' : 'Ask Lumia one-off';
+  const message = `Simulate ${productLabel} payment for ${starsAmount} Stars?`;
 
   if (!tg) {
     const ok = typeof window !== 'undefined' && window.confirm(message);
     if (!ok) return false;
-    return activateSimOneOff(userId, paymentNonce);
+    return activateSimOneOff(input, paymentNonce);
   }
 
   const hasPopup = tg.isVersionAtLeast ? tg.isVersionAtLeast('6.2') : false;
   if (!hasPopup) {
     const ok = typeof window !== 'undefined' && window.confirm(message);
     if (!ok) return false;
-    return activateSimOneOff(userId, paymentNonce);
+    return activateSimOneOff(input, paymentNonce);
   }
 
   return new Promise((resolve) => {
     tg.showPopup(
       {
-        title: 'Ask Lumia one-off',
+        title: productLabel,
         message,
         buttons: [
           { id: 'pay', type: 'default', text: `Pay ${starsAmount} stars` },
@@ -124,7 +128,7 @@ async function simOneOffPaymentFlow(
       (buttonId: string) => {
         if (buttonId === 'pay') {
           if (tg.MainButton) tg.MainButton.showProgress();
-          activateSimOneOff(userId, paymentNonce)
+          activateSimOneOff(input, paymentNonce)
             .then((ok) => {
               if (tg.MainButton) tg.MainButton.hideProgress();
               resolve(ok);
@@ -141,15 +145,18 @@ async function simOneOffPaymentFlow(
   });
 }
 
-async function activateSimOneOff(userId: string, paymentNonce: string): Promise<boolean> {
+async function activateSimOneOff(input: StarsOneOffPaymentInput, paymentNonce: string): Promise<boolean> {
   const res = await fetch(`${API_BASE}/api/subscriptions/activate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      userId,
+      userId: input.userId,
       simMode: true,
-      type: 'ask_lumia_one_off',
+      type: input.type,
       paymentNonce,
+      chartId: input.chartId,
+      date: input.date,
+      cacheKey: input.cacheKey || input.date,
     }),
   });
   const data = await res.json();

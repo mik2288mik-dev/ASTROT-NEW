@@ -135,6 +135,7 @@ export async function unlockContentAfterStarsPaymentNonce(options: {
     contentVariant: options.contentVariant,
     starsAmount: options.starsAmount,
     nonce: paymentNonce,
+    cacheKey: options.cacheKey ?? null,
   });
 
   if (!payment) {

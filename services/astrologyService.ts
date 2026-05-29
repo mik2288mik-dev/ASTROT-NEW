@@ -101,6 +101,9 @@ async function fetchContentApi<T>(
       errorMessage = errorData.message || errorData.error || errorMessage;
       errorCode = errorData.code;
       errorDetails = errorData.details;
+      if (errorData.retryAfterMs != null) {
+        errorDetails = { ...(errorDetails || {}), retryAfterMs: errorData.retryAfterMs };
+      }
     } catch {
       const errorText = await response.text().catch(() => '');
       errorMessage = errorText || errorMessage;
@@ -656,11 +659,19 @@ export const getFullDaypartForecast = async (
   options?: {
     accessTier?: 'premium' | 'stars' | 'lumi';
     starsPaymentChargeId?: string;
+    paymentNonce?: string;
+    invoiceType?: 'forecast_full_day';
+    date?: string;
   }
 ): Promise<{ reading: ForecastDaypartReading; starsCost?: number }> => {
   const accessTier = options?.accessTier === 'lumi' ? 'stars' : (options?.accessTier || 'premium');
   const url = `${API_BASE_URL}/api/content/forecast/daypart`;
-  log.info('[getFullDaypartForecast] Starting request', { userId: profile.id, slot, accessTier });
+  log.info('[getFullDaypartForecast] Starting request', {
+    userId: profile.id,
+    slot,
+    accessTier,
+    hasPaymentNonce: !!options?.paymentNonce,
+  });
 
   const data = await fetchContentApi<ForecastDaypartReading>(url, {
     method: 'POST',
@@ -672,6 +683,9 @@ export const getFullDaypartForecast = async (
       slot,
       accessTier,
       starsPaymentChargeId: options?.starsPaymentChargeId,
+      paymentNonce: options?.paymentNonce,
+      invoiceType: options?.invoiceType || 'forecast_full_day',
+      date: options?.date,
     }),
   });
 
@@ -685,6 +699,40 @@ export const getFullDaypartForecast = async (
     starsCost: typeof data?.starsCost === 'number' ? data.starsCost : undefined,
   };
 };
+
+export async function getFullDaypartForecastWithStarsPayment(
+  profile: UserProfile,
+  chartData: NatalChartData,
+  slot: ForecastDaypartSlot,
+  paymentNonce: string,
+  options?: {
+    date?: string;
+    maxRetries?: number;
+  }
+): Promise<{ reading: ForecastDaypartReading; starsCost?: number }> {
+  const maxRetries = options?.maxRetries ?? 5;
+  let lastError: any = null;
+
+  for (let attempt = 0; attempt < maxRetries; attempt += 1) {
+    try {
+      return await getFullDaypartForecast(profile, chartData, slot, {
+        accessTier: 'stars',
+        paymentNonce,
+        invoiceType: 'forecast_full_day',
+        date: options?.date,
+      });
+    } catch (error: any) {
+      lastError = error;
+      if (error?.code !== 'STARS_PAYMENT_PENDING' || attempt >= maxRetries - 1) {
+        throw error;
+      }
+      const retryAfterMs = Number(error?.details?.retryAfterMs) || 1200;
+      await sleep(retryAfterMs);
+    }
+  }
+
+  throw lastError || new Error('Forecast full day stars payment failed');
+}
 
 export const getCachedPremiumDaypartForecast = async (
   userId: string,
