@@ -6,17 +6,7 @@
  * ALLOW_APPROXIMATE_TRANSITS=true is set explicitly.
  */
 
-const log = {
-  info: (message: string, data?: any) => {
-    console.log(`[TransitsCalculator] ${message}`, data || '');
-  },
-  error: (message: string, error?: any) => {
-    console.error(`[TransitsCalculator] ERROR: ${message}`, error || '');
-  },
-  warn: (message: string, data?: any) => {
-    console.warn(`[TransitsCalculator] WARNING: ${message}`, data || '');
-  },
-};
+import { logger } from './logger';
 
 export interface PlanetTransit {
   planet: string;
@@ -146,7 +136,11 @@ export async function getCurrentTransits(date?: Date): Promise<CurrentTransits> 
   const dateString = targetDate.toISOString().split('T')[0];
   const timeString = targetDate.toISOString().slice(11, 16);
 
-  log.info('Calculating current transits', { date: dateString, time: timeString });
+  logger.info({
+    scope: 'transits-calculator',
+    event: 'transit_calculation_start',
+    metadata: { date: dateString, time: timeString },
+  });
 
   try {
     const { calculatePlanetaryTransitsAt } = await import('./swisseph-calculator');
@@ -167,11 +161,17 @@ export async function getCurrentTransits(date?: Date): Promise<CurrentTransits> 
       source: 'swisseph',
     };
 
-    log.info('Transits calculated successfully', {
+    logger.info({
+      scope: 'transits-calculator',
+      event: 'swisseph_success',
       source: transits.source,
-      sunSign: transits.sun.sign,
-      moonSign: transits.moon.sign,
-      moonPhase,
+      status: 'ok',
+      metadata: {
+        date: dateString,
+        sunSign: transits.sun.sign,
+        moonSign: transits.moon.sign,
+        moonPhase,
+      },
     });
 
     return transits;
@@ -181,23 +181,39 @@ export async function getCurrentTransits(date?: Date): Promise<CurrentTransits> 
       error
     );
 
-    log.error('Failed to calculate Swiss Ephemeris transits', {
-      error: error?.message || String(error),
-      date: dateString,
-      time: timeString,
-      code: unavailableError.code,
-      approximateFallbackAllowed: isApproximateTransitFallbackAllowed(),
-      nodeEnv: process.env.NODE_ENV || 'development',
+    logger.error({
+      scope: 'transits-calculator',
+      event: 'swisseph_error',
+      source: 'swisseph',
+      status: 'error',
+      errorCode: unavailableError.code,
+      metadata: {
+        error: error?.message || String(error),
+        date: dateString,
+        time: timeString,
+        approximateFallbackAllowed: isApproximateTransitFallbackAllowed(),
+        nodeEnv: process.env.NODE_ENV || 'development',
+      },
     });
 
     if (!isApproximateTransitFallbackAllowed()) {
+      logger.warn({
+        scope: 'transits-calculator',
+        event: 'approximate_fallback_blocked',
+        source: 'swisseph',
+        status: 'blocked',
+        errorCode: unavailableError.code,
+        metadata: { date: dateString, time: timeString },
+      });
       throw unavailableError;
     }
 
-    log.warn('Using approximate transit fallback', {
-      date: dateString,
-      time: timeString,
+    logger.warn({
+      scope: 'transits-calculator',
+      event: 'approximate_fallback_dev_only',
       source: 'algorithmic',
+      status: 'fallback',
+      metadata: { date: dateString, time: timeString },
     });
     return getAlgorithmicTransits(targetDate);
   }

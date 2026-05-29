@@ -11,6 +11,7 @@ import type {
 import { db } from './db';
 import { getMoscowTodayKey } from './date-utils';
 import { resolveTodayPulseForUser } from './todayPulseResolver';
+import { extractPersonalizationPrivacyFlags, logger } from './logger';
 
 export type PersonalizationSurface = 'today' | 'ask_lumia' | 'natal' | 'synastry';
 
@@ -153,6 +154,21 @@ function summarizeRelationshipRow(row: any): RelationshipContextItem | null {
 export async function buildPersonalizationContext(
   options: BuildPersonalizationContextOptions
 ): Promise<PersonalizationContext | null> {
+  const startedAt = Date.now();
+  logger.info({
+    scope: 'personalization-context',
+    event: 'personalization_build_start',
+    userId: options.userId,
+    chartId: options.chartId ?? null,
+    surface: options.surface,
+    metadata: {
+      includeTodayPulse: !!options.includeTodayPulse,
+      includeRecentCheckIns: !!options.includeRecentCheckIns,
+      includeRecentQuestions: !!options.includeRecentQuestions,
+      includeRelationshipContext: !!options.includeRelationshipContext,
+    },
+  });
+
   const user = await db.users.get(options.userId).catch(() => null);
   if (!user && !options.profileFallback) return null;
 
@@ -190,14 +206,39 @@ export async function buildPersonalizationContext(
     ...((recentRelationships as any[]).map(summarizeRelationshipRow).filter(Boolean) as RelationshipContextItem[]),
   ].slice(0, 4);
 
-  return {
+  if (!chartData) {
+    logger.warn({
+      scope: 'personalization-context',
+      event: 'personalization_missing_chart',
+      userId: options.userId,
+      chartId,
+      surface: options.surface,
+      status: 'partial',
+      durationMs: Date.now() - startedAt,
+    });
+  }
+
+  const todayPulse = todayPulseResult?.status === 'ready' ? todayPulseResult.pulse : null;
+  if (options.includeTodayPulse && chartData && !todayPulse) {
+    logger.warn({
+      scope: 'personalization-context',
+      event: 'personalization_missing_today_pulse',
+      userId: options.userId,
+      chartId,
+      surface: options.surface,
+      status: 'partial',
+      durationMs: Date.now() - startedAt,
+    });
+  }
+
+  const context: PersonalizationContext = {
     surface: options.surface,
     user: profile,
     chartId,
     chartData,
     chartQuality,
     planets: pickPlanets(chartData, chartQuality),
-    todayPulse: todayPulseResult?.status === 'ready' ? todayPulseResult.pulse : null,
+    todayPulse,
     recentCheckIns: recentCheckIns as DailyCheckIn[],
     recentQuestions: (recentQuestions as any[]).map((item) => ({
       question: String(item.question || '').trim(),
@@ -206,6 +247,30 @@ export async function buildPersonalizationContext(
     })).filter((item) => item.question),
     relationshipContext,
   };
+
+  const flags = extractPersonalizationPrivacyFlags(context);
+  logger.info({
+    scope: 'personalization-context',
+    event: 'personalization_context_blocks',
+    userId: options.userId,
+    chartId,
+    surface: options.surface,
+    status: 'ok',
+    durationMs: Date.now() - startedAt,
+    metadata: { blocks: flags },
+  });
+  logger.info({
+    scope: 'personalization-context',
+    event: 'personalization_build_success',
+    userId: options.userId,
+    chartId,
+    surface: options.surface,
+    status: 'ok',
+    durationMs: Date.now() - startedAt,
+    metadata: flags,
+  });
+
+  return context;
 }
 
 function planetLine(label: string, position: PlanetPosition | null | undefined) {

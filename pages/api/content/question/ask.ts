@@ -15,6 +15,7 @@ import {
 } from '../../../../lib/questionContent';
 import { RATE_LIMIT_CONFIGS, withRateLimit } from '../../../../lib/rateLimit';
 import { buildPersonalizationContext, describePersonalizationContext } from '../../../../lib/personalizationContext';
+import { extractPersonalizationPrivacyFlags, logger } from '../../../../lib/logger';
 
 const MIN_QUESTION_LENGTH = 3;
 const MAX_QUESTION_LENGTH = 500;
@@ -92,6 +93,8 @@ function getRequestedTier(value: unknown): AskLumiaTier | null {
 }
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const requestStartedAt = Date.now();
+
   if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -154,6 +157,24 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
   const requestedTier = getRequestedTier(req.body?.requestedTier) || state.nextTier;
 
+  logger.info({
+    scope: 'ask-lumia',
+    event: 'ask_lumia_request_start',
+    userId,
+    surface: 'question',
+    metadata: {
+      questionLength: normalizedQuestion.length,
+      requestedTier,
+    },
+  });
+  logger.info({
+    scope: 'ask-lumia',
+    event: 'ask_lumia_requested_tier',
+    userId,
+    accessTier: requestedTier,
+    surface: 'question',
+  });
+
   if (requestedTier === 'premium' && !state.isPremium) {
     return res.status(403).json({
       error: 'Premium required',
@@ -213,6 +234,25 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     includeRecentQuestions: true,
     includeRelationshipContext: true,
   });
+  const contextFlags = extractPersonalizationPrivacyFlags(personalizationContext);
+  logger.info({
+    scope: 'ask-lumia',
+    event: 'ask_lumia_has_personalization_context',
+    userId,
+    chartId: personalizationContext?.chartId ?? null,
+    surface: 'question',
+    metadata: contextFlags,
+  });
+  const resolvedTier = requestedTier;
+  const variant = getQuestionVariantForTier(resolvedTier);
+  logger.info({
+    scope: 'ask-lumia',
+    event: 'ask_lumia_resolved_tier',
+    userId,
+    accessTier: resolvedTier,
+    surface: 'question',
+    variant,
+  });
   const chartContext = personalizationContext
     ? describePersonalizationContext(personalizationContext, lang)
     : buildChartContext(user, await db.natal_charts.getPrimary(userId));
@@ -227,7 +267,19 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       chartContext,
       history,
     });
-  } catch {
+  } catch (error: any) {
+    logger.error({
+      scope: 'ask-lumia',
+      event: 'ask_lumia_error',
+      userId,
+      accessTier: resolvedTier,
+      surface: 'question',
+      variant,
+      status: 'error',
+      errorCode: 'ASK_UPSTREAM_ERROR',
+      durationMs: Date.now() - requestStartedAt,
+      metadata: { error: error?.message || 'generation_failed' },
+    });
     return res.status(502).json({
       error: 'Ask Lumia failed',
       code: 'ASK_UPSTREAM_ERROR',
@@ -236,8 +288,19 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     });
   }
 
+  logger.info({
+    scope: 'ask-lumia',
+    event: 'ask_lumia_generated_success',
+    userId,
+    accessTier: resolvedTier,
+    surface: 'question',
+    variant,
+    status: 'ok',
+    durationMs: Date.now() - requestStartedAt,
+    metadata: { questionLength: normalizedQuestion.length },
+  });
+
   const questionCacheKey = getQuestionCacheKey(normalizedQuestion);
-  const variant = getQuestionVariantForTier(requestedTier);
   const { modelTier } = await getOpenAIModelForContent({
     accessTier: requestedTier === 'premium' ? 'premium' : requestedTier,
     contentSurface: 'question',
@@ -298,6 +361,18 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       legacySource: `ask_lumia.${requestedTier}`,
     });
   } catch (error: any) {
+    logger.error({
+      scope: 'ask-lumia',
+      event: 'ask_lumia_error',
+      userId,
+      accessTier: resolvedTier,
+      surface: 'question',
+      variant,
+      status: 'error',
+      errorCode: 'PERSIST_FAILED',
+      durationMs: Date.now() - requestStartedAt,
+      metadata: { error: error?.message || 'persist_failed' },
+    });
     if (requestedTier === 'lumi' && unlockCompleted && lumiSpent > 0) {
       await db.lumi_transactions.add(userId, lumiSpent, 'refund').catch(() => {});
       currentBalance = await db.lumi_transactions.getBalance(userId).catch(() => currentBalance);
@@ -314,6 +389,22 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       },
     });
   }
+
+  logger.info({
+    scope: 'ask-lumia',
+    event: 'ask_lumia_persist_success',
+    userId,
+    accessTier: resolvedTier,
+    surface: 'question',
+    variant,
+    status: 'ok',
+    durationMs: Date.now() - requestStartedAt,
+    metadata: {
+      questionLength: normalizedQuestion.length,
+      modelTier,
+      lumiSpent,
+    },
+  });
 
   const nextState = await getAskLumiaState(userId);
 

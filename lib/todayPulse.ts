@@ -13,6 +13,7 @@ import type {
   TodayPulseWindow,
 } from '../types';
 import { getCurrentTransits, type CurrentTransits, type PlanetTransit } from './transits-calculator';
+import { logger } from './logger';
 
 export const TODAY_PULSE_CALCULATION_VERSION = 'today-pulse-v1';
 
@@ -38,9 +39,11 @@ export class TodayPulseQualityError extends Error {
 
 function recordTodayPulseMetric(source: TodayPulseMetricSource) {
   todayPulseMetrics[source] += 1;
-  console.log('[TodayPulse] calculation source metric', {
+  logger.info({
+    scope: 'today-pulse',
+    event: 'today_pulse_source_metric',
     source,
-    counts: { ...todayPulseMetrics },
+    metadata: { counts: { ...todayPulseMetrics } },
   });
 }
 
@@ -654,27 +657,60 @@ function deriveSource(transits: CurrentTransits[]): TodayPulse['source'] {
 }
 
 export async function buildTodayPulse(options: BuildTodayPulseOptions): Promise<TodayPulse> {
+  const startedAt = Date.now();
   const language = options.language === 'en' ? 'en' : 'ru';
   const timezone = normalizeTimezone(options.timezone || options.chartData.timezone);
   const now = options.now || new Date();
   const localNow = timeForTimezone(now, timezone);
   const currentDateKey = dateKeyForTimezone(now, timezone);
   const currentHour = currentDateKey === options.dateKey ? localNow.hour : 12;
+  logger.info({
+    scope: 'today-pulse',
+    event: 'today_pulse_build_start',
+    calculationVersion: TODAY_PULSE_CALCULATION_VERSION,
+    metadata: { dateKey: options.dateKey, timezone },
+  });
   const hourlyDates = Array.from({ length: 24 }, (_, hour) => localHourToUtc(options.dateKey, hour, timezone));
   let transits: CurrentTransits[];
   try {
     transits = await Promise.all(hourlyDates.map((date) => getCurrentTransits(date)));
   } catch (error) {
     recordTodayPulseMetric('unavailable');
+    logger.error({
+      scope: 'today-pulse',
+      event: 'today_pulse_unavailable',
+      status: 'error',
+      errorCode: 'TODAY_PULSE_UNAVAILABLE',
+      durationMs: Date.now() - startedAt,
+      metadata: { dateKey: options.dateKey },
+    });
     throw error;
   }
   const source = deriveSource(transits);
   recordTodayPulseMetric(source);
   if (transits.length !== 24 || source !== 'swisseph') {
+    logger.warn({
+      scope: 'today-pulse',
+      event: 'today_pulse_strict_validation_failed',
+      source,
+      status: 'failed',
+      errorCode: 'TODAY_PULSE_REQUIRES_SWISSEPH',
+      durationMs: Date.now() - startedAt,
+      metadata: { dateKey: options.dateKey, pointCount: transits.length },
+    });
     throw new TodayPulseQualityError(
       `Today Pulse requires 24 Swiss Ephemeris transit points; received ${transits.length} points with source=${source}`
     );
   }
+  logger.info({
+    scope: 'today-pulse',
+    event: 'today_pulse_swisseph_24_success',
+    source: 'swisseph',
+    status: 'ok',
+    calculationVersion: TODAY_PULSE_CALCULATION_VERSION,
+    durationMs: Date.now() - startedAt,
+    metadata: { dateKey: options.dateKey, pointCount: transits.length },
+  });
   const points = transits.map((item, hour) => buildPoint(language, options.chartData, options.dateKey, hour, item));
   const peakPoint = maxBy(points, (point) => point.score);
   const currentPoint = points[currentHour] || peakPoint;
