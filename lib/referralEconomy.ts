@@ -1,10 +1,5 @@
 import { randomBytes } from 'crypto';
 
-/** Lumi for the friend who joined with a valid invite. */
-export const REFERRAL_INVITEE_LUMI = 25;
-/** Lumi for the user who shared their code (one-time per successful invite). */
-export const REFERRAL_INVITER_LUMI = 45;
-
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 /** 8-char codes without ambiguous 0/O/1/I. */

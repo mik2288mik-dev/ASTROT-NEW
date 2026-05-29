@@ -181,7 +181,6 @@ export async function getAskLumiaState(userId: string): Promise<AskLumiaState> {
       isPremium: true,
       starsCost: ASK_LUMIA_STARS_COST,
       starsPaymentRequired: false,
-      lumiCost: ASK_LUMIA_STARS_COST,
     };
   }
 
@@ -192,7 +191,6 @@ export async function getAskLumiaState(userId: string): Promise<AskLumiaState> {
     isPremium: false,
     starsCost: ASK_LUMIA_STARS_COST,
     starsPaymentRequired: !freeStarterAvailable,
-    lumiCost: ASK_LUMIA_STARS_COST,
   };
 }
 

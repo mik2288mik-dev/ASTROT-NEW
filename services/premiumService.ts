@@ -4,12 +4,9 @@
  * Handles:
  * - Idempotent premium activation from Telegram Stars payment
  * - premium_until (7 days for 250 Stars)
- * - Optional premium_bonus Lumi (not defined in current spec - skipped)
  */
 
 import { db } from '../lib/db';
-import { addLumi } from './lumiService';
-import { LUMI_REASONS } from './lumiService';
 
 const log = {
   info: (msg: string, data?: any) => console.log(`[PremiumService] ${msg}`, data || ''),
@@ -18,14 +15,10 @@ const log = {
 
 const PREMIUM_DAYS = 7;
 
-/** Premium bonus Lumi - not in spec, set to 0 to skip */
-const PREMIUM_BONUS_LUMI = 0;
-
 export interface ActivatePremiumResult {
   activated: boolean;
   alreadyHadPremium: boolean;
   premiumUntil: string;
-  lumiBalance: number;
 }
 
 /**
@@ -69,7 +62,6 @@ export async function activatePremium(
       activated: false,
       alreadyHadPremium: !!(pu && pu > new Date()),
       premiumUntil: pu?.toISOString() ?? '',
-      lumiBalance: current?.lumi_balance ?? 0,
     };
   }
 
@@ -77,19 +69,11 @@ export async function activatePremium(
     premium_until: premiumUntil.toISOString(),
   });
 
-  let lumiBalance = user.lumi_balance ?? 0;
-  if (PREMIUM_BONUS_LUMI > 0) {
-    const result = await addLumi(id, PREMIUM_BONUS_LUMI, LUMI_REASONS.premium_bonus);
-    lumiBalance = result.balance;
-    log.info('Premium bonus Lumi granted', { userId: id, amount: PREMIUM_BONUS_LUMI });
-  }
-
   log.info('Premium activated', { userId: id, premiumUntil: premiumUntil.toISOString(), starsAmount });
 
   return {
     activated: true,
     alreadyHadPremium: false,
     premiumUntil: premiumUntil.toISOString(),
-    lumiBalance,
   };
 }

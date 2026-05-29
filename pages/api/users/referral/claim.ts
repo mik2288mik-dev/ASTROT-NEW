@@ -20,9 +20,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     const result = await db.users.claimReferralBonus(userId, inviteCode);
     return res.status(200).json({
       ok: true,
-      inviteeGain: result.inviteeGain,
-      inviterGain: result.inviterGain,
-      newBalance: result.newBalance,
+      referralApplied: result.referralApplied,
     });
   } catch (error: any) {
     const code = error?.code || error?.message;
@@ -40,4 +38,4 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   }
 }
 
-export default withRateLimit(handler, RATE_LIMIT_CONFIGS.LUMI_ACTION);
+export default withRateLimit(handler, RATE_LIMIT_CONFIGS.FREE);

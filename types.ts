@@ -46,7 +46,6 @@ export interface UserProfile {
   isAdmin?: boolean;
   evolution?: UserEvolution;
   lastContext?: UserContext;
-  lumiBalance?: number; // Lumi balance (internal app currency)
   loginStreak?: number; // Consecutive daily login count
   chartSlots?: number; // Max charts user can have
   /** Personal invite code for Telegram startapp deep links */
@@ -824,7 +823,7 @@ export interface MonthlyHoroscope {
   content: string;
 }
 
-export type ContentAccessTier = 'free' | 'premium' | 'stars' | 'lumi';
+export type ContentAccessTier = 'free' | 'premium' | 'stars' | 'lumi'; // 'lumi' is legacy-only; new product flows must use 'stars'.
 export type ContentSurface = 'natal' | 'forecast' | 'synastry' | 'question';
 export type ContentVariant =
   | 'anchor'
@@ -912,7 +911,7 @@ export interface ContentUnlockRequest {
   contentSurface: ContentSurface;
   contentVariant: ContentVariant;
   cacheKey?: string;
-  lumiCost?: number;
+  starsAmount?: number;
   expiresAt?: string | null;
 }
 
@@ -937,12 +936,6 @@ export interface AskLumiaState {
   isPremium: boolean;
   starsCost: number;
   starsPaymentRequired: boolean;
-  /** @deprecated Legacy alias for starsCost */
-  lumiCost?: number;
-  /** @deprecated Internal Lumi balance removed from product model */
-  lumiBalance?: number;
-  /** @deprecated Replaced by starsPaymentRequired + Telegram Stars payment flow */
-  hasEnoughLumi?: boolean;
 }
 
 export interface OracleChatResponse {
@@ -953,10 +946,6 @@ export interface OracleChatResponse {
   starsSpent?: number;
   starsPaymentRequired?: boolean;
   state?: AskLumiaState;
-  /** @deprecated Legacy alias */
-  lumiSpent?: number;
-  /** @deprecated Legacy alias */
-  lumiBalance?: number;
 }
 
 export type AdminPremiumFilter = 'all' | 'premium' | 'free';
@@ -970,7 +959,7 @@ export type AdminUserSegment =
   | 'inactive_7d'
   | 'inactive_30d'
   | 'need_attention';
-export type AdminUserSortBy = 'last_seen' | 'created_at' | 'lumi_balance' | 'premium_until' | 'saved_charts_count' | 'name';
+export type AdminUserSortBy = 'last_seen' | 'created_at' | 'premium_until' | 'saved_charts_count' | 'name';
 export type AdminSortOrder = 'asc' | 'desc';
 
 export interface PaginationMeta {
@@ -985,7 +974,6 @@ export interface AdminUserSummary {
   name: string;
   isPremium: boolean;
   premiumUntil: string | null;
-  lumiBalance: number;
   loginStreak: number;
   chartSlots: number;
   savedChartsCount: number;
@@ -998,9 +986,6 @@ export interface AdminUserSummary {
 export interface AdminUsersOverview {
   totalUsers: number;
   activePremiumUsers: number;
-  totalLumiBalance: number;
-  /** Non-premium users with lumi_balance > 0 (Lumi economy, not subscription). */
-  lumiEconomyUsers: number;
   activeUsers7d: number;
   needAttentionUsers: number;
 }
@@ -1044,7 +1029,6 @@ export interface AdminUserDetail extends AdminUserSummary {
   birthTime: string;
   birthPlace: string;
   primaryChart: AdminChartSummary | null;
-  recentLumiTransactions: LumiTransaction[];
   latestStarsPayment: AdminRecentPayment | null;
   lastSeenAt: string | null;
   currentDeviceLabel: string | null;
@@ -1387,41 +1371,6 @@ export interface AdminNotificationDeliveryLogItem {
   assetId: number | null;
   generatedCacheHit: boolean | null;
   createdAt: string;
-}
-
-export interface AdminLumiActionResult {
-  user: AdminUserDetail;
-  notificationSent?: boolean;
-  notificationError?: string | null;
-}
-
-export interface LumiTransaction {
-  amount: number;
-  reason: string;
-  created_at: string;
-}
-
-export type DailyLumiTaskKey = 'open_horoscope' | 'open_chart';
-
-export interface DailyLumiTaskStatusItem {
-  key: DailyLumiTaskKey;
-  reward: number;
-  completed: boolean;
-  completedAt: string | null;
-}
-
-export interface DailyLumiTasksStatus {
-  date: string;
-  totalReward: number;
-  earnedToday: number;
-  completedCount: number;
-  tasks: DailyLumiTaskStatusItem[];
-  lumiBalance: number;
-}
-
-export interface LumiWalletData {
-  lumi_balance: number;
-  transactions: LumiTransaction[];
 }
 
 export type ViewState = 'onboarding' | 'hook' | 'paywall' | 'dashboard' | 'chart' | 'horoscope' | 'synastry' | 'oracle' | 'settings' | 'admin' | 'charts';

@@ -63,7 +63,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
       setData(res);
     } catch (err: any) {
       console.error('[MyCharts] Load error', err);
-      setData({ charts: [], chartSlots: 1, canAddMore: true, slotCost: 50 });
+      setData({ charts: [], chartSlots: 1, canAddMore: true });
     } finally {
       setLoading(false);
     }

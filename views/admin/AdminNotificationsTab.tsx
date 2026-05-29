@@ -73,7 +73,7 @@ const SEGMENTS: AdminNotificationTargetSegment[] = [
 const KINDS: Array<AdminNotificationTemplateKind | 'all'> = ['all', 'both', 'personal', 'broadcast'];
 const HISTORY_MODES: AdminNotificationModeFilter[] = ['all', 'personal', 'broadcast'];
 const HISTORY_RESULTS: AdminHistoryResultFilter[] = ['all', 'success', 'partial', 'failed'];
-const PRESETS = ['Утро', 'День', 'Вечер', 'Возвращение', 'Premium', 'Lumi'];
+const PRESETS = ['Утро', 'День', 'Вечер', 'Возвращение', 'Premium'];
 const WORKSPACE_SECTIONS: AdminNotificationSection[] = ['send', 'templates', 'history'];
 const AI_DRAFT_SCENARIOS: Array<{
   value: AdminNotificationAiDraftScenario;
@@ -105,17 +105,17 @@ const AI_DRAFT_SCENARIOS: Array<{
   },
   {
     value: 'daily_lumi',
-    labelRu: 'Ежедневные Lumi',
-    labelEn: 'Daily Lumi',
-    hintRu: 'Напомнить зайти и забрать ежедневные Lumi.',
-    hintEn: 'Remind the user to collect daily Lumi.',
+    labelRu: 'Ежедневное возвращение',
+    labelEn: 'Daily engagement',
+    hintRu: 'Напомнить зайти в приложение и открыть день.',
+    hintEn: 'Remind the user to open the app and check today.',
   },
   {
     value: 'upsell',
     labelRu: 'Полный день',
     labelEn: 'Full day upsell',
-    hintRu: 'Продать полный и точный разбор дня через Premium или разовый Lumi unlock.',
-    hintEn: 'Sell the full precise day reading through Premium or a one-off Lumi unlock.',
+    hintRu: 'Продать полный и точный разбор дня через Premium или разовое открытие за Stars.',
+    hintEn: 'Sell the full precise day reading through Premium or a one-off Stars unlock.',
   },
   {
     value: 'promo',

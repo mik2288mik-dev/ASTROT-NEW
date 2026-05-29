@@ -7,7 +7,6 @@ import type { AdminSortOrder, AdminUserSortBy } from '../../../../types';
 function isValidUserSortBy(value: unknown): value is AdminUserSortBy {
   return value === 'last_seen'
     || value === 'created_at'
-    || value === 'lumi_balance'
     || value === 'premium_until'
     || value === 'saved_charts_count'
     || value === 'name';

@@ -41,7 +41,6 @@ type ContentApiResponse<T> = {
   chartId?: number | null;
   cacheKey?: string;
   entitlement?: unknown;
-  lumiBalance?: number;
   starsCost?: number;
   starsPaymentRequired?: boolean;
   accessTier?: ContentAccessTier;

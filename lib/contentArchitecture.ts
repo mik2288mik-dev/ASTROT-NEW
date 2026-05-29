@@ -163,8 +163,6 @@ function getDefaultLumiReason(surface: ContentSurface, variant: ContentVariant) 
 
 export async function unlockContentLayer(
   options: ContentLayerOptions & {
-    /** @deprecated use starsAmount */
-    lumiCost?: number;
     starsAmount?: number;
     starsPaymentChargeId?: string;
     paymentVerified?: boolean;
@@ -229,7 +227,7 @@ export async function unlockContentLayer(
   }
 
   if (options.accessTier === 'stars' || options.accessTier === 'lumi') {
-    const starsAmount = Number(options.starsAmount ?? options.lumiCost ?? 0);
+    const starsAmount = Number(options.starsAmount ?? 0);
     if (!Number.isFinite(starsAmount) || starsAmount <= 0) {
       throw new Error('STARS_AMOUNT_REQUIRED');
     }

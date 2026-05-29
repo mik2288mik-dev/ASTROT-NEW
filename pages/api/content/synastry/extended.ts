@@ -205,7 +205,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         starsCost,
         starsPaymentRequired: true,
         /** @deprecated Legacy alias for starsCost */
-        lumiCost: starsCost,
       });
     }
 

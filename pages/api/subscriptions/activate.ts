@@ -64,7 +64,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         id: user.id,
         isPremium,
         premiumUntil: premiumUntil?.toISOString() ?? null,
-        lumiBalance: user.lumi_balance ?? 0,
         loginStreak: user.login_streak ?? 0,
       },
     });

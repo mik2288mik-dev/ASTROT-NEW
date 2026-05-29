@@ -67,7 +67,6 @@ export default async function handler(
         theme: updatedUser!.theme,
         isPremium: updatedUser!.is_premium,
         isAdmin: updatedUser!.is_admin,
-        lumiBalance: updatedUser!.lumi_balance ?? 0,
         loginStreak: updatedUser!.login_streak ?? 0,
       };
 

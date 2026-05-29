@@ -13,8 +13,6 @@ type Props = {
 const EMPTY_OVERVIEW: AdminUsersOverview = {
   totalUsers: 0,
   activePremiumUsers: 0,
-  totalLumiBalance: 0,
-  lumiEconomyUsers: 0,
   activeUsers7d: 0,
   needAttentionUsers: 0,
 };
@@ -167,7 +165,7 @@ export const AdminOverviewTab: React.FC<Props> = ({ profile, onOpenSection }) =>
                     </div>
                   </div>
                   <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-400">
-                    <span>{getAdminText(lang, 'lumi')}: {user.lumiBalance}</span>
+                    <span>{getAdminText(lang, 'slots_charts')}: {user.savedChartsCount} / {user.chartSlots}</span>
                     <span>{getAdminText(lang, 'slots_charts')}: {user.savedChartsCount} / {user.chartSlots}</span>
                     <span>{getAdminText(lang, 'last_seen')}: {formatDateTime(lang, user.lastSeenAt || user.lastLogin)}</span>
                   </div>

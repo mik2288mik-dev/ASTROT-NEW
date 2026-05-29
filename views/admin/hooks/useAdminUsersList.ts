@@ -13,8 +13,6 @@ import { fetchAdminUsers } from '../../../services/adminService';
 const EMPTY_OVERVIEW: AdminUsersOverview = {
   totalUsers: 0,
   activePremiumUsers: 0,
-  totalLumiBalance: 0,
-  lumiEconomyUsers: 0,
   activeUsers7d: 0,
   needAttentionUsers: 0,
 };

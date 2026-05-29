@@ -200,8 +200,6 @@ export default async function handler(
       });
 
       const generatedContent = await hydrateGeneratedContent(userId);
-
-      const lumiBalance = user.lumi_balance ?? 0;
       const loginStreak = user.login_streak ?? 0;
       const chartSlots = user.chart_slots ?? 1;
       const notificationFrequency = await getNotificationFrequency(userId);
@@ -227,7 +225,6 @@ export default async function handler(
         evolution: null,
         generatedContent,
         weatherCity: user.weather_city && user.weather_city.trim() ? user.weather_city.trim() : undefined,
-        lumiBalance,
         loginStreak,
         chartSlots,
         notificationFrequency: notificationFrequency || undefined,
@@ -311,7 +308,6 @@ export default async function handler(
         evolution: null,
         generatedContent,
         weatherCity: savedUser.weather_city && savedUser.weather_city.trim() ? savedUser.weather_city.trim() : undefined,
-        lumiBalance: refreshedUser?.lumi_balance ?? 0,
         loginStreak: refreshedUser?.login_streak ?? 0,
         chartSlots: refreshedUser?.chart_slots ?? 1,
         notificationFrequency: notificationFrequency || undefined,

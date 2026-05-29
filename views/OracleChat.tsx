@@ -23,7 +23,7 @@ function getSendLabel(lang: 'ru' | 'en', state: AskLumiaState | null) {
   if (!state) return getText(lang, 'oracle.send_free');
   if (state.nextTier === 'premium') return getText(lang, 'oracle.send_premium');
   if (state.nextTier === 'stars') {
-    const cost = state.starsCost ?? state.lumiCost ?? 0;
+    const cost = state.starsCost ?? 0;
     return getText(lang, 'oracle.send_lumi').replace('{cost}', String(cost)).replace(/Lumi/gi, 'Stars');
   }
   return getText(lang, 'oracle.send_free');
@@ -39,7 +39,7 @@ function getStateStrings(lang: 'ru' | 'en', state: AskLumiaState | null) {
   }
 
   if (state.nextTier === 'stars') {
-    const cost = state.starsCost ?? state.lumiCost ?? 0;
+    const cost = state.starsCost ?? 0;
     return {
       label: getText(lang, 'oracle.state_lumi_label').replace(/Lumi/gi, 'Stars'),
       title: getText(lang, 'oracle.state_lumi_title').replace('{cost}', String(cost)).replace(/Lumi/gi, 'Stars'),
@@ -441,7 +441,7 @@ export const OracleChat: React.FC<OracleChatProps> = ({
             <div className="mt-4 flex items-center justify-between gap-3">
               <p className="text-xs leading-relaxed text-astro-subtext">
                 {questionState?.nextTier === 'stars'
-                  ? `${questionState.starsCost ?? questionState.lumiCost ?? 0} Stars`
+                  ? `${questionState.starsCost ?? 0} Stars`
                   : questionState?.nextTier === 'premium'
                     ? getText(lang, 'oracle.state_premium_label')
                     : getText(lang, 'oracle.state_free_label')}

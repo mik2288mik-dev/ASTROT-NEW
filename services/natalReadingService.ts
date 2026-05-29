@@ -95,8 +95,6 @@ export type HumanReadingError = Error & {
   code?: string;
   starsCost?: number;
   starsPaymentRequired?: boolean;
-  /** @deprecated legacy alias */
-  lumiCost?: number;
   premiumAvailable?: boolean;
 };
 
@@ -244,13 +242,8 @@ async function readHumanError(response: Response, fallback: string): Promise<Hum
   const err = new Error(payload.message || payload.error || fallback) as HumanReadingError;
   err.status = response.status;
   err.code = payload.code;
-  err.starsCost = typeof payload.starsCost === 'number'
-    ? payload.starsCost
-    : typeof payload.lumiCost === 'number'
-      ? payload.lumiCost
-      : undefined;
+  err.starsCost = typeof payload.starsCost === 'number' ? payload.starsCost : undefined;
   err.starsPaymentRequired = payload.starsPaymentRequired === true;
-  err.lumiCost = err.starsCost;
   err.premiumAvailable = typeof payload.premiumAvailable === 'boolean' ? payload.premiumAvailable : undefined;
   return err;
 }
@@ -295,7 +288,7 @@ async function postHuman<T>(
   const payload = await response.json();
   return {
     content: payload.interpretation?.content as T,
-    starsCost: typeof payload.starsCost === 'number' ? payload.starsCost : payload.lumiCost,
+    starsCost: typeof payload.starsCost === 'number' ? payload.starsCost : undefined,
     accessTier: payload.accessTier,
   };
 }
@@ -322,7 +315,7 @@ async function getHuman<T>(
   const payload = await response.json();
   return {
     content: payload.interpretation?.content as T,
-    starsCost: typeof payload.starsCost === 'number' ? payload.starsCost : payload.lumiCost,
+    starsCost: typeof payload.starsCost === 'number' ? payload.starsCost : undefined,
     accessTier: payload.accessTier,
   };
 }

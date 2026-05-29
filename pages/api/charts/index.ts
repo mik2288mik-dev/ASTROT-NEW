@@ -3,7 +3,6 @@ import { formatValidationErrors, validateNatalChartInput } from '../../../lib/va
 import { db } from '../../../lib/db';
 import { createOrReuseCanonicalChart } from '../../../lib/natalChartPersistence';
 import { invalidUserIdPayload, isValidUserId } from '../../../lib/userId';
-import { respondLumiDeprecated } from '../../../lib/lumiDeprecatedResponse';
 
 const log = {
   info: (msg: string, data?: any) => console.log(`[API/charts] ${msg}`, data || ''),
@@ -31,11 +30,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     if (req.method === 'POST') {
-      const { action, name, birthDate, birthTime, birthPlace, chartData, language } = req.body || {};
-
-      if (action === 'buy-slot') {
-        return respondLumiDeprecated(res, req);
-      }
+      const { name, birthDate, birthTime, birthPlace, chartData, language } = req.body || {};
 
       const rawBirthTime = typeof birthTime === 'string' ? birthTime.trim() : '';
       const normalizedBirthTime = rawBirthTime || '12:00';

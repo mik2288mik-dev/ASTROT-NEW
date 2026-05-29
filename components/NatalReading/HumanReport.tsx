@@ -81,7 +81,7 @@ function fmtDegree(value?: number | null): string {
 function formatError(error: unknown): string {
   const e = error as HumanReadingError;
   if (e?.code === 'STARS_PAYMENT_REQUIRED') {
-    return `Разовое открытие доступно за ${e.starsCost ?? e.lumiCost ?? HUMAN_PAID_LUMI_COST} Stars через Telegram payment.`;
+    return `Разовое открытие доступно за ${e.starsCost ?? HUMAN_PAID_LUMI_COST} Stars через Telegram payment.`;
   }
   if (e?.code === 'PREMIUM_REQUIRED' || e?.code === 'HUMAN_SECTION_LOCKED') {
     return 'Этот раздел можно открыть через Premium или разово за Stars.';

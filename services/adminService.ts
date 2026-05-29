@@ -1,5 +1,4 @@
 import {
-  type AdminLumiActionResult,
   type AdminNotificationDeliveryLogItem,
   type AdminNotificationEngineStats,
   type AdminNotificationSchedule,
@@ -127,8 +126,6 @@ export async function fetchAdminUsers(params?: {
     overview: data.overview || {
       totalUsers: 0,
       activePremiumUsers: 0,
-      totalLumiBalance: 0,
-      lumiEconomyUsers: 0,
       activeUsers7d: 0,
       needAttentionUsers: 0,
     },
@@ -172,21 +169,6 @@ export async function updateAdminPremium(userId: string, action: 'grant' | 'revo
     }
   );
   return data.user;
-}
-
-export async function updateAdminLumi(
-  userId: string,
-  action: 'add' | 'subtract',
-  amount: number,
-  note?: string
-): Promise<AdminLumiActionResult> {
-  return adminRequest<AdminLumiActionResult>(
-    `/api/admin/users/${encodeURIComponent(userId)}/lumi`,
-    {
-      method: 'POST',
-      bodyJson: { action, amount, note },
-    }
-  );
 }
 
 export async function fetchNotificationTemplates(): Promise<AdminNotificationTemplate[]> {

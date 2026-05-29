@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { AdminUserDetail, UserProfile } from '../../../types';
-import { fetchAdminUserDetail, updateAdminLumi, updateAdminPremium } from '../../../services/adminService';
+import { fetchAdminUserDetail, updateAdminPremium } from '../../../services/adminService';
 
-type AdminOwnProfilePatch = Partial<Pick<UserProfile, 'isPremium' | 'lumiBalance' | 'chartSlots' | 'loginStreak'>>;
+type AdminOwnProfilePatch = Partial<Pick<UserProfile, 'isPremium' | 'chartSlots' | 'loginStreak'>>;
 
 export function useAdminUserDetail(input: {
   currentUserId: string;
@@ -16,14 +16,11 @@ export function useAdminUserDetail(input: {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [actionResult, setActionResult] = useState<{ tone: 'success' | 'info'; message: string } | null>(null);
-  const [lumiAmount, setLumiAmount] = useState('10');
-  const [lumiNote, setLumiNote] = useState('');
 
   const patchOwnProfileFromDetail = useCallback((detail: AdminUserDetail) => {
     if (detail.id !== currentUserId) return;
     onPatchOwnProfile({
       isPremium: detail.isPremium,
-      lumiBalance: detail.lumiBalance,
       chartSlots: detail.chartSlots,
       loginStreak: detail.loginStreak,
     });
@@ -84,38 +81,6 @@ export function useAdminUserDetail(input: {
     }
   }, [patchOwnProfileFromDetail, selectedUserId]);
 
-  const runLumiAction = useCallback(async (
-    action: 'add' | 'subtract',
-    amount: number,
-    messages: { success: string; failure: string; invalidAmount: string }
-  ) => {
-    if (!selectedUserId) return { ok: false };
-    if (!Number.isInteger(amount) || amount <= 0) {
-      setError(messages.invalidAmount);
-      return { ok: false };
-    }
-
-    setActionLoading(`lumi-${action}`);
-    setError(null);
-    try {
-      const result = await updateAdminLumi(selectedUserId, action, amount, lumiNote.trim());
-      const updated = result.user;
-      setSelectedUser(updated);
-      patchOwnProfileFromDetail(updated);
-      setActionResult({ tone: 'success', message: messages.success });
-      setLumiNote('');
-      if (lumiNote.trim() && result.notificationError) {
-        setError(result.notificationError);
-      }
-      return { ok: true };
-    } catch (actionError: any) {
-      setError(actionError?.message || messages.failure);
-      return { ok: false };
-    } finally {
-      setActionLoading(null);
-    }
-  }, [lumiNote, patchOwnProfileFromDetail, selectedUserId]);
-
   return {
     selectedUserId,
     selectedUser,
@@ -124,17 +89,12 @@ export function useAdminUserDetail(input: {
     actionLoading,
     error,
     actionResult,
-    lumiAmount,
-    lumiNote,
     setSelectedUser,
     setError,
     setActionResult,
-    setLumiAmount,
-    setLumiNote,
     openUser,
     closeUser,
     loadSelectedUser,
     runPremiumAction,
-    runLumiAction,
   };
 }

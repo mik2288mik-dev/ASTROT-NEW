@@ -112,7 +112,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         message: `Раздел открывается в Premium или разово за ${HUMAN_PAID_STARS_COST} Stars.`,
         starsCost: HUMAN_PAID_STARS_COST,
         starsPaymentRequired: true,
-        lumiCost: HUMAN_PAID_STARS_COST,
         premiumAvailable: true,
       });
     }
@@ -131,7 +130,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         message: `Раздел можно открыть разово за ${HUMAN_PAID_STARS_COST} Stars через Telegram payment.`,
         starsCost: HUMAN_PAID_STARS_COST,
         starsPaymentRequired: true,
-        lumiCost: HUMAN_PAID_STARS_COST,
         premiumAvailable: true,
       });
     }

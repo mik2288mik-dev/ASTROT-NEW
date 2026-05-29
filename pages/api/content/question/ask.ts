@@ -93,7 +93,6 @@ function buildStarsPayload(starsCost: number) {
     starsCost,
     starsPaymentRequired: true,
     /** @deprecated Legacy alias */
-    lumiCost: starsCost,
   };
 }
 

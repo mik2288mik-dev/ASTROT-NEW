@@ -134,7 +134,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       message: `Персональный слой дня доступен в Premium или открывается разово за ${HUMAN_DAILY_STARS_COST} Stars.`,
       starsCost: HUMAN_DAILY_STARS_COST,
       starsPaymentRequired: true,
-      lumiCost: HUMAN_DAILY_STARS_COST,
       premiumAvailable: true,
     });
   }
@@ -152,7 +151,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         message: `Этот персональный слой можно открыть разово за ${HUMAN_DAILY_STARS_COST} Stars через Telegram payment.`,
         starsCost: HUMAN_DAILY_STARS_COST,
         starsPaymentRequired: true,
-        lumiCost: HUMAN_DAILY_STARS_COST,
         premiumAvailable: true,
       });
     }

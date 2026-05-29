@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import type { AdminPremiumFilter, AdminUserDetail, AdminUserSummary, UserProfile } from '../../types';
-import { fetchAdminUserDetail, fetchAdminUsers, updateAdminLumi, updateAdminPremium } from '../../services/adminService';
+import { fetchAdminUserDetail, fetchAdminUsers, updateAdminPremium } from '../../services/adminService';
 import { AdminBadge, AdminButton, AdminEmptyState, AdminInput, AdminSectionHeader, AdminSelect, AdminStateBanner, AdminSurface } from './AdminPrimitives';
 import { formatAdminText, getAdminText } from './adminText';
 
 type Props = {
   profile: UserProfile;
-  onPatchOwnProfile: (patch: Partial<Pick<UserProfile, 'isPremium' | 'lumiBalance' | 'chartSlots' | 'loginStreak'>>) => void;
+  onPatchOwnProfile: (patch: Partial<Pick<UserProfile, 'isPremium' | 'chartSlots' | 'loginStreak'>>) => void;
   onSendNotification: (userId: string) => void;
 };
 
@@ -32,8 +32,6 @@ export const AdminEconomyTab: React.FC<Props> = ({ profile, onPatchOwnProfile, o
   const [selectedUser, setSelectedUser] = useState<AdminUserDetail | null>(null);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
-  const [lumiAmount, setLumiAmount] = useState('10');
-  const [lumiNote, setLumiNote] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
 
@@ -46,7 +44,7 @@ export const AdminEconomyTab: React.FC<Props> = ({ profile, onPatchOwnProfile, o
         premium: premiumFilter,
         page: 1,
         pageSize: 25,
-        sortBy: 'lumi_balance',
+        sortBy: 'last_seen',
         sortOrder: 'desc',
       });
       setUsers(payload.users);
@@ -82,7 +80,6 @@ export const AdminEconomyTab: React.FC<Props> = ({ profile, onPatchOwnProfile, o
     if (detail.id !== profile.id) return;
     onPatchOwnProfile({
       isPremium: detail.isPremium,
-      lumiBalance: detail.lumiBalance,
       chartSlots: detail.chartSlots,
       loginStreak: detail.loginStreak,
     });
@@ -105,31 +102,6 @@ export const AdminEconomyTab: React.FC<Props> = ({ profile, onPatchOwnProfile, o
     }
   };
 
-  const runLumiAction = async (action: 'add' | 'subtract') => {
-    if (!selectedUserId) return;
-    const amount = Number(lumiAmount);
-    if (!Number.isInteger(amount) || amount <= 0) {
-      setError(getAdminText(lang, 'invalid_lumi_amount'));
-      return;
-    }
-    setActionLoading(`lumi-${action}`);
-    setError(null);
-    try {
-      const result = await updateAdminLumi(selectedUserId, action, amount, lumiNote.trim());
-      setSelectedUser(result.user);
-      patchOwn(result.user);
-      setActionMessage(action === 'add'
-        ? formatAdminText(lang, 'lumi_added', { amount })
-        : formatAdminText(lang, 'lumi_subtracted', { amount }));
-      setLumiNote('');
-      await loadUsers();
-    } catch (actionError: any) {
-      setError(actionError?.message || getAdminText(lang, 'update_lumi_failed'));
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
   return (
     <div className="space-y-5">
       {error ? <AdminStateBanner tone="error">{error}</AdminStateBanner> : null}
@@ -140,8 +112,8 @@ export const AdminEconomyTab: React.FC<Props> = ({ profile, onPatchOwnProfile, o
           eyebrow="Economy"
           title={getAdminText(lang, 'economy')}
           subtitle={lang === 'ru'
-            ? 'Баланс Lumi, последние движения и быстрые действия по Premium и начислениям.'
-            : 'Lumi balance, recent movements, and quick Premium/Lumi actions.'}
+            ? 'Premium-подписки и последние Stars-платежи.'
+            : 'Premium subscriptions and recent Stars payments.'}
           action={<AdminButton tone="secondary" onClick={() => void loadUsers()}>{getAdminText(lang, 'refresh')}</AdminButton>}
         />
 
@@ -176,7 +148,7 @@ export const AdminEconomyTab: React.FC<Props> = ({ profile, onPatchOwnProfile, o
                   key={user.id}
                   type="button"
                   onClick={() => void openUser(user.id)}
-                  className={`grid w-full gap-3 px-5 py-4 text-left transition hover:bg-white/[0.03] md:grid-cols-[minmax(0,1fr)_100px_140px] md:items-center ${
+                  className={`grid w-full gap-3 px-5 py-4 text-left transition hover:bg-white/[0.03] md:grid-cols-[minmax(0,1fr)_140px] md:items-center ${
                     selectedUserId === user.id ? 'bg-white/[0.04]' : ''
                   }`}
                 >
@@ -187,7 +159,6 @@ export const AdminEconomyTab: React.FC<Props> = ({ profile, onPatchOwnProfile, o
                     </div>
                     <p className="mt-1 truncate text-xs text-slate-500">{user.id}</p>
                   </div>
-                  <p className="text-right text-sm font-semibold text-white">{user.lumiBalance}</p>
                   <p className="text-right text-xs text-slate-400">{formatDateTime(lang, user.lastSeenAt || user.lastLogin)}</p>
                 </button>
               ))}
@@ -202,8 +173,8 @@ export const AdminEconomyTab: React.FC<Props> = ({ profile, onPatchOwnProfile, o
             <AdminEmptyState
               title={lang === 'ru' ? 'Выберите пользователя' : 'Select a user'}
               body={lang === 'ru'
-                ? 'Откройте пользователя слева, чтобы посмотреть баланс, платёж и последние операции.'
-                : 'Choose a user on the left to inspect balance, payment, and recent transactions.'}
+                ? 'Откройте пользователя слева, чтобы посмотреть Premium и последний Stars-платёж.'
+                : 'Choose a user on the left to inspect Premium and the latest Stars payment.'}
             />
           ) : (
             <div className="space-y-4">
@@ -214,7 +185,7 @@ export const AdminEconomyTab: React.FC<Props> = ({ profile, onPatchOwnProfile, o
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
-                <Metric label={getAdminText(lang, 'lumi')} value={String(selectedUser.lumiBalance)} />
+                <Metric label="Premium" value={selectedUser.isPremium ? 'Active' : 'Free'} />
                 <Metric label={getAdminText(lang, 'premium_until')} value={formatDateTime(lang, selectedUser.premiumUntil)} />
               </div>
 
@@ -225,27 +196,6 @@ export const AdminEconomyTab: React.FC<Props> = ({ profile, onPatchOwnProfile, o
                   </AdminButton>
                   <AdminButton tone="secondary" onClick={() => void runPremiumAction('revoke')} disabled={actionLoading === 'premium-revoke'}>
                     {getAdminText(lang, 'revoke')}
-                  </AdminButton>
-                </div>
-                <div className="mt-3 grid gap-3 sm:grid-cols-[120px_minmax(0,1fr)]">
-                  <AdminInput
-                    value={lumiAmount}
-                    onChange={(event) => setLumiAmount(event.target.value.replace(/[^\d]/g, ''))}
-                    inputMode="numeric"
-                    placeholder={getAdminText(lang, 'amount_placeholder')}
-                  />
-                  <AdminInput
-                    value={lumiNote}
-                    onChange={(event) => setLumiNote(event.target.value)}
-                    placeholder={getAdminText(lang, 'note_placeholder')}
-                  />
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <AdminButton tone="primary" onClick={() => void runLumiAction('add')} disabled={actionLoading === 'lumi-add'}>
-                    {getAdminText(lang, 'add_lumi')}
-                  </AdminButton>
-                  <AdminButton tone="danger" onClick={() => void runLumiAction('subtract')} disabled={actionLoading === 'lumi-subtract'}>
-                    {getAdminText(lang, 'subtract_lumi')}
                   </AdminButton>
                   <AdminButton tone="ghost" onClick={() => onSendNotification(selectedUser.id)}>
                     {getAdminText(lang, 'notify')}
@@ -260,26 +210,6 @@ export const AdminEconomyTab: React.FC<Props> = ({ profile, onPatchOwnProfile, o
                     ? `${selectedUser.latestStarsPayment.starsAmount} Stars · ${formatDateTime(lang, selectedUser.latestStarsPayment.createdAt)}`
                     : getAdminText(lang, 'no_stars')}
                 </p>
-              </div>
-
-              <div className="space-y-3">
-                {selectedUser.recentLumiTransactions.length === 0 ? (
-                  <p className="text-sm text-slate-400">{getAdminText(lang, 'no_transactions')}</p>
-                ) : (
-                  selectedUser.recentLumiTransactions.map((transaction, index) => (
-                    <div key={`${transaction.created_at}-${transaction.reason}-${index}`} className="admin-surface-muted p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-semibold text-white">{transaction.reason.replaceAll('_', ' ')}</p>
-                          <p className="mt-1 text-xs text-slate-500">{formatDateTime(lang, transaction.created_at)}</p>
-                        </div>
-                        <p className={`text-sm font-semibold ${transaction.amount >= 0 ? 'text-emerald-300' : 'text-red-300'}`}>
-                          {transaction.amount > 0 ? `+${transaction.amount}` : transaction.amount}
-                        </p>
-                      </div>
-                    </div>
-                  ))
-                )}
               </div>
             </div>
           )}

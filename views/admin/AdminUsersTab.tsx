@@ -8,7 +8,6 @@ import {
   type AdminUserSession,
   type AdminUserSortBy,
   type AdminUserSummary,
-  type LumiTransaction,
   type UserProfile,
 } from '../../types';
 import {
@@ -26,9 +25,8 @@ import {
 import { formatAdminText, getAdminText } from './adminText';
 import { useAdminUserDetail } from './hooks/useAdminUserDetail';
 import { useAdminUsersList } from './hooks/useAdminUsersList';
-import { formatLumiReasonLabel } from '../../lib/lumiReasonTaxonomy';
 
-type AdminOwnProfilePatch = Partial<Pick<UserProfile, 'isPremium' | 'lumiBalance' | 'chartSlots' | 'loginStreak'>>;
+type AdminOwnProfilePatch = Partial<Pick<UserProfile, 'isPremium' | 'chartSlots' | 'loginStreak'>>;
 
 interface AdminUsersTabProps {
   profile: UserProfile;
@@ -40,7 +38,7 @@ interface AdminUsersTabProps {
 }
 
 const FILTERS: AdminPremiumFilter[] = ['all', 'premium', 'free'];
-const SEGMENTS: AdminUserSegment[] = ['all', 'premium', 'free', 'lumi', 'active_7d', 'inactive_3d', 'inactive_7d', 'inactive_30d', 'need_attention'];
+const SEGMENTS: AdminUserSegment[] = ['all', 'premium', 'free', 'active_7d', 'inactive_3d', 'inactive_7d', 'inactive_30d', 'need_attention'];
 const PAGE_SIZES = [25, 50, 100];
 
 const formatDateTime = (lang: 'ru' | 'en', value?: string | null) => {
@@ -68,7 +66,6 @@ const getSegmentLabel = (lang: 'ru' | 'en', segment: AdminUserSegment) => {
     all: getAdminText(lang, 'segment_all'),
     premium: getAdminText(lang, 'segment_premium'),
     free: getAdminText(lang, 'segment_free'),
-    lumi: getAdminText(lang, 'segment_lumi'),
     active_7d: getAdminText(lang, 'segment_active_7d'),
     inactive_3d: getAdminText(lang, 'segment_inactive_3d'),
     inactive_7d: getAdminText(lang, 'segment_inactive_7d'),
@@ -82,8 +79,6 @@ const getSortLabel = (lang: 'ru' | 'en', value: AdminUserSortBy) => {
   switch (value) {
     case 'created_at':
       return getAdminText(lang, 'sort_created_at');
-    case 'lumi_balance':
-      return getAdminText(lang, 'sort_lumi_balance');
     case 'premium_until':
       return getAdminText(lang, 'sort_premium_until');
     case 'saved_charts_count':
@@ -95,8 +90,6 @@ const getSortLabel = (lang: 'ru' | 'en', value: AdminUserSortBy) => {
       return getAdminText(lang, 'sort_last_seen');
   }
 };
-
-const formatLumiReason = (lang: 'ru' | 'en', reason: string) => formatLumiReasonLabel(lang, reason);
 
 const getPremiumLabel = (lang: 'ru' | 'en', isPremium: boolean) => {
   if (isPremium) return 'Premium';
@@ -126,8 +119,6 @@ export const AdminUsersTab: React.FC<AdminUsersTabProps> = ({
         return usersList.overview.activeUsers7d;
       case 'need_attention':
         return usersList.overview.needAttentionUsers;
-      case 'lumi':
-        return usersList.overview.lumiEconomyUsers;
       default:
         return usersList.pagination.total;
     }
@@ -136,7 +127,6 @@ export const AdminUsersTab: React.FC<AdminUsersTabProps> = ({
     usersList.overview.activePremiumUsers,
     usersList.overview.activeUsers7d,
     usersList.overview.needAttentionUsers,
-    usersList.overview.lumiEconomyUsers,
     usersList.pagination.total,
   ]);
 
@@ -146,20 +136,6 @@ export const AdminUsersTab: React.FC<AdminUsersTabProps> = ({
       failure: getAdminText(lang, 'update_premium_failed'),
     });
     if (ok) {
-      await usersList.reload();
-    }
-  };
-
-  const handleLumiAction = async (action: 'add' | 'subtract') => {
-    const amount = Number(detail.lumiAmount);
-    const result = await detail.runLumiAction(action, amount, {
-      success: action === 'add'
-        ? formatAdminText(lang, 'lumi_added', { amount })
-        : formatAdminText(lang, 'lumi_subtracted', { amount }),
-      failure: getAdminText(lang, 'update_lumi_failed'),
-      invalidAmount: getAdminText(lang, 'invalid_lumi_amount'),
-    });
-    if (result.ok) {
       await usersList.reload();
     }
   };
@@ -187,8 +163,8 @@ export const AdminUsersTab: React.FC<AdminUsersTabProps> = ({
           eyebrow="Users"
           title={getAdminText(lang, 'users_title')}
           subtitle={lang === 'ru'
-            ? 'Список пользователей, быстрые сегменты, действия с Premium и Lumi в одном рабочем пространстве.'
-            : 'Users list, quick segments, and Premium/Lumi actions in one workspace.'}
+            ? 'Список пользователей, быстрые сегменты и действия с Premium в одном рабочем пространстве.'
+            : 'Users list, quick segments, and Premium actions in one workspace.'}
           action={(
             <AdminButton tone="secondary" onClick={() => void usersList.reload()}>
               {lang === 'ru' ? 'Обновить' : 'Refresh'}
@@ -249,7 +225,6 @@ export const AdminUsersTab: React.FC<AdminUsersTabProps> = ({
                   >
                     <option value="last_seen">{getSortLabel(lang, 'last_seen')}</option>
                     <option value="created_at">{getSortLabel(lang, 'created_at')}</option>
-                    <option value="lumi_balance">{getSortLabel(lang, 'lumi_balance')}</option>
                     <option value="premium_until">{getSortLabel(lang, 'premium_until')}</option>
                     <option value="saved_charts_count">{getSortLabel(lang, 'saved_charts_count')}</option>
                     <option value="name">{getSortLabel(lang, 'name')}</option>
@@ -308,8 +283,8 @@ export const AdminUsersTab: React.FC<AdminUsersTabProps> = ({
                 : `${segmentCount} records in the current view. Open user details without losing list context.`}
             </p>
             <div className="mt-5 grid grid-cols-2 gap-3">
-              <MiniMetric label={lang === 'ru' ? 'Всего Lumi' : 'Total Lumi'} value={usersList.overview.totalLumiBalance} />
               <MiniMetric label={lang === 'ru' ? 'Premium' : 'Premium'} value={usersList.overview.activePremiumUsers} />
+              <MiniMetric label={lang === 'ru' ? 'Активны 7д' : 'Active 7d'} value={usersList.overview.activeUsers7d} />
             </div>
           </div>
         </div>
@@ -317,9 +292,8 @@ export const AdminUsersTab: React.FC<AdminUsersTabProps> = ({
 
       <AdminSurface className="overflow-hidden">
         <div className="admin-divider border-t-0 px-5 py-4">
-          <div className="hidden grid-cols-[minmax(0,1.6fr)_112px_134px_160px] gap-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 lg:grid">
+          <div className="hidden grid-cols-[minmax(0,1.6fr)_134px_160px] gap-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 lg:grid">
             <span>{getAdminText(lang, 'users_title')}</span>
-            <span className="text-right">{getAdminText(lang, 'lumi')}</span>
             <span className="text-right">{getAdminText(lang, 'slots_charts')}</span>
             <span className="text-right">{getAdminText(lang, 'last_seen')}</span>
           </div>
@@ -380,29 +354,9 @@ export const AdminUsersTab: React.FC<AdminUsersTabProps> = ({
                   <ActionPill active={detail.actionLoading === 'premium-revoke'} onClick={() => void handlePremiumAction('revoke')}>
                     {getAdminText(lang, 'revoke')}
                   </ActionPill>
-                  <ActionPill active={detail.actionLoading === 'lumi-add'} onClick={() => void handleLumiAction('add')}>
-                    {getAdminText(lang, 'add_lumi')}
-                  </ActionPill>
-                  <ActionPill active={detail.actionLoading === 'lumi-subtract'} onClick={() => void handleLumiAction('subtract')}>
-                    {getAdminText(lang, 'subtract_lumi')}
-                  </ActionPill>
                   <ActionPill onClick={() => detail.selectedUser ? onSendNotification(detail.selectedUser.id) : undefined}>
                     {getAdminText(lang, 'notify')}
                   </ActionPill>
-                </div>
-
-                <div className="mt-4 grid gap-3 sm:grid-cols-[132px_minmax(0,1fr)]">
-                  <AdminInput
-                    value={detail.lumiAmount}
-                    onChange={(event) => detail.setLumiAmount(event.target.value.replace(/[^\d]/g, ''))}
-                    placeholder={getAdminText(lang, 'amount_placeholder')}
-                    inputMode="numeric"
-                  />
-                  <AdminInput
-                    value={detail.lumiNote}
-                    onChange={(event) => detail.setLumiNote(event.target.value)}
-                    placeholder={getAdminText(lang, 'note_placeholder')}
-                  />
                 </div>
               </div>
             </div>
@@ -437,20 +391,6 @@ export const AdminUsersTab: React.FC<AdminUsersTabProps> = ({
                             : getAdminText(lang, 'no_stars')}
                         </p>
                       </DetailCard>
-
-                      {detail.selectedUser.recentLumiTransactions.length === 0 ? (
-                        <p className="text-sm leading-6 text-slate-400">{getAdminText(lang, 'no_transactions')}</p>
-                      ) : (
-                        <div className="space-y-3">
-                          {detail.selectedUser.recentLumiTransactions.map((transaction, index) => (
-                            <TransactionRow
-                              key={`${transaction.created_at}-${transaction.reason}-${index}`}
-                              transaction={transaction}
-                              lang={lang}
-                            />
-                          ))}
-                        </div>
-                      )}
                     </div>
                   </DetailAccordion>
 
@@ -558,7 +498,7 @@ const UserRow: React.FC<{
   <button
     type="button"
     onClick={onOpen}
-    className="grid w-full gap-4 px-5 py-4 text-left transition-colors hover:bg-white/[0.03] lg:grid-cols-[minmax(0,1.6fr)_112px_134px_160px] lg:items-center"
+    className="grid w-full gap-4 px-5 py-4 text-left transition-colors hover:bg-white/[0.03] lg:grid-cols-[minmax(0,1.6fr)_134px_160px] lg:items-center"
   >
     <div className="min-w-0">
       <div className="flex flex-wrap items-center gap-2">
@@ -568,12 +508,10 @@ const UserRow: React.FC<{
       </div>
       <p className="mt-1 truncate text-xs text-slate-500">{user.id}</p>
       <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-400 lg:hidden">
-        <span>{getAdminText(lang, 'lumi')}: {user.lumiBalance}</span>
         <span>{getAdminText(lang, 'slots_charts')}: {user.savedChartsCount} / {user.chartSlots}</span>
         <span>{getAdminText(lang, 'last_seen')}: {formatDateTime(lang, user.lastSeenAt || user.lastLogin)}</span>
       </div>
     </div>
-    <p className="hidden text-right text-sm font-medium text-slate-200 lg:block">{user.lumiBalance}</p>
     <p className="hidden text-right text-sm text-slate-300 lg:block">{user.savedChartsCount} / {user.chartSlots}</p>
     <p className="hidden text-right text-sm text-slate-400 lg:block">{formatDateTime(lang, user.lastSeenAt || user.lastLogin)}</p>
   </button>
@@ -627,7 +565,6 @@ const IdentityCard: React.FC<{
 
       <div className="grid gap-3 sm:grid-cols-2">
         <StatCard label={getAdminText(lang, 'premium_until')} value={formatDateTime(lang, detail.premiumUntil)} />
-        <StatCard label={getAdminText(lang, 'lumi')} value={`${detail.lumiBalance}`} />
         <StatCard label={getAdminText(lang, 'slots_charts')} value={`${detail.savedChartsCount} / ${detail.chartSlots}`} />
         <StatCard label={getAdminText(lang, 'last_seen')} value={formatDateTime(lang, detail.lastSeenAt)} />
       </div>
@@ -677,23 +614,6 @@ const DetailAccordion: React.FC<{
 
 const DetailCard: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div className="admin-surface-muted p-4">{children}</div>
-);
-
-const TransactionRow: React.FC<{
-  transaction: LumiTransaction;
-  lang: 'ru' | 'en';
-}> = ({ transaction, lang }) => (
-  <DetailCard>
-    <div className="flex items-start justify-between gap-4">
-      <div className="min-w-0">
-        <p className="text-sm text-white">{formatLumiReason(lang, transaction.reason)}</p>
-        <p className="mt-1 text-xs text-slate-400">{formatDateTime(lang, transaction.created_at)}</p>
-      </div>
-      <span className={`shrink-0 text-sm font-semibold ${transaction.amount >= 0 ? 'text-emerald-300' : 'text-red-300'}`}>
-        {transaction.amount >= 0 ? '+' : ''}{transaction.amount}
-      </span>
-    </div>
-  </DetailCard>
 );
 
 const SessionRow: React.FC<{

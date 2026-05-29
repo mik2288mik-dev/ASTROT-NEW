@@ -17,7 +17,7 @@ import {
   type AdminBackofficeSection,
 } from './admin/adminSections';
 
-type AdminOwnProfilePatch = Partial<Pick<UserProfile, 'isPremium' | 'lumiBalance' | 'chartSlots' | 'loginStreak'>>;
+type AdminOwnProfilePatch = Partial<Pick<UserProfile, 'isPremium' | 'chartSlots' | 'loginStreak'>>;
 
 interface AdminPanelProps {
   profile: UserProfile;
@@ -28,8 +28,6 @@ interface AdminPanelProps {
 const EMPTY_OVERVIEW: AdminUsersOverview = {
   totalUsers: 0,
   activePremiumUsers: 0,
-  totalLumiBalance: 0,
-  lumiEconomyUsers: 0,
   activeUsers7d: 0,
   needAttentionUsers: 0,
 };
@@ -265,13 +263,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onPatchOwnProfi
         segment: 'premium' as AdminUserSegment,
       },
       {
-        id: 'lumi_economy',
-        label: getAdminText(lang, 'metric_lumi_economy'),
-        value: overview.lumiEconomyUsers,
-        section: 'users' as AdminBackofficeSection,
-        segment: 'lumi' as AdminUserSegment,
-      },
-      {
         id: 'active',
         label: getAdminText(lang, 'metric_active'),
         value: overview.activeUsers7d,
@@ -289,7 +280,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onPatchOwnProfi
     [
       lang,
       overview.activePremiumUsers,
-      overview.lumiEconomyUsers,
       overview.activeUsers7d,
       overview.needAttentionUsers,
       overview.totalUsers,
@@ -301,7 +291,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onPatchOwnProfi
   };
 
   const premiumShare = overview.totalUsers > 0 ? Math.round((overview.activePremiumUsers / overview.totalUsers) * 100) : 0;
-  const lumiCoverage = overview.totalUsers > 0 ? Math.round((overview.lumiEconomyUsers / overview.totalUsers) * 100) : 0;
   const attentionShare = overview.totalUsers > 0 ? Math.round((overview.needAttentionUsers / overview.totalUsers) * 100) : 0;
 
   const missionActions = [
@@ -333,8 +322,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onPatchOwnProfi
       title: lang === 'ru' ? 'Авто-сценарии' : 'Automation',
       body:
         lang === 'ru'
-          ? 'Утро, день, вечер, Lumi и промо управляются из одного контура.'
-          : 'Morning, day, evening, Lumi, and promo flows in one place.',
+          ? 'Утро, день, вечер и промо управляются из одного контура.'
+          : 'Morning, day, evening, and promo flows in one place.',
       meta: lang === 'ru' ? 'Daily control' : 'Daily control',
       onClick: () => goSection('automation'),
     },
@@ -343,9 +332,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onPatchOwnProfi
       title: lang === 'ru' ? 'Экономика и Premium' : 'Economy and Premium',
       body:
         lang === 'ru'
-          ? 'Проверить Lumi-движение, платежи и монетизацию без переходов по кругу.'
-          : 'Review Lumi movement, payments, and monetization without extra hops.',
-      meta: lang === 'ru' ? `${overview.lumiEconomyUsers} с Lumi` : `${overview.lumiEconomyUsers} with Lumi`,
+          ? 'Проверить Premium, Stars-платежи и монетизацию без переходов по кругу.'
+          : 'Review Premium, Stars payments, and monetization without extra hops.',
+      meta: lang === 'ru' ? `${overview.activePremiumUsers} Premium` : `${overview.activePremiumUsers} Premium`,
       onClick: () => goSection('economy'),
     },
   ];
@@ -621,10 +610,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onPatchOwnProfi
                       </small>
                     </div>
                     <div className="admin-mission-summary-card">
-                      <span>{lang === 'ru' ? 'Lumi coverage' : 'Lumi coverage'}</span>
-                      <strong>{lumiCoverage}%</strong>
+                      <span>{lang === 'ru' ? 'Active 7d' : 'Active 7d'}</span>
+                      <strong>{overview.activeUsers7d}</strong>
                       <small>
-                        {overview.lumiEconomyUsers} {lang === 'ru' ? 'в Lumi-экономике' : 'in Lumi economy'}
+                        {lang === 'ru' ? 'активных за неделю' : 'active this week'}
                       </small>
                     </div>
                     <div className="admin-mission-summary-card">
@@ -714,8 +703,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onPatchOwnProfi
                           <strong>{overview.activePremiumUsers}</strong>
                         </div>
                         <div className="admin-mission-mini-card">
-                          <span>{getAdminText(lang, 'metric_lumi_economy')}</span>
-                          <strong>{overview.lumiEconomyUsers}</strong>
+                          <span>{getAdminText(lang, 'metric_attention')}</span>
+                          <strong>{overview.needAttentionUsers}</strong>
                         </div>
                       </div>
                     </AdminSurface>

@@ -7,13 +7,10 @@
 
 import { Pool, Client } from 'pg';
 import { LEGACY_NOTIFICATION_SEEDS, SCHEDULED_NOTIFICATION_SEEDS } from './adminNotificationSeedCatalog';
-import { getRouletteTierForAmount, pickDailyRouletteReward, ROULETTE_COOLDOWN_MS } from './rouletteEconomy';
 import { resolveDatabaseUrl } from './database-url';
 import {
   generateReferralCode,
   normalizeReferralCode,
-  REFERRAL_INVITEE_LUMI,
-  REFERRAL_INVITER_LUMI,
 } from './referralEconomy';
 import {
   CANONICAL_NATAL_CALCULATION_VERSION,
@@ -98,7 +95,7 @@ type AdminDbUserSegment =
   | 'inactive_7d'
   | 'inactive_30d'
   | 'need_attention';
-type AdminDbUserSortBy = 'last_seen' | 'created_at' | 'lumi_balance' | 'premium_until' | 'saved_charts_count' | 'name';
+type AdminDbUserSortBy = 'last_seen' | 'created_at' | 'premium_until' | 'saved_charts_count' | 'name';
 type AdminDbSortOrder = 'asc' | 'desc';
 type AdminDbNotificationMode = 'all' | 'personal' | 'broadcast';
 type AdminDbNotificationResult = 'all' | 'success' | 'partial' | 'failed';
@@ -120,19 +117,7 @@ type DbContentVariant =
   | 'one_off';
 type DbContentModelTier = 'base' | 'premium';
 type DbContentUnlockType = 'free' | 'premium' | 'stars' | 'lumi';
-type DbDailyLumiTaskKey = 'open_horoscope' | 'open_chart';
 type DbHoroscopeReactionKey = 'spot_on' | 'funny' | 'gentle' | 'not_mine';
-
-const DAILY_LUMI_TASKS: Array<{
-  key: DbDailyLumiTaskKey;
-  reward: number;
-  reason: string;
-}> = [
-  { key: 'open_horoscope', reward: 5, reason: 'daily_task_horoscope' },
-  { key: 'open_chart', reward: 5, reason: 'daily_task_chart' },
-];
-
-const DAILY_LUMI_TASKS_MAP = new Map(DAILY_LUMI_TASKS.map((task) => [task.key, task]));
 
 function normalizeJsonColumn<T = any>(value: any): T {
   if (value == null) return value;
@@ -270,7 +255,6 @@ const ADMIN_USER_METRICS_CTE = `
       u.birth_date,
       u.birth_time,
       u.premium_until,
-      COALESCE(u.lumi_balance, 0) AS lumi_balance,
       COALESCE(u.login_streak, 0) AS login_streak,
       COALESCE(u.chart_slots, 1) AS chart_slots,
       COALESCE(u.is_admin, FALSE) AS is_admin,
@@ -285,10 +269,7 @@ const ADMIN_USER_METRICS_CTE = `
   )
 `;
 
-const ADMIN_NEED_ATTENTION_SQL = `(
-  ((premium_until IS NULL OR premium_until <= NOW()) AND lumi_balance <= 10)
-  OR saved_charts_count >= chart_slots
-)`;
+const ADMIN_NEED_ATTENTION_SQL = `(saved_charts_count >= chart_slots)`;
 
 function getAdminPremiumFilterSql(paramIndex: number) {
   return `(
@@ -303,7 +284,6 @@ function getAdminUserSegmentSql(paramIndex: number) {
     $${paramIndex} = 'all'
     OR ($${paramIndex} = 'premium' AND premium_until IS NOT NULL AND premium_until > NOW())
     OR ($${paramIndex} = 'free' AND (premium_until IS NULL OR premium_until <= NOW()))
-    OR ($${paramIndex} = 'lumi' AND (premium_until IS NULL OR premium_until <= NOW()) AND lumi_balance > 0)
     OR ($${paramIndex} = 'active_7d' AND last_seen_at >= NOW() - INTERVAL '7 days')
     OR ($${paramIndex} = 'inactive_3d' AND (last_seen_at IS NULL OR last_seen_at < NOW() - INTERVAL '3 days'))
     OR ($${paramIndex} = 'inactive_7d' AND (last_seen_at IS NULL OR last_seen_at < NOW() - INTERVAL '7 days'))
@@ -329,8 +309,6 @@ function getAdminUserSortSql(sortBy: AdminDbUserSortBy, sortOrder: AdminDbSortOr
       return `LOWER(COALESCE(name, '')) ${direction}, created_at DESC`;
     case 'created_at':
       return `created_at ${direction}`;
-    case 'lumi_balance':
-      return `lumi_balance ${direction}, created_at DESC`;
     case 'premium_until':
       return `premium_until ${direction} NULLS LAST, created_at DESC`;
     case 'saved_charts_count':
@@ -664,7 +642,6 @@ export const db = {
           sun_sign: primaryChart?.sun_sign ?? u.sun_sign,
           moon_sign: primaryChart?.moon_sign ?? u.moon_sign,
           ascendant: primaryChart?.ascendant_sign ?? u.ascendant,
-          lumi_balance: u.lumi_balance ?? 0,
           premium_until: u.premium_until,
           ref_code: u.ref_code,
           referred_by: u.referred_by,
@@ -713,9 +690,9 @@ export const db = {
           `INSERT INTO users (
             id, name, birth_date, birth_time, birth_place,
             latitude, longitude, sun_sign, moon_sign, ascendant,
-            lumi_balance, premium_until, ref_code, referred_by,
+            premium_until, ref_code, referred_by,
             login_streak, last_login, language, theme, is_admin, weather_city
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
           ON CONFLICT (id) DO UPDATE SET
             name = COALESCE(EXCLUDED.name, users.name),
             birth_date = COALESCE(EXCLUDED.birth_date, users.birth_date),
@@ -726,7 +703,6 @@ export const db = {
             sun_sign = COALESCE(EXCLUDED.sun_sign, users.sun_sign),
             moon_sign = COALESCE(EXCLUDED.moon_sign, users.moon_sign),
             ascendant = COALESCE(EXCLUDED.ascendant, users.ascendant),
-            lumi_balance = COALESCE(EXCLUDED.lumi_balance, users.lumi_balance),
             premium_until = EXCLUDED.premium_until,
             language = COALESCE(EXCLUDED.language, users.language),
             theme = COALESCE(EXCLUDED.theme, users.theme),
@@ -744,7 +720,6 @@ export const db = {
             merge('sun_sign'),
             merge('moon_sign'),
             merge('ascendant'),
-            merge('lumi_balance', 0),
             premiumUntil,
             merge('ref_code'),
             merge('referred_by'),
@@ -808,42 +783,6 @@ export const db = {
       }
     },
 
-    async buyChartSlot(userId: string, cost: number): Promise<{ success: true; newBalance: number; chartSlots: number }> {
-      const id = toUserId(userId);
-      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
-      const dbPool = getPool();
-      const client = await dbPool.connect();
-      try {
-        await client.query('BEGIN');
-        const result = await client.query(
-          `UPDATE users
-           SET lumi_balance = COALESCE(lumi_balance, 0) - $1,
-               chart_slots = COALESCE(chart_slots, 1) + 1
-           WHERE id = $2 AND COALESCE(lumi_balance, 0) >= $1
-           RETURNING lumi_balance, chart_slots`,
-          [cost, id]
-        );
-        if (result.rows.length === 0) {
-          await client.query('ROLLBACK');
-          throw new Error('Insufficient Lumi balance');
-        }
-        await client.query(
-          `INSERT INTO lumi_transactions (user_id, amount, reason) VALUES ($1, $2, $3)`,
-          [id, -cost, 'chart_slot']
-        );
-        const newBalance = result.rows[0].lumi_balance ?? 0;
-        const chartSlots = result.rows[0].chart_slots ?? 1;
-        await client.query('COMMIT');
-        return { success: true, newBalance, chartSlots };
-      } catch (error: any) {
-        await client.query('ROLLBACK').catch(() => {});
-        log.error('[DB] Error buyChartSlot', { error: error.message, userId });
-        throw error;
-      } finally {
-        client.release();
-      }
-    },
-
     async ensureReferralCode(userId: string): Promise<string | null> {
       const id = toUserId(userId);
       if (!DATABASE_URL) return null;
@@ -878,7 +817,7 @@ export const db = {
     async claimReferralBonus(
       inviteeId: string,
       rawCode: string
-    ): Promise<{ inviteeGain: number; inviterGain: number; newBalance: number }> {
+    ): Promise<{ referralApplied: true }> {
       const id = toUserId(inviteeId);
       const code = normalizeReferralCode(rawCode);
       if (!code) {
@@ -908,7 +847,7 @@ export const db = {
         await client.query('BEGIN');
 
         const inv = await client.query(
-          `SELECT id, referred_by, lumi_balance FROM users WHERE id = $1 FOR UPDATE`,
+          `SELECT id, referred_by FROM users WHERE id = $1 FOR UPDATE`,
           [id]
         );
         if (inv.rows.length === 0) {
@@ -933,138 +872,14 @@ export const db = {
           throw err;
         }
 
-        await client.query(
-          `UPDATE users SET lumi_balance = COALESCE(lumi_balance, 0) + $1 WHERE id = $2`,
-          [REFERRAL_INVITEE_LUMI, id]
-        );
-        await client.query(
-          `INSERT INTO lumi_transactions (user_id, amount, reason) VALUES ($1, $2, 'referral_bonus')`,
-          [id, REFERRAL_INVITEE_LUMI]
-        );
-
-        await client.query(
-          `UPDATE users SET lumi_balance = COALESCE(lumi_balance, 0) + $1 WHERE id = $2`,
-          [REFERRAL_INVITER_LUMI, inviterId]
-        );
-        await client.query(
-          `INSERT INTO lumi_transactions (user_id, amount, reason) VALUES ($1, $2, 'referral_bonus')`,
-          [inviterId, REFERRAL_INVITER_LUMI]
-        );
-
-        const bal = await client.query('SELECT lumi_balance FROM users WHERE id = $1', [id]);
-        const newBalance = bal.rows[0]?.lumi_balance ?? 0;
         await client.query('COMMIT');
-        return {
-          inviteeGain: REFERRAL_INVITEE_LUMI,
-          inviterGain: REFERRAL_INVITER_LUMI,
-          newBalance,
-        };
+        return { referralApplied: true };
       } catch (error: any) {
         await client.query('ROLLBACK').catch(() => {});
         if (error?.code === 'REFERRAL_ALREADY_CLAIMED' || error?.code === 'REFERRAL_INVALID_CODE' || error?.code === 'REFERRAL_SELF') {
           throw error;
         }
         log.error('[DB] claimReferralBonus', { error: error.message, inviteeId });
-        throw error;
-      } finally {
-        client.release();
-      }
-    },
-
-    /**
-     * Process daily login: atomic check + award + update.
-     * Prevents double-award for same day. Uses UTC dates.
-     */
-    async processDailyLogin(userId: string): Promise<{
-      awardedToday: boolean;
-      dailyReward?: number;
-      streakBonus?: number;
-      streak: number;
-      newBalance: number;
-    }> {
-      const id = toUserId(userId);
-      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
-
-      const DAILY_REWARD = 3;
-      const STREAK_BONUSES: Record<number, number> = { 3: 10, 7: 20, 30: 30 };
-
-      const dbPool = getPool();
-      const client = await dbPool.connect();
-      try {
-        await client.query('BEGIN');
-
-        const row = await client.query(
-          `SELECT last_login, login_streak, lumi_balance FROM users WHERE id = $1 FOR UPDATE`,
-          [id]
-        );
-        if (row.rows.length === 0) {
-          await client.query('ROLLBACK');
-          throw new Error('User not found');
-        }
-
-        const lastLogin = row.rows[0].last_login;
-        const currentStreak = row.rows[0].login_streak ?? 0;
-        const currentBalance = row.rows[0].lumi_balance ?? 0;
-
-        const now = new Date();
-        const todayUtc = now.toISOString().slice(0, 10);
-        const lastLoginDate = lastLogin ? new Date(lastLogin).toISOString().slice(0, 10) : null;
-
-        if (lastLoginDate === todayUtc) {
-          await client.query('ROLLBACK');
-          return {
-            awardedToday: false,
-            streak: currentStreak,
-            newBalance: currentBalance,
-          };
-        }
-
-        const yesterday = new Date(now);
-        yesterday.setUTCDate(yesterday.getUTCDate() - 1);
-        const yesterdayUtc = yesterday.toISOString().slice(0, 10);
-
-        let newStreak: number;
-        if (!lastLoginDate) {
-          newStreak = 1;
-        } else if (lastLoginDate === yesterdayUtc) {
-          newStreak = currentStreak + 1;
-        } else {
-          newStreak = 1;
-        }
-
-        const dailyReward = DAILY_REWARD;
-        const streakBonus = STREAK_BONUSES[newStreak] ?? 0;
-        const total = dailyReward + streakBonus;
-
-        await client.query(
-          `UPDATE users SET last_login = NOW(), login_streak = $1, lumi_balance = COALESCE(lumi_balance, 0) + $2 WHERE id = $3`,
-          [newStreak, total, id]
-        );
-
-        await client.query(
-          `INSERT INTO lumi_transactions (user_id, amount, reason) VALUES ($1, $2, $3)`,
-          [id, dailyReward, 'daily_login']
-        );
-        if (streakBonus > 0) {
-          await client.query(
-            `INSERT INTO lumi_transactions (user_id, amount, reason) VALUES ($1, $2, $3)`,
-            [id, streakBonus, 'streak_bonus']
-          );
-        }
-
-        const newBalance = currentBalance + total;
-        await client.query('COMMIT');
-
-        return {
-          awardedToday: true,
-          dailyReward,
-          streakBonus: streakBonus > 0 ? streakBonus : undefined,
-          streak: newStreak,
-          newBalance,
-        };
-      } catch (error: any) {
-        await client.query('ROLLBACK').catch(() => {});
-        log.error('[DB] Error processDailyLogin', { error: error.message, userId });
         throw error;
       } finally {
         client.release();
@@ -1090,7 +905,6 @@ export const db = {
           is_premium: isPremium,
           is_admin: u.is_admin ?? false,
           weather_city: u.weather_city,
-          lumi_balance: u.lumi_balance ?? 0,
           login_streak: u.login_streak ?? 0,
         };
         });
@@ -1496,7 +1310,7 @@ export const db = {
         const user = await db.users.get(userId);
         const slots = user?.chart_slots ?? 1;
         if (chartsCount >= slots) {
-          throw new Error(`Chart slots limit reached (${slots}). Purchase more with Lumi.`);
+          throw new Error(`Chart slots limit reached (${slots}). Upgrade to Premium for more slots.`);
         }
 
         const saved = await this._insertChartRow(client, userId, payload, chartsCount === 0);
@@ -2436,127 +2250,6 @@ export const db = {
     },
   },
 
-  /** lumi_transactions - balance and history (Lumia) */
-  lumi_transactions: {
-    /** Transactional add: ensures users.lumi_balance and lumi_transactions stay in sync */
-    async addTransactional(userId: string, amount: number, reason: string): Promise<{ success: true; newBalance: number }> {
-      const id = toUserId(userId);
-      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
-      const dbPool = getPool();
-      const client = await dbPool.connect();
-      try {
-        await client.query('BEGIN');
-        await client.query(
-          `UPDATE users SET lumi_balance = COALESCE(lumi_balance, 0) + $1 WHERE id = $2`,
-          [amount, id]
-        );
-        await client.query(
-          `INSERT INTO lumi_transactions (user_id, amount, reason) VALUES ($1, $2, $3)`,
-          [id, amount, reason]
-        );
-        const bal = await client.query('SELECT lumi_balance FROM users WHERE id = $1', [id]);
-        const newBalance = bal.rows.length > 0 ? (bal.rows[0].lumi_balance ?? 0) : 0;
-        await client.query('COMMIT');
-        return { success: true, newBalance };
-      } catch (error: any) {
-        await client.query('ROLLBACK').catch(() => {});
-        log.error('[DB] Error adding lumi (transactional)', { error: error.message, userId });
-        throw error;
-      } finally {
-        client.release();
-      }
-    },
-
-    /** Transactional deduct: ensures users.lumi_balance and lumi_transactions stay in sync. Fails if insufficient. */
-    async deductTransactional(userId: string, amount: number, reason: string): Promise<{ success: true; newBalance: number }> {
-      const id = toUserId(userId);
-      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
-      const dbPool = getPool();
-      const client = await dbPool.connect();
-      try {
-        await client.query('BEGIN');
-        const result = await client.query(
-          `UPDATE users SET lumi_balance = COALESCE(lumi_balance, 0) - $1
-           WHERE id = $2 AND COALESCE(lumi_balance, 0) >= $1
-           RETURNING lumi_balance`,
-          [amount, id]
-        );
-        if (result.rows.length === 0) {
-          await client.query('ROLLBACK');
-          throw new Error('Insufficient Lumi balance');
-        }
-        await client.query(
-          `INSERT INTO lumi_transactions (user_id, amount, reason) VALUES ($1, $2, $3)`,
-          [id, -amount, reason]
-        );
-        const newBalance = result.rows[0].lumi_balance ?? 0;
-        await client.query('COMMIT');
-        return { success: true, newBalance };
-      } catch (error: any) {
-        await client.query('ROLLBACK').catch(() => {});
-        log.error('[DB] Error deducting lumi (transactional)', { error: error.message, userId });
-        throw error;
-      } finally {
-        client.release();
-      }
-    },
-
-    async add(userId: string, amount: number, reason: string) {
-      await this.addTransactional(userId, amount, reason);
-      return { success: true };
-    },
-
-    async getBalance(userId: string) {
-      const id = toUserId(userId);
-      if (!DATABASE_URL) return 0;
-      try {
-        const dbPool = getPool();
-        const result = await dbPool.query('SELECT lumi_balance FROM users WHERE id = $1', [id]);
-        return result.rows.length === 0 ? 0 : (result.rows[0].lumi_balance ?? 0);
-      } catch (error: any) {
-        log.error('[DB] Error getting balance', { error: error.message, userId });
-        throw error;
-      }
-    },
-
-    async getHistory(userId: string, limit = 50) {
-      const id = toUserId(userId);
-      if (!DATABASE_URL) return [];
-      try {
-        const dbPool = getPool();
-        const result = await dbPool.query(
-          `SELECT amount, reason, created_at FROM lumi_transactions WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2`,
-          [id, limit]
-        );
-        return result.rows;
-      } catch (error: any) {
-        log.error('[DB] Error getting history', { error: error.message, userId });
-        throw error;
-      }
-    },
-
-    async deduct(userId: string, amount: number, reason: string) {
-      return this.deductTransactional(userId, amount, reason);
-    },
-
-    getRegenerationCountThisWeek: async (userId: string) => {
-      const id = toUserId(userId);
-      if (!DATABASE_URL) return 0;
-      try {
-        const dbPool = getPool();
-        const result = await dbPool.query(
-          `SELECT COUNT(*) FROM lumi_transactions
-           WHERE user_id = $1 AND reason IN ('regenerate_natal', 'regenerate_deep_dive', 'regenerate_synastry') AND created_at >= NOW() - INTERVAL '7 days'`,
-          [id]
-        );
-        return parseInt(result.rows[0].count);
-      } catch (error: any) {
-        log.error('[DB] Error getting regeneration count', { error: error.message, userId });
-        throw error;
-      }
-    },
-  },
-
   /** star_payments - idempotency for Telegram Stars premium purchases */
   star_payments: {
     async exists(telegramPaymentChargeId: string): Promise<boolean> {
@@ -2695,341 +2388,6 @@ export const db = {
     },
   },
 
-  /** roulette_spins (Lumia) */
-  roulette_spins: {
-    async add(userId: string, winAmount: number) {
-      const id = toUserId(userId);
-      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
-      try {
-        const dbPool = getPool();
-        await dbPool.query(
-          `INSERT INTO roulette_spins (user_id, win_amount) VALUES ($1, $2)`,
-          [id, winAmount]
-        );
-        return { success: true };
-      } catch (error: any) {
-        log.error('[DB] Error adding roulette spin', { error: error.message, userId });
-        throw error;
-      }
-    },
-
-    async getTodayCount(userId: string) {
-      const id = toUserId(userId);
-      if (!DATABASE_URL) return 0;
-      try {
-        const dbPool = getPool();
-        const result = await dbPool.query(
-          `SELECT COUNT(*) FROM roulette_spins WHERE user_id = $1 AND created_at::date = CURRENT_DATE`,
-          [id]
-        );
-        return parseInt(result.rows[0].count);
-      } catch (error: any) {
-        log.error('[DB] Error getting today spin count', { error: error.message, userId });
-        throw error;
-      }
-    },
-
-    async getCooldownStatus(userId: string): Promise<{
-      canSpin: boolean;
-      nextAvailableAt: string | null;
-      lastSpinAt: string | null;
-      lastWinAmount: number | null;
-      lastWinTier: 'spark' | 'glow' | 'beam' | 'aurora' | null;
-      lumiBalance: number;
-    }> {
-      const id = toUserId(userId);
-      if (!DATABASE_URL) {
-        return {
-          canSpin: true,
-          nextAvailableAt: null,
-          lastSpinAt: null,
-          lastWinAmount: null,
-          lastWinTier: null,
-          lumiBalance: 0,
-        };
-      }
-      try {
-        const dbPool = getPool();
-        const [spinResult, balanceResult] = await Promise.all([
-          dbPool.query(
-            `SELECT win_amount, created_at
-             FROM roulette_spins
-             WHERE user_id = $1
-             ORDER BY created_at DESC
-             LIMIT 1`,
-            [id]
-          ),
-          dbPool.query(
-            `SELECT lumi_balance
-             FROM users
-             WHERE id = $1`,
-            [id]
-          ),
-        ]);
-
-        const latest = spinResult.rows[0] || null;
-        const lumiBalance = balanceResult.rows[0]?.lumi_balance ?? 0;
-
-        if (!latest?.created_at) {
-          return {
-            canSpin: true,
-            nextAvailableAt: null,
-            lastSpinAt: null,
-            lastWinAmount: null,
-            lastWinTier: null,
-            lumiBalance,
-          };
-        }
-
-        const lastSpinAt = new Date(latest.created_at);
-        const nextAvailableAt = new Date(lastSpinAt.getTime() + ROULETTE_COOLDOWN_MS);
-        const canSpin = nextAvailableAt.getTime() <= Date.now();
-        const lastWinAmount = Number(latest.win_amount ?? 0);
-
-        return {
-          canSpin,
-          nextAvailableAt: canSpin ? null : nextAvailableAt.toISOString(),
-          lastSpinAt: lastSpinAt.toISOString(),
-          lastWinAmount,
-          lastWinTier: getRouletteTierForAmount(lastWinAmount),
-          lumiBalance,
-        };
-      } catch (error: any) {
-        log.error('[DB] getCooldownStatus', { error: error.message, userId });
-        throw error;
-      }
-    },
-
-    /**
-     * One roulette credit per rolling 24h window; serialized per user.
-     * Writes lumi_transactions + roulette_spins.
-     */
-    async spinDailyReward(userId: string): Promise<
-      | { ok: true; amount: number; tier: string; newBalance: number; nextAvailableAt: string }
-      | { ok: false; code: 'COOLDOWN'; newBalance: number; nextAvailableAt: string }
-    > {
-      const id = toUserId(userId);
-      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
-
-      const prize = pickDailyRouletteReward();
-      const dbPool = getPool();
-      const client = await dbPool.connect();
-      try {
-        await client.query('BEGIN');
-        await client.query('SELECT pg_advisory_xact_lock($1)', [advisoryXactLockKey(id)]);
-
-        const cooldown = await client.query(
-          `SELECT created_at
-           FROM roulette_spins
-           WHERE user_id = $1
-             AND created_at > CURRENT_TIMESTAMP - INTERVAL '24 hours'
-           ORDER BY created_at DESC
-           LIMIT 1`,
-          [id]
-        );
-        if (cooldown.rows.length > 0) {
-          const latestSpinAt = new Date(cooldown.rows[0].created_at);
-          const nextAvailableAt = new Date(latestSpinAt.getTime() + ROULETTE_COOLDOWN_MS).toISOString();
-          const balRow = await client.query('SELECT lumi_balance FROM users WHERE id = $1', [id]);
-          const newBalance = balRow.rows[0]?.lumi_balance ?? 0;
-          await client.query('COMMIT');
-          return { ok: false, code: 'COOLDOWN', newBalance, nextAvailableAt };
-        }
-
-        await client.query(
-          `UPDATE users SET lumi_balance = COALESCE(lumi_balance, 0) + $1 WHERE id = $2`,
-          [prize.amount, id]
-        );
-        await client.query(
-          `INSERT INTO lumi_transactions (user_id, amount, reason) VALUES ($1, $2, 'roulette_win')`,
-          [id, prize.amount]
-        );
-        await client.query(`INSERT INTO roulette_spins (user_id, win_amount) VALUES ($1, $2)`, [id, prize.amount]);
-
-        const bal = await client.query('SELECT lumi_balance FROM users WHERE id = $1', [id]);
-        const newBalance = bal.rows[0]?.lumi_balance ?? 0;
-        await client.query('COMMIT');
-        return {
-          ok: true,
-          amount: prize.amount,
-          tier: prize.tier,
-          newBalance,
-          nextAvailableAt: new Date(Date.now() + ROULETTE_COOLDOWN_MS).toISOString(),
-        };
-      } catch (error: any) {
-        await client.query('ROLLBACK').catch(() => {});
-        log.error('[DB] spinDailyReward', { error: error.message, userId });
-        throw error;
-      } finally {
-        client.release();
-      }
-    },
-  },
-
-  daily_task_completions: {
-    async getStatus(userId: string) {
-      const id = toUserId(userId);
-      if (!DATABASE_URL) {
-        return {
-          date: null,
-          totalReward: DAILY_LUMI_TASKS.reduce((sum, task) => sum + task.reward, 0),
-          earnedToday: 0,
-          completedCount: 0,
-          tasks: DAILY_LUMI_TASKS.map((task) => ({
-            key: task.key,
-            reward: task.reward,
-            completed: false,
-            completedAt: null,
-          })),
-          lumiBalance: 0,
-        };
-      }
-
-      try {
-        const dbPool = getPool();
-        const [todayResult, tasksResult, balanceResult] = await Promise.all([
-          dbPool.query(`SELECT (CURRENT_TIMESTAMP AT TIME ZONE 'Europe/Moscow')::date::text AS today`),
-          dbPool.query(
-            `SELECT task_key, lumi_awarded, created_at
-             FROM daily_task_completions
-             WHERE user_id = $1
-               AND task_date = (CURRENT_TIMESTAMP AT TIME ZONE 'Europe/Moscow')::date`,
-            [id]
-          ),
-          dbPool.query('SELECT lumi_balance FROM users WHERE id = $1', [id]),
-        ]);
-
-        const completions = new Map(
-          tasksResult.rows.map((row: any) => [
-            String(row.task_key),
-            {
-              amount: Number(row.lumi_awarded ?? 0),
-              completedAt: row.created_at ? new Date(row.created_at).toISOString() : null,
-            },
-          ])
-        );
-
-        const tasks = DAILY_LUMI_TASKS.map((task) => {
-          const completion = completions.get(task.key);
-          return {
-            key: task.key,
-            reward: task.reward,
-            completed: !!completion,
-            completedAt: completion?.completedAt ?? null,
-          };
-        });
-
-        return {
-          date: todayResult.rows[0]?.today ?? null,
-          totalReward: DAILY_LUMI_TASKS.reduce((sum, task) => sum + task.reward, 0),
-          earnedToday: tasks.reduce((sum, task) => sum + (task.completed ? task.reward : 0), 0),
-          completedCount: tasks.filter((task) => task.completed).length,
-          tasks,
-          lumiBalance: Number(balanceResult.rows[0]?.lumi_balance ?? 0),
-        };
-      } catch (error: any) {
-        log.error('[DB] daily_task_completions.getStatus', { error: error.message, userId });
-        throw error;
-      }
-    },
-
-    async complete(userId: string, taskKey: DbDailyLumiTaskKey) {
-      const id = toUserId(userId);
-      const task = DAILY_LUMI_TASKS_MAP.get(taskKey);
-      if (!task) {
-        const error = new Error(`Unsupported daily task key: ${taskKey}`);
-        (error as any).code = 'INVALID_TASK_KEY';
-        throw error;
-      }
-      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
-
-      const dbPool = getPool();
-      const client = await dbPool.connect();
-      try {
-        await client.query('BEGIN');
-        await client.query('SELECT pg_advisory_xact_lock($1)', [advisoryXactLockKey(id)]);
-
-        const userRow = await client.query('SELECT id FROM users WHERE id = $1 FOR UPDATE', [id]);
-        if (userRow.rows.length === 0) {
-          await client.query('ROLLBACK');
-          throw new Error('User not found');
-        }
-
-        const insertResult = await client.query(
-          `INSERT INTO daily_task_completions (user_id, task_key, task_date, lumi_awarded)
-           VALUES ($1, $2, (CURRENT_TIMESTAMP AT TIME ZONE 'Europe/Moscow')::date, $3)
-           ON CONFLICT (user_id, task_key, task_date) DO NOTHING
-           RETURNING lumi_awarded`,
-          [id, task.key, task.reward]
-        );
-
-        const awarded = insertResult.rows.length > 0;
-        if (awarded) {
-          await client.query(
-            `UPDATE users
-             SET lumi_balance = COALESCE(lumi_balance, 0) + $1
-             WHERE id = $2`,
-            [task.reward, id]
-          );
-          await client.query(
-            `INSERT INTO lumi_transactions (user_id, amount, reason) VALUES ($1, $2, $3)`,
-            [id, task.reward, task.reason]
-          );
-        }
-
-        const statusRows = await client.query(
-          `SELECT task_key, lumi_awarded, created_at
-           FROM daily_task_completions
-           WHERE user_id = $1
-             AND task_date = (CURRENT_TIMESTAMP AT TIME ZONE 'Europe/Moscow')::date`,
-          [id]
-        );
-        const balanceRow = await client.query('SELECT lumi_balance FROM users WHERE id = $1', [id]);
-        const todayRow = await client.query(
-          `SELECT (CURRENT_TIMESTAMP AT TIME ZONE 'Europe/Moscow')::date::text AS today`
-        );
-
-        await client.query('COMMIT');
-
-        const completions = new Map(
-          statusRows.rows.map((row: any) => [
-            String(row.task_key),
-            {
-              amount: Number(row.lumi_awarded ?? 0),
-              completedAt: row.created_at ? new Date(row.created_at).toISOString() : null,
-            },
-          ])
-        );
-        const tasks = DAILY_LUMI_TASKS.map((entry) => {
-          const completion = completions.get(entry.key);
-          return {
-            key: entry.key,
-            reward: entry.reward,
-            completed: !!completion,
-            completedAt: completion?.completedAt ?? null,
-          };
-        });
-
-        return {
-          taskKey: task.key,
-          awarded,
-          amountAwarded: awarded ? task.reward : 0,
-          date: todayRow.rows[0]?.today ?? null,
-          totalReward: DAILY_LUMI_TASKS.reduce((sum, entry) => sum + entry.reward, 0),
-          earnedToday: tasks.reduce((sum, entry) => sum + (entry.completed ? entry.reward : 0), 0),
-          completedCount: tasks.filter((entry) => entry.completed).length,
-          tasks,
-          lumiBalance: Number(balanceRow.rows[0]?.lumi_balance ?? 0),
-        };
-      } catch (error: any) {
-        await client.query('ROLLBACK').catch(() => {});
-        log.error('[DB] daily_task_completions.complete', { error: error.message, userId, taskKey });
-        throw error;
-      } finally {
-        client.release();
-      }
-    },
-  },
 
   /** daily_horoscopes - general by zodiac sign (Lumia) */
   daily_horoscopes: {
@@ -3743,7 +3101,6 @@ export const db = {
             name: row.name || 'Unnamed user',
             premium_until: row.premium_until,
             is_premium: !!(row.premium_until && new Date(row.premium_until) > new Date()),
-            lumi_balance: row.lumi_balance ?? 0,
             login_streak: row.login_streak ?? 0,
             chart_slots: row.chart_slots ?? 1,
             saved_charts_count: row.saved_charts_count ?? 0,
@@ -3770,8 +3127,6 @@ export const db = {
         return {
           total_users: 0,
           active_premium_users: 0,
-          total_lumi_balance: 0,
-          lumi_economy_users: 0,
           active_users_7d: 0,
           need_attention_users: 0,
         };
@@ -3784,8 +3139,6 @@ export const db = {
            SELECT
              COUNT(*)::int AS total_users,
              COUNT(*) FILTER (WHERE premium_until IS NOT NULL AND premium_until > NOW())::int AS active_premium_users,
-             COALESCE(SUM(lumi_balance), 0)::int AS total_lumi_balance,
-             COUNT(*) FILTER (WHERE (premium_until IS NULL OR premium_until <= NOW()) AND lumi_balance > 0)::int AS lumi_economy_users,
              COUNT(*) FILTER (WHERE last_seen_at >= NOW() - INTERVAL '7 days')::int AS active_users_7d,
              COUNT(*) FILTER (WHERE ${ADMIN_NEED_ATTENTION_SQL})::int AS need_attention_users
            FROM user_metrics`
@@ -3794,8 +3147,6 @@ export const db = {
         return result.rows[0] || {
           total_users: 0,
           active_premium_users: 0,
-          total_lumi_balance: 0,
-          lumi_economy_users: 0,
           active_users_7d: 0,
           need_attention_users: 0,
         };
@@ -3811,7 +3162,6 @@ export const db = {
 
       const charts = await db.natal_charts.getAll(userId);
       const primaryChart = charts.find((chart: any) => chart.is_primary) || null;
-      const recentLumiTransactions = await db.lumi_transactions.getHistory(userId, 6);
       const latestStarsPayment = await db.star_payments.getLatestByUser(userId);
       const recentSessions = await db.user_sessions.getRecentByUser(userId, 3);
       const recentOracleQuestions = await db.astro_questions.getByUser(userId, 3);
@@ -3826,7 +3176,6 @@ export const db = {
         birth_place: user.birth_place,
         premium_until: user.premium_until,
         is_premium: user.is_premium,
-        lumi_balance: user.lumi_balance ?? 0,
         login_streak: user.login_streak ?? 0,
         chart_slots: user.chart_slots ?? 1,
         saved_charts_count: charts.length,
@@ -3844,7 +3193,6 @@ export const db = {
               birth_place: primaryChart.birth_place,
             }
           : null,
-        recent_lumi_transactions: recentLumiTransactions,
         recent_sessions: recentSessions,
         recent_oracle_questions: recentOracleQuestions,
         latest_stars_payment: latestStarsPayment,

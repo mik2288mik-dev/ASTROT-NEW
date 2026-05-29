@@ -28,7 +28,6 @@ export function serializeAdminUserSummary(row: any) {
     name: row.name || 'Unnamed user',
     isPremium: !!row.is_premium,
     premiumUntil: row.premium_until ?? null,
-    lumiBalance: row.lumi_balance ?? 0,
     loginStreak: row.login_streak ?? 0,
     chartSlots: row.chart_slots ?? 1,
     savedChartsCount: row.saved_charts_count ?? 0,
@@ -48,7 +47,6 @@ export function serializeAdminUserDetail(row: any) {
     birthPlace: row.birth_place || '',
     isPremium: !!row.is_premium,
     premiumUntil: row.premium_until ?? null,
-    lumiBalance: row.lumi_balance ?? 0,
     loginStreak: row.login_streak ?? 0,
     chartSlots: row.chart_slots ?? 1,
     savedChartsCount: row.saved_charts_count ?? 0,
@@ -66,11 +64,6 @@ export function serializeAdminUserDetail(row: any) {
           birthPlace: row.primary_chart.birth_place || '',
         }
       : null,
-    recentLumiTransactions: (row.recent_lumi_transactions || []).map((transaction: any) => ({
-      amount: transaction.amount,
-      reason: transaction.reason,
-      created_at: transaction.created_at,
-    })),
     recentSessions: (row.recent_sessions || []).map((session: any) => ({
       sessionId: session.session_id,
       telegramPlatform: session.telegram_platform ?? null,
@@ -246,8 +239,6 @@ export function serializeAdminUsersOverview(row: any) {
   return {
     totalUsers: Number(row.total_users ?? 0),
     activePremiumUsers: Number(row.active_premium_users ?? 0),
-    totalLumiBalance: Number(row.total_lumi_balance ?? 0),
-    lumiEconomyUsers: Number(row.lumi_economy_users ?? 0),
     activeUsers7d: Number(row.active_users_7d ?? 0),
     needAttentionUsers: Number(row.need_attention_users ?? 0),
   };

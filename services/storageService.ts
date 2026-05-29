@@ -1,9 +1,6 @@
 import {
   UserProfile,
   NatalChartData,
-  LumiWalletData,
-  DailyLumiTaskKey,
-  DailyLumiTasksStatus,
 } from "../types";
 import { toDateInputValue } from "../lib/date-utils";
 import { fetchWithTimeout } from "../lib/fetchWithTimeout";
@@ -194,211 +191,10 @@ export const getProfile = async (): Promise<UserProfile | null> => {
   return null;
 };
 
-/**
- * Process daily login bonus and streak.
- * Returns updated balance and streak. Safe to call every app load - backend prevents double-award.
- */
-export const processDailyLogin = async (userId: string): Promise<{
-  awardedToday: boolean;
-  dailyReward?: number;
-  streakBonus?: number;
-  streak: number;
-  newBalance: number;
-}> => {
-  if (!isValidUserId(userId)) throw new Error('UserId is required');
-  const url = `${API_BASE_URL}/api/users/daily-login`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ userId }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || `Daily login failed: ${res.status}`);
-  }
-  return res.json();
-};
-
-/**
- * Fetch current Lumi balance from API (for refresh after add/spend)
- */
-export const getLumiBalance = async (userId: string): Promise<number> => {
-  if (!isValidUserId(userId)) {
-    throw new Error('UserId is required');
-  }
-
-  const url = `${API_BASE_URL}/api/users/lumi?userId=${encodeURIComponent(userId)}`;
-  const res = await fetch(url, { cache: 'no-store' });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || err.error || `Failed to fetch Lumi balance: ${res.status}`);
-  }
-
-  const data = await res.json();
-  return data.lumi_balance ?? 0;
-};
-
-export const getLumiWallet = async (userId: string, limit = 30): Promise<LumiWalletData> => {
-  if (!isValidUserId(userId)) {
-    return { lumi_balance: 0, transactions: [] };
-  }
-
-  const url = `${API_BASE_URL}/api/users/lumi?userId=${encodeURIComponent(userId)}&includeHistory=true&limit=${encodeURIComponent(String(limit))}`;
-  const res = await fetch(url, { cache: 'no-store' });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || err.error || `Failed to fetch Lumi wallet: ${res.status}`);
-  }
-
-  const data = await res.json();
-  return {
-    lumi_balance: data.lumi_balance ?? 0,
-    transactions: data.transactions ?? [],
-  };
-};
-
-export type DailyRouletteStatus = {
-  canSpin: boolean;
-  nextAvailableAt: string | null;
-  lastSpinAt: string | null;
-  lastWinAmount: number | null;
-  lastWinTier: string | null;
-  lumiBalance: number;
-};
-
-export const getDailyRouletteStatus = async (
-  userId: string
-): Promise<DailyRouletteStatus> => {
-  if (!isValidUserId(userId)) {
-    return {
-      canSpin: true,
-      nextAvailableAt: null,
-      lastSpinAt: null,
-      lastWinAmount: null,
-      lastWinTier: null,
-      lumiBalance: 0,
-    };
-  }
-  const url = `${API_BASE_URL}/api/users/lumi/daily-roulette?userId=${encodeURIComponent(userId)}`;
-  const res = await fetch(url, { cache: 'no-store' });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || err.error || `Roulette status failed: ${res.status}`);
-  }
-  const data = await res.json();
-  return {
-    canSpin: data.canSpin !== false,
-    nextAvailableAt: data.nextAvailableAt ?? null,
-    lastSpinAt: data.lastSpinAt ?? null,
-    lastWinAmount: typeof data.lastWinAmount === 'number' ? data.lastWinAmount : null,
-    lastWinTier: data.lastWinTier ?? null,
-    lumiBalance: data.lumiBalance ?? 0,
-  };
-};
-
-export type DailyRouletteSpinResult =
-  | { ok: true; amount: number; tier: string; lumiBalance: number; nextAvailableAt: string | null }
-  | { ok: false; code: 'COOLDOWN'; lumiBalance: number; nextAvailableAt: string | null };
-
-export const postDailyRouletteSpin = async (userId: string): Promise<DailyRouletteSpinResult> => {
-  if (!isValidUserId(userId)) throw new Error('UserId is required');
-  const res = await fetch(`${API_BASE_URL}/api/users/lumi/daily-roulette`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ userId }),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(data.message || data.error || `Roulette spin failed: ${res.status}`);
-  }
-  if (data.ok === false && data.code === 'COOLDOWN') {
-    return {
-      ok: false,
-      code: 'COOLDOWN',
-      lumiBalance: data.lumiBalance ?? 0,
-      nextAvailableAt: data.nextAvailableAt ?? null,
-    };
-  }
-  if (data.ok === true) {
-    return {
-      ok: true,
-      amount: data.amount,
-      tier: data.tier,
-      lumiBalance: data.lumiBalance,
-      nextAvailableAt: data.nextAvailableAt ?? null,
-    };
-  }
-  throw new Error(data.message || 'Unexpected roulette response');
-};
-
-export type DailyLumiTaskCompletionResult = DailyLumiTasksStatus & {
-  taskKey: DailyLumiTaskKey;
-  awarded: boolean;
-  amountAwarded: number;
-};
-
-export const getDailyLumiTasksStatus = async (userId: string): Promise<DailyLumiTasksStatus> => {
-  if (!isValidUserId(userId)) {
-    return {
-      date: '',
-      totalReward: 0,
-      earnedToday: 0,
-      completedCount: 0,
-      tasks: [],
-      lumiBalance: 0,
-    };
-  }
-
-  const url = `${API_BASE_URL}/api/users/lumi/daily-tasks?userId=${encodeURIComponent(userId)}`;
-  const res = await fetch(url, { cache: 'no-store' });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(data.message || data.error || `Daily tasks status failed: ${res.status}`);
-  }
-
-  return {
-    date: data.date ?? '',
-    totalReward: data.totalReward ?? 0,
-    earnedToday: data.earnedToday ?? 0,
-    completedCount: data.completedCount ?? 0,
-    tasks: Array.isArray(data.tasks) ? data.tasks : [],
-    lumiBalance: data.lumiBalance ?? 0,
-  };
-};
-
-export const completeDailyLumiTask = async (
-  userId: string,
-  taskKey: DailyLumiTaskKey
-): Promise<DailyLumiTaskCompletionResult> => {
-  if (!isValidUserId(userId)) throw new Error('UserId is required');
-
-  const res = await fetch(`${API_BASE_URL}/api/users/lumi/daily-tasks`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ userId, taskKey }),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(data.message || data.error || `Daily task completion failed: ${res.status}`);
-  }
-
-  return {
-    taskKey,
-    awarded: !!data.awarded,
-    amountAwarded: data.amountAwarded ?? 0,
-    date: data.date ?? '',
-    totalReward: data.totalReward ?? 0,
-    earnedToday: data.earnedToday ?? 0,
-    completedCount: data.completedCount ?? 0,
-    tasks: Array.isArray(data.tasks) ? data.tasks : [],
-    lumiBalance: data.lumiBalance ?? 0,
-  };
-};
-
 export type ReferralClaimApiResult = {
   ok: boolean;
   status: number;
-  newBalance?: number;
+  referralApplied?: boolean;
   code?: string;
 };
 
@@ -415,7 +211,7 @@ export const postReferralClaim = async (userId: string, inviteCode: string): Pro
   return {
     ok: res.ok,
     status: res.status,
-    newBalance: data.newBalance,
+    referralApplied: data.referralApplied,
     code: data.code,
   };
 };
@@ -610,7 +406,6 @@ export interface ChartsResponse {
   charts: ChartListItem[];
   chartSlots: number;
   canAddMore: boolean;
-  slotCost?: number;
 }
 
 const normalizeChartListItem = (chart: ChartListItem): ChartListItem => ({
@@ -656,25 +451,6 @@ export const createChart = async (
   }
   const chart = await res.json() as ChartListItem;
   return normalizeChartListItem(chart);
-};
-
-/**
- * Buy one additional chart slot with Lumi
- */
-export const buyChartSlot = async (userId: string): Promise<{ newBalance: number; chartSlots: number }> => {
-  if (!isValidUserId(userId)) throw new Error('UserId is required');
-  const url = `${API_BASE_URL}/api/charts`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ userId, action: 'buy-slot' }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || err.error || `Failed to buy slot: ${res.status}`);
-  }
-  const data = await res.json();
-  return { newBalance: data.newBalance, chartSlots: data.chartSlots };
 };
 
 /**

@@ -170,7 +170,6 @@ async function lumia001FullSchema(pool: Pool): Promise<void> {
       sun_sign TEXT,
       moon_sign TEXT,
       ascendant TEXT,
-      lumi_balance INTEGER DEFAULT 0,
       premium_until TIMESTAMP,
       ref_code TEXT UNIQUE,
       referred_by BIGINT,
@@ -228,37 +227,6 @@ async function lumia001FullSchema(pool: Pool): Promise<void> {
   `);
 
   await pool.query(`
-    CREATE TABLE lumi_transactions (
-      id SERIAL PRIMARY KEY,
-      user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
-      amount INTEGER NOT NULL,
-      reason TEXT NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-  `);
-
-  await pool.query(`
-    CREATE TABLE roulette_spins (
-      id SERIAL PRIMARY KEY,
-      user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
-      win_amount INTEGER,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-  `);
-
-  await pool.query(`
-    CREATE TABLE daily_task_completions (
-      id SERIAL PRIMARY KEY,
-      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      task_key TEXT NOT NULL,
-      task_date DATE NOT NULL,
-      lumi_awarded INTEGER NOT NULL DEFAULT 0,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      UNIQUE (user_id, task_key, task_date)
-    );
-  `);
-
-  await pool.query(`
     CREATE TABLE daily_horoscopes (
       id SERIAL PRIMARY KEY,
       zodiac_sign TEXT NOT NULL,
@@ -303,10 +271,6 @@ async function lumia001FullSchema(pool: Pool): Promise<void> {
     CREATE INDEX idx_interpretations_user ON interpretations(user_id);
     CREATE INDEX idx_interpretations_user_type ON interpretations(user_id, type);
     CREATE UNIQUE INDEX idx_interpretations_lookup ON interpretations(user_id, type, input_hash);
-    CREATE INDEX idx_lumi_transactions_user ON lumi_transactions(user_id);
-    CREATE INDEX idx_lumi_transactions_reason ON lumi_transactions(reason);
-    CREATE INDEX idx_daily_task_completions_user ON daily_task_completions(user_id);
-    CREATE INDEX idx_daily_task_completions_user_date ON daily_task_completions(user_id, task_date);
     CREATE INDEX idx_astro_questions_user ON astro_questions(user_id);
     CREATE INDEX idx_astro_questions_user_date ON astro_questions(user_id, created_at);
     CREATE INDEX idx_daily_horoscopes_date ON daily_horoscopes(date);
@@ -930,26 +894,9 @@ async function lumia012DailyLumiTasks(pool: Pool): Promise<void> {
     return;
   }
 
-  log.info('Applying daily Lumi tasks migration...');
-
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS daily_task_completions (
-      id SERIAL PRIMARY KEY,
-      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      task_key TEXT NOT NULL,
-      task_date DATE NOT NULL,
-      lumi_awarded INTEGER NOT NULL DEFAULT 0,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      UNIQUE (user_id, task_key, task_date)
-    )
-  `);
-  await pool.query('CREATE INDEX IF NOT EXISTS idx_daily_task_completions_user ON daily_task_completions(user_id)');
-  await pool.query(
-    'CREATE INDEX IF NOT EXISTS idx_daily_task_completions_user_date ON daily_task_completions(user_id, task_date)'
-  );
-
+  // Legacy migration retained for history; Lumi daily tasks removed in lumia_025_remove_lumi_economy.
   await markMigrationApplied(pool, migrationName);
-  log.info('Migration lumia_012_daily_lumi_tasks applied');
+  log.info('Migration lumia_012_daily_lumi_tasks applied (no-op)');
 }
 
 async function lumia013CanonicalNatalPersistence(pool: Pool): Promise<void> {
@@ -1923,10 +1870,29 @@ async function lumia024StarsOneOffPayments(pool: Pool): Promise<void> {
   log.info('Migration lumia_024_stars_one_off_payments applied');
 }
 
+async function lumia025RemoveLumiEconomy(pool: Pool): Promise<void> {
+  const migrationName = 'lumia_025_remove_lumi_economy';
+
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
+  log.info('Removing Lumi economy tables and columns...');
+
+  await pool.query('DROP TABLE IF EXISTS lumi_transactions CASCADE');
+  await pool.query('DROP TABLE IF EXISTS roulette_spins CASCADE');
+  await pool.query('DROP TABLE IF EXISTS daily_task_completions CASCADE');
+  await pool.query('ALTER TABLE users DROP COLUMN IF EXISTS lumi_balance');
+
+  await markMigrationApplied(pool, migrationName);
+  log.info('Migration lumia_025_remove_lumi_economy applied');
+}
+
 async function verifyTablesExist(pool: Pool): Promise<void> {
   const required = [
-    'users', 'natal_charts', 'interpretations', 'lumi_transactions', 'app_settings',
-    'roulette_spins', 'daily_horoscopes', 'daily_natal_cards', 'daily_task_completions',
+    'users', 'natal_charts', 'interpretations', 'app_settings',
+    'daily_horoscopes', 'daily_natal_cards',
     'astro_questions', 'dictionary', 'synastry_cache', 'star_payments',
     'content_interpretations', 'content_unlocks', 'premium_entitlements',
     'user_sessions',
@@ -2022,6 +1988,7 @@ export async function runMigrations(): Promise<void> {
   await lumia022RetentionNotificationQueue(pool);
   await lumia023StarsAccessTier(pool);
   await lumia024StarsOneOffPayments(pool);
+  await lumia025RemoveLumiEconomy(pool);
   await verifyTablesExist(pool);
 
     log.info('All Lumia migrations completed successfully');

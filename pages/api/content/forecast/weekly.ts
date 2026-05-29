@@ -23,7 +23,6 @@ function toProfile(user: any, fallback?: Partial<UserProfile>): UserProfile {
     theme: (fallback?.theme as 'dark' | 'light') || user.theme || 'dark',
     isPremium: !!user.is_premium,
     isAdmin: !!user.is_admin,
-    lumiBalance: user.lumi_balance ?? 0,
     loginStreak: user.login_streak ?? 0,
     chartSlots: user.chart_slots ?? 1,
     generatedContent: fallback?.generatedContent,
