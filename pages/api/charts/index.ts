@@ -1,9 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { formatValidationErrors, validateNatalChartInput } from '../../../lib/validation';
 import { db } from '../../../lib/db';
-import { buyChartSlot, getChartSlotCost } from '../../../services/chartSlotService';
 import { createOrReuseCanonicalChart } from '../../../lib/natalChartPersistence';
 import { invalidUserIdPayload, isValidUserId } from '../../../lib/userId';
+import { respondLumiDeprecated } from '../../../lib/lumiDeprecatedResponse';
 
 const log = {
   info: (msg: string, data?: any) => console.log(`[API/charts] ${msg}`, data || ''),
@@ -27,7 +27,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         charts,
         chartSlots,
         canAddMore: charts.length < chartSlots,
-        slotCost: getChartSlotCost(),
       });
     }
 
@@ -35,12 +34,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const { action, name, birthDate, birthTime, birthPlace, chartData, language } = req.body || {};
 
       if (action === 'buy-slot') {
-        const result = await buyChartSlot(userId);
-        return res.status(200).json({
-          success: true,
-          newBalance: result.newBalance,
-          chartSlots: result.chartSlots,
-        });
+        return respondLumiDeprecated(res, req);
       }
 
       const rawBirthTime = typeof birthTime === 'string' ? birthTime.trim() : '';
@@ -95,9 +89,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     log.error('Error', { error: error.message });
     if (error.message?.includes('Chart slots limit')) {
       return res.status(403).json({ error: error.message, code: 'SLOTS_LIMIT' });
-    }
-    if (error.message?.includes('Insufficient Lumi')) {
-      return res.status(403).json({ error: error.message, code: 'INSUFFICIENT_LUMI' });
     }
     return res.status(500).json({ error: error.message });
   }

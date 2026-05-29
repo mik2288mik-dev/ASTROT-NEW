@@ -265,7 +265,7 @@ export function buildNotificationDeepLink(input: {
     url.searchParams.set('view', 'synastry');
     url.searchParams.set('screen', 'synastry');
   } else if (section === 'premium') {
-    url.searchParams.set('view', 'wallet');
+    url.searchParams.set('view', 'settings');
     url.searchParams.set('screen', 'premium');
   } else {
     url.searchParams.set('view', 'dashboard');

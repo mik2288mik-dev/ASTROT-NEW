@@ -20,6 +20,7 @@ interface MyChartsProps {
   onProfileUpdate?: (profile: UserProfile) => void;
   onUseInSynastry?: (chart: ChartListItem) => void;
   onPrimaryChartUpdated?: () => Promise<void> | void;
+  onRequestPremium?: () => void;
 }
 
 export const MyCharts: React.FC<MyChartsProps> = ({
@@ -29,6 +30,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
   onProfileUpdate,
   onUseInSynastry,
   onPrimaryChartUpdated,
+  onRequestPremium,
 }) => {
   void onBack;
 
@@ -76,6 +78,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
   const chartSlots = data?.chartSlots ?? (profile.chartSlots ?? 1);
   const partnerCharts = charts.filter((chart) => !chart.is_primary);
   const isSingleChartState = charts.length === 1 && chartSlots > 1;
+  const showPremiumSlotsCta = !canAddMore && !profile.isPremium && !!onRequestPremium;
 
   useEffect(() => {
     if (!canAddMore && showAddForm) {
@@ -205,9 +208,18 @@ export const MyCharts: React.FC<MyChartsProps> = ({
             + {getText(lang, 'charts.add_chart')}
           </button>
         ) : (
-          <div className="rounded-xl border border-astro-highlight/30 bg-astro-highlight/10 p-4 text-center">
+          <div className="rounded-xl border border-astro-highlight/30 bg-astro-highlight/10 p-4 text-center space-y-3">
             <p className="text-sm font-medium text-astro-text">{getText(lang, 'charts.slots_full_title')}</p>
-            <p className="mt-2 text-sm text-astro-subtext">{getText(lang, 'charts.limit_reached')}</p>
+            <p className="text-sm text-astro-subtext">{getText(lang, 'charts.limit_reached')}</p>
+            {showPremiumSlotsCta && (
+              <button
+                type="button"
+                onClick={onRequestPremium}
+                className="w-full rounded-xl bg-astro-highlight px-4 py-3 text-sm font-semibold text-white"
+              >
+                {getText(lang, 'charts.premium_slots_cta')}
+              </button>
+            )}
           </div>
         )}
 
@@ -222,6 +234,15 @@ export const MyCharts: React.FC<MyChartsProps> = ({
           <div className="space-y-2 rounded-xl border border-astro-highlight/30 bg-astro-highlight/10 p-4">
             <p className="text-sm font-medium text-astro-text">{getText(lang, 'charts.slots_full_title')}</p>
             <p className="text-sm text-astro-subtext">{getText(lang, 'charts.slots_full_body')}</p>
+            {showPremiumSlotsCta && (
+              <button
+                type="button"
+                onClick={onRequestPremium}
+                className="w-full rounded-xl bg-astro-highlight px-4 py-3 text-sm font-semibold text-white"
+              >
+                {getText(lang, 'charts.premium_slots_cta')}
+              </button>
+            )}
           </div>
         )}
 

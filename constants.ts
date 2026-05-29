@@ -214,7 +214,7 @@ export const TRANSLATIONS = {
       add_chart: "Добавить карту",
       buy_slot: "Купить слот за",
       buy_slot_lumi: "Lumi",
-      limit_reached: "Достигнут лимит карт. Удалите сохранённую карту или откройте Premium для дополнительных слотов.",
+      limit_reached: "Достигнут лимит карт. Дополнительные карты доступны в Premium.",
       balance: "Баланс",
       purchasing: "Покупка...",
       loading: "Загрузка карт...",
@@ -230,7 +230,8 @@ export const TRANSLATIONS = {
       delete: "Удалить",
       primary_badge: "Основная",
       slots_full_title: "Слоты заполнены",
-      slots_full_body: "Ещё один слот нужен, чтобы сохранить карту партнёра и быстро возвращаться к синастрии.",
+      slots_full_body: "Откройте Premium, чтобы сохранять больше карт.",
+      premium_slots_cta: "Открыть Premium",
       slots_need_more_lumi: "Для нового слота нужен Premium.",
       enough_balance_hint: "Баланса хватает: можно открыть ещё один слот и сразу сохранить новую карту.",
       empty_title: "Начни с первой карты",
@@ -322,6 +323,7 @@ export const TRANSLATIONS = {
       saved_list_title: "Сохранённые карты",
       result_title: "Разбор совместимости"
     },
+    // Legacy: unused after Lumi wallet removal. Kept for old keys / admin references only.
     lumi_wallet: {
       roulette_kicker: "Lumi каждый день",
       roulette_title: "Ежедневная награда",
@@ -731,7 +733,7 @@ export const TRANSLATIONS = {
       add_chart: "Add chart",
       buy_slot: "Buy slot for",
       buy_slot_lumi: "Lumi",
-      limit_reached: "Chart limit reached. Remove a saved chart or unlock Premium for additional slots.",
+      limit_reached: "Chart limit reached. Additional charts are available in Premium.",
       balance: "Balance",
       purchasing: "Purchasing...",
       loading: "Loading charts...",
@@ -747,7 +749,8 @@ export const TRANSLATIONS = {
       delete: "Delete",
       primary_badge: "Primary",
       slots_full_title: "Your slots are full",
-      slots_full_body: "One more slot lets you save another partner chart and return to Synastry faster.",
+      slots_full_body: "Unlock Premium to save more charts.",
+      premium_slots_cta: "Open Premium",
       slots_need_more_lumi: "You need more Lumi to unlock another slot.",
       enough_balance_hint: "You have enough balance to unlock another slot and save a new chart right away.",
       empty_title: "Start with your chart",
@@ -839,6 +842,7 @@ export const TRANSLATIONS = {
       saved_list_title: "Saved charts",
       result_title: "Compatibility overview"
     },
+    // Legacy: unused after Lumi wallet removal. Kept for old keys / admin references only.
     lumi_wallet: {
       roulette_kicker: "Lumi every day",
       roulette_title: "Daily reward",

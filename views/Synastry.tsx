@@ -337,9 +337,20 @@ export const Synastry: React.FC<SynastryProps> = ({
                                             </button>
                                         )}
                                         {slotsFull && (
-                                            <p className="text-xs text-astro-subtext">
-                                                {getText(profile.language, 'charts.limit_reached')}
-                                            </p>
+                                            <div className="space-y-2">
+                                              <p className="text-xs text-astro-subtext">
+                                                  {getText(profile.language, 'charts.limit_reached')}
+                                              </p>
+                                              {!profile.isPremium && (
+                                                  <button
+                                                      type="button"
+                                                      onClick={() => requestPremium()}
+                                                      className="w-full rounded-xl bg-astro-highlight px-4 py-3 text-xs font-semibold uppercase tracking-widest text-white"
+                                                  >
+                                                      {getText(profile.language, 'charts.premium_slots_cta')}
+                                                  </button>
+                                              )}
+                                            </div>
                                         )}
                                     </div>
                                 </div>

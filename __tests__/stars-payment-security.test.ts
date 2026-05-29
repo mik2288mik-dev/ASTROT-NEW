@@ -26,6 +26,14 @@ function payment(overrides: Partial<StarPaymentRecord> = {}): StarPaymentRecord 
   };
 }
 
+function dbStarPaymentRow(overrides: Partial<ReturnType<typeof payment>> & { created_at?: string } = {}) {
+  const { created_at, ...paymentFields } = overrides;
+  return {
+    ...payment(paymentFields),
+    created_at: created_at ?? '2026-05-29T12:00:00.000Z',
+  };
+}
+
 describe('stars payment security', () => {
   describe('verifyStarPaymentForUnlock', () => {
     const baseOptions = {
@@ -159,7 +167,7 @@ describe('webhook duplicate successful_payment', () => {
     const getUnlockSpy = jest.spyOn(db.content_unlocks, 'getLatestActive');
     const unlockSpy = jest.spyOn(await import('../lib/contentArchitecture'), 'unlockContentLayer');
 
-    const existingPayment = payment({ id: 42, telegram_payment_charge_id: 'charge-dup' });
+    const existingPayment = dbStarPaymentRow({ id: 42, telegram_payment_charge_id: 'charge-dup' });
     recordSpy.mockResolvedValue({ inserted: false, row: existingPayment });
     getUnlockSpy.mockResolvedValue({
       id: 99,

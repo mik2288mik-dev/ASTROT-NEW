@@ -7,7 +7,7 @@ export type NotificationSlotConfig = {
   defaultTargetSegment: AdminNotificationTargetSegment | null;
   defaultSendTime: string;
   defaultRepeatMode: NotificationRepeatMode;
-  targetView: 'dashboard' | 'horoscope' | 'wallet' | 'synastry';
+  targetView: 'dashboard' | 'horoscope' | 'settings' | 'synastry';
   defaultButtonText: string;
   notesRu: string;
   notesEn: string;
@@ -75,10 +75,10 @@ export const NOTIFICATION_SLOT_CONFIG: Record<NotificationSlot, NotificationSlot
     defaultTargetSegment: 'all',
     defaultSendTime: '18:00',
     defaultRepeatMode: 'daily',
-    targetView: 'wallet',
-    defaultButtonText: 'Забрать Lumi',
-    notesRu: 'Сбор ежедневных Lumi. Ведёт в кошелёк, где пользователь может забрать ежедневную награду.',
-    notesEn: 'Daily Lumi collection. Deep-links into the wallet so the user can claim the daily reward.',
+    targetView: 'dashboard',
+    defaultButtonText: 'Открыть Lumia',
+    notesRu: 'Вечерний возврат в приложение. Ведёт на главный экран Lumia.',
+    notesEn: 'Evening re-engagement. Deep-links into the Lumia home screen.',
   },
   upsell: {
     slot: 'upsell',
@@ -87,18 +87,18 @@ export const NOTIFICATION_SLOT_CONFIG: Record<NotificationSlot, NotificationSlot
     defaultRepeatMode: 'daily',
     targetView: 'horoscope',
     defaultButtonText: 'Открыть полный день',
-    notesRu: 'Upsell для пользователей без Premium. Ведёт в экран дня, где одновременно видны варианты Premium и разового unlock за Lumi.',
-    notesEn: 'Upsell for users without Premium. Deep-links into the day screen, where both Premium and one-off Lumi unlock options are visible.',
+    notesRu: 'Upsell для пользователей без Premium. Ведёт в экран дня, где доступны Premium и разовое открытие через Stars.',
+    notesEn: 'Upsell for users without Premium. Deep-links into the day screen, where Premium and one-off Stars unlock options are visible.',
   },
   promo: {
     slot: 'promo',
     defaultTargetSegment: 'free',
     defaultSendTime: '19:00',
     defaultRepeatMode: 'weekdays',
-    targetView: 'wallet',
+    targetView: 'horoscope',
     defaultButtonText: 'Посмотреть разборы',
-    notesRu: 'Редкие промо-офферы. По умолчанию ведут в кошелёк; для конкретного оффера можно вручную переопределить deep link на нужный экран.',
-    notesEn: 'Rare promo offers. Default deep-link opens the wallet; for a specific offer you can override it to another screen manually.',
+    notesRu: 'Редкие промо-офферы. По умолчанию ведут в экран дня; для конкретного оффера можно вручную переопределить deep link.',
+    notesEn: 'Rare promo offers. Default deep-link opens the day screen; for a specific offer you can override it manually.',
   },
   custom: {
     slot: 'custom',

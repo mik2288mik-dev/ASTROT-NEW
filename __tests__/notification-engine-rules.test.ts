@@ -106,4 +106,16 @@ describe('notification engine rules', () => {
     expect(url).toContain('scenario=evening_checkin');
     expect(url).toContain('nl=42');
   });
+
+  it('routes premium notifications to settings instead of wallet', () => {
+    const url = buildNotificationDeepLink({
+      baseUrl: 'https://app.lumia.example/start',
+      section: 'premium',
+      scenarioKey: 'premium_upsell',
+      logId: 7,
+    });
+
+    expect(url).toContain('view=settings');
+    expect(url).not.toContain('view=wallet');
+  });
 });

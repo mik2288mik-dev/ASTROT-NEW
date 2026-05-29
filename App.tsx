@@ -1011,6 +1011,7 @@ const App: React.FC = () => {
                             }}
                             onProfileUpdate={handleProfileUpdate}
                             onPrimaryChartUpdated={refreshPrimaryChartState}
+                            onRequestPremium={() => void requestPremium('charts')}
                             onUseInSynastry={(chart) => {
                                 openSynastryWithPrefill({
                                     source: 'saved-chart',
