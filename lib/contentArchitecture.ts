@@ -161,14 +161,40 @@ function getDefaultLumiReason(surface: ContentSurface, variant: ContentVariant) 
   return `${surface}_${variant}`;
 }
 
-export async function unlockContentLayer(options: ContentLayerOptions & { lumiCost?: number }): Promise<{
+export async function unlockContentLayer(
+  options: ContentLayerOptions & {
+    /** @deprecated use starsAmount */
+    lumiCost?: number;
+    starsAmount?: number;
+    starsPaymentChargeId?: string;
+  }
+): Promise<{
   unlock: ContentUnlock | null;
   chartId: number | null;
   cacheKey: string;
-  via: 'free' | 'premium' | 'lumi';
+  via: 'free' | 'premium' | 'stars' | 'lumi';
 }> {
   const cacheKey = options.cacheKey || getDefaultCacheKey(options.contentSurface, options.contentVariant);
   const chartId = await resolveChartId(options.userId, options.chartId);
+
+  async function findExistingOneOffUnlock() {
+    const starsUnlock = await db.content_unlocks.getLatestActive(options.userId, {
+      accessTier: 'stars',
+      contentSurface: options.contentSurface,
+      contentVariant: options.contentVariant,
+      chartId,
+      cacheKey,
+    });
+    if (starsUnlock) return starsUnlock;
+
+    return db.content_unlocks.getLatestActive(options.userId, {
+      accessTier: 'lumi',
+      contentSurface: options.contentSurface,
+      contentVariant: options.contentVariant,
+      chartId,
+      cacheKey,
+    });
+  }
 
   if (options.accessTier === 'premium') {
     const entitlement = await db.premium_entitlements.getActive(options.userId);
@@ -201,40 +227,43 @@ export async function unlockContentLayer(options: ContentLayerOptions & { lumiCo
     return { unlock, chartId, cacheKey, via: 'premium' };
   }
 
-  if (options.accessTier === 'lumi') {
-    const lumiCost = Number(options.lumiCost ?? 0);
-    if (!Number.isFinite(lumiCost) || lumiCost <= 0) {
-      throw new Error('LUMI_COST_REQUIRED');
+  if (options.accessTier === 'stars' || options.accessTier === 'lumi') {
+    const starsAmount = Number(options.starsAmount ?? options.lumiCost ?? 0);
+    if (!Number.isFinite(starsAmount) || starsAmount <= 0) {
+      throw new Error('STARS_AMOUNT_REQUIRED');
     }
 
-    const existing = await db.content_unlocks.getLatestActive(options.userId, {
-      accessTier: 'lumi',
-      contentSurface: options.contentSurface,
-      contentVariant: options.contentVariant,
-      chartId,
-      cacheKey,
-    });
+    const chargeId = String(options.starsPaymentChargeId || '').trim();
+    if (!chargeId) {
+      throw new Error('STARS_PAYMENT_REQUIRED');
+    }
+
+    const existing = await findExistingOneOffUnlock();
     if (existing) {
-      return { unlock: existing, chartId, cacheKey, via: 'lumi' };
+      return {
+        unlock: existing,
+        chartId,
+        cacheKey,
+        via: existing.accessTier === 'lumi' ? 'lumi' : 'stars',
+      };
     }
-
-    await db.lumi_transactions.deductTransactional(
-      options.userId,
-      lumiCost,
-      getDefaultLumiReason(options.contentSurface, options.contentVariant)
-    );
 
     const unlock = await db.content_unlocks.add({
       userId: options.userId,
       chartId,
-      accessTier: 'lumi',
+      accessTier: 'stars',
       contentSurface: options.contentSurface,
       contentVariant: options.contentVariant,
-      unlockType: 'lumi',
+      unlockType: 'stars',
       cacheKey,
-      lumiSpent: lumiCost,
+      lumiSpent: 0,
+      metadata: {
+        starsAmount,
+        starsPaymentChargeId: chargeId,
+        paymentModel: 'telegram_stars',
+      },
     });
-    return { unlock, chartId, cacheKey, via: 'lumi' };
+    return { unlock, chartId, cacheKey, via: 'stars' };
   }
 
   const existing = await db.content_unlocks.getLatestActive(options.userId, {

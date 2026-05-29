@@ -8,10 +8,12 @@ import type {
 } from '../../types';
 import {
   HUMAN_DAILY_LUMI_COST,
+  HUMAN_DAILY_STARS_COST,
   HUMAN_DAILY_SECTION_KEYS,
   HUMAN_DAILY_SECTION_META,
   HUMAN_FREE_SECTION_KEYS,
   HUMAN_PAID_LUMI_COST,
+  HUMAN_PAID_STARS_COST,
   HUMAN_PAID_SECTION_KEYS,
   HUMAN_PAID_SECTION_META,
   type HumanDailySectionKey,
@@ -79,11 +81,11 @@ function fmtDegree(value?: number | null): string {
 
 function formatError(error: unknown): string {
   const e = error as HumanReadingError;
-  if (e?.code === 'INSUFFICIENT_LUMI') {
-    return `Недостаточно Lumi. Нужно ${e.lumiCost ?? HUMAN_PAID_LUMI_COST}, сейчас ${e.lumiBalance ?? 0}.`;
+  if (e?.code === 'STARS_PAYMENT_REQUIRED') {
+    return `Разовое открытие доступно за ${e.starsCost ?? e.lumiCost ?? HUMAN_PAID_LUMI_COST} Stars через Telegram payment.`;
   }
   if (e?.code === 'PREMIUM_REQUIRED' || e?.code === 'HUMAN_SECTION_LOCKED') {
-    return 'Этот раздел можно открыть через Premium или за Lumi.';
+    return 'Этот раздел можно открыть через Premium или разово за Stars.';
   }
   if (e?.message) return e.message;
   return 'Не удалось загрузить раздел. Попробуйте еще раз.';
@@ -220,9 +222,8 @@ export const NatalUnlockSheet: React.FC<{
   onPremium: () => void;
   onLumi: () => void;
   onWallet?: () => void;
-}> = ({ sectionKey, balance, isLoading, onClose, onPremium, onLumi, onWallet }) => {
+}> = ({ sectionKey, balance: _balance, isLoading, onClose, onPremium, onLumi, onWallet: _onWallet }) => {
   const meta = HUMAN_PAID_SECTION_META[sectionKey];
-  const hasEnoughLumi = balance >= HUMAN_PAID_LUMI_COST;
 
   return (
     <div className="fixed inset-0 z-[150] flex items-end justify-center bg-black/38 px-3 pb-3">
@@ -254,30 +255,18 @@ export const NatalUnlockSheet: React.FC<{
             <Crown size={16} strokeWidth={2} />
             Открыть Premium
           </button>
-          {hasEnoughLumi ? (
-            <button
-              type="button"
-              onClick={onLumi}
-              disabled={isLoading}
-              className="flex w-full items-center justify-center gap-2 rounded-full bg-[#f4f1fb] px-5 py-3 text-[14px] font-semibold text-[#5f3c98] disabled:opacity-60"
-            >
-              <WalletCards size={16} strokeWidth={2} />
-              {isLoading ? 'Открываем...' : `Открыть за ${HUMAN_PAID_LUMI_COST} Lumi`}
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={onWallet}
-              disabled={!onWallet || isLoading}
-              className="flex w-full items-center justify-center gap-2 rounded-full bg-[#f4f1fb] px-5 py-3 text-[14px] font-semibold text-[#5f3c98] disabled:opacity-50"
-            >
-              <WalletCards size={16} strokeWidth={2} />
-              Пополнить Lumi
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={onLumi}
+            disabled={isLoading}
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-[#f4f1fb] px-5 py-3 text-[14px] font-semibold text-[#5f3c98] disabled:opacity-60"
+          >
+            <WalletCards size={16} strokeWidth={2} />
+            {isLoading ? 'Открываем...' : `Открыть за ${HUMAN_PAID_STARS_COST} Stars`}
+          </button>
         </div>
         <p className="mt-3 text-center font-sans text-[12.5px] leading-relaxed text-[#777]">
-          На балансе {balance} Lumi. Разовое открытие сохраняется для этой темы.
+          Разовое открытие через Telegram Stars. Доступ сохраняется для этой темы.
         </p>
       </div>
     </div>
@@ -292,9 +281,8 @@ const NatalDailyUnlockSheet: React.FC<{
   onPremium: () => void;
   onLumi: () => void;
   onWallet?: () => void;
-}> = ({ sectionKey, balance, isLoading, onClose, onPremium, onLumi, onWallet }) => {
+}> = ({ sectionKey, balance: _balance, isLoading, onClose, onPremium, onLumi, onWallet: _onWallet }) => {
   const meta = HUMAN_DAILY_SECTION_META[sectionKey];
-  const hasEnoughLumi = balance >= HUMAN_DAILY_LUMI_COST;
 
   return (
     <div className="fixed inset-0 z-[150] flex items-end justify-center bg-black/38 px-3 pb-3">
@@ -326,30 +314,18 @@ const NatalDailyUnlockSheet: React.FC<{
             <Crown size={16} strokeWidth={2} />
             Открыть Premium
           </button>
-          {hasEnoughLumi ? (
-            <button
-              type="button"
-              onClick={onLumi}
-              disabled={isLoading}
-              className="flex w-full items-center justify-center gap-2 rounded-full bg-[#f4f1fb] px-5 py-3 text-[14px] font-semibold text-[#5f3c98] disabled:opacity-60"
-            >
-              <WalletCards size={16} strokeWidth={2} />
-              {isLoading ? 'Открываем...' : `Открыть за ${HUMAN_DAILY_LUMI_COST} Lumi`}
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={onWallet}
-              disabled={!onWallet || isLoading}
-              className="flex w-full items-center justify-center gap-2 rounded-full bg-[#f4f1fb] px-5 py-3 text-[14px] font-semibold text-[#5f3c98] disabled:opacity-50"
-            >
-              <WalletCards size={16} strokeWidth={2} />
-              Пополнить Lumi
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={onLumi}
+            disabled={isLoading}
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-[#f4f1fb] px-5 py-3 text-[14px] font-semibold text-[#5f3c98] disabled:opacity-60"
+          >
+            <WalletCards size={16} strokeWidth={2} />
+            {isLoading ? 'Открываем...' : `Открыть за ${HUMAN_DAILY_STARS_COST} Stars`}
+          </button>
         </div>
         <p className="mt-3 text-center font-sans text-[12.5px] leading-relaxed text-[#777]">
-          На балансе {balance} Lumi. Ежедневный слой обновляется каждый день.
+          Разовое открытие через Telegram Stars. Ежедневный слой обновляется каждый день.
         </p>
       </div>
     </div>
@@ -495,13 +471,10 @@ export const HumanReport: React.FC<Props> = ({
     setPaidLoading(key);
     try {
       const result = await loadHumanPaidSection(userId, key, chartId, {
-        accessTier: allowLumiSpend ? 'lumi' : 'premium',
+        accessTier: allowLumiSpend ? 'stars' : 'premium',
         allowLumiSpend,
       });
       setPaidSections((current) => ({ ...current, [key]: result.content }));
-      if (typeof result.lumiBalance === 'number') {
-        onUpdateProfile?.({ ...profile, lumiBalance: result.lumiBalance });
-      }
       setUnlockTarget(null);
     } catch (err) {
       setSectionError(formatError(err));
@@ -541,14 +514,11 @@ export const HumanReport: React.FC<Props> = ({
         key === 'daily_overview' && !allowLumiSpend
           ? undefined
           : {
-              accessTier: allowLumiSpend ? ('lumi' as const) : ('premium' as const),
+              accessTier: allowLumiSpend ? ('stars' as const) : ('premium' as const),
               allowLumiSpend,
             };
       const result = await loadHumanDailySection(userId, key, chartId, todayKey, accessOptions);
       setDailySections((current) => ({ ...current, [key]: result.content }));
-      if (typeof result.lumiBalance === 'number') {
-        onUpdateProfile?.({ ...profile, lumiBalance: result.lumiBalance });
-      }
       setUnlockDailyTarget(null);
     } catch (err) {
       setSectionError(formatError(err));

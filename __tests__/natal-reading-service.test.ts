@@ -76,26 +76,25 @@ describe('natal reading service session cache', () => {
     expect((global.fetch as jest.Mock).mock.calls[1][1]?.method).toBe('POST');
   });
 
-  it('does not spend Lumi unless allowLumiSpend is explicit', async () => {
+  it('does not unlock paid sections without Stars payment confirmation', async () => {
     (global.fetch as jest.Mock).mockResolvedValueOnce(
       response(403, {
         code: 'HUMAN_SECTION_LOCKED',
         message: 'locked',
-        lumiCost: 300,
-        lumiBalance: 500,
+        starsCost: 300,
       })
     );
 
     await expect(loadHumanPaidSection('123', 'work_business')).rejects.toMatchObject({
       code: 'HUMAN_SECTION_LOCKED',
-      lumiCost: 300,
+      starsCost: 300,
     });
 
     expect(global.fetch).toHaveBeenCalledTimes(1);
     expect((global.fetch as jest.Mock).mock.calls[0][1]?.method).toBe('GET');
   });
 
-  it('opens daily_overview for free users without Lumi confirmation', async () => {
+  it('opens daily_overview for free users without Stars payment', async () => {
     const section = {
       key: 'daily_overview',
       title: 'Тема дня',
@@ -114,22 +113,21 @@ describe('natal reading service session cache', () => {
     expect(global.fetch).toHaveBeenCalledTimes(2);
     expect((global.fetch as jest.Mock).mock.calls[0][1]?.method).toBe('GET');
     expect((global.fetch as jest.Mock).mock.calls[1][1]?.method).toBe('POST');
-    expect(JSON.parse((global.fetch as jest.Mock).mock.calls[1][1]?.body).allowLumiSpend).toBe(false);
+    expect(JSON.parse((global.fetch as jest.Mock).mock.calls[1][1]?.body).accessTier).toBeUndefined();
   });
 
-  it('keeps paid daily sections locked for free users without explicit Lumi spend', async () => {
+  it('keeps paid daily sections locked for free users without Stars payment', async () => {
     (global.fetch as jest.Mock).mockResolvedValueOnce(
       response(403, {
         code: 'HUMAN_DAILY_LOCKED',
         message: 'locked',
-        lumiCost: 35,
-        lumiBalance: 20,
+        starsCost: 35,
       })
     );
 
     await expect(loadHumanDailySection('123', 'daily_work_business', 7, '2026-05-25')).rejects.toMatchObject({
       code: 'HUMAN_DAILY_LOCKED',
-      lumiCost: 35,
+      starsCost: 35,
     });
 
     expect(global.fetch).toHaveBeenCalledTimes(1);

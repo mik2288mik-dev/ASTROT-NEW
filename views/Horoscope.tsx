@@ -371,7 +371,7 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
       let cancelled = false;
 
       const hydrateCachedLayers = async () => {
-        const forecastAccessTier = profileRef.current.isPremium ? 'premium' : 'lumi';
+        const forecastAccessTier = profileRef.current.isPremium ? 'premium' : 'stars';
         const [cachedDay, cachedLove, cachedWork] = await Promise.allSettled([
           getCachedFullDaypartForecast(userId, 'day', {
             chartId: chartId ?? null,
@@ -399,15 +399,10 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
       };
     }, [chartData, chartId, today, userId]);
 
-    const updateLumiBalance = (lumiBalance?: number) => {
-      if (typeof lumiBalance !== 'number' || !onUpdateProfile) return;
-      onUpdateProfile({ ...profileRef.current, lumiBalance });
-    };
-
     const getFriendlyError = (error: unknown, fallback: string) => {
       const err = error as HumanReadingError;
-      if (err?.code === 'INSUFFICIENT_LUMI') {
-        return 'На балансе не хватает Lumi. Можно открыть Premium или пополнить кошелёк.';
+      if (err?.code === 'STARS_PAYMENT_REQUIRED') {
+        return 'Этот прогноз открывается разово за Stars через Telegram payment.';
       }
       if (err?.code === 'CONTENT_GENERATION_UNAVAILABLE' || err?.status === 503) {
         return 'Прогноз сейчас не подготовился. Попробуйте ещё раз: если доступ уже открыт, повторного списания не будет.';
@@ -418,7 +413,7 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
       return 'Не получилось открыть прогноз. Попробуйте ещё раз чуть позже.';
     };
 
-    const loadLayer = async (layer: HoroscopeLayer, spendLumi = false) => {
+    const loadLayer = async (layer: HoroscopeLayer) => {
       if (layer === 'sign') return;
       if (!userId || !chartData) {
         setLayerError('Для персонального прогноза нужна сохранённая натальная карта.');
@@ -431,20 +426,16 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
       try {
         if (layer === 'chart') {
           const result = await getFullDaypartForecast(profileRef.current, chartData, 'day', {
-            accessTier: profileRef.current.isPremium ? 'premium' : 'lumi',
-            allowLumiSpend: spendLumi,
+            accessTier: profileRef.current.isPremium ? 'premium' : 'stars',
           });
           setPersonalDay(result.reading);
-          updateLumiBalance(result.lumiBalance);
         }
 
         if (layer === 'love') {
           const result = await loadHumanDailySection(userId, 'daily_love' as HumanDailySectionKey, chartId ?? undefined, today, {
-            accessTier: profileRef.current.isPremium ? 'premium' : 'lumi',
-            allowLumiSpend: spendLumi,
+            accessTier: profileRef.current.isPremium ? 'premium' : 'stars',
           });
           setLoveSection(result.content);
-          updateLumiBalance(result.lumiBalance);
         }
 
         if (layer === 'work_money') {
@@ -454,19 +445,17 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
             chartId ?? undefined,
             today,
             {
-              accessTier: profileRef.current.isPremium ? 'premium' : 'lumi',
-              allowLumiSpend: spendLumi,
+              accessTier: profileRef.current.isPremium ? 'premium' : 'stars',
             }
           );
           setWorkSection(result.content);
-          updateLumiBalance(result.lumiBalance);
         }
 
         haptic('open');
       } catch (error) {
         const currentLayer = layers.find((item) => item.id === layer);
         setLayerError(
-          getFriendlyError(error, `Этот прогноз можно открыть в Premium или разово за ${currentLayer?.price || 35} Lumi.`)
+          getFriendlyError(error, `Этот прогноз можно открыть в Premium или разово за ${currentLayer?.price || 35} Stars.`)
         );
       } finally {
         setLoadingLayer(null);
@@ -481,7 +470,7 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
 
       if (initialLayer !== 'sign' && profile.isPremium && autoOpenedLayerRef.current !== key) {
         autoOpenedLayerRef.current = key;
-        void loadLayer(initialLayer, false);
+        void loadLayer(initialLayer);
       }
     }, [initialLayer, profile.isPremium, today, userId]);
 
@@ -495,28 +484,19 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
     const renderLockedLayer = (layer: LayerConfig) => {
       const Icon = layer.icon;
       const price = layer.price || 35;
-      const lumiBalance = Number(profileRef.current.lumiBalance || 0);
       const isPremium = !!profileRef.current.isPremium;
-      const canPayWithLumi = lumiBalance >= price;
       const primaryLabel = loadingLayer === layer.id
         ? 'Открываю...'
         : isPremium
           ? 'Открыть прогноз'
-          : canPayWithLumi
-          ? `Открыть за ${price} Lumi`
-          : 'Пополнить Lumi';
+          : `Открыть за ${price} Stars`;
       const handlePrimaryAction = () => {
         haptic('open');
         if (isPremium) {
-          void loadLayer(layer.id, false);
+          void loadLayer(layer.id);
           return;
         }
-        if (!canPayWithLumi) {
-          if (onOpenWallet) onOpenWallet();
-          else onRequestPremium?.();
-          return;
-        }
-        void loadLayer(layer.id, true);
+        void loadLayer(layer.id);
       };
 
       return (

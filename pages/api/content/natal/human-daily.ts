@@ -1,7 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import type { ContentAccessTier, InterpretationSection } from '../../../../types';
 import { db } from '../../../../lib/db';
-import { getPremiumEntitlementState, unlockContentLayer } from '../../../../lib/contentArchitecture';
+import { getPremiumEntitlementState } from '../../../../lib/contentArchitecture';
+import { unlockContentAfterStarsPayment } from '../../../../lib/starsContentUnlock';
+import { normalizeAskLumiaTier } from '../../../../lib/contentAccessTier';
 import { getMoscowTodayKey } from '../../../../lib/date-utils';
 import {
   ensureValidContext,
@@ -13,6 +15,7 @@ import {
   generateHumanDailySection,
 } from '../../../../lib/natalHumanInterpretation';
 import {
+  HUMAN_DAILY_STARS_COST,
   HUMAN_DAILY_LUMI_COST,
   HUMAN_DAILY_PROMPT_VERSION,
   humanDailyCacheKey,
@@ -23,9 +26,32 @@ import {
 export const config = { maxDuration: 90 };
 
 type ResolvedDailyAccess = {
-  accessTier: Extract<ContentAccessTier, 'premium' | 'lumi'>;
+  accessTier: Extract<ContentAccessTier, 'premium' | 'stars' | 'lumi'>;
   entitlement: Awaited<ReturnType<typeof getPremiumEntitlementState>>['entitlement'];
 };
+
+async function findDailyOneOffUnlock(
+  userId: string,
+  chartId: number | null,
+  cacheKey: string
+) {
+  const starsUnlock = await db.content_unlocks.getLatestActive(userId, {
+    accessTier: 'stars',
+    contentSurface: 'natal',
+    contentVariant: 'living',
+    chartId,
+    cacheKey,
+  });
+  if (starsUnlock) return starsUnlock;
+
+  return db.content_unlocks.getLatestActive(userId, {
+    accessTier: 'lumi',
+    contentSurface: 'natal',
+    contentVariant: 'living',
+    chartId,
+    cacheKey,
+  });
+}
 
 function readSectionKey(req: NextApiRequest): HumanDailySectionKey | null {
   const raw = (req.method === 'GET' ? req.query.sectionKey : req.body?.sectionKey) as string | undefined;
@@ -63,16 +89,13 @@ async function resolveDailyAccess(
     return { accessTier: 'premium', entitlement: entitlement.entitlement };
   }
 
-  const unlock = await db.content_unlocks.getLatestActive(userId, {
-    accessTier: 'lumi',
-    contentSurface: 'natal',
-    contentVariant: 'living',
-    chartId,
-    cacheKey,
-  });
+  const unlock = await findDailyOneOffUnlock(userId, chartId, cacheKey);
 
   if (unlock) {
-    return { accessTier: 'lumi', entitlement: entitlement.entitlement };
+    return {
+      accessTier: unlock.accessTier === 'lumi' ? 'stars' : unlock.accessTier,
+      entitlement: entitlement.entitlement,
+    };
   }
 
   return null;
@@ -108,48 +131,40 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(403).json({
       error: 'HUMAN_DAILY_LOCKED',
       code: 'HUMAN_DAILY_LOCKED',
-      message: `Персональный слой дня доступен в Premium или открывается разово за ${HUMAN_DAILY_LUMI_COST} Lumi.`,
-      lumiCost: HUMAN_DAILY_LUMI_COST,
-      lumiBalance: ctx.user.lumi_balance ?? 0,
+      message: `Персональный слой дня доступен в Premium или открывается разово за ${HUMAN_DAILY_STARS_COST} Stars.`,
+      starsCost: HUMAN_DAILY_STARS_COST,
+      starsPaymentRequired: true,
+      lumiCost: HUMAN_DAILY_STARS_COST,
       premiumAvailable: true,
     });
   }
 
   if (!access && !isFreeOverview) {
-    const requestedAccessTier = req.body?.accessTier === 'lumi' ? 'lumi' : 'premium';
-    const allowLumiSpend = Boolean(req.body?.allowLumiSpend);
+    const requestedAccessTier = normalizeAskLumiaTier(req.body?.accessTier) || 'premium';
+    const starsPaymentChargeId = String(
+      req.body?.starsPaymentChargeId || req.body?.telegramPaymentChargeId || ''
+    ).trim();
 
-    if (requestedAccessTier !== 'lumi' || !allowLumiSpend) {
+    if (requestedAccessTier !== 'stars' || !starsPaymentChargeId) {
       return res.status(409).json({
-        error: 'LUMI_REQUIRED',
-        code: 'LUMI_REQUIRED',
-        message: `Этот персональный слой можно открыть за ${HUMAN_DAILY_LUMI_COST} Lumi. Подтвердите списание.`,
-        lumiCost: HUMAN_DAILY_LUMI_COST,
-        lumiBalance: ctx.user.lumi_balance ?? 0,
+        error: 'Stars payment required',
+        code: 'STARS_PAYMENT_REQUIRED',
+        message: `Этот персональный слой можно открыть разово за ${HUMAN_DAILY_STARS_COST} Stars через Telegram payment.`,
+        starsCost: HUMAN_DAILY_STARS_COST,
+        starsPaymentRequired: true,
+        lumiCost: HUMAN_DAILY_STARS_COST,
         premiumAvailable: true,
       });
     }
 
-    const balance = await db.lumi_transactions.getBalance(userId);
-    if (balance < HUMAN_DAILY_LUMI_COST) {
-      return res.status(402).json({
-        error: 'INSUFFICIENT_LUMI',
-        code: 'INSUFFICIENT_LUMI',
-        message: 'Недостаточно Lumi для открытия персонального слоя дня.',
-        lumiCost: HUMAN_DAILY_LUMI_COST,
-        lumiBalance: balance,
-        premiumAvailable: true,
-      });
-    }
-
-    await unlockContentLayer({
+    await unlockContentAfterStarsPayment({
       userId,
       chartId: ctx.chartId,
-      accessTier: 'lumi',
       contentSurface: 'natal',
       contentVariant: 'living',
       cacheKey,
-      lumiCost: HUMAN_DAILY_LUMI_COST,
+      starsAmount: HUMAN_DAILY_STARS_COST,
+      starsPaymentChargeId,
     });
 
     access = await resolveDailyAccess(userId, ctx.chartId, cacheKey);
@@ -188,7 +203,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       source: 'human_v2',
       entitlement: access?.entitlement ?? null,
       accessTier: responseAccessTier,
-      lumiBalance: ctx.user.lumi_balance ?? 0,
     });
   }
 
@@ -198,20 +212,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       source: 'human_v2',
       entitlement: access?.entitlement ?? null,
       accessTier: responseAccessTier,
-      lumiBalance: ctx.user.lumi_balance ?? 0,
     });
   }
 
   try {
     const section = await generateHumanDailySection(ctx.profile, ctx.chartData!, sectionKey, dateKey);
     const saved = await saveReading(ctx, cacheOpts, section);
-    const lumiBalance = await db.lumi_transactions.getBalance(userId);
     return res.status(200).json({
       interpretation: saved,
       source: 'generated',
       entitlement: access?.entitlement ?? null,
       accessTier: responseAccessTier,
-      lumiBalance,
     });
   } catch (error) {
     console.error(`[natal/human-daily:${sectionKey}] generation failed:`, error instanceof Error ? error.message : error);
@@ -219,7 +230,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       error: 'CONTENT_GENERATION_UNAVAILABLE',
       code: 'CONTENT_GENERATION_UNAVAILABLE',
       message: 'Этот слой сейчас не удалось сгенерировать. Попробуй ещё раз.',
-      lumiBalance: ctx.user.lumi_balance ?? 0,
     });
   }
 }

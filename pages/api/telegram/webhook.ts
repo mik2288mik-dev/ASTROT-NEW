@@ -1,6 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { activatePremium } from '../../../services/premiumService';
-import { activateLumiPackPurchase } from '../../../services/lumiTopUpService';
 import { answerTelegramCallbackQuery } from '../../../lib/telegramBot';
 import { handleNotificationCallback } from '../../../services/notificationRetentionService';
 
@@ -133,13 +132,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     if (payload.type === 'lumi_pack' && payload.packId) {
-      const result = await activateLumiPackPurchase(
-        String(userId),
-        payment.telegram_payment_charge_id,
-        payment.total_amount,
-        payload.packId
-      );
-      log.info('Lumi pack activated via webhook', { userId, activated: result.activated, packId: payload.packId });
+      log.info('Lumi pack payment ignored (deprecated)', { userId, packId: payload.packId });
     } else {
       const result = await activatePremium(
         String(userId),

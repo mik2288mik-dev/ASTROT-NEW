@@ -1,14 +1,17 @@
 import type { ContentAccessTier, ContentSurface, ContentVariant } from '../types';
-import { FORECAST_FULL_DAY_LUMI_COST } from './forecastFullDay';
-import { ASK_LUMIA_LUMI_COST } from './questionContent';
-import { SYNASTRY_EXTENDED_LUMI_COST } from './synastryExtended';
+import { isStarsLikeAccessTier, normalizeStoredAccessTier } from './contentAccessTier';
+import {
+  ASK_LUMIA_STARS_COST,
+  FORECAST_FULL_DAY_STARS_COST,
+  SYNASTRY_EXTENDED_STARS_COST,
+} from './starsPricing';
 
 export type LockedBehavior = {
   showPreview: boolean;
   showTeaser: boolean;
   showLockedCard: boolean;
   requirePremium: boolean;
-  allowLumiUnlock: boolean;
+  allowStarsUnlock: boolean;
 };
 
 export type ContentAccessConfig = {
@@ -21,7 +24,7 @@ export type ContentAccessConfig = {
   shouldPersistInterpretation: boolean;
   defaultAccessTier: ContentAccessTier;
   unlockOptions: ContentAccessTier[];
-  lumiCost: number | null;
+  starsCost: number | null;
   lockedBehavior: LockedBehavior;
 };
 
@@ -36,7 +39,6 @@ export type UserState = {
   userId: string;
   chartId: number | null;
   isPremium: boolean;
-  lumiBalance: number;
   unlockedContent: UnlockedContentEntry[];
 };
 
@@ -51,13 +53,13 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
     shouldPersistInterpretation: true,
     defaultAccessTier: 'free',
     unlockOptions: ['free'],
-    lumiCost: null,
+    starsCost: null,
     lockedBehavior: {
       showPreview: false,
       showTeaser: false,
       showLockedCard: false,
       requirePremium: false,
-      allowLumiUnlock: false,
+      allowStarsUnlock: false,
     },
   },
   {
@@ -70,13 +72,13 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
     shouldPersistInterpretation: true,
     defaultAccessTier: 'premium',
     unlockOptions: ['premium'],
-    lumiCost: null,
+    starsCost: null,
     lockedBehavior: {
       showPreview: true,
       showTeaser: true,
       showLockedCard: true,
       requirePremium: true,
-      allowLumiUnlock: false,
+      allowStarsUnlock: false,
     },
   },
   {
@@ -88,14 +90,14 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
     shouldPersistCalculation: true,
     shouldPersistInterpretation: true,
     defaultAccessTier: 'premium',
-    unlockOptions: ['premium', 'lumi'],
-    lumiCost: null,
+    unlockOptions: ['premium', 'stars'],
+    starsCost: null,
     lockedBehavior: {
       showPreview: true,
       showTeaser: true,
       showLockedCard: true,
       requirePremium: true,
-      allowLumiUnlock: false,
+      allowStarsUnlock: false,
     },
   },
   {
@@ -108,13 +110,13 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
     shouldPersistInterpretation: true,
     defaultAccessTier: 'premium',
     unlockOptions: ['premium'],
-    lumiCost: null,
+    starsCost: null,
     lockedBehavior: {
       showPreview: true,
       showTeaser: true,
       showLockedCard: true,
       requirePremium: true,
-      allowLumiUnlock: false,
+      allowStarsUnlock: false,
     },
   },
   {
@@ -127,13 +129,13 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
     shouldPersistInterpretation: true,
     defaultAccessTier: 'free',
     unlockOptions: ['free'],
-    lumiCost: null,
+    starsCost: null,
     lockedBehavior: {
       showPreview: false,
       showTeaser: false,
       showLockedCard: false,
       requirePremium: false,
-      allowLumiUnlock: false,
+      allowStarsUnlock: false,
     },
   },
   {
@@ -145,14 +147,14 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
     shouldPersistCalculation: false,
     shouldPersistInterpretation: true,
     defaultAccessTier: 'premium',
-    unlockOptions: ['premium', 'lumi'],
-    lumiCost: FORECAST_FULL_DAY_LUMI_COST,
+    unlockOptions: ['premium', 'stars'],
+    starsCost: FORECAST_FULL_DAY_STARS_COST,
     lockedBehavior: {
       showPreview: true,
       showTeaser: true,
       showLockedCard: true,
       requirePremium: true,
-      allowLumiUnlock: true,
+      allowStarsUnlock: true,
     },
   },
   {
@@ -164,14 +166,14 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
     shouldPersistCalculation: false,
     shouldPersistInterpretation: true,
     defaultAccessTier: 'premium',
-    unlockOptions: ['premium', 'lumi'],
-    lumiCost: FORECAST_FULL_DAY_LUMI_COST,
+    unlockOptions: ['premium', 'stars'],
+    starsCost: FORECAST_FULL_DAY_STARS_COST,
     lockedBehavior: {
       showPreview: true,
       showTeaser: true,
       showLockedCard: true,
       requirePremium: true,
-      allowLumiUnlock: true,
+      allowStarsUnlock: true,
     },
   },
   {
@@ -183,14 +185,14 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
     shouldPersistCalculation: false,
     shouldPersistInterpretation: true,
     defaultAccessTier: 'premium',
-    unlockOptions: ['premium', 'lumi'],
-    lumiCost: FORECAST_FULL_DAY_LUMI_COST,
+    unlockOptions: ['premium', 'stars'],
+    starsCost: FORECAST_FULL_DAY_STARS_COST,
     lockedBehavior: {
       showPreview: true,
       showTeaser: true,
       showLockedCard: true,
       requirePremium: true,
-      allowLumiUnlock: true,
+      allowStarsUnlock: true,
     },
   },
   {
@@ -203,13 +205,13 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
     shouldPersistInterpretation: true,
     defaultAccessTier: 'premium',
     unlockOptions: ['premium'],
-    lumiCost: null,
+    starsCost: null,
     lockedBehavior: {
       showPreview: true,
       showTeaser: true,
       showLockedCard: true,
       requirePremium: true,
-      allowLumiUnlock: false,
+      allowStarsUnlock: false,
     },
   },
   {
@@ -222,13 +224,13 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
     shouldPersistInterpretation: true,
     defaultAccessTier: 'premium',
     unlockOptions: ['premium'],
-    lumiCost: null,
+    starsCost: null,
     lockedBehavior: {
       showPreview: true,
       showTeaser: true,
       showLockedCard: true,
       requirePremium: true,
-      allowLumiUnlock: false,
+      allowStarsUnlock: false,
     },
   },
   {
@@ -241,13 +243,13 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
     shouldPersistInterpretation: true,
     defaultAccessTier: 'free',
     unlockOptions: ['free'],
-    lumiCost: null,
+    starsCost: null,
     lockedBehavior: {
       showPreview: false,
       showTeaser: false,
       showLockedCard: false,
       requirePremium: false,
-      allowLumiUnlock: false,
+      allowStarsUnlock: false,
     },
   },
   {
@@ -259,14 +261,14 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
     shouldPersistCalculation: true,
     shouldPersistInterpretation: true,
     defaultAccessTier: 'premium',
-    unlockOptions: ['premium', 'lumi'],
-    lumiCost: SYNASTRY_EXTENDED_LUMI_COST,
+    unlockOptions: ['premium', 'stars'],
+    starsCost: SYNASTRY_EXTENDED_STARS_COST,
     lockedBehavior: {
       showPreview: true,
       showTeaser: true,
       showLockedCard: true,
       requirePremium: true,
-      allowLumiUnlock: true,
+      allowStarsUnlock: true,
     },
   },
   {
@@ -279,32 +281,32 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
     shouldPersistInterpretation: true,
     defaultAccessTier: 'free',
     unlockOptions: ['free'],
-    lumiCost: null,
+    starsCost: null,
     lockedBehavior: {
       showPreview: false,
       showTeaser: false,
       showLockedCard: false,
       requirePremium: false,
-      allowLumiUnlock: false,
+      allowStarsUnlock: false,
     },
   },
   {
     surface: 'question',
     variant: 'one_off',
     label: 'Ask Lumia one-off',
-    description: 'Разовый глубокий ответ за Lumi.',
+    description: 'Разовый глубокий ответ за Telegram Stars.',
     calculationRequired: true,
     shouldPersistCalculation: false,
     shouldPersistInterpretation: true,
-    defaultAccessTier: 'lumi',
-    unlockOptions: ['lumi'],
-    lumiCost: ASK_LUMIA_LUMI_COST,
+    defaultAccessTier: 'stars',
+    unlockOptions: ['stars'],
+    starsCost: ASK_LUMIA_STARS_COST,
     lockedBehavior: {
       showPreview: true,
       showTeaser: false,
       showLockedCard: true,
       requirePremium: false,
-      allowLumiUnlock: true,
+      allowStarsUnlock: true,
     },
   },
   {
@@ -317,13 +319,13 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
     shouldPersistInterpretation: true,
     defaultAccessTier: 'premium',
     unlockOptions: ['premium'],
-    lumiCost: null,
+    starsCost: null,
     lockedBehavior: {
       showPreview: true,
       showTeaser: true,
       showLockedCard: true,
       requirePremium: true,
-      allowLumiUnlock: false,
+      allowStarsUnlock: false,
     },
   },
 ];
@@ -351,7 +353,7 @@ export function matchesUnlockEntry(
 ) {
   if (entry.surface !== surface || entry.variant !== variant) return false;
   if (cacheKey && entry.cacheKey && entry.cacheKey !== cacheKey) return false;
-  return entry.accessTier === 'premium' || entry.accessTier === 'lumi';
+  return entry.accessTier === 'premium' || isStarsLikeAccessTier(entry.accessTier);
 }
 
 function hasActiveUnlock(
@@ -364,7 +366,6 @@ function hasActiveUnlock(
     return true;
   }
 
-  // Legacy: full-day forecast unlock (forecast/full) covers morning/day/evening dayparts.
   if (surface === 'forecast' && (variant === 'morning' || variant === 'day' || variant === 'evening')) {
     return userState.unlockedContent.some((entry) => matchesUnlockEntry(entry, 'forecast', 'full', cacheKey));
   }
@@ -393,16 +394,6 @@ export function canAccessContent(
     return true;
   }
 
-  if (
-    config.defaultAccessTier === 'lumi' &&
-    config.unlockOptions.includes('lumi') &&
-    config.lumiCost != null &&
-    userState.lumiBalance >= config.lumiCost &&
-    hasActiveUnlock(userState, surface, variant, cacheKey)
-  ) {
-    return true;
-  }
-
   return false;
 }
 
@@ -418,7 +409,7 @@ export function getLockedBehavior(
       showTeaser: false,
       showLockedCard: true,
       requirePremium: true,
-      allowLumiUnlock: false,
+      allowStarsUnlock: false,
     };
   }
 
@@ -428,7 +419,7 @@ export function getLockedBehavior(
       showTeaser: false,
       showLockedCard: false,
       requirePremium: false,
-      allowLumiUnlock: false,
+      allowStarsUnlock: false,
     };
   }
 
@@ -449,4 +440,9 @@ export function shouldPersistContent(surface: ContentSurface, variant: ContentVa
 
 export function listContentAccessMatrix(): ContentAccessConfig[] {
   return CONTENT_ACCESS_MATRIX.slice();
+}
+
+/** @deprecated Legacy alias */
+export function normalizeMatrixUnlockTier(tier: ContentAccessTier): ContentAccessTier {
+  return normalizeStoredAccessTier(tier);
 }

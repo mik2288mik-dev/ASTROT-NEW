@@ -1,15 +1,10 @@
 import { createHash } from 'crypto';
+import {
+  SYNASTRY_EXTENDED_STARS_COST,
+  SYNASTRY_EXTENDED_LUMI_COST,
+} from './starsPricing';
 
-function readSynastryExtendedLumiCost(): number {
-  if (typeof process === 'undefined' || !process.env) return 180;
-  const raw =
-    process.env.SYNASTRY_EXTENDED_LUMI_COST || process.env.NEXT_PUBLIC_SYNASTRY_EXTENDED_LUMI_COST;
-  const n = Number(raw);
-  return Number.isFinite(n) && n > 0 ? n : 180;
-}
-
-/** Разовое Lumi-открытие полного разбора синастрии. Сервер: `SYNASTRY_EXTENDED_LUMI_COST`; клиент: `NEXT_PUBLIC_SYNASTRY_EXTENDED_LUMI_COST`. */
-export const SYNASTRY_EXTENDED_LUMI_COST = readSynastryExtendedLumiCost();
+export { SYNASTRY_EXTENDED_STARS_COST, SYNASTRY_EXTENDED_LUMI_COST };
 
 export function buildSynastryExtendedCacheKey(
   userId: string,
@@ -19,11 +14,15 @@ export function buildSynastryExtendedCacheKey(
   partnerDate: string,
   relationshipType: string,
   language: string
-): string {
-  const normName = partnerName.trim().toLowerCase();
-  return createHash('sha256')
-    .update(
-      `syn_ext|${userId}|${primaryChartId ?? 0}|${partnerChartId ?? 0}|${normName}|${partnerDate}|${relationshipType}|${language}`
-    )
-    .digest('hex');
+) {
+  const raw = [
+    userId,
+    primaryChartId ?? 'none',
+    partnerChartId ?? 'none',
+    partnerName.trim().toLowerCase(),
+    partnerDate,
+    relationshipType,
+    language,
+  ].join('|');
+  return createHash('sha256').update(raw).digest('hex');
 }

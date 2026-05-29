@@ -57,8 +57,8 @@ const PAYWALL_DISMISS_SESSION_KEY = 'lumia_natal_story_paywall_dismissed_session
 
 function formatStoryError(error: unknown): string {
   const e = error as HumanReadingError;
-  if (e?.code === 'INSUFFICIENT_LUMI') {
-    return `Недостаточно Lumi. Нужно ${e.lumiCost ?? HUMAN_PAID_LUMI_COST}, сейчас ${e.lumiBalance ?? 0}.`;
+  if (e?.code === 'STARS_PAYMENT_REQUIRED') {
+    return `Разовое открытие доступно за ${e.starsCost ?? e.lumiCost ?? HUMAN_PAID_LUMI_COST} Stars через Telegram payment.`;
   }
   if (e?.code === 'PREMIUM_REQUIRED' || e?.code === 'HUMAN_SECTION_LOCKED') {
     return 'Этот слой можно открыть через Premium или за Lumi.';
@@ -738,13 +738,10 @@ export const NatalStoryDeck = memo<NatalStoryDeckProps>(
         setPaidLoading(key);
         try {
           const result = await loadHumanPaidSection(userId, key, chartId, {
-            accessTier: allowLumiSpend ? 'lumi' : 'premium',
+            accessTier: allowLumiSpend ? 'stars' : 'premium',
             allowLumiSpend,
           });
           setPaidSections((current) => ({ ...current, [key]: result.content }));
-          if (typeof result.lumiBalance === 'number') {
-            onUpdateProfile?.({ ...profile, lumiBalance: result.lumiBalance });
-          }
           return result.content;
         } catch (err) {
           setSectionError(formatStoryError(err));

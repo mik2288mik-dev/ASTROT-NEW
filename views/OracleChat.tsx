@@ -23,8 +23,9 @@ type SubmitOptions = {
 function getSendLabel(lang: 'ru' | 'en', state: AskLumiaState | null) {
   if (!state) return getText(lang, 'oracle.send_free');
   if (state.nextTier === 'premium') return getText(lang, 'oracle.send_premium');
-  if (state.nextTier === 'lumi') {
-    return getText(lang, 'oracle.send_lumi').replace('{cost}', String(state.lumiCost));
+  if (state.nextTier === 'stars') {
+    const cost = state.starsCost ?? state.lumiCost ?? 0;
+    return getText(lang, 'oracle.send_lumi').replace('{cost}', String(cost)).replace(/Lumi/gi, 'Stars');
   }
   return getText(lang, 'oracle.send_free');
 }
@@ -38,11 +39,12 @@ function getStateStrings(lang: 'ru' | 'en', state: AskLumiaState | null) {
     };
   }
 
-  if (state.nextTier === 'lumi') {
+  if (state.nextTier === 'stars') {
+    const cost = state.starsCost ?? state.lumiCost ?? 0;
     return {
-      label: getText(lang, 'oracle.state_lumi_label'),
-      title: getText(lang, 'oracle.state_lumi_title').replace('{cost}', String(state.lumiCost)),
-      body: getText(lang, 'oracle.state_lumi_body'),
+      label: getText(lang, 'oracle.state_lumi_label').replace(/Lumi/gi, 'Stars'),
+      title: getText(lang, 'oracle.state_lumi_title').replace('{cost}', String(cost)).replace(/Lumi/gi, 'Stars'),
+      body: getText(lang, 'oracle.state_lumi_body').replace(/Lumi/gi, 'Stars'),
     };
   }
 
@@ -80,12 +82,6 @@ export const OracleChat: React.FC<OracleChatProps> = ({
     timestamp: Date.now(),
   }), [lang]);
 
-  const syncBalance = useCallback((balance?: number) => {
-    if (typeof balance !== 'number' || !onUpdateProfile) return;
-    if ((profile.lumiBalance ?? 0) === balance) return;
-    onUpdateProfile({ ...profile, lumiBalance: balance });
-  }, [onUpdateProfile, profile]);
-
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, []);
@@ -103,7 +99,6 @@ export const OracleChat: React.FC<OracleChatProps> = ({
         const nextState = await getAskLumiaState(String(profile.id || ''));
         if (cancelled) return;
         setQuestionState(nextState);
-        syncBalance(nextState.lumiBalance);
       } catch (stateError: any) {
         if (cancelled) return;
         setError(stateError?.message || getText(lang, 'oracle.send_error'));
@@ -119,7 +114,7 @@ export const OracleChat: React.FC<OracleChatProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [lang, profile.id, syncBalance]);
+  }, [lang, profile.id]);
 
   useEffect(() => {
     let cancelled = false;
@@ -205,9 +200,9 @@ export const OracleChat: React.FC<OracleChatProps> = ({
     }
 
     const requestedTier: AskLumiaTier = questionState?.nextTier || (profile.isPremium ? 'premium' : 'free');
-    if (requestedTier === 'lumi' && questionState && !questionState.hasEnoughLumi) {
-      setError(getText(lang, 'oracle.state_lumi_low'));
-      setErrorCode('INSUFFICIENT_LUMI');
+    if (requestedTier === 'stars' && questionState?.starsPaymentRequired) {
+      setError(getText(lang, 'oracle.state_lumi_body').replace(/Lumi/gi, 'Stars'));
+      setErrorCode('STARS_PAYMENT_REQUIRED');
       return;
     }
 
@@ -255,9 +250,6 @@ export const OracleChat: React.FC<OracleChatProps> = ({
       if (result.state) {
         setQuestionState(result.state);
       }
-      if (typeof result.lumiBalance === 'number') {
-        syncBalance(result.lumiBalance);
-      }
     } catch (submitError: any) {
       setError(submitError?.message || getText(lang, 'oracle.send_error'));
       setErrorCode(submitError?.code || null);
@@ -265,21 +257,16 @@ export const OracleChat: React.FC<OracleChatProps> = ({
       setFailedMessageId(userMessageId);
       setInput(normalizedQuestion);
 
-      if (submitError?.details?.lumiBalance && typeof submitError.details.lumiBalance === 'number') {
-        syncBalance(submitError.details.lumiBalance);
-      }
-
       try {
         const nextState = await getAskLumiaState(String(profile.id || ''));
         setQuestionState(nextState);
-        syncBalance(nextState.lumiBalance);
       } catch {
         // keep existing state
       }
     } finally {
       setLoading(false);
     }
-  }, [buildHistoryForRequest, lang, profile, questionState, syncBalance, validateQuestion]);
+  }, [buildHistoryForRequest, lang, profile, questionState, validateQuestion]);
 
   const handleSend = useCallback(() => {
     if (!input.trim() || loading || stateLoading) return;
@@ -302,7 +289,7 @@ export const OracleChat: React.FC<OracleChatProps> = ({
   }, [failedMessageId, failedQuestion, loading, submitQuestion]);
 
   const inputDisabled = loading || stateLoading;
-  const sendDisabled = inputDisabled || !input.trim() || (!!questionState && questionState.nextTier === 'lumi' && !questionState.hasEnoughLumi);
+  const sendDisabled = inputDisabled || !input.trim();
   const sendLabel = getSendLabel(lang, questionState);
   const stateCopy = getStateStrings(lang, questionState);
 
@@ -325,9 +312,9 @@ export const OracleChat: React.FC<OracleChatProps> = ({
             <p className="mt-2 text-base font-semibold text-astro-text sm:text-lg">{stateCopy.title}</p>
             <p className="lumia-muted mt-2 text-sm leading-relaxed">{stateCopy.body}</p>
 
-            {questionState?.nextTier === 'lumi' && !questionState.hasEnoughLumi && (
+            {questionState?.nextTier === 'stars' && questionState.starsPaymentRequired && (
               <p className="mt-3 text-xs leading-relaxed text-amber-300">
-                {getText(lang, 'oracle.state_lumi_low')}
+                {getText(lang, 'oracle.state_lumi_body').replace(/Lumi/gi, 'Stars')}
               </p>
             )}
 
@@ -339,15 +326,6 @@ export const OracleChat: React.FC<OracleChatProps> = ({
                   className="inline-flex min-h-[44px] items-center rounded-full border border-astro-highlight/35 bg-astro-highlight/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-astro-highlight transition-colors hover:border-astro-highlight/50 hover:bg-astro-highlight/15"
                 >
                   {getText(lang, 'oracle.state_open_premium')}
-                </button>
-              )}
-              {questionState?.nextTier === 'lumi' && onOpenWallet && (
-                <button
-                  type="button"
-                  onClick={onOpenWallet}
-                  className="inline-flex min-h-[44px] items-center rounded-full border border-astro-border/60 bg-astro-bg/12 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-astro-text transition-colors hover:border-astro-highlight/30"
-                >
-                  {getText(lang, 'oracle.state_open_wallet')}
                 </button>
               )}
             </div>
@@ -419,13 +397,14 @@ export const OracleChat: React.FC<OracleChatProps> = ({
                   >
                     {getText(lang, 'oracle.open_premium')}
                   </button>
-                ) : errorCode === 'INSUFFICIENT_LUMI' && onOpenWallet ? (
+                ) : errorCode === 'STARS_PAYMENT_REQUIRED' ? (
                   <button
                     type="button"
-                    onClick={onOpenWallet}
-                    className="rounded-full border border-astro-border/60 bg-astro-bg/12 px-3.5 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-astro-text"
+                    onClick={handleRetry}
+                    disabled={loading}
+                    className="rounded-full border border-astro-highlight/35 bg-astro-highlight/10 px-3.5 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-astro-highlight disabled:opacity-50"
                   >
-                    {getText(lang, 'oracle.state_open_wallet')}
+                    {getText(lang, 'oracle.retry')}
                   </button>
                 ) : (
                   <button
@@ -463,8 +442,8 @@ export const OracleChat: React.FC<OracleChatProps> = ({
 
             <div className="mt-4 flex items-center justify-between gap-3">
               <p className="text-xs leading-relaxed text-astro-subtext">
-                {questionState?.nextTier === 'lumi'
-                  ? `${questionState.lumiBalance} Lumi`
+                {questionState?.nextTier === 'stars'
+                  ? `${questionState.starsCost ?? questionState.lumiCost ?? 0} Stars`
                   : questionState?.nextTier === 'premium'
                     ? getText(lang, 'oracle.state_premium_label')
                     : getText(lang, 'oracle.state_free_label')}

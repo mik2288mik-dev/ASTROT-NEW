@@ -417,7 +417,7 @@ function mergeSynastryCacheLayers(entry: {
 
 export type SynastryGenerationOutcome = {
   result: SynastryResult;
-  lumiBalance?: number;
+  starsSpent?: number;
 };
 
 /**
@@ -432,7 +432,7 @@ export const getOrGenerateSynastry = async (
   relationshipType?: string,
   mode: 'brief' | 'extended' | 'full' = 'brief',
   partnerChartId?: number,
-  opts?: { allowLumiSpend?: boolean }
+  opts?: { starsPaymentChargeId?: string; /** @deprecated */ allowLumiSpend?: boolean }
 ): Promise<SynastryGenerationOutcome> => {
   log.info(`[getOrGenerateSynastry] Getting synastry for partner: ${partnerName}`, {
     userId: profile.id,
@@ -497,7 +497,7 @@ export const getOrGenerateSynastry = async (
     entry.source = partnerChartId ? 'saved-chart' : 'manual';
     entry.timestamp = Date.now();
 
-    let lumiBalanceOut: number | undefined;
+    let starsSpentOut: number | undefined;
 
     if (mode === 'brief') {
       entry.briefResult = await calculateBriefSynastry(
@@ -518,10 +518,10 @@ export const getOrGenerateSynastry = async (
         partnerPlace,
         relationshipType,
         partnerChartId,
-        opts?.allowLumiSpend
+        opts?.starsPaymentChargeId
       );
       entry.extendedResult = ext.result;
-      lumiBalanceOut = ext.lumiBalance;
+      starsSpentOut = ext.starsSpent;
     } else {
       entry.fullResult = await calculateFullSynastry(
         profile,
@@ -543,7 +543,7 @@ export const getOrGenerateSynastry = async (
 
     return {
       result: mergeSynastryCacheLayers(entry),
-      ...(typeof lumiBalanceOut === 'number' ? { lumiBalance: lumiBalanceOut } : {}),
+      ...(typeof starsSpentOut === 'number' ? { starsSpent: starsSpentOut } : {}),
     };
   } catch (error) {
     log.error(`[getOrGenerateSynastry] Failed to generate synastry for ${partnerName}`, error);

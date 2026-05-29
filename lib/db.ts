@@ -103,7 +103,7 @@ type AdminDbSortOrder = 'asc' | 'desc';
 type AdminDbNotificationMode = 'all' | 'personal' | 'broadcast';
 type AdminDbNotificationResult = 'all' | 'success' | 'partial' | 'failed';
 type AdminDbNotificationSegment = AdminNotificationTargetSegment;
-type DbContentAccessTier = 'free' | 'premium' | 'lumi';
+type DbContentAccessTier = 'free' | 'premium' | 'stars' | 'lumi';
 type DbContentSurface = 'natal' | 'forecast' | 'synastry' | 'question';
 type DbContentVariant =
   | 'anchor'
@@ -119,7 +119,7 @@ type DbContentVariant =
   | 'full'
   | 'one_off';
 type DbContentModelTier = 'base' | 'premium';
-type DbContentUnlockType = 'free' | 'premium' | 'lumi';
+type DbContentUnlockType = 'free' | 'premium' | 'stars' | 'lumi';
 type DbDailyLumiTaskKey = 'open_horoscope' | 'open_chart';
 type DbHoroscopeReactionKey = 'spot_on' | 'funny' | 'gentle' | 'not_mine';
 

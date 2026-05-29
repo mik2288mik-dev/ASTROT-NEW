@@ -86,15 +86,17 @@ type HumanEndpoint = 'human-base' | 'human-section' | 'human-daily';
 
 export type HumanReadingResult<T> = {
   content: T;
-  lumiBalance?: number;
+  starsCost?: number;
   accessTier?: ContentAccessTier;
 };
 
 export type HumanReadingError = Error & {
   status?: number;
   code?: string;
+  starsCost?: number;
+  starsPaymentRequired?: boolean;
+  /** @deprecated legacy alias */
   lumiCost?: number;
-  lumiBalance?: number;
   premiumAvailable?: boolean;
 };
 
@@ -242,10 +244,21 @@ async function readHumanError(response: Response, fallback: string): Promise<Hum
   const err = new Error(payload.message || payload.error || fallback) as HumanReadingError;
   err.status = response.status;
   err.code = payload.code;
-  err.lumiCost = typeof payload.lumiCost === 'number' ? payload.lumiCost : undefined;
-  err.lumiBalance = typeof payload.lumiBalance === 'number' ? payload.lumiBalance : undefined;
+  err.starsCost = typeof payload.starsCost === 'number'
+    ? payload.starsCost
+    : typeof payload.lumiCost === 'number'
+      ? payload.lumiCost
+      : undefined;
+  err.starsPaymentRequired = payload.starsPaymentRequired === true;
+  err.lumiCost = err.starsCost;
   err.premiumAvailable = typeof payload.premiumAvailable === 'boolean' ? payload.premiumAvailable : undefined;
   return err;
+}
+
+function normalizeHumanAccessTier(tier?: string): 'premium' | 'stars' | undefined {
+  if (tier === 'premium') return 'premium';
+  if (tier === 'stars' || tier === 'lumi') return 'stars';
+  return undefined;
 }
 
 async function postHuman<T>(
@@ -255,10 +268,13 @@ async function postHuman<T>(
     chartId?: number;
     sectionKey?: HumanPaidSectionKey | HumanDailySectionKey;
     date?: string;
-    accessTier?: 'premium' | 'lumi';
+    accessTier?: 'premium' | 'stars' | 'lumi';
+    /** @deprecated use starsPaymentChargeId */
     allowLumiSpend?: boolean;
+    starsPaymentChargeId?: string;
   }
 ): Promise<HumanReadingResult<T>> {
+  const accessTier = normalizeHumanAccessTier(options?.accessTier);
   const response = await fetch(buildHumanUrl(endpoint, userId, options), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -267,8 +283,8 @@ async function postHuman<T>(
       chartId: options?.chartId,
       sectionKey: options?.sectionKey,
       date: options?.date,
-      accessTier: options?.accessTier,
-      allowLumiSpend: !!options?.allowLumiSpend,
+      accessTier: accessTier || (options?.allowLumiSpend ? 'stars' : options?.accessTier),
+      starsPaymentChargeId: options?.starsPaymentChargeId,
     }),
   });
 
@@ -279,7 +295,7 @@ async function postHuman<T>(
   const payload = await response.json();
   return {
     content: payload.interpretation?.content as T,
-    lumiBalance: typeof payload.lumiBalance === 'number' ? payload.lumiBalance : undefined,
+    starsCost: typeof payload.starsCost === 'number' ? payload.starsCost : payload.lumiCost,
     accessTier: payload.accessTier,
   };
 }
@@ -306,7 +322,7 @@ async function getHuman<T>(
   const payload = await response.json();
   return {
     content: payload.interpretation?.content as T,
-    lumiBalance: typeof payload.lumiBalance === 'number' ? payload.lumiBalance : undefined,
+    starsCost: typeof payload.starsCost === 'number' ? payload.starsCost : payload.lumiCost,
     accessTier: payload.accessTier,
   };
 }
@@ -344,8 +360,10 @@ export async function loadHumanPaidSection(
   sectionKey: HumanPaidSectionKey,
   chartId?: number,
   options?: {
-    accessTier?: 'premium' | 'lumi';
+    accessTier?: 'premium' | 'stars' | 'lumi';
+    /** @deprecated use starsPaymentChargeId */
     allowLumiSpend?: boolean;
+    starsPaymentChargeId?: string;
   }
 ): Promise<HumanReadingResult<InterpretationSection>> {
   const key = paidKey(userId, sectionKey, chartId);
@@ -390,8 +408,10 @@ export async function loadHumanDailySection(
   chartId?: number,
   date?: string,
   options?: {
-    accessTier?: 'premium' | 'lumi';
+    accessTier?: 'premium' | 'stars' | 'lumi';
+    /** @deprecated use starsPaymentChargeId */
     allowLumiSpend?: boolean;
+    starsPaymentChargeId?: string;
   }
 ): Promise<HumanReadingResult<InterpretationSection>> {
   const key = dailyKey(userId, sectionKey, chartId, date);

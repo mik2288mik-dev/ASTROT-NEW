@@ -2,13 +2,14 @@ import type { ContentSurface, ContentUnlock, ContentVariant } from '../types';
 import { getPremiumEntitlementState } from './contentArchitecture';
 import type { UnlockedContentEntry, UserState } from './contentAccessMatrix';
 import { canAccessContent, matchesUnlockEntry as matrixMatchesUnlockEntry } from './contentAccessMatrix';
+import { normalizeStoredAccessTier } from './contentAccessTier';
 import { db } from './db';
 
 export function mapUnlocksToUserState(unlocks: ContentUnlock[]): UnlockedContentEntry[] {
   return unlocks.map((unlock) => ({
     surface: unlock.contentSurface,
     variant: unlock.contentVariant,
-    accessTier: unlock.accessTier,
+    accessTier: normalizeStoredAccessTier(unlock.accessTier),
     cacheKey: unlock.cacheKey,
   }));
 }
@@ -37,9 +38,8 @@ export async function buildContentAccessUserState(
   chartId?: number | null
 ): Promise<UserState> {
   const resolvedChartId = chartId ?? (await db.natal_charts.getPrimary(userId).catch(() => null))?.id ?? null;
-  const [{ isPremium }, lumiBalance, unlocks] = await Promise.all([
+  const [{ isPremium }, unlocks] = await Promise.all([
     getPremiumEntitlementState(userId),
-    db.lumi_transactions.getBalance(userId).catch(() => 0),
     db.content_unlocks.listActive(userId, resolvedChartId).catch(() => [] as ContentUnlock[]),
   ]);
 
@@ -47,7 +47,6 @@ export async function buildContentAccessUserState(
     userId,
     chartId: resolvedChartId,
     isPremium,
-    lumiBalance,
     unlockedContent: mapUnlocksToUserState(unlocks),
   };
 }

@@ -824,7 +824,7 @@ export interface MonthlyHoroscope {
   content: string;
 }
 
-export type ContentAccessTier = 'free' | 'premium' | 'lumi';
+export type ContentAccessTier = 'free' | 'premium' | 'stars' | 'lumi';
 export type ContentSurface = 'natal' | 'forecast' | 'synastry' | 'question';
 export type ContentVariant =
   | 'anchor'
@@ -840,7 +840,7 @@ export type ContentVariant =
   | 'full'
   | 'one_off';
 export type ContentModelTier = 'base' | 'premium';
-export type ContentUnlockType = 'free' | 'premium' | 'lumi';
+export type ContentUnlockType = 'free' | 'premium' | 'stars' | 'lumi';
 export type PremiumTierName = 'lumia_premium';
 export type PremiumEntitlementStatus = 'active' | 'expired' | 'cancelled';
 
@@ -929,15 +929,20 @@ export interface OracleHistoryEntry {
   createdAt: string;
 }
 
-export type AskLumiaTier = 'free' | 'lumi' | 'premium';
+export type AskLumiaTier = 'free' | 'stars' | 'premium';
 
 export interface AskLumiaState {
   nextTier: AskLumiaTier;
   freeStarterAvailable: boolean;
   isPremium: boolean;
-  lumiCost: number;
-  lumiBalance: number;
-  hasEnoughLumi: boolean;
+  starsCost: number;
+  starsPaymentRequired: boolean;
+  /** @deprecated Legacy alias for starsCost */
+  lumiCost?: number;
+  /** @deprecated Internal Lumi balance removed from product model */
+  lumiBalance?: number;
+  /** @deprecated Replaced by starsPaymentRequired + Telegram Stars payment flow */
+  hasEnoughLumi?: boolean;
 }
 
 export interface OracleChatResponse {
@@ -945,9 +950,13 @@ export interface OracleChatResponse {
   createdAt: string;
   reusedRecent?: boolean;
   tier?: AskLumiaTier;
-  lumiSpent?: number;
-  lumiBalance?: number;
+  starsSpent?: number;
+  starsPaymentRequired?: boolean;
   state?: AskLumiaState;
+  /** @deprecated Legacy alias */
+  lumiSpent?: number;
+  /** @deprecated Legacy alias */
+  lumiBalance?: number;
 }
 
 export type AdminPremiumFilter = 'all' | 'premium' | 'free';

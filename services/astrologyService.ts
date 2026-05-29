@@ -42,6 +42,8 @@ type ContentApiResponse<T> = {
   cacheKey?: string;
   entitlement?: unknown;
   lumiBalance?: number;
+  starsCost?: number;
+  starsPaymentRequired?: boolean;
   accessTier?: ContentAccessTier;
 };
 
@@ -653,11 +655,11 @@ export const getFullDaypartForecast = async (
   chartData: NatalChartData,
   slot: ForecastDaypartSlot,
   options?: {
-    accessTier?: 'premium' | 'lumi';
-    allowLumiSpend?: boolean;
+    accessTier?: 'premium' | 'stars' | 'lumi';
+    starsPaymentChargeId?: string;
   }
-): Promise<{ reading: ForecastDaypartReading; lumiBalance?: number }> => {
-  const accessTier = options?.accessTier || 'premium';
+): Promise<{ reading: ForecastDaypartReading; starsCost?: number }> => {
+  const accessTier = options?.accessTier === 'lumi' ? 'stars' : (options?.accessTier || 'premium');
   const url = `${API_BASE_URL}/api/content/forecast/daypart`;
   log.info('[getFullDaypartForecast] Starting request', { userId: profile.id, slot, accessTier });
 
@@ -670,7 +672,7 @@ export const getFullDaypartForecast = async (
       chartData,
       slot,
       accessTier,
-      allowLumiSpend: !!options?.allowLumiSpend,
+      starsPaymentChargeId: options?.starsPaymentChargeId,
     }),
   });
 
@@ -681,7 +683,7 @@ export const getFullDaypartForecast = async (
 
   return {
     reading,
-    lumiBalance: typeof data?.lumiBalance === 'number' ? data.lumiBalance : undefined,
+    starsCost: typeof data?.starsCost === 'number' ? data.starsCost : undefined,
   };
 };
 
@@ -701,7 +703,7 @@ export const getCachedFullDaypartForecast = async (
   slot: ForecastDaypartSlot,
   options?: {
     chartId?: number | null;
-    accessTier?: 'premium' | 'lumi';
+    accessTier?: 'premium' | 'stars' | 'lumi';
     dateKey?: string;
   }
 ): Promise<ForecastDaypartReading | null> => {
@@ -1484,13 +1486,12 @@ export const calculateFullSynastry = async (
 
 export type SynastryExtendedApiOutcome = {
   result: SynastryResult;
-  lumiSpent: number;
-  lumiBalance: number;
+  starsSpent?: number;
   fromCache: boolean;
 };
 
 /**
- * Полный разбор синастрии через Lumi: тот же класс ответа, что и Premium, но как разовое unlock.
+ * Полный разбор синастрии: Premium или разовое открытие за Telegram Stars.
  */
 export const calculateExtendedSynastry = async (
   profile: UserProfile,
@@ -1500,10 +1501,10 @@ export const calculateExtendedSynastry = async (
   partnerPlace?: string,
   relationshipType?: string,
   partnerChartId?: number,
-  allowLumiSpend?: boolean
+  starsPaymentChargeId?: string
 ): Promise<SynastryExtendedApiOutcome> => {
   const url = `${API_BASE_URL}/api/content/synastry/extended`;
-  log.info('[calculateExtendedSynastry] Starting', { partnerName, partnerDate, allowLumiSpend });
+  log.info('[calculateExtendedSynastry] Starting', { partnerName, partnerDate, hasStarsPayment: !!starsPaymentChargeId });
 
   const response = await fetch(url, {
     method: 'POST',
@@ -1517,12 +1518,12 @@ export const calculateExtendedSynastry = async (
       language: profile.language,
       relationshipType,
       partnerChartId,
-      allowLumiSpend: !!allowLumiSpend,
+      starsPaymentChargeId,
     }),
   });
 
   if (!response.ok) {
-    let errorMessage = `Synastry Lumi full failed: ${response.status}`;
+    let errorMessage = `Synastry Stars full failed: ${response.status}`;
     let errorCode: string | undefined;
     let details: any;
     try {
@@ -1530,8 +1531,8 @@ export const calculateExtendedSynastry = async (
       errorMessage = errorData.message || errorData.error || errorMessage;
       errorCode = errorData.code;
       details = {
-        lumiCost: errorData.lumiCost,
-        lumiBalance: errorData.lumiBalance,
+        starsCost: errorData.starsCost,
+        starsPaymentRequired: errorData.starsPaymentRequired,
       };
     } catch {
       const errorText = await response.text().catch(() => '');
@@ -1546,15 +1547,13 @@ export const calculateExtendedSynastry = async (
 
   const data = (await response.json()) as {
     result: SynastryResult;
-    lumiSpent?: number;
-    lumiBalance?: number;
+    starsSpent?: number;
     fromCache?: boolean;
   };
 
   return {
     result: data.result,
-    lumiSpent: data.lumiSpent ?? 0,
-    lumiBalance: data.lumiBalance ?? profile.lumiBalance ?? 0,
+    starsSpent: data.starsSpent ?? 0,
     fromCache: !!data.fromCache,
   };
 };
@@ -2047,14 +2046,16 @@ export const chatWithAstra = async (
   history: { role: 'user' | 'model', text: string }[],
   message: string,
   profile: UserProfile,
-  requestedTier?: AskLumiaTier
+  requestedTier?: AskLumiaTier,
+  starsPaymentChargeId?: string
 ): Promise<OracleChatResponse> => {
   const url = `${API_BASE_URL}/api/content/question/ask`;
+  const normalizedTier = (requestedTier as string | undefined) === 'lumi' ? 'stars' : requestedTier;
   log.info('[chatWithAstra] Starting Ask Lumia request', {
     messageLength: message.length,
     historyLength: history.length,
     userId: profile.id,
-    requestedTier: requestedTier || 'auto',
+    requestedTier: normalizedTier || 'auto',
   });
 
   try {
@@ -2067,8 +2068,8 @@ export const chatWithAstra = async (
         userId: profile.id,
         history,
         message,
-        requestedTier,
-        allowLumiSpend: requestedTier === 'lumi',
+        requestedTier: normalizedTier,
+        starsPaymentChargeId,
         systemInstruction: SYSTEM_INSTRUCTION_ASTRA
       })
     });

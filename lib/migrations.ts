@@ -1817,6 +1817,49 @@ async function lumia022RetentionNotificationQueue(pool: Pool): Promise<void> {
   log.info('Migration lumia_022_retention_notification_queue applied');
 }
 
+async function lumia023StarsAccessTier(pool: Pool): Promise<void> {
+  const migrationName = 'lumia_023_stars_access_tier';
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied`);
+    return;
+  }
+
+  log.info('Applying stars access tier migration...');
+
+  await pool.query(`
+    ALTER TABLE content_interpretations
+    DROP CONSTRAINT IF EXISTS content_interpretations_access_tier
+  `);
+  await pool.query(`
+    ALTER TABLE content_interpretations
+    ADD CONSTRAINT content_interpretations_access_tier
+    CHECK (access_tier IN ('free', 'premium', 'lumi', 'stars'))
+  `);
+
+  await pool.query(`
+    ALTER TABLE content_unlocks
+    DROP CONSTRAINT IF EXISTS content_unlocks_access_tier
+  `);
+  await pool.query(`
+    ALTER TABLE content_unlocks
+    ADD CONSTRAINT content_unlocks_access_tier
+    CHECK (access_tier IN ('free', 'premium', 'lumi', 'stars'))
+  `);
+
+  await pool.query(`
+    ALTER TABLE content_unlocks
+    DROP CONSTRAINT IF EXISTS content_unlocks_type
+  `);
+  await pool.query(`
+    ALTER TABLE content_unlocks
+    ADD CONSTRAINT content_unlocks_type
+    CHECK (unlock_type IN ('free', 'premium', 'lumi', 'stars'))
+  `);
+
+  await markMigrationApplied(pool, migrationName);
+  log.info('Migration lumia_023_stars_access_tier applied');
+}
+
 async function verifyTablesExist(pool: Pool): Promise<void> {
   const required = [
     'users', 'natal_charts', 'interpretations', 'lumi_transactions', 'app_settings',
@@ -1914,6 +1957,7 @@ export async function runMigrations(): Promise<void> {
   await lumia020DailyFeedbackAssistant(pool);
   await lumia021NotificationScenarioEngine(pool);
   await lumia022RetentionNotificationQueue(pool);
+  await lumia023StarsAccessTier(pool);
   await verifyTablesExist(pool);
 
     log.info('All Lumia migrations completed successfully');

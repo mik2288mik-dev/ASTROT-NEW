@@ -195,7 +195,7 @@ export const Synastry: React.FC<SynastryProps> = ({
         setError(null);
 
         try {
-            const { result: data, lumiBalance } = await getOrGenerateSynastry(
+            const { result: data } = await getOrGenerateSynastry(
                 profile,
                 partnerName,
                 partnerDate,
@@ -204,19 +204,14 @@ export const Synastry: React.FC<SynastryProps> = ({
                 relationshipType,
                 effectiveMode,
                 partnerChartIdForRequest,
-                effectiveMode === 'extended' ? { allowLumiSpend: true } : undefined
+                effectiveMode === 'extended' ? {} : undefined
             );
             setResult(data);
-            if (typeof lumiBalance === 'number') {
-                onUpdateProfile?.({ ...profile, lumiBalance });
-            }
         } catch (e: any) {
             console.error('[Synastry] Error calculating synastry:', e);
             const code = e?.code as string | undefined;
-            if (code === 'INSUFFICIENT_LUMI') {
-                setError(t('synastry.error_insufficient_lumi'));
-            } else if (code === 'LUMI_REQUIRED') {
-                setError(t('synastry.error_lumi_required'));
+            if (code === 'STARS_PAYMENT_REQUIRED') {
+                setError(t('synastry.error_lumi_required').replace(/Lumi/gi, 'Stars'));
             } else if (code === 'PREMIUM_REQUIRED') {
                 setError(e?.message || t('synastry.full_btn'));
             } else {

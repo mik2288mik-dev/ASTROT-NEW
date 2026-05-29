@@ -1,5 +1,4 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { getLumiPack } from '../../../services/lumiPacks';
 
 const log = {
   info: (msg: string, data?: any) => console.log(`[API/telegram/create-invoice] ${msg}`, data || ''),
@@ -40,20 +39,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       amount: PREMIUM_STARS,
     };
 
-    const lumiPack = type === 'lumi_pack' ? getLumiPack(packId) : null;
-    if (type === 'lumi_pack' && !lumiPack) {
-      return res.status(400).json({ error: 'Invalid Lumi pack' });
-    }
+  if (type === 'lumi_pack') {
+    return res.status(410).json({
+      error: 'Lumi packs deprecated',
+      code: 'LUMI_PACKS_DEPRECATED',
+      message: 'Lumi packs are no longer available. Use Telegram Stars one-off unlocks or Premium.',
+    });
+  }
 
-    const product = lumiPack
-      ? {
-          payload: { userId: String(userId).trim(), type: 'lumi_pack', packId: lumiPack.id },
-          title: lumiPack.title.en,
-          description: `${lumiPack.lumiAmount} Lumi pack`,
-          label: `${lumiPack.lumiAmount} Lumi`,
-          amount: lumiPack.starsAmount,
-        }
-      : premiumProduct;
+  const product = premiumProduct;
 
     const payload = JSON.stringify(product.payload);
     if (payload.length > 128) {

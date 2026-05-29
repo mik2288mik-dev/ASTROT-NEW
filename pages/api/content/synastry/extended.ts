@@ -11,13 +11,19 @@ import {
   FullSynastryAIResponse,
 } from '../../../../lib/prompts';
 import { validateSynastryInput, formatValidationErrors } from '../../../../lib/validation';
-import { unlockContentLayer } from '../../../../lib/contentArchitecture';
-import { SYNASTRY_EXTENDED_LUMI_COST, buildSynastryExtendedCacheKey } from '../../../../lib/synastryExtended';
+import { getContentLayer } from '../../../../lib/contentArchitecture';
+import {
+  SYNASTRY_EXTENDED_STARS_COST,
+  buildSynastryExtendedCacheKey,
+} from '../../../../lib/synastryExtended';
+import { buildContentAccessUserState, hasExistingUnlock } from '../../../../lib/contentAccessUserState';
+import { getContentAccessConfig } from '../../../../lib/contentAccessMatrix';
+import { unlockContentAfterStarsPayment } from '../../../../lib/starsContentUnlock';
 import { RATE_LIMIT_CONFIGS, withRateLimit } from '../../../../lib/rateLimit';
 
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 
-function mapLumiFullToSynastryResult(raw: FullSynastryAIResponse & { summary?: string; compatibilityScore?: number }): SynastryResult {
+function mapFullToSynastryResult(raw: FullSynastryAIResponse & { summary?: string; compatibilityScore?: number }): SynastryResult {
   const score =
     typeof raw.compatibilityScore === 'number' && Number.isFinite(raw.compatibilityScore)
       ? Math.min(100, Math.max(0, Math.round(raw.compatibilityScore)))
@@ -37,6 +43,52 @@ function mapLumiFullToSynastryResult(raw: FullSynastryAIResponse & { summary?: s
   };
 }
 
+async function loadCachedSynastry(
+  userId: string,
+  primaryChartId: number | null,
+  partnerChartId: number | null,
+  contentCacheKey: string
+): Promise<SynastryResult | null> {
+  if (primaryChartId && partnerChartId) {
+    const cached = await db.synastry.get(
+      primaryChartId,
+      partnerChartId,
+      'extended',
+      contentCacheKey
+    );
+    if (cached) {
+      const parsed = typeof cached === 'string' ? JSON.parse(cached) : cached;
+      if (parsed?.fullAnalysis) return parsed as SynastryResult;
+    }
+  }
+
+  for (const variant of ['full', 'one_off'] as const) {
+    for (const accessTier of ['stars', 'lumi'] as const) {
+      const row = await db.content_interpretations.get(userId, accessTier, 'synastry', variant, contentCacheKey);
+      if (row?.content && typeof row.content === 'object' && (row.content as SynastryResult).fullAnalysis) {
+        return row.content as SynastryResult;
+      }
+    }
+  }
+
+  for (const variant of ['full', 'one_off'] as const) {
+    const layer = await getContentLayer({
+      userId,
+      chartId: primaryChartId,
+      accessTier: 'stars',
+      contentSurface: 'synastry',
+      contentVariant: variant,
+      cacheKey: contentCacheKey,
+    });
+    if (layer.interpretation?.content && typeof layer.interpretation.content === 'object') {
+      const payload = layer.interpretation.content as SynastryResult;
+      if (payload.fullAnalysis) return payload;
+    }
+  }
+
+  return null;
+}
+
 async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -51,7 +103,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     language,
     relationshipType,
     partnerChartId,
-    allowLumiSpend,
+    starsPaymentChargeId,
+    telegramPaymentChargeId,
   } = req.body;
 
   const validation = validateSynastryInput({
@@ -84,7 +137,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     return res.status(404).json({ error: 'User not found', message: 'Profile not found' });
   }
 
-  const lumiCost = SYNASTRY_EXTENDED_LUMI_COST;
+  const accessConfig = getContentAccessConfig('synastry', 'full');
+  const starsCost = accessConfig?.starsCost ?? SYNASTRY_EXTENDED_STARS_COST;
+  const paymentChargeId = String(starsPaymentChargeId || telegramPaymentChargeId || '').trim();
   const rel = String(relationshipType || 'романтика').trim();
   const currentLanguage = userLang === 'en' ? 'en' : 'ru';
   const langRu = currentLanguage === 'ru';
@@ -120,58 +175,75 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     currentLanguage
   );
 
-  const readCached = async (): Promise<SynastryResult | null> => {
-    if (primaryChartRecord?.id && partnerChartRecord?.id) {
-      const cached = await db.synastry.get(
-        primaryChartRecord.id,
-        partnerChartRecord.id,
-        'extended',
-        contentCacheKey
-      );
-      if (cached) {
-        const parsed = typeof cached === 'string' ? JSON.parse(cached) : cached;
-        if (parsed?.fullAnalysis) return parsed as SynastryResult;
-      }
-    }
+  const userState = await buildContentAccessUserState(userId, primaryChartRecord?.id ?? null);
+  const hasUnlock = userState.isPremium || hasExistingUnlock(userState, 'synastry', 'full', contentCacheKey);
 
-    const row = await db.content_interpretations.get(userId, 'lumi', 'synastry', 'one_off', contentCacheKey);
-    if (row?.content && typeof row.content === 'object' && (row.content as SynastryResult).fullAnalysis) {
-      return row.content as SynastryResult;
-    }
-    return null;
-  };
+  const cachedResult = await loadCachedSynastry(
+    userId,
+    primaryChartRecord?.id ?? null,
+    partnerChartRecord?.id ?? null,
+    contentCacheKey
+  );
 
-  const cachedResult = await readCached();
-  if (cachedResult) {
-    const balance = await db.lumi_transactions.getBalance(userId);
+  if (cachedResult && hasUnlock) {
     return res.status(200).json({
       result: cachedResult,
-      lumiSpent: 0,
-      lumiBalance: balance,
+      starsSpent: 0,
       fromCache: true,
+      accessTier: userState.isPremium ? 'premium' : 'stars',
     });
   }
 
-  if (!allowLumiSpend) {
-    return res.status(409).json({
-      error: 'Lumi required',
-      code: 'LUMI_REQUIRED',
-      message: langRu
-        ? `Полный разбор совместимости открывается за ${lumiCost} Lumi.`
-        : `The full compatibility reading opens for ${lumiCost} Lumi.`,
-      lumiCost,
-      lumiBalance: user.lumi_balance ?? 0,
-    });
+  if (!userState.isPremium && !hasUnlock) {
+    if (!paymentChargeId) {
+      return res.status(409).json({
+        error: 'Stars payment required',
+        code: 'STARS_PAYMENT_REQUIRED',
+        message: langRu
+          ? `Полный разбор совместимости открывается разово за ${starsCost} Stars через Telegram payment.`
+          : `The full compatibility reading opens as a one-off unlock for ${starsCost} Stars via Telegram payment.`,
+        starsCost,
+        starsPaymentRequired: true,
+        /** @deprecated Legacy alias for starsCost */
+        lumiCost: starsCost,
+      });
+    }
+
+    try {
+      await unlockContentAfterStarsPayment({
+        userId,
+        chartId: primaryChartRecord?.id ?? null,
+        contentSurface: 'synastry',
+        contentVariant: 'full',
+        cacheKey: contentCacheKey,
+        starsAmount: starsCost,
+        starsPaymentChargeId: paymentChargeId,
+      });
+    } catch (err: any) {
+      const code = String(err?.message || 'STARS_PAYMENT_FAILED');
+      const status = code === 'STARS_PAYMENT_REQUIRED' ? 409 : 402;
+      return res.status(status).json({
+        error: 'Stars unlock failed',
+        code,
+        message: langRu ? 'Не удалось подтвердить оплату Stars.' : 'Could not confirm Stars payment.',
+        starsCost,
+        starsPaymentRequired: code === 'STARS_PAYMENT_REQUIRED',
+      });
+    }
   }
 
-  const balanceBefore = await db.lumi_transactions.getBalance(userId);
-  if (balanceBefore < lumiCost) {
-    return res.status(402).json({
-      error: 'Insufficient Lumi',
-      code: 'INSUFFICIENT_LUMI',
-      message: langRu ? 'Недостаточно Lumi.' : 'Not enough Lumi.',
-      lumiCost,
-      lumiBalance: balanceBefore,
+  const cachedAfterUnlock = await loadCachedSynastry(
+    userId,
+    primaryChartRecord?.id ?? null,
+    partnerChartRecord?.id ?? null,
+    contentCacheKey
+  );
+  if (cachedAfterUnlock) {
+    return res.status(200).json({
+      result: cachedAfterUnlock,
+      starsSpent: paymentChargeId ? starsCost : 0,
+      fromCache: true,
+      accessTier: userState.isPremium ? 'premium' : 'stars',
     });
   }
 
@@ -193,77 +265,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     );
   }
 
-  let lumiSpent = 0;
-  let unlockAttempted = false;
-  let resultPayload: SynastryResult | null = null;
-
-  const runUnlock = async () => {
-    const balanceBeforeUnlock = await db.lumi_transactions.getBalance(userId);
-    await unlockContentLayer({
-      userId,
-      chartId: primaryChartRecord?.id ?? null,
-      accessTier: 'lumi',
-      contentSurface: 'synastry',
-      contentVariant: 'one_off',
-      cacheKey: contentCacheKey,
-      lumiCost,
-    });
-    unlockAttempted = true;
-    const balanceAfterUnlock = await db.lumi_transactions.getBalance(userId);
-    lumiSpent = Math.max(0, balanceBeforeUnlock - balanceAfterUnlock);
-  };
-
-  const persist = async (payload: SynastryResult) => {
-    const { modelTier } = await getOpenAIModelForContent({
-      accessTier: 'lumi',
-      contentSurface: 'synastry',
-      contentVariant: 'one_off',
-    });
-    if (primaryChartRecord?.id && partnerChartRecord?.id) {
-      await db.synastry.set(
-        primaryChartRecord.id,
-        partnerChartRecord.id,
-        'extended',
-        contentCacheKey,
-        payload
-      );
-    }
-    if (primaryChartRecord?.id) {
-      await db.content_interpretations.upsertByChart(
-        primaryChartRecord.id,
-        {
-          accessTier: 'lumi',
-          contentSurface: 'synastry',
-          contentVariant: 'one_off',
-          cacheKey: contentCacheKey,
-          inputHash: contentCacheKey,
-          content: payload,
-          modelTier,
-          isPersistent: true,
-          canRegenerateForLumi: false,
-          legacySource: 'synastry.full.lumi',
-        },
-        userId
-      );
-    } else {
-      await db.content_interpretations.upsertByUser(userId, {
-        accessTier: 'lumi',
-        contentSurface: 'synastry',
-        contentVariant: 'one_off',
-        cacheKey: contentCacheKey,
-        inputHash: contentCacheKey,
-        content: payload,
-        modelTier,
-        isPersistent: true,
-        canRegenerateForLumi: false,
-        legacySource: 'synastry.full.lumi',
-      });
-    }
-  };
+  const accessTier = userState.isPremium ? ('premium' as const) : ('stars' as const);
+  let resultPayload: SynastryResult;
 
   try {
-    await runUnlock();
-
     if (!openai) {
       resultPayload = {
         summary: langRu
@@ -272,28 +277,20 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         compatibilityScore: 74,
         fullAnalysis: {
           generalTheme: langRu
-            ? `Между вами есть связь, которая держится не только на притяжении, но и на внутреннем росте. Такие отношения сильнее раскрываются там, где оба готовы замечать различия в темпе, чувствах и ожиданиях, а не спорить с ними.`
-            : `There is a connection here that rests not only on attraction, but on mutual growth. Bonds like this become stronger when both people notice differences in pace, feeling, and expectation instead of fighting them.`,
+            ? `Между вами есть связь, которая держится не только на притяжении, но и на внутреннем росте.`
+            : `There is a connection here that rests not only on attraction, but on mutual growth.`,
           attraction: langRu
-            ? `Вас притягивает ощущение живого отклика: рядом можно быть собой и при этом видеть в другом то, что расширяет собственный взгляд на близость. Часто именно это создаёт чувство, что связь не пустая, а по-настоящему включённая.`
-            : `You are drawn by the sense of real response: around each other, you can be yourselves and still see something that broadens your understanding of closeness. That is often what makes the bond feel genuinely alive instead of decorative.`,
+            ? `Вас притягивает ощущение живого отклика.`
+            : `You are drawn by the sense of real response.`,
           difficulties: langRu
-            ? `Главные сложности обычно растут не из отсутствия чувства, а из разного способа проживать напряжение. Один может хотеть больше прямоты и ясности, другой — больше мягкости или времени; если это не проговаривать, связь быстро уходит в недопонимание или тихую дистанцию.`
-            : `The main difficulties usually do not come from a lack of feeling, but from different ways of moving through tension. One person may want clarity and directness while the other needs more softness or time; without naming that difference, the bond can slide into misunderstanding or quiet distance.`,
+            ? `Главные сложности обычно растут из разного способа проживать напряжение.`
+            : `The main difficulties usually come from different ways of moving through tension.`,
           recommendations: langRu
-            ? [
-                'Проговаривайте ожидания раньше, чем они становятся скрытой обидой.',
-                'В чувствительных разговорах сначала уточняйте смысл, а не сразу защищайте свою позицию.',
-                'Сохраняйте маленькие ритуалы контакта, чтобы связь не жила только на напряжённых темах.',
-              ]
-            : [
-                'Name expectations before they harden into quiet resentment.',
-                'In sensitive conversations, clarify meaning before defending your position.',
-                'Keep small rituals of contact so the bond does not live only through tense moments.',
-              ],
+            ? ['Проговаривайте ожидания раньше, чем они становятся скрытой обидой.']
+            : ['Name expectations before they harden into quiet resentment.'],
           potential: langRu
-            ? `У этой пары есть потенциал к глубокой, зрелой близости, если оба не будут прятать реальные потребности за молчанием или резкостью. Тогда связь может стать не только эмоционально сильной, но и устойчивой.`
-            : `This bond holds real potential for deep, mature closeness if both people stop hiding real needs behind silence or sharpness. In that case, the connection can become not only emotionally strong, but steady as well.`,
+            ? `У этой пары есть потенциал к глубокой, зрелой близости.`
+            : `This bond holds real potential for deep, mature closeness.`,
         },
       };
     } else {
@@ -308,9 +305,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         currentLanguage
       );
       const { model: modelId } = await getOpenAIModelForContent({
-        accessTier: 'lumi',
+        accessTier,
         contentSurface: 'synastry',
-        contentVariant: 'one_off',
+        contentVariant: 'full',
       });
       const completion = await openai.chat.completions.create({
         model: modelId,
@@ -324,28 +321,59 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       });
       const content = completion.choices[0]?.message?.content || '{}';
       const parsed = JSON.parse(content) as FullSynastryAIResponse & { summary?: string; compatibilityScore?: number };
-      resultPayload = mapLumiFullToSynastryResult(parsed);
+      resultPayload = mapFullToSynastryResult(parsed);
     }
 
-    await persist(resultPayload);
-  } catch (err: any) {
-    if (unlockAttempted && lumiSpent > 0) {
-      await db.lumi_transactions.add(userId, lumiSpent, 'refund').catch(() => {});
+    const { modelTier } = await getOpenAIModelForContent({
+      accessTier,
+      contentSurface: 'synastry',
+      contentVariant: 'full',
+    });
+
+    if (primaryChartRecord?.id && partnerChartRecord?.id) {
+      await db.synastry.set(
+        primaryChartRecord.id,
+        partnerChartRecord.id,
+        'extended',
+        contentCacheKey,
+        resultPayload
+      );
     }
+
+    const interpretationData = {
+      accessTier,
+      contentSurface: 'synastry' as const,
+      contentVariant: 'full' as const,
+      cacheKey: contentCacheKey,
+      inputHash: contentCacheKey,
+      content: resultPayload,
+      modelTier,
+      isPersistent: true,
+      canRegenerateForLumi: false,
+      legacySource: 'synastry.full.stars',
+    };
+
+    if (primaryChartRecord?.id) {
+      await db.content_interpretations.upsertByChart(
+        primaryChartRecord.id,
+        interpretationData,
+        userId
+      );
+    } else {
+      await db.content_interpretations.upsertByUser(userId, interpretationData);
+    }
+  } catch (err: any) {
     return res.status(500).json({
       error: 'Synastry extended failed',
       message: err?.message || (langRu ? 'Не удалось сохранить разбор.' : 'Could not save reading.'),
-      lumiBalance: await db.lumi_transactions.getBalance(userId).catch(() => user.lumi_balance ?? 0),
     });
   }
 
-  const nextBalance = await db.lumi_transactions.getBalance(userId);
-
   return res.status(200).json({
     result: resultPayload,
-    lumiSpent,
-    lumiBalance: nextBalance,
+    starsSpent: paymentChargeId ? starsCost : 0,
     fromCache: false,
+    accessTier,
   });
 }
 

@@ -1,23 +1,24 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import type { ForecastDaypartSlot, NatalChartData, UserProfile } from '../../../../types';
 import { getOpenAIModelForContent } from '../../../../lib/appSettings';
-import { unlockContentLayer, getContentLayer, getPremiumEntitlementState } from '../../../../lib/contentArchitecture';
-import { db } from '../../../../lib/db';
-import { getMoscowTodayKey } from '../../../../lib/date-utils';
-import { generatePremiumDaypartForecast } from '../../../../lib/forecastContent';
-import {
-  buildForecastDaypartCacheKey,
-  buildForecastFullDayUnlockCacheKey,
-  FORECAST_FULL_DAY_LUMI_COST,
-} from '../../../../lib/forecastFullDay';
-import { invalidUserIdPayload, isValidUserId } from '../../../../lib/userId';
+import { getContentLayer, getPremiumEntitlementState } from '../../../../lib/contentArchitecture';
 import { getContentAccessConfig } from '../../../../lib/contentAccessMatrix';
 import {
   buildContentAccessUserState,
   canAccessForecastDaypart,
   hasExistingUnlock,
 } from '../../../../lib/contentAccessUserState';
+import { db } from '../../../../lib/db';
+import { getMoscowTodayKey } from '../../../../lib/date-utils';
+import { generatePremiumDaypartForecast } from '../../../../lib/forecastContent';
+import {
+  buildForecastDaypartCacheKey,
+  buildForecastFullDayUnlockCacheKey,
+  FORECAST_FULL_DAY_STARS_COST,
+} from '../../../../lib/forecastFullDay';
 import { logger } from '../../../../lib/logger';
+import { unlockContentAfterStarsPayment } from '../../../../lib/starsContentUnlock';
+import { invalidUserIdPayload, isValidUserId } from '../../../../lib/userId';
 
 const ALLOWED_SLOTS = new Set(['morning', 'day', 'evening']);
 
@@ -65,20 +66,29 @@ async function resolveContext(
   };
 }
 
-function getLockedMessage(lang: 'ru' | 'en', lumiCost: number) {
+function getLockedMessage(lang: 'ru' | 'en', starsCost: number) {
   return lang === 'ru'
-    ? `Полный слой дня доступен в Lumia Premium или открывается разово за ${lumiCost} Lumi.`
-    : `The full day layer is available in Lumia Premium or as a one-off unlock for ${lumiCost} Lumi.`;
+    ? `Полный слой дня доступен в Lumia Premium или открывается разово за ${starsCost} Stars.`
+    : `The full day layer is available in Lumia Premium or as a one-off unlock for ${starsCost} Stars.`;
 }
 
-function getLumiRequiredMessage(lang: 'ru' | 'en', lumiCost: number) {
+function getStarsRequiredMessage(lang: 'ru' | 'en', starsCost: number) {
   return lang === 'ru'
-    ? `Полный день открывается за ${lumiCost} Lumi. Подтверди списание и попробуй ещё раз.`
-    : `The full day opens for ${lumiCost} Lumi. Confirm the spend and try again.`;
+    ? `Полный день открывается за ${starsCost} Stars через Telegram payment.`
+    : `The full day opens for ${starsCost} Stars via Telegram payment.`;
+}
+
+function buildLockedPayload(lang: 'ru' | 'en', starsCost: number) {
+  return {
+    starsCost,
+    starsPaymentRequired: true,
+    /** @deprecated Legacy alias for starsCost */
+    lumiCost: starsCost,
+  };
 }
 
 type ResolvedAccess = {
-  accessTier: 'premium' | 'lumi';
+  accessTier: 'premium' | 'stars';
   entitlement: Awaited<ReturnType<typeof getPremiumEntitlementState>>['entitlement'];
 };
 
@@ -93,7 +103,7 @@ async function resolveAccess(
     getPremiumEntitlementState(userId),
   ]);
   const accessConfig = getContentAccessConfig('forecast', slot);
-  const matrixLumiCost = accessConfig?.lumiCost ?? FORECAST_FULL_DAY_LUMI_COST;
+  const starsCost = accessConfig?.starsCost ?? FORECAST_FULL_DAY_STARS_COST;
 
   logger.info({
     scope: 'forecast-daypart',
@@ -105,7 +115,7 @@ async function resolveAccess(
     accessTier: accessConfig?.defaultAccessTier,
     metadata: {
       unlockCacheKey,
-      lumiCost: matrixLumiCost,
+      starsCost,
       isPremium: userState.isPremium,
       hasFullDayUnlock: hasExistingUnlock(userState, 'forecast', 'full', unlockCacheKey),
       matrixAllowed: canAccessForecastDaypart(userState, slot, unlockCacheKey),
@@ -131,15 +141,15 @@ async function resolveAccess(
   if (canAccessForecastDaypart(userState, slot, unlockCacheKey)) {
     logger.info({
       scope: 'forecast-daypart',
-      event: 'lumi_unlock_found',
+      event: 'stars_unlock_found',
       userId,
       chartId,
       surface: 'forecast',
       variant: slot,
-      accessTier: 'lumi',
+      accessTier: 'stars',
     });
     return {
-      accessTier: 'lumi',
+      accessTier: 'stars',
       entitlement: entitlementState.entitlement,
     };
   }
@@ -157,6 +167,35 @@ async function resolveAccess(
   return null;
 }
 
+async function loadDaypartLayer(
+  userId: string,
+  chartId: number | null,
+  accessTier: 'premium' | 'stars',
+  slot: ForecastDaypartSlot,
+  cacheKey: string
+) {
+  const primary = await getContentLayer({
+    userId,
+    chartId,
+    accessTier,
+    contentSurface: 'forecast',
+    contentVariant: slot,
+    cacheKey,
+  });
+  if (primary.interpretation || accessTier !== 'stars') {
+    return primary;
+  }
+
+  return getContentLayer({
+    userId,
+    chartId,
+    accessTier: 'lumi',
+    contentSurface: 'forecast',
+    contentVariant: slot,
+    cacheKey,
+  });
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const userId = (req.method === 'GET' ? req.query.userId : req.body?.userId) as string | undefined;
   const chartIdRaw = req.method === 'GET' ? req.query.chartId : req.body?.chartId;
@@ -167,9 +206,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       : null;
   const slotValue = (req.method === 'GET' ? req.query.slot : req.body?.slot) as string | undefined;
   const slot = (slotValue || '').trim() as ForecastDaypartSlot;
-  const requestedAccessTierRaw = (req.method === 'GET' ? req.query.accessTier : req.body?.accessTier) as string | undefined;
-  const requestedAccessTier = requestedAccessTierRaw === 'lumi' ? 'lumi' : 'premium';
-  const allowLumiSpend = req.method === 'POST' && Boolean(req.body?.allowLumiSpend);
+  const starsPaymentChargeId = req.method === 'POST'
+    ? String(req.body?.starsPaymentChargeId || req.body?.telegramPaymentChargeId || '').trim()
+    : '';
   const dateKey = req.method === 'GET'
     ? (typeof req.query.date === 'string' && req.query.date.trim() ? req.query.date.trim() : getMoscowTodayKey())
     : (typeof req.body?.date === 'string' && req.body.date.trim() ? req.body.date.trim() : getMoscowTodayKey());
@@ -216,7 +255,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const unlockCacheKey = buildForecastFullDayUnlockCacheKey(dateKey);
   const cacheKey = buildForecastDaypartCacheKey(dateKey, slot);
   const daypartConfig = getContentAccessConfig('forecast', slot);
-  const lumiCost = daypartConfig?.lumiCost ?? FORECAST_FULL_DAY_LUMI_COST;
+  const starsCost = daypartConfig?.starsCost ?? FORECAST_FULL_DAY_STARS_COST;
   let access = await resolveAccess(safeUserId, context.chartId, slot, unlockCacheKey);
 
   if (req.method === 'GET') {
@@ -229,25 +268,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         surface: 'forecast',
         variant: slot,
         errorCode: 'FULL_DAY_LOCKED',
-        metadata: { lumiCost, lumiBalance: context.user.lumi_balance ?? 0 },
+        metadata: { starsCost },
       });
       return res.status(403).json({
         error: 'Full day locked',
         code: 'FULL_DAY_LOCKED',
-        message: getLockedMessage(lang, lumiCost),
-        lumiCost,
-        lumiBalance: context.user.lumi_balance ?? 0,
+        message: getLockedMessage(lang, starsCost),
+        ...buildLockedPayload(lang, starsCost),
       });
     }
 
-    const result = await getContentLayer({
-      userId: safeUserId,
-      chartId: context.chartId,
-      accessTier: access.accessTier,
-      contentSurface: 'forecast',
-      contentVariant: slot,
-      cacheKey,
-    });
+    const result = await loadDaypartLayer(
+      safeUserId,
+      context.chartId,
+      access.accessTier,
+      slot,
+      cacheKey
+    );
 
     if (!result.interpretation) {
       return res.status(404).json({
@@ -265,52 +302,52 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       chartId: result.chartId,
       cacheKey: result.cacheKey,
       entitlement: access.entitlement,
-      lumiBalance: context.user.lumi_balance ?? 0,
       accessTier: access.accessTier,
+      starsPaymentRequired: false,
     });
   }
 
   if (!access) {
-    if (requestedAccessTier !== 'lumi' || !allowLumiSpend) {
+    if (!starsPaymentChargeId) {
       logger.warn({
         scope: 'forecast-daypart',
-        event: 'lumi_required',
+        event: 'stars_payment_required',
         userId: safeUserId,
         chartId: context.chartId,
         surface: 'forecast',
         variant: slot,
-        errorCode: 'LUMI_REQUIRED',
-        metadata: { lumiCost, lumiBalance: context.user.lumi_balance ?? 0 },
+        errorCode: 'STARS_PAYMENT_REQUIRED',
+        metadata: { starsCost },
       });
       return res.status(409).json({
-        error: 'Lumi required',
-        code: 'LUMI_REQUIRED',
-        message: getLumiRequiredMessage(lang, lumiCost),
-        lumiCost,
-        lumiBalance: context.user.lumi_balance ?? 0,
+        error: 'Stars payment required',
+        code: 'STARS_PAYMENT_REQUIRED',
+        message: getStarsRequiredMessage(lang, starsCost),
+        ...buildLockedPayload(lang, starsCost),
       });
     }
 
-    const balanceBefore = await db.lumi_transactions.getBalance(safeUserId);
-    if (balanceBefore < lumiCost) {
-      return res.status(402).json({
-        error: 'Insufficient Lumi',
-        code: 'INSUFFICIENT_LUMI',
-        message: lang === 'ru' ? 'Недостаточно Lumi для полного дня.' : 'Not enough Lumi for the full day.',
-        lumiCost,
-        lumiBalance: balanceBefore,
+    try {
+      await unlockContentAfterStarsPayment({
+        userId: safeUserId,
+        chartId: context.chartId,
+        contentSurface: 'forecast',
+        contentVariant: 'full',
+        cacheKey: unlockCacheKey,
+        starsAmount: starsCost,
+        starsPaymentChargeId,
+      });
+    } catch (error: any) {
+      const code = error?.message || 'FORECAST_FULL_UNLOCK_FAILED';
+      return res.status(code === 'STARS_PAYMENT_REQUIRED' ? 409 : 500).json({
+        error: 'Unlock failed',
+        code,
+        message: lang === 'ru'
+          ? 'Не получилось подтвердить оплату Stars для полного слоя дня.'
+          : 'Failed to confirm Telegram Stars payment for the full day layer.',
+        ...buildLockedPayload(lang, starsCost),
       });
     }
-
-    await unlockContentLayer({
-      userId: safeUserId,
-      chartId: context.chartId,
-      accessTier: 'lumi',
-      contentSurface: 'forecast',
-      contentVariant: 'full',
-      cacheKey: unlockCacheKey,
-      lumiCost,
-    });
 
     access = await resolveAccess(safeUserId, context.chartId, slot, unlockCacheKey);
   }
@@ -325,25 +362,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
-  const existing = await getContentLayer({
-    userId: safeUserId,
-    chartId: context.chartId,
-    accessTier: access.accessTier,
-    contentSurface: 'forecast',
-    contentVariant: slot,
-    cacheKey,
-  });
+  const existing = await loadDaypartLayer(
+    safeUserId,
+    context.chartId,
+    access.accessTier,
+    slot,
+    cacheKey
+  );
 
   if (existing.interpretation) {
-    const lumiBalance = await db.lumi_transactions.getBalance(safeUserId);
     return res.status(200).json({
       interpretation: existing.interpretation,
       source: existing.source,
       chartId: existing.chartId,
       cacheKey: existing.cacheKey,
       entitlement: access.entitlement,
-      lumiBalance,
       accessTier: access.accessTier,
+      starsPaymentRequired: false,
     });
   }
 
@@ -399,15 +434,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         legacySource: `forecast_v2.${slot}.${access.accessTier}`,
       });
 
-  const lumiBalance = await db.lumi_transactions.getBalance(safeUserId);
-
   return res.status(200).json({
     interpretation,
     source: 'generated',
     chartId: context.chartId,
     cacheKey,
     entitlement: access.entitlement,
-    lumiBalance,
     accessTier: access.accessTier,
+    starsPaymentRequired: false,
   });
 }
