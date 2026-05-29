@@ -4,11 +4,8 @@ import { UserProfile, NatalChartData, ViewState, HoroscopeLayer, NatalInterpreta
 import {
     getProfile,
     saveProfile,
-    getLumiBalance,
-    processDailyLogin,
     getChartData,
     runReferralFromStartParam,
-    completeDailyLumiTask,
 } from './services/storageService';
 import { getOrCalculateChart } from './services/chartService';
 import { generateAllContent, updateContentIfNeeded } from './services/contentGenerationService';
@@ -28,13 +25,11 @@ import { HookChat } from './views/HookChat';
 import { Paywall } from './views/Paywall';
 import { Synastry } from './views/Synastry';
 import { MyCharts } from './views/MyCharts';
-import { Wallet } from './views/Wallet';
 import { getAdminStatus } from './services/adminService';
 import { recordNotificationAttribution, recordUserAppEvent, recordUserSession } from './services/sessionService';
 import { installTelegramFullscreenGuard } from './lib/telegramFullscreen';
 import { applyTelegramSafeAreaCssVars, subscribeTelegramContentSafeAreaChanges } from './lib/telegramSafeAreaInsets';
 import { useSwipeBack } from './lib/useSwipeBack';
-import { getMoscowTodayKey } from './lib/date-utils';
 import { isValidUserId } from './lib/userId';
 import { LumiaDebugOverlay } from './components/lumia-ui/LumiaDebugOverlay';
 import { LumiaBottomTabBar } from './components/lumia-ui/LumiaBottomTabBar';
@@ -79,7 +74,6 @@ function wait(ms: number): Promise<null> {
 const NOTIFICATION_QUERY_VIEWS = new Set<ViewState>([
     'dashboard',
     'horoscope',
-    'wallet',
     'synastry',
     'oracle',
     'settings',
@@ -125,7 +119,6 @@ const App: React.FC = () => {
     const [showPremiumPreview, setShowPremiumPreview] = useState(false);
     const [synastryPrefill, setSynastryPrefill] = useState<SynastryPrefill>(null);
     const [chartsReturnView, setChartsReturnView] = useState<ViewState>('settings');
-    const [walletReturnView, setWalletReturnView] = useState<ViewState>('dashboard');
     const [chartReturnView, setChartReturnView] = useState<ViewState>('dashboard');
     const [horoscopeInitialLayer, setHoroscopeInitialLayer] = useState<HoroscopeLayer>('sign');
     const [, setHoroscopeBackground] = useState<{
@@ -133,8 +126,6 @@ const App: React.FC = () => {
         tone: 'sign' | 'chart' | 'love' | 'work';
     }>({ sign: null, tone: 'sign' });
     
-    // Ref для однократного вызова daily login за сессию
-    const dailyLoginProcessedRef = useRef(false);
     const lastSessionPingRef = useRef(0);
     const contentSyncGenRef = useRef(0);
     const contentSyncedKeyRef = useRef<string | null>(null);
@@ -147,7 +138,6 @@ const App: React.FC = () => {
     const requestedViewRef = useRef<ViewState | null>(null);
     const notificationLaunchRef = useRef<NotificationLaunchParams | null>(null);
     const notificationAttributionSentRef = useRef(false);
-    const dailyTaskSyncedRef = useRef<Record<string, string>>({});
     const dashboardScrollRef = useRef<HTMLDivElement | null>(null);
     const appScrollRef = useRef<HTMLDivElement | null>(null);
     const [initialTodaySection, setInitialTodaySection] = useState<string | null>(null);
@@ -439,10 +429,8 @@ const App: React.FC = () => {
                 setProfile(updatedProfile);
 
                 runReferralFromStartParam(String(tgId), (r) => {
-                    if (r.ok && typeof r.newBalance === 'number') {
-                        setProfile((p) =>
-                            p ? { ...p, lumiBalance: r.newBalance, referralApplied: true } : p
-                        );
+                    if (r.ok) {
+                        setProfile((p) => (p ? { ...p, referralApplied: true } : p));
                     } else if (r.status === 409) {
                         setProfile((p) => (p ? { ...p, referralApplied: true } : p));
                     }
@@ -560,10 +548,8 @@ const App: React.FC = () => {
             }
 
             runReferralFromStartParam(String(tgId), (r) => {
-                if (r.ok && typeof r.newBalance === 'number') {
-                    setProfile((p) =>
-                        p ? { ...p, lumiBalance: r.newBalance, referralApplied: true } : p
-                    );
+                if (r.ok) {
+                    setProfile((p) => (p ? { ...p, referralApplied: true } : p));
                 } else if (r.status === 409) {
                     setProfile((p) => (p ? { ...p, referralApplied: true } : p));
                 }
@@ -663,7 +649,7 @@ const App: React.FC = () => {
     }, []);
 
     const handleAdminOwnProfilePatch = useCallback((
-        patch: Partial<Pick<UserProfile, 'isPremium' | 'lumiBalance' | 'chartSlots' | 'loginStreak'>>
+        patch: Partial<Pick<UserProfile, 'isPremium' | 'chartSlots' | 'loginStreak'>>
     ) => {
         setProfile((prev) => {
             if (!prev) return prev;
@@ -674,22 +660,6 @@ const App: React.FC = () => {
             };
         });
     }, []);
-
-    const refreshLumiOnDashboard = useCallback(async () => {
-        if (!profile?.id) return;
-        try {
-            const balance = await getLumiBalance(profile.id);
-            setProfile(prev => prev ? { ...prev, lumiBalance: balance } : prev);
-        } catch (error: any) {
-            console.warn('[App] Failed to refresh Lumi balance on dashboard:', error?.message || error);
-        }
-    }, [profile?.id]);
-
-    useEffect(() => {
-        if (view === 'dashboard' && profile?.id) {
-            refreshLumiOnDashboard();
-        }
-    }, [view, profile?.id, refreshLumiOnDashboard]);
 
     useEffect(() => {
         if (!profile?.id || notificationAttributionSentRef.current) return;
@@ -721,66 +691,6 @@ const App: React.FC = () => {
             document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
     }, [profile?.id, trackSessionActivity]);
-
-    // Daily login bonus: process once per session when user reaches dashboard
-    useEffect(() => {
-        if (view !== 'dashboard' || !profile?.id || dailyLoginProcessedRef.current) return;
-        dailyLoginProcessedRef.current = true;
-        processDailyLogin(profile.id)
-            .then((result) => {
-                setProfile((prev) =>
-                    prev
-                        ? {
-                              ...prev,
-                              lumiBalance: result.newBalance,
-                              loginStreak: result.streak,
-                          }
-                        : prev
-                );
-            })
-            .catch((err) => {
-                console.warn('[App] Daily login failed (non-critical):', err?.message);
-                dailyLoginProcessedRef.current = false; // Allow retry on next dashboard visit
-            });
-    }, [view, profile?.id]);
-
-    const syncDailyTask = useCallback(
-        async (taskKey: 'open_horoscope' | 'open_chart') => {
-            if (!profile?.id) return;
-
-            const todayKey = getMoscowTodayKey();
-            const cacheKey = `${profile.id}:${taskKey}`;
-            if (dailyTaskSyncedRef.current[cacheKey] === todayKey) {
-                return;
-            }
-
-            try {
-                const result = await completeDailyLumiTask(profile.id, taskKey);
-                dailyTaskSyncedRef.current[cacheKey] = result.date || todayKey;
-                setProfile((prev) =>
-                    prev
-                        ? {
-                              ...prev,
-                              lumiBalance: result.lumiBalance,
-                          }
-                        : prev
-                );
-            } catch (error: any) {
-                console.warn('[App] Daily Lumi task failed (non-critical):', error?.message || error);
-            }
-        },
-        [profile?.id]
-    );
-
-    useEffect(() => {
-        if (!profile?.id || !chartData) return;
-
-        if (view === 'horoscope') {
-            void syncDailyTask('open_horoscope');
-        } else if (view === 'chart') {
-            void syncDailyTask('open_chart');
-        }
-    }, [chartData, profile?.id, syncDailyTask, view]);
 
     const requestPremium = async (source = 'app', eventPayload?: Record<string, any>) => {
        if (!profile) return;
@@ -899,9 +809,7 @@ const App: React.FC = () => {
                 ? 'settings'
                 : currentView === 'charts'
                   ? chartsReturnView
-                  : currentView === 'wallet'
-                    ? walletReturnView
-                    : currentView === 'chart'
+                  : currentView === 'chart'
                       ? chartReturnView
                       : 'dashboard';
         const returnView = navigationHistoryRef.current.pop() || fallbackView;
@@ -913,7 +821,6 @@ const App: React.FC = () => {
             fallbackView,
             chartReturnView,
             chartsReturnView,
-            walletReturnView,
             historyAfterPop: navigationHistoryRef.current,
             activeChartId: !!activeChartId,
         });
@@ -934,7 +841,7 @@ const App: React.FC = () => {
             return;
         }
         setView(returnView);
-    }, [activeChartId, chartReturnView, chartsReturnView, walletReturnView]);
+    }, [activeChartId, chartReturnView, chartsReturnView]);
 
     const openCharts = useCallback((returnView: ViewState) => {
         setChartsReturnView(returnView);
@@ -944,11 +851,6 @@ const App: React.FC = () => {
     const openSynastryWithPrefill = useCallback((prefill: SynastryPrefill) => {
         setSynastryPrefill(prefill);
         navigateTo('synastry');
-    }, [navigateTo]);
-
-    const openWallet = useCallback((returnView: ViewState) => {
-        setWalletReturnView(returnView);
-        navigateTo('wallet');
     }, [navigateTo]);
 
     const openBottomToday = useCallback(() => {
@@ -1043,7 +945,6 @@ const App: React.FC = () => {
                         <OracleChat
                             profile={profile}
                             onPremiumRequired={() => setView('paywall')}
-                            onOpenWallet={() => openWallet('oracle')}
                             onUpdateProfile={handleProfileUpdate}
                         />
                     </div>
@@ -1071,7 +972,6 @@ const App: React.FC = () => {
                                 navigateTo('chart');
                             }}
                             onRequestPremium={requestPremium}
-                            onOpenWallet={() => openWallet('horoscope')}
                             onBack={handleBack}
                             onBackgroundChange={(next) =>
                                 setHoroscopeBackground(next || { sign: null, tone: 'sign' })
@@ -1086,7 +986,6 @@ const App: React.FC = () => {
                             profile={profile} 
                             chartId={activeChartId}
                             requestPremium={requestPremium}
-                            onOpenWallet={() => openWallet('chart')}
                             onUpdateProfile={handleProfileUpdate}
                             preloadedReport={activeChartId ? null : preloadedHumanReport}
                         />
@@ -1100,7 +999,6 @@ const App: React.FC = () => {
                             onShowPremiumPreview={() => setShowPremiumPreview(true)}
                             onOpenAdmin={() => navigateTo('admin')}
                             onOpenCharts={() => openCharts('settings')}
-                            onOpenWallet={() => openWallet('settings')}
                         />
                     </div>
                 ) : view === 'charts' ? (
@@ -1112,7 +1010,6 @@ const App: React.FC = () => {
                                 void handleBack();
                             }}
                             onProfileUpdate={handleProfileUpdate}
-                            onOpenWallet={() => openWallet('charts')}
                             onPrimaryChartUpdated={refreshPrimaryChartState}
                             onUseInSynastry={(chart) => {
                                 openSynastryWithPrefill({
@@ -1138,14 +1035,6 @@ const App: React.FC = () => {
                                 pushReturnView(viewRef.current);
                                 setView('chart');
                             }}
-                        />
-                    </div>
-                ) : view === 'wallet' ? (
-                    <div className="lumia-main-scroll scrollbar-hide" ref={appScrollRef}>
-                        {renderAppScrollHeader()}
-                        <Wallet
-                            profile={profile}
-                            onUpdateProfile={handleProfileUpdate}
                         />
                     </div>
                 ) : (

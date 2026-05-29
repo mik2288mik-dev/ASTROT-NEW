@@ -35,7 +35,6 @@ type Props = {
   chartData: NatalChartData;
   chartId?: number;
   requestPremium: () => void;
-  onOpenWallet?: () => void;
   onUpdateProfile?: (profile: UserProfile) => void;
   preloadedReport?: NatalInterpretationReport | null;
 };
@@ -216,13 +215,11 @@ const DailySectionButton: React.FC<{
 
 export const NatalUnlockSheet: React.FC<{
   sectionKey: HumanPaidSectionKey;
-  balance: number;
   isLoading: boolean;
   onClose: () => void;
   onPremium: () => void;
-  onLumi: () => void;
-  onWallet?: () => void;
-}> = ({ sectionKey, balance: _balance, isLoading, onClose, onPremium, onLumi, onWallet: _onWallet }) => {
+  onStarsOpen: () => void;
+}> = ({ sectionKey, isLoading, onClose, onPremium, onStarsOpen }) => {
   const meta = HUMAN_PAID_SECTION_META[sectionKey];
 
   return (
@@ -257,7 +254,7 @@ export const NatalUnlockSheet: React.FC<{
           </button>
           <button
             type="button"
-            onClick={onLumi}
+            onClick={onStarsOpen}
             disabled={isLoading}
             className="flex w-full items-center justify-center gap-2 rounded-full bg-[#f4f1fb] px-5 py-3 text-[14px] font-semibold text-[#5f3c98] disabled:opacity-60"
           >
@@ -266,7 +263,7 @@ export const NatalUnlockSheet: React.FC<{
           </button>
         </div>
         <p className="mt-3 text-center font-sans text-[12.5px] leading-relaxed text-[#777]">
-          Разовое открытие через Telegram Stars. Доступ сохраняется для этой темы.
+          Разовое открытие через Telegram Stars. Или получить всё в Premium.
         </p>
       </div>
     </div>
@@ -275,13 +272,11 @@ export const NatalUnlockSheet: React.FC<{
 
 const NatalDailyUnlockSheet: React.FC<{
   sectionKey: HumanDailySectionKey;
-  balance: number;
   isLoading: boolean;
   onClose: () => void;
   onPremium: () => void;
-  onLumi: () => void;
-  onWallet?: () => void;
-}> = ({ sectionKey, balance: _balance, isLoading, onClose, onPremium, onLumi, onWallet: _onWallet }) => {
+  onStarsOpen: () => void;
+}> = ({ sectionKey, isLoading, onClose, onPremium, onStarsOpen }) => {
   const meta = HUMAN_DAILY_SECTION_META[sectionKey];
 
   return (
@@ -316,7 +311,7 @@ const NatalDailyUnlockSheet: React.FC<{
           </button>
           <button
             type="button"
-            onClick={onLumi}
+            onClick={onStarsOpen}
             disabled={isLoading}
             className="flex w-full items-center justify-center gap-2 rounded-full bg-[#f4f1fb] px-5 py-3 text-[14px] font-semibold text-[#5f3c98] disabled:opacity-60"
           >
@@ -325,7 +320,7 @@ const NatalDailyUnlockSheet: React.FC<{
           </button>
         </div>
         <p className="mt-3 text-center font-sans text-[12.5px] leading-relaxed text-[#777]">
-          Разовое открытие через Telegram Stars. Ежедневный слой обновляется каждый день.
+          Разовое открытие через Telegram Stars. Или получить всё в Premium.
         </p>
       </div>
     </div>
@@ -373,7 +368,6 @@ export const HumanReport: React.FC<Props> = ({
   chartData,
   chartId,
   requestPremium,
-  onOpenWallet,
   onUpdateProfile,
   preloadedReport,
 }) => {
@@ -574,7 +568,7 @@ export const HumanReport: React.FC<Props> = ({
             {report.userName}, главный портрет
           </h1>
           <p className="mt-4 max-w-[36rem] font-sans text-[15px] leading-relaxed text-[#666]">
-            Разбор основан на расчетах по дате, времени и месту рождения. В бесплатной версии открыт общий слой, а подробные темы можно открыть через Premium или Lumi.
+            Разбор основан на расчетах по дате, времени и месту рождения. В бесплатной версии открыт общий слой, а подробные темы можно открыть через Premium или разово за Stars.
           </p>
           <p className="mt-3 font-sans text-[12.5px] leading-relaxed text-[#888]">
             {report.birthData.birthDate}
@@ -680,36 +674,26 @@ export const HumanReport: React.FC<Props> = ({
       {unlockTarget ? (
         <NatalUnlockSheet
           sectionKey={unlockTarget}
-          balance={profile.lumiBalance ?? 0}
           isLoading={paidLoading === unlockTarget}
           onClose={() => setUnlockTarget(null)}
           onPremium={() => {
             setUnlockTarget(null);
             requestPremium();
           }}
-          onLumi={() => void openPaidSection(unlockTarget, true)}
-          onWallet={() => {
-            setUnlockTarget(null);
-            onOpenWallet?.();
-          }}
+          onStarsOpen={() => void openPaidSection(unlockTarget, true)}
         />
       ) : null}
 
       {unlockDailyTarget ? (
         <NatalDailyUnlockSheet
           sectionKey={unlockDailyTarget}
-          balance={profile.lumiBalance ?? 0}
           isLoading={dailyLoading === unlockDailyTarget}
           onClose={() => setUnlockDailyTarget(null)}
           onPremium={() => {
             setUnlockDailyTarget(null);
             requestPremium();
           }}
-          onLumi={() => void openDailyPaidSection(unlockDailyTarget, true)}
-          onWallet={() => {
-            setUnlockDailyTarget(null);
-            onOpenWallet?.();
-          }}
+          onStarsOpen={() => void openDailyPaidSection(unlockDailyTarget, true)}
         />
       ) : null}
     </article>

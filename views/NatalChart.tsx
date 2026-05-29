@@ -12,7 +12,6 @@ interface NatalChartProps {
   profile: UserProfile;
   chartId?: number;
   requestPremium: (source?: string, payload?: Record<string, any>) => void | Promise<void>;
-  onOpenWallet?: () => void;
   onUpdateProfile?: (profile: UserProfile) => void;
   preloadedReport?: NatalInterpretationReport | null;
 }
@@ -22,7 +21,6 @@ export const NatalChart: React.FC<NatalChartProps> = ({
   profile,
   chartId,
   requestPremium,
-  onOpenWallet,
   onUpdateProfile,
   preloadedReport,
 }) => {
@@ -43,7 +41,6 @@ export const NatalChart: React.FC<NatalChartProps> = ({
         chartData={data}
         chartId={chartId}
         requestPremium={requestPremium}
-        onOpenWallet={onOpenWallet}
         onUpdateProfile={onUpdateProfile}
         preloadedReport={preloadedReport}
       />

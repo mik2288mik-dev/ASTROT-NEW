@@ -11,7 +11,6 @@ const HISTORY_LIMIT = 12;
 interface OracleChatProps {
   profile: UserProfile;
   onPremiumRequired?: () => void;
-  onOpenWallet?: () => void;
   onUpdateProfile?: (profile: UserProfile) => void;
 }
 
@@ -58,7 +57,6 @@ function getStateStrings(lang: 'ru' | 'en', state: AskLumiaState | null) {
 export const OracleChat: React.FC<OracleChatProps> = ({
   profile,
   onPremiumRequired,
-  onOpenWallet,
   onUpdateProfile,
 }) => {
   const lang = profile.language === 'en' ? 'en' : 'ru';

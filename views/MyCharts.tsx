@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { UserProfile } from '../types';
 import {
-  buyChartSlot,
   createChart,
   deleteChart,
   getCharts,
@@ -19,7 +18,6 @@ interface MyChartsProps {
   onBack: () => void;
   onChartSelect?: (chartData: any, chartId?: number) => void;
   onProfileUpdate?: (profile: UserProfile) => void;
-  onOpenWallet?: () => void;
   onUseInSynastry?: (chart: ChartListItem) => void;
   onPrimaryChartUpdated?: () => Promise<void> | void;
 }
@@ -29,7 +27,6 @@ export const MyCharts: React.FC<MyChartsProps> = ({
   onBack,
   onChartSelect,
   onProfileUpdate,
-  onOpenWallet,
   onUseInSynastry,
   onPrimaryChartUpdated,
 }) => {
@@ -77,10 +74,6 @@ export const MyCharts: React.FC<MyChartsProps> = ({
   const charts = data?.charts ?? [];
   const canAddMore = data?.canAddMore ?? true;
   const chartSlots = data?.chartSlots ?? (profile.chartSlots ?? 1);
-  const slotCost = data?.slotCost ?? 50;
-  const lumiBalance = profile.lumiBalance ?? 0;
-  const canBuySlot = !canAddMore && lumiBalance >= slotCost;
-  const shouldOpenWallet = !canAddMore && !canBuySlot;
   const partnerCharts = charts.filter((chart) => !chart.is_primary);
   const isSingleChartState = charts.length === 1 && chartSlots > 1;
 
@@ -89,28 +82,6 @@ export const MyCharts: React.FC<MyChartsProps> = ({
       setShowAddForm(false);
     }
   }, [canAddMore, showAddForm]);
-
-  const handleBuySlot = async () => {
-    if (!profile.id) return;
-
-    setActionLoading('buy-slot');
-    setAddError(null);
-
-    try {
-      const res = await buyChartSlot(profile.id);
-      onProfileUpdate?.({
-        ...profile,
-        lumiBalance: res.newBalance,
-        chartSlots: res.chartSlots,
-      });
-      await loadCharts();
-      setShowAddForm(true);
-    } catch (err: any) {
-      setAddError(err?.message || getText(lang, 'charts.error_insufficient_lumi'));
-    } finally {
-      setActionLoading(null);
-    }
-  };
 
   const handleAddChart = async () => {
     if (!profile.id || !addDate || !addPlace.trim()) {
@@ -220,10 +191,6 @@ export const MyCharts: React.FC<MyChartsProps> = ({
             <p className="text-2xl font-semibold text-astro-text">
               {charts.length} / {chartSlots}
             </p>
-            <p className="mb-1 text-[10px] uppercase tracking-widest text-astro-subtext">
-              {getText(lang, 'charts.balance')}
-            </p>
-            <p className="text-sm font-semibold text-astro-text">{lumiBalance} Lumi</p>
           </div>
         </div>
 
@@ -237,24 +204,11 @@ export const MyCharts: React.FC<MyChartsProps> = ({
           >
             + {getText(lang, 'charts.add_chart')}
           </button>
-        ) : canBuySlot ? (
-          <button
-            onClick={handleBuySlot}
-            disabled={actionLoading === 'buy-slot'}
-            className="w-full rounded-xl bg-astro-highlight px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
-          >
-            {actionLoading === 'buy-slot'
-              ? getText(lang, 'charts.purchasing')
-              : `${getText(lang, 'charts.buy_slot')} ${slotCost} ${getText(lang, 'charts.buy_slot_lumi')}`}
-          </button>
         ) : (
-          <button
-            onClick={onOpenWallet}
-            disabled={!onOpenWallet}
-            className="w-full rounded-xl border border-astro-highlight/40 px-4 py-3 text-sm font-semibold text-astro-highlight disabled:opacity-50"
-          >
-            {getText(lang, 'charts.open_wallet')}
-          </button>
+          <div className="rounded-xl border border-astro-highlight/30 bg-astro-highlight/10 p-4 text-center">
+            <p className="text-sm font-medium text-astro-text">{getText(lang, 'charts.slots_full_title')}</p>
+            <p className="mt-2 text-sm text-astro-subtext">{getText(lang, 'charts.limit_reached')}</p>
+          </div>
         )}
 
         <div className="rounded-2xl border border-astro-border/70 bg-astro-bg/30 p-4">
@@ -268,15 +222,6 @@ export const MyCharts: React.FC<MyChartsProps> = ({
           <div className="space-y-2 rounded-xl border border-astro-highlight/30 bg-astro-highlight/10 p-4">
             <p className="text-sm font-medium text-astro-text">{getText(lang, 'charts.slots_full_title')}</p>
             <p className="text-sm text-astro-subtext">{getText(lang, 'charts.slots_full_body')}</p>
-            {canBuySlot ? (
-              <p className="text-xs text-astro-subtext">
-                {getText(lang, 'charts.enough_balance_hint')}
-              </p>
-            ) : (
-              <p className="text-xs text-astro-subtext">
-                {getText(lang, 'charts.slots_need_more_lumi')} {Math.max(slotCost - lumiBalance, 0)} Lumi.
-              </p>
-            )}
           </div>
         )}
 
@@ -450,21 +395,6 @@ export const MyCharts: React.FC<MyChartsProps> = ({
               {getText(lang, 'charts.cancel')}
             </button>
           </div>
-        </div>
-      ) : shouldOpenWallet ? (
-        <div className="rounded-[24px] border border-astro-border/80 bg-astro-card/60 p-5 text-center">
-          <p className="text-sm text-astro-subtext">{getText(lang, 'charts.limit_reached')}</p>
-          <p className="mt-2 text-base font-medium text-astro-highlight">
-            {getText(lang, 'charts.balance')}: {lumiBalance} Lumi
-          </p>
-          {onOpenWallet && (
-            <button
-              onClick={onOpenWallet}
-              className="mt-3 inline-flex rounded-lg border border-astro-highlight/40 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-astro-highlight"
-            >
-              {getText(lang, 'charts.open_wallet')}
-            </button>
-          )}
         </div>
       ) : null}
 

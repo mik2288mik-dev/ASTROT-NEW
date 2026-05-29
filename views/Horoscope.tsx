@@ -28,7 +28,6 @@ interface HoroscopeProps {
   onUpdateProfile?: (profile: UserProfile) => void;
   onOpenChart?: () => void;
   onRequestPremium?: () => void;
-  onOpenWallet?: () => void;
   onBack?: () => void | Promise<void>;
   onBackgroundChange?: (state: HoroscopeBackgroundState | null) => void;
   initialLayer?: HoroscopeLayer;
@@ -291,7 +290,6 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
     onUpdateProfile,
     onOpenChart,
     onRequestPremium,
-    onOpenWallet,
     onBack,
     onBackgroundChange,
   }) => {

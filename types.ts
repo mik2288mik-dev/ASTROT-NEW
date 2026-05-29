@@ -1424,7 +1424,7 @@ export interface LumiWalletData {
   transactions: LumiTransaction[];
 }
 
-export type ViewState = 'onboarding' | 'hook' | 'paywall' | 'dashboard' | 'chart' | 'horoscope' | 'synastry' | 'oracle' | 'settings' | 'admin' | 'charts' | 'wallet';
+export type ViewState = 'onboarding' | 'hook' | 'paywall' | 'dashboard' | 'chart' | 'horoscope' | 'synastry' | 'oracle' | 'settings' | 'admin' | 'charts';
 
 // Cached text types
 export interface CachedText<T = any> {

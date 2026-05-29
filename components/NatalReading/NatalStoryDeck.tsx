@@ -40,7 +40,6 @@ type NatalStoryDeckProps = {
   chartData: NatalChartData;
   chartId?: number;
   requestPremium: (source?: string, payload?: Record<string, any>) => void | Promise<void>;
-  onOpenWallet?: () => void;
   onUpdateProfile?: (profile: UserProfile) => void;
   onOpenTodaySection: (section: 'pulse' | 'checkin') => void;
   onScrollToFullReport: () => void;
@@ -61,7 +60,7 @@ function formatStoryError(error: unknown): string {
     return `Разовое открытие доступно за ${e.starsCost ?? e.lumiCost ?? HUMAN_PAID_LUMI_COST} Stars через Telegram payment.`;
   }
   if (e?.code === 'PREMIUM_REQUIRED' || e?.code === 'HUMAN_SECTION_LOCKED') {
-    return 'Этот слой можно открыть через Premium или за Lumi.';
+    return 'Этот слой можно открыть через Premium или разово за Stars.';
   }
   return e?.message || 'Не удалось открыть глубину карточки. Попробуйте ещё раз.';
 }
@@ -567,7 +566,6 @@ export const NatalStoryDeck = memo<NatalStoryDeckProps>(
     chartData,
     chartId,
     requestPremium,
-    onOpenWallet,
     onUpdateProfile,
     onOpenTodaySection,
     onScrollToFullReport,
@@ -1181,7 +1179,6 @@ export const NatalStoryDeck = memo<NatalStoryDeckProps>(
         {unlockTarget ? (
           <NatalUnlockSheet
             sectionKey={unlockTarget}
-            balance={profile.lumiBalance ?? 0}
             isLoading={paidLoading === unlockTarget}
             onClose={() => {
               const card = cards.find((item) => getPaidKey(item) === unlockTarget);
@@ -1205,7 +1202,7 @@ export const NatalStoryDeck = memo<NatalStoryDeckProps>(
                 section_key: unlockTarget,
               });
             }}
-            onLumi={() => {
+            onStarsOpen={() => {
               const target = unlockTarget;
               void loadPaid(target, true).then((content) => {
                 if (content) {
@@ -1214,10 +1211,6 @@ export const NatalStoryDeck = memo<NatalStoryDeckProps>(
                   if (card) setSheetCardId(card.id);
                 }
               });
-            }}
-            onWallet={() => {
-              setUnlockTarget(null);
-              onOpenWallet?.();
             }}
           />
         ) : null}

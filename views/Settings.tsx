@@ -13,7 +13,6 @@ interface SettingsProps {
     onShowPremiumPreview?: () => void;
     onOpenAdmin?: () => void;
     onOpenCharts?: () => void;
-    onOpenWallet?: () => void;
 }
 
 const NOTIFICATION_FREQUENCIES: NotificationFrequency[] = ['quiet', 'important', 'daily', 'twice_daily'];
@@ -66,7 +65,7 @@ function storeNotificationFrequency(userId: string | undefined, frequency: Notif
     }
 }
 
-export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPremiumPreview, onOpenAdmin, onOpenCharts, onOpenWallet }) => {
+export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPremiumPreview, onOpenAdmin, onOpenCharts }) => {
     const [tgUser, setTgUser] = useState<{ first_name?: string; last_name?: string; photo_url?: string } | null>(null);
     const [editing, setEditing] = useState(false);
     const [tempName, setTempName] = useState(profile.name);
@@ -240,21 +239,6 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                         )}
                     </div>
                 </div>
-                {onOpenWallet && (
-                    <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-black/[0.06] pt-4">
-                        <p className="text-sm text-text-muted">
-                            <span className="text-accent-gold">✦</span>{' '}
-                            <span className="font-medium text-text-main">{profile.lumiBalance ?? 0}</span> Lumi
-                        </p>
-                        <button
-                            type="button"
-                            onClick={onOpenWallet}
-                            className="min-h-[40px] rounded-full border border-black/8 bg-white/70 px-4 py-2 text-sm font-medium text-text-main transition-colors hover:bg-white"
-                        >
-                            {getText(profile.language, 'settings.wallet_title')} →
-                        </button>
-                    </div>
-                )}
             </section>
 
             <section className={sectionClass}>
