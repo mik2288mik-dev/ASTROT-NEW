@@ -34,7 +34,11 @@ export interface ActivatePremiumResult {
 export async function activatePremium(
   userId: string,
   telegramPaymentChargeId: string,
-  starsAmount: number
+  starsAmount: number,
+  options?: {
+    paymentType?: string | null;
+    payloadJson?: Record<string, unknown>;
+  }
 ): Promise<ActivatePremiumResult> {
   if (!userId?.trim()) throw new Error('UserId is required');
   if (!telegramPaymentChargeId?.trim()) throw new Error('telegram_payment_charge_id is required');
@@ -49,8 +53,15 @@ export async function activatePremium(
   const baseDate = existingUntil && existingUntil > now ? existingUntil : now;
   const premiumUntil = new Date(baseDate.getTime() + PREMIUM_DAYS * 24 * 60 * 60 * 1000);
 
-  const inserted = await db.star_payments.record(telegramPaymentChargeId, id, starsAmount);
-  if (!inserted) {
+  const inserted = await db.star_payments.recordFromWebhook({
+    telegramPaymentChargeId,
+    userId: id,
+    starsAmount,
+    paymentType: options?.paymentType ?? 'premium_week',
+    payloadJson: options?.payloadJson ?? {},
+    status: 'confirmed',
+  });
+  if (!inserted.inserted) {
     log.info('Duplicate payment ignored (DB race)', { telegramPaymentChargeId, userId });
     const current = await db.users.get(id);
     const pu = current?.premium_until ? new Date(current.premium_until) : null;

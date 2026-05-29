@@ -1,10 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { activatePremium } from '../../../services/premiumService';
 import { answerTelegramCallbackQuery } from '../../../lib/telegramBot';
+import { processTelegramSuccessfulPayment } from '../../../lib/starsPaymentService';
 import { handleNotificationCallback } from '../../../services/notificationRetentionService';
 
 const log = {
   info: (msg: string, data?: any) => console.log(`[API/telegram/webhook] ${msg}`, data || ''),
+  warn: (msg: string, data?: any) => console.warn(`[API/telegram/webhook] WARN: ${msg}`, data || ''),
   error: (msg: string, err?: any) => console.error(`[API/telegram/webhook] ERROR: ${msg}`, err || ''),
 };
 
@@ -24,7 +25,7 @@ function verifyWebhookSecret(req: NextApiRequest): boolean {
     }
     return typeof header === 'string' && header === secret;
   }
-  return true; // No BOT_TOKEN - sim mode, accept (webhook not used)
+  return true;
 }
 
 interface SuccessfulPayment {
@@ -116,33 +117,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({ ok: true });
   }
 
-  let payload: { userId?: string; type?: string; packId?: 'starter' | 'plus' | 'max' };
+  let legacyPayload: { userId?: string; type?: string; packId?: string } | null = null;
   try {
-    payload = JSON.parse(payment.invoice_payload);
+    legacyPayload = JSON.parse(payment.invoice_payload);
   } catch {
     log.error('Invalid invoice payload', { payload: payment.invoice_payload });
     return res.status(200).json({ ok: true });
   }
 
-  const userId = payload.userId;
-  if (!userId) {
-    log.error('Missing userId in payload', { payload });
+  if (legacyPayload?.type === 'lumi_pack') {
+    log.info('Lumi pack payment ignored (deprecated)', {
+      userId: legacyPayload.userId,
+      packId: legacyPayload.packId,
+    });
     return res.status(200).json({ ok: true });
   }
 
   try {
-    if (payload.type === 'lumi_pack' && payload.packId) {
-      log.info('Lumi pack payment ignored (deprecated)', { userId, packId: payload.packId });
-    } else {
-      const result = await activatePremium(
-        String(userId),
-        payment.telegram_payment_charge_id,
-        payment.total_amount
-      );
-      log.info('Premium activated via webhook', { userId, activated: result.activated });
+    const result = await processTelegramSuccessfulPayment(payment);
+    if (!result.ok) {
+      log.warn('Telegram payment not processed', { reason: result.reason });
     }
   } catch (error: any) {
-    log.error('Failed to process Telegram payment', { userId, type: payload.type, error: error.message });
+    log.error('Failed to process Telegram payment', {
+      userId: legacyPayload?.userId,
+      type: legacyPayload?.type,
+      error: error.message,
+    });
   }
 
   return res.status(200).json({ ok: true });

@@ -167,6 +167,7 @@ export async function unlockContentLayer(
     lumiCost?: number;
     starsAmount?: number;
     starsPaymentChargeId?: string;
+    paymentVerified?: boolean;
   }
 ): Promise<{
   unlock: ContentUnlock | null;
@@ -236,6 +237,10 @@ export async function unlockContentLayer(
     const chargeId = String(options.starsPaymentChargeId || '').trim();
     if (!chargeId) {
       throw new Error('STARS_PAYMENT_REQUIRED');
+    }
+
+    if (!options.paymentVerified) {
+      throw new Error('STARS_PAYMENT_VERIFICATION_REQUIRED');
     }
 
     const existing = await findExistingOneOffUnlock();

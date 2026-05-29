@@ -1860,6 +1860,69 @@ async function lumia023StarsAccessTier(pool: Pool): Promise<void> {
   log.info('Migration lumia_023_stars_access_tier applied');
 }
 
+async function lumia024StarsOneOffPayments(pool: Pool): Promise<void> {
+  const migrationName = 'lumia_024_stars_one_off_payments';
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied`);
+    return;
+  }
+
+  log.info('Applying stars one-off payments migration...');
+
+  await pool.query(`
+    ALTER TABLE star_payments
+    ADD COLUMN IF NOT EXISTS payment_type TEXT
+  `);
+  await pool.query(`
+    ALTER TABLE star_payments
+    ADD COLUMN IF NOT EXISTS content_surface TEXT
+  `);
+  await pool.query(`
+    ALTER TABLE star_payments
+    ADD COLUMN IF NOT EXISTS content_variant TEXT
+  `);
+  await pool.query(`
+    ALTER TABLE star_payments
+    ADD COLUMN IF NOT EXISTS chart_id BIGINT NULL REFERENCES natal_charts(id) ON DELETE SET NULL
+  `);
+  await pool.query(`
+    ALTER TABLE star_payments
+    ADD COLUMN IF NOT EXISTS cache_key TEXT
+  `);
+  await pool.query(`
+    ALTER TABLE star_payments
+    ADD COLUMN IF NOT EXISTS payload_json JSONB NOT NULL DEFAULT '{}'::jsonb
+  `);
+  await pool.query(`
+    ALTER TABLE star_payments
+    ADD COLUMN IF NOT EXISTS consumed_at TIMESTAMP NULL
+  `);
+  await pool.query(`
+    ALTER TABLE star_payments
+    ADD COLUMN IF NOT EXISTS consumed_by_unlock_id BIGINT NULL REFERENCES content_unlocks(id) ON DELETE SET NULL
+  `);
+  await pool.query(`
+    ALTER TABLE star_payments
+    ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'confirmed'
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_star_payments_user_type
+    ON star_payments(user_id, payment_type)
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_star_payments_consumed_at
+    ON star_payments(consumed_at)
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_star_payments_content_target
+    ON star_payments(content_surface, content_variant, cache_key)
+  `);
+
+  await markMigrationApplied(pool, migrationName);
+  log.info('Migration lumia_024_stars_one_off_payments applied');
+}
+
 async function verifyTablesExist(pool: Pool): Promise<void> {
   const required = [
     'users', 'natal_charts', 'interpretations', 'lumi_transactions', 'app_settings',
@@ -1958,6 +2021,7 @@ export async function runMigrations(): Promise<void> {
   await lumia021NotificationScenarioEngine(pool);
   await lumia022RetentionNotificationQueue(pool);
   await lumia023StarsAccessTier(pool);
+  await lumia024StarsOneOffPayments(pool);
   await verifyTablesExist(pool);
 
     log.info('All Lumia migrations completed successfully');

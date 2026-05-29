@@ -209,6 +209,25 @@ function mapContentInterpretationRow(row: any) {
   };
 }
 
+function mapStarPaymentRow(row: any) {
+  return {
+    id: Number(row.id),
+    telegram_payment_charge_id: String(row.telegram_payment_charge_id),
+    user_id: String(row.user_id),
+    stars_amount: Number(row.stars_amount),
+    payment_type: row.payment_type != null ? String(row.payment_type) : null,
+    content_surface: row.content_surface != null ? String(row.content_surface) : null,
+    content_variant: row.content_variant != null ? String(row.content_variant) : null,
+    chart_id: row.chart_id != null ? Number(row.chart_id) : null,
+    cache_key: row.cache_key != null ? String(row.cache_key) : null,
+    payload_json: normalizeJsonColumn<Record<string, unknown>>(row.payload_json) ?? {},
+    consumed_at: row.consumed_at ? new Date(row.consumed_at).toISOString() : null,
+    consumed_by_unlock_id: row.consumed_by_unlock_id != null ? Number(row.consumed_by_unlock_id) : null,
+    status: String(row.status ?? 'confirmed'),
+    created_at: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString(),
+  };
+}
+
 function mapContentUnlockRow(row: any) {
   return {
     id: Number(row.id),
@@ -2281,6 +2300,21 @@ export const db = {
       }
     },
 
+    async getById(unlockId: number) {
+      if (!DATABASE_URL) return null;
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          'SELECT * FROM content_unlocks WHERE id = $1 LIMIT 1',
+          [unlockId]
+        );
+        return result.rows[0] ? mapContentUnlockRow(result.rows[0]) : null;
+      } catch (error: any) {
+        log.error('[DB] Error getting content unlock by id', { error: error.message, unlockId });
+        throw error;
+      }
+    },
+
     async hasAccess(userId: string, filters: {
       accessTier: DbContentAccessTier;
       contentSurface: DbContentSurface;
@@ -2526,35 +2560,116 @@ export const db = {
   /** star_payments - idempotency for Telegram Stars premium purchases */
   star_payments: {
     async exists(telegramPaymentChargeId: string): Promise<boolean> {
-      if (!DATABASE_URL) return false;
+      const row = await this.getByChargeId(telegramPaymentChargeId);
+      return !!row;
+    },
+
+    async getByChargeId(telegramPaymentChargeId: string) {
+      if (!DATABASE_URL) return null;
       try {
         const dbPool = getPool();
         const result = await dbPool.query(
-          'SELECT 1 FROM star_payments WHERE telegram_payment_charge_id = $1 LIMIT 1',
+          `SELECT *
+           FROM star_payments
+           WHERE telegram_payment_charge_id = $1
+           LIMIT 1`,
           [telegramPaymentChargeId]
         );
-        return result.rows.length > 0;
+        return result.rows[0] ? mapStarPaymentRow(result.rows[0]) : null;
       } catch (error: any) {
-        log.error('[DB] Error checking star payment', { error: error.message });
+        log.error('[DB] Error getting star payment by charge id', { error: error.message });
         throw error;
       }
     },
 
     /** Returns true if inserted, false if duplicate (UNIQUE constraint). DB-level idempotency. */
-    async record(telegramPaymentChargeId: string, userId: string, starsAmount: number): Promise<boolean> {
-      const id = toUserId(userId);
+    async recordFromWebhook(data: {
+      telegramPaymentChargeId: string;
+      userId: string;
+      starsAmount: number;
+      paymentType?: string | null;
+      contentSurface?: string | null;
+      contentVariant?: string | null;
+      chartId?: number | null;
+      cacheKey?: string | null;
+      payloadJson?: Record<string, unknown>;
+      status?: string;
+    }): Promise<{ inserted: boolean; row: ReturnType<typeof mapStarPaymentRow> | null }> {
+      const id = toUserId(data.userId);
       if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
       try {
         const dbPool = getPool();
         const result = await dbPool.query(
-          `INSERT INTO star_payments (telegram_payment_charge_id, user_id, stars_amount) VALUES ($1, $2, $3)
+          `INSERT INTO star_payments (
+             telegram_payment_charge_id,
+             user_id,
+             stars_amount,
+             payment_type,
+             content_surface,
+             content_variant,
+             chart_id,
+             cache_key,
+             payload_json,
+             status
+           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10)
            ON CONFLICT (telegram_payment_charge_id) DO NOTHING
+           RETURNING *`,
+          [
+            data.telegramPaymentChargeId,
+            id,
+            data.starsAmount,
+            data.paymentType ?? null,
+            data.contentSurface ?? null,
+            data.contentVariant ?? null,
+            data.chartId ?? null,
+            data.cacheKey ?? null,
+            JSON.stringify(data.payloadJson ?? {}),
+            data.status ?? 'confirmed',
+          ]
+        );
+
+        if (result.rows[0]) {
+          return { inserted: true, row: mapStarPaymentRow(result.rows[0]) };
+        }
+
+        const existing = await this.getByChargeId(data.telegramPaymentChargeId);
+        return { inserted: false, row: existing };
+      } catch (error: any) {
+        log.error('[DB] Error recording star payment', { error: error.message, userId: data.userId });
+        throw error;
+      }
+    },
+
+    /** @deprecated Use recordFromWebhook from Telegram webhook only. */
+    async record(telegramPaymentChargeId: string, userId: string, starsAmount: number): Promise<boolean> {
+      const result = await this.recordFromWebhook({
+        telegramPaymentChargeId,
+        userId,
+        starsAmount,
+        paymentType: 'premium_week',
+        payloadJson: {},
+        status: 'confirmed',
+      });
+      return result.inserted;
+    },
+
+    async markConsumed(paymentId: number, unlockId: number): Promise<boolean> {
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          `UPDATE star_payments
+           SET consumed_at = COALESCE(consumed_at, NOW()),
+               consumed_by_unlock_id = COALESCE(consumed_by_unlock_id, $2),
+               status = CASE WHEN status = 'confirmed' THEN 'consumed' ELSE status END
+           WHERE id = $1
+             AND (status = 'confirmed' OR consumed_by_unlock_id = $2)
            RETURNING id`,
-          [telegramPaymentChargeId, id, starsAmount]
+          [paymentId, unlockId]
         );
         return result.rowCount !== null && result.rowCount > 0;
       } catch (error: any) {
-        log.error('[DB] Error recording star payment', { error: error.message, userId });
+        log.error('[DB] Error marking star payment consumed', { error: error.message, paymentId, unlockId });
         throw error;
       }
     },

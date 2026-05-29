@@ -322,6 +322,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         cacheKey: questionCacheKey,
         starsAmount: starsCost,
         starsPaymentChargeId,
+        allowUnscopedCacheKey: true,
       });
       starsSpent = unlockResult.unlock?.metadata?.starsAmount ?? starsCost;
     } else {

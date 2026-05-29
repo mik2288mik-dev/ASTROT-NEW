@@ -1,12 +1,23 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
+import {
+  buildInvoicePayload,
+  getStarsAmountForInvoiceType,
+  type StarsInvoiceType,
+} from '../../../lib/starsInvoiceCatalog';
 
 const log = {
   info: (msg: string, data?: any) => console.log(`[API/telegram/create-invoice] ${msg}`, data || ''),
   error: (msg: string, err?: any) => console.error(`[API/telegram/create-invoice] ERROR: ${msg}`, err || ''),
 };
 
-const PREMIUM_STARS = 250;
-const PREMIUM_DAYS = 7;
+const ALLOWED_TYPES = new Set<StarsInvoiceType>([
+  'premium_week',
+  'forecast_full_day',
+  'ask_lumia_one_off',
+  'synastry_full',
+  'natal_human_section',
+  'natal_human_daily',
+]);
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -15,29 +26,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const userId = (req.body?.userId ?? req.query.userId) as string;
   const type = (req.body?.type ?? req.query.type ?? 'premium_week') as string;
-  const packId = (req.body?.packId ?? req.query.packId) as string | undefined;
+  const chartId = req.body?.chartId ?? req.query.chartId;
+  const cacheKey = req.body?.cacheKey ?? req.query.cacheKey;
+  const date = req.body?.date ?? req.query.date;
+  const sectionKey = req.body?.sectionKey ?? req.query.sectionKey;
+
   if (!userId?.trim()) {
     return res.status(400).json({ error: 'userId is required' });
   }
-
-  const BOT_TOKEN = process.env.BOT_TOKEN;
-  if (!BOT_TOKEN) {
-    log.info('BOT_TOKEN not set, returning sim mode');
-    return res.status(200).json({
-      invoiceUrl: null,
-      simMode: true,
-      message: 'Use simulated payment flow (BOT_TOKEN not configured)',
-    });
-  }
-
-  try {
-    const premiumProduct = {
-      payload: { userId: String(userId).trim(), type: 'premium_week' },
-      title: 'Lumia Premium',
-      description: `Full access for ${PREMIUM_DAYS} days`,
-      label: 'Premium 1 Week',
-      amount: PREMIUM_STARS,
-    };
 
   if (type === 'lumi_pack') {
     return res.status(410).json({
@@ -47,11 +43,39 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
-  const product = premiumProduct;
+  if (!ALLOWED_TYPES.has(type as StarsInvoiceType)) {
+    return res.status(400).json({
+      error: 'Invalid invoice type',
+      code: 'INVALID_INVOICE_TYPE',
+      message: `Unsupported invoice type: ${type}`,
+    });
+  }
+
+  const BOT_TOKEN = process.env.BOT_TOKEN;
+  if (!BOT_TOKEN) {
+    log.info('BOT_TOKEN not set, returning sim mode');
+    return res.status(200).json({
+      invoiceUrl: null,
+      simMode: true,
+      message: 'Use simulated payment flow (BOT_TOKEN not configured)',
+      type,
+      starsAmount: getStarsAmountForInvoiceType(type as StarsInvoiceType),
+    });
+  }
+
+  try {
+    const product = buildInvoicePayload({
+      userId: String(userId).trim(),
+      type: type as StarsInvoiceType,
+      chartId: chartId != null ? Number(chartId) : null,
+      cacheKey: cacheKey != null ? String(cacheKey) : null,
+      date: date != null ? String(date) : null,
+      sectionKey: sectionKey != null ? String(sectionKey) : null,
+    });
 
     const payload = JSON.stringify(product.payload);
     if (payload.length > 128) {
-      return res.status(400).json({ error: 'Payload too long' });
+      return res.status(400).json({ error: 'Payload too long', code: 'PAYLOAD_TOO_LONG' });
     }
 
     const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/createInvoiceLink`, {
@@ -63,7 +87,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         payload,
         provider_token: '',
         currency: 'XTR',
-        prices: [{ label: product.label, amount: product.amount }],
+        prices: [{ label: product.label, amount: product.starsAmount }],
       }),
     });
 
@@ -77,16 +101,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const invoiceUrl = data.result;
-    log.info('Invoice created', { userId, invoiceUrl: invoiceUrl?.substring(0, 50) + '...' });
+    log.info('Invoice created', {
+      userId,
+      type,
+      starsAmount: product.starsAmount,
+      invoiceUrl: invoiceUrl?.substring(0, 50) + '...',
+    });
 
     return res.status(200).json({
       invoiceUrl,
       simMode: false,
+      type,
+      starsAmount: product.starsAmount,
+      contentSurface: product.contentSurface,
+      contentVariant: product.contentVariant,
+      cacheKey: product.cacheKey,
+      chartId: product.chartId,
+      payload: product.payload,
     });
   } catch (error: any) {
-    log.error('Error creating invoice', { error: error.message });
-    return res.status(500).json({
+    const code = error?.message || 'INVOICE_BUILD_FAILED';
+    log.error('Error creating invoice', { error: error.message, type, userId });
+    return res.status(code === 'CACHE_KEY_REQUIRED' || code.startsWith('INVALID_') ? 400 : 500).json({
       error: 'Failed to create invoice',
+      code,
       message: error.message,
     });
   }
