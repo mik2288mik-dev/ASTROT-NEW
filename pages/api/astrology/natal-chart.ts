@@ -35,13 +35,14 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (!isValidUserId(userId)) {
       return res.status(400).json(invalidUserIdPayload(userLanguage));
     }
-    const normalizedBirthTime = birthTime || '12:00';
+    const rawBirthTime = typeof birthTime === 'string' ? birthTime.trim() : '';
+    const normalizedBirthTime = rawBirthTime || '12:00';
     const effectiveUserId = String(userId).trim();
 
     const validation = validateNatalChartInput({
       name,
       birthDate,
-      birthTime: normalizedBirthTime,
+      birthTime: rawBirthTime,
       birthPlace,
       language: userLanguage,
     });

@@ -36,7 +36,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const chartData = await calculateNatalChart(
       name || 'Chart',
       birthDate,
-      birthTime || '12:00',
+      birthTime || '',
       birthPlace
     );
 

@@ -46,6 +46,7 @@ export function normalizeCoordinateForStorage(value: number): number {
 export function buildCanonicalNatalInputHash(input: {
   birthDate: string;
   birthTime?: string | null;
+  birthTimeQuality?: string | null;
   latitude: number;
   longitude: number;
   timezone: string;
@@ -53,9 +54,11 @@ export function buildCanonicalNatalInputHash(input: {
   const normalizedBirthDate = normalizeBirthDateInput(input.birthDate);
   const normalizedBirthTime = normalizeBirthTimeInput(input.birthTime);
   const timezone = String(input.timezone || '').trim() || 'UTC';
+  const birthTimeQuality = input.birthTimeQuality ? String(input.birthTimeQuality).trim() : '';
   const latitude = normalizeCoordinateForStorage(input.latitude).toFixed(5);
   const longitude = normalizeCoordinateForStorage(input.longitude).toFixed(5);
-  const raw = `${normalizedBirthDate}|${normalizedBirthTime}|${latitude}|${longitude}|${timezone}`;
+  const qualityPart = birthTimeQuality ? `|${birthTimeQuality}` : '';
+  const raw = `${normalizedBirthDate}|${normalizedBirthTime}${qualityPart}|${latitude}|${longitude}|${timezone}`;
   return crypto.createHash('sha256').update(raw).digest('hex');
 }
 

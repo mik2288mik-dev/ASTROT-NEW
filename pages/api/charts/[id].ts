@@ -44,7 +44,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const chartData = req.body;
       const user = await db.users.get(userId);
       const birthDate = user?.birth_date;
-      const birthTime = user?.birth_time || '12:00';
+      const birthTime = user?.birth_time || '';
+      const normalizedBirthTime = birthTime || '12:00';
       const birthPlace = user?.birth_place;
 
       if (!chartData || !chartData.sun || !chartData.moon || !chartData.rising) {
@@ -70,13 +71,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const inputHash = buildCanonicalNatalInputHash({
         birthDate,
-        birthTime,
+        birthTime: normalizedBirthTime,
+        birthTimeQuality: chartData.birthTimeQuality || chartData.chartQuality?.birthTimeQuality || undefined,
         latitude: chartData.latitude,
         longitude: chartData.longitude,
         timezone: chartData.timezone,
       });
 
-      const savedChart = await db.natal_charts.set(userId, chartData, birthDate, birthTime, birthPlace, inputHash);
+      const savedChart = await db.natal_charts.set(userId, chartData, birthDate, normalizedBirthTime, birthPlace, inputHash);
       return res.status(200).json(savedChart.chart_data);
     }
 

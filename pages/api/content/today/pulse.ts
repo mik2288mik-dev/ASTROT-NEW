@@ -4,7 +4,7 @@ import { db } from '../../../../lib/db';
 import { getMoscowTodayKey } from '../../../../lib/date-utils';
 import { isCanonicalNatalChartDataComplete } from '../../../../lib/natalChartCanonical';
 import { repairCanonicalChartRecord } from '../../../../lib/natalChartPersistence';
-import { TODAY_PULSE_CALCULATION_VERSION, buildTodayPulse } from '../../../../lib/todayPulse';
+import { TODAY_PULSE_CALCULATION_VERSION, buildTodayPulse, isFullSwissTodayPulse } from '../../../../lib/todayPulse';
 import { invalidUserIdPayload, isValidUserId } from '../../../../lib/userId';
 import { fromZonedTime } from 'date-fns-tz';
 
@@ -81,16 +81,15 @@ function validToForLocalDay(dateKey: string, timezone: string) {
 
 function isTodayPulse(value: unknown): value is TodayPulse {
   const pulse = value as TodayPulse | null;
-  return !!pulse &&
-    typeof pulse === 'object' &&
+  if (!pulse || !isFullSwissTodayPulse(pulse)) return false;
+  return typeof pulse === 'object' &&
     Array.isArray(pulse.points) &&
     pulse.points.length === 24 &&
     Array.isArray(pulse.windows) &&
     pulse.windows.length === 6 &&
     Array.isArray(pulse.keyMoments) &&
     pulse.keyMoments.length >= 4 &&
-    typeof pulse.timezone === 'string' &&
-    pulse.calculationVersion === TODAY_PULSE_CALCULATION_VERSION;
+    typeof pulse.timezone === 'string';
 }
 
 async function resolveContext(
@@ -141,6 +140,16 @@ async function readCachedPulse(chartId: number | null, userId: string, cacheKey:
 }
 
 async function writeCachedPulse(chartId: number | null, userId: string, cacheKey: string, pulse: TodayPulse) {
+  if (!isFullSwissTodayPulse(pulse)) {
+    console.warn('[API/content/today/pulse] refusing to cache non-Swiss Today Pulse', {
+      userId,
+      chartId,
+      source: pulse?.source,
+      points: pulse?.points?.length,
+    });
+    return;
+  }
+
   const payload = {
     accessTier: 'free' as const,
     contentSurface: 'forecast' as const,
@@ -243,8 +252,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     });
   } catch (error: any) {
     console.error('[API/content/today/pulse]', error?.message || error);
-    return res.status(500).json({
-      error: 'TODAY_PULSE_FAILED',
+    const code = error?.code === 'TRANSITS_UNAVAILABLE' || error?.code === 'TODAY_PULSE_REQUIRES_SWISSEPH'
+      ? 'TRANSITS_UNAVAILABLE'
+      : 'TODAY_PULSE_FAILED';
+    return res.status(code === 'TRANSITS_UNAVAILABLE' ? 503 : 500).json({
+      error: code,
       message: language === 'en'
         ? 'Could not calculate the day pulse.'
         : 'Не удалось рассчитать пульс дня.',

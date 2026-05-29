@@ -1,5 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { resolveDatabaseUrl } from '../../lib/database-url';
+import { getSwissEphemerisHealth } from '../../lib/swisseph-calculator';
+import { getTodayPulseMetricsSnapshot } from '../../lib/todayPulse';
 
 /**
  * Health check endpoint for Railway deployment monitoring
@@ -23,18 +25,27 @@ export default async function handler(
   const health: any = {
     status: 'ok',
     timestamp: new Date().toISOString(),
+    swissEphemeris: getSwissEphemerisHealth(),
+    calculationMetrics: {
+      todayPulseSources: getTodayPulseMetricsSnapshot(),
+    },
     database: {
       connected: false,
       tablesExist: false,
     },
   };
 
+  if (!health.swissEphemeris.ok) {
+    health.status = process.env.NODE_ENV === 'production' ? 'error' : 'warning';
+    health.message = health.swissEphemeris.message || 'Swiss Ephemeris is unavailable';
+  }
+
   // Check DATABASE_URL configuration
   if (!DATABASE_URL) {
     return res.status(200).json({
       ...health,
-      status: 'warning',
-      message: 'DATABASE_URL is not configured',
+      status: health.status === 'error' ? 'error' : 'warning',
+      message: health.message || 'DATABASE_URL is not configured',
     });
   }
 
@@ -62,17 +73,21 @@ export default async function handler(
       health.database.tablesExist = tableCheck.rows[0].exists;
       
       if (!health.database.tablesExist) {
-        health.status = 'warning';
-        health.message = 'Database connected but migrations have not been run. Tables do not exist.';
+        if (health.status !== 'error') {
+          health.status = 'warning';
+          health.message = 'Database connected but migrations have not been run. Tables do not exist.';
+        }
       }
     } catch (tableError: any) {
       console.error('[Health] Table check failed:', tableError.message);
       health.database.tablesExist = false;
-      health.status = 'warning';
-      health.message = 'Could not verify tables exist';
+      if (health.status !== 'error') {
+        health.status = 'warning';
+        health.message = 'Could not verify tables exist';
+      }
     }
 
-    return res.status(200).json(health);
+    return res.status(health.status === 'error' ? 503 : 200).json(health);
   } catch (error: any) {
     console.error('[Health] Database connection failed:', error.message);
     return res.status(503).json({

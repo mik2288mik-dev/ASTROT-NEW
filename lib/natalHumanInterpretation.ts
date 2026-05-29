@@ -125,24 +125,44 @@ function finiteDegree(value?: number | null): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? Math.round(value * 10) / 10 : null;
 }
 
+function birthTimeQualityFor(chart: NatalChartData) {
+  return (chart as any).birthTimeQuality || (chart as any).chartQuality?.birthTimeQuality || 'exact';
+}
+
+function hasReliableAscendant(chart: NatalChartData) {
+  const quality = (chart as any).chartQuality;
+  return birthTimeQualityFor(chart) === 'exact' && quality?.ascendantReliable !== false;
+}
+
+function hasReliableHouses(chart: NatalChartData) {
+  const quality = (chart as any).chartQuality;
+  return birthTimeQualityFor(chart) === 'exact' &&
+    quality?.housesReliable !== false &&
+    Array.isArray(chart.houses) &&
+    chart.houses.length >= 12;
+}
+
 function getPosition(chart: NatalChartData, key: string): PlanetPosition | null {
+  if ((key === 'rising' || key === 'ascendant' || key === 'asc') && !hasReliableAscendant(chart)) return null;
   if (key === 'rising' || key === 'ascendant' || key === 'asc') return chart.rising || null;
   return (chart as any)[key] || null;
 }
 
 function serializePosition(chart: NatalChartData, key: string): SerializedPosition {
   const p = getPosition(chart, key);
+  const canUseHouse = hasReliableHouses(chart);
   return {
     key,
     name: PLANET_RU[key] || key,
     sign: ruSign(p?.sign),
-    house: p?.house != null ? Number(p.house) : null,
+    house: canUseHouse && p?.house != null ? Number(p.house) : null,
     degree: finiteDegree(p?.degree),
     retrograde: !!p?.retrograde,
   };
 }
 
 function serializeMc(chart: NatalChartData): SerializedPosition | null {
+  if (!hasReliableHouses(chart)) return null;
   const tenth = (chart.houses || []).find((house) => Number(house.house) === 10);
   if (!tenth) return null;
   return {
@@ -166,7 +186,7 @@ function buildChartSummary(profile: UserProfile, chart: NatalChartData): ChartSu
   const planetKeys = [
     'sun',
     'moon',
-    'rising',
+    ...(hasReliableAscendant(chart) ? ['rising'] : []),
     'mercury',
     'venus',
     'mars',
@@ -198,12 +218,12 @@ function buildChartSummary(profile: UserProfile, chart: NatalChartData): ChartSu
       mc: serializeMc(chart),
     },
     planets,
-    housesAvailable: Array.isArray(chart.houses) && chart.houses.length >= 12,
-    importantHouses: (chart.houses || []).slice(0, 12).map((house) => ({
+    housesAvailable: hasReliableHouses(chart),
+    importantHouses: hasReliableHouses(chart) ? (chart.houses || []).slice(0, 12).map((house) => ({
       house: Number(house.house),
       sign: ruSign(house.sign),
       degree: finiteDegree(house.degree),
-    })),
+    })) : [],
     majorAspects: aspects.map(formatAspect),
     calculationVersion: chart.calculationVersion || null,
   };

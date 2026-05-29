@@ -18,6 +18,44 @@ export const TODAY_PULSE_CALCULATION_VERSION = 'today-pulse-v1';
 
 const LAYERS: TodayPulseLayerKey[] = ['energy', 'focus', 'emotions', 'money', 'relationships'];
 const DEFAULT_TIMEZONE = 'Europe/Moscow';
+type TodayPulseMetricSource = TodayPulse['source'] | 'unavailable';
+
+const todayPulseMetrics = {
+  swisseph: 0,
+  algorithmic: 0,
+  mixed: 0,
+  unavailable: 0,
+};
+
+export class TodayPulseQualityError extends Error {
+  code = 'TODAY_PULSE_REQUIRES_SWISSEPH';
+
+  constructor(message: string) {
+    super(message);
+    this.name = 'TodayPulseQualityError';
+  }
+}
+
+function recordTodayPulseMetric(source: TodayPulseMetricSource) {
+  todayPulseMetrics[source] += 1;
+  console.log('[TodayPulse] calculation source metric', {
+    source,
+    counts: { ...todayPulseMetrics },
+  });
+}
+
+export function getTodayPulseMetricsSnapshot() {
+  return { ...todayPulseMetrics };
+}
+
+export function isFullSwissTodayPulse(pulse: TodayPulse | null | undefined): boolean {
+  return !!pulse &&
+    pulse.source === 'swisseph' &&
+    Array.isArray(pulse.points) &&
+    pulse.points.length === 24 &&
+    pulse.calculationVersion === TODAY_PULSE_CALCULATION_VERSION;
+}
+
 const ZODIAC_KEYS = [
   'Aries',
   'Taurus',
@@ -219,6 +257,23 @@ function getHouseNumber(position?: PlanetPosition | null) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function birthTimeQualityFor(chartData: NatalChartData) {
+  return (chartData as any).birthTimeQuality || (chartData as any).chartQuality?.birthTimeQuality || 'exact';
+}
+
+function hasReliableAscendant(chartData: NatalChartData) {
+  const quality = (chartData as any).chartQuality;
+  return birthTimeQualityFor(chartData) === 'exact' && quality?.ascendantReliable !== false;
+}
+
+function hasReliableHouses(chartData: NatalChartData) {
+  const quality = (chartData as any).chartQuality;
+  return birthTimeQualityFor(chartData) === 'exact' &&
+    quality?.housesReliable !== false &&
+    Array.isArray(chartData.houses) &&
+    chartData.houses.length >= 12;
+}
+
 function houseScore(positions: Array<PlanetPosition | null | undefined>, targets: number[]) {
   const houses = positions.map(getHouseNumber).filter((value): value is number => value != null);
   if (!houses.length) return null;
@@ -254,7 +309,7 @@ function calculateLayers(chartData: NatalChartData, transits: CurrentTransits, h
   const natal = {
     sun: getPositionLongitude(chartData.sun),
     moon: getPositionLongitude(chartData.moon),
-    rising: getPositionLongitude(chartData.rising),
+    rising: hasReliableAscendant(chartData) ? getPositionLongitude(chartData.rising) : null,
     mercury: getPositionLongitude(chartData.mercury),
     venus: getPositionLongitude(chartData.venus),
     mars: getPositionLongitude(chartData.mars),
@@ -274,13 +329,22 @@ function calculateLayers(chartData: NatalChartData, transits: CurrentTransits, h
     average(pairs.map(([a, b]) => aspectScore(a, b, [0, 60, 120], 18)), 0.42);
   const pressure = (...pairs: Array<[number | null, number | null]>) =>
     average(pairs.map(([a, b]) => aspectScore(a, b, [90, 180], 16)), 0.28);
-  const house = {
-    energy: houseScore([chartData.sun, chartData.mars, chartData.moon], [1, 6]),
-    focus: houseScore([chartData.mercury, chartData.saturn, chartData.sun], [3, 6, 10]),
-    emotions: houseScore([chartData.moon, chartData.venus], [4, 7, 12]),
-    money: houseScore([chartData.venus, chartData.jupiter, chartData.sun], [2, 8, 10]),
-    relationships: houseScore([chartData.venus, chartData.moon], [5, 7]),
-  };
+  const housesReliable = hasReliableHouses(chartData);
+  const house = housesReliable
+    ? {
+        energy: houseScore([chartData.sun, chartData.mars, chartData.moon], [1, 6]),
+        focus: houseScore([chartData.mercury, chartData.saturn, chartData.sun], [3, 6, 10]),
+        emotions: houseScore([chartData.moon, chartData.venus], [4, 7, 12]),
+        money: houseScore([chartData.venus, chartData.jupiter, chartData.sun], [2, 8, 10]),
+        relationships: houseScore([chartData.venus, chartData.moon], [5, 7]),
+      }
+    : {
+        energy: null,
+        focus: null,
+        emotions: null,
+        money: null,
+        relationships: null,
+      };
   const score = (
     layer: TodayPulseLayerKey,
     base: number,
@@ -499,7 +563,7 @@ function buildPoint(
   const phase = phaseConfig.phase;
   const dominant = dominantLayer(layers);
   const score = calculateScore(layers, phase);
-  const hasHouses = Array.isArray(chartData.houses) && chartData.houses.length >= 12;
+  const hasHouses = hasReliableHouses(chartData);
   const text = buildPointText(language, phaseConfig, layers, transits, dominant, hasHouses, score);
   const tone: TodayPulseTone = phase === 'relationships' && layers.emotions < 46
     ? 'caution'
@@ -597,7 +661,20 @@ export async function buildTodayPulse(options: BuildTodayPulseOptions): Promise<
   const currentDateKey = dateKeyForTimezone(now, timezone);
   const currentHour = currentDateKey === options.dateKey ? localNow.hour : 12;
   const hourlyDates = Array.from({ length: 24 }, (_, hour) => localHourToUtc(options.dateKey, hour, timezone));
-  const transits = await Promise.all(hourlyDates.map((date) => getCurrentTransits(date)));
+  let transits: CurrentTransits[];
+  try {
+    transits = await Promise.all(hourlyDates.map((date) => getCurrentTransits(date)));
+  } catch (error) {
+    recordTodayPulseMetric('unavailable');
+    throw error;
+  }
+  const source = deriveSource(transits);
+  recordTodayPulseMetric(source);
+  if (transits.length !== 24 || source !== 'swisseph') {
+    throw new TodayPulseQualityError(
+      `Today Pulse requires 24 Swiss Ephemeris transit points; received ${transits.length} points with source=${source}`
+    );
+  }
   const points = transits.map((item, hour) => buildPoint(language, options.chartData, options.dateKey, hour, item));
   const peakPoint = maxBy(points, (point) => point.score);
   const currentPoint = points[currentHour] || peakPoint;
@@ -610,7 +687,7 @@ export async function buildTodayPulse(options: BuildTodayPulseOptions): Promise<
     date: options.dateKey,
     timezone,
     generatedAt: now.toISOString(),
-    source: deriveSource(transits),
+    source,
     currentTime: currentDateKey === options.dateKey ? localNow.label : currentPoint.time,
     currentPoint: markedPoints[currentPoint.hour],
     peakPoint: markedPoints[peakPoint.hour],

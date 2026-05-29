@@ -7,6 +7,7 @@ import path from 'path';
 import tzLookup from 'tz-lookup';
 import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { CANONICAL_NATAL_CALCULATION_VERSION, normalizeCoordinateForStorage } from './natalChartCanonical';
+import type { BirthTimeQuality, ChartQuality } from '../types';
 
 // Logging utility
 const log = {
@@ -45,7 +46,12 @@ interface Coordinates {
   timezone: string;
 }
 
-interface PlanetPosition {
+type NatalCalculationOptions = {
+  coordinates?: Coordinates;
+  birthTimeQuality?: BirthTimeQuality;
+};
+
+export interface PlanetPosition {
   planet: string;
   sign: string;
   degree: number;
@@ -54,6 +60,19 @@ interface PlanetPosition {
   retrograde: boolean;
   speedLongitude: number;
   description: string;
+}
+
+export interface PlanetaryTransitsAtResult {
+  source: 'swisseph';
+  date: string;
+  julianDay: number;
+  sun: PlanetPosition;
+  moon: PlanetPosition;
+  mercury: PlanetPosition;
+  venus: PlanetPosition;
+  mars: PlanetPosition;
+  jupiter: PlanetPosition;
+  saturn: PlanetPosition;
 }
 
 interface NatalHouseData {
@@ -98,7 +117,7 @@ function loadSwissEphemerisModule() {
 
 export function getSwissEphemerisHealth(): { ok: boolean; code?: string; message?: string } {
   try {
-    const swe = loadSwissEphemerisModule();
+    const swe = initSwissEph();
     const requiredMethods = ['swe_calc_ut', 'swe_julday', 'swe_houses', 'swe_set_ephe_path'];
     const missingMethods = requiredMethods.filter((method) => typeof swe?.[method] !== 'function');
     if (missingMethods.length) {
@@ -106,6 +125,15 @@ export function getSwissEphemerisHealth(): { ok: boolean; code?: string; message
         ok: false,
         code: 'EPHEMERIS_UNAVAILABLE',
         message: `Swiss Ephemeris is missing methods: ${missingMethods.join(', ')}`,
+      };
+    }
+    const julianDay = swe.swe_julday(2026, 1, 1, 12, 1);
+    const result = swe.swe_calc_ut(julianDay, PLANETS.SUN, swe.SEFLG_SWIEPH | swe.SEFLG_SPEED);
+    if (!result || typeof result.longitude !== 'number') {
+      return {
+        ok: false,
+        code: 'EPHEMERIS_UNAVAILABLE',
+        message: 'Swiss Ephemeris test calculation did not return a Sun longitude',
       };
     }
     return { ok: true };
@@ -591,7 +619,13 @@ function calculateAnglesAndHouses(
   }
 }
 
-export function calculatePlanetaryTransitsAt(date: Date) {
+export function calculatePlanetaryTransitsAt(date: Date): PlanetaryTransitsAtResult {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+    const error = new Error('Invalid transit date');
+    (error as any).code = 'INVALID_TRANSIT_DATE';
+    throw error;
+  }
+
   const swe = getNativeCalculator();
   const utcTimeInHours = date.getUTCHours() + date.getUTCMinutes() / 60 + date.getUTCSeconds() / 3600;
   const julianDay = swe.swe_julday(
@@ -610,18 +644,33 @@ export function calculatePlanetaryTransitsAt(date: Date) {
   const jupiter = calculatePlanetPosition(swe, julianDay, PLANETS.JUPITER, 'Jupiter');
   const saturn = calculatePlanetPosition(swe, julianDay, PLANETS.SATURN, 'Saturn');
 
-  if (!sun || !moon) {
-    throw new Error('Transit calculation did not return required Sun/Moon positions');
+  const missing = [
+    ['Sun', sun],
+    ['Moon', moon],
+    ['Mercury', mercury],
+    ['Venus', venus],
+    ['Mars', mars],
+    ['Jupiter', jupiter],
+    ['Saturn', saturn],
+  ].filter(([, position]) => !position).map(([planet]) => planet);
+
+  if (missing.length > 0) {
+    const error = new Error(`Transit calculation did not return required positions: ${missing.join(', ')}`);
+    (error as any).code = 'EPHEMERIS_TRANSIT_INCOMPLETE';
+    throw error;
   }
 
   return {
-    sun,
-    moon,
-    mercury,
-    venus,
-    mars,
-    jupiter,
-    saturn,
+    source: 'swisseph',
+    date: date.toISOString(),
+    julianDay,
+    sun: sun!,
+    moon: moon!,
+    mercury: mercury!,
+    venus: venus!,
+    mars: mars!,
+    jupiter: jupiter!,
+    saturn: saturn!,
   };
 }
 
@@ -733,6 +782,28 @@ function calculateAspects(positions: PlanetPosition[]): NatalAspectData[] {
   return aspects;
 }
 
+function inferBirthTimeQuality(rawBirthTime?: string | null): BirthTimeQuality {
+  const value = String(rawBirthTime || '').trim();
+  if (!value) return 'unknown';
+  if (value.toLowerCase().includes('default') || value.toLowerCase().includes('unknown')) return 'unknown';
+  return /^\d{1,2}:\d{2}/.test(value) ? 'exact' : 'approximate';
+}
+
+function buildChartQuality(birthTimeQuality: BirthTimeQuality): ChartQuality {
+  const timed = birthTimeQuality === 'exact';
+  return {
+    birthTimeQuality,
+    ascendantReliable: timed,
+    housesReliable: timed,
+    houseBasedPersonalization: timed,
+    notes: timed
+      ? []
+      : [
+          'Birth time is not exact; Ascendant and house placements are calculated from a default noon time and must not be treated as precise.',
+        ],
+  };
+}
+
 /**
  * Рассчитывает полную натальную карту для человека
  */
@@ -757,6 +828,8 @@ export interface NatalChartResult {
   houses: NatalHouseData[];
   aspects: NatalAspectData[];
   calculationVersion: string;
+  birthTimeQuality: BirthTimeQuality;
+  chartQuality: ChartQuality;
   summary: string;
 }
 
@@ -777,16 +850,19 @@ export async function calculateNatalChart(
   birthDate: string,
   birthTime: string,
   birthPlace: string,
-  options?: { coordinates?: Coordinates }
+  options?: NatalCalculationOptions
 ): Promise<NatalChartResult> {
   const startTime = Date.now();
+  const birthTimeQuality = options?.birthTimeQuality || inferBirthTimeQuality(birthTime);
+  const chartQuality = buildChartQuality(birthTimeQuality);
   
   try {
     log.info('Starting natal chart calculation', {
       name,
       birthDate,
       birthTime: birthTime || '12:00 (default)',
-      birthPlace
+      birthPlace,
+      birthTimeQuality,
     });
 
     // Шаг 1: Валидация входных данных
@@ -1018,6 +1094,8 @@ export async function calculateNatalChart(
       houses,
       aspects,
       calculationVersion: CANONICAL_NATAL_CALCULATION_VERSION,
+      birthTimeQuality,
+      chartQuality,
       summary: `Natal chart for ${name}, born on ${birthDate} at ${birthTime || '12:00'} in ${birthPlace}. Your chart reveals a ${element} dominant personality with ${sunWithHouse.sign} Sun, ${moonWithHouse.sign} Moon, and ${ascendantWithHouse.sign} Rising.`
     };
 
@@ -1056,6 +1134,9 @@ export async function calculateNatalChart(
       hasChiron: !!chironWithHouse,
       houses: houses.length,
       aspects: aspects.length,
+      birthTimeQuality,
+      ascendantReliable: chartQuality.ascendantReliable,
+      housesReliable: chartQuality.housesReliable,
     });
 
     return chartData;

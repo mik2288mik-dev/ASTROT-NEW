@@ -235,6 +235,23 @@ function signLabel(sign?: string | null, lang: 'ru' | 'en' = 'ru', nominative = 
   return nominative ? SIGN_NOMINATIVE_RU[normalized] : SIGN_LABELS_RU[normalized];
 }
 
+function birthTimeQualityFor(chartData: NatalChartData) {
+  return (chartData as any).birthTimeQuality || (chartData as any).chartQuality?.birthTimeQuality || 'exact';
+}
+
+function hasReliableAscendant(chartData: NatalChartData) {
+  const quality = (chartData as any).chartQuality;
+  return birthTimeQualityFor(chartData) === 'exact' && quality?.ascendantReliable !== false;
+}
+
+function hasReliableHouses(chartData: NatalChartData) {
+  const quality = (chartData as any).chartQuality;
+  return birthTimeQualityFor(chartData) === 'exact' &&
+    quality?.housesReliable !== false &&
+    Array.isArray(chartData.houses) &&
+    chartData.houses.length >= 12;
+}
+
 function houseNumber(position?: PlanetPosition | null): number | null {
   const raw = position?.house;
   if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
@@ -343,7 +360,9 @@ export function buildNatalAstroEvidence(chartData: NatalChartData | null | undef
   const evidence: AstroEvidenceItem[] = [];
   const sun = chartData.sun;
   const moon = chartData.moon;
-  const rising = chartData.rising;
+  const reliableAscendant = hasReliableAscendant(chartData);
+  const reliableHouses = hasReliableHouses(chartData);
+  const rising = reliableAscendant ? chartData.rising : null;
 
   if (sun && moon && rising) {
     evidence.push({
@@ -362,15 +381,16 @@ export function buildNatalAstroEvidence(chartData: NatalChartData | null | undef
     });
   }
 
-  PERSONAL_PLANETS.forEach((key, index) => {
+  PERSONAL_PLANETS.filter((key) => key !== 'rising' || reliableAscendant).forEach((key, index) => {
     const position = getPlanet(chartData, key);
     if (!position?.sign) return;
-    const house = houseNumber(position);
+    const evidencePosition = reliableHouses ? position : { ...position, house: undefined };
+    const house = reliableHouses ? houseNumber(position) : null;
     evidence.push({
       id: `placement:${key}`,
       type: 'placement',
-      label: formatPlacement(key, position, lang),
-      detail: buildPlacementMeaning(key, position, lang),
+      label: formatPlacement(key, evidencePosition, lang),
+      detail: buildPlacementMeaning(key, evidencePosition, lang),
       humanMeaning: house
         ? (lang === 'ru'
             ? `В жизни это чаще заметно через ${houseTheme(house, lang)}.`

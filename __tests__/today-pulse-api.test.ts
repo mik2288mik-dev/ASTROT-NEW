@@ -49,7 +49,7 @@ function mockStableTransits() {
         jupiter: { planet: 'Jupiter', sign: 'Taurus', degree: 15 },
         saturn: { planet: 'Saturn', sign: 'Pisces', degree: 19 },
         moonPhase: 'waxing',
-        source: 'algorithmic',
+        source: 'swisseph',
       };
     }),
   }));

@@ -137,11 +137,17 @@ function addDays(dateKey: string, days: number) {
   return dateKeyFromDate(date);
 }
 
+function hasReliableAscendant(chartData: NatalChartData) {
+  const quality = (chartData as any).chartQuality;
+  const birthTimeQuality = (chartData as any).birthTimeQuality || quality?.birthTimeQuality || 'exact';
+  return birthTimeQuality === 'exact' && quality?.ascendantReliable !== false;
+}
+
 function calculateMetricValues(chartData: NatalChartData, transits: CurrentTransits, dateKey: string) {
   const natal = {
     sun: getPositionLongitude(chartData.sun),
     moon: getPositionLongitude(chartData.moon),
-    rising: getPositionLongitude(chartData.rising),
+    rising: hasReliableAscendant(chartData) ? getPositionLongitude(chartData.rising) : null,
     mercury: getPositionLongitude(chartData.mercury),
     venus: getPositionLongitude(chartData.venus),
     mars: getPositionLongitude(chartData.mars),
@@ -308,7 +314,8 @@ export async function buildTodayOverview(options: {
   const metrics = await buildTodayMetrics(chartData, dateKey, language);
   const focusMetric = metrics.find((metric) => metric.key === 'focus')?.value ?? 50;
   const stressMetric = metrics.find((metric) => metric.key === 'stress')?.value ?? 50;
-  const otherSign = pickOtherSign(sign, `${dateKey}:${chartData.moon?.sign || ''}:${chartData.rising?.sign || ''}`);
+  const risingSeed = hasReliableAscendant(chartData) ? chartData.rising?.sign || '' : '';
+  const otherSign = pickOtherSign(sign, `${dateKey}:${chartData.moon?.sign || ''}:${risingSeed}`);
 
   return {
     date: dateKey,

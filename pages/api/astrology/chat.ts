@@ -4,6 +4,7 @@ import { getOpenAIInterpretationModel } from '../../../lib/appSettings';
 import { SYSTEM_INSTRUCTION_ASTRA } from '../../../constants';
 import { db } from '../../../lib/db';
 import { RATE_LIMIT_CONFIGS, withRateLimit } from '../../../lib/rateLimit';
+import { buildPersonalizationContext, describePersonalizationContext } from '../../../lib/personalizationContext';
 
 const MIN_QUESTION_LENGTH = 3;
 const MAX_QUESTION_LENGTH = 500;
@@ -199,9 +200,18 @@ async function handler(
       });
     }
 
-    const primaryChart = await db.natal_charts.getPrimary(userId);
     const history = sanitizeHistory(req.body?.history);
-    const chartContext = buildChartContext(user, primaryChart);
+    const personalizationContext = await buildPersonalizationContext({
+      userId,
+      surface: 'ask_lumia',
+      includeTodayPulse: true,
+      includeRecentCheckIns: true,
+      includeRecentQuestions: true,
+      includeRelationshipContext: true,
+    });
+    const chartContext = personalizationContext
+      ? describePersonalizationContext(personalizationContext, lang)
+      : buildChartContext(user, await db.natal_charts.getPrimary(userId));
 
     const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
       {

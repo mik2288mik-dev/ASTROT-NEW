@@ -3,7 +3,7 @@ import { db } from './db';
 import { getMoscowTodayKey } from './date-utils';
 import { isCanonicalNatalChartDataComplete } from './natalChartCanonical';
 import { repairCanonicalChartRecord } from './natalChartPersistence';
-import { TODAY_PULSE_CALCULATION_VERSION, buildTodayPulse } from './todayPulse';
+import { TODAY_PULSE_CALCULATION_VERSION, buildTodayPulse, isFullSwissTodayPulse } from './todayPulse';
 import { fromZonedTime } from 'date-fns-tz';
 
 const DEFAULT_TIMEZONE = 'Europe/Moscow';
@@ -73,16 +73,15 @@ function validToForLocalDay(dateKey: string, timezone: string) {
 
 function isTodayPulse(value: unknown): value is TodayPulse {
   const pulse = value as TodayPulse | null;
-  return !!pulse &&
-    typeof pulse === 'object' &&
+  if (!pulse || !isFullSwissTodayPulse(pulse)) return false;
+  return typeof pulse === 'object' &&
     Array.isArray(pulse.points) &&
     pulse.points.length === 24 &&
     Array.isArray(pulse.windows) &&
     pulse.windows.length === 6 &&
     Array.isArray(pulse.keyMoments) &&
     pulse.keyMoments.length >= 4 &&
-    typeof pulse.timezone === 'string' &&
-    pulse.calculationVersion === TODAY_PULSE_CALCULATION_VERSION;
+    typeof pulse.timezone === 'string';
 }
 
 async function readCachedPulse(chartId: number | null, userId: string, cacheKey: string) {
@@ -97,6 +96,16 @@ async function readCachedPulse(chartId: number | null, userId: string, cacheKey:
 }
 
 async function writeCachedPulse(chartId: number | null, userId: string, cacheKey: string, pulse: TodayPulse) {
+  if (!isFullSwissTodayPulse(pulse)) {
+    console.warn('[todayPulseResolver] refusing to cache non-Swiss Today Pulse', {
+      userId,
+      chartId,
+      source: pulse?.source,
+      points: pulse?.points?.length,
+    });
+    return;
+  }
+
   const payload = {
     accessTier: 'free' as const,
     contentSurface: 'forecast' as const,

@@ -14,6 +14,7 @@ import {
   sanitizeQuestionHistory,
 } from '../../../../lib/questionContent';
 import { RATE_LIMIT_CONFIGS, withRateLimit } from '../../../../lib/rateLimit';
+import { buildPersonalizationContext, describePersonalizationContext } from '../../../../lib/personalizationContext';
 
 const MIN_QUESTION_LENGTH = 3;
 const MAX_QUESTION_LENGTH = 500;
@@ -204,8 +205,17 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     });
   }
 
-  const primaryChart = await db.natal_charts.getPrimary(userId);
-  const chartContext = buildChartContext(user, primaryChart);
+  const personalizationContext = await buildPersonalizationContext({
+    userId,
+    surface: 'ask_lumia',
+    includeTodayPulse: true,
+    includeRecentCheckIns: true,
+    includeRecentQuestions: true,
+    includeRelationshipContext: true,
+  });
+  const chartContext = personalizationContext
+    ? describePersonalizationContext(personalizationContext, lang)
+    : buildChartContext(user, await db.natal_charts.getPrimary(userId));
   const history = sanitizeQuestionHistory(req.body?.history);
 
   let answer: string;

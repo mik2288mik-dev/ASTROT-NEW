@@ -101,6 +101,16 @@ export interface NatalAspectData {
   to: string;
 }
 
+export type BirthTimeQuality = 'exact' | 'approximate' | 'unknown';
+
+export interface ChartQuality {
+  birthTimeQuality: BirthTimeQuality;
+  ascendantReliable: boolean;
+  housesReliable: boolean;
+  houseBasedPersonalization: boolean;
+  notes: string[];
+}
+
 export interface NatalChartData {
   sun: PlanetPosition;
   moon: PlanetPosition;
@@ -124,6 +134,8 @@ export interface NatalChartData {
   houses?: NatalHouseData[];
   aspects?: NatalAspectData[];
   calculationVersion?: string;
+  birthTimeQuality?: BirthTimeQuality;
+  chartQuality?: ChartQuality;
   
   summary: string; 
   keywords?: {

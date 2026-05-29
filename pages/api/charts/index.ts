@@ -43,12 +43,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
       }
 
-      const normalizedBirthTime = birthTime || '12:00';
+      const rawBirthTime = typeof birthTime === 'string' ? birthTime.trim() : '';
+      const normalizedBirthTime = rawBirthTime || '12:00';
       const userLanguage = language === 'en' ? 'en' : 'ru';
       const validation = validateNatalChartInput({
         name: name || 'My Chart',
         birthDate,
-        birthTime: normalizedBirthTime,
+        birthTime: rawBirthTime,
         birthPlace,
         language: userLanguage,
       });

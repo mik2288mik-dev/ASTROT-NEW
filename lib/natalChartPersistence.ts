@@ -7,6 +7,7 @@ import {
   normalizeBirthPlaceInput,
   normalizeBirthTimeInput,
 } from './natalChartCanonical';
+import type { BirthTimeQuality, ChartQuality } from '../types';
 
 type EnsurePrimaryArgs = {
   userId: string;
@@ -27,6 +28,37 @@ type CreateOrReuseArgs = {
   chartData?: any;
   language?: string;
 };
+
+function inferBirthTimeQuality(rawBirthTime?: string | null): BirthTimeQuality {
+  const value = String(rawBirthTime || '').trim();
+  if (!value) return 'unknown';
+  if (value.toLowerCase().includes('default') || value.toLowerCase().includes('unknown')) return 'unknown';
+  return /^\d{1,2}:\d{2}/.test(value) ? 'exact' : 'approximate';
+}
+
+function buildChartQuality(birthTimeQuality: BirthTimeQuality): ChartQuality {
+  const timed = birthTimeQuality === 'exact';
+  return {
+    birthTimeQuality,
+    ascendantReliable: timed,
+    housesReliable: timed,
+    houseBasedPersonalization: timed,
+    notes: timed
+      ? []
+      : ['Birth time is not exact; Ascendant and houses are not precise enough for exact personalization.'],
+  };
+}
+
+function ensureChartQuality(chartData: any, birthTimeQuality: BirthTimeQuality) {
+  if (!chartData || typeof chartData !== 'object') return chartData;
+  const existingQuality = chartData.birthTimeQuality || chartData.chartQuality?.birthTimeQuality;
+  if (existingQuality) return chartData;
+  return {
+    ...chartData,
+    birthTimeQuality,
+    chartQuality: buildChartQuality(birthTimeQuality),
+  };
+}
 
 async function ensureMinimalUser(args: EnsurePrimaryArgs) {
   const existingUser = await db.users.get(args.userId);
@@ -57,6 +89,7 @@ function isStoredCanonicalChart(chart: any): boolean {
 
 export async function ensureCanonicalPrimaryChart(args: EnsurePrimaryArgs): Promise<{ chart: any; source: 'cache' | 'calculated' | 'repaired' }> {
   const normalizedBirthDate = normalizeBirthDateInput(args.birthDate);
+  const birthTimeQuality = inferBirthTimeQuality(args.birthTime);
   const normalizedBirthTime = normalizeBirthTimeInput(args.birthTime);
   const normalizedBirthPlace = normalizeBirthPlaceInput(args.birthPlace);
 
@@ -64,6 +97,7 @@ export async function ensureCanonicalPrimaryChart(args: EnsurePrimaryArgs): Prom
   const inputHash = buildCanonicalNatalInputHash({
     birthDate: normalizedBirthDate,
     birthTime: normalizedBirthTime,
+    birthTimeQuality,
     latitude: coordinates.lat,
     longitude: coordinates.lon,
     timezone: coordinates.timezone,
@@ -89,7 +123,7 @@ export async function ensureCanonicalPrimaryChart(args: EnsurePrimaryArgs): Prom
     normalizedBirthDate,
     normalizedBirthTime,
     normalizedBirthPlace,
-    { coordinates }
+    { coordinates, birthTimeQuality }
   );
 
   const savedChart = await db.natal_charts.persistPrimary(args.userId, {
@@ -109,6 +143,7 @@ export async function ensureCanonicalPrimaryChart(args: EnsurePrimaryArgs): Prom
 
 export async function createOrReuseCanonicalChart(args: CreateOrReuseArgs): Promise<{ chart: any; reused: boolean }> {
   const normalizedBirthDate = normalizeBirthDateInput(args.birthDate);
+  const birthTimeQuality = inferBirthTimeQuality(args.birthTime);
   const normalizedBirthTime = normalizeBirthTimeInput(args.birthTime);
   const normalizedBirthPlace = normalizeBirthPlaceInput(args.birthPlace);
 
@@ -116,6 +151,7 @@ export async function createOrReuseCanonicalChart(args: CreateOrReuseArgs): Prom
   const inputHash = buildCanonicalNatalInputHash({
     birthDate: normalizedBirthDate,
     birthTime: normalizedBirthTime,
+    birthTimeQuality,
     latitude: coordinates.lat,
     longitude: coordinates.lon,
     timezone: coordinates.timezone,
@@ -137,13 +173,13 @@ export async function createOrReuseCanonicalChart(args: CreateOrReuseArgs): Prom
   });
 
   const chartData = isCanonicalNatalChartDataComplete(args.chartData)
-    ? args.chartData
+    ? ensureChartQuality(args.chartData, birthTimeQuality)
     : await calculateNatalChart(
         args.name,
         normalizedBirthDate,
         normalizedBirthTime,
         normalizedBirthPlace,
-        { coordinates }
+        { coordinates, birthTimeQuality }
       );
 
   const savedChart = await db.natal_charts.create(args.userId, {
@@ -163,7 +199,7 @@ export async function repairCanonicalChartForUser(userId: string) {
   const primaryChart = await db.natal_charts.getPrimary(userId);
 
   const birthDate = normalizeBirthDateInput(primaryChart?.birth_date || user?.birth_date);
-  const birthTime = normalizeBirthTimeInput(primaryChart?.birth_time || user?.birth_time);
+  const rawBirthTime = primaryChart?.birth_time || user?.birth_time || '';
   const birthPlace = normalizeBirthPlaceInput(primaryChart?.birth_place || user?.birth_place);
   const name = (user?.name || primaryChart?.name || 'Chart').trim();
 
@@ -175,7 +211,7 @@ export async function repairCanonicalChartForUser(userId: string) {
     userId,
     name,
     birthDate,
-    birthTime,
+    birthTime: rawBirthTime,
     birthPlace,
     language: user?.language || 'ru',
     forceRecalculate: false,
@@ -198,7 +234,7 @@ export async function repairCanonicalChartRecord(userId: string, chartId?: numbe
     userId,
     name: chart.name || 'Моя карта',
     birthDate: normalizeBirthDateInput(chart.birth_date),
-    birthTime: normalizeBirthTimeInput(chart.birth_time || '12:00'),
+    birthTime: chart.birth_time || '',
     birthPlace: normalizeBirthPlaceInput(chart.birth_place),
   });
 

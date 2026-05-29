@@ -1,11 +1,11 @@
 /**
  * Transits Calculator
- * 
- * Вспомогательные функции для расчёта текущих транзитов планет
- * и их интерпретации для прогнозов
+ *
+ * Uses Swiss Ephemeris for production transit calculations. The lightweight
+ * algorithmic approximation is available only in non-production runtimes when
+ * ALLOW_APPROXIMATE_TRANSITS=true is set explicitly.
  */
 
-// Logging utility
 const log = {
   info: (message: string, data?: any) => {
     console.log(`[TransitsCalculator] ${message}`, data || '');
@@ -18,19 +18,14 @@ const log = {
   },
 };
 
-/**
- * Интерфейс для транзита планеты
- */
 export interface PlanetTransit {
   planet: string;
   sign: string;
   degree: number;
+  longitude?: number;
   description?: string;
 }
 
-/**
- * Интерфейс для текущих транзитов
- */
 export interface CurrentTransits {
   date: string;
   sun: PlanetTransit;
@@ -43,6 +38,18 @@ export interface CurrentTransits {
   moonPhase?: string;
   summary?: string;
   source?: 'swisseph' | 'algorithmic';
+}
+
+export class TransitsUnavailableError extends Error {
+  code = 'TRANSITS_UNAVAILABLE';
+
+  constructor(message: string, cause?: unknown) {
+    super(message);
+    this.name = 'TransitsUnavailableError';
+    if (cause) {
+      (this as any).cause = cause;
+    }
+  }
 }
 
 const ZODIAC_SIGNS = [
@@ -59,6 +66,14 @@ const ZODIAC_SIGNS = [
   'Aquarius',
   'Pisces',
 ];
+
+function isProductionRuntime() {
+  return process.env.NODE_ENV === 'production';
+}
+
+function isApproximateTransitFallbackAllowed() {
+  return process.env.ALLOW_APPROXIMATE_TRANSITS === 'true' && !isProductionRuntime();
+}
 
 function normalizeDegree(value: number): number {
   const next = value % 360;
@@ -86,6 +101,7 @@ function transitFromLongitude(
     planet,
     sign,
     degree: Number((normalized % 30).toFixed(2)),
+    longitude: Number(normalized.toFixed(6)),
     description: description(sign),
   };
 }
@@ -102,8 +118,6 @@ function calculateApproximateLongitudes(date: Date) {
   const moonAnomaly = normalizeDegree(134.963 + 13.064993 * n);
   const moon = normalizeDegree(moonMean + 6.289 * Math.sin(toRadians(moonAnomaly)));
 
-  // Lightweight geocentric approximations: enough for daily rhythm metrics when
-  // native Swiss bindings are unavailable, without returning static fake data.
   const mercury = normalizeDegree(sun + 23 * Math.sin((2 * Math.PI * n) / 116));
   const venus = normalizeDegree(sun + 37 * Math.sin((2 * Math.PI * n) / 584));
   const mars = normalizeDegree(355.433 + 0.524039 * n + 8 * Math.sin((2 * Math.PI * n) / 780));
@@ -113,126 +127,118 @@ function calculateApproximateLongitudes(date: Date) {
   return { sun, moon, mercury, venus, mars, jupiter, saturn };
 }
 
-/**
- * Получить текущие транзиты планет
- * 
- * Использует Swiss Ephemeris для расчёта положения планет на текущую дату
- */
+function fromSwissPlanet(
+  planet: string,
+  position: { sign: string; degree: number; longitude: number } | null | undefined
+): PlanetTransit | undefined {
+  if (!position) return undefined;
+  return {
+    planet,
+    sign: position.sign,
+    degree: position.degree,
+    longitude: position.longitude,
+    description: `${planet} is currently in ${position.sign}.`,
+  };
+}
+
 export async function getCurrentTransits(date?: Date): Promise<CurrentTransits> {
   const targetDate = date || new Date();
   const dateString = targetDate.toISOString().split('T')[0];
   const timeString = targetDate.toISOString().slice(11, 16);
-  
+
   log.info('Calculating current transits', { date: dateString, time: timeString });
 
   try {
     const { calculatePlanetaryTransitsAt } = await import('./swisseph-calculator');
     const transitChart = calculatePlanetaryTransitsAt(targetDate);
-    const moonPhase = getMoonPhase(transitChart.moon.degree);
+    const moonPhase = getMoonPhase(transitChart.moon.longitude);
 
     const transits: CurrentTransits = {
       date: dateString,
-      sun: {
-        planet: 'Sun',
-        sign: transitChart.sun.sign,
-        degree: transitChart.sun.degree,
-        description: `Солнце сейчас в ${transitChart.sun.sign}, освещая темы этого знака`
-      },
-      moon: {
-        planet: 'Moon',
-        sign: transitChart.moon.sign,
-        degree: transitChart.moon.degree,
-        description: `Луна в ${transitChart.moon.sign}, влияя на эмоциональный фон`
-      },
-      mercury: transitChart.mercury ? {
-        planet: 'Mercury',
-        sign: transitChart.mercury.sign,
-        degree: transitChart.mercury.degree,
-        description: `Меркурий в ${transitChart.mercury.sign}, влияя на коммуникацию`
-      } : undefined,
-      venus: transitChart.venus ? {
-        planet: 'Venus',
-        sign: transitChart.venus.sign,
-        degree: transitChart.venus.degree,
-        description: `Венера в ${transitChart.venus.sign}, влияя на отношения`
-      } : undefined,
-      mars: transitChart.mars ? {
-        planet: 'Mars',
-        sign: transitChart.mars.sign,
-        degree: transitChart.mars.degree,
-        description: `Марс в ${transitChart.mars.sign}, влияя на энергию и действия`
-      } : undefined,
+      sun: fromSwissPlanet('Sun', transitChart.sun)!,
+      moon: fromSwissPlanet('Moon', transitChart.moon)!,
+      mercury: fromSwissPlanet('Mercury', transitChart.mercury),
+      venus: fromSwissPlanet('Venus', transitChart.venus),
+      mars: fromSwissPlanet('Mars', transitChart.mars),
+      jupiter: fromSwissPlanet('Jupiter', transitChart.jupiter),
+      saturn: fromSwissPlanet('Saturn', transitChart.saturn),
       moonPhase,
-      summary: `Текущие астрологические влияния на ${new Date(dateString).toLocaleDateString('ru-RU')}`,
+      summary: `Current astrological transits for ${dateString}`,
       source: 'swisseph',
     };
 
     log.info('Transits calculated successfully', {
+      source: transits.source,
       sunSign: transits.sun.sign,
       moonSign: transits.moon.sign,
-      moonPhase
+      moonPhase,
     });
 
     return transits;
   } catch (error: any) {
-    log.error('Failed to calculate transits', {
-      error: error.message,
+    const unavailableError = new TransitsUnavailableError(
+      `Swiss Ephemeris transits are unavailable for ${dateString} ${timeString}`,
+      error
+    );
+
+    log.error('Failed to calculate Swiss Ephemeris transits', {
+      error: error?.message || String(error),
       date: dateString,
-      time: timeString
+      time: timeString,
+      code: unavailableError.code,
+      approximateFallbackAllowed: isApproximateTransitFallbackAllowed(),
+      nodeEnv: process.env.NODE_ENV || 'development',
     });
 
+    if (!isApproximateTransitFallbackAllowed()) {
+      throw unavailableError;
+    }
+
+    log.warn('Using approximate transit fallback', {
+      date: dateString,
+      time: timeString,
+      source: 'algorithmic',
+    });
     return getAlgorithmicTransits(targetDate);
   }
 }
 
-/**
- * Получить упрощённые транзиты (fallback)
- * 
- * Используется когда Swiss Ephemeris недоступен
- */
 function getAlgorithmicTransits(date: Date): CurrentTransits {
   const dateString = date.toISOString().split('T')[0];
   const longitudes = calculateApproximateLongitudes(date);
-  
+
   return {
     date: dateString,
-    sun: transitFromLongitude('Sun', longitudes.sun, (sign) => `Солнце сейчас в ${sign}`),
-    moon: transitFromLongitude('Moon', longitudes.moon, (sign) => `Луна сейчас в ${sign}`),
-    mercury: transitFromLongitude('Mercury', longitudes.mercury, (sign) => `Меркурий сейчас в ${sign}`),
-    venus: transitFromLongitude('Venus', longitudes.venus, (sign) => `Венера сейчас в ${sign}`),
-    mars: transitFromLongitude('Mars', longitudes.mars, (sign) => `Марс сейчас в ${sign}`),
-    jupiter: transitFromLongitude('Jupiter', longitudes.jupiter, (sign) => `Юпитер сейчас в ${sign}`),
-    saturn: transitFromLongitude('Saturn', longitudes.saturn, (sign) => `Сатурн сейчас в ${sign}`),
+    sun: transitFromLongitude('Sun', longitudes.sun, (sign) => `Sun is currently in ${sign}.`),
+    moon: transitFromLongitude('Moon', longitudes.moon, (sign) => `Moon is currently in ${sign}.`),
+    mercury: transitFromLongitude('Mercury', longitudes.mercury, (sign) => `Mercury is currently in ${sign}.`),
+    venus: transitFromLongitude('Venus', longitudes.venus, (sign) => `Venus is currently in ${sign}.`),
+    mars: transitFromLongitude('Mars', longitudes.mars, (sign) => `Mars is currently in ${sign}.`),
+    jupiter: transitFromLongitude('Jupiter', longitudes.jupiter, (sign) => `Jupiter is currently in ${sign}.`),
+    saturn: transitFromLongitude('Saturn', longitudes.saturn, (sign) => `Saturn is currently in ${sign}.`),
     moonPhase: getMoonPhase(longitudes.moon),
-    summary: `Текущие астрологические влияния на ${date.toLocaleDateString('ru-RU')}`,
+    summary: `Approximate astrological transits for ${dateString}`,
     source: 'algorithmic',
   };
 }
 
-/**
- * Определить фазу Луны (упрощённо)
- */
 function getMoonPhase(moonDegree: number): string {
-  // Это упрощённая версия, в реальности нужно учитывать позиции Солнца и Луны
-  const phase = Math.floor(moonDegree / 45) % 8;
-  
+  const phase = Math.floor(normalizeDegree(moonDegree) / 45) % 8;
+
   const phases = [
-    'Новолуние',
-    'Растущий серп',
-    'Первая четверть',
-    'Растущая Луна',
-    'Полнолуние',
-    'Убывающая Луна',
-    'Последняя четверть',
-    'Убывающий серп'
+    'New Moon',
+    'Waxing Crescent',
+    'First Quarter',
+    'Waxing Gibbous',
+    'Full Moon',
+    'Waning Gibbous',
+    'Last Quarter',
+    'Waning Crescent',
   ];
-  
-  return phases[phase] || 'Растущая';
+
+  return phases[phase] || 'Waxing';
 }
 
-/**
- * Получить транзиты на период (неделя/месяц)
- */
 export async function getTransitsForPeriod(
   startDate: Date,
   endDate: Date
@@ -243,15 +249,15 @@ export async function getTransitsForPeriod(
 }> {
   const startTransits = await getCurrentTransits(startDate);
   const endTransits = await getCurrentTransits(endDate);
-  
-  const summary = `Период с ${startDate.toLocaleDateString('ru-RU')} по ${endDate.toLocaleDateString('ru-RU')}. ` +
-    `Солнце движется через ${startTransits.sun.sign}` +
-    (startTransits.sun.sign !== endTransits.sun.sign ? ` в ${endTransits.sun.sign}` : '') +
+
+  const summary = `Period from ${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}. ` +
+    `Sun moves through ${startTransits.sun.sign}` +
+    (startTransits.sun.sign !== endTransits.sun.sign ? ` into ${endTransits.sun.sign}` : '') +
     `.`;
-  
+
   return {
     startTransits,
     endTransits,
-    summary
+    summary,
   };
 }

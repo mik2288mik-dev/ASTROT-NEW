@@ -1438,6 +1438,7 @@ export const db = {
           ? buildCanonicalNatalInputHash({
               birthDate: data.birthDate,
               birthTime: data.birthTime,
+              birthTimeQuality: chartData.birthTimeQuality || chartData.chartQuality?.birthTimeQuality || undefined,
               latitude: chartData.latitude,
               longitude: chartData.longitude,
               timezone: chartData.timezone,
@@ -1573,6 +1574,7 @@ export const db = {
           ? buildCanonicalNatalInputHash({
               birthDate,
               birthTime,
+              birthTimeQuality: data.birthTimeQuality || data.chartQuality?.birthTimeQuality || undefined,
               latitude: data.latitude,
               longitude: data.longitude,
               timezone: data.timezone,
@@ -3369,6 +3371,42 @@ export const db = {
         return { success: true };
       } catch (error: any) {
         log.error('[DB] Error setting synastry', { error: error.message, chart1, chart2 });
+        throw error;
+      }
+    },
+
+    async listRecentForUser(userId: string, chartId: number | null, limit = 3) {
+      const id = toUserId(userId);
+      if (!DATABASE_URL) return [];
+      try {
+        const dbPool = getPool();
+        const cappedLimit = Math.max(1, Math.min(10, Math.floor(limit)));
+        const result = chartId != null
+          ? await dbPool.query(
+              `SELECT content, cache_key, updated_at, created_at
+               FROM content_interpretations
+               WHERE user_id = $1
+                 AND content_surface = 'synastry'
+                 AND (chart_id = $2 OR chart_id IS NULL)
+               ORDER BY updated_at DESC
+               LIMIT $3`,
+              [id, chartId, cappedLimit]
+            )
+          : await dbPool.query(
+              `SELECT content, cache_key, updated_at, created_at
+               FROM content_interpretations
+               WHERE user_id = $1
+                 AND content_surface = 'synastry'
+               ORDER BY updated_at DESC
+               LIMIT $2`,
+              [id, cappedLimit]
+            );
+        return result.rows.map((row: any) => ({
+          ...row,
+          content: normalizeJsonColumn(row.content),
+        }));
+      } catch (error: any) {
+        log.error('[DB] Error listing recent synastry context', { error: error.message, userId, chartId });
         throw error;
       }
     },
