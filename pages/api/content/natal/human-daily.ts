@@ -22,8 +22,11 @@ import {
   isHumanDailySectionKey,
   type HumanDailySectionKey,
 } from '../../../../lib/natalHumanShared';
+import { logContentApi, warnContentApi } from '../../../../lib/contentApiLogging';
 
 export const config = { maxDuration: 90 };
+
+const SCOPE = 'natal-human-daily';
 
 type ResolvedDailyAccess = {
   accessTier: Extract<ContentAccessTier, 'premium' | 'stars' | 'lumi'>;
@@ -44,6 +47,7 @@ async function findDailyOneOffUnlock(
   });
   if (starsUnlock) return starsUnlock;
 
+  // Legacy-only: match unlock rows written before Lumi → Stars migration.
   return db.content_unlocks.getLatestActive(userId, {
     accessTier: 'lumi',
     contentSurface: 'natal',
@@ -102,11 +106,24 @@ async function resolveDailyAccess(
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const startedAt = Date.now();
   const ready = await ensureValidContext(req, res);
   if (!ready) return;
   const { userId, ctx } = ready;
   const sectionKey = readSectionKey(req);
   const dateKey = readDateKey(req);
+
+  logContentApi(
+    {
+      scope: SCOPE,
+      userId,
+      chartId: ctx.chartId,
+      surface: 'natal',
+      variant: 'living',
+    },
+    'request_start',
+    { metadata: { sectionKey, dateKey, method: req.method } }
+  );
 
   if (!sectionKey) {
     return res.status(400).json({
@@ -127,7 +144,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   let access = await resolveDailyAccess(userId, ctx.chartId, cacheKey);
   const isFreeOverview = sectionKey === 'daily_overview';
 
+  logContentApi(
+    {
+      scope: SCOPE,
+      userId,
+      chartId: ctx.chartId,
+      surface: 'natal',
+      variant: 'living',
+    },
+    'access_check',
+    {
+      accessTier: isFreeOverview ? 'free' : (access?.accessTier ?? 'locked'),
+      metadata: { sectionKey, dateKey, isFreeOverview },
+    }
+  );
+
   if (req.method === 'GET' && !access && !isFreeOverview) {
+    warnContentApi(
+      {
+        scope: SCOPE,
+        userId,
+        chartId: ctx.chartId,
+        surface: 'natal',
+        variant: 'living',
+      },
+      'unlock_required',
+      { errorCode: 'HUMAN_DAILY_LOCKED', metadata: { sectionKey, starsCost: HUMAN_DAILY_STARS_COST } }
+    );
     return res.status(403).json({
       error: 'HUMAN_DAILY_LOCKED',
       code: 'HUMAN_DAILY_LOCKED',
@@ -145,6 +188,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     ).trim();
 
     if (requestedAccessTier !== 'stars' || !starsPaymentChargeId) {
+      warnContentApi(
+        {
+          scope: SCOPE,
+          userId,
+          chartId: ctx.chartId,
+          surface: 'natal',
+          variant: 'living',
+        },
+        'payment_required',
+        { errorCode: 'STARS_PAYMENT_REQUIRED', metadata: { sectionKey, starsCost: HUMAN_DAILY_STARS_COST } }
+      );
       return res.status(409).json({
         error: 'Stars payment required',
         code: 'STARS_PAYMENT_REQUIRED',
@@ -196,6 +250,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!cached) {
       return res.status(404).json({ error: 'NOT_FOUND', code: 'HUMAN_DAILY_NOT_READY' });
     }
+    logContentApi(
+      {
+        scope: SCOPE,
+        userId,
+        chartId: ctx.chartId,
+        surface: 'natal',
+        variant: 'living',
+      },
+      'cache_hit',
+      {
+        accessTier: responseAccessTier,
+        status: 'ready',
+        durationMs: Date.now() - startedAt,
+        metadata: { sectionKey, dateKey },
+      }
+    );
     return res.status(200).json({
       interpretation: cached,
       source: 'human_v2',
@@ -205,6 +275,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   if (cached) {
+    logContentApi(
+      {
+        scope: SCOPE,
+        userId,
+        chartId: ctx.chartId,
+        surface: 'natal',
+        variant: 'living',
+      },
+      'cache_hit',
+      {
+        accessTier: responseAccessTier,
+        status: 'ready',
+        durationMs: Date.now() - startedAt,
+        metadata: { sectionKey, dateKey },
+      }
+    );
     return res.status(200).json({
       interpretation: cached,
       source: 'human_v2',
@@ -214,8 +300,35 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
+    logContentApi(
+      {
+        scope: SCOPE,
+        userId,
+        chartId: ctx.chartId,
+        surface: 'natal',
+        variant: 'living',
+      },
+      'generation_start',
+      { accessTier: responseAccessTier, metadata: { sectionKey, dateKey } }
+    );
     const section = await generateHumanDailySection(ctx.profile, ctx.chartData!, sectionKey, dateKey);
     const saved = await saveReading(ctx, cacheOpts, section);
+    logContentApi(
+      {
+        scope: SCOPE,
+        userId,
+        chartId: ctx.chartId,
+        surface: 'natal',
+        variant: 'living',
+      },
+      'generation_success',
+      {
+        accessTier: responseAccessTier,
+        status: 'ready',
+        durationMs: Date.now() - startedAt,
+        metadata: { sectionKey, dateKey },
+      }
+    );
     return res.status(200).json({
       interpretation: saved,
       source: 'generated',
@@ -223,6 +336,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       accessTier: responseAccessTier,
     });
   } catch (error) {
+    warnContentApi(
+      {
+        scope: SCOPE,
+        userId,
+        chartId: ctx.chartId,
+        surface: 'natal',
+        variant: 'living',
+      },
+      'generation_failed',
+      {
+        accessTier: responseAccessTier,
+        errorCode: 'CONTENT_GENERATION_UNAVAILABLE',
+        durationMs: Date.now() - startedAt,
+        metadata: { sectionKey, dateKey },
+      }
+    );
     console.error(`[natal/human-daily:${sectionKey}] generation failed:`, error instanceof Error ? error.message : error);
     return res.status(503).json({
       error: 'CONTENT_GENERATION_UNAVAILABLE',

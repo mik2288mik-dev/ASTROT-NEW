@@ -14,6 +14,7 @@ import { getCachedFullDaypartForecast, getFullDaypartForecast, getFullDaypartFor
 import { getCachedHumanDailySection, loadHumanDailySection, type HumanReadingError } from '../services/natalReadingService';
 import { formatLumiaDate, getMoscowTodayKey } from '../lib/date-utils';
 import { FORECAST_FULL_DAY_STARS_COST } from '../lib/forecastFullDay';
+import { HUMAN_DAILY_STARS_COST } from '../lib/natalHumanShared';
 import { requestStarsOneOffPayment } from '../services/telegramService';
 import { getZodiacSign } from '../constants';
 import { cn } from '../lib/cn';
@@ -64,8 +65,8 @@ type LayerConfig = {
 
 const LAYER_PRICES: Record<Exclude<HoroscopeLayer, 'sign'>, number> = {
   chart: FORECAST_FULL_DAY_STARS_COST,
-  love: 35,
-  work_money: 35,
+  love: HUMAN_DAILY_STARS_COST,
+  work_money: HUMAN_DAILY_STARS_COST,
 };
 
 
@@ -539,7 +540,7 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
       } catch (error) {
         const currentLayer = layers.find((item) => item.id === layer);
         setLayerError(
-          getFriendlyError(error, `Этот прогноз можно открыть в Premium или разово за ${currentLayer?.price || 35} Stars.`)
+          getFriendlyError(error, `Этот прогноз можно открыть в Premium или разово за ${currentLayer?.price || HUMAN_DAILY_STARS_COST} Stars.`)
         );
       } finally {
         setLoadingLayer(null);
@@ -567,7 +568,7 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
 
     const renderLockedLayer = (layer: LayerConfig) => {
       const Icon = layer.icon;
-      const price = layer.id === 'chart' ? FORECAST_FULL_DAY_STARS_COST : (layer.price || 35);
+      const price = layer.id === 'chart' ? FORECAST_FULL_DAY_STARS_COST : (layer.price || HUMAN_DAILY_STARS_COST);
       const isPremium = !!profileRef.current.isPremium;
       const isChartLayer = layer.id === 'chart';
       const primaryLabel = loadingLayer === layer.id

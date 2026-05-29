@@ -20,6 +20,9 @@ import { buildContentAccessUserState, hasExistingUnlock } from '../../../../lib/
 import { getContentAccessConfig } from '../../../../lib/contentAccessMatrix';
 import { unlockContentAfterStarsPayment } from '../../../../lib/starsContentUnlock';
 import { RATE_LIMIT_CONFIGS, withRateLimit } from '../../../../lib/rateLimit';
+import { logContentApi, warnContentApi } from '../../../../lib/contentApiLogging';
+
+const SCOPE = 'synastry-extended';
 
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 
@@ -63,6 +66,7 @@ async function loadCachedSynastry(
   }
 
   for (const variant of ['full', 'one_off'] as const) {
+    // Legacy-only: read cached synastry rows stored under pre-Stars `lumi` tier.
     for (const accessTier of ['stars', 'lumi'] as const) {
       const row = await db.content_interpretations.get(userId, accessTier, 'synastry', variant, contentCacheKey);
       if (row?.content && typeof row.content === 'object' && (row.content as SynastryResult).fullAnalysis) {
@@ -90,6 +94,8 @@ async function loadCachedSynastry(
 }
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const startedAt = Date.now();
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -131,6 +137,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (!userId) {
     return res.status(400).json({ error: 'Bad request', message: 'userId is required' });
   }
+
+  logContentApi(
+    { scope: SCOPE, userId, chartId: null, surface: 'synastry', variant: 'full' },
+    'request_start',
+    { metadata: { hasPartnerChartId: !!partnerChartId } }
+  );
 
   const user = await db.users.get(userId);
   if (!user) {
@@ -178,6 +190,26 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   const userState = await buildContentAccessUserState(userId, primaryChartRecord?.id ?? null);
   const hasUnlock = userState.isPremium || hasExistingUnlock(userState, 'synastry', 'full', contentCacheKey);
 
+  logContentApi(
+    {
+      scope: SCOPE,
+      userId,
+      chartId: primaryChartRecord?.id ?? null,
+      surface: 'synastry',
+      variant: 'full',
+    },
+    'access_check',
+    {
+      accessTier: userState.isPremium ? 'premium' : hasUnlock ? 'stars' : accessConfig?.defaultAccessTier,
+      metadata: {
+        starsCost,
+        isPremium: userState.isPremium,
+        hasUnlock,
+        matrixAllowed: accessConfig?.unlockOptions,
+      },
+    }
+  );
+
   const cachedResult = await loadCachedSynastry(
     userId,
     primaryChartRecord?.id ?? null,
@@ -186,6 +218,21 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   );
 
   if (cachedResult && hasUnlock) {
+    logContentApi(
+      {
+        scope: SCOPE,
+        userId,
+        chartId: primaryChartRecord?.id ?? null,
+        surface: 'synastry',
+        variant: 'full',
+      },
+      'cache_hit',
+      {
+        accessTier: userState.isPremium ? 'premium' : 'stars',
+        status: 'ready',
+        durationMs: Date.now() - startedAt,
+      }
+    );
     return res.status(200).json({
       result: cachedResult,
       starsSpent: 0,
@@ -196,6 +243,17 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
   if (!userState.isPremium && !hasUnlock) {
     if (!paymentChargeId) {
+      warnContentApi(
+        {
+          scope: SCOPE,
+          userId,
+          chartId: primaryChartRecord?.id ?? null,
+          surface: 'synastry',
+          variant: 'full',
+        },
+        'payment_required',
+        { errorCode: 'STARS_PAYMENT_REQUIRED', metadata: { starsCost } }
+      );
       return res.status(409).json({
         error: 'Stars payment required',
         code: 'STARS_PAYMENT_REQUIRED',
@@ -266,6 +324,18 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
   const accessTier = userState.isPremium ? ('premium' as const) : ('stars' as const);
   let resultPayload: SynastryResult;
+
+  logContentApi(
+    {
+      scope: SCOPE,
+      userId,
+      chartId: primaryChartRecord?.id ?? null,
+      surface: 'synastry',
+      variant: 'full',
+    },
+    'generation_start',
+    { accessTier }
+  );
 
   try {
     if (!openai) {
@@ -362,11 +432,44 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       await db.content_interpretations.upsertByUser(userId, interpretationData);
     }
   } catch (err: any) {
+    warnContentApi(
+      {
+        scope: SCOPE,
+        userId,
+        chartId: primaryChartRecord?.id ?? null,
+        surface: 'synastry',
+        variant: 'full',
+      },
+      'generation_failed',
+      {
+        accessTier,
+        errorCode: 'SYNASTRY_EXTENDED_SAVE_FAILED',
+        durationMs: Date.now() - startedAt,
+        metadata: { message: String(err?.message || 'unknown') },
+      }
+    );
     return res.status(500).json({
       error: 'Synastry extended failed',
       message: err?.message || (langRu ? 'Не удалось сохранить разбор.' : 'Could not save reading.'),
     });
   }
+
+  logContentApi(
+    {
+      scope: SCOPE,
+      userId,
+      chartId: primaryChartRecord?.id ?? null,
+      surface: 'synastry',
+      variant: 'full',
+    },
+    'generation_success',
+    {
+      accessTier,
+      status: 'ready',
+      durationMs: Date.now() - startedAt,
+      metadata: { fromCache: false, starsSpent: paymentChargeId ? starsCost : 0 },
+    }
+  );
 
   return res.status(200).json({
     result: resultPayload,

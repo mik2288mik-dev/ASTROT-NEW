@@ -4,6 +4,8 @@ import { getOpenAIModelForContent } from '../../../../lib/appSettings';
 import { db } from '../../../../lib/db';
 import { generateFreeWeeklyForecast, generatePremiumWeeklyForecast } from '../../../../lib/forecastContent';
 import { getContentLayer, getPremiumEntitlementState } from '../../../../lib/contentArchitecture';
+import { getContentAccessConfig } from '../../../../lib/contentAccessMatrix';
+import { logContentApi, warnContentApi } from '../../../../lib/contentApiLogging';
 import {
   formatIsoWeekPeriodLabel,
   getMoscowIsoWeekKey,
@@ -57,6 +59,8 @@ function parsePeriodKey(req: NextApiRequest): string {
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const startedAt = Date.now();
+  const scope = 'forecast-weekly';
   const userId = (req.method === 'GET' ? req.query.userId : req.body?.userId) as string | undefined;
   const chartIdRaw = req.method === 'GET' ? req.query.chartId : req.body?.chartId;
   const chartId = typeof chartIdRaw === 'string'
@@ -101,6 +105,38 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const { validFrom, validTo } = isoWeekToValidRangeUtc(periodKey);
 
   const accessTier = entitlement.isPremium ? 'premium' : 'free';
+  const accessConfig = getContentAccessConfig('forecast', 'weekly');
+
+  logContentApi(
+    {
+      scope,
+      userId: userId.trim(),
+      chartId: context.chartId,
+      surface: 'forecast',
+      variant: 'weekly',
+    },
+    'request_start',
+    { metadata: { periodKey, method: req.method } }
+  );
+
+  logContentApi(
+    {
+      scope,
+      userId: userId.trim(),
+      chartId: context.chartId,
+      surface: 'forecast',
+      variant: 'weekly',
+    },
+    'access_check',
+    {
+      accessTier,
+      metadata: {
+        isPremium: entitlement.isPremium,
+        matrixDefault: accessConfig?.defaultAccessTier,
+        matrixEnforced: false,
+      },
+    }
+  );
 
   if (req.method === 'GET') {
     const result = await getContentLayer({
@@ -123,6 +159,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
+    logContentApi(
+      {
+        scope,
+        userId: userId.trim(),
+        chartId: context.chartId,
+        surface: 'forecast',
+        variant: 'weekly',
+      },
+      'cache_hit',
+      {
+        accessTier,
+        status: 'ready',
+        durationMs: Date.now() - startedAt,
+        metadata: { periodKey },
+      }
+    );
+
     return res.status(200).json({
       interpretation: result.interpretation,
       source: result.source,
@@ -136,6 +189,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const requestedTier = req.body?.tier === 'premium' ? 'premium' : 'free';
 
   if (requestedTier === 'premium' && !entitlement.isPremium) {
+    warnContentApi(
+      {
+        scope,
+        userId: userId.trim(),
+        chartId: context.chartId,
+        surface: 'forecast',
+        variant: 'weekly',
+      },
+      'unlock_required',
+      { errorCode: 'PREMIUM_REQUIRED', metadata: { periodKey } }
+    );
     return res.status(403).json({
       error: 'Premium required',
       code: 'PREMIUM_REQUIRED',
@@ -157,6 +221,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   });
 
   if (existing.interpretation) {
+    logContentApi(
+      {
+        scope,
+        userId: userId.trim(),
+        chartId: context.chartId,
+        surface: 'forecast',
+        variant: 'weekly',
+      },
+      'cache_hit',
+      {
+        accessTier: tierToGenerate,
+        status: 'ready',
+        durationMs: Date.now() - startedAt,
+        metadata: { periodKey },
+      }
+    );
     return res.status(200).json({
       interpretation: existing.interpretation,
       source: existing.source,
@@ -166,6 +246,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       entitlement: entitlement.entitlement,
     });
   }
+
+  logContentApi(
+    {
+      scope,
+      userId: userId.trim(),
+      chartId: context.chartId,
+      surface: 'forecast',
+      variant: 'weekly',
+    },
+    'generation_start',
+    { accessTier: tierToGenerate, metadata: { periodKey } }
+  );
 
   const forecast = tierToGenerate === 'premium'
     ? await generatePremiumWeeklyForecast(context.profile, context.chartData, periodKey, periodLabel)
@@ -205,6 +297,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         canRegenerateForLumi: false,
         legacySource: `forecast_v2.weekly.${tierToGenerate}`,
       });
+
+  logContentApi(
+    {
+      scope,
+      userId: userId.trim(),
+      chartId: context.chartId,
+      surface: 'forecast',
+      variant: 'weekly',
+    },
+    'generation_success',
+    {
+      accessTier: tierToGenerate,
+      status: 'ready',
+      durationMs: Date.now() - startedAt,
+      metadata: { periodKey },
+    }
+  );
 
   return res.status(200).json({
     interpretation,

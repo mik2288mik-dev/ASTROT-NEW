@@ -53,6 +53,20 @@ describe('contentAccessMatrix', () => {
     });
   });
 
+  describe('premium-only natal surfaces', () => {
+    it('requires premium for planet_insight without stars unlock option', () => {
+      const config = getContentAccessConfig('natal', 'planet_insight');
+      expect(config?.unlockOptions).toEqual(['premium']);
+      expect(config?.lockedBehavior.allowStarsUnlock).toBe(false);
+      expect(config?.starsCost).toBeNull();
+    });
+
+    it('requires premium for natal/full and natal/living', () => {
+      expect(getContentAccessConfig('natal', 'full')?.unlockOptions).toEqual(['premium']);
+      expect(getContentAccessConfig('natal', 'living')?.unlockOptions).toEqual(['premium']);
+    });
+  });
+
   describe('premium or stars required', () => {
     it.each(['morning', 'day', 'evening'] as const)(
       'requires premium or stars for forecast/%s',

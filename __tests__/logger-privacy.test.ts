@@ -1,4 +1,5 @@
 import { extractPersonalizationPrivacyFlags, logger, sanitizeLogEvent } from '../lib/logger';
+import { logContentApi } from '../lib/contentApiLogging';
 
 function captureLogLine(fn: () => void): string {
   const spy = jest.spyOn(console, 'log').mockImplementation(() => {});
@@ -97,5 +98,36 @@ describe('logger privacy', () => {
     expect(line).not.toContain('full moon');
     expect(line).not.toContain('1985-12-01');
     expect(line).toContain('[redacted]');
+  });
+
+  it('redacts sensitive fields from content API logging helper', () => {
+    const line = captureLogLine(() => {
+      logContentApi(
+        {
+          scope: 'natal-human-section',
+          userId: 'user-1',
+          chartId: 42,
+          surface: 'natal',
+          variant: 'living',
+        },
+        'generation_success',
+        {
+          metadata: {
+            question: 'Will I relocate this year?',
+            answer: 'The chart suggests gradual change.',
+            birthDate: '1992-07-14',
+            birthTime: '09:15',
+            birthPlace: 'Saint Petersburg',
+            sectionKey: 'work_business',
+          },
+        }
+      );
+    });
+
+    expect(line).not.toContain('relocate this year');
+    expect(line).not.toContain('gradual change');
+    expect(line).not.toContain('1992-07-14');
+    expect(line).not.toContain('Saint Petersburg');
+    expect(line).toContain('work_business');
   });
 });

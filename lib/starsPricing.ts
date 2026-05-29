@@ -45,3 +45,6 @@ export const ASK_LUMIA_LUMI_COST = ASK_LUMIA_STARS_COST;
 
 /** @deprecated Legacy alias — same numeric value as Stars cost. */
 export const SYNASTRY_EXTENDED_LUMI_COST = SYNASTRY_EXTENDED_STARS_COST;
+
+/** Re-export human interpretation Stars costs (defined in natalHumanShared). */
+export { HUMAN_PAID_STARS_COST, HUMAN_DAILY_STARS_COST } from './natalHumanShared';

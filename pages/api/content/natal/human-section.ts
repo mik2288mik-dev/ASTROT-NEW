@@ -22,8 +22,11 @@ import {
   isHumanPaidSectionKey,
   type HumanPaidSectionKey,
 } from '../../../../lib/natalHumanShared';
+import { logContentApi, warnContentApi } from '../../../../lib/contentApiLogging';
 
 export const config = { maxDuration: 90 };
+
+const SCOPE = 'natal-human-section';
 
 type ResolvedAccess = {
   accessTier: Extract<ContentAccessTier, 'premium' | 'stars' | 'lumi'>;
@@ -44,6 +47,7 @@ async function findOneOffUnlock(
   });
   if (starsUnlock) return starsUnlock;
 
+  // Legacy-only: match unlock rows written before Lumi → Stars migration.
   return db.content_unlocks.getLatestActive(userId, {
     accessTier: 'lumi',
     contentSurface: 'natal',
@@ -82,10 +86,23 @@ async function resolvePaidAccess(
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const startedAt = Date.now();
   const ready = await ensureValidContext(req, res);
   if (!ready) return;
   const { userId, ctx } = ready;
   const sectionKey = readSectionKey(req);
+
+  logContentApi(
+    {
+      scope: SCOPE,
+      userId,
+      chartId: ctx.chartId,
+      surface: 'natal',
+      variant: 'living',
+    },
+    'request_start',
+    { metadata: { sectionKey, method: req.method } }
+  );
 
   if (!sectionKey) {
     return res.status(400).json({
@@ -104,8 +121,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   let access = await resolvePaidAccess(userId, ctx.chartId, cacheKey);
 
+  logContentApi(
+    {
+      scope: SCOPE,
+      userId,
+      chartId: ctx.chartId,
+      surface: 'natal',
+      variant: 'living',
+    },
+    'access_check',
+    {
+      accessTier: access?.accessTier ?? 'locked',
+      metadata: { sectionKey, isPremium: !!access && access.accessTier === 'premium' },
+    }
+  );
+
   if (req.method === 'GET') {
     if (!access) {
+      warnContentApi(
+        {
+          scope: SCOPE,
+          userId,
+          chartId: ctx.chartId,
+          surface: 'natal',
+          variant: 'living',
+        },
+        'unlock_required',
+        { errorCode: 'HUMAN_SECTION_LOCKED', metadata: { sectionKey, starsCost: HUMAN_PAID_STARS_COST } }
+      );
       return res.status(403).json({
         error: 'HUMAN_SECTION_LOCKED',
         code: 'HUMAN_SECTION_LOCKED',
@@ -124,6 +167,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     ).trim();
 
     if (requestedAccessTier !== 'stars' || !starsPaymentChargeId) {
+      warnContentApi(
+        {
+          scope: SCOPE,
+          userId,
+          chartId: ctx.chartId,
+          surface: 'natal',
+          variant: 'living',
+        },
+        'payment_required',
+        { errorCode: 'STARS_PAYMENT_REQUIRED', metadata: { sectionKey, starsCost: HUMAN_PAID_STARS_COST } }
+      );
       return res.status(409).json({
         error: 'Stars payment required',
         code: 'STARS_PAYMENT_REQUIRED',
@@ -166,6 +220,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const cached = await getCachedReading<InterpretationSection>(ctx, cacheOpts);
 
   if (cached) {
+    logContentApi(
+      {
+        scope: SCOPE,
+        userId,
+        chartId: ctx.chartId,
+        surface: 'natal',
+        variant: 'living',
+      },
+      'cache_hit',
+      {
+        accessTier: access.accessTier,
+        status: 'ready',
+        durationMs: Date.now() - startedAt,
+        metadata: { sectionKey },
+      }
+    );
     return res.status(200).json({
       interpretation: cached,
       source: 'human_v2',
@@ -178,14 +248,57 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
+    logContentApi(
+      {
+        scope: SCOPE,
+        userId,
+        chartId: ctx.chartId,
+        surface: 'natal',
+        variant: 'living',
+      },
+      'generation_start',
+      { accessTier: access.accessTier, metadata: { sectionKey } }
+    );
     const section = await generateHumanPaidSection(ctx.profile, ctx.chartData!, sectionKey);
     const saved = await saveReading(ctx, cacheOpts, section);
+    logContentApi(
+      {
+        scope: SCOPE,
+        userId,
+        chartId: ctx.chartId,
+        surface: 'natal',
+        variant: 'living',
+      },
+      'generation_success',
+      {
+        accessTier: access.accessTier,
+        status: 'ready',
+        durationMs: Date.now() - startedAt,
+        metadata: { sectionKey },
+      }
+    );
     return res.status(200).json({
       interpretation: saved,
       source: 'generated',
       accessTier: access.accessTier,
     });
   } catch (error) {
+    warnContentApi(
+      {
+        scope: SCOPE,
+        userId,
+        chartId: ctx.chartId,
+        surface: 'natal',
+        variant: 'living',
+      },
+      'generation_failed',
+      {
+        accessTier: access.accessTier,
+        errorCode: 'HUMAN_SECTION_GENERATION_FAILED',
+        durationMs: Date.now() - startedAt,
+        metadata: { sectionKey },
+      }
+    );
     console.error(`[natal/human-section:${sectionKey}] generation failed:`, error instanceof Error ? error.message : error);
     const fallback = buildHumanPaidFallback(ctx.profile, ctx.chartData!, sectionKey);
     const saved = await saveReading(

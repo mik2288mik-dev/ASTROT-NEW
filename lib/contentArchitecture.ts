@@ -186,6 +186,7 @@ export async function unlockContentLayer(
     });
     if (starsUnlock) return starsUnlock;
 
+    // Legacy-only: match unlock rows written before Lumi → Stars migration.
     return db.content_unlocks.getLatestActive(options.userId, {
       accessTier: 'lumi',
       contentSurface: options.contentSurface,

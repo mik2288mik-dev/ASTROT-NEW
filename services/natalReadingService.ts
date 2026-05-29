@@ -369,6 +369,7 @@ export async function loadHumanPaidSection(
   const request = (async () => {
     let result: HumanReadingResult<InterpretationSection>;
     if (options?.allowLumiSpend) {
+      // Legacy-only: deprecated client flag still maps to pre-Stars tier label on wire.
       result = await postHuman<InterpretationSection>('human-section', userId, {
         chartId,
         sectionKey,

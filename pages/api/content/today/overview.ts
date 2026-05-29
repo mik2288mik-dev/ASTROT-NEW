@@ -14,8 +14,11 @@ import {
 import { LockKeys, releaseLock, tryAcquireLock } from '../../../../lib/serverLocks';
 import { buildTodayOverview, hydrateReactionSummaryLabels } from '../../../../lib/todayOverview';
 import { invalidUserIdPayload, isValidUserId } from '../../../../lib/userId';
+import { logContentApi, warnContentApi } from '../../../../lib/contentApiLogging';
 
 export const config = { maxDuration: 90 };
+
+const SCOPE = 'today-overview';
 
 const GENERATION_RETRY_AFTER_MS = 2500;
 
@@ -165,6 +168,7 @@ function readDate(req: NextApiRequest): string {
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const startedAt = Date.now();
   res.setHeader('Cache-Control', 'no-store');
 
   if (req.method !== 'GET' && req.method !== 'POST') {
@@ -179,6 +183,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       ? chartIdRaw
       : null;
   const dateKey = readDate(req);
+
+  logContentApi(
+    {
+      scope: SCOPE,
+      userId,
+      chartId: Number.isFinite(chartId as number) ? chartId : null,
+      surface: 'forecast',
+      variant: 'daily',
+    },
+    'request_start',
+    { metadata: { dateKey, method: req.method, note: 'today_home_composite' } }
+  );
 
   const languageFromRequest = req.method === 'POST' && req.body?.profile?.language === 'en' ? 'en' : 'ru';
   if (!isValidUserId(userId)) {
@@ -228,6 +244,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         reactions: hydrateReactionSummaryLabels(rawReactions, language),
       });
 
+      logContentApi(
+        {
+          scope: SCOPE,
+          userId,
+          chartId: context.chartId,
+          surface: 'forecast',
+          variant: 'daily',
+        },
+        'cache_hit',
+        {
+          accessTier: 'free',
+          status: 'ready',
+          durationMs: Date.now() - startedAt,
+          metadata: { dateKey },
+        }
+      );
+
       return res.status(200).json({
         status: 'ready',
         overview,
@@ -247,6 +280,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     try {
+      logContentApi(
+        {
+          scope: SCOPE,
+          userId,
+          chartId: context.chartId,
+          surface: 'forecast',
+          variant: 'daily',
+        },
+        'generation_start',
+        { accessTier: 'free', metadata: { dateKey } }
+      );
+
       const [personalForecast, signHoroscope, latestReactions] = await Promise.all([
         savedPersonalForecast
           ? Promise.resolve(savedPersonalForecast)
@@ -272,6 +317,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         reactions: hydrateReactionSummaryLabels(latestReactions, language),
       });
 
+      logContentApi(
+        {
+          scope: SCOPE,
+          userId,
+          chartId: context.chartId,
+          surface: 'forecast',
+          variant: 'daily',
+        },
+        'generation_success',
+        {
+          accessTier: 'free',
+          status: 'ready',
+          durationMs: Date.now() - startedAt,
+          metadata: { dateKey, fromCache: !!(savedPersonalForecast && savedSignHoroscope) },
+        }
+      );
+
       return res.status(200).json({
         status: 'ready',
         overview,
@@ -282,6 +344,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       releaseLock(lockKey);
     }
   } catch (error: any) {
+    warnContentApi(
+      {
+        scope: SCOPE,
+        userId,
+        chartId: Number.isFinite(chartId as number) ? chartId : null,
+        surface: 'forecast',
+        variant: 'daily',
+      },
+      'generation_failed',
+      {
+        errorCode: error?.code || 'TODAY_OVERVIEW_FAILED',
+        durationMs: Date.now() - startedAt,
+      }
+    );
     console.error('[API/content/today/overview]', error?.message || error);
     const status = error?.status === 503 ? 503 : 500;
     const code = error?.code || (status === 503 ? 'CONTENT_GENERATION_UNAVAILABLE' : 'TODAY_OVERVIEW_FAILED');

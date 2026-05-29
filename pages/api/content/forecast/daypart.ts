@@ -193,6 +193,7 @@ async function loadDaypartLayer(
     return primary;
   }
 
+  // Legacy-only: read interpretations stored under pre-Stars `lumi` access tier.
   return getContentLayer({
     userId,
     chartId,

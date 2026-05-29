@@ -90,7 +90,7 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
     shouldPersistCalculation: true,
     shouldPersistInterpretation: true,
     defaultAccessTier: 'premium',
-    unlockOptions: ['premium', 'stars'],
+    unlockOptions: ['premium'],
     starsCost: null,
     lockedBehavior: {
       showPreview: true,

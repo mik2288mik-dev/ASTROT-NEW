@@ -7,8 +7,11 @@ import { repairCanonicalChartRecord } from '../../../../lib/natalChartPersistenc
 import { TODAY_PULSE_CALCULATION_VERSION, buildTodayPulse, isFullSwissTodayPulse } from '../../../../lib/todayPulse';
 import { invalidUserIdPayload, isValidUserId } from '../../../../lib/userId';
 import { fromZonedTime } from 'date-fns-tz';
+import { logContentApi, warnContentApi } from '../../../../lib/contentApiLogging';
 
 export const config = { maxDuration: 90 };
+
+const SCOPE = 'today-pulse';
 
 const DEFAULT_TIMEZONE = 'Europe/Moscow';
 
@@ -177,6 +180,7 @@ async function writeCachedPulse(chartId: number | null, userId: string, cacheKey
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse<TodayPulseResult | { error: string; message?: string }>) {
+  const startedAt = Date.now();
   res.setHeader('Cache-Control', 'no-store');
 
   if (req.method !== 'GET' && req.method !== 'POST') {
@@ -191,6 +195,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 
   const dateKey = readDate(req);
   const chartId = readChartId(req);
+
+  logContentApi(
+    {
+      scope: SCOPE,
+      userId,
+      chartId,
+      surface: 'forecast',
+      variant: 'daily',
+    },
+    'request_start',
+    { metadata: { dateKey, method: req.method, note: 'today_pulse_storage_anomaly' } }
+  );
 
   try {
     const context = await resolveContext(
@@ -219,6 +235,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     const cacheKey = `today-pulse:${dateKey}:${timezone}:${TODAY_PULSE_CALCULATION_VERSION}`;
     const cached = await readCachedPulse(context.chartId, userId, cacheKey);
     if (cached) {
+      logContentApi(
+        {
+          scope: SCOPE,
+          userId,
+          chartId: context.chartId,
+          surface: 'forecast',
+          variant: 'daily',
+        },
+        'cache_hit',
+        {
+          accessTier: 'free',
+          status: 'ready',
+          durationMs: Date.now() - startedAt,
+          metadata: { dateKey, cacheKey },
+        }
+      );
       return res.status(200).json({
         status: 'ready',
         pulse: cached,
@@ -227,6 +259,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       });
     }
 
+    logContentApi(
+      {
+        scope: SCOPE,
+        userId,
+        chartId: context.chartId,
+        surface: 'forecast',
+        variant: 'daily',
+      },
+      'generation_start',
+      { accessTier: 'free', metadata: { dateKey, cacheKey } }
+    );
     const pulse = await buildTodayPulse({
       chartData: context.chartData,
       dateKey,
@@ -243,6 +286,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       });
     }
 
+    logContentApi(
+      {
+        scope: SCOPE,
+        userId,
+        chartId: context.chartId,
+        surface: 'forecast',
+        variant: 'daily',
+      },
+      'generation_success',
+      {
+        accessTier: 'free',
+        status: 'ready',
+        durationMs: Date.now() - startedAt,
+        metadata: { dateKey, repaired: context.repaired },
+      }
+    );
+
     return res.status(200).json({
       status: 'ready',
       pulse,
@@ -250,6 +310,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       source: context.repaired ? 'calculated_repaired' : pulse.source,
     });
   } catch (error: any) {
+    warnContentApi(
+      {
+        scope: SCOPE,
+        userId,
+        chartId,
+        surface: 'forecast',
+        variant: 'daily',
+      },
+      'generation_failed',
+      {
+        errorCode: error?.code === 'TRANSITS_UNAVAILABLE' ? 'TRANSITS_UNAVAILABLE' : 'TODAY_PULSE_FAILED',
+        durationMs: Date.now() - startedAt,
+      }
+    );
     console.error('[API/content/today/pulse]', error?.message || error);
     const code = error?.code === 'TRANSITS_UNAVAILABLE' || error?.code === 'TODAY_PULSE_REQUIRES_SWISSEPH'
       ? 'TRANSITS_UNAVAILABLE'

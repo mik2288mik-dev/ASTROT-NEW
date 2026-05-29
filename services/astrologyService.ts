@@ -1949,64 +1949,6 @@ export const getCachedDailyHoroscope = async (
   }
 };
 
-const legacyChatWithAstra = async (history: { role: 'user' | 'model', text: string }[], message: string, profile: UserProfile): Promise<string> => {
-  const url = `${API_BASE_URL}/api/astrology/chat`;
-  log.info('[chatWithAstra] Starting chat request', {
-    messageLength: message.length,
-    historyLength: history.length,
-    userId: profile.id
-  });
-
-  try {
-    log.info(`[chatWithAstra] Sending POST request to: ${url}`);
-    const startTime = Date.now();
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        history,
-        message,
-        profile,
-        systemInstruction: SYSTEM_INSTRUCTION_ASTRA
-      })
-    });
-
-    const duration = Date.now() - startTime;
-    log.info(`[chatWithAstra] Response received in ${duration}ms`, {
-      status: response.status,
-      statusText: response.statusText,
-      ok: response.ok
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => 'Unable to read error response');
-      log.error(`[chatWithAstra] Server returned error status ${response.status}`, {
-        status: response.status,
-        statusText: response.statusText,
-        errorBody: errorText
-      });
-      throw new Error(`Failed to chat with Astra: ${response.status} ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    log.info('[chatWithAstra] Successfully received response', {
-      responseLength: data.response?.length || 0
-    });
-    return data.response || "The stars are clouded.";
-  } catch (error: any) {
-    log.error('[chatWithAstra] Error occurred', {
-      error: error.message,
-      stack: error.stack
-    });
-    const lang = profile.language === 'ru';
-    return lang
-      ? 'Звезды временно скрыты облаками. Попробуйте позже.'
-      : 'The stars are temporarily clouded. Please try again later.';
-  }
-};
-
-void legacyChatWithAstra;
-
 export const getAskLumiaState = async (userId: string): Promise<AskLumiaState> => {
   const url = `${API_BASE_URL}/api/content/question/ask?userId=${encodeURIComponent(userId || '')}`;
   log.info('[getAskLumiaState] Starting request', { userId });
