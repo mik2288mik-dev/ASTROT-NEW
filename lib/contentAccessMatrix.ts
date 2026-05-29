@@ -343,17 +343,33 @@ export function getContentAccessConfig(
   return CONTENT_ACCESS_INDEX.get(buildContentAccessKey(surface, variant)) || null;
 }
 
+export function matchesUnlockEntry(
+  entry: UnlockedContentEntry,
+  surface: ContentSurface,
+  variant: ContentVariant,
+  cacheKey?: string
+) {
+  if (entry.surface !== surface || entry.variant !== variant) return false;
+  if (cacheKey && entry.cacheKey && entry.cacheKey !== cacheKey) return false;
+  return entry.accessTier === 'premium' || entry.accessTier === 'lumi';
+}
+
 function hasActiveUnlock(
   userState: UserState,
   surface: ContentSurface,
   variant: ContentVariant,
   cacheKey?: string
 ) {
-  return userState.unlockedContent.some((entry) => {
-    if (entry.surface !== surface || entry.variant !== variant) return false;
-    if (cacheKey && entry.cacheKey && entry.cacheKey !== cacheKey) return false;
-    return entry.accessTier === 'premium' || entry.accessTier === 'lumi';
-  });
+  if (userState.unlockedContent.some((entry) => matchesUnlockEntry(entry, surface, variant, cacheKey))) {
+    return true;
+  }
+
+  // Legacy: full-day forecast unlock (forecast/full) covers morning/day/evening dayparts.
+  if (surface === 'forecast' && (variant === 'morning' || variant === 'day' || variant === 'evening')) {
+    return userState.unlockedContent.some((entry) => matchesUnlockEntry(entry, 'forecast', 'full', cacheKey));
+  }
+
+  return false;
 }
 
 export function canAccessContent(

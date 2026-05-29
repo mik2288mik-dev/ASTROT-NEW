@@ -2294,6 +2294,41 @@ export const db = {
       }
       return !!(await this.getLatestActive(userId, filters));
     },
+
+    async listActive(userId: string, chartId?: number | null) {
+      const id = toUserId(userId);
+      if (!DATABASE_URL) return [];
+      try {
+        const dbPool = getPool();
+        const params: any[] = [id];
+        const clauses = [
+          'user_id = $1',
+          'revoked_at IS NULL',
+          '(expires_at IS NULL OR expires_at > NOW())',
+        ];
+
+        if (chartId != null) {
+          params.push(chartId);
+          clauses.push(`(chart_id IS NULL OR chart_id = $${params.length})`);
+        }
+
+        const result = await dbPool.query(
+          `SELECT *
+           FROM content_unlocks
+           WHERE ${clauses.join(' AND ')}
+           ORDER BY unlocked_at DESC`,
+          params
+        );
+        return result.rows.map(mapContentUnlockRow);
+      } catch (error: any) {
+        log.error('[DB] Error listing active content unlocks', {
+          error: error.message,
+          userId,
+          chartId,
+        });
+        throw error;
+      }
+    },
   },
 
   /** Content architecture v1 - premium periods */

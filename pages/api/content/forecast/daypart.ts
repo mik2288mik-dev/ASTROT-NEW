@@ -11,6 +11,13 @@ import {
   FORECAST_FULL_DAY_LUMI_COST,
 } from '../../../../lib/forecastFullDay';
 import { invalidUserIdPayload, isValidUserId } from '../../../../lib/userId';
+import { getContentAccessConfig } from '../../../../lib/contentAccessMatrix';
+import {
+  buildContentAccessUserState,
+  canAccessForecastDaypart,
+  hasExistingUnlock,
+} from '../../../../lib/contentAccessUserState';
+import { logger } from '../../../../lib/logger';
 
 const ALLOWED_SLOTS = new Set(['morning', 'day', 'evening']);
 
@@ -75,29 +82,77 @@ type ResolvedAccess = {
   entitlement: Awaited<ReturnType<typeof getPremiumEntitlementState>>['entitlement'];
 };
 
-async function resolveAccess(userId: string, chartId: number | null, unlockCacheKey: string): Promise<ResolvedAccess | null> {
-  const entitlement = await getPremiumEntitlementState(userId);
-  if (entitlement.isPremium) {
-    return {
-      accessTier: 'premium',
-      entitlement: entitlement.entitlement,
-    };
-  }
+async function resolveAccess(
+  userId: string,
+  chartId: number | null,
+  slot: ForecastDaypartSlot,
+  unlockCacheKey: string
+): Promise<ResolvedAccess | null> {
+  const [userState, entitlementState] = await Promise.all([
+    buildContentAccessUserState(userId, chartId),
+    getPremiumEntitlementState(userId),
+  ]);
+  const accessConfig = getContentAccessConfig('forecast', slot);
+  const matrixLumiCost = accessConfig?.lumiCost ?? FORECAST_FULL_DAY_LUMI_COST;
 
-  const lumiUnlock = await db.content_unlocks.getLatestActive(userId, {
-    accessTier: 'lumi',
-    contentSurface: 'forecast',
-    contentVariant: 'full',
+  logger.info({
+    scope: 'forecast-daypart',
+    event: 'access_check',
+    userId,
     chartId,
-    cacheKey: unlockCacheKey,
+    surface: 'forecast',
+    variant: slot,
+    accessTier: accessConfig?.defaultAccessTier,
+    metadata: {
+      unlockCacheKey,
+      lumiCost: matrixLumiCost,
+      isPremium: userState.isPremium,
+      hasFullDayUnlock: hasExistingUnlock(userState, 'forecast', 'full', unlockCacheKey),
+      matrixAllowed: canAccessForecastDaypart(userState, slot, unlockCacheKey),
+    },
   });
 
-  if (lumiUnlock) {
+  if (userState.isPremium) {
+    logger.info({
+      scope: 'forecast-daypart',
+      event: 'premium_allowed',
+      userId,
+      chartId,
+      surface: 'forecast',
+      variant: slot,
+      accessTier: 'premium',
+    });
     return {
-      accessTier: 'lumi',
-      entitlement: entitlement.entitlement,
+      accessTier: 'premium',
+      entitlement: entitlementState.entitlement,
     };
   }
+
+  if (canAccessForecastDaypart(userState, slot, unlockCacheKey)) {
+    logger.info({
+      scope: 'forecast-daypart',
+      event: 'lumi_unlock_found',
+      userId,
+      chartId,
+      surface: 'forecast',
+      variant: slot,
+      accessTier: 'lumi',
+    });
+    return {
+      accessTier: 'lumi',
+      entitlement: entitlementState.entitlement,
+    };
+  }
+
+  logger.warn({
+    scope: 'forecast-daypart',
+    event: 'access_denied',
+    userId,
+    chartId,
+    surface: 'forecast',
+    variant: slot,
+    status: 'denied',
+  });
 
   return null;
 }
@@ -160,11 +215,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const lang = context.profile.language === 'en' ? 'en' : 'ru';
   const unlockCacheKey = buildForecastFullDayUnlockCacheKey(dateKey);
   const cacheKey = buildForecastDaypartCacheKey(dateKey, slot);
-  const lumiCost = FORECAST_FULL_DAY_LUMI_COST;
-  let access = await resolveAccess(safeUserId, context.chartId, unlockCacheKey);
+  const daypartConfig = getContentAccessConfig('forecast', slot);
+  const lumiCost = daypartConfig?.lumiCost ?? FORECAST_FULL_DAY_LUMI_COST;
+  let access = await resolveAccess(safeUserId, context.chartId, slot, unlockCacheKey);
 
   if (req.method === 'GET') {
     if (!access) {
+      logger.warn({
+        scope: 'forecast-daypart',
+        event: 'premium_required',
+        userId: safeUserId,
+        chartId: context.chartId,
+        surface: 'forecast',
+        variant: slot,
+        errorCode: 'FULL_DAY_LOCKED',
+        metadata: { lumiCost, lumiBalance: context.user.lumi_balance ?? 0 },
+      });
       return res.status(403).json({
         error: 'Full day locked',
         code: 'FULL_DAY_LOCKED',
@@ -206,6 +272,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (!access) {
     if (requestedAccessTier !== 'lumi' || !allowLumiSpend) {
+      logger.warn({
+        scope: 'forecast-daypart',
+        event: 'lumi_required',
+        userId: safeUserId,
+        chartId: context.chartId,
+        surface: 'forecast',
+        variant: slot,
+        errorCode: 'LUMI_REQUIRED',
+        metadata: { lumiCost, lumiBalance: context.user.lumi_balance ?? 0 },
+      });
       return res.status(409).json({
         error: 'Lumi required',
         code: 'LUMI_REQUIRED',
@@ -236,7 +312,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       lumiCost,
     });
 
-    access = await resolveAccess(safeUserId, context.chartId, unlockCacheKey);
+    access = await resolveAccess(safeUserId, context.chartId, slot, unlockCacheKey);
   }
 
   if (!access) {

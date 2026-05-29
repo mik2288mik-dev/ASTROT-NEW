@@ -16,6 +16,7 @@ import {
 import { RATE_LIMIT_CONFIGS, withRateLimit } from '../../../../lib/rateLimit';
 import { buildPersonalizationContext, describePersonalizationContext } from '../../../../lib/personalizationContext';
 import { extractPersonalizationPrivacyFlags, logger } from '../../../../lib/logger';
+import { getContentAccessConfig } from '../../../../lib/contentAccessMatrix';
 
 const MIN_QUESTION_LENGTH = 3;
 const MAX_QUESTION_LENGTH = 500;
@@ -156,6 +157,24 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   }
 
   const requestedTier = getRequestedTier(req.body?.requestedTier) || state.nextTier;
+  const variant = getQuestionVariantForTier(requestedTier);
+  const accessConfig = getContentAccessConfig('question', variant);
+
+  logger.info({
+    scope: 'ask-lumia',
+    event: 'ask_lumia_access_config',
+    userId,
+    surface: accessConfig?.surface || 'question',
+    variant: accessConfig?.variant || variant,
+    accessTier: requestedTier,
+    metadata: {
+      defaultAccessTier: accessConfig?.defaultAccessTier,
+      unlockOptions: accessConfig?.unlockOptions,
+      lumiCost: accessConfig?.lumiCost ?? null,
+      matrixLumiCost: accessConfig?.lumiCost,
+      runtimeLumiCost: state.lumiCost,
+    },
+  });
 
   logger.info({
     scope: 'ask-lumia',
@@ -176,6 +195,16 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   });
 
   if (requestedTier === 'premium' && !state.isPremium) {
+    logger.warn({
+      scope: 'ask-lumia',
+      event: 'ask_lumia_access_denied',
+      userId,
+      surface: 'question',
+      variant,
+      accessTier: requestedTier,
+      errorCode: 'PREMIUM_REQUIRED',
+      metadata: { defaultAccessTier: accessConfig?.defaultAccessTier },
+    });
     return res.status(403).json({
       error: 'Premium required',
       code: 'PREMIUM_REQUIRED',
@@ -194,7 +223,18 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   }
 
   if (requestedTier === 'lumi') {
+    const expectedLumiCost = accessConfig?.lumiCost ?? ASK_LUMIA_LUMI_COST;
     if (!req.body?.allowLumiSpend) {
+      logger.warn({
+        scope: 'ask-lumia',
+        event: 'ask_lumia_lumi_required',
+        userId,
+        surface: 'question',
+        variant,
+        accessTier: requestedTier,
+        errorCode: 'LUMI_REQUIRED',
+        metadata: { lumiCost: expectedLumiCost },
+      });
       return res.status(409).json({
         error: 'Lumi required',
         code: 'LUMI_REQUIRED',
@@ -244,14 +284,13 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     metadata: contextFlags,
   });
   const resolvedTier = requestedTier;
-  const variant = getQuestionVariantForTier(resolvedTier);
   logger.info({
     scope: 'ask-lumia',
     event: 'ask_lumia_resolved_tier',
     userId,
     accessTier: resolvedTier,
-    surface: 'question',
-    variant,
+    surface: accessConfig?.surface || 'question',
+    variant: accessConfig?.variant || variant,
   });
   const chartContext = personalizationContext
     ? describePersonalizationContext(personalizationContext, lang)
@@ -327,7 +366,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         contentSurface: 'question',
         contentVariant: 'one_off',
         cacheKey: questionCacheKey,
-        lumiCost: state.lumiCost,
+        lumiCost: accessConfig?.lumiCost ?? state.lumiCost,
       });
       unlockCompleted = true;
       lumiSpent = unlockResult.unlock?.lumiSpent || state.lumiCost;

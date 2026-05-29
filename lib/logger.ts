@@ -35,6 +35,7 @@ const SENSITIVE_KEYS = new Set([
   'partnerbirthtime',
   'partnerbirthplace',
   'partnername',
+  'partnerdata',
   'fullanalysis',
   'recentquestions',
   'relationshipcontext',
@@ -116,7 +117,7 @@ function sanitizeValue(value: unknown, depth = 0): unknown {
   return String(value);
 }
 
-function sanitizeLogEvent(payload: LogEvent): LogEvent {
+export function sanitizeLogEvent(payload: LogEvent): LogEvent {
   const sanitized: LogEvent = { ...payload };
   if (payload.metadata) {
     sanitized.metadata = sanitizeValue(payload.metadata, 0) as Record<string, unknown>;
