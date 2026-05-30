@@ -62,7 +62,7 @@ function formatStoryError(error: unknown): string {
   if (e?.code === 'PREMIUM_REQUIRED' || e?.code === 'HUMAN_SECTION_LOCKED') {
     return 'Этот слой можно открыть через Premium или разово за Stars.';
   }
-  return e?.message || 'Не удалось открыть глубину карточки. Попробуйте ещё раз.';
+  return e?.message || 'Не удалось открыть карточку. Попробуйте ещё раз.';
 }
 
 function hapticSelection() {
@@ -341,7 +341,7 @@ function StoryCardSurface({
         onClick={onRead}
         className="mt-auto inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full bg-[#1f1f1f] px-5 text-[14px] font-semibold text-white transition-transform active:scale-[0.98]"
       >
-        {card.ctaPrimary.type === 'read_deeper' ? 'Читать глубже' : card.ctaPrimary.label}
+        {card.ctaPrimary.type === 'read_deeper' ? 'Читать дальше' : card.ctaPrimary.label}
         <ChevronRight size={17} strokeWidth={2.1} />
       </button>
     </div>

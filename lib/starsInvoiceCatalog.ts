@@ -260,7 +260,7 @@ function getInvoiceCopy(type: StarsInvoiceType, starsAmount: number) {
     case 'ask_lumia_one_off':
       return {
         title: 'Ask Lumia',
-        description: 'One deep answer via Ask Lumia',
+        description: 'One full answer via Ask Lumia',
         label: `${starsAmount} Stars`,
       };
     case 'synastry_full':

@@ -2,6 +2,7 @@ import OpenAI from 'openai';
 import { createHash } from 'crypto';
 import type { AskLumiaState, AskLumiaTier } from '../types';
 import { SYSTEM_PROMPT_ASTRA, addLanguageInstruction } from './prompts';
+import { appendLumiaVoice, LUMIA_VOICE_BLOCK_EN } from './lumiaVoice';
 import { getOpenAIModelForContent } from './appSettings';
 import { db } from './db';
 import { getPremiumEntitlementState } from './contentArchitecture';
@@ -63,7 +64,7 @@ Requirements:
 - User should feel: "yes, this is really about my question and my pattern."
 - Stay brief: 2-4 short paragraphs.
 - Focus on the emotional knot of the question, one recognizable pattern, and one useful next step.
-- Do not try to cover every angle. Deeper nuance, more examples, and stronger situational precision belong to Stars and Premium.
+- Do not try to cover every angle. More detail, examples, and situational precision belong to Stars and Premium.
 - No mystical fluff, no decorative astrology language, no fake certainty.
 - Frame conclusions as likely patterns and tendencies, not absolute verdicts.
 - Sound serious, warm, and clear.`
@@ -71,15 +72,15 @@ Requirements:
 
 Requirements:
 - This must feel like a higher class of interpretation.
-- Give a deep personal answer in 5-7 short paragraphs.
-- Combine depth, situational precision, and recognizable life scenarios when relevant.
+- Give a full personal answer in 5-7 short paragraphs.
+- Combine detail, situational precision, and recognizable life scenarios when relevant.
 - Be sharper about relationships, fear, hope, pressure, timing, money, or direction when relevant.
 - Show emotional accuracy, pattern recognition, what this means right now, and a grounded next step.
 - Write like a calm, intelligent personal consultation using chart context honestly.
 - Frame conclusions as likely patterns and tendencies, not absolute verdicts.
 - Do not write like a therapist or a fortune-teller.`;
 
-  return `The user is asking Lumia a personal question.
+  return appendLumiaVoice(`The user is asking Lumia a personal question.
 
 Question tier: ${getTierLabel(options.tier, options.language)}
 
@@ -101,7 +102,7 @@ Output:
 - short paragraphs with breathing room
 - keep a soft internal arc: core issue -> what it means -> next step
 - do not sound like a rigid repeated template
-- talk directly to the user`;
+- talk directly to the user`, options.language);
 }
 
 function buildQuestionFallback(question: string, language: 'ru' | 'en', tier: AskLumiaTier) {

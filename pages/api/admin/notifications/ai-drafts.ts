@@ -178,7 +178,7 @@ function buildFallbackDrafts(scenario: DraftScenario, brief: string): DraftVaria
         {
           label: 'Full day',
           title: 'Открой полный день',
-          bodyRu: appendBrief('Сегодняшний день можно прочитать глубже. В Lumia открыт путь через Premium или разовый unlock за Lumi.', brief, 'ru'),
+          bodyRu: appendBrief('Сегодняшний день можно прочитать подробнее. В Lumia открыт путь через Premium или разовый unlock за Stars.', brief, 'ru'),
           bodyEn: appendBrief('Today can be read more deeply. Lumia opens that full layer through Premium or a one-off Lumi unlock.', brief, 'en'),
         },
         {
@@ -204,7 +204,7 @@ function buildFallbackDrafts(scenario: DraftScenario, brief: string): DraftVaria
         },
         {
           label: 'Paid depth',
-          title: 'Открой глубже',
+          title: 'Посмотреть подробнее',
           bodyRu: appendBrief('Если хочется не поверхностного ответа, а полноценного разбора, в Lumia уже есть следующий уровень.', brief, 'ru'),
           bodyEn: appendBrief('If you want more than a surface answer, Lumia already has the next layer ready for you.', brief, 'en'),
         },

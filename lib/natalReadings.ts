@@ -671,7 +671,7 @@ function sectionExamplesForPlanet(
       'Если что-то не так, тело обычно замечает это раньше, чем появляется чёткое объяснение.',
     ],
     'first-impression': [
-      'Люди сначала считывают внешнюю манеру держаться и только потом замечают глубину внутренней реакции.',
+      'Люди сначала считывают внешнюю манеру держаться и только потом замечают тонкость внутренней реакции.',
       'Ты редко раскрываешься в полную силу с первых минут общения.',
       'Первый контакт очень зависит от того, есть ли в пространстве доверие и уважение к границам.',
     ],
@@ -969,13 +969,13 @@ function buildFullLead(lang: 'ru' | 'en', chartData?: NatalChartData | null) {
   const rising = chartData?.rising;
   if (lang === 'en') {
     return sun && moon && rising
-      ? `${planetLabel('sun', lang)} in ${signLabel(sun.sign, lang)}, ${planetLabel('moon', lang)} in ${signLabel(moon.sign, lang)}, and Rising in ${signLabel(rising.sign, lang)} are only the beginning. This version goes deeper into speech, closeness, action, stability, and the places that become difficult under pressure.`
-      : 'This full chart goes deeper into how the person thinks, loves, acts, and handles pressure.';
+      ? `${planetLabel('sun', lang)} in ${signLabel(sun.sign, lang)}, ${planetLabel('moon', lang)} in ${signLabel(moon.sign, lang)}, and Rising in ${signLabel(rising.sign, lang)} are only the beginning. This version adds more detail on speech, closeness, action, stability, and the places that become difficult under pressure.`
+      : 'This full chart adds more detail on how the person thinks, loves, acts, and handles pressure.';
   }
 
   return sun && moon && rising
     ? `Солнце в ${signLabel(sun.sign, lang)}, Луна в ${signLabel(moon.sign, lang)} и Асцендент в ${signLabel(rising.sign, lang)} — только вход в карту. Дальше важны речь, любовь, действие, устойчивость и то, что особенно чувствуется под давлением.`
-    : 'Полная карта идёт глубже: в речь, любовь, действие, устойчивость и сложные места поведения.';
+    : 'Полная карта идёт дальше: в речь, любовь, действие, устойчивость и сложные места поведения.';
 }
 
 function anchorFallbackRu(chartData?: NatalChartData | null): NatalAnchorReading {

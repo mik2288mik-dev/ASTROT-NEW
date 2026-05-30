@@ -117,7 +117,7 @@ const DAILY_LUMI_MESSAGES = [
 const UPSELL_MESSAGES = [
   'Твой полный разбор дня уже доступен. Открой Premium или разовый доступ через Stars.',
   'В коротком разборе уже есть база. Если хочешь точный полный день, он ждёт внутри.',
-  'Сегодняшний день можно увидеть глубже. В Lumia доступны Premium и разовое открытие через Stars.',
+  'Сегодняшний день можно увидеть подробнее. В Lumia доступны Premium и разовое открытие через Stars.',
   'Хочешь не только общий фон, а полный разбор дня? Открой его внутри Lumia.',
   'Твой день раскрывается точнее в полном разборе. Можно через Premium или Stars.',
   'Короткий разбор уже открыт. Полная версия дня ждёт тебя на следующем уровне.',
@@ -186,19 +186,19 @@ export const LEGACY_NOTIFICATION_SEEDS: LegacyNotificationSeed[] = [
   {
     title: 'Premium активирован',
     bodyRu: 'Ваш Lumia Premium уже активирован. Можно вернуться к глубоким разборам, Oracle и расширенным возможностям приложения.',
-    bodyEn: 'Your Lumia Premium is active now. You can return to deeper readings, Oracle, and expanded app features.',
+    bodyEn: 'Your Lumia Premium is active now. You can return to fuller readings, Oracle, and expanded app features.',
     kind: 'personal',
   },
   {
     title: 'Premium активирован',
     bodyRu: 'Ваш Lumia Premium уже активирован. Можно вернуться к глубоким разборам, Oracle и расширенным возможностям приложения.',
-    bodyEn: 'Your Lumia Premium is active now. You can return to deeper readings, Oracle, and expanded app features.',
+    bodyEn: 'Your Lumia Premium is active now. You can return to fuller readings, Oracle, and expanded app features.',
     kind: 'personal',
   },
   {
     title: 'Premium скоро закончится',
-    bodyRu: 'Срок Lumia Premium скоро подойдёт к концу. Если хочешь сохранить доступ к Deep Dive, Oracle и расширенным разборам, лучше продлить заранее.',
-    bodyEn: 'Your Lumia Premium will expire soon. Renew it early to keep access to Deep Dive, Oracle, and extended readings.',
+    bodyRu: 'Срок Lumia Premium скоро подойдёт к концу. Если хочешь сохранить доступ к полной карте, Oracle и расширенным разборам, лучше продлить заранее.',
+    bodyEn: 'Your Lumia Premium will expire soon. Renew it early to keep access to the full chart, Oracle, and extended readings.',
     kind: 'personal',
   },
   {

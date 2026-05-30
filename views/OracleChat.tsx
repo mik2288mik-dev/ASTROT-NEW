@@ -436,8 +436,8 @@ export const OracleChat: React.FC<OracleChatProps> = ({
             {questionState?.nextTier === 'stars' && questionState.starsPaymentRequired && (
               <p className="mt-3 text-xs leading-relaxed text-amber-300">
                 {lang === 'ru'
-                  ? `Открыть глубокий ответ за ${questionState.starsCost ?? 0} Stars. Или получить всё в Premium.`
-                  : `Unlock a deep answer for ${questionState.starsCost ?? 0} Stars. Or get everything in Premium.`}
+                  ? `Открыть полный ответ за ${questionState.starsCost ?? 0} Stars. Или получить всё в Premium.`
+                  : `Unlock the full answer for ${questionState.starsCost ?? 0} Stars. Or get everything in Premium.`}
               </p>
             )}
 

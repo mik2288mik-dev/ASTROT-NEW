@@ -65,7 +65,7 @@ const WEATHER_JOKE_TEMPLATES = {
         ],
         en: [
             "{name}, it's {temp}°C outside. You're {trait}, but the blanket wins today 🧣",
-            "Cold ({temp}°C). {name}, your vibe says: «{trait}», and it's perfect for tea ☕",
+            "Cold ({temp}°C). {name}, your mood says: «{trait}», and it's perfect for tea ☕",
             "{temp}°C outside. {name}, you're {trait}, but the cold votes for Netflix 📺",
         ]
     },
@@ -100,7 +100,7 @@ const WEATHER_JOKE_TEMPLATES = {
             "Дождливо ({temp}°C). {name}, ты {trait}, можно чуть замедлиться ☔",
         ],
         en: [
-            "Rain at {temp}°C. {name}, you're {trait} — perfect for cozy vibes 🌧️",
+            "Rain at {temp}°C. {name}, you're {trait} — perfect for a cozy day 🌧️",
             "It's raining! {name}, you're {trait}, so lo-fi and window-gazing fit 🎵",
             "Rainy ({temp}°C). {name}, you're {trait}, it's okay to slow down ☔",
         ]
@@ -120,7 +120,7 @@ const DAILY_JOKES = {
         "{name}, ты сегодня особенно {sign_adj}. Окружающие скоро поймут ✨",
     ],
     en: [
-        "{name}, today's vibe is «{trait}». You're good to go 😴",
+        "{name}, today's mood is «{trait}». You're good to go 😴",
         "{name}, if you want to send that message — you're {trait}, it makes sense 📱",
         "{name}, today is for small joys. You're {trait}, that's the advantage 🍕",
         "{name}, you're especially {sign_adj} today. Coffee agrees ☕☕",

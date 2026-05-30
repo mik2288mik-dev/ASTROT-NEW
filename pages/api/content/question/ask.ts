@@ -56,7 +56,7 @@ function mapErrorMessage(code: string, lang: 'ru' | 'en', starsCost = ASK_LUMIA_
     },
     PREMIUM_REQUIRED: {
       ru: 'Глубокий уровень ответов доступен в Lumia Premium.',
-      en: 'The deeper answer layer is available in Lumia Premium.',
+      en: 'The full answer layer is available in Lumia Premium.',
     },
     ASK_UPSTREAM_ERROR: {
       ru: 'Lumia не смогла подготовить ответ. Попробуйте ещё раз.',
