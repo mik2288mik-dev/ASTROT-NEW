@@ -183,7 +183,7 @@ export const Synastry: React.FC<SynastryProps> = ({
         } catch (e: any) {
             console.error('[Synastry] Error calculating synastry:', e);
             const code = e?.code as string | undefined;
-            if (code === 'PREMIUM_REQUIRED' || code === 'STARS_PAYMENT_REQUIRED') {
+            if (code === 'PREMIUM_REQUIRED') {
                 setError(e?.message || t('synastry.premium_required'));
             } else {
                 setError(e?.message || 'Failed to calculate synastry');

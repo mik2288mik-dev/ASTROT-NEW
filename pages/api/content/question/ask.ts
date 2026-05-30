@@ -2,14 +2,12 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import type { AskLumiaTier } from '../../../../types';
 import { getOpenAIModelForContent } from '../../../../lib/appSettings';
 import { normalizeAskLumiaTier } from '../../../../lib/contentAccessTier';
-import { getContentAccessConfig } from '../../../../lib/contentAccessMatrix';
 import { unlockContentLayer } from '../../../../lib/contentArchitecture';
 import { db } from '../../../../lib/db';
 import { extractPersonalizationPrivacyFlags, logger } from '../../../../lib/logger';
 import { buildPersonalizationContext, describePersonalizationContext } from '../../../../lib/personalizationContext';
 import {
   ASK_LUMIA_FREE_STARTER_CACHE_KEY,
-  ASK_LUMIA_STARS_COST,
   generateAskLumiaAnswer,
   getAskLumiaState,
   getQuestionCacheKey,
@@ -18,13 +16,12 @@ import {
   sanitizeQuestionHistory,
 } from '../../../../lib/questionContent';
 import { RATE_LIMIT_CONFIGS, withRateLimit } from '../../../../lib/rateLimit';
-import { unlockContentAfterStarsPayment, unlockContentAfterStarsPaymentNonce, StarsPaymentError } from '../../../../lib/starsContentUnlock';
 
 const MIN_QUESTION_LENGTH = 3;
 const MAX_QUESTION_LENGTH = 500;
 const DUPLICATE_WINDOW_SECONDS = 20;
 
-function mapErrorMessage(code: string, lang: 'ru' | 'en', starsCost = ASK_LUMIA_STARS_COST) {
+function mapErrorMessage(code: string, lang: 'ru' | 'en') {
   const messages = {
     QUESTION_REQUIRED: {
       ru: 'Введите вопрос для Lumia.',
@@ -43,16 +40,8 @@ function mapErrorMessage(code: string, lang: 'ru' | 'en', starsCost = ASK_LUMIA_
       en: 'Profile not found. Reopen Lumia and try again.',
     },
     FREE_QUESTION_ALREADY_USED: {
-      ru: 'Стартовый бесплатный вопрос уже использован. Следующий вопрос можно открыть за Stars.',
-      en: 'The starter free question has already been used. The next question can be opened with Stars.',
-    },
-    STARS_PAYMENT_REQUIRED: {
-      ru: `Следующий вопрос можно открыть за ${starsCost} Stars.`,
-      en: `The next question can be opened for ${starsCost} Stars.`,
-    },
-    STARS_PAYMENT_PENDING: {
-      ru: 'Платёж ещё подтверждается. Подождите пару секунд.',
-      en: 'Payment is still being confirmed. Please wait a moment.',
+      ru: 'Стартовый бесплатный вопрос уже использован. Продолжить можно в Premium.',
+      en: 'The starter free question has already been used. Continue in Premium.',
     },
     PREMIUM_REQUIRED: {
       ru: 'Глубокий уровень ответов доступен в Lumia Premium.',
@@ -89,16 +78,9 @@ function buildChartContext(user: any, primaryChart: any) {
 }
 
 function getRequestedTier(value: unknown, fallback: AskLumiaTier): AskLumiaTier {
-  return normalizeAskLumiaTier(value) || fallback;
-}
-
-function buildStarsPayload(starsCost: number) {
-  return {
-    starsCost,
-    starsPaymentRequired: true,
-    invoiceType: 'ask_lumia_one_off' as const,
-    canCreateInvoice: true,
-  };
+  const normalized = normalizeAskLumiaTier(value);
+  if (normalized === 'free' || normalized === 'premium') return normalized;
+  return fallback;
 }
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -166,26 +148,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
   const requestedTier = getRequestedTier(req.body?.requestedTier, state.nextTier);
   const variant = getQuestionVariantForTier(requestedTier);
-  const accessConfig = getContentAccessConfig('question', variant);
-  const starsCost = accessConfig?.starsCost ?? state.starsCost;
-  const starsPaymentChargeId = String(
-    req.body?.starsPaymentChargeId || req.body?.telegramPaymentChargeId || ''
-  ).trim();
-  const paymentNonce = String(req.body?.paymentNonce || '').trim();
-
-  logger.info({
-    scope: 'ask-lumia',
-    event: 'ask_lumia_access_config',
-    userId,
-    surface: accessConfig?.surface || 'question',
-    variant: accessConfig?.variant || variant,
-    accessTier: requestedTier,
-    metadata: {
-      defaultAccessTier: accessConfig?.defaultAccessTier,
-      unlockOptions: accessConfig?.unlockOptions,
-      starsCost,
-    },
-  });
 
   logger.info({
     scope: 'ask-lumia',
@@ -195,8 +157,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     metadata: {
       questionLength: normalizedQuestion.length,
       requestedTier,
-      hasPaymentNonce: !!paymentNonce,
-      hasStarsPaymentChargeId: !!starsPaymentChargeId,
     },
   });
 
@@ -204,74 +164,20 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     return res.status(403).json({
       error: 'Premium required',
       code: 'PREMIUM_REQUIRED',
+      premiumRequired: true,
       message: mapErrorMessage('PREMIUM_REQUIRED', lang),
       state,
     });
   }
 
   if (requestedTier === 'free' && !state.freeStarterAvailable) {
-    return res.status(409).json({
-      error: 'Free question unavailable',
-      code: 'FREE_QUESTION_ALREADY_USED',
-      message: mapErrorMessage('FREE_QUESTION_ALREADY_USED', lang),
+    return res.status(403).json({
+      error: 'Premium required',
+      code: 'PREMIUM_REQUIRED',
+      premiumRequired: true,
+      message: mapErrorMessage('PREMIUM_REQUIRED', lang),
       state,
     });
-  }
-
-  if (requestedTier === 'stars') {
-    const hasPaymentCredential = !!paymentNonce || !!starsPaymentChargeId;
-    if (!hasPaymentCredential) {
-      logger.warn({
-        scope: 'ask-lumia',
-        event: 'ask_lumia_stars_payment_required',
-        userId,
-        surface: 'question',
-        variant,
-        accessTier: requestedTier,
-        errorCode: 'STARS_PAYMENT_REQUIRED',
-        metadata: { starsCost, hasPaymentNonce: false, paymentStatus: 'missing' },
-      });
-      return res.status(409).json({
-        error: 'Stars payment required',
-        code: 'STARS_PAYMENT_REQUIRED',
-        message: mapErrorMessage('STARS_PAYMENT_REQUIRED', lang, starsCost),
-        state,
-        ...buildStarsPayload(starsCost),
-      });
-    }
-
-    if (paymentNonce) {
-      const confirmedPayment = await db.star_payments.findConfirmedUnconsumedForPayload({
-        userId,
-        paymentType: 'content_unlock',
-        contentSurface: 'question',
-        contentVariant: 'one_off',
-        starsAmount: starsCost,
-        nonce: paymentNonce,
-      });
-
-      logger.info({
-        scope: 'ask-lumia',
-        event: 'ask_lumia_stars_payment_lookup',
-        userId,
-        surface: 'question',
-        metadata: {
-          hasPaymentNonce: true,
-          paymentStatus: confirmedPayment ? 'confirmed' : 'pending',
-        },
-      });
-
-      if (!confirmedPayment) {
-        return res.status(409).json({
-          error: 'Stars payment pending',
-          code: 'STARS_PAYMENT_PENDING',
-          message: mapErrorMessage('STARS_PAYMENT_PENDING', lang, starsCost),
-          retryAfterMs: 1200,
-          state,
-          ...buildStarsPayload(starsCost),
-        });
-      }
-    }
   }
 
   const duplicate = await db.astro_questions.findRecentDuplicate(userId, normalizedQuestion, DUPLICATE_WINDOW_SECONDS);
@@ -281,8 +187,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       createdAt: new Date(duplicate.created_at).toISOString(),
       reusedRecent: true,
       tier: requestedTier,
-      starsSpent: 0,
-      starsPaymentRequired: false,
       state,
     });
   }
@@ -342,11 +246,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
   const questionCacheKey = getQuestionCacheKey(normalizedQuestion);
   const { modelTier } = await getOpenAIModelForContent({
-    accessTier: requestedTier === 'premium' ? 'premium' : requestedTier === 'stars' ? 'stars' : 'free',
+    accessTier: requestedTier === 'premium' ? 'premium' : 'free',
     contentSurface: 'question',
     contentVariant: variant,
   });
-  let starsSpent = 0;
 
   try {
     if (requestedTier === 'free') {
@@ -357,57 +260,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         contentVariant: 'brief',
         cacheKey: ASK_LUMIA_FREE_STARTER_CACHE_KEY,
       });
-    } else if (requestedTier === 'stars') {
-      let unlockResult;
-      try {
-        if (paymentNonce) {
-          unlockResult = await unlockContentAfterStarsPaymentNonce({
-            userId,
-            contentSurface: 'question',
-            contentVariant: 'one_off',
-            cacheKey: questionCacheKey,
-            starsAmount: starsCost,
-            paymentNonce,
-            allowUnscopedCacheKey: true,
-          });
-        } else {
-          unlockResult = await unlockContentAfterStarsPayment({
-            userId,
-            contentSurface: 'question',
-            contentVariant: 'one_off',
-            cacheKey: questionCacheKey,
-            starsAmount: starsCost,
-            starsPaymentChargeId,
-            allowUnscopedCacheKey: true,
-          });
-        }
-      } catch (unlockError: any) {
-        const unlockCode = unlockError instanceof StarsPaymentError
-          ? unlockError.code
-          : unlockError?.code || 'STARS_PAYMENT_FAILED';
-        const statusCode = unlockCode === 'STARS_PAYMENT_PENDING' ? 409 : 402;
-        logger.warn({
-          scope: 'ask-lumia',
-          event: 'ask_lumia_stars_unlock_failed',
-          userId,
-          surface: 'question',
-          errorCode: unlockCode,
-          metadata: {
-            hasPaymentNonce: !!paymentNonce,
-            paymentStatus: unlockCode,
-          },
-        });
-        return res.status(statusCode).json({
-          error: 'Stars payment unlock failed',
-          code: unlockCode,
-          message: unlockCode === 'STARS_PAYMENT_PENDING'
-            ? mapErrorMessage('STARS_PAYMENT_PENDING', lang, starsCost)
-            : mapErrorMessage('STARS_PAYMENT_REQUIRED', lang, starsCost),
-          retryAfterMs: unlockCode === 'STARS_PAYMENT_PENDING' ? 1200 : undefined,
-          state: await getAskLumiaState(userId),
-        });
-      }
-      starsSpent = unlockResult.unlock?.metadata?.starsAmount ?? starsCost;
     } else {
       await unlockContentLayer({
         userId,
@@ -420,7 +272,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
     await db.astro_questions.add(userId, normalizedQuestion, answer);
     await db.content_interpretations.upsertByUser(userId, {
-      accessTier: requestedTier === 'stars' ? 'stars' : requestedTier,
+      accessTier: requestedTier,
       contentSurface: 'question',
       contentVariant: variant,
       cacheKey: questionCacheKey,
@@ -465,8 +317,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     createdAt: new Date().toISOString(),
     reusedRecent: false,
     tier: requestedTier,
-    starsSpent,
-    starsPaymentRequired: false,
     state: nextState,
   });
 }

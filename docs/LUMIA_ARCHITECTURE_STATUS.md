@@ -20,10 +20,10 @@ Last updated: sprint 3 stabilization (not a product marketing doc).
 
 ## Product monetization model
 
-- **User-facing model:** Free + Premium.
-- **No one-off content purchases** in current UI.
-- **Telegram Stars** may be used only as a payment rail for Premium (`premium_week`), not as product currency.
-- **Legacy one-off server support** (`ask_lumia_one_off`, `forecast_full_day`, `synastry_full`, `natal_human_*`) is deprecated and not used by current UI; old `content_unlocks` rows still read.
+- **User-facing model:** Free + Premium only.
+- **No one-off content purchases** anywhere in runtime code.
+- **Telegram Stars** are used only as a payment rail for Premium (`premium_week` invoice → webhook → entitlement).
+- **Legacy one-off unlock rows** in DB are no longer read by runtime access checks; a separate DB migration may drop obsolete tables/columns later.
 
 ---
 
@@ -34,13 +34,13 @@ Last updated: sprint 3 stabilization (not a product marketing doc).
 | Field | Value |
 |-------|-------|
 | API | `GET/POST /api/content/question/ask` |
-| Access | free (`question/brief` starter) · stars (`question/one_off`) · premium (`question/full`) |
+| Access | free (`question/brief` starter) · premium (`question/full`) |
 | Matrix | yes — enforced |
 | UserState | yes |
 | Layer | yes |
 | Logger | yes (`scope: ask-lumia`) |
-| Stars nonce | yes — full client flow |
-| Charge fallback | yes — charge id still accepted |
+| Stars nonce | no — Premium only |
+| Charge fallback | no |
 | Legacy bridge | **removed** — dead `/api/astrology/chat` client call deleted |
 | cacheKey | question hash from normalized question text |
 | Status | **new** (reference implementation) |
@@ -66,13 +66,13 @@ Last updated: sprint 3 stabilization (not a product marketing doc).
 | Field | Value |
 |-------|-------|
 | API | `GET/POST /api/content/forecast/daypart` |
-| Access | premium · stars (one-off full day) |
+| Access | premium only |
 | Matrix | yes — enforced |
 | UserState | yes |
-| Layer | yes (+ legacy `lumi` tier **read-only** for old rows) |
+| Layer | yes |
 | Logger | yes (`scope: forecast-daypart`) |
-| Stars nonce | yes — chart layer in Horoscope |
-| Charge fallback | yes |
+| Stars nonce | no |
+| Charge fallback | no |
 | Legacy bridge | no direct client call |
 | cacheKey | date key; unlock keyed as `forecast/full` + same date |
 | Status | **new** |

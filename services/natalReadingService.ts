@@ -86,15 +86,12 @@ type HumanEndpoint = 'human-base' | 'human-section' | 'human-daily';
 
 export type HumanReadingResult<T> = {
   content: T;
-  starsCost?: number;
   accessTier?: ContentAccessTier;
 };
 
 export type HumanReadingError = Error & {
   status?: number;
   code?: string;
-  starsCost?: number;
-  starsPaymentRequired?: boolean;
   premiumAvailable?: boolean;
 };
 
@@ -242,16 +239,8 @@ async function readHumanError(response: Response, fallback: string): Promise<Hum
   const err = new Error(payload.message || payload.error || fallback) as HumanReadingError;
   err.status = response.status;
   err.code = payload.code;
-  err.starsCost = typeof payload.starsCost === 'number' ? payload.starsCost : undefined;
-  err.starsPaymentRequired = payload.starsPaymentRequired === true;
-  err.premiumAvailable = typeof payload.premiumAvailable === 'boolean' ? payload.premiumAvailable : undefined;
+  err.premiumAvailable = payload.premiumRequired === true || payload.premiumAvailable === true;
   return err;
-}
-
-function normalizeHumanAccessTier(tier?: string): 'premium' | 'stars' | undefined {
-  if (tier === 'premium') return 'premium';
-  if (tier === 'stars' || tier === 'lumi') return 'stars';
-  return undefined;
 }
 
 async function postHuman<T>(
@@ -261,24 +250,22 @@ async function postHuman<T>(
     chartId?: number;
     sectionKey?: HumanPaidSectionKey | HumanDailySectionKey;
     date?: string;
-    accessTier?: 'premium' | 'stars' | 'lumi';
-    /** @deprecated use starsPaymentChargeId */
-    allowLumiSpend?: boolean;
-    starsPaymentChargeId?: string;
+    accessTier?: 'premium';
   }
 ): Promise<HumanReadingResult<T>> {
-  const accessTier = normalizeHumanAccessTier(options?.accessTier);
-  const response = await fetch(buildHumanUrl(endpoint, userId, options), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
+  const body: Record<string, unknown> = {
       userId,
       chartId: options?.chartId,
       sectionKey: options?.sectionKey,
       date: options?.date,
-      accessTier: accessTier || (options?.allowLumiSpend ? 'stars' : options?.accessTier),
-      starsPaymentChargeId: options?.starsPaymentChargeId,
-    }),
+    };
+  if (options?.accessTier) {
+    body.accessTier = options.accessTier;
+  }
+  const response = await fetch(buildHumanUrl(endpoint, userId, options), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) {
@@ -288,7 +275,6 @@ async function postHuman<T>(
   const payload = await response.json();
   return {
     content: payload.interpretation?.content as T,
-    starsCost: typeof payload.starsCost === 'number' ? payload.starsCost : undefined,
     accessTier: payload.accessTier,
   };
 }
@@ -315,7 +301,6 @@ async function getHuman<T>(
   const payload = await response.json();
   return {
     content: payload.interpretation?.content as T,
-    starsCost: typeof payload.starsCost === 'number' ? payload.starsCost : undefined,
     accessTier: payload.accessTier,
   };
 }
@@ -353,10 +338,7 @@ export async function loadHumanPaidSection(
   sectionKey: HumanPaidSectionKey,
   chartId?: number,
   options?: {
-    accessTier?: 'premium' | 'stars' | 'lumi';
-    /** @deprecated use starsPaymentChargeId */
-    allowLumiSpend?: boolean;
-    starsPaymentChargeId?: string;
+    accessTier?: 'premium';
   }
 ): Promise<HumanReadingResult<InterpretationSection>> {
   const key = paidKey(userId, sectionKey, chartId);
@@ -367,25 +349,14 @@ export async function loadHumanPaidSection(
   if (existing) return existing;
 
   const request = (async () => {
-    let result: HumanReadingResult<InterpretationSection>;
-    if (options?.allowLumiSpend) {
-      // Legacy-only: deprecated client flag still maps to pre-Stars tier label on wire.
-      result = await postHuman<InterpretationSection>('human-section', userId, {
-        chartId,
-        sectionKey,
-        accessTier: 'lumi',
-        allowLumiSpend: true,
-      });
-    } else {
-      const cached = await getHuman<InterpretationSection>('human-section', userId, { chartId, sectionKey });
-      result = cached?.content
-        ? cached
-        : await postHuman<InterpretationSection>('human-section', userId, {
-            chartId,
-            sectionKey,
-            accessTier: options?.accessTier,
-          });
-    }
+    const cached = await getHuman<InterpretationSection>('human-section', userId, { chartId, sectionKey });
+    const result = cached?.content
+      ? cached
+      : await postHuman<InterpretationSection>('human-section', userId, {
+          chartId,
+          sectionKey,
+          accessTier: options?.accessTier || 'premium',
+        });
     paidSectionCache.set(key, result);
     return result;
   })().finally(() => {
@@ -402,10 +373,7 @@ export async function loadHumanDailySection(
   chartId?: number,
   date?: string,
   options?: {
-    accessTier?: 'premium' | 'stars' | 'lumi';
-    /** @deprecated use starsPaymentChargeId */
-    allowLumiSpend?: boolean;
-    starsPaymentChargeId?: string;
+    accessTier?: 'premium';
   }
 ): Promise<HumanReadingResult<InterpretationSection>> {
   const key = dailyKey(userId, sectionKey, chartId, date);
@@ -416,26 +384,15 @@ export async function loadHumanDailySection(
   if (existing) return existing;
 
   const request = (async () => {
-    let result: HumanReadingResult<InterpretationSection>;
-    if (options?.allowLumiSpend) {
-      result = await postHuman<InterpretationSection>('human-daily', userId, {
-        chartId,
-        sectionKey,
-        date,
-        accessTier: 'lumi',
-        allowLumiSpend: true,
-      });
-    } else {
-      const cached = await getHuman<InterpretationSection>('human-daily', userId, { chartId, sectionKey, date });
-      result = cached?.content
-        ? cached
+    const cached = await getHuman<InterpretationSection>('human-daily', userId, { chartId, sectionKey, date });
+    const result = cached?.content
+      ? cached
         : await postHuman<InterpretationSection>('human-daily', userId, {
             chartId,
             sectionKey,
             date,
-            accessTier: options?.accessTier,
+            ...(sectionKey === 'daily_overview' ? {} : { accessTier: options?.accessTier || 'premium' }),
           });
-    }
     dailySectionCache.set(key, result);
     return result;
   })().finally(() => {

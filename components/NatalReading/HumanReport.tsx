@@ -7,11 +7,9 @@ import type {
   UserProfile,
 } from '../../types';
 import {
-  HUMAN_DAILY_LUMI_COST,
   HUMAN_DAILY_SECTION_KEYS,
   HUMAN_DAILY_SECTION_META,
   HUMAN_FREE_SECTION_KEYS,
-  HUMAN_PAID_LUMI_COST,
   HUMAN_PAID_SECTION_KEYS,
   HUMAN_PAID_SECTION_META,
   type HumanDailySectionKey,
@@ -78,7 +76,7 @@ function fmtDegree(value?: number | null): string {
 
 function formatError(error: unknown): string {
   const e = error as HumanReadingError;
-  if (e?.code === 'PREMIUM_REQUIRED' || e?.code === 'HUMAN_SECTION_LOCKED' || e?.code === 'STARS_PAYMENT_REQUIRED') {
+  if (e?.code === 'PREMIUM_REQUIRED' || e?.code === 'HUMAN_SECTION_LOCKED') {
     return 'Этот раздел доступен в Premium.';
   }
   if (e?.message) return e.message;

@@ -60,8 +60,8 @@ export default async function handler(
         code: 'PREMIUM_REQUIRED',
         error: 'Premium required',
         message: langRu
-          ? 'Полный разбор совместимости доступен по Lumia Premium. Тот же полный разбор можно открыть разово за Lumi на экране синастрии.'
-          : 'Full compatibility analysis is available with Lumia Premium. The same full reading can be unlocked one-off with Lumi on the Synastry screen.',
+          ? 'Полный разбор совместимости доступен в Lumia Premium.'
+          : 'The full compatibility reading is available in Lumia Premium.',
       });
     }
 

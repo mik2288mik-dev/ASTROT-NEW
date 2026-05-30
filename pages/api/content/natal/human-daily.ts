@@ -1,9 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import type { ContentAccessTier, InterpretationSection } from '../../../../types';
-import { db } from '../../../../lib/db';
 import { getPremiumEntitlementState } from '../../../../lib/contentArchitecture';
-import { unlockContentAfterStarsPayment } from '../../../../lib/starsContentUnlock';
-import { normalizeAskLumiaTier } from '../../../../lib/contentAccessTier';
 import { getMoscowTodayKey } from '../../../../lib/date-utils';
 import {
   ensureValidContext,
@@ -15,8 +12,6 @@ import {
   generateHumanDailySection,
 } from '../../../../lib/natalHumanInterpretation';
 import {
-  HUMAN_DAILY_STARS_COST,
-  HUMAN_DAILY_LUMI_COST,
   HUMAN_DAILY_PROMPT_VERSION,
   humanDailyCacheKey,
   isHumanDailySectionKey,
@@ -29,33 +24,8 @@ export const config = { maxDuration: 90 };
 const SCOPE = 'natal-human-daily';
 
 type ResolvedDailyAccess = {
-  accessTier: Extract<ContentAccessTier, 'premium' | 'stars' | 'lumi'>;
-  entitlement: Awaited<ReturnType<typeof getPremiumEntitlementState>>['entitlement'];
+  accessTier: Extract<ContentAccessTier, 'premium'>;
 };
-
-async function findDailyOneOffUnlock(
-  userId: string,
-  chartId: number | null,
-  cacheKey: string
-) {
-  const starsUnlock = await db.content_unlocks.getLatestActive(userId, {
-    accessTier: 'stars',
-    contentSurface: 'natal',
-    contentVariant: 'living',
-    chartId,
-    cacheKey,
-  });
-  if (starsUnlock) return starsUnlock;
-
-  // Legacy-only: match unlock rows written before Lumi → Stars migration.
-  return db.content_unlocks.getLatestActive(userId, {
-    accessTier: 'lumi',
-    contentSurface: 'natal',
-    contentVariant: 'living',
-    chartId,
-    cacheKey,
-  });
-}
 
 function readSectionKey(req: NextApiRequest): HumanDailySectionKey | null {
   const raw = (req.method === 'GET' ? req.query.sectionKey : req.body?.sectionKey) as string | undefined;
@@ -83,25 +53,11 @@ function getMoscowDayWindow(dateKey: string) {
   };
 }
 
-async function resolveDailyAccess(
-  userId: string,
-  chartId: number | null,
-  cacheKey: string
-): Promise<ResolvedDailyAccess | null> {
+async function resolveDailyAccess(userId: string): Promise<ResolvedDailyAccess | null> {
   const entitlement = await getPremiumEntitlementState(userId);
   if (entitlement.isPremium) {
-    return { accessTier: 'premium', entitlement: entitlement.entitlement };
+    return { accessTier: 'premium' };
   }
-
-  const unlock = await findDailyOneOffUnlock(userId, chartId, cacheKey);
-
-  if (unlock) {
-    return {
-      accessTier: unlock.accessTier === 'lumi' ? 'stars' : unlock.accessTier,
-      entitlement: entitlement.entitlement,
-    };
-  }
-
   return null;
 }
 
@@ -141,7 +97,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     promptVersion: HUMAN_DAILY_PROMPT_VERSION,
   });
   const window = getMoscowDayWindow(dateKey);
-  let access = await resolveDailyAccess(userId, ctx.chartId, cacheKey);
+  const access = await resolveDailyAccess(userId);
   const isFreeOverview = sectionKey === 'daily_overview';
 
   logContentApi(
@@ -159,7 +115,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
   );
 
-  if (req.method === 'GET' && !access && !isFreeOverview) {
+  if (!access && !isFreeOverview) {
     warnContentApi(
       {
         scope: SCOPE,
@@ -168,65 +124,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         surface: 'natal',
         variant: 'living',
       },
-      'unlock_required',
-      { errorCode: 'HUMAN_DAILY_LOCKED', metadata: { sectionKey, starsCost: HUMAN_DAILY_STARS_COST } }
+      'premium_required',
+      { errorCode: 'PREMIUM_REQUIRED', metadata: { sectionKey } }
     );
     return res.status(403).json({
-      error: 'HUMAN_DAILY_LOCKED',
-      code: 'HUMAN_DAILY_LOCKED',
-      message: `Персональный слой дня доступен в Premium или открывается разово за ${HUMAN_DAILY_STARS_COST} Stars.`,
-      starsCost: HUMAN_DAILY_STARS_COST,
-      starsPaymentRequired: true,
-      premiumAvailable: true,
-    });
-  }
-
-  if (!access && !isFreeOverview) {
-    const requestedAccessTier = normalizeAskLumiaTier(req.body?.accessTier) || 'premium';
-    const starsPaymentChargeId = String(
-      req.body?.starsPaymentChargeId || req.body?.telegramPaymentChargeId || ''
-    ).trim();
-
-    if (requestedAccessTier !== 'stars' || !starsPaymentChargeId) {
-      warnContentApi(
-        {
-          scope: SCOPE,
-          userId,
-          chartId: ctx.chartId,
-          surface: 'natal',
-          variant: 'living',
-        },
-        'payment_required',
-        { errorCode: 'STARS_PAYMENT_REQUIRED', metadata: { sectionKey, starsCost: HUMAN_DAILY_STARS_COST } }
-      );
-      return res.status(409).json({
-        error: 'Stars payment required',
-        code: 'STARS_PAYMENT_REQUIRED',
-        message: `Этот персональный слой можно открыть разово за ${HUMAN_DAILY_STARS_COST} Stars через Telegram payment.`,
-        starsCost: HUMAN_DAILY_STARS_COST,
-        starsPaymentRequired: true,
-        premiumAvailable: true,
-      });
-    }
-
-    await unlockContentAfterStarsPayment({
-      userId,
-      chartId: ctx.chartId,
-      contentSurface: 'natal',
-      contentVariant: 'living',
-      cacheKey,
-      starsAmount: HUMAN_DAILY_STARS_COST,
-      starsPaymentChargeId,
-    });
-
-    access = await resolveDailyAccess(userId, ctx.chartId, cacheKey);
-  }
-
-  if (!access && !isFreeOverview) {
-    return res.status(500).json({
-      error: 'HUMAN_DAILY_UNLOCK_FAILED',
-      code: 'HUMAN_DAILY_UNLOCK_FAILED',
-      message: 'Не удалось открыть персональный слой дня.',
+      error: 'Premium required',
+      code: 'PREMIUM_REQUIRED',
+      premiumRequired: true,
+      message: 'Персональный слой дня доступен в Lumia Premium.',
     });
   }
 
@@ -269,70 +174,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({
       interpretation: cached,
       source: 'human_v2',
-      entitlement: access?.entitlement ?? null,
       accessTier: responseAccessTier,
     });
   }
 
   if (cached) {
-    logContentApi(
-      {
-        scope: SCOPE,
-        userId,
-        chartId: ctx.chartId,
-        surface: 'natal',
-        variant: 'living',
-      },
-      'cache_hit',
-      {
-        accessTier: responseAccessTier,
-        status: 'ready',
-        durationMs: Date.now() - startedAt,
-        metadata: { sectionKey, dateKey },
-      }
-    );
     return res.status(200).json({
       interpretation: cached,
       source: 'human_v2',
-      entitlement: access?.entitlement ?? null,
       accessTier: responseAccessTier,
     });
   }
 
   try {
-    logContentApi(
-      {
-        scope: SCOPE,
-        userId,
-        chartId: ctx.chartId,
-        surface: 'natal',
-        variant: 'living',
-      },
-      'generation_start',
-      { accessTier: responseAccessTier, metadata: { sectionKey, dateKey } }
-    );
     const section = await generateHumanDailySection(ctx.profile, ctx.chartData!, sectionKey, dateKey);
     const saved = await saveReading(ctx, cacheOpts, section);
-    logContentApi(
-      {
-        scope: SCOPE,
-        userId,
-        chartId: ctx.chartId,
-        surface: 'natal',
-        variant: 'living',
-      },
-      'generation_success',
-      {
-        accessTier: responseAccessTier,
-        status: 'ready',
-        durationMs: Date.now() - startedAt,
-        metadata: { sectionKey, dateKey },
-      }
-    );
     return res.status(200).json({
       interpretation: saved,
       source: 'generated',
-      entitlement: access?.entitlement ?? null,
       accessTier: responseAccessTier,
     });
   } catch (error) {

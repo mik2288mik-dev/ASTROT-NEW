@@ -94,13 +94,6 @@ export async function getOpenAIModelForContent(
     };
   }
 
-  if (options.accessTier === 'stars' || options.accessTier === 'lumi') {
-    return {
-      model: premiumModel,
-      modelTier: 'premium',
-    };
-  }
-
   return {
     model: freeHighQualityModel,
     modelTier: freeHighQualityModel === premiumModel ? 'premium' : 'base',

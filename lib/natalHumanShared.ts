@@ -5,14 +5,6 @@ export const HUMAN_BASE_PROMPT_VERSION = 'lumia-human-v2.base';
 export const HUMAN_PAID_PROMPT_VERSION = 'lumia-human-v2.paid';
 export const HUMAN_DAILY_PROMPT_VERSION = 'lumia-human-v2.daily';
 
-export const HUMAN_PAID_LUMI_COST = 300;
-export const HUMAN_DAILY_LUMI_COST = 35;
-
-/** @deprecated Legacy alias — same numeric value as Stars cost. */
-export const HUMAN_PAID_STARS_COST = HUMAN_PAID_LUMI_COST;
-
-/** @deprecated Legacy alias — same numeric value as Stars cost. */
-export const HUMAN_DAILY_STARS_COST = HUMAN_DAILY_LUMI_COST;
 export const HUMAN_BASE_CACHE_KEY = 'human_v2.base';
 
 export const HUMAN_FREE_SECTION_KEYS = [

@@ -16,7 +16,6 @@ const ALLOWED_PATH_SNIPPETS = [
   'legacy',
   'migration',
   'contentAccessTier',
-  'starsContentUnlock',
   'contentArchitecture',
   'canRegenerateForLumi',
   'regenerationCostLumi',

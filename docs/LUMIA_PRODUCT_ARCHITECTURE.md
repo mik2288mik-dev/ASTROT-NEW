@@ -5,7 +5,8 @@
 - [LUMIA_PRODUCT_CONSTITUTION.md](./LUMIA_PRODUCT_CONSTITUTION.md)
 - [LUMIA_CONTENT_TIER_SPEC.md](./LUMIA_CONTENT_TIER_SPEC.md)
 - [lib/contentAccessMatrix.ts](../lib/contentAccessMatrix.ts) — матрица доступа к контенту
-- [lib/starsPricing.ts](../lib/starsPricing.ts) — Stars one-off pricing (legacy Lumi aliases)
+- [lib/premiumPricing.ts](../lib/premiumPricing.ts) — Premium Telegram Stars pricing
+- [lib/starsInvoiceCatalog.ts](../lib/starsInvoiceCatalog.ts) — Premium invoice catalog (`premium_week` only)
 - [lib/logger.ts](../lib/logger.ts) — безопасное структурное логирование
 
 ## 1. Главный принцип
@@ -13,7 +14,7 @@
 **Accuracy is not paywalled. Access is paywalled.**
 
 - Расчётный слой всегда точный и общий для всех пользователей.
-- Free, Premium и Stars one-off не отличаются точностью расчёта.
+- Free и Premium не отличаются точностью расчёта.
 - Бесплатный пользователь получает полный расчётный слой там, где это технически возможно.
 - Платность влияет только на доступ, глубину интерпретации, архив, историю, количество вопросов и подробность текста.
 - AI не является источником расчёта — AI только объясняет уже подготовленный расчётный контекст.
@@ -27,11 +28,11 @@
 
 **User-facing модель: Free + Premium.** Разовых покупок контента в UI нет.
 
-**Telegram Stars** могут использоваться только как технический способ оплаты Premium внутри Telegram. Stars не показываются пользователю как валюта «открыть кусок».
+**Telegram Stars** используются только как технический способ оплаты Premium внутри Telegram (`premium_week`).
 
-**Legacy one-off server support** (`ask_lumia_one_off`, `forecast_full_day`, `synastry_full`, `natal_human_*`) оставлен для старых unlock rows и webhook-тестов, но текущий UI его не вызывает.
+**One-off content purchases удалены полностью** из runtime-кода (UI, API, invoice catalog, unlock flows).
 
-**Lumi как продуктовая валюта снята.** Legacy unlocks с `accessTier='lumi'` временно читаются как stars-like unlock rows.
+**Lumi как продуктовая валюта снята.** Legacy DB rows могут оставаться до отдельной migration.
 
 ## 3. Слои архитектуры
 
@@ -40,8 +41,8 @@
 | **Calculation Layer** | Натальная карта, транзиты (Swiss Ephemeris), Today Pulse (24 точки), chartQuality / birthTimeQuality. Общий для всех tier. |
 | **Persistence Layer** | `natal_charts`, кэши расчётов, `content_interpretations`, `content_unlocks`, `star_payments`, история вопросов и check-in. |
 | **Personalization Context Layer** | `PersonalizationContext` для AI-интерпретации, не для подмены расчёта. |
-| **Interpretation Layer** | AI-тексты по tier (free / premium / stars): прогнозы, портрет, Ask Lumia, synastry. |
-| **Access Layer** | Premium entitlement, preview/teaser/locked card. Legacy stars unlock rows читаются, но UI не предлагает one-off. Матрица: [lib/contentAccessMatrix.ts](../lib/contentAccessMatrix.ts). |
+| **Interpretation Layer** | AI-тексты по tier (free / premium): прогнозы, портрет, Ask Lumia, synastry. |
+| **Access Layer** | Premium entitlement, preview/teaser/locked card. Матрица: [lib/contentAccessMatrix.ts](../lib/contentAccessMatrix.ts). |
 | **Logging / Observability Layer** | [lib/logger.ts](../lib/logger.ts), health metrics. |
 
 ## 4. Что считается всем пользователям
@@ -76,3 +77,4 @@ Non-premium locked content ведёт в Premium paywall, не в Stars one-off.
 - 2026-05: первая версия; content access matrix; privacy-safe logger.
 - 2026-05: переход Free / Premium / Stars one-off; снятие Lumi как продуктовой валюты.
 - 2026-05: Premium-only user model — one-off content purchases removed from UI; Stars остаются payment rail для Premium.
+- 2026-05: Legacy one-off Stars content purchases removed from server/runtime code; only `premium_week` invoices remain.

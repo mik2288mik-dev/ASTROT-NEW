@@ -9,14 +9,7 @@ const log = {
   error: (msg: string, err?: any) => console.error(`[API/telegram/create-invoice] ERROR: ${msg}`, err || ''),
 };
 
-const ALLOWED_TYPES = new Set<StarsInvoiceType>([
-  'premium_week',
-  'forecast_full_day',
-  'ask_lumia_one_off',
-  'synastry_full',
-  'natal_human_section',
-  'natal_human_daily',
-]);
+const ALLOWED_TYPES = new Set<StarsInvoiceType>(['premium_week']);
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -25,10 +18,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const userId = (req.body?.userId ?? req.query.userId) as string;
   const type = (req.body?.type ?? req.query.type ?? 'premium_week') as string;
-  const chartId = req.body?.chartId ?? req.query.chartId;
-  const cacheKey = req.body?.cacheKey ?? req.query.cacheKey;
-  const date = req.body?.date ?? req.query.date;
-  const sectionKey = req.body?.sectionKey ?? req.query.sectionKey;
 
   if (!userId?.trim()) {
     return res.status(400).json({ error: 'userId is required' });
@@ -46,7 +35,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({
       error: 'Invalid invoice type',
       code: 'INVALID_INVOICE_TYPE',
-      message: `Unsupported invoice type: ${type}`,
+      message: `Unsupported invoice type: ${type}. Only Premium subscriptions are available.`,
     });
   }
 
@@ -55,15 +44,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     product = buildInvoicePayload({
       userId: String(userId).trim(),
       type: type as StarsInvoiceType,
-      chartId: chartId != null ? Number(chartId) : null,
-      cacheKey: cacheKey != null ? String(cacheKey) : null,
-      date: date != null ? String(date) : null,
-      sectionKey: sectionKey != null ? String(sectionKey) : null,
     });
   } catch (error: any) {
     const code = error?.message || 'INVOICE_BUILD_FAILED';
     log.error('Error building invoice payload', { error: error.message, type, userId });
-    return res.status(code === 'CACHE_KEY_REQUIRED' || code.startsWith('INVALID_') ? 400 : 500).json({
+    return res.status(500).json({
       error: 'Failed to create invoice',
       code,
       message: error.message,
@@ -76,10 +61,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     type,
     starsAmount: product.starsAmount,
     paymentNonce,
-    contentSurface: product.contentSurface,
-    contentVariant: product.contentVariant,
-    cacheKey: product.cacheKey,
-    chartId: product.chartId,
     payload: product.payload,
   };
 

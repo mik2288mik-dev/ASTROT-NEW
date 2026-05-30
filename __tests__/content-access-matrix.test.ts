@@ -24,7 +24,7 @@ const premiumUser: UserState = {
 function userWithUnlock(
   surface: UserState['unlockedContent'][number]['surface'],
   variant: UserState['unlockedContent'][number]['variant'],
-  accessTier: 'stars' | 'lumi' | 'premium' = 'stars',
+  accessTier: 'premium' = 'premium',
   cacheKey = '2026-05-29'
 ): UserState {
   return {
@@ -52,11 +52,10 @@ describe('contentAccessMatrix', () => {
   });
 
   describe('premium-only natal surfaces', () => {
-    it('requires premium for planet_insight without stars unlock option', () => {
+    it('requires premium for planet_insight', () => {
       const config = getContentAccessConfig('natal', 'planet_insight');
       expect(config?.unlockOptions).toEqual(['premium']);
-      expect(config?.lockedBehavior.allowStarsUnlock).toBe(false);
-      expect(config?.starsCost).toBeNull();
+      expect(config?.lockedBehavior.requirePremium).toBe(true);
     });
 
     it('requires premium for natal/full and natal/living', () => {
@@ -72,8 +71,6 @@ describe('contentAccessMatrix', () => {
         const config = getContentAccessConfig('forecast', variant);
         expect(config?.defaultAccessTier).toBe('premium');
         expect(config?.unlockOptions).toEqual(['premium']);
-        expect(config?.starsCost).toBeNull();
-        expect(config?.lockedBehavior.allowStarsUnlock).toBe(false);
         expect(canAccessContent(freeUser, 'forecast', variant)).toBe(false);
         expect(canAccessContent(premiumUser, 'forecast', variant)).toBe(true);
       }
@@ -82,28 +79,23 @@ describe('contentAccessMatrix', () => {
     it('requires premium for synastry/full', () => {
       const config = getContentAccessConfig('synastry', 'full');
       expect(config?.unlockOptions).toEqual(['premium']);
-      expect(config?.starsCost).toBeNull();
-      expect(config?.lockedBehavior.allowStarsUnlock).toBe(false);
       expect(canAccessContent(freeUser, 'synastry', 'full')).toBe(false);
       expect(canAccessContent(premiumUser, 'synastry', 'full')).toBe(true);
     });
 
-    it('allows forecast daypart via legacy forecast/full stars unlock rows', () => {
-      const unlockUser = userWithUnlock('forecast', 'full', 'stars', '2026-05-29');
+    it('allows forecast daypart via premium unlock rows only', () => {
+      const unlockUser = userWithUnlock('forecast', 'full', 'premium', '2026-05-29');
       expect(canAccessContent(unlockUser, 'forecast', 'morning', '2026-05-29')).toBe(true);
     });
   });
 
   describe('question tiers', () => {
-    it('requires premium for question/one_off without legacy unlock', () => {
-      const config = getContentAccessConfig('question', 'one_off');
+    it('requires premium for question/full', () => {
+      const config = getContentAccessConfig('question', 'full');
       expect(config?.defaultAccessTier).toBe('premium');
       expect(config?.unlockOptions).toEqual(['premium']);
-      expect(config?.starsCost).toBeNull();
-      expect(config?.lockedBehavior.allowStarsUnlock).toBe(false);
-      expect(canAccessContent(freeUser, 'question', 'one_off')).toBe(false);
-      expect(canAccessContent(premiumUser, 'question', 'full')).toBe(true);
       expect(canAccessContent(freeUser, 'question', 'full')).toBe(false);
+      expect(canAccessContent(premiumUser, 'question', 'full')).toBe(true);
     });
   });
 
@@ -112,26 +104,21 @@ describe('contentAccessMatrix', () => {
       expect(canAccessContent(premiumUser, 'forecast', 'morning')).toBe(true);
     });
 
-    it('returns true for legacy one_off unlock rows', () => {
-      const unlockUser = userWithUnlock('question', 'one_off', 'stars', 'question-hash');
-      expect(canAccessContent(unlockUser, 'question', 'one_off', 'question-hash')).toBe(true);
-    });
-
-    it('maps legacy lumi unlock to stars access', () => {
-      const unlockUser = userWithUnlock('question', 'one_off', 'lumi', 'question-hash');
-      expect(canAccessContent(unlockUser, 'question', 'one_off', 'question-hash')).toBe(true);
+    it('returns true for premium unlock rows', () => {
+      const unlockUser = userWithUnlock('question', 'full', 'premium', 'question-hash');
+      expect(canAccessContent(unlockUser, 'question', 'full', 'question-hash')).toBe(true);
     });
   });
 
   describe('calculation and persistence flags', () => {
     it('marks calculation-required surfaces for precalculation', () => {
       expect(shouldPrecalculate('forecast', 'morning')).toBe(true);
-      expect(shouldPrecalculate('question', 'one_off')).toBe(true);
+      expect(shouldPrecalculate('question', 'full')).toBe(true);
     });
 
     it('returns persist flags according to matrix', () => {
       expect(shouldPersistContent('forecast', 'morning')).toBe(true);
-      expect(shouldPersistContent('question', 'one_off')).toBe(true);
+      expect(shouldPersistContent('question', 'full')).toBe(true);
     });
   });
 
@@ -144,7 +131,6 @@ describe('contentAccessMatrix', () => {
     it('returns premium-only locked behavior when access is denied', () => {
       const behavior = getLockedBehavior(freeUser, 'forecast', 'morning');
       expect(behavior.showLockedCard).toBe(true);
-      expect(behavior.allowStarsUnlock).toBe(false);
       expect(behavior.requirePremium).toBe(true);
     });
   });

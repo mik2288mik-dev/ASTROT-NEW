@@ -657,20 +657,16 @@ export const getFullDaypartForecast = async (
   chartData: NatalChartData,
   slot: ForecastDaypartSlot,
   options?: {
-    accessTier?: 'premium' | 'stars' | 'lumi';
-    starsPaymentChargeId?: string;
-    paymentNonce?: string;
-    invoiceType?: 'forecast_full_day';
+    accessTier?: 'premium';
     date?: string;
   }
-): Promise<{ reading: ForecastDaypartReading; starsCost?: number }> => {
-  const accessTier = options?.accessTier === 'lumi' ? 'stars' : (options?.accessTier || 'premium');
+): Promise<{ reading: ForecastDaypartReading }> => {
+  const accessTier = options?.accessTier || 'premium';
   const url = `${API_BASE_URL}/api/content/forecast/daypart`;
   log.info('[getFullDaypartForecast] Starting request', {
     userId: profile.id,
     slot,
     accessTier,
-    hasPaymentNonce: !!options?.paymentNonce,
   });
 
   const data = await fetchContentApi<ForecastDaypartReading>(url, {
@@ -682,9 +678,6 @@ export const getFullDaypartForecast = async (
       chartData,
       slot,
       accessTier,
-      starsPaymentChargeId: options?.starsPaymentChargeId,
-      paymentNonce: options?.paymentNonce,
-      invoiceType: options?.invoiceType || 'forecast_full_day',
       date: options?.date,
     }),
   });
@@ -694,45 +687,8 @@ export const getFullDaypartForecast = async (
     throw buildApiError(`Full ${slot} forecast is missing`);
   }
 
-  return {
-    reading,
-    starsCost: typeof data?.starsCost === 'number' ? data.starsCost : undefined,
-  };
+  return { reading };
 };
-
-export async function getFullDaypartForecastWithStarsPayment(
-  profile: UserProfile,
-  chartData: NatalChartData,
-  slot: ForecastDaypartSlot,
-  paymentNonce: string,
-  options?: {
-    date?: string;
-    maxRetries?: number;
-  }
-): Promise<{ reading: ForecastDaypartReading; starsCost?: number }> {
-  const maxRetries = options?.maxRetries ?? 5;
-  let lastError: any = null;
-
-  for (let attempt = 0; attempt < maxRetries; attempt += 1) {
-    try {
-      return await getFullDaypartForecast(profile, chartData, slot, {
-        accessTier: 'stars',
-        paymentNonce,
-        invoiceType: 'forecast_full_day',
-        date: options?.date,
-      });
-    } catch (error: any) {
-      lastError = error;
-      if (error?.code !== 'STARS_PAYMENT_PENDING' || attempt >= maxRetries - 1) {
-        throw error;
-      }
-      const retryAfterMs = Number(error?.details?.retryAfterMs) || 1200;
-      await sleep(retryAfterMs);
-    }
-  }
-
-  throw lastError || new Error('Forecast full day stars payment failed');
-}
 
 export const getCachedPremiumDaypartForecast = async (
   userId: string,
@@ -750,7 +706,7 @@ export const getCachedFullDaypartForecast = async (
   slot: ForecastDaypartSlot,
   options?: {
     chartId?: number | null;
-    accessTier?: 'premium' | 'stars' | 'lumi';
+    accessTier?: 'premium';
     dateKey?: string;
   }
 ): Promise<ForecastDaypartReading | null> => {
@@ -1533,13 +1489,10 @@ export const calculateFullSynastry = async (
 
 export type SynastryExtendedApiOutcome = {
   result: SynastryResult;
-  starsSpent?: number;
   fromCache: boolean;
 };
 
-/**
- * Полный разбор синастрии: Premium или разовое открытие за Telegram Stars.
- */
+/** Полный разбор синастрии: только Premium. */
 export const calculateExtendedSynastry = async (
   profile: UserProfile,
   partnerName: string,
@@ -1547,11 +1500,10 @@ export const calculateExtendedSynastry = async (
   partnerTime?: string,
   partnerPlace?: string,
   relationshipType?: string,
-  partnerChartId?: number,
-  starsPaymentChargeId?: string
+  partnerChartId?: number
 ): Promise<SynastryExtendedApiOutcome> => {
   const url = `${API_BASE_URL}/api/content/synastry/extended`;
-  log.info('[calculateExtendedSynastry] Starting', { partnerName, partnerDate, hasStarsPayment: !!starsPaymentChargeId });
+  log.info('[calculateExtendedSynastry] Starting', { partnerName, partnerDate });
 
   const response = await fetch(url, {
     method: 'POST',
@@ -1565,22 +1517,16 @@ export const calculateExtendedSynastry = async (
       language: profile.language,
       relationshipType,
       partnerChartId,
-      starsPaymentChargeId,
     }),
   });
 
   if (!response.ok) {
-    let errorMessage = `Synastry Stars full failed: ${response.status}`;
+    let errorMessage = `Synastry full failed: ${response.status}`;
     let errorCode: string | undefined;
-    let details: any;
     try {
       const errorData = await response.json();
       errorMessage = errorData.message || errorData.error || errorMessage;
       errorCode = errorData.code;
-      details = {
-        starsCost: errorData.starsCost,
-        starsPaymentRequired: errorData.starsPaymentRequired,
-      };
     } catch {
       const errorText = await response.text().catch(() => '');
       errorMessage = errorText || errorMessage;
@@ -1588,19 +1534,16 @@ export const calculateExtendedSynastry = async (
     const apiError = new Error(errorMessage) as ApiErrorWithCode;
     apiError.status = response.status;
     apiError.code = errorCode;
-    apiError.details = details;
     throw apiError;
   }
 
   const data = (await response.json()) as {
     result: SynastryResult;
-    starsSpent?: number;
     fromCache?: boolean;
   };
 
   return {
     result: data.result,
-    starsSpent: data.starsSpent ?? 0,
     fromCache: !!data.fromCache,
   };
 };
@@ -2031,32 +1974,18 @@ export const getOracleHistory = async (profile: UserProfile, limit = 12): Promis
   }
 };
 
-export type AskLumiaRequestOptions = {
-  starsPaymentChargeId?: string;
-  paymentNonce?: string;
-  invoiceType?: string;
-};
-
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
 export const chatWithAstra = async (
   history: { role: 'user' | 'model', text: string }[],
   message: string,
   profile: UserProfile,
-  requestedTier?: AskLumiaTier,
-  paymentOptions?: AskLumiaRequestOptions | string
+  requestedTier?: AskLumiaTier
 ): Promise<OracleChatResponse> => {
   const url = `${API_BASE_URL}/api/content/question/ask`;
-  const normalizedTier = (requestedTier as string | undefined) === 'lumi' ? 'stars' : requestedTier;
-  const resolvedOptions: AskLumiaRequestOptions = typeof paymentOptions === 'string'
-    ? { starsPaymentChargeId: paymentOptions }
-    : (paymentOptions || {});
   log.info('[chatWithAstra] Starting Ask Lumia request', {
     messageLength: message.length,
     historyLength: history.length,
     userId: profile.id,
-    requestedTier: normalizedTier || 'auto',
-    hasPaymentNonce: !!resolvedOptions.paymentNonce,
+    requestedTier: requestedTier || 'auto',
   });
 
   try {
@@ -2069,10 +1998,7 @@ export const chatWithAstra = async (
         userId: profile.id,
         history,
         message,
-        requestedTier: normalizedTier,
-        starsPaymentChargeId: resolvedOptions.starsPaymentChargeId,
-        paymentNonce: resolvedOptions.paymentNonce,
-        invoiceType: resolvedOptions.invoiceType || 'ask_lumia_one_off',
+        requestedTier,
         systemInstruction: SYSTEM_INSTRUCTION_ASTRA
       })
     });
@@ -2124,31 +2050,3 @@ export const chatWithAstra = async (
     throw error;
   }
 };
-
-export async function askLumiaWithStarsPayment(
-  history: { role: 'user' | 'model', text: string }[],
-  message: string,
-  profile: UserProfile,
-  paymentNonce: string,
-  maxRetries = 5
-): Promise<OracleChatResponse> {
-  let lastError: any = null;
-
-  for (let attempt = 0; attempt < maxRetries; attempt += 1) {
-    try {
-      return await chatWithAstra(history, message, profile, 'stars', {
-        paymentNonce,
-        invoiceType: 'ask_lumia_one_off',
-      });
-    } catch (error: any) {
-      lastError = error;
-      if (error?.code !== 'STARS_PAYMENT_PENDING' || attempt >= maxRetries - 1) {
-        throw error;
-      }
-      const retryAfterMs = Number(error?.details?.retryAfterMs) || 1200;
-      await sleep(retryAfterMs);
-    }
-  }
-
-  throw lastError || new Error('Ask Lumia stars payment failed');
-}

@@ -76,25 +76,24 @@ describe('natal reading service session cache', () => {
     expect((global.fetch as jest.Mock).mock.calls[1][1]?.method).toBe('POST');
   });
 
-  it('does not unlock paid sections without Stars payment confirmation', async () => {
+  it('does not unlock paid sections without Premium', async () => {
     (global.fetch as jest.Mock).mockResolvedValueOnce(
       response(403, {
-        code: 'HUMAN_SECTION_LOCKED',
+        code: 'PREMIUM_REQUIRED',
         message: 'locked',
-        starsCost: 300,
+        premiumRequired: true,
       })
     );
 
     await expect(loadHumanPaidSection('123', 'work_business')).rejects.toMatchObject({
-      code: 'HUMAN_SECTION_LOCKED',
-      starsCost: 300,
+      code: 'PREMIUM_REQUIRED',
     });
 
     expect(global.fetch).toHaveBeenCalledTimes(1);
     expect((global.fetch as jest.Mock).mock.calls[0][1]?.method).toBe('GET');
   });
 
-  it('opens daily_overview for free users without Stars payment', async () => {
+  it('opens daily_overview for free users without Premium', async () => {
     const section = {
       key: 'daily_overview',
       title: 'Тема дня',
@@ -116,18 +115,17 @@ describe('natal reading service session cache', () => {
     expect(JSON.parse((global.fetch as jest.Mock).mock.calls[1][1]?.body).accessTier).toBeUndefined();
   });
 
-  it('keeps paid daily sections locked for free users without Stars payment', async () => {
+  it('keeps paid daily sections locked for free users without Premium', async () => {
     (global.fetch as jest.Mock).mockResolvedValueOnce(
       response(403, {
-        code: 'HUMAN_DAILY_LOCKED',
+        code: 'PREMIUM_REQUIRED',
         message: 'locked',
-        starsCost: 35,
+        premiumRequired: true,
       })
     );
 
     await expect(loadHumanDailySection('123', 'daily_work_business', 7, '2026-05-25')).rejects.toMatchObject({
-      code: 'HUMAN_DAILY_LOCKED',
-      starsCost: 35,
+      code: 'PREMIUM_REQUIRED',
     });
 
     expect(global.fetch).toHaveBeenCalledTimes(1);

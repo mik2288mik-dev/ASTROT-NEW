@@ -10,7 +10,6 @@ import type {
   UserProfile,
 } from '../../types';
 import {
-  HUMAN_PAID_LUMI_COST,
   isHumanPaidSectionKey,
   type HumanPaidSectionKey,
 } from '../../lib/natalHumanShared';
@@ -56,7 +55,7 @@ const PAYWALL_DISMISS_SESSION_KEY = 'lumia_natal_story_paywall_dismissed_session
 
 function formatStoryError(error: unknown): string {
   const e = error as HumanReadingError;
-  if (e?.code === 'PREMIUM_REQUIRED' || e?.code === 'HUMAN_SECTION_LOCKED' || e?.code === 'STARS_PAYMENT_REQUIRED') {
+  if (e?.code === 'PREMIUM_REQUIRED' || e?.code === 'HUMAN_SECTION_LOCKED') {
     return 'Этот слой доступен в Premium.';
   }
   return e?.message || 'Не удалось открыть карточку. Попробуйте ещё раз.';

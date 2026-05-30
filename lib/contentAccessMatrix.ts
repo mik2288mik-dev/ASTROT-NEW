@@ -1,12 +1,10 @@
 import type { ContentAccessTier, ContentSurface, ContentVariant } from '../types';
-import { isStarsLikeAccessTier, normalizeStoredAccessTier } from './contentAccessTier';
 
 export type LockedBehavior = {
   showPreview: boolean;
   showTeaser: boolean;
   showLockedCard: boolean;
   requirePremium: boolean;
-  allowStarsUnlock: boolean;
 };
 
 export type ContentAccessConfig = {
@@ -19,7 +17,6 @@ export type ContentAccessConfig = {
   shouldPersistInterpretation: boolean;
   defaultAccessTier: ContentAccessTier;
   unlockOptions: ContentAccessTier[];
-  starsCost: number | null;
   lockedBehavior: LockedBehavior;
 };
 
@@ -48,13 +45,11 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
     shouldPersistInterpretation: true,
     defaultAccessTier: 'free',
     unlockOptions: ['free'],
-    starsCost: null,
     lockedBehavior: {
       showPreview: false,
       showTeaser: false,
       showLockedCard: false,
       requirePremium: false,
-      allowStarsUnlock: false,
     },
   },
   {
@@ -67,13 +62,11 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
     shouldPersistInterpretation: true,
     defaultAccessTier: 'premium',
     unlockOptions: ['premium'],
-    starsCost: null,
     lockedBehavior: {
       showPreview: true,
       showTeaser: true,
       showLockedCard: true,
       requirePremium: true,
-      allowStarsUnlock: false,
     },
   },
   {
@@ -86,13 +79,11 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
     shouldPersistInterpretation: true,
     defaultAccessTier: 'premium',
     unlockOptions: ['premium'],
-    starsCost: null,
     lockedBehavior: {
       showPreview: true,
       showTeaser: true,
       showLockedCard: true,
       requirePremium: true,
-      allowStarsUnlock: false,
     },
   },
   {
@@ -105,13 +96,11 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
     shouldPersistInterpretation: true,
     defaultAccessTier: 'premium',
     unlockOptions: ['premium'],
-    starsCost: null,
     lockedBehavior: {
       showPreview: true,
       showTeaser: true,
       showLockedCard: true,
       requirePremium: true,
-      allowStarsUnlock: false,
     },
   },
   {
@@ -124,13 +113,11 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
     shouldPersistInterpretation: true,
     defaultAccessTier: 'free',
     unlockOptions: ['free'],
-    starsCost: null,
     lockedBehavior: {
       showPreview: false,
       showTeaser: false,
       showLockedCard: false,
       requirePremium: false,
-      allowStarsUnlock: false,
     },
   },
   {
@@ -143,13 +130,11 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
     shouldPersistInterpretation: true,
     defaultAccessTier: 'premium',
     unlockOptions: ['premium'],
-    starsCost: null,
     lockedBehavior: {
       showPreview: true,
       showTeaser: true,
       showLockedCard: true,
       requirePremium: true,
-      allowStarsUnlock: false,
     },
   },
   {
@@ -162,13 +147,11 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
     shouldPersistInterpretation: true,
     defaultAccessTier: 'premium',
     unlockOptions: ['premium'],
-    starsCost: null,
     lockedBehavior: {
       showPreview: true,
       showTeaser: true,
       showLockedCard: true,
       requirePremium: true,
-      allowStarsUnlock: false,
     },
   },
   {
@@ -181,13 +164,11 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
     shouldPersistInterpretation: true,
     defaultAccessTier: 'premium',
     unlockOptions: ['premium'],
-    starsCost: null,
     lockedBehavior: {
       showPreview: true,
       showTeaser: true,
       showLockedCard: true,
       requirePremium: true,
-      allowStarsUnlock: false,
     },
   },
   {
@@ -200,13 +181,11 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
     shouldPersistInterpretation: true,
     defaultAccessTier: 'premium',
     unlockOptions: ['premium'],
-    starsCost: null,
     lockedBehavior: {
       showPreview: true,
       showTeaser: true,
       showLockedCard: true,
       requirePremium: true,
-      allowStarsUnlock: false,
     },
   },
   {
@@ -219,13 +198,11 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
     shouldPersistInterpretation: true,
     defaultAccessTier: 'premium',
     unlockOptions: ['premium'],
-    starsCost: null,
     lockedBehavior: {
       showPreview: true,
       showTeaser: true,
       showLockedCard: true,
       requirePremium: true,
-      allowStarsUnlock: false,
     },
   },
   {
@@ -238,13 +215,11 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
     shouldPersistInterpretation: true,
     defaultAccessTier: 'free',
     unlockOptions: ['free'],
-    starsCost: null,
     lockedBehavior: {
       showPreview: false,
       showTeaser: false,
       showLockedCard: false,
       requirePremium: false,
-      allowStarsUnlock: false,
     },
   },
   {
@@ -257,13 +232,11 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
     shouldPersistInterpretation: true,
     defaultAccessTier: 'premium',
     unlockOptions: ['premium'],
-    starsCost: null,
     lockedBehavior: {
       showPreview: true,
       showTeaser: true,
       showLockedCard: true,
       requirePremium: true,
-      allowStarsUnlock: false,
     },
   },
   {
@@ -276,32 +249,11 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
     shouldPersistInterpretation: true,
     defaultAccessTier: 'free',
     unlockOptions: ['free'],
-    starsCost: null,
     lockedBehavior: {
       showPreview: false,
       showTeaser: false,
       showLockedCard: false,
       requirePremium: false,
-      allowStarsUnlock: false,
-    },
-  },
-  {
-    surface: 'question',
-    variant: 'one_off',
-    label: 'Ask Lumia legacy unlock',
-    description: 'Legacy one-off unlock rows only. Not part of current Premium-only UI.',
-    calculationRequired: true,
-    shouldPersistCalculation: false,
-    shouldPersistInterpretation: true,
-    defaultAccessTier: 'premium',
-    unlockOptions: ['premium'],
-    starsCost: null,
-    lockedBehavior: {
-      showPreview: true,
-      showTeaser: false,
-      showLockedCard: true,
-      requirePremium: true,
-      allowStarsUnlock: false,
     },
   },
   {
@@ -314,13 +266,11 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
     shouldPersistInterpretation: true,
     defaultAccessTier: 'premium',
     unlockOptions: ['premium'],
-    starsCost: null,
     lockedBehavior: {
       showPreview: true,
       showTeaser: true,
       showLockedCard: true,
       requirePremium: true,
-      allowStarsUnlock: false,
     },
   },
 ];
@@ -348,7 +298,7 @@ export function matchesUnlockEntry(
 ) {
   if (entry.surface !== surface || entry.variant !== variant) return false;
   if (cacheKey && entry.cacheKey && entry.cacheKey !== cacheKey) return false;
-  return entry.accessTier === 'premium' || isStarsLikeAccessTier(entry.accessTier);
+  return entry.accessTier === 'premium';
 }
 
 function hasActiveUnlock(
@@ -404,7 +354,6 @@ export function getLockedBehavior(
       showTeaser: false,
       showLockedCard: true,
       requirePremium: true,
-      allowStarsUnlock: false,
     };
   }
 
@@ -414,7 +363,6 @@ export function getLockedBehavior(
       showTeaser: false,
       showLockedCard: false,
       requirePremium: false,
-      allowStarsUnlock: false,
     };
   }
 
@@ -435,9 +383,4 @@ export function shouldPersistContent(surface: ContentSurface, variant: ContentVa
 
 export function listContentAccessMatrix(): ContentAccessConfig[] {
   return CONTENT_ACCESS_MATRIX.slice();
-}
-
-/** @deprecated Legacy alias */
-export function normalizeMatrixUnlockTier(tier: ContentAccessTier): ContentAccessTier {
-  return normalizeStoredAccessTier(tier);
 }

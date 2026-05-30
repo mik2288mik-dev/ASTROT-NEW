@@ -7,14 +7,12 @@ import { getOpenAIModelForContent } from './appSettings';
 import { db } from './db';
 import { getPremiumEntitlementState } from './contentArchitecture';
 import { normalizeAskLumiaTier } from './contentAccessTier';
-import { ASK_LUMIA_STARS_COST, ASK_LUMIA_LUMI_COST } from './starsPricing';
 
 const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
 
 export const ASK_LUMIA_FREE_STARTER_CACHE_KEY = 'starter';
-export { ASK_LUMIA_STARS_COST, ASK_LUMIA_LUMI_COST };
 
 type AskLumiaHistoryMessage = {
   role: 'user' | 'model';
@@ -32,19 +30,17 @@ type GenerateAskLumiaAnswerOptions = {
 function getTierLabel(tier: AskLumiaTier, language: 'ru' | 'en') {
   if (language === 'ru') {
     if (tier === 'premium') return 'Premium';
-    if (tier === 'stars') return 'Premium-ответ за Telegram Stars';
     return 'стартовый бесплатный вопрос';
   }
   if (tier === 'premium') return 'Premium';
-  if (tier === 'stars') return 'Premium answer unlocked with Telegram Stars';
   return 'starter free question';
 }
 
 async function getQuestionModel(tier: AskLumiaTier) {
   return getOpenAIModelForContent({
-    accessTier: tier === 'premium' ? 'premium' : tier === 'stars' ? 'stars' : 'free',
+    accessTier: tier === 'premium' ? 'premium' : 'free',
     contentSurface: 'question',
-    contentVariant: tier === 'free' ? 'brief' : tier === 'stars' ? 'one_off' : 'full',
+    contentVariant: tier === 'free' ? 'brief' : 'full',
   });
 }
 
@@ -64,7 +60,7 @@ Requirements:
 - User should feel: "yes, this is really about my question and my pattern."
 - Stay brief: 2-4 short paragraphs.
 - Focus on the emotional knot of the question, one recognizable pattern, and one useful next step.
-- Do not try to cover every angle. More detail, examples, and situational precision belong to Stars and Premium.
+- Do not try to cover every angle. More detail, examples, and situational precision belong to Premium.
 - No mystical fluff, no decorative astrology language, no fake certainty.
 - Frame conclusions as likely patterns and tendencies, not absolute verdicts.
 - Sound serious, warm, and clear.`
@@ -107,7 +103,7 @@ Output:
 
 function buildQuestionFallback(question: string, language: 'ru' | 'en', tier: AskLumiaTier) {
   if (language === 'ru') {
-    if (tier === 'premium' || tier === 'stars') {
+    if (tier === 'premium') {
       return `Сейчас по этому вопросу важнее не пытаться мгновенно всё решить, а увидеть, где у тебя на самом деле главный внутренний узел. Напряжение здесь, скорее всего, собирается не из одной детали, а из нескольких частей сразу: что ты чувствуешь, что стараешься удержать, чего боишься коснуться и где уже устал жить в подвешенности.
 
 Если смотреть честно, ответ для тебя сейчас не в резком движении, а в более точной внутренней позиции. Например, в таких ситуациях человек часто колеблется между желанием всё прояснить сразу и попыткой ещё немного потерпеть, чтобы не сталкиваться с неприятной правдой. Но именно это зависание обычно и съедает больше всего сил.
@@ -122,7 +118,7 @@ function buildQuestionFallback(question: string, language: 'ru' | 'en', tier: As
 Когда ты увидишь главное без лишнего шума, следующий шаг станет гораздо яснее.`;
   }
 
-  if (tier === 'premium' || tier === 'stars') {
+  if (tier === 'premium') {
     return `With this question, the most important thing right now is not to force a fast solution, but to see where the real inner knot is. The pressure here is likely not coming from one detail, but from several parts at once: what you feel, what you are trying to hold together, what you fear naming, and where uncertainty has already become exhausting.
 
 The answer for you now is not in a dramatic move, but in a more honest internal position. In situations like this, people often swing between wanting immediate clarity and avoiding the one truth that would actually change the situation. That swing creates more pressure than the situation itself.
@@ -158,10 +154,8 @@ export function getQuestionCacheKey(question: string) {
   return createHash('sha256').update(normalizeQuestion(question).toLowerCase()).digest('hex');
 }
 
-export function getQuestionVariantForTier(tier: AskLumiaTier): 'brief' | 'one_off' | 'full' {
-  if (tier === 'free') return 'brief';
-  if (tier === 'stars') return 'one_off';
-  return 'full';
+export function getQuestionVariantForTier(tier: AskLumiaTier): 'brief' | 'full' {
+  return tier === 'free' ? 'brief' : 'full';
 }
 
 export async function getAskLumiaState(userId: string): Promise<AskLumiaState> {
@@ -180,8 +174,6 @@ export async function getAskLumiaState(userId: string): Promise<AskLumiaState> {
       nextTier: 'premium',
       freeStarterAvailable: false,
       isPremium: true,
-      starsCost: ASK_LUMIA_STARS_COST,
-      starsPaymentRequired: false,
     };
   }
 
@@ -190,8 +182,6 @@ export async function getAskLumiaState(userId: string): Promise<AskLumiaState> {
     nextTier: freeStarterAvailable ? 'free' : 'premium',
     freeStarterAvailable,
     isPremium: false,
-    starsCost: ASK_LUMIA_STARS_COST,
-    starsPaymentRequired: false,
   };
 }
 

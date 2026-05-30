@@ -1021,7 +1021,7 @@ ${transitsJson}
 Task: create a premium-quality personal forecast for this specific part of the day.
 
 Rules:
-- This is the full daily reading used by Lumia Premium and by the one-off Stars unlock. It must feel meaningfully stronger than the free daily reading through richer nuance, sharper situational precision, and a clearer sense of what is happening in real life.
+- This is the full daily reading used by Lumia Premium. It must feel meaningfully stronger than the free daily reading through richer nuance, sharper situational precision, and a clearer sense of what is happening in real life.
 - It should feel close to the user's real state, decisions, relationships, money, and tension points in this exact part of the day.
 - Explicitly differ from a single-day summary: this slice is about how the day *feels and behaves* in this part of the day (energy, social tone, practical risk, inner tempo).
 - Treat it like a full daily natal card segment: mix the user's inner state with concrete situations, triggers, and moments that may surface in this slot.

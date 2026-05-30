@@ -11,14 +11,8 @@ import {
   FullSynastryAIResponse,
 } from '../../../../lib/prompts';
 import { validateSynastryInput, formatValidationErrors } from '../../../../lib/validation';
-import { getContentLayer } from '../../../../lib/contentArchitecture';
-import {
-  SYNASTRY_EXTENDED_STARS_COST,
-  buildSynastryExtendedCacheKey,
-} from '../../../../lib/synastryExtended';
-import { buildContentAccessUserState, hasExistingUnlock } from '../../../../lib/contentAccessUserState';
-import { getContentAccessConfig } from '../../../../lib/contentAccessMatrix';
-import { unlockContentAfterStarsPayment } from '../../../../lib/starsContentUnlock';
+import { getContentLayer, getPremiumEntitlementState } from '../../../../lib/contentArchitecture';
+import { buildSynastryExtendedCacheKey } from '../../../../lib/synastryExtended';
 import { RATE_LIMIT_CONFIGS, withRateLimit } from '../../../../lib/rateLimit';
 import { logContentApi, warnContentApi } from '../../../../lib/contentApiLogging';
 
@@ -65,29 +59,17 @@ async function loadCachedSynastry(
     }
   }
 
-  for (const variant of ['full', 'one_off'] as const) {
-    // Legacy-only: read cached synastry rows stored under pre-Stars `lumi` tier.
-    for (const accessTier of ['stars', 'lumi'] as const) {
-      const row = await db.content_interpretations.get(userId, accessTier, 'synastry', variant, contentCacheKey);
-      if (row?.content && typeof row.content === 'object' && (row.content as SynastryResult).fullAnalysis) {
-        return row.content as SynastryResult;
-      }
-    }
-  }
-
-  for (const variant of ['full', 'one_off'] as const) {
-    const layer = await getContentLayer({
-      userId,
-      chartId: primaryChartId,
-      accessTier: 'stars',
-      contentSurface: 'synastry',
-      contentVariant: variant,
-      cacheKey: contentCacheKey,
-    });
-    if (layer.interpretation?.content && typeof layer.interpretation.content === 'object') {
-      const payload = layer.interpretation.content as SynastryResult;
-      if (payload.fullAnalysis) return payload;
-    }
+  const layer = await getContentLayer({
+    userId,
+    chartId: primaryChartId,
+    accessTier: 'premium',
+    contentSurface: 'synastry',
+    contentVariant: 'full',
+    cacheKey: contentCacheKey,
+  });
+  if (layer.interpretation?.content && typeof layer.interpretation.content === 'object') {
+    const payload = layer.interpretation.content as SynastryResult;
+    if (payload.fullAnalysis) return payload;
   }
 
   return null;
@@ -109,8 +91,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     language,
     relationshipType,
     partnerChartId,
-    starsPaymentChargeId,
-    telegramPaymentChargeId,
   } = req.body;
 
   const validation = validateSynastryInput({
@@ -149,9 +129,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     return res.status(404).json({ error: 'User not found', message: 'Profile not found' });
   }
 
-  const accessConfig = getContentAccessConfig('synastry', 'full');
-  const starsCost = accessConfig?.starsCost ?? SYNASTRY_EXTENDED_STARS_COST;
-  const paymentChargeId = String(starsPaymentChargeId || telegramPaymentChargeId || '').trim();
   const rel = String(relationshipType || 'романтика').trim();
   const currentLanguage = userLang === 'en' ? 'en' : 'ru';
   const langRu = currentLanguage === 'ru';
@@ -187,8 +164,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     currentLanguage
   );
 
-  const userState = await buildContentAccessUserState(userId, primaryChartRecord?.id ?? null);
-  const hasUnlock = userState.isPremium || hasExistingUnlock(userState, 'synastry', 'full', contentCacheKey);
+  const entitlementState = await getPremiumEntitlementState(userId);
+  const isPremium = entitlementState.isPremium;
 
   logContentApi(
     {
@@ -200,15 +177,32 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     },
     'access_check',
     {
-      accessTier: userState.isPremium ? 'premium' : hasUnlock ? 'stars' : accessConfig?.defaultAccessTier,
-      metadata: {
-        starsCost,
-        isPremium: userState.isPremium,
-        hasUnlock,
-        matrixAllowed: accessConfig?.unlockOptions,
-      },
+      accessTier: isPremium ? 'premium' : 'locked',
+      metadata: { isPremium },
     }
   );
+
+  if (!isPremium) {
+    warnContentApi(
+      {
+        scope: SCOPE,
+        userId,
+        chartId: primaryChartRecord?.id ?? null,
+        surface: 'synastry',
+        variant: 'full',
+      },
+      'premium_required',
+      { errorCode: 'PREMIUM_REQUIRED' }
+    );
+    return res.status(403).json({
+      error: 'Premium required',
+      code: 'PREMIUM_REQUIRED',
+      premiumRequired: true,
+      message: langRu
+        ? 'Полный разбор совместимости доступен в Lumia Premium.'
+        : 'The full compatibility reading is available in Lumia Premium.',
+    });
+  }
 
   const cachedResult = await loadCachedSynastry(
     userId,
@@ -217,7 +211,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     contentCacheKey
   );
 
-  if (cachedResult && hasUnlock) {
+  if (cachedResult) {
     logContentApi(
       {
         scope: SCOPE,
@@ -228,79 +222,15 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       },
       'cache_hit',
       {
-        accessTier: userState.isPremium ? 'premium' : 'stars',
+        accessTier: 'premium',
         status: 'ready',
         durationMs: Date.now() - startedAt,
       }
     );
     return res.status(200).json({
       result: cachedResult,
-      starsSpent: 0,
       fromCache: true,
-      accessTier: userState.isPremium ? 'premium' : 'stars',
-    });
-  }
-
-  if (!userState.isPremium && !hasUnlock) {
-    if (!paymentChargeId) {
-      warnContentApi(
-        {
-          scope: SCOPE,
-          userId,
-          chartId: primaryChartRecord?.id ?? null,
-          surface: 'synastry',
-          variant: 'full',
-        },
-        'payment_required',
-        { errorCode: 'STARS_PAYMENT_REQUIRED', metadata: { starsCost } }
-      );
-      return res.status(409).json({
-        error: 'Stars payment required',
-        code: 'STARS_PAYMENT_REQUIRED',
-        message: langRu
-          ? `Полный разбор совместимости открывается разово за ${starsCost} Stars через Telegram payment.`
-          : `The full compatibility reading opens as a one-off unlock for ${starsCost} Stars via Telegram payment.`,
-        starsCost,
-        starsPaymentRequired: true,
-        /** @deprecated Legacy alias for starsCost */
-      });
-    }
-
-    try {
-      await unlockContentAfterStarsPayment({
-        userId,
-        chartId: primaryChartRecord?.id ?? null,
-        contentSurface: 'synastry',
-        contentVariant: 'full',
-        cacheKey: contentCacheKey,
-        starsAmount: starsCost,
-        starsPaymentChargeId: paymentChargeId,
-      });
-    } catch (err: any) {
-      const code = String(err?.message || 'STARS_PAYMENT_FAILED');
-      const status = code === 'STARS_PAYMENT_REQUIRED' ? 409 : 402;
-      return res.status(status).json({
-        error: 'Stars unlock failed',
-        code,
-        message: langRu ? 'Не удалось подтвердить оплату Stars.' : 'Could not confirm Stars payment.',
-        starsCost,
-        starsPaymentRequired: code === 'STARS_PAYMENT_REQUIRED',
-      });
-    }
-  }
-
-  const cachedAfterUnlock = await loadCachedSynastry(
-    userId,
-    primaryChartRecord?.id ?? null,
-    partnerChartRecord?.id ?? null,
-    contentCacheKey
-  );
-  if (cachedAfterUnlock) {
-    return res.status(200).json({
-      result: cachedAfterUnlock,
-      starsSpent: paymentChargeId ? starsCost : 0,
-      fromCache: true,
-      accessTier: userState.isPremium ? 'premium' : 'stars',
+      accessTier: 'premium',
     });
   }
 
@@ -322,7 +252,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     );
   }
 
-  const accessTier = userState.isPremium ? ('premium' as const) : ('stars' as const);
+  const accessTier = 'premium' as const;
   let resultPayload: SynastryResult;
 
   logContentApi(
@@ -419,7 +349,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       modelTier,
       isPersistent: true,
       canRegenerateForLumi: false,
-      legacySource: 'synastry.full.stars',
+      legacySource: 'synastry.full.premium',
     };
 
     if (primaryChartRecord?.id) {
@@ -467,13 +397,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       accessTier,
       status: 'ready',
       durationMs: Date.now() - startedAt,
-      metadata: { fromCache: false, starsSpent: paymentChargeId ? starsCost : 0 },
+      metadata: { fromCache: false },
     }
   );
 
   return res.status(200).json({
     result: resultPayload,
-    starsSpent: paymentChargeId ? starsCost : 0,
     fromCache: false,
     accessTier,
   });

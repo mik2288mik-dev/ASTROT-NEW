@@ -432,7 +432,7 @@ export const getOrGenerateSynastry = async (
   relationshipType?: string,
   mode: 'brief' | 'extended' | 'full' = 'brief',
   partnerChartId?: number,
-  opts?: { starsPaymentChargeId?: string; /** @deprecated */ allowLumiSpend?: boolean }
+  opts?: Record<string, never>
 ): Promise<SynastryGenerationOutcome> => {
   log.info(`[getOrGenerateSynastry] Getting synastry for partner: ${partnerName}`, {
     userId: profile.id,
@@ -497,8 +497,6 @@ export const getOrGenerateSynastry = async (
     entry.source = partnerChartId ? 'saved-chart' : 'manual';
     entry.timestamp = Date.now();
 
-    let starsSpentOut: number | undefined;
-
     if (mode === 'brief') {
       entry.briefResult = await calculateBriefSynastry(
         profile,
@@ -517,11 +515,9 @@ export const getOrGenerateSynastry = async (
         partnerTime,
         partnerPlace,
         relationshipType,
-        partnerChartId,
-        opts?.starsPaymentChargeId
+        partnerChartId
       );
       entry.extendedResult = ext.result;
-      starsSpentOut = ext.starsSpent;
     } else {
       entry.fullResult = await calculateFullSynastry(
         profile,
@@ -543,7 +539,6 @@ export const getOrGenerateSynastry = async (
 
     return {
       result: mergeSynastryCacheLayers(entry),
-      ...(typeof starsSpentOut === 'number' ? { starsSpent: starsSpentOut } : {}),
     };
   } catch (error) {
     log.error(`[getOrGenerateSynastry] Failed to generate synastry for ${partnerName}`, error);

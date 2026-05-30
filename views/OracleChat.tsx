@@ -192,7 +192,7 @@ export const OracleChat: React.FC<OracleChatProps> = ({
     }
 
     const requestedTier: AskLumiaTier =
-      questionState?.nextTier === 'stars' ? 'premium' : (questionState?.nextTier || (profile.isPremium ? 'premium' : 'free'));
+      questionState?.nextTier || (profile.isPremium ? 'premium' : 'free');
 
     if (requestedTier !== 'free' && !profile.isPremium) {
       onPremiumRequired?.();
@@ -245,7 +245,7 @@ export const OracleChat: React.FC<OracleChatProps> = ({
       }
     } catch (submitError: any) {
       const code = submitError?.code || null;
-      if (code === 'PREMIUM_REQUIRED' || code === 'STARS_PAYMENT_REQUIRED') {
+      if (code === 'PREMIUM_REQUIRED') {
         setError(submitError?.message || getText(lang, 'oracle.state_need_premium_body'));
         setErrorCode('PREMIUM_REQUIRED');
       } else {

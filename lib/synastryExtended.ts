@@ -1,10 +1,4 @@
 import { createHash } from 'crypto';
-import {
-  SYNASTRY_EXTENDED_STARS_COST,
-  SYNASTRY_EXTENDED_LUMI_COST,
-} from './starsPricing';
-
-export { SYNASTRY_EXTENDED_STARS_COST, SYNASTRY_EXTENDED_LUMI_COST };
 
 export function buildSynastryExtendedCacheKey(
   userId: string,

@@ -74,7 +74,7 @@ export async function resolveReadingContext(
 }
 
 export type CachedReadingOptions = {
-  accessTier: 'free' | 'premium' | 'stars' | 'lumi';
+  accessTier: 'free' | 'premium';
   contentVariant:
     | 'anchor'
     | 'living'

@@ -823,7 +823,7 @@ export interface MonthlyHoroscope {
   content: string;
 }
 
-export type ContentAccessTier = 'free' | 'premium' | 'stars' | 'lumi'; // 'lumi' is legacy-only; new product flows must use 'stars'.
+export type ContentAccessTier = 'free' | 'premium';
 export type ContentSurface = 'natal' | 'forecast' | 'synastry' | 'question';
 export type ContentVariant =
   | 'anchor'
@@ -839,7 +839,7 @@ export type ContentVariant =
   | 'full'
   | 'one_off';
 export type ContentModelTier = 'base' | 'premium';
-export type ContentUnlockType = 'free' | 'premium' | 'stars' | 'lumi';
+export type ContentUnlockType = 'free' | 'premium';
 export type PremiumTierName = 'lumia_premium';
 export type PremiumEntitlementStatus = 'active' | 'expired' | 'cancelled';
 
@@ -928,14 +928,12 @@ export interface OracleHistoryEntry {
   createdAt: string;
 }
 
-export type AskLumiaTier = 'free' | 'stars' | 'premium';
+export type AskLumiaTier = 'free' | 'premium';
 
 export interface AskLumiaState {
   nextTier: AskLumiaTier;
   freeStarterAvailable: boolean;
   isPremium: boolean;
-  starsCost: number;
-  starsPaymentRequired: boolean;
 }
 
 export interface OracleChatResponse {
@@ -943,8 +941,6 @@ export interface OracleChatResponse {
   createdAt: string;
   reusedRecent?: boolean;
   tier?: AskLumiaTier;
-  starsSpent?: number;
-  starsPaymentRequired?: boolean;
   state?: AskLumiaState;
 }
 

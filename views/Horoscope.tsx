@@ -388,15 +388,10 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
 
     const getFriendlyError = (error: unknown, fallback: string) => {
       const err = error as HumanReadingError;
-      if (err?.code === 'PREMIUM_REQUIRED' || err?.code === 'STARS_PAYMENT_REQUIRED') {
+      if (err?.code === 'PREMIUM_REQUIRED') {
         return language === 'ru'
           ? 'Этот разбор доступен в Premium.'
           : 'This reading is available in Premium.';
-      }
-      if (err?.code === 'STARS_PAYMENT_PENDING') {
-        return language === 'ru'
-          ? 'Платёж ещё подтверждается. Подождите пару секунд.'
-          : 'Payment is still being confirmed. Please wait a moment.';
       }
       if (err?.code === 'CONTENT_GENERATION_UNAVAILABLE' || err?.status === 503) {
         return 'Прогноз сейчас не подготовился. Попробуйте ещё раз: если доступ уже открыт, повторного списания не будет.';
