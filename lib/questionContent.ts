@@ -187,11 +187,11 @@ export async function getAskLumiaState(userId: string): Promise<AskLumiaState> {
 
   const freeStarterAvailable = !freeStarterUnlock;
   return {
-    nextTier: freeStarterAvailable ? 'free' : 'stars',
+    nextTier: freeStarterAvailable ? 'free' : 'premium',
     freeStarterAvailable,
     isPremium: false,
     starsCost: ASK_LUMIA_STARS_COST,
-    starsPaymentRequired: !freeStarterAvailable,
+    starsPaymentRequired: false,
   };
 }
 

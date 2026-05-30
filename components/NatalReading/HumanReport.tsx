@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, Crown, Lock, Sparkles, WalletCards, X } from 'lucide-react';
+import { ChevronDown, Crown, Lock, Sparkles, X } from 'lucide-react';
 import type {
   InterpretationSection,
   NatalChartData,
@@ -8,12 +8,10 @@ import type {
 } from '../../types';
 import {
   HUMAN_DAILY_LUMI_COST,
-  HUMAN_DAILY_STARS_COST,
   HUMAN_DAILY_SECTION_KEYS,
   HUMAN_DAILY_SECTION_META,
   HUMAN_FREE_SECTION_KEYS,
   HUMAN_PAID_LUMI_COST,
-  HUMAN_PAID_STARS_COST,
   HUMAN_PAID_SECTION_KEYS,
   HUMAN_PAID_SECTION_META,
   type HumanDailySectionKey,
@@ -80,11 +78,8 @@ function fmtDegree(value?: number | null): string {
 
 function formatError(error: unknown): string {
   const e = error as HumanReadingError;
-  if (e?.code === 'STARS_PAYMENT_REQUIRED') {
-    return `Разовое открытие доступно за ${e.starsCost ?? HUMAN_PAID_LUMI_COST} Stars через Telegram payment.`;
-  }
-  if (e?.code === 'PREMIUM_REQUIRED' || e?.code === 'HUMAN_SECTION_LOCKED') {
-    return 'Этот раздел можно открыть через Premium или разово за Stars.';
+  if (e?.code === 'PREMIUM_REQUIRED' || e?.code === 'HUMAN_SECTION_LOCKED' || e?.code === 'STARS_PAYMENT_REQUIRED') {
+    return 'Этот раздел доступен в Premium.';
   }
   if (e?.message) return e.message;
   return 'Не удалось загрузить раздел. Попробуйте еще раз.';
@@ -218,8 +213,7 @@ export const NatalUnlockSheet: React.FC<{
   isLoading: boolean;
   onClose: () => void;
   onPremium: () => void;
-  onStarsOpen: () => void;
-}> = ({ sectionKey, isLoading, onClose, onPremium, onStarsOpen }) => {
+}> = ({ sectionKey, isLoading, onClose, onPremium }) => {
   const meta = HUMAN_PAID_SECTION_META[sectionKey];
 
   return (
@@ -250,20 +244,11 @@ export const NatalUnlockSheet: React.FC<{
             className="flex w-full items-center justify-center gap-2 rounded-full bg-[#1f1f1f] px-5 py-3 text-[14px] font-semibold text-white disabled:opacity-60"
           >
             <Crown size={16} strokeWidth={2} />
-            Открыть Premium
-          </button>
-          <button
-            type="button"
-            onClick={onStarsOpen}
-            disabled={isLoading}
-            className="flex w-full items-center justify-center gap-2 rounded-full bg-[#f4f1fb] px-5 py-3 text-[14px] font-semibold text-[#5f3c98] disabled:opacity-60"
-          >
-            <WalletCards size={16} strokeWidth={2} />
-            {isLoading ? 'Открываем...' : `Открыть за ${HUMAN_PAID_STARS_COST} Stars`}
+            {isLoading ? 'Открываем...' : 'Получить Premium'}
           </button>
         </div>
         <p className="mt-3 text-center font-sans text-[12.5px] leading-relaxed text-[#777]">
-          Разовое открытие через Telegram Stars. Или получить всё в Premium.
+          Полный доступ к подробным разделам карты — в Premium.
         </p>
       </div>
     </div>
@@ -275,8 +260,7 @@ const NatalDailyUnlockSheet: React.FC<{
   isLoading: boolean;
   onClose: () => void;
   onPremium: () => void;
-  onStarsOpen: () => void;
-}> = ({ sectionKey, isLoading, onClose, onPremium, onStarsOpen }) => {
+}> = ({ sectionKey, isLoading, onClose, onPremium }) => {
   const meta = HUMAN_DAILY_SECTION_META[sectionKey];
 
   return (
@@ -307,20 +291,11 @@ const NatalDailyUnlockSheet: React.FC<{
             className="flex w-full items-center justify-center gap-2 rounded-full bg-[#1f1f1f] px-5 py-3 text-[14px] font-semibold text-white disabled:opacity-60"
           >
             <Crown size={16} strokeWidth={2} />
-            Открыть Premium
-          </button>
-          <button
-            type="button"
-            onClick={onStarsOpen}
-            disabled={isLoading}
-            className="flex w-full items-center justify-center gap-2 rounded-full bg-[#f4f1fb] px-5 py-3 text-[14px] font-semibold text-[#5f3c98] disabled:opacity-60"
-          >
-            <WalletCards size={16} strokeWidth={2} />
-            {isLoading ? 'Открываем...' : `Открыть за ${HUMAN_DAILY_STARS_COST} Stars`}
+            {isLoading ? 'Открываем...' : 'Получить Premium'}
           </button>
         </div>
         <p className="mt-3 text-center font-sans text-[12.5px] leading-relaxed text-[#777]">
-          Разовое открытие через Telegram Stars. Или получить всё в Premium.
+          Подробные ежедневные слои доступны в Premium.
         </p>
       </div>
     </div>
@@ -459,14 +434,13 @@ export const HumanReport: React.FC<Props> = ({
     };
   }, [chartId, dailySections.daily_overview, report, todayKey, userId]);
 
-  const openPaidSection = async (key: HumanPaidSectionKey, allowLumiSpend: boolean) => {
+  const openPaidSection = async (key: HumanPaidSectionKey) => {
     if (!userId || paidLoading) return;
     setSectionError(null);
     setPaidLoading(key);
     try {
       const result = await loadHumanPaidSection(userId, key, chartId, {
-        accessTier: allowLumiSpend ? 'stars' : 'premium',
-        allowLumiSpend,
+        accessTier: 'premium',
       });
       setPaidSections((current) => ({ ...current, [key]: result.content }));
       setUnlockTarget(null);
@@ -479,7 +453,7 @@ export const HumanReport: React.FC<Props> = ({
 
   const handleOpenPaid = (key: HumanPaidSectionKey) => {
     if (isPremium) {
-      void openPaidSection(key, false);
+      void openPaidSection(key);
       return;
     }
     setSectionError(null);
@@ -488,29 +462,23 @@ export const HumanReport: React.FC<Props> = ({
 
   const handleOpenDaily = (key: HumanDailySectionKey) => {
     if (key === 'daily_overview') {
-      void openDailyPaidSection(key, false);
+      void openDailyPaidSection(key);
       return;
     }
     if (isPremium) {
-      void openDailyPaidSection(key, false);
+      void openDailyPaidSection(key);
       return;
     }
     setSectionError(null);
     setUnlockDailyTarget(key);
   };
 
-  const openDailyPaidSection = async (key: HumanDailySectionKey, allowLumiSpend: boolean) => {
+  const openDailyPaidSection = async (key: HumanDailySectionKey) => {
     if (!userId || dailyLoading) return;
     setSectionError(null);
     setDailyLoading(key);
     try {
-      const accessOptions =
-        key === 'daily_overview' && !allowLumiSpend
-          ? undefined
-          : {
-              accessTier: allowLumiSpend ? ('stars' as const) : ('premium' as const),
-              allowLumiSpend,
-            };
+      const accessOptions = key === 'daily_overview' ? undefined : { accessTier: 'premium' as const };
       const result = await loadHumanDailySection(userId, key, chartId, todayKey, accessOptions);
       setDailySections((current) => ({ ...current, [key]: result.content }));
       setUnlockDailyTarget(null);
@@ -568,7 +536,7 @@ export const HumanReport: React.FC<Props> = ({
             {report.userName}, главный портрет
           </h1>
           <p className="mt-4 max-w-[36rem] font-sans text-[15px] leading-relaxed text-[#666]">
-            Разбор основан на расчетах по дате, времени и месту рождения. В бесплатной версии открыт общий слой, а подробные темы можно открыть через Premium или разово за Stars.
+            Разбор основан на расчетах по дате, времени и месту рождения. В бесплатной версии открыт общий слой, а подробные темы доступны в Premium.
           </p>
           <p className="mt-3 font-sans text-[12.5px] leading-relaxed text-[#888]">
             {report.birthData.birthDate}
@@ -680,7 +648,6 @@ export const HumanReport: React.FC<Props> = ({
             setUnlockTarget(null);
             requestPremium();
           }}
-          onStarsOpen={() => void openPaidSection(unlockTarget, true)}
         />
       ) : null}
 
@@ -693,7 +660,6 @@ export const HumanReport: React.FC<Props> = ({
             setUnlockDailyTarget(null);
             requestPremium();
           }}
-          onStarsOpen={() => void openDailyPaidSection(unlockDailyTarget, true)}
         />
       ) : null}
     </article>

@@ -7,7 +7,6 @@ import { Loading } from '../components/ui/Loading';
 import { FormattedAiText } from '../components/ui/FormattedAiText';
 import { getApproximateSunSignByDate } from '../lib/zodiac-utils';
 import { toDateInputValue, formatLumiaDate } from '../lib/date-utils';
-import { SYNASTRY_EXTENDED_STARS_COST } from '../lib/synastryExtended';
 import { ScreenShell } from '../components/layout/ScreenShell';
 
 type SynastryPrefill = {
@@ -65,9 +64,7 @@ export const Synastry: React.FC<SynastryProps> = ({
     const [result, setResult] = useState<SynastryResult | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [allowStarsConsent, setAllowStarsConsent] = useState(false);
 
-    const extendedCost = SYNASTRY_EXTENDED_STARS_COST;
     const readingText = getSynastryEditorialText(profile.language === 'en' ? 'en' : 'ru');
     const t = (key: string, replacements?: Record<string, string>) => {
         let s = getText(profile.language, key);
@@ -101,7 +98,6 @@ export const Synastry: React.FC<SynastryProps> = ({
     const slotsUsed = savedCharts.length;
     const slotsTotal = profile.chartSlots ?? 1;
     const slotsFull = slotsUsed >= slotsTotal;
-    const showStarsFullAction = !profile.isPremium;
 
     useEffect(() => {
         if (initialPrefill?.source === 'saved-chart' && initialPrefill.partnerChartId) {
@@ -162,14 +158,9 @@ export const Synastry: React.FC<SynastryProps> = ({
     const partnerChartIdForRequest =
         partnerInputMode === 'charts' && selectedPartnerChartId != null ? selectedPartnerChartId : undefined;
 
-    const runSynastry = async (mode: 'brief' | 'extended' | 'full') => {
+    const runSynastry = async (mode: 'brief' | 'full') => {
         if (!partnerName || !partnerDate) return;
-        const effectiveMode = mode === 'extended' && profile.isPremium ? 'full' : mode;
-        if (effectiveMode === 'extended' && !allowStarsConsent) {
-            setError(t('synastry.error_stars_consent'));
-            return;
-        }
-        if (effectiveMode === 'full' && !profile.isPremium) {
+        if (mode === 'full' && !profile.isPremium) {
             requestPremium();
             return;
         }
@@ -185,18 +176,15 @@ export const Synastry: React.FC<SynastryProps> = ({
                 partnerTime || undefined,
                 partnerPlace || undefined,
                 relationshipType,
-                effectiveMode,
-                partnerChartIdForRequest,
-                effectiveMode === 'extended' ? {} : undefined
+                mode === 'full' ? 'full' : 'brief',
+                partnerChartIdForRequest
             );
             setResult(data);
         } catch (e: any) {
             console.error('[Synastry] Error calculating synastry:', e);
             const code = e?.code as string | undefined;
-            if (code === 'STARS_PAYMENT_REQUIRED') {
-                setError(t('synastry.error_lumi_required').replace(/Lumi/gi, 'Stars'));
-            } else if (code === 'PREMIUM_REQUIRED') {
-                setError(e?.message || t('synastry.full_btn'));
+            if (code === 'PREMIUM_REQUIRED' || code === 'STARS_PAYMENT_REQUIRED') {
+                setError(e?.message || t('synastry.premium_required'));
             } else {
                 setError(e?.message || 'Failed to calculate synastry');
             }
@@ -486,7 +474,7 @@ export const Synastry: React.FC<SynastryProps> = ({
                             <p className="text-xs text-astro-subtext leading-relaxed">
                                 {t('synastry.extended_hint')}
                             </p>
-                            <div className={`mt-1 grid grid-cols-1 gap-3 ${showStarsFullAction ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
+                            <div className="mt-1 grid grid-cols-1 gap-3 sm:grid-cols-2">
                                 <button
                                     type="button"
                                     onClick={() => void runSynastry('brief')}
@@ -495,16 +483,6 @@ export const Synastry: React.FC<SynastryProps> = ({
                                 >
                                     {t('synastry.brief_btn')}
                                 </button>
-                                {showStarsFullAction && (
-                                    <button
-                                        type="button"
-                                        onClick={() => void runSynastry('extended')}
-                                        disabled={!canSubmit}
-                                        className="w-full rounded-xl border border-astro-highlight/50 bg-astro-highlight/10 px-4 py-3 text-sm font-semibold text-astro-highlight disabled:opacity-50"
-                                    >
-                                        {t('synastry.extended_btn', { cost: String(extendedCost) })}
-                                    </button>
-                                )}
                                 <button
                                     type="button"
                                     onClick={() => void runSynastry('full')}
@@ -514,17 +492,6 @@ export const Synastry: React.FC<SynastryProps> = ({
                                     {t('synastry.full_btn')}
                                 </button>
                             </div>
-                            {showStarsFullAction && (
-                                <label className="flex cursor-pointer items-start gap-3 rounded-[20px] bg-white/34 px-3 py-3 text-sm text-astro-subtext ring-1 ring-black/[0.04]">
-                                    <input
-                                        type="checkbox"
-                                        className="mt-1 h-4 w-4 shrink-0 rounded border-astro-border text-astro-highlight focus:ring-astro-highlight"
-                                        checked={allowStarsConsent}
-                                        onChange={(e) => setAllowStarsConsent(e.target.checked)}
-                                    />
-                                    <span>{t('synastry.stars_consent', { cost: String(extendedCost) })}</span>
-                                </label>
-                            )}
                         </div>
                     </div>
                 </div>
@@ -695,43 +662,6 @@ export const Synastry: React.FC<SynastryProps> = ({
                                                 </button>
                                             )}
                                         </div>
-
-                                        {showStarsFullAction && (
-                                            <div className="rounded-[24px] border border-astro-highlight/28 bg-astro-highlight/[0.06] p-4 sm:p-5">
-                                                <div className="flex items-start justify-between gap-3">
-                                                    <div className="min-w-0">
-                                                        <p className="text-[10px] uppercase tracking-[0.18em] text-astro-highlight">
-                                                            Stars
-                                                        </p>
-                                                        <p className="mt-2 text-sm leading-relaxed text-astro-text">
-                                                            {t('synastry.extended_hint')}
-                                                        </p>
-                                                    </div>
-                                                    <span className="shrink-0 rounded-full border border-astro-highlight/25 bg-astro-highlight/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-astro-highlight">
-                                                        {extendedCost} Stars
-                                                    </span>
-                                                </div>
-
-                                                <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-[18px] border border-astro-border/55 bg-astro-bg/15 px-3.5 py-3 text-sm text-astro-subtext">
-                                                    <input
-                                                        type="checkbox"
-                                                        className="mt-1 h-4 w-4 shrink-0 rounded border-astro-border text-astro-highlight focus:ring-astro-highlight"
-                                                        checked={allowStarsConsent}
-                                                        onChange={(e) => setAllowStarsConsent(e.target.checked)}
-                                                    />
-                                                    <span>{t('synastry.stars_consent', { cost: String(extendedCost) })}</span>
-                                                </label>
-
-                                                <button
-                                                    type="button"
-                                                    onClick={() => void runSynastry('extended')}
-                                                    disabled={!allowStarsConsent}
-                                                    className="mt-3 w-full rounded-[20px] border border-astro-highlight/50 bg-white/55 px-4 py-3 text-sm font-semibold text-astro-highlight backdrop-blur disabled:opacity-50"
-                                                >
-                                                    {t('synastry.add_extended_btn', { cost: String(extendedCost) })}
-                                                </button>
-                                            </div>
-                                        )}
                                     </>
                                 )}
                             </div>
@@ -741,7 +671,6 @@ export const Synastry: React.FC<SynastryProps> = ({
                                 onClick={() => {
                                     setResult(null);
                                     setError(null);
-                                    setAllowStarsConsent(false);
                                     if (partnerCharts.length > 0) {
                                         setPartnerInputMode('charts');
                                     }

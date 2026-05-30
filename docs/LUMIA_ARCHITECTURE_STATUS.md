@@ -18,6 +18,15 @@ Last updated: sprint 3 stabilization (not a product marketing doc).
 
 ---
 
+## Product monetization model
+
+- **User-facing model:** Free + Premium.
+- **No one-off content purchases** in current UI.
+- **Telegram Stars** may be used only as a payment rail for Premium (`premium_week`), not as product currency.
+- **Legacy one-off server support** (`ask_lumia_one_off`, `forecast_full_day`, `synastry_full`, `natal_human_*`) is deprecated and not used by current UI; old `content_unlocks` rows still read.
+
+---
+
 ## 1. Surface map
 
 ### Question (Ask Lumia)

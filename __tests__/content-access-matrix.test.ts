@@ -7,8 +7,6 @@ import {
   shouldPrecalculate,
   type UserState,
 } from '../lib/contentAccessMatrix';
-import { ASK_LUMIA_STARS_COST } from '../lib/questionContent';
-import { FORECAST_FULL_DAY_STARS_COST } from '../lib/forecastFullDay';
 
 const freeUser: UserState = {
   userId: 'user-free',
@@ -67,47 +65,43 @@ describe('contentAccessMatrix', () => {
     });
   });
 
-  describe('premium or stars required', () => {
+  describe('premium-only paid surfaces', () => {
     it.each(['morning', 'day', 'evening'] as const)(
-      'requires premium or stars for forecast/%s',
+      'requires premium for forecast/%s',
       (variant) => {
         const config = getContentAccessConfig('forecast', variant);
         expect(config?.defaultAccessTier).toBe('premium');
-        expect(config?.unlockOptions).toEqual(expect.arrayContaining(['premium', 'stars']));
+        expect(config?.unlockOptions).toEqual(['premium']);
+        expect(config?.starsCost).toBeNull();
+        expect(config?.lockedBehavior.allowStarsUnlock).toBe(false);
         expect(canAccessContent(freeUser, 'forecast', variant)).toBe(false);
         expect(canAccessContent(premiumUser, 'forecast', variant)).toBe(true);
       }
     );
 
-    it('requires premium or stars for synastry/full', () => {
+    it('requires premium for synastry/full', () => {
       const config = getContentAccessConfig('synastry', 'full');
-      expect(config?.unlockOptions).toEqual(expect.arrayContaining(['premium', 'stars']));
+      expect(config?.unlockOptions).toEqual(['premium']);
+      expect(config?.starsCost).toBeNull();
+      expect(config?.lockedBehavior.allowStarsUnlock).toBe(false);
       expect(canAccessContent(freeUser, 'synastry', 'full')).toBe(false);
       expect(canAccessContent(premiumUser, 'synastry', 'full')).toBe(true);
     });
 
-    it('allows forecast daypart via legacy forecast/full lumi unlock mapped as stars', () => {
-      const unlockUser = userWithUnlock('forecast', 'full', 'lumi', '2026-05-29');
-      expect(canAccessContent(unlockUser, 'forecast', 'morning', '2026-05-29')).toBe(true);
-    });
-
-    it('allows forecast daypart via stars unlock', () => {
+    it('allows forecast daypart via legacy forecast/full stars unlock rows', () => {
       const unlockUser = userWithUnlock('forecast', 'full', 'stars', '2026-05-29');
-      expect(canAccessContent(unlockUser, 'forecast', 'evening', '2026-05-29')).toBe(true);
+      expect(canAccessContent(unlockUser, 'forecast', 'morning', '2026-05-29')).toBe(true);
     });
   });
 
   describe('question tiers', () => {
-    it('requires stars payment/unlock for question/one_off without unlock', () => {
+    it('requires premium for question/one_off without legacy unlock', () => {
       const config = getContentAccessConfig('question', 'one_off');
-      expect(config?.defaultAccessTier).toBe('stars');
-      expect(config?.unlockOptions).toEqual(['stars']);
-      expect(config?.starsCost).toBe(ASK_LUMIA_STARS_COST);
+      expect(config?.defaultAccessTier).toBe('premium');
+      expect(config?.unlockOptions).toEqual(['premium']);
+      expect(config?.starsCost).toBeNull();
+      expect(config?.lockedBehavior.allowStarsUnlock).toBe(false);
       expect(canAccessContent(freeUser, 'question', 'one_off')).toBe(false);
-      expect(canAccessContent(premiumUser, 'question', 'one_off')).toBe(false);
-    });
-
-    it('requires premium for question/full', () => {
       expect(canAccessContent(premiumUser, 'question', 'full')).toBe(true);
       expect(canAccessContent(freeUser, 'question', 'full')).toBe(false);
     });
@@ -118,7 +112,7 @@ describe('contentAccessMatrix', () => {
       expect(canAccessContent(premiumUser, 'forecast', 'morning')).toBe(true);
     });
 
-    it('returns true for stars variant when an active unlock exists', () => {
+    it('returns true for legacy one_off unlock rows', () => {
       const unlockUser = userWithUnlock('question', 'one_off', 'stars', 'question-hash');
       expect(canAccessContent(unlockUser, 'question', 'one_off', 'question-hash')).toBe(true);
     });
@@ -139,11 +133,6 @@ describe('contentAccessMatrix', () => {
       expect(shouldPersistContent('forecast', 'morning')).toBe(true);
       expect(shouldPersistContent('question', 'one_off')).toBe(true);
     });
-
-    it('uses expected stars costs from legacy pricing constants', () => {
-      expect(getContentAccessConfig('forecast', 'morning')?.starsCost).toBe(FORECAST_FULL_DAY_STARS_COST);
-      expect(getContentAccessConfig('question', 'one_off')?.starsCost).toBe(ASK_LUMIA_STARS_COST);
-    });
   });
 
   describe('locked behavior', () => {
@@ -152,10 +141,11 @@ describe('contentAccessMatrix', () => {
       expect(behavior.showLockedCard).toBe(false);
     });
 
-    it('returns matrix locked behavior when access is denied', () => {
+    it('returns premium-only locked behavior when access is denied', () => {
       const behavior = getLockedBehavior(freeUser, 'forecast', 'morning');
       expect(behavior.showLockedCard).toBe(true);
-      expect(behavior.allowStarsUnlock).toBe(true);
+      expect(behavior.allowStarsUnlock).toBe(false);
+      expect(behavior.requirePremium).toBe(true);
     });
   });
 

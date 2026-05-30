@@ -453,15 +453,15 @@ describe('Ask Lumia Stars one-off flow', () => {
     });
   });
 
-  describe('OracleChat stars flow wiring', () => {
-    it('handles STARS_PAYMENT_REQUIRED through payment and retry helpers', () => {
+  describe('OracleChat premium-only wiring', () => {
+    it('routes post-free users to Premium instead of Stars one-off', () => {
       const fs = require('fs');
       const path = require('path');
       const source = fs.readFileSync(path.join(__dirname, '../views/OracleChat.tsx'), 'utf8');
-      expect(source).toContain('requestStarsOneOffPayment');
-      expect(source).toContain('askLumiaWithStarsPayment');
-      expect(source).toContain('verifyingPayment');
-      expect(source).toContain('STARS_PAYMENT_REQUIRED');
+      expect(source).not.toContain('requestStarsOneOffPayment');
+      expect(source).not.toContain('askLumiaWithStarsPayment');
+      expect(source).toContain('state_need_premium');
+      expect(source).toContain('onPremiumRequired');
     });
   });
 });

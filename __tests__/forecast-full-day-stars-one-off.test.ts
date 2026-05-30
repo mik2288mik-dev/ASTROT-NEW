@@ -432,13 +432,13 @@ describe('forecast full day Stars one-off flow', () => {
   });
 
   describe('Horoscope wiring', () => {
-    it('uses forecast invoice flow and pending retry helper', () => {
+    it('uses Premium-only gating for locked forecast layers', () => {
       const fs = require('fs');
       const path = require('path');
       const source = fs.readFileSync(path.join(__dirname, '../views/Horoscope.tsx'), 'utf8');
-      expect(source).toContain('forecast_full_day');
-      expect(source).toContain('getFullDaypartForecastWithStarsPayment');
-      expect(source).toContain('verifyingPayment');
+      expect(source).not.toContain('requestStarsOneOffPayment');
+      expect(source).not.toContain('getFullDaypartForecastWithStarsPayment');
+      expect(source).toContain('Открыть в Premium');
     });
   });
 

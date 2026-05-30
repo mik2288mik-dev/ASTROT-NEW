@@ -56,11 +56,8 @@ const PAYWALL_DISMISS_SESSION_KEY = 'lumia_natal_story_paywall_dismissed_session
 
 function formatStoryError(error: unknown): string {
   const e = error as HumanReadingError;
-  if (e?.code === 'STARS_PAYMENT_REQUIRED') {
-    return `Разовое открытие доступно за ${e.starsCost ?? HUMAN_PAID_LUMI_COST} Stars через Telegram payment.`;
-  }
-  if (e?.code === 'PREMIUM_REQUIRED' || e?.code === 'HUMAN_SECTION_LOCKED') {
-    return 'Этот слой можно открыть через Premium или разово за Stars.';
+  if (e?.code === 'PREMIUM_REQUIRED' || e?.code === 'HUMAN_SECTION_LOCKED' || e?.code === 'STARS_PAYMENT_REQUIRED') {
+    return 'Этот слой доступен в Premium.';
   }
   return e?.message || 'Не удалось открыть карточку. Попробуйте ещё раз.';
 }
@@ -730,14 +727,13 @@ export const NatalStoryDeck = memo<NatalStoryDeckProps>(
     );
 
     const loadPaid = useCallback(
-      async (key: HumanPaidSectionKey, allowLumiSpend: boolean) => {
+      async (key: HumanPaidSectionKey) => {
         if (!userId || paidLoading) return null;
         setSectionError(null);
         setPaidLoading(key);
         try {
           const result = await loadHumanPaidSection(userId, key, chartId, {
-            accessTier: allowLumiSpend ? 'stars' : 'premium',
-            allowLumiSpend,
+            accessTier: 'premium',
           });
           setPaidSections((current) => ({ ...current, [key]: result.content }));
           return result.content;
@@ -748,7 +744,7 @@ export const NatalStoryDeck = memo<NatalStoryDeckProps>(
           setPaidLoading(null);
         }
       },
-      [chartId, onUpdateProfile, paidLoading, profile, userId]
+      [chartId, paidLoading, userId]
     );
 
     const openDepth = useCallback(
@@ -767,7 +763,7 @@ export const NatalStoryDeck = memo<NatalStoryDeckProps>(
         });
         const paidKey = getPaidKey(card);
         if (paidKey && isPremium && !paidSections[paidKey]) {
-          void loadPaid(paidKey, false);
+          void loadPaid(paidKey);
         }
       },
       [isPremium, loadPaid, paidSections]
@@ -1200,16 +1196,6 @@ export const NatalStoryDeck = memo<NatalStoryDeckProps>(
               void requestPremium('natal_story_unlock', {
                 card_id: card?.id,
                 section_key: unlockTarget,
-              });
-            }}
-            onStarsOpen={() => {
-              const target = unlockTarget;
-              void loadPaid(target, true).then((content) => {
-                if (content) {
-                  setUnlockTarget(null);
-                  const card = cards.find((item) => getPaidKey(item) === target);
-                  if (card) setSheetCardId(card.id);
-                }
               });
             }}
           />

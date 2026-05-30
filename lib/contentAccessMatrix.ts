@@ -1,10 +1,5 @@
 import type { ContentAccessTier, ContentSurface, ContentVariant } from '../types';
 import { isStarsLikeAccessTier, normalizeStoredAccessTier } from './contentAccessTier';
-import {
-  ASK_LUMIA_STARS_COST,
-  FORECAST_FULL_DAY_STARS_COST,
-  SYNASTRY_EXTENDED_STARS_COST,
-} from './starsPricing';
 
 export type LockedBehavior = {
   showPreview: boolean;
@@ -147,14 +142,14 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
     shouldPersistCalculation: false,
     shouldPersistInterpretation: true,
     defaultAccessTier: 'premium',
-    unlockOptions: ['premium', 'stars'],
-    starsCost: FORECAST_FULL_DAY_STARS_COST,
+    unlockOptions: ['premium'],
+    starsCost: null,
     lockedBehavior: {
       showPreview: true,
       showTeaser: true,
       showLockedCard: true,
       requirePremium: true,
-      allowStarsUnlock: true,
+      allowStarsUnlock: false,
     },
   },
   {
@@ -166,14 +161,14 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
     shouldPersistCalculation: false,
     shouldPersistInterpretation: true,
     defaultAccessTier: 'premium',
-    unlockOptions: ['premium', 'stars'],
-    starsCost: FORECAST_FULL_DAY_STARS_COST,
+    unlockOptions: ['premium'],
+    starsCost: null,
     lockedBehavior: {
       showPreview: true,
       showTeaser: true,
       showLockedCard: true,
       requirePremium: true,
-      allowStarsUnlock: true,
+      allowStarsUnlock: false,
     },
   },
   {
@@ -185,14 +180,14 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
     shouldPersistCalculation: false,
     shouldPersistInterpretation: true,
     defaultAccessTier: 'premium',
-    unlockOptions: ['premium', 'stars'],
-    starsCost: FORECAST_FULL_DAY_STARS_COST,
+    unlockOptions: ['premium'],
+    starsCost: null,
     lockedBehavior: {
       showPreview: true,
       showTeaser: true,
       showLockedCard: true,
       requirePremium: true,
-      allowStarsUnlock: true,
+      allowStarsUnlock: false,
     },
   },
   {
@@ -261,14 +256,14 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
     shouldPersistCalculation: true,
     shouldPersistInterpretation: true,
     defaultAccessTier: 'premium',
-    unlockOptions: ['premium', 'stars'],
-    starsCost: SYNASTRY_EXTENDED_STARS_COST,
+    unlockOptions: ['premium'],
+    starsCost: null,
     lockedBehavior: {
       showPreview: true,
       showTeaser: true,
       showLockedCard: true,
       requirePremium: true,
-      allowStarsUnlock: true,
+      allowStarsUnlock: false,
     },
   },
   {
@@ -293,20 +288,20 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
   {
     surface: 'question',
     variant: 'one_off',
-    label: 'Ask Lumia one-off',
-    description: 'Разовый глубокий ответ за Telegram Stars.',
+    label: 'Ask Lumia legacy unlock',
+    description: 'Legacy one-off unlock rows only. Not part of current Premium-only UI.',
     calculationRequired: true,
     shouldPersistCalculation: false,
     shouldPersistInterpretation: true,
-    defaultAccessTier: 'stars',
-    unlockOptions: ['stars'],
-    starsCost: ASK_LUMIA_STARS_COST,
+    defaultAccessTier: 'premium',
+    unlockOptions: ['premium'],
+    starsCost: null,
     lockedBehavior: {
       showPreview: true,
       showTeaser: false,
       showLockedCard: true,
-      requirePremium: false,
-      allowStarsUnlock: true,
+      requirePremium: true,
+      allowStarsUnlock: false,
     },
   },
   {

@@ -15,13 +15,14 @@ describe('stars pricing shared constants', () => {
     expect(HUMAN_DAILY_STARS_COST).toBe(35);
   });
 
-  it('Horoscope human layers use HUMAN_DAILY_STARS_COST instead of hardcoded 35', () => {
+  it('Horoscope no longer exposes one-off Stars pricing in UI', () => {
     const horoscopeSource = require('fs').readFileSync(
       require('path').join(__dirname, '..', 'views', 'Horoscope.tsx'),
       'utf8'
     );
-    expect(horoscopeSource).toContain('HUMAN_DAILY_STARS_COST');
-    expect(horoscopeSource).not.toMatch(/love:\s*35/);
-    expect(horoscopeSource).not.toMatch(/work_money:\s*35/);
+    expect(horoscopeSource).not.toContain('HUMAN_DAILY_STARS_COST');
+    expect(horoscopeSource).not.toContain('FORECAST_FULL_DAY_STARS_COST');
+    expect(horoscopeSource).not.toContain('requestStarsOneOffPayment');
+    expect(horoscopeSource).toContain('Открыть в Premium');
   });
 });

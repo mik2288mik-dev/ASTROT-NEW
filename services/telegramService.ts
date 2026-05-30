@@ -20,8 +20,8 @@ export type StarsOneOffPaymentResult = {
 };
 
 /**
- * Request Stars one-off payment via Telegram invoice.
- * Returns paymentNonce for server-side webhook confirmation — client `paid` status is not final unlock.
+ * @deprecated Deprecated one-off Stars unlock helper. Current UI uses Premium-only gating.
+ * Kept for legacy server tests and webhook compatibility.
  */
 export async function requestStarsOneOffPayment(
   input: StarsOneOffPaymentInput

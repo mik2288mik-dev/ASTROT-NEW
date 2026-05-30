@@ -38,7 +38,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(410).json({
       error: 'Lumi packs deprecated',
       code: 'LUMI_PACKS_DEPRECATED',
-      message: 'Lumi packs are no longer available. Use Telegram Stars one-off unlocks or Premium.',
+      message: 'Lumi packs are no longer available. Use Premium instead.',
     });
   }
 
