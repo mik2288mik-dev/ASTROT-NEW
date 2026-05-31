@@ -86,8 +86,7 @@ export type CachedReadingOptions = {
     | 'weekly'
     | 'monthly'
     | 'brief'
-    | 'full'
-    | 'one_off';
+    | 'full';
   cacheKey: string;
   inputHash?: string;
   promptVersion: string;

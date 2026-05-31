@@ -1,4 +1,5 @@
 import { UserProfile } from '../types';
+import { PREMIUM_WEEK_DAYS, PREMIUM_WEEK_STARS } from '../lib/premiumPricing';
 
 const API_BASE = typeof window !== 'undefined' ? '' : process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -16,9 +17,9 @@ export const requestStarsPayment = async (profile: UserProfile): Promise<boolean
 
   const tg = (window as any).Telegram?.WebApp;
   const TITLE_RU = 'Премиум на Неделю';
-  const DESC_RU = 'Полный доступ на 7 дней за 250 Stars';
+  const DESC_RU = `Полный доступ на ${PREMIUM_WEEK_DAYS} дней за ${PREMIUM_WEEK_STARS} Stars`;
   const TITLE_EN = 'Weekly Premium';
-  const DESC_EN = 'Full access for 7 days for 250 Stars';
+  const DESC_EN = `Full access for ${PREMIUM_WEEK_DAYS} days for ${PREMIUM_WEEK_STARS} Stars`;
 
   try {
     const res = await fetch(`${API_BASE}/api/telegram/create-invoice`, {
@@ -90,7 +91,7 @@ async function simPaymentFlow(
         title: profile.language === 'ru' ? titleRu : titleEn,
         message: profile.language === 'ru' ? descRu : descEn,
         buttons: [
-          { id: 'pay', type: 'default', text: 'Pay 250 stars' },
+          { id: 'pay', type: 'default', text: `Pay ${PREMIUM_WEEK_STARS} stars` },
           { id: 'cancel', type: 'destructive', text: 'Cancel' },
         ],
       },

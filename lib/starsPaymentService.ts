@@ -1,5 +1,5 @@
 import { db } from './db';
-import { parseInvoicePayload, type ParsedStarsInvoicePayload } from './starsInvoiceCatalog';
+import { parseInvoicePayload } from './starsInvoiceCatalog';
 import { activatePremium } from '../services/premiumService';
 
 const log = {
@@ -62,13 +62,4 @@ export async function processTelegramSuccessfulPayment(payment: TelegramSuccessf
   );
   log.info('Premium payment processed', { userId: parsed.userId, activated: result.activated });
   return { ok: true as const, type: parsed.type, activated: result.activated };
-}
-
-/** @deprecated Per-content unlock payments removed. Premium only. */
-export async function recordContentUnlockPaymentFromWebhook(
-  _payment: TelegramSuccessfulPayment,
-  parsed: ParsedStarsInvoicePayload
-) {
-  log.warn('Rejected legacy content unlock payment', { type: parsed.type, userId: parsed.userId });
-  throw new Error('CONTENT_UNLOCK_PAYMENTS_REMOVED');
 }

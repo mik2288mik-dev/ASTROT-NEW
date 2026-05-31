@@ -114,7 +114,7 @@ type DbContentVariant =
   | 'monthly'
   | 'brief'
   | 'full'
-  | 'one_off';
+  | 'one_off'; // legacy DB rows only; not in product ContentVariant
 type DbContentModelTier = 'base' | 'premium';
 type DbContentUnlockType = 'free' | 'premium' | 'stars' | 'lumi';
 type DbHoroscopeReactionKey = 'spot_on' | 'funny' | 'gentle' | 'not_mine';

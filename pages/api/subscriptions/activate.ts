@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { activatePremium } from '../../../services/premiumService';
 import { db } from '../../../lib/db';
+import { PREMIUM_WEEK_STARS } from '../../../lib/premiumPricing';
 
 const log = {
   info: (msg: string, data?: any) => console.log(`[API/subscriptions/activate] ${msg}`, data || ''),
@@ -53,7 +54,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const chargeId = `sim_${type}_${userId}_${Date.now()}`;
 
   try {
-    const starsAmount = 250;
+    const starsAmount = PREMIUM_WEEK_STARS;
     const result = await activatePremium(userId, chargeId, starsAmount);
 
     const user = await db.users.get(userId);

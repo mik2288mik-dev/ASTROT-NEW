@@ -836,8 +836,7 @@ export type ContentVariant =
   | 'weekly'
   | 'monthly'
   | 'brief'
-  | 'full'
-  | 'one_off';
+  | 'full';
 export type ContentModelTier = 'base' | 'premium';
 export type ContentUnlockType = 'free' | 'premium';
 export type PremiumTierName = 'lumia_premium';
@@ -911,7 +910,6 @@ export interface ContentUnlockRequest {
   contentSurface: ContentSurface;
   contentVariant: ContentVariant;
   cacheKey?: string;
-  starsAmount?: number;
   expiresAt?: string | null;
 }
 

@@ -3,17 +3,16 @@
  *
  * Handles:
  * - Idempotent premium activation from Telegram Stars payment
- * - premium_until (7 days for 250 Stars)
+ * - premium_until (${PREMIUM_WEEK_DAYS} days for Premium week via Telegram Stars)
  */
 
 import { db } from '../lib/db';
+import { PREMIUM_WEEK_DAYS } from '../lib/premiumPricing';
 
 const log = {
   info: (msg: string, data?: any) => console.log(`[PremiumService] ${msg}`, data || ''),
   error: (msg: string, err?: any) => console.error(`[PremiumService] ERROR: ${msg}`, err || ''),
 };
-
-const PREMIUM_DAYS = 7;
 
 export interface ActivatePremiumResult {
   activated: boolean;
@@ -44,7 +43,7 @@ export async function activatePremium(
   const now = new Date();
   const existingUntil = user.premium_until ? new Date(user.premium_until) : null;
   const baseDate = existingUntil && existingUntil > now ? existingUntil : now;
-  const premiumUntil = new Date(baseDate.getTime() + PREMIUM_DAYS * 24 * 60 * 60 * 1000);
+  const premiumUntil = new Date(baseDate.getTime() + PREMIUM_WEEK_DAYS * 24 * 60 * 60 * 1000);
 
   const inserted = await db.star_payments.recordFromWebhook({
     telegramPaymentChargeId,

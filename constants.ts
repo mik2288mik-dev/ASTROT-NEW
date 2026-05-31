@@ -1,7 +1,13 @@
 
 import { Language } from "./types";
+import { PREMIUM_WEEK_STARS } from "./lib/premiumPricing";
 
 export const APP_NAME = "Lumia";
+
+const PREMIUM_WEEK_CTA_RU = `Открыть 1 неделю • ${PREMIUM_WEEK_STARS} Stars`;
+const PREMIUM_PAYWALL_CTA_RU = `Открыть Lumia Premium • ${PREMIUM_WEEK_STARS} Stars`;
+const PREMIUM_WEEK_CTA_EN = `Unlock 1 Week • ${PREMIUM_WEEK_STARS} Stars`;
+const PREMIUM_PAYWALL_CTA_EN = `Unlock Lumia Premium • ${PREMIUM_WEEK_STARS} Stars`;
 
 /**
  * Lumia Oracle Chat — системная инструкция для чата с Астрой.
@@ -64,7 +70,7 @@ export const TRANSLATIONS = {
       feature_deep_desc: "Отношения, решения и повторяющиеся сценарии читаются как цельная картина, а не отдельные куски.",
       feature_passport: "Полный доступ к карте",
       feature_passport_desc: "Не только база, а более точный подробный разбор, к которому можно возвращаться.",
-      cta: "Открыть 1 неделю • 250 Stars"
+      cta: PREMIUM_WEEK_CTA_RU
     },
     paywall: {
       title: "Lumia Premium",
@@ -73,7 +79,7 @@ export const TRANSLATIONS = {
       feature2: "Быстрый доступ к подробным разборам по карте",
       feature3: "Полная совместимость без лишних переключений",
       feature4: "Прогнозы и вопросы в одном Premium-доступе",
-      cta: "Открыть Lumia Premium • 250 Stars",
+      cta: PREMIUM_PAYWALL_CTA_RU,
       footer: "7 дней быстрого доступа к подробным ответам Lumia"
     },
     dashboard: {
@@ -517,7 +523,7 @@ export const TRANSLATIONS = {
       feature_deep_desc: "Love, career, challenges, and life themes as clear interpretation paths.",
       feature_passport: "Full natal chart breakdown",
       feature_passport_desc: "More detail on core patterns, planetary dynamics, and inner tensions.",
-      cta: "Unlock 1 Week • 250 Stars"
+      cta: PREMIUM_WEEK_CTA_EN
     },
     paywall: {
       title: "Lumia Premium",
@@ -526,7 +532,7 @@ export const TRANSLATIONS = {
       feature2: "A fuller breakdown built around your chart’s main patterns",
       feature3: "A richer compatibility reading in Synastry",
       feature4: "Oracle and forecasts as a personal continuation of your chart",
-      cta: "Unlock Lumia Premium • 250 Stars",
+      cta: PREMIUM_PAYWALL_CTA_EN,
       footer: "7 days of full Lumia depth"
     },
     dashboard: {
