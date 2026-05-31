@@ -141,4 +141,89 @@ describe('contentAccessMatrix', () => {
       expect(getContentAccessConfig('question', 'brief')).not.toBeNull();
     });
   });
+
+  describe('additive premium model', () => {
+    const FREE_BASELINE: Array<[UserState['unlockedContent'][number]['surface'], UserState['unlockedContent'][number]['variant']]> = [
+      ['natal', 'anchor'],
+      ['forecast', 'daily'],
+      ['synastry', 'brief'],
+      ['question', 'brief'],
+    ];
+
+    const PREMIUM_ONLY: Array<[UserState['unlockedContent'][number]['surface'], UserState['unlockedContent'][number]['variant']]> = [
+      ['natal', 'full'],
+      ['natal', 'planet_insight'],
+      ['natal', 'living'],
+      ['forecast', 'morning'],
+      ['forecast', 'day'],
+      ['forecast', 'evening'],
+      ['forecast', 'weekly'],
+      ['forecast', 'monthly'],
+      ['synastry', 'full'],
+      ['question', 'full'],
+    ];
+
+    it('free baseline layers stay free in the matrix config', () => {
+      for (const [surface, variant] of FREE_BASELINE) {
+        const config = getContentAccessConfig(surface, variant);
+        expect(config).not.toBeNull();
+        expect(config?.defaultAccessTier).toBe('free');
+        expect(config?.unlockOptions).toEqual(['free']);
+        expect(config?.lockedBehavior.requirePremium).toBe(false);
+      }
+    });
+
+    it('premium layers require Premium in the matrix config', () => {
+      for (const [surface, variant] of PREMIUM_ONLY) {
+        const config = getContentAccessConfig(surface, variant);
+        expect(config).not.toBeNull();
+        expect(config?.defaultAccessTier).toBe('premium');
+        expect(config?.unlockOptions).toEqual(['premium']);
+        expect(config?.lockedBehavior.requirePremium).toBe(true);
+      }
+    });
+
+    it('premium users keep access to every free layer', () => {
+      expect(canAccessContent(premiumUser, 'natal', 'anchor')).toBe(true);
+      expect(canAccessContent(premiumUser, 'forecast', 'daily')).toBe(true);
+      expect(canAccessContent(premiumUser, 'synastry', 'brief')).toBe(true);
+      expect(canAccessContent(premiumUser, 'question', 'brief')).toBe(true);
+    });
+
+    it('free users get only the free baseline layers', () => {
+      expect(canAccessContent(freeUser, 'natal', 'anchor')).toBe(true);
+      expect(canAccessContent(freeUser, 'forecast', 'daily')).toBe(true);
+      expect(canAccessContent(freeUser, 'synastry', 'brief')).toBe(true);
+      expect(canAccessContent(freeUser, 'question', 'brief')).toBe(true);
+
+      expect(canAccessContent(freeUser, 'natal', 'full')).toBe(false);
+      expect(canAccessContent(freeUser, 'natal', 'planet_insight')).toBe(false);
+      expect(canAccessContent(freeUser, 'natal', 'living')).toBe(false);
+      expect(canAccessContent(freeUser, 'forecast', 'morning')).toBe(false);
+      expect(canAccessContent(freeUser, 'forecast', 'day')).toBe(false);
+      expect(canAccessContent(freeUser, 'forecast', 'evening')).toBe(false);
+      expect(canAccessContent(freeUser, 'forecast', 'weekly')).toBe(false);
+      expect(canAccessContent(freeUser, 'forecast', 'monthly')).toBe(false);
+      expect(canAccessContent(freeUser, 'synastry', 'full')).toBe(false);
+      expect(canAccessContent(freeUser, 'question', 'full')).toBe(false);
+    });
+
+    it('premium users get baseline plus all premium layers', () => {
+      expect(canAccessContent(premiumUser, 'natal', 'anchor')).toBe(true);
+      expect(canAccessContent(premiumUser, 'forecast', 'daily')).toBe(true);
+      expect(canAccessContent(premiumUser, 'synastry', 'brief')).toBe(true);
+      expect(canAccessContent(premiumUser, 'question', 'brief')).toBe(true);
+
+      expect(canAccessContent(premiumUser, 'natal', 'full')).toBe(true);
+      expect(canAccessContent(premiumUser, 'natal', 'planet_insight')).toBe(true);
+      expect(canAccessContent(premiumUser, 'natal', 'living')).toBe(true);
+      expect(canAccessContent(premiumUser, 'forecast', 'morning')).toBe(true);
+      expect(canAccessContent(premiumUser, 'forecast', 'day')).toBe(true);
+      expect(canAccessContent(premiumUser, 'forecast', 'evening')).toBe(true);
+      expect(canAccessContent(premiumUser, 'forecast', 'weekly')).toBe(true);
+      expect(canAccessContent(premiumUser, 'forecast', 'monthly')).toBe(true);
+      expect(canAccessContent(premiumUser, 'synastry', 'full')).toBe(true);
+      expect(canAccessContent(premiumUser, 'question', 'full')).toBe(true);
+    });
+  });
 });
