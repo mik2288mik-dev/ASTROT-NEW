@@ -10,8 +10,6 @@ const EXCLUDED_PATH_SNIPPETS = [
   'views/AdminPanel.tsx',
   'pages/api/admin/',
   'pages/api/astrology/',
-  'lib/adminNotificationSeedCatalog.ts',
-  'lib/notificationSlotCatalog.ts',
   'lib/migrations.ts',
   '__tests__/',
   'docs/',

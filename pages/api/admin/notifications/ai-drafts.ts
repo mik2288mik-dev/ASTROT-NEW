@@ -66,9 +66,9 @@ function scenarioDescription(scenario: DraftScenario) {
     case 'evening':
       return 'Evening reminder to reflect on the day and look at the closing insight.';
     case 'daily_lumi':
-      return 'Reminder to collect daily Lumi in the app.';
+      return 'Reminder to return to Lumia and check today\'s focus or daily cue.';
     case 'upsell':
-      return 'Upsell for the full and more precise day layer. Mention both Premium and one-off Lumi unlock softly.';
+      return 'Upsell for the full and more precise day layer. Promote Premium only.';
     case 'promo':
       return 'Promo offer for premium content such as compatibility, deep dives, or other paid layers.';
     case 'reactivation':
@@ -155,22 +155,22 @@ function buildFallbackDrafts(scenario: DraftScenario, brief: string): DraftVaria
     case 'daily_lumi':
       return [
         {
-          label: 'Collect',
-          title: 'Забери Lumi',
-          bodyRu: appendBrief('Твои ежедневные Lumi уже ждут. Зайди в приложение и забери их, пока день идёт в твою пользу.', brief, 'ru'),
-          bodyEn: appendBrief('Your daily Lumi are already waiting. Open the app and collect them while the day is still on your side.', brief, 'en'),
+          label: 'Fresh focus',
+          title: 'Свежий ориентир',
+          bodyRu: appendBrief('Зайди в Lumia и посмотри свежий ориентир на сегодня.', brief, 'ru'),
+          bodyEn: appendBrief('Open Lumia and check today\'s fresh focus.', brief, 'en'),
         },
         {
-          label: 'Reward loop',
-          title: 'Твой бонус внутри',
-          bodyRu: appendBrief('Не пропускай свой ежедневный Lumi-сбор. Открой Lumia и возьми то, что уже доступно сегодня.', brief, 'ru'),
-          bodyEn: appendBrief('Do not miss your daily Lumi reward. Open Lumia and claim what is already available today.', brief, 'en'),
+          label: 'Daily cue',
+          title: 'Твой день уже внутри',
+          bodyRu: appendBrief('Твой дневной фокус уже готов. Открой Lumia на минуту.', brief, 'ru'),
+          bodyEn: appendBrief('Your daily cue is ready. Take a minute in Lumia.', brief, 'en'),
         },
         {
-          label: 'Quick reward',
-          title: 'Собери награду',
-          bodyRu: appendBrief('Одна быстрая проверка в Lumia и твои ежедневные Lumi у тебя. Зайди и забери.', brief, 'ru'),
-          bodyEn: appendBrief('One quick check in Lumia and your daily Lumi are yours. Open the app and collect them.', brief, 'en'),
+          label: 'Come back',
+          title: 'Вернись в Lumia',
+          bodyRu: appendBrief('Вернись в Lumia: день можно увидеть точнее.', brief, 'ru'),
+          bodyEn: appendBrief('Come back to Lumia and see the day more clearly.', brief, 'en'),
         },
       ];
     case 'upsell':
@@ -178,20 +178,20 @@ function buildFallbackDrafts(scenario: DraftScenario, brief: string): DraftVaria
         {
           label: 'Full day',
           title: 'Открой полный день',
-          bodyRu: appendBrief('Сегодняшний день можно прочитать подробнее. В Lumia открыт путь через Premium или разовый unlock за Stars.', brief, 'ru'),
-          bodyEn: appendBrief('Today can be read more deeply. Lumia opens that full layer through Premium or a one-off Lumi unlock.', brief, 'en'),
+          bodyRu: appendBrief('Сегодняшний день можно прочитать подробнее. Полный разбор доступен в Lumia Premium.', brief, 'ru'),
+          bodyEn: appendBrief('Today can be read more deeply. The full day reading is available in Lumia Premium.', brief, 'en'),
         },
         {
           label: 'More precise',
           title: 'Больше, чем free',
-          bodyRu: appendBrief('Бесплатный слой уже открыт, но полный день даёт более точный разбор моментов и триггеров. Открой его удобным способом.', brief, 'ru'),
-          bodyEn: appendBrief('The free layer is already open, but the full day gives a more precise read on today’s moments and triggers. Open it in the way that fits you.', brief, 'en'),
+          bodyRu: appendBrief('Бесплатный слой уже открыт. Полная версия дня ждёт в Premium.', brief, 'ru'),
+          bodyEn: appendBrief('The free layer is already open. The full version is waiting in Premium.', brief, 'en'),
         },
         {
           label: 'Upgrade path',
           title: 'Полная точность дня',
-          bodyRu: appendBrief('Если нужен не общий фон, а полный и точный слой дня, зайди в Lumia и выбери Premium или unlock за Lumi.', brief, 'ru'),
-          bodyEn: appendBrief('If you need more than the general mood and want the full, precise day layer, open Lumia and choose Premium or a Lumi unlock.', brief, 'en'),
+          bodyRu: appendBrief('В Premium доступны утро, день, вечер и более точные подсказки.', brief, 'ru'),
+          bodyEn: appendBrief('Premium unlocks morning, day, evening, and more precise guidance.', brief, 'en'),
         },
       ];
     case 'promo':
@@ -199,8 +199,8 @@ function buildFallbackDrafts(scenario: DraftScenario, brief: string): DraftVaria
         {
           label: 'Offer',
           title: 'Разборы ждут',
-          bodyRu: appendBrief('В Lumia уже доступны более глубокие разборы, совместимость и точные личные слои. Зайди и выбери, что открыть следующим.', brief, 'ru'),
-          bodyEn: appendBrief('Deeper readings, compatibility, and precise personal layers are already waiting in Lumia. Open the app and choose what to unlock next.', brief, 'en'),
+          bodyRu: appendBrief('Premium открывает прогнозы, натальную карту, Ask Lumia и синастрию. Загляни в Lumia.', brief, 'ru'),
+          bodyEn: appendBrief('Premium gives you forecasts, natal insights, Ask Lumia, and synastry in one place. Open Lumia.', brief, 'en'),
         },
         {
           label: 'Paid depth',
@@ -308,7 +308,7 @@ Brand rules:
 - no emojis
 - no all caps
 - no fake urgency
-- do not mention exact Lumi prices unless the admin brief explicitly asks for a price
+- do not mention Stars price unless the admin brief explicitly asks for Premium price
 
 Task:
 - generate exactly 3 distinct notification variants
@@ -317,8 +317,8 @@ Task:
 - title: short, premium, punchy, ideally 2-5 words
 - bodyRu/bodyEn: concise push copy, ideally 1-2 short sentences, not long paragraphs
 - make the three variants meaningfully different in angle
-- if scenario is upsell, softly mention both Premium and one-off Lumi unlock
-- if scenario is daily_lumi, keep the reward feeling but do not sound childish
+- if scenario is upsell, promote Premium only
+- if scenario is daily_lumi, encourage a warm return to the app; do not mention Lumi currency or rewards
 
 Context:
 - mode: ${options.mode}
