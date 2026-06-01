@@ -91,6 +91,21 @@ async function fetchContentApi<T>(
     return null;
   }
 
+  if (response.status === 202) {
+    let payload: { message?: string; code?: string; retryAfterMs?: number } = {};
+    try {
+      payload = await response.json();
+    } catch {
+      payload = {};
+    }
+    throw buildApiError(
+      payload.message || 'Generation in progress',
+      202,
+      payload.code || 'GENERATION_IN_PROGRESS',
+      { retryAfterMs: payload.retryAfterMs }
+    );
+  }
+
   if (!response.ok) {
     let errorMessage = `Request failed: ${response.status} ${response.statusText}`;
     let errorCode: string | undefined;
@@ -179,7 +194,7 @@ export const getDailyForecastLayer = async (
 
   const reading = data?.interpretation?.content;
   if (!reading) {
-    throw buildApiError('Daily forecast content is missing');
+    throw buildApiError('Daily forecast content is missing', 502, 'EMPTY_INTERPRETATION');
   }
 
   return reading;
@@ -684,7 +699,7 @@ export const getFullDaypartForecast = async (
 
   const reading = data?.interpretation?.content;
   if (!reading) {
-    throw buildApiError(`Full ${slot} forecast is missing`);
+    throw buildApiError(`Full ${slot} forecast is missing`, 502, 'EMPTY_INTERPRETATION');
   }
 
   return { reading };

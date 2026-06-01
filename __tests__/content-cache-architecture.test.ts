@@ -115,8 +115,8 @@ describe('content cache architecture', () => {
   });
 
   describe('premium prewarm must be additive and idempotent', () => {
-    it('documents prewarm as not yet implemented', () => {
-      expect(PREMIUM_CONTENT_PREWARM_STATUS).toBe('not_implemented');
+    it('documents prewarm as implemented', () => {
+      expect(PREMIUM_CONTENT_PREWARM_STATUS).toBe('implemented');
       const doc = fs.readFileSync(path.join(ROOT, 'docs/CONTENT_CACHE_AND_PREWARM.md'), 'utf8');
       expect(doc).toContain('idempotent');
       expect(doc).toContain('Premium prewarm');

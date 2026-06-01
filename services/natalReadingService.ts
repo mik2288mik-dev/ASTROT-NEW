@@ -268,13 +268,30 @@ async function postHuman<T>(
     body: JSON.stringify(body),
   });
 
+  if (response.status === 202) {
+    const payload = await response.json().catch(() => ({}));
+    const err = await readHumanError(response, payload.message || 'Generation in progress');
+    err.code = payload.code || 'GENERATION_IN_PROGRESS';
+    err.status = 202;
+    (err as HumanReadingError & { retryAfterMs?: number }).retryAfterMs = Number(payload.retryAfterMs || 1500);
+    throw err;
+  }
+
   if (!response.ok) {
     throw await readHumanError(response, `Failed (${response.status})`);
   }
 
   const payload = await response.json();
+  const content = payload.interpretation?.content as T;
+  if (content == null || (typeof content === 'string' && !content.trim())) {
+    const err = new Error('Interpretation content is empty') as HumanReadingError;
+    err.code = 'EMPTY_INTERPRETATION';
+    err.status = 502;
+    throw err;
+  }
+
   return {
-    content: payload.interpretation?.content as T,
+    content,
     accessTier: payload.accessTier,
   };
 }

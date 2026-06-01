@@ -8,7 +8,9 @@ import {
     runReferralFromStartParam,
 } from './services/storageService';
 import { getOrCalculateChart } from './services/chartService';
-import { generateAllContent, updateContentIfNeeded } from './services/contentGenerationService';
+import { updateContentIfNeeded } from './services/contentGenerationService';
+import { prewarmUserContent } from './services/contentPrewarmService';
+import { getMoscowTodayKey } from './lib/date-utils';
 import { Onboarding } from './views/Onboarding';
 import { Dashboard } from './views/Dashboard';
 import { NatalChart } from './views/NatalChart';
@@ -115,6 +117,7 @@ const App: React.FC = () => {
     const [activeChartId, setActiveChartId] = useState<number | undefined>(undefined);
     const [loading, setLoading] = useState(true);
     const [loadingProgress, setLoadingProgress] = useState(0);
+    const [loadingMessage, setLoadingMessage] = useState<string | undefined>(undefined);
     const [view, setView] = useState<ViewState>('onboarding');
     const [showPremiumPreview, setShowPremiumPreview] = useState(false);
     const [synastryPrefill, setSynastryPrefill] = useState<SynastryPrefill>(null);
@@ -129,6 +132,7 @@ const App: React.FC = () => {
     const lastSessionPingRef = useRef(0);
     const contentSyncGenRef = useRef(0);
     const contentSyncedKeyRef = useRef<string | null>(null);
+    const prewarmCompletedKeyRef = useRef<string | null>(null);
     const primaryChartSessionRef = useRef<{
         key: string;
         data: NatalChartData | null;
@@ -437,6 +441,11 @@ const App: React.FC = () => {
                 });
 
                 // Шаг 3: Загружаем карту один раз на входе в приложение.
+                setLoadingMessage(
+                    updatedProfile.language === 'en'
+                        ? 'Building your chart and forecast'
+                        : 'Собираем карту и прогноз'
+                );
                 setLoadingProgress(50);
                 console.log('[App] Loading primary chart once...');
 
@@ -447,13 +456,37 @@ const App: React.FC = () => {
                         sunSign: chart.sun.sign,
                         moonSign: chart.moon.sign
                     });
-                    setLoadingProgress(78);
+                    setLoadingMessage(
+                        updatedProfile.language === 'en'
+                            ? 'Preparing your day'
+                            : 'Готовим твой день'
+                    );
+                    setLoadingProgress(62);
+                    const dateKey = getMoscowTodayKey();
+                    const prewarmKey = `${updatedProfile.id}:${dateKey}:${updatedProfile.isPremium ? 'premium' : 'free'}`;
+                    try {
+                        await prewarmUserContent({
+                            userId: String(updatedProfile.id),
+                            chartId: null,
+                            profile: updatedProfile,
+                            chartData: chart,
+                            isPremium: !!updatedProfile.isPremium,
+                            dateKey,
+                            blockingBudgetMs: 38_000,
+                            onProgress: (ratio) => setLoadingProgress(62 + Math.round(ratio * 24)),
+                        });
+                        prewarmCompletedKeyRef.current = prewarmKey;
+                    } catch (prewarmError: any) {
+                        console.warn('[App] Startup prewarm failed (non-blocking):', prewarmError?.message || prewarmError);
+                    }
+                    setLoadingProgress(88);
                     await prefetchBaseReportForChart(updatedProfile);
                 } else {
                     console.log('[App] Chart unavailable after startup load, going to dashboard');
                 }
 
                 setLoadingProgress(100);
+                setLoadingMessage(undefined);
                 setView(requestedViewRef.current || 'dashboard');
             } catch (error) {
                 console.error('[App] Error loading user data:', error);
@@ -474,7 +507,7 @@ const App: React.FC = () => {
         };
     }, [loadPrimaryChartOnce, prefetchBaseReportForChart, resolveAuthoritativeAdminStatus]);
 
-    // Гороскоп / интро / deep dive: добираем в фоне, если в БД пусто или обрыв после онбординга (бесплатно и премиум).
+    // Legacy profile.generatedContent sync — only if startup prewarm did not run for this session.
     useEffect(() => {
         if (!chartData || loading || view !== 'dashboard' || !profile?.id) {
             if (!chartData) contentSyncedKeyRef.current = null;
@@ -482,6 +515,8 @@ const App: React.FC = () => {
         }
 
         const syncKey = `${profile.id}:${chartData.sun?.sign ?? ''}-${chartData.moon?.sign ?? ''}`;
+        const prewarmKey = `${profile.id}:${getMoscowTodayKey()}:${profile.isPremium ? 'premium' : 'free'}`;
+        if (prewarmCompletedKeyRef.current === prewarmKey) return;
         if (contentSyncedKeyRef.current === syncKey) return;
         contentSyncedKeyRef.current = syncKey;
 
@@ -577,31 +612,31 @@ const App: React.FC = () => {
             clearHumanReadingSessionCache(fullProfile.id);
             setChartLoadState('ready');
             setChartData(generatedChart);
-            setLoadingProgress(78);
+            setLoadingMessage(
+                fullProfile.language === 'en' ? 'Preparing your day' : 'Готовим твой день'
+            );
+            setLoadingProgress(72);
+            const dateKey = getMoscowTodayKey();
+            try {
+                await prewarmUserContent({
+                    userId: String(fullProfile.id),
+                    chartId: null,
+                    profile: fullProfile,
+                    chartData: generatedChart,
+                    isPremium: !!fullProfile.isPremium,
+                    dateKey,
+                    blockingBudgetMs: 40_000,
+                    onProgress: (ratio) => setLoadingProgress(72 + Math.round(ratio * 20)),
+                });
+                prewarmCompletedKeyRef.current = `${fullProfile.id}:${dateKey}:${fullProfile.isPremium ? 'premium' : 'free'}`;
+            } catch (prewarmError: any) {
+                console.warn('[App] Onboarding prewarm failed (non-blocking):', prewarmError?.message || prewarmError);
+            }
+            setLoadingProgress(90);
             await prefetchBaseReportForChart(fullProfile);
             setLoadingProgress(100);
-
-            // Сразу уходим с лоадера: generateAllContent — несколько AI-вызовов и может «висеть» минутами.
+            setLoadingMessage(undefined);
             setTimeout(() => setView('dashboard'), 300);
-
-            void (async () => {
-                try {
-                    console.log('[App] Generating initial content (background, non-blocking)...');
-                    const allContent = await generateAllContent(fullProfile, generatedChart);
-                    setProfile((prev) => {
-                        if (!prev) return prev;
-                        const next = { ...prev, generatedContent: allContent };
-                        if (profileSaved && next.isSetup) {
-                            void saveProfile(next).catch((e) =>
-                                console.warn('[App] Failed to save generated content (non-critical):', e)
-                            );
-                        }
-                        return next;
-                    });
-                } catch (contentError) {
-                    console.error('[App] Background content generation failed (non-critical):', contentError);
-                }
-            })();
             
         } catch (error: any) {
             console.error('[App] Error during onboarding:', error);
@@ -886,7 +921,12 @@ const App: React.FC = () => {
     });
 
     if (loading) {
-        return <Loading message={getText(profile?.language || 'ru', 'loading')} progress={loadingProgress} />;
+        return (
+            <Loading
+                message={loadingMessage || getText(profile?.language || 'ru', 'loading')}
+                progress={loadingProgress}
+            />
+        );
     }
 
     if (!profile || view === 'onboarding') {

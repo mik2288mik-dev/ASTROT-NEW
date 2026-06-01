@@ -9,8 +9,14 @@ import type {
   NatalChartData,
   UserProfile,
 } from '../types';
-import { getCachedFullDaypartForecast, getFullDaypartForecast, loadDailySignHoroscope } from '../services/astrologyService';
+import {
+  getCachedDailyForecastLayer,
+  getCachedFullDaypartForecast,
+  getFullDaypartForecast,
+  loadDailySignHoroscope,
+} from '../services/astrologyService';
 import { getCachedHumanDailySection, loadHumanDailySection, type HumanReadingError } from '../services/natalReadingService';
+import { getRetryAfterMs, isGenerationInProgressError, waitMs } from '../lib/contentInterpretation';
 import { formatLumiaDate, getMoscowTodayKey } from '../lib/date-utils';
 import { getZodiacSign } from '../constants';
 import { cn } from '../lib/cn';
@@ -88,7 +94,7 @@ function getLayerConfigs(): LayerConfig[] {
     {
       id: 'chart',
       title: 'Личный прогноз',
-      subtitle: 'Персональный разбор дня по карте рождения и текущей дате.',
+      subtitle: 'Сегодня по твоей карте — что важно и куда лучше направить внимание.',
       tone: 'chart',
       icon: WalletCards,
     },
@@ -357,27 +363,56 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
       let cancelled = false;
 
       const hydrateCachedLayers = async () => {
-        if (!profileRef.current.isPremium) return;
+        const isPremium = profileRef.current.isPremium;
+        const tasks: Promise<void>[] = [];
 
-        const [cachedDay, cachedLove, cachedWork] = await Promise.allSettled([
-          getCachedFullDaypartForecast(userId, 'day', {
-            chartId: chartId ?? null,
-            accessTier: 'premium',
-            dateKey: today,
-          }),
-          getCachedHumanDailySection(userId, 'daily_love' as HumanDailySectionKey, chartId ?? undefined, today),
-          getCachedHumanDailySection(
-            userId,
-            'daily_work_business' as HumanDailySectionKey,
-            chartId ?? undefined,
-            today
-          ),
-        ]);
+        if (isPremium) {
+          tasks.push(
+            getCachedFullDaypartForecast(userId, 'day', {
+              chartId: chartId ?? null,
+              accessTier: 'premium',
+              dateKey: today,
+            }).then((reading) => {
+              if (!cancelled && reading) setPersonalDay(reading);
+            })
+          );
+          tasks.push(
+            getCachedHumanDailySection(userId, 'daily_love' as HumanDailySectionKey, chartId ?? undefined, today).then(
+              (section) => {
+                if (!cancelled && section?.content) setLoveSection(section.content);
+              }
+            )
+          );
+          tasks.push(
+            getCachedHumanDailySection(
+              userId,
+              'daily_work_business' as HumanDailySectionKey,
+              chartId ?? undefined,
+              today
+            ).then((section) => {
+              if (!cancelled && section?.content) setWorkSection(section.content);
+            })
+          );
+        } else {
+          tasks.push(
+            getCachedDailyForecastLayer(userId, chartId ?? null).then((reading) => {
+              if (!cancelled && reading) {
+                setPersonalDay({
+                  date: reading.date || today,
+                  slot: 'day',
+                  summary: reading.summary,
+                  headline: reading.headline,
+                  focus: reading.focus,
+                  relationships: reading.chance,
+                  money: reading.risk,
+                  guidance: reading.reading,
+                });
+              }
+            })
+          );
+        }
 
-        if (cancelled) return;
-        if (cachedDay.status === 'fulfilled' && cachedDay.value) setPersonalDay(cachedDay.value);
-        if (cachedLove.status === 'fulfilled' && cachedLove.value?.content) setLoveSection(cachedLove.value.content);
-        if (cachedWork.status === 'fulfilled' && cachedWork.value?.content) setWorkSection(cachedWork.value.content);
+        await Promise.allSettled(tasks);
       };
 
       void hydrateCachedLayers();
@@ -386,20 +421,37 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
       };
     }, [chartData, chartId, today, userId]);
 
-    const getFriendlyError = (error: unknown, fallback: string) => {
+    const getFriendlyError = (error: unknown) => {
       const err = error as HumanReadingError;
       if (err?.code === 'PREMIUM_REQUIRED') {
         return language === 'ru'
-          ? 'Этот разбор доступен в Premium.'
-          : 'This reading is available in Premium.';
+          ? 'Этот разбор открывается в Lumia Premium.'
+          : 'This reading opens in Lumia Premium.';
       }
-      if (err?.code === 'CONTENT_GENERATION_UNAVAILABLE' || err?.status === 503) {
-        return 'Прогноз сейчас не подготовился. Попробуйте ещё раз: если доступ уже открыт, повторного списания не будет.';
+      if (isGenerationInProgressError(error) || err?.code === 'CONTENT_GENERATION_UNAVAILABLE' || err?.status === 503) {
+        return language === 'ru'
+          ? 'Пока готовим. Вернись через пару секунд.'
+          : 'Still preparing. Check back in a moment.';
       }
-      if (err?.status === 403 || err?.status === 409) {
-        return fallback;
+      return language === 'ru'
+        ? 'Пока готовим. Вернись через пару секунд.'
+        : 'Still preparing. Check back in a moment.';
+    };
+
+    const fetchLayerWithRetry = async <T,>(run: () => Promise<T>, attempts = 4): Promise<T> => {
+      let lastError: unknown;
+      for (let attempt = 1; attempt <= attempts; attempt += 1) {
+        try {
+          return await run();
+        } catch (error) {
+          lastError = error;
+          if (!isGenerationInProgressError(error) || attempt >= attempts) {
+            throw error;
+          }
+          await waitMs(getRetryAfterMs(error));
+        }
       }
-      return 'Не получилось открыть прогноз. Попробуйте ещё раз чуть позже.';
+      throw lastError;
     };
 
     const loadLayer = async (layer: HoroscopeLayer) => {
@@ -419,35 +471,45 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
 
       try {
         if (layer === 'chart') {
-          const result = await getFullDaypartForecast(profileRef.current, chartData, 'day', {
-            accessTier: 'premium',
-          });
+          const result = await fetchLayerWithRetry(() =>
+            getFullDaypartForecast(profileRef.current, chartData, 'day', {
+              accessTier: 'premium',
+              date: today,
+            })
+          );
           setPersonalDay(result.reading);
         }
 
         if (layer === 'love') {
-          const result = await loadHumanDailySection(userId, 'daily_love' as HumanDailySectionKey, chartId ?? undefined, today, {
-            accessTier: 'premium',
-          });
+          const result = await fetchLayerWithRetry(() =>
+            loadHumanDailySection(userId, 'daily_love' as HumanDailySectionKey, chartId ?? undefined, today, {
+              accessTier: 'premium',
+            })
+          );
           setLoveSection(result.content);
         }
 
         if (layer === 'work_money') {
-          const result = await loadHumanDailySection(
-            userId,
-            'daily_work_business' as HumanDailySectionKey,
-            chartId ?? undefined,
-            today,
-            {
-              accessTier: 'premium',
-            }
+          const result = await fetchLayerWithRetry(() =>
+            loadHumanDailySection(
+              userId,
+              'daily_work_business' as HumanDailySectionKey,
+              chartId ?? undefined,
+              today,
+              { accessTier: 'premium' }
+            )
           );
           setWorkSection(result.content);
         }
 
         haptic('open');
       } catch (error) {
-        setLayerError(getFriendlyError(error, 'Этот прогноз доступен в Premium.'));
+        setLayerError(getFriendlyError(error));
+        if (isGenerationInProgressError(error)) {
+          window.setTimeout(() => {
+            void loadLayer(layer);
+          }, getRetryAfterMs(error));
+        }
       } finally {
         setLoadingLayer(null);
       }
@@ -476,9 +538,9 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
       const Icon = layer.icon;
       const isPremium = !!profileRef.current.isPremium;
       const primaryLabel = loadingLayer === layer.id
-        ? (language === 'ru' ? 'Открываю...' : 'Opening...')
+        ? (language === 'ru' ? 'Готовим, секунду…' : 'Almost ready…')
         : isPremium
-          ? (language === 'ru' ? 'Открыть прогноз' : 'Open forecast')
+          ? (language === 'ru' ? 'Читать' : 'Read')
           : (language === 'ru' ? 'Открыть в Premium' : 'Open in Premium');
       const handlePrimaryAction = () => {
         haptic('open');
@@ -504,9 +566,15 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
               {layer.subtitle}
             </p>
             <p className="mt-5 max-w-[min(82vw,21rem)] text-[14.5px] leading-relaxed text-[#625f68]">
-              {language === 'ru'
-                ? 'Подробный разбор доступен в Premium: утро, день, вечер, отношения и дела.'
-                : 'The detailed reading is available in Premium: morning, day, evening, relationships, and work.'}
+              {isPremium
+                ? layer.id === 'chart'
+                  ? (language === 'ru' ? 'Сегодня по твоей карте — главное на день.' : 'Today through your chart — what matters.')
+                  : layer.id === 'love'
+                    ? (language === 'ru' ? 'Любовь сегодня — без лишних догадок.' : 'Love today — clear and personal.')
+                    : (language === 'ru' ? 'Работа и деньги — фокус и темп дня.' : 'Work and money — focus for today.')
+                : (language === 'ru'
+                    ? 'Утро, день, вечер, любовь и дела — в Lumia Premium.'
+                    : 'Morning, day, evening, love, and work — in Lumia Premium.')}
             </p>
             {layerError ? <p className="mt-4 text-[13px] leading-relaxed text-[#7d5960]">{layerError}</p> : null}
           </div>

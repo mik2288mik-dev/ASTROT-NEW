@@ -18,6 +18,11 @@ import {
   type HumanDailySectionKey,
 } from '../../../../lib/natalHumanShared';
 import { logContentApi, warnContentApi } from '../../../../lib/contentApiLogging';
+import {
+  buildContentGenerationLockKey,
+  generationInProgressPayload,
+  withContentGenerationLock,
+} from '../../../../lib/contentGenerationLock';
 
 export const config = { maxDuration: 90 };
 
@@ -187,11 +192,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const section = await generateHumanDailySection(ctx.profile, ctx.chartData!, sectionKey, dateKey);
-    const saved = await saveReading(ctx, cacheOpts, section);
+    const lockResult = await withContentGenerationLock({
+      lockKey: buildContentGenerationLockKey({
+        userId,
+        chartId: ctx.chartId,
+        accessTier: cacheAccessTier,
+        contentSurface: 'natal',
+        contentVariant: 'living',
+        cacheKey,
+        promptVersion: HUMAN_DAILY_PROMPT_VERSION,
+      }),
+      operation: `human-daily-${sectionKey}`,
+      readCached: async () => {
+        const again = await getCachedReading<InterpretationSection>(ctx, cacheOpts);
+        return again ? { value: again, source: 'human_v2' } : null;
+      },
+      generate: async () => {
+        const section = await generateHumanDailySection(ctx.profile, ctx.chartData!, sectionKey, dateKey);
+        return saveReading(ctx, cacheOpts, section);
+      },
+    });
+
+    if (lockResult.status === 'in_progress') {
+      return res.status(202).json(generationInProgressPayload(lockResult.retryAfterMs));
+    }
+
     return res.status(200).json({
-      interpretation: saved,
-      source: 'generated',
+      interpretation: lockResult.value,
+      source: lockResult.fromCache ? (lockResult.source || 'human_v2') : 'generated',
       accessTier: responseAccessTier,
     });
   } catch (error) {
