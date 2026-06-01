@@ -156,6 +156,12 @@ export function buildNatalLivingCacheKey(periodKey: string) {
   return periodKey;
 }
 
+/**
+ * Living-layer period key. Today this equals the Moscow date (daily cadence):
+ * one interpretation per calendar day, not a separate weekly/monthly period yet.
+ * API routes pass this via buildNatalLivingCacheKey(periodKey) — do not use a raw date
+ * cacheKey for static natal layers (anchor/full/planet_insight).
+ */
 export function getCurrentNatalPeriodKey() {
   return getMoscowTodayKey();
 }

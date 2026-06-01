@@ -7,6 +7,7 @@ import type {
 } from '../types';
 import { db } from './db';
 import { getMoscowIsoWeekKey, getMoscowMonthKey, getMoscowTodayKey } from './date-utils';
+import { getCurrentNatalPeriodKey } from './natalReadings';
 
 const log = {
   info: (message: string, data?: any) => {
@@ -48,8 +49,13 @@ function getDefaultCacheKey(surface: ContentSurface, variant: ContentVariant) {
   if (surface === 'forecast' && variant === 'monthly') return getMoscowMonthKey();
   if (surface === 'natal' && variant === 'anchor') return 'base';
   if (surface === 'natal' && variant === 'full') return 'personality';
-  if (surface === 'natal' && variant === 'living') return getMoscowTodayKey();
+  if (surface === 'natal' && variant === 'living') return getCurrentNatalPeriodKey();
   return 'default';
+}
+
+/** @internal Exported for cache-policy tests */
+export function getDefaultCacheKeyForContent(surface: ContentSurface, variant: ContentVariant) {
+  return getDefaultCacheKey(surface, variant);
 }
 
 async function resolveChartId(userId: string, chartId?: number | null) {

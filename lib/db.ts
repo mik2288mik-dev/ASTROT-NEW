@@ -1241,6 +1241,8 @@ export const db = {
           [id]
         );
         const primary = primaryResult.rows[0] ? this._rowToChart(primaryResult.rows[0]) : null;
+        const previousInputHash = primary?.input_hash ?? null;
+        const chartIdToInvalidate = primary?.id ?? null;
 
         await client.query('UPDATE natal_charts SET is_primary = FALSE WHERE user_id = $1', [id]);
 
@@ -1249,6 +1251,26 @@ export const db = {
           : primary
             ? await this._updateChartRow(client, primary.id, payload, true)
             : await this._insertChartRow(client, userId, payload, true);
+
+        if (
+          chartIdToInvalidate != null
+          && previousInputHash
+          && previousInputHash !== payload.inputHash
+        ) {
+          await client.query(
+            `DELETE FROM content_interpretations WHERE chart_id = $1`,
+            [chartIdToInvalidate]
+          );
+          await client.query(
+            `DELETE FROM synastry_cache WHERE chart1_id = $1 OR chart2_id = $1`,
+            [chartIdToInvalidate]
+          );
+          log.info('[DB] Invalidated cached interpretations after primary chart input change', {
+            chartId: chartIdToInvalidate,
+            previousInputHash,
+            nextInputHash: payload.inputHash,
+          });
+        }
 
         await client.query('COMMIT');
         return saved;
@@ -1692,6 +1714,23 @@ export const db = {
 
   /** Content architecture v1 - tiered interpretations */
   content_interpretations: {
+    async deleteByChartId(chartId: number): Promise<number> {
+      if (!DATABASE_URL) return 0;
+      try {
+        const result = await getPool().query(
+          `DELETE FROM content_interpretations WHERE chart_id = $1`,
+          [chartId]
+        );
+        return result.rowCount ?? 0;
+      } catch (error: any) {
+        log.error('[DB] Error deleting content interpretations for chart', {
+          error: error.message,
+          chartId,
+        });
+        throw error;
+      }
+    },
+
     async getByChart(
       chartId: number,
       accessTier: DbContentAccessTier,
