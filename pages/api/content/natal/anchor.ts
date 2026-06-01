@@ -3,6 +3,11 @@ import type { ContentInterpretation, NatalAnchorReading, NatalChartData, UserPro
 import { getOpenAIModelForContent } from '../../../../lib/appSettings';
 import { db } from '../../../../lib/db';
 import { getContentLayer } from '../../../../lib/contentArchitecture';
+import {
+  buildContentGenerationLockKey,
+  generationInProgressPayload,
+  withContentGenerationLock,
+} from '../../../../lib/contentGenerationLock';
 import { generateNatalAnchorReading } from '../../../../lib/natalContent';
 import {
   coerceNatalAnchorReading,
@@ -102,6 +107,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
+  const chartData = context.chartData;
+
   const existing = await getContentLayer({
     userId: userId.trim(),
     chartId: context.chartId,
@@ -139,48 +146,80 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
-  const reading = await generateNatalAnchorReading(context.profile, context.chartData);
-  const { modelTier } = await getOpenAIModelForContent({
-    accessTier: 'free',
-    contentSurface: 'natal',
-    contentVariant: 'anchor',
-  });
-
-  const interpretation = context.chartId != null
-    ? await db.content_interpretations.upsertByChart(context.chartId, {
+  const lockResult = await withContentGenerationLock({
+    lockKey: buildContentGenerationLockKey({
+      userId: userId.trim(),
+      chartId: context.chartId,
+      accessTier: 'free',
+      contentSurface: 'natal',
+      contentVariant: 'anchor',
+      cacheKey: NATAL_ANCHOR_CACHE_KEY,
+      promptVersion: NATAL_ANCHOR_PROMPT_VERSION,
+    }),
+    operation: 'natal-anchor-generation',
+    readCached: async () => {
+      const layer = await getContentLayer({
+        userId: userId.trim(),
+        chartId: context.chartId,
         accessTier: 'free',
         contentSurface: 'natal',
         contentVariant: 'anchor',
         cacheKey: NATAL_ANCHOR_CACHE_KEY,
-        inputHash: NATAL_ANCHOR_CACHE_KEY,
-        content: reading,
-        modelTier,
-        promptVersion: NATAL_ANCHOR_PROMPT_VERSION,
-        calculationVersion: context.chartData.calculationVersion || null,
-        isPersistent: true,
-        canRegenerateForLumi: true,
-        regenerationCostLumi: 250,
-        legacySource: 'natal_content_unified_v4',
-      }, userId.trim())
-    : await db.content_interpretations.upsertByUser(userId.trim(), {
+      });
+      if (!layer.interpretation || !isCurrentPromptVersion(layer.interpretation)) {
+        return null;
+      }
+      return { value: layer.interpretation, source: layer.source };
+    },
+    generate: async () => {
+      const reading = await generateNatalAnchorReading(context.profile, chartData);
+      const { modelTier } = await getOpenAIModelForContent({
         accessTier: 'free',
         contentSurface: 'natal',
         contentVariant: 'anchor',
-        cacheKey: NATAL_ANCHOR_CACHE_KEY,
-        inputHash: NATAL_ANCHOR_CACHE_KEY,
-        content: reading,
-        modelTier,
-        promptVersion: NATAL_ANCHOR_PROMPT_VERSION,
-        calculationVersion: context.chartData.calculationVersion || null,
-        isPersistent: true,
-        canRegenerateForLumi: true,
-        regenerationCostLumi: 250,
-        legacySource: 'natal_content_unified_v4',
       });
 
+      return context.chartId != null
+        ? await db.content_interpretations.upsertByChart(context.chartId, {
+            accessTier: 'free',
+            contentSurface: 'natal',
+            contentVariant: 'anchor',
+            cacheKey: NATAL_ANCHOR_CACHE_KEY,
+            inputHash: NATAL_ANCHOR_CACHE_KEY,
+            content: reading,
+            modelTier,
+            promptVersion: NATAL_ANCHOR_PROMPT_VERSION,
+            calculationVersion: chartData.calculationVersion || null,
+            isPersistent: true,
+            canRegenerateForLumi: true,
+            regenerationCostLumi: 250,
+            legacySource: 'natal_content_unified_v4',
+          }, userId.trim())
+        : await db.content_interpretations.upsertByUser(userId.trim(), {
+            accessTier: 'free',
+            contentSurface: 'natal',
+            contentVariant: 'anchor',
+            cacheKey: NATAL_ANCHOR_CACHE_KEY,
+            inputHash: NATAL_ANCHOR_CACHE_KEY,
+            content: reading,
+            modelTier,
+            promptVersion: NATAL_ANCHOR_PROMPT_VERSION,
+            calculationVersion: chartData.calculationVersion || null,
+            isPersistent: true,
+            canRegenerateForLumi: true,
+            regenerationCostLumi: 250,
+            legacySource: 'natal_content_unified_v4',
+          });
+    },
+  });
+
+  if (lockResult.status === 'in_progress') {
+    return res.status(202).json(generationInProgressPayload(lockResult.retryAfterMs));
+  }
+
   return res.status(200).json({
-    interpretation: normalizeInterpretation(interpretation, context.profile.language, context.chartData),
-    source: 'generated',
+    interpretation: normalizeInterpretation(lockResult.value, context.profile.language, context.chartData),
+    source: lockResult.fromCache ? (lockResult.source || 'content_v1') : 'generated',
     chartId: context.chartId,
     cacheKey: NATAL_ANCHOR_CACHE_KEY,
   });

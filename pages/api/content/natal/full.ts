@@ -3,6 +3,11 @@ import type { ContentInterpretation, NatalChartData, NatalFullReading, UserProfi
 import { getOpenAIModelForContent } from '../../../../lib/appSettings';
 import { db } from '../../../../lib/db';
 import { getContentLayer, getPremiumEntitlementState } from '../../../../lib/contentArchitecture';
+import {
+  buildContentGenerationLockKey,
+  generationInProgressPayload,
+  withContentGenerationLock,
+} from '../../../../lib/contentGenerationLock';
 import { generateNatalFullReading } from '../../../../lib/natalContent';
 import {
   coerceNatalFullReading,
@@ -102,6 +107,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
+  const chartData = context.chartData;
+
   const entitlement = await getPremiumEntitlementState(userId.trim());
   if (!entitlement.isPremium) {
     return res.status(403).json({
@@ -152,46 +159,78 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
-  const reading = await generateNatalFullReading(context.profile, context.chartData);
-  const { modelTier } = await getOpenAIModelForContent({
-    accessTier: 'premium',
-    contentSurface: 'natal',
-    contentVariant: 'full',
-  });
-
-  const interpretation = context.chartId != null
-    ? await db.content_interpretations.upsertByChart(context.chartId, {
+  const lockResult = await withContentGenerationLock({
+    lockKey: buildContentGenerationLockKey({
+      userId: userId.trim(),
+      chartId: context.chartId,
+      accessTier: 'premium',
+      contentSurface: 'natal',
+      contentVariant: 'full',
+      cacheKey: NATAL_FULL_CACHE_KEY,
+      promptVersion: NATAL_FULL_PROMPT_VERSION,
+    }),
+    operation: 'natal-full-generation',
+    readCached: async () => {
+      const layer = await getContentLayer({
+        userId: userId.trim(),
+        chartId: context.chartId,
         accessTier: 'premium',
         contentSurface: 'natal',
         contentVariant: 'full',
         cacheKey: NATAL_FULL_CACHE_KEY,
-        inputHash: NATAL_FULL_CACHE_KEY,
-        content: reading,
-        modelTier,
-        promptVersion: NATAL_FULL_PROMPT_VERSION,
-        calculationVersion: context.chartData.calculationVersion || null,
-        isPersistent: true,
-        canRegenerateForLumi: false,
-        legacySource: 'natal_content_unified_v4',
-      }, userId.trim())
-    : await db.content_interpretations.upsertByUser(userId.trim(), {
+      });
+      if (!layer.interpretation || !isCurrentPromptVersion(layer.interpretation)) {
+        return null;
+      }
+      return { value: layer.interpretation, source: layer.source };
+    },
+    generate: async () => {
+      const reading = await generateNatalFullReading(context.profile, chartData);
+      const { modelTier } = await getOpenAIModelForContent({
         accessTier: 'premium',
         contentSurface: 'natal',
         contentVariant: 'full',
-        cacheKey: NATAL_FULL_CACHE_KEY,
-        inputHash: NATAL_FULL_CACHE_KEY,
-        content: reading,
-        modelTier,
-        promptVersion: NATAL_FULL_PROMPT_VERSION,
-        calculationVersion: context.chartData.calculationVersion || null,
-        isPersistent: true,
-        canRegenerateForLumi: false,
-        legacySource: 'natal_content_unified_v4',
       });
 
+      return context.chartId != null
+        ? await db.content_interpretations.upsertByChart(context.chartId, {
+            accessTier: 'premium',
+            contentSurface: 'natal',
+            contentVariant: 'full',
+            cacheKey: NATAL_FULL_CACHE_KEY,
+            inputHash: NATAL_FULL_CACHE_KEY,
+            content: reading,
+            modelTier,
+            promptVersion: NATAL_FULL_PROMPT_VERSION,
+            calculationVersion: chartData.calculationVersion || null,
+            isPersistent: true,
+            canRegenerateForLumi: false,
+            legacySource: 'natal_content_unified_v4',
+          }, userId.trim())
+        : await db.content_interpretations.upsertByUser(userId.trim(), {
+            accessTier: 'premium',
+            contentSurface: 'natal',
+            contentVariant: 'full',
+            cacheKey: NATAL_FULL_CACHE_KEY,
+            inputHash: NATAL_FULL_CACHE_KEY,
+            content: reading,
+            modelTier,
+            promptVersion: NATAL_FULL_PROMPT_VERSION,
+            calculationVersion: chartData.calculationVersion || null,
+            isPersistent: true,
+            canRegenerateForLumi: false,
+            legacySource: 'natal_content_unified_v4',
+          });
+    },
+  });
+
+  if (lockResult.status === 'in_progress') {
+    return res.status(202).json(generationInProgressPayload(lockResult.retryAfterMs));
+  }
+
   return res.status(200).json({
-    interpretation: normalizeInterpretation(interpretation, context.profile.language, context.chartData),
-    source: 'generated',
+    interpretation: normalizeInterpretation(lockResult.value, context.profile.language, context.chartData),
+    source: lockResult.fromCache ? (lockResult.source || 'content_v1') : 'generated',
     chartId: context.chartId,
     cacheKey: NATAL_FULL_CACHE_KEY,
     entitlement: entitlement.entitlement,

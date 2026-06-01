@@ -3,6 +3,11 @@ import type { ContentInterpretation, NatalChartData, NatalLivingReading, UserPro
 import { getOpenAIModelForContent } from '../../../../lib/appSettings';
 import { db } from '../../../../lib/db';
 import { getContentLayer, getPremiumEntitlementState } from '../../../../lib/contentArchitecture';
+import {
+  buildContentGenerationLockKey,
+  generationInProgressPayload,
+  withContentGenerationLock,
+} from '../../../../lib/contentGenerationLock';
 import { generateNatalLivingReading } from '../../../../lib/natalContent';
 import {
   buildNatalLivingCacheKey,
@@ -126,6 +131,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
+  const chartData = context.chartData;
+
   const entitlement = await getPremiumEntitlementState(userId.trim());
   if (!entitlement.isPremium) {
     return res.status(403).json({
@@ -176,51 +183,83 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
-  const reading = await generateNatalLivingReading(context.profile, context.chartData, periodKey);
-  const { modelTier } = await getOpenAIModelForContent({
-    accessTier: 'premium',
-    contentSurface: 'natal',
-    contentVariant: 'living',
-  });
-  const periodWindow = getMoscowPeriodWindow(periodKey);
-
-  const interpretation = context.chartId != null
-    ? await db.content_interpretations.upsertByChart(context.chartId, {
+  const lockResult = await withContentGenerationLock({
+    lockKey: buildContentGenerationLockKey({
+      userId: userId.trim(),
+      chartId: context.chartId,
+      accessTier: 'premium',
+      contentSurface: 'natal',
+      contentVariant: 'living',
+      cacheKey,
+      promptVersion: NATAL_LIVING_PROMPT_VERSION,
+    }),
+    operation: 'natal-living-generation',
+    readCached: async () => {
+      const layer = await getContentLayer({
+        userId: userId.trim(),
+        chartId: context.chartId,
         accessTier: 'premium',
         contentSurface: 'natal',
         contentVariant: 'living',
         cacheKey,
-        inputHash: cacheKey,
-        content: reading,
-        modelTier,
-        promptVersion: NATAL_LIVING_PROMPT_VERSION,
-        calculationVersion: context.chartData.calculationVersion || null,
-        validFrom: periodWindow.validFrom,
-        validTo: periodWindow.validTo,
-        isPersistent: false,
-        canRegenerateForLumi: false,
-        legacySource: 'natal_content_unified_v3',
-      }, userId.trim())
-    : await db.content_interpretations.upsertByUser(userId.trim(), {
-        accessTier: 'premium',
-        contentSurface: 'natal',
-        contentVariant: 'living',
-        cacheKey,
-        inputHash: cacheKey,
-        content: reading,
-        modelTier,
-        promptVersion: NATAL_LIVING_PROMPT_VERSION,
-        calculationVersion: context.chartData.calculationVersion || null,
-        validFrom: periodWindow.validFrom,
-        validTo: periodWindow.validTo,
-        isPersistent: false,
-        canRegenerateForLumi: false,
-        legacySource: 'natal_content_unified_v3',
       });
+      if (!layer.interpretation || !isCurrentPromptVersion(layer.interpretation)) {
+        return null;
+      }
+      return { value: layer.interpretation, source: layer.source };
+    },
+    generate: async () => {
+      const reading = await generateNatalLivingReading(context.profile, chartData, periodKey);
+      const { modelTier } = await getOpenAIModelForContent({
+        accessTier: 'premium',
+        contentSurface: 'natal',
+        contentVariant: 'living',
+      });
+      const periodWindow = getMoscowPeriodWindow(periodKey);
+
+      return context.chartId != null
+        ? await db.content_interpretations.upsertByChart(context.chartId, {
+            accessTier: 'premium',
+            contentSurface: 'natal',
+            contentVariant: 'living',
+            cacheKey,
+            inputHash: cacheKey,
+            content: reading,
+            modelTier,
+            promptVersion: NATAL_LIVING_PROMPT_VERSION,
+            calculationVersion: chartData.calculationVersion || null,
+            validFrom: periodWindow.validFrom,
+            validTo: periodWindow.validTo,
+            isPersistent: false,
+            canRegenerateForLumi: false,
+            legacySource: 'natal_content_unified_v3',
+          }, userId.trim())
+        : await db.content_interpretations.upsertByUser(userId.trim(), {
+            accessTier: 'premium',
+            contentSurface: 'natal',
+            contentVariant: 'living',
+            cacheKey,
+            inputHash: cacheKey,
+            content: reading,
+            modelTier,
+            promptVersion: NATAL_LIVING_PROMPT_VERSION,
+            calculationVersion: chartData.calculationVersion || null,
+            validFrom: periodWindow.validFrom,
+            validTo: periodWindow.validTo,
+            isPersistent: false,
+            canRegenerateForLumi: false,
+            legacySource: 'natal_content_unified_v3',
+          });
+    },
+  });
+
+  if (lockResult.status === 'in_progress') {
+    return res.status(202).json(generationInProgressPayload(lockResult.retryAfterMs));
+  }
 
   return res.status(200).json({
-    interpretation: normalizeInterpretation(interpretation, context.profile.language, periodKey, context.chartData),
-    source: 'generated',
+    interpretation: normalizeInterpretation(lockResult.value, context.profile.language, periodKey, context.chartData),
+    source: lockResult.fromCache ? (lockResult.source || 'content_v1') : 'generated',
     chartId: context.chartId,
     cacheKey,
     entitlement: entitlement.entitlement,

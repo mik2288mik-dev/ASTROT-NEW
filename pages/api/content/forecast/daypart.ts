@@ -2,6 +2,11 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import type { ForecastDaypartSlot, NatalChartData, UserProfile } from '../../../../types';
 import { getOpenAIModelForContent } from '../../../../lib/appSettings';
 import { getContentLayer, getPremiumEntitlementState } from '../../../../lib/contentArchitecture';
+import {
+  buildContentGenerationLockKey,
+  generationInProgressPayload,
+  withContentGenerationLock,
+} from '../../../../lib/contentGenerationLock';
 import { db } from '../../../../lib/db';
 import { getMoscowTodayKey } from '../../../../lib/date-utils';
 import { generatePremiumDaypartForecast } from '../../../../lib/forecastContent';
@@ -140,6 +145,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
+  const chartData = context.chartData;
+
   const lang = context.profile.language === 'en' ? 'en' : 'ru';
   buildForecastFullDayUnlockCacheKey(dateKey);
   const cacheKey = buildForecastDaypartCacheKey(dateKey, slot);
@@ -184,10 +191,82 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
-  let forecast;
+  let lockResult;
   try {
-    forecast = await generatePremiumDaypartForecast(context.profile, context.chartData, slot, dateKey, {
-      allowStaticFallback: false,
+    lockResult = await withContentGenerationLock({
+    lockKey: buildContentGenerationLockKey({
+      userId: safeUserId,
+      chartId: context.chartId,
+      accessTier: 'premium',
+      contentSurface: 'forecast',
+      contentVariant: slot,
+      cacheKey,
+    }),
+    operation: 'forecast-daypart-generation',
+    readCached: async () => {
+      const layer = await getContentLayer({
+        userId: safeUserId,
+        chartId: context.chartId,
+        accessTier: 'premium',
+        contentSurface: 'forecast',
+        contentVariant: slot,
+        cacheKey,
+      });
+      return layer.interpretation
+        ? { value: layer.interpretation, source: layer.source }
+        : null;
+    },
+    generate: async () => {
+      let forecast;
+      try {
+        forecast = await generatePremiumDaypartForecast(context.profile, chartData, slot, dateKey, {
+          allowStaticFallback: false,
+        });
+      } catch (error: any) {
+        const status = error?.status === 503 ? 503 : 500;
+        const code = error?.code || (status === 503 ? 'CONTENT_GENERATION_UNAVAILABLE' : 'FORECAST_DAYPART_FAILED');
+        const generationError = new Error(code) as Error & { status?: number; code?: string };
+        generationError.status = status;
+        generationError.code = code;
+        throw generationError;
+      }
+
+      const { modelTier } = await getOpenAIModelForContent({
+        accessTier: 'premium',
+        contentSurface: 'forecast',
+        contentVariant: slot,
+      });
+
+      return context.chartId != null
+        ? await db.content_interpretations.upsertByChart(context.chartId, {
+            accessTier: 'premium',
+            contentSurface: 'forecast',
+            contentVariant: slot,
+            cacheKey,
+            inputHash: cacheKey,
+            content: forecast,
+            modelTier,
+            validFrom: `${dateKey}T00:00:00.000Z`,
+            validTo: `${dateKey}T23:59:59.999Z`,
+            isPersistent: false,
+            canRegenerateForLumi: false,
+            legacySource: `forecast_v2.${slot}.premium`,
+          }, safeUserId)
+        : await db.content_interpretations.upsertByUser(safeUserId, {
+            accessTier: 'premium',
+            contentSurface: 'forecast',
+            contentVariant: slot,
+            cacheKey,
+            inputHash: cacheKey,
+            content: forecast,
+            modelTier,
+            validFrom: `${dateKey}T00:00:00.000Z`,
+            validTo: `${dateKey}T23:59:59.999Z`,
+            isPersistent: false,
+            canRegenerateForLumi: false,
+            legacySource: `forecast_v2.${slot}.premium`,
+          });
+    },
     });
   } catch (error: any) {
     const status = error?.status === 503 ? 503 : 500;
@@ -202,45 +281,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
-  const { modelTier } = await getOpenAIModelForContent({
-    accessTier: 'premium',
-    contentSurface: 'forecast',
-    contentVariant: slot,
-  });
-
-  const interpretation = context.chartId != null
-    ? await db.content_interpretations.upsertByChart(context.chartId, {
-        accessTier: 'premium',
-        contentSurface: 'forecast',
-        contentVariant: slot,
-        cacheKey,
-        inputHash: cacheKey,
-        content: forecast,
-        modelTier,
-        validFrom: `${dateKey}T00:00:00.000Z`,
-        validTo: `${dateKey}T23:59:59.999Z`,
-        isPersistent: false,
-        canRegenerateForLumi: false,
-        legacySource: `forecast_v2.${slot}.premium`,
-      }, safeUserId)
-    : await db.content_interpretations.upsertByUser(safeUserId, {
-        accessTier: 'premium',
-        contentSurface: 'forecast',
-        contentVariant: slot,
-        cacheKey,
-        inputHash: cacheKey,
-        content: forecast,
-        modelTier,
-        validFrom: `${dateKey}T00:00:00.000Z`,
-        validTo: `${dateKey}T23:59:59.999Z`,
-        isPersistent: false,
-        canRegenerateForLumi: false,
-        legacySource: `forecast_v2.${slot}.premium`,
-      });
+  if (lockResult.status === 'in_progress') {
+    return res.status(202).json(generationInProgressPayload(lockResult.retryAfterMs));
+  }
 
   return res.status(200).json({
-    interpretation,
-    source: 'generated',
+    interpretation: lockResult.value,
+    source: lockResult.fromCache ? (lockResult.source || 'content_v1') : 'generated',
     chartId: context.chartId,
     cacheKey,
     entitlement: access.entitlement,

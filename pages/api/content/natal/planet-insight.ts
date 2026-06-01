@@ -2,6 +2,11 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import type { ContentInterpretation, NatalChartData, PlanetInsight, UserProfile } from '../../../../types';
 import { getOpenAIModelForContent } from '../../../../lib/appSettings';
 import { getContentLayer } from '../../../../lib/contentArchitecture';
+import {
+  buildContentGenerationLockKey,
+  generationInProgressPayload,
+  withContentGenerationLock,
+} from '../../../../lib/contentGenerationLock';
 import { db } from '../../../../lib/db';
 import {
   PLANET_INSIGHT_PROMPT_VERSION,
@@ -106,6 +111,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
+  const chartData = context.chartData;
+
   let planetRequest: { planetId: NatalPlanetKey; cacheKey: string };
   try {
     planetRequest = resolvePlanetInsightRequest(
@@ -152,50 +159,71 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
+  let lockResult;
   try {
-    const profileForGeneration: UserProfile = { ...context.profile, isPremium };
-    const reading = await generatePlanetInsight(profileForGeneration, context.chartData, planetRequest.planetId);
-    const { modelTier } = await getOpenAIModelForContent({
+    lockResult = await withContentGenerationLock({
+    lockKey: buildContentGenerationLockKey({
+      userId: userId.trim(),
+      chartId: context.chartId,
       accessTier,
       contentSurface: 'natal',
       contentVariant: 'planet_insight',
-    });
-
-    const interpretation = context.chartId != null
-      ? await db.content_interpretations.upsertByChart(context.chartId, {
-          accessTier,
-          contentSurface: 'natal',
-          contentVariant: 'planet_insight',
-          cacheKey: planetRequest.cacheKey,
-          inputHash: planetRequest.cacheKey,
-          content: reading,
-          modelTier,
-          promptVersion: PLANET_INSIGHT_PROMPT_VERSION,
-          calculationVersion: context.chartData.calculationVersion || null,
-          isPersistent: false,
-          canRegenerateForLumi: false,
-          legacySource: 'natal_v2.planet_insight',
-        }, userId.trim())
-      : await db.content_interpretations.upsertByUser(userId.trim(), {
-          accessTier,
-          contentSurface: 'natal',
-          contentVariant: 'planet_insight',
-          cacheKey: planetRequest.cacheKey,
-          inputHash: planetRequest.cacheKey,
-          content: reading,
-          modelTier,
-          promptVersion: PLANET_INSIGHT_PROMPT_VERSION,
-          calculationVersion: context.chartData.calculationVersion || null,
-          isPersistent: false,
-          canRegenerateForLumi: false,
-          legacySource: 'natal_v2.planet_insight',
-        });
-
-    return res.status(200).json({
-      interpretation: normalizeInsight(interpretation, context.chartData, planetRequest.planetId, language),
-      source: 'generated',
-      chartId: context.chartId,
       cacheKey: planetRequest.cacheKey,
+      promptVersion: PLANET_INSIGHT_PROMPT_VERSION,
+    }),
+    operation: 'natal-planet-insight-generation',
+    readCached: async () => {
+      const layer = await getContentLayer({
+        userId: userId.trim(),
+        chartId: context.chartId,
+        accessTier,
+        contentSurface: 'natal',
+        contentVariant: 'planet_insight',
+        cacheKey: planetRequest.cacheKey,
+      });
+      return layer.interpretation
+        ? { value: layer.interpretation, source: layer.source }
+        : null;
+    },
+    generate: async () => {
+      const profileForGeneration: UserProfile = { ...context.profile, isPremium };
+      const reading = await generatePlanetInsight(profileForGeneration, chartData, planetRequest.planetId);
+      const { modelTier } = await getOpenAIModelForContent({
+        accessTier,
+        contentSurface: 'natal',
+        contentVariant: 'planet_insight',
+      });
+
+      return context.chartId != null
+        ? await db.content_interpretations.upsertByChart(context.chartId, {
+            accessTier,
+            contentSurface: 'natal',
+            contentVariant: 'planet_insight',
+            cacheKey: planetRequest.cacheKey,
+            inputHash: planetRequest.cacheKey,
+            content: reading,
+            modelTier,
+            promptVersion: PLANET_INSIGHT_PROMPT_VERSION,
+            calculationVersion: chartData.calculationVersion || null,
+            isPersistent: false,
+            canRegenerateForLumi: false,
+            legacySource: 'natal_v2.planet_insight',
+          }, userId.trim())
+        : await db.content_interpretations.upsertByUser(userId.trim(), {
+            accessTier,
+            contentSurface: 'natal',
+            contentVariant: 'planet_insight',
+            cacheKey: planetRequest.cacheKey,
+            inputHash: planetRequest.cacheKey,
+            content: reading,
+            modelTier,
+            promptVersion: PLANET_INSIGHT_PROMPT_VERSION,
+            calculationVersion: chartData.calculationVersion || null,
+            isPersistent: false,
+            canRegenerateForLumi: false,
+            legacySource: 'natal_v2.planet_insight',
+          });
+    },
     });
   } catch {
     return res.status(200).json({
@@ -207,4 +235,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       cacheKey: planetRequest.cacheKey,
     });
   }
+
+  if (lockResult.status === 'in_progress') {
+    return res.status(202).json(generationInProgressPayload(lockResult.retryAfterMs));
+  }
+
+  return res.status(200).json({
+    interpretation: normalizeInsight(lockResult.value, context.chartData, planetRequest.planetId, language),
+    source: lockResult.fromCache ? (lockResult.source || 'content_v1') : 'generated',
+    chartId: context.chartId,
+    cacheKey: planetRequest.cacheKey,
+  });
 }

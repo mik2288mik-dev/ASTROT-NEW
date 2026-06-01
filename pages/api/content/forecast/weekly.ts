@@ -4,6 +4,11 @@ import { getOpenAIModelForContent } from '../../../../lib/appSettings';
 import { db } from '../../../../lib/db';
 import { generateFreeWeeklyForecast, generatePremiumWeeklyForecast } from '../../../../lib/forecastContent';
 import { getContentLayer, getPremiumEntitlementState } from '../../../../lib/contentArchitecture';
+import {
+  buildContentGenerationLockKey,
+  generationInProgressPayload,
+  withContentGenerationLock,
+} from '../../../../lib/contentGenerationLock';
 import { getContentAccessConfig } from '../../../../lib/contentAccessMatrix';
 import { logContentApi, warnContentApi } from '../../../../lib/contentApiLogging';
 import {
@@ -98,6 +103,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         : 'A saved natal chart is required for the forecast.',
     });
   }
+
+  const chartData = context.chartData;
 
   const entitlement = await getPremiumEntitlementState(userId.trim());
   const lang = context.profile.language === 'en' ? 'en' : 'ru';
@@ -259,44 +266,74 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     { accessTier: tierToGenerate, metadata: { periodKey } }
   );
 
-  const forecast = tierToGenerate === 'premium'
-    ? await generatePremiumWeeklyForecast(context.profile, context.chartData, periodKey, periodLabel)
-    : await generateFreeWeeklyForecast(context.profile, context.chartData, periodKey, periodLabel);
-  const { modelTier } = await getOpenAIModelForContent({
-    accessTier: tierToGenerate,
-    contentSurface: 'forecast',
-    contentVariant: 'weekly',
+  const lockResult = await withContentGenerationLock({
+    lockKey: buildContentGenerationLockKey({
+      userId: userId.trim(),
+      chartId: context.chartId,
+      accessTier: tierToGenerate,
+      contentSurface: 'forecast',
+      contentVariant: 'weekly',
+      cacheKey: periodKey,
+    }),
+    operation: 'forecast-weekly-generation',
+    readCached: async () => {
+      const layer = await getContentLayer({
+        userId: userId.trim(),
+        chartId: context.chartId,
+        accessTier: tierToGenerate,
+        contentSurface: 'forecast',
+        contentVariant: 'weekly',
+        cacheKey: periodKey,
+      });
+      return layer.interpretation
+        ? { value: layer.interpretation, source: layer.source }
+        : null;
+    },
+    generate: async () => {
+      const forecast = tierToGenerate === 'premium'
+        ? await generatePremiumWeeklyForecast(context.profile, chartData, periodKey, periodLabel)
+        : await generateFreeWeeklyForecast(context.profile, chartData, periodKey, periodLabel);
+      const { modelTier } = await getOpenAIModelForContent({
+        accessTier: tierToGenerate,
+        contentSurface: 'forecast',
+        contentVariant: 'weekly',
+      });
+
+      return context.chartId != null
+        ? await db.content_interpretations.upsertByChart(context.chartId, {
+            accessTier: tierToGenerate,
+            contentSurface: 'forecast',
+            contentVariant: 'weekly',
+            cacheKey: periodKey,
+            inputHash: periodKey,
+            content: forecast,
+            modelTier,
+            validFrom,
+            validTo,
+            isPersistent: false,
+            canRegenerateForLumi: false,
+            legacySource: `forecast_v2.weekly.${tierToGenerate}`,
+          }, userId.trim())
+        : await db.content_interpretations.upsertByUser(userId.trim(), {
+            accessTier: tierToGenerate,
+            contentSurface: 'forecast',
+            contentVariant: 'weekly',
+            cacheKey: periodKey,
+            inputHash: periodKey,
+            content: forecast,
+            modelTier,
+            validFrom,
+            validTo,
+            isPersistent: false,
+            canRegenerateForLumi: false,
+            legacySource: `forecast_v2.weekly.${tierToGenerate}`,
+          });
+    },
   });
 
-  const interpretation = context.chartId != null
-    ? await db.content_interpretations.upsertByChart(context.chartId, {
-        accessTier: tierToGenerate,
-        contentSurface: 'forecast',
-        contentVariant: 'weekly',
-        cacheKey: periodKey,
-        inputHash: periodKey,
-        content: forecast,
-        modelTier,
-        validFrom,
-        validTo,
-        isPersistent: false,
-        canRegenerateForLumi: false,
-        legacySource: `forecast_v2.weekly.${tierToGenerate}`,
-      }, userId.trim())
-    : await db.content_interpretations.upsertByUser(userId.trim(), {
-        accessTier: tierToGenerate,
-        contentSurface: 'forecast',
-        contentVariant: 'weekly',
-        cacheKey: periodKey,
-        inputHash: periodKey,
-        content: forecast,
-        modelTier,
-        validFrom,
-        validTo,
-        isPersistent: false,
-        canRegenerateForLumi: false,
-        legacySource: `forecast_v2.weekly.${tierToGenerate}`,
-      });
+  if (lockResult.status === 'in_progress') {
+    return res.status(202).json(generationInProgressPayload(lockResult.retryAfterMs));
+  }
 
   logContentApi(
     {
@@ -306,7 +343,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       surface: 'forecast',
       variant: 'weekly',
     },
-    'generation_success',
+    lockResult.fromCache ? 'cache_hit' : 'generation_success',
     {
       accessTier: tierToGenerate,
       status: 'ready',
@@ -316,8 +353,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   );
 
   return res.status(200).json({
-    interpretation,
-    source: 'generated',
+    interpretation: lockResult.value,
+    source: lockResult.fromCache ? (lockResult.source || 'content_v1') : 'generated',
     chartId: context.chartId,
     cacheKey: periodKey,
     periodKey,

@@ -4,6 +4,11 @@ import { getOpenAIModelForContent } from '../../../../lib/appSettings';
 import { db } from '../../../../lib/db';
 import { generateFreeDailyForecast } from '../../../../lib/forecastContent';
 import { getContentLayer } from '../../../../lib/contentArchitecture';
+import {
+  buildContentGenerationLockKey,
+  generationInProgressPayload,
+  withContentGenerationLock,
+} from '../../../../lib/contentGenerationLock';
 import { getMoscowTodayKey } from '../../../../lib/date-utils';
 import { invalidUserIdPayload, isValidUserId } from '../../../../lib/userId';
 
@@ -87,6 +92,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
+  const chartData = context.chartData;
+
   if (req.method === 'GET') {
     const result = await getContentLayer({
       userId: safeUserId,
@@ -133,45 +140,75 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
-  const forecast = await generateFreeDailyForecast(context.profile, context.chartData, dateKey);
-  const { modelTier } = await getOpenAIModelForContent({
-    accessTier: 'free',
-    contentSurface: 'forecast',
-    contentVariant: 'daily',
-  });
-  const interpretation = context.chartId != null
-    ? await db.content_interpretations.upsertByChart(context.chartId, {
+  const lockResult = await withContentGenerationLock({
+    lockKey: buildContentGenerationLockKey({
+      userId: safeUserId,
+      chartId: context.chartId,
+      accessTier: 'free',
+      contentSurface: 'forecast',
+      contentVariant: 'daily',
+      cacheKey: dateKey,
+    }),
+    operation: 'forecast-daily-generation',
+    readCached: async () => {
+      const layer = await getContentLayer({
+        userId: safeUserId,
+        chartId: context.chartId,
         accessTier: 'free',
         contentSurface: 'forecast',
         contentVariant: 'daily',
         cacheKey: dateKey,
-        inputHash: dateKey,
-        content: forecast,
-        modelTier,
-        validFrom: `${dateKey}T00:00:00.000Z`,
-        validTo: `${dateKey}T23:59:59.999Z`,
-        isPersistent: false,
-        canRegenerateForLumi: false,
-        legacySource: 'forecast_v2.daily',
-      }, safeUserId)
-    : await db.content_interpretations.upsertByUser(safeUserId, {
-        accessTier: 'free',
-        contentSurface: 'forecast',
-        contentVariant: 'daily',
-        cacheKey: dateKey,
-        inputHash: dateKey,
-        content: forecast,
-        modelTier,
-        validFrom: `${dateKey}T00:00:00.000Z`,
-        validTo: `${dateKey}T23:59:59.999Z`,
-        isPersistent: false,
-        canRegenerateForLumi: false,
-        legacySource: 'forecast_v2.daily',
       });
+      return layer.interpretation
+        ? { value: layer.interpretation, source: layer.source }
+        : null;
+    },
+    generate: async () => {
+      const forecast = await generateFreeDailyForecast(context.profile, chartData, dateKey);
+      const { modelTier } = await getOpenAIModelForContent({
+        accessTier: 'free',
+        contentSurface: 'forecast',
+        contentVariant: 'daily',
+      });
+      return context.chartId != null
+        ? await db.content_interpretations.upsertByChart(context.chartId, {
+            accessTier: 'free',
+            contentSurface: 'forecast',
+            contentVariant: 'daily',
+            cacheKey: dateKey,
+            inputHash: dateKey,
+            content: forecast,
+            modelTier,
+            validFrom: `${dateKey}T00:00:00.000Z`,
+            validTo: `${dateKey}T23:59:59.999Z`,
+            isPersistent: false,
+            canRegenerateForLumi: false,
+            legacySource: 'forecast_v2.daily',
+          }, safeUserId)
+        : await db.content_interpretations.upsertByUser(safeUserId, {
+            accessTier: 'free',
+            contentSurface: 'forecast',
+            contentVariant: 'daily',
+            cacheKey: dateKey,
+            inputHash: dateKey,
+            content: forecast,
+            modelTier,
+            validFrom: `${dateKey}T00:00:00.000Z`,
+            validTo: `${dateKey}T23:59:59.999Z`,
+            isPersistent: false,
+            canRegenerateForLumi: false,
+            legacySource: 'forecast_v2.daily',
+          });
+    },
+  });
+
+  if (lockResult.status === 'in_progress') {
+    return res.status(202).json(generationInProgressPayload(lockResult.retryAfterMs));
+  }
 
   return res.status(200).json({
-    interpretation,
-    source: 'generated',
+    interpretation: lockResult.value,
+    source: lockResult.fromCache ? (lockResult.source || 'content_v1') : 'generated',
     chartId: context.chartId,
     cacheKey: dateKey,
   });
