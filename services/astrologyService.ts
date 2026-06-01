@@ -6,6 +6,7 @@ import { isForecastLegacyFallbackEnabled } from "../lib/forecastLegacyConfig";
 import { buildForecastFullDayUnlockCacheKey } from "../lib/forecastFullDay";
 import { fetchWithTimeout } from "../lib/fetchWithTimeout";
 import { isValidUserId } from "../lib/userId";
+import { getRetryAfterMs, isGenerationInProgressError, waitMs } from "../lib/contentInterpretation";
 import type { NatalPlanetKey } from "../lib/natalPlanetMeta";
 
 // API base URL - используем локальные Next.js API routes
@@ -708,6 +709,47 @@ export const getFullDaypartForecast = async (
   }
 
   return { reading };
+};
+
+export const ensureFullDaypartForecast = async (
+  profile: UserProfile,
+  chartData: NatalChartData,
+  slot: ForecastDaypartSlot,
+  options?: {
+    accessTier?: 'premium';
+    date?: string;
+    chartId?: number | null;
+    maxInProgressRetries?: number;
+  }
+): Promise<{ reading: ForecastDaypartReading }> => {
+  const userId = String(profile.id);
+  const cached = await getCachedFullDaypartForecast(userId, slot, {
+    chartId: options?.chartId ?? null,
+    accessTier: options?.accessTier || 'premium',
+    dateKey: options?.date,
+  });
+  if (cached) return { reading: cached };
+
+  const retries = options?.maxInProgressRetries ?? 3;
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= retries; attempt += 1) {
+    try {
+      return await getFullDaypartForecast(profile, chartData, slot, options);
+    } catch (error) {
+      lastError = error;
+      if (!isGenerationInProgressError(error) || attempt >= retries) {
+        throw error;
+      }
+      await waitMs(getRetryAfterMs(error));
+      const again = await getCachedFullDaypartForecast(userId, slot, {
+        chartId: options?.chartId ?? null,
+        accessTier: options?.accessTier || 'premium',
+        dateKey: options?.date,
+      });
+      if (again) return { reading: again };
+    }
+  }
+  throw lastError;
 };
 
 export const getCachedPremiumDaypartForecast = async (

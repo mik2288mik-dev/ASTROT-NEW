@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ChevronDown, Crown, Lock, Sparkles, X } from 'lucide-react';
 import type {
   InterpretationSection,
@@ -17,9 +17,10 @@ import {
 } from '../../lib/natalHumanShared';
 import { getMoscowTodayKey } from '../../lib/date-utils';
 import {
+  ensureHumanDailySection,
+  getCachedHumanDailySection,
   getHumanBaseReportCached,
   loadHumanBaseReport,
-  loadHumanDailySection,
   loadHumanPaidSection,
   type HumanReadingError,
 } from '../../services/natalReadingService';
@@ -354,7 +355,6 @@ export const HumanReport: React.FC<Props> = ({
   const [sectionError, setSectionError] = useState<string | null>(null);
   const [unlockTarget, setUnlockTarget] = useState<HumanPaidSectionKey | null>(null);
   const [unlockDailyTarget, setUnlockDailyTarget] = useState<HumanDailySectionKey | null>(null);
-  const dailyOverviewRequestedKeyRef = useRef<string | null>(null);
 
   const userId = profile.id ? String(profile.id) : '';
   const isPremium = !!profile.isPremium;
@@ -382,55 +382,32 @@ export const HumanReport: React.FC<Props> = ({
       setError(null);
       return;
     }
-
-    let cancelled = false;
-    setLoading(true);
+    setLoading(false);
     setError(null);
-    loadHumanBaseReport(userId, chartId)
-      .then((result) => {
-        if (!cancelled) setReport(result);
-      })
-      .catch((err) => {
-        if (!cancelled) setError(formatError(err));
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
   }, [chartId, preloadedReport, userId]);
 
   useEffect(() => {
-    if (!userId || !report || dailySections.daily_overview) return;
-    const requestKey = `${userId}:${chartId ?? 'primary'}:${todayKey}`;
-    if (dailyOverviewRequestedKeyRef.current === requestKey) return;
-    dailyOverviewRequestedKeyRef.current = requestKey;
-
+    if (!userId || !report) return;
     let cancelled = false;
-    setDailyLoading('daily_overview');
-    loadHumanDailySection(userId, 'daily_overview', chartId, todayKey)
-      .then((result) => {
-        if (!cancelled) {
-          setDailySections((current) => ({ ...current, daily_overview: result.content }));
+
+    void (async () => {
+      for (const key of HUMAN_DAILY_SECTION_KEYS) {
+        if (cancelled) return;
+        if (!isPremium && key !== 'daily_overview') continue;
+        try {
+          const cached = await getCachedHumanDailySection(userId, key, chartId, todayKey);
+          if (cancelled || !cached?.content) continue;
+          setDailySections((current) => ({ ...current, [key]: cached.content }));
+        } catch {
+          // cache miss or locked — user opens via button
         }
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          dailyOverviewRequestedKeyRef.current = null;
-          setSectionError(formatError(err));
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setDailyLoading((current) => (current === 'daily_overview' ? null : current));
-        }
-      });
+      }
+    })();
 
     return () => {
       cancelled = true;
     };
-  }, [chartId, dailySections.daily_overview, report, todayKey, userId]);
+  }, [chartId, isPremium, report, todayKey, userId]);
 
   const openPaidSection = async (key: HumanPaidSectionKey) => {
     if (!userId || paidLoading) return;
@@ -477,7 +454,7 @@ export const HumanReport: React.FC<Props> = ({
     setDailyLoading(key);
     try {
       const accessOptions = key === 'daily_overview' ? undefined : { accessTier: 'premium' as const };
-      const result = await loadHumanDailySection(userId, key, chartId, todayKey, accessOptions);
+      const result = await ensureHumanDailySection(userId, key, chartId, todayKey, accessOptions);
       setDailySections((current) => ({ ...current, [key]: result.content }));
       setUnlockDailyTarget(null);
     } catch (err) {
@@ -503,8 +480,12 @@ export const HumanReport: React.FC<Props> = ({
   if (error || !report) {
     return (
       <div className="mx-auto w-full max-w-reading-wide px-5 py-10">
-        <p className="font-sans text-[22px] font-semibold tracking-[-0.02em] text-[#1f1f1f]">Интерпретация сейчас недоступна</p>
-        <p className="mt-2 text-sm leading-relaxed text-[#666]">{error || 'Попробуйте открыть карту еще раз через несколько секунд.'}</p>
+        <p className="font-sans text-[22px] font-semibold tracking-[-0.02em] text-[#1f1f1f]">
+          {error ? 'Интерпретация сейчас недоступна' : 'Разбор карты'}
+        </p>
+        <p className="mt-2 text-sm leading-relaxed text-[#666]">
+          {error || 'Нажми, чтобы загрузить сохранённый разбор или подготовить новый.'}
+        </p>
         <button
           type="button"
           onClick={() => {

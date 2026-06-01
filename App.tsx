@@ -10,6 +10,11 @@ import {
 import { getOrCalculateChart, getPrimaryChartId } from './services/chartService';
 import { updateContentIfNeeded } from './services/contentGenerationService';
 import { prewarmUserContent } from './services/contentPrewarmService';
+import {
+    CACHE_ONLY_PREWARM_BUDGET_MS,
+    ENABLE_AUTO_BACKGROUND_PREWARM_GENERATION,
+    ENABLE_LEGACY_DASHBOARD_CONTENT_SYNC,
+} from './lib/appStartupFlags';
 import { getMoscowTodayKey } from './lib/date-utils';
 import { Onboarding } from './views/Onboarding';
 import { Dashboard } from './views/Dashboard';
@@ -39,7 +44,6 @@ import { captureLumiaHomeLayout, installLumiaDebugGlobal, lumiaDebugLog } from '
 import {
     clearHumanReadingSessionCache,
     getHumanBaseReportCached,
-    prefetchHumanBaseReport,
 } from './services/natalReadingService';
 
 // Get owner ID from environment variables for security
@@ -173,8 +177,7 @@ const App: React.FC = () => {
 
     const prefetchBaseReportForChart = useCallback(async (
         targetProfile: UserProfile,
-        targetChartId?: number,
-        timeoutMs = 9000
+        targetChartId?: number
     ) => {
         const userId = targetProfile.id ? String(targetProfile.id) : '';
         if (!userId) return null;
@@ -184,18 +187,7 @@ const App: React.FC = () => {
             setPreloadedHumanReport(cached);
             return cached;
         }
-
-        const request = prefetchHumanBaseReport(userId, targetChartId)
-            .then((report) => {
-                setPreloadedHumanReport(report);
-                return report;
-            })
-            .catch((error: any) => {
-                console.warn('[App] Human base prefetch failed:', error?.message || error);
-                return null;
-            });
-
-        return Promise.race([request, wait(timeoutMs)]);
+        return null;
     }, []);
 
     const loadPrimaryChartOnce = useCallback(async (targetProfile: UserProfile): Promise<NatalChartData | null> => {
@@ -442,9 +434,7 @@ const App: React.FC = () => {
 
                 // Шаг 3: Загружаем карту один раз на входе в приложение.
                 setLoadingMessage(
-                    updatedProfile.language === 'en'
-                        ? 'Building your chart and forecast'
-                        : 'Собираем карту и прогноз'
+                    updatedProfile.language === 'en' ? 'Loading LUMIA' : 'Загружаем LUMIA'
                 );
                 setLoadingProgress(50);
                 console.log('[App] Loading primary chart once...');
@@ -460,11 +450,14 @@ const App: React.FC = () => {
                     const primaryChartId = await getPrimaryChartId(String(updatedProfile.id));
                     if (primaryChartId != null) {
                         setActiveChartId(primaryChartId);
+                        if (process.env.NODE_ENV !== 'production') {
+                            console.warn('[App] primaryChartId', primaryChartId);
+                        }
                     }
                     const dateKey = getMoscowTodayKey();
                     const prewarmKey = `${updatedProfile.id}:${primaryChartId ?? 'primary'}:${dateKey}:${updatedProfile.isPremium ? 'premium' : 'free'}`;
                     try {
-                        const cacheResult = await prewarmUserContent({
+                        await prewarmUserContent({
                             userId: String(updatedProfile.id),
                             chartId: primaryChartId,
                             profile: updatedProfile,
@@ -472,27 +465,13 @@ const App: React.FC = () => {
                             isPremium: !!updatedProfile.isPremium,
                             dateKey,
                             mode: 'cache-only',
-                            blockingBudgetMs: 2_500,
-                            onProgress: (ratio) => setLoadingProgress(68 + Math.round(ratio * 18)),
+                            blockingBudgetMs: CACHE_ONLY_PREWARM_BUDGET_MS,
+                            onProgress: (ratio) => setLoadingProgress(68 + Math.round(ratio * 12)),
                         });
                         prewarmCompletedKeyRef.current = prewarmKey;
-                        if (cacheResult.missingTaskIds.length > 0) {
-                            void prewarmUserContent({
-                                userId: String(updatedProfile.id),
-                                chartId: primaryChartId,
-                                profile: updatedProfile,
-                                chartData: chart,
-                                isPremium: !!updatedProfile.isPremium,
-                                dateKey,
-                                mode: 'generate-missing',
-                                onlyTaskIds: cacheResult.missingTaskIds,
-                                blockingBudgetMs: 120_000,
-                            }).catch((prewarmError: any) => {
-                                console.warn('[App] Background generate-missing failed:', prewarmError?.message || prewarmError);
-                            });
-                        }
                     } catch (prewarmError: any) {
                         console.warn('[App] Startup cache hydrate failed (non-blocking):', prewarmError?.message || prewarmError);
+                        prewarmCompletedKeyRef.current = prewarmKey;
                     }
                     setLoadingProgress(88);
                     void prefetchBaseReportForChart(updatedProfile, primaryChartId ?? undefined);
@@ -522,15 +501,16 @@ const App: React.FC = () => {
         };
     }, [loadPrimaryChartOnce, prefetchBaseReportForChart, resolveAuthoritativeAdminStatus]);
 
-    // Legacy profile.generatedContent sync — only if startup prewarm did not run for this session.
+    // Legacy profile.generatedContent sync — disabled on ordinary login (see appStartupFlags).
     useEffect(() => {
+        if (!ENABLE_LEGACY_DASHBOARD_CONTENT_SYNC) return;
         if (!chartData || loading || view !== 'dashboard' || !profile?.id) {
             if (!chartData) contentSyncedKeyRef.current = null;
             return;
         }
 
         const syncKey = `${profile.id}:${chartData.sun?.sign ?? ''}-${chartData.moon?.sign ?? ''}`;
-        const prewarmKey = `${profile.id}:${getMoscowTodayKey()}:${profile.isPremium ? 'premium' : 'free'}`;
+        const prewarmKey = `${profile.id}:${activeChartId ?? 'primary'}:${getMoscowTodayKey()}:${profile.isPremium ? 'premium' : 'free'}`;
         if (prewarmCompletedKeyRef.current === prewarmKey) return;
         if (contentSyncedKeyRef.current === syncKey) return;
         contentSyncedKeyRef.current = syncKey;
@@ -552,7 +532,7 @@ const App: React.FC = () => {
                 contentSyncedKeyRef.current = null;
             }
         })();
-    }, [loading, view, profile, chartData]);
+    }, [activeChartId, loading, view, profile, chartData]);
 
     const handleOnboardingComplete = async (newProfile: UserProfile) => {
         console.log('[App] === ONBOARDING COMPLETE ===', {
@@ -646,23 +626,25 @@ const App: React.FC = () => {
                     isPremium: !!fullProfile.isPremium,
                     dateKey,
                     mode: 'cache-only',
-                    blockingBudgetMs: 3_000,
+                    blockingBudgetMs: CACHE_ONLY_PREWARM_BUDGET_MS,
                     onProgress: (ratio) => setLoadingProgress(72 + Math.round(ratio * 12)),
                 });
                 prewarmCompletedKeyRef.current = prewarmKey;
-                void prewarmUserContent({
-                    userId: String(fullProfile.id),
-                    chartId: primaryChartId,
-                    profile: fullProfile,
-                    chartData: generatedChart,
-                    isPremium: !!fullProfile.isPremium,
-                    dateKey,
-                    mode: 'generate-missing',
-                    onlyTaskIds: cacheResult.missingTaskIds,
-                    blockingBudgetMs: 120_000,
-                }).catch((prewarmError: any) => {
-                    console.warn('[App] Onboarding generate-missing failed:', prewarmError?.message || prewarmError);
-                });
+                if (ENABLE_AUTO_BACKGROUND_PREWARM_GENERATION && cacheResult.missingTaskIds.length > 0) {
+                    void prewarmUserContent({
+                        userId: String(fullProfile.id),
+                        chartId: primaryChartId,
+                        profile: fullProfile,
+                        chartData: generatedChart,
+                        isPremium: !!fullProfile.isPremium,
+                        dateKey,
+                        mode: 'generate-missing',
+                        onlyTaskIds: cacheResult.missingTaskIds,
+                        blockingBudgetMs: 120_000,
+                    }).catch((prewarmError: any) => {
+                        console.warn('[App] Onboarding generate-missing failed:', prewarmError?.message || prewarmError);
+                    });
+                }
             } catch (prewarmError: any) {
                 console.warn('[App] Onboarding cache hydrate failed:', prewarmError?.message || prewarmError);
             }

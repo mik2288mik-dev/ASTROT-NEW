@@ -39,7 +39,7 @@ export const SYSTEM_INSTRUCTION_ASTRA = `
 
 export const TRANSLATIONS = {
   ru: {
-    loading: "Космическая загрузка...",
+    loading: "Загружаем LUMIA",
     nav: {
       home: "Главная",
       chart: "Натальная карта",
@@ -492,7 +492,7 @@ export const TRANSLATIONS = {
     }
   },
   en: {
-    loading: "Cosmic Loading...",
+    loading: "Loading LUMIA",
     nav: {
       home: "Home",
       chart: "Natal Chart",

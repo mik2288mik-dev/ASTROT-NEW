@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { LumiaLogo } from '../brand/LumiaLogo';
 
 interface LoadingProps {
   message?: string;
   progress?: number;
 }
 
+const LOADING_IMAGE_WEBP = '/loading-main.webp';
+const LOADING_IMAGE_PNG = '/loading%20main.png';
+
 export const Loading: React.FC<LoadingProps> = ({ message, progress: externalProgress }) => {
   const [progress, setProgress] = useState(0);
+  const [imageSrc, setImageSrc] = useState(LOADING_IMAGE_WEBP);
 
   useEffect(() => {
     if (externalProgress !== undefined) {
@@ -30,6 +33,9 @@ export const Loading: React.FC<LoadingProps> = ({ message, progress: externalPro
     }
   }, [externalProgress]);
 
+  const displayMessage = message?.trim() || 'Загружаем LUMIA';
+  const showBar = progress > 0 && progress < 100;
+
   return (
     <div
       className="lumia-pad-top-tg fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden bg-white text-center"
@@ -38,36 +44,32 @@ export const Loading: React.FC<LoadingProps> = ({ message, progress: externalPro
       }}
     >
       <motion.div
-        className="relative z-10 flex flex-col items-center px-6"
+        className="relative z-10 flex w-full max-w-[280px] flex-col items-center px-6"
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, ease: 'easeOut' }}
       >
-        <motion.div
-          animate={{ opacity: [0.85, 1, 0.85] }}
-          transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
-        >
-          <LumiaLogo variant="row" lightSurface className="scale-110 sm:scale-125" />
-        </motion.div>
+        <div className="relative w-full max-w-[220px]">
+          <img
+            src={imageSrc}
+            alt=""
+            className="mx-auto h-auto w-full max-h-[min(42vh,280px)] object-contain"
+            onError={() => setImageSrc(LOADING_IMAGE_PNG)}
+          />
+        </div>
 
-        {message && (
-          <p className="mt-8 max-w-xs text-sm font-medium leading-relaxed text-[#2d2d2d]/75">{message}</p>
-        )}
+        <p className="mt-8 max-w-xs text-sm font-medium leading-relaxed text-[#2d2d2d]/80">{displayMessage}</p>
 
-        {progress > 0 && progress < 100 && (
-          <motion.div
-            initial={{ opacity: 0, width: 0 }}
-            animate={{ opacity: 1, width: 220 }}
-            transition={{ delay: 0.35 }}
-            className="mt-6 h-0.5 overflow-hidden rounded-full bg-black/[0.08]"
-          >
+        {showBar ? (
+          <div className="mt-6 h-0.5 w-full max-w-[220px] overflow-hidden rounded-full bg-black/[0.08]">
             <motion.div
-              className="h-full rounded-full bg-astro-highlight/80"
-              style={{ width: `${progress}%` }}
-              transition={{ duration: 0.25 }}
+              className="h-full rounded-full bg-[#1f1f1f]/70"
+              initial={{ width: 0 }}
+              animate={{ width: `${progress}%` }}
+              transition={{ duration: 0.25, ease: 'easeOut' }}
             />
-          </motion.div>
-        )}
+          </div>
+        ) : null}
       </motion.div>
     </div>
   );

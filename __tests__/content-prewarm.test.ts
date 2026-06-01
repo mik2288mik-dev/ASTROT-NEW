@@ -179,8 +179,17 @@ describe('content prewarm', () => {
     const source = fs.readFileSync(path.join(ROOT, 'App.tsx'), 'utf8');
     expect(source).toContain("mode: 'cache-only'");
     expect(source).not.toContain('blockingBudgetMs: 38_000');
-    expect(source).toContain("mode: 'generate-missing'");
     expect(source).toContain('getPrimaryChartId');
+    expect(source).toContain('ENABLE_AUTO_BACKGROUND_PREWARM_GENERATION');
+    const flags = fs.readFileSync(path.join(ROOT, 'lib/appStartupFlags.ts'), 'utf8');
+    expect(flags).toContain('ENABLE_AUTO_BACKGROUND_PREWARM_GENERATION = false');
+  });
+
+  it('ordinary app startup does not start generate-missing after cache-only', () => {
+    const source = fs.readFileSync(path.join(ROOT, 'App.tsx'), 'utf8');
+    const loadDataBlock = source.match(/const loadData = async[\s\S]*?void loadData\(\)/)?.[0] ?? '';
+    expect(loadDataBlock).toContain("mode: 'cache-only'");
+    expect(loadDataBlock).not.toContain("mode: 'generate-missing'");
   });
 
   it('human-daily endpoint uses withContentGenerationLock', () => {
@@ -224,8 +233,9 @@ describe('content prewarm', () => {
 
   it('Horoscope uses retry and does not keep forbidden system copy', () => {
     const source = fs.readFileSync(path.join(ROOT, 'views/Horoscope.tsx'), 'utf8');
-    expect(source).toContain('fetchLayerWithRetry');
+    expect(source).toContain('ensureFullDaypartForecast');
     expect(source).toContain('ensureHumanDailySection');
+    expect(source).toContain('pollLayerAfterInProgress');
     expect(source).not.toContain('не подготовился');
     expect(source).not.toContain('Подробный разбор доступен в Premium');
     expect(source).not.toContain('повторного списания');

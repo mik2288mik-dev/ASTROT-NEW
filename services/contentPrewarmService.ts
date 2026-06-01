@@ -72,7 +72,7 @@ export type PrewarmUserContentResult = {
   cachedTaskIds: PrewarmTaskId[];
 };
 
-const CACHE_ONLY_DEFAULT_BUDGET_MS = 2_500;
+const CACHE_ONLY_DEFAULT_BUDGET_MS = 1_500;
 const GENERATE_MISSING_DEFAULT_BUDGET_MS = 120_000;
 
 let prewarmInFlight: Promise<PrewarmUserContentResult> | null = null;

@@ -10,9 +10,9 @@ import type {
   UserProfile,
 } from '../types';
 import {
+  ensureFullDaypartForecast,
   getCachedDailyForecastLayer,
   getCachedFullDaypartForecast,
-  getFullDaypartForecast,
   loadDailySignHoroscope,
 } from '../services/astrologyService';
 import {
@@ -30,7 +30,9 @@ import type { HumanDailySectionKey } from '../lib/natalHumanShared';
 
 type HoroscopeTone = 'sign' | 'chart' | 'love' | 'work';
 
-type LayerLoadState = 'missing' | 'cached_ready' | 'generating' | 'in_progress' | 'ready' | 'failed';
+type LayerLoadState = 'missing' | 'cached_ready' | 'loading' | 'in_progress' | 'ready' | 'failed';
+
+const HOROSCOPE_DEV = process.env.NODE_ENV !== 'production';
 type HoroscopeBackgroundState = { sign: string | null; tone: HoroscopeTone };
 
 interface HoroscopeProps {
@@ -372,6 +374,12 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
     useEffect(() => loadSignReading(), [loadSignReading]);
 
     useEffect(() => {
+      if (HOROSCOPE_DEV) {
+        console.warn('[Horoscope] chartId', chartId ?? null);
+      }
+    }, [chartId]);
+
+    useEffect(() => {
       if (!userId || !chartData) return;
       let cancelled = false;
 
@@ -473,20 +481,67 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
         : 'Still preparing. Check back in a moment.';
     };
 
-    const fetchLayerWithRetry = async <T,>(run: () => Promise<T>, attempts = 4): Promise<T> => {
-      let lastError: unknown;
-      for (let attempt = 1; attempt <= attempts; attempt += 1) {
-        try {
-          return await run();
-        } catch (error) {
-          lastError = error;
-          if (!isGenerationInProgressError(error) || attempt >= attempts) {
-            throw error;
-          }
-          await waitMs(getRetryAfterMs(error));
+    const hydrateLayerFromCache = async (layer: HoroscopeLayer): Promise<boolean> => {
+      if (layer === 'chart') {
+        const cached = await getCachedFullDaypartForecast(userId, 'day', {
+          chartId: chartId ?? null,
+          accessTier: 'premium',
+          dateKey: today,
+        });
+        if (HOROSCOPE_DEV) console.warn('[Horoscope] GET daypart', { layer, hit: !!cached });
+        if (!cached) return false;
+        setPersonalDay(cached);
+        setLayerState('chart', 'ready');
+        return true;
+      }
+      if (layer === 'love') {
+        const cached = await getCachedHumanDailySection(
+          userId,
+          'daily_love' as HumanDailySectionKey,
+          chartId ?? undefined,
+          today
+        );
+        if (HOROSCOPE_DEV) console.warn('[Horoscope] GET human-daily', { layer, hit: !!cached?.content });
+        if (!cached?.content) return false;
+        setLoveSection(cached.content);
+        setLayerState('love', 'ready');
+        return true;
+      }
+      if (layer === 'work_money') {
+        const cached = await getCachedHumanDailySection(
+          userId,
+          'daily_work_business' as HumanDailySectionKey,
+          chartId ?? undefined,
+          today
+        );
+        if (HOROSCOPE_DEV) console.warn('[Horoscope] GET human-daily', { layer, hit: !!cached?.content });
+        if (!cached?.content) return false;
+        setWorkSection(cached.content);
+        setLayerState('work_money', 'ready');
+        return true;
+      }
+      return false;
+    };
+
+    const pollLayerAfterInProgress = async (layer: HoroscopeLayer, error: unknown) => {
+      setLayerState(layer, 'in_progress');
+      setLayerError(language === 'ru' ? 'Готовим, секунду…' : 'Almost ready…');
+      const maxPolls = 3;
+      for (let poll = 1; poll <= maxPolls; poll += 1) {
+        await waitMs(getRetryAfterMs(error));
+        if (await hydrateLayerFromCache(layer)) {
+          if (HOROSCOPE_DEV) console.warn('[Horoscope] set ready', { layer, via: 'poll' });
+          setLayerError(null);
+          haptic('open');
+          return;
         }
       }
-      throw lastError;
+      setLayerState(layer, 'failed');
+      setLayerError(
+        language === 'ru'
+          ? 'Не удалось открыть. Нажми «Повторить».'
+          : 'Could not open. Tap Try again.'
+      );
     };
 
     const loadLayer = async (layer: HoroscopeLayer, options?: { forceGenerate?: boolean }) => {
@@ -500,6 +555,8 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
         onRequestPremium?.();
         return;
       }
+
+      if (HOROSCOPE_DEV) console.warn('[Horoscope] open layer start', { layer, chartId: chartId ?? null });
 
       setLayerError(null);
 
@@ -516,99 +573,75 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
           setLayerState('work_money', 'ready');
           return;
         }
-
-        if (layer === 'chart') {
-          const cached = await getCachedFullDaypartForecast(userId, 'day', {
-            chartId: chartId ?? null,
-            accessTier: 'premium',
-            dateKey: today,
-          });
-          if (cached) {
-            setPersonalDay(cached);
-            setLayerState('chart', 'ready');
-            haptic('open');
-            return;
-          }
+        if (await hydrateLayerFromCache(layer)) {
+          haptic('open');
+          return;
         }
-        if (layer === 'love') {
-          const cached = await getCachedHumanDailySection(
-            userId,
-            'daily_love' as HumanDailySectionKey,
-            chartId ?? undefined,
-            today
-          );
-          if (cached?.content) {
-            setLoveSection(cached.content);
-            setLayerState('love', 'ready');
-            haptic('open');
-            return;
-          }
-        }
-        if (layer === 'work_money') {
-          const cached = await getCachedHumanDailySection(
-            userId,
-            'daily_work_business' as HumanDailySectionKey,
-            chartId ?? undefined,
-            today
-          );
-          if (cached?.content) {
-            setWorkSection(cached.content);
-            setLayerState('work_money', 'ready');
-            haptic('open');
-            return;
-          }
-        }
+      } else if (await hydrateLayerFromCache(layer)) {
+        haptic('open');
+        return;
       }
 
-      setLayerState(layer, 'generating');
+      setLayerState(layer, 'loading');
 
       try {
         if (layer === 'chart') {
-          const result = await fetchLayerWithRetry(() =>
-            getFullDaypartForecast(profileRef.current, chartData, 'day', {
-              accessTier: 'premium',
-              date: today,
-              chartId,
-            })
-          );
+          const result = await ensureFullDaypartForecast(profileRef.current, chartData, 'day', {
+            accessTier: 'premium',
+            date: today,
+            chartId,
+          });
+          if (HOROSCOPE_DEV) console.warn('[Horoscope] POST daypart ok', { hasReading: !!result.reading });
+          if (!result.reading) {
+            throw Object.assign(new Error('Empty daypart'), { code: 'EMPTY_INTERPRETATION' });
+          }
           setPersonalDay(result.reading);
           setLayerState('chart', 'ready');
         }
 
         if (layer === 'love') {
-          const result = await fetchLayerWithRetry(() =>
-            ensureHumanDailySection(userId, 'daily_love' as HumanDailySectionKey, chartId ?? undefined, today, {
-              accessTier: 'premium',
-            })
-          );
+          const result = await ensureHumanDailySection(userId, 'daily_love' as HumanDailySectionKey, chartId ?? undefined, today, {
+            accessTier: 'premium',
+          });
+          if (HOROSCOPE_DEV) console.warn('[Horoscope] POST human-daily ok', { layer, hasContent: !!result.content });
+          if (!result.content) {
+            throw Object.assign(new Error('Empty section'), { code: 'EMPTY_INTERPRETATION' });
+          }
           setLoveSection(result.content);
           setLayerState('love', 'ready');
         }
 
         if (layer === 'work_money') {
-          const result = await fetchLayerWithRetry(() =>
-            ensureHumanDailySection(
-              userId,
-              'daily_work_business' as HumanDailySectionKey,
-              chartId ?? undefined,
-              today,
-              { accessTier: 'premium' }
-            )
+          const result = await ensureHumanDailySection(
+            userId,
+            'daily_work_business' as HumanDailySectionKey,
+            chartId ?? undefined,
+            today,
+            { accessTier: 'premium' }
           );
+          if (HOROSCOPE_DEV) console.warn('[Horoscope] POST human-daily ok', { layer, hasContent: !!result.content });
+          if (!result.content) {
+            throw Object.assign(new Error('Empty section'), { code: 'EMPTY_INTERPRETATION' });
+          }
           setWorkSection(result.content);
           setLayerState('work_money', 'ready');
         }
 
+        if (HOROSCOPE_DEV) console.warn('[Horoscope] set ready', { layer });
+        setLayerError(null);
         haptic('open');
       } catch (error) {
+        const err = error as HumanReadingError;
+        if (HOROSCOPE_DEV) {
+          console.warn('[Horoscope] error', {
+            layer,
+            code: err?.code,
+            status: err?.status,
+            message: err?.message,
+          });
+        }
         if (isGenerationInProgressError(error)) {
-          setLayerState(layer, 'in_progress');
-          setLayerError(
-            language === 'ru' ? 'Готовим, секунду…' : 'Almost ready…'
-          );
-          window.setTimeout(() => {
-            void loadLayer(layer, { forceGenerate: true });
-          }, getRetryAfterMs(error));
+          await pollLayerAfterInProgress(layer, error);
           return;
         }
         setLayerState(layer, 'failed');
@@ -633,7 +666,7 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
       const Icon = layer.icon;
       const isPremium = !!profileRef.current.isPremium;
       const state = layerStates[layer.id];
-      const isPending = state === 'generating' || state === 'in_progress';
+      const isPending = state === 'loading' || state === 'in_progress';
       const isFailed = state === 'failed';
       const primaryLabel = isPending
         ? (language === 'ru' ? 'Готовим, секунду…' : 'Almost ready…')
@@ -645,7 +678,7 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
       const handlePrimaryAction = () => {
         haptic('open');
         if (isPremium) {
-          void loadLayer(layer.id, { forceGenerate: isFailed || isPending });
+          void loadLayer(layer.id, { forceGenerate: isFailed });
           return;
         }
         onRequestPremium?.();
