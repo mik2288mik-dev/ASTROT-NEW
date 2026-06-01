@@ -7,7 +7,7 @@ import {
     getChartData,
     runReferralFromStartParam,
 } from './services/storageService';
-import { getOrCalculateChart } from './services/chartService';
+import { getOrCalculateChart, getPrimaryChartId } from './services/chartService';
 import { updateContentIfNeeded } from './services/contentGenerationService';
 import { prewarmUserContent } from './services/contentPrewarmService';
 import { getMoscowTodayKey } from './lib/date-utils';
@@ -456,31 +456,46 @@ const App: React.FC = () => {
                         sunSign: chart.sun.sign,
                         moonSign: chart.moon.sign
                     });
-                    setLoadingMessage(
-                        updatedProfile.language === 'en'
-                            ? 'Preparing your day'
-                            : 'Готовим твой день'
-                    );
-                    setLoadingProgress(62);
+                    setLoadingProgress(68);
+                    const primaryChartId = await getPrimaryChartId(String(updatedProfile.id));
+                    if (primaryChartId != null) {
+                        setActiveChartId(primaryChartId);
+                    }
                     const dateKey = getMoscowTodayKey();
-                    const prewarmKey = `${updatedProfile.id}:${dateKey}:${updatedProfile.isPremium ? 'premium' : 'free'}`;
+                    const prewarmKey = `${updatedProfile.id}:${primaryChartId ?? 'primary'}:${dateKey}:${updatedProfile.isPremium ? 'premium' : 'free'}`;
                     try {
-                        await prewarmUserContent({
+                        const cacheResult = await prewarmUserContent({
                             userId: String(updatedProfile.id),
-                            chartId: null,
+                            chartId: primaryChartId,
                             profile: updatedProfile,
                             chartData: chart,
                             isPremium: !!updatedProfile.isPremium,
                             dateKey,
-                            blockingBudgetMs: 38_000,
-                            onProgress: (ratio) => setLoadingProgress(62 + Math.round(ratio * 24)),
+                            mode: 'cache-only',
+                            blockingBudgetMs: 2_500,
+                            onProgress: (ratio) => setLoadingProgress(68 + Math.round(ratio * 18)),
                         });
                         prewarmCompletedKeyRef.current = prewarmKey;
+                        if (cacheResult.missingTaskIds.length > 0) {
+                            void prewarmUserContent({
+                                userId: String(updatedProfile.id),
+                                chartId: primaryChartId,
+                                profile: updatedProfile,
+                                chartData: chart,
+                                isPremium: !!updatedProfile.isPremium,
+                                dateKey,
+                                mode: 'generate-missing',
+                                onlyTaskIds: cacheResult.missingTaskIds,
+                                blockingBudgetMs: 120_000,
+                            }).catch((prewarmError: any) => {
+                                console.warn('[App] Background generate-missing failed:', prewarmError?.message || prewarmError);
+                            });
+                        }
                     } catch (prewarmError: any) {
-                        console.warn('[App] Startup prewarm failed (non-blocking):', prewarmError?.message || prewarmError);
+                        console.warn('[App] Startup cache hydrate failed (non-blocking):', prewarmError?.message || prewarmError);
                     }
                     setLoadingProgress(88);
-                    await prefetchBaseReportForChart(updatedProfile);
+                    void prefetchBaseReportForChart(updatedProfile, primaryChartId ?? undefined);
                 } else {
                     console.log('[App] Chart unavailable after startup load, going to dashboard');
                 }
@@ -616,24 +631,43 @@ const App: React.FC = () => {
                 fullProfile.language === 'en' ? 'Preparing your day' : 'Готовим твой день'
             );
             setLoadingProgress(72);
+            const primaryChartId = await getPrimaryChartId(String(fullProfile.id));
+            if (primaryChartId != null) {
+                setActiveChartId(primaryChartId);
+            }
             const dateKey = getMoscowTodayKey();
+            const prewarmKey = `${fullProfile.id}:${primaryChartId ?? 'primary'}:${dateKey}:${fullProfile.isPremium ? 'premium' : 'free'}`;
             try {
-                await prewarmUserContent({
+                const cacheResult = await prewarmUserContent({
                     userId: String(fullProfile.id),
-                    chartId: null,
+                    chartId: primaryChartId,
                     profile: fullProfile,
                     chartData: generatedChart,
                     isPremium: !!fullProfile.isPremium,
                     dateKey,
-                    blockingBudgetMs: 40_000,
-                    onProgress: (ratio) => setLoadingProgress(72 + Math.round(ratio * 20)),
+                    mode: 'cache-only',
+                    blockingBudgetMs: 3_000,
+                    onProgress: (ratio) => setLoadingProgress(72 + Math.round(ratio * 12)),
                 });
-                prewarmCompletedKeyRef.current = `${fullProfile.id}:${dateKey}:${fullProfile.isPremium ? 'premium' : 'free'}`;
+                prewarmCompletedKeyRef.current = prewarmKey;
+                void prewarmUserContent({
+                    userId: String(fullProfile.id),
+                    chartId: primaryChartId,
+                    profile: fullProfile,
+                    chartData: generatedChart,
+                    isPremium: !!fullProfile.isPremium,
+                    dateKey,
+                    mode: 'generate-missing',
+                    onlyTaskIds: cacheResult.missingTaskIds,
+                    blockingBudgetMs: 120_000,
+                }).catch((prewarmError: any) => {
+                    console.warn('[App] Onboarding generate-missing failed:', prewarmError?.message || prewarmError);
+                });
             } catch (prewarmError: any) {
-                console.warn('[App] Onboarding prewarm failed (non-blocking):', prewarmError?.message || prewarmError);
+                console.warn('[App] Onboarding cache hydrate failed:', prewarmError?.message || prewarmError);
             }
             setLoadingProgress(90);
-            await prefetchBaseReportForChart(fullProfile);
+            void prefetchBaseReportForChart(fullProfile, primaryChartId ?? undefined);
             setLoadingProgress(100);
             setLoadingMessage(undefined);
             setTimeout(() => setView('dashboard'), 300);

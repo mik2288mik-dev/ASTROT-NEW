@@ -275,7 +275,7 @@ const NatalDailyUnlockSheet: React.FC<{
           <X size={17} strokeWidth={2} />
         </button>
 
-        <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8c6bb1]">Ежедневная интерпретация</p>
+        <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8c6bb1]">Твой день</p>
         <h3 className="mt-2 max-w-[18rem] font-sans text-[24px] font-semibold leading-[1.08] tracking-[-0.02em] text-[#1f1f1f]">
           {meta.title}
         </h3>
@@ -293,7 +293,7 @@ const NatalDailyUnlockSheet: React.FC<{
           </button>
         </div>
         <p className="mt-3 text-center font-sans text-[12.5px] leading-relaxed text-[#777]">
-          Подробные ежедневные слои доступны в Premium.
+          Утро, день, вечер и сферы жизни — в Lumia Premium.
         </p>
       </div>
     </div>
@@ -594,10 +594,10 @@ export const HumanReport: React.FC<Props> = ({
         </section>
 
         <section className="border-t border-[#eeeeee] py-9">
-          <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8c6bb1]">Ежедневная интерпретация</p>
-          <h2 className="mt-2 font-sans text-[28px] font-semibold leading-[1.08] tracking-[-0.02em] text-[#1f1f1f]">Карта сегодня</h2>
+          <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8c6bb1]">Сегодня по твоей карте</p>
+          <h2 className="mt-2 font-sans text-[28px] font-semibold leading-[1.08] tracking-[-0.02em] text-[#1f1f1f]">Что важно сегодня</h2>
           <p className="mt-3 font-sans text-[14.5px] leading-relaxed text-[#5e5e5e]">
-            Отдельный Premium-слой: как постоянная карта звучит на фоне сегодняшних расчетов, без обещаний и прямых указаний.
+            Короткие разборы по любви, работе, деньгам и делам — отдельно, без лишней воды.
           </p>
 
           <div className="mt-6">

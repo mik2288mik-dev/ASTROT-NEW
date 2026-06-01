@@ -32,6 +32,27 @@ const calculationInFlight = new Map<string, Promise<NatalChartData>>();
  * Load primary chart from DB.
  * Returns null only for a real 404. Any other failure is treated as a storage error.
  */
+export async function getPrimaryChartId(userId: string): Promise<number | null> {
+  const safeUserId = assertValidUserId(userId);
+  const url = `${API_BASE_URL}/api/charts?userId=${encodeURIComponent(safeUserId)}`;
+
+  try {
+    const response = await fetchWithTimeout(url, { method: 'GET' }, 8_000);
+    if (!response.ok) {
+      log.warn('[getPrimaryChartId] Non-OK response', { status: response.status });
+      return null;
+    }
+    const payload = await response.json();
+    const charts = Array.isArray(payload?.charts) ? payload.charts : [];
+    const primary = charts.find((row: { is_primary?: boolean }) => row.is_primary) || charts[0];
+    const id = primary?.id;
+    return typeof id === 'number' && Number.isFinite(id) ? id : null;
+  } catch (error: any) {
+    log.warn('[getPrimaryChartId] Failed', { error: error?.message || error });
+    return null;
+  }
+}
+
 export async function getChartFromDB(userId: string): Promise<NatalChartData | null> {
   const safeUserId = assertValidUserId(userId);
   log.info(`[getChartFromDB] userId=${userId}`);

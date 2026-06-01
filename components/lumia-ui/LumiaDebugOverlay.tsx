@@ -2,15 +2,14 @@ import React, { useEffect, useState } from 'react';
 import {
   captureLumiaHomeLayout,
   copyLumiaDebugDump,
-  getLumiaDebugDump,
   installLumiaDebugGlobal,
   isLumiaDebugEnabled,
   lumiaDebugLog,
 } from '../../lib/lumiaDebug';
 
+/** Debug UI only when `?lumiaDebug=1` — no floating preview in normal sessions. */
 export function LumiaDebugOverlay() {
   const [enabled, setEnabled] = useState(false);
-  const [dump, setDump] = useState('');
   const [status, setStatus] = useState('LOG');
 
   useEffect(() => {
@@ -28,13 +27,12 @@ export function LumiaDebugOverlay() {
   const copy = async () => {
     captureLumiaHomeLayout('debug_overlay_copy');
     try {
-      const text = await copyLumiaDebugDump();
-      setDump(text);
+      await copyLumiaDebugDump();
       setStatus('COPIED');
       window.setTimeout(() => setStatus('LOG'), 1200);
     } catch {
-      setDump(getLumiaDebugDump());
-      setStatus('COPY FAIL');
+      setStatus('FAIL');
+      window.setTimeout(() => setStatus('LOG'), 1200);
     }
   };
 
@@ -43,15 +41,6 @@ export function LumiaDebugOverlay() {
       <button type="button" className="lumia-debug-button" onClick={copy}>
         {status}
       </button>
-      {dump ? (
-        <textarea
-          className="lumia-debug-dump"
-          readOnly
-          value={dump}
-          onFocus={(event) => event.currentTarget.select()}
-          aria-label="Lumia debug log"
-        />
-      ) : null}
     </div>
   );
 }

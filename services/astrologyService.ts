@@ -177,10 +177,11 @@ export function mapLegacyHoroscopeToForecastDailyReading(
 
 export const getDailyForecastLayer = async (
   profile: UserProfile,
-  chartData: NatalChartData
+  chartData: NatalChartData,
+  chartId?: number | null
 ): Promise<ForecastDailyReading> => {
   const url = `${API_BASE_URL}/api/content/forecast/daily`;
-  log.info('[getDailyForecastLayer] Starting request', { userId: profile.id });
+  log.info('[getDailyForecastLayer] Starting request', { userId: profile.id, chartId: chartId ?? null });
 
   const data = await fetchContentApi<ForecastDailyReading>(url, {
     method: 'POST',
@@ -189,6 +190,7 @@ export const getDailyForecastLayer = async (
       userId: profile.id,
       profile,
       chartData,
+      chartId: chartId ?? undefined,
     }),
   });
 
@@ -674,6 +676,7 @@ export const getFullDaypartForecast = async (
   options?: {
     accessTier?: 'premium';
     date?: string;
+    chartId?: number | null;
   }
 ): Promise<{ reading: ForecastDaypartReading }> => {
   const accessTier = options?.accessTier || 'premium';
@@ -682,6 +685,7 @@ export const getFullDaypartForecast = async (
     userId: profile.id,
     slot,
     accessTier,
+    chartId: options?.chartId ?? null,
   });
 
   const data = await fetchContentApi<ForecastDaypartReading>(url, {
@@ -694,6 +698,7 @@ export const getFullDaypartForecast = async (
       slot,
       accessTier,
       date: options?.date,
+      chartId: options?.chartId ?? undefined,
     }),
   });
 
@@ -823,12 +828,13 @@ export const getCachedWeeklyForecastLayer = async (
 export const ensureWeeklyForecastLayer = async (
   profile: UserProfile,
   chartData: NatalChartData,
-  period?: string
+  period?: string,
+  chartId?: number | null
 ): Promise<ForecastWeeklyReading> => {
   const userId = String(profile.id || '');
   if (!userId) throw buildApiError('userId is required', 400);
 
-  const cached = await getCachedWeeklyForecastLayer(userId, undefined, period);
+  const cached = await getCachedWeeklyForecastLayer(userId, chartId, period);
   if (cached?.headline) return cached;
 
   const tier = profile.isPremium ? 'premium' : 'free';
@@ -842,6 +848,7 @@ export const ensureWeeklyForecastLayer = async (
       chartData,
       period,
       tier,
+      chartId: chartId ?? undefined,
     }),
   });
   const c = data?.interpretation?.content;
@@ -871,12 +878,13 @@ export const getCachedMonthlyForecastLayer = async (
 export const ensureMonthlyForecastLayer = async (
   profile: UserProfile,
   chartData: NatalChartData,
-  period?: string
+  period?: string,
+  chartId?: number | null
 ): Promise<ForecastMonthlyReading> => {
   const userId = String(profile.id || '');
   if (!userId) throw buildApiError('userId is required', 400);
 
-  const cached = await getCachedMonthlyForecastLayer(userId, undefined, period);
+  const cached = await getCachedMonthlyForecastLayer(userId, chartId, period);
   if (cached?.headline) return cached;
 
   const tier = profile.isPremium ? 'premium' : 'free';
@@ -890,6 +898,7 @@ export const ensureMonthlyForecastLayer = async (
       chartData,
       period,
       tier,
+      chartId: chartId ?? undefined,
     }),
   });
   const c = data?.interpretation?.content;

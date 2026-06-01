@@ -18,6 +18,11 @@ import type {
   HumanDailySectionKey,
   HumanPaidSectionKey,
 } from '../lib/natalHumanShared';
+import {
+  getRetryAfterMs,
+  isGenerationInProgressError,
+  waitMs,
+} from '../lib/contentInterpretation';
 
 type Endpoint = 'portrait' | 'aspects' | 'week' | 'today' | 'dive';
 
@@ -384,6 +389,50 @@ export async function loadHumanPaidSection(
   return request;
 }
 
+export async function ensureHumanDailySection(
+  userId: string,
+  sectionKey: HumanDailySectionKey,
+  chartId?: number,
+  date?: string,
+  options?: {
+    accessTier?: 'premium';
+    maxInProgressRetries?: number;
+  }
+): Promise<HumanReadingResult<InterpretationSection>> {
+  const retries = options?.maxInProgressRetries ?? 3;
+  const cached = await getCachedHumanDailySection(userId, sectionKey, chartId, date);
+  if (cached?.content) return cached;
+
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= retries; attempt += 1) {
+    try {
+      const result = await postHuman<InterpretationSection>('human-daily', userId, {
+        chartId,
+        sectionKey,
+        date,
+        ...(sectionKey === 'daily_overview' ? {} : { accessTier: options?.accessTier || 'premium' }),
+      });
+      const key = dailyKey(userId, sectionKey, chartId, date);
+      dailySectionCache.set(key, result);
+      return result;
+    } catch (error) {
+      lastError = error;
+      if (!isGenerationInProgressError(error) || attempt >= retries) {
+        throw error;
+      }
+      await waitMs(getRetryAfterMs(error));
+      const afterWait = await getCachedHumanDailySection(userId, sectionKey, chartId, date);
+      if (afterWait?.content) {
+        const key = dailyKey(userId, sectionKey, chartId, date);
+        dailySectionCache.set(key, afterWait);
+        return afterWait;
+      }
+    }
+  }
+
+  throw lastError;
+}
+
 export async function loadHumanDailySection(
   userId: string,
   sectionKey: HumanDailySectionKey,
@@ -400,19 +449,7 @@ export async function loadHumanDailySection(
   const existing = dailySectionInFlight.get(key);
   if (existing) return existing;
 
-  const request = (async () => {
-    const cached = await getHuman<InterpretationSection>('human-daily', userId, { chartId, sectionKey, date });
-    const result = cached?.content
-      ? cached
-        : await postHuman<InterpretationSection>('human-daily', userId, {
-            chartId,
-            sectionKey,
-            date,
-            ...(sectionKey === 'daily_overview' ? {} : { accessTier: options?.accessTier || 'premium' }),
-          });
-    dailySectionCache.set(key, result);
-    return result;
-  })().finally(() => {
+  const request = ensureHumanDailySection(userId, sectionKey, chartId, date, options).finally(() => {
     dailySectionInFlight.delete(key);
   });
 
@@ -430,7 +467,7 @@ export async function getCachedHumanDailySection(
     return await getHuman<InterpretationSection>('human-daily', userId, { chartId, sectionKey, date });
   } catch (error) {
     const err = error as HumanReadingError;
-    if (err?.status === 403 || err?.status === 404 || err?.status === 409) {
+    if (err?.status === 404 || err?.status === 409) {
       return null;
     }
     throw error;

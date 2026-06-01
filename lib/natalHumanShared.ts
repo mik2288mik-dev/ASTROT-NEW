@@ -125,7 +125,7 @@ export const HUMAN_DAILY_SECTION_META: Record<HumanDailySectionKey, HumanSection
     key: 'daily_overview',
     title: 'Тема дня',
     subtitle: 'Главный дневной вывод по твоей карте',
-    teaser: 'Не общий гороскоп: день разбирается по карте рождения и текущей дате.',
+    teaser: 'Главное на сегодня — по твоей карте, коротко и по делу.',
   },
   daily_work_business: {
     key: 'daily_work_business',

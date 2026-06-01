@@ -7,8 +7,9 @@ import {
   planUsesContentGenerationLock,
 } from '../lib/contentPrewarm';
 import { buildContentGenerationLockKey } from '../lib/contentGenerationLock';
+import { humanDailyCacheKey } from '../lib/natalHumanShared';
 import { assertInterpretationContent, EMPTY_INTERPRETATION } from '../lib/contentInterpretation';
-import { resetPrewarmSessionForTests } from '../services/contentPrewarmService';
+import { resetPrewarmSessionForTests, prewarmUserContent } from '../services/contentPrewarmService';
 
 const ROOT = path.resolve(__dirname, '..');
 
@@ -28,20 +29,56 @@ jest.mock('../services/astrologyService', () => ({
 }));
 
 jest.mock('../services/natalReadingService', () => ({
-  getCachedHumanDailySection: jest.fn().mockResolvedValue({ content: { title: 't', content: 'c' } }),
-  loadHumanDailySection: jest.fn().mockResolvedValue({ content: { title: 'ok', content: 'text' } }),
+  getCachedHumanDailySection: jest.fn().mockResolvedValue(null),
+  ensureHumanDailySection: jest.fn().mockResolvedValue({ content: { title: 't', content: 'c' } }),
 }));
 
 import {
   getCachedDailyForecastLayer,
   getDailyForecastLayer,
+  getFullDaypartForecast,
+  getPremiumNatalFullLayer,
+  ensureWeeklyForecastLayer,
+  ensureMonthlyForecastLayer,
 } from '../services/astrologyService';
-import { prewarmUserContent } from '../services/contentPrewarmService';
+import { ensureHumanDailySection } from '../services/natalReadingService';
+
+const profileFixture = {
+  id: 'user-1',
+  name: 'Test',
+  birthDate: '1990-01-01',
+  birthTime: '12:00',
+  birthPlace: 'Moscow',
+  isSetup: true,
+  language: 'ru' as const,
+  theme: 'dark' as const,
+  isPremium: true,
+  isAdmin: false,
+  loginStreak: 0,
+  chartSlots: 1,
+};
+
+const chartFixture = {
+  sun: { sign: 'Aries', degree: 10 },
+  moon: { sign: 'Taurus', degree: 20 },
+  rising: { sign: 'Gemini', degree: 30 },
+} as any;
 
 describe('content prewarm', () => {
   beforeEach(() => {
     resetPrewarmSessionForTests();
     jest.clearAllMocks();
+    (getCachedDailyForecastLayer as jest.Mock).mockResolvedValue({
+      date: '2026-05-29',
+      headline: 'h',
+      summary: 's',
+      chance: 'c',
+      risk: 'r',
+      focus: 'f',
+      reading: 'r',
+      context: 'c',
+      advice: [],
+    });
   });
 
   it('Free startup prewarm plan contains forecast daily, natal anchor, daily_overview', () => {
@@ -55,53 +92,72 @@ describe('content prewarm', () => {
   it('Premium startup prewarm plan contains all Free items plus premium layers', () => {
     const free = buildFreePrewarmPlan('2026-05-29').map((item) => item.id);
     const premium = buildPremiumPrewarmPlan('2026-05-29').map((item) => item.id);
-
     for (const id of free) {
       expect(premium).toContain(id);
     }
-
-    expect(premium).toContain('forecast_daypart_morning');
     expect(premium).toContain('forecast_daypart_day');
-    expect(premium).toContain('forecast_daypart_evening');
-    expect(premium).toContain('forecast_weekly');
-    expect(premium).toContain('forecast_monthly');
-    expect(premium).toContain('natal_full');
     expect(premium).toContain('human_daily_love');
-    expect(premium).toContain('human_daily_work_business');
     expect(premium).toContain('human_daily_money');
   });
 
-  it('prewarm skips existing cached content', async () => {
-    const result = await prewarmUserContent({
+  it('cache-only startup does not call generation methods', async () => {
+    await prewarmUserContent({
       userId: 'user-1',
-      chartId: 7,
-      profile: {
-        id: 'user-1',
-        name: 'Test',
-        birthDate: '1990-01-01',
-        birthTime: '12:00',
-        birthPlace: 'Moscow',
-        isSetup: true,
-        language: 'ru',
-        theme: 'dark',
-        isPremium: false,
-        isAdmin: false,
-        loginStreak: 0,
-        chartSlots: 1,
-      },
-      chartData: {
-        sun: { sign: 'Aries', degree: 10 },
-        moon: { sign: 'Taurus', degree: 20 },
-        rising: { sign: 'Gemini', degree: 30 },
-      } as any,
-      isPremium: false,
+      chartId: 42,
+      profile: profileFixture,
+      chartData: chartFixture,
+      isPremium: true,
       dateKey: '2026-05-29',
-      blockingBudgetMs: 5000,
+      mode: 'cache-only',
+      blockingBudgetMs: 2_500,
     });
 
-    expect(getCachedDailyForecastLayer).toHaveBeenCalled();
     expect(getDailyForecastLayer).not.toHaveBeenCalled();
-    expect(result.completed.some((item) => item.id === 'forecast_daily' && item.status === 'skipped')).toBe(true);
+    expect(getFullDaypartForecast).not.toHaveBeenCalled();
+    expect(ensureHumanDailySection).not.toHaveBeenCalled();
+    expect(getPremiumNatalFullLayer).not.toHaveBeenCalled();
+    expect(ensureWeeklyForecastLayer).not.toHaveBeenCalled();
+    expect(ensureMonthlyForecastLayer).not.toHaveBeenCalled();
+  });
+
+  it('repeated startup with cached content does not call generation', async () => {
+    await prewarmUserContent({
+      userId: 'user-1',
+      chartId: 42,
+      profile: profileFixture,
+      chartData: chartFixture,
+      isPremium: true,
+      dateKey: '2026-05-29',
+      mode: 'cache-only',
+    });
+    jest.clearAllMocks();
+    resetPrewarmSessionForTests();
+
+    await prewarmUserContent({
+      userId: 'user-1',
+      chartId: 42,
+      profile: profileFixture,
+      chartData: chartFixture,
+      isPremium: true,
+      dateKey: '2026-05-29',
+      mode: 'cache-only',
+    });
+
+    expect(getDailyForecastLayer).not.toHaveBeenCalled();
+    expect(getFullDaypartForecast).not.toHaveBeenCalled();
+    expect(ensureHumanDailySection).not.toHaveBeenCalled();
+  });
+
+  it('human-daily prewarm and Horoscope use the same cacheKey', () => {
+    const dateKey = '2026-05-29';
+    const loveItem = buildPremiumPrewarmPlan(dateKey).find((item) => item.id === 'human_daily_love');
+    expect(loveItem?.cacheKey).toBe(humanDailyCacheKey(dateKey, 'daily_love'));
+    expect(loveItem?.accessTier).toBe('premium');
+    expect(loveItem?.contentVariant).toBe('living');
+
+    const daypartItem = buildPremiumPrewarmPlan(dateKey).find((item) => item.id === 'forecast_daypart_day');
+    expect(daypartItem?.cacheKey).toBe(`${dateKey}:day`);
+    expect(daypartItem?.accessTier).toBe('premium');
   });
 
   it('forecast daily prewarm uses content generation lock on API', () => {
@@ -119,20 +175,18 @@ describe('content prewarm', () => {
     expect(key).toContain('content-generation:7:free:forecast:daily:2026-05-29');
   });
 
-  it('Horoscope uses retry flow instead of primary-generation-only copy', () => {
-    const source = fs.readFileSync(path.join(ROOT, 'views/Horoscope.tsx'), 'utf8');
-    expect(source).toContain('fetchLayerWithRetry');
-    expect(source).toContain('getCachedFullDaypartForecast');
-    expect(source).not.toContain('не подготовился');
-    expect(source).not.toContain('Подробный разбор доступен в Premium');
-    expect(source).not.toContain('повторного списания');
+  it('App startup uses cache-only prewarm by default', () => {
+    const source = fs.readFileSync(path.join(ROOT, 'App.tsx'), 'utf8');
+    expect(source).toContain("mode: 'cache-only'");
+    expect(source).not.toContain('blockingBudgetMs: 38_000');
+    expect(source).toContain("mode: 'generate-missing'");
+    expect(source).toContain('getPrimaryChartId');
   });
 
-  it('App startup calls prewarmUserContent after chart load', () => {
-    const source = fs.readFileSync(path.join(ROOT, 'App.tsx'), 'utf8');
-    expect(source).toContain('prewarmUserContent');
-    expect(source).toContain('getOrCalculateChart');
-    expect(source).toContain('Готовим твой день');
+  it('human-daily endpoint uses withContentGenerationLock', () => {
+    const source = fs.readFileSync(path.join(ROOT, 'pages/api/content/natal/human-daily.ts'), 'utf8');
+    expect(source).toContain('withContentGenerationLock');
+    expect(source).toContain('readCached');
   });
 
   it('services throw EMPTY_INTERPRETATION when interpretation.content is missing', () => {
@@ -149,5 +203,31 @@ describe('content prewarm', () => {
     expect(source).toContain("response.status === 202");
     expect(source).toContain('GENERATION_IN_PROGRESS');
     expect(source).toContain('EMPTY_INTERPRETATION');
+  });
+
+  it('user-facing views avoid forbidden system copy', () => {
+    const forbidden = [
+      /Ежедневная интерпретация/i,
+      /Premium-слой/i,
+      /не общий гороскоп/i,
+      /по карте рождения и текущей дате/i,
+      /повторного списания/i,
+    ];
+    const targets = ['views/Horoscope.tsx', 'components/NatalReading/HumanReport.tsx', 'lib/natalHumanShared.ts'];
+    for (const rel of targets) {
+      const source = fs.readFileSync(path.join(ROOT, rel), 'utf8');
+      for (const pattern of forbidden) {
+        expect(source).not.toMatch(pattern);
+      }
+    }
+  });
+
+  it('Horoscope uses retry and does not keep forbidden system copy', () => {
+    const source = fs.readFileSync(path.join(ROOT, 'views/Horoscope.tsx'), 'utf8');
+    expect(source).toContain('fetchLayerWithRetry');
+    expect(source).toContain('ensureHumanDailySection');
+    expect(source).not.toContain('не подготовился');
+    expect(source).not.toContain('Подробный разбор доступен в Premium');
+    expect(source).not.toContain('повторного списания');
   });
 });
