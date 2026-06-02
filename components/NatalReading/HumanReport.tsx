@@ -21,14 +21,12 @@ import {
 } from '../../lib/contentPrewarm';
 import { getMoscowTodayKey } from '../../lib/date-utils';
 import {
-  ensureHumanDailySection,
+  getCachedHumanBaseReport,
   getCachedHumanDailySection,
+  getCachedHumanPaidSection,
   getHumanBaseReportCached,
-  loadHumanBaseReport,
-  loadHumanPaidSection,
   type HumanReadingError,
 } from '../../services/natalReadingService';
-import { waitMs } from '../../lib/contentInterpretation';
 import { PlanetIcon } from '../icons/PlanetIcon';
 import { FormattedAiText } from '../ui/FormattedAiText';
 
@@ -87,7 +85,7 @@ function formatError(error: unknown): string {
     return 'Этот раздел доступен в Premium.';
   }
   if (e?.message) return e.message;
-  return 'Не удалось загрузить раздел. Попробуйте еще раз.';
+  return 'Не удалось загрузить раздел.';
 }
 
 const SectionText: React.FC<{ section: InterpretationSection }> = ({ section }) => (
@@ -155,7 +153,7 @@ const LockedPreview: React.FC<{
           </span>
           <span className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#1f1f1f] px-4 py-2 text-[13px] font-medium text-white">
             <Sparkles size={14} strokeWidth={2} />
-            {isLoading ? 'Готовим раздел...' : 'Прочитать все о себе'}
+            {isLoading ? 'Открываем...' : 'Прочитать все о себе'}
           </span>
         </span>
       </div>
@@ -174,13 +172,9 @@ const DailySectionButton: React.FC<{
   const meta = HUMAN_DAILY_SECTION_META[sectionKey];
   const actionLabel = isLoading
     ? '...'
-    : readinessStatus === 'preparing'
-      ? 'Готовим'
-      : readinessStatus === 'failed'
-        ? 'Повторить'
-        : isPremium
-          ? 'Открыть'
-          : 'Premium';
+    : isPremium
+      ? 'Открыть'
+      : 'Premium';
   return (
     <div className="border-t border-[#eeeeee] py-5">
       <button
@@ -457,11 +451,13 @@ export const HumanReport: React.FC<Props> = ({
     setSectionError(null);
     setPaidLoading(key);
     try {
-      const result = await loadHumanPaidSection(userId, key, chartId, {
-        accessTier: 'premium',
-      });
-      setPaidSections((current) => ({ ...current, [key]: result.content }));
-      setUnlockTarget(null);
+      const cached = await getCachedHumanPaidSection(userId, key, chartId);
+      if (cached?.content) {
+        setPaidSections((current) => ({ ...current, [key]: cached.content }));
+        setUnlockTarget(null);
+      } else {
+        setSectionError('Раздел пока не найден.');
+      }
     } catch (err) {
       setSectionError(formatError(err));
     } finally {
@@ -496,9 +492,13 @@ export const HumanReport: React.FC<Props> = ({
     setSectionError(null);
     setDailyLoading(key);
     try {
-      const result = await ensureHumanDailySection(userId, key, chartId, todayKey);
-      setDailySections((current) => ({ ...current, [key]: result.content }));
-      setUnlockDailyTarget(null);
+      const cached = await getCachedHumanDailySection(userId, key, chartId, todayKey);
+      if (cached?.content) {
+        setDailySections((current) => ({ ...current, [key]: cached.content }));
+        setUnlockDailyTarget(null);
+      } else {
+        setSectionError('Раздел на сегодня пока не найден.');
+      }
     } catch (err) {
       setSectionError(formatError(err));
     } finally {
@@ -517,24 +517,7 @@ export const HumanReport: React.FC<Props> = ({
         setUnlockDailyTarget(null);
         return;
       }
-
-      const readinessKey = key as PremiumDailyReadinessSectionKey;
-      if (premiumDailyReadiness?.[readinessKey] === 'preparing') {
-        for (let attempt = 1; attempt <= 3; attempt += 1) {
-          await waitMs(1500);
-          const polled = await getCachedHumanDailySection(userId, key, chartId, todayKey);
-          if (polled?.content) {
-            setDailySections((current) => ({ ...current, [key]: polled.content }));
-            setUnlockDailyTarget(null);
-            return;
-          }
-        }
-      }
-
-      const accessOptions = key === 'daily_overview' ? undefined : { accessTier: 'premium' as const };
-      const result = await ensureHumanDailySection(userId, key, chartId, todayKey, accessOptions);
-      setDailySections((current) => ({ ...current, [key]: result.content }));
-      setUnlockDailyTarget(null);
+      setSectionError('Раздел на сегодня пока не найден.');
     } catch (err) {
       setSectionError(formatError(err));
     } finally {
@@ -545,7 +528,7 @@ export const HumanReport: React.FC<Props> = ({
   if (loading) {
     return (
       <div className="mx-auto w-full max-w-reading-wide px-5 py-10">
-        <p className="text-[11px] uppercase tracking-[0.22em] text-[#9a9a9a]">Готовим интерпретацию карты</p>
+        <p className="text-[11px] uppercase tracking-[0.22em] text-[#9a9a9a]">Загружаем интерпретацию карты</p>
         <div className="mt-5 space-y-3">
           {Array.from({ length: 5 }).map((_, index) => (
             <div key={index} className="h-4 rounded-full bg-[#f1f1f1]" style={{ width: `${92 - index * 9}%` }} />
@@ -569,14 +552,21 @@ export const HumanReport: React.FC<Props> = ({
           onClick={() => {
             setLoading(true);
             setError(null);
-            void loadHumanBaseReport(userId, chartId)
-              .then(setReport)
+            void getCachedHumanBaseReport(userId, chartId)
+              .then((cached) => {
+                if (cached) {
+                  setReport(cached);
+                  setError(null);
+                } else {
+                  setError('Разбор карты пока не найден.');
+                }
+              })
               .catch((err) => setError(formatError(err)))
               .finally(() => setLoading(false));
           }}
           className="mt-5 rounded-full bg-[#1f1f1f] px-5 py-2.5 text-[13px] text-white"
         >
-          Повторить
+          Обновить
         </button>
       </div>
     );

@@ -1,12 +1,19 @@
 import type { ContentAccessTier, ContentSurface } from '../types';
-import { getMoscowIsoWeekKey, getMoscowMonthKey } from './date-utils';
-import { NATAL_ANCHOR_CACHE_KEY, NATAL_FULL_CACHE_KEY } from './natalReadings';
-import { humanDailyCacheKey, type HumanDailySectionKey } from './natalHumanShared';
+import {
+  HUMAN_BASE_CACHE_KEY,
+  HUMAN_PAID_SECTION_KEYS,
+  humanDailyCacheKey,
+  humanPaidCacheKey,
+  type HumanDailySectionKey,
+  type HumanPaidSectionKey,
+} from './natalHumanShared';
 
 export type PrewarmPriority = 'high' | 'medium' | 'low';
 
 export type PrewarmTaskId =
+  | 'sign_daily'
   | 'forecast_daily'
+  | 'human_base'
   | 'natal_anchor'
   | 'human_daily_overview'
   | 'forecast_daypart_morning'
@@ -18,6 +25,16 @@ export type PrewarmTaskId =
   | 'human_daily_goals'
   | 'human_daily_best_action'
   | 'human_daily_advice'
+  | 'human_paid_work_business'
+  | 'human_paid_love_relationships'
+  | 'human_paid_money_stability'
+  | 'human_paid_family_home'
+  | 'human_paid_communication_conflicts'
+  | 'human_paid_energy_recovery'
+  | 'human_paid_friendship_social'
+  | 'human_paid_goals_actions'
+  | 'human_paid_shadow_patterns'
+  | 'human_paid_potential_purpose'
   | 'natal_full'
   | 'forecast_weekly'
   | 'forecast_monthly';
@@ -31,6 +48,8 @@ export type PrewarmPlanItem = {
   cacheKey: string;
   /** human-daily section key when applicable */
   sectionKey?: HumanDailySectionKey;
+  /** human paid natal section key when applicable */
+  paidSectionKey?: HumanPaidSectionKey;
   /** forecast daypart slot */
   daypartSlot?: 'morning' | 'day' | 'evening';
 };
@@ -110,6 +129,19 @@ const HUMAN_DAILY_TASK_IDS: Record<HumanDailySectionKey, PrewarmTaskId> = {
   daily_advice: 'human_daily_advice',
 };
 
+export const HUMAN_PAID_TASK_IDS: Record<HumanPaidSectionKey, PrewarmTaskId> = {
+  work_business: 'human_paid_work_business',
+  love_relationships: 'human_paid_love_relationships',
+  money_stability: 'human_paid_money_stability',
+  family_home: 'human_paid_family_home',
+  communication_conflicts: 'human_paid_communication_conflicts',
+  energy_recovery: 'human_paid_energy_recovery',
+  friendship_social: 'human_paid_friendship_social',
+  goals_actions: 'human_paid_goals_actions',
+  shadow_patterns: 'human_paid_shadow_patterns',
+  potential_purpose: 'human_paid_potential_purpose',
+};
+
 function dailyItem(
   sectionKey: HumanDailySectionKey,
   priority: PrewarmPriority,
@@ -127,8 +159,28 @@ function dailyItem(
   };
 }
 
+function paidItem(sectionKey: HumanPaidSectionKey, priority: PrewarmPriority): PrewarmPlanItem {
+  return {
+    id: HUMAN_PAID_TASK_IDS[sectionKey],
+    priority,
+    accessTier: 'premium',
+    contentSurface: 'natal',
+    contentVariant: 'full',
+    cacheKey: humanPaidCacheKey(sectionKey),
+    paidSectionKey: sectionKey,
+  };
+}
+
 export function buildFreePrewarmPlan(dateKey: string): PrewarmPlanItem[] {
   return sortPrewarmPlan([
+    {
+      id: 'sign_daily',
+      priority: 'high',
+      accessTier: 'free',
+      contentSurface: 'forecast',
+      contentVariant: 'daily',
+      cacheKey: dateKey,
+    },
     {
       id: 'forecast_daily',
       priority: 'high',
@@ -138,40 +190,19 @@ export function buildFreePrewarmPlan(dateKey: string): PrewarmPlanItem[] {
       cacheKey: dateKey,
     },
     {
-      id: 'natal_anchor',
+      id: 'human_base',
       priority: 'high',
       accessTier: 'free',
       contentSurface: 'natal',
       contentVariant: 'anchor',
-      cacheKey: NATAL_ANCHOR_CACHE_KEY,
+      cacheKey: HUMAN_BASE_CACHE_KEY,
     },
     dailyItem('daily_overview', 'high', dateKey, 'free'),
   ]);
 }
 
-function moscowDateFromKey(dateKey: string): Date {
-  const [yearRaw, monthRaw, dayRaw] = dateKey.split('-');
-  const year = Number(yearRaw);
-  const month = Number(monthRaw);
-  const day = Number(dayRaw);
-  return new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
-}
-
 export function buildPremiumPrewarmPlan(dateKey: string): PrewarmPlanItem[] {
-  const moscowDate = moscowDateFromKey(dateKey);
-  const weekKey = getMoscowIsoWeekKey(moscowDate);
-  const monthKey = getMoscowMonthKey(moscowDate);
-
   const premiumOnly: PrewarmPlanItem[] = [
-    {
-      id: 'forecast_daypart_morning',
-      priority: 'high',
-      accessTier: 'premium',
-      contentSurface: 'forecast',
-      contentVariant: 'morning',
-      cacheKey: `${dateKey}:morning`,
-      daypartSlot: 'morning',
-    },
     {
       id: 'forecast_daypart_day',
       priority: 'high',
@@ -183,43 +214,9 @@ export function buildPremiumPrewarmPlan(dateKey: string): PrewarmPlanItem[] {
     },
     dailyItem('daily_love', 'high', dateKey, 'premium'),
     dailyItem('daily_work_business', 'high', dateKey, 'premium'),
-    {
-      id: 'forecast_daypart_evening',
-      priority: 'medium',
-      accessTier: 'premium',
-      contentSurface: 'forecast',
-      contentVariant: 'evening',
-      cacheKey: `${dateKey}:evening`,
-      daypartSlot: 'evening',
-    },
     dailyItem('daily_money', 'medium', dateKey, 'premium'),
     dailyItem('daily_goals', 'medium', dateKey, 'premium'),
-    {
-      id: 'natal_full',
-      priority: 'medium',
-      accessTier: 'premium',
-      contentSurface: 'natal',
-      contentVariant: 'full',
-      cacheKey: NATAL_FULL_CACHE_KEY,
-    },
-    dailyItem('daily_best_action', 'medium', dateKey, 'premium'),
-    dailyItem('daily_advice', 'medium', dateKey, 'premium'),
-    {
-      id: 'forecast_weekly',
-      priority: 'low',
-      accessTier: 'premium',
-      contentSurface: 'forecast',
-      contentVariant: 'weekly',
-      cacheKey: weekKey,
-    },
-    {
-      id: 'forecast_monthly',
-      priority: 'low',
-      accessTier: 'premium',
-      contentSurface: 'forecast',
-      contentVariant: 'monthly',
-      cacheKey: monthKey,
-    },
+    ...HUMAN_PAID_SECTION_KEYS.map((sectionKey) => paidItem(sectionKey, 'medium')),
   ];
 
   const free = buildFreePrewarmPlan(dateKey);

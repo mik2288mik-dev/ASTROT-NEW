@@ -6,6 +6,11 @@ import {
   getOrGenerateSignDailyHoroscope,
   normalizeZodiacKey,
 } from '../../../../lib/horoscope/signDaily';
+import {
+  buildContentGenerationLockKey,
+  generationInProgressPayload,
+  withContentGenerationLock,
+} from '../../../../lib/contentGenerationLock';
 
 export const config = { maxDuration: 45 };
 
@@ -50,10 +55,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const reading = await getOrGenerateSignDailyHoroscope(sign, date, language, {
-      allowStaticFallback: !strict,
+    const lockResult = await withContentGenerationLock({
+      lockKey: buildContentGenerationLockKey({
+        userId: `sign:${sign}:${language}`,
+        accessTier: 'free',
+        contentSurface: 'forecast',
+        contentVariant: 'daily',
+        cacheKey: `sign_daily:${date}:${sign}:${language}`,
+      }),
+      operation: `sign-daily-${sign}-${language}`,
+      readCached: async () => {
+        const cached = await getCachedSignDailyHoroscope(sign, date, language);
+        return cached ? { value: cached, source: 'cache' } : null;
+      },
+      generate: () => getOrGenerateSignDailyHoroscope(sign, date, language, {
+        allowStaticFallback: !strict,
+      }),
     });
-    return res.status(200).json({ reading, source: 'generated' });
+
+    if (lockResult.status === 'in_progress') {
+      return res.status(202).json(generationInProgressPayload(lockResult.retryAfterMs));
+    }
+
+    return res.status(200).json({
+      reading: lockResult.value,
+      source: lockResult.fromCache ? (lockResult.source || 'cache') : 'generated',
+    });
   } catch (error: any) {
     const status = error?.status === 503 ? 503 : 500;
     const code = error?.code || (status === 503 ? 'CONTENT_GENERATION_UNAVAILABLE' : 'SIGN_HOROSCOPE_FAILED');

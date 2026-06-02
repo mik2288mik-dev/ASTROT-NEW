@@ -137,6 +137,17 @@ function getLegacyHoroscopeSource(source?: string): DailyHoroscope['source'] {
   return 'cache';
 }
 
+const signDailyClientCache = new Map<string, ForecastDailyReading>();
+const dailyForecastClientCache = new Map<string, ForecastDailyReading>();
+
+function signDailyClientCacheKey(sign: string, date: string, language: 'ru' | 'en') {
+  return `${sign.toLowerCase()}:${date}:${language}`;
+}
+
+function dailyForecastClientCacheKey(userId: string, chartId?: number | null) {
+  return `${userId}:${chartId ?? 'primary'}`;
+}
+
 export function mapForecastDailyToLegacyHoroscope(
   reading: ForecastDailyReading,
   options?: {
@@ -200,6 +211,7 @@ export const getDailyForecastLayer = async (
     throw buildApiError('Daily forecast content is missing', 502, 'EMPTY_INTERPRETATION');
   }
 
+  dailyForecastClientCache.set(dailyForecastClientCacheKey(String(profile.id), chartId), reading);
   return reading;
 };
 
@@ -208,6 +220,9 @@ export const getCachedDailyForecastLayer = async (
   chartId?: number | null
 ): Promise<ForecastDailyReading | null> => {
   if (!userId) return null;
+  const memoryKey = dailyForecastClientCacheKey(userId, chartId);
+  const memoryCached = dailyForecastClientCache.get(memoryKey);
+  if (memoryCached) return memoryCached;
 
   const params = new URLSearchParams({ userId });
   if (chartId != null) {
@@ -223,7 +238,11 @@ export const getCachedDailyForecastLayer = async (
     { notFoundAsNull: true }
   );
 
-  return data?.interpretation?.content ?? null;
+  const reading = data?.interpretation?.content ?? null;
+  if (reading) {
+    dailyForecastClientCache.set(memoryKey, reading);
+  }
+  return reading;
 };
 
 export const loadDailySignHoroscope = async (
@@ -231,17 +250,68 @@ export const loadDailySignHoroscope = async (
   date: string,
   language: 'ru' | 'en' = 'ru'
 ): Promise<ForecastDailyReading> => {
+  return ensureDailySignHoroscope(sign, date, language);
+};
+
+export const getCachedDailySignHoroscope = async (
+  sign: string,
+  date: string,
+  language: 'ru' | 'en' = 'ru'
+): Promise<ForecastDailyReading | null> => {
+  const memoryKey = signDailyClientCacheKey(sign, date, language);
+  const memoryCached = signDailyClientCache.get(memoryKey);
+  if (memoryCached) return memoryCached;
+
   const params = new URLSearchParams({ sign, date, language });
   const url = `${API_BASE_URL}/api/content/horoscope/sign-daily?${params.toString()}`;
-  log.info('[loadDailySignHoroscope] Starting request', { sign, date, language });
+  log.info('[getCachedDailySignHoroscope] Starting request', { sign, date, language });
 
-  let response = await fetchWithTimeout(url, { method: 'GET', cache: 'no-store' }, 4500);
-  if (response.status === 404) {
-    response = await fetchWithTimeout(`${API_BASE_URL}/api/content/horoscope/sign-daily`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sign, date, language, strict: true }),
-    }, 12000);
+  const response = await fetchWithTimeout(url, { method: 'GET', cache: 'no-store' }, 4500);
+  if (response.status === 404) return null;
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw buildApiError(
+      errorData.message || `Sign horoscope failed: ${response.status} ${response.statusText}`,
+      response.status,
+      errorData.code || errorData.error
+    );
+  }
+
+  const payload = await response.json();
+  if (!payload?.reading) {
+    throw buildApiError('Sign horoscope content is missing');
+  }
+
+  const reading = payload.reading as ForecastDailyReading;
+  signDailyClientCache.set(memoryKey, reading);
+  return reading;
+};
+
+export const ensureDailySignHoroscope = async (
+  sign: string,
+  date: string,
+  language: 'ru' | 'en' = 'ru'
+): Promise<ForecastDailyReading> => {
+  const cached = await getCachedDailySignHoroscope(sign, date, language);
+  if (cached) return cached;
+
+  log.info('[ensureDailySignHoroscope] Generating missing sign horoscope', { sign, date, language });
+  const response = await fetchWithTimeout(`${API_BASE_URL}/api/content/horoscope/sign-daily`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sign, date, language, strict: true }),
+  }, 12000);
+
+  if (response.status === 202) {
+    const payload = await response.json().catch(() => ({}));
+    const error = buildApiError(
+      payload.message || 'Generation in progress',
+      202,
+      payload.code || 'GENERATION_IN_PROGRESS',
+      { retryAfterMs: payload.retryAfterMs }
+    );
+    throw error;
   }
 
   if (!response.ok) {
@@ -258,7 +328,9 @@ export const loadDailySignHoroscope = async (
     throw buildApiError('Sign horoscope content is missing');
   }
 
-  return payload.reading as ForecastDailyReading;
+  const reading = payload.reading as ForecastDailyReading;
+  signDailyClientCache.set(signDailyClientCacheKey(sign, date, language), reading);
+  return reading;
 };
 
 export const getTodayOverview = async (
@@ -670,6 +742,18 @@ export const getPremiumDaypartForecast = async (
   return result.reading;
 };
 
+const fullDaypartClientCache = new Map<string, ForecastDaypartReading>();
+
+function fullDaypartClientCacheKey(
+  userId: string,
+  slot: ForecastDaypartSlot,
+  chartId?: number | null,
+  accessTier: ContentAccessTier = 'premium',
+  dateKey?: string
+) {
+  return `${userId}:${chartId ?? 'primary'}:${accessTier}:${dateKey || 'today'}:${slot}`;
+}
+
 export const getFullDaypartForecast = async (
   profile: UserProfile,
   chartData: NatalChartData,
@@ -707,6 +791,11 @@ export const getFullDaypartForecast = async (
   if (!reading) {
     throw buildApiError(`Full ${slot} forecast is missing`, 502, 'EMPTY_INTERPRETATION');
   }
+
+  fullDaypartClientCache.set(
+    fullDaypartClientCacheKey(String(profile.id), slot, options?.chartId ?? null, accessTier, options?.date),
+    reading
+  );
 
   return { reading };
 };
@@ -774,6 +863,10 @@ export const getCachedFullDaypartForecast = async (
 ): Promise<ForecastDaypartReading | null> => {
   if (!userId) return null;
   const accessTier = options?.accessTier || 'premium';
+  const memoryKey = fullDaypartClientCacheKey(userId, slot, options?.chartId ?? null, accessTier, options?.dateKey);
+  const memoryCached = fullDaypartClientCache.get(memoryKey);
+  if (memoryCached) return memoryCached;
+
   const cacheKey = buildForecastFullDayUnlockCacheKey(options?.dateKey || '');
 
   const params = new URLSearchParams({ userId, slot });
@@ -805,7 +898,11 @@ export const getCachedFullDaypartForecast = async (
     throw error;
   }
 
-  return data?.interpretation?.content ?? null;
+  const reading = data?.interpretation?.content ?? null;
+  if (reading) {
+    fullDaypartClientCache.set(memoryKey, reading);
+  }
+  return reading;
 };
 
 function coerceForecastWeeklyReading(raw: any): ForecastWeeklyReading {

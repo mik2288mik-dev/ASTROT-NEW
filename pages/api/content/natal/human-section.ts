@@ -18,6 +18,11 @@ import {
 } from '../../../../lib/natalHumanShared';
 import { logContentApi, warnContentApi } from '../../../../lib/contentApiLogging';
 import { getPremiumEntitlementState } from '../../../../lib/contentArchitecture';
+import {
+  buildContentGenerationLockKey,
+  generationInProgressPayload,
+  withContentGenerationLock,
+} from '../../../../lib/contentGenerationLock';
 
 export const config = { maxDuration: 90 };
 
@@ -162,8 +167,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       'generation_start',
       { accessTier: access.accessTier, metadata: { sectionKey } }
     );
-    const section = await generateHumanPaidSection(ctx.profile, ctx.chartData!, sectionKey);
-    const saved = await saveReading(ctx, cacheOpts, section);
+    const lockResult = await withContentGenerationLock({
+      lockKey: buildContentGenerationLockKey({
+        userId,
+        chartId: ctx.chartId,
+        accessTier: access.accessTier,
+        contentSurface: 'natal',
+        contentVariant: 'full',
+        cacheKey,
+        promptVersion: HUMAN_PAID_PROMPT_VERSION,
+      }),
+      operation: `human-section-${sectionKey}`,
+      readCached: async () => {
+        const again = await getCachedReading<InterpretationSection>(ctx, cacheOpts);
+        return again ? { value: again, source: 'human_v2' } : null;
+      },
+      generate: async () => {
+        const section = await generateHumanPaidSection(ctx.profile, ctx.chartData!, sectionKey);
+        return saveReading(ctx, cacheOpts, section);
+      },
+    });
+
+    if (lockResult.status === 'in_progress') {
+      return res.status(202).json(generationInProgressPayload(lockResult.retryAfterMs));
+    }
+
     logContentApi(
       {
         scope: SCOPE,
@@ -181,8 +209,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     );
     return res.status(200).json({
-      interpretation: saved,
-      source: 'generated',
+      interpretation: lockResult.value,
+      source: lockResult.fromCache ? (lockResult.source || 'human_v2') : 'generated',
       accessTier: access.accessTier,
     });
   } catch (error) {

@@ -12,16 +12,13 @@ import type {
   UserProfile,
 } from '../types';
 import {
-  ensureFullDaypartForecast,
   getCachedDailyForecastLayer,
+  getCachedDailySignHoroscope,
   getCachedFullDaypartForecast,
-  loadDailySignHoroscope,
 } from '../services/astrologyService';
 import {
-  ensureHumanDailySection,
   getCachedHumanDailySection,
 } from '../services/natalReadingService';
-import { getRetryAfterMs, isGenerationInProgressError, waitMs } from '../lib/contentInterpretation';
 import { formatLumiaDate, getMoscowTodayKey } from '../lib/date-utils';
 import { getZodiacSign } from '../constants';
 import { cn } from '../lib/cn';
@@ -32,7 +29,7 @@ import type { PremiumDailyReadinessMap, PremiumDailyReadinessSectionKey } from '
 
 type HoroscopeTone = 'sign' | 'chart' | 'love' | 'work';
 
-type LayerLoadState = 'missing' | 'cached_ready' | 'loading' | 'in_progress' | 'ready' | 'failed';
+type LayerLoadState = 'missing' | 'cached_ready' | 'loading' | 'ready' | 'failed';
 
 const HOROSCOPE_DEV = process.env.NODE_ENV !== 'production';
 const PREMIUM_HUMAN_HYDRATE_KEYS: HumanDailySectionKey[] = [
@@ -387,17 +384,19 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
       setSignError(null);
       setSignReading(null);
 
-      loadDailySignHoroscope(selectedSign, today, language)
+      getCachedDailySignHoroscope(selectedSign, today, language)
         .then((reading) => {
-          if (!cancelled) setSignReading(reading);
+          if (!cancelled) {
+            if (reading) {
+              setSignReading(reading);
+            } else {
+              setSignError(language === 'en' ? 'The horoscope is not ready yet.' : 'Гороскоп на сегодня пока не найден.');
+            }
+          }
         })
         .catch(() => {
           if (!cancelled) {
-            setSignError(
-              language === 'en'
-                ? 'The horoscope is temporarily unavailable. Please try again.'
-                : 'Гороскоп сейчас недоступен. Попробуй ещё раз.'
-            );
+            setSignError(language === 'en' ? 'The horoscope is temporarily unavailable.' : 'Гороскоп сейчас недоступен.');
           }
         })
         .finally(() => {
@@ -505,14 +504,6 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
       return true;
     };
 
-    const pollHumanSectionCache = async (sectionKey: HumanDailySectionKey, attempts = 3): Promise<boolean> => {
-      for (let attempt = 1; attempt <= attempts; attempt += 1) {
-        if (await hydrateHumanSection(sectionKey)) return true;
-        await waitMs(1500);
-      }
-      return false;
-    };
-
     const hydrateLayerFromCache = async (layer: HoroscopeLayer): Promise<boolean> => {
       if (layer === 'chart') {
         const cached = await getCachedFullDaypartForecast(userId, 'day', {
@@ -565,71 +556,7 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
         return;
       }
 
-      setLayerState(layer, 'loading');
-
-      try {
-        if (layer === 'chart') {
-          const result = await ensureFullDaypartForecast(profileRef.current, chartData, 'day', {
-            accessTier: 'premium',
-            date: today,
-            chartId,
-          });
-          if (HOROSCOPE_DEV) console.warn('[Horoscope] POST daypart ok', { hasReading: !!result.reading });
-          if (!result.reading) {
-            throw Object.assign(new Error('Empty daypart'), { code: 'EMPTY_INTERPRETATION' });
-          }
-          setPersonalDay(result.reading);
-          setLayerState('chart', 'ready');
-          haptic('open');
-          return;
-        }
-
-        if (humanSectionKey) {
-          const readiness =
-            isPremiumReadinessKey(humanSectionKey) ? premiumDailyReadiness?.[humanSectionKey] : undefined;
-          if (readiness === 'preparing') {
-            setLayerState(layer, 'in_progress');
-            if (await pollHumanSectionCache(humanSectionKey)) {
-              haptic('open');
-              return;
-            }
-          }
-
-          const result = await ensureHumanDailySection(userId, humanSectionKey, chartId ?? undefined, today, {
-            accessTier: 'premium',
-          });
-          if (HOROSCOPE_DEV) {
-            console.warn('[Horoscope] POST human-daily ok', {
-              sectionKey: humanSectionKey,
-              hasContent: !!result.content,
-            });
-          }
-          if (!result.content) {
-            throw Object.assign(new Error('Empty section'), { code: 'EMPTY_INTERPRETATION' });
-          }
-          setDailySections((current) => ({ ...current, [humanSectionKey]: result.content }));
-          setLayerState(layer, 'ready');
-          haptic('open');
-          return;
-        }
-      } catch (error) {
-        if (isGenerationInProgressError(error)) {
-          setLayerState(layer, 'in_progress');
-          if (humanSectionKey && (await pollHumanSectionCache(humanSectionKey))) {
-            haptic('open');
-            return;
-          }
-          await waitMs(getRetryAfterMs(error));
-          if (humanSectionKey && (await hydrateHumanSection(humanSectionKey))) {
-            haptic('open');
-            return;
-          }
-        }
-        if (HOROSCOPE_DEV) {
-          console.warn('[Horoscope] error', { layer, message: error instanceof Error ? error.message : String(error) });
-        }
-        setLayerState(layer, 'failed');
-      }
+      setLayerState(layer, 'missing');
     };
 
     useEffect(() => {
@@ -653,19 +580,9 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
     const renderLockedLayer = (layer: LayerConfig) => {
       const Icon = layer.icon;
       const isPremium = !!profileRef.current.isPremium;
-      const state = layerStates[layer.id];
-      const humanKey = resolveDailySectionKey(layer.id, dailySectionKey);
-      const readiness =
-        humanKey && isPremiumReadinessKey(humanKey) ? premiumDailyReadiness?.[humanKey] : undefined;
-      const isPending = state === 'loading' || state === 'in_progress' || readiness === 'preparing';
-      const isFailed = state === 'failed' || readiness === 'failed';
-      const primaryLabel = isPending
-        ? (language === 'ru' ? 'Готовим, секунду…' : 'Almost ready…')
-        : isFailed
-          ? (language === 'ru' ? 'Повторить' : 'Try again')
-          : isPremium
-            ? (language === 'ru' ? 'Читать' : 'Read')
-            : (language === 'ru' ? 'Открыть в Premium' : 'Open in Premium');
+      const primaryLabel = isPremium
+        ? (language === 'ru' ? 'Читать' : 'Read')
+        : (language === 'ru' ? 'Открыть в Premium' : 'Open in Premium');
       const handlePrimaryAction = () => {
         haptic('open');
         if (isPremium) {
@@ -706,7 +623,7 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
             <button
               type="button"
               onClick={handlePrimaryAction}
-              disabled={isPending}
+              disabled={false}
               className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-full bg-[#1f1f1f] px-5 text-[14px] font-semibold text-white shadow-[0_18px_42px_rgba(0,0,0,0.16)] disabled:opacity-60"
             >
               {primaryLabel}
@@ -753,15 +670,6 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
             ) : signError ? (
               <div className="mt-4 max-w-[min(82vw,22rem)] rounded-[18px] border border-[#d9b9b0] bg-white/64 px-4 py-3 text-[13px] leading-relaxed text-[#7d5960]">
                 <p>{signError}</p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    void loadSignReading();
-                  }}
-                  className="mt-3 inline-flex min-h-[36px] items-center rounded-full bg-white px-3 text-[12px] font-semibold text-[#202024]"
-                >
-                  {language === 'en' ? 'Try again' : 'Повторить'}
-                </button>
               </div>
             ) : signReading ? (
               <>

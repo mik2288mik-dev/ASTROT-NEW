@@ -6,7 +6,9 @@ import {
 } from '../lib/contentPrewarm';
 import { getMoscowTodayKey } from '../lib/date-utils';
 import {
+  ensureDailySignHoroscope,
   getCachedDailyForecastLayer,
+  getCachedDailySignHoroscope,
   getCachedFullDaypartForecast,
   ensureMonthlyForecastLayer,
   ensureWeeklyForecastLayer,
@@ -20,8 +22,12 @@ import {
   getPremiumNatalFullLayer,
 } from './astrologyService';
 import {
+  ensureHumanBaseReport,
   ensureHumanDailySection,
+  getCachedHumanBaseReport,
   getCachedHumanDailySection,
+  getCachedHumanPaidSection,
+  loadHumanPaidSection,
 } from './natalReadingService';
 import type { HumanDailySectionKey } from '../lib/natalHumanShared';
 import {
@@ -117,8 +123,15 @@ async function probePrewarmItem(
   const language = input.profile.language === 'en' ? 'en' : 'ru';
 
   switch (item.id) {
+    case 'sign_daily': {
+      const sign = String(input.chartData?.sun?.sign || '').trim();
+      if (!sign) return false;
+      return !!(await getCachedDailySignHoroscope(sign, dateKey, language));
+    }
     case 'forecast_daily':
       return !!(await getCachedDailyForecastLayer(userId, chartId));
+    case 'human_base':
+      return !!(await getCachedHumanBaseReport(userId, chartId ?? undefined));
     case 'natal_anchor':
       return !!(await getCachedNatalAnchorLayer(userId, language, chartId));
     case 'forecast_daypart_morning':
@@ -136,6 +149,9 @@ async function probePrewarmItem(
     case 'natal_full':
       return !!(await getCachedPremiumNatalFullLayer(userId, language, chartId));
     default:
+      if (item.paidSectionKey) {
+        return !!(await getCachedHumanPaidSection(userId, item.paidSectionKey, chartId ?? undefined));
+      }
       if (!item.sectionKey) return false;
       return probeHumanDailyCached(userId, item.sectionKey, chartId, dateKey);
   }
@@ -148,9 +164,22 @@ async function generatePrewarmItem(
   const { profile, chartData, userId, chartId, dateKey = getMoscowTodayKey() } = input;
 
   switch (item.id) {
+    case 'sign_daily': {
+      const sign = String(chartData?.sun?.sign || '').trim();
+      if (!sign) return;
+      await runWithGenerationRetry('sign-daily', 3, () =>
+        ensureDailySignHoroscope(sign, dateKey, profile.language === 'en' ? 'en' : 'ru')
+      );
+      return;
+    }
     case 'forecast_daily':
       await runWithGenerationRetry('forecast:daily', 3, () =>
         getDailyForecastLayer(profile, chartData, chartId)
+      );
+      return;
+    case 'human_base':
+      await runWithGenerationRetry('human-base', 3, () =>
+        ensureHumanBaseReport(userId, chartId ?? undefined)
       );
       return;
     case 'natal_anchor':
@@ -185,6 +214,15 @@ async function generatePrewarmItem(
       );
       return;
     default:
+      if (item.paidSectionKey) {
+        const paidSectionKey = item.paidSectionKey;
+        await runWithGenerationRetry(`human-paid:${paidSectionKey}`, 3, () =>
+          loadHumanPaidSection(userId, paidSectionKey, chartId ?? undefined, {
+            accessTier: 'premium',
+          })
+        );
+        return;
+      }
       if (!item.sectionKey) return;
       await runWithGenerationRetry(`human-daily:${item.sectionKey}`, 3, () =>
         ensureHumanDailySection(userId, item.sectionKey!, chartId ?? undefined, dateKey, {

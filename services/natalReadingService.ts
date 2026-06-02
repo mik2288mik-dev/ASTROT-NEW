@@ -192,6 +192,14 @@ export function getHumanBaseReportCached(userId: string, chartId?: number): Nata
   return baseReportCache.get(baseKey(userId, chartId)) || null;
 }
 
+export function getHumanPaidSectionCached(
+  userId: string,
+  sectionKey: HumanPaidSectionKey,
+  chartId?: number
+): HumanReadingResult<InterpretationSection> | null {
+  return paidSectionCache.get(paidKey(userId, sectionKey, chartId)) || null;
+}
+
 function buildHumanUrl(
   endpoint: HumanEndpoint,
   userId: string,
@@ -327,20 +335,33 @@ async function getHuman<T>(
   };
 }
 
-export async function loadHumanBaseReport(
+export async function getCachedHumanBaseReport(
+  userId: string,
+  chartId?: number
+): Promise<NatalInterpretationReport | null> {
+  const key = baseKey(userId, chartId);
+  const memoryCached = baseReportCache.get(key);
+  if (memoryCached) return memoryCached;
+
+  const cached = await getHuman<NatalInterpretationReport>('human-base', userId, { chartId });
+  if (!cached?.content) return null;
+  baseReportCache.set(key, cached.content);
+  return cached.content;
+}
+
+export async function ensureHumanBaseReport(
   userId: string,
   chartId?: number
 ): Promise<NatalInterpretationReport> {
   const key = baseKey(userId, chartId);
-  const memoryCached = baseReportCache.get(key);
-  if (memoryCached) return memoryCached;
+  const cached = await getCachedHumanBaseReport(userId, chartId);
+  if (cached) return cached;
 
   const existing = baseReportInFlight.get(key);
   if (existing) return existing;
 
   const request = (async () => {
-    const cached = await getHuman<NatalInterpretationReport>('human-base', userId, { chartId });
-    const content = cached?.content || (await postHuman<NatalInterpretationReport>('human-base', userId, { chartId })).content;
+    const content = (await postHuman<NatalInterpretationReport>('human-base', userId, { chartId })).content;
     baseReportCache.set(key, content);
     return content;
   })().finally(() => {
@@ -349,6 +370,13 @@ export async function loadHumanBaseReport(
 
   baseReportInFlight.set(key, request);
   return request;
+}
+
+export async function loadHumanBaseReport(
+  userId: string,
+  chartId?: number
+): Promise<NatalInterpretationReport> {
+  return ensureHumanBaseReport(userId, chartId);
 }
 
 export function prefetchHumanBaseReport(userId: string, chartId?: number): Promise<NatalInterpretationReport> {
@@ -387,6 +415,31 @@ export async function loadHumanPaidSection(
 
   paidSectionInFlight.set(key, request);
   return request;
+}
+
+export async function getCachedHumanPaidSection(
+  userId: string,
+  sectionKey: HumanPaidSectionKey,
+  chartId?: number
+): Promise<HumanReadingResult<InterpretationSection> | null> {
+  const key = paidKey(userId, sectionKey, chartId);
+  const memoryCached = paidSectionCache.get(key);
+  if (memoryCached?.content) return memoryCached;
+
+  try {
+    const cached = await getHuman<InterpretationSection>('human-section', userId, { chartId, sectionKey });
+    if (cached?.content) {
+      paidSectionCache.set(key, cached);
+      return cached;
+    }
+    return null;
+  } catch (error) {
+    const err = error as HumanReadingError;
+    if (err?.status === 404 || err?.status === 403 || err?.status === 409) {
+      return null;
+    }
+    throw error;
+  }
 }
 
 export async function ensureHumanDailySection(
@@ -463,8 +516,17 @@ export async function getCachedHumanDailySection(
   chartId?: number,
   date?: string
 ): Promise<HumanReadingResult<InterpretationSection> | null> {
+  const key = dailyKey(userId, sectionKey, chartId, date);
+  const memoryCached = dailySectionCache.get(key);
+  if (memoryCached?.content) return memoryCached;
+
   try {
-    return await getHuman<InterpretationSection>('human-daily', userId, { chartId, sectionKey, date });
+    const cached = await getHuman<InterpretationSection>('human-daily', userId, { chartId, sectionKey, date });
+    if (cached?.content) {
+      dailySectionCache.set(key, cached);
+      return cached;
+    }
+    return null;
   } catch (error) {
     const err = error as HumanReadingError;
     if (err?.status === 404 || err?.status === 409) {

@@ -58,11 +58,14 @@ describe('horoscope single-card navigation', () => {
     expect(source).toContain('HUMAN_DAILY_SECTION_META');
   });
 
-  it('Horoscope generates human daily sections on demand', () => {
+  it('Horoscope opens human daily sections from cache only', () => {
     const source = read('views/Horoscope.tsx');
 
-    expect(source).toContain('ensureHumanDailySection');
-    expect(source).not.toContain("if (layer === 'love' || layer === 'work_money') {\n        setLayerState(layer, 'missing');");
+    expect(source).toContain('getCachedHumanDailySection');
+    expect(source).not.toContain('ensureHumanDailySection');
+    expect(source).not.toContain('ensureFullDaypartForecast');
+    expect(source).not.toContain('loadDailySignHoroscope');
+    expect(source).not.toMatch(/Try again|Повторить|Готовим|Вернись/);
   });
 
   it('Horoscope single mode keeps Premium CTA and no one-off Stars copy', () => {

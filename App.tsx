@@ -17,7 +17,6 @@ import {
     type PremiumDailyReadinessMap,
 } from './lib/contentPrewarm';
 import {
-    CACHE_ONLY_PREWARM_BUDGET_MS,
     ENABLE_LEGACY_DASHBOARD_CONTENT_SYNC,
 } from './lib/appStartupFlags';
 import { getMoscowTodayKey } from './lib/date-utils';
@@ -48,11 +47,13 @@ import { LumiaBottomTabBar } from './components/lumia-ui/LumiaBottomTabBar';
 import { captureLumiaHomeLayout, installLumiaDebugGlobal, lumiaDebugLog } from './lib/lumiaDebug';
 import {
     clearHumanReadingSessionCache,
+    getCachedHumanBaseReport,
     getHumanBaseReportCached,
 } from './services/natalReadingService';
 
 // Get owner ID from environment variables for security
 const OWNER_ID = process.env.NEXT_PUBLIC_OWNER_ID || '';
+const CONTENT_DB_FIRST_BUDGET_MS = 240_000;
 
 if (!OWNER_ID) {
     console.warn('[App] OWNER_ID not configured. Admin features will not be available.');
@@ -160,62 +161,25 @@ const App: React.FC = () => {
     const viewRef = useRef<ViewState>('onboarding');
     const navigationHistoryRef = useRef<ViewState[]>([]);
 
-    const startPremiumDailyReadinessPrewarm = useCallback((input: {
-        userId: string;
-        chartId: number | null;
-        profile: UserProfile;
-        chartData: NatalChartData;
+    const applyPremiumDailyReadinessResult = useCallback((input: {
         isPremium: boolean;
-        dateKey: string;
-        cacheResult: PrewarmUserContentResult;
+        result: PrewarmUserContentResult | null;
     }) => {
-        if (!input.isPremium) {
+        if (!input.isPremium || !input.result) {
             setPremiumDailyReadiness({});
             return;
         }
 
-        const cachedReady = buildPremiumDailyReadinessMap(input.cacheResult.cachedTaskIds, 'ready');
-        const missingTaskIds = filterPremiumDailyReadinessTaskIds(input.cacheResult.missingTaskIds);
-        const preparing = buildPremiumDailyReadinessMap(missingTaskIds, 'preparing');
-        const unavailable = buildPremiumDailyReadinessMap(PREMIUM_DAILY_READINESS_TASK_IDS, 'failed');
+        const readyTaskIds = filterPremiumDailyReadinessTaskIds(
+            input.result.completed
+                .filter((item) => item.status === 'cached' || item.status === 'generated')
+                .map((item) => item.id)
+        );
+        const failedTaskIds = PREMIUM_DAILY_READINESS_TASK_IDS.filter((id) => !readyTaskIds.includes(id));
 
         setPremiumDailyReadiness({
-            ...unavailable,
-            ...cachedReady,
-            ...preparing,
-        });
-
-        if (missingTaskIds.length === 0) return;
-
-        void prewarmUserContent({
-            userId: input.userId,
-            chartId: input.chartId,
-            profile: input.profile,
-            chartData: input.chartData,
-            isPremium: true,
-            dateKey: input.dateKey,
-            mode: 'generate-missing',
-            onlyTaskIds: missingTaskIds,
-            blockingBudgetMs: 120_000,
-        }).then((result) => {
-            const readyTaskIds = filterPremiumDailyReadinessTaskIds(
-                result.completed
-                    .filter((item) => item.status === 'cached' || item.status === 'generated')
-                    .map((item) => item.id)
-            );
-            const failedTaskIds = missingTaskIds.filter((id) => !readyTaskIds.includes(id));
-
-            setPremiumDailyReadiness((current) => ({
-                ...current,
-                ...buildPremiumDailyReadinessMap(readyTaskIds, 'ready'),
-                ...buildPremiumDailyReadinessMap(failedTaskIds, 'failed'),
-            }));
-        }).catch((prewarmError: any) => {
-            console.warn('[App] Premium daily readiness prewarm failed:', prewarmError?.message || prewarmError);
-            setPremiumDailyReadiness((current) => ({
-                ...current,
-                ...buildPremiumDailyReadinessMap(missingTaskIds, 'failed'),
-            }));
+            ...buildPremiumDailyReadinessMap(failedTaskIds, 'failed'),
+            ...buildPremiumDailyReadinessMap(readyTaskIds, 'ready'),
         });
     }, []);
 
@@ -254,8 +218,54 @@ const App: React.FC = () => {
             setPreloadedHumanReport(cached);
             return cached;
         }
+        const dbCached = await getCachedHumanBaseReport(userId, targetChartId).catch((error: any) => {
+            console.warn('[App] Human base report cache read failed:', error?.message || error);
+            return null;
+        });
+        if (dbCached) {
+            setPreloadedHumanReport(dbCached);
+            return dbCached;
+        }
         return null;
     }, []);
+
+    const prepareUserContentDbFirst = useCallback(async (input: {
+        userId: string;
+        chartId: number | null;
+        profile: UserProfile;
+        chartData: NatalChartData;
+        isPremium: boolean;
+        dateKey: string;
+        progressStart?: number;
+        progressSpan?: number;
+    }) => {
+        const prewarmKey = `${input.userId}:${input.chartId ?? 'primary'}:${input.dateKey}:${input.isPremium ? 'premium' : 'free'}`;
+        const progressStart = input.progressStart ?? 68;
+        const progressSpan = input.progressSpan ?? 20;
+
+        if (input.isPremium) {
+            setPremiumDailyReadiness(buildPremiumDailyReadinessMap(PREMIUM_DAILY_READINESS_TASK_IDS, 'preparing'));
+        } else {
+            setPremiumDailyReadiness({});
+        }
+
+        const result = await prewarmUserContent({
+            userId: input.userId,
+            chartId: input.chartId,
+            profile: input.profile,
+            chartData: input.chartData,
+            isPremium: input.isPremium,
+            dateKey: input.dateKey,
+            mode: 'generate-missing',
+            blockingBudgetMs: CONTENT_DB_FIRST_BUDGET_MS,
+            onProgress: (ratio) => setLoadingProgress(progressStart + Math.round(ratio * progressSpan)),
+        });
+
+        prewarmCompletedKeyRef.current = prewarmKey;
+        applyPremiumDailyReadinessResult({ isPremium: input.isPremium, result });
+        await prefetchBaseReportForChart(input.profile, input.chartId ?? undefined);
+        return result;
+    }, [applyPremiumDailyReadinessResult, prefetchBaseReportForChart]);
 
     const loadPrimaryChartOnce = useCallback(async (targetProfile: UserProfile): Promise<NatalChartData | null> => {
         const key = getPrimaryChartLoadKey(targetProfile);
@@ -522,36 +532,22 @@ const App: React.FC = () => {
                         }
                     }
                     const dateKey = getMoscowTodayKey();
-                    const prewarmKey = `${updatedProfile.id}:${primaryChartId ?? 'primary'}:${dateKey}:${updatedProfile.isPremium ? 'premium' : 'free'}`;
                     try {
-                        const cacheResult = await prewarmUserContent({
+                        await prepareUserContentDbFirst({
                             userId: String(updatedProfile.id),
                             chartId: primaryChartId,
                             profile: updatedProfile,
                             chartData: chart,
                             isPremium: !!updatedProfile.isPremium,
                             dateKey,
-                            mode: 'cache-only',
-                            blockingBudgetMs: CACHE_ONLY_PREWARM_BUDGET_MS,
-                            onProgress: (ratio) => setLoadingProgress(68 + Math.round(ratio * 12)),
-                        });
-                        prewarmCompletedKeyRef.current = prewarmKey;
-                        startPremiumDailyReadinessPrewarm({
-                            userId: String(updatedProfile.id),
-                            chartId: primaryChartId,
-                            profile: updatedProfile,
-                            chartData: chart,
-                            isPremium: !!updatedProfile.isPremium,
-                            dateKey,
-                            cacheResult,
+                            progressStart: 68,
+                            progressSpan: 20,
                         });
                     } catch (prewarmError: any) {
-                        console.warn('[App] Startup cache hydrate failed (non-blocking):', prewarmError?.message || prewarmError);
+                        console.warn('[App] Startup DB-first content flow failed:', prewarmError?.message || prewarmError);
                         setPremiumDailyReadiness({});
-                        prewarmCompletedKeyRef.current = prewarmKey;
                     }
                     setLoadingProgress(88);
-                    void prefetchBaseReportForChart(updatedProfile, primaryChartId ?? undefined);
                 } else {
                     console.log('[App] Chart unavailable after startup load, going to dashboard');
                 }
@@ -576,7 +572,7 @@ const App: React.FC = () => {
             cancelled = true;
             clearSafety();
         };
-    }, [loadPrimaryChartOnce, prefetchBaseReportForChart, resolveAuthoritativeAdminStatus, startPremiumDailyReadinessPrewarm]);
+    }, [loadPrimaryChartOnce, prepareUserContentDbFirst, resolveAuthoritativeAdminStatus]);
 
     // Legacy profile.generatedContent sync — disabled on ordinary login (see appStartupFlags).
     useEffect(() => {
@@ -693,35 +689,22 @@ const App: React.FC = () => {
                 setActiveChartId(primaryChartId);
             }
             const dateKey = getMoscowTodayKey();
-            const prewarmKey = `${fullProfile.id}:${primaryChartId ?? 'primary'}:${dateKey}:${fullProfile.isPremium ? 'premium' : 'free'}`;
             try {
-                const cacheResult = await prewarmUserContent({
+                await prepareUserContentDbFirst({
                     userId: String(fullProfile.id),
                     chartId: primaryChartId,
                     profile: fullProfile,
                     chartData: generatedChart,
                     isPremium: !!fullProfile.isPremium,
                     dateKey,
-                    mode: 'cache-only',
-                    blockingBudgetMs: CACHE_ONLY_PREWARM_BUDGET_MS,
-                    onProgress: (ratio) => setLoadingProgress(72 + Math.round(ratio * 12)),
-                });
-                prewarmCompletedKeyRef.current = prewarmKey;
-                startPremiumDailyReadinessPrewarm({
-                    userId: String(fullProfile.id),
-                    chartId: primaryChartId,
-                    profile: fullProfile,
-                    chartData: generatedChart,
-                    isPremium: !!fullProfile.isPremium,
-                    dateKey,
-                    cacheResult,
+                    progressStart: 72,
+                    progressSpan: 18,
                 });
             } catch (prewarmError: any) {
-                console.warn('[App] Onboarding cache hydrate failed:', prewarmError?.message || prewarmError);
+                console.warn('[App] Onboarding DB-first content flow failed:', prewarmError?.message || prewarmError);
                 setPremiumDailyReadiness({});
             }
             setLoadingProgress(90);
-            void prefetchBaseReportForChart(fullProfile, primaryChartId ?? undefined);
             setLoadingProgress(100);
             setLoadingMessage(undefined);
             setTimeout(() => setView('dashboard'), 300);
@@ -821,6 +804,9 @@ const App: React.FC = () => {
        const success = await requestStarsPayment(profile);
        if (success) {
            console.log('[App] Premium payment successful, refreshing profile...');
+           setLoading(true);
+           setLoadingMessage(profile.language === 'en' ? 'Preparing Premium' : 'Готовим Premium');
+           setLoadingProgress(15);
            void recordUserAppEvent({
                eventType: 'natal_upgrade_success',
                section: source === 'natal_story_unlock' ? 'natal_story' : 'premium',
@@ -830,24 +816,52 @@ const App: React.FC = () => {
                    ...(eventPayload || {}),
                },
            });
+           let refreshedProfile: UserProfile | null = null;
            try {
                for (let i = 0; i <= 2; i++) {
                    if (i > 0) await new Promise((r) => setTimeout(r, 1200));
                    const fresh = await getProfile();
                    if (fresh) {
                        const isAdmin = await resolveAuthoritativeAdminStatus(profile.id, fresh.isAdmin);
-                       setProfile({ ...fresh, id: profile.id, isAdmin });
+                       refreshedProfile = { ...fresh, id: profile.id, isAdmin };
+                       setProfile(refreshedProfile);
                        if (fresh.isPremium) break;
                    }
                }
            } catch (error) {
                console.error('[App] Failed to refresh profile:', error);
-               setProfile((prev) => prev ? { ...prev, isPremium: true } : prev);
+               refreshedProfile = { ...profile, isPremium: true };
+               setProfile(refreshedProfile);
+           }
+           const premiumProfile = refreshedProfile?.isPremium
+               ? refreshedProfile
+               : { ...(refreshedProfile || profile), id: profile.id, isPremium: true };
+           setProfile(premiumProfile);
+           if (premiumProfile.isPremium && chartData) {
+               const chartId = activeChartId ?? await getPrimaryChartId(String(premiumProfile.id));
+               if (chartId != null) setActiveChartId(chartId);
+               await prepareUserContentDbFirst({
+                   userId: String(premiumProfile.id),
+                   chartId,
+                   profile: premiumProfile,
+                   chartData,
+                   isPremium: true,
+                   dateKey: getMoscowTodayKey(),
+                   progressStart: 35,
+                   progressSpan: 60,
+               }).catch((prewarmError: any) => {
+                   console.warn('[App] Premium DB-first content flow failed:', prewarmError?.message || prewarmError);
+               });
            }
            setShowPremiumPreview(false);
+           setLoadingProgress(100);
+           setLoadingMessage(undefined);
+           setLoading(false);
            setView('dashboard');
        } else {
            console.log('[App] Premium payment cancelled or failed');
+           setLoading(false);
+           setLoadingMessage(undefined);
        }
     };
 
