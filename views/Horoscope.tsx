@@ -69,6 +69,16 @@ function formatLayerError(error: unknown, language: 'ru' | 'en'): string {
       ? 'Этот разбор доступен в Lumia Premium.'
       : 'This reading is available in Lumia Premium.';
   }
+  if (code === 'PRIMARY_CHART_MISSING') {
+    return language === 'ru'
+      ? 'Для этого разбора нужна натальная карта. Открой карту на главной и попробуй снова.'
+      : 'A natal chart is required. Open your chart from home and try again.';
+  }
+  if (code === 'TIMEOUT') {
+    return language === 'ru'
+      ? 'Генерация заняла слишком много времени. Нажми «Повторить».'
+      : 'Generation took too long. Tap Try again.';
+  }
   if (code === 'GENERATION_IN_PROGRESS') {
     return language === 'ru' ? 'Готовим текст, попробуй ещё раз через пару секунд.' : 'Still preparing, try again in a few seconds.';
   }
@@ -80,6 +90,10 @@ function formatLayerError(error: unknown, language: 'ru' | 'en'): string {
   const message = err?.message || (error instanceof Error ? error.message : '');
   if (message && /[а-яА-ЯёЁ]/.test(message)) return message;
   return language === 'ru' ? 'Не удалось загрузить разбор. Нажми «Повторить».' : 'Could not load this reading. Tap Try again.';
+}
+
+function hasSectionText(section?: InterpretationSection): boolean {
+  return !!section?.content?.trim();
 }
 
 function isPremiumReadinessKey(key: HumanDailySectionKey): key is PremiumDailyReadinessSectionKey {
@@ -481,7 +495,7 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
               return getCachedHumanDailySection(userId, sectionKey, chartId ?? undefined, today)
                 .then((section) => {
                   if (cancelled) return;
-                  if (section?.content) {
+                  if (section?.content?.content?.trim()) {
                     setDailySections((current) => ({ ...current, [sectionKey]: section.content }));
                     if (sectionKey === 'daily_love') {
                       setLayerState('love', 'cached_ready');
@@ -544,7 +558,7 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
       try {
         const cached = await getCachedHumanDailySection(userId, sectionKey, resolvedChartId, today);
         if (HOROSCOPE_DEV) console.warn('[Horoscope] GET human-daily', { sectionKey, hit: !!cached?.content });
-        if (!cached?.content) return false;
+        if (!cached?.content?.content?.trim()) return false;
         setDailySections((current) => ({ ...current, [sectionKey]: cached.content }));
         if (sectionKey === 'daily_love') setLayerState('love', 'ready');
         if (sectionKey === 'daily_work_business' || sectionKey === 'daily_money' || sectionKey === 'daily_goals') {
@@ -589,7 +603,19 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
 
     const loadLayer = async (layer: HoroscopeLayer) => {
       if (layer === 'sign') return;
-      if (!userId || !chartData) {
+      if (!userId) {
+        return;
+      }
+
+      if (!chartData) {
+        setLayerErrors((current) => ({
+          ...current,
+          [layer]:
+            language === 'ru'
+              ? 'Карта ещё загружается. Подожди пару секунд и нажми «Повторить».'
+              : 'Your chart is still loading. Wait a moment, then tap Try again.',
+        }));
+        setLayerState(layer, 'failed');
         return;
       }
 
@@ -613,7 +639,7 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
         setLayerState('chart', 'ready');
         return;
       }
-      if (humanSectionKey && dailySections[humanSectionKey]) {
+      if (humanSectionKey && hasSectionText(dailySections[humanSectionKey])) {
         setLayerState(layer, 'ready');
         return;
       }
@@ -655,14 +681,16 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
 
           const result = await loadHumanDailySection(userId, humanSectionKey, effectiveChartId, today, {
             accessTier: 'premium',
+            profile: profileRef.current,
+            chartData,
           });
           if (HOROSCOPE_DEV) {
             console.warn('[Horoscope] POST human-daily ok', {
               sectionKey: humanSectionKey,
-              hasContent: !!result.content,
+              hasContent: !!result.content?.content?.trim(),
             });
           }
-          if (!result.content) {
+          if (!hasSectionText(result.content)) {
             throw Object.assign(new Error('Empty section'), { code: 'EMPTY_INTERPRETATION' });
           }
           setDailySections((current) => ({ ...current, [humanSectionKey]: result.content }));
@@ -996,8 +1024,8 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
             const isOpen =
               layer.id === 'sign' ||
               (layer.id === 'chart' && !!personalDay) ||
-              (layer.id === 'love' && !!humanSection) ||
-              (layer.id === 'work_money' && !!humanSection);
+              (layer.id === 'love' && hasSectionText(humanSection ?? undefined)) ||
+              (layer.id === 'work_money' && hasSectionText(humanSection ?? undefined));
             const isHydratingLayer =
               !!profileRef.current.isPremium &&
               !isOpen &&

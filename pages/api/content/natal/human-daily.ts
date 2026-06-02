@@ -58,9 +58,9 @@ function getMoscowDayWindow(dateKey: string) {
   };
 }
 
-async function resolveDailyAccess(userId: string): Promise<ResolvedDailyAccess | null> {
+async function resolveDailyAccess(userId: string, profile?: { isPremium?: boolean }): Promise<ResolvedDailyAccess | null> {
   const entitlement = await getPremiumEntitlementState(userId);
-  if (entitlement.isPremium) {
+  if (entitlement.isPremium || profile?.isPremium) {
     return { accessTier: 'premium' };
   }
   return null;
@@ -102,7 +102,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     promptVersion: HUMAN_DAILY_PROMPT_VERSION,
   });
   const window = getMoscowDayWindow(dateKey);
-  const access = await resolveDailyAccess(userId);
+  const access = await resolveDailyAccess(userId, ctx.profile);
   const isFreeOverview = sectionKey === 'daily_overview';
 
   logContentApi(

@@ -499,7 +499,10 @@ export const HumanReport: React.FC<Props> = ({
         setUnlockDailyTarget(null);
         return;
       }
-      const result = await loadHumanDailySection(userId, key, chartId, todayKey);
+      const result = await loadHumanDailySection(userId, key, chartId, todayKey, {
+        profile,
+        chartData,
+      });
       if (result?.content) {
         setDailySections((current) => ({ ...current, [key]: result.content }));
         setUnlockDailyTarget(null);
@@ -524,7 +527,11 @@ export const HumanReport: React.FC<Props> = ({
         setUnlockDailyTarget(null);
         return;
       }
-      const result = await loadHumanDailySection(userId, key, chartId, todayKey, { accessTier: 'premium' });
+      const result = await loadHumanDailySection(userId, key, chartId, todayKey, {
+        accessTier: 'premium',
+        profile,
+        chartData,
+      });
       if (result?.content) {
         setDailySections((current) => ({ ...current, [key]: result.content }));
         setUnlockDailyTarget(null);

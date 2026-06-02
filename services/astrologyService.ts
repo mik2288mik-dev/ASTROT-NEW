@@ -785,7 +785,7 @@ export const getFullDaypartForecast = async (
       date: options?.date,
       chartId: options?.chartId ?? undefined,
     }),
-  });
+  }, { timeoutMs: 90_000 });
 
   const reading = data?.interpretation?.content;
   if (!reading) {

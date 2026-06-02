@@ -9,10 +9,12 @@ import type {
 import type {
   ContentAccessTier,
   InterpretationSection,
+  NatalChartData,
   NatalInterpretationReport,
   NatalStoryCardId,
   NatalStoryShareFormat,
   ProfileCard,
+  UserProfile,
 } from '../types';
 import type {
   HumanDailySectionKey,
@@ -23,6 +25,9 @@ import {
   isGenerationInProgressError,
   waitMs,
 } from '../lib/contentInterpretation';
+import { fetchWithTimeout } from '../lib/fetchWithTimeout';
+
+const HUMAN_GENERATION_TIMEOUT_MS = 90_000;
 
 type Endpoint = 'portrait' | 'aspects' | 'week' | 'today' | 'dive';
 
@@ -264,6 +269,8 @@ async function postHuman<T>(
     sectionKey?: HumanPaidSectionKey | HumanDailySectionKey;
     date?: string;
     accessTier?: 'premium';
+    profile?: UserProfile;
+    chartData?: NatalChartData | null;
   }
 ): Promise<HumanReadingResult<T>> {
   const body: Record<string, unknown> = {
@@ -275,10 +282,28 @@ async function postHuman<T>(
   if (options?.accessTier) {
     body.accessTier = options.accessTier;
   }
-  const response = await fetch(buildHumanUrl(endpoint, userId, options), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
+  if (options?.profile) {
+    body.profile = options.profile;
+  }
+  if (options?.chartData) {
+    body.chartData = options.chartData;
+  }
+  const response = await fetchWithTimeout(
+    buildHumanUrl(endpoint, userId, options),
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    },
+    HUMAN_GENERATION_TIMEOUT_MS
+  ).catch((error: unknown) => {
+    if (error instanceof Error && error.name === 'AbortError') {
+      const err = new Error('Request timed out') as HumanReadingError;
+      err.code = 'TIMEOUT';
+      err.status = 408;
+      throw err;
+    }
+    throw error;
   });
 
   if (response.status === 202) {
@@ -296,7 +321,17 @@ async function postHuman<T>(
 
   const payload = await response.json();
   const content = payload.interpretation?.content as T;
-  if (content == null || (typeof content === 'string' && !content.trim())) {
+  const sectionText =
+    content != null && typeof content === 'object' && content !== null && 'content' in content
+      ? String((content as { content?: unknown }).content || '').trim()
+      : typeof content === 'string'
+        ? content.trim()
+        : '';
+  if (
+    content == null ||
+    (typeof content === 'string' && !sectionText) ||
+    (typeof content === 'object' && content !== null && 'content' in content && !sectionText)
+  ) {
     const err = new Error('Interpretation content is empty') as HumanReadingError;
     err.code = 'EMPTY_INTERPRETATION';
     err.status = 502;
@@ -450,11 +485,13 @@ export async function ensureHumanDailySection(
   options?: {
     accessTier?: 'premium';
     maxInProgressRetries?: number;
+    profile?: UserProfile;
+    chartData?: NatalChartData | null;
   }
 ): Promise<HumanReadingResult<InterpretationSection>> {
   const retries = options?.maxInProgressRetries ?? 3;
   const cached = await getCachedHumanDailySection(userId, sectionKey, chartId, date);
-  if (cached?.content) return cached;
+  if (cached?.content?.content?.trim()) return cached;
 
   let lastError: unknown;
   for (let attempt = 1; attempt <= retries; attempt += 1) {
@@ -463,6 +500,8 @@ export async function ensureHumanDailySection(
         chartId,
         sectionKey,
         date,
+        profile: options?.profile,
+        chartData: options?.chartData,
         ...(sectionKey === 'daily_overview' ? {} : { accessTier: options?.accessTier || 'premium' }),
       });
       const key = dailyKey(userId, sectionKey, chartId, date);
@@ -475,7 +514,7 @@ export async function ensureHumanDailySection(
       }
       await waitMs(getRetryAfterMs(error));
       const afterWait = await getCachedHumanDailySection(userId, sectionKey, chartId, date);
-      if (afterWait?.content) {
+      if (afterWait?.content?.content?.trim()) {
         const key = dailyKey(userId, sectionKey, chartId, date);
         dailySectionCache.set(key, afterWait);
         return afterWait;
@@ -493,11 +532,13 @@ export async function loadHumanDailySection(
   date?: string,
   options?: {
     accessTier?: 'premium';
+    profile?: UserProfile;
+    chartData?: NatalChartData | null;
   }
 ): Promise<HumanReadingResult<InterpretationSection>> {
   const key = dailyKey(userId, sectionKey, chartId, date);
   const memoryCached = dailySectionCache.get(key);
-  if (memoryCached?.content) return memoryCached;
+  if (memoryCached?.content?.content?.trim()) return memoryCached;
 
   const existing = dailySectionInFlight.get(key);
   if (existing) return existing;

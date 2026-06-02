@@ -228,6 +228,8 @@ async function generatePrewarmItem(
       await runWithGenerationRetry(`human-daily:${item.sectionKey}`, 3, () =>
         ensureHumanDailySection(userId, item.sectionKey!, chartId ?? undefined, dateKey, {
           accessTier: item.sectionKey === 'daily_overview' ? undefined : 'premium',
+          profile: input.profile,
+          chartData: input.chartData,
         })
       );
   }

@@ -226,8 +226,24 @@ export async function unlockContentLayer(
 
 export async function getPremiumEntitlementState(userId: string) {
   const entitlement = await db.premium_entitlements.getActive(userId);
+  if (entitlement) {
+    return {
+      isPremium: true,
+      entitlement,
+    };
+  }
+
+  const user = await db.users.get(userId);
+  const premiumUntil = user?.premium_until ? new Date(user.premium_until) : null;
+  if (premiumUntil && !Number.isNaN(premiumUntil.getTime()) && premiumUntil.getTime() > Date.now()) {
+    return {
+      isPremium: true,
+      entitlement: null,
+    };
+  }
+
   return {
-    isPremium: !!entitlement,
-    entitlement,
+    isPremium: false,
+    entitlement: null,
   };
 }
