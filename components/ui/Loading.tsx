@@ -39,25 +39,23 @@ export const Loading: React.FC<LoadingProps> = ({ progress: externalProgress }) 
 
   return (
     <div
-      className="fixed inset-0 z-50 flex min-h-[100dvh] w-full flex-col overflow-hidden"
+      className="fixed inset-0 z-50 h-[100dvh] min-h-[100dvh] w-screen overflow-hidden"
       style={{ backgroundColor: LOADING_BACKDROP }}
       role="status"
       aria-live="polite"
       aria-label={LOADING_LABEL}
     >
-      <div className="relative flex min-h-0 flex-1 items-center justify-center">
-        <img
-          src={LOADING_SPLASH}
-          alt={LOADING_LABEL}
-          decoding="async"
-          fetchPriority="high"
-          className="h-full w-full object-contain object-center"
-        />
-      </div>
+      <img
+        src={LOADING_SPLASH}
+        alt={LOADING_LABEL}
+        decoding="async"
+        fetchPriority="high"
+        className="absolute inset-0 h-full w-full object-cover object-top"
+      />
 
       {showBar ? (
         <div
-          className="shrink-0 px-8 pb-[max(calc(env(safe-area-inset-bottom,0px)+1rem),calc(var(--tg-content-safe-area-inset-bottom,0px)+1rem))] pt-3"
+          className="pointer-events-none absolute inset-x-0 bottom-0 z-10 px-8 pb-[max(calc(env(safe-area-inset-bottom,0px)+1rem),calc(var(--tg-content-safe-area-inset-bottom,0px)+1rem))] pt-3"
           style={{
             paddingTop: 'max(0.75rem, var(--tg-content-safe-area-inset-top, 0px))',
           }}
@@ -71,12 +69,7 @@ export const Loading: React.FC<LoadingProps> = ({ progress: externalProgress }) 
             />
           </div>
         </div>
-      ) : (
-        <div
-          className="shrink-0 pb-[max(env(safe-area-inset-bottom,0px),var(--tg-content-safe-area-inset-bottom,0px))]"
-          aria-hidden
-        />
-      )}
+      ) : null}
     </div>
   );
 };

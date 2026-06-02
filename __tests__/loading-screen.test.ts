@@ -4,11 +4,13 @@ import path from 'path';
 const ROOT = path.join(__dirname, '..');
 
 describe('loading screen', () => {
-  it('uses full-screen splash without cropping', () => {
+  it('uses full-screen splash that fills the viewport', () => {
     const source = fs.readFileSync(path.join(ROOT, 'components/ui/Loading.tsx'), 'utf8');
     expect(source).toContain('/lumia_splash_text_updated_1440x3040.webp');
-    expect(source).toContain('object-contain');
-    expect(source).not.toContain('object-cover');
+    expect(source).toContain('object-cover');
+    expect(source).toContain('object-top');
+    expect(source).toContain('absolute inset-0 h-full w-full');
+    expect(source).not.toContain('object-contain');
     expect(source).toContain('min-h-[100dvh]');
     expect(source).not.toContain('LumiaLogo');
     expect(source).not.toContain('loading-main.webp');
