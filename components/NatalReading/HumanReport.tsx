@@ -25,7 +25,6 @@ import {
   getCachedHumanDailySection,
   getCachedHumanPaidSection,
   getHumanBaseReportCached,
-  loadHumanDailySection,
   type HumanReadingError,
 } from '../../services/natalReadingService';
 import { PlanetIcon } from '../icons/PlanetIcon';
@@ -499,15 +498,6 @@ export const HumanReport: React.FC<Props> = ({
         setUnlockDailyTarget(null);
         return;
       }
-      const result = await loadHumanDailySection(userId, key, chartId, todayKey, {
-        profile,
-        chartData,
-      });
-      if (result?.content) {
-        setDailySections((current) => ({ ...current, [key]: result.content }));
-        setUnlockDailyTarget(null);
-        return;
-      }
       setSectionError('Раздел на сегодня пока не найден.');
     } catch (err) {
       setSectionError(formatError(err));
@@ -524,16 +514,6 @@ export const HumanReport: React.FC<Props> = ({
       const cached = await getCachedHumanDailySection(userId, key, chartId, todayKey);
       if (cached?.content) {
         setDailySections((current) => ({ ...current, [key]: cached.content }));
-        setUnlockDailyTarget(null);
-        return;
-      }
-      const result = await loadHumanDailySection(userId, key, chartId, todayKey, {
-        accessTier: 'premium',
-        profile,
-        chartData,
-      });
-      if (result?.content) {
-        setDailySections((current) => ({ ...current, [key]: result.content }));
         setUnlockDailyTarget(null);
         return;
       }

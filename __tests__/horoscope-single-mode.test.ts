@@ -23,6 +23,8 @@ describe('horoscope single-card navigation', () => {
       "openHoroscope('work_money', { mode: 'single', dailySectionKey: 'daily_goals', source: 'home_card_goals' })"
     );
     expect(source).toContain("openHoroscope('chart', { mode: 'single', source: 'home_card_rhythm' })");
+    expect(source).not.toContain('prefetchHomeCardLayer');
+    expect(source).not.toContain('prefetchAllHomeCardDailyContent');
   });
 
   it('App stores horoscope openMode and dailySectionKey and passes them to Horoscope', () => {
@@ -35,6 +37,7 @@ describe('horoscope single-card navigation', () => {
     expect(source).toContain('setHoroscopeDailySectionKey(options?.dailySectionKey)');
     expect(source).toContain('openMode={horoscopeOpenMode}');
     expect(source).toContain('dailySectionKey={horoscopeDailySectionKey}');
+    expect(source).not.toContain('prefetchHomeCardLayer');
   });
 
   it('Horoscope single mode renders only the selected layer', () => {
@@ -58,13 +61,15 @@ describe('horoscope single-card navigation', () => {
     expect(source).toContain('HUMAN_DAILY_SECTION_META');
   });
 
-  it('Horoscope generates human daily sections on demand', () => {
+  it('Horoscope opens daily cards from startup cache only', () => {
     const source = read('views/Horoscope.tsx');
 
     expect(source).toContain('getCachedHumanDailySection');
-    expect(source).toContain('loadHumanDailySection');
-    expect(source).toContain('ensureFullDaypartForecast');
-    expect(source).toContain('pollHumanSectionCache');
+    expect(source).toContain('getCachedFullDaypartForecast');
+    expect(source).not.toContain('loadHumanDailySection');
+    expect(source).not.toContain('ensureFullDaypartForecast');
+    expect(source).not.toContain('ensureDailySignHoroscope');
+    expect(source).not.toMatch(/Повторить|Try again|Готовим|Вернись/);
   });
 
   it('Horoscope single mode keeps Premium CTA and no one-off Stars copy', () => {

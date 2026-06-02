@@ -12,30 +12,25 @@ import type {
   UserProfile,
 } from '../types';
 import {
-  ensureFullDaypartForecast,
   getCachedDailyForecastLayer,
   getCachedDailySignHoroscope,
   getCachedFullDaypartForecast,
-  ensureDailySignHoroscope,
 } from '../services/astrologyService';
 import {
   getCachedHumanDailySection,
-  loadHumanDailySection,
-  type HumanReadingError,
 } from '../services/natalReadingService';
-import { getRetryAfterMs, isGenerationInProgressError, waitMs } from '../lib/contentInterpretation';
 import { formatLumiaDate, getMoscowTodayKey } from '../lib/date-utils';
 import { getZodiacSign } from '../constants';
 import { cn } from '../lib/cn';
 import { ZodiacIcon } from '../components/icons/ZodiacIcon';
 import { useSwipeBack } from '../lib/useSwipeBack';
 import { HUMAN_DAILY_SECTION_META, type HumanDailySectionKey } from '../lib/natalHumanShared';
-import type { PremiumDailyReadinessMap, PremiumDailyReadinessSectionKey } from '../lib/contentPrewarm';
+import type { PremiumDailyReadinessMap } from '../lib/contentPrewarm';
 import { getPrimaryChartId } from '../services/chartService';
 
 type HoroscopeTone = 'sign' | 'chart' | 'love' | 'work';
 
-type LayerLoadState = 'missing' | 'cached_ready' | 'loading' | 'in_progress' | 'ready' | 'failed';
+type LayerLoadState = 'missing' | 'cached_ready' | 'loading' | 'ready';
 
 const HOROSCOPE_DEV = process.env.NODE_ENV !== 'production';
 const PREMIUM_HUMAN_HYDRATE_KEYS: HumanDailySectionKey[] = [
@@ -61,44 +56,10 @@ function applyDailyMeta(layer: LayerConfig, sectionKey: HumanDailySectionKey | n
   return { ...layer, title: meta.title, subtitle: meta.subtitle };
 }
 
-function formatLayerError(error: unknown, language: 'ru' | 'en'): string {
-  const err = error as HumanReadingError | undefined;
-  const code = err?.code || '';
-  if (code === 'PREMIUM_REQUIRED') {
-    return language === 'ru'
-      ? 'Этот разбор доступен в Lumia Premium.'
-      : 'This reading is available in Lumia Premium.';
-  }
-  if (code === 'PRIMARY_CHART_MISSING') {
-    return language === 'ru'
-      ? 'Для этого разбора нужна натальная карта. Открой карту на главной и попробуй снова.'
-      : 'A natal chart is required. Open your chart from home and try again.';
-  }
-  if (code === 'TIMEOUT') {
-    return language === 'ru'
-      ? 'Генерация заняла слишком много времени. Нажми «Повторить».'
-      : 'Generation took too long. Tap Try again.';
-  }
-  if (code === 'GENERATION_IN_PROGRESS') {
-    return language === 'ru' ? 'Готовим текст, попробуй ещё раз через пару секунд.' : 'Still preparing, try again in a few seconds.';
-  }
-  if (code === 'EMPTY_INTERPRETATION' || code === 'CONTENT_GENERATION_UNAVAILABLE') {
-    return language === 'ru'
-      ? 'Не удалось получить текст. Нажми «Повторить».'
-      : 'Could not load the text. Tap Try again.';
-  }
-  const message = err?.message || (error instanceof Error ? error.message : '');
-  if (message && /[а-яА-ЯёЁ]/.test(message)) return message;
-  return language === 'ru' ? 'Не удалось загрузить разбор. Нажми «Повторить».' : 'Could not load this reading. Tap Try again.';
-}
-
 function hasSectionText(section?: InterpretationSection): boolean {
   return !!section?.content?.trim();
 }
 
-function isPremiumReadinessKey(key: HumanDailySectionKey): key is PremiumDailyReadinessSectionKey {
-  return key === 'daily_love' || key === 'daily_work_business' || key === 'daily_money' || key === 'daily_goals';
-}
 type HoroscopeBackgroundState = { sign: string | null; tone: HoroscopeTone };
 
 interface HoroscopeProps {
@@ -396,7 +357,6 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
       love: openMode === 'single' && initialLayer === 'love' ? 'loading' : 'missing',
       work_money: openMode === 'single' && initialLayer === 'work_money' ? 'loading' : 'missing',
     }));
-    const [layerErrors, setLayerErrors] = useState<Partial<Record<HoroscopeLayer, string>>>({});
 
     const setLayerState = (layer: HoroscopeLayer, state: LayerLoadState) => {
       setLayerStates((prev) => ({ ...prev, [layer]: state }));
@@ -429,10 +389,7 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
 
       const loadReading = async () => {
         try {
-          let reading = await getCachedDailySignHoroscope(selectedSign, today, language);
-          if (!reading) {
-            reading = await ensureDailySignHoroscope(selectedSign, today, language);
-          }
+          const reading = await getCachedDailySignHoroscope(selectedSign, today, language);
           if (!cancelled) {
             if (reading) {
               setSignReading(reading);
@@ -589,33 +546,18 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
       return hydrateHumanSection(sectionKey, effectiveChartId);
     };
 
-    const pollHumanSectionCache = async (
-      sectionKey: HumanDailySectionKey,
-      effectiveChartId?: number,
-      attempts = 5
-    ): Promise<boolean> => {
-      for (let attempt = 1; attempt <= attempts; attempt += 1) {
-        if (await hydrateHumanSection(sectionKey, effectiveChartId)) return true;
-        await waitMs(1500);
-      }
-      return false;
-    };
-
     const loadLayer = async (layer: HoroscopeLayer) => {
       if (layer === 'sign') return;
       if (!userId) {
         return;
       }
 
+      if (!profileRef.current.isPremium) {
+        return;
+      }
+
       if (!chartData) {
-        setLayerErrors((current) => ({
-          ...current,
-          [layer]:
-            language === 'ru'
-              ? 'Карта ещё загружается. Подожди пару секунд и нажми «Повторить».'
-              : 'Your chart is still loading. Wait a moment, then tap Try again.',
-        }));
-        setLayerState(layer, 'failed');
+        setLayerState(layer, 'loading');
         return;
       }
 
@@ -643,87 +585,27 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
         return;
       }
 
-      setLayerErrors((current) => ({ ...current, [layer]: undefined }));
       setLayerState(layer, 'loading');
 
       try {
-        if (layer === 'chart') {
-          const result = await ensureFullDaypartForecast(profileRef.current, chartData, 'day', {
-            accessTier: 'premium',
-            date: today,
-            chartId: effectiveChartId,
-          });
-          if (HOROSCOPE_DEV) console.warn('[Horoscope] POST daypart ok', { hasReading: !!result.reading });
-          if (!result.reading) {
-            throw Object.assign(new Error('Empty daypart'), { code: 'EMPTY_INTERPRETATION' });
-          }
-          setPersonalDay(result.reading);
-          setLayerState('chart', 'ready');
-          haptic('open');
-          return;
-        }
-
-        if (humanSectionKey) {
-          const readiness =
-            isPremiumReadinessKey(humanSectionKey) ? premiumDailyReadiness?.[humanSectionKey] : undefined;
-          if (readiness === 'preparing') {
-            setLayerState(layer, 'in_progress');
-            if (await pollHumanSectionCache(humanSectionKey, effectiveChartId)) {
-              haptic('open');
-              return;
-            }
-          }
-
-          const result = await loadHumanDailySection(userId, humanSectionKey, effectiveChartId, today, {
-            accessTier: 'premium',
-            profile: profileRef.current,
-            chartData,
-          });
-          if (HOROSCOPE_DEV) {
-            console.warn('[Horoscope] POST human-daily ok', {
-              sectionKey: humanSectionKey,
-              hasContent: !!result.content?.content?.trim(),
-            });
-          }
-          if (!hasSectionText(result.content)) {
-            throw Object.assign(new Error('Empty section'), { code: 'EMPTY_INTERPRETATION' });
-          }
-          setDailySections((current) => ({ ...current, [humanSectionKey]: result.content }));
-          setLayerState(layer, 'ready');
-          haptic('open');
-          return;
-        }
+        const hydrated = await hydrateLayerFromCache(layer, effectiveChartId);
+        setLayerState(layer, hydrated ? 'ready' : 'missing');
       } catch (error) {
-        if (isGenerationInProgressError(error)) {
-          setLayerState(layer, 'in_progress');
-          if (humanSectionKey && (await pollHumanSectionCache(humanSectionKey, effectiveChartId))) {
-            haptic('open');
-            return;
-          }
-          await waitMs(getRetryAfterMs(error));
-          if (humanSectionKey && (await hydrateHumanSection(humanSectionKey, effectiveChartId))) {
-            haptic('open');
-            return;
-          }
-        }
         if (HOROSCOPE_DEV) {
-          console.warn('[Horoscope] error', { layer, message: error instanceof Error ? error.message : String(error) });
+          console.warn('[Horoscope] cache hydrate failed', {
+            layer,
+            message: error instanceof Error ? error.message : String(error),
+          });
         }
-        const humanErr = error as HumanReadingError;
-        if (humanErr?.code === 'PREMIUM_REQUIRED') {
-          onRequestPremium?.();
-        }
-        setLayerErrors((current) => ({ ...current, [layer]: formatLayerError(error, language) }));
-        setLayerState(layer, 'failed');
+        setLayerState(layer, 'missing');
       }
     };
 
     useEffect(() => {
-      if (openMode !== 'single' || initialLayer === 'sign') return;
+      if (openMode !== 'single' || initialLayer === 'sign' || !profile.isPremium) return;
       setLayerState(initialLayer, 'loading');
-      setLayerErrors((current) => ({ ...current, [initialLayer]: undefined }));
       void loadLayer(initialLayer);
-    }, [chartData, chartId, dailySectionKey, initialLayer, openMode, today, userId]);
+    }, [chartData, chartId, dailySectionKey, initialLayer, openMode, profile.isPremium, today, userId]);
 
     useEffect(() => {
       if (isSingleMode) return;
@@ -741,29 +623,12 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
     const renderLockedLayer = (layer: LayerConfig) => {
       const Icon = layer.icon;
       const isPremium = !!profileRef.current.isPremium;
-      const state = layerStates[layer.id];
-      const humanKey = resolveDailySectionKey(layer.id, dailySectionKey);
-      const readiness =
-        humanKey && isPremiumReadinessKey(humanKey) ? premiumDailyReadiness?.[humanKey] : undefined;
-      const ignoreReadiness = isSingleMode && isPremium;
-      const isPending =
-        state === 'loading' ||
-        state === 'in_progress' ||
-        (!ignoreReadiness && readiness === 'preparing');
-      const isFailed = state === 'failed' || (!ignoreReadiness && readiness === 'failed');
-      const primaryLabel = isPending
-        ? (language === 'ru' ? 'Готовим, секунду…' : 'Almost ready…')
-        : isFailed
-          ? (language === 'ru' ? 'Повторить' : 'Try again')
-          : isPremium
-            ? (language === 'ru' ? 'Читать' : 'Read')
-            : (language === 'ru' ? 'Открыть в Premium' : 'Open in Premium');
+      if (isPremium) {
+        return renderLayerSkeleton(layer);
+      }
+      const primaryLabel = language === 'ru' ? 'Открыть в Premium' : 'Open in Premium';
       const handlePrimaryAction = () => {
         haptic('open');
-        if (isPremium) {
-          void loadLayer(layer.id);
-          return;
-        }
         onRequestPremium?.();
       };
 
@@ -798,45 +663,10 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
             <button
               type="button"
               onClick={handlePrimaryAction}
-              disabled={isPending}
+              disabled={false}
               className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-full bg-[#1f1f1f] px-5 text-[14px] font-semibold text-white shadow-[0_18px_42px_rgba(0,0,0,0.16)] disabled:opacity-60"
             >
               {primaryLabel}
-              <ArrowRight size={16} />
-            </button>
-          </div>
-        </div>
-      );
-    };
-
-    const renderLayerError = (layer: LayerConfig, message?: string) => {
-      const Icon = layer.icon;
-      const errorMessage =
-        message ||
-        (language === 'ru' ? 'Не удалось загрузить разбор. Нажми «Повторить».' : 'Could not load this reading. Tap Try again.');
-      return (
-        <div className="relative flex h-full min-h-0 flex-col justify-end overflow-hidden pb-2">
-          <div className="pointer-events-none absolute -right-7 top-[18%] opacity-[0.13]">
-            <Icon size={168} strokeWidth={0.8} />
-          </div>
-          <div className="relative max-w-[min(82vw,22rem)] pb-2">
-            <SparkleTitle tone={layer.tone} className="max-w-[min(82vw,22rem)] text-[clamp(2.35rem,10vw,3.2rem)]">
-              {layer.title}
-            </SparkleTitle>
-            <p className="mt-4 max-w-[min(82vw,22rem)] rounded-[18px] border border-[#d9b9b0] bg-white/64 px-4 py-3 text-[14px] leading-relaxed text-[#7d5960]">
-              {errorMessage}
-            </p>
-          </div>
-          <div className="relative mt-6">
-            <button
-              type="button"
-              onClick={() => {
-                haptic('open');
-                void loadLayer(layer.id);
-              }}
-              className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-full bg-[#1f1f1f] px-5 text-[14px] font-semibold text-white shadow-[0_18px_42px_rgba(0,0,0,0.16)]"
-            >
-              {language === 'ru' ? 'Повторить' : 'Try again'}
               <ArrowRight size={16} />
             </button>
           </div>
@@ -1028,12 +858,9 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
             const isHydratingLayer =
               !isOpen &&
               (layerStates[layer.id] === 'loading' ||
-                layerStates[layer.id] === 'in_progress' ||
                 (layer.id === 'chart'
-                  ? layerStates.chart === 'loading' || layerStates.chart === 'in_progress'
+                  ? layerStates.chart === 'loading'
                   : !!sectionKey && !!hydratingDailySections[sectionKey]));
-            const isFailedLayer = layerStates[layer.id] === 'failed';
-
             return (
               <section
                 key={layer.id}
@@ -1056,9 +883,7 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
                         ? renderHumanSection(humanSection!, layer)
                         : isHydratingLayer
                           ? renderLayerSkeleton(layer)
-                          : isFailedLayer && isSingleMode
-                            ? renderLayerError(layer, layerErrors[layer.id])
-                            : renderLockedLayer(layer)}
+                          : renderLockedLayer(layer)}
 
                 {isOpen && !isSingleMode && index < visibleLayers.length - 1 ? <div className="mt-4 border-t border-black/10" /> : null}
               </section>

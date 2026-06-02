@@ -23,7 +23,6 @@ import {
     ENABLE_LEGACY_DASHBOARD_CONTENT_SYNC,
 } from './lib/appStartupFlags';
 import { getMoscowTodayKey } from './lib/date-utils';
-import { prefetchHomeCardLayer } from './lib/homeCardDailyContent';
 import { Onboarding } from './views/Onboarding';
 import { Dashboard } from './views/Dashboard';
 import { NatalChart } from './views/NatalChart';
@@ -58,7 +57,7 @@ import {
 // Get owner ID from environment variables for security
 const OWNER_ID = process.env.NEXT_PUBLIC_OWNER_ID || '';
 const CONTENT_GENERATION_BUDGET_MS = 240_000;
-const STARTUP_SAFETY_TIMEOUT_MS = 20_000;
+const STARTUP_SAFETY_TIMEOUT_MS = CONTENT_GENERATION_BUDGET_MS + 60_000;
 const STARTUP_REQUIRED_RETRY_BUDGET_MS = 90_000;
 
 if (!OWNER_ID) {
@@ -668,6 +667,7 @@ const App: React.FC = () => {
                             dateKey,
                             progressStart: 68,
                             progressSpan: 20,
+                            awaitGeneration: true,
                         });
                     } catch (prewarmError: any) {
                         console.warn('[App] Startup DB-first content flow failed:', prewarmError?.message || prewarmError);
@@ -1051,17 +1051,8 @@ const App: React.FC = () => {
         setHoroscopeInitialLayer(layer);
         setHoroscopeOpenMode(mode);
         setHoroscopeDailySectionKey(options?.dailySectionKey);
-        if (layer !== 'sign' && chartData?.sun && chartData?.moon && profile) {
-            prefetchHomeCardLayer({
-                profile,
-                chartData,
-                chartId: primaryChartId,
-                layer,
-                dailySectionKey: options?.dailySectionKey,
-            });
-        }
         navigateTo('horoscope');
-    }, [chartData, navigateTo, primaryChartId, profile]);
+    }, [navigateTo]);
 
     const refreshPrimaryChartState = useCallback(async () => {
         try {
