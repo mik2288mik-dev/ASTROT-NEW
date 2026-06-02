@@ -348,6 +348,7 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
     const [signError, setSignError] = useState<string | null>(null);
     const [personalDay, setPersonalDay] = useState<ForecastDaypartReading | null>(null);
     const [dailySections, setDailySections] = useState<Partial<Record<HumanDailySectionKey, InterpretationSection>>>({});
+    const [hydratingDailySections, setHydratingDailySections] = useState<Partial<Record<HumanDailySectionKey, boolean>>>({});
     const [layerStates, setLayerStates] = useState<Record<HoroscopeLayer, LayerLoadState>>({
       sign: 'ready',
       chart: 'missing',
@@ -425,6 +426,7 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
         const tasks: Promise<void>[] = [];
 
         if (isPremium) {
+          setLayerState('chart', personalDay ? 'cached_ready' : 'loading');
           tasks.push(
             getCachedFullDaypartForecast(userId, 'day', {
               chartId: chartId ?? null,
@@ -441,24 +443,29 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
             })
           );
           tasks.push(
-            ...PREMIUM_HUMAN_HYDRATE_KEYS.map((sectionKey) =>
-              getCachedHumanDailySection(userId, sectionKey, chartId ?? undefined, today).then((section) => {
-                if (cancelled) return;
-                if (section?.content) {
-                  setDailySections((current) => ({ ...current, [sectionKey]: section.content }));
-                  if (sectionKey === 'daily_love') {
-                    setLayerState('love', 'cached_ready');
+            ...PREMIUM_HUMAN_HYDRATE_KEYS.map((sectionKey) => {
+              setHydratingDailySections((current) => ({ ...current, [sectionKey]: true }));
+              return getCachedHumanDailySection(userId, sectionKey, chartId ?? undefined, today)
+                .then((section) => {
+                  if (cancelled) return;
+                  if (section?.content) {
+                    setDailySections((current) => ({ ...current, [sectionKey]: section.content }));
+                    if (sectionKey === 'daily_love') {
+                      setLayerState('love', 'cached_ready');
+                    }
+                    if (sectionKey === 'daily_work_business' || sectionKey === 'daily_money' || sectionKey === 'daily_goals') {
+                      setLayerState('work_money', 'cached_ready');
+                    }
+                  } else if (sectionKey === 'daily_love') {
+                    setLayerState('love', 'missing');
                   }
-                  if (sectionKey === 'daily_work_business' || sectionKey === 'daily_money') {
-                    setLayerState('work_money', 'cached_ready');
+                })
+                .finally(() => {
+                  if (!cancelled) {
+                    setHydratingDailySections((current) => ({ ...current, [sectionKey]: false }));
                   }
-                } else if (sectionKey === 'daily_love') {
-                  setLayerState('love', 'missing');
-                } else if (sectionKey === 'daily_work_business') {
-                  setLayerState('work_money', 'missing');
-                }
-              })
-            )
+                });
+            })
           );
         } else {
           tasks.push(
@@ -493,15 +500,20 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
     }, [chartData, chartId, premiumDailyReadiness, today, userId]);
 
     const hydrateHumanSection = async (sectionKey: HumanDailySectionKey): Promise<boolean> => {
-      const cached = await getCachedHumanDailySection(userId, sectionKey, chartId ?? undefined, today);
-      if (HOROSCOPE_DEV) console.warn('[Horoscope] GET human-daily', { sectionKey, hit: !!cached?.content });
-      if (!cached?.content) return false;
-      setDailySections((current) => ({ ...current, [sectionKey]: cached.content }));
-      if (sectionKey === 'daily_love') setLayerState('love', 'ready');
-      if (sectionKey === 'daily_work_business' || sectionKey === 'daily_money') {
-        setLayerState('work_money', 'ready');
+      setHydratingDailySections((current) => ({ ...current, [sectionKey]: true }));
+      try {
+        const cached = await getCachedHumanDailySection(userId, sectionKey, chartId ?? undefined, today);
+        if (HOROSCOPE_DEV) console.warn('[Horoscope] GET human-daily', { sectionKey, hit: !!cached?.content });
+        if (!cached?.content) return false;
+        setDailySections((current) => ({ ...current, [sectionKey]: cached.content }));
+        if (sectionKey === 'daily_love') setLayerState('love', 'ready');
+        if (sectionKey === 'daily_work_business' || sectionKey === 'daily_money' || sectionKey === 'daily_goals') {
+          setLayerState('work_money', 'ready');
+        }
+        return true;
+      } finally {
+        setHydratingDailySections((current) => ({ ...current, [sectionKey]: false }));
       }
-      return true;
     };
 
     const hydrateLayerFromCache = async (layer: HoroscopeLayer): Promise<boolean> => {
@@ -551,6 +563,7 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
         setLayerState(layer, 'ready');
         return;
       }
+      setLayerState(layer, 'loading');
       if (await hydrateLayerFromCache(layer)) {
         haptic('open');
         return;
@@ -629,6 +642,28 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
               {primaryLabel}
               <ArrowRight size={16} />
             </button>
+          </div>
+        </div>
+      );
+    };
+
+    const renderLayerSkeleton = (layer: LayerConfig) => {
+      const Icon = layer.icon;
+      return (
+        <div className="relative flex h-full min-h-0 flex-col justify-end overflow-hidden pb-2" aria-busy="true">
+          <div className="pointer-events-none absolute -right-7 top-[18%] opacity-[0.1]">
+            <Icon size={168} strokeWidth={0.8} />
+          </div>
+          <div className="relative max-w-[min(82vw,22rem)] pb-2">
+            <SparkleTitle tone={layer.tone} className="max-w-[min(82vw,22rem)] text-[clamp(2.35rem,10vw,3.2rem)]">
+              {layer.title}
+            </SparkleTitle>
+            <div className="mt-5 space-y-3">
+              <div className="h-4 w-5/6 animate-pulse rounded-full bg-black/10" />
+              <div className="h-3 w-full animate-pulse rounded-full bg-black/10" />
+              <div className="h-3 w-4/5 animate-pulse rounded-full bg-black/10" />
+              <div className="h-3 w-2/3 animate-pulse rounded-full bg-black/10" />
+            </div>
           </div>
         </div>
       );
@@ -793,6 +828,12 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
               (layer.id === 'chart' && !!personalDay) ||
               (layer.id === 'love' && !!humanSection) ||
               (layer.id === 'work_money' && !!humanSection);
+            const isHydratingLayer =
+              !!profileRef.current.isPremium &&
+              !isOpen &&
+              (layer.id === 'chart'
+                ? layerStates.chart === 'loading'
+                : !!sectionKey && !!hydratingDailySections[sectionKey]);
 
             return (
               <section
@@ -814,6 +855,8 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
                       ? renderHumanSection(humanSection, layer)
                       : layer.id === 'work_money' && humanSection
                         ? renderHumanSection(humanSection, layer)
+                        : isHydratingLayer
+                          ? renderLayerSkeleton(layer)
                         : renderLockedLayer(layer)}
 
                 {isOpen && !isSingleMode && index < visibleLayers.length - 1 ? <div className="mt-4 border-t border-black/10" /> : null}

@@ -13,7 +13,9 @@ import { prewarmUserContent, type PrewarmUserContentResult } from './services/co
 import {
     buildPremiumDailyReadinessMap,
     filterPremiumDailyReadinessTaskIds,
+    getStartupRequiredTaskIds,
     PREMIUM_DAILY_READINESS_TASK_IDS,
+    type PrewarmTaskId,
     type PremiumDailyReadinessMap,
 } from './lib/contentPrewarm';
 import {
@@ -54,6 +56,8 @@ import {
 // Get owner ID from environment variables for security
 const OWNER_ID = process.env.NEXT_PUBLIC_OWNER_ID || '';
 const CONTENT_DB_FIRST_BUDGET_MS = 240_000;
+const STARTUP_SAFETY_TIMEOUT_MS = CONTENT_DB_FIRST_BUDGET_MS + 60_000;
+const STARTUP_REQUIRED_RETRY_BUDGET_MS = 90_000;
 
 if (!OWNER_ID) {
     console.warn('[App] OWNER_ID not configured. Admin features will not be available.');
@@ -81,6 +85,42 @@ function getPrimaryChartLoadKey(profile: UserProfile): string {
 
 function wait(ms: number): Promise<null> {
     return new Promise((resolve) => setTimeout(() => resolve(null), ms));
+}
+
+function getReadyPrewarmTaskIds(result: PrewarmUserContentResult | null): Set<PrewarmTaskId> {
+    const ready = new Set<PrewarmTaskId>();
+    for (const item of result?.completed || []) {
+        if (item.status === 'cached' || item.status === 'generated') {
+            ready.add(item.id);
+        }
+    }
+    return ready;
+}
+
+function mergePrewarmResults(
+    first: PrewarmUserContentResult,
+    second: PrewarmUserContentResult
+): PrewarmUserContentResult {
+    const completedById = new Map<PrewarmTaskId, PrewarmUserContentResult['completed'][number]>();
+    for (const item of first.completed) completedById.set(item.id, item);
+    for (const item of second.completed) completedById.set(item.id, item);
+
+    const readyAfterRetry = getReadyPrewarmTaskIds(second);
+    const failedById = new Map<PrewarmTaskId, PrewarmUserContentResult['failed'][number]>();
+    for (const item of first.failed) {
+        if (!readyAfterRetry.has(item.id)) failedById.set(item.id, item);
+    }
+    for (const item of second.failed) failedById.set(item.id, item);
+
+    return {
+        planSize: first.planSize,
+        completed: Array.from(completedById.values()),
+        failed: Array.from(failedById.values()),
+        missingTaskIds: Array.from(new Set([...first.missingTaskIds, ...second.missingTaskIds])).filter(
+            (id) => !completedById.has(id)
+        ),
+        cachedTaskIds: Array.from(new Set([...first.cachedTaskIds, ...second.cachedTaskIds])),
+    };
 }
 
 const NOTIFICATION_QUERY_VIEWS = new Set<ViewState>([
@@ -249,7 +289,7 @@ const App: React.FC = () => {
             setPremiumDailyReadiness({});
         }
 
-        const result = await prewarmUserContent({
+        let result = await prewarmUserContent({
             userId: input.userId,
             chartId: input.chartId,
             profile: input.profile,
@@ -260,6 +300,38 @@ const App: React.FC = () => {
             blockingBudgetMs: CONTENT_DB_FIRST_BUDGET_MS,
             onProgress: (ratio) => setLoadingProgress(progressStart + Math.round(ratio * progressSpan)),
         });
+
+        const requiredTaskIds = getStartupRequiredTaskIds(input.isPremium);
+        const readyTaskIds = getReadyPrewarmTaskIds(result);
+        const retryTaskIds = requiredTaskIds.filter((id) => !readyTaskIds.has(id));
+
+        if (retryTaskIds.length > 0) {
+            console.warn('[App] Required startup content missing after DB-first pass, retrying cache-first fill', {
+                retryTaskIds,
+                isPremium: input.isPremium,
+            });
+            const retryResult = await prewarmUserContent({
+                userId: input.userId,
+                chartId: input.chartId,
+                profile: input.profile,
+                chartData: input.chartData,
+                isPremium: input.isPremium,
+                dateKey: input.dateKey,
+                mode: 'generate-missing',
+                onlyTaskIds: retryTaskIds,
+                blockingBudgetMs: STARTUP_REQUIRED_RETRY_BUDGET_MS,
+                onProgress: (ratio) => setLoadingProgress(progressStart + progressSpan + Math.round(ratio * 6)),
+            });
+            result = mergePrewarmResults(result, retryResult);
+
+            const stillMissingTaskIds = requiredTaskIds.filter((id) => !getReadyPrewarmTaskIds(result).has(id));
+            if (stillMissingTaskIds.length > 0) {
+                console.warn('[App] Required startup content is still missing after retry', {
+                    stillMissingTaskIds,
+                    isPremium: input.isPremium,
+                });
+            }
+        }
 
         prewarmCompletedKeyRef.current = prewarmKey;
         applyPremiumDailyReadinessResult({ isPremium: input.isPremium, result });
@@ -432,10 +504,10 @@ const App: React.FC = () => {
         let safetyCleared = false;
         const safetyTimer = window.setTimeout(() => {
             if (cancelled || safetyCleared) return;
-            console.error('[App] Startup exceeded 40s — unlocking loading UI');
+            console.error('[App] Startup exceeded DB-first budget - unlocking loading UI');
             setLoadingProgress(100);
             setLoading(false);
-        }, 40_000);
+        }, STARTUP_SAFETY_TIMEOUT_MS);
 
         const clearSafety = () => {
             if (safetyCleared) return;

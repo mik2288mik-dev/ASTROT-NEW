@@ -80,6 +80,7 @@ export type PrewarmUserContentResult = {
 
 const CACHE_ONLY_DEFAULT_BUDGET_MS = 1_500;
 const GENERATE_MISSING_DEFAULT_BUDGET_MS = 120_000;
+const GENERATE_MISSING_CONCURRENCY = 4;
 
 let prewarmInFlight: Promise<PrewarmUserContentResult> | null = null;
 let prewarmInFlightKey: string | null = null;
@@ -232,6 +233,23 @@ async function generatePrewarmItem(
   }
 }
 
+async function runWithConcurrency<T>(
+  items: T[],
+  limit: number,
+  worker: (item: T, index: number) => Promise<void>
+): Promise<void> {
+  let nextIndex = 0;
+  const workerCount = Math.min(Math.max(limit, 1), items.length);
+  const workers = Array.from({ length: workerCount }, async () => {
+    while (nextIndex < items.length) {
+      const currentIndex = nextIndex;
+      nextIndex += 1;
+      await worker(items[currentIndex], currentIndex);
+    }
+  });
+  await Promise.all(workers);
+}
+
 async function runPlan(
   plan: PrewarmPlanItem[],
   input: PrewarmUserContentInput,
@@ -243,11 +261,51 @@ async function runPlan(
   const cachedTaskIds: PrewarmTaskId[] = [];
   const mode = input.mode ?? 'cache-only';
 
+  if (mode === 'generate-missing') {
+    const orderedCompleted: Array<PrewarmTaskResult | null> = Array(plan.length).fill(null);
+    let settled = 0;
+
+    await runWithConcurrency(plan, GENERATE_MISSING_CONCURRENCY, async (item, index) => {
+      try {
+        if (Date.now() >= deadlineMs) {
+          throw new Error('startup-content-deadline');
+        }
+
+        const hasCache = await probePrewarmItem(item, input);
+        if (hasCache) {
+          cachedTaskIds.push(item.id);
+          orderedCompleted[index] = { id: item.id, status: 'cached' };
+          return;
+        }
+
+        if (Date.now() >= deadlineMs) {
+          throw new Error('startup-content-deadline');
+        }
+
+        await generatePrewarmItem(item, input);
+        orderedCompleted[index] = { id: item.id, status: 'generated' };
+      } catch (error: any) {
+        const message = error?.message || String(error);
+        log.warn(`Task failed: ${item.id}`, { message, code: error?.code, mode });
+        failed.push({ id: item.id, status: 'failed', error: message });
+      } finally {
+        settled += 1;
+        input.onProgress?.(settled / Math.max(plan.length, 1));
+      }
+    });
+
+    return {
+      planSize: plan.length,
+      completed: orderedCompleted.filter((item): item is PrewarmTaskResult => !!item),
+      failed,
+      missingTaskIds,
+      cachedTaskIds,
+    };
+  }
+
   for (const item of plan) {
     if (Date.now() >= deadlineMs) {
-      if (mode === 'cache-only') {
-        missingTaskIds.push(item.id);
-      }
+      missingTaskIds.push(item.id);
       continue;
     }
 
@@ -259,21 +317,14 @@ async function runPlan(
         continue;
       }
 
-      if (mode === 'cache-only') {
-        missingTaskIds.push(item.id);
-        completed.push({ id: item.id, status: 'missing' });
-        continue;
-      }
-
-      await generatePrewarmItem(item, input);
-      completed.push({ id: item.id, status: 'generated' });
+      missingTaskIds.push(item.id);
+      completed.push({ id: item.id, status: 'missing' });
+      continue;
     } catch (error: any) {
       const message = error?.message || String(error);
       log.warn(`Task failed: ${item.id}`, { message, code: error?.code, mode });
       failed.push({ id: item.id, status: 'failed', error: message });
-      if (mode === 'cache-only') {
-        missingTaskIds.push(item.id);
-      }
+      missingTaskIds.push(item.id);
     }
 
     input.onProgress?.((completed.length + failed.length) / Math.max(plan.length, 1));

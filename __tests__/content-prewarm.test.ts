@@ -6,9 +6,12 @@ import {
   buildPremiumPrewarmPlan,
   buildUserPrewarmPlan,
   filterPremiumDailyReadinessTaskIds,
+  getStartupRequiredTaskIds,
   planUsesContentGenerationLock,
+  FREE_STARTUP_REQUIRED_TASK_IDS,
   PREMIUM_DAILY_READINESS_SECTION_KEYS,
   PREMIUM_DAILY_READINESS_TASK_IDS,
+  PREMIUM_STARTUP_REQUIRED_TASK_IDS,
 } from '../lib/contentPrewarm';
 import { buildContentGenerationLockKey } from '../lib/contentGenerationLock';
 import { humanDailyCacheKey } from '../lib/natalHumanShared';
@@ -167,6 +170,23 @@ describe('content prewarm', () => {
     });
   });
 
+  it('startup required task scope matches the home cards before Dashboard opens', () => {
+    expect(getStartupRequiredTaskIds(false)).toEqual([...FREE_STARTUP_REQUIRED_TASK_IDS]);
+    expect(getStartupRequiredTaskIds(true)).toEqual([...PREMIUM_STARTUP_REQUIRED_TASK_IDS]);
+    expect(getStartupRequiredTaskIds(true)).toEqual([
+      'sign_daily',
+      'forecast_daily',
+      'human_base',
+      'human_daily_overview',
+      'forecast_daypart_day',
+      'human_daily_love',
+      'human_daily_work_business',
+      'human_daily_money',
+      'human_daily_goals',
+    ]);
+  });
+
+
   it('cache-only startup does not call generation methods', async () => {
     await prewarmUserContent({
       userId: 'user-1',
@@ -223,10 +243,11 @@ describe('content prewarm', () => {
     });
 
     const generatedSections = (ensureHumanDailySection as jest.Mock).mock.calls.map((call) => call[1]);
-    expect(generatedSections).toEqual([
+    expect(generatedSections).toEqual(expect.arrayContaining([
       'daily_overview',
       ...PREMIUM_DAILY_READINESS_SECTION_KEYS,
-    ]);
+    ]));
+    expect(generatedSections).toHaveLength(5);
     expect(getFullDaypartForecast).toHaveBeenCalledTimes(1);
     expect(loadHumanPaidSection).toHaveBeenCalled();
     expect(getPremiumNatalFullLayer).not.toHaveBeenCalled();
@@ -326,6 +347,9 @@ describe('content prewarm', () => {
     expect(source).toContain('prepareUserContentDbFirst');
     expect(source).toContain("mode: 'generate-missing'");
     expect(source).not.toContain('blockingBudgetMs: 38_000');
+    expect(source).not.toContain('}, 40_000)');
+    expect(source).toContain('STARTUP_SAFETY_TIMEOUT_MS');
+    expect(source).toContain('getStartupRequiredTaskIds');
     expect(source).toContain('getPrimaryChartId');
     expect(source).not.toContain('startPremiumDailyReadinessPrewarm');
     expect(source).not.toContain("mode: 'cache-only'");

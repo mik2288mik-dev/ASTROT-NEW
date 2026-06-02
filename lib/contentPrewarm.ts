@@ -83,6 +83,23 @@ export type PremiumDailyReadinessMap = Partial<
   Record<PremiumDailyReadinessSectionKey, PremiumDailyReadinessStatus>
 >;
 
+export const FREE_STARTUP_REQUIRED_TASK_IDS = [
+  'sign_daily',
+  'forecast_daily',
+  'human_base',
+  'human_daily_overview',
+] as const satisfies readonly PrewarmTaskId[];
+
+export const PREMIUM_STARTUP_REQUIRED_TASK_IDS = [
+  ...FREE_STARTUP_REQUIRED_TASK_IDS,
+  'forecast_daypart_day',
+  ...PREMIUM_DAILY_READINESS_TASK_IDS,
+] as const satisfies readonly PrewarmTaskId[];
+
+export function getStartupRequiredTaskIds(isPremium: boolean): PrewarmTaskId[] {
+  return [...(isPremium ? PREMIUM_STARTUP_REQUIRED_TASK_IDS : FREE_STARTUP_REQUIRED_TASK_IDS)];
+}
+
 export function filterPremiumDailyReadinessTaskIds(taskIds: readonly PrewarmTaskId[]): PremiumDailyReadinessTaskId[] {
   const available = new Set<PrewarmTaskId>(taskIds);
   return PREMIUM_DAILY_READINESS_TASK_IDS.filter((id) => available.has(id));
