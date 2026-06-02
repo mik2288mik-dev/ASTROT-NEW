@@ -61,7 +61,7 @@ function localDateKey(date = new Date()) {
 }
 
 export const Dashboard = memo<DashboardProps>(
-  ({ profile, chartData, chartId, onOpenHoroscopeLayer, onOpenSettings, scrollRef, initialTodaySection, premiumDailyReadiness }) => {
+  ({ profile, chartData, chartId, onOpenHoroscopeLayer, onOpenSettings, scrollRef, initialTodaySection }) => {
     const shouldReduceMotion = useReducedMotion();
     const language = profile.language === 'en' ? 'en' : 'ru';
     const pulseRef = React.useRef<HTMLDivElement | null>(null);
@@ -259,60 +259,49 @@ export const Dashboard = memo<DashboardProps>(
       [quickActionVideoDate]
     );
     const quickActions = React.useMemo(
-      () => {
-        const isPremium = !!profile.isPremium;
-        const canShowLove = !isPremium || premiumDailyReadiness?.daily_love === 'ready';
-        const canShowWorkMoney = !isPremium || premiumDailyReadiness?.daily_work_business === 'ready';
-
-        return [
-          {
-            id: 'today' as const,
-            title: homeCopy.quickActions.today.title,
-            body: homeCopy.quickActions.today.body,
-            imageSrc: resolvedQuickActionVideos.horoscope.poster || '/lumia-home/quick-actions/horoscope-today.webp',
-            videoAsset: resolvedQuickActionVideos.horoscope.video,
-            onClick: () => openHoroscope('sign'),
-            hidden: false,
-          },
-          {
-            id: 'love' as const,
-            title: homeCopy.quickActions.love.title,
-            body: homeCopy.quickActions.love.body,
-            imageSrc: resolvedQuickActionVideos.love.poster || '/lumia-home/quick-actions/love.webp',
-            videoAsset: resolvedQuickActionVideos.love.video,
-            onClick: () => openHoroscope('love'),
-            hidden: !canShowLove,
-          },
-          {
-            id: 'money' as const,
-            title: homeCopy.quickActions.money.title,
-            body: homeCopy.quickActions.money.body,
-            imageSrc: resolvedQuickActionVideos.money.poster || '/lumia-home/quick-actions/money.webp',
-            videoAsset: resolvedQuickActionVideos.money.video,
-            onClick: () => openHoroscope('work_money'),
-            hidden: !canShowWorkMoney,
-          },
-          {
-            id: 'work' as const,
-            title: homeCopy.quickActions.work.title,
-            body: homeCopy.quickActions.work.body,
-            imageSrc: resolvedQuickActionVideos.work.poster || '/lumia-home/quick-actions/work.webp',
-            videoAsset: resolvedQuickActionVideos.work.video,
-            onClick: () => openHoroscope('work_money'),
-            hidden: !canShowWorkMoney,
-          },
-          {
-            id: 'rhythm' as const,
-            title: homeCopy.quickActions.rhythm.title,
-            body: homeCopy.quickActions.rhythm.body,
-            imageSrc: resolvedQuickActionVideos.rhythm.poster || '/lumia-home/quick-actions/personal-rhythm.webp',
-            videoAsset: resolvedQuickActionVideos.rhythm.video,
-            onClick: () => openHoroscope('chart'),
-            hidden: false,
-          },
-        ].filter((action) => !action.hidden);
-      },
-      [homeCopy, openHoroscope, premiumDailyReadiness, profile.isPremium, resolvedQuickActionVideos]
+      () => [
+        {
+          id: 'today' as const,
+          title: homeCopy.quickActions.today.title,
+          body: homeCopy.quickActions.today.body,
+          imageSrc: resolvedQuickActionVideos.horoscope.poster || '/lumia-home/quick-actions/horoscope-today.webp',
+          videoAsset: resolvedQuickActionVideos.horoscope.video,
+          onClick: () => openHoroscope('sign'),
+        },
+        {
+          id: 'love' as const,
+          title: homeCopy.quickActions.love.title,
+          body: homeCopy.quickActions.love.body,
+          imageSrc: resolvedQuickActionVideos.love.poster || '/lumia-home/quick-actions/love.webp',
+          videoAsset: resolvedQuickActionVideos.love.video,
+          onClick: () => openHoroscope('love'),
+        },
+        {
+          id: 'money' as const,
+          title: homeCopy.quickActions.money.title,
+          body: homeCopy.quickActions.money.body,
+          imageSrc: resolvedQuickActionVideos.money.poster || '/lumia-home/quick-actions/money.webp',
+          videoAsset: resolvedQuickActionVideos.money.video,
+          onClick: () => openHoroscope('work_money'),
+        },
+        {
+          id: 'work' as const,
+          title: homeCopy.quickActions.work.title,
+          body: homeCopy.quickActions.work.body,
+          imageSrc: resolvedQuickActionVideos.work.poster || '/lumia-home/quick-actions/work.webp',
+          videoAsset: resolvedQuickActionVideos.work.video,
+          onClick: () => openHoroscope('work_money'),
+        },
+        {
+          id: 'rhythm' as const,
+          title: homeCopy.quickActions.rhythm.title,
+          body: homeCopy.quickActions.rhythm.body,
+          imageSrc: resolvedQuickActionVideos.rhythm.poster || '/lumia-home/quick-actions/personal-rhythm.webp',
+          videoAsset: resolvedQuickActionVideos.rhythm.video,
+          onClick: () => openHoroscope('chart'),
+        },
+      ],
+      [homeCopy, openHoroscope, resolvedQuickActionVideos]
     );
 
     const pulseCard = (

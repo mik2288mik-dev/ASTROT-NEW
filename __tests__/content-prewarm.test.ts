@@ -338,8 +338,7 @@ describe('content prewarm', () => {
   it('Premium daily card views read cache instead of generating on open', () => {
     const horoscope = fs.readFileSync(path.join(ROOT, 'views/Horoscope.tsx'), 'utf8');
     expect(horoscope).toContain('getCachedHumanDailySection');
-    expect(horoscope).toContain('premiumDailyReadiness?.daily_love');
-    expect(horoscope).toContain('premiumDailyReadiness?.daily_work_business');
+    expect(horoscope).toContain('const layers = useMemo(() => getLayerConfigs(), [])');
     expect(horoscope).not.toContain('ensureHumanDailySection');
     expect(horoscope).not.toContain('pollLayerAfterInProgress');
 
@@ -351,7 +350,13 @@ describe('content prewarm', () => {
     const dailyButtonBlock = humanReport.match(/const DailySectionButton[\s\S]*?export const NatalUnlockSheet/)?.[0] ?? '';
     expect(cachedDailyBlock).toContain('getCachedHumanDailySection');
     expect(cachedDailyBlock).not.toContain('ensureHumanDailySection');
+    expect(humanReport).toContain('const visibleDailyKeys = useMemo(() => HUMAN_DAILY_SECTION_KEYS, [])');
     expect(humanReport).toContain('visibleDailyKeys.map');
     expect(dailyButtonBlock).not.toMatch(/Готовим|Вернись|Повторить|Almost ready|Try again/i);
+
+    const dashboard = fs.readFileSync(path.join(ROOT, 'views/Dashboard.tsx'), 'utf8');
+    expect(dashboard).not.toContain('hidden: !canShowLove');
+    expect(dashboard).not.toContain('hidden: !canShowWorkMoney');
+    expect(dashboard).not.toContain('.filter((action) => !action.hidden)');
   });
 });

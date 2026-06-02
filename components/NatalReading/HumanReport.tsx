@@ -16,9 +16,7 @@ import {
   type HumanPaidSectionKey,
 } from '../../lib/natalHumanShared';
 import {
-  PREMIUM_DAILY_READINESS_SECTION_KEYS,
   type PremiumDailyReadinessMap,
-  type PremiumDailyReadinessSectionKey,
 } from '../../lib/contentPrewarm';
 import { getMoscowTodayKey } from '../../lib/date-utils';
 import {
@@ -367,20 +365,11 @@ export const HumanReport: React.FC<Props> = ({
   const isPremium = !!profile.isPremium;
   const todayKey = useMemo(() => getMoscowTodayKey(), []);
   const visibleFreeKeys = useMemo(() => new Set<string>(HUMAN_FREE_SECTION_KEYS), []);
-  const premiumDailyReadinessKeys = useMemo(() => new Set<string>(PREMIUM_DAILY_READINESS_SECTION_KEYS), []);
   const visibleFreeSections = useMemo(
     () => (report?.freeSections || []).filter((section) => visibleFreeKeys.has(section.key)),
     [report?.freeSections, visibleFreeKeys]
   );
-  const visibleDailyKeys = useMemo(
-    () => HUMAN_DAILY_SECTION_KEYS.filter((key) => {
-      if (key === 'daily_overview' || !isPremium) return true;
-      if (dailySections[key]) return true;
-      if (!premiumDailyReadinessKeys.has(key)) return false;
-      return premiumDailyReadiness?.[key as PremiumDailyReadinessSectionKey] === 'ready';
-    }),
-    [dailySections, isPremium, premiumDailyReadiness, premiumDailyReadinessKeys]
-  );
+  const visibleDailyKeys = useMemo(() => HUMAN_DAILY_SECTION_KEYS, []);
 
   useEffect(() => {
     if (preloadedReport) {
@@ -411,14 +400,6 @@ export const HumanReport: React.FC<Props> = ({
       for (const key of HUMAN_DAILY_SECTION_KEYS) {
         if (cancelled) return;
         if (!isPremium && key !== 'daily_overview') continue;
-        if (
-          isPremium &&
-          key !== 'daily_overview' &&
-          premiumDailyReadinessKeys.has(key) &&
-          premiumDailyReadiness?.[key as PremiumDailyReadinessSectionKey] !== 'ready'
-        ) {
-          continue;
-        }
         try {
           const cached = await getCachedHumanDailySection(userId, key, chartId, todayKey);
           if (cancelled || !cached?.content) continue;
@@ -432,7 +413,7 @@ export const HumanReport: React.FC<Props> = ({
     return () => {
       cancelled = true;
     };
-  }, [chartId, isPremium, premiumDailyReadiness, premiumDailyReadinessKeys, report, todayKey, userId]);
+  }, [chartId, isPremium, report, todayKey, userId]);
 
   const openPaidSection = async (key: HumanPaidSectionKey) => {
     if (!userId || paidLoading) return;

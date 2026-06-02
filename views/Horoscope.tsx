@@ -333,15 +333,7 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
       setSelectedSign(initialSign);
     }, [initialSign]);
 
-    const layers = useMemo(() => {
-      const isPremium = !!profile.isPremium;
-      return getLayerConfigs().filter((layer) => {
-        if (!isPremium) return true;
-        if (layer.id === 'love') return !!loveSection || premiumDailyReadiness?.daily_love === 'ready';
-        if (layer.id === 'work_money') return !!workSection || premiumDailyReadiness?.daily_work_business === 'ready';
-        return true;
-      });
-    }, [loveSection, premiumDailyReadiness, profile.isPremium, workSection]);
+    const layers = useMemo(() => getLayerConfigs(), []);
     const activeConfig = layers.find((layer) => layer.id === initialLayer) || layers[0];
     const zodiacLabel = getZodiacSign(language, selectedSign);
 
