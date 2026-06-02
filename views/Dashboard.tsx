@@ -283,7 +283,7 @@ export const Dashboard = memo<DashboardProps>(
           body: homeCopy.quickActions.money.body,
           imageSrc: resolvedQuickActionVideos.money.poster || '/lumia-home/quick-actions/money.webp',
           videoAsset: resolvedQuickActionVideos.money.video,
-          onClick: () => openHoroscope('work_money', { mode: 'single', source: 'home_card_money' }),
+          onClick: () => openHoroscope('work_money', { mode: 'single', dailySectionKey: 'daily_money', source: 'home_card_money' }),
         },
         {
           id: 'work' as const,
@@ -291,7 +291,7 @@ export const Dashboard = memo<DashboardProps>(
           body: homeCopy.quickActions.work.body,
           imageSrc: resolvedQuickActionVideos.work.poster || '/lumia-home/quick-actions/work.webp',
           videoAsset: resolvedQuickActionVideos.work.video,
-          onClick: () => openHoroscope('work_money', { mode: 'single', source: 'home_card_work' }),
+          onClick: () => openHoroscope('work_money', { mode: 'single', dailySectionKey: 'daily_work_business', source: 'home_card_work' }),
         },
         {
           id: 'rhythm' as const,

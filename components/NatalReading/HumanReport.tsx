@@ -17,6 +17,7 @@ import {
 } from '../../lib/natalHumanShared';
 import {
   type PremiumDailyReadinessMap,
+  type PremiumDailyReadinessSectionKey,
 } from '../../lib/contentPrewarm';
 import { getMoscowTodayKey } from '../../lib/date-utils';
 import {
@@ -27,6 +28,7 @@ import {
   loadHumanPaidSection,
   type HumanReadingError,
 } from '../../services/natalReadingService';
+import { waitMs } from '../../lib/contentInterpretation';
 import { PlanetIcon } from '../icons/PlanetIcon';
 import { FormattedAiText } from '../ui/FormattedAiText';
 
@@ -165,10 +167,20 @@ const DailySectionButton: React.FC<{
   sectionKey: HumanDailySectionKey;
   isPremium: boolean;
   isLoading: boolean;
+  readinessStatus?: 'ready' | 'preparing' | 'failed';
   opened?: InterpretationSection;
   onOpen: () => void;
-}> = ({ sectionKey, isPremium, isLoading, opened, onOpen }) => {
+}> = ({ sectionKey, isPremium, isLoading, readinessStatus, opened, onOpen }) => {
   const meta = HUMAN_DAILY_SECTION_META[sectionKey];
+  const actionLabel = isLoading
+    ? '...'
+    : readinessStatus === 'preparing'
+      ? 'Готовим'
+      : readinessStatus === 'failed'
+        ? 'Повторить'
+        : isPremium
+          ? 'Открыть'
+          : 'Premium';
   return (
     <div className="border-t border-[#eeeeee] py-5">
       <button
@@ -186,7 +198,7 @@ const DailySectionButton: React.FC<{
           </span>
         </span>
         <span className="mt-1 shrink-0 rounded-full bg-[#f7f5fb] px-3 py-1 text-[12px] text-[#6f4ea8]">
-          {isLoading ? '...' : isPremium ? 'Открыть' : 'Premium'}
+          {actionLabel}
         </span>
       </button>
       {opened ? (
@@ -415,6 +427,31 @@ export const HumanReport: React.FC<Props> = ({
     };
   }, [chartId, isPremium, report, todayKey, userId]);
 
+  useEffect(() => {
+    if (!userId || !report || !premiumDailyReadiness) return;
+    let cancelled = false;
+
+    void (async () => {
+      for (const key of HUMAN_DAILY_SECTION_KEYS) {
+        if (cancelled || dailySections[key]) continue;
+        if (!isPremium && key !== 'daily_overview') continue;
+        const readiness = premiumDailyReadiness[key as PremiumDailyReadinessSectionKey];
+        if (readiness !== 'ready') continue;
+        try {
+          const cached = await getCachedHumanDailySection(userId, key, chartId, todayKey);
+          if (cancelled || !cached?.content) continue;
+          setDailySections((current) => ({ ...current, [key]: cached.content }));
+        } catch {
+          // ignore cache miss
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [chartId, dailySections, isPremium, premiumDailyReadiness, report, todayKey, userId]);
+
   const openPaidSection = async (key: HumanPaidSectionKey) => {
     if (!userId || paidLoading) return;
     setSectionError(null);
@@ -478,9 +515,28 @@ export const HumanReport: React.FC<Props> = ({
       if (cached?.content) {
         setDailySections((current) => ({ ...current, [key]: cached.content }));
         setUnlockDailyTarget(null);
+        return;
       }
-    } catch {
-      // Missing Premium daily sections stay hidden until the central readiness pass marks them ready.
+
+      const readinessKey = key as PremiumDailyReadinessSectionKey;
+      if (premiumDailyReadiness?.[readinessKey] === 'preparing') {
+        for (let attempt = 1; attempt <= 3; attempt += 1) {
+          await waitMs(1500);
+          const polled = await getCachedHumanDailySection(userId, key, chartId, todayKey);
+          if (polled?.content) {
+            setDailySections((current) => ({ ...current, [key]: polled.content }));
+            setUnlockDailyTarget(null);
+            return;
+          }
+        }
+      }
+
+      const accessOptions = key === 'daily_overview' ? undefined : { accessTier: 'premium' as const };
+      const result = await ensureHumanDailySection(userId, key, chartId, todayKey, accessOptions);
+      setDailySections((current) => ({ ...current, [key]: result.content }));
+      setUnlockDailyTarget(null);
+    } catch (err) {
+      setSectionError(formatError(err));
     } finally {
       setDailyLoading(null);
     }
@@ -610,6 +666,11 @@ export const HumanReport: React.FC<Props> = ({
                 sectionKey={key}
                 isPremium={isPremium || key === 'daily_overview'}
                 isLoading={dailyLoading === key}
+                readinessStatus={
+                  key === 'daily_overview'
+                    ? undefined
+                    : premiumDailyReadiness?.[key as PremiumDailyReadinessSectionKey]
+                }
                 opened={dailySections[key]}
                 onOpen={() => handleOpenDaily(key)}
               />

@@ -335,28 +335,20 @@ describe('content prewarm', () => {
     }
   });
 
-  it('Premium daily card views read cache instead of generating on open', () => {
+  it('Premium daily cards use cache-first then on-demand generation', () => {
     const horoscope = fs.readFileSync(path.join(ROOT, 'views/Horoscope.tsx'), 'utf8');
     expect(horoscope).toContain('getCachedHumanDailySection');
-    expect(horoscope).toContain('const layers = useMemo(() => getLayerConfigs(), [])');
-    expect(horoscope).not.toContain('ensureHumanDailySection');
-    expect(horoscope).not.toContain('pollLayerAfterInProgress');
-
-    const lockedLayerBlock = horoscope.match(/const renderLockedLayer[\s\S]*?const renderSignSlide/)?.[0] ?? '';
-    expect(lockedLayerBlock).not.toMatch(/Готовим|Вернись|Повторить|Almost ready|Try again/i);
+    expect(horoscope).toContain('ensureHumanDailySection');
+    expect(horoscope).toContain('resolveDailySectionKey');
+    expect(horoscope).toContain('daily_money');
 
     const humanReport = fs.readFileSync(path.join(ROOT, 'components/NatalReading/HumanReport.tsx'), 'utf8');
     const cachedDailyBlock = humanReport.match(/const openDailyCachedSection[\s\S]*?if \(loading\)/)?.[0] ?? '';
-    const dailyButtonBlock = humanReport.match(/const DailySectionButton[\s\S]*?export const NatalUnlockSheet/)?.[0] ?? '';
     expect(cachedDailyBlock).toContain('getCachedHumanDailySection');
-    expect(cachedDailyBlock).not.toContain('ensureHumanDailySection');
-    expect(humanReport).toContain('const visibleDailyKeys = useMemo(() => HUMAN_DAILY_SECTION_KEYS, [])');
-    expect(humanReport).toContain('visibleDailyKeys.map');
-    expect(dailyButtonBlock).not.toMatch(/Готовим|Вернись|Повторить|Almost ready|Try again/i);
+    expect(cachedDailyBlock).toContain('ensureHumanDailySection');
 
     const dashboard = fs.readFileSync(path.join(ROOT, 'views/Dashboard.tsx'), 'utf8');
-    expect(dashboard).not.toContain('hidden: !canShowLove');
-    expect(dashboard).not.toContain('hidden: !canShowWorkMoney');
-    expect(dashboard).not.toContain('.filter((action) => !action.hidden)');
+    expect(dashboard).toContain("dailySectionKey: 'daily_money'");
+    expect(dashboard).toContain("dailySectionKey: 'daily_work_business'");
   });
 });

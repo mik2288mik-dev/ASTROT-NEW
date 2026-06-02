@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { UserProfile, NatalChartData, ViewState, HoroscopeLayer, NatalInterpretationReport, type HoroscopeOpenMode, type HoroscopeOpenOptions } from './types';
+import { UserProfile, NatalChartData, ViewState, HoroscopeLayer, NatalInterpretationReport, type HoroscopeOpenMode, type HoroscopeOpenOptions, type HoroscopeDailySectionKey } from './types';
 import {
     getProfile,
     saveProfile,
@@ -135,6 +135,7 @@ const App: React.FC = () => {
     const [chartReturnView, setChartReturnView] = useState<ViewState>('dashboard');
     const [horoscopeInitialLayer, setHoroscopeInitialLayer] = useState<HoroscopeLayer>('sign');
     const [horoscopeOpenMode, setHoroscopeOpenMode] = useState<HoroscopeOpenMode>('overview');
+    const [horoscopeDailySectionKey, setHoroscopeDailySectionKey] = useState<HoroscopeDailySectionKey | undefined>(undefined);
     const [, setHoroscopeBackground] = useState<{
         sign: string | null;
         tone: 'sign' | 'chart' | 'love' | 'work';
@@ -901,10 +902,12 @@ const App: React.FC = () => {
             layer,
             mode,
             source: options?.source ?? null,
+            dailySectionKey: options?.dailySectionKey ?? null,
             historyBeforeSet: navigationHistoryRef.current,
         });
         setHoroscopeInitialLayer(layer);
         setHoroscopeOpenMode(mode);
+        setHoroscopeDailySectionKey(options?.dailySectionKey);
         navigateTo('horoscope');
     }, [navigateTo]);
 
@@ -1099,6 +1102,7 @@ const App: React.FC = () => {
                             chartId={activeChartId}
                             initialLayer={horoscopeInitialLayer}
                             openMode={horoscopeOpenMode}
+                            dailySectionKey={horoscopeDailySectionKey}
                             premiumDailyReadiness={premiumDailyReadiness}
                             onUpdateProfile={handleProfileUpdate}
                             onOpenChart={() => {
