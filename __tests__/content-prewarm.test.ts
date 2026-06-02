@@ -350,5 +350,9 @@ describe('content prewarm', () => {
     const dashboard = fs.readFileSync(path.join(ROOT, 'views/Dashboard.tsx'), 'utf8');
     expect(dashboard).toContain("dailySectionKey: 'daily_money'");
     expect(dashboard).toContain("dailySectionKey: 'daily_work_business'");
+    expect(dashboard).toContain("dailySectionKey: 'daily_goals'");
+
+    expect(horoscope).toContain('PREMIUM_HUMAN_HYDRATE_KEYS');
+    expect(horoscope).toMatch(/PREMIUM_HUMAN_HYDRATE_KEYS[\s\S]*'daily_goals'/);
   });
 });

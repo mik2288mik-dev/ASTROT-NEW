@@ -27,6 +27,10 @@ export function getLumiaHomeCopy(language: LumiaHomeLanguage) {
           title: 'Work',
           body: 'Best window for focus',
         },
+        goals: {
+          title: 'Tasks and goals today',
+          body: 'One clear step instead of scattering',
+        },
         rhythm: {
           title: 'Personal day',
           body: 'Evening check-in and patterns',
@@ -93,6 +97,10 @@ export function getLumiaHomeCopy(language: LumiaHomeLanguage) {
       work: {
         title: 'Работа',
         body: 'Лучшее окно для фокуса',
+      },
+      goals: {
+        title: 'Дела и цели сегодня',
+        body: 'Один понятный шаг вместо распыления',
       },
       rhythm: {
         title: 'Личный ритм',

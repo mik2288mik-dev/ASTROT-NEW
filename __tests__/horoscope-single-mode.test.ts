@@ -19,6 +19,9 @@ describe('horoscope single-card navigation', () => {
     expect(source).toContain(
       "openHoroscope('work_money', { mode: 'single', dailySectionKey: 'daily_work_business', source: 'home_card_work' })"
     );
+    expect(source).toContain(
+      "openHoroscope('work_money', { mode: 'single', dailySectionKey: 'daily_goals', source: 'home_card_goals' })"
+    );
     expect(source).toContain("openHoroscope('chart', { mode: 'single', source: 'home_card_rhythm' })");
   });
 

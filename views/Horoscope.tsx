@@ -35,7 +35,12 @@ type HoroscopeTone = 'sign' | 'chart' | 'love' | 'work';
 type LayerLoadState = 'missing' | 'cached_ready' | 'loading' | 'in_progress' | 'ready' | 'failed';
 
 const HOROSCOPE_DEV = process.env.NODE_ENV !== 'production';
-const PREMIUM_HUMAN_HYDRATE_KEYS: HumanDailySectionKey[] = ['daily_love', 'daily_work_business', 'daily_money'];
+const PREMIUM_HUMAN_HYDRATE_KEYS: HumanDailySectionKey[] = [
+  'daily_love',
+  'daily_work_business',
+  'daily_money',
+  'daily_goals',
+];
 
 function resolveDailySectionKey(
   layer: HoroscopeLayer,

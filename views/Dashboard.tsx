@@ -294,6 +294,15 @@ export const Dashboard = memo<DashboardProps>(
           onClick: () => openHoroscope('work_money', { mode: 'single', dailySectionKey: 'daily_work_business', source: 'home_card_work' }),
         },
         {
+          id: 'goals' as const,
+          title: homeCopy.quickActions.goals.title,
+          body: homeCopy.quickActions.goals.body,
+          imageSrc: '/natal-backgrounds/daily.webp',
+          videoAsset: null,
+          onClick: () =>
+            openHoroscope('work_money', { mode: 'single', dailySectionKey: 'daily_goals', source: 'home_card_goals' }),
+        },
+        {
           id: 'rhythm' as const,
           title: homeCopy.quickActions.rhythm.title,
           body: homeCopy.quickActions.rhythm.body,

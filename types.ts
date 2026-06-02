@@ -497,7 +497,11 @@ export type TodayOverviewResult =
 
 export type HoroscopeLayer = 'sign' | 'chart' | 'love' | 'work_money';
 export type HoroscopeOpenMode = 'overview' | 'single';
-export type HoroscopeDailySectionKey = 'daily_love' | 'daily_work_business' | 'daily_money';
+export type HoroscopeDailySectionKey =
+  | 'daily_love'
+  | 'daily_work_business'
+  | 'daily_money'
+  | 'daily_goals';
 export type HoroscopeOpenOptions = {
   mode?: HoroscopeOpenMode;
   source?: string;
