@@ -16,21 +16,19 @@ import {
   loadDailySignHoroscope,
 } from '../services/astrologyService';
 import {
-  ensureHumanDailySection,
   getCachedHumanDailySection,
-  type HumanReadingError,
 } from '../services/natalReadingService';
-import { getRetryAfterMs, isGenerationInProgressError, waitMs } from '../lib/contentInterpretation';
 import { formatLumiaDate, getMoscowTodayKey } from '../lib/date-utils';
 import { getZodiacSign } from '../constants';
 import { cn } from '../lib/cn';
 import { ZodiacIcon } from '../components/icons/ZodiacIcon';
 import { useSwipeBack } from '../lib/useSwipeBack';
 import type { HumanDailySectionKey } from '../lib/natalHumanShared';
+import type { PremiumDailyReadinessMap } from '../lib/contentPrewarm';
 
 type HoroscopeTone = 'sign' | 'chart' | 'love' | 'work';
 
-type LayerLoadState = 'missing' | 'cached_ready' | 'loading' | 'in_progress' | 'ready' | 'failed';
+type LayerLoadState = 'missing' | 'cached_ready' | 'ready';
 
 const HOROSCOPE_DEV = process.env.NODE_ENV !== 'production';
 type HoroscopeBackgroundState = { sign: string | null; tone: HoroscopeTone };
@@ -45,6 +43,7 @@ interface HoroscopeProps {
   onBack?: () => void | Promise<void>;
   onBackgroundChange?: (state: HoroscopeBackgroundState | null) => void;
   initialLayer?: HoroscopeLayer;
+  premiumDailyReadiness?: PremiumDailyReadinessMap;
 }
 
 const ZODIAC_SIGNS = [
@@ -289,6 +288,7 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
     chartData,
     chartId,
     initialLayer = 'sign',
+    premiumDailyReadiness,
     onUpdateProfile,
     onOpenChart,
     onRequestPremium,
@@ -324,7 +324,6 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
       love: 'missing',
       work_money: 'missing',
     });
-    const [layerError, setLayerError] = useState<string | null>(null);
 
     const setLayerState = (layer: HoroscopeLayer, state: LayerLoadState) => {
       setLayerStates((prev) => ({ ...prev, [layer]: state }));
@@ -334,7 +333,15 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
       setSelectedSign(initialSign);
     }, [initialSign]);
 
-    const layers = useMemo(() => getLayerConfigs(), []);
+    const layers = useMemo(() => {
+      const isPremium = !!profile.isPremium;
+      return getLayerConfigs().filter((layer) => {
+        if (!isPremium) return true;
+        if (layer.id === 'love') return !!loveSection || premiumDailyReadiness?.daily_love === 'ready';
+        if (layer.id === 'work_money') return !!workSection || premiumDailyReadiness?.daily_work_business === 'ready';
+        return true;
+      });
+    }, [loveSection, premiumDailyReadiness, profile.isPremium, workSection]);
     const activeConfig = layers.find((layer) => layer.id === initialLayer) || layers[0];
     const zodiacLabel = getZodiacSign(language, selectedSign);
 
@@ -462,24 +469,7 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
       return () => {
         cancelled = true;
       };
-    }, [chartData, chartId, today, userId]);
-
-    const getFriendlyError = (error: unknown) => {
-      const err = error as HumanReadingError;
-      if (err?.code === 'PREMIUM_REQUIRED') {
-        return language === 'ru'
-          ? 'Этот разбор открывается в Lumia Premium.'
-          : 'This reading opens in Lumia Premium.';
-      }
-      if (isGenerationInProgressError(error) || err?.code === 'CONTENT_GENERATION_UNAVAILABLE' || err?.status === 503) {
-        return language === 'ru'
-          ? 'Пока готовим. Вернись через пару секунд.'
-          : 'Still preparing. Check back in a moment.';
-      }
-      return language === 'ru'
-        ? 'Пока готовим. Вернись через пару секунд.'
-        : 'Still preparing. Check back in a moment.';
-    };
+    }, [chartData, chartId, premiumDailyReadiness, today, userId]);
 
     const hydrateLayerFromCache = async (layer: HoroscopeLayer): Promise<boolean> => {
       if (layer === 'chart') {
@@ -523,31 +513,9 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
       return false;
     };
 
-    const pollLayerAfterInProgress = async (layer: HoroscopeLayer, error: unknown) => {
-      setLayerState(layer, 'in_progress');
-      setLayerError(language === 'ru' ? 'Готовим, секунду…' : 'Almost ready…');
-      const maxPolls = 3;
-      for (let poll = 1; poll <= maxPolls; poll += 1) {
-        await waitMs(getRetryAfterMs(error));
-        if (await hydrateLayerFromCache(layer)) {
-          if (HOROSCOPE_DEV) console.warn('[Horoscope] set ready', { layer, via: 'poll' });
-          setLayerError(null);
-          haptic('open');
-          return;
-        }
-      }
-      setLayerState(layer, 'failed');
-      setLayerError(
-        language === 'ru'
-          ? 'Не удалось открыть. Нажми «Повторить».'
-          : 'Could not open. Tap Try again.'
-      );
-    };
-
-    const loadLayer = async (layer: HoroscopeLayer, options?: { forceGenerate?: boolean }) => {
+    const loadLayer = async (layer: HoroscopeLayer) => {
       if (layer === 'sign') return;
       if (!userId || !chartData) {
-        setLayerError('Для персонального прогноза нужна сохранённая натальная карта.');
         return;
       }
 
@@ -558,31 +526,27 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
 
       if (HOROSCOPE_DEV) console.warn('[Horoscope] open layer start', { layer, chartId: chartId ?? null });
 
-      setLayerError(null);
-
-      if (!options?.forceGenerate) {
-        if (layer === 'chart' && personalDay) {
-          setLayerState('chart', 'ready');
-          return;
-        }
-        if (layer === 'love' && loveSection) {
-          setLayerState('love', 'ready');
-          return;
-        }
-        if (layer === 'work_money' && workSection) {
-          setLayerState('work_money', 'ready');
-          return;
-        }
-        if (await hydrateLayerFromCache(layer)) {
-          haptic('open');
-          return;
-        }
-      } else if (await hydrateLayerFromCache(layer)) {
+      if (layer === 'chart' && personalDay) {
+        setLayerState('chart', 'ready');
+        return;
+      }
+      if (layer === 'love' && loveSection) {
+        setLayerState('love', 'ready');
+        return;
+      }
+      if (layer === 'work_money' && workSection) {
+        setLayerState('work_money', 'ready');
+        return;
+      }
+      if (await hydrateLayerFromCache(layer)) {
         haptic('open');
         return;
       }
 
-      setLayerState(layer, 'loading');
+      if (layer === 'love' || layer === 'work_money') {
+        setLayerState(layer, 'missing');
+        return;
+      }
 
       try {
         if (layer === 'chart') {
@@ -599,53 +563,13 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
           setLayerState('chart', 'ready');
         }
 
-        if (layer === 'love') {
-          const result = await ensureHumanDailySection(userId, 'daily_love' as HumanDailySectionKey, chartId ?? undefined, today, {
-            accessTier: 'premium',
-          });
-          if (HOROSCOPE_DEV) console.warn('[Horoscope] POST human-daily ok', { layer, hasContent: !!result.content });
-          if (!result.content) {
-            throw Object.assign(new Error('Empty section'), { code: 'EMPTY_INTERPRETATION' });
-          }
-          setLoveSection(result.content);
-          setLayerState('love', 'ready');
-        }
-
-        if (layer === 'work_money') {
-          const result = await ensureHumanDailySection(
-            userId,
-            'daily_work_business' as HumanDailySectionKey,
-            chartId ?? undefined,
-            today,
-            { accessTier: 'premium' }
-          );
-          if (HOROSCOPE_DEV) console.warn('[Horoscope] POST human-daily ok', { layer, hasContent: !!result.content });
-          if (!result.content) {
-            throw Object.assign(new Error('Empty section'), { code: 'EMPTY_INTERPRETATION' });
-          }
-          setWorkSection(result.content);
-          setLayerState('work_money', 'ready');
-        }
-
         if (HOROSCOPE_DEV) console.warn('[Horoscope] set ready', { layer });
-        setLayerError(null);
         haptic('open');
       } catch (error) {
-        const err = error as HumanReadingError;
         if (HOROSCOPE_DEV) {
-          console.warn('[Horoscope] error', {
-            layer,
-            code: err?.code,
-            status: err?.status,
-            message: err?.message,
-          });
+          console.warn('[Horoscope] error', { layer, message: error instanceof Error ? error.message : String(error) });
         }
-        if (isGenerationInProgressError(error)) {
-          await pollLayerAfterInProgress(layer, error);
-          return;
-        }
-        setLayerState(layer, 'failed');
-        setLayerError(getFriendlyError(error));
+        setLayerState(layer, 'missing');
       }
     };
 
@@ -659,26 +583,18 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
       haptic();
       setSelectedSign(sign);
       setShowSignPicker(false);
-      setLayerError(null);
     };
 
     const renderLockedLayer = (layer: LayerConfig) => {
       const Icon = layer.icon;
       const isPremium = !!profileRef.current.isPremium;
-      const state = layerStates[layer.id];
-      const isPending = state === 'loading' || state === 'in_progress';
-      const isFailed = state === 'failed';
-      const primaryLabel = isPending
-        ? (language === 'ru' ? 'Готовим, секунду…' : 'Almost ready…')
-        : isFailed
-          ? (language === 'ru' ? 'Повторить' : 'Try again')
-          : isPremium
-            ? (language === 'ru' ? 'Читать' : 'Read')
-            : (language === 'ru' ? 'Открыть в Premium' : 'Open in Premium');
+      const primaryLabel = isPremium
+        ? (language === 'ru' ? 'Читать' : 'Read')
+        : (language === 'ru' ? 'Открыть в Premium' : 'Open in Premium');
       const handlePrimaryAction = () => {
         haptic('open');
         if (isPremium) {
-          void loadLayer(layer.id, { forceGenerate: isFailed });
+          void loadLayer(layer.id);
           return;
         }
         onRequestPremium?.();
@@ -709,16 +625,12 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
                     ? 'Утро, день, вечер, любовь и дела — в Lumia Premium.'
                     : 'Morning, day, evening, love, and work — in Lumia Premium.')}
             </p>
-            {layerError && (isPending || isFailed) ? (
-              <p className="mt-4 text-[13px] leading-relaxed text-[#7d5960]">{layerError}</p>
-            ) : null}
           </div>
 
           <div className="relative mt-6 flex flex-wrap gap-3">
             <button
               type="button"
               onClick={handlePrimaryAction}
-              disabled={isPending}
               className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-full bg-[#1f1f1f] px-5 text-[14px] font-semibold text-white shadow-[0_18px_42px_rgba(0,0,0,0.16)] disabled:opacity-60"
             >
               {primaryLabel}

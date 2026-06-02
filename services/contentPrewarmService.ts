@@ -255,7 +255,8 @@ export async function prewarmUserContent(
 ): Promise<PrewarmUserContentResult> {
   const dateKey = input.dateKey || getMoscowTodayKey();
   const mode = input.mode ?? 'cache-only';
-  const key = `${input.userId}:${input.chartId ?? 'primary'}:${dateKey}:${input.isPremium ? 'premium' : 'free'}:${mode}`;
+  const taskScope = input.onlyTaskIds?.length ? [...input.onlyTaskIds].sort().join(',') : 'all';
+  const key = `${input.userId}:${input.chartId ?? 'primary'}:${dateKey}:${input.isPremium ? 'premium' : 'free'}:${mode}:${taskScope}`;
 
   if (prewarmInFlight && prewarmInFlightKey === key) {
     return prewarmInFlight;

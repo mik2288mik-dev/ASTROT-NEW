@@ -119,5 +119,8 @@ export function cleanupExpiredLocks(): number {
 
 // Периодическая очистка каждые 5 минут
 if (typeof setInterval !== 'undefined') {
-  setInterval(cleanupExpiredLocks, 5 * 60 * 1000);
+  const cleanupTimer = setInterval(cleanupExpiredLocks, 5 * 60 * 1000) as ReturnType<typeof setInterval> & {
+    unref?: () => void;
+  };
+  cleanupTimer.unref?.();
 }

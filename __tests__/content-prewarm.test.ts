@@ -2,9 +2,13 @@ import fs from 'fs';
 import path from 'path';
 import {
   buildFreePrewarmPlan,
+  buildPremiumDailyReadinessMap,
   buildPremiumPrewarmPlan,
   buildUserPrewarmPlan,
+  filterPremiumDailyReadinessTaskIds,
   planUsesContentGenerationLock,
+  PREMIUM_DAILY_READINESS_SECTION_KEYS,
+  PREMIUM_DAILY_READINESS_TASK_IDS,
 } from '../lib/contentPrewarm';
 import { buildContentGenerationLockKey } from '../lib/contentGenerationLock';
 import { humanDailyCacheKey } from '../lib/natalHumanShared';
@@ -41,7 +45,7 @@ import {
   ensureWeeklyForecastLayer,
   ensureMonthlyForecastLayer,
 } from '../services/astrologyService';
-import { ensureHumanDailySection } from '../services/natalReadingService';
+import { ensureHumanDailySection, getCachedHumanDailySection } from '../services/natalReadingService';
 
 const profileFixture = {
   id: 'user-1',
@@ -79,6 +83,7 @@ describe('content prewarm', () => {
       context: 'c',
       advice: [],
     });
+    (getCachedHumanDailySection as jest.Mock).mockResolvedValue(null);
   });
 
   it('Free startup prewarm plan contains forecast daily, natal anchor, daily_overview', () => {
@@ -100,6 +105,25 @@ describe('content prewarm', () => {
     expect(premium).toContain('human_daily_money');
   });
 
+  it('Premium daily readiness scope is exactly the four critical daily sections', () => {
+    expect([...PREMIUM_DAILY_READINESS_SECTION_KEYS]).toEqual([
+      'daily_love',
+      'daily_work_business',
+      'daily_money',
+      'daily_goals',
+    ]);
+    expect([...PREMIUM_DAILY_READINESS_TASK_IDS]).toEqual([
+      'human_daily_love',
+      'human_daily_work_business',
+      'human_daily_money',
+      'human_daily_goals',
+    ]);
+    expect(buildPremiumDailyReadinessMap(['human_daily_love', 'human_daily_goals'], 'preparing')).toEqual({
+      daily_love: 'preparing',
+      daily_goals: 'preparing',
+    });
+  });
+
   it('cache-only startup does not call generation methods', async () => {
     await prewarmUserContent({
       userId: 'user-1',
@@ -115,6 +139,61 @@ describe('content prewarm', () => {
     expect(getDailyForecastLayer).not.toHaveBeenCalled();
     expect(getFullDaypartForecast).not.toHaveBeenCalled();
     expect(ensureHumanDailySection).not.toHaveBeenCalled();
+    expect(getPremiumNatalFullLayer).not.toHaveBeenCalled();
+    expect(ensureWeeklyForecastLayer).not.toHaveBeenCalled();
+    expect(ensureMonthlyForecastLayer).not.toHaveBeenCalled();
+  });
+
+  it('Free generate-missing never generates Premium daily readiness sections', async () => {
+    await prewarmUserContent({
+      userId: 'user-1',
+      chartId: 42,
+      profile: { ...profileFixture, isPremium: false },
+      chartData: chartFixture,
+      isPremium: false,
+      dateKey: '2026-05-29',
+      mode: 'generate-missing',
+      blockingBudgetMs: 120_000,
+    });
+
+    const generatedSections = (ensureHumanDailySection as jest.Mock).mock.calls.map((call) => call[1]);
+    for (const key of PREMIUM_DAILY_READINESS_SECTION_KEYS) {
+      expect(generatedSections).not.toContain(key);
+    }
+  });
+
+  it('Premium readiness generation runs only missing critical daily tasks after cache probe', async () => {
+    const cacheResult = await prewarmUserContent({
+      userId: 'user-1',
+      chartId: 42,
+      profile: profileFixture,
+      chartData: chartFixture,
+      isPremium: true,
+      dateKey: '2026-05-29',
+      mode: 'cache-only',
+      blockingBudgetMs: 2_500,
+    });
+    const missingCritical = filterPremiumDailyReadinessTaskIds(cacheResult.missingTaskIds);
+    expect(missingCritical).toEqual([...PREMIUM_DAILY_READINESS_TASK_IDS]);
+
+    jest.clearAllMocks();
+    resetPrewarmSessionForTests();
+
+    await prewarmUserContent({
+      userId: 'user-1',
+      chartId: 42,
+      profile: profileFixture,
+      chartData: chartFixture,
+      isPremium: true,
+      dateKey: '2026-05-29',
+      mode: 'generate-missing',
+      onlyTaskIds: missingCritical,
+      blockingBudgetMs: 120_000,
+    });
+
+    const generatedSections = (ensureHumanDailySection as jest.Mock).mock.calls.map((call) => call[1]);
+    expect(generatedSections).toEqual([...PREMIUM_DAILY_READINESS_SECTION_KEYS]);
+    expect(getFullDaypartForecast).not.toHaveBeenCalled();
     expect(getPremiumNatalFullLayer).not.toHaveBeenCalled();
     expect(ensureWeeklyForecastLayer).not.toHaveBeenCalled();
     expect(ensureMonthlyForecastLayer).not.toHaveBeenCalled();
@@ -148,6 +227,25 @@ describe('content prewarm', () => {
     expect(ensureHumanDailySection).not.toHaveBeenCalled();
   });
 
+  it('Premium startup skips background readiness when critical daily sections are cached', async () => {
+    (getCachedHumanDailySection as jest.Mock).mockResolvedValue({ content: { title: 'cached', content: 'ready' } });
+
+    const cacheResult = await prewarmUserContent({
+      userId: 'user-1',
+      chartId: 42,
+      profile: profileFixture,
+      chartData: chartFixture,
+      isPremium: true,
+      dateKey: '2026-05-29',
+      mode: 'cache-only',
+      blockingBudgetMs: 2_500,
+    });
+
+    expect(filterPremiumDailyReadinessTaskIds(cacheResult.missingTaskIds)).toEqual([]);
+    expect(filterPremiumDailyReadinessTaskIds(cacheResult.cachedTaskIds)).toEqual([...PREMIUM_DAILY_READINESS_TASK_IDS]);
+    expect(ensureHumanDailySection).not.toHaveBeenCalled();
+  });
+
   it('human-daily prewarm and Horoscope use the same cacheKey', () => {
     const dateKey = '2026-05-29';
     const loveItem = buildPremiumPrewarmPlan(dateKey).find((item) => item.id === 'human_daily_love');
@@ -175,21 +273,27 @@ describe('content prewarm', () => {
     expect(key).toContain('content-generation:7:free:forecast:daily:2026-05-29');
   });
 
-  it('App startup uses cache-only prewarm by default', () => {
+  it('App startup uses cache-only first, then critical Premium daily readiness in background', () => {
     const source = fs.readFileSync(path.join(ROOT, 'App.tsx'), 'utf8');
     expect(source).toContain("mode: 'cache-only'");
     expect(source).not.toContain('blockingBudgetMs: 38_000');
     expect(source).toContain('getPrimaryChartId');
-    expect(source).toContain('ENABLE_AUTO_BACKGROUND_PREWARM_GENERATION');
+    expect(source).toContain('startPremiumDailyReadinessPrewarm');
+    expect(source).toContain('filterPremiumDailyReadinessTaskIds');
+    expect(source).toContain("mode: 'generate-missing'");
+    expect(source).toContain('onlyTaskIds: missingTaskIds');
+    expect(source).toContain('PREMIUM_DAILY_READINESS_TASK_IDS');
+    expect(source).not.toContain('ENABLE_AUTO_BACKGROUND_PREWARM_GENERATION');
     const flags = fs.readFileSync(path.join(ROOT, 'lib/appStartupFlags.ts'), 'utf8');
-    expect(flags).toContain('ENABLE_AUTO_BACKGROUND_PREWARM_GENERATION = false');
+    expect(flags).not.toContain('ENABLE_AUTO_BACKGROUND_PREWARM_GENERATION');
   });
 
-  it('ordinary app startup does not start generate-missing after cache-only', () => {
+  it('ordinary app startup delegates generate-missing only to premium daily readiness helper', () => {
     const source = fs.readFileSync(path.join(ROOT, 'App.tsx'), 'utf8');
     const loadDataBlock = source.match(/const loadData = async[\s\S]*?void loadData\(\)/)?.[0] ?? '';
     expect(loadDataBlock).toContain("mode: 'cache-only'");
-    expect(loadDataBlock).not.toContain("mode: 'generate-missing'");
+    expect(loadDataBlock).toContain('startPremiumDailyReadinessPrewarm');
+    expect(loadDataBlock).not.toContain('onlyTaskIds: cacheResult.missingTaskIds');
   });
 
   it('human-daily endpoint uses withContentGenerationLock', () => {
@@ -231,13 +335,23 @@ describe('content prewarm', () => {
     }
   });
 
-  it('Horoscope uses retry and does not keep forbidden system copy', () => {
-    const source = fs.readFileSync(path.join(ROOT, 'views/Horoscope.tsx'), 'utf8');
-    expect(source).toContain('ensureFullDaypartForecast');
-    expect(source).toContain('ensureHumanDailySection');
-    expect(source).toContain('pollLayerAfterInProgress');
-    expect(source).not.toContain('не подготовился');
-    expect(source).not.toContain('Подробный разбор доступен в Premium');
-    expect(source).not.toContain('повторного списания');
+  it('Premium daily card views read cache instead of generating on open', () => {
+    const horoscope = fs.readFileSync(path.join(ROOT, 'views/Horoscope.tsx'), 'utf8');
+    expect(horoscope).toContain('getCachedHumanDailySection');
+    expect(horoscope).toContain('premiumDailyReadiness?.daily_love');
+    expect(horoscope).toContain('premiumDailyReadiness?.daily_work_business');
+    expect(horoscope).not.toContain('ensureHumanDailySection');
+    expect(horoscope).not.toContain('pollLayerAfterInProgress');
+
+    const lockedLayerBlock = horoscope.match(/const renderLockedLayer[\s\S]*?const renderSignSlide/)?.[0] ?? '';
+    expect(lockedLayerBlock).not.toMatch(/Готовим|Вернись|Повторить|Almost ready|Try again/i);
+
+    const humanReport = fs.readFileSync(path.join(ROOT, 'components/NatalReading/HumanReport.tsx'), 'utf8');
+    const cachedDailyBlock = humanReport.match(/const openDailyCachedSection[\s\S]*?if \(loading\)/)?.[0] ?? '';
+    const dailyButtonBlock = humanReport.match(/const DailySectionButton[\s\S]*?export const NatalUnlockSheet/)?.[0] ?? '';
+    expect(cachedDailyBlock).toContain('getCachedHumanDailySection');
+    expect(cachedDailyBlock).not.toContain('ensureHumanDailySection');
+    expect(humanReport).toContain('visibleDailyKeys.map');
+    expect(dailyButtonBlock).not.toMatch(/Готовим|Вернись|Повторить|Almost ready|Try again/i);
   });
 });

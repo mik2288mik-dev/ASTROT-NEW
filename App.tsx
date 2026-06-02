@@ -9,10 +9,15 @@ import {
 } from './services/storageService';
 import { getOrCalculateChart, getPrimaryChartId } from './services/chartService';
 import { updateContentIfNeeded } from './services/contentGenerationService';
-import { prewarmUserContent } from './services/contentPrewarmService';
+import { prewarmUserContent, type PrewarmUserContentResult } from './services/contentPrewarmService';
+import {
+    buildPremiumDailyReadinessMap,
+    filterPremiumDailyReadinessTaskIds,
+    PREMIUM_DAILY_READINESS_TASK_IDS,
+    type PremiumDailyReadinessMap,
+} from './lib/contentPrewarm';
 import {
     CACHE_ONLY_PREWARM_BUDGET_MS,
-    ENABLE_AUTO_BACKGROUND_PREWARM_GENERATION,
     ENABLE_LEGACY_DASHBOARD_CONTENT_SYNC,
 } from './lib/appStartupFlags';
 import { getMoscowTodayKey } from './lib/date-utils';
@@ -118,6 +123,7 @@ const App: React.FC = () => {
     const [chartData, setChartData] = useState<NatalChartData | null>(null);
     const [chartLoadState, setChartLoadState] = useState<ChartLoadState>('idle');
     const [preloadedHumanReport, setPreloadedHumanReport] = useState<NatalInterpretationReport | null>(null);
+    const [premiumDailyReadiness, setPremiumDailyReadiness] = useState<PremiumDailyReadinessMap>({});
     const [activeChartId, setActiveChartId] = useState<number | undefined>(undefined);
     const [loading, setLoading] = useState(true);
     const [loadingProgress, setLoadingProgress] = useState(0);
@@ -151,6 +157,65 @@ const App: React.FC = () => {
     const [initialTodaySection, setInitialTodaySection] = useState<string | null>(null);
     const viewRef = useRef<ViewState>('onboarding');
     const navigationHistoryRef = useRef<ViewState[]>([]);
+
+    const startPremiumDailyReadinessPrewarm = useCallback((input: {
+        userId: string;
+        chartId: number | null;
+        profile: UserProfile;
+        chartData: NatalChartData;
+        isPremium: boolean;
+        dateKey: string;
+        cacheResult: PrewarmUserContentResult;
+    }) => {
+        if (!input.isPremium) {
+            setPremiumDailyReadiness({});
+            return;
+        }
+
+        const cachedReady = buildPremiumDailyReadinessMap(input.cacheResult.cachedTaskIds, 'ready');
+        const missingTaskIds = filterPremiumDailyReadinessTaskIds(input.cacheResult.missingTaskIds);
+        const preparing = buildPremiumDailyReadinessMap(missingTaskIds, 'preparing');
+        const unavailable = buildPremiumDailyReadinessMap(PREMIUM_DAILY_READINESS_TASK_IDS, 'failed');
+
+        setPremiumDailyReadiness({
+            ...unavailable,
+            ...cachedReady,
+            ...preparing,
+        });
+
+        if (missingTaskIds.length === 0) return;
+
+        void prewarmUserContent({
+            userId: input.userId,
+            chartId: input.chartId,
+            profile: input.profile,
+            chartData: input.chartData,
+            isPremium: true,
+            dateKey: input.dateKey,
+            mode: 'generate-missing',
+            onlyTaskIds: missingTaskIds,
+            blockingBudgetMs: 120_000,
+        }).then((result) => {
+            const readyTaskIds = filterPremiumDailyReadinessTaskIds(
+                result.completed
+                    .filter((item) => item.status === 'cached' || item.status === 'generated')
+                    .map((item) => item.id)
+            );
+            const failedTaskIds = missingTaskIds.filter((id) => !readyTaskIds.includes(id));
+
+            setPremiumDailyReadiness((current) => ({
+                ...current,
+                ...buildPremiumDailyReadinessMap(readyTaskIds, 'ready'),
+                ...buildPremiumDailyReadinessMap(failedTaskIds, 'failed'),
+            }));
+        }).catch((prewarmError: any) => {
+            console.warn('[App] Premium daily readiness prewarm failed:', prewarmError?.message || prewarmError);
+            setPremiumDailyReadiness((current) => ({
+                ...current,
+                ...buildPremiumDailyReadinessMap(missingTaskIds, 'failed'),
+            }));
+        });
+    }, []);
 
     const getFallbackAdminStatus = useCallback((userId?: string | number, storedIsAdmin?: boolean) => {
         return OWNER_ID && userId ? String(userId) === String(OWNER_ID) : !!storedIsAdmin;
@@ -457,7 +522,7 @@ const App: React.FC = () => {
                     const dateKey = getMoscowTodayKey();
                     const prewarmKey = `${updatedProfile.id}:${primaryChartId ?? 'primary'}:${dateKey}:${updatedProfile.isPremium ? 'premium' : 'free'}`;
                     try {
-                        await prewarmUserContent({
+                        const cacheResult = await prewarmUserContent({
                             userId: String(updatedProfile.id),
                             chartId: primaryChartId,
                             profile: updatedProfile,
@@ -469,8 +534,18 @@ const App: React.FC = () => {
                             onProgress: (ratio) => setLoadingProgress(68 + Math.round(ratio * 12)),
                         });
                         prewarmCompletedKeyRef.current = prewarmKey;
+                        startPremiumDailyReadinessPrewarm({
+                            userId: String(updatedProfile.id),
+                            chartId: primaryChartId,
+                            profile: updatedProfile,
+                            chartData: chart,
+                            isPremium: !!updatedProfile.isPremium,
+                            dateKey,
+                            cacheResult,
+                        });
                     } catch (prewarmError: any) {
                         console.warn('[App] Startup cache hydrate failed (non-blocking):', prewarmError?.message || prewarmError);
+                        setPremiumDailyReadiness({});
                         prewarmCompletedKeyRef.current = prewarmKey;
                     }
                     setLoadingProgress(88);
@@ -499,7 +574,7 @@ const App: React.FC = () => {
             cancelled = true;
             clearSafety();
         };
-    }, [loadPrimaryChartOnce, prefetchBaseReportForChart, resolveAuthoritativeAdminStatus]);
+    }, [loadPrimaryChartOnce, prefetchBaseReportForChart, resolveAuthoritativeAdminStatus, startPremiumDailyReadinessPrewarm]);
 
     // Legacy profile.generatedContent sync — disabled on ordinary login (see appStartupFlags).
     useEffect(() => {
@@ -630,23 +705,18 @@ const App: React.FC = () => {
                     onProgress: (ratio) => setLoadingProgress(72 + Math.round(ratio * 12)),
                 });
                 prewarmCompletedKeyRef.current = prewarmKey;
-                if (ENABLE_AUTO_BACKGROUND_PREWARM_GENERATION && cacheResult.missingTaskIds.length > 0) {
-                    void prewarmUserContent({
-                        userId: String(fullProfile.id),
-                        chartId: primaryChartId,
-                        profile: fullProfile,
-                        chartData: generatedChart,
-                        isPremium: !!fullProfile.isPremium,
-                        dateKey,
-                        mode: 'generate-missing',
-                        onlyTaskIds: cacheResult.missingTaskIds,
-                        blockingBudgetMs: 120_000,
-                    }).catch((prewarmError: any) => {
-                        console.warn('[App] Onboarding generate-missing failed:', prewarmError?.message || prewarmError);
-                    });
-                }
+                startPremiumDailyReadinessPrewarm({
+                    userId: String(fullProfile.id),
+                    chartId: primaryChartId,
+                    profile: fullProfile,
+                    chartData: generatedChart,
+                    isPremium: !!fullProfile.isPremium,
+                    dateKey,
+                    cacheResult,
+                });
             } catch (prewarmError: any) {
                 console.warn('[App] Onboarding cache hydrate failed:', prewarmError?.message || prewarmError);
+                setPremiumDailyReadiness({});
             }
             setLoadingProgress(90);
             void prefetchBaseReportForChart(fullProfile, primaryChartId ?? undefined);
@@ -1023,6 +1093,7 @@ const App: React.FC = () => {
                             chartData={chartData} 
                             chartId={activeChartId}
                             initialLayer={horoscopeInitialLayer}
+                            premiumDailyReadiness={premiumDailyReadiness}
                             onUpdateProfile={handleProfileUpdate}
                             onOpenChart={() => {
                                 navigateTo('chart');
@@ -1041,6 +1112,7 @@ const App: React.FC = () => {
                             data={chartData} 
                             profile={profile} 
                             chartId={activeChartId}
+                            premiumDailyReadiness={premiumDailyReadiness}
                             requestPremium={requestPremium}
                             onUpdateProfile={handleProfileUpdate}
                             preloadedReport={activeChartId ? null : preloadedHumanReport}
@@ -1101,6 +1173,7 @@ const App: React.FC = () => {
                             profile={profile} 
                             chartData={chartData}
                             chartId={activeChartId ?? null}
+                            premiumDailyReadiness={premiumDailyReadiness}
                             onOpenHoroscopeLayer={openHoroscopeLayer}
                             onOpenSettings={openBottomAvatar}
                             scrollRef={dashboardScrollRef}

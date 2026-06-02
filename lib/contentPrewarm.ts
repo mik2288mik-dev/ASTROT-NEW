@@ -35,6 +35,56 @@ export type PrewarmPlanItem = {
   daypartSlot?: 'morning' | 'day' | 'evening';
 };
 
+export const PREMIUM_DAILY_READINESS_SECTION_KEYS = [
+  'daily_love',
+  'daily_work_business',
+  'daily_money',
+  'daily_goals',
+] as const satisfies readonly HumanDailySectionKey[];
+
+export type PremiumDailyReadinessSectionKey = (typeof PREMIUM_DAILY_READINESS_SECTION_KEYS)[number];
+
+export const PREMIUM_DAILY_READINESS_TASK_BY_SECTION = {
+  daily_love: 'human_daily_love',
+  daily_work_business: 'human_daily_work_business',
+  daily_money: 'human_daily_money',
+  daily_goals: 'human_daily_goals',
+} as const satisfies Record<PremiumDailyReadinessSectionKey, PrewarmTaskId>;
+
+export const PREMIUM_DAILY_READINESS_TASK_IDS = [
+  'human_daily_love',
+  'human_daily_work_business',
+  'human_daily_money',
+  'human_daily_goals',
+] as const satisfies readonly PrewarmTaskId[];
+
+export type PremiumDailyReadinessTaskId = (typeof PREMIUM_DAILY_READINESS_TASK_IDS)[number];
+export type PremiumDailyReadinessStatus = 'ready' | 'preparing' | 'failed';
+export type PremiumDailyReadinessMap = Partial<
+  Record<PremiumDailyReadinessSectionKey, PremiumDailyReadinessStatus>
+>;
+
+export function filterPremiumDailyReadinessTaskIds(taskIds: readonly PrewarmTaskId[]): PremiumDailyReadinessTaskId[] {
+  const available = new Set<PrewarmTaskId>(taskIds);
+  return PREMIUM_DAILY_READINESS_TASK_IDS.filter((id) => available.has(id));
+}
+
+export function buildPremiumDailyReadinessMap(
+  taskIds: readonly PrewarmTaskId[],
+  status: PremiumDailyReadinessStatus
+): PremiumDailyReadinessMap {
+  const available = new Set<PrewarmTaskId>(taskIds);
+  const next: PremiumDailyReadinessMap = {};
+
+  for (const sectionKey of PREMIUM_DAILY_READINESS_SECTION_KEYS) {
+    if (available.has(PREMIUM_DAILY_READINESS_TASK_BY_SECTION[sectionKey])) {
+      next[sectionKey] = status;
+    }
+  }
+
+  return next;
+}
+
 const PRIORITY_ORDER: Record<PrewarmPriority, number> = {
   high: 0,
   medium: 1,
