@@ -342,32 +342,41 @@ describe('content prewarm', () => {
     expect(key).toContain('content-generation:7:free:forecast:daily:2026-05-29');
   });
 
-  it('App startup uses one DB-first generate-missing flow, not background click readiness', () => {
+  it('App startup uses cache-only probe before dashboard, with background generation', () => {
     const source = fs.readFileSync(path.join(ROOT, 'App.tsx'), 'utf8');
     expect(source).toContain('prepareUserContentDbFirst');
+    expect(source).toContain("mode: 'cache-only'");
     expect(source).toContain("mode: 'generate-missing'");
+    expect(source).toContain('awaitGeneration');
+    expect(source).toContain('CACHE_ONLY_PREWARM_BUDGET_MS');
+    expect(source).toContain('backgroundPrewarmKeyRef');
     expect(source).not.toContain('blockingBudgetMs: 38_000');
     expect(source).not.toContain('}, 40_000)');
     expect(source).toContain('STARTUP_SAFETY_TIMEOUT_MS');
     expect(source).toContain('getStartupRequiredTaskIds');
     expect(source).toContain('getPrimaryChartId');
     expect(source).not.toContain('startPremiumDailyReadinessPrewarm');
-    expect(source).not.toContain("mode: 'cache-only'");
-    expect(source).not.toContain('onlyTaskIds: missingTaskIds');
-    expect(source).toContain('PREMIUM_DAILY_READINESS_TASK_IDS');
     expect(source).not.toContain('ENABLE_AUTO_BACKGROUND_PREWARM_GENERATION');
     const flags = fs.readFileSync(path.join(ROOT, 'lib/appStartupFlags.ts'), 'utf8');
     expect(flags).not.toContain('ENABLE_AUTO_BACKGROUND_PREWARM_GENERATION');
   });
 
-  it('ordinary app startup awaits DB-first content before opening dashboard', () => {
+  it('ordinary app startup opens dashboard after cache probe without blocking generation', () => {
     const source = fs.readFileSync(path.join(ROOT, 'App.tsx'), 'utf8');
     const loadDataBlock = source.match(/const loadData = async[\s\S]*?void loadData\(\)/)?.[0] ?? '';
     expect(loadDataBlock).toContain('await prepareUserContentDbFirst');
     expect(loadDataBlock).toContain("setView(requestedViewRef.current || 'dashboard')");
+    expect(loadDataBlock).not.toContain('awaitGeneration: true');
     expect(loadDataBlock.indexOf('await prepareUserContentDbFirst')).toBeLessThan(
       loadDataBlock.indexOf("setView(requestedViewRef.current || 'dashboard')")
     );
+  });
+
+  it('Dashboard stays mounted while navigating away from home', () => {
+    const source = fs.readFileSync(path.join(ROOT, 'App.tsx'), 'utf8');
+    expect(source).toContain("view === 'dashboard' ? 'flex h-full min-h-0 overflow-hidden' : 'hidden'");
+    expect(source).toContain('chartId={primaryChartId}');
+    expect(source).toContain('setPrimaryChartId(primaryChartId)');
   });
 
   it('human-daily endpoint uses withContentGenerationLock', () => {
@@ -409,12 +418,10 @@ describe('content prewarm', () => {
     }
   });
 
-  it('Premium daily cards and natal report open cached content only', () => {
+  it('Premium daily cards and natal report open cached content with on-demand horoscope generation', () => {
     const horoscope = fs.readFileSync(path.join(ROOT, 'views/Horoscope.tsx'), 'utf8');
     expect(horoscope).toContain('getCachedHumanDailySection');
-    expect(horoscope).not.toContain('ensureHumanDailySection');
-    expect(horoscope).not.toContain('ensureFullDaypartForecast');
-    expect(horoscope).not.toContain('loadDailySignHoroscope');
+    expect(horoscope).toContain('ensureHumanDailySection');
     expect(horoscope).toContain('resolveDailySectionKey');
     expect(horoscope).toContain('daily_money');
 

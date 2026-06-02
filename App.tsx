@@ -19,6 +19,7 @@ import {
     type PremiumDailyReadinessMap,
 } from './lib/contentPrewarm';
 import {
+    CACHE_ONLY_PREWARM_BUDGET_MS,
     ENABLE_LEGACY_DASHBOARD_CONTENT_SYNC,
 } from './lib/appStartupFlags';
 import { getMoscowTodayKey } from './lib/date-utils';
@@ -55,8 +56,8 @@ import {
 
 // Get owner ID from environment variables for security
 const OWNER_ID = process.env.NEXT_PUBLIC_OWNER_ID || '';
-const CONTENT_DB_FIRST_BUDGET_MS = 240_000;
-const STARTUP_SAFETY_TIMEOUT_MS = CONTENT_DB_FIRST_BUDGET_MS + 60_000;
+const CONTENT_GENERATION_BUDGET_MS = 240_000;
+const STARTUP_SAFETY_TIMEOUT_MS = 20_000;
 const STARTUP_REQUIRED_RETRY_BUDGET_MS = 90_000;
 
 if (!OWNER_ID) {
@@ -166,6 +167,7 @@ const App: React.FC = () => {
     const [preloadedHumanReport, setPreloadedHumanReport] = useState<NatalInterpretationReport | null>(null);
     const [premiumDailyReadiness, setPremiumDailyReadiness] = useState<PremiumDailyReadinessMap>({});
     const [activeChartId, setActiveChartId] = useState<number | undefined>(undefined);
+    const [primaryChartId, setPrimaryChartId] = useState<number | null>(null);
     const [loading, setLoading] = useState(true);
     const [loadingProgress, setLoadingProgress] = useState(0);
     const [loadingMessage, setLoadingMessage] = useState<string | undefined>(undefined);
@@ -186,6 +188,7 @@ const App: React.FC = () => {
     const contentSyncGenRef = useRef(0);
     const contentSyncedKeyRef = useRef<string | null>(null);
     const prewarmCompletedKeyRef = useRef<string | null>(null);
+    const backgroundPrewarmKeyRef = useRef<string | null>(null);
     const primaryChartSessionRef = useRef<{
         key: string;
         data: NatalChartData | null;
@@ -204,6 +207,7 @@ const App: React.FC = () => {
     const applyPremiumDailyReadinessResult = useCallback((input: {
         isPremium: boolean;
         result: PrewarmUserContentResult | null;
+        missingStatus?: 'preparing' | 'failed';
     }) => {
         if (!input.isPremium || !input.result) {
             setPremiumDailyReadiness({});
@@ -215,10 +219,11 @@ const App: React.FC = () => {
                 .filter((item) => item.status === 'cached' || item.status === 'generated')
                 .map((item) => item.id)
         );
-        const failedTaskIds = PREMIUM_DAILY_READINESS_TASK_IDS.filter((id) => !readyTaskIds.includes(id));
+        const missingTaskIds = PREMIUM_DAILY_READINESS_TASK_IDS.filter((id) => !readyTaskIds.includes(id));
+        const missingStatus = input.missingStatus ?? 'failed';
 
         setPremiumDailyReadiness({
-            ...buildPremiumDailyReadinessMap(failedTaskIds, 'failed'),
+            ...buildPremiumDailyReadinessMap(missingTaskIds, missingStatus),
             ...buildPremiumDailyReadinessMap(readyTaskIds, 'ready'),
         });
     }, []);
@@ -278,10 +283,12 @@ const App: React.FC = () => {
         dateKey: string;
         progressStart?: number;
         progressSpan?: number;
+        awaitGeneration?: boolean;
     }) => {
         const prewarmKey = `${input.userId}:${input.chartId ?? 'primary'}:${input.dateKey}:${input.isPremium ? 'premium' : 'free'}`;
         const progressStart = input.progressStart ?? 68;
         const progressSpan = input.progressSpan ?? 20;
+        const awaitGeneration = input.awaitGeneration ?? false;
 
         if (input.isPremium) {
             setPremiumDailyReadiness(buildPremiumDailyReadinessMap(PREMIUM_DAILY_READINESS_TASK_IDS, 'preparing'));
@@ -289,28 +296,31 @@ const App: React.FC = () => {
             setPremiumDailyReadiness({});
         }
 
-        let result = await prewarmUserContent({
+        const cacheResult = await prewarmUserContent({
             userId: input.userId,
             chartId: input.chartId,
             profile: input.profile,
             chartData: input.chartData,
             isPremium: input.isPremium,
             dateKey: input.dateKey,
-            mode: 'generate-missing',
-            blockingBudgetMs: CONTENT_DB_FIRST_BUDGET_MS,
+            mode: 'cache-only',
+            blockingBudgetMs: CACHE_ONLY_PREWARM_BUDGET_MS,
             onProgress: (ratio) => setLoadingProgress(progressStart + Math.round(ratio * progressSpan)),
         });
 
-        const requiredTaskIds = getStartupRequiredTaskIds(input.isPremium);
-        const readyTaskIds = getReadyPrewarmTaskIds(result);
-        const retryTaskIds = requiredTaskIds.filter((id) => !readyTaskIds.has(id));
+        applyPremiumDailyReadinessResult({
+            isPremium: input.isPremium,
+            result: cacheResult,
+            missingStatus: 'preparing',
+        });
 
-        if (retryTaskIds.length > 0) {
-            console.warn('[App] Required startup content missing after DB-first pass, retrying cache-first fill', {
-                retryTaskIds,
-                isPremium: input.isPremium,
-            });
-            const retryResult = await prewarmUserContent({
+        const generateMissingContent = async (): Promise<PrewarmUserContentResult> => {
+            const missingTaskIds = cacheResult.missingTaskIds;
+            if (missingTaskIds.length === 0) {
+                return cacheResult;
+            }
+
+            let result = await prewarmUserContent({
                 userId: input.userId,
                 chartId: input.chartId,
                 profile: input.profile,
@@ -318,25 +328,67 @@ const App: React.FC = () => {
                 isPremium: input.isPremium,
                 dateKey: input.dateKey,
                 mode: 'generate-missing',
-                onlyTaskIds: retryTaskIds,
-                blockingBudgetMs: STARTUP_REQUIRED_RETRY_BUDGET_MS,
-                onProgress: (ratio) => setLoadingProgress(progressStart + progressSpan + Math.round(ratio * 6)),
+                onlyTaskIds: missingTaskIds,
+                blockingBudgetMs: CONTENT_GENERATION_BUDGET_MS,
             });
-            result = mergePrewarmResults(result, retryResult);
 
-            const stillMissingTaskIds = requiredTaskIds.filter((id) => !getReadyPrewarmTaskIds(result).has(id));
-            if (stillMissingTaskIds.length > 0) {
-                console.warn('[App] Required startup content is still missing after retry', {
-                    stillMissingTaskIds,
-                    isPremium: input.isPremium,
-                });
+            if (awaitGeneration) {
+                const requiredTaskIds = getStartupRequiredTaskIds(input.isPremium);
+                const readyTaskIds = getReadyPrewarmTaskIds(result);
+                const retryTaskIds = requiredTaskIds.filter((id) => !readyTaskIds.has(id));
+
+                if (retryTaskIds.length > 0) {
+                    console.warn('[App] Required startup content missing after generate pass, retrying', {
+                        retryTaskIds,
+                        isPremium: input.isPremium,
+                    });
+                    const retryResult = await prewarmUserContent({
+                        userId: input.userId,
+                        chartId: input.chartId,
+                        profile: input.profile,
+                        chartData: input.chartData,
+                        isPremium: input.isPremium,
+                        dateKey: input.dateKey,
+                        mode: 'generate-missing',
+                        onlyTaskIds: retryTaskIds,
+                        blockingBudgetMs: STARTUP_REQUIRED_RETRY_BUDGET_MS,
+                    });
+                    result = mergePrewarmResults(result, retryResult);
+                }
             }
+
+            return mergePrewarmResults(cacheResult, result);
+        };
+
+        if (awaitGeneration) {
+            const result = await generateMissingContent();
+            prewarmCompletedKeyRef.current = prewarmKey;
+            applyPremiumDailyReadinessResult({ isPremium: input.isPremium, result });
+            await prefetchBaseReportForChart(input.profile, input.chartId ?? undefined);
+            return result;
         }
 
-        prewarmCompletedKeyRef.current = prewarmKey;
-        applyPremiumDailyReadinessResult({ isPremium: input.isPremium, result });
-        await prefetchBaseReportForChart(input.profile, input.chartId ?? undefined);
-        return result;
+        if (backgroundPrewarmKeyRef.current === prewarmKey || prewarmCompletedKeyRef.current === prewarmKey) {
+            return cacheResult;
+        }
+
+        backgroundPrewarmKeyRef.current = prewarmKey;
+        void (async () => {
+            try {
+                const result = await generateMissingContent();
+                prewarmCompletedKeyRef.current = prewarmKey;
+                applyPremiumDailyReadinessResult({ isPremium: input.isPremium, result });
+                await prefetchBaseReportForChart(input.profile, input.chartId ?? undefined);
+            } catch (error: any) {
+                console.warn('[App] Background content prewarm failed:', error?.message || error);
+            } finally {
+                if (backgroundPrewarmKeyRef.current === prewarmKey) {
+                    backgroundPrewarmKeyRef.current = null;
+                }
+            }
+        })();
+
+        return cacheResult;
     }, [applyPremiumDailyReadinessResult, prefetchBaseReportForChart]);
 
     const loadPrimaryChartOnce = useCallback(async (targetProfile: UserProfile): Promise<NatalChartData | null> => {
@@ -504,7 +556,7 @@ const App: React.FC = () => {
         let safetyCleared = false;
         const safetyTimer = window.setTimeout(() => {
             if (cancelled || safetyCleared) return;
-            console.error('[App] Startup exceeded DB-first budget - unlocking loading UI');
+            console.error('[App] Startup exceeded safety budget - unlocking loading UI');
             setLoadingProgress(100);
             setLoading(false);
         }, STARTUP_SAFETY_TIMEOUT_MS);
@@ -598,6 +650,7 @@ const App: React.FC = () => {
                     setLoadingProgress(68);
                     const primaryChartId = await getPrimaryChartId(String(updatedProfile.id));
                     if (primaryChartId != null) {
+                        setPrimaryChartId(primaryChartId);
                         setActiveChartId(primaryChartId);
                         if (process.env.NODE_ENV !== 'production') {
                             console.warn('[App] primaryChartId', primaryChartId);
@@ -758,6 +811,7 @@ const App: React.FC = () => {
             setLoadingProgress(72);
             const primaryChartId = await getPrimaryChartId(String(fullProfile.id));
             if (primaryChartId != null) {
+                setPrimaryChartId(primaryChartId);
                 setActiveChartId(primaryChartId);
             }
             const dateKey = getMoscowTodayKey();
@@ -771,6 +825,7 @@ const App: React.FC = () => {
                     dateKey,
                     progressStart: 72,
                     progressSpan: 18,
+                    awaitGeneration: true,
                 });
             } catch (prewarmError: any) {
                 console.warn('[App] Onboarding DB-first content flow failed:', prewarmError?.message || prewarmError);
@@ -921,6 +976,7 @@ const App: React.FC = () => {
                    dateKey: getMoscowTodayKey(),
                    progressStart: 35,
                    progressSpan: 60,
+                   awaitGeneration: true,
                }).catch((prewarmError: any) => {
                    console.warn('[App] Premium DB-first content flow failed:', prewarmError?.message || prewarmError);
                });
@@ -1139,6 +1195,21 @@ const App: React.FC = () => {
             <main
                 className="lumia-tg-main-gutter relative z-10 flex-1 w-full max-w-md md:max-w-reading-wide mx-auto overflow-hidden min-h-0 bg-white"
             >
+                <div
+                    className={view === 'dashboard' ? 'flex h-full min-h-0 overflow-hidden' : 'hidden'}
+                    aria-hidden={view !== 'dashboard'}
+                >
+                    <Dashboard
+                        profile={profile}
+                        chartData={chartData}
+                        chartId={primaryChartId}
+                        premiumDailyReadiness={premiumDailyReadiness}
+                        onOpenHoroscopeLayer={openHoroscopeLayer}
+                        onOpenSettings={openBottomAvatar}
+                        scrollRef={dashboardScrollRef}
+                        initialTodaySection={initialTodaySection}
+                    />
+                </div>
                 {view === 'admin' ? (
                     <AdminPanel
                         profile={profile}
@@ -1185,7 +1256,7 @@ const App: React.FC = () => {
                         <Horoscope 
                             profile={profile} 
                             chartData={chartData} 
-                            chartId={activeChartId}
+                            chartId={activeChartId ?? primaryChartId ?? undefined}
                             initialLayer={horoscopeInitialLayer}
                             openMode={horoscopeOpenMode}
                             dailySectionKey={horoscopeDailySectionKey}
@@ -1262,21 +1333,7 @@ const App: React.FC = () => {
                             }}
                         />
                     </div>
-                ) : (
-                    // Default to Dashboard
-                    <div className="flex h-full min-h-0 overflow-hidden">
-                        <Dashboard 
-                            profile={profile} 
-                            chartData={chartData}
-                            chartId={activeChartId ?? null}
-                            premiumDailyReadiness={premiumDailyReadiness}
-                            onOpenHoroscopeLayer={openHoroscopeLayer}
-                            onOpenSettings={openBottomAvatar}
-                            scrollRef={dashboardScrollRef}
-                            initialTodaySection={initialTodaySection}
-                        />
-                    </div>
-                )}
+                ) : null}
             </main>
 
             {profile ? (

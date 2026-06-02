@@ -68,6 +68,7 @@ export const Dashboard = memo<DashboardProps>(
     const pulseRef = React.useRef<HTMLDivElement | null>(null);
     const assistantRef = React.useRef<HTMLDivElement | null>(null);
     const deepLinkScrollDoneRef = React.useRef(false);
+    const hasMountedHomeRef = React.useRef(false);
     const cachedAssistant = React.useMemo(
       () => getCachedTodayAssistantHome(profile, chartId ?? null, undefined, chartData),
       [chartData, chartId, profile.birthDate, profile.birthPlace, profile.birthTime, profile.id, profile.language]
@@ -142,6 +143,13 @@ export const Dashboard = memo<DashboardProps>(
         };
       }
 
+      if (assistantResult?.status === 'ready') {
+        setIsAssistantLoading(false);
+        return () => {
+          alive = false;
+        };
+      }
+
       setIsAssistantLoading(true);
       lumiaDebugLog('today_home_request', {
         chartId: chartId ?? null,
@@ -182,7 +190,11 @@ export const Dashboard = memo<DashboardProps>(
       return () => {
         alive = false;
       };
-    }, [chartData, chartId, language, profile]);
+    }, [assistantResult?.status, chartData, chartId, language, profile]);
+
+    React.useEffect(() => {
+      hasMountedHomeRef.current = true;
+    }, []);
 
     React.useEffect(() => {
       lumiaDebugLog('home_mount', {
@@ -341,7 +353,7 @@ export const Dashboard = memo<DashboardProps>(
     return (
       <div className="lumia-home-screen relative mx-auto flex h-full min-h-0 w-full max-w-md flex-col overflow-hidden">
         <motion.div
-          initial="hidden"
+          initial={hasMountedHomeRef.current ? false : 'hidden'}
           animate="visible"
           variants={pageVariants}
           className="relative flex min-h-0 flex-1 flex-col"
