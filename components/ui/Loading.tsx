@@ -6,8 +6,7 @@ interface LoadingProps {
   progress?: number;
 }
 
-const LOADING_IMAGE_WEBP = '/loading-main.webp';
-const LOADING_IMAGE_PNG = '/loading%20main.png';
+const LOADING_SPLASH = '/lumia_splash_text_updated_1440x3040.webp';
 const LOADING_LABEL = 'Загружаем LUMIA';
 
 /** Matches sky tone in splash art — fills letterbox when aspect ratio differs. */
@@ -15,7 +14,6 @@ const LOADING_BACKDROP = '#d6e5ef';
 
 export const Loading: React.FC<LoadingProps> = ({ progress: externalProgress }) => {
   const [progress, setProgress] = useState(0);
-  const [imageSrc, setImageSrc] = useState(LOADING_IMAGE_WEBP);
 
   useEffect(() => {
     if (externalProgress !== undefined) {
@@ -49,12 +47,11 @@ export const Loading: React.FC<LoadingProps> = ({ progress: externalProgress }) 
     >
       <div className="relative flex min-h-0 flex-1 items-center justify-center">
         <img
-          src={imageSrc}
+          src={LOADING_SPLASH}
           alt={LOADING_LABEL}
           decoding="async"
           fetchPriority="high"
           className="h-full w-full object-contain object-center"
-          onError={() => setImageSrc(LOADING_IMAGE_PNG)}
         />
       </div>
 
