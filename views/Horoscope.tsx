@@ -619,11 +619,6 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
         return;
       }
 
-      if (!profileRef.current.isPremium) {
-        onRequestPremium?.();
-        return;
-      }
-
       const effectiveChartId = await resolveEffectiveChartId();
       const humanSectionKey = resolveDailySectionKey(layer, dailySectionKey);
 
@@ -714,17 +709,21 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
         if (HOROSCOPE_DEV) {
           console.warn('[Horoscope] error', { layer, message: error instanceof Error ? error.message : String(error) });
         }
+        const humanErr = error as HumanReadingError;
+        if (humanErr?.code === 'PREMIUM_REQUIRED') {
+          onRequestPremium?.();
+        }
         setLayerErrors((current) => ({ ...current, [layer]: formatLayerError(error, language) }));
         setLayerState(layer, 'failed');
       }
     };
 
     useEffect(() => {
-      if (openMode !== 'single' || initialLayer === 'sign' || !profile.isPremium) return;
+      if (openMode !== 'single' || initialLayer === 'sign') return;
       setLayerState(initialLayer, 'loading');
       setLayerErrors((current) => ({ ...current, [initialLayer]: undefined }));
       void loadLayer(initialLayer);
-    }, [chartData, chartId, dailySectionKey, initialLayer, openMode, profile.isPremium, today, userId]);
+    }, [chartData, chartId, dailySectionKey, initialLayer, openMode, today, userId]);
 
     useEffect(() => {
       if (isSingleMode) return;
@@ -1027,7 +1026,6 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
               (layer.id === 'love' && hasSectionText(humanSection ?? undefined)) ||
               (layer.id === 'work_money' && hasSectionText(humanSection ?? undefined));
             const isHydratingLayer =
-              !!profileRef.current.isPremium &&
               !isOpen &&
               (layerStates[layer.id] === 'loading' ||
                 layerStates[layer.id] === 'in_progress' ||
@@ -1052,10 +1050,10 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
                   ? renderSignSlide()
                   : layer.id === 'chart' && personalDay
                     ? renderPersonalDay(personalDay)
-                    : layer.id === 'love' && humanSection
-                      ? renderHumanSection(humanSection, layer)
-                      : layer.id === 'work_money' && humanSection
-                        ? renderHumanSection(humanSection, layer)
+                    : layer.id === 'love' && hasSectionText(humanSection ?? undefined)
+                      ? renderHumanSection(humanSection!, layer)
+                      : layer.id === 'work_money' && hasSectionText(humanSection ?? undefined)
+                        ? renderHumanSection(humanSection!, layer)
                         : isHydratingLayer
                           ? renderLayerSkeleton(layer)
                           : isFailedLayer && isSingleMode

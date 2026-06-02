@@ -116,19 +116,22 @@ describe('natal reading service session cache', () => {
   });
 
   it('keeps paid daily sections locked for free users without Premium', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce(
-      response(403, {
-        code: 'PREMIUM_REQUIRED',
-        message: 'locked',
-        premiumRequired: true,
-      })
-    );
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce(response(404, { error: 'NOT_FOUND' }))
+      .mockResolvedValueOnce(
+        response(403, {
+          code: 'PREMIUM_REQUIRED',
+          message: 'locked',
+          premiumRequired: true,
+        })
+      );
 
     await expect(loadHumanDailySection('123', 'daily_work_business', 7, '2026-05-25')).rejects.toMatchObject({
       code: 'PREMIUM_REQUIRED',
     });
 
-    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(global.fetch).toHaveBeenCalledTimes(2);
     expect((global.fetch as jest.Mock).mock.calls[0][1]?.method).toBe('GET');
+    expect((global.fetch as jest.Mock).mock.calls[1][1]?.method).toBe('POST');
   });
 });

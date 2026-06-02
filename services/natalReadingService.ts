@@ -256,9 +256,30 @@ async function readHumanError(response: Response, fallback: string): Promise<Hum
   const payload = await response.json().catch(() => ({}));
   const err = new Error(payload.message || payload.error || fallback) as HumanReadingError;
   err.status = response.status;
-  err.code = payload.code;
+  err.code = payload.code || payload.error;
   err.premiumAvailable = payload.premiumRequired === true || payload.premiumAvailable === true;
   return err;
+}
+
+function unwrapDailySectionPayload(payload: unknown): InterpretationSection | null {
+  const interpretation = (payload as { interpretation?: unknown })?.interpretation;
+  if (!interpretation || typeof interpretation !== 'object') return null;
+
+  const record = interpretation as Record<string, unknown>;
+  const wrapped = record.content;
+
+  if (wrapped && typeof wrapped === 'object' && wrapped !== null) {
+    const section = wrapped as InterpretationSection;
+    if (typeof section.content === 'string' && section.content.trim()) {
+      return section;
+    }
+  }
+
+  if (typeof record.content === 'string' && record.content.trim() && typeof record.title === 'string') {
+    return record as unknown as InterpretationSection;
+  }
+
+  return null;
 }
 
 async function postHuman<T>(
@@ -320,6 +341,20 @@ async function postHuman<T>(
   }
 
   const payload = await response.json();
+  if (endpoint === 'human-daily') {
+    const section = unwrapDailySectionPayload(payload);
+    if (!section) {
+      const err = new Error('Interpretation content is empty') as HumanReadingError;
+      err.code = 'EMPTY_INTERPRETATION';
+      err.status = 502;
+      throw err;
+    }
+    return {
+      content: section as T,
+      accessTier: payload.accessTier,
+    };
+  }
+
   const content = payload.interpretation?.content as T;
   const sectionText =
     content != null && typeof content === 'object' && content !== null && 'content' in content
@@ -364,6 +399,15 @@ async function getHuman<T>(
   }
 
   const payload = await response.json();
+  if (endpoint === 'human-daily') {
+    const section = unwrapDailySectionPayload(payload);
+    if (!section) return null;
+    return {
+      content: section as T,
+      accessTier: payload.accessTier,
+    };
+  }
+
   return {
     content: payload.interpretation?.content as T,
     accessTier: payload.accessTier,
@@ -570,7 +614,7 @@ export async function getCachedHumanDailySection(
     return null;
   } catch (error) {
     const err = error as HumanReadingError;
-    if (err?.status === 404 || err?.status === 409) {
+    if (err?.status === 404 || err?.status === 409 || err?.status === 403) {
       return null;
     }
     throw error;

@@ -23,6 +23,7 @@ import {
   HOME_VIDEO_CARD_ORDER,
   resolveHomeCardVideosForDate,
 } from '../lib/homeCardVideos';
+import { prefetchAllHomeCardDailyContent, prefetchHomeCardLayer } from '../lib/homeCardDailyContent';
 import { captureLumiaHomeLayout, lumiaDebugLog } from '../lib/lumiaDebug';
 import { shouldShowTodayAssistantFirst } from '../lib/todayAssistantPriority';
 import {
@@ -114,8 +115,22 @@ export const Dashboard = memo<DashboardProps>(
 
     const openHoroscope = (layer: HoroscopeLayer = 'sign', options?: HoroscopeOpenOptions) => {
       haptic('open');
+      if (chartData?.sun && chartData?.moon) {
+        prefetchHomeCardLayer({
+          profile,
+          chartData,
+          chartId,
+          layer,
+          dailySectionKey: options?.dailySectionKey,
+        });
+      }
       onOpenHoroscopeLayer(layer, options);
     };
+
+    React.useEffect(() => {
+      if (!profile.id || !chartData?.sun || !chartData?.moon) return;
+      prefetchAllHomeCardDailyContent({ profile, chartData, chartId });
+    }, [chartData, chartId, profile.id]);
 
     React.useEffect(() => {
       let alive = true;

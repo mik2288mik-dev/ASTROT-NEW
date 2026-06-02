@@ -23,6 +23,7 @@ import {
     ENABLE_LEGACY_DASHBOARD_CONTENT_SYNC,
 } from './lib/appStartupFlags';
 import { getMoscowTodayKey } from './lib/date-utils';
+import { prefetchHomeCardLayer } from './lib/homeCardDailyContent';
 import { Onboarding } from './views/Onboarding';
 import { Dashboard } from './views/Dashboard';
 import { NatalChart } from './views/NatalChart';
@@ -1050,8 +1051,17 @@ const App: React.FC = () => {
         setHoroscopeInitialLayer(layer);
         setHoroscopeOpenMode(mode);
         setHoroscopeDailySectionKey(options?.dailySectionKey);
+        if (layer !== 'sign' && chartData?.sun && chartData?.moon && profile) {
+            prefetchHomeCardLayer({
+                profile,
+                chartData,
+                chartId: primaryChartId,
+                layer,
+                dailySectionKey: options?.dailySectionKey,
+            });
+        }
         navigateTo('horoscope');
-    }, [navigateTo]);
+    }, [chartData, navigateTo, primaryChartId, profile]);
 
     const refreshPrimaryChartState = useCallback(async () => {
         try {
@@ -1256,7 +1266,7 @@ const App: React.FC = () => {
                         <Horoscope 
                             profile={profile} 
                             chartData={chartData} 
-                            chartId={activeChartId ?? primaryChartId ?? undefined}
+                            chartId={primaryChartId ?? undefined}
                             initialLayer={horoscopeInitialLayer}
                             openMode={horoscopeOpenMode}
                             dailySectionKey={horoscopeDailySectionKey}
