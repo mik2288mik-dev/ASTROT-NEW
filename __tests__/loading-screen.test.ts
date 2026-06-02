@@ -4,13 +4,12 @@ import path from 'path';
 const ROOT = path.join(__dirname, '..');
 
 describe('loading screen', () => {
-  it('uses full-screen image background', () => {
+  it('uses full-screen image without cropping', () => {
     const source = fs.readFileSync(path.join(ROOT, 'components/ui/Loading.tsx'), 'utf8');
     expect(source).toMatch(/loading-main\.webp|loading%20main\.png/);
-    expect(source).toContain('absolute inset-0');
-    expect(source).toContain('object-cover');
+    expect(source).toContain('object-contain');
+    expect(source).not.toContain('object-cover');
     expect(source).toContain('min-h-[100dvh]');
-    expect(source).not.toContain('object-contain');
     expect(source).not.toContain('LumiaLogo');
   });
 
@@ -20,7 +19,7 @@ describe('loading screen', () => {
     expect(barTracks.length).toBe(1);
   });
 
-  it('does not contain forbidden phrases', () => {
+  it('does not contain forbidden phrases in visible copy', () => {
     const source = fs.readFileSync(path.join(ROOT, 'components/ui/Loading.tsx'), 'utf8');
     const forbidden = [
       /космическ/i,
@@ -33,11 +32,13 @@ describe('loading screen', () => {
     for (const pattern of forbidden) {
       expect(source).not.toMatch(pattern);
     }
-    expect(source).toContain('Загружаем LUMIA');
   });
 
-  it('loading main asset exists in public', () => {
+  it('loading assets exist and webp is lightweight', () => {
     const png = path.join(ROOT, 'public', 'loading main.png');
+    const webp = path.join(ROOT, 'public', 'loading-main.webp');
     expect(fs.existsSync(png)).toBe(true);
+    expect(fs.existsSync(webp)).toBe(true);
+    expect(fs.statSync(webp).size).toBeLessThan(512 * 1024);
   });
 });

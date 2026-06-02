@@ -10,6 +10,9 @@ const LOADING_IMAGE_WEBP = '/loading-main.webp';
 const LOADING_IMAGE_PNG = '/loading%20main.png';
 const LOADING_LABEL = 'Загружаем LUMIA';
 
+/** Matches sky tone in splash art — fills letterbox when aspect ratio differs. */
+const LOADING_BACKDROP = '#d6e5ef';
+
 export const Loading: React.FC<LoadingProps> = ({ progress: externalProgress }) => {
   const [progress, setProgress] = useState(0);
   const [imageSrc, setImageSrc] = useState(LOADING_IMAGE_WEBP);
@@ -38,51 +41,45 @@ export const Loading: React.FC<LoadingProps> = ({ progress: externalProgress }) 
 
   return (
     <div
-      className="fixed inset-0 z-50 min-h-[100dvh] w-full overflow-hidden bg-[#0a0a0a]"
+      className="fixed inset-0 z-50 flex min-h-[100dvh] w-full flex-col overflow-hidden"
+      style={{ backgroundColor: LOADING_BACKDROP }}
       role="status"
       aria-live="polite"
       aria-label={LOADING_LABEL}
     >
-      <img
-        src={imageSrc}
-        alt=""
-        aria-hidden
-        className="absolute inset-0 h-full w-full object-cover object-center"
-        onError={() => setImageSrc(LOADING_IMAGE_PNG)}
-      />
+      <div className="relative flex min-h-0 flex-1 items-center justify-center">
+        <img
+          src={imageSrc}
+          alt={LOADING_LABEL}
+          decoding="async"
+          fetchPriority="high"
+          className="h-full w-full object-contain object-center"
+          onError={() => setImageSrc(LOADING_IMAGE_PNG)}
+        />
+      </div>
 
-      <div
-        className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-black/20"
-        aria-hidden
-      />
-
-      <div
-        className="absolute inset-x-0 bottom-0 flex flex-col items-center px-6 text-center"
-        style={{
-          paddingTop: 'max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px))',
-          paddingBottom: 'max(calc(env(safe-area-inset-bottom, 0px) + 1.25rem), calc(var(--tg-content-safe-area-inset-bottom, 0px) + 1.25rem))',
-        }}
-      >
-        <motion.p
-          className="max-w-xs text-sm font-medium tracking-[0.02em] text-white/92"
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, ease: 'easeOut' }}
+      {showBar ? (
+        <div
+          className="shrink-0 px-8 pb-[max(calc(env(safe-area-inset-bottom,0px)+1rem),calc(var(--tg-content-safe-area-inset-bottom,0px)+1rem))] pt-3"
+          style={{
+            paddingTop: 'max(0.75rem, var(--tg-content-safe-area-inset-top, 0px))',
+          }}
         >
-          {LOADING_LABEL}
-        </motion.p>
-
-        {showBar ? (
-          <div className="mt-5 h-0.5 w-full max-w-[240px] overflow-hidden rounded-full bg-white/25">
+          <div className="mx-auto h-0.5 w-full max-w-[260px] overflow-hidden rounded-full bg-[#1a2a3a]/12">
             <motion.div
-              className="h-full rounded-full bg-white/90"
+              className="h-full rounded-full bg-[#1a2a3a]/55"
               initial={{ width: 0 }}
               animate={{ width: `${progress}%` }}
               transition={{ duration: 0.25, ease: 'easeOut' }}
             />
           </div>
-        ) : null}
-      </div>
+        </div>
+      ) : (
+        <div
+          className="shrink-0 pb-[max(env(safe-area-inset-bottom,0px),var(--tg-content-safe-area-inset-bottom,0px))]"
+          aria-hidden
+        />
+      )}
     </div>
   );
 };
