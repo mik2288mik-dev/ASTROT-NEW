@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { UserProfile, NatalChartData, ViewState, HoroscopeLayer, NatalInterpretationReport } from './types';
+import { UserProfile, NatalChartData, ViewState, HoroscopeLayer, NatalInterpretationReport, type HoroscopeOpenMode, type HoroscopeOpenOptions } from './types';
 import {
     getProfile,
     saveProfile,
@@ -134,6 +134,7 @@ const App: React.FC = () => {
     const [chartsReturnView, setChartsReturnView] = useState<ViewState>('settings');
     const [chartReturnView, setChartReturnView] = useState<ViewState>('dashboard');
     const [horoscopeInitialLayer, setHoroscopeInitialLayer] = useState<HoroscopeLayer>('sign');
+    const [horoscopeOpenMode, setHoroscopeOpenMode] = useState<HoroscopeOpenMode>('overview');
     const [, setHoroscopeBackground] = useState<{
         sign: string | null;
         tone: 'sign' | 'chart' | 'love' | 'work';
@@ -891,15 +892,19 @@ const App: React.FC = () => {
         setView(newView);
     }, [profile, pushReturnView]);
 
-    const openHoroscopeLayer = useCallback((layer: HoroscopeLayer) => {
+    const openHoroscopeLayer = useCallback((layer: HoroscopeLayer, options?: HoroscopeOpenOptions) => {
+        const mode = options?.mode ?? 'overview';
         lumiaDebugLog('navigation', {
             action: 'open_horoscope_layer',
             from: viewRef.current,
             to: 'horoscope',
             layer,
+            mode,
+            source: options?.source ?? null,
             historyBeforeSet: navigationHistoryRef.current,
         });
         setHoroscopeInitialLayer(layer);
+        setHoroscopeOpenMode(mode);
         navigateTo('horoscope');
     }, [navigateTo]);
 
@@ -1093,6 +1098,7 @@ const App: React.FC = () => {
                             chartData={chartData} 
                             chartId={activeChartId}
                             initialLayer={horoscopeInitialLayer}
+                            openMode={horoscopeOpenMode}
                             premiumDailyReadiness={premiumDailyReadiness}
                             onUpdateProfile={handleProfileUpdate}
                             onOpenChart={() => {

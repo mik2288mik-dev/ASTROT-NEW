@@ -5,6 +5,7 @@ import type {
   ActionTimingRecommendation,
   DailyCheckInInput,
   HoroscopeLayer,
+  HoroscopeOpenOptions,
   NatalChartData,
   TodayAssistantHomeResult,
   UserProfile,
@@ -36,7 +37,7 @@ interface DashboardProps {
   profile: UserProfile;
   chartData: NatalChartData | null;
   chartId?: number | null;
-  onOpenHoroscopeLayer: (layer: HoroscopeLayer) => void;
+  onOpenHoroscopeLayer: (layer: HoroscopeLayer, options?: HoroscopeOpenOptions) => void;
   onOpenSettings?: () => void;
   scrollRef?: React.RefObject<HTMLDivElement | null>;
   initialTodaySection?: string | null;
@@ -110,9 +111,9 @@ export const Dashboard = memo<DashboardProps>(
           },
         };
 
-    const openHoroscope = (layer: HoroscopeLayer = 'sign') => {
+    const openHoroscope = (layer: HoroscopeLayer = 'sign', options?: HoroscopeOpenOptions) => {
       haptic('open');
-      onOpenHoroscopeLayer(layer);
+      onOpenHoroscopeLayer(layer, options);
     };
 
     React.useEffect(() => {
@@ -266,7 +267,7 @@ export const Dashboard = memo<DashboardProps>(
           body: homeCopy.quickActions.today.body,
           imageSrc: resolvedQuickActionVideos.horoscope.poster || '/lumia-home/quick-actions/horoscope-today.webp',
           videoAsset: resolvedQuickActionVideos.horoscope.video,
-          onClick: () => openHoroscope('sign'),
+          onClick: () => openHoroscope('sign', { mode: 'single', source: 'home_card_today' }),
         },
         {
           id: 'love' as const,
@@ -274,7 +275,7 @@ export const Dashboard = memo<DashboardProps>(
           body: homeCopy.quickActions.love.body,
           imageSrc: resolvedQuickActionVideos.love.poster || '/lumia-home/quick-actions/love.webp',
           videoAsset: resolvedQuickActionVideos.love.video,
-          onClick: () => openHoroscope('love'),
+          onClick: () => openHoroscope('love', { mode: 'single', source: 'home_card_love' }),
         },
         {
           id: 'money' as const,
@@ -282,7 +283,7 @@ export const Dashboard = memo<DashboardProps>(
           body: homeCopy.quickActions.money.body,
           imageSrc: resolvedQuickActionVideos.money.poster || '/lumia-home/quick-actions/money.webp',
           videoAsset: resolvedQuickActionVideos.money.video,
-          onClick: () => openHoroscope('work_money'),
+          onClick: () => openHoroscope('work_money', { mode: 'single', source: 'home_card_money' }),
         },
         {
           id: 'work' as const,
@@ -290,7 +291,7 @@ export const Dashboard = memo<DashboardProps>(
           body: homeCopy.quickActions.work.body,
           imageSrc: resolvedQuickActionVideos.work.poster || '/lumia-home/quick-actions/work.webp',
           videoAsset: resolvedQuickActionVideos.work.video,
-          onClick: () => openHoroscope('work_money'),
+          onClick: () => openHoroscope('work_money', { mode: 'single', source: 'home_card_work' }),
         },
         {
           id: 'rhythm' as const,
@@ -298,7 +299,7 @@ export const Dashboard = memo<DashboardProps>(
           body: homeCopy.quickActions.rhythm.body,
           imageSrc: resolvedQuickActionVideos.rhythm.poster || '/lumia-home/quick-actions/personal-rhythm.webp',
           videoAsset: resolvedQuickActionVideos.rhythm.video,
-          onClick: () => openHoroscope('chart'),
+          onClick: () => openHoroscope('chart', { mode: 'single', source: 'home_card_rhythm' }),
         },
       ],
       [homeCopy, openHoroscope, resolvedQuickActionVideos]

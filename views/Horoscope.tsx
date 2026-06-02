@@ -1,10 +1,11 @@
 import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowRight, BriefcaseBusiness, ChevronDown, Heart, Sparkles, WalletCards } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BriefcaseBusiness, ChevronDown, Heart, Sparkles, WalletCards } from 'lucide-react';
 import { motion, useTransform, type MotionValue } from 'framer-motion';
 import type {
   ForecastDailyReading,
   ForecastDaypartReading,
   HoroscopeLayer,
+  HoroscopeOpenMode,
   InterpretationSection,
   NatalChartData,
   UserProfile,
@@ -43,6 +44,7 @@ interface HoroscopeProps {
   onBack?: () => void | Promise<void>;
   onBackgroundChange?: (state: HoroscopeBackgroundState | null) => void;
   initialLayer?: HoroscopeLayer;
+  openMode?: HoroscopeOpenMode;
   premiumDailyReadiness?: PremiumDailyReadinessMap;
 }
 
@@ -93,7 +95,7 @@ function getLayerConfigs(): LayerConfig[] {
   return [
     {
       id: 'sign',
-      title: 'Гороскоп',
+      title: 'Гороскоп сегодня',
       subtitle: 'Общий прогноз по знаку на сегодня.',
       tone: 'sign',
       icon: Sparkles,
@@ -288,6 +290,7 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
     chartData,
     chartId,
     initialLayer = 'sign',
+    openMode = 'overview',
     premiumDailyReadiness,
     onUpdateProfile,
     onOpenChart,
@@ -334,7 +337,12 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
     }, [initialSign]);
 
     const layers = useMemo(() => getLayerConfigs(), []);
-    const activeConfig = layers.find((layer) => layer.id === initialLayer) || layers[0];
+    const isSingleMode = openMode === 'single';
+    const visibleLayers = useMemo(
+      () => (isSingleMode ? layers.filter((layer) => layer.id === initialLayer) : layers),
+      [initialLayer, isSingleMode, layers]
+    );
+    const activeConfig = (isSingleMode ? visibleLayers[0] : layers.find((layer) => layer.id === initialLayer)) || layers[0];
     const zodiacLabel = getZodiacSign(language, selectedSign);
 
     useEffect(() => {
@@ -566,10 +574,16 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
     };
 
     useEffect(() => {
+      if (openMode !== 'single' || initialLayer === 'sign' || !profile.isPremium) return;
+      void loadLayer(initialLayer);
+    }, [chartData, chartId, initialLayer, openMode, profile.isPremium, today, userId]);
+
+    useEffect(() => {
+      if (isSingleMode) return;
       window.requestAnimationFrame(() => {
         layerRefs.current[initialLayer]?.scrollIntoView({ block: 'start', behavior: 'smooth' });
       });
-    }, [initialLayer]);
+    }, [initialLayer, isSingleMode]);
 
     const chooseSign = (sign: ZodiacKey) => {
       haptic();
@@ -658,7 +672,7 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
 
           <div className="mt-auto max-h-[calc(100%-4.2rem)] overflow-y-auto pb-2 pr-1">
             <SparkleTitle tone="sign" className="max-w-[min(82vw,22rem)] text-[clamp(2.65rem,13vw,4.05rem)]">
-              Гороскоп
+              Гороскоп сегодня
             </SparkleTitle>
             {signLoading ? (
               <div className="mt-4 max-w-[min(82vw,22rem)] space-y-3" aria-busy="true">
@@ -765,9 +779,28 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
     });
 
     return (
-      <div className="h-full min-h-full font-sans">
-        <div className="mx-auto flex w-full max-w-[25rem] flex-col gap-3 px-4 pb-[calc(1.25rem+max(env(safe-area-inset-bottom,0px),var(--tg-content-safe-area-inset-bottom,0px)))] pt-[calc(max(env(safe-area-inset-top,0px),var(--tg-content-safe-area-inset-top,0px))+0.8rem)]">
-          {layers.map((layer, index) => {
+      <div className="h-full min-h-full font-sans" data-horoscope-open-mode={openMode}>
+        <div
+          className={cn(
+            'mx-auto flex w-full max-w-[25rem] flex-col px-4 pb-[calc(1.25rem+max(env(safe-area-inset-bottom,0px),var(--tg-content-safe-area-inset-bottom,0px)))] pt-[calc(max(env(safe-area-inset-top,0px),var(--tg-content-safe-area-inset-top,0px))+0.8rem)]',
+            isSingleMode ? 'gap-3' : 'gap-3'
+          )}
+        >
+          {isSingleMode && onBack ? (
+            <button
+              type="button"
+              onClick={() => {
+                void onBack();
+              }}
+              className="inline-flex min-h-[40px] w-fit items-center gap-2 rounded-full bg-white/72 px-3 text-[13px] font-semibold text-[#202024] shadow-[0_8px_22px_rgba(0,0,0,0.06)] backdrop-blur-md"
+              aria-label={language === 'en' ? 'Back' : 'Назад'}
+            >
+              <ArrowLeft size={16} />
+              {language === 'en' ? 'Back' : 'Назад'}
+            </button>
+          ) : null}
+
+          {visibleLayers.map((layer, index) => {
             const isOpen =
               layer.id === 'sign' ||
               (layer.id === 'chart' && !!personalDay && (layerStates.chart === 'ready' || layerStates.chart === 'cached_ready')) ||
@@ -780,7 +813,11 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
                 ref={(node) => {
                   layerRefs.current[layer.id] = node;
                 }}
-                className="rounded-[22px] border border-black/10 bg-white/68 p-4 shadow-[0_8px_24px_rgba(0,0,0,0.04)] backdrop-blur-md"
+                data-horoscope-layer={layer.id}
+                className={cn(
+                  'rounded-[22px] border border-black/10 bg-white/68 p-4 shadow-[0_8px_24px_rgba(0,0,0,0.04)] backdrop-blur-md',
+                  isSingleMode && 'min-h-[calc(100dvh-7rem)] p-5 shadow-[0_18px_44px_rgba(0,0,0,0.08)]'
+                )}
               >
                 {layer.id === 'sign'
                   ? renderSignSlide()
@@ -792,7 +829,7 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
                         ? renderHumanSection(workSection, layer)
                         : renderLockedLayer(layer)}
 
-                {isOpen && index < layers.length - 1 ? <div className="mt-4 border-t border-black/10" /> : null}
+                {isOpen && !isSingleMode && index < visibleLayers.length - 1 ? <div className="mt-4 border-t border-black/10" /> : null}
               </section>
             );
           })}

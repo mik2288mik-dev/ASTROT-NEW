@@ -496,6 +496,11 @@ export type TodayOverviewResult =
     };
 
 export type HoroscopeLayer = 'sign' | 'chart' | 'love' | 'work_money';
+export type HoroscopeOpenMode = 'overview' | 'single';
+export type HoroscopeOpenOptions = {
+  mode?: HoroscopeOpenMode;
+  source?: string;
+};
 
 export type ForecastDaypartSlot = 'morning' | 'day' | 'evening';
 
