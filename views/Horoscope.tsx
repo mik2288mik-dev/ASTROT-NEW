@@ -32,7 +32,7 @@ import type { PremiumDailyReadinessMap, PremiumDailyReadinessSectionKey } from '
 
 type HoroscopeTone = 'sign' | 'chart' | 'love' | 'work';
 
-type LayerLoadState = 'missing' | 'cached_ready' | 'loading' | 'ready' | 'failed';
+type LayerLoadState = 'missing' | 'cached_ready' | 'loading' | 'in_progress' | 'ready' | 'failed';
 
 const HOROSCOPE_DEV = process.env.NODE_ENV !== 'production';
 const PREMIUM_HUMAN_HYDRATE_KEYS: HumanDailySectionKey[] = [
