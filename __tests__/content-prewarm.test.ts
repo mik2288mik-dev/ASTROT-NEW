@@ -421,7 +421,7 @@ describe('content prewarm', () => {
   it('Premium daily cards and natal report open cached content with on-demand horoscope generation', () => {
     const horoscope = fs.readFileSync(path.join(ROOT, 'views/Horoscope.tsx'), 'utf8');
     expect(horoscope).toContain('getCachedHumanDailySection');
-    expect(horoscope).toContain('ensureHumanDailySection');
+    expect(horoscope).toContain('loadHumanDailySection');
     expect(horoscope).toContain('resolveDailySectionKey');
     expect(horoscope).toContain('daily_money');
 

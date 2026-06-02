@@ -62,7 +62,7 @@ describe('horoscope single-card navigation', () => {
     const source = read('views/Horoscope.tsx');
 
     expect(source).toContain('getCachedHumanDailySection');
-    expect(source).toContain('ensureHumanDailySection');
+    expect(source).toContain('loadHumanDailySection');
     expect(source).toContain('ensureFullDaypartForecast');
     expect(source).toContain('pollHumanSectionCache');
   });
