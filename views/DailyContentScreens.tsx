@@ -42,27 +42,27 @@ type DailySectionScreenProps = DailyScreenProps & {
 const toneStyles: Record<DailyScreenTone, { accent: string; soft: string; line: string }> = {
   love: {
     accent: '#f3a7bd',
-    soft: 'bg-[#fff8fa]',
+    soft: 'bg-white',
     line: 'from-[#f7bdd0]/40 via-[#f8d6df]/25 to-transparent',
   },
   money: {
     accent: '#d5bd7d',
-    soft: 'bg-[#fffdf5]',
+    soft: 'bg-white',
     line: 'from-[#dbc27a]/42 via-[#eadfb6]/26 to-transparent',
   },
   work: {
     accent: '#cbb879',
-    soft: 'bg-[#fffdf5]',
+    soft: 'bg-white',
     line: 'from-[#d7c684]/44 via-[#ebe2bc]/28 to-transparent',
   },
   goals: {
     accent: '#aab98e',
-    soft: 'bg-[#fbfff8]',
+    soft: 'bg-white',
     line: 'from-[#afc596]/40 via-[#dbe7cc]/26 to-transparent',
   },
   personal: {
     accent: '#93b7e8',
-    soft: 'bg-[#f8fbff]',
+    soft: 'bg-white',
     line: 'from-[#9fc4ef]/40 via-[#d7e7fb]/26 to-transparent',
   },
 };
@@ -126,14 +126,14 @@ function ScreenFrame({
             hapticOpen();
             void onBack();
           }}
-          className="inline-flex min-h-[40px] w-fit items-center gap-2 rounded-full bg-white/78 px-3 text-[13px] font-semibold text-[#202024] shadow-[0_8px_22px_rgba(0,0,0,0.06)] backdrop-blur-md"
+          className="inline-flex min-h-[40px] w-fit items-center gap-2 rounded-full bg-white px-3 text-[13px] font-semibold text-[#202024] shadow-[0_8px_22px_rgba(0,0,0,0.06)]"
           aria-label={language === 'en' ? 'Back' : 'Назад'}
         >
           <ArrowLeft size={16} />
           {language === 'en' ? 'Back' : 'Назад'}
         </button>
 
-        <section className="relative flex flex-1 flex-col overflow-hidden rounded-[22px] border border-black/10 bg-white/74 p-5 shadow-[0_18px_44px_rgba(0,0,0,0.08)] backdrop-blur-md">
+        <section className="relative flex flex-1 flex-col overflow-hidden rounded-[22px] border border-black/10 bg-white p-5 shadow-[0_18px_44px_rgba(0,0,0,0.08)]">
           <div className="pointer-events-none absolute -right-8 top-20 opacity-[0.09]">
             <Icon size={188} strokeWidth={0.8} />
           </div>
@@ -161,7 +161,7 @@ function ScreenFrame({
 function PremiumNotice({ profile, requestPremium }: Pick<DailyScreenProps, 'profile' | 'requestPremium'>) {
   const language = profile.language === 'en' ? 'en' : 'ru';
   return (
-    <div className="mt-4 max-w-[min(82vw,22rem)] rounded-[18px] border border-black/10 bg-white/76 px-4 py-4 text-[#34333a]">
+    <div className="mt-4 max-w-[min(82vw,22rem)] rounded-[18px] border border-black/10 bg-white px-4 py-4 text-[#34333a]">
       <div className="flex items-start gap-3">
         <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#202024] text-white">
           <Lock size={16} />
@@ -204,7 +204,7 @@ function LoadingText() {
 
 function ErrorText({ message }: { message: string }) {
   return (
-    <div className="mt-3 max-w-[min(82vw,22rem)] rounded-[18px] border border-[#d9b9b0] bg-white/76 px-4 py-3 text-[14px] leading-relaxed text-[#7d5960]">
+    <div className="mt-3 max-w-[min(82vw,22rem)] rounded-[18px] border border-black/10 bg-white px-4 py-3 text-[14px] leading-relaxed text-[#5f5b64]">
       {message}
     </div>
   );
@@ -224,7 +224,7 @@ function DailySectionContent({ section }: { section: InterpretationSection }) {
       {section.bullets?.length ? (
         <div className="mt-5 space-y-2">
           {section.bullets.slice(0, 4).map((bullet) => (
-            <div key={bullet} className="rounded-[16px] border border-black/10 bg-white/70 px-4 py-3 text-[14px] leading-relaxed text-[#3b3840]">
+            <div key={bullet} className="rounded-[16px] border border-black/10 bg-white px-4 py-3 text-[14px] leading-relaxed text-[#3b3840]">
               {bullet}
             </div>
           ))}
@@ -328,7 +328,7 @@ function PersonalForecastContent({ reading }: { reading: ForecastDaypartReading 
       </p>
       <div className="mt-5 space-y-2">
         {items.map((item) => (
-          <div key={item.label} className="rounded-[16px] border border-black/10 bg-white/70 px-4 py-3">
+          <div key={item.label} className="rounded-[16px] border border-black/10 bg-white px-4 py-3">
             <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#8b8690]">{item.label}</p>
             <p className="mt-1 text-[15px] leading-relaxed text-[#3b3840]">{item.value}</p>
           </div>

@@ -74,9 +74,16 @@ type ResolvedAccess = {
 };
 
 async function resolveAccess(userId: string, profile?: { isPremium?: boolean }): Promise<ResolvedAccess | null> {
+  if (profile?.isPremium) {
+    return {
+      accessTier: 'premium',
+      entitlement: null,
+    };
+  }
+
   const entitlementState = await getPremiumEntitlementState(userId);
 
-  if (!entitlementState.isPremium && !profile?.isPremium) {
+  if (!entitlementState.isPremium) {
     logger.warn({
       scope: 'forecast-daypart',
       event: 'premium_required',

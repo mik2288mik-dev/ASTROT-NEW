@@ -225,7 +225,16 @@ export async function unlockContentLayer(
 }
 
 export async function getPremiumEntitlementState(userId: string) {
-  const entitlement = await db.premium_entitlements.getActive(userId);
+  let entitlement: Awaited<ReturnType<typeof db.premium_entitlements.getActive>> | null = null;
+  try {
+    entitlement = await db.premium_entitlements.getActive(userId);
+  } catch (error: any) {
+    log.warn('Premium entitlement lookup failed; falling back to users.premium_until', {
+      userId,
+      error: error?.message || String(error),
+    });
+  }
+
   if (entitlement) {
     return {
       isPremium: true,

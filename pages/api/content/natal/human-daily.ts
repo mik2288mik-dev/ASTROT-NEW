@@ -33,6 +33,12 @@ type ResolvedDailyAccess = {
   accessTier: Extract<ContentAccessTier, 'premium'>;
 };
 
+function isUsableDailySectionContent(value: unknown): value is InterpretationSection {
+  if (!value || typeof value !== 'object') return false;
+  const section = value as Partial<InterpretationSection>;
+  return typeof section.content === 'string' && section.content.trim().length > 0;
+}
+
 function readSectionKey(req: NextApiRequest): HumanDailySectionKey | null {
   const raw = (req.method === 'GET' ? req.query.sectionKey : req.body?.sectionKey) as string | undefined;
   const value = String(raw || '').trim();
@@ -60,8 +66,12 @@ function getMoscowDayWindow(dateKey: string) {
 }
 
 async function resolveDailyAccess(userId: string, profile?: { isPremium?: boolean }): Promise<ResolvedDailyAccess | null> {
+  if (profile?.isPremium) {
+    return { accessTier: 'premium' };
+  }
+
   const entitlement = await getPremiumEntitlementState(userId);
-  if (entitlement.isPremium || profile?.isPremium) {
+  if (entitlement.isPremium) {
     return { accessTier: 'premium' };
   }
   return null;
@@ -148,14 +158,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     accessTier: cacheAccessTier,
     contentVariant: 'living' as const,
     cacheKey,
-    inputHash,
     promptVersion: HUMAN_DAILY_PROMPT_VERSION,
     isPersistent: false,
     validFrom: window.validFrom,
     validTo: window.validTo,
   };
+  const saveOpts = { ...cacheOpts, inputHash };
 
-  const cached = await getCachedReading<InterpretationSection>(ctx, cacheOpts);
+  const rawCached = await getCachedReading<InterpretationSection>(ctx, cacheOpts);
+  const cached = rawCached && isUsableDailySectionContent(rawCached.content) ? rawCached : null;
 
   if (req.method === 'GET') {
     if (!cached) {
@@ -206,11 +217,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       operation: `human-daily-${sectionKey}`,
       readCached: async () => {
         const again = await getCachedReading<InterpretationSection>(ctx, cacheOpts);
-        return again ? { value: again, source: 'human_v2' } : null;
+        return again && isUsableDailySectionContent(again.content)
+          ? { value: again, source: 'human_v2' }
+          : null;
       },
       generate: async () => {
         const section = await generateHumanDailySection(ctx.profile, ctx.chartData!, sectionKey, dateKey);
-        return saveReading(ctx, cacheOpts, section);
+        if (!isUsableDailySectionContent(section)) {
+          throw new Error('EMPTY_HUMAN_DAILY_SECTION');
+        }
+        return saveReading(ctx, saveOpts, section);
       },
     });
 
@@ -243,7 +259,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.error(`[natal/human-daily:${sectionKey}] generation failed:`, error instanceof Error ? error.message : error);
     try {
       const fallback = buildHumanDailyFallback(ctx.profile, ctx.chartData!, sectionKey, dateKey);
-      const savedFallback = await saveReading(ctx, cacheOpts, fallback);
+      const savedFallback = await saveReading(ctx, saveOpts, fallback);
       return res.status(200).json({
         interpretation: savedFallback,
         source: 'fallback',

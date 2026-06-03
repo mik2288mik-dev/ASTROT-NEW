@@ -86,6 +86,8 @@ describe('premium daily card navigation', () => {
     const humanDaily = read('pages/api/content/natal/human-daily.ts');
     expect(humanDaily).toContain('withContentGenerationLock');
     expect(humanDaily).toContain('readCached');
+    expect(humanDaily).toContain('isUsableDailySectionContent');
+    expect(humanDaily).toContain('const saveOpts = { ...cacheOpts, inputHash }');
     expect(humanDaily).toContain('buildHumanDailyFallback');
     expect(humanDaily).toContain("source: 'fallback'");
 
@@ -93,5 +95,16 @@ describe('premium daily card navigation', () => {
     expect(daypart).toContain('withContentGenerationLock');
     expect(daypart).toContain('readCached');
     expect(daypart).toContain('allowStaticFallback: true');
+  });
+
+  it('dedicated daily screens keep the LUMIA white background', () => {
+    const source = read('views/DailyContentScreens.tsx');
+
+    expect(source).not.toMatch(/bg-\[#fff/i);
+    expect(source).not.toContain('bg-white/');
+    expect(source).not.toContain('backdrop-blur');
+    expect(source).not.toContain('border-[#d9b9b0]');
+    expect(source).toContain('min-h-full bg-white');
+    expect(source).toContain('border border-black/10 bg-white');
   });
 });

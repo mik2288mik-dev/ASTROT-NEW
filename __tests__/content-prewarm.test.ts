@@ -457,8 +457,13 @@ describe('content prewarm', () => {
     expect(apiHelper).toContain('isPremium: fallback?.isPremium ?? !!user.is_premium');
 
     const humanDaily = fs.readFileSync(path.join(ROOT, 'pages/api/content/natal/human-daily.ts'), 'utf8');
-    expect(humanDaily).toContain('entitlement.isPremium || profile?.isPremium');
+    expect(humanDaily).toContain('if (profile?.isPremium)');
+    expect(humanDaily).toContain('isUsableDailySectionContent');
+    expect(humanDaily).toContain('const saveOpts = { ...cacheOpts, inputHash }');
+    expect(humanDaily).toContain('getCachedReading<InterpretationSection>(ctx, cacheOpts)');
+    expect(humanDaily).toContain('saveReading(ctx, saveOpts, section)');
     expect(humanDaily).toContain('buildHumanDailyFallback');
+    expect(humanDaily).toContain('saveReading(ctx, saveOpts, fallback)');
     expect(humanDaily).toContain("source: 'fallback'");
 
     const humanSection = fs.readFileSync(path.join(ROOT, 'pages/api/content/natal/human-section.ts'), 'utf8');
@@ -467,7 +472,8 @@ describe('content prewarm', () => {
 
     const daypart = fs.readFileSync(path.join(ROOT, 'pages/api/content/forecast/daypart.ts'), 'utf8');
     expect(daypart).toContain('isPremium: fallback?.isPremium ?? !!user.is_premium');
-    expect(daypart).toContain('!entitlementState.isPremium && !profile?.isPremium');
+    expect(daypart).toContain('if (profile?.isPremium)');
+    expect(daypart).toContain('if (!entitlementState.isPremium)');
     expect(daypart).toContain('resolveAccess(safeUserId, context.profile)');
     expect(daypart).toContain('allowStaticFallback: true');
   });
