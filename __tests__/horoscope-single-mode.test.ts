@@ -61,13 +61,14 @@ describe('horoscope single-card navigation', () => {
     expect(source).toContain('HUMAN_DAILY_SECTION_META');
   });
 
-  it('Horoscope opens daily cards from startup cache only', () => {
+  it('Horoscope opens daily cards through cache-first safe refill', () => {
     const source = read('views/Horoscope.tsx');
 
     expect(source).toContain('getCachedHumanDailySection');
     expect(source).toContain('getCachedFullDaypartForecast');
-    expect(source).not.toContain('loadHumanDailySection');
-    expect(source).not.toContain('ensureFullDaypartForecast');
+    expect(source).toContain('loadHumanDailySection');
+    expect(source).toContain('ensureFullDaypartForecast');
+    expect(source).toContain('maxInProgressRetries: 45');
     expect(source).not.toContain('ensureDailySignHoroscope');
     expect(source).not.toMatch(/Повторить|Try again|Готовим|Вернись/);
   });

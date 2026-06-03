@@ -12,12 +12,14 @@ import type {
   UserProfile,
 } from '../types';
 import {
+  ensureFullDaypartForecast,
   getCachedDailyForecastLayer,
   getCachedDailySignHoroscope,
   getCachedFullDaypartForecast,
 } from '../services/astrologyService';
 import {
   getCachedHumanDailySection,
+  loadHumanDailySection,
 } from '../services/natalReadingService';
 import { formatLumiaDate, getMoscowTodayKey } from '../lib/date-utils';
 import { getZodiacSign } from '../constants';
@@ -39,7 +41,7 @@ const PREMIUM_HUMAN_HYDRATE_KEYS: HumanDailySectionKey[] = [
   'daily_money',
   'daily_goals',
 ];
-const CACHE_POLL_ATTEMPTS = 24;
+const CACHE_POLL_ATTEMPTS = 120;
 const CACHE_POLL_INTERVAL_MS = 1_000;
 
 function waitForCachePoll(ms: number): Promise<void> {
@@ -567,6 +569,46 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
       return hydrateHumanSection(sectionKey, effectiveChartId);
     };
 
+    const ensureLayerContent = async (layer: HoroscopeLayer, effectiveChartId?: number): Promise<boolean> => {
+      if (!profileRef.current.isPremium || !chartData) return false;
+
+      if (layer === 'chart') {
+        const resolvedChartId = effectiveChartId ?? (await resolveEffectiveChartId());
+        const result = await ensureFullDaypartForecast(profileRef.current, chartData, 'day', {
+          accessTier: 'premium',
+          date: today,
+          chartId: resolvedChartId ?? null,
+          maxInProgressRetries: 45,
+        });
+        if (!result.reading) return false;
+        setPersonalDay(result.reading);
+        setLayerState('chart', 'ready');
+        return true;
+      }
+
+      const sectionKey = resolveDailySectionKey(layer, dailySectionKey);
+      if (!sectionKey) return false;
+      const resolvedChartId = effectiveChartId ?? (await resolveEffectiveChartId());
+      setHydratingDailySections((current) => ({ ...current, [sectionKey]: true }));
+      try {
+        const result = await loadHumanDailySection(userId, sectionKey, resolvedChartId, today, {
+          accessTier: 'premium',
+          maxInProgressRetries: 45,
+          profile: profileRef.current,
+          chartData,
+        });
+        if (!result.content?.content?.trim()) return false;
+        setDailySections((current) => ({ ...current, [sectionKey]: result.content }));
+        if (sectionKey === 'daily_love') setLayerState('love', 'ready');
+        if (sectionKey === 'daily_work_business' || sectionKey === 'daily_money' || sectionKey === 'daily_goals') {
+          setLayerState('work_money', 'ready');
+        }
+        return true;
+      } finally {
+        setHydratingDailySections((current) => ({ ...current, [sectionKey]: false }));
+      }
+    };
+
     const pollLayerFromCache = async (
       layer: HoroscopeLayer,
       effectiveChartId?: number
@@ -627,6 +669,10 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
       setLayerState(layer, 'loading');
 
       try {
+        if (await ensureLayerContent(layer, effectiveChartId)) {
+          haptic('open');
+          return;
+        }
         const pollResult = await pollLayerFromCache(layer, effectiveChartId);
         if (pollResult !== 'cancelled') {
           setLayerState(layer, pollResult === 'ready' ? 'ready' : 'missing');

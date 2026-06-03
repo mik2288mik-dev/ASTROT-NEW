@@ -421,11 +421,12 @@ describe('content prewarm', () => {
     }
   });
 
-  it('Premium daily cards and natal report open cached content only', () => {
+  it('Premium daily cards and natal report use cache-first safe content loading', () => {
     const horoscope = fs.readFileSync(path.join(ROOT, 'views/Horoscope.tsx'), 'utf8');
     expect(horoscope).toContain('getCachedHumanDailySection');
-    expect(horoscope).not.toContain('loadHumanDailySection');
-    expect(horoscope).not.toContain('ensureFullDaypartForecast');
+    expect(horoscope).toContain('loadHumanDailySection');
+    expect(horoscope).toContain('ensureFullDaypartForecast');
+    expect(horoscope).toContain('maxInProgressRetries: 45');
     expect(horoscope).not.toContain('ensureDailySignHoroscope');
     expect(horoscope).toContain('resolveDailySectionKey');
     expect(horoscope).toContain('daily_money');
@@ -438,6 +439,7 @@ describe('content prewarm', () => {
     expect(humanReport).not.toContain('loadHumanDailySection');
     expect(humanReport).not.toContain('loadHumanBaseReport');
     expect(humanReport).not.toContain('loadHumanPaidSection');
+    expect(humanReport).toContain('ensureHumanBaseReport');
 
     const dashboard = fs.readFileSync(path.join(ROOT, 'views/Dashboard.tsx'), 'utf8');
     expect(dashboard).toContain("dailySectionKey: 'daily_money'");

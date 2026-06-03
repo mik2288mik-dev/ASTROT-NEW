@@ -21,7 +21,7 @@ import {
 } from '../../lib/contentPrewarm';
 import { getMoscowTodayKey } from '../../lib/date-utils';
 import {
-  getCachedHumanBaseReport,
+  ensureHumanBaseReport,
   getCachedHumanDailySection,
   getCachedHumanPaidSection,
   getHumanBaseReportCached,
@@ -387,15 +387,36 @@ export const HumanReport: React.FC<Props> = ({
 
   useEffect(() => {
     if (!userId || preloadedReport) return;
+    let cancelled = false;
     const cached = getHumanBaseReportCached(userId, chartId);
     if (cached) {
       setReport(cached);
       setLoading(false);
       setError(null);
-      return;
+      return () => {
+        cancelled = true;
+      };
     }
-    setLoading(false);
+
+    setLoading(true);
     setError(null);
+    void ensureHumanBaseReport(userId, chartId)
+      .then((nextReport) => {
+        if (cancelled) return;
+        setReport(nextReport);
+        setError(null);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setError(formatError(err));
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [chartId, preloadedReport, userId]);
 
   useEffect(() => {
@@ -545,29 +566,8 @@ export const HumanReport: React.FC<Props> = ({
           {error ? 'Интерпретация сейчас недоступна' : 'Разбор карты'}
         </p>
         <p className="mt-2 text-sm leading-relaxed text-[#666]">
-          {error || 'Нажми, чтобы загрузить сохранённый разбор или подготовить новый.'}
+          {error || 'Разбор карты подготавливается.'}
         </p>
-        <button
-          type="button"
-          onClick={() => {
-            setLoading(true);
-            setError(null);
-            void getCachedHumanBaseReport(userId, chartId)
-              .then((cached) => {
-                if (cached) {
-                  setReport(cached);
-                  setError(null);
-                } else {
-                  setError('Разбор карты пока не найден.');
-                }
-              })
-              .catch((err) => setError(formatError(err)))
-              .finally(() => setLoading(false));
-          }}
-          className="mt-5 rounded-full bg-[#1f1f1f] px-5 py-2.5 text-[13px] text-white"
-        >
-          Обновить
-        </button>
       </div>
     );
   }

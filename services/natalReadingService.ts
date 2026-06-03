@@ -576,6 +576,7 @@ export async function loadHumanDailySection(
   date?: string,
   options?: {
     accessTier?: 'premium';
+    maxInProgressRetries?: number;
     profile?: UserProfile;
     chartData?: NatalChartData | null;
   }
