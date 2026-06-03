@@ -1,15 +1,15 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import type { ForecastDaypartSlot, NatalChartData, UserProfile } from '../../../../types';
-import { getOpenAIModelForContent } from '../../../../lib/appSettings';
+import type { ForecastDaypartReading, ForecastDaypartSlot, NatalChartData, UserProfile } from '../../../../types';
 import { getContentLayer, getPremiumEntitlementState } from '../../../../lib/contentArchitecture';
 import {
   buildContentGenerationLockKey,
+  type ContentGenerationLockResult,
   generationInProgressPayload,
   withContentGenerationLock,
 } from '../../../../lib/contentGenerationLock';
 import { db } from '../../../../lib/db';
 import { getMoscowTodayKey } from '../../../../lib/date-utils';
-import { generatePremiumDaypartForecast } from '../../../../lib/forecastContent';
+import { buildPremiumDaypartFallback, generatePremiumDaypartForecast } from '../../../../lib/forecastContent';
 import {
   buildForecastDaypartCacheKey,
   buildForecastFullDayUnlockCacheKey,
@@ -18,6 +18,52 @@ import { logger } from '../../../../lib/logger';
 import { invalidUserIdPayload, isValidUserId } from '../../../../lib/userId';
 
 const ALLOWED_SLOTS = new Set(['morning', 'day', 'evening']);
+
+type DaypartResponseSource = 'content_v1' | 'generated' | 'fallback' | 'fallback_unsaved';
+type DaypartPersistenceStatus = 'saved' | 'failed';
+
+function isUsableDaypartReading(value: unknown): value is ForecastDaypartReading {
+  if (!value || typeof value !== 'object') return false;
+  const reading = value as Partial<ForecastDaypartReading>;
+  return (
+    typeof reading.headline === 'string' &&
+    reading.headline.trim().length > 0 &&
+    typeof reading.summary === 'string' &&
+    reading.summary.trim().length > 0
+  );
+}
+
+function buildUnsavedDaypartInterpretation(input: {
+  userId: string;
+  chartId: number | null;
+  slot: ForecastDaypartSlot;
+  cacheKey: string;
+  dateKey: string;
+  content: ForecastDaypartReading;
+}) {
+  return {
+    id: 0,
+    userId: input.userId,
+    chartId: input.chartId,
+    accessTier: 'premium' as const,
+    contentSurface: 'forecast' as const,
+    contentVariant: input.slot,
+    modelTier: 'premium' as const,
+    cacheKey: input.cacheKey,
+    inputHash: input.cacheKey,
+    content: input.content,
+    promptVersion: null,
+    calculationVersion: null,
+    validFrom: `${input.dateKey}T00:00:00.000Z`,
+    validTo: `${input.dateKey}T23:59:59.999Z`,
+    isPersistent: false,
+    canRegenerateForLumi: false,
+    regenerationCostLumi: null,
+    legacySource: `forecast_v2.${input.slot}.premium`,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+}
 
 function toProfile(user: any, fallback?: Partial<UserProfile>): UserProfile {
   return {
@@ -168,21 +214,120 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
-  const existing = await getContentLayer({
+  const fallback = buildPremiumDaypartFallback(context.profile, dateKey, slot);
+  const unsavedFallback = () => buildUnsavedDaypartInterpretation({
     userId: safeUserId,
     chartId: context.chartId,
-    accessTier: 'premium',
-    contentSurface: 'forecast',
-    contentVariant: slot,
+    slot,
     cacheKey,
+    dateKey,
+    content: fallback,
   });
+  const saveDaypartReading = async (content: ForecastDaypartReading) => {
+    const payload = {
+      accessTier: 'premium' as const,
+      contentSurface: 'forecast' as const,
+      contentVariant: slot,
+      cacheKey,
+      inputHash: cacheKey,
+      content,
+      modelTier: 'premium' as const,
+      validFrom: `${dateKey}T00:00:00.000Z`,
+      validTo: `${dateKey}T23:59:59.999Z`,
+      isPersistent: false,
+      canRegenerateForLumi: false,
+      legacySource: `forecast_v2.${slot}.premium`,
+    };
+    return context.chartId != null
+      ? db.content_interpretations.upsertByChart(context.chartId, payload, safeUserId)
+      : db.content_interpretations.upsertByUser(safeUserId, payload);
+  };
 
-  if (existing.interpretation) {
+  let existing: Awaited<ReturnType<typeof getContentLayer>> | null = null;
+  let cacheReadFailed = false;
+  try {
+    existing = await getContentLayer({
+      userId: safeUserId,
+      chartId: context.chartId,
+      accessTier: 'premium',
+      contentSurface: 'forecast',
+      contentVariant: slot,
+      cacheKey,
+    });
+  } catch (error: any) {
+    cacheReadFailed = true;
+    logger.warn({
+      scope: 'forecast-daypart',
+      event: 'cache_read_failed',
+      userId: safeUserId,
+      chartId: context.chartId,
+      status: 'failed',
+      errorCode: error?.message || 'CACHE_READ_FAILED',
+      metadata: { slot, dateKey },
+    });
+  }
+
+  const existingInterpretation = existing?.interpretation ?? null;
+  const cached = existingInterpretation && isUsableDaypartReading((existingInterpretation as any).content)
+    ? existing
+    : null;
+
+  if (existingInterpretation && !cached) {
+    logger.warn({
+      scope: 'forecast-daypart',
+      event: 'invalid_cached_row',
+      userId: safeUserId,
+      chartId: context.chartId,
+      status: 'failed',
+      errorCode: 'EMPTY_INTERPRETATION',
+      metadata: { slot, dateKey, cacheKey },
+    });
+  } else if (!cached && !cacheReadFailed) {
+    logger.info({
+      scope: 'forecast-daypart',
+      event: 'cache_miss',
+      userId: safeUserId,
+      chartId: context.chartId,
+      metadata: { slot, dateKey, cacheKey },
+    });
+  }
+
+  if (cacheReadFailed) {
+    logger.warn({
+      scope: 'forecast-daypart',
+      event: 'persistence_failed',
+      userId: safeUserId,
+      chartId: context.chartId,
+      status: 'ready',
+      errorCode: 'CACHE_READ_FAILED',
+      metadata: { slot, dateKey, source: 'fallback_unsaved' },
+    });
     return res.status(200).json({
-      interpretation: existing.interpretation,
-      source: existing.source,
-      chartId: existing.chartId,
-      cacheKey: existing.cacheKey,
+      interpretation: unsavedFallback(),
+      source: 'fallback_unsaved' satisfies DaypartResponseSource,
+      persistenceStatus: 'failed' satisfies DaypartPersistenceStatus,
+      chartId: context.chartId,
+      cacheKey,
+      entitlement: access.entitlement,
+      accessTier: access.accessTier,
+    });
+  }
+
+  if (cached?.interpretation) {
+    logger.info({
+      scope: 'forecast-daypart',
+      event: 'cache_hit',
+      userId: safeUserId,
+      chartId: context.chartId,
+      status: 'ready',
+      metadata: { slot, dateKey, cacheKey },
+    });
+    return res.status(200).json({
+      interpretation: cached.interpretation,
+      source: cached.source,
+      persistenceStatus: 'saved' satisfies DaypartPersistenceStatus,
+      chartId: cached.chartId,
+      cacheKey: cached.cacheKey,
       entitlement: access.entitlement,
       accessTier: access.accessTier,
     });
@@ -198,94 +343,156 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
-  let lockResult;
+  let lockResult: ContentGenerationLockResult<any>;
+  let generatedSource: DaypartResponseSource = 'generated';
+  let generatedPersistenceStatus: DaypartPersistenceStatus = 'saved';
   try {
+    let lockCacheReadFailed = false;
     lockResult = await withContentGenerationLock({
-    lockKey: buildContentGenerationLockKey({
-      userId: safeUserId,
-      chartId: context.chartId,
-      accessTier: 'premium',
-      contentSurface: 'forecast',
-      contentVariant: slot,
-      cacheKey,
-    }),
-    operation: 'forecast-daypart-generation',
-    readCached: async () => {
-      const layer = await getContentLayer({
+      lockKey: buildContentGenerationLockKey({
         userId: safeUserId,
         chartId: context.chartId,
         accessTier: 'premium',
         contentSurface: 'forecast',
         contentVariant: slot,
         cacheKey,
-      });
-      return layer.interpretation
-        ? { value: layer.interpretation, source: layer.source }
-        : null;
-    },
-    generate: async () => {
-      let forecast;
-      try {
-        forecast = await generatePremiumDaypartForecast(context.profile, chartData, slot, dateKey, {
-          allowStaticFallback: true,
-        });
-      } catch (error: any) {
-        const status = error?.status === 503 ? 503 : 500;
-        const code = error?.code || (status === 503 ? 'CONTENT_GENERATION_UNAVAILABLE' : 'FORECAST_DAYPART_FAILED');
-        const generationError = new Error(code) as Error & { status?: number; code?: string };
-        generationError.status = status;
-        generationError.code = code;
-        throw generationError;
-      }
-
-      const { modelTier } = await getOpenAIModelForContent({
-        accessTier: 'premium',
-        contentSurface: 'forecast',
-        contentVariant: slot,
-      });
-
-      return context.chartId != null
-        ? await db.content_interpretations.upsertByChart(context.chartId, {
+      }),
+      operation: 'forecast-daypart-generation',
+      readCached: async () => {
+        let layer: Awaited<ReturnType<typeof getContentLayer>> | null = null;
+        try {
+          layer = await getContentLayer({
+            userId: safeUserId,
+            chartId: context.chartId,
             accessTier: 'premium',
             contentSurface: 'forecast',
             contentVariant: slot,
             cacheKey,
-            inputHash: cacheKey,
-            content: forecast,
-            modelTier,
-            validFrom: `${dateKey}T00:00:00.000Z`,
-            validTo: `${dateKey}T23:59:59.999Z`,
-            isPersistent: false,
-            canRegenerateForLumi: false,
-            legacySource: `forecast_v2.${slot}.premium`,
-          }, safeUserId)
-        : await db.content_interpretations.upsertByUser(safeUserId, {
-            accessTier: 'premium',
-            contentSurface: 'forecast',
-            contentVariant: slot,
-            cacheKey,
-            inputHash: cacheKey,
-            content: forecast,
-            modelTier,
-            validFrom: `${dateKey}T00:00:00.000Z`,
-            validTo: `${dateKey}T23:59:59.999Z`,
-            isPersistent: false,
-            canRegenerateForLumi: false,
-            legacySource: `forecast_v2.${slot}.premium`,
           });
-    },
+        } catch (error: any) {
+          lockCacheReadFailed = true;
+          logger.warn({
+            scope: 'forecast-daypart',
+            event: 'cache_read_failed',
+            userId: safeUserId,
+            chartId: context.chartId,
+            status: 'failed',
+            errorCode: error?.message || 'CACHE_READ_FAILED',
+            metadata: { slot, dateKey, phase: 'inside_lock' },
+          });
+          return null;
+        }
+        if (layer.interpretation && !isUsableDaypartReading((layer.interpretation as any).content)) {
+          logger.warn({
+            scope: 'forecast-daypart',
+            event: 'invalid_cached_row',
+            userId: safeUserId,
+            chartId: context.chartId,
+            status: 'failed',
+            errorCode: 'EMPTY_INTERPRETATION',
+            metadata: { slot, dateKey, phase: 'inside_lock' },
+          });
+        }
+        return layer.interpretation && isUsableDaypartReading((layer.interpretation as any).content)
+          ? { value: layer.interpretation, source: layer.source }
+          : null;
+      },
+      generate: async () => {
+        if (lockCacheReadFailed) {
+          generatedSource = 'fallback_unsaved';
+          generatedPersistenceStatus = 'failed';
+          logger.warn({
+            scope: 'forecast-daypart',
+            event: 'persistence_failed',
+            userId: safeUserId,
+            chartId: context.chartId,
+            status: 'ready',
+            errorCode: 'CACHE_READ_FAILED_INSIDE_LOCK',
+            metadata: { slot, dateKey, source: 'fallback_unsaved' },
+          });
+          return unsavedFallback() as any;
+        }
+
+        let savedFallback;
+        try {
+          savedFallback = await saveDaypartReading(fallback);
+          generatedSource = 'fallback';
+          generatedPersistenceStatus = 'saved';
+          logger.info({
+            scope: 'forecast-daypart',
+            event: 'fallback_saved',
+            userId: safeUserId,
+            chartId: context.chartId,
+            status: 'ready',
+            metadata: { slot, dateKey },
+          });
+        } catch (error: any) {
+          generatedSource = 'fallback_unsaved';
+          generatedPersistenceStatus = 'failed';
+          logger.warn({
+            scope: 'forecast-daypart',
+            event: 'persistence_failed',
+            userId: safeUserId,
+            chartId: context.chartId,
+            status: 'ready',
+            errorCode: error?.message || 'FALLBACK_SAVE_FAILED',
+            metadata: { slot, dateKey, source: 'fallback_unsaved' },
+          });
+          return unsavedFallback() as any;
+        }
+
+        try {
+          const forecast = await generatePremiumDaypartForecast(context.profile, chartData, slot, dateKey, {
+            allowStaticFallback: false,
+          });
+          if (!isUsableDaypartReading(forecast)) {
+            throw new Error('EMPTY_FORECAST_DAYPART');
+          }
+          const savedGenerated = await saveDaypartReading(forecast);
+          generatedSource = 'generated';
+          generatedPersistenceStatus = 'saved';
+          logger.info({
+            scope: 'forecast-daypart',
+            event: 'generation_saved',
+            userId: safeUserId,
+            chartId: context.chartId,
+            status: 'ready',
+            metadata: { slot, dateKey },
+          });
+          return savedGenerated;
+        } catch (error: any) {
+          generatedSource = 'fallback';
+          generatedPersistenceStatus = 'saved';
+          logger.warn({
+            scope: 'forecast-daypart',
+            event: 'generation_failed',
+            userId: safeUserId,
+            chartId: context.chartId,
+            status: 'ready',
+            errorCode: error?.code || error?.message || 'FORECAST_DAYPART_FAILED',
+            metadata: { slot, dateKey },
+          });
+          return savedFallback;
+        }
+      },
     });
   } catch (error: any) {
-    const status = error?.status === 503 ? 503 : 500;
-    const code = error?.code || (status === 503 ? 'CONTENT_GENERATION_UNAVAILABLE' : 'FORECAST_DAYPART_FAILED');
-    return res.status(status).json({
-      error: code,
-      code,
-      message:
-        lang === 'ru'
-          ? 'Этот слой сейчас не удалось сгенерировать. Попробуй ещё раз.'
-          : 'This layer could not be generated right now. Please try again.',
+    generatedSource = 'fallback_unsaved';
+    generatedPersistenceStatus = 'failed';
+    logger.warn({
+      scope: 'forecast-daypart',
+      event: 'persistence_failed',
+      userId: safeUserId,
+      chartId: context.chartId,
+      status: 'ready',
+      errorCode: error?.code || error?.message || 'LOCK_OR_FALLBACK_FLOW_FAILED',
+      metadata: { slot, dateKey, source: 'fallback_unsaved' },
     });
+    lockResult = {
+      status: 'ready',
+      value: unsavedFallback(),
+      fromCache: false,
+    };
   }
 
   if (lockResult.status === 'in_progress') {
@@ -294,7 +501,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   return res.status(200).json({
     interpretation: lockResult.value,
-    source: lockResult.fromCache ? (lockResult.source || 'content_v1') : 'generated',
+    source: lockResult.fromCache ? (lockResult.source || 'content_v1') : generatedSource,
+    persistenceStatus: lockResult.fromCache ? 'saved' : generatedPersistenceStatus,
     chartId: context.chartId,
     cacheKey,
     entitlement: access.entitlement,

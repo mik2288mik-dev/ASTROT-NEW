@@ -89,12 +89,17 @@ describe('premium daily card navigation', () => {
     expect(humanDaily).toContain('isUsableDailySectionContent');
     expect(humanDaily).toContain('const saveOpts = { ...cacheOpts, inputHash }');
     expect(humanDaily).toContain('buildHumanDailyFallback');
-    expect(humanDaily).toContain("source: 'fallback'");
+    expect(humanDaily).toContain("generatedSource = 'fallback'");
+    expect(humanDaily).toContain("source: 'fallback_unsaved'");
+    expect(humanDaily).toContain('persistenceStatus');
 
     const daypart = read('pages/api/content/forecast/daypart.ts');
     expect(daypart).toContain('withContentGenerationLock');
     expect(daypart).toContain('readCached');
-    expect(daypart).toContain('allowStaticFallback: true');
+    expect(daypart).toContain('buildPremiumDaypartFallback');
+    expect(daypart).toContain('saveDaypartReading(fallback)');
+    expect(daypart).toContain('fallback_saved');
+    expect(daypart).toContain('allowStaticFallback: false');
   });
 
   it('dedicated daily screens keep the LUMIA white background', () => {

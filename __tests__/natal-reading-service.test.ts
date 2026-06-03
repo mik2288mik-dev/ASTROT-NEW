@@ -115,6 +115,46 @@ describe('natal reading service session cache', () => {
     expect(JSON.parse((global.fetch as jest.Mock).mock.calls[1][1]?.body).accessTier).toBeUndefined();
   });
 
+  it('opens cached premium daily section from GET without POST', async () => {
+    const section = {
+      key: 'daily_love',
+      title: 'Daily love',
+      access: 'premium',
+      content: 'Cached daily love text.',
+    };
+    (global.fetch as jest.Mock).mockResolvedValueOnce(
+      response(200, { interpretation: { content: section }, accessTier: 'premium' })
+    );
+
+    await expect(loadHumanDailySection('123', 'daily_love', 7, '2026-05-25', { accessTier: 'premium' })).resolves.toMatchObject({
+      content: section,
+      accessTier: 'premium',
+    });
+
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect((global.fetch as jest.Mock).mock.calls[0][1]?.method).toBe('GET');
+  });
+
+  it('unwraps direct fallback daily payload from POST', async () => {
+    const section = {
+      key: 'daily_money',
+      title: 'Daily money',
+      access: 'premium',
+      content: 'Fallback money text.',
+    };
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce(response(404, { error: 'NOT_FOUND' }))
+      .mockResolvedValueOnce(response(200, { interpretation: section, source: 'fallback_unsaved', accessTier: 'premium' }));
+
+    await expect(loadHumanDailySection('123', 'daily_money', 7, '2026-05-25', { accessTier: 'premium' })).resolves.toMatchObject({
+      content: section,
+      accessTier: 'premium',
+    });
+
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+    expect((global.fetch as jest.Mock).mock.calls[1][1]?.method).toBe('POST');
+  });
+
   it('keeps paid daily sections locked for free users without Premium', async () => {
     (global.fetch as jest.Mock)
       .mockResolvedValueOnce(response(404, { error: 'NOT_FOUND' }))

@@ -33,10 +33,53 @@ type ResolvedDailyAccess = {
   accessTier: Extract<ContentAccessTier, 'premium'>;
 };
 
+type DailyResponseSource = 'human_v2' | 'generated' | 'fallback' | 'fallback_unsaved';
+type DailyPersistenceStatus = 'saved' | 'failed';
+type DailySaveOptions = {
+  accessTier: ContentAccessTier;
+  contentVariant: 'living';
+  cacheKey: string;
+  inputHash?: string;
+  promptVersion: string;
+  modelTier?: 'base' | 'premium';
+  isPersistent?: boolean;
+  validFrom?: Date | null;
+  validTo?: Date | null;
+};
+
 function isUsableDailySectionContent(value: unknown): value is InterpretationSection {
   if (!value || typeof value !== 'object') return false;
   const section = value as Partial<InterpretationSection>;
   return typeof section.content === 'string' && section.content.trim().length > 0;
+}
+
+function buildUnsavedReading(
+  ctx: NonNullable<Awaited<ReturnType<typeof ensureValidContext>>>['ctx'],
+  opts: DailySaveOptions,
+  content: InterpretationSection
+) {
+  return {
+    id: 0,
+    userId: String(ctx.profile.id),
+    chartId: ctx.chartId,
+    accessTier: opts.accessTier,
+    contentSurface: 'natal' as const,
+    contentVariant: opts.contentVariant,
+    modelTier: opts.modelTier ?? (opts.accessTier === 'free' ? 'base' : 'premium'),
+    cacheKey: opts.cacheKey,
+    inputHash: opts.inputHash ?? opts.cacheKey,
+    content,
+    promptVersion: opts.promptVersion,
+    calculationVersion: ctx.chartData?.calculationVersion || null,
+    validFrom: opts.validFrom ? new Date(opts.validFrom).toISOString() : null,
+    validTo: opts.validTo ? new Date(opts.validTo).toISOString() : null,
+    isPersistent: opts.isPersistent ?? false,
+    canRegenerateForLumi: false,
+    regenerationCostLumi: null,
+    legacySource: null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
 }
 
 function readSectionKey(req: NextApiRequest): HumanDailySectionKey | null {
@@ -164,22 +207,63 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     validTo: window.validTo,
   };
   const saveOpts = { ...cacheOpts, inputHash };
+  const apiLogContext = {
+    scope: SCOPE,
+    userId,
+    chartId: ctx.chartId,
+    surface: 'natal' as const,
+    variant: 'living' as const,
+  };
 
-  const rawCached = await getCachedReading<InterpretationSection>(ctx, cacheOpts);
+  let rawCached: Awaited<ReturnType<typeof getCachedReading<InterpretationSection>>> | null = null;
+  let cacheReadFailed = false;
+  try {
+    rawCached = await getCachedReading<InterpretationSection>(ctx, cacheOpts);
+  } catch (error: any) {
+    cacheReadFailed = true;
+    warnContentApi(apiLogContext, 'cache_read_failed', {
+      accessTier: responseAccessTier,
+      errorCode: 'CACHE_READ_FAILED',
+      metadata: { sectionKey, dateKey, error: error?.message || String(error) },
+    });
+  }
   const cached = rawCached && isUsableDailySectionContent(rawCached.content) ? rawCached : null;
+  if (rawCached && !cached) {
+    warnContentApi(apiLogContext, 'invalid_cached_row', {
+      accessTier: responseAccessTier,
+      errorCode: 'EMPTY_INTERPRETATION',
+      metadata: { sectionKey, dateKey, cacheKey },
+    });
+  } else if (!cached && !cacheReadFailed) {
+    logContentApi(apiLogContext, 'cache_miss', {
+      accessTier: responseAccessTier,
+      metadata: { sectionKey, dateKey, cacheKey },
+    });
+  }
+
+  if (cacheReadFailed) {
+    const fallback = buildHumanDailyFallback(ctx.profile, ctx.chartData!, sectionKey, dateKey);
+    warnContentApi(apiLogContext, 'persistence_failed', {
+      accessTier: responseAccessTier,
+      status: 'ready',
+      errorCode: 'CACHE_READ_FAILED',
+      durationMs: Date.now() - startedAt,
+      metadata: { sectionKey, dateKey, source: 'fallback_unsaved' },
+    });
+    return res.status(200).json({
+      interpretation: buildUnsavedReading(ctx, saveOpts, fallback),
+      source: 'fallback_unsaved' satisfies DailyResponseSource,
+      persistenceStatus: 'failed' satisfies DailyPersistenceStatus,
+      accessTier: responseAccessTier,
+    });
+  }
 
   if (req.method === 'GET') {
     if (!cached) {
       return res.status(404).json({ error: 'NOT_FOUND', code: 'HUMAN_DAILY_NOT_READY' });
     }
     logContentApi(
-      {
-        scope: SCOPE,
-        userId,
-        chartId: ctx.chartId,
-        surface: 'natal',
-        variant: 'living',
-      },
+      apiLogContext,
       'cache_hit',
       {
         accessTier: responseAccessTier,
@@ -191,19 +275,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({
       interpretation: cached,
       source: 'human_v2',
+      persistenceStatus: 'saved' satisfies DailyPersistenceStatus,
       accessTier: responseAccessTier,
     });
   }
 
   if (cached) {
+    logContentApi(apiLogContext, 'cache_hit', {
+      accessTier: responseAccessTier,
+      status: 'ready',
+      durationMs: Date.now() - startedAt,
+      metadata: { sectionKey, dateKey, method: req.method },
+    });
     return res.status(200).json({
       interpretation: cached,
       source: 'human_v2',
+      persistenceStatus: 'saved' satisfies DailyPersistenceStatus,
       accessTier: responseAccessTier,
     });
   }
 
   try {
+    let generatedSource: DailyResponseSource = 'generated';
+    let generatedPersistenceStatus: DailyPersistenceStatus = 'saved';
+    let lockCacheReadFailed = false;
     const lockResult = await withContentGenerationLock({
       lockKey: buildContentGenerationLockKey({
         userId,
@@ -216,17 +311,103 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }),
       operation: `human-daily-${sectionKey}`,
       readCached: async () => {
-        const again = await getCachedReading<InterpretationSection>(ctx, cacheOpts);
+        let again: Awaited<ReturnType<typeof getCachedReading<InterpretationSection>>> | null = null;
+        try {
+          again = await getCachedReading<InterpretationSection>(ctx, cacheOpts);
+        } catch (error: any) {
+          lockCacheReadFailed = true;
+          warnContentApi(apiLogContext, 'cache_read_failed', {
+            accessTier: responseAccessTier,
+            errorCode: 'CACHE_READ_FAILED',
+            metadata: { sectionKey, dateKey, phase: 'inside_lock', error: error?.message || String(error) },
+          });
+          return null;
+        }
+        if (again && !isUsableDailySectionContent(again.content)) {
+          warnContentApi(apiLogContext, 'invalid_cached_row', {
+            accessTier: responseAccessTier,
+            errorCode: 'EMPTY_INTERPRETATION',
+            metadata: { sectionKey, dateKey, phase: 'inside_lock' },
+          });
+        }
         return again && isUsableDailySectionContent(again.content)
           ? { value: again, source: 'human_v2' }
           : null;
       },
       generate: async () => {
-        const section = await generateHumanDailySection(ctx.profile, ctx.chartData!, sectionKey, dateKey);
-        if (!isUsableDailySectionContent(section)) {
-          throw new Error('EMPTY_HUMAN_DAILY_SECTION');
+        const fallback = buildHumanDailyFallback(ctx.profile, ctx.chartData!, sectionKey, dateKey);
+        if (!isUsableDailySectionContent(fallback)) {
+          throw new Error('EMPTY_HUMAN_DAILY_FALLBACK');
         }
-        return saveReading(ctx, saveOpts, section);
+
+        if (lockCacheReadFailed) {
+          generatedSource = 'fallback_unsaved';
+          generatedPersistenceStatus = 'failed';
+          warnContentApi(apiLogContext, 'persistence_failed', {
+            accessTier: responseAccessTier,
+            status: 'ready',
+            errorCode: 'CACHE_READ_FAILED_INSIDE_LOCK',
+            durationMs: Date.now() - startedAt,
+            metadata: { sectionKey, dateKey, source: 'fallback_unsaved' },
+          });
+          return buildUnsavedReading(ctx, saveOpts, fallback) as Awaited<ReturnType<typeof saveReading<InterpretationSection>>>;
+        }
+
+        let savedFallback: Awaited<ReturnType<typeof saveReading<InterpretationSection>>>;
+        try {
+          savedFallback = await saveReading(ctx, saveOpts, fallback);
+          generatedSource = 'fallback';
+          generatedPersistenceStatus = 'saved';
+          logContentApi(apiLogContext, 'fallback_saved', {
+            accessTier: responseAccessTier,
+            status: 'ready',
+            durationMs: Date.now() - startedAt,
+            metadata: { sectionKey, dateKey },
+          });
+        } catch (fallbackError: any) {
+          generatedSource = 'fallback_unsaved';
+          generatedPersistenceStatus = 'failed';
+          warnContentApi(apiLogContext, 'persistence_failed', {
+            accessTier: responseAccessTier,
+            status: 'ready',
+            errorCode: 'FALLBACK_SAVE_FAILED',
+            durationMs: Date.now() - startedAt,
+            metadata: { sectionKey, dateKey, error: fallbackError?.message || String(fallbackError) },
+          });
+          return buildUnsavedReading(ctx, saveOpts, fallback) as Awaited<ReturnType<typeof saveReading<InterpretationSection>>>;
+        }
+
+        try {
+          const section = await generateHumanDailySection(ctx.profile, ctx.chartData!, sectionKey, dateKey);
+          if (!isUsableDailySectionContent(section)) {
+            throw new Error('EMPTY_HUMAN_DAILY_SECTION');
+          }
+          const savedGenerated = await saveReading(ctx, saveOpts, section);
+          generatedSource = 'generated';
+          generatedPersistenceStatus = 'saved';
+          logContentApi(apiLogContext, 'generation_saved', {
+            accessTier: responseAccessTier,
+            status: 'ready',
+            durationMs: Date.now() - startedAt,
+            metadata: { sectionKey, dateKey },
+          });
+          return savedGenerated;
+        } catch (generationError: any) {
+          generatedSource = 'fallback';
+          generatedPersistenceStatus = 'saved';
+          warnContentApi(apiLogContext, 'generation_failed', {
+            accessTier: responseAccessTier,
+            status: 'ready',
+            errorCode: generationError?.code || generationError?.message || 'CONTENT_GENERATION_UNAVAILABLE',
+            durationMs: Date.now() - startedAt,
+            metadata: { sectionKey, dateKey },
+          });
+          console.error(
+            `[natal/human-daily:${sectionKey}] generation failed after fallback save:`,
+            generationError instanceof Error ? generationError.message : generationError
+          );
+          return savedFallback;
+        }
       },
     });
 
@@ -236,45 +417,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     return res.status(200).json({
       interpretation: lockResult.value,
-      source: lockResult.fromCache ? (lockResult.source || 'human_v2') : 'generated',
+      source: lockResult.fromCache ? (lockResult.source || 'human_v2') : generatedSource,
+      persistenceStatus: lockResult.fromCache ? 'saved' : generatedPersistenceStatus,
       accessTier: responseAccessTier,
     });
   } catch (error) {
-    warnContentApi(
-      {
-        scope: SCOPE,
-        userId,
-        chartId: ctx.chartId,
-        surface: 'natal',
-        variant: 'living',
-      },
-      'generation_failed',
-      {
-        accessTier: responseAccessTier,
-        errorCode: 'CONTENT_GENERATION_UNAVAILABLE',
-        durationMs: Date.now() - startedAt,
-        metadata: { sectionKey, dateKey },
-      }
-    );
+    warnContentApi(apiLogContext, 'generation_failed', {
+      accessTier: responseAccessTier,
+      errorCode: 'CONTENT_GENERATION_UNAVAILABLE',
+      durationMs: Date.now() - startedAt,
+      metadata: { sectionKey, dateKey },
+    });
     console.error(`[natal/human-daily:${sectionKey}] generation failed:`, error instanceof Error ? error.message : error);
-    try {
-      const fallback = buildHumanDailyFallback(ctx.profile, ctx.chartData!, sectionKey, dateKey);
-      const savedFallback = await saveReading(ctx, saveOpts, fallback);
-      return res.status(200).json({
-        interpretation: savedFallback,
-        source: 'fallback',
-        accessTier: responseAccessTier,
-      });
-    } catch (fallbackError) {
-      console.error(
-        `[natal/human-daily:${sectionKey}] fallback save failed:`,
-        fallbackError instanceof Error ? fallbackError.message : fallbackError
-      );
-    }
-    return res.status(503).json({
-      error: 'CONTENT_GENERATION_UNAVAILABLE',
-      code: 'CONTENT_GENERATION_UNAVAILABLE',
-      message: 'Этот слой сейчас не удалось сгенерировать. Попробуй ещё раз.',
+    const fallback = buildHumanDailyFallback(ctx.profile, ctx.chartData!, sectionKey, dateKey);
+    warnContentApi(apiLogContext, 'persistence_failed', {
+      accessTier: responseAccessTier,
+      status: 'ready',
+      errorCode: 'LOCK_OR_FALLBACK_FLOW_FAILED',
+      durationMs: Date.now() - startedAt,
+      metadata: { sectionKey, dateKey, source: 'fallback_unsaved' },
+    });
+    return res.status(200).json({
+      interpretation: buildUnsavedReading(ctx, saveOpts, fallback),
+      source: 'fallback_unsaved' satisfies DailyResponseSource,
+      persistenceStatus: 'failed' satisfies DailyPersistenceStatus,
+      accessTier: responseAccessTier,
     });
   }
 }

@@ -464,7 +464,9 @@ describe('content prewarm', () => {
     expect(humanDaily).toContain('saveReading(ctx, saveOpts, section)');
     expect(humanDaily).toContain('buildHumanDailyFallback');
     expect(humanDaily).toContain('saveReading(ctx, saveOpts, fallback)');
-    expect(humanDaily).toContain("source: 'fallback'");
+    expect(humanDaily).toContain("generatedSource = 'fallback'");
+    expect(humanDaily).toContain("source: 'fallback_unsaved'");
+    expect(humanDaily).toContain('persistenceStatus');
 
     const humanSection = fs.readFileSync(path.join(ROOT, 'pages/api/content/natal/human-section.ts'), 'utf8');
     expect(humanSection).toContain('entitlement.isPremium || profile?.isPremium');
@@ -475,6 +477,9 @@ describe('content prewarm', () => {
     expect(daypart).toContain('if (profile?.isPremium)');
     expect(daypart).toContain('if (!entitlementState.isPremium)');
     expect(daypart).toContain('resolveAccess(safeUserId, context.profile)');
-    expect(daypart).toContain('allowStaticFallback: true');
+    expect(daypart).toContain('buildPremiumDaypartFallback');
+    expect(daypart).toContain('saveDaypartReading(fallback)');
+    expect(daypart).toContain('fallback_saved');
+    expect(daypart).toContain('allowStaticFallback: false');
   });
 });

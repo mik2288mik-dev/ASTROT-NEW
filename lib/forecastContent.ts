@@ -161,6 +161,15 @@ function buildDaypartFallback(
       };
 }
 
+export function buildPremiumDaypartFallback(
+  profile: UserProfile,
+  dateKey: string,
+  slot: ForecastDaypartSlot
+): ForecastDaypartReading {
+  const lang: 'ru' | 'en' = profile.language === 'en' ? 'en' : 'ru';
+  return buildDaypartFallback(lang, dateKey, slot);
+}
+
 function normalizeDailyForecast(
   raw: Partial<DailyForecastV2AIResponse> | null | undefined,
   lang: 'ru' | 'en',

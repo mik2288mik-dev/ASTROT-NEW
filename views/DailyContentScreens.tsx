@@ -39,31 +39,28 @@ type DailySectionScreenProps = DailyScreenProps & {
   icon: LucideIcon;
 };
 
-const toneStyles: Record<DailyScreenTone, { accent: string; soft: string; line: string }> = {
+const neutralDailyLine = 'from-black/10 via-black/5 to-transparent';
+
+const toneStyles: Record<DailyScreenTone, { accent: string; line: string }> = {
   love: {
-    accent: '#f3a7bd',
-    soft: 'bg-white',
-    line: 'from-[#f7bdd0]/40 via-[#f8d6df]/25 to-transparent',
+    accent: '#d8d8dc',
+    line: neutralDailyLine,
   },
   money: {
-    accent: '#d5bd7d',
-    soft: 'bg-white',
-    line: 'from-[#dbc27a]/42 via-[#eadfb6]/26 to-transparent',
+    accent: '#d8d8dc',
+    line: neutralDailyLine,
   },
   work: {
-    accent: '#cbb879',
-    soft: 'bg-white',
-    line: 'from-[#d7c684]/44 via-[#ebe2bc]/28 to-transparent',
+    accent: '#d8d8dc',
+    line: neutralDailyLine,
   },
   goals: {
-    accent: '#aab98e',
-    soft: 'bg-white',
-    line: 'from-[#afc596]/40 via-[#dbe7cc]/26 to-transparent',
+    accent: '#d8d8dc',
+    line: neutralDailyLine,
   },
   personal: {
-    accent: '#93b7e8',
-    soft: 'bg-white',
-    line: 'from-[#9fc4ef]/40 via-[#d7e7fb]/26 to-transparent',
+    accent: '#d8d8dc',
+    line: neutralDailyLine,
   },
 };
 
@@ -87,8 +84,8 @@ function safeErrorMessage(error: unknown, language: 'ru' | 'en'): string {
       : 'Этот раздел доступен в Premium.';
   }
   return language === 'en'
-    ? 'LUMIA could not read the saved text for this section.'
-    : 'LUMIA не получила сохраненный текст этого раздела.';
+    ? 'This section could not be opened right now.'
+    : 'Не удалось открыть этот раздел сейчас.';
 }
 
 function hapticOpen() {
@@ -118,7 +115,7 @@ function ScreenFrame({
   const style = toneStyles[tone];
 
   return (
-    <div className={cn('min-h-full bg-white px-4 pb-8 pt-[calc(max(env(safe-area-inset-top,0px),var(--tg-content-safe-area-inset-top,0px))+0.8rem)] font-sans', style.soft)}>
+    <div className="min-h-full bg-white px-4 pb-8 pt-[calc(max(env(safe-area-inset-top,0px),var(--tg-content-safe-area-inset-top,0px))+0.8rem)] font-sans">
       <div className="mx-auto flex min-h-[calc(100dvh-1.6rem)] w-full max-w-[25rem] flex-col gap-4">
         <button
           type="button"
@@ -282,7 +279,7 @@ function DailySectionScreen({
         if (result.content?.content?.trim()) {
           setSection(result.content);
         } else {
-          setError(language === 'en' ? 'Saved text is empty.' : 'Сохраненный текст пустой.');
+          setError(language === 'en' ? 'This section could not be opened right now.' : 'Не удалось открыть этот раздел сейчас.');
         }
       })
       .catch((err) => {
