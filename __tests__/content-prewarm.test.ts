@@ -421,15 +421,16 @@ describe('content prewarm', () => {
     }
   });
 
-  it('Premium daily cards and natal report use cache-first safe content loading', () => {
-    const horoscope = fs.readFileSync(path.join(ROOT, 'views/Horoscope.tsx'), 'utf8');
-    expect(horoscope).toContain('getCachedHumanDailySection');
-    expect(horoscope).toContain('loadHumanDailySection');
-    expect(horoscope).toContain('ensureFullDaypartForecast');
-    expect(horoscope).toContain('maxInProgressRetries: 45');
-    expect(horoscope).not.toContain('ensureDailySignHoroscope');
-    expect(horoscope).toContain('resolveDailySectionKey');
-    expect(horoscope).toContain('daily_money');
+  it('Premium daily cards use dedicated cache-first screens', () => {
+    const dailyScreens = fs.readFileSync(path.join(ROOT, 'views/DailyContentScreens.tsx'), 'utf8');
+    expect(dailyScreens).toContain('loadHumanDailySection');
+    expect(dailyScreens).toContain('ensureFullDaypartForecast');
+    expect(dailyScreens).toContain('maxInProgressRetries: 45');
+    expect(dailyScreens).toContain('sectionKey="daily_love"');
+    expect(dailyScreens).toContain('sectionKey="daily_money"');
+    expect(dailyScreens).toContain('sectionKey="daily_work_business"');
+    expect(dailyScreens).toContain('sectionKey="daily_goals"');
+    expect(dailyScreens).not.toContain('layers.map');
 
     const humanReport = fs.readFileSync(path.join(ROOT, 'components/NatalReading/HumanReport.tsx'), 'utf8');
     const cachedDailyBlock = humanReport.match(/const openDailyCachedSection[\s\S]*?if \(loading\)/)?.[0] ?? '';
@@ -442,12 +443,13 @@ describe('content prewarm', () => {
     expect(humanReport).toContain('ensureHumanBaseReport');
 
     const dashboard = fs.readFileSync(path.join(ROOT, 'views/Dashboard.tsx'), 'utf8');
-    expect(dashboard).toContain("dailySectionKey: 'daily_money'");
-    expect(dashboard).toContain("dailySectionKey: 'daily_work_business'");
-    expect(dashboard).toContain("dailySectionKey: 'daily_goals'");
-
-    expect(horoscope).toContain('PREMIUM_HUMAN_HYDRATE_KEYS');
-    expect(horoscope).toMatch(/PREMIUM_HUMAN_HYDRATE_KEYS[\s\S]*'daily_goals'/);
+    expect(dashboard).toContain("openPremiumDaily('daily_love')");
+    expect(dashboard).toContain("openPremiumDaily('daily_money')");
+    expect(dashboard).toContain("openPremiumDaily('daily_work')");
+    expect(dashboard).toContain("openPremiumDaily('daily_goals')");
+    expect(dashboard).toContain("openPremiumDaily('personal_forecast')");
+    expect(dashboard).not.toContain("openHoroscope('love'");
+    expect(dashboard).not.toContain("openHoroscope('work_money'");
   });
 
   it('Premium content APIs keep POST fallback premium state for startup fills', () => {
@@ -456,6 +458,8 @@ describe('content prewarm', () => {
 
     const humanDaily = fs.readFileSync(path.join(ROOT, 'pages/api/content/natal/human-daily.ts'), 'utf8');
     expect(humanDaily).toContain('entitlement.isPremium || profile?.isPremium');
+    expect(humanDaily).toContain('buildHumanDailyFallback');
+    expect(humanDaily).toContain("source: 'fallback'");
 
     const humanSection = fs.readFileSync(path.join(ROOT, 'pages/api/content/natal/human-section.ts'), 'utf8');
     expect(humanSection).toContain('entitlement.isPremium || profile?.isPremium');
@@ -465,5 +469,6 @@ describe('content prewarm', () => {
     expect(daypart).toContain('isPremium: fallback?.isPremium ?? !!user.is_premium');
     expect(daypart).toContain('!entitlementState.isPremium && !profile?.isPremium');
     expect(daypart).toContain('resolveAccess(safeUserId, context.profile)');
+    expect(daypart).toContain('allowStaticFallback: true');
   });
 });

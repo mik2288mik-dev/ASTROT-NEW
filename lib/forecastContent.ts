@@ -285,8 +285,23 @@ export async function generatePremiumDaypartForecast(
   options?: { allowStaticFallback?: boolean }
 ): Promise<ForecastDaypartReading> {
   const lang: 'ru' | 'en' = profile.language === 'en' ? 'en' : 'ru';
-  const transits = await getCurrentTransits(new Date());
   const allowStaticFallback = options?.allowStaticFallback !== false;
+  let transits;
+
+  try {
+    transits = await getCurrentTransits(new Date());
+  } catch (error: any) {
+    if (!allowStaticFallback) {
+      const nextError = new Error(error?.message || 'Transit calculation failed') as Error & {
+        code?: string;
+        status?: number;
+      };
+      nextError.code = 'CONTENT_GENERATION_UNAVAILABLE';
+      nextError.status = 503;
+      throw nextError;
+    }
+    return buildDaypartFallback(lang, dateKey, slot);
+  }
 
   if (!openai) {
     if (!allowStaticFallback) {

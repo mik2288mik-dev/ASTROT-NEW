@@ -391,6 +391,134 @@ ${JSON.stringify(transitData || {}, null, 2)}
 Пиши через конкретные ситуации: разговор, задача, покупка, договорённость, пауза, конфликт. Не обещай событий и не используй медицинские, юридические или финансовые гарантии.`;
 }
 
+type DailyPromptBuilder = (
+  summary: ChartSummary,
+  meta: { title: string; subtitle: string },
+  sectionKey: HumanDailySectionKey,
+  dateKey: string,
+  transitData: unknown
+) => string;
+
+function buildFocusedDailyPrompt(
+  summary: ChartSummary,
+  meta: { title: string; subtitle: string },
+  sectionKey: HumanDailySectionKey,
+  dateKey: string,
+  transitData: unknown,
+  focusName: string,
+  focusRules: string
+): string {
+  return `Создай отдельный персональный ежедневный разбор LUMIA. Это не общий слой и не часть списка: это самостоятельная страница "${meta.title}".
+
+Дата: ${dateKey}
+Content key: ${sectionKey}
+Фокус страницы: ${focusName}
+
+Натальная карта пользователя:
+${JSON.stringify(summary, null, 2)}
+
+Транзиты дня:
+${JSON.stringify(transitData || {}, null, 2)}
+
+Правила именно этого раздела:
+${focusRules}
+
+Стиль: живой русский текст, без мистической воды, без обещаний событий, дохода, любви, здоровья или юридических/финансовых гарантий. Пиши так, чтобы пользователь сразу понял, как прожить эту сферу сегодня.
+
+Структура content:
+1. Главная тема сферы сегодня
+2. Как это может проявиться в обычной ситуации
+3. Что лучше сделать
+4. Что может мешать
+5. Чего не стоит делать
+6. Один короткий вывод
+
+Верни JSON InterpretationSection:
+{
+  "key": "${sectionKey}",
+  "title": "${meta.title}",
+  "subtitle": "${meta.subtitle}",
+  "access": "premium",
+  "isLocked": false,
+  "teaser": "",
+  "content": "цельный русский текст 700-1300 символов",
+  "bullets": ["2-4 коротких практичных вывода"],
+  "ctaLabel": ""
+}`;
+}
+
+function buildDailyLovePrompt(
+  summary: ChartSummary,
+  meta: { title: string; subtitle: string },
+  sectionKey: HumanDailySectionKey,
+  dateKey: string,
+  transitData: unknown
+): string {
+  return buildFocusedDailyPrompt(
+    summary,
+    meta,
+    sectionKey,
+    dateKey,
+    transitData,
+    'любовь, близость, чувства и разговоры',
+    'Смотри только на тему отношений: близость, диалог, эмоции, ожидания, паузы, честность. Не пиши про работу, деньги и цели кроме случаев, где они напрямую влияют на отношения.'
+  );
+}
+
+function buildDailyMoneyPrompt(
+  summary: ChartSummary,
+  meta: { title: string; subtitle: string },
+  sectionKey: HumanDailySectionKey,
+  dateKey: string,
+  transitData: unknown
+): string {
+  return buildFocusedDailyPrompt(
+    summary,
+    meta,
+    sectionKey,
+    dateKey,
+    transitData,
+    'деньги, покупки, решения и финансовая собранность',
+    'Смотри только на деньги: траты, покупки, договоренности, учет, импульсивность, спокойные решения. Не давай инвестиционных инструкций и гарантий дохода.'
+  );
+}
+
+function buildDailyWorkPrompt(
+  summary: ChartSummary,
+  meta: { title: string; subtitle: string },
+  sectionKey: HumanDailySectionKey,
+  dateKey: string,
+  transitData: unknown
+): string {
+  return buildFocusedDailyPrompt(
+    summary,
+    meta,
+    sectionKey,
+    dateKey,
+    transitData,
+    'работа, бизнес, задачи, договоренности и фокус',
+    'Смотри только на рабочую сферу: задачи, переговоры, темп, ответственность, сроки, деловые решения. Не смешивай это с любовью и личной драмой.'
+  );
+}
+
+function buildDailyGoalsPrompt(
+  summary: ChartSummary,
+  meta: { title: string; subtitle: string },
+  sectionKey: HumanDailySectionKey,
+  dateKey: string,
+  transitData: unknown
+): string {
+  return buildFocusedDailyPrompt(
+    summary,
+    meta,
+    sectionKey,
+    dateKey,
+    transitData,
+    'дела, цели, приоритет и один реальный шаг',
+    'Смотри только на цели и дела: что выбрать главным, где не распыляться, какой шаг реально завершить сегодня, как не перегрузить день.'
+  );
+}
+
 function cleanText(value: unknown): string {
   return String(value || '')
     .replace(/\r\n/g, '\n')
@@ -1084,11 +1212,12 @@ export async function generateHumanPaidSection(
   );
 }
 
-export async function generateHumanDailySection(
+async function generateDailySectionWithPrompt(
   profile: UserProfile,
   chart: NatalChartData,
   key: HumanDailySectionKey,
-  dateKey: string
+  dateKey: string,
+  buildPrompt: DailyPromptBuilder
 ): Promise<InterpretationSection> {
   const fallback = buildHumanDailyFallback(profile, chart, key, dateKey);
   const summary = buildChartSummary(profile, chart);
@@ -1099,7 +1228,7 @@ export async function generateHumanDailySection(
   } catch {
     transitData = null;
   }
-  const prompt = buildDailyPrompt(summary, meta, key, dateKey, transitData);
+  const prompt = buildPrompt(summary, meta, key, dateKey, transitData);
 
   return generateWithRetry<InterpretationSection>(
     async () => {
@@ -1115,4 +1244,56 @@ export async function generateHumanDailySection(
     (section) => validateSection(section, 600),
     fallback
   );
+}
+
+export async function generateDailyLoveSection(
+  profile: UserProfile,
+  chart: NatalChartData,
+  dateKey: string
+): Promise<InterpretationSection> {
+  return generateDailySectionWithPrompt(profile, chart, 'daily_love', dateKey, buildDailyLovePrompt);
+}
+
+export async function generateDailyMoneySection(
+  profile: UserProfile,
+  chart: NatalChartData,
+  dateKey: string
+): Promise<InterpretationSection> {
+  return generateDailySectionWithPrompt(profile, chart, 'daily_money', dateKey, buildDailyMoneyPrompt);
+}
+
+export async function generateDailyWorkSection(
+  profile: UserProfile,
+  chart: NatalChartData,
+  dateKey: string
+): Promise<InterpretationSection> {
+  return generateDailySectionWithPrompt(profile, chart, 'daily_work_business', dateKey, buildDailyWorkPrompt);
+}
+
+export async function generateDailyGoalsSection(
+  profile: UserProfile,
+  chart: NatalChartData,
+  dateKey: string
+): Promise<InterpretationSection> {
+  return generateDailySectionWithPrompt(profile, chart, 'daily_goals', dateKey, buildDailyGoalsPrompt);
+}
+
+export async function generateHumanDailySection(
+  profile: UserProfile,
+  chart: NatalChartData,
+  key: HumanDailySectionKey,
+  dateKey: string
+): Promise<InterpretationSection> {
+  switch (key) {
+    case 'daily_love':
+      return generateDailyLoveSection(profile, chart, dateKey);
+    case 'daily_money':
+      return generateDailyMoneySection(profile, chart, dateKey);
+    case 'daily_work_business':
+      return generateDailyWorkSection(profile, chart, dateKey);
+    case 'daily_goals':
+      return generateDailyGoalsSection(profile, chart, dateKey);
+    default:
+      return generateDailySectionWithPrompt(profile, chart, key, dateKey, buildDailyPrompt);
+  }
 }

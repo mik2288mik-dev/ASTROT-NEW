@@ -220,7 +220,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       let forecast;
       try {
         forecast = await generatePremiumDaypartForecast(context.profile, chartData, slot, dateKey, {
-          allowStaticFallback: false,
+          allowStaticFallback: true,
         });
       } catch (error: any) {
         const status = error?.status === 503 ? 503 : 500;

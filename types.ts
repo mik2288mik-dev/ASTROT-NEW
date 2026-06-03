@@ -502,6 +502,12 @@ export type HoroscopeDailySectionKey =
   | 'daily_work_business'
   | 'daily_money'
   | 'daily_goals';
+export type PremiumDailyViewState =
+  | 'daily_love'
+  | 'daily_money'
+  | 'daily_work'
+  | 'daily_goals'
+  | 'personal_forecast';
 export type HoroscopeOpenOptions = {
   mode?: HoroscopeOpenMode;
   source?: string;
@@ -1378,7 +1384,23 @@ export interface AdminNotificationDeliveryLogItem {
   createdAt: string;
 }
 
-export type ViewState = 'onboarding' | 'hook' | 'paywall' | 'dashboard' | 'chart' | 'horoscope' | 'synastry' | 'oracle' | 'settings' | 'admin' | 'charts';
+export type ViewState =
+  | 'onboarding'
+  | 'hook'
+  | 'paywall'
+  | 'dashboard'
+  | 'chart'
+  | 'horoscope'
+  | 'daily_love'
+  | 'daily_money'
+  | 'daily_work'
+  | 'daily_goals'
+  | 'personal_forecast'
+  | 'synastry'
+  | 'oracle'
+  | 'settings'
+  | 'admin'
+  | 'charts';
 
 // Cached text types
 export interface CachedText<T = any> {

@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { UserProfile, NatalChartData, ViewState, HoroscopeLayer, NatalInterpretationReport, type HoroscopeOpenMode, type HoroscopeOpenOptions, type HoroscopeDailySectionKey } from './types';
+import { UserProfile, NatalChartData, ViewState, HoroscopeLayer, NatalInterpretationReport, type HoroscopeOpenMode, type HoroscopeOpenOptions, type HoroscopeDailySectionKey, type PremiumDailyViewState } from './types';
 import {
     getProfile,
     saveProfile,
@@ -14,7 +14,6 @@ import {
     buildPremiumDailyReadinessMap,
     filterPremiumDailyReadinessTaskIds,
     getStartupRequiredTaskIds,
-    PREMIUM_DAILY_READINESS_TASK_BY_SECTION,
     PREMIUM_DAILY_READINESS_TASK_IDS,
     type PrewarmTaskId,
     type PremiumDailyReadinessMap,
@@ -28,6 +27,13 @@ import { Onboarding } from './views/Onboarding';
 import { Dashboard } from './views/Dashboard';
 import { NatalChart } from './views/NatalChart';
 import { Horoscope } from './views/Horoscope';
+import {
+    DailyGoalsScreen,
+    DailyLoveScreen,
+    DailyMoneyScreen,
+    DailyWorkScreen,
+    PersonalForecastScreen,
+} from './views/DailyContentScreens';
 import { OracleChat } from './views/OracleChat';
 import { Settings } from './views/Settings';
 import { AdminPanel } from './views/AdminPanel';
@@ -128,6 +134,11 @@ function mergePrewarmResults(
 const NOTIFICATION_QUERY_VIEWS = new Set<ViewState>([
     'dashboard',
     'horoscope',
+    'daily_love',
+    'daily_money',
+    'daily_work',
+    'daily_goals',
+    'personal_forecast',
     'synastry',
     'oracle',
     'settings',
@@ -1069,63 +1080,38 @@ const App: React.FC = () => {
         setView(newView);
     }, [profile, pushReturnView]);
 
+    const openPremiumDailyView = useCallback((dailyView: PremiumDailyViewState) => {
+        lumiaDebugLog('navigation', {
+            action: 'open_premium_daily_view',
+            from: viewRef.current,
+            to: dailyView,
+            historyBeforeSet: navigationHistoryRef.current,
+        });
+        navigateTo(dailyView);
+    }, [navigateTo]);
+
     const openHoroscopeLayer = useCallback((layer: HoroscopeLayer, options?: HoroscopeOpenOptions) => {
         const mode = options?.mode ?? 'overview';
-        const dailySectionKey: HoroscopeDailySectionKey | null =
-            layer === 'love'
-                ? 'daily_love'
-                : layer === 'work_money'
-                    ? (options?.dailySectionKey ?? 'daily_work_business')
-                    : null;
 
-        if (profile?.isPremium && profile.id && chartData) {
-            const taskId: PrewarmTaskId | null =
-                layer === 'chart'
-                    ? 'forecast_daypart_day'
-                    : dailySectionKey
-                        ? PREMIUM_DAILY_READINESS_TASK_BY_SECTION[dailySectionKey]
-                        : null;
+        if (layer === 'love') {
+            openPremiumDailyView('daily_love');
+            return;
+        }
 
-            if (taskId) {
-                if (dailySectionKey) {
-                    setPremiumDailyReadiness((current) => ({
-                        ...current,
-                        [dailySectionKey]: current[dailySectionKey] === 'ready' ? 'ready' : 'preparing',
-                    }));
-                }
+        if (layer === 'work_money') {
+            const viewBySection: Record<HoroscopeDailySectionKey, PremiumDailyViewState> = {
+                daily_love: 'daily_love',
+                daily_work_business: 'daily_work',
+                daily_money: 'daily_money',
+                daily_goals: 'daily_goals',
+            };
+            openPremiumDailyView(viewBySection[options?.dailySectionKey ?? 'daily_work_business']);
+            return;
+        }
 
-                void (async () => {
-                    try {
-                        const result = await prewarmUserContent({
-                            userId: String(profile.id),
-                            chartId: primaryChartId,
-                            profile,
-                            chartData,
-                            isPremium: true,
-                            dateKey: getMoscowTodayKey(),
-                            mode: 'generate-missing',
-                            onlyTaskIds: [taskId],
-                            blockingBudgetMs: CONTENT_GENERATION_BUDGET_MS,
-                        });
-
-                        if (dailySectionKey) {
-                            const readyTaskIds = getReadyPrewarmTaskIds(result);
-                            setPremiumDailyReadiness((current) => ({
-                                ...current,
-                                [dailySectionKey]: readyTaskIds.has(taskId) ? 'ready' : 'failed',
-                            }));
-                        }
-                    } catch (error: any) {
-                        console.warn('[App] Focused horoscope content refill failed:', error?.message || error);
-                        if (dailySectionKey) {
-                            setPremiumDailyReadiness((current) => ({
-                                ...current,
-                                [dailySectionKey]: 'failed',
-                            }));
-                        }
-                    }
-                })();
-            }
+        if (layer === 'chart' && mode === 'single') {
+            openPremiumDailyView('personal_forecast');
+            return;
         }
 
         lumiaDebugLog('navigation', {
@@ -1142,7 +1128,7 @@ const App: React.FC = () => {
         setHoroscopeOpenMode(mode);
         setHoroscopeDailySectionKey(options?.dailySectionKey);
         navigateTo('horoscope');
-    }, [chartData, navigateTo, primaryChartId, profile]);
+    }, [navigateTo, openPremiumDailyView]);
 
     const refreshPrimaryChartState = useCallback(async () => {
         try {
@@ -1277,6 +1263,14 @@ const App: React.FC = () => {
         </>
     );
 
+    const dailyScreenProps = {
+        profile,
+        chartData,
+        chartId: primaryChartId,
+        onBack: handleBack,
+        requestPremium,
+    };
+
     return (
         <div
             className={`lumia-app-shell relative isolate flex w-full min-h-0 flex-col overflow-hidden font-sans selection:bg-astro-highlight selection:text-white ${
@@ -1296,6 +1290,7 @@ const App: React.FC = () => {
                         chartId={primaryChartId}
                         premiumDailyReadiness={premiumDailyReadiness}
                         onOpenHoroscopeLayer={openHoroscopeLayer}
+                        onOpenPremiumDaily={openPremiumDailyView}
                         onOpenSettings={openBottomAvatar}
                         scrollRef={dashboardScrollRef}
                         initialTodaySection={initialTodaySection}
@@ -1362,6 +1357,26 @@ const App: React.FC = () => {
                                 setHoroscopeBackground(next || { sign: null, tone: 'sign' })
                             }
                         />
+                    </div>
+                ) : view === 'daily_love' ? (
+                    <div className="lumia-main-scroll scrollbar-hide" ref={appScrollRef}>
+                        <DailyLoveScreen {...dailyScreenProps} />
+                    </div>
+                ) : view === 'daily_money' ? (
+                    <div className="lumia-main-scroll scrollbar-hide" ref={appScrollRef}>
+                        <DailyMoneyScreen {...dailyScreenProps} />
+                    </div>
+                ) : view === 'daily_work' ? (
+                    <div className="lumia-main-scroll scrollbar-hide" ref={appScrollRef}>
+                        <DailyWorkScreen {...dailyScreenProps} />
+                    </div>
+                ) : view === 'daily_goals' ? (
+                    <div className="lumia-main-scroll scrollbar-hide" ref={appScrollRef}>
+                        <DailyGoalsScreen {...dailyScreenProps} />
+                    </div>
+                ) : view === 'personal_forecast' ? (
+                    <div className="lumia-main-scroll scrollbar-hide" ref={appScrollRef}>
+                        <PersonalForecastScreen {...dailyScreenProps} />
                     </div>
                 ) : view === 'chart' ? (
                     <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>

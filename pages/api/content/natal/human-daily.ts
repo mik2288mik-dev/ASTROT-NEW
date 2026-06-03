@@ -9,6 +9,7 @@ import {
 } from '../../../../lib/natalReading/apiHelper';
 import {
   buildHumanInputHash,
+  buildHumanDailyFallback,
   generateHumanDailySection,
 } from '../../../../lib/natalHumanInterpretation';
 import {
@@ -240,6 +241,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     );
     console.error(`[natal/human-daily:${sectionKey}] generation failed:`, error instanceof Error ? error.message : error);
+    try {
+      const fallback = buildHumanDailyFallback(ctx.profile, ctx.chartData!, sectionKey, dateKey);
+      const savedFallback = await saveReading(ctx, cacheOpts, fallback);
+      return res.status(200).json({
+        interpretation: savedFallback,
+        source: 'fallback',
+        accessTier: responseAccessTier,
+      });
+    } catch (fallbackError) {
+      console.error(
+        `[natal/human-daily:${sectionKey}] fallback save failed:`,
+        fallbackError instanceof Error ? fallbackError.message : fallbackError
+      );
+    }
     return res.status(503).json({
       error: 'CONTENT_GENERATION_UNAVAILABLE',
       code: 'CONTENT_GENERATION_UNAVAILABLE',
