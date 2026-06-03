@@ -62,7 +62,7 @@ function localDateKey(date = new Date()) {
 }
 
 export const Dashboard = memo<DashboardProps>(
-  ({ profile, chartData, chartId, onOpenHoroscopeLayer, onOpenSettings, scrollRef, initialTodaySection }) => {
+  ({ profile, chartData, chartId, onOpenHoroscopeLayer, onOpenSettings, scrollRef, initialTodaySection, premiumDailyReadiness }) => {
     const shouldReduceMotion = useReducedMotion();
     const language = profile.language === 'en' ? 'en' : 'ru';
     const pulseRef = React.useRef<HTMLDivElement | null>(null);
@@ -112,7 +112,26 @@ export const Dashboard = memo<DashboardProps>(
           },
         };
 
+    const resolveQuickActionDailySection = (
+      layer: HoroscopeLayer,
+      options?: HoroscopeOpenOptions
+    ): HoroscopeOpenOptions['dailySectionKey'] | null => {
+      if (layer === 'love') return 'daily_love';
+      if (layer === 'work_money') return options?.dailySectionKey ?? 'daily_work_business';
+      return null;
+    };
+
+    const isDailyCardReady = (sectionKey: NonNullable<HoroscopeOpenOptions['dailySectionKey']>) => {
+      if (!profile.isPremium) return true;
+      return premiumDailyReadiness?.[sectionKey] === 'ready';
+    };
+
     const openHoroscope = (layer: HoroscopeLayer = 'sign', options?: HoroscopeOpenOptions) => {
+      const sectionKey = resolveQuickActionDailySection(layer, options);
+      if (sectionKey && !isDailyCardReady(sectionKey)) {
+        haptic('select');
+        return;
+      }
       haptic('open');
       onOpenHoroscopeLayer(layer, options);
     };
@@ -287,6 +306,7 @@ export const Dashboard = memo<DashboardProps>(
           body: homeCopy.quickActions.love.body,
           imageSrc: resolvedQuickActionVideos.love.poster || '/lumia-home/quick-actions/love.webp',
           videoAsset: resolvedQuickActionVideos.love.video,
+          disabled: !isDailyCardReady('daily_love'),
           onClick: () => openHoroscope('love', { mode: 'single', source: 'home_card_love' }),
         },
         {
@@ -295,6 +315,7 @@ export const Dashboard = memo<DashboardProps>(
           body: homeCopy.quickActions.money.body,
           imageSrc: resolvedQuickActionVideos.money.poster || '/lumia-home/quick-actions/money.webp',
           videoAsset: resolvedQuickActionVideos.money.video,
+          disabled: !isDailyCardReady('daily_money'),
           onClick: () => openHoroscope('work_money', { mode: 'single', dailySectionKey: 'daily_money', source: 'home_card_money' }),
         },
         {
@@ -303,6 +324,7 @@ export const Dashboard = memo<DashboardProps>(
           body: homeCopy.quickActions.work.body,
           imageSrc: resolvedQuickActionVideos.work.poster || '/lumia-home/quick-actions/work.webp',
           videoAsset: resolvedQuickActionVideos.work.video,
+          disabled: !isDailyCardReady('daily_work_business'),
           onClick: () => openHoroscope('work_money', { mode: 'single', dailySectionKey: 'daily_work_business', source: 'home_card_work' }),
         },
         {
@@ -311,6 +333,7 @@ export const Dashboard = memo<DashboardProps>(
           body: homeCopy.quickActions.goals.body,
           imageSrc: '/natal-backgrounds/daily.webp',
           videoAsset: null,
+          disabled: !isDailyCardReady('daily_goals'),
           onClick: () =>
             openHoroscope('work_money', { mode: 'single', dailySectionKey: 'daily_goals', source: 'home_card_goals' }),
         },
@@ -323,7 +346,7 @@ export const Dashboard = memo<DashboardProps>(
           onClick: () => openHoroscope('chart', { mode: 'single', source: 'home_card_rhythm' }),
         },
       ],
-      [homeCopy, openHoroscope, resolvedQuickActionVideos]
+      [homeCopy, openHoroscope, premiumDailyReadiness, profile.isPremium, resolvedQuickActionVideos]
     );
 
     const pulseCard = (
@@ -379,6 +402,8 @@ export const Dashboard = memo<DashboardProps>(
                       imageSrc={action.imageSrc}
                       videoAsset={action.videoAsset}
                       active={action.id === 'today'}
+                      disabled={action.disabled}
+                      aria-busy={action.disabled ? true : undefined}
                       onClick={action.onClick}
                     />
                   ))}
