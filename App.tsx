@@ -57,7 +57,7 @@ import {
 // Get owner ID from environment variables for security
 const OWNER_ID = process.env.NEXT_PUBLIC_OWNER_ID || '';
 const CONTENT_GENERATION_BUDGET_MS = 240_000;
-const STARTUP_SAFETY_TIMEOUT_MS = CONTENT_GENERATION_BUDGET_MS + 60_000;
+const STARTUP_SAFETY_TIMEOUT_MS = 45_000;
 const STARTUP_REQUIRED_RETRY_BUDGET_MS = 90_000;
 
 if (!OWNER_ID) {
@@ -314,13 +314,12 @@ const App: React.FC = () => {
             missingStatus: 'preparing',
         });
 
-        const generateMissingContent = async (): Promise<PrewarmUserContentResult> => {
-            const missingTaskIds = cacheResult.missingTaskIds;
-            if (missingTaskIds.length === 0) {
-                return cacheResult;
-            }
-
-            let result = await prewarmUserContent({
+        const runGenerateMissingTaskIds = async (
+            taskIds: PrewarmTaskId[],
+            blockingBudgetMs = CONTENT_GENERATION_BUDGET_MS
+        ): Promise<PrewarmUserContentResult | null> => {
+            if (taskIds.length === 0) return null;
+            return prewarmUserContent({
                 userId: input.userId,
                 chartId: input.chartId,
                 profile: input.profile,
@@ -328,12 +327,45 @@ const App: React.FC = () => {
                 isPremium: input.isPremium,
                 dateKey: input.dateKey,
                 mode: 'generate-missing',
-                onlyTaskIds: missingTaskIds,
-                blockingBudgetMs: CONTENT_GENERATION_BUDGET_MS,
+                onlyTaskIds: taskIds,
+                blockingBudgetMs,
             });
+        };
+
+        const generateMissingContent = async (): Promise<PrewarmUserContentResult> => {
+            const missingTaskIds = cacheResult.missingTaskIds;
+            if (missingTaskIds.length === 0) {
+                return cacheResult;
+            }
+
+            let result = cacheResult;
+            const requiredTaskIds = getStartupRequiredTaskIds(input.isPremium);
+            const missingSet = new Set<PrewarmTaskId>(missingTaskIds);
+            const requiredMissingTaskIds = requiredTaskIds.filter((id) => missingSet.has(id));
+
+            if (!awaitGeneration) {
+                const remainingMissingTaskIds = missingTaskIds.filter((id) => !requiredMissingTaskIds.includes(id));
+                const requiredResult = await runGenerateMissingTaskIds(requiredMissingTaskIds);
+
+                if (requiredResult) {
+                    result = mergePrewarmResults(result, requiredResult);
+                    applyPremiumDailyReadinessResult({ isPremium: input.isPremium, result });
+                    await prefetchBaseReportForChart(input.profile, input.chartId ?? undefined);
+                }
+
+                const readyTaskIds = getReadyPrewarmTaskIds(result);
+                const remainingAfterRequired = remainingMissingTaskIds.filter((id) => !readyTaskIds.has(id));
+                const remainingResult = await runGenerateMissingTaskIds(remainingAfterRequired);
+
+                return remainingResult ? mergePrewarmResults(result, remainingResult) : result;
+            }
+
+            const generatedResult = await runGenerateMissingTaskIds(missingTaskIds);
+            if (generatedResult) {
+                result = mergePrewarmResults(result, generatedResult);
+            }
 
             if (awaitGeneration) {
-                const requiredTaskIds = getStartupRequiredTaskIds(input.isPremium);
                 const readyTaskIds = getReadyPrewarmTaskIds(result);
                 const retryTaskIds = requiredTaskIds.filter((id) => !readyTaskIds.has(id));
 
@@ -357,7 +389,7 @@ const App: React.FC = () => {
                 }
             }
 
-            return mergePrewarmResults(cacheResult, result);
+            return result;
         };
 
         if (awaitGeneration) {
@@ -667,7 +699,7 @@ const App: React.FC = () => {
                             dateKey,
                             progressStart: 68,
                             progressSpan: 20,
-                            awaitGeneration: true,
+                            awaitGeneration: false,
                         });
                     } catch (prewarmError: any) {
                         console.warn('[App] Startup DB-first content flow failed:', prewarmError?.message || prewarmError);

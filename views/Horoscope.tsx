@@ -39,6 +39,14 @@ const PREMIUM_HUMAN_HYDRATE_KEYS: HumanDailySectionKey[] = [
   'daily_money',
   'daily_goals',
 ];
+const CACHE_POLL_ATTEMPTS = 24;
+const CACHE_POLL_INTERVAL_MS = 1_000;
+
+function waitForCachePoll(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+}
 
 function resolveDailySectionKey(
   layer: HoroscopeLayer,
@@ -338,9 +346,14 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
       love: null,
       work_money: null,
     });
+    const cachePollTokenRef = useRef(0);
     useEffect(() => {
       profileRef.current = profile;
     }, [profile]);
+
+    useEffect(() => () => {
+      cachePollTokenRef.current += 1;
+    }, []);
 
     const initialSign = useMemo(() => normalizeSign(chartData?.sun?.sign), [chartData?.sun?.sign]);
     const [selectedSign, setSelectedSign] = useState<ZodiacKey>(initialSign);
@@ -389,13 +402,21 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
 
       const loadReading = async () => {
         try {
-          const reading = await getCachedDailySignHoroscope(selectedSign, today, language);
-          if (!cancelled) {
+          for (let attempt = 0; attempt < CACHE_POLL_ATTEMPTS; attempt += 1) {
+            const reading = await getCachedDailySignHoroscope(selectedSign, today, language);
+            if (cancelled) return;
             if (reading) {
               setSignReading(reading);
-            } else {
-              setSignError(language === 'en' ? 'The horoscope is not ready yet.' : 'Гороскоп на сегодня пока не найден.');
+              return;
             }
+
+            if (attempt < CACHE_POLL_ATTEMPTS - 1) {
+              await waitForCachePoll(CACHE_POLL_INTERVAL_MS);
+            }
+          }
+
+          if (!cancelled) {
+            setSignError(language === 'en' ? 'The horoscope is not ready yet.' : 'Гороскоп на сегодня пока не найден.');
           }
         } catch {
           if (!cancelled) {
@@ -546,6 +567,24 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
       return hydrateHumanSection(sectionKey, effectiveChartId);
     };
 
+    const pollLayerFromCache = async (
+      layer: HoroscopeLayer,
+      effectiveChartId?: number
+    ): Promise<'ready' | 'missing' | 'cancelled'> => {
+      const token = cachePollTokenRef.current + 1;
+      cachePollTokenRef.current = token;
+
+      for (let attempt = 0; attempt < CACHE_POLL_ATTEMPTS; attempt += 1) {
+        await waitForCachePoll(CACHE_POLL_INTERVAL_MS);
+        if (cachePollTokenRef.current !== token) return 'cancelled';
+        if (await hydrateLayerFromCache(layer, effectiveChartId)) {
+          return 'ready';
+        }
+      }
+
+      return 'missing';
+    };
+
     const loadLayer = async (layer: HoroscopeLayer) => {
       if (layer === 'sign') return;
       if (!userId) {
@@ -588,8 +627,10 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
       setLayerState(layer, 'loading');
 
       try {
-        const hydrated = await hydrateLayerFromCache(layer, effectiveChartId);
-        setLayerState(layer, hydrated ? 'ready' : 'missing');
+        const pollResult = await pollLayerFromCache(layer, effectiveChartId);
+        if (pollResult !== 'cancelled') {
+          setLayerState(layer, pollResult === 'ready' ? 'ready' : 'missing');
+        }
       } catch (error) {
         if (HOROSCOPE_DEV) {
           console.warn('[Horoscope] cache hydrate failed', {

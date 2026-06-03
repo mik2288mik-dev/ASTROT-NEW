@@ -342,7 +342,7 @@ describe('content prewarm', () => {
     expect(key).toContain('content-generation:7:free:forecast:daily:2026-05-29');
   });
 
-  it('App startup uses DB-first cache probe and awaits missing generation before dashboard', () => {
+  it('App startup uses DB-first cache probe and background missing generation', () => {
     const source = fs.readFileSync(path.join(ROOT, 'App.tsx'), 'utf8');
     expect(source).toContain('prepareUserContentDbFirst');
     expect(source).toContain("mode: 'cache-only'");
@@ -350,6 +350,8 @@ describe('content prewarm', () => {
     expect(source).toContain('awaitGeneration');
     expect(source).toContain('CACHE_ONLY_PREWARM_BUDGET_MS');
     expect(source).toContain('backgroundPrewarmKeyRef');
+    expect(source).toContain('runGenerateMissingTaskIds(requiredMissingTaskIds)');
+    expect(source).toContain('remainingAfterRequired');
     expect(source).not.toContain('blockingBudgetMs: 38_000');
     expect(source).not.toContain('}, 40_000)');
     expect(source).not.toContain('const STARTUP_SAFETY_TIMEOUT_MS = 20_000');
@@ -362,12 +364,12 @@ describe('content prewarm', () => {
     expect(flags).not.toContain('ENABLE_AUTO_BACKGROUND_PREWARM_GENERATION');
   });
 
-  it('ordinary app startup waits for DB-first missing generation before opening dashboard', () => {
+  it('ordinary app startup opens dashboard after DB-first probe without waiting for generation', () => {
     const source = fs.readFileSync(path.join(ROOT, 'App.tsx'), 'utf8');
     const loadDataBlock = source.match(/const loadData = async[\s\S]*?void loadData\(\)/)?.[0] ?? '';
     expect(loadDataBlock).toContain('await prepareUserContentDbFirst');
     expect(loadDataBlock).toContain("setView(requestedViewRef.current || 'dashboard')");
-    expect(loadDataBlock).toContain('awaitGeneration: true');
+    expect(loadDataBlock).toContain('awaitGeneration: false');
     expect(loadDataBlock.indexOf('await prepareUserContentDbFirst')).toBeLessThan(
       loadDataBlock.indexOf("setView(requestedViewRef.current || 'dashboard')")
     );

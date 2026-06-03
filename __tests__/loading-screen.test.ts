@@ -22,6 +22,13 @@ describe('loading screen', () => {
     expect(barTracks.length).toBe(1);
   });
 
+  it('shows a numeric progress percent under the bar', () => {
+    const source = fs.readFileSync(path.join(ROOT, 'components/ui/Loading.tsx'), 'utf8');
+    expect(source).toContain('progressPercent');
+    expect(source).toContain('{progressPercent}%');
+    expect(source).toContain('tabular-nums');
+  });
+
   it('does not contain forbidden phrases in visible copy', () => {
     const source = fs.readFileSync(path.join(ROOT, 'components/ui/Loading.tsx'), 'utf8');
     const forbidden = [

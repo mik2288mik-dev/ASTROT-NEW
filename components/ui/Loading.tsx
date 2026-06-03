@@ -35,7 +35,8 @@ export const Loading: React.FC<LoadingProps> = ({ progress: externalProgress }) 
     }
   }, [externalProgress]);
 
-  const showBar = progress > 0 && progress < 100;
+  const progressPercent = Math.max(0, Math.min(100, Math.round(progress)));
+  const showBar = progressPercent > 0 && progressPercent < 100;
 
   return (
     <div
@@ -64,9 +65,12 @@ export const Loading: React.FC<LoadingProps> = ({ progress: externalProgress }) 
             <motion.div
               className="h-full rounded-full bg-[#1a2a3a]/55"
               initial={{ width: 0 }}
-              animate={{ width: `${progress}%` }}
+              animate={{ width: `${progressPercent}%` }}
               transition={{ duration: 0.25, ease: 'easeOut' }}
             />
+          </div>
+          <div className="mt-2 text-center text-[11px] font-semibold tabular-nums text-[#1a2a3a]/55">
+            {progressPercent}%
           </div>
         </div>
       ) : null}
