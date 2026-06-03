@@ -69,6 +69,9 @@ describe('horoscope single-card navigation', () => {
     expect(source).toContain('loadHumanDailySection');
     expect(source).toContain('ensureFullDaypartForecast');
     expect(source).toContain('maxInProgressRetries: 45');
+    expect(source).toContain("type LayerLoadState = 'missing' | 'cached_ready' | 'loading' | 'ready' | 'failed'");
+    expect(source).toContain('readableLayerError');
+    expect(source).toContain('renderLayerUnavailable');
     expect(source).not.toContain('ensureDailySignHoroscope');
     expect(source).not.toMatch(/Повторить|Try again|Готовим|Вернись/);
   });

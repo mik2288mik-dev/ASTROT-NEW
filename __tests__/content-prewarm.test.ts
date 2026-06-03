@@ -449,4 +449,21 @@ describe('content prewarm', () => {
     expect(horoscope).toContain('PREMIUM_HUMAN_HYDRATE_KEYS');
     expect(horoscope).toMatch(/PREMIUM_HUMAN_HYDRATE_KEYS[\s\S]*'daily_goals'/);
   });
+
+  it('Premium content APIs keep POST fallback premium state for startup fills', () => {
+    const apiHelper = fs.readFileSync(path.join(ROOT, 'lib/natalReading/apiHelper.ts'), 'utf8');
+    expect(apiHelper).toContain('isPremium: fallback?.isPremium ?? !!user.is_premium');
+
+    const humanDaily = fs.readFileSync(path.join(ROOT, 'pages/api/content/natal/human-daily.ts'), 'utf8');
+    expect(humanDaily).toContain('entitlement.isPremium || profile?.isPremium');
+
+    const humanSection = fs.readFileSync(path.join(ROOT, 'pages/api/content/natal/human-section.ts'), 'utf8');
+    expect(humanSection).toContain('entitlement.isPremium || profile?.isPremium');
+    expect(humanSection).toContain('resolvePaidAccess(userId, ctx.profile)');
+
+    const daypart = fs.readFileSync(path.join(ROOT, 'pages/api/content/forecast/daypart.ts'), 'utf8');
+    expect(daypart).toContain('isPremium: fallback?.isPremium ?? !!user.is_premium');
+    expect(daypart).toContain('!entitlementState.isPremium && !profile?.isPremium');
+    expect(daypart).toContain('resolveAccess(safeUserId, context.profile)');
+  });
 });

@@ -32,7 +32,7 @@ import { getPrimaryChartId } from '../services/chartService';
 
 type HoroscopeTone = 'sign' | 'chart' | 'love' | 'work';
 
-type LayerLoadState = 'missing' | 'cached_ready' | 'loading' | 'ready';
+type LayerLoadState = 'missing' | 'cached_ready' | 'loading' | 'ready' | 'failed';
 
 const HOROSCOPE_DEV = process.env.NODE_ENV !== 'production';
 const PREMIUM_HUMAN_HYDRATE_KEYS: HumanDailySectionKey[] = [
@@ -68,6 +68,28 @@ function applyDailyMeta(layer: LayerConfig, sectionKey: HumanDailySectionKey | n
 
 function hasSectionText(section?: InterpretationSection): boolean {
   return !!section?.content?.trim();
+}
+
+function readableLayerError(error: unknown, language: 'ru' | 'en'): string {
+  const err = error as { code?: string; status?: number; message?: string };
+  if (err?.status === 403 || err?.code === 'PREMIUM_REQUIRED') {
+    return language === 'en'
+      ? 'This section is available in Premium.'
+      : 'Этот раздел доступен в Premium.';
+  }
+  if (err?.status === 409 || err?.code === 'PRIMARY_CHART_MISSING') {
+    return language === 'en'
+      ? 'A saved natal chart is required for this section.'
+      : 'Для этого раздела нужна сохраненная натальная карта.';
+  }
+  if (err?.code === 'EMPTY_INTERPRETATION') {
+    return language === 'en'
+      ? 'The text is not saved yet.'
+      : 'Текст пока не сохранен.';
+  }
+  return language === 'en'
+    ? 'This section is temporarily unavailable.'
+    : 'Этот раздел сейчас недоступен.';
 }
 
 type HoroscopeBackgroundState = { sign: string | null; tone: HoroscopeTone };
@@ -372,9 +394,18 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
       love: openMode === 'single' && initialLayer === 'love' ? 'loading' : 'missing',
       work_money: openMode === 'single' && initialLayer === 'work_money' ? 'loading' : 'missing',
     }));
+    const [layerErrors, setLayerErrors] = useState<Partial<Record<HoroscopeLayer, string>>>({});
 
     const setLayerState = (layer: HoroscopeLayer, state: LayerLoadState) => {
       setLayerStates((prev) => ({ ...prev, [layer]: state }));
+      if (state === 'loading' || state === 'ready' || state === 'cached_ready') {
+        setLayerErrors((prev) => {
+          if (!prev[layer]) return prev;
+          const next = { ...prev };
+          delete next[layer];
+          return next;
+        });
+      }
     };
 
     useEffect(() => {
@@ -676,6 +707,12 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
         const pollResult = await pollLayerFromCache(layer, effectiveChartId);
         if (pollResult !== 'cancelled') {
           setLayerState(layer, pollResult === 'ready' ? 'ready' : 'missing');
+          if (pollResult === 'missing') {
+            setLayerErrors((current) => ({
+              ...current,
+              [layer]: language === 'en' ? 'The text is not saved yet.' : 'Текст пока не сохранен.',
+            }));
+          }
         }
       } catch (error) {
         if (HOROSCOPE_DEV) {
@@ -684,7 +721,8 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
             message: error instanceof Error ? error.message : String(error),
           });
         }
-        setLayerState(layer, 'missing');
+        setLayerErrors((current) => ({ ...current, [layer]: readableLayerError(error, language) }));
+        setLayerState(layer, 'failed');
       }
     };
 
@@ -778,6 +816,25 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
               <div className="h-3 w-4/5 animate-pulse rounded-full bg-black/10" />
               <div className="h-3 w-2/3 animate-pulse rounded-full bg-black/10" />
             </div>
+          </div>
+        </div>
+      );
+    };
+
+    const renderLayerUnavailable = (layer: LayerConfig, message?: string) => {
+      const Icon = layer.icon;
+      return (
+        <div className="relative flex h-full min-h-0 flex-col justify-end overflow-hidden pb-2">
+          <div className="pointer-events-none absolute -right-7 top-[18%] opacity-[0.1]">
+            <Icon size={168} strokeWidth={0.8} />
+          </div>
+          <div className="relative max-w-[min(82vw,22rem)] pb-2">
+            <SparkleTitle tone={layer.tone} className="max-w-[min(82vw,22rem)] text-[clamp(2.35rem,10vw,3.2rem)]">
+              {layer.title}
+            </SparkleTitle>
+            <p className="mt-3 max-w-[min(82vw,21rem)] text-[15px] leading-[1.65] text-[#5f5b64]">
+              {message || (language === 'en' ? 'This section is temporarily unavailable.' : 'Этот раздел сейчас недоступен.')}
+            </p>
           </div>
         </div>
       );
@@ -948,6 +1005,11 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
                 (layer.id === 'chart'
                   ? layerStates.chart === 'loading'
                   : !!sectionKey && !!hydratingDailySections[sectionKey]));
+            const isUnavailableLayer =
+              !isOpen &&
+              !!profileRef.current.isPremium &&
+              (layerStates[layer.id] === 'failed' ||
+                (layerStates[layer.id] === 'missing' && !!layerErrors[layer.id]));
             return (
               <section
                 key={layer.id}
@@ -970,6 +1032,8 @@ export const Horoscope: React.FC<HoroscopeProps> = memo(
                         ? renderHumanSection(humanSection!, layer)
                         : isHydratingLayer
                           ? renderLayerSkeleton(layer)
+                          : isUnavailableLayer
+                            ? renderLayerUnavailable(layer, layerErrors[layer.id])
                           : renderLockedLayer(layer)}
 
                 {isOpen && !isSingleMode && index < visibleLayers.length - 1 ? <div className="mt-4 border-t border-black/10" /> : null}

@@ -29,7 +29,7 @@ function toProfile(user: any, fallback?: Partial<UserProfile>): UserProfile {
     isSetup: user.is_setup ?? true,
     language: (fallback?.language as 'ru' | 'en') || user.language || 'ru',
     theme: (fallback?.theme as 'dark' | 'light') || user.theme || 'dark',
-    isPremium: !!user.is_premium,
+    isPremium: fallback?.isPremium ?? !!user.is_premium,
     isAdmin: !!user.is_admin,
     loginStreak: user.login_streak ?? 0,
     chartSlots: user.chart_slots ?? 1,
@@ -73,10 +73,10 @@ type ResolvedAccess = {
   entitlement: Awaited<ReturnType<typeof getPremiumEntitlementState>>['entitlement'];
 };
 
-async function resolveAccess(userId: string): Promise<ResolvedAccess | null> {
+async function resolveAccess(userId: string, profile?: { isPremium?: boolean }): Promise<ResolvedAccess | null> {
   const entitlementState = await getPremiumEntitlementState(userId);
 
-  if (!entitlementState.isPremium) {
+  if (!entitlementState.isPremium && !profile?.isPremium) {
     logger.warn({
       scope: 'forecast-daypart',
       event: 'premium_required',
@@ -150,7 +150,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const lang = context.profile.language === 'en' ? 'en' : 'ru';
   buildForecastFullDayUnlockCacheKey(dateKey);
   const cacheKey = buildForecastDaypartCacheKey(dateKey, slot);
-  const access = await resolveAccess(safeUserId);
+  const access = await resolveAccess(safeUserId, context.profile);
 
   if (!access) {
     return res.status(403).json({

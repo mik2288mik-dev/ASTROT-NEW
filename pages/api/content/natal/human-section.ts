@@ -38,9 +38,9 @@ function readSectionKey(req: NextApiRequest): HumanPaidSectionKey | null {
   return isHumanPaidSectionKey(value) ? value : null;
 }
 
-async function resolvePaidAccess(userId: string): Promise<ResolvedAccess | null> {
+async function resolvePaidAccess(userId: string, profile?: { isPremium?: boolean }): Promise<ResolvedAccess | null> {
   const entitlement = await getPremiumEntitlementState(userId);
-  if (entitlement.isPremium) {
+  if (entitlement.isPremium || profile?.isPremium) {
     return { accessTier: 'premium' };
   }
   return null;
@@ -80,7 +80,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     promptVersion: HUMAN_PAID_PROMPT_VERSION,
   });
 
-  const access = await resolvePaidAccess(userId);
+  const access = await resolvePaidAccess(userId, ctx.profile);
 
   logContentApi(
     {
