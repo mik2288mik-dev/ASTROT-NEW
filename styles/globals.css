@@ -1397,16 +1397,6 @@ body.theme-lumia-air #__next {
     0 1px 0 rgba(255, 255, 255, 0.95) inset;
 }
 
-.lumia-home-quick-action-card:disabled {
-  cursor: wait;
-  opacity: 0.66;
-  transform: none;
-}
-
-.lumia-home-quick-action-card:disabled:active {
-  transform: none;
-}
-
 .lumia-home-quick-action-image {
   position: absolute;
   inset: 0;

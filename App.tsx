@@ -14,6 +14,7 @@ import {
     buildPremiumDailyReadinessMap,
     filterPremiumDailyReadinessTaskIds,
     getStartupRequiredTaskIds,
+    PREMIUM_DAILY_READINESS_TASK_BY_SECTION,
     PREMIUM_DAILY_READINESS_TASK_IDS,
     type PrewarmTaskId,
     type PremiumDailyReadinessMap,
@@ -1070,6 +1071,63 @@ const App: React.FC = () => {
 
     const openHoroscopeLayer = useCallback((layer: HoroscopeLayer, options?: HoroscopeOpenOptions) => {
         const mode = options?.mode ?? 'overview';
+        const dailySectionKey: HoroscopeDailySectionKey | null =
+            layer === 'love'
+                ? 'daily_love'
+                : layer === 'work_money'
+                    ? (options?.dailySectionKey ?? 'daily_work_business')
+                    : null;
+
+        if (profile?.isPremium && profile.id && chartData) {
+            const taskId: PrewarmTaskId | null =
+                layer === 'chart'
+                    ? 'forecast_daypart_day'
+                    : dailySectionKey
+                        ? PREMIUM_DAILY_READINESS_TASK_BY_SECTION[dailySectionKey]
+                        : null;
+
+            if (taskId) {
+                if (dailySectionKey) {
+                    setPremiumDailyReadiness((current) => ({
+                        ...current,
+                        [dailySectionKey]: current[dailySectionKey] === 'ready' ? 'ready' : 'preparing',
+                    }));
+                }
+
+                void (async () => {
+                    try {
+                        const result = await prewarmUserContent({
+                            userId: String(profile.id),
+                            chartId: primaryChartId,
+                            profile,
+                            chartData,
+                            isPremium: true,
+                            dateKey: getMoscowTodayKey(),
+                            mode: 'generate-missing',
+                            onlyTaskIds: [taskId],
+                            blockingBudgetMs: CONTENT_GENERATION_BUDGET_MS,
+                        });
+
+                        if (dailySectionKey) {
+                            const readyTaskIds = getReadyPrewarmTaskIds(result);
+                            setPremiumDailyReadiness((current) => ({
+                                ...current,
+                                [dailySectionKey]: readyTaskIds.has(taskId) ? 'ready' : 'failed',
+                            }));
+                        }
+                    } catch (error: any) {
+                        console.warn('[App] Focused horoscope content refill failed:', error?.message || error);
+                        if (dailySectionKey) {
+                            setPremiumDailyReadiness((current) => ({
+                                ...current,
+                                [dailySectionKey]: 'failed',
+                            }));
+                        }
+                    }
+                })();
+            }
+        }
+
         lumiaDebugLog('navigation', {
             action: 'open_horoscope_layer',
             from: viewRef.current,
@@ -1084,7 +1142,7 @@ const App: React.FC = () => {
         setHoroscopeOpenMode(mode);
         setHoroscopeDailySectionKey(options?.dailySectionKey);
         navigateTo('horoscope');
-    }, [navigateTo]);
+    }, [chartData, navigateTo, primaryChartId, profile]);
 
     const refreshPrimaryChartState = useCallback(async () => {
         try {
