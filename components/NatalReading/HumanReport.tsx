@@ -7,22 +7,13 @@ import type {
   UserProfile,
 } from '../../types';
 import {
-  HUMAN_DAILY_SECTION_KEYS,
-  HUMAN_DAILY_SECTION_META,
   HUMAN_FREE_SECTION_KEYS,
   HUMAN_PAID_SECTION_KEYS,
   HUMAN_PAID_SECTION_META,
-  type HumanDailySectionKey,
   type HumanPaidSectionKey,
 } from '../../lib/natalHumanShared';
 import {
-  type PremiumDailyReadinessMap,
-  type PremiumDailyReadinessSectionKey,
-} from '../../lib/contentPrewarm';
-import { getMoscowTodayKey } from '../../lib/date-utils';
-import {
   ensureHumanBaseReport,
-  getCachedHumanDailySection,
   getCachedHumanPaidSection,
   getHumanBaseReportCached,
   type HumanReadingError,
@@ -37,7 +28,6 @@ type Props = {
   requestPremium: () => void;
   onUpdateProfile?: (profile: UserProfile) => void;
   preloadedReport?: NatalInterpretationReport | null;
-  premiumDailyReadiness?: PremiumDailyReadinessMap;
 };
 
 const SIGN_RU: Record<string, string> = {
@@ -161,62 +151,6 @@ const LockedPreview: React.FC<{
   );
 };
 
-const DailySectionButton: React.FC<{
-  sectionKey: HumanDailySectionKey;
-  isPremium: boolean;
-  isLoading: boolean;
-  readinessStatus?: 'ready' | 'preparing' | 'failed';
-  opened?: InterpretationSection;
-  onOpen: () => void;
-}> = ({ sectionKey, isPremium, isLoading, readinessStatus, opened, onOpen }) => {
-  const meta = HUMAN_DAILY_SECTION_META[sectionKey];
-  const actionLabel = isLoading
-    ? '...'
-    : isPremium
-      ? 'Открыть'
-      : 'Premium';
-  return (
-    <div className="border-t border-[#eeeeee] py-5">
-      <button
-        type="button"
-        onClick={onOpen}
-        disabled={isLoading}
-        className="flex w-full items-start justify-between gap-4 text-left disabled:opacity-60"
-      >
-        <span className="min-w-0">
-          <span className="block font-sans text-[17px] font-semibold leading-tight tracking-[-0.01em] text-[#1f1f1f]">
-            {meta.title}
-          </span>
-          <span className="mt-1.5 block font-sans text-[13.5px] leading-relaxed text-[#666]">
-            {opened ? opened.subtitle || meta.subtitle : meta.teaser}
-          </span>
-        </span>
-        <span className="mt-1 shrink-0 rounded-full bg-[#f7f5fb] px-3 py-1 text-[12px] text-[#6f4ea8]">
-          {actionLabel}
-        </span>
-      </button>
-      {opened ? (
-        <div className="mt-5">
-          <FormattedAiText
-            text={opened.content}
-            className="max-w-none"
-            paragraphClassName="font-sans text-[15.5px] leading-[1.78] text-[#2d2d2d] [text-wrap:pretty]"
-          />
-          {opened.bullets?.length ? (
-            <div className="mt-4 flex flex-wrap gap-2">
-              {opened.bullets.map((item, index) => (
-                <span key={`${opened.key}-${index}`} className="rounded-full bg-[#f6f6f6] px-3 py-1 text-[12px] text-[#3a3a3a]">
-                  {item}
-                </span>
-              ))}
-            </div>
-          ) : null}
-        </div>
-      ) : null}
-    </div>
-  );
-};
-
 export const NatalUnlockSheet: React.FC<{
   sectionKey: HumanPaidSectionKey;
   isLoading: boolean;
@@ -258,53 +192,6 @@ export const NatalUnlockSheet: React.FC<{
         </div>
         <p className="mt-3 text-center font-sans text-[12.5px] leading-relaxed text-[#777]">
           Полный доступ к подробным разделам карты — в Premium.
-        </p>
-      </div>
-    </div>
-  );
-};
-
-const NatalDailyUnlockSheet: React.FC<{
-  sectionKey: HumanDailySectionKey;
-  isLoading: boolean;
-  onClose: () => void;
-  onPremium: () => void;
-}> = ({ sectionKey, isLoading, onClose, onPremium }) => {
-  const meta = HUMAN_DAILY_SECTION_META[sectionKey];
-
-  return (
-    <div className="fixed inset-0 z-[150] flex items-end justify-center bg-black/38 px-3 pb-3">
-      <button type="button" aria-label="Закрыть" className="absolute inset-0 cursor-default" onClick={onClose} />
-      <div className="relative w-full max-w-md rounded-[28px] bg-white px-5 pb-5 pt-4 shadow-[0_24px_80px_rgba(0,0,0,0.24)]">
-        <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-[#dfdfdf]" />
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-[#f5f5f5] text-[#444]"
-          aria-label="Закрыть"
-        >
-          <X size={17} strokeWidth={2} />
-        </button>
-
-        <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8c6bb1]">Твой день</p>
-        <h3 className="mt-2 max-w-[18rem] font-sans text-[24px] font-semibold leading-[1.08] tracking-[-0.02em] text-[#1f1f1f]">
-          {meta.title}
-        </h3>
-        <p className="mt-3 font-sans text-[14.5px] leading-relaxed text-[#5f5f5f]">{meta.teaser}</p>
-
-        <div className="mt-5 grid gap-2.5">
-          <button
-            type="button"
-            onClick={onPremium}
-            disabled={isLoading}
-            className="flex w-full items-center justify-center gap-2 rounded-full bg-[#1f1f1f] px-5 py-3 text-[14px] font-semibold text-white disabled:opacity-60"
-          >
-            <Crown size={16} strokeWidth={2} />
-            {isLoading ? 'Открываем...' : 'Получить Premium'}
-          </button>
-        </div>
-        <p className="mt-3 text-center font-sans text-[12.5px] leading-relaxed text-[#777]">
-          Утро, день, вечер и сферы жизни — в Lumia Premium.
         </p>
       </div>
     </div>
@@ -354,28 +241,22 @@ export const HumanReport: React.FC<Props> = ({
   requestPremium,
   onUpdateProfile,
   preloadedReport,
-  premiumDailyReadiness,
 }) => {
   const [report, setReport] = useState<NatalInterpretationReport | null>(preloadedReport || null);
   const [loading, setLoading] = useState(!preloadedReport);
   const [error, setError] = useState<string | null>(null);
   const [paidSections, setPaidSections] = useState<Partial<Record<HumanPaidSectionKey, InterpretationSection>>>({});
-  const [dailySections, setDailySections] = useState<Partial<Record<HumanDailySectionKey, InterpretationSection>>>({});
   const [paidLoading, setPaidLoading] = useState<HumanPaidSectionKey | null>(null);
-  const [dailyLoading, setDailyLoading] = useState<HumanDailySectionKey | null>(null);
   const [sectionError, setSectionError] = useState<string | null>(null);
   const [unlockTarget, setUnlockTarget] = useState<HumanPaidSectionKey | null>(null);
-  const [unlockDailyTarget, setUnlockDailyTarget] = useState<HumanDailySectionKey | null>(null);
 
   const userId = profile.id ? String(profile.id) : '';
   const isPremium = !!profile.isPremium;
-  const todayKey = useMemo(() => getMoscowTodayKey(), []);
   const visibleFreeKeys = useMemo(() => new Set<string>(HUMAN_FREE_SECTION_KEYS), []);
   const visibleFreeSections = useMemo(
     () => (report?.freeSections || []).filter((section) => visibleFreeKeys.has(section.key)),
     [report?.freeSections, visibleFreeKeys]
   );
-  const visibleDailyKeys = useMemo(() => HUMAN_DAILY_SECTION_KEYS, []);
 
   useEffect(() => {
     if (preloadedReport) {
@@ -419,54 +300,6 @@ export const HumanReport: React.FC<Props> = ({
     };
   }, [chartId, preloadedReport, userId]);
 
-  useEffect(() => {
-    if (!userId || !report) return;
-    let cancelled = false;
-
-    void (async () => {
-      for (const key of HUMAN_DAILY_SECTION_KEYS) {
-        if (cancelled) return;
-        if (!isPremium && key !== 'daily_overview') continue;
-        try {
-          const cached = await getCachedHumanDailySection(userId, key, chartId, todayKey);
-          if (cancelled || !cached?.content) continue;
-          setDailySections((current) => ({ ...current, [key]: cached.content }));
-        } catch {
-          // cache miss or locked — user opens via button
-        }
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [chartId, isPremium, report, todayKey, userId]);
-
-  useEffect(() => {
-    if (!userId || !report || !premiumDailyReadiness) return;
-    let cancelled = false;
-
-    void (async () => {
-      for (const key of HUMAN_DAILY_SECTION_KEYS) {
-        if (cancelled || dailySections[key]) continue;
-        if (!isPremium && key !== 'daily_overview') continue;
-        const readiness = premiumDailyReadiness[key as PremiumDailyReadinessSectionKey];
-        if (readiness !== 'ready') continue;
-        try {
-          const cached = await getCachedHumanDailySection(userId, key, chartId, todayKey);
-          if (cancelled || !cached?.content) continue;
-          setDailySections((current) => ({ ...current, [key]: cached.content }));
-        } catch {
-          // ignore cache miss
-        }
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [chartId, dailySections, isPremium, premiumDailyReadiness, report, todayKey, userId]);
-
   const openPaidSection = async (key: HumanPaidSectionKey) => {
     if (!userId || paidLoading) return;
     setSectionError(null);
@@ -493,57 +326,6 @@ export const HumanReport: React.FC<Props> = ({
     }
     setSectionError(null);
     setUnlockTarget(key);
-  };
-
-  const handleOpenDaily = (key: HumanDailySectionKey) => {
-    if (key === 'daily_overview') {
-      void openDailyOverview(key);
-      return;
-    }
-    if (isPremium) {
-      void openDailyCachedSection(key);
-      return;
-    }
-    setSectionError(null);
-    setUnlockDailyTarget(key);
-  };
-
-  const openDailyOverview = async (key: Extract<HumanDailySectionKey, 'daily_overview'>) => {
-    if (!userId || dailyLoading) return;
-    setSectionError(null);
-    setDailyLoading(key);
-    try {
-      const cached = await getCachedHumanDailySection(userId, key, chartId, todayKey);
-      if (cached?.content) {
-        setDailySections((current) => ({ ...current, [key]: cached.content }));
-        setUnlockDailyTarget(null);
-        return;
-      }
-      setSectionError('Раздел на сегодня пока не найден.');
-    } catch (err) {
-      setSectionError(formatError(err));
-    } finally {
-      setDailyLoading(null);
-    }
-  };
-
-  const openDailyCachedSection = async (key: HumanDailySectionKey) => {
-    if (!userId || dailyLoading) return;
-    setSectionError(null);
-    setDailyLoading(key);
-    try {
-      const cached = await getCachedHumanDailySection(userId, key, chartId, todayKey);
-      if (cached?.content) {
-        setDailySections((current) => ({ ...current, [key]: cached.content }));
-        setUnlockDailyTarget(null);
-        return;
-      }
-      setSectionError('Раздел на сегодня пока не найден.');
-    } catch (err) {
-      setSectionError(formatError(err));
-    } finally {
-      setDailyLoading(null);
-    }
   };
 
   if (loading) {
@@ -642,42 +424,6 @@ export const HumanReport: React.FC<Props> = ({
           </div>
         </section>
 
-        <section className="border-t border-[#eeeeee] py-9">
-          <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8c6bb1]">Сегодня по твоей карте</p>
-          <h2 className="mt-2 font-sans text-[28px] font-semibold leading-[1.08] tracking-[-0.02em] text-[#1f1f1f]">Что важно сегодня</h2>
-          <p className="mt-3 font-sans text-[14.5px] leading-relaxed text-[#5e5e5e]">
-            Короткие разборы по любви, работе, деньгам и делам — отдельно, без лишней воды.
-          </p>
-
-          <div className="mt-6">
-            {visibleDailyKeys.map((key) => (
-              <DailySectionButton
-                key={key}
-                sectionKey={key}
-                isPremium={isPremium || key === 'daily_overview'}
-                isLoading={dailyLoading === key}
-                readinessStatus={
-                  key === 'daily_overview'
-                    ? undefined
-                    : premiumDailyReadiness?.[key as PremiumDailyReadinessSectionKey]
-                }
-                opened={dailySections[key]}
-                onOpen={() => handleOpenDaily(key)}
-              />
-            ))}
-          </div>
-
-          {!isPremium ? (
-            <button
-              type="button"
-              onClick={requestPremium}
-              className="mt-5 w-full rounded-full bg-[#1f1f1f] px-5 py-3 text-[13px] font-medium text-white"
-            >
-              Открыть Premium
-            </button>
-          ) : null}
-        </section>
-
         {sectionError ? (
           <p className="border-t border-[#eeeeee] py-4 text-[13px] leading-relaxed text-[#b05c5c]">{sectionError}</p>
         ) : null}
@@ -703,17 +449,6 @@ export const HumanReport: React.FC<Props> = ({
         />
       ) : null}
 
-      {unlockDailyTarget ? (
-        <NatalDailyUnlockSheet
-          sectionKey={unlockDailyTarget}
-          isLoading={dailyLoading === unlockDailyTarget}
-          onClose={() => setUnlockDailyTarget(null)}
-          onPremium={() => {
-            setUnlockDailyTarget(null);
-            requestPremium();
-          }}
-        />
-      ) : null}
     </article>
   );
 };

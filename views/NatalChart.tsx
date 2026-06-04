@@ -4,7 +4,6 @@ import type {
   NatalInterpretationReport,
   UserProfile,
 } from '../types';
-import type { PremiumDailyReadinessMap } from '../lib/contentPrewarm';
 import { ShimmerStyles } from '../components/NatalReading/Skeleton';
 import { HumanReport } from '../components/NatalReading/HumanReport';
 
@@ -15,7 +14,6 @@ interface NatalChartProps {
   requestPremium: (source?: string, payload?: Record<string, any>) => void | Promise<void>;
   onUpdateProfile?: (profile: UserProfile) => void;
   preloadedReport?: NatalInterpretationReport | null;
-  premiumDailyReadiness?: PremiumDailyReadinessMap;
 }
 
 export const NatalChart: React.FC<NatalChartProps> = ({
@@ -25,7 +23,6 @@ export const NatalChart: React.FC<NatalChartProps> = ({
   requestPremium,
   onUpdateProfile,
   preloadedReport,
-  premiumDailyReadiness,
 }) => {
   if (!data) {
     return (
@@ -46,7 +43,6 @@ export const NatalChart: React.FC<NatalChartProps> = ({
         requestPremium={requestPremium}
         onUpdateProfile={onUpdateProfile}
         preloadedReport={preloadedReport}
-        premiumDailyReadiness={premiumDailyReadiness}
       />
     </div>
   );

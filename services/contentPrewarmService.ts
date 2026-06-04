@@ -7,29 +7,10 @@ import {
 import { getMoscowTodayKey } from '../lib/date-utils';
 import {
   ensureDailySignHoroscope,
-  getCachedDailyForecastLayer,
   getCachedDailySignHoroscope,
   getCachedFullDaypartForecast,
-  ensureMonthlyForecastLayer,
-  ensureWeeklyForecastLayer,
-  getCachedMonthlyForecastLayer,
-  getCachedNatalAnchorLayer,
-  getCachedPremiumNatalFullLayer,
-  getCachedWeeklyForecastLayer,
-  getDailyForecastLayer,
   getFullDaypartForecast,
-  getNatalAnchorLayer,
-  getPremiumNatalFullLayer,
 } from './astrologyService';
-import {
-  ensureHumanBaseReport,
-  ensureHumanDailySection,
-  getCachedHumanBaseReport,
-  getCachedHumanDailySection,
-  getCachedHumanPaidSection,
-  loadHumanPaidSection,
-} from './natalReadingService';
-import type { HumanDailySectionKey } from '../lib/natalHumanShared';
 import {
   getRetryAfterMs,
   isGenerationInProgressError,
@@ -106,16 +87,6 @@ async function runWithGenerationRetry<T>(
   throw lastError;
 }
 
-async function probeHumanDailyCached(
-  userId: string,
-  sectionKey: HumanDailySectionKey,
-  chartId: number | null | undefined,
-  dateKey: string
-): Promise<boolean> {
-  const cached = await getCachedHumanDailySection(userId, sectionKey, chartId ?? undefined, dateKey);
-  return !!cached?.content;
-}
-
 async function probePrewarmItem(
   item: PrewarmPlanItem,
   input: PrewarmUserContentInput
@@ -129,32 +100,14 @@ async function probePrewarmItem(
       if (!sign) return false;
       return !!(await getCachedDailySignHoroscope(sign, dateKey, language));
     }
-    case 'forecast_daily':
-      return !!(await getCachedDailyForecastLayer(userId, chartId));
-    case 'human_base':
-      return !!(await getCachedHumanBaseReport(userId, chartId ?? undefined));
-    case 'natal_anchor':
-      return !!(await getCachedNatalAnchorLayer(userId, language, chartId));
-    case 'forecast_daypart_morning':
     case 'forecast_daypart_day':
-    case 'forecast_daypart_evening':
-      return !!(await getCachedFullDaypartForecast(userId, item.daypartSlot!, {
+      return !!(await getCachedFullDaypartForecast(userId, 'day', {
         chartId,
         accessTier: 'premium',
         dateKey,
       }));
-    case 'forecast_weekly':
-      return !!(await getCachedWeeklyForecastLayer(userId, chartId, item.cacheKey));
-    case 'forecast_monthly':
-      return !!(await getCachedMonthlyForecastLayer(userId, chartId, item.cacheKey));
-    case 'natal_full':
-      return !!(await getCachedPremiumNatalFullLayer(userId, language, chartId));
     default:
-      if (item.paidSectionKey) {
-        return !!(await getCachedHumanPaidSection(userId, item.paidSectionKey, chartId ?? undefined));
-      }
-      if (!item.sectionKey) return false;
-      return probeHumanDailyCached(userId, item.sectionKey, chartId, dateKey);
+      return false;
   }
 }
 
@@ -162,7 +115,7 @@ async function generatePrewarmItem(
   item: PrewarmPlanItem,
   input: PrewarmUserContentInput
 ): Promise<void> {
-  const { profile, chartData, userId, chartId, dateKey = getMoscowTodayKey() } = input;
+  const { profile, chartData, chartId, dateKey = getMoscowTodayKey() } = input;
 
   switch (item.id) {
     case 'sign_daily': {
@@ -173,65 +126,17 @@ async function generatePrewarmItem(
       );
       return;
     }
-    case 'forecast_daily':
-      await runWithGenerationRetry('forecast:daily', 3, () =>
-        getDailyForecastLayer(profile, chartData, chartId)
-      );
-      return;
-    case 'human_base':
-      await runWithGenerationRetry('human-base', 3, () =>
-        ensureHumanBaseReport(userId, chartId ?? undefined)
-      );
-      return;
-    case 'natal_anchor':
-      await runWithGenerationRetry('natal:anchor', 3, () =>
-        getNatalAnchorLayer(profile, chartData, chartId)
-      );
-      return;
-    case 'forecast_daypart_morning':
     case 'forecast_daypart_day':
-    case 'forecast_daypart_evening':
-      await runWithGenerationRetry(`forecast:${item.daypartSlot}`, 3, async () => {
-        await getFullDaypartForecast(profile, chartData, item.daypartSlot!, {
+      await runWithGenerationRetry('forecast:day', 3, async () => {
+        await getFullDaypartForecast(profile, chartData, 'day', {
           accessTier: 'premium',
           date: dateKey,
           chartId,
         });
       });
       return;
-    case 'forecast_weekly':
-      await runWithGenerationRetry('forecast:weekly', 2, () =>
-        ensureWeeklyForecastLayer(profile, chartData, item.cacheKey, chartId)
-      );
-      return;
-    case 'forecast_monthly':
-      await runWithGenerationRetry('forecast:monthly', 2, () =>
-        ensureMonthlyForecastLayer(profile, chartData, item.cacheKey, chartId)
-      );
-      return;
-    case 'natal_full':
-      await runWithGenerationRetry('natal:full', 2, () =>
-        getPremiumNatalFullLayer(profile, chartData, chartId)
-      );
-      return;
     default:
-      if (item.paidSectionKey) {
-        const paidSectionKey = item.paidSectionKey;
-        await runWithGenerationRetry(`human-paid:${paidSectionKey}`, 3, () =>
-          loadHumanPaidSection(userId, paidSectionKey, chartId ?? undefined, {
-            accessTier: 'premium',
-          })
-        );
-        return;
-      }
-      if (!item.sectionKey) return;
-      await runWithGenerationRetry(`human-daily:${item.sectionKey}`, 3, () =>
-        ensureHumanDailySection(userId, item.sectionKey!, chartId ?? undefined, dateKey, {
-          accessTier: item.sectionKey === 'daily_overview' ? undefined : 'premium',
-          profile: input.profile,
-          chartData: input.chartData,
-        })
-      );
+      return;
   }
 }
 

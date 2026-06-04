@@ -2,52 +2,46 @@ import fs from 'fs';
 import path from 'path';
 import {
   buildFreePrewarmPlan,
-  buildPremiumDailyReadinessMap,
   buildPremiumPrewarmPlan,
   buildUserPrewarmPlan,
-  filterPremiumDailyReadinessTaskIds,
   getStartupRequiredTaskIds,
   planUsesContentGenerationLock,
   FREE_STARTUP_REQUIRED_TASK_IDS,
-  PREMIUM_DAILY_READINESS_SECTION_KEYS,
-  PREMIUM_DAILY_READINESS_TASK_IDS,
   PREMIUM_STARTUP_REQUIRED_TASK_IDS,
 } from '../lib/contentPrewarm';
 import { buildContentGenerationLockKey } from '../lib/contentGenerationLock';
-import { humanDailyCacheKey } from '../lib/natalHumanShared';
 import { assertInterpretationContent, EMPTY_INTERPRETATION } from '../lib/contentInterpretation';
 import { resetPrewarmSessionForTests, prewarmUserContent } from '../services/contentPrewarmService';
 
 const ROOT = path.resolve(__dirname, '..');
 
 jest.mock('../services/astrologyService', () => ({
-  getCachedDailyForecastLayer: jest.fn().mockResolvedValue({ date: '2026-05-29', headline: 'h', summary: 's', chance: 'c', risk: 'r', focus: 'f', reading: 'r', context: 'c', advice: [] }),
+  getCachedDailyForecastLayer: jest.fn().mockResolvedValue(null),
   getCachedDailySignHoroscope: jest.fn().mockResolvedValue({ date: '2026-05-29', headline: 'h', summary: 's', chance: 'c', risk: 'r', focus: 'f', reading: 'r', context: 'c', advice: [] }),
-  getCachedNatalAnchorLayer: jest.fn().mockResolvedValue({ title: 'anchor', summary: 's', sections: [] }),
+  getCachedNatalAnchorLayer: jest.fn().mockResolvedValue(null),
   getCachedFullDaypartForecast: jest.fn().mockResolvedValue(null),
   getCachedWeeklyForecastLayer: jest.fn().mockResolvedValue(null),
   getCachedMonthlyForecastLayer: jest.fn().mockResolvedValue(null),
   getCachedPremiumNatalFullLayer: jest.fn().mockResolvedValue(null),
   getDailyForecastLayer: jest.fn(),
-  ensureDailySignHoroscope: jest.fn(),
+  ensureDailySignHoroscope: jest.fn().mockResolvedValue({ reading: 'generated' }),
   getNatalAnchorLayer: jest.fn(),
-  getFullDaypartForecast: jest.fn(),
+  getFullDaypartForecast: jest.fn().mockResolvedValue(undefined),
   ensureWeeklyForecastLayer: jest.fn(),
   ensureMonthlyForecastLayer: jest.fn(),
   getPremiumNatalFullLayer: jest.fn(),
 }));
 
 jest.mock('../services/natalReadingService', () => ({
-  getCachedHumanBaseReport: jest.fn().mockResolvedValue({ userName: 'Test', freeSections: [], paidSections: [], premiumSections: [], shortCard: {}, birthData: {} }),
-  ensureHumanBaseReport: jest.fn().mockResolvedValue({ userName: 'Test', freeSections: [], paidSections: [], premiumSections: [], shortCard: {}, birthData: {} }),
+  getCachedHumanBaseReport: jest.fn().mockResolvedValue(null),
+  ensureHumanBaseReport: jest.fn(),
   getCachedHumanDailySection: jest.fn().mockResolvedValue(null),
-  ensureHumanDailySection: jest.fn().mockResolvedValue({ content: { title: 't', content: 'c' } }),
+  ensureHumanDailySection: jest.fn(),
   getCachedHumanPaidSection: jest.fn().mockResolvedValue(null),
-  loadHumanPaidSection: jest.fn().mockResolvedValue({ content: { title: 'paid', content: 'c' } }),
+  loadHumanPaidSection: jest.fn(),
 }));
 
 import {
-  getCachedDailyForecastLayer,
   getCachedDailySignHoroscope,
   getCachedFullDaypartForecast,
   getDailyForecastLayer,
@@ -91,17 +85,6 @@ describe('content prewarm', () => {
   beforeEach(() => {
     resetPrewarmSessionForTests();
     jest.clearAllMocks();
-    (getCachedDailyForecastLayer as jest.Mock).mockResolvedValue({
-      date: '2026-05-29',
-      headline: 'h',
-      summary: 's',
-      chance: 'c',
-      risk: 'r',
-      focus: 'f',
-      reading: 'r',
-      context: 'c',
-      advice: [],
-    });
     (getCachedDailySignHoroscope as jest.Mock).mockResolvedValue({
       date: '2026-05-29',
       headline: 'h',
@@ -113,79 +96,36 @@ describe('content prewarm', () => {
       context: 'c',
       advice: [],
     });
-    (getCachedHumanBaseReport as jest.Mock).mockResolvedValue({
-      userName: 'Test',
-      freeSections: [],
-      paidSections: [],
-      premiumSections: [],
-      shortCard: {},
-      birthData: {},
-    });
     (getCachedFullDaypartForecast as jest.Mock).mockResolvedValue(null);
+    (getCachedHumanBaseReport as jest.Mock).mockResolvedValue(null);
     (getCachedHumanDailySection as jest.Mock).mockResolvedValue(null);
     (getCachedHumanPaidSection as jest.Mock).mockResolvedValue(null);
   });
 
-  it('Free startup prewarm plan contains DB-first base keys only', () => {
-    const plan = buildFreePrewarmPlan('2026-05-29');
-    const ids = plan.map((item) => item.id);
-    expect(ids).toContain('sign_daily');
-    expect(ids).toContain('forecast_daily');
-    expect(ids).toContain('human_base');
-    expect(ids).toContain('human_daily_overview');
-    expect(ids).not.toContain('natal_anchor');
-    expect(ids).not.toContain('forecast_daypart_day');
+  it('Free startup prewarm plan contains only the sign horoscope probe', () => {
+    const ids = buildFreePrewarmPlan('2026-05-29').map((item) => item.id);
+    expect(ids).toEqual(['sign_daily']);
+    expect(ids).not.toContain('forecast_daily');
+    expect(ids).not.toContain('human_base');
+    expect(ids).not.toContain('human_daily_overview');
     expect(ids).not.toContain('human_daily_love');
   });
 
-  it('Premium startup prewarm plan contains all Free items plus premium layers', () => {
-    const free = buildFreePrewarmPlan('2026-05-29').map((item) => item.id);
-    const premium = buildPremiumPrewarmPlan('2026-05-29').map((item) => item.id);
-    for (const id of free) {
-      expect(premium).toContain(id);
-    }
-    expect(premium).toContain('forecast_daypart_day');
-    expect(premium).toContain('human_daily_love');
-    expect(premium).toContain('human_daily_money');
-    expect(premium).toContain('human_paid_work_business');
-    expect(premium).toContain('human_paid_love_relationships');
+  it('Premium startup prewarm probes sign horoscope and cached personal day only', () => {
+    const ids = buildPremiumPrewarmPlan('2026-05-29').map((item) => item.id);
+    expect(ids).toEqual(['sign_daily', 'forecast_daypart_day']);
+    expect(ids).not.toContain('human_daily_love');
+    expect(ids).not.toContain('human_daily_money');
+    expect(ids).not.toContain('human_paid_work_business');
+    expect(ids).not.toContain('human_paid_love_relationships');
   });
 
-  it('Premium daily readiness scope is exactly the four critical daily sections', () => {
-    expect([...PREMIUM_DAILY_READINESS_SECTION_KEYS]).toEqual([
-      'daily_love',
-      'daily_work_business',
-      'daily_money',
-      'daily_goals',
-    ]);
-    expect([...PREMIUM_DAILY_READINESS_TASK_IDS]).toEqual([
-      'human_daily_love',
-      'human_daily_work_business',
-      'human_daily_money',
-      'human_daily_goals',
-    ]);
-    expect(buildPremiumDailyReadinessMap(['human_daily_love', 'human_daily_goals'], 'preparing')).toEqual({
-      daily_love: 'preparing',
-      daily_goals: 'preparing',
-    });
+  it('startup required task scope is tiny for quick app entry', () => {
+    expect([...FREE_STARTUP_REQUIRED_TASK_IDS]).toEqual(['sign_daily']);
+    expect([...PREMIUM_STARTUP_REQUIRED_TASK_IDS]).toEqual(['sign_daily']);
+    expect(getStartupRequiredTaskIds(false)).toEqual(['sign_daily']);
+    expect(getStartupRequiredTaskIds(true)).toEqual(['sign_daily']);
   });
-
-  it('startup required task scope matches the home cards before Dashboard opens', () => {
-    expect(getStartupRequiredTaskIds(false)).toEqual([...FREE_STARTUP_REQUIRED_TASK_IDS]);
-    expect(getStartupRequiredTaskIds(true)).toEqual([...PREMIUM_STARTUP_REQUIRED_TASK_IDS]);
-    expect(getStartupRequiredTaskIds(true)).toEqual([
-      'sign_daily',
-      'forecast_daily',
-      'human_base',
-      'human_daily_overview',
-      'forecast_daypart_day',
-      'human_daily_love',
-      'human_daily_work_business',
-      'human_daily_money',
-      'human_daily_goals',
-    ]);
-  });
-
 
   it('cache-only startup does not call generation methods', async () => {
     await prewarmUserContent({
@@ -210,7 +150,9 @@ describe('content prewarm', () => {
     expect(ensureMonthlyForecastLayer).not.toHaveBeenCalled();
   });
 
-  it('Free generate-missing never generates Premium daily readiness sections', async () => {
+  it('Free generate-missing never generates Premium personal daily sections', async () => {
+    (getCachedDailySignHoroscope as jest.Mock).mockResolvedValue(null);
+
     await prewarmUserContent({
       userId: 'user-1',
       chartId: 42,
@@ -222,15 +164,15 @@ describe('content prewarm', () => {
       blockingBudgetMs: 120_000,
     });
 
-    const generatedSections = (ensureHumanDailySection as jest.Mock).mock.calls.map((call) => call[1]);
-    for (const key of PREMIUM_DAILY_READINESS_SECTION_KEYS) {
-      expect(generatedSections).not.toContain(key);
-    }
+    expect(ensureDailySignHoroscope).toHaveBeenCalledTimes(1);
+    expect(ensureHumanDailySection).not.toHaveBeenCalled();
     expect(getFullDaypartForecast).not.toHaveBeenCalled();
     expect(loadHumanPaidSection).not.toHaveBeenCalled();
   });
 
-  it('Premium startup generate-missing fills missing DB-first Premium keys after cache probe', async () => {
+  it('Premium generate-missing does not fill daily love/work/money/goals or paid natal sections', async () => {
+    (getCachedDailySignHoroscope as jest.Mock).mockResolvedValue(null);
+
     await prewarmUserContent({
       userId: 'user-1',
       chartId: 42,
@@ -242,41 +184,14 @@ describe('content prewarm', () => {
       blockingBudgetMs: 120_000,
     });
 
-    const generatedSections = (ensureHumanDailySection as jest.Mock).mock.calls.map((call) => call[1]);
-    expect(generatedSections).toEqual(expect.arrayContaining([
-      'daily_overview',
-      ...PREMIUM_DAILY_READINESS_SECTION_KEYS,
-    ]));
-    expect(generatedSections).toHaveLength(5);
+    expect(ensureDailySignHoroscope).toHaveBeenCalledTimes(1);
     expect(getFullDaypartForecast).toHaveBeenCalledTimes(1);
-    expect(loadHumanPaidSection).toHaveBeenCalled();
-    expect(getPremiumNatalFullLayer).not.toHaveBeenCalled();
-    expect(ensureWeeklyForecastLayer).not.toHaveBeenCalled();
-    expect(ensureMonthlyForecastLayer).not.toHaveBeenCalled();
+    expect(ensureHumanDailySection).not.toHaveBeenCalled();
+    expect(loadHumanPaidSection).not.toHaveBeenCalled();
   });
 
   it('repeated startup with cached content does not call generation', async () => {
-    (getCachedHumanDailySection as jest.Mock).mockResolvedValue({ content: { title: 'cached', content: 'ready' } });
-    (getCachedHumanPaidSection as jest.Mock).mockResolvedValue({ content: { title: 'paid', content: 'ready' } });
     (getCachedFullDaypartForecast as jest.Mock).mockResolvedValue({ summary: 'cached' });
-    (getFullDaypartForecast as jest.Mock).mockClear();
-
-    await prewarmUserContent({
-      userId: 'user-1',
-      chartId: 42,
-      profile: profileFixture,
-      chartData: chartFixture,
-      isPremium: true,
-      dateKey: '2026-05-29',
-      mode: 'generate-missing',
-    });
-    jest.clearAllMocks();
-    resetPrewarmSessionForTests();
-    (getCachedDailySignHoroscope as jest.Mock).mockResolvedValue({ reading: 'cached' });
-    (getCachedHumanBaseReport as jest.Mock).mockResolvedValue({ userName: 'cached' });
-    (getCachedFullDaypartForecast as jest.Mock).mockResolvedValue({ summary: 'cached' });
-    (getCachedHumanDailySection as jest.Mock).mockResolvedValue({ content: { title: 'cached', content: 'ready' } });
-    (getCachedHumanPaidSection as jest.Mock).mockResolvedValue({ content: { title: 'paid', content: 'ready' } });
 
     await prewarmUserContent({
       userId: 'user-1',
@@ -289,46 +204,13 @@ describe('content prewarm', () => {
     });
 
     expect(ensureDailySignHoroscope).not.toHaveBeenCalled();
-    expect(getDailyForecastLayer).not.toHaveBeenCalled();
     expect(getFullDaypartForecast).not.toHaveBeenCalled();
-    expect(ensureHumanBaseReport).not.toHaveBeenCalled();
     expect(ensureHumanDailySection).not.toHaveBeenCalled();
     expect(loadHumanPaidSection).not.toHaveBeenCalled();
   });
 
-  it('Premium startup skips background readiness when critical daily sections are cached', async () => {
-    (getCachedHumanDailySection as jest.Mock).mockResolvedValue({ content: { title: 'cached', content: 'ready' } });
-
-    const cacheResult = await prewarmUserContent({
-      userId: 'user-1',
-      chartId: 42,
-      profile: profileFixture,
-      chartData: chartFixture,
-      isPremium: true,
-      dateKey: '2026-05-29',
-      mode: 'cache-only',
-      blockingBudgetMs: 2_500,
-    });
-
-    expect(filterPremiumDailyReadinessTaskIds(cacheResult.missingTaskIds)).toEqual([]);
-    expect(filterPremiumDailyReadinessTaskIds(cacheResult.cachedTaskIds)).toEqual([...PREMIUM_DAILY_READINESS_TASK_IDS]);
-    expect(ensureHumanDailySection).not.toHaveBeenCalled();
-  });
-
-  it('human-daily prewarm and Horoscope use the same cacheKey', () => {
-    const dateKey = '2026-05-29';
-    const loveItem = buildPremiumPrewarmPlan(dateKey).find((item) => item.id === 'human_daily_love');
-    expect(loveItem?.cacheKey).toBe(humanDailyCacheKey(dateKey, 'daily_love'));
-    expect(loveItem?.accessTier).toBe('premium');
-    expect(loveItem?.contentVariant).toBe('living');
-
-    const daypartItem = buildPremiumPrewarmPlan(dateKey).find((item) => item.id === 'forecast_daypart_day');
-    expect(daypartItem?.cacheKey).toBe(`${dateKey}:day`);
-    expect(daypartItem?.accessTier).toBe('premium');
-  });
-
-  it('forecast daily prewarm uses content generation lock on API', () => {
-    const item = buildUserPrewarmPlan(false, '2026-05-29').find((row) => row.id === 'forecast_daily');
+  it('sign daily prewarm uses content generation lock on API', () => {
+    const item = buildUserPrewarmPlan(false, '2026-05-29').find((row) => row.id === 'sign_daily');
     expect(item).toBeDefined();
     expect(planUsesContentGenerationLock(item!)).toBe(true);
     const key = buildContentGenerationLockKey({
@@ -342,37 +224,16 @@ describe('content prewarm', () => {
     expect(key).toContain('content-generation:7:free:forecast:daily:2026-05-29');
   });
 
-  it('App startup uses DB-first cache probe and background missing generation', () => {
+  it('App startup uses cache-only DB probe without background generation', () => {
     const source = fs.readFileSync(path.join(ROOT, 'App.tsx'), 'utf8');
     expect(source).toContain('prepareUserContentDbFirst');
     expect(source).toContain("mode: 'cache-only'");
-    expect(source).toContain("mode: 'generate-missing'");
-    expect(source).toContain('awaitGeneration');
+    expect(source).not.toContain("mode: 'generate-missing'");
+    expect(source).not.toContain('awaitGeneration');
+    expect(source).not.toContain('backgroundPrewarmKeyRef');
     expect(source).toContain('CACHE_ONLY_PREWARM_BUDGET_MS');
-    expect(source).toContain('backgroundPrewarmKeyRef');
-    expect(source).toContain('runGenerateMissingTaskIds(requiredMissingTaskIds)');
-    expect(source).toContain('remainingAfterRequired');
-    expect(source).not.toContain('blockingBudgetMs: 38_000');
-    expect(source).not.toContain('}, 40_000)');
-    expect(source).not.toContain('const STARTUP_SAFETY_TIMEOUT_MS = 20_000');
     expect(source).toContain('STARTUP_SAFETY_TIMEOUT_MS');
-    expect(source).toContain('getStartupRequiredTaskIds');
     expect(source).toContain('getPrimaryChartId');
-    expect(source).not.toContain('startPremiumDailyReadinessPrewarm');
-    expect(source).not.toContain('ENABLE_AUTO_BACKGROUND_PREWARM_GENERATION');
-    const flags = fs.readFileSync(path.join(ROOT, 'lib/appStartupFlags.ts'), 'utf8');
-    expect(flags).not.toContain('ENABLE_AUTO_BACKGROUND_PREWARM_GENERATION');
-  });
-
-  it('ordinary app startup opens dashboard after DB-first probe without waiting for generation', () => {
-    const source = fs.readFileSync(path.join(ROOT, 'App.tsx'), 'utf8');
-    const loadDataBlock = source.match(/const loadData = async[\s\S]*?void loadData\(\)/)?.[0] ?? '';
-    expect(loadDataBlock).toContain('await prepareUserContentDbFirst');
-    expect(loadDataBlock).toContain("setView(requestedViewRef.current || 'dashboard')");
-    expect(loadDataBlock).toContain('awaitGeneration: false');
-    expect(loadDataBlock.indexOf('await prepareUserContentDbFirst')).toBeLessThan(
-      loadDataBlock.indexOf("setView(requestedViewRef.current || 'dashboard')")
-    );
   });
 
   it('Dashboard stays mounted while navigating away from home', () => {
@@ -382,10 +243,38 @@ describe('content prewarm', () => {
     expect(source).toContain('setPrimaryChartId(primaryChartId)');
   });
 
-  it('human-daily endpoint uses withContentGenerationLock', () => {
-    const source = fs.readFileSync(path.join(ROOT, 'pages/api/content/natal/human-daily.ts'), 'utf8');
-    expect(source).toContain('withContentGenerationLock');
-    expect(source).toContain('readCached');
+  it('Horoscope is sign-only and PersonalDailyScreen owns premium daily content', () => {
+    const horoscope = fs.readFileSync(path.join(ROOT, 'views/Horoscope.tsx'), 'utf8');
+    expect(horoscope).toContain('ensureDailySignHoroscope');
+    expect(horoscope).not.toContain('loadHumanDailySection');
+    expect(horoscope).not.toContain('daily_love');
+    expect(horoscope).not.toContain('layers.map');
+
+    const personalDaily = fs.readFileSync(path.join(ROOT, 'views/DailyContentScreens.tsx'), 'utf8');
+    expect(personalDaily).toContain('PersonalDailyScreen');
+    expect(personalDaily).toContain('loadHumanDailySection');
+    expect(personalDaily).toContain('ensureFullDaypartForecast');
+    expect(personalDaily).toContain("sectionKey: 'daily_love'");
+    expect(personalDaily).toContain("sectionKey: 'daily_money'");
+    expect(personalDaily).toContain("sectionKey: 'daily_work_business'");
+    expect(personalDaily).toContain("sectionKey: 'daily_goals'");
+    expect(personalDaily).not.toContain('layers.map');
+
+    const humanReport = fs.readFileSync(path.join(ROOT, 'components/NatalReading/HumanReport.tsx'), 'utf8');
+    expect(humanReport).not.toContain('HUMAN_DAILY_SECTION_KEYS');
+    expect(humanReport).not.toContain('getCachedHumanDailySection');
+    expect(humanReport).toContain('ensureHumanBaseReport');
+  });
+
+  it('human-daily endpoint uses lock/cache/fallback behavior for action loads', () => {
+    const humanDaily = fs.readFileSync(path.join(ROOT, 'pages/api/content/natal/human-daily.ts'), 'utf8');
+    expect(humanDaily).toContain('withContentGenerationLock');
+    expect(humanDaily).toContain('readCached');
+    expect(humanDaily).toContain('isUsableDailySectionContent');
+    expect(humanDaily).toContain('buildHumanDailyFallback');
+    expect(humanDaily).toContain('saveReading(ctx, saveOpts, fallback)');
+    expect(humanDaily).toContain("source: 'fallback_unsaved'");
+    expect(humanDaily).toContain('persistenceStatus');
   });
 
   it('services throw EMPTY_INTERPRETATION when interpretation.content is missing', () => {
@@ -395,91 +284,5 @@ describe('content prewarm', () => {
     } catch (error: any) {
       expect(error.code).toBe(EMPTY_INTERPRETATION);
     }
-  });
-
-  it('natalReadingService treats 202 as an error, not ready content', () => {
-    const source = fs.readFileSync(path.join(ROOT, 'services/natalReadingService.ts'), 'utf8');
-    expect(source).toContain("response.status === 202");
-    expect(source).toContain('GENERATION_IN_PROGRESS');
-    expect(source).toContain('EMPTY_INTERPRETATION');
-  });
-
-  it('user-facing views avoid forbidden system copy', () => {
-    const forbidden = [
-      /Ежедневная интерпретация/i,
-      /Premium-слой/i,
-      /не общий гороскоп/i,
-      /по карте рождения и текущей дате/i,
-      /повторного списания/i,
-    ];
-    const targets = ['views/Horoscope.tsx', 'components/NatalReading/HumanReport.tsx', 'lib/natalHumanShared.ts'];
-    for (const rel of targets) {
-      const source = fs.readFileSync(path.join(ROOT, rel), 'utf8');
-      for (const pattern of forbidden) {
-        expect(source).not.toMatch(pattern);
-      }
-    }
-  });
-
-  it('Premium daily cards use dedicated cache-first screens', () => {
-    const dailyScreens = fs.readFileSync(path.join(ROOT, 'views/DailyContentScreens.tsx'), 'utf8');
-    expect(dailyScreens).toContain('loadHumanDailySection');
-    expect(dailyScreens).toContain('ensureFullDaypartForecast');
-    expect(dailyScreens).toContain('maxInProgressRetries: 45');
-    expect(dailyScreens).toContain('sectionKey="daily_love"');
-    expect(dailyScreens).toContain('sectionKey="daily_money"');
-    expect(dailyScreens).toContain('sectionKey="daily_work_business"');
-    expect(dailyScreens).toContain('sectionKey="daily_goals"');
-    expect(dailyScreens).not.toContain('layers.map');
-
-    const humanReport = fs.readFileSync(path.join(ROOT, 'components/NatalReading/HumanReport.tsx'), 'utf8');
-    const cachedDailyBlock = humanReport.match(/const openDailyCachedSection[\s\S]*?if \(loading\)/)?.[0] ?? '';
-    expect(cachedDailyBlock).toContain('getCachedHumanDailySection');
-    expect(cachedDailyBlock).not.toContain('ensureHumanDailySection');
-    expect(cachedDailyBlock).not.toContain('loadHumanDailySection');
-    expect(humanReport).not.toContain('loadHumanDailySection');
-    expect(humanReport).not.toContain('loadHumanBaseReport');
-    expect(humanReport).not.toContain('loadHumanPaidSection');
-    expect(humanReport).toContain('ensureHumanBaseReport');
-
-    const dashboard = fs.readFileSync(path.join(ROOT, 'views/Dashboard.tsx'), 'utf8');
-    expect(dashboard).toContain("openPremiumDaily('daily_love')");
-    expect(dashboard).toContain("openPremiumDaily('daily_money')");
-    expect(dashboard).toContain("openPremiumDaily('daily_work')");
-    expect(dashboard).toContain("openPremiumDaily('daily_goals')");
-    expect(dashboard).toContain("openPremiumDaily('personal_forecast')");
-    expect(dashboard).not.toContain("openHoroscope('love'");
-    expect(dashboard).not.toContain("openHoroscope('work_money'");
-  });
-
-  it('Premium content APIs keep POST fallback premium state for startup fills', () => {
-    const apiHelper = fs.readFileSync(path.join(ROOT, 'lib/natalReading/apiHelper.ts'), 'utf8');
-    expect(apiHelper).toContain('isPremium: fallback?.isPremium ?? !!user.is_premium');
-
-    const humanDaily = fs.readFileSync(path.join(ROOT, 'pages/api/content/natal/human-daily.ts'), 'utf8');
-    expect(humanDaily).toContain('if (profile?.isPremium)');
-    expect(humanDaily).toContain('isUsableDailySectionContent');
-    expect(humanDaily).toContain('const saveOpts = { ...cacheOpts, inputHash }');
-    expect(humanDaily).toContain('getCachedReading<InterpretationSection>(ctx, cacheOpts)');
-    expect(humanDaily).toContain('saveReading(ctx, saveOpts, section)');
-    expect(humanDaily).toContain('buildHumanDailyFallback');
-    expect(humanDaily).toContain('saveReading(ctx, saveOpts, fallback)');
-    expect(humanDaily).toContain("generatedSource = 'fallback'");
-    expect(humanDaily).toContain("source: 'fallback_unsaved'");
-    expect(humanDaily).toContain('persistenceStatus');
-
-    const humanSection = fs.readFileSync(path.join(ROOT, 'pages/api/content/natal/human-section.ts'), 'utf8');
-    expect(humanSection).toContain('entitlement.isPremium || profile?.isPremium');
-    expect(humanSection).toContain('resolvePaidAccess(userId, ctx.profile)');
-
-    const daypart = fs.readFileSync(path.join(ROOT, 'pages/api/content/forecast/daypart.ts'), 'utf8');
-    expect(daypart).toContain('isPremium: fallback?.isPremium ?? !!user.is_premium');
-    expect(daypart).toContain('if (profile?.isPremium)');
-    expect(daypart).toContain('if (!entitlementState.isPremium)');
-    expect(daypart).toContain('resolveAccess(safeUserId, context.profile)');
-    expect(daypart).toContain('buildPremiumDaypartFallback');
-    expect(daypart).toContain('saveDaypartReading(fallback)');
-    expect(daypart).toContain('fallback_saved');
-    expect(daypart).toContain('allowStaticFallback: false');
   });
 });

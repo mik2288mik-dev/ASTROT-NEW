@@ -131,10 +131,13 @@ describe('Premium-only product model', () => {
     }
   });
 
-  it('Horoscope locked layers route non-premium users to Premium CTA', () => {
-    const source = fs.readFileSync(path.join(ROOT, 'views', 'Horoscope.tsx'), 'utf8');
-    expect(source).toContain('Открыть в Premium');
-    expect(source).not.toContain('requestStarsOneOffPayment');
+  it('Personal daily premium content routes non-premium users to Premium CTA', () => {
+    const horoscope = fs.readFileSync(path.join(ROOT, 'views', 'Horoscope.tsx'), 'utf8');
+    const personalDaily = fs.readFileSync(path.join(ROOT, 'views', 'DailyContentScreens.tsx'), 'utf8');
+    expect(personalDaily).toContain('Открыть Premium');
+    expect(horoscope).not.toContain('Открыть Premium');
+    expect(horoscope).not.toContain('requestStarsOneOffPayment');
+    expect(personalDaily).not.toContain('requestStarsOneOffPayment');
   });
 
   it('OracleChat routes post-free users to Premium', () => {

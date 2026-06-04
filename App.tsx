@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { UserProfile, NatalChartData, ViewState, HoroscopeLayer, NatalInterpretationReport, type HoroscopeOpenMode, type HoroscopeOpenOptions, type HoroscopeDailySectionKey, type PremiumDailyViewState } from './types';
+import { UserProfile, NatalChartData, ViewState, HoroscopeLayer, NatalInterpretationReport, type HoroscopeOpenOptions, type PersonalDailySection } from './types';
 import {
     getProfile,
     saveProfile,
@@ -9,15 +9,7 @@ import {
 } from './services/storageService';
 import { getOrCalculateChart, getPrimaryChartId } from './services/chartService';
 import { updateContentIfNeeded } from './services/contentGenerationService';
-import { prewarmUserContent, type PrewarmUserContentResult } from './services/contentPrewarmService';
-import {
-    buildPremiumDailyReadinessMap,
-    filterPremiumDailyReadinessTaskIds,
-    getStartupRequiredTaskIds,
-    PREMIUM_DAILY_READINESS_TASK_IDS,
-    type PrewarmTaskId,
-    type PremiumDailyReadinessMap,
-} from './lib/contentPrewarm';
+import { prewarmUserContent } from './services/contentPrewarmService';
 import {
     CACHE_ONLY_PREWARM_BUDGET_MS,
     ENABLE_LEGACY_DASHBOARD_CONTENT_SYNC,
@@ -27,13 +19,7 @@ import { Onboarding } from './views/Onboarding';
 import { Dashboard } from './views/Dashboard';
 import { NatalChart } from './views/NatalChart';
 import { Horoscope } from './views/Horoscope';
-import {
-    DailyGoalsScreen,
-    DailyLoveScreen,
-    DailyMoneyScreen,
-    DailyWorkScreen,
-    PersonalForecastScreen,
-} from './views/DailyContentScreens';
+import { PersonalDailyScreen } from './views/DailyContentScreens';
 import { OracleChat } from './views/OracleChat';
 import { Settings } from './views/Settings';
 import { AdminPanel } from './views/AdminPanel';
@@ -63,9 +49,7 @@ import {
 
 // Get owner ID from environment variables for security
 const OWNER_ID = process.env.NEXT_PUBLIC_OWNER_ID || '';
-const CONTENT_GENERATION_BUDGET_MS = 240_000;
 const STARTUP_SAFETY_TIMEOUT_MS = 45_000;
-const STARTUP_REQUIRED_RETRY_BUDGET_MS = 90_000;
 
 if (!OWNER_ID) {
     console.warn('[App] OWNER_ID not configured. Admin features will not be available.');
@@ -95,61 +79,50 @@ function wait(ms: number): Promise<null> {
     return new Promise((resolve) => setTimeout(() => resolve(null), ms));
 }
 
-function getReadyPrewarmTaskIds(result: PrewarmUserContentResult | null): Set<PrewarmTaskId> {
-    const ready = new Set<PrewarmTaskId>();
-    for (const item of result?.completed || []) {
-        if (item.status === 'cached' || item.status === 'generated') {
-            ready.add(item.id);
-        }
-    }
-    return ready;
-}
-
-function mergePrewarmResults(
-    first: PrewarmUserContentResult,
-    second: PrewarmUserContentResult
-): PrewarmUserContentResult {
-    const completedById = new Map<PrewarmTaskId, PrewarmUserContentResult['completed'][number]>();
-    for (const item of first.completed) completedById.set(item.id, item);
-    for (const item of second.completed) completedById.set(item.id, item);
-
-    const readyAfterRetry = getReadyPrewarmTaskIds(second);
-    const failedById = new Map<PrewarmTaskId, PrewarmUserContentResult['failed'][number]>();
-    for (const item of first.failed) {
-        if (!readyAfterRetry.has(item.id)) failedById.set(item.id, item);
-    }
-    for (const item of second.failed) failedById.set(item.id, item);
-
-    return {
-        planSize: first.planSize,
-        completed: Array.from(completedById.values()),
-        failed: Array.from(failedById.values()),
-        missingTaskIds: Array.from(new Set([...first.missingTaskIds, ...second.missingTaskIds])).filter(
-            (id) => !completedById.has(id)
-        ),
-        cachedTaskIds: Array.from(new Set([...first.cachedTaskIds, ...second.cachedTaskIds])),
-    };
-}
-
 const NOTIFICATION_QUERY_VIEWS = new Set<ViewState>([
     'dashboard',
     'horoscope',
-    'daily_love',
-    'daily_money',
-    'daily_work',
-    'daily_goals',
-    'personal_forecast',
+    'personal_daily',
     'synastry',
     'oracle',
     'settings',
     'charts',
 ]);
 
+const LEGACY_NOTIFICATION_VIEW_ALIASES: Record<string, ViewState> = {
+    daily_love: 'personal_daily',
+    daily_money: 'personal_daily',
+    daily_work: 'personal_daily',
+    daily_goals: 'personal_daily',
+    personal_forecast: 'personal_daily',
+};
+
 function getRequestedViewFromQuery(): ViewState | null {
     if (typeof window === 'undefined') return null;
     const requested = new URLSearchParams(window.location.search).get('view');
     if (!requested) return null;
+    if (LEGACY_NOTIFICATION_VIEW_ALIASES[requested]) return LEGACY_NOTIFICATION_VIEW_ALIASES[requested];
     return NOTIFICATION_QUERY_VIEWS.has(requested as ViewState) ? (requested as ViewState) : null;
+}
+
+function getRequestedPersonalDailySectionFromQuery(): PersonalDailySection | null {
+    if (typeof window === 'undefined') return null;
+    const requested = new URLSearchParams(window.location.search).get('view');
+    switch (requested) {
+        case 'daily_love':
+            return 'love';
+        case 'daily_money':
+            return 'money';
+        case 'daily_work':
+            return 'work';
+        case 'daily_goals':
+            return 'goals';
+        case 'personal_forecast':
+        case 'personal_daily':
+            return 'overview';
+        default:
+            return null;
+    }
 }
 
 type NotificationLaunchParams = {
@@ -177,7 +150,6 @@ const App: React.FC = () => {
     const [chartData, setChartData] = useState<NatalChartData | null>(null);
     const [chartLoadState, setChartLoadState] = useState<ChartLoadState>('idle');
     const [preloadedHumanReport, setPreloadedHumanReport] = useState<NatalInterpretationReport | null>(null);
-    const [premiumDailyReadiness, setPremiumDailyReadiness] = useState<PremiumDailyReadinessMap>({});
     const [activeChartId, setActiveChartId] = useState<number | undefined>(undefined);
     const [primaryChartId, setPrimaryChartId] = useState<number | null>(null);
     const [loading, setLoading] = useState(true);
@@ -188,9 +160,7 @@ const App: React.FC = () => {
     const [synastryPrefill, setSynastryPrefill] = useState<SynastryPrefill>(null);
     const [chartsReturnView, setChartsReturnView] = useState<ViewState>('settings');
     const [chartReturnView, setChartReturnView] = useState<ViewState>('dashboard');
-    const [horoscopeInitialLayer, setHoroscopeInitialLayer] = useState<HoroscopeLayer>('sign');
-    const [horoscopeOpenMode, setHoroscopeOpenMode] = useState<HoroscopeOpenMode>('overview');
-    const [horoscopeDailySectionKey, setHoroscopeDailySectionKey] = useState<HoroscopeDailySectionKey | undefined>(undefined);
+    const [personalDailyInitialSection, setPersonalDailyInitialSection] = useState<PersonalDailySection>('overview');
     const [, setHoroscopeBackground] = useState<{
         sign: string | null;
         tone: 'sign' | 'chart' | 'love' | 'work';
@@ -200,7 +170,6 @@ const App: React.FC = () => {
     const contentSyncGenRef = useRef(0);
     const contentSyncedKeyRef = useRef<string | null>(null);
     const prewarmCompletedKeyRef = useRef<string | null>(null);
-    const backgroundPrewarmKeyRef = useRef<string | null>(null);
     const primaryChartSessionRef = useRef<{
         key: string;
         data: NatalChartData | null;
@@ -215,30 +184,6 @@ const App: React.FC = () => {
     const [initialTodaySection, setInitialTodaySection] = useState<string | null>(null);
     const viewRef = useRef<ViewState>('onboarding');
     const navigationHistoryRef = useRef<ViewState[]>([]);
-
-    const applyPremiumDailyReadinessResult = useCallback((input: {
-        isPremium: boolean;
-        result: PrewarmUserContentResult | null;
-        missingStatus?: 'preparing' | 'failed';
-    }) => {
-        if (!input.isPremium || !input.result) {
-            setPremiumDailyReadiness({});
-            return;
-        }
-
-        const readyTaskIds = filterPremiumDailyReadinessTaskIds(
-            input.result.completed
-                .filter((item) => item.status === 'cached' || item.status === 'generated')
-                .map((item) => item.id)
-        );
-        const missingTaskIds = PREMIUM_DAILY_READINESS_TASK_IDS.filter((id) => !readyTaskIds.includes(id));
-        const missingStatus = input.missingStatus ?? 'failed';
-
-        setPremiumDailyReadiness({
-            ...buildPremiumDailyReadinessMap(missingTaskIds, missingStatus),
-            ...buildPremiumDailyReadinessMap(readyTaskIds, 'ready'),
-        });
-    }, []);
 
     const getFallbackAdminStatus = useCallback((userId?: string | number, storedIsAdmin?: boolean) => {
         return OWNER_ID && userId ? String(userId) === String(OWNER_ID) : !!storedIsAdmin;
@@ -295,18 +240,10 @@ const App: React.FC = () => {
         dateKey: string;
         progressStart?: number;
         progressSpan?: number;
-        awaitGeneration?: boolean;
     }) => {
         const prewarmKey = `${input.userId}:${input.chartId ?? 'primary'}:${input.dateKey}:${input.isPremium ? 'premium' : 'free'}`;
         const progressStart = input.progressStart ?? 68;
         const progressSpan = input.progressSpan ?? 20;
-        const awaitGeneration = input.awaitGeneration ?? false;
-
-        if (input.isPremium) {
-            setPremiumDailyReadiness(buildPremiumDailyReadinessMap(PREMIUM_DAILY_READINESS_TASK_IDS, 'preparing'));
-        } else {
-            setPremiumDailyReadiness({});
-        }
 
         const cacheResult = await prewarmUserContent({
             userId: input.userId,
@@ -320,120 +257,12 @@ const App: React.FC = () => {
             onProgress: (ratio) => setLoadingProgress(progressStart + Math.round(ratio * progressSpan)),
         });
 
-        applyPremiumDailyReadinessResult({
-            isPremium: input.isPremium,
-            result: cacheResult,
-            missingStatus: 'preparing',
+        prewarmCompletedKeyRef.current = prewarmKey;
+        void prefetchBaseReportForChart(input.profile, input.chartId ?? undefined).catch((error: any) => {
+            console.warn('[App] Human base report cache prefetch failed:', error?.message || error);
         });
-
-        const runGenerateMissingTaskIds = async (
-            taskIds: PrewarmTaskId[],
-            blockingBudgetMs = CONTENT_GENERATION_BUDGET_MS
-        ): Promise<PrewarmUserContentResult | null> => {
-            if (taskIds.length === 0) return null;
-            return prewarmUserContent({
-                userId: input.userId,
-                chartId: input.chartId,
-                profile: input.profile,
-                chartData: input.chartData,
-                isPremium: input.isPremium,
-                dateKey: input.dateKey,
-                mode: 'generate-missing',
-                onlyTaskIds: taskIds,
-                blockingBudgetMs,
-            });
-        };
-
-        const generateMissingContent = async (): Promise<PrewarmUserContentResult> => {
-            const missingTaskIds = cacheResult.missingTaskIds;
-            if (missingTaskIds.length === 0) {
-                return cacheResult;
-            }
-
-            let result = cacheResult;
-            const requiredTaskIds = getStartupRequiredTaskIds(input.isPremium);
-            const missingSet = new Set<PrewarmTaskId>(missingTaskIds);
-            const requiredMissingTaskIds = requiredTaskIds.filter((id) => missingSet.has(id));
-
-            if (!awaitGeneration) {
-                const remainingMissingTaskIds = missingTaskIds.filter((id) => !requiredMissingTaskIds.includes(id));
-                const requiredResult = await runGenerateMissingTaskIds(requiredMissingTaskIds);
-
-                if (requiredResult) {
-                    result = mergePrewarmResults(result, requiredResult);
-                    applyPremiumDailyReadinessResult({ isPremium: input.isPremium, result });
-                    await prefetchBaseReportForChart(input.profile, input.chartId ?? undefined);
-                }
-
-                const readyTaskIds = getReadyPrewarmTaskIds(result);
-                const remainingAfterRequired = remainingMissingTaskIds.filter((id) => !readyTaskIds.has(id));
-                const remainingResult = await runGenerateMissingTaskIds(remainingAfterRequired);
-
-                return remainingResult ? mergePrewarmResults(result, remainingResult) : result;
-            }
-
-            const generatedResult = await runGenerateMissingTaskIds(missingTaskIds);
-            if (generatedResult) {
-                result = mergePrewarmResults(result, generatedResult);
-            }
-
-            if (awaitGeneration) {
-                const readyTaskIds = getReadyPrewarmTaskIds(result);
-                const retryTaskIds = requiredTaskIds.filter((id) => !readyTaskIds.has(id));
-
-                if (retryTaskIds.length > 0) {
-                    console.warn('[App] Required startup content missing after generate pass, retrying', {
-                        retryTaskIds,
-                        isPremium: input.isPremium,
-                    });
-                    const retryResult = await prewarmUserContent({
-                        userId: input.userId,
-                        chartId: input.chartId,
-                        profile: input.profile,
-                        chartData: input.chartData,
-                        isPremium: input.isPremium,
-                        dateKey: input.dateKey,
-                        mode: 'generate-missing',
-                        onlyTaskIds: retryTaskIds,
-                        blockingBudgetMs: STARTUP_REQUIRED_RETRY_BUDGET_MS,
-                    });
-                    result = mergePrewarmResults(result, retryResult);
-                }
-            }
-
-            return result;
-        };
-
-        if (awaitGeneration) {
-            const result = await generateMissingContent();
-            prewarmCompletedKeyRef.current = prewarmKey;
-            applyPremiumDailyReadinessResult({ isPremium: input.isPremium, result });
-            await prefetchBaseReportForChart(input.profile, input.chartId ?? undefined);
-            return result;
-        }
-
-        if (backgroundPrewarmKeyRef.current === prewarmKey || prewarmCompletedKeyRef.current === prewarmKey) {
-            return cacheResult;
-        }
-
-        backgroundPrewarmKeyRef.current = prewarmKey;
-        void (async () => {
-            try {
-                const result = await generateMissingContent();
-                prewarmCompletedKeyRef.current = prewarmKey;
-                applyPremiumDailyReadinessResult({ isPremium: input.isPremium, result });
-                await prefetchBaseReportForChart(input.profile, input.chartId ?? undefined);
-            } catch (error: any) {
-                console.warn('[App] Background content prewarm failed:', error?.message || error);
-            } finally {
-                if (backgroundPrewarmKeyRef.current === prewarmKey) {
-                    backgroundPrewarmKeyRef.current = null;
-                }
-            }
-        })();
-
         return cacheResult;
-    }, [applyPremiumDailyReadinessResult, prefetchBaseReportForChart]);
+    }, [prefetchBaseReportForChart]);
 
     const loadPrimaryChartOnce = useCallback(async (targetProfile: UserProfile): Promise<NatalChartData | null> => {
         const key = getPrimaryChartLoadKey(targetProfile);
@@ -615,6 +444,10 @@ const App: React.FC = () => {
             console.log('[App] === LOADING USER DATA ===');
             setLoadingProgress(10);
             requestedViewRef.current = getRequestedViewFromQuery();
+            const requestedPersonalSection = getRequestedPersonalDailySectionFromQuery();
+            if (requestedPersonalSection) {
+                setPersonalDailyInitialSection(requestedPersonalSection);
+            }
             notificationLaunchRef.current = getNotificationLaunchParams();
             setInitialTodaySection(notificationLaunchRef.current?.section || null);
             
@@ -711,11 +544,9 @@ const App: React.FC = () => {
                             dateKey,
                             progressStart: 68,
                             progressSpan: 20,
-                            awaitGeneration: false,
                         });
                     } catch (prewarmError: any) {
                         console.warn('[App] Startup DB-first content flow failed:', prewarmError?.message || prewarmError);
-                        setPremiumDailyReadiness({});
                     }
                     setLoadingProgress(88);
                 } else {
@@ -870,11 +701,9 @@ const App: React.FC = () => {
                     dateKey,
                     progressStart: 72,
                     progressSpan: 18,
-                    awaitGeneration: true,
                 });
             } catch (prewarmError: any) {
                 console.warn('[App] Onboarding DB-first content flow failed:', prewarmError?.message || prewarmError);
-                setPremiumDailyReadiness({});
             }
             setLoadingProgress(90);
             setLoadingProgress(100);
@@ -1021,7 +850,6 @@ const App: React.FC = () => {
                    dateKey: getMoscowTodayKey(),
                    progressStart: 35,
                    progressSpan: 60,
-                   awaitGeneration: true,
                }).catch((prewarmError: any) => {
                    console.warn('[App] Premium DB-first content flow failed:', prewarmError?.message || prewarmError);
                });
@@ -1080,37 +908,37 @@ const App: React.FC = () => {
         setView(newView);
     }, [profile, pushReturnView]);
 
-    const openPremiumDailyView = useCallback((dailyView: PremiumDailyViewState) => {
+    const openPersonalDailyView = useCallback((section: PersonalDailySection = 'overview') => {
         lumiaDebugLog('navigation', {
-            action: 'open_premium_daily_view',
+            action: 'open_personal_daily',
             from: viewRef.current,
-            to: dailyView,
+            to: 'personal_daily',
+            section,
             historyBeforeSet: navigationHistoryRef.current,
         });
-        navigateTo(dailyView);
+        setPersonalDailyInitialSection(section);
+        navigateTo('personal_daily');
     }, [navigateTo]);
 
     const openHoroscopeLayer = useCallback((layer: HoroscopeLayer, options?: HoroscopeOpenOptions) => {
-        const mode = options?.mode ?? 'overview';
-
         if (layer === 'love') {
-            openPremiumDailyView('daily_love');
+            openPersonalDailyView('love');
             return;
         }
 
         if (layer === 'work_money') {
-            const viewBySection: Record<HoroscopeDailySectionKey, PremiumDailyViewState> = {
-                daily_love: 'daily_love',
-                daily_work_business: 'daily_work',
-                daily_money: 'daily_money',
-                daily_goals: 'daily_goals',
+            const sectionByKey: Record<string, PersonalDailySection> = {
+                daily_love: 'love',
+                daily_work_business: 'work',
+                daily_money: 'money',
+                daily_goals: 'goals',
             };
-            openPremiumDailyView(viewBySection[options?.dailySectionKey ?? 'daily_work_business']);
+            openPersonalDailyView(sectionByKey[options?.dailySectionKey ?? 'daily_work_business'] ?? 'work');
             return;
         }
 
-        if (layer === 'chart' && mode === 'single') {
-            openPremiumDailyView('personal_forecast');
+        if (layer === 'chart') {
+            openPersonalDailyView('overview');
             return;
         }
 
@@ -1118,17 +946,11 @@ const App: React.FC = () => {
             action: 'open_horoscope_layer',
             from: viewRef.current,
             to: 'horoscope',
-            layer,
-            mode,
             source: options?.source ?? null,
-            dailySectionKey: options?.dailySectionKey ?? null,
             historyBeforeSet: navigationHistoryRef.current,
         });
-        setHoroscopeInitialLayer(layer);
-        setHoroscopeOpenMode(mode);
-        setHoroscopeDailySectionKey(options?.dailySectionKey);
         navigateTo('horoscope');
-    }, [navigateTo, openPremiumDailyView]);
+    }, [navigateTo, openPersonalDailyView]);
 
     const refreshPrimaryChartState = useCallback(async () => {
         try {
@@ -1267,6 +1089,7 @@ const App: React.FC = () => {
         profile,
         chartData,
         chartId: primaryChartId,
+        initialSection: personalDailyInitialSection,
         onBack: handleBack,
         requestPremium,
     };
@@ -1288,9 +1111,8 @@ const App: React.FC = () => {
                         profile={profile}
                         chartData={chartData}
                         chartId={primaryChartId}
-                        premiumDailyReadiness={premiumDailyReadiness}
                         onOpenHoroscopeLayer={openHoroscopeLayer}
-                        onOpenPremiumDaily={openPremiumDailyView}
+                        onOpenPersonalDaily={openPersonalDailyView}
                         onOpenSettings={openBottomAvatar}
                         scrollRef={dashboardScrollRef}
                         initialTodaySection={initialTodaySection}
@@ -1343,10 +1165,6 @@ const App: React.FC = () => {
                             profile={profile} 
                             chartData={chartData} 
                             chartId={primaryChartId ?? undefined}
-                            initialLayer={horoscopeInitialLayer}
-                            openMode={horoscopeOpenMode}
-                            dailySectionKey={horoscopeDailySectionKey}
-                            premiumDailyReadiness={premiumDailyReadiness}
                             onUpdateProfile={handleProfileUpdate}
                             onOpenChart={() => {
                                 navigateTo('chart');
@@ -1358,25 +1176,9 @@ const App: React.FC = () => {
                             }
                         />
                     </div>
-                ) : view === 'daily_love' ? (
+                ) : view === 'personal_daily' ? (
                     <div className="lumia-main-scroll scrollbar-hide" ref={appScrollRef}>
-                        <DailyLoveScreen {...dailyScreenProps} />
-                    </div>
-                ) : view === 'daily_money' ? (
-                    <div className="lumia-main-scroll scrollbar-hide" ref={appScrollRef}>
-                        <DailyMoneyScreen {...dailyScreenProps} />
-                    </div>
-                ) : view === 'daily_work' ? (
-                    <div className="lumia-main-scroll scrollbar-hide" ref={appScrollRef}>
-                        <DailyWorkScreen {...dailyScreenProps} />
-                    </div>
-                ) : view === 'daily_goals' ? (
-                    <div className="lumia-main-scroll scrollbar-hide" ref={appScrollRef}>
-                        <DailyGoalsScreen {...dailyScreenProps} />
-                    </div>
-                ) : view === 'personal_forecast' ? (
-                    <div className="lumia-main-scroll scrollbar-hide" ref={appScrollRef}>
-                        <PersonalForecastScreen {...dailyScreenProps} />
+                        <PersonalDailyScreen {...dailyScreenProps} />
                     </div>
                 ) : view === 'chart' ? (
                     <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
@@ -1385,7 +1187,6 @@ const App: React.FC = () => {
                             data={chartData} 
                             profile={profile} 
                             chartId={activeChartId}
-                            premiumDailyReadiness={premiumDailyReadiness}
                             requestPremium={requestPremium}
                             onUpdateProfile={handleProfileUpdate}
                             preloadedReport={activeChartId ? null : preloadedHumanReport}

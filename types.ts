@@ -502,12 +502,7 @@ export type HoroscopeDailySectionKey =
   | 'daily_work_business'
   | 'daily_money'
   | 'daily_goals';
-export type PremiumDailyViewState =
-  | 'daily_love'
-  | 'daily_money'
-  | 'daily_work'
-  | 'daily_goals'
-  | 'personal_forecast';
+export type PersonalDailySection = 'overview' | 'love' | 'money' | 'work' | 'goals';
 export type HoroscopeOpenOptions = {
   mode?: HoroscopeOpenMode;
   source?: string;
@@ -1391,11 +1386,7 @@ export type ViewState =
   | 'dashboard'
   | 'chart'
   | 'horoscope'
-  | 'daily_love'
-  | 'daily_money'
-  | 'daily_work'
-  | 'daily_goals'
-  | 'personal_forecast'
+  | 'personal_daily'
   | 'synastry'
   | 'oracle'
   | 'settings'

@@ -7,7 +7,7 @@ import type {
   HoroscopeLayer,
   HoroscopeOpenOptions,
   NatalChartData,
-  PremiumDailyViewState,
+  PersonalDailySection,
   TodayAssistantHomeResult,
   UserProfile,
 } from '../types';
@@ -32,18 +32,16 @@ import {
   getTodayAssistantHome,
   submitDailyCheckIn,
 } from '../services/astrologyService';
-import type { PremiumDailyReadinessMap } from '../lib/contentPrewarm';
 
 interface DashboardProps {
   profile: UserProfile;
   chartData: NatalChartData | null;
   chartId?: number | null;
   onOpenHoroscopeLayer: (layer: HoroscopeLayer, options?: HoroscopeOpenOptions) => void;
-  onOpenPremiumDaily: (view: PremiumDailyViewState) => void;
+  onOpenPersonalDaily: (section?: PersonalDailySection) => void;
   onOpenSettings?: () => void;
   scrollRef?: React.RefObject<HTMLDivElement | null>;
   initialTodaySection?: string | null;
-  premiumDailyReadiness?: PremiumDailyReadinessMap;
 }
 
 function haptic(kind: 'select' | 'open' = 'select') {
@@ -64,7 +62,7 @@ function localDateKey(date = new Date()) {
 }
 
 export const Dashboard = memo<DashboardProps>(
-  ({ profile, chartData, chartId, onOpenHoroscopeLayer, onOpenPremiumDaily, onOpenSettings, scrollRef, initialTodaySection }) => {
+  ({ profile, chartData, chartId, onOpenHoroscopeLayer, onOpenPersonalDaily, onOpenSettings, scrollRef, initialTodaySection }) => {
     const shouldReduceMotion = useReducedMotion();
     const language = profile.language === 'en' ? 'en' : 'ru';
     const pulseRef = React.useRef<HTMLDivElement | null>(null);
@@ -119,9 +117,9 @@ export const Dashboard = memo<DashboardProps>(
       onOpenHoroscopeLayer(layer, options);
     };
 
-    const openPremiumDaily = (view: PremiumDailyViewState) => {
+    const openPersonalDaily = (section: PersonalDailySection = 'overview') => {
       haptic('open');
-      onOpenPremiumDaily(view);
+      onOpenPersonalDaily(section);
     };
 
     React.useEffect(() => {
@@ -294,7 +292,7 @@ export const Dashboard = memo<DashboardProps>(
           body: homeCopy.quickActions.love.body,
           imageSrc: resolvedQuickActionVideos.love.poster || '/lumia-home/quick-actions/love.webp',
           videoAsset: resolvedQuickActionVideos.love.video,
-          onClick: () => openPremiumDaily('daily_love'),
+          onClick: () => openPersonalDaily('love'),
         },
         {
           id: 'money' as const,
@@ -302,7 +300,7 @@ export const Dashboard = memo<DashboardProps>(
           body: homeCopy.quickActions.money.body,
           imageSrc: resolvedQuickActionVideos.money.poster || '/lumia-home/quick-actions/money.webp',
           videoAsset: resolvedQuickActionVideos.money.video,
-          onClick: () => openPremiumDaily('daily_money'),
+          onClick: () => openPersonalDaily('money'),
         },
         {
           id: 'work' as const,
@@ -310,7 +308,7 @@ export const Dashboard = memo<DashboardProps>(
           body: homeCopy.quickActions.work.body,
           imageSrc: resolvedQuickActionVideos.work.poster || '/lumia-home/quick-actions/work.webp',
           videoAsset: resolvedQuickActionVideos.work.video,
-          onClick: () => openPremiumDaily('daily_work'),
+          onClick: () => openPersonalDaily('work'),
         },
         {
           id: 'goals' as const,
@@ -318,7 +316,7 @@ export const Dashboard = memo<DashboardProps>(
           body: homeCopy.quickActions.goals.body,
           imageSrc: '/natal-backgrounds/daily.webp',
           videoAsset: null,
-          onClick: () => openPremiumDaily('daily_goals'),
+          onClick: () => openPersonalDaily('goals'),
         },
         {
           id: 'rhythm' as const,
@@ -326,10 +324,10 @@ export const Dashboard = memo<DashboardProps>(
           body: homeCopy.quickActions.rhythm.body,
           imageSrc: resolvedQuickActionVideos.rhythm.poster || '/lumia-home/quick-actions/personal-rhythm.webp',
           videoAsset: resolvedQuickActionVideos.rhythm.video,
-          onClick: () => openPremiumDaily('personal_forecast'),
+          onClick: () => openPersonalDaily('overview'),
         },
       ],
-      [homeCopy, openHoroscope, openPremiumDaily, resolvedQuickActionVideos]
+      [homeCopy, openHoroscope, openPersonalDaily, resolvedQuickActionVideos]
     );
 
     const pulseCard = (
@@ -397,7 +395,7 @@ export const Dashboard = memo<DashboardProps>(
                 language={language}
                 isPremium={profile.isPremium}
                 onOpenForecast={() => openHoroscope('sign')}
-                onOpenFull={() => openPremiumDaily('personal_forecast')}
+                onOpenFull={() => openPersonalDaily('overview')}
               />
             </div>
           </div>
