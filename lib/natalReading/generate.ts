@@ -107,7 +107,7 @@ export async function generateWeek(
     system: NATAL_READING_SYSTEM,
     user: buildWeekPrompt(serialized, { from: fmt(monday), to: fmt(sunday) }),
     model: {
-      accessTier: 'free',
+      accessTier: 'premium',
       contentSurface: 'forecast',
       contentVariant: 'weekly',
     },

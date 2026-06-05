@@ -3,6 +3,7 @@ import { db } from '../../../lib/db';
 import { repairCanonicalChartForUser } from '../../../lib/natalChartPersistence';
 import { buildCanonicalNatalInputHash, isCanonicalNatalChartDataComplete } from '../../../lib/natalChartCanonical';
 import { invalidUserIdPayload, isValidUserId } from '../../../lib/userId';
+import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../../../lib/adminAuth';
 
 const log = {
   info: (message: string, data?: any) => {
@@ -23,6 +24,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const userId = String(rawUserId).trim();
 
   try {
+    requireTelegramUserId(req, userId);
+
     if (req.method === 'GET') {
       let chartRecord = await db.natal_charts.get(userId);
 
@@ -84,6 +87,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (error: any) {
+    if (error instanceof AdminAuthError) {
+      return handleAdminError(res, error);
+    }
     log.error('Error processing request', {
       error: error.message,
       stack: error.stack,

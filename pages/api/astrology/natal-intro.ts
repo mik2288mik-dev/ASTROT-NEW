@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getOpenAIModelForContent } from '../../../lib/appSettings';
+import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../../../lib/adminAuth';
 import { db } from '../../../lib/db';
 import { generateNatalAnchorReading } from '../../../lib/natalContent';
 import {
@@ -30,7 +31,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       });
     }
 
-    const userId = String(profile.id || profile.name || '').trim();
+    const userId = String(profile.id || '').trim();
+    if (!userId) {
+      return res.status(400).json({ error: 'Bad request', message: 'User id is required' });
+    }
+    requireTelegramUserId(req, userId);
+
     const effectiveChartId = chartId != null ? parseInt(String(chartId), 10) : null;
     const lang = profile.language === 'en' ? 'en' : 'ru';
 
@@ -110,6 +116,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       source: 'generated',
     });
   } catch (error: any) {
+    if (error instanceof AdminAuthError) {
+      return handleAdminError(res, error);
+    }
+
     log.error('Unexpected error in handler', {
       error: error.message,
       stack: error.stack,

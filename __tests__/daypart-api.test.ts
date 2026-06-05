@@ -72,6 +72,17 @@ function createResponse() {
   return res;
 }
 
+function mockTelegramAuth() {
+  jest.doMock('../lib/adminAuth', () => ({
+    AdminAuthError: class AdminAuthError extends Error {
+      status = 401;
+      code = 'UNAUTHORIZED';
+    },
+    handleAdminError: jest.fn(),
+    requireTelegramUserId: jest.fn(),
+  }));
+}
+
 function setupMocks(options?: {
   getContentLayer?: jest.Mock;
   upsertByChart?: jest.Mock;
@@ -133,6 +144,7 @@ function setupMocks(options?: {
 }
 
 async function callHandler(method: 'GET' | 'POST' = 'POST') {
+  mockTelegramAuth();
   const { default: handler } = await import('../pages/api/content/forecast/daypart');
   const res = createResponse();
   await handler(

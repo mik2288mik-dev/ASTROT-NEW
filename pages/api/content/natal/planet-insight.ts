@@ -15,6 +15,7 @@ import {
 } from '../../../../lib/planetInsights';
 import { buildPlanetInsight } from '../../../../lib/planetInsightContent';
 import { type NatalPlanetKey } from '../../../../lib/natalPlanetMeta';
+import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../../../../lib/adminAuth';
 
 function toProfile(user: any, fallback?: Partial<UserProfile>): UserProfile {
   return {
@@ -89,10 +90,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!userId?.trim()) {
     return res.status(400).json({ error: 'Bad request', message: 'userId is required' });
   }
+  const safeUserId = userId.trim();
+  try {
+    requireTelegramUserId(req, safeUserId);
+  } catch (error) {
+    if (error instanceof AdminAuthError) {
+      return handleAdminError(res, error);
+    }
+    throw error;
+  }
 
   const language = ((req.method === 'POST' ? req.body?.profile?.language : req.query.language) === 'en' ? 'en' : 'ru') as 'ru' | 'en';
   const context = await resolveContext(
-    userId.trim(),
+    safeUserId,
     Number.isFinite(chartId as number) ? chartId : null,
     req.method === 'POST' ? req.body?.profile : undefined,
     req.method === 'POST' ? req.body?.chartData : undefined
@@ -127,12 +137,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
-  const entitlement = await db.premium_entitlements.getActive(userId.trim());
+  const entitlement = await db.premium_entitlements.getActive(safeUserId);
   const isPremium = !!entitlement || !!context.profile.isPremium;
-  const accessTier = isPremium ? 'premium' : 'free';
+  const accessTier = 'premium' as const;
+
+  if (!isPremium) {
+    return res.status(403).json({
+      error: 'Premium required',
+      code: 'PREMIUM_REQUIRED',
+      premiumRequired: true,
+      message: 'Planet insight is available in Lumia Premium.',
+    });
+  }
 
   const existing = await getContentLayer({
-    userId: userId.trim(),
+    userId: safeUserId,
     chartId: context.chartId,
     accessTier,
     contentSurface: 'natal',
@@ -163,7 +182,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     lockResult = await withContentGenerationLock({
     lockKey: buildContentGenerationLockKey({
-      userId: userId.trim(),
+      userId: safeUserId,
       chartId: context.chartId,
       accessTier,
       contentSurface: 'natal',
@@ -174,7 +193,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     operation: 'natal-planet-insight-generation',
     readCached: async () => {
       const layer = await getContentLayer({
-        userId: userId.trim(),
+        userId: safeUserId,
         chartId: context.chartId,
         accessTier,
         contentSurface: 'natal',
@@ -208,8 +227,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             isPersistent: false,
             canRegenerateForLumi: false,
             legacySource: 'natal_v2.planet_insight',
-          }, userId.trim())
-        : await db.content_interpretations.upsertByUser(userId.trim(), {
+          }, safeUserId)
+        : await db.content_interpretations.upsertByUser(safeUserId, {
             accessTier,
             contentSurface: 'natal',
             contentVariant: 'planet_insight',

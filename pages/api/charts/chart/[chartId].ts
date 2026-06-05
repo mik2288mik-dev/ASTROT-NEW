@@ -3,6 +3,7 @@ import { db } from '../../../../lib/db';
 import { createOrReuseCanonicalChart } from '../../../../lib/natalChartPersistence';
 import { isCanonicalNatalChartDataComplete } from '../../../../lib/natalChartCanonical';
 import { invalidUserIdPayload, isValidUserId } from '../../../../lib/userId';
+import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../../../../lib/adminAuth';
 
 const log = {
   info: (msg: string, data?: any) => console.log(`[API/charts/chart] ${msg}`, data || ''),
@@ -19,6 +20,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const userId = (req.query.userId as string) || req.body?.userId;
 
   try {
+    requireTelegramUserId(req, userId);
+
     if (req.method === 'GET') {
       let chart = await db.natal_charts.getById(id);
       if (!chart) return res.status(404).json({ error: 'Chart not found' });
@@ -57,6 +60,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (error: any) {
+    if (error instanceof AdminAuthError) {
+      return handleAdminError(res, error);
+    }
     log.error('Error', { error: error.message });
     return res.status(500).json({ error: error.message });
   }

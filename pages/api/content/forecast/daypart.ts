@@ -16,6 +16,7 @@ import {
 } from '../../../../lib/forecastFullDay';
 import { logger } from '../../../../lib/logger';
 import { invalidUserIdPayload, isValidUserId } from '../../../../lib/userId';
+import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../../../../lib/adminAuth';
 
 const ALLOWED_SLOTS = new Set(['morning', 'day', 'evening']);
 
@@ -169,6 +170,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json(invalidUserIdPayload(languageFromRequest));
   }
   const safeUserId = String(userId).trim();
+  try {
+    requireTelegramUserId(req, safeUserId);
+  } catch (error) {
+    if (error instanceof AdminAuthError) {
+      return handleAdminError(res, error);
+    }
+    throw error;
+  }
 
   if (!slot) {
     return res.status(400).json({ error: 'Bad request', message: 'slot is required' });

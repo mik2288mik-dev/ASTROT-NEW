@@ -6,6 +6,7 @@ import { normalizeZodiacKey } from '../../../../lib/horoscope/signDaily';
 import { hydrateReactionSummaryLabels } from '../../../../lib/todayOverview';
 import { RATE_LIMIT_CONFIGS, withRateLimit } from '../../../../lib/rateLimit';
 import { invalidUserIdPayload, isValidUserId } from '../../../../lib/userId';
+import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../../../../lib/adminAuth';
 
 const REACTION_KEYS = new Set<HoroscopeReactionKey>(['spot_on', 'funny', 'gentle', 'not_mine']);
 
@@ -33,6 +34,14 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
   if (!isValidUserId(userId)) {
     return res.status(400).json(invalidUserIdPayload(language));
+  }
+  try {
+    requireTelegramUserId(req, userId);
+  } catch (error) {
+    if (error instanceof AdminAuthError) {
+      return handleAdminError(res, error);
+    }
+    throw error;
   }
   if (!sign) {
     return res.status(400).json({ error: 'BAD_REQUEST', message: 'sign must be one of the zodiac keys' });

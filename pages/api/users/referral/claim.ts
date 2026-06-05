@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '../../../../lib/db';
 import { RATE_LIMIT_CONFIGS, withRateLimit } from '../../../../lib/rateLimit';
+import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../../../../lib/adminAuth';
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -11,6 +12,14 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   const inviteCode = typeof req.body?.inviteCode === 'string' ? req.body.inviteCode.trim() : '';
   if (!userId) {
     return res.status(400).json({ error: 'userId is required' });
+  }
+  try {
+    requireTelegramUserId(req, userId);
+  } catch (error) {
+    if (error instanceof AdminAuthError) {
+      return handleAdminError(res, error);
+    }
+    throw error;
   }
   if (!inviteCode) {
     return res.status(400).json({ error: 'inviteCode is required', code: 'INVITE_CODE_REQUIRED' });

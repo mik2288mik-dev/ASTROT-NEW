@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { activatePremium } from '../../../services/premiumService';
 import { db } from '../../../lib/db';
 import { PREMIUM_WEEK_STARS } from '../../../lib/premiumPricing';
+import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../../../lib/adminAuth';
 
 const log = {
   info: (msg: string, data?: any) => console.log(`[API/subscriptions/activate] ${msg}`, data || ''),
@@ -23,6 +24,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (!userId?.trim()) {
     return res.status(400).json({ error: 'userId is required' });
+  }
+  try {
+    requireTelegramUserId(req, String(userId).trim());
+  } catch (error) {
+    if (error instanceof AdminAuthError) {
+      return handleAdminError(res, error);
+    }
+    throw error;
   }
 
   if (simMode && process.env.BOT_TOKEN) {

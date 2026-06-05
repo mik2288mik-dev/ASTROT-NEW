@@ -3,6 +3,7 @@ import OpenAI from 'openai';
 import { createHash } from 'crypto';
 import { calculateNatalChart } from '../../../lib/swisseph-calculator';
 import { db } from '../../../lib/db';
+import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../../../lib/adminAuth';
 import { SYSTEM_PROMPT_ASTRA, createBriefSynastryPrompt, addLanguageInstruction, BriefSynastryAIResponse } from '../../../lib/prompts';
 import { getOpenAIModelForContent } from '../../../lib/appSettings';
 import { validateSynastryInput, formatValidationErrors } from '../../../lib/validation';
@@ -16,9 +17,9 @@ const log = {
   },
 };
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const openai = process.env.OPENAI_API_KEY
+  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  : null;
 
 const buildCacheKey = (primaryChartId: number, partnerChartId: number, language: string) =>
   createHash('sha256')
@@ -62,6 +63,8 @@ export default async function handler(
 
     const currentLanguage = language === 'en' ? 'en' : 'ru';
     const lang = currentLanguage === 'ru';
+    const userId = String(profile?.id || '').trim();
+    requireTelegramUserId(req, userId);
 
     let primaryChartRecord: any = null;
     let partnerChartRecord: any = null;
@@ -111,7 +114,7 @@ export default async function handler(
       );
     }
 
-    if (!process.env.OPENAI_API_KEY) {
+    if (!openai) {
       const fallbackResult = {
         briefOverview: {
           introduction: lang
@@ -179,6 +182,10 @@ export default async function handler(
 
     return res.status(200).json(result);
   } catch (error: any) {
+    if (error instanceof AdminAuthError) {
+      return handleAdminError(res, error);
+    }
+
     log.error('Error calculating brief synastry', {
       message: error.message,
       stack: error.stack

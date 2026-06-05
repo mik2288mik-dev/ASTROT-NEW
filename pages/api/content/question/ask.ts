@@ -3,6 +3,7 @@ import type { AskLumiaTier } from '../../../../types';
 import { getOpenAIModelForContent } from '../../../../lib/appSettings';
 import { normalizeAskLumiaTier } from '../../../../lib/contentAccessTier';
 import { unlockContentLayer } from '../../../../lib/contentArchitecture';
+import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../../../../lib/adminAuth';
 import { db } from '../../../../lib/db';
 import { extractPersonalizationPrivacyFlags, logger } from '../../../../lib/logger';
 import { buildPersonalizationContext, describePersonalizationContext } from '../../../../lib/personalizationContext';
@@ -100,6 +101,14 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       code: 'USER_NOT_FOUND',
       message: 'userId is required',
     });
+  }
+  try {
+    requireTelegramUserId(req, userId);
+  } catch (error) {
+    if (error instanceof AdminAuthError) {
+      return handleAdminError(res, error);
+    }
+    throw error;
   }
 
   const user = await db.users.get(userId);

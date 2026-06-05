@@ -2,6 +2,8 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
 import { SYSTEM_PROMPT_ASTRA, createTransitForecastPrompt, addLanguageInstruction } from '../../../lib/prompts';
 import { getOpenAIInterpretationModel } from '../../../lib/appSettings';
+import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../../../lib/adminAuth';
+import { getPremiumEntitlementState } from '../../../lib/contentArchitecture';
 import { getCurrentTransits, getTransitsForPeriod } from '../../../lib/transits-calculator';
 
 // Logging utility
@@ -15,9 +17,9 @@ const log = {
 };
 
 // Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const openai = process.env.OPENAI_API_KEY
+  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  : null;
 
 /**
  * API endpoint для генерации прогнозов с учётом транзитов
@@ -44,6 +46,11 @@ export default async function handler(
         message: 'Profile and chartData are required'
       });
     }
+    const userId = String(profile.id || '').trim();
+    if (!userId) {
+      return res.status(400).json({ error: 'Bad request', message: 'User id is required' });
+    }
+    requireTelegramUserId(req, userId);
 
     if (!['day', 'week', 'month'].includes(period)) {
       return res.status(400).json({ 
@@ -51,9 +58,22 @@ export default async function handler(
         message: 'Period must be one of: day, week, month'
       });
     }
+    if (period !== 'day') {
+      const entitlement = await getPremiumEntitlementState(userId);
+      if (!entitlement.isPremium) {
+        return res.status(403).json({
+          error: 'Premium required',
+          code: 'PREMIUM_REQUIRED',
+          premiumRequired: true,
+          message: period === 'week'
+            ? 'Weekly forecast is available in Lumia Premium.'
+            : 'Monthly forecast is available in Lumia Premium.',
+        });
+      }
+    }
 
     log.info('Transit forecast request received', {
-      userId: profile.id,
+      userId,
       period,
       language: lang ? 'ru' : 'en'
     });
@@ -81,7 +101,7 @@ export default async function handler(
     });
 
     // Проверяем наличие API ключа
-    if (!process.env.OPENAI_API_KEY) {
+    if (!openai) {
       log.error('OpenAI API key not configured, using fallback');
       const fallbackText = lang
         ? `# Прогноз на ${period === 'day' ? 'день' : period === 'week' ? 'неделю' : 'месяц'}\n\nСейчас Солнце в ${transits.sun?.sign || transits.startTransits?.sun?.sign}, что создаёт определённую энергию.\n\nРекомендации:\n- Прислушивайся к своей интуиции\n- Будь открыт новым возможностям\n- Заботься о себе`
@@ -126,6 +146,10 @@ export default async function handler(
 
     return res.status(200).json({ forecast });
   } catch (error: any) {
+    if (error instanceof AdminAuthError) {
+      return handleAdminError(res, error);
+    }
+
     log.error('Error in transit forecast handler', {
       error: error.message,
       code: error.code,

@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
 import { SYSTEM_PROMPT_ASTRA, createDailyForecastPrompt, addLanguageInstruction, DailyForecastAIResponse } from '../../../lib/prompts';
+import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../../../lib/adminAuth';
 import { getOpenAIModelForContent } from '../../../lib/appSettings';
 import { db } from '../../../lib/db';
 import { hasDatabaseUrl } from '../../../lib/database-url';
@@ -124,6 +125,7 @@ export default async function handler(
           message: 'userId is required',
         });
       }
+      requireTelegramUserId(req, userId);
 
       if (!hasDatabaseUrl()) {
         return sendDailyError(
@@ -178,6 +180,7 @@ export default async function handler(
     }
 
     const effectiveUserId = String(userId).trim();
+    requireTelegramUserId(req, effectiveUserId);
     const zodiacSign = chartData?.sun?.sign;
     if (!zodiacSign) {
       return res.status(400).json({
@@ -434,6 +437,10 @@ export default async function handler(
       throw error;
     }
   } catch (error: any) {
+    if (error instanceof AdminAuthError) {
+      return handleAdminError(res, error);
+    }
+
     const duration = Date.now() - startTime;
     log.error(`Request failed after ${duration}ms`, {
       error: error.message,

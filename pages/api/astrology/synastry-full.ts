@@ -6,6 +6,7 @@ import { db } from '../../../lib/db';
 import { SYSTEM_PROMPT_ASTRA, createFullSynastryPrompt, addLanguageInstruction, FullSynastryAIResponse } from '../../../lib/prompts';
 import { getOpenAIModelForContent } from '../../../lib/appSettings';
 import { getPremiumEntitlementState } from '../../../lib/contentArchitecture';
+import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../../../lib/adminAuth';
 
 const log = {
   info: (message: string, data?: any) => {
@@ -16,9 +17,9 @@ const log = {
   },
 };
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const openai = process.env.OPENAI_API_KEY
+  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  : null;
 
 const buildCacheKey = (primaryChartId: number, partnerChartId: number, language: string) =>
   createHash('sha256')
@@ -53,6 +54,7 @@ export default async function handler(
         message: 'User id is required for full synastry',
       });
     }
+    requireTelegramUserId(req, userId);
 
     const { isPremium } = await getPremiumEntitlementState(userId);
     if (!isPremium) {
@@ -115,7 +117,7 @@ export default async function handler(
       );
     }
 
-    if (!process.env.OPENAI_API_KEY) {
+    if (!openai) {
       const fallbackResult = {
         fullAnalysis: {
           generalTheme: lang
@@ -184,6 +186,10 @@ export default async function handler(
 
     return res.status(200).json(result);
   } catch (error: any) {
+    if (error instanceof AdminAuthError) {
+      return handleAdminError(res, error);
+    }
+
     log.error('Error calculating full synastry', {
       message: error.message,
       stack: error.stack

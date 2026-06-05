@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
 import { getOpenAIInterpretationModel } from '../../../lib/appSettings';
 import { SYSTEM_INSTRUCTION_ASTRA } from '../../../constants';
+import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../../../lib/adminAuth';
 import { db } from '../../../lib/db';
 import { RATE_LIMIT_CONFIGS, withRateLimit } from '../../../lib/rateLimit';
 import { buildPersonalizationContext, describePersonalizationContext } from '../../../lib/personalizationContext';
@@ -111,15 +112,16 @@ async function handler(
       return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const userId = method === 'GET' ? String(req.query.userId || '') : String(req.body?.userId || '');
+    const userId = method === 'GET' ? String(req.query.userId || '').trim() : String(req.body?.userId || '').trim();
 
-    if (!userId.trim()) {
+    if (!userId) {
       return res.status(400).json({
         error: 'Bad request',
         code: 'USER_NOT_FOUND',
         message: 'userId is required',
       });
     }
+    requireTelegramUserId(req, userId);
 
     const user = await db.users.get(userId);
     if (!user) {
@@ -269,6 +271,10 @@ ${chartContext || 'Chart context is temporarily unavailable. Answer carefully an
       });
     }
   } catch (error: any) {
+    if (error instanceof AdminAuthError) {
+      return handleAdminError(res, error);
+    }
+
     log.error('Oracle handler failed', { error: error.message, stack: error.stack });
     return res.status(500).json({
       error: 'Internal server error',

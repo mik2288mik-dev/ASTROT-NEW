@@ -26,6 +26,7 @@ import {
   waitMs,
 } from '../lib/contentInterpretation';
 import { fetchWithTimeout } from '../lib/fetchWithTimeout';
+import { getTelegramInitDataHeaders } from './sessionService';
 
 const HUMAN_GENERATION_TIMEOUT_MS = 90_000;
 
@@ -45,7 +46,7 @@ async function fetchOrGenerate<T>(
   topic?: string
 ): Promise<T> {
   const url = buildUrl(endpoint, userId, chartId, topic);
-  const tryGet = await fetch(url, { method: 'GET' });
+  const tryGet = await fetch(url, { method: 'GET', headers: getTelegramInitDataHeaders() });
   if (tryGet.ok) {
     const j = await tryGet.json();
     return j.interpretation.content as T;
@@ -57,7 +58,7 @@ async function fetchOrGenerate<T>(
   // Trigger generation via POST
   const post = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
     body: JSON.stringify({ userId, chartId, topic }),
   });
   if (!post.ok) {
@@ -390,6 +391,7 @@ async function getHuman<T>(
 ): Promise<HumanReadingResult<T> | null> {
   const response = await fetch(buildHumanUrl(endpoint, userId, options), {
     method: 'GET',
+    headers: getTelegramInitDataHeaders(),
     cache: 'no-store',
   });
 
@@ -640,6 +642,7 @@ export async function loadNatalProfileCards(
   const promise = (async () => {
     const response = await fetch(buildProfileCardsUrl(userId, { chartId, ...options }), {
       method: 'GET',
+      headers: getTelegramInitDataHeaders(),
       cache: 'no-store',
     });
     if (!response.ok) {
@@ -666,6 +669,7 @@ export async function loadNatalStoryShareImage(
 ): Promise<Blob> {
   const response = await fetch(buildProfileCardShareUrl(userId, cardId, { chartId, format }), {
     method: 'GET',
+    headers: getTelegramInitDataHeaders(),
     cache: 'no-store',
   });
   if (!response.ok) {

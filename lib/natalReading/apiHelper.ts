@@ -6,6 +6,7 @@ import type {
 } from '../../types';
 import { db } from '../db';
 import { getContentLayer } from '../contentArchitecture';
+import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../adminAuth';
 
 export type ReadingContext = {
   user: any;
@@ -206,6 +207,15 @@ export async function ensureValidContext(
   if (!userId) {
     res.status(400).json({ error: 'Bad request', message: 'userId is required' });
     return null;
+  }
+  try {
+    requireTelegramUserId(req, userId);
+  } catch (error) {
+    if (error instanceof AdminAuthError) {
+      handleAdminError(res, error);
+      return null;
+    }
+    throw error;
   }
   const chartId = await readChartId(req);
   const ctx = await resolveReadingContext(

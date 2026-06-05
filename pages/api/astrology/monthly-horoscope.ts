@@ -2,6 +2,8 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
 import { SYSTEM_PROMPT_ASTRA, createMonthlyForecastPrompt, addLanguageInstruction, MonthlyForecastAIResponse } from '../../../lib/prompts';
 import { getOpenAIModelForContent } from '../../../lib/appSettings';
+import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../../../lib/adminAuth';
+import { getPremiumEntitlementState } from '../../../lib/contentArchitecture';
 import { CACHE_CONFIGS } from '../../../lib/cache';
 
 // Logging utility
@@ -15,9 +17,9 @@ const log = {
 };
 
 // Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const openai = process.env.OPENAI_API_KEY
+  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  : null;
 
 export default async function handler(
   req: NextApiRequest,
@@ -41,15 +43,31 @@ export default async function handler(
         message: 'Profile and chartData are required'
       });
     }
+    const userId = String(profile.id || '').trim();
+    if (!userId) {
+      return res.status(400).json({ error: 'Bad request', message: 'User id is required' });
+    }
+    requireTelegramUserId(req, userId);
+    const entitlement = await getPremiumEntitlementState(userId);
+    if (!entitlement.isPremium) {
+      return res.status(403).json({
+        error: 'Premium required',
+        code: 'PREMIUM_REQUIRED',
+        premiumRequired: true,
+        message: lang
+          ? 'Monthly forecast is available in Lumia Premium.'
+          : 'The monthly forecast is available in Lumia Premium.',
+      });
+    }
 
     log.info('Monthly horoscope request received', {
-      userId: profile.id,
+      userId,
       month,
       language: lang ? 'ru' : 'en'
     });
 
     // Проверяем наличие API ключа
-    if (!process.env.OPENAI_API_KEY) {
+    if (!openai) {
       log.error('OpenAI API key not configured, using fallback');
       const fallbackHoroscope = {
         month,
@@ -67,7 +85,7 @@ export default async function handler(
     const promptWithLang = addLanguageInstruction(userPrompt, lang ? 'ru' : 'en');
 
     const { model: modelId } = await getOpenAIModelForContent({
-      accessTier: 'free',
+      accessTier: 'premium',
       contentSurface: 'forecast',
       contentVariant: 'monthly',
     });
@@ -121,6 +139,10 @@ export default async function handler(
       throw new Error('Invalid JSON response from AI');
     }
   } catch (error: any) {
+    if (error instanceof AdminAuthError) {
+      return handleAdminError(res, error);
+    }
+
     log.error('Error getting monthly horoscope', {
       error: error.message,
       stack: error.stack

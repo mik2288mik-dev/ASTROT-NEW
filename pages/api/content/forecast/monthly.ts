@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import type { NatalChartData, UserProfile } from '../../../../types';
 import { getOpenAIModelForContent } from '../../../../lib/appSettings';
 import { db } from '../../../../lib/db';
-import { generateFreeMonthlyForecast, generatePremiumMonthlyForecast } from '../../../../lib/forecastContent';
+import { generatePremiumMonthlyForecast } from '../../../../lib/forecastContent';
 import { getContentLayer, getPremiumEntitlementState } from '../../../../lib/contentArchitecture';
 import {
   buildContentGenerationLockKey,
@@ -17,6 +17,7 @@ import {
   isValidMoscowMonthKey,
   monthKeyToValidRangeUtc,
 } from '../../../../lib/date-utils';
+import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../../../../lib/adminAuth';
 
 function toProfile(user: any, fallback?: Partial<UserProfile>): UserProfile {
   return {
@@ -81,6 +82,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!userId?.trim()) {
     return res.status(400).json({ error: 'Bad request', message: 'userId is required' });
   }
+  try {
+    requireTelegramUserId(req, userId.trim());
+  } catch (error) {
+    if (error instanceof AdminAuthError) {
+      return handleAdminError(res, error);
+    }
+    throw error;
+  }
 
   const periodKey = parsePeriodKey(req);
 
@@ -111,7 +120,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const periodLabel = formatMonthPeriodLabel(periodKey, lang);
   const { validFrom, validTo } = monthKeyToValidRangeUtc(periodKey);
 
-  const accessTier = entitlement.isPremium ? 'premium' : 'free';
+  const accessTier = 'premium' as const;
   const accessConfig = getContentAccessConfig('forecast', 'monthly');
 
   logContentApi(
@@ -140,10 +149,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       metadata: {
         isPremium: entitlement.isPremium,
         matrixDefault: accessConfig?.defaultAccessTier,
-        matrixEnforced: false,
+        matrixEnforced: true,
       },
     }
   );
+
+  if (!entitlement.isPremium) {
+    warnContentApi(
+      {
+        scope,
+        userId: userId.trim(),
+        chartId: context.chartId,
+        surface: 'forecast',
+        variant: 'monthly',
+      },
+      'premium_required',
+      { errorCode: 'PREMIUM_REQUIRED', metadata: { periodKey } }
+    );
+    return res.status(403).json({
+      error: 'Premium required',
+      code: 'PREMIUM_REQUIRED',
+      premiumRequired: true,
+      message: context.profile.language === 'ru'
+        ? 'Monthly forecast is available in Lumia Premium.'
+        : 'The full monthly forecast is available in Lumia Premium.',
+    });
+  }
 
   if (req.method === 'GET') {
     const result = await getContentLayer({
@@ -193,7 +224,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
-  const requestedTier = req.body?.tier === 'premium' ? 'premium' : 'free';
+  const requestedTier = accessTier;
 
   if (requestedTier === 'premium' && !entitlement.isPremium) {
     warnContentApi(
@@ -216,7 +247,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
-  const tierToGenerate = requestedTier;
+  const tierToGenerate = accessTier;
 
   const existing = await getContentLayer({
     userId: userId.trim(),
@@ -290,9 +321,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         : null;
     },
     generate: async () => {
-      const forecast = tierToGenerate === 'premium'
-        ? await generatePremiumMonthlyForecast(context.profile, chartData, periodKey, periodLabel)
-        : await generateFreeMonthlyForecast(context.profile, chartData, periodKey, periodLabel);
+      const forecast = await generatePremiumMonthlyForecast(context.profile, chartData, periodKey, periodLabel);
       const { modelTier } = await getOpenAIModelForContent({
         accessTier: tierToGenerate,
         contentSurface: 'forecast',

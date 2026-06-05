@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import type { ForecastDailyReading, NatalChartData, UserProfile } from '../../../../types';
 import { db } from '../../../../lib/db';
+import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../../../../lib/adminAuth';
 import { getOpenAIModelForContent } from '../../../../lib/appSettings';
 import { getContentLayer } from '../../../../lib/contentArchitecture';
 import { getMoscowTodayKey } from '../../../../lib/date-utils';
@@ -199,6 +200,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const languageFromRequest = req.method === 'POST' && req.body?.profile?.language === 'en' ? 'en' : 'ru';
   if (!isValidUserId(userId)) {
     return res.status(400).json(invalidUserIdPayload(languageFromRequest));
+  }
+  try {
+    requireTelegramUserId(req, userId);
+  } catch (error) {
+    if (error instanceof AdminAuthError) {
+      return handleAdminError(res, error);
+    }
+    throw error;
   }
 
   try {

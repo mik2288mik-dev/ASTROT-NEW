@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { db, getPool } from '../../../lib/db';
-import { getConfiguredOwnerId } from '../../../lib/adminAuth';
+import { AdminAuthError, getConfiguredOwnerId, handleAdminError, requireTelegramUserId } from '../../../lib/adminAuth';
 import { hasDatabaseUrl } from '../../../lib/database-url';
 import { getMoscowTodayKey, toDateInputValue } from '../../../lib/date-utils';
 import {
@@ -170,6 +170,8 @@ export default async function handler(
   });
 
   try {
+    requireTelegramUserId(req, userId);
+
     if (req.method === 'GET') {
       // Get user profile
       log.info(`[GET] Fetching user: ${userId}`);
@@ -320,6 +322,9 @@ export default async function handler(
 
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (error: any) {
+    if (error instanceof AdminAuthError) {
+      return handleAdminError(res, error);
+    }
     log.error('Error processing request', {
       error: error.message,
       stack: error.stack,

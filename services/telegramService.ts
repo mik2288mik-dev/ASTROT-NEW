@@ -1,5 +1,6 @@
 import { UserProfile } from '../types';
 import { PREMIUM_WEEK_DAYS, PREMIUM_WEEK_STARS } from '../lib/premiumPricing';
+import { getTelegramInitDataHeaders } from './sessionService';
 
 const API_BASE = typeof window !== 'undefined' ? '' : process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -24,7 +25,7 @@ export const requestStarsPayment = async (profile: UserProfile): Promise<boolean
   try {
     const res = await fetch(`${API_BASE}/api/telegram/create-invoice`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
       body: JSON.stringify({ userId, type: 'premium_week' }),
     });
     const data = await res.json();
@@ -118,7 +119,7 @@ async function simPaymentFlow(
 async function activateSim(userId: string, payload: Record<string, any>): Promise<boolean> {
   const res = await fetch(`${API_BASE}/api/subscriptions/activate`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
     body: JSON.stringify({ userId, ...payload }),
   });
   const data = await res.json();

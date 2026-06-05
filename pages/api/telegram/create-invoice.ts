@@ -3,6 +3,7 @@ import {
   buildInvoicePayload,
   type StarsInvoiceType,
 } from '../../../lib/starsInvoiceCatalog';
+import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../../../lib/adminAuth';
 
 const log = {
   info: (msg: string, data?: any) => console.log(`[API/telegram/create-invoice] ${msg}`, data || ''),
@@ -21,6 +22,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (!userId?.trim()) {
     return res.status(400).json({ error: 'userId is required' });
+  }
+  try {
+    requireTelegramUserId(req, String(userId).trim());
+  } catch (error) {
+    if (error instanceof AdminAuthError) {
+      return handleAdminError(res, error);
+    }
+    throw error;
   }
 
   if (type === 'lumi_pack') {

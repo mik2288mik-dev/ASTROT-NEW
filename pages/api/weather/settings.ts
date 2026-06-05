@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '../../../lib/db';
 import { tryAcquireLock, releaseLock, LockKeys } from '../../../lib/serverLocks';
+import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../../../lib/adminAuth';
 
 // Logging utility
 const log = {
@@ -42,6 +43,7 @@ export default async function handler(
           message: 'Please provide userId query parameter'
         });
       }
+      requireTelegramUserId(req, userId);
 
       log.info(`[GET] Fetching settings for userId=${userId}`);
       
@@ -81,6 +83,7 @@ export default async function handler(
           message: 'Please provide userId in request body'
         });
       }
+      requireTelegramUserId(req, userId);
 
       // Валидация города
       let validatedCity: string | null = null;
@@ -142,6 +145,9 @@ export default async function handler(
     return res.status(405).json({ error: 'Method not allowed' });
     
   } catch (error: any) {
+    if (error instanceof AdminAuthError) {
+      return handleAdminError(res, error);
+    }
     log.error('Error processing request', {
       error: error.message,
       stack: error.stack

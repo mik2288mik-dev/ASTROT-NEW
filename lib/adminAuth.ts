@@ -4,6 +4,14 @@ import { db } from './db';
 
 const BOT_TOKEN = process.env.BOT_TOKEN || '';
 const INIT_DATA_HEADER = 'x-telegram-init-data';
+const DEFAULT_INIT_DATA_MAX_AGE_SECONDS = 24 * 60 * 60;
+
+function getInitDataMaxAgeSeconds(): number {
+  const configured = Number.parseInt(process.env.TELEGRAM_INIT_DATA_MAX_AGE_SECONDS || '', 10);
+  return Number.isFinite(configured) && configured > 0
+    ? configured
+    : DEFAULT_INIT_DATA_MAX_AGE_SECONDS;
+}
 
 export class AdminAuthError extends Error {
   status: number;
@@ -16,7 +24,7 @@ export class AdminAuthError extends Error {
   }
 }
 
-type VerifiedTelegramUser = {
+export type VerifiedTelegramUser = {
   id: string;
   rawUser: Record<string, any>;
 };
@@ -26,7 +34,7 @@ export function getConfiguredOwnerId(): string {
 }
 
 function getHeaderValue(req: NextApiRequest, headerName: string): string {
-  const value = req.headers[headerName];
+  const value = req.headers?.[headerName];
   if (Array.isArray(value)) return value[0] || '';
   return typeof value === 'string' ? value : '';
 }
@@ -43,9 +51,20 @@ function verifyTelegramInitData(initData: string): VerifiedTelegramUser {
   const params = new URLSearchParams(initData);
   const hash = params.get('hash');
   const userJson = params.get('user');
+  const authDateRaw = params.get('auth_date');
 
-  if (!hash || !userJson) {
+  if (!hash || !userJson || !authDateRaw) {
     throw new AdminAuthError(401, 'INVALID_INIT_DATA', 'Telegram initData is invalid');
+  }
+
+  const authDateSeconds = Number.parseInt(authDateRaw, 10);
+  if (!Number.isFinite(authDateSeconds) || authDateSeconds <= 0) {
+    throw new AdminAuthError(401, 'INVALID_INIT_DATA', 'Telegram initData auth_date is invalid');
+  }
+
+  const authAgeSeconds = Math.floor(Date.now() / 1000) - authDateSeconds;
+  if (authAgeSeconds < -60 || authAgeSeconds > getInitDataMaxAgeSeconds()) {
+    throw new AdminAuthError(401, 'INIT_DATA_EXPIRED', 'Telegram initData has expired');
   }
 
   params.delete('hash');
@@ -86,6 +105,22 @@ function verifyTelegramInitData(initData: string): VerifiedTelegramUser {
 export function getVerifiedTelegramUser(req: NextApiRequest): VerifiedTelegramUser {
   const initData = getHeaderValue(req, INIT_DATA_HEADER);
   return verifyTelegramInitData(initData);
+}
+
+export function requireTelegramUserId(req: NextApiRequest, expectedUserId: unknown): VerifiedTelegramUser {
+  const telegramUser = getVerifiedTelegramUser(req);
+  const rawExpected = Array.isArray(expectedUserId) ? expectedUserId[0] : expectedUserId;
+  const normalizedExpected = String(rawExpected || '').trim();
+
+  if (!normalizedExpected) {
+    throw new AdminAuthError(400, 'USER_ID_REQUIRED', 'userId is required');
+  }
+
+  if (telegramUser.id !== normalizedExpected) {
+    throw new AdminAuthError(403, 'USER_ID_MISMATCH', 'Telegram initData does not match userId');
+  }
+
+  return telegramUser;
 }
 
 export async function getAdminAccessState(req: NextApiRequest) {

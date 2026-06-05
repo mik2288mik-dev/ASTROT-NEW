@@ -3,6 +3,7 @@ import { formatValidationErrors, validateNatalChartInput } from '../../../lib/va
 import { db } from '../../../lib/db';
 import { createOrReuseCanonicalChart } from '../../../lib/natalChartPersistence';
 import { invalidUserIdPayload, isValidUserId } from '../../../lib/userId';
+import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../../../lib/adminAuth';
 
 const log = {
   info: (msg: string, data?: any) => console.log(`[API/charts] ${msg}`, data || ''),
@@ -17,6 +18,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
+    requireTelegramUserId(req, userId);
+
     if (req.method === 'GET') {
       const charts = await db.natal_charts.getAll(userId);
       const user = await db.users.get(userId);
@@ -81,6 +84,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (error: any) {
+    if (error instanceof AdminAuthError) {
+      return handleAdminError(res, error);
+    }
     log.error('Error', { error: error.message });
     if (error.message?.includes('Chart slots limit')) {
       return res.status(403).json({ error: error.message, code: 'SLOTS_LIMIT' });

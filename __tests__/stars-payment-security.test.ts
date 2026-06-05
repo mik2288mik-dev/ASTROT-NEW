@@ -6,6 +6,17 @@ import {
 import { PREMIUM_WEEK_STARS } from '../lib/premiumPricing';
 import { processTelegramSuccessfulPayment } from '../lib/starsPaymentService';
 
+function mockTelegramAuth() {
+  jest.doMock('../lib/adminAuth', () => ({
+    AdminAuthError: class AdminAuthError extends Error {
+      status = 401;
+      code = 'UNAUTHORIZED';
+    },
+    handleAdminError: jest.fn(),
+    requireTelegramUserId: jest.fn(),
+  }));
+}
+
 describe('stars payment security', () => {
   describe('premium invoice catalog', () => {
     it('builds premium_week invoice with Stars amount', () => {
@@ -43,6 +54,7 @@ describe('stars payment security', () => {
 
 describe('create-invoice lumi_pack deprecation', () => {
   it('returns 410 for lumi_pack type', async () => {
+    mockTelegramAuth();
     const handler = (await import('../pages/api/telegram/create-invoice')).default;
     const json = jest.fn();
     const status = jest.fn(() => ({ json }));
@@ -59,6 +71,7 @@ describe('create-invoice lumi_pack deprecation', () => {
   });
 
   it('returns 400 for removed one-off invoice types', async () => {
+    mockTelegramAuth();
     const handler = (await import('../pages/api/telegram/create-invoice')).default;
     const json = jest.fn();
     const status = jest.fn(() => ({ json }));

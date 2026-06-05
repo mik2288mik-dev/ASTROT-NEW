@@ -8,6 +8,7 @@ import { fetchWithTimeout } from "../lib/fetchWithTimeout";
 import { isValidUserId } from "../lib/userId";
 import { getRetryAfterMs, isGenerationInProgressError, waitMs } from "../lib/contentInterpretation";
 import type { NatalPlanetKey } from "../lib/natalPlanetMeta";
+import { getTelegramInitDataHeaders } from "./sessionService";
 
 // API base URL - используем локальные Next.js API routes
 const API_BASE_URL = typeof window !== 'undefined' ? '' : process.env.NEXT_PUBLIC_API_URL || '';
@@ -1294,7 +1295,7 @@ export const calculateNatalChart = async (profile: UserProfile, forceRecalculate
     const startTime = Date.now();
     const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
       body: JSON.stringify(requestBody)
     });
 
@@ -1411,7 +1412,7 @@ export const getNatalIntro = async (
     log.info(`[getNatalIntro] Sending compatibility POST request to: ${url}`);
     const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
       body: JSON.stringify({ profile, chartData, chartId: chartId ?? undefined })
     });
 
@@ -1526,7 +1527,7 @@ export const calculateBriefSynastry = async (
     const startTime = Date.now();
     const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
       body: JSON.stringify({
         profile,
         partnerName,
@@ -1598,7 +1599,7 @@ export const calculateFullSynastry = async (
     const startTime = Date.now();
     const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
       body: JSON.stringify({
         profile,
         partnerName,
@@ -1670,7 +1671,7 @@ export const calculateExtendedSynastry = async (
 
   const response = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
     body: JSON.stringify({
       profile,
       partnerName,
@@ -1899,7 +1900,7 @@ export const getDeepDiveAnalysis = async (
     const startTime = Date.now();
     const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
       body: JSON.stringify({ profile, topic, chartData, chartId: chartId ?? undefined })
     });
 
@@ -2059,7 +2060,7 @@ export const getAskLumiaState = async (userId: string): Promise<AskLumiaState> =
   const url = `${API_BASE_URL}/api/content/question/ask?userId=${encodeURIComponent(userId || '')}`;
   log.info('[getAskLumiaState] Starting request', { userId });
 
-  const response = await fetch(url, { method: 'GET', cache: 'no-store' });
+  const response = await fetch(url, { method: 'GET', headers: getTelegramInitDataHeaders(), cache: 'no-store' });
   if (!response.ok) {
     let errorMessage = `Failed to load Ask Lumia state: ${response.status} ${response.statusText}`;
     let errorCode: string | undefined;
@@ -2095,7 +2096,7 @@ export const getOracleHistory = async (profile: UserProfile, limit = 12): Promis
 
   try {
     const startTime = Date.now();
-    const response = await fetch(url, { cache: 'no-store' });
+    const response = await fetch(url, { headers: getTelegramInitDataHeaders(), cache: 'no-store' });
     const duration = Date.now() - startTime;
 
     log.info(`[getOracleHistory] Response received in ${duration}ms`, {
@@ -2156,7 +2157,7 @@ export const chatWithAstra = async (
     const startTime = Date.now();
     const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
       body: JSON.stringify({
         userId: profile.id,
         history,

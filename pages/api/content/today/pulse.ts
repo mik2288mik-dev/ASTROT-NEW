@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import type { NatalChartData, TodayPulse, TodayPulseResult, UserProfile } from '../../../../types';
 import { db } from '../../../../lib/db';
+import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../../../../lib/adminAuth';
 import { getMoscowTodayKey } from '../../../../lib/date-utils';
 import { isCanonicalNatalChartDataComplete } from '../../../../lib/natalChartCanonical';
 import { repairCanonicalChartRecord } from '../../../../lib/natalChartPersistence';
@@ -191,6 +192,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
   const language = req.method === 'POST' && req.body?.profile?.language === 'en' ? 'en' : 'ru';
   if (!isValidUserId(userId)) {
     return res.status(400).json(invalidUserIdPayload(language));
+  }
+  try {
+    requireTelegramUserId(req, userId);
+  } catch (error) {
+    if (error instanceof AdminAuthError) {
+      return handleAdminError(res, error);
+    }
+    throw error;
   }
 
   const dateKey = readDate(req);

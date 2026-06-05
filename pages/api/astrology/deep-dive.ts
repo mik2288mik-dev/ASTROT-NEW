@@ -1,6 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import type { NatalFullReading } from '../../../types';
 import { getOpenAIModelForContent } from '../../../lib/appSettings';
+import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../../../lib/adminAuth';
+import { getPremiumEntitlementState } from '../../../lib/contentArchitecture';
 import { db } from '../../../lib/db';
 import { generateNatalFullReading } from '../../../lib/natalContent';
 import {
@@ -129,12 +131,25 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       });
     }
 
-    const userId = String(profile.id || profile.name || '').trim();
+    const userId = String(profile.id || '').trim();
     if (!userId) {
       return res.status(400).json({ error: 'Bad request', message: 'User id is required' });
     }
+    requireTelegramUserId(req, userId);
 
     const lang = profile.language === 'en' ? 'en' : 'ru';
+    const entitlement = await getPremiumEntitlementState(userId);
+    if (!entitlement.isPremium) {
+      return res.status(403).json({
+        error: 'Premium required',
+        code: 'PREMIUM_REQUIRED',
+        premiumRequired: true,
+        message: lang === 'ru'
+          ? 'Deep natal interpretation is available in Lumia Premium.'
+          : 'Deep natal interpretation is available in Lumia Premium.',
+      });
+    }
+
     const topicKey = normalizeTopic(topic);
     const effectiveChartId = chartId != null ? Number.parseInt(String(chartId), 10) : null;
     const safeChartId = Number.isFinite(effectiveChartId as number) ? effectiveChartId : null;
@@ -166,6 +181,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       source: 'generated',
     });
   } catch (error: any) {
+    if (error instanceof AdminAuthError) {
+      return handleAdminError(res, error);
+    }
+
     log.error('Error in deep dive handler', {
       error: error.message,
       code: error.code,

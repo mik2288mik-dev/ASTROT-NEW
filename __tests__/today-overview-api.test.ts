@@ -36,6 +36,17 @@ function createResponse() {
   return res;
 }
 
+function mockTelegramAuth() {
+  jest.doMock('../lib/adminAuth', () => ({
+    AdminAuthError: class AdminAuthError extends Error {
+      status = 401;
+      code = 'UNAUTHORIZED';
+    },
+    handleAdminError: jest.fn(),
+    requireTelegramUserId: jest.fn(),
+  }));
+}
+
 function mockStableTransits() {
   jest.doMock('../lib/transits-calculator', () => ({
     getCurrentTransits: jest.fn(async (date: Date) => {
@@ -125,6 +136,7 @@ function mockLock(acquired: boolean) {
 }
 
 async function callHandler() {
+  mockTelegramAuth();
   const { default: handler } = await import('../pages/api/content/today/overview');
   const res = createResponse();
 

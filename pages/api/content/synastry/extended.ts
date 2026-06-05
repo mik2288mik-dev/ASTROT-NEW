@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
 import type { NatalChartData, SynastryResult, UserProfile } from '../../../../types';
+import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../../../../lib/adminAuth';
 import { getOpenAIModelForContent } from '../../../../lib/appSettings';
 import { calculateNatalChart } from '../../../../lib/swisseph-calculator';
 import { db } from '../../../../lib/db';
@@ -116,6 +117,14 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   const userId = String(profile?.id || '').trim();
   if (!userId) {
     return res.status(400).json({ error: 'Bad request', message: 'userId is required' });
+  }
+  try {
+    requireTelegramUserId(req, userId);
+  } catch (error) {
+    if (error instanceof AdminAuthError) {
+      return handleAdminError(res, error);
+    }
+    throw error;
   }
 
   logContentApi(

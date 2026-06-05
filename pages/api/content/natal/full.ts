@@ -14,6 +14,7 @@ import {
   NATAL_FULL_CACHE_KEY,
   NATAL_FULL_PROMPT_VERSION,
 } from '../../../../lib/natalReadings';
+import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../../../../lib/adminAuth';
 
 function toProfile(user: any, fallback?: Partial<UserProfile>): UserProfile {
   return {
@@ -86,9 +87,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!userId?.trim()) {
     return res.status(400).json({ error: 'Bad request', message: 'userId is required' });
   }
+  const safeUserId = userId.trim();
+  try {
+    requireTelegramUserId(req, safeUserId);
+  } catch (error) {
+    if (error instanceof AdminAuthError) {
+      return handleAdminError(res, error);
+    }
+    throw error;
+  }
 
   const context = await resolveContext(
-    userId.trim(),
+    safeUserId,
     Number.isFinite(chartId as number) ? chartId : null,
     req.method === 'POST' ? req.body?.profile : undefined,
     req.method === 'POST' ? req.body?.chartData : undefined

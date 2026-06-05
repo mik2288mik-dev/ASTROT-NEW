@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '../../../lib/db';
+import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../../../lib/adminAuth';
 
 // Logging utility
 const log = {
@@ -20,6 +21,14 @@ export default async function handler(
 
   if (!id) {
     return res.status(400).json({ error: 'User ID is required' });
+  }
+  try {
+    requireTelegramUserId(req, id);
+  } catch (error) {
+    if (error instanceof AdminAuthError) {
+      return handleAdminError(res, error);
+    }
+    throw error;
   }
 
   log.info('Request received', {

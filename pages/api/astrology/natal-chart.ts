@@ -4,6 +4,7 @@ import { withRateLimit, RATE_LIMIT_CONFIGS } from '../../../lib/rateLimit';
 import { repairCanonicalChartForUser, ensureCanonicalPrimaryChart } from '../../../lib/natalChartPersistence';
 import { tryAcquireLock, releaseLock, LockKeys } from '../../../lib/serverLocks';
 import { invalidUserIdPayload, isValidUserId } from '../../../lib/userId';
+import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../../../lib/adminAuth';
 
 const log = {
   info: (message: string, data?: any) => {
@@ -38,6 +39,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     const rawBirthTime = typeof birthTime === 'string' ? birthTime.trim() : '';
     const normalizedBirthTime = rawBirthTime || '12:00';
     const effectiveUserId = String(userId).trim();
+    requireTelegramUserId(req, effectiveUserId);
 
     const validation = validateNatalChartInput({
       name,
@@ -102,6 +104,13 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     res.setHeader('Cache-Control', 'private, max-age=31536000, immutable');
     return res.status(200).json(result.chart.chart_data);
   } catch (error: any) {
+    if (error instanceof AdminAuthError) {
+      if (lockKey) {
+        releaseLock(lockKey);
+      }
+      return handleAdminError(res, error);
+    }
+
     if (lockKey) {
       releaseLock(lockKey);
     }

@@ -3,6 +3,7 @@ const INIT_DATA_HEADER = 'x-telegram-init-data';
 const SESSION_STORAGE_KEY = 'lumia_app_session_id';
 
 function getTelegramInitData(): string | null {
+  if (typeof window === 'undefined') return null;
   const initData = (window as any).Telegram?.WebApp?.initData;
   return typeof initData === 'string' && initData.trim() ? initData : null;
 }

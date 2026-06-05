@@ -3,6 +3,7 @@ import {
   endOfIsoWeek,
   ensureValidContext,
   getCachedReading,
+  isPremium,
   saveReading,
 } from '../../../../lib/natalReading/apiHelper';
 import { generateWeek } from '../../../../lib/natalReading/generate';
@@ -19,13 +20,24 @@ export const config = { maxDuration: 60 };
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const ready = await ensureValidContext(req, res);
   if (!ready) return;
-  const { ctx } = ready;
+  const { userId, ctx } = ready;
+
+  if (!(await isPremium(userId))) {
+    return res.status(403).json({
+      error: 'Premium required',
+      code: 'PREMIUM_REQUIRED',
+      premiumRequired: true,
+      message: ctx.profile.language === 'en'
+        ? 'The weekly reading is available in Lumia Premium.'
+        : 'Weekly reading is available in Lumia Premium.',
+    });
+  }
 
   const cacheKey = readingWeekCacheKey();
   const validTo = endOfIsoWeek();
 
   const cacheOpts = {
-    accessTier: 'free' as const,
+    accessTier: 'premium' as const,
     contentVariant: 'weekly' as const,
     cacheKey,
     promptVersion: NATAL_READING_WEEK_PROMPT,

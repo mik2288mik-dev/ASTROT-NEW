@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '../../../lib/db';
+import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../../../lib/adminAuth';
 
 // Logging utility
 const log = {
@@ -36,6 +37,14 @@ export default async function handler(
       error: 'userId is required',
       message: 'Please provide userId query parameter'
     });
+  }
+  try {
+    requireTelegramUserId(req, userId);
+  } catch (error) {
+    if (error instanceof AdminAuthError) {
+      return handleAdminError(res, error);
+    }
+    throw error;
   }
 
   log.info(`[GET] Fetching weather for userId=${userId}`);

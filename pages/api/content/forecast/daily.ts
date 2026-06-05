@@ -11,6 +11,7 @@ import {
 } from '../../../../lib/contentGenerationLock';
 import { getMoscowTodayKey } from '../../../../lib/date-utils';
 import { invalidUserIdPayload, isValidUserId } from '../../../../lib/userId';
+import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../../../../lib/adminAuth';
 
 function toProfile(user: any, fallback?: Partial<UserProfile>): UserProfile {
   return {
@@ -71,6 +72,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json(invalidUserIdPayload(languageFromRequest));
   }
   const safeUserId = String(userId).trim();
+  try {
+    requireTelegramUserId(req, safeUserId);
+  } catch (error) {
+    if (error instanceof AdminAuthError) {
+      return handleAdminError(res, error);
+    }
+    throw error;
+  }
 
   const context = await resolveContext(
     safeUserId,

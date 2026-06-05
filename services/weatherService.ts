@@ -4,6 +4,7 @@
  * Работает только с БД - никакого localStorage.
  * Все данные города сохраняются и читаются из БД.
  */
+import { getTelegramInitDataHeaders } from './sessionService';
 
 // API base URL
 const API_BASE_URL = typeof window !== 'undefined' ? '' : '';
@@ -57,7 +58,7 @@ export async function getWeatherSettings(userId: string): Promise<WeatherSetting
   
   try {
     const url = `${API_BASE_URL}/api/weather/settings?userId=${encodeURIComponent(userId)}`;
-    const response = await fetch(url);
+    const response = await fetch(url, { headers: getTelegramInitDataHeaders() });
     
     if (!response.ok) {
       throw new Error(`Failed to get settings: ${response.status}`);
@@ -97,7 +98,7 @@ export async function saveWeatherCity(userId: string, city: string | null): Prom
     const url = `${API_BASE_URL}/api/weather/settings`;
     const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
       body: JSON.stringify({ userId, city })
     });
     
@@ -139,7 +140,7 @@ export async function getTodayWeather(userId: string): Promise<WeatherData | nul
   
   try {
     const url = `${API_BASE_URL}/api/weather/today?userId=${encodeURIComponent(userId)}`;
-    const response = await fetch(url);
+    const response = await fetch(url, { headers: getTelegramInitDataHeaders() });
     
     if (!response.ok) {
       const error = await response.json().catch(() => ({ code: 'UNKNOWN' }));

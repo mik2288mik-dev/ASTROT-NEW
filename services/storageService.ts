@@ -5,6 +5,7 @@ import {
 import { toDateInputValue } from "../lib/date-utils";
 import { fetchWithTimeout } from "../lib/fetchWithTimeout";
 import { isValidUserId } from "../lib/userId";
+import { getTelegramInitDataHeaders } from "./sessionService";
 
 const PROFILE_FETCH_TIMEOUT_MS = 20_000;
 const PROFILE_SAVE_TIMEOUT_MS = 45_000;
@@ -78,7 +79,7 @@ export const saveProfile = async (profile: UserProfile): Promise<void> => {
       url,
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
         body: requestBody,
       },
       PROFILE_SAVE_TIMEOUT_MS
@@ -204,7 +205,7 @@ export const postReferralClaim = async (userId: string, inviteCode: string): Pro
   }
   const res = await fetch(`${API_BASE_URL}/api/users/referral/claim`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
     body: JSON.stringify({ userId, inviteCode: inviteCode.trim() }),
   });
   const data = await res.json().catch(() => ({}));
@@ -277,7 +278,7 @@ export const saveChartData = async (data: NatalChartData): Promise<void> => {
     const startTime = Date.now();
     const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
       body: requestBody
     });
 
@@ -419,7 +420,7 @@ const normalizeChartListItem = (chart: ChartListItem): ChartListItem => ({
 export const getCharts = async (userId: string): Promise<ChartsResponse> => {
   if (!isValidUserId(userId)) throw new Error('UserId is required');
   const url = `${API_BASE_URL}/api/charts?userId=${encodeURIComponent(userId)}`;
-  const res = await fetch(url);
+  const res = await fetch(url, { headers: getTelegramInitDataHeaders() });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.error || `Failed to fetch charts: ${res.status}`);
@@ -442,7 +443,7 @@ export const createChart = async (
   const url = `${API_BASE_URL}/api/charts`;
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
     body: JSON.stringify({ userId, ...data }),
   });
   if (!res.ok) {
@@ -459,7 +460,7 @@ export const createChart = async (
 export const deleteChart = async (chartId: number, userId: string): Promise<void> => {
   if (!isValidUserId(userId)) throw new Error('UserId is required');
   const url = `${API_BASE_URL}/api/charts/chart/${chartId}?userId=${encodeURIComponent(userId)}`;
-  const res = await fetch(url, { method: 'DELETE' });
+  const res = await fetch(url, { method: 'DELETE', headers: getTelegramInitDataHeaders() });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.error || `Failed to delete chart: ${res.status}`);
@@ -474,7 +475,7 @@ export const setPrimaryChart = async (chartId: number, userId: string): Promise<
   const url = `${API_BASE_URL}/api/charts/set-primary`;
   const res = await fetch(url, {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
     body: JSON.stringify({ chartId, userId }),
   });
   if (!res.ok) {
@@ -495,7 +496,7 @@ export const getAllUsers = async (): Promise<UserProfile[]> => {
     log.info(`[getAllUsers] Sending GET request to: ${url}`);
 
     const startTime = Date.now();
-    const response = await fetch(url);
+    const response = await fetch(url, { headers: getTelegramInitDataHeaders() });
     const duration = Date.now() - startTime;
 
     log.info(`[getAllUsers] Response received in ${duration}ms`, {
