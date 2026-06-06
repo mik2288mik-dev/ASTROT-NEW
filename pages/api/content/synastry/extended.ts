@@ -173,6 +173,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     currentLanguage
   );
 
+  if (!primaryChartRecord?.id || !userChartData) {
+    return res.status(409).json({ error: 'Natal chart required', code: 'NEEDS_CHART', message: langRu ? 'Сначала создай натальную карту.' : 'Create your natal chart first.' });
+  }
+
   const entitlementState = await getPremiumEntitlementState(userId);
   const isPremium = entitlementState.isPremium;
 

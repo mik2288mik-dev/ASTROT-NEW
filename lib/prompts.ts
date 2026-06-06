@@ -894,6 +894,8 @@ export interface DaypartForecastAIResponse {
   relationships: string;
   money: string;
   guidance: string;
+  risk?: string;
+  chartReason?: string;
 }
 
 export interface NatalAnchorAIResponse {
@@ -1037,7 +1039,9 @@ Return strict JSON with these fields:
 - focus: the main thing to hold today in this slot
 - relationships: short guidance for closeness, communication, or emotional contact
 - money: short guidance for work, money, or practical decisions
-- guidance: 2-3 sentences of direct orientation
+- guidance: 1-2 sentences with the action of the day
+- risk: one short concrete risk of the day
+- chartReason: one short plain-language reason based on the natal chart and current transits
 
 Return only JSON.`;
 };

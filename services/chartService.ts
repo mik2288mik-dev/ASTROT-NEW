@@ -10,6 +10,7 @@
 import { NatalChartData, UserProfile } from '../types';
 import { fetchWithTimeout } from '../lib/fetchWithTimeout';
 import { assertValidUserId } from '../lib/userId';
+import { getTelegramInitDataHeaders } from './sessionService';
 
 const API_BASE_URL = typeof window !== 'undefined' ? '' : '';
 const CHART_FETCH_TIMEOUT_MS = 25_000;
@@ -120,7 +121,7 @@ async function calculateChart(profile: UserProfile): Promise<NatalChartData> {
       url,
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
         body: JSON.stringify({
           userId: safeUserId,
           name: profile.name,
@@ -221,7 +222,7 @@ export async function forceRecalculateChart(profile: UserProfile): Promise<Natal
     url,
     {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
       body: JSON.stringify({
         userId,
         name: profile.name,

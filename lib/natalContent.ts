@@ -16,7 +16,8 @@ import {
   NatalFullAIResponse,
   NatalLivingAIResponse,
 } from './prompts';
-import { getOpenAIModelForContent } from './appSettings';
+import { getModelForTier } from './appSettings';
+import { getContentPolicy } from './contentMatrix';
 import { getCurrentTransits } from './transits-calculator';
 import {
   buildDailyAstroEvidence,
@@ -37,11 +38,8 @@ const openai = process.env.OPENAI_API_KEY
   : null;
 
 async function getNatalModel(kind: 'anchor' | 'full' | 'living') {
-  return getOpenAIModelForContent({
-    accessTier: kind === 'anchor' ? 'free' : 'premium',
-    contentSurface: 'natal',
-    contentVariant: kind === 'full' ? 'full' : kind === 'living' ? 'living' : 'anchor',
-  });
+  const policy = getContentPolicy(kind === 'full' ? 'deep_report' : kind === 'living' ? 'personal_daily' : 'natal_section');
+  return { model: await getModelForTier(policy.modelTier) };
 }
 
 async function isFlaggedByModeration(content: unknown): Promise<boolean> {
