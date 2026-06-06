@@ -270,8 +270,8 @@ describe('feature access matrix', () => {
     expect(hasActivePremium({ isPremium: false, isAdmin: true })).toBe(true);
   });
 
-  it('detects natal chart from chart data, primary chart id, or setup profile', () => {
-    expect(hasNatalChart({ isSetup: true })).toBe(true);
+  it('detects natal chart only from complete chart data or a persisted chart id', () => {
+    expect(hasNatalChart({ isSetup: true })).toBe(false);
     expect(hasNatalChart({ isSetup: false }, chartState)).toBe(true);
     expect(hasNatalChart({ isSetup: false }, { chartData: null, primaryChartId: null })).toBe(false);
   });
@@ -326,11 +326,19 @@ describe('feature access matrix', () => {
 
   it('contains every requested feature key', () => {
     expect(listFeatureAccessMatrix().map((entry) => entry.key).sort()).toEqual([
+      'action_timing_generic',
+      'action_timing_personal',
+      'blind_spot',
       'daily_sign_horoscope',
+      'deep_report',
       'moon_calendar',
+      'natal_anger',
       'natal_basic',
       'natal_career',
+      'natal_family',
+      'natal_how_others_see_you',
       'natal_love',
+      'natal_money',
       'natal_shadow',
       'natal_talents',
       'personal_daily',

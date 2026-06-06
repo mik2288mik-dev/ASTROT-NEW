@@ -191,10 +191,11 @@ function ErrorText({ language }: { language: 'ru' | 'en' }) {
 
 function ForecastContent({ reading }: { reading: ForecastDaypartReading }) {
   const items = [
-    { label: 'Фокус дня', value: reading.focus },
-    { label: 'Отношения', value: reading.relationships },
-    { label: 'Деньги', value: reading.money },
-    { label: 'Что делать', value: reading.guidance },
+    { label: 'Главное сегодня', value: reading.focus },
+    { label: 'Люди / отношения', value: reading.relationships },
+    { label: 'Действие дня', value: reading.guidance },
+    { label: 'Риск дня', value: reading.risk },
+    { label: 'Почему так по карте', value: reading.chartReason },
   ].filter((item) => item.value?.trim());
 
   return (

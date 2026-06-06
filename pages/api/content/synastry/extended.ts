@@ -1,14 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
-import type { NatalChartData, SynastryResult, UserProfile } from '../../../../types';
+import type { NatalChartData, SynastryResult } from '../../../../types';
 import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../../../../lib/adminAuth';
 import { getOpenAIModelForContent } from '../../../../lib/appSettings';
 import { calculateNatalChart } from '../../../../lib/swisseph-calculator';
 import { db } from '../../../../lib/db';
 import {
-  SYSTEM_PROMPT_ASTRA,
-  addLanguageInstruction,
-  createFullSynastryPrompt,
   FullSynastryAIResponse,
 } from '../../../../lib/prompts';
 import { validateSynastryInput, formatValidationErrors } from '../../../../lib/validation';
@@ -16,6 +13,7 @@ import { getContentLayer, getPremiumEntitlementState } from '../../../../lib/con
 import { buildSynastryExtendedCacheKey } from '../../../../lib/synastryExtended';
 import { RATE_LIMIT_CONFIGS, withRateLimit } from '../../../../lib/rateLimit';
 import { logContentApi, warnContentApi } from '../../../../lib/contentApiLogging';
+import { buildSynastryPrompt, parseLumiaJson } from '../../../../lib/contentPromptBuilders';
 
 const SCOPE = 'synastry-extended';
 
@@ -38,6 +36,17 @@ function mapFullToSynastryResult(raw: FullSynastryAIResponse & { summary?: strin
         : [],
       potential: String(raw.potential || '').trim(),
     },
+  };
+}
+
+function buildSynastryFallback(langRu: boolean, firstName: string, partnerName: string): FullSynastryAIResponse & { summary: string } {
+  return {
+    summary: langRu ? `Разбор связи для ${firstName} и ${partnerName}: притяжение, сложные места и способы договориться.` : `A relationship reading for ${firstName} and ${partnerName}: attraction, friction, and ways to communicate.`,
+    generalTheme: langRu ? 'Связь становится крепче, когда вы прямо говорите о своих ожиданиях.' : 'The bond grows stronger when you name expectations directly.',
+    attraction: langRu ? 'Вас тянет живой отклик и ощущение, что рядом можно увидеть привычное по-новому.' : 'You are drawn to the lively response and a fresh view of familiar things.',
+    difficulties: langRu ? 'Сложности начинаются, когда один торопится с выводом, а другой уходит от разговора.' : 'Friction starts when one rushes to a conclusion and the other avoids the conversation.',
+    recommendations: langRu ? ['Сначала уточни, что человек имел в виду.', 'Говори о конкретной ситуации, а не о характере.', 'Договоритесь, когда вернуться к сложному разговору.'] : ['Clarify what the other person meant.', 'Discuss the situation, not their character.', 'Agree when to return to a hard conversation.'],
+    potential: langRu ? 'Эту связь укрепляет навык не угадывать, а спрашивать и договариваться.' : 'This bond is strengthened by asking and agreeing instead of guessing.',
   };
 }
 
@@ -173,6 +182,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     currentLanguage
   );
 
+  if (!primaryChartRecord?.id || !userChartData) {
+    return res.status(409).json({ error: 'Natal chart required', code: 'NEEDS_CHART', message: langRu ? 'Сначала создай натальную карту.' : 'Create your natal chart first.' });
+  }
+
   const entitlementState = await getPremiumEntitlementState(userId);
   const isPremium = entitlementState.isPremium;
 
@@ -278,40 +291,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
   try {
     if (!openai) {
-      resultPayload = {
-        summary: langRu
-          ? `Полный разбор совместимости для ${profile.name} и ${partnerName}: динамика, напряжение и потенциал этой пары.`
-          : `Full compatibility reading for ${profile.name} and ${partnerName}: dynamic, tension, and relational potential.`,
-        compatibilityScore: 74,
-        fullAnalysis: {
-          generalTheme: langRu
-            ? `Между вами есть связь, которая держится не только на притяжении, но и на внутреннем росте.`
-            : `There is a connection here that rests not only on attraction, but on mutual growth.`,
-          attraction: langRu
-            ? `Вас притягивает ощущение живого отклика.`
-            : `You are drawn by the sense of real response.`,
-          difficulties: langRu
-            ? `Главные сложности обычно растут из разного способа проживать напряжение.`
-            : `The main difficulties usually come from different ways of moving through tension.`,
-          recommendations: langRu
-            ? ['Проговаривайте ожидания раньше, чем они становятся скрытой обидой.']
-            : ['Name expectations before they harden into quiet resentment.'],
-          potential: langRu
-            ? `У этой пары есть потенциал к глубокой, зрелой близости.`
-            : `This bond holds real potential for deep, mature closeness.`,
-        },
-      };
+      resultPayload = mapFullToSynastryResult(buildSynastryFallback(langRu, profile.name, partnerName));
     } else {
-      const userPrompt = addLanguageInstruction(
-        createFullSynastryPrompt(
-          userChartData as NatalChartData,
-          profile as UserProfile,
-          partnerChartData as NatalChartData,
-          partnerName,
-          rel
-        ),
-        currentLanguage
-      );
+      const prompt = buildSynastryPrompt({
+        language: currentLanguage,
+        context: { profile, partnerName, userChartData, partnerChartData, relationship: rel },
+      });
       const { model: modelId } = await getOpenAIModelForContent({
         accessTier,
         contentSurface: 'synastry',
@@ -320,15 +305,15 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       const completion = await openai.chat.completions.create({
         model: modelId,
         messages: [
-          { role: 'system', content: SYSTEM_PROMPT_ASTRA },
-          { role: 'user', content: userPrompt },
+          { role: 'system', content: prompt.system },
+          { role: 'user', content: prompt.user },
         ],
         response_format: { type: 'json_object' },
         temperature: 0.72,
         max_tokens: 2500,
       });
       const content = completion.choices[0]?.message?.content || '{}';
-      const parsed = JSON.parse(content) as FullSynastryAIResponse & { summary?: string; compatibilityScore?: number };
+      const parsed = parseLumiaJson<FullSynastryAIResponse & { summary?: string; compatibilityScore?: number }>(content, buildSynastryFallback(langRu, profile.name, partnerName));
       resultPayload = mapFullToSynastryResult(parsed);
     }
 
