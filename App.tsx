@@ -745,6 +745,7 @@ const App: React.FC = () => {
         const retainedPremiumUntil = getProfilePremiumUntil(profile) ?? getProfilePremiumUntil(newProfile);
         const fullProfile = {
             ...newProfile,
+            isSetup: true,
             id: String(safeTgId),
             isAdmin,
             isPremium: hasActivePremium({ ...newProfile, premiumUntil: retainedPremiumUntil, isAdmin }),
@@ -1043,7 +1044,6 @@ const App: React.FC = () => {
         canAccessFeature(featureKey, profile, {
             chartData: chartData ?? primaryChartDataRef.current,
             primaryChartId: primaryChartId ?? activeChartId ?? null,
-            hasChart: !!profile?.isSetup,
         })
     ), [activeChartId, chartData, primaryChartId, profile]);
 
@@ -1077,14 +1077,6 @@ const App: React.FC = () => {
         if (!profile) return;
         const currentView = viewRef.current;
         if (newView === currentView) return;
-
-        if (newView === 'chart' && getFeatureAccess('natal_basic').status === 'needs_chart') {
-            if (!options?.replace) {
-                pushReturnView(currentView);
-            }
-            openNatalSetupOnboarding(currentView === 'chart' ? 'dashboard' : currentView, 'chart');
-            return;
-        }
 
         if (!options?.replace) {
             pushReturnView(currentView);
@@ -1413,6 +1405,8 @@ const App: React.FC = () => {
                             requestPremium={requestPremium}
                             onUpdateProfile={handleProfileUpdate}
                             preloadedReport={activeChartId ? null : preloadedHumanReport}
+                            onCreateChart={() => openNatalSetupOnboarding('chart', 'chart')}
+                            onOpenPersonalDaily={() => openPersonalDailyView('overview')}
                         />
                     </div>
                 ) : view === 'settings' ? (

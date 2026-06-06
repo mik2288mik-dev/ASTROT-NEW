@@ -8,7 +8,7 @@ import type {
 } from '../../types';
 import {
   HUMAN_FREE_SECTION_KEYS,
-  HUMAN_PAID_SECTION_KEYS,
+  HUMAN_MAP_SECTION_KEYS,
   HUMAN_PAID_SECTION_META,
   type HumanPaidSectionKey,
 } from '../../lib/natalHumanShared';
@@ -16,6 +16,7 @@ import {
   ensureHumanBaseReport,
   getCachedHumanPaidSection,
   getHumanBaseReportCached,
+  loadHumanPaidSection,
   type HumanReadingError,
 } from '../../services/natalReadingService';
 import { hasActivePremium } from '../../lib/accessMatrix';
@@ -29,6 +30,7 @@ type Props = {
   requestPremium: () => void;
   onUpdateProfile?: (profile: UserProfile) => void;
   preloadedReport?: NatalInterpretationReport | null;
+  onOpenPersonalDaily?: () => void;
 };
 
 const SIGN_RU: Record<string, string> = {
@@ -242,6 +244,7 @@ export const HumanReport: React.FC<Props> = ({
   requestPremium,
   onUpdateProfile,
   preloadedReport,
+  onOpenPersonalDaily,
 }) => {
   const [report, setReport] = useState<NatalInterpretationReport | null>(preloadedReport || null);
   const [loading, setLoading] = useState(!preloadedReport);
@@ -311,7 +314,9 @@ export const HumanReport: React.FC<Props> = ({
         setPaidSections((current) => ({ ...current, [key]: cached.content }));
         setUnlockTarget(null);
       } else {
-        setSectionError('Раздел пока не найден.');
+        const generated = await loadHumanPaidSection(userId, key, chartId, { accessTier: 'premium' });
+        setPaidSections((current) => ({ ...current, [key]: generated.content }));
+        setUnlockTarget(null);
       }
     } catch (err) {
       setSectionError(formatError(err));
@@ -373,6 +378,11 @@ export const HumanReport: React.FC<Props> = ({
             {report.birthData.birthTime ? ` · ${report.birthData.birthTime}` : ''}
             {report.birthData.birthPlace ? ` · ${report.birthData.birthPlace}` : ''}
           </p>
+          {((chartData as any).birthTimeQuality === 'unknown' || (chartData as any).chartQuality?.ascendantReliable === false) ? (
+            <p className="mt-3 rounded-[16px] bg-[#faf7ef] px-4 py-3 font-sans text-[13px] leading-relaxed text-[#6f6654]">
+              Время рождения указано неточно, поэтому Асцендент и дома могут отличаться. Солнце, Луна и общий портрет остаются полезной основой.
+            </p>
+          ) : null}
 
           <div className="mt-7 border-l-2 border-[#d8c18a] pl-4">
             <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8c6bb1]">
@@ -392,9 +402,17 @@ export const HumanReport: React.FC<Props> = ({
 
         <div>
           {visibleFreeSections.map((section) => (
-            <SectionText key={section.key} section={section} />
+            <SectionText key={section.key} section={{ ...section, title: section.key === 'base_portrait' ? 'Кто ты по карте' : section.title }} />
           ))}
         </div>
+
+        <section className="border-t border-[#eeeeee] py-7">
+          <button type="button" onClick={onOpenPersonalDaily} className="w-full rounded-[20px] bg-[#f7f4fb] px-5 py-4 text-left">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#8c6bb1]">Личный день</p>
+            <h2 className="mt-2 text-[21px] font-semibold text-[#1f1f1f]">Что с тобой сегодня</h2>
+            <p className="mt-2 text-[14px] leading-relaxed text-[#626262]">Текущий личный фон, действие и риск дня — по твоей карте.</p>
+          </button>
+        </section>
 
         <section className="border-t border-[#eeeeee] py-9">
           <div className="flex items-start gap-3">
@@ -413,7 +431,7 @@ export const HumanReport: React.FC<Props> = ({
           </div>
 
           <div className="mt-6">
-            {HUMAN_PAID_SECTION_KEYS.map((key) => (
+            {HUMAN_MAP_SECTION_KEYS.map((key) => (
               <LockedPreview
                 key={key}
                 sectionKey={key}

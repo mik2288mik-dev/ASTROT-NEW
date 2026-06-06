@@ -1,7 +1,7 @@
 import type { InterpretationSection, InterpretationSectionKey } from '../types';
 
 export const HUMAN_INTERPRETATION_PROMPT_VERSION = 'lumia-human-v2';
-export const HUMAN_BASE_PROMPT_VERSION = 'lumia-human-v2.base';
+export const HUMAN_BASE_PROMPT_VERSION = 'lumia-human-v3.basic-identity';
 export const HUMAN_PAID_PROMPT_VERSION = 'lumia-human-v2.paid';
 export const HUMAN_DAILY_PROMPT_VERSION = 'lumia-human-v2.daily';
 
@@ -9,13 +9,6 @@ export const HUMAN_BASE_CACHE_KEY = 'human_v2.base';
 
 export const HUMAN_FREE_SECTION_KEYS = [
   'base_portrait',
-  'main_formula',
-  'how_others_see_you',
-  'emotional_world',
-  'strengths',
-  'growth_zones',
-  'main_advice',
-  'summary',
 ] as const satisfies readonly InterpretationSectionKey[];
 
 export const HUMAN_PAID_SECTION_KEYS = [
@@ -30,6 +23,16 @@ export const HUMAN_PAID_SECTION_KEYS = [
   'shadow_patterns',
   'potential_purpose',
 ] as const satisfies readonly InterpretationSectionKey[];
+
+export const HUMAN_MAP_SECTION_KEYS = [
+  'love_relationships',
+  'potential_purpose',
+  'communication_conflicts',
+  'shadow_patterns',
+  'goals_actions',
+  'money_stability',
+  'friendship_social',
+] as const satisfies readonly HumanPaidSectionKey[];
 
 export const HUMAN_DAILY_SECTION_KEYS = [
   'daily_overview',
@@ -66,25 +69,25 @@ export const HUMAN_PAID_SECTION_META: Record<HumanPaidSectionKey, HumanSectionMe
   },
   love_relationships: {
     key: 'love_relationships',
-    title: 'Любовь и отношения',
+    title: 'Как ты любишь',
     subtitle: 'Как ты выбираешь, сближаешься и споришь',
     teaser: 'Что важно рядом с человеком, где появляются конфликты и как не копить претензии.',
   },
   money_stability: {
     key: 'money_stability',
-    title: 'Деньги и устойчивость',
+    title: 'Деньги и решения',
     subtitle: 'Доход, траты, привычки, финансовые решения',
     teaser: 'Как ты обращаешься с деньгами, где теряешь ясность и какие правила помогают.',
   },
   goals_actions: {
     key: 'goals_actions',
-    title: 'Дела, цели и действия',
+    title: 'Скрытые таланты',
     subtitle: 'Как выбирать шаги и не распыляться',
     teaser: 'Какие цели лучше доводить до результата и где ты чаще теряешь время.',
   },
   friendship_social: {
     key: 'friendship_social',
-    title: 'Друзья и окружение',
+    title: 'Как тебя видят другие',
     subtitle: 'Люди, команды, границы в контактах',
     teaser: 'С кем тебе проще работать и дружить, а где контакт быстро становится тяжёлым.',
   },
@@ -96,19 +99,19 @@ export const HUMAN_PAID_SECTION_META: Record<HumanPaidSectionKey, HumanSectionMe
   },
   shadow_patterns: {
     key: 'shadow_patterns',
-    title: 'Повторяющиеся сценарии',
+    title: 'Тёмная сторона',
     subtitle: 'Что ты можешь не замечать в своих реакциях',
     teaser: 'Какие привычные реакции мешают решениям, отношениям и работе.',
   },
   potential_purpose: {
     key: 'potential_purpose',
-    title: 'Подходящие задачи',
+    title: 'Где твоя сила',
     subtitle: 'Где ты можешь быть полезен и заметен',
     teaser: 'Какие роли, задачи и форматы работы подходят лучше всего.',
   },
   communication_conflicts: {
     key: 'communication_conflicts',
-    title: 'Общение и конфликты',
+    title: 'Что тебя бесит',
     subtitle: 'Как говорить, спорить и договариваться',
     teaser: 'Где ты давишь, где молчишь и как говорить так, чтобы тебя понимали.',
   },
