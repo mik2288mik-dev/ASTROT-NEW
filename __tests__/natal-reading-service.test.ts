@@ -38,27 +38,10 @@ describe('natal reading service session cache', () => {
   });
 
   it('keeps free and paid v2 section pools stable', () => {
-    expect(HUMAN_FREE_SECTION_KEYS).toEqual([
-      'base_portrait',
-      'main_formula',
-      'how_others_see_you',
-      'emotional_world',
-      'strengths',
-      'growth_zones',
-      'main_advice',
-      'summary',
-    ]);
+    expect(HUMAN_FREE_SECTION_KEYS).toEqual(['base_portrait']);
     expect(HUMAN_PAID_SECTION_KEYS).toEqual([
-      'work_business',
-      'love_relationships',
-      'money_stability',
-      'family_home',
-      'communication_conflicts',
-      'energy_recovery',
-      'friendship_social',
-      'goals_actions',
-      'shadow_patterns',
-      'potential_purpose',
+      'work_business', 'love_relationships', 'money_stability', 'family_home', 'communication_conflicts',
+      'energy_recovery', 'friendship_social', 'goals_actions', 'shadow_patterns', 'potential_purpose',
     ]);
   });
 

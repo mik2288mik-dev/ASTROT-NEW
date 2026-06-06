@@ -1,40 +1,12 @@
-import React, { memo } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
-import type {
-  ActionTimingKey,
-  ActionTimingRecommendation,
-  DailyCheckInInput,
-  HoroscopeLayer,
-  HoroscopeOpenOptions,
-  NatalChartData,
-  PersonalDailySection,
-  TodayAssistantHomeResult,
-  UserProfile,
-} from '../types';
-import {
-  LumiaHomeContentCards,
-  LumiaHomeHeroCard,
-  LumiaHomePulseCard,
-  TodayAssistantCard,
-} from '../components/Dashboard/LumiaHomeSections';
-import { LumiaHomeQuickActionCard } from '../components/Dashboard/LumiaHomePrimitives';
-import { getLumiaHomeCopy } from '../components/Dashboard/lumiaHomeContent';
-import { UnifiedCollapsibleTopCluster } from '../components/lumia-ui/UnifiedCollapsibleTopCluster';
-import {
-  HOME_VIDEO_CARD_ORDER,
-  resolveHomeCardVideosForDate,
-} from '../lib/homeCardVideos';
-import { captureLumiaHomeLayout, lumiaDebugLog } from '../lib/lumiaDebug';
-import { hasActivePremium } from '../lib/accessMatrix';
-import { shouldShowTodayAssistantFirst } from '../lib/todayAssistantPriority';
-import {
-  getActionTimingRecommendation,
-  getCachedTodayAssistantHome,
-  getTodayAssistantHome,
-  submitDailyCheckIn,
-} from '../services/astrologyService';
+import React, { memo, useEffect, useMemo, useState } from 'react';
+import type { ForecastDailyReading, HoroscopeLayer, HoroscopeOpenOptions, NatalChartData, PersonalDailySection, TodayAssistantHomeResult, UserProfile } from '../types';
+import { hasActivePremium, hasNatalChart } from '../lib/accessMatrix';
+import { getContentPolicy } from '../lib/contentMatrix';
+import { formatLumiaDate, getMoscowTodayKey } from '../lib/date-utils';
+import { getZodiacSign } from '../constants';
+import { getCachedDailySignHoroscope, ensureDailySignHoroscope, getCachedTodayAssistantHome, getTodayAssistantHome } from '../services/astrologyService';
 
-interface DashboardProps {
+type DashboardProps = {
   profile: UserProfile;
   chartData: NatalChartData | null;
   chartId?: number | null;
@@ -44,368 +16,101 @@ interface DashboardProps {
   onOpenSettings?: () => void;
   scrollRef?: React.RefObject<HTMLDivElement | null>;
   initialTodaySection?: string | null;
+};
+
+const FALLBACKS = {
+  background: 'Сегодня полезнее выбрать один ясный приоритет и не разгонять тревогу лишними решениями.',
+  dayCard: 'Сначала закончи то, что уже начато. Один спокойный разговор и один завершённый шаг сегодня дадут больше, чем попытка успеть всё сразу. Если появится срочная новая идея, запиши её, но не меняй план до вечера. Так день останется собранным и понятным.',
+  micro: 'Не принимай важное решение на первой эмоции.',
+  moon: 'Луна сегодня напоминает: пауза перед ответом часто полезнее скорости.',
+  retrograde: 'Если планы буксуют, сначала перепроверь детали и только потом меняй направление.',
+};
+
+function Skeleton({ lines = 3 }: { lines?: number }) {
+  return <div className="space-y-2" aria-busy="true">{Array.from({ length: lines }).map((_, index) => <div key={index} className="h-3 animate-pulse rounded-full bg-black/10" style={{ width: `${95 - index * 12}%` }} />)}</div>;
 }
 
-function haptic(kind: 'select' | 'open' = 'select') {
-  try {
-    const webApp = (window as any)?.Telegram?.WebApp;
-    if (kind === 'open') webApp?.HapticFeedback?.impactOccurred?.('light');
-    else webApp?.HapticFeedback?.selectionChanged?.();
-  } catch {
-    /* Telegram haptics are optional */
-  }
+function Card({ title, text, onClick, locked = false, loading = false, label }: { title: string; text: string; onClick?: () => void; locked?: boolean; loading?: boolean; label?: string }) {
+  const Component = onClick ? 'button' : 'section';
+  return <Component type={onClick ? 'button' : undefined} onClick={onClick} className="w-full rounded-[22px] border border-black/10 bg-white p-5 text-left shadow-[0_14px_34px_rgba(0,0,0,0.05)]">
+    {label ? <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8c6bb1]">{label}</p> : null}
+    <h2 className="mt-1 text-[20px] font-semibold leading-tight text-[#202024]">{title}{locked ? ' · Premium' : ''}</h2>
+    <div className="mt-3">{loading ? <Skeleton /> : <p className="text-[14px] leading-relaxed text-[#68646e] line-clamp-4">{text}</p>}</div>
+  </Component>;
 }
 
-function localDateKey(date = new Date()) {
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, '0');
-  const day = `${date.getDate()}`.padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
+export const Dashboard = memo<DashboardProps>(({ profile, chartData, chartId, onOpenHoroscopeLayer, onOpenPersonalDaily, onCreateNatalChart, scrollRef }) => {
+  const language = profile.language === 'en' ? 'en' : 'ru';
+  const today = useMemo(() => getMoscowTodayKey(), []);
+  const hasChart = hasNatalChart(profile, { chartData, primaryChartId: chartId ?? null });
+  const premium = hasActivePremium(profile);
+  const selectedSign = String(profile.selectedZodiacSign || chartData?.sun?.sign || '').trim();
+  const [signReading, setSignReading] = useState<ForecastDailyReading | null>(null);
+  const [signLoading, setSignLoading] = useState(!!selectedSign);
+  const [personal, setPersonal] = useState<TodayAssistantHomeResult | null>(() => hasChart && premium ? getCachedTodayAssistantHome(profile, chartId, undefined, chartData) : null);
+  const [personalLoading, setPersonalLoading] = useState(hasChart && premium && !personal);
 
-export const Dashboard = memo<DashboardProps>(
-  ({ profile, chartData, chartId, onOpenHoroscopeLayer, onOpenPersonalDaily, onCreateNatalChart, onOpenSettings, scrollRef, initialTodaySection }) => {
-    const shouldReduceMotion = useReducedMotion();
-    const language = profile.language === 'en' ? 'en' : 'ru';
-    const activePremium = hasActivePremium(profile);
-    const pulseRef = React.useRef<HTMLDivElement | null>(null);
-    const assistantRef = React.useRef<HTMLDivElement | null>(null);
-    const deepLinkScrollDoneRef = React.useRef(false);
-    const hasMountedHomeRef = React.useRef(false);
-    const cachedAssistant = React.useMemo(
-      () => getCachedTodayAssistantHome(profile, chartId ?? null, undefined, chartData),
-      [chartData, chartId, profile.birthDate, profile.birthPlace, profile.birthTime, profile.id, profile.language]
-    );
-    const [assistantResult, setAssistantResult] = React.useState<TodayAssistantHomeResult | null>(cachedAssistant);
-    const [isAssistantLoading, setIsAssistantLoading] = React.useState(!cachedAssistant);
-    const pulseResult = React.useMemo(() => {
-      if (!assistantResult) return null;
-      if (assistantResult.status === 'ready') {
-        return {
-          status: 'ready' as const,
-          pulse: assistantResult.pulse,
-          chartId: assistantResult.chartId,
-          source: assistantResult.source,
-        };
-      }
-      return assistantResult;
-    }, [assistantResult]);
-    const pageVariants = shouldReduceMotion
-      ? {
-          hidden: { opacity: 0 },
-          visible: {
-            opacity: 1,
-            transition: { duration: 0.24, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] },
-          },
-        }
-      : {
-          hidden: {
-            opacity: 0.22,
-            y: 16,
-            filter: 'blur(8px)',
-          },
-          visible: {
-            opacity: 1,
-            y: 0,
-            filter: 'blur(0px)',
-            transition: {
-              duration: 0.72,
-              ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
-            },
-          },
-        };
+  // Policies are the source of truth for the compact home surfaces.
+  const dayCardPolicy = getContentPolicy('day_card');
+  const signPolicy = getContentPolicy('sign_daily_horoscope');
+  const microPolicy = getContentPolicy('push_daily');
+  const timingPolicy = getContentPolicy('action_timing');
+  const personalPolicy = getContentPolicy('personal_daily');
 
-    const openHoroscope = (layer: HoroscopeLayer = 'sign', options?: HoroscopeOpenOptions) => {
-      haptic('open');
-      onOpenHoroscopeLayer(layer, options);
-    };
+  useEffect(() => {
+    if (!selectedSign) { setSignLoading(false); return; }
+    let alive = true;
+    setSignLoading(true);
+    void getCachedDailySignHoroscope(selectedSign, today, language)
+      .then((cached) => cached || ensureDailySignHoroscope(selectedSign, today, language))
+      .then((reading) => { if (alive) setSignReading(reading); })
+      .catch(() => { if (alive) setSignReading(null); })
+      .finally(() => { if (alive) setSignLoading(false); });
+    return () => { alive = false; };
+  }, [language, selectedSign, today]);
 
-    const openPersonalDaily = (section: PersonalDailySection = 'overview') => {
-      haptic('open');
-      onOpenPersonalDaily(section);
-    };
+  useEffect(() => {
+    if (!hasChart || !premium || !chartData) { setPersonalLoading(false); return; }
+    const cached = getCachedTodayAssistantHome(profile, chartId, undefined, chartData);
+    if (cached) { setPersonal(cached); setPersonalLoading(false); return; }
+    let alive = true;
+    setPersonalLoading(true);
+    void getTodayAssistantHome(profile, chartData, chartId)
+      .then((result) => { if (alive) setPersonal(result); })
+      .catch(() => { if (alive) setPersonal(null); })
+      .finally(() => { if (alive) setPersonalLoading(false); });
+    return () => { alive = false; };
+  }, [chartData, chartId, hasChart, premium, profile]);
 
-    React.useEffect(() => {
-      let alive = true;
-      if (!profile.id || !profile.isSetup || !chartData) {
-        setIsAssistantLoading(false);
-        setAssistantResult({
-          status: 'needs_setup',
-          code: 'PROFILE_BIRTH_DATA_REQUIRED',
-          message: language === 'ru'
-            ? 'Добавь дату и место рождения, чтобы Lumia рассчитала персональный пульс дня.'
-            : 'Add birth date and place so Lumia can calculate your personal day pulse.',
-          actionLabel: language === 'ru' ? 'Создать натальную карту' : 'Create natal chart',
-        });
-        return () => {
-          alive = false;
-        };
-      }
+  const readyPersonal = personal?.status === 'ready' ? personal : null;
+  const conversation = readyPersonal?.quickActions.find((item) => item.actionKey === 'serious_talk');
+  const personalSummary = readyPersonal?.pulse.currentPoint.summary || FALLBACKS.dayCard;
+  const risk = readyPersonal?.pulse.currentPoint.avoid[0] || FALLBACKS.micro;
+  const openHoroscope = (layer: HoroscopeLayer = 'sign', options?: HoroscopeOpenOptions) => onOpenHoroscopeLayer(layer, options);
+  const openPersonalDaily = (section: PersonalDailySection = 'overview') => onOpenPersonalDaily(section);
 
-      const cached = getCachedTodayAssistantHome(profile, chartId ?? null, undefined, chartData);
-      if (cached) {
-        setAssistantResult(cached);
-        setIsAssistantLoading(false);
-        return () => {
-          alive = false;
-        };
-      }
+  return <div ref={scrollRef} className="h-full overflow-y-auto bg-[#faf9f7] px-4 pb-[var(--lumia-bottom-tab-clearance)] pt-5 font-sans">
+    <div className="mx-auto max-w-[25rem] space-y-3">
+      <header className="pb-2"><p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8c6bb1]">{formatLumiaDate(today, language)}</p><h1 className="mt-2 text-[34px] font-semibold leading-none text-[#202024]">Что сегодня важно</h1><p className="mt-3 text-[15px] leading-relaxed text-[#68646e]">{FALLBACKS.background}</p></header>
 
-      if (assistantResult?.status === 'ready') {
-        setIsAssistantLoading(false);
-        return () => {
-          alive = false;
-        };
-      }
+      <Card title="Мягкий совет дня" text={FALLBACKS.dayCard} label={`${dayCardPolicy.words.min}–${dayCardPolicy.words.max} слов`} />
+      <div className="grid grid-cols-2 gap-3"><Card title="Луна сегодня · ретроград" text={`${FALLBACKS.moon} ${FALLBACKS.retrograde}`} /><Card title="Не делай это на эмоциях" text={risk} label={`${microPolicy.words.min}–${microPolicy.words.max} слов`} /></div>
 
-      setIsAssistantLoading(true);
-      lumiaDebugLog('today_home_request', {
-        chartId: chartId ?? null,
-        hasChartData: !!chartData,
-        language,
-      });
-      getTodayAssistantHome(profile, chartData, chartId ?? null)
-        .then((result) => {
-          if (!alive) return;
-          setAssistantResult(result);
-          setIsAssistantLoading(false);
-          if (result.status === 'ready') {
-            lumiaDebugLog('today_home_ready', {
-              dayMode: result.dayMode,
-              chartId: result.chartId,
-              historyCount: result.accuracySummary.historyCount,
-              checkIn: result.checkIn.status,
-            });
-          }
-        })
-        .catch((error: any) => {
-          if (!alive) return;
-          lumiaDebugLog('today_home_error', {
-            message: error?.message || String(error),
-            code: error?.code || null,
-          });
-          setAssistantResult({
-            status: 'needs_setup',
-            code: 'PROFILE_BIRTH_DATA_REQUIRED',
-            message: language === 'ru'
-              ? 'Проверь данные рождения в настройках, чтобы Lumia рассчитала пульс дня.'
-              : 'Check birth data in settings so Lumia can calculate the day pulse.',
-            actionLabel: language === 'ru' ? 'Открыть настройки' : 'Open settings',
-          });
-          setIsAssistantLoading(false);
-        });
+      {selectedSign ? <Card title={`Гороскоп: ${getZodiacSign(language, selectedSign)}`} text={signReading?.reading || signReading?.summary || FALLBACKS.background} loading={signLoading} label={`${signPolicy.words.min}–${signPolicy.words.max} слов`} onClick={() => openHoroscope('sign', { mode: 'single', source: 'home_card_today' })} /> : <Card title="Выбрать знак" text="Открой общий гороскоп без натальной карты и выбери любой знак." onClick={() => openHoroscope('sign')} />}
 
-      return () => {
-        alive = false;
-      };
-    }, [assistantResult?.status, chartData, chartId, language, profile]);
+      {!hasChart ? <Card title="Создать натальную карту" text="Создай натальную карту, чтобы Lumia говорила точнее и открыла личный день." onClick={onCreateNatalChart} /> : null}
 
-    React.useEffect(() => {
-      hasMountedHomeRef.current = true;
-    }, []);
+      {hasChart && premium ? <>
+        <Card title="Сегодня для тебя" text={personalSummary} loading={personalLoading} label={`${personalPolicy.words.min}–${personalPolicy.words.max} слов`} onClick={() => openPersonalDaily('overview')} />
+        <div className="grid grid-cols-2 gap-3">
+          <Card title="Что может задеть" text={risk} onClick={() => openPersonalDaily('overview')} />
+          <Card title="Лучшее время для разговора" text={conversation ? `${conversation.bestWindow.label}. ${conversation.summary}` : 'Выбери спокойное окно, когда не нужно отвечать на бегу.'} loading={personalLoading} label={`${timingPolicy.words.min}–${timingPolicy.words.max} слов`} onClick={() => openPersonalDaily('overview')} />
+          <Card title="Деньги и решения" text="Проверь условия до покупки или обещания. Не соглашайся только из-за срочности." onClick={() => openPersonalDaily('money')} />
+          <Card title="Что с тобой сегодня" text={readyPersonal?.pulse.currentPoint.title || 'Короткий личный фон дня по твоей карте.'} loading={personalLoading} onClick={() => openPersonalDaily('overview')} />
+        </div>
+      </> : hasChart ? <div className="grid grid-cols-2 gap-3"><Card title="Сегодня для тебя" text="Личный фокус дня откроется в Premium." locked onClick={() => openPersonalDaily('overview')} /><Card title="Деньги и решения" text="Где не действовать на эмоциях — по твоей карте." locked onClick={() => openPersonalDaily('money')} /></div> : null}
 
-    React.useEffect(() => {
-      lumiaDebugLog('home_mount', {
-        profileState: {
-          hasProfile: true,
-          isPremium: activePremium,
-          language: profile.language || 'ru',
-          isSetup: !!profile.isSetup,
-        },
-      });
-      const t1 = window.setTimeout(() => captureLumiaHomeLayout('home_mount_120ms'), 120);
-      const t2 = window.setTimeout(() => captureLumiaHomeLayout('home_mount_700ms'), 700);
-      return () => {
-        window.clearTimeout(t1);
-        window.clearTimeout(t2);
-      };
-    }, [activePremium, profile.isSetup, profile.language]);
-
-    React.useEffect(() => {
-      if (!initialTodaySection || deepLinkScrollDoneRef.current) return;
-      if (isAssistantLoading && initialTodaySection !== 'pulse') return;
-
-      const target =
-        initialTodaySection === 'pulse'
-          ? pulseRef.current
-          : initialTodaySection === 'checkin' || initialTodaySection === 'best-time' || initialTodaySection === 'mini-win'
-            ? assistantRef.current
-            : null;
-      if (!target) return;
-
-      deepLinkScrollDoneRef.current = true;
-      window.setTimeout(() => {
-        target.scrollIntoView({ block: 'start', behavior: 'smooth' });
-      }, 180);
-    }, [initialTodaySection, isAssistantLoading]);
-
-    const handleSubmitCheckIn = React.useCallback(async (input: DailyCheckInInput) => {
-      const result = await submitDailyCheckIn(profile, chartData, chartId ?? null, input);
-      setAssistantResult((prev) => {
-        if (!prev || prev.status !== 'ready') return prev;
-        return {
-          ...prev,
-          checkIn: { status: 'completed', entry: result.checkIn },
-          accuracySummary: result.accuracySummary,
-          patternTeaser: result.patternTeaser,
-          insights: result.insights,
-        };
-      });
-      lumiaDebugLog('checkin_submit', {
-        chartId: chartId ?? null,
-        focus: input.focus,
-        mood: input.mood,
-        people: input.people,
-        forecastFit: input.forecastFit,
-        historyCount: result.accuracySummary.historyCount,
-      });
-    }, [chartData, chartId, profile]);
-
-    const handleSelectAction = React.useCallback(async (actionKey: ActionTimingKey): Promise<ActionTimingRecommendation> => {
-      const recommendation = await getActionTimingRecommendation(profile, chartData, chartId ?? null, actionKey);
-      lumiaDebugLog('action_timing_select', {
-        actionKey,
-        state: recommendation.state,
-        confidence: recommendation.confidence,
-        window: recommendation.bestWindow,
-      });
-      return recommendation;
-    }, [chartData, chartId, profile]);
-
-    const assistantFirst = shouldShowTodayAssistantFirst(assistantResult);
-    const homeCopy = React.useMemo(() => getLumiaHomeCopy(language), [language]);
-    const quickActionVideoDate = pulseResult?.status === 'ready' ? pulseResult.pulse.date : localDateKey();
-    const resolvedQuickActionVideos = React.useMemo(
-      () => resolveHomeCardVideosForDate(quickActionVideoDate, HOME_VIDEO_CARD_ORDER),
-      [quickActionVideoDate]
-    );
-    const quickActions = React.useMemo(
-      () => [
-        {
-          id: 'today' as const,
-          title: homeCopy.quickActions.today.title,
-          body: homeCopy.quickActions.today.body,
-          imageSrc: resolvedQuickActionVideos.horoscope.poster || '/lumia-home/quick-actions/horoscope-today.webp',
-          videoAsset: resolvedQuickActionVideos.horoscope.video,
-          onClick: () => openHoroscope('sign', { mode: 'single', source: 'home_card_today' }),
-        },
-        {
-          id: 'love' as const,
-          title: homeCopy.quickActions.love.title,
-          body: homeCopy.quickActions.love.body,
-          imageSrc: resolvedQuickActionVideos.love.poster || '/lumia-home/quick-actions/love.webp',
-          videoAsset: resolvedQuickActionVideos.love.video,
-          onClick: () => openPersonalDaily('love'),
-        },
-        {
-          id: 'money' as const,
-          title: homeCopy.quickActions.money.title,
-          body: homeCopy.quickActions.money.body,
-          imageSrc: resolvedQuickActionVideos.money.poster || '/lumia-home/quick-actions/money.webp',
-          videoAsset: resolvedQuickActionVideos.money.video,
-          onClick: () => openPersonalDaily('money'),
-        },
-        {
-          id: 'work' as const,
-          title: homeCopy.quickActions.work.title,
-          body: homeCopy.quickActions.work.body,
-          imageSrc: resolvedQuickActionVideos.work.poster || '/lumia-home/quick-actions/work.webp',
-          videoAsset: resolvedQuickActionVideos.work.video,
-          onClick: () => openPersonalDaily('work'),
-        },
-        {
-          id: 'goals' as const,
-          title: homeCopy.quickActions.goals.title,
-          body: homeCopy.quickActions.goals.body,
-          imageSrc: '/natal-backgrounds/daily.webp',
-          videoAsset: null,
-          onClick: () => openPersonalDaily('goals'),
-        },
-        {
-          id: 'rhythm' as const,
-          title: homeCopy.quickActions.rhythm.title,
-          body: homeCopy.quickActions.rhythm.body,
-          imageSrc: resolvedQuickActionVideos.rhythm.poster || '/lumia-home/quick-actions/personal-rhythm.webp',
-          videoAsset: resolvedQuickActionVideos.rhythm.video,
-          onClick: () => openPersonalDaily('overview'),
-        },
-      ],
-      [homeCopy, openHoroscope, openPersonalDaily, resolvedQuickActionVideos]
-    );
-
-    const pulseCard = (
-      <div ref={pulseRef} data-today-section="pulse">
-        <LumiaHomePulseCard
-          language={language}
-          pulseResult={pulseResult}
-          isLoading={isAssistantLoading}
-          onSetup={onCreateNatalChart || onOpenSettings}
-        />
-      </div>
-    );
-
-    const assistantCard = (
-      <div ref={assistantRef} data-today-section="assistant">
-        <TodayAssistantCard
-          language={language}
-          assistantResult={assistantResult}
-          isLoading={isAssistantLoading}
-          onSetup={onCreateNatalChart || onOpenSettings}
-          onSubmitCheckIn={handleSubmitCheckIn}
-          onSelectAction={handleSelectAction}
-        />
-      </div>
-    );
-
-    return (
-      <div className="lumia-home-screen relative mx-auto flex h-full min-h-0 w-full max-w-md flex-col overflow-hidden">
-        <motion.div
-          initial={hasMountedHomeRef.current ? false : 'hidden'}
-          animate="visible"
-          variants={pageVariants}
-          className="relative flex min-h-0 flex-1 flex-col"
-          style={{ willChange: 'transform, opacity, filter' }}
-        >
-          <div className="lumia-main-scroll scrollbar-hide" ref={scrollRef}>
-            <UnifiedCollapsibleTopCluster
-              profile={profile}
-              chartData={chartData}
-              scrollRef={scrollRef}
-            />
-            <div className="lumia-home-scroll-content space-y-[var(--lumia-home-gap-lg)] px-[var(--lumia-home-page-x)]">
-              <section
-                className="lumia-home-content-actions"
-                aria-label={language === 'ru' ? 'Быстрые разделы' : 'Quick sections'}
-              >
-                <div className="scrollbar-hide lumia-home-content-action-scroll">
-                  {quickActions.map((action) => (
-                    <LumiaHomeQuickActionCard
-                      key={action.id}
-                      title={action.title}
-                      body={action.body}
-                      imageSrc={action.imageSrc}
-                      videoAsset={action.videoAsset}
-                      active={action.id === 'today'}
-                      onClick={action.onClick}
-                    />
-                  ))}
-                </div>
-              </section>
-              {assistantFirst ? assistantCard : pulseCard}
-              {assistantFirst ? pulseCard : assistantCard}
-              <LumiaHomeHeroCard language={language} onOpen={() => openHoroscope('sign')} />
-              <LumiaHomeContentCards
-                language={language}
-                isPremium={activePremium}
-                onOpenForecast={() => openHoroscope('sign')}
-                onOpenFull={() => openPersonalDaily('overview')}
-              />
-            </div>
-          </div>
-        </motion.div>
-      </div>
-    );
-  }
-);
-
+    </div>
+  </div>;
+});
 Dashboard.displayName = 'Dashboard';

@@ -1,6 +1,7 @@
 import OpenAI from 'openai';
 import type { ForecastDailyReading, Language } from '../../types';
-import { getOpenAIModelForContent } from '../appSettings';
+import { getModelForTier } from '../appSettings';
+import { getContentPolicy, getWordRangeInstruction } from '../contentMatrix';
 import { db } from '../db';
 import { getZodiacSign } from '../../constants';
 
@@ -25,7 +26,7 @@ export const ZODIAC_KEYS = [
 
 export type ZodiacKey = (typeof ZODIAC_KEYS)[number];
 
-export const SIGN_HOROSCOPE_PROMPT_VERSION = 'air-v2';
+export const SIGN_HOROSCOPE_PROMPT_VERSION = getContentPolicy('sign_daily_horoscope').promptVersion;
 
 export function normalizeZodiacKey(value: string | null | undefined): ZodiacKey | null {
   const raw = String(value || '').trim();
@@ -173,15 +174,11 @@ async function generateSignReading(
       : 'Ты пишешь полезные ежедневные гороскопы по знаку для приложения Lumia простым языком. Без фатализма, медицинских/финансовых/юридических обещаний, клише и общей воды. Не используй английские названия знаков. Верни только валидный JSON.';
   const user =
     language === 'en'
-      ? `Create a general daily horoscope for ${signLabel} on ${date}. It is free zodiac content, not a full natal chart forecast. Return JSON with fields: headline, summary, chance, risk, focus, reading, context, advice. The reading must be 2 short paragraphs, human, practical, and inviting.`
-      : `Создай общий ежедневный гороскоп для знака ${signLabel} на ${date}. Это бесплатный гороскоп по знаку, не прогноз по полной натальной карте. Верни JSON с полями: headline, summary, chance, risk, focus, reading, context, advice. Reading: 2 коротких абзаца, понятно, практично, с примером из обычного дня. Не используй мистические клише и английские названия знаков.`;
+      ? `Create a general daily horoscope for ${signLabel} on ${date}. It is free zodiac content, not a full natal chart forecast. Return JSON with fields: headline, summary, chance, risk, focus, reading, context, advice. Keep one focus for the day and do not enumerate love, money, and health. ${getWordRangeInstruction('sign_daily_horoscope')}`
+      : `Создай общий ежедневный гороскоп для знака ${signLabel} на ${date}. Это бесплатный гороскоп по знаку, не прогноз по полной натальной карте. Верни JSON с полями: headline, summary, chance, risk, focus, reading, context, advice. Один фокус дня, без перечисления любви, денег и здоровья. ${getWordRangeInstruction('sign_daily_horoscope')} Не используй мистические клише и английские названия знаков.`;
 
   try {
-    const { model } = await getOpenAIModelForContent({
-      accessTier: 'free',
-      contentSurface: 'forecast',
-      contentVariant: 'daily',
-    });
+    const model = await getModelForTier(getContentPolicy('sign_daily_horoscope').modelTier);
     const completion = await openai.chat.completions.create({
       model,
       messages: [
@@ -190,7 +187,7 @@ async function generateSignReading(
       ],
       response_format: { type: 'json_object' },
       temperature: 0.82,
-      max_tokens: 1000,
+      max_tokens: 500,
     });
     const parsed = JSON.parse(completion.choices[0]?.message?.content || '{}');
     return normalizeReading(parsed, sign, date, language);

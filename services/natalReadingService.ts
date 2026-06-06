@@ -314,7 +314,7 @@ async function postHuman<T>(
     buildHumanUrl(endpoint, userId, options),
     {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
       body: JSON.stringify(body),
     },
     HUMAN_GENERATION_TIMEOUT_MS
