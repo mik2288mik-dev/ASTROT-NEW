@@ -135,7 +135,7 @@ describe('Premium-only product model', () => {
     const horoscope = fs.readFileSync(path.join(ROOT, 'views', 'Horoscope.tsx'), 'utf8');
     const personalDaily = fs.readFileSync(path.join(ROOT, 'views', 'DailyContentScreens.tsx'), 'utf8');
     expect(personalDaily).toContain('Открыть Premium');
-    expect(horoscope).not.toContain('Открыть Premium');
+    expect(horoscope).toContain('Открыть Premium');
     expect(horoscope).not.toContain('requestStarsOneOffPayment');
     expect(personalDaily).not.toContain('requestStarsOneOffPayment');
   });

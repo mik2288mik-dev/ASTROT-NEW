@@ -525,6 +525,8 @@ export interface ForecastDaypartReading {
   relationships: string;
   money: string;
   guidance: string;
+  risk?: string;
+  chartReason?: string;
 }
 
 /** Free tier: короткий слой; Premium — дополнительные поля заполнены. */

@@ -24,7 +24,8 @@ import {
   PremiumMonthlyForecastV2AIResponse,
   PremiumWeeklyForecastV2AIResponse,
 } from './prompts';
-import { getOpenAIModelForContent } from './appSettings';
+import { getModelForTier, getOpenAIModelForContent } from './appSettings';
+import { getContentPolicy, getWordRangeInstruction } from './contentMatrix';
 import { getCurrentTransits } from './transits-calculator';
 import { formatIsoWeekPeriodLabel, formatMonthPeriodLabel, getMoscowTodayKey } from './date-utils';
 
@@ -205,6 +206,8 @@ function normalizeDaypartForecast(
     relationships: cleanLine(raw?.relationships, fallback.relationships),
     money: cleanLine(raw?.money, fallback.money),
     guidance: cleanLine(raw?.guidance, fallback.guidance),
+    risk: raw?.risk ? cleanLine(raw.risk, '') : undefined,
+    chartReason: raw?.chartReason ? cleanLine(raw.chartReason, '') : undefined,
   };
 }
 
@@ -254,10 +257,10 @@ export async function generateFreeDailyForecast(
 
   try {
     const prompt = addLanguageInstruction(
-      createDailyForecastV2Prompt(chartData, profile, dateKey, transits),
+      `${createDailyForecastV2Prompt(chartData, profile, dateKey, transits)}\n${getWordRangeInstruction('personal_daily')} Keep the complete response concise; do not exceed the range with extra prose.`,
       lang
     );
-    const { model } = await getForecastModel('base');
+    const model = await getModelForTier(getContentPolicy('personal_daily').modelTier);
     const completion = await openai.chat.completions.create({
       model,
       messages: [
@@ -266,7 +269,7 @@ export async function generateFreeDailyForecast(
       ],
       response_format: { type: 'json_object' },
       temperature: 0.7,
-      max_tokens: 1400,
+      max_tokens: 800,
     });
 
     const content = completion.choices[0]?.message?.content || '{}';

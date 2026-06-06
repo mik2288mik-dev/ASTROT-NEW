@@ -1,21 +1,17 @@
 import React, { memo, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Sparkles } from 'lucide-react';
-import type {
-  ForecastDailyReading,
-  NatalChartData,
-  UserProfile,
-} from '../types';
-import {
-  ensureDailySignHoroscope,
-  getCachedDailySignHoroscope,
-} from '../services/astrologyService';
-import { formatLumiaDate, getMoscowTodayKey } from '../lib/date-utils';
+import { ArrowLeft, Lock, Sparkles } from 'lucide-react';
+import type { ForecastDailyReading, NatalChartData, UserProfile } from '../types';
+import { canAccessFeature } from '../lib/accessMatrix';
+import { formatIsoWeekPeriodLabel, formatLumiaDate, getMoscowIsoWeekKey, getMoscowTodayKey } from '../lib/date-utils';
 import { getZodiacSign } from '../constants';
 import { ZodiacIcon } from '../components/icons/ZodiacIcon';
-import { useSwipeBack } from '../lib/useSwipeBack';
-
-type HoroscopeTone = 'sign' | 'chart' | 'love' | 'work';
-type HoroscopeBackgroundState = { sign: string | null; tone: HoroscopeTone };
+import {
+  ensureDailySignHoroscope,
+  ensureWeeklySignHoroscope,
+  getCachedDailySignHoroscope,
+  getCachedWeeklySignHoroscope,
+} from '../services/astrologyService';
+import { saveProfile } from '../services/storageService';
 
 interface HoroscopeProps {
   profile: UserProfile;
@@ -23,250 +19,149 @@ interface HoroscopeProps {
   chartId?: number | null;
   onUpdateProfile?: (profile: UserProfile) => void;
   onOpenChart?: () => void;
+  onOpenPersonalDaily?: () => void;
   onRequestPremium?: () => void;
   onBack?: () => void | Promise<void>;
-  onBackgroundChange?: (state: HoroscopeBackgroundState | null) => void;
+  onBackgroundChange?: (state: { sign: string | null; tone: 'sign' } | null) => void;
 }
 
 const ZODIAC_SIGNS = [
-  ['Aries', '21.03 - 19.04'],
-  ['Taurus', '20.04 - 20.05'],
-  ['Gemini', '21.05 - 20.06'],
-  ['Cancer', '21.06 - 22.07'],
-  ['Leo', '23.07 - 22.08'],
-  ['Virgo', '23.08 - 22.09'],
-  ['Libra', '23.09 - 22.10'],
-  ['Scorpio', '23.10 - 21.11'],
-  ['Sagittarius', '22.11 - 21.12'],
-  ['Capricorn', '22.12 - 19.01'],
-  ['Aquarius', '20.01 - 18.02'],
-  ['Pisces', '19.02 - 20.03'],
+  ['Aries', '21.03 - 19.04'], ['Taurus', '20.04 - 20.05'], ['Gemini', '21.05 - 20.06'],
+  ['Cancer', '21.06 - 22.07'], ['Leo', '23.07 - 22.08'], ['Virgo', '23.08 - 22.09'],
+  ['Libra', '23.09 - 22.10'], ['Scorpio', '23.10 - 21.11'], ['Sagittarius', '22.11 - 21.12'],
+  ['Capricorn', '22.12 - 19.01'], ['Aquarius', '20.01 - 18.02'], ['Pisces', '19.02 - 20.03'],
 ] as const;
-
 type ZodiacKey = (typeof ZODIAC_SIGNS)[number][0];
+type HoroscopeMode = 'sign' | 'personal';
+type SignPeriod = 'today' | 'week';
+const LOCAL_SIGN_KEY = 'lumia:selected-zodiac-sign';
 
-function normalizeSign(sign?: string | null): ZodiacKey {
-  const found = ZODIAC_SIGNS.find(([key]) => key.toLowerCase() === String(sign || '').toLowerCase());
-  return (found?.[0] || 'Aries') as ZodiacKey;
+function normalizeSign(value?: string | null): ZodiacKey | null {
+  return ZODIAC_SIGNS.find(([sign]) => sign.toLowerCase() === String(value || '').toLowerCase())?.[0] || null;
 }
 
-function wait(ms: number): Promise<void> {
-  return new Promise((resolve) => window.setTimeout(resolve, ms));
-}
-
-function splitParagraphs(value?: string | null): string[] {
-  return String(value || '')
-    .split(/\n{2,}|\r\n{2,}/)
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
-function haptic(kind: 'select' | 'open' = 'select') {
-  try {
-    const webApp = (window as any)?.Telegram?.WebApp;
-    if (kind === 'open') webApp?.HapticFeedback?.impactOccurred?.('light');
-    else webApp?.HapticFeedback?.selectionChanged?.();
-  } catch {
-    /* Telegram haptics are optional */
-  }
+function readLocalSign(): ZodiacKey | null {
+  try { return normalizeSign(window.localStorage.getItem(LOCAL_SIGN_KEY)); } catch { return null; }
 }
 
 function LoadingText() {
-  return (
-    <div className="mt-6 space-y-3" aria-busy="true">
-      <div className="h-4 w-5/6 animate-pulse rounded-full bg-black/10" />
-      <div className="h-3 w-full animate-pulse rounded-full bg-black/10" />
-      <div className="h-3 w-4/5 animate-pulse rounded-full bg-black/10" />
-      <div className="h-3 w-2/3 animate-pulse rounded-full bg-black/10" />
-    </div>
-  );
+  return <div className="mt-6 space-y-3" aria-busy="true" aria-label="horoscope-loading-skeleton">
+    <div className="h-4 w-5/6 animate-pulse rounded-full bg-black/10" /><div className="h-3 w-full animate-pulse rounded-full bg-black/10" />
+    <div className="h-3 w-4/5 animate-pulse rounded-full bg-black/10" /><div className="h-3 w-2/3 animate-pulse rounded-full bg-black/10" />
+  </div>;
 }
 
-function ReadingText({ reading }: { reading: ForecastDailyReading }) {
-  const paragraphs = splitParagraphs(reading.reading || reading.summary || reading.headline);
-  return (
-    <div className="mt-6 max-h-[calc(100dvh-24rem)] overflow-y-auto pb-2 pr-1">
-      {reading.headline ? (
-        <p className="text-[18px] font-semibold leading-snug text-[#202024]">{reading.headline}</p>
-      ) : null}
-      {reading.summary ? (
-        <p className="mt-3 text-[15px] leading-relaxed text-[#68646e]">{reading.summary}</p>
-      ) : null}
-      <div className="mt-5 space-y-3">
-        {paragraphs.map((paragraph, index) => (
-          <p key={index} className="text-[16px] leading-[1.68] text-[#3b3840]">
-            {paragraph}
-          </p>
-        ))}
-      </div>
-      {reading.advice?.length ? (
-        <div className="mt-5 space-y-2">
-          {reading.advice.slice(0, 3).map((item) => (
-            <div key={item} className="rounded-[16px] border border-black/10 bg-white px-4 py-3 text-[14px] leading-relaxed text-[#3b3840]">
-              {item}
-            </div>
-          ))}
-        </div>
-      ) : null}
-    </div>
-  );
+function Reading({ reading }: { reading: ForecastDailyReading }) {
+  return <div className="mt-6 space-y-4 pb-4">
+    <h2 className="text-[20px] font-semibold leading-snug text-[#202024]">{reading.headline}</h2>
+    {reading.summary ? <p className="text-[14px] leading-relaxed text-[#68646e]">{reading.summary}</p> : null}
+    {reading.reading ? <p className="whitespace-pre-line text-[16px] leading-[1.68] text-[#3b3840]">{reading.reading}</p> : null}
+    {reading.focus ? <div className="rounded-[18px] border border-black/10 bg-[#f7f6f4] px-4 py-3 text-[14px] leading-relaxed text-[#3b3840]">{reading.focus}</div> : null}
+    {reading.advice?.slice(0, 2).map((item) => <div key={item} className="rounded-[18px] border border-black/10 px-4 py-3 text-[14px] leading-relaxed text-[#3b3840]">{item}</div>)}
+  </div>;
 }
 
-export const Horoscope = memo<HoroscopeProps>(({
-  profile,
-  chartData,
-  onBack,
-  onBackgroundChange,
-}) => {
+function PersonalMode({ profile, chartData, chartId, onOpenChart, onOpenPersonalDaily, onRequestPremium }: HoroscopeProps) {
+  const language = profile.language === 'en' ? 'en' : 'ru';
+  const access = canAccessFeature('personal_daily', profile, { chartData, primaryChartId: chartId ?? null });
+  const needsChart = access.status === 'needs_chart';
+  const title = needsChart
+    ? (language === 'en' ? 'Create a natal chart for your personal day' : 'Создай натальную карту, чтобы Lumia рассчитала личный день')
+    : access.allowed
+      ? (language === 'en' ? 'Your personal day is ready' : 'Твой личный день готов')
+      : (language === 'en' ? 'Personal day is in Premium' : 'Личный день доступен в Premium');
+  return <section className="mt-5 rounded-[24px] border border-black/10 bg-white p-5 shadow-[0_18px_44px_rgba(0,0,0,0.07)]">
+    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#202024] text-white">{access.allowed ? <Sparkles size={18} /> : <Lock size={18} />}</div>
+    <h2 className="mt-4 text-[24px] font-semibold leading-tight text-[#202024]">{title}</h2>
+    <p className="mt-3 text-[14px] leading-relaxed text-[#68646e]">
+      {needsChart
+        ? (language === 'en' ? 'A saved chart is required before Lumia can calculate your personal day.' : 'Для личного прогноза нужна сохранённая карта. Общий гороскоп по знаку остаётся доступен без неё.')
+        : access.allowed
+          ? (language === 'en' ? 'Main theme, people, action, risk, and a short chart-based explanation.' : 'Главное сегодня, люди, действие дня, риск и короткое объяснение по карте.')
+          : (language === 'en' ? 'Your chart is ready. Activate Premium or an active trial to open the personal day.' : 'Карта уже готова. Для личного дня нужен активный Premium или trial.')}
+    </p>
+    <button type="button" onClick={needsChart ? onOpenChart : access.allowed ? onOpenPersonalDaily : onRequestPremium} className="mt-5 min-h-[46px] rounded-full bg-[#202024] px-5 text-[14px] font-semibold text-white">
+      {needsChart ? (language === 'en' ? 'Create chart' : 'Создать карту') : access.allowed ? (language === 'en' ? 'Open personal day' : 'Открыть личный день') : (language === 'en' ? 'Open Premium' : 'Открыть Premium')}
+    </button>
+  </section>;
+}
+
+export const Horoscope = memo<HoroscopeProps>((props) => {
+  const { profile, chartData, onUpdateProfile, onBack, onBackgroundChange } = props;
   const language = profile.language === 'en' ? 'en' : 'ru';
   const today = useMemo(() => getMoscowTodayKey(), []);
-  const initialSign = useMemo(() => normalizeSign(chartData?.sun?.sign), [chartData?.sun?.sign]);
-  const [selectedSign, setSelectedSign] = useState<ZodiacKey>(initialSign);
+  const weekKey = useMemo(() => getMoscowIsoWeekKey(), []);
+  const preferredSign = normalizeSign(profile.selectedZodiacSign) || normalizeSign(chartData?.sun?.sign);
+  const [mode, setMode] = useState<HoroscopeMode>('sign');
+  const [period, setPeriod] = useState<SignPeriod>('today');
+  const [selectedSign, setSelectedSign] = useState<ZodiacKey | null>(() => preferredSign || readLocalSign());
+  const [showPicker, setShowPicker] = useState(!selectedSign);
   const [reading, setReading] = useState<ForecastDailyReading | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
-  const zodiacLabel = getZodiacSign(language, selectedSign);
 
-  useSwipeBack({
-    onSwipeBack: () => {
-      void onBack?.();
-    },
-    edgeWidth: 44,
-    threshold: 72,
-    enabled: !!onBack,
-  });
+  useEffect(() => { onBackgroundChange?.(selectedSign ? { sign: selectedSign, tone: 'sign' } : null); return () => onBackgroundChange?.(null); }, [onBackgroundChange, selectedSign]);
 
   useEffect(() => {
-    setSelectedSign(initialSign);
-  }, [initialSign]);
-
-  useEffect(() => {
-    onBackgroundChange?.({ sign: selectedSign, tone: 'sign' });
-    return () => onBackgroundChange?.(null);
-  }, [onBackgroundChange, selectedSign]);
-
-  useEffect(() => {
+    if (mode !== 'sign' || showPicker || !selectedSign) return;
     let cancelled = false;
-    setReading(null);
-    setError(false);
-    setLoading(true);
-
+    setReading(null); setError(false); setLoading(true);
     const load = async () => {
       try {
-        const cached = await getCachedDailySignHoroscope(selectedSign, today, language);
+        const cached = period === 'today'
+          ? await getCachedDailySignHoroscope(selectedSign, today, language)
+          : await getCachedWeeklySignHoroscope(selectedSign, weekKey, language);
         if (cancelled) return;
         if (cached) {
-          setReading(cached);
+          if (!cancelled) setReading(cached);
           return;
         }
-
-        let lastError: unknown;
-        for (let attempt = 0; attempt < 3; attempt += 1) {
+        let next: ForecastDailyReading | null = null;
+        for (let attempt = 0; attempt < 3 && !next; attempt += 1) {
           try {
-            const generated = await ensureDailySignHoroscope(selectedSign, today, language);
-            if (!cancelled) setReading(generated);
-            return;
-          } catch (err: any) {
-            lastError = err;
-            if (err?.status !== 202 && err?.code !== 'GENERATION_IN_PROGRESS') break;
-            await wait(1200);
+            next = period === 'today'
+              ? await ensureDailySignHoroscope(selectedSign, today, language)
+              : await ensureWeeklySignHoroscope(selectedSign, weekKey, language);
+          } catch (generationError: any) {
+            if (generationError?.status !== 202 || attempt === 2) throw generationError;
+            await new Promise((resolve) => window.setTimeout(resolve, 1200));
           }
         }
-        throw lastError;
-      } catch {
-        if (!cancelled) setError(true);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+        if (!cancelled && next) setReading(next);
+      } catch { if (!cancelled) setError(true); }
+      finally { if (!cancelled) setLoading(false); }
     };
-
-    void load();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [language, selectedSign, today]);
+    void load(); return () => { cancelled = true; };
+  }, [language, mode, period, selectedSign, showPicker, today, weekKey]);
 
   const chooseSign = (sign: ZodiacKey) => {
-    haptic();
-    setSelectedSign(sign);
+    setSelectedSign(sign); setShowPicker(false); setReading(null);
+    try { window.localStorage.setItem(LOCAL_SIGN_KEY, sign); } catch { /* optional local persistence */ }
+    const updated = { ...profile, selectedZodiacSign: sign };
+    onUpdateProfile?.(updated);
+    if (updated.id) void saveProfile(updated).catch(() => undefined);
   };
 
-  return (
-    <div className="min-h-full bg-white px-4 pb-8 pt-[calc(max(env(safe-area-inset-top,0px),var(--tg-content-safe-area-inset-top,0px))+0.8rem)] font-sans">
-      <div className="mx-auto flex min-h-[calc(100dvh-1.6rem)] w-full max-w-[25rem] flex-col gap-4">
-        {onBack ? (
-          <button
-            type="button"
-            onClick={() => {
-              haptic('open');
-              void onBack();
-            }}
-            className="inline-flex min-h-[40px] w-fit items-center gap-2 rounded-full bg-white px-3 text-[13px] font-semibold text-[#202024] shadow-[0_8px_22px_rgba(0,0,0,0.06)]"
-            aria-label={language === 'en' ? 'Back' : 'Назад'}
-          >
-            <ArrowLeft size={16} />
-            {language === 'en' ? 'Back' : 'Назад'}
-          </button>
-        ) : null}
-
-        <section className="relative flex flex-1 flex-col overflow-hidden rounded-[22px] border border-black/10 bg-white p-5 shadow-[0_18px_44px_rgba(0,0,0,0.08)]">
-          <div className="pointer-events-none absolute -right-8 top-20 opacity-[0.08]">
-            <ZodiacIcon sign={selectedSign} size={188} strokeWidth={0.8} />
-          </div>
-          <div className="pointer-events-none relative h-8 w-[min(19rem,80vw)] overflow-hidden [mask-image:radial-gradient(190px_46px_at_35%_0%,white_0%,white_38%,transparent_82%)]">
-            <div className="absolute left-0 top-2 h-px w-[82%] bg-gradient-to-r from-black/10 via-black/5 to-transparent blur-[1px]" />
-            <span className="absolute left-[29%] top-0 h-2 w-2 rounded-full bg-[#d8d8dc]" />
-            <span className="absolute left-[53%] top-2 h-1.5 w-1.5 rounded-full bg-[#d8d8dc]" />
-          </div>
-
-          <div className="relative">
-            <p className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-3 py-1 text-[12px] font-semibold text-[#5d5963]">
-              <Sparkles size={14} />
-              {formatLumiaDate(today, language)}
-            </p>
-            <h1 className="mt-4 max-w-[min(82vw,22rem)] text-[clamp(2.35rem,10vw,3.35rem)] font-semibold leading-[0.98] text-[#202024]">
-              {language === 'en' ? 'Horoscope Today' : 'Гороскоп сегодня'}
-            </h1>
-            <p className="mt-3 max-w-[min(82vw,21rem)] text-[14px] leading-relaxed text-[#68646e]">
-              {zodiacLabel}
-            </p>
-          </div>
-
-          <div className="relative mt-5 grid grid-cols-3 gap-2">
-            {ZODIAC_SIGNS.map(([sign]) => (
-              <button
-                key={sign}
-                type="button"
-                onClick={() => chooseSign(sign)}
-                className={`min-h-[42px] rounded-[14px] border px-2 text-[12px] font-semibold ${
-                  sign === selectedSign
-                    ? 'border-[#202024] bg-[#202024] text-white'
-                    : 'border-black/10 bg-white text-[#4b4850]'
-                }`}
-              >
-                {getZodiacSign(language, sign)}
-              </button>
-            ))}
-          </div>
-
-          <div className="relative flex-1">
-            {loading && !reading ? (
-              <LoadingText />
-            ) : error && !reading ? (
-              <div className="mt-6 rounded-[18px] border border-black/10 bg-white px-4 py-3 text-[14px] leading-relaxed text-[#5f5b64]">
-                {language === 'en'
-                  ? 'Check connection and open this sign again.'
-                  : 'Проверь соединение и открой этот знак ещё раз.'}
-              </div>
-            ) : reading ? (
-              <ReadingText reading={reading} />
-            ) : null}
-          </div>
-        </section>
+  return <div className="min-h-full bg-[#faf9f7] px-4 pb-[var(--lumia-bottom-tab-clearance)] pt-[calc(max(env(safe-area-inset-top,0px),var(--tg-content-safe-area-inset-top,0px))+0.8rem)] font-sans">
+    <div className="mx-auto w-full max-w-[25rem]">
+      {onBack ? <button type="button" onClick={() => void onBack()} className="mb-4 inline-flex min-h-[40px] items-center gap-2 rounded-full bg-white px-3 text-[13px] font-semibold shadow-sm"><ArrowLeft size={16} />{language === 'en' ? 'Back' : 'Назад'}</button> : null}
+      <h1 className="text-[36px] font-semibold leading-none text-[#202024]">{language === 'en' ? 'Horoscope' : 'Гороскоп'}</h1>
+      <div className="mt-5 grid grid-cols-2 rounded-[16px] bg-black/5 p-1">
+        <button type="button" onClick={() => setMode('sign')} className={`min-h-[42px] rounded-[13px] text-[14px] font-semibold ${mode === 'sign' ? 'bg-white shadow-sm' : 'text-[#6e6973]'}`}>{language === 'en' ? 'By sign' : 'По знаку'}</button>
+        <button type="button" onClick={() => setMode('personal')} className={`min-h-[42px] rounded-[13px] text-[14px] font-semibold ${mode === 'personal' ? 'bg-white shadow-sm' : 'text-[#6e6973]'}`}>{language === 'en' ? 'Personal day' : 'Личный день'}</button>
       </div>
-    </div>
-  );
-});
 
+      {mode === 'personal' ? <PersonalMode {...props} /> : showPicker || !selectedSign ? <section className="mt-5 rounded-[24px] border border-black/10 bg-white p-5">
+        <h2 className="text-[22px] font-semibold text-[#202024]">{language === 'en' ? 'Choose any sign' : 'Выбери любой знак'}</h2>
+        <p className="mt-2 text-[14px] text-[#68646e]">{language === 'en' ? 'No natal chart is required.' : 'Натальная карта не нужна.'}</p>
+        <div className="mt-5 grid grid-cols-3 gap-2">{ZODIAC_SIGNS.map(([sign, dates]) => <button key={sign} type="button" onClick={() => chooseSign(sign)} className="rounded-[16px] border border-black/10 px-2 py-3 text-center"><ZodiacIcon sign={sign} size={25} /><span className="mt-1 block text-[12px] font-semibold">{getZodiacSign(language, sign)}</span><span className="mt-1 block text-[9px] text-[#8b8690]">{dates}</span></button>)}</div>
+      </section> : <section className="mt-5 rounded-[24px] border border-black/10 bg-white p-5 shadow-[0_18px_44px_rgba(0,0,0,0.07)]">
+        <div className="flex items-start justify-between gap-3"><div><p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#8b8690]">{period === 'today' ? formatLumiaDate(today, language) : formatIsoWeekPeriodLabel(weekKey, language)}</p><h2 className="mt-2 text-[28px] font-semibold text-[#202024]">{getZodiacSign(language, selectedSign)}</h2></div><ZodiacIcon sign={selectedSign} size={50} /></div>
+        <div className="mt-5 grid grid-cols-2 rounded-[14px] bg-black/5 p-1"><button type="button" onClick={() => setPeriod('today')} className={`min-h-[38px] rounded-[11px] text-[13px] font-semibold ${period === 'today' ? 'bg-white shadow-sm' : ''}`}>{language === 'en' ? 'Today' : 'Сегодня'}</button><button type="button" onClick={() => setPeriod('week')} className={`min-h-[38px] rounded-[11px] text-[13px] font-semibold ${period === 'week' ? 'bg-white shadow-sm' : ''}`}>{language === 'en' ? 'Week' : 'Неделя'}</button></div>
+        {loading ? <LoadingText /> : error ? <p className="mt-6 rounded-[16px] bg-black/5 p-4 text-[14px] text-[#68646e]">{language === 'en' ? 'Content is being prepared. Try again shortly.' : 'Контент готовится. Попробуй ещё раз чуть позже.'}</p> : reading ? <Reading reading={reading} /> : null}
+        <button type="button" onClick={() => setShowPicker(true)} className="mt-3 min-h-[42px] rounded-full border border-black/10 px-4 text-[13px] font-semibold">{language === 'en' ? 'Another sign' : 'Другой знак'}</button>
+      </section>}
+    </div>
+  </div>;
+});
 Horoscope.displayName = 'Horoscope';

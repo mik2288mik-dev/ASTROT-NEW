@@ -7,12 +7,13 @@ type LumiaBottomTabBarProps = {
   profile: UserProfile;
   view: ViewState;
   onOpenToday: () => void;
+  onOpenHoroscope: () => void;
   onOpenNatal: () => void;
   onOpenSynastry: () => void;
   onOpenAvatar: () => void;
 };
 
-const SHOW_ON: ViewState[] = ['dashboard', 'chart', 'synastry', 'settings'];
+const SHOW_ON: ViewState[] = ['dashboard', 'horoscope', 'chart', 'synastry', 'settings'];
 
 type IconProps = React.SVGProps<SVGSVGElement>;
 
@@ -22,6 +23,16 @@ function TodayCalendarIcon(props: IconProps) {
       <rect x="5.2" y="6.2" width="17.6" height="16.6" rx="4.1" strokeWidth="2.25" />
       <path d="M9.4 4.4v4.1M18.6 4.4v4.1M5.9 11.3h16.2" strokeWidth="2.25" />
       <path d="M10 16.2h.1M14 16.2h.1M18 16.2h.1M10 19.8h.1M14 19.8h.1" strokeWidth="2.8" />
+    </svg>
+  );
+}
+
+
+function HoroscopeStarIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M14 3.8l2.7 7.1 7.5.4-5.9 4.8 1.9 7.3-6.2-4.1-6.2 4.1 1.9-7.3-5.9-4.8 7.5-.4L14 3.8Z" strokeWidth="2" />
+      <circle cx="14" cy="14" r="2.2" fill="currentColor" stroke="none" />
     </svg>
   );
 }
@@ -66,17 +77,19 @@ function getBottomNavLabels(language: UserProfile['language']) {
   if (language === 'en') {
     return {
       today: 'Today',
+      horoscope: 'Horoscope',
       chart: 'Map',
       union: 'Union',
-      settings: 'Settings',
+      settings: 'Profile',
     };
   }
 
   return {
     today: 'Сегодня',
+    horoscope: 'Гороскоп',
     chart: 'Карта',
     union: 'Союз',
-    settings: 'Настройки',
+    settings: 'Профиль',
   };
 }
 
@@ -84,6 +97,7 @@ export function LumiaBottomTabBar({
   profile,
   view,
   onOpenToday,
+  onOpenHoroscope,
   onOpenNatal,
   onOpenSynastry,
   onOpenAvatar,
@@ -99,6 +113,13 @@ export function LumiaBottomTabBar({
       active: view === 'dashboard',
       icon: <TodayCalendarIcon />,
       onClick: onOpenToday,
+    },
+    {
+      id: 'horoscope',
+      label: labels.horoscope,
+      active: view === 'horoscope',
+      icon: <HoroscopeStarIcon />,
+      onClick: onOpenHoroscope,
     },
     {
       id: 'chart',
