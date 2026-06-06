@@ -43,6 +43,7 @@ export interface UserProfile {
   language: Language;
   theme: Theme; 
   isPremium: boolean; 
+  premiumUntil?: string | null;
   isAdmin?: boolean;
   evolution?: UserEvolution;
   lastContext?: UserContext;

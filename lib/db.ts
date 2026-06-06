@@ -739,6 +739,7 @@ export const db = {
           birth_date: u.birth_date,
           birth_time: u.birth_time,
           birth_place: u.birth_place,
+          premium_until: u.premium_until,
           is_setup: !!(u.name && u.birth_date && u.birth_place),
           language: u.language || 'ru',
           theme: u.theme || 'dark',

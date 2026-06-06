@@ -313,7 +313,7 @@ function PulseSetupState({ language, onSetup }: { language: LumiaHomeLanguage; o
             onClick={onSetup}
             className="mt-3 inline-flex min-h-[2.45rem] items-center justify-center rounded-full bg-[#30132d] px-4 font-lumiaHome text-[0.78rem] font-extrabold text-white"
           >
-            {language === 'ru' ? 'Заполнить профиль' : 'Complete profile'}
+            {language === 'ru' ? 'Создать натальную карту' : 'Create natal chart'}
           </button>
         ) : null}
       </div>

@@ -41,6 +41,17 @@ function resolveIsAdmin(userId: string, dbIsAdmin: boolean | undefined): boolean
 }
 
 const NOTIFICATION_FREQUENCIES = new Set(['quiet', 'important', 'daily', 'twice_daily']);
+const NEW_USER_TRIAL_DAYS = 14;
+
+function getNewUserTrialUntilIso(): string {
+  return new Date(Date.now() + NEW_USER_TRIAL_DAYS * 24 * 60 * 60 * 1000).toISOString();
+}
+
+function normalizeNullableString(value: unknown): string | null {
+  if (value === undefined || value === null) return null;
+  const normalized = String(value).trim();
+  return normalized || null;
+}
 
 function normalizeNotificationFrequency(value: unknown): string | null {
   const normalized = typeof value === 'string' ? value.trim() : '';
@@ -223,6 +234,7 @@ export default async function handler(
         language: user.language,
         theme: user.theme,
         isPremium: user.is_premium,
+        premiumUntil: user.premium_until ? new Date(user.premium_until).toISOString() : null,
         isAdmin: resolveIsAdmin(userId, user.is_admin),
         evolution: null,
         generatedContent,
@@ -258,8 +270,12 @@ export default async function handler(
       let existingUser = null;
       try {
         existingUser = await db.users.get(userId);
-      } catch (e) {
-        log.warn('[API/users/[id]] Failed to get existing user, will use new values', e);
+      } catch (e: any) {
+        log.warn('[API/users/[id]] Failed to get existing user before save', e);
+        return res.status(500).json({
+          error: 'Database error',
+          message: e?.message || 'Failed to load existing user before save',
+        });
       }
       
       let weatherCityToSave: string | null = undefined as any;
@@ -271,16 +287,19 @@ export default async function handler(
         weatherCityToSave = String(existingUser.weather_city).trim() || null;
       }
 
-      const dbUser = {
-        name: userData.name,
-        birth_date: userData.birthDate,
-        birth_time: userData.birthTime,
-        birth_place: userData.birthPlace,
+      const dbUser: Record<string, any> = {
+        name: normalizeNullableString(userData.name),
+        birth_date: normalizeNullableString(userData.birthDate),
+        birth_time: normalizeNullableString(userData.birthTime),
+        birth_place: normalizeNullableString(userData.birthPlace),
         is_setup: userData.isSetup || false,
         language: userData.language || 'ru',
-        theme: userData.theme || 'dark',
+        theme: userData.theme || 'light',
         weather_city: weatherCityToSave,
       };
+      if (!existingUser) {
+        dbUser.premium_until = getNewUserTrialUntilIso();
+      }
 
       const savedUser = await db.users.set(userId, dbUser);
       await saveNotificationFrequency(userId, userData.notificationFrequency);
@@ -306,6 +325,9 @@ export default async function handler(
         language: savedUser.language,
         theme: savedUser.theme,
         isPremium: savedUser.is_premium,
+        premiumUntil: (savedUser.premium_until ?? refreshedUser?.premium_until)
+          ? new Date(savedUser.premium_until ?? refreshedUser?.premium_until).toISOString()
+          : null,
         isAdmin: resolveIsAdmin(userId, savedUser.is_admin),
         evolution: null,
         generatedContent,

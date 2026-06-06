@@ -50,6 +50,7 @@ import {
 // Get owner ID from environment variables for security
 const OWNER_ID = process.env.NEXT_PUBLIC_OWNER_ID || '';
 const STARTUP_SAFETY_TIMEOUT_MS = 45_000;
+const NEW_USER_TRIAL_DAYS = 14;
 
 if (!OWNER_ID) {
     console.warn('[App] OWNER_ID not configured. Admin features will not be available.');
@@ -65,6 +66,12 @@ type SynastryPrefill = {
 } | null;
 
 type ChartLoadState = 'idle' | 'loading' | 'ready' | 'error';
+type TelegramWebAppUser = {
+    id?: string | number;
+    first_name?: string;
+    last_name?: string;
+    username?: string;
+};
 
 function getPrimaryChartLoadKey(profile: UserProfile): string {
     return [
@@ -73,6 +80,79 @@ function getPrimaryChartLoadKey(profile: UserProfile): string {
         profile.birthTime || '',
         profile.birthPlace || '',
     ].join('|');
+}
+
+function getTelegramDisplayName(tgUser?: TelegramWebAppUser | null): string {
+    const fullName = [tgUser?.first_name, tgUser?.last_name]
+        .map((part) => String(part || '').trim())
+        .filter(Boolean)
+        .join(' ')
+        .trim();
+    if (fullName) return fullName;
+    const username = String(tgUser?.username || '').trim();
+    return username || 'Гость';
+}
+
+function getTrialPremiumUntilIso(): string {
+    return new Date(Date.now() + NEW_USER_TRIAL_DAYS * 24 * 60 * 60 * 1000).toISOString();
+}
+
+function readProfilePremiumUntil(profile?: Partial<UserProfile> | null): string | null {
+    const value = profile?.premiumUntil ?? (profile as any)?.premium_until ?? null;
+    return value ? String(value) : null;
+}
+
+function isPremiumActive(premiumUntil: string | null): boolean | null {
+    if (!premiumUntil) return null;
+    const timestamp = new Date(premiumUntil).getTime();
+    if (!Number.isFinite(timestamp)) return null;
+    return timestamp > Date.now();
+}
+
+function buildMinimalStartupProfile(tgId: string | number, tgUser?: TelegramWebAppUser | null): UserProfile {
+    const premiumUntil = getTrialPremiumUntilIso();
+    return {
+        id: String(tgId),
+        name: getTelegramDisplayName(tgUser),
+        birthDate: '',
+        birthTime: '',
+        birthPlace: '',
+        isSetup: false,
+        language: 'ru',
+        theme: 'light',
+        isPremium: true,
+        premiumUntil,
+        loginStreak: 0,
+        chartSlots: 1,
+    };
+}
+
+function normalizeStartupProfile(
+    storedProfile: UserProfile,
+    tgId: string | number,
+    tgUser: TelegramWebAppUser | null | undefined,
+    isAdmin: boolean
+): UserProfile {
+    const premiumUntil = readProfilePremiumUntil(storedProfile);
+    const premiumActive = isPremiumActive(premiumUntil);
+    return {
+        ...storedProfile,
+        id: String(tgId),
+        name: storedProfile.name?.trim() || getTelegramDisplayName(tgUser),
+        birthDate: storedProfile.birthDate || '',
+        birthTime: storedProfile.birthTime || '',
+        birthPlace: storedProfile.birthPlace || '',
+        isSetup: !!storedProfile.isSetup,
+        language: storedProfile.language || 'ru',
+        theme: storedProfile.theme || 'light',
+        isPremium: premiumActive ?? !!storedProfile.isPremium,
+        premiumUntil,
+        isAdmin,
+    };
+}
+
+function needsStartupProfileNormalizationSave(storedProfile: UserProfile): boolean {
+    return !storedProfile.name?.trim() || !storedProfile.language || !storedProfile.theme;
 }
 
 function wait(ms: number): Promise<null> {
@@ -155,6 +235,7 @@ const App: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [loadingProgress, setLoadingProgress] = useState(0);
     const [loadingMessage, setLoadingMessage] = useState<string | undefined>(undefined);
+    const [startupError, setStartupError] = useState<string | null>(null);
     const [view, setView] = useState<ViewState>('onboarding');
     const [showPremiumPreview, setShowPremiumPreview] = useState(false);
     const [synastryPrefill, setSynastryPrefill] = useState<SynastryPrefill>(null);
@@ -183,6 +264,7 @@ const App: React.FC = () => {
     const appScrollRef = useRef<HTMLDivElement | null>(null);
     const [initialTodaySection, setInitialTodaySection] = useState<string | null>(null);
     const viewRef = useRef<ViewState>('onboarding');
+    const onboardingTargetViewRef = useRef<ViewState>('dashboard');
     const navigationHistoryRef = useRef<ViewState[]>([]);
 
     const getFallbackAdminStatus = useCallback((userId?: string | number, storedIsAdmin?: boolean) => {
@@ -310,6 +392,16 @@ const App: React.FC = () => {
         return promise;
     }, []);
 
+    const resetPrimaryChartState = useCallback(() => {
+        primaryChartSessionRef.current = { key: '', data: null, promise: null };
+        primaryChartDataRef.current = null;
+        setChartData(null);
+        setChartLoadState('idle');
+        setPrimaryChartId(null);
+        setActiveChartId(undefined);
+        setPreloadedHumanReport(null);
+    }, []);
+
     useEffect(() => {
         installLumiaDebugGlobal();
         viewRef.current = view;
@@ -430,7 +522,9 @@ const App: React.FC = () => {
         const safetyTimer = window.setTimeout(() => {
             if (cancelled || safetyCleared) return;
             console.error('[App] Startup exceeded safety budget - unlocking loading UI');
+            setStartupError('Lumia не успела загрузить профиль. Закрой мини-приложение и открой его снова из Telegram.');
             setLoadingProgress(100);
+            setView('dashboard');
             setLoading(false);
         }, STARTUP_SAFETY_TIMEOUT_MS);
 
@@ -465,44 +559,56 @@ const App: React.FC = () => {
             }
 
             if (!isValidUserId(tgId)) {
-                console.log('[App] No Telegram user ID found after retries, showing onboarding');
+                console.log('[App] No Telegram user ID found after retries, showing safe startup error');
                 clearSafety();
+                setStartupError('Не удалось получить Telegram ID. Открой Lumia через Telegram Mini App и попробуй ещё раз.');
                 setLoadingProgress(100);
-                setView('onboarding');
+                setView('dashboard');
                 setLoading(false);
                 return;
             }
+            const safeTgId = tgId as string | number;
 
             try {
                 // Шаг 1: Загружаем профиль из БД
+                setStartupError(null);
+                const tg = (window as any).Telegram?.WebApp;
+                const tgUser = tg?.initDataUnsafe?.user as TelegramWebAppUser | undefined;
+
                 setLoadingProgress(30);
                 const storedProfile = await getProfile();
 
                 console.log('[App] Profile loaded:', {
                     hasProfile: !!storedProfile,
                     isSetup: storedProfile?.isSetup,
-                    tgId
+                    tgId: safeTgId
                 });
 
-                // Если профиля нет или он не настроен - показываем onboarding
-                if (!storedProfile || !storedProfile.isSetup) {
-                    console.log('[App] No profile or not setup, showing onboarding');
-                    clearSafety();
-                    setLoadingProgress(100);
-                    setView('onboarding');
-                    setLoading(false);
-                    return;
+                // Создаём или нормализуем минимальный профиль без требования натальной карты.
+                let updatedProfile: UserProfile;
+                if (!storedProfile) {
+                    setLoadingProgress(42);
+                    const isAdmin = await resolveAuthoritativeAdminStatus(safeTgId, false);
+                    updatedProfile = {
+                        ...buildMinimalStartupProfile(safeTgId, tgUser),
+                        isAdmin,
+                    };
+                    console.log('[App] Creating minimal startup profile without natal setup');
+                    await saveProfile(updatedProfile);
+                } else {
+                    const isAdmin = await resolveAuthoritativeAdminStatus(safeTgId, storedProfile.isAdmin);
+                    updatedProfile = normalizeStartupProfile(storedProfile, safeTgId, tgUser, isAdmin);
+                    if (needsStartupProfileNormalizationSave(storedProfile)) {
+                        void saveProfile(updatedProfile).catch((saveError: any) => {
+                            console.warn('[App] Startup profile normalization save failed:', saveError?.message || saveError);
+                        });
+                    }
                 }
 
-                // Шаг 2: Нормализуем профиль
-                if (!storedProfile.language) storedProfile.language = 'ru';
-                if (!storedProfile.theme) storedProfile.theme = 'dark';
-                
-                const isAdmin = await resolveAuthoritativeAdminStatus(tgId, storedProfile.isAdmin);
-                const updatedProfile = { ...storedProfile, id: String(tgId), isAdmin };
+                // Шаг 2: Профиль готов для входа в приложение.
                 setProfile(updatedProfile);
 
-                runReferralFromStartParam(String(tgId), (r) => {
+                runReferralFromStartParam(String(safeTgId), (r) => {
                     if (r.ok) {
                         setProfile((p) => (p ? { ...p, referralApplied: true } : p));
                     } else if (r.status === 409) {
@@ -510,7 +616,16 @@ const App: React.FC = () => {
                     }
                 });
 
-                // Шаг 3: Загружаем карту один раз на входе в приложение.
+                // Шаг 3: Загружаем карту только для уже настроенного профиля.
+                if (!updatedProfile.isSetup) {
+                    console.log('[App] Profile is not setup; opening dashboard without chart/prewarm');
+                    resetPrimaryChartState();
+                    setLoadingProgress(100);
+                    setLoadingMessage(undefined);
+                    setView('dashboard');
+                    return;
+                }
+
                 setLoadingMessage(
                     updatedProfile.language === 'en' ? 'Loading LUMIA' : 'Загружаем LUMIA'
                 );
@@ -558,8 +673,10 @@ const App: React.FC = () => {
                 setView(requestedViewRef.current || 'dashboard');
             } catch (error) {
                 console.error('[App] Error loading user data:', error);
+                setStartupError('Не удалось загрузить профиль Lumia. Проверь, что приложение открыто внутри Telegram, и попробуй ещё раз.');
+                resetPrimaryChartState();
                 setLoadingProgress(100);
-                setView('onboarding');
+                setView('dashboard');
             } finally {
                 clearSafety();
                 if (!cancelled) {
@@ -573,7 +690,7 @@ const App: React.FC = () => {
             cancelled = true;
             clearSafety();
         };
-    }, [loadPrimaryChartOnce, prepareUserContentDbFirst, resolveAuthoritativeAdminStatus]);
+    }, [loadPrimaryChartOnce, prepareUserContentDbFirst, resetPrimaryChartState, resolveAuthoritativeAdminStatus]);
 
     // Legacy profile.generatedContent sync — disabled on ordinary login (see appStartupFlags).
     useEffect(() => {
@@ -624,8 +741,22 @@ const App: React.FC = () => {
             setLoading(false);
             return;
         }
-        const isAdmin = await resolveAuthoritativeAdminStatus(tgId, false);
-        const fullProfile = { ...newProfile, id: String(tgId), isAdmin };
+        const safeTgId = tgId as string | number;
+        const isAdmin = await resolveAuthoritativeAdminStatus(safeTgId, false);
+        const retainedPremiumUntil = readProfilePremiumUntil(profile) ?? readProfilePremiumUntil(newProfile);
+        const retainedPremiumActive = isPremiumActive(retainedPremiumUntil);
+        const fullProfile = {
+            ...newProfile,
+            id: String(safeTgId),
+            isAdmin,
+            isPremium: retainedPremiumActive ?? profile?.isPremium ?? newProfile.isPremium,
+            premiumUntil: retainedPremiumUntil,
+            loginStreak: profile?.loginStreak ?? newProfile.loginStreak,
+            chartSlots: profile?.chartSlots ?? newProfile.chartSlots,
+            refCode: profile?.refCode ?? newProfile.refCode,
+            referralApplied: profile?.referralApplied ?? newProfile.referralApplied,
+            notificationFrequency: profile?.notificationFrequency ?? newProfile.notificationFrequency,
+        };
 
         setProfile(fullProfile);
         setLoading(true);
@@ -651,7 +782,7 @@ const App: React.FC = () => {
                 }
             }
 
-            runReferralFromStartParam(String(tgId), (r) => {
+            runReferralFromStartParam(String(safeTgId), (r) => {
                 if (r.ok) {
                     setProfile((p) => (p ? { ...p, referralApplied: true } : p));
                 } else if (r.status === 409) {
@@ -708,7 +839,15 @@ const App: React.FC = () => {
             setLoadingProgress(90);
             setLoadingProgress(100);
             setLoadingMessage(undefined);
-            setTimeout(() => setView('dashboard'), 300);
+            const targetView = onboardingTargetViewRef.current || 'dashboard';
+            if (targetView === 'chart') {
+                setActiveChartId(undefined);
+                setChartReturnView('dashboard');
+            }
+            setTimeout(() => {
+                setView(targetView);
+                onboardingTargetViewRef.current = 'dashboard';
+            }, 300);
             
         } catch (error: any) {
             console.error('[App] Error during onboarding:', error);
@@ -880,10 +1019,39 @@ const App: React.FC = () => {
         }
     }, []);
 
+    const openNatalSetupOnboarding = useCallback((returnView?: ViewState, targetView: ViewState = 'chart') => {
+        const currentView = viewRef.current;
+        const safeReturnView =
+            returnView && returnView !== 'onboarding' && returnView !== 'hook' && returnView !== 'paywall'
+                ? returnView
+                : 'dashboard';
+
+        lumiaDebugLog('navigation', {
+            action: 'open_natal_setup',
+            from: currentView,
+            to: 'onboarding',
+            returnView: safeReturnView,
+            targetView,
+            historyBeforeSet: navigationHistoryRef.current,
+        });
+
+        onboardingTargetViewRef.current = targetView;
+        setChartReturnView(safeReturnView === 'chart' ? 'dashboard' : safeReturnView);
+        setView('onboarding');
+    }, []);
+
     const navigateTo = useCallback((newView: ViewState, options?: { replace?: boolean }) => {
         if (!profile) return;
         const currentView = viewRef.current;
         if (newView === currentView) return;
+
+        if (newView === 'chart' && !profile.isSetup) {
+            if (!options?.replace) {
+                pushReturnView(currentView);
+            }
+            openNatalSetupOnboarding(currentView === 'chart' ? 'dashboard' : currentView, 'chart');
+            return;
+        }
 
         if (!options?.replace) {
             pushReturnView(currentView);
@@ -906,7 +1074,7 @@ const App: React.FC = () => {
         }
 
         setView(newView);
-    }, [profile, pushReturnView]);
+    }, [openNatalSetupOnboarding, profile, pushReturnView]);
 
     const openPersonalDailyView = useCallback((section: PersonalDailySection = 'overview') => {
         lumiaDebugLog('navigation', {
@@ -917,8 +1085,12 @@ const App: React.FC = () => {
             historyBeforeSet: navigationHistoryRef.current,
         });
         setPersonalDailyInitialSection(section);
+        if (profile && !profile.isSetup) {
+            openNatalSetupOnboarding(viewRef.current, 'personal_daily');
+            return;
+        }
         navigateTo('personal_daily');
-    }, [navigateTo]);
+    }, [navigateTo, openNatalSetupOnboarding, profile]);
 
     const openHoroscopeLayer = useCallback((layer: HoroscopeLayer, options?: HoroscopeOpenOptions) => {
         if (layer === 'love') {
@@ -1019,9 +1191,13 @@ const App: React.FC = () => {
     }, [navigateTo]);
 
     const openSynastryWithPrefill = useCallback((prefill: SynastryPrefill) => {
+        if (profile && !profile.isSetup) {
+            openNatalSetupOnboarding(viewRef.current, 'synastry');
+            return;
+        }
         setSynastryPrefill(prefill);
         navigateTo('synastry');
-    }, [navigateTo]);
+    }, [navigateTo, openNatalSetupOnboarding, profile]);
 
     const openBottomToday = useCallback(() => {
         setInitialTodaySection(null);
@@ -1033,9 +1209,13 @@ const App: React.FC = () => {
     }, [navigateTo]);
 
     const openBottomSynastry = useCallback(() => {
+        if (profile && !profile.isSetup) {
+            openNatalSetupOnboarding(viewRef.current, 'synastry');
+            return;
+        }
         setSynastryPrefill(null);
         navigateTo('synastry', { replace: true });
-    }, [navigateTo]);
+    }, [navigateTo, openNatalSetupOnboarding, profile]);
 
     const openBottomAvatar = useCallback(() => {
         navigateTo('settings', { replace: true });
@@ -1061,6 +1241,18 @@ const App: React.FC = () => {
                 message={loadingMessage || getText(profile?.language || 'ru', 'loading')}
                 progress={loadingProgress}
             />
+        );
+    }
+
+    if (!profile && startupError) {
+        return (
+            <div className="fixed inset-0 flex h-[100dvh] items-center justify-center bg-white px-6 text-[#1f1f1f]">
+                <div className="max-w-sm text-center">
+                    <p className="lumia-brand-wordmark mb-6">LUMIA</p>
+                    <h1 className="mb-3 font-serif text-[2rem] leading-none">Не удалось открыть профиль</h1>
+                    <p className="mb-0 text-[15px] leading-relaxed text-[#4f4b45]">{startupError}</p>
+                </div>
+            </div>
         );
     }
 
@@ -1113,6 +1305,7 @@ const App: React.FC = () => {
                         chartId={primaryChartId}
                         onOpenHoroscopeLayer={openHoroscopeLayer}
                         onOpenPersonalDaily={openPersonalDailyView}
+                        onCreateNatalChart={openBottomNatal}
                         onOpenSettings={openBottomAvatar}
                         scrollRef={dashboardScrollRef}
                         initialTodaySection={initialTodaySection}

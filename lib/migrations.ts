@@ -759,6 +759,26 @@ async function lumia008AdminNotificationEnhancements(pool: Pool): Promise<void> 
   log.info('Migration lumia_008_admin_notification_enhancements applied');
 }
 
+async function lumia008aUsersPremiumUntilColumn(pool: Pool): Promise<void> {
+  const migrationName = 'lumia_008a_users_premium_until_column';
+
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
+  log.info('Ensuring users.premium_until exists...');
+
+  await pool.query(`
+    ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS premium_until TIMESTAMP
+  `);
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_users_premium_until ON users(premium_until)');
+
+  await markMigrationApplied(pool, migrationName);
+  log.info('Migration lumia_008a_users_premium_until_column applied');
+}
+
 /**
  * Content architecture v1: tiered interpretations, unlocks, entitlements (lumia_009)
  */
@@ -1974,6 +1994,7 @@ export async function runMigrations(): Promise<void> {
   await lumia006ScheduledNotifications(pool);
   await lumia007NotificationVisualHybrid(pool);
   await lumia008AdminNotificationEnhancements(pool);
+  await lumia008aUsersPremiumUntilColumn(pool);
   await lumia009ContentArchitecture(pool);
   await lumia011RemoveDashboardAirVariant(pool);
   await lumia012DailyLumiTasks(pool);

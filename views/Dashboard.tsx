@@ -39,6 +39,7 @@ interface DashboardProps {
   chartId?: number | null;
   onOpenHoroscopeLayer: (layer: HoroscopeLayer, options?: HoroscopeOpenOptions) => void;
   onOpenPersonalDaily: (section?: PersonalDailySection) => void;
+  onCreateNatalChart?: () => void;
   onOpenSettings?: () => void;
   scrollRef?: React.RefObject<HTMLDivElement | null>;
   initialTodaySection?: string | null;
@@ -62,7 +63,7 @@ function localDateKey(date = new Date()) {
 }
 
 export const Dashboard = memo<DashboardProps>(
-  ({ profile, chartData, chartId, onOpenHoroscopeLayer, onOpenPersonalDaily, onOpenSettings, scrollRef, initialTodaySection }) => {
+  ({ profile, chartData, chartId, onOpenHoroscopeLayer, onOpenPersonalDaily, onCreateNatalChart, onOpenSettings, scrollRef, initialTodaySection }) => {
     const shouldReduceMotion = useReducedMotion();
     const language = profile.language === 'en' ? 'en' : 'ru';
     const pulseRef = React.useRef<HTMLDivElement | null>(null);
@@ -124,7 +125,7 @@ export const Dashboard = memo<DashboardProps>(
 
     React.useEffect(() => {
       let alive = true;
-      if (!profile.id) {
+      if (!profile.id || !profile.isSetup || !chartData) {
         setIsAssistantLoading(false);
         setAssistantResult({
           status: 'needs_setup',
@@ -132,7 +133,7 @@ export const Dashboard = memo<DashboardProps>(
           message: language === 'ru'
             ? 'Добавь дату и место рождения, чтобы Lumia рассчитала персональный пульс дня.'
             : 'Add birth date and place so Lumia can calculate your personal day pulse.',
-          actionLabel: language === 'ru' ? 'Заполнить профиль' : 'Complete profile',
+          actionLabel: language === 'ru' ? 'Создать натальную карту' : 'Create natal chart',
         });
         return () => {
           alive = false;
@@ -336,7 +337,7 @@ export const Dashboard = memo<DashboardProps>(
           language={language}
           pulseResult={pulseResult}
           isLoading={isAssistantLoading}
-          onSetup={onOpenSettings}
+          onSetup={onCreateNatalChart || onOpenSettings}
         />
       </div>
     );
@@ -347,7 +348,7 @@ export const Dashboard = memo<DashboardProps>(
           language={language}
           assistantResult={assistantResult}
           isLoading={isAssistantLoading}
-          onSetup={onOpenSettings}
+          onSetup={onCreateNatalChart || onOpenSettings}
           onSubmitCheckIn={handleSubmitCheckIn}
           onSelectAction={handleSelectAction}
         />
