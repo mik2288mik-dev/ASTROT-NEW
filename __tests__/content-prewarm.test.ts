@@ -243,7 +243,7 @@ describe('content prewarm', () => {
     expect(source).toContain('setPrimaryChartId(primaryChartId)');
   });
 
-  it('Horoscope is sign-only and PersonalDailyScreen owns premium daily content', () => {
+  it('Horoscope delegates premium daily generation to PersonalDailyScreen', () => {
     const horoscope = fs.readFileSync(path.join(ROOT, 'views/Horoscope.tsx'), 'utf8');
     expect(horoscope).toContain('ensureDailySignHoroscope');
     expect(horoscope).not.toContain('loadHumanDailySection');

@@ -60,7 +60,7 @@ describe('product daily navigation', () => {
     expect(source).not.toMatch(/LUMIA не получила|Вернись позже|Повторить/);
   });
 
-  it('Horoscope is only the sign horoscope screen', () => {
+  it('Horoscope keeps personal generation in PersonalDailyScreen', () => {
     const source = read('views/Horoscope.tsx');
 
     expect(source).toContain('ZODIAC_SIGNS');

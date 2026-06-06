@@ -14,6 +14,8 @@ interface NatalChartProps {
   requestPremium: (source?: string, payload?: Record<string, any>) => void | Promise<void>;
   onUpdateProfile?: (profile: UserProfile) => void;
   preloadedReport?: NatalInterpretationReport | null;
+  onCreateChart?: () => void;
+  onOpenPersonalDaily?: () => void;
 }
 
 export const NatalChart: React.FC<NatalChartProps> = ({
@@ -23,11 +25,18 @@ export const NatalChart: React.FC<NatalChartProps> = ({
   requestPremium,
   onUpdateProfile,
   preloadedReport,
+  onCreateChart,
+  onOpenPersonalDaily,
 }) => {
   if (!data) {
     return (
       <div className="min-h-full bg-white px-5 pt-10">
-        <p className="text-[13px] text-[#9a9a9a]">Готовим интерпретацию...</p>
+        <div className="mx-auto max-w-md rounded-[24px] border border-black/10 bg-white p-6 shadow-[0_18px_44px_rgba(0,0,0,0.07)]">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#8c6bb1]">Личная карта</p>
+          <h1 className="mt-3 text-[30px] font-semibold leading-tight text-[#1f1f1f]">Создай натальную карту</h1>
+          <p className="mt-4 text-[15px] leading-relaxed text-[#666]">Lumia рассчитает карту по дате, времени и месту рождения и откроет личные разборы.</p>
+          <button type="button" onClick={onCreateChart} className="mt-6 min-h-[46px] rounded-full bg-[#1f1f1f] px-5 text-[14px] font-semibold text-white">Создать карту</button>
+        </div>
       </div>
     );
   }
@@ -43,6 +52,7 @@ export const NatalChart: React.FC<NatalChartProps> = ({
         requestPremium={requestPremium}
         onUpdateProfile={onUpdateProfile}
         preloadedReport={preloadedReport}
+        onOpenPersonalDaily={onOpenPersonalDaily}
       />
     </div>
   );

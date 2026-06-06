@@ -745,6 +745,7 @@ const App: React.FC = () => {
         const retainedPremiumUntil = getProfilePremiumUntil(profile) ?? getProfilePremiumUntil(newProfile);
         const fullProfile = {
             ...newProfile,
+            isSetup: true,
             id: String(safeTgId),
             isAdmin,
             isPremium: hasActivePremium({ ...newProfile, premiumUntil: retainedPremiumUntil, isAdmin }),
@@ -1043,7 +1044,6 @@ const App: React.FC = () => {
         canAccessFeature(featureKey, profile, {
             chartData: chartData ?? primaryChartDataRef.current,
             primaryChartId: primaryChartId ?? activeChartId ?? null,
-            hasChart: !!profile?.isSetup,
         })
     ), [activeChartId, chartData, primaryChartId, profile]);
 
@@ -1077,14 +1077,6 @@ const App: React.FC = () => {
         if (!profile) return;
         const currentView = viewRef.current;
         if (newView === currentView) return;
-
-        if (newView === 'chart' && getFeatureAccess('natal_basic').status === 'needs_chart') {
-            if (!options?.replace) {
-                pushReturnView(currentView);
-            }
-            openNatalSetupOnboarding(currentView === 'chart' ? 'dashboard' : currentView, 'chart');
-            return;
-        }
 
         if (!options?.replace) {
             pushReturnView(currentView);
@@ -1229,6 +1221,10 @@ const App: React.FC = () => {
     const openBottomToday = useCallback(() => {
         setInitialTodaySection(null);
         navigateTo('dashboard', { replace: true });
+    }, [navigateTo]);
+
+    const openBottomHoroscope = useCallback(() => {
+        navigateTo('horoscope', { replace: true });
     }, [navigateTo]);
 
     const openBottomNatal = useCallback(() => {
@@ -1378,7 +1374,7 @@ const App: React.FC = () => {
                         />
                     </div>
                 ) : view === 'horoscope' ? (
-                    <div className="lumia-main-scroll scrollbar-hide" ref={appScrollRef}>
+                    <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
                         <Horoscope 
                             profile={profile} 
                             chartData={chartData} 
@@ -1388,6 +1384,7 @@ const App: React.FC = () => {
                                 navigateTo('chart');
                             }}
                             onRequestPremium={requestPremium}
+                            onOpenPersonalDaily={() => openPersonalDailyView('overview')}
                             onBack={handleBack}
                             onBackgroundChange={(next) =>
                                 setHoroscopeBackground(next || { sign: null, tone: 'sign' })
@@ -1408,6 +1405,8 @@ const App: React.FC = () => {
                             requestPremium={requestPremium}
                             onUpdateProfile={handleProfileUpdate}
                             preloadedReport={activeChartId ? null : preloadedHumanReport}
+                            onCreateChart={() => openNatalSetupOnboarding('chart', 'chart')}
+                            onOpenPersonalDaily={() => openPersonalDailyView('overview')}
                         />
                     </div>
                 ) : view === 'settings' ? (
@@ -1466,6 +1465,7 @@ const App: React.FC = () => {
                     profile={profile}
                     view={view}
                     onOpenToday={openBottomToday}
+                    onOpenHoroscope={openBottomHoroscope}
                     onOpenNatal={openBottomNatal}
                     onOpenSynastry={openBottomSynastry}
                     onOpenAvatar={openBottomAvatar}
