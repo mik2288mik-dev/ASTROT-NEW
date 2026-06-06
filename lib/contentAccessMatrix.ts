@@ -1,6 +1,12 @@
 import type { ContentAccessTier, ContentSurface, ContentVariant } from '../types';
 import { hasActivePremium } from './accessMatrix';
 
+/**
+ * Legacy compatibility map for the surface/variant content APIs.
+ * Product access decisions belong to accessMatrix; generation policy belongs to contentMatrix.
+ * Keep this module only while existing content routes still use surface/variant persistence.
+ */
+
 export type LockedBehavior = {
   showPreview: boolean;
   showTeaser: boolean;
