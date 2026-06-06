@@ -16,7 +16,15 @@ export type FeatureKey =
   | 'natal_shadow'
   | 'natal_talents'
   | 'personal_transits'
-  | 'synastry_by_charts';
+  | 'synastry_by_charts'
+  | 'action_timing_generic'
+  | 'action_timing_personal'
+  | 'blind_spot'
+  | 'natal_anger'
+  | 'natal_money'
+  | 'natal_family'
+  | 'natal_how_others_see_you'
+  | 'deep_report';
 
 export type FeatureAccessStatus =
   | 'allowed'
@@ -69,6 +77,14 @@ const FEATURE_ACCESS_MATRIX: FeatureAccessConfig[] = [
   { key: 'natal_talents', tier: 'pro', needsChart: true, label: 'Natal talents section' },
   { key: 'personal_transits', tier: 'pro', needsChart: true, label: 'Personal transits' },
   { key: 'synastry_by_charts', tier: 'pro', needsChart: true, label: 'Synastry by charts' },
+  { key: 'action_timing_generic', tier: 'free', needsChart: false, label: 'Generic action timing' },
+  { key: 'action_timing_personal', tier: 'pro', needsChart: true, label: 'Personal action timing' },
+  { key: 'blind_spot', tier: 'pro', needsChart: true, label: 'Blind spot' },
+  { key: 'natal_anger', tier: 'pro', needsChart: true, label: 'Natal anger section' },
+  { key: 'natal_money', tier: 'pro', needsChart: true, label: 'Natal money section' },
+  { key: 'natal_family', tier: 'pro', needsChart: true, label: 'Natal family section' },
+  { key: 'natal_how_others_see_you', tier: 'pro', needsChart: true, label: 'How others see you section' },
+  { key: 'deep_report', tier: 'pro', needsChart: true, label: 'Deep report' },
 ];
 
 const FEATURE_ACCESS_INDEX = new Map<FeatureKey, FeatureAccessConfig>(
@@ -131,14 +147,10 @@ export function hasNatalChart(
     if (isNatalChartData(state)) return true;
     if (readChartData(state)) return true;
     const chartLike = state as ChartAccessState;
-    if (chartLike.hasChart === true) return true;
     if (toPositiveId(chartLike.primaryChartId) || toPositiveId(chartLike.chartId)) return true;
   }
 
-  if (profile?.isSetup || profile?.isSetup === true) return true;
-  if (profile?.isSetup === false) return false;
-
-  return !!(profile?.birthDate && profile?.birthPlace);
+  return false;
 }
 
 export function canAccessFeature(
