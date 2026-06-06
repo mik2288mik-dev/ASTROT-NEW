@@ -9,6 +9,7 @@ import { isValidUserId } from "../lib/userId";
 import { getRetryAfterMs, isGenerationInProgressError, waitMs } from "../lib/contentInterpretation";
 import { hasActivePremium } from "../lib/accessMatrix";
 import type { NatalPlanetKey } from "../lib/natalPlanetMeta";
+import type { SignCompatibilityResult } from '../lib/synastry/signCompatibility';
 import { getTelegramInitDataHeaders } from "./sessionService";
 
 // API base URL - используем локальные Next.js API routes
@@ -204,7 +205,7 @@ export const getDailyForecastLayer = async (
 
   const data = await fetchContentApi<ForecastDailyReading>(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
     body: JSON.stringify({
       userId: profile.id,
       profile,
@@ -306,7 +307,7 @@ export const ensureDailySignHoroscope = async (
   log.info('[ensureDailySignHoroscope] Generating missing sign horoscope', { sign, date, language });
   const response = await fetchWithTimeout(`${API_BASE_URL}/api/content/horoscope/sign-daily`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
     body: JSON.stringify({ sign, date, language, strict: true }),
   }, 12000);
 
@@ -396,7 +397,7 @@ export const getTodayOverview = async (
   try {
     response = await fetchWithTimeout(`${API_BASE_URL}/api/content/today/overview`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
       body: JSON.stringify(body),
     }, 60000);
   } catch (error: any) {
@@ -493,7 +494,7 @@ export const getTodayPulse = async (
   const promise = (async (): Promise<TodayPulseResult> => {
     const response = await fetchWithTimeout(`${API_BASE_URL}/api/content/today/pulse`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
       body: JSON.stringify({
         userId: profile.id,
         profile,
@@ -667,7 +668,7 @@ export const submitDailyCheckIn = async (
 
   const response = await fetchWithTimeout(`${API_BASE_URL}/api/content/today/checkin`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
     body: JSON.stringify({
       userId: profile.id,
       profile,
@@ -719,7 +720,7 @@ export const getActionTimingRecommendation = async (
 
   const response = await fetchWithTimeout(`${API_BASE_URL}/api/content/today/action-time`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
     body: JSON.stringify({
       userId: profile.id,
       profile,
@@ -758,7 +759,7 @@ export const setHoroscopeReaction = async (
   }
   const response = await fetchWithTimeout(`${API_BASE_URL}/api/content/horoscope/reactions`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
     body: JSON.stringify({ userId, sign, date, reactionKey, language }),
   }, 6000);
 
@@ -817,7 +818,7 @@ export const getFullDaypartForecast = async (
 
   const data = await fetchContentApi<ForecastDaypartReading>(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
     body: JSON.stringify({
       userId: profile.id,
       profile,
@@ -1022,7 +1023,7 @@ export const ensureWeeklyForecastLayer = async (
   const url = `${API_BASE_URL}/api/content/forecast/weekly`;
   const data = await fetchContentApi<ForecastWeeklyReading>(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
     body: JSON.stringify({
       userId,
       profile,
@@ -1072,7 +1073,7 @@ export const ensureMonthlyForecastLayer = async (
   const url = `${API_BASE_URL}/api/content/forecast/monthly`;
   const data = await fetchContentApi<ForecastMonthlyReading>(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
     body: JSON.stringify({
       userId,
       profile,
@@ -1097,7 +1098,7 @@ export const getNatalAnchorLayer = async (
 
   const data = await fetchContentApi<NatalAnchorReading>(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
     body: JSON.stringify({
       userId: profile.id,
       profile,
@@ -1151,7 +1152,7 @@ export const getPremiumNatalLivingLayer = async (
 
   const data = await fetchContentApi<NatalLivingReading>(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
     body: JSON.stringify({
       userId: profile.id,
       profile,
@@ -1206,7 +1207,7 @@ export const getPremiumNatalFullLayer = async (
 
   const data = await fetchContentApi<NatalFullReading>(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
     body: JSON.stringify({
       userId: profile.id,
       profile,
@@ -1285,7 +1286,7 @@ export const getPlanetInsight = async (
   const url = `${API_BASE_URL}/api/content/natal/planet-insight`;
   const data = await fetchContentApi<PlanetInsight>(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
     body: JSON.stringify({
       userId: profile.id,
       profile,
@@ -1551,6 +1552,26 @@ export function normalizeFullSynastryPayload(raw: any): SynastryResult {
 /**
  * Краткий обзор синастрии (бесплатный) - тизер для всех пользователей
  */
+
+const signCompatibilityClientCache = new Map<string, SignCompatibilityResult>();
+
+export async function getSignCompatibility(signA: string, signB: string, language: 'ru' | 'en'): Promise<SignCompatibilityResult> {
+  const key = [signA.toLowerCase(), signB.toLowerCase()].sort().join(':') + `:${language}`;
+  const local = signCompatibilityClientCache.get(key);
+  if (local) return local;
+  const query = new URLSearchParams({ signA, signB, language });
+  const cached = await fetch(`${API_BASE_URL}/api/content/synastry/sign-compatibility?${query.toString()}`, { headers: getTelegramInitDataHeaders() });
+  if (cached.ok) { const payload = await cached.json(); signCompatibilityClientCache.set(key, payload.result); return payload.result; }
+  const response = await fetchWithTimeout(`${API_BASE_URL}/api/content/synastry/sign-compatibility`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() }, body: JSON.stringify({ signA, signB, language }),
+  }, 20000);
+  if (!response.ok) throw buildApiError(`Sign compatibility failed: ${response.status}`, response.status);
+  const payload = await response.json();
+  if (!payload?.result) throw buildApiError('Sign compatibility content is missing');
+  signCompatibilityClientCache.set(key, payload.result);
+  return payload.result;
+}
+
 export const calculateBriefSynastry = async (
   profile: UserProfile, 
   partnerName: string, 
@@ -1767,7 +1788,7 @@ const legacyGetDailyHoroscopeViaAstrologyEndpoint = async (profile: UserProfile,
     const startTime = Date.now();
     const response = await fetchWithTimeout(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
       body: JSON.stringify({ 
         userId: profile.id, // Важно для кэширования в БД
         profile, 

@@ -1232,10 +1232,9 @@ const App: React.FC = () => {
     }, [navigateTo]);
 
     const openBottomSynastry = useCallback(() => {
-        if (!gateFeatureAccess('synastry_by_charts', 'synastry')) return;
         setSynastryPrefill(null);
         navigateTo('synastry', { replace: true });
-    }, [gateFeatureAccess, navigateTo]);
+    }, [navigateTo]);
 
     const openBottomAvatar = useCallback(() => {
         navigateTo('settings', { replace: true });
@@ -1367,9 +1366,11 @@ const App: React.FC = () => {
                         <Synastry
                             profile={profile}
                             chartData={chartData}
+                            chartId={primaryChartId ?? null}
                             requestPremium={requestPremium}
                             initialPrefill={synastryPrefill}
                             onOpenCharts={() => openCharts('synastry')}
+                            onCreateNatalChart={openBottomNatal}
                             onUpdateProfile={handleProfileUpdate}
                         />
                     </div>
