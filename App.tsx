@@ -1231,6 +1231,10 @@ const App: React.FC = () => {
         navigateTo('dashboard', { replace: true });
     }, [navigateTo]);
 
+    const openBottomHoroscope = useCallback(() => {
+        navigateTo('horoscope', { replace: true });
+    }, [navigateTo]);
+
     const openBottomNatal = useCallback(() => {
         navigateTo('chart', { replace: true });
     }, [navigateTo]);
@@ -1378,7 +1382,7 @@ const App: React.FC = () => {
                         />
                     </div>
                 ) : view === 'horoscope' ? (
-                    <div className="lumia-main-scroll scrollbar-hide" ref={appScrollRef}>
+                    <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
                         <Horoscope 
                             profile={profile} 
                             chartData={chartData} 
@@ -1388,6 +1392,7 @@ const App: React.FC = () => {
                                 navigateTo('chart');
                             }}
                             onRequestPremium={requestPremium}
+                            onOpenPersonalDaily={() => openPersonalDailyView('overview')}
                             onBack={handleBack}
                             onBackgroundChange={(next) =>
                                 setHoroscopeBackground(next || { sign: null, tone: 'sign' })
@@ -1466,6 +1471,7 @@ const App: React.FC = () => {
                     profile={profile}
                     view={view}
                     onOpenToday={openBottomToday}
+                    onOpenHoroscope={openBottomHoroscope}
                     onOpenNatal={openBottomNatal}
                     onOpenSynastry={openBottomSynastry}
                     onOpenAvatar={openBottomAvatar}

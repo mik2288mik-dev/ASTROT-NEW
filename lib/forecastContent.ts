@@ -206,6 +206,8 @@ function normalizeDaypartForecast(
     relationships: cleanLine(raw?.relationships, fallback.relationships),
     money: cleanLine(raw?.money, fallback.money),
     guidance: cleanLine(raw?.guidance, fallback.guidance),
+    risk: raw?.risk ? cleanLine(raw.risk, '') : undefined,
+    chartReason: raw?.chartReason ? cleanLine(raw.chartReason, '') : undefined,
   };
 }
 
