@@ -12,6 +12,7 @@ import { llmJson } from './anthropic';
 import { LUMIA_VOICE_BLOCK_RU } from './lumiaVoice';
 import { getCurrentTransits } from './transits-calculator';
 import { getWordRangeInstruction } from './contentMatrix';
+import { buildBlindSpotPrompt, buildNatalSectionPrompt } from './contentPromptBuilders';
 import {
   buildLockedDailySections,
   buildLockedPaidSections,
@@ -1175,18 +1176,28 @@ export async function generateHumanPaidSection(
   const fallback = buildHumanPaidFallback(profile, chart, key);
   const summary = buildChartSummary(profile, chart);
   const meta = HUMAN_PAID_SECTION_META[key];
-  const prompt = buildPaidPrompt(summary, meta, key);
+  const prompt = key === 'shadow_patterns'
+    ? buildBlindSpotPrompt({ context: summary })
+    : buildNatalSectionPrompt({ title: meta.title, context: summary });
 
   return generateWithRetry<InterpretationSection>(
     async () => {
-      const raw = await llmJson<InterpretationSection>({
-        system: HUMAN_SYSTEM_PROMPT,
-        user: prompt,
+      const raw = await llmJson<{ title?: string; text?: string; soft_warning?: string; practical_hint?: string; headline?: string; example?: string; soft_step?: string }>({
+        system: prompt.system,
+        user: prompt.user,
         model: { accessTier: 'premium', contentSurface: 'natal', contentVariant: 'living' },
-        maxTokens: 1200,
+        maxTokens: 900,
         temperature: 0.6,
       });
-      return normalizeSection(raw, fallback, { access: 'paid', locked: false });
+      const section: InterpretationSection = {
+        ...fallback,
+        title: raw.title || raw.headline || meta.title,
+        content: raw.text || fallback.content,
+        bullets: [raw.soft_warning, raw.example, raw.practical_hint, raw.soft_step].filter((item): item is string => Boolean(item)),
+        access: 'paid',
+        isLocked: false,
+      };
+      return normalizeSection(section, fallback, { access: 'paid', locked: false });
     },
     (section) => validateSection(section, 450),
     fallback

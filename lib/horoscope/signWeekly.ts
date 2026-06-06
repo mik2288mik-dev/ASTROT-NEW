@@ -2,7 +2,8 @@ import OpenAI from 'openai';
 import type { ForecastDailyReading, Language } from '../../types';
 import { getZodiacSign } from '../../constants';
 import { getModelForTier } from '../appSettings';
-import { getContentPolicy, getWordRangeInstruction } from '../contentMatrix';
+import { getContentPolicy } from '../contentMatrix';
+import { buildSignWeeklyHoroscopePrompt, parseLumiaJson } from '../contentPromptBuilders';
 import { getPool } from '../db';
 import { formatIsoWeekPeriodLabel, isoWeekToValidRangeUtc } from '../date-utils';
 import { normalizeZodiacKey, type ZodiacKey } from './signDaily';
@@ -54,19 +55,18 @@ async function generate(sign: ZodiacKey, periodKey: string, language: Language):
   const fb = fallback(sign, periodKey, language);
   if (!openai) return fb;
   const signLabel = getZodiacSign(language, sign);
-  const prompt = language === 'en'
-    ? `Create a general weekly zodiac horoscope for ${signLabel}, week ${periodKey}. One main weekly theme and exactly two short practical tips. ${getWordRangeInstruction('sign_weekly_horoscope')} Return JSON: headline, summary, reading, focus, advice.`
-    : `Создай общий недельный гороскоп для знака ${signLabel}, неделя ${periodKey}. Один главный сюжет недели и ровно два коротких практичных совета. ${getWordRangeInstruction('sign_weekly_horoscope')} Верни JSON: headline, summary, reading, focus, advice.`;
+  const prompt = buildSignWeeklyHoroscopePrompt({ language, context: { sign: signLabel, periodKey } });
   try {
     const model = await getModelForTier(policy.modelTier);
     const completion = await openai.chat.completions.create({
       model,
-      messages: [{ role: 'system', content: 'Return only valid JSON. No fatalism, clichés, or medical/financial promises.' }, { role: 'user', content: prompt }],
+      messages: [{ role: 'system', content: prompt.system }, { role: 'user', content: prompt.user }],
       response_format: { type: 'json_object' },
       temperature: 0.75,
       max_tokens: 700,
     });
-    return normalize(JSON.parse(completion.choices[0]?.message?.content || '{}'), sign, periodKey, language);
+    const parsed = parseLumiaJson<{ headline?: string; text?: string; advice?: string[] }>(completion.choices[0]?.message?.content, {});
+    return normalize({ ...parsed, summary: parsed.text, reading: parsed.text, focus: parsed.advice?.[0] }, sign, periodKey, language);
   } catch {
     return fb;
   }

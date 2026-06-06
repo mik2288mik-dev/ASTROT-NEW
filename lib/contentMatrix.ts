@@ -47,7 +47,7 @@ export type ContentPolicy = {
 const CONTENT_MATRIX: Record<LumiaContentType, ContentPolicy> = {
   push_daily: {
     type: 'push_daily', featureKey: 'daily_sign_horoscope', modelTier: 'fast', words: { min: 10, max: 15 },
-    cacheTtl: '24h', cacheScope: 'shared', promptVersion: 'push_daily.v1', purpose: 'Первая точка касания дня',
+    cacheTtl: '24h', cacheScope: 'shared', promptVersion: 'push_daily.v2', purpose: 'Первая точка касания дня',
     style: 'Одна мысль, без лирики и списков.', placements: ['push'], generationPolicy: 'once_per_day',
   },
   action_timing: {
@@ -57,42 +57,42 @@ const CONTENT_MATRIX: Record<LumiaContentType, ContentPolicy> = {
   },
   day_card: {
     type: 'day_card', featureKey: 'daily_sign_horoscope', modelTier: 'fast', words: { min: 35, max: 50 },
-    cacheTtl: '24h', cacheScope: 'shared', promptVersion: 'day_card.v1', purpose: 'Карточка дня на главной',
+    cacheTtl: '24h', cacheScope: 'shared', promptVersion: 'day_card.v2', purpose: 'Карточка дня на главной',
     style: 'Текст должен целиком помещаться в одну карточку.', placements: ['home'], generationPolicy: 'once_per_day',
   },
   sign_daily_horoscope: {
     type: 'sign_daily_horoscope', featureKey: 'daily_sign_horoscope', modelTier: 'fast', words: { min: 60, max: 80 },
-    cacheTtl: '24h', cacheScope: 'shared', promptVersion: 'sign_daily_horoscope.v1', purpose: 'Общий гороскоп по знаку на день',
+    cacheTtl: '24h', cacheScope: 'shared', promptVersion: 'sign_daily_horoscope.v2', purpose: 'Общий гороскоп по знаку на день',
     style: 'Один фокус дня, без перечисления любви, денег и здоровья.', placements: ['horoscope'], generationPolicy: 'once_per_day', batchSize: 12,
   },
   sign_weekly_horoscope: {
     type: 'sign_weekly_horoscope', featureKey: 'weekly_sign_horoscope', modelTier: 'fast', words: { min: 100, max: 140 },
-    cacheTtl: '7d', cacheScope: 'shared', promptVersion: 'sign_weekly_horoscope.v1', purpose: 'Общий гороскоп по знаку на неделю',
+    cacheTtl: '7d', cacheScope: 'shared', promptVersion: 'sign_weekly_horoscope.v2', purpose: 'Общий гороскоп по знаку на неделю',
     style: 'Один главный сюжет недели и два коротких совета.', placements: ['horoscope'], generationPolicy: 'once_per_week', batchSize: 12,
   },
   sign_compatibility: {
     type: 'sign_compatibility', featureKey: 'zodiac_compatibility', modelTier: 'fast', words: { min: 120, max: 180 },
-    cacheTtl: 'forever', cacheScope: 'shared', promptVersion: 'sign_compatibility.v1', purpose: 'Бесплатная совместимость двух знаков',
+    cacheTtl: 'forever', cacheScope: 'shared', promptVersion: 'sign_compatibility.v2', purpose: 'Бесплатная совместимость двух знаков',
     style: 'Три коротких практичных блока: что тянет, где сложно, как общаться; без фатализма и без счёта совместимости.', placements: ['synastry'], generationPolicy: 'explicit_only',
   },
   blind_spot: {
     type: 'blind_spot', featureKey: 'blind_spot', modelTier: 'main', words: { min: 80, max: 110 },
-    cacheTtl: '7d', cacheScope: 'user_chart', promptVersion: 'blind_spot.v1', purpose: 'Что ты можешь не замечать',
+    cacheTtl: '7d', cacheScope: 'user_chart', promptVersion: 'blind_spot.v2', purpose: 'Что ты можешь не замечать',
     style: 'Конкретно, без обвинений, мягко, но точно.', placements: ['home', 'natal'], generationPolicy: 'once_per_week',
   },
   personal_daily: {
     type: 'personal_daily', featureKey: 'personal_daily', modelTier: 'main', words: { min: 90, max: 130 },
-    cacheTtl: '24h', cacheScope: 'user_chart', promptVersion: 'personal_daily.v1', purpose: 'Личный прогноз на день',
+    cacheTtl: '24h', cacheScope: 'user_chart', promptVersion: 'personal_daily.v2', purpose: 'Личный прогноз на день',
     style: 'Главное сегодня, отношения/люди, действие и риск дня, плюс короткое объяснение по карте; без воды.', placements: ['home', 'horoscope'], generationPolicy: 'once_per_day',
   },
   natal_section: {
     type: 'natal_section', featureKey: 'natal_basic', modelTier: 'main', words: { min: 150, max: 200 },
-    cacheTtl: 'forever_until_chart_changes', cacheScope: 'chart_version', promptVersion: 'natal_section.v1', purpose: 'Отдельный раздел натальной карты',
+    cacheTtl: 'forever_until_chart_changes', cacheScope: 'chart_version', promptVersion: 'natal_section.v2', purpose: 'Отдельный раздел натальной карты',
     style: 'Цельный практичный разбор одной темы карты.', placements: ['natal'], generationPolicy: 'once_per_chart_version',
   },
   deep_report: {
     type: 'deep_report', featureKey: 'deep_report', modelTier: 'deep', words: { min: 800, max: 1500 },
-    cacheTtl: 'forever_until_chart_changes', cacheScope: 'chart_version', promptVersion: 'deep_report.v1', purpose: 'Полный натальный, синастрический или годовой отчёт',
+    cacheTtl: 'forever_until_chart_changes', cacheScope: 'chart_version', promptVersion: 'deep_report.v2', purpose: 'Полный натальный, синастрический или годовой отчёт',
     style: 'Глубокий структурированный отчёт; никогда не генерировать при старте приложения.', placements: ['report', 'natal', 'synastry'], generationPolicy: 'explicit_only',
   },
 };

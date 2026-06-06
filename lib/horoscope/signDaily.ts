@@ -1,7 +1,8 @@
 import OpenAI from 'openai';
 import type { ForecastDailyReading, Language } from '../../types';
 import { getModelForTier } from '../appSettings';
-import { getContentPolicy, getWordRangeInstruction } from '../contentMatrix';
+import { getContentPolicy } from '../contentMatrix';
+import { buildSignDailyHoroscopePrompt, parseLumiaJson } from '../contentPromptBuilders';
 import { db } from '../db';
 import { getZodiacSign } from '../../constants';
 
@@ -168,29 +169,22 @@ async function generateSignReading(
   }
 
   const signLabel = getZodiacSign(language, sign);
-  const system =
-    language === 'en'
-      ? 'You write useful daily zodiac horoscopes in plain language. No fatalism, no medical/financial/legal promises, no generic fluff. Return only valid JSON.'
-      : 'Ты пишешь полезные ежедневные гороскопы по знаку для приложения Lumia простым языком. Без фатализма, медицинских/финансовых/юридических обещаний, клише и общей воды. Не используй английские названия знаков. Верни только валидный JSON.';
-  const user =
-    language === 'en'
-      ? `Create a general daily horoscope for ${signLabel} on ${date}. It is free zodiac content, not a full natal chart forecast. Return JSON with fields: headline, summary, chance, risk, focus, reading, context, advice. Keep one focus for the day and do not enumerate love, money, and health. ${getWordRangeInstruction('sign_daily_horoscope')}`
-      : `Создай общий ежедневный гороскоп для знака ${signLabel} на ${date}. Это бесплатный гороскоп по знаку, не прогноз по полной натальной карте. Верни JSON с полями: headline, summary, chance, risk, focus, reading, context, advice. Один фокус дня, без перечисления любви, денег и здоровья. ${getWordRangeInstruction('sign_daily_horoscope')} Не используй мистические клише и английские названия знаков.`;
+  const prompt = buildSignDailyHoroscopePrompt({ language, context: { sign: signLabel, date } });
 
   try {
     const model = await getModelForTier(getContentPolicy('sign_daily_horoscope').modelTier);
     const completion = await openai.chat.completions.create({
       model,
       messages: [
-        { role: 'system', content: system },
-        { role: 'user', content: user },
+        { role: 'system', content: prompt.system },
+        { role: 'user', content: prompt.user },
       ],
       response_format: { type: 'json_object' },
       temperature: 0.82,
       max_tokens: 500,
     });
-    const parsed = JSON.parse(completion.choices[0]?.message?.content || '{}');
-    return normalizeReading(parsed, sign, date, language);
+    const parsed = parseLumiaJson<{ headline?: string; text?: string; advice?: string }>(completion.choices[0]?.message?.content, {});
+    return normalizeReading({ ...parsed, summary: parsed.text, reading: parsed.text, focus: parsed.advice, advice: parsed.advice ? [parsed.advice] : [] }, sign, date, language);
   } catch (error: any) {
     console.error('[horoscope/sign-daily] generation failed:', error instanceof Error ? error.message : error);
     if (!allowStaticFallback) {
