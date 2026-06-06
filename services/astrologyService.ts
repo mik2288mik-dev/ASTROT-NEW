@@ -367,7 +367,7 @@ export const ensureWeeklySignHoroscope = async (
   const cached = await getCachedWeeklySignHoroscope(sign, periodKey, language);
   if (cached) return cached;
   const response = await fetchWithTimeout(`${API_BASE_URL}/api/content/horoscope/sign-weekly`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sign, periodKey, language }),
+    method: 'POST', headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() }, body: JSON.stringify({ sign, periodKey, language }),
   }, 15000);
   if (!response.ok) throw buildApiError(`Weekly sign horoscope failed: ${response.status}`, response.status);
   const payload = await response.json();

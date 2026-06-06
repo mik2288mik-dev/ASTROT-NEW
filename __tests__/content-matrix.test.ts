@@ -1,15 +1,20 @@
 import { canAccessFeature, hasNatalChart } from '../lib/accessMatrix';
-import { buildContentCacheKey, getContentAccess, getContentPolicy, listContentMatrix } from '../lib/contentMatrix';
+import { buildContentCacheKey, getCacheTtlMs, getContentAccess, getContentPolicy, listContentMatrix } from '../lib/contentMatrix';
 
 describe('Lumia content matrix', () => {
   it('defines generation policy for every required content type', () => {
     expect(listContentMatrix().map((item) => item.type)).toEqual([
-      'push_daily', 'action_timing', 'day_card', 'sign_daily_horoscope', 'sign_weekly_horoscope',
+      'push_daily', 'action_timing', 'day_card', 'sign_daily_horoscope', 'sign_weekly_horoscope', 'sign_compatibility',
       'blind_spot', 'personal_daily', 'natal_section', 'deep_report',
     ]);
     expect(getContentPolicy('sign_daily_horoscope')).toMatchObject({
       modelTier: 'fast', words: { min: 60, max: 80 }, cacheTtl: '24h', cacheScope: 'shared', batchSize: 12,
     });
+    expect(getContentPolicy('sign_compatibility')).toMatchObject({
+      featureKey: 'zodiac_compatibility', modelTier: 'fast', words: { min: 120, max: 180 },
+      cacheTtl: 'forever', cacheScope: 'shared', generationPolicy: 'explicit_only',
+    });
+    expect(getCacheTtlMs('sign_compatibility')).toBeNull();
     expect(getContentPolicy('deep_report')).toMatchObject({
       modelTier: 'deep', generationPolicy: 'explicit_only', cacheTtl: 'forever_until_chart_changes',
     });
