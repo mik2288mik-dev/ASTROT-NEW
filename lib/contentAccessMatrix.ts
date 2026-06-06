@@ -1,4 +1,5 @@
 import type { ContentAccessTier, ContentSurface, ContentVariant } from '../types';
+import { hasActivePremium } from './accessMatrix';
 
 export type LockedBehavior = {
   showPreview: boolean;
@@ -31,6 +32,8 @@ export type UserState = {
   userId: string;
   chartId: number | null;
   isPremium: boolean;
+  premiumUntil?: string | null;
+  isAdmin?: boolean;
   unlockedContent: UnlockedContentEntry[];
 };
 
@@ -331,7 +334,7 @@ export function canAccessContent(
     return true;
   }
 
-  if (userState.isPremium && config.unlockOptions.includes('premium')) {
+  if (hasActivePremium(userState) && config.unlockOptions.includes('premium')) {
     return true;
   }
 

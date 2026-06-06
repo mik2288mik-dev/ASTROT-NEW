@@ -15,6 +15,7 @@ import {
   createPlanetInsightPrompt,
   type PlanetInsightAIResponse,
 } from './prompts';
+import { hasActivePremium } from './accessMatrix';
 
 const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
@@ -62,7 +63,7 @@ export async function generatePlanetInsight(
       language
     );
     const { model } = await getOpenAIModelForContent({
-      accessTier: profile.isPremium ? 'premium' : 'free',
+      accessTier: hasActivePremium(profile) ? 'premium' : 'free',
       contentSurface: 'natal',
       contentVariant: 'planet_insight',
     });

@@ -2,6 +2,7 @@ import React, { memo } from 'react';
 import Image from 'next/image';
 import { UserProfile, NatalChartData } from '../../types';
 import { getText, getZodiacSign } from '../../constants';
+import { hasActivePremium } from '../../lib/accessMatrix';
 import { PlanetIcon } from '../icons/PlanetIcon';
 
 interface CosmicPassportProps {
@@ -20,6 +21,7 @@ export const CosmicPassport = memo<CosmicPassportProps>(
     const moonLabel = chartData.moon?.sign ? getZodiacSign(lang, chartData.moon.sign) : null;
     const sameSign = moonLabel && moonLabel === sunLabel;
     const displayNameFinal = profile.name?.trim() || displayName;
+    const activePremium = hasActivePremium(profile);
 
     const renderSignsLine = () => {
       if (lang !== 'ru') {
@@ -104,7 +106,7 @@ export const CosmicPassport = memo<CosmicPassportProps>(
                   {displayNameFinal.charAt(0).toUpperCase()}
                 </div>
               )}
-              {profile.isPremium && (
+              {activePremium && (
                 <span className="absolute -bottom-0.5 -right-0.5 rounded-full bg-astro-highlight px-1.5 py-px text-[7px] font-bold uppercase leading-none text-white ring-2 ring-astro-card">
                   PRO
                 </span>

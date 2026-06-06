@@ -25,6 +25,7 @@ import {
   resolveHomeCardVideosForDate,
 } from '../lib/homeCardVideos';
 import { captureLumiaHomeLayout, lumiaDebugLog } from '../lib/lumiaDebug';
+import { hasActivePremium } from '../lib/accessMatrix';
 import { shouldShowTodayAssistantFirst } from '../lib/todayAssistantPriority';
 import {
   getActionTimingRecommendation,
@@ -66,6 +67,7 @@ export const Dashboard = memo<DashboardProps>(
   ({ profile, chartData, chartId, onOpenHoroscopeLayer, onOpenPersonalDaily, onCreateNatalChart, onOpenSettings, scrollRef, initialTodaySection }) => {
     const shouldReduceMotion = useReducedMotion();
     const language = profile.language === 'en' ? 'en' : 'ru';
+    const activePremium = hasActivePremium(profile);
     const pulseRef = React.useRef<HTMLDivElement | null>(null);
     const assistantRef = React.useRef<HTMLDivElement | null>(null);
     const deepLinkScrollDoneRef = React.useRef(false);
@@ -206,7 +208,7 @@ export const Dashboard = memo<DashboardProps>(
       lumiaDebugLog('home_mount', {
         profileState: {
           hasProfile: true,
-          isPremium: !!profile.isPremium,
+          isPremium: activePremium,
           language: profile.language || 'ru',
           isSetup: !!profile.isSetup,
         },
@@ -217,7 +219,7 @@ export const Dashboard = memo<DashboardProps>(
         window.clearTimeout(t1);
         window.clearTimeout(t2);
       };
-    }, [profile.isPremium, profile.isSetup, profile.language]);
+    }, [activePremium, profile.isSetup, profile.language]);
 
     React.useEffect(() => {
       if (!initialTodaySection || deepLinkScrollDoneRef.current) return;
@@ -394,7 +396,7 @@ export const Dashboard = memo<DashboardProps>(
               <LumiaHomeHeroCard language={language} onOpen={() => openHoroscope('sign')} />
               <LumiaHomeContentCards
                 language={language}
-                isPremium={profile.isPremium}
+                isPremium={activePremium}
                 onOpenForecast={() => openHoroscope('sign')}
                 onOpenFull={() => openPersonalDaily('overview')}
               />

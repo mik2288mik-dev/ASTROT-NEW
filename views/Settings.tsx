@@ -6,6 +6,7 @@ import { saveProfile } from '../services/storageService';
 import { requestStarsPayment } from '../services/telegramService';
 import { getWeatherSettings, saveWeatherCity } from '../services/weatherService';
 import { ScreenShell } from '../components/layout/ScreenShell';
+import { hasActivePremium } from '../lib/accessMatrix';
 
 interface SettingsProps {
     profile: UserProfile;
@@ -87,6 +88,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
     const languageLabel = profile.language === 'ru'
         ? getText(profile.language, 'settings.language_ru')
         : getText(profile.language, 'settings.language_en');
+    const activePremium = hasActivePremium(profile);
 
     useEffect(() => {
         const tg = (window as any).Telegram?.WebApp;
@@ -150,7 +152,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
     };
 
     const handlePremiumPurchase = async () => {
-        if (profile.isPremium) return;
+        if (activePremium) return;
         
         console.log('[Settings] Starting premium purchase...');
         const success = await requestStarsPayment(profile);
@@ -244,7 +246,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
             <section className={sectionClass}>
                 <p className="lumia-label tracking-[0.2em]">{getText(profile.language, 'settings.subscription')}</p>
                 <h2 className="mt-1.5 font-serif text-xl text-astro-text sm:text-2xl">
-                    {profile.isPremium ? getText(profile.language, 'settings.plan_pro') : getText(profile.language, 'settings.plan_basic')}
+                    {activePremium ? getText(profile.language, 'settings.plan_pro') : getText(profile.language, 'settings.plan_basic')}
                 </h2>
                 <p className="lumia-muted mt-2 text-sm leading-relaxed">
                     {getText(profile.language, 'settings.subscription_body')}
@@ -253,12 +255,12 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                 <div className="mt-4 flex flex-wrap gap-2">
                     <button
                         onClick={handlePremiumPurchase}
-                        disabled={profile.isPremium}
+                        disabled={activePremium}
                         className="min-h-[44px] flex-1 rounded-xl bg-astro-highlight px-4 py-2.5 text-sm font-semibold text-white shadow-[0_0_0_1px_color-mix(in_srgb,var(--highlight)_35%,transparent)_inset] disabled:opacity-50"
                     >
-                        {profile.isPremium ? getText(profile.language, 'settings.plan_active') : getText(profile.language, 'dashboard.get_premium')}
+                        {activePremium ? getText(profile.language, 'settings.plan_active') : getText(profile.language, 'dashboard.get_premium')}
                     </button>
-                    {!profile.isPremium && onShowPremiumPreview && (
+                    {!activePremium && onShowPremiumPreview && (
                         <button
                             onClick={onShowPremiumPreview}
                             type="button"

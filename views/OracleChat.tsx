@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import type { AskLumiaState, AskLumiaTier, ChatMessage, UserProfile } from '../types';
 import { chatWithAstra, getAskLumiaState, getOracleHistory } from '../services/astrologyService';
 import { getText } from '../constants';
+import { hasActivePremium } from '../lib/accessMatrix';
 
 const MIN_QUESTION_LENGTH = 3;
 const MAX_QUESTION_LENGTH = 500;
@@ -54,6 +55,7 @@ export const OracleChat: React.FC<OracleChatProps> = ({
   onPremiumRequired,
 }) => {
   const lang = profile.language === 'en' ? 'en' : 'ru';
+  const activePremium = hasActivePremium(profile);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const [input, setInput] = useState('');
@@ -192,9 +194,9 @@ export const OracleChat: React.FC<OracleChatProps> = ({
     }
 
     const requestedTier: AskLumiaTier =
-      questionState?.nextTier || (profile.isPremium ? 'premium' : 'free');
+      questionState?.nextTier || (activePremium ? 'premium' : 'free');
 
-    if (requestedTier !== 'free' && !profile.isPremium) {
+    if (requestedTier !== 'free' && !activePremium) {
       onPremiumRequired?.();
       return;
     }
@@ -265,7 +267,7 @@ export const OracleChat: React.FC<OracleChatProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [buildHistoryForRequest, lang, onPremiumRequired, profile, questionState, validateQuestion]);
+  }, [activePremium, buildHistoryForRequest, lang, onPremiumRequired, profile, questionState, validateQuestion]);
 
   const handleSend = useCallback(() => {
     if (!input.trim() || loading || stateLoading) return;
@@ -289,9 +291,9 @@ export const OracleChat: React.FC<OracleChatProps> = ({
 
   const inputDisabled = loading || stateLoading;
   const sendDisabled = inputDisabled || !input.trim();
-  const sendLabel = getSendLabel(lang, questionState, profile.isPremium);
-  const stateCopy = getStateStrings(lang, questionState, profile.isPremium);
-  const showPremiumCta = !profile.isPremium && questionState?.nextTier !== 'free';
+  const sendLabel = getSendLabel(lang, questionState, activePremium);
+  const stateCopy = getStateStrings(lang, questionState, activePremium);
+  const showPremiumCta = !activePremium && questionState?.nextTier !== 'free';
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col bg-astro-bg">
@@ -427,7 +429,7 @@ export const OracleChat: React.FC<OracleChatProps> = ({
 
             <div className="mt-4 flex items-center justify-between gap-3">
               <p className="text-xs leading-relaxed text-astro-subtext">
-                {questionState?.nextTier === 'premium' && profile.isPremium
+                {questionState?.nextTier === 'premium' && activePremium
                   ? getText(lang, 'oracle.state_premium_label')
                   : questionState?.nextTier === 'free'
                     ? getText(lang, 'oracle.state_free_label')

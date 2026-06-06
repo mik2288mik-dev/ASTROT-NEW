@@ -18,6 +18,7 @@ import {
   getHumanBaseReportCached,
   type HumanReadingError,
 } from '../../services/natalReadingService';
+import { hasActivePremium } from '../../lib/accessMatrix';
 import { PlanetIcon } from '../icons/PlanetIcon';
 import { FormattedAiText } from '../ui/FormattedAiText';
 
@@ -251,7 +252,7 @@ export const HumanReport: React.FC<Props> = ({
   const [unlockTarget, setUnlockTarget] = useState<HumanPaidSectionKey | null>(null);
 
   const userId = profile.id ? String(profile.id) : '';
-  const isPremium = !!profile.isPremium;
+  const isPremium = hasActivePremium(profile);
   const visibleFreeKeys = useMemo(() => new Set<string>(HUMAN_FREE_SECTION_KEYS), []);
   const visibleFreeSections = useMemo(
     () => (report?.freeSections || []).filter((section) => visibleFreeKeys.has(section.key)),

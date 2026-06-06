@@ -153,7 +153,11 @@ export const getProfile = async (): Promise<UserProfile | null> => {
       log.info(`[getProfile] GET attempt ${attempt + 1}/${PROFILE_FETCH_ATTEMPTS}: ${url}`);
 
       const startTime = Date.now();
-      const response = await fetchWithTimeout(url, { method: 'GET' }, PROFILE_FETCH_TIMEOUT_MS);
+      const response = await fetchWithTimeout(
+        url,
+        { method: 'GET', headers: getTelegramInitDataHeaders() },
+        PROFILE_FETCH_TIMEOUT_MS
+      );
       const duration = Date.now() - startTime;
 
       log.info(`[getProfile] Response received in ${duration}ms`, {

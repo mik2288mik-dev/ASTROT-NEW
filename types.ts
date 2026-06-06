@@ -44,6 +44,10 @@ export interface UserProfile {
   theme: Theme; 
   isPremium: boolean; 
   premiumUntil?: string | null;
+  trialStartedAt?: string | null;
+  selectedZodiacSign?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
   isAdmin?: boolean;
   evolution?: UserEvolution;
   lastContext?: UserContext;

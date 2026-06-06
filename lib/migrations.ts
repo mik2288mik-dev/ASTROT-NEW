@@ -1909,6 +1909,101 @@ async function lumia025RemoveLumiEconomy(pool: Pool): Promise<void> {
   log.info('Migration lumia_025_remove_lumi_economy applied');
 }
 
+async function lumia026AccessFoundation(pool: Pool): Promise<void> {
+  const migrationName = 'lumia_026_access_foundation';
+
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
+  log.info('Applying access foundation fields on users...');
+
+  await pool.query(`
+    ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS trial_started_at TIMESTAMPTZ,
+      ADD COLUMN IF NOT EXISTS is_setup BOOLEAN NOT NULL DEFAULT FALSE,
+      ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+      ADD COLUMN IF NOT EXISTS selected_zodiac_sign TEXT
+  `);
+
+  await pool.query(`
+    DO $$
+    BEGIN
+      IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name = 'users'
+          AND column_name = 'premium_until'
+          AND data_type = 'timestamp without time zone'
+      ) THEN
+        ALTER TABLE users
+          ALTER COLUMN premium_until TYPE TIMESTAMPTZ
+          USING premium_until AT TIME ZONE 'UTC';
+      END IF;
+
+      IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name = 'users'
+          AND column_name = 'created_at'
+          AND data_type = 'timestamp without time zone'
+      ) THEN
+        ALTER TABLE users
+          ALTER COLUMN created_at TYPE TIMESTAMPTZ
+          USING created_at AT TIME ZONE 'UTC';
+      END IF;
+
+      IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name = 'users'
+          AND column_name = 'updated_at'
+          AND data_type = 'timestamp without time zone'
+      ) THEN
+        ALTER TABLE users
+          ALTER COLUMN updated_at TYPE TIMESTAMPTZ
+          USING updated_at AT TIME ZONE 'UTC';
+      END IF;
+    END $$;
+  `);
+
+  await pool.query(`
+    ALTER TABLE users
+      ALTER COLUMN is_setup SET DEFAULT FALSE,
+      ALTER COLUMN created_at SET DEFAULT CURRENT_TIMESTAMP,
+      ALTER COLUMN updated_at SET DEFAULT CURRENT_TIMESTAMP
+  `);
+
+  await pool.query(`
+    UPDATE users
+    SET is_setup = TRUE
+    WHERE is_setup IS NOT TRUE
+      AND birth_date IS NOT NULL
+      AND birth_place IS NOT NULL
+  `);
+
+  await pool.query(`
+    UPDATE users
+    SET trial_started_at = COALESCE(created_at, CURRENT_TIMESTAMP)
+    WHERE trial_started_at IS NULL
+      AND premium_until IS NOT NULL
+  `);
+
+  await pool.query(`
+    UPDATE users
+    SET updated_at = COALESCE(updated_at, created_at, CURRENT_TIMESTAMP)
+    WHERE updated_at IS NULL
+  `);
+
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_users_trial_started_at ON users(trial_started_at)');
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_users_is_setup ON users(is_setup)');
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_users_selected_zodiac_sign ON users(selected_zodiac_sign)');
+
+  await markMigrationApplied(pool, migrationName);
+  log.info('Migration lumia_026_access_foundation applied');
+}
+
 async function verifyTablesExist(pool: Pool): Promise<void> {
   const required = [
     'users', 'natal_charts', 'interpretations', 'app_settings',
@@ -2010,6 +2105,7 @@ export async function runMigrations(): Promise<void> {
   await lumia023StarsAccessTier(pool);
   await lumia024StarsOneOffPayments(pool);
   await lumia025RemoveLumiEconomy(pool);
+  await lumia026AccessFoundation(pool);
   await verifyTablesExist(pool);
 
     log.info('All Lumia migrations completed successfully');

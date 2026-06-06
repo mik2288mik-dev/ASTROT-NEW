@@ -38,6 +38,12 @@ import { installTelegramFullscreenGuard } from './lib/telegramFullscreen';
 import { applyTelegramSafeAreaCssVars, subscribeTelegramContentSafeAreaChanges } from './lib/telegramSafeAreaInsets';
 import { useSwipeBack } from './lib/useSwipeBack';
 import { isValidUserId } from './lib/userId';
+import {
+    canAccessFeature,
+    getProfilePremiumUntil,
+    hasActivePremium,
+    type FeatureKey,
+} from './lib/accessMatrix';
 import { LumiaDebugOverlay } from './components/lumia-ui/LumiaDebugOverlay';
 import { LumiaBottomTabBar } from './components/lumia-ui/LumiaBottomTabBar';
 import { captureLumiaHomeLayout, installLumiaDebugGlobal, lumiaDebugLog } from './lib/lumiaDebug';
@@ -93,24 +99,16 @@ function getTelegramDisplayName(tgUser?: TelegramWebAppUser | null): string {
     return username || 'Гость';
 }
 
-function getTrialPremiumUntilIso(): string {
-    return new Date(Date.now() + NEW_USER_TRIAL_DAYS * 24 * 60 * 60 * 1000).toISOString();
-}
-
-function readProfilePremiumUntil(profile?: Partial<UserProfile> | null): string | null {
-    const value = profile?.premiumUntil ?? (profile as any)?.premium_until ?? null;
-    return value ? String(value) : null;
-}
-
-function isPremiumActive(premiumUntil: string | null): boolean | null {
-    if (!premiumUntil) return null;
-    const timestamp = new Date(premiumUntil).getTime();
-    if (!Number.isFinite(timestamp)) return null;
-    return timestamp > Date.now();
+function getTrialWindow(): { trialStartedAt: string; premiumUntil: string } {
+    const startedAt = Date.now();
+    return {
+        trialStartedAt: new Date(startedAt).toISOString(),
+        premiumUntil: new Date(startedAt + NEW_USER_TRIAL_DAYS * 24 * 60 * 60 * 1000).toISOString(),
+    };
 }
 
 function buildMinimalStartupProfile(tgId: string | number, tgUser?: TelegramWebAppUser | null): UserProfile {
-    const premiumUntil = getTrialPremiumUntilIso();
+    const trial = getTrialWindow();
     return {
         id: String(tgId),
         name: getTelegramDisplayName(tgUser),
@@ -121,7 +119,8 @@ function buildMinimalStartupProfile(tgId: string | number, tgUser?: TelegramWebA
         language: 'ru',
         theme: 'light',
         isPremium: true,
-        premiumUntil,
+        premiumUntil: trial.premiumUntil,
+        trialStartedAt: trial.trialStartedAt,
         loginStreak: 0,
         chartSlots: 1,
     };
@@ -133,8 +132,8 @@ function normalizeStartupProfile(
     tgUser: TelegramWebAppUser | null | undefined,
     isAdmin: boolean
 ): UserProfile {
-    const premiumUntil = readProfilePremiumUntil(storedProfile);
-    const premiumActive = isPremiumActive(premiumUntil);
+    const premiumUntil = getProfilePremiumUntil(storedProfile);
+    const accessProfile = { ...storedProfile, premiumUntil, isAdmin };
     return {
         ...storedProfile,
         id: String(tgId),
@@ -145,7 +144,7 @@ function normalizeStartupProfile(
         isSetup: !!storedProfile.isSetup,
         language: storedProfile.language || 'ru',
         theme: storedProfile.theme || 'light',
-        isPremium: premiumActive ?? !!storedProfile.isPremium,
+        isPremium: hasActivePremium(accessProfile),
         premiumUntil,
         isAdmin,
     };
@@ -412,7 +411,7 @@ const App: React.FC = () => {
             profileState: profile
                 ? {
                     hasProfile: true,
-                    isPremium: !!profile.isPremium,
+                    isPremium: hasActivePremium(profile),
                     language: profile.language || 'ru',
                     isSetup: !!profile.isSetup,
                 }
@@ -421,7 +420,7 @@ const App: React.FC = () => {
         if (view === 'dashboard') {
             window.setTimeout(() => captureLumiaHomeLayout('view_dashboard'), 180);
         }
-    }, [profile?.isPremium, profile?.isSetup, profile?.language, view]);
+    }, [profile?.isPremium, profile?.premiumUntil, profile?.isAdmin, profile?.isSetup, profile?.language, view]);
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -655,7 +654,7 @@ const App: React.FC = () => {
                             chartId: primaryChartId,
                             profile: updatedProfile,
                             chartData: chart,
-                            isPremium: !!updatedProfile.isPremium,
+                            isPremium: hasActivePremium(updatedProfile),
                             dateKey,
                             progressStart: 68,
                             progressSpan: 20,
@@ -701,7 +700,7 @@ const App: React.FC = () => {
         }
 
         const syncKey = `${profile.id}:${chartData.sun?.sign ?? ''}-${chartData.moon?.sign ?? ''}`;
-        const prewarmKey = `${profile.id}:${activeChartId ?? 'primary'}:${getMoscowTodayKey()}:${profile.isPremium ? 'premium' : 'free'}`;
+        const prewarmKey = `${profile.id}:${activeChartId ?? 'primary'}:${getMoscowTodayKey()}:${hasActivePremium(profile) ? 'premium' : 'free'}`;
         if (prewarmCompletedKeyRef.current === prewarmKey) return;
         if (contentSyncedKeyRef.current === syncKey) return;
         contentSyncedKeyRef.current = syncKey;
@@ -743,14 +742,14 @@ const App: React.FC = () => {
         }
         const safeTgId = tgId as string | number;
         const isAdmin = await resolveAuthoritativeAdminStatus(safeTgId, false);
-        const retainedPremiumUntil = readProfilePremiumUntil(profile) ?? readProfilePremiumUntil(newProfile);
-        const retainedPremiumActive = isPremiumActive(retainedPremiumUntil);
+        const retainedPremiumUntil = getProfilePremiumUntil(profile) ?? getProfilePremiumUntil(newProfile);
         const fullProfile = {
             ...newProfile,
             id: String(safeTgId),
             isAdmin,
-            isPremium: retainedPremiumActive ?? profile?.isPremium ?? newProfile.isPremium,
+            isPremium: hasActivePremium({ ...newProfile, premiumUntil: retainedPremiumUntil, isAdmin }),
             premiumUntil: retainedPremiumUntil,
+            trialStartedAt: profile?.trialStartedAt ?? newProfile.trialStartedAt,
             loginStreak: profile?.loginStreak ?? newProfile.loginStreak,
             chartSlots: profile?.chartSlots ?? newProfile.chartSlots,
             refCode: profile?.refCode ?? newProfile.refCode,
@@ -828,7 +827,7 @@ const App: React.FC = () => {
                     chartId: primaryChartId,
                     profile: fullProfile,
                     chartData: generatedChart,
-                    isPremium: !!fullProfile.isPremium,
+                    isPremium: hasActivePremium(fullProfile),
                     dateKey,
                     progressStart: 72,
                     progressSpan: 18,
@@ -965,7 +964,7 @@ const App: React.FC = () => {
                        const isAdmin = await resolveAuthoritativeAdminStatus(profile.id, fresh.isAdmin);
                        refreshedProfile = { ...fresh, id: profile.id, isAdmin };
                        setProfile(refreshedProfile);
-                       if (fresh.isPremium) break;
+                       if (hasActivePremium(refreshedProfile)) break;
                    }
                }
            } catch (error) {
@@ -973,11 +972,11 @@ const App: React.FC = () => {
                refreshedProfile = { ...profile, isPremium: true };
                setProfile(refreshedProfile);
            }
-           const premiumProfile = refreshedProfile?.isPremium
+           const premiumProfile = refreshedProfile && hasActivePremium(refreshedProfile)
                ? refreshedProfile
                : { ...(refreshedProfile || profile), id: profile.id, isPremium: true };
            setProfile(premiumProfile);
-           if (premiumProfile.isPremium && chartData) {
+           if (hasActivePremium(premiumProfile) && chartData) {
                const chartId = activeChartId ?? await getPrimaryChartId(String(premiumProfile.id));
                if (chartId != null) setActiveChartId(chartId);
                await prepareUserContentDbFirst({
@@ -1040,12 +1039,46 @@ const App: React.FC = () => {
         setView('onboarding');
     }, []);
 
+    const getFeatureAccess = useCallback((featureKey: FeatureKey) => (
+        canAccessFeature(featureKey, profile, {
+            chartData: chartData ?? primaryChartDataRef.current,
+            primaryChartId: primaryChartId ?? activeChartId ?? null,
+            hasChart: !!profile?.isSetup,
+        })
+    ), [activeChartId, chartData, primaryChartId, profile]);
+
+    const gateFeatureAccess = useCallback((featureKey: FeatureKey, targetView: ViewState) => {
+        const access = getFeatureAccess(featureKey);
+        if (access.allowed) return true;
+
+        lumiaDebugLog('navigation', {
+            action: 'feature_gate',
+            featureKey,
+            status: access.status,
+            targetView,
+            hasPremium: access.hasPremium,
+            hasChart: access.hasChart,
+        });
+
+        if (access.status === 'needs_chart') {
+            openNatalSetupOnboarding(viewRef.current, targetView);
+            return false;
+        }
+
+        if (access.status === 'needs_premium') {
+            setView('paywall');
+            return false;
+        }
+
+        return false;
+    }, [getFeatureAccess, openNatalSetupOnboarding]);
+
     const navigateTo = useCallback((newView: ViewState, options?: { replace?: boolean }) => {
         if (!profile) return;
         const currentView = viewRef.current;
         if (newView === currentView) return;
 
-        if (newView === 'chart' && !profile.isSetup) {
+        if (newView === 'chart' && getFeatureAccess('natal_basic').status === 'needs_chart') {
             if (!options?.replace) {
                 pushReturnView(currentView);
             }
@@ -1074,7 +1107,7 @@ const App: React.FC = () => {
         }
 
         setView(newView);
-    }, [openNatalSetupOnboarding, profile, pushReturnView]);
+    }, [getFeatureAccess, openNatalSetupOnboarding, profile, pushReturnView]);
 
     const openPersonalDailyView = useCallback((section: PersonalDailySection = 'overview') => {
         lumiaDebugLog('navigation', {
@@ -1085,12 +1118,9 @@ const App: React.FC = () => {
             historyBeforeSet: navigationHistoryRef.current,
         });
         setPersonalDailyInitialSection(section);
-        if (profile && !profile.isSetup) {
-            openNatalSetupOnboarding(viewRef.current, 'personal_daily');
-            return;
-        }
+        if (!gateFeatureAccess('personal_daily', 'personal_daily')) return;
         navigateTo('personal_daily');
-    }, [navigateTo, openNatalSetupOnboarding, profile]);
+    }, [gateFeatureAccess, navigateTo]);
 
     const openHoroscopeLayer = useCallback((layer: HoroscopeLayer, options?: HoroscopeOpenOptions) => {
         if (layer === 'love') {
@@ -1191,13 +1221,10 @@ const App: React.FC = () => {
     }, [navigateTo]);
 
     const openSynastryWithPrefill = useCallback((prefill: SynastryPrefill) => {
-        if (profile && !profile.isSetup) {
-            openNatalSetupOnboarding(viewRef.current, 'synastry');
-            return;
-        }
+        if (!gateFeatureAccess('synastry_by_charts', 'synastry')) return;
         setSynastryPrefill(prefill);
         navigateTo('synastry');
-    }, [navigateTo, openNatalSetupOnboarding, profile]);
+    }, [gateFeatureAccess, navigateTo]);
 
     const openBottomToday = useCallback(() => {
         setInitialTodaySection(null);
@@ -1209,13 +1236,10 @@ const App: React.FC = () => {
     }, [navigateTo]);
 
     const openBottomSynastry = useCallback(() => {
-        if (profile && !profile.isSetup) {
-            openNatalSetupOnboarding(viewRef.current, 'synastry');
-            return;
-        }
+        if (!gateFeatureAccess('synastry_by_charts', 'synastry')) return;
         setSynastryPrefill(null);
         navigateTo('synastry', { replace: true });
-    }, [navigateTo, openNatalSetupOnboarding, profile]);
+    }, [gateFeatureAccess, navigateTo]);
 
     const openBottomAvatar = useCallback(() => {
         navigateTo('settings', { replace: true });
@@ -1284,6 +1308,7 @@ const App: React.FC = () => {
         initialSection: personalDailyInitialSection,
         onBack: handleBack,
         requestPremium,
+        onCreateNatalChart: openBottomNatal,
     };
 
     return (

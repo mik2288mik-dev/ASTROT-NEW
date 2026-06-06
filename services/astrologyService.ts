@@ -7,6 +7,7 @@ import { buildForecastFullDayUnlockCacheKey } from "../lib/forecastFullDay";
 import { fetchWithTimeout } from "../lib/fetchWithTimeout";
 import { isValidUserId } from "../lib/userId";
 import { getRetryAfterMs, isGenerationInProgressError, waitMs } from "../lib/contentInterpretation";
+import { hasActivePremium } from "../lib/accessMatrix";
 import type { NatalPlanetKey } from "../lib/natalPlanetMeta";
 import { getTelegramInitDataHeaders } from "./sessionService";
 
@@ -977,7 +978,7 @@ export const ensureWeeklyForecastLayer = async (
   const cached = await getCachedWeeklyForecastLayer(userId, chartId, period);
   if (cached?.headline) return cached;
 
-  const tier = profile.isPremium ? 'premium' : 'free';
+  const tier = hasActivePremium(profile) ? 'premium' : 'free';
   const url = `${API_BASE_URL}/api/content/forecast/weekly`;
   const data = await fetchContentApi<ForecastWeeklyReading>(url, {
     method: 'POST',
@@ -1027,7 +1028,7 @@ export const ensureMonthlyForecastLayer = async (
   const cached = await getCachedMonthlyForecastLayer(userId, chartId, period);
   if (cached?.headline) return cached;
 
-  const tier = profile.isPremium ? 'premium' : 'free';
+  const tier = hasActivePremium(profile) ? 'premium' : 'free';
   const url = `${API_BASE_URL}/api/content/forecast/monthly`;
   const data = await fetchContentApi<ForecastMonthlyReading>(url, {
     method: 'POST',

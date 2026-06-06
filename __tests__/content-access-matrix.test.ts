@@ -7,6 +7,12 @@ import {
   shouldPrecalculate,
   type UserState,
 } from '../lib/contentAccessMatrix';
+import {
+  canAccessFeature,
+  hasActivePremium,
+  hasNatalChart,
+  listFeatureAccessMatrix,
+} from '../lib/accessMatrix';
 
 const freeUser: UserState = {
   userId: 'user-free',
@@ -19,6 +25,13 @@ const premiumUser: UserState = {
   ...freeUser,
   userId: 'user-premium',
   isPremium: true,
+};
+
+const trialUser: UserState = {
+  ...freeUser,
+  userId: 'user-trial',
+  isPremium: false,
+  premiumUntil: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
 };
 
 function userWithUnlock(
@@ -102,6 +115,11 @@ describe('contentAccessMatrix', () => {
   describe('canAccessContent unlocks', () => {
     it('returns true for premium users on premium variants', () => {
       expect(canAccessContent(premiumUser, 'forecast', 'morning')).toBe(true);
+    });
+
+    it('returns true for trial users with future premiumUntil on premium variants', () => {
+      expect(canAccessContent(trialUser, 'forecast', 'morning')).toBe(true);
+      expect(canAccessContent(trialUser, 'natal', 'full')).toBe(true);
     });
 
     it('returns true for premium unlock rows', () => {
@@ -225,5 +243,103 @@ describe('contentAccessMatrix', () => {
       expect(canAccessContent(premiumUser, 'synastry', 'full')).toBe(true);
       expect(canAccessContent(premiumUser, 'question', 'full')).toBe(true);
     });
+  });
+});
+
+describe('feature access matrix', () => {
+  const futurePremiumUntil = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+  const expiredPremiumUntil = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const trialProfile = {
+    id: 'trial-user',
+    name: 'Trial',
+    language: 'ru' as const,
+    theme: 'light' as const,
+    birthDate: '',
+    birthTime: '',
+    birthPlace: '',
+    isSetup: false,
+    isPremium: false,
+    premiumUntil: futurePremiumUntil,
+  };
+  const chartState = { primaryChartId: 7 };
+
+  it('computes active Premium from legacy flag, premiumUntil, and admin access', () => {
+    expect(hasActivePremium({ isPremium: true })).toBe(true);
+    expect(hasActivePremium({ isPremium: false, premiumUntil: futurePremiumUntil })).toBe(true);
+    expect(hasActivePremium({ isPremium: false, premiumUntil: expiredPremiumUntil })).toBe(false);
+    expect(hasActivePremium({ isPremium: false, isAdmin: true })).toBe(true);
+  });
+
+  it('detects natal chart from chart data, primary chart id, or setup profile', () => {
+    expect(hasNatalChart({ isSetup: true })).toBe(true);
+    expect(hasNatalChart({ isSetup: false }, chartState)).toBe(true);
+    expect(hasNatalChart({ isSetup: false }, { chartData: null, primaryChartId: null })).toBe(false);
+  });
+
+  it('keeps general sign content free without a chart', () => {
+    expect(canAccessFeature('daily_sign_horoscope', trialProfile, { hasChart: false })).toMatchObject({
+      allowed: true,
+      status: 'allowed',
+    });
+    expect(canAccessFeature('zodiac_compatibility', { ...trialProfile, premiumUntil: null }, { hasChart: false })).toMatchObject({
+      allowed: true,
+      status: 'allowed',
+    });
+  });
+
+  it('shows create-chart gate before paywall when a pro feature needs a chart', () => {
+    expect(canAccessFeature('personal_daily', trialProfile, { hasChart: false })).toMatchObject({
+      allowed: false,
+      status: 'needs_chart',
+      hasPremium: true,
+      hasChart: false,
+    });
+    expect(canAccessFeature('personal_daily', { ...trialProfile, premiumUntil: null }, { hasChart: false })).toMatchObject({
+      allowed: false,
+      status: 'needs_chart',
+      hasPremium: false,
+      hasChart: false,
+    });
+  });
+
+  it('allows pro content for trial users after a natal chart exists', () => {
+    expect(canAccessFeature('personal_daily', trialProfile, chartState)).toMatchObject({
+      allowed: true,
+      status: 'allowed',
+    });
+  });
+
+  it('shows paywall when chart exists but Premium/trial is inactive', () => {
+    expect(canAccessFeature('natal_love', { ...trialProfile, premiumUntil: expiredPremiumUntil }, chartState)).toMatchObject({
+      allowed: false,
+      status: 'needs_premium',
+      hasChart: true,
+    });
+  });
+
+  it('keeps basic natal chart free once chart exists', () => {
+    expect(canAccessFeature('natal_basic', { ...trialProfile, premiumUntil: null }, chartState)).toMatchObject({
+      allowed: true,
+      status: 'allowed',
+    });
+  });
+
+  it('contains every requested feature key', () => {
+    expect(listFeatureAccessMatrix().map((entry) => entry.key).sort()).toEqual([
+      'daily_sign_horoscope',
+      'moon_calendar',
+      'natal_basic',
+      'natal_career',
+      'natal_love',
+      'natal_shadow',
+      'natal_talents',
+      'personal_daily',
+      'personal_transits',
+      'personal_weekly',
+      'retrograde_tracker',
+      'synastry_by_charts',
+      'weekly_sign_horoscope',
+      'zodiac_compatibility',
+    ].sort());
   });
 });

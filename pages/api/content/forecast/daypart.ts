@@ -76,7 +76,7 @@ function toProfile(user: any, fallback?: Partial<UserProfile>): UserProfile {
     isSetup: user.is_setup ?? true,
     language: (fallback?.language as 'ru' | 'en') || user.language || 'ru',
     theme: (fallback?.theme as 'dark' | 'light') || user.theme || 'dark',
-    isPremium: fallback?.isPremium ?? !!user.is_premium,
+    isPremium: !!user.is_premium,
     isAdmin: !!user.is_admin,
     loginStreak: user.login_streak ?? 0,
     chartSlots: user.chart_slots ?? 1,

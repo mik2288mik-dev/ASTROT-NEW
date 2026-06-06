@@ -12,6 +12,7 @@ import { Loading } from '../components/ui/Loading';
 import { getText, getZodiacSign } from '../constants';
 import { formatLumiaDate } from '../lib/date-utils';
 import { PlanetIcon } from '../components/icons/PlanetIcon';
+import { hasActivePremium } from '../lib/accessMatrix';
 
 interface MyChartsProps {
   profile: UserProfile;
@@ -78,7 +79,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
   const chartSlots = data?.chartSlots ?? (profile.chartSlots ?? 1);
   const partnerCharts = charts.filter((chart) => !chart.is_primary);
   const isSingleChartState = charts.length === 1 && chartSlots > 1;
-  const showPremiumSlotsCta = !canAddMore && !profile.isPremium && !!onRequestPremium;
+  const showPremiumSlotsCta = !canAddMore && !hasActivePremium(profile) && !!onRequestPremium;
 
   useEffect(() => {
     if (!canAddMore && showAddForm) {

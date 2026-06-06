@@ -43,8 +43,12 @@ function resolveIsAdmin(userId: string, dbIsAdmin: boolean | undefined): boolean
 const NOTIFICATION_FREQUENCIES = new Set(['quiet', 'important', 'daily', 'twice_daily']);
 const NEW_USER_TRIAL_DAYS = 14;
 
-function getNewUserTrialUntilIso(): string {
-  return new Date(Date.now() + NEW_USER_TRIAL_DAYS * 24 * 60 * 60 * 1000).toISOString();
+function getNewUserTrialWindow(): { trialStartedAt: string; premiumUntil: string } {
+  const startedAt = Date.now();
+  return {
+    trialStartedAt: new Date(startedAt).toISOString(),
+    premiumUntil: new Date(startedAt + NEW_USER_TRIAL_DAYS * 24 * 60 * 60 * 1000).toISOString(),
+  };
 }
 
 function normalizeNullableString(value: unknown): string | null {
@@ -235,6 +239,10 @@ export default async function handler(
         theme: user.theme,
         isPremium: user.is_premium,
         premiumUntil: user.premium_until ? new Date(user.premium_until).toISOString() : null,
+        trialStartedAt: user.trial_started_at ? new Date(user.trial_started_at).toISOString() : null,
+        selectedZodiacSign: user.selected_zodiac_sign || null,
+        createdAt: user.created_at ? new Date(user.created_at).toISOString() : null,
+        updatedAt: user.updated_at ? new Date(user.updated_at).toISOString() : null,
         isAdmin: resolveIsAdmin(userId, user.is_admin),
         evolution: null,
         generatedContent,
@@ -292,13 +300,20 @@ export default async function handler(
         birth_date: normalizeNullableString(userData.birthDate),
         birth_time: normalizeNullableString(userData.birthTime),
         birth_place: normalizeNullableString(userData.birthPlace),
-        is_setup: userData.isSetup || false,
+        is_setup: !!userData.isSetup,
         language: userData.language || 'ru',
         theme: userData.theme || 'light',
         weather_city: weatherCityToSave,
       };
+      if (userData.selectedZodiacSign !== undefined || userData.selected_zodiac_sign !== undefined) {
+        dbUser.selected_zodiac_sign = normalizeNullableString(
+          userData.selectedZodiacSign ?? userData.selected_zodiac_sign
+        );
+      }
       if (!existingUser) {
-        dbUser.premium_until = getNewUserTrialUntilIso();
+        const trial = getNewUserTrialWindow();
+        dbUser.trial_started_at = trial.trialStartedAt;
+        dbUser.premium_until = trial.premiumUntil;
       }
 
       const savedUser = await db.users.set(userId, dbUser);
@@ -327,6 +342,16 @@ export default async function handler(
         isPremium: savedUser.is_premium,
         premiumUntil: (savedUser.premium_until ?? refreshedUser?.premium_until)
           ? new Date(savedUser.premium_until ?? refreshedUser?.premium_until).toISOString()
+          : null,
+        trialStartedAt: (savedUser.trial_started_at ?? refreshedUser?.trial_started_at)
+          ? new Date(savedUser.trial_started_at ?? refreshedUser?.trial_started_at).toISOString()
+          : null,
+        selectedZodiacSign: savedUser.selected_zodiac_sign ?? refreshedUser?.selected_zodiac_sign ?? null,
+        createdAt: (savedUser.created_at ?? refreshedUser?.created_at)
+          ? new Date(savedUser.created_at ?? refreshedUser?.created_at).toISOString()
+          : null,
+        updatedAt: (savedUser.updated_at ?? refreshedUser?.updated_at)
+          ? new Date(savedUser.updated_at ?? refreshedUser?.updated_at).toISOString()
           : null,
         isAdmin: resolveIsAdmin(userId, savedUser.is_admin),
         evolution: null,

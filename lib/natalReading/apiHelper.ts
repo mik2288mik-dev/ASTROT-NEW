@@ -5,7 +5,7 @@ import type {
   UserProfile,
 } from '../../types';
 import { db } from '../db';
-import { getContentLayer } from '../contentArchitecture';
+import { getContentLayer, getPremiumEntitlementState } from '../contentArchitecture';
 import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../adminAuth';
 
 export type ReadingContext = {
@@ -25,7 +25,7 @@ function toProfile(user: any, fallback?: Partial<UserProfile>): UserProfile {
     isSetup: user.is_setup ?? true,
     language: (fallback?.language as 'ru' | 'en') || user.language || 'ru',
     theme: (fallback?.theme as 'dark' | 'light') || user.theme || 'dark',
-    isPremium: fallback?.isPremium ?? !!user.is_premium,
+    isPremium: !!user.is_premium,
     isAdmin: !!user.is_admin,
     loginStreak: user.login_streak ?? 0,
     chartSlots: user.chart_slots ?? 1,
@@ -187,12 +187,8 @@ export function endOfIsoWeek(date: Date = new Date()): Date {
 }
 
 export async function isPremium(userId: string): Promise<boolean> {
-  try {
-    const ent = await db.premium_entitlements.getActive(userId);
-    return !!ent;
-  } catch {
-    return false;
-  }
+  const entitlement = await getPremiumEntitlementState(userId);
+  return entitlement.isPremium;
 }
 
 export async function ensureValidContext(

@@ -8,6 +8,7 @@ import { FormattedAiText } from '../components/ui/FormattedAiText';
 import { getApproximateSunSignByDate } from '../lib/zodiac-utils';
 import { toDateInputValue, formatLumiaDate } from '../lib/date-utils';
 import { ScreenShell } from '../components/layout/ScreenShell';
+import { hasActivePremium } from '../lib/accessMatrix';
 
 type SynastryPrefill = {
     source: 'saved-chart' | 'manual';
@@ -66,6 +67,7 @@ export const Synastry: React.FC<SynastryProps> = ({
     const [error, setError] = useState<string | null>(null);
 
     const readingText = getSynastryEditorialText(profile.language === 'en' ? 'en' : 'ru');
+    const activePremium = hasActivePremium(profile);
     const t = (key: string, replacements?: Record<string, string>) => {
         let s = getText(profile.language, key);
         if (replacements) {
@@ -160,7 +162,7 @@ export const Synastry: React.FC<SynastryProps> = ({
 
     const runSynastry = async (mode: 'brief' | 'full') => {
         if (!partnerName || !partnerDate) return;
-        if (mode === 'full' && !profile.isPremium) {
+        if (mode === 'full' && !activePremium) {
             requestPremium();
             return;
         }
@@ -329,7 +331,7 @@ export const Synastry: React.FC<SynastryProps> = ({
                                               <p className="text-xs text-astro-subtext">
                                                   {getText(profile.language, 'charts.limit_reached')}
                                               </p>
-                                              {!profile.isPremium && (
+                                              {!activePremium && (
                                                   <button
                                                       type="button"
                                                       onClick={() => requestPremium()}
@@ -644,7 +646,7 @@ export const Synastry: React.FC<SynastryProps> = ({
                                             <p className="text-center text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
                                                 {getText(profile.language, 'synastry.cta_label')}
                                             </p>
-                                            {profile.isPremium ? (
+                                            {activePremium ? (
                                                 <button
                                                     type="button"
                                                     onClick={() => void runSynastry('full')}

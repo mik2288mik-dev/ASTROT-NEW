@@ -6,6 +6,7 @@ import type {
   ContentUnlock,
 } from '../types';
 import { db } from './db';
+import { getConfiguredOwnerId } from './adminAuth';
 import { getMoscowIsoWeekKey, getMoscowMonthKey, getMoscowTodayKey } from './date-utils';
 import { getCurrentNatalPeriodKey } from './natalReadings';
 
@@ -171,8 +172,8 @@ export async function unlockContentLayer(
   const chartId = await resolveChartId(options.userId, options.chartId);
 
   if (options.accessTier === 'premium') {
-    const entitlement = await db.premium_entitlements.getActive(options.userId);
-    if (!entitlement) {
+    const entitlementState = await getPremiumEntitlementState(options.userId);
+    if (!entitlementState.isPremium) {
       throw new Error('PREMIUM_REQUIRED');
     }
 
@@ -195,8 +196,10 @@ export async function unlockContentLayer(
       contentVariant: options.contentVariant,
       unlockType: 'premium',
       cacheKey,
-      expiresAt: entitlement.endsAt,
-      metadata: { entitlementId: entitlement.id },
+      expiresAt: entitlementState.entitlement?.endsAt ?? null,
+      metadata: entitlementState.entitlement
+        ? { entitlementId: entitlementState.entitlement.id }
+        : { entitlementSource: 'active_premium' },
     });
     return { unlock, chartId, cacheKey, via: 'premium' };
   }
@@ -225,6 +228,14 @@ export async function unlockContentLayer(
 }
 
 export async function getPremiumEntitlementState(userId: string) {
+  const ownerId = getConfiguredOwnerId();
+  if (ownerId && String(userId) === String(ownerId)) {
+    return {
+      isPremium: true,
+      entitlement: null,
+    };
+  }
+
   let entitlement: Awaited<ReturnType<typeof db.premium_entitlements.getActive>> | null = null;
   try {
     entitlement = await db.premium_entitlements.getActive(userId);
@@ -243,6 +254,13 @@ export async function getPremiumEntitlementState(userId: string) {
   }
 
   const user = await db.users.get(userId);
+  if (user?.is_admin) {
+    return {
+      isPremium: true,
+      entitlement: null,
+    };
+  }
+
   const premiumUntil = user?.premium_until ? new Date(user.premium_until) : null;
   if (premiumUntil && !Number.isNaN(premiumUntil.getTime()) && premiumUntil.getTime() > Date.now()) {
     return {

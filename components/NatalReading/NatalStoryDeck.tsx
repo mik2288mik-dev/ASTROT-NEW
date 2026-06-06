@@ -30,6 +30,7 @@ import {
   type HumanReadingError,
 } from '../../services/natalReadingService';
 import { recordUserAppEvent, updateUserNotificationSettings } from '../../services/sessionService';
+import { hasActivePremium } from '../../lib/accessMatrix';
 import { cn } from '../../lib/cn';
 import { FormattedAiText } from '../ui/FormattedAiText';
 import { NatalUnlockSheet } from './HumanReport';
@@ -164,10 +165,11 @@ function buildLocalProfileCardsFallback(
   localHour: number
 ): ProfileCard[] {
   try {
+    const isPremium = hasActivePremium(profile);
     return buildNatalProfileCards({
-      profile: { ...profile, isPremium: !!profile.isPremium },
+      profile: { ...profile, isPremium },
       chartData,
-      isPremium: !!profile.isPremium,
+      isPremium,
       todayContext: { localHour },
     });
   } catch {
@@ -569,7 +571,7 @@ export const NatalStoryDeck = memo<NatalStoryDeckProps>(
     initialCardId,
   }) => {
     const userId = profile.id ? String(profile.id) : '';
-    const isPremium = !!profile.isPremium;
+    const isPremium = hasActivePremium(profile);
     const [profileCards, setProfileCards] = useState<ProfileCard[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);

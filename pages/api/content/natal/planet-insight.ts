@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import type { ContentInterpretation, NatalChartData, PlanetInsight, UserProfile } from '../../../../types';
 import { getOpenAIModelForContent } from '../../../../lib/appSettings';
-import { getContentLayer } from '../../../../lib/contentArchitecture';
+import { getContentLayer, getPremiumEntitlementState } from '../../../../lib/contentArchitecture';
 import {
   buildContentGenerationLockKey,
   generationInProgressPayload,
@@ -137,8 +137,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
-  const entitlement = await db.premium_entitlements.getActive(safeUserId);
-  const isPremium = !!entitlement || !!context.profile.isPremium;
+  const entitlement = await getPremiumEntitlementState(safeUserId);
+  const isPremium = entitlement.isPremium || !!context.profile.isPremium;
   const accessTier = 'premium' as const;
 
   if (!isPremium) {

@@ -570,6 +570,16 @@ function advisoryXactLockKey(userId: string): number {
   return n % 2147483646 + 1;
 }
 
+function isFutureTimestamp(value: unknown): boolean {
+  if (!value) return false;
+  const timestamp = value instanceof Date ? value.getTime() : new Date(String(value)).getTime();
+  return Number.isFinite(timestamp) && timestamp > Date.now();
+}
+
+function resolveIsSetup(row: any, birthDate?: unknown, birthPlace?: unknown): boolean {
+  return !!row?.is_setup || (!!(birthDate ?? row?.birth_date) && !!(birthPlace ?? row?.birth_place));
+}
+
 /**
  * Lumia Database operations
  */
@@ -630,7 +640,8 @@ export const db = {
             error: chartError?.message,
           });
         }
-        const isPremium = u.premium_until && new Date(u.premium_until) > new Date();
+        const isPremium = isFutureTimestamp(u.premium_until);
+        const isSetup = resolveIsSetup(u);
         return {
           id: String(u.id),
           name: u.name,
@@ -643,6 +654,7 @@ export const db = {
           moon_sign: primaryChart?.moon_sign ?? u.moon_sign,
           ascendant: primaryChart?.ascendant_sign ?? u.ascendant,
           premium_until: u.premium_until,
+          trial_started_at: u.trial_started_at,
           ref_code: u.ref_code,
           referred_by: u.referred_by,
           login_streak: u.login_streak ?? 0,
@@ -652,8 +664,10 @@ export const db = {
           is_admin: u.is_admin ?? false,
           weather_city: u.weather_city,
           created_at: u.created_at,
+          updated_at: u.updated_at,
+          selected_zodiac_sign: u.selected_zodiac_sign,
           is_premium: isPremium,
-          is_setup: !!(u.name && u.birth_date && u.birth_place),
+          is_setup: isSetup,
           chart_slots: u.chart_slots ?? 1,
         };
       } catch (error: any) {
@@ -678,6 +692,15 @@ export const db = {
         const finalWeatherCity = weatherCity != null && String(weatherCity).trim()
           ? String(weatherCity).trim()
           : null;
+        const birthDate = merge('birth_date');
+        const birthTime = merge('birth_time');
+        const birthPlace = merge('birth_place');
+        const trialStartedAt = merge('trial_started_at');
+        const selectedZodiacRaw = merge('selected_zodiac_sign');
+        const selectedZodiacSign = selectedZodiacRaw != null && String(selectedZodiacRaw).trim()
+          ? String(selectedZodiacRaw).trim()
+          : null;
+        const finalIsSetup = !!(data.is_setup ?? existingUser?.is_setup) || !!(birthDate && birthPlace);
         let premiumUntil = data.premium_until;
         if (premiumUntil === undefined && data.is_premium !== undefined) {
           premiumUntil = data.is_premium
@@ -690,9 +713,10 @@ export const db = {
           `INSERT INTO users (
             id, name, birth_date, birth_time, birth_place,
             latitude, longitude, sun_sign, moon_sign, ascendant,
-            premium_until, ref_code, referred_by,
+            premium_until, trial_started_at, is_setup, selected_zodiac_sign,
+            ref_code, referred_by,
             login_streak, last_login, language, theme, is_admin, weather_city
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
           ON CONFLICT (id) DO UPDATE SET
             name = COALESCE(EXCLUDED.name, users.name),
             birth_date = COALESCE(EXCLUDED.birth_date, users.birth_date),
@@ -704,23 +728,30 @@ export const db = {
             moon_sign = COALESCE(EXCLUDED.moon_sign, users.moon_sign),
             ascendant = COALESCE(EXCLUDED.ascendant, users.ascendant),
             premium_until = EXCLUDED.premium_until,
+            trial_started_at = COALESCE(EXCLUDED.trial_started_at, users.trial_started_at),
+            is_setup = EXCLUDED.is_setup,
+            selected_zodiac_sign = EXCLUDED.selected_zodiac_sign,
             language = COALESCE(EXCLUDED.language, users.language),
             theme = COALESCE(EXCLUDED.theme, users.theme),
             is_admin = COALESCE(EXCLUDED.is_admin, users.is_admin),
-            weather_city = COALESCE(EXCLUDED.weather_city, users.weather_city)
+            weather_city = COALESCE(EXCLUDED.weather_city, users.weather_city),
+            updated_at = CURRENT_TIMESTAMP
           RETURNING *`,
           [
             id,
             merge('name'),
-            merge('birth_date'),
-            merge('birth_time'),
-            merge('birth_place'),
+            birthDate,
+            birthTime,
+            birthPlace,
             merge('latitude'),
             merge('longitude'),
             merge('sun_sign'),
             merge('moon_sign'),
             merge('ascendant'),
             premiumUntil,
+            trialStartedAt,
+            finalIsSetup,
+            selectedZodiacSign,
             merge('ref_code'),
             merge('referred_by'),
             merge('login_streak', 0),
@@ -732,7 +763,7 @@ export const db = {
           ]
         );
         const u = result.rows[0];
-        const isPremium = u.premium_until && new Date(u.premium_until) > new Date();
+        const isPremium = isFutureTimestamp(u.premium_until);
         return {
           id: String(u.id),
           name: u.name,
@@ -740,12 +771,16 @@ export const db = {
           birth_time: u.birth_time,
           birth_place: u.birth_place,
           premium_until: u.premium_until,
-          is_setup: !!(u.name && u.birth_date && u.birth_place),
+          trial_started_at: u.trial_started_at,
+          is_setup: resolveIsSetup(u),
           language: u.language || 'ru',
           theme: u.theme || 'dark',
           is_premium: isPremium,
           is_admin: u.is_admin ?? false,
           weather_city: u.weather_city,
+          created_at: u.created_at,
+          updated_at: u.updated_at,
+          selected_zodiac_sign: u.selected_zodiac_sign,
         };
       } catch (error: any) {
         log.error('[DB] Error setting user', { error: error.message, userId });
@@ -767,7 +802,8 @@ export const db = {
         const dbPool = getPool();
         const result = await dbPool.query(
           `UPDATE users
-           SET premium_until = $1
+           SET premium_until = $1,
+               updated_at = CURRENT_TIMESTAMP
            WHERE id = $2
            RETURNING id`,
           [premiumUntil, id]
@@ -893,19 +929,24 @@ export const db = {
         const dbPool = getPool();
         const result = await dbPool.query('SELECT * FROM users ORDER BY created_at DESC');
         return result.rows.map((u: any) => {
-          const isPremium = u.premium_until && new Date(u.premium_until) > new Date();
+          const isPremium = isFutureTimestamp(u.premium_until);
         return {
           id: String(u.id),
           name: u.name,
           birth_date: u.birth_date,
           birth_time: u.birth_time,
           birth_place: u.birth_place,
-          is_setup: !!(u.name && u.birth_date && u.birth_place),
+          premium_until: u.premium_until,
+          trial_started_at: u.trial_started_at,
+          is_setup: resolveIsSetup(u),
           language: u.language || 'ru',
           theme: u.theme || 'dark',
           is_premium: isPremium,
           is_admin: u.is_admin ?? false,
           weather_city: u.weather_city,
+          created_at: u.created_at,
+          updated_at: u.updated_at,
+          selected_zodiac_sign: u.selected_zodiac_sign,
           login_streak: u.login_streak ?? 0,
         };
         });

@@ -9,6 +9,7 @@ import {
   WalletCards,
   type LucideIcon,
 } from 'lucide-react';
+import { canAccessFeature } from '../lib/accessMatrix';
 import type {
   ForecastDaypartReading,
   InterpretationSection,
@@ -29,6 +30,7 @@ type PersonalDailyScreenProps = {
   initialSection?: PersonalDailySection;
   onBack: () => void | Promise<void>;
   requestPremium: () => void | Promise<void>;
+  onCreateNatalChart?: () => void | Promise<void>;
 };
 
 type DailyTabConfig = {
@@ -139,6 +141,44 @@ function PremiumNotice({ profile, requestPremium }: Pick<PersonalDailyScreenProp
   );
 }
 
+function CreateChartNotice({
+  profile,
+  onCreateNatalChart,
+}: Pick<PersonalDailyScreenProps, 'profile' | 'onCreateNatalChart'>) {
+  const language = profile.language === 'en' ? 'en' : 'ru';
+  return (
+    <div className="mt-6 max-w-[min(82vw,22rem)] rounded-[18px] border border-black/10 bg-white px-4 py-4 text-[#34333a]">
+      <div className="flex items-start gap-3">
+        <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#202024] text-white">
+          <Sparkles size={16} />
+        </span>
+        <div>
+          <p className="text-[16px] font-semibold leading-snug">
+            {language === 'en' ? 'Create your natal chart' : 'Создать натальную карту'}
+          </p>
+          <p className="mt-1 text-[14px] leading-relaxed text-[#68646e]">
+            {language === 'en'
+              ? 'Personal daily readings need birth data first.'
+              : 'Для персонального прогноза сначала нужна твоя карта рождения.'}
+          </p>
+          {onCreateNatalChart ? (
+            <button
+              type="button"
+              onClick={() => {
+                hapticOpen();
+                void onCreateNatalChart();
+              }}
+              className="mt-4 inline-flex min-h-[44px] items-center rounded-full bg-[#202024] px-5 text-[14px] font-semibold text-white"
+            >
+              {language === 'en' ? 'Create chart' : 'Создать карту'}
+            </button>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ErrorText({ language }: { language: 'ru' | 'en' }) {
   return (
     <div className="mt-6 max-w-[min(82vw,22rem)] rounded-[18px] border border-black/10 bg-white px-4 py-3 text-[14px] leading-relaxed text-[#5f5b64]">
@@ -205,9 +245,14 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
   initialSection = 'overview',
   onBack,
   requestPremium,
+  onCreateNatalChart,
 }) => {
   const language = profile.language === 'en' ? 'en' : 'ru';
   const dateKey = useMemo(() => getMoscowTodayKey(), []);
+  const access = useMemo(
+    () => canAccessFeature('personal_daily', profile, { chartData, primaryChartId: chartId ?? null }),
+    [chartData, chartId, profile]
+  );
   const [activeSection, setActiveSection] = useState<PersonalDailySection>(initialSection);
   const [forecast, setForecast] = useState<ForecastDaypartReading | null>(null);
   const [sections, setSections] = useState<Partial<Record<HumanDailySectionKey, InterpretationSection>>>({});
@@ -227,7 +272,7 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
 
   useEffect(() => {
     let alive = true;
-    if (!profile.isPremium || !profile.id || !chartData) return () => {
+    if (!access.allowed || !profile.id || !chartData) return () => {
       alive = false;
     };
 
@@ -276,7 +321,7 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
     return () => {
       alive = false;
     };
-  }, [activeSection, chartData, chartId, dateKey, forecast, profile, sections]);
+  }, [access.allowed, activeSection, chartData, chartId, dateKey, forecast, profile, sections]);
 
   return (
     <div className="min-h-full bg-white px-4 pb-8 pt-[calc(max(env(safe-area-inset-top,0px),var(--tg-content-safe-area-inset-top,0px))+0.8rem)] font-sans">
@@ -335,7 +380,9 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
           </div>
 
           <div className="relative flex-1">
-            {!profile.isPremium ? (
+            {access.status === 'needs_chart' ? (
+              <CreateChartNotice profile={profile} onCreateNatalChart={onCreateNatalChart} />
+            ) : access.status === 'needs_premium' ? (
               <PremiumNotice profile={profile} requestPremium={requestPremium} />
             ) : !chartData || !profile.id ? (
               <ErrorText language={language} />
