@@ -608,7 +608,7 @@ export const getTodayAssistantHome = async (
   const promise = (async (): Promise<TodayAssistantHomeResult> => {
     const response = await fetchWithTimeout(`${API_BASE_URL}/api/content/today/home`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
       body: JSON.stringify({
         userId: profile.id,
         profile,
