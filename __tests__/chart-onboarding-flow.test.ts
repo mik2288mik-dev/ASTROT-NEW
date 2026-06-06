@@ -1,0 +1,46 @@
+import fs from 'fs';
+import path from 'path';
+
+const ROOT = path.resolve(__dirname, '..');
+const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
+
+describe('chart onboarding and lazy sections', () => {
+  it('shows a create-chart CTA instead of auto-starting onboarding from chart navigation', () => {
+    const chart = read('views/NatalChart.tsx');
+    const app = read('App.tsx');
+    expect(chart).toContain('Создай натальную карту');
+    expect(chart).toContain('Lumia рассчитает карту по дате, времени и месту рождения');
+    expect(chart).toContain('onCreateChart');
+    expect(app).not.toContain("if (newView === 'chart' && getFeatureAccess('natal_basic').status === 'needs_chart')");
+    expect(app).toContain("onCreateChart={() => openNatalSetupOnboarding('chart', 'chart')}");
+  });
+
+  it('returns completed chart onboarding to the requested target', () => {
+    const app = read('App.tsx');
+    expect(app).toContain("const targetView = onboardingTargetViewRef.current || 'dashboard'");
+    expect(app).toContain('setView(targetView)');
+    expect(app).toContain('isSetup: true');
+    expect(app).toContain('await saveProfile(fullProfile)');
+  });
+
+  it('keeps one free basic identity and lazy-loads paid sections on open', () => {
+    const shared = read('lib/natalHumanShared.ts');
+    const report = read('components/NatalReading/HumanReport.tsx');
+    const prompt = read('lib/natalHumanInterpretation.ts');
+    expect(shared).toContain("export const HUMAN_FREE_SECTION_KEYS = [\n  'base_portrait'");
+    expect(report).toContain('loadHumanPaidSection');
+    expect(report).toContain('getCachedHumanPaidSection');
+    expect(prompt).toContain("getWordRangeInstruction('natal_section')");
+    expect(prompt).toContain("contentVariant: 'living'");
+  });
+
+  it('uses human product names and links today to personal daily', () => {
+    const shared = read('lib/natalHumanShared.ts');
+    const report = read('components/NatalReading/HumanReport.tsx');
+    for (const title of ['Как ты любишь', 'Где твоя сила', 'Что тебя бесит', 'Тёмная сторона', 'Скрытые таланты', 'Деньги и решения', 'Как тебя видят другие']) {
+      expect(shared).toContain(title);
+    }
+    expect(report).toContain('Что с тобой сегодня');
+    expect(report).toContain('onOpenPersonalDaily');
+  });
+});

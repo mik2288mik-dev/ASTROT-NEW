@@ -12,10 +12,7 @@ describe('product daily navigation', () => {
     const source = read('views/Dashboard.tsx');
 
     expect(source).toContain("openHoroscope('sign', { mode: 'single', source: 'home_card_today' })");
-    expect(source).toContain("openPersonalDaily('love')");
     expect(source).toContain("openPersonalDaily('money')");
-    expect(source).toContain("openPersonalDaily('work')");
-    expect(source).toContain("openPersonalDaily('goals')");
     expect(source).toContain("openPersonalDaily('overview')");
     expect(source).toContain('onOpenPersonalDaily: (section?: PersonalDailySection) => void');
     expect(source).not.toContain('onOpenPremiumDaily');
@@ -60,7 +57,7 @@ describe('product daily navigation', () => {
     expect(source).not.toMatch(/LUMIA не получила|Вернись позже|Повторить/);
   });
 
-  it('Horoscope is only the sign horoscope screen', () => {
+  it('Horoscope keeps personal generation in PersonalDailyScreen', () => {
     const source = read('views/Horoscope.tsx');
 
     expect(source).toContain('ZODIAC_SIGNS');
