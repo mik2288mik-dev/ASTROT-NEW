@@ -63,4 +63,10 @@ describe('app auth providers and API security', () => {
     expect(read('App.tsx')).toContain('bootstrapping signed web guest session');
     expect(read('App.tsx')).not.toContain('Открой Lumia через Telegram Mini App и попробуй ещё раз');
   });
+
+  it('creates web guests with the light theme and without Premium or trial', () => {
+    const auth = read('lib/auth/appAuth.ts');
+    expect(auth).toContain("name: 'Гость', language: 'ru', theme: 'light', is_setup: false");
+    expect(auth).toContain('is_premium: false, premium_until: null, trial_started_at: null');
+  });
 });

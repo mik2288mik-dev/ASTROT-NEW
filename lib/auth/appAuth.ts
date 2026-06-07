@@ -84,7 +84,7 @@ export { isGuestUserId } from '../userId';
 export async function createGuestAppUser(res: NextApiResponse): Promise<AppUserContext> {
   const identity = createGuestIdentity();
   await db.users.set(identity.userId, {
-    name: 'Гость', language: 'ru', theme: 'dark', is_setup: false,
+    name: 'Гость', language: 'ru', theme: 'light', is_setup: false,
     is_premium: false, premium_until: null, trial_started_at: null,
   });
   setAppSessionCookie(res, createAppSessionToken({ ...identity, provider: 'web_guest' }));
