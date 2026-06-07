@@ -25,17 +25,13 @@ const EXCLUDED_PATH_SNIPPETS = [
   'pages/api/astrology/',
   'views/admin/',
   'pages/api/content/natal/dive.ts',
-  'services/contentGenerationService.ts',
   'services/astrologyService.ts',
-  'lib/cache.ts',
 ];
 
 const SOUL_PASSPORT_EXCLUDED_SNIPPETS = ['docs/', '__tests__/', 'lib/lumiaVoice.ts'];
 
 /** Technical identifiers that may appear in code but must not mask user-facing copy. */
 const TECHNICAL_TOKEN_REPLACEMENTS: Array<[RegExp, string]> = [
-  [/createSoulPassportPrompt/g, ''],
-  [/createDeepDivePrompt/g, ''],
   [/buildDeepDivePrompt/g, ''],
   [/NatalReadingDeepDiveKey/g, ''],
   [/NatalReadingDeepDive/g, ''],

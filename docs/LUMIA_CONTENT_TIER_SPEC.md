@@ -35,9 +35,9 @@
 | free | question | brief | Стартовый бесплатный вопрос (лимит через unlock) | `POST/GET /api/content/question/ask` | [views/OracleChat.tsx](../views/OracleChat.tsx) |
 | lumi | question | one_off | Разовый вопрос за Lumi | то же | то же |
 | premium | question | full | Вопросы в рамках Premium | то же | то же |
-| free | synastry | (legacy `brief`) | Короткий бесплатный вход по двум картам | `POST /api/astrology/synastry-brief` | [views/Synastry.tsx](../views/Synastry.tsx) |
+| free | synastry | (legacy `brief`) | Короткий бесплатный вход по двум картам | `GET/POST /api/content/synastry/sign-compatibility` | [views/Synastry.tsx](../views/Synastry.tsx) |
 | lumi | synastry | one_off | Средний слой (связь, напряжение, навигация, контекст типа связи), разовый unlock + кэш | `POST /api/content/synastry/extended` (`allowLumiSpend`) | то же |
-| premium | synastry | (legacy `full`) | Полный глубокий разбор | `POST /api/astrology/synastry-full` (entitlement по БД) | то же |
+| premium | synastry | (legacy `full`) | Полный глубокий разбор | `POST /api/content/synastry/extended` (entitlement по БД) | то же |
 
 Генерация текста прогноза: [lib/forecastContent.ts](../lib/forecastContent.ts), промпты: [lib/prompts.ts](../lib/prompts.ts) (`createDailyForecastV2Prompt`, `createDaypartForecastPrompt`, неделя/месяц: `createFreeWeeklyForecastPrompt`, `createPremiumWeeklyForecastPrompt`, `createFreeMonthlyForecastPrompt`, `createPremiumMonthlyForecastPrompt`).
 
@@ -66,7 +66,7 @@ Unlock / интерпретации в БД: [lib/contentArchitecture.ts](../lib
 ## 5. Backlog / известные зазоры
 
 - **Synastry**: Lumi-слой пишет в `content_interpretations` + `synastry_cache` (`mode: extended`); free/full по-прежнему на legacy `synastry-brief` / `synastry-full` (кэш `brief`/`full`). При желании позже — единый маршрут `requestedTier`.
-- **Weekly / monthly** forecast: реализовано в `content/forecast/weekly` и `monthly`; legacy `pages/api/astrology/weekly-horoscope` / `monthly-horoscope` помечены как устаревающие мосты.
+- **Weekly / monthly** forecast: реализовано в `content/forecast/weekly` и `content/forecast/monthly`.
 - **Lumi reason taxonomy** (earn / spend / purchase / system): код и подписи в [lib/lumiReasonTaxonomy.ts](../lib/lumiReasonTaxonomy.ts); расширять при новых `reason` в БД.
 
 ## 6. История

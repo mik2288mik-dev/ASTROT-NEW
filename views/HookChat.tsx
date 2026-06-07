@@ -29,18 +29,15 @@ export const HookChat: React.FC<HookChatProps> = ({ profile, chartData, onComple
             
             try {
                 // Получаем natalIntro из профиля или генерируем
-                let introText = profile.generatedContent?.natalIntro;
+                let introText: string;
                 
-                if (!introText) {
-                    try {
+                try {
                         introText = await getNatalIntro(profile, chartData);
-                    } catch (error) {
-                        console.error('[HookChat] Failed to get natal intro:', error);
-                        // Fallback текст
-                        introText = profile.language === 'ru'
-                            ? `Привет, ${profile.name}! Я уже собрала твою личную основу. Дальше покажу, что поможет тебе яснее видеть себя, отношения и важные решения.`
-                            : `Hi, ${profile.name}! I've already gathered your personal foundation. Next I'll show what can help you see yourself, your relationships, and key decisions more clearly.`;
-                    }
+                } catch (error) {
+                    console.error('[HookChat] Failed to get natal intro:', error);
+                    introText = profile.language === 'ru'
+                        ? `Привет, ${profile.name}! Я уже собрала твою личную основу. Дальше покажу, что поможет тебе яснее видеть себя, отношения и важные решения.`
+                        : `Hi, ${profile.name}! I've already gathered your personal foundation. Next I'll show what can help you see yourself, your relationships, and key decisions more clearly.`;
                 }
                 
                 setIsLoading(false);

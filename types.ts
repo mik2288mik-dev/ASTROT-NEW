@@ -63,6 +63,7 @@ export interface UserProfile {
   weatherCity?: string; // Город для погоды (например, "Moscow" или "Москва")
 
   // Все генерации пользователя (кэшируются)
+  /** @deprecated legacy_compat input only; current client flows do not read or synchronize it. */
   generatedContent?: UserGeneratedContent;
 }
 
@@ -152,6 +153,7 @@ export interface NatalChartData {
 }
 
 // Полное хранилище всех генераций пользователя
+/** @deprecated legacy_compat aggregate retained for server fallback input typing. */
 export interface UserGeneratedContent {
   // НОВОЕ: Вступление натальной карты (бесплатное)
   natalIntro?: string;

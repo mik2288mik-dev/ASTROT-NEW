@@ -49,7 +49,6 @@ flowchart TB
 
 - Anchor: `GET/POST /api/content/natal/anchor` — `accessTier: free`, `contentVariant: anchor`.
 - Living: `GET/POST /api/content/natal/living` — `accessTier: premium`, `contentVariant: living`.
-- Обновление anchor за Lumi: `/api/astrology/refresh-natal-intro` (точечное действие, не путать с living).
 
 ## Copy-принципы
 

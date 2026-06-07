@@ -4,8 +4,7 @@ import type { SignCompatibilityResult } from '../lib/synastry/signCompatibility'
 import { hasActivePremium, hasNatalChart } from '../lib/accessMatrix';
 import { getZodiacSign } from '../constants';
 import { getCharts, type ChartListItem } from '../services/storageService';
-import { getSignCompatibility } from '../services/astrologyService';
-import { getOrGenerateSynastry } from '../services/contentGenerationService';
+import { calculateExtendedSynastry, getSignCompatibility } from '../services/astrologyService';
 import { toDateInputValue } from '../lib/date-utils';
 
 type SynastryPrefill = { source: 'saved-chart' | 'manual'; partnerChartId?: number; partnerName?: string; partnerDate?: string; partnerTime?: string; partnerPlace?: string } | null;
@@ -42,7 +41,7 @@ export const Synastry: React.FC<Props> = ({ profile, chartData, chartId, request
   async function runPersonal() {
     if (!hasChart) { onCreateNatalChart?.(); return; } if (!premium) { requestPremium(); return; }
     if (!partnerName.trim() || !partnerDate) { setError(language === 'ru' ? 'Добавь имя и дату рождения партнёра.' : 'Add the partner name and birth date.'); return; }
-    setLoading(true); setError(null); try { const output = await getOrGenerateSynastry(profile, partnerName, partnerDate, partnerTime || undefined, partnerPlace || undefined, 'отношения', 'extended', partnerChartId || undefined); setResult(output.result); } catch (e: any) { setError(e?.message || (language === 'ru' ? 'Не удалось собрать разбор.' : 'Could not create the reading.')); } finally { setLoading(false); }
+    setLoading(true); setError(null); try { const output = await calculateExtendedSynastry(profile, partnerName, partnerDate, partnerTime || undefined, partnerPlace || undefined, 'отношения', partnerChartId || undefined); setResult(output.result); } catch (e: any) { setError(e?.message || (language === 'ru' ? 'Не удалось собрать разбор.' : 'Could not create the reading.')); } finally { setLoading(false); }
   }
   const accuracy = !partnerTime || !partnerPlace ? (language === 'ru' ? 'Без точного времени или места рождения разбор не учитывает часть домов и может быть менее точным.' : 'Without an exact birth time or place, some chart details are unavailable and the reading may be less precise.') : null;
 

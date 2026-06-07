@@ -4,15 +4,6 @@ import { AdminAuthError, getConfiguredOwnerId, handleAdminError } from '../../..
 import { requireAppUser } from '../../../lib/auth/appAuth';
 import { hasDatabaseUrl } from '../../../lib/database-url';
 import { getMoscowTodayKey, toDateInputValue } from '../../../lib/date-utils';
-import {
-  coerceNatalAnchorReading,
-  coerceNatalFullReading,
-  mapNatalAnchorToLegacyIntro,
-  NATAL_ANCHOR_CACHE_KEY,
-  NATAL_ANCHOR_PROMPT_VERSION,
-  NATAL_FULL_CACHE_KEY,
-  NATAL_FULL_PROMPT_VERSION,
-} from '../../../lib/natalReadings';
 import { invalidUserIdPayload, isValidUserId } from '../../../lib/userId';
 
 // Logging utility
@@ -27,12 +18,6 @@ const log = {
     console.warn(`[API/users/[id]] WARN: ${message}`, error || '');
   },
 };
-
-function toUnixTimestamp(value?: string | Date | null): number | undefined {
-  if (!value) return undefined;
-  const timestamp = new Date(value).getTime();
-  return Number.isFinite(timestamp) ? timestamp : undefined;
-}
 
 /** Owner gets isAdmin from env; otherwise use DB. Ensures Admin Panel visible even if client bundle lacks NEXT_PUBLIC_OWNER_ID. */
 function resolveIsAdmin(userId: string, dbIsAdmin: boolean | undefined): boolean {
@@ -90,83 +75,6 @@ async function saveNotificationFrequency(userId: string, value: unknown): Promis
   }
 }
 
-async function hydrateGeneratedContent(userId: string) {
-  const generatedContent: {
-    natalIntro?: string;
-    deepDiveAnalyses?: Record<string, string>;
-    dailyHoroscope?: any;
-    timestamps: Record<string, number>;
-  } = { timestamps: {} };
-
-  let hasContent = false;
-
-  try {
-    const primaryChart = await db.natal_charts.getPrimary(userId);
-    const natalIntro = primaryChart?.id != null
-      ? await db.content_interpretations.getByChart(primaryChart.id, 'free', 'natal', 'anchor', NATAL_ANCHOR_CACHE_KEY)
-      : await db.content_interpretations.getByUser(userId, 'free', 'natal', 'anchor', NATAL_ANCHOR_CACHE_KEY);
-    if (natalIntro?.content && natalIntro.promptVersion === NATAL_ANCHOR_PROMPT_VERSION) {
-      const reading = coerceNatalAnchorReading(natalIntro.content, 'ru', primaryChart?.chart_data || null);
-      generatedContent.natalIntro = mapNatalAnchorToLegacyIntro(reading);
-      const generatedAt = toUnixTimestamp(natalIntro.updatedAt);
-      if (generatedAt) {
-        generatedContent.timestamps.natalIntroGenerated = generatedAt;
-      }
-      hasContent = true;
-    }
-  } catch (e: any) {
-    log.warn('[hydrateGeneratedContent] Failed to hydrate natalIntro', { userId, error: e?.message });
-  }
-
-  try {
-    const primaryChart = await db.natal_charts.getPrimary(userId);
-    const full = primaryChart?.id != null
-      ? await db.content_interpretations.getByChart(primaryChart.id, 'premium', 'natal', 'full', NATAL_FULL_CACHE_KEY)
-      : await db.content_interpretations.getByUser(userId, 'premium', 'natal', 'full', NATAL_FULL_CACHE_KEY);
-    if (full?.content && full.promptVersion === NATAL_FULL_PROMPT_VERSION) {
-      const reading = coerceNatalFullReading(full.content, 'ru', primaryChart?.chart_data || null);
-      const deepDiveAnalyses: Record<string, string> = {
-        personality: [reading.mainConfiguration, reading.reactions, reading.choices].filter(Boolean).join('\n\n'),
-        love: reading.closeness || '',
-        career: [reading.choices, reading.strengths].filter(Boolean).join('\n\n'),
-        weakness: [reading.tensionPattern, reading.integration].filter(Boolean).join('\n\n'),
-        karma: reading.integration || '',
-      };
-      generatedContent.deepDiveAnalyses = deepDiveAnalyses;
-      const generatedAt = toUnixTimestamp(full.updatedAt);
-      generatedContent.timestamps.deepDiveGenerated = generatedAt || Date.now();
-      hasContent = true;
-    }
-  } catch (e: any) {
-    log.warn('[hydrateGeneratedContent] Failed to hydrate deepDiveAnalyses', { userId, error: e?.message });
-  }
-
-  try {
-    const todayKey = getMoscowTodayKey();
-    const dailyHoroscope = await db.daily_natal_cards.getForPrimaryUser(userId, todayKey);
-    if (dailyHoroscope && typeof dailyHoroscope === 'object') {
-      const row = dailyHoroscope as Record<string, unknown>;
-      const content = row.content;
-      if (typeof content === 'string' && content.length > 0) {
-        generatedContent.dailyHoroscope = {
-          ...row,
-          date: typeof row.date === 'string' && row.date ? row.date : todayKey,
-        } as typeof generatedContent.dailyHoroscope;
-        generatedContent.timestamps.dailyHoroscopeGenerated = Date.now();
-        hasContent = true;
-      }
-    }
-  } catch (e: any) {
-    log.warn('[hydrateGeneratedContent] Failed to hydrate dailyHoroscope', {
-      userId,
-      code: 'DAILY_CACHE_READ_FAILED',
-      error: e?.message,
-    });
-  }
-
-  return hasContent ? generatedContent : null;
-}
-
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -217,7 +125,6 @@ export default async function handler(
         isSetup: user.is_setup
       });
 
-      const generatedContent = await hydrateGeneratedContent(userId);
       const loginStreak = user.login_streak ?? 0;
       const chartSlots = user.chart_slots ?? 1;
       const notificationFrequency = await getNotificationFrequency(userId);
@@ -246,7 +153,6 @@ export default async function handler(
         updatedAt: user.updated_at ? new Date(user.updated_at).toISOString() : null,
         isAdmin: resolveIsAdmin(userId, user.is_admin),
         evolution: null,
-        generatedContent,
         weatherCity: user.weather_city && user.weather_city.trim() ? user.weather_city.trim() : undefined,
         loginStreak,
         chartSlots,
@@ -322,8 +228,6 @@ export default async function handler(
       const refreshedUser = await db.users.get(userId);
       const notificationFrequency = await getNotificationFrequency(userId);
 
-      const generatedContent = await hydrateGeneratedContent(userId);
-
       let refCodePost: string | null = null;
       try {
         refCodePost = await db.users.ensureReferralCode(userId);
@@ -356,7 +260,6 @@ export default async function handler(
           : null,
         isAdmin: resolveIsAdmin(userId, savedUser.is_admin),
         evolution: null,
-        generatedContent,
         weatherCity: savedUser.weather_city && savedUser.weather_city.trim() ? savedUser.weather_city.trim() : undefined,
         loginStreak: refreshedUser?.login_streak ?? 0,
         chartSlots: refreshedUser?.chart_slots ?? 1,
