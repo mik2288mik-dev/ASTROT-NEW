@@ -8,12 +8,8 @@ import {
     runReferralFromStartParam,
 } from './services/storageService';
 import { getOrCalculateChart, getPrimaryChartId } from './services/chartService';
-import { updateContentIfNeeded } from './services/contentGenerationService';
 import { prewarmUserContent } from './services/contentPrewarmService';
-import {
-    CACHE_ONLY_PREWARM_BUDGET_MS,
-    ENABLE_LEGACY_DASHBOARD_CONTENT_SYNC,
-} from './lib/appStartupFlags';
+import { CACHE_ONLY_PREWARM_BUDGET_MS } from './lib/appStartupFlags';
 import { getMoscowTodayKey } from './lib/date-utils';
 import { Onboarding } from './views/Onboarding';
 import { Dashboard } from './views/Dashboard';
@@ -247,8 +243,6 @@ const App: React.FC = () => {
     }>({ sign: null, tone: 'sign' });
     
     const lastSessionPingRef = useRef(0);
-    const contentSyncGenRef = useRef(0);
-    const contentSyncedKeyRef = useRef<string | null>(null);
     const prewarmCompletedKeyRef = useRef<string | null>(null);
     const primaryChartSessionRef = useRef<{
         key: string;
@@ -700,39 +694,6 @@ const App: React.FC = () => {
             clearSafety();
         };
     }, [loadPrimaryChartOnce, prepareUserContentDbFirst, resetPrimaryChartState, resolveAuthoritativeAdminStatus]);
-
-    // Legacy profile.generatedContent sync — disabled on ordinary login (see appStartupFlags).
-    useEffect(() => {
-        if (!ENABLE_LEGACY_DASHBOARD_CONTENT_SYNC) return;
-        if (!chartData || loading || view !== 'dashboard' || !profile?.id) {
-            if (!chartData) contentSyncedKeyRef.current = null;
-            return;
-        }
-
-        const syncKey = `${profile.id}:${chartData.sun?.sign ?? ''}-${chartData.moon?.sign ?? ''}`;
-        const prewarmKey = `${profile.id}:${activeChartId ?? 'primary'}:${getMoscowTodayKey()}:${hasActivePremium(profile) ? 'premium' : 'free'}`;
-        if (prewarmCompletedKeyRef.current === prewarmKey) return;
-        if (contentSyncedKeyRef.current === syncKey) return;
-        contentSyncedKeyRef.current = syncKey;
-
-        const gen = ++contentSyncGenRef.current;
-        const snapshot = profile;
-        const chartSnapshot = chartData;
-
-        void (async () => {
-            try {
-                const next = await updateContentIfNeeded(snapshot, chartSnapshot);
-                if (gen !== contentSyncGenRef.current) return;
-                setProfile((prev) => {
-                    if (!prev || prev.id !== snapshot.id) return prev;
-                    return { ...prev, generatedContent: next };
-                });
-            } catch (e: any) {
-                console.warn('[App] Content sync failed:', e?.message || e);
-                contentSyncedKeyRef.current = null;
-            }
-        })();
-    }, [activeChartId, loading, view, profile, chartData]);
 
     const handleOnboardingComplete = async (newProfile: UserProfile) => {
         console.log('[App] === ONBOARDING COMPLETE ===', {

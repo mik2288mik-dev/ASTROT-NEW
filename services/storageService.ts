@@ -67,9 +67,6 @@ export const saveProfile = async (profile: UserProfile): Promise<void> => {
     try {
       const parsedBody = JSON.parse(requestBody);
       log.info(`[saveProfile] Request body.weatherCity:`, parsedBody.weatherCity);
-      log.info(`[saveProfile] Request body.hasGeneratedContent:`, !!parsedBody.generatedContent);
-      log.info(`[saveProfile] Request body.generatedContent keys:`, parsedBody.generatedContent ? Object.keys(parsedBody.generatedContent) : []);
-      log.info(`[saveProfile] Request body.generatedContent.natalIntro exists:`, !!parsedBody.generatedContent?.natalIntro);
     } catch (e) {
       log.warn(`[saveProfile] Failed to parse request body for logging:`, e);
     }
@@ -108,9 +105,6 @@ export const saveProfile = async (profile: UserProfile): Promise<void> => {
     log.info(`[saveProfile] responseData exists:`, !!responseData);
     if (responseData) {
       log.info(`[saveProfile] responseData.weatherCity:`, responseData.weatherCity);
-      log.info(`[saveProfile] responseData.hasGeneratedContent:`, !!responseData.generatedContent);
-      log.info(`[saveProfile] responseData.generatedContent keys:`, responseData.generatedContent ? Object.keys(responseData.generatedContent) : []);
-      log.info(`[saveProfile] responseData.generatedContent.natalIntro exists:`, !!responseData.generatedContent?.natalIntro);
     }
     return;
   } catch (error: any) {

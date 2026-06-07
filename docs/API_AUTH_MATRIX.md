@@ -13,10 +13,6 @@
 | `/api/content/today/home`, `/api/content/natal/human-daily`, `/api/content/natal/human-section`, `/api/content/synastry/extended` | C/D/E registered + private | Registered/native/Telegram session, server entitlement, owned chart where applicable |
 | `/api/admin/*`, payments/subscriptions | C/D registered | Existing Telegram/admin/payment verification; guests denied |
 
-## Legacy migration backlog
-
-Several older `/api/astrology/*`, forecast/monthly/weekly, notification, subscription, and one-off natal endpoints still call `requireTelegramUserId`. They remain secure and Telegram-only, but must migrate incrementally to `requireAppUser` before native clients use them. Shared public content routes intentionally do not require identity.
-
 ## Guest limitations
 
 Guests receive a stable negative BIGINT identity stored in an HttpOnly signed cookie. They can use shared sign content, save a basic chart, and read the free basic natal section. They receive no trial, Premium, personal daily, full relationship reading, or deep report. Clearing cookies creates a new free-only guest and never grants a trial.

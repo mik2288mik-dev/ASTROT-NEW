@@ -120,16 +120,10 @@ npm run migrate
 - `GET /api/charts/[id]` - Получить карту пользователя
 - `POST /api/charts/[id]` - Сохранить карту пользователя
 
-### Астрология
-- `POST /api/astrology/natal-chart` - Рассчитать натальную карту
-- `POST /api/astrology/natal-intro` - Получить вступление натальной карты
-- `POST /api/astrology/synastry-brief` - Краткая синастрия (бесплатно)
-- `POST /api/astrology/synastry-full` - Полная синастрия (премиум)
-- `POST /api/astrology/daily-horoscope` - Получить ежедневный гороскоп
-- `POST /api/astrology/weekly-horoscope` - Получить еженедельный гороскоп
-- `POST /api/astrology/monthly-horoscope` - Получить ежемесячный гороскоп
-- `POST /api/astrology/deep-dive` - Глубокий анализ
-- `POST /api/astrology/chat` - Чат с AI
+### Текущие content API
+- `/api/content/*` - текущие Horoscope, Natal, Synastry и Today слои
+- `/api/charts/*` - управление сохранёнными картами
+- `POST /api/astrology/natal-chart` - расчёт натальной карты (совместимый маршрут до полной миграции клиентов)
 
 ### Погода
 - `GET /api/weather?city=...` - Получить погоду (прокси для WeatherAPI)

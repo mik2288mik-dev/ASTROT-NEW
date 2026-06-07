@@ -2,7 +2,6 @@ import { UserProfile, NatalChartData, DailyHoroscope, SynastryResult, UserEvolut
 import { SYSTEM_INSTRUCTION_ASTRA } from "../constants";
 import { getElementForSign } from "../lib/zodiac-utils";
 import { coerceNatalAnchorReading, coerceNatalFullReading, coerceNatalLivingReading, getCurrentNatalPeriodKey, mapNatalAnchorToLegacyIntro } from "../lib/natalReadings";
-import { isForecastLegacyFallbackEnabled } from "../lib/forecastLegacyConfig";
 import { buildForecastFullDayUnlockCacheKey } from "../lib/forecastFullDay";
 import { fetchWithTimeout } from "../lib/fetchWithTimeout";
 import { isValidUserId } from "../lib/userId";
@@ -1438,120 +1437,13 @@ export const getNatalIntro = async (
   chartData: NatalChartData,
   chartId?: number | null
 ): Promise<string> => {
-  try {
-    log.info('[getNatalIntro] Loading canonical natal anchor layer', {
-      userId: profile.id,
-      chartId: chartId ?? null,
-    });
-    const reading = await getNatalAnchorLayer(profile, chartData, chartId);
-    return mapNatalAnchorToLegacyIntro(reading);
-  } catch (error: any) {
-    log.error('[getNatalIntro] canonical anchor request failed, falling back to compatibility endpoint', {
-      error: error?.message,
-    });
-
-    const url = `${API_BASE_URL}/api/astrology/natal-intro`;
-    log.info(`[getNatalIntro] Sending compatibility POST request to: ${url}`);
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
-      body: JSON.stringify({ profile, chartData, chartId: chartId ?? undefined })
-    });
-
-    if (!response.ok) {
-      let errorMessage = `Server error: ${response.status}`;
-      let errorCode: string | undefined;
-      let errorDetails: any = null;
-
-      try {
-        const errorData = await response.json();
-        errorMessage = errorData.message || errorData.error || errorMessage;
-        errorCode = errorData.code;
-        errorDetails = errorData.details;
-      } catch {
-        const errorText = await response.text().catch(() => 'Unable to read error response');
-        errorMessage = errorText || errorMessage;
-      }
-
-      const apiError = new Error(errorMessage) as ApiErrorWithCode;
-      apiError.status = response.status;
-      apiError.code = errorCode;
-      apiError.details = errorDetails;
-      throw apiError;
-    }
-
-    const data = await response.json();
-    return data.intro;
-  }
+  log.info('[getNatalIntro] Loading canonical natal anchor layer', {
+    userId: profile.id,
+    chartId: chartId ?? null,
+  });
+  const reading = await getNatalAnchorLayer(profile, chartData, chartId);
+  return mapNatalAnchorToLegacyIntro(reading);
 };
-
-/** Приводит ответ brief API (плоский JSON или с briefOverview) к SynastryResult для UI. */
-export function normalizeBriefSynastryPayload(raw: any): SynastryResult {
-  if (!raw || typeof raw !== 'object') {
-    return { summary: '—' };
-  }
-  if (raw.briefOverview && typeof raw.briefOverview === 'object') {
-    return {
-      summary: String(raw.summary ?? '').trim() || String(raw.briefOverview.introduction ?? '').trim() || '—',
-      compatibilityScore: typeof raw.compatibilityScore === 'number' ? raw.compatibilityScore : undefined,
-      briefOverview: raw.briefOverview,
-    };
-  }
-  if (
-    raw.introduction != null ||
-    raw.harmony != null ||
-    raw.challenges != null ||
-    raw.tips != null
-  ) {
-    const tips = Array.isArray(raw.tips) ? raw.tips.map((t: any) => String(t)) : [];
-    return {
-      summary: String(raw.summary ?? raw.introduction ?? '').trim() || '—',
-      compatibilityScore: typeof raw.compatibilityScore === 'number' ? raw.compatibilityScore : undefined,
-      briefOverview: {
-        introduction: String(raw.introduction ?? ''),
-        harmony: String(raw.harmony ?? ''),
-        challenges: String(raw.challenges ?? ''),
-        tips,
-      },
-    };
-  }
-  return raw as SynastryResult;
-}
-
-/** Приводит ответ full API к SynastryResult для UI. */
-export function normalizeFullSynastryPayload(raw: any): SynastryResult {
-  if (!raw || typeof raw !== 'object') {
-    return { summary: '—' };
-  }
-  if (raw.fullAnalysis && typeof raw.fullAnalysis === 'object') {
-    return {
-      summary: String(raw.summary ?? '').trim() || '—',
-      compatibilityScore: typeof raw.compatibilityScore === 'number' ? raw.compatibilityScore : undefined,
-      fullAnalysis: raw.fullAnalysis,
-    };
-  }
-  if (raw.generalTheme != null || raw.attraction != null || raw.difficulties != null) {
-    const rec = Array.isArray(raw.recommendations)
-      ? raw.recommendations.map((x: any) => String(x))
-      : [];
-    return {
-      summary: String(raw.summary ?? '').trim() || '—',
-      compatibilityScore: typeof raw.compatibilityScore === 'number' ? raw.compatibilityScore : undefined,
-      fullAnalysis: {
-        generalTheme: String(raw.generalTheme ?? ''),
-        attraction: String(raw.attraction ?? ''),
-        difficulties: String(raw.difficulties ?? ''),
-        recommendations: rec,
-        potential: String(raw.potential ?? ''),
-      },
-    };
-  }
-  return raw as SynastryResult;
-}
-
-/**
- * Краткий обзор синастрии (бесплатный) - тизер для всех пользователей
- */
 
 const signCompatibilityClientCache = new Map<string, SignCompatibilityResult>();
 
@@ -1561,9 +1453,15 @@ export async function getSignCompatibility(signA: string, signB: string, languag
   if (local) return local;
   const query = new URLSearchParams({ signA, signB, language });
   const cached = await fetch(`${API_BASE_URL}/api/content/synastry/sign-compatibility?${query.toString()}`, { headers: getTelegramInitDataHeaders() });
-  if (cached.ok) { const payload = await cached.json(); signCompatibilityClientCache.set(key, payload.result); return payload.result; }
+  if (cached.ok) {
+    const payload = await cached.json();
+    signCompatibilityClientCache.set(key, payload.result);
+    return payload.result;
+  }
   const response = await fetchWithTimeout(`${API_BASE_URL}/api/content/synastry/sign-compatibility`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() }, body: JSON.stringify({ signA, signB, language }),
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
+    body: JSON.stringify({ signA, signB, language }),
   }, 20000);
   if (!response.ok) throw buildApiError(`Sign compatibility failed: ${response.status}`, response.status);
   const payload = await response.json();
@@ -1571,147 +1469,6 @@ export async function getSignCompatibility(signA: string, signB: string, languag
   signCompatibilityClientCache.set(key, payload.result);
   return payload.result;
 }
-
-export const calculateBriefSynastry = async (
-  profile: UserProfile, 
-  partnerName: string, 
-  partnerDate: string,
-  partnerTime?: string,
-  partnerPlace?: string,
-  relationshipType?: string,
-  partnerChartId?: number
-): Promise<SynastryResult> => {
-  const url = `${API_BASE_URL}/api/astrology/synastry-brief`;
-  log.info('[calculateBriefSynastry] Starting calculation', { partnerName, partnerDate });
-
-  try {
-    log.info(`[calculateBriefSynastry] Sending POST request to: ${url}`);
-    const startTime = Date.now();
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
-      body: JSON.stringify({
-        profile,
-        partnerName,
-        partnerDate,
-        partnerTime,
-        partnerPlace,
-        language: profile.language,
-        relationshipType,
-        partnerChartId
-      })
-    });
-
-    const duration = Date.now() - startTime;
-    log.info(`[calculateBriefSynastry] Response received in ${duration}ms`, {
-      status: response.status,
-      statusText: response.statusText,
-      ok: response.ok
-    });
-
-    if (!response.ok) {
-      let errorMessage = `Failed to calculate brief synastry: ${response.status} ${response.statusText}`;
-      let errorCode: string | undefined;
-      try {
-        const errorData = await response.json();
-        errorMessage = errorData.message || errorData.error || errorMessage;
-        errorCode = errorData.code;
-      } catch {
-        const errorText = await response.text().catch(() => 'Unable to read error response');
-        log.error(`[calculateBriefSynastry] Server returned error status ${response.status}`, {
-          status: response.status,
-          errorBody: errorText
-        });
-      }
-      const apiError = new Error(errorMessage) as ApiErrorWithCode;
-      apiError.status = response.status;
-      apiError.code = errorCode;
-      throw apiError;
-    }
-
-    const raw = await response.json();
-    log.info('[calculateBriefSynastry] Successfully calculated brief synastry');
-    return normalizeBriefSynastryPayload(raw);
-  } catch (error: any) {
-    log.error('[calculateBriefSynastry] Error occurred', {
-      error: error.message,
-      stack: error.stack
-    });
-    throw error;
-  }
-};
-
-/**
- * Полный анализ синастрии (премиум) - глубокий разбор для премиум пользователей
- */
-export const calculateFullSynastry = async (
-  profile: UserProfile, 
-  partnerName: string, 
-  partnerDate: string,
-  partnerTime?: string,
-  partnerPlace?: string,
-  relationshipType?: string,
-  partnerChartId?: number
-): Promise<SynastryResult> => {
-  const url = `${API_BASE_URL}/api/astrology/synastry-full`;
-  log.info('[calculateFullSynastry] Starting calculation', { partnerName, partnerDate });
-
-  try {
-    log.info(`[calculateFullSynastry] Sending POST request to: ${url}`);
-    const startTime = Date.now();
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
-      body: JSON.stringify({
-        profile,
-        partnerName,
-        partnerDate,
-        partnerTime,
-        partnerPlace,
-        language: profile.language,
-        relationshipType,
-        partnerChartId
-      })
-    });
-
-    const duration = Date.now() - startTime;
-    log.info(`[calculateFullSynastry] Response received in ${duration}ms`, {
-      status: response.status,
-      statusText: response.statusText,
-      ok: response.ok
-    });
-
-    if (!response.ok) {
-      let errorMessage = `Failed to calculate full synastry: ${response.status} ${response.statusText}`;
-      let errorCode: string | undefined;
-      try {
-        const errorData = await response.json();
-        errorMessage = errorData.message || errorData.error || errorMessage;
-        errorCode = errorData.code;
-      } catch {
-        const errorText = await response.text().catch(() => 'Unable to read error response');
-        log.error(`[calculateFullSynastry] Server returned error status ${response.status}`, {
-          status: response.status,
-          errorBody: errorText
-        });
-      }
-      const apiError = new Error(errorMessage) as ApiErrorWithCode;
-      apiError.status = response.status;
-      apiError.code = errorCode;
-      throw apiError;
-    }
-
-    const raw = await response.json();
-    log.info('[calculateFullSynastry] Successfully calculated full synastry');
-    return normalizeFullSynastryPayload(raw);
-  } catch (error: any) {
-    log.error('[calculateFullSynastry] Error occurred', {
-      error: error.message,
-      stack: error.stack
-    });
-    throw error;
-  }
-};
 
 export type SynastryExtendedApiOutcome = {
   result: SynastryResult;
@@ -1774,76 +1531,6 @@ export const calculateExtendedSynastry = async (
   };
 };
 
-
-/**
- * Legacy bridge: `/api/astrology/daily-horoscope` (deprecated; prefer `content/forecast/daily`).
- * Used only when the content API path fails, until the bridge can be removed safely.
- */
-const legacyGetDailyHoroscopeViaAstrologyEndpoint = async (profile: UserProfile, chartData: NatalChartData): Promise<DailyHoroscope> => {
-  const url = `${API_BASE_URL}/api/astrology/daily-horoscope`;
-  log.info('[getDailyHoroscope] Starting request', { userId: profile.id });
-
-  try {
-    log.info(`[getDailyHoroscope] Sending POST request to: ${url}`);
-    const startTime = Date.now();
-    const response = await fetchWithTimeout(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
-      body: JSON.stringify({ 
-        userId: profile.id, // Важно для кэширования в БД
-        profile, 
-        chartData 
-      })
-    }, 12000);
-
-    const duration = Date.now() - startTime;
-    log.info(`[getDailyHoroscope] Response received in ${duration}ms`, {
-      status: response.status,
-      statusText: response.statusText,
-      ok: response.ok
-    });
-
-    if (!response.ok) {
-      let errorMessage = `Failed to get daily horoscope: ${response.status} ${response.statusText}`;
-      let errorCode: string | undefined;
-      let errorDetails: any;
-
-      try {
-        const errorData = await response.json();
-        errorMessage = errorData.message || errorData.error || errorMessage;
-        errorCode = errorData.code;
-        errorDetails = errorData.details;
-      } catch {
-        const errorText = await response.text().catch(() => 'Unable to read error response');
-        errorMessage = errorText || errorMessage;
-      }
-
-      log.error(`[getDailyHoroscope] Server returned error status ${response.status}`, {
-        status: response.status,
-        statusText: response.statusText,
-        errorCode,
-        errorMessage,
-        errorDetails,
-      });
-      const error = new Error(errorMessage) as ApiErrorWithCode;
-      error.status = response.status;
-      error.code = errorCode;
-      error.details = errorDetails;
-      throw error;
-    }
-
-    const horoscope = await response.json() as DailyHoroscope;
-    log.info('[getDailyHoroscope] Successfully received daily horoscope');
-    return horoscope;
-  } catch (error: any) {
-    log.error('[getDailyHoroscope] Error occurred', {
-      error: error.message,
-      stack: error.stack
-    });
-    // Пробрасываем ошибку вместо fallback
-    throw error;
-  }
-};
 
 export const updateUserEvolution = async (profile: UserProfile, chartData?: NatalChartData): Promise<UserEvolution> => {
   // If no evolution exists, initialize with personalized values based on natal chart
@@ -1948,174 +1635,26 @@ function calculateInitialStats(profile: UserProfile, chartData?: NatalChartData)
 /**
  * @param chartId - optional; when provided, cache is chart-level (multi-chart)
  */
-export const getDeepDiveAnalysis = async (
-  profile: UserProfile,
-  topic: string,
-  chartData: NatalChartData,
-  chartId?: number | null
-): Promise<string> => {
-  const url = `${API_BASE_URL}/api/astrology/deep-dive`;
-  log.info('[getDeepDiveAnalysis] Starting request', { topic, userId: profile.id, chartId });
-
-  try {
-    log.info(`[getDeepDiveAnalysis] Sending POST request to: ${url}`);
-    const startTime = Date.now();
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
-      body: JSON.stringify({ profile, topic, chartData, chartId: chartId ?? undefined })
-    });
-
-    const duration = Date.now() - startTime;
-    log.info(`[getDeepDiveAnalysis] Response received in ${duration}ms`, {
-      status: response.status,
-      statusText: response.statusText,
-      ok: response.ok
-    });
-
-    if (!response.ok) {
-      let errorMessage = `Failed to get deep dive analysis: ${response.status} ${response.statusText}`;
-      let errorCode: string | undefined;
-      let errorDetails: any = null;
-
-      try {
-        const errorData = await response.json();
-        errorMessage = errorData.message || errorData.error || errorMessage;
-        errorCode = errorData.code;
-        errorDetails = errorData.details;
-      } catch {
-        const errorText = await response.text().catch(() => 'Unable to read error response');
-        errorMessage = errorText || errorMessage;
-      }
-
-      log.error(`[getDeepDiveAnalysis] Server returned error status ${response.status}`, {
-        status: response.status,
-        statusText: response.statusText,
-        errorMessage,
-        errorCode,
-        errorDetails
-      });
-
-      const apiError = new Error(errorMessage) as ApiErrorWithCode;
-      apiError.status = response.status;
-      apiError.code = errorCode;
-      apiError.details = errorDetails;
-      throw apiError;
-    }
-
-    const data = await response.json();
-    log.info('[getDeepDiveAnalysis] Successfully received analysis');
-    return data.analysis || "Stars are silent.";
-  } catch (error: any) {
-    log.error('[getDeepDiveAnalysis] Error occurred', {
-      error: error.message,
-      stack: error.stack
-    });
-    const lang = profile.language === 'ru';
-    const fallback = lang
-      ? `Глубокий анализ по теме "${topic}" для ${profile.name}. Ваша карта показывает интересные аспекты в этой области.`
-      : `Deep analysis on "${topic}" for ${profile.name}. Your chart shows interesting aspects in this area.`;
-    void fallback;
-    throw error;
-  }
-};
-
-const legacyGetCachedDailyHoroscopeViaAstrologyEndpoint = async (
-  userId: string,
-  language: 'ru' | 'en' = 'ru'
-): Promise<DailyHoroscope | null> => {
-  if (!userId) return null;
-
-  const url = `${API_BASE_URL}/api/astrology/daily-horoscope?userId=${encodeURIComponent(userId)}&lang=${encodeURIComponent(language)}`;
-  log.info('[getCachedDailyHoroscope] Starting request', { userId });
-
-  try {
-    const response = await fetchWithTimeout(url, { method: 'GET', cache: 'no-store' }, 4500);
-    if (response.status === 404) {
-      return null;
-    }
-
-    if (!response.ok) {
-      let errorMessage = `Failed to get cached daily horoscope: ${response.status} ${response.statusText}`;
-      let errorCode: string | undefined;
-      let errorDetails: any;
-
-      try {
-        const errorData = await response.json();
-        errorMessage = errorData.message || errorData.error || errorMessage;
-        errorCode = errorData.code;
-        errorDetails = errorData.details;
-      } catch {
-        const errorText = await response.text().catch(() => 'Unable to read error response');
-        errorMessage = errorText || errorMessage;
-      }
-
-      const error = new Error(errorMessage) as ApiErrorWithCode;
-      error.status = response.status;
-      error.code = errorCode;
-      error.details = errorDetails;
-      throw error;
-    }
-
-    return await response.json() as DailyHoroscope;
-  } catch (error: any) {
-    log.warn('[getCachedDailyHoroscope] Failed to load cached horoscope', {
-      userId,
-      error: error?.message,
-    });
-    throw error;
-  }
-};
-
 export const getDailyHoroscope = async (profile: UserProfile, chartData: NatalChartData): Promise<DailyHoroscope> => {
-  try {
-    log.info('[getDailyHoroscope] Loading forecast_v2 daily layer', { userId: profile.id });
-    const reading = await getDailyForecastLayer(profile, chartData);
-    return mapForecastDailyToLegacyHoroscope(reading, {
-      source: 'generated',
-      persisted: true,
-    });
-  } catch (error: any) {
-    if (!isForecastLegacyFallbackEnabled()) {
-      log.error('[getDailyHoroscope] Forecast v2 failed; legacy fallback disabled', {
-        error: error?.message,
-      });
-      throw error;
-    }
-    log.error('[getDailyHoroscope] Forecast v2 request failed, falling back to legacy endpoint', {
-      error: error?.message,
-    });
-    return legacyGetDailyHoroscopeViaAstrologyEndpoint(profile, chartData);
-  }
+  log.info('[getDailyHoroscope] Loading forecast_v2 daily layer', { userId: profile.id });
+  const reading = await getDailyForecastLayer(profile, chartData);
+  return mapForecastDailyToLegacyHoroscope(reading, {
+    source: 'generated',
+    persisted: true,
+  });
 };
 
 export const getCachedDailyHoroscope = async (
   userId: string,
   language: 'ru' | 'en' = 'ru'
 ): Promise<DailyHoroscope | null> => {
-  try {
-    log.info('[getCachedDailyHoroscope] Loading cached forecast_v2 daily layer', { userId, language });
-    const reading = await getCachedDailyForecastLayer(userId);
-    if (!reading) return null;
-
-    return mapForecastDailyToLegacyHoroscope(reading, {
-      source: 'cache',
-      persisted: true,
-    });
-  } catch (error: any) {
-    if (!isForecastLegacyFallbackEnabled()) {
-      log.warn('[getCachedDailyHoroscope] Forecast v2 cache failed; legacy fallback disabled', {
-        userId,
-        error: error?.message,
-      });
-      return null;
-    }
-    log.warn('[getCachedDailyHoroscope] Forecast v2 cache request failed, falling back to legacy endpoint', {
-      userId,
-      error: error?.message,
-    });
-    return legacyGetCachedDailyHoroscopeViaAstrologyEndpoint(userId, language);
-  }
+  log.info('[getCachedDailyHoroscope] Loading cached forecast_v2 daily layer', { userId, language });
+  const reading = await getCachedDailyForecastLayer(userId);
+  if (!reading) return null;
+  return mapForecastDailyToLegacyHoroscope(reading, {
+    source: 'cache',
+    persisted: true,
+  });
 };
 
 export const getAskLumiaState = async (userId: string): Promise<AskLumiaState> => {
