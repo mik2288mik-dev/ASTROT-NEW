@@ -37,7 +37,7 @@ import { recordNotificationAttribution, recordUserAppEvent, recordUserSession } 
 import { installTelegramFullscreenGuard } from './lib/telegramFullscreen';
 import { applyTelegramSafeAreaCssVars, subscribeTelegramContentSafeAreaChanges } from './lib/telegramSafeAreaInsets';
 import { useSwipeBack } from './lib/useSwipeBack';
-import { isValidUserId } from './lib/userId';
+import { isGuestUserId, isValidUserId } from './lib/userId';
 import {
     canAccessFeature,
     getProfilePremiumUntil,
@@ -743,24 +743,34 @@ const App: React.FC = () => {
         const tg = (window as any).Telegram?.WebApp;
         const tgUser = tg?.initDataUnsafe?.user;
         const tgId = tgUser?.id;
-        if (!isValidUserId(tgId)) {
-            console.error('[App] Cannot complete onboarding without a valid Telegram user id');
-            window.alert?.('Открой Lumia через Telegram, чтобы приложение смогло сохранить профиль и карту.');
+        const hasTelegramUserId = isValidUserId(tgId);
+        const currentProfileId = profile?.id;
+        const hasGuestProfileId = isGuestUserId(currentProfileId);
+        if (!hasTelegramUserId && !hasGuestProfileId) {
+            console.error('[App] Cannot complete onboarding without a confirmed guest session');
+            window.alert?.('Не удалось подтвердить гостевую сессию. Обнови страницу и попробуй ещё раз.');
             setView('onboarding');
             setLoading(false);
             return;
         }
-        const safeTgId = tgId as string | number;
-        const isAdmin = await resolveAuthoritativeAdminStatus(safeTgId, false);
-        const retainedPremiumUntil = getProfilePremiumUntil(profile) ?? getProfilePremiumUntil(newProfile);
+        // Telegram remains authoritative when present. A web guest may only use the
+        // identity loaded into the current profile from its signed server session.
+        const safeUserId = String(hasTelegramUserId ? tgId : currentProfileId);
+        const isGuestOnboarding = !hasTelegramUserId;
+        const isAdmin = isGuestOnboarding ? false : await resolveAuthoritativeAdminStatus(safeUserId, false);
+        const retainedPremiumUntil = isGuestOnboarding
+            ? null
+            : getProfilePremiumUntil(profile) ?? getProfilePremiumUntil(newProfile);
         const fullProfile = {
             ...newProfile,
             isSetup: true,
-            id: String(safeTgId),
+            id: safeUserId,
             isAdmin,
-            isPremium: hasActivePremium({ ...newProfile, premiumUntil: retainedPremiumUntil, isAdmin }),
+            isPremium: isGuestOnboarding
+                ? false
+                : hasActivePremium({ ...newProfile, premiumUntil: retainedPremiumUntil, isAdmin }),
             premiumUntil: retainedPremiumUntil,
-            trialStartedAt: profile?.trialStartedAt ?? newProfile.trialStartedAt,
+            trialStartedAt: isGuestOnboarding ? null : profile?.trialStartedAt ?? newProfile.trialStartedAt,
             loginStreak: profile?.loginStreak ?? newProfile.loginStreak,
             chartSlots: profile?.chartSlots ?? newProfile.chartSlots,
             refCode: profile?.refCode ?? newProfile.refCode,
@@ -792,7 +802,7 @@ const App: React.FC = () => {
                 }
             }
 
-            runReferralFromStartParam(String(safeTgId), (r) => {
+            runReferralFromStartParam(safeUserId, (r) => {
                 if (r.ok) {
                     setProfile((p) => (p ? { ...p, referralApplied: true } : p));
                 } else if (r.status === 409) {
@@ -849,7 +859,7 @@ const App: React.FC = () => {
             setLoadingProgress(90);
             setLoadingProgress(100);
             setLoadingMessage(undefined);
-            const targetView = onboardingTargetViewRef.current || 'dashboard';
+            const targetView = isGuestOnboarding ? 'chart' : onboardingTargetViewRef.current || 'dashboard';
             if (targetView === 'chart') {
                 setActiveChartId(undefined);
                 setChartReturnView('dashboard');
