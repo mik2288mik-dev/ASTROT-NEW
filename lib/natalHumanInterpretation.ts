@@ -11,6 +11,8 @@ import type {
 import { llmJson } from './anthropic';
 import { LUMIA_VOICE_BLOCK_RU } from './lumiaVoice';
 import { getCurrentTransits } from './transits-calculator';
+import { getWordRangeInstruction } from './contentMatrix';
+import { buildBlindSpotPrompt, buildNatalSectionPrompt } from './contentPromptBuilders';
 import {
   buildLockedDailySections,
   buildLockedPaidSections,
@@ -273,40 +275,20 @@ const HUMAN_SYSTEM_PROMPT = `Ты пишешь для Lumia понятный р�
 ${LUMIA_VOICE_BLOCK_RU}`;
 
 function buildBasePrompt(summary: ChartSummary): string {
-  return `Создай бесплатный разбор "Общая натальная карта" для пользователя.
+  return `Создай бесплатный базовый раздел натальной карты "Кто ты по карте".
 
 Данные пользователя и карты:
 ${JSON.stringify(summary, null, 2)}
 
-Это не обычный гороскоп по знаку. Это персональный разбор по дате, времени и месту рождения. Бесплатная версия должна быть ценной сама по себе, но без подробного разбора каждой сферы.
-
-Верни JSON NatalInterpretationReport:
-{
-  "userName": string,
-  "birthData": { "birthDate": string, "birthTime": string | null, "birthPlace": string },
-  "calculatedAt": string,
-  "shortCard": { "title": string, "keywords": string[], "text": string, "advice": string },
-  "freeSections": [
-    { "key": "base_portrait", "title": "Главное о тебе", "subtitle": string, "access": "free", "content": string, "bullets": string[] },
-    { "key": "main_formula", "title": "Как ты ведёшь себя с людьми", "access": "free", "content": string, "bullets": string[] },
-    { "key": "how_others_see_you", "title": "Отношения", "access": "free", "content": string, "bullets": string[] },
-    { "key": "emotional_world", "title": "Как ты общаешься", "access": "free", "content": string, "bullets": string[] },
-    { "key": "strengths", "title": "Работа и деньги", "access": "free", "content": string, "bullets": string[] },
-    { "key": "growth_zones", "title": "Что может мешать", "access": "free", "content": string, "bullets": string[] },
-    { "key": "main_advice", "title": "Что делать", "access": "free", "content": string, "bullets": string[] },
-    { "key": "summary", "title": "Короткий итог", "access": "free", "content": string, "bullets": string[] }
-  ],
-  "paidSections": [],
-  "premiumSections": []
-}
+Верни JSON NatalInterpretationReport с shortCard и ровно одним freeSections элементом:
+{ "key": "base_portrait", "title": "Кто ты по карте", "subtitle": "Главный портрет", "access": "free", "content": string, "bullets": string[] }.
 
 Требования:
-- Каждый раздел: понятный вывод, пример из жизни, короткая рекомендация.
-- Пиши на русском, просто и конкретно.
-- Не показывай градусы и технические строки.
-- Не пиши "Солнце · Рыбы · 16°" и похожую сухую кашу.
-- Не обещай здоровье, доход, любовь, события или единственно правильные решения.
-- В paidSections и premiumSections можно вернуть пустые массивы.`;
+- ${getWordRangeInstruction('natal_section')} Не превышай 200 слов в content;
+- используй Солнце, Луну и Асцендент только если он надёжен;
+- если время рождения неизвестно или неточно, прямо и мягко скажи, что Асцендент и дома могут быть неточными;
+- обычный человеческий язык, без технической простыни;
+- paidSections и premiumSections должны быть пустыми массивами.`;
 }
 
 function buildPaidPrompt(summary: ChartSummary, meta: { title: string; subtitle: string }, sectionKey: HumanPaidSectionKey): string {
@@ -319,7 +301,7 @@ function buildPaidPrompt(summary: ChartSummary, meta: { title: string; subtitle:
 Данные пользователя и карты:
 ${JSON.stringify(summary, null, 2)}
 
-Задача: создать подробный жизненный разбор раздела "${meta.title}". Это не справка и не набор эзотерических терминов, а применение карты к реальной жизни пользователя. Человек должен получить конкретные примеры и понятные действия.
+Задача: создать подробный жизненный разбор раздела "${meta.title}". ${getWordRangeInstruction('natal_section')} Это не справка и не набор эзотерических терминов, а применение карты к реальной жизни пользователя. Человек должен получить конкретные примеры и понятные действия.
 
 Структура content:
 1. Главный вывод
@@ -1176,7 +1158,7 @@ export async function generateHumanBaseReport(profile: UserProfile, chart: Natal
         system: HUMAN_SYSTEM_PROMPT,
         user: prompt,
         model: { accessTier: 'free', contentSurface: 'natal', contentVariant: 'anchor' },
-        maxTokens: 6500,
+        maxTokens: 1400,
         temperature: 0.62,
       });
       return normalizeReport(raw, fallback);
@@ -1194,20 +1176,30 @@ export async function generateHumanPaidSection(
   const fallback = buildHumanPaidFallback(profile, chart, key);
   const summary = buildChartSummary(profile, chart);
   const meta = HUMAN_PAID_SECTION_META[key];
-  const prompt = buildPaidPrompt(summary, meta, key);
+  const prompt = key === 'shadow_patterns'
+    ? buildBlindSpotPrompt({ context: summary })
+    : buildNatalSectionPrompt({ title: meta.title, context: summary });
 
   return generateWithRetry<InterpretationSection>(
     async () => {
-      const raw = await llmJson<InterpretationSection>({
-        system: HUMAN_SYSTEM_PROMPT,
-        user: prompt,
-        model: { accessTier: 'premium', contentSurface: 'natal', contentVariant: 'full' },
-        maxTokens: 2800,
+      const raw = await llmJson<{ title?: string; text?: string; soft_warning?: string; practical_hint?: string; headline?: string; example?: string; soft_step?: string }>({
+        system: prompt.system,
+        user: prompt.user,
+        model: { accessTier: 'premium', contentSurface: 'natal', contentVariant: 'living' },
+        maxTokens: 900,
         temperature: 0.6,
       });
-      return normalizeSection(raw, fallback, { access: 'paid', locked: false });
+      const section: InterpretationSection = {
+        ...fallback,
+        title: raw.title || raw.headline || meta.title,
+        content: raw.text || fallback.content,
+        bullets: [raw.soft_warning, raw.example, raw.practical_hint, raw.soft_step].filter((item): item is string => Boolean(item)),
+        access: 'paid',
+        isLocked: false,
+      };
+      return normalizeSection(section, fallback, { access: 'paid', locked: false });
     },
-    (section) => validateSection(section, 800),
+    (section) => validateSection(section, 450),
     fallback
   );
 }

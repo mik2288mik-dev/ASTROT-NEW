@@ -62,6 +62,11 @@ function mockTelegramAuth() {
     handleAdminError: jest.fn(),
     requireTelegramUserId: jest.fn(),
   }));
+  jest.doMock('../lib/auth/appAuth', () => ({
+    requireAppUser: jest.fn(async (_req: unknown, options?: { expectedUserId?: string }) => ({
+      userId: String(options?.expectedUserId || '123'), provider: 'telegram', isGuest: false,
+    })),
+  }));
 }
 
 function mockStableTransits() {

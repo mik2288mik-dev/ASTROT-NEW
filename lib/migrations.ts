@@ -77,6 +77,7 @@ async function migrationReset(pool: Pool): Promise<void> {
   const dropOrder = [
     'premium_entitlements',
     'content_unlocks',
+    'content_cache',
     'content_interpretations',
     'notification_delivery_log',
     'notification_rotation_state',
@@ -2009,7 +2010,7 @@ async function verifyTablesExist(pool: Pool): Promise<void> {
     'users', 'natal_charts', 'interpretations', 'app_settings',
     'daily_horoscopes', 'daily_natal_cards',
     'astro_questions', 'dictionary', 'synastry_cache', 'star_payments',
-    'content_interpretations', 'content_unlocks', 'premium_entitlements',
+    'content_interpretations', 'content_cache', 'content_unlocks', 'premium_entitlements',
     'user_sessions',
     'legacy_notification_templates',
     'notification_campaigns',
@@ -2056,6 +2057,49 @@ async function testConnection(pool: Pool, retries = 3, delay = 2000): Promise<vo
       } else throw error;
     }
   }
+}
+
+/** Unified generation-policy cache: supports shared, user, and chart-version scopes. */
+async function lumia027ContentMatrixCache(pool: Pool): Promise<void> {
+  const migrationName = 'lumia_027_content_matrix_cache';
+  if (await isMigrationApplied(pool, migrationName)) return;
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS content_cache (
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+      chart_id BIGINT REFERENCES natal_charts(id) ON DELETE CASCADE,
+      content_type TEXT NOT NULL,
+      content_key TEXT NOT NULL DEFAULT 'default',
+      date_key DATE,
+      period_key TEXT,
+      zodiac_sign TEXT,
+      access_level TEXT NOT NULL CHECK (access_level IN ('free', 'pro')),
+      model_tier TEXT NOT NULL CHECK (model_tier IN ('fast', 'main', 'deep')),
+      model_used TEXT,
+      prompt_version TEXT NOT NULL,
+      payload JSONB NOT NULL DEFAULT '{}'::jsonb,
+      text TEXT,
+      expires_at TIMESTAMP,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_content_cache_lookup ON content_cache (
+      content_type,
+      content_key,
+      COALESCE(date_key, DATE '0001-01-01'),
+      COALESCE(period_key, ''),
+      COALESCE(zodiac_sign, ''),
+      COALESCE(user_id, 0),
+      COALESCE(chart_id, 0),
+      prompt_version
+    )
+  `);
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_content_cache_expiry ON content_cache(expires_at)');
+  await markMigrationApplied(pool, migrationName);
+  log.info(`Migration ${migrationName} applied`);
 }
 
 export async function runMigrations(): Promise<void> {
@@ -2106,6 +2150,7 @@ export async function runMigrations(): Promise<void> {
   await lumia024StarsOneOffPayments(pool);
   await lumia025RemoveLumiEconomy(pool);
   await lumia026AccessFoundation(pool);
+  await lumia027ContentMatrixCache(pool);
   await verifyTablesExist(pool);
 
     log.info('All Lumia migrations completed successfully');

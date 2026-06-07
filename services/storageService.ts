@@ -5,7 +5,7 @@ import {
 import { toDateInputValue } from "../lib/date-utils";
 import { fetchWithTimeout } from "../lib/fetchWithTimeout";
 import { isValidUserId } from "../lib/userId";
-import { getTelegramInitDataHeaders } from "./sessionService";
+import { ensureWebGuestSession, getTelegramInitDataHeaders } from "./sessionService";
 
 const PROFILE_FETCH_TIMEOUT_MS = 20_000;
 const PROFILE_SAVE_TIMEOUT_MS = 45_000;
@@ -133,8 +133,10 @@ export const getProfile = async (): Promise<UserProfile | null> => {
   const tgId = tg?.initDataUnsafe?.user?.id;
   
   if (!tgId) {
-      log.warn('[getProfile] No Telegram ID found, cannot fetch profile from DB');
-      return null;
+      log.info('[getProfile] Telegram unavailable; resolving signed web guest session');
+      const me = await fetchWithTimeout(`${API_BASE_URL}/api/users/me`, { method: 'GET', credentials: 'include' }, PROFILE_FETCH_TIMEOUT_MS).catch(() => null);
+      if (me?.ok) return await me.json();
+      return await ensureWebGuestSession();
   }
   
   const userId = tgId;

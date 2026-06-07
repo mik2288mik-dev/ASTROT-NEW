@@ -3,7 +3,8 @@ import { formatValidationErrors, validateNatalChartInput } from '../../../lib/va
 import { db } from '../../../lib/db';
 import { createOrReuseCanonicalChart } from '../../../lib/natalChartPersistence';
 import { invalidUserIdPayload, isValidUserId } from '../../../lib/userId';
-import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../../../lib/adminAuth';
+import { AdminAuthError, handleAdminError } from '../../../lib/adminAuth';
+import { requireAppUser } from '../../../lib/auth/appAuth';
 
 const log = {
   info: (msg: string, data?: any) => console.log(`[API/charts] ${msg}`, data || ''),
@@ -18,7 +19,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    requireTelegramUserId(req, userId);
+    await requireAppUser(req, { expectedUserId: userId, allowGuest: true });
 
     if (req.method === 'GET') {
       const charts = await db.natal_charts.getAll(userId);

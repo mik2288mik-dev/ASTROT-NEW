@@ -521,7 +521,7 @@ const App: React.FC = () => {
         const safetyTimer = window.setTimeout(() => {
             if (cancelled || safetyCleared) return;
             console.error('[App] Startup exceeded safety budget - unlocking loading UI');
-            setStartupError('Lumia не успела загрузить профиль. Закрой мини-приложение и открой его снова из Telegram.');
+            setStartupError('Lumia не успела загрузить профиль. Обнови страницу и попробуй ещё раз.');
             setLoadingProgress(100);
             setView('dashboard');
             setLoading(false);
@@ -546,7 +546,8 @@ const App: React.FC = () => {
             
             // Ждём Telegram Web App (может загружаться асинхронно)
             let tgId: string | number | undefined;
-            for (let attempt = 0; attempt < 12; attempt++) {
+            const telegramWaitAttempts = (window as any).Telegram?.WebApp ? 12 : 1;
+            for (let attempt = 0; attempt < telegramWaitAttempts; attempt++) {
                 if (cancelled) return;
                 const tg = (window as any).Telegram?.WebApp;
                 tgId = tg?.initDataUnsafe?.user?.id;
@@ -557,10 +558,19 @@ const App: React.FC = () => {
                 await new Promise(r => setTimeout(r, 300));
             }
 
+            let webGuestProfile: UserProfile | null = null;
             if (!isValidUserId(tgId)) {
-                console.log('[App] No Telegram user ID found after retries, showing safe startup error');
+                console.log('[App] Telegram unavailable; bootstrapping signed web guest session');
+                try {
+                    webGuestProfile = await getProfile();
+                    tgId = webGuestProfile?.id;
+                } catch (guestError: any) {
+                    console.error('[App] Guest session bootstrap failed:', guestError?.message || guestError);
+                }
+            }
+            if (!isValidUserId(tgId)) {
                 clearSafety();
-                setStartupError('Не удалось получить Telegram ID. Открой Lumia через Telegram Mini App и попробуй ещё раз.');
+                setStartupError('Не удалось открыть гостевую сессию. Обнови страницу и попробуй ещё раз.');
                 setLoadingProgress(100);
                 setView('dashboard');
                 setLoading(false);
@@ -575,7 +585,7 @@ const App: React.FC = () => {
                 const tgUser = tg?.initDataUnsafe?.user as TelegramWebAppUser | undefined;
 
                 setLoadingProgress(30);
-                const storedProfile = await getProfile();
+                const storedProfile = webGuestProfile || await getProfile();
 
                 console.log('[App] Profile loaded:', {
                     hasProfile: !!storedProfile,
@@ -745,6 +755,7 @@ const App: React.FC = () => {
         const retainedPremiumUntil = getProfilePremiumUntil(profile) ?? getProfilePremiumUntil(newProfile);
         const fullProfile = {
             ...newProfile,
+            isSetup: true,
             id: String(safeTgId),
             isAdmin,
             isPremium: hasActivePremium({ ...newProfile, premiumUntil: retainedPremiumUntil, isAdmin }),
@@ -1043,7 +1054,6 @@ const App: React.FC = () => {
         canAccessFeature(featureKey, profile, {
             chartData: chartData ?? primaryChartDataRef.current,
             primaryChartId: primaryChartId ?? activeChartId ?? null,
-            hasChart: !!profile?.isSetup,
         })
     ), [activeChartId, chartData, primaryChartId, profile]);
 
@@ -1077,14 +1087,6 @@ const App: React.FC = () => {
         if (!profile) return;
         const currentView = viewRef.current;
         if (newView === currentView) return;
-
-        if (newView === 'chart' && getFeatureAccess('natal_basic').status === 'needs_chart') {
-            if (!options?.replace) {
-                pushReturnView(currentView);
-            }
-            openNatalSetupOnboarding(currentView === 'chart' ? 'dashboard' : currentView, 'chart');
-            return;
-        }
 
         if (!options?.replace) {
             pushReturnView(currentView);
@@ -1231,15 +1233,18 @@ const App: React.FC = () => {
         navigateTo('dashboard', { replace: true });
     }, [navigateTo]);
 
+    const openBottomHoroscope = useCallback(() => {
+        navigateTo('horoscope', { replace: true });
+    }, [navigateTo]);
+
     const openBottomNatal = useCallback(() => {
         navigateTo('chart', { replace: true });
     }, [navigateTo]);
 
     const openBottomSynastry = useCallback(() => {
-        if (!gateFeatureAccess('synastry_by_charts', 'synastry')) return;
         setSynastryPrefill(null);
         navigateTo('synastry', { replace: true });
-    }, [gateFeatureAccess, navigateTo]);
+    }, [navigateTo]);
 
     const openBottomAvatar = useCallback(() => {
         navigateTo('settings', { replace: true });
@@ -1371,14 +1376,16 @@ const App: React.FC = () => {
                         <Synastry
                             profile={profile}
                             chartData={chartData}
+                            chartId={primaryChartId ?? null}
                             requestPremium={requestPremium}
                             initialPrefill={synastryPrefill}
                             onOpenCharts={() => openCharts('synastry')}
+                            onCreateNatalChart={openBottomNatal}
                             onUpdateProfile={handleProfileUpdate}
                         />
                     </div>
                 ) : view === 'horoscope' ? (
-                    <div className="lumia-main-scroll scrollbar-hide" ref={appScrollRef}>
+                    <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
                         <Horoscope 
                             profile={profile} 
                             chartData={chartData} 
@@ -1388,6 +1395,7 @@ const App: React.FC = () => {
                                 navigateTo('chart');
                             }}
                             onRequestPremium={requestPremium}
+                            onOpenPersonalDaily={() => openPersonalDailyView('overview')}
                             onBack={handleBack}
                             onBackgroundChange={(next) =>
                                 setHoroscopeBackground(next || { sign: null, tone: 'sign' })
@@ -1408,6 +1416,8 @@ const App: React.FC = () => {
                             requestPremium={requestPremium}
                             onUpdateProfile={handleProfileUpdate}
                             preloadedReport={activeChartId ? null : preloadedHumanReport}
+                            onCreateChart={() => openNatalSetupOnboarding('chart', 'chart')}
+                            onOpenPersonalDaily={() => openPersonalDailyView('overview')}
                         />
                     </div>
                 ) : view === 'settings' ? (
@@ -1466,6 +1476,7 @@ const App: React.FC = () => {
                     profile={profile}
                     view={view}
                     onOpenToday={openBottomToday}
+                    onOpenHoroscope={openBottomHoroscope}
                     onOpenNatal={openBottomNatal}
                     onOpenSynastry={openBottomSynastry}
                     onOpenAvatar={openBottomAvatar}

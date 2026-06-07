@@ -138,7 +138,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const entitlement = await getPremiumEntitlementState(safeUserId);
-  const isPremium = entitlement.isPremium || !!context.profile.isPremium;
+  const isPremium = entitlement.isPremium;
   const accessTier = 'premium' as const;
 
   if (!isPremium) {

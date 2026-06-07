@@ -6,7 +6,8 @@ import type {
 } from '../../types';
 import { db } from '../db';
 import { getContentLayer, getPremiumEntitlementState } from '../contentArchitecture';
-import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../adminAuth';
+import { AdminAuthError, handleAdminError } from '../adminAuth';
+import { requireAppUser } from '../auth/appAuth';
 
 export type ReadingContext = {
   user: any;
@@ -62,15 +63,15 @@ export async function resolveReadingContext(
 ): Promise<ReadingContext | null> {
   const user = await db.users.get(userId);
   if (!user) return null;
-  const chart =
-    chartId != null
-      ? await db.natal_charts.getById(chartId)
-      : await db.natal_charts.getPrimary(userId);
+  const chart = chartId != null
+    ? await db.natal_charts.getById(chartId)
+    : await db.natal_charts.getPrimary(userId);
+  const ownedChart = chart && String(chart.user_id) === String(userId) ? chart : null;
   return {
     user,
     profile: toProfile(user, profileFallback),
-    chartId: chart?.id ?? null,
-    chartData: (chartDataFallback || chart?.chart_data || null) as NatalChartData | null,
+    chartId: ownedChart?.id ?? null,
+    chartData: (ownedChart?.chart_data || null) as NatalChartData | null,
   };
 }
 
@@ -193,7 +194,8 @@ export async function isPremium(userId: string): Promise<boolean> {
 
 export async function ensureValidContext(
   req: NextApiRequest,
-  res: NextApiResponse
+  res: NextApiResponse,
+  options: { allowGuest?: boolean } = {}
 ): Promise<{ userId: string; ctx: ReadingContext } | null> {
   if (req.method !== 'GET' && req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
@@ -205,7 +207,7 @@ export async function ensureValidContext(
     return null;
   }
   try {
-    requireTelegramUserId(req, userId);
+    await requireAppUser(req, { expectedUserId: userId, allowGuest: options.allowGuest });
   } catch (error) {
     if (error instanceof AdminAuthError) {
       handleAdminError(res, error);

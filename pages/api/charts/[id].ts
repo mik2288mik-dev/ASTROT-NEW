@@ -3,7 +3,8 @@ import { db } from '../../../lib/db';
 import { repairCanonicalChartForUser } from '../../../lib/natalChartPersistence';
 import { buildCanonicalNatalInputHash, isCanonicalNatalChartDataComplete } from '../../../lib/natalChartCanonical';
 import { invalidUserIdPayload, isValidUserId } from '../../../lib/userId';
-import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../../../lib/adminAuth';
+import { AdminAuthError, handleAdminError } from '../../../lib/adminAuth';
+import { requireAppUser } from '../../../lib/auth/appAuth';
 
 const log = {
   info: (message: string, data?: any) => {
@@ -24,7 +25,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const userId = String(rawUserId).trim();
 
   try {
-    requireTelegramUserId(req, userId);
+    await requireAppUser(req, { expectedUserId: userId, allowGuest: true });
 
     if (req.method === 'GET') {
       let chartRecord = await db.natal_charts.get(userId);

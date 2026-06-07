@@ -34,7 +34,9 @@ export interface UserContext {
 }
 
 export interface UserProfile {
-  id?: string; // Telegram ID
+  id?: string; // Authenticated Telegram/native ID or reserved web guest ID
+  authProvider?: 'telegram' | 'web_guest' | 'native';
+  isGuest?: boolean;
   name: string;
   birthDate: string; // YYYY-MM-DD
   birthTime: string; // HH:MM
@@ -525,6 +527,8 @@ export interface ForecastDaypartReading {
   relationships: string;
   money: string;
   guidance: string;
+  risk?: string;
+  chartReason?: string;
 }
 
 /** Free tier: короткий слой; Premium — дополнительные поля заполнены. */

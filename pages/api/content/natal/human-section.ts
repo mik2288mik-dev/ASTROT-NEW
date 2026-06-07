@@ -40,7 +40,7 @@ function readSectionKey(req: NextApiRequest): HumanPaidSectionKey | null {
 
 async function resolvePaidAccess(userId: string, profile?: { isPremium?: boolean }): Promise<ResolvedAccess | null> {
   const entitlement = await getPremiumEntitlementState(userId);
-  if (entitlement.isPremium || profile?.isPremium) {
+  if (entitlement.isPremium) {
     return { accessTier: 'premium' };
   }
   return null;

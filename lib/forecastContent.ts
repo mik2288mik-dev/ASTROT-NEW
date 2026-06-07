@@ -11,7 +11,6 @@ import type {
 import {
   SYSTEM_PROMPT_ASTRA,
   addLanguageInstruction,
-  createDailyForecastV2Prompt,
   createDaypartForecastPrompt,
   createFreeMonthlyForecastPrompt,
   createFreeWeeklyForecastPrompt,
@@ -24,7 +23,9 @@ import {
   PremiumMonthlyForecastV2AIResponse,
   PremiumWeeklyForecastV2AIResponse,
 } from './prompts';
-import { getOpenAIModelForContent } from './appSettings';
+import { getModelForTier, getOpenAIModelForContent } from './appSettings';
+import { getContentPolicy } from './contentMatrix';
+import { buildPersonalDailyPrompt, parseLumiaJson } from './contentPromptBuilders';
 import { getCurrentTransits } from './transits-calculator';
 import { formatIsoWeekPeriodLabel, formatMonthPeriodLabel, getMoscowTodayKey } from './date-utils';
 
@@ -171,7 +172,7 @@ export function buildPremiumDaypartFallback(
 }
 
 function normalizeDailyForecast(
-  raw: Partial<DailyForecastV2AIResponse> | null | undefined,
+  raw: (Partial<DailyForecastV2AIResponse> & { main?: string; relationships?: string; action?: string; why?: string }) | null | undefined,
   lang: 'ru' | 'en',
   dateKey: string
 ): ForecastDailyReading {
@@ -179,12 +180,12 @@ function normalizeDailyForecast(
   return {
     date: dateKey,
     headline: cleanLine(raw?.headline, fallback.headline),
-    summary: cleanLine(raw?.summary, fallback.summary),
-    chance: cleanLine(raw?.chance, fallback.chance),
+    summary: cleanLine(raw?.summary || raw?.main, fallback.summary),
+    chance: cleanLine(raw?.chance || raw?.relationships, fallback.chance),
     risk: cleanLine(raw?.risk, fallback.risk),
-    focus: cleanLine(raw?.focus, fallback.focus),
-    reading: cleanLine(raw?.reading, fallback.reading),
-    context: cleanLine(raw?.context, fallback.context),
+    focus: cleanLine(raw?.focus || raw?.action, fallback.focus),
+    reading: cleanLine(raw?.reading || raw?.main, fallback.reading),
+    context: cleanLine(raw?.context || raw?.why, fallback.context),
     advice: cleanAdvice(raw?.advice, fallback.advice),
   };
 }
@@ -205,6 +206,8 @@ function normalizeDaypartForecast(
     relationships: cleanLine(raw?.relationships, fallback.relationships),
     money: cleanLine(raw?.money, fallback.money),
     guidance: cleanLine(raw?.guidance, fallback.guidance),
+    risk: raw?.risk ? cleanLine(raw.risk, '') : undefined,
+    chartReason: raw?.chartReason ? cleanLine(raw.chartReason, '') : undefined,
   };
 }
 
@@ -253,24 +256,23 @@ export async function generateFreeDailyForecast(
   }
 
   try {
-    const prompt = addLanguageInstruction(
-      createDailyForecastV2Prompt(chartData, profile, dateKey, transits),
-      lang
-    );
-    const { model } = await getForecastModel('base');
+    const prompt = buildPersonalDailyPrompt({
+      language: lang,
+      context: { date: dateKey, profile, chartData, transits },
+    });
+    const model = await getModelForTier(getContentPolicy('personal_daily').modelTier);
     const completion = await openai.chat.completions.create({
       model,
       messages: [
-        { role: 'system', content: SYSTEM_PROMPT_ASTRA },
-        { role: 'user', content: prompt },
+        { role: 'system', content: prompt.system },
+        { role: 'user', content: prompt.user },
       ],
       response_format: { type: 'json_object' },
       temperature: 0.7,
-      max_tokens: 1400,
+      max_tokens: 800,
     });
 
-    const content = completion.choices[0]?.message?.content || '{}';
-    const parsed = JSON.parse(content) as DailyForecastV2AIResponse;
+    const parsed = parseLumiaJson<DailyForecastV2AIResponse & { main?: string; relationships?: string; action?: string; why?: string }>(completion.choices[0]?.message?.content, {} as DailyForecastV2AIResponse);
     return normalizeDailyForecast(parsed, lang, dateKey);
   } catch (error: any) {
     if (!allowStaticFallback) {

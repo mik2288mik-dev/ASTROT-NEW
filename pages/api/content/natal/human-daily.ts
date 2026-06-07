@@ -109,10 +109,6 @@ function getMoscowDayWindow(dateKey: string) {
 }
 
 async function resolveDailyAccess(userId: string, profile?: { isPremium?: boolean }): Promise<ResolvedDailyAccess | null> {
-  if (profile?.isPremium) {
-    return { accessTier: 'premium' };
-  }
-
   const entitlement = await getPremiumEntitlementState(userId);
   if (entitlement.isPremium) {
     return { accessTier: 'premium' };

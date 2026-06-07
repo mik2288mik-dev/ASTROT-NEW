@@ -1,7 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '../../../lib/db';
 import { invalidUserIdPayload, isValidUserId } from '../../../lib/userId';
-import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../../../lib/adminAuth';
+import { AdminAuthError, handleAdminError } from '../../../lib/adminAuth';
+import { requireAppUser } from '../../../lib/auth/appAuth';
 
 const log = {
   info: (msg: string, data?: any) => console.log(`[API/charts/set-primary] ${msg}`, data || ''),
@@ -29,7 +30,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    requireTelegramUserId(req, userId);
+    await requireAppUser(req, { expectedUserId: userId, allowGuest: true });
 
     const chart = await db.natal_charts.getById(chartIdNum);
     if (!chart) {
