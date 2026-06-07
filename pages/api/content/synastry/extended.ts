@@ -1,7 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
-import type { NatalChartData, SynastryResult } from '../../../../types';
-import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../../../../lib/adminAuth';
+import type { NatalChartData, SynastryResult, UserProfile } from '../../../../types';
+import { AdminAuthError, handleAdminError } from '../../../../lib/adminAuth';
+import { requireAppUser } from '../../../../lib/auth/appAuth';
+import { toPublicAppProfile } from '../../../../lib/auth/profile';
 import { getOpenAIModelForContent } from '../../../../lib/appSettings';
 import { calculateNatalChart } from '../../../../lib/swisseph-calculator';
 import { db } from '../../../../lib/db';
@@ -92,8 +94,21 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  const claimedUserId = String(req.body?.userId || req.body?.profile?.id || '').trim();
+
+  let auth;
+  try {
+    auth = await requireAppUser(req, { expectedUserId: claimedUserId || undefined });
+  } catch (error) {
+    if (error instanceof AdminAuthError) {
+      return handleAdminError(res, error);
+    }
+    throw error;
+  }
+
+  const userId = auth.userId;
+
   const {
-    profile,
     partnerName,
     partnerDate,
     partnerTime,
@@ -103,16 +118,22 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     partnerChartId,
   } = req.body;
 
+  const user = await db.users.get(userId);
+  if (!user) {
+    return res.status(404).json({ error: 'User not found', message: 'Profile not found' });
+  }
+
+  const profile = toPublicAppProfile(user, auth) as UserProfile;
+  const userLang = (language || profile.language || 'ru') === 'en' ? 'en' : 'ru';
+
   const validation = validateSynastryInput({
     profile,
     partnerName,
     partnerDate,
     partnerTime,
     partnerPlace,
-    language: language || profile?.language || 'ru',
+    language: userLang,
   });
-
-  const userLang = (language || profile?.language || 'ru') === 'en' ? 'en' : 'ru';
 
   if (!validation.isValid) {
     const errorMessage = formatValidationErrors(validation.errors, userLang);
@@ -123,29 +144,11 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     });
   }
 
-  const userId = String(profile?.id || '').trim();
-  if (!userId) {
-    return res.status(400).json({ error: 'Bad request', message: 'userId is required' });
-  }
-  try {
-    requireTelegramUserId(req, userId);
-  } catch (error) {
-    if (error instanceof AdminAuthError) {
-      return handleAdminError(res, error);
-    }
-    throw error;
-  }
-
   logContentApi(
     { scope: SCOPE, userId, chartId: null, surface: 'synastry', variant: 'full' },
     'request_start',
     { metadata: { hasPartnerChartId: !!partnerChartId } }
   );
-
-  const user = await db.users.get(userId);
-  if (!user) {
-    return res.status(404).json({ error: 'User not found', message: 'Profile not found' });
-  }
 
   const rel = String(relationshipType || 'романтика').trim();
   const currentLanguage = userLang === 'en' ? 'en' : 'ru';
@@ -156,14 +159,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   let userChartData: NatalChartData | null = null;
   let partnerChartData: NatalChartData | null = null;
 
-  if (profile?.id) {
-    primaryChartRecord = await db.natal_charts.getPrimary(String(profile.id));
-    userChartData = (primaryChartRecord?.chart_data as NatalChartData) || null;
-  }
+  primaryChartRecord = await db.natal_charts.getPrimary(userId);
+  userChartData = (primaryChartRecord?.chart_data as NatalChartData) || null;
 
-  if (partnerChartId && profile?.id) {
+  if (partnerChartId) {
     partnerChartRecord = await db.natal_charts.getById(Number(partnerChartId));
-    if (!partnerChartRecord || String(partnerChartRecord.user_id) !== String(profile.id)) {
+    if (!partnerChartRecord || String(partnerChartRecord.user_id) !== userId) {
       return res.status(404).json({
         error: 'Partner chart not found',
         message: langRu ? 'Сохранённая карта партнёра не найдена.' : 'Saved partner chart not found',
@@ -172,19 +173,23 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     partnerChartData = (partnerChartRecord.chart_data as NatalChartData) || null;
   }
 
+  if (!primaryChartRecord?.id || !userChartData) {
+    return res.status(409).json({
+      error: 'Natal chart required',
+      code: 'NEEDS_CHART',
+      message: langRu ? 'Сначала создай натальную карту.' : 'Create your natal chart first.',
+    });
+  }
+
   const contentCacheKey = buildSynastryExtendedCacheKey(
     userId,
-    primaryChartRecord?.id ?? null,
+    primaryChartRecord.id,
     partnerChartRecord?.id ?? null,
     partnerName,
     partnerDate,
     rel,
     currentLanguage
   );
-
-  if (!primaryChartRecord?.id || !userChartData) {
-    return res.status(409).json({ error: 'Natal chart required', code: 'NEEDS_CHART', message: langRu ? 'Сначала создай натальную карту.' : 'Create your natal chart first.' });
-  }
 
   const entitlementState = await getPremiumEntitlementState(userId);
   const isPremium = entitlementState.isPremium;
@@ -193,7 +198,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     {
       scope: SCOPE,
       userId,
-      chartId: primaryChartRecord?.id ?? null,
+      chartId: primaryChartRecord.id,
       surface: 'synastry',
       variant: 'full',
     },
@@ -209,7 +214,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       {
         scope: SCOPE,
         userId,
-        chartId: primaryChartRecord?.id ?? null,
+        chartId: primaryChartRecord.id,
         surface: 'synastry',
         variant: 'full',
       },
@@ -228,7 +233,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
   const cachedResult = await loadCachedSynastry(
     userId,
-    primaryChartRecord?.id ?? null,
+    primaryChartRecord.id,
     partnerChartRecord?.id ?? null,
     contentCacheKey
   );
@@ -238,7 +243,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       {
         scope: SCOPE,
         userId,
-        chartId: primaryChartRecord?.id ?? null,
+        chartId: primaryChartRecord.id,
         surface: 'synastry',
         variant: 'full',
       },
@@ -254,15 +259,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       fromCache: true,
       accessTier: 'premium',
     });
-  }
-
-  if (!userChartData) {
-    userChartData = await calculateNatalChart(
-      profile.name,
-      profile.birthDate,
-      profile.birthTime || '12:00',
-      profile.birthPlace
-    );
   }
 
   if (!partnerChartData) {
@@ -281,7 +277,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     {
       scope: SCOPE,
       userId,
-      chartId: primaryChartRecord?.id ?? null,
+      chartId: primaryChartRecord.id,
       surface: 'synastry',
       variant: 'full',
     },
@@ -313,7 +309,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         max_tokens: 2500,
       });
       const content = completion.choices[0]?.message?.content || '{}';
-      const parsed = parseLumiaJson<FullSynastryAIResponse & { summary?: string; compatibilityScore?: number }>(content, buildSynastryFallback(langRu, profile.name, partnerName));
+      const parsed = parseLumiaJson<FullSynastryAIResponse & { summary?: string; compatibilityScore?: number }>(
+        content,
+        buildSynastryFallback(langRu, profile.name, partnerName)
+      );
       resultPayload = mapFullToSynastryResult(parsed);
     }
 
@@ -323,7 +322,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       contentVariant: 'full',
     });
 
-    if (primaryChartRecord?.id && partnerChartRecord?.id) {
+    if (partnerChartRecord?.id) {
       await db.synastry.set(
         primaryChartRecord.id,
         partnerChartRecord.id,
@@ -346,21 +345,17 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       legacySource: 'synastry.full.premium',
     };
 
-    if (primaryChartRecord?.id) {
-      await db.content_interpretations.upsertByChart(
-        primaryChartRecord.id,
-        interpretationData,
-        userId
-      );
-    } else {
-      await db.content_interpretations.upsertByUser(userId, interpretationData);
-    }
+    await db.content_interpretations.upsertByChart(
+      primaryChartRecord.id,
+      interpretationData,
+      userId
+    );
   } catch (err: any) {
     warnContentApi(
       {
         scope: SCOPE,
         userId,
-        chartId: primaryChartRecord?.id ?? null,
+        chartId: primaryChartRecord.id,
         surface: 'synastry',
         variant: 'full',
       },
@@ -382,7 +377,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     {
       scope: SCOPE,
       userId,
-      chartId: primaryChartRecord?.id ?? null,
+      chartId: primaryChartRecord.id,
       surface: 'synastry',
       variant: 'full',
     },

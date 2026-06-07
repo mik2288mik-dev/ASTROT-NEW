@@ -1,7 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import type { TodayAssistantHomeResult } from '../../../../types';
 import { db } from '../../../../lib/db';
-import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../../../../lib/adminAuth';
+import { AdminAuthError, handleAdminError } from '../../../../lib/adminAuth';
+import { requireAppUser } from '../../../../lib/auth/appAuth';
 import {
   buildAccuracySummary,
   buildPatternTeaser,
@@ -35,7 +36,7 @@ export default async function handler(
     return res.status(400).json(invalidUserIdPayload(language));
   }
   try {
-    requireTelegramUserId(req, userId);
+    await requireAppUser(req, { expectedUserId: userId });
   } catch (error) {
     if (error instanceof AdminAuthError) {
       return handleAdminError(res, error);

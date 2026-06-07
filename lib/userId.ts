@@ -7,7 +7,7 @@ export function normalizeUserId(value: unknown): string {
 export function isValidUserId(value: unknown): boolean {
   const id = normalizeUserId(value);
   if (INVALID_USER_ID_VALUES.has(id.toLowerCase())) return false;
-  return /^\d{1,20}$/.test(id);
+  return /^\d{1,20}$/.test(id) || /^-\d{1,19}$/.test(id);
 }
 
 export function assertValidUserId(value: unknown): string {
@@ -27,7 +27,11 @@ export function invalidUserIdPayload(language: 'ru' | 'en' = 'ru') {
     code: 'INVALID_USER_ID',
     message:
       language === 'en'
-        ? 'Open Lumia through Telegram so the app can identify your profile.'
-        : 'Открой Lumia через Telegram, чтобы приложение смогло определить профиль.',
+        ? 'Open Lumia through Telegram or start a web guest session.'
+        : 'Открой Lumia через Telegram или начни гостевую web-сессию.',
   };
+}
+
+export function isGuestUserId(value: unknown): boolean {
+  return /^-\d{1,19}$/.test(normalizeUserId(value));
 }

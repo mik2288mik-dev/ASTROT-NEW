@@ -135,3 +135,12 @@ export async function updateUserNotificationSettings(payload: {
     return false;
   }
 }
+
+/** Ensure a non-Telegram browser has a signed HttpOnly guest session. Telegram remains the priority provider. */
+export async function ensureWebGuestSession(): Promise<any | null> {
+  if (typeof window === 'undefined' || getTelegramInitData()) return null;
+  const response = await fetch(`${API_BASE}/api/auth/guest`, { method: 'POST', credentials: 'include' });
+  if (!response.ok) throw new Error(`Guest session failed: ${response.status}`);
+  const payload = await response.json();
+  return payload?.profile || null;
+}

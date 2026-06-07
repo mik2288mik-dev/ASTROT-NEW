@@ -521,7 +521,7 @@ const App: React.FC = () => {
         const safetyTimer = window.setTimeout(() => {
             if (cancelled || safetyCleared) return;
             console.error('[App] Startup exceeded safety budget - unlocking loading UI');
-            setStartupError('Lumia не успела загрузить профиль. Закрой мини-приложение и открой его снова из Telegram.');
+            setStartupError('Lumia не успела загрузить профиль. Обнови страницу и попробуй ещё раз.');
             setLoadingProgress(100);
             setView('dashboard');
             setLoading(false);
@@ -546,7 +546,8 @@ const App: React.FC = () => {
             
             // Ждём Telegram Web App (может загружаться асинхронно)
             let tgId: string | number | undefined;
-            for (let attempt = 0; attempt < 12; attempt++) {
+            const telegramWaitAttempts = (window as any).Telegram?.WebApp ? 12 : 1;
+            for (let attempt = 0; attempt < telegramWaitAttempts; attempt++) {
                 if (cancelled) return;
                 const tg = (window as any).Telegram?.WebApp;
                 tgId = tg?.initDataUnsafe?.user?.id;
@@ -557,10 +558,19 @@ const App: React.FC = () => {
                 await new Promise(r => setTimeout(r, 300));
             }
 
+            let webGuestProfile: UserProfile | null = null;
             if (!isValidUserId(tgId)) {
-                console.log('[App] No Telegram user ID found after retries, showing safe startup error');
+                console.log('[App] Telegram unavailable; bootstrapping signed web guest session');
+                try {
+                    webGuestProfile = await getProfile();
+                    tgId = webGuestProfile?.id;
+                } catch (guestError: any) {
+                    console.error('[App] Guest session bootstrap failed:', guestError?.message || guestError);
+                }
+            }
+            if (!isValidUserId(tgId)) {
                 clearSafety();
-                setStartupError('Не удалось получить Telegram ID. Открой Lumia через Telegram Mini App и попробуй ещё раз.');
+                setStartupError('Не удалось открыть гостевую сессию. Обнови страницу и попробуй ещё раз.');
                 setLoadingProgress(100);
                 setView('dashboard');
                 setLoading(false);
@@ -575,7 +585,7 @@ const App: React.FC = () => {
                 const tgUser = tg?.initDataUnsafe?.user as TelegramWebAppUser | undefined;
 
                 setLoadingProgress(30);
-                const storedProfile = await getProfile();
+                const storedProfile = webGuestProfile || await getProfile();
 
                 console.log('[App] Profile loaded:', {
                     hasProfile: !!storedProfile,

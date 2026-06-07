@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { db, getPool } from '../../../lib/db';
-import { AdminAuthError, getConfiguredOwnerId, handleAdminError, requireTelegramUserId } from '../../../lib/adminAuth';
+import { AdminAuthError, getConfiguredOwnerId, handleAdminError } from '../../../lib/adminAuth';
+import { requireAppUser } from '../../../lib/auth/appAuth';
 import { hasDatabaseUrl } from '../../../lib/database-url';
 import { getMoscowTodayKey, toDateInputValue } from '../../../lib/date-utils';
 import {
@@ -185,7 +186,7 @@ export default async function handler(
   });
 
   try {
-    requireTelegramUserId(req, userId);
+    const appUser = await requireAppUser(req, { expectedUserId: userId, allowGuest: true });
 
     if (req.method === 'GET') {
       // Get user profile
@@ -310,7 +311,7 @@ export default async function handler(
           userData.selectedZodiacSign ?? userData.selected_zodiac_sign
         );
       }
-      if (!existingUser) {
+      if (!existingUser && !appUser.isGuest) {
         const trial = getNewUserTrialWindow();
         dbUser.trial_started_at = trial.trialStartedAt;
         dbUser.premium_until = trial.premiumUntil;

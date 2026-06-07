@@ -23,7 +23,7 @@ import {
 export const config = { maxDuration: 90 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const ready = await ensureValidContext(req, res);
+  const ready = await ensureValidContext(req, res, { allowGuest: true });
   if (!ready) return;
   const { userId, ctx } = ready;
 

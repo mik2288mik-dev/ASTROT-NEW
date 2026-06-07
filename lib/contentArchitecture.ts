@@ -9,6 +9,7 @@ import { db } from './db';
 import { getConfiguredOwnerId } from './adminAuth';
 import { getMoscowIsoWeekKey, getMoscowMonthKey, getMoscowTodayKey } from './date-utils';
 import { getCurrentNatalPeriodKey } from './natalReadings';
+import { isGuestUserId } from './userId';
 
 const log = {
   info: (message: string, data?: any) => {
@@ -228,6 +229,8 @@ export async function unlockContentLayer(
 }
 
 export async function getPremiumEntitlementState(userId: string) {
+  if (isGuestUserId(userId)) return { isPremium: false, entitlement: null };
+
   const ownerId = getConfiguredOwnerId();
   if (ownerId && String(userId) === String(ownerId)) {
     return {

@@ -148,12 +148,11 @@ export async function resolveTodayPulseForUser({
 }): Promise<ResolvedTodayPulse | null> {
   const user = await db.users.get(userId).catch(() => null);
   const profile = toProfile(user, profileFallback);
-  const requestedChart = chartId != null
-    ? await db.natal_charts.getById(chartId).catch(() => null)
-    : null;
-  const primaryChart = requestedChart || await db.natal_charts.getPrimary(userId).catch(() => null);
+  const requestedChart = chartId != null ? await db.natal_charts.getById(chartId).catch(() => null) : null;
+  const ownedRequestedChart = requestedChart && String(requestedChart.user_id) === String(userId) ? requestedChart : null;
+  const primaryChart = ownedRequestedChart || await db.natal_charts.getPrimary(userId).catch(() => null);
   let chartRow = primaryChart;
-  let chartData = (chartDataFallback || primaryChart?.chart_data || null) as NatalChartData | null;
+  let chartData = (primaryChart?.chart_data || null) as NatalChartData | null;
   let repaired = false;
 
   if (!isCanonicalNatalChartDataComplete(chartData) && hasBirthData(profile)) {
