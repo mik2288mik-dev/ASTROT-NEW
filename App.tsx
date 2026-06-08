@@ -541,6 +541,12 @@ const App: React.FC = () => {
     useEffect(() => {
         let cancelled = false;
         let safetyCleared = false;
+        let startupVisible = false;
+        const startupStartedAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
+        const startupElapsedMs = () => Math.round((typeof performance !== 'undefined' ? performance.now() : Date.now()) - startupStartedAt);
+        const logStartupMetric = (name: string, value: number | boolean) => {
+            console.info(`[App][Startup] ${name}`, value);
+        };
         const safetyTimer = window.setTimeout(() => {
             if (cancelled || safetyCleared) return;
             console.error('[App] Startup exceeded safety budget - unlocking loading UI');
@@ -554,6 +560,79 @@ const App: React.FC = () => {
             if (safetyCleared) return;
             safetyCleared = true;
             window.clearTimeout(safetyTimer);
+        };
+
+        const showStartupDashboard = (targetView: ViewState = 'dashboard') => {
+            if (cancelled || startupVisible) return;
+            startupVisible = true;
+            clearSafety();
+            setLoadingProgress(100);
+            setLoadingMessage(undefined);
+            setView(targetView);
+            setLoading(false);
+            logStartupMetric('startup_dashboard_visible_ms', startupElapsedMs());
+        };
+
+        const scheduleStartupBackgroundWork = (
+            targetProfile: UserProfile,
+            initialChart: NatalChartData,
+            initialChartId: number | null,
+            refreshChartFromDb: boolean,
+        ) => {
+            void (async () => {
+                let chart = initialChart;
+                let chartId = initialChartId;
+
+                const chartRefresh = refreshChartFromDb
+                    ? getChartFromDB(String(targetProfile.id))
+                        .then((freshChart) => {
+                            if (!freshChart?.sun || !freshChart?.moon || !freshChart?.rising) return;
+                            chart = freshChart;
+                            const key = getPrimaryChartLoadKey(targetProfile);
+                            primaryChartSessionRef.current = { key, data: freshChart, promise: null };
+                            primaryChartDataRef.current = freshChart;
+                            writeLocalNatalChart(targetProfile, freshChart, chartId ?? undefined);
+                            if (!cancelled) {
+                                setChartData(freshChart);
+                                setChartLoadState('ready');
+                            }
+                        })
+                        .catch((error: any) => {
+                            console.warn('[App] Background primary chart refresh failed; keeping local cache:', error?.message || error);
+                        })
+                    : Promise.resolve();
+
+                const chartIdRefresh = getPrimaryChartId(String(targetProfile.id))
+                    .then((freshPrimaryChartId) => {
+                        if (freshPrimaryChartId == null) return;
+                        chartId = freshPrimaryChartId;
+                        writeLocalNatalChart(targetProfile, chart, freshPrimaryChartId);
+                        if (!cancelled) {
+                            setPrimaryChartId(freshPrimaryChartId);
+                            setActiveChartId(freshPrimaryChartId);
+                        }
+                    })
+                    .catch((error: any) => {
+                        console.warn('[App] Background primary chart ID refresh failed:', error?.message || error);
+                    });
+
+                await Promise.all([chartRefresh, chartIdRefresh]);
+
+                void prepareUserContentDbFirst({
+                    userId: String(targetProfile.id),
+                    chartId,
+                    profile: targetProfile,
+                    chartData: chart,
+                    isPremium: hasActivePremium(targetProfile),
+                    dateKey: getMoscowTodayKey(),
+                })
+                    .catch((prewarmError: any) => {
+                        console.warn('[App] Startup DB-first content flow failed:', prewarmError?.message || prewarmError);
+                    })
+                    .finally(() => {
+                        logStartupMetric('startup_prewarm_done_ms', startupElapsedMs());
+                    });
+            })();
         };
 
         const loadData = async () => {
@@ -602,7 +681,6 @@ const App: React.FC = () => {
             const safeTgId = tgId as string | number;
 
             try {
-                // Шаг 1: Загружаем профиль из БД
                 setStartupError(null);
                 const tg = (window as any).Telegram?.WebApp;
                 const tgUser = tg?.initDataUnsafe?.user as TelegramWebAppUser | undefined;
@@ -616,7 +694,6 @@ const App: React.FC = () => {
                     tgId: safeTgId
                 });
 
-                // Создаём или нормализуем минимальный профиль без требования натальной карты.
                 let updatedProfile: UserProfile;
                 if (!storedProfile) {
                     setLoadingProgress(42);
@@ -637,8 +714,8 @@ const App: React.FC = () => {
                     }
                 }
 
-                // Шаг 2: Профиль готов для входа в приложение.
                 setProfile(updatedProfile);
+                logStartupMetric('startup_profile_loaded_ms', startupElapsedMs());
 
                 runReferralFromStartParam(String(safeTgId), (r) => {
                     if (r.ok) {
@@ -648,13 +725,29 @@ const App: React.FC = () => {
                     }
                 });
 
-                // Шаг 3: Загружаем карту только для уже настроенного профиля.
                 if (!updatedProfile.isSetup) {
                     console.log('[App] Profile is not setup; opening dashboard without chart/prewarm');
+                    logStartupMetric('startup_local_chart_hit', false);
                     resetPrimaryChartState();
-                    setLoadingProgress(100);
-                    setLoadingMessage(undefined);
-                    setView('dashboard');
+                    showStartupDashboard('dashboard');
+                    return;
+                }
+
+                const localEntry = readLocalNatalChartCache(updatedProfile);
+                logStartupMetric('startup_local_chart_hit', !!localEntry);
+                if (localEntry) {
+                    const key = getPrimaryChartLoadKey(updatedProfile);
+                    primaryChartSessionRef.current = { key, data: localEntry.chartData, promise: null };
+                    primaryChartDataRef.current = localEntry.chartData;
+                    setChartData(localEntry.chartData);
+                    setChartLoadState('ready');
+                    if (localEntry.chartId != null) {
+                        setPrimaryChartId(localEntry.chartId);
+                        setActiveChartId(localEntry.chartId);
+                    }
+                    logStartupMetric('startup_chart_ready_ms', startupElapsedMs());
+                    showStartupDashboard('dashboard');
+                    scheduleStartupBackgroundWork(updatedProfile, localEntry.chartData, localEntry.chartId ?? null, true);
                     return;
                 }
 
@@ -665,64 +758,27 @@ const App: React.FC = () => {
                 console.log('[App] Loading primary chart once...');
 
                 const chart = await loadPrimaryChartOnce(updatedProfile);
-
                 if (chart?.sun && chart?.moon) {
                     console.log('[App] Chart loaded successfully:', {
                         sunSign: chart.sun.sign,
                         moonSign: chart.moon.sign
                     });
-                    setLoadingProgress(68);
-                    const cachedPrimaryChartId = readLocalNatalChartCache(updatedProfile)?.chartId ?? null;
-                    const primaryChartId = cachedPrimaryChartId ?? await getPrimaryChartId(String(updatedProfile.id));
-                    if (primaryChartId != null) {
-                        setPrimaryChartId(primaryChartId);
-                        setActiveChartId(primaryChartId);
-                        writeLocalNatalChart(updatedProfile, chart, primaryChartId);
-                        if (process.env.NODE_ENV !== 'production') {
-                            console.warn('[App] primaryChartId', primaryChartId);
-                        }
-                    }
-                    if (cachedPrimaryChartId != null) {
-                        void getPrimaryChartId(String(updatedProfile.id)).then((freshPrimaryChartId) => {
-                            if (freshPrimaryChartId == null) return;
-                            setPrimaryChartId(freshPrimaryChartId);
-                            setActiveChartId(freshPrimaryChartId);
-                            writeLocalNatalChart(updatedProfile, primaryChartDataRef.current || chart, freshPrimaryChartId);
-                        });
-                    }
-                    const dateKey = getMoscowTodayKey();
-                    try {
-                        await prepareUserContentDbFirst({
-                            userId: String(updatedProfile.id),
-                            chartId: primaryChartId,
-                            profile: updatedProfile,
-                            chartData: chart,
-                            isPremium: hasActivePremium(updatedProfile),
-                            dateKey,
-                            progressStart: 68,
-                            progressSpan: 20,
-                        });
-                    } catch (prewarmError: any) {
-                        console.warn('[App] Startup DB-first content flow failed:', prewarmError?.message || prewarmError);
-                    }
-                    setLoadingProgress(88);
+                    logStartupMetric('startup_chart_ready_ms', startupElapsedMs());
+                    showStartupDashboard(requestedViewRef.current || 'dashboard');
+                    scheduleStartupBackgroundWork(updatedProfile, chart, null, false);
                 } else {
                     console.log('[App] Chart unavailable after startup load, going to dashboard');
+                    showStartupDashboard(requestedViewRef.current || 'dashboard');
                 }
-
-                setLoadingProgress(100);
-                setLoadingMessage(undefined);
-                setView(requestedViewRef.current || 'dashboard');
             } catch (error) {
                 console.error('[App] Error loading user data:', error);
                 setStartupError('Не удалось загрузить профиль Lumia. Проверь, что приложение открыто внутри Telegram, и попробуй ещё раз.');
                 resetPrimaryChartState();
-                setLoadingProgress(100);
-                setView('dashboard');
+                showStartupDashboard('dashboard');
             } finally {
                 clearSafety();
-                if (!cancelled) {
-                    setTimeout(() => setLoading(false), 300);
+                if (!cancelled && !startupVisible) {
+                    showStartupDashboard('dashboard');
                 }
             }
         };

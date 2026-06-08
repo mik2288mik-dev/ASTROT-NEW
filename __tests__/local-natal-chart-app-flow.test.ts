@@ -5,17 +5,50 @@ const ROOT = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
 describe('local natal chart app flow', () => {
-  it('renders a valid local primary chart before refreshing DB in background', () => {
+  it('shows cached startup dashboard before DB, chart ID, and prewarm background work', () => {
     const app = read('App.tsx');
-    const localRead = app.indexOf('const localEntry = readLocalNatalChartCache(targetProfile)');
-    const ready = app.indexOf("setChartLoadState('ready')", localRead);
-    const dbRefresh = app.indexOf('void getChartFromDB(String(targetProfile.id))', localRead);
+    const startupLocalRead = app.indexOf('const localEntry = readLocalNatalChartCache(updatedProfile)');
+    const ready = app.indexOf("setChartLoadState('ready')", startupLocalRead);
+    const dashboard = app.indexOf("showStartupDashboard('dashboard')", ready);
+    const background = app.indexOf('scheduleStartupBackgroundWork(updatedProfile, localEntry.chartData', dashboard);
+    const scheduler = app.indexOf('const scheduleStartupBackgroundWork');
+    const dbRefresh = app.indexOf('getChartFromDB(String(targetProfile.id))', scheduler);
+    const idRefresh = app.indexOf('getPrimaryChartId(String(targetProfile.id))', scheduler);
+    const prewarm = app.indexOf('void prepareUserContentDbFirst({', scheduler);
 
-    expect(localRead).toBeGreaterThan(-1);
-    expect(ready).toBeGreaterThan(localRead);
-    expect(dbRefresh).toBeGreaterThan(ready);
+    expect(startupLocalRead).toBeGreaterThan(-1);
+    expect(ready).toBeGreaterThan(startupLocalRead);
+    expect(dashboard).toBeGreaterThan(ready);
+    expect(background).toBeGreaterThan(dashboard);
+    expect(dbRefresh).toBeGreaterThan(scheduler);
+    expect(idRefresh).toBeGreaterThan(scheduler);
+    expect(prewarm).toBeGreaterThan(scheduler);
     expect(app).toContain('Background primary chart refresh failed; keeping local cache');
-    expect(app).toContain('Do not recalculate a DB miss while a valid local chart exists');
+  });
+
+  it('shows dashboard immediately after a DB chart and keeps prewarm non-blocking', () => {
+    const app = read('App.tsx');
+    const dbChart = app.indexOf('const chart = await loadPrimaryChartOnce(updatedProfile)');
+    const dashboard = app.indexOf("showStartupDashboard(requestedViewRef.current || 'dashboard')", dbChart);
+    const background = app.indexOf('scheduleStartupBackgroundWork(updatedProfile, chart, null, false)', dashboard);
+
+    expect(dbChart).toBeGreaterThan(-1);
+    expect(dashboard).toBeGreaterThan(dbChart);
+    expect(background).toBeGreaterThan(dashboard);
+    expect(app).toContain('void prepareUserContentDbFirst({');
+  });
+
+  it('emits startup timing and cache-hit metrics', () => {
+    const app = read('App.tsx');
+    for (const metric of [
+      'startup_profile_loaded_ms',
+      'startup_local_chart_hit',
+      'startup_chart_ready_ms',
+      'startup_dashboard_visible_ms',
+      'startup_prewarm_done_ms',
+    ]) {
+      expect(app).toContain(metric);
+    }
   });
 
   it('writes onboarding and force-recalculated charts to local cache', () => {
