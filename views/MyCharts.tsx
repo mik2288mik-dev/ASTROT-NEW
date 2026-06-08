@@ -13,6 +13,7 @@ import { getText, getZodiacSign } from '../constants';
 import { formatLumiaDate } from '../lib/date-utils';
 import { PlanetIcon } from '../components/icons/PlanetIcon';
 import { hasActivePremium } from '../lib/accessMatrix';
+import { clearLocalNatalChart } from '../lib/localNatalChartCache';
 
 interface MyChartsProps {
   profile: UserProfile;
@@ -114,6 +115,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
       await loadCharts();
 
       if (createdChart.is_primary) {
+        clearLocalNatalChart(profile);
         await onPrimaryChartUpdated?.();
       }
     } catch (err: any) {
@@ -131,6 +133,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
 
     try {
       await setPrimaryChart(chartId, profile.id);
+      clearLocalNatalChart(profile);
       await loadCharts();
       await onPrimaryChartUpdated?.();
     } catch (err: any) {
@@ -151,6 +154,9 @@ export const MyCharts: React.FC<MyChartsProps> = ({
 
     try {
       await deleteChart(chart.id, profile.id);
+      if (chart.is_primary) {
+        clearLocalNatalChart(profile);
+      }
       await loadCharts();
 
       if (chart.is_primary) {

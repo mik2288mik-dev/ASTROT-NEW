@@ -10,6 +10,7 @@
 import { NatalChartData, UserProfile } from '../types';
 import { fetchWithTimeout } from '../lib/fetchWithTimeout';
 import { assertValidUserId } from '../lib/userId';
+import { writeLocalNatalChart } from '../lib/localNatalChartCache';
 import { getTelegramInitDataHeaders } from './sessionService';
 
 const API_BASE_URL = typeof window !== 'undefined' ? '' : '';
@@ -189,6 +190,7 @@ export async function getOrCalculateChart(profile: UserProfile): Promise<NatalCh
 
   const chartFromDB = await getChartFromDB(userId);
   if (chartFromDB) {
+    writeLocalNatalChart(profile, chartFromDB);
     return chartFromDB;
   }
 
@@ -209,7 +211,9 @@ export async function getOrCalculateChart(profile: UserProfile): Promise<NatalCh
 
   calculationInFlight.set(userId, calculationPromise);
 
-  return calculationPromise;
+  const chart = await calculationPromise;
+  writeLocalNatalChart(profile, chart);
+  return chart;
 }
 
 export async function forceRecalculateChart(profile: UserProfile): Promise<NatalChartData> {
@@ -247,6 +251,7 @@ export async function forceRecalculateChart(profile: UserProfile): Promise<Natal
 
   log.info('[forceRecalculateChart] RECALCULATED: chart updated');
 
+  writeLocalNatalChart(profile, chartData as NatalChartData);
   return chartData as NatalChartData;
 }
 
