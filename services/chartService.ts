@@ -121,6 +121,7 @@ async function calculateChart(profile: UserProfile): Promise<NatalChartData> {
       url,
       {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
         body: JSON.stringify({
           userId: safeUserId,
@@ -222,6 +223,7 @@ export async function forceRecalculateChart(profile: UserProfile): Promise<Natal
     url,
     {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
       body: JSON.stringify({
         userId,
