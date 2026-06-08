@@ -4,7 +4,8 @@ import { withRateLimit, RATE_LIMIT_CONFIGS } from '../../../lib/rateLimit';
 import { repairCanonicalChartForUser, ensureCanonicalPrimaryChart } from '../../../lib/natalChartPersistence';
 import { tryAcquireLock, releaseLock, LockKeys } from '../../../lib/serverLocks';
 import { invalidUserIdPayload, isValidUserId } from '../../../lib/userId';
-import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../../../lib/adminAuth';
+import { AdminAuthError, handleAdminError } from '../../../lib/adminAuth';
+import { requireAppUser } from '../../../lib/auth/appAuth';
 
 const log = {
   info: (message: string, data?: any) => {
@@ -38,8 +39,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     }
     const rawBirthTime = typeof birthTime === 'string' ? birthTime.trim() : '';
     const normalizedBirthTime = rawBirthTime || '12:00';
-    const effectiveUserId = String(userId).trim();
-    requireTelegramUserId(req, effectiveUserId);
+    const assertedUserId = String(userId).trim();
+    const appUser = await requireAppUser(req, { allowGuest: true });
+    if (assertedUserId !== appUser.userId) {
+      throw new AdminAuthError(403, 'USER_ID_MISMATCH', 'Authenticated app session does not match userId');
+    }
+    const authenticatedUserId = appUser.userId;
 
     const validation = validateNatalChartInput({
       name,
@@ -57,13 +62,13 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       });
     }
 
-    lockKey = LockKeys.natalChartCalculation(effectiveUserId);
+    lockKey = LockKeys.natalChartCalculation(authenticatedUserId);
 
     if (!tryAcquireLock(lockKey, 'natal-chart-calculation')) {
-      log.info('LOCK_DENIED: calculation already in progress', { userId: effectiveUserId });
+      log.info('LOCK_DENIED: calculation already in progress', { userId: authenticatedUserId });
 
       await new Promise((resolve) => setTimeout(resolve, 1500));
-      const repaired = await repairCanonicalChartForUser(effectiveUserId);
+      const repaired = await repairCanonicalChartForUser(authenticatedUserId);
       if (repaired?.chart?.chart_data?.sun && repaired.chart.chart_data?.moon && repaired.chart.chart_data?.rising) {
         res.setHeader('X-Chart-Source', 'cache-after-wait');
         return res.status(200).json(repaired.chart.chart_data);
@@ -78,7 +83,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     }
 
     const result = await ensureCanonicalPrimaryChart({
-      userId: effectiveUserId,
+      userId: authenticatedUserId,
       name,
       birthDate,
       birthTime: normalizedBirthTime,
@@ -92,7 +97,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
     const totalDuration = Date.now() - startTime;
     log.info('Canonical natal chart ready', {
-      userId: effectiveUserId,
+      userId: authenticatedUserId,
       source: result.source,
       durationMs: totalDuration,
       sunSign: result.chart?.sun_sign,

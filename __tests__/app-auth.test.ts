@@ -58,6 +58,12 @@ describe('app auth providers and API security', () => {
     expect(read('pages/api/content/natal/human-daily.ts')).not.toContain('if (profile?.isPremium)');
   });
 
+  it('sends Telegram auth headers and web guest cookies for natal chart requests', () => {
+    const chartService = read('services/chartService.ts');
+    expect(chartService).toContain('...getTelegramInitDataHeaders()');
+    expect(chartService.match(/credentials: 'include'/g)).toHaveLength(2);
+  });
+
   it('boots the dashboard through guest session when Telegram is unavailable', () => {
     expect(read('services/storageService.ts')).toContain('ensureWebGuestSession');
     expect(read('App.tsx')).toContain('bootstrapping signed web guest session');
