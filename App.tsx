@@ -4,12 +4,12 @@ import { UserProfile, NatalChartData, ViewState, HoroscopeLayer, NatalInterpreta
 import {
     getProfile,
     saveProfile,
-    getChartData,
     runReferralFromStartParam,
 } from './services/storageService';
-import { getOrCalculateChart, getPrimaryChartId } from './services/chartService';
+import { getChartFromDB, getOrCalculateChart, getPrimaryChartId } from './services/chartService';
 import { prewarmUserContent } from './services/contentPrewarmService';
 import { CACHE_ONLY_PREWARM_BUDGET_MS } from './lib/appStartupFlags';
+import { clearLocalNatalChart, readLocalNatalChartCache, writeLocalNatalChart } from './lib/localNatalChartCache';
 import { getMoscowTodayKey } from './lib/date-utils';
 import { Onboarding } from './views/Onboarding';
 import { Dashboard } from './views/Dashboard';
@@ -353,14 +353,43 @@ const App: React.FC = () => {
             return current.promise;
         }
 
-        setChartLoadState('loading');
         setPreloadedHumanReport(null);
+        const localEntry = readLocalNatalChartCache(targetProfile);
+        if (localEntry) {
+            const cachedChart = localEntry.chartData;
+            primaryChartSessionRef.current = { key, data: cachedChart, promise: null };
+            primaryChartDataRef.current = cachedChart;
+            setChartData(cachedChart);
+            setChartLoadState('ready');
+            if (localEntry.chartId != null) {
+                setPrimaryChartId(localEntry.chartId);
+                setActiveChartId(localEntry.chartId);
+            }
 
+            // DB remains source of truth, but a temporary DB error must not replace a usable local chart.
+            void getChartFromDB(String(targetProfile.id))
+                .then((freshChart) => {
+                    if (!freshChart) return; // Do not recalculate a DB miss while a valid local chart exists.
+                    primaryChartSessionRef.current = { key, data: freshChart, promise: null };
+                    primaryChartDataRef.current = freshChart;
+                    writeLocalNatalChart(targetProfile, freshChart, localEntry.chartId);
+                    setChartData(freshChart);
+                    setChartLoadState('ready');
+                })
+                .catch((error: any) => {
+                    console.warn('[App] Background primary chart refresh failed; keeping local cache:', error?.message || error);
+                });
+
+            return cachedChart;
+        }
+
+        setChartLoadState('loading');
         const promise = getOrCalculateChart(targetProfile)
             .then((chart) => {
                 if (chart?.sun && chart?.moon && chart?.rising) {
                     primaryChartSessionRef.current = { key, data: chart, promise: null };
                     primaryChartDataRef.current = chart;
+                    writeLocalNatalChart(targetProfile, chart);
                     setChartData(chart);
                     setChartLoadState('ready');
                     return chart;
@@ -643,13 +672,23 @@ const App: React.FC = () => {
                         moonSign: chart.moon.sign
                     });
                     setLoadingProgress(68);
-                    const primaryChartId = await getPrimaryChartId(String(updatedProfile.id));
+                    const cachedPrimaryChartId = readLocalNatalChartCache(updatedProfile)?.chartId ?? null;
+                    const primaryChartId = cachedPrimaryChartId ?? await getPrimaryChartId(String(updatedProfile.id));
                     if (primaryChartId != null) {
                         setPrimaryChartId(primaryChartId);
                         setActiveChartId(primaryChartId);
+                        writeLocalNatalChart(updatedProfile, chart, primaryChartId);
                         if (process.env.NODE_ENV !== 'production') {
                             console.warn('[App] primaryChartId', primaryChartId);
                         }
+                    }
+                    if (cachedPrimaryChartId != null) {
+                        void getPrimaryChartId(String(updatedProfile.id)).then((freshPrimaryChartId) => {
+                            if (freshPrimaryChartId == null) return;
+                            setPrimaryChartId(freshPrimaryChartId);
+                            setActiveChartId(freshPrimaryChartId);
+                            writeLocalNatalChart(updatedProfile, primaryChartDataRef.current || chart, freshPrimaryChartId);
+                        });
                     }
                     const dateKey = getMoscowTodayKey();
                     try {
@@ -793,6 +832,7 @@ const App: React.FC = () => {
             clearHumanReadingSessionCache(fullProfile.id);
             setChartLoadState('ready');
             setChartData(generatedChart);
+            writeLocalNatalChart(fullProfile, generatedChart);
             setLoadingMessage(
                 fullProfile.language === 'en' ? 'Preparing your day' : 'Готовим твой день'
             );
@@ -801,6 +841,7 @@ const App: React.FC = () => {
             if (primaryChartId != null) {
                 setPrimaryChartId(primaryChartId);
                 setActiveChartId(primaryChartId);
+                writeLocalNatalChart(fullProfile, generatedChart, primaryChartId);
             }
             const dateKey = getMoscowTodayKey();
             try {
@@ -1128,22 +1169,30 @@ const App: React.FC = () => {
     }, [navigateTo, openPersonalDailyView]);
 
     const refreshPrimaryChartState = useCallback(async () => {
+        if (!profile?.id) return;
         try {
-            const freshChart = await getChartData();
-            if (profile?.id) {
-                const key = getPrimaryChartLoadKey(profile);
-                primaryChartSessionRef.current = { key, data: freshChart, promise: null };
-                primaryChartDataRef.current = freshChart;
-                clearHumanReadingSessionCache(String(profile.id));
-                setPreloadedHumanReport(null);
-                void prefetchBaseReportForChart(profile);
+            const [freshChart, freshPrimaryChartId] = await Promise.all([
+                getChartFromDB(String(profile.id)),
+                getPrimaryChartId(String(profile.id)),
+            ]);
+            const key = getPrimaryChartLoadKey(profile);
+            primaryChartSessionRef.current = { key, data: freshChart, promise: null };
+            primaryChartDataRef.current = freshChart;
+            clearHumanReadingSessionCache(String(profile.id));
+            setPreloadedHumanReport(null);
+            if (freshChart) {
+                writeLocalNatalChart(profile, freshChart, freshPrimaryChartId ?? undefined);
+                void prefetchBaseReportForChart(profile, freshPrimaryChartId ?? undefined);
+            } else {
+                clearLocalNatalChart(profile);
             }
+            setPrimaryChartId(freshPrimaryChartId);
             setChartLoadState(freshChart?.sun && freshChart?.moon ? 'ready' : 'error');
             setChartData(freshChart);
             setActiveChartId(undefined);
         } catch (error) {
             console.error('[App] Failed to refresh primary chart state:', error);
-            setChartLoadState('error');
+            // Keep the existing local/session chart on transient DB errors.
         }
     }, [prefetchBaseReportForChart, profile]);
 
