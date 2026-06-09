@@ -24,12 +24,8 @@ describe('zodiac card backgrounds', () => {
     expect(normalizeZodiacKey('Скорпион')).toBe('scorpio');
   });
 
-  it('chooses a stable asset variant by sign and seed', () => {
-    const first = getZodiacCardBackground('Pisces', 'user-1:1989-03-06');
-    const second = getZodiacCardBackground('Pisces', 'user-1:1989-03-06');
-
-    expect(first).toBe(second);
-    expect(first).toMatch(/^\/zodiac-card-backgrounds\/pisces_card_bg_0[1-4]\.webp$/);
+  it('returns no raster background path after static asset cleanup', () => {
+    expect(getZodiacCardBackground('Pisces', 'user-1:1989-03-06')).toBe('');
   });
 
   it('returns an empty path for unknown signs so UI can use neutral fallback', () => {

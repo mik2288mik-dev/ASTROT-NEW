@@ -49,21 +49,8 @@ export function normalizeZodiacKey(sign: string | null | undefined): ZodiacKey |
   return ZODIAC_ALIASES[normalized] ?? null;
 }
 
-function stableHash(input: string): number {
-  let hash = 2166136261;
-  for (let index = 0; index < input.length; index += 1) {
-    hash ^= input.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-  return hash >>> 0;
-}
-
-export function getZodiacCardBackground(sign: string | null | undefined, seed = ''): string {
-  const key = normalizeZodiacKey(sign);
-  if (!key) return '';
-
-  const variant = (stableHash(`${key}:${seed || key}`) % ZODIAC_CARD_BACKGROUND_COUNT) + 1;
-  return `/zodiac-card-backgrounds/${key}_card_bg_${String(variant).padStart(2, '0')}.webp`;
+export function getZodiacCardBackground(_sign: string | null | undefined, _seed = ''): string {
+  return '';
 }
 
 function formatDate(dateKey: string | undefined): string | null {

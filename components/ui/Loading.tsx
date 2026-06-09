@@ -6,11 +6,11 @@ interface LoadingProps {
   progress?: number;
 }
 
-const LOADING_SPLASH = '/lumia_splash_text_updated_1440x3040.webp';
+const LOADING_SPLASH = '/lumiastart.webp';
 const LOADING_LABEL = 'Загружаем LUMIA';
 
-/** Matches sky tone in splash art — fills letterbox when aspect ratio differs. */
-const LOADING_BACKDROP = '#d6e5ef';
+/** Matches splash edge tone — fills letterbox when aspect ratio differs. */
+const LOADING_BACKDROP = '#83564e';
 
 export const Loading: React.FC<LoadingProps> = ({ progress: externalProgress }) => {
   const [progress, setProgress] = useState(0);

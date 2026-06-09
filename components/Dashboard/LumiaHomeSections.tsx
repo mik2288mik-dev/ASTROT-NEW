@@ -48,13 +48,7 @@ export function LumiaHomeHeroCard({
 
   return (
     <LumiaHomeLargeCard className="lumia-home-hero-card min-h-[20.75rem] bg-white shadow-[0_16px_36px_rgba(17,19,23,0.08)]">
-      <img
-        src="/lumia-home/daily-hero-editorial-v1.webp"
-        alt=""
-        draggable={false}
-        className="absolute inset-0 h-full w-full object-cover object-[62%_center]"
-      />
-      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.98)_0%,rgba(244,247,250,0.88)_42%,rgba(21,94,239,0.14)_72%,rgba(21,94,239,0.04)_100%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(135deg,#ffffff_0%,#f4f7fa_45%,rgba(21,94,239,0.12)_100%)]" />
       <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-white/80 via-[#155EEF]/10 to-transparent" />
       <div className="absolute -left-20 top-10 h-56 w-56 rounded-full bg-white/52 blur-3xl" />
 

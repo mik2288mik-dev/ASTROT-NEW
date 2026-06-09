@@ -6,7 +6,7 @@ const ROOT = path.join(__dirname, '..');
 describe('loading screen', () => {
   it('uses full-screen splash that fills the viewport', () => {
     const source = fs.readFileSync(path.join(ROOT, 'components/ui/Loading.tsx'), 'utf8');
-    expect(source).toContain('/lumia_splash_text_updated_1440x3040.webp');
+    expect(source).toContain('/lumiastart.webp');
     expect(source).toContain('object-cover');
     expect(source).toContain('object-top');
     expect(source).toContain('absolute inset-0 h-full w-full');
@@ -45,7 +45,7 @@ describe('loading screen', () => {
   });
 
   it('loading splash asset exists in public', () => {
-    const webp = path.join(ROOT, 'public', 'lumia_splash_text_updated_1440x3040.webp');
+    const webp = path.join(ROOT, 'public', 'lumiastart.webp');
     expect(fs.existsSync(webp)).toBe(true);
     expect(fs.statSync(webp).size).toBeGreaterThan(0);
   });

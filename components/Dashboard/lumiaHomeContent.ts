@@ -148,15 +148,15 @@ export type LumiaHomeCopy = ReturnType<typeof getLumiaHomeCopy>;
 
 export const LUMIA_HOME_PREVIEW_ITEMS = {
   ru: [
-    { label: 'Любовь', imageSrc: '/natal-gateway/synastry-union-v2.webp' },
-    { label: 'Деньги', imageSrc: '/natal-backgrounds/work-money.webp' },
-    { label: 'Работа', imageSrc: '/natal-backgrounds/strengths.webp' },
-    { label: 'Личный ритм', imageSrc: '/natal-backgrounds/daily.webp' },
+    { label: 'Любовь', imageSrc: '' },
+    { label: 'Деньги', imageSrc: '' },
+    { label: 'Работа', imageSrc: '' },
+    { label: 'Личный ритм', imageSrc: '' },
   ],
   en: [
-    { label: 'Love', imageSrc: '/natal-gateway/synastry-union-v2.webp' },
-    { label: 'Money', imageSrc: '/natal-backgrounds/work-money.webp' },
-    { label: 'Work', imageSrc: '/natal-backgrounds/strengths.webp' },
-    { label: 'Personal day', imageSrc: '/natal-backgrounds/daily.webp' },
+    { label: 'Love', imageSrc: '' },
+    { label: 'Money', imageSrc: '' },
+    { label: 'Work', imageSrc: '' },
+    { label: 'Personal day', imageSrc: '' },
   ],
 } as const;

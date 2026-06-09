@@ -24,91 +24,11 @@ export const HOME_VIDEO_CARD_ORDER: readonly HomeVideoCardId[] = [
 ];
 
 export const HOME_CARD_VIDEO_REGISTRY: HomeCardVideoRegistry = {
-  horoscope: [
-    {
-      src: '/assets/card-videos/horoscope/loop.mp4',
-      poster: '/assets/card-videos/horoscope/poster.webp',
-      visualFamily: 'orange_birds_moon',
-    },
-    {
-      src: '/assets/card-videos/horoscope/loop-02.mp4',
-      poster: '/assets/card-videos/horoscope/poster-02.webp',
-      visualFamily: 'night_rice_fields',
-    },
-    {
-      src: '/assets/card-videos/horoscope/loop-03.mp4',
-      poster: '/assets/card-videos/horoscope/poster-03.webp',
-      visualFamily: 'blue_clouds',
-    },
-  ],
-  love: [
-    {
-      src: '/assets/card-videos/love/loop.mp4',
-      poster: '/assets/card-videos/love/poster.webp',
-      visualFamily: 'blue_clouds',
-    },
-    {
-      src: '/assets/card-videos/love/loop-02.mp4',
-      poster: '/assets/card-videos/love/poster-02.webp',
-      visualFamily: 'turquoise_coast',
-    },
-    {
-      src: '/assets/card-videos/love/loop-03.mp4',
-      poster: '/assets/card-videos/love/poster-03.webp',
-      visualFamily: 'orange_birds_moon',
-    },
-  ],
-  money: [
-    {
-      src: '/assets/card-videos/money/loop.mp4',
-      poster: '/assets/card-videos/money/poster.webp',
-      visualFamily: 'green_mountain_path',
-    },
-    {
-      src: '/assets/card-videos/money/loop-02.mp4',
-      poster: '/assets/card-videos/money/poster-02.webp',
-      visualFamily: 'green_hills_aerial',
-    },
-    {
-      src: '/assets/card-videos/money/loop-03.mp4',
-      poster: '/assets/card-videos/money/poster-03.webp',
-      visualFamily: 'turquoise_coast',
-    },
-  ],
-  work: [
-    {
-      src: '/assets/card-videos/work/loop.mp4',
-      poster: '/assets/card-videos/work/poster.webp',
-      visualFamily: 'green_hills_aerial',
-    },
-    {
-      src: '/assets/card-videos/work/loop-02.mp4',
-      poster: '/assets/card-videos/work/poster-02.webp',
-      visualFamily: 'green_mountain_path',
-    },
-    {
-      src: '/assets/card-videos/work/loop-03.mp4',
-      poster: '/assets/card-videos/work/poster-03.webp',
-      visualFamily: 'snow_horses',
-    },
-  ],
-  rhythm: [
-    {
-      src: '/assets/card-videos/rhythm/loop.mp4',
-      poster: '/assets/card-videos/rhythm/poster.webp',
-      visualFamily: 'snow_forest',
-    },
-    {
-      src: '/assets/card-videos/rhythm/loop-02.mp4',
-      poster: '/assets/card-videos/rhythm/poster-02.webp',
-      visualFamily: 'night_rice_fields',
-    },
-    {
-      src: '/assets/card-videos/rhythm/loop-03.mp4',
-      poster: '/assets/card-videos/rhythm/poster-03.webp',
-      visualFamily: 'blue_clouds',
-    },
-  ],
+  horoscope: [],
+  love: [],
+  money: [],
+  work: [],
+  rhythm: [],
 };
 
 function hashString(value: string) {

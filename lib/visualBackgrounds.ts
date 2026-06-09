@@ -11,14 +11,14 @@ export type NatalReadingBackgroundKey =
   | 'daily';
 
 export const NATAL_READING_BACKGROUNDS: Record<NatalReadingBackgroundKey, string> = {
-  portrait: '/natal-backgrounds/portrait.webp',
-  formula: '/natal-backgrounds/formula.webp',
-  luminaries: '/natal-backgrounds/luminaries.webp',
-  strengths: '/natal-backgrounds/strengths.webp',
-  growth: '/natal-backgrounds/growth.webp',
-  relationships: '/natal-backgrounds/relationships.webp',
-  'work-money': '/natal-backgrounds/work-money.webp',
-  daily: '/natal-backgrounds/daily.webp',
+  portrait: '',
+  formula: '',
+  luminaries: '',
+  strengths: '',
+  growth: '',
+  relationships: '',
+  'work-money': '',
+  daily: '',
 };
 
 const NATAL_BACKGROUND_BY_SECTION: Partial<Record<InterpretationSectionKey, NatalReadingBackgroundKey>> = {
@@ -65,31 +65,10 @@ export function getNatalReadingBackground(sectionKey?: InterpretationSectionKey 
   return NATAL_READING_BACKGROUNDS[key || 'portrait'];
 }
 
-export function getSynastryBackground(score?: number | null): string {
-  if (typeof score !== 'number' || !Number.isFinite(score)) {
-    return '/synastry-backgrounds/bond-05.webp';
-  }
-  const normalized = Math.max(0, Math.min(100, Math.round(score)));
-  const bucket = Math.min(9, Math.floor(normalized / 10));
-  return `/synastry-backgrounds/bond-${String(bucket).padStart(2, '0')}.webp`;
+export function getSynastryBackground(_score?: number | null): string {
+  return '';
 }
 
-const HOROSCOPE_BACKGROUND_BY_SIGN: Record<string, string> = {
-  aries: 'aries',
-  taurus: 'taurus',
-  gemini: 'gemini',
-  cancer: 'cancer',
-  leo: 'leo',
-  virgo: 'virgo',
-  libra: 'libra',
-  scorpio: 'scorpio',
-  sagittarius: 'sagittarius',
-  capricorn: 'capricorn',
-  aquarius: 'aquarius',
-  pisces: 'pisces',
-};
-
-export function getHoroscopeBackground(sign?: string | null): string {
-  const key = sign ? sign.trim().toLowerCase() : 'aries';
-  return `/horoscope-zodiac/${HOROSCOPE_BACKGROUND_BY_SIGN[key] || 'aries'}.webp`;
+export function getHoroscopeBackground(_sign?: string | null): string {
+  return '';
 }
