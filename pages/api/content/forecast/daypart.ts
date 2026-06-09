@@ -111,8 +111,8 @@ async function resolveContext(
 
 function getLockedMessage(lang: 'ru' | 'en') {
   return lang === 'ru'
-    ? 'Полный слой дня доступен в Lumia Premium.'
-    : 'The full day layer is available in Lumia Premium.';
+    ? 'Полный разбор дня доступен в Lumia Premium.'
+    : 'The full day reading is available in Lumia Premium.';
 }
 
 type ResolvedAccess = {

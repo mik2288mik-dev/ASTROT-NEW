@@ -45,7 +45,6 @@ import {
     hasActivePremium,
     type FeatureKey,
 } from './lib/accessMatrix';
-import { LumiaDebugOverlay } from './components/lumia-ui/LumiaDebugOverlay';
 import { LumiaBottomTabBar } from './components/lumia-ui/LumiaBottomTabBar';
 import { captureLumiaHomeLayout, installLumiaDebugGlobal, lumiaDebugLog } from './lib/lumiaDebug';
 import {
@@ -1591,7 +1590,6 @@ const App: React.FC = () => {
             {showPremiumPreview && (
                 <PremiumPreview language={profile?.language || 'ru'} onClose={() => setShowPremiumPreview(false)} onPurchase={requestPremium} />
             )}
-            <LumiaDebugOverlay />
         </div>
     );
 };

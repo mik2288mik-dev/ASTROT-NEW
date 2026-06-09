@@ -57,7 +57,7 @@ const PAYWALL_DISMISS_SESSION_KEY = 'lumia_natal_story_paywall_dismissed_session
 function formatStoryError(error: unknown): string {
   const e = error as HumanReadingError;
   if (e?.code === 'PREMIUM_REQUIRED' || e?.code === 'HUMAN_SECTION_LOCKED') {
-    return 'Этот слой доступен в Premium.';
+    return 'Этот раздел доступен в Premium.';
   }
   return e?.message || 'Не удалось открыть карточку. Попробуйте ещё раз.';
 }
@@ -1145,7 +1145,7 @@ export const NatalStoryDeck = memo<NatalStoryDeckProps>(
               const key = getPaidKey(sheetCard);
               if (key) {
                 if (isPaywallInCooldown()) {
-                  setSectionError('Вернёмся к полному открытию чуть позже. Сейчас можно дочитать бесплатный слой или перейти к полному разбору ниже.');
+                  setSectionError('Вернёмся к полному открытию чуть позже. Сейчас можно дочитать краткий разбор или перейти к полному разбору ниже.');
                   fireStoryEvent('natal_paywall_open', {
                     card_id: sheetCard.id,
                     trigger_type: 'story_sheet',

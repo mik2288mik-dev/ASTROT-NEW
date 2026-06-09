@@ -45,8 +45,8 @@ function mapErrorMessage(code: string, lang: 'ru' | 'en') {
       en: 'The starter free question has already been used. Continue in Premium.',
     },
     PREMIUM_REQUIRED: {
-      ru: 'Глубокий уровень ответов доступен в Lumia Premium.',
-      en: 'The full answer layer is available in Lumia Premium.',
+      ru: 'Полный уровень ответов доступен в Lumia Premium.',
+      en: 'Full personal answers are available in Lumia Premium.',
     },
     ASK_UPSTREAM_ERROR: {
       ru: 'Lumia не смогла подготовить ответ. Попробуйте ещё раз.',

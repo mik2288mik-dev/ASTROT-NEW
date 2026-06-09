@@ -355,7 +355,7 @@ export const HumanReport: React.FC<Props> = ({
             {report?.userName || profile.name || 'Твоя карта'}, главный портрет
           </h1>
           <p className="mt-4 max-w-[36rem] font-sans text-[15px] leading-relaxed text-[#666]">
-            Разбор основан на расчетах по дате, времени и месту рождения. В бесплатной версии открыт общий слой, а подробные темы доступны в Premium.
+            Разбор основан на дате, времени и месте рождения. Сейчас открыт общий портрет, а подробные темы доступны в Premium.
           </p>
           <p className="mt-3 font-sans text-[12.5px] leading-relaxed text-[#888]">
             {report?.birthData.birthDate || profile.birthDate}

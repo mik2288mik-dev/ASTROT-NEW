@@ -44,8 +44,8 @@ function readLocalSign(): ZodiacKey | null {
   try { return normalizeSign(window.localStorage.getItem(LOCAL_SIGN_KEY)); } catch { return null; }
 }
 
-function LoadingText() {
-  return <div className="mt-6 space-y-3" aria-busy="true" aria-label="horoscope-loading-skeleton">
+function LoadingText({ language }: { language: 'ru' | 'en' }) {
+  return <div className="mt-6 space-y-3" aria-busy="true" aria-label={language === 'en' ? 'Preparing your forecast' : 'Готовим прогноз'}>
     <div className="h-4 w-5/6 animate-pulse rounded-full bg-black/10" /><div className="h-3 w-full animate-pulse rounded-full bg-black/10" />
     <div className="h-3 w-4/5 animate-pulse rounded-full bg-black/10" /><div className="h-3 w-2/3 animate-pulse rounded-full bg-black/10" />
   </div>;
@@ -78,7 +78,7 @@ function PersonalMode({ profile, chartData, chartId, onOpenChart, onOpenPersonal
         ? (language === 'en' ? 'A saved chart is required before Lumia can calculate your personal day.' : 'Для личного прогноза нужна сохранённая карта. Общий гороскоп по знаку остаётся доступен без неё.')
         : access.allowed
           ? (language === 'en' ? 'Main theme, people, action, risk, and a short chart-based explanation.' : 'Главное сегодня, люди, действие дня, риск и короткое объяснение по карте.')
-          : (language === 'en' ? 'Your chart is ready. Activate Premium or an active trial to open the personal day.' : 'Карта уже готова. Для личного дня нужен активный Premium или trial.')}
+          : (language === 'en' ? 'Your chart is ready. Open full access to see your personal day.' : 'Карта уже готова. Открой полный доступ, чтобы увидеть личный день.')}
     </p>
     <button type="button" onClick={needsChart ? onOpenChart : access.allowed ? onOpenPersonalDaily : onRequestPremium} className="mt-5 min-h-[46px] rounded-full bg-[#202024] px-5 text-[14px] font-semibold text-white">
       {needsChart ? (language === 'en' ? 'Create chart' : 'Создать карту') : access.allowed ? (language === 'en' ? 'Open personal day' : 'Открыть личный день') : (language === 'en' ? 'Open Premium' : 'Открыть Premium')}
@@ -158,7 +158,7 @@ export const Horoscope = memo<HoroscopeProps>((props) => {
       </section> : <section className="mt-5 rounded-[24px] border border-black/10 bg-white p-5 shadow-[0_18px_44px_rgba(0,0,0,0.07)]">
         <div className="flex items-start justify-between gap-3"><div><p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#8b8690]">{period === 'today' ? formatLumiaDate(today, language) : formatIsoWeekPeriodLabel(weekKey, language)}</p><h2 className="mt-2 text-[28px] font-semibold text-[#202024]">{getZodiacSign(language, selectedSign)}</h2></div><ZodiacIcon sign={selectedSign} size={50} /></div>
         <div className="mt-5 grid grid-cols-2 rounded-[14px] bg-black/5 p-1"><button type="button" onClick={() => setPeriod('today')} className={`min-h-[38px] rounded-[11px] text-[13px] font-semibold ${period === 'today' ? 'bg-white shadow-sm' : ''}`}>{language === 'en' ? 'Today' : 'Сегодня'}</button><button type="button" onClick={() => setPeriod('week')} className={`min-h-[38px] rounded-[11px] text-[13px] font-semibold ${period === 'week' ? 'bg-white shadow-sm' : ''}`}>{language === 'en' ? 'Week' : 'Неделя'}</button></div>
-        {loading ? <LoadingText /> : error ? <p className="mt-6 rounded-[16px] bg-black/5 p-4 text-[14px] text-[#68646e]">{language === 'en' ? 'Content is being prepared. Try again shortly.' : 'Контент готовится. Попробуй ещё раз чуть позже.'}</p> : reading ? <Reading reading={reading} /> : null}
+        {loading ? <LoadingText language={language} /> : error ? <p className="mt-6 rounded-[16px] bg-black/5 p-4 text-[14px] text-[#68646e]">{language === 'en' ? 'Content is being prepared. Try again shortly.' : 'Контент готовится. Попробуй ещё раз чуть позже.'}</p> : reading ? <Reading reading={reading} /> : null}
         <button type="button" onClick={() => setShowPicker(true)} className="mt-3 min-h-[42px] rounded-full border border-black/10 px-4 text-[13px] font-semibold">{language === 'en' ? 'Another sign' : 'Другой знак'}</button>
       </section>}
     </div>
