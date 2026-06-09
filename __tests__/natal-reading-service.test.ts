@@ -3,6 +3,9 @@ import {
   loadHumanBaseReport,
   loadHumanDailySection,
   loadHumanPaidSection,
+  prefetchHumanBaseReport,
+  ensureHumanBaseReport,
+  getHumanBaseReportCached,
 } from '../services/natalReadingService';
 import { HUMAN_FREE_SECTION_KEYS, HUMAN_PAID_SECTION_KEYS } from '../lib/natalHumanShared';
 import type { NatalInterpretationReport } from '../types';
@@ -58,6 +61,24 @@ describe('natal reading service session cache', () => {
     expect((global.fetch as jest.Mock).mock.calls[0][1]?.method).toBe('GET');
     expect((global.fetch as jest.Mock).mock.calls[1][1]?.method).toBe('POST');
   });
+
+
+  it('uses the same chart-scoped cache key for prefetch, ensure, and synchronous reads', async () => {
+    const report = baseReport();
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce(response(404, { error: 'NOT_FOUND' }))
+      .mockResolvedValueOnce(response(200, { interpretation: { content: report } }));
+
+    await expect(prefetchHumanBaseReport('123', 42)).resolves.toBe(report);
+    expect(getHumanBaseReportCached('123', 42)).toBe(report);
+    await expect(ensureHumanBaseReport('123', 42)).resolves.toBe(report);
+
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+    expect((global.fetch as jest.Mock).mock.calls[0][0]).toContain('chartId=42');
+    expect((global.fetch as jest.Mock).mock.calls[1][0]).toContain('chartId=42');
+    expect(getHumanBaseReportCached('123')).toBeNull();
+  });
+
 
   it('does not unlock paid sections without Premium', async () => {
     (global.fetch as jest.Mock).mockResolvedValueOnce(

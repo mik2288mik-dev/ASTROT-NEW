@@ -47,6 +47,7 @@ import {
     clearHumanReadingSessionCache,
     getCachedHumanBaseReport,
     getHumanBaseReportCached,
+    prefetchHumanBaseReport,
 } from './services/natalReadingService';
 
 // Get owner ID from environment variables for security
@@ -363,7 +364,6 @@ const App: React.FC = () => {
             setChartLoadState('ready');
             if (localEntry.chartId != null) {
                 setPrimaryChartId(localEntry.chartId);
-                setActiveChartId(localEntry.chartId);
             }
 
             // DB remains source of truth, but a temporary DB error must not replace a usable local chart.
@@ -579,6 +579,20 @@ const App: React.FC = () => {
             initialChartId: number | null,
             refreshChartFromDb: boolean,
         ) => {
+            const userId = String(targetProfile.id);
+            const startHumanBasePrefetch = (chartId: number) => {
+                void prefetchHumanBaseReport(userId, chartId)
+                    .then((report) => {
+                        if (!cancelled) setPreloadedHumanReport(report);
+                    })
+                    .catch((error: any) => {
+                        console.warn('[App] Human base report background prefetch failed:', error?.message || error);
+                    });
+            };
+
+            // Start independently from chart refresh and content prewarm once the cached ID is known.
+            if (initialChartId != null) startHumanBasePrefetch(initialChartId);
+
             void (async () => {
                 let chart = initialChart;
                 let chartId = initialChartId;
@@ -607,9 +621,9 @@ const App: React.FC = () => {
                         if (freshPrimaryChartId == null) return;
                         chartId = freshPrimaryChartId;
                         writeLocalNatalChart(targetProfile, chart, freshPrimaryChartId);
+                        if (initialChartId == null) startHumanBasePrefetch(freshPrimaryChartId);
                         if (!cancelled) {
                             setPrimaryChartId(freshPrimaryChartId);
-                            setActiveChartId(freshPrimaryChartId);
                         }
                     })
                     .catch((error: any) => {
@@ -743,7 +757,6 @@ const App: React.FC = () => {
                     setChartLoadState('ready');
                     if (localEntry.chartId != null) {
                         setPrimaryChartId(localEntry.chartId);
-                        setActiveChartId(localEntry.chartId);
                     }
                     logStartupMetric('startup_chart_ready_ms', startupElapsedMs());
                     showStartupDashboard('dashboard');
@@ -896,7 +909,6 @@ const App: React.FC = () => {
             const primaryChartId = await getPrimaryChartId(String(fullProfile.id));
             if (primaryChartId != null) {
                 setPrimaryChartId(primaryChartId);
-                setActiveChartId(primaryChartId);
                 writeLocalNatalChart(fullProfile, generatedChart, primaryChartId);
             }
             const dateKey = getMoscowTodayKey();
@@ -1057,7 +1069,7 @@ const App: React.FC = () => {
            setProfile(premiumProfile);
            if (hasActivePremium(premiumProfile) && chartData) {
                const chartId = activeChartId ?? await getPrimaryChartId(String(premiumProfile.id));
-               if (chartId != null) setActiveChartId(chartId);
+               if (activeChartId == null && chartId != null) setPrimaryChartId(chartId);
                await prepareUserContentDbFirst({
                    userId: String(premiumProfile.id),
                    chartId,
@@ -1382,6 +1394,9 @@ const App: React.FC = () => {
         </>
     );
 
+    const isPrimaryChartView = activeChartId == null;
+    const effectiveChartId = activeChartId ?? primaryChartId ?? undefined;
+
     const dailyScreenProps = {
         profile,
         chartData,
@@ -1488,10 +1503,10 @@ const App: React.FC = () => {
                         <NatalChart 
                             data={chartData} 
                             profile={profile} 
-                            chartId={activeChartId}
+                            chartId={effectiveChartId}
                             requestPremium={requestPremium}
                             onUpdateProfile={handleProfileUpdate}
-                            preloadedReport={activeChartId ? null : preloadedHumanReport}
+                            preloadedReport={isPrimaryChartView ? preloadedHumanReport : null}
                             onCreateChart={() => openNatalSetupOnboarding('chart', 'chart')}
                             onOpenPersonalDaily={() => openPersonalDailyView('overview')}
                         />
