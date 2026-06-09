@@ -64,4 +64,22 @@ describe('chart onboarding and lazy sections', () => {
     expect(report).toContain('Что с тобой сегодня');
     expect(report).toContain('onOpenPersonalDaily');
   });
+
+  it('passes the primary chart ID and report when no saved chart is active', () => {
+    const app = read('App.tsx');
+    expect(app).toContain('const isPrimaryChartView = activeChartId == null');
+    expect(app).toContain('const effectiveChartId = activeChartId ?? primaryChartId ?? undefined');
+    expect(app).toContain('chartId={effectiveChartId}');
+    expect(app).toContain('preloadedReport={isPrimaryChartView ? preloadedHumanReport : null}');
+  });
+
+  it('keeps chart content visible while the human-base reading loads or fails', () => {
+    const report = read('components/NatalReading/HumanReport.tsx');
+    expect(report).not.toContain('if (loading) {');
+    expect(report).toContain('data-testid="human-report-loading-area"');
+    expect(report).toContain('<TechnicalDetails chartData={chartData} />');
+    expect(report).toContain("report?.userName || profile.name || 'Твоя карта'");
+    expect(report).toContain('Интерпретация сейчас недоступна');
+  });
+
 });

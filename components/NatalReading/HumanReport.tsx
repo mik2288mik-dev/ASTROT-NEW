@@ -283,6 +283,7 @@ export const HumanReport: React.FC<Props> = ({
       };
     }
 
+    setReport(null);
     setLoading(true);
     setError(null);
     void ensureHumanBaseReport(userId, chartId)
@@ -334,32 +335,6 @@ export const HumanReport: React.FC<Props> = ({
     setUnlockTarget(key);
   };
 
-  if (loading) {
-    return (
-      <div className="mx-auto w-full max-w-reading-wide px-5 py-10">
-        <p className="text-[11px] uppercase tracking-[0.22em] text-[#9a9a9a]">Загружаем интерпретацию карты</p>
-        <div className="mt-5 space-y-3">
-          {Array.from({ length: 5 }).map((_, index) => (
-            <div key={index} className="h-4 rounded-full bg-[#f1f1f1]" style={{ width: `${92 - index * 9}%` }} />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (error || !report) {
-    return (
-      <div className="mx-auto w-full max-w-reading-wide px-5 py-10">
-        <p className="font-sans text-[22px] font-semibold tracking-[-0.02em] text-[#1f1f1f]">
-          {error ? 'Интерпретация сейчас недоступна' : 'Разбор карты'}
-        </p>
-        <p className="mt-2 text-sm leading-relaxed text-[#666]">
-          {error || 'Разбор карты подготавливается.'}
-        </p>
-      </div>
-    );
-  }
-
   return (
     <article className="relative bg-white pb-16 pt-6">
       <div className="relative z-10 mx-auto w-full max-w-reading-wide px-5">
@@ -368,15 +343,15 @@ export const HumanReport: React.FC<Props> = ({
             Натальная карта
           </p>
           <h1 className="mt-3 font-sans text-[36px] font-semibold leading-[1.02] tracking-[-0.035em] text-[#1f1f1f] sm:text-[44px]">
-            {report.userName}, главный портрет
+            {report?.userName || profile.name || 'Твоя карта'}, главный портрет
           </h1>
           <p className="mt-4 max-w-[36rem] font-sans text-[15px] leading-relaxed text-[#666]">
             Разбор основан на расчетах по дате, времени и месту рождения. В бесплатной версии открыт общий слой, а подробные темы доступны в Premium.
           </p>
           <p className="mt-3 font-sans text-[12.5px] leading-relaxed text-[#888]">
-            {report.birthData.birthDate}
-            {report.birthData.birthTime ? ` · ${report.birthData.birthTime}` : ''}
-            {report.birthData.birthPlace ? ` · ${report.birthData.birthPlace}` : ''}
+            {report?.birthData.birthDate || profile.birthDate}
+            {(report?.birthData.birthTime || profile.birthTime) ? ` · ${report?.birthData.birthTime || profile.birthTime}` : ''}
+            {(report?.birthData.birthPlace || profile.birthPlace) ? ` · ${report?.birthData.birthPlace || profile.birthPlace}` : ''}
           </p>
           {((chartData as any).birthTimeQuality === 'unknown' || (chartData as any).chartQuality?.ascendantReliable === false) ? (
             <p className="mt-3 rounded-[16px] bg-[#faf7ef] px-4 py-3 font-sans text-[13px] leading-relaxed text-[#6f6654]">
@@ -386,24 +361,46 @@ export const HumanReport: React.FC<Props> = ({
 
           <div className="mt-7 border-l-2 border-[#d8c18a] pl-4">
             <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8c6bb1]">
-              {report.shortCard.title || 'Главный вывод по карте'}
+              {report?.shortCard.title || 'Основа твоей карты'}
             </p>
-            <p className="mt-3 font-sans text-[17px] leading-[1.75] text-[#2d2d2d] [text-wrap:pretty]">{report.shortCard.text}</p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {report.shortCard.keywords.map((keyword) => (
-                <span key={keyword} className="rounded-full bg-[#f7f7f7] px-3 py-1 text-[12px] text-[#3a3a3a]">
-                  {keyword}
-                </span>
-              ))}
-            </div>
-            <p className="mt-4 font-sans text-[14px] italic leading-relaxed text-[#666]">{report.shortCard.advice}</p>
+            <p className="mt-3 font-sans text-[17px] leading-[1.75] text-[#2d2d2d] [text-wrap:pretty]">
+              {report?.shortCard.text || `Солнце в знаке ${ruSign(chartData.sun?.sign)}, Луна в знаке ${ruSign(chartData.moon?.sign)}, Асцендент в знаке ${ruSign(chartData.rising?.sign)}.`}
+            </p>
+            {report ? (
+              <>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {report.shortCard.keywords.map((keyword) => (
+                    <span key={keyword} className="rounded-full bg-[#f7f7f7] px-3 py-1 text-[12px] text-[#3a3a3a]">
+                      {keyword}
+                    </span>
+                  ))}
+                </div>
+                <p className="mt-4 font-sans text-[14px] italic leading-relaxed text-[#666]">{report.shortCard.advice}</p>
+              </>
+            ) : null}
           </div>
         </header>
 
-        <div>
-          {visibleFreeSections.map((section) => (
-            <SectionText key={section.key} section={{ ...section, title: section.key === 'base_portrait' ? 'Кто ты по карте' : section.title }} />
-          ))}
+        <div aria-live="polite">
+          {loading ? (
+            <section data-testid="human-report-loading-area" className="border-t border-[#eeeeee] py-8 sm:py-10">
+              <p className="text-[11px] uppercase tracking-[0.22em] text-[#9a9a9a]">Загружаем интерпретацию карты</p>
+              <div className="mt-5 space-y-3">
+                {Array.from({ length: 5 }).map((_, index) => (
+                  <div key={index} className="h-4 rounded-full bg-[#f1f1f1]" style={{ width: `${92 - index * 9}%` }} />
+                ))}
+              </div>
+            </section>
+          ) : error || !report ? (
+            <section className="border-t border-[#eeeeee] py-8 sm:py-10">
+              <p className="font-sans text-[20px] font-semibold tracking-[-0.02em] text-[#1f1f1f]">Интерпретация сейчас недоступна</p>
+              <p className="mt-2 text-sm leading-relaxed text-[#666]">{error || 'Разбор карты подготавливается.'}</p>
+            </section>
+          ) : (
+            visibleFreeSections.map((section) => (
+              <SectionText key={section.key} section={{ ...section, title: section.key === 'base_portrait' ? 'Кто ты по карте' : section.title }} />
+            ))
+          )}
         </div>
 
         <section className="border-t border-[#eeeeee] py-7">
