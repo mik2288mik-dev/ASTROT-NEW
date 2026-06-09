@@ -148,15 +148,15 @@ export type LumiaHomeCopy = ReturnType<typeof getLumiaHomeCopy>;
 
 export const LUMIA_HOME_PREVIEW_ITEMS = {
   ru: [
-    { label: 'Любовь', imageSrc: '' },
-    { label: 'Деньги', imageSrc: '' },
-    { label: 'Работа', imageSrc: '' },
-    { label: 'Личный ритм', imageSrc: '' },
+    { label: 'Любовь' },
+    { label: 'Деньги' },
+    { label: 'Работа' },
+    { label: 'Личный ритм' },
   ],
   en: [
-    { label: 'Love', imageSrc: '' },
-    { label: 'Money', imageSrc: '' },
-    { label: 'Work', imageSrc: '' },
-    { label: 'Personal day', imageSrc: '' },
+    { label: 'Love' },
+    { label: 'Money' },
+    { label: 'Work' },
+    { label: 'Personal day' },
   ],
 } as const;

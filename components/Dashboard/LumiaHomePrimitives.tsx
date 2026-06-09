@@ -1,6 +1,5 @@
 import React from 'react';
 import { cn } from '../../lib/cn';
-import type { HomeCardVideoAsset } from '../../lib/homeCardVideos';
 
 type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement>;
 
@@ -52,122 +51,6 @@ export function LumiaHomeLargeCard({ className, children, ...props }: LargeCardP
     <section className={cn('lumia-home-large-card', className)} {...props}>
       {children}
     </section>
-  );
-}
-
-type QuickActionCardProps = Omit<ButtonProps, 'children'> & {
-  title: string;
-  imageSrc: string;
-  body?: string;
-  videoAsset?: HomeCardVideoAsset | null;
-  active?: boolean;
-};
-
-export function LumiaHomeQuickActionCard({
-  title,
-  imageSrc,
-  body,
-  videoAsset = null,
-  active = false,
-  className,
-  type = 'button',
-  ...props
-}: QuickActionCardProps) {
-  const rootRef = React.useRef<HTMLButtonElement | null>(null);
-  const videoRef = React.useRef<HTMLVideoElement | null>(null);
-  const [canLoadVideo, setCanLoadVideo] = React.useState(false);
-  const [isVisible, setIsVisible] = React.useState(false);
-  const [videoReady, setVideoReady] = React.useState(false);
-  const selectedVideo = videoAsset;
-  const posterSrc = selectedVideo?.poster || imageSrc;
-
-  React.useEffect(() => {
-    setCanLoadVideo(false);
-    setIsVisible(false);
-    setVideoReady(false);
-  }, [selectedVideo?.src]);
-
-  React.useEffect(() => {
-    const element = rootRef.current;
-    if (!element || !selectedVideo) return;
-
-    const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    const saveData = Boolean((navigator as any)?.connection?.saveData);
-    if (prefersReducedMotion || saveData || !('IntersectionObserver' in window)) {
-      setCanLoadVideo(false);
-      setIsVisible(false);
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        const visible = entry.isIntersecting && entry.intersectionRatio >= 0.35;
-        setIsVisible(visible);
-        if (visible) setCanLoadVideo(true);
-      },
-      {
-        root: null,
-        rootMargin: '96px 48px',
-        threshold: [0, 0.2, 0.35, 0.65],
-      },
-    );
-
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, [selectedVideo]);
-
-  React.useEffect(() => {
-    const video = videoRef.current;
-    if (!video || !selectedVideo || !canLoadVideo) return;
-
-    if (isVisible) {
-      video.play().catch(() => {
-        /* Poster remains visible when autoplay is blocked. */
-      });
-    } else {
-      video.pause();
-    }
-  }, [canLoadVideo, isVisible, selectedVideo]);
-
-  return (
-    <button
-      ref={rootRef}
-      type={type}
-      className={cn('lumia-home-quick-action-card', className)}
-      data-active={active ? 'true' : undefined}
-      aria-label={props['aria-label'] || title}
-      {...props}
-    >
-      <img
-        className="lumia-home-quick-action-image"
-        src={posterSrc}
-        alt=""
-        draggable={false}
-        loading="eager"
-      />
-      {selectedVideo ? (
-        <video
-          ref={videoRef}
-          className="lumia-home-quick-action-video"
-          data-ready={videoReady && canLoadVideo ? 'true' : 'false'}
-          src={canLoadVideo ? selectedVideo.src : undefined}
-          poster={posterSrc}
-          muted
-          loop
-          playsInline
-          preload="metadata"
-          onCanPlay={() => setVideoReady(true)}
-          onLoadedData={() => setVideoReady(true)}
-          onError={() => setVideoReady(false)}
-          aria-hidden
-        />
-      ) : null}
-      <span className="lumia-home-quick-action-shade" aria-hidden />
-      <span className="lumia-home-quick-action-copy">
-        <span className="lumia-home-quick-action-title">{title}</span>
-        {body ? <span className="lumia-home-quick-action-body">{body}</span> : null}
-      </span>
-    </button>
   );
 }
 

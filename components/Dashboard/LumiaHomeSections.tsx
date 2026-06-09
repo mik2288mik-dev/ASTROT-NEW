@@ -1000,11 +1000,9 @@ export function TodayAssistantCard({
 
 function FullReadingPreview({
   label,
-  imageSrc,
   locked,
 }: {
   label: string;
-  imageSrc: string;
   locked: boolean;
 }) {
   return (
@@ -1013,7 +1011,7 @@ function FullReadingPreview({
       aria-label={label}
       title={label}
     >
-      <img src={imageSrc} alt="" draggable={false} className="h-full w-full rounded-full object-cover" />
+      <span className="h-full w-full rounded-full bg-[linear-gradient(145deg,rgba(255,255,255,0.28),rgba(21,94,239,0.42))]" aria-hidden />
       <span className="absolute inset-[2px] rounded-full bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(22,7,47,0.18))]" />
       {locked ? (
         <span className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full border border-white bg-white text-lumiaHome-purpleDeep shadow-[0_6px_14px_rgba(0,0,0,0.16)]">
