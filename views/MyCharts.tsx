@@ -14,6 +14,7 @@ import { formatLumiaDate } from '../lib/date-utils';
 import { PlanetIcon } from '../components/icons/PlanetIcon';
 import { hasActivePremium } from '../lib/accessMatrix';
 import { clearLocalNatalChart } from '../lib/localNatalChartCache';
+import { clearLocalHumanBaseReport } from '../lib/localHumanBaseReportCache';
 
 interface MyChartsProps {
   profile: UserProfile;
@@ -154,6 +155,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
 
     try {
       await deleteChart(chart.id, profile.id);
+      clearLocalHumanBaseReport(profile, chart.is_primary ? undefined : chart.id);
       if (chart.is_primary) {
         clearLocalNatalChart(profile);
       }

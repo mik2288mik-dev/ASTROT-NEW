@@ -10,6 +10,11 @@ import { getChartFromDB, getOrCalculateChart, getPrimaryChartId } from './servic
 import { prewarmUserContent } from './services/contentPrewarmService';
 import { CACHE_ONLY_PREWARM_BUDGET_MS } from './lib/appStartupFlags';
 import { clearLocalNatalChart, readLocalNatalChartCache, writeLocalNatalChart } from './lib/localNatalChartCache';
+import {
+    clearLocalHumanBaseReport,
+    readLocalHumanBaseReportWithFallback,
+    writeLocalHumanBaseReport,
+} from './lib/localHumanBaseReportCache';
 import { getMoscowTodayKey } from './lib/date-utils';
 import { Onboarding } from './views/Onboarding';
 import { Dashboard } from './views/Dashboard';
@@ -291,7 +296,8 @@ const App: React.FC = () => {
         const userId = targetProfile.id ? String(targetProfile.id) : '';
         if (!userId) return null;
 
-        const cached = getHumanBaseReportCached(userId, targetChartId);
+        const cached = getHumanBaseReportCached(userId, targetChartId)
+            || readLocalHumanBaseReportWithFallback(targetProfile, targetChartId);
         if (cached) {
             setPreloadedHumanReport(cached);
             return cached;
@@ -301,6 +307,7 @@ const App: React.FC = () => {
             return null;
         });
         if (dbCached) {
+            writeLocalHumanBaseReport(targetProfile, dbCached, targetChartId);
             setPreloadedHumanReport(dbCached);
             return dbCached;
         }
@@ -583,6 +590,7 @@ const App: React.FC = () => {
             const startHumanBasePrefetch = (chartId: number) => {
                 void prefetchHumanBaseReport(userId, chartId)
                     .then((report) => {
+                        writeLocalHumanBaseReport(targetProfile, report, chartId);
                         if (!cancelled) setPreloadedHumanReport(report);
                     })
                     .catch((error: any) => {
@@ -899,6 +907,7 @@ const App: React.FC = () => {
             primaryChartSessionRef.current = { key: primaryKey, data: generatedChart, promise: null };
             primaryChartDataRef.current = generatedChart;
             clearHumanReadingSessionCache(fullProfile.id);
+            clearLocalHumanBaseReport(fullProfile);
             setChartLoadState('ready');
             setChartData(generatedChart);
             writeLocalNatalChart(fullProfile, generatedChart);
@@ -908,6 +917,7 @@ const App: React.FC = () => {
             setLoadingProgress(72);
             const primaryChartId = await getPrimaryChartId(String(fullProfile.id));
             if (primaryChartId != null) {
+                clearLocalHumanBaseReport(fullProfile, primaryChartId);
                 setPrimaryChartId(primaryChartId);
                 writeLocalNatalChart(fullProfile, generatedChart, primaryChartId);
             }
@@ -981,8 +991,11 @@ const App: React.FC = () => {
     };
 
     const handleProfileUpdate = useCallback((updatedProfile: UserProfile) => {
+        if (profile && getPrimaryChartLoadKey(profile) !== getPrimaryChartLoadKey(updatedProfile)) {
+            clearLocalHumanBaseReport(profile);
+        }
         setProfile(updatedProfile);
-    }, []);
+    }, [profile]);
 
     const handleAdminOwnProfilePatch = useCallback((
         patch: Partial<Pick<UserProfile, 'isPremium' | 'chartSlots' | 'loginStreak'>>
@@ -1247,6 +1260,7 @@ const App: React.FC = () => {
             primaryChartSessionRef.current = { key, data: freshChart, promise: null };
             primaryChartDataRef.current = freshChart;
             clearHumanReadingSessionCache(String(profile.id));
+            clearLocalHumanBaseReport(profile, primaryChartId ?? undefined);
             setPreloadedHumanReport(null);
             if (freshChart) {
                 writeLocalNatalChart(profile, freshChart, freshPrimaryChartId ?? undefined);
@@ -1262,7 +1276,7 @@ const App: React.FC = () => {
             console.error('[App] Failed to refresh primary chart state:', error);
             // Keep the existing local/session chart on transient DB errors.
         }
-    }, [prefetchBaseReportForChart, profile]);
+    }, [prefetchBaseReportForChart, primaryChartId, profile]);
 
     const handleBack = useCallback(async () => {
         const currentView = viewRef.current;

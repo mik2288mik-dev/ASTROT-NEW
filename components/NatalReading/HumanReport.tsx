@@ -20,6 +20,10 @@ import {
   type HumanReadingError,
 } from '../../services/natalReadingService';
 import { hasActivePremium } from '../../lib/accessMatrix';
+import {
+  readLocalHumanBaseReportWithFallback,
+  writeLocalHumanBaseReport,
+} from '../../lib/localHumanBaseReportCache';
 import { PlanetIcon } from '../icons/PlanetIcon';
 import { FormattedAiText } from '../ui/FormattedAiText';
 
@@ -246,15 +250,17 @@ export const HumanReport: React.FC<Props> = ({
   preloadedReport,
   onOpenPersonalDaily,
 }) => {
-  const [report, setReport] = useState<NatalInterpretationReport | null>(preloadedReport || null);
-  const [loading, setLoading] = useState(!preloadedReport);
+  const userId = profile.id ? String(profile.id) : '';
+  const initialReport = preloadedReport
+    || (userId ? getHumanBaseReportCached(userId, chartId) || readLocalHumanBaseReportWithFallback(profile, chartId) : null);
+  const [report, setReport] = useState<NatalInterpretationReport | null>(initialReport);
+  const [loading, setLoading] = useState(!initialReport);
   const [error, setError] = useState<string | null>(null);
   const [paidSections, setPaidSections] = useState<Partial<Record<HumanPaidSectionKey, InterpretationSection>>>({});
   const [paidLoading, setPaidLoading] = useState<HumanPaidSectionKey | null>(null);
   const [sectionError, setSectionError] = useState<string | null>(null);
   const [unlockTarget, setUnlockTarget] = useState<HumanPaidSectionKey | null>(null);
 
-  const userId = profile.id ? String(profile.id) : '';
   const isPremium = hasActivePremium(profile);
   const visibleFreeKeys = useMemo(() => new Set<string>(HUMAN_FREE_SECTION_KEYS), []);
   const visibleFreeSections = useMemo(
@@ -264,36 +270,39 @@ export const HumanReport: React.FC<Props> = ({
 
   useEffect(() => {
     if (preloadedReport) {
+      writeLocalHumanBaseReport(profile, preloadedReport, chartId);
       setReport(preloadedReport);
       setLoading(false);
       setError(null);
     }
-  }, [preloadedReport]);
+  }, [chartId, preloadedReport, profile]);
 
   useEffect(() => {
     if (!userId || preloadedReport) return;
     let cancelled = false;
-    const cached = getHumanBaseReportCached(userId, chartId);
+    const cached = getHumanBaseReportCached(userId, chartId)
+      || readLocalHumanBaseReportWithFallback(profile, chartId);
+
     if (cached) {
       setReport(cached);
       setLoading(false);
       setError(null);
-      return () => {
-        cancelled = true;
-      };
+    } else if (!report) {
+      setLoading(true);
+      setError(null);
     }
 
-    setReport(null);
-    setLoading(true);
-    setError(null);
+    // A chartId resolution (primary -> numeric ID) must only refresh the text quietly.
+    // HUMAN_MAP_SECTION_KEYS remain click-only below and never trigger generation here.
     void ensureHumanBaseReport(userId, chartId)
       .then((nextReport) => {
+        writeLocalHumanBaseReport(profile, nextReport, chartId);
         if (cancelled) return;
         setReport(nextReport);
         setError(null);
       })
       .catch((err) => {
-        if (cancelled) return;
+        if (cancelled || cached || report) return;
         setError(formatError(err));
       })
       .finally(() => {
@@ -303,7 +312,7 @@ export const HumanReport: React.FC<Props> = ({
     return () => {
       cancelled = true;
     };
-  }, [chartId, preloadedReport, userId]);
+  }, [chartId, preloadedReport, profile, userId]);
 
   const openPaidSection = async (key: HumanPaidSectionKey) => {
     if (!userId || paidLoading) return;
@@ -383,13 +392,10 @@ export const HumanReport: React.FC<Props> = ({
 
         <div aria-live="polite">
           {loading ? (
-            <section data-testid="human-report-loading-area" className="border-t border-[#eeeeee] py-8 sm:py-10">
-              <p className="text-[11px] uppercase tracking-[0.22em] text-[#9a9a9a]">Загружаем интерпретацию карты</p>
-              <div className="mt-5 space-y-3">
-                {Array.from({ length: 5 }).map((_, index) => (
-                  <div key={index} className="h-4 rounded-full bg-[#f1f1f1]" style={{ width: `${92 - index * 9}%` }} />
-                ))}
-              </div>
+            <section data-testid="human-report-loading-area" className="border-t border-[#eeeeee] py-5">
+              <p className="rounded-[16px] bg-[#faf8fc] px-4 py-3 text-[13px] leading-relaxed text-[#6f6478]">
+                Основные данные карты уже готовы. Подгружаем текстовый разбор ниже.
+              </p>
             </section>
           ) : error || !report ? (
             <section className="border-t border-[#eeeeee] py-8 sm:py-10">
