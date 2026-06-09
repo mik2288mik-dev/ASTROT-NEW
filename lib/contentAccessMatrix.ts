@@ -47,7 +47,7 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
   {
     surface: 'natal',
     variant: 'anchor',
-    label: 'Natal anchor',
+    label: 'Основной личный портрет',
     description: 'Базовый портрет карты.',
     calculationRequired: true,
     shouldPersistCalculation: true,
@@ -64,7 +64,7 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
   {
     surface: 'natal',
     variant: 'full',
-    label: 'Full natal portrait',
+    label: 'Полный личный портрет',
     description: 'Полный личный портрет.',
     calculationRequired: true,
     shouldPersistCalculation: true,
@@ -81,7 +81,7 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
   {
     surface: 'natal',
     variant: 'planet_insight',
-    label: 'Planet insight',
+    label: 'Разбор планеты',
     description: 'Разбор отдельной планеты или темы.',
     calculationRequired: true,
     shouldPersistCalculation: true,
@@ -98,8 +98,8 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
   {
     surface: 'natal',
     variant: 'living',
-    label: 'Living natal layer',
-    description: 'Живой персональный слой на текущий период.',
+    label: 'Личный разбор текущего периода',
+    description: 'Личный разбор на текущий период.',
     calculationRequired: true,
     shouldPersistCalculation: true,
     shouldPersistInterpretation: true,
@@ -115,7 +115,7 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
   {
     surface: 'forecast',
     variant: 'daily',
-    label: 'Daily pulse',
+    label: 'Ориентиры дня',
     description: 'Краткий пульс дня.',
     calculationRequired: true,
     shouldPersistCalculation: false,
@@ -132,7 +132,7 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
   {
     surface: 'forecast',
     variant: 'morning',
-    label: 'Morning layer',
+    label: 'Утренний ориентир',
     description: 'Подробное утро.',
     calculationRequired: true,
     shouldPersistCalculation: false,
@@ -149,7 +149,7 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
   {
     surface: 'forecast',
     variant: 'day',
-    label: 'Day layer',
+    label: 'Дневной ориентир',
     description: 'Подробный день.',
     calculationRequired: true,
     shouldPersistCalculation: false,
@@ -166,7 +166,7 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
   {
     surface: 'forecast',
     variant: 'evening',
-    label: 'Evening layer',
+    label: 'Вечерний ориентир',
     description: 'Подробный вечер.',
     calculationRequired: true,
     shouldPersistCalculation: false,
@@ -183,7 +183,7 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
   {
     surface: 'forecast',
     variant: 'weekly',
-    label: 'Weekly forecast',
+    label: 'Прогноз на неделю',
     description: 'Недельный прогноз.',
     calculationRequired: true,
     shouldPersistCalculation: false,
@@ -200,7 +200,7 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
   {
     surface: 'forecast',
     variant: 'monthly',
-    label: 'Monthly forecast',
+    label: 'Прогноз на месяц',
     description: 'Месячный прогноз.',
     calculationRequired: true,
     shouldPersistCalculation: false,
@@ -217,7 +217,7 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
   {
     surface: 'synastry',
     variant: 'brief',
-    label: 'Brief synastry',
+    label: 'Краткий разбор отношений',
     description: 'Краткий союз.',
     calculationRequired: true,
     shouldPersistCalculation: true,
@@ -234,7 +234,7 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
   {
     surface: 'synastry',
     variant: 'full',
-    label: 'Full synastry',
+    label: 'Полный разбор отношений',
     description: 'Полный разбор союза.',
     calculationRequired: true,
     shouldPersistCalculation: true,
@@ -251,7 +251,7 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
   {
     surface: 'question',
     variant: 'brief',
-    label: 'Starter Ask Lumia',
+    label: 'Первый личный вопрос',
     description: 'Стартовый короткий вопрос.',
     calculationRequired: true,
     shouldPersistCalculation: false,
@@ -268,8 +268,8 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
   {
     surface: 'question',
     variant: 'full',
-    label: 'Premium Ask Lumia',
-    description: 'Глубокие premium-ответы.',
+    label: 'Полный личный ответ',
+    description: 'Полные личные ответы.',
     calculationRequired: true,
     shouldPersistCalculation: false,
     shouldPersistInterpretation: true,
