@@ -16,6 +16,9 @@ import { lumiaSelectionHaptic } from '../lib/haptics';
 import { DaySheet } from '../components/lumia-ui/DaySheet';
 import { MoonLuckyRow } from '../components/Dashboard/home/MoonLuckyRow';
 import { ReactionRow } from '../components/Dashboard/home/ReactionRow';
+import { EvolutionMeter } from '../components/Dashboard/home/EvolutionMeter';
+import { PulseCurve } from '../components/Dashboard/home/PulseCurve';
+import { ActionTiming } from '../components/Dashboard/home/ActionTiming';
 import { shareText, buildDailyShareText } from '../lib/share';
 import { getZodiacSign } from '../constants';
 import {
@@ -475,6 +478,11 @@ export const Dashboard = memo<DashboardProps>(({
 
         {/* ── Moon phase + Lucky elements (today) ── */}
         <MoonLuckyRow sign={selectedSign} todayKey={today} language={language} />
+
+        {/* ── Today insights ── */}
+        <PulseCurve profile={profile} chartData={chartData} chartId={chartId} language={language} onNeedChart={onCreateNatalChart} />
+        <ActionTiming profile={profile} chartData={chartData} chartId={chartId} language={language} />
+        <EvolutionMeter profile={profile} chartData={chartData} language={language} />
 
         {/* ── 4. "Ваш план" ── */}
         <h2 className="mt-6 text-[24px] font-bold text-[#1E1230] font-lumiaHomeDisplay">
