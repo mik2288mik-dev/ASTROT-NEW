@@ -1453,6 +1453,7 @@ const App: React.FC = () => {
                         onOpenOracle={openOracle}
                         onOpenSynastry={openSynastryFromHome}
                         onOpenSettings={openBottomAvatar}
+                        onRequestPremium={requestPremium}
                         scrollRef={dashboardScrollRef}
                         initialTodaySection={initialTodaySection}
                     />

@@ -1,5 +1,5 @@
 import React, { memo, useEffect, useMemo, useState } from 'react';
-import { Search, FileText } from 'lucide-react';
+import { Search, FileText, Lock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type {
   ForecastDailyReading,
@@ -13,6 +13,8 @@ import type {
 import { hasActivePremium, hasNatalChart } from '../lib/accessMatrix';
 import { getMoscowTodayKey } from '../lib/date-utils';
 import { lumiaSelectionHaptic } from '../lib/haptics';
+import { DaySheet } from '../components/lumia-ui/DaySheet';
+import { MoonLuckyRow } from '../components/Dashboard/home/MoonLuckyRow';
 import {
   getCachedDailySignHoroscope,
   ensureDailySignHoroscope,
@@ -37,6 +39,7 @@ type DashboardProps = {
   onOpenOracle?: () => void;
   onOpenSynastry?: () => void;
   onOpenSettings?: () => void;
+  onRequestPremium?: (source?: string) => void;
   scrollRef?: React.RefObject<HTMLDivElement | null>;
   initialTodaySection?: string | null;
 };
@@ -53,13 +56,13 @@ const FALLBACKS = {
 const RU_DAY_ABBR = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'] as const;
 const EN_DAY_ABBR = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'] as const;
 
-function buildWeekDays(todayKey: string) {
+function buildCenteredDays(todayKey: string) {
   const [yr, mo, da] = todayKey.split('-').map(Number);
-  const dow = new Date(yr, mo - 1, da).getDay();
+  // 7 days centered on today: today-3 … today … today+3.
   return Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(yr, mo - 1, da - dow + i);
-    const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    return { key: k, date: d.getDate(), dayIndex: i };
+    const d = new Date(yr, mo - 1, da + (i - 3));
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return { key, date: d.getDate(), weekdayIndex: d.getDay() };
   });
 }
 
@@ -75,43 +78,42 @@ function shortDate(todayKey: string, lang: 'ru' | 'en'): string {
 
 function DateSelector({
   todayKey,
-  selectedKey,
   language,
-  onSelect,
+  isPremium,
+  onPick,
 }: {
   todayKey: string;
-  selectedKey: string;
   language: 'ru' | 'en';
-  onSelect: (key: string) => void;
+  isPremium: boolean;
+  onPick: (key: string) => void;
 }) {
-  const days = useMemo(() => buildWeekDays(todayKey), [todayKey]);
+  const days = useMemo(() => buildCenteredDays(todayKey), [todayKey]);
   const abbrs = language === 'ru' ? RU_DAY_ABBR : EN_DAY_ABBR;
   return (
-    <div className="flex items-center gap-1.5 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
-      {days.map(({ key, date, dayIndex }) => {
-        const active = key === selectedKey;
+    <div className="flex items-center gap-1.5">
+      {days.map(({ key, date, weekdayIndex }) => {
         const isToday = key === todayKey;
+        const locked = !isPremium && !isToday;
         return (
           <button
             key={key}
             type="button"
-            aria-pressed={active}
-            onClick={() => { lumiaSelectionHaptic(); onSelect(key); }}
-            className={`flex min-w-[42px] flex-1 flex-col items-center rounded-full transition-colors ${
-              active ? 'bg-[#1E1230] py-3' : 'border border-[#EAE3F1] bg-white py-[10px]'
+            onClick={() => { lumiaSelectionHaptic(); onPick(key); }}
+            className={`flex flex-1 flex-col items-center rounded-full transition-colors ${
+              isToday ? 'bg-[#1E1230] py-3' : 'border border-[#EAE3F1] bg-white py-[10px]'
             }`}
           >
-            {active && <div className="mb-[5px] h-1 w-1 rounded-full bg-white" />}
-            <span className={`text-[11px] font-semibold leading-none ${active ? 'text-white/80' : 'text-[#9A93A3]'}`}>
-              {abbrs[dayIndex]}
+            {isToday && <div className="mb-[5px] h-1 w-1 rounded-full bg-white" />}
+            <span className={`text-[11px] font-semibold leading-none ${isToday ? 'text-white/80' : 'text-[#9A93A3]'}`}>
+              {abbrs[weekdayIndex]}
             </span>
-            <span className={`mt-[7px] text-[16px] font-bold leading-none ${active ? 'text-white' : 'text-[#1E1230]'}`}>
+            <span className={`mt-[7px] text-[16px] font-bold leading-none ${isToday ? 'text-white' : 'text-[#1E1230]'}`}>
               {date}
             </span>
-            {/* Marks today once another day is selected */}
-            {!active && (
-              <div className={`mt-[5px] h-1 w-1 rounded-full ${isToday ? 'bg-[#7B5CF6]' : 'bg-transparent'}`} />
-            )}
+            {/* Lock badge on non-today days for free users */}
+            <div className="mt-[5px] flex h-2.5 items-center justify-center">
+              {!isToday && locked ? <Lock size={9} className="text-[#C3BBD2]" /> : null}
+            </div>
           </button>
         );
       })}
@@ -287,6 +289,7 @@ export const Dashboard = memo<DashboardProps>(({
   onOpenOracle,
   onOpenSynastry,
   onOpenSettings,
+  onRequestPremium,
   scrollRef,
 }) => {
   const language = profile.language === 'en' ? 'en' : 'ru';
@@ -302,22 +305,20 @@ export const Dashboard = memo<DashboardProps>(({
   );
   const [personalLoading, setPersonalLoading] = useState(hasChart && premium && !personal);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  // Day-picker selection — drives which date's forecast the hero shows.
-  const [selectedDate, setSelectedDate] = useState(today);
+  // Which calendar day is open in the bottom sheet (null = closed).
+  const [sheetDate, setSheetDate] = useState<string | null>(null);
 
   useEffect(() => {
     if (!selectedSign) { setSignLoading(false); return; }
-    // Future days have no forecast yet — the hero shows a teaser, skip the fetch.
-    if (selectedDate > today) { setSignReading(null); setSignLoading(false); return; }
     let alive = true;
     setSignLoading(true);
-    void getCachedDailySignHoroscope(selectedSign, selectedDate, language)
-      .then((cached) => cached || ensureDailySignHoroscope(selectedSign, selectedDate, language))
+    void getCachedDailySignHoroscope(selectedSign, today, language)
+      .then((cached) => cached || ensureDailySignHoroscope(selectedSign, today, language))
       .then((reading) => { if (alive) setSignReading(reading); })
       .catch(() => { if (alive) setSignReading(null); })
       .finally(() => { if (alive) setSignLoading(false); });
     return () => { alive = false; };
-  }, [language, selectedSign, selectedDate, today]);
+  }, [language, selectedSign, today]);
 
   useEffect(() => {
     if (!hasChart || !premium || !chartData) { setPersonalLoading(false); return; }
@@ -350,14 +351,15 @@ export const Dashboard = memo<DashboardProps>(({
     onOpenHoroscopeLayer(layer, options);
   const openPersonalDaily = (section: PersonalDailySection = 'overview') => onOpenPersonalDaily(section);
 
-  const isToday = selectedDate === today;
-  const isFutureDate = selectedDate > today;
-
-  const heroSubtitle = isFutureDate
-    ? (language === 'ru' ? 'Прогноз на этот день появится позже' : 'The forecast for this day is coming soon')
-    : signLoading
+  const heroSubtitle = signLoading
     ? (language === 'ru' ? 'Готовим ваш прогноз…' : 'Preparing your forecast…')
     : (signReading?.summary || FALLBACKS.background);
+
+  // Calendar day tap: today is always free; other days require Premium.
+  const handlePickDay = (key: string) => {
+    if (premium || key === today) { setSheetDate(key); return; }
+    onRequestPremium?.('calendar');
+  };
 
   const pdText = !hasChart
     ? (language === 'ru' ? 'Создайте натальную карту для личного разбора' : 'Create a natal chart for your personal day')
@@ -424,9 +426,7 @@ export const Dashboard = memo<DashboardProps>(({
         >
           <div className="flex flex-1 flex-col justify-center p-5">
             <h2 className="text-[28px] font-bold leading-[1.12] text-[#1E1230] font-lumiaHomeDisplay">
-              {isToday
-                ? (language === 'ru' ? <>Сегодня<br/>для вас</> : <>Today<br/>for you</>)
-                : shortDate(selectedDate, language)}
+              {language === 'ru' ? <>Сегодня<br/>для вас</> : <>Today<br/>for you</>}
             </h2>
             <p className="mt-3 line-clamp-3 text-[14px] leading-relaxed text-[#50465E]">
               {heroSubtitle}
@@ -444,11 +444,14 @@ export const Dashboard = memo<DashboardProps>(({
         <div className="mt-4">
           <DateSelector
             todayKey={today}
-            selectedKey={selectedDate}
             language={language}
-            onSelect={setSelectedDate}
+            isPremium={premium}
+            onPick={handlePickDay}
           />
         </div>
+
+        {/* ── Moon phase + Lucky elements (today) ── */}
+        <MoonLuckyRow sign={selectedSign} todayKey={today} language={language} />
 
         {/* ── 4. "Ваш план" ── */}
         <h2 className="mt-6 text-[24px] font-bold text-[#1E1230] font-lumiaHomeDisplay">
@@ -528,6 +531,16 @@ export const Dashboard = memo<DashboardProps>(({
         </motion.div>
 
       </div>
+
+      <DaySheet
+        dateKey={sheetDate}
+        todayKey={today}
+        sign={selectedSign}
+        language={language}
+        isPremium={premium}
+        onClose={() => setSheetDate(null)}
+        onRequestPremium={() => onRequestPremium?.('calendar')}
+      />
     </div>
   );
 });
