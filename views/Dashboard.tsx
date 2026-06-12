@@ -73,7 +73,6 @@ function DateSelector({ todayKey, language }: { todayKey: string; language: 'ru'
       {days.map(({ key, date, dayIndex }) => {
         const active = key === todayKey;
         return (
-          // Equal-width flex cell — no variable spacing based on pill width
           <div key={key} className="flex flex-1 flex-col items-center">
             <div
               className={`flex flex-col items-center gap-[3px] rounded-full px-2 py-[9px] w-full ${active ? 'bg-[#111111]' : ''}`}
@@ -95,91 +94,92 @@ function DateSelector({ todayKey, language }: { todayKey: string; language: 'ru'
 
 // ─── Decorative SVGs ──────────────────────────────────────────────────────────
 
-// 6 stacked rings in a tall column — fills the right half of the hero card
+// 6 stacked rings — fills the right column of the hero card
 function HeroRings() {
-  const h = '#CBC6F5'; // lavender bg — punches out ring "holes"
+  const h = '#CBC6F5'; // card bg — punches out ring holes
   return (
-    <svg width="120" height="155" viewBox="0 0 120 155" fill="none" aria-hidden="true">
+    <svg width="128" height="165" viewBox="0 0 128 165" fill="none" aria-hidden="true">
       {/* Blue — top */}
-      <ellipse cx="60" cy="20"  rx="46" ry="14" fill="#7CC8F0"/>
-      <ellipse cx="60" cy="15"  rx="27" ry="8"  fill={h}/>
+      <ellipse cx="64" cy="22"  rx="54" ry="16" fill="#7CC8F0"/>
+      <ellipse cx="64" cy="16"  rx="31" ry="9"  fill={h}/>
       {/* Cream */}
-      <ellipse cx="60" cy="41"  rx="46" ry="14" fill="#EDE8DC"/>
-      <ellipse cx="60" cy="36"  rx="27" ry="8"  fill={h}/>
-      {/* Rose / pink */}
-      <ellipse cx="60" cy="62"  rx="46" ry="14" fill="#F5A0B8"/>
-      <ellipse cx="60" cy="57"  rx="27" ry="8"  fill={h}/>
+      <ellipse cx="64" cy="46"  rx="54" ry="16" fill="#EDE8DC"/>
+      <ellipse cx="64" cy="40"  rx="31" ry="9"  fill={h}/>
+      {/* Rose */}
+      <ellipse cx="64" cy="70"  rx="54" ry="16" fill="#F5A0B8"/>
+      <ellipse cx="64" cy="64"  rx="31" ry="9"  fill={h}/>
       {/* Orange */}
-      <ellipse cx="60" cy="83"  rx="46" ry="14" fill="#F5A060"/>
-      <ellipse cx="60" cy="78"  rx="27" ry="8"  fill={h}/>
+      <ellipse cx="64" cy="94"  rx="54" ry="16" fill="#F5A060"/>
+      <ellipse cx="64" cy="88"  rx="31" ry="9"  fill={h}/>
       {/* Coral */}
-      <ellipse cx="60" cy="104" rx="46" ry="14" fill="#F07058"/>
-      <ellipse cx="60" cy="99"  rx="27" ry="8"  fill={h}/>
+      <ellipse cx="64" cy="118" rx="54" ry="16" fill="#F07058"/>
+      <ellipse cx="64" cy="112" rx="31" ry="9"  fill={h}/>
       {/* Teal — bottom */}
-      <ellipse cx="60" cy="125" rx="46" ry="14" fill="#3B9E84"/>
-      <ellipse cx="60" cy="120" rx="27" ry="8"  fill={h}/>
+      <ellipse cx="64" cy="142" rx="54" ry="16" fill="#3B9E84"/>
+      <ellipse cx="64" cy="136" rx="31" ry="9"  fill={h}/>
     </svg>
   );
 }
 
-// Cream stacked bowl shapes for Natal card (yellow bg)
+// Cream stacked bowls — Natal card (yellow bg #F8D448)
 function NatalDecor() {
   return (
-    <svg width="75" height="95" viewBox="0 0 75 95" fill="none" aria-hidden="true">
-      {/* Bottom bowl */}
-      <ellipse cx="40" cy="80" rx="34" ry="11" fill="rgba(255,255,255,0.25)"/>
-      <path d="M6 66 Q6 45 40 45 Q74 45 74 66 Q74 79 40 79 Q6 79 6 66 Z" fill="rgba(255,255,255,0.48)"/>
-      <ellipse cx="40" cy="46" rx="23" ry="8" fill="rgba(255,255,255,0.22)"/>
-      {/* Top bowl */}
-      <ellipse cx="37" cy="35" rx="20" ry="6" fill="rgba(255,255,255,0.20)"/>
-      <path d="M17 23 Q17 8 37 8 Q57 8 57 23 Q57 33 37 33 Q17 33 17 23 Z" fill="rgba(255,255,255,0.60)"/>
-      <ellipse cx="37" cy="9"  rx="14" ry="4" fill="rgba(255,255,255,0.28)"/>
+    <svg width="82" height="118" viewBox="0 0 82 118" fill="none" aria-hidden="true">
+      {/* Bottom wide bowl */}
+      <ellipse cx="44" cy="107" rx="38" ry="10" fill="#D4C4A0"/>
+      <path d="M6 90 Q6 66 44 66 Q82 66 82 90 Q82 107 44 107 Q6 107 6 90 Z" fill="#F0E4C8"/>
+      <ellipse cx="44" cy="67" rx="26" ry="9" fill="#E2D4B0"/>
+      {/* Top round bowl */}
+      <ellipse cx="38" cy="54" rx="22" ry="7" fill="#D4C4A0"/>
+      <path d="M16 34 Q16 12 38 12 Q60 12 60 34 Q60 53 38 53 Q16 53 16 34 Z" fill="#FAF4E8"/>
+      <ellipse cx="38" cy="13" rx="16" ry="5" fill="#EEE2CE"/>
     </svg>
   );
 }
 
-// Ribbed cylinder for Horoscope card (blue bg)
+// Ribbed cylinder — Horoscope card (blue bg #A8D4F8)
 function HoroscopeDecor() {
   return (
-    <svg width="54" height="90" viewBox="0 0 54 90" fill="none" aria-hidden="true">
-      <ellipse cx="27" cy="16" rx="23" ry="8" fill="rgba(255,255,255,0.45)"/>
-      <rect x="4" y="16" width="46" height="64" rx="2" fill="rgba(255,255,255,0.28)"/>
-      {[25, 34, 43, 52, 61, 70].map((y) => (
-        <rect key={y} x="4" y={y} width="46" height="6" rx="1" fill="rgba(255,255,255,0.14)"/>
+    <svg width="58" height="115" viewBox="0 0 58 115" fill="none" aria-hidden="true">
+      <ellipse cx="29" cy="15" rx="25" ry="9" fill="#E4F2FF"/>
+      <rect x="4" y="15" width="50" height="88" rx="2" fill="#CCE4FA"/>
+      {[24, 34, 44, 54, 64, 74, 84, 94].map((y) => (
+        <rect key={y} x="4" y={y} width="50" height="8" rx="1" fill="#B4D0EE"/>
       ))}
-      <ellipse cx="27" cy="80" rx="23" ry="7" fill="rgba(255,255,255,0.18)"/>
+      <ellipse cx="29" cy="103" rx="25" ry="8" fill="#A4C4E4"/>
     </svg>
   );
 }
 
-// Abstract arch shapes for Oracle card (mint bg)
+// Thick arch shapes — Oracle card (mint bg #A8E6CE)
 function OracleDecor() {
   return (
-    <svg width="68" height="90" viewBox="0 0 68 90" fill="none" aria-hidden="true">
+    <svg width="70" height="115" viewBox="0 0 70 115" fill="none" aria-hidden="true">
       <path
-        d="M10 82 L10 40 Q10 10 34 10 Q58 10 58 38 L58 58 Q58 72 44 72 Q30 72 30 58 L30 42 Q30 32 40 30"
-        fill="none" stroke="rgba(255,255,255,0.55)" strokeWidth="17" strokeLinecap="round" strokeLinejoin="round"
+        d="M8 108 L8 50 Q8 14 34 14 Q60 14 60 48 L60 66 Q60 84 46 84 Q32 84 32 66 L32 50 Q32 38 42 36"
+        fill="none" stroke="#52C0A0" strokeWidth="18" strokeLinecap="round" strokeLinejoin="round"
       />
       <path
-        d="M48 82 L48 52 Q48 36 60 36"
-        fill="none" stroke="rgba(255,255,255,0.32)" strokeWidth="14" strokeLinecap="round"
+        d="M48 108 L48 64 Q48 48 62 46"
+        fill="none" stroke="#3EAA8A" strokeWidth="16" strokeLinecap="round"
       />
     </svg>
   );
 }
 
-// Twisted loop for Synastry card (pink bg)
+// Twisted loop ring — Synastry card (pink bg #F8B4C8)
 function SynastryDecor() {
   return (
-    <svg width="75" height="85" viewBox="0 0 75 85" fill="none" aria-hidden="true">
+    <svg width="78" height="104" viewBox="0 0 78 104" fill="none" aria-hidden="true">
+      {/* Main ring loop */}
       <path
-        d="M16 56 Q4 38 20 22 Q36 6 54 22 Q70 38 54 56 Q38 72 20 56 Z"
-        fill="none" stroke="rgba(255,255,255,0.55)" strokeWidth="15" strokeLinecap="round" strokeLinejoin="round"
+        d="M14 62 Q2 42 18 24 Q34 6 58 24 Q76 42 58 62 Q38 82 18 62 Z"
+        fill="none" stroke="#F078A8" strokeWidth="18" strokeLinecap="round" strokeLinejoin="round"
       />
-      <circle cx="37" cy="39" r="10" fill="rgba(255,255,255,0.22)"/>
+      {/* Highlight on upper arc — suggests 3D depth */}
       <path
-        d="M28 56 Q20 48 26 40 Q32 32 40 38"
-        fill="none" stroke="rgba(255,255,255,0.30)" strokeWidth="8" strokeLinecap="round"
+        d="M18 62 Q6 42 18 26 Q34 10 56 24"
+        fill="none" stroke="#F8A8C8" strokeWidth="12" strokeLinecap="round"
       />
     </svg>
   );
@@ -206,7 +206,7 @@ function PlanCard({ tag, title, description, bg, decoration, onClick, delay = 0 
       whileTap={onClick ? { scale: 0.96 } : undefined}
       onClick={onClick}
       className={`flex overflow-hidden rounded-[20px] ${onClick ? 'cursor-pointer' : ''}`}
-      style={{ backgroundColor: bg, minHeight: '192px' }}
+      style={{ backgroundColor: bg, minHeight: '200px' }}
     >
       {/* Left column: tag → title → description → arrow */}
       <div className="flex flex-1 flex-col justify-between py-5 pl-5 pr-3">
@@ -214,10 +214,10 @@ function PlanCard({ tag, title, description, bg, decoration, onClick, delay = 0 
           <span className="inline-flex self-start rounded-full bg-white/60 px-3 py-[5px] text-[11px] font-semibold text-[#111111] leading-none">
             {tag}
           </span>
-          <h3 className="mt-[10px] text-[20px] font-bold leading-tight text-[#111111]">{title}</h3>
-          <p className="mt-1.5 text-[12px] leading-snug text-[#3D3D3D]">{description}</p>
+          <h3 className="mt-[10px] text-[20px] font-bold leading-tight text-[#111111] break-words">{title}</h3>
+          <p className="mt-1.5 text-[13px] leading-snug text-[#3D3D3D]">{description}</p>
         </div>
-        {/* Arrow circle — always at bottom-left */}
+        {/* Arrow circle */}
         <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white">
           <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
             <path d="M2.5 7.5h10M9 4l3.5 3.5L9 11" stroke="#111111" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
@@ -225,7 +225,7 @@ function PlanCard({ tag, title, description, bg, decoration, onClick, delay = 0 
         </div>
       </div>
 
-      {/* Right column: illustration aligned to bottom */}
+      {/* Right column: illustration anchored to bottom */}
       <div className="flex w-[42%] flex-shrink-0 items-end justify-center pb-3 pr-2" aria-hidden="true">
         {decoration}
       </div>
@@ -317,51 +317,51 @@ export const Dashboard = memo<DashboardProps>(({
         {/* ── 1. Header ── */}
         <header className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            {/* Avatar — initials circle matching hero bg */}
-            <div className="flex h-[46px] w-[46px] flex-shrink-0 items-center justify-center rounded-full bg-[#CBC6F5] text-[18px] font-bold text-[#111111]">
+            {/* Avatar */}
+            <div className="flex h-[48px] w-[48px] flex-shrink-0 items-center justify-center rounded-full bg-[#CBC6F5] text-[18px] font-bold text-[#111111]">
               {userInitial}
             </div>
             <div className="min-w-0">
               <p className="truncate text-[18px] font-bold leading-tight text-[#111111]">
                 {language === 'ru' ? `Привет, ${profile.name}` : `Hello, ${profile.name}`}
               </p>
-              <p className="mt-[3px] text-[12px] leading-none text-[#8A8A8A]">
+              <p className="mt-[3px] text-[13px] leading-none text-[#8A8A8A]">
                 {`${language === 'ru' ? 'Сегодня' : 'Today'} ${shortDate(today, language)}`}
               </p>
             </div>
           </div>
-          {/* Search button */}
+          {/* Settings button */}
           <button
             type="button"
             onClick={onOpenSettings}
             aria-label={language === 'ru' ? 'Настройки' : 'Settings'}
-            className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border border-black/[0.07] bg-[#F7F7F7]"
+            className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full border border-black/[0.07] bg-[#F7F7F7]"
           >
             <Search size={18} strokeWidth={2.5} className="text-[#111111]" />
           </button>
         </header>
 
-        {/* ── 2. Hero Card (flex row: text 58% | rings 42%) ── */}
+        {/* ── 2. Hero Card ── */}
         <motion.div
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.32, delay: 0.06, ease: [0.22, 1, 0.36, 1] }}
-          className="mt-4 flex overflow-hidden rounded-[28px] bg-[#CBC6F5]"
-          style={{ minHeight: '218px' }}
+          className="mt-4 flex overflow-hidden rounded-[20px] bg-[#CBC6F5]"
+          style={{ minHeight: '250px' }}
         >
-          {/* Text */}
-          <div className="flex flex-1 flex-col justify-center p-6">
-            <h2 className="text-[30px] font-bold leading-[1.1] text-[#111111]">
-              {language === 'ru' ? 'Сегодня\nдля вас' : 'Today\nfor you'}
+          {/* Text — left column */}
+          <div className="flex flex-1 flex-col justify-center p-5">
+            <h2 className="text-[28px] font-bold leading-[1.1] text-[#111111]">
+              {language === 'ru' ? 'Сегодня для вас' : 'Today for you'}
             </h2>
-            <p className="mt-3 line-clamp-3 text-[13px] leading-relaxed text-[#3D3D3D]">
+            <p className="mt-3 line-clamp-3 text-[14px] leading-relaxed text-[#3D3D3D]">
               {heroSubtitle}
             </p>
           </div>
-          {/* Rings — fill right column */}
+          {/* Rings — right column, 45% */}
           <div
             className="flex flex-shrink-0 items-center justify-center"
-            style={{ width: '42%' }}
+            style={{ width: '45%' }}
             aria-hidden="true"
           >
             <HeroRings />
@@ -417,7 +417,7 @@ export const Dashboard = memo<DashboardProps>(({
           />
         </div>
 
-        {/* ── 6. Personal Daily Banner — no shadow, thin border only ── */}
+        {/* ── 6. Personal Daily Banner ── */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
