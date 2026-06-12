@@ -12,6 +12,7 @@ import type {
 } from '../types';
 import { hasActivePremium, hasNatalChart } from '../lib/accessMatrix';
 import { getMoscowTodayKey } from '../lib/date-utils';
+import { lumiaSelectionHaptic } from '../lib/haptics';
 import {
   getCachedDailySignHoroscope,
   ensureDailySignHoroscope,
@@ -33,6 +34,8 @@ type DashboardProps = {
   onOpenHoroscopeLayer: (layer: HoroscopeLayer, options?: HoroscopeOpenOptions) => void;
   onOpenPersonalDaily: (section?: PersonalDailySection) => void;
   onCreateNatalChart?: () => void;
+  onOpenOracle?: () => void;
+  onOpenSynastry?: () => void;
   onOpenSettings?: () => void;
   scrollRef?: React.RefObject<HTMLDivElement | null>;
   initialTodaySection?: string | null;
@@ -70,17 +73,31 @@ function shortDate(todayKey: string, lang: 'ru' | 'en'): string {
 
 // ─── Date Selector — white bordered capsules, active = dark with dot ──────────
 
-function DateSelector({ todayKey, language }: { todayKey: string; language: 'ru' | 'en' }) {
+function DateSelector({
+  todayKey,
+  selectedKey,
+  language,
+  onSelect,
+}: {
+  todayKey: string;
+  selectedKey: string;
+  language: 'ru' | 'en';
+  onSelect: (key: string) => void;
+}) {
   const days = useMemo(() => buildWeekDays(todayKey), [todayKey]);
   const abbrs = language === 'ru' ? RU_DAY_ABBR : EN_DAY_ABBR;
   return (
     <div className="flex items-center gap-1.5 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
       {days.map(({ key, date, dayIndex }) => {
-        const active = key === todayKey;
+        const active = key === selectedKey;
+        const isToday = key === todayKey;
         return (
-          <div
+          <button
             key={key}
-            className={`flex min-w-[42px] flex-1 flex-col items-center rounded-full ${
+            type="button"
+            aria-pressed={active}
+            onClick={() => { lumiaSelectionHaptic(); onSelect(key); }}
+            className={`flex min-w-[42px] flex-1 flex-col items-center rounded-full transition-colors ${
               active ? 'bg-[#1E1230] py-3' : 'border border-[#EAE3F1] bg-white py-[10px]'
             }`}
           >
@@ -91,7 +108,11 @@ function DateSelector({ todayKey, language }: { todayKey: string; language: 'ru'
             <span className={`mt-[7px] text-[16px] font-bold leading-none ${active ? 'text-white' : 'text-[#1E1230]'}`}>
               {date}
             </span>
-          </div>
+            {/* Marks today once another day is selected */}
+            {!active && (
+              <div className={`mt-[5px] h-1 w-1 rounded-full ${isToday ? 'bg-[#7B5CF6]' : 'bg-transparent'}`} />
+            )}
+          </button>
         );
       })}
     </div>
@@ -263,6 +284,8 @@ export const Dashboard = memo<DashboardProps>(({
   onOpenHoroscopeLayer,
   onOpenPersonalDaily,
   onCreateNatalChart,
+  onOpenOracle,
+  onOpenSynastry,
   onOpenSettings,
   scrollRef,
 }) => {
@@ -279,18 +302,22 @@ export const Dashboard = memo<DashboardProps>(({
   );
   const [personalLoading, setPersonalLoading] = useState(hasChart && premium && !personal);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  // Day-picker selection — drives which date's forecast the hero shows.
+  const [selectedDate, setSelectedDate] = useState(today);
 
   useEffect(() => {
     if (!selectedSign) { setSignLoading(false); return; }
+    // Future days have no forecast yet — the hero shows a teaser, skip the fetch.
+    if (selectedDate > today) { setSignReading(null); setSignLoading(false); return; }
     let alive = true;
     setSignLoading(true);
-    void getCachedDailySignHoroscope(selectedSign, today, language)
-      .then((cached) => cached || ensureDailySignHoroscope(selectedSign, today, language))
+    void getCachedDailySignHoroscope(selectedSign, selectedDate, language)
+      .then((cached) => cached || ensureDailySignHoroscope(selectedSign, selectedDate, language))
       .then((reading) => { if (alive) setSignReading(reading); })
       .catch(() => { if (alive) setSignReading(null); })
       .finally(() => { if (alive) setSignLoading(false); });
     return () => { alive = false; };
-  }, [language, selectedSign, today]);
+  }, [language, selectedSign, selectedDate, today]);
 
   useEffect(() => {
     if (!hasChart || !premium || !chartData) { setPersonalLoading(false); return; }
@@ -323,8 +350,13 @@ export const Dashboard = memo<DashboardProps>(({
     onOpenHoroscopeLayer(layer, options);
   const openPersonalDaily = (section: PersonalDailySection = 'overview') => onOpenPersonalDaily(section);
 
-  const heroSubtitle = signLoading
-    ? (language === 'ru' ? 'Готовим ваш прогноз на сегодня…' : 'Preparing your forecast…')
+  const isToday = selectedDate === today;
+  const isFutureDate = selectedDate > today;
+
+  const heroSubtitle = isFutureDate
+    ? (language === 'ru' ? 'Прогноз на этот день появится позже' : 'The forecast for this day is coming soon')
+    : signLoading
+    ? (language === 'ru' ? 'Готовим ваш прогноз…' : 'Preparing your forecast…')
     : (signReading?.summary || FALLBACKS.background);
 
   const pdText = !hasChart
@@ -392,7 +424,9 @@ export const Dashboard = memo<DashboardProps>(({
         >
           <div className="flex flex-1 flex-col justify-center p-5">
             <h2 className="text-[28px] font-bold leading-[1.12] text-[#1E1230] font-lumiaHomeDisplay">
-              {language === 'ru' ? <>Сегодня<br/>для вас</> : <>Today<br/>for you</>}
+              {isToday
+                ? (language === 'ru' ? <>Сегодня<br/>для вас</> : <>Today<br/>for you</>)
+                : shortDate(selectedDate, language)}
             </h2>
             <p className="mt-3 line-clamp-3 text-[14px] leading-relaxed text-[#50465E]">
               {heroSubtitle}
@@ -408,7 +442,12 @@ export const Dashboard = memo<DashboardProps>(({
 
         {/* ── 3. Date Selector ── */}
         <div className="mt-4">
-          <DateSelector todayKey={today} language={language} />
+          <DateSelector
+            todayKey={today}
+            selectedKey={selectedDate}
+            language={language}
+            onSelect={setSelectedDate}
+          />
         </div>
 
         {/* ── 4. "Ваш план" ── */}
@@ -444,7 +483,7 @@ export const Dashboard = memo<DashboardProps>(({
             description={language === 'ru' ? 'Получите ответ на любой вопрос' : 'Get answers to any question'}
             bg="#C8E4CE"
             decoration={<OracleDecor />}
-            onClick={() => openPersonalDaily('overview')}
+            onClick={onOpenOracle}
             delay={0.18}
             lang={language}
           />
@@ -454,6 +493,7 @@ export const Dashboard = memo<DashboardProps>(({
             description={language === 'ru' ? 'Понимание ваших отношений' : 'Understand your relationship'}
             bg="#F6C9DB"
             decoration={<SynastryDecor />}
+            onClick={onOpenSynastry}
             delay={0.22}
             lang={language}
           />

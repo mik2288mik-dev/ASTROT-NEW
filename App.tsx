@@ -1351,6 +1351,16 @@ const App: React.FC = () => {
         navigateTo('settings', { replace: true });
     }, [navigateTo]);
 
+    // Home cards push (not replace) so Back returns to the dashboard.
+    const openOracle = useCallback(() => {
+        navigateTo('oracle');
+    }, [navigateTo]);
+
+    const openSynastryFromHome = useCallback(() => {
+        setSynastryPrefill(null);
+        navigateTo('synastry');
+    }, [navigateTo]);
+
     // Свайп назад от левого края (как в iOS)
     const canSwipeBack =
         view !== 'dashboard' &&
@@ -1440,6 +1450,8 @@ const App: React.FC = () => {
                         onOpenHoroscopeLayer={openHoroscopeLayer}
                         onOpenPersonalDaily={openPersonalDailyView}
                         onCreateNatalChart={openBottomNatal}
+                        onOpenOracle={openOracle}
+                        onOpenSynastry={openSynastryFromHome}
                         onOpenSettings={openBottomAvatar}
                         scrollRef={dashboardScrollRef}
                         initialTodaySection={initialTodaySection}

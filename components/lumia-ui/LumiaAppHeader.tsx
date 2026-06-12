@@ -39,9 +39,14 @@ export function LumiaAppHeader({
   const expandedScale = useTransform(visualProgress, [0, 1], [1, 0.92]);
   const taglineOpacity = useTransform(visualProgress, [0, 0.2, 0.42], [1, 0.28, 0]);
   const taglineY = useTransform(rawProgress, [0, 1], [0, -12]);
-  const compactOpacity = useTransform(visualProgress, [0, 0.52, 0.78, 1], [0, 0, 0.88, 1]);
+  // Compact wordmark only starts after the expanded one has fully faded (>0.54),
+  // so the two "LUMIA" layers are never painted at the same time.
+  const compactOpacity = useTransform(visualProgress, [0, 0.56, 0.82, 1], [0, 0, 0.88, 1]);
   const compactY = useTransform(rawProgress, [0, 1], [-5, 0]);
   const compactScale = useTransform(visualProgress, [0, 0.72, 1], [0.82, 0.94, 1]);
+  // Hard on/off so neither layer ever overlaps the other, even mid-transition.
+  const expandedVisibility = useTransform(visualProgress, (v) => (v < 0.55 ? 'visible' : 'hidden'));
+  const compactVisibility = useTransform(visualProgress, (v) => (v >= 0.55 ? 'visible' : 'hidden'));
 
   return (
     <motion.header
@@ -51,7 +56,7 @@ export function LumiaAppHeader({
       <div className="lumia-app-header-canvas">
         <motion.div
           className="lumia-app-expanded-brand-layer"
-          style={{ opacity: expandedOpacity, y: expandedY, scale: expandedScale }}
+          style={{ opacity: expandedOpacity, y: expandedY, scale: expandedScale, visibility: expandedVisibility }}
         >
           <div className="lumia-app-brand-center">
             <p className="lumia-app-logo">LUMIA</p>
@@ -63,7 +68,7 @@ export function LumiaAppHeader({
 
         <motion.div
           className="lumia-app-compact-brand-layer"
-          style={{ opacity: compactOpacity, y: compactY, scale: compactScale }}
+          style={{ opacity: compactOpacity, y: compactY, scale: compactScale, visibility: compactVisibility }}
           aria-hidden
         >
           <p className="lumia-app-compact-logo">LUMIA</p>
