@@ -80,7 +80,7 @@ body,
   --lumia-home-radius-panel: 1.55rem;
   --lumia-home-radius-nav: 1.45rem;
   --lumia-home-icon-size: 2.45rem;
-  --lumia-bottom-tab-height: 4.45rem;
+  --lumia-bottom-tab-height: 3.75rem;
   --lumia-bottom-tab-safe-bottom: max(env(safe-area-inset-bottom, 0px), var(--tg-safe-area-inset-bottom, 0px), var(--tg-content-safe-area-inset-bottom, 0px));
   --lumia-bottom-tab-bottom-gap: 0.38rem;
   --lumia-bottom-tab-clearance: calc(var(--lumia-bottom-tab-height) + var(--lumia-bottom-tab-safe-bottom) + 1.6rem);
@@ -717,50 +717,20 @@ body.theme-lumia-air #__next {
   display: grid;
   width: min(100%, 23.4rem);
   min-height: var(--lumia-bottom-tab-height);
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   align-items: center;
   gap: 0;
-  border-radius: 2.12rem;
+  border-radius: 9999px;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.48);
-  background:
-    radial-gradient(circle at 14% 0%, rgba(255, 255, 255, 0.26), transparent 34%),
-    radial-gradient(circle at 92% 10%, rgba(255, 255, 255, 0.16), transparent 38%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.045)),
-    rgba(255, 255, 255, 0.055);
-  box-shadow:
-    0 18px 38px rgba(23, 19, 20, 0.065),
-    0 7px 18px rgba(255, 255, 255, 0.07) inset,
-    0 1px 0 rgba(255, 255, 255, 0.44) inset,
-    0 -1px 0 rgba(23, 19, 20, 0.025) inset;
-  backdrop-filter: blur(30px) saturate(1.52) brightness(1.05);
-  -webkit-backdrop-filter: blur(30px) saturate(1.52) brightness(1.05);
+  border: none;
+  background: #111111;
+  box-shadow: none;
+  padding: 4px;
 }
 
 .lumia-bottom-tab-bar::before,
 .lumia-bottom-tab-bar::after {
-  position: absolute;
-  inset: 0;
-  content: '';
-  pointer-events: none;
-}
-
-.lumia-bottom-tab-bar::before {
-  z-index: 0;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.02) 44%, rgba(255, 255, 255, 0.06)),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.07), transparent 18%, transparent 82%, rgba(255, 255, 255, 0.06));
-  opacity: 0.42;
-}
-
-.lumia-bottom-tab-bar::after {
-  z-index: 1;
-  border-radius: inherit;
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.16) inset,
-    0 10px 18px rgba(255, 255, 255, 0.06) inset;
-  mix-blend-mode: screen;
-  opacity: 0.34;
+  display: none;
 }
 
 .lumia-bottom-tab-item {
@@ -768,15 +738,15 @@ body.theme-lumia-air #__next {
   z-index: 2;
   display: inline-flex;
   min-width: 0;
-  min-height: 4rem;
+  min-height: 3.25rem;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 0.2rem;
   border: 0;
-  border-radius: 1.45rem;
+  border-radius: 9999px;
   background: transparent;
-  color: rgba(18, 18, 18, 0.58);
+  color: rgba(255, 255, 255, 0.55);
   font-family: var(--lumia-home-font-sans);
   letter-spacing: 0;
   -webkit-tap-highlight-color: transparent;
@@ -808,7 +778,7 @@ body.theme-lumia-air #__next {
 .lumia-bottom-tab-label {
   max-width: 100%;
   overflow: hidden;
-  color: rgba(18, 18, 18, 0.62);
+  color: currentColor;
   font-size: 0.7rem;
   font-weight: 820;
   line-height: 1;
@@ -817,12 +787,13 @@ body.theme-lumia-air #__next {
 }
 
 .lumia-bottom-tab-item.is-active {
-  color: rgba(18, 18, 18, 0.98);
+  background: #ffffff;
+  color: #111111;
   opacity: 1;
 }
 
 .lumia-bottom-tab-item.is-active .lumia-bottom-tab-label {
-  color: rgba(18, 18, 18, 0.98);
+  color: #111111;
   font-weight: 850;
 }
 
@@ -1568,7 +1539,7 @@ body.theme-lumia-air #__next {
   :root {
     --lumia-home-page-x: 0.9rem;
     --lumia-home-icon-size: 2.35rem;
-    --lumia-bottom-tab-height: 4.35rem;
+    --lumia-bottom-tab-height: 3.65rem;
     --lumia-home-nav-height: var(--lumia-bottom-tab-height);
   }
 

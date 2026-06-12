@@ -1,10 +1,25 @@
 import React, { memo, useEffect, useMemo, useState } from 'react';
-import type { ForecastDailyReading, HoroscopeLayer, HoroscopeOpenOptions, NatalChartData, PersonalDailySection, TodayAssistantHomeResult, UserProfile } from '../types';
+import { Search, FileText } from 'lucide-react';
+import { motion } from 'framer-motion';
+import type {
+  ForecastDailyReading,
+  HoroscopeLayer,
+  HoroscopeOpenOptions,
+  NatalChartData,
+  PersonalDailySection,
+  TodayAssistantHomeResult,
+  UserProfile,
+} from '../types';
 import { hasActivePremium, hasNatalChart } from '../lib/accessMatrix';
-import { getContentPolicy } from '../lib/contentMatrix';
-import { formatLumiaDate, getMoscowTodayKey } from '../lib/date-utils';
-import { getZodiacSign } from '../constants';
-import { getCachedDailySignHoroscope, ensureDailySignHoroscope, getCachedTodayAssistantHome, getTodayAssistantHome } from '../services/astrologyService';
+import { getMoscowTodayKey } from '../lib/date-utils';
+import {
+  getCachedDailySignHoroscope,
+  ensureDailySignHoroscope,
+  getCachedTodayAssistantHome,
+  getTodayAssistantHome,
+} from '../services/astrologyService';
+
+// ─── Props ────────────────────────────────────────────────────────────────────
 
 type DashboardProps = {
   profile: UserProfile;
@@ -18,44 +33,230 @@ type DashboardProps = {
   initialTodaySection?: string | null;
 };
 
+// ─── Fallback content ─────────────────────────────────────────────────────────
+
 const FALLBACKS = {
   background: 'Сегодня полезнее выбрать один ясный приоритет и не разгонять тревогу лишними решениями.',
-  dayCard: 'Сначала закончи то, что уже начато. Один спокойный разговор и один завершённый шаг сегодня дадут больше, чем попытка успеть всё сразу. Если появится срочная новая идея, запиши её, но не меняй план до вечера. Так день останется собранным и понятным.',
-  micro: 'Не принимай важное решение на первой эмоции.',
-  moon: 'Луна сегодня напоминает: пауза перед ответом часто полезнее скорости.',
-  retrograde: 'Если планы буксуют, сначала перепроверь детали и только потом меняй направление.',
+  dayCard: 'Сначала закончи то, что уже начато. Один спокойный разговор и один завершённый шаг сегодня дадут больше, чем попытка успеть всё сразу.',
 };
 
-function Skeleton({ lines = 3 }: { lines?: number }) {
-  return <div className="space-y-2" aria-busy="true">{Array.from({ length: lines }).map((_, index) => <div key={index} className="h-3 animate-pulse rounded-full bg-black/10" style={{ width: `${95 - index * 12}%` }} />)}</div>;
+// ─── Date helpers ─────────────────────────────────────────────────────────────
+
+const RU_DAY_ABBR = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'] as const;
+const EN_DAY_ABBR = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'] as const;
+
+function buildWeekDays(todayKey: string) {
+  const [yr, mo, da] = todayKey.split('-').map(Number);
+  const dow = new Date(yr, mo - 1, da).getDay();
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(yr, mo - 1, da - dow + i);
+    const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return { key: k, date: d.getDate(), dayIndex: i };
+  });
 }
 
-function Card({ title, text, onClick, locked = false, loading = false, label }: { title: string; text: string; onClick?: () => void; locked?: boolean; loading?: boolean; label?: string }) {
-  const Component = onClick ? 'button' : 'section';
-  return <Component type={onClick ? 'button' : undefined} onClick={onClick} className="w-full rounded-[22px] border border-black/10 bg-white p-5 text-left shadow-[0_14px_34px_rgba(0,0,0,0.05)]">
-    {label ? <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8c6bb1]">{label}</p> : null}
-    <h2 className="mt-1 text-[20px] font-semibold leading-tight text-[#202024]">{title}{locked ? ' · Premium' : ''}</h2>
-    <div className="mt-3">{loading ? <Skeleton /> : <p className="text-[14px] leading-relaxed text-[#68646e] line-clamp-4">{text}</p>}</div>
-  </Component>;
+function shortDate(todayKey: string, lang: 'ru' | 'en'): string {
+  const [yr, mo, da] = todayKey.split('-').map(Number);
+  const d = new Date(Date.UTC(yr, mo - 1, da, 12));
+  return new Intl.DateTimeFormat(lang === 'ru' ? 'ru-RU' : 'en-US', {
+    timeZone: 'UTC', day: 'numeric', month: 'long',
+  }).format(d);
 }
 
-export const Dashboard = memo<DashboardProps>(({ profile, chartData, chartId, onOpenHoroscopeLayer, onOpenPersonalDaily, onCreateNatalChart, scrollRef }) => {
+// ─── Date Selector ────────────────────────────────────────────────────────────
+
+function DateSelector({ todayKey, language }: { todayKey: string; language: 'ru' | 'en' }) {
+  const days = useMemo(() => buildWeekDays(todayKey), [todayKey]);
+  const abbrs = language === 'ru' ? RU_DAY_ABBR : EN_DAY_ABBR;
+  return (
+    <div className="flex items-stretch">
+      {days.map(({ key, date, dayIndex }) => {
+        const active = key === todayKey;
+        return (
+          // Equal-width flex cell — no variable spacing based on pill width
+          <div key={key} className="flex flex-1 flex-col items-center">
+            <div
+              className={`flex flex-col items-center gap-[3px] rounded-full px-2 py-[9px] w-full ${active ? 'bg-[#111111]' : ''}`}
+            >
+              <div className={`h-[5px] w-[5px] rounded-full ${active ? 'bg-white' : 'bg-transparent'}`} />
+              <span className={`text-[10px] font-semibold leading-none ${active ? 'text-white' : 'text-[#8A8A8A]'}`}>
+                {abbrs[dayIndex]}
+              </span>
+              <span className={`mt-[3px] text-[16px] font-bold leading-none ${active ? 'text-white' : 'text-[#111111]'}`}>
+                {date}
+              </span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── Decorative SVGs ──────────────────────────────────────────────────────────
+
+// 6 stacked rings in a tall column — fills the right half of the hero card
+function HeroRings() {
+  const h = '#CBC6F5'; // lavender bg — punches out ring "holes"
+  return (
+    <svg width="120" height="155" viewBox="0 0 120 155" fill="none" aria-hidden="true">
+      {/* Blue — top */}
+      <ellipse cx="60" cy="20"  rx="46" ry="14" fill="#7CC8F0"/>
+      <ellipse cx="60" cy="15"  rx="27" ry="8"  fill={h}/>
+      {/* Cream */}
+      <ellipse cx="60" cy="41"  rx="46" ry="14" fill="#EDE8DC"/>
+      <ellipse cx="60" cy="36"  rx="27" ry="8"  fill={h}/>
+      {/* Rose / pink */}
+      <ellipse cx="60" cy="62"  rx="46" ry="14" fill="#F5A0B8"/>
+      <ellipse cx="60" cy="57"  rx="27" ry="8"  fill={h}/>
+      {/* Orange */}
+      <ellipse cx="60" cy="83"  rx="46" ry="14" fill="#F5A060"/>
+      <ellipse cx="60" cy="78"  rx="27" ry="8"  fill={h}/>
+      {/* Coral */}
+      <ellipse cx="60" cy="104" rx="46" ry="14" fill="#F07058"/>
+      <ellipse cx="60" cy="99"  rx="27" ry="8"  fill={h}/>
+      {/* Teal — bottom */}
+      <ellipse cx="60" cy="125" rx="46" ry="14" fill="#3B9E84"/>
+      <ellipse cx="60" cy="120" rx="27" ry="8"  fill={h}/>
+    </svg>
+  );
+}
+
+// Cream stacked bowl shapes for Natal card (yellow bg)
+function NatalDecor() {
+  return (
+    <svg width="75" height="95" viewBox="0 0 75 95" fill="none" aria-hidden="true">
+      {/* Bottom bowl */}
+      <ellipse cx="40" cy="80" rx="34" ry="11" fill="rgba(255,255,255,0.25)"/>
+      <path d="M6 66 Q6 45 40 45 Q74 45 74 66 Q74 79 40 79 Q6 79 6 66 Z" fill="rgba(255,255,255,0.48)"/>
+      <ellipse cx="40" cy="46" rx="23" ry="8" fill="rgba(255,255,255,0.22)"/>
+      {/* Top bowl */}
+      <ellipse cx="37" cy="35" rx="20" ry="6" fill="rgba(255,255,255,0.20)"/>
+      <path d="M17 23 Q17 8 37 8 Q57 8 57 23 Q57 33 37 33 Q17 33 17 23 Z" fill="rgba(255,255,255,0.60)"/>
+      <ellipse cx="37" cy="9"  rx="14" ry="4" fill="rgba(255,255,255,0.28)"/>
+    </svg>
+  );
+}
+
+// Ribbed cylinder for Horoscope card (blue bg)
+function HoroscopeDecor() {
+  return (
+    <svg width="54" height="90" viewBox="0 0 54 90" fill="none" aria-hidden="true">
+      <ellipse cx="27" cy="16" rx="23" ry="8" fill="rgba(255,255,255,0.45)"/>
+      <rect x="4" y="16" width="46" height="64" rx="2" fill="rgba(255,255,255,0.28)"/>
+      {[25, 34, 43, 52, 61, 70].map((y) => (
+        <rect key={y} x="4" y={y} width="46" height="6" rx="1" fill="rgba(255,255,255,0.14)"/>
+      ))}
+      <ellipse cx="27" cy="80" rx="23" ry="7" fill="rgba(255,255,255,0.18)"/>
+    </svg>
+  );
+}
+
+// Abstract arch shapes for Oracle card (mint bg)
+function OracleDecor() {
+  return (
+    <svg width="68" height="90" viewBox="0 0 68 90" fill="none" aria-hidden="true">
+      <path
+        d="M10 82 L10 40 Q10 10 34 10 Q58 10 58 38 L58 58 Q58 72 44 72 Q30 72 30 58 L30 42 Q30 32 40 30"
+        fill="none" stroke="rgba(255,255,255,0.55)" strokeWidth="17" strokeLinecap="round" strokeLinejoin="round"
+      />
+      <path
+        d="M48 82 L48 52 Q48 36 60 36"
+        fill="none" stroke="rgba(255,255,255,0.32)" strokeWidth="14" strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+// Twisted loop for Synastry card (pink bg)
+function SynastryDecor() {
+  return (
+    <svg width="75" height="85" viewBox="0 0 75 85" fill="none" aria-hidden="true">
+      <path
+        d="M16 56 Q4 38 20 22 Q36 6 54 22 Q70 38 54 56 Q38 72 20 56 Z"
+        fill="none" stroke="rgba(255,255,255,0.55)" strokeWidth="15" strokeLinecap="round" strokeLinejoin="round"
+      />
+      <circle cx="37" cy="39" r="10" fill="rgba(255,255,255,0.22)"/>
+      <path
+        d="M28 56 Q20 48 26 40 Q32 32 40 38"
+        fill="none" stroke="rgba(255,255,255,0.30)" strokeWidth="8" strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+// ─── Plan Card ────────────────────────────────────────────────────────────────
+
+type PlanCardProps = {
+  tag: string;
+  title: string;
+  description: string;
+  bg: string;
+  decoration?: React.ReactNode;
+  onClick?: () => void;
+  delay?: number;
+};
+
+function PlanCard({ tag, title, description, bg, decoration, onClick, delay = 0 }: PlanCardProps) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.28, delay, ease: [0.22, 1, 0.36, 1] }}
+      whileTap={onClick ? { scale: 0.96 } : undefined}
+      onClick={onClick}
+      className={`flex overflow-hidden rounded-[20px] ${onClick ? 'cursor-pointer' : ''}`}
+      style={{ backgroundColor: bg, minHeight: '192px' }}
+    >
+      {/* Left column: tag → title → description → arrow */}
+      <div className="flex flex-1 flex-col justify-between py-5 pl-5 pr-3">
+        <div>
+          <span className="inline-flex self-start rounded-full bg-white/60 px-3 py-[5px] text-[11px] font-semibold text-[#111111] leading-none">
+            {tag}
+          </span>
+          <h3 className="mt-[10px] text-[20px] font-bold leading-tight text-[#111111]">{title}</h3>
+          <p className="mt-1.5 text-[12px] leading-snug text-[#3D3D3D]">{description}</p>
+        </div>
+        {/* Arrow circle — always at bottom-left */}
+        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white">
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
+            <path d="M2.5 7.5h10M9 4l3.5 3.5L9 11" stroke="#111111" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </div>
+      </div>
+
+      {/* Right column: illustration aligned to bottom */}
+      <div className="flex w-[42%] flex-shrink-0 items-end justify-center pb-3 pr-2" aria-hidden="true">
+        {decoration}
+      </div>
+    </motion.div>
+  );
+}
+
+// ─── Dashboard ────────────────────────────────────────────────────────────────
+
+export const Dashboard = memo<DashboardProps>(({
+  profile,
+  chartData,
+  chartId,
+  onOpenHoroscopeLayer,
+  onOpenPersonalDaily,
+  onCreateNatalChart,
+  onOpenSettings,
+  scrollRef,
+}) => {
   const language = profile.language === 'en' ? 'en' : 'ru';
   const today = useMemo(() => getMoscowTodayKey(), []);
   const hasChart = hasNatalChart(profile, { chartData, primaryChartId: chartId ?? null });
   const premium = hasActivePremium(profile);
   const selectedSign = String(profile.selectedZodiacSign || chartData?.sun?.sign || '').trim();
+
   const [signReading, setSignReading] = useState<ForecastDailyReading | null>(null);
   const [signLoading, setSignLoading] = useState(!!selectedSign);
-  const [personal, setPersonal] = useState<TodayAssistantHomeResult | null>(() => hasChart && premium ? getCachedTodayAssistantHome(profile, chartId, undefined, chartData) : null);
+  const [personal, setPersonal] = useState<TodayAssistantHomeResult | null>(
+    () => hasChart && premium ? getCachedTodayAssistantHome(profile, chartId, undefined, chartData) : null,
+  );
   const [personalLoading, setPersonalLoading] = useState(hasChart && premium && !personal);
-
-  // Policies are the source of truth for the compact home surfaces.
-  const dayCardPolicy = getContentPolicy('day_card');
-  const signPolicy = getContentPolicy('sign_daily_horoscope');
-  const microPolicy = getContentPolicy('push_daily');
-  const timingPolicy = getContentPolicy('action_timing');
-  const personalPolicy = getContentPolicy('personal_daily');
 
   useEffect(() => {
     if (!selectedSign) { setSignLoading(false); return; }
@@ -83,34 +284,170 @@ export const Dashboard = memo<DashboardProps>(({ profile, chartData, chartId, on
   }, [chartData, chartId, hasChart, premium, profile]);
 
   const readyPersonal = personal?.status === 'ready' ? personal : null;
-  const conversation = readyPersonal?.quickActions.find((item) => item.actionKey === 'serious_talk');
   const personalSummary = readyPersonal?.pulse.currentPoint.summary || FALLBACKS.dayCard;
-  const risk = readyPersonal?.pulse.currentPoint.avoid[0] || FALLBACKS.micro;
-  const openHoroscope = (layer: HoroscopeLayer = 'sign', options?: HoroscopeOpenOptions) => onOpenHoroscopeLayer(layer, options);
+
+  const openHoroscope = (layer: HoroscopeLayer = 'sign', options?: HoroscopeOpenOptions) =>
+    onOpenHoroscopeLayer(layer, options);
   const openPersonalDaily = (section: PersonalDailySection = 'overview') => onOpenPersonalDaily(section);
 
-  return <div ref={scrollRef} className="h-full overflow-y-auto bg-[#faf9f7] px-4 pb-[var(--lumia-bottom-tab-clearance)] pt-5 font-sans">
-    <div className="mx-auto max-w-[25rem] space-y-3">
-      <header className="pb-2"><p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8c6bb1]">{formatLumiaDate(today, language)}</p><h1 className="mt-2 text-[34px] font-semibold leading-none text-[#202024]">Что сегодня важно</h1><p className="mt-3 text-[15px] leading-relaxed text-[#68646e]">{FALLBACKS.background}</p></header>
+  const heroSubtitle = signLoading
+    ? (language === 'ru' ? 'Готовим ваш прогноз на сегодня…' : 'Preparing your forecast…')
+    : (signReading?.summary || FALLBACKS.background);
 
-      <Card title="Мягкий совет дня" text={FALLBACKS.dayCard} label={`${dayCardPolicy.words.min}–${dayCardPolicy.words.max} слов`} />
-      <div className="grid grid-cols-2 gap-3"><Card title="Луна сегодня · ретроград" text={`${FALLBACKS.moon} ${FALLBACKS.retrograde}`} /><Card title="Не делай это на эмоциях" text={risk} label={`${microPolicy.words.min}–${microPolicy.words.max} слов`} /></div>
+  const pdText = !hasChart
+    ? (language === 'ru' ? 'Создайте натальную карту для личного разбора' : 'Create a natal chart for your personal day')
+    : !premium
+    ? (language === 'ru' ? 'Личный день доступен в Premium' : 'Personal day is available in Premium')
+    : personalLoading
+    ? (language === 'ru' ? 'Готовится…' : 'Preparing…')
+    : (language === 'ru' ? 'Ваш персональный разбор дня уже готов' : 'Your personal day breakdown is ready');
 
-      {selectedSign ? <Card title={`Гороскоп: ${getZodiacSign(language, selectedSign)}`} text={signReading?.reading || signReading?.summary || FALLBACKS.background} loading={signLoading} label={`${signPolicy.words.min}–${signPolicy.words.max} слов`} onClick={() => openHoroscope('sign', { mode: 'single', source: 'home_card_today' })} /> : <Card title="Выбрать знак" text="Открой общий гороскоп без натальной карты и выбери любой знак." onClick={() => openHoroscope('sign')} />}
+  const pdAction = !hasChart ? onCreateNatalChart : () => openPersonalDaily('overview');
 
-      {!hasChart ? <Card title="Создать натальную карту" text="Создай натальную карту, чтобы Lumia говорила точнее и открыла личный день." onClick={onCreateNatalChart} /> : null}
+  const userInitial = profile.name ? profile.name.charAt(0).toUpperCase() : '?';
 
-      {hasChart && premium ? <>
-        <Card title="Сегодня для тебя" text={personalSummary} loading={personalLoading} label={`${personalPolicy.words.min}–${personalPolicy.words.max} слов`} onClick={() => openPersonalDaily('overview')} />
-        <div className="grid grid-cols-2 gap-3">
-          <Card title="Что может задеть" text={risk} onClick={() => openPersonalDaily('overview')} />
-          <Card title="Лучшее время для разговора" text={conversation ? `${conversation.bestWindow.label}. ${conversation.summary}` : 'Выбери спокойное окно, когда не нужно отвечать на бегу.'} loading={personalLoading} label={`${timingPolicy.words.min}–${timingPolicy.words.max} слов`} onClick={() => openPersonalDaily('overview')} />
-          <Card title="Деньги и решения" text="Проверь условия до покупки или обещания. Не соглашайся только из-за срочности." onClick={() => openPersonalDaily('money')} />
-          <Card title="Что с тобой сегодня" text={readyPersonal?.pulse.currentPoint.title || 'Короткий личный фон дня по твоей карте.'} loading={personalLoading} onClick={() => openPersonalDaily('overview')} />
+  return (
+    <div
+      ref={scrollRef}
+      className="h-full overflow-y-auto bg-white px-4 pb-[var(--lumia-bottom-tab-clearance)] font-sans"
+      style={{ paddingTop: 'calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px)) + 0.75rem)' }}
+    >
+      <div className="mx-auto max-w-[25rem] pb-3">
+
+        {/* ── 1. Header ── */}
+        <header className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            {/* Avatar — initials circle matching hero bg */}
+            <div className="flex h-[46px] w-[46px] flex-shrink-0 items-center justify-center rounded-full bg-[#CBC6F5] text-[18px] font-bold text-[#111111]">
+              {userInitial}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-[18px] font-bold leading-tight text-[#111111]">
+                {language === 'ru' ? `Привет, ${profile.name}` : `Hello, ${profile.name}`}
+              </p>
+              <p className="mt-[3px] text-[12px] leading-none text-[#8A8A8A]">
+                {`${language === 'ru' ? 'Сегодня' : 'Today'} ${shortDate(today, language)}`}
+              </p>
+            </div>
+          </div>
+          {/* Search button */}
+          <button
+            type="button"
+            onClick={onOpenSettings}
+            aria-label={language === 'ru' ? 'Настройки' : 'Settings'}
+            className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border border-black/[0.07] bg-[#F7F7F7]"
+          >
+            <Search size={18} strokeWidth={2.5} className="text-[#111111]" />
+          </button>
+        </header>
+
+        {/* ── 2. Hero Card (flex row: text 58% | rings 42%) ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.32, delay: 0.06, ease: [0.22, 1, 0.36, 1] }}
+          className="mt-4 flex overflow-hidden rounded-[28px] bg-[#CBC6F5]"
+          style={{ minHeight: '218px' }}
+        >
+          {/* Text */}
+          <div className="flex flex-1 flex-col justify-center p-6">
+            <h2 className="text-[30px] font-bold leading-[1.1] text-[#111111]">
+              {language === 'ru' ? 'Сегодня\nдля вас' : 'Today\nfor you'}
+            </h2>
+            <p className="mt-3 line-clamp-3 text-[13px] leading-relaxed text-[#3D3D3D]">
+              {heroSubtitle}
+            </p>
+          </div>
+          {/* Rings — fill right column */}
+          <div
+            className="flex flex-shrink-0 items-center justify-center"
+            style={{ width: '42%' }}
+            aria-hidden="true"
+          >
+            <HeroRings />
+          </div>
+        </motion.div>
+
+        {/* ── 3. Date Selector ── */}
+        <div className="mt-5">
+          <DateSelector todayKey={today} language={language} />
         </div>
-      </> : hasChart ? <div className="grid grid-cols-2 gap-3"><Card title="Сегодня для тебя" text="Личный фокус дня откроется в Premium." locked onClick={() => openPersonalDaily('overview')} /><Card title="Деньги и решения" text="Где не действовать на эмоциях — по твоей карте." locked onClick={() => openPersonalDaily('money')} /></div> : null}
 
+        {/* ── 4. "Ваш план" ── */}
+        <h2 className="mt-5 text-[22px] font-bold text-[#111111]">
+          {language === 'ru' ? 'Ваш план' : 'Your plan'}
+        </h2>
+
+        {/* ── 5. Plan Cards 2×2 ── */}
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <PlanCard
+            tag={language === 'ru' ? 'Натальная карта' : 'Natal chart'}
+            title={language === 'ru' ? 'Ваша карта' : 'Your chart'}
+            description={language === 'ru' ? 'Разбор личности и потенциала' : 'Personality & potential'}
+            bg="#F8D448"
+            decoration={<NatalDecor />}
+            onClick={onCreateNatalChart}
+            delay={0.10}
+          />
+          <PlanCard
+            tag={language === 'ru' ? 'Гороскоп' : 'Horoscope'}
+            title={language === 'ru' ? 'Прогноз дня' : 'Daily forecast'}
+            description={language === 'ru' ? 'Что важно знать сегодня' : 'What matters today'}
+            bg="#A8D4F8"
+            decoration={<HoroscopeDecor />}
+            onClick={() => openHoroscope('sign', { mode: 'single', source: 'home_card_today' })}
+            delay={0.14}
+          />
+          <PlanCard
+            tag="Ask Lumia"
+            title={language === 'ru' ? 'Спросите AI' : 'Ask AI'}
+            description={language === 'ru' ? 'Получите ответ на любой вопрос' : 'Get answers to any question'}
+            bg="#A8E6CE"
+            decoration={<OracleDecor />}
+            onClick={() => openPersonalDaily('overview')}
+            delay={0.18}
+          />
+          <PlanCard
+            tag={language === 'ru' ? 'Совместимость' : 'Compatibility'}
+            title={language === 'ru' ? 'Совместимость' : 'Compatibility'}
+            description={language === 'ru' ? 'Понимание ваших отношений' : 'Understand your relationship'}
+            bg="#F8B4C8"
+            decoration={<SynastryDecor />}
+            delay={0.22}
+          />
+        </div>
+
+        {/* ── 6. Personal Daily Banner — no shadow, thin border only ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.28, delay: 0.28, ease: [0.22, 1, 0.36, 1] }}
+          className="mt-3"
+        >
+          <motion.button
+            type="button"
+            onClick={pdAction}
+            whileTap={{ scale: 0.97 }}
+            className="flex w-full items-center gap-4 rounded-[20px] border border-black/[0.07] bg-white px-5 py-4 text-left"
+          >
+            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-[14px] bg-[#7B5CF6]">
+              <FileText size={22} className="text-white" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[15px] font-bold text-[#111111]">Personal Daily</p>
+              <p className="mt-0.5 line-clamp-2 text-[12px] leading-snug text-[#8A8A8A]">{pdText}</p>
+            </div>
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-[#7B5CF6]">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="M3 8h10M9.5 4.5L13 8l-3.5 3.5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+          </motion.button>
+        </motion.div>
+
+      </div>
     </div>
-  </div>;
+  );
 });
+
 Dashboard.displayName = 'Dashboard';
