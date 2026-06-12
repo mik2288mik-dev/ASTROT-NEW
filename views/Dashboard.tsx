@@ -1,5 +1,5 @@
 import React, { memo, useEffect, useMemo, useState } from 'react';
-import { Search, FileText, Lock } from 'lucide-react';
+import { Search, FileText, Lock, Share2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type {
   ForecastDailyReading,
@@ -15,6 +15,9 @@ import { getMoscowTodayKey } from '../lib/date-utils';
 import { lumiaSelectionHaptic } from '../lib/haptics';
 import { DaySheet } from '../components/lumia-ui/DaySheet';
 import { MoonLuckyRow } from '../components/Dashboard/home/MoonLuckyRow';
+import { ReactionRow } from '../components/Dashboard/home/ReactionRow';
+import { shareText, buildDailyShareText } from '../lib/share';
+import { getZodiacSign } from '../constants';
 import {
   getCachedDailySignHoroscope,
   ensureDailySignHoroscope,
@@ -361,6 +364,11 @@ export const Dashboard = memo<DashboardProps>(({
     onRequestPremium?.('calendar');
   };
 
+  const handleShare = () => {
+    const signLabel = selectedSign ? getZodiacSign(language, selectedSign) : '';
+    shareText(buildDailyShareText({ signLabel, summary: signReading?.summary || FALLBACKS.background, language }));
+  };
+
   const pdText = !hasChart
     ? (language === 'ru' ? 'Создайте натальную карту для личного разбора' : 'Create a natal chart for your personal day')
     : !premium
@@ -439,6 +447,21 @@ export const Dashboard = memo<DashboardProps>(({
             <HeroDonuts />
           </div>
         </motion.div>
+
+        {/* ── Hero actions: react (#5) + share (#13) ── */}
+        {selectedSign ? (
+          <div className="mt-3 flex items-center gap-2">
+            <ReactionRow userId={profile.id} sign={selectedSign} dateKey={today} language={language} />
+            <button
+              type="button"
+              onClick={handleShare}
+              aria-label={language === 'ru' ? 'Поделиться' : 'Share'}
+              className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border border-[#EAE3F1] bg-white text-[#1E1230]"
+            >
+              <Share2 size={17} strokeWidth={2.1} />
+            </button>
+          </div>
+        ) : null}
 
         {/* ── 3. Date Selector ── */}
         <div className="mt-4">
