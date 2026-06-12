@@ -28,47 +28,39 @@ function TodayCalendarIcon(props: IconProps) {
 }
 
 
-function HoroscopeStarIcon(props: IconProps) {
+function HoroscopeCompassIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M14 3.8l2.7 7.1 7.5.4-5.9 4.8 1.9 7.3-6.2-4.1-6.2 4.1 1.9-7.3-5.9-4.8 7.5-.4L14 3.8Z" strokeWidth="2" />
-      <circle cx="14" cy="14" r="2.2" fill="currentColor" stroke="none" />
+      <circle cx="14" cy="14" r="10.4" strokeWidth="2.1" />
+      <path d="M18.7 9.3l-3 6.4-6.4 3 3-6.4 6.4-3Z" strokeWidth="2" />
+      <circle cx="14" cy="14" r="1.15" fill="currentColor" stroke="none" />
     </svg>
   );
 }
 
-function NatalCircleIcon(props: IconProps) {
+function NatalPieIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <circle cx="14" cy="14" r="10.2" strokeWidth="2.15" />
-      <circle cx="14" cy="14" r="4.1" strokeWidth="1.95" />
-      <path d="M14 3.8v5.7M14 18.5v5.7M3.8 14h5.7M18.5 14h5.7" strokeWidth="1.95" />
-      <path d="M7 7l4.1 4.1M17 17l4 4M21 7l-4.1 4.1M11 17l-4 4" strokeWidth="1.55" opacity="0.72" />
-      <circle cx="20.2" cy="11.1" r="1.25" fill="currentColor" stroke="none" />
+      <circle cx="14" cy="14" r="10.3" strokeWidth="2.1" />
+      <path d="M14 14V3.7" strokeWidth="2.1" />
+      <path d="M14 14l8.95 5.05" strokeWidth="2.1" />
     </svg>
   );
 }
 
-function UnionProfilesIcon(props: IconProps) {
+function UnionHeartIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <circle cx="10.6" cy="10.3" r="3.45" strokeWidth="2.05" />
-      <circle cx="17.4" cy="10.3" r="3.45" strokeWidth="2.05" opacity="0.72" />
-      <path d="M4.6 21.1c.78-3.55 3.05-5.45 6-5.45 1.32 0 2.42.38 3.4 1.12.98-.74 2.08-1.12 3.4-1.12 2.95 0 5.22 1.9 6 5.45" strokeWidth="2.15" />
-      <path d="M11.9 17.48c.64.6 1.34.9 2.1.9s1.46-.3 2.1-.9" strokeWidth="1.6" opacity="0.68" />
-      <path d="M14 15.95v2.3" strokeWidth="1.55" opacity="0.58" />
+      <path d="M14 23.4C6.9 18.9 3.4 14.8 3.4 10.6 3.4 7.5 5.9 5 9 5c1.97 0 3.78 1.04 5 2.86C15.22 6.04 17.03 5 19 5c3.1 0 5.6 2.5 5.6 5.6 0 4.2-3.5 8.3-10.6 12.8Z" strokeWidth="2.05" />
     </svg>
   );
 }
 
-function SettingsGearIcon(props: IconProps) {
+function ProfileUserIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path
-        d="M11.7 4.2c.58-1.5 3.02-1.5 3.6 0l.35.9c.18.46.55.82 1.02.99.47.18.98.15 1.43-.06l.86-.41c1.47-.7 3.2 1.03 2.5 2.5l-.41.86c-.21.45-.24.96-.06 1.43.17.47.53.84.99 1.02l.9.35c1.5.58 1.5 3.02 0 3.6l-.9.35c-.46.18-.82.55-.99 1.02-.18.47-.15.98.06 1.43l.41.86c.7 1.47-1.03 3.2-2.5 2.5l-.86-.41c-.45-.21-.96-.24-1.43-.06-.47.17-.84.53-1.02.99l-.35.9c-.58 1.5-3.02 1.5-3.6 0l-.35-.9c-.18-.46-.55-.82-1.02-.99-.47-.18-.98-.15-1.43.06l-.86.41c-1.47.7-3.2-1.03-2.5-2.5l.41-.86c.21-.45.24-.96.06-1.43-.17-.47-.53-.84-.99-1.02l-.9-.35c-1.5-.58-1.5-3.02 0-3.6l.9-.35c.46-.18.82-.55.99-1.02.18-.47.15-.98-.06-1.43l-.41-.86c-.7-1.47 1.03-3.2 2.5-2.5l.86.41c.45.21.96.24 1.43.06.47-.17.84-.53 1.02-.99l.35-.9Z"
-        strokeWidth="1.85"
-      />
-      <circle cx="13.5" cy="13.8" r="3.75" strokeWidth="2.05" />
+      <circle cx="14" cy="10" r="4.4" strokeWidth="2.05" />
+      <path d="M5.5 22.6c.9-4.3 4.1-6.6 8.5-6.6s7.6 2.3 8.5 6.6" strokeWidth="2.1" />
     </svg>
   );
 }
@@ -118,28 +110,28 @@ export function LumiaBottomTabBar({
       id: 'horoscope',
       label: labels.horoscope,
       active: view === 'horoscope',
-      icon: <HoroscopeStarIcon />,
+      icon: <HoroscopeCompassIcon />,
       onClick: onOpenHoroscope,
     },
     {
       id: 'chart',
       label: labels.chart,
       active: view === 'chart',
-      icon: <NatalCircleIcon />,
+      icon: <NatalPieIcon />,
       onClick: onOpenNatal,
     },
     {
       id: 'union',
       label: labels.union,
       active: view === 'synastry',
-      icon: <UnionProfilesIcon />,
+      icon: <UnionHeartIcon />,
       onClick: onOpenSynastry,
     },
     {
       id: 'settings',
       label: labels.settings,
       active: view === 'settings',
-      icon: <SettingsGearIcon />,
+      icon: <ProfileUserIcon />,
       onClick: onOpenAvatar,
     },
   ];

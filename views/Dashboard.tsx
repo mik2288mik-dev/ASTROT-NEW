@@ -142,7 +142,7 @@ function HeroAvatars() {
 // Cream stacked bowls — Natal card (amber bg)
 function NatalDecor() {
   return (
-    <svg width="78" height="112" viewBox="0 0 78 112" fill="none" aria-hidden="true">
+    <svg width="56" height="80" viewBox="0 0 78 112" fill="none" aria-hidden="true">
       <ellipse cx="42" cy="102" rx="34" ry="9" fill="#E3B53B"/>
       <path d="M8 86 Q8 62 42 62 Q76 62 76 86 Q76 101 42 101 Q8 101 8 86 Z" fill="#F1EBDB"/>
       <ellipse cx="42" cy="63" rx="24" ry="8" fill="#E0D4B6"/>
@@ -156,7 +156,7 @@ function NatalDecor() {
 // Periwinkle ribbed cylinder — Horoscope card (blue bg)
 function HoroscopeDecor() {
   return (
-    <svg width="56" height="118" viewBox="0 0 56 118" fill="none" aria-hidden="true">
+    <svg width="40" height="84" viewBox="0 0 56 118" fill="none" aria-hidden="true">
       <ellipse cx="28" cy="14" rx="24" ry="9" fill="#D6E0FA"/>
       <rect x="4" y="14" width="48" height="92" rx="2" fill="#B4C4F2"/>
       {[24, 34, 44, 54, 64, 74, 84, 94].map((y) => (
@@ -170,7 +170,7 @@ function HoroscopeDecor() {
 // Sage arch shapes — Ask Lumia card (sage bg)
 function OracleDecor() {
   return (
-    <svg width="66" height="112" viewBox="0 0 66 112" fill="none" aria-hidden="true">
+    <svg width="50" height="85" viewBox="0 0 66 112" fill="none" aria-hidden="true">
       <path
         d="M8 106 L8 48 Q8 14 32 14 Q56 14 56 46 L56 64 Q56 80 43 80 Q30 80 30 64 L30 48 Q30 38 39 36"
         fill="none" stroke="#87BC96" strokeWidth="16" strokeLinecap="round" strokeLinejoin="round"
@@ -186,7 +186,7 @@ function OracleDecor() {
 // Pink twisted torus — Compatibility card (pink bg)
 function SynastryDecor() {
   return (
-    <svg width="76" height="104" viewBox="0 0 76 104" fill="none" aria-hidden="true">
+    <svg width="58" height="79" viewBox="0 0 76 104" fill="none" aria-hidden="true">
       <path
         d="M14 62 Q2 44 17 26 Q32 9 56 25 Q74 41 57 61 Q39 80 18 62 Z"
         fill="none" stroke="#EC8FB6" strokeWidth="17" strokeLinecap="round" strokeLinejoin="round"
@@ -220,29 +220,30 @@ function PlanCard({ tag, title, description, bg, decoration, onClick, delay = 0,
       transition={{ duration: 0.28, delay, ease: [0.22, 1, 0.36, 1] }}
       whileTap={onClick ? { scale: 0.96 } : undefined}
       onClick={onClick}
-      className={`relative overflow-hidden rounded-[24px] ${onClick ? 'cursor-pointer' : ''}`}
-      style={{ backgroundColor: bg, minHeight: '208px' }}
+      className={`relative flex min-h-[196px] flex-col overflow-hidden rounded-[24px] p-[18px] ${onClick ? 'cursor-pointer' : ''}`}
+      style={{ backgroundColor: bg }}
     >
-      {/* Decoration hugs the bottom-right corner, under the text flow */}
-      <div className="absolute bottom-2 right-2" aria-hidden="true">
+      {/* Flat decoration — anchored to bottom-right corner, behind text */}
+      <div className="pointer-events-none absolute bottom-3 right-3 z-0" aria-hidden="true">
         {decoration}
       </div>
 
-      <div className="relative flex h-full min-h-[208px] flex-col p-[18px]">
+      {/* Content flows above the decoration; text widths kept clear of it */}
+      <div className="relative z-10 flex flex-1 flex-col">
         <span className="inline-flex self-start rounded-full bg-white/60 px-3 py-[6px] text-[11px] font-semibold leading-none text-[#1E1230]">
           {tag}
         </span>
         <h3
           lang={lang}
-          className="mt-3 break-words text-[20px] font-bold leading-tight text-[#1E1230]"
+          className="mt-3 break-words pr-1 font-lumiaHomeDisplay text-[20px] font-bold leading-[1.12] text-[#1E1230]"
           style={{ hyphens: 'auto' }}
         >
           {title}
         </h3>
-        <p className="mt-[6px] line-clamp-2 text-[12px] leading-snug text-[#50465E]">
+        <p className="mt-1.5 line-clamp-2 pr-[42%] text-[12px] leading-snug text-[#50465E]">
           {description}
         </p>
-        {/* Arrow circle — bottom-left */}
+        {/* Arrow — bottom-left, clears the bottom-right decoration */}
         <div className="mt-auto flex h-10 w-10 items-center justify-center rounded-full bg-white">
           <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
             <path d="M2.5 7.5h10M9 4l3.5 3.5L9 11" stroke="#1E1230" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
@@ -277,6 +278,7 @@ export const Dashboard = memo<DashboardProps>(({
     () => hasChart && premium ? getCachedTodayAssistantHome(profile, chartId, undefined, chartData) : null,
   );
   const [personalLoading, setPersonalLoading] = useState(hasChart && premium && !personal);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!selectedSign) { setSignLoading(false); return; }
@@ -302,6 +304,17 @@ export const Dashboard = memo<DashboardProps>(({
       .finally(() => { if (alive) setPersonalLoading(false); });
     return () => { alive = false; };
   }, [chartData, chartId, hasChart, premium, profile]);
+
+  // Telegram avatar (display only — never gates anything)
+  useEffect(() => {
+    try {
+      const tgUser = (window as unknown as { Telegram?: { WebApp?: { initDataUnsafe?: { user?: { photo_url?: unknown } } } } })
+        ?.Telegram?.WebApp?.initDataUnsafe?.user;
+      setAvatarUrl(typeof tgUser?.photo_url === 'string' ? tgUser.photo_url : null);
+    } catch {
+      setAvatarUrl(null);
+    }
+  }, []);
 
   const readyPersonal = personal?.status === 'ready' ? personal : null;
   const personalSummary = readyPersonal?.pulse.currentPoint.summary || FALLBACKS.dayCard;
@@ -329,19 +342,28 @@ export const Dashboard = memo<DashboardProps>(({
   return (
     <div
       ref={scrollRef}
-      className="h-full overflow-y-auto bg-[#F8F5FA] px-4 pb-[var(--lumia-bottom-tab-clearance)] font-sans"
-      style={{ paddingTop: 'calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px)) + 0.75rem)' }}
+      className="h-full overflow-y-auto bg-[#F8F5FA] px-4 pb-[var(--lumia-bottom-tab-clearance)] font-lumiaHome"
+      style={{ paddingTop: 'calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px), 24px) + 0.5rem)' }}
     >
-      <div className="mx-auto max-w-[25rem] pb-3">
+      <div className="mx-auto w-full max-w-md pb-3">
 
         {/* ── 1. Header ── */}
         <header className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-[#DDD0F0] text-[18px] font-bold text-[#1E1230]">
-              {userInitial}
-            </div>
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt=""
+                draggable={false}
+                className="h-12 w-12 flex-shrink-0 rounded-full object-cover"
+              />
+            ) : (
+              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-[#DDD0F0] text-[18px] font-bold text-[#1E1230] font-lumiaHomeDisplay">
+                {userInitial}
+              </div>
+            )}
             <div className="min-w-0">
-              <p className="truncate text-[20px] font-bold leading-tight text-[#1E1230]">
+              <p className="truncate text-[20px] font-bold leading-tight text-[#1E1230] font-lumiaHomeDisplay">
                 {language === 'ru' ? `Привет, ${profile.name}` : `Hello, ${profile.name}`}
               </p>
               <p className="mt-1 text-[13px] leading-none text-[#9A93A3]">
@@ -369,7 +391,7 @@ export const Dashboard = memo<DashboardProps>(({
           style={{ minHeight: '220px' }}
         >
           <div className="flex flex-1 flex-col justify-center p-5">
-            <h2 className="text-[28px] font-bold leading-[1.12] text-[#1E1230]">
+            <h2 className="text-[28px] font-bold leading-[1.12] text-[#1E1230] font-lumiaHomeDisplay">
               {language === 'ru' ? <>Сегодня<br/>для вас</> : <>Today<br/>for you</>}
             </h2>
             <p className="mt-3 line-clamp-3 text-[14px] leading-relaxed text-[#50465E]">
@@ -390,7 +412,7 @@ export const Dashboard = memo<DashboardProps>(({
         </div>
 
         {/* ── 4. "Ваш план" ── */}
-        <h2 className="mt-6 text-[24px] font-bold text-[#1E1230]">
+        <h2 className="mt-6 text-[24px] font-bold text-[#1E1230] font-lumiaHomeDisplay">
           {language === 'ru' ? 'Ваш план' : 'Your plan'}
         </h2>
 
