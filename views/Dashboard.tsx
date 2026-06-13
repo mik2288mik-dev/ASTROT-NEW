@@ -14,7 +14,7 @@ import { hasActivePremium, hasNatalChart } from '../lib/accessMatrix';
 import { getMoscowTodayKey } from '../lib/date-utils';
 import { lumiaSelectionHaptic } from '../lib/haptics';
 import { DaySheet } from '../components/lumia-ui/DaySheet';
-import { StoriesViewer, buildReadingSlides } from '../components/lumia-ui/StoriesViewer';
+import { HoroscopeStories } from '../components/lumia-ui/HoroscopeStories';
 import { PersonalDailyStories } from '../components/lumia-ui/PersonalDailyStories';
 import { getZodiacSign } from '../constants';
 import {
@@ -202,7 +202,7 @@ export const Dashboard = memo<DashboardProps>(({
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   // Which calendar day is open in the bottom sheet (null = closed).
   const [sheetDate, setSheetDate] = useState<string | null>(null);
-  const [storyOpen, setStoryOpen] = useState(false);
+  const [horoscopeOpen, setHoroscopeOpen] = useState(false);
   const [personalStoryOpen, setPersonalStoryOpen] = useState(false);
 
   useEffect(() => {
@@ -251,11 +251,6 @@ export const Dashboard = memo<DashboardProps>(({
   const heroSubtitle = signLoading
     ? (language === 'ru' ? 'Готовим ваш прогноз…' : 'Preparing your forecast…')
     : (signReading?.summary || FALLBACKS.background);
-
-  const storySlides = useMemo(
-    () => buildReadingSlides(signReading, language === 'ru' ? 'Гороскоп на сегодня' : 'Today’s horoscope', language),
-    [signReading, language],
-  );
 
   // Calendar day tap: today is always free; other days require Premium.
   const handlePickDay = (key: string) => {
@@ -321,10 +316,7 @@ export const Dashboard = memo<DashboardProps>(({
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.32, delay: 0.06, ease: [0.22, 1, 0.36, 1] }}
-          onClick={() => {
-            if (storySlides.length) { lumiaSelectionHaptic(); setStoryOpen(true); }
-            else openHoroscope('sign', { mode: 'single', source: 'home_hero' });
-          }}
+          onClick={() => { lumiaSelectionHaptic(); setHoroscopeOpen(true); }}
           whileTap={{ scale: 0.985 }}
           className="mt-5 cursor-pointer overflow-hidden rounded-[20px] bg-[#DDD0F0] p-5"
         >
@@ -383,10 +375,7 @@ export const Dashboard = memo<DashboardProps>(({
             )}
             bg="#A8C8F2"
             glyph={<Star size={92} strokeWidth={1.4} />}
-            onClick={() => {
-              if (storySlides.length) { lumiaSelectionHaptic(); setStoryOpen(true); }
-              else openHoroscope('sign', { mode: 'single', source: 'home_card' });
-            }}
+            onClick={() => { lumiaSelectionHaptic(); setHoroscopeOpen(true); }}
             delay={0.14}
             lang={language}
           />
@@ -453,7 +442,7 @@ export const Dashboard = memo<DashboardProps>(({
         onRequestPremium={() => onRequestPremium?.('calendar')}
       />
 
-      <StoriesViewer open={storyOpen} slides={storySlides} onClose={() => setStoryOpen(false)} accent="#7559CF" />
+      <HoroscopeStories open={horoscopeOpen} profile={profile} chartData={chartData} language={language} onClose={() => setHoroscopeOpen(false)} />
       <PersonalDailyStories
         open={personalStoryOpen}
         profile={profile}

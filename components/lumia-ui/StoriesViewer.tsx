@@ -11,6 +11,8 @@ export type StorySlide = {
   body?: string;
   /** While true the slide shows a skeleton and autoplay pauses on it. */
   loading?: boolean;
+  /** Custom interactive content (e.g. a sign picker). Pauses autoplay + disables tap-nav. */
+  content?: React.ReactNode;
 };
 
 const SLIDE_MS = 6500;
@@ -67,8 +69,9 @@ export function StoriesViewer({
     if (open) onIndexChange?.(index);
   }, [index, open, onIndexChange]);
 
-  // Mirror the active slide's loading flag so the rAF loop can read it.
-  loadingRef.current = !!slides[Math.min(index, slides.length - 1)]?.loading;
+  // Pause autoplay while the active slide is loading or interactive (picker).
+  const activeSlide = slides[Math.min(index, slides.length - 1)];
+  loadingRef.current = !!activeSlide?.loading || !!activeSlide?.content;
 
   // Auto-advance the active slide (pausable via hold or while loading).
   useEffect(() => {
@@ -136,18 +139,19 @@ export function StoriesViewer({
         >
           <div className="absolute inset-0" style={{ background: `linear-gradient(160deg, ${accent} 0%, #14111C 72%)` }} />
 
-          {/* Tap + hold surface */}
+          {/* Tap + hold surface (disabled on an interactive slide) */}
           <div
             className="absolute inset-0 z-10"
+            style={{ pointerEvents: slide.content ? 'none' : 'auto' }}
             onPointerDown={onPointerDown}
             onPointerUp={onPointerUp}
             onPointerLeave={release}
             onPointerCancel={release}
           />
 
-          {/* Content (taps pass through to the surface) */}
+          {/* Content */}
           <div
-            className="pointer-events-none absolute inset-0 z-20 flex flex-col justify-center px-6"
+            className={`absolute inset-0 z-20 flex flex-col justify-center px-6 ${slide.content ? '' : 'pointer-events-none'}`}
             style={{
               paddingTop: 'calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px), 24px) + 92px)',
               paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 56px)',
@@ -161,21 +165,27 @@ export function StoriesViewer({
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
               >
-                {slide.eyebrow ? (
-                  <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-white/70">{slide.eyebrow}</p>
-                ) : null}
-                {slide.title ? (
-                  <h2 className="mt-2 break-words font-lumiaHome text-[30px] font-bold leading-[1.1] text-white">{slide.title}</h2>
-                ) : null}
-                {slide.loading && !slide.body ? (
-                  <div className="mt-3 space-y-2" aria-busy="true">
-                    <div className="h-3 w-full animate-pulse rounded-full bg-white/25" />
-                    <div className="h-3 w-11/12 animate-pulse rounded-full bg-white/20" />
-                    <div className="h-3 w-3/4 animate-pulse rounded-full bg-white/15" />
-                  </div>
-                ) : slide.body ? (
-                  <p className="mt-3 whitespace-pre-line break-words text-[16px] leading-relaxed text-white/85">{slide.body}</p>
-                ) : null}
+                {slide.content ? (
+                  slide.content
+                ) : (
+                  <>
+                    {slide.eyebrow ? (
+                      <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-white/70">{slide.eyebrow}</p>
+                    ) : null}
+                    {slide.title ? (
+                      <h2 className="mt-2 break-words font-lumiaHome text-[30px] font-bold leading-[1.1] text-white">{slide.title}</h2>
+                    ) : null}
+                    {slide.loading && !slide.body ? (
+                      <div className="mt-3 space-y-2" aria-busy="true">
+                        <div className="h-3 w-full animate-pulse rounded-full bg-white/25" />
+                        <div className="h-3 w-11/12 animate-pulse rounded-full bg-white/20" />
+                        <div className="h-3 w-3/4 animate-pulse rounded-full bg-white/15" />
+                      </div>
+                    ) : slide.body ? (
+                      <p className="mt-3 whitespace-pre-line break-words text-[16px] leading-relaxed text-white/85">{slide.body}</p>
+                    ) : null}
+                  </>
+                )}
               </motion.div>
             </AnimatePresence>
           </div>
