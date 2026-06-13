@@ -7,6 +7,8 @@ export type StorySlide = {
   eyebrow?: string;
   title?: string;
   body?: string;
+  /** While true the slide shows a skeleton and autoplay pauses on it. */
+  loading?: boolean;
 };
 
 const SLIDE_MS = 6500;
@@ -15,28 +17,39 @@ const TAP_MS = 220;
 /**
  * Fullscreen "stories" viewer: top segmented progress bars, tap right/left to go
  * forward/back, press-and-hold to pause, auto-advance, close on last + X.
+ * Slides whose `loading` is true pause autoplay until their content arrives.
  */
 export function StoriesViewer({
   slides,
   open,
   onClose,
+  onIndexChange,
   accent = '#7559CF',
 }: {
   slides: StorySlide[];
   open: boolean;
   onClose: () => void;
+  onIndexChange?: (index: number) => void;
   accent?: string;
 }) {
   const [index, setIndex] = useState(0);
   const [progress, setProgress] = useState(0);
   const pausedRef = useRef(false);
   const pressRef = useRef(0);
+  const loadingRef = useRef(false);
 
   useEffect(() => {
     if (open) { setIndex(0); setProgress(0); }
   }, [open]);
 
-  // Auto-advance the active slide (pausable via pointer hold).
+  useEffect(() => {
+    if (open) onIndexChange?.(index);
+  }, [index, open, onIndexChange]);
+
+  // Mirror the active slide's loading flag so the rAF loop can read it.
+  loadingRef.current = !!slides[Math.min(index, slides.length - 1)]?.loading;
+
+  // Auto-advance the active slide (pausable via hold or while loading).
   useEffect(() => {
     if (!open || slides.length === 0) return;
     let raf = 0;
@@ -47,7 +60,7 @@ export function StoriesViewer({
       if (!last) last = t;
       const dt = t - last;
       last = t;
-      if (!pausedRef.current) {
+      if (!pausedRef.current && !loadingRef.current) {
         elapsed += dt;
         const p = Math.min(1, elapsed / SLIDE_MS);
         setProgress(p);
@@ -132,7 +145,13 @@ export function StoriesViewer({
                 {slide.title ? (
                   <h2 className="mt-2 break-words font-lumiaHomeDisplay text-[30px] font-bold leading-[1.1] text-white">{slide.title}</h2>
                 ) : null}
-                {slide.body ? (
+                {slide.loading && !slide.body ? (
+                  <div className="mt-3 space-y-2" aria-busy="true">
+                    <div className="h-3 w-full animate-pulse rounded-full bg-white/25" />
+                    <div className="h-3 w-11/12 animate-pulse rounded-full bg-white/20" />
+                    <div className="h-3 w-3/4 animate-pulse rounded-full bg-white/15" />
+                  </div>
+                ) : slide.body ? (
                   <p className="mt-3 whitespace-pre-line break-words text-[16px] leading-relaxed text-white/85">{slide.body}</p>
                 ) : null}
               </motion.div>

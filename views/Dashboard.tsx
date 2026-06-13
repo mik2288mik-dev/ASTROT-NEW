@@ -15,6 +15,7 @@ import { getMoscowTodayKey } from '../lib/date-utils';
 import { lumiaSelectionHaptic } from '../lib/haptics';
 import { DaySheet } from '../components/lumia-ui/DaySheet';
 import { StoriesViewer, type StorySlide } from '../components/lumia-ui/StoriesViewer';
+import { PersonalDailyStories } from '../components/lumia-ui/PersonalDailyStories';
 import {
   getCachedDailySignHoroscope,
   ensureDailySignHoroscope,
@@ -324,6 +325,7 @@ export const Dashboard = memo<DashboardProps>(({
   // Which calendar day is open in the bottom sheet (null = closed).
   const [sheetDate, setSheetDate] = useState<string | null>(null);
   const [storyOpen, setStoryOpen] = useState(false);
+  const [personalStoryOpen, setPersonalStoryOpen] = useState(false);
 
   useEffect(() => {
     if (!selectedSign) { setSignLoading(false); return; }
@@ -530,7 +532,10 @@ export const Dashboard = memo<DashboardProps>(({
         >
           <motion.button
             type="button"
-            onClick={pdAction}
+            onClick={() => {
+              if (hasChart && premium) { lumiaSelectionHaptic(); setPersonalStoryOpen(true); }
+              else pdAction?.();
+            }}
             whileTap={{ scale: 0.97 }}
             className="flex w-full items-center gap-4 rounded-[24px] bg-[#DDD0F0] px-5 py-[18px] text-left"
           >
@@ -562,6 +567,14 @@ export const Dashboard = memo<DashboardProps>(({
       />
 
       <StoriesViewer open={storyOpen} slides={storySlides} onClose={() => setStoryOpen(false)} accent="#7559CF" />
+      <PersonalDailyStories
+        open={personalStoryOpen}
+        profile={profile}
+        chartData={chartData}
+        chartId={chartId}
+        language={language}
+        onClose={() => setPersonalStoryOpen(false)}
+      />
     </div>
   );
 });
