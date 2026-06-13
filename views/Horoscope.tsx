@@ -13,6 +13,7 @@ import {
 } from '../services/astrologyService';
 import { saveProfile } from '../services/storageService';
 import { StoriesViewer, buildReadingSlides } from '../components/lumia-ui/StoriesViewer';
+import { PersonalDailyStories } from '../components/lumia-ui/PersonalDailyStories';
 
 interface HoroscopeProps {
   profile: UserProfile;
@@ -64,7 +65,7 @@ function StoryCover({ reading, language, onOpen }: { reading: ForecastDailyReadi
   );
 }
 
-function PersonalMode({ profile, chartData, chartId, onOpenChart, onOpenPersonalDaily, onRequestPremium }: HoroscopeProps) {
+function PersonalMode({ profile, chartData, chartId, onOpenChart, onOpenStories, onRequestPremium }: HoroscopeProps & { onOpenStories: () => void }) {
   const language = profile.language === 'en' ? 'en' : 'ru';
   const access = canAccessFeature('personal_daily', profile, { chartData, primaryChartId: chartId ?? null });
   const needsChart = access.status === 'needs_chart';
@@ -83,7 +84,7 @@ function PersonalMode({ profile, chartData, chartId, onOpenChart, onOpenPersonal
           ? (language === 'en' ? 'Main theme, people, action, risk, and a short chart-based explanation.' : 'Главное сегодня, люди, действие дня, риск и короткое объяснение по карте.')
           : (language === 'en' ? 'Your chart is ready. Open full access to see your personal day.' : 'Карта уже готова. Открой полный доступ, чтобы увидеть личный день.')}
     </p>
-    <button type="button" onClick={needsChart ? onOpenChart : access.allowed ? onOpenPersonalDaily : onRequestPremium} className="mt-5 min-h-[46px] rounded-full bg-[#202024] px-5 text-[14px] font-semibold text-white">
+    <button type="button" onClick={needsChart ? onOpenChart : access.allowed ? onOpenStories : onRequestPremium} className="mt-5 min-h-[46px] rounded-full bg-[#202024] px-5 text-[14px] font-semibold text-white">
       {needsChart ? (language === 'en' ? 'Create chart' : 'Создать карту') : access.allowed ? (language === 'en' ? 'Open personal day' : 'Открыть личный день') : (language === 'en' ? 'Open Premium' : 'Открыть Premium')}
     </button>
   </section>;
@@ -103,6 +104,7 @@ export const Horoscope = memo<HoroscopeProps>((props) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
   const [storyOpen, setStoryOpen] = useState(false);
+  const [personalOpen, setPersonalOpen] = useState(false);
 
   const storySlides = useMemo(
     () => buildReadingSlides(
@@ -164,7 +166,7 @@ export const Horoscope = memo<HoroscopeProps>((props) => {
         <button type="button" onClick={() => setMode('personal')} className={`min-h-[42px] rounded-[13px] text-[14px] font-semibold ${mode === 'personal' ? 'bg-white shadow-sm' : 'text-[#6e6973]'}`}>{language === 'en' ? 'Personal day' : 'Личный день'}</button>
       </div>
 
-      {mode === 'personal' ? <PersonalMode {...props} /> : showPicker || !selectedSign ? <section className="mt-5 rounded-[24px] border border-black/10 bg-white p-5">
+      {mode === 'personal' ? <PersonalMode {...props} onOpenStories={() => setPersonalOpen(true)} /> : showPicker || !selectedSign ? <section className="mt-5 rounded-[24px] border border-black/10 bg-white p-5">
         <h2 className="text-[22px] font-semibold text-[#202024]">{language === 'en' ? 'Choose any sign' : 'Выбери любой знак'}</h2>
         <p className="mt-2 text-[14px] text-[#68646e]">{language === 'en' ? 'No natal chart is required.' : 'Натальная карта не нужна.'}</p>
         <div className="mt-5 grid grid-cols-3 gap-2">{ZODIAC_SIGNS.map(([sign, dates]) => <button key={sign} type="button" onClick={() => chooseSign(sign)} className="rounded-[16px] border border-black/10 px-2 py-3 text-center"><ZodiacIcon sign={sign} size={25} /><span className="mt-1 block text-[12px] font-semibold">{getZodiacSign(language, sign)}</span><span className="mt-1 block text-[9px] text-[#8b8690]">{dates}</span></button>)}</div>
@@ -176,6 +178,14 @@ export const Horoscope = memo<HoroscopeProps>((props) => {
       </section>}
     </div>
     <StoriesViewer open={storyOpen} slides={storySlides} onClose={() => setStoryOpen(false)} accent="#7559CF" />
+    <PersonalDailyStories
+      open={personalOpen}
+      profile={profile}
+      chartData={chartData}
+      chartId={props.chartId ?? null}
+      language={language}
+      onClose={() => setPersonalOpen(false)}
+    />
   </div>;
 });
 Horoscope.displayName = 'Horoscope';

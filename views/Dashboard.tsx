@@ -1,5 +1,5 @@
 import React, { memo, useEffect, useMemo, useState } from 'react';
-import { Search, FileText, Lock } from 'lucide-react';
+import { FileText, Lock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type {
   ForecastDailyReading,
@@ -140,28 +140,6 @@ function HeroDonuts() {
 }
 
 // Overlapping avatar circles + "+N" badge — bottom-left of hero
-function HeroAvatars() {
-  const palette = ['#F2A0BC', '#7CC8F0', '#F5C74A'];
-  return (
-    <div className="flex items-center" aria-hidden="true">
-      {palette.map((c, i) => (
-        <div
-          key={c}
-          className={`flex h-8 w-8 items-center justify-center rounded-full border-2 border-[#DDD0F0] ${i ? '-ml-2' : ''}`}
-          style={{ backgroundColor: c }}
-        >
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="white" fillOpacity="0.85" aria-hidden="true">
-            <circle cx="7" cy="4.6" r="2.6"/>
-            <path d="M1.8 12.6c.5-3 2.4-4.5 5.2-4.5s4.7 1.5 5.2 4.5Z"/>
-          </svg>
-        </div>
-      ))}
-      <div className="-ml-2 flex h-8 w-8 items-center justify-center rounded-full border-2 border-[#DDD0F0] bg-[#B7A2DE] text-[11px] font-bold leading-none text-white">
-        +4
-      </div>
-    </div>
-  );
-}
 
 // Cream stacked bowls — Natal card (amber bg)
 function NatalDecor() {
@@ -226,7 +204,6 @@ function SynastryDecor() {
 // ─── Plan Card ────────────────────────────────────────────────────────────────
 
 type PlanCardProps = {
-  tag: string;
   title: string;
   description: string;
   bg: string;
@@ -236,7 +213,7 @@ type PlanCardProps = {
   lang: 'ru' | 'en';
 };
 
-function PlanCard({ tag, title, description, bg, decoration, onClick, delay = 0, lang }: PlanCardProps) {
+function PlanCard({ title, description, bg, decoration, onClick, delay = 0, lang }: PlanCardProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -244,7 +221,7 @@ function PlanCard({ tag, title, description, bg, decoration, onClick, delay = 0,
       transition={{ duration: 0.28, delay, ease: [0.22, 1, 0.36, 1] }}
       whileTap={onClick ? { scale: 0.96 } : undefined}
       onClick={onClick}
-      className={`relative flex min-h-[196px] flex-col overflow-hidden rounded-[24px] p-[18px] ${onClick ? 'cursor-pointer' : ''}`}
+      className={`relative flex min-h-[172px] flex-col overflow-hidden rounded-[18px] p-[18px] ${onClick ? 'cursor-pointer' : ''}`}
       style={{ backgroundColor: bg }}
     >
       {/* Flat decoration — anchored to bottom-right corner, behind text */}
@@ -254,17 +231,14 @@ function PlanCard({ tag, title, description, bg, decoration, onClick, delay = 0,
 
       {/* Content flows above the decoration; text widths kept clear of it */}
       <div className="relative z-10 flex flex-1 flex-col">
-        <span className="inline-flex self-start rounded-full bg-white/60 px-3 py-[6px] text-[11px] font-semibold leading-none text-[#1E1230]">
-          {tag}
-        </span>
         <h3
           lang={lang}
-          className="mt-3 break-words pr-1 font-lumiaHomeDisplay text-[20px] font-bold leading-[1.12] text-[#1E1230]"
+          className="break-words pr-1 font-lumiaHomeDisplay text-[20px] font-bold leading-[1.12] text-[#1E1230]"
           style={{ hyphens: 'auto' }}
         >
           {title}
         </h3>
-        <p className="mt-1.5 line-clamp-2 pr-[42%] text-[12px] leading-snug text-[#50465E]">
+        <p className="mt-2 line-clamp-2 pr-[40%] text-[13px] leading-snug text-[#50465E]">
           {description}
         </p>
         {/* Arrow — bottom-left, clears the bottom-right decoration */}
@@ -385,25 +359,32 @@ export const Dashboard = memo<DashboardProps>(({
     <div
       ref={scrollRef}
       className="h-full overflow-y-auto bg-[#F8F5FA] px-4 pb-[var(--lumia-bottom-tab-clearance)] font-lumiaHome"
-      style={{ paddingTop: 'calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px), 24px) + 1.25rem)' }}
+      style={{ paddingTop: 'calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px), 24px) + 1rem)' }}
     >
       <div className="mx-auto w-full max-w-md pb-3">
 
         {/* ── 1. Header ── */}
         <header className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            {avatarUrl ? (
-              <img
-                src={avatarUrl}
-                alt=""
-                draggable={false}
-                className="h-14 w-14 flex-shrink-0 rounded-full object-cover"
-              />
-            ) : (
-              <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-full bg-[#DDD0F0] text-[21px] font-bold text-[#1E1230] font-lumiaHomeDisplay">
-                {userInitial}
-              </div>
-            )}
+            <button
+              type="button"
+              onClick={onOpenSettings}
+              aria-label={language === 'ru' ? 'Профиль' : 'Profile'}
+              className="flex-shrink-0"
+            >
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt=""
+                  draggable={false}
+                  className="h-14 w-14 rounded-full object-cover"
+                />
+              ) : (
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#DDD0F0] text-[21px] font-bold text-[#1E1230] font-lumiaHomeDisplay">
+                  {userInitial}
+                </div>
+              )}
+            </button>
             <div className="min-w-0">
               <p className="truncate text-[20px] font-bold leading-tight text-[#1E1230] font-lumiaHomeDisplay">
                 {language === 'ru' ? `Привет, ${profile.name}` : `Hello, ${profile.name}`}
@@ -413,37 +394,34 @@ export const Dashboard = memo<DashboardProps>(({
               </p>
             </div>
           </div>
-          {/* Search button — white circle with hairline border */}
-          <button
-            type="button"
-            onClick={onOpenSettings}
-            aria-label={language === 'ru' ? 'Настройки' : 'Settings'}
-            className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full border border-[#EAE3F1] bg-white"
-          >
-            <Search size={18} strokeWidth={2.25} className="text-[#1E1230]" />
-          </button>
         </header>
 
-        {/* ── 2. Hero Card — lavender, donut wreath right, avatars bottom-left ── */}
+        {/* ── 2. Hero Card — today's forecast, tap to read as stories ── */}
         <motion.div
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.32, delay: 0.06, ease: [0.22, 1, 0.36, 1] }}
-          className="mt-6 flex overflow-hidden rounded-[24px] bg-[#DDD0F0]"
-          style={{ minHeight: '220px' }}
+          onClick={() => {
+            if (storySlides.length) { lumiaSelectionHaptic(); setStoryOpen(true); }
+            else openHoroscope('sign', { mode: 'single', source: 'home_hero' });
+          }}
+          whileTap={{ scale: 0.985 }}
+          className="mt-5 flex cursor-pointer overflow-hidden rounded-[20px] bg-[#DDD0F0]"
+          style={{ minHeight: '206px' }}
         >
           <div className="flex min-w-0 flex-1 flex-col justify-center p-5">
-            <h2 className="text-[28px] font-bold leading-[1.12] text-[#1E1230] font-lumiaHomeDisplay">
+            <h2 className="text-[26px] font-bold leading-[1.12] text-[#1E1230] font-lumiaHomeDisplay">
               {language === 'ru' ? <>Сегодня<br/>для вас</> : <>Today<br/>for you</>}
             </h2>
-            <p className="mt-3 line-clamp-3 break-words text-[14px] leading-relaxed text-[#50465E]">
+            <p className="mt-2.5 line-clamp-3 break-words text-[14px] leading-relaxed text-[#50465E]">
               {heroSubtitle}
             </p>
-            <div className="mt-4">
-              <HeroAvatars />
-            </div>
+            <span className="mt-4 inline-flex items-center gap-1.5 self-start rounded-full bg-[#1E1230] px-4 py-2 text-[13px] font-semibold text-white">
+              {language === 'ru' ? 'Читать' : 'Read'}
+              <svg width="13" height="13" viewBox="0 0 15 15" fill="none" aria-hidden="true"><path d="M2.5 7.5h10M9 4l3.5 3.5L9 11" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </span>
           </div>
-          <div className="flex w-[45%] flex-shrink-0 items-center justify-center" aria-hidden="true">
+          <div className="flex w-[40%] flex-shrink-0 items-center justify-center" aria-hidden="true">
             <HeroDonuts />
           </div>
         </motion.div>
@@ -458,17 +436,11 @@ export const Dashboard = memo<DashboardProps>(({
           />
         </div>
 
-        {/* ── 4. "Ваш план" ── */}
-        <h2 className="mt-6 text-[24px] font-bold text-[#1E1230] font-lumiaHomeDisplay">
-          {language === 'ru' ? 'Ваш план' : 'Your plan'}
-        </h2>
-
-        {/* ── 5. Plan Cards 2×2 ── */}
-        <div className="mt-3 grid grid-cols-2 gap-3">
+        {/* ── Section cards 2×2 ── */}
+        <div className="mt-5 grid grid-cols-2 gap-3">
           <PlanCard
-            tag={language === 'ru' ? 'Натальная карта' : 'Natal chart'}
-            title={language === 'ru' ? 'Ваша карта' : 'Your chart'}
-            description={language === 'ru' ? 'Разбор личности и потенциала' : 'Personality & potential'}
+            title={language === 'ru' ? 'Натальная карта' : 'Natal chart'}
+            description={language === 'ru' ? 'Кто ты на самом деле' : 'Who you really are'}
             bg="#F6C64F"
             decoration={<NatalDecor />}
             onClick={onCreateNatalChart}
@@ -476,22 +448,17 @@ export const Dashboard = memo<DashboardProps>(({
             lang={language}
           />
           <PlanCard
-            tag={language === 'ru' ? 'Гороскоп' : 'Horoscope'}
-            title={language === 'ru' ? 'Прогноз дня' : 'Daily forecast'}
-            description={language === 'ru' ? 'Что важно знать сегодня' : 'What matters today'}
+            title={language === 'ru' ? 'Гороскоп' : 'Horoscope'}
+            description={language === 'ru' ? 'Что тебя ждёт сегодня' : 'What today holds'}
             bg="#A8C8F2"
             decoration={<HoroscopeDecor />}
-            onClick={() => {
-              if (storySlides.length) { lumiaSelectionHaptic(); setStoryOpen(true); }
-              else openHoroscope('sign', { mode: 'single', source: 'home_card_today' });
-            }}
+            onClick={() => openHoroscope('sign', { mode: 'single', source: 'home_card' })}
             delay={0.14}
             lang={language}
           />
           <PlanCard
-            tag="Ask Lumia"
-            title={language === 'ru' ? 'Спросите AI' : 'Ask AI'}
-            description={language === 'ru' ? 'Получите ответ на любой вопрос' : 'Get answers to any question'}
+            title={language === 'ru' ? 'Спроси Lumia' : 'Ask Lumia'}
+            description={language === 'ru' ? 'Ответ на любой вопрос' : 'Answers to anything'}
             bg="#C8E4CE"
             decoration={<OracleDecor />}
             onClick={onOpenOracle}
@@ -499,9 +466,8 @@ export const Dashboard = memo<DashboardProps>(({
             lang={language}
           />
           <PlanCard
-            tag={language === 'ru' ? 'Совместимость' : 'Compatibility'}
             title={language === 'ru' ? 'Совместимость' : 'Compatibility'}
-            description={language === 'ru' ? 'Понимание ваших отношений' : 'Understand your relationship'}
+            description={language === 'ru' ? 'Вы подходите друг другу?' : 'Do you match?'}
             bg="#F6C9DB"
             decoration={<SynastryDecor />}
             onClick={onOpenSynastry}
@@ -524,13 +490,13 @@ export const Dashboard = memo<DashboardProps>(({
               else pdAction?.();
             }}
             whileTap={{ scale: 0.97 }}
-            className="flex w-full items-center gap-4 rounded-[24px] bg-[#DDD0F0] px-5 py-[18px] text-left"
+            className="flex w-full items-center gap-4 rounded-[20px] bg-[#DDD0F0] px-5 py-[18px] text-left"
           >
-            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-[#7B5CF6]">
+            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-[16px] bg-[#7B5CF6]">
               <FileText size={22} className="text-white" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-[16px] font-bold text-[#1E1230]">Personal Daily</p>
+              <p className="text-[16px] font-bold text-[#1E1230]">{language === 'ru' ? 'Личный день' : 'Personal day'}</p>
               <p className="mt-0.5 line-clamp-2 text-[13px] leading-snug text-[#5A4F68]">{pdText}</p>
             </div>
             <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-[#7B5CF6]">
