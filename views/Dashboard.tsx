@@ -297,19 +297,19 @@ export const Dashboard = memo<DashboardProps>(({
                   src={avatarUrl}
                   alt=""
                   draggable={false}
-                  className="h-11 w-11 rounded-full object-cover"
+                  className="h-[52px] w-[52px] rounded-full object-cover"
                 />
               ) : (
-                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#DDD0F0] text-[17px] font-bold text-[#1E1230] font-lumiaHome">
+                <div className="flex h-[52px] w-[52px] items-center justify-center rounded-full bg-[#DDD0F0] text-[20px] font-bold text-[#1E1230] font-lumiaHome">
                   {userInitial}
                 </div>
               )}
             </button>
             <div className="min-w-0">
-              <p className="truncate font-lumiaHome text-[17px] font-semibold leading-tight text-[#1E1230]">
+              <p className="truncate font-lumiaHome text-[21px] font-bold leading-tight text-[#1E1230]">
                 {language === 'ru' ? `Привет, ${profile.name}` : `Hello, ${profile.name}`}
               </p>
-              <p className="mt-1 text-[13px] font-medium leading-none text-[#9A93A3]">
+              <p className="mt-1 text-[14px] font-medium leading-none text-[#9A93A3]">
                 {`${language === 'ru' ? 'Сегодня' : 'Today'} ${shortDate(today, language)}`}
               </p>
             </div>
