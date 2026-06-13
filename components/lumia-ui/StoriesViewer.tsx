@@ -165,7 +165,7 @@ export function StoriesViewer({
                   <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-white/70">{slide.eyebrow}</p>
                 ) : null}
                 {slide.title ? (
-                  <h2 className="mt-2 break-words font-lumiaHomeDisplay text-[30px] font-bold leading-[1.1] text-white">{slide.title}</h2>
+                  <h2 className="mt-2 break-words font-lumiaHome text-[30px] font-bold leading-[1.1] text-white">{slide.title}</h2>
                 ) : null}
                 {slide.loading && !slide.body ? (
                   <div className="mt-3 space-y-2" aria-busy="true">

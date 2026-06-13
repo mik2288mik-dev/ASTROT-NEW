@@ -1,5 +1,5 @@
 import React, { memo, useEffect, useMemo, useState } from 'react';
-import { FileText, Lock } from 'lucide-react';
+import { FileText, Lock, Sparkles, Star, MessageCircle, Heart } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type {
   ForecastDailyReading,
@@ -16,6 +16,7 @@ import { lumiaSelectionHaptic } from '../lib/haptics';
 import { DaySheet } from '../components/lumia-ui/DaySheet';
 import { StoriesViewer, buildReadingSlides } from '../components/lumia-ui/StoriesViewer';
 import { PersonalDailyStories } from '../components/lumia-ui/PersonalDailyStories';
+import { getZodiacSign } from '../constants';
 import {
   getCachedDailySignHoroscope,
   ensureDailySignHoroscope,
@@ -122,82 +123,19 @@ function DateSelector({
   );
 }
 
-// ─── Decorative SVGs ──────────────────────────────────────────────────────────
-
-// Wreath of flat donuts (stroke rings) — right half of hero card
-// Cream stacked bowls — Natal card (amber bg)
-function NatalDecor() {
-  return (
-    <svg width="56" height="80" viewBox="0 0 78 112" fill="none" aria-hidden="true">
-      <ellipse cx="42" cy="102" rx="34" ry="9" fill="#E3B53B"/>
-      <path d="M8 86 Q8 62 42 62 Q76 62 76 86 Q76 101 42 101 Q8 101 8 86 Z" fill="#F1EBDB"/>
-      <ellipse cx="42" cy="63" rx="24" ry="8" fill="#E0D4B6"/>
-      <ellipse cx="36" cy="50" rx="20" ry="6" fill="#DECFAC"/>
-      <path d="M16 32 Q16 12 36 12 Q56 12 56 32 Q56 50 36 50 Q16 50 16 32 Z" fill="#FAF5E9"/>
-      <ellipse cx="36" cy="13" rx="15" ry="5" fill="#EADFC6"/>
-    </svg>
-  );
-}
-
-// Periwinkle ribbed cylinder — Horoscope card (blue bg)
-function HoroscopeDecor() {
-  return (
-    <svg width="40" height="84" viewBox="0 0 56 118" fill="none" aria-hidden="true">
-      <ellipse cx="28" cy="14" rx="24" ry="9" fill="#D6E0FA"/>
-      <rect x="4" y="14" width="48" height="92" rx="2" fill="#B4C4F2"/>
-      {[24, 34, 44, 54, 64, 74, 84, 94].map((y) => (
-        <rect key={y} x="4" y={y} width="48" height="7" rx="1" fill="#98ACE6"/>
-      ))}
-      <ellipse cx="28" cy="106" rx="24" ry="8" fill="#8CA0DC"/>
-    </svg>
-  );
-}
-
-// Sage arch shapes — Ask Lumia card (sage bg)
-function OracleDecor() {
-  return (
-    <svg width="50" height="85" viewBox="0 0 66 112" fill="none" aria-hidden="true">
-      <path
-        d="M8 106 L8 48 Q8 14 32 14 Q56 14 56 46 L56 64 Q56 80 43 80 Q30 80 30 64 L30 48 Q30 38 39 36"
-        fill="none" stroke="#87BC96" strokeWidth="16" strokeLinecap="round" strokeLinejoin="round"
-      />
-      <path
-        d="M46 106 L46 62 Q46 46 60 44"
-        fill="none" stroke="#74AE85" strokeWidth="14" strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-// Pink twisted torus — Compatibility card (pink bg)
-function SynastryDecor() {
-  return (
-    <svg width="58" height="79" viewBox="0 0 76 104" fill="none" aria-hidden="true">
-      <path
-        d="M14 62 Q2 44 17 26 Q32 9 56 25 Q74 41 57 61 Q39 80 18 62 Z"
-        fill="none" stroke="#EC8FB6" strokeWidth="17" strokeLinecap="round" strokeLinejoin="round"
-      />
-      <path
-        d="M18 60 Q7 43 18 28 Q33 13 54 26"
-        fill="none" stroke="#F5B3CE" strokeWidth="11" strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
 // ─── Plan Card ────────────────────────────────────────────────────────────────
 
 type PlanCardProps = {
   title: string;
-  description: string;
+  detail: React.ReactNode;
   bg: string;
-  decoration?: React.ReactNode;
+  glyph: React.ReactNode;
   onClick?: () => void;
   delay?: number;
   lang: 'ru' | 'en';
 };
 
-function PlanCard({ title, description, bg, decoration, onClick, delay = 0, lang }: PlanCardProps) {
+function PlanCard({ title, detail, bg, glyph, onClick, delay = 0, lang }: PlanCardProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -205,30 +143,28 @@ function PlanCard({ title, description, bg, decoration, onClick, delay = 0, lang
       transition={{ duration: 0.28, delay, ease: [0.22, 1, 0.36, 1] }}
       whileTap={onClick ? { scale: 0.96 } : undefined}
       onClick={onClick}
-      className={`relative flex min-h-[150px] flex-col overflow-hidden rounded-[18px] p-[18px] ${onClick ? 'cursor-pointer' : ''}`}
+      className={`relative flex min-h-[156px] flex-col overflow-hidden rounded-[20px] p-4 shadow-[0_12px_28px_rgba(30,18,48,0.10)] ${onClick ? 'cursor-pointer' : ''}`}
       style={{ backgroundColor: bg }}
     >
-      {/* Flat decoration — anchored to bottom-right corner, behind text */}
-      <div className="pointer-events-none absolute bottom-3 right-3 z-0" aria-hidden="true">
-        {decoration}
+      {/* Soft glyph watermark, bottom-right */}
+      <div className="pointer-events-none absolute -bottom-3 -right-2 z-0 text-[#1E1230]" style={{ opacity: 0.12 }} aria-hidden="true">
+        {glyph}
       </div>
 
-      {/* Content flows above the decoration; text widths kept clear of it */}
       <div className="relative z-10 flex flex-1 flex-col">
         <h3
           lang={lang}
-          className="break-words pr-1 font-lumiaHomeDisplay text-[20px] font-bold leading-[1.12] text-[#1E1230]"
+          className="break-words pr-1 font-lumiaHome text-[17px] font-extrabold leading-tight text-[#1E1230]"
           style={{ hyphens: 'auto' }}
         >
           {title}
         </h3>
-        <p className="mt-2 line-clamp-2 pr-[40%] text-[13px] leading-snug text-[#50465E]">
-          {description}
-        </p>
-        {/* Arrow — bottom-left, clears the bottom-right decoration */}
-        <div className="mt-auto flex h-10 w-10 items-center justify-center rounded-full bg-white">
-          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
-            <path d="M2.5 7.5h10M9 4l3.5 3.5L9 11" stroke="#1E1230" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+        <div className="mt-1.5 flex-1 pr-2 text-[13px] font-medium leading-snug text-[#1E1230]/65">
+          {detail}
+        </div>
+        <div className="mt-1 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 shadow-sm">
+          <svg width="14" height="14" viewBox="0 0 15 15" fill="none" aria-hidden="true">
+            <path d="M2.5 7.5h10M9 4l3.5 3.5L9 11" stroke="#1E1230" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </div>
       </div>
@@ -364,16 +300,16 @@ export const Dashboard = memo<DashboardProps>(({
                   className="h-14 w-14 rounded-full object-cover"
                 />
               ) : (
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#DDD0F0] text-[21px] font-bold text-[#1E1230] font-lumiaHomeDisplay">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#DDD0F0] text-[21px] font-bold text-[#1E1230] font-lumiaHome">
                   {userInitial}
                 </div>
               )}
             </button>
             <div className="min-w-0">
-              <p className="truncate font-lumiaHome text-[20px] font-extrabold leading-tight text-[#1E1230]">
+              <p className="truncate font-lumiaHome text-[18px] font-bold leading-tight text-[#1E1230]">
                 {language === 'ru' ? `Привет, ${profile.name}` : `Hello, ${profile.name}`}
               </p>
-              <p className="mt-1 text-[13px] leading-none text-[#9A93A3]">
+              <p className="mt-[3px] text-[13px] font-medium leading-none text-[#9A93A3]">
                 {`${language === 'ru' ? 'Сегодня' : 'Today'} ${shortDate(today, language)}`}
               </p>
             </div>
@@ -395,7 +331,7 @@ export const Dashboard = memo<DashboardProps>(({
           <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#7A6E94]">
             {language === 'ru' ? 'Гороскоп на сегодня' : 'Today’s horoscope'}
           </p>
-          <h2 className="mt-2 line-clamp-3 break-words font-lumiaHomeDisplay text-[22px] font-bold leading-[1.18] text-[#1E1230]">
+          <h2 className="mt-2 line-clamp-3 break-words font-lumiaHome text-[22px] font-bold leading-[1.18] text-[#1E1230]">
             {signLoading
               ? (language === 'ru' ? 'Сегодня для вас' : 'Today for you')
               : (signReading?.headline || (language === 'ru' ? 'Сегодня для вас' : 'Today for you'))}
@@ -423,36 +359,48 @@ export const Dashboard = memo<DashboardProps>(({
         <div className="mt-5 grid grid-cols-2 gap-3">
           <PlanCard
             title={language === 'ru' ? 'Натальная карта' : 'Natal chart'}
-            description={language === 'ru' ? 'Кто ты на самом деле' : 'Who you really are'}
+            detail={hasChart && chartData ? (
+              <div className="flex flex-col gap-0.5 font-semibold text-[#1E1230]/80">
+                <span>☉ {getZodiacSign(language, chartData.sun.sign)}</span>
+                <span>☾ {getZodiacSign(language, chartData.moon.sign)}</span>
+                <span>ASC {getZodiacSign(language, chartData.rising.sign)}</span>
+              </div>
+            ) : (language === 'ru' ? 'Кто ты на самом деле' : 'Who you really are')}
             bg="#F6C64F"
-            decoration={<NatalDecor />}
+            glyph={<Sparkles size={92} strokeWidth={1.4} />}
             onClick={onCreateNatalChart}
             delay={0.10}
             lang={language}
           />
           <PlanCard
             title={language === 'ru' ? 'Гороскоп' : 'Horoscope'}
-            description={language === 'ru' ? 'Что тебя ждёт сегодня' : 'What today holds'}
+            detail={(
+              <span className="line-clamp-3">
+                {signLoading
+                  ? (language === 'ru' ? 'Что тебя ждёт сегодня' : 'What today holds')
+                  : (signReading?.summary || (language === 'ru' ? 'Что тебя ждёт сегодня' : 'What today holds'))}
+              </span>
+            )}
             bg="#A8C8F2"
-            decoration={<HoroscopeDecor />}
+            glyph={<Star size={92} strokeWidth={1.4} />}
             onClick={() => openHoroscope('sign', { mode: 'single', source: 'home_card' })}
             delay={0.14}
             lang={language}
           />
           <PlanCard
             title={language === 'ru' ? 'Спроси Lumia' : 'Ask Lumia'}
-            description={language === 'ru' ? 'Ответ на любой вопрос' : 'Answers to anything'}
+            detail={language === 'ru' ? '«Что для меня важно сегодня?»' : '“What matters for me today?”'}
             bg="#C8E4CE"
-            decoration={<OracleDecor />}
+            glyph={<MessageCircle size={88} strokeWidth={1.4} />}
             onClick={onOpenOracle}
             delay={0.18}
             lang={language}
           />
           <PlanCard
             title={language === 'ru' ? 'Совместимость' : 'Compatibility'}
-            description={language === 'ru' ? 'Вы подходите друг другу?' : 'Do you match?'}
+            detail={language === 'ru' ? 'Вы подходите друг другу?' : 'Do you match?'}
             bg="#F6C9DB"
-            decoration={<SynastryDecor />}
+            glyph={<Heart size={88} strokeWidth={1.4} />}
             onClick={onOpenSynastry}
             delay={0.22}
             lang={language}

@@ -92,7 +92,7 @@ export function DaySheet({
                 <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#9A93A3]">
                   {dateKey ? formatLumiaDate(dateKey, language) : ''}
                 </p>
-                <h3 className="mt-1 font-lumiaHomeDisplay text-[22px] font-bold text-[#1E1230]">{heading}</h3>
+                <h3 className="mt-1 font-lumiaHome text-[22px] font-bold text-[#1E1230]">{heading}</h3>
               </div>
               <button
                 type="button"
@@ -135,7 +135,7 @@ export function DaySheet({
             ) : reading ? (
               <div className="mt-4">
                 {reading.headline ? (
-                  <h4 className="font-lumiaHomeDisplay text-[18px] font-bold leading-snug text-[#1E1230]">{reading.headline}</h4>
+                  <h4 className="font-lumiaHome text-[18px] font-bold leading-snug text-[#1E1230]">{reading.headline}</h4>
                 ) : null}
                 {reading.summary ? (
                   <p className="mt-2 text-[14px] leading-relaxed text-[#50465E]">{reading.summary}</p>
