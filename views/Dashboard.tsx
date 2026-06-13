@@ -14,6 +14,7 @@ import { hasActivePremium, hasNatalChart } from '../lib/accessMatrix';
 import { getMoscowTodayKey } from '../lib/date-utils';
 import { lumiaSelectionHaptic } from '../lib/haptics';
 import { DaySheet } from '../components/lumia-ui/DaySheet';
+import { StoriesViewer, type StorySlide } from '../components/lumia-ui/StoriesViewer';
 import {
   getCachedDailySignHoroscope,
   ensureDailySignHoroscope,
@@ -49,6 +50,22 @@ const FALLBACKS = {
   background: 'Сегодня полезнее выбрать один ясный приоритет и не разгонять тревогу лишними решениями.',
   dayCard: 'Сначала закончи то, что уже начато. Один спокойный разговор и один завершённый шаг сегодня дадут больше, чем попытка успеть всё сразу.',
 };
+
+// Split today's reading into story slides (intro → details → focus → advice).
+function buildDailyStorySlides(reading: ForecastDailyReading | null, language: 'ru' | 'en'): StorySlide[] {
+  if (!reading) return [];
+  const eyebrow = language === 'ru' ? 'Гороскоп на сегодня' : 'Today’s horoscope';
+  const slides: StorySlide[] = [];
+  if (reading.headline || reading.summary) {
+    slides.push({ id: 'intro', eyebrow, title: reading.headline || (language === 'ru' ? 'Сегодня' : 'Today'), body: reading.summary });
+  }
+  if (reading.reading) slides.push({ id: 'reading', title: language === 'ru' ? 'Подробнее' : 'More', body: reading.reading });
+  if (reading.focus) slides.push({ id: 'focus', title: language === 'ru' ? 'Фокус дня' : 'Focus', body: reading.focus });
+  if (reading.advice?.length) {
+    slides.push({ id: 'advice', title: language === 'ru' ? 'Совет' : 'Advice', body: reading.advice.slice(0, 3).join('\n\n') });
+  }
+  return slides;
+}
 
 // ─── Date helpers ─────────────────────────────────────────────────────────────
 
@@ -306,6 +323,7 @@ export const Dashboard = memo<DashboardProps>(({
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   // Which calendar day is open in the bottom sheet (null = closed).
   const [sheetDate, setSheetDate] = useState<string | null>(null);
+  const [storyOpen, setStoryOpen] = useState(false);
 
   useEffect(() => {
     if (!selectedSign) { setSignLoading(false); return; }
@@ -353,6 +371,8 @@ export const Dashboard = memo<DashboardProps>(({
   const heroSubtitle = signLoading
     ? (language === 'ru' ? 'Готовим ваш прогноз…' : 'Preparing your forecast…')
     : (signReading?.summary || FALLBACKS.background);
+
+  const storySlides = useMemo(() => buildDailyStorySlides(signReading, language), [signReading, language]);
 
   // Calendar day tap: today is always free; other days require Premium.
   const handlePickDay = (key: string) => {
@@ -472,7 +492,10 @@ export const Dashboard = memo<DashboardProps>(({
             description={language === 'ru' ? 'Что важно знать сегодня' : 'What matters today'}
             bg="#A8C8F2"
             decoration={<HoroscopeDecor />}
-            onClick={() => openHoroscope('sign', { mode: 'single', source: 'home_card_today' })}
+            onClick={() => {
+              if (storySlides.length) { lumiaSelectionHaptic(); setStoryOpen(true); }
+              else openHoroscope('sign', { mode: 'single', source: 'home_card_today' });
+            }}
             delay={0.14}
             lang={language}
           />
@@ -537,6 +560,8 @@ export const Dashboard = memo<DashboardProps>(({
         onClose={() => setSheetDate(null)}
         onRequestPremium={() => onRequestPremium?.('calendar')}
       />
+
+      <StoriesViewer open={storyOpen} slides={storySlides} onClose={() => setStoryOpen(false)} accent="#7559CF" />
     </div>
   );
 });
