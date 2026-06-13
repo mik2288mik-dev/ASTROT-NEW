@@ -17,6 +17,7 @@ import { DaySheet } from '../components/lumia-ui/DaySheet';
 import { HoroscopeStories } from '../components/lumia-ui/HoroscopeStories';
 import { PersonalDailyStories } from '../components/lumia-ui/PersonalDailyStories';
 import { getZodiacSign } from '../constants';
+import { ZodiacIcon } from '../components/icons/ZodiacIcon';
 import {
   getCachedDailySignHoroscope,
   ensureDailySignHoroscope,
@@ -274,7 +275,7 @@ export const Dashboard = memo<DashboardProps>(({
     <div
       ref={scrollRef}
       className="h-full overflow-y-auto bg-[#F8F5FA] px-4 pb-[var(--lumia-bottom-tab-clearance)] font-lumiaHome"
-      style={{ paddingTop: 'calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px), 24px) + 2.75rem)' }}
+      style={{ paddingTop: 'calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px), 24px) + 1.75rem)' }}
     >
       <div className="mx-auto w-full max-w-md pb-3">
 
@@ -292,10 +293,10 @@ export const Dashboard = memo<DashboardProps>(({
                   src={avatarUrl}
                   alt=""
                   draggable={false}
-                  className="h-[52px] w-[52px] rounded-full object-cover"
+                  className="h-[58px] w-[58px] rounded-full object-cover"
                 />
               ) : (
-                <div className="flex h-[52px] w-[52px] items-center justify-center rounded-full bg-[#DDD0F0] text-[20px] font-bold text-[#1E1230] font-lumiaHome">
+                <div className="flex h-[58px] w-[58px] items-center justify-center rounded-full bg-[#DDD0F0] text-[22px] font-bold text-[#1E1230] font-lumiaHome">
                   {userInitial}
                 </div>
               )}
@@ -374,7 +375,7 @@ export const Dashboard = memo<DashboardProps>(({
               </span>
             )}
             bg="#A8C8F2"
-            glyph={<Star size={92} strokeWidth={1.4} />}
+            glyph={selectedSign ? <ZodiacIcon sign={selectedSign} size={96} /> : <Star size={92} strokeWidth={1.4} />}
             onClick={() => { lumiaSelectionHaptic(); setHoroscopeOpen(true); }}
             delay={0.14}
             lang={language}

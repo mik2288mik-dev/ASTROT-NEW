@@ -26,14 +26,23 @@ export function buildReadingSlides(
 ): StorySlide[] {
   if (!reading) return [];
   const slides: StorySlide[] = [];
-  if (reading.headline || reading.summary) {
-    slides.push({ id: 'intro', eyebrow, title: reading.headline || (language === 'ru' ? 'Сегодня' : 'Today'), body: reading.summary });
-  }
-  if (reading.reading) slides.push({ id: 'reading', title: language === 'ru' ? 'Подробнее' : 'More', body: reading.reading });
-  if (reading.focus) slides.push({ id: 'focus', title: language === 'ru' ? 'Фокус дня' : 'Focus', body: reading.focus });
-  if (reading.advice?.length) {
-    slides.push({ id: 'advice', title: language === 'ru' ? 'Совет' : 'Advice', body: reading.advice.slice(0, 3).join('\n\n') });
-  }
+  const seen = new Set<string>();
+  const norm = (s?: string) => String(s || '').trim().toLowerCase();
+  // Add a slide only if its body text hasn't appeared on an earlier slide.
+  const add = (slide: StorySlide, dedupeText?: string) => {
+    const key = norm(dedupeText);
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    slides.push(slide);
+  };
+  add(
+    { id: 'intro', eyebrow, title: reading.headline || (language === 'ru' ? 'Сегодня' : 'Today'), body: reading.summary },
+    reading.summary || reading.headline,
+  );
+  add({ id: 'reading', title: language === 'ru' ? 'Подробнее' : 'More', body: reading.reading }, reading.reading);
+  add({ id: 'focus', title: language === 'ru' ? 'Фокус дня' : 'Focus', body: reading.focus }, reading.focus);
+  const adviceBody = reading.advice?.slice(0, 3).join('\n\n');
+  add({ id: 'advice', title: language === 'ru' ? 'Совет' : 'Advice', body: adviceBody }, adviceBody);
   return slides;
 }
 
