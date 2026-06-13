@@ -143,7 +143,7 @@ function PlanCard({ title, detail, bg, glyph, onClick, delay = 0, lang }: PlanCa
       transition={{ duration: 0.28, delay, ease: [0.22, 1, 0.36, 1] }}
       whileTap={onClick ? { scale: 0.96 } : undefined}
       onClick={onClick}
-      className={`relative flex min-h-[156px] flex-col overflow-hidden rounded-[20px] p-4 shadow-[0_12px_28px_rgba(30,18,48,0.10)] ${onClick ? 'cursor-pointer' : ''}`}
+      className={`relative flex min-h-[124px] flex-col overflow-hidden rounded-[18px] p-4 shadow-[0_8px_22px_rgba(30,18,48,0.08)] ${onClick ? 'cursor-pointer' : ''}`}
       style={{ backgroundColor: bg }}
     >
       {/* Soft glyph watermark, bottom-right */}
@@ -375,7 +375,7 @@ export const Dashboard = memo<DashboardProps>(({
           <PlanCard
             title={language === 'ru' ? 'Гороскоп' : 'Horoscope'}
             detail={(
-              <span className="line-clamp-3">
+              <span className="line-clamp-2">
                 {signLoading
                   ? (language === 'ru' ? 'Что тебя ждёт сегодня' : 'What today holds')
                   : (signReading?.summary || (language === 'ru' ? 'Что тебя ждёт сегодня' : 'What today holds'))}
