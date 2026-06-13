@@ -125,22 +125,6 @@ function DateSelector({
 // ─── Decorative SVGs ──────────────────────────────────────────────────────────
 
 // Wreath of flat donuts (stroke rings) — right half of hero card
-function HeroDonuts() {
-  return (
-    <svg viewBox="0 0 170 200" fill="none" aria-hidden="true" className="h-auto w-[86%] max-w-[156px]">
-      <ellipse cx="122" cy="40"  rx="22" ry="15" stroke="#F2ECDF" strokeWidth="13" transform="rotate(18 122 40)"/>
-      <ellipse cx="143" cy="82"  rx="19" ry="13" stroke="#EC6852" strokeWidth="12" transform="rotate(50 143 82)"/>
-      <ellipse cx="70"  cy="42"  rx="27" ry="18" stroke="#7CC8F0" strokeWidth="15" transform="rotate(-10 70 42)"/>
-      <ellipse cx="125" cy="122" rx="22" ry="15" stroke="#F5A060" strokeWidth="13" transform="rotate(12 125 122)"/>
-      <ellipse cx="38"  cy="95"  rx="25" ry="18" stroke="#F2A0BC" strokeWidth="15" transform="rotate(-16 38 95)"/>
-      <ellipse cx="88"  cy="158" rx="27" ry="18" stroke="#2F7E66" strokeWidth="15" transform="rotate(4 88 158)"/>
-      <ellipse cx="140" cy="165" rx="16" ry="11" stroke="#FAF8F2" strokeWidth="10" transform="rotate(26 140 165)"/>
-    </svg>
-  );
-}
-
-// Overlapping avatar circles + "+N" badge — bottom-left of hero
-
 // Cream stacked bowls — Natal card (amber bg)
 function NatalDecor() {
   return (
@@ -221,7 +205,7 @@ function PlanCard({ title, description, bg, decoration, onClick, delay = 0, lang
       transition={{ duration: 0.28, delay, ease: [0.22, 1, 0.36, 1] }}
       whileTap={onClick ? { scale: 0.96 } : undefined}
       onClick={onClick}
-      className={`relative flex min-h-[172px] flex-col overflow-hidden rounded-[18px] p-[18px] ${onClick ? 'cursor-pointer' : ''}`}
+      className={`relative flex min-h-[150px] flex-col overflow-hidden rounded-[18px] p-[18px] ${onClick ? 'cursor-pointer' : ''}`}
       style={{ backgroundColor: bg }}
     >
       {/* Flat decoration — anchored to bottom-right corner, behind text */}
@@ -406,24 +390,23 @@ export const Dashboard = memo<DashboardProps>(({
             else openHoroscope('sign', { mode: 'single', source: 'home_hero' });
           }}
           whileTap={{ scale: 0.985 }}
-          className="mt-5 flex cursor-pointer overflow-hidden rounded-[20px] bg-[#DDD0F0]"
-          style={{ minHeight: '206px' }}
+          className="mt-5 cursor-pointer overflow-hidden rounded-[20px] bg-[#DDD0F0] p-5"
         >
-          <div className="flex min-w-0 flex-1 flex-col justify-center p-5">
-            <h2 className="text-[26px] font-bold leading-[1.12] text-[#1E1230] font-lumiaHomeDisplay">
-              {language === 'ru' ? <>Сегодня<br/>для вас</> : <>Today<br/>for you</>}
-            </h2>
-            <p className="mt-2.5 line-clamp-3 break-words text-[14px] leading-relaxed text-[#50465E]">
-              {heroSubtitle}
-            </p>
-            <span className="mt-4 inline-flex items-center gap-1.5 self-start rounded-full bg-[#1E1230] px-4 py-2 text-[13px] font-semibold text-white">
-              {language === 'ru' ? 'Читать' : 'Read'}
-              <svg width="13" height="13" viewBox="0 0 15 15" fill="none" aria-hidden="true"><path d="M2.5 7.5h10M9 4l3.5 3.5L9 11" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            </span>
-          </div>
-          <div className="flex w-[40%] flex-shrink-0 items-center justify-center" aria-hidden="true">
-            <HeroDonuts />
-          </div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#7A6E94]">
+            {language === 'ru' ? 'Гороскоп на сегодня' : 'Today’s horoscope'}
+          </p>
+          <h2 className="mt-2 line-clamp-3 break-words font-lumiaHomeDisplay text-[22px] font-bold leading-[1.18] text-[#1E1230]">
+            {signLoading
+              ? (language === 'ru' ? 'Сегодня для вас' : 'Today for you')
+              : (signReading?.headline || (language === 'ru' ? 'Сегодня для вас' : 'Today for you'))}
+          </h2>
+          <p className="mt-2 line-clamp-2 break-words text-[14px] leading-relaxed text-[#50465E]">
+            {heroSubtitle}
+          </p>
+          <span className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-[#1E1230] px-4 py-2 text-[13px] font-semibold text-white">
+            {language === 'ru' ? 'Читать' : 'Read'}
+            <svg width="13" height="13" viewBox="0 0 15 15" fill="none" aria-hidden="true"><path d="M2.5 7.5h10M9 4l3.5 3.5L9 11" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          </span>
         </motion.div>
 
         {/* ── 3. Date Selector ── */}
