@@ -12,6 +12,7 @@ import {
   getCachedWeeklySignHoroscope,
 } from '../services/astrologyService';
 import { saveProfile } from '../services/storageService';
+import { StoriesViewer, buildReadingSlides } from '../components/lumia-ui/StoriesViewer';
 
 interface HoroscopeProps {
   profile: UserProfile;
@@ -51,14 +52,16 @@ function LoadingText({ language }: { language: 'ru' | 'en' }) {
   </div>;
 }
 
-function Reading({ reading }: { reading: ForecastDailyReading }) {
-  return <div className="mt-6 space-y-4 pb-4">
-    <h2 className="text-[20px] font-semibold leading-snug text-[#202024]">{reading.headline}</h2>
-    {reading.summary ? <p className="text-[14px] leading-relaxed text-[#68646e]">{reading.summary}</p> : null}
-    {reading.reading ? <p className="whitespace-pre-line text-[16px] leading-[1.68] text-[#3b3840]">{reading.reading}</p> : null}
-    {reading.focus ? <div className="rounded-[18px] border border-black/10 bg-[#f7f6f4] px-4 py-3 text-[14px] leading-relaxed text-[#3b3840]">{reading.focus}</div> : null}
-    {reading.advice?.slice(0, 2).map((item) => <div key={item} className="rounded-[18px] border border-black/10 px-4 py-3 text-[14px] leading-relaxed text-[#3b3840]">{item}</div>)}
-  </div>;
+function StoryCover({ reading, language, onOpen }: { reading: ForecastDailyReading; language: 'ru' | 'en'; onOpen: () => void }) {
+  return (
+    <button type="button" onClick={onOpen} className="mt-6 block w-full text-left">
+      <h2 className="text-[20px] font-semibold leading-snug text-[#202024]">{reading.headline}</h2>
+      {reading.summary ? <p className="mt-2 line-clamp-3 text-[14px] leading-relaxed text-[#68646e]">{reading.summary}</p> : null}
+      <span className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#202024] px-4 py-2.5 text-[13px] font-semibold text-white">
+        {language === 'en' ? 'View as story' : 'Смотреть как историю'}
+      </span>
+    </button>
+  );
 }
 
 function PersonalMode({ profile, chartData, chartId, onOpenChart, onOpenPersonalDaily, onRequestPremium }: HoroscopeProps) {
@@ -99,6 +102,16 @@ export const Horoscope = memo<HoroscopeProps>((props) => {
   const [reading, setReading] = useState<ForecastDailyReading | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
+  const [storyOpen, setStoryOpen] = useState(false);
+
+  const storySlides = useMemo(
+    () => buildReadingSlides(
+      reading,
+      `${selectedSign ? getZodiacSign(language, selectedSign) : ''} · ${period === 'today' ? formatLumiaDate(today, language) : formatIsoWeekPeriodLabel(weekKey, language)}`,
+      language,
+    ),
+    [reading, selectedSign, period, today, weekKey, language],
+  );
 
   useEffect(() => { onBackgroundChange?.(selectedSign ? { sign: selectedSign, tone: 'sign' } : null); return () => onBackgroundChange?.(null); }, [onBackgroundChange, selectedSign]);
 
@@ -158,10 +171,11 @@ export const Horoscope = memo<HoroscopeProps>((props) => {
       </section> : <section className="mt-5 rounded-[24px] border border-black/10 bg-white p-5 shadow-[0_18px_44px_rgba(0,0,0,0.07)]">
         <div className="flex items-start justify-between gap-3"><div><p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#8b8690]">{period === 'today' ? formatLumiaDate(today, language) : formatIsoWeekPeriodLabel(weekKey, language)}</p><h2 className="mt-2 text-[28px] font-semibold text-[#202024]">{getZodiacSign(language, selectedSign)}</h2></div><ZodiacIcon sign={selectedSign} size={50} /></div>
         <div className="mt-5 grid grid-cols-2 rounded-[14px] bg-black/5 p-1"><button type="button" onClick={() => setPeriod('today')} className={`min-h-[38px] rounded-[11px] text-[13px] font-semibold ${period === 'today' ? 'bg-white shadow-sm' : ''}`}>{language === 'en' ? 'Today' : 'Сегодня'}</button><button type="button" onClick={() => setPeriod('week')} className={`min-h-[38px] rounded-[11px] text-[13px] font-semibold ${period === 'week' ? 'bg-white shadow-sm' : ''}`}>{language === 'en' ? 'Week' : 'Неделя'}</button></div>
-        {loading ? <LoadingText language={language} /> : error ? <p className="mt-6 rounded-[16px] bg-black/5 p-4 text-[14px] text-[#68646e]">{language === 'en' ? 'Content is being prepared. Try again shortly.' : 'Контент готовится. Попробуй ещё раз чуть позже.'}</p> : reading ? <Reading reading={reading} /> : null}
+        {loading ? <LoadingText language={language} /> : error ? <p className="mt-6 rounded-[16px] bg-black/5 p-4 text-[14px] text-[#68646e]">{language === 'en' ? 'Content is being prepared. Try again shortly.' : 'Контент готовится. Попробуй ещё раз чуть позже.'}</p> : reading ? <StoryCover reading={reading} language={language} onOpen={() => setStoryOpen(true)} /> : null}
         <button type="button" onClick={() => setShowPicker(true)} className="mt-3 min-h-[42px] rounded-full border border-black/10 px-4 text-[13px] font-semibold">{language === 'en' ? 'Another sign' : 'Другой знак'}</button>
       </section>}
     </div>
+    <StoriesViewer open={storyOpen} slides={storySlides} onClose={() => setStoryOpen(false)} accent="#7559CF" />
   </div>;
 });
 Horoscope.displayName = 'Horoscope';

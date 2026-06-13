@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
+import type { ForecastDailyReading } from '../../types';
 
 export type StorySlide = {
   id: string;
@@ -13,6 +14,25 @@ export type StorySlide = {
 
 const SLIDE_MS = 6500;
 const TAP_MS = 220;
+
+/** Split a sign/daily reading into clean story slides (one idea per slide). */
+export function buildReadingSlides(
+  reading: ForecastDailyReading | null,
+  eyebrow: string,
+  language: 'ru' | 'en',
+): StorySlide[] {
+  if (!reading) return [];
+  const slides: StorySlide[] = [];
+  if (reading.headline || reading.summary) {
+    slides.push({ id: 'intro', eyebrow, title: reading.headline || (language === 'ru' ? 'Сегодня' : 'Today'), body: reading.summary });
+  }
+  if (reading.reading) slides.push({ id: 'reading', title: language === 'ru' ? 'Подробнее' : 'More', body: reading.reading });
+  if (reading.focus) slides.push({ id: 'focus', title: language === 'ru' ? 'Фокус дня' : 'Focus', body: reading.focus });
+  if (reading.advice?.length) {
+    slides.push({ id: 'advice', title: language === 'ru' ? 'Совет' : 'Advice', body: reading.advice.slice(0, 3).join('\n\n') });
+  }
+  return slides;
+}
 
 /**
  * Fullscreen "stories" viewer: top segmented progress bars, tap right/left to go

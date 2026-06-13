@@ -14,7 +14,7 @@ import { hasActivePremium, hasNatalChart } from '../lib/accessMatrix';
 import { getMoscowTodayKey } from '../lib/date-utils';
 import { lumiaSelectionHaptic } from '../lib/haptics';
 import { DaySheet } from '../components/lumia-ui/DaySheet';
-import { StoriesViewer, type StorySlide } from '../components/lumia-ui/StoriesViewer';
+import { StoriesViewer, buildReadingSlides } from '../components/lumia-ui/StoriesViewer';
 import { PersonalDailyStories } from '../components/lumia-ui/PersonalDailyStories';
 import {
   getCachedDailySignHoroscope,
@@ -51,22 +51,6 @@ const FALLBACKS = {
   background: 'Сегодня полезнее выбрать один ясный приоритет и не разгонять тревогу лишними решениями.',
   dayCard: 'Сначала закончи то, что уже начато. Один спокойный разговор и один завершённый шаг сегодня дадут больше, чем попытка успеть всё сразу.',
 };
-
-// Split today's reading into story slides (intro → details → focus → advice).
-function buildDailyStorySlides(reading: ForecastDailyReading | null, language: 'ru' | 'en'): StorySlide[] {
-  if (!reading) return [];
-  const eyebrow = language === 'ru' ? 'Гороскоп на сегодня' : 'Today’s horoscope';
-  const slides: StorySlide[] = [];
-  if (reading.headline || reading.summary) {
-    slides.push({ id: 'intro', eyebrow, title: reading.headline || (language === 'ru' ? 'Сегодня' : 'Today'), body: reading.summary });
-  }
-  if (reading.reading) slides.push({ id: 'reading', title: language === 'ru' ? 'Подробнее' : 'More', body: reading.reading });
-  if (reading.focus) slides.push({ id: 'focus', title: language === 'ru' ? 'Фокус дня' : 'Focus', body: reading.focus });
-  if (reading.advice?.length) {
-    slides.push({ id: 'advice', title: language === 'ru' ? 'Совет' : 'Advice', body: reading.advice.slice(0, 3).join('\n\n') });
-  }
-  return slides;
-}
 
 // ─── Date helpers ─────────────────────────────────────────────────────────────
 
@@ -374,7 +358,10 @@ export const Dashboard = memo<DashboardProps>(({
     ? (language === 'ru' ? 'Готовим ваш прогноз…' : 'Preparing your forecast…')
     : (signReading?.summary || FALLBACKS.background);
 
-  const storySlides = useMemo(() => buildDailyStorySlides(signReading, language), [signReading, language]);
+  const storySlides = useMemo(
+    () => buildReadingSlides(signReading, language === 'ru' ? 'Гороскоп на сегодня' : 'Today’s horoscope', language),
+    [signReading, language],
+  );
 
   // Calendar day tap: today is always free; other days require Premium.
   const handlePickDay = (key: string) => {
