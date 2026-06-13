@@ -784,8 +784,9 @@ body.theme-lumia-air #__next {
   opacity: 1;
 }
 
+/* Reference: active icon just turns dark, inactive stay grey — no circle */
 .lumia-bottom-tab-item.is-active .lumia-bottom-tab-icon {
-  background: #EFEAF7;
+  background: transparent;
   color: #1E1230;
 }
 
