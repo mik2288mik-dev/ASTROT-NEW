@@ -385,7 +385,7 @@ export const Dashboard = memo<DashboardProps>(({
     <div
       ref={scrollRef}
       className="h-full overflow-y-auto bg-[#F8F5FA] px-4 pb-[var(--lumia-bottom-tab-clearance)] font-lumiaHome"
-      style={{ paddingTop: 'calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px), 24px) + 0.5rem)' }}
+      style={{ paddingTop: 'calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px), 24px) + 1.25rem)' }}
     >
       <div className="mx-auto w-full max-w-md pb-3">
 
@@ -397,10 +397,10 @@ export const Dashboard = memo<DashboardProps>(({
                 src={avatarUrl}
                 alt=""
                 draggable={false}
-                className="h-12 w-12 flex-shrink-0 rounded-full object-cover"
+                className="h-14 w-14 flex-shrink-0 rounded-full object-cover"
               />
             ) : (
-              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-[#DDD0F0] text-[18px] font-bold text-[#1E1230] font-lumiaHomeDisplay">
+              <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-full bg-[#DDD0F0] text-[21px] font-bold text-[#1E1230] font-lumiaHomeDisplay">
                 {userInitial}
               </div>
             )}
@@ -429,7 +429,7 @@ export const Dashboard = memo<DashboardProps>(({
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.32, delay: 0.06, ease: [0.22, 1, 0.36, 1] }}
-          className="mt-5 flex overflow-hidden rounded-[24px] bg-[#DDD0F0]"
+          className="mt-6 flex overflow-hidden rounded-[24px] bg-[#DDD0F0]"
           style={{ minHeight: '220px' }}
         >
           <div className="flex min-w-0 flex-1 flex-col justify-center p-5">
@@ -449,7 +449,7 @@ export const Dashboard = memo<DashboardProps>(({
         </motion.div>
 
         {/* ── 3. Date Selector ── */}
-        <div className="mt-4">
+        <div className="mt-5">
           <DateSelector
             todayKey={today}
             language={language}

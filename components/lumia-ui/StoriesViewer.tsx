@@ -145,10 +145,10 @@ export function StoriesViewer({
 
           {/* Content (taps pass through to the surface) */}
           <div
-            className="pointer-events-none absolute inset-0 z-20 flex flex-col justify-end px-6"
+            className="pointer-events-none absolute inset-0 z-20 flex flex-col justify-center px-6"
             style={{
-              paddingTop: 'calc(env(safe-area-inset-top, 0px) + 76px)',
-              paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 52px)',
+              paddingTop: 'calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px), 24px) + 68px)',
+              paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 56px)',
             }}
           >
             <AnimatePresence mode="wait">
@@ -181,7 +181,7 @@ export function StoriesViewer({
           {/* Progress bars */}
           <div
             className="absolute left-0 right-0 z-30 flex gap-1 px-3"
-            style={{ top: 'calc(env(safe-area-inset-top, 0px) + 10px)' }}
+            style={{ top: 'calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px), 24px) + 8px)' }}
           >
             {slides.map((s, i) => (
               <div key={s.id} className="h-[3px] flex-1 overflow-hidden rounded-full bg-white/25">
@@ -193,13 +193,13 @@ export function StoriesViewer({
             ))}
           </div>
 
-          {/* Close */}
+          {/* Close — top-left so it never sits under Telegram's top-right controls */}
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="absolute right-3 z-30 flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white"
-            style={{ top: 'calc(env(safe-area-inset-top, 0px) + 24px)' }}
+            className="absolute left-3 z-30 flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white"
+            style={{ top: 'calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px), 24px) + 20px)' }}
           >
             <X size={18} />
           </button>

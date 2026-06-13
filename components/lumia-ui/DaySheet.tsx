@@ -60,21 +60,29 @@ export function DaySheet({
     <AnimatePresence>
       {open && (
         <motion.div
-          className="fixed inset-0 z-[120] flex items-end justify-center px-2"
+          className="fixed inset-0 z-[120] flex items-end justify-center"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
         >
-          <motion.div className="absolute inset-0 bg-black/40" onClick={onClose} aria-hidden="true" />
+          <motion.div
+            className="absolute inset-0 bg-black/45"
+            onClick={onClose}
+            aria-hidden="true"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          />
           <motion.div
             role="dialog"
             aria-modal="true"
-            className="relative w-full max-w-[25rem] rounded-t-[28px] bg-white px-5 pt-3 font-sans"
+            className="relative flex max-h-[88dvh] w-full max-w-[30rem] flex-col overflow-y-auto rounded-t-[24px] bg-white px-5 pt-3 font-sans"
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 30, stiffness: 320 }}
-            style={{ paddingBottom: 'calc(1.75rem + env(safe-area-inset-bottom, 0px))' }}
+            transition={{ type: 'spring', stiffness: 360, damping: 34 }}
+            style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1.5rem)' }}
           >
             <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-black/15" />
             <div className="flex items-start justify-between gap-3">
