@@ -19,6 +19,9 @@ import { ReactionRow } from '../components/Dashboard/home/ReactionRow';
 import { EvolutionMeter } from '../components/Dashboard/home/EvolutionMeter';
 import { PulseCurve } from '../components/Dashboard/home/PulseCurve';
 import { ActionTiming } from '../components/Dashboard/home/ActionTiming';
+import { DaypartTimeline } from '../components/Dashboard/home/DaypartTimeline';
+import { PlanetOfDay } from '../components/Dashboard/home/PlanetOfDay';
+import { WeekMonthStrip } from '../components/Dashboard/home/WeekMonthStrip';
 import { shareText, buildDailyShareText } from '../lib/share';
 import { getZodiacSign } from '../constants';
 import {
@@ -483,6 +486,31 @@ export const Dashboard = memo<DashboardProps>(({
         <PulseCurve profile={profile} chartData={chartData} chartId={chartId} language={language} onNeedChart={onCreateNatalChart} />
         <ActionTiming profile={profile} chartData={chartData} chartId={chartId} language={language} />
         <EvolutionMeter profile={profile} chartData={chartData} language={language} />
+        <DaypartTimeline
+          profile={profile}
+          chartData={chartData}
+          chartId={chartId}
+          language={language}
+          onNeedChart={onCreateNatalChart}
+          onRequestPremium={() => onRequestPremium?.('daypart')}
+        />
+        <PlanetOfDay
+          profile={profile}
+          chartData={chartData}
+          chartId={chartId}
+          todayKey={today}
+          language={language}
+          onNeedChart={onCreateNatalChart}
+          onRequestPremium={() => onRequestPremium?.('planet')}
+        />
+        <WeekMonthStrip
+          profile={profile}
+          chartData={chartData}
+          chartId={chartId}
+          sign={selectedSign}
+          language={language}
+          onNeedChart={onCreateNatalChart}
+        />
 
         {/* ── 4. "Ваш план" ── */}
         <h2 className="mt-6 text-[24px] font-bold text-[#1E1230] font-lumiaHomeDisplay">
