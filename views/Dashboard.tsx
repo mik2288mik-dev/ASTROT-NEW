@@ -359,7 +359,7 @@ export const Dashboard = memo<DashboardProps>(({
     <div
       ref={scrollRef}
       className="h-full overflow-y-auto bg-[#F8F5FA] px-4 pb-[var(--lumia-bottom-tab-clearance)] font-lumiaHome"
-      style={{ paddingTop: 'calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px), 24px) + 1rem)' }}
+      style={{ paddingTop: 'calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px), 24px) + 2.75rem)' }}
     >
       <div className="mx-auto w-full max-w-md pb-3">
 
@@ -386,7 +386,7 @@ export const Dashboard = memo<DashboardProps>(({
               )}
             </button>
             <div className="min-w-0">
-              <p className="truncate text-[20px] font-bold leading-tight text-[#1E1230] font-lumiaHomeDisplay">
+              <p className="truncate font-lumiaHome text-[20px] font-extrabold leading-tight text-[#1E1230]">
                 {language === 'ru' ? `Привет, ${profile.name}` : `Hello, ${profile.name}`}
               </p>
               <p className="mt-1 text-[13px] leading-none text-[#9A93A3]">

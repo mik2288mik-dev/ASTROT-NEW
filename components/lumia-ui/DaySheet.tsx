@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Sparkles } from 'lucide-react';
 import type { ForecastDailyReading } from '../../types';
@@ -56,7 +57,8 @@ export function DaySheet({
     ? (language === 'ru' ? 'День впереди' : 'Day ahead')
     : (language === 'ru' ? 'Гороскоп на день' : 'Daily horoscope');
 
-  return (
+  if (typeof document === 'undefined') return null;
+  return createPortal(
     <AnimatePresence>
       {open && (
         <motion.div
@@ -152,6 +154,7 @@ export function DaySheet({
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }

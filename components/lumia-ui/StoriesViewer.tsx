@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import type { ForecastDailyReading } from '../../types';
@@ -123,7 +124,8 @@ export function StoriesViewer({
   };
   const release = () => { pausedRef.current = false; };
 
-  return (
+  if (typeof document === 'undefined') return null;
+  return createPortal(
     <AnimatePresence>
       {open && (
         <motion.div
@@ -147,7 +149,7 @@ export function StoriesViewer({
           <div
             className="pointer-events-none absolute inset-0 z-20 flex flex-col justify-center px-6"
             style={{
-              paddingTop: 'calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px), 24px) + 68px)',
+              paddingTop: 'calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px), 24px) + 92px)',
               paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 56px)',
             }}
           >
@@ -178,10 +180,10 @@ export function StoriesViewer({
             </AnimatePresence>
           </div>
 
-          {/* Progress bars */}
+          {/* Progress bars — below Telegram's top controls */}
           <div
             className="absolute left-0 right-0 z-30 flex gap-1 px-3"
-            style={{ top: 'calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px), 24px) + 8px)' }}
+            style={{ top: 'calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px), 24px) + 30px)' }}
           >
             {slides.map((s, i) => (
               <div key={s.id} className="h-[3px] flex-1 overflow-hidden rounded-full bg-white/25">
@@ -193,18 +195,19 @@ export function StoriesViewer({
             ))}
           </div>
 
-          {/* Close — top-left so it never sits under Telegram's top-right controls */}
+          {/* Close — below Telegram's controls */}
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="absolute left-3 z-30 flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white"
-            style={{ top: 'calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px), 24px) + 20px)' }}
+            className="absolute right-3 z-30 flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white"
+            style={{ top: 'calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px), 24px) + 48px)' }}
           >
             <X size={18} />
           </button>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }
