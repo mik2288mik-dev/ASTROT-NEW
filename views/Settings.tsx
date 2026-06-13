@@ -4,7 +4,6 @@ import { UserProfile, Language, Theme, NotificationFrequency } from '../types';
 import { getText } from '../constants';
 import { saveProfile } from '../services/storageService';
 import { requestStarsPayment } from '../services/telegramService';
-import { getWeatherSettings, saveWeatherCity } from '../services/weatherService';
 import { ScreenShell } from '../components/layout/ScreenShell';
 import { hasActivePremium } from '../lib/accessMatrix';
 
@@ -71,10 +70,6 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
     const [editing, setEditing] = useState(false);
     const [tempName, setTempName] = useState(profile.name);
     const [tempPlace, setTempPlace] = useState(profile.birthPlace);
-    const [editingWeather, setEditingWeather] = useState(false);
-    const [tempWeatherCity, setTempWeatherCity] = useState('');
-    const [currentWeatherCity, setCurrentWeatherCity] = useState<string | null>(null);
-    const [weatherLoading, setWeatherLoading] = useState(false);
     const [notificationFrequency, setNotificationFrequency] = useState<NotificationFrequency>(
         profile.notificationFrequency || 'important'
     );
@@ -110,17 +105,6 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
     })();
     const profilePhotoUrl = tgUser?.photo_url;
 
-    // Загружаем настройки погоды из БД при монтировании
-    useEffect(() => {
-        if (profile.id) {
-            getWeatherSettings(profile.id)
-                .then(settings => {
-                    setCurrentWeatherCity(settings.city);
-                    setTempWeatherCity(settings.city || '');
-                })
-                .catch(console.error);
-        }
-    }, [profile.id]);
 
     const handleLanguageToggle = () => {
         const newLang: Language = profile.language === 'ru' ? 'en' : 'ru';
@@ -186,36 +170,6 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
         setEditing(false);
     };
 
-    const handleSaveWeatherCity = async () => {
-        if (!profile.id) return;
-        
-        const city = tempWeatherCity.trim();
-        setWeatherLoading(true);
-        
-        console.log('[Settings] Saving weather city:', city || 'null');
-
-        try {
-            // Сохраняем через новый API (в таблицу user_settings)
-            const cityToSave = city.length >= 2 ? city : null;
-            await saveWeatherCity(profile.id, cityToSave);
-            
-            // Обновляем локальное состояние
-            setCurrentWeatherCity(cityToSave);
-            
-            // Обновляем профиль для обновления UI в других компонентах
-            const updated = { ...profile, weatherCity: cityToSave || undefined };
-            onUpdate(updated);
-            
-            console.log('[Settings] Weather city saved successfully');
-            setEditingWeather(false);
-        } catch (error: any) {
-            console.error('[Settings] Error saving weather city:', error);
-
-            alert(getText(profile.language, 'settings.weather_error'));
-        } finally {
-            setWeatherLoading(false);
-        }
-    };
 
     return (
         <ScreenShell className="mx-auto max-w-reading-wide pt-2">
@@ -371,72 +325,6 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                         );
                     })}
                 </div>
-            </div>
-
-            <div className={sectionClass}>
-                <div className="flex items-start justify-between gap-4">
-                    <div>
-                        <h3 className="font-serif text-lg text-astro-text">{getText(profile.language, 'settings.weather_title')}</h3>
-                        <p className="lumia-muted mt-1 text-sm">{getText(profile.language, 'settings.weather_body')}</p>
-                    </div>
-                    {!editingWeather && (
-                        <button
-                            onClick={() => setEditingWeather(true)}
-                            className={inlineActionClass}
-                        >
-                            {getText(profile.language, 'settings.edit_inline')}
-                        </button>
-                    )}
-                </div>
-
-                {editingWeather ? (
-                    <div className="mt-4 space-y-3">
-                        <div>
-                            <label className="mb-2 block text-[10px] uppercase tracking-widest text-astro-subtext">
-                                {getText(profile.language, 'settings.weather_city')}
-                            </label>
-                            <input 
-                                type="text" 
-                                value={tempWeatherCity}
-                                onChange={(e) => setTempWeatherCity(e.target.value)}
-                                placeholder={getText(profile.language, 'settings.weather_placeholder')}
-                                className={inputBaseClass}
-                                disabled={weatherLoading}
-                                minLength={2}
-                                maxLength={64}
-                            />
-                            <p className="lumia-muted mt-2 text-[11px] leading-relaxed">{getText(profile.language, 'settings.weather_helper')}</p>
-                        </div>
-                        <div className="flex gap-2">
-                            <button 
-                                onClick={handleSaveWeatherCity}
-                                disabled={weatherLoading || (tempWeatherCity.trim().length > 0 && tempWeatherCity.trim().length < 2)}
-                                className="flex-1 rounded-xl bg-astro-highlight px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
-                            >
-                                {weatherLoading ? getText(profile.language, 'settings.saving') : getText(profile.language, 'settings.save')}
-                            </button>
-                            <button 
-                                onClick={() => {
-                                    setEditingWeather(false);
-                                    setTempWeatherCity(currentWeatherCity || '');
-                                }}
-                                disabled={weatherLoading}
-                                className="rounded-xl bg-astro-text/[0.06] px-4 py-2.5 text-sm font-medium text-astro-text ring-1 ring-astro-text/[0.06] transition-[box-shadow] hover:ring-astro-highlight/25 disabled:opacity-50"
-                            >
-                                {getText(profile.language, 'settings.cancel')}
-                            </button>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="lumia-glass-inset mt-4 p-3.5">
-                        <p className="font-serif text-base text-astro-text">
-                            {currentWeatherCity || getText(profile.language, 'settings.weather_empty')}
-                        </p>
-                        <p className="lumia-muted mt-1.5 text-sm leading-relaxed">
-                            {currentWeatherCity ? getText(profile.language, 'settings.weather_ready') : getText(profile.language, 'settings.weather_helper')}
-                        </p>
-                    </div>
-                )}
             </div>
 
             <div className={sectionClass}>
