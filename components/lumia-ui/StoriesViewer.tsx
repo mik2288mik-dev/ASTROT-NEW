@@ -56,12 +56,15 @@ export function StoriesViewer({
   open,
   onClose,
   onIndexChange,
+  advanceSignal,
   accent = '#7559CF',
 }: {
   slides: StorySlide[];
   open: boolean;
   onClose: () => void;
   onIndexChange?: (index: number) => void;
+  /** Bump this to advance past an interactive slide (e.g. after picking a sign). */
+  advanceSignal?: number;
   accent?: string;
 }) {
   const [index, setIndex] = useState(0);
@@ -77,6 +80,11 @@ export function StoriesViewer({
   useEffect(() => {
     if (open) onIndexChange?.(index);
   }, [index, open, onIndexChange]);
+
+  // Advance past an interactive slide (e.g. once a sign is picked → go to the reading).
+  useEffect(() => {
+    if (advanceSignal) setIndex(1);
+  }, [advanceSignal]);
 
   // Pause autoplay while the active slide is loading or interactive (picker).
   const activeSlide = slides[Math.min(index, slides.length - 1)];

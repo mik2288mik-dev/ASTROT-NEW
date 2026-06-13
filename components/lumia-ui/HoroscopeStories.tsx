@@ -14,33 +14,48 @@ const SIGN_KEYS = [
 
 const LOCAL_SIGN_KEY = 'lumia:selected-zodiac-sign';
 
-function SignPicker({ language, onPick }: { language: 'ru' | 'en'; onPick: (sign: string) => void }) {
+function SignPicker({
+  language,
+  current,
+  onPick,
+}: {
+  language: 'ru' | 'en';
+  current: string | null;
+  onPick: (sign: string) => void;
+}) {
   return (
     <div className="pointer-events-auto">
       <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-white/70">
-        {language === 'ru' ? 'Выбери свой знак' : 'Choose your sign'}
+        {language === 'ru' ? 'Гороскоп' : 'Horoscope'}
       </p>
       <h2 className="mt-2 font-lumiaHome text-[26px] font-bold leading-tight text-white">
         {language === 'ru' ? 'Чей гороскоп смотрим?' : 'Whose horoscope?'}
       </h2>
       <div className="mt-5 grid grid-cols-3 gap-2.5">
-        {SIGN_KEYS.map((sign) => (
-          <button
-            key={sign}
-            type="button"
-            onClick={() => onPick(sign)}
-            className="flex flex-col items-center gap-1.5 rounded-[16px] bg-white px-2 py-3 text-[#1E1230] active:scale-95"
-          >
-            <ZodiacIcon sign={sign} size={24} />
-            <span className="text-[12px] font-semibold leading-none">{getZodiacSign(language, sign)}</span>
-          </button>
-        ))}
+        {SIGN_KEYS.map((sign) => {
+          const active = !!current && sign.toLowerCase() === current.toLowerCase();
+          return (
+            <button
+              key={sign}
+              type="button"
+              onClick={() => onPick(sign)}
+              className={`flex flex-col items-center gap-1.5 rounded-[18px] px-2 py-3.5 transition-transform active:scale-95 ${
+                active ? 'bg-white' : 'bg-white/12'
+              }`}
+            >
+              <ZodiacIcon sign={sign} size={28} stroke={active ? '#1E1230' : '#ffffff'} strokeWidth={1.6} />
+              <span className={`text-[12px] font-semibold leading-none ${active ? 'text-[#1E1230]' : 'text-white'}`}>
+                {getZodiacSign(language, sign)}
+              </span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
 }
 
-/** Horoscope as stories: sign picker = first slide (if no sign), then today's reading. */
+/** Horoscope as stories: sign picker is always slide 1, then today's reading. */
 export function HoroscopeStories({
   open,
   profile,
@@ -64,6 +79,7 @@ export function HoroscopeStories({
 
   const [sign, setSign] = useState<string | null>(initialSign);
   const [reading, setReading] = useState<ForecastDailyReading | null>(null);
+  const [advanceSeq, setAdvanceSeq] = useState(0);
 
   useEffect(() => { if (open) setSign(initialSign); }, [open, initialSign]);
 
@@ -84,17 +100,21 @@ export function HoroscopeStories({
     const updated = { ...profile, selectedZodiacSign: picked };
     onUpdateProfile?.(updated);
     if (updated.id) void saveProfile(updated).catch(() => undefined);
+    setAdvanceSeq((s) => s + 1);
   };
 
   const slides: StorySlide[] = useMemo(() => {
-    if (!sign) {
-      return [{ id: 'pick', content: <SignPicker language={language} onPick={choose} /> }];
-    }
+    const picker: StorySlide = { id: 'pick', content: <SignPicker language={language} current={sign} onPick={choose} /> };
+    if (!sign) return [picker];
     const eyebrow = `${getZodiacSign(language, sign)} · ${language === 'ru' ? 'сегодня' : 'today'}`;
-    if (reading) return buildReadingSlides(reading, eyebrow, language);
-    return [{ id: 'loading', eyebrow, title: language === 'ru' ? 'Готовим прогноз…' : 'Preparing…', loading: true }];
+    const readingSlides = reading
+      ? buildReadingSlides(reading, eyebrow, language)
+      : [{ id: 'loading', eyebrow, title: language === 'ru' ? 'Готовим прогноз…' : 'Preparing…', loading: true } as StorySlide];
+    return [picker, ...readingSlides];
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sign, reading, language]);
 
-  return <StoriesViewer open={open} slides={slides} onClose={onClose} accent="#7559CF" />;
+  return (
+    <StoriesViewer open={open} slides={slides} onClose={onClose} advanceSignal={advanceSeq} accent="#7559CF" />
+  );
 }
