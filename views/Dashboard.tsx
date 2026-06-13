@@ -1,5 +1,5 @@
 import React, { memo, useEffect, useMemo, useState } from 'react';
-import { Search, FileText, Lock, Share2 } from 'lucide-react';
+import { Search, FileText, Lock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type {
   ForecastDailyReading,
@@ -14,16 +14,6 @@ import { hasActivePremium, hasNatalChart } from '../lib/accessMatrix';
 import { getMoscowTodayKey } from '../lib/date-utils';
 import { lumiaSelectionHaptic } from '../lib/haptics';
 import { DaySheet } from '../components/lumia-ui/DaySheet';
-import { MoonLuckyRow } from '../components/Dashboard/home/MoonLuckyRow';
-import { ReactionRow } from '../components/Dashboard/home/ReactionRow';
-import { EvolutionMeter } from '../components/Dashboard/home/EvolutionMeter';
-import { PulseCurve } from '../components/Dashboard/home/PulseCurve';
-import { ActionTiming } from '../components/Dashboard/home/ActionTiming';
-import { DaypartTimeline } from '../components/Dashboard/home/DaypartTimeline';
-import { PlanetOfDay } from '../components/Dashboard/home/PlanetOfDay';
-import { WeekMonthStrip } from '../components/Dashboard/home/WeekMonthStrip';
-import { shareText, buildDailyShareText } from '../lib/share';
-import { getZodiacSign } from '../constants';
 import {
   getCachedDailySignHoroscope,
   ensureDailySignHoroscope,
@@ -370,11 +360,6 @@ export const Dashboard = memo<DashboardProps>(({
     onRequestPremium?.('calendar');
   };
 
-  const handleShare = () => {
-    const signLabel = selectedSign ? getZodiacSign(language, selectedSign) : '';
-    shareText(buildDailyShareText({ signLabel, summary: signReading?.summary || FALLBACKS.background, language }));
-  };
-
   const pdText = !hasChart
     ? (language === 'ru' ? 'Создайте натальную карту для личного разбора' : 'Create a natal chart for your personal day')
     : !premium
@@ -454,21 +439,6 @@ export const Dashboard = memo<DashboardProps>(({
           </div>
         </motion.div>
 
-        {/* ── Hero actions: react (#5) + share (#13) ── */}
-        {selectedSign ? (
-          <div className="mt-3 flex items-center gap-2">
-            <ReactionRow userId={profile.id} sign={selectedSign} dateKey={today} language={language} />
-            <button
-              type="button"
-              onClick={handleShare}
-              aria-label={language === 'ru' ? 'Поделиться' : 'Share'}
-              className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border border-[#EAE3F1] bg-white text-[#1E1230]"
-            >
-              <Share2 size={17} strokeWidth={2.1} />
-            </button>
-          </div>
-        ) : null}
-
         {/* ── 3. Date Selector ── */}
         <div className="mt-4">
           <DateSelector
@@ -478,39 +448,6 @@ export const Dashboard = memo<DashboardProps>(({
             onPick={handlePickDay}
           />
         </div>
-
-        {/* ── Moon phase + Lucky elements (today) ── */}
-        <MoonLuckyRow sign={selectedSign} todayKey={today} language={language} />
-
-        {/* ── Today insights ── */}
-        <PulseCurve profile={profile} chartData={chartData} chartId={chartId} language={language} onNeedChart={onCreateNatalChart} />
-        <ActionTiming profile={profile} chartData={chartData} chartId={chartId} language={language} />
-        <EvolutionMeter profile={profile} chartData={chartData} language={language} />
-        <DaypartTimeline
-          profile={profile}
-          chartData={chartData}
-          chartId={chartId}
-          language={language}
-          onNeedChart={onCreateNatalChart}
-          onRequestPremium={() => onRequestPremium?.('daypart')}
-        />
-        <PlanetOfDay
-          profile={profile}
-          chartData={chartData}
-          chartId={chartId}
-          todayKey={today}
-          language={language}
-          onNeedChart={onCreateNatalChart}
-          onRequestPremium={() => onRequestPremium?.('planet')}
-        />
-        <WeekMonthStrip
-          profile={profile}
-          chartData={chartData}
-          chartId={chartId}
-          sign={selectedSign}
-          language={language}
-          onNeedChart={onCreateNatalChart}
-        />
 
         {/* ── 4. "Ваш план" ── */}
         <h2 className="mt-6 text-[24px] font-bold text-[#1E1230] font-lumiaHomeDisplay">
