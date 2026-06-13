@@ -17,7 +17,6 @@ import { DaySheet } from '../components/lumia-ui/DaySheet';
 import { StoriesViewer, buildReadingSlides } from '../components/lumia-ui/StoriesViewer';
 import { PersonalDailyStories } from '../components/lumia-ui/PersonalDailyStories';
 import { getZodiacSign } from '../constants';
-import { DaySummaryCard } from '../components/Dashboard/home/DaySummaryCard';
 import {
   getCachedDailySignHoroscope,
   ensureDailySignHoroscope,
@@ -298,10 +297,10 @@ export const Dashboard = memo<DashboardProps>(({
                   src={avatarUrl}
                   alt=""
                   draggable={false}
-                  className="h-14 w-14 rounded-full object-cover"
+                  className="h-[60px] w-[60px] rounded-full object-cover"
                 />
               ) : (
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#DDD0F0] text-[21px] font-bold text-[#1E1230] font-lumiaHome">
+                <div className="flex h-[60px] w-[60px] items-center justify-center rounded-full bg-[#DDD0F0] text-[23px] font-bold text-[#1E1230] font-lumiaHome">
                   {userInitial}
                 </div>
               )}
@@ -355,9 +354,6 @@ export const Dashboard = memo<DashboardProps>(({
             onPick={handlePickDay}
           />
         </div>
-
-        {/* ── Сводка дня (wide personal card) ── */}
-        <DaySummaryCard profile={profile} chartData={chartData} chartId={chartId} language={language} />
 
         {/* ── Section cards 2×2 ── */}
         <div className="mt-5 grid grid-cols-2 gap-3">
