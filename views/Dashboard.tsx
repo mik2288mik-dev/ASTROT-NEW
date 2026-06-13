@@ -306,10 +306,10 @@ export const Dashboard = memo<DashboardProps>(({
               )}
             </button>
             <div className="min-w-0">
-              <p className="truncate font-lumiaHome text-[18px] font-bold leading-tight text-[#1E1230]">
+              <p className="truncate font-lumiaHome text-[22px] font-bold leading-tight text-[#1E1230]">
                 {language === 'ru' ? `Привет, ${profile.name}` : `Hello, ${profile.name}`}
               </p>
-              <p className="mt-[3px] text-[13px] font-medium leading-none text-[#9A93A3]">
+              <p className="mt-[3px] text-[14px] font-medium leading-none text-[#9A93A3]">
                 {`${language === 'ru' ? 'Сегодня' : 'Today'} ${shortDate(today, language)}`}
               </p>
             </div>
@@ -383,7 +383,10 @@ export const Dashboard = memo<DashboardProps>(({
             )}
             bg="#A8C8F2"
             glyph={<Star size={92} strokeWidth={1.4} />}
-            onClick={() => openHoroscope('sign', { mode: 'single', source: 'home_card' })}
+            onClick={() => {
+              if (storySlides.length) { lumiaSelectionHaptic(); setStoryOpen(true); }
+              else openHoroscope('sign', { mode: 'single', source: 'home_card' });
+            }}
             delay={0.14}
             lang={language}
           />
