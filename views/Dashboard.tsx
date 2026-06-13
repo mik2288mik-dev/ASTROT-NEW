@@ -438,11 +438,11 @@ export const Dashboard = memo<DashboardProps>(({
           className="mt-5 flex overflow-hidden rounded-[24px] bg-[#DDD0F0]"
           style={{ minHeight: '220px' }}
         >
-          <div className="flex flex-1 flex-col justify-center p-5">
+          <div className="flex min-w-0 flex-1 flex-col justify-center p-5">
             <h2 className="text-[28px] font-bold leading-[1.12] text-[#1E1230] font-lumiaHomeDisplay">
               {language === 'ru' ? <>Сегодня<br/>для вас</> : <>Today<br/>for you</>}
             </h2>
-            <p className="mt-3 line-clamp-3 text-[14px] leading-relaxed text-[#50465E]">
+            <p className="mt-3 line-clamp-3 break-words text-[14px] leading-relaxed text-[#50465E]">
               {heroSubtitle}
             </p>
             <div className="mt-4">
