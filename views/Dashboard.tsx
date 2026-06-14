@@ -1,5 +1,5 @@
 import React, { memo, useEffect, useMemo, useState } from 'react';
-import { Lock, Sparkles, Star, MessageCircle, Heart } from 'lucide-react';
+import { Lock, Sparkles, MessageCircle, Heart } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type {
   ForecastDailyReading,
@@ -17,13 +17,14 @@ import { DaySheet } from '../components/lumia-ui/DaySheet';
 import { HoroscopeStories } from '../components/lumia-ui/HoroscopeStories';
 import { PersonalDailyStories } from '../components/lumia-ui/PersonalDailyStories';
 import { getZodiacSign } from '../constants';
-import { ZodiacIcon } from '../components/icons/ZodiacIcon';
 import {
   getCachedDailySignHoroscope,
   ensureDailySignHoroscope,
   getCachedTodayAssistantHome,
   getTodayAssistantHome,
 } from '../services/astrologyService';
+import { RoughBorder, Marker, Underline, WashiPhoto, ScribbleSelect } from '../components/doodle/primitives';
+import { DoodleSky, DoodlePlanet, DoodleSun } from '../components/doodle/doodleArt';
 
 // ─── Palette ──────────────────────────────────────────────────────────────────
 // page #F8F5FA · hero/banner lavender #DDD0F0 · ink #1E1230 · soft ink #50465E
@@ -102,20 +103,19 @@ function DateSelector({
             key={key}
             type="button"
             onClick={() => { lumiaSelectionHaptic(); onPick(key); }}
-            className={`flex flex-1 flex-col items-center rounded-full transition-colors ${
-              isToday ? 'bg-[#1E1230] py-[14px]' : 'border-[1.5px] border-[#ECE6F2] bg-white py-[13px]'
-            }`}
+            className="relative flex flex-1 flex-col items-center rounded-full border-[1.5px] border-[#ECEAE4] bg-white py-[13px]"
           >
-            {isToday && <div className="mb-[6px] h-1.5 w-1.5 rounded-full bg-white" />}
-            <span className={`text-[13px] font-medium leading-none ${isToday ? 'text-white/75' : 'text-[#9A93A3]'}`}>
+            {/* Today: hand-drawn scribble ring instead of a fill */}
+            {isToday && <ScribbleSelect color="#9B7FD6" />}
+            <span className="relative text-[13px] font-medium leading-none text-doodle-muted">
               {abbrs[weekdayIndex]}
             </span>
-            <span className={`mt-[9px] text-[19px] font-bold leading-none ${isToday ? 'text-white' : 'text-[#1E1230]'}`}>
+            <span className={`relative mt-[8px] text-[19px] font-extrabold leading-none ${isToday ? 'text-doodle-violet' : 'text-doodle-ink'}`}>
               {date}
             </span>
             {/* Lock badge on non-today days for free users */}
-            <div className="mt-[6px] flex h-2.5 items-center justify-center">
-              {!isToday && locked ? <Lock size={10} className="text-[#C3BBD2]" /> : null}
+            <div className="relative mt-[6px] flex h-2.5 items-center justify-center">
+              {!isToday && locked ? <Lock size={10} className="text-[#C9C4BC]" /> : null}
             </div>
           </button>
         );
@@ -147,33 +147,34 @@ function PlanCard({ title, detail, bg, glyph, badge, footer, onClick, delay = 0,
       transition={{ duration: 0.28, delay, ease: [0.22, 1, 0.36, 1] }}
       whileTap={onClick ? { scale: 0.96 } : undefined}
       onClick={onClick}
-      className={`relative flex min-h-[168px] flex-col overflow-hidden rounded-[24px] p-[18px] shadow-[0_12px_26px_rgba(30,18,48,0.08)] ${onClick ? 'cursor-pointer' : ''} ${className}`}
-      style={{ backgroundColor: bg }}
+      className={`relative flex min-h-[170px] flex-col p-[18px] ${onClick ? 'cursor-pointer' : ''} ${className}`}
+      style={{ backgroundColor: bg, borderRadius: 22 }}
     >
-      {/* Decorative glyph illustration, bottom-right (reference: 3D object) */}
-      <div className="pointer-events-none absolute bottom-10 right-3 z-0 text-[#1E1230]" style={{ opacity: 0.16 }} aria-hidden="true">
+      {/* Hand-drawn border */}
+      <RoughBorder radius={22} strokeWidth={2.2} />
+      {/* Decorative hand-drawn doodle, bottom-right */}
+      <div className="pointer-events-none absolute bottom-3 right-3 z-0" aria-hidden="true">
         {glyph}
       </div>
 
       <div className="relative z-10 flex flex-1 flex-col">
-        {/* Badge pill, top-left (reference: Medium / Light) */}
+        {/* Hand-written tag (reference: Medium / Light) */}
         {badge ? (
-          <span className="mb-3.5 inline-flex w-fit items-center rounded-full bg-white/70 px-3.5 py-1.5 text-[13px] font-semibold leading-none text-[#1E1230]">
+          <span className="mb-1 font-doodleHand text-[18px] leading-none text-doodle-ink/60">
             {badge}
           </span>
         ) : null}
         <h3
           lang={lang}
-          className="break-words pr-1 font-lumiaHome text-[22px] font-extrabold leading-[1.05] tracking-[-0.3px] text-[#1E1230]"
-          style={{ hyphens: 'auto' }}
+          className="break-words pr-1 font-doodleDisplay text-[28px] font-bold leading-[0.9] text-doodle-ink"
         >
           {title}
         </h3>
-        <div className="mt-3 flex-1 pr-2 text-[15px] font-medium leading-relaxed text-[#1E1230]/78">
+        <div className="mt-2.5 flex-1 pr-2 font-lumiaHome text-[14px] font-semibold leading-snug text-doodle-ink/75">
           {detail}
         </div>
         {/* Footer block (reference: "Trainer" row) */}
-        {footer ? <div className="mt-auto pt-3.5">{footer}</div> : null}
+        {footer ? <div className="mt-auto pt-3">{footer}</div> : null}
       </div>
     </motion.div>
   );
@@ -277,7 +278,7 @@ export const Dashboard = memo<DashboardProps>(({
   return (
     <div
       ref={scrollRef}
-      className="h-full overflow-y-auto bg-[#F8F5FA] px-4 pb-[var(--lumia-bottom-tab-clearance)] font-lumiaHome"
+      className="doodle-paper h-full overflow-y-auto px-4 pb-[var(--lumia-bottom-tab-clearance)] font-lumiaHome"
       style={{ paddingTop: 'calc(max(env(safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px), 50px) + 4px)' }}
     >
       <div className="mx-auto w-full max-w-md pb-3">
@@ -289,26 +290,15 @@ export const Dashboard = memo<DashboardProps>(({
               type="button"
               onClick={onOpenSettings}
               aria-label={language === 'ru' ? 'Профиль' : 'Profile'}
-              className="flex flex-shrink-0 items-center"
+              className="flex flex-shrink-0 items-center pr-1"
             >
-              {avatarUrl ? (
-                <img
-                  src={avatarUrl}
-                  alt=""
-                  draggable={false}
-                  className="block h-16 w-16 rounded-full object-cover"
-                />
-              ) : (
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#DDD0F0] text-[24px] font-bold text-[#1E1230] font-lumiaHome">
-                  {userInitial}
-                </div>
-              )}
+              <WashiPhoto src={avatarUrl} initial={userInitial} size={62} />
             </button>
             <div className="flex min-w-0 flex-col justify-center">
-              <p className="truncate font-lumiaHome text-[21px] font-extrabold leading-[1.15] text-[#1E1230]">
-                {language === 'ru' ? `Привет, ${profile.name}` : `Hello, ${profile.name}`}
+              <p className="truncate font-doodleDisplay text-[30px] font-bold leading-[0.95] text-doodle-ink">
+                {language === 'ru' ? `Привет, ${profile.name}!` : `Hi, ${profile.name}!`}
               </p>
-              <p className="mt-0.5 truncate text-[14px] font-medium leading-[1.2] text-[#9A93A3]">
+              <p className="mt-1 truncate font-lumiaHome text-[14px] font-medium leading-[1.2] text-doodle-muted">
                 {`${language === 'ru' ? 'Сегодня' : 'Today'} ${shortDate(today, language)}`}
               </p>
             </div>
@@ -329,31 +319,25 @@ export const Dashboard = memo<DashboardProps>(({
               if (hasChart && premium) { lumiaSelectionHaptic(); setPersonalStoryOpen(true); }
               else pdAction?.();
             }}
-            className="relative flex min-h-[172px] w-full overflow-hidden rounded-[26px] px-[22px] py-[22px] text-left shadow-[0_12px_26px_rgba(123,92,246,0.18)]"
-            style={{ backgroundColor: '#C9BCEF' }}
+            className="relative flex min-h-[168px] w-full flex-col justify-center px-[22px] py-[20px] text-left"
+            style={{ backgroundColor: '#EFE8FC', borderRadius: 24 }}
           >
-            {/* Left: title + subtitle + CTA */}
-            <div className="relative z-10 flex max-w-[58%] flex-col">
-              <h2 className="whitespace-pre-line font-lumiaHome text-[32px] font-extrabold leading-[1.02] tracking-[-0.5px] text-[#1E1230]">
-                {language === 'ru' ? 'Личный\nдень' : 'Personal\nday'}
+            {/* Hand-drawn border */}
+            <RoughBorder radius={24} variant="soft" strokeWidth={2.4} />
+            {/* Celestial doodles, top-right */}
+            <DoodleSky className="pointer-events-none absolute right-2 top-2 z-0" width={148} />
+            <div className="relative z-10 max-w-[62%]">
+              <h2 className="font-doodleDisplay text-[44px] font-bold leading-[0.88] text-doodle-ink">
+                <Marker color="#FFE36E">{language === 'ru' ? 'Личный день' : 'Personal day'}</Marker>
               </h2>
-              <p className="mt-2.5 line-clamp-2 text-[14px] font-semibold leading-snug text-[#1E1230]/70">
+              <p className="mt-3.5 line-clamp-2 font-lumiaHome text-[14px] font-semibold leading-snug text-doodle-ink/70">
                 {pdText}
               </p>
               <span className="mt-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-[0_4px_10px_rgba(30,18,48,0.12)]">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                  <path d="M3 8h10M9.5 4.5L13 8l-3.5 3.5" stroke="#7B5CF6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M3 8h10M9.5 4.5L13 8l-3.5 3.5" stroke="#9B7FD6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </span>
-            </div>
-            {/* Right: decorative colorful cluster (reference: 3D rings) */}
-            <div className="pointer-events-none absolute bottom-0 right-1 top-0 z-0 w-[190px]" aria-hidden="true">
-              <span className="absolute rounded-full shadow-[0_8px_16px_rgba(30,18,48,0.22)]" style={{ right: 84, top: 18, width: 52, height: 52, background: '#5BA9F4' }} />
-              <span className="absolute rounded-full shadow-[0_8px_16px_rgba(30,18,48,0.22)]" style={{ right: 30, top: 10, width: 58, height: 58, background: '#EFEDEA' }} />
-              <span className="absolute rounded-full shadow-[0_8px_16px_rgba(30,18,48,0.22)]" style={{ right: 6, top: 44, width: 50, height: 50, background: '#E8843A' }} />
-              <span className="absolute rounded-full shadow-[0_8px_16px_rgba(30,18,48,0.22)]" style={{ right: 96, top: 66, width: 56, height: 56, background: '#E78BB6' }} />
-              <span className="absolute rounded-full shadow-[0_8px_16px_rgba(30,18,48,0.22)]" style={{ right: 40, top: 76, width: 52, height: 52, background: '#2E2552' }} />
-              <span className="absolute rounded-full shadow-[0_8px_16px_rgba(30,18,48,0.22)]" style={{ right: 2, top: 98, width: 48, height: 48, background: '#2F7D5B' }} />
             </div>
           </motion.button>
         </motion.div>
@@ -369,18 +353,21 @@ export const Dashboard = memo<DashboardProps>(({
         </div>
 
         {/* ── 4. Section heading "Your plan" ── */}
-        <h2 className="mb-3.5 mt-6 font-lumiaHome text-[27px] font-extrabold leading-tight tracking-[-0.3px] text-[#1E1230]">
-          {language === 'ru' ? 'Ваш план' : 'Your plan'}
-        </h2>
+        <div className="mb-3 mt-7">
+          <h2 className="inline-block font-doodleDisplay text-[36px] font-bold leading-none text-doodle-ink">
+            {language === 'ru' ? 'Твой план' : 'Your plan'}
+          </h2>
+          <Underline color="#FF6B6B" width={150} className="mt-0.5 ml-0.5" />
+        </div>
 
         {/* ── 5. Section cards — tall left + stacked right (reference masonry) ── */}
         <div className="flex items-stretch gap-3">
           {/* Left: tall card with profile footer (reference: Judo Group + trainer) */}
           <PlanCard
             title={language === 'ru' ? 'Натальная карта' : 'Natal chart'}
-            badge={language === 'ru' ? 'Карта' : 'Chart'}
+            badge={language === 'ru' ? 'карта' : 'chart'}
             detail={hasChart && chartData ? (
-              <div className="flex flex-col gap-1.5 font-semibold text-[#1E1230]/82">
+              <div className="flex flex-col gap-1.5 font-semibold text-doodle-ink/80">
                 <span>☉&nbsp; {getZodiacSign(language, chartData.sun.sign)}</span>
                 <span>☾&nbsp; {getZodiacSign(language, chartData.moon.sign)}</span>
                 <span>ASC&nbsp; {getZodiacSign(language, chartData.rising.sign)}</span>
@@ -389,20 +376,20 @@ export const Dashboard = memo<DashboardProps>(({
             footer={(
               <div className="flex items-center gap-2.5">
                 {avatarUrl ? (
-                  <img src={avatarUrl} alt="" draggable={false} className="h-10 w-10 flex-shrink-0 rounded-full object-cover" />
+                  <img src={avatarUrl} alt="" draggable={false} className="h-9 w-9 flex-shrink-0 rounded-full object-cover" />
                 ) : (
-                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-white/60 text-[15px] font-bold text-[#1E1230]/80">
+                  <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-white/70 font-doodleDisplay text-[18px] text-doodle-ink">
                     {userInitial}
                   </div>
                 )}
                 <div className="min-w-0 leading-tight">
-                  <div className="text-[12px] font-medium text-[#1E1230]/55">{language === 'ru' ? 'Профиль' : 'Profile'}</div>
-                  <div className="truncate text-[15px] font-bold text-[#1E1230]">{profile.name}</div>
+                  <div className="font-doodleHand text-[15px] text-doodle-ink/55">{language === 'ru' ? 'профиль' : 'profile'}</div>
+                  <div className="truncate font-lumiaHome text-[14px] font-bold text-doodle-ink">{profile.name}</div>
                 </div>
               </div>
             )}
-            bg="#F8B94E"
-            glyph={<Sparkles size={92} strokeWidth={1.4} />}
+            bg="#FFE6A0"
+            glyph={<DoodlePlanet size={56} />}
             onClick={onCreateNatalChart}
             delay={0.10}
             lang={language}
@@ -412,7 +399,7 @@ export const Dashboard = memo<DashboardProps>(({
           <div className="flex flex-1 flex-col gap-3">
             <PlanCard
               title={language === 'ru' ? 'Гороскоп' : 'Horoscope'}
-              badge={language === 'ru' ? 'Сегодня' : 'Today'}
+              badge={language === 'ru' ? 'сегодня' : 'today'}
               detail={(
                 <span className="line-clamp-3">
                   {signLoading
@@ -420,8 +407,8 @@ export const Dashboard = memo<DashboardProps>(({
                     : (signReading?.summary || (language === 'ru' ? 'Что тебя ждёт сегодня' : 'What today holds'))}
                 </span>
               )}
-              bg="#A8C8F2"
-              glyph={selectedSign ? <ZodiacIcon sign={selectedSign} size={96} /> : <Star size={92} strokeWidth={1.4} />}
+              bg="#CFE6F7"
+              glyph={<DoodleSun size={54} />}
               onClick={() => { lumiaSelectionHaptic(); setHoroscopeOpen(true); }}
               delay={0.14}
               lang={language}
@@ -431,31 +418,33 @@ export const Dashboard = memo<DashboardProps>(({
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.28, delay: 0.18, ease: [0.22, 1, 0.36, 1] }}
-              className="flex items-center justify-around rounded-[24px] bg-[#F6C9DB] px-3.5 py-4 shadow-[0_12px_26px_rgba(30,18,48,0.08)]"
+              className="relative flex items-center justify-around px-3.5 py-4"
+              style={{ backgroundColor: '#FFD3E6', borderRadius: 22 }}
             >
+              <RoughBorder radius={22} strokeWidth={2} />
               <button
                 type="button"
                 aria-label={language === 'ru' ? 'Спроси Lumia' : 'Ask Lumia'}
                 onClick={() => { lumiaSelectionHaptic(); onOpenOracle?.(); }}
-                className="flex h-[50px] w-[50px] items-center justify-center rounded-full bg-[#CE86C9] active:scale-95"
+                className="relative flex h-[50px] w-[50px] items-center justify-center rounded-full bg-white active:scale-95"
               >
-                <MessageCircle size={23} className="text-white" strokeWidth={2} />
+                <MessageCircle size={23} className="text-doodle-ink" strokeWidth={2} style={{ filter: 'url(#doodle-rough2)' }} />
               </button>
               <button
                 type="button"
                 aria-label={language === 'ru' ? 'Совместимость' : 'Compatibility'}
                 onClick={() => { lumiaSelectionHaptic(); onOpenSynastry?.(); }}
-                className="flex h-[50px] w-[50px] items-center justify-center rounded-full bg-[#CE86C9] active:scale-95"
+                className="relative flex h-[50px] w-[50px] items-center justify-center rounded-full bg-white active:scale-95"
               >
-                <Heart size={23} className="text-white" strokeWidth={2} />
+                <Heart size={23} className="text-doodle-ink" strokeWidth={2} style={{ filter: 'url(#doodle-rough2)' }} />
               </button>
               <button
                 type="button"
                 aria-label={language === 'ru' ? 'Личный день' : 'Personal day'}
                 onClick={() => { lumiaSelectionHaptic(); openPersonalDaily('overview'); }}
-                className="flex h-[50px] w-[50px] items-center justify-center rounded-full bg-[#CE86C9] active:scale-95"
+                className="relative flex h-[50px] w-[50px] items-center justify-center rounded-full bg-white active:scale-95"
               >
-                <Sparkles size={23} className="text-white" strokeWidth={2} />
+                <Sparkles size={23} className="text-doodle-ink" strokeWidth={2} style={{ filter: 'url(#doodle-rough2)' }} />
               </button>
             </motion.div>
           </div>

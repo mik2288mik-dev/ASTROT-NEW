@@ -48,6 +48,23 @@ module.exports = {
           peach: 'var(--lumia-home-peach)',
           line: 'var(--lumia-home-line)',
         },
+        /** Doodle / diary skin — hand-drawn personal-diary direction (docs/doodle-redesign.md) */
+        doodle: {
+          ink: '#20242A',
+          paper: '#FFFFFF',
+          muted: '#7C7770',
+          hl: '#FFE36E',
+          coral: '#FF6B6B',
+          blue: '#4DA6FF',
+          violet: '#9B7FD6',
+          green: '#54C28A',
+          pink: '#FF8FC4',
+          syellow: '#FFE6A0',
+          sblue: '#CFE6F7',
+          sviolet: '#EFE8FC',
+          spink: '#FFD3E6',
+          sgreen: '#D8F0E2',
+        },
       },
       fontSize: {
         'base': ['1rem', { lineHeight: '1.6' }],
@@ -73,6 +90,9 @@ module.exports = {
         lumiaHome: ['"Manrope"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
         lumiaHomeDisplay: ['"Geologica"', '"Manrope"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
         lora: ['"Lora"', 'Georgia', 'Cambria', 'Times New Roman', 'serif'],
+        /** Doodle skin: handwritten display + small hand labels; body stays lumiaHome (Manrope) */
+        doodleDisplay: ['"Caveat"', '"Ink Free"', '"Segoe Print"', 'cursive'],
+        doodleHand: ['"Neucha"', '"Ink Free"', '"Segoe Print"', 'cursive'],
       },
       animation: {
         'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
