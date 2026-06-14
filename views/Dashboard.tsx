@@ -1,5 +1,5 @@
 import React, { memo, useEffect, useMemo, useState } from 'react';
-import { FileText, Lock, Sparkles, Star, MessageCircle, Heart } from 'lucide-react';
+import { Lock, Sparkles, Star, MessageCircle, Heart } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type {
   ForecastDailyReading,
@@ -131,13 +131,15 @@ type PlanCardProps = {
   detail: React.ReactNode;
   bg: string;
   glyph: React.ReactNode;
+  badge?: string;
+  footer?: React.ReactNode;
   onClick?: () => void;
   delay?: number;
   lang: 'ru' | 'en';
   className?: string;
 };
 
-function PlanCard({ title, detail, bg, glyph, onClick, delay = 0, lang, className = '' }: PlanCardProps) {
+function PlanCard({ title, detail, bg, glyph, badge, footer, onClick, delay = 0, lang, className = '' }: PlanCardProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -145,18 +147,24 @@ function PlanCard({ title, detail, bg, glyph, onClick, delay = 0, lang, classNam
       transition={{ duration: 0.28, delay, ease: [0.22, 1, 0.36, 1] }}
       whileTap={onClick ? { scale: 0.96 } : undefined}
       onClick={onClick}
-      className={`relative flex min-h-[124px] flex-col overflow-hidden rounded-[18px] p-4 shadow-[0_8px_22px_rgba(30,18,48,0.08)] ${onClick ? 'cursor-pointer' : ''} ${className}`}
+      className={`relative flex min-h-[150px] flex-col overflow-hidden rounded-[22px] p-4 shadow-[0_10px_24px_rgba(30,18,48,0.08)] ${onClick ? 'cursor-pointer' : ''} ${className}`}
       style={{ backgroundColor: bg }}
     >
-      {/* Soft glyph watermark, bottom-right */}
-      <div className="pointer-events-none absolute -bottom-3 -right-2 z-0 text-[#1E1230]" style={{ opacity: 0.12 }} aria-hidden="true">
+      {/* Decorative glyph illustration, bottom-right (reference: 3D object) */}
+      <div className="pointer-events-none absolute -bottom-3 -right-2 z-0 text-[#1E1230]" style={{ opacity: 0.13 }} aria-hidden="true">
         {glyph}
       </div>
 
       <div className="relative z-10 flex flex-1 flex-col">
+        {/* Badge pill, top-left (reference: Medium / Light) */}
+        {badge ? (
+          <span className="mb-2 inline-flex w-fit items-center rounded-full bg-white/85 px-2.5 py-1 text-[11px] font-semibold leading-none text-[#1E1230]/75">
+            {badge}
+          </span>
+        ) : null}
         <h3
           lang={lang}
-          className="break-words pr-1 font-lumiaHome text-[17px] font-extrabold leading-tight text-[#1E1230]"
+          className="break-words pr-1 font-lumiaHome text-[18px] font-extrabold leading-tight text-[#1E1230]"
           style={{ hyphens: 'auto' }}
         >
           {title}
@@ -164,11 +172,8 @@ function PlanCard({ title, detail, bg, glyph, onClick, delay = 0, lang, classNam
         <div className="mt-1.5 flex-1 pr-2 text-[13px] font-medium leading-snug text-[#1E1230]/65">
           {detail}
         </div>
-        <div className="mt-1 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 shadow-sm">
-          <svg width="14" height="14" viewBox="0 0 15 15" fill="none" aria-hidden="true">
-            <path d="M2.5 7.5h10M9 4l3.5 3.5L9 11" stroke="#1E1230" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </div>
+        {/* Footer sub-card (reference: white "Trainer" block) */}
+        {footer ? <div className="mt-2.5">{footer}</div> : null}
       </div>
     </motion.div>
   );
@@ -310,6 +315,48 @@ export const Dashboard = memo<DashboardProps>(({
           </div>
         </header>
 
+        {/* ── 2. Hero — big lavender "Daily challenge" card (Personal day) ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.06, ease: [0.22, 1, 0.36, 1] }}
+          className="mt-5"
+        >
+          <motion.button
+            type="button"
+            whileTap={{ scale: 0.98 }}
+            onClick={() => {
+              if (hasChart && premium) { lumiaSelectionHaptic(); setPersonalStoryOpen(true); }
+              else pdAction?.();
+            }}
+            className="relative flex w-full overflow-hidden rounded-[24px] px-5 py-5 text-left shadow-[0_14px_30px_rgba(123,92,246,0.28)]"
+            style={{ background: 'linear-gradient(135deg, #A593EA 0%, #8C78DF 100%)' }}
+          >
+            {/* Left: title + subtitle + CTA */}
+            <div className="relative z-10 flex max-w-[62%] flex-col">
+              <h2 className="whitespace-pre-line font-lumiaHome text-[26px] font-extrabold leading-[1.04] text-white">
+                {language === 'ru' ? 'Личный\nдень' : 'Personal\nday'}
+              </h2>
+              <p className="mt-2 line-clamp-2 text-[13px] font-medium leading-snug text-white/85">
+                {pdText}
+              </p>
+              <span className="mt-4 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-sm">
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <path d="M3 8h10M9.5 4.5L13 8l-3.5 3.5" stroke="#7B5CF6" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </span>
+            </div>
+            {/* Right: decorative colorful cluster (reference: 3D rings) */}
+            <div className="pointer-events-none absolute right-3 top-1/2 z-0 -translate-y-1/2" aria-hidden="true">
+              <div className="relative h-24 w-28">
+                <span className="absolute right-1 top-3 h-14 w-14 rounded-full bg-[#F6C9DB] shadow-md" />
+                <span className="absolute right-9 top-0 h-12 w-12 rounded-full bg-[#F6C64F] shadow-md" />
+                <span className="absolute right-2 top-12 h-11 w-11 rounded-full bg-[#A8C8F2] shadow-md" />
+                <span className="absolute right-12 top-9 h-10 w-10 rounded-full bg-[#2A1E55] shadow-md" />
+              </div>
+            </div>
+          </motion.button>
+        </motion.div>
 
         {/* ── 3. Date Selector ── */}
         <div className="mt-5">
@@ -321,18 +368,27 @@ export const Dashboard = memo<DashboardProps>(({
           />
         </div>
 
-        {/* ── Section cards — tall left + stacked right (reference masonry) ── */}
-        <div className="mt-5 flex items-stretch gap-3">
+        {/* ── 4. Section heading "Your plan" ── */}
+        <h2 className="mb-3 mt-6 font-lumiaHome text-[20px] font-extrabold leading-tight text-[#1E1230]">
+          {language === 'ru' ? 'Ваш план' : 'Your plan'}
+        </h2>
+
+        {/* ── 5. Section cards — tall left + stacked right (reference masonry) ── */}
+        <div className="flex items-stretch gap-3">
           {/* Left: tall card, fills the height of the right stack */}
           <PlanCard
             title={language === 'ru' ? 'Натальная карта' : 'Natal chart'}
-            detail={hasChart && chartData ? (
-              <div className="flex flex-col gap-0.5 font-semibold text-[#1E1230]/80">
-                <span>☉ {getZodiacSign(language, chartData.sun.sign)}</span>
-                <span>☾ {getZodiacSign(language, chartData.moon.sign)}</span>
-                <span>ASC {getZodiacSign(language, chartData.rising.sign)}</span>
+            badge={language === 'ru' ? 'Карта' : 'Chart'}
+            detail={language === 'ru' ? 'Кто ты на самом деле' : 'Who you really are'}
+            footer={hasChart && chartData ? (
+              <div className="rounded-[14px] bg-white/80 px-3 py-2.5 shadow-sm">
+                <div className="flex flex-col gap-0.5 text-[12px] font-semibold text-[#1E1230]/80">
+                  <span>☉ {getZodiacSign(language, chartData.sun.sign)}</span>
+                  <span>☾ {getZodiacSign(language, chartData.moon.sign)}</span>
+                  <span>ASC {getZodiacSign(language, chartData.rising.sign)}</span>
+                </div>
               </div>
-            ) : (language === 'ru' ? 'Кто ты на самом деле' : 'Who you really are')}
+            ) : undefined}
             bg="#F6C64F"
             glyph={<Sparkles size={92} strokeWidth={1.4} />}
             onClick={onCreateNatalChart}
@@ -344,6 +400,7 @@ export const Dashboard = memo<DashboardProps>(({
           <div className="flex flex-1 flex-col gap-3">
             <PlanCard
               title={language === 'ru' ? 'Гороскоп' : 'Horoscope'}
+              badge={language === 'ru' ? 'Сегодня' : 'Today'}
               detail={(
                 <span className="line-clamp-2">
                   {signLoading
@@ -359,6 +416,7 @@ export const Dashboard = memo<DashboardProps>(({
             />
             <PlanCard
               title={language === 'ru' ? 'Спроси Lumia' : 'Ask Lumia'}
+              badge={language === 'ru' ? 'Чат' : 'Chat'}
               detail={language === 'ru' ? '«Что для меня важно сегодня?»' : '“What matters for me today?”'}
               bg="#C8E4CE"
               glyph={<MessageCircle size={88} strokeWidth={1.4} />}
@@ -368,6 +426,7 @@ export const Dashboard = memo<DashboardProps>(({
             />
             <PlanCard
               title={language === 'ru' ? 'Совместимость' : 'Compatibility'}
+              badge={language === 'ru' ? 'Пара' : 'Match'}
               detail={language === 'ru' ? 'Вы подходите друг другу?' : 'Do you match?'}
               bg="#F6C9DB"
               glyph={<Heart size={88} strokeWidth={1.4} />}
@@ -377,37 +436,6 @@ export const Dashboard = memo<DashboardProps>(({
             />
           </div>
         </div>
-
-        {/* ── 6. Personal Daily Banner — lavender like the hero ── */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.28, delay: 0.28, ease: [0.22, 1, 0.36, 1] }}
-          className="mt-3"
-        >
-          <motion.button
-            type="button"
-            onClick={() => {
-              if (hasChart && premium) { lumiaSelectionHaptic(); setPersonalStoryOpen(true); }
-              else pdAction?.();
-            }}
-            whileTap={{ scale: 0.97 }}
-            className="flex w-full items-center gap-4 rounded-[20px] bg-[#DDD0F0] px-5 py-[18px] text-left"
-          >
-            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-[16px] bg-[#7B5CF6]">
-              <FileText size={22} className="text-white" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-[16px] font-bold text-[#1E1230]">{language === 'ru' ? 'Личный день' : 'Personal day'}</p>
-              <p className="mt-0.5 line-clamp-2 text-[13px] leading-snug text-[#5A4F68]">{pdText}</p>
-            </div>
-            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-[#7B5CF6]">
-              <svg width="17" height="17" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                <path d="M3 8h10M9.5 4.5L13 8l-3.5 3.5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </div>
-          </motion.button>
-        </motion.div>
 
       </div>
 
