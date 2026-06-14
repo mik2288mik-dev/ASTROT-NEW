@@ -18,7 +18,6 @@ import { HoroscopeStories } from '../components/lumia-ui/HoroscopeStories';
 import { PersonalDailyStories } from '../components/lumia-ui/PersonalDailyStories';
 import { getZodiacSign } from '../constants';
 import { ZodiacIcon } from '../components/icons/ZodiacIcon';
-import { DaySummary } from '../components/Dashboard/home/DaySummary';
 import {
   getCachedDailySignHoroscope,
   ensureDailySignHoroscope,
@@ -291,27 +290,25 @@ export const Dashboard = memo<DashboardProps>(({
                   src={avatarUrl}
                   alt=""
                   draggable={false}
-                  className="h-[58px] w-[58px] rounded-full object-cover"
+                  className="h-12 w-12 rounded-full object-cover"
                 />
               ) : (
-                <div className="flex h-[58px] w-[58px] items-center justify-center rounded-full bg-[#DDD0F0] text-[22px] font-bold text-[#1E1230] font-lumiaHome">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#DDD0F0] text-[18px] font-bold text-[#1E1230] font-lumiaHome">
                   {userInitial}
                 </div>
               )}
             </button>
             <div className="min-w-0">
-              <p className="truncate font-lumiaHome text-[21px] font-bold leading-tight text-[#1E1230]">
+              <p className="truncate font-lumiaHome text-[17px] font-semibold leading-tight text-[#1E1230]">
                 {language === 'ru' ? `Привет, ${profile.name}` : `Hello, ${profile.name}`}
               </p>
-              <p className="mt-1 text-[14px] font-medium leading-none text-[#9A93A3]">
+              <p className="mt-0.5 text-[13px] font-medium leading-tight text-[#9A93A3]">
                 {`${language === 'ru' ? 'Сегодня' : 'Today'} ${shortDate(today, language)}`}
               </p>
             </div>
           </div>
         </header>
 
-        {/* ── 2. Сводка дня (Moon + best time) ── */}
-        <DaySummary profile={profile} chartData={chartData} chartId={chartId} language={language} />
 
         {/* ── 3. Date Selector ── */}
         <div className="mt-5">
