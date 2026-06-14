@@ -272,7 +272,7 @@ export const Dashboard = memo<DashboardProps>(({
     <div
       ref={scrollRef}
       className="h-full overflow-y-auto bg-[#F8F5FA] px-4 pb-[var(--lumia-bottom-tab-clearance)] font-lumiaHome"
-      style={{ paddingTop: 'calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px), 24px) + 1.75rem)' }}
+      style={{ paddingTop: 'calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px), 84px) + 12px)' }}
     >
       <div className="mx-auto w-full max-w-md pb-3">
 
@@ -283,14 +283,14 @@ export const Dashboard = memo<DashboardProps>(({
               type="button"
               onClick={onOpenSettings}
               aria-label={language === 'ru' ? 'Профиль' : 'Profile'}
-              className="flex-shrink-0"
+              className="flex flex-shrink-0 items-center"
             >
               {avatarUrl ? (
                 <img
                   src={avatarUrl}
                   alt=""
                   draggable={false}
-                  className="h-11 w-11 rounded-full object-cover"
+                  className="block h-11 w-11 rounded-full object-cover"
                 />
               ) : (
                 <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#DDD0F0] text-[17px] font-bold text-[#1E1230] font-lumiaHome">
