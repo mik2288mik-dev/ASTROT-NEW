@@ -290,10 +290,10 @@ export const Dashboard = memo<DashboardProps>(({
                   src={avatarUrl}
                   alt=""
                   draggable={false}
-                  className="h-12 w-12 rounded-full object-cover"
+                  className="h-11 w-11 rounded-full object-cover"
                 />
               ) : (
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#DDD0F0] text-[18px] font-bold text-[#1E1230] font-lumiaHome">
+                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#DDD0F0] text-[17px] font-bold text-[#1E1230] font-lumiaHome">
                   {userInitial}
                 </div>
               )}
