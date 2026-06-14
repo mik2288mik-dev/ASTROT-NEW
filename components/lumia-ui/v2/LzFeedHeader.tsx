@@ -6,6 +6,7 @@ type LzFeedHeaderProps = {
   greeting: string;
   name: string;
   motivation: string;
+  dateLabel?: string;
   avatarSrc?: string | null;
   avatarInitial?: string;
   onAvatarClick?: () => void;
@@ -16,27 +17,37 @@ export function LzFeedHeader({
   greeting,
   name,
   motivation,
+  dateLabel,
   avatarSrc,
   avatarInitial,
   onAvatarClick,
   className,
 }: LzFeedHeaderProps) {
-  const avatar = <MonoAvatar src={avatarSrc} initial={avatarInitial} size={52} />;
+  const avatar = <MonoAvatar src={avatarSrc} initial={avatarInitial} size={56} />;
 
   return (
-    <header className={cn('flex items-start gap-3', className)}>
-      {onAvatarClick ? (
-        <button type="button" onClick={onAvatarClick} className="flex-shrink-0" aria-label="Profile">
-          {avatar}
-        </button>
-      ) : (
-        avatar
-      )}
-      <div className="min-w-0 flex-1 pt-1">
-        <p className="text-[14px] font-medium text-mono-muted">{greeting}</p>
-        <h1 className="truncate text-[26px] font-bold leading-tight tracking-[-0.02em] text-mono-ink">{name}</h1>
-        <p className="mt-1 line-clamp-2 text-[14px] font-medium italic leading-snug text-mono-muted">{motivation}</p>
+    <header className={cn('lz-feed-header', className)}>
+      <div className="flex items-start gap-3.5">
+        {onAvatarClick ? (
+          <button type="button" onClick={onAvatarClick} className="flex-shrink-0 rounded-full ring-2 ring-mono-line/80" aria-label="Profile">
+            {avatar}
+          </button>
+        ) : (
+          avatar
+        )}
+        <div className="min-w-0 flex-1 pt-0.5">
+          <div className="flex items-baseline justify-between gap-2">
+            <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-mono-muted">{greeting}</p>
+            {dateLabel ? (
+              <p className="shrink-0 text-[12px] font-medium text-mono-muted">{dateLabel}</p>
+            ) : null}
+          </div>
+          <h1 className="mt-1 truncate text-[clamp(1.65rem,6vw,2rem)] font-bold leading-[1.05] tracking-[-0.03em] text-mono-ink">
+            {name}
+          </h1>
+        </div>
       </div>
+      <blockquote className="lz-motivation-quote mt-4">{motivation}</blockquote>
     </header>
   );
 }

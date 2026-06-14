@@ -7,7 +7,7 @@ import type {
   UserProfile,
 } from '../../types';
 import { getZodiacSign } from '../../constants';
-import { getMoscowTodayKey } from '../../lib/date-utils';
+import { getMoscowTodayKey, formatLumiaDate } from '../../lib/date-utils';
 import { hasActivePremium, hasNatalChart } from '../../lib/accessMatrix';
 import { getDailyMotivation, getTimeGreeting } from '../../lib/localDailyMotivation';
 import {
@@ -192,14 +192,15 @@ export const TodayFeed = memo<TodayFeedProps>(({
   const askQuestions = getAskPresetQuestions(language);
 
   return (
-    <MonoPage scrollRef={scrollRef} className="px-4">
-      <div className="mx-auto w-full max-w-md pb-28">
+    <MonoPage scrollRef={scrollRef} className="lz-feed-page px-4">
+      <div className="mx-auto w-full max-w-md pb-8">
         <MonoStagger className="space-y-0">
           <MonoStaggerItem>
             <LzFeedHeader
               greeting={greeting}
               name={profile.name}
               motivation={motivation}
+              dateLabel={formatLumiaDate(today, language)}
               avatarSrc={avatarUrl}
               avatarInitial={userInitial}
               onAvatarClick={onOpenSettings}
@@ -215,6 +216,7 @@ export const TodayFeed = memo<TodayFeedProps>(({
                 focus: metrics.focus,
               }}
               labels={metricLabels}
+              sectionLabel={language === 'ru' ? 'Сегодня' : 'Today'}
               footnote={metrics.footnote}
               onMetricClick={() => {
                 lumiaSelectionHaptic();
@@ -231,7 +233,9 @@ export const TodayFeed = memo<TodayFeedProps>(({
               title={signName}
               summary={horoscopeSummary}
               actionLabel={language === 'ru' ? 'Читать' : 'Read'}
-              illustration={<MonoIllustHoroscope size={96} />}
+              artSlot="homeHoroscope"
+              illustration={<MonoIllustHoroscope size={112} />}
+              delay={0.05}
               onClick={() => {
                 lumiaSelectionHaptic();
                 onOpenHoroscopeLayer('sign', { source: 'today_feed' });
@@ -245,7 +249,9 @@ export const TodayFeed = memo<TodayFeedProps>(({
               title={language === 'ru' ? 'Натальная карта' : 'Natal chart'}
               summary={natalSummary}
               actionLabel={hasChart ? (language === 'ru' ? 'Карта' : 'Open chart') : (language === 'ru' ? 'Создать' : 'Create')}
-              illustration={<MonoIllustChart size={96} />}
+              artSlot="homeNatal"
+              illustration={<MonoIllustChart size={112} />}
+              delay={0.1}
               onClick={() => {
                 lumiaSelectionHaptic();
                 if (hasChart) onCreateNatalChart?.();

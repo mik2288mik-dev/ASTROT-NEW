@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import type { NatalChartData, UserProfile } from '../../types';
 import { Synastry } from '../Synastry';
+import { getLzArtSrc } from '../../lib/lzArtAssets';
+import { LzArtPlate } from '../../components/lumia-ui/v2/LzArtPlate';
 import {
   MonoButton,
   MonoIllustCouple,
@@ -40,22 +42,29 @@ export function UnionRoom(props: UnionRoomProps) {
   }
 
   return (
-    <MonoPage className="px-4" withTabClearance>
-      <div className="mx-auto max-w-[28rem] pb-28">
+    <MonoPage className="lz-feed-page px-4" withTabClearance>
+      <div className="mx-auto max-w-[28rem] pb-6">
         <MonoStagger>
           <MonoStaggerItem>
-            <div className="relative overflow-hidden rounded-mono-card bg-mono-plate px-5 py-8">
-              <MonoIllustCouple className="absolute right-1 top-1 opacity-35" size={120} />
-              <MonoTag>{language === 'ru' ? 'союз' : 'union'}</MonoTag>
-              <h1 className="mt-4 max-w-[75%] font-lora text-[32px] font-bold leading-[1.05] text-mono-ink">
-                {language === 'ru' ? 'Проверь вашу связь' : 'Check your bond'}
-              </h1>
-              <p className="mt-3 max-w-[85%] text-[15px] leading-relaxed text-mono-muted">
-                {language === 'ru'
-                  ? 'Почему вас тянет, где вы задеваете друг друга и как говорить яснее.'
-                  : 'Why you connect, where friction shows up, and how to talk clearer.'}
-              </p>
-            </div>
+            <section className="lz-feed-card overflow-hidden p-0">
+              <LzArtPlate
+                imageSrc={getLzArtSrc('unionLanding')}
+                fallback={<MonoIllustCouple size={130} className="opacity-85" />}
+                aspect="tall"
+                className="rounded-none max-h-[220px]"
+              />
+              <div className="px-5 pb-6 pt-4">
+                <MonoTag>{language === 'ru' ? 'союз' : 'union'}</MonoTag>
+                <h1 className="mt-3 font-lora text-[clamp(1.7rem,6vw,2rem)] font-bold leading-[1.05] text-mono-ink">
+                  {language === 'ru' ? 'Проверь вашу связь' : 'Check your bond'}
+                </h1>
+                <p className="mt-3 text-[15px] leading-relaxed text-mono-muted">
+                  {language === 'ru'
+                    ? 'Почему вас тянет, где вы задеваете друг друга и как говорить яснее.'
+                    : 'Why you connect, where friction shows up, and how to talk clearer.'}
+                </p>
+              </div>
+            </section>
           </MonoStaggerItem>
 
           <MonoStaggerItem>

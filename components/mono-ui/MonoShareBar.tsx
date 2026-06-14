@@ -8,9 +8,10 @@ type MonoShareBarProps = {
   label?: string;
   onShare?: () => void;
   className?: string;
+  withTabClearance?: boolean;
 };
 
-export function MonoShareBar({ label = 'Share', onShare, className }: MonoShareBarProps) {
+export function MonoShareBar({ label = 'Share', onShare, className, withTabClearance = false }: MonoShareBarProps) {
   const reduce = useReducedMotion();
 
   const bar = (
@@ -27,7 +28,10 @@ export function MonoShareBar({ label = 'Share', onShare, className }: MonoShareB
   return (
     <div
       className={cn(
-        'fixed bottom-0 left-0 right-0 z-50 flex justify-center px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3',
+        'fixed bottom-0 left-0 right-0 z-50 flex justify-center px-4 pt-3',
+        withTabClearance
+          ? 'pb-[calc(var(--lumia-bottom-tab-clearance)+0.35rem)]'
+          : 'pb-[max(1rem,env(safe-area-inset-bottom))]',
         className,
       )}
     >

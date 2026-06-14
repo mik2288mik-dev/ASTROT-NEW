@@ -9,9 +9,9 @@ type LzAskPresetsProps = {
 
 export function LzAskPresets({ title, questions, onPick }: LzAskPresetsProps) {
   return (
-    <section className="mt-8 pb-2">
-      <h3 className="text-[22px] font-bold tracking-[-0.02em] text-mono-ink">{title}</h3>
-      <div className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1 scrollbar-hide">
+    <section className="lz-ask-section mt-10 pb-2">
+      <p className="lz-kicker">{title}</p>
+      <div className="-mx-1 mt-4 flex gap-2.5 overflow-x-auto px-1 pb-1 scrollbar-hide">
         {questions.map((question) => (
           <button
             key={question}
@@ -20,7 +20,7 @@ export function LzAskPresets({ title, questions, onPick }: LzAskPresetsProps) {
               lumiaSelectionHaptic();
               onPick(question);
             }}
-            className="shrink-0 rounded-full border border-mono-line bg-mono-white px-4 py-2.5 text-left text-[13px] font-semibold leading-snug text-mono-ink active:scale-[0.98]"
+            className="lz-ask-pill shrink-0 max-w-[240px] text-left active:scale-[0.98]"
           >
             {question}
           </button>
