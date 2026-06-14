@@ -132,11 +132,10 @@ describe('Premium-only product model', () => {
   });
 
   it('Personal daily premium content routes non-premium users to Premium CTA', () => {
-    const horoscope = fs.readFileSync(path.join(ROOT, 'views', 'Horoscope.tsx'), 'utf8');
     const personalDaily = fs.readFileSync(path.join(ROOT, 'views', 'DailyContentScreens.tsx'), 'utf8');
+    const todayFeed = fs.readFileSync(path.join(ROOT, 'views', 'v2', 'TodayFeed.tsx'), 'utf8');
     expect(personalDaily).toContain('Открыть Premium');
-    expect(horoscope).toContain('Открыть Premium');
-    expect(horoscope).not.toContain('requestStarsOneOffPayment');
+    expect(todayFeed).toContain("onRequestPremium?.('personal_daily')");
     expect(personalDaily).not.toContain('requestStarsOneOffPayment');
   });
 

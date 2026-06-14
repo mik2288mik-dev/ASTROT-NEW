@@ -5,29 +5,29 @@ const ROOT = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
 describe('Horoscope product flow', () => {
-  it('keeps sign and personal modes distinct and supports another sign plus today/week', () => {
-    const source = read('views/Horoscope.tsx');
-    expect(source).toContain("type HoroscopeMode = 'sign' | 'personal'");
-    expect(source).toContain("type SignPeriod = 'today' | 'week'");
-    expect(source).toContain("'Другой знак'");
-    expect(source).toContain("'По знаку'");
-    expect(source).toContain("'Личный день'");
-    expect(source).toContain('ZODIAC_SIGNS.map');
+  it('keeps sign reader distinct from personal daily and supports sign picker', () => {
+    const source = read('views/v2/HoroscopeReader.tsx');
+    expect(source).toContain('LzSignPickerSheet');
+    expect(source).toContain('ensureDailySignHoroscope');
+    expect(source).toContain('getCachedDailySignHoroscope');
+    expect(source).toContain('ZODIAC_KEYS');
+    expect(source).not.toContain('loadHumanDailySection');
   });
 
-  it('uses accessMatrix for personal day gates and persists selected sign', () => {
-    const source = read('views/Horoscope.tsx');
-    expect(source).toContain("canAccessFeature('personal_daily'");
-    expect(source).toContain('selectedZodiacSign: sign');
+  it('uses sign persistence and profile update on sign change', () => {
+    const source = read('views/v2/HoroscopeReader.tsx');
+    expect(source).toContain('selectedZodiacSign: normalized');
     expect(source).toContain('saveProfile(updated)');
     expect(source).toContain('lumia:selected-zodiac-sign');
   });
 
-  it('exposes Horoscope as a bottom tab', () => {
+  it('exposes Horoscope and Ask as bottom tabs', () => {
     const tabs = read('components/lumia-ui/LumiaBottomTabBar.tsx');
     expect(tabs).toContain("id: 'horoscope'");
     expect(tabs).toContain("active: view === 'horoscope'");
-    expect(tabs).toContain("'dashboard', 'horoscope', 'chart', 'synastry', 'settings'");
+    expect(tabs).toContain("id: 'ask'");
+    expect(tabs).toContain("active: view === 'oracle'");
+    expect(tabs).toContain("'dashboard', 'horoscope', 'chart', 'synastry', 'oracle'");
   });
 
   it('caches weekly sign content in shared content_cache scope', () => {

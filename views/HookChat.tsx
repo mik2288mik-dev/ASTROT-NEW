@@ -3,8 +3,8 @@ import React, { useEffect, useState, useRef } from 'react';
 import { UserProfile, NatalChartData } from '../types';
 import { getNatalIntro } from '../services/astrologyService';
 import { motion } from 'framer-motion';
-import { Loading } from '../components/ui/Loading';
 import { getText } from '../constants';
+import { MonoButton, MonoChatBubble, MonoPage } from '../components/mono-ui';
 
 interface HookChatProps {
     profile: UserProfile;
@@ -22,117 +22,87 @@ export const HookChat: React.FC<HookChatProps> = ({ profile, chartData, onComple
     const [messages, setMessages] = useState<MessageItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const scrollRef = useRef<HTMLDivElement>(null);
-    
+    const language = profile.language === 'en' ? 'en' : 'ru';
+
     useEffect(() => {
         const sequence = async () => {
             setIsLoading(true);
-            
+
             try {
-                // Получаем natalIntro из профиля или генерируем
                 let introText: string;
-                
+
                 try {
-                        introText = await getNatalIntro(profile, chartData);
+                    introText = await getNatalIntro(profile, chartData);
                 } catch (error) {
                     console.error('[HookChat] Failed to get natal intro:', error);
-                    introText = profile.language === 'ru'
+                    introText = language === 'ru'
                         ? `Привет, ${profile.name}! Я уже собрала твою личную основу. Дальше покажу, что поможет тебе яснее видеть себя, отношения и важные решения.`
                         : `Hi, ${profile.name}! I've already gathered your personal foundation. Next I'll show what can help you see yourself, your relationships, and key decisions more clearly.`;
                 }
-                
+
                 setIsLoading(false);
-                
-                // Animation Sequence - показываем natalIntro
+
                 const greetingText = getText(profile.language, 'hook.intro').replace('{name}', profile.name);
                 setMessages([{ type: 'text', text: greetingText }]);
-                await new Promise(r => setTimeout(r, 1500));
-                
-                // Показываем natalIntro как один большой текст
-                setMessages(prev => [...prev, { 
-                    type: 'text',
-                    text: introText || ''
-                }]);
-                await new Promise(r => setTimeout(r, 3000));
+                await new Promise((r) => setTimeout(r, 1500));
 
-                // CTA (Final)
-                setMessages(prev => [...prev, { 
+                setMessages((prev) => [...prev, { type: 'text', text: introText || '' }]);
+                await new Promise((r) => setTimeout(r, 3000));
+
+                setMessages((prev) => [...prev, {
                     type: 'cta',
-                    text: getText(profile.language, 'hook.done')
+                    text: getText(profile.language, 'hook.done'),
                 }]);
-
             } catch (e) {
                 console.error(e);
                 setIsLoading(false);
-                onComplete(); // Fallback to Dashboard
+                onComplete();
             }
         };
         sequence();
-    }, []);
+    }, [chartData, language, onComplete, profile]);
 
     useEffect(() => {
-        // Auto scroll to bottom
-        if (scrollRef.current) {
-            scrollRef.current.scrollIntoView({ behavior: 'smooth' });
-        }
+        scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
     if (isLoading) {
         return (
-            <div className="fixed inset-0 flex items-center justify-center bg-astro-bg z-50">
-                <Loading message={getText(profile.language, 'hook.analyzing')} />
-            </div>
+            <MonoPage className="flex min-h-full items-center justify-center px-4" animate={false}>
+                <p className="text-[15px] font-medium text-mono-muted">
+                    {getText(profile.language, 'hook.analyzing')}
+                </p>
+            </MonoPage>
         );
     }
 
     return (
-        <div 
-            className="flex flex-col h-full bg-astro-bg p-4 pt-8 overflow-y-auto scrollbar-hide"
-            style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 2rem)', paddingBottom: 'calc(6rem + env(safe-area-inset-bottom, 0px))' }}
-        >
-            <div className="flex-1 space-y-8">
+        <MonoPage className="px-4 pb-10 pt-6" animate={false}>
+            <div className="mx-auto flex w-full max-w-md flex-col gap-4">
                 {messages.map((msg, idx) => (
-                    <motion.div 
+                    <motion.div
                         key={idx}
-                        initial={{ opacity: 0, y: 30 }}
+                        initial={{ opacity: 0, y: 16 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8, ease: "easeOut" }}
-                        className="flex flex-col items-center text-center w-full"
+                        transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+                        className="flex w-full flex-col gap-3"
                     >
-                         <div className="w-full max-w-2xl mx-auto px-4">
-                            {msg.type === 'key' && (
-                                <h4 className="text-astro-highlight text-xs md:text-sm font-bold uppercase tracking-[0.3em] mb-5 animate-pulse">
-                                    {msg.title}
-                                </h4>
-                            )}
-                            
-                            <p className={`text-astro-text font-serif font-light drop-shadow-sm whitespace-pre-wrap ${
-                                msg.type === 'text' ? "italic text-astro-highlight opacity-90 text-base md:text-lg leading-relaxed" : 
-                                msg.type === 'cta' ? "text-sm md:text-base text-astro-subtext mt-5 leading-relaxed" : "text-lg md:text-xl leading-relaxed"
-                            }`}
-                            style={{
-                                lineHeight: msg.type === 'key' ? '1.7' : '1.6',
-                                maxWidth: '65ch'
-                            }}>
-                                {msg.text}
-                            </p>
+                        {msg.type === 'text' ? (
+                            <MonoChatBubble role="assistant">{msg.text}</MonoChatBubble>
+                        ) : null}
 
-                            {msg.type === 'cta' && (
-                                <motion.button
-                                    initial={{ scale: 0.9, opacity: 0 }}
-                                    animate={{ scale: 1, opacity: 1 }}
-                                    transition={{ delay: 1, duration: 0.5 }}
-                                    onClick={onComplete}
-                                    className="mt-10 w-full max-w-md mx-auto bg-astro-text text-astro-bg py-4 md:py-5 rounded-xl font-bold uppercase tracking-widest text-sm shadow-glow hover:scale-105 transition-transform"
-                                >
+                        {msg.type === 'cta' ? (
+                            <div className="mt-4 space-y-4 text-center">
+                                <p className="text-[14px] leading-relaxed text-mono-muted">{msg.text}</p>
+                                <MonoButton fullWidth onClick={onComplete}>
                                     {getText(profile.language, 'hook.cta_button')}
-                                </motion.button>
-                            )}
-                        </div>
+                                </MonoButton>
+                            </div>
+                        ) : null}
                     </motion.div>
                 ))}
-                
-                <div ref={scrollRef} className="h-10" />
+                <div ref={scrollRef} className="h-4" />
             </div>
-        </div>
+        </MonoPage>
     );
 };

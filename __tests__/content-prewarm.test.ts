@@ -239,12 +239,13 @@ describe('content prewarm', () => {
   it('Dashboard stays mounted while navigating away from home', () => {
     const source = fs.readFileSync(path.join(ROOT, 'App.tsx'), 'utf8');
     expect(source).toContain("view === 'dashboard' ? 'flex h-full min-h-0 overflow-hidden' : 'hidden'");
+    expect(source).toContain('TodayFeed');
     expect(source).toContain('chartId={primaryChartId}');
     expect(source).toContain('setPrimaryChartId(primaryChartId)');
   });
 
   it('Horoscope delegates premium daily generation to PersonalDailyScreen', () => {
-    const horoscope = fs.readFileSync(path.join(ROOT, 'views/Horoscope.tsx'), 'utf8');
+    const horoscope = fs.readFileSync(path.join(ROOT, 'views/v2/HoroscopeReader.tsx'), 'utf8');
     expect(horoscope).toContain('ensureDailySignHoroscope');
     expect(horoscope).not.toContain('loadHumanDailySection');
     expect(horoscope).not.toContain('daily_love');

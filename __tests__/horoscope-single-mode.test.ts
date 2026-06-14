@@ -8,17 +8,15 @@ function read(rel: string): string {
 }
 
 describe('product daily navigation', () => {
-  it('Dashboard quick action cards open one personal_daily screen with focused tabs', () => {
-    const source = read('views/Dashboard.tsx');
+  it('TodayFeed routes horoscope, personal daily, and ask from feed cards', () => {
+    const source = read('views/v2/TodayFeed.tsx');
 
-    expect(source).toContain("openHoroscope('sign', { mode: 'single', source: 'home_card_today' })");
-    expect(source).toContain("openPersonalDaily('money')");
-    expect(source).toContain("openPersonalDaily('overview')");
+    expect(source).toContain("onOpenHoroscopeLayer('sign'");
+    expect(source).toContain("onOpenPersonalDaily('overview')");
     expect(source).toContain('onOpenPersonalDaily: (section?: PersonalDailySection) => void');
+    expect(source).toContain('onOpenOracle?.(question)');
     expect(source).not.toContain('onOpenPremiumDaily');
     expect(source).not.toContain("openPremiumDaily('daily_love')");
-    expect(source).not.toContain("openHoroscope('love'");
-    expect(source).not.toContain("openHoroscope('work_money'");
   });
 
   it('App uses a single personal_daily view and maps legacy daily links to it', () => {
@@ -57,10 +55,10 @@ describe('product daily navigation', () => {
     expect(source).not.toMatch(/LUMIA не получила|Вернись позже|Повторить/);
   });
 
-  it('Horoscope keeps personal generation in PersonalDailyScreen', () => {
-    const source = read('views/Horoscope.tsx');
+  it('HoroscopeReader keeps personal generation in PersonalDailyScreen', () => {
+    const source = read('views/v2/HoroscopeReader.tsx');
 
-    expect(source).toContain('ZODIAC_SIGNS');
+    expect(source).toContain('ZODIAC_KEYS');
     expect(source).toContain('ensureDailySignHoroscope');
     expect(source).toContain('getCachedDailySignHoroscope');
     expect(source).not.toContain('loadHumanDailySection');

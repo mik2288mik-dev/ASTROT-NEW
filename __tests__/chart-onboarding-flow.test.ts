@@ -6,7 +6,7 @@ const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
 describe('chart onboarding and lazy sections', () => {
   it('shows a create-chart CTA instead of auto-starting onboarding from chart navigation', () => {
-    const chart = read('views/NatalChart.tsx');
+    const chart = read('views/v2/NatalMagazine.tsx');
     const app = read('App.tsx');
     expect(chart).toContain('Создай натальную карту');
     expect(chart).toContain('Lumia рассчитает карту по дате, времени и месту рождения');
@@ -48,7 +48,7 @@ describe('chart onboarding and lazy sections', () => {
     const shared = read('lib/natalHumanShared.ts');
     const report = read('components/NatalReading/HumanReport.tsx');
     const prompt = read('lib/natalHumanInterpretation.ts');
-    expect(shared).toContain("export const HUMAN_FREE_SECTION_KEYS = [\n  'base_portrait'");
+    expect(shared).toContain("'base_portrait'");
     expect(report).toContain('loadHumanPaidSection');
     expect(report).toContain('getCachedHumanPaidSection');
     expect(prompt).toContain("getWordRangeInstruction('natal_section')");

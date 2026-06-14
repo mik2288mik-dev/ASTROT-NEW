@@ -15,6 +15,8 @@ interface OracleChatProps {
   onPremiumRequired?: () => void;
   onUpdateProfile?: (profile: UserProfile) => void;
   layout?: 'full' | 'dm';
+  initialQuestion?: string | null;
+  onConsumeInitialQuestion?: () => void;
 }
 
 type SubmitOptions = {
@@ -56,10 +58,13 @@ export const OracleChat: React.FC<OracleChatProps> = ({
   profile,
   onPremiumRequired,
   layout = 'full',
+  initialQuestion,
+  onConsumeInitialQuestion,
 }) => {
   const lang = profile.language === 'en' ? 'en' : 'ru';
   const activePremium = hasActivePremium(profile);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const consumedInitialQuestionRef = useRef(false);
 
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -272,6 +277,18 @@ export const OracleChat: React.FC<OracleChatProps> = ({
     }
   }, [activePremium, buildHistoryForRequest, lang, onPremiumRequired, profile, questionState, validateQuestion]);
 
+  useEffect(() => {
+    const question = initialQuestion?.trim();
+    if (!question) {
+      consumedInitialQuestionRef.current = false;
+      return;
+    }
+    if (consumedInitialQuestionRef.current || stateLoading || loadingHistory) return;
+    consumedInitialQuestionRef.current = true;
+    onConsumeInitialQuestion?.();
+    void submitQuestion(question, { appendUserMessage: true });
+  }, [initialQuestion, loadingHistory, onConsumeInitialQuestion, stateLoading, submitQuestion]);
+
   const handleSend = useCallback(() => {
     if (!input.trim() || loading || stateLoading) return;
     void submitQuestion(input, { appendUserMessage: true });
@@ -300,7 +317,7 @@ export const OracleChat: React.FC<OracleChatProps> = ({
   const quickQuestions = getAskPresetQuestions(lang);
 
   const handleQuickPick = (question: string) => {
-    setInput(question);
+    if (loading || stateLoading) return;
     void submitQuestion(question, { appendUserMessage: true });
   };
 

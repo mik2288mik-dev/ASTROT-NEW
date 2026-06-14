@@ -239,6 +239,7 @@ const App: React.FC = () => {
     const [view, setView] = useState<ViewState>('onboarding');
     const [showPremiumPreview, setShowPremiumPreview] = useState(false);
     const [synastryPrefill, setSynastryPrefill] = useState<SynastryPrefill>(null);
+    const [oracleInitialQuestion, setOracleInitialQuestion] = useState<string | null>(null);
     const [chartsReturnView, setChartsReturnView] = useState<ViewState>('settings');
     const [chartReturnView, setChartReturnView] = useState<ViewState>('dashboard');
     const [personalDailyInitialSection, setPersonalDailyInitialSection] = useState<PersonalDailySection>('overview');
@@ -1352,7 +1353,8 @@ const App: React.FC = () => {
     }, [navigateTo]);
 
     // Home cards push (not replace) so Back returns to the dashboard.
-    const openOracle = useCallback(() => {
+    const openOracle = useCallback((question?: string) => {
+        setOracleInitialQuestion(question?.trim() || null);
         navigateTo('oracle');
     }, [navigateTo]);
 
@@ -1483,6 +1485,8 @@ const App: React.FC = () => {
                         <OracleChat
                             profile={profile}
                             layout="dm"
+                            initialQuestion={oracleInitialQuestion}
+                            onConsumeInitialQuestion={() => setOracleInitialQuestion(null)}
                             onPremiumRequired={() => setView('paywall')}
                             onUpdateProfile={handleProfileUpdate}
                         />

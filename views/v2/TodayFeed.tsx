@@ -40,7 +40,7 @@ type TodayFeedProps = {
   onOpenHoroscopeLayer: (layer: HoroscopeLayer, options?: HoroscopeOpenOptions) => void;
   onOpenPersonalDaily: (section?: PersonalDailySection) => void;
   onCreateNatalChart?: () => void;
-  onOpenOracle?: () => void;
+  onOpenOracle?: (question?: string) => void;
   onOpenSynastry?: () => void;
   onOpenSettings?: () => void;
   onRequestPremium?: (source?: string) => void;
@@ -271,7 +271,7 @@ export const TodayFeed = memo<TodayFeedProps>(({
             <LzAskPresets
               title={language === 'ru' ? 'Спроси Lumia' : 'Ask Lumia'}
               questions={askQuestions}
-              onPick={() => onOpenOracle?.()}
+              onPick={(question) => onOpenOracle?.(question)}
             />
           </MonoStaggerItem>
         </MonoStagger>
