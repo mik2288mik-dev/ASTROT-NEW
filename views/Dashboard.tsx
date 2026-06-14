@@ -134,9 +134,10 @@ type PlanCardProps = {
   onClick?: () => void;
   delay?: number;
   lang: 'ru' | 'en';
+  className?: string;
 };
 
-function PlanCard({ title, detail, bg, glyph, onClick, delay = 0, lang }: PlanCardProps) {
+function PlanCard({ title, detail, bg, glyph, onClick, delay = 0, lang, className = '' }: PlanCardProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -144,7 +145,7 @@ function PlanCard({ title, detail, bg, glyph, onClick, delay = 0, lang }: PlanCa
       transition={{ duration: 0.28, delay, ease: [0.22, 1, 0.36, 1] }}
       whileTap={onClick ? { scale: 0.96 } : undefined}
       onClick={onClick}
-      className={`relative flex min-h-[124px] flex-col overflow-hidden rounded-[18px] p-4 shadow-[0_8px_22px_rgba(30,18,48,0.08)] ${onClick ? 'cursor-pointer' : ''}`}
+      className={`relative flex min-h-[124px] flex-col overflow-hidden rounded-[18px] p-4 shadow-[0_8px_22px_rgba(30,18,48,0.08)] ${onClick ? 'cursor-pointer' : ''} ${className}`}
       style={{ backgroundColor: bg }}
     >
       {/* Soft glyph watermark, bottom-right */}
@@ -290,16 +291,16 @@ export const Dashboard = memo<DashboardProps>(({
                   src={avatarUrl}
                   alt=""
                   draggable={false}
-                  className="block h-14 w-14 rounded-full object-cover"
+                  className="block h-11 w-11 rounded-full object-cover"
                 />
               ) : (
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#DDD0F0] text-[20px] font-bold text-[#1E1230] font-lumiaHome">
+                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#DDD0F0] text-[17px] font-bold text-[#1E1230] font-lumiaHome">
                   {userInitial}
                 </div>
               )}
             </button>
             <div className="flex min-w-0 flex-col justify-center">
-              <p className="truncate font-lumiaHome text-[18px] font-semibold leading-tight text-[#1E1230]">
+              <p className="truncate font-lumiaHome text-[17px] font-bold leading-tight text-[#1E1230]">
                 {language === 'ru' ? `Привет, ${profile.name}` : `Hello, ${profile.name}`}
               </p>
               <p className="mt-0.5 text-[13px] font-medium leading-tight text-[#9A93A3]">
@@ -320,8 +321,9 @@ export const Dashboard = memo<DashboardProps>(({
           />
         </div>
 
-        {/* ── Section cards 2×2 ── */}
-        <div className="mt-5 grid grid-cols-2 gap-3">
+        {/* ── Section cards — tall left + stacked right (reference masonry) ── */}
+        <div className="mt-5 flex items-stretch gap-3">
+          {/* Left: tall card, fills the height of the right stack */}
           <PlanCard
             title={language === 'ru' ? 'Натальная карта' : 'Natal chart'}
             detail={hasChart && chartData ? (
@@ -336,40 +338,44 @@ export const Dashboard = memo<DashboardProps>(({
             onClick={onCreateNatalChart}
             delay={0.10}
             lang={language}
+            className="flex-1"
           />
-          <PlanCard
-            title={language === 'ru' ? 'Гороскоп' : 'Horoscope'}
-            detail={(
-              <span className="line-clamp-2">
-                {signLoading
-                  ? (language === 'ru' ? 'Что тебя ждёт сегодня' : 'What today holds')
-                  : (signReading?.summary || (language === 'ru' ? 'Что тебя ждёт сегодня' : 'What today holds'))}
-              </span>
-            )}
-            bg="#A8C8F2"
-            glyph={selectedSign ? <ZodiacIcon sign={selectedSign} size={96} /> : <Star size={92} strokeWidth={1.4} />}
-            onClick={() => { lumiaSelectionHaptic(); setHoroscopeOpen(true); }}
-            delay={0.14}
-            lang={language}
-          />
-          <PlanCard
-            title={language === 'ru' ? 'Спроси Lumia' : 'Ask Lumia'}
-            detail={language === 'ru' ? '«Что для меня важно сегодня?»' : '“What matters for me today?”'}
-            bg="#C8E4CE"
-            glyph={<MessageCircle size={88} strokeWidth={1.4} />}
-            onClick={onOpenOracle}
-            delay={0.18}
-            lang={language}
-          />
-          <PlanCard
-            title={language === 'ru' ? 'Совместимость' : 'Compatibility'}
-            detail={language === 'ru' ? 'Вы подходите друг другу?' : 'Do you match?'}
-            bg="#F6C9DB"
-            glyph={<Heart size={88} strokeWidth={1.4} />}
-            onClick={onOpenSynastry}
-            delay={0.22}
-            lang={language}
-          />
+          {/* Right: stacked column */}
+          <div className="flex flex-1 flex-col gap-3">
+            <PlanCard
+              title={language === 'ru' ? 'Гороскоп' : 'Horoscope'}
+              detail={(
+                <span className="line-clamp-2">
+                  {signLoading
+                    ? (language === 'ru' ? 'Что тебя ждёт сегодня' : 'What today holds')
+                    : (signReading?.summary || (language === 'ru' ? 'Что тебя ждёт сегодня' : 'What today holds'))}
+                </span>
+              )}
+              bg="#A8C8F2"
+              glyph={selectedSign ? <ZodiacIcon sign={selectedSign} size={96} /> : <Star size={92} strokeWidth={1.4} />}
+              onClick={() => { lumiaSelectionHaptic(); setHoroscopeOpen(true); }}
+              delay={0.14}
+              lang={language}
+            />
+            <PlanCard
+              title={language === 'ru' ? 'Спроси Lumia' : 'Ask Lumia'}
+              detail={language === 'ru' ? '«Что для меня важно сегодня?»' : '“What matters for me today?”'}
+              bg="#C8E4CE"
+              glyph={<MessageCircle size={88} strokeWidth={1.4} />}
+              onClick={onOpenOracle}
+              delay={0.18}
+              lang={language}
+            />
+            <PlanCard
+              title={language === 'ru' ? 'Совместимость' : 'Compatibility'}
+              detail={language === 'ru' ? 'Вы подходите друг другу?' : 'Do you match?'}
+              bg="#F6C9DB"
+              glyph={<Heart size={88} strokeWidth={1.4} />}
+              onClick={onOpenSynastry}
+              delay={0.22}
+              lang={language}
+            />
+          </div>
         </div>
 
         {/* ── 6. Personal Daily Banner — lavender like the hero ── */}

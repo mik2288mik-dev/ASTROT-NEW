@@ -744,7 +744,7 @@ body.theme-lumia-air #__next {
   justify-content: center;
   border: 0;
   background: transparent;
-  color: rgba(30, 18, 48, 0.42);
+  color: #1E1230;
   font-family: var(--lumia-home-font-sans);
   -webkit-tap-highlight-color: transparent;
   transition:
@@ -780,14 +780,14 @@ body.theme-lumia-air #__next {
 }
 
 .lumia-bottom-tab-item.is-active {
-  color: #1E1230;
+  color: #ffffff;
   opacity: 1;
 }
 
-/* Reference: active icon just turns dark, inactive stay grey — no circle */
+/* Reference: dark icons on white bar; active = white glyph on a dark circle */
 .lumia-bottom-tab-item.is-active .lumia-bottom-tab-icon {
-  background: transparent;
-  color: #1E1230;
+  background: #1E1230;
+  color: #ffffff;
 }
 
 .lumia-home-bottom-nav-shell {

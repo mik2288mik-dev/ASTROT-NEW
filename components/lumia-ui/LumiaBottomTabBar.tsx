@@ -17,12 +17,12 @@ const SHOW_ON: ViewState[] = ['dashboard', 'horoscope', 'chart', 'synastry', 'se
 
 type IconProps = React.SVGProps<SVGSVGElement>;
 
-function TodayCalendarIcon(props: IconProps) {
+function HomeHouseIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <rect x="5.2" y="6.2" width="17.6" height="16.6" rx="4.1" strokeWidth="2.25" />
-      <path d="M9.4 4.4v4.1M18.6 4.4v4.1M5.9 11.3h16.2" strokeWidth="2.25" />
-      <path d="M10 16.2h.1M14 16.2h.1M18 16.2h.1M10 19.8h.1M14 19.8h.1" strokeWidth="2.8" />
+      <path d="M4.5 11.6 14 4.3l9.5 7.3" strokeWidth="2.2" />
+      <path d="M6.6 10v11.4a1 1 0 0 0 1 1h12.8a1 1 0 0 0 1-1V10" strokeWidth="2.2" />
+      <path d="M11.2 22.4v-6.2a1 1 0 0 1 1-1h3.6a1 1 0 0 1 1 1v6.2" strokeWidth="2.2" />
     </svg>
   );
 }
@@ -103,7 +103,7 @@ export function LumiaBottomTabBar({
       id: 'today',
       label: labels.today,
       active: view === 'dashboard',
-      icon: <TodayCalendarIcon />,
+      icon: <HomeHouseIcon />,
       onClick: onOpenToday,
     },
     {
