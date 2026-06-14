@@ -278,7 +278,7 @@ export const Dashboard = memo<DashboardProps>(({
     <div
       ref={scrollRef}
       className="h-full overflow-y-auto bg-[#F8F5FA] px-4 pb-[var(--lumia-bottom-tab-clearance)] font-lumiaHome"
-      style={{ paddingTop: 'calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px), 84px) + 12px)' }}
+      style={{ paddingTop: 'calc(max(env(safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px), 50px) + 4px)' }}
     >
       <div className="mx-auto w-full max-w-md pb-3">
 
@@ -305,10 +305,10 @@ export const Dashboard = memo<DashboardProps>(({
               )}
             </button>
             <div className="flex min-w-0 flex-col justify-center">
-              <p className="truncate font-lumiaHome text-[22px] font-extrabold leading-tight text-[#1E1230]">
+              <p className="truncate font-lumiaHome text-[21px] font-extrabold leading-[1.15] text-[#1E1230]">
                 {language === 'ru' ? `Привет, ${profile.name}` : `Hello, ${profile.name}`}
               </p>
-              <p className="mt-1 text-[15px] font-medium leading-tight text-[#9A93A3]">
+              <p className="mt-0.5 truncate text-[14px] font-medium leading-[1.2] text-[#9A93A3]">
                 {`${language === 'ru' ? 'Сегодня' : 'Today'} ${shortDate(today, language)}`}
               </p>
             </div>
@@ -320,7 +320,7 @@ export const Dashboard = memo<DashboardProps>(({
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.06, ease: [0.22, 1, 0.36, 1] }}
-          className="mt-5"
+          className="mt-4"
         >
           <motion.button
             type="button"
