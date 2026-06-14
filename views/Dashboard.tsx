@@ -18,6 +18,7 @@ import { HoroscopeStories } from '../components/lumia-ui/HoroscopeStories';
 import { PersonalDailyStories } from '../components/lumia-ui/PersonalDailyStories';
 import { getZodiacSign } from '../constants';
 import { ZodiacIcon } from '../components/icons/ZodiacIcon';
+import { DaySummary } from '../components/Dashboard/home/DaySummary';
 import {
   getCachedDailySignHoroscope,
   ensureDailySignHoroscope,
@@ -249,9 +250,6 @@ export const Dashboard = memo<DashboardProps>(({
     onOpenHoroscopeLayer(layer, options);
   const openPersonalDaily = (section: PersonalDailySection = 'overview') => onOpenPersonalDaily(section);
 
-  const heroSubtitle = signLoading
-    ? (language === 'ru' ? 'Готовим ваш прогноз…' : 'Preparing your forecast…')
-    : (signReading?.summary || FALLBACKS.background);
 
   // Calendar day tap: today is always free; other days require Premium.
   const handlePickDay = (key: string) => {
@@ -312,31 +310,8 @@ export const Dashboard = memo<DashboardProps>(({
           </div>
         </header>
 
-        {/* ── 2. Hero Card — today's forecast, tap to read as stories ── */}
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.32, delay: 0.06, ease: [0.22, 1, 0.36, 1] }}
-          onClick={() => { lumiaSelectionHaptic(); setHoroscopeOpen(true); }}
-          whileTap={{ scale: 0.985 }}
-          className="mt-5 cursor-pointer overflow-hidden rounded-[20px] bg-[#DDD0F0] p-5"
-        >
-          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#7A6E94]">
-            {language === 'ru' ? 'Гороскоп на сегодня' : 'Today’s horoscope'}
-          </p>
-          <h2 className="mt-2 line-clamp-3 break-words font-lumiaHome text-[22px] font-bold leading-[1.18] text-[#1E1230]">
-            {signLoading
-              ? (language === 'ru' ? 'Сегодня для вас' : 'Today for you')
-              : (signReading?.headline || (language === 'ru' ? 'Сегодня для вас' : 'Today for you'))}
-          </h2>
-          <p className="mt-2 line-clamp-2 break-words text-[14px] leading-relaxed text-[#50465E]">
-            {heroSubtitle}
-          </p>
-          <span className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-[#1E1230] px-4 py-2 text-[13px] font-semibold text-white">
-            {language === 'ru' ? 'Читать' : 'Read'}
-            <svg width="13" height="13" viewBox="0 0 15 15" fill="none" aria-hidden="true"><path d="M2.5 7.5h10M9 4l3.5 3.5L9 11" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
-          </span>
-        </motion.div>
+        {/* ── 2. Сводка дня (Moon + best time) ── */}
+        <DaySummary profile={profile} chartData={chartData} chartId={chartId} language={language} />
 
         {/* ── 3. Date Selector ── */}
         <div className="mt-5">
