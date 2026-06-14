@@ -63,4 +63,14 @@ Settings — не вкладка; открывается по tap на avatar.
 
 ## Статус
 
-**УТВЕРЖДЕНО** — можно кодить Phase A/B.
+**УТВЕРЖДЕНО** — реализовано в `main`:
+
+| Экран | Файл |
+|-------|------|
+| Сегодня | `views/v2/TodayFeed.tsx` |
+| Гороскоп | `views/v2/HoroscopeReader.tsx` |
+| Карта | `views/v2/NatalMagazine.tsx` |
+| Союз | `views/v2/UnionRoom.tsx` + `Synastry.tsx` |
+| Спроси | `OracleChat.tsx` (`layout="dm"`) |
+| Личный день | `DailyContentScreens.tsx` |
+| Настройки / Paywall / Onboarding | обновлены под mono v2 |

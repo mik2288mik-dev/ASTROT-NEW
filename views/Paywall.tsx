@@ -3,7 +3,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { UserProfile } from '../types';
 import { getText } from '../constants';
-import { MonoButton } from '../components/mono-ui';
+import { MonoButton, MonoIllustWelcome } from '../components/mono-ui';
 
 interface PaywallProps {
     profile: UserProfile;
@@ -45,8 +45,12 @@ export const Paywall: React.FC<PaywallProps> = ({ profile, onPurchase, onClose }
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4 }}
-                className="relative w-full max-w-md space-y-8"
+                className="relative w-full max-w-md space-y-6"
             >
+                <div className="overflow-hidden rounded-mono-card bg-mono-plate py-6">
+                    <MonoIllustWelcome className="mx-auto opacity-90" size={100} />
+                </div>
+
                 <div>
                     <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-mono-muted">
                         Premium

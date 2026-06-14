@@ -4,7 +4,7 @@ import { UserProfile, Language, Theme, NotificationFrequency } from '../types';
 import { getText } from '../constants';
 import { saveProfile } from '../services/storageService';
 import { requestStarsPayment } from '../services/telegramService';
-import { ScreenShell } from '../components/layout/ScreenShell';
+import { MonoPage } from '../components/mono-ui';
 import { hasActivePremium } from '../lib/accessMatrix';
 
 interface SettingsProps {
@@ -172,7 +172,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
 
 
     return (
-        <ScreenShell className="mx-auto max-w-reading-wide pt-2">
+        <MonoPage className="mx-auto max-w-reading-wide px-4 pt-2 pb-28" withTabClearance animate={false}>
             <section className="rounded-mono-card border border-mono-line bg-mono-white p-5 mb-4">
                 <div className="flex items-center gap-4">
                     {profilePhotoUrl ? (
@@ -413,6 +413,6 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                      {getText(profile.language, 'settings.restore')}
                  </button>
             </div>
-        </ScreenShell>
+        </MonoPage>
     );
 };

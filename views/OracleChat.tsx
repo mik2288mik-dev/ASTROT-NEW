@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import type { AskLumiaState, AskLumiaTier, ChatMessage, UserProfile } from '../types';
 import { chatWithAstra, getAskLumiaState, getOracleHistory } from '../services/astrologyService';
 import { getText } from '../constants';
+import { getAskPresetQuestions } from '../components/lumia-ui/v2/LzAskPresets';
 import { hasActivePremium } from '../lib/accessMatrix';
 
 const MIN_QUESTION_LENGTH = 3;
@@ -13,6 +14,7 @@ interface OracleChatProps {
   profile: UserProfile;
   onPremiumRequired?: () => void;
   onUpdateProfile?: (profile: UserProfile) => void;
+  layout?: 'full' | 'dm';
 }
 
 type SubmitOptions = {
@@ -53,6 +55,7 @@ function getStateStrings(lang: 'ru' | 'en', state: AskLumiaState | null, isPremi
 export const OracleChat: React.FC<OracleChatProps> = ({
   profile,
   onPremiumRequired,
+  layout = 'full',
 }) => {
   const lang = profile.language === 'en' ? 'en' : 'ru';
   const activePremium = hasActivePremium(profile);
@@ -294,9 +297,18 @@ export const OracleChat: React.FC<OracleChatProps> = ({
   const sendLabel = getSendLabel(lang, questionState, activePremium);
   const stateCopy = getStateStrings(lang, questionState, activePremium);
   const showPremiumCta = !activePremium && questionState?.nextTier !== 'free';
+  const quickQuestions = getAskPresetQuestions(lang);
+
+  const handleQuickPick = (question: string) => {
+    setInput(question);
+    void submitQuestion(question, { appendUserMessage: true });
+  };
+
+  const compact = layout === 'dm';
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col bg-mono-bg">
+      {!compact ? (
       <div className="shrink-0 border-b border-mono-line bg-mono-white/95 backdrop-blur-xl">
         <div className="space-y-3 px-4 pt-4 pb-3 sm:px-5">
           <div className="rounded-mono-card border border-mono-line bg-mono-white px-4 py-4 sm:px-5 sm:py-5">
@@ -328,9 +340,26 @@ export const OracleChat: React.FC<OracleChatProps> = ({
           </div>
         </div>
       </div>
+      ) : (
+        <div className="shrink-0 border-b border-mono-line bg-mono-white px-4 py-3">
+          <h1 className="text-[22px] font-bold text-mono-ink">Lumia</h1>
+          <p className="mt-1 text-[13px] text-mono-muted">{stateCopy.body}</p>
+          {showPremiumCta && onPremiumRequired ? (
+            <button
+              type="button"
+              onClick={onPremiumRequired}
+              className="mt-2 text-[12px] font-semibold text-mono-ink underline underline-offset-2"
+            >
+              {getText(lang, 'oracle.state_open_premium')}
+            </button>
+          ) : null}
+        </div>
+      )}
 
-      <div className="scrollbar-hide min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5">
+      <div className={`scrollbar-hide min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5 ${compact ? 'pb-2' : ''}`}>
+        {!compact ? (
         <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-mono-muted">{getText(lang, 'oracle.history_label')}</p>
+        ) : null}
 
         {loadingHistory && messages.length === 0 ? (
           <div className="pt-8 text-center text-sm text-mono-muted">{getText(lang, 'oracle.loading_history')}</div>
@@ -381,6 +410,22 @@ export const OracleChat: React.FC<OracleChatProps> = ({
         style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 10px)' }}
       >
         <div className="px-4 pt-4 pb-3 sm:px-5">
+          {compact ? (
+            <div className="-mx-1 mb-3 flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+              {quickQuestions.map((question) => (
+                <button
+                  key={question}
+                  type="button"
+                  disabled={inputDisabled}
+                  onClick={() => handleQuickPick(question)}
+                  className="shrink-0 rounded-full border border-mono-line bg-mono-plate px-3 py-2 text-[12px] font-semibold text-mono-ink disabled:opacity-50"
+                >
+                  {question}
+                </button>
+              ))}
+            </div>
+          ) : null}
+
           {error && (
             <div className="mb-3 rounded-mono-card border border-red-200 bg-red-50 p-3 text-sm text-red-700">
               <p>{error}</p>
@@ -407,11 +452,15 @@ export const OracleChat: React.FC<OracleChatProps> = ({
             </div>
           )}
 
-          <div className="rounded-mono-card border border-mono-line bg-mono-white px-4 py-4">
+          <div className={`rounded-mono-card border border-mono-line bg-mono-white px-4 py-4 ${compact ? 'py-3' : ''}`}>
+            {!compact ? (
+              <>
             <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-mono-muted">{getText(lang, 'oracle.composer_label')}</p>
             <p className="mt-2 text-sm leading-relaxed text-mono-muted">{getText(lang, 'oracle.composer_body')}</p>
+              </>
+            ) : null}
 
-            <div className="mt-4 rounded-mono-card border border-mono-line bg-mono-plate px-4 py-3 transition-colors focus-within:border-mono-ink">
+            <div className={`rounded-mono-card border border-mono-line bg-mono-plate px-4 py-3 transition-colors focus-within:border-mono-ink ${compact ? 'mt-0' : 'mt-4'}`}>
               <textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}

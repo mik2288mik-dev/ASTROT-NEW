@@ -21,10 +21,10 @@ import {
 } from '../components/mono-ui';
 
 type SynastryPrefill = { source: 'saved-chart' | 'manual'; partnerChartId?: number; partnerName?: string; partnerDate?: string; partnerTime?: string; partnerPlace?: string } | null;
-type Props = { profile: UserProfile; chartData?: NatalChartData | null; chartId?: number | null; requestPremium: () => void; initialPrefill?: SynastryPrefill; onOpenCharts?: () => void; onCreateNatalChart?: () => void; onUpdateProfile?: (profile: UserProfile) => void };
+type Props = { profile: UserProfile; chartData?: NatalChartData | null; chartId?: number | null; requestPremium: () => void; initialPrefill?: SynastryPrefill; onOpenCharts?: () => void; onCreateNatalChart?: () => void; onUpdateProfile?: (profile: UserProfile) => void; embedded?: boolean };
 const SIGNS = ['aries','taurus','gemini','cancer','leo','virgo','libra','scorpio','sagittarius','capricorn','aquarius','pisces'];
 
-export const Synastry: React.FC<Props> = ({ profile, chartData, chartId, requestPremium, initialPrefill, onOpenCharts, onCreateNatalChart }) => {
+export const Synastry: React.FC<Props> = ({ profile, chartData, chartId, requestPremium, initialPrefill, onOpenCharts, onCreateNatalChart, embedded }) => {
   const language = profile.language === 'en' ? 'en' : 'ru';
   const hasChart = hasNatalChart(profile, { chartData, primaryChartId: chartId });
   const premium = hasActivePremium(profile);
@@ -61,6 +61,7 @@ export const Synastry: React.FC<Props> = ({ profile, chartData, chartId, request
       <div className="relative mx-auto max-w-[28rem] space-y-4 pb-24">
         <MonoStagger className="space-y-4">
         <MonoStaggerItem>
+        {!embedded ? (
         <div className="relative overflow-hidden rounded-mono-card bg-mono-plate px-5 py-6">
           <MonoIllustCouple className="absolute right-2 top-2 opacity-30" size={100} />
           <MonoTag>{language === 'ru' ? 'Союз' : 'Union'}</MonoTag>
@@ -71,6 +72,7 @@ export const Synastry: React.FC<Props> = ({ profile, chartData, chartId, request
             {language === 'ru' ? 'Почему вас тянет, где вы задеваете друг друга и как говорить яснее.' : 'Why you connect, where friction shows up, and how to talk clearer.'}
           </p>
         </div>
+        ) : null}
         </MonoStaggerItem>
 
         <MonoStaggerItem>

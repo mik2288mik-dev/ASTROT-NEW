@@ -31,7 +31,7 @@ import { PremiumPreview } from './components/PremiumPreview';
 import { requestStarsPayment } from './services/telegramService';
 import { HookChat } from './views/HookChat';
 import { Paywall } from './views/Paywall';
-import { Synastry } from './views/Synastry';
+import { UnionRoom } from './views/v2/UnionRoom';
 import { MyCharts } from './views/MyCharts';
 import { getAdminStatus } from './services/adminService';
 import { recordNotificationAttribution, recordUserAppEvent, recordUserSession } from './services/sessionService';
@@ -1479,18 +1479,17 @@ const App: React.FC = () => {
                         onClose={() => setView('dashboard')}
                     />
                 ) : view === 'oracle' ? (
-                    <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
-                        {renderAppScrollHeader()}
+                    <div className="lumia-main-scroll lumia-bottom-tab-scroll flex h-full min-h-0 flex-col overflow-hidden scrollbar-hide" ref={appScrollRef}>
                         <OracleChat
                             profile={profile}
+                            layout="dm"
                             onPremiumRequired={() => setView('paywall')}
                             onUpdateProfile={handleProfileUpdate}
                         />
                     </div>
                 ) : view === 'synastry' ? (
                     <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
-                        {renderAppScrollHeader()}
-                        <Synastry
+                        <UnionRoom
                             profile={profile}
                             chartData={chartData}
                             chartId={primaryChartId ?? null}
@@ -1525,7 +1524,6 @@ const App: React.FC = () => {
                     </div>
                 ) : view === 'chart' ? (
                     <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
-                        {renderAppScrollHeader()}
                         <NatalChart 
                             data={chartData} 
                             profile={profile} 
@@ -1539,7 +1537,6 @@ const App: React.FC = () => {
                     </div>
                 ) : view === 'settings' ? (
                     <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
-                        {renderAppScrollHeader()}
                         <Settings 
                             profile={profile} 
                             onUpdate={handleProfileUpdate} 

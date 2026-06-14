@@ -202,14 +202,14 @@ function ForecastContent({ reading }: { reading: ForecastDaypartReading }) {
 
   return (
     <div className="mt-6 max-h-[calc(100dvh-19rem)] overflow-y-auto pb-2 pr-1">
-      <p className="max-w-[min(82vw,22rem)] text-[17px] leading-[1.62] text-[#34333a]">
+      <p className="max-w-[min(82vw,22rem)] text-[17px] leading-[1.62] text-mono-ink">
         {reading.summary || reading.headline}
       </p>
       <div className="mt-5 space-y-2">
         {items.map((item) => (
-          <div key={item.label} className="rounded-[16px] border border-black/10 bg-white px-4 py-3">
-            <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#8b8690]">{item.label}</p>
-            <p className="mt-1 text-[15px] leading-relaxed text-[#3b3840]">{item.value}</p>
+          <div key={item.label} className="rounded-mono-card border border-mono-line bg-mono-white px-4 py-3">
+            <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-mono-muted">{item.label}</p>
+            <p className="mt-1 text-[15px] leading-relaxed text-mono-muted">{item.value}</p>
           </div>
         ))}
       </div>
@@ -223,7 +223,7 @@ function SectionContent({ section }: { section: InterpretationSection }) {
     <div className="mt-6 max-h-[calc(100dvh-19rem)] overflow-y-auto pb-2 pr-1">
       <div className="space-y-3">
         {paragraphs.map((paragraph, index) => (
-          <p key={index} className="max-w-[min(82vw,22rem)] text-[16px] leading-[1.66] text-[#3b3840]">
+          <p key={index} className="max-w-[min(82vw,22rem)] text-[16px] leading-[1.66] text-mono-ink/90">
             {paragraph}
           </p>
         ))}
@@ -231,7 +231,7 @@ function SectionContent({ section }: { section: InterpretationSection }) {
       {section.bullets?.length ? (
         <div className="mt-5 space-y-2">
           {section.bullets.slice(0, 4).map((bullet) => (
-            <div key={bullet} className="rounded-[16px] border border-black/10 bg-white px-4 py-3 text-[14px] leading-relaxed text-[#3b3840]">
+            <div key={bullet} className="rounded-mono-card border border-mono-line bg-mono-white px-4 py-3 text-[14px] leading-relaxed text-mono-muted">
               {bullet}
             </div>
           ))}
@@ -267,7 +267,6 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
   }, [initialSection]);
 
   const activeTab = resolveTab(activeSection);
-  const Icon = activeTab.icon;
   const activeDailySection = activeTab.sectionKey ? sections[activeTab.sectionKey] : null;
   const hasContent = activeTab.id === 'overview' ? !!forecast : !!activeDailySection?.content?.trim();
   const isLoading = loadingKey === activeTab.id;
@@ -343,12 +342,8 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
         </button>
 
         <section className="relative flex flex-1 flex-col overflow-hidden rounded-mono-card border border-mono-line bg-mono-white p-5 shadow-[0_12px_32px_rgba(17,17,17,0.06)]">
-          <div className="pointer-events-none absolute -right-8 top-20 text-mono-plate opacity-80">
-            <Icon size={188} strokeWidth={0.8} />
-          </div>
-
           <div className="relative">
-            <h1 className="max-w-[min(82vw,22rem)] text-[clamp(2rem,9vw,2.8rem)] font-bold leading-[1.02] tracking-[-0.02em] text-mono-ink">
+            <h1 className="max-w-[min(82vw,22rem)] font-lora text-[clamp(2rem,9vw,2.5rem)] font-bold leading-[1.05] tracking-[-0.02em] text-mono-ink">
               {activeTab.title}
             </h1>
             <p className="mt-3 max-w-[min(82vw,21rem)] text-[14px] leading-relaxed text-mono-muted">

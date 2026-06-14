@@ -11,6 +11,7 @@ interface OnboardingProps {
 type FieldKey = 'name' | 'date' | 'time' | 'place';
 
 export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
+  const [step, setStep] = useState<'welcome' | 'birth'>('welcome');
   const [name, setName] = useState('');
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
@@ -112,6 +113,24 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
           <MonoIllustWelcome size={120} />
         </div>
 
+        {step === 'welcome' ? (
+          <>
+            <div className="mt-8">
+              <h1 className="mb-0 max-w-[16rem] font-lora text-[2rem] font-bold leading-[1.05] tracking-[-0.03em] text-mono-ink">
+                Твой личный астролог
+              </h1>
+              <p className="mb-0 mt-4 max-w-[19rem] text-[15px] leading-[1.65] text-mono-muted">
+                Коротко о дне, карте и отношениях — без лишней эзотерики.
+              </p>
+            </div>
+            <div className="mt-auto pt-8">
+              <MonoButton fullWidth onClick={() => setStep('birth')}>
+                Начать
+              </MonoButton>
+            </div>
+          </>
+        ) : (
+          <>
         <div className="mt-8">
           <h1 className="mb-0 max-w-[16rem] text-[2rem] font-bold leading-[1.05] tracking-[-0.03em] text-mono-ink">
             Данные для твоей карты
@@ -194,6 +213,8 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
             Все расчеты Lumia строятся на точных астрономических данных, координатах рождения и Swiss Ephemeris, чтобы карта опиралась на реальные данные, а не на общий шаблон.
           </p>
         </div>
+          </>
+        )}
       </motion.div>
     </div>
   );
