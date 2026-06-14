@@ -87,7 +87,7 @@ function formatError(error: unknown): string {
 
 const SectionText: React.FC<{ section: InterpretationSection }> = ({ section }) => (
   <section data-reading-section-key={section.key} className="border-t border-[#eeeeee] py-8 first:border-t-0 sm:py-10">
-    <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8c6bb1]">
+    <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6b6b6b]">
       {section.subtitle || section.title}
     </p>
     <h3 className="mt-2 font-sans text-[26px] font-semibold leading-[1.08] tracking-[-0.02em] text-[#1f1f1f] sm:text-[30px]">
@@ -180,7 +180,7 @@ export const NatalUnlockSheet: React.FC<{
           <X size={17} strokeWidth={2} />
         </button>
 
-        <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8c6bb1]">Полный раздел карты</p>
+        <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6b6b6b]">Полный раздел карты</p>
         <h3 className="mt-2 max-w-[18rem] font-sans text-[24px] font-semibold leading-[1.08] tracking-[-0.02em] text-[#1f1f1f]">
           {meta.title}
         </h3>
@@ -348,7 +348,7 @@ export const HumanReport: React.FC<Props> = ({
     <article className="relative bg-white pb-16 pt-6">
       <div className="relative z-10 mx-auto w-full max-w-reading-wide px-5">
         <header className="pb-8">
-          <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8c6bb1]">
+          <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6b6b6b]">
             Натальная карта
           </p>
           <h1 className="mt-3 font-sans text-[36px] font-semibold leading-[1.02] tracking-[-0.035em] text-[#1f1f1f] sm:text-[44px]">
@@ -369,7 +369,7 @@ export const HumanReport: React.FC<Props> = ({
           ) : null}
 
           <div className="mt-7 border-l-2 border-[#d8c18a] pl-4">
-            <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8c6bb1]">
+            <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6b6b6b]">
               {report?.shortCard.title || 'Основа твоей карты'}
             </p>
             <p className="mt-3 font-sans text-[17px] leading-[1.75] text-[#2d2d2d] [text-wrap:pretty]">
@@ -411,7 +411,7 @@ export const HumanReport: React.FC<Props> = ({
 
         <section className="border-t border-[#eeeeee] py-7">
           <button type="button" onClick={onOpenPersonalDaily} className="w-full rounded-[20px] bg-[#f7f4fb] px-5 py-4 text-left">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#8c6bb1]">Личный день</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#6b6b6b]">Личный день</p>
             <h2 className="mt-2 text-[21px] font-semibold text-[#1f1f1f]">Что с тобой сегодня</h2>
             <p className="mt-2 text-[14px] leading-relaxed text-[#626262]">Текущий личный фон, действие и риск дня — по твоей карте.</p>
           </button>
@@ -423,7 +423,7 @@ export const HumanReport: React.FC<Props> = ({
               <Sparkles size={18} strokeWidth={1.8} />
             </span>
             <div>
-              <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8c6bb1]">Полный разбор</p>
+              <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6b6b6b]">Полный разбор</p>
               <h2 className="mt-2 font-sans text-[28px] font-semibold leading-[1.08] tracking-[-0.02em] text-[#1f1f1f]">
                 Подробные темы полной карты
               </h2>

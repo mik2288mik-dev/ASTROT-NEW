@@ -57,7 +57,8 @@ export function StoriesViewer({
   onClose,
   onIndexChange,
   advanceSignal,
-  accent = '#7559CF',
+  accent = '#111111',
+  variant = 'mono',
 }: {
   slides: StorySlide[];
   open: boolean;
@@ -66,6 +67,7 @@ export function StoriesViewer({
   /** Bump this to advance past an interactive slide (e.g. after picking a sign). */
   advanceSignal?: number;
   accent?: string;
+  variant?: 'mono' | 'cosmic';
 }) {
   const [index, setIndex] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -145,6 +147,20 @@ export function StoriesViewer({
   const release = () => { pausedRef.current = false; };
 
   if (typeof document === 'undefined') return null;
+  const isMono = variant === 'mono';
+  const backdropStyle = isMono
+    ? { background: 'linear-gradient(180deg, var(--mono-plate) 0%, var(--mono-bg) 100%)' }
+    : { background: `linear-gradient(160deg, ${accent} 0%, #14111C 72%)` };
+  const eyebrowClass = isMono ? 'text-mono-muted' : 'text-white/70';
+  const titleClass = isMono ? 'text-mono-ink' : 'text-white';
+  const bodyClass = isMono ? 'text-mono-muted' : 'text-white/85';
+  const progressTrack = isMono ? 'bg-mono-line' : 'bg-white/25';
+  const progressFill = isMono ? 'bg-mono-black' : 'bg-white';
+  const closeBtnClass = isMono
+    ? 'bg-mono-plate text-mono-ink'
+    : 'bg-white/15 text-white';
+  const skeletonClass = isMono ? 'bg-mono-line' : 'bg-white/25';
+
   return createPortal(
     <AnimatePresence>
       {open && (
@@ -154,7 +170,7 @@ export function StoriesViewer({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
         >
-          <div className="absolute inset-0" style={{ background: `linear-gradient(160deg, ${accent} 0%, #14111C 72%)` }} />
+          <div className="absolute inset-0" style={backdropStyle} />
 
           {/* Tap + hold surface (disabled on an interactive slide) */}
           <div
@@ -187,19 +203,19 @@ export function StoriesViewer({
                 ) : (
                   <>
                     {slide.eyebrow ? (
-                      <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-white/70">{slide.eyebrow}</p>
+                      <p className={`text-[12px] font-semibold uppercase tracking-[0.12em] ${eyebrowClass}`}>{slide.eyebrow}</p>
                     ) : null}
                     {slide.title ? (
-                      <h2 className="mt-2 break-words font-lumiaHome text-[30px] font-bold leading-[1.1] text-white">{slide.title}</h2>
+                      <h2 className={`mt-2 break-words font-lumiaHome text-[30px] font-bold leading-[1.1] ${titleClass}`}>{slide.title}</h2>
                     ) : null}
                     {slide.loading && !slide.body ? (
                       <div className="mt-3 space-y-2" aria-busy="true">
-                        <div className="h-3 w-full animate-pulse rounded-full bg-white/25" />
-                        <div className="h-3 w-11/12 animate-pulse rounded-full bg-white/20" />
-                        <div className="h-3 w-3/4 animate-pulse rounded-full bg-white/15" />
+                        <div className={`h-3 w-full animate-pulse rounded-full ${skeletonClass}`} />
+                        <div className={`h-3 w-11/12 animate-pulse rounded-full ${skeletonClass}`} />
+                        <div className={`h-3 w-3/4 animate-pulse rounded-full ${skeletonClass}`} />
                       </div>
                     ) : slide.body ? (
-                      <p className="mt-3 whitespace-pre-line break-words text-[16px] leading-relaxed text-white/85">{slide.body}</p>
+                      <p className={`mt-3 whitespace-pre-line break-words text-[16px] leading-relaxed ${bodyClass}`}>{slide.body}</p>
                     ) : null}
                   </>
                 )}
@@ -213,9 +229,9 @@ export function StoriesViewer({
             style={{ top: 'calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px), 24px) + 30px)' }}
           >
             {slides.map((s, i) => (
-              <div key={s.id} className="h-[3px] flex-1 overflow-hidden rounded-full bg-white/25">
+              <div key={s.id} className={`h-[3px] flex-1 overflow-hidden rounded-full ${progressTrack}`}>
                 <div
-                  className="h-full rounded-full bg-white"
+                  className={`h-full rounded-full ${progressFill}`}
                   style={{ width: i < index ? '100%' : i === index ? `${progress * 100}%` : '0%' }}
                 />
               </div>
@@ -227,7 +243,7 @@ export function StoriesViewer({
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="absolute right-3 z-30 flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white"
+            className={`absolute right-3 z-30 flex h-9 w-9 items-center justify-center rounded-full ${closeBtnClass}`}
             style={{ top: 'calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px), 24px) + 48px)' }}
           >
             <X size={18} />

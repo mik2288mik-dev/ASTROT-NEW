@@ -48,7 +48,18 @@ module.exports = {
           peach: 'var(--lumia-home-peach)',
           line: 'var(--lumia-home-line)',
         },
-        /** Doodle / diary skin — hand-drawn personal-diary direction (docs/doodle-redesign.md) */
+        /** Mono Friend skin — docs/mono-friend-redesign.md */
+        mono: {
+          bg: '#FAFAFA',
+          white: '#FFFFFF',
+          plate: '#F2F2F2',
+          ink: '#111111',
+          muted: '#6B6B6B',
+          line: 'rgba(17, 17, 17, 0.1)',
+          accent: '#C45C4A',
+          black: '#111111',
+        },
+        /** Legacy doodle tokens — migrate away; kept for gradual removal */
         doodle: {
           ink: '#20242A',
           paper: '#FFFFFF',
@@ -107,6 +118,8 @@ module.exports = {
         air: 'var(--radius-air)',
         'air-sm': 'var(--radius-air-sm)',
         'air-panel': 'var(--radius-air-panel)',
+        'mono-card': 'var(--mono-radius-card)',
+        'mono-pill': 'var(--mono-radius-pill)',
       },
     },
   },

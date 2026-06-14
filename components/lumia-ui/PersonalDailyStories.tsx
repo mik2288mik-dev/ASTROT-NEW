@@ -95,5 +95,5 @@ export function PersonalDailyStories({
     };
   });
 
-  return <StoriesViewer open={open} slides={slides} onClose={onClose} onIndexChange={setActive} accent="#7559CF" />;
+  return <StoriesViewer open={open} slides={slides} onClose={onClose} onIndexChange={setActive} accent="#111111" variant="mono" />;
 }

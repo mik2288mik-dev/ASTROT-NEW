@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { UserProfile } from '../types';
 import { ensureTelegramFullscreen } from '../lib/telegramFullscreen';
+import { MonoButton, MonoIllustWelcome } from '../components/mono-ui';
 
 interface OnboardingProps {
   onComplete: (profile: UserProfile) => void;
@@ -83,7 +84,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   };
 
   const inputClassName =
-    'min-h-[2.9rem] w-full border-b border-black/10 bg-transparent pb-2 pt-1 text-[1.05rem] leading-tight text-[#1f1f1f] outline-none transition-colors placeholder:text-black/20 focus:border-black/40';
+    'min-h-[2.9rem] w-full border-b border-mono-line bg-transparent pb-2 pt-1 text-[1.05rem] leading-tight text-mono-ink outline-none transition-colors placeholder:text-mono-muted/40 focus:border-mono-ink';
 
   const shellStyle = {
     paddingTop:
@@ -95,7 +96,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   } as const;
 
   return (
-    <div className="h-[100dvh] min-h-[100dvh] overflow-hidden bg-white text-[#1f1f1f]" style={shellStyle}>
+    <div className="mono-page h-[100dvh] min-h-[100dvh] overflow-hidden text-mono-ink" style={shellStyle}>
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -103,24 +104,26 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         className="mx-auto flex h-full w-full max-w-md flex-col"
       >
         <div>
-          <p className="lumia-brand-wordmark">
-            LUMIA
-          </p>
+          <p className="lumia-brand-wordmark">LUMIA</p>
           <p className="lumia-brand-tagline">ТВОЙ ПУТЬ К СЕБЕ</p>
         </div>
 
-        <div className="mt-10">
-          <h1 className="mb-0 max-w-[16rem] font-serif text-[2.45rem] leading-[0.97] tracking-[-0.05em] text-[#1f1f1f]">
+        <div className="mt-8 flex justify-center rounded-mono-card bg-mono-plate py-8">
+          <MonoIllustWelcome size={120} />
+        </div>
+
+        <div className="mt-8">
+          <h1 className="mb-0 max-w-[16rem] text-[2rem] font-bold leading-[1.05] tracking-[-0.03em] text-mono-ink">
             Данные для твоей карты
           </h1>
-          <p className="mb-0 mt-5 max-w-[19rem] text-[15px] leading-[1.65] text-[#4f4b45]">
+          <p className="mb-0 mt-4 max-w-[19rem] text-[15px] leading-[1.65] text-mono-muted">
             Имя, дата, время и место рождения помогают рассчитать карту точнее.
           </p>
         </div>
 
         <div className="mt-10 space-y-6">
           <label className="block">
-            <span className="mb-1.5 block text-[10px] uppercase tracking-[0.18em] text-[#8d877e]">Имя</span>
+            <span className="mb-1.5 block text-[10px] uppercase tracking-[0.18em] text-mono-muted">Имя</span>
             <input
               ref={nameRef}
               type="text"
@@ -136,7 +139,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
           <div className="grid grid-cols-2 gap-6">
             <label className="block">
-              <span className="mb-1.5 block text-[10px] uppercase tracking-[0.18em] text-[#8d877e]">Дата</span>
+              <span className="mb-1.5 block text-[10px] uppercase tracking-[0.18em] text-mono-muted">Дата</span>
               <input
                 ref={dateRef}
                 type="date"
@@ -150,7 +153,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
             </label>
 
             <label className="block">
-              <span className="mb-1.5 block text-[10px] uppercase tracking-[0.18em] text-[#8d877e]">Время</span>
+              <span className="mb-1.5 block text-[10px] uppercase tracking-[0.18em] text-mono-muted">Время</span>
               <input
                 ref={timeRef}
                 type="time"
@@ -165,7 +168,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
           </div>
 
           <label className="block">
-            <span className="mb-1.5 block text-[10px] uppercase tracking-[0.18em] text-[#8d877e]">Место рождения</span>
+            <span className="mb-1.5 block text-[10px] uppercase tracking-[0.18em] text-mono-muted">Место рождения</span>
             <input
               ref={placeRef}
               type="text"
@@ -181,30 +184,13 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         </div>
 
         <div className="mt-auto pt-8">
-          {error ? <p className="mb-3 text-[12px] leading-[1.45] text-[#9a4b45]">{error}</p> : null}
+          {error ? <p className="mb-3 text-[12px] leading-[1.45] text-mono-accent">{error}</p> : null}
 
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={!canSubmit}
-            aria-label="Открыть карту"
-            className={[
-              'flex w-full items-center justify-between border-t border-black/8 py-4 text-left transition-colors duration-300',
-              canSubmit ? 'text-[#1f1f1f]' : 'text-[#bcb5aa]',
-            ].join(' ')}
-          >
-            <span className="text-[12px] uppercase tracking-[0.2em]">Открыть карту</span>
-            <span
-              className={[
-                'flex h-10 w-10 items-center justify-center rounded-full text-[1.1rem] leading-none transition-colors',
-                canSubmit ? 'bg-[#1f1f1f] text-white' : 'bg-[#efebe4] text-[#bcb5aa]',
-              ].join(' ')}
-            >
-              →
-            </span>
-          </button>
+          <MonoButton fullWidth disabled={!canSubmit} onClick={handleSubmit}>
+            Открыть карту
+          </MonoButton>
 
-          <p className="mb-0 mt-3 max-w-[20rem] text-[10px] leading-[1.45] text-[#8c867d]">
+          <p className="mb-0 mt-3 max-w-[20rem] text-[10px] leading-[1.45] text-mono-muted">
             Все расчеты Lumia строятся на точных астрономических данных, координатах рождения и Swiss Ephemeris, чтобы карта опиралась на реальные данные, а не на общий шаблон.
           </p>
         </div>

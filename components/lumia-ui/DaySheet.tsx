@@ -79,7 +79,7 @@ export function DaySheet({
           <motion.div
             role="dialog"
             aria-modal="true"
-            className="relative flex max-h-[88dvh] w-full max-w-[30rem] flex-col overflow-y-auto rounded-t-[24px] bg-white px-5 pt-3 font-sans"
+            className="relative flex max-h-[88dvh] w-full max-w-[30rem] flex-col overflow-y-auto rounded-t-mono-card bg-mono-white px-5 pt-3 font-sans"
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
@@ -89,16 +89,16 @@ export function DaySheet({
             <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-black/15" />
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#9A93A3]">
+                <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-mono-muted">
                   {dateKey ? formatLumiaDate(dateKey, language) : ''}
                 </p>
-                <h3 className="mt-1 font-lumiaHome text-[22px] font-bold text-[#1E1230]">{heading}</h3>
+                <h3 className="mt-1 font-lumiaHome text-[22px] font-bold text-mono-ink">{heading}</h3>
               </div>
               <button
                 type="button"
                 onClick={onClose}
                 aria-label={language === 'ru' ? 'Закрыть' : 'Close'}
-                className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-black/[0.05] text-[#1E1230]"
+                className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-mono-plate text-mono-ink"
               >
                 <X size={18} />
               </button>
@@ -106,7 +106,7 @@ export function DaySheet({
 
             {locked ? (
               <div className="mt-4">
-                <p className="text-[14px] leading-relaxed text-[#50465E]">
+                <p className="text-[14px] leading-relaxed text-mono-muted">
                   {language === 'ru'
                     ? 'Гороскоп на любой день — в Premium. Сегодняшний всегда открыт.'
                     : 'Any-day horoscope is in Premium. Today is always free.'}
@@ -114,7 +114,7 @@ export function DaySheet({
                 <button
                   type="button"
                   onClick={onRequestPremium}
-                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-[#7B5CF6] py-3.5 text-[14px] font-bold text-white"
+                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-mono-pill bg-mono-black py-3.5 text-[14px] font-bold text-white"
                 >
                   <Sparkles size={16} />
                   {language === 'ru' ? 'Открыть Premium' : 'Unlock Premium'}

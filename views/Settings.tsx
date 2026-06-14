@@ -73,11 +73,11 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
     const [notificationFrequency, setNotificationFrequency] = useState<NotificationFrequency>(
         profile.notificationFrequency || 'important'
     );
-    const sectionClass = 'lumia-glass rounded-2xl p-4 sm:p-[18px]';
+    const sectionClass = 'rounded-mono-card border border-mono-line bg-mono-white p-4 sm:p-[18px]';
     const rowCardClass =
-        'lumia-glass w-full rounded-2xl p-4 text-left transition-[transform,box-shadow] hover:ring-1 hover:ring-astro-highlight/22 active:scale-[0.99] sm:p-[18px]';
-    const inlineActionClass = 'text-astro-subtext text-[10px] uppercase tracking-wider hover:text-astro-text transition-colors';
-    const inputBaseClass = 'w-full bg-transparent border-b border-astro-border py-2 text-astro-text text-sm focus:outline-none focus:border-astro-highlight transition-colors font-serif';
+        'w-full rounded-mono-card border border-mono-line bg-mono-white p-4 text-left transition-transform active:scale-[0.99] sm:p-[18px]';
+    const inlineActionClass = 'text-mono-muted text-[10px] uppercase tracking-wider hover:text-mono-ink transition-colors';
+    const inputBaseClass = 'w-full bg-transparent border-b border-mono-line py-2 text-mono-ink text-sm focus:outline-none focus:border-mono-ink transition-colors';
     const editableInputClass = (enabled: boolean) =>
         `w-full bg-transparent border-b ${enabled ? 'border-astro-highlight' : 'border-astro-border'} py-2 text-astro-text text-sm focus:outline-none transition-colors font-serif`;
     const languageLabel = profile.language === 'ru'
@@ -173,7 +173,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
 
     return (
         <ScreenShell className="mx-auto max-w-reading-wide pt-2">
-            <section className="rounded-[28px] p-5 mb-4 backdrop-blur-2xl bg-white/30 ring-1 ring-white/70 shadow-none">
+            <section className="rounded-mono-card border border-mono-line bg-mono-white p-5 mb-4">
                 <div className="flex items-center gap-4">
                     {profilePhotoUrl ? (
                         <img
@@ -210,7 +210,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                     <button
                         onClick={handlePremiumPurchase}
                         disabled={activePremium}
-                        className="min-h-[44px] flex-1 rounded-xl bg-astro-highlight px-4 py-2.5 text-sm font-semibold text-white shadow-[0_0_0_1px_color-mix(in_srgb,var(--highlight)_35%,transparent)_inset] disabled:opacity-50"
+                        className="min-h-[44px] flex-1 rounded-mono-pill bg-mono-black px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
                     >
                         {activePremium ? getText(profile.language, 'settings.plan_active') : getText(profile.language, 'dashboard.get_premium')}
                     </button>
@@ -375,7 +375,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                         <div className="flex gap-2">
                             <button 
                                 onClick={handleSaveProfile}
-                                className="flex-1 rounded-xl bg-astro-highlight px-4 py-3 text-sm font-semibold text-white"
+                                className="flex-1 rounded-mono-pill bg-mono-black px-4 py-3 text-sm font-semibold text-white"
                             >
                                 {getText(profile.language, 'settings.save')}
                             </button>

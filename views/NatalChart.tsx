@@ -30,19 +30,19 @@ export const NatalChart: React.FC<NatalChartProps> = ({
 }) => {
   if (!data) {
     return (
-      <div className="min-h-full bg-white px-5 pt-10">
-        <div className="mx-auto max-w-md rounded-[24px] border border-black/10 bg-white p-6 shadow-[0_18px_44px_rgba(0,0,0,0.07)]">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#8c6bb1]">Личная карта</p>
-          <h1 className="mt-3 text-[30px] font-semibold leading-tight text-[#1f1f1f]">Создай натальную карту</h1>
-          <p className="mt-4 text-[15px] leading-relaxed text-[#666]">Lumia рассчитает карту по дате, времени и месту рождения и откроет личные разборы.</p>
-          <button type="button" onClick={onCreateChart} className="mt-6 min-h-[46px] rounded-full bg-[#1f1f1f] px-5 text-[14px] font-semibold text-white">Создать карту</button>
+      <div className="mono-page min-h-full px-5 pt-10">
+        <div className="mx-auto max-w-md rounded-mono-card border border-mono-line bg-mono-white p-6">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-mono-muted">Личная карта</p>
+          <h1 className="mt-3 text-[28px] font-bold leading-tight text-mono-ink">Создай натальную карту</h1>
+          <p className="mt-4 text-[15px] leading-relaxed text-mono-muted">Lumia рассчитает карту по дате, времени и месту рождения и откроет личные разборы.</p>
+          <button type="button" onClick={onCreateChart} className="mt-6 min-h-[48px] rounded-mono-pill bg-mono-black px-5 text-[14px] font-semibold text-white">Создать карту</button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-full bg-white pb-16 font-sans">
+    <div className="mono-page min-h-full pb-16 font-sans">
       <ShimmerStyles />
 
       <HumanReport

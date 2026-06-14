@@ -95,6 +95,17 @@ body,
   --lumia-brand-wordmark-weight: 700;
   --lumia-brand-wordmark-letter-spacing: 0;
   --lumia-brand-tagline-gap: 0.16rem;
+
+  /* Mono Friend skin — docs/mono-friend-redesign.md */
+  --mono-bg: #fafafa;
+  --mono-white: #ffffff;
+  --mono-plate: #f2f2f2;
+  --mono-ink: #111111;
+  --mono-muted: #6b6b6b;
+  --mono-line: rgba(17, 17, 17, 0.1);
+  --mono-accent: #c45c4a;
+  --mono-radius-card: 20px;
+  --mono-radius-pill: 999px;
 }
 
 body.theme-light {
@@ -722,10 +733,10 @@ body.theme-lumia-air #__next {
   gap: 0;
   border-radius: 9999px;
   overflow: hidden;
-  border: 1px solid rgba(0, 0, 0, 0.2);
-  background: #161122;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
-  padding: 8px 10px;
+  border: 1px solid var(--mono-line);
+  background: var(--mono-white);
+  box-shadow: 0 8px 24px rgba(17, 17, 17, 0.08);
+  padding: 6px 8px;
 }
 
 .lumia-bottom-tab-bar::before,
@@ -744,7 +755,7 @@ body.theme-lumia-air #__next {
   justify-content: center;
   border: 0;
   background: transparent;
-  color: #ffffff;
+  color: var(--mono-muted);
   font-family: var(--lumia-home-font-sans);
   -webkit-tap-highlight-color: transparent;
   transition:
@@ -780,22 +791,20 @@ body.theme-lumia-air #__next {
 }
 
 .lumia-bottom-tab-item.is-active {
-  color: #161122;
+  color: var(--mono-ink);
   opacity: 1;
 }
 
-/* Reference: white icons on dark bar; active = dark glyph on a white circle */
 .lumia-bottom-tab-item.is-active .lumia-bottom-tab-icon {
-  background: #ffffff;
-  color: #161122;
+  background: var(--mono-black);
+  color: #ffffff;
 }
 
-/* ── Doodle / diary skin — white paper with a faint dot grid (docs/doodle-redesign.md) ── */
+/* ── Mono Friend skin — clean white/gray (docs/mono-friend-redesign.md) ── */
+.mono-page,
 .doodle-paper {
-  background-color: #ffffff;
-  background-image: radial-gradient(rgba(60, 60, 70, 0.06) 1px, transparent 1.2px);
-  background-size: 24px 24px;
-  background-position: 0 0;
+  background-color: var(--mono-bg);
+  color: var(--mono-ink);
 }
 
 .lumia-home-bottom-nav-shell {

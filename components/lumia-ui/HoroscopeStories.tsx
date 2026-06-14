@@ -25,10 +25,10 @@ function SignPicker({
 }) {
   return (
     <div className="pointer-events-auto">
-      <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-white/70">
+      <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-mono-muted">
         {language === 'ru' ? 'Гороскоп' : 'Horoscope'}
       </p>
-      <h2 className="mt-2 font-lumiaHome text-[26px] font-bold leading-tight text-white">
+      <h2 className="mt-2 font-lumiaHome text-[26px] font-bold leading-tight text-mono-ink">
         {language === 'ru' ? 'Чей гороскоп смотрим?' : 'Whose horoscope?'}
       </h2>
       <div className="mt-5 grid grid-cols-3 gap-2.5">
@@ -40,11 +40,11 @@ function SignPicker({
               type="button"
               onClick={() => onPick(sign)}
               className={`flex flex-col items-center gap-1.5 rounded-[18px] px-2 py-3.5 transition-transform active:scale-95 ${
-                active ? 'bg-white' : 'bg-white/12'
+                active ? 'bg-mono-black text-white' : 'bg-mono-white border border-mono-line'
               }`}
             >
-              <ZodiacIcon sign={sign} size={28} stroke={active ? '#1E1230' : '#ffffff'} strokeWidth={1.6} />
-              <span className={`text-[12px] font-semibold leading-none ${active ? 'text-[#1E1230]' : 'text-white'}`}>
+              <ZodiacIcon sign={sign} size={28} stroke={active ? '#ffffff' : '#111111'} strokeWidth={1.6} />
+              <span className={`text-[12px] font-semibold leading-none ${active ? 'text-white' : 'text-mono-ink'}`}>
                 {getZodiacSign(language, sign)}
               </span>
             </button>
@@ -115,6 +115,6 @@ export function HoroscopeStories({
   }, [sign, reading, language]);
 
   return (
-    <StoriesViewer open={open} slides={slides} onClose={onClose} advanceSignal={advanceSeq} accent="#7559CF" />
+    <StoriesViewer open={open} slides={slides} onClose={onClose} advanceSignal={advanceSeq} accent="#111111" variant="mono" />
   );
 }

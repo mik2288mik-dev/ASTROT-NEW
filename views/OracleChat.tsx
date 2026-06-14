@@ -296,30 +296,30 @@ export const OracleChat: React.FC<OracleChatProps> = ({
   const showPremiumCta = !activePremium && questionState?.nextTier !== 'free';
 
   return (
-    <div className="flex h-full min-h-0 w-full flex-col bg-astro-bg">
-      <div className="shrink-0 border-b border-astro-border/30 bg-astro-bg/90 backdrop-blur-xl">
-        <div className="space-y-air-sm px-4 pt-4 pb-3 sm:px-5">
-          <div className="lumia-glass rounded-air-panel px-4 py-4 sm:px-5 sm:py-5">
-            <p className="lumia-label tracking-[0.2em]">{getText(lang, 'oracle.hero_label')}</p>
-            <h1 className="mt-2 font-serif text-2xl text-astro-text sm:text-[1.95rem]">
+    <div className="flex h-full min-h-0 w-full flex-col bg-mono-bg">
+      <div className="shrink-0 border-b border-mono-line bg-mono-white/95 backdrop-blur-xl">
+        <div className="space-y-3 px-4 pt-4 pb-3 sm:px-5">
+          <div className="rounded-mono-card border border-mono-line bg-mono-white px-4 py-4 sm:px-5 sm:py-5">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-mono-muted">{getText(lang, 'oracle.hero_label')}</p>
+            <h1 className="mt-2 text-2xl font-bold text-mono-ink sm:text-[1.95rem]">
               {getText(lang, 'oracle.hero_title')}
             </h1>
-            <p className="lumia-muted mt-2 text-sm leading-relaxed sm:text-[15px]">
+            <p className="mt-2 text-sm leading-relaxed text-mono-muted sm:text-[15px]">
               {getText(lang, 'oracle.hero_body')}
             </p>
           </div>
 
-          <div className="mt-3 rounded-2xl border border-astro-border/55 bg-astro-card/45 px-4 py-4 sm:px-5">
-            <p className="lumia-label tracking-[0.18em]">{stateCopy.label}</p>
-            <p className="mt-2 text-base font-semibold text-astro-text sm:text-lg">{stateCopy.title}</p>
-            <p className="lumia-muted mt-2 text-sm leading-relaxed">{stateCopy.body}</p>
+          <div className="rounded-mono-card border border-mono-line bg-mono-plate px-4 py-4 sm:px-5">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-mono-muted">{stateCopy.label}</p>
+            <p className="mt-2 text-base font-semibold text-mono-ink sm:text-lg">{stateCopy.title}</p>
+            <p className="mt-2 text-sm leading-relaxed text-mono-muted">{stateCopy.body}</p>
 
             {showPremiumCta && onPremiumRequired && (
               <div className="mt-4 flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={onPremiumRequired}
-                  className="inline-flex min-h-[44px] items-center rounded-full border border-astro-highlight/35 bg-astro-highlight/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-astro-highlight transition-colors hover:border-astro-highlight/50 hover:bg-astro-highlight/15"
+                  className="inline-flex min-h-[44px] items-center rounded-mono-pill border border-mono-line bg-mono-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-mono-ink"
                 >
                   {getText(lang, 'oracle.state_open_premium')}
                 </button>
@@ -330,12 +330,12 @@ export const OracleChat: React.FC<OracleChatProps> = ({
       </div>
 
       <div className="scrollbar-hide min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5">
-        <p className="lumia-label mb-air-sm tracking-[0.18em]">{getText(lang, 'oracle.history_label')}</p>
+        <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-mono-muted">{getText(lang, 'oracle.history_label')}</p>
 
         {loadingHistory && messages.length === 0 ? (
-          <div className="pt-8 text-center text-sm text-astro-subtext">{getText(lang, 'oracle.loading_history')}</div>
+          <div className="pt-8 text-center text-sm text-mono-muted">{getText(lang, 'oracle.loading_history')}</div>
         ) : (
-          <div className="space-y-air">
+          <div className="space-y-4">
             {messages.map((msg) => (
               <motion.div
                 key={msg.id}
@@ -344,10 +344,10 @@ export const OracleChat: React.FC<OracleChatProps> = ({
                 className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`max-w-[88%] rounded-3xl px-4 py-3 text-[15px] leading-relaxed sm:max-w-[82%] sm:text-base ${
+                  className={`max-w-[88%] rounded-[20px] px-4 py-3 text-[15px] leading-relaxed sm:max-w-[82%] sm:text-base ${
                     msg.role === 'user'
-                      ? 'rounded-br-md bg-astro-text text-astro-bg'
-                      : 'rounded-bl-md border border-astro-border/55 bg-astro-card/55 text-astro-text'
+                      ? 'bg-mono-plate text-mono-ink'
+                      : 'bg-mono-black text-white'
                   }`}
                 >
                   {msg.text}
@@ -356,17 +356,17 @@ export const OracleChat: React.FC<OracleChatProps> = ({
             ))}
 
             {!loadingHistory && messages.length === 0 && (
-              <div className="rounded-2xl border border-dashed border-astro-border/45 bg-astro-card/25 px-4 py-5 text-sm leading-relaxed text-astro-subtext">
+              <div className="rounded-mono-card border border-dashed border-mono-line bg-mono-plate px-4 py-5 text-sm leading-relaxed text-mono-muted">
                 {getText(lang, 'oracle.history_empty')}
               </div>
             )}
 
             {loading && (
               <div className="flex justify-start">
-                <div className="flex space-x-2 rounded-3xl rounded-bl-md border border-astro-border/55 bg-astro-card/55 px-4 py-3">
-                  <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-astro-subtext" style={{ animationDelay: '0ms' }} />
-                  <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-astro-subtext" style={{ animationDelay: '150ms' }} />
-                  <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-astro-subtext" style={{ animationDelay: '300ms' }} />
+                <div className="flex space-x-2 rounded-[20px] bg-mono-plate px-4 py-3">
+                  <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-mono-muted" style={{ animationDelay: '0ms' }} />
+                  <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-mono-muted" style={{ animationDelay: '150ms' }} />
+                  <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-mono-muted" style={{ animationDelay: '300ms' }} />
                 </div>
               </div>
             )}
@@ -377,19 +377,19 @@ export const OracleChat: React.FC<OracleChatProps> = ({
       </div>
 
       <div
-        className="shrink-0 border-t border-astro-border/30 bg-astro-bg/94 backdrop-blur-xl"
+        className="shrink-0 border-t border-mono-line bg-mono-white/95 backdrop-blur-xl"
         style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 10px)' }}
       >
         <div className="px-4 pt-4 pb-3 sm:px-5">
           {error && (
-            <div className="mb-3 rounded-2xl border border-red-500/30 bg-red-500/8 p-3 text-sm text-red-200">
+            <div className="mb-3 rounded-mono-card border border-red-200 bg-red-50 p-3 text-sm text-red-700">
               <p>{error}</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {errorCode === 'PREMIUM_REQUIRED' && onPremiumRequired ? (
                   <button
                     type="button"
                     onClick={onPremiumRequired}
-                    className="rounded-full border border-astro-highlight/35 bg-astro-highlight/10 px-3.5 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-astro-highlight"
+                    className="rounded-mono-pill border border-mono-line bg-mono-white px-3.5 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-mono-ink"
                   >
                     {getText(lang, 'oracle.open_premium')}
                   </button>
@@ -398,7 +398,7 @@ export const OracleChat: React.FC<OracleChatProps> = ({
                     type="button"
                     onClick={handleRetry}
                     disabled={loading}
-                    className="rounded-full border border-astro-highlight/35 bg-astro-highlight/10 px-3.5 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-astro-highlight disabled:opacity-50"
+                    className="rounded-mono-pill border border-mono-line bg-mono-white px-3.5 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-mono-ink disabled:opacity-50"
                   >
                     {getText(lang, 'oracle.retry')}
                   </button>
@@ -407,11 +407,11 @@ export const OracleChat: React.FC<OracleChatProps> = ({
             </div>
           )}
 
-          <div className="rounded-air-panel border border-astro-border/55 bg-astro-card/45 px-4 py-4">
-            <p className="lumia-label tracking-[0.18em]">{getText(lang, 'oracle.composer_label')}</p>
-            <p className="lumia-muted mt-2 text-sm leading-relaxed">{getText(lang, 'oracle.composer_body')}</p>
+          <div className="rounded-mono-card border border-mono-line bg-mono-white px-4 py-4">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-mono-muted">{getText(lang, 'oracle.composer_label')}</p>
+            <p className="mt-2 text-sm leading-relaxed text-mono-muted">{getText(lang, 'oracle.composer_body')}</p>
 
-            <div className="mt-4 rounded-2xl border border-astro-border/55 bg-astro-bg/16 px-4 py-3 transition-colors focus-within:border-astro-highlight/35">
+            <div className="mt-4 rounded-mono-card border border-mono-line bg-mono-plate px-4 py-3 transition-colors focus-within:border-mono-ink">
               <textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
@@ -422,13 +422,13 @@ export const OracleChat: React.FC<OracleChatProps> = ({
                   }
                 }}
                 placeholder={getText(lang, 'oracle.placeholder')}
-                className="min-h-[76px] w-full resize-none bg-transparent text-[15px] leading-relaxed text-astro-text outline-none placeholder:text-astro-subtext sm:text-base"
+                className="min-h-[76px] w-full resize-none bg-transparent text-[15px] leading-relaxed text-mono-ink outline-none placeholder:text-mono-muted sm:text-base"
                 disabled={inputDisabled}
               />
             </div>
 
             <div className="mt-4 flex items-center justify-between gap-3">
-              <p className="text-xs leading-relaxed text-astro-subtext">
+              <p className="text-xs leading-relaxed text-mono-muted">
                 {questionState?.nextTier === 'premium' && activePremium
                   ? getText(lang, 'oracle.state_premium_label')
                   : questionState?.nextTier === 'free'
@@ -439,7 +439,7 @@ export const OracleChat: React.FC<OracleChatProps> = ({
                 type="button"
                 onClick={handleSend}
                 disabled={sendDisabled}
-                className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full bg-astro-highlight px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.16em] text-white transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-mono-pill bg-mono-black px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-white transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {loading ? getText(lang, 'oracle.thinking') : sendLabel}
               </button>

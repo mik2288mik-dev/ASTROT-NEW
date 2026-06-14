@@ -6,18 +6,21 @@ import { getZodiacSign } from '../constants';
 import { getCharts, type ChartListItem } from '../services/storageService';
 import { calculateExtendedSynastry, getSignCompatibility } from '../services/astrologyService';
 import { toDateInputValue } from '../lib/date-utils';
+import {
+  MonoPage,
+  MonoArticleSection,
+  MonoButton,
+  MonoIllustCouple,
+  MonoInput,
+  MonoSegment,
+  MonoSelect,
+  MonoShareBar,
+  MonoTag,
+} from '../components/mono-ui';
 
 type SynastryPrefill = { source: 'saved-chart' | 'manual'; partnerChartId?: number; partnerName?: string; partnerDate?: string; partnerTime?: string; partnerPlace?: string } | null;
 type Props = { profile: UserProfile; chartData?: NatalChartData | null; chartId?: number | null; requestPremium: () => void; initialPrefill?: SynastryPrefill; onOpenCharts?: () => void; onCreateNatalChart?: () => void; onUpdateProfile?: (profile: UserProfile) => void };
 const SIGNS = ['aries','taurus','gemini','cancer','leo','virgo','libra','scorpio','sagittarius','capricorn','aquarius','pisces'];
-
-function Section({ title, text }: { title: string; text?: string }) {
-  if (!text) return null;
-  return <section className="rounded-[22px] border border-black/10 bg-white p-5"><h3 className="text-lg font-semibold text-[#202024]">{title}</h3><p className="mt-3 text-sm leading-relaxed text-[#68646e]">{text}</p></section>;
-}
-function SignSelect({ value, onChange, label, language }: { value: string; onChange: (value: string) => void; label: string; language: 'ru' | 'en' }) {
-  return <label className="block text-xs font-semibold text-[#68646e]">{label}<select value={value} onChange={(e) => onChange(e.target.value)} className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-base text-[#202024]">{SIGNS.map((sign) => <option key={sign} value={sign}>{getZodiacSign(language, sign)}</option>)}</select></label>;
-}
 
 export const Synastry: React.FC<Props> = ({ profile, chartData, chartId, requestPremium, initialPrefill, onOpenCharts, onCreateNatalChart }) => {
   const language = profile.language === 'en' ? 'en' : 'ru';
@@ -45,19 +48,108 @@ export const Synastry: React.FC<Props> = ({ profile, chartData, chartId, request
   }
   const accuracy = !partnerTime || !partnerPlace ? (language === 'ru' ? 'Без точного времени или места рождения разбор не учитывает часть домов и может быть менее точным.' : 'Without an exact birth time or place, some chart details are unavailable and the reading may be less precise.') : null;
 
-  return <div className="min-h-full bg-[#faf9f7] px-4 pb-28 pt-5"><div className="mx-auto max-w-[28rem] space-y-4">
-    <header><p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8c6bb1]">Союз</p><h1 className="mt-2 text-3xl font-semibold text-[#202024]">Проверь вашу связь</h1><p className="mt-2 text-sm leading-relaxed text-[#68646e]">Почему вас тянет, где вы задеваете друг друга и как говорить яснее.</p></header>
-    <div className="grid grid-cols-2 rounded-2xl bg-black/5 p-1"><button className={`rounded-xl px-3 py-3 text-sm font-semibold ${mode === 'signs' ? 'bg-white shadow-sm' : ''}`} onClick={() => setMode('signs')}>Совместимость знаков</button><button className={`rounded-xl px-3 py-3 text-sm font-semibold ${mode === 'personal' ? 'bg-white shadow-sm' : ''}`} onClick={() => setMode('personal')}>Что между вами</button></div>
+  const modeOptions = language === 'ru'
+    ? [{ value: 'signs' as const, label: 'Совместимость знаков' }, { value: 'personal' as const, label: 'Что между вами' }]
+    : [{ value: 'signs' as const, label: 'Sign compatibility' }, { value: 'personal' as const, label: 'Between you' }];
 
-    {mode === 'signs' ? <>
-      <div className="grid grid-cols-2 gap-3"><SignSelect label="Знак 1" value={signA} onChange={setSignA} language={language} /><SignSelect label="Знак 2" value={signB} onChange={setSignB} language={language} /></div>
-      <button onClick={() => void runSigns()} disabled={loading} className="w-full rounded-2xl bg-[#202024] px-4 py-4 font-semibold text-white disabled:opacity-50">{loading ? 'Собираю…' : 'Проверить вашу связь'}</button>
-      {signResult ? <div className="space-y-3"><Section title="Что вас тянет" text={signResult.attraction} /><Section title="Где может быть сложно" text={signResult.difficulty} /><Section title="Как лучше общаться" text={signResult.communication} /><p className="px-2 text-xs leading-relaxed text-[#827d88]">{signResult.limitation}</p></div> : null}
-    </> : !hasChart ? <section className="rounded-[24px] border border-black/10 bg-white p-6"><h2 className="text-xl font-semibold">Создай натальную карту</h2><p className="mt-3 text-sm leading-relaxed text-[#68646e]">Чтобы увидеть «Что между вами», Lumia сначала нужна твоя карта. Бесплатная совместимость знаков остаётся доступна без неё.</p><button onClick={onCreateNatalChart} className="mt-5 w-full rounded-2xl bg-[#202024] px-4 py-4 font-semibold text-white">Создать натальную карту</button></section> : !premium ? <section className="rounded-[24px] border border-black/10 bg-white p-6"><h2 className="text-xl font-semibold">Что между вами · Premium</h2><p className="mt-3 text-sm leading-relaxed text-[#68646e]">Разбор покажет, где вас тянет, где может возникать конфликт и что помогает укрепить связь.</p><button onClick={requestPremium} className="mt-5 w-full rounded-2xl bg-[#202024] px-4 py-4 font-semibold text-white">Открыть Premium</button></section> : <>
-      {partners.length ? <label className="block text-xs font-semibold text-[#68646e]">Сохранённый человек<select value={partnerChartId || ''} onChange={(e) => setPartnerChartId(Number(e.target.value) || null)} className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-4 py-3"><option value="">Добавить вручную</option>{partners.map((chart) => <option key={chart.id} value={chart.id}>{chart.name}</option>)}</select></label> : null}
-      <div className="space-y-3 rounded-[24px] border border-black/10 bg-white p-5"><input value={partnerName} onChange={(e) => setPartnerName(e.target.value)} placeholder="Имя" className="w-full rounded-2xl border border-black/10 px-4 py-3" /><input value={partnerDate} onChange={(e) => setPartnerDate(e.target.value)} type="date" className="w-full rounded-2xl border border-black/10 px-4 py-3" /><div className="grid grid-cols-2 gap-3"><input value={partnerTime} onChange={(e) => setPartnerTime(e.target.value)} type="time" className="w-full rounded-2xl border border-black/10 px-4 py-3" /><input value={partnerPlace} onChange={(e) => setPartnerPlace(e.target.value)} placeholder="Место, если известно" className="w-full rounded-2xl border border-black/10 px-4 py-3" /></div>{accuracy ? <p className="text-xs leading-relaxed text-[#827d88]">{accuracy}</p> : null}<div className="flex gap-2">{onOpenCharts ? <button onClick={onOpenCharts} className="rounded-2xl border border-black/10 px-4 py-3 text-sm font-semibold">Мои карты</button> : null}<button onClick={() => void runPersonal()} disabled={loading} className="flex-1 rounded-2xl bg-[#202024] px-4 py-3 font-semibold text-white disabled:opacity-50">{loading ? 'Собираю…' : 'Что между вами'}</button></div></div>
-      {result ? <div className="space-y-3"><Section title="Как ощущается ваша связь" text={result.summary} /><Section title="Где вас тянет" text={result.fullAnalysis?.attraction} /><Section title="Где вы задеваете друг друга" text={result.fullAnalysis?.difficulties} /><Section title="Что может укрепить связь" text={result.fullAnalysis?.potential} />{result.fullAnalysis?.recommendations?.length ? <Section title="Как лучше общаться" text={result.fullAnalysis.recommendations.join(' ')} /> : null}</div> : null}
-    </>}
-    {error ? <p className="rounded-2xl bg-red-50 p-4 text-sm text-red-700">{error}</p> : null}
-  </div></div>;
+  const hasResults = mode === 'signs' ? !!signResult : !!result;
+
+  return (
+    <MonoPage className="px-4" withTabClearance>
+      <div className="relative mx-auto max-w-[28rem] space-y-4 pb-24">
+        <div className="relative overflow-hidden rounded-mono-card bg-mono-plate px-5 py-6">
+          <MonoIllustCouple className="absolute right-2 top-2 opacity-30" size={100} />
+          <MonoTag>{language === 'ru' ? 'Союз' : 'Union'}</MonoTag>
+          <h1 className="mt-3 max-w-[70%] font-lora text-[28px] font-bold leading-tight text-mono-ink">
+            {language === 'ru' ? 'Проверь вашу связь' : 'Check your bond'}
+          </h1>
+          <p className="mt-2 max-w-[85%] text-[14px] leading-relaxed text-mono-muted">
+            {language === 'ru' ? 'Почему вас тянет, где вы задеваете друг друга и как говорить яснее.' : 'Why you connect, where friction shows up, and how to talk clearer.'}
+          </p>
+        </div>
+
+        <MonoSegment value={mode} onChange={setMode} options={modeOptions} />
+
+        {mode === 'signs' ? (
+          <>
+            <div className="grid grid-cols-2 gap-3">
+              <MonoSelect label={language === 'ru' ? 'Знак 1' : 'Sign 1'} value={signA} onChange={(e) => setSignA(e.target.value)}>
+                {SIGNS.map((sign) => <option key={sign} value={sign}>{getZodiacSign(language, sign)}</option>)}
+              </MonoSelect>
+              <MonoSelect label={language === 'ru' ? 'Знак 2' : 'Sign 2'} value={signB} onChange={(e) => setSignB(e.target.value)}>
+                {SIGNS.map((sign) => <option key={sign} value={sign}>{getZodiacSign(language, sign)}</option>)}
+              </MonoSelect>
+            </div>
+            <MonoButton variant="accent" fullWidth disabled={loading} onClick={() => void runSigns()}>
+              {loading ? (language === 'ru' ? 'Собираю…' : 'Loading…') : (language === 'ru' ? 'Проверить связь' : 'Check compatibility')}
+            </MonoButton>
+            {signResult ? (
+              <div className="space-y-3">
+                <MonoArticleSection title={language === 'ru' ? 'Что вас тянет' : 'What draws you'}>{signResult.attraction}</MonoArticleSection>
+                <MonoArticleSection title={language === 'ru' ? 'Где может быть сложно' : 'Where it gets hard'}>{signResult.difficulty}</MonoArticleSection>
+                <MonoArticleSection title={language === 'ru' ? 'Как лучше общаться' : 'How to communicate'}>{signResult.communication}</MonoArticleSection>
+                <p className="px-2 text-xs leading-relaxed text-mono-muted">{signResult.limitation}</p>
+              </div>
+            ) : null}
+          </>
+        ) : !hasChart ? (
+          <MonoArticleSection title={language === 'ru' ? 'Создай натальную карту' : 'Create your natal chart'}>
+            <p>{language === 'ru' ? 'Чтобы увидеть «Что между вами», Lumia сначала нужна твоя карта. Бесплатная совместимость знаков остаётся доступна без неё.' : 'To see what is between you, Lumia needs your chart first. Sign compatibility stays free without it.'}</p>
+            <MonoButton className="mt-5" fullWidth onClick={onCreateNatalChart}>{language === 'ru' ? 'Создать карту' : 'Create chart'}</MonoButton>
+          </MonoArticleSection>
+        ) : !premium ? (
+          <MonoArticleSection title={language === 'ru' ? 'Что между вами · Premium' : 'Between you · Premium'}>
+            <p>{language === 'ru' ? 'Разбор покажет, где вас тянет, где может возникать конфликт и что помогает укрепить связь.' : 'The reading shows attraction, friction points, and what strengthens your bond.'}</p>
+            <MonoButton className="mt-5" fullWidth onClick={requestPremium}>{language === 'ru' ? 'Открыть Premium' : 'Open Premium'}</MonoButton>
+          </MonoArticleSection>
+        ) : (
+          <>
+            {partners.length ? (
+              <MonoSelect label={language === 'ru' ? 'Сохранённый человек' : 'Saved person'} value={partnerChartId || ''} onChange={(e) => setPartnerChartId(Number(e.target.value) || null)}>
+                <option value="">{language === 'ru' ? 'Добавить вручную' : 'Add manually'}</option>
+                {partners.map((chart) => <option key={chart.id} value={chart.id}>{chart.name}</option>)}
+              </MonoSelect>
+            ) : null}
+            <div className="space-y-3 rounded-mono-card border border-mono-line bg-mono-white p-5">
+              <MonoInput value={partnerName} onChange={(e) => setPartnerName(e.target.value)} placeholder={language === 'ru' ? 'Имя' : 'Name'} />
+              <MonoInput value={partnerDate} onChange={(e) => setPartnerDate(e.target.value)} type="date" />
+              <div className="grid grid-cols-2 gap-3">
+                <MonoInput value={partnerTime} onChange={(e) => setPartnerTime(e.target.value)} type="time" />
+                <MonoInput value={partnerPlace} onChange={(e) => setPartnerPlace(e.target.value)} placeholder={language === 'ru' ? 'Место' : 'Place'} />
+              </div>
+              {accuracy ? <p className="text-xs leading-relaxed text-mono-muted">{accuracy}</p> : null}
+              <div className="flex gap-2">
+                {onOpenCharts ? <MonoButton variant="outline" onClick={onOpenCharts}>{language === 'ru' ? 'Мои карты' : 'My charts'}</MonoButton> : null}
+                <MonoButton className="flex-1" variant="accent" disabled={loading} onClick={() => void runPersonal()}>
+                  {loading ? (language === 'ru' ? 'Собираю…' : 'Loading…') : (language === 'ru' ? 'Что между вами' : 'Between you')}
+                </MonoButton>
+              </div>
+            </div>
+            {result ? (
+              <div className="space-y-3">
+                <MonoArticleSection title={language === 'ru' ? 'Как ощущается ваша связь' : 'How your bond feels'}>{result.summary}</MonoArticleSection>
+                <MonoArticleSection title={language === 'ru' ? 'Где вас тянет' : 'What draws you'}>{result.fullAnalysis?.attraction}</MonoArticleSection>
+                <MonoArticleSection title={language === 'ru' ? 'Где вы задеваете друг друга' : 'Where you trigger each other'}>{result.fullAnalysis?.difficulties}</MonoArticleSection>
+                <MonoArticleSection title={language === 'ru' ? 'Что может укрепить связь' : 'What can strengthen it'}>{result.fullAnalysis?.potential}</MonoArticleSection>
+                {result.fullAnalysis?.recommendations?.length ? (
+                  <MonoArticleSection title={language === 'ru' ? 'Как лучше общаться' : 'How to talk'}>{result.fullAnalysis.recommendations.join(' ')}</MonoArticleSection>
+                ) : null}
+              </div>
+            ) : null}
+          </>
+        )}
+
+        {error ? <p className="rounded-mono-card bg-red-50 p-4 text-sm text-red-700">{error}</p> : null}
+      </div>
+
+      {hasResults ? (
+        <MonoShareBar label={language === 'ru' ? 'Поделиться' : 'Share'} onShare={() => {
+          try {
+            const tg = (window as unknown as { Telegram?: { WebApp?: { openTelegramLink?: (url: string) => void } } }).Telegram?.WebApp;
+            tg?.openTelegramLink?.(`https://t.me/share/url?url=${encodeURIComponent('https://t.me/lumia_astrology_bot')}`);
+          } catch { /* optional */ }
+        }} />
+      ) : null}
+    </MonoPage>
+  );
 };
