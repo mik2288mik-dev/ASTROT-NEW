@@ -1,4 +1,5 @@
 import React from 'react';
+import { LayoutGroup, motion, useReducedMotion } from 'framer-motion';
 import type { UserProfile, ViewState } from '../../types';
 import { cn } from '../../lib/cn';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
@@ -10,10 +11,10 @@ type LumiaBottomTabBarProps = {
   onOpenHoroscope: () => void;
   onOpenNatal: () => void;
   onOpenSynastry: () => void;
-  onOpenAvatar: () => void;
+  onOpenAsk: () => void;
 };
 
-const SHOW_ON: ViewState[] = ['dashboard', 'horoscope', 'chart', 'synastry', 'settings'];
+const SHOW_ON: ViewState[] = ['dashboard', 'horoscope', 'chart', 'synastry', 'oracle'];
 
 type IconProps = React.SVGProps<SVGSVGElement>;
 
@@ -56,11 +57,11 @@ function UnionHeartIcon(props: IconProps) {
   );
 }
 
-function ProfileUserIcon(props: IconProps) {
+function AskChatIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <circle cx="14" cy="10" r="4.4" strokeWidth="2.05" />
-      <path d="M5.5 22.6c.9-4.3 4.1-6.6 8.5-6.6s7.6 2.3 8.5 6.6" strokeWidth="2.1" />
+      <path d="M6.5 7.5h15a2 2 0 0 1 2 2v8.5a2 2 0 0 1-2 2H12l-4.5 3.5V9.5a2 2 0 0 1 2-2Z" strokeWidth="2.05" />
+      <path d="M10 12.5h8M10 16h5.5" strokeWidth="2.05" />
     </svg>
   );
 }
@@ -72,7 +73,7 @@ function getBottomNavLabels(language: UserProfile['language']) {
       horoscope: 'Horoscope',
       chart: 'Map',
       union: 'Union',
-      settings: 'Profile',
+      ask: 'Ask',
     };
   }
 
@@ -81,7 +82,7 @@ function getBottomNavLabels(language: UserProfile['language']) {
     horoscope: 'Гороскоп',
     chart: 'Карта',
     union: 'Союз',
-    settings: 'Профиль',
+    ask: 'Спроси',
   };
 }
 
@@ -92,9 +93,10 @@ export function LumiaBottomTabBar({
   onOpenHoroscope,
   onOpenNatal,
   onOpenSynastry,
-  onOpenAvatar,
+  onOpenAsk,
 }: LumiaBottomTabBarProps) {
   const labels = getBottomNavLabels(profile.language);
+  const reduce = useReducedMotion();
 
   if (!SHOW_ON.includes(view)) return null;
 
@@ -128,34 +130,45 @@ export function LumiaBottomTabBar({
       onClick: onOpenSynastry,
     },
     {
-      id: 'settings',
-      label: labels.settings,
-      active: view === 'settings',
-      icon: <ProfileUserIcon />,
-      onClick: onOpenAvatar,
+      id: 'ask',
+      label: labels.ask,
+      active: view === 'oracle',
+      icon: <AskChatIcon />,
+      onClick: onOpenAsk,
     },
   ];
 
   return (
     <div className="lumia-bottom-tab-shell pointer-events-none">
-      <nav className="lumia-bottom-tab-bar pointer-events-auto" aria-label="Lumia">
-        {items.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            className={cn('lumia-bottom-tab-item', item.active && 'is-active')}
-            aria-label={item.label}
-            aria-current={item.active ? 'page' : undefined}
-            onClick={() => {
-              lumiaSelectionHaptic();
-              item.onClick();
-            }}
-          >
-            <span className="lumia-bottom-tab-icon">{item.icon}</span>
-            <span className="lumia-bottom-tab-label">{item.label}</span>
-          </button>
-        ))}
-      </nav>
+      <LayoutGroup>
+        <nav className="lumia-bottom-tab-bar pointer-events-auto" aria-label="Lumia">
+          {items.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className={cn('lumia-bottom-tab-item', item.active && 'is-active')}
+              aria-label={item.label}
+              aria-current={item.active ? 'page' : undefined}
+              onClick={() => {
+                lumiaSelectionHaptic();
+                item.onClick();
+              }}
+            >
+              <span className="lumia-bottom-tab-icon relative">
+                {item.active && !reduce ? (
+                  <motion.span
+                    layoutId="mono-tab-pill"
+                    className="absolute inset-0 rounded-full bg-mono-black"
+                    transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+                  />
+                ) : null}
+                <span className="relative z-[1]">{item.icon}</span>
+              </span>
+              <span className="lumia-bottom-tab-label">{item.label}</span>
+            </button>
+          ))}
+        </nav>
+      </LayoutGroup>
     </div>
   );
 }

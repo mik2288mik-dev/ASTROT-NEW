@@ -18,3 +18,10 @@ export {
   MonoIllustChart,
   MonoIllustWelcome,
 } from './MonoIllustrations';
+export { MonoFadeIn, MonoStagger, MonoStaggerItem, MonoReveal } from './MonoMotion';
+export {
+  MONO_EASE,
+  monoTransition,
+  monoPress,
+  monoPressSoft,
+} from './motion';

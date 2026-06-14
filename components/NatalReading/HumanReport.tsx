@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 import { ChevronDown, Crown, Lock, Sparkles, X } from 'lucide-react';
 import type {
   InterpretationSection,
@@ -26,6 +27,7 @@ import {
 } from '../../lib/localHumanBaseReportCache';
 import { PlanetIcon } from '../icons/PlanetIcon';
 import { FormattedAiText } from '../ui/FormattedAiText';
+import { MONO_EASE } from '../mono-ui/motion';
 
 type Props = {
   profile: UserProfile;
@@ -85,33 +87,49 @@ function formatError(error: unknown): string {
   return 'Не удалось загрузить раздел.';
 }
 
-const SectionText: React.FC<{ section: InterpretationSection }> = ({ section }) => (
-  <section data-reading-section-key={section.key} className="border-t border-[#eeeeee] py-8 first:border-t-0 sm:py-10">
-    <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6b6b6b]">
-      {section.subtitle || section.title}
-    </p>
-    <h3 className="mt-2 font-sans text-[26px] font-semibold leading-[1.08] tracking-[-0.02em] text-[#1f1f1f] sm:text-[30px]">
-      {section.title}
-    </h3>
-    <div className="mt-5">
-      <FormattedAiText
-        text={section.content}
-        variant="article"
-        className="max-w-none"
-        paragraphClassName="font-sans text-[16.5px] leading-[1.82] text-[#2d2d2d] [text-wrap:pretty] sm:text-[17.5px] sm:leading-[1.9]"
-      />
-    </div>
-    {section.bullets?.length ? (
-      <ul className="mt-6 space-y-3 border-l-2 border-[#d8c18a] pl-4">
-        {section.bullets.map((item, index) => (
-          <li key={`${section.key}-${index}`} className="font-sans text-[14.5px] leading-relaxed text-[#3a3a3a]">
-            {item}
-          </li>
-        ))}
-      </ul>
-    ) : null}
-  </section>
-);
+const SectionText: React.FC<{ section: InterpretationSection; index?: number }> = ({ section, index = 0 }) => {
+  const reduce = useReducedMotion();
+  const Comp = reduce ? 'section' : motion.section;
+
+  return (
+    <Comp
+      {...(!reduce
+        ? {
+            initial: { opacity: 0, y: 16 },
+            whileInView: { opacity: 1, y: 0 },
+            viewport: { once: true, margin: '-40px' },
+            transition: { duration: 0.36, delay: Math.min(index * 0.05, 0.2), ease: MONO_EASE },
+          }
+        : {})}
+      data-reading-section-key={section.key}
+      className="border-t border-mono-line py-8 first:border-t-0 sm:py-10"
+    >
+      <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-mono-muted">
+        {section.subtitle || section.title}
+      </p>
+      <h3 className="mt-2 font-sans text-[26px] font-semibold leading-[1.08] tracking-[-0.02em] text-mono-ink sm:text-[30px]">
+        {section.title}
+      </h3>
+      <div className="mt-5">
+        <FormattedAiText
+          text={section.content}
+          variant="article"
+          className="max-w-none"
+          paragraphClassName="font-sans text-[16.5px] leading-[1.82] text-mono-ink/90 [text-wrap:pretty] sm:text-[17.5px] sm:leading-[1.9]"
+        />
+      </div>
+      {section.bullets?.length ? (
+        <ul className="mt-6 space-y-3 border-l-2 border-mono-line pl-4">
+          {section.bullets.map((item, bulletIndex) => (
+            <li key={`${section.key}-${bulletIndex}`} className="font-sans text-[14.5px] leading-relaxed text-mono-muted">
+              {item}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </Comp>
+  );
+};
 
 const LockedPreview: React.FC<{
   sectionKey: HumanPaidSectionKey;
@@ -126,14 +144,15 @@ const LockedPreview: React.FC<{
   }
 
   return (
-    <button
+    <motion.button
       type="button"
       onClick={onOpen}
       disabled={isLoading}
-      className="group w-full border-t border-[#eeeeee] py-6 text-left transition disabled:opacity-60"
+      whileTap={{ scale: 0.99 }}
+      className="group w-full border-t border-mono-line py-6 text-left transition disabled:opacity-60"
     >
       <div className="flex items-start gap-3">
-        <span className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#f6f1fb] text-[#7150a7]">
+        <span className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-mono-plate text-mono-ink">
           <Lock size={15} strokeWidth={1.9} />
         </span>
         <span className="min-w-0 flex-1">
@@ -141,20 +160,20 @@ const LockedPreview: React.FC<{
             {meta.title}
           </span>
           <span className="mt-2 block font-sans text-[14px] leading-relaxed text-[#626262]">{meta.teaser}</span>
-          <span className="relative mt-4 block max-h-[4.8rem] overflow-hidden rounded-[18px] bg-[#fafafa] px-4 py-3">
+          <span className="relative mt-4 block max-h-[4.8rem] overflow-hidden rounded-mono-card bg-mono-plate px-4 py-3">
             <span className="block select-none font-sans text-[14px] leading-[1.65] text-[#2f2f2f] blur-[2.5px]">
               В полном разборе здесь будет личный текст о том, как эта тема проявляется именно в вашей карте:
               где сила, что может мешать и как с этим обращаться без давления на себя.
             </span>
             <span className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/10 via-white/45 to-white" />
           </span>
-          <span className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#1f1f1f] px-4 py-2 text-[13px] font-medium text-white">
+          <span className="mt-4 inline-flex items-center gap-2 rounded-mono-pill bg-mono-black px-4 py-2 text-[13px] font-medium text-white">
             <Sparkles size={14} strokeWidth={2} />
             {isLoading ? 'Открываем...' : 'Прочитать все о себе'}
           </span>
         </span>
       </div>
-    </button>
+    </motion.button>
   );
 };
 
@@ -403,14 +422,14 @@ export const HumanReport: React.FC<Props> = ({
               <p className="mt-2 text-sm leading-relaxed text-[#666]">{error || 'Разбор карты подготавливается.'}</p>
             </section>
           ) : (
-            visibleFreeSections.map((section) => (
-              <SectionText key={section.key} section={{ ...section, title: section.key === 'base_portrait' ? 'Кто ты по карте' : section.title }} />
+            visibleFreeSections.map((section, index) => (
+              <SectionText key={section.key} section={{ ...section, title: section.key === 'base_portrait' ? 'Кто ты по карте' : section.title }} index={index} />
             ))
           )}
         </div>
 
         <section className="border-t border-[#eeeeee] py-7">
-          <button type="button" onClick={onOpenPersonalDaily} className="w-full rounded-[20px] bg-[#f7f4fb] px-5 py-4 text-left">
+          <button type="button" onClick={onOpenPersonalDaily} className="w-full rounded-mono-card bg-mono-plate px-5 py-4 text-left transition-transform active:scale-[0.99]">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#6b6b6b]">Личный день</p>
             <h2 className="mt-2 text-[21px] font-semibold text-[#1f1f1f]">Что с тобой сегодня</h2>
             <p className="mt-2 text-[14px] leading-relaxed text-[#626262]">Текущий личный фон, действие и риск дня — по твоей карте.</p>

@@ -17,7 +17,7 @@ import {
 } from './lib/localHumanBaseReportCache';
 import { getMoscowTodayKey } from './lib/date-utils';
 import { Onboarding } from './views/Onboarding';
-import { Dashboard } from './views/Dashboard';
+import { TodayFeed } from './views/v2/TodayFeed';
 import { NatalChart } from './views/NatalChart';
 import { Horoscope } from './views/Horoscope';
 import { PersonalDailyScreen } from './views/DailyContentScreens';
@@ -1443,7 +1443,7 @@ const App: React.FC = () => {
                     className={view === 'dashboard' ? 'flex h-full min-h-0 overflow-hidden' : 'hidden'}
                     aria-hidden={view !== 'dashboard'}
                 >
-                    <Dashboard
+                    <TodayFeed
                         profile={profile}
                         chartData={chartData}
                         chartId={primaryChartId}
@@ -1479,7 +1479,7 @@ const App: React.FC = () => {
                         onClose={() => setView('dashboard')}
                     />
                 ) : view === 'oracle' ? (
-                    <div className="lumia-main-scroll scrollbar-hide" ref={appScrollRef}>
+                    <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
                         {renderAppScrollHeader()}
                         <OracleChat
                             profile={profile}
@@ -1596,7 +1596,7 @@ const App: React.FC = () => {
                     onOpenHoroscope={openBottomHoroscope}
                     onOpenNatal={openBottomNatal}
                     onOpenSynastry={openBottomSynastry}
-                    onOpenAvatar={openBottomAvatar}
+                    onOpenAsk={openOracle}
                 />
             ) : null}
 

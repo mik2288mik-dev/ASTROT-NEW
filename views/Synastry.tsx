@@ -15,6 +15,8 @@ import {
   MonoSegment,
   MonoSelect,
   MonoShareBar,
+  MonoStagger,
+  MonoStaggerItem,
   MonoTag,
 } from '../components/mono-ui';
 
@@ -57,6 +59,8 @@ export const Synastry: React.FC<Props> = ({ profile, chartData, chartId, request
   return (
     <MonoPage className="px-4" withTabClearance>
       <div className="relative mx-auto max-w-[28rem] space-y-4 pb-24">
+        <MonoStagger className="space-y-4">
+        <MonoStaggerItem>
         <div className="relative overflow-hidden rounded-mono-card bg-mono-plate px-5 py-6">
           <MonoIllustCouple className="absolute right-2 top-2 opacity-30" size={100} />
           <MonoTag>{language === 'ru' ? 'Союз' : 'Union'}</MonoTag>
@@ -67,9 +71,13 @@ export const Synastry: React.FC<Props> = ({ profile, chartData, chartId, request
             {language === 'ru' ? 'Почему вас тянет, где вы задеваете друг друга и как говорить яснее.' : 'Why you connect, where friction shows up, and how to talk clearer.'}
           </p>
         </div>
+        </MonoStaggerItem>
 
+        <MonoStaggerItem>
         <MonoSegment value={mode} onChange={setMode} options={modeOptions} />
+        </MonoStaggerItem>
 
+        <MonoStaggerItem>
         {mode === 'signs' ? (
           <>
             <div className="grid grid-cols-2 gap-3">
@@ -140,6 +148,8 @@ export const Synastry: React.FC<Props> = ({ profile, chartData, chartId, request
         )}
 
         {error ? <p className="rounded-mono-card bg-red-50 p-4 text-sm text-red-700">{error}</p> : null}
+        </MonoStaggerItem>
+        </MonoStagger>
       </div>
 
       {hasResults ? (

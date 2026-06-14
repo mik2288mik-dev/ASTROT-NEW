@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 import { cn } from '../../lib/cn';
 
 type MonoButtonVariant = 'primary' | 'ghost' | 'accent' | 'outline';
@@ -23,7 +24,8 @@ export function MonoButton({
   disabled,
   ...props
 }: MonoButtonProps) {
-  return (
+  const reduce = useReducedMotion();
+  const button = (
     <button
       type="button"
       disabled={disabled}
@@ -37,5 +39,20 @@ export function MonoButton({
     >
       {children}
     </button>
+  );
+
+  if (reduce || disabled) {
+    return button;
+  }
+
+  return (
+    <motion.span
+      className={cn('inline-flex', fullWidth && 'w-full')}
+      whileTap={{ scale: 0.96 }}
+      whileHover={{ scale: 1.015 }}
+      transition={{ type: 'spring', stiffness: 420, damping: 28 }}
+    >
+      {button}
+    </motion.span>
   );
 }

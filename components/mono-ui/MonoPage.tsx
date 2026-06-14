@@ -1,17 +1,32 @@
 import React from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 import { cn } from '../../lib/cn';
+import { monoFadeIn } from './motion';
 
 type MonoPageProps = {
   children: React.ReactNode;
   className?: string;
   scrollRef?: React.RefObject<HTMLDivElement | null>;
   withTabClearance?: boolean;
+  animate?: boolean;
 };
 
-export function MonoPage({ children, className, scrollRef, withTabClearance = true }: MonoPageProps) {
+export function MonoPage({
+  children,
+  className,
+  scrollRef,
+  withTabClearance = true,
+  animate = true,
+}: MonoPageProps) {
+  const reduce = useReducedMotion();
+  const Comp = animate && !reduce ? motion.div : 'div';
+
   return (
-    <div
-      ref={scrollRef}
+    <Comp
+      ref={scrollRef as React.RefObject<HTMLDivElement>}
+      {...(animate && !reduce
+        ? { initial: 'hidden', animate: 'visible', variants: monoFadeIn }
+        : {})}
       className={cn(
         'mono-page h-full overflow-y-auto font-lumiaHome text-mono-ink',
         withTabClearance && 'pb-[var(--lumia-bottom-tab-clearance)]',
@@ -23,6 +38,6 @@ export function MonoPage({ children, className, scrollRef, withTabClearance = tr
       }}
     >
       {children}
-    </div>
+    </Comp>
   );
 }

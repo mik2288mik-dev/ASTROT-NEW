@@ -32,6 +32,8 @@ import {
   MonoIllustCouple,
   MonoIllustHoroscope,
   MonoIllustChart,
+  MonoStagger,
+  MonoStaggerItem,
 } from '../components/mono-ui';
 
 type DashboardProps = {
@@ -197,6 +199,8 @@ export const Dashboard = memo<DashboardProps>(({
   return (
     <MonoPage scrollRef={scrollRef} className="px-4">
       <div className="mx-auto w-full max-w-md pb-3">
+        <MonoStagger className="space-y-0">
+        <MonoStaggerItem>
         <MonoHeader
           greeting={language === 'ru' ? `Привет, ${profile.name}!` : `Hi, ${profile.name}!`}
           subtitle={`${language === 'ru' ? 'Сегодня' : 'Today'} ${shortDate(today, language)}`}
@@ -204,14 +208,13 @@ export const Dashboard = memo<DashboardProps>(({
           avatarInitial={userInitial}
           onAvatarClick={onOpenSettings}
         />
+        </MonoStaggerItem>
 
-        {/* Hero — personal day */}
+        <MonoStaggerItem>
         <motion.button
           type="button"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.06 }}
           whileTap={{ scale: 0.98 }}
+          whileHover={{ scale: 1.005 }}
           onClick={() => {
             if (hasChart && premium) { lumiaSelectionHaptic(); setPersonalStoryOpen(true); }
             else pdAction?.();
@@ -232,18 +235,23 @@ export const Dashboard = memo<DashboardProps>(({
             </svg>
           </span>
         </motion.button>
+        </MonoStaggerItem>
 
+        <MonoStaggerItem>
         <div className="mt-5">
           <DateSelector todayKey={today} language={language} isPremium={premium} onPick={handlePickDay} />
         </div>
+        </MonoStaggerItem>
 
+        <MonoStaggerItem>
         <div className="mb-3 mt-8">
           <h2 className="text-[22px] font-bold tracking-[-0.02em] text-mono-ink">
             {language === 'ru' ? 'Твой план' : 'Your plan'}
           </h2>
         </div>
+        </MonoStaggerItem>
 
-        {/* Bento grid — compatibility hero first */}
+        <MonoStaggerItem>
         <div className="grid grid-cols-2 gap-3">
           <MonoBentoTile
             className="col-span-2 min-h-[132px]"
@@ -253,7 +261,7 @@ export const Dashboard = memo<DashboardProps>(({
             detail={language === 'ru' ? 'Узнай про парня, девушку или пару' : 'Learn about him, her, or your pair'}
             illustration={<MonoIllustCouple size={88} />}
             onClick={() => { lumiaSelectionHaptic(); onOpenSynastry?.(); }}
-            delay={0.08}
+            delay={0}
           />
           <MonoBentoTile
             title={language === 'ru' ? 'Гороскоп' : 'Horoscope'}
@@ -266,7 +274,7 @@ export const Dashboard = memo<DashboardProps>(({
             variant="gray"
             illustration={<MonoIllustHoroscope size={72} />}
             onClick={() => { lumiaSelectionHaptic(); setHoroscopeOpen(true); }}
-            delay={0.12}
+            delay={0}
           />
           <MonoBentoTile
             title={language === 'ru' ? 'Натальная карта' : 'Natal chart'}
@@ -282,7 +290,7 @@ export const Dashboard = memo<DashboardProps>(({
             variant="white"
             illustration={<MonoIllustChart size={72} />}
             onClick={onCreateNatalChart}
-            delay={0.14}
+            delay={0}
             footer={
               hasChart ? (
                 <div className="flex items-center gap-2">
@@ -299,8 +307,9 @@ export const Dashboard = memo<DashboardProps>(({
             }
           />
         </div>
+        </MonoStaggerItem>
 
-        {/* Quick actions */}
+        <MonoStaggerItem>
         <div className="mt-3 flex gap-2">
           <button
             type="button"
@@ -319,6 +328,8 @@ export const Dashboard = memo<DashboardProps>(({
             {language === 'ru' ? 'Личный день' : 'Personal day'}
           </button>
         </div>
+        </MonoStaggerItem>
+        </MonoStagger>
       </div>
 
       <DaySheet

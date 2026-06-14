@@ -1,4 +1,5 @@
 import React, { memo, useEffect, useMemo, useState } from 'react';
+import { AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft,
   BriefcaseBusiness,
@@ -22,6 +23,7 @@ import { loadHumanDailySection } from '../services/natalReadingService';
 import { formatLumiaDate, getMoscowTodayKey } from '../lib/date-utils';
 import type { HumanDailySectionKey } from '../lib/natalHumanShared';
 import { cn } from '../lib/cn';
+import { MonoPage, MonoReveal } from '../components/mono-ui';
 
 type PersonalDailyScreenProps = {
   profile: UserProfile;
@@ -325,7 +327,7 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
   }, [access.allowed, activeSection, chartData, chartId, dateKey, forecast, profile, sections]);
 
   return (
-    <div className="min-h-full bg-white px-4 pb-8 pt-[calc(max(env(safe-area-inset-top,0px),var(--tg-content-safe-area-inset-top,0px))+0.8rem)] font-sans">
+    <MonoPage className="px-4 pb-8" withTabClearance={false} animate={false}>
       <div className="mx-auto flex min-h-[calc(100dvh-1.6rem)] w-full max-w-[25rem] flex-col gap-4">
         <button
           type="button"
@@ -333,28 +335,23 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
             hapticOpen();
             void onBack();
           }}
-          className="inline-flex min-h-[40px] w-fit items-center gap-2 rounded-full bg-white px-3 text-[13px] font-semibold text-[#202024] shadow-[0_8px_22px_rgba(0,0,0,0.06)]"
+          className="inline-flex min-h-[40px] w-fit items-center gap-2 rounded-mono-pill border border-mono-line bg-mono-white px-3 text-[13px] font-semibold text-mono-ink shadow-[0_8px_22px_rgba(0,0,0,0.06)] active:scale-[0.98]"
           aria-label={language === 'en' ? 'Back' : 'Назад'}
         >
           <ArrowLeft size={16} />
           {language === 'en' ? 'Back' : 'Назад'}
         </button>
 
-        <section className="relative flex flex-1 flex-col overflow-hidden rounded-[22px] border border-black/10 bg-white p-5 shadow-[0_18px_44px_rgba(0,0,0,0.08)]">
-          <div className="pointer-events-none absolute -right-8 top-20 opacity-[0.08]">
+        <section className="relative flex flex-1 flex-col overflow-hidden rounded-mono-card border border-mono-line bg-mono-white p-5 shadow-[0_12px_32px_rgba(17,17,17,0.06)]">
+          <div className="pointer-events-none absolute -right-8 top-20 text-mono-plate opacity-80">
             <Icon size={188} strokeWidth={0.8} />
-          </div>
-          <div className="pointer-events-none relative h-8 w-[min(19rem,80vw)] overflow-hidden [mask-image:radial-gradient(190px_46px_at_35%_0%,white_0%,white_38%,transparent_82%)]">
-            <div className="absolute left-0 top-2 h-px w-[82%] bg-gradient-to-r from-black/10 via-black/5 to-transparent blur-[1px]" />
-            <span className="absolute left-[29%] top-0 h-2 w-2 rounded-full bg-[#d8d8dc]" />
-            <span className="absolute left-[53%] top-2 h-1.5 w-1.5 rounded-full bg-[#d8d8dc]" />
           </div>
 
           <div className="relative">
-            <h1 className="max-w-[min(82vw,22rem)] text-[clamp(2.35rem,10vw,3.35rem)] font-semibold leading-[0.98] text-[#202024]">
+            <h1 className="max-w-[min(82vw,22rem)] text-[clamp(2rem,9vw,2.8rem)] font-bold leading-[1.02] tracking-[-0.02em] text-mono-ink">
               {activeTab.title}
             </h1>
-            <p className="mt-3 max-w-[min(82vw,21rem)] text-[14px] leading-relaxed text-[#68646e]">
+            <p className="mt-3 max-w-[min(82vw,21rem)] text-[14px] leading-relaxed text-mono-muted">
               {activeTab.subtitle} · {formatLumiaDate(dateKey, language)}
             </p>
           </div>
@@ -369,10 +366,10 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
                   setActiveSection(tab.id);
                 }}
                 className={cn(
-                  'shrink-0 rounded-full border px-3 py-2 text-[13px] font-semibold',
+                  'shrink-0 rounded-mono-pill border px-3 py-2 text-[13px] font-semibold transition-transform active:scale-[0.97]',
                   tab.id === activeTab.id
-                    ? 'border-[#202024] bg-[#202024] text-white'
-                    : 'border-black/10 bg-white text-[#4b4850]'
+                    ? 'border-mono-black bg-mono-black text-white'
+                    : 'border-mono-line bg-mono-white text-mono-muted'
                 )}
               >
                 {tab.title}
@@ -381,27 +378,31 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
           </div>
 
           <div className="relative flex-1">
-            {access.status === 'needs_chart' ? (
-              <CreateChartNotice profile={profile} onCreateNatalChart={onCreateNatalChart} />
-            ) : access.status === 'needs_premium' ? (
-              <PremiumNotice profile={profile} requestPremium={requestPremium} />
-            ) : !chartData || !profile.id ? (
-              <ErrorText language={language} />
-            ) : isLoading && !hasContent ? (
-              <LoadingText />
-            ) : hasError ? (
-              <ErrorText language={language} />
-            ) : activeTab.id === 'overview' && forecast ? (
-              <ForecastContent reading={forecast} />
-            ) : activeDailySection ? (
-              <SectionContent section={activeDailySection} />
-            ) : (
-              <LoadingText />
-            )}
+            <AnimatePresence mode="wait">
+              <MonoReveal key={activeTab.id}>
+                {access.status === 'needs_chart' ? (
+                  <CreateChartNotice profile={profile} onCreateNatalChart={onCreateNatalChart} />
+                ) : access.status === 'needs_premium' ? (
+                  <PremiumNotice profile={profile} requestPremium={requestPremium} />
+                ) : !chartData || !profile.id ? (
+                  <ErrorText language={language} />
+                ) : isLoading && !hasContent ? (
+                  <LoadingText />
+                ) : hasError ? (
+                  <ErrorText language={language} />
+                ) : activeTab.id === 'overview' && forecast ? (
+                  <ForecastContent reading={forecast} />
+                ) : activeDailySection ? (
+                  <SectionContent section={activeDailySection} />
+                ) : (
+                  <LoadingText />
+                )}
+              </MonoReveal>
+            </AnimatePresence>
           </div>
         </section>
       </div>
-    </div>
+    </MonoPage>
   );
 });
 

@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
 import { UserProfile } from '../types';
 import {
   createChart,
@@ -15,6 +16,16 @@ import { PlanetIcon } from '../components/icons/PlanetIcon';
 import { hasActivePremium } from '../lib/accessMatrix';
 import { clearLocalNatalChart } from '../lib/localNatalChartCache';
 import { clearLocalHumanBaseReport } from '../lib/localHumanBaseReportCache';
+import {
+  MonoButton,
+  MonoFadeIn,
+  MonoInput,
+  MonoPage,
+  MonoSegment,
+  MonoStagger,
+  MonoStaggerItem,
+  MonoTag,
+} from '../components/mono-ui';
 
 interface MyChartsProps {
   profile: UserProfile;
@@ -46,6 +57,8 @@ export const MyCharts: React.FC<MyChartsProps> = ({
   const [addTime, setAddTime] = useState('12:00');
   const [addPlace, setAddPlace] = useState('');
   const [addError, setAddError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [listFilter, setListFilter] = useState<'all' | 'primary' | 'partners'>('all');
 
   const lang = profile.language || 'ru';
 
@@ -82,6 +95,29 @@ export const MyCharts: React.FC<MyChartsProps> = ({
   const partnerCharts = charts.filter((chart) => !chart.is_primary);
   const isSingleChartState = charts.length === 1 && chartSlots > 1;
   const showPremiumSlotsCta = !canAddMore && !hasActivePremium(profile) && !!onRequestPremium;
+
+  const filteredCharts = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return charts.filter((chart) => {
+      if (listFilter === 'primary' && !chart.is_primary) return false;
+      if (listFilter === 'partners' && chart.is_primary) return false;
+      if (!q) return true;
+      const hay = `${chart.name} ${chart.birth_place || ''}`.toLowerCase();
+      return hay.includes(q);
+    });
+  }, [charts, listFilter, searchQuery]);
+
+  const filterOptions = lang === 'ru'
+    ? [
+        { value: 'all' as const, label: 'Все' },
+        { value: 'primary' as const, label: 'Моя' },
+        { value: 'partners' as const, label: 'Люди' },
+      ]
+    : [
+        { value: 'all' as const, label: 'All' },
+        { value: 'primary' as const, label: 'Mine' },
+        { value: 'partners' as const, label: 'People' },
+      ];
 
   useEffect(() => {
     if (!canAddMore && showAddForm) {
@@ -182,257 +218,156 @@ export const MyCharts: React.FC<MyChartsProps> = ({
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-5 py-6 space-y-5 screen-pb">
-      <div className="space-y-4 rounded-[24px] border border-astro-border/80 bg-gradient-to-b from-astro-card to-astro-card/65 p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <p className="mb-1 text-[10px] uppercase tracking-[0.2em] text-astro-subtext">
-              {getText(lang, 'charts.action_title')}
-            </p>
-            <h2 className="font-serif text-xl text-astro-text">
-              {getText(lang, 'charts.title')}
-            </h2>
-            <p className="mt-2 text-sm leading-relaxed text-astro-subtext">
-              {getText(lang, 'charts.action_body')}
-            </p>
-          </div>
-          <div className="min-w-[88px] text-right">
-            <p className="mb-1 text-[10px] uppercase tracking-widest text-astro-subtext">
-              {getText(lang, 'charts.slots')}
-            </p>
-            <p className="text-2xl font-semibold text-astro-text">
-              {charts.length} / {chartSlots}
-            </p>
-          </div>
-        </div>
+    <MonoPage className="px-4" withTabClearance={false}>
+      <div className="mx-auto max-w-2xl space-y-4 pb-8">
+        <MonoStagger>
+          <MonoStaggerItem>
+            <div className="rounded-mono-card border border-mono-line bg-mono-white p-5">
+              <MonoTag>{getText(lang, 'charts.action_title')}</MonoTag>
+              <h2 className="mt-2 text-[24px] font-bold tracking-[-0.02em] text-mono-ink">
+                {getText(lang, 'charts.title')}
+              </h2>
+              <p className="mt-2 text-[14px] leading-relaxed text-mono-muted">
+                {getText(lang, 'charts.action_body')}
+              </p>
+              <p className="mt-4 text-[12px] font-semibold uppercase tracking-[0.1em] text-mono-muted">
+                {getText(lang, 'charts.slots')}: {charts.length} / {chartSlots}
+              </p>
 
-        {canAddMore ? (
-          <button
-            onClick={() => {
-              setAddError(null);
-              setShowAddForm(true);
-            }}
-            className="w-full rounded-xl bg-astro-highlight px-4 py-3 text-sm font-semibold text-white"
-          >
-            + {getText(lang, 'charts.add_chart')}
-          </button>
+              {canAddMore ? (
+                <MonoButton className="mt-4" fullWidth onClick={() => { setAddError(null); setShowAddForm(true); }}>
+                  + {getText(lang, 'charts.add_chart')}
+                </MonoButton>
+              ) : (
+                <div className="mt-4 space-y-3 rounded-mono-card bg-mono-plate p-4">
+                  <p className="text-[14px] font-semibold text-mono-ink">{getText(lang, 'charts.slots_full_title')}</p>
+                  <p className="text-[13px] text-mono-muted">{getText(lang, 'charts.limit_reached')}</p>
+                  {showPremiumSlotsCta && (
+                    <MonoButton fullWidth onClick={onRequestPremium}>{getText(lang, 'charts.premium_slots_cta')}</MonoButton>
+                  )}
+                </div>
+              )}
+            </div>
+          </MonoStaggerItem>
+
+          <MonoStaggerItem>
+            <MonoInput
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={lang === 'ru' ? 'Поиск по имени или месту' : 'Search by name or place'}
+            />
+          </MonoStaggerItem>
+
+          <MonoStaggerItem>
+            <MonoSegment value={listFilter} onChange={setListFilter} options={filterOptions} />
+          </MonoStaggerItem>
+        </MonoStagger>
+
+        {addError ? (
+          <div className="rounded-mono-card border border-red-200 bg-red-50 p-3 text-sm text-red-700">{addError}</div>
+        ) : null}
+
+        {charts.length === 0 ? (
+          <div className="rounded-mono-card border border-mono-line bg-mono-plate p-6 text-center">
+            <p className="text-[16px] font-semibold text-mono-ink">{getText(lang, 'charts.empty_title')}</p>
+            <p className="mt-2 text-[14px] text-mono-muted">{getText(lang, 'charts.empty_body')}</p>
+          </div>
+        ) : filteredCharts.length === 0 ? (
+          <p className="text-center text-[14px] text-mono-muted">{lang === 'ru' ? 'Ничего не найдено' : 'Nothing found'}</p>
         ) : (
-          <div className="rounded-xl border border-astro-highlight/30 bg-astro-highlight/10 p-4 text-center space-y-3">
-            <p className="text-sm font-medium text-astro-text">{getText(lang, 'charts.slots_full_title')}</p>
-            <p className="text-sm text-astro-subtext">{getText(lang, 'charts.limit_reached')}</p>
-            {showPremiumSlotsCta && (
-              <button
-                type="button"
-                onClick={onRequestPremium}
-                className="w-full rounded-xl bg-astro-highlight px-4 py-3 text-sm font-semibold text-white"
-              >
-                {getText(lang, 'charts.premium_slots_cta')}
-              </button>
-            )}
-          </div>
-        )}
+          <MonoStagger className="space-y-3">
+            {filteredCharts.map((chart) => {
+              const sunSign = chart.chart_data?.sun?.sign;
+              const signLabel = sunSign ? getZodiacSign(lang, sunSign) : '-';
+              const isPrimary = chart.is_primary ?? false;
+              const isBusy =
+                actionLoading === `primary-${chart.id}` || actionLoading === `delete-${chart.id}`;
+              const formattedBirthDate = formatLumiaDate(chart.birth_date, lang) || chart.birth_date;
 
-        <div className="rounded-2xl border border-astro-border/70 bg-astro-bg/30 p-4">
-          <p className="text-sm font-medium text-astro-text">{getText(lang, 'charts.value_title')}</p>
-          <p className="mt-2 text-sm leading-relaxed text-astro-subtext">
-            {getText(lang, 'charts.value_body')}
-          </p>
-        </div>
-
-        {!canAddMore && (
-          <div className="space-y-2 rounded-xl border border-astro-highlight/30 bg-astro-highlight/10 p-4">
-            <p className="text-sm font-medium text-astro-text">{getText(lang, 'charts.slots_full_title')}</p>
-            <p className="text-sm text-astro-subtext">{getText(lang, 'charts.slots_full_body')}</p>
-            {showPremiumSlotsCta && (
-              <button
-                type="button"
-                onClick={onRequestPremium}
-                className="w-full rounded-xl bg-astro-highlight px-4 py-3 text-sm font-semibold text-white"
-              >
-                {getText(lang, 'charts.premium_slots_cta')}
-              </button>
-            )}
-          </div>
-        )}
-
-        {isSingleChartState && (
-          <p className="text-sm text-astro-subtext">{getText(lang, 'charts.single_chart_body')}</p>
-        )}
-      </div>
-
-      {addError && (
-        <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-300">
-          {addError}
-        </div>
-      )}
-
-      {charts.length === 0 ? (
-        <div className="rounded-[24px] border border-astro-border/80 bg-astro-card/60 p-6 text-center">
-          <p className="text-base font-medium text-astro-text">{getText(lang, 'charts.empty_title')}</p>
-          <p className="mt-2 text-sm text-astro-subtext">{getText(lang, 'charts.empty_body')}</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {charts.map((chart) => {
-            const sunSign = chart.chart_data?.sun?.sign;
-            const signLabel = sunSign ? getZodiacSign(lang, sunSign) : '-';
-            const isPrimary = chart.is_primary ?? false;
-            const isBusy =
-              actionLoading === `primary-${chart.id}` || actionLoading === `delete-${chart.id}`;
-            const formattedBirthDate = formatLumiaDate(chart.birth_date, lang) || chart.birth_date;
-
-            return (
-              <div
-                key={chart.id}
-                className={`rounded-[24px] border bg-astro-card/55 p-4 sm:p-5 ${
-                  isPrimary ? 'border-astro-highlight/70 shadow-[0_0_0_1px_rgba(244,176,255,0.06)]' : 'border-astro-border/80'
-                }`}
-              >
-                <div className="min-w-0">
+              return (
+                <MonoStaggerItem key={chart.id}>
+                  <motion.div
+                    whileTap={{ scale: 0.99 }}
+                    className={`rounded-mono-card border p-4 sm:p-5 ${
+                      isPrimary ? 'border-mono-ink bg-mono-black text-white' : 'border-mono-line bg-mono-white text-mono-ink'
+                    }`}
+                  >
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="break-words font-serif text-astro-text">{chart.name}</span>
-                      {isPrimary && (
-                        <span className="rounded-full border border-astro-highlight/25 bg-astro-highlight/12 px-2.5 py-1 text-[9px] uppercase tracking-wider text-astro-highlight">
-                          {getText(lang, 'charts.primary_badge')}
-                        </span>
-                      )}
+                      <span className="break-words text-[17px] font-bold">{chart.name}</span>
+                      {isPrimary ? (
+                        <MonoTag dark className="!bg-white/15">{getText(lang, 'charts.primary_badge')}</MonoTag>
+                      ) : null}
                     </div>
-
-                    <p className="mt-1 text-xs leading-relaxed text-astro-subtext">
+                    <p className={`mt-1 text-[13px] ${isPrimary ? 'text-white/70' : 'text-mono-muted'}`}>
                       {isPrimary ? getText(lang, 'charts.primary_role') : getText(lang, 'charts.saved_role')}
                     </p>
-                    <p className="mt-3 break-words text-xs text-astro-subtext">
-                      {formattedBirthDate} • {chart.birth_place}
+                    <p className={`mt-2 text-[13px] ${isPrimary ? 'text-white/65' : 'text-mono-muted'}`}>
+                      {formattedBirthDate} · {chart.birth_place}
                     </p>
-                    {sunSign && (
-                      <p className="mt-1 inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.14em] text-astro-subtext">
+                    {sunSign ? (
+                      <p className={`mt-2 inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] ${isPrimary ? 'text-white/60' : 'text-mono-muted'}`}>
                         <PlanetIcon planet="sun" size={11} stroke="currentColor" />
                         <span>{signLabel}</span>
                       </p>
-                    )}
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {onChartSelect && (
+                    ) : null}
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {onChartSelect ? (
+                        <MonoButton variant={isPrimary ? 'ghost' : 'outline'} className="!min-h-[36px] !px-3 !text-[11px]" onClick={() => handleSelectChart(chart)}>
+                          {getText(lang, 'charts.open_chart')}
+                        </MonoButton>
+                      ) : null}
+                      {!isPrimary && onUseInSynastry ? (
+                        <MonoButton variant="outline" className="!min-h-[36px] !px-3 !text-[11px]" onClick={() => onUseInSynastry(chart)}>
+                          {getText(lang, 'charts.use_in_synastry')}
+                        </MonoButton>
+                      ) : null}
+                      {!isPrimary ? (
+                        <MonoButton variant="outline" className="!min-h-[36px] !px-3 !text-[11px]" disabled={isBusy} onClick={() => handleSetPrimary(chart.id)}>
+                          {isBusy ? '...' : getText(lang, 'charts.set_primary')}
+                        </MonoButton>
+                      ) : null}
                       <button
-                        onClick={() => handleSelectChart(chart)}
-                        className="rounded-full border border-astro-border/80 px-3 py-1.5 text-[10px] uppercase tracking-wider text-astro-text transition-colors hover:border-astro-highlight/40 hover:text-astro-highlight"
-                      >
-                        {getText(lang, 'charts.open_chart')}
-                      </button>
-                    )}
-                    {!isPrimary && onUseInSynastry && (
-                      <button
-                        onClick={() => onUseInSynastry(chart)}
-                        className="rounded-full border border-astro-border/80 px-3 py-1.5 text-[10px] uppercase tracking-wider text-astro-text transition-colors hover:border-astro-highlight/40 hover:text-astro-highlight"
-                      >
-                        {getText(lang, 'charts.use_in_synastry')}
-                      </button>
-                    )}
-                    {!isPrimary && (
-                      <button
-                        onClick={() => handleSetPrimary(chart.id)}
+                        type="button"
+                        onClick={() => handleDelete(chart)}
                         disabled={isBusy}
-                        className="rounded-full border border-astro-border/80 px-3 py-1.5 text-[10px] uppercase tracking-wider text-astro-text transition-colors hover:border-astro-highlight/40 hover:text-astro-highlight disabled:opacity-50"
+                        className="rounded-mono-pill border border-red-200 px-3 py-2 text-[11px] font-semibold text-red-600 disabled:opacity-50"
                       >
-                        {isBusy ? '...' : getText(lang, 'charts.set_primary')}
+                        {getText(lang, 'charts.delete')}
                       </button>
-                    )}
-                    <button
-                      onClick={() => handleDelete(chart)}
-                      disabled={isBusy}
-                      className="rounded-full border border-red-500/30 px-3 py-1.5 text-[10px] uppercase tracking-wider text-red-400/80 transition-colors hover:border-red-500/60 hover:text-red-400 disabled:opacity-50"
-                    >
-                      {getText(lang, 'charts.delete')}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+                    </div>
+                  </motion.div>
+                </MonoStaggerItem>
+              );
+            })}
+          </MonoStagger>
+        )}
 
-      {showAddForm ? (
-        <div className="space-y-4 rounded-[24px] border border-astro-border/80 bg-astro-card/60 p-5">
-          <div>
-            <p className="text-[10px] uppercase tracking-[0.18em] text-astro-subtext">
-              {getText(lang, 'charts.add_chart')}
-            </p>
-            <h3 className="mt-1 font-serif text-lg text-astro-text">{getText(lang, 'charts.add_form_title')}</h3>
-          </div>
+        {isSingleChartState ? (
+          <p className="text-[13px] text-mono-muted">{getText(lang, 'charts.single_chart_body')}</p>
+        ) : null}
 
-          <div>
-            <label className="mb-1 block text-[10px] uppercase tracking-widest text-astro-subtext">
-              {getText(lang, 'charts.field_name')}
-            </label>
-            <input
-              type="text"
-              value={addName}
-              onChange={(e) => setAddName(e.target.value)}
-              placeholder={getText(lang, 'charts.default_chart_name')}
-              className="w-full border-b border-astro-border bg-transparent py-2 text-sm text-astro-text focus:border-astro-highlight focus:outline-none"
-            />
-          </div>
+        {showAddForm ? (
+          <MonoFadeIn className="space-y-4 rounded-mono-card border border-mono-line bg-mono-white p-5">
+            <h3 className="text-[18px] font-bold text-mono-ink">{getText(lang, 'charts.add_form_title')}</h3>
+            <MonoInput label={getText(lang, 'charts.field_name')} value={addName} onChange={(e) => setAddName(e.target.value)} placeholder={getText(lang, 'charts.default_chart_name')} />
+            <MonoInput label={getText(lang, 'charts.field_birth_date')} type="date" value={addDate} onChange={(e) => setAddDate(e.target.value)} />
+            <MonoInput label={getText(lang, 'charts.field_birth_time')} type="time" value={addTime} onChange={(e) => setAddTime(e.target.value)} />
+            <MonoInput label={getText(lang, 'charts.field_birth_place')} value={addPlace} onChange={(e) => setAddPlace(e.target.value)} placeholder={getText(lang, 'charts.field_birth_place_placeholder')} />
+            <div className="flex gap-2">
+              <MonoButton className="flex-1" disabled={actionLoading === 'add'} onClick={handleAddChart}>
+                {actionLoading === 'add' ? getText(lang, 'charts.creating') : getText(lang, 'charts.create')}
+              </MonoButton>
+              <MonoButton className="flex-1" variant="outline" onClick={resetAddForm}>
+                {getText(lang, 'charts.cancel')}
+              </MonoButton>
+            </div>
+          </MonoFadeIn>
+        ) : null}
 
-          <div>
-            <label className="mb-1 block text-[10px] uppercase tracking-widest text-astro-subtext">
-              {getText(lang, 'charts.field_birth_date')}
-            </label>
-            <input
-              type="date"
-              value={addDate}
-              onChange={(e) => setAddDate(e.target.value)}
-              className="w-full border-b border-astro-border bg-transparent py-2 text-sm text-astro-text focus:border-astro-highlight focus:outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="mb-1 block text-[10px] uppercase tracking-widest text-astro-subtext">
-              {getText(lang, 'charts.field_birth_time')}
-            </label>
-            <input
-              type="time"
-              value={addTime}
-              onChange={(e) => setAddTime(e.target.value)}
-              className="w-full border-b border-astro-border bg-transparent py-2 text-sm text-astro-text focus:border-astro-highlight focus:outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="mb-1 block text-[10px] uppercase tracking-widest text-astro-subtext">
-              {getText(lang, 'charts.field_birth_place')}
-            </label>
-            <input
-              type="text"
-              value={addPlace}
-              onChange={(e) => setAddPlace(e.target.value)}
-              placeholder={getText(lang, 'charts.field_birth_place_placeholder')}
-              className="w-full border-b border-astro-border bg-transparent py-2 text-sm text-astro-text focus:border-astro-highlight focus:outline-none"
-            />
-          </div>
-
-          <div className="flex gap-2">
-            <button
-              onClick={handleAddChart}
-              disabled={actionLoading === 'add'}
-              className="flex-1 rounded-lg bg-astro-highlight py-3 text-xs font-bold uppercase tracking-widest text-white disabled:opacity-50"
-            >
-              {actionLoading === 'add' ? getText(lang, 'charts.creating') : getText(lang, 'charts.create')}
-            </button>
-            <button
-              onClick={resetAddForm}
-              className="flex-1 rounded-lg border border-astro-border py-3 text-xs uppercase tracking-widest text-astro-text"
-            >
-              {getText(lang, 'charts.cancel')}
-            </button>
-          </div>
-        </div>
-      ) : null}
-
-      {partnerCharts.length > 0 && (
-        <p className="text-center text-xs text-astro-subtext">
-          {getText(lang, 'charts.saved_for_synastry_hint')}
-        </p>
-      )}
-    </div>
+        {partnerCharts.length > 0 ? (
+          <p className="text-center text-[12px] text-mono-muted">{getText(lang, 'charts.saved_for_synastry_hint')}</p>
+        ) : null}
+      </div>
+    </MonoPage>
   );
 };
