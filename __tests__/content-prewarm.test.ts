@@ -239,7 +239,7 @@ describe('content prewarm', () => {
   it('Dashboard stays mounted while navigating away from home', () => {
     const source = fs.readFileSync(path.join(ROOT, 'App.tsx'), 'utf8');
     expect(source).toContain("view === 'dashboard' ? 'flex h-full min-h-0 overflow-hidden' : 'hidden'");
-    expect(source).toContain('TodayFeed');
+    expect(source).toContain('<Dashboard');
     expect(source).toContain('chartId={primaryChartId}');
     expect(source).toContain('setPrimaryChartId(primaryChartId)');
   });

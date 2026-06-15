@@ -410,10 +410,10 @@ export const Dashboard = memo<DashboardProps>(({
           >
             <div style={{ fontSize: 22, marginBottom: 6 }}>🔮</div>
             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--fresh-text)', marginBottom: 2 }}>
-              {language === 'ru' ? 'Матрица судьбы' : 'Destiny matrix'}
+              {language === 'ru' ? 'Спросить Lumia' : 'Ask Lumia'}
             </div>
             <div style={{ fontSize: 11, color: 'var(--fresh-muted)' }}>
-              {language === 'ru' ? 'Предназначение' : 'Purpose'}
+              {language === 'ru' ? 'Личный вопрос' : 'Personal question'}
             </div>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--fresh-link)', marginTop: 8 }}>
               {language === 'ru' ? 'Открыть →' : 'Open →'}
