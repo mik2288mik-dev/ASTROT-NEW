@@ -23,7 +23,7 @@ import { loadHumanDailySection } from '../services/natalReadingService';
 import { formatLumiaDate, getMoscowTodayKey } from '../lib/date-utils';
 import type { HumanDailySectionKey } from '../lib/natalHumanShared';
 import { cn } from '../lib/cn';
-import { MonoPage, MonoReveal } from '../components/mono-ui';
+import { MonoReveal } from '../components/mono-ui';
 
 type PersonalDailyScreenProps = {
   profile: UserProfile;
@@ -326,8 +326,8 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
   }, [access.allowed, activeSection, chartData, chartId, dateKey, forecast, profile, sections]);
 
   return (
-    <MonoPage className="px-4 pb-8" withTabClearance={false} animate={false}>
-      <div className="mx-auto flex min-h-[calc(100dvh-1.6rem)] w-full max-w-[25rem] flex-col gap-4">
+    <div className="fresh-page">
+      <div className="mx-auto flex min-h-[calc(100dvh-1.6rem)] w-full max-w-[25rem] flex-col gap-4 px-4 pb-8">
         <button
           type="button"
           onClick={() => {
@@ -363,7 +363,7 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
                 className={cn(
                   'shrink-0 rounded-mono-pill border px-3 py-2 text-[13px] font-semibold transition-transform active:scale-[0.97]',
                   tab.id === activeTab.id
-                    ? 'border-mono-black bg-mono-black text-white'
+                    ? 'border-mono-accent bg-mono-accent text-white'
                     : 'border-mono-line bg-mono-white text-mono-muted'
                 )}
               >
@@ -397,7 +397,7 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
           </div>
         </section>
       </div>
-    </MonoPage>
+    </div>
   );
 });
 

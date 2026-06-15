@@ -3,7 +3,8 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { UserProfile } from '../types';
 import { getText } from '../constants';
-import { MonoButton, MonoIllustWelcome } from '../components/mono-ui';
+import { MonoIllustWelcome } from '../components/mono-ui';
+import { FreshPageTitle, FreshHeroCard } from '../components/fresh-ui';
 
 interface PaywallProps {
     profile: UserProfile;
@@ -20,77 +21,69 @@ export const Paywall: React.FC<PaywallProps> = ({ profile, onPurchase, onClose }
     ];
 
     return (
-        <div 
-            className="mono-page flex h-full flex-col items-center justify-center p-6 text-center relative"
-            style={{
-                paddingTop: 'calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px)) + 1.5rem)',
-                paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--tg-content-safe-area-inset-bottom, 0px)) + 1.5rem)',
-            }}
+        <div
+            className="fresh-page lumia-main-scroll"
+            style={{ display: 'flex', flexDirection: 'column', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }}
         >
-            <button 
-                onClick={onClose}
-                className="absolute z-50 p-2 text-mono-muted transition-colors hover:text-mono-ink"
-                style={{
-                    top: 'calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px)) + 0.5rem)',
-                    right: 'calc(max(env(safe-area-inset-right, 0px), var(--tg-content-safe-area-inset-right, 0px)) + 0.75rem)',
-                }}
-                aria-label="Close"
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 16px 4px' }}>
+                <button
+                    type="button"
+                    onClick={onClose}
+                    aria-label="Close"
+                    style={{
+                        width: 34, height: 34, borderRadius: '50%', border: 'none',
+                        background: 'var(--fresh-surface)', color: 'var(--fresh-muted)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                    }}
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
 
-            <motion.div 
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4 }}
-                className="relative w-full max-w-md space-y-6"
-            >
-                <div className="overflow-hidden rounded-mono-card bg-mono-plate py-6">
-                    <MonoIllustWelcome className="mx-auto opacity-90" size={100} />
-                </div>
+            <FreshPageTitle kicker="Premium" title={getText(profile.language, 'paywall.title')} />
 
-                <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-mono-muted">
-                        Premium
-                    </p>
-                    <h1 className="mt-2 text-[28px] font-bold tracking-[-0.02em] text-mono-ink">
-                        {getText(profile.language, 'paywall.title')}
-                    </h1>
-                    <p className="mt-3 text-[14px] leading-relaxed text-mono-muted">
-                        {getText(profile.language, 'paywall.subtitle')}
-                    </p>
+            <FreshHeroCard color="lavender" emojiBottom="⭐">
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <MonoIllustWelcome size={110} className="opacity-90" />
                 </div>
+            </FreshHeroCard>
 
-                <div className="rounded-mono-card border border-mono-line bg-mono-white p-6 text-left">
-                    <div className="space-y-4">
-                        {features.map((feat, i) => (
-                            <motion.div 
-                                key={i}
-                                initial={{ x: -12, opacity: 0 }}
-                                animate={{ x: 0, opacity: 1 }}
-                                transition={{ delay: i * 0.08 + 0.1 }}
-                                className="flex items-center gap-4"
-                            >
-                                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-mono-plate text-[10px] font-bold text-mono-ink">
-                                    {String(i + 1).padStart(2, '0')}
-                                </div>
-                                <span className="text-[14px] font-medium text-mono-ink">{feat}</span>
-                            </motion.div>
-                        ))}
-                    </div>
-                </div>
+            <p style={{ padding: '0 20px', margin: '0 0 14px', fontSize: 14, lineHeight: 1.55, color: 'var(--fresh-muted)' }}>
+                {getText(profile.language, 'paywall.subtitle')}
+            </p>
 
-                <div>
-                    <MonoButton fullWidth onClick={onPurchase}>
-                        {getText(profile.language, 'paywall.cta')}
-                    </MonoButton>
-                    <p className="mt-4 text-[10px] uppercase tracking-widest text-mono-muted">
-                        {getText(profile.language, 'paywall.footer')}
-                    </p>
-                </div>
-            </motion.div>
+            <div className="fresh-item-list">
+                {features.map((feat, i) => (
+                    <motion.div
+                        key={i}
+                        initial={{ x: -12, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        transition={{ delay: i * 0.08 + 0.1 }}
+                        className="fresh-item"
+                    >
+                        <div
+                            className="fresh-item-sign"
+                            style={{ color: 'var(--fresh-link)', fontWeight: 800, fontSize: 13 }}
+                        >
+                            {String(i + 1).padStart(2, '0')}
+                        </div>
+                        <div className="fresh-item-info">
+                            <div className="fresh-item-title">{feat}</div>
+                        </div>
+                    </motion.div>
+                ))}
+            </div>
+
+            <div style={{ marginTop: 'auto', paddingTop: 20 }}>
+                <button type="button" className="fresh-btn-primary" onClick={onPurchase}>
+                    {getText(profile.language, 'paywall.cta')}
+                </button>
+                <p style={{ marginTop: 14, textAlign: 'center', fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--fresh-muted)' }}>
+                    {getText(profile.language, 'paywall.footer')}
+                </p>
+            </div>
         </div>
     );
 };

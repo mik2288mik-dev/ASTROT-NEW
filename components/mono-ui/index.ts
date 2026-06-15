@@ -17,6 +17,9 @@ export {
   MonoIllustHoroscope,
   MonoIllustChart,
   MonoIllustWelcome,
+  MonoIllustLetter,
+  MonoIllustChat,
+  MonoIllustPremium,
 } from './MonoIllustrations';
 export { MonoFadeIn, MonoStagger, MonoStaggerItem, MonoReveal } from './MonoMotion';
 export {

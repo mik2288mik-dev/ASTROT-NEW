@@ -10,7 +10,7 @@ type MonoButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 const variantClass: Record<MonoButtonVariant, string> = {
-  primary: 'bg-mono-black text-white hover:bg-mono-ink',
+  primary: 'bg-mono-accent text-white hover:opacity-90',
   ghost: 'bg-mono-plate text-mono-ink hover:bg-mono-line/40',
   accent: 'bg-mono-accent text-white hover:opacity-90',
   outline: 'border border-mono-line bg-white text-mono-ink hover:bg-mono-plate',

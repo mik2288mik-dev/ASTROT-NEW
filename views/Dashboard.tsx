@@ -1,6 +1,4 @@
 import React, { memo, useEffect, useMemo, useState } from 'react';
-import { Lock, Sparkles, MessageCircle } from 'lucide-react';
-import { motion } from 'framer-motion';
 import type {
   ForecastDailyReading,
   HoroscopeLayer,
@@ -16,7 +14,6 @@ import { lumiaSelectionHaptic } from '../lib/haptics';
 import { DaySheet } from '../components/lumia-ui/DaySheet';
 import { HoroscopeStories } from '../components/lumia-ui/HoroscopeStories';
 import { PersonalDailyStories } from '../components/lumia-ui/PersonalDailyStories';
-import { getZodiacSign } from '../constants';
 import {
   getCachedDailySignHoroscope,
   ensureDailySignHoroscope,
@@ -24,18 +21,71 @@ import {
   getTodayAssistantHome,
 } from '../services/astrologyService';
 import {
-  MonoPage,
-  MonoHeader,
-  MonoBentoTile,
-  MonoTag,
-  MonoIllustPersonal,
-  MonoIllustCouple,
-  MonoIllustHoroscope,
-  MonoIllustChart,
-  MonoStagger,
-  MonoStaggerItem,
-} from '../components/mono-ui';
+  FreshHeader,
+  FreshPageTitle,
+  FreshHeroCard,
+  FreshQuickBar,
+  FreshSectionHeader,
+  FreshItemList,
+  FreshListItem,
+} from '../components/fresh-ui';
 
+/* ── Вспомогательные функции ── */
+function formatDate(todayKey: string, lang: 'ru' | 'en'): string {
+  const [yr, mo, da] = todayKey.split('-').map(Number);
+  const d = new Date(Date.UTC(yr, mo - 1, da, 12));
+  return new Intl.DateTimeFormat(lang === 'ru' ? 'ru-RU' : 'en-US', {
+    timeZone: 'UTC', day: 'numeric', month: 'long',
+  }).format(d);
+}
+
+// Маппинг знаков на астро-символы
+const SIGN_SYMBOLS: Record<string, string> = {
+  aries: '♈', taurus: '♉', gemini: '♊', cancer: '♋',
+  leo: '♌', virgo: '♍', libra: '♎', scorpio: '♏',
+  sagittarius: '♐', capricorn: '♑', aquarius: '♒', pisces: '♓',
+};
+
+// Маппинг планет на символы
+const PLANET_SYMBOLS: Record<string, string> = {
+  sun: '☉', moon: '☽', mercury: '☿', venus: '♀',
+  mars: '♂', jupiter: '♃', saturn: '♄',
+};
+
+// Маппинг знаков на русские названия
+const SIGN_NAMES_RU: Record<string, string> = {
+  aries: 'Овен', taurus: 'Телец', gemini: 'Близнецы',
+  cancer: 'Рак', leo: 'Лев', virgo: 'Дева',
+  libra: 'Весы', scorpio: 'Скорпион', sagittarius: 'Стрелец',
+  capricorn: 'Козерог', aquarius: 'Водолей', pisces: 'Рыбы',
+};
+
+// Маппинг планет на русские названия
+const PLANET_NAMES_RU: Record<string, string> = {
+  sun: 'Солнце', moon: 'Луна', mercury: 'Меркурий',
+  venus: 'Венера', mars: 'Марс', jupiter: 'Юпитер', saturn: 'Сатурн',
+};
+
+// Цвета бейджей по планете
+const PLANET_BADGE: Record<string, { bg: string; color: string }> = {
+  sun:     { bg: '#FFFBEB', color: '#F59E0B' },
+  moon:    { bg: '#F5F3FF', color: '#7C3AED' },
+  mercury: { bg: '#EFF6FF', color: '#3B82F6' },
+  venus:   { bg: '#FDF2F8', color: '#EC4899' },
+  mars:    { bg: '#FEF2F2', color: '#EF4444' },
+  jupiter: { bg: '#F0FDF4', color: '#10B981' },
+  saturn:  { bg: '#F8FAFC', color: '#64748B' },
+};
+
+// Номер дома → подпись
+function houseLabel(house: string | number | undefined, lang: 'ru' | 'en'): string {
+  if (!house) return '';
+  const n = typeof house === 'string' ? parseInt(house, 10) : house;
+  if (Number.isNaN(n)) return '';
+  return lang === 'ru' ? `${n}-й дом` : `${n}th house`;
+}
+
+/* ── Типы пропсов ── */
 type DashboardProps = {
   profile: UserProfile;
   chartData: NatalChartData | null;
@@ -51,77 +101,16 @@ type DashboardProps = {
   initialTodaySection?: string | null;
 };
 
-const RU_DAY_ABBR = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'] as const;
-const EN_DAY_ABBR = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'] as const;
-
-function buildCenteredDays(todayKey: string) {
-  const [yr, mo, da] = todayKey.split('-').map(Number);
-  return Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(yr, mo - 1, da + (i - 3));
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    return { key, date: d.getDate(), weekdayIndex: d.getDay() };
-  });
-}
-
-function shortDate(todayKey: string, lang: 'ru' | 'en'): string {
-  const [yr, mo, da] = todayKey.split('-').map(Number);
-  const d = new Date(Date.UTC(yr, mo - 1, da, 12));
-  return new Intl.DateTimeFormat(lang === 'ru' ? 'ru-RU' : 'en-US', {
-    timeZone: 'UTC', day: 'numeric', month: 'long',
-  }).format(d);
-}
-
-function DateSelector({
-  todayKey,
-  language,
-  isPremium,
-  onPick,
-}: {
-  todayKey: string;
-  language: 'ru' | 'en';
-  isPremium: boolean;
-  onPick: (key: string) => void;
-}) {
-  const days = useMemo(() => buildCenteredDays(todayKey), [todayKey]);
-  const abbrs = language === 'ru' ? RU_DAY_ABBR : EN_DAY_ABBR;
-  return (
-    <div className="flex items-center gap-1.5">
-      {days.map(({ key, date, weekdayIndex }) => {
-        const isToday = key === todayKey;
-        const locked = !isPremium && !isToday;
-        return (
-          <button
-            key={key}
-            type="button"
-            onClick={() => { lumiaSelectionHaptic(); onPick(key); }}
-            className={`relative flex flex-1 flex-col items-center rounded-full border py-[12px] transition-colors ${
-              isToday ? 'border-mono-ink bg-mono-black text-white' : 'border-mono-line bg-mono-white text-mono-ink'
-            }`}
-          >
-            <span className={`text-[12px] font-medium leading-none ${isToday ? 'text-white/70' : 'text-mono-muted'}`}>
-              {abbrs[weekdayIndex]}
-            </span>
-            <span className="mt-2 text-[18px] font-bold leading-none">{date}</span>
-            <div className="mt-1.5 flex h-2.5 items-center justify-center">
-              {!isToday && locked ? <Lock size={10} className="text-mono-muted/50" /> : null}
-            </div>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
+/* ── Dashboard ── */
 export const Dashboard = memo<DashboardProps>(({
   profile,
   chartData,
   chartId,
-  onOpenHoroscopeLayer: _onOpenHoroscopeLayer,
   onOpenPersonalDaily,
   onCreateNatalChart,
   onOpenOracle,
   onOpenSynastry,
-  onOpenSettings,
+  onOpenSettings: _onOpenSettings,
   onRequestPremium,
   scrollRef,
 }) => {
@@ -129,19 +118,20 @@ export const Dashboard = memo<DashboardProps>(({
   const today = useMemo(() => getMoscowTodayKey(), []);
   const hasChart = hasNatalChart(profile, { chartData, primaryChartId: chartId ?? null });
   const premium = hasActivePremium(profile);
-  const selectedSign = String(profile.selectedZodiacSign || chartData?.sun?.sign || '').trim();
+  const selectedSign = String(profile.selectedZodiacSign || chartData?.sun?.sign || '').trim().toLowerCase();
 
   const [signReading, setSignReading] = useState<ForecastDailyReading | null>(null);
-  const [signLoading, setSignLoading] = useState(!!selectedSign);
+  const [, setSignLoading] = useState(!!selectedSign);
   const [personal, setPersonal] = useState<TodayAssistantHomeResult | null>(
     () => hasChart && premium ? getCachedTodayAssistantHome(profile, chartId, undefined, chartData) : null,
   );
-  const [personalLoading, setPersonalLoading] = useState(hasChart && premium && !personal);
+  const [, setPersonalLoading] = useState(hasChart && premium && !personal);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [sheetDate, setSheetDate] = useState<string | null>(null);
   const [horoscopeOpen, setHoroscopeOpen] = useState(false);
   const [personalStoryOpen, setPersonalStoryOpen] = useState(false);
 
+  /* Загрузка гороскопа знака */
   useEffect(() => {
     if (!selectedSign) { setSignLoading(false); return; }
     let alive = true;
@@ -154,6 +144,7 @@ export const Dashboard = memo<DashboardProps>(({
     return () => { alive = false; };
   }, [language, selectedSign, today]);
 
+  /* Загрузка персонального дня */
   useEffect(() => {
     if (!hasChart || !premium || !chartData) { setPersonalLoading(false); return; }
     const cached = getCachedTodayAssistantHome(profile, chartId, undefined, chartData);
@@ -167,6 +158,7 @@ export const Dashboard = memo<DashboardProps>(({
     return () => { alive = false; };
   }, [chartData, chartId, hasChart, premium, profile]);
 
+  /* Аватар из Telegram */
   useEffect(() => {
     try {
       const tgUser = (window as unknown as { Telegram?: { WebApp?: { initDataUnsafe?: { user?: { photo_url?: unknown } } } } })
@@ -177,161 +169,260 @@ export const Dashboard = memo<DashboardProps>(({
     }
   }, []);
 
+  /* Вспомогательные данные */
+  const signSymbol = SIGN_SYMBOLS[selectedSign] || '✦';
+  const signNameRu = SIGN_NAMES_RU[selectedSign] || selectedSign;
+  const dateLabel = formatDate(today, language);
 
-  const openPersonalDaily = (section: PersonalDailySection = 'overview') => onOpenPersonalDaily(section);
+  /* Текст hero-карточки */
+  const heroTitle = signReading?.summary
+    ? signReading.summary.slice(0, 80)
+    : language === 'ru' ? 'Заглядываем в звёзды…' : 'Reading the stars…';
 
-  const handlePickDay = (key: string) => {
-    if (premium || key === today) { setSheetDate(key); return; }
-    onRequestPremium?.('calendar');
-  };
+  /* Быстрые кнопки */
+  const quickItems = [
+    {
+      id: 'chart',
+      emoji: '🌙',
+      label: language === 'ru' ? 'Карта' : 'Chart',
+      onClick: () => { lumiaSelectionHaptic(); onCreateNatalChart?.(); },
+    },
+    {
+      id: 'horoscope',
+      emoji: signSymbol,
+      label: language === 'ru' ? 'Гороскоп' : 'Horoscope',
+      onClick: () => { lumiaSelectionHaptic(); setHoroscopeOpen(true); },
+    },
+    {
+      id: 'synastry',
+      emoji: '💕',
+      label: language === 'ru' ? 'Союз' : 'Union',
+      onClick: () => { lumiaSelectionHaptic(); onOpenSynastry?.(); },
+    },
+    {
+      id: 'oracle',
+      emoji: '🔮',
+      label: language === 'ru' ? 'Чат' : 'Chat',
+      onClick: () => { lumiaSelectionHaptic(); onOpenOracle?.(); },
+    },
+  ];
 
-  const pdText = !hasChart
-    ? (language === 'ru' ? 'Создайте натальную карту для личного разбора' : 'Create a natal chart for your personal day')
+  /* Планеты для списка */
+  const planetItems = chartData ? [
+    { key: 'sun',     planet: chartData.sun,      show: true },
+    { key: 'moon',    planet: chartData.moon,     show: true },
+    { key: 'mercury', planet: chartData.mercury,  show: !!chartData.mercury },
+    { key: 'venus',   planet: chartData.venus,    show: !!chartData.venus },
+    { key: 'mars',    planet: chartData.mars,     show: !!chartData.mars },
+  ].filter((p) => p.show).slice(0, 4) : [];
+
+  /* Персональный день: подпись */
+  const personalSubtitle = !hasChart
+    ? (language === 'ru' ? 'Создайте натальную карту' : 'Create a natal chart')
     : !premium
-    ? (language === 'ru' ? 'Личный день доступен в Premium' : 'Personal day is available in Premium')
-    : personalLoading
-    ? (language === 'ru' ? 'Готовится…' : 'Preparing…')
-    : (language === 'ru' ? 'Ваш персональный разбор дня уже готов' : 'Your personal day breakdown is ready');
-
-  const pdAction = !hasChart ? onCreateNatalChart : () => openPersonalDaily('overview');
-  const userInitial = profile.name ? profile.name.charAt(0).toUpperCase() : '?';
+    ? (language === 'ru' ? 'Доступно в Premium' : 'Available in Premium')
+    : (personal && personal.status === 'ready' ? personal.pulse.currentPoint.summary : undefined)
+      || (language === 'ru' ? 'Ваш разбор дня готов' : 'Your day breakdown is ready');
 
   return (
-    <MonoPage scrollRef={scrollRef} className="px-4">
-      <div className="mx-auto w-full max-w-md pb-3">
-        <MonoStagger className="space-y-0">
-        <MonoStaggerItem>
-        <MonoHeader
-          greeting={language === 'ru' ? `Привет, ${profile.name}!` : `Hi, ${profile.name}!`}
-          subtitle={`${language === 'ru' ? 'Сегодня' : 'Today'} ${shortDate(today, language)}`}
-          avatarSrc={avatarUrl}
-          avatarInitial={userInitial}
-          onAvatarClick={onOpenSettings}
+    <div
+      className="fresh-page lumia-main-scroll"
+      ref={scrollRef as React.RefObject<HTMLDivElement>}
+      style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 32px)' }}
+    >
+      {/* ── Хедер ── */}
+      <FreshHeader
+        name={profile.name || ''}
+        greeting={language === 'ru' ? 'Доброе утро,' : 'Good morning,'}
+        avatarUrl={avatarUrl || undefined}
+      />
+
+      {/* ── Заголовок: "Сегодня" маленький, дата большая ── */}
+      <FreshPageTitle
+        kicker={language === 'ru' ? 'Сегодня' : 'Today'}
+        title={dateLabel}
+      />
+
+      {/* ── Hero-карточка: гороскоп дня ── */}
+      <FreshHeroCard
+        color="coral"
+        stickyText={heroTitle}
+        stickyRotation={-2}
+        chipText={`${signSymbol} ${signNameRu}`}
+        chipPosition="top-right"
+        bigText={signSymbol}
+        bigTextSize={54}
+        softText={language === 'ru' ? 'Пик 13:00' : 'Peak 13:00'}
+        emojiBottom="❤️"
+        onClick={() => { lumiaSelectionHaptic(); setHoroscopeOpen(true); }}
+        style={{ cursor: 'pointer' }}
+      />
+
+      {/* ── Быстрые кнопки ── */}
+      <FreshQuickBar items={quickItems} />
+
+      {/* ── Натальная карта ── */}
+      <FreshSectionHeader
+        title={language === 'ru' ? 'Натальная карта' : 'Natal chart'}
+        linkText={language === 'ru' ? 'Все →' : 'All →'}
+        onLinkClick={() => { lumiaSelectionHaptic(); onCreateNatalChart?.(); }}
+      />
+
+      {hasChart && chartData ? (
+        <FreshItemList>
+          {planetItems.map(({ key, planet }) => {
+            if (!planet) return null;
+            const signKey = planet.sign?.toLowerCase() ?? '';
+            const badge = PLANET_BADGE[key] || { bg: '#F3F4F6', color: '#6B7280' };
+            const houseTxt = houseLabel(planet.house, language);
+            const signRu = SIGN_NAMES_RU[signKey] || planet.sign;
+            const planetRu = PLANET_NAMES_RU[key] || planet.planet;
+            return (
+              <FreshListItem
+                key={key}
+                sign={PLANET_SYMBOLS[key]}
+                title={language === 'ru' ? `${planetRu} в ${signRu}` : `${planet.planet} in ${planet.sign}`}
+                subtitle={houseTxt ? `${houseTxt}${planet.description ? ' · ' + planet.description.slice(0, 40) : ''}` : planet.description?.slice(0, 50)}
+                badgeText={SIGN_SYMBOLS[signKey] || ''}
+                badgeBg={badge.bg}
+                badgeColor={badge.color}
+                onClick={() => { lumiaSelectionHaptic(); onCreateNatalChart?.(); }}
+              />
+            );
+          })}
+        </FreshItemList>
+      ) : (
+        <div style={{ padding: '0 20px' }}>
+          <button
+            type="button"
+            onClick={() => { lumiaSelectionHaptic(); onCreateNatalChart?.(); }}
+            style={{
+              display: 'block',
+              width: '100%',
+              background: 'var(--fresh-surface)',
+              border: 'none',
+              borderRadius: 'var(--fresh-radius-card)',
+              padding: '16px',
+              textAlign: 'left',
+              cursor: 'pointer',
+            }}
+          >
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--fresh-text)', marginBottom: 4 }}>
+              {language === 'ru' ? 'Построить натальную карту' : 'Build natal chart'}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--fresh-muted)' }}>
+              {language === 'ru' ? 'Узнайте положение планет в момент рождения' : 'Learn planet positions at birth'}
+            </div>
+          </button>
+        </div>
+      )}
+
+      {/* ── Личный день ── */}
+      <div style={{ marginTop: 20 }}>
+        <FreshSectionHeader
+          title={language === 'ru' ? 'Личный день' : 'Personal day'}
+          linkText={hasChart && premium ? (language === 'ru' ? 'Открыть →' : 'Open →') : undefined}
+          onLinkClick={() => { lumiaSelectionHaptic(); onOpenPersonalDaily('overview'); }}
         />
-        </MonoStaggerItem>
-
-        <MonoStaggerItem>
-        <motion.button
-          type="button"
-          whileTap={{ scale: 0.98 }}
-          whileHover={{ scale: 1.005 }}
-          onClick={() => {
-            if (hasChart && premium) { lumiaSelectionHaptic(); setPersonalStoryOpen(true); }
-            else pdAction?.();
-          }}
-          className="relative mt-5 flex min-h-[160px] w-full flex-col justify-center overflow-hidden rounded-mono-card bg-mono-plate px-5 py-5 text-left"
-        >
-          <MonoIllustPersonal className="absolute right-3 top-3 opacity-80" size={96} />
-          <MonoTag className="relative z-10 w-fit">{language === 'ru' ? 'сегодня' : 'today'}</MonoTag>
-          <h2 className="relative z-10 mt-2 max-w-[58%] text-[28px] font-bold leading-[1.05] tracking-[-0.02em] text-mono-ink">
-            {language === 'ru' ? 'Личный день' : 'Personal day'}
-          </h2>
-          <p className="relative z-10 mt-2 max-w-[62%] line-clamp-2 text-[14px] font-medium leading-snug text-mono-muted">
-            {pdText}
-          </p>
-          <span className="relative z-10 mt-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-mono-black text-white">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <path d="M3 8h10M9.5 4.5L13 8l-3.5 3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </span>
-        </motion.button>
-        </MonoStaggerItem>
-
-        <MonoStaggerItem>
-        <div className="mt-5">
-          <DateSelector todayKey={today} language={language} isPremium={premium} onPick={handlePickDay} />
+        <div style={{ padding: '0 20px' }}>
+          <button
+            type="button"
+            onClick={() => {
+              lumiaSelectionHaptic();
+              if (hasChart && premium) { setPersonalStoryOpen(true); }
+              else if (!hasChart) { onCreateNatalChart?.(); }
+              else { onRequestPremium?.('personal_day'); }
+            }}
+            style={{
+              display: 'block',
+              width: '100%',
+              background: 'var(--fresh-surface)',
+              border: 'none',
+              borderRadius: 'var(--fresh-radius-card)',
+              padding: '16px',
+              textAlign: 'left',
+              cursor: 'pointer',
+            }}
+          >
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--fresh-text)', marginBottom: 4 }}>
+              {language === 'ru' ? 'Разбор вашего дня по карте' : 'Your day breakdown by chart'}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--fresh-muted)' }}>
+              {personalSubtitle}
+            </div>
+            {(!hasChart || !premium) && (
+              <div style={{
+                display: 'inline-block',
+                marginTop: 10,
+                fontSize: 11,
+                fontWeight: 700,
+                color: 'var(--fresh-link)',
+              }}>
+                {!hasChart
+                  ? (language === 'ru' ? 'Создать карту →' : 'Create chart →')
+                  : (language === 'ru' ? 'Открыть Premium →' : 'Open Premium →')
+                }
+              </div>
+            )}
+          </button>
         </div>
-        </MonoStaggerItem>
+      </div>
 
-        <MonoStaggerItem>
-        <div className="mb-3 mt-8">
-          <h2 className="text-[22px] font-bold tracking-[-0.02em] text-mono-ink">
-            {language === 'ru' ? 'Твой план' : 'Your plan'}
-          </h2>
-        </div>
-        </MonoStaggerItem>
-
-        <MonoStaggerItem>
-        <div className="grid grid-cols-2 gap-3">
-          <MonoBentoTile
-            className="col-span-2 min-h-[132px]"
-            variant="black"
-            tag={language === 'ru' ? 'союз' : 'union'}
-            title={language === 'ru' ? 'Совместимость' : 'Compatibility'}
-            detail={language === 'ru' ? 'Узнай про парня, девушку или пару' : 'Learn about him, her, or your pair'}
-            illustration={<MonoIllustCouple size={88} />}
+      {/* ── Быстрый доступ: совместимость и матрица ── */}
+      <div style={{ marginTop: 20, paddingBottom: 8 }}>
+        <FreshSectionHeader title={language === 'ru' ? 'Разделы' : 'Sections'} />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, padding: '0 20px' }}>
+          <button
+            type="button"
             onClick={() => { lumiaSelectionHaptic(); onOpenSynastry?.(); }}
-            delay={0}
-          />
-          <MonoBentoTile
-            title={language === 'ru' ? 'Гороскоп' : 'Horoscope'}
-            tag={language === 'ru' ? 'сегодня' : 'today'}
-            detail={
-              signLoading
-                ? (language === 'ru' ? 'Что тебя ждёт сегодня' : 'What today holds')
-                : (signReading?.summary || (language === 'ru' ? 'Что тебя ждёт сегодня' : 'What today holds'))
-            }
-            variant="gray"
-            illustration={<MonoIllustHoroscope size={72} />}
-            onClick={() => { lumiaSelectionHaptic(); setHoroscopeOpen(true); }}
-            delay={0}
-          />
-          <MonoBentoTile
-            title={language === 'ru' ? 'Натальная карта' : 'Natal chart'}
-            tag={language === 'ru' ? 'карта' : 'chart'}
-            detail={
-              hasChart && chartData ? (
-                <div className="flex flex-col gap-1 text-[13px] font-semibold">
-                  <span>☉ {getZodiacSign(language, chartData.sun.sign)}</span>
-                  <span>☾ {getZodiacSign(language, chartData.moon.sign)}</span>
-                </div>
-              ) : (language === 'ru' ? 'Кто ты на самом деле' : 'Who you really are')
-            }
-            variant="white"
-            illustration={<MonoIllustChart size={72} />}
-            onClick={onCreateNatalChart}
-            delay={0}
-            footer={
-              hasChart ? (
-                <div className="flex items-center gap-2">
-                  {avatarUrl ? (
-                    <img src={avatarUrl} alt="" className="h-8 w-8 rounded-full object-cover" />
-                  ) : (
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-mono-plate text-sm font-bold">
-                      {userInitial}
-                    </div>
-                  )}
-                  <span className="truncate text-[13px] font-semibold">{profile.name}</span>
-                </div>
-              ) : undefined
-            }
-          />
-        </div>
-        </MonoStaggerItem>
+            style={{
+              background: 'var(--fresh-surface)',
+              border: 'none',
+              borderRadius: 'var(--fresh-radius-item)',
+              padding: 14,
+              textAlign: 'left',
+              cursor: 'pointer',
+            }}
+          >
+            <div style={{ fontSize: 22, marginBottom: 6 }}>💕</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--fresh-text)', marginBottom: 2 }}>
+              {language === 'ru' ? 'Совместимость' : 'Compatibility'}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--fresh-muted)' }}>
+              {language === 'ru' ? 'Синастрия' : 'Synastry'}
+            </div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--fresh-link)', marginTop: 8 }}>
+              {language === 'ru' ? 'Открыть →' : 'Open →'}
+            </div>
+          </button>
 
-        <MonoStaggerItem>
-        <div className="mt-3 flex gap-2">
           <button
             type="button"
             onClick={() => { lumiaSelectionHaptic(); onOpenOracle?.(); }}
-            className="flex flex-1 items-center justify-center gap-2 rounded-mono-card border border-mono-line bg-mono-white py-3.5 text-[14px] font-semibold active:scale-[0.98]"
+            style={{
+              background: 'var(--fresh-surface)',
+              border: 'none',
+              borderRadius: 'var(--fresh-radius-item)',
+              padding: 14,
+              textAlign: 'left',
+              cursor: 'pointer',
+            }}
           >
-            <MessageCircle size={18} strokeWidth={2} />
-            {language === 'ru' ? 'Спроси Lumia' : 'Ask Lumia'}
-          </button>
-          <button
-            type="button"
-            onClick={() => { lumiaSelectionHaptic(); openPersonalDaily('overview'); }}
-            className="flex flex-1 items-center justify-center gap-2 rounded-mono-card border border-mono-line bg-mono-white py-3.5 text-[14px] font-semibold active:scale-[0.98]"
-          >
-            <Sparkles size={18} strokeWidth={2} />
-            {language === 'ru' ? 'Личный день' : 'Personal day'}
+            <div style={{ fontSize: 22, marginBottom: 6 }}>🔮</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--fresh-text)', marginBottom: 2 }}>
+              {language === 'ru' ? 'Матрица судьбы' : 'Destiny matrix'}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--fresh-muted)' }}>
+              {language === 'ru' ? 'Предназначение' : 'Purpose'}
+            </div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--fresh-link)', marginTop: 8 }}>
+              {language === 'ru' ? 'Открыть →' : 'Open →'}
+            </div>
           </button>
         </div>
-        </MonoStaggerItem>
-        </MonoStagger>
       </div>
 
+      {/* ── Скрытые компоненты логики ── */}
       <DaySheet
         dateKey={sheetDate}
         todayKey={today}
@@ -341,8 +432,13 @@ export const Dashboard = memo<DashboardProps>(({
         onClose={() => setSheetDate(null)}
         onRequestPremium={() => onRequestPremium?.('calendar')}
       />
-
-      <HoroscopeStories open={horoscopeOpen} profile={profile} chartData={chartData} language={language} onClose={() => setHoroscopeOpen(false)} />
+      <HoroscopeStories
+        open={horoscopeOpen}
+        profile={profile}
+        chartData={chartData}
+        language={language}
+        onClose={() => setHoroscopeOpen(false)}
+      />
       <PersonalDailyStories
         open={personalStoryOpen}
         profile={profile}
@@ -351,7 +447,7 @@ export const Dashboard = memo<DashboardProps>(({
         language={language}
         onClose={() => setPersonalStoryOpen(false)}
       />
-    </MonoPage>
+    </div>
   );
 });
 

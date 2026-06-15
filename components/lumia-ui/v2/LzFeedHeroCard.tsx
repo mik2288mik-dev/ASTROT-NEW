@@ -53,7 +53,7 @@ export function LzFeedHeroCard({
           {tag}
         </MonoTag>
         <h2
-          className={`relative z-10 mt-3 font-lora text-[clamp(1.45rem,5.5vw,1.75rem)] font-bold leading-[1.08] tracking-[-0.02em] ${
+          className={`relative z-10 mt-3 font-lumiaHome text-[clamp(1.45rem,5.5vw,1.75rem)] font-bold leading-[1.08] tracking-[-0.02em] ${
             dark ? 'text-white' : 'text-mono-ink'
           }`}
         >

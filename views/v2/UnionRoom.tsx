@@ -1,16 +1,8 @@
 import React, { useState } from 'react';
 import type { NatalChartData, UserProfile } from '../../types';
 import { Synastry } from '../Synastry';
-import { getLzArtSrc } from '../../lib/lzArtAssets';
-import { LzArtPlate } from '../../components/lumia-ui/v2/LzArtPlate';
-import {
-  MonoButton,
-  MonoIllustCouple,
-  MonoPage,
-  MonoStagger,
-  MonoStaggerItem,
-  MonoTag,
-} from '../../components/mono-ui';
+import { FreshPageTitle, FreshHeroCard } from '../../components/fresh-ui';
+import { MonoIllustCouple } from '../../components/mono-ui';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
 
 type SynastryPrefill = {
@@ -41,58 +33,70 @@ export function UnionRoom(props: UnionRoomProps) {
     return <Synastry {...props} embedded />;
   }
 
-  return (
-    <MonoPage className="lz-feed-page px-4" withTabClearance>
-      <div className="mx-auto max-w-[28rem] pb-6">
-        <MonoStagger>
-          <MonoStaggerItem>
-            <section className="lz-feed-card overflow-hidden p-0">
-              <LzArtPlate
-                imageSrc={getLzArtSrc('unionLanding')}
-                fallback={<MonoIllustCouple size={130} className="opacity-85" />}
-                aspect="tall"
-                className="rounded-none max-h-[220px]"
-              />
-              <div className="px-5 pb-6 pt-4">
-                <MonoTag>{language === 'ru' ? 'союз' : 'union'}</MonoTag>
-                <h1 className="mt-3 font-lora text-[clamp(1.7rem,6vw,2rem)] font-bold leading-[1.05] text-mono-ink">
-                  {language === 'ru' ? 'Проверь вашу связь' : 'Check your bond'}
-                </h1>
-                <p className="mt-3 text-[15px] leading-relaxed text-mono-muted">
-                  {language === 'ru'
-                    ? 'Почему вас тянет, где вы задеваете друг друга и как говорить яснее.'
-                    : 'Why you connect, where friction shows up, and how to talk clearer.'}
-                </p>
-              </div>
-            </section>
-          </MonoStaggerItem>
+  const start = () => {
+    lumiaSelectionHaptic();
+    setStarted(true);
+  };
 
-          <MonoStaggerItem>
-            <MonoButton
-              variant="accent"
-              fullWidth
-              className="mt-5"
-              onClick={() => {
-                lumiaSelectionHaptic();
-                setStarted(true);
-              }}
-            >
-              {language === 'ru' ? 'Проверить' : 'Check compatibility'}
-            </MonoButton>
-            <MonoButton
-              variant="outline"
-              fullWidth
-              className="mt-3"
-              onClick={() => {
-                lumiaSelectionHaptic();
-                setStarted(true);
-              }}
-            >
-              {language === 'ru' ? 'По знакам' : 'By signs'}
-            </MonoButton>
-          </MonoStaggerItem>
-        </MonoStagger>
-      </div>
-    </MonoPage>
+  return (
+    <div className="fresh-page">
+      <FreshPageTitle
+        kicker={language === 'ru' ? 'Союз' : 'Union'}
+        title={language === 'ru' ? 'Проверь вашу связь' : 'Check your bond'}
+      />
+
+      <FreshHeroCard
+        color="lavender"
+        chipText={language === 'ru' ? '💕 совместимость' : '💕 compatibility'}
+        chipPosition="top-right"
+        softText={language === 'ru' ? 'Синастрия' : 'Synastry'}
+        emojiBottom="💞"
+        onClick={start}
+        style={{ cursor: 'pointer' }}
+      >
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#fff',
+          }}
+        >
+          <MonoIllustCouple size={120} className="opacity-90" />
+        </div>
+      </FreshHeroCard>
+
+      <p
+        style={{
+          padding: '0 20px',
+          margin: '0 0 18px',
+          fontSize: 15,
+          lineHeight: 1.5,
+          color: 'var(--fresh-muted)',
+        }}
+      >
+        {language === 'ru'
+          ? 'Почему вас тянет, где вы задеваете друг друга и как говорить яснее.'
+          : 'Why you connect, where friction shows up, and how to talk clearer.'}
+      </p>
+
+      <button type="button" className="fresh-btn-primary" onClick={start}>
+        {language === 'ru' ? 'Проверить' : 'Check compatibility'}
+      </button>
+      <button
+        type="button"
+        className="fresh-btn-primary"
+        onClick={start}
+        style={{
+          marginTop: 10,
+          background: 'var(--fresh-surface)',
+          color: 'var(--fresh-text)',
+        }}
+      >
+        {language === 'ru' ? 'По знакам' : 'By signs'}
+      </button>
+    </div>
   );
 }

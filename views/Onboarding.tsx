@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { UserProfile } from '../types';
 import { ensureTelegramFullscreen } from '../lib/telegramFullscreen';
-import { MonoButton, MonoIllustWelcome } from '../components/mono-ui';
+import { MonoIllustWelcome } from '../components/mono-ui';
 
 interface OnboardingProps {
   onComplete: (profile: UserProfile) => void;
@@ -84,135 +84,136 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     onComplete(profile);
   };
 
-  const inputClassName =
-    'min-h-[2.9rem] w-full border-b border-mono-line bg-transparent pb-2 pt-1 text-[1.05rem] leading-tight text-mono-ink outline-none transition-colors placeholder:text-mono-muted/40 focus:border-mono-ink';
-
-  const shellStyle = {
-    paddingTop:
-      'calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px)) + max(env(safe-area-inset-bottom, 0px), var(--tg-content-safe-area-inset-bottom, 0px)) + 0.85rem)',
-    paddingBottom:
-      'calc(max(env(safe-area-inset-bottom, 0px), var(--tg-content-safe-area-inset-bottom, 0px)) + 1rem)',
-    paddingLeft: 'max(1.15rem, env(safe-area-inset-left, 0px), var(--tg-content-safe-area-inset-left, 0px))',
-    paddingRight: 'max(1.15rem, env(safe-area-inset-right, 0px), var(--tg-content-safe-area-inset-right, 0px))',
-  } as const;
-
   return (
-    <div className="mono-page h-[100dvh] min-h-[100dvh] overflow-hidden text-mono-ink" style={shellStyle}>
+    <div
+      className="fresh-page lumia-main-scroll"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--tg-content-safe-area-inset-bottom, 0px)) + 16px)',
+      }}
+    >
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-        className="mx-auto flex h-full w-full max-w-md flex-col"
+        className="mx-auto"
+        style={{ display: 'flex', flex: 1, width: '100%', maxWidth: '28rem', flexDirection: 'column' }}
       >
-        <div>
+        <div style={{ padding: '0 20px' }}>
           <p className="lumia-brand-wordmark">LUMIA</p>
           <p className="lumia-brand-tagline">ТВОЙ ПУТЬ К СЕБЕ</p>
         </div>
 
-        <div className="mt-8 flex justify-center rounded-mono-card bg-mono-plate py-8">
-          <MonoIllustWelcome size={120} />
+        <div className="fresh-onboarding-hero">
+          <span className="fresh-onboarding-symbol">✦</span>
+          <div className="fresh-onboarding-content">
+            <MonoIllustWelcome size={120} />
+          </div>
         </div>
 
         {step === 'welcome' ? (
           <>
-            <div className="mt-8">
-              <h1 className="mb-0 max-w-[16rem] font-lora text-[2rem] font-bold leading-[1.05] tracking-[-0.03em] text-mono-ink">
+            <div style={{ padding: '8px 20px 0' }}>
+              <h1 className="fresh-page-title" style={{ maxWidth: '16rem' }}>
                 Твой личный астролог
               </h1>
-              <p className="mb-0 mt-4 max-w-[19rem] text-[15px] leading-[1.65] text-mono-muted">
+              <p style={{ marginTop: 14, maxWidth: '19rem', fontSize: 15, lineHeight: 1.6, color: 'var(--fresh-muted)' }}>
                 Коротко о дне, карте и отношениях — без лишней эзотерики.
               </p>
             </div>
-            <div className="mt-auto pt-8">
-              <MonoButton fullWidth onClick={() => setStep('birth')}>
+            <div style={{ marginTop: 'auto', paddingTop: 24 }}>
+              <button type="button" className="fresh-btn-primary" onClick={() => setStep('birth')}>
                 Начать
-              </MonoButton>
+              </button>
             </div>
           </>
         ) : (
           <>
-        <div className="mt-8">
-          <h1 className="mb-0 max-w-[16rem] text-[2rem] font-bold leading-[1.05] tracking-[-0.03em] text-mono-ink">
-            Данные для твоей карты
-          </h1>
-          <p className="mb-0 mt-4 max-w-[19rem] text-[15px] leading-[1.65] text-mono-muted">
-            Имя, дата, время и место рождения помогают рассчитать карту точнее.
-          </p>
-        </div>
+            <div style={{ padding: '8px 20px 0' }}>
+              <h1 className="fresh-page-title" style={{ maxWidth: '16rem' }}>
+                Данные для твоей карты
+              </h1>
+              <p style={{ marginTop: 14, maxWidth: '19rem', fontSize: 15, lineHeight: 1.6, color: 'var(--fresh-muted)' }}>
+                Имя, дата, время и место рождения помогают рассчитать карту точнее.
+              </p>
+            </div>
 
-        <div className="mt-10 space-y-6">
-          <label className="block">
-            <span className="mb-1.5 block text-[10px] uppercase tracking-[0.18em] text-mono-muted">Имя</span>
-            <input
-              ref={nameRef}
-              type="text"
-              value={name}
-              onChange={(e) => {
-                setName(e.target.value);
-                if (error) setError('');
-              }}
-              className={inputClassName}
-              placeholder="Как к тебе обращаться"
-            />
-          </label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20, padding: '28px 20px 0' }}>
+              <label>
+                <span className="fresh-field-label">Имя</span>
+                <input
+                  ref={nameRef}
+                  type="text"
+                  value={name}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    if (error) setError('');
+                  }}
+                  className="fresh-input"
+                  placeholder="Как к тебе обращаться"
+                />
+              </label>
 
-          <div className="grid grid-cols-2 gap-6">
-            <label className="block">
-              <span className="mb-1.5 block text-[10px] uppercase tracking-[0.18em] text-mono-muted">Дата</span>
-              <input
-                ref={dateRef}
-                type="date"
-                value={date}
-                onChange={(e) => {
-                  setDate(e.target.value);
-                  if (error) setError('');
-                }}
-                className={inputClassName}
-              />
-            </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <label>
+                  <span className="fresh-field-label">Дата</span>
+                  <input
+                    ref={dateRef}
+                    type="date"
+                    value={date}
+                    onChange={(e) => {
+                      setDate(e.target.value);
+                      if (error) setError('');
+                    }}
+                    className="fresh-input"
+                  />
+                </label>
 
-            <label className="block">
-              <span className="mb-1.5 block text-[10px] uppercase tracking-[0.18em] text-mono-muted">Время</span>
-              <input
-                ref={timeRef}
-                type="time"
-                value={time}
-                onChange={(e) => {
-                  setTime(e.target.value);
-                  if (error) setError('');
-                }}
-                className={inputClassName}
-              />
-            </label>
-          </div>
+                <label>
+                  <span className="fresh-field-label">Время</span>
+                  <input
+                    ref={timeRef}
+                    type="time"
+                    value={time}
+                    onChange={(e) => {
+                      setTime(e.target.value);
+                      if (error) setError('');
+                    }}
+                    className="fresh-input"
+                  />
+                </label>
+              </div>
 
-          <label className="block">
-            <span className="mb-1.5 block text-[10px] uppercase tracking-[0.18em] text-mono-muted">Место рождения</span>
-            <input
-              ref={placeRef}
-              type="text"
-              value={place}
-              onChange={(e) => {
-                setPlace(e.target.value);
-                if (error) setError('');
-              }}
-              className={inputClassName}
-              placeholder="Москва, Россия"
-            />
-          </label>
-        </div>
+              <label>
+                <span className="fresh-field-label">Место рождения</span>
+                <input
+                  ref={placeRef}
+                  type="text"
+                  value={place}
+                  onChange={(e) => {
+                    setPlace(e.target.value);
+                    if (error) setError('');
+                  }}
+                  className="fresh-input"
+                  placeholder="Москва, Россия"
+                />
+              </label>
+            </div>
 
-        <div className="mt-auto pt-8">
-          {error ? <p className="mb-3 text-[12px] leading-[1.45] text-mono-accent">{error}</p> : null}
+            <div style={{ marginTop: 'auto', paddingTop: 24 }}>
+              {error ? (
+                <p style={{ margin: '0 20px 12px', fontSize: 12, lineHeight: 1.45, color: 'var(--fresh-red)' }}>{error}</p>
+              ) : null}
 
-          <MonoButton fullWidth disabled={!canSubmit} onClick={handleSubmit}>
-            Открыть карту
-          </MonoButton>
+              <button type="button" className="fresh-btn-primary" disabled={!canSubmit} onClick={handleSubmit}>
+                Открыть карту
+              </button>
 
-          <p className="mb-0 mt-3 max-w-[20rem] text-[10px] leading-[1.45] text-mono-muted">
-            Все расчеты Lumia строятся на точных астрономических данных, координатах рождения и Swiss Ephemeris, чтобы карта опиралась на реальные данные, а не на общий шаблон.
-          </p>
-        </div>
+              <p style={{ margin: '12px 20px 0', maxWidth: '20rem', fontSize: 10, lineHeight: 1.45, color: 'var(--fresh-muted)' }}>
+                Все расчеты Lumia строятся на точных астрономических данных, координатах рождения и Swiss Ephemeris, чтобы карта опиралась на реальные данные, а не на общий шаблон.
+              </p>
+            </div>
           </>
         )}
       </motion.div>

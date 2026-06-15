@@ -7,10 +7,9 @@ type MonoArticleProps = {
   lead?: string;
   children: React.ReactNode;
   className?: string;
-  serif?: boolean;
 };
 
-export function MonoArticle({ kicker, title, lead, children, className, serif }: MonoArticleProps) {
+export function MonoArticle({ kicker, title, lead, children, className }: MonoArticleProps) {
   return (
     <article className={cn('mx-auto w-full max-w-reading px-4', className)}>
       {kicker ? (
@@ -18,8 +17,7 @@ export function MonoArticle({ kicker, title, lead, children, className, serif }:
       ) : null}
       <h1
         className={cn(
-          'mt-2 text-[28px] font-bold leading-[1.15] tracking-[-0.02em] text-mono-ink',
-          serif && 'font-lora',
+          'mt-2 font-lumiaHome text-[28px] font-bold leading-[1.15] tracking-[-0.02em] text-mono-ink',
         )}
       >
         {title}

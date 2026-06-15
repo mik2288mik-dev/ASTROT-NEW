@@ -3,19 +3,15 @@ import type { ForecastDailyReading, NatalChartData, UserProfile } from '../../ty
 import { getZodiacSign } from '../../constants';
 import { getMoscowTodayKey, formatLumiaDate } from '../../lib/date-utils';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
-import { getLzArtSrc } from '../../lib/lzArtAssets';
 import { getCachedDailySignHoroscope, ensureDailySignHoroscope } from '../../services/astrologyService';
 import { saveProfile } from '../../services/storageService';
 import {
   MonoArticleSection,
-  MonoPage,
   MonoShareBar,
-  MonoStagger,
-  MonoStaggerItem,
   MonoTag,
 } from '../../components/mono-ui';
 import { MonoIllustHoroscope } from '../../components/mono-ui/MonoIllustrations';
-import { LzArtPlate } from '../../components/lumia-ui/v2/LzArtPlate';
+import { FreshHeroCard } from '../../components/fresh-ui';
 import { LzSignPickerSheet } from '../../components/lumia-ui/v2/LzSignPickerSheet';
 import { ZODIAC_KEYS, type ZodiacKey } from '../../lib/horoscope/signDaily';
 
@@ -86,78 +82,89 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({ profile, chartData,
 
   return (
     <>
-      <MonoPage className="lz-reader-page px-0" withTabClearance>
-        <MonoStagger>
-          <MonoStaggerItem>
-            <div className="px-4 pt-1">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="lz-kicker">{signLabel} · {language === 'ru' ? 'сегодня' : 'today'}</p>
-                  <h1 className="mt-1 font-lora text-[clamp(1.6rem,6vw,2rem)] font-bold leading-[1.08] tracking-[-0.02em] text-mono-ink">
-                    {reading?.headline || (language === 'ru' ? 'Гороскоп дня' : 'Daily horoscope')}
-                  </h1>
-                  <p className="mt-2 text-[13px] font-medium text-mono-muted">{formatLumiaDate(today, language)}</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setPickerOpen(true)}
-                  className="lz-sign-chip shrink-0"
-                >
-                  {language === 'ru' ? 'Знак' : 'Sign'}
-                </button>
-              </div>
+      <div className="fresh-page">
+        {/* Шапка: знак · сегодня + заголовок + чип выбора знака */}
+        <div
+          className="fresh-page-title-block"
+          style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}
+        >
+          <div style={{ minWidth: 0 }}>
+            <div className="fresh-page-kicker">
+              {signLabel} · {language === 'ru' ? 'сегодня' : 'today'}
             </div>
-          </MonoStaggerItem>
-
-          <MonoStaggerItem>
-            <div className="mt-4 px-4">
-              <LzArtPlate
-                imageSrc={getLzArtSrc('readerHero')}
-                fallback={<MonoIllustHoroscope size={128} className="opacity-90" />}
-                aspect="hero"
-              />
+            <div className="fresh-page-title">
+              {reading?.headline || (language === 'ru' ? 'Гороскоп дня' : 'Daily horoscope')}
             </div>
-          </MonoStaggerItem>
+            <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--fresh-muted)', marginTop: 6 }}>
+              {formatLumiaDate(today, language)}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              lumiaSelectionHaptic();
+              setPickerOpen(true);
+            }}
+            style={{
+              flexShrink: 0,
+              background: 'var(--fresh-surface)',
+              border: 'none',
+              borderRadius: 'var(--fresh-radius-pill)',
+              padding: '8px 14px',
+              fontSize: 13,
+              fontWeight: 700,
+              color: 'var(--fresh-text)',
+              cursor: 'pointer',
+            }}
+          >
+            {language === 'ru' ? 'Знак' : 'Sign'}
+          </button>
+        </div>
 
-          <MonoStaggerItem>
-            <article className="px-4 pb-36 pt-6">
-              <p className="text-[17px] leading-[1.65] text-mono-ink/92">
-                {loading
-                  ? (language === 'ru' ? 'Готовим разбор…' : 'Preparing reading…')
-                  : reading?.summary}
-              </p>
+        {/* Hero-карточка с иллюстрацией */}
+        <FreshHeroCard color="sky" chipText={signLabel} chipPosition="top-right" emojiBottom="✨">
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <MonoIllustHoroscope size={120} className="opacity-90" />
+          </div>
+        </FreshHeroCard>
 
-              <div className="mt-6 space-y-4">
-                {reading?.reading ? (
-                  <MonoArticleSection title={language === 'ru' ? 'Подробнее' : 'More'}>{reading.reading}</MonoArticleSection>
-                ) : null}
-                {reading?.focus ? (
-                  <MonoArticleSection title={language === 'ru' ? 'Фокус дня' : 'Focus'}>{reading.focus}</MonoArticleSection>
-                ) : null}
-                {reading?.chance ? (
-                  <MonoArticleSection title={language === 'ru' ? 'Шанс' : 'Opportunity'}>{reading.chance}</MonoArticleSection>
-                ) : null}
-                {reading?.risk ? (
-                  <MonoArticleSection title={language === 'ru' ? 'Осторожно' : 'Watch out'}>{reading.risk}</MonoArticleSection>
-                ) : null}
-                {reading?.advice?.length ? (
-                  <MonoArticleSection title={language === 'ru' ? 'Советы' : 'Advice'}>
-                    <ul className="space-y-2">
-                      {reading.advice.slice(0, 3).map((item) => (
-                        <li key={item}>{item}</li>
-                      ))}
-                    </ul>
-                  </MonoArticleSection>
-                ) : null}
-              </div>
+        {/* Статья */}
+        <article style={{ padding: '6px 20px 28px' }}>
+          <p style={{ fontSize: 17, lineHeight: 1.65, color: 'var(--fresh-text)' }}>
+            {loading
+              ? (language === 'ru' ? 'Готовим разбор…' : 'Preparing reading…')
+              : reading?.summary}
+          </p>
 
-              <div className="mt-6 flex flex-wrap gap-2">
-                <MonoTag>{signLabel}</MonoTag>
-                <MonoTag>{language === 'ru' ? 'ежедневно' : 'daily'}</MonoTag>
-              </div>
-            </article>
-          </MonoStaggerItem>
-        </MonoStagger>
+          <div className="space-y-4" style={{ marginTop: 24 }}>
+            {reading?.reading ? (
+              <MonoArticleSection title={language === 'ru' ? 'Подробнее' : 'More'}>{reading.reading}</MonoArticleSection>
+            ) : null}
+            {reading?.focus ? (
+              <MonoArticleSection title={language === 'ru' ? 'Фокус дня' : 'Focus'}>{reading.focus}</MonoArticleSection>
+            ) : null}
+            {reading?.chance ? (
+              <MonoArticleSection title={language === 'ru' ? 'Шанс' : 'Opportunity'}>{reading.chance}</MonoArticleSection>
+            ) : null}
+            {reading?.risk ? (
+              <MonoArticleSection title={language === 'ru' ? 'Осторожно' : 'Watch out'}>{reading.risk}</MonoArticleSection>
+            ) : null}
+            {reading?.advice?.length ? (
+              <MonoArticleSection title={language === 'ru' ? 'Советы' : 'Advice'}>
+                <ul className="space-y-2">
+                  {reading.advice.slice(0, 3).map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </MonoArticleSection>
+            ) : null}
+          </div>
+
+          <div style={{ marginTop: 24, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            <MonoTag>{signLabel}</MonoTag>
+            <MonoTag>{language === 'ru' ? 'ежедневно' : 'daily'}</MonoTag>
+          </div>
+        </article>
 
         <MonoShareBar
           label={language === 'ru' ? 'Поделиться' : 'Share'}
@@ -172,7 +179,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({ profile, chartData,
             }
           }}
         />
-      </MonoPage>
+      </div>
 
       <LzSignPickerSheet
         open={pickerOpen}

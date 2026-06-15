@@ -4,7 +4,7 @@ import { UserProfile, NatalChartData } from '../types';
 import { getNatalIntro } from '../services/astrologyService';
 import { motion } from 'framer-motion';
 import { getText } from '../constants';
-import { MonoButton, MonoChatBubble, MonoPage } from '../components/mono-ui';
+import { MonoChatBubble } from '../components/mono-ui';
 
 interface HookChatProps {
     profile: UserProfile;
@@ -68,41 +68,44 @@ export const HookChat: React.FC<HookChatProps> = ({ profile, chartData, onComple
 
     if (isLoading) {
         return (
-            <MonoPage className="flex min-h-full items-center justify-center px-4" animate={false}>
-                <p className="text-[15px] font-medium text-mono-muted">
+            <div
+                className="fresh-page lumia-main-scroll"
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 20px' }}
+            >
+                <p style={{ fontSize: 15, fontWeight: 500, color: 'var(--fresh-muted)' }}>
                     {getText(profile.language, 'hook.analyzing')}
                 </p>
-            </MonoPage>
+            </div>
         );
     }
 
     return (
-        <MonoPage className="px-4 pb-10 pt-6" animate={false}>
-            <div className="mx-auto flex w-full max-w-md flex-col gap-4">
+        <div className="fresh-page lumia-main-scroll" style={{ paddingBottom: 40 }}>
+            <div style={{ margin: '0 auto', display: 'flex', width: '100%', maxWidth: '28rem', flexDirection: 'column', gap: 16, padding: '8px 16px' }}>
                 {messages.map((msg, idx) => (
                     <motion.div
                         key={idx}
                         initial={{ opacity: 0, y: 16 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-                        className="flex w-full flex-col gap-3"
+                        style={{ display: 'flex', flexDirection: 'column', gap: 12 }}
                     >
                         {msg.type === 'text' ? (
                             <MonoChatBubble role="assistant">{msg.text}</MonoChatBubble>
                         ) : null}
 
                         {msg.type === 'cta' ? (
-                            <div className="mt-4 space-y-4 text-center">
-                                <p className="text-[14px] leading-relaxed text-mono-muted">{msg.text}</p>
-                                <MonoButton fullWidth onClick={onComplete}>
+                            <div style={{ marginTop: 16, textAlign: 'center' }}>
+                                <p style={{ fontSize: 14, lineHeight: 1.6, color: 'var(--fresh-muted)', marginBottom: 16 }}>{msg.text}</p>
+                                <button type="button" className="fresh-btn-primary" style={{ width: '100%', margin: 0 }} onClick={onComplete}>
                                     {getText(profile.language, 'hook.cta_button')}
-                                </MonoButton>
+                                </button>
                             </div>
                         ) : null}
                     </motion.div>
                 ))}
-                <div ref={scrollRef} className="h-4" />
+                <div ref={scrollRef} style={{ height: 16 }} />
             </div>
-        </MonoPage>
+        </div>
     );
 };

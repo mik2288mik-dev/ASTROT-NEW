@@ -64,7 +64,7 @@ export function LzUnionCompact({
           <MonoTag dark className="w-fit bg-white/10 text-white/90">
             {ru ? 'союз' : 'union'}
           </MonoTag>
-          <h3 className="mt-3 font-lora text-[24px] font-bold leading-tight tracking-[-0.02em]">
+          <h3 className="mt-3 font-lumiaHome text-[24px] font-bold leading-tight tracking-[-0.02em]">
             {ru ? 'Два знака — одна история' : 'Two signs, one story'}
           </h3>
 

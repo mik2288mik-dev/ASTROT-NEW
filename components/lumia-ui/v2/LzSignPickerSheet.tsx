@@ -63,7 +63,7 @@ export function LzSignPickerSheet({
             <div className="mx-auto mb-3 mt-2 h-1 w-11 shrink-0 rounded-full bg-mono-line" />
             <div className="shrink-0 px-5 pb-3">
               <p className="lz-kicker">{lang === 'ru' ? 'Гороскоп' : 'Horoscope'}</p>
-              <h2 className="mt-1 font-lora text-[26px] font-bold leading-tight text-mono-ink">
+              <h2 className="mt-1 font-lumiaHome text-[26px] font-bold leading-tight text-mono-ink">
                 {title || (lang === 'ru' ? 'Выбери знак' : 'Pick a sign')}
               </h2>
               {subtitle ? (

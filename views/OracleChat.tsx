@@ -358,7 +358,10 @@ export const OracleChat: React.FC<OracleChatProps> = ({
         </div>
       </div>
       ) : (
-        <div className="shrink-0 border-b border-mono-line bg-mono-white px-4 py-3">
+        <div
+          className="shrink-0 border-b border-mono-line bg-mono-white px-4 py-3"
+          style={{ paddingTop: 'calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), 28px) + 6px)' }}
+        >
           <h1 className="text-[22px] font-bold text-mono-ink">Lumia</h1>
           <p className="mt-1 text-[13px] text-mono-muted">{stateCopy.body}</p>
           {showPremiumCta && onPremiumRequired ? (
@@ -392,8 +395,8 @@ export const OracleChat: React.FC<OracleChatProps> = ({
                 <div
                   className={`max-w-[88%] rounded-[20px] px-4 py-3 text-[15px] leading-relaxed sm:max-w-[82%] sm:text-base ${
                     msg.role === 'user'
-                      ? 'bg-mono-plate text-mono-ink'
-                      : 'bg-mono-black text-white'
+                      ? 'bg-mono-accent text-white'
+                      : 'bg-mono-plate text-mono-ink'
                   }`}
                 >
                   {msg.text}
@@ -505,7 +508,7 @@ export const OracleChat: React.FC<OracleChatProps> = ({
                 type="button"
                 onClick={handleSend}
                 disabled={sendDisabled}
-                className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-mono-pill bg-mono-black px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-white transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-mono-pill bg-mono-accent px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-white transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {loading ? getText(lang, 'oracle.thinking') : sendLabel}
               </button>

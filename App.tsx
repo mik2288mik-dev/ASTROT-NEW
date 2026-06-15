@@ -17,9 +17,9 @@ import {
 } from './lib/localHumanBaseReportCache';
 import { getMoscowTodayKey } from './lib/date-utils';
 import { Onboarding } from './views/Onboarding';
-import { TodayFeed } from './views/v2/TodayFeed';
-import { NatalChart } from './views/NatalChart';
-import { Horoscope } from './views/Horoscope';
+import { Dashboard } from './views/Dashboard';
+import { NatalMagazine } from './views/v2/NatalMagazine';
+import { HoroscopeReader } from './views/v2/HoroscopeReader';
 import { PersonalDailyScreen } from './views/DailyContentScreens';
 import { OracleChat } from './views/OracleChat';
 import { Settings } from './views/Settings';
@@ -243,11 +243,6 @@ const App: React.FC = () => {
     const [chartsReturnView, setChartsReturnView] = useState<ViewState>('settings');
     const [chartReturnView, setChartReturnView] = useState<ViewState>('dashboard');
     const [personalDailyInitialSection, setPersonalDailyInitialSection] = useState<PersonalDailySection>('overview');
-    const [, setHoroscopeBackground] = useState<{
-        sign: string | null;
-        tone: 'sign' | 'chart' | 'love' | 'work';
-    }>({ sign: null, tone: 'sign' });
-    
     const lastSessionPingRef = useRef(0);
     const prewarmCompletedKeyRef = useRef<string | null>(null);
     const primaryChartSessionRef = useRef<{
@@ -1445,7 +1440,7 @@ const App: React.FC = () => {
                     className={view === 'dashboard' ? 'flex h-full min-h-0 overflow-hidden' : 'hidden'}
                     aria-hidden={view !== 'dashboard'}
                 >
-                    <TodayFeed
+                    <Dashboard
                         profile={profile}
                         chartData={chartData}
                         chartId={primaryChartId}
@@ -1506,9 +1501,9 @@ const App: React.FC = () => {
                     </div>
                 ) : view === 'horoscope' ? (
                     <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
-                        <Horoscope 
-                            profile={profile} 
-                            chartData={chartData} 
+                        <HoroscopeReader
+                            profile={profile}
+                            chartData={chartData}
                             chartId={primaryChartId ?? undefined}
                             onUpdateProfile={handleProfileUpdate}
                             onOpenChart={() => {
@@ -1516,10 +1511,6 @@ const App: React.FC = () => {
                             }}
                             onRequestPremium={requestPremium}
                             onOpenPersonalDaily={() => openPersonalDailyView('overview')}
-                            onBack={handleBack}
-                            onBackgroundChange={(next) =>
-                                setHoroscopeBackground(next || { sign: null, tone: 'sign' })
-                            }
                         />
                     </div>
                 ) : view === 'personal_daily' ? (
@@ -1528,9 +1519,9 @@ const App: React.FC = () => {
                     </div>
                 ) : view === 'chart' ? (
                     <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
-                        <NatalChart 
-                            data={chartData} 
-                            profile={profile} 
+                        <NatalMagazine
+                            data={chartData}
+                            profile={profile}
                             chartId={effectiveChartId}
                             requestPremium={requestPremium}
                             onUpdateProfile={handleProfileUpdate}

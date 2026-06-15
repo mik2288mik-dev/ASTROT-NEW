@@ -7,7 +7,6 @@ import { getCharts, type ChartListItem } from '../services/storageService';
 import { calculateExtendedSynastry, getSignCompatibility } from '../services/astrologyService';
 import { toDateInputValue } from '../lib/date-utils';
 import {
-  MonoPage,
   MonoArticleSection,
   MonoButton,
   MonoIllustCouple,
@@ -57,8 +56,8 @@ export const Synastry: React.FC<Props> = ({ profile, chartData, chartId, request
   const hasResults = mode === 'signs' ? !!signResult : !!result;
 
   return (
-    <MonoPage className="px-4" withTabClearance>
-      <div className="relative mx-auto max-w-[28rem] space-y-4 pb-24">
+    <div className="fresh-page">
+      <div className="relative mx-auto max-w-[28rem] space-y-4 px-4 pb-24">
         <MonoStagger className="space-y-4">
         <MonoStaggerItem>
         {!embedded ? (
@@ -162,6 +161,6 @@ export const Synastry: React.FC<Props> = ({ profile, chartData, chartId, request
           } catch { /* optional */ }
         }} />
       ) : null}
-    </MonoPage>
+    </div>
   );
 };

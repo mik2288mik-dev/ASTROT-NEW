@@ -4,7 +4,6 @@ const flattenColorPalette =
 
 /**
  * @type {import('tailwindcss').Config}
- * Phase 8 AIR UI: порядок экранов — docs/AIR_UI_ROLLOUT.md
  */
 module.exports = {
   content: [
@@ -48,15 +47,16 @@ module.exports = {
           peach: 'var(--lumia-home-peach)',
           line: 'var(--lumia-home-line)',
         },
-        /** Mono Friend skin — docs/mono-friend-redesign.md */
+        /** LUMIA FRESH 2026 skin — white surfaces, blue accent (bridged from --fresh-*) */
         mono: {
-          bg: '#FAFAFA',
+          bg: '#FFFFFF',
           white: '#FFFFFF',
-          plate: '#F2F2F2',
-          ink: '#111111',
-          muted: '#6B6B6B',
-          line: 'rgba(17, 17, 17, 0.1)',
-          accent: '#C45C4A',
+          plate: '#F7F8FA',
+          ink: '#111827',
+          muted: '#6B7280',
+          line: 'rgba(17, 24, 39, 0.08)',
+          // FRESH accent — blue, replaces the old pure-black accent
+          accent: '#007AFF',
           black: '#111111',
         },
         /** Legacy doodle tokens — migrate away; kept for gradual removal */
@@ -98,9 +98,9 @@ module.exports = {
         serif: ['"Outfit"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
         sans: ['"Inter"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
         outfit: ['"Outfit"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
-        lumiaHome: ['"Manrope"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
-        lumiaHomeDisplay: ['"Geologica"', '"Manrope"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
-        lora: ['"Lora"', 'Georgia', 'Cambria', 'Times New Roman', 'serif'],
+        lumiaHome: ['"Inter"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+        lumiaHomeDisplay: ['"Inter"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+        lora: ['"Inter"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
         /** Doodle skin: handwritten display + small hand labels; body stays lumiaHome (Manrope) */
         doodleDisplay: ['"Caveat"', '"Ink Free"', '"Segoe Print"', 'cursive'],
         doodleHand: ['"Neucha"', '"Ink Free"', '"Segoe Print"', 'cursive'],

@@ -4,7 +4,6 @@ import { UserProfile, Language, Theme, NotificationFrequency } from '../types';
 import { getText } from '../constants';
 import { saveProfile } from '../services/storageService';
 import { requestStarsPayment } from '../services/telegramService';
-import { MonoPage } from '../components/mono-ui';
 import { hasActivePremium } from '../lib/accessMatrix';
 
 interface SettingsProps {
@@ -77,9 +76,8 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
     const rowCardClass =
         'w-full rounded-mono-card border border-mono-line bg-mono-white p-4 text-left transition-transform active:scale-[0.99] sm:p-[18px]';
     const inlineActionClass = 'text-mono-muted text-[10px] uppercase tracking-wider hover:text-mono-ink transition-colors';
-    const inputBaseClass = 'w-full bg-transparent border-b border-mono-line py-2 text-mono-ink text-sm focus:outline-none focus:border-mono-ink transition-colors';
     const editableInputClass = (enabled: boolean) =>
-        `w-full bg-transparent border-b ${enabled ? 'border-astro-highlight' : 'border-astro-border'} py-2 text-astro-text text-sm focus:outline-none transition-colors font-serif`;
+        `w-full bg-transparent border-b ${enabled ? 'border-mono-accent' : 'border-mono-line'} py-2 text-mono-ink text-sm focus:outline-none transition-colors font-serif`;
     const languageLabel = profile.language === 'ru'
         ? getText(profile.language, 'settings.language_ru')
         : getText(profile.language, 'settings.language_en');
@@ -172,7 +170,8 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
 
 
     return (
-        <MonoPage className="mx-auto max-w-reading-wide px-4 pt-2 pb-28" withTabClearance animate={false}>
+        <div className="fresh-page">
+          <div className="mx-auto max-w-reading-wide px-4 pt-2 pb-28">
             <section className="rounded-mono-card border border-mono-line bg-mono-white p-5 mb-4">
                 <div className="flex items-center gap-4">
                     {profilePhotoUrl ? (
@@ -199,7 +198,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
 
             <section className={sectionClass}>
                 <p className="lumia-label tracking-[0.2em]">{getText(profile.language, 'settings.subscription')}</p>
-                <h2 className="mt-1.5 font-serif text-xl text-astro-text sm:text-2xl">
+                <h2 className="mt-1.5 font-serif text-xl text-mono-ink sm:text-2xl">
                     {activePremium ? getText(profile.language, 'settings.plan_pro') : getText(profile.language, 'settings.plan_basic')}
                 </h2>
                 <p className="lumia-muted mt-2 text-sm leading-relaxed">
@@ -218,7 +217,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                         <button
                             onClick={onShowPremiumPreview}
                             type="button"
-                            className="min-h-[44px] rounded-xl bg-astro-text/[0.06] px-4 py-2.5 text-sm font-medium text-astro-text transition-[box-shadow] hover:ring-1 hover:ring-astro-highlight/25"
+                            className="min-h-[44px] rounded-xl bg-mono-ink/[0.06] px-4 py-2.5 text-sm font-medium text-mono-ink transition-[box-shadow] hover:ring-1 hover:ring-mono-accent/25"
                         >
                             Lumia Premium
                         </button>
@@ -230,29 +229,29 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                 <button onClick={onOpenCharts} className={rowCardClass}>
                     <div className="flex items-center justify-between gap-4">
                         <div>
-                            <h3 className="font-serif text-lg text-astro-text">
+                            <h3 className="font-serif text-lg text-mono-ink">
                                 {getText(profile.language, 'settings.charts_title')}
                             </h3>
                             <p className="lumia-muted mt-1 text-sm">{getText(profile.language, 'settings.charts_body')}</p>
                         </div>
-                        <span className="text-astro-subtext/70">→</span>
+                        <span className="text-mono-muted/70">→</span>
                     </div>
                 </button>
             )}
 
             <div className={`${sectionClass} flex items-center justify-between gap-3`}>
                 <div className="min-w-0 pr-2">
-                    <h3 className="font-serif text-lg text-astro-text">{getText(profile.language, 'settings.theme')}</h3>
+                    <h3 className="font-serif text-lg text-mono-ink">{getText(profile.language, 'settings.theme')}</h3>
                     <p className="lumia-muted mt-1 text-sm leading-snug">{getText(profile.language, 'settings.theme_body')}</p>
                     <p className="lumia-label mt-1.5 tracking-wider">
                         {profile.theme === 'light' ? getText(profile.language, 'settings.theme_light') : getText(profile.language, 'settings.theme_dark')}
                     </p>
                 </div>
-                <div className="flex shrink-0 rounded-xl bg-astro-text/[0.06] p-0.5 ring-1 ring-astro-text/[0.05]">
+                <div className="flex shrink-0 rounded-xl bg-mono-ink/[0.06] p-0.5 ring-1 ring-mono-ink/[0.05]">
                     <button 
                         type="button"
                         onClick={() => handleThemeToggle('dark')}
-                        className={`rounded-lg p-2 transition-colors ${profile.theme === 'dark' ? 'bg-astro-card/90 text-white shadow-sm ring-1 ring-white/12' : 'text-astro-subtext'}`}
+                        className={`rounded-lg p-2 transition-colors ${profile.theme === 'dark' ? 'bg-mono-black/90 text-white shadow-sm ring-1 ring-white/12' : 'text-mono-muted'}`}
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
@@ -261,7 +260,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                     <button 
                         type="button"
                         onClick={() => handleThemeToggle('light')}
-                        className={`rounded-lg p-2 transition-colors ${profile.theme === 'light' ? 'bg-white text-black shadow-sm ring-1 ring-black/8' : 'text-astro-subtext'}`}
+                        className={`rounded-lg p-2 transition-colors ${profile.theme === 'light' ? 'bg-white text-black shadow-sm ring-1 ring-black/8' : 'text-mono-muted'}`}
                         aria-label="Light theme"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -273,14 +272,14 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
 
             <div className={`${sectionClass} flex items-center justify-between gap-3`}>
                 <div className="min-w-0 pr-2">
-                    <h3 className="font-serif text-lg text-astro-text">{getText(profile.language, 'settings.language')}</h3>
+                    <h3 className="font-serif text-lg text-mono-ink">{getText(profile.language, 'settings.language')}</h3>
                     <p className="lumia-muted mt-1 text-sm leading-snug">{getText(profile.language, 'settings.language_body')}</p>
                     <p className="lumia-label mt-1.5 tracking-wider">{languageLabel}</p>
                 </div>
                 <button 
                     type="button"
                     onClick={handleLanguageToggle}
-                    className="shrink-0 rounded-xl bg-astro-text/[0.06] px-3.5 py-2 text-sm font-medium text-astro-text ring-1 ring-astro-text/[0.06] transition-[box-shadow] hover:ring-astro-highlight/28"
+                    className="shrink-0 rounded-xl bg-mono-ink/[0.06] px-3.5 py-2 text-sm font-medium text-mono-ink ring-1 ring-mono-ink/[0.06] transition-[box-shadow] hover:ring-mono-accent/28"
                 >
                     {getText(profile.language, 'settings.switch_lang')}
                 </button>
@@ -289,7 +288,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
             <div className={sectionClass}>
                 <div className="flex items-start justify-between gap-4">
                     <div>
-                        <h3 className="font-serif text-lg text-astro-text">
+                        <h3 className="font-serif text-lg text-mono-ink">
                             {profile.language === 'en' ? 'Notifications' : 'Оповещения'}
                         </h3>
                         <p className="lumia-muted mt-1 text-sm leading-snug">
@@ -311,8 +310,8 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                                 onClick={() => handleNotificationFrequencyChange(frequency)}
                                 className={`rounded-2xl px-4 py-3 text-left transition-[background,box-shadow,transform] active:scale-[0.99] ${
                                     active
-                                        ? 'bg-astro-text text-white shadow-sm ring-1 ring-astro-text/10'
-                                        : 'bg-white/56 text-astro-text ring-1 ring-black/[0.05] hover:bg-white/78'
+                                        ? 'bg-mono-ink text-white shadow-sm ring-1 ring-mono-ink/10'
+                                        : 'bg-white/56 text-mono-ink ring-1 ring-black/[0.05] hover:bg-white/78'
                                 }`}
                             >
                                 <span className="block text-sm font-semibold">
@@ -329,7 +328,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
 
             <div className={sectionClass}>
                 <div className="flex items-start justify-between gap-4">
-                    <h3 className="font-serif text-lg text-astro-text">{getText(profile.language, 'settings.profile')}</h3>
+                    <h3 className="font-serif text-lg text-mono-ink">{getText(profile.language, 'settings.profile')}</h3>
                     {!editing && (
                         <button onClick={() => setEditing(true)} className={inlineActionClass}>
                             {getText(profile.language, 'settings.edit')}
@@ -339,7 +338,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
 
                 <div className="mt-4 space-y-4">
                     <div>
-                        <label className="mb-2 block text-[10px] uppercase tracking-widest text-astro-subtext">
+                        <label className="mb-2 block text-[10px] uppercase tracking-widest text-mono-muted">
                             {getText(profile.language, 'settings.profile_name')}
                         </label>
                         <input 
@@ -351,7 +350,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                         />
                     </div>
                     <div>
-                        <label className="mb-2 block text-[10px] uppercase tracking-widest text-astro-subtext">
+                        <label className="mb-2 block text-[10px] uppercase tracking-widest text-mono-muted">
                             {getText(profile.language, 'settings.profile_birth_place')}
                         </label>
                         <input 
@@ -363,10 +362,10 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                         />
                     </div>
                     <div>
-                         <label className="mb-2 block text-[10px] uppercase tracking-widest text-astro-subtext">
+                         <label className="mb-2 block text-[10px] uppercase tracking-widest text-mono-muted">
                              {getText(profile.language, 'settings.profile_date_time')}
                          </label>
-                         <p className="text-sm font-serif text-astro-text/75">
+                         <p className="text-sm font-serif text-mono-ink/75">
                              {profile.birthDate} • {profile.birthTime}
                          </p>
                     </div>
@@ -385,7 +384,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                                     setTempName(profile.name);
                                     setTempPlace(profile.birthPlace);
                                 }}
-                                className="rounded-xl bg-astro-text/[0.06] px-4 py-2.5 text-sm font-medium text-astro-text ring-1 ring-astro-text/[0.06] transition-[box-shadow] hover:ring-astro-highlight/25"
+                                className="rounded-xl bg-mono-ink/[0.06] px-4 py-2.5 text-sm font-medium text-mono-ink ring-1 ring-mono-ink/[0.06] transition-[box-shadow] hover:ring-mono-accent/25"
                             >
                                 {getText(profile.language, 'settings.cancel')}
                             </button>
@@ -398,21 +397,22 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                 <button onClick={onOpenAdmin} className={rowCardClass}>
                     <div className="flex items-center justify-between gap-4">
                         <div>
-                            <h3 className="font-serif text-lg text-astro-text">
+                            <h3 className="font-serif text-lg text-mono-ink">
                                 {getText(profile.language, 'settings.admin')}
                             </h3>
                             <p className="lumia-muted mt-1 text-sm">{getText(profile.language, 'settings.admin_body')}</p>
                         </div>
-                        <span className="text-astro-subtext/70">→</span>
+                        <span className="text-mono-muted/70">→</span>
                     </div>
                 </button>
             )}
 
             <div className="pt-1 text-center">
-                 <button type="button" className="min-h-[44px] px-3 text-[10px] uppercase tracking-widest text-astro-subtext transition-colors hover:text-astro-text">
+                 <button type="button" className="min-h-[44px] px-3 text-[10px] uppercase tracking-widest text-mono-muted transition-colors hover:text-mono-ink">
                      {getText(profile.language, 'settings.restore')}
                  </button>
             </div>
-        </MonoPage>
+          </div>
+        </div>
     );
 };

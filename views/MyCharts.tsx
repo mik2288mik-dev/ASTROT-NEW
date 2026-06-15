@@ -20,7 +20,6 @@ import {
   MonoButton,
   MonoFadeIn,
   MonoInput,
-  MonoPage,
   MonoSegment,
   MonoStagger,
   MonoStaggerItem,
@@ -218,8 +217,8 @@ export const MyCharts: React.FC<MyChartsProps> = ({
   }
 
   return (
-    <MonoPage className="px-4" withTabClearance={false}>
-      <div className="mx-auto max-w-2xl space-y-4 pb-8">
+    <div className="fresh-page">
+      <div className="mx-auto max-w-2xl space-y-4 px-4 pb-8">
         <MonoStagger>
           <MonoStaggerItem>
             <div className="rounded-mono-card border border-mono-line bg-mono-white p-5">
@@ -368,6 +367,6 @@ export const MyCharts: React.FC<MyChartsProps> = ({
           <p className="text-center text-[12px] text-mono-muted">{getText(lang, 'charts.saved_for_synastry_hint')}</p>
         ) : null}
       </div>
-    </MonoPage>
+    </div>
   );
 };
