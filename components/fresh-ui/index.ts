@@ -16,3 +16,5 @@ export {
 
 export { FreshTabs } from './FreshTabs';
 export type { TabItem } from './FreshTabs';
+
+export { FreshSignCarousel } from './FreshSignCarousel';

@@ -7,9 +7,11 @@ const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 describe('Horoscope product flow', () => {
   it('keeps sign reader distinct from personal daily and supports sign picker', () => {
     const source = read('views/v2/HoroscopeReader.tsx');
-    expect(source).toContain('LzSignPickerSheet');
+    // Inline horizontal sign selector (replaced the bottom-sheet picker)
+    expect(source).toContain('FreshSignCarousel');
     expect(source).toContain('ensureDailySignHoroscope');
     expect(source).toContain('getCachedDailySignHoroscope');
+    expect(source).toContain('ensureWeeklySignHoroscope');
     expect(source).toContain('ZODIAC_KEYS');
     expect(source).not.toContain('loadHumanDailySection');
   });

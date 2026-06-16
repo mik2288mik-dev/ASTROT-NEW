@@ -3385,6 +3385,43 @@ a,
   color: rgba(255,255,255,0.88);
 }
 
+/* ── Лента знаков зодиака (горизонтальный селектор) ── */
+.fresh-sign-rail {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px var(--fresh-page-x) 14px;
+  scroll-padding-inline: var(--fresh-page-x);
+}
+
+.fresh-sign-chip {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 13px;
+  border-radius: var(--fresh-radius-pill);
+  background: var(--fresh-surface);
+  color: var(--fresh-text);
+  border: none;
+  font-family: var(--fresh-font);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
+}
+
+.fresh-sign-chip svg { display: block; }
+
+.fresh-sign-chip.active {
+  background: var(--fresh-text);
+  color: #fff;
+}
+
+.fresh-sign-chip:active { transform: scale(0.96); }
+
 /* ── Астро-контекст дня (день недели + фаза луны) ── */
 .fresh-sky-strip {
   margin: 0 16px 14px;

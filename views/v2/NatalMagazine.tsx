@@ -76,17 +76,7 @@ export function NatalMagazine({
         <span style={chipStyle}>↑ {getZodiacSign(language, data.rising.sign)}</span>
       </div>
 
-      {onOpenPersonalDaily ? (
-        <button
-          type="button"
-          className="fresh-btn-primary"
-          onClick={onOpenPersonalDaily}
-          style={{ marginBottom: 18, background: 'var(--fresh-surface)', color: 'var(--fresh-text)' }}
-        >
-          {language === 'ru' ? 'Личный день' : 'Personal day'}
-        </button>
-      ) : null}
-
+      {/* «Личный день» переехал в раздел Гороскоп */}
       <HumanReport
         profile={profile}
         chartData={data}
