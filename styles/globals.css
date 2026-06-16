@@ -3094,12 +3094,12 @@ a,
   color: var(--fresh-text);
   font-family: var(--fresh-font);
   min-height: 100%;
-  /* Clear Telegram top controls (mirrors MonoPage); FreshHeader adds ~20px more */
-  padding-top: calc(max(
+  /* Clear Telegram top controls (mirrors MonoPage); поднято максимально близко к верху */
+  padding-top: max(
     env(safe-area-inset-top, 0px),
     var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px),
-    28px
-  ) + 2px);
+    10px
+  );
 }
 
 /* ── Хедер: аватар + приветствие ── */
@@ -3107,7 +3107,7 @@ a,
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 6px var(--fresh-page-x) 10px;
+  padding: 2px var(--fresh-page-x) 10px;
 }
 
 .fresh-header-text {
