@@ -44,15 +44,24 @@ const nextConfig = {
   async headers() {
     return [
       {
+        // Telegram встраивает мини-апп в iframe — нужно всем путям
         source: '/:path*',
         headers: [
           {
             key: 'X-Frame-Options',
             value: 'ALLOWALL',
           },
+        ],
+      },
+      {
+        // HTML-оболочка приложения НЕ кэшируется, иначе Telegram держит
+        // старую вёрстку до часа. Хешированные ассеты /_next/static Next
+        // кэширует сам (immutable) — их это не трогает.
+        source: '/',
+        headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=3600, must-revalidate',
+            value: 'no-store, max-age=0, must-revalidate',
           },
         ],
       },
