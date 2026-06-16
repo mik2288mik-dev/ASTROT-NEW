@@ -45,7 +45,6 @@ import {
     hasActivePremium,
     type FeatureKey,
 } from './lib/accessMatrix';
-import { LumiaBottomTabBar } from './components/lumia-ui/LumiaBottomTabBar';
 import { captureLumiaHomeLayout, installLumiaDebugGlobal, lumiaDebugLog } from './lib/lumiaDebug';
 import {
     clearHumanReadingSessionCache,
@@ -1314,6 +1313,23 @@ const App: React.FC = () => {
         setView(returnView);
     }, [activeChartId, chartReturnView, chartsReturnView]);
 
+    // Нативная кнопка «назад» Telegram заменяет нижний таб-бар:
+    // на главной скрыта, на остальных экранах показывается и ведёт назад.
+    useEffect(() => {
+        const tg = (window as any).Telegram?.WebApp;
+        const backButton = tg?.BackButton;
+        if (!backButton) return;
+        const handler = () => { void handleBack(); };
+        const isRoot = view === 'dashboard' || view === 'onboarding';
+        if (isRoot) {
+            backButton.hide?.();
+            return;
+        }
+        backButton.onClick?.(handler);
+        backButton.show?.();
+        return () => { backButton.offClick?.(handler); };
+    }, [view, handleBack]);
+
     const openCharts = useCallback((returnView: ViewState) => {
         setChartsReturnView(returnView);
         navigateTo('charts');
@@ -1325,22 +1341,8 @@ const App: React.FC = () => {
         navigateTo('synastry');
     }, [gateFeatureAccess, navigateTo]);
 
-    const openBottomToday = useCallback(() => {
-        setInitialTodaySection(null);
-        navigateTo('dashboard', { replace: true });
-    }, [navigateTo]);
-
-    const openBottomHoroscope = useCallback(() => {
-        navigateTo('horoscope', { replace: true });
-    }, [navigateTo]);
-
     const openBottomNatal = useCallback(() => {
         navigateTo('chart', { replace: true });
-    }, [navigateTo]);
-
-    const openBottomSynastry = useCallback(() => {
-        setSynastryPrefill(null);
-        navigateTo('synastry', { replace: true });
     }, [navigateTo]);
 
     const openBottomAvatar = useCallback(() => {
@@ -1579,18 +1581,6 @@ const App: React.FC = () => {
                     </div>
                 ) : null}
             </main>
-
-            {profile ? (
-                <LumiaBottomTabBar
-                    profile={profile}
-                    view={view}
-                    onOpenToday={openBottomToday}
-                    onOpenHoroscope={openBottomHoroscope}
-                    onOpenNatal={openBottomNatal}
-                    onOpenSynastry={openBottomSynastry}
-                    onOpenAsk={openOracle}
-                />
-            ) : null}
 
             {showPremiumPreview && (
                 <PremiumPreview language={profile?.language || 'ru'} onClose={() => setShowPremiumPreview(false)} onPurchase={requestPremium} />

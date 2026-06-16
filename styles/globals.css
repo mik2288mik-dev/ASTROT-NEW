@@ -83,7 +83,8 @@ body,
   --lumia-bottom-tab-height: 3.6rem;
   --lumia-bottom-tab-safe-bottom: max(env(safe-area-inset-bottom, 0px), var(--tg-safe-area-inset-bottom, 0px), var(--tg-content-safe-area-inset-bottom, 0px));
   --lumia-bottom-tab-bottom-gap: 0.38rem;
-  --lumia-bottom-tab-clearance: calc(var(--lumia-bottom-tab-height) + var(--lumia-bottom-tab-safe-bottom) + 1.6rem);
+  /* Нижний таб-бар удалён — клиренс сведён к небольшому отступу + safe-area. */
+  --lumia-bottom-tab-clearance: calc(var(--lumia-bottom-tab-safe-bottom) + 1.5rem);
   --lumia-home-nav-height: var(--lumia-bottom-tab-height);
   --lumia-home-shadow-card: 0 16px 34px rgba(17, 19, 23, 0.08);
   --lumia-home-shadow-lifted: 0 14px 30px rgba(21, 94, 239, 0.22);
@@ -3106,7 +3107,7 @@ a,
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 20px var(--fresh-page-x) 8px;
+  padding: 6px var(--fresh-page-x) 10px;
 }
 
 .fresh-header-text {
@@ -3297,6 +3298,24 @@ a,
   );
 }
 
+/* Жёлтый стикер-записка — фирменная фишка LUMIA (текст, без эмодзи) */
+.fresh-sticky {
+  position: absolute;
+  z-index: 2;
+  top: 18px;
+  left: 16px;
+  max-width: 62%;
+  background: var(--fresh-sticky);
+  color: #1a1a1a;
+  border-radius: 6px;
+  padding: 11px 13px;
+  font-family: var(--fresh-font);
+  font-size: 13.5px;
+  font-weight: 700;
+  line-height: 1.34;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.16);
+}
+
 /* Чип внутри hero (тёмный полупрозрачный — читается и на фото, и на цвете) */
 .fresh-hero-chip {
   position: absolute;
@@ -3364,6 +3383,47 @@ a,
 
 .fresh-hero--image .fresh-hero-soft {
   color: rgba(255,255,255,0.88);
+}
+
+/* ── Астро-контекст дня (день недели + фаза луны) ── */
+.fresh-sky-strip {
+  margin: 0 16px 14px;
+  background: var(--fresh-surface);
+  border-radius: 16px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.fresh-sky-strip-ico {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fresh-sky-strip-title {
+  font-family: var(--fresh-font);
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--fresh-text);
+  line-height: 1.25;
+}
+
+.fresh-sky-strip-sub {
+  font-family: var(--fresh-font);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--fresh-muted);
+  line-height: 1.4;
+  margin-top: 2px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 /* ── Быстрые кнопки (quick bar) ── */
@@ -3457,12 +3517,18 @@ a,
 }
 
 .fresh-item-sign {
-  font-size: 16px;
   flex-shrink: 0;
-  width: 26px;
-  text-align: center;
-  color: var(--fresh-muted);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #4B5563;
   line-height: 1;
+}
+
+.fresh-item-sign svg {
+  display: block;
 }
 
 .fresh-item-info {
@@ -3484,13 +3550,18 @@ a,
   line-height: 1.4;
 }
 
-.fresh-item-badge {
-  font-size: var(--fresh-size-badge);
-  font-weight: 700;
-  padding: 4px 9px;
-  border-radius: var(--fresh-radius-pill);
+.fresh-item-badge-ico {
   flex-shrink: 0;
-  white-space: nowrap;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fresh-muted);
+}
+
+.fresh-item-badge-ico svg {
+  display: block;
 }
 
 /* ── Прогресс-бар (совместимость) ── */

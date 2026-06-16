@@ -24,10 +24,10 @@ describe('Union product flow', () => {
     expect(source).toContain("content_type = 'sign_compatibility'");
   });
 
-  it('opens the bottom Union tab without a chart or Premium gate', () => {
+  it('opens Union from home without a chart or Premium gate', () => {
     const app = read('App.tsx');
-    const start = app.indexOf('const openBottomSynastry');
-    const block = app.slice(start, app.indexOf('const openBottomAvatar', start));
+    const start = app.indexOf('const openSynastryFromHome');
+    const block = app.slice(start, app.indexOf('const canSwipeBack', start));
     expect(block).toContain("navigateTo('synastry'");
     expect(block).not.toContain('gateFeatureAccess');
   });

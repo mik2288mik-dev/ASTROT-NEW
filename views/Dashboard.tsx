@@ -13,7 +13,10 @@ import { getMoscowTodayKey } from '../lib/date-utils';
 import { getDayGreeting } from '../lib/greeting';
 import { lumiaSelectionHaptic } from '../lib/haptics';
 import { ZodiacIcon } from '../components/icons/ZodiacIcon';
+import { PlanetIcon } from '../components/icons/PlanetIcon';
 import { NatalChartIcon, HeartIcon, ChatIcon } from '../components/icons/UiIcons';
+import { getMoonPhase } from '../lib/horoscope/moonPhase';
+import { MoonPhaseIcon } from '../components/Horoscope/MoonPhaseIcon';
 import { DaySheet } from '../components/lumia-ui/DaySheet';
 import { HoroscopeStories } from '../components/lumia-ui/HoroscopeStories';
 import { PersonalDailyStories } from '../components/lumia-ui/PersonalDailyStories';
@@ -41,19 +44,6 @@ function formatDate(todayKey: string, lang: 'ru' | 'en'): string {
   }).format(d);
 }
 
-// Маппинг знаков на астро-символы
-const SIGN_SYMBOLS: Record<string, string> = {
-  aries: '♈', taurus: '♉', gemini: '♊', cancer: '♋',
-  leo: '♌', virgo: '♍', libra: '♎', scorpio: '♏',
-  sagittarius: '♐', capricorn: '♑', aquarius: '♒', pisces: '♓',
-};
-
-// Маппинг планет на символы
-const PLANET_SYMBOLS: Record<string, string> = {
-  sun: '☉', moon: '☽', mercury: '☿', venus: '♀',
-  mars: '♂', jupiter: '♃', saturn: '♄',
-};
-
 // Маппинг знаков на русские названия
 const SIGN_NAMES_RU: Record<string, string> = {
   aries: 'Овен', taurus: 'Телец', gemini: 'Близнецы',
@@ -66,17 +56,6 @@ const SIGN_NAMES_RU: Record<string, string> = {
 const PLANET_NAMES_RU: Record<string, string> = {
   sun: 'Солнце', moon: 'Луна', mercury: 'Меркурий',
   venus: 'Венера', mars: 'Марс', jupiter: 'Юпитер', saturn: 'Сатурн',
-};
-
-// Цвета бейджей по планете
-const PLANET_BADGE: Record<string, { bg: string; color: string }> = {
-  sun:     { bg: '#FFFBEB', color: '#F59E0B' },
-  moon:    { bg: '#F5F3FF', color: '#7C3AED' },
-  mercury: { bg: '#EFF6FF', color: '#3B82F6' },
-  venus:   { bg: '#FDF2F8', color: '#EC4899' },
-  mars:    { bg: '#FEF2F2', color: '#EF4444' },
-  jupiter: { bg: '#F0FDF4', color: '#10B981' },
-  saturn:  { bg: '#F8FAFC', color: '#64748B' },
 };
 
 // Номер дома → подпись
@@ -175,6 +154,17 @@ export const Dashboard = memo<DashboardProps>(({
   const signNameRu = SIGN_NAMES_RU[selectedSign] || selectedSign;
   const dateLabel = formatDate(today, language);
 
+  /* Астро-контекст дня: день недели + фаза луны (фаза считается клиентски, точно) */
+  const moon = useMemo(() => getMoonPhase(), []);
+  const weekdayLabel = useMemo(() => {
+    const [yr, mo, da] = today.split('-').map(Number);
+    const d = new Date(Date.UTC(yr, mo - 1, da, 12));
+    const w = new Intl.DateTimeFormat(language === 'ru' ? 'ru-RU' : 'en-US', {
+      timeZone: 'UTC', weekday: 'long',
+    }).format(d);
+    return w.charAt(0).toUpperCase() + w.slice(1);
+  }, [today, language]);
+
   /* Текст hero-карточки */
   const heroTitle = signReading?.summary
     ? signReading.summary.slice(0, 80)
@@ -244,14 +234,26 @@ export const Dashboard = memo<DashboardProps>(({
         }
       />
 
+      {/* ── Астро-контекст дня: день недели + фаза луны ── */}
+      <div className="fresh-sky-strip">
+        <div className="fresh-sky-strip-ico" aria-hidden>
+          <MoonPhaseIcon slot={moon.slot} size={26} fill="#111827" outline="#111827" />
+        </div>
+        <div style={{ minWidth: 0 }}>
+          <div className="fresh-sky-strip-title">{weekdayLabel} · {moon.label}</div>
+          <div className="fresh-sky-strip-sub">{moon.meaning}</div>
+        </div>
+      </div>
+
       {/* ── Hero-карточка: гороскоп дня ── */}
       <FreshHeroCard
         color="coral"
         chipText={signNameRu}
         chipPosition="top-right"
-        title={heroTitle}
+        stickyText={heroTitle}
+        stickyRotation={-2}
         softText={language === 'ru' ? 'Пик 13:00' : 'Peak 13:00'}
-        icon={<ZodiacIcon sign={selectedSign} size={88} strokeWidth={1.1} />}
+        icon={<ZodiacIcon sign={selectedSign} size={80} strokeWidth={1.1} />}
         onClick={() => { lumiaSelectionHaptic(); setHoroscopeOpen(true); }}
         style={{ cursor: 'pointer' }}
       />
@@ -271,19 +273,16 @@ export const Dashboard = memo<DashboardProps>(({
           {planetItems.map(({ key, planet }) => {
             if (!planet) return null;
             const signKey = planet.sign?.toLowerCase() ?? '';
-            const badge = PLANET_BADGE[key] || { bg: '#F3F4F6', color: '#6B7280' };
             const houseTxt = houseLabel(planet.house, language);
             const signRu = SIGN_NAMES_RU[signKey] || planet.sign;
             const planetRu = PLANET_NAMES_RU[key] || planet.planet;
             return (
               <FreshListItem
                 key={key}
-                sign={PLANET_SYMBOLS[key]}
+                sign={<PlanetIcon planet={key} size={20} strokeWidth={1.5} />}
                 title={language === 'ru' ? `${planetRu} в ${signRu}` : `${planet.planet} in ${planet.sign}`}
                 subtitle={houseTxt ? `${houseTxt}${planet.description ? ' · ' + planet.description.slice(0, 40) : ''}` : planet.description?.slice(0, 50)}
-                badgeText={SIGN_SYMBOLS[signKey] || ''}
-                badgeBg={badge.bg}
-                badgeColor={badge.color}
+                badge={<ZodiacIcon sign={signKey} size={20} strokeWidth={1.5} />}
                 onClick={() => { lumiaSelectionHaptic(); onCreateNatalChart?.(); }}
               />
             );

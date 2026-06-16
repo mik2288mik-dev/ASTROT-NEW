@@ -1,12 +1,12 @@
 import React from 'react';
 
 interface FreshListItemProps {
-  sign?: string;
+  /** Иконка слева (SVG-нода, напр. PlanetIcon) */
+  sign?: React.ReactNode;
   title: string;
   subtitle?: string;
-  badgeText?: string;
-  badgeBg?: string;
-  badgeColor?: string;
+  /** Иконка справа (SVG-нода, напр. ZodiacIcon) — чистая, без цветной плашки */
+  badge?: React.ReactNode;
   /** Если передан progress (0–100), показывается прогресс-бар вместо subtitle */
   progress?: number;
   progressColor?: string;
@@ -17,9 +17,7 @@ export const FreshListItem: React.FC<FreshListItemProps> = ({
   sign,
   title,
   subtitle,
-  badgeText,
-  badgeBg,
-  badgeColor,
+  badge,
   progress,
   progressColor = '#7C3AED',
   onClick,
@@ -32,7 +30,7 @@ export const FreshListItem: React.FC<FreshListItemProps> = ({
       style={{ cursor: onClick ? 'pointer' : 'default' }}
     >
       {sign && (
-        <div className="fresh-item-sign">{sign}</div>
+        <div className="fresh-item-sign" aria-hidden>{sign}</div>
       )}
 
       <div className="fresh-item-info">
@@ -50,16 +48,8 @@ export const FreshListItem: React.FC<FreshListItemProps> = ({
         )}
       </div>
 
-      {badgeText && (
-        <div
-          className="fresh-item-badge"
-          style={{
-            background: badgeBg || '#F3F4F6',
-            color: badgeColor || '#6B7280',
-          }}
-        >
-          {badgeText}
-        </div>
+      {badge && (
+        <div className="fresh-item-badge-ico" aria-hidden>{badge}</div>
       )}
     </div>
   );

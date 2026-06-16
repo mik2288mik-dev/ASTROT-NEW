@@ -5,16 +5,19 @@ export type HeroColor = 'coral' | 'sky' | 'lavender' | 'mint' | 'coral2';
 interface FreshHeroCardProps {
   /** Запасной цвет фона, пока нет картинки */
   color?: HeroColor;
-  /** Картинка-фон карточки (поверх — скрим + текст). Тренд новых приложений. */
+  /** Картинка-фон карточки (поверх скрим + текст). Тренд новых приложений. */
   image?: string;
+  /** Жёлтый стикер-записка с текстом (фирменная фишка LUMIA) */
+  stickyText?: string;
+  stickyRotation?: number;
   /** Чип в углу (без эмодзи) */
   chipText?: string;
   chipPosition?: 'top-right' | 'top-left' | 'bottom-left' | 'bottom-right';
   /** Главный заголовок поверх карточки (внизу слева) */
   title?: string;
-  /** Мелкая подпись внизу справа (например, «Пик 13:00») */
+  /** Мелкая подпись внизу справа (например, Пик 13:00) */
   softText?: string;
-  /** SVG-иконка (НЕ эмодзи) в правом нижнем углу */
+  /** SVG-иконка (НЕ эмодзи) */
   icon?: React.ReactNode;
   className?: string;
   style?: React.CSSProperties;
@@ -25,6 +28,8 @@ interface FreshHeroCardProps {
 export const FreshHeroCard: React.FC<FreshHeroCardProps> = ({
   color = 'coral',
   image,
+  stickyText,
+  stickyRotation = -2,
   chipText,
   chipPosition = 'top-right',
   title,
@@ -62,6 +67,9 @@ export const FreshHeroCard: React.FC<FreshHeroCardProps> = ({
 
       {children}
 
+      {/* Иконка (SVG) — вотермарк */}
+      {icon && <div className="fresh-hero-icon" aria-hidden>{icon}</div>}
+
       {/* Чип */}
       {chipText && (
         <div className="fresh-hero-chip" style={chipStyles[chipPosition]}>
@@ -69,8 +77,12 @@ export const FreshHeroCard: React.FC<FreshHeroCardProps> = ({
         </div>
       )}
 
-      {/* Иконка (SVG) внизу справа */}
-      {icon && <div className="fresh-hero-icon" aria-hidden>{icon}</div>}
+      {/* Жёлтый стикер-записка (фирменная фишка) */}
+      {stickyText && (
+        <div className="fresh-sticky" style={{ transform: `rotate(${stickyRotation}deg)` }}>
+          {stickyText}
+        </div>
+      )}
 
       {/* Заголовок поверх карточки */}
       {title && <div className="fresh-hero-title">{title}</div>}
