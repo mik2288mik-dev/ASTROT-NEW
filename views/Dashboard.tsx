@@ -10,7 +10,10 @@ import type {
 } from '../types';
 import { hasActivePremium, hasNatalChart } from '../lib/accessMatrix';
 import { getMoscowTodayKey } from '../lib/date-utils';
+import { getDayGreeting } from '../lib/greeting';
 import { lumiaSelectionHaptic } from '../lib/haptics';
+import { ZodiacIcon } from '../components/icons/ZodiacIcon';
+import { NatalChartIcon, HeartIcon, ChatIcon } from '../components/icons/UiIcons';
 import { DaySheet } from '../components/lumia-ui/DaySheet';
 import { HoroscopeStories } from '../components/lumia-ui/HoroscopeStories';
 import { PersonalDailyStories } from '../components/lumia-ui/PersonalDailyStories';
@@ -22,7 +25,6 @@ import {
 } from '../services/astrologyService';
 import {
   FreshHeader,
-  FreshPageTitle,
   FreshHeroCard,
   FreshQuickBar,
   FreshSectionHeader,
@@ -110,7 +112,7 @@ export const Dashboard = memo<DashboardProps>(({
   onCreateNatalChart,
   onOpenOracle,
   onOpenSynastry,
-  onOpenSettings: _onOpenSettings,
+  onOpenSettings,
   onRequestPremium,
   scrollRef,
 }) => {
@@ -170,7 +172,6 @@ export const Dashboard = memo<DashboardProps>(({
   }, []);
 
   /* Вспомогательные данные */
-  const signSymbol = SIGN_SYMBOLS[selectedSign] || '✦';
   const signNameRu = SIGN_NAMES_RU[selectedSign] || selectedSign;
   const dateLabel = formatDate(today, language);
 
@@ -183,25 +184,25 @@ export const Dashboard = memo<DashboardProps>(({
   const quickItems = [
     {
       id: 'chart',
-      emoji: '🌙',
+      icon: <NatalChartIcon />,
       label: language === 'ru' ? 'Карта' : 'Chart',
       onClick: () => { lumiaSelectionHaptic(); onCreateNatalChart?.(); },
     },
     {
       id: 'horoscope',
-      emoji: signSymbol,
+      icon: <ZodiacIcon sign={selectedSign} size={23} />,
       label: language === 'ru' ? 'Гороскоп' : 'Horoscope',
       onClick: () => { lumiaSelectionHaptic(); setHoroscopeOpen(true); },
     },
     {
       id: 'synastry',
-      emoji: '💕',
+      icon: <HeartIcon />,
       label: language === 'ru' ? 'Союз' : 'Union',
       onClick: () => { lumiaSelectionHaptic(); onOpenSynastry?.(); },
     },
     {
       id: 'oracle',
-      emoji: '🔮',
+      icon: <ChatIcon />,
       label: language === 'ru' ? 'Чат' : 'Chat',
       onClick: () => { lumiaSelectionHaptic(); onOpenOracle?.(); },
     },
@@ -226,34 +227,31 @@ export const Dashboard = memo<DashboardProps>(({
 
   return (
     <div
-      className="fresh-page lumia-main-scroll"
+      className="fresh-page lumia-main-scroll lumia-bottom-tab-scroll"
       ref={scrollRef as React.RefObject<HTMLDivElement>}
-      style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 32px)' }}
     >
-      {/* ── Хедер ── */}
+      {/* ── Хедер: аватар + приветствие + дата на одном уровне ── */}
       <FreshHeader
         name={profile.name || ''}
-        greeting={language === 'ru' ? 'Доброе утро,' : 'Good morning,'}
+        greeting={getDayGreeting(language)}
         avatarUrl={avatarUrl || undefined}
-      />
-
-      {/* ── Заголовок: "Сегодня" маленький, дата большая ── */}
-      <FreshPageTitle
-        kicker={language === 'ru' ? 'Сегодня' : 'Today'}
-        title={dateLabel}
+        onAvatarClick={onOpenSettings ? () => { lumiaSelectionHaptic(); onOpenSettings(); } : undefined}
+        rightSlot={
+          <>
+            <div className="fresh-header-date-kicker">{language === 'ru' ? 'Сегодня' : 'Today'}</div>
+            <div className="fresh-header-date-value">{dateLabel}</div>
+          </>
+        }
       />
 
       {/* ── Hero-карточка: гороскоп дня ── */}
       <FreshHeroCard
         color="coral"
-        stickyText={heroTitle}
-        stickyRotation={-2}
-        chipText={`${signSymbol} ${signNameRu}`}
+        chipText={signNameRu}
         chipPosition="top-right"
-        bigText={signSymbol}
-        bigTextSize={54}
+        title={heroTitle}
         softText={language === 'ru' ? 'Пик 13:00' : 'Peak 13:00'}
-        emojiBottom="❤️"
+        icon={<ZodiacIcon sign={selectedSign} size={88} strokeWidth={1.1} />}
         onClick={() => { lumiaSelectionHaptic(); setHoroscopeOpen(true); }}
         style={{ cursor: 'pointer' }}
       />
@@ -384,7 +382,7 @@ export const Dashboard = memo<DashboardProps>(({
               cursor: 'pointer',
             }}
           >
-            <div style={{ fontSize: 22, marginBottom: 6 }}>💕</div>
+            <div style={{ color: 'var(--fresh-text)', marginBottom: 8 }}><HeartIcon size={24} /></div>
             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--fresh-text)', marginBottom: 2 }}>
               {language === 'ru' ? 'Совместимость' : 'Compatibility'}
             </div>
@@ -408,7 +406,7 @@ export const Dashboard = memo<DashboardProps>(({
               cursor: 'pointer',
             }}
           >
-            <div style={{ fontSize: 22, marginBottom: 6 }}>🔮</div>
+            <div style={{ color: 'var(--fresh-text)', marginBottom: 8 }}><ChatIcon size={24} /></div>
             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--fresh-text)', marginBottom: 2 }}>
               {language === 'ru' ? 'Спросить Lumia' : 'Ask Lumia'}
             </div>

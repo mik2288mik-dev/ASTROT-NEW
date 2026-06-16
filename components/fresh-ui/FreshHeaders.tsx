@@ -1,11 +1,15 @@
 import React from 'react';
 
-/* ── Главный хедер: аватар + приветствие ── */
+/* ── Главный хедер: аватар + приветствие (+ дата справа) ── */
 interface FreshHeaderProps {
   name: string;
   greeting?: string;
   avatarUrl?: string;
   avatarInitial?: string;
+  /** Тап по аватару — например, открыть настройки */
+  onAvatarClick?: () => void;
+  /** Контент справа на одном уровне с аватаром (например, дата) */
+  rightSlot?: React.ReactNode;
 }
 
 export const FreshHeader: React.FC<FreshHeaderProps> = ({
@@ -13,20 +17,34 @@ export const FreshHeader: React.FC<FreshHeaderProps> = ({
   greeting = 'Доброе утро,',
   avatarUrl,
   avatarInitial,
+  onAvatarClick,
+  rightSlot,
 }) => {
+  const avatarInner = avatarUrl ? (
+    <img src={avatarUrl} alt={name} />
+  ) : (
+    <span>{avatarInitial || name[0]?.toUpperCase()}</span>
+  );
+
   return (
     <div className="fresh-header">
-      <div className="fresh-header-avatar">
-        {avatarUrl ? (
-          <img src={avatarUrl} alt={name} />
-        ) : (
-          <span>{avatarInitial || name[0]?.toUpperCase()}</span>
-        )}
-      </div>
-      <div>
+      {onAvatarClick ? (
+        <button
+          type="button"
+          className="fresh-header-avatar fresh-header-avatar--btn"
+          onClick={onAvatarClick}
+          aria-label="Настройки"
+        >
+          {avatarInner}
+        </button>
+      ) : (
+        <div className="fresh-header-avatar">{avatarInner}</div>
+      )}
+      <div className="fresh-header-text">
         <div className="fresh-header-hello">{greeting}</div>
         <div className="fresh-header-name">{name}</div>
       </div>
+      {rightSlot ? <div className="fresh-header-right">{rightSlot}</div> : null}
     </div>
   );
 };

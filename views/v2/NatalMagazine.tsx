@@ -46,7 +46,7 @@ export function NatalMagazine({
           kicker={language === 'ru' ? 'Карта' : 'Chart'}
           title={language === 'ru' ? 'Создай натальную карту' : 'Create your natal chart'}
         />
-        <FreshHeroCard color="mint" emojiBottom="🌙">
+        <FreshHeroCard color="mint">
           <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <MonoIllustChart size={120} className="opacity-90" />
           </div>

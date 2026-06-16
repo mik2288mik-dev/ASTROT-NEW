@@ -47,10 +47,9 @@ export function UnionRoom(props: UnionRoomProps) {
 
       <FreshHeroCard
         color="lavender"
-        chipText={language === 'ru' ? '💕 совместимость' : '💕 compatibility'}
+        chipText={language === 'ru' ? 'совместимость' : 'compatibility'}
         chipPosition="top-right"
         softText={language === 'ru' ? 'Синастрия' : 'Synastry'}
-        emojiBottom="💞"
         onClick={start}
         style={{ cursor: 'pointer' }}
       >

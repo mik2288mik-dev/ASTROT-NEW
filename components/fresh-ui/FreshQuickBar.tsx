@@ -2,7 +2,8 @@ import React from 'react';
 
 export interface QuickBarItem {
   id: string;
-  emoji: string;
+  /** SVG-иконка (НЕ эмодзи) */
+  icon: React.ReactNode;
   label: string;
   onClick: () => void;
 }
@@ -21,8 +22,9 @@ export const FreshQuickBar: React.FC<FreshQuickBarProps> = ({ items, className =
           className="fresh-quick-item"
           onClick={item.onClick}
           type="button"
+          aria-label={item.label}
         >
-          <div className="fresh-quick-icon">{item.emoji}</div>
+          <div className="fresh-quick-icon" aria-hidden>{item.icon}</div>
           <span className="fresh-quick-label">{item.label}</span>
         </button>
       ))}

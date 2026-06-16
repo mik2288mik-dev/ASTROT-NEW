@@ -3,15 +3,19 @@ import React from 'react';
 export type HeroColor = 'coral' | 'sky' | 'lavender' | 'mint' | 'coral2';
 
 interface FreshHeroCardProps {
+  /** Запасной цвет фона, пока нет картинки */
   color?: HeroColor;
-  stickyText?: string;
-  stickyRotation?: number;
+  /** Картинка-фон карточки (поверх — скрим + текст). Тренд новых приложений. */
+  image?: string;
+  /** Чип в углу (без эмодзи) */
   chipText?: string;
   chipPosition?: 'top-right' | 'top-left' | 'bottom-left' | 'bottom-right';
-  bigText?: string;
-  bigTextSize?: number;
+  /** Главный заголовок поверх карточки (внизу слева) */
+  title?: string;
+  /** Мелкая подпись внизу справа (например, «Пик 13:00») */
   softText?: string;
-  emojiBottom?: string;
+  /** SVG-иконка (НЕ эмодзи) в правом нижнем углу */
+  icon?: React.ReactNode;
   className?: string;
   style?: React.CSSProperties;
   children?: React.ReactNode;
@@ -20,14 +24,12 @@ interface FreshHeroCardProps {
 
 export const FreshHeroCard: React.FC<FreshHeroCardProps> = ({
   color = 'coral',
-  stickyText,
-  stickyRotation = -2,
+  image,
   chipText,
   chipPosition = 'top-right',
-  bigText,
-  bigTextSize = 54,
+  title,
   softText,
-  emojiBottom,
+  icon,
   className = '',
   style,
   children,
@@ -40,25 +42,25 @@ export const FreshHeroCard: React.FC<FreshHeroCardProps> = ({
     'bottom-left': { bottom: 14, left: 14 },
   };
 
+  const hasImage = Boolean(image);
+
   return (
     <div
-      className={`fresh-hero fresh-hero--${color} ${className}`}
+      className={`fresh-hero fresh-hero--${color} ${hasImage ? 'fresh-hero--image' : ''} ${className}`}
       style={style}
       onClick={onClick}
       role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
     >
-      {/* Стикер */}
-      {stickyText && (
-        <div
-          className="fresh-sticky"
-          style={{
-            top: 16,
-            left: 14,
-            transform: `rotate(${stickyRotation}deg)`,
-          }}
-          dangerouslySetInnerHTML={{ __html: stickyText.replace(/\n/g, '<br/>') }}
-        />
+      {/* Картинка-фон + скрим для читаемости текста */}
+      {hasImage && (
+        <>
+          <img className="fresh-hero-img" src={image} alt="" aria-hidden />
+          <div className="fresh-hero-scrim" aria-hidden />
+        </>
       )}
+
+      {children}
 
       {/* Чип */}
       {chipText && (
@@ -67,31 +69,14 @@ export const FreshHeroCard: React.FC<FreshHeroCardProps> = ({
         </div>
       )}
 
-      {/* Большой текст / символ */}
-      {bigText && (
-        <div
-          className="fresh-hero-big"
-          style={{ fontSize: bigTextSize, bottom: 28, right: 14 }}
-        >
-          {bigText}
-        </div>
-      )}
+      {/* Иконка (SVG) внизу справа */}
+      {icon && <div className="fresh-hero-icon" aria-hidden>{icon}</div>}
 
-      {/* Мелкий текст */}
-      {softText && (
-        <div className="fresh-hero-soft" style={{ bottom: 14, right: 14 }}>
-          {softText}
-        </div>
-      )}
+      {/* Заголовок поверх карточки */}
+      {title && <div className="fresh-hero-title">{title}</div>}
 
-      {/* Эмодзи снизу слева */}
-      {emojiBottom && (
-        <div style={{ position: 'absolute', bottom: 14, left: 16, fontSize: 22 }}>
-          {emojiBottom}
-        </div>
-      )}
-
-      {children}
+      {/* Мелкая подпись */}
+      {softText && <div className="fresh-hero-soft">{softText}</div>}
     </div>
   );
 };

@@ -3105,23 +3105,47 @@ a,
 .fresh-header {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   padding: 20px var(--fresh-page-x) 8px;
 }
 
+.fresh-header-text {
+  min-width: 0;
+}
+
+.fresh-header-right {
+  margin-left: auto;
+  text-align: right;
+  flex-shrink: 0;
+}
+
 .fresh-header-avatar {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background: linear-gradient(135deg, #A78BFA, #EC4899);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 800;
-  color: #fff;
   flex-shrink: 0;
   overflow: hidden;
+}
+
+.fresh-header-avatar--btn {
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.fresh-header-avatar--btn:active {
+  transform: scale(0.94);
+}
+
+.fresh-header-avatar span {
+  color: #fff;
 }
 
 .fresh-header-avatar img {
@@ -3131,18 +3155,39 @@ a,
 }
 
 .fresh-header-hello {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--fresh-muted);
   font-weight: 500;
-  line-height: 1;
+  line-height: 1.1;
 }
 
 .fresh-header-name {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 800;
   color: var(--fresh-text);
-  margin-top: 2px;
-  line-height: 1;
+  margin-top: 3px;
+  line-height: 1.05;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Дата справа на одном уровне с аватаром */
+.fresh-header-date-kicker {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--fresh-muted);
+  line-height: 1.1;
+  text-transform: none;
+}
+
+.fresh-header-date-value {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--fresh-text);
+  line-height: 1.05;
+  margin-top: 3px;
+  white-space: nowrap;
 }
 
 /* ── Заголовок страницы: дата большая ── */
@@ -3230,52 +3275,95 @@ a,
 .fresh-hero--mint   { background: var(--fresh-mint); }
 .fresh-hero--coral2 { background: var(--fresh-coral2); }
 
-/* Стикер внутри hero */
-.fresh-sticky {
-  background: var(--fresh-sticky);
-  border-radius: 5px;
-  padding: 9px 12px;
+/* Картинка-фон карточки + скрим для читаемости текста */
+.fresh-hero-img {
   position: absolute;
-  box-shadow: 0 3px 12px rgba(0,0,0,0.15);
-  font-size: 12px;
-  font-weight: 700;
-  color: #111;
-  line-height: 1.35;
-  font-family: var(--fresh-font);
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
 }
 
-/* Чип внутри hero */
+.fresh-hero-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    180deg,
+    rgba(0,0,0,0.10) 0%,
+    rgba(0,0,0,0.00) 38%,
+    rgba(0,0,0,0.50) 100%
+  );
+}
+
+/* Чип внутри hero (тёмный полупрозрачный — читается и на фото, и на цвете) */
 .fresh-hero-chip {
   position: absolute;
-  background: rgba(255,255,255,0.22);
+  z-index: 2;
+  background: rgba(17,24,39,0.50);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   border-radius: var(--fresh-radius-pill);
   padding: 5px 12px;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   color: #fff;
   white-space: nowrap;
 }
 
-/* Большой текст внутри hero */
-.fresh-hero-big {
+/* SVG-иконка (вотермарк) справа по центру */
+.fresh-hero-icon {
   position: absolute;
-  font-weight: 900;
-  color: rgba(255,255,255,0.95);
-  letter-spacing: -0.03em;
-  line-height: 1;
+  z-index: 1;
+  top: 50%;
+  right: 18px;
+  transform: translateY(-50%);
+  display: flex;
+  color: var(--fresh-text);
+  opacity: 0.8;
+}
+
+.fresh-hero--image .fresh-hero-icon {
+  color: #fff;
+  opacity: 0.95;
+}
+
+/* Главный заголовок поверх карточки (внизу слева) */
+.fresh-hero-title {
+  position: absolute;
+  z-index: 2;
+  left: 16px;
+  right: 96px;
+  bottom: 16px;
+  font-family: var(--fresh-font);
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  color: var(--fresh-text);
+}
+
+.fresh-hero--image .fresh-hero-title {
+  color: #fff;
+  text-shadow: 0 1px 14px rgba(0,0,0,0.40);
+}
+
+/* Мелкий текст внутри hero (внизу справа) */
+.fresh-hero-soft {
+  position: absolute;
+  z-index: 2;
+  right: 16px;
+  bottom: 16px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--fresh-muted);
+  line-height: 1.4;
   font-family: var(--fresh-font);
 }
 
-/* Мелкий текст внутри hero */
-.fresh-hero-soft {
-  position: absolute;
-  font-size: 11px;
-  font-weight: 600;
-  color: rgba(255,255,255,0.75);
-  line-height: 1.4;
-  font-family: var(--fresh-font);
+.fresh-hero--image .fresh-hero-soft {
+  color: rgba(255,255,255,0.88);
 }
 
 /* ── Быстрые кнопки (quick bar) ── */
@@ -3309,7 +3397,12 @@ a,
   align-items: center;
   justify-content: center;
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  font-size: 20px;
+  color: var(--fresh-text);
+}
+
+.fresh-quick-icon svg {
+  width: 23px;
+  height: 23px;
 }
 
 .fresh-quick-label {

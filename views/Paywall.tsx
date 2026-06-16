@@ -44,7 +44,7 @@ export const Paywall: React.FC<PaywallProps> = ({ profile, onPurchase, onClose }
 
             <FreshPageTitle kicker="Premium" title={getText(profile.language, 'paywall.title')} />
 
-            <FreshHeroCard color="lavender" emojiBottom="⭐">
+            <FreshHeroCard color="lavender">
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <MonoIllustWelcome size={110} className="opacity-90" />
                 </div>

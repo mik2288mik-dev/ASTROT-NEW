@@ -122,7 +122,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({ profile, chartData,
         </div>
 
         {/* Hero-карточка с иллюстрацией */}
-        <FreshHeroCard color="sky" chipText={signLabel} chipPosition="top-right" emojiBottom="✨">
+        <FreshHeroCard color="sky" chipText={signLabel} chipPosition="top-right">
           <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <MonoIllustHoroscope size={120} className="opacity-90" />
           </div>
