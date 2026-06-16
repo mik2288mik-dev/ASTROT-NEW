@@ -1815,3 +1815,31 @@ export const chatWithAstra = async (
     throw error;
   }
 };
+
+/* ── Небо сегодня: ретроградные планеты (серверный расчёт) ── */
+export type SkyRetrogradePlanet = {
+  key: 'mercury' | 'venus' | 'mars' | 'jupiter' | 'saturn';
+  nameRu: string;
+  nameEn: string;
+  sign: string;
+};
+
+export type SkyToday = { date: string; retrograde: SkyRetrogradePlanet[] };
+
+let skyTodayCache: { key: string; data: SkyToday } | null = null;
+
+export async function getSkyToday(todayKey: string): Promise<SkyToday> {
+  if (skyTodayCache && skyTodayCache.key === todayKey) return skyTodayCache.data;
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/content/today/sky`, {
+      method: 'GET',
+      headers: getTelegramInitDataHeaders(),
+    });
+    if (!response.ok) throw new Error(`sky ${response.status}`);
+    const data = (await response.json()) as SkyToday;
+    skyTodayCache = { key: todayKey, data };
+    return data;
+  } catch {
+    return { date: todayKey, retrograde: [] };
+  }
+}

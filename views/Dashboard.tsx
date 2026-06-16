@@ -25,6 +25,8 @@ import {
   ensureDailySignHoroscope,
   getCachedTodayAssistantHome,
   getTodayAssistantHome,
+  getSkyToday,
+  type SkyToday,
 } from '../services/astrologyService';
 import {
   FreshHeader,
@@ -111,6 +113,14 @@ export const Dashboard = memo<DashboardProps>(({
   const [sheetDate, setSheetDate] = useState<string | null>(null);
   const [horoscopeOpen, setHoroscopeOpen] = useState(false);
   const [personalStoryOpen, setPersonalStoryOpen] = useState(false);
+  const [sky, setSky] = useState<SkyToday | null>(null);
+
+  /* Небо сегодня: ретроградные планеты (серверный расчёт, с кэшем) */
+  useEffect(() => {
+    let alive = true;
+    void getSkyToday(today).then((result) => { if (alive) setSky(result); }).catch(() => undefined);
+    return () => { alive = false; };
+  }, [today]);
 
   /* Загрузка гороскопа знака */
   useEffect(() => {
@@ -164,6 +174,14 @@ export const Dashboard = memo<DashboardProps>(({
     }).format(d);
     return w.charAt(0).toUpperCase() + w.slice(1);
   }, [today, language]);
+
+  /* Ретроградные планеты сегодня (с сервера) */
+  const retro = sky?.retrograde ?? [];
+  const retroLabel = retro.length === 0
+    ? null
+    : language === 'ru'
+      ? (retro.length === 1 ? `${retro[0].nameRu} ретроградный` : `Ретроградны: ${retro.map((r) => r.nameRu).join(', ')}`)
+      : (retro.length === 1 ? `${retro[0].nameEn} retrograde` : `Retrograde: ${retro.map((r) => r.nameEn).join(', ')}`);
 
   /* Текст hero-карточки */
   const heroTitle = signReading?.summary
@@ -241,7 +259,16 @@ export const Dashboard = memo<DashboardProps>(({
         </div>
         <div style={{ minWidth: 0 }}>
           <div className="fresh-sky-strip-title">{weekdayLabel} · {moon.label}</div>
-          <div className="fresh-sky-strip-sub">{moon.meaning}</div>
+          {retroLabel ? (
+            <div className="fresh-sky-strip-retro">
+              {retro.map((r) => (
+                <PlanetIcon key={r.key} planet={r.key} size={14} strokeWidth={1.6} />
+              ))}
+              <span>{retroLabel}</span>
+            </div>
+          ) : (
+            <div className="fresh-sky-strip-sub">{moon.meaning}</div>
+          )}
         </div>
       </div>
 
