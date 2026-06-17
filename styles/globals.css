@@ -3304,7 +3304,7 @@ a,
   z-index: 2;
   top: 18px;
   left: 16px;
-  max-width: 62%;
+  max-width: 64%;
   background: var(--fresh-sticky);
   color: #1a1a1a;
   border-radius: 6px;
@@ -3314,6 +3314,12 @@ a,
   font-weight: 700;
   line-height: 1.34;
   box-shadow: 0 6px 18px rgba(0,0,0,0.16);
+  /* Не обрывать слова — аккуратно усечь по строкам с многоточием */
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: break-word;
 }
 
 /* Чип внутри hero (тёмный полупрозрачный — читается и на фото, и на цвете) */
@@ -3482,6 +3488,70 @@ a,
   margin: 0 0 12px;
   font-family: var(--fresh-font);
 }
+
+/* ── Премиум-карточка «Личный день» (компактная, с картинкой/градиентом) ── */
+.horo-premium {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: calc(100% - 32px);
+  margin: 0 16px 16px;
+  min-height: 88px;
+  padding: 15px 16px;
+  border: none;
+  border-radius: var(--fresh-radius-card);
+  overflow: hidden;
+  cursor: pointer;
+  text-align: left;
+  color: #fff;
+  background: linear-gradient(135deg, #6D5BDF 0%, #8B5CF6 55%, #A855F7 100%);
+  box-shadow: var(--fresh-shadow-hero);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.horo-premium:active { transform: scale(0.99); }
+
+.horo-premium-text {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+}
+
+.horo-premium-kicker {
+  font-family: var(--fresh-font);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.horo-premium-title {
+  font-family: var(--fresh-font);
+  font-size: 12.5px;
+  font-weight: 500;
+  opacity: 0.92;
+  margin-top: 3px;
+  line-height: 1.3;
+}
+
+.horo-premium-cta {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--fresh-font);
+  font-size: 12px;
+  font-weight: 800;
+  background: rgba(255, 255, 255, 0.18);
+  padding: 8px 12px;
+  border-radius: var(--fresh-radius-pill);
+  white-space: nowrap;
+}
+
+.horo-premium-cta svg { display: block; }
 
 /* ── Астро-контекст дня (день недели + фаза луны) ── */
 .fresh-sky-strip {

@@ -177,13 +177,22 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
 
   return (
     <div className="fresh-page">
-      {/* Заголовок */}
-      <div className="fresh-page-title-block">
+      {/* Заголовок — по центру, компактно */}
+      <div className="fresh-page-title-block" style={{ textAlign: 'center', paddingTop: 0, paddingBottom: 12 }}>
         <div className="fresh-page-kicker">
           {language === 'ru' ? 'Гороскоп' : 'Horoscope'} · {periodLabel}
         </div>
         <div className="fresh-page-title">{signLabel}</div>
       </div>
+
+      {/* Личный день — премиум-карточка наверху (это то, что продаём) */}
+      <button type="button" className="horo-premium" onClick={openPersonal}>
+        <div className="horo-premium-text">
+          <div className="horo-premium-kicker">{language === 'ru' ? 'Личный день' : 'Personal day'}</div>
+          <div className="horo-premium-title">{personalSubtitle}</div>
+        </div>
+        <span className="horo-premium-cta">{personalCta}<ChevronRightIcon size={15} /></span>
+      </button>
 
       {/* Лента знаков */}
       <FreshSignCarousel signs={ZODIAC_KEYS} active={sign} language={language} onPick={chooseSign} />
@@ -246,17 +255,11 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
             {loading ? (language === 'ru' ? 'Готовим разбор…' : 'Preparing reading…') : reading?.summary}
           </p>
 
-          {!loading && reading ? (
-            <div className="space-y-4" style={{ marginTop: 24 }}>
-              {reading.reading ? <MonoArticleSection title={language === 'ru' ? 'Подробнее' : 'More'}>{reading.reading}</MonoArticleSection> : null}
-              {reading.focus ? <MonoArticleSection title={language === 'ru' ? 'Фокус' : 'Focus'}>{reading.focus}</MonoArticleSection> : null}
-              {reading.chance ? <MonoArticleSection title={language === 'ru' ? 'Шанс' : 'Opportunity'}>{reading.chance}</MonoArticleSection> : null}
-              {reading.risk ? <MonoArticleSection title={language === 'ru' ? 'Осторожно' : 'Watch out'}>{reading.risk}</MonoArticleSection> : null}
-              {reading.advice?.length ? (
-                <MonoArticleSection title={language === 'ru' ? 'Советы' : 'Advice'}>
-                  <ul className="space-y-2">{reading.advice.slice(0, 3).map((item) => <li key={item}>{item}</li>)}</ul>
-                </MonoArticleSection>
-              ) : null}
+          {!loading && reading?.advice?.length ? (
+            <div style={{ marginTop: 22 }}>
+              <MonoArticleSection title={language === 'ru' ? 'Советы' : 'Advice'}>
+                <ul className="space-y-2">{reading.advice.slice(0, 3).map((item) => <li key={item}>{item}</li>)}</ul>
+              </MonoArticleSection>
             </div>
           ) : null}
 
@@ -266,28 +269,6 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
           </div>
         </motion.article>
       </AnimatePresence>
-
-      {/* Личный день — переехал сюда из натальной карты */}
-      <div style={{ padding: '6px 20px 28px' }}>
-        <button
-          type="button"
-          onClick={openPersonal}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 12, width: '100%',
-            background: 'var(--fresh-surface)', border: 'none',
-            borderRadius: 'var(--fresh-radius-card)', padding: 16, textAlign: 'left', cursor: 'pointer',
-          }}
-        >
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--fresh-text)', marginBottom: 4 }}>
-              {language === 'ru' ? 'Личный день' : 'Personal day'}
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--fresh-muted)' }}>{personalSubtitle}</div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--fresh-link)', marginTop: 8 }}>{personalCta} →</div>
-          </div>
-          <div style={{ color: 'var(--fresh-muted)', flexShrink: 0 }}><ChevronRightIcon size={20} /></div>
-        </button>
-      </div>
 
       <MonoShareBar
         label={language === 'ru' ? 'Поделиться' : 'Share'}
