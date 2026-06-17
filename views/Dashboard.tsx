@@ -182,10 +182,10 @@ export const Dashboard = memo<DashboardProps>(({
       ? (retro.length === 1 ? `${retro[0].nameRu} ретроградный` : `Ретроградны: ${retro.map((r) => r.nameRu).join(', ')}`)
       : (retro.length === 1 ? `${retro[0].nameEn} retrograde` : `Retrograde: ${retro.map((r) => r.nameEn).join(', ')}`);
 
-  /* Текст hero-карточки */
-  const heroTitle = signReading?.summary
-    ? signReading.summary.slice(0, 80)
-    : language === 'ru' ? 'Заглядываем в звёзды…' : 'Reading the stars…';
+  /* Текст hero-карточки — полный заголовок (без обрезки слов; CSS усечёт с …) */
+  const heroTitle = signReading?.headline
+    || signReading?.summary
+    || (language === 'ru' ? 'Заглядываем в звёзды…' : 'Reading the stars…');
 
   /* Быстрые кнопки */
   const quickItems = [
