@@ -14,6 +14,7 @@ import {
 import { saveProfile } from '../../services/storageService';
 import { MonoShareBar } from '../../components/mono-ui';
 import { shareToTelegram } from '../../lib/botLink';
+import { ActionWindows } from './ActionWindows';
 import { FreshTabs, FreshSignCarousel } from '../../components/fresh-ui';
 import { ZodiacIcon } from '../../components/icons/ZodiacIcon';
 import { ChevronRightIcon } from '../../components/icons/UiIcons';
@@ -260,6 +261,15 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
       </div>
 
       <div className="horo-hint">{language === 'ru' ? 'Свайп ← → меняет знак' : 'Swipe ← → to change sign'}</div>
+
+      {/* Окна дня — лучшее время для действий по карте */}
+      <ActionWindows
+        profile={profile}
+        chartData={chartData}
+        chartId={chartId}
+        onOpenChart={onOpenChart}
+        onRequestPremium={onRequestPremium}
+      />
 
       <MonoShareBar
         label={language === 'ru' ? 'Поделиться' : 'Share'}

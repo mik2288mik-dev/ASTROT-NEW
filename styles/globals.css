@@ -3891,6 +3891,46 @@ a,
 .oracle-presets-empty { font-size: 13px; color: var(--fresh-muted); padding: 6px 2px; }
 .oracle-hint { font-size: 12px; color: var(--fresh-muted); text-align: center; }
 
+/* ── «Окна дня»: тайминги действий по карте ── */
+.aw { margin: 8px 16px 0; }
+.aw-head { margin-bottom: 10px; }
+.aw-title { font-family: var(--fresh-font); font-size: 17px; font-weight: 800; color: var(--fresh-text); }
+.aw-sub { font-family: var(--fresh-font); font-size: 12.5px; color: var(--fresh-muted); margin-top: 2px; }
+
+.aw-gate {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  width: 100%; background: var(--fresh-surface); border: none;
+  border-radius: var(--fresh-radius-card); padding: 14px 16px;
+  font-family: var(--fresh-font); font-size: 14px; font-weight: 700; color: var(--fresh-text);
+  cursor: pointer; -webkit-tap-highlight-color: transparent; text-align: left;
+}
+.aw-gate-cta { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; color: var(--fresh-link); font-weight: 800; font-size: 13px; }
+
+.aw-chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; margin-bottom: 12px; }
+.aw-chip {
+  flex-shrink: 0; background: var(--fresh-surface); border: none;
+  border-radius: var(--fresh-radius-pill); padding: 9px 14px;
+  font-family: var(--fresh-font); font-size: 13px; font-weight: 700; color: var(--fresh-text);
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.aw-chip.active { background: var(--fresh-text); color: #fff; }
+
+.aw-muted { font-family: var(--fresh-font); font-size: 13px; color: var(--fresh-muted); }
+.aw-error { font-family: var(--fresh-font); font-size: 13px; color: #B91C1C; }
+
+.aw-result { background: var(--fresh-surface); border-radius: var(--fresh-radius-card); padding: 16px; }
+.aw-result-top { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+.aw-state { font-size: 11px; font-weight: 800; padding: 5px 11px; border-radius: var(--fresh-radius-pill); color: #fff; }
+.aw-state--now { background: #10B981; }
+.aw-state--later { background: #F59E0B; }
+.aw-state--flat { background: var(--fresh-muted); }
+.aw-window { font-family: var(--fresh-font); font-size: 13px; font-weight: 800; color: var(--fresh-text); }
+.aw-result-title { font-family: var(--fresh-font); font-size: 16px; font-weight: 800; color: var(--fresh-text); margin-bottom: 6px; }
+.aw-result-summary { font-family: var(--fresh-font); font-size: 14.5px; line-height: 1.55; color: var(--fresh-text); margin: 0; }
+.aw-reasons { margin: 12px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
+.aw-reasons li { font-family: var(--fresh-font); font-size: 13.5px; line-height: 1.45; color: var(--fresh-muted); }
+.aw-caution { margin: 12px 0 0; font-family: var(--fresh-font); font-size: 13px; line-height: 1.5; color: #9a6a00; background: #FFFBEB; border-radius: 12px; padding: 10px 12px; }
+
 /* ── «Люди»: результат (Вы × Он/Она + кольцо) ── */
 .people-split {
   display: grid;
