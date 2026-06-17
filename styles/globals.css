@@ -3960,6 +3960,30 @@ a,
 .fresh-combo-option-lock { color: var(--fresh-muted); flex-shrink: 0; }
 .fresh-combo-empty { padding: 14px; text-align: center; font-size: 13px; color: var(--fresh-muted); }
 
+/* ── «Карта в цифрах»: баланс стихий и крестов (без ИИ) ── */
+.nbal { padding: 2px 20px 4px; }
+.nbal-head { font-family: var(--fresh-font); font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fresh-muted); margin-bottom: 14px; }
+.nbal-group-title { font-family: var(--fresh-font); font-size: 12px; font-weight: 700; color: var(--fresh-text); margin: 14px 0 9px; }
+.nbal-group:first-of-type { margin-top: 0; }
+.nbal-group { display: flex; flex-direction: column; gap: 10px; }
+.nbal-row { display: grid; grid-template-columns: 84px 1fr 22px; align-items: center; gap: 10px; }
+.nbal-label { font-family: var(--fresh-font); font-size: 13px; font-weight: 700; color: var(--fresh-text); }
+.nbal-track { height: 9px; border-radius: 99px; background: var(--fresh-surface); overflow: hidden; }
+.nbal-fill { height: 100%; border-radius: 99px; }
+.nbal-val { font-family: var(--fresh-font); font-size: 13px; font-weight: 800; color: var(--fresh-text); text-align: right; font-variant-numeric: tabular-nums; }
+.nbal-summary { font-family: var(--fresh-font); font-size: 14px; line-height: 1.6; color: var(--fresh-text); margin: 16px 0 0; }
+
+/* ── Натальный разбор: секции текста (fresh, читаемо, без mono-гигантов) ── */
+.natal-sec { padding: 22px 0; border-top: 1px solid var(--fresh-border); }
+.natal-sec:first-child { border-top: 0; padding-top: 4px; }
+.natal-sec-kicker { font-family: var(--fresh-font); font-size: 11.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fresh-muted); margin-bottom: 6px; }
+.natal-sec-title { font-family: var(--fresh-font); font-size: 22px; font-weight: 800; letter-spacing: -0.01em; line-height: 1.16; color: var(--fresh-text); }
+.natal-sec-body { margin-top: 12px; }
+.natal-sec-p { font-family: var(--fresh-font); font-size: 16px; line-height: 1.72; color: var(--fresh-text); letter-spacing: 0.005em; }
+.natal-sec-bullets { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; padding: 0; list-style: none; }
+.natal-sec-bullets li { position: relative; padding-left: 16px; font-family: var(--fresh-font); font-size: 14px; line-height: 1.5; color: var(--fresh-muted); }
+.natal-sec-bullets li::before { content: ''; position: absolute; left: 0; top: 8px; width: 6px; height: 6px; border-radius: 50%; background: var(--fresh-link); }
+
 /* ── «Окна дня»: тайминги действий по карте ── */
 .aw { margin: 16px 20px 4px; }
 .aw-head { margin-bottom: 10px; }

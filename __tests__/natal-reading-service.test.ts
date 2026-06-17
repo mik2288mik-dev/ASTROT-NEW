@@ -41,7 +41,9 @@ describe('natal reading service session cache', () => {
   });
 
   it('keeps free and paid v2 section pools stable', () => {
-    expect(HUMAN_FREE_SECTION_KEYS).toEqual(['base_portrait']);
+    expect(HUMAN_FREE_SECTION_KEYS).toEqual([
+      'base_portrait', 'strengths', 'growth_zones', 'emotional_world', 'how_others_see_you', 'main_advice',
+    ]);
     expect(HUMAN_PAID_SECTION_KEYS).toEqual([
       'work_business', 'love_relationships', 'money_stability', 'family_home', 'communication_conflicts',
       'energy_recovery', 'friendship_social', 'goals_actions', 'shadow_patterns', 'potential_purpose',

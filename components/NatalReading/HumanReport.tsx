@@ -103,28 +103,21 @@ const SectionText: React.FC<{ section: InterpretationSection; index?: number }> 
           }
         : {})}
       data-reading-section-key={section.key}
-      className="border-t border-mono-line py-8 first:border-t-0 sm:py-10"
+      className="natal-sec"
     >
-      <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-mono-muted">
-        {section.subtitle || section.title}
-      </p>
-      <h3 className="mt-2 font-sans text-[26px] font-semibold leading-[1.08] tracking-[-0.02em] text-mono-ink sm:text-[30px]">
-        {section.title}
-      </h3>
-      <div className="mt-5">
+      {section.subtitle ? <p className="natal-sec-kicker">{section.subtitle}</p> : null}
+      <h3 className="natal-sec-title">{section.title}</h3>
+      <div className="natal-sec-body">
         <FormattedAiText
           text={section.content}
-          variant="article"
           className="max-w-none"
-          paragraphClassName="font-sans text-[16.5px] leading-[1.82] text-mono-ink/90 [text-wrap:pretty] sm:text-[17.5px] sm:leading-[1.9]"
+          paragraphClassName="natal-sec-p"
         />
       </div>
       {section.bullets?.length ? (
-        <ul className="mt-6 space-y-3 border-l-2 border-mono-line pl-4">
+        <ul className="natal-sec-bullets">
           {section.bullets.map((item, bulletIndex) => (
-            <li key={`${section.key}-${bulletIndex}`} className="font-sans text-[14.5px] leading-relaxed text-mono-muted">
-              {item}
-            </li>
+            <li key={`${section.key}-${bulletIndex}`}>{item}</li>
           ))}
         </ul>
       ) : null}
