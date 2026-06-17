@@ -18,7 +18,6 @@ import { NatalChartIcon, HeartIcon, ChatIcon } from '../components/icons/UiIcons
 import { getMoonPhase } from '../lib/horoscope/moonPhase';
 import { MoonPhaseIcon } from '../components/Horoscope/MoonPhaseIcon';
 import { DaySheet } from '../components/lumia-ui/DaySheet';
-import { HoroscopeStories } from '../components/lumia-ui/HoroscopeStories';
 import { PersonalDailyStories } from '../components/lumia-ui/PersonalDailyStories';
 import {
   getCachedDailySignHoroscope,
@@ -89,6 +88,7 @@ export const Dashboard = memo<DashboardProps>(({
   profile,
   chartData,
   chartId,
+  onOpenHoroscopeLayer,
   onOpenPersonalDaily,
   onCreateNatalChart,
   onOpenOracle,
@@ -111,7 +111,6 @@ export const Dashboard = memo<DashboardProps>(({
   const [, setPersonalLoading] = useState(hasChart && premium && !personal);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [sheetDate, setSheetDate] = useState<string | null>(null);
-  const [horoscopeOpen, setHoroscopeOpen] = useState(false);
   const [personalStoryOpen, setPersonalStoryOpen] = useState(false);
   const [sky, setSky] = useState<SkyToday | null>(null);
 
@@ -200,7 +199,7 @@ export const Dashboard = memo<DashboardProps>(({
       id: 'horoscope',
       icon: <ZodiacIcon sign={selectedSign} size={23} />,
       label: language === 'ru' ? 'Гороскоп' : 'Horoscope',
-      onClick: () => { lumiaSelectionHaptic(); setHoroscopeOpen(true); },
+      onClick: () => { lumiaSelectionHaptic(); onOpenHoroscopeLayer('sign', { source: 'home_quick' }); },
     },
     {
       id: 'synastry',
@@ -281,7 +280,7 @@ export const Dashboard = memo<DashboardProps>(({
         stickyRotation={-2}
         softText={language === 'ru' ? 'Пик 13:00' : 'Peak 13:00'}
         icon={<ZodiacIcon sign={selectedSign} size={80} strokeWidth={1.1} />}
-        onClick={() => { lumiaSelectionHaptic(); setHoroscopeOpen(true); }}
+        onClick={() => { lumiaSelectionHaptic(); onOpenHoroscopeLayer('sign', { source: 'home_hero' }); }}
         style={{ cursor: 'pointer' }}
       />
 
@@ -455,13 +454,6 @@ export const Dashboard = memo<DashboardProps>(({
         isPremium={premium}
         onClose={() => setSheetDate(null)}
         onRequestPremium={() => onRequestPremium?.('calendar')}
-      />
-      <HoroscopeStories
-        open={horoscopeOpen}
-        profile={profile}
-        chartData={chartData}
-        language={language}
-        onClose={() => setHoroscopeOpen(false)}
       />
       <PersonalDailyStories
         open={personalStoryOpen}
