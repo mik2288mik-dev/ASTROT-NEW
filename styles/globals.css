@@ -3590,6 +3590,89 @@ a,
   margin-top: 2px;
 }
 
+/* ── Союз (совместимость) ── */
+.union-hero {
+  margin: 0 16px 18px;
+  border-radius: var(--fresh-radius-hero);
+  min-height: 116px;
+  padding: 18px;
+  display: flex;
+  align-items: flex-end;
+  background: linear-gradient(135deg, #5B8DEF 0%, #7C6BF0 52%, #9B6BD8 100%);
+  box-shadow: var(--fresh-shadow-hero);
+}
+
+.union-hero-text {
+  color: #fff;
+  font-family: var(--fresh-font);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.36;
+  text-shadow: 0 1px 14px rgba(0, 0, 0, 0.22);
+}
+
+.union-rel-label {
+  padding: 0 20px 8px;
+  font-family: var(--fresh-font);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--fresh-muted);
+}
+
+.union-rel {
+  display: flex;
+  gap: 8px;
+  padding: 0 16px 20px;
+}
+
+.union-rel-chip {
+  flex: 1;
+  min-width: 0;
+  padding: 11px 6px;
+  border: none;
+  border-radius: var(--fresh-radius-pill);
+  background: var(--fresh-surface);
+  color: var(--fresh-text);
+  font-family: var(--fresh-font);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
+}
+
+.union-rel-chip.active { background: var(--fresh-text); color: #fff; }
+.union-rel-chip:active { transform: scale(0.96); }
+
+.union-secondary {
+  display: block;
+  width: calc(100% - 32px);
+  margin: 10px 16px 0;
+  background: transparent;
+  border: none;
+  color: var(--fresh-link);
+  font-family: var(--fresh-font);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 12px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.union-pad { padding: 0 16px; }
+
+.union-form {
+  margin: 0 16px;
+  background: var(--fresh-surface);
+  border-radius: var(--fresh-radius-card);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 /* ── Астро-контекст дня (день недели + фаза луны) ── */
 .fresh-sky-strip {
   margin: 0 16px 14px;

@@ -34,7 +34,7 @@ describe('Union product flow', () => {
 
   it('shows free and Pro modes with strict chart-first then Premium gates', () => {
     const source = read('views/Synastry.tsx');
-    for (const label of ['Союз', 'Совместимость знаков', 'Проверь вашу связь', 'Что между вами', 'Что вас тянет', 'Где может быть сложно', 'Как лучше общаться']) expect(source).toContain(label);
+    for (const label of ['Союз', 'По знакам', 'Что между вами', 'Что вас тянет', 'Где может быть сложно', 'Как лучше общаться']) expect(source).toContain(label);
     expect(source).toContain('hasNatalChart');
     expect(source).toContain("if (!hasChart) { onCreateNatalChart?.(); return; } if (!premium) { requestPremium(); return; }");
     expect(source).toContain('Без точного времени или места рождения');
