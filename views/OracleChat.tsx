@@ -24,12 +24,6 @@ type SubmitOptions = {
   failedMessageId?: string | null;
 };
 
-function getSendLabel(lang: 'ru' | 'en', state: AskLumiaState | null, isPremium: boolean) {
-  if (!state || state.nextTier === 'free') return getText(lang, 'oracle.send_free');
-  if (state.nextTier === 'premium' && isPremium) return getText(lang, 'oracle.send_premium');
-  return getText(lang, 'oracle.open_premium');
-}
-
 function getStateStrings(lang: 'ru' | 'en', state: AskLumiaState | null, isPremium: boolean) {
   if (!state || state.nextTier === 'free') {
     return {
@@ -289,11 +283,6 @@ export const OracleChat: React.FC<OracleChatProps> = ({
     void submitQuestion(question, { appendUserMessage: true });
   }, [initialQuestion, loadingHistory, onConsumeInitialQuestion, stateLoading, submitQuestion]);
 
-  const handleSend = useCallback(() => {
-    if (!input.trim() || loading || stateLoading) return;
-    void submitQuestion(input, { appendUserMessage: true });
-  }, [input, loading, stateLoading, submitQuestion]);
-
   const handleRetry = useCallback(() => {
     if (loading) return;
 
@@ -310,16 +299,19 @@ export const OracleChat: React.FC<OracleChatProps> = ({
   }, [failedMessageId, failedQuestion, loading, submitQuestion]);
 
   const inputDisabled = loading || stateLoading;
-  const sendDisabled = inputDisabled || !input.trim();
-  const sendLabel = getSendLabel(lang, questionState, activePremium);
   const stateCopy = getStateStrings(lang, questionState, activePremium);
   const showPremiumCta = !activePremium && questionState?.nextTier !== 'free';
   const quickQuestions = getAskPresetQuestions(lang);
 
   const handleQuickPick = (question: string) => {
     if (loading || stateLoading) return;
+    setInput('');
     void submitQuestion(question, { appendUserMessage: true });
   };
+
+  const filteredPresets = quickQuestions.filter((q) =>
+    q.toLowerCase().includes(input.trim().toLowerCase()),
+  );
 
   const compact = layout === 'dm';
 
@@ -430,22 +422,6 @@ export const OracleChat: React.FC<OracleChatProps> = ({
         style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 10px)' }}
       >
         <div className="px-4 pt-4 pb-3 sm:px-5">
-          {compact ? (
-            <div className="-mx-1 mb-3 flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-              {quickQuestions.map((question) => (
-                <button
-                  key={question}
-                  type="button"
-                  disabled={inputDisabled}
-                  onClick={() => handleQuickPick(question)}
-                  className="shrink-0 rounded-full border border-mono-line bg-mono-plate px-3 py-2 text-[12px] font-semibold text-mono-ink disabled:opacity-50"
-                >
-                  {question}
-                </button>
-              ))}
-            </div>
-          ) : null}
-
           {error && (
             <div className="mb-3 rounded-mono-card border border-red-200 bg-red-50 p-3 text-sm text-red-700">
               <p>{error}</p>
@@ -472,47 +448,37 @@ export const OracleChat: React.FC<OracleChatProps> = ({
             </div>
           )}
 
-          <div className={`rounded-mono-card border border-mono-line bg-mono-white px-4 py-4 ${compact ? 'py-3' : ''}`}>
-            {!compact ? (
-              <>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-mono-muted">{getText(lang, 'oracle.composer_label')}</p>
-            <p className="mt-2 text-sm leading-relaxed text-mono-muted">{getText(lang, 'oracle.composer_body')}</p>
-              </>
-            ) : null}
-
-            <div className={`rounded-mono-card border border-mono-line bg-mono-plate px-4 py-3 transition-colors focus-within:border-mono-ink ${compact ? 'mt-0' : 'mt-4'}`}>
-              <textarea
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSend();
-                  }
-                }}
-                placeholder={getText(lang, 'oracle.placeholder')}
-                className="min-h-[76px] w-full resize-none bg-transparent text-[15px] leading-relaxed text-mono-ink outline-none placeholder:text-mono-muted sm:text-base"
-                disabled={inputDisabled}
-              />
+          <div className="oracle-composer">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder={lang === 'ru' ? 'Найди свой вопрос…' : 'Find your question…'}
+              className="oracle-search"
+              disabled={inputDisabled}
+            />
+            <div className="oracle-presets scrollbar-hide">
+              {filteredPresets.length ? (
+                filteredPresets.map((q) => (
+                  <button
+                    key={q}
+                    type="button"
+                    disabled={inputDisabled}
+                    onClick={() => handleQuickPick(q)}
+                    className="oracle-preset"
+                  >
+                    {q}
+                  </button>
+                ))
+              ) : (
+                <p className="oracle-presets-empty">
+                  {lang === 'ru' ? 'Сотри текст и выбери вопрос из списка.' : 'Clear the text and pick a question from the list.'}
+                </p>
+              )}
             </div>
-
-            <div className="mt-4 flex items-center justify-between gap-3">
-              <p className="text-xs leading-relaxed text-mono-muted">
-                {questionState?.nextTier === 'premium' && activePremium
-                  ? getText(lang, 'oracle.state_premium_label')
-                  : questionState?.nextTier === 'free'
-                    ? getText(lang, 'oracle.state_free_label')
-                    : getText(lang, 'oracle.state_need_premium_label')}
-              </p>
-              <button
-                type="button"
-                onClick={handleSend}
-                disabled={sendDisabled}
-                className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-mono-pill bg-mono-accent px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-white transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {loading ? getText(lang, 'oracle.thinking') : sendLabel}
-              </button>
-            </div>
+            <p className="oracle-hint">
+              {lang === 'ru' ? 'Выбери вопрос — Lumia ответит по твоей карте.' : 'Pick a question — Lumia answers from your chart.'}
+            </p>
           </div>
         </div>
       </div>

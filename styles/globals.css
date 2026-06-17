@@ -3843,6 +3843,54 @@ a,
 }
 .union-share:active { transform: scale(0.99); }
 
+/* ── Чат «Спросить Lumia»: композер «поиск по готовым» ── */
+.oracle-composer { display: flex; flex-direction: column; gap: 10px; }
+
+.oracle-search {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid var(--fresh-border);
+  background: var(--fresh-surface);
+  border-radius: 14px;
+  padding: 10px 14px;
+  font-size: 15px;
+  color: var(--fresh-text);
+  font-family: var(--fresh-font);
+  outline: none;
+}
+
+.oracle-search:focus { border-color: var(--fresh-link); }
+.oracle-search::placeholder { color: var(--fresh-muted); }
+
+.oracle-presets {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.oracle-preset {
+  flex-shrink: 0;
+  max-width: 260px;
+  text-align: left;
+  background: var(--fresh-surface);
+  border: 1px solid var(--fresh-border);
+  border-radius: var(--fresh-radius-pill);
+  padding: 9px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fresh-text);
+  font-family: var(--fresh-font);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  white-space: nowrap;
+}
+
+.oracle-preset:active { transform: scale(0.97); }
+.oracle-preset:disabled { opacity: 0.5; }
+.oracle-presets-empty { font-size: 13px; color: var(--fresh-muted); padding: 6px 2px; }
+.oracle-hint { font-size: 12px; color: var(--fresh-muted); text-align: center; }
+
 /* ── «Люди»: результат (Вы × Он/Она + кольцо) ── */
 .people-split {
   display: grid;
