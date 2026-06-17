@@ -45,8 +45,12 @@ function mapErrorMessage(code: string, lang: 'ru' | 'en') {
       en: 'The starter free question has already been used. Continue in Premium.',
     },
     PREMIUM_REQUIRED: {
-      ru: 'Полный уровень ответов доступен в Lumia Premium.',
-      en: 'Full personal answers are available in Lumia Premium.',
+      ru: 'Чат с астрологом доступен в Lumia Premium.',
+      en: 'Astrologer chat is available in Lumia Premium.',
+    },
+    DAILY_LIMIT_REACHED: {
+      ru: 'На сегодня лимит исчерпан — 3 вопроса в день. Возвращайся завтра.',
+      en: "You've reached today's limit of 3 questions. Come back tomorrow.",
     },
     ASK_UPSTREAM_ERROR: {
       ru: 'Lumia не смогла подготовить ответ. Попробуйте ещё раз.',
@@ -196,6 +200,16 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       createdAt: new Date(duplicate.created_at).toISOString(),
       reusedRecent: true,
       tier: requestedTier,
+      state,
+    });
+  }
+
+  // Дневной лимит для премиума — не больше 3 новых вопросов в день.
+  if (state.isPremium && (state.dailyRemaining ?? 0) <= 0) {
+    return res.status(429).json({
+      error: 'Daily limit reached',
+      code: 'DAILY_LIMIT_REACHED',
+      message: mapErrorMessage('DAILY_LIMIT_REACHED', lang),
       state,
     });
   }

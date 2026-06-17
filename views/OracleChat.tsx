@@ -247,15 +247,20 @@ export const OracleChat: React.FC<OracleChatProps> = ({
       }
     } catch (submitError: any) {
       const code = submitError?.code || null;
-      if (code === 'PREMIUM_REQUIRED') {
+      const terminal = code === 'PREMIUM_REQUIRED' || code === 'DAILY_LIMIT_REACHED';
+      if (terminal) {
         setError(submitError?.message || getText(lang, 'oracle.state_need_premium_body'));
-        setErrorCode('PREMIUM_REQUIRED');
+        setErrorCode(code);
+        // Терминальная ошибка — без повтора; убираем только что добавленный пузырь вопроса.
+        if (userMessageId) setMessages((prev) => prev.filter((m) => m.id !== userMessageId));
+        setFailedQuestion(null);
+        setFailedMessageId(null);
       } else {
         setError(submitError?.message || getText(lang, 'oracle.send_error'));
         setErrorCode(code);
+        setFailedQuestion(normalizedQuestion);
+        setFailedMessageId(userMessageId);
       }
-      setFailedQuestion(normalizedQuestion);
-      setFailedMessageId(userMessageId);
 
       try {
         const nextState = await getAskLumiaState(String(profile.id || ''));
@@ -298,10 +303,14 @@ export const OracleChat: React.FC<OracleChatProps> = ({
   const inputDisabled = loading || stateLoading;
   const stateCopy = getStateStrings(lang, questionState, activePremium);
   const showPremiumCta = !activePremium && questionState?.nextTier !== 'free';
+  const dailyLimit = questionState?.dailyLimit ?? 3;
+  const dailyRemaining = questionState?.dailyRemaining;
+  const premiumLimitReached = activePremium && (dailyRemaining ?? 1) <= 0;
+  const composerDisabled = inputDisabled || premiumLimitReached;
   const quickQuestions = getAskPresetQuestions(lang);
 
   const handleQuickPick = (question: string) => {
-    if (loading || stateLoading) return;
+    if (loading || stateLoading || premiumLimitReached) return;
     void submitQuestion(question, { appendUserMessage: true });
   };
 
@@ -358,6 +367,12 @@ export const OracleChat: React.FC<OracleChatProps> = ({
             <button type="button" onClick={onPremiumRequired} className="oracle-dm-premium">
               {getText(lang, 'oracle.state_open_premium')}
             </button>
+          ) : activePremium && typeof dailyRemaining === 'number' ? (
+            <span className={`oracle-dm-quota ${premiumLimitReached ? 'is-empty' : ''}`}>
+              {premiumLimitReached
+                ? (lang === 'ru' ? 'Лимит на сегодня исчерпан' : "Today's limit reached")
+                : (lang === 'ru' ? `Осталось ${dailyRemaining} из ${dailyLimit} сегодня` : `${dailyRemaining} of ${dailyLimit} left today`)}
+            </span>
           ) : null}
         </div>
       )}
@@ -446,16 +461,22 @@ export const OracleChat: React.FC<OracleChatProps> = ({
             <FreshAskCombobox
               questions={quickQuestions}
               onPick={handleQuickPick}
-              disabled={inputDisabled}
-              placeholder={lang === 'ru' ? 'Найди или выбери вопрос…' : 'Find or pick a question…'}
+              disabled={composerDisabled}
+              placeholder={
+                premiumLimitReached
+                  ? (lang === 'ru' ? 'Вопросы на сегодня закончились' : 'No questions left today')
+                  : (lang === 'ru' ? 'Найди или выбери вопрос…' : 'Find or pick a question…')
+              }
               emptyText={lang === 'ru' ? 'Ничего не нашлось — измени запрос.' : 'Nothing found — try another word.'}
-              locked={showPremiumCta}
-              lockLabel="Premium"
+              locked={showPremiumCta || premiumLimitReached}
+              lockLabel={showPremiumCta ? 'Premium' : (lang === 'ru' ? 'Лимит' : 'Limit')}
             />
             <p className="oracle-hint">
-              {showPremiumCta
-                ? (lang === 'ru' ? 'Чат с астрологом доступен в Premium.' : 'Astrologer chat is available in Premium.')
-                : (lang === 'ru' ? 'Выбери вопрос — Lumia ответит по твоей карте.' : 'Pick a question — Lumia answers from your chart.')}
+              {premiumLimitReached
+                ? (lang === 'ru' ? '3 вопроса в день. Новые — завтра.' : '3 questions a day. More tomorrow.')
+                : showPremiumCta
+                  ? (lang === 'ru' ? 'Чат с астрологом доступен в Premium.' : 'Astrologer chat is available in Premium.')
+                  : (lang === 'ru' ? 'Выбери вопрос — Lumia ответит по твоей карте, коротко и по делу.' : 'Pick a question — Lumia answers from your chart, short and clear.')}
             </p>
           </div>
         </div>

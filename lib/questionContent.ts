@@ -14,6 +14,9 @@ const openai = process.env.OPENAI_API_KEY
 
 export const ASK_LUMIA_FREE_STARTER_CACHE_KEY = 'starter';
 
+/** Чат с астрологом — премиум-функция, не больше 3 вопросов в день. */
+export const ASK_LUMIA_DAILY_LIMIT = 3;
+
 type AskLumiaHistoryMessage = {
   role: 'user' | 'model';
   text: string;
@@ -52,28 +55,23 @@ function buildAskLumiaPrompt(options: GenerateAskLumiaAnswerOptions) {
         .join('\n')
     : 'No relevant prior conversation.';
 
+  // Ответы — короткие и ёмкие (премиум), без эзотерики. Free-ветка почти не используется
+  // (чат премиум-only), но держим её ещё короче.
   const tierInstruction = options.tier === 'free'
-    ? `Answer as Lumia's starter reading.
+    ? `Answer as a short Lumia reading.
 
 Requirements:
-- Give one direct personal answer grounded in the chart context that already feels helpful, not teaser bait.
-- User should feel: "yes, this is really about my question and my pattern."
-- Stay brief: 2-4 short paragraphs.
-- Focus on the emotional knot of the question, one recognizable pattern, and one useful next step.
-- Do not try to cover every angle. More detail, examples, and situational precision belong to Premium.
-- No mystical fluff, no decorative astrology language, no fake certainty.
-- Frame conclusions as likely patterns and tendencies, not absolute verdicts.
-- Sound serious, warm, and clear.`
-    : `Answer as Lumia Premium.
+- VERY short: 1 short paragraph, ~25-45 words.
+- One honest read of the core issue + one concrete next step. Nothing else.
+- No mystical/esoteric language at all. Plain, warm, direct.`
+    : `Answer as Lumia Premium — short and sharp, like a smart friend who gets straight to the point.
 
 Requirements:
-- This must feel like a higher class of interpretation.
-- Give a full personal answer in 5-7 short paragraphs.
-- Combine detail, situational precision, and recognizable life scenarios when relevant.
-- Be sharper about relationships, fear, hope, pressure, timing, money, or direction when relevant.
-- Show emotional accuracy, pattern recognition, what this means right now, and a grounded next step.
-- Write like a calm, intelligent personal consultation using chart context honestly.
-- Frame conclusions as likely patterns and tendencies, not absolute verdicts.
+- VERY concise: 2-3 short paragraphs, ~60-110 words TOTAL. No padding, no preamble.
+- Give one clear read of the core issue + one concrete, doable next step. That's it.
+- Ground it honestly in the chart context; speak directly to "you".
+- Warm and a little personality is good; fake certainty and filler are not.
+- Frame conclusions as tendencies, not verdicts.
 - Do not write like a therapist or a fortune-teller.`;
 
   return appendLumiaVoice(`The user is asking Lumia a personal question.
@@ -91,46 +89,35 @@ ${options.question}
 
 ${tierInstruction}
 
+HARD STYLE RULES:
+- Keep it SHORT. If in doubt, cut. No long essays.
+- Absolutely NO esoteric or cosmic language: no космос/Вселенная/карма/судьба/энергии/вибрации/чакры/предназначение/духовный путь. Plain human talk only.
+- No mystical fluff, no decorative astrology terms, no fake certainty.
+
 Output:
-- plain text only
-- no markdown headings
-- no bullet lists unless absolutely needed
-- short paragraphs with breathing room
-- keep a soft internal arc: core issue -> what it means -> next step
-- do not sound like a rigid repeated template
-- talk directly to the user`, options.language);
+- plain text only, no markdown headings, no bullet lists
+- 1-3 short paragraphs, arc: core issue -> what it means -> next step
+- talk directly to the user, do not sound like a rigid template`, options.language);
 }
 
 function buildQuestionFallback(question: string, language: 'ru' | 'en', tier: AskLumiaTier) {
   if (language === 'ru') {
     if (tier === 'premium') {
-      return `Сейчас по этому вопросу важнее не пытаться мгновенно всё решить, а увидеть, где у тебя на самом деле главный внутренний узел. Напряжение здесь, скорее всего, собирается не из одной детали, а из нескольких частей сразу: что ты чувствуешь, что стараешься удержать, чего боишься коснуться и где уже устал жить в подвешенности.
+      return `Главное здесь — не пытаться решить всё сразу, а назвать одну вещь, которая тревожит сильнее всего. Обычно напряжение держится не на самой ситуации, а на том, что ты тянешь с честным ответом самому себе.
 
-Если смотреть честно, ответ для тебя сейчас не в резком движении, а в более точной внутренней позиции. Например, в таких ситуациях человек часто колеблется между желанием всё прояснить сразу и попыткой ещё немного потерпеть, чтобы не сталкиваться с неприятной правдой. Но именно это зависание обычно и съедает больше всего сил.
-
-Сначала назови себе главное без украшений. Потом отдели, где у тебя есть реальная опора, а где только тревога, привычка или желание удержать то, что уже перестало работать. Это уже даст больше ясности, чем ещё один мысленный круг по тем же аргументам.
-
-Лучший следующий шаг здесь — не разбрасываться и не пытаться прожить всё сразу. Сузь вопрос до одного ядра и действуй из него. Тогда ситуация начнёт проясняться быстрее и спокойнее, без лишнего внутреннего шума.`;
+Ближайший шаг простой: сузь вопрос до одного ядра и сделай по нему одно понятное действие. Остальное станет яснее уже после этого.`;
     }
 
-    return `По этому вопросу тебе сейчас важнее всего не спешить с выводом. Сначала попробуй честно назвать, что здесь болит или тревожит сильнее всего.
-
-Когда ты увидишь главное без лишнего шума, следующий шаг станет гораздо яснее.`;
+    return `Сейчас важнее не спешить с выводом, а честно назвать, что тревожит сильнее всего. Когда увидишь главное — следующий шаг станет понятнее.`;
   }
 
   if (tier === 'premium') {
-    return `With this question, the most important thing right now is not to force a fast solution, but to see where the real inner knot is. The pressure here is likely not coming from one detail, but from several parts at once: what you feel, what you are trying to hold together, what you fear naming, and where uncertainty has already become exhausting.
+    return `The point here isn't to solve everything at once — it's to name the one thing that actually weighs on you most. Usually the pressure isn't the situation itself, but the honest answer you keep putting off.
 
-The answer for you now is not in a dramatic move, but in a more honest internal position. In situations like this, people often swing between wanting immediate clarity and avoiding the one truth that would actually change the situation. That swing creates more pressure than the situation itself.
-
-Name the core truth first. Then separate what is real support from what is only fear, habit, or attachment to something that has already stopped working.
-
-Your next step is to reduce the noise and act from one clear center. That is where this situation starts opening up with more precision and much less inner friction.`;
+Your next step is simple: narrow it to one core and take one clear action on that. The rest gets clearer once you do.`;
   }
 
-  return `With this question, the first thing that matters is not rushing to a conclusion. Try to name what hurts, worries, or matters most here.
-
-Once you see the core clearly, the next step usually becomes much easier to trust.`;
+  return `Right now it matters more to slow down than to rush a conclusion. Name what worries you most — once you see the core, the next step gets easier to trust.`;
 }
 
 export function sanitizeQuestionHistory(history: unknown): AskLumiaHistoryMessage[] {
@@ -159,29 +146,29 @@ export function getQuestionVariantForTier(tier: AskLumiaTier): 'brief' | 'full' 
 }
 
 export async function getAskLumiaState(userId: string): Promise<AskLumiaState> {
-  const [entitlementState, freeStarterUnlock] = await Promise.all([
-    getPremiumEntitlementState(userId),
-    db.content_unlocks.getLatestActive(userId, {
-      accessTier: 'free',
-      contentSurface: 'question',
-      contentVariant: 'brief',
-      cacheKey: ASK_LUMIA_FREE_STARTER_CACHE_KEY,
-    }),
-  ]);
+  const entitlementState = await getPremiumEntitlementState(userId);
 
-  if (entitlementState.isPremium) {
+  // Чат с астрологом — премиум-функция. Для не-премиума всегда требуем Premium.
+  if (!entitlementState.isPremium) {
     return {
       nextTier: 'premium',
       freeStarterAvailable: false,
-      isPremium: true,
+      isPremium: false,
+      dailyLimit: ASK_LUMIA_DAILY_LIMIT,
+      dailyUsed: 0,
+      dailyRemaining: 0,
     };
   }
 
-  const freeStarterAvailable = !freeStarterUnlock;
+  const used = await db.astro_questions.countToday(userId);
+  const remaining = Math.max(0, ASK_LUMIA_DAILY_LIMIT - used);
   return {
-    nextTier: freeStarterAvailable ? 'free' : 'premium',
-    freeStarterAvailable,
-    isPremium: false,
+    nextTier: 'premium',
+    freeStarterAvailable: false,
+    isPremium: true,
+    dailyLimit: ASK_LUMIA_DAILY_LIMIT,
+    dailyUsed: used,
+    dailyRemaining: remaining,
   };
 }
 
@@ -202,8 +189,8 @@ export async function generateAskLumiaAnswer(options: GenerateAskLumiaAnswerOpti
         { role: 'system', content: SYSTEM_PROMPT_ASTRA },
         { role: 'user', content: prompt },
       ],
-      temperature: options.tier === 'free' ? 0.7 : 0.82,
-      max_tokens: options.tier === 'free' ? 700 : 1100,
+      temperature: options.tier === 'free' ? 0.6 : 0.7,
+      max_tokens: options.tier === 'free' ? 200 : 420,
     });
 
     const answer = completion.choices[0]?.message?.content?.trim();

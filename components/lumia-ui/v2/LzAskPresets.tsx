@@ -57,6 +57,16 @@ export function getAskPresetQuestions(language: 'ru' | 'en'): string[] {
       'What lesson does today hold for me?',
       'How do I let go of what worries me?',
       'What is the right next step for me?',
+      'Why do I keep attracting the same people?',
+      'Am I in the right job for me?',
+      'How do I stop overthinking this?',
+      'What do I really want right now?',
+      'How do I set boundaries without guilt?',
+      'Is this person good for me?',
+      'What am I avoiding that I should face?',
+      'How do I rebuild my confidence?',
+      'What should I prioritize this month?',
+      'How do I handle this conflict calmly?',
     ];
   }
   return [
@@ -84,5 +94,15 @@ export function getAskPresetQuestions(language: 'ru' | 'en'): string[] {
     'Какой урок несёт мне этот день?',
     'Как отпустить то, что тревожит?',
     'Какой мой следующий шаг?',
+    'Почему я притягиваю одних и тех же людей?',
+    'Та ли это работа для меня?',
+    'Как перестать всё время думать об этом?',
+    'Чего я на самом деле хочу сейчас?',
+    'Как ставить границы без чувства вины?',
+    'Подходит ли мне этот человек?',
+    'Чего я избегаю, но стоит посмотреть в лицо?',
+    'Как вернуть уверенность в себе?',
+    'На чём сосредоточиться в этом месяце?',
+    'Как спокойно пройти через этот конфликт?',
   ];
 }

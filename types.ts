@@ -955,6 +955,10 @@ export interface AskLumiaState {
   nextTier: AskLumiaTier;
   freeStarterAvailable: boolean;
   isPremium: boolean;
+  /** Дневной лимит вопросов (премиум-функция). */
+  dailyLimit?: number;
+  dailyUsed?: number;
+  dailyRemaining?: number;
 }
 
 export interface OracleChatResponse {

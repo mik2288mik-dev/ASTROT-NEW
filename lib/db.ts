@@ -3094,6 +3094,27 @@ export const db = {
       }
     },
 
+    /** Сколько вопросов пользователь задал сегодня (по московскому дню) — для дневного лимита. */
+    async countToday(userId: string): Promise<number> {
+      const id = toUserId(userId);
+      if (!DATABASE_URL) return 0;
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          `SELECT COUNT(*)::int AS count
+           FROM astro_questions
+           WHERE user_id = $1
+             AND (created_at AT TIME ZONE 'Europe/Moscow')::date = (NOW() AT TIME ZONE 'Europe/Moscow')::date`,
+          [id]
+        );
+        return Number(result.rows[0]?.count) || 0;
+      } catch (error: any) {
+        // Fail-open: не блокируем платящего пользователя при сбое БД.
+        log.error('[DB] Error counting today astro questions', { error: error.message, userId });
+        return 0;
+      }
+    },
+
     async findRecentDuplicate(userId: string, question: string, windowSeconds = 20) {
       const id = toUserId(userId);
       const normalizedQuestion = normalizeOracleQuestion(question);
