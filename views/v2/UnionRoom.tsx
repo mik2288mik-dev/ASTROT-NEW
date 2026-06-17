@@ -12,7 +12,6 @@ import { getCompatScore, sunSignFromDate, DIMENSION_LABELS, type CompatResult, t
 import { ZodiacIcon } from '../../components/icons/ZodiacIcon';
 import { ChevronRightIcon } from '../../components/icons/UiIcons';
 import { FreshSignCarousel } from '../../components/fresh-ui';
-import { MonoArticleSection } from '../../components/mono-ui';
 import { ZODIAC_KEYS } from '../../lib/horoscope/signDaily';
 import { shareToTelegram } from '../../lib/botLink';
 
@@ -41,6 +40,78 @@ type Selected = { kind: 'sign' | 'person'; sign?: string; name?: string; date?: 
 const REL_BACKEND: Record<CompatDimension, string> = {
   love: 'любовь', relationship: 'отношения', friendship: 'дружба', work: 'работа',
 };
+
+/* Цвет на каждую сферу — шкалы становятся красочными и читаемыми */
+const DIM_COLORS: Record<CompatDimension, string> = {
+  love: '#FF7E8B',          // тёплый коралл
+  relationship: '#A98CEC',  // лаванда
+  friendship: '#5BB6EC',    // небо
+  work: '#34C39A',          // мята
+};
+
+/* Плавный счёт от 0 к значению (как в кольце-score) */
+function useCountUp(value: number, reduce: boolean | null) {
+  const [shown, setShown] = useState(reduce ? value : 0);
+  useEffect(() => {
+    if (reduce) { setShown(value); return; }
+    let raf = 0;
+    const t0 = performance.now();
+    const dur = 800;
+    const tick = (t: number) => {
+      const k = Math.min(1, (t - t0) / dur);
+      setShown(Math.round(value * (1 - Math.pow(1 - k, 3))));
+      if (k < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [value, reduce]);
+  return shown;
+}
+
+/* Одна цветная градиент-шкала со счётом и пружинной заливкой */
+function DimBar({ label, value, color, top, index, reduce }: {
+  label: string; value: number; color: string; top: boolean; index: number; reduce: boolean | null;
+}) {
+  const shown = useCountUp(value, reduce);
+  return (
+    <div className={`people-dim ${top ? 'is-top' : ''}`}>
+      <div className="people-dim-row">
+        <span className="people-dim-name">
+          <span className="people-dim-dot" style={{ background: color }} />
+          {label}
+        </span>
+        <span className="people-dim-val" style={{ color }}>{shown}</span>
+      </div>
+      <div className="people-dim-track">
+        <motion.div
+          className="people-dim-fill"
+          style={{ background: `linear-gradient(90deg, ${color}99, ${color})` }}
+          initial={reduce ? false : { width: 0 }}
+          animate={{ width: `${Math.max(0, Math.min(100, value))}%` }}
+          transition={reduce ? { duration: 0 } : { duration: 0.85, delay: 0.07 * index, ease: [0.22, 1, 0.36, 1] }}
+        />
+      </div>
+    </div>
+  );
+}
+
+/* Блок разбора — просто текст с цветным заголовком, без рамок-«окон» */
+function CompatBlock({ title, color, index, reduce, children }: {
+  title: string; color: string; index: number; reduce: boolean | null; children: React.ReactNode;
+}) {
+  if (!children) return null;
+  return (
+    <motion.section
+      className="compat-read-block"
+      initial={reduce ? false : { opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={reduce ? { duration: 0 } : { duration: 0.4, delay: 0.05 * index, ease: [0.22, 1, 0.36, 1] }}
+    >
+      <div className="compat-read-title" style={{ color }}>{title}</div>
+      <p className="compat-read-text">{children}</p>
+    </motion.section>
+  );
+}
 
 /* ── Кольцо-score: заполнение дуги + счёт ── */
 function ScoreRing({ value }: { value: number }) {
@@ -298,35 +369,35 @@ export function UnionRoom(props: UnionRoomProps) {
 
       <div className="people-dims">
         {dimsOrder.map((k, i) => (
-          <div key={k} className={`people-dim ${score && k === score.strongest ? 'is-top' : ''}`}>
-            <div className="people-dim-row">
-              <span>{DIMENSION_LABELS[k][lang]}</span>
-              <span className="people-dim-val">{score?.dims[k]}</span>
-            </div>
-            <div className="people-dim-track">
-              <motion.div className="people-dim-fill" initial={reduce ? false : { width: 0 }} animate={{ width: `${score?.dims[k] ?? 0}%` }} transition={reduce ? { duration: 0 } : { duration: 0.7, delay: 0.08 * i, ease: 'easeOut' }} />
-            </div>
-          </div>
+          <DimBar
+            key={k}
+            label={DIMENSION_LABELS[k][lang]}
+            value={score?.dims[k] ?? 0}
+            color={DIM_COLORS[k]}
+            top={!!score && k === score.strongest}
+            index={i}
+            reduce={reduce}
+          />
         ))}
       </div>
       <div className="people-strong">{ru ? 'Сильнее всего' : 'Strongest'} — {strongestLabel}</div>
 
       {signText ? (
-        <div className="union-pad space-y-3" style={{ marginTop: 8 }}>
-          <MonoArticleSection title={ru ? 'Что вас тянет' : 'What draws you'}>{signText.attraction}</MonoArticleSection>
-          <MonoArticleSection title={ru ? 'Где может быть сложно' : 'Where it gets hard'}>{signText.difficulty}</MonoArticleSection>
-          <MonoArticleSection title={ru ? 'Как лучше общаться' : 'How to communicate'}>{signText.communication}</MonoArticleSection>
+        <div className="compat-read" style={{ marginTop: 14 }}>
+          <CompatBlock title={ru ? 'Почему вас тянет друг к другу' : "Why you're drawn to each other"} color={DIM_COLORS.love} index={0} reduce={reduce}>{signText.attraction}</CompatBlock>
+          <CompatBlock title={ru ? 'Что может быть непросто' : 'What can get tricky'} color={DIM_COLORS.relationship} index={1} reduce={reduce}>{signText.difficulty}</CompatBlock>
+          <CompatBlock title={ru ? 'Как лучше понимать друг друга' : 'How to understand each other'} color={DIM_COLORS.friendship} index={2} reduce={reduce}>{signText.communication}</CompatBlock>
         </div>
       ) : (
-        <p className="union-pad" style={{ marginTop: 8, color: 'var(--fresh-muted)', fontSize: 14 }}>{ru ? 'Готовим разбор…' : 'Preparing…'}</p>
+        <p className="union-pad" style={{ marginTop: 12, color: 'var(--fresh-muted)', fontSize: 14 }}>{ru ? 'Готовим разбор…' : 'Preparing…'}</p>
       )}
 
       {deep ? (
-        <div className="union-pad space-y-3" style={{ marginTop: 14 }}>
-          <MonoArticleSection title={ru ? 'Как ощущается ваша связь' : 'How your bond feels'}>{deep.summary}</MonoArticleSection>
-          <MonoArticleSection title={ru ? 'Что вас притягивает' : 'What draws you'}>{deep.fullAnalysis?.attraction}</MonoArticleSection>
-          <MonoArticleSection title={ru ? 'Где вы задеваете друг друга' : 'Where you trigger each other'}>{deep.fullAnalysis?.difficulties}</MonoArticleSection>
-          <MonoArticleSection title={ru ? 'Что может укрепить связь' : 'What can strengthen it'}>{deep.fullAnalysis?.potential}</MonoArticleSection>
+        <div className="compat-read" style={{ marginTop: 18 }}>
+          <CompatBlock title={ru ? 'Какая у вас связь' : 'What your bond is like'} color={DIM_COLORS.work} index={0} reduce={reduce}>{deep.summary}</CompatBlock>
+          <CompatBlock title={ru ? 'Что вас сближает' : 'What brings you closer'} color={DIM_COLORS.love} index={1} reduce={reduce}>{deep.fullAnalysis?.attraction}</CompatBlock>
+          <CompatBlock title={ru ? 'Из-за чего бывают трения' : 'Where friction comes from'} color={DIM_COLORS.relationship} index={2} reduce={reduce}>{deep.fullAnalysis?.difficulties}</CompatBlock>
+          <CompatBlock title={ru ? 'Что сделает вас крепче' : 'What makes you stronger'} color={DIM_COLORS.friendship} index={3} reduce={reduce}>{deep.fullAnalysis?.potential}</CompatBlock>
         </div>
       ) : isPerson ? (
         <button type="button" className="horo-premium" style={{ marginTop: 16 }} onClick={() => void runDeep()}>

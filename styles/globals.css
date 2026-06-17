@@ -3891,8 +3891,77 @@ a,
 .oracle-presets-empty { font-size: 13px; color: var(--fresh-muted); padding: 6px 2px; }
 .oracle-hint { font-size: 12px; color: var(--fresh-muted); text-align: center; }
 
+/* ── Шапка чата (компактный режим): по центру, не под кнопкой «назад» ── */
+.oracle-dm-head {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 2px;
+  padding: 0 16px 13px;
+  background: #fff;
+  border-bottom: 1px solid var(--fresh-border);
+}
+.oracle-dm-badge {
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  background: var(--fresh-surface);
+  color: var(--fresh-text);
+  margin-bottom: 5px;
+}
+.oracle-dm-title { font-family: var(--fresh-font); font-size: 20px; font-weight: 800; color: var(--fresh-text); line-height: 1.1; letter-spacing: -0.01em; }
+.oracle-dm-sub { font-size: 13px; font-weight: 600; color: var(--fresh-muted); }
+.oracle-dm-premium { margin-top: 8px; font-size: 12px; font-weight: 700; color: var(--fresh-link); text-decoration: underline; text-underline-offset: 2px; }
+
+/* ── Строка-комбобокс: ввод + выпадающий выбор вопросов ── */
+.fresh-combo { position: relative; width: 100%; }
+.fresh-combo-bar {
+  display: flex; align-items: center; gap: 8px;
+  min-height: 48px; padding: 0 14px;
+  border: 1px solid var(--fresh-border);
+  background: var(--fresh-surface);
+  border-radius: 16px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+.fresh-combo-bar.is-open { border-color: var(--fresh-link); background: #fff; box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.12); }
+.fresh-combo-ico { color: var(--fresh-muted); display: flex; flex-shrink: 0; }
+.fresh-combo-input {
+  flex: 1; min-width: 0;
+  border: none; outline: none; background: transparent;
+  font-size: 15px; font-family: var(--fresh-font); color: var(--fresh-text);
+}
+.fresh-combo-input::placeholder { color: var(--fresh-muted); }
+.fresh-combo-input:disabled { opacity: 0.6; }
+.fresh-combo-chev { color: var(--fresh-muted); display: flex; flex-shrink: 0; }
+.fresh-combo-lock { font-size: 11px; font-weight: 800; color: var(--fresh-link); letter-spacing: 0.02em; flex-shrink: 0; }
+.fresh-combo-list {
+  position: absolute; left: 0; right: 0; bottom: calc(100% + 8px);
+  max-height: 280px; overflow-y: auto;
+  background: #fff;
+  border: 1px solid var(--fresh-border);
+  border-radius: 16px;
+  padding: 6px;
+  box-shadow: 0 14px 34px rgba(17, 24, 39, 0.14);
+  z-index: 40;
+}
+.fresh-combo-option {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  text-align: left;
+  background: transparent; border: none; border-radius: 12px;
+  padding: 11px 12px;
+  font-size: 14px; font-weight: 600; color: var(--fresh-text); font-family: var(--fresh-font);
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.fresh-combo-option:active { background: var(--fresh-surface); }
+.fresh-combo-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--fresh-link); flex-shrink: 0; }
+.fresh-combo-option-text { flex: 1; min-width: 0; }
+.fresh-combo-option-lock { color: var(--fresh-muted); flex-shrink: 0; }
+.fresh-combo-empty { padding: 14px; text-align: center; font-size: 13px; color: var(--fresh-muted); }
+
 /* ── «Окна дня»: тайминги действий по карте ── */
-.aw { margin: 8px 16px 0; }
+.aw { margin: 16px 20px 4px; }
 .aw-head { margin-bottom: 10px; }
 .aw-title { font-family: var(--fresh-font); font-size: 17px; font-weight: 800; color: var(--fresh-text); }
 .aw-sub { font-family: var(--fresh-font); font-size: 12.5px; color: var(--fresh-muted); margin-top: 2px; }
@@ -3951,14 +4020,21 @@ a,
 .people-ring-num { font-family: var(--fresh-font); font-size: 30px; font-weight: 900; color: var(--fresh-text); letter-spacing: -0.02em; }
 .people-verdict { font-size: 12px; font-weight: 800; color: #fff; background: var(--fresh-link); padding: 5px 13px; border-radius: var(--fresh-radius-pill); }
 
-.people-dims { display: flex; flex-direction: column; gap: 12px; padding: 0 20px 6px; }
-.people-dim-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; font-family: var(--fresh-font); font-size: 13px; font-weight: 700; color: var(--fresh-text); }
-.people-dim-val { font-size: 12px; color: var(--fresh-muted); font-weight: 700; }
-.people-dim-track { height: 8px; border-radius: 99px; background: var(--fresh-border); overflow: hidden; }
-.people-dim-fill { height: 100%; border-radius: 99px; background: var(--fresh-muted); }
-.people-dim.is-top .people-dim-fill { background: var(--fresh-link); }
-.people-dim.is-top .people-dim-val { color: var(--fresh-link); }
+.people-dims { display: flex; flex-direction: column; gap: 15px; padding: 2px 20px 6px; }
+.people-dim-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 7px; font-family: var(--fresh-font); font-size: 13.5px; font-weight: 700; color: var(--fresh-text); }
+.people-dim-name { display: inline-flex; align-items: center; gap: 8px; }
+.people-dim-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.people-dim-val { font-size: 14px; font-weight: 800; color: var(--fresh-text); font-variant-numeric: tabular-nums; }
+.people-dim-track { height: 10px; border-radius: 99px; background: var(--fresh-surface); overflow: hidden; }
+.people-dim-fill { height: 100%; border-radius: 99px; box-shadow: 0 1px 4px rgba(17, 24, 39, 0.10); }
+.people-dim.is-top .people-dim-track { box-shadow: 0 0 0 2px rgba(17, 24, 39, 0.05); }
 .people-strong { text-align: center; font-size: 12px; font-weight: 700; color: var(--fresh-muted); padding: 4px 20px 14px; }
+
+/* ── Разбор совместимости: чистый текст без рамок ── */
+.compat-read { display: flex; flex-direction: column; gap: 18px; padding: 0 20px; }
+.compat-read-block + .compat-read-block { border-top: 1px solid var(--fresh-border); padding-top: 16px; }
+.compat-read-title { font-family: var(--fresh-font); font-size: 11.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 7px; }
+.compat-read-text { font-family: var(--fresh-font); font-size: 15px; line-height: 1.62; color: var(--fresh-text); margin: 0; }
 
 /* ── Совместимость: быстрый блок по знакам ── */
 .compat-quick {

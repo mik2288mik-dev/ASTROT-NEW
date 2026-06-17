@@ -1360,18 +1360,17 @@ const App: React.FC = () => {
         navigateTo('synastry');
     }, [navigateTo]);
 
-    // Свайп назад от левого края (как в iOS)
+    // Свайп назад от левого края (как в iOS) — на всех экранах, кроме корневых/модальных
     const canSwipeBack =
         view !== 'dashboard' &&
         view !== 'onboarding' &&
         view !== 'hook' &&
-        view !== 'paywall' &&
-        view !== 'horoscope';
+        view !== 'paywall';
     useSwipeBack({
         onSwipeBack: handleBack,
         enabled: canSwipeBack,
-        threshold: 80,
-        edgeWidth: 25,
+        threshold: 70,
+        edgeWidth: 30,
     });
 
     if (loading) {

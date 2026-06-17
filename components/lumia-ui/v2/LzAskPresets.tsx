@@ -49,6 +49,14 @@ export function getAskPresetQuestions(language: 'ru' | 'en'): string[] {
       'What gives me energy?',
       'How do I make decisions better?',
       'What should I watch this week?',
+      'Is it a good time to start something new?',
+      'What matters for my money right now?',
+      'Where is my potential for growth?',
+      'How do I get through this hard stretch?',
+      'How can I take better care of myself?',
+      'What lesson does today hold for me?',
+      'How do I let go of what worries me?',
+      'What is the right next step for me?',
     ];
   }
   return [
@@ -68,5 +76,13 @@ export function getAskPresetQuestions(language: 'ru' | 'en'): string[] {
     'Что меня заряжает?',
     'Как лучше принимать решения?',
     'На что обратить внимание на этой неделе?',
+    'Подходящее ли время начать новое?',
+    'Что важно в моих финансах сейчас?',
+    'Где сейчас мой потенциал роста?',
+    'Как пережить этот непростой период?',
+    'Как лучше заботиться о себе?',
+    'Какой урок несёт мне этот день?',
+    'Как отпустить то, что тревожит?',
+    'Какой мой следующий шаг?',
   ];
 }

@@ -35,6 +35,7 @@ import {
   FreshItemList,
   FreshListItem,
 } from '../components/fresh-ui';
+import { ActionWindows } from './v2/ActionWindows';
 
 /* ── Вспомогательные функции ── */
 function formatDate(todayKey: string, lang: 'ru' | 'en'): string {
@@ -286,6 +287,15 @@ export const Dashboard = memo<DashboardProps>(({
 
       {/* ── Быстрые кнопки ── */}
       <FreshQuickBar items={quickItems} />
+
+      {/* ── Окна дня: лучшее время для действий по карте (перенесено из Гороскопа) ── */}
+      <ActionWindows
+        profile={profile}
+        chartData={chartData}
+        chartId={chartId}
+        onOpenChart={onCreateNatalChart}
+        onRequestPremium={() => onRequestPremium?.('action_windows')}
+      />
 
       {/* ── Натальная карта ── */}
       <FreshSectionHeader

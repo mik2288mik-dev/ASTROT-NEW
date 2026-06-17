@@ -4,6 +4,7 @@ import type { AskLumiaState, AskLumiaTier, ChatMessage, UserProfile } from '../t
 import { chatWithAstra, getAskLumiaState, getOracleHistory } from '../services/astrologyService';
 import { getText } from '../constants';
 import { getAskPresetQuestions } from '../components/lumia-ui/v2/LzAskPresets';
+import { FreshAskCombobox } from '../components/fresh-ui';
 import { hasActivePremium } from '../lib/accessMatrix';
 
 const MIN_QUESTION_LENGTH = 3;
@@ -60,7 +61,6 @@ export const OracleChat: React.FC<OracleChatProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const consumedInitialQuestionRef = useRef(false);
 
-  const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [stateLoading, setStateLoading] = useState(true);
@@ -219,7 +219,6 @@ export const OracleChat: React.FC<OracleChatProps> = ({
       };
 
       setMessages((prev) => [...prev, userMessage]);
-      setInput('');
       setFailedQuestion(null);
       setFailedMessageId(null);
     }
@@ -242,7 +241,6 @@ export const OracleChat: React.FC<OracleChatProps> = ({
       setMessages((prev) => [...prev, botMsg]);
       setFailedQuestion(null);
       setFailedMessageId(null);
-      setInput('');
 
       if (result.state) {
         setQuestionState(result.state);
@@ -258,7 +256,6 @@ export const OracleChat: React.FC<OracleChatProps> = ({
       }
       setFailedQuestion(normalizedQuestion);
       setFailedMessageId(userMessageId);
-      setInput(normalizedQuestion);
 
       try {
         const nextState = await getAskLumiaState(String(profile.id || ''));
@@ -305,13 +302,8 @@ export const OracleChat: React.FC<OracleChatProps> = ({
 
   const handleQuickPick = (question: string) => {
     if (loading || stateLoading) return;
-    setInput('');
     void submitQuestion(question, { appendUserMessage: true });
   };
-
-  const filteredPresets = quickQuestions.filter((q) =>
-    q.toLowerCase().includes(input.trim().toLowerCase()),
-  );
 
   const compact = layout === 'dm';
 
@@ -351,17 +343,19 @@ export const OracleChat: React.FC<OracleChatProps> = ({
       </div>
       ) : (
         <div
-          className="shrink-0 border-b border-mono-line bg-mono-white px-4 py-3"
-          style={{ paddingTop: 'calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), 28px) + 6px)' }}
+          className="oracle-dm-head"
+          style={{ paddingTop: 'calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), 28px) + 10px)' }}
         >
-          <h1 className="text-[22px] font-bold text-mono-ink">Lumia</h1>
-          <p className="mt-1 text-[13px] text-mono-muted">{stateCopy.body}</p>
+          <span className="oracle-dm-badge" aria-hidden>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M12 3l1.9 5.3L19 10l-5.1 1.7L12 17l-1.9-5.3L5 10l5.1-1.7L12 3z" fill="currentColor" />
+              <circle cx="18.5" cy="5.5" r="1.4" fill="currentColor" />
+            </svg>
+          </span>
+          <h1 className="oracle-dm-title">{lang === 'ru' ? 'Чат Lumia' : 'Lumia chat'}</h1>
+          <p className="oracle-dm-sub">{lang === 'ru' ? 'с астрологом' : 'with the astrologer'}</p>
           {showPremiumCta && onPremiumRequired ? (
-            <button
-              type="button"
-              onClick={onPremiumRequired}
-              className="mt-2 text-[12px] font-semibold text-mono-ink underline underline-offset-2"
-            >
+            <button type="button" onClick={onPremiumRequired} className="oracle-dm-premium">
               {getText(lang, 'oracle.state_open_premium')}
             </button>
           ) : null}
@@ -449,35 +443,19 @@ export const OracleChat: React.FC<OracleChatProps> = ({
           )}
 
           <div className="oracle-composer">
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder={lang === 'ru' ? 'Найди свой вопрос…' : 'Find your question…'}
-              className="oracle-search"
+            <FreshAskCombobox
+              questions={quickQuestions}
+              onPick={handleQuickPick}
               disabled={inputDisabled}
+              placeholder={lang === 'ru' ? 'Найди или выбери вопрос…' : 'Find or pick a question…'}
+              emptyText={lang === 'ru' ? 'Ничего не нашлось — измени запрос.' : 'Nothing found — try another word.'}
+              locked={showPremiumCta}
+              lockLabel="Premium"
             />
-            <div className="oracle-presets scrollbar-hide">
-              {filteredPresets.length ? (
-                filteredPresets.map((q) => (
-                  <button
-                    key={q}
-                    type="button"
-                    disabled={inputDisabled}
-                    onClick={() => handleQuickPick(q)}
-                    className="oracle-preset"
-                  >
-                    {q}
-                  </button>
-                ))
-              ) : (
-                <p className="oracle-presets-empty">
-                  {lang === 'ru' ? 'Сотри текст и выбери вопрос из списка.' : 'Clear the text and pick a question from the list.'}
-                </p>
-              )}
-            </div>
             <p className="oracle-hint">
-              {lang === 'ru' ? 'Выбери вопрос — Lumia ответит по твоей карте.' : 'Pick a question — Lumia answers from your chart.'}
+              {showPremiumCta
+                ? (lang === 'ru' ? 'Чат с астрологом доступен в Premium.' : 'Astrologer chat is available in Premium.')
+                : (lang === 'ru' ? 'Выбери вопрос — Lumia ответит по твоей карте.' : 'Pick a question — Lumia answers from your chart.')}
             </p>
           </div>
         </div>
