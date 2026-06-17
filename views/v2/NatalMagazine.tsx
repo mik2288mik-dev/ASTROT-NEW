@@ -64,12 +64,12 @@ export function NatalMagazine({
     <div className="fresh-page">
       <ShimmerStyles />
 
-      {/* Единая шапка (без «Журнала» и без дублей имени) */}
-      <div className="fresh-page-title-block" style={{ paddingBottom: 10 }}>
+      {/* Единая шапка — по центру и повыше (без «Журнала» и без дублей имени) */}
+      <div className="fresh-page-title-block" style={{ textAlign: 'center', paddingTop: 0, paddingBottom: 8 }}>
         <div className="fresh-page-kicker">{language === 'ru' ? 'Натальная карта' : 'Natal chart'}</div>
         <div className="fresh-page-title">{profile.name}</div>
       </div>
-      <div style={{ padding: '0 20px 14px', fontSize: 14, color: 'var(--fresh-muted)' }}>
+      <div style={{ textAlign: 'center', padding: '0 20px 16px', fontSize: 14, color: 'var(--fresh-muted)' }}>
         {formatLumiaDate(profile.birthDate, language)}{profile.birthPlace ? ` · ${profile.birthPlace}` : ''}
       </div>
 

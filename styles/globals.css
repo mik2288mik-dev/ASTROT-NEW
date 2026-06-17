@@ -3489,6 +3489,64 @@ a,
   font-family: var(--fresh-font);
 }
 
+/* ── Гороскоп: единая свайп-карточка (герой + текст + советы) ── */
+.horo-uni-wrap { position: relative; margin: 0 16px 10px; }
+
+.horo-uni {
+  border-radius: var(--fresh-radius-hero);
+  overflow: hidden;
+  box-shadow: var(--fresh-shadow-hero);
+  background: #fff;
+  cursor: grab;
+  touch-action: pan-y;
+  will-change: transform;
+}
+
+.horo-uni:active { cursor: grabbing; }
+
+.horo-uni-hero { position: relative; min-height: 132px; }
+
+.horo-uni-body { background: #fff; padding: 16px 18px 20px; }
+
+.horo-uni-summary {
+  margin: 0;
+  font-family: var(--fresh-font);
+  font-size: 16px;
+  line-height: 1.62;
+  color: var(--fresh-text);
+}
+
+.horo-uni-advice {
+  margin-top: 16px;
+  border-top: 1px solid var(--fresh-border);
+  padding-top: 14px;
+}
+
+.horo-uni-advice-title {
+  font-family: var(--fresh-font);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--fresh-muted);
+  margin-bottom: 8px;
+}
+
+.horo-uni-advice ul {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.horo-uni-advice li {
+  font-family: var(--fresh-font);
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: var(--fresh-text);
+}
+
 /* ── Премиум-карточка «Личный день» (компактная, с картинкой/градиентом) ── */
 .horo-premium {
   position: relative;

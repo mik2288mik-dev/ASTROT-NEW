@@ -12,7 +12,7 @@ import {
   ensureWeeklySignHoroscope,
 } from '../../services/astrologyService';
 import { saveProfile } from '../../services/storageService';
-import { MonoArticleSection, MonoShareBar, MonoTag } from '../../components/mono-ui';
+import { MonoShareBar } from '../../components/mono-ui';
 import { FreshTabs, FreshSignCarousel } from '../../components/fresh-ui';
 import { ZodiacIcon } from '../../components/icons/ZodiacIcon';
 import { ChevronRightIcon } from '../../components/icons/UiIcons';
@@ -175,12 +175,30 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
     else onRequestPremium?.();
   };
 
+  /* Поделиться самим разбором (а не ссылкой на бота) */
+  const shareReading = () => {
+    const parts = [`${signLabel} · ${periodLabel}`];
+    if (reading?.headline) parts.push(reading.headline);
+    if (reading?.summary) parts.push(reading.summary);
+    if (reading?.advice?.length) {
+      parts.push((language === 'ru' ? 'Советы:' : 'Advice:') + '\n' + reading.advice.slice(0, 3).map((a) => `• ${a}`).join('\n'));
+    }
+    const text = parts.join('\n\n');
+    try {
+      const tg = (window as unknown as { Telegram?: { WebApp?: { openTelegramLink?: (url: string) => void } } }).Telegram?.WebApp;
+      const url = 'https://t.me/lumia_astrology_bot';
+      tg?.openTelegramLink?.(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`);
+    } catch {
+      /* optional */
+    }
+  };
+
   return (
     <div className="fresh-page">
       {/* Заголовок — по центру, компактно */}
       <div className="fresh-page-title-block" style={{ textAlign: 'center', paddingTop: 0, paddingBottom: 12 }}>
         <div className="fresh-page-kicker">
-          {language === 'ru' ? 'Гороскоп' : 'Horoscope'} · {periodLabel}
+          {language === 'ru' ? 'Гороскоп' : 'Horoscope'} · {periodDateLabel}
         </div>
         <div className="fresh-page-title">{signLabel}</div>
       </div>
@@ -204,14 +222,12 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
         onTabChange={(id) => { lumiaSelectionHaptic(); setDir(0); setPeriod(id as Period); }}
       />
 
-      {/* Свайп-колода: карточка знака */}
-      <div className="horo-deck">
-        <div className="horo-deck-ghost" aria-hidden />
+      {/* Единая свайп-карточка: весь гороскоп + советы вместе (свайп ← → меняет знак) */}
+      <div className="horo-uni-wrap">
         <AnimatePresence custom={dir} initial={false} mode="popLayout">
           <motion.div
             key={currentKey}
-            className="horo-card"
-            style={{ background: ELEMENT_COLOR[sign.toLowerCase()] || 'var(--fresh-sky)' }}
+            className="horo-uni"
             custom={dir}
             variants={cardVariants}
             initial="enter"
@@ -221,67 +237,37 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
             drag={reduce ? false : 'x'}
             dragDirectionLock
             dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={0.6}
+            dragElastic={0.5}
             onDragEnd={onDragEnd}
           >
-            <div className="fresh-hero-chip" style={{ top: 14, right: 14 }}>{periodLabel}</div>
-            <div className="fresh-hero-icon" aria-hidden><ZodiacIcon sign={sign} size={80} strokeWidth={1.1} /></div>
-            {reading?.headline ? <div className="fresh-sticky" style={{ transform: 'rotate(-2deg)' }}>{reading.headline}</div> : null}
-            <div className="fresh-hero-soft">{periodDateLabel}</div>
+            <div className="horo-uni-hero" style={{ background: ELEMENT_COLOR[sign.toLowerCase()] || 'var(--fresh-sky)' }}>
+              <div className="fresh-hero-chip" style={{ top: 14, right: 14 }}>{periodLabel}</div>
+              <div className="fresh-hero-icon" aria-hidden><ZodiacIcon sign={sign} size={72} strokeWidth={1.1} /></div>
+              <div className="fresh-sticky" style={{ transform: 'rotate(-2deg)' }}>
+                {reading?.headline || (language === 'ru' ? 'Готовим разбор…' : 'Preparing…')}
+              </div>
+            </div>
+            <div className="horo-uni-body">
+              <p className="horo-uni-summary">
+                {loading ? (language === 'ru' ? 'Готовим разбор…' : 'Preparing reading…') : reading?.summary}
+              </p>
+              {!loading && reading?.advice?.length ? (
+                <div className="horo-uni-advice">
+                  <div className="horo-uni-advice-title">{language === 'ru' ? 'Советы' : 'Advice'}</div>
+                  <ul>{reading.advice.slice(0, 3).map((item) => <li key={item}>{item}</li>)}</ul>
+                </div>
+              ) : null}
+            </div>
           </motion.div>
         </AnimatePresence>
-
-        <button type="button" className="horo-nav horo-nav-prev" aria-label={language === 'ru' ? 'Предыдущий знак' : 'Previous sign'} onClick={() => paginate(-1)}>
-          <span style={{ transform: 'rotate(180deg)', display: 'flex' }}><ChevronRightIcon size={18} /></span>
-        </button>
-        <button type="button" className="horo-nav horo-nav-next" aria-label={language === 'ru' ? 'Следующий знак' : 'Next sign'} onClick={() => paginate(1)}>
-          <ChevronRightIcon size={18} />
-        </button>
       </div>
 
       <div className="horo-hint">{language === 'ru' ? 'Свайп ← → меняет знак' : 'Swipe ← → to change sign'}</div>
 
-      {/* Текст разбора (плавная смена) */}
-      <AnimatePresence mode="wait">
-        <motion.article
-          key={currentKey}
-          style={{ padding: '2px 20px 8px' }}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.22 }}
-        >
-          <p style={{ fontSize: 17, lineHeight: 1.65, color: 'var(--fresh-text)', margin: 0 }}>
-            {loading ? (language === 'ru' ? 'Готовим разбор…' : 'Preparing reading…') : reading?.summary}
-          </p>
-
-          {!loading && reading?.advice?.length ? (
-            <div style={{ marginTop: 22 }}>
-              <MonoArticleSection title={language === 'ru' ? 'Советы' : 'Advice'}>
-                <ul className="space-y-2">{reading.advice.slice(0, 3).map((item) => <li key={item}>{item}</li>)}</ul>
-              </MonoArticleSection>
-            </div>
-          ) : null}
-
-          <div style={{ marginTop: 24, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            <MonoTag>{signLabel}</MonoTag>
-            <MonoTag>{periodLabel}</MonoTag>
-          </div>
-        </motion.article>
-      </AnimatePresence>
-
       <MonoShareBar
         label={language === 'ru' ? 'Поделиться' : 'Share'}
         withTabClearance
-        onShare={() => {
-          try {
-            const tg = (window as unknown as { Telegram?: { WebApp?: { openTelegramLink?: (url: string) => void } } })
-              .Telegram?.WebApp;
-            tg?.openTelegramLink?.(`https://t.me/share/url?url=${encodeURIComponent('https://t.me/lumia_astrology_bot')}`);
-          } catch {
-            /* optional */
-          }
-        }}
+        onShare={shareReading}
       />
     </div>
   );
