@@ -204,7 +204,7 @@ export const Dashboard = memo<DashboardProps>(({
     {
       id: 'synastry',
       icon: <HeartIcon />,
-      label: language === 'ru' ? 'Союз' : 'Union',
+      label: language === 'ru' ? 'Люди' : 'People',
       onClick: () => { lumiaSelectionHaptic(); onOpenSynastry?.(); },
     },
     {
@@ -409,10 +409,10 @@ export const Dashboard = memo<DashboardProps>(({
           >
             <div style={{ color: 'var(--fresh-text)', marginBottom: 8 }}><HeartIcon size={24} /></div>
             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--fresh-text)', marginBottom: 2 }}>
-              {language === 'ru' ? 'Совместимость' : 'Compatibility'}
+              {language === 'ru' ? 'Люди' : 'People'}
             </div>
             <div style={{ fontSize: 11, color: 'var(--fresh-muted)' }}>
-              {language === 'ru' ? 'Синастрия' : 'Synastry'}
+              {language === 'ru' ? 'Совместимость' : 'Compatibility'}
             </div>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--fresh-link)', marginTop: 8 }}>
               {language === 'ru' ? 'Открыть →' : 'Open →'}

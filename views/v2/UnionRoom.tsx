@@ -1,7 +1,17 @@
-import React, { useState } from 'react';
-import type { NatalChartData, UserProfile } from '../../types';
-import { Synastry } from '../Synastry';
+import React, { useEffect, useMemo, useState } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
+import type { NatalChartData, SynastryResult, UserProfile } from '../../types';
+import type { SignCompatibilityResult } from '../../lib/synastry/signCompatibility';
+import { getZodiacSign } from '../../constants';
+import { hasActivePremium, hasNatalChart } from '../../lib/accessMatrix';
+import { getCharts, type ChartListItem } from '../../services/storageService';
+import { getSignCompatibility, calculateExtendedSynastry } from '../../services/astrologyService';
+import { toDateInputValue } from '../../lib/date-utils';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
+import { getCompatScore, sunSignFromDate, DIMENSION_LABELS, type CompatResult, type CompatDimension } from '../../lib/synastry/compatScore';
+import { ZodiacIcon } from '../../components/icons/ZodiacIcon';
+import { ChevronRightIcon } from '../../components/icons/UiIcons';
+import { MonoArticleSection } from '../../components/mono-ui';
 
 type SynastryPrefill = {
   source: 'saved-chart' | 'manual';
@@ -23,67 +33,292 @@ type UnionRoomProps = {
   onUpdateProfile?: (profile: UserProfile) => void;
 };
 
-/** Типы отношений — задают фокус разбора (нейтрально, не только романтика) */
-const REL_TYPES = [
-  { key: 'love', ru: 'Любовь', en: 'Love', backend: 'любовь' },
-  { key: 'friend', ru: 'Дружба', en: 'Friendship', backend: 'дружба' },
-  { key: 'family', ru: 'Семья', en: 'Family', backend: 'семья' },
-  { key: 'work', ru: 'Работа', en: 'Work', backend: 'работа' },
-] as const;
+type Person = { name: string; date: string; time?: string; place?: string; chartId?: number };
+
+const REL_BACKEND: Record<CompatDimension, string> = {
+  love: 'любовь', relationship: 'отношения', friendship: 'дружба', work: 'работа',
+};
+
+/* ── Кольцо-score с анимацией заполнения и счётом ── */
+function ScoreRing({ value }: { value: number }) {
+  const reduce = useReducedMotion();
+  const r = 46;
+  const circ = 2 * Math.PI * r;
+  const [shown, setShown] = useState(reduce ? value : 0);
+
+  useEffect(() => {
+    if (reduce) { setShown(value); return; }
+    let raf = 0;
+    const t0 = performance.now();
+    const dur = 900;
+    const tick = (t: number) => {
+      const k = Math.min(1, (t - t0) / dur);
+      setShown(Math.round(value * (1 - Math.pow(1 - k, 3))));
+      if (k < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [value, reduce]);
+
+  return (
+    <div className="people-ring">
+      <svg viewBox="0 0 110 110" width="104" height="104">
+        <circle cx="55" cy="55" r={r} fill="none" stroke="var(--fresh-border)" strokeWidth="9" />
+        <motion.circle
+          cx="55" cy="55" r={r} fill="none" stroke="var(--fresh-link)" strokeWidth="9" strokeLinecap="round"
+          strokeDasharray={circ}
+          initial={{ strokeDashoffset: circ }}
+          animate={{ strokeDashoffset: circ * (1 - value / 100) }}
+          transition={reduce ? { duration: 0 } : { duration: 0.9, ease: 'easeOut' }}
+          transform="rotate(-90 55 55)"
+        />
+      </svg>
+      <div className="people-ring-num">{shown}</div>
+    </div>
+  );
+}
 
 export function UnionRoom(props: UnionRoomProps) {
-  const ru = props.profile.language !== 'en';
-  const [rel, setRel] = useState<(typeof REL_TYPES)[number]['key']>('love');
-  const [started, setStarted] = useState<null | { mode: 'signs' | 'personal' }>(
-    props.initialPrefill ? { mode: 'personal' } : null,
+  const { profile, chartData, chartId, requestPremium, initialPrefill, onCreateNatalChart } = props;
+  const ru = profile.language !== 'en';
+  const lang: 'ru' | 'en' = ru ? 'ru' : 'en';
+  const reduce = useReducedMotion();
+
+  const hasChart = hasNatalChart(profile, { chartData, primaryChartId: chartId ?? null });
+  const premium = hasActivePremium(profile);
+  const yourSun = useMemo(
+    () => String(chartData?.sun?.sign || profile.selectedZodiacSign || sunSignFromDate(profile.birthDate) || 'aries').toLowerCase(),
+    [chartData, profile.selectedZodiacSign, profile.birthDate],
   );
 
-  if (started) {
-    const backend = REL_TYPES.find((r) => r.key === rel)?.backend ?? 'отношения';
-    return <Synastry {...props} embedded initialMode={started.mode} relationshipType={backend} />;
+  const [screen, setScreen] = useState<'hub' | 'add' | 'result'>(initialPrefill ? 'result' : 'hub');
+  const [people, setPeople] = useState<ChartListItem[]>([]);
+  const [selected, setSelected] = useState<Person | null>(
+    initialPrefill
+      ? { name: initialPrefill.partnerName || '', date: toDateInputValue(initialPrefill.partnerDate || ''), time: initialPrefill.partnerTime, place: initialPrefill.partnerPlace, chartId: initialPrefill.partnerChartId }
+      : null,
+  );
+
+  // форма добавления
+  const [fName, setFName] = useState(''); const [fDate, setFDate] = useState(''); const [fTime, setFTime] = useState(''); const [fPlace, setFPlace] = useState('');
+
+  // тексты
+  const [signText, setSignText] = useState<SignCompatibilityResult | null>(null);
+  const [deep, setDeep] = useState<SynastryResult | null>(null);
+  const [deepLoading, setDeepLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!profile.id) return;
+    void getCharts(profile.id).then((d) => setPeople((d.charts || []).filter((c) => !c.is_primary))).catch(() => setPeople([]));
+  }, [profile.id]);
+
+  const theirSun = selected ? (sunSignFromDate(selected.date) || 'libra') : 'libra';
+  const score: CompatResult | null = selected ? getCompatScore(yourSun, theirSun, lang) : null;
+
+  // свободный текст по знакам при открытии результата
+  useEffect(() => {
+    if (screen !== 'result' || !selected) return;
+    setSignText(null); setDeep(null); setError(null);
+    let alive = true;
+    void getSignCompatibility(yourSun, theirSun, lang)
+      .then((r) => { if (alive) setSignText(r); })
+      .catch(() => { /* optional */ });
+    return () => { alive = false; };
+  }, [screen, selected, yourSun, theirSun, lang]);
+
+  const openResult = (p: Person) => { lumiaSelectionHaptic(); setSelected(p); setScreen('result'); };
+
+  const submitAdd = () => {
+    if (!fName.trim() || !fDate) { setError(ru ? 'Добавь имя и дату рождения.' : 'Add a name and birth date.'); return; }
+    setError(null);
+    openResult({ name: fName.trim(), date: fDate, time: fTime || undefined, place: fPlace || undefined });
+  };
+
+  const runDeep = async () => {
+    if (!selected || !score) return;
+    if (!hasChart) { onCreateNatalChart?.(); return; }
+    if (!premium) { requestPremium(); return; }
+    setDeepLoading(true); setError(null);
+    try {
+      const out = await calculateExtendedSynastry(profile, selected.name, selected.date, selected.time, selected.place, REL_BACKEND[score.strongest], selected.chartId);
+      setDeep(out.result);
+    } catch (e: any) {
+      setError(e?.message || (ru ? 'Не удалось собрать полный разбор.' : 'Could not build the full reading.'));
+    } finally {
+      setDeepLoading(false);
+    }
+  };
+
+  /* ── ХАБ ── */
+  if (screen === 'hub') {
+    return (
+      <div className="fresh-page">
+        <div className="fresh-page-title-block" style={{ paddingTop: 0, paddingBottom: 4 }}>
+          <div className="fresh-page-kicker">{ru ? 'Совместимость' : 'Compatibility'}</div>
+          <div className="fresh-page-title">{ru ? 'Люди' : 'People'}</div>
+        </div>
+        <p style={{ padding: '0 20px 16px', fontSize: 14, lineHeight: 1.5, color: 'var(--fresh-muted)' }}>
+          {ru ? 'Добавь человека — и посмотри, что между вами: где притягивает и что сильнее всего, любовь или дружба.' : 'Add a person and see what is between you — and which bond is strongest.'}
+        </p>
+
+        <div className="people-grid">
+          <button type="button" className="people-add" onClick={() => { lumiaSelectionHaptic(); setScreen('add'); }}>
+            <span className="people-add-plus">+</span>
+            <span>{ru ? 'Добавить' : 'Add'}</span>
+          </button>
+          {people.map((c) => {
+            const s = getCompatScore(yourSun, sunSignFromDate(c.birth_date) || 'libra', lang);
+            return (
+              <button
+                key={c.id}
+                type="button"
+                className="people-card"
+                onClick={() => openResult({ name: c.name, date: toDateInputValue(c.birth_date), time: c.birth_time || undefined, place: c.birth_place || undefined, chartId: c.id })}
+              >
+                <span className="people-card-score" style={{ color: 'var(--fresh-link)' }}>{s.overall}</span>
+                <span className="people-card-name">{c.name}</span>
+                <span className="people-card-sign">{getZodiacSign(lang, sunSignFromDate(c.birth_date) || '')}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
   }
 
-  const start = (mode: 'signs' | 'personal') => {
-    lumiaSelectionHaptic();
-    setStarted({ mode });
-  };
+  /* ── ДОБАВЛЕНИЕ ── */
+  if (screen === 'add') {
+    return (
+      <div className="fresh-page">
+        <div className="fresh-inner-header">
+          <button className="fresh-back-btn" type="button" aria-label={ru ? 'Назад' : 'Back'} onClick={() => { lumiaSelectionHaptic(); setScreen('hub'); }}>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8L10 13" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          </button>
+          <div className="fresh-inner-title" style={{ flex: 1, textAlign: 'center' }}>{ru ? 'Кто это?' : 'Who is this?'}</div>
+          <div style={{ width: 34 }} />
+        </div>
+
+        <div className="union-form" style={{ marginTop: 6 }}>
+          <div>
+            <label className="fresh-field-label">{ru ? 'Имя' : 'Name'}</label>
+            <input className="fresh-input" value={fName} onChange={(e) => setFName(e.target.value)} placeholder={ru ? 'Например, Аня' : 'e.g. Alex'} />
+          </div>
+          <div>
+            <label className="fresh-field-label">{ru ? 'Дата рождения' : 'Birth date'}</label>
+            <input className="fresh-input" type="date" value={fDate} onChange={(e) => setFDate(e.target.value)} />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <div>
+              <label className="fresh-field-label">{ru ? 'Время (если есть)' : 'Time (optional)'}</label>
+              <input className="fresh-input" type="time" value={fTime} onChange={(e) => setFTime(e.target.value)} />
+            </div>
+            <div>
+              <label className="fresh-field-label">{ru ? 'Место (если есть)' : 'Place (optional)'}</label>
+              <input className="fresh-input" value={fPlace} onChange={(e) => setFPlace(e.target.value)} placeholder={ru ? 'Город' : 'City'} />
+            </div>
+          </div>
+          <p style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--fresh-muted)' }}>
+            {ru ? 'Хватит даты — базовый разбор готов сразу. Со временем и местом разбор точнее.' : 'A date is enough for a basic reading. Time and place make it more precise.'}
+          </p>
+        </div>
+        {error ? <p className="union-pad" style={{ color: '#B91C1C', fontSize: 14, marginTop: 12 }}>{error}</p> : null}
+        <button type="button" className="fresh-btn-primary" style={{ marginTop: 16 }} onClick={submitAdd}>
+          {ru ? 'Посмотреть' : 'See it'}
+        </button>
+      </div>
+    );
+  }
+
+  /* ── РЕЗУЛЬТАТ ── */
+  const strongestLabel = score ? DIMENSION_LABELS[score.strongest][lang] : '';
+  const dimsOrder: CompatDimension[] = ['love', 'relationship', 'friendship', 'work'];
 
   return (
     <div className="fresh-page">
-      <div className="fresh-page-title-block" style={{ textAlign: 'center', paddingTop: 0, paddingBottom: 12 }}>
-        <div className="fresh-page-kicker">{ru ? 'Союз' : 'Union'}</div>
-        <div className="fresh-page-title">{ru ? 'Совместимость' : 'Compatibility'}</div>
+      <div className="fresh-inner-header">
+        <button className="fresh-back-btn" type="button" aria-label={ru ? 'Назад' : 'Back'} onClick={() => { lumiaSelectionHaptic(); setScreen('hub'); }}>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8L10 13" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        </button>
+        <div className="fresh-inner-title" style={{ flex: 1, textAlign: 'center' }}>{selected?.name || (ru ? 'Совместимость' : 'Compatibility')}</div>
+        <div style={{ width: 34 }} />
       </div>
 
-      <div className="union-hero">
-        <div className="union-hero-text">
-          {ru
-            ? 'Что между вами: что притягивает, где возникают трения и как говорить друг с другом яснее.'
-            : 'What is between you: what attracts, where friction shows up, and how to talk clearer.'}
+      {/* Вы × Он/Она + кольцо */}
+      <div className="people-split">
+        <motion.div className="people-side" initial={reduce ? false : { x: -22, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ duration: 0.4, ease: 'easeOut' }}>
+          <div className="people-side-ico"><ZodiacIcon sign={yourSun} size={32} strokeWidth={1.4} /></div>
+          <div className="people-side-name">{ru ? 'Вы' : 'You'}</div>
+          <div className="people-side-sign">{getZodiacSign(lang, yourSun)}</div>
+        </motion.div>
+
+        <div className="people-center">
+          {score ? <ScoreRing value={score.overall} /> : null}
+          <div className="people-verdict">{score?.verdict}</div>
         </div>
+
+        <motion.div className="people-side" initial={reduce ? false : { x: 22, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ duration: 0.4, ease: 'easeOut' }}>
+          <div className="people-side-ico"><ZodiacIcon sign={theirSun} size={32} strokeWidth={1.4} /></div>
+          <div className="people-side-name">{selected?.name || (ru ? 'Человек' : 'Person')}</div>
+          <div className="people-side-sign">{getZodiacSign(lang, theirSun)}</div>
+        </motion.div>
       </div>
 
-      <div className="union-rel-label">{ru ? 'Тип отношений' : 'Relationship'}</div>
-      <div className="union-rel">
-        {REL_TYPES.map((r) => (
-          <button
-            key={r.key}
-            type="button"
-            className={`union-rel-chip ${rel === r.key ? 'active' : ''}`}
-            aria-pressed={rel === r.key}
-            onClick={() => { lumiaSelectionHaptic(); setRel(r.key); }}
-          >
-            {ru ? r.ru : r.en}
-          </button>
+      {/* Полосы по сферам */}
+      <div className="people-dims">
+        {dimsOrder.map((k, i) => (
+          <div key={k} className={`people-dim ${score && k === score.strongest ? 'is-top' : ''}`}>
+            <div className="people-dim-row">
+              <span>{DIMENSION_LABELS[k][lang]}</span>
+              <span className="people-dim-val">{score?.dims[k]}</span>
+            </div>
+            <div className="people-dim-track">
+              <motion.div
+                className="people-dim-fill"
+                initial={reduce ? false : { width: 0 }}
+                animate={{ width: `${score?.dims[k] ?? 0}%` }}
+                transition={reduce ? { duration: 0 } : { duration: 0.7, delay: 0.08 * i, ease: 'easeOut' }}
+              />
+            </div>
+          </div>
         ))}
       </div>
+      <div className="people-strong">{ru ? 'Сильнее всего' : 'Strongest'} — {strongestLabel}</div>
 
-      <button type="button" className="fresh-btn-primary" onClick={() => start('personal')}>
-        {ru ? 'Проверить совместимость' : 'Check compatibility'}
-      </button>
-      <button type="button" className="union-secondary" onClick={() => start('signs')}>
-        {ru ? 'Быстро по знакам' : 'Quick by signs'}
-      </button>
+      {/* Свободный разбор по знакам */}
+      {signText ? (
+        <div className="union-pad space-y-3" style={{ marginTop: 8 }}>
+          <MonoArticleSection title={ru ? 'Что вас тянет' : 'What draws you'}>{signText.attraction}</MonoArticleSection>
+          <MonoArticleSection title={ru ? 'Где может быть сложно' : 'Where it gets hard'}>{signText.difficulty}</MonoArticleSection>
+          <MonoArticleSection title={ru ? 'Как лучше общаться' : 'How to communicate'}>{signText.communication}</MonoArticleSection>
+        </div>
+      ) : (
+        <p className="union-pad" style={{ marginTop: 8, color: 'var(--fresh-muted)', fontSize: 14 }}>{ru ? 'Готовим разбор…' : 'Preparing…'}</p>
+      )}
+
+      {/* Полный разбор по картам (Premium) */}
+      {deep ? (
+        <div className="union-pad space-y-3" style={{ marginTop: 14 }}>
+          <MonoArticleSection title={ru ? 'Как ощущается ваша связь' : 'How your bond feels'}>{deep.summary}</MonoArticleSection>
+          <MonoArticleSection title={ru ? 'Что вас притягивает' : 'What draws you'}>{deep.fullAnalysis?.attraction}</MonoArticleSection>
+          <MonoArticleSection title={ru ? 'Где вы задеваете друг друга' : 'Where you trigger each other'}>{deep.fullAnalysis?.difficulties}</MonoArticleSection>
+          <MonoArticleSection title={ru ? 'Что может укрепить связь' : 'What can strengthen it'}>{deep.fullAnalysis?.potential}</MonoArticleSection>
+        </div>
+      ) : (
+        <button type="button" className="horo-premium" style={{ marginTop: 16 }} onClick={() => void runDeep()}>
+          <div className="horo-premium-text">
+            <div className="horo-premium-kicker">{ru ? `Полный разбор · ${strongestLabel}` : `Full reading · ${strongestLabel}`}</div>
+            <div className="horo-premium-title">
+              {deepLoading ? (ru ? 'Собираю по картам…' : 'Building from charts…') : !hasChart ? (ru ? 'Нужна твоя карта' : 'Your chart needed') : !premium ? (ru ? 'Глубокий разбор по картам — в Premium' : 'Deep chart reading — Premium') : (ru ? 'Разбор по двум картам' : 'Read both charts')}
+            </div>
+          </div>
+          <span className="horo-premium-cta">{!hasChart ? (ru ? 'Создать' : 'Create') : !premium ? 'Premium' : (ru ? 'Открыть' : 'Open')}<ChevronRightIcon size={15} /></span>
+        </button>
+      )}
+
+      {error ? <p className="union-pad" style={{ color: '#B91C1C', fontSize: 14, marginTop: 12 }}>{error}</p> : null}
+
+      <div style={{ height: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }} />
     </div>
   );
 }

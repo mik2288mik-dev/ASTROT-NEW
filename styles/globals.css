@@ -3673,6 +3673,75 @@ a,
   gap: 12px;
 }
 
+/* ── «Люди»: хаб ── */
+.people-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding: 0 16px 20px;
+}
+
+.people-add,
+.people-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 104px;
+  border-radius: 18px;
+  border: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  background: var(--fresh-surface);
+  color: var(--fresh-text);
+  font-family: var(--fresh-font);
+  padding: 12px 8px;
+  text-align: center;
+}
+
+.people-add {
+  border: 1px dashed var(--fresh-border);
+  background: transparent;
+  color: var(--fresh-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.people-add-plus { font-size: 24px; font-weight: 400; line-height: 1; }
+.people-card-score { font-size: 22px; font-weight: 800; }
+.people-card-name { font-size: 13px; font-weight: 700; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.people-card-sign { font-size: 11px; color: var(--fresh-muted); font-weight: 600; }
+
+/* ── «Люди»: результат (Вы × Он/Она + кольцо) ── */
+.people-split {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 16px 18px;
+}
+
+.people-side { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; }
+.people-side-ico { width: 48px; height: 48px; border-radius: 50%; background: var(--fresh-surface); display: flex; align-items: center; justify-content: center; color: var(--fresh-text); }
+.people-side-name { font-size: 13px; font-weight: 800; color: var(--fresh-text); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.people-side-sign { font-size: 11px; font-weight: 600; color: var(--fresh-muted); }
+
+.people-center { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.people-ring { position: relative; width: 104px; height: 104px; display: flex; align-items: center; justify-content: center; }
+.people-ring svg { position: absolute; inset: 0; }
+.people-ring-num { font-family: var(--fresh-font); font-size: 30px; font-weight: 900; color: var(--fresh-text); letter-spacing: -0.02em; }
+.people-verdict { font-size: 12px; font-weight: 800; color: var(--fresh-link); }
+
+.people-dims { display: flex; flex-direction: column; gap: 12px; padding: 0 20px 6px; }
+.people-dim-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; font-family: var(--fresh-font); font-size: 13px; font-weight: 700; color: var(--fresh-text); }
+.people-dim-val { font-size: 12px; color: var(--fresh-muted); font-weight: 700; }
+.people-dim-track { height: 8px; border-radius: 99px; background: var(--fresh-border); overflow: hidden; }
+.people-dim-fill { height: 100%; border-radius: 99px; background: var(--fresh-muted); }
+.people-dim.is-top .people-dim-fill { background: var(--fresh-link); }
+.people-dim.is-top .people-dim-val { color: var(--fresh-link); }
+.people-strong { text-align: center; font-size: 12px; font-weight: 700; color: var(--fresh-muted); padding: 4px 20px 14px; }
+
 /* ── Астро-контекст дня (день недели + фаза луны) ── */
 .fresh-sky-strip {
   margin: 0 16px 14px;
