@@ -14,6 +14,7 @@ import { ChevronRightIcon } from '../../components/icons/UiIcons';
 import { FreshSignCarousel } from '../../components/fresh-ui';
 import { MonoArticleSection } from '../../components/mono-ui';
 import { ZODIAC_KEYS } from '../../lib/horoscope/signDaily';
+import { shareToTelegram } from '../../lib/botLink';
 
 type SynastryPrefill = {
   source: 'saved-chart' | 'manual';
@@ -129,6 +130,16 @@ export function UnionRoom(props: UnionRoomProps) {
   }, [screen, selected, yourSun, theirSun, lang]);
 
   const openResult = (s: Selected) => { lumiaSelectionHaptic(); setSelected(s); setScreen('result'); };
+
+  const shareCompat = () => {
+    if (!score || !selected) return;
+    const strong = DIMENSION_LABELS[score.strongest][lang];
+    const them = selected.kind === 'sign' ? getZodiacSign(lang, theirSun) : (selected.name || '');
+    const text = ru
+      ? `Совместимость с ${them}: ${score.overall}/100 — ${score.verdict}. Сильнее всего — ${strong}.\n\nПроверь свою совместимость в Lumia.`
+      : `Compatibility with ${them}: ${score.overall}/100 — ${score.verdict}. Strongest — ${strong}.\n\nCheck yours in Lumia.`;
+    shareToTelegram(text);
+  };
 
   const submitAdd = () => {
     if (!fName.trim() || !fDate) { setError(ru ? 'Добавь имя и дату рождения.' : 'Add a name and birth date.'); return; }
@@ -338,6 +349,10 @@ export function UnionRoom(props: UnionRoomProps) {
       )}
 
       {error ? <p className="union-pad" style={{ color: '#B91C1C', fontSize: 14, marginTop: 12 }}>{error}</p> : null}
+
+      <button type="button" className="union-share" onClick={shareCompat}>
+        {ru ? 'Поделиться совместимостью' : 'Share compatibility'}
+      </button>
 
       <div style={{ height: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }} />
     </div>

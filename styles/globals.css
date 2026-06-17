@@ -3809,9 +3809,39 @@ a,
 }
 
 .people-add-plus { font-size: 24px; font-weight: 400; line-height: 1; }
-.people-card-score { font-size: 22px; font-weight: 800; }
+.people-card-score {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid var(--fresh-link);
+  font-size: 15px;
+  font-weight: 800;
+  margin-bottom: 2px;
+}
 .people-card-name { font-size: 13px; font-weight: 700; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .people-card-sign { font-size: 11px; color: var(--fresh-muted); font-weight: 600; }
+.people-card { animation: people-card-in 0.3s ease both; }
+@keyframes people-card-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+.union-share {
+  display: block;
+  width: calc(100% - 32px);
+  margin: 16px 16px 0;
+  background: var(--fresh-surface);
+  color: var(--fresh-text);
+  border: none;
+  border-radius: var(--fresh-radius-btn);
+  padding: 14px;
+  font-family: var(--fresh-font);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.union-share:active { transform: scale(0.99); }
 
 /* ── «Люди»: результат (Вы × Он/Она + кольцо) ── */
 .people-split {
@@ -3831,7 +3861,7 @@ a,
 .people-ring { position: relative; width: 104px; height: 104px; display: flex; align-items: center; justify-content: center; }
 .people-ring svg { position: absolute; inset: 0; }
 .people-ring-num { font-family: var(--fresh-font); font-size: 30px; font-weight: 900; color: var(--fresh-text); letter-spacing: -0.02em; }
-.people-verdict { font-size: 12px; font-weight: 800; color: var(--fresh-link); }
+.people-verdict { font-size: 12px; font-weight: 800; color: #fff; background: var(--fresh-link); padding: 5px 13px; border-radius: var(--fresh-radius-pill); }
 
 .people-dims { display: flex; flex-direction: column; gap: 12px; padding: 0 20px 6px; }
 .people-dim-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; font-family: var(--fresh-font); font-size: 13px; font-weight: 700; color: var(--fresh-text); }
