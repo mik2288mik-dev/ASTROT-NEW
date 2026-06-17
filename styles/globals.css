@@ -3541,6 +3541,11 @@ a,
 
 .horo-uni-body { background: #fff; padding: 16px 18px 20px; }
 
+/* Гейт «другого знака» (квота знаков) */
+.horo-lock { padding: 4px 2px 2px; }
+.horo-lock-title { font-family: var(--fresh-font); font-size: 16px; font-weight: 800; color: var(--fresh-text); margin-bottom: 6px; }
+.horo-lock-text { margin: 0; font-family: var(--fresh-font); font-size: 14px; line-height: 1.55; color: var(--fresh-muted); }
+
 .horo-uni-summary {
   margin: 0;
   font-family: var(--fresh-font);
@@ -4025,6 +4030,29 @@ a,
 .aw-reasons { margin: 12px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
 .aw-reasons li { font-family: var(--fresh-font); font-size: 13.5px; line-height: 1.45; color: var(--fresh-muted); }
 .aw-caution { margin: 12px 0 0; font-family: var(--fresh-font); font-size: 13px; line-height: 1.5; color: #9a6a00; background: #FFFBEB; border-radius: 12px; padding: 10px 12px; }
+
+/* ── «Окна дня»: живой таймлайн (без тапов, обновляется на «сейчас») ── */
+.dw { position: relative; }
+.dw-rows { position: relative; display: flex; flex-direction: column; gap: 13px; }
+.dw-row-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+.dw-row-label { font-family: var(--fresh-font); font-size: 13px; font-weight: 800; color: var(--fresh-text); }
+.dw-row-meta { display: inline-flex; align-items: center; gap: 6px; }
+.dw-row-win { font-family: var(--fresh-font); font-size: 11.5px; font-weight: 700; color: var(--fresh-muted); }
+.dw-row-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.dw-row-state { font-family: var(--fresh-font); font-size: 11px; font-weight: 800; }
+.dw-track { position: relative; height: 13px; border-radius: 99px; background: var(--fresh-surface); overflow: hidden; }
+.dw-band { position: absolute; top: 0; bottom: 0; border-radius: 99px; }
+.dw-band-live { position: absolute; top: 0; bottom: 0; border-radius: 99px; border: 2px solid; pointer-events: none; filter: brightness(1.05); }
+.dw-track-now { position: absolute; top: -1px; bottom: -1px; width: 2px; background: rgba(17, 24, 39, 0.55); transform: translateX(-1px); border-radius: 2px; z-index: 2; }
+.dw-nowcap { position: absolute; top: -2px; transform: translateX(-50%); font-family: var(--fresh-font); font-size: 9.5px; font-weight: 800; color: var(--fresh-text); background: #fff; padding: 0 4px; white-space: nowrap; z-index: 3; }
+.dw-rows { padding-top: 12px; }
+.dw-axis { position: relative; height: 16px; margin-top: 6px; }
+.dw-axis span { position: absolute; transform: translateX(-50%); font-family: var(--fresh-font); font-size: 10px; font-weight: 700; color: var(--fresh-muted); }
+.dw-axis span:first-child { transform: translateX(0); }
+.dw-axis span:last-child { transform: translateX(-100%); }
+.dw-skeleton { display: flex; flex-direction: column; gap: 13px; padding-top: 12px; }
+.dw-skeleton-row { height: 13px; border-radius: 99px; background: linear-gradient(90deg, var(--fresh-surface), #eef1f5, var(--fresh-surface)); background-size: 200% 100%; animation: dw-sk 1.2s ease-in-out infinite; }
+@keyframes dw-sk { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
 /* ── «Люди»: результат (Вы × Он/Она + кольцо) ── */
 .people-split {

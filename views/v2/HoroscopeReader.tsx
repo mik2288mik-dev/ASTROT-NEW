@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useMemo, useState } from 'react';
+import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion, type PanInfo } from 'framer-motion';
 import type { ForecastDailyReading, NatalChartData, UserProfile } from '../../types';
 import { getZodiacSign } from '../../constants';
@@ -20,6 +20,25 @@ import { ChevronRightIcon } from '../../components/icons/UiIcons';
 import { ZODIAC_KEYS, type ZodiacKey } from '../../lib/horoscope/signDaily';
 
 const LOCAL_SIGN_KEY = 'lumia:selected-zodiac-sign';
+
+/* Дневная квота «других» знаков: бесплатно 1, в Premium 3 (свой знак всегда доступен).
+   Знаки открываются по тапу — без авто-префетча, чтобы не жечь API. */
+const HORO_EXTRA_KEY = 'lumia:horo-extra-signs';
+const FREE_EXTRA_QUOTA = 1;
+const PREMIUM_EXTRA_QUOTA = 3;
+
+function readExtraSigns(today: string): string[] {
+  try {
+    const raw = window.localStorage.getItem(HORO_EXTRA_KEY);
+    if (!raw) return [];
+    const obj = JSON.parse(raw);
+    return obj && obj.date === today && Array.isArray(obj.signs) ? obj.signs.map((s: unknown) => String(s)) : [];
+  } catch { return []; }
+}
+
+function writeExtraSigns(today: string, signs: string[]) {
+  try { window.localStorage.setItem(HORO_EXTRA_KEY, JSON.stringify({ date: today, signs })); } catch { /* optional */ }
+}
 
 type Period = 'today' | 'tomorrow' | 'week';
 
@@ -87,10 +106,32 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
   const keyOf = (s: string, p: Period) => `${s.toLowerCase()}|${p}`;
   const currentKey = keyOf(sign, period);
   const reading = readings[currentKey];
-  const loading = reading === undefined;
 
-  /* Загрузка текущего знака + префетч соседей (свайп ощущается мгновенным) */
+  /* ── Доступ к знакам: свой знак всегда; «другие» — по дневной квоте, по тапу ── */
+  const premium = hasActivePremium(profile);
+  const extraQuota = premium ? PREMIUM_EXTRA_QUOTA : FREE_EXTRA_QUOTA;
+  const ownSignRef = useRef(String(chartData?.sun?.sign || profile.selectedZodiacSign || ZODIAC_KEYS[0]).toLowerCase());
+  const ownSign = chartData?.sun?.sign ? String(chartData.sun.sign).toLowerCase() : ownSignRef.current;
+  const [extraSigns, setExtraSigns] = useState<string[]>(() => readExtraSigns(today));
+
+  const current = sign.toLowerCase();
+  const isOwnSign = current === ownSign;
+  const signUnlocked = isOwnSign || extraSigns.includes(current);
+  const signLocked = !signUnlocked && extraSigns.length >= extraQuota;
+
+  /* Расход квоты: первый просмотр нового «другого» знака разблокирует его на сегодня. */
   useEffect(() => {
+    if (isOwnSign || extraSigns.includes(current) || extraSigns.length >= extraQuota) return;
+    const next = [...extraSigns, current];
+    setExtraSigns(next);
+    writeExtraSigns(today, next);
+  }, [isOwnSign, current, extraSigns, extraQuota, today]);
+
+  const loading = !signLocked && reading === undefined;
+
+  /* Загрузка ТОЛЬКО текущего знака и только если он разблокирован (без авто-префетча соседей). */
+  useEffect(() => {
+    if (signLocked) return;
     let alive = true;
     const loadFor = async (s: string, p: Period) => {
       const kk = keyOf(s, p);
@@ -107,20 +148,23 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
       }
     };
     void loadFor(sign, period);
-    void loadFor(ZODIAC_KEYS[(signIndex + 1) % 12], period);
-    void loadFor(ZODIAC_KEYS[(signIndex + 11) % 12], period);
     return () => { alive = false; };
-  }, [signIndex, sign, period, language, today]);
+  }, [sign, period, language, today, signLocked]);
 
   const goToIndex = (next: number, direction: number) => {
     lumiaSelectionHaptic();
     setDir(direction);
-    setSignIndex((next + 12) % 12);
-    const normalized = ZODIAC_KEYS[(next + 12) % 12];
-    try { window.localStorage.setItem(LOCAL_SIGN_KEY, normalized); } catch { /* optional */ }
-    const updated = { ...profile, selectedZodiacSign: normalized };
-    onUpdateProfile?.(updated);
-    if (updated.id) void saveProfile(updated).catch(() => undefined);
+    const idx = (next + 12) % 12;
+    setSignIndex(idx);
+    const normalized = ZODIAC_KEYS[idx];
+    // Сохраняем выбранный знак как «основной» только для премиума или для своего знака,
+    // чтобы бесплатный просмотр чужого знака не подменял знак на главной.
+    if (premium || normalized.toLowerCase() === ownSign) {
+      try { window.localStorage.setItem(LOCAL_SIGN_KEY, normalized); } catch { /* optional */ }
+      const updated = { ...profile, selectedZodiacSign: normalized };
+      onUpdateProfile?.(updated);
+      if (updated.id) void saveProfile(updated).catch(() => undefined);
+    }
   };
 
   const paginate = (delta: number) => goToIndex(signIndex + delta, delta);
@@ -163,7 +207,6 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
 
   /* Личный день — доступ по карте + Premium */
   const hasChart = hasNatalChart(profile, { chartData, primaryChartId: chartId ?? null });
-  const premium = hasActivePremium(profile);
   const personalSubtitle = !hasChart
     ? (language === 'ru' ? 'Создайте натальную карту' : 'Create a natal chart')
     : !premium
@@ -238,22 +281,44 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
             onDragEnd={onDragEnd}
           >
             <div className="horo-uni-hero" style={{ background: ELEMENT_COLOR[sign.toLowerCase()] || 'var(--fresh-sky)' }}>
-              <div className="fresh-hero-chip" style={{ top: 14, right: 14 }}>{periodLabel}</div>
+              <div className="fresh-hero-chip" style={{ top: 14, right: 14 }}>{signLocked ? (language === 'ru' ? 'Закрыто' : 'Locked') : periodLabel}</div>
               <div className="fresh-hero-icon" aria-hidden><ZodiacIcon sign={sign} size={72} strokeWidth={1.1} /></div>
               <div className="fresh-sticky" style={{ transform: 'rotate(-2deg)' }}>
-                {reading?.headline || (language === 'ru' ? 'Готовим разбор…' : 'Preparing…')}
+                {signLocked ? signLabel : (reading?.headline || (language === 'ru' ? 'Готовим разбор…' : 'Preparing…'))}
               </div>
             </div>
             <div className="horo-uni-body">
-              <p className="horo-uni-summary">
-                {loading ? (language === 'ru' ? 'Готовим разбор…' : 'Preparing reading…') : reading?.summary}
-              </p>
-              {!loading && reading?.advice?.length ? (
-                <div className="horo-uni-advice">
-                  <div className="horo-uni-advice-title">{language === 'ru' ? 'Советы' : 'Advice'}</div>
-                  <ul>{reading.advice.slice(0, 3).map((item) => <li key={item}>{item}</li>)}</ul>
+              {signLocked ? (
+                <div className="horo-lock">
+                  <div className="horo-lock-title">
+                    {premium
+                      ? (language === 'ru' ? 'Лимит знаков на сегодня' : "Today's sign limit")
+                      : (language === 'ru' ? 'Гороскоп других знаков' : 'Other signs')}
+                  </div>
+                  <p className="horo-lock-text">
+                    {premium
+                      ? (language === 'ru' ? 'В Premium открыто 3 знака в день, кроме своего. Новые — завтра.' : 'Premium opens 3 other signs a day. More tomorrow.')
+                      : (language === 'ru' ? 'Бесплатно — свой знак и ещё 1 в день. Все знаки — в Premium.' : 'Free — your sign plus 1 a day. All signs in Premium.')}
+                  </p>
+                  {!premium && onRequestPremium ? (
+                    <button type="button" className="fresh-btn-primary" style={{ marginTop: 12, width: '100%' }} onClick={() => { lumiaSelectionHaptic(); onRequestPremium(); }}>
+                      {language === 'ru' ? 'Открыть Premium' : 'Open Premium'}
+                    </button>
+                  ) : null}
                 </div>
-              ) : null}
+              ) : (
+                <>
+                  <p className="horo-uni-summary">
+                    {loading ? (language === 'ru' ? 'Готовим разбор…' : 'Preparing reading…') : reading?.summary}
+                  </p>
+                  {!loading && reading?.advice?.length ? (
+                    <div className="horo-uni-advice">
+                      <div className="horo-uni-advice-title">{language === 'ru' ? 'Советы' : 'Advice'}</div>
+                      <ul>{reading.advice.slice(0, 3).map((item) => <li key={item}>{item}</li>)}</ul>
+                    </div>
+                  ) : null}
+                </>
+              )}
             </div>
           </motion.div>
         </AnimatePresence>

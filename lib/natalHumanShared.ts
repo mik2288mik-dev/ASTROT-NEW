@@ -1,7 +1,7 @@
 import type { InterpretationSection, InterpretationSectionKey } from '../types';
 
 export const HUMAN_INTERPRETATION_PROMPT_VERSION = 'lumia-human-v2';
-export const HUMAN_BASE_PROMPT_VERSION = 'lumia-human-v4.rich-portrait';
+export const HUMAN_BASE_PROMPT_VERSION = 'lumia-human-v5.lean-portrait';
 export const HUMAN_PAID_PROMPT_VERSION = 'lumia-human-v3.paid-prompts';
 export const HUMAN_DAILY_PROMPT_VERSION = 'lumia-human-v2.daily';
 
@@ -11,8 +11,6 @@ export const HUMAN_FREE_SECTION_KEYS = [
   'base_portrait',
   'strengths',
   'growth_zones',
-  'emotional_world',
-  'how_others_see_you',
   'main_advice',
 ] as const satisfies readonly InterpretationSectionKey[];
 
