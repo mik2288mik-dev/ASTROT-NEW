@@ -3553,6 +3553,43 @@ a,
 
 .horo-premium-cta svg { display: block; }
 
+/* ── Натальная: «большая тройка» (Солнце / Луна / Асцендент) ── */
+.natal-big3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 0 16px 18px;
+}
+
+.natal-big3-card {
+  background: var(--fresh-surface);
+  border-radius: 16px;
+  padding: 14px 8px;
+  text-align: center;
+}
+
+.natal-big3-ico {
+  display: flex;
+  justify-content: center;
+  color: var(--fresh-text);
+  margin-bottom: 8px;
+}
+
+.natal-big3-planet {
+  font-family: var(--fresh-font);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--fresh-muted);
+}
+
+.natal-big3-sign {
+  font-family: var(--fresh-font);
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--fresh-text);
+  margin-top: 2px;
+}
+
 /* ── Астро-контекст дня (день недели + фаза луны) ── */
 .fresh-sky-strip {
   margin: 0 16px 14px;

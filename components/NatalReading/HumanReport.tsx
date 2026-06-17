@@ -36,7 +36,8 @@ type Props = {
   requestPremium: () => void;
   onUpdateProfile?: (profile: UserProfile) => void;
   preloadedReport?: NatalInterpretationReport | null;
-  onOpenPersonalDaily?: () => void;
+  /** Шапку (имя/дата/интро) рисует родитель (NatalMagazine) — не дублируем */
+  hideIntro?: boolean;
 };
 
 const SIGN_RU: Record<string, string> = {
@@ -267,7 +268,7 @@ export const HumanReport: React.FC<Props> = ({
   requestPremium,
   onUpdateProfile,
   preloadedReport,
-  onOpenPersonalDaily,
+  hideIntro,
 }) => {
   const userId = profile.id ? String(profile.id) : '';
   const initialReport = preloadedReport
@@ -367,20 +368,24 @@ export const HumanReport: React.FC<Props> = ({
     <article className="relative bg-white pb-16 pt-6">
       <div className="relative z-10 mx-auto w-full max-w-reading-wide px-5">
         <header className="pb-8">
-          <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6b6b6b]">
-            Натальная карта
-          </p>
-          <h1 className="mt-3 font-sans text-[36px] font-semibold leading-[1.02] tracking-[-0.035em] text-[#1f1f1f] sm:text-[44px]">
-            {report?.userName || profile.name || 'Твоя карта'}, главный портрет
-          </h1>
-          <p className="mt-4 max-w-[36rem] font-sans text-[15px] leading-relaxed text-[#666]">
-            Разбор основан на дате, времени и месте рождения. Сейчас открыт общий портрет, а подробные темы доступны в Premium.
-          </p>
-          <p className="mt-3 font-sans text-[12.5px] leading-relaxed text-[#888]">
-            {report?.birthData.birthDate || profile.birthDate}
-            {(report?.birthData.birthTime || profile.birthTime) ? ` · ${report?.birthData.birthTime || profile.birthTime}` : ''}
-            {(report?.birthData.birthPlace || profile.birthPlace) ? ` · ${report?.birthData.birthPlace || profile.birthPlace}` : ''}
-          </p>
+          {!hideIntro ? (
+            <>
+              <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6b6b6b]">
+                Натальная карта
+              </p>
+              <h1 className="mt-3 font-sans text-[36px] font-semibold leading-[1.02] tracking-[-0.035em] text-[#1f1f1f] sm:text-[44px]">
+                {report?.userName || profile.name || 'Твоя карта'}, главный портрет
+              </h1>
+              <p className="mt-4 max-w-[36rem] font-sans text-[15px] leading-relaxed text-[#666]">
+                Разбор основан на дате, времени и месте рождения. Сейчас открыт общий портрет, а подробные темы доступны в Premium.
+              </p>
+              <p className="mt-3 font-sans text-[12.5px] leading-relaxed text-[#888]">
+                {report?.birthData.birthDate || profile.birthDate}
+                {(report?.birthData.birthTime || profile.birthTime) ? ` · ${report?.birthData.birthTime || profile.birthTime}` : ''}
+                {(report?.birthData.birthPlace || profile.birthPlace) ? ` · ${report?.birthData.birthPlace || profile.birthPlace}` : ''}
+              </p>
+            </>
+          ) : null}
           {((chartData as any).birthTimeQuality === 'unknown' || (chartData as any).chartQuality?.ascendantReliable === false) ? (
             <p className="mt-3 rounded-[16px] bg-[#faf7ef] px-4 py-3 font-sans text-[13px] leading-relaxed text-[#6f6654]">
               Время рождения указано неточно, поэтому Асцендент и дома могут отличаться. Солнце, Луна и общий портрет остаются полезной основой.
@@ -427,14 +432,6 @@ export const HumanReport: React.FC<Props> = ({
             ))
           )}
         </div>
-
-        <section className="border-t border-[#eeeeee] py-7">
-          <button type="button" onClick={onOpenPersonalDaily} className="w-full rounded-mono-card bg-mono-plate px-5 py-4 text-left transition-transform active:scale-[0.99]">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#6b6b6b]">Личный день</p>
-            <h2 className="mt-2 text-[21px] font-semibold text-[#1f1f1f]">Что с тобой сегодня</h2>
-            <p className="mt-2 text-[14px] leading-relaxed text-[#626262]">Текущий личный фон, действие и риск дня — по твоей карте.</p>
-          </button>
-        </section>
 
         <section className="border-t border-[#eeeeee] py-9">
           <div className="flex items-start gap-3">

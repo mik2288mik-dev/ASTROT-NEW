@@ -6,6 +6,7 @@ import { HumanReport } from '../../components/NatalReading/HumanReport';
 import { ShimmerStyles } from '../../components/NatalReading/Skeleton';
 import { MonoIllustChart } from '../../components/mono-ui';
 import { FreshPageTitle, FreshHeroCard } from '../../components/fresh-ui';
+import { PlanetIcon } from '../../components/icons/PlanetIcon';
 
 type NatalMagazineProps = {
   data: NatalChartData | null;
@@ -18,15 +19,6 @@ type NatalMagazineProps = {
   onOpenPersonalDaily?: () => void;
 };
 
-const chipStyle: React.CSSProperties = {
-  background: 'var(--fresh-surface)',
-  borderRadius: 'var(--fresh-radius-pill)',
-  padding: '7px 13px',
-  fontSize: 13,
-  fontWeight: 700,
-  color: 'var(--fresh-text)',
-};
-
 export function NatalMagazine({
   data,
   profile,
@@ -35,7 +27,6 @@ export function NatalMagazine({
   onUpdateProfile,
   preloadedReport,
   onCreateChart,
-  onOpenPersonalDaily,
 }: NatalMagazineProps) {
   const language = profile.language === 'en' ? 'en' : 'ru';
 
@@ -63,20 +54,37 @@ export function NatalMagazine({
     );
   }
 
+  const bigThree = [
+    { planet: 'sun', label: language === 'ru' ? 'Солнце' : 'Sun', sign: data.sun.sign },
+    { planet: 'moon', label: language === 'ru' ? 'Луна' : 'Moon', sign: data.moon.sign },
+    { planet: 'asc', label: language === 'ru' ? 'Асцендент' : 'Rising', sign: data.rising.sign },
+  ];
+
   return (
     <div className="fresh-page">
       <ShimmerStyles />
-      <FreshPageTitle kicker={language === 'ru' ? 'Журнал' : 'Magazine'} title={profile.name} />
-      <div style={{ padding: '0 20px 14px', fontSize: 14, color: 'var(--fresh-muted)' }}>
-        {formatLumiaDate(profile.birthDate, language)} · {profile.birthPlace}
+
+      {/* Единая шапка (без «Журнала» и без дублей имени) */}
+      <div className="fresh-page-title-block" style={{ paddingBottom: 10 }}>
+        <div className="fresh-page-kicker">{language === 'ru' ? 'Натальная карта' : 'Natal chart'}</div>
+        <div className="fresh-page-title">{profile.name}</div>
       </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: '0 20px 16px' }}>
-        <span style={chipStyle}>☉ {getZodiacSign(language, data.sun.sign)}</span>
-        <span style={chipStyle}>☾ {getZodiacSign(language, data.moon.sign)}</span>
-        <span style={chipStyle}>↑ {getZodiacSign(language, data.rising.sign)}</span>
+      <div style={{ padding: '0 20px 14px', fontSize: 14, color: 'var(--fresh-muted)' }}>
+        {formatLumiaDate(profile.birthDate, language)}{profile.birthPlace ? ` · ${profile.birthPlace}` : ''}
       </div>
 
-      {/* «Личный день» переехал в раздел Гороскоп */}
+      {/* Большая тройка: Солнце / Луна / Асцендент */}
+      <div className="natal-big3">
+        {bigThree.map((it) => (
+          <div key={it.planet} className="natal-big3-card">
+            <div className="natal-big3-ico"><PlanetIcon planet={it.planet} size={22} strokeWidth={1.5} /></div>
+            <div className="natal-big3-planet">{it.label}</div>
+            <div className="natal-big3-sign">{getZodiacSign(language, it.sign)}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Контент карты — без своей шапки (hideIntro), «Личный день» уехал в Гороскоп */}
       <HumanReport
         profile={profile}
         chartData={data}
@@ -84,7 +92,7 @@ export function NatalMagazine({
         requestPremium={requestPremium}
         onUpdateProfile={onUpdateProfile}
         preloadedReport={preloadedReport}
-        onOpenPersonalDaily={onOpenPersonalDaily}
+        hideIntro
       />
     </div>
   );
