@@ -200,6 +200,18 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
         <div className="horo-head-sign">{signLabel}</div>
       </div>
 
+      {/* Личный день — премиум, наверху */}
+      <button type="button" className="horo-premium" onClick={openPersonal}>
+        <div className="horo-premium-text">
+          <div className="horo-premium-kicker">{language === 'ru' ? 'Личный день' : 'Personal day'}</div>
+          <div className="horo-premium-title">{personalSubtitle}</div>
+        </div>
+        <span className="horo-premium-cta">{personalCta}<ChevronRightIcon size={15} /></span>
+      </button>
+
+      {/* Лента знаков — селектор: тап по любому знаку (активный по центру) */}
+      <FreshSignCarousel signs={ZODIAC_KEYS} active={sign} language={language} onPick={chooseSign} />
+
       {/* Период */}
       <FreshTabs
         tabs={periodTabs}
@@ -248,18 +260,6 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
       </div>
 
       <div className="horo-hint">{language === 'ru' ? 'Свайп ← → меняет знак' : 'Swipe ← → to change sign'}</div>
-
-      {/* Лента знаков — активный по центру, тап меняет знак */}
-      <FreshSignCarousel signs={ZODIAC_KEYS} active={sign} language={language} onPick={chooseSign} />
-
-      {/* Личный день — премиум */}
-      <button type="button" className="horo-premium" style={{ marginTop: 6 }} onClick={openPersonal}>
-        <div className="horo-premium-text">
-          <div className="horo-premium-kicker">{language === 'ru' ? 'Личный день' : 'Personal day'}</div>
-          <div className="horo-premium-title">{personalSubtitle}</div>
-        </div>
-        <span className="horo-premium-cta">{personalCta}<ChevronRightIcon size={15} /></span>
-      </button>
 
       <MonoShareBar
         label={language === 'ru' ? 'Поделиться' : 'Share'}
