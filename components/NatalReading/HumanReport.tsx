@@ -376,15 +376,18 @@ export const HumanReport: React.FC<Props> = ({
               <h1 className="mt-3 font-sans text-[36px] font-semibold leading-[1.02] tracking-[-0.035em] text-[#1f1f1f] sm:text-[44px]">
                 {report?.userName || profile.name || 'Твоя карта'}, главный портрет
               </h1>
-              <p className="mt-4 max-w-[36rem] font-sans text-[15px] leading-relaxed text-[#666]">
-                Разбор основан на дате, времени и месте рождения. Сейчас открыт общий портрет, а подробные темы доступны в Premium.
-              </p>
-              <p className="mt-3 font-sans text-[12.5px] leading-relaxed text-[#888]">
-                {report?.birthData.birthDate || profile.birthDate}
-                {(report?.birthData.birthTime || profile.birthTime) ? ` · ${report?.birthData.birthTime || profile.birthTime}` : ''}
-                {(report?.birthData.birthPlace || profile.birthPlace) ? ` · ${report?.birthData.birthPlace || profile.birthPlace}` : ''}
-              </p>
             </>
+          ) : null}
+          {/* Описание портрета — показываем всегда (это базовый текст карты) */}
+          <p className="max-w-[36rem] font-sans text-[15px] leading-relaxed text-[#666]">
+            Разбор основан на дате, времени и месте рождения. Сейчас открыт общий портрет, а подробные темы доступны в Premium.
+          </p>
+          {!hideIntro ? (
+            <p className="mt-3 font-sans text-[12.5px] leading-relaxed text-[#888]">
+              {report?.birthData.birthDate || profile.birthDate}
+              {(report?.birthData.birthTime || profile.birthTime) ? ` · ${report?.birthData.birthTime || profile.birthTime}` : ''}
+              {(report?.birthData.birthPlace || profile.birthPlace) ? ` · ${report?.birthData.birthPlace || profile.birthPlace}` : ''}
+            </p>
           ) : null}
           {((chartData as any).birthTimeQuality === 'unknown' || (chartData as any).chartQuality?.ascendantReliable === false) ? (
             <p className="mt-3 rounded-[16px] bg-[#faf7ef] px-4 py-3 font-sans text-[13px] leading-relaxed text-[#6f6654]">
@@ -450,15 +453,38 @@ export const HumanReport: React.FC<Props> = ({
           </div>
 
           <div className="mt-6">
-            {HUMAN_MAP_SECTION_KEYS.map((key) => (
-              <LockedPreview
-                key={key}
-                sectionKey={key}
-                isLoading={paidLoading === key}
-                opened={paidSections[key]}
-                onOpen={() => handleOpenPaid(key)}
-              />
-            ))}
+            {isPremium ? (
+              HUMAN_MAP_SECTION_KEYS.map((key) => (
+                <LockedPreview
+                  key={key}
+                  sectionKey={key}
+                  isLoading={paidLoading === key}
+                  opened={paidSections[key]}
+                  onOpen={() => handleOpenPaid(key)}
+                />
+              ))
+            ) : (
+              <div className="overflow-hidden rounded-[22px] bg-gradient-to-br from-[#6D5BDF] to-[#A855F7] p-5 text-white">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/80">Premium</p>
+                <h3 className="mt-1 font-sans text-[21px] font-semibold leading-tight">Полный разбор по карте</h3>
+                <ul className="mt-4 space-y-2.5">
+                  {HUMAN_MAP_SECTION_KEYS.map((key) => (
+                    <li key={key} className="flex items-center gap-2.5 text-[14.5px] font-medium text-white/95">
+                      <Lock size={14} strokeWidth={2} className="shrink-0 opacity-80" />
+                      {HUMAN_PAID_SECTION_META[key].title}
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  type="button"
+                  onClick={requestPremium}
+                  className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-white px-5 py-3 text-[14px] font-semibold text-[#6D3BD0]"
+                >
+                  <Crown size={16} strokeWidth={2} />
+                  Открыть полный разбор
+                </button>
+              </div>
+            )}
           </div>
         </section>
 

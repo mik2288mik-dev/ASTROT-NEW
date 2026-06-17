@@ -3742,6 +3742,53 @@ a,
 .people-dim.is-top .people-dim-val { color: var(--fresh-link); }
 .people-strong { text-align: center; font-size: 12px; font-weight: 700; color: var(--fresh-muted); padding: 4px 20px 14px; }
 
+/* ── Совместимость: быстрый блок по знакам ── */
+.compat-quick {
+  margin: 0 16px 14px;
+  background: var(--fresh-surface);
+  border-radius: var(--fresh-radius-card);
+  padding: 16px 14px 14px;
+}
+
+.compat-quick-head {
+  font-family: var(--fresh-font);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--fresh-muted);
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.compat-pair { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.compat-chip { display: inline-flex; align-items: center; gap: 6px; background: var(--fresh-bg); border-radius: var(--fresh-radius-pill); padding: 8px 12px; font-size: 13px; font-weight: 700; color: var(--fresh-text); }
+.compat-chip svg { display: block; }
+.compat-chip--them { background: var(--fresh-text); color: #fff; }
+.compat-x { color: var(--fresh-muted); font-weight: 700; }
+
+/* ── Совместимость: карточка «конкретный человек» ── */
+.compat-person {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: calc(100% - 32px);
+  margin: 0 16px 18px;
+  background: var(--fresh-surface);
+  border: none;
+  border-radius: var(--fresh-radius-card);
+  padding: 16px;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.compat-person-text { flex: 1; min-width: 0; }
+.compat-person-title { font-family: var(--fresh-font); font-size: 15px; font-weight: 800; color: var(--fresh-text); }
+.compat-person-sub { font-family: var(--fresh-font); font-size: 12.5px; color: var(--fresh-muted); margin-top: 3px; line-height: 1.35; }
+.compat-person-cta { flex-shrink: 0; }
+.compat-person-plus { display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50%; background: var(--fresh-link); color: #fff; font-size: 22px; line-height: 1; }
+
 /* ── Астро-контекст дня (день недели + фаза луны) ── */
 .fresh-sky-strip {
   margin: 0 16px 14px;
