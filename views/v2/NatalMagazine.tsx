@@ -64,22 +64,26 @@ export function NatalMagazine({
     <div className="fresh-page">
       <ShimmerStyles />
 
-      {/* Единая шапка — по центру и повыше (без «Журнала» и без дублей имени) */}
-      <div className="fresh-page-title-block" style={{ textAlign: 'center', paddingTop: 0, paddingBottom: 8 }}>
-        <div className="fresh-page-kicker">{language === 'ru' ? 'Натальная карта' : 'Natal chart'}</div>
-        <div className="fresh-page-title">{profile.name}</div>
-      </div>
-      <div style={{ textAlign: 'center', padding: '0 20px 16px', fontSize: 14, color: 'var(--fresh-muted)' }}>
-        {formatLumiaDate(profile.birthDate, language)}{profile.birthPlace ? ` · ${profile.birthPlace}` : ''}
+      {/* Единая шапка — крупно, по центру, прижато к верху (без «Журнала» и дублей) */}
+      <div className="horo-head">
+        <div className="horo-head-title">{language === 'ru' ? 'Натальная карта' : 'Natal chart'}</div>
+        <div className="horo-head-sign">{profile.name}</div>
+        <div className="horo-head-date">
+          {formatLumiaDate(profile.birthDate, language)}
+          {profile.birthPlace ? ` · ${profile.birthPlace}` : ''}
+          {profile.birthTime ? ` · ${profile.birthTime}` : ''}
+        </div>
       </div>
 
       {/* Большая тройка: Солнце / Луна / Асцендент */}
       <div className="natal-big3">
         {bigThree.map((it) => (
           <div key={it.planet} className="natal-big3-card">
-            <div className="natal-big3-ico"><PlanetIcon planet={it.planet} size={22} strokeWidth={1.5} /></div>
-            <div className="natal-big3-planet">{it.label}</div>
-            <div className="natal-big3-sign">{getZodiacSign(language, it.sign)}</div>
+            <div className="natal-big3-ico"><PlanetIcon planet={it.planet} size={18} strokeWidth={1.5} /></div>
+            <div className="natal-big3-text">
+              <div className="natal-big3-planet">{it.label}</div>
+              <div className="natal-big3-sign">{getZodiacSign(language, it.sign)}</div>
+            </div>
           </div>
         ))}
       </div>

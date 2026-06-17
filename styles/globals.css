@@ -3489,6 +3489,39 @@ a,
   font-family: var(--fresh-font);
 }
 
+/* ── Гороскоп: шапка (Гороскоп / дата / знак), прижата к верху ── */
+.horo-head {
+  text-align: center;
+  padding: 0 var(--fresh-page-x) 12px;
+}
+
+.horo-head-title {
+  font-family: var(--fresh-font);
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: var(--fresh-text);
+  line-height: 1.05;
+}
+
+.horo-head-date {
+  font-family: var(--fresh-font);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fresh-muted);
+  margin-top: 4px;
+}
+
+.horo-head-sign {
+  font-family: var(--fresh-font);
+  font-size: 30px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  color: var(--fresh-text);
+  line-height: 1.05;
+  margin-top: 6px;
+}
+
 /* ── Гороскоп: единая свайп-карточка (герой + текст + советы) ── */
 .horo-uni-wrap { position: relative; margin: 0 16px 10px; }
 
@@ -3616,36 +3649,45 @@ a,
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
-  padding: 0 16px 18px;
+  padding: 0 16px 16px;
 }
 
 .natal-big3-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   background: var(--fresh-surface);
-  border-radius: 16px;
-  padding: 14px 8px;
-  text-align: center;
+  border-radius: 14px;
+  padding: 10px 8px;
+  text-align: left;
 }
 
 .natal-big3-ico {
   display: flex;
+  align-items: center;
   justify-content: center;
   color: var(--fresh-text);
-  margin-bottom: 8px;
+  flex-shrink: 0;
 }
+
+.natal-big3-text { min-width: 0; }
 
 .natal-big3-planet {
   font-family: var(--fresh-font);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   color: var(--fresh-muted);
+  line-height: 1.1;
 }
 
 .natal-big3-sign {
   font-family: var(--fresh-font);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 800;
   color: var(--fresh-text);
-  margin-top: 2px;
+  line-height: 1.1;
+  margin-top: 1px;
 }
 
 /* ── Союз (совместимость) ── */

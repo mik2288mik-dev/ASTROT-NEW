@@ -13,6 +13,7 @@ import {
 } from '../../services/astrologyService';
 import { saveProfile } from '../../services/storageService';
 import { MonoShareBar } from '../../components/mono-ui';
+import { shareToTelegram } from '../../lib/botLink';
 import { FreshTabs, FreshSignCarousel } from '../../components/fresh-ui';
 import { ZodiacIcon } from '../../components/icons/ZodiacIcon';
 import { ChevronRightIcon } from '../../components/icons/UiIcons';
@@ -150,9 +151,15 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
       ? (language === 'ru' ? 'Завтра' : 'Tomorrow')
       : (language === 'ru' ? 'Неделя' : 'This week');
 
-  const periodDateLabel = period === 'week'
-    ? (language === 'ru' ? 'На этой неделе' : 'This week')
-    : formatLumiaDate(period === 'tomorrow' ? addDaysKey(today, 1) : today, language);
+  /* День недели + дата для шапки */
+  const dateLine = useMemo(() => {
+    if (period === 'week') return language === 'ru' ? 'Эта неделя' : 'This week';
+    const key = period === 'tomorrow' ? addDaysKey(today, 1) : today;
+    const [y, m, d] = key.split('-').map(Number);
+    const dt = new Date(Date.UTC(y, m - 1, d, 12));
+    const wd = new Intl.DateTimeFormat(language === 'ru' ? 'ru-RU' : 'en-US', { timeZone: 'UTC', weekday: 'long' }).format(dt);
+    return `${wd.charAt(0).toUpperCase()}${wd.slice(1)}, ${formatLumiaDate(key, language)}`;
+  }, [period, today, language]);
 
   /* Личный день — доступ по карте + Premium */
   const hasChart = hasNatalChart(profile, { chartData, primaryChartId: chartId ?? null });
@@ -175,45 +182,23 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
     else onRequestPremium?.();
   };
 
-  /* Поделиться самим разбором (а не ссылкой на бота) */
+  /* Поделиться — короткая зазывалка (главное + приглашение), а не весь текст */
   const shareReading = () => {
-    const parts = [`${signLabel} · ${periodLabel}`];
-    if (reading?.headline) parts.push(reading.headline);
-    if (reading?.summary) parts.push(reading.summary);
-    if (reading?.advice?.length) {
-      parts.push((language === 'ru' ? 'Советы:' : 'Advice:') + '\n' + reading.advice.slice(0, 3).map((a) => `• ${a}`).join('\n'));
-    }
-    const text = parts.join('\n\n');
-    try {
-      const tg = (window as unknown as { Telegram?: { WebApp?: { openTelegramLink?: (url: string) => void } } }).Telegram?.WebApp;
-      const url = 'https://t.me/lumia_astrology_bot';
-      tg?.openTelegramLink?.(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`);
-    } catch {
-      /* optional */
-    }
+    const hook = reading?.headline || (language === 'ru' ? 'Узнай, что тебя ждёт' : 'See what is ahead');
+    const text = language === 'ru'
+      ? `${signLabel} · ${periodLabel.toLowerCase()}\n«${hook}»\n\nЗагляни в Lumia — посмотри свой разбор.`
+      : `${signLabel} · ${periodLabel.toLowerCase()}\n“${hook}”\n\nOpen Lumia — see your reading.`;
+    shareToTelegram(text);
   };
 
   return (
     <div className="fresh-page">
-      {/* Заголовок — по центру, компактно */}
-      <div className="fresh-page-title-block" style={{ textAlign: 'center', paddingTop: 0, paddingBottom: 12 }}>
-        <div className="fresh-page-kicker">
-          {language === 'ru' ? 'Гороскоп' : 'Horoscope'} · {periodDateLabel}
-        </div>
-        <div className="fresh-page-title">{signLabel}</div>
+      {/* Шапка: Гороскоп (крупно) → день недели и дата → знак, прижато к верху */}
+      <div className="horo-head">
+        <div className="horo-head-title">{language === 'ru' ? 'Гороскоп' : 'Horoscope'}</div>
+        <div className="horo-head-date">{dateLine}</div>
+        <div className="horo-head-sign">{signLabel}</div>
       </div>
-
-      {/* Личный день — премиум-карточка наверху (это то, что продаём) */}
-      <button type="button" className="horo-premium" onClick={openPersonal}>
-        <div className="horo-premium-text">
-          <div className="horo-premium-kicker">{language === 'ru' ? 'Личный день' : 'Personal day'}</div>
-          <div className="horo-premium-title">{personalSubtitle}</div>
-        </div>
-        <span className="horo-premium-cta">{personalCta}<ChevronRightIcon size={15} /></span>
-      </button>
-
-      {/* Лента знаков */}
-      <FreshSignCarousel signs={ZODIAC_KEYS} active={sign} language={language} onPick={chooseSign} />
 
       {/* Период */}
       <FreshTabs
@@ -263,6 +248,18 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
       </div>
 
       <div className="horo-hint">{language === 'ru' ? 'Свайп ← → меняет знак' : 'Swipe ← → to change sign'}</div>
+
+      {/* Лента знаков — активный по центру, тап меняет знак */}
+      <FreshSignCarousel signs={ZODIAC_KEYS} active={sign} language={language} onPick={chooseSign} />
+
+      {/* Личный день — премиум */}
+      <button type="button" className="horo-premium" style={{ marginTop: 6 }} onClick={openPersonal}>
+        <div className="horo-premium-text">
+          <div className="horo-premium-kicker">{language === 'ru' ? 'Личный день' : 'Personal day'}</div>
+          <div className="horo-premium-title">{personalSubtitle}</div>
+        </div>
+        <span className="horo-premium-cta">{personalCta}<ChevronRightIcon size={15} /></span>
+      </button>
 
       <MonoShareBar
         label={language === 'ru' ? 'Поделиться' : 'Share'}
