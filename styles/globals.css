@@ -3422,6 +3422,67 @@ a,
 
 .fresh-sign-chip:active { transform: scale(0.96); }
 
+/* ── Свайп-колода гороскопа ── */
+.horo-deck {
+  position: relative;
+  margin: 0 16px 8px;
+  height: 190px;
+}
+
+.horo-deck-ghost {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--fresh-radius-hero);
+  background: var(--fresh-surface);
+  transform: scale(0.94) translateY(14px);
+  opacity: 0.6;
+}
+
+.horo-card {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--fresh-radius-hero);
+  overflow: hidden;
+  box-shadow: var(--fresh-shadow-hero);
+  cursor: grab;
+  touch-action: pan-y;
+  will-change: transform;
+}
+
+.horo-card:active { cursor: grabbing; }
+
+.horo-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 5;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(17, 24, 39, 0.42);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.horo-nav-prev { left: 8px; }
+.horo-nav-next { right: 8px; }
+
+.horo-hint {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--fresh-muted);
+  margin: 0 0 12px;
+  font-family: var(--fresh-font);
+}
+
 /* ── Астро-контекст дня (день недели + фаза луны) ── */
 .fresh-sky-strip {
   margin: 0 16px 14px;
