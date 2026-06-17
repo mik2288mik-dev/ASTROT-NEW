@@ -1,0 +1,52 @@
+name: Notifications cron
+
+# Триггерит существующий движок уведомлений по расписанию.
+# Требуются секреты репозитория:
+#   CRON_SECRET   — то же значение, что в Railway env CRON_SECRET
+#   APP_BASE_URL  — напр. https://astrot-production.up.railway.app (без слэша на конце)
+# Время в UTC. Москва = UTC+3.
+
+on:
+  schedule:
+    - cron: '0 * * * *'    # каждый час — разослать «созревшие» уведомления
+    - cron: '0 6 * * *'    # 09:00 МСК — утренний планировщик
+    - cron: '0 10 * * *'   # 13:00 МСК — дневной планировщик
+    - cron: '0 17 * * *'   # 20:00 МСК — вечерний планировщик
+    - cron: '30 2 * * *'   # 05:30 МСК — генерация контента дня + реактивация
+  workflow_dispatch: {}
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch due notifications (every run)
+        run: |
+          curl -sS -m 110 -X POST \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.APP_BASE_URL }}/api/cron/notification-dispatcher" || true
+
+      - name: Morning planner
+        if: github.event.schedule == '0 6 * * *'
+        run: |
+          curl -sS -m 110 -X POST -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.APP_BASE_URL }}/api/cron/morning-retention-planner" || true
+
+      - name: Midday planner
+        if: github.event.schedule == '0 10 * * *'
+        run: |
+          curl -sS -m 110 -X POST -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.APP_BASE_URL }}/api/cron/midday-retention-planner" || true
+
+      - name: Evening planner
+        if: github.event.schedule == '0 17 * * *'
+        run: |
+          curl -sS -m 110 -X POST -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.APP_BASE_URL }}/api/cron/evening-retention-planner" || true
+
+      - name: Daily content + reactivation
+        if: github.event.schedule == '30 2 * * *'
+        run: |
+          for ep in notifications-daily daily-card-generator inactive-user-reactivation premium-conversion-planner; do
+            curl -sS -m 110 -X POST -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+              "${{ secrets.APP_BASE_URL }}/api/cron/$ep" || true
+          done

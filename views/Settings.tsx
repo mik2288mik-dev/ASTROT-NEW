@@ -3,8 +3,29 @@ import React, { useState, useEffect } from 'react';
 import { UserProfile, Language, Theme, NotificationFrequency } from '../types';
 import { getText } from '../constants';
 import { saveProfile } from '../services/storageService';
+import { updateUserNotificationSettings } from '../services/sessionService';
 import { requestStarsPayment } from '../services/telegramService';
 import { hasActivePremium } from '../lib/accessMatrix';
+
+/** Частота из UI → флаги движка уведомлений (реальная таблица user_notification_settings) */
+function notificationFlagsFor(frequency: NotificationFrequency) {
+  switch (frequency) {
+    case 'quiet':
+      return { enabled: false, morningEnabled: false, dayEnabled: false, eveningEnabled: false, reactivationEnabled: false };
+    case 'important':
+      return { enabled: true, morningEnabled: true, dayEnabled: false, eveningEnabled: false, reactivationEnabled: true };
+    case 'daily':
+      return { enabled: true, morningEnabled: true, dayEnabled: false, eveningEnabled: true, reactivationEnabled: true };
+    case 'twice_daily':
+      return { enabled: true, morningEnabled: true, dayEnabled: true, eveningEnabled: true, reactivationEnabled: true };
+    default:
+      return { enabled: true, morningEnabled: true, dayEnabled: false, eveningEnabled: false, reactivationEnabled: true };
+  }
+}
+
+function localTimezone(): string {
+  try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Moscow'; } catch { return 'Europe/Moscow'; }
+}
 
 interface SettingsProps {
     profile: UserProfile;
@@ -91,9 +112,10 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
     }, []);
 
     useEffect(() => {
-        setNotificationFrequency(
-            readStoredNotificationFrequency(profile.id) || profile.notificationFrequency || 'important'
-        );
+        const freq = readStoredNotificationFrequency(profile.id) || profile.notificationFrequency || 'important';
+        setNotificationFrequency(freq);
+        // Регистрируем пользователя в движке уведомлений (таймзона + флаги) — иначе планировщики его не видят
+        void updateUserNotificationSettings({ ...notificationFlagsFor(freq), timezone: localTimezone() });
     }, [profile.id, profile.notificationFrequency]);
 
     const profileDisplayName = (() => {
@@ -131,6 +153,8 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
         saveProfile(updated).catch(error => {
             console.error('[Settings] Failed to save notification preference:', error);
         });
+        // Реальная регистрация в движке уведомлений (таблица user_notification_settings)
+        void updateUserNotificationSettings({ ...notificationFlagsFor(frequency), timezone: localTimezone() });
     };
 
     const handlePremiumPurchase = async () => {
