@@ -14,18 +14,12 @@ type Props = {
   onRequestPremium?: () => void;
 };
 
-const ACTIONS: Array<{ key: ActionTimingKey; ru: string; en: string }> = [
-  { key: 'message', ru: 'Написать', en: 'Message' },
-  { key: 'serious_talk', ru: 'Разговор', en: 'Talk' },
-  { key: 'purchase', ru: 'Покупка', en: 'Purchase' },
-  { key: 'work', ru: 'Работа', en: 'Work' },
+const ACTIONS: Array<{ key: ActionTimingKey; ru: string; en: string; color: string }> = [
+  { key: 'message', ru: 'Написать', en: 'Message', color: '#5BB6EC' },
+  { key: 'serious_talk', ru: 'Разговор', en: 'Talk', color: '#A98CEC' },
+  { key: 'purchase', ru: 'Покупка', en: 'Purchase', color: '#FF7E8B' },
+  { key: 'work', ru: 'Работа', en: 'Work', color: '#34C39A' },
 ];
-
-const STATE_COLOR: Record<string, string> = {
-  now: '#34C39A',     // зелёный — сейчас хорошо
-  later: '#FF9B6A',   // янтарный — лучше позже
-  no_edge: '#C2C9D4', // серый — без разницы
-};
 
 const STATE_LABEL: Record<string, { ru: string; en: string }> = {
   now: { ru: 'сейчас', en: 'now' },
@@ -42,7 +36,6 @@ function toHour(value: string | undefined, fallback: number): number {
   return h + (Number.isFinite(m) ? m / 60 : 0);
 }
 
-/* Текущий дробный час в нужной таймзоне (для живой метки «сейчас») */
 function nowHourIn(timeZone: string): number {
   try {
     const parts = new Intl.DateTimeFormat('en-GB', { timeZone, hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(new Date());
@@ -55,42 +48,78 @@ function nowHourIn(timeZone: string): number {
   }
 }
 
-function Row({ rec, label, nowH, reduce, ru, index }: {
-  rec: ActionTimingRecommendation;
-  label: string;
-  nowH: number;
-  reduce: boolean | null;
-  ru: boolean;
-  index: number;
-}) {
-  const color = STATE_COLOR[rec.state] || STATE_COLOR.no_edge;
-  const start = toHour(rec.bestWindow?.start, 9);
-  let end = toHour(rec.bestWindow?.end, start + 2);
-  if (end <= start) end = 24; // окно «до конца дня» / переход через полночь
-  const left = Math.max(0, Math.min(100, (start / 24) * 100));
-  const width = Math.max(4, Math.min(100 - left, ((end - start) / 24) * 100));
-  const isLive = nowH >= start && nowH < end;
+const SIZE = 200;
+const CENTER = SIZE / 2;
+const RADII = [84, 69, 54, 39]; // кольцо на каждое действие
+
+function polar(r: number, hour: number): [number, number] {
+  const a = ((hour / 24) * 360 - 90) * (Math.PI / 180);
+  return [CENTER + r * Math.cos(a), CENTER + r * Math.sin(a)];
+}
+
+function arcPath(r: number, startH: number, endH: number): string {
+  const span = (endH - startH + 24) % 24 || 24;
+  const [x1, y1] = polar(r, startH);
+  const [x2, y2] = polar(r, startH + span);
+  const large = span > 12 ? 1 : 0;
+  return `M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${r} ${r} 0 ${large} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`;
+}
+
+type Row = { action: typeof ACTIONS[number]; rec: ActionTimingRecommendation; start: number; end: number };
+
+function ActionDial({ rows, nowH, ru, reduce }: { rows: Row[]; nowH: number; ru: boolean; reduce: boolean | null }) {
+  const [nx, ny] = polar(92, nowH);
+  const best = rows.find((r) => r.rec.state === 'now')
+    || [...rows].sort((a, b) => ((a.start - nowH + 24) % 24) - ((b.start - nowH + 24) % 24))[0];
 
   return (
-    <div className="dw-row">
-      <div className="dw-row-top">
-        <span className="dw-row-label">{label}</span>
-        <span className="dw-row-meta">
-          <span className="dw-row-win">{rec.bestWindow?.label}</span>
-          <span className="dw-row-dot" style={{ background: color }} />
-          <span className="dw-row-state" style={{ color }}>{ru ? STATE_LABEL[rec.state]?.ru : STATE_LABEL[rec.state]?.en}</span>
-        </span>
+    <div className="dwd">
+      <div className="dwd-dial">
+        <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="dwd-svg" aria-hidden>
+          {[0, 6, 12, 18].map((h) => {
+            const [lx, ly] = polar(96, h);
+            return <text key={h} x={lx} y={ly + 3} className="dwd-tick" textAnchor="middle">{h}</text>;
+          })}
+          {rows.map((r, i) => {
+            const radius = RADII[i] ?? 39;
+            return (
+              <g key={r.action.key}>
+                <circle cx={CENTER} cy={CENTER} r={radius} fill="none" stroke="var(--fresh-surface)" strokeWidth="6" />
+                <motion.path
+                  d={arcPath(radius, r.start, r.end)}
+                  fill="none"
+                  stroke={r.action.color}
+                  strokeWidth="6"
+                  strokeLinecap="round"
+                  initial={reduce ? false : { pathLength: 0, opacity: 0.5 }}
+                  animate={{ pathLength: 1, opacity: 1 }}
+                  transition={reduce ? { duration: 0 } : { duration: 0.7, delay: 0.07 * i, ease: [0.22, 1, 0.36, 1] }}
+                />
+              </g>
+            );
+          })}
+          {/* стрелка «сейчас» */}
+          <line x1={CENTER} y1={CENTER} x2={nx} y2={ny} stroke="var(--fresh-text)" strokeWidth="2" strokeLinecap="round" />
+          <circle cx={CENTER} cy={CENTER} r="3.5" fill="var(--fresh-text)" />
+        </svg>
+        <div className="dwd-center">
+          <div className="dwd-center-kicker">{ru ? 'сейчас лучше' : 'best now'}</div>
+          <div className="dwd-center-action" style={{ color: best?.action.color }}>{ru ? best?.action.ru : best?.action.en}</div>
+          <div className="dwd-center-win">{best?.rec.bestWindow?.label}</div>
+        </div>
       </div>
-      <div className="dw-track">
-        <motion.div
-          className="dw-band"
-          style={{ left: `${left}%`, background: color }}
-          initial={reduce ? false : { width: 0, opacity: 0.4 }}
-          animate={{ width: `${width}%`, opacity: 1 }}
-          transition={reduce ? { duration: 0 } : { duration: 0.6, delay: 0.06 * index, ease: [0.22, 1, 0.36, 1] }}
-        />
-        {isLive ? <span className="dw-band-live" style={{ left: `${left}%`, width: `${width}%`, borderColor: color }} /> : null}
-        <span className="dw-track-now" style={{ left: `${Math.max(0, Math.min(100, (nowH / 24) * 100))}%` }} aria-hidden />
+
+      <div className="dwd-legend">
+        {rows.map((r) => (
+          <div key={r.action.key} className="dwd-leg">
+            <span className="dwd-leg-dot" style={{ background: r.action.color }} />
+            <span className="dwd-leg-name">{ru ? r.action.ru : r.action.en}</span>
+            <span className="dwd-leg-win">{r.rec.bestWindow?.label}</span>
+            <span className="dwd-leg-state" style={{ color: r.rec.state === 'now' ? '#1f9e6e' : 'var(--fresh-muted)' }}>
+              {ru ? STATE_LABEL[r.rec.state]?.ru : STATE_LABEL[r.rec.state]?.en}
+            </span>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -106,7 +135,6 @@ export function ActionWindows({ profile, chartData, chartId, onOpenChart, onRequ
     () => (premium && hasChart ? getCachedTodayAssistantHome(profile, chartId, undefined, chartData) : null),
   );
 
-  // Источник данных — тот же today-assistant, что уже грузит главная (кэш тёплый).
   useEffect(() => {
     if (!premium || !hasChart || !chartData) return;
     const cached = getCachedTodayAssistantHome(profile, chartId, undefined, chartData);
@@ -126,10 +154,17 @@ export function ActionWindows({ profile, chartData, chartId, onOpenChart, onRequ
     return () => window.clearInterval(id);
   }, [timezone]);
 
-  const rows = useMemo(() => {
+  const rows = useMemo<Row[]>(() => {
     if (!home || home.status !== 'ready') return [];
     const byKey = new Map(home.quickActions.map((a) => [a.actionKey, a]));
-    return ACTIONS.map((a) => ({ action: a, rec: byKey.get(a.key) })).filter((r): r is { action: typeof ACTIONS[number]; rec: ActionTimingRecommendation } => !!r.rec);
+    return ACTIONS.map((action) => {
+      const rec = byKey.get(action.key);
+      if (!rec) return null;
+      const start = toHour(rec.bestWindow?.start, 9);
+      let end = toHour(rec.bestWindow?.end, start + 2);
+      if (end <= start) end = (start + 2) % 24;
+      return { action, rec, start, end };
+    }).filter((r): r is Row => !!r);
   }, [home]);
 
   return (
@@ -150,21 +185,9 @@ export function ActionWindows({ profile, chartData, chartId, onOpenChart, onRequ
           <span className="aw-gate-cta">Premium<ChevronRightIcon size={15} /></span>
         </button>
       ) : rows.length === 0 ? (
-        <div className="dw-skeleton">
-          {[0, 1, 2, 3].map((i) => <div key={i} className="dw-skeleton-row" />)}
-        </div>
+        <div className="dwd-skeleton" />
       ) : (
-        <div className="dw">
-          <div className="dw-nowcap" style={{ left: `${(nowH / 24) * 100}%` }} aria-hidden>{ru ? 'сейчас' : 'now'}</div>
-          <div className="dw-rows">
-            {rows.map(({ action, rec }, i) => (
-              <Row key={action.key} rec={rec} label={ru ? action.ru : action.en} nowH={nowH} reduce={reduce} ru={ru} index={i} />
-            ))}
-          </div>
-          <div className="dw-axis" aria-hidden>
-            {[0, 6, 12, 18, 24].map((h) => <span key={h} style={{ left: `${(h / 24) * 100}%` }}>{h}ч</span>)}
-          </div>
-        </div>
+        <ActionDial rows={rows} nowH={nowH} ru={ru} reduce={reduce} />
       )}
     </section>
   );

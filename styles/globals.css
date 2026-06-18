@@ -4031,27 +4031,22 @@ a,
 .aw-reasons li { font-family: var(--fresh-font); font-size: 13.5px; line-height: 1.45; color: var(--fresh-muted); }
 .aw-caution { margin: 12px 0 0; font-family: var(--fresh-font); font-size: 13px; line-height: 1.5; color: #9a6a00; background: #FFFBEB; border-radius: 12px; padding: 10px 12px; }
 
-/* ── «Окна дня»: живой таймлайн (без тапов, обновляется на «сейчас») ── */
-.dw { position: relative; }
-.dw-rows { position: relative; display: flex; flex-direction: column; gap: 13px; }
-.dw-row-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
-.dw-row-label { font-family: var(--fresh-font); font-size: 13px; font-weight: 800; color: var(--fresh-text); }
-.dw-row-meta { display: inline-flex; align-items: center; gap: 6px; }
-.dw-row-win { font-family: var(--fresh-font); font-size: 11.5px; font-weight: 700; color: var(--fresh-muted); }
-.dw-row-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-.dw-row-state { font-family: var(--fresh-font); font-size: 11px; font-weight: 800; }
-.dw-track { position: relative; height: 13px; border-radius: 99px; background: var(--fresh-surface); overflow: hidden; }
-.dw-band { position: absolute; top: 0; bottom: 0; border-radius: 99px; }
-.dw-band-live { position: absolute; top: 0; bottom: 0; border-radius: 99px; border: 2px solid; pointer-events: none; filter: brightness(1.05); }
-.dw-track-now { position: absolute; top: -1px; bottom: -1px; width: 2px; background: rgba(17, 24, 39, 0.55); transform: translateX(-1px); border-radius: 2px; z-index: 2; }
-.dw-nowcap { position: absolute; top: -2px; transform: translateX(-50%); font-family: var(--fresh-font); font-size: 9.5px; font-weight: 800; color: var(--fresh-text); background: #fff; padding: 0 4px; white-space: nowrap; z-index: 3; }
-.dw-rows { padding-top: 12px; }
-.dw-axis { position: relative; height: 16px; margin-top: 6px; }
-.dw-axis span { position: absolute; transform: translateX(-50%); font-family: var(--fresh-font); font-size: 10px; font-weight: 700; color: var(--fresh-muted); }
-.dw-axis span:first-child { transform: translateX(0); }
-.dw-axis span:last-child { transform: translateX(-100%); }
-.dw-skeleton { display: flex; flex-direction: column; gap: 13px; padding-top: 12px; }
-.dw-skeleton-row { height: 13px; border-radius: 99px; background: linear-gradient(90deg, var(--fresh-surface), #eef1f5, var(--fresh-surface)); background-size: 200% 100%; animation: dw-sk 1.2s ease-in-out infinite; }
+/* ── «Окна дня»: циферблат дня (24ч, без тапов, стрелка «сейчас») ── */
+.dwd { display: flex; flex-direction: column; align-items: center; gap: 14px; padding-top: 4px; }
+.dwd-dial { position: relative; width: 200px; height: 200px; }
+.dwd-svg { width: 200px; height: 200px; display: block; }
+.dwd-tick { font-family: var(--fresh-font); font-size: 9px; font-weight: 700; fill: var(--fresh-muted); }
+.dwd-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; pointer-events: none; }
+.dwd-center-kicker { font-family: var(--fresh-font); font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fresh-muted); }
+.dwd-center-action { font-family: var(--fresh-font); font-size: 19px; font-weight: 900; letter-spacing: -0.01em; margin-top: 2px; }
+.dwd-center-win { font-family: var(--fresh-font); font-size: 12px; font-weight: 700; color: var(--fresh-text); margin-top: 1px; }
+.dwd-legend { width: 100%; display: flex; flex-direction: column; gap: 9px; padding-top: 2px; }
+.dwd-leg { display: flex; align-items: center; gap: 8px; }
+.dwd-leg-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.dwd-leg-name { font-family: var(--fresh-font); font-size: 13px; font-weight: 700; color: var(--fresh-text); }
+.dwd-leg-win { margin-left: auto; font-family: var(--fresh-font); font-size: 12px; font-weight: 700; color: var(--fresh-muted); }
+.dwd-leg-state { font-family: var(--fresh-font); font-size: 11px; font-weight: 800; min-width: 42px; text-align: right; }
+.dwd-skeleton { width: 100%; height: 240px; border-radius: 18px; background: linear-gradient(90deg, var(--fresh-surface), #eef1f5, var(--fresh-surface)); background-size: 200% 100%; animation: dw-sk 1.2s ease-in-out infinite; }
 @keyframes dw-sk { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
 /* ── «Люди»: результат (Вы × Он/Она + кольцо) ── */
