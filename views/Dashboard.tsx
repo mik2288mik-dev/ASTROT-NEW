@@ -36,6 +36,7 @@ import {
   FreshListItem,
 } from '../components/fresh-ui';
 import { ActionWindows } from './v2/ActionWindows';
+import { HomeFaq } from '../components/Dashboard/HomeFaq';
 import { MATRIX_HOME_LABEL, MATRIX_HOME_SUB } from '../lib/matrixArcana';
 
 /* ── Вспомогательные функции ── */
@@ -482,6 +483,9 @@ export const Dashboard = memo<DashboardProps>(({
           </button>
         </div>
       </div>
+
+      {/* ── FAQ в самом низу: на чём основаны расчёты, что это не медицина ── */}
+      <HomeFaq language={language} />
 
       {/* ── Скрытые компоненты логики ── */}
       <DaySheet
