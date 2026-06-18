@@ -29,6 +29,7 @@ import { Loading } from './components/ui/Loading';
 import { getText } from './constants';
 import { PremiumPreview } from './components/PremiumPreview';
 import { requestStarsPayment } from './services/telegramService';
+import type { PremiumPlanId } from './lib/premiumPricing';
 import { HookChat } from './views/HookChat';
 import { Paywall } from './views/Paywall';
 import { UnionRoom } from './views/v2/UnionRoom';
@@ -1054,10 +1055,10 @@ const App: React.FC = () => {
         };
     }, [profile?.id, trackSessionActivity]);
 
-    const requestPremium = async (source = 'app', eventPayload?: Record<string, any>) => {
+    const requestPremium = async (source = 'app', eventPayload?: Record<string, any>, planId: PremiumPlanId = 'premium_week') => {
        if (!profile) return;
-       console.log('[App] Requesting premium for user:', profile.id);
-       const success = await requestStarsPayment(profile);
+       console.log('[App] Requesting premium for user:', profile.id, 'plan:', planId);
+       const success = await requestStarsPayment(profile, planId);
        if (success) {
            console.log('[App] Premium payment successful, refreshing profile...');
            setLoading(true);
@@ -1495,9 +1496,9 @@ const App: React.FC = () => {
                         onComplete={() => setView('dashboard')}
                     />
                 ) : view === 'paywall' ? (
-                    <Paywall 
-                        profile={profile} 
-                        onPurchase={requestPremium} 
+                    <Paywall
+                        profile={profile}
+                        onPurchase={(planId) => { void requestPremium('paywall', undefined, planId); }}
                         onClose={() => setView('dashboard')}
                     />
                 ) : view === 'oracle' ? (

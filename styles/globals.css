@@ -4061,6 +4061,30 @@ a,
 .onb-check.is-on { background: var(--fresh-link); border-color: var(--fresh-link); }
 .onb-notify-text { font-family: var(--fresh-font); font-size: 13.5px; font-weight: 600; color: var(--fresh-text); line-height: 1.4; }
 
+/* ── Paywall / тарифы ── */
+.pw-title { font-family: var(--fresh-font); font-size: 28px; font-weight: 900; letter-spacing: -0.02em; color: var(--fresh-text); margin: 0; }
+.pw-sub { font-family: var(--fresh-font); font-size: 14.5px; line-height: 1.5; color: var(--fresh-muted); margin: 8px 0 0; max-width: 22rem; }
+.pw-benefits { display: flex; flex-direction: column; gap: 10px; padding: 18px 20px 4px; }
+.pw-benefit { display: flex; align-items: center; gap: 10px; }
+.pw-benefit-check { width: 20px; height: 20px; border-radius: 50%; background: var(--fresh-link); color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.pw-benefit-text { font-family: var(--fresh-font); font-size: 14px; font-weight: 600; color: var(--fresh-text); line-height: 1.4; }
+.pw-plans { display: flex; flex-direction: column; gap: 10px; padding: 16px 20px 0; }
+.pw-plan { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; text-align: left; background: var(--fresh-surface); border: 1.5px solid transparent; border-radius: var(--fresh-radius-card); padding: 16px 18px; cursor: pointer; transition: transform 0.1s; }
+.pw-plan:active { transform: scale(0.99); }
+.pw-plan:disabled { opacity: 0.7; }
+.pw-plan.is-best { background: linear-gradient(135deg, #6D5BDF, #A855F7); border-color: transparent; }
+.pw-plan-period { display: flex; align-items: center; gap: 8px; font-family: var(--fresh-font); font-size: 17px; font-weight: 800; color: var(--fresh-text); }
+.pw-plan.is-best .pw-plan-period { color: #fff; }
+.pw-plan-badge { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: #6D3BD0; background: #fff; padding: 3px 7px; border-radius: 99px; }
+.pw-plan-stars { font-family: var(--fresh-font); font-size: 12.5px; font-weight: 600; color: var(--fresh-muted); margin-top: 4px; }
+.pw-plan.is-best .pw-plan-stars { color: rgba(255, 255, 255, 0.85); }
+.pw-plan-right { text-align: right; flex-shrink: 0; }
+.pw-plan-price { font-family: var(--fresh-font); font-size: 20px; font-weight: 900; color: var(--fresh-text); letter-spacing: -0.01em; }
+.pw-plan.is-best .pw-plan-price { color: #fff; }
+.pw-plan-save { font-family: var(--fresh-font); font-size: 12px; font-weight: 800; color: #1f9e6e; margin-top: 2px; }
+.pw-plan.is-best .pw-plan-save { color: #fff; }
+.pw-foot { font-family: var(--fresh-font); font-size: 11.5px; line-height: 1.45; color: var(--fresh-muted); text-align: center; margin: 18px 20px 0; }
+
 /* ── «Окна дня»: тайминги действий по карте ── */
 .aw { margin: 16px 20px 4px; }
 .aw-head { margin-bottom: 10px; }

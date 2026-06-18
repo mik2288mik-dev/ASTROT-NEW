@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { activatePremium } from '../../../services/premiumService';
 import { db } from '../../../lib/db';
-import { PREMIUM_WEEK_STARS } from '../../../lib/premiumPricing';
+import { getPremiumPlan } from '../../../lib/premiumPricing';
 import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../../../lib/adminAuth';
 
 const log = {
@@ -52,19 +52,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
-  if (type !== 'premium_week') {
+  const plan = getPremiumPlan(type);
+  if (!plan) {
     return res.status(400).json({
       error: 'Invalid activation type',
       code: 'INVALID_ACTIVATION_TYPE',
-      message: 'Only premium_week sim activation is supported.',
+      message: 'Unsupported premium plan.',
     });
   }
 
   const chargeId = `sim_${type}_${userId}_${Date.now()}`;
 
   try {
-    const starsAmount = PREMIUM_WEEK_STARS;
-    const result = await activatePremium(userId, chargeId, starsAmount);
+    const starsAmount = plan.stars;
+    const result = await activatePremium(userId, chargeId, starsAmount, { paymentType: plan.id, durationDays: plan.days });
 
     const user = await db.users.get(userId);
     if (!user) {

@@ -30,6 +30,7 @@ export async function activatePremium(
   options?: {
     paymentType?: string | null;
     payloadJson?: Record<string, unknown>;
+    durationDays?: number;
   }
 ): Promise<ActivatePremiumResult> {
   if (!userId?.trim()) throw new Error('UserId is required');
@@ -40,10 +41,13 @@ export async function activatePremium(
   const user = await db.users.get(id);
   if (!user) throw new Error('User not found');
 
+  const days = Number.isFinite(options?.durationDays) && (options?.durationDays ?? 0) > 0
+    ? Math.round(options!.durationDays!)
+    : PREMIUM_WEEK_DAYS;
   const now = new Date();
   const existingUntil = user.premium_until ? new Date(user.premium_until) : null;
   const baseDate = existingUntil && existingUntil > now ? existingUntil : now;
-  const premiumUntil = new Date(baseDate.getTime() + PREMIUM_WEEK_DAYS * 24 * 60 * 60 * 1000);
+  const premiumUntil = new Date(baseDate.getTime() + days * 24 * 60 * 60 * 1000);
 
   const inserted = await db.star_payments.recordFromWebhook({
     telegramPaymentChargeId,

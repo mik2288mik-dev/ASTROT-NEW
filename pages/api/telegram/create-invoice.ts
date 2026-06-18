@@ -10,7 +10,7 @@ const log = {
   error: (msg: string, err?: any) => console.error(`[API/telegram/create-invoice] ERROR: ${msg}`, err || ''),
 };
 
-const ALLOWED_TYPES = new Set<StarsInvoiceType>(['premium_week']);
+const ALLOWED_TYPES = new Set<StarsInvoiceType>(['premium_week', 'premium_month', 'premium_quarter', 'premium_year']);
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {

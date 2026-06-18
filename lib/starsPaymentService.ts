@@ -1,5 +1,5 @@
-import { db } from './db';
 import { parseInvoicePayload } from './starsInvoiceCatalog';
+import { getPremiumPlan } from './premiumPricing';
 import { activatePremium } from '../services/premiumService';
 
 const log = {
@@ -43,11 +43,9 @@ export async function processTelegramSuccessfulPayment(payment: TelegramSuccessf
     return { ok: false as const, reason: 'AMOUNT_MISMATCH' };
   }
 
-  if (parsed.type !== 'premium_week') {
-    log.warn('Unsupported invoice type (legacy content purchases removed)', {
-      type: parsed.type,
-      userId: parsed.userId,
-    });
+  const plan = getPremiumPlan(parsed.type);
+  if (!plan) {
+    log.warn('Unsupported invoice type', { type: parsed.type, userId: parsed.userId });
     return { ok: false as const, reason: 'UNSUPPORTED_TYPE' };
   }
 
@@ -56,8 +54,9 @@ export async function processTelegramSuccessfulPayment(payment: TelegramSuccessf
     payment.telegram_payment_charge_id,
     payment.total_amount,
     {
-      paymentType: 'premium_week',
+      paymentType: parsed.type,
       payloadJson: parsed.raw,
+      durationDays: plan.days,
     }
   );
   log.info('Premium payment processed', { userId: parsed.userId, activated: result.activated });

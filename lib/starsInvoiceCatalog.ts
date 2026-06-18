@@ -1,8 +1,8 @@
-import { PREMIUM_WEEK_DAYS, PREMIUM_WEEK_STARS } from './premiumPricing';
+import { PREMIUM_WEEK_DAYS, PREMIUM_WEEK_STARS, PREMIUM_PLANS, getPremiumPlan, type PremiumPlanId } from './premiumPricing';
 
 export { PREMIUM_WEEK_STARS, PREMIUM_WEEK_DAYS };
 
-export type StarsInvoiceType = 'premium_week';
+export type StarsInvoiceType = PremiumPlanId;
 
 export type ParsedStarsInvoicePayload = {
   userId: string;
@@ -15,11 +15,13 @@ export type ParsedStarsInvoicePayload = {
 const TYPE_ALIASES: Record<string, StarsInvoiceType> = {
   pw: 'premium_week',
   premium_week: 'premium_week',
+  premium_month: 'premium_month',
+  premium_quarter: 'premium_quarter',
+  premium_year: 'premium_year',
 };
 
 export function getStarsAmountForInvoiceType(type: StarsInvoiceType): number {
-  if (type === 'premium_week') return PREMIUM_WEEK_STARS;
-  return 0;
+  return getPremiumPlan(type)?.stars ?? 0;
 }
 
 export function parseInvoicePayload(rawPayload: string): ParsedStarsInvoicePayload | null {
@@ -83,18 +85,10 @@ export function buildInvoicePayload(input: BuildInvoiceInput): {
 }
 
 function getInvoiceCopy(type: StarsInvoiceType) {
-  switch (type) {
-    case 'premium_week':
-      return {
-        title: 'Lumia Premium',
-        description: `Full access for ${PREMIUM_WEEK_DAYS} days`,
-        label: 'Premium 1 Week',
-      };
-    default:
-      return {
-        title: 'Lumia Premium',
-        description: `Full access for ${PREMIUM_WEEK_DAYS} days`,
-        label: 'Premium 1 Week',
-      };
-  }
+  const plan = getPremiumPlan(type) || PREMIUM_PLANS.premium_week;
+  return {
+    title: 'Lumia Premium',
+    description: `Full access for ${plan.days} days`,
+    label: plan.label,
+  };
 }
