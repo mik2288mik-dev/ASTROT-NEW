@@ -39,7 +39,11 @@ describe('human report local-cache flow', () => {
   });
 
   it('shows the chart summary immediately while the human-base API is slow', () => {
-    expect(source).toContain("report?.shortCard.text || `Солнце в знаке");
+    // Мгновенная сводка карты теперь рисуется синхронно из chartData в NatalMagazine
+    // («большая тройка» + «Карта в цифрах»), а HumanReport показывает мягкое сообщение загрузки.
+    const magazine = read('views/v2/NatalMagazine.tsx');
+    expect(magazine).toContain('natal-big3');
+    expect(magazine).toContain('<ChartBalance');
     expect(source).toContain('Основные данные карты уже готовы. Подгружаем текстовый разбор ниже.');
     expect(source).not.toContain('Загружаем интерпретацию карты');
     expect(source).not.toContain('Array.from({ length: 5 })');

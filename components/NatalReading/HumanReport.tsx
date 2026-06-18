@@ -358,9 +358,9 @@ export const HumanReport: React.FC<Props> = ({
   };
 
   return (
-    <article className="relative bg-white pb-16 pt-6">
+    <article className="relative bg-white pb-16 pt-1">
       <div className="relative z-10 mx-auto w-full max-w-reading-wide px-5">
-        <header className="pb-8">
+        <header className={hideIntro ? 'empty:hidden' : 'pb-6'}>
           {!hideIntro ? (
             <>
               <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6b6b6b]">
@@ -371,43 +371,11 @@ export const HumanReport: React.FC<Props> = ({
               </h1>
             </>
           ) : null}
-          {/* Описание портрета — показываем всегда (это базовый текст карты) */}
-          <p className="max-w-[36rem] font-sans text-[15px] leading-relaxed text-[#666]">
-            Разбор основан на дате, времени и месте рождения. Сейчас открыт общий портрет, а подробные темы доступны в Premium.
-          </p>
-          {!hideIntro ? (
-            <p className="mt-3 font-sans text-[12.5px] leading-relaxed text-[#888]">
-              {report?.birthData.birthDate || profile.birthDate}
-              {(report?.birthData.birthTime || profile.birthTime) ? ` · ${report?.birthData.birthTime || profile.birthTime}` : ''}
-              {(report?.birthData.birthPlace || profile.birthPlace) ? ` · ${report?.birthData.birthPlace || profile.birthPlace}` : ''}
-            </p>
-          ) : null}
           {((chartData as any).birthTimeQuality === 'unknown' || (chartData as any).chartQuality?.ascendantReliable === false) ? (
-            <p className="mt-3 rounded-[16px] bg-[#faf7ef] px-4 py-3 font-sans text-[13px] leading-relaxed text-[#6f6654]">
+            <p className="rounded-[16px] bg-[#faf7ef] px-4 py-3 font-sans text-[13px] leading-relaxed text-[#6f6654]">
               Время рождения указано неточно, поэтому Асцендент и дома могут отличаться. Солнце, Луна и общий портрет остаются полезной основой.
             </p>
           ) : null}
-
-          <div className="mt-7 border-l-2 border-[#d8c18a] pl-4">
-            <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6b6b6b]">
-              {report?.shortCard.title || 'Основа твоей карты'}
-            </p>
-            <p className="mt-3 font-sans text-[17px] leading-[1.75] text-[#2d2d2d] [text-wrap:pretty]">
-              {report?.shortCard.text || `Солнце в знаке ${ruSign(chartData.sun?.sign)}, Луна в знаке ${ruSign(chartData.moon?.sign)}, Асцендент в знаке ${ruSign(chartData.rising?.sign)}.`}
-            </p>
-            {report ? (
-              <>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {report.shortCard.keywords.map((keyword) => (
-                    <span key={keyword} className="rounded-full bg-[#f7f7f7] px-3 py-1 text-[12px] text-[#3a3a3a]">
-                      {keyword}
-                    </span>
-                  ))}
-                </div>
-                <p className="mt-4 font-sans text-[14px] italic leading-relaxed text-[#666]">{report.shortCard.advice}</p>
-              </>
-            ) : null}
-          </div>
         </header>
 
         <div aria-live="polite">
@@ -429,23 +397,12 @@ export const HumanReport: React.FC<Props> = ({
           )}
         </div>
 
-        <section className="border-t border-[#eeeeee] py-9">
-          <div className="flex items-start gap-3">
-            <span className="mt-1 text-[#c9a55a]">
-              <Sparkles size={18} strokeWidth={1.8} />
-            </span>
-            <div>
-              <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6b6b6b]">Полный разбор</p>
-              <h2 className="mt-2 font-sans text-[28px] font-semibold leading-[1.08] tracking-[-0.02em] text-[#1f1f1f]">
-                Подробные темы полной карты
-              </h2>
-              <p className="mt-3 font-sans text-[14.5px] leading-relaxed text-[#5e5e5e]">
-                Здесь общий разбор переходит в конкретные сферы: отношения, работа, деньги, дом, общение, решения и повторяющиеся сценарии.
-              </p>
-            </div>
-          </div>
+        <section className="border-t border-[#eeeeee] py-7">
+          {isPremium ? (
+            <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.16em] text-[#6b6b6b]">Подробные темы по карте</p>
+          ) : null}
 
-          <div className="mt-6">
+          <div className="mt-3">
             {isPremium ? (
               HUMAN_MAP_SECTION_KEYS.map((key) => (
                 <LockedPreview
@@ -457,24 +414,18 @@ export const HumanReport: React.FC<Props> = ({
                 />
               ))
             ) : (
-              <div className="overflow-hidden rounded-[22px] bg-gradient-to-br from-[#6D5BDF] to-[#A855F7] p-5 text-white">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/80">Premium</p>
-                <h3 className="mt-1 font-sans text-[21px] font-semibold leading-tight">Полный разбор по карте</h3>
-                <ul className="mt-4 space-y-2.5">
-                  {HUMAN_MAP_SECTION_KEYS.map((key) => (
-                    <li key={key} className="flex items-center gap-2.5 text-[14.5px] font-medium text-white/95">
-                      <Lock size={14} strokeWidth={2} className="shrink-0 opacity-80" />
-                      {HUMAN_PAID_SECTION_META[key].title}
-                    </li>
-                  ))}
-                </ul>
+              <div className="overflow-hidden rounded-[20px] bg-gradient-to-br from-[#6D5BDF] to-[#A855F7] p-5 text-white">
+                <h3 className="font-sans text-[19px] font-semibold leading-tight">Полный разбор по карте</h3>
+                <p className="mt-1.5 text-[13px] leading-relaxed text-white/85">
+                  Отношения, работа, деньги, тень и сильные стороны — подробно по твоей карте.
+                </p>
                 <button
                   type="button"
                   onClick={requestPremium}
-                  className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-white px-5 py-3 text-[14px] font-semibold text-[#6D3BD0]"
+                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-white px-5 py-2.5 text-[14px] font-semibold text-[#6D3BD0]"
                 >
                   <Crown size={16} strokeWidth={2} />
-                  Открыть полный разбор
+                  Открыть в Premium
                 </button>
               </div>
             )}

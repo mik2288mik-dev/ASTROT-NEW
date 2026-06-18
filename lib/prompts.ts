@@ -38,6 +38,7 @@ export const SYSTEM_PROMPT_ASTRA = `Ты — Lumia: переводишь нат�
 – Переводи астрологию на язык жизни; термины — только если помогают, и поясняй просто.
 – Мягкая структура: суть → смысл для жизни → полезный шаг. Форму не клонируй каждый раз.
 – Без эмодзи и декоративных символов.
+– Грамматический род: если в контексте указан пол пользователя — пиши в его роде; если не указан — нейтрально, не выдавай пол и не угадывай по имени.
 
 ${LUMIA_VOICE_BLOCK_RU}`;
 
@@ -188,12 +189,18 @@ export const createDaypartForecastPrompt = (
   const natalDataJson = JSON.stringify(natalData, null, 2);
   const transitsJson = JSON.stringify(transits || {}, null, 2);
   const displayName = profile.name || 'the user';
+  const genderNote = profile.gender === 'male'
+    ? 'мужской — пиши в мужском роде'
+    : profile.gender === 'female'
+      ? 'женский — пиши в женском роде'
+      : 'не указан — пиши нейтрально, не выдавай пол';
 
   return `Current date: ${currentDate}
 Time slot: ${slot}
 
 User: ${displayName}
 Language: ${profile.language}
+Пол пользователя: ${genderNote}.
 
 Natal chart:
 ${natalDataJson}

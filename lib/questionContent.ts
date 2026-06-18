@@ -91,6 +91,7 @@ ${tierInstruction}
 
 HARD STYLE RULES:
 - Keep it SHORT. If in doubt, cut. No long essays.
+- Соблюдай грамматический род пользователя (см. «Пол пользователя» в контексте). Если пол не указан — пиши нейтрально, не выдавай пол. Никогда не угадывай пол по имени.
 - Absolutely NO esoteric or cosmic language: no космос/Вселенная/карма/судьба/энергии/вибрации/чакры/предназначение/духовный путь. Plain human talk only.
 - No mystical fluff, no decorative astrology terms, no fake certainty.
 

@@ -232,9 +232,15 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     metadata: contextFlags,
   });
 
-  const chartContext = personalizationContext
+  const baseChartContext = personalizationContext
     ? describePersonalizationContext(personalizationContext, lang)
     : buildChartContext(user, await db.natal_charts.getPrimary(userId));
+  const genderNote = user?.gender === 'male'
+    ? '\n\nПол пользователя: мужской — обращайся в мужском роде («ты сделал»).'
+    : user?.gender === 'female'
+      ? '\n\nПол пользователя: женский — обращайся в женском роде («ты сделала»).'
+      : '\n\nПол пользователя не указан — пиши нейтрально, не выдавай пол читателя.';
+  const chartContext = baseChartContext + genderNote;
   const history = sanitizeQuestionHistory(req.body?.history);
 
   let answer: string;
