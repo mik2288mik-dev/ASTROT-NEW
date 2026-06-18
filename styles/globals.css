@@ -4043,6 +4043,24 @@ a,
 .dl-svg { width: 100%; height: 84px; display: block; }
 .dl-axis { display: flex; justify-content: space-between; margin-top: 2px; font-family: var(--fresh-font); font-size: 10px; font-weight: 700; color: var(--fresh-muted); }
 
+/* ── Онбординг-сторис ── */
+.onb-dots { display: flex; gap: 6px; justify-content: center; padding: 14px 0 8px; }
+.onb-dot { width: 22px; height: 4px; border-radius: 4px; background: var(--fresh-border); transition: background 0.2s; }
+.onb-dot.is-on { background: var(--fresh-text); }
+.onb-stage { flex: 1; display: flex; align-items: center; justify-content: center; padding: 8px 20px; cursor: pointer; min-height: 0; }
+.onb-card { width: 100%; text-align: center; }
+.onb-hero { width: 100%; height: 200px; border-radius: 24px; display: flex; align-items: center; justify-content: center; }
+.onb-hero-ico { color: #fff; display: flex; }
+.onb-title { font-family: var(--fresh-font); font-size: 26px; font-weight: 900; letter-spacing: -0.02em; color: var(--fresh-text); margin: 22px 0 0; }
+.onb-text { font-family: var(--fresh-font); font-size: 15px; line-height: 1.6; color: var(--fresh-muted); margin: 12px auto 0; max-width: 20rem; }
+.onb-skip { display: block; width: 100%; margin-top: 10px; padding: 10px; font-family: var(--fresh-font); font-size: 13px; font-weight: 700; color: var(--fresh-muted); background: none; border: none; cursor: pointer; }
+.onb-gender { flex: 1; min-height: 42px; border-radius: var(--fresh-radius-pill); border: 1px solid var(--fresh-border); background: var(--fresh-bg); font-family: var(--fresh-font); font-size: 12.5px; font-weight: 700; color: var(--fresh-muted); cursor: pointer; }
+.onb-gender.is-on { background: var(--fresh-text); color: #fff; border-color: var(--fresh-text); }
+.onb-notify { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; background: var(--fresh-surface); border: none; border-radius: var(--fresh-radius-item); padding: 12px 14px; cursor: pointer; }
+.onb-check { width: 22px; height: 22px; border-radius: 7px; border: 2px solid var(--fresh-border); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 900; color: #fff; flex-shrink: 0; }
+.onb-check.is-on { background: var(--fresh-link); border-color: var(--fresh-link); }
+.onb-notify-text { font-family: var(--fresh-font); font-size: 13.5px; font-weight: 600; color: var(--fresh-text); line-height: 1.4; }
+
 /* ── «Окна дня»: тайминги действий по карте ── */
 .aw { margin: 16px 20px 4px; }
 .aw-head { margin-bottom: 10px; }

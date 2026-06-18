@@ -35,7 +35,7 @@ import { UnionRoom } from './views/v2/UnionRoom';
 import { MatrixRoom } from './views/v2/MatrixRoom';
 import { MyCharts } from './views/MyCharts';
 import { getAdminStatus } from './services/adminService';
-import { recordNotificationAttribution, recordUserAppEvent, recordUserSession } from './services/sessionService';
+import { recordNotificationAttribution, recordUserAppEvent, recordUserSession, updateUserNotificationSettings } from './services/sessionService';
 import { installTelegramFullscreenGuard } from './lib/telegramFullscreen';
 import { applyTelegramSafeAreaCssVars, subscribeTelegramContentSafeAreaChanges } from './lib/telegramSafeAreaInsets';
 import { useSwipeBack } from './lib/useSwipeBack';
@@ -932,6 +932,24 @@ const App: React.FC = () => {
                 console.warn('[App] Onboarding DB-first content flow failed:', prewarmError?.message || prewarmError);
             }
             setLoadingProgress(90);
+
+            // Опт-ин уведомлений из онбординга — регистрируем настройки в движке (best-effort).
+            if (newProfile.notificationFrequency && newProfile.notificationFrequency !== 'quiet') {
+                try {
+                    const freq = newProfile.notificationFrequency;
+                    await updateUserNotificationSettings({
+                        enabled: true,
+                        morningEnabled: true,
+                        dayEnabled: freq === 'twice_daily',
+                        eveningEnabled: freq === 'daily' || freq === 'twice_daily',
+                        reactivationEnabled: true,
+                        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || null,
+                    });
+                } catch (notifyError: any) {
+                    console.warn('[App] notification opt-in registration failed:', notifyError?.message || notifyError);
+                }
+            }
+
             setLoadingProgress(100);
             setLoadingMessage(undefined);
             const targetView = isGuestOnboarding ? 'chart' : onboardingTargetViewRef.current || 'dashboard';
