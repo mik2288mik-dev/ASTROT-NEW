@@ -105,7 +105,6 @@ const SectionText: React.FC<{ section: InterpretationSection; index?: number }> 
       data-reading-section-key={section.key}
       className="natal-sec"
     >
-      {section.subtitle ? <p className="natal-sec-kicker">{section.subtitle}</p> : null}
       <h3 className="natal-sec-title">{section.title}</h3>
       <div className="natal-sec-body">
         <FormattedAiText

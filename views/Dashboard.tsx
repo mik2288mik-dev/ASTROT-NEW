@@ -282,7 +282,6 @@ export const Dashboard = memo<DashboardProps>(({
         chipPosition="top-right"
         stickyText={heroTitle}
         stickyRotation={-2}
-        softText={language === 'ru' ? 'Пик 13:00' : 'Peak 13:00'}
         icon={<ZodiacIcon sign={selectedSign} size={80} strokeWidth={1.1} />}
         onClick={() => { lumiaSelectionHaptic(); onOpenHoroscopeLayer('sign', { source: 'home_hero' }); }}
         style={{ cursor: 'pointer' }}

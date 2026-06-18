@@ -9,6 +9,7 @@ import { getRetryAfterMs, isGenerationInProgressError, waitMs } from "../lib/con
 import { hasActivePremium } from "../lib/accessMatrix";
 import type { NatalPlanetKey } from "../lib/natalPlanetMeta";
 import type { SignCompatibilityResult } from '../lib/synastry/signCompatibility';
+import { buildLocalSignCompatibility } from '../lib/synastry/localSignText';
 import { getTelegramInitDataHeaders } from "./sessionService";
 
 // API base URL - используем локальные Next.js API routes
@@ -1449,25 +1450,13 @@ const signCompatibilityClientCache = new Map<string, SignCompatibilityResult>();
 
 export async function getSignCompatibility(signA: string, signB: string, language: 'ru' | 'en'): Promise<SignCompatibilityResult> {
   const key = [signA.toLowerCase(), signB.toLowerCase()].sort().join(':') + `:${language}`;
-  const local = signCompatibilityClientCache.get(key);
-  if (local) return local;
-  const query = new URLSearchParams({ signA, signB, language });
-  const cached = await fetch(`${API_BASE_URL}/api/content/synastry/sign-compatibility?${query.toString()}`, { headers: getTelegramInitDataHeaders() });
-  if (cached.ok) {
-    const payload = await cached.json();
-    signCompatibilityClientCache.set(key, payload.result);
-    return payload.result;
-  }
-  const response = await fetchWithTimeout(`${API_BASE_URL}/api/content/synastry/sign-compatibility`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
-    body: JSON.stringify({ signA, signB, language }),
-  }, 20000);
-  if (!response.ok) throw buildApiError(`Sign compatibility failed: ${response.status}`, response.status);
-  const payload = await response.json();
-  if (!payload?.result) throw buildApiError('Sign compatibility content is missing');
-  signCompatibilityClientCache.set(key, payload.result);
-  return payload.result;
+  const cachedLocal = signCompatibilityClientCache.get(key);
+  if (cachedLocal) return cachedLocal;
+  // Текст совместимости по знакам — из нашей базы (локальный композитор), без OpenAI.
+  const result = buildLocalSignCompatibility(signA, signB, language);
+  if (!result) throw buildApiError('Sign compatibility content is missing');
+  signCompatibilityClientCache.set(key, result);
+  return result;
 }
 
 export type SynastryExtendedApiOutcome = {
