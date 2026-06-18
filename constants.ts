@@ -956,7 +956,11 @@ export const getText = (lang: Language, key: string) => {
 
 export const getZodiacSign = (lang: Language, sign: string): string => {
   const zodiacTranslations = TRANSLATIONS[lang].zodiac as Record<string, string>;
-  return zodiacTranslations[sign] || sign;
+  if (!sign) return sign;
+  // Ключи карты переводов — с заглавной (Aries). Вызовы приходят и строчными (gemini),
+  // и с заглавной — нормализуем регистр, иначе знак показывается на английском.
+  const normalized = sign.charAt(0).toUpperCase() + sign.slice(1).toLowerCase();
+  return zodiacTranslations[normalized] || zodiacTranslations[sign] || sign;
 };
 
 export const getElement = (lang: Language, element: string): string => {

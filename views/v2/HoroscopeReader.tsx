@@ -107,31 +107,33 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
   const currentKey = keyOf(sign, period);
   const reading = readings[currentKey];
 
-  /* ── Доступ к знакам: свой знак всегда; «другие» — по дневной квоте, по тапу ── */
+  /* ── Доступ к знакам: свой знак всегда; «другие» — по дневной квоте, открываются КНОПКОЙ ── */
   const premium = hasActivePremium(profile);
   const extraQuota = premium ? PREMIUM_EXTRA_QUOTA : FREE_EXTRA_QUOTA;
   const ownSignRef = useRef(String(chartData?.sun?.sign || profile.selectedZodiacSign || ZODIAC_KEYS[0]).toLowerCase());
   const ownSign = chartData?.sun?.sign ? String(chartData.sun.sign).toLowerCase() : ownSignRef.current;
-  const [extraSigns, setExtraSigns] = useState<string[]>(() => readExtraSigns(today));
+  const [openedSigns, setOpenedSigns] = useState<string[]>(() => readExtraSigns(today));
 
   const current = sign.toLowerCase();
   const isOwnSign = current === ownSign;
-  const signUnlocked = isOwnSign || extraSigns.includes(current);
-  const signLocked = !signUnlocked && extraSigns.length >= extraQuota;
+  const isOpened = isOwnSign || openedSigns.includes(current);
+  const canOpenMore = openedSigns.length < extraQuota;
+  const signState: 'open' | 'can-open' | 'locked' = isOpened ? 'open' : canOpenMore ? 'can-open' : 'locked';
 
-  /* Расход квоты: первый просмотр нового «другого» знака разблокирует его на сегодня. */
-  useEffect(() => {
-    if (isOwnSign || extraSigns.includes(current) || extraSigns.length >= extraQuota) return;
-    const next = [...extraSigns, current];
-    setExtraSigns(next);
+  /* Открыть знак по кнопке — тратит дневную квоту и запускает загрузку (никакого авто-фетча). */
+  const openCurrent = () => {
+    if (isOpened || !canOpenMore) return;
+    lumiaSelectionHaptic();
+    const next = [...openedSigns, current];
+    setOpenedSigns(next);
     writeExtraSigns(today, next);
-  }, [isOwnSign, current, extraSigns, extraQuota, today]);
+  };
 
-  const loading = !signLocked && reading === undefined;
+  const loading = isOpened && reading === undefined;
 
-  /* Загрузка ТОЛЬКО текущего знака и только если он разблокирован (без авто-префетча соседей). */
+  /* Загружаем только открытый знак и только текущий (без префетча соседей). */
   useEffect(() => {
-    if (signLocked) return;
+    if (!isOpened) return;
     let alive = true;
     const loadFor = async (s: string, p: Period) => {
       const kk = keyOf(s, p);
@@ -149,7 +151,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
     };
     void loadFor(sign, period);
     return () => { alive = false; };
-  }, [sign, period, language, today, signLocked]);
+  }, [sign, period, language, today, isOpened]);
 
   const goToIndex = (next: number, direction: number) => {
     lumiaSelectionHaptic();
@@ -281,32 +283,16 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
             onDragEnd={onDragEnd}
           >
             <div className="horo-uni-hero" style={{ background: ELEMENT_COLOR[sign.toLowerCase()] || 'var(--fresh-sky)' }}>
-              <div className="fresh-hero-chip" style={{ top: 14, right: 14 }}>{signLocked ? (language === 'ru' ? 'Закрыто' : 'Locked') : periodLabel}</div>
+              <div className="fresh-hero-chip" style={{ top: 14, right: 14 }}>
+                {signState === 'open' ? periodLabel : signState === 'can-open' ? (language === 'ru' ? 'Другой знак' : 'Other sign') : (language === 'ru' ? 'Закрыто' : 'Locked')}
+              </div>
               <div className="fresh-hero-icon" aria-hidden><ZodiacIcon sign={sign} size={72} strokeWidth={1.1} /></div>
               <div className="fresh-sticky" style={{ transform: 'rotate(-2deg)' }}>
-                {signLocked ? signLabel : (reading?.headline || (language === 'ru' ? 'Готовим разбор…' : 'Preparing…'))}
+                {signState === 'open' ? (reading?.headline || (language === 'ru' ? 'Готовим разбор…' : 'Preparing…')) : signLabel}
               </div>
             </div>
             <div className="horo-uni-body">
-              {signLocked ? (
-                <div className="horo-lock">
-                  <div className="horo-lock-title">
-                    {premium
-                      ? (language === 'ru' ? 'Лимит знаков на сегодня' : "Today's sign limit")
-                      : (language === 'ru' ? 'Гороскоп других знаков' : 'Other signs')}
-                  </div>
-                  <p className="horo-lock-text">
-                    {premium
-                      ? (language === 'ru' ? 'В Premium открыто 3 знака в день, кроме своего. Новые — завтра.' : 'Premium opens 3 other signs a day. More tomorrow.')
-                      : (language === 'ru' ? 'Бесплатно — свой знак и ещё 1 в день. Все знаки — в Premium.' : 'Free — your sign plus 1 a day. All signs in Premium.')}
-                  </p>
-                  {!premium && onRequestPremium ? (
-                    <button type="button" className="fresh-btn-primary" style={{ marginTop: 12, width: '100%' }} onClick={() => { lumiaSelectionHaptic(); onRequestPremium(); }}>
-                      {language === 'ru' ? 'Открыть Premium' : 'Open Premium'}
-                    </button>
-                  ) : null}
-                </div>
-              ) : (
+              {signState === 'open' ? (
                 <>
                   <p className="horo-uni-summary">
                     {loading ? (language === 'ru' ? 'Готовим разбор…' : 'Preparing reading…') : reading?.summary}
@@ -318,6 +304,34 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
                     </div>
                   ) : null}
                 </>
+              ) : signState === 'can-open' ? (
+                <div className="horo-lock">
+                  <div className="horo-lock-title">{language === 'ru' ? `Гороскоп · ${signLabel}` : `Horoscope · ${signLabel}`}</div>
+                  <p className="horo-lock-text">
+                    {premium
+                      ? (language === 'ru' ? `Откроется по кнопке. Сегодня доступно ещё ${extraQuota - openedSigns.length} из ${extraQuota}.` : `Tap to open. ${extraQuota - openedSigns.length} of ${extraQuota} left today.`)
+                      : (language === 'ru' ? 'Откроется по кнопке. Бесплатно — 1 другой знак в день.' : 'Tap to open. Free — 1 other sign a day.')}
+                  </p>
+                  <button type="button" className="fresh-btn-primary" style={{ marginTop: 12, width: '100%' }} onClick={openCurrent}>
+                    {language === 'ru' ? 'Открыть гороскоп' : 'Open horoscope'}
+                  </button>
+                </div>
+              ) : (
+                <div className="horo-lock">
+                  <div className="horo-lock-title">
+                    {premium ? (language === 'ru' ? 'Лимит знаков на сегодня' : "Today's sign limit") : (language === 'ru' ? 'Другие знаки — в Premium' : 'Other signs — Premium')}
+                  </div>
+                  <p className="horo-lock-text">
+                    {premium
+                      ? (language === 'ru' ? 'В Premium — 3 знака в день, кроме своего. Новые — завтра.' : 'Premium opens 3 other signs a day. More tomorrow.')
+                      : (language === 'ru' ? 'Бесплатно — свой знак и ещё 1 в день. Все знаки — в Premium.' : 'Free — your sign plus 1 a day. All signs in Premium.')}
+                  </p>
+                  {!premium && onRequestPremium ? (
+                    <button type="button" className="fresh-btn-primary" style={{ marginTop: 12, width: '100%' }} onClick={() => { lumiaSelectionHaptic(); onRequestPremium(); }}>
+                      {language === 'ru' ? 'Открыть Premium' : 'Open Premium'}
+                    </button>
+                  ) : null}
+                </div>
               )}
             </div>
           </motion.div>
