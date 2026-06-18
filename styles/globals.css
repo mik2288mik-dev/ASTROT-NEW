@@ -3991,6 +3991,20 @@ a,
 .natal-sec-bullets li { position: relative; padding-left: 16px; font-family: var(--fresh-font); font-size: 14px; line-height: 1.5; color: var(--fresh-muted); }
 .natal-sec-bullets li::before { content: ''; position: absolute; left: 0; top: 8px; width: 6px; height: 6px; border-radius: 50%; background: var(--fresh-link); }
 
+/* ── Личный гороскоп (Personal daily) — fresh ── */
+.pd-head { padding: 0 20px 4px; }
+.pd-head-title { font-family: var(--fresh-font); font-size: 26px; font-weight: 900; letter-spacing: -0.02em; color: var(--fresh-text); line-height: 1.1; }
+.pd-head-sub { font-family: var(--fresh-font); font-size: 13px; color: var(--fresh-muted); margin-top: 5px; }
+.pd-body { padding-top: 8px; }
+.pd-hero { border: 1px solid; border-radius: var(--fresh-radius-card); padding: 16px 18px; }
+.pd-hero-text { margin: 0; font-family: var(--fresh-font); font-size: 17px; line-height: 1.55; font-weight: 600; color: var(--fresh-text); }
+.pd-notice { text-align: center; padding: 22px 18px; background: var(--fresh-surface); border-radius: var(--fresh-radius-card); }
+.pd-notice-ico { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: #fff; color: var(--fresh-text); margin-bottom: 10px; }
+.pd-notice-title { font-family: var(--fresh-font); font-size: 17px; font-weight: 800; color: var(--fresh-text); }
+.pd-notice-body { font-family: var(--fresh-font); font-size: 14px; line-height: 1.55; color: var(--fresh-muted); margin: 6px 0 0; }
+.pd-skel { display: flex; flex-direction: column; gap: 12px; padding-top: 10px; }
+.pd-skel-line { height: 14px; border-radius: 8px; background: linear-gradient(90deg, var(--fresh-surface), #eef1f5, var(--fresh-surface)); background-size: 200% 100%; animation: dw-sk 1.2s ease-in-out infinite; }
+
 /* ── «Окна дня»: тайминги действий по карте ── */
 .aw { margin: 16px 20px 4px; }
 .aw-head { margin-bottom: 10px; }

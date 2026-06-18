@@ -1,15 +1,5 @@
 import React, { memo, useEffect, useMemo, useState } from 'react';
-import { AnimatePresence } from 'framer-motion';
-import {
-  ArrowLeft,
-  BriefcaseBusiness,
-  Heart,
-  Lock,
-  Sparkles,
-  Target,
-  WalletCards,
-  type LucideIcon,
-} from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { canAccessFeature } from '../lib/accessMatrix';
 import type {
   ForecastDaypartReading,
@@ -22,8 +12,8 @@ import { ensureFullDaypartForecast } from '../services/astrologyService';
 import { loadHumanDailySection } from '../services/natalReadingService';
 import { formatLumiaDate, getMoscowTodayKey } from '../lib/date-utils';
 import type { HumanDailySectionKey } from '../lib/natalHumanShared';
-import { cn } from '../lib/cn';
-import { MonoReveal } from '../components/mono-ui';
+import { lumiaSelectionHaptic } from '../lib/haptics';
+import { FreshTabs } from '../components/fresh-ui';
 
 type PersonalDailyScreenProps = {
   profile: UserProfile;
@@ -37,56 +27,20 @@ type PersonalDailyScreenProps = {
 
 type DailyTabConfig = {
   id: PersonalDailySection;
+  label: string;
   title: string;
   subtitle: string;
-  icon: LucideIcon;
+  accent: string;
   sectionKey?: HumanDailySectionKey;
 };
 
 const DAILY_TABS: DailyTabConfig[] = [
-  {
-    id: 'overview',
-    title: 'Личный прогноз',
-    subtitle: 'Главный фокус дня',
-    icon: Sparkles,
-  },
-  {
-    id: 'love',
-    title: 'Любовь сегодня',
-    subtitle: 'Близость, эмоции и разговоры',
-    icon: Heart,
-    sectionKey: 'daily_love',
-  },
-  {
-    id: 'money',
-    title: 'Деньги сегодня',
-    subtitle: 'Решения, покупки и устойчивость',
-    icon: WalletCards,
-    sectionKey: 'daily_money',
-  },
-  {
-    id: 'work',
-    title: 'Работа сегодня',
-    subtitle: 'Фокус, задачи и рабочий ритм',
-    icon: BriefcaseBusiness,
-    sectionKey: 'daily_work_business',
-  },
-  {
-    id: 'goals',
-    title: 'Дела и цели',
-    subtitle: 'Один ясный следующий шаг',
-    icon: Target,
-    sectionKey: 'daily_goals',
-  },
+  { id: 'overview', label: 'День', title: 'Личный прогноз', subtitle: 'Главный фокус дня', accent: '#FF7E8B' },
+  { id: 'love', label: 'Любовь', title: 'Любовь сегодня', subtitle: 'Близость, эмоции и разговоры', accent: '#A98CEC', sectionKey: 'daily_love' },
+  { id: 'money', label: 'Деньги', title: 'Деньги сегодня', subtitle: 'Решения, покупки и устойчивость', accent: '#34C39A', sectionKey: 'daily_money' },
+  { id: 'work', label: 'Работа', title: 'Работа сегодня', subtitle: 'Фокус, задачи и рабочий ритм', accent: '#5BB6EC', sectionKey: 'daily_work_business' },
+  { id: 'goals', label: 'Цели', title: 'Дела и цели', subtitle: 'Один ясный следующий шаг', accent: '#FF9B6A', sectionKey: 'daily_goals' },
 ];
-
-function hapticOpen() {
-  try {
-    (window as any)?.Telegram?.WebApp?.HapticFeedback?.impactOccurred?.('light');
-  } catch {
-    /* Telegram haptics are optional */
-  }
-}
 
 function splitParagraphs(value?: string | null): string[] {
   return String(value || '')
@@ -99,117 +53,55 @@ function resolveTab(section?: PersonalDailySection | null): DailyTabConfig {
   return DAILY_TABS.find((tab) => tab.id === section) || DAILY_TABS[0];
 }
 
-function LoadingText() {
+function Skeleton() {
   return (
-    <div className="mt-6 max-w-[min(82vw,22rem)] space-y-3" aria-busy="true">
-      <div className="h-4 w-5/6 animate-pulse rounded-full bg-black/10" />
-      <div className="h-3 w-full animate-pulse rounded-full bg-black/10" />
-      <div className="h-3 w-4/5 animate-pulse rounded-full bg-black/10" />
-      <div className="h-3 w-2/3 animate-pulse rounded-full bg-black/10" />
+    <div className="pd-skel" aria-busy="true">
+      <div className="pd-skel-line" style={{ width: '85%' }} />
+      <div className="pd-skel-line" style={{ width: '100%' }} />
+      <div className="pd-skel-line" style={{ width: '78%' }} />
+      <div className="pd-skel-line" style={{ width: '64%' }} />
     </div>
   );
 }
 
-function PremiumNotice({ profile, requestPremium }: Pick<PersonalDailyScreenProps, 'profile' | 'requestPremium'>) {
-  const language = profile.language === 'en' ? 'en' : 'ru';
+function Notice({ icon, title, body, cta, onCta }: { icon: 'lock' | 'chart'; title: string; body: string; cta?: string; onCta?: () => void }) {
   return (
-    <div className="mt-6 max-w-[min(82vw,22rem)] rounded-[18px] border border-black/10 bg-white px-4 py-4 text-[#34333a]">
-      <div className="flex items-start gap-3">
-        <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#202024] text-white">
-          <Lock size={16} />
-        </span>
-        <div>
-          <p className="text-[16px] font-semibold leading-snug">
-            {language === 'en' ? 'Available in Premium' : 'Доступно в Premium'}
-          </p>
-          <p className="mt-1 text-[14px] leading-relaxed text-[#68646e]">
-            {language === 'en'
-              ? 'Personal daily readings open after Premium is active.'
-              : 'Персональный день открывается после активного Premium.'}
-          </p>
-          <button
-            type="button"
-            onClick={() => {
-              hapticOpen();
-              void requestPremium();
-            }}
-            className="mt-4 inline-flex min-h-[44px] items-center rounded-full bg-[#202024] px-5 text-[14px] font-semibold text-white"
-          >
-            {language === 'en' ? 'Open Premium' : 'Открыть Premium'}
-          </button>
-        </div>
-      </div>
+    <div className="pd-notice">
+      <span className="pd-notice-ico" aria-hidden>
+        {icon === 'lock' ? (
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="none"><rect x="3.5" y="7" width="9" height="6.5" rx="1.5" stroke="currentColor" strokeWidth="1.4" /><path d="M5.5 7V5.5a2.5 2.5 0 0 1 5 0V7" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" /></svg>
+        ) : (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 3l1.9 5.3L19 10l-5.1 1.7L12 17l-1.9-5.3L5 10l5.1-1.7L12 3z" fill="currentColor" /></svg>
+        )}
+      </span>
+      <div className="pd-notice-title">{title}</div>
+      <p className="pd-notice-body">{body}</p>
+      {cta && onCta ? (
+        <button type="button" className="fresh-btn-primary" style={{ marginTop: 14, width: '100%' }} onClick={onCta}>{cta}</button>
+      ) : null}
     </div>
   );
 }
 
-function CreateChartNotice({
-  profile,
-  onCreateNatalChart,
-}: Pick<PersonalDailyScreenProps, 'profile' | 'onCreateNatalChart'>) {
-  const language = profile.language === 'en' ? 'en' : 'ru';
-  return (
-    <div className="mt-6 max-w-[min(82vw,22rem)] rounded-[18px] border border-black/10 bg-white px-4 py-4 text-[#34333a]">
-      <div className="flex items-start gap-3">
-        <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#202024] text-white">
-          <Sparkles size={16} />
-        </span>
-        <div>
-          <p className="text-[16px] font-semibold leading-snug">
-            {language === 'en' ? 'Create your natal chart' : 'Создать натальную карту'}
-          </p>
-          <p className="mt-1 text-[14px] leading-relaxed text-[#68646e]">
-            {language === 'en'
-              ? 'Personal daily readings need birth data first.'
-              : 'Для персонального прогноза сначала нужна твоя карта рождения.'}
-          </p>
-          {onCreateNatalChart ? (
-            <button
-              type="button"
-              onClick={() => {
-                hapticOpen();
-                void onCreateNatalChart();
-              }}
-              className="mt-4 inline-flex min-h-[44px] items-center rounded-full bg-[#202024] px-5 text-[14px] font-semibold text-white"
-            >
-              {language === 'en' ? 'Create chart' : 'Создать карту'}
-            </button>
-          ) : null}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ErrorText({ language }: { language: 'ru' | 'en' }) {
-  return (
-    <div className="mt-6 max-w-[min(82vw,22rem)] rounded-[18px] border border-black/10 bg-white px-4 py-3 text-[14px] leading-relaxed text-[#5f5b64]">
-      {language === 'en'
-        ? 'Check your saved birth data and try opening this section again.'
-        : 'Проверь сохранённые данные рождения и открой раздел ещё раз.'}
-    </div>
-  );
-}
-
-function ForecastContent({ reading }: { reading: ForecastDaypartReading }) {
+function ForecastContent({ reading, accent }: { reading: ForecastDaypartReading; accent: string }) {
   const items = [
     { label: 'Главное сегодня', value: reading.focus },
-    { label: 'Люди / отношения', value: reading.relationships },
+    { label: 'Люди и отношения', value: reading.relationships },
     { label: 'Действие дня', value: reading.guidance },
-    { label: 'Риск дня', value: reading.risk },
+    { label: 'Что учесть', value: reading.risk },
     { label: 'Почему так по карте', value: reading.chartReason },
   ].filter((item) => item.value?.trim());
 
   return (
-    <div className="mt-6 max-h-[calc(100dvh-19rem)] overflow-y-auto pb-2 pr-1">
-      <p className="max-w-[min(82vw,22rem)] text-[17px] leading-[1.62] text-mono-ink">
-        {reading.summary || reading.headline}
-      </p>
-      <div className="mt-5 space-y-2">
+    <div className="pd-body">
+      <div className="pd-hero" style={{ background: `${accent}1a`, borderColor: `${accent}33` }}>
+        <p className="pd-hero-text">{reading.summary || reading.headline}</p>
+      </div>
+      <div className="compat-read" style={{ padding: 0, marginTop: 18 }}>
         {items.map((item) => (
-          <div key={item.label} className="rounded-mono-card border border-mono-line bg-mono-white px-4 py-3">
-            <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-mono-muted">{item.label}</p>
-            <p className="mt-1 text-[15px] leading-relaxed text-mono-muted">{item.value}</p>
+          <div key={item.label} className="compat-read-block">
+            <div className="compat-read-title" style={{ color: accent }}>{item.label}</div>
+            <p className="compat-read-text">{item.value}</p>
           </div>
         ))}
       </div>
@@ -220,22 +112,16 @@ function ForecastContent({ reading }: { reading: ForecastDaypartReading }) {
 function SectionContent({ section }: { section: InterpretationSection }) {
   const paragraphs = splitParagraphs(section.content);
   return (
-    <div className="mt-6 max-h-[calc(100dvh-19rem)] overflow-y-auto pb-2 pr-1">
-      <div className="space-y-3">
+    <div className="pd-body">
+      <div className="natal-sec-body" style={{ marginTop: 0 }}>
         {paragraphs.map((paragraph, index) => (
-          <p key={index} className="max-w-[min(82vw,22rem)] text-[16px] leading-[1.66] text-mono-ink/90">
-            {paragraph}
-          </p>
+          <p key={index} className="natal-sec-p" style={{ marginTop: index ? 12 : 0 }}>{paragraph}</p>
         ))}
       </div>
       {section.bullets?.length ? (
-        <div className="mt-5 space-y-2">
-          {section.bullets.slice(0, 4).map((bullet) => (
-            <div key={bullet} className="rounded-mono-card border border-mono-line bg-mono-white px-4 py-3 text-[14px] leading-relaxed text-mono-muted">
-              {bullet}
-            </div>
-          ))}
-        </div>
+        <ul className="natal-sec-bullets" style={{ marginTop: 16 }}>
+          {section.bullets.slice(0, 4).map((bullet) => <li key={bullet}>{bullet}</li>)}
+        </ul>
       ) : null}
     </div>
   );
@@ -262,9 +148,7 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
   const [loadingKey, setLoadingKey] = useState<PersonalDailySection | null>(null);
   const [errorKey, setErrorKey] = useState<PersonalDailySection | null>(null);
 
-  useEffect(() => {
-    setActiveSection(initialSection);
-  }, [initialSection]);
+  useEffect(() => { setActiveSection(initialSection); }, [initialSection]);
 
   const activeTab = resolveTab(activeSection);
   const activeDailySection = activeTab.sectionKey ? sections[activeTab.sectionKey] : null;
@@ -274,17 +158,11 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
 
   useEffect(() => {
     let alive = true;
-    if (!access.allowed || !profile.id || !chartData) return () => {
-      alive = false;
-    };
+    if (!access.allowed || !profile.id || !chartData) return () => { alive = false; };
 
     const tab = resolveTab(activeSection);
-    if (tab.id === 'overview' && forecast) return () => {
-      alive = false;
-    };
-    if (tab.sectionKey && sections[tab.sectionKey]?.content?.trim()) return () => {
-      alive = false;
-    };
+    if (tab.id === 'overview' && forecast) return () => { alive = false; };
+    if (tab.sectionKey && sections[tab.sectionKey]?.content?.trim()) return () => { alive = false; };
 
     setLoadingKey(tab.id);
     setErrorKey(null);
@@ -308,95 +186,77 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
           date: dateKey,
           chartId: chartId ?? null,
           maxInProgressRetries: 3,
-        }).then((result) => {
-          if (alive) setForecast(result.reading);
-        });
+        }).then((result) => { if (alive) setForecast(result.reading); });
 
     load
-      .catch(() => {
-        if (alive) setErrorKey(tab.id);
-      })
-      .finally(() => {
-        if (alive) setLoadingKey((current) => (current === tab.id ? null : current));
-      });
+      .catch(() => { if (alive) setErrorKey(tab.id); })
+      .finally(() => { if (alive) setLoadingKey((current) => (current === tab.id ? null : current)); });
 
-    return () => {
-      alive = false;
-    };
+    return () => { alive = false; };
   }, [access.allowed, activeSection, chartData, chartId, dateKey, forecast, profile, sections]);
+
+  const tabItems = useMemo(() => DAILY_TABS.map((t) => ({ id: t.id, label: t.label })), []);
 
   return (
     <div className="fresh-page">
-      <div className="mx-auto flex min-h-[calc(100dvh-1.6rem)] w-full max-w-[25rem] flex-col gap-4 px-4 pb-8">
-        <button
-          type="button"
-          onClick={() => {
-            hapticOpen();
-            void onBack();
-          }}
-          className="inline-flex min-h-[40px] w-fit items-center gap-2 rounded-mono-pill border border-mono-line bg-mono-white px-3 text-[13px] font-semibold text-mono-ink shadow-[0_8px_22px_rgba(0,0,0,0.06)] active:scale-[0.98]"
-          aria-label={language === 'en' ? 'Back' : 'Назад'}
-        >
-          <ArrowLeft size={16} />
-          {language === 'en' ? 'Back' : 'Назад'}
+      <div className="fresh-inner-header">
+        <button className="fresh-back-btn" type="button" aria-label={language === 'en' ? 'Back' : 'Назад'} onClick={() => { lumiaSelectionHaptic(); void onBack(); }}>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8L10 13" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
         </button>
-
-        <section className="relative flex flex-1 flex-col overflow-hidden rounded-mono-card border border-mono-line bg-mono-white p-5 shadow-[0_12px_32px_rgba(17,17,17,0.06)]">
-          <div className="relative">
-            <h1 className="max-w-[min(82vw,22rem)] font-lora text-[clamp(2rem,9vw,2.5rem)] font-bold leading-[1.05] tracking-[-0.02em] text-mono-ink">
-              {activeTab.title}
-            </h1>
-            <p className="mt-3 max-w-[min(82vw,21rem)] text-[14px] leading-relaxed text-mono-muted">
-              {activeTab.subtitle} · {formatLumiaDate(dateKey, language)}
-            </p>
-          </div>
-
-          <div className="relative mt-5 flex gap-2 overflow-x-auto pb-1">
-            {DAILY_TABS.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => {
-                  hapticOpen();
-                  setActiveSection(tab.id);
-                }}
-                className={cn(
-                  'shrink-0 rounded-mono-pill border px-3 py-2 text-[13px] font-semibold transition-transform active:scale-[0.97]',
-                  tab.id === activeTab.id
-                    ? 'border-mono-accent bg-mono-accent text-white'
-                    : 'border-mono-line bg-mono-white text-mono-muted'
-                )}
-              >
-                {tab.title}
-              </button>
-            ))}
-          </div>
-
-          <div className="relative flex-1">
-            <AnimatePresence mode="wait">
-              <MonoReveal key={activeTab.id}>
-                {access.status === 'needs_chart' ? (
-                  <CreateChartNotice profile={profile} onCreateNatalChart={onCreateNatalChart} />
-                ) : access.status === 'needs_premium' ? (
-                  <PremiumNotice profile={profile} requestPremium={requestPremium} />
-                ) : !chartData || !profile.id ? (
-                  <ErrorText language={language} />
-                ) : isLoading && !hasContent ? (
-                  <LoadingText />
-                ) : hasError ? (
-                  <ErrorText language={language} />
-                ) : activeTab.id === 'overview' && forecast ? (
-                  <ForecastContent reading={forecast} />
-                ) : activeDailySection ? (
-                  <SectionContent section={activeDailySection} />
-                ) : (
-                  <LoadingText />
-                )}
-              </MonoReveal>
-            </AnimatePresence>
-          </div>
-        </section>
+        <div className="fresh-inner-title" style={{ flex: 1, textAlign: 'center' }}>{language === 'en' ? 'Personal horoscope' : 'Личный гороскоп'}</div>
+        <div style={{ width: 34 }} />
       </div>
+
+      <div className="pd-head">
+        <div className="pd-head-title">{activeTab.title}</div>
+        <div className="pd-head-sub">{activeTab.subtitle} · {formatLumiaDate(dateKey, language)}</div>
+      </div>
+
+      <FreshTabs tabs={tabItems} activeTab={activeSection} onTabChange={(id) => { lumiaSelectionHaptic(); setActiveSection(id as PersonalDailySection); }} />
+
+      <div style={{ padding: '6px 20px 0' }}>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab.id}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+          >
+            {access.status === 'needs_chart' ? (
+              <Notice
+                icon="chart"
+                title={language === 'en' ? 'Create your natal chart' : 'Создать натальную карту'}
+                body={language === 'en' ? 'Personal readings need birth data first.' : 'Для персонального прогноза сначала нужна твоя карта рождения.'}
+                cta={onCreateNatalChart ? (language === 'en' ? 'Create chart' : 'Создать карту') : undefined}
+                onCta={onCreateNatalChart ? () => { lumiaSelectionHaptic(); void onCreateNatalChart(); } : undefined}
+              />
+            ) : access.status === 'needs_premium' ? (
+              <Notice
+                icon="lock"
+                title={language === 'en' ? 'Available in Premium' : 'Доступно в Premium'}
+                body={language === 'en' ? 'Your personal daily horoscope by chart opens with Premium.' : 'Личный гороскоп по твоей карте — каждый день, открывается в Premium.'}
+                cta={language === 'en' ? 'Open Premium' : 'Открыть Premium'}
+                onCta={() => { lumiaSelectionHaptic(); void requestPremium(); }}
+              />
+            ) : !chartData || !profile.id ? (
+              <Notice icon="chart" title={language === 'en' ? 'Check birth data' : 'Проверь данные рождения'} body={language === 'en' ? 'Open this section again after your birth data is saved.' : 'Открой раздел ещё раз, когда данные рождения сохранятся.'} />
+            ) : isLoading && !hasContent ? (
+              <Skeleton />
+            ) : hasError ? (
+              <Notice icon="chart" title={language === 'en' ? 'Could not prepare' : 'Не удалось подготовить'} body={language === 'en' ? 'Try opening this section again.' : 'Открой раздел ещё раз.'} />
+            ) : activeTab.id === 'overview' && forecast ? (
+              <ForecastContent reading={forecast} accent={activeTab.accent} />
+            ) : activeDailySection ? (
+              <SectionContent section={activeDailySection} />
+            ) : (
+              <Skeleton />
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      <div style={{ height: 'calc(env(safe-area-inset-bottom, 0px) + 28px)' }} />
     </div>
   );
 });
