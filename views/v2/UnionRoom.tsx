@@ -11,7 +11,7 @@ import { lumiaSelectionHaptic } from '../../lib/haptics';
 import { getCompatScore, sunSignFromDate, DIMENSION_LABELS, type CompatResult, type CompatDimension } from '../../lib/synastry/compatScore';
 import { ZodiacIcon } from '../../components/icons/ZodiacIcon';
 import { ChevronRightIcon } from '../../components/icons/UiIcons';
-import { FreshSignCarousel } from '../../components/fresh-ui';
+import { FreshSignWheel } from '../../components/fresh-ui';
 import { ZODIAC_KEYS } from '../../lib/horoscope/signDaily';
 import { shareToTelegram } from '../../lib/botLink';
 
@@ -252,7 +252,7 @@ export function UnionRoom(props: UnionRoomProps) {
             <span className="compat-x">×</span>
             <span className="compat-chip compat-chip--them"><ZodiacIcon sign={pickSign} size={18} /> {getZodiacSign(lang, pickSign)}</span>
           </div>
-          <FreshSignCarousel signs={ZODIAC_KEYS} active={pickSign} language={profile.language} onPick={(s) => { lumiaSelectionHaptic(); setPickSign(s); }} />
+          <FreshSignWheel signs={ZODIAC_KEYS} active={pickSign} language={profile.language} onPick={(s) => { lumiaSelectionHaptic(); setPickSign(s); }} />
           <button type="button" className="fresh-btn-primary" style={{ margin: '4px 0 0', width: '100%' }} onClick={() => openResult({ kind: 'sign', sign: pickSign })}>
             {ru ? 'Проверить' : 'Check'}
           </button>

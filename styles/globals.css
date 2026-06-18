@@ -3503,6 +3503,40 @@ a,
 }
 .horo-like[data-liked="true"] .horo-like-count { color: var(--fresh-link); border-left-color: #CFE0FF; }
 
+/* ── Крупная карусель выбора знака (Совместимость) ── */
+.signwheel { margin: 6px 0 2px; }
+.signwheel-stage { display: flex; align-items: center; justify-content: center; gap: 10px; }
+.signwheel-nav {
+  width: 34px; height: 34px; flex-shrink: 0;
+  border-radius: 50%; border: 1px solid var(--fresh-border);
+  background: var(--fresh-bg); color: var(--fresh-text);
+  display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+  transition: background 0.15s ease;
+}
+.signwheel-nav:active { background: var(--fresh-surface); }
+.signwheel-card-wrap { position: relative; width: min(232px, 64vw); height: 150px; flex-shrink: 0; }
+.signwheel-card {
+  position: absolute; inset: 0;
+  border-radius: var(--fresh-radius-card);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: 12px; cursor: grab; touch-action: pan-y;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
+.signwheel-card:active { cursor: grabbing; }
+.signwheel-el { font-family: var(--fresh-font); font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; color: rgba(0, 0, 0, 0.5); }
+.signwheel-ico { margin: 6px 0 2px; }
+.signwheel-name { font-family: var(--fresh-font); font-size: 22px; font-weight: 900; letter-spacing: -0.02em; color: #1f1f1f; }
+.signwheel-range { font-family: var(--fresh-font); font-size: 13px; font-weight: 700; color: rgba(0, 0, 0, 0.55); margin-top: 1px; }
+.signwheel-rail { display: flex; gap: 6px; overflow-x: auto; padding: 14px 2px 2px; }
+.signwheel-dot {
+  flex-shrink: 0; width: 36px; height: 36px;
+  border-radius: 50%; border: 1px solid var(--fresh-border);
+  background: var(--fresh-bg); color: var(--fresh-muted);
+  display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+.signwheel-dot.active { border-color: transparent; }
+
 .horo-hint {
   text-align: center;
   font-size: 11px;
