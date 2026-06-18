@@ -173,6 +173,14 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
         void updateUserNotificationSettings({ ...notificationFlagsFor(frequency), timezone: localTimezone() });
     };
 
+    const handleGenderChange = (gender: 'male' | 'female' | 'unspecified') => {
+        const updated = { ...profile, gender };
+        onUpdate(updated);
+        saveProfile(updated).catch(error => {
+            console.error('[Settings] Failed to save gender:', error);
+        });
+    };
+
     const handlePremiumPurchase = async () => {
         if (activePremium) return;
         
@@ -430,6 +438,28 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                             </button>
                         </div>
                     )}
+                </div>
+            </div>
+
+            <div className={sectionClass}>
+                <h3 className="font-serif text-lg text-mono-ink">{profile.language === 'en' ? 'Gender' : 'Пол'}</h3>
+                <p className="lumia-muted mt-1 text-sm">
+                    {profile.language === 'en' ? 'So readings address you in the right grammatical gender.' : 'Чтобы тексты обращались к тебе в правильном роде.'}
+                </p>
+                <div className="mt-3 flex gap-2">
+                    {([['male', 'Мужской', 'Male'], ['female', 'Женский', 'Female'], ['unspecified', 'Не указывать', 'Prefer not']] as const).map(([val, ru, en]) => {
+                        const active = (profile.gender || 'unspecified') === val;
+                        return (
+                            <button
+                                key={val}
+                                type="button"
+                                onClick={() => handleGenderChange(val)}
+                                className={`min-h-[40px] flex-1 rounded-mono-pill border px-3 text-[13px] font-semibold transition-transform active:scale-[0.97] ${active ? 'border-mono-accent bg-mono-accent text-white' : 'border-mono-line bg-mono-white text-mono-muted'}`}
+                            >
+                                {profile.language === 'en' ? en : ru}
+                            </button>
+                        );
+                    })}
                 </div>
             </div>
 

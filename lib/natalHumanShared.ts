@@ -3,7 +3,7 @@ import type { InterpretationSection, InterpretationSectionKey } from '../types';
 export const HUMAN_INTERPRETATION_PROMPT_VERSION = 'lumia-human-v2';
 export const HUMAN_BASE_PROMPT_VERSION = 'lumia-human-v5.lean-portrait';
 export const HUMAN_PAID_PROMPT_VERSION = 'lumia-human-v3.paid-prompts';
-export const HUMAN_DAILY_PROMPT_VERSION = 'lumia-human-v2.daily';
+export const HUMAN_DAILY_PROMPT_VERSION = 'lumia-human-v3.daily-gender';
 
 export const HUMAN_BASE_CACHE_KEY = 'human_v2.base';
 

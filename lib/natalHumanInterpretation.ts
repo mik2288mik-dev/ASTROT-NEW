@@ -96,6 +96,7 @@ type ChartSummary = {
     birthDate: string;
     birthTime: string | null;
     birthPlace: string;
+    gender: 'male' | 'female' | 'unspecified';
   };
   core: {
     sun: SerializedPosition;
@@ -213,6 +214,7 @@ function buildChartSummary(profile: UserProfile, chart: NatalChartData): ChartSu
       birthDate: profile.birthDate || '',
       birthTime: profile.birthTime || null,
       birthPlace: profile.birthPlace || '',
+      gender: profile.gender === 'male' || profile.gender === 'female' ? profile.gender : 'unspecified',
     },
     core: {
       sun: serializePosition(chart, 'sun'),
@@ -271,6 +273,8 @@ const HUMAN_SYSTEM_PROMPT = `Ты пишешь для Lumia разбор нат�
 СТИЛЬ: конкретика и живые примеры из реальной жизни — работа, деньги, отношения, разговоры, решения, дом, конфликты, усталость, отдых. Пиши по делу, тепло и честно, можно с лёгкой иронией, но без давления. Не обещай конкретные события, доход, любовь или здоровье. Не приказывай — давай ориентиры.
 
 Техническую астрологию можно держать в логике, но в текст выноси только человеческий смысл. Если упоминаешь планету или знак — сразу объясняй, что это значит в поведении, без градусов и терминов.
+
+РОД: в данных есть user.gender. "male" — обращайся в мужском роде («ты сделал», «ты готов»). "female" — в женском («ты сделала», «ты готова»). "unspecified" — пиши так, чтобы текст не выдавал пол: нейтральные формулировки, без родовых окончаний в адрес читателя. Никогда не угадывай пол по имени.
 
 Ответ должен быть только валидным JSON по заданной схеме. Без markdown вне JSON.
 

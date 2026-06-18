@@ -666,6 +666,7 @@ export const db = {
           created_at: u.created_at,
           updated_at: u.updated_at,
           selected_zodiac_sign: u.selected_zodiac_sign,
+          gender: u.gender ?? null,
           is_premium: isPremium,
           is_setup: isSetup,
           chart_slots: u.chart_slots ?? 1,
@@ -700,6 +701,8 @@ export const db = {
         const selectedZodiacSign = selectedZodiacRaw != null && String(selectedZodiacRaw).trim()
           ? String(selectedZodiacRaw).trim()
           : null;
+        const genderRaw = merge('gender');
+        const gender = ['male', 'female', 'unspecified'].includes(String(genderRaw)) ? String(genderRaw) : null;
         const finalIsSetup = !!(data.is_setup ?? existingUser?.is_setup) || !!(birthDate && birthPlace);
         let premiumUntil = data.premium_until;
         if (premiumUntil === undefined && data.is_premium !== undefined) {
@@ -715,8 +718,8 @@ export const db = {
             latitude, longitude, sun_sign, moon_sign, ascendant,
             premium_until, trial_started_at, is_setup, selected_zodiac_sign,
             ref_code, referred_by,
-            login_streak, last_login, language, theme, is_admin, weather_city
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
+            login_streak, last_login, language, theme, is_admin, weather_city, gender
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
           ON CONFLICT (id) DO UPDATE SET
             name = COALESCE(EXCLUDED.name, users.name),
             birth_date = COALESCE(EXCLUDED.birth_date, users.birth_date),
@@ -735,6 +738,7 @@ export const db = {
             theme = COALESCE(EXCLUDED.theme, users.theme),
             is_admin = COALESCE(EXCLUDED.is_admin, users.is_admin),
             weather_city = COALESCE(EXCLUDED.weather_city, users.weather_city),
+            gender = COALESCE(EXCLUDED.gender, users.gender),
             updated_at = CURRENT_TIMESTAMP
           RETURNING *`,
           [
@@ -760,6 +764,7 @@ export const db = {
             merge('theme', 'dark'),
             merge('is_admin', false),
             finalWeatherCity,
+            gender,
           ]
         );
         const u = result.rows[0];
@@ -781,6 +786,7 @@ export const db = {
           created_at: u.created_at,
           updated_at: u.updated_at,
           selected_zodiac_sign: u.selected_zodiac_sign,
+          gender: u.gender ?? null,
         };
       } catch (error: any) {
         log.error('[DB] Error setting user', { error: error.message, userId });

@@ -299,6 +299,7 @@ async function lumia002MultiChart(pool: Pool): Promise<void> {
   log.info('Applying multi-chart migration...');
 
   await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS chart_slots INTEGER DEFAULT 1');
+  await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS gender TEXT');
 
   await pool.query('ALTER TABLE natal_charts DROP CONSTRAINT IF EXISTS natal_charts_user_id_key');
   await pool.query('ALTER TABLE natal_charts ADD COLUMN IF NOT EXISTS name TEXT');

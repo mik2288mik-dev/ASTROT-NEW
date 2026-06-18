@@ -149,6 +149,7 @@ export default async function handler(
         premiumUntil: user.premium_until ? new Date(user.premium_until).toISOString() : null,
         trialStartedAt: user.trial_started_at ? new Date(user.trial_started_at).toISOString() : null,
         selectedZodiacSign: user.selected_zodiac_sign || null,
+        gender: user.gender || null,
         createdAt: user.created_at ? new Date(user.created_at).toISOString() : null,
         updatedAt: user.updated_at ? new Date(user.updated_at).toISOString() : null,
         isAdmin: resolveIsAdmin(userId, user.is_admin),
@@ -217,6 +218,10 @@ export default async function handler(
           userData.selectedZodiacSign ?? userData.selected_zodiac_sign
         );
       }
+      if (userData.gender !== undefined) {
+        const g = String(userData.gender ?? '');
+        dbUser.gender = ['male', 'female', 'unspecified'].includes(g) ? g : null;
+      }
       if (!existingUser && !appUser.isGuest) {
         const trial = getNewUserTrialWindow();
         dbUser.trial_started_at = trial.trialStartedAt;
@@ -252,6 +257,7 @@ export default async function handler(
           ? new Date(savedUser.trial_started_at ?? refreshedUser?.trial_started_at).toISOString()
           : null,
         selectedZodiacSign: savedUser.selected_zodiac_sign ?? refreshedUser?.selected_zodiac_sign ?? null,
+        gender: savedUser.gender ?? refreshedUser?.gender ?? null,
         createdAt: (savedUser.created_at ?? refreshedUser?.created_at)
           ? new Date(savedUser.created_at ?? refreshedUser?.created_at).toISOString()
           : null,

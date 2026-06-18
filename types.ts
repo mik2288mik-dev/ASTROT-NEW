@@ -48,6 +48,8 @@ export interface UserProfile {
   premiumUntil?: string | null;
   trialStartedAt?: string | null;
   selectedZodiacSign?: string | null;
+  /** Пол — для грамматического рода в текстах. 'unspecified' = писать нейтрально. */
+  gender?: 'male' | 'female' | 'unspecified' | null;
   createdAt?: string | null;
   updatedAt?: string | null;
   isAdmin?: boolean;
