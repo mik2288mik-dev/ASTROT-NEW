@@ -17,6 +17,7 @@ import { shareToTelegram } from '../../lib/botLink';
 import { FreshTabs, FreshSignCarousel } from '../../components/fresh-ui';
 import { ZodiacIcon } from '../../components/icons/ZodiacIcon';
 import { ChevronRightIcon } from '../../components/icons/UiIcons';
+import { HoroscopeLikeBadge } from '../../components/Horoscope/HoroscopeLikeBadge';
 import { ZODIAC_KEYS, type ZodiacKey } from '../../lib/horoscope/signDaily';
 
 const LOCAL_SIGN_KEY = 'lumia:selected-zodiac-sign';
@@ -337,6 +338,15 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
           </motion.div>
         </AnimatePresence>
       </div>
+
+      {signState === 'open' && reading && !loading ? (
+        <HoroscopeLikeBadge
+          userId={profile.id ? String(profile.id) : undefined}
+          sign={sign}
+          date={today}
+          language={language}
+        />
+      ) : null}
 
       <div className="horo-hint">{language === 'ru' ? 'Свайп ← → меняет знак' : 'Swipe ← → to change sign'}</div>
 

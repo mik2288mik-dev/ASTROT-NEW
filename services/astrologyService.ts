@@ -776,6 +776,32 @@ export const setHoroscopeReaction = async (
   return payload.summary as HoroscopeReactionSummary;
 };
 
+/** Read the aggregated reaction counts for a sign+date (across all users). Null on any failure. */
+export const getHoroscopeReactionSummary = async (
+  userId: string,
+  sign: string,
+  date: string,
+  language: 'ru' | 'en' = 'ru'
+): Promise<HoroscopeReactionSummary | null> => {
+  if (!isValidUserId(userId)) return null;
+  try {
+    const url = `${API_BASE_URL}/api/content/horoscope/reactions`
+      + `?userId=${encodeURIComponent(userId)}`
+      + `&sign=${encodeURIComponent(sign)}`
+      + `&date=${encodeURIComponent(date)}`
+      + `&language=${language}`;
+    const response = await fetchWithTimeout(url, {
+      method: 'GET',
+      headers: { ...getTelegramInitDataHeaders() },
+    }, 6000);
+    if (!response.ok) return null;
+    const payload = await response.json();
+    return (payload?.summary as HoroscopeReactionSummary) ?? null;
+  } catch {
+    return null;
+  }
+};
+
 export const getPremiumDaypartForecast = async (
   profile: UserProfile,
   chartData: NatalChartData,

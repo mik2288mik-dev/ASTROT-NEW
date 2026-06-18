@@ -3480,6 +3480,29 @@ a,
 .horo-nav-prev { left: 8px; }
 .horo-nav-next { right: 8px; }
 
+/* ── Плашка лайков под общим гороскопом (соц. доказательство) ── */
+.horo-like-row { display: flex; justify-content: center; margin: 10px 16px 2px; }
+.horo-like {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 8px 8px 14px;
+  border-radius: var(--fresh-radius-pill);
+  border: 1px solid var(--fresh-border);
+  background: var(--fresh-bg);
+  color: var(--fresh-text);
+  font-family: var(--fresh-font); font-size: 13px; font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.horo-like:active { transform: scale(0.97); }
+.horo-like[data-liked="true"] { background: #EEF4FF; border-color: #CFE0FF; color: var(--fresh-link); cursor: default; }
+.horo-like-count {
+  display: inline-flex; align-items: center;
+  padding: 2px 10px; margin-left: 2px;
+  border-left: 1px solid var(--fresh-border);
+  font-size: 12px; font-weight: 800; color: var(--fresh-muted);
+}
+.horo-like[data-liked="true"] .horo-like-count { color: var(--fresh-link); border-left-color: #CFE0FF; }
+
 .horo-hint {
   text-align: center;
   font-size: 11px;
