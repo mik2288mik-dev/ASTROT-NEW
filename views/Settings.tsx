@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { UserProfile, Language, Theme, NotificationFrequency } from '../types';
 import { getText } from '../constants';
 import { saveProfile } from '../services/storageService';
-import { updateUserNotificationSettings } from '../services/sessionService';
+import { updateUserNotificationSettings, getTelegramInitDataHeaders } from '../services/sessionService';
 import { requestStarsPayment } from '../services/telegramService';
 import { hasActivePremium } from '../lib/accessMatrix';
 
@@ -93,6 +93,22 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
     const [notificationFrequency, setNotificationFrequency] = useState<NotificationFrequency>(
         profile.notificationFrequency || 'important'
     );
+    const [selfTest, setSelfTest] = useState<'idle' | 'sending' | 'ok' | 'err'>('idle');
+
+    const sendSelfTest = async () => {
+        if (selfTest === 'sending') return;
+        setSelfTest('sending');
+        try {
+            const res = await fetch('/api/admin/notifications/send-self-test', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
+            });
+            setSelfTest(res.ok ? 'ok' : 'err');
+        } catch {
+            setSelfTest('err');
+        }
+        setTimeout(() => setSelfTest('idle'), 4000);
+    };
     const sectionClass = 'rounded-mono-card border border-mono-line bg-mono-white p-4 sm:p-[18px]';
     const rowCardClass =
         'w-full rounded-mono-card border border-mono-line bg-mono-white p-4 text-left transition-transform active:scale-[0.99] sm:p-[18px]';
@@ -427,6 +443,28 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                             <p className="lumia-muted mt-1 text-sm">{getText(profile.language, 'settings.admin_body')}</p>
                         </div>
                         <span className="text-mono-muted/70">→</span>
+                    </div>
+                </button>
+            )}
+
+            {profile.isAdmin && (
+                <button type="button" onClick={sendSelfTest} disabled={selfTest === 'sending'} className={rowCardClass}>
+                    <div className="flex items-center justify-between gap-4">
+                        <div>
+                            <h3 className="font-serif text-lg text-mono-ink">
+                                {profile.language === 'en' ? 'Send a test notification to me' : 'Прислать тест-уведомление себе'}
+                            </h3>
+                            <p className="lumia-muted mt-1 text-sm">
+                                {selfTest === 'sending'
+                                    ? (profile.language === 'en' ? 'Sending…' : 'Отправляю…')
+                                    : selfTest === 'ok'
+                                        ? (profile.language === 'en' ? 'Sent — check your chat with the bot.' : 'Отправлено — проверь чат с ботом.')
+                                        : selfTest === 'err'
+                                            ? (profile.language === 'en' ? 'Failed — check BOT_TOKEN in Railway.' : 'Не вышло — проверь BOT_TOKEN в Railway.')
+                                            : (profile.language === 'en' ? 'Verifies Telegram delivery end-to-end (admin only).' : 'Проверяет доставку в Telegram end-to-end (только для админа).')}
+                            </p>
+                        </div>
+                        <span className="text-mono-muted/70">{selfTest === 'ok' ? '✓' : selfTest === 'err' ? '✕' : '→'}</span>
                     </div>
                 </button>
             )}
