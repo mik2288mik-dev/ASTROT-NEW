@@ -2,6 +2,9 @@
 const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
+  // Нативные/серверные пакеты не бандлим в серверный билд (в т.ч. instrumentation),
+  // иначе webpack пытается разрешить нативный .node и падает.
+  serverExternalPackages: ['swisseph-v2', 'pg', 'pg-native', 'tz-lookup'],
   // Оптимизация изображений
   images: {
     domains: ['cdn.telegram.org'], // Telegram CDN для аватарок
