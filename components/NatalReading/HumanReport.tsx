@@ -155,14 +155,57 @@ const LockedPreview: React.FC<{
           <span className="mt-2 block font-sans text-[14px] leading-relaxed text-[#626262]">{meta.teaser}</span>
           <span className="relative mt-4 block max-h-[4.8rem] overflow-hidden rounded-mono-card bg-mono-plate px-4 py-3">
             <span className="block select-none font-sans text-[14px] leading-[1.65] text-[#2f2f2f] blur-[2.5px]">
-              В полном разборе здесь будет личный текст о том, как эта тема проявляется именно в вашей карте:
-              где сила, что может мешать и как с этим обращаться без давления на себя.
+              Личный разбор по теме «{meta.title}» — что у тебя сильнее всего, где ловушка и что с этим делать. Текст соберётся по твоей карте.
             </span>
             <span className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/10 via-white/45 to-white" />
           </span>
           <span className="mt-4 inline-flex items-center gap-2 rounded-mono-pill bg-mono-black px-4 py-2 text-[13px] font-medium text-white">
             <Sparkles size={14} strokeWidth={2} />
             {isLoading ? 'Открываем...' : 'Прочитать все о себе'}
+          </span>
+        </span>
+      </div>
+    </motion.button>
+  );
+};
+
+/**
+ * Non-premium teaser row — shows the topic title, angle and a blurred personal
+ * hook so the user can SEE the depth they'd unlock (instead of one generic CTA).
+ * Tapping opens the unlock sheet; it never triggers generation.
+ */
+const PremiumTopicTeaser: React.FC<{
+  sectionKey: HumanPaidSectionKey;
+  onClick: () => void;
+}> = ({ sectionKey, onClick }) => {
+  const meta = HUMAN_PAID_SECTION_META[sectionKey];
+
+  return (
+    <motion.button
+      type="button"
+      onClick={onClick}
+      whileTap={{ scale: 0.99 }}
+      className="group w-full border-t border-mono-line py-5 text-left first:border-t-0"
+    >
+      <div className="flex items-start gap-3">
+        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-mono-plate text-mono-ink">
+          <Lock size={14} strokeWidth={1.9} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="flex items-baseline justify-between gap-3">
+            <span className="block font-sans text-[17px] font-semibold leading-tight tracking-[-0.01em] text-[#1f1f1f]">
+              {meta.title}
+            </span>
+            <span className="shrink-0 font-sans text-[12.5px] text-[#9b59c4]">Открыть</span>
+          </span>
+          <span className="mt-1 block font-sans text-[12px] uppercase tracking-[0.12em] text-[#a0a0a0]">
+            {meta.subtitle}
+          </span>
+          <span className="relative mt-2.5 block max-h-[3.4rem] overflow-hidden">
+            <span className="block select-none font-sans text-[13.5px] leading-[1.6] text-[#3a3a3a] blur-[3px]">
+              {meta.teaser}
+            </span>
+            <span className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-white/30 to-white" />
           </span>
         </span>
       </div>
@@ -397,11 +440,14 @@ export const HumanReport: React.FC<Props> = ({
         </div>
 
         <section className="border-t border-[#eeeeee] py-7">
-          {isPremium ? (
-            <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.16em] text-[#6b6b6b]">Подробные темы по карте</p>
+          <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.16em] text-[#6b6b6b]">Подробные темы по карте</p>
+          {!isPremium ? (
+            <p className="mt-2 font-sans text-[14px] leading-relaxed text-[#5f5f5f]">
+              10 личных разделов по твоей карте — каждый написан под тебя. Загляни, что внутри.
+            </p>
           ) : null}
 
-          <div className="mt-3">
+          <div className="mt-4">
             {isPremium ? (
               HUMAN_MAP_SECTION_KEYS.map((key) => (
                 <LockedPreview
@@ -413,20 +459,29 @@ export const HumanReport: React.FC<Props> = ({
                 />
               ))
             ) : (
-              <div className="overflow-hidden rounded-[20px] bg-gradient-to-br from-[#6D5BDF] to-[#A855F7] p-5 text-white">
-                <h3 className="font-sans text-[19px] font-semibold leading-tight">Полный разбор по карте</h3>
-                <p className="mt-1.5 text-[13px] leading-relaxed text-white/85">
-                  Отношения, работа, деньги, тень и сильные стороны — подробно по твоей карте.
-                </p>
-                <button
-                  type="button"
-                  onClick={requestPremium}
-                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-white px-5 py-2.5 text-[14px] font-semibold text-[#6D3BD0]"
-                >
-                  <Crown size={16} strokeWidth={2} />
-                  Открыть в Premium
-                </button>
-              </div>
+              <>
+                {HUMAN_MAP_SECTION_KEYS.map((key) => (
+                  <PremiumTopicTeaser
+                    key={key}
+                    sectionKey={key}
+                    onClick={() => handleOpenPaid(key)}
+                  />
+                ))}
+                <div className="mt-6 overflow-hidden rounded-[20px] bg-gradient-to-br from-[#6D5BDF] to-[#A855F7] p-5 text-white">
+                  <h3 className="font-sans text-[19px] font-semibold leading-tight">Открой все 10 разделов</h3>
+                  <p className="mt-1.5 text-[13px] leading-relaxed text-white/85">
+                    Любовь, деньги, работа, тень, сила и предназначение — подробно по твоей карте.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={requestPremium}
+                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-white px-5 py-2.5 text-[14px] font-semibold text-[#6D3BD0]"
+                  >
+                    <Crown size={16} strokeWidth={2} />
+                    Открыть в Premium
+                  </button>
+                </div>
+              </>
             )}
           </div>
         </section>

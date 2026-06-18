@@ -305,41 +305,34 @@ ${JSON.stringify(summary, null, 2)}
 - не повторяй мысли между секциями, не дублируй абзацы.`;
 }
 
-function buildPaidPrompt(summary: ChartSummary, meta: { title: string; subtitle: string }, sectionKey: HumanPaidSectionKey): string {
-  return `Создай платный раздел натальной карты.
-
-Раздел: ${meta.title}
-Ключ раздела: ${sectionKey}
-Фокус: ${meta.subtitle}
-
-Данные пользователя и карты:
-${JSON.stringify(summary, null, 2)}
-
-Задача: создать подробный жизненный разбор раздела "${meta.title}". ${getWordRangeInstruction('natal_section')} Это не справка и не набор эзотерических терминов, а применение карты к реальной жизни пользователя. Человек должен получить конкретные примеры и понятные действия.
-
-Структура content:
-1. Главный вывод
-2. Как это видно в жизни
-3. Пример реальной ситуации
-4. Что может мешать
-5. Что делать
-6. Короткий вывод
-
-Верни JSON InterpretationSection:
-{
-  "key": "${sectionKey}",
-  "title": "${meta.title}",
-  "subtitle": "${meta.subtitle}",
-  "access": "paid",
-  "isLocked": false,
-  "teaser": "",
-  "content": "цельный понятный текст 900-1700 символов",
-  "bullets": ["3-5 коротких практичных выводов"],
-  "ctaLabel": ""
-}
-
-Не обещай гарантированные события, доход, любовь или здоровье. Не используй медицинские рекомендации. Не давай прямых указаний вроде "обязательно увольняйтесь" или "покупайте". Формулируй как ориентиры и наблюдения.`;
-}
+/**
+ * Per-section astrological focus for paid natal sections.
+ * Each entry tells the model WHICH placements to actually read for this topic,
+ * so the 10 sections stop sharing one generic template and each delivers on the
+ * exact title the user sees. Keep angles aligned to HUMAN_PAID_SECTION_META titles.
+ */
+const PAID_SECTION_FOCUS: Record<HumanPaidSectionKey, string> = {
+  work_business:
+    'MC и 10-й дом, Солнце, Марс, Сатурн, 6-й дом. Какой формат дела и нагрузки подходит, как ты добиваешься результата, где растёшь устойчивее и что тормозит рост.',
+  love_relationships:
+    'Венера, Луна, Марс, 5-й и 7-й дом. Как ты выбираешь и сближаешься, к кому тянет, что важно рядом, как ты ссоришься и миришься, какие сценарии повторяются.',
+  money_stability:
+    '2-й и 8-й дом, Венера, Юпитер, Сатурн. Отношение к деньгам и тратам, аппетит к риску, где теряешь ясность и какие денежные привычки держат тебя на плаву.',
+  goals_actions:
+    'Марс, Солнце, выделенные/сильные планеты, 1-й и 3-й дом. Недооценённые способности и сильные стороны в действии — что у тебя получается само, но ты это не считаешь талантом, и как на это опираться.',
+  friendship_social:
+    'Асцендент, 11-й дом, Меркурий, Венера. Какое первое впечатление ты производишь, как тебя считывают, с кем сходишься легко и где контакт быстро тяжелеет.',
+  family_home:
+    'Луна, 4-й дом, IC, Сатурн. Что для тебя значит дом и корни, твоя личная территория, как ты ведёшь себя с близкими и как снижать домашнее напряжение.',
+  shadow_patterns:
+    'Плутон, Сатурн, Луна, напряжённые аспекты. Автоматические реакции под стрессом, что ты в себе не замечаешь, как эти паттерны мешают решениям, отношениям и работе.',
+  potential_purpose:
+    'Солнце, MC, сильнейшая планета карты, Северный Узел. Где ты ярче всего, какие роли и задачи тебя раскрывают, за что тебя ценят и куда тянет расти.',
+  communication_conflicts:
+    'Меркурий, Марс, 3-й дом, аспекты Марса. Что реально тебя цепляет и злит, где ты давишь, а где молчишь, и как говорить так, чтобы тебя услышали без эскалации.',
+  energy_recovery:
+    'Луна, Марс, 6-й дом, Сатурн. Что быстрее тебя утомляет, твой природный ритм, что помогает восстановиться и где легко довести себя до перегруза. Без медицинских обещаний.',
+};
 
 function buildDailyPrompt(
   summary: ChartSummary,
@@ -1180,9 +1173,14 @@ export async function generateHumanPaidSection(
   const fallback = buildHumanPaidFallback(profile, chart, key);
   const summary = buildChartSummary(profile, chart);
   const meta = HUMAN_PAID_SECTION_META[key];
+  const focus = PAID_SECTION_FOCUS[key];
   const prompt = key === 'shadow_patterns'
-    ? buildBlindSpotPrompt({ context: summary })
-    : buildNatalSectionPrompt({ title: meta.title, context: summary });
+    ? buildBlindSpotPrompt({ context: summary, focus })
+    : buildNatalSectionPrompt({
+        title: meta.title,
+        context: summary,
+        focus: `${focus} ${getWordRangeInstruction('natal_section')}`,
+      });
 
   return generateWithRetry<InterpretationSection>(
     async () => {

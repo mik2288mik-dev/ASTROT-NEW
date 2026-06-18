@@ -52,12 +52,16 @@ export function buildPersonalDailyPrompt(input: PromptInput = {}): LumiaPrompt {
   return buildPrompt('personal_daily', '{ "headline": "...", "main": "...", "relationships": "...", "action": "...", "risk": "...", "why": "..." }', 'Создай личный день по карте и текущему контексту.', input, '- Поле why — максимум 15 слов. Не больше двух астрологических терминов; каждый термин сразу объясни простыми словами. Без списков.');
 }
 
-export function buildBlindSpotPrompt(input: PromptInput = {}): LumiaPrompt {
-  return buildPrompt('blind_spot', '{ "headline": "Что ты можешь не замечать", "text": "...", "example": "...", "soft_step": "..." }', 'Мягко и точно покажи одну слепую зону поведения.', input, '- Без обвинений и диагнозов. Не перечисляй несколько проблем; разбери одну узнаваемую реакцию.');
+export function buildBlindSpotPrompt(input: PromptInput & { focus?: string } = {}): LumiaPrompt {
+  const focusLine = input.focus ? ` Опирайся именно на: ${input.focus}` : '';
+  return buildPrompt('blind_spot', '{ "headline": "Что ты можешь не замечать", "text": "...", "example": "...", "soft_step": "..." }', `Мягко и точно покажи одну слепую зону поведения.${focusLine}`, input, '- Без обвинений и диагнозов. Не перечисляй несколько проблем; разбери одну узнаваемую реакцию.');
 }
 
-export function buildNatalSectionPrompt(input: PromptInput & { title?: string } = {}): LumiaPrompt {
-  return buildPrompt('natal_section', '{ "title": "...", "text": "...", "soft_warning": "...", "practical_hint": "..." }', `Создай раздел натальной карты${input.title ? ` «${input.title}»` : ''}, опираясь на карту, но человеческим языком.`, input, '- Не больше двух астрологических терминов. Без длинных списков. Если точность ограничена неизвестным временем рождения, честно укажи это в soft_warning.');
+export function buildNatalSectionPrompt(input: PromptInput & { title?: string; focus?: string } = {}): LumiaPrompt {
+  const focusLine = input.focus
+    ? ` Читай в карте именно это (а не всё подряд): ${input.focus} Текст обязан оправдать название и быть про эту тему, а не про характер вообще; переводи планеты и дома в живые узнаваемые наблюдения, не называя их ярлыками.`
+    : '';
+  return buildPrompt('natal_section', '{ "title": "...", "text": "...", "soft_warning": "...", "practical_hint": "..." }', `Создай раздел натальной карты${input.title ? ` «${input.title}»` : ''}, опираясь на карту, но человеческим языком.${focusLine}`, input, '- Не больше двух астрологических терминов. Без длинных списков. Если точность ограничена неизвестным временем рождения, честно укажи это в soft_warning.');
 }
 
 export function buildSignCompatibilityPrompt(input: PromptInput = {}): LumiaPrompt {

@@ -2,7 +2,7 @@ import type { InterpretationSection, InterpretationSectionKey } from '../types';
 
 export const HUMAN_INTERPRETATION_PROMPT_VERSION = 'lumia-human-v2';
 export const HUMAN_BASE_PROMPT_VERSION = 'lumia-human-v5.lean-portrait';
-export const HUMAN_PAID_PROMPT_VERSION = 'lumia-human-v3.paid-prompts';
+export const HUMAN_PAID_PROMPT_VERSION = 'lumia-human-v4.paid-focus';
 export const HUMAN_DAILY_PROMPT_VERSION = 'lumia-human-v3.daily-gender';
 
 export const HUMAN_BASE_CACHE_KEY = 'human_v2.base';
@@ -27,14 +27,18 @@ export const HUMAN_PAID_SECTION_KEYS = [
   'potential_purpose',
 ] as const satisfies readonly InterpretationSectionKey[];
 
+// All 10 paid sections, ordered by selling power (most compelling first).
 export const HUMAN_MAP_SECTION_KEYS = [
   'love_relationships',
+  'money_stability',
+  'work_business',
   'potential_purpose',
-  'communication_conflicts',
   'shadow_patterns',
   'goals_actions',
-  'money_stability',
+  'communication_conflicts',
+  'energy_recovery',
   'friendship_social',
+  'family_home',
 ] as const satisfies readonly HumanPaidSectionKey[];
 
 export const HUMAN_DAILY_SECTION_KEYS = [
@@ -85,13 +89,13 @@ export const HUMAN_PAID_SECTION_META: Record<HumanPaidSectionKey, HumanSectionMe
   goals_actions: {
     key: 'goals_actions',
     title: 'Скрытые таланты',
-    subtitle: 'Как выбирать шаги и не распыляться',
-    teaser: 'Какие цели лучше доводить до результата и где ты чаще теряешь время.',
+    subtitle: 'Сильные стороны, которых ты в себе не замечаешь',
+    teaser: 'Что у тебя получается будто само собой — и как опереться на эти способности.',
   },
   friendship_social: {
     key: 'friendship_social',
     title: 'Как тебя видят другие',
-    subtitle: 'Люди, команды, границы в контактах',
+    subtitle: 'Первое впечатление и как тебя считывают',
     teaser: 'С кем тебе проще работать и дружить, а где контакт быстро становится тяжёлым.',
   },
   family_home: {
