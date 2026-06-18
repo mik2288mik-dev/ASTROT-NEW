@@ -6,9 +6,10 @@ import type {
   InterpretationSection,
   NatalChartData,
   PersonalDailySection,
+  TodayAssistantHomeResult,
   UserProfile,
 } from '../types';
-import { ensureFullDaypartForecast } from '../services/astrologyService';
+import { ensureFullDaypartForecast, getCachedTodayAssistantHome, getTodayAssistantHome } from '../services/astrologyService';
 import { loadHumanDailySection } from '../services/natalReadingService';
 import { formatLumiaDate, getMoscowTodayKey } from '../lib/date-utils';
 import type { HumanDailySectionKey } from '../lib/natalHumanShared';
@@ -127,6 +128,42 @@ function SectionContent({ section }: { section: InterpretationSection }) {
   );
 }
 
+function DayLine({ points, nowHour, accent, ru }: { points: Array<{ hour: number; score: number }>; nowHour: number; accent: string; ru: boolean }) {
+  const W = 320;
+  const H = 84;
+  const pad = 7;
+  const sorted = [...points].filter((p) => Number.isFinite(p.hour) && Number.isFinite(p.score)).sort((a, b) => a.hour - b.hour);
+  if (sorted.length < 2) return null;
+  const x = (h: number) => pad + (Math.max(0, Math.min(24, h)) / 24) * (W - 2 * pad);
+  const y = (s: number) => pad + (1 - Math.max(0, Math.min(100, s)) / 100) * (H - 2 * pad);
+  const line = sorted.map((p, i) => `${i ? 'L' : 'M'} ${x(p.hour).toFixed(1)} ${y(p.score).toFixed(1)}`).join(' ');
+  const area = `${line} L ${x(sorted[sorted.length - 1].hour).toFixed(1)} ${H - pad} L ${x(sorted[0].hour).toFixed(1)} ${H - pad} Z`;
+  const nearestNow = sorted.reduce((best, p) => (Math.abs(p.hour - nowHour) < Math.abs(best.hour - nowHour) ? p : best), sorted[0]);
+  const nx = x(nowHour);
+
+  return (
+    <div className="dl">
+      <div className="dl-head">
+        {ru ? 'Линия дня' : 'Day line'}
+        <span className="dl-now" style={{ color: accent }}>{ru ? 'сейчас' : 'now'} {Math.round(nearestNow.score)}</span>
+      </div>
+      <svg viewBox={`0 0 ${W} ${H}`} className="dl-svg" preserveAspectRatio="none" aria-hidden>
+        <defs>
+          <linearGradient id="dl-grad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor={accent} stopOpacity="0.28" />
+            <stop offset="1" stopColor={accent} stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <path d={area} fill="url(#dl-grad)" />
+        <path d={line} fill="none" stroke={accent} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        <line x1={nx} y1={pad} x2={nx} y2={H - pad} stroke="var(--fresh-text)" strokeWidth="1" opacity="0.45" />
+        <circle cx={nx} cy={y(nearestNow.score)} r="4" fill={accent} stroke="#fff" strokeWidth="2" />
+      </svg>
+      <div className="dl-axis"><span>0</span><span>6</span><span>12</span><span>18</span><span>24</span></div>
+    </div>
+  );
+}
+
 export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
   profile,
   chartData,
@@ -195,6 +232,24 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
     return () => { alive = false; };
   }, [access.allowed, activeSection, chartData, chartId, dateKey, forecast, profile, sections]);
 
+  // Пульс дня (для «Линии дня») — берём из кэша today-assistant (тёплый с главной).
+  const [home, setHome] = useState<TodayAssistantHomeResult | null>(
+    () => (access.allowed && chartData ? getCachedTodayAssistantHome(profile, chartId, undefined, chartData) : null),
+  );
+  useEffect(() => {
+    if (!access.allowed || !chartData || !profile.id) return;
+    const cached = getCachedTodayAssistantHome(profile, chartId, undefined, chartData);
+    if (cached) { setHome(cached); return; }
+    let alive = true;
+    void getTodayAssistantHome(profile, chartData, chartId).then((r) => { if (alive) setHome(r); }).catch(() => undefined);
+    return () => { alive = false; };
+  }, [access.allowed, chartData, chartId, profile]);
+
+  const pulsePoints = home && home.status === 'ready'
+    ? home.pulse.points.map((p) => ({ hour: p.hour, score: p.score }))
+    : null;
+  const nowHour = home && home.status === 'ready' ? home.pulse.currentPoint.hour : new Date().getHours();
+
   const tabItems = useMemo(() => DAILY_TABS.map((t) => ({ id: t.id, label: t.label })), []);
 
   return (
@@ -246,7 +301,10 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
             ) : hasError ? (
               <Notice icon="chart" title={language === 'en' ? 'Could not prepare' : 'Не удалось подготовить'} body={language === 'en' ? 'Try opening this section again.' : 'Открой раздел ещё раз.'} />
             ) : activeTab.id === 'overview' && forecast ? (
-              <ForecastContent reading={forecast} accent={activeTab.accent} />
+              <>
+                {pulsePoints ? <DayLine points={pulsePoints} nowHour={nowHour} accent={activeTab.accent} ru={language === 'ru'} /> : null}
+                <ForecastContent reading={forecast} accent={activeTab.accent} />
+              </>
             ) : activeDailySection ? (
               <SectionContent section={activeDailySection} />
             ) : (

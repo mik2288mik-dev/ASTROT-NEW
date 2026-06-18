@@ -7,72 +7,51 @@ import {
   ELEMENT_LABEL_RU,
   ELEMENT_LABEL_EN,
   ELEMENT_COLOR,
-  MODALITY_LABEL_RU,
-  MODALITY_LABEL_EN,
   type ElementKey,
-  type ModalityKey,
 } from '../../lib/natal/chartBalance';
 
-const MODALITY_COLOR: Record<ModalityKey, string> = {
-  cardinal: '#FF9B6A',
-  fixed: '#5BB6EC',
-  mutable: '#34C39A',
-};
-
-type Row = { label: string; value: number; color: string };
-
-function BalanceRow({ label, value, max, color, index, reduce }: Row & { max: number; index: number; reduce: boolean | null }) {
-  const pct = max > 0 ? Math.round((value / max) * 100) : 0;
-  return (
-    <div className="nbal-row">
-      <span className="nbal-label">{label}</span>
-      <div className="nbal-track">
-        <motion.div
-          className="nbal-fill"
-          style={{ background: `linear-gradient(90deg, ${color}99, ${color})` }}
-          initial={reduce ? false : { width: 0 }}
-          animate={{ width: `${pct}%` }}
-          transition={reduce ? { duration: 0 } : { duration: 0.7, delay: 0.05 * index, ease: [0.22, 1, 0.36, 1] }}
-        />
-      </div>
-      <span className="nbal-val">{value}</span>
-    </div>
-  );
-}
-
+/**
+ * «Стихии в карте» — один аккуратный спектр-бар + легенда. Без крестов/жаргона,
+ * подписи в легенде (не наезжают на шкалу). Считается локально из карты.
+ */
 export function ChartBalance({ chart, language }: { chart: NatalChartData; language: 'ru' | 'en' }) {
   const reduce = useReducedMotion();
   const balance = computeChartBalance(chart);
   if (!balance.total) return null;
 
   const ru = language === 'ru';
-  const elLabel = ru ? ELEMENT_LABEL_RU : ELEMENT_LABEL_EN;
-  const modLabel = ru ? MODALITY_LABEL_RU : MODALITY_LABEL_EN;
-
-  const elOrder: ElementKey[] = ['fire', 'earth', 'air', 'water'];
-  const modOrder: ModalityKey[] = ['cardinal', 'fixed', 'mutable'];
-  const maxEl = Math.max(...elOrder.map((k) => balance.elements[k]), 1);
-  const maxMod = Math.max(...modOrder.map((k) => balance.modalities[k]), 1);
+  const order: ElementKey[] = ['fire', 'earth', 'air', 'water'];
+  const labels = ru ? ELEMENT_LABEL_RU : ELEMENT_LABEL_EN;
 
   return (
-    <section className="nbal">
-      <div className="nbal-head">{ru ? 'Карта в цифрах' : 'Chart in numbers'}</div>
+    <section className="cib">
+      <div className="cib-head">{ru ? 'Стихии в твоей карте' : 'Elements in your chart'}</div>
 
-      <div className="nbal-group-title">{ru ? 'Стихии' : 'Elements'}</div>
-      <div className="nbal-group">
-        {elOrder.map((k, i) => (
-          <BalanceRow key={k} label={elLabel[k]} value={balance.elements[k]} max={maxEl} color={ELEMENT_COLOR[k]} index={i} reduce={reduce} />
+      <motion.div
+        className="cib-bar"
+        style={{ transformOrigin: 'left' }}
+        initial={reduce ? false : { scaleX: 0, opacity: 0.6 }}
+        animate={{ scaleX: 1, opacity: 1 }}
+        transition={reduce ? { duration: 0 } : { duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+      >
+        {order.map((k) => {
+          const pct = (balance.elements[k] / balance.total) * 100;
+          if (pct <= 0) return null;
+          return <span key={k} className="cib-seg" style={{ flexGrow: pct, background: ELEMENT_COLOR[k] }} />;
+        })}
+      </motion.div>
+
+      <div className="cib-legend">
+        {order.map((k) => (
+          <div key={k} className="cib-leg">
+            <span className="cib-leg-dot" style={{ background: ELEMENT_COLOR[k] }} />
+            <span className="cib-leg-name">{labels[k]}</span>
+            <span className="cib-leg-val">{balance.elements[k]}</span>
+          </div>
         ))}
       </div>
 
-      <div className="nbal-group-title">{ru ? 'Как ты действуешь' : 'How you act'}</div>
-      <div className="nbal-group">
-        {modOrder.map((k, i) => (
-          <BalanceRow key={k} label={modLabel[k]} value={balance.modalities[k]} max={maxMod} color={MODALITY_COLOR[k]} index={i} reduce={reduce} />
-        ))}
-      </div>
-
-      {ru ? <p className="nbal-summary">{balanceSummaryRu(balance)}</p> : null}
+      {ru ? <p className="cib-summary">{balanceSummaryRu(balance)}</p> : null}
     </section>
   );
 }
