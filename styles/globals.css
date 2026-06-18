@@ -4125,22 +4125,24 @@ a,
 .aw-reasons li { font-family: var(--fresh-font); font-size: 13.5px; line-height: 1.45; color: var(--fresh-muted); }
 .aw-caution { margin: 12px 0 0; font-family: var(--fresh-font); font-size: 13px; line-height: 1.5; color: #9a6a00; background: #FFFBEB; border-radius: 12px; padding: 10px 12px; }
 
-/* ── «Окна дня»: циферблат дня (24ч, без тапов, стрелка «сейчас») ── */
-.dwd { display: flex; flex-direction: column; align-items: center; gap: 14px; padding-top: 4px; }
-.dwd-dial { position: relative; width: 200px; height: 200px; }
-.dwd-svg { width: 200px; height: 200px; display: block; }
-.dwd-tick { font-family: var(--fresh-font); font-size: 9px; font-weight: 700; fill: var(--fresh-muted); }
-.dwd-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; pointer-events: none; }
-.dwd-center-kicker { font-family: var(--fresh-font); font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fresh-muted); }
-.dwd-center-action { font-family: var(--fresh-font); font-size: 19px; font-weight: 900; letter-spacing: -0.01em; margin-top: 2px; }
-.dwd-center-win { font-family: var(--fresh-font); font-size: 12px; font-weight: 700; color: var(--fresh-text); margin-top: 1px; }
-.dwd-legend { width: 100%; display: flex; flex-direction: column; gap: 9px; padding-top: 2px; }
-.dwd-leg { display: flex; align-items: center; gap: 8px; }
-.dwd-leg-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
-.dwd-leg-name { font-family: var(--fresh-font); font-size: 13px; font-weight: 700; color: var(--fresh-text); }
-.dwd-leg-win { margin-left: auto; font-family: var(--fresh-font); font-size: 12px; font-weight: 700; color: var(--fresh-muted); }
-.dwd-leg-state { font-family: var(--fresh-font); font-size: 11px; font-weight: 800; min-width: 42px; text-align: right; }
-.dwd-skeleton { width: 100%; height: 240px; border-radius: 18px; background: linear-gradient(90deg, var(--fresh-surface), #eef1f5, var(--fresh-surface)); background-size: 200% 100%; animation: dw-sk 1.2s ease-in-out infinite; }
+/* ── «Окна дня»: дорожки времени (общая ось 6→24ч, линия «сейчас») ── */
+.awt { background: var(--fresh-surface); border-radius: var(--fresh-radius-card); padding: 14px; }
+.awt-hero { display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.awt-hero-k { font-family: var(--fresh-font); font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fresh-muted); }
+.awt-hero-a { font-family: var(--fresh-font); font-size: 18px; font-weight: 900; letter-spacing: -0.01em; }
+.awt-hero-w { font-family: var(--fresh-font); font-size: 12.5px; font-weight: 700; color: var(--fresh-text); }
+.awt-axis { display: grid; grid-template-columns: 58px 1fr 58px; align-items: center; gap: 8px; margin-bottom: 7px; }
+.awt-axis-track { position: relative; height: 11px; }
+.awt-axis-tick { position: absolute; top: 0; transform: translateX(-50%); font-family: var(--fresh-font); font-size: 9px; font-weight: 700; color: var(--fresh-muted); }
+.awt-rows { display: flex; flex-direction: column; gap: 10px; }
+.awt-row { display: grid; grid-template-columns: 58px 1fr 58px; align-items: center; gap: 8px; }
+.awt-name { font-family: var(--fresh-font); font-size: 12.5px; font-weight: 700; color: var(--fresh-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.awt-track { position: relative; height: 14px; border-radius: 7px; background: rgba(0, 0, 0, 0.05); }
+.awt-seg { position: absolute; top: 0; bottom: 0; border-radius: 7px; }
+.awt-now { position: absolute; top: -3px; bottom: -3px; width: 2px; border-radius: 2px; background: var(--fresh-text); transform: translateX(-50%); z-index: 2; }
+.awt-time { font-family: var(--fresh-font); font-size: 11px; font-weight: 700; color: var(--fresh-muted); text-align: right; white-space: nowrap; }
+.awt-time--now { color: #10B981; font-weight: 800; }
+.awt-skeleton { width: 100%; height: 188px; border-radius: var(--fresh-radius-card); background: linear-gradient(90deg, var(--fresh-surface), #eef1f5, var(--fresh-surface)); background-size: 200% 100%; animation: dw-sk 1.2s ease-in-out infinite; }
 @keyframes dw-sk { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
 /* ── «Люди»: результат (Вы × Он/Она + кольцо) ── */

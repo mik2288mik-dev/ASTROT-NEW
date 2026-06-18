@@ -21,12 +21,6 @@ const ACTIONS: Array<{ key: ActionTimingKey; ru: string; en: string; color: stri
   { key: 'work', ru: 'Работа', en: 'Work', color: '#34C39A' },
 ];
 
-const STATE_LABEL: Record<string, { ru: string; en: string }> = {
-  now: { ru: 'сейчас', en: 'now' },
-  later: { ru: 'позже', en: 'later' },
-  no_edge: { ru: 'ровно', en: 'flat' },
-};
-
 /* "HH:MM" → дробный час (13:30 → 13.5) */
 function toHour(value: string | undefined, fallback: number): number {
   if (!value || value.length < 2) return fallback;
@@ -48,78 +42,71 @@ function nowHourIn(timeZone: string): number {
   }
 }
 
-const SIZE = 200;
-const CENTER = SIZE / 2;
-const RADII = [84, 69, 54, 39]; // кольцо на каждое действие
+const AX_START = 6;   // ось дня начинается с 6:00
+const AX_END = 24;    // и заканчивается в 24:00
+const AX_SPAN = AX_END - AX_START;
 
-function polar(r: number, hour: number): [number, number] {
-  const a = ((hour / 24) * 360 - 90) * (Math.PI / 180);
-  return [CENTER + r * Math.cos(a), CENTER + r * Math.sin(a)];
+/* час → позиция в % по оси дня (с клампом в [6,24]) */
+function pct(hour: number): number {
+  const clamped = Math.max(AX_START, Math.min(AX_END, hour));
+  return ((clamped - AX_START) / AX_SPAN) * 100;
 }
 
-function arcPath(r: number, startH: number, endH: number): string {
-  const span = (endH - startH + 24) % 24 || 24;
-  const [x1, y1] = polar(r, startH);
-  const [x2, y2] = polar(r, startH + span);
-  const large = span > 12 ? 1 : 0;
-  return `M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${r} ${r} 0 ${large} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`;
+/* компактный диапазон "12–15" для правой колонки */
+function fmtRange(start: number, end: number): string {
+  const h = (v: number) => String(Math.round(v)).padStart(2, '0');
+  return `${h(start)}–${h(end)}`;
 }
 
 type Row = { action: typeof ACTIONS[number]; rec: ActionTimingRecommendation; start: number; end: number };
 
-function ActionDial({ rows, nowH, ru, reduce }: { rows: Row[]; nowH: number; ru: boolean; reduce: boolean | null }) {
-  const [nx, ny] = polar(92, nowH);
+function ActionTracks({ rows, nowH, ru, reduce }: { rows: Row[]; nowH: number; ru: boolean; reduce: boolean | null }) {
   const best = rows.find((r) => r.rec.state === 'now')
     || [...rows].sort((a, b) => ((a.start - nowH + 24) % 24) - ((b.start - nowH + 24) % 24))[0];
+  const nowLeft = pct(nowH);
 
   return (
-    <div className="dwd">
-      <div className="dwd-dial">
-        <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="dwd-svg" aria-hidden>
-          {[0, 6, 12, 18].map((h) => {
-            const [lx, ly] = polar(96, h);
-            return <text key={h} x={lx} y={ly + 3} className="dwd-tick" textAnchor="middle">{h}</text>;
-          })}
-          {rows.map((r, i) => {
-            const radius = RADII[i] ?? 39;
-            return (
-              <g key={r.action.key}>
-                <circle cx={CENTER} cy={CENTER} r={radius} fill="none" stroke="var(--fresh-surface)" strokeWidth="6" />
-                <motion.path
-                  d={arcPath(radius, r.start, r.end)}
-                  fill="none"
-                  stroke={r.action.color}
-                  strokeWidth="6"
-                  strokeLinecap="round"
-                  initial={reduce ? false : { pathLength: 0, opacity: 0.5 }}
-                  animate={{ pathLength: 1, opacity: 1 }}
-                  transition={reduce ? { duration: 0 } : { duration: 0.7, delay: 0.07 * i, ease: [0.22, 1, 0.36, 1] }}
-                />
-              </g>
-            );
-          })}
-          {/* стрелка «сейчас» */}
-          <line x1={CENTER} y1={CENTER} x2={nx} y2={ny} stroke="var(--fresh-text)" strokeWidth="2" strokeLinecap="round" />
-          <circle cx={CENTER} cy={CENTER} r="3.5" fill="var(--fresh-text)" />
-        </svg>
-        <div className="dwd-center">
-          <div className="dwd-center-kicker">{ru ? 'сейчас лучше' : 'best now'}</div>
-          <div className="dwd-center-action" style={{ color: best?.action.color }}>{ru ? best?.action.ru : best?.action.en}</div>
-          <div className="dwd-center-win">{best?.rec.bestWindow?.label}</div>
-        </div>
+    <div className="awt">
+      <div className="awt-hero">
+        <span className="awt-hero-k">{ru ? 'сейчас лучше' : 'best now'}</span>
+        <span className="awt-hero-a" style={{ color: best?.action.color }}>{ru ? best?.action.ru : best?.action.en}</span>
+        {best?.rec.bestWindow?.label ? <span className="awt-hero-w">{best.rec.bestWindow.label}</span> : null}
       </div>
 
-      <div className="dwd-legend">
-        {rows.map((r) => (
-          <div key={r.action.key} className="dwd-leg">
-            <span className="dwd-leg-dot" style={{ background: r.action.color }} />
-            <span className="dwd-leg-name">{ru ? r.action.ru : r.action.en}</span>
-            <span className="dwd-leg-win">{r.rec.bestWindow?.label}</span>
-            <span className="dwd-leg-state" style={{ color: r.rec.state === 'now' ? '#1f9e6e' : 'var(--fresh-muted)' }}>
-              {ru ? STATE_LABEL[r.rec.state]?.ru : STATE_LABEL[r.rec.state]?.en}
-            </span>
-          </div>
-        ))}
+      <div className="awt-axis" aria-hidden>
+        <span />
+        <div className="awt-axis-track">
+          {[6, 12, 18, 24].map((h) => (
+            <span key={h} className="awt-axis-tick" style={{ left: `${pct(h)}%` }}>{h}</span>
+          ))}
+        </div>
+        <span />
+      </div>
+
+      <div className="awt-rows">
+        {rows.map((r, i) => {
+          const left = pct(r.start);
+          const width = Math.max(6, pct(r.end) - left);
+          const isNow = r.rec.state === 'now';
+          return (
+            <div className="awt-row" key={r.action.key}>
+              <span className="awt-name">{ru ? r.action.ru : r.action.en}</span>
+              <div className="awt-track">
+                <motion.div
+                  className="awt-seg"
+                  style={{ left: `${left}%`, background: r.action.color }}
+                  initial={reduce ? false : { width: 0, opacity: 0.4 }}
+                  animate={{ width: `${width}%`, opacity: 1 }}
+                  transition={reduce ? { duration: 0 } : { duration: 0.5, delay: 0.06 * i, ease: [0.22, 1, 0.36, 1] }}
+                />
+                <span className="awt-now" style={{ left: `${nowLeft}%` }} />
+              </div>
+              <span className={`awt-time${isNow ? ' awt-time--now' : ''}`}>
+                {isNow ? (ru ? 'сейчас' : 'now') : fmtRange(r.start, r.end)}
+              </span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -185,9 +172,9 @@ export function ActionWindows({ profile, chartData, chartId, onOpenChart, onRequ
           <span className="aw-gate-cta">Premium<ChevronRightIcon size={15} /></span>
         </button>
       ) : rows.length === 0 ? (
-        <div className="dwd-skeleton" />
+        <div className="awt-skeleton" />
       ) : (
-        <ActionDial rows={rows} nowH={nowH} ru={ru} reduce={reduce} />
+        <ActionTracks rows={rows} nowH={nowH} ru={ru} reduce={reduce} />
       )}
     </section>
   );
