@@ -1405,6 +1405,7 @@ export type ViewState =
   | 'horoscope'
   | 'personal_daily'
   | 'synastry'
+  | 'matrix'
   | 'oracle'
   | 'settings'
   | 'admin'

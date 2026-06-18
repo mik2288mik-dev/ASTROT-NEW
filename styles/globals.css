@@ -4005,6 +4005,25 @@ a,
 .pd-skel { display: flex; flex-direction: column; gap: 12px; padding-top: 10px; }
 .pd-skel-line { height: 14px; border-radius: 8px; background: linear-gradient(90deg, var(--fresh-surface), #eef1f5, var(--fresh-surface)); background-size: 200% 100%; animation: dw-sk 1.2s ease-in-out infinite; }
 
+/* ── Матрица судьбы ── */
+.mtx-form { padding: 0 20px 8px; }
+.mtx-form-row { display: flex; gap: 10px; align-items: stretch; margin-top: 6px; }
+.mtx-form-row .fresh-input { flex: 1; }
+.mtx-empty { padding: 16px 20px; font-size: 14px; color: var(--fresh-muted); }
+.mtx-result { padding: 8px 20px 0; }
+.mtx-hero { background: linear-gradient(135deg, #6D5BDF, #A855F7); color: #fff; border-radius: var(--fresh-radius-card); padding: 20px; text-align: center; overflow: hidden; }
+.mtx-hero-badge { width: 46px; height: 46px; margin: 0 auto 10px; border-radius: 50%; background: rgba(255, 255, 255, 0.18); display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 900; font-family: var(--fresh-font); }
+.mtx-hero-kicker { font-family: var(--fresh-font); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.85; }
+.mtx-hero-name { font-family: var(--fresh-font); font-size: 24px; font-weight: 900; margin-top: 2px; letter-spacing: -0.01em; }
+.mtx-hero-essence { font-family: var(--fresh-font); font-size: 14.5px; line-height: 1.55; margin: 10px 0 0; color: rgba(255, 255, 255, 0.95); }
+.mtx-grid { display: flex; flex-direction: column; gap: 12px; margin-top: 14px; }
+.mtx-card { background: var(--fresh-surface); border-radius: var(--fresh-radius-card); padding: 14px 16px; }
+.mtx-card-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.mtx-card-label { font-family: var(--fresh-font); font-size: 11.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--fresh-muted); }
+.mtx-card-arcana { font-family: var(--fresh-font); font-size: 11.5px; font-weight: 800; color: var(--fresh-link); flex-shrink: 0; }
+.mtx-card-name { font-family: var(--fresh-font); font-size: 17px; font-weight: 800; color: var(--fresh-text); margin-top: 3px; }
+.mtx-card-essence { font-family: var(--fresh-font); font-size: 14px; line-height: 1.55; color: var(--fresh-text); margin: 6px 0 0; }
+
 /* ── «Окна дня»: тайминги действий по карте ── */
 .aw { margin: 16px 20px 4px; }
 .aw-head { margin-bottom: 10px; }

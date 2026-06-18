@@ -36,6 +36,7 @@ import {
   FreshListItem,
 } from '../components/fresh-ui';
 import { ActionWindows } from './v2/ActionWindows';
+import { MATRIX_HOME_LABEL, MATRIX_HOME_SUB } from '../lib/matrixArcana';
 
 /* ── Вспомогательные функции ── */
 function formatDate(todayKey: string, lang: 'ru' | 'en'): string {
@@ -78,6 +79,7 @@ type DashboardProps = {
   onCreateNatalChart?: () => void;
   onOpenOracle?: () => void;
   onOpenSynastry?: () => void;
+  onOpenMatrix?: () => void;
   onOpenSettings?: () => void;
   onRequestPremium?: (source?: string) => void;
   scrollRef?: React.RefObject<HTMLDivElement | null>;
@@ -94,6 +96,7 @@ export const Dashboard = memo<DashboardProps>(({
   onCreateNatalChart,
   onOpenOracle,
   onOpenSynastry,
+  onOpenMatrix,
   onOpenSettings,
   onRequestPremium,
   scrollRef,
@@ -404,6 +407,31 @@ export const Dashboard = memo<DashboardProps>(({
       {/* ── Быстрый доступ: совместимость и матрица ── */}
       <div style={{ marginTop: 20, paddingBottom: 8 }}>
         <FreshSectionHeader title={language === 'ru' ? 'Разделы' : 'Sections'} />
+        {onOpenMatrix ? (
+          <div style={{ padding: '0 20px 8px' }}>
+            <button
+              type="button"
+              onClick={() => { lumiaSelectionHaptic(); onOpenMatrix(); }}
+              style={{
+                width: '100%',
+                background: 'linear-gradient(135deg, #6D5BDF, #A855F7)',
+                border: 'none',
+                borderRadius: 'var(--fresh-radius-card)',
+                padding: '16px 18px',
+                textAlign: 'left',
+                cursor: 'pointer',
+                color: '#fff',
+              }}
+            >
+              <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 3 }}>
+                {language === 'en' ? MATRIX_HOME_LABEL.en : MATRIX_HOME_LABEL.ru}
+              </div>
+              <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.85)' }}>
+                {language === 'en' ? MATRIX_HOME_SUB.en : MATRIX_HOME_SUB.ru}
+              </div>
+            </button>
+          </div>
+        ) : null}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, padding: '0 20px' }}>
           <button
             type="button"

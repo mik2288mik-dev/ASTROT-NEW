@@ -32,6 +32,7 @@ import { requestStarsPayment } from './services/telegramService';
 import { HookChat } from './views/HookChat';
 import { Paywall } from './views/Paywall';
 import { UnionRoom } from './views/v2/UnionRoom';
+import { MatrixRoom } from './views/v2/MatrixRoom';
 import { MyCharts } from './views/MyCharts';
 import { getAdminStatus } from './services/adminService';
 import { recordNotificationAttribution, recordUserAppEvent, recordUserSession } from './services/sessionService';
@@ -1360,6 +1361,10 @@ const App: React.FC = () => {
         navigateTo('synastry');
     }, [navigateTo]);
 
+    const openMatrix = useCallback(() => {
+        navigateTo('matrix');
+    }, [navigateTo]);
+
     // Свайп назад от левого края (как в iOS) — на всех экранах, кроме корневых/модальных
     const canSwipeBack =
         view !== 'dashboard' &&
@@ -1450,6 +1455,7 @@ const App: React.FC = () => {
                         onCreateNatalChart={openBottomNatal}
                         onOpenOracle={openOracle}
                         onOpenSynastry={openSynastryFromHome}
+                        onOpenMatrix={openMatrix}
                         onOpenSettings={openBottomAvatar}
                         onRequestPremium={requestPremium}
                         scrollRef={dashboardScrollRef}
@@ -1499,6 +1505,10 @@ const App: React.FC = () => {
                             onCreateNatalChart={openBottomNatal}
                             onUpdateProfile={handleProfileUpdate}
                         />
+                    </div>
+                ) : view === 'matrix' ? (
+                    <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
+                        <MatrixRoom profile={profile} onBack={() => { void handleBack(); }} />
                     </div>
                 ) : view === 'horoscope' ? (
                     <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
