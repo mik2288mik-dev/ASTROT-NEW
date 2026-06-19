@@ -2641,6 +2641,26 @@ export const db = {
         throw error;
       }
     },
+
+    /** Снять реакцию (тоггл лайка off) — удаляет строку пользователя. */
+    async unset(userId: string, zodiacSign: string, date: string) {
+      const id = toUserId(userId);
+      const sign = String(zodiacSign || '').trim();
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+
+      try {
+        const dbPool = getPool();
+        await dbPool.query(
+          `DELETE FROM horoscope_reactions
+           WHERE user_id = $1 AND zodiac_sign = $2 AND reaction_date = $3::date`,
+          [id, sign, date]
+        );
+        return this.getSummary(userId, sign, date);
+      } catch (error: any) {
+        log.error('[DB] Error unsetting horoscope reaction', { error: error.message, userId, zodiacSign, date });
+        throw error;
+      }
+    },
   },
 
   /** horoscope_engagement - aggregate views/reposts per user/sign/date (deduped per user) */

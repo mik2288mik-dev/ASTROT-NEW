@@ -776,6 +776,28 @@ export const setHoroscopeReaction = async (
   return payload.summary as HoroscopeReactionSummary;
 };
 
+/** Remove the user's reaction (like toggle off) for a sign+date. */
+export const removeHoroscopeReaction = async (
+  userId: string,
+  sign: string,
+  date: string,
+  language: 'ru' | 'en' = 'ru'
+): Promise<HoroscopeReactionSummary | null> => {
+  if (!isValidUserId(userId)) return null;
+  try {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/api/content/horoscope/reactions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
+      body: JSON.stringify({ userId, sign, date, remove: true, language }),
+    }, 6000);
+    if (!response.ok) return null;
+    const payload = await response.json();
+    return (payload?.summary as HoroscopeReactionSummary) ?? null;
+  } catch {
+    return null;
+  }
+};
+
 /** Read the aggregated reaction counts for a sign+date (across all users). Null on any failure. */
 export const getHoroscopeReactionSummary = async (
   userId: string,

@@ -53,6 +53,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       return res.status(200).json({ summary: hydrateReactionSummaryLabels(summary, language) });
     }
 
+    // Снятие реакции (тоггл лайка off).
+    if (req.body?.remove === true) {
+      const summary = await db.horoscope_reactions.unset(userId, sign, date);
+      return res.status(200).json({ summary: hydrateReactionSummaryLabels(summary, language) });
+    }
+
     const reactionKey = String(req.body?.reactionKey || '').trim() as HoroscopeReactionKey;
     if (!REACTION_KEYS.has(reactionKey)) {
       return res.status(400).json({ error: 'BAD_REQUEST', message: 'reactionKey is invalid' });

@@ -6,15 +6,16 @@ import { lumiaSelectionHaptic } from '../../lib/haptics';
 import {
   getHoroscopeReactionSummary,
   setHoroscopeReaction,
+  removeHoroscopeReaction,
   markHoroscopeView,
 } from '../../services/astrologyService';
 
 /**
- * Engagement bar under a sign horoscope: views · like (heart) · share.
+ * Engagement bar under a sign horoscope: views · like (heart, toggle) · share.
  * Counters are REAL — likes from horoscope_reactions, views from
- * horoscope_engagement (deduped per user/sign/day). Share just shares.
- * Keyed by (sign, date) where date is the SELECTED period's date, so today /
- * tomorrow / week each keep their own counts.
+ * horoscope_engagement (deduped per user/sign/day). Keyed by (sign, date) so
+ * today / tomorrow / week each keep their own counts. State resets on every
+ * sign/date change so one sign's like never leaks onto another.
  */
 
 type Props = {
@@ -60,9 +61,12 @@ export const HoroscopeActivityBar: React.FC<Props> = ({ userId, sign, date, lang
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
+    // Сброс — чтобы счётчики/лайк предыдущего знака не показывались на новом.
+    setLikes(0);
+    setLiked(false);
+    setViews(0);
     if (!userId) return;
     let alive = true;
-    // Открытие разбора = просмотр (дедуп на сервере). Возвращает обновлённые счётчики.
     void markHoroscopeView(userId, sign, date).then((e: HoroscopeEngagementSummary | null) => {
       if (!alive || !e) return;
       setViews(e.views);
@@ -75,19 +79,27 @@ export const HoroscopeActivityBar: React.FC<Props> = ({ userId, sign, date, lang
     return () => { alive = false; };
   }, [userId, sign, date, language]);
 
-  const onLike = async () => {
-    if (!userId || liked || busy) return;
+  const onToggleLike = async () => {
+    if (!userId || busy) return;
     lumiaSelectionHaptic();
-    setLiked(true);
-    setLikes((c) => c + 1);
+    const wasLiked = liked;
     setBusy(true);
+    // оптимистично
+    setLiked(!wasLiked);
+    setLikes((c) => Math.max(0, c + (wasLiked ? -1 : 1)));
     try {
-      const s = await setHoroscopeReaction(userId, sign, date, 'spot_on', language);
-      setLikes(spotOn(s));
-      setLiked(s.userReaction === 'spot_on');
+      if (wasLiked) {
+        const s = await removeHoroscopeReaction(userId, sign, date, language);
+        if (s) { setLikes(spotOn(s)); setLiked(s.userReaction === 'spot_on'); }
+        else { setLiked(true); setLikes((c) => c + 1); } // снять не удалось — откат
+      } else {
+        const s = await setHoroscopeReaction(userId, sign, date, 'spot_on', language);
+        setLikes(spotOn(s));
+        setLiked(s.userReaction === 'spot_on');
+      }
     } catch {
-      setLiked(false);
-      setLikes((c) => Math.max(0, c - 1));
+      setLiked(wasLiked);
+      setLikes((c) => Math.max(0, c + (wasLiked ? 1 : -1)));
     } finally {
       setBusy(false);
     }
@@ -104,7 +116,7 @@ export const HoroscopeActivityBar: React.FC<Props> = ({ userId, sign, date, lang
         type="button"
         className="horo-act-item horo-act-btn horo-act-like"
         data-on={liked ? 'true' : 'false'}
-        onClick={onLike}
+        onClick={onToggleLike}
         aria-pressed={liked}
         aria-label={ru ? 'Нравится' : 'Like'}
         disabled={!userId}
