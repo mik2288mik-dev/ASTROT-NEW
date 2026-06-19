@@ -12,6 +12,8 @@ type Props = {
   chartId?: number | null;
   onOpenChart?: () => void;
   onRequestPremium?: () => void;
+  /** Компактная одна строка «Сейчас лучше: X · время» — для верхнего блока главной. */
+  compact?: boolean;
 };
 
 const ACTIONS: Array<{ key: ActionTimingKey; ru: string; en: string; color: string }> = [
@@ -112,7 +114,7 @@ function ActionTracks({ rows, nowH, ru, reduce }: { rows: Row[]; nowH: number; r
   );
 }
 
-export function ActionWindows({ profile, chartData, chartId, onOpenChart, onRequestPremium }: Props) {
+export function ActionWindows({ profile, chartData, chartId, onOpenChart, onRequestPremium, compact }: Props) {
   const ru = profile.language !== 'en';
   const reduce = useReducedMotion();
   const hasChart = hasNatalChart(profile, { chartData, primaryChartId: chartId ?? null });
@@ -153,6 +155,39 @@ export function ActionWindows({ profile, chartData, chartId, onOpenChart, onRequ
       return { action, rec, start, end };
     }).filter((r): r is Row => !!r);
   }, [home]);
+
+  if (compact) {
+    if (!hasChart) {
+      return (
+        <button type="button" className="aw-mini aw-mini--cta" onClick={() => { lumiaSelectionHaptic(); onOpenChart?.(); }}>
+          <span className="aw-mini-label">{ru ? 'Окна дня' : 'Day windows'}</span>
+          <span className="aw-mini-cta">{ru ? 'Создать карту' : 'Create chart'}<ChevronRightIcon size={14} /></span>
+        </button>
+      );
+    }
+    if (!premium) {
+      return (
+        <button type="button" className="aw-mini aw-mini--cta" onClick={() => { lumiaSelectionHaptic(); onRequestPremium?.(); }}>
+          <span className="aw-mini-label">{ru ? 'Лучшее время дня' : 'Best time today'}</span>
+          <span className="aw-mini-cta">Premium<ChevronRightIcon size={14} /></span>
+        </button>
+      );
+    }
+    if (rows.length === 0) {
+      return <div className="aw-mini aw-mini--load">{ru ? 'Считаю окна дня…' : 'Calculating windows…'}</div>;
+    }
+    const best = rows.find((r) => r.rec.state === 'now')
+      || [...rows].sort((a, b) => ((a.start - nowH + 24) % 24) - ((b.start - nowH + 24) % 24))[0];
+    const isNow = best?.rec.state === 'now';
+    return (
+      <div className="aw-mini">
+        <span className="aw-mini-dot" style={{ background: best?.action.color }} />
+        <span className="aw-mini-label">{isNow ? (ru ? 'Сейчас лучше' : 'Best now') : (ru ? 'Скоро лучше' : 'Next best')}</span>
+        <span className="aw-mini-action" style={{ color: best?.action.color }}>{ru ? best?.action.ru : best?.action.en}</span>
+        {best?.rec.bestWindow?.label ? <span className="aw-mini-win">{best.rec.bestWindow.label}</span> : null}
+      </div>
+    );
+  }
 
   return (
     <section className="aw">

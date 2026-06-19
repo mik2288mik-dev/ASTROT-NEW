@@ -4276,6 +4276,28 @@ a,
 .pw2-free { margin: 12px 20px 0; background: transparent; border: none; color: var(--fresh-muted); font-family: var(--fresh-font); font-size: 14px; font-weight: 700; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 .pw2-foot { font-family: var(--fresh-font); font-size: 11.5px; line-height: 1.45; color: var(--fresh-muted); text-align: center; margin: 16px 24px 0; }
 
+/* ── Главная: верхний блок «Сегодня» = Луна + лучшее окно дня (компактно) ── */
+.home-today { margin: 0 16px 4px; background: var(--fresh-surface); border-radius: var(--fresh-radius-card); padding: 12px 14px; }
+.home-today-row { display: flex; align-items: center; gap: 9px; }
+.home-today-ico { flex-shrink: 0; display: inline-flex; }
+.home-today-moon { font-family: var(--fresh-font); font-size: 13.5px; font-weight: 700; color: var(--fresh-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.home-today-retro { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; font-family: var(--fresh-font); font-size: 11px; font-weight: 700; color: var(--fresh-amber); white-space: nowrap; }
+
+.aw-mini { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--fresh-border); font-family: var(--fresh-font); font-size: 13.5px; }
+.aw-mini--cta { width: 100%; background: transparent; border: none; cursor: pointer; justify-content: space-between; }
+.aw-mini--load { color: var(--fresh-muted); }
+.aw-mini-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.aw-mini-label { color: var(--fresh-muted); font-weight: 700; }
+.aw-mini-action { font-weight: 800; }
+.aw-mini-win { margin-left: auto; color: var(--fresh-text); font-weight: 700; }
+.aw-mini-cta { display: inline-flex; align-items: center; gap: 3px; color: var(--fresh-link); font-weight: 800; }
+
+/* ── Главная: компактная карточка натальной карты (Большая тройка, 2 строки) ── */
+.home-natal { width: 100%; display: block; text-align: left; background: var(--fresh-surface); border: none; border-radius: var(--fresh-radius-card); padding: 14px; cursor: pointer; }
+.home-natal-three { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+.home-natal-item { display: inline-flex; align-items: center; gap: 6px; font-family: var(--fresh-font); font-size: 14px; font-weight: 700; color: var(--fresh-text); }
+.home-natal-cta { display: inline-block; margin-top: 10px; font-family: var(--fresh-font); font-size: 12px; font-weight: 800; color: var(--fresh-link); }
+
 /* ── «Окна дня»: тайминги действий по карте ── */
 .aw { margin: 16px 20px 4px; }
 .aw-head { margin-bottom: 10px; }

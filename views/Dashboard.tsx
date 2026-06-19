@@ -32,8 +32,6 @@ import {
   FreshHeroCard,
   FreshQuickBar,
   FreshSectionHeader,
-  FreshItemList,
-  FreshListItem,
 } from '../components/fresh-ui';
 import { ActionWindows } from './v2/ActionWindows';
 import { HomeFaq } from '../components/Dashboard/HomeFaq';
@@ -55,20 +53,6 @@ const SIGN_NAMES_RU: Record<string, string> = {
   libra: 'Весы', scorpio: 'Скорпион', sagittarius: 'Стрелец',
   capricorn: 'Козерог', aquarius: 'Водолей', pisces: 'Рыбы',
 };
-
-// Маппинг планет на русские названия
-const PLANET_NAMES_RU: Record<string, string> = {
-  sun: 'Солнце', moon: 'Луна', mercury: 'Меркурий',
-  venus: 'Венера', mars: 'Марс', jupiter: 'Юпитер', saturn: 'Сатурн',
-};
-
-// Номер дома → подпись
-function houseLabel(house: string | number | undefined, lang: 'ru' | 'en'): string {
-  if (!house) return '';
-  const n = typeof house === 'string' ? parseInt(house, 10) : house;
-  if (Number.isNaN(n)) return '';
-  return lang === 'ru' ? `${n}-й дом` : `${n}th house`;
-}
 
 /* ── Типы пропсов ── */
 type DashboardProps = {
@@ -221,14 +205,6 @@ export const Dashboard = memo<DashboardProps>(({
   ];
 
   /* Планеты для списка */
-  const planetItems = chartData ? [
-    { key: 'sun',     planet: chartData.sun,      show: true },
-    { key: 'moon',    planet: chartData.moon,     show: true },
-    { key: 'mercury', planet: chartData.mercury,  show: !!chartData.mercury },
-    { key: 'venus',   planet: chartData.venus,    show: !!chartData.venus },
-    { key: 'mars',    planet: chartData.mars,     show: !!chartData.mars },
-  ].filter((p) => p.show).slice(0, 4) : [];
-
   /* Персональный день: подпись */
   const personalSubtitle = !hasChart
     ? (language === 'ru' ? 'Создайте натальную карту' : 'Create a natal chart')
@@ -256,24 +232,30 @@ export const Dashboard = memo<DashboardProps>(({
         }
       />
 
-      {/* ── Астро-контекст дня: день недели + фаза луны ── */}
-      <div className="fresh-sky-strip">
-        <div className="fresh-sky-strip-ico" aria-hidden>
-          <MoonPhaseIcon slot={moon.slot} size={26} fill="#111827" outline="#111827" />
-        </div>
-        <div style={{ minWidth: 0 }}>
-          <div className="fresh-sky-strip-title">{weekdayLabel} · {moon.label}</div>
+      {/* ── Сегодня: Луна + лучшее окно дня — компактно, в одном блоке ── */}
+      <div className="home-today">
+        <div className="home-today-row">
+          <span className="home-today-ico" aria-hidden>
+            <MoonPhaseIcon slot={moon.slot} size={22} fill="#111827" outline="#111827" />
+          </span>
+          <span className="home-today-moon">{weekdayLabel} · {moon.label}</span>
           {retroLabel ? (
-            <div className="fresh-sky-strip-retro">
+            <span className="home-today-retro">
               {retro.map((r) => (
-                <PlanetIcon key={r.key} planet={r.key} size={14} strokeWidth={1.6} />
+                <PlanetIcon key={r.key} planet={r.key} size={13} strokeWidth={1.6} />
               ))}
               <span>{retroLabel}</span>
-            </div>
-          ) : (
-            <div className="fresh-sky-strip-sub">{moon.meaning}</div>
-          )}
+            </span>
+          ) : null}
         </div>
+        <ActionWindows
+          compact
+          profile={profile}
+          chartData={chartData}
+          chartId={chartId}
+          onOpenChart={onCreateNatalChart}
+          onRequestPremium={() => onRequestPremium?.('action_windows')}
+        />
       </div>
 
       {/* ── Hero-карточка: гороскоп дня ── */}
@@ -292,15 +274,6 @@ export const Dashboard = memo<DashboardProps>(({
       {/* ── Быстрые кнопки ── */}
       <FreshQuickBar items={quickItems} />
 
-      {/* ── Окна дня: лучшее время для действий по карте (перенесено из Гороскопа) ── */}
-      <ActionWindows
-        profile={profile}
-        chartData={chartData}
-        chartId={chartId}
-        onOpenChart={onCreateNatalChart}
-        onRequestPremium={() => onRequestPremium?.('action_windows')}
-      />
-
       {/* ── Натальная карта ── */}
       <FreshSectionHeader
         title={language === 'ru' ? 'Натальная карта' : 'Natal chart'}
@@ -309,25 +282,27 @@ export const Dashboard = memo<DashboardProps>(({
       />
 
       {hasChart && chartData ? (
-        <FreshItemList>
-          {planetItems.map(({ key, planet }) => {
-            if (!planet) return null;
-            const signKey = planet.sign?.toLowerCase() ?? '';
-            const houseTxt = houseLabel(planet.house, language);
-            const signRu = SIGN_NAMES_RU[signKey] || planet.sign;
-            const planetRu = PLANET_NAMES_RU[key] || planet.planet;
-            return (
-              <FreshListItem
-                key={key}
-                sign={<PlanetIcon planet={key} size={20} strokeWidth={1.5} />}
-                title={language === 'ru' ? `${planetRu} в ${signRu}` : `${planet.planet} in ${planet.sign}`}
-                subtitle={houseTxt ? `${houseTxt}${planet.description ? ' · ' + planet.description.slice(0, 40) : ''}` : planet.description?.slice(0, 50)}
-                badge={<ZodiacIcon sign={signKey} size={20} strokeWidth={1.5} />}
-                onClick={() => { lumiaSelectionHaptic(); onCreateNatalChart?.(); }}
-              />
-            );
-          })}
-        </FreshItemList>
+        <div style={{ padding: '0 20px' }}>
+          <button type="button" className="home-natal" onClick={() => { lumiaSelectionHaptic(); onCreateNatalChart?.(); }}>
+            <div className="home-natal-three">
+              {[
+                { k: 'sun', label: language === 'ru' ? 'Солнце' : 'Sun', sign: chartData.sun.sign },
+                { k: 'moon', label: language === 'ru' ? 'Луна' : 'Moon', sign: chartData.moon.sign },
+                { k: 'asc', label: language === 'ru' ? 'Асцендент' : 'Rising', sign: chartData.rising.sign },
+              ].map((it) => {
+                const signKey = String(it.sign || '').toLowerCase();
+                const signName = language === 'ru' ? (SIGN_NAMES_RU[signKey] || it.sign) : it.sign;
+                return (
+                  <span className="home-natal-item" key={it.k}>
+                    <PlanetIcon planet={it.k} size={15} strokeWidth={1.5} />
+                    <span className="home-natal-sign">{signName}</span>
+                  </span>
+                );
+              })}
+            </div>
+            <span className="home-natal-cta">{language === 'ru' ? 'Открыть карту' : 'Open chart'} →</span>
+          </button>
+        </div>
       ) : (
         <div style={{ padding: '0 20px' }}>
           <button
