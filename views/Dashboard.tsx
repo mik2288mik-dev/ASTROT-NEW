@@ -248,6 +248,7 @@ export const Dashboard = memo<DashboardProps>(({
             </span>
           ) : null}
         </div>
+        <div className="home-today-sub">{moon.meaning}</div>
         <ActionWindows
           compact
           profile={profile}
@@ -286,16 +287,19 @@ export const Dashboard = memo<DashboardProps>(({
           <button type="button" className="home-natal" onClick={() => { lumiaSelectionHaptic(); onCreateNatalChart?.(); }}>
             <div className="home-natal-three">
               {[
-                { k: 'sun', label: language === 'ru' ? 'Солнце' : 'Sun', sign: chartData.sun.sign },
-                { k: 'moon', label: language === 'ru' ? 'Луна' : 'Moon', sign: chartData.moon.sign },
-                { k: 'asc', label: language === 'ru' ? 'Асцендент' : 'Rising', sign: chartData.rising.sign },
-              ].map((it) => {
+                { k: 'sun', sign: chartData.sun?.sign },
+                { k: 'moon', sign: chartData.moon?.sign },
+                { k: 'asc', sign: chartData.rising?.sign },
+                { k: 'mercury', sign: chartData.mercury?.sign },
+                { k: 'venus', sign: chartData.venus?.sign },
+                { k: 'mars', sign: chartData.mars?.sign },
+              ].filter((it) => it.sign).map((it) => {
                 const signKey = String(it.sign || '').toLowerCase();
                 const signName = language === 'ru' ? (SIGN_NAMES_RU[signKey] || it.sign) : it.sign;
                 return (
                   <span className="home-natal-item" key={it.k}>
                     <PlanetIcon planet={it.k} size={15} strokeWidth={1.5} />
-                    <span className="home-natal-sign">{signName}</span>
+                    <span>{signName}</span>
                   </span>
                 );
               })}

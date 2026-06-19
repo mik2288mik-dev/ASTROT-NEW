@@ -182,9 +182,9 @@ export function ActionWindows({ profile, chartData, chartId, onOpenChart, onRequ
     return (
       <div className="aw-mini">
         <span className="aw-mini-dot" style={{ background: best?.action.color }} />
-        <span className="aw-mini-label">{isNow ? (ru ? 'Сейчас лучше' : 'Best now') : (ru ? 'Скоро лучше' : 'Next best')}</span>
+        <span className="aw-mini-label">{isNow ? (ru ? 'Сейчас лучше' : 'Best now') : (ru ? 'Лучше' : 'Best')}</span>
         <span className="aw-mini-action" style={{ color: best?.action.color }}>{ru ? best?.action.ru : best?.action.en}</span>
-        {best?.rec.bestWindow?.label ? <span className="aw-mini-win">{best.rec.bestWindow.label}</span> : null}
+        {!isNow && best ? <span className="aw-mini-win">{fmtRange(best.start, best.end)}</span> : null}
       </div>
     );
   }
