@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Eye, Heart, Repeat, Share2 } from 'lucide-react';
+import { Eye, Heart, Share2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { HoroscopeEngagementSummary, HoroscopeReactionSummary } from '../../types';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
@@ -7,14 +7,14 @@ import {
   getHoroscopeReactionSummary,
   setHoroscopeReaction,
   markHoroscopeView,
-  markHoroscopeRepost,
 } from '../../services/astrologyService';
 
 /**
- * Engagement bar under the sign horoscope: views · repost · like (heart) · share.
- * Every counter is REAL — likes from horoscope_reactions, views/reposts from
- * horoscope_engagement (deduped per user/sign/day). Repost shares to Telegram and
- * counts it; share just shares. No favorites/bookmark (deferred). No new deps.
+ * Engagement bar under a sign horoscope: views · like (heart) · share.
+ * Counters are REAL — likes from horoscope_reactions, views from
+ * horoscope_engagement (deduped per user/sign/day). Share just shares.
+ * Keyed by (sign, date) where date is the SELECTED period's date, so today /
+ * tomorrow / week each keep their own counts.
  */
 
 type Props = {
@@ -57,21 +57,16 @@ export const HoroscopeActivityBar: React.FC<Props> = ({ userId, sign, date, lang
   const [likes, setLikes] = useState(0);
   const [liked, setLiked] = useState(false);
   const [views, setViews] = useState(0);
-  const [reposts, setReposts] = useState(0);
-  const [reposted, setReposted] = useState(false);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (!userId) return;
     let alive = true;
-    const applyEngagement = (e: HoroscopeEngagementSummary | null) => {
+    // Открытие разбора = просмотр (дедуп на сервере). Возвращает обновлённые счётчики.
+    void markHoroscopeView(userId, sign, date).then((e: HoroscopeEngagementSummary | null) => {
       if (!alive || !e) return;
       setViews(e.views);
-      setReposts(e.reposts);
-      setReposted(e.reposted);
-    };
-    // Открытие разбора = просмотр (дедуп на сервере). Возвращает уже обновлённые счётчики.
-    void markHoroscopeView(userId, sign, date).then(applyEngagement);
+    });
     void getHoroscopeReactionSummary(userId, sign, date, language).then((s) => {
       if (!alive || !s) return;
       setLikes(spotOn(s));
@@ -98,40 +93,12 @@ export const HoroscopeActivityBar: React.FC<Props> = ({ userId, sign, date, lang
     }
   };
 
-  const onRepost = async () => {
-    lumiaSelectionHaptic();
-    onShare();
-    if (!userId || reposted) return;
-    setReposted(true);
-    setReposts((c) => c + 1);
-    try {
-      const e = await markHoroscopeRepost(userId, sign, date);
-      if (e) { setReposts(e.reposts); setReposted(e.reposted); setViews(e.views); }
-    } catch {
-      setReposted(false);
-      setReposts((c) => Math.max(0, c - 1));
-    }
-  };
-
   return (
     <div className="horo-act">
       <div className="horo-act-item horo-act-views" aria-label={ru ? 'Просмотры' : 'Views'}>
         <Eye size={18} strokeWidth={2} />
         <Count value={views} />
       </div>
-
-      <button
-        type="button"
-        className="horo-act-item horo-act-btn"
-        data-on={reposted ? 'true' : 'false'}
-        onClick={onRepost}
-        aria-label={ru ? 'Поделиться знаком' : 'Repost'}
-      >
-        <motion.span whileTap={{ scale: 0.85 }} style={{ display: 'inline-flex' }}>
-          <Repeat size={18} strokeWidth={2} />
-        </motion.span>
-        <Count value={reposts} />
-      </button>
 
       <button
         type="button"

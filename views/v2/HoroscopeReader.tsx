@@ -70,6 +70,17 @@ function addDaysKey(key: string, days: number): string {
   return `${dt.getUTCFullYear()}-${mm}-${dd}`;
 }
 
+/* Понедельник недели для ключа даты — отдельный ключ вовлечённости для периода «неделя» */
+function mondayKey(key: string): string {
+  const [y, m, d] = key.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  const wd = (dt.getUTCDay() + 6) % 7; // 0 = понедельник
+  dt.setUTCDate(dt.getUTCDate() - wd);
+  const mm = String(dt.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(dt.getUTCDate()).padStart(2, '0');
+  return `${dt.getUTCFullYear()}-${mm}-${dd}`;
+}
+
 const cardVariants = {
   enter: (d: number) => ({ x: d > 0 ? 300 : d < 0 ? -300 : 0, opacity: 0, rotate: d > 0 ? 5 : d < 0 ? -5 : 0 }),
   center: { x: 0, opacity: 1, rotate: 0 },
@@ -307,7 +318,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
                     <HoroscopeActivityBar
                       userId={profile.id ? String(profile.id) : undefined}
                       sign={sign}
-                      date={today}
+                      date={period === 'tomorrow' ? addDaysKey(today, 1) : period === 'week' ? mondayKey(today) : today}
                       language={language}
                       onShare={shareReading}
                     />
