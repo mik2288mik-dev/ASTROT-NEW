@@ -1055,8 +1055,20 @@ const App: React.FC = () => {
         };
     }, [profile?.id, trackSessionActivity]);
 
-    const requestPremium = async (source = 'app', eventPayload?: Record<string, any>, planId: PremiumPlanId = 'premium_week') => {
+    const requestPremium = async (source = 'app', eventPayload?: Record<string, any>, planId?: PremiumPlanId) => {
        if (!profile) return;
+       // Без выбранного тарифа ведём пользователя в 3-тарифный пейвол (месяц/3мес/год),
+       // а не запускаем молча покупку недели. Тариф выбирается уже в пейволе.
+       if (!planId) {
+           void recordUserAppEvent({
+               eventType: 'paywall_view',
+               section: 'premium',
+               source,
+               eventPayload: { entry_point: source, ...(eventPayload || {}) },
+           });
+           setView('paywall');
+           return;
+       }
        console.log('[App] Requesting premium for user:', profile.id, 'plan:', planId);
        const success = await requestStarsPayment(profile, planId);
        if (success) {
@@ -1562,10 +1574,11 @@ const App: React.FC = () => {
                     </div>
                 ) : view === 'settings' ? (
                     <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
-                        <Settings 
-                            profile={profile} 
-                            onUpdate={handleProfileUpdate} 
+                        <Settings
+                            profile={profile}
+                            onUpdate={handleProfileUpdate}
                             onShowPremiumPreview={() => setShowPremiumPreview(true)}
+                            onRequestPremium={() => { void requestPremium('settings'); }}
                             onOpenAdmin={() => navigateTo('admin')}
                             onOpenCharts={() => openCharts('settings')}
                         />

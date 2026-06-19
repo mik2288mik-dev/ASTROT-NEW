@@ -4,7 +4,6 @@ import { UserProfile, Language, Theme, NotificationFrequency } from '../types';
 import { getText } from '../constants';
 import { saveProfile } from '../services/storageService';
 import { updateUserNotificationSettings, getTelegramInitDataHeaders } from '../services/sessionService';
-import { requestStarsPayment } from '../services/telegramService';
 import { hasActivePremium } from '../lib/accessMatrix';
 
 /** Частота из UI → флаги движка уведомлений (реальная таблица user_notification_settings) */
@@ -31,6 +30,7 @@ interface SettingsProps {
     profile: UserProfile;
     onUpdate: (profile: UserProfile) => void;
     onShowPremiumPreview?: () => void;
+    onRequestPremium?: () => void;
     onOpenAdmin?: () => void;
     onOpenCharts?: () => void;
 }
@@ -85,7 +85,7 @@ function storeNotificationFrequency(userId: string | undefined, frequency: Notif
     }
 }
 
-export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPremiumPreview, onOpenAdmin, onOpenCharts }) => {
+export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPremiumPreview, onRequestPremium, onOpenAdmin, onOpenCharts }) => {
     const [tgUser, setTgUser] = useState<{ first_name?: string; last_name?: string; photo_url?: string } | null>(null);
     const [editing, setEditing] = useState(false);
     const [tempName, setTempName] = useState(profile.name);
@@ -181,26 +181,6 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
         });
     };
 
-    const handlePremiumPurchase = async () => {
-        if (activePremium) return;
-        
-        console.log('[Settings] Starting premium purchase...');
-        const success = await requestStarsPayment(profile);
-        if (success) {
-            console.log('[Settings] Premium purchase successful');
-            const updated = { ...profile, isPremium: true };
-            onUpdate(updated);
-            try {
-                await saveProfile(updated);
-                console.log('[Settings] Premium status saved');
-            } catch (error) {
-                console.error('[Settings] Failed to save premium status:', error);
-            }
-        } else {
-            console.log('[Settings] Premium purchase cancelled');
-        }
-    };
-
     const handleSaveProfile = () => {
         const updated = { ...profile, name: tempName, birthPlace: tempPlace };
         console.log('[Settings] Saving profile changes:', {
@@ -255,7 +235,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
 
                 <div className="mt-4 flex flex-wrap gap-2">
                     <button
-                        onClick={handlePremiumPurchase}
+                        onClick={() => { if (!activePremium) onRequestPremium?.(); }}
                         disabled={activePremium}
                         className="min-h-[44px] flex-1 rounded-mono-pill bg-mono-black px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
                     >
