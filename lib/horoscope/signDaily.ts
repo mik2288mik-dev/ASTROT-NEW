@@ -34,6 +34,23 @@ export function normalizeZodiacKey(value: string | null | undefined): ZodiacKey 
   return ZODIAC_KEYS.find((key) => key.toLowerCase() === raw.toLowerCase()) || null;
 }
 
+/**
+ * Ключ вовлечённости (лайки/просмотры): либо один знак, либо пара "знак_знак" в
+ * каноническом порядке — для совместимости. Возвращает null, если невалидно.
+ */
+export function normalizeEngagementKey(value: string | null | undefined): string | null {
+  const raw = String(value || '').trim();
+  if (raw.includes('_')) {
+    const parts = raw.split('_');
+    if (parts.length !== 2) return null;
+    const a = normalizeZodiacKey(parts[0]);
+    const b = normalizeZodiacKey(parts[1]);
+    if (!a || !b) return null;
+    return [a, b].sort().join('_');
+  }
+  return normalizeZodiacKey(raw);
+}
+
 function cleanLine(value: unknown, fallback: string) {
   const text = String(value || '')
     .replace(/\s+/g, ' ')

@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import type { Language } from '../../../../types';
 import { db } from '../../../../lib/db';
 import { getMoscowTodayKey } from '../../../../lib/date-utils';
-import { normalizeZodiacKey } from '../../../../lib/horoscope/signDaily';
+import { normalizeEngagementKey } from '../../../../lib/horoscope/signDaily';
 import { RATE_LIMIT_CONFIGS, withRateLimit } from '../../../../lib/rateLimit';
 import { invalidUserIdPayload, isValidUserId } from '../../../../lib/userId';
 import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../../../../lib/adminAuth';
@@ -25,7 +25,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   }
 
   const userId = String((req.method === 'GET' ? req.query.userId : req.body?.userId) || '').trim();
-  const sign = normalizeZodiacKey(String((req.method === 'GET' ? req.query.sign : req.body?.sign) || ''));
+  const sign = normalizeEngagementKey(String((req.method === 'GET' ? req.query.sign : req.body?.sign) || ''));
   const date = readDate(req);
   const language = readLanguage(req);
 

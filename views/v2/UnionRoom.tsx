@@ -14,6 +14,7 @@ import { ChevronRightIcon } from '../../components/icons/UiIcons';
 import { FreshSignWheel } from '../../components/fresh-ui';
 import { ZODIAC_KEYS } from '../../lib/horoscope/signDaily';
 import { shareToTelegram } from '../../lib/botLink';
+import { HoroscopeActivityBar } from '../../components/Horoscope/HoroscopeActivityBar';
 
 type SynastryPrefill = {
   source: 'saved-chart' | 'manual';
@@ -421,9 +422,15 @@ export function UnionRoom(props: UnionRoomProps) {
 
       {error ? <p className="union-pad" style={{ color: '#B91C1C', fontSize: 14, marginTop: 12 }}>{error}</p> : null}
 
-      <button type="button" className="union-share" onClick={shareCompat}>
-        {ru ? 'Поделиться совместимостью' : 'Share compatibility'}
-      </button>
+      <div className="union-pad" style={{ marginTop: 6 }}>
+        <HoroscopeActivityBar
+          userId={profile.id ? String(profile.id) : undefined}
+          sign={`${yourSun}_${theirSun}`}
+          date="2000-01-01"
+          language={lang}
+          onShare={shareCompat}
+        />
+      </div>
 
       <div style={{ height: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }} />
     </div>
