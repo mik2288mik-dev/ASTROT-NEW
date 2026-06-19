@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import type { ActionTimingKey, ActionTimingRecommendation, NatalChartData, TodayAssistantHomeResult, UserProfile } from '../../types';
 import { hasActivePremium, hasNatalChart } from '../../lib/accessMatrix';
 import { getCachedTodayAssistantHome, getTodayAssistantHome } from '../../services/astrologyService';
@@ -62,18 +62,20 @@ function fmtRange(start: number, end: number): string {
 
 type Row = { action: typeof ACTIONS[number]; rec: ActionTimingRecommendation; start: number; end: number };
 
-function ActionTracks({ rows, nowH, ru, reduce }: { rows: Row[]; nowH: number; ru: boolean; reduce: boolean | null }) {
+function ActionTracks({ rows, nowH, ru, reduce, hideHero }: { rows: Row[]; nowH: number; ru: boolean; reduce: boolean | null; hideHero?: boolean }) {
   const best = rows.find((r) => r.rec.state === 'now')
     || [...rows].sort((a, b) => ((a.start - nowH + 24) % 24) - ((b.start - nowH + 24) % 24))[0];
   const nowLeft = pct(nowH);
 
   return (
     <div className="awt">
-      <div className="awt-hero">
-        <span className="awt-hero-k">{ru ? 'сейчас лучше' : 'best now'}</span>
-        <span className="awt-hero-a" style={{ color: best?.action.color }}>{ru ? best?.action.ru : best?.action.en}</span>
-        {best?.rec.bestWindow?.label ? <span className="awt-hero-w">{best.rec.bestWindow.label}</span> : null}
-      </div>
+      {hideHero ? null : (
+        <div className="awt-hero">
+          <span className="awt-hero-k">{ru ? 'сейчас лучше' : 'best now'}</span>
+          <span className="awt-hero-a" style={{ color: best?.action.color }}>{ru ? best?.action.ru : best?.action.en}</span>
+          {best?.rec.bestWindow?.label ? <span className="awt-hero-w">{best.rec.bestWindow.label}</span> : null}
+        </div>
+      )}
 
       <div className="awt-axis" aria-hidden>
         <span />
@@ -117,6 +119,7 @@ function ActionTracks({ rows, nowH, ru, reduce }: { rows: Row[]; nowH: number; r
 export function ActionWindows({ profile, chartData, chartId, onOpenChart, onRequestPremium, compact }: Props) {
   const ru = profile.language !== 'en';
   const reduce = useReducedMotion();
+  const [expanded, setExpanded] = useState(false);
   const hasChart = hasNatalChart(profile, { chartData, primaryChartId: chartId ?? null });
   const premium = hasActivePremium(profile);
 
@@ -180,11 +183,33 @@ export function ActionWindows({ profile, chartData, chartId, onOpenChart, onRequ
       || [...rows].sort((a, b) => ((a.start - nowH + 24) % 24) - ((b.start - nowH + 24) % 24))[0];
     const isNow = best?.rec.state === 'now';
     return (
-      <div className="aw-mini">
-        <span className="aw-mini-dot" style={{ background: best?.action.color }} />
-        <span className="aw-mini-label">{isNow ? (ru ? 'Сейчас лучше' : 'Best now') : (ru ? 'Лучше' : 'Best')}</span>
-        <span className="aw-mini-action" style={{ color: best?.action.color }}>{ru ? best?.action.ru : best?.action.en}</span>
-        {!isNow && best ? <span className="aw-mini-win">{fmtRange(best.start, best.end)}</span> : null}
+      <div className="aw-mini-wrap">
+        <button
+          type="button"
+          className="aw-mini aw-mini--toggle"
+          onClick={() => { lumiaSelectionHaptic(); setExpanded((v) => !v); }}
+          aria-expanded={expanded}
+        >
+          <span className="aw-mini-dot" style={{ background: best?.action.color }} />
+          <span className="aw-mini-label">{isNow ? (ru ? 'Сейчас лучше' : 'Best now') : (ru ? 'Лучше' : 'Best')}</span>
+          <span className="aw-mini-action" style={{ color: best?.action.color }}>{ru ? best?.action.ru : best?.action.en}</span>
+          <svg className="aw-mini-chev" data-open={expanded ? 'true' : 'false'} width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>
+            <path d="M4 6L8 10L12 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+        <AnimatePresence initial={false}>
+          {expanded ? (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={reduce ? { duration: 0 } : { duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+              style={{ overflow: 'hidden' }}
+            >
+              <ActionTracks rows={rows} nowH={nowH} ru={ru} reduce={reduce} hideHero />
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
       </div>
     );
   }

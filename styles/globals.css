@@ -4292,6 +4292,11 @@ a,
 .aw-mini-action { font-weight: 800; }
 .aw-mini-win { margin-left: auto; color: var(--fresh-text); font-weight: 700; }
 .aw-mini-cta { display: inline-flex; align-items: center; gap: 3px; color: var(--fresh-link); font-weight: 800; }
+.aw-mini-wrap { display: block; }
+.aw-mini--toggle { width: 100%; cursor: pointer; }
+.aw-mini-chev { margin-left: auto; color: var(--fresh-muted); transition: transform 0.2s ease; flex-shrink: 0; }
+.aw-mini-chev[data-open="true"] { transform: rotate(180deg); }
+.aw-mini-wrap .awt { background: transparent; padding: 8px 0 0; box-shadow: none; }
 
 /* ── Главная: компактная карточка натальной карты (Большая тройка, 2 строки) ── */
 .home-natal { width: 100%; display: block; text-align: left; background: var(--fresh-surface); border: none; border-radius: var(--fresh-radius-card); padding: 14px; cursor: pointer; }
