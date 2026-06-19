@@ -3481,7 +3481,7 @@ a,
 .horo-nav-next { right: 8px; }
 
 /* ── Плашка лайков под общим гороскопом (соц. доказательство) ── */
-.horo-like-row { display: flex; justify-content: center; margin: 10px 16px 2px; }
+.horo-like-row { display: flex; justify-content: center; margin: 16px 0 2px; }
 .horo-like {
   display: inline-flex; align-items: center; gap: 8px;
   padding: 8px 8px 8px 14px;

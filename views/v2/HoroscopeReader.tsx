@@ -304,6 +304,14 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
                       <ul>{reading.advice.slice(0, 3).map((item) => <li key={item}>{item}</li>)}</ul>
                     </div>
                   ) : null}
+                  {!loading && reading ? (
+                    <HoroscopeLikeBadge
+                      userId={profile.id ? String(profile.id) : undefined}
+                      sign={sign}
+                      date={today}
+                      language={language}
+                    />
+                  ) : null}
                 </>
               ) : signState === 'can-open' ? (
                 <div className="horo-lock">
@@ -338,15 +346,6 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
           </motion.div>
         </AnimatePresence>
       </div>
-
-      {signState === 'open' && reading && !loading ? (
-        <HoroscopeLikeBadge
-          userId={profile.id ? String(profile.id) : undefined}
-          sign={sign}
-          date={today}
-          language={language}
-        />
-      ) : null}
 
       <div className="horo-hint">{language === 'ru' ? 'Свайп ← → меняет знак' : 'Swipe ← → to change sign'}</div>
 
