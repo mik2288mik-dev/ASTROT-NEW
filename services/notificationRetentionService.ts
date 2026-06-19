@@ -957,7 +957,7 @@ async function lockDueNotifications(now: Date, limit: number) {
          AND (sn.next_retry_at IS NULL OR sn.next_retry_at <= $1)
        ORDER BY sn.scheduled_at ASC, sn.id ASC
        LIMIT $2
-       FOR UPDATE SKIP LOCKED`,
+       FOR UPDATE OF sn SKIP LOCKED`,
       [now, Math.max(1, Math.min(limit, 500))]
     );
     const ids = result.rows.map((row: any) => Number(row.id));
