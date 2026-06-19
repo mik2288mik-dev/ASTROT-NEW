@@ -28,6 +28,13 @@ export function MatrixRoom({ profile, onBack }: Props) {
   const rest = result?.positions.filter((p) => p.key !== 'self') || [];
   const selfArcana = self ? getArcana(self.arcana) : null;
 
+  // Повтор аркана между позициями = усиленная тема (это законно для метода, не дубль-баг).
+  const arcanaCounts = useMemo(() => {
+    const counts = new Map<number, number>();
+    result?.positions.forEach((p) => counts.set(p.arcana, (counts.get(p.arcana) || 0) + 1));
+    return counts;
+  }, [result]);
+
   const share = () => {
     if (!result || !selfArcana) return;
     const text = ru
@@ -46,8 +53,13 @@ export function MatrixRoom({ profile, onBack }: Props) {
         <div style={{ width: 34 }} />
       </div>
 
-      <p style={{ padding: '0 20px 14px', margin: 0, fontSize: 14, lineHeight: 1.5, color: 'var(--fresh-muted)' }}>
+      <p style={{ padding: '0 20px 6px', margin: 0, fontSize: 14, lineHeight: 1.5, color: 'var(--fresh-muted)' }}>
         {ru ? MATRIX_SUBTITLE.ru : MATRIX_SUBTITLE.en}
+      </p>
+      <p className="mtx-note">
+        {ru
+          ? 'Аркан — это образ-архетип из 22 старших арканов. Число 1–22 выводится из твоей даты рождения. Это про самопонимание, а не предсказание. Если аркан повторяется на нескольких позициях — значит, эта тема у тебя усилена.'
+          : 'An arcana is an archetype image from the 22 Major Arcana. The 1–22 number comes from your birth date. It is for self-understanding, not prediction. If an arcana repeats across positions, that theme is amplified for you.'}
       </p>
 
       <div className="mtx-form">
@@ -69,6 +81,7 @@ export function MatrixRoom({ profile, onBack }: Props) {
               <div className="mtx-hero-badge">{self.arcana}</div>
               <div className="mtx-hero-kicker">{self.label}</div>
               <div className="mtx-hero-name">{ru ? selfArcana.name : selfArcana.nameEn}</div>
+              <div className="mtx-tag">{ru ? selfArcana.keyword : selfArcana.keywordEn}</div>
               <p className="mtx-hero-essence">{ru ? selfArcana.essence : selfArcana.essenceEn}</p>
             </motion.div>
           ) : null}
@@ -86,9 +99,15 @@ export function MatrixRoom({ profile, onBack }: Props) {
                 >
                   <div className="mtx-card-top">
                     <span className="mtx-card-label">{pos.label}</span>
-                    <span className="mtx-card-arcana">{ru ? 'Аркан' : 'Arcana'} {pos.arcana}</span>
+                    <span className="mtx-card-arcana">
+                      {ru ? 'Аркан' : 'Arcana'} {pos.arcana}
+                      {(arcanaCounts.get(pos.arcana) || 0) > 1 ? (
+                        <span className="mtx-strong">{ru ? 'усилен' : 'amplified'}</span>
+                      ) : null}
+                    </span>
                   </div>
                   <div className="mtx-card-name">{ru ? a.name : a.nameEn}</div>
+                  <div className="mtx-tag">{ru ? a.keyword : a.keywordEn}</div>
                   <p className="mtx-card-essence">{ru ? a.essence : a.essenceEn}</p>
                 </motion.div>
               );
