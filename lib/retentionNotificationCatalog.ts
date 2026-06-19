@@ -47,7 +47,7 @@ export const RETENTION_NOTIFICATION_SCENARIO_SEEDS: RetentionScenarioSeed[] = [
     segment: 'daily_active_free',
     deepLinkSection: 'daily_card',
     imageTags: ['daily_card', 'morning'],
-    templates: eight('Карта дня готова', [
+    templates: eight('🌅 Карта дня готова', [
       '{{daily_summary}}\n\nОткрой разбор: там коротко, что делать, где не давить и какое окно дня лучше использовать.',
       'Сегодня главный ориентир: {{daily_theme}}.\n\nВнутри уже есть короткий разбор по твоей карте и текущей дате.',
       'День лучше начать с одного понятного ориентира.\n\n{{daily_summary}}',
@@ -71,7 +71,7 @@ export const RETENTION_NOTIFICATION_SCENARIO_SEEDS: RetentionScenarioSeed[] = [
     segment: 'daily_active_free',
     deepLinkSection: 'pulse_day',
     imageTags: ['pulse', 'day'],
-    templates: eight('Есть ориентир по дню', [
+    templates: eight('🧭 Есть ориентир по дню', [
       'Сейчас лучше свериться с окном дня. Подходит: {{best_action}}. Лучше не тащить: {{avoid_action}}.',
       'Если собираешься действовать прямо сейчас, проверь окно дня. Внутри видно, где проще не ошибиться.',
       'Сейчас не надо решать всё сразу. Открой пульс дня и выбери один нормальный шаг.',
@@ -95,7 +95,7 @@ export const RETENTION_NOTIFICATION_SCENARIO_SEEDS: RetentionScenarioSeed[] = [
     segment: 'assistant_user',
     deepLinkSection: 'assistant',
     imageTags: ['assistant', 'day'],
-    templates: eight('Можно быстро проверить действие', [
+    templates: eight('🎯 Можно быстро проверить действие', [
       'Если есть вопрос, выбери действие в личном помощнике: написать, купить, поговорить, работать или отдыхать.',
       'Есть решение, которое крутишь в голове? Проверь его через помощника: сейчас, позже или лучше не давить.',
       'Перед действием можно сделать короткую проверку. Lumia покажет, где сейчас меньше риска ошибиться.',
@@ -119,7 +119,7 @@ export const RETENTION_NOTIFICATION_SCENARIO_SEEDS: RetentionScenarioSeed[] = [
     segment: 'free_natal_ready_not_opened',
     deepLinkSection: 'natal_free',
     imageTags: ['natal', 'chart'],
-    templates: eight('Твоя общая карта готова', [
+    templates: eight('🪐 Твоя общая карта готова', [
       'Мы разобрали её простым языком: поведение, отношения, работу и то, что может мешать.',
       'В карте есть первый понятный разбор по твоим данным рождения. Без сложных терминов и общих фраз.',
       'Открой общую карту: там коротко про людей, решения, отношения, работу и то, что может сбивать.',
@@ -143,7 +143,7 @@ export const RETENTION_NOTIFICATION_SCENARIO_SEEDS: RetentionScenarioSeed[] = [
     segment: 'love_interested',
     deepLinkSection: 'love',
     imageTags: ['love'],
-    templates: eight('Подсказка по отношениям', [
+    templates: eight('💞 Подсказка по отношениям', [
       'Сегодня лучше смотреть не на слова, а на повторяющееся поведение. В разделе Любовь есть подсказка на день.',
       'Если хочется написать человеку прямо сейчас, сначала проверь мотив: прояснить или проверить реакцию?',
       'В отношениях сегодня лучше говорить коротко и конкретно. Открой подсказку, если разговор давно откладывался.',
@@ -167,7 +167,7 @@ export const RETENTION_NOTIFICATION_SCENARIO_SEEDS: RetentionScenarioSeed[] = [
     segment: 'money_interested',
     deepLinkSection: 'money',
     imageTags: ['money'],
-    templates: eight('Перед покупкой лучше сделать паузу', [
+    templates: eight('💰 Перед покупкой лучше сделать паузу', [
       'День больше подходит для проверки вариантов, чем для импульса. Открой деньги и сравни спокойно.',
       'Если вещь всё ещё будет казаться нужной вечером, решение будет крепче. Сейчас лучше проверить варианты.',
       'Сегодня не лучший момент покупать на эмоциях. В разделе Деньги есть короткая подсказка.',
@@ -191,7 +191,7 @@ export const RETENTION_NOTIFICATION_SCENARIO_SEEDS: RetentionScenarioSeed[] = [
     segment: 'work_interested',
     deepLinkSection: 'work',
     imageTags: ['work'],
-    templates: eight('Рабочее окно лучше не распылять', [
+    templates: eight('💼 Рабочее окно лучше не распылять', [
       'Выбери одно конкретное дело и доведи его до результата. Внутри видно, какой формат задачи подойдёт лучше.',
       'Сегодня рабочее окно подходит для задач, где нужен порядок и конкретика. Не бери десять дел сразу.',
       'Если есть сложное дело, разрежь его на первый шаг. В разделе Работа есть подсказка по дню.',
@@ -215,7 +215,7 @@ export const RETENTION_NOTIFICATION_SCENARIO_SEEDS: RetentionScenarioSeed[] = [
     segment: 'daily_active_free',
     deepLinkSection: 'checkin',
     imageTags: ['evening', 'checkin'],
-    templates: eight('День почти закрыт', [
+    templates: eight('🌙 День почти закрыт', [
       'Отметь вечер: фокус, настроение и совпал ли ориентир дня. Так Lumia будет точнее завтра.',
       'Сверь день с тем, что Lumia ожидала утром. Это займёт меньше минуты.',
       'Вечерняя отметка нужна не для отчёта, а чтобы следующие подсказки стали точнее.',
@@ -239,7 +239,7 @@ export const RETENTION_NOTIFICATION_SCENARIO_SEEDS: RetentionScenarioSeed[] = [
     segment: 'love_interested',
     deepLinkSection: 'synastry',
     imageTags: ['synastry', 'love'],
-    templates: eight('Можно проверить союз', [
+    templates: eight('🤝 Можно проверить союз', [
       'Если есть человек, с которым всё непросто, в Союзе видно, где чаще возникают совпадения и конфликты.',
       'Союз помогает посмотреть не “подходит или нет”, а где между вами легче и где чаще застреваете.',
       'Если контакт важный, но непонятный, добавь человека в Союз и посмотри разбор.',
@@ -263,7 +263,7 @@ export const RETENTION_NOTIFICATION_SCENARIO_SEEDS: RetentionScenarioSeed[] = [
     segment: 'high_intent_premium',
     deepLinkSection: 'premium',
     imageTags: ['premium'],
-    templates: eight('Полная карта даёт больше конкретики', [
+    templates: eight('🌟 Полная карта даёт больше конкретики', [
       'В бесплатной карте показано главное. В полной версии можно разобрать отношения, деньги и повторяющиеся сценарии.',
       'Premium открывает не больше воды, а больше примеров: как сценарий проявляется в работе, деньгах и отношениях.',
       'Ты уже видел общий разбор. В полной карте можно понять, где этот сценарий повторяется чаще всего.',
@@ -287,7 +287,7 @@ export const RETENTION_NOTIFICATION_SCENARIO_SEEDS: RetentionScenarioSeed[] = [
     segment: 'inactive_2_days',
     deepLinkSection: 'daily_card',
     imageTags: ['reactivation'],
-    templates: eight('Карта дня обновилась', [
+    templates: eight('👋 Карта дня обновилась', [
       'Можно быстро посмотреть, что сегодня лучше делать, а где не давить. Без длинного текста.',
       'За пару дней в Lumia появился новый разбор дня. Открой и возьми один полезный ориентир.',
       'Вернуться можно без большого входа: карта дня, пульс и короткий совет уже готовы.',
@@ -311,7 +311,7 @@ export const RETENTION_NOTIFICATION_SCENARIO_SEEDS: RetentionScenarioSeed[] = [
     segment: 'inactive_7_days',
     deepLinkSection: 'daily_card',
     imageTags: ['reactivation'],
-    templates: eight('Есть новый разбор дня', [
+    templates: eight('👋 Есть новый разбор дня', [
       'Неделя могла пройти на автомате. Открой Lumia и посмотри, где сейчас лучше вернуть внимание.',
       'Можно начать заново с одного короткого разбора: что сегодня делать, а что оставить.',
       'За неделю подсказки обновились. Открой карту дня и проверь главный ориентир.',
@@ -335,7 +335,7 @@ export const RETENTION_NOTIFICATION_SCENARIO_SEEDS: RetentionScenarioSeed[] = [
     segment: 'inactive_14_days',
     deepLinkSection: 'daily_card',
     imageTags: ['reactivation'],
-    templates: eight('Можно начать с одного короткого разбора', [
+    templates: eight('👋 Можно начать с одного короткого разбора', [
       'Открой карту дня: там один главный ориентир и конкретный совет, без лишнего шума.',
       'Две недели — нормальная пауза. Вернуться можно с сегодняшней карты, без длинной настройки.',
       'Lumia обновила разбор дня. Начни с одного вопроса: что сегодня лучше не тащить?',
@@ -359,7 +359,7 @@ export const RETENTION_NOTIFICATION_SCENARIO_SEEDS: RetentionScenarioSeed[] = [
     segment: 'new_user_no_birth_data',
     deepLinkSection: 'natal_free',
     imageTags: ['setup'],
-    templates: eight('Нужны данные рождения', [
+    templates: eight('📝 Нужны данные рождения', [
       'Без даты и места рождения Lumia не сможет собрать личную карту. Заполни данные и увидишь первый разбор.',
       'Чтобы показать не общий текст, а твою карту, нужны дата, время и место рождения.',
       'Первый разбор появится после данных рождения. Это займёт меньше минуты.',
@@ -383,7 +383,7 @@ export const RETENTION_NOTIFICATION_SCENARIO_SEEDS: RetentionScenarioSeed[] = [
     segment: 'birth_data_no_time',
     deepLinkSection: 'natal_free',
     imageTags: ['setup', 'natal'],
-    templates: eight('Можно уточнить карту', [
+    templates: eight('🕐 Можно уточнить карту', [
       'Без времени рождения часть карты будет менее точной: дома и Асцендент нельзя рассчитать полностью.',
       'Если знаешь время рождения, добавь его. Так разбор станет точнее в темах дома, отношений и решений.',
       'Карта уже может работать, но без времени рождения часть выводов будет общей.',
@@ -407,7 +407,7 @@ export const RETENTION_NOTIFICATION_SCENARIO_SEEDS: RetentionScenarioSeed[] = [
     segment: 'need_attention',
     deepLinkSection: 'assistant',
     imageTags: ['assistant', 'setup'],
-    templates: eight('Можно закончить настройку', [
+    templates: eight('✅ Можно закончить настройку', [
       '{{unfinished_action}} займёт меньше минуты. После этого Lumia покажет следующий полезный шаг.',
       'Ты начал действие и не закончил. Можно продолжить с того же места.',
       'Остался один короткий шаг. После него Lumia сможет показать более точный разбор.',
