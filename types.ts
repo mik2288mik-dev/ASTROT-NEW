@@ -473,6 +473,13 @@ export interface HoroscopeReactionSummary {
   total: number;
 }
 
+/** Aggregate engagement counters for a sign+date horoscope (across all users). */
+export interface HoroscopeEngagementSummary {
+  views: number;
+  reposts: number;
+  reposted: boolean;
+}
+
 export interface TodayOverview {
   date: string;
   dateLabel: string;

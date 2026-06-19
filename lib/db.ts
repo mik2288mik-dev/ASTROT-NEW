@@ -2642,6 +2642,93 @@ export const db = {
     },
   },
 
+  /** horoscope_engagement - aggregate views/reposts per user/sign/date (deduped per user) */
+  horoscope_engagement: {
+    _empty(reposted = false) {
+      return { views: 0, reposts: 0, reposted };
+    },
+
+    async getSummary(userId: string, zodiacSign: string, date: string) {
+      const id = toUserId(userId);
+      const sign = String(zodiacSign || '').trim();
+      if (!DATABASE_URL) return this._empty();
+
+      try {
+        const dbPool = getPool();
+        const [countsResult, ownResult] = await Promise.all([
+          dbPool.query(
+            `SELECT
+               COUNT(*) FILTER (WHERE viewed_at IS NOT NULL)::int AS views,
+               COUNT(*) FILTER (WHERE reposted_at IS NOT NULL)::int AS reposts
+             FROM horoscope_engagement
+             WHERE zodiac_sign = $1 AND engagement_date = $2::date`,
+            [sign, date]
+          ),
+          dbPool.query(
+            `SELECT reposted_at
+             FROM horoscope_engagement
+             WHERE user_id = $1 AND zodiac_sign = $2 AND engagement_date = $3::date
+             LIMIT 1`,
+            [id, sign, date]
+          ),
+        ]);
+
+        return {
+          views: Number(countsResult.rows[0]?.views ?? 0),
+          reposts: Number(countsResult.rows[0]?.reposts ?? 0),
+          reposted: !!ownResult.rows[0]?.reposted_at,
+        };
+      } catch (error: any) {
+        log.error('[DB] Error getting horoscope engagement summary', { error: error.message, userId, zodiacSign, date });
+        throw error;
+      }
+    },
+
+    async markViewed(userId: string, zodiacSign: string, date: string) {
+      const id = toUserId(userId);
+      const sign = String(zodiacSign || '').trim();
+      if (!DATABASE_URL) return this._empty();
+
+      try {
+        const dbPool = getPool();
+        await dbPool.query(
+          `INSERT INTO horoscope_engagement (user_id, zodiac_sign, engagement_date, viewed_at)
+           VALUES ($1, $2, $3::date, CURRENT_TIMESTAMP)
+           ON CONFLICT (user_id, zodiac_sign, engagement_date)
+           DO UPDATE SET viewed_at = COALESCE(horoscope_engagement.viewed_at, CURRENT_TIMESTAMP), updated_at = CURRENT_TIMESTAMP`,
+          [id, sign, date]
+        );
+        return this.getSummary(userId, sign, date);
+      } catch (error: any) {
+        log.error('[DB] Error marking horoscope view', { error: error.message, userId, zodiacSign, date });
+        throw error;
+      }
+    },
+
+    async markReposted(userId: string, zodiacSign: string, date: string) {
+      const id = toUserId(userId);
+      const sign = String(zodiacSign || '').trim();
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+
+      try {
+        const dbPool = getPool();
+        await dbPool.query(
+          `INSERT INTO horoscope_engagement (user_id, zodiac_sign, engagement_date, viewed_at, reposted_at)
+           VALUES ($1, $2, $3::date, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+           ON CONFLICT (user_id, zodiac_sign, engagement_date)
+           DO UPDATE SET reposted_at = COALESCE(horoscope_engagement.reposted_at, CURRENT_TIMESTAMP),
+                         viewed_at = COALESCE(horoscope_engagement.viewed_at, CURRENT_TIMESTAMP),
+                         updated_at = CURRENT_TIMESTAMP`,
+          [id, sign, date]
+        );
+        return this.getSummary(userId, sign, date);
+      } catch (error: any) {
+        log.error('[DB] Error marking horoscope repost', { error: error.message, userId, zodiacSign, date });
+        throw error;
+      }
+    },
+  },
+
   /** daily_checkins - evening feedback loop for personal Today assistant */
   daily_checkins: {
     async getForDate(userId: string, chartId: number | null, date: string) {

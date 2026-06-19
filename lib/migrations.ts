@@ -89,6 +89,7 @@ async function migrationReset(pool: Pool): Promise<void> {
     'legacy_notification_templates',
     'user_sessions',
     'horoscope_reactions',
+    'horoscope_engagement',
     'star_payments',
     'synastry_cache',
     'astro_questions',
@@ -1272,6 +1273,38 @@ async function lumia019HoroscopeReactions(pool: Pool): Promise<void> {
   log.info('Migration lumia_019_horoscope_reactions applied');
 }
 
+async function lumia028HoroscopeEngagement(pool: Pool): Promise<void> {
+  const migrationName = 'lumia_028_horoscope_engagement';
+
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
+  log.info('Applying horoscope engagement migration...');
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS horoscope_engagement (
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      zodiac_sign TEXT NOT NULL,
+      engagement_date DATE NOT NULL,
+      viewed_at TIMESTAMP,
+      reposted_at TIMESTAMP,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE (user_id, zodiac_sign, engagement_date)
+    )
+  `);
+
+  await pool.query(
+    'CREATE INDEX IF NOT EXISTS idx_horoscope_engagement_sign_date ON horoscope_engagement(zodiac_sign, engagement_date)'
+  );
+
+  await markMigrationApplied(pool, migrationName);
+  log.info('Migration lumia_028_horoscope_engagement applied');
+}
+
 async function lumia020DailyFeedbackAssistant(pool: Pool): Promise<void> {
   const migrationName = 'lumia_020_daily_feedback_assistant';
 
@@ -2152,6 +2185,7 @@ export async function runMigrations(): Promise<void> {
   await lumia025RemoveLumiEconomy(pool);
   await lumia026AccessFoundation(pool);
   await lumia027ContentMatrixCache(pool);
+  await lumia028HoroscopeEngagement(pool);
   await verifyTablesExist(pool);
 
     log.info('All Lumia migrations completed successfully');

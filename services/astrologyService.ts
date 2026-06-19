@@ -1,4 +1,4 @@
-import { UserProfile, NatalChartData, DailyHoroscope, SynastryResult, UserEvolution, OracleChatResponse, OracleHistoryEntry, ForecastDailyReading, ForecastDaypartReading, ForecastDaypartSlot, ForecastMonthlyReading, ForecastWeeklyReading, NatalAnchorReading, NatalFullReading, NatalLivingReading, AskLumiaState, AskLumiaTier, ContentAccessTier, PlanetInsight, TodayOverview, TodayOverviewResult, TodayPulseResult, HoroscopeReactionKey, HoroscopeReactionSummary, TodayAssistantHomeResult, DailyCheckInInput, DailyCheckInSubmitResult, ActionTimingKey, ActionTimingRecommendation } from "../types";
+import { UserProfile, NatalChartData, DailyHoroscope, SynastryResult, UserEvolution, OracleChatResponse, OracleHistoryEntry, ForecastDailyReading, ForecastDaypartReading, ForecastDaypartSlot, ForecastMonthlyReading, ForecastWeeklyReading, NatalAnchorReading, NatalFullReading, NatalLivingReading, AskLumiaState, AskLumiaTier, ContentAccessTier, PlanetInsight, TodayOverview, TodayOverviewResult, TodayPulseResult, HoroscopeReactionKey, HoroscopeReactionSummary, HoroscopeEngagementSummary, TodayAssistantHomeResult, DailyCheckInInput, DailyCheckInSubmitResult, ActionTimingKey, ActionTimingRecommendation } from "../types";
 import { SYSTEM_INSTRUCTION_ASTRA } from "../constants";
 import { getElementForSign } from "../lib/zodiac-utils";
 import { coerceNatalAnchorReading, coerceNatalFullReading, coerceNatalLivingReading, getCurrentNatalPeriodKey, mapNatalAnchorToLegacyIntro } from "../lib/natalReadings";
@@ -801,6 +801,59 @@ export const getHoroscopeReactionSummary = async (
     return null;
   }
 };
+
+/** Read aggregate views/reposts for a sign+date horoscope. Null on any failure. */
+export const getHoroscopeEngagement = async (
+  userId: string,
+  sign: string,
+  date: string
+): Promise<HoroscopeEngagementSummary | null> => {
+  if (!isValidUserId(userId)) return null;
+  try {
+    const url = `${API_BASE_URL}/api/content/horoscope/engagement`
+      + `?userId=${encodeURIComponent(userId)}`
+      + `&sign=${encodeURIComponent(sign)}`
+      + `&date=${encodeURIComponent(date)}`;
+    const response = await fetchWithTimeout(url, {
+      method: 'GET',
+      headers: { ...getTelegramInitDataHeaders() },
+    }, 6000);
+    if (!response.ok) return null;
+    const payload = await response.json();
+    return (payload?.summary as HoroscopeEngagementSummary) ?? null;
+  } catch {
+    return null;
+  }
+};
+
+const postHoroscopeEngagement = async (
+  userId: string,
+  sign: string,
+  date: string,
+  action: 'view' | 'repost'
+): Promise<HoroscopeEngagementSummary | null> => {
+  if (!isValidUserId(userId)) return null;
+  try {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/api/content/horoscope/engagement`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
+      body: JSON.stringify({ userId, sign, date, action }),
+    }, 6000);
+    if (!response.ok) return null;
+    const payload = await response.json();
+    return (payload?.summary as HoroscopeEngagementSummary) ?? null;
+  } catch {
+    return null;
+  }
+};
+
+/** Count this user as a viewer of the sign+date horoscope (deduped server-side). */
+export const markHoroscopeView = (userId: string, sign: string, date: string) =>
+  postHoroscopeEngagement(userId, sign, date, 'view');
+
+/** Record a repost (share) of the sign+date horoscope and return updated counts. */
+export const markHoroscopeRepost = (userId: string, sign: string, date: string) =>
+  postHoroscopeEngagement(userId, sign, date, 'repost');
 
 export const getPremiumDaypartForecast = async (
   profile: UserProfile,

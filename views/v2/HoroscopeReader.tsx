@@ -12,12 +12,11 @@ import {
   ensureWeeklySignHoroscope,
 } from '../../services/astrologyService';
 import { saveProfile } from '../../services/storageService';
-import { MonoShareBar } from '../../components/mono-ui';
 import { shareToTelegram } from '../../lib/botLink';
 import { FreshTabs, FreshSignCarousel } from '../../components/fresh-ui';
 import { ZodiacIcon } from '../../components/icons/ZodiacIcon';
 import { ChevronRightIcon } from '../../components/icons/UiIcons';
-import { HoroscopeLikeBadge } from '../../components/Horoscope/HoroscopeLikeBadge';
+import { HoroscopeActivityBar } from '../../components/Horoscope/HoroscopeActivityBar';
 import { ZODIAC_KEYS, type ZodiacKey } from '../../lib/horoscope/signDaily';
 
 const LOCAL_SIGN_KEY = 'lumia:selected-zodiac-sign';
@@ -305,11 +304,12 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
                     </div>
                   ) : null}
                   {!loading && reading ? (
-                    <HoroscopeLikeBadge
+                    <HoroscopeActivityBar
                       userId={profile.id ? String(profile.id) : undefined}
                       sign={sign}
                       date={today}
                       language={language}
+                      onShare={shareReading}
                     />
                   ) : null}
                 </>
@@ -348,12 +348,6 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
       </div>
 
       <div className="horo-hint">{language === 'ru' ? 'Свайп ← → меняет знак' : 'Swipe ← → to change sign'}</div>
-
-      <MonoShareBar
-        label={language === 'ru' ? 'Поделиться' : 'Share'}
-        withTabClearance
-        onShare={shareReading}
-      />
     </div>
   );
 });
