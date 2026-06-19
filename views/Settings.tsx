@@ -119,6 +119,9 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
         ? getText(profile.language, 'settings.language_ru')
         : getText(profile.language, 'settings.language_en');
     const activePremium = hasActivePremium(profile);
+    const trialDaysLeft = profile.premiumUntil
+        ? Math.max(0, Math.ceil((new Date(profile.premiumUntil).getTime() - Date.now()) / 86_400_000))
+        : 0;
 
     useEffect(() => {
         const tg = (window as any).Telegram?.WebApp;
@@ -223,6 +226,33 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                     </div>
                 </div>
             </section>
+
+            {/* Тарифы / Premium — заметная карта вверху */}
+            <button
+                type="button"
+                onClick={() => onRequestPremium?.()}
+                className="mb-4 block w-full rounded-mono-card p-4 text-left text-white sm:p-[18px]"
+                style={{ background: 'linear-gradient(135deg, #6D5BDF, #A855F7)' }}
+            >
+                <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/80">
+                            {profile.language === 'ru' ? 'Тарифы' : 'Pricing'}
+                        </div>
+                        <div className="mt-1 text-[17px] font-bold">
+                            {trialDaysLeft > 0
+                                ? (profile.language === 'ru' ? `Premium активен — ${trialDaysLeft} дн.` : `Premium active — ${trialDaysLeft}d`)
+                                : 'Lumia Premium'}
+                        </div>
+                        <div className="mt-0.5 text-[12.5px] text-white/85">
+                            {profile.language === 'ru' ? 'Месяц · 3 месяца · Год' : 'Month · 3 months · Year'}
+                        </div>
+                    </div>
+                    <span className="shrink-0 text-[13px] font-semibold">
+                        {profile.language === 'ru' ? 'Смотреть →' : 'View →'}
+                    </span>
+                </div>
+            </button>
 
             <section className={sectionClass}>
                 <p className="lumia-label tracking-[0.2em]">{getText(profile.language, 'settings.subscription')}</p>
