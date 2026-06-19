@@ -15,6 +15,7 @@ const EMPTY_OVERVIEW: AdminUsersOverview = {
   activePremiumUsers: 0,
   activeUsers7d: 0,
   needAttentionUsers: 0,
+  usersWithoutBirthData: 0,
 };
 
 const EMPTY_PAGINATION: PaginationMeta = {

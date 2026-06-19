@@ -4,10 +4,12 @@ import { fetchAdminUsers, fetchNotificationHistory } from '../../services/adminS
 import { AdminBadge, AdminButton, AdminEmptyState, AdminSectionHeader, AdminStateBanner, AdminSurface } from './AdminPrimitives';
 import { getAdminText } from './adminText';
 import type { AdminBackofficeSection } from './adminSections';
+import type { AdminUserSegment } from '../../types';
 
 type Props = {
   profile: UserProfile;
   onOpenSection: (section: AdminBackofficeSection) => void;
+  onOpenUsersSegment?: (segment: AdminUserSegment) => void;
 };
 
 const EMPTY_OVERVIEW: AdminUsersOverview = {
@@ -15,6 +17,7 @@ const EMPTY_OVERVIEW: AdminUsersOverview = {
   activePremiumUsers: 0,
   activeUsers7d: 0,
   needAttentionUsers: 0,
+  usersWithoutBirthData: 0,
 };
 
 const formatDateTime = (lang: 'ru' | 'en', value?: string | null) => {
@@ -27,7 +30,7 @@ const formatDateTime = (lang: 'ru' | 'en', value?: string | null) => {
   }).format(new Date(value));
 };
 
-export const AdminOverviewTab: React.FC<Props> = ({ profile, onOpenSection }) => {
+export const AdminOverviewTab: React.FC<Props> = ({ profile, onOpenSection, onOpenUsersSegment }) => {
   const lang = profile.language === 'en' ? 'en' : 'ru';
   const [overview, setOverview] = useState<AdminUsersOverview>(EMPTY_OVERVIEW);
   const [attentionUsers, setAttentionUsers] = useState<AdminUserSummary[]>([]);
@@ -83,11 +86,17 @@ export const AdminOverviewTab: React.FC<Props> = ({ profile, onOpenSection }) =>
           )}
         />
 
-        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
           <MetricCard label={getAdminText(lang, 'metric_users')} value={overview.totalUsers} />
           <MetricCard label={getAdminText(lang, 'metric_premium')} value={overview.activePremiumUsers} />
           <MetricCard label={getAdminText(lang, 'metric_active')} value={overview.activeUsers7d} />
-          <MetricCard label={getAdminText(lang, 'metric_attention')} value={overview.needAttentionUsers} tone="warning" />
+          <MetricCard
+            label={getAdminText(lang, 'metric_no_birth_data')}
+            value={overview.usersWithoutBirthData}
+            tone="warning"
+            onClick={onOpenUsersSegment ? () => onOpenUsersSegment('new_user_no_birth_data') : undefined}
+          />
+          <MetricCard label={getAdminText(lang, 'metric_attention')} value={overview.needAttentionUsers} />
         </div>
 
         <div className="mt-5 grid gap-3 lg:grid-cols-2 xl:grid-cols-4">
@@ -237,16 +246,30 @@ export const AdminOverviewTab: React.FC<Props> = ({ profile, onOpenSection }) =>
   );
 };
 
-const MetricCard: React.FC<{ label: string; value: React.ReactNode; tone?: 'default' | 'warning' }> = ({
-  label,
-  value,
-  tone = 'default',
-}) => (
-  <div className={`admin-surface-muted p-4 sm:p-5 ${tone === 'warning' ? 'border-amber-400/20 bg-amber-400/[0.06]' : ''}`}>
-    <p className="admin-label">{label}</p>
-    <p className="mt-3 text-2xl font-semibold text-white">{value}</p>
-  </div>
-);
+const MetricCard: React.FC<{
+  label: string;
+  value: React.ReactNode;
+  tone?: 'default' | 'warning';
+  onClick?: () => void;
+}> = ({ label, value, tone = 'default', onClick }) => {
+  const className = `admin-surface-muted p-4 sm:p-5 ${tone === 'warning' ? 'border-amber-400/20 bg-amber-400/[0.06]' : ''} ${
+    onClick ? 'cursor-pointer transition-colors hover:border-white/12 hover:bg-white/[0.05]' : ''
+  }`;
+  const content = (
+    <>
+      <p className="admin-label">{label}</p>
+      <p className="mt-3 text-2xl font-semibold text-white">{value}</p>
+    </>
+  );
+  if (onClick) {
+    return (
+      <button type="button" className={`${className} w-full text-left`} onClick={onClick}>
+        {content}
+      </button>
+    );
+  }
+  return <div className={className}>{content}</div>;
+};
 
 const QuickActionCard: React.FC<{
   title: string;

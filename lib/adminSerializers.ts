@@ -31,6 +31,7 @@ export function serializeAdminUserSummary(row: any) {
     loginStreak: row.login_streak ?? 0,
     chartSlots: row.chart_slots ?? 1,
     savedChartsCount: row.saved_charts_count ?? 0,
+    hasBirthData: !!(row.birth_date ?? row.has_birth_data),
     isAdmin: isEffectiveAdmin(row.id, row.is_admin),
     createdAt: row.created_at ?? null,
     lastLogin: row.last_login ?? null,
@@ -241,5 +242,6 @@ export function serializeAdminUsersOverview(row: any) {
     activePremiumUsers: Number(row.active_premium_users ?? 0),
     activeUsers7d: Number(row.active_users_7d ?? 0),
     needAttentionUsers: Number(row.need_attention_users ?? 0),
+    usersWithoutBirthData: Number(row.users_without_birth_data ?? 0),
   };
 }

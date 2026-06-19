@@ -94,7 +94,8 @@ type AdminDbUserSegment =
   | 'inactive_3d'
   | 'inactive_7d'
   | 'inactive_30d'
-  | 'need_attention';
+  | 'need_attention'
+  | 'new_user_no_birth_data';
 type AdminDbUserSortBy = 'last_seen' | 'created_at' | 'premium_until' | 'saved_charts_count' | 'name';
 type AdminDbSortOrder = 'asc' | 'desc';
 type AdminDbNotificationMode = 'all' | 'personal' | 'broadcast';
@@ -3354,6 +3355,7 @@ export const db = {
             login_streak: row.login_streak ?? 0,
             chart_slots: row.chart_slots ?? 1,
             saved_charts_count: row.saved_charts_count ?? 0,
+            birth_date: row.birth_date ?? null,
             created_at: row.created_at,
             last_login: row.last_login,
             last_seen_at: row.last_seen_at ?? row.last_login ?? null,
@@ -3379,6 +3381,7 @@ export const db = {
           active_premium_users: 0,
           active_users_7d: 0,
           need_attention_users: 0,
+          users_without_birth_data: 0,
         };
       }
 
@@ -3390,7 +3393,8 @@ export const db = {
              COUNT(*)::int AS total_users,
              COUNT(*) FILTER (WHERE premium_until IS NOT NULL AND premium_until > NOW())::int AS active_premium_users,
              COUNT(*) FILTER (WHERE last_seen_at >= NOW() - INTERVAL '7 days')::int AS active_users_7d,
-             COUNT(*) FILTER (WHERE ${ADMIN_NEED_ATTENTION_SQL})::int AS need_attention_users
+             COUNT(*) FILTER (WHERE ${ADMIN_NEED_ATTENTION_SQL})::int AS need_attention_users,
+             COUNT(*) FILTER (WHERE birth_date IS NULL)::int AS users_without_birth_data
            FROM user_metrics`
         );
 
@@ -3399,6 +3403,7 @@ export const db = {
           active_premium_users: 0,
           active_users_7d: 0,
           need_attention_users: 0,
+          users_without_birth_data: 0,
         };
       } catch (error: any) {
         log.error('[DB] Error getting admin users overview', { error: error.message });

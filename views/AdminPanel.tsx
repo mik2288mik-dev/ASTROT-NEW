@@ -12,9 +12,10 @@ import { AdminUsersTab } from './admin/AdminUsersTab';
 import { AdminBadge, AdminButton, AdminStateBanner, AdminSurface } from './admin/AdminPrimitives';
 import { getAdminText } from './admin/adminText';
 import {
-  ADMIN_PRIMARY_SECTIONS,
-  ADMIN_SECONDARY_SECTIONS,
+  ADMIN_NAV_GROUPS,
   type AdminBackofficeSection,
+  getAdminNavGroup,
+  getAdminNavHub,
 } from './admin/adminSections';
 
 type AdminOwnProfilePatch = Partial<Pick<UserProfile, 'isPremium' | 'chartSlots' | 'loginStreak'>>;
@@ -30,6 +31,7 @@ const EMPTY_OVERVIEW: AdminUsersOverview = {
   activePremiumUsers: 0,
   activeUsers7d: 0,
   needAttentionUsers: 0,
+  usersWithoutBirthData: 0,
 };
 
 const sectionIcon = (section: AdminBackofficeSection) => {
@@ -175,6 +177,29 @@ const NavButton: React.FC<{
   </button>
 );
 
+const AdminSubNav: React.FC<{
+  lang: 'ru' | 'en';
+  sections: AdminBackofficeSection[];
+  activeSection: AdminBackofficeSection;
+  onSelect: (section: AdminBackofficeSection) => void;
+}> = ({ lang, sections, activeSection, onSelect }) => (
+  <div className="admin-section-subnav" role="tablist">
+    {sections.map((section) => (
+      <button
+        key={section}
+        type="button"
+        role="tab"
+        aria-selected={activeSection === section}
+        data-active={activeSection === section}
+        className="admin-section-subnav-item"
+        onClick={() => onSelect(section)}
+      >
+        {sectionLabel(lang, section)}
+      </button>
+    ))}
+  </div>
+);
+
 const MissionActionCard: React.FC<{
   title: string;
   body: string;
@@ -276,22 +301,52 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onPatchOwnProfi
         section: 'users' as AdminBackofficeSection,
         segment: 'need_attention' as AdminUserSegment,
       },
+      {
+        id: 'no_birth',
+        label: getAdminText(lang, 'metric_no_birth_data'),
+        value: overview.usersWithoutBirthData,
+        section: 'users' as AdminBackofficeSection,
+        segment: 'new_user_no_birth_data' as AdminUserSegment,
+      },
     ],
     [
       lang,
       overview.activePremiumUsers,
       overview.activeUsers7d,
       overview.needAttentionUsers,
+      overview.usersWithoutBirthData,
       overview.totalUsers,
     ]
   );
+
+  const activeGroup = useMemo(() => getAdminNavGroup(activeSection), [activeSection]);
+  const activeHub = useMemo(() => getAdminNavHub(activeSection), [activeSection]);
+
+  const goHub = (hub: typeof activeHub) => {
+    const group = ADMIN_NAV_GROUPS.find((entry) => entry.id === hub);
+    if (!group) return;
+    if (getAdminNavHub(activeSection) === hub) {
+      if (group.sections.length > 1) {
+        setSidebarOpen(true);
+        return;
+      }
+      goSection(group.sections[0]);
+      return;
+    }
+    goSection(group.sections[0]);
+  };
+
+  const hubLabel = (hub: typeof activeHub) => {
+    const group = ADMIN_NAV_GROUPS.find((entry) => entry.id === hub);
+    if (!group) return '';
+    return lang === 'ru' ? group.labelRu : group.labelEn;
+  };
 
   const openSection = (section: AdminBackofficeSection) => {
     setActiveSection(section);
   };
 
   const premiumShare = overview.totalUsers > 0 ? Math.round((overview.activePremiumUsers / overview.totalUsers) * 100) : 0;
-  const attentionShare = overview.totalUsers > 0 ? Math.round((overview.needAttentionUsers / overview.totalUsers) * 100) : 0;
 
   const missionActions = [
     {
@@ -381,7 +436,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onPatchOwnProfi
   const renderSection = () => {
     switch (activeSection) {
       case 'overview':
-        return <AdminOverviewTab profile={profile} onOpenSection={openSection} />;
+        return <AdminOverviewTab profile={profile} onOpenSection={openSection} onOpenUsersSegment={goUsersSegment} />;
       case 'users':
         return (
           <AdminUsersTab
@@ -476,27 +531,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onPatchOwnProfi
               </button>
             </div>
             <p className="mt-2 text-xs leading-relaxed text-slate-500">{getAdminText(lang, 'panel_subtitle')}</p>
-          </div>
-
-          <div className="px-3 pt-3">
-            <div className="admin-dash-sidebar-card">
-              <div className="flex items-center justify-between gap-2">
-                <p className="admin-label">{lang === 'ru' ? 'Mission Control' : 'Mission Control'}</p>
-                <AdminBadge tone="info">{lang === 'ru' ? 'Плотный режим' : 'Dense mode'}</AdminBadge>
+            <div className="admin-dash-sidebar-stats mt-3">
+              <div>
+                <span>{getAdminText(lang, 'metric_users')}</span>
+                <strong>{overview.totalUsers}</strong>
               </div>
-              <div className="admin-dash-sidebar-stats">
-                <div>
-                  <span>{getAdminText(lang, 'metric_users')}</span>
-                  <strong>{overview.totalUsers}</strong>
-                </div>
-                <div>
-                  <span>{getAdminText(lang, 'metric_premium')}</span>
-                  <strong>{premiumShare}%</strong>
-                </div>
-                <div>
-                  <span>{getAdminText(lang, 'metric_attention')}</span>
-                  <strong>{overview.needAttentionUsers}</strong>
-                </div>
+              <div>
+                <span>{getAdminText(lang, 'metric_premium')}</span>
+                <strong>{premiumShare}%</strong>
+              </div>
+              <div>
+                <span>{getAdminText(lang, 'metric_attention')}</span>
+                <strong>{overview.needAttentionUsers}</strong>
+              </div>
+              <div>
+                <span>{getAdminText(lang, 'metric_no_birth_data')}</span>
+                <strong>{overview.usersWithoutBirthData}</strong>
               </div>
             </div>
           </div>
@@ -508,25 +558,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onPatchOwnProfi
           ) : null}
 
           <nav className="admin-scroll flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden py-2 pb-4">
-            <p className="admin-dash-nav-group">{lang === 'ru' ? 'Разделы' : 'Sections'}</p>
-            {ADMIN_PRIMARY_SECTIONS.map((section) => (
-              <NavButton
-                key={section}
-                section={section}
-                active={activeSection === section}
-                lang={lang}
-                onSelect={() => goSection(section)}
-              />
-            ))}
-            <p className="admin-dash-nav-group">{lang === 'ru' ? 'Инструменты' : 'Tools'}</p>
-            {ADMIN_SECONDARY_SECTIONS.map((section) => (
-              <NavButton
-                key={section}
-                section={section}
-                active={activeSection === section}
-                lang={lang}
-                onSelect={() => goSection(section)}
-              />
+            {ADMIN_NAV_GROUPS.map((group) => (
+              <div key={group.id}>
+                <p className="admin-dash-nav-group">{lang === 'ru' ? group.labelRu : group.labelEn}</p>
+                {group.sections.map((section) => (
+                  <NavButton
+                    key={section}
+                    section={section}
+                    active={activeSection === section}
+                    lang={lang}
+                    onSelect={() => goSection(section)}
+                  />
+                ))}
+              </div>
             ))}
           </nav>
 
@@ -554,165 +598,167 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onPatchOwnProfi
               <p className="text-[11px] text-slate-500">
                 <span className="text-slate-400">{breadcrumbHome}</span>
                 <span className="mx-1.5 text-slate-600">/</span>
-                <span className="font-medium text-cyan-200/90">{sectionLabel(lang, activeSection)}</span>
+                <span className="text-slate-400">{hubLabel(activeHub)}</span>
+                {activeSection !== 'overview' ? (
+                  <>
+                    <span className="mx-1.5 text-slate-600">/</span>
+                    <span className="font-medium text-cyan-200/90">{sectionLabel(lang, activeSection)}</span>
+                  </>
+                ) : null}
               </p>
-              <h2 className="admin-heading mt-0.5 truncate text-xl text-white sm:text-2xl">
+              <h2 className="admin-heading mt-0.5 truncate text-lg text-white sm:text-xl">
                 {sectionLabel(lang, activeSection)}
               </h2>
+              <p className="mt-1 hidden text-xs leading-relaxed text-slate-500 sm:block lg:hidden">
+                {sectionDescription(lang, activeSection)}
+              </p>
             </div>
 
             <div className="hidden items-center gap-2 xl:flex">
-              <AdminBadge tone="info">{lang === 'ru' ? 'Все контуры под рукой' : 'All controls in reach'}</AdminBadge>
               <AdminBadge tone="neutral">{sectionDescription(lang, activeSection)}</AdminBadge>
             </div>
 
             <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
               {activeSection !== 'send' ? (
-                <AdminButton tone="ghost" className="min-h-[2.5rem] text-xs" onClick={() => setActiveSection('send')}>
+                <AdminButton tone="ghost" className="hidden min-h-[2.5rem] text-xs sm:inline-flex" onClick={() => goSection('send')}>
                   {getAdminText(lang, 'section_send')}
                 </AdminButton>
               ) : null}
-              <AdminButton tone="primary" className="min-h-[2.5rem]" onClick={onClose}>
+              <AdminButton tone="primary" className="min-h-[2.5rem] text-sm" onClick={onClose}>
                 {lang === 'ru' ? 'В приложение' : 'Back to app'}
               </AdminButton>
             </div>
           </header>
 
+          {activeGroup.sections.length > 1 ? (
+            <AdminSubNav
+              lang={lang}
+              sections={activeGroup.sections}
+              activeSection={activeSection}
+              onSelect={goSection}
+            />
+          ) : null}
+
           <div className="admin-dash-content admin-scroll">
-            <div className="admin-dash-workspace">
-              <AdminSurface className="px-5 py-5 sm:px-6 sm:py-6">
-                <div className="admin-mission-hero-grid">
-                  <div className="min-w-0">
-                    <p className="admin-label">{lang === 'ru' ? 'Mission Control' : 'Mission Control'}</p>
-                    <h2 className="admin-heading mt-3 text-[30px] leading-none text-white sm:text-[38px]">
-                      {lang === 'ru' ? 'Единый контур управления Lumia' : 'Unified Lumia control layer'}
-                    </h2>
-                    <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-300">
-                      {lang === 'ru'
-                        ? `Сейчас в фокусе: ${sectionLabel(lang, activeSection)}. Здесь всё важное вынесено в быстрые маршруты, метрики и рабочие панели, чтобы управлять продуктом без лишних переходов.`
-                        : `Current focus: ${sectionLabel(lang, activeSection)}. Key routes, metrics, and operator panels are surfaced here so you can manage the product without extra hops.`}
-                    </p>
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      <AdminBadge tone="info">{lang === 'ru' ? 'Mission Control' : 'Mission Control'}</AdminBadge>
-                      <AdminBadge tone="neutral">{sectionLabel(lang, activeSection)}</AdminBadge>
-                      <AdminBadge tone="neutral">
-                        {lang === 'ru' ? `${ADMIN_PRIMARY_SECTIONS.length + ADMIN_SECONDARY_SECTIONS.length} рабочих зон` : `${ADMIN_PRIMARY_SECTIONS.length + ADMIN_SECONDARY_SECTIONS.length} work zones`}
-                      </AdminBadge>
+            {activeSection === 'overview' ? (
+              <div className="admin-dash-workspace">
+                <AdminSurface className="px-4 py-4 sm:px-6 sm:py-5">
+                  <div className="admin-mission-hero-grid">
+                    <div className="min-w-0">
+                      <p className="admin-label">{lang === 'ru' ? 'Сводка' : 'Summary'}</p>
+                      <h2 className="admin-heading mt-2 text-2xl leading-tight text-white sm:text-3xl">
+                        {lang === 'ru' ? 'Панель управления Lumia' : 'Lumia control panel'}
+                      </h2>
+                      <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400">
+                        {getAdminText(lang, 'overview_subtitle')}
+                      </p>
+                    </div>
+
+                    <div className="admin-mission-summary-grid">
+                      <div className="admin-mission-summary-card">
+                        <span>{lang === 'ru' ? 'Premium share' : 'Premium share'}</span>
+                        <strong>{premiumShare}%</strong>
+                        <small>
+                          {overview.activePremiumUsers}/{Math.max(overview.totalUsers, 1)} {lang === 'ru' ? 'пользователей' : 'users'}
+                        </small>
+                      </div>
+                      <div className="admin-mission-summary-card">
+                        <span>{lang === 'ru' ? 'Active 7d' : 'Active 7d'}</span>
+                        <strong>{overview.activeUsers7d}</strong>
+                        <small>{lang === 'ru' ? 'активных за неделю' : 'active this week'}</small>
+                      </div>
+                      <div className="admin-mission-summary-card">
+                        <span>{lang === 'ru' ? 'Attention' : 'Attention'}</span>
+                        <strong>{overview.needAttentionUsers}</strong>
+                        <small>{lang === 'ru' ? 'требуют фокуса' : 'need focus'}</small>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="admin-mission-summary-grid">
-                    <div className="admin-mission-summary-card">
-                      <span>{lang === 'ru' ? 'Premium share' : 'Premium share'}</span>
-                      <strong>{premiumShare}%</strong>
-                      <small>
-                        {overview.activePremiumUsers}/{Math.max(overview.totalUsers, 1)} {lang === 'ru' ? 'пользователей' : 'users'}
-                      </small>
-                    </div>
-                    <div className="admin-mission-summary-card">
-                      <span>{lang === 'ru' ? 'Active 7d' : 'Active 7d'}</span>
-                      <strong>{overview.activeUsers7d}</strong>
-                      <small>
-                        {lang === 'ru' ? 'активных за неделю' : 'active this week'}
-                      </small>
-                    </div>
-                    <div className="admin-mission-summary-card">
-                      <span>{lang === 'ru' ? 'Attention load' : 'Attention load'}</span>
-                      <strong>{attentionShare}%</strong>
-                      <small>
-                        {overview.needAttentionUsers} {lang === 'ru' ? 'требуют фокуса' : 'need focus'}
-                      </small>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="admin-mission-actions">
-                  {missionActions.map((action) => (
-                    <MissionActionCard
-                      key={action.id}
-                      title={action.title}
-                      body={action.body}
-                      meta={action.meta}
-                      onClick={action.onClick}
-                    />
-                  ))}
-                </div>
-              </AdminSurface>
-
-              <div className="admin-mission-layout">
-                <div className="min-w-0">
-                  <div className="admin-dash-kpi-row mb-6 mt-6">
-                    {summaryChips.map((chip) => (
-                      <button
-                        key={chip.id}
-                        type="button"
-                        data-active={activeSection === 'users' && userSegment === chip.segment}
-                        className="admin-dash-kpi-card text-left"
-                        onClick={() => {
-                          setUserSegment(chip.segment);
-                          setActiveSection('users');
-                          closeSidebar();
-                        }}
-                      >
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">{chip.label}</p>
-                        <p className="mt-1 text-2xl font-semibold tabular-nums text-white">{chip.value}</p>
-                      </button>
+                  <div className="admin-mission-actions mt-4">
+                    {missionActions.map((action) => (
+                      <MissionActionCard
+                        key={action.id}
+                        title={action.title}
+                        body={action.body}
+                        meta={action.meta}
+                        onClick={action.onClick}
+                      />
                     ))}
                   </div>
+                </AdminSurface>
 
-                  <div className="min-w-0 pb-2">{renderSection()}</div>
-                </div>
+                <div className="admin-mission-layout">
+                  <div className="min-w-0">
+                    <div className="admin-dash-kpi-row mb-5 mt-5">
+                      {summaryChips.map((chip) => (
+                        <button
+                          key={chip.id}
+                          type="button"
+                          className="admin-dash-kpi-card text-left"
+                          onClick={() => {
+                            setUserSegment(chip.segment);
+                            goSection('users');
+                          }}
+                        >
+                          <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">{chip.label}</p>
+                          <p className="mt-1 text-2xl font-semibold tabular-nums text-white">{chip.value}</p>
+                        </button>
+                      ))}
+                    </div>
 
-                <aside className="admin-mission-rail">
-                  <div className="admin-mission-rail-sticky">
-                    <AdminSurface className="px-4 py-4">
-                      <div className="flex items-center justify-between gap-2">
-                        <div>
-                          <p className="admin-label">{lang === 'ru' ? 'Быстрые маршруты' : 'Fast lanes'}</p>
-                          <h3 className="admin-heading mt-2 text-xl text-white">
-                            {lang === 'ru' ? 'Основные контуры' : 'Primary flows'}
-                          </h3>
-                        </div>
-                        <AdminBadge tone="neutral">{lang === 'ru' ? 'UX dense' : 'UX dense'}</AdminBadge>
-                      </div>
-                      <div className="admin-mission-link-list mt-4">
-                        {railActions.map((action) => (
-                          <MissionRailButton
-                            key={action.id}
-                            label={action.label}
-                            hint={action.hint}
-                            onClick={action.onClick}
-                          />
-                        ))}
-                      </div>
-                    </AdminSurface>
-
-                    <AdminSurface className="mt-4 px-4 py-4">
-                      <p className="admin-label">{lang === 'ru' ? 'Live snapshot' : 'Live snapshot'}</p>
-                      <div className="admin-mission-mini-grid mt-4">
-                        <div className="admin-mission-mini-card">
-                          <span>{getAdminText(lang, 'metric_users')}</span>
-                          <strong>{overview.totalUsers}</strong>
-                        </div>
-                        <div className="admin-mission-mini-card">
-                          <span>{getAdminText(lang, 'metric_active')}</span>
-                          <strong>{overview.activeUsers7d}</strong>
-                        </div>
-                        <div className="admin-mission-mini-card">
-                          <span>{getAdminText(lang, 'metric_premium')}</span>
-                          <strong>{overview.activePremiumUsers}</strong>
-                        </div>
-                        <div className="admin-mission-mini-card">
-                          <span>{getAdminText(lang, 'metric_attention')}</span>
-                          <strong>{overview.needAttentionUsers}</strong>
-                        </div>
-                      </div>
-                    </AdminSurface>
+                    <div className="min-w-0 pb-2">{renderSection()}</div>
                   </div>
-                </aside>
+
+                  <aside className="admin-mission-rail hidden xl:block">
+                    <div className="admin-mission-rail-sticky">
+                      <AdminSurface className="px-4 py-4">
+                        <p className="admin-label">{lang === 'ru' ? 'Быстрые маршруты' : 'Fast lanes'}</p>
+                        <div className="admin-mission-link-list mt-4">
+                          {railActions.map((action) => (
+                            <MissionRailButton
+                              key={action.id}
+                              label={action.label}
+                              hint={action.hint}
+                              onClick={action.onClick}
+                            />
+                          ))}
+                        </div>
+                      </AdminSurface>
+                    </div>
+                  </aside>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="admin-dash-workspace admin-dash-workspace--tool px-3 pb-4 pt-3 sm:px-4 sm:pt-4">
+                <p className="admin-section-lead mb-4 text-sm leading-relaxed text-slate-400">
+                  {sectionDescription(lang, activeSection)}
+                </p>
+                <div className="min-w-0 pb-2">{renderSection()}</div>
+              </div>
+            )}
           </div>
+
+          <nav className="admin-dash-bottomnav lg:hidden" aria-label={lang === 'ru' ? 'Разделы админки' : 'Admin sections'}>
+            {ADMIN_NAV_GROUPS.map((group) => (
+              <button
+                key={group.id}
+                type="button"
+                data-active={activeHub === group.id}
+                className="admin-dash-bottomnav-item"
+                onClick={() => goHub(group.id)}
+              >
+                <span className="admin-dash-bottomnav-label">{lang === 'ru' ? group.labelRu : group.labelEn}</span>
+                <span className="admin-dash-bottomnav-hint">
+                  {group.sections.length === 1
+                    ? sectionLabel(lang, group.sections[0])
+                    : activeHub === group.id
+                    ? sectionLabel(lang, activeSection)
+                    : `${group.sections.length} ${lang === 'ru' ? 'раздела' : 'sections'}`}
+                </span>
+              </button>
+            ))}
+          </nav>
         </div>
       </div>
       </div>

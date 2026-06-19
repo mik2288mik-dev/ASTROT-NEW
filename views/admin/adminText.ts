@@ -21,7 +21,9 @@ const ADMIN_TEXT = {
     metric_users: 'Пользователи',
     metric_premium: 'Premium',
     metric_active: 'Активны 7 дн.',
-    metric_attention: 'Нужно внимание',
+    metric_attention: 'Слоты карт',
+    metric_no_birth_data: 'Без даты рождения',
+    badge_no_chart: 'Без карты',
     metric_lumi_economy: 'Lumi (не Premium)',
 
     search_users: 'Поиск по имени или Telegram ID',
@@ -44,7 +46,8 @@ const ADMIN_TEXT = {
     segment_inactive_3d: 'Не были 3 дня',
     segment_inactive_7d: 'Не были 7 дней',
     segment_inactive_30d: 'Не были 30 дней',
-    segment_attention: 'Нужно внимание',
+    segment_attention: 'Слоты карт заполнены',
+    segment_no_birth_data: 'Без данных рождения',
 
     users_title: 'Пользователи',
     users_subtitle: 'Удобный список с быстрыми действиями по Premium, Lumi и активности.',
@@ -221,7 +224,9 @@ const ADMIN_TEXT = {
     metric_users: 'Users',
     metric_premium: 'Premium',
     metric_active: 'Active 7d',
-    metric_attention: 'Attention',
+    metric_attention: 'Chart slots full',
+    metric_no_birth_data: 'No birth date',
+    badge_no_chart: 'No chart',
     metric_lumi_economy: 'Lumi economy',
 
     search_users: 'Search by name or Telegram ID',
@@ -244,7 +249,8 @@ const ADMIN_TEXT = {
     segment_inactive_3d: 'Inactive 3d',
     segment_inactive_7d: 'Inactive 7d',
     segment_inactive_30d: 'Inactive 30d',
-    segment_attention: 'Need attention',
+    segment_attention: 'Chart slots full',
+    segment_no_birth_data: 'No birth data',
 
     users_title: 'Users',
     users_subtitle: 'Convenient list with quick Premium, Lumi, and activity actions.',

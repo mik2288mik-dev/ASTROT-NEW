@@ -988,7 +988,8 @@ export type AdminUserSegment =
   | 'inactive_3d'
   | 'inactive_7d'
   | 'inactive_30d'
-  | 'need_attention';
+  | 'need_attention'
+  | 'new_user_no_birth_data';
 export type AdminUserSortBy = 'last_seen' | 'created_at' | 'premium_until' | 'saved_charts_count' | 'name';
 export type AdminSortOrder = 'asc' | 'desc';
 
@@ -1007,6 +1008,7 @@ export interface AdminUserSummary {
   loginStreak: number;
   chartSlots: number;
   savedChartsCount: number;
+  hasBirthData: boolean;
   isAdmin: boolean;
   createdAt: string | null;
   lastLogin: string | null;
@@ -1018,6 +1020,7 @@ export interface AdminUsersOverview {
   activePremiumUsers: number;
   activeUsers7d: number;
   needAttentionUsers: number;
+  usersWithoutBirthData: number;
 }
 
 export interface AdminUsersResponse {

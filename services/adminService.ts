@@ -128,6 +128,7 @@ export async function fetchAdminUsers(params?: {
       activePremiumUsers: 0,
       activeUsers7d: 0,
       needAttentionUsers: 0,
+      usersWithoutBirthData: 0,
     },
     pagination: data.pagination || {
       page: params?.page || 1,

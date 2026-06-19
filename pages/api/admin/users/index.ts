@@ -36,6 +36,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       || req.query.segment === 'inactive_7d'
       || req.query.segment === 'inactive_30d'
       || req.query.segment === 'need_attention'
+      || req.query.segment === 'new_user_no_birth_data'
       ? req.query.segment
       : 'all';
     const pageRaw = typeof req.query.page === 'string' ? parseInt(req.query.page, 10) : 1;

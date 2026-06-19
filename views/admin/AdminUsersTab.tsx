@@ -38,7 +38,17 @@ interface AdminUsersTabProps {
 }
 
 const FILTERS: AdminPremiumFilter[] = ['all', 'premium', 'free'];
-const SEGMENTS: AdminUserSegment[] = ['all', 'premium', 'free', 'active_7d', 'inactive_3d', 'inactive_7d', 'inactive_30d', 'need_attention'];
+const SEGMENTS: AdminUserSegment[] = [
+  'all',
+  'new_user_no_birth_data',
+  'premium',
+  'free',
+  'active_7d',
+  'inactive_3d',
+  'inactive_7d',
+  'inactive_30d',
+  'need_attention',
+];
 const PAGE_SIZES = [25, 50, 100];
 
 const formatDateTime = (lang: 'ru' | 'en', value?: string | null) => {
@@ -71,6 +81,7 @@ const getSegmentLabel = (lang: 'ru' | 'en', segment: AdminUserSegment) => {
     inactive_7d: getAdminText(lang, 'segment_inactive_7d'),
     inactive_30d: getAdminText(lang, 'segment_inactive_30d'),
     need_attention: getAdminText(lang, 'segment_attention'),
+    new_user_no_birth_data: getAdminText(lang, 'segment_no_birth_data'),
   };
   return map[segment] || segment.replaceAll('_', ' ');
 };
@@ -119,6 +130,8 @@ export const AdminUsersTab: React.FC<AdminUsersTabProps> = ({
         return usersList.overview.activeUsers7d;
       case 'need_attention':
         return usersList.overview.needAttentionUsers;
+      case 'new_user_no_birth_data':
+        return usersList.overview.usersWithoutBirthData;
       default:
         return usersList.pagination.total;
     }
@@ -127,6 +140,7 @@ export const AdminUsersTab: React.FC<AdminUsersTabProps> = ({
     usersList.overview.activePremiumUsers,
     usersList.overview.activeUsers7d,
     usersList.overview.needAttentionUsers,
+    usersList.overview.usersWithoutBirthData,
     usersList.pagination.total,
   ]);
 
@@ -284,6 +298,7 @@ export const AdminUsersTab: React.FC<AdminUsersTabProps> = ({
             </p>
             <div className="mt-5 grid grid-cols-2 gap-3">
               <MiniMetric label={lang === 'ru' ? 'Premium' : 'Premium'} value={usersList.overview.activePremiumUsers} />
+              <MiniMetric label={getAdminText(lang, 'metric_no_birth_data')} value={usersList.overview.usersWithoutBirthData} />
               <MiniMetric label={lang === 'ru' ? 'Активны 7д' : 'Active 7d'} value={usersList.overview.activeUsers7d} />
             </div>
           </div>
@@ -504,6 +519,7 @@ const UserRow: React.FC<{
       <div className="flex flex-wrap items-center gap-2">
         <p className="truncate text-[15px] font-semibold text-white">{user.name}</p>
         <AdminBadge tone={user.isPremium ? 'premium' : 'neutral'}>{getPremiumLabel(lang, user.isPremium)}</AdminBadge>
+        {!user.hasBirthData ? <AdminBadge tone="warning">{getAdminText(lang, 'badge_no_chart')}</AdminBadge> : null}
         {user.isAdmin ? <AdminBadge tone="admin">Admin</AdminBadge> : null}
       </div>
       <p className="mt-1 truncate text-xs text-slate-500">{user.id}</p>
@@ -559,6 +575,7 @@ const IdentityCard: React.FC<{
 
         <div className="flex flex-wrap gap-2">
           <AdminBadge tone={detail.isPremium ? 'premium' : 'neutral'}>{getPremiumLabel(lang, detail.isPremium)}</AdminBadge>
+          {!detail.birthDate ? <AdminBadge tone="warning">{getAdminText(lang, 'badge_no_chart')}</AdminBadge> : null}
           {detail.isAdmin ? <AdminBadge tone="admin">Admin</AdminBadge> : null}
         </div>
       </div>
