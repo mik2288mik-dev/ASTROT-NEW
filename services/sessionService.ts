@@ -8,6 +8,27 @@ function getTelegramInitData(): string | null {
   return typeof initData === 'string' && initData.trim() ? initData : null;
 }
 
+/** Poll until Telegram WebApp exposes signed initData (required for API auth). */
+export async function waitForTelegramInitData(options?: {
+  maxAttempts?: number;
+  delayMs?: number;
+}): Promise<string | null> {
+  if (typeof window === 'undefined') return null;
+
+  const maxAttempts = options?.maxAttempts ?? 20;
+  const delayMs = options?.delayMs ?? 300;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const initData = getTelegramInitData();
+    if (initData) return initData;
+    if (attempt < maxAttempts - 1) {
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+
+  return null;
+}
+
 /** Headers fragment for authenticated Telegram WebApp API calls */
 export function getTelegramInitDataHeaders(): Record<string, string> {
   const initData = getTelegramInitData();

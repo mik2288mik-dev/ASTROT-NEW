@@ -178,7 +178,11 @@ export const getProfile = async (): Promise<UserProfile | null> => {
         return null;
       }
 
-      log.warn(`[getProfile] HTTP ${response.status}, will retry if attempts left`);
+      if (response.status === 401) {
+        log.warn(`[getProfile] Auth failed (401) - initData may be missing or invalid`, { userId, attempt: attempt + 1 });
+      } else {
+        log.warn(`[getProfile] HTTP ${response.status}, will retry if attempts left`);
+      }
     } catch (error: any) {
       log.warn('[getProfile] Request failed, will retry if attempts left', {
         error: error?.message || error,

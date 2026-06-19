@@ -36,7 +36,7 @@ import { UnionRoom } from './views/v2/UnionRoom';
 import { MatrixRoom } from './views/v2/MatrixRoom';
 import { MyCharts } from './views/MyCharts';
 import { getAdminStatus } from './services/adminService';
-import { recordNotificationAttribution, recordUserAppEvent, recordUserSession, updateUserNotificationSettings } from './services/sessionService';
+import { recordNotificationAttribution, recordUserAppEvent, recordUserSession, updateUserNotificationSettings, waitForTelegramInitData } from './services/sessionService';
 import { installTelegramFullscreenGuard } from './lib/telegramFullscreen';
 import { applyTelegramSafeAreaCssVars, subscribeTelegramContentSafeAreaChanges } from './lib/telegramSafeAreaInsets';
 import { useSwipeBack } from './lib/useSwipeBack';
@@ -154,6 +154,24 @@ function normalizeStartupProfile(
 
 function needsStartupProfileNormalizationSave(storedProfile: UserProfile): boolean {
     return !storedProfile.name?.trim() || !storedProfile.language || !storedProfile.theme;
+}
+
+async function saveStartupProfileWithRetry(profile: UserProfile, maxAttempts = 3): Promise<boolean> {
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+            await saveProfile(profile);
+            return true;
+        } catch (saveError: any) {
+            console.warn(
+                `[App] Startup profile save attempt ${attempt}/${maxAttempts} failed:`,
+                saveError?.message || saveError
+            );
+            if (attempt < maxAttempts) {
+                await new Promise((resolve) => setTimeout(resolve, 500));
+            }
+        }
+    }
+    return false;
 }
 
 function wait(ms: number): Promise<null> {
@@ -703,6 +721,14 @@ const App: React.FC = () => {
                 const tg = (window as any).Telegram?.WebApp;
                 const tgUser = tg?.initDataUnsafe?.user as TelegramWebAppUser | undefined;
 
+                if (tg) {
+                    const initData = await waitForTelegramInitData();
+                    if (!initData) {
+                        console.warn('[App] Telegram initData not available after wait; proceeding with local profile fallback');
+                        logStartupMetric('startup_init_data_missing', true);
+                    }
+                }
+
                 setLoadingProgress(30);
                 const storedProfile = webGuestProfile || await getProfile();
 
@@ -721,7 +747,13 @@ const App: React.FC = () => {
                         isAdmin,
                     };
                     console.log('[App] Creating minimal startup profile without natal setup');
-                    await saveProfile(updatedProfile);
+                    const profileSaved = await saveStartupProfileWithRetry(updatedProfile);
+                    if (!profileSaved) {
+                        console.warn('[App] Startup profile save failed; continuing with local profile');
+                        void saveProfile(updatedProfile).catch((saveError: any) => {
+                            console.warn('[App] Background startup profile save failed:', saveError?.message || saveError);
+                        });
+                    }
                 } else {
                     const isAdmin = await resolveAuthoritativeAdminStatus(safeTgId, storedProfile.isAdmin);
                     updatedProfile = normalizeStartupProfile(storedProfile, safeTgId, tgUser, isAdmin);
@@ -789,9 +821,22 @@ const App: React.FC = () => {
                 }
             } catch (error) {
                 console.error('[App] Error loading user data:', error);
-                setStartupError('Не удалось загрузить профиль Lumia. Проверь, что приложение открыто внутри Telegram, и попробуй ещё раз.');
-                resetPrimaryChartState();
-                showStartupDashboard('dashboard');
+                const tg = (window as any).Telegram?.WebApp;
+                const tgUser = tg?.initDataUnsafe?.user as TelegramWebAppUser | undefined;
+                if (isValidUserId(safeTgId)) {
+                    const fallbackProfile = {
+                        ...buildMinimalStartupProfile(safeTgId, tgUser),
+                        isAdmin: getFallbackAdminStatus(safeTgId, false),
+                    };
+                    setProfile(fallbackProfile);
+                    setStartupError(null);
+                    resetPrimaryChartState();
+                    showStartupDashboard('dashboard');
+                } else {
+                    setStartupError('Не удалось загрузить профиль Lumia. Проверь, что приложение открыто внутри Telegram, и попробуй ещё раз.');
+                    resetPrimaryChartState();
+                    showStartupDashboard('dashboard');
+                }
             } finally {
                 clearSafety();
                 if (!cancelled && !startupVisible) {
@@ -805,7 +850,7 @@ const App: React.FC = () => {
             cancelled = true;
             clearSafety();
         };
-    }, [loadPrimaryChartOnce, prepareUserContentDbFirst, resetPrimaryChartState, resolveAuthoritativeAdminStatus]);
+    }, [loadPrimaryChartOnce, prepareUserContentDbFirst, resetPrimaryChartState, resolveAuthoritativeAdminStatus, getFallbackAdminStatus]);
 
     const handleOnboardingComplete = async (newProfile: UserProfile) => {
         console.log('[App] === ONBOARDING COMPLETE ===', {
@@ -1424,7 +1469,14 @@ const App: React.FC = () => {
                 <div className="max-w-sm text-center">
                     <p className="lumia-brand-wordmark mb-6">LUMIA</p>
                     <h1 className="mb-3 font-serif text-[2rem] leading-none">Не удалось открыть профиль</h1>
-                    <p className="mb-0 text-[15px] leading-relaxed text-[#4f4b45]">{startupError}</p>
+                    <p className="mb-6 text-[15px] leading-relaxed text-[#4f4b45]">{startupError}</p>
+                    <button
+                        type="button"
+                        className="rounded-full border border-[#1f1f1f] px-6 py-3 text-[15px] font-medium text-[#1f1f1f]"
+                        onClick={() => window.location.reload()}
+                    >
+                        Попробовать снова
+                    </button>
                 </div>
             </div>
         );
