@@ -61,6 +61,39 @@ const SLOT_MEANING: Record<MoonPhaseSlot, string> = {
   'waning-crescent': 'Тихая пауза перед новым витком. Меньше дел, больше сна и наблюдения.',
 };
 
+const SLOT_LABEL_EN: Record<MoonPhaseSlot, string> = {
+  'new': 'New Moon',
+  'waxing-crescent': 'Waxing Crescent',
+  'first-quarter': 'First Quarter',
+  'waxing-gibbous': 'Waxing Gibbous',
+  'full': 'Full Moon',
+  'waning-gibbous': 'Waning Gibbous',
+  'last-quarter': 'Last Quarter',
+  'waning-crescent': 'Waning Crescent',
+};
+
+const SLOT_SHORT_EN: Record<MoonPhaseSlot, string> = {
+  'new': 'New',
+  'waxing-crescent': 'Waxing',
+  'first-quarter': 'First ¼',
+  'waxing-gibbous': 'Waxing',
+  'full': 'Full',
+  'waning-gibbous': 'Waning',
+  'last-quarter': 'Last ¼',
+  'waning-crescent': 'Waning',
+};
+
+const SLOT_MEANING_EN: Record<MoonPhaseSlot, string> = {
+  'new': 'Time to begin. A quiet start beats a loud one — set one intention and move toward it.',
+  'waxing-crescent': 'Energy is building. Take small steps without trying to outrun yourself.',
+  'first-quarter': 'Some tension shows up — not a glitch, but growth. Hold your ground, gently.',
+  'waxing-gibbous': 'Refine and adjust. A lot is already moving — keep the pace instead of forcing a leap.',
+  'full': 'A peak and full visibility. What was ripe comes to the surface. Do not rush conclusions — look first.',
+  'waning-gibbous': 'Time to share and close loops — words, promises, small tasks.',
+  'last-quarter': 'Let go of what no longer works. Not by force, just calmly — space clears on its own.',
+  'waning-crescent': 'A quiet pause before the next cycle. Fewer tasks, more sleep and observation.',
+};
+
 function detectSlot(fraction: number): MoonPhaseSlot {
   // 8 equal-ish slots around the cycle
   if (fraction < 0.0345) return 'new';
@@ -74,7 +107,7 @@ function detectSlot(fraction: number): MoonPhaseSlot {
   return 'new';
 }
 
-export function getMoonPhase(date: Date = new Date()): MoonPhaseInfo {
+export function getMoonPhase(date: Date = new Date(), language: 'ru' | 'en' = 'ru'): MoonPhaseInfo {
   const elapsed = (date.getTime() - REFERENCE_NEW_MOON_MS) / 86_400_000;
   const cycles = elapsed / SYNODIC_MONTH_DAYS;
   let fraction = cycles - Math.floor(cycles);
@@ -84,12 +117,13 @@ export function getMoonPhase(date: Date = new Date()): MoonPhaseInfo {
   // Illumination: 0% at new, 100% at full, sinusoidal between.
   const illumination = Math.round(50 * (1 - Math.cos(2 * Math.PI * fraction)));
 
+  const en = language === 'en';
   return {
     slot,
     fraction,
     illumination,
-    label: SLOT_LABEL[slot],
-    shortLabel: SLOT_SHORT[slot],
-    meaning: SLOT_MEANING[slot],
+    label: (en ? SLOT_LABEL_EN : SLOT_LABEL)[slot],
+    shortLabel: (en ? SLOT_SHORT_EN : SLOT_SHORT)[slot],
+    meaning: (en ? SLOT_MEANING_EN : SLOT_MEANING)[slot],
   };
 }

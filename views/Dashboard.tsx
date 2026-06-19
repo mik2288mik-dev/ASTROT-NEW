@@ -169,7 +169,7 @@ export const Dashboard = memo<DashboardProps>(({
   const dateLabel = formatDate(today, language);
 
   /* Астро-контекст дня: день недели + фаза луны (фаза считается клиентски, точно) */
-  const moon = useMemo(() => getMoonPhase(), []);
+  const moon = useMemo(() => getMoonPhase(new Date(), language), [language]);
   const weekdayLabel = useMemo(() => {
     const [yr, mo, da] = today.split('-').map(Number);
     const d = new Date(Date.UTC(yr, mo - 1, da, 12));

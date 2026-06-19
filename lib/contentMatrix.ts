@@ -62,12 +62,12 @@ const CONTENT_MATRIX: Record<LumiaContentType, ContentPolicy> = {
   },
   sign_daily_horoscope: {
     type: 'sign_daily_horoscope', featureKey: 'daily_sign_horoscope', modelTier: 'fast', words: { min: 60, max: 80 },
-    cacheTtl: '24h', cacheScope: 'shared', promptVersion: 'sign_daily_horoscope.v2', purpose: 'Общий гороскоп по знаку на день',
+    cacheTtl: '24h', cacheScope: 'shared', promptVersion: 'sign_daily_horoscope.v3', purpose: 'Общий гороскоп по знаку на день',
     style: 'Один фокус дня, без перечисления любви, денег и здоровья.', placements: ['horoscope'], generationPolicy: 'once_per_day', batchSize: 12,
   },
   sign_weekly_horoscope: {
     type: 'sign_weekly_horoscope', featureKey: 'weekly_sign_horoscope', modelTier: 'fast', words: { min: 100, max: 140 },
-    cacheTtl: '7d', cacheScope: 'shared', promptVersion: 'sign_weekly_horoscope.v2', purpose: 'Общий гороскоп по знаку на неделю',
+    cacheTtl: '7d', cacheScope: 'shared', promptVersion: 'sign_weekly_horoscope.v3', purpose: 'Общий гороскоп по знаку на неделю',
     style: 'Один главный сюжет недели и два коротких совета.', placements: ['horoscope'], generationPolicy: 'once_per_week', batchSize: 12,
   },
   sign_compatibility: {
