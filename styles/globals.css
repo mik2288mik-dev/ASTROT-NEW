@@ -4298,6 +4298,13 @@ a,
 .aw-mini-chev[data-open="true"] { transform: rotate(180deg); }
 .aw-mini-wrap .awt { background: transparent; padding: 8px 0 0; box-shadow: none; }
 
+/* ── Автодополнение города ── */
+.city-ac { position: relative; }
+.city-ac-list { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 60; background: var(--fresh-bg); border: 1px solid var(--fresh-border); border-radius: 14px; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12); overflow: hidden auto; max-height: 240px; }
+.city-ac-item { display: block; width: 100%; text-align: left; background: transparent; border: none; border-bottom: 1px solid var(--fresh-border); padding: 11px 14px; font-family: var(--fresh-font); font-size: 14px; color: var(--fresh-text); cursor: pointer; }
+.city-ac-item:last-child { border-bottom: none; }
+.city-ac-item:hover, .city-ac-item:active { background: var(--fresh-surface); }
+
 /* ── Главная: компактная карточка натальной карты (Большая тройка, 2 строки) ── */
 .home-natal { width: 100%; display: block; text-align: left; background: var(--fresh-surface); border: none; border-radius: var(--fresh-radius-card); padding: 14px; cursor: pointer; }
 .home-natal-three { display: flex; flex-wrap: wrap; gap: 8px 16px; }

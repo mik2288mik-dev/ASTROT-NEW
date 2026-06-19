@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Валидация входных данных для API-роутов
  * Использует встроенную валидацию без внешних зависимостей
  */
@@ -100,9 +100,10 @@ export function validateName(name: string): { isValid: boolean; error?: string }
     return { isValid: false, error: 'Name must be less than 100 characters' };
   }
 
-  // Проверяем на наличие только допустимых символов (буквы, пробелы, дефисы, апострофы)
-  const nameRegex = /^[a-zA-Zа-яА-ЯёЁ\s\-']+$/u;
-  if (!nameRegex.test(trimmedName)) {
+  // Имя отображаемое и часто берётся из Telegram: может содержать эмодзи, акценты
+  // (José), любой алфавит и цифры. Не режем по белому списку — иначе блокируем
+  // реальных пользователей. Отклоняем только управляющие символы.
+  if (/\p{Cc}/u.test(trimmedName)) {
     return { isValid: false, error: 'Name contains invalid characters' };
   }
 

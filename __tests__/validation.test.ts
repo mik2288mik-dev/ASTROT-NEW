@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Тесты для валидации входных данных
  */
 
@@ -87,10 +87,15 @@ describe('Validation', () => {
       expect(validateName(longName).isValid).toBe(false);
     });
 
-    it('должен отклонять имена с недопустимыми символами', () => {
-      expect(validateName('John123').isValid).toBe(false);
-      expect(validateName('John@Doe').isValid).toBe(false);
-      expect(validateName('John#Doe').isValid).toBe(false);
+    it('принимает реальные имена из Telegram (эмодзи, акценты, цифры, любой алфавит)', () => {
+      expect(validateName('José').isValid).toBe(true);
+      expect(validateName('Анна 🌙').isValid).toBe(true);
+      expect(validateName('John123').isValid).toBe(true);
+      expect(validateName('赵敏').isValid).toBe(true);
+    });
+
+    it('должен отклонять управляющие символы', () => {
+      expect(validateName('John' + String.fromCharCode(0) + 'Doe').isValid).toBe(false);
     });
   });
 

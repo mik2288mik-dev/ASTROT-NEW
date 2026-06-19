@@ -6,6 +6,7 @@ import { NatalChartIcon, HeartIcon } from '../components/icons/UiIcons';
 import { ZodiacIcon } from '../components/icons/ZodiacIcon';
 import { sunSignFromDate } from '../lib/synastry/compatScore';
 import { getZodiacSign } from '../constants';
+import { CityAutocomplete } from '../components/ui/CityAutocomplete';
 
 interface OnboardingProps {
   onComplete: (profile: UserProfile) => void;
@@ -164,7 +165,12 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
             <label>
               <span className="fresh-field-label">Место рождения</span>
-              <input ref={placeRef} type="text" value={place} onChange={(e) => { setPlace(e.target.value); if (error) setError(''); }} className="fresh-input" placeholder="Москва, Россия" />
+              <CityAutocomplete
+                value={place}
+                inputRef={placeRef}
+                placeholder="Начни вводить город…"
+                onChange={(v) => { setPlace(v); if (error) setError(''); }}
+              />
             </label>
 
             <button type="button" className="onb-notify" onClick={() => setNotify((v) => !v)}>
