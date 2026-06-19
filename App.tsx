@@ -256,6 +256,8 @@ const App: React.FC = () => {
     const [loadingMessage, setLoadingMessage] = useState<string | undefined>(undefined);
     const [startupError, setStartupError] = useState<string | null>(null);
     const [view, setView] = useState<ViewState>('onboarding');
+    // Когда задан — paywall показан после онбординга; close/«продолжить бесплатно» ведут сюда.
+    const [paywallTarget, setPaywallTarget] = useState<ViewState | null>(null);
     const [showPremiumPreview, setShowPremiumPreview] = useState(false);
     const [synastryPrefill, setSynastryPrefill] = useState<SynastryPrefill>(null);
     const [oracleInitialQuestion, setOracleInitialQuestion] = useState<string | null>(null);
@@ -1003,8 +1005,16 @@ const App: React.FC = () => {
                 setActiveChartId(undefined);
                 setChartReturnView('dashboard');
             }
+            // Первая регистрация → показываем тарифы (триал уже активен). Повторное
+            // редактирование карты ведёт сразу в приложение, без пейвола.
+            const isFirstSetup = !profile?.isSetup;
             setTimeout(() => {
-                setView(targetView);
+                if (isFirstSetup) {
+                    setPaywallTarget(targetView);
+                    setView('paywall');
+                } else {
+                    setView(targetView);
+                }
                 onboardingTargetViewRef.current = 'dashboard';
             }, 300);
             
@@ -1563,7 +1573,8 @@ const App: React.FC = () => {
                     <Paywall
                         profile={profile}
                         onPurchase={(planId) => { void requestPremium('paywall', undefined, planId); }}
-                        onClose={() => setView('dashboard')}
+                        onClose={() => { const t = paywallTarget; setPaywallTarget(null); setView(t ?? 'dashboard'); }}
+                        onContinueFree={() => { const t = paywallTarget; setPaywallTarget(null); setView(t ?? 'dashboard'); }}
                     />
                 ) : view === 'oracle' ? (
                     <div className="lumia-main-scroll lumia-bottom-tab-scroll flex h-full min-h-0 flex-col overflow-hidden scrollbar-hide" ref={appScrollRef}>

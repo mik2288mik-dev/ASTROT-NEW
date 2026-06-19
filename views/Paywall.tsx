@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
 import { UserProfile } from '../types';
 import { PREMIUM_PLANS, type PremiumPlanId } from '../lib/premiumPricing';
 import { lumiaSelectionHaptic } from '../lib/haptics';
@@ -8,24 +7,62 @@ interface PaywallProps {
   profile: UserProfile;
   onPurchase: (planId: PremiumPlanId) => void;
   onClose: () => void;
+  /** Provided in the post-onboarding flow: continue into the app on the free/trial plan. */
+  onContinueFree?: () => void;
 }
 
 const ORDER: PremiumPlanId[] = ['premium_month', 'premium_quarter', 'premium_year'];
 
 const PERIOD: Record<PremiumPlanId, { ru: string; en: string }> = {
   premium_week: { ru: 'Неделя', en: '1 week' },
-  premium_month: { ru: 'Месяц', en: '1 month' },
+  premium_month: { ru: 'Месяц', en: 'Month' },
   premium_quarter: { ru: '3 месяца', en: '3 months' },
-  premium_year: { ru: 'Год', en: '1 year' },
+  premium_year: { ru: 'Год', en: 'Year' },
 };
 
-export const Paywall: React.FC<PaywallProps> = ({ profile, onPurchase, onClose }) => {
-  const ru = profile.language !== 'en';
-  const [paying, setPaying] = useState<PremiumPlanId | null>(null);
+const Check: React.FC = () => (
+  <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden><path d="M3 8.5L6.5 12L13 4.5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+);
+const Cross: React.FC = () => (
+  <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden><path d="M4 4L12 12M12 4L4 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
+);
 
-  const benefits = ru
-    ? ['Личный гороскоп каждый день — по твоей карте', 'Окна дня: лучшее время для действий', 'Глубокий разбор карты по сферам жизни', 'Совместимость по двум картам', 'Годовые прогнозы и без лимитов']
-    : ['Personal daily horoscope from your chart', 'Day windows: best time to act', 'Deep chart reading by life area', 'Two-chart compatibility', 'Yearly forecasts and no limits'];
+function pluralDays(n: number, ru: boolean): string {
+  if (!ru) return n === 1 ? 'day' : 'days';
+  const mod10 = n % 10, mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return 'день';
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return 'дня';
+  return 'дней';
+}
+
+export const Paywall: React.FC<PaywallProps> = ({ profile, onPurchase, onClose, onContinueFree }) => {
+  const ru = profile.language !== 'en';
+  const [selected, setSelected] = useState<PremiumPlanId>('premium_year');
+  const [paying, setPaying] = useState(false);
+
+  const premiumUntil = profile.premiumUntil ? new Date(profile.premiumUntil) : null;
+  const daysLeft = premiumUntil ? Math.max(0, Math.ceil((premiumUntil.getTime() - Date.now()) / 86_400_000)) : 0;
+  const trialActive = daysLeft > 0;
+
+  const features: Array<{ label: string; free: boolean }> = ru
+    ? [
+        { label: 'Гороскоп знака на день', free: true },
+        { label: 'Натальная карта — базовый портрет', free: true },
+        { label: 'Личный день по твоей карте', free: false },
+        { label: 'Полный разбор натала — 10 тем', free: false },
+        { label: 'Совместимость по двум картам', free: false },
+        { label: 'Все знаки и без лимитов', free: false },
+        { label: 'Годовые прогнозы', free: false },
+      ]
+    : [
+        { label: 'Daily sign horoscope', free: true },
+        { label: 'Natal chart — base portrait', free: true },
+        { label: 'Your personal day, from your chart', free: false },
+        { label: 'Full natal reading — 10 topics', free: false },
+        { label: 'Two-chart compatibility', free: false },
+        { label: 'All signs, no limits', free: false },
+        { label: 'Yearly forecasts', free: false },
+      ];
 
   const priceText = (id: PremiumPlanId) => (ru ? `${PREMIUM_PLANS[id].priceRub} ₽` : `$${PREMIUM_PLANS[id].priceUsd}`);
   const savings = (id: PremiumPlanId) => {
@@ -35,61 +72,85 @@ export const Paywall: React.FC<PaywallProps> = ({ profile, onPurchase, onClose }
     return Math.max(0, Math.round((1 - perMonth / base) * 100));
   };
 
-  const buy = (id: PremiumPlanId) => {
+  const buy = () => {
     if (paying) return;
     lumiaSelectionHaptic();
-    setPaying(id);
-    onPurchase(id);
-    setTimeout(() => setPaying(null), 5000);
+    setPaying(true);
+    onPurchase(selected);
+    setTimeout(() => setPaying(false), 5000);
   };
 
   return (
-    <div className="fresh-page lumia-main-scroll" style={{ display: 'flex', flexDirection: 'column', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }}>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 16px 4px' }}>
-        <button type="button" onClick={onClose} aria-label={ru ? 'Закрыть' : 'Close'} style={{ width: 34, height: 34, borderRadius: '50%', border: 'none', background: 'var(--fresh-surface)', color: 'var(--fresh-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+    <div className="fresh-page lumia-main-scroll pw2">
+      <div className="pw2-topbar">
+        <button type="button" onClick={onClose} aria-label={ru ? 'Закрыть' : 'Close'} className="pw2-close">
           <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
       </div>
 
-      <div style={{ padding: '0 20px' }}>
-        <h1 className="pw-title">Lumia Premium</h1>
-        <p className="pw-sub">{ru ? 'Полный доступ к личным разборам по твоей карте.' : 'Full access to personal readings from your chart.'}</p>
-      </div>
+      <h1 className="pw2-title">{ru ? 'Тарифы' : 'Pricing'}</h1>
+      <p className="pw2-sub">{ru ? 'Пользуйся бесплатно. Premium — когда захочешь больше про себя.' : 'Use it free. Go Premium when you want more about you.'}</p>
 
-      <div className="pw-benefits">
-        {benefits.map((b, i) => (
-          <motion.div key={i} className="pw-benefit" initial={{ x: -10, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.05 * i }}>
-            <span className="pw-benefit-check" aria-hidden>
-              <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M3 8.5L6.5 12L13 4.5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-            </span>
-            <span className="pw-benefit-text">{b}</span>
-          </motion.div>
+      {trialActive ? (
+        <div className="pw2-trial">
+          <span className="pw2-trial-dot" />
+          {ru
+            ? `Premium активен — осталось ${daysLeft} ${pluralDays(daysLeft, true)}. Пробуй всё бесплатно.`
+            : `Premium is active — ${daysLeft} ${pluralDays(daysLeft, false)} left. Try everything free.`}
+        </div>
+      ) : null}
+
+      <div className="pw2-compare">
+        <div className="pw2-compare-head">
+          <span />
+          <span className="pw2-col">Free</span>
+          <span className="pw2-col pw2-col--prem">Premium</span>
+        </div>
+        {features.map((f, i) => (
+          <div className="pw2-row" key={i}>
+            <span className="pw2-feat">{f.label}</span>
+            <span className={`pw2-cell ${f.free ? 'is-yes' : 'is-no'}`}>{f.free ? <Check /> : <Cross />}</span>
+            <span className="pw2-cell pw2-cell--prem is-yes"><Check /></span>
+          </div>
         ))}
       </div>
 
-      <div className="pw-plans">
+      <div className="pw2-plans">
         {ORDER.map((id) => {
           const best = id === 'premium_year';
           const save = savings(id);
+          const sel = selected === id;
           return (
-            <button key={id} type="button" className={`pw-plan ${best ? 'is-best' : ''}`} onClick={() => buy(id)} disabled={paying === id}>
-              <div className="pw-plan-left">
-                <div className="pw-plan-period">
-                  {ru ? PERIOD[id].ru : PERIOD[id].en}
-                  {best ? <span className="pw-plan-badge">{ru ? 'Выгоднее всего' : 'Best value'}</span> : null}
-                </div>
-                <div className="pw-plan-stars">{paying === id ? (ru ? 'Открываю оплату…' : 'Opening…') : `≈ ${PREMIUM_PLANS[id].stars} Telegram Stars`}</div>
-              </div>
-              <div className="pw-plan-right">
-                <div className="pw-plan-price">{priceText(id)}</div>
-                {save > 0 ? <div className="pw-plan-save">−{save}%</div> : null}
-              </div>
+            <button
+              key={id}
+              type="button"
+              className={`pw2-plan ${sel ? 'is-sel' : ''} ${best ? 'is-best' : ''}`}
+              onClick={() => { lumiaSelectionHaptic(); setSelected(id); }}
+            >
+              {best ? <span className="pw2-plan-badge">{ru ? 'Выгодно' : 'Best'}</span> : null}
+              <span className="pw2-plan-period">{ru ? PERIOD[id].ru : PERIOD[id].en}</span>
+              <span className="pw2-plan-price">{priceText(id)}</span>
+              {save > 0 ? <span className="pw2-plan-save">−{save}%</span> : <span className="pw2-plan-save pw2-plan-save--ghost">·</span>}
             </button>
           );
         })}
       </div>
 
-      <p className="pw-foot">{ru ? 'Оплата в Telegram Stars. Подписка продлевается вручную.' : 'Pay with Telegram Stars. Renews manually.'}</p>
+      <button type="button" className="pw2-cta" onClick={buy} disabled={paying}>
+        {paying
+          ? (ru ? 'Открываю оплату…' : 'Opening…')
+          : `${ru ? 'Оформить Premium' : 'Get Premium'} · ${priceText(selected)}`}
+      </button>
+
+      {onContinueFree ? (
+        <button type="button" className="pw2-free" onClick={() => { lumiaSelectionHaptic(); onContinueFree(); }}>
+          {trialActive
+            ? (ru ? 'Продолжить бесплатно — 14 дней Premium включены' : 'Continue free — 14 days of Premium included')
+            : (ru ? 'Продолжить бесплатно' : 'Continue free')}
+        </button>
+      ) : null}
+
+      <p className="pw2-foot">{ru ? 'Оплата в Telegram Stars. Подписку можно не продлевать.' : 'Pay with Telegram Stars. No auto-renewal.'}</p>
     </div>
   );
 };
