@@ -16,6 +16,7 @@ import { buildSynastryExtendedCacheKey } from '../../../../lib/synastryExtended'
 import { RATE_LIMIT_CONFIGS, withRateLimit } from '../../../../lib/rateLimit';
 import { logContentApi, warnContentApi } from '../../../../lib/contentApiLogging';
 import { buildSynastryPrompt, parseLumiaJson } from '../../../../lib/contentPromptBuilders';
+import { computeSynastryAspects } from '../../../../lib/synastry/synastryAspects';
 
 const SCOPE = 'synastry-extended';
 
@@ -289,9 +290,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (!openai) {
       resultPayload = mapFullToSynastryResult(buildSynastryFallback(langRu, profile.name, partnerName));
     } else {
+      const synastryAspects = computeSynastryAspects(userChartData, partnerChartData);
       const prompt = buildSynastryPrompt({
         language: currentLanguage,
-        context: { profile, partnerName, userChartData, partnerChartData, relationship: rel },
+        context: { profile, partnerName, userChartData, partnerChartData, relationship: rel, synastryAspects },
       });
       const { model: modelId } = await getOpenAIModelForContent({
         accessTier,

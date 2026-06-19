@@ -69,7 +69,7 @@ export function buildSignCompatibilityPrompt(input: PromptInput = {}): LumiaProm
 }
 
 export function buildSynastryPrompt(input: PromptInput = {}): LumiaPrompt {
-  return buildPrompt('deep_report', '{ "summary": "...", "generalTheme": "...", "attraction": "...", "difficulties": "...", "recommendations": ["...", "...", "..."], "potential": "..." }', 'Создай подробный разбор «Что между вами» по двум картам.', input, '- Объясни, где людей тянет друг к другу, где они задевают друг друга и как лучше общаться. Не используй термин «синастрия» в пользовательском тексте. Список допустим только в recommendations и содержит ровно три практичных шага.');
+  return buildPrompt('deep_report', '{ "summary": "...", "generalTheme": "...", "attraction": "...", "difficulties": "...", "recommendations": ["...", "...", "..."], "potential": "..." }', 'Создай подробный разбор «Что между вами» по двум картам.', input, '- В контексте есть synastryAspects — реальные углы между планетами двух карт (соединение/трин/секстиль = легче и притягивает, квадрат/оппозиция = напряжение). Делай выводы про притяжение, трения и советы ИМЕННО из этих аспектов (например: Венера одного в трине к Марсу другого — лёгкое притяжение; Луна в квадрате к Сатурну — холодок в близости). Если аспектов мало (партнёр без времени рождения) — опирайся на то, что есть, и не выдумывай. Не называй аспекты вслух как термины — переводи в живые наблюдения. Не используй термин «синастрия» в пользовательском тексте. Список только в recommendations — ровно три практичных шага.');
 }
 
 /** Parse model JSON without allowing malformed output to break a content surface. */

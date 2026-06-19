@@ -92,7 +92,7 @@ const CONTENT_MATRIX: Record<LumiaContentType, ContentPolicy> = {
   },
   deep_report: {
     type: 'deep_report', featureKey: 'deep_report', modelTier: 'deep', words: { min: 800, max: 1500 },
-    cacheTtl: 'forever_until_chart_changes', cacheScope: 'chart_version', promptVersion: 'deep_report.v2', purpose: 'Полный натальный, синастрический или годовой отчёт',
+    cacheTtl: 'forever_until_chart_changes', cacheScope: 'chart_version', promptVersion: 'deep_report.v3', purpose: 'Полный натальный, синастрический или годовой отчёт',
     style: 'Полный структурированный отчёт; никогда не генерировать при старте приложения.', placements: ['report', 'natal', 'synastry'], generationPolicy: 'explicit_only',
   },
 };
