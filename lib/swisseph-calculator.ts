@@ -351,11 +351,54 @@ function convertLocalTimeToUTC(
   }
 }
 
+/** Часовой пояс по координатам — локально (tz-lookup), без сети. */
+function resolveTimezone(lat: number, lon: number): string {
+  try {
+    return tzLookup(lat, lon);
+  } catch {
+    return 'Europe/Moscow';
+  }
+}
+
 /**
- * Получение координат и часового пояса по названию места через геокодинг
- * С retry логикой для надёжности
+ * Геокодинг через Open-Meteo — бесплатно, без ключа, дружелюбен к серверным IP
+ * (в отличие от Nominatim, который часто лимитит/банит хостинг). Возврат null при неудаче.
  */
-export async function getCoordinates(placeName: string, retryCount = 0): Promise<Coordinates> {
+async function geocodeViaOpenMeteo(placeName: string): Promise<Coordinates | null> {
+  try {
+    const response = await axios.get('https://geocoding-api.open-meteo.com/v1/search', {
+      params: { name: placeName, count: 1, language: 'ru', format: 'json' },
+      headers: { Accept: 'application/json' },
+      timeout: 15000,
+    });
+    const r = response.data?.results?.[0];
+    const lat = Number(r?.latitude);
+    const lon = Number(r?.longitude);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+    return { lat, lon, timezone: resolveTimezone(lat, lon) };
+  } catch (error: any) {
+    log.warn('Open-Meteo geocoding failed, will try Nominatim', { placeName, error: error?.message });
+    return null;
+  }
+}
+
+/**
+ * Получение координат и часового пояса по названию места.
+ * Open-Meteo первым (надёжный для серверов), Nominatim — фолбэком (шире покрытие).
+ */
+export async function getCoordinates(placeName: string): Promise<Coordinates> {
+  const viaOpenMeteo = await geocodeViaOpenMeteo(placeName);
+  if (viaOpenMeteo) {
+    log.info('Coordinates resolved via Open-Meteo', { placeName, ...viaOpenMeteo });
+    return viaOpenMeteo;
+  }
+  return geocodeViaNominatim(placeName);
+}
+
+/**
+ * Геокодинг через Nominatim (OpenStreetMap) — фолбэк. С retry-логикой.
+ */
+async function geocodeViaNominatim(placeName: string, retryCount = 0): Promise<Coordinates> {
   const MAX_RETRIES = 2;
   
   try {
@@ -397,7 +440,7 @@ export async function getCoordinates(placeName: string, retryCount = 0): Promise
       )) {
         log.info(`Retrying geocoding request (attempt ${retryCount + 2}/${MAX_RETRIES + 1})`);
         await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
-        return getCoordinates(placeName, retryCount + 1);
+        return geocodeViaNominatim(placeName, retryCount + 1);
       }
       
       if (axiosError.code === 'ECONNABORTED' || axiosError.message?.includes('timeout')) {
