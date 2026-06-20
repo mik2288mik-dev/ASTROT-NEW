@@ -44,16 +44,6 @@ function nowHourIn(timeZone: string): number {
   }
 }
 
-const AX_START = 6;   // ось дня начинается с 6:00
-const AX_END = 24;    // и заканчивается в 24:00
-const AX_SPAN = AX_END - AX_START;
-
-/* час → позиция в % по оси дня (с клампом в [6,24]) */
-function pct(hour: number): number {
-  const clamped = Math.max(AX_START, Math.min(AX_END, hour));
-  return ((clamped - AX_START) / AX_SPAN) * 100;
-}
-
 /* компактный диапазон "12–15" для правой колонки */
 function fmtRange(start: number, end: number): string {
   const h = (v: number) => String(Math.round(v)).padStart(2, '0');
@@ -61,11 +51,54 @@ function fmtRange(start: number, end: number): string {
 }
 
 type Row = { action: typeof ACTIONS[number]; rec: ActionTimingRecommendation; start: number; end: number };
+type PulsePoint = { hour: number; score: number };
 
-function ActionTracks({ rows, nowH, ru, reduce, hideHero }: { rows: Row[]; nowH: number; ru: boolean; reduce: boolean | null; hideHero?: boolean }) {
+/* Мини «линия дня» — тот же плавный график пульса, что в личном прогнозе, только компактный. */
+function MiniPulseLine({ points, nowH, accent, reduce }: { points: PulsePoint[]; nowH: number; accent: string; reduce: boolean | null }) {
+  const W = 300;
+  const H = 64;
+  const pad = 6;
+  const sorted = [...points].filter((p) => Number.isFinite(p.hour) && Number.isFinite(p.score)).sort((a, b) => a.hour - b.hour);
+  if (sorted.length < 2) return null;
+  const x = (h: number) => pad + (Math.max(0, Math.min(24, h)) / 24) * (W - 2 * pad);
+  const y = (s: number) => pad + (1 - Math.max(0, Math.min(100, s)) / 100) * (H - 2 * pad);
+  const line = sorted.map((p, i) => `${i ? 'L' : 'M'} ${x(p.hour).toFixed(1)} ${y(p.score).toFixed(1)}`).join(' ');
+  const area = `${line} L ${x(sorted[sorted.length - 1].hour).toFixed(1)} ${H - pad} L ${x(sorted[0].hour).toFixed(1)} ${H - pad} Z`;
+  const nearestNow = sorted.reduce((best, p) => (Math.abs(p.hour - nowH) < Math.abs(best.hour - nowH) ? p : best), sorted[0]);
+  const nx = x(nowH);
+
+  return (
+    <div className="aw-line">
+      <svg viewBox={`0 0 ${W} ${H}`} className="aw-line-svg" preserveAspectRatio="none" aria-hidden>
+        <defs>
+          <linearGradient id="aw-line-grad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor={accent} stopOpacity="0.26" />
+            <stop offset="1" stopColor={accent} stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <path d={area} fill="url(#aw-line-grad)" />
+        <motion.path
+          d={line}
+          fill="none"
+          stroke={accent}
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          initial={reduce ? false : { pathLength: 0 }}
+          animate={{ pathLength: 1 }}
+          transition={reduce ? { duration: 0 } : { duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+        />
+        <line x1={nx} y1={pad} x2={nx} y2={H - pad} stroke="var(--fresh-text)" strokeWidth="1" opacity="0.4" />
+        <circle cx={nx} cy={y(nearestNow.score)} r="3.5" fill={accent} stroke="#fff" strokeWidth="2" />
+      </svg>
+      <div className="aw-line-axis"><span>6</span><span>12</span><span>18</span><span>24</span></div>
+    </div>
+  );
+}
+
+function ActionTracks({ rows, points, nowH, ru, reduce, hideHero }: { rows: Row[]; points: PulsePoint[]; nowH: number; ru: boolean; reduce: boolean | null; hideHero?: boolean }) {
   const best = rows.find((r) => r.rec.state === 'now')
     || [...rows].sort((a, b) => ((a.start - nowH + 24) % 24) - ((b.start - nowH + 24) % 24))[0];
-  const nowLeft = pct(nowH);
 
   return (
     <div className="awt">
@@ -77,35 +110,16 @@ function ActionTracks({ rows, nowH, ru, reduce, hideHero }: { rows: Row[]; nowH:
         </div>
       )}
 
-      <div className="awt-axis" aria-hidden>
-        <span />
-        <div className="awt-axis-track">
-          {[6, 12, 18, 24].map((h) => (
-            <span key={h} className="awt-axis-tick" style={{ left: `${pct(h)}%` }}>{h}</span>
-          ))}
-        </div>
-        <span />
-      </div>
+      <MiniPulseLine points={points} nowH={nowH} accent={best?.action.color || '#6366F1'} reduce={reduce} />
 
-      <div className="awt-rows">
-        {rows.map((r, i) => {
-          const left = pct(r.start);
-          const width = Math.max(6, pct(r.end) - left);
+      <div className="aw-windows">
+        {rows.map((r) => {
           const isNow = r.rec.state === 'now';
           return (
-            <div className="awt-row" key={r.action.key}>
-              <span className="awt-name">{ru ? r.action.ru : r.action.en}</span>
-              <div className="awt-track">
-                <motion.div
-                  className="awt-seg"
-                  style={{ left: `${left}%`, background: r.action.color }}
-                  initial={reduce ? false : { width: 0, opacity: 0.4 }}
-                  animate={{ width: `${width}%`, opacity: 1 }}
-                  transition={reduce ? { duration: 0 } : { duration: 0.5, delay: 0.06 * i, ease: [0.22, 1, 0.36, 1] }}
-                />
-                <span className="awt-now" style={{ left: `${nowLeft}%` }} />
-              </div>
-              <span className={`awt-time${isNow ? ' awt-time--now' : ''}`}>
+            <div className={`aw-win${isNow ? ' aw-win--now' : ''}`} key={r.action.key}>
+              <span className="aw-win-dot" style={{ background: r.action.color }} />
+              <span className="aw-win-name">{ru ? r.action.ru : r.action.en}</span>
+              <span className={`aw-win-time${isNow ? ' aw-win-time--now' : ''}`}>
                 {isNow ? (ru ? 'сейчас' : 'now') : fmtRange(r.start, r.end)}
               </span>
             </div>
@@ -159,6 +173,11 @@ export function ActionWindows({ profile, chartData, chartId, onOpenChart, onRequ
     }).filter((r): r is Row => !!r);
   }, [home]);
 
+  const points = useMemo<PulsePoint[]>(
+    () => (home && home.status === 'ready' ? home.pulse.points.map((p) => ({ hour: p.hour, score: p.score })) : []),
+    [home],
+  );
+
   if (compact) {
     if (!hasChart) {
       return (
@@ -206,7 +225,7 @@ export function ActionWindows({ profile, chartData, chartId, onOpenChart, onRequ
               transition={reduce ? { duration: 0 } : { duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
               style={{ overflow: 'hidden' }}
             >
-              <ActionTracks rows={rows} nowH={nowH} ru={ru} reduce={reduce} hideHero />
+              <ActionTracks rows={rows} points={points} nowH={nowH} ru={ru} reduce={reduce} hideHero />
             </motion.div>
           ) : null}
         </AnimatePresence>
@@ -234,7 +253,7 @@ export function ActionWindows({ profile, chartData, chartId, onOpenChart, onRequ
       ) : rows.length === 0 ? (
         <div className="awt-skeleton" />
       ) : (
-        <ActionTracks rows={rows} nowH={nowH} ru={ru} reduce={reduce} />
+        <ActionTracks rows={rows} points={points} nowH={nowH} ru={ru} reduce={reduce} />
       )}
     </section>
   );

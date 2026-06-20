@@ -36,7 +36,7 @@ type DailyTabConfig = {
 };
 
 const DAILY_TABS: DailyTabConfig[] = [
-  { id: 'overview', label: 'День', title: 'Личный прогноз', subtitle: 'Главный фокус дня', accent: '#FF7E8B' },
+  { id: 'overview', label: 'День', title: 'Личный прогноз', subtitle: 'Главный фокус дня', accent: '#6366F1' },
   { id: 'love', label: 'Любовь', title: 'Любовь сегодня', subtitle: 'Близость, эмоции и разговоры', accent: '#A98CEC', sectionKey: 'daily_love' },
   { id: 'money', label: 'Деньги', title: 'Деньги сегодня', subtitle: 'Решения, покупки и устойчивость', accent: '#34C39A', sectionKey: 'daily_money' },
   { id: 'work', label: 'Работа', title: 'Работа сегодня', subtitle: 'Фокус, задачи и рабочий ритм', accent: '#5BB6EC', sectionKey: 'daily_work_business' },
