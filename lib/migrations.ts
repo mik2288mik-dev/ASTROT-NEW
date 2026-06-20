@@ -2136,6 +2136,36 @@ async function lumia027ContentMatrixCache(pool: Pool): Promise<void> {
   log.info(`Migration ${migrationName} applied`);
 }
 
+// Сценарии ретеншн-уведомлений сидились enabled=FALSE → планнер отбрасывал всё и
+// уведомления не приходили. Включаем их + ресинкаем тексты шаблонов из каталога
+// (раньше шаблоны вставлялись с DO NOTHING, поэтому правки текстов не доходили).
+async function lumia029EnableNotificationScenarios(pool: Pool) {
+  const migrationName = 'lumia_029_enable_notification_scenarios';
+  if (await isMigrationApplied(pool, migrationName)) return;
+
+  for (const seed of RETENTION_NOTIFICATION_SCENARIO_SEEDS) {
+    const scenarioResult = await pool.query(
+      `UPDATE notification_scenarios SET enabled = TRUE, updated_at = CURRENT_TIMESTAMP WHERE key = $1 RETURNING id`,
+      [seed.key]
+    );
+    const scenarioId = Number(scenarioResult.rows[0]?.id);
+    if (!scenarioId) continue;
+    for (let index = 0; index < seed.templates.length; index += 1) {
+      const item = seed.templates[index];
+      const name = `${seed.name} · ${String(index + 1).padStart(2, '0')}`;
+      await pool.query(
+        `UPDATE notification_templates
+         SET title = $1, body = $2, text = $2, button_text = $3, is_active = TRUE, updated_at = CURRENT_TIMESTAMP
+         WHERE scenario_id = $4 AND name = $5`,
+        [item.title, item.body, item.buttonText, scenarioId, name]
+      );
+    }
+  }
+
+  await markMigrationApplied(pool, migrationName);
+  log.info('Migration lumia_029_enable_notification_scenarios applied');
+}
+
 export async function runMigrations(): Promise<void> {
   if (!DATABASE_URL) {
     log.warn('DATABASE_URL not set. Skipping migrations.');
@@ -2186,6 +2216,7 @@ export async function runMigrations(): Promise<void> {
   await lumia026AccessFoundation(pool);
   await lumia027ContentMatrixCache(pool);
   await lumia028HoroscopeEngagement(pool);
+  await lumia029EnableNotificationScenarios(pool);
   await verifyTablesExist(pool);
 
     log.info('All Lumia migrations completed successfully');
