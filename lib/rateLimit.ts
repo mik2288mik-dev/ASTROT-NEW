@@ -24,6 +24,7 @@ setInterval(() => {
 export interface RateLimitConfig {
   windowMs: number;  // Окно времени в миллисекундах
   maxRequests: number;  // Максимум запросов в окне
+  name?: string;  // Имя бакета — разные конфиги не делят счётчик (GET-поллинг ≠ POST-вопрос)
 }
 
 export interface RateLimitResult {
@@ -44,7 +45,7 @@ export function checkRateLimit(
   userId: string, 
   config: RateLimitConfig
 ): RateLimitResult {
-  const key = `rate_limit:${userId}`;
+  const key = `rate_limit:${userId}:${config.name || 'default'}`;
   const now = Date.now();
   
   let entry = rateLimitStore.get(key);
@@ -85,30 +86,35 @@ export const RATE_LIMIT_CONFIGS = {
   // Бесплатные пользователи: 10 запросов в минуту
   FREE: {
     windowMs: 60 * 1000,  // 1 минута
-    maxRequests: 10
+    maxRequests: 30,
+    name: 'free',
   },
-  
+
   // Премиум пользователи: 60 запросов в минуту
   PREMIUM: {
     windowMs: 60 * 1000,  // 1 минута
-    maxRequests: 60
+    maxRequests: 60,
+    name: 'premium',
   },
-  
-  // AI операции (дорогие): 5 запросов в минуту для free, 30 для premium
+
+  // AI операции: дневной лимит чата уже = 3/день, поэтому минутный — просто анти-спам.
   AI_FREE: {
     windowMs: 60 * 1000,
-    maxRequests: 5
+    maxRequests: 20,
+    name: 'ai',
   },
-  
+
   AI_PREMIUM: {
     windowMs: 60 * 1000,
-    maxRequests: 30
+    maxRequests: 30,
+    name: 'ai',
   },
 
   /** Wallet actions: roulette spin, referral claim */
   LUMI_ACTION: {
     windowMs: 60 * 1000,
     maxRequests: 20,
+    name: 'lumi',
   },
 };
 
