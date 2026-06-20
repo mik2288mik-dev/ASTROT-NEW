@@ -2166,6 +2166,30 @@ async function lumia029EnableNotificationScenarios(pool: Pool) {
   log.info('Migration lumia_029_enable_notification_scenarios applied');
 }
 
+// Тексты шаблонов всегда подтягиваются из каталога (источник правды) при каждом
+// деплое — чтобы правки копий доходили до прода без отдельной миграции каждый раз.
+async function syncNotificationTemplateTextFromCatalog(pool: Pool) {
+  try {
+    for (const seed of RETENTION_NOTIFICATION_SCENARIO_SEEDS) {
+      const r = await pool.query(`SELECT id FROM notification_scenarios WHERE key = $1`, [seed.key]);
+      const scenarioId = Number(r.rows[0]?.id);
+      if (!scenarioId) continue;
+      for (let index = 0; index < seed.templates.length; index += 1) {
+        const item = seed.templates[index];
+        const name = `${seed.name} · ${String(index + 1).padStart(2, '0')}`;
+        await pool.query(
+          `UPDATE notification_templates
+           SET title = $1, body = $2, text = $2, button_text = $3, updated_at = CURRENT_TIMESTAMP
+           WHERE scenario_id = $4 AND name = $5`,
+          [item.title, item.body, item.buttonText, scenarioId, name]
+        );
+      }
+    }
+  } catch (e: any) {
+    log.warn('notification template text resync skipped', { error: e?.message });
+  }
+}
+
 export async function runMigrations(): Promise<void> {
   if (!DATABASE_URL) {
     log.warn('DATABASE_URL not set. Skipping migrations.');
@@ -2217,6 +2241,7 @@ export async function runMigrations(): Promise<void> {
   await lumia027ContentMatrixCache(pool);
   await lumia028HoroscopeEngagement(pool);
   await lumia029EnableNotificationScenarios(pool);
+  await syncNotificationTemplateTextFromCatalog(pool);
   await verifyTablesExist(pool);
 
     log.info('All Lumia migrations completed successfully');
