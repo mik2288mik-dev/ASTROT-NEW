@@ -44,20 +44,21 @@ export type StartParamRoute = {
   todaySection?: string;
 };
 
-/** короткий код → экран приложения (обратная сторона SECTION_TO_CODE) */
+/** короткий код → экран приложения (обратная сторона SECTION_TO_CODE).
+ *  view-значения совпадают с ViewState приложения (App.tsx). */
 const CODE_TO_ROUTE: Record<string, StartParamRoute> = {
-  dc: { view: 'dashboard', screen: 'daily_card', todaySection: 'daily-card' },
-  pd: { view: 'dashboard', screen: 'pulse_day', todaySection: 'pulse' },
-  pday: { view: 'dashboard', screen: 'checkin', todaySection: 'checkin' },
-  btime: { view: 'dashboard', screen: 'best_time', todaySection: 'best-time' },
-  mwin: { view: 'dashboard', screen: 'mini_win', todaySection: 'mini-win' },
+  dc: { view: 'dashboard', todaySection: 'daily-card' },
+  pd: { view: 'dashboard', todaySection: 'pulse' },
+  pday: { view: 'personal_daily' },
+  btime: { view: 'dashboard', todaySection: 'best-time' },
+  mwin: { view: 'dashboard', todaySection: 'mini-win' },
   natal: { view: 'chart' },
   natalx: { view: 'chart' },
-  love: { view: 'horoscope' },
-  money: { view: 'horoscope' },
-  work: { view: 'horoscope' },
+  love: { view: 'personal_daily' },
+  money: { view: 'personal_daily' },
+  work: { view: 'personal_daily' },
   prem: { view: 'dashboard' },
-  compat: { view: 'union' },
+  compat: { view: 'synastry' },
   chat: { view: 'oracle' },
   horo: { view: 'horoscope' },
   today: { view: 'dashboard' },

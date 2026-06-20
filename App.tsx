@@ -16,6 +16,7 @@ import {
     writeLocalHumanBaseReport,
 } from './lib/localHumanBaseReportCache';
 import { getMoscowTodayKey } from './lib/date-utils';
+import { resolveStartParamRoute } from './lib/notificationDeepLink';
 import { Onboarding } from './views/Onboarding';
 import { Dashboard } from './views/Dashboard';
 import { NatalMagazine } from './views/v2/NatalMagazine';
@@ -196,12 +197,36 @@ const LEGACY_NOTIFICATION_VIEW_ALIASES: Record<string, ViewState> = {
     personal_forecast: 'personal_daily',
 };
 
+/**
+ * start_param из ссылки пуша (t.me/<bot>?startapp=<code>). Берём из Telegram WebApp,
+ * с запасными вариантами из query/hash — на случай, если SDK ещё не инициализировался.
+ */
+function getStartParamRaw(): string | null {
+    if (typeof window === 'undefined') return null;
+    const fromTg = (window as any).Telegram?.WebApp?.initDataUnsafe?.start_param;
+    if (fromTg) return String(fromTg);
+    const search = new URLSearchParams(window.location.search);
+    const fromSearch = search.get('startapp') || search.get('tgWebAppStartParam');
+    if (fromSearch) return fromSearch;
+    const hash = window.location.hash.replace(/^#/, '');
+    return new URLSearchParams(hash).get('tgWebAppStartParam') || null;
+}
+
+function getStartParamView(): ViewState | null {
+    const resolved = resolveStartParamRoute(getStartParamRaw());
+    if (!resolved) return null;
+    const v = resolved.route.view as ViewState;
+    return NOTIFICATION_QUERY_VIEWS.has(v) || v === 'chart' ? v : null;
+}
+
 function getRequestedViewFromQuery(): ViewState | null {
     if (typeof window === 'undefined') return null;
     const requested = new URLSearchParams(window.location.search).get('view');
-    if (!requested) return null;
-    if (LEGACY_NOTIFICATION_VIEW_ALIASES[requested]) return LEGACY_NOTIFICATION_VIEW_ALIASES[requested];
-    return NOTIFICATION_QUERY_VIEWS.has(requested as ViewState) ? (requested as ViewState) : null;
+    if (requested) {
+        if (LEGACY_NOTIFICATION_VIEW_ALIASES[requested]) return LEGACY_NOTIFICATION_VIEW_ALIASES[requested];
+        if (NOTIFICATION_QUERY_VIEWS.has(requested as ViewState)) return requested as ViewState;
+    }
+    return getStartParamView();
 }
 
 function getRequestedPersonalDailySectionFromQuery(): PersonalDailySection | null {
@@ -682,7 +707,8 @@ const App: React.FC = () => {
                 setPersonalDailyInitialSection(requestedPersonalSection);
             }
             notificationLaunchRef.current = getNotificationLaunchParams();
-            setInitialTodaySection(notificationLaunchRef.current?.section || null);
+            const startParamSection = resolveStartParamRoute(getStartParamRaw())?.route.todaySection || null;
+            setInitialTodaySection(notificationLaunchRef.current?.section || startParamSection);
             
             // Ждём Telegram Web App (может загружаться асинхронно)
             let tgId: string | number | undefined;
