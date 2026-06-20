@@ -7,6 +7,7 @@ export type LumiaContentType =
   | 'day_card'
   | 'sign_daily_horoscope'
   | 'sign_weekly_horoscope'
+  | 'sign_monthly_horoscope'
   | 'sign_compatibility'
   | 'blind_spot'
   | 'personal_daily'
@@ -15,7 +16,7 @@ export type LumiaContentType =
 
 export type LumiaModelTier = 'fast' | 'main' | 'deep';
 export type ContentCacheScope = 'shared' | 'user_chart' | 'chart_version';
-export type ContentCacheTtl = '24h' | '7d' | 'forever' | 'forever_until_chart_changes';
+export type ContentCacheTtl = '24h' | '7d' | '30d' | 'forever' | 'forever_until_chart_changes';
 export type GenerationPolicy = 'once_per_day' | 'once_per_week' | 'once_per_chart_version' | 'explicit_only';
 export type ContentPlacement = 'push' | 'home' | 'horoscope' | 'natal' | 'synastry' | 'report';
 export type NatalSectionKey =
@@ -69,6 +70,11 @@ const CONTENT_MATRIX: Record<LumiaContentType, ContentPolicy> = {
     type: 'sign_weekly_horoscope', featureKey: 'weekly_sign_horoscope', modelTier: 'fast', words: { min: 100, max: 140 },
     cacheTtl: '7d', cacheScope: 'shared', promptVersion: 'sign_weekly_horoscope.v3', purpose: 'Общий гороскоп по знаку на неделю',
     style: 'Один главный сюжет недели и два коротких совета.', placements: ['horoscope'], generationPolicy: 'once_per_week', batchSize: 12,
+  },
+  sign_monthly_horoscope: {
+    type: 'sign_monthly_horoscope', featureKey: 'weekly_sign_horoscope', modelTier: 'fast', words: { min: 110, max: 150 },
+    cacheTtl: '30d', cacheScope: 'shared', promptVersion: 'sign_monthly_horoscope.v1', purpose: 'Общий гороскоп по знаку на месяц',
+    style: 'Один главный сюжет месяца и два коротких совета.', placements: ['horoscope'], generationPolicy: 'once_per_week', batchSize: 12,
   },
   sign_compatibility: {
     type: 'sign_compatibility', featureKey: 'zodiac_compatibility', modelTier: 'fast', words: { min: 120, max: 180 },

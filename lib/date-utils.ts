@@ -158,6 +158,37 @@ export function formatMonthPeriodLabel(periodKey: string, language: Language | s
   }).format(d);
 }
 
+/** Диапазон недели датами: «с 22 по 28 июня 2026 г.» (без дней недели). */
+export function formatWeekRangePretty(periodKey: string, language: Language | string = 'ru'): string {
+  const m = ISO_WEEK_KEY.exec(periodKey.trim());
+  if (!m) return periodKey;
+  const ref = parseISO(`${Number(m[1])}-01-04T12:00:00.000Z`);
+  const withWeek = setISOWeek(ref, Number(m[2]));
+  const start = startOfISOWeek(withWeek);
+  const end = endOfISOWeek(withWeek);
+  const year = end.getUTCFullYear();
+  if (language === 'ru') {
+    const dayFmt = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', timeZone: 'UTC' });
+    const dayMonthFmt = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', timeZone: 'UTC' });
+    const sameMonth = start.getUTCMonth() === end.getUTCMonth();
+    return sameMonth
+      ? `с ${dayFmt.format(start)} по ${dayMonthFmt.format(end)} ${year} г.`
+      : `с ${dayMonthFmt.format(start)} по ${dayMonthFmt.format(end)} ${year} г.`;
+  }
+  const a = new Intl.DateTimeFormat('en-US', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(start);
+  const b = new Intl.DateTimeFormat('en-US', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(end);
+  return `${a} – ${b}`;
+}
+
+/** Месяц прогноза: «на июнь 2026» / «for June 2026». */
+export function formatMonthPretty(periodKey: string, language: Language | string = 'ru'): string {
+  const m = MONTH_KEY.exec(periodKey.trim());
+  if (!m) return periodKey;
+  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, 1, 12, 0, 0));
+  const month = new Intl.DateTimeFormat(language === 'ru' ? 'ru-RU' : 'en-US', { month: 'long', timeZone: 'UTC' }).format(d);
+  return language === 'ru' ? `на ${month} ${Number(m[1])}` : `for ${month} ${Number(m[1])}`;
+}
+
 export function isoWeekToValidRangeUtc(periodKey: string): { validFrom: string; validTo: string } {
   const m = ISO_WEEK_KEY.exec(periodKey.trim());
   if (!m) {

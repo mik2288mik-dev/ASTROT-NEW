@@ -142,6 +142,7 @@ function getLegacyHoroscopeSource(source?: string): DailyHoroscope['source'] {
 
 const signDailyClientCache = new Map<string, ForecastDailyReading>();
 const signWeeklyClientCache = new Map<string, ForecastDailyReading>();
+const signMonthlyClientCache = new Map<string, ForecastDailyReading>();
 const dailyForecastClientCache = new Map<string, ForecastDailyReading>();
 
 function signWeeklyClientCacheKey(sign: string, periodKey: string, language: 'ru' | 'en') {
@@ -373,6 +374,41 @@ export const ensureWeeklySignHoroscope = async (
   const payload = await response.json();
   if (!payload?.reading) throw buildApiError('Weekly sign horoscope content is missing');
   signWeeklyClientCache.set(signWeeklyClientCacheKey(sign, periodKey, language), payload.reading);
+  return payload.reading as ForecastDailyReading;
+};
+
+export const getCachedMonthlySignHoroscope = async (
+  sign: string,
+  periodKey: string,
+  language: 'ru' | 'en' = 'ru'
+): Promise<ForecastDailyReading | null> => {
+  const key = signWeeklyClientCacheKey(sign, periodKey, language);
+  const memory = signMonthlyClientCache.get(key);
+  if (memory) return memory;
+  const params = new URLSearchParams({ sign, periodKey, language });
+  const response = await fetchWithTimeout(`${API_BASE_URL}/api/content/horoscope/sign-monthly?${params}`, { method: 'GET', cache: 'no-store' }, 4500);
+  if (response.status === 404) return null;
+  if (!response.ok) throw buildApiError(`Monthly sign horoscope failed: ${response.status}`, response.status);
+  const payload = await response.json();
+  if (!payload?.reading) throw buildApiError('Monthly sign horoscope content is missing');
+  signMonthlyClientCache.set(key, payload.reading);
+  return payload.reading as ForecastDailyReading;
+};
+
+export const ensureMonthlySignHoroscope = async (
+  sign: string,
+  periodKey: string,
+  language: 'ru' | 'en' = 'ru'
+): Promise<ForecastDailyReading> => {
+  const cached = await getCachedMonthlySignHoroscope(sign, periodKey, language);
+  if (cached) return cached;
+  const response = await fetchWithTimeout(`${API_BASE_URL}/api/content/horoscope/sign-monthly`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() }, body: JSON.stringify({ sign, periodKey, language }),
+  }, 15000);
+  if (!response.ok) throw buildApiError(`Monthly sign horoscope failed: ${response.status}`, response.status);
+  const payload = await response.json();
+  if (!payload?.reading) throw buildApiError('Monthly sign horoscope content is missing');
+  signMonthlyClientCache.set(signWeeklyClientCacheKey(sign, periodKey, language), payload.reading);
   return payload.reading as ForecastDailyReading;
 };
 

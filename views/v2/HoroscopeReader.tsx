@@ -2,7 +2,7 @@ import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion, type PanInfo } from 'framer-motion';
 import type { ForecastDailyReading, NatalChartData, UserProfile } from '../../types';
 import { getZodiacSign } from '../../constants';
-import { getMoscowTodayKey, getMoscowIsoWeekKey, formatLumiaDate } from '../../lib/date-utils';
+import { getMoscowTodayKey, getMoscowIsoWeekKey, getMoscowMonthKey, formatLumiaDate, formatWeekRangePretty, formatMonthPretty } from '../../lib/date-utils';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
 import { hasActivePremium, hasNatalChart } from '../../lib/accessMatrix';
 import {
@@ -10,6 +10,8 @@ import {
   ensureDailySignHoroscope,
   getCachedWeeklySignHoroscope,
   ensureWeeklySignHoroscope,
+  getCachedMonthlySignHoroscope,
+  ensureMonthlySignHoroscope,
 } from '../../services/astrologyService';
 import { saveProfile } from '../../services/storageService';
 import { shareToTelegram } from '../../lib/botLink';
@@ -40,7 +42,7 @@ function writeExtraSigns(today: string, signs: string[]) {
   try { window.localStorage.setItem(HORO_EXTRA_KEY, JSON.stringify({ date: today, signs })); } catch { /* optional */ }
 }
 
-type Period = 'today' | 'tomorrow' | 'week';
+type Period = 'today' | 'week' | 'month';
 
 export type HoroscopeReaderProps = {
   profile: UserProfile;
@@ -59,16 +61,6 @@ const ELEMENT_COLOR: Record<string, string> = {
   gemini: 'var(--fresh-sky)', libra: 'var(--fresh-sky)', aquarius: 'var(--fresh-sky)',
   cancer: 'var(--fresh-lavender)', scorpio: 'var(--fresh-lavender)', pisces: 'var(--fresh-lavender)',
 };
-
-/* +N дней к ключу даты YYYY-MM-DD (в UTC) */
-function addDaysKey(key: string, days: number): string {
-  const [y, m, d] = key.split('-').map(Number);
-  const dt = new Date(Date.UTC(y, m - 1, d));
-  dt.setUTCDate(dt.getUTCDate() + days);
-  const mm = String(dt.getUTCMonth() + 1).padStart(2, '0');
-  const dd = String(dt.getUTCDate()).padStart(2, '0');
-  return `${dt.getUTCFullYear()}-${mm}-${dd}`;
-}
 
 /* Понедельник недели для ключа даты — отдельный ключ вовлечённости для периода «неделя» */
 function mondayKey(key: string): string {
@@ -154,7 +146,9 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
       try {
         const r = p === 'week'
           ? (await getCachedWeeklySignHoroscope(s, getMoscowIsoWeekKey(), language)) || await ensureWeeklySignHoroscope(s, getMoscowIsoWeekKey(), language)
-          : (await getCachedDailySignHoroscope(s, p === 'tomorrow' ? addDaysKey(today, 1) : today, language)) || await ensureDailySignHoroscope(s, p === 'tomorrow' ? addDaysKey(today, 1) : today, language);
+          : p === 'month'
+            ? (await getCachedMonthlySignHoroscope(s, getMoscowMonthKey(), language)) || await ensureMonthlySignHoroscope(s, getMoscowMonthKey(), language)
+            : (await getCachedDailySignHoroscope(s, today, language)) || await ensureDailySignHoroscope(s, today, language);
         if (alive) setReadings((prev) => ({ ...prev, [kk]: r }));
       } catch {
         if (alive) setReadings((prev) => ({ ...prev, [kk]: null }));
@@ -198,24 +192,31 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
 
   const periodTabs = useMemo(() => ([
     { id: 'today', label: language === 'ru' ? 'Сегодня' : 'Today' },
-    { id: 'tomorrow', label: language === 'ru' ? 'Завтра' : 'Tomorrow' },
     { id: 'week', label: language === 'ru' ? 'Неделя' : 'Week' },
+    { id: 'month', label: language === 'ru' ? 'Месяц' : 'Month' },
   ]), [language]);
 
   const periodLabel = period === 'today'
     ? (language === 'ru' ? 'Сегодня' : 'Today')
-    : period === 'tomorrow'
-      ? (language === 'ru' ? 'Завтра' : 'Tomorrow')
-      : (language === 'ru' ? 'Неделя' : 'This week');
+    : period === 'week'
+      ? (language === 'ru' ? 'Неделя' : 'This week')
+      : (language === 'ru' ? 'Месяц' : 'This month');
 
-  /* День недели + дата для шапки */
+  /* Дата/период для шапки */
   const dateLine = useMemo(() => {
-    if (period === 'week') return language === 'ru' ? 'Эта неделя' : 'This week';
-    const key = period === 'tomorrow' ? addDaysKey(today, 1) : today;
-    const [y, m, d] = key.split('-').map(Number);
+    if (period === 'week') return formatWeekRangePretty(getMoscowIsoWeekKey(), language);
+    if (period === 'month') return formatMonthPretty(getMoscowMonthKey(), language);
+    const [y, m, d] = today.split('-').map(Number);
     const dt = new Date(Date.UTC(y, m - 1, d, 12));
     const wd = new Intl.DateTimeFormat(language === 'ru' ? 'ru-RU' : 'en-US', { timeZone: 'UTC', weekday: 'long' }).format(dt);
-    return `${wd.charAt(0).toUpperCase()}${wd.slice(1)}, ${formatLumiaDate(key, language)}`;
+    return `${wd.charAt(0).toUpperCase()}${wd.slice(1)}, ${formatLumiaDate(today, language)}`;
+  }, [period, today, language]);
+
+  /* Тег для цветной карточки: дата (сегодня) / диапазон недели / месяц */
+  const periodTag = useMemo(() => {
+    if (period === 'week') return formatWeekRangePretty(getMoscowIsoWeekKey(), language);
+    if (period === 'month') return formatMonthPretty(getMoscowMonthKey(), language);
+    return formatLumiaDate(today, language);
   }, [period, today, language]);
 
   /* Личный день — доступ по карте + Premium */
@@ -295,7 +296,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
           >
             <div className="horo-uni-hero" style={{ background: ELEMENT_COLOR[sign.toLowerCase()] || 'var(--fresh-sky)' }}>
               <div className="fresh-hero-chip" style={{ top: 14, right: 14 }}>
-                {signState === 'open' ? periodLabel : signState === 'can-open' ? (language === 'ru' ? 'Другой знак' : 'Other sign') : (language === 'ru' ? 'Закрыто' : 'Locked')}
+                {signState === 'open' ? periodTag : signState === 'can-open' ? (language === 'ru' ? 'Другой знак' : 'Other sign') : (language === 'ru' ? 'Закрыто' : 'Locked')}
               </div>
               <div className="fresh-hero-icon" aria-hidden><ZodiacIcon sign={sign} size={72} strokeWidth={1.1} /></div>
               <div className="fresh-sticky" style={{ transform: 'rotate(-2deg)' }}>
@@ -318,7 +319,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
                     <HoroscopeActivityBar
                       userId={profile.id ? String(profile.id) : undefined}
                       sign={sign}
-                      date={period === 'tomorrow' ? addDaysKey(today, 1) : period === 'week' ? mondayKey(today) : today}
+                      date={period === 'week' ? mondayKey(today) : period === 'month' ? `${getMoscowMonthKey()}-01` : today}
                       language={language}
                       onShare={shareReading}
                     />

@@ -4,7 +4,7 @@ import { buildContentCacheKey, getCacheTtlMs, getContentAccess, getContentPolicy
 describe('Lumia content matrix', () => {
   it('defines generation policy for every required content type', () => {
     expect(listContentMatrix().map((item) => item.type)).toEqual([
-      'push_daily', 'action_timing', 'day_card', 'sign_daily_horoscope', 'sign_weekly_horoscope', 'sign_compatibility',
+      'push_daily', 'action_timing', 'day_card', 'sign_daily_horoscope', 'sign_weekly_horoscope', 'sign_monthly_horoscope', 'sign_compatibility',
       'blind_spot', 'personal_daily', 'natal_section', 'deep_report',
     ]);
     expect(getContentPolicy('sign_daily_horoscope')).toMatchObject({
