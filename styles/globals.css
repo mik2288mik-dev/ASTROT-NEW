@@ -4456,6 +4456,17 @@ a,
 .compat-person-cta { flex-shrink: 0; }
 .compat-person-plus { display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50%; background: var(--fresh-link); color: #fff; font-size: 22px; line-height: 1; }
 
+/* История проверок совместимости */
+.compat-hist { display: flex; flex-direction: column; gap: 8px; padding: 0 16px 6px; }
+.compat-hist-row { display: flex; align-items: center; gap: 12px; background: var(--fresh-surface); border-radius: var(--fresh-radius-card); padding: 11px 14px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.compat-hist-ico { flex-shrink: 0; color: var(--fresh-text); display: flex; }
+.compat-hist-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.compat-hist-name { font-family: var(--fresh-font); font-size: 14.5px; font-weight: 800; color: var(--fresh-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.compat-hist-sub { font-family: var(--fresh-font); font-size: 12px; color: var(--fresh-muted); margin-top: 1px; }
+.compat-hist-score { flex-shrink: 0; font-family: var(--fresh-font); font-size: 16px; font-weight: 900; color: var(--fresh-link); min-width: 26px; text-align: right; }
+.compat-hist-del { flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%; border: none; background: transparent; color: var(--fresh-muted); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.compat-hist-del:active { background: rgba(17, 24, 39, 0.05); transform: scale(0.92); }
+
 /* ── Астро-контекст дня (день недели + фаза луны) ── */
 .fresh-sky-strip {
   margin: 0 16px 14px;

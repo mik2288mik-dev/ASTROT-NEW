@@ -15,6 +15,7 @@ import { FreshSignWheel } from '../../components/fresh-ui';
 import { ZODIAC_KEYS } from '../../lib/horoscope/signDaily';
 import { shareToTelegram } from '../../lib/botLink';
 import { HoroscopeActivityBar } from '../../components/Horoscope/HoroscopeActivityBar';
+import { loadCompatHistory, addCompatHistory, removeCompatHistory, buildCompatHistoryId, type CompatHistoryEntry } from '../../lib/compatHistory';
 
 type SynastryPrefill = {
   source: 'saved-chart' | 'manual';
@@ -168,6 +169,7 @@ export function UnionRoom(props: UnionRoomProps) {
 
   const [screen, setScreen] = useState<'hub' | 'add' | 'result'>(initialPrefill ? 'result' : 'hub');
   const [people, setPeople] = useState<ChartListItem[]>([]);
+  const [history, setHistory] = useState<CompatHistoryEntry[]>([]);
   const [pickSign, setPickSign] = useState<string>(() => ZODIAC_KEYS.find((s) => s.toLowerCase() !== yourSun) || ZODIAC_KEYS[0]);
   const [selected, setSelected] = useState<Selected | null>(
     initialPrefill
@@ -187,6 +189,8 @@ export function UnionRoom(props: UnionRoomProps) {
     void getCharts(profile.id).then((d) => setPeople((d.charts || []).filter((c) => !c.is_primary))).catch(() => setPeople([]));
   }, [profile.id]);
 
+  useEffect(() => { setHistory(loadCompatHistory()); }, []);
+
   const theirSun = selected ? (selected.kind === 'sign' ? String(selected.sign).toLowerCase() : (sunSignFromDate(selected.date) || 'libra')) : 'libra';
   const score: CompatResult | null = selected ? getCompatScore(yourSun, theirSun, lang) : null;
   const theirName = selected ? (selected.kind === 'sign' ? getZodiacSign(lang, theirSun) : (selected.name || (ru ? 'Человек' : 'Person'))) : '';
@@ -201,7 +205,31 @@ export function UnionRoom(props: UnionRoomProps) {
     return () => { alive = false; };
   }, [screen, selected, yourSun, theirSun, lang]);
 
-  const openResult = (s: Selected) => { lumiaSelectionHaptic(); setSelected(s); setScreen('result'); };
+  const sunOf = (s: Selected) => (s.kind === 'sign' ? String(s.sign).toLowerCase() : (sunSignFromDate(s.date) || 'libra'));
+
+  const openResult = (s: Selected) => {
+    lumiaSelectionHaptic();
+    setSelected(s);
+    setScreen('result');
+    const their = sunOf(s);
+    const sc = getCompatScore(yourSun, their, lang);
+    setHistory(addCompatHistory({
+      id: buildCompatHistoryId(s.kind, s.sign, s.name, s.date),
+      kind: s.kind, sign: s.sign, name: s.name, date: s.date, time: s.time, place: s.place, chartId: s.chartId,
+      yourSun, theirSun: their, overall: sc.overall, ts: Date.now(),
+    }));
+  };
+
+  const openFromHistory = (e: CompatHistoryEntry) => {
+    if (e.kind === 'sign') openResult({ kind: 'sign', sign: e.sign });
+    else openResult({ kind: 'person', name: e.name, date: e.date, time: e.time, place: e.place, chartId: e.chartId });
+  };
+
+  const deleteHistory = (id: string, ev: React.MouseEvent) => {
+    ev.stopPropagation();
+    lumiaSelectionHaptic();
+    setHistory(removeCompatHistory(id));
+  };
 
   const shareCompat = () => {
     if (!score || !selected) return;
@@ -267,6 +295,27 @@ export function UnionRoom(props: UnionRoomProps) {
           </div>
           <span className="compat-person-cta"><span className="compat-person-plus">+</span></span>
         </button>
+
+        {history.length ? (
+          <>
+            <div className="union-rel-label" style={{ paddingTop: 4 }}>{ru ? 'История проверок' : 'Recent checks'}</div>
+            <div className="compat-hist">
+              {history.map((e) => (
+                <div key={e.id} className="compat-hist-row" role="button" tabIndex={0} onClick={() => openFromHistory(e)} onKeyDown={(ev) => { if (ev.key === 'Enter') openFromHistory(e); }}>
+                  <span className="compat-hist-ico"><ZodiacIcon sign={e.theirSun} size={20} strokeWidth={1.5} /></span>
+                  <span className="compat-hist-main">
+                    <span className="compat-hist-name">{e.kind === 'sign' ? getZodiacSign(lang, e.theirSun) : (e.name || (ru ? 'Человек' : 'Person'))}</span>
+                    <span className="compat-hist-sub">{e.kind === 'person' ? getZodiacSign(lang, e.theirSun) : (ru ? 'по знаку' : 'by sign')}</span>
+                  </span>
+                  <span className="compat-hist-score">{e.overall}</span>
+                  <button type="button" className="compat-hist-del" aria-label={ru ? 'Удалить' : 'Delete'} onClick={(ev) => deleteHistory(e.id, ev)}>
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3.5 3.5l7 7M10.5 3.5l-7 7" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /></svg>
+                  </button>
+                </div>
+              ))}
+            </div>
+          </>
+        ) : null}
 
         {people.length ? (
           <>
