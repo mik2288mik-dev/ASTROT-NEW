@@ -141,6 +141,7 @@ function windowForPoint(pulse: TodayPulse, point: TodayPulsePoint) {
 function recommendationState(nowScore: number, bestScore: number, targetHour: number, nowHour: number): ActionTimingState {
   if (bestScore < 58) return 'no_edge';
   if (targetHour === nowHour || nowScore >= 62 && bestScore - nowScore <= 6) return 'now';
+  if (targetHour < nowHour) return 'no_edge'; // лучшее окно дня уже прошло
   if (bestScore - nowScore < 7) return 'no_edge';
   return 'later';
 }
@@ -176,9 +177,9 @@ export function buildActionTimingRecommendation(
 ): ActionTimingRecommendation {
   const language = languageOf(languageInput);
   const nowHour = pulse.currentPoint.hour;
-  const future = pulse.points.filter((point) => point.hour >= nowHour);
-  const candidates = future.length > 0 ? future : pulse.points;
-  const ranked = candidates
+  // Лучшее окно дня ищем по ВСЕМУ дню, а не только в будущем — иначе вечером все
+  // действия схлопываются в один оставшийся слот и выглядят одинаково.
+  const ranked = pulse.points
     .map((point) => ({ point, score: scoreActionPoint(point, actionKey) }))
     .sort((a, b) => b.score - a.score || a.point.hour - b.point.hour);
   const best = ranked[0] || { point: pulse.currentPoint, score: scoreActionPoint(pulse.currentPoint, actionKey) };

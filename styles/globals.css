@@ -4363,6 +4363,10 @@ a,
 .aw-line { margin: 2px 0 12px; }
 .aw-line-svg { width: 100%; height: 56px; display: block; }
 .aw-line-axis { display: flex; justify-content: space-between; margin-top: 2px; font-family: var(--fresh-font); font-size: 10px; font-weight: 700; color: var(--fresh-muted); }
+.aw-line-legend { display: flex; gap: 14px; margin-top: 6px; font-family: var(--fresh-font); font-size: 11px; font-weight: 700; color: var(--fresh-muted); }
+.aw-line-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.aw-line-peak i { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+.aw-line-low i { width: 7px; height: 7px; border-radius: 50%; display: inline-block; background: #fff; border: 1.6px solid; }
 .aw-windows { display: flex; flex-direction: column; gap: 5px; }
 .aw-win { display: flex; align-items: center; gap: 9px; padding: 6px 8px; border-radius: 12px; }
 .aw-win--now { background: rgba(99, 102, 241, 0.08); }

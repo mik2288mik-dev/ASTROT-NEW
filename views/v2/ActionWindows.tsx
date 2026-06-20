@@ -53,19 +53,26 @@ function fmtRange(start: number, end: number): string {
 type Row = { action: typeof ACTIONS[number]; rec: ActionTimingRecommendation; start: number; end: number };
 type PulsePoint = { hour: number; score: number };
 
-/* Мини «линия дня» — тот же плавный график пульса, что в личном прогнозе, только компактный. */
-function MiniPulseLine({ points, nowH, accent, reduce }: { points: PulsePoint[]; nowH: number; accent: string; reduce: boolean | null }) {
+/* Мини «линия дня»: плавная кривая пульса, нормализованная к своим min/max (чтобы разброс
+   был виден, а не плоская линия), с явными маркерами ПИК и СПАД + подписью. */
+function MiniPulseLine({ points, nowH, accent, reduce, ru }: { points: PulsePoint[]; nowH: number; accent: string; reduce: boolean | null; ru: boolean }) {
   const W = 300;
-  const H = 64;
-  const pad = 6;
+  const H = 60;
+  const pad = 7;
   const sorted = [...points].filter((p) => Number.isFinite(p.hour) && Number.isFinite(p.score)).sort((a, b) => a.hour - b.hour);
   if (sorted.length < 2) return null;
+  const scores = sorted.map((p) => p.score);
+  const minS = Math.min(...scores);
+  const span = Math.max(1, Math.max(...scores) - minS);
   const x = (h: number) => pad + (Math.max(0, Math.min(24, h)) / 24) * (W - 2 * pad);
-  const y = (s: number) => pad + (1 - Math.max(0, Math.min(100, s)) / 100) * (H - 2 * pad);
+  // нормализация к собственному диапазону (с полями 12–88%) — даже малый разброс читаем
+  const y = (s: number) => pad + (1 - (0.12 + ((s - minS) / span) * 0.76)) * (H - 2 * pad);
   const line = sorted.map((p, i) => `${i ? 'L' : 'M'} ${x(p.hour).toFixed(1)} ${y(p.score).toFixed(1)}`).join(' ');
   const area = `${line} L ${x(sorted[sorted.length - 1].hour).toFixed(1)} ${H - pad} L ${x(sorted[0].hour).toFixed(1)} ${H - pad} Z`;
-  const nearestNow = sorted.reduce((best, p) => (Math.abs(p.hour - nowH) < Math.abs(best.hour - nowH) ? p : best), sorted[0]);
+  const peak = sorted.reduce((b, p) => (p.score > b.score ? p : b), sorted[0]);
+  const low = sorted.reduce((b, p) => (p.score < b.score ? p : b), sorted[0]);
   const nx = x(nowH);
+  const hh = (h: number) => `${String(Math.round(h)).padStart(2, '0')}:00`;
 
   return (
     <div className="aw-line">
@@ -88,10 +95,15 @@ function MiniPulseLine({ points, nowH, accent, reduce }: { points: PulsePoint[];
           animate={{ pathLength: 1 }}
           transition={reduce ? { duration: 0 } : { duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
         />
-        <line x1={nx} y1={pad} x2={nx} y2={H - pad} stroke="var(--fresh-text)" strokeWidth="1" opacity="0.4" />
-        <circle cx={nx} cy={y(nearestNow.score)} r="3.5" fill={accent} stroke="#fff" strokeWidth="2" />
+        <line x1={nx} y1={pad} x2={nx} y2={H - pad} stroke="var(--fresh-text)" strokeWidth="1" opacity="0.32" />
+        <circle cx={x(low.hour)} cy={y(low.score)} r="3" fill="#fff" stroke={accent} strokeWidth="1.6" />
+        <circle cx={x(peak.hour)} cy={y(peak.score)} r="3.6" fill={accent} stroke="#fff" strokeWidth="1.6" />
       </svg>
       <div className="aw-line-axis"><span>6</span><span>12</span><span>18</span><span>24</span></div>
+      <div className="aw-line-legend">
+        <span className="aw-line-peak"><i style={{ background: accent }} />{ru ? 'пик' : 'peak'} {hh(peak.hour)}</span>
+        <span className="aw-line-low"><i style={{ borderColor: accent }} />{ru ? 'спад' : 'low'} {hh(low.hour)}</span>
+      </div>
     </div>
   );
 }
@@ -110,7 +122,7 @@ function ActionTracks({ rows, points, nowH, ru, reduce, hideHero }: { rows: Row[
         </div>
       )}
 
-      <MiniPulseLine points={points} nowH={nowH} accent={best?.action.color || '#6366F1'} reduce={reduce} />
+      <MiniPulseLine points={points} nowH={nowH} accent={best?.action.color || '#6366F1'} reduce={reduce} ru={ru} />
 
       <div className="aw-windows">
         {rows.map((r) => {

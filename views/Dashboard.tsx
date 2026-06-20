@@ -35,6 +35,7 @@ import {
 import { ActionWindows } from './v2/ActionWindows';
 import { HomeFaq } from '../components/Dashboard/HomeFaq';
 import { MATRIX_HOME_LABEL, MATRIX_HOME_SUB } from '../lib/matrixArcana';
+import { sunSignFromDate } from '../lib/synastry/compatScore';
 
 /* ── Вспомогательные функции ── */
 function formatDate(todayKey: string, lang: 'ru' | 'en'): string {
@@ -89,7 +90,10 @@ export const Dashboard = memo<DashboardProps>(({
   const today = useMemo(() => getMoscowTodayKey(), []);
   const hasChart = hasNatalChart(profile, { chartData, primaryChartId: chartId ?? null });
   const premium = hasActivePremium(profile);
-  const selectedSign = String(profile.selectedZodiacSign || chartData?.sun?.sign || '').trim().toLowerCase();
+  // Главная всегда показывает СВОЙ знак (по карте/дате рождения), а не последний
+  // просмотренный в гороскопе — иначе у Рыб на главной мог оказаться Козерог.
+  const ownSunSign = String(chartData?.sun?.sign || sunSignFromDate(profile.birthDate) || '').trim().toLowerCase();
+  const selectedSign = ownSunSign || String(profile.selectedZodiacSign || '').trim().toLowerCase();
 
   const [signReading, setSignReading] = useState<ForecastDailyReading | null>(null);
   const [, setSignLoading] = useState(!!selectedSign);
