@@ -4169,23 +4169,21 @@ a,
 .mtx-form-row .fresh-input { flex: 1; }
 .mtx-empty { padding: 16px 20px; font-size: 14px; color: var(--fresh-muted); }
 .mtx-result { padding: 8px 20px 0; }
-.mtx-hero { background: linear-gradient(135deg, #6D5BDF, #A855F7); color: #fff; border-radius: var(--fresh-radius-card); padding: 20px; text-align: center; overflow: hidden; }
-.mtx-hero-badge { width: 46px; height: 46px; margin: 0 auto 10px; border-radius: 50%; background: rgba(255, 255, 255, 0.18); display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 900; font-family: var(--fresh-font); }
+.mtx-hero { background: linear-gradient(135deg, #6D5BDF, #A855F7); color: #fff; border-radius: var(--fresh-radius-card); padding: 22px 20px; text-align: center; overflow: hidden; }
 .mtx-hero-kicker { font-family: var(--fresh-font); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.85; }
-.mtx-hero-name { font-family: var(--fresh-font); font-size: 24px; font-weight: 900; margin-top: 2px; letter-spacing: -0.01em; }
+.mtx-hero-key { font-family: var(--fresh-font); font-size: 22px; font-weight: 900; margin-top: 4px; letter-spacing: -0.01em; line-height: 1.2; }
 .mtx-hero-essence { font-family: var(--fresh-font); font-size: 14.5px; line-height: 1.55; margin: 10px 0 0; color: rgba(255, 255, 255, 0.95); }
-.mtx-note { padding: 0 20px 14px; margin: 0; font-size: 12px; line-height: 1.5; color: var(--fresh-muted); }
+.mtx-hero-arcana { font-family: var(--fresh-font); font-size: 11px; font-weight: 700; margin-top: 12px; opacity: 0.7; letter-spacing: 0.01em; }
+.mtx-note-toggle { display: inline-block; margin: 16px 0 0; padding: 0; background: none; border: none; font-family: var(--fresh-font); font-size: 12.5px; font-weight: 700; color: var(--fresh-link); cursor: pointer; }
+.mtx-note { padding: 8px 0 0; margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--fresh-muted); }
 .mtx-share-hook { text-align: center; font-family: var(--fresh-font); font-size: 13px; font-weight: 700; color: var(--fresh-text); margin: 18px 16px 0; }
-.mtx-tag { display: inline-block; margin-top: 6px; font-family: var(--fresh-font); font-size: 11.5px; font-weight: 700; text-transform: lowercase; letter-spacing: 0.02em; color: var(--fresh-link); }
-.mtx-hero .mtx-tag { color: rgba(255, 255, 255, 0.9); }
-.mtx-strong { margin-left: 6px; padding: 1px 7px; border-radius: 999px; background: #FEF3C7; color: #92400E; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; }
 .mtx-grid { display: flex; flex-direction: column; gap: 12px; margin-top: 14px; }
-.mtx-card { background: var(--fresh-surface); border-radius: var(--fresh-radius-card); padding: 14px 16px; }
-.mtx-card-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
-.mtx-card-label { font-family: var(--fresh-font); font-size: 11.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--fresh-muted); }
-.mtx-card-arcana { font-family: var(--fresh-font); font-size: 11.5px; font-weight: 800; color: var(--fresh-link); flex-shrink: 0; }
-.mtx-card-name { font-family: var(--fresh-font); font-size: 17px; font-weight: 800; color: var(--fresh-text); margin-top: 3px; }
-.mtx-card-essence { font-family: var(--fresh-font); font-size: 14px; line-height: 1.55; color: var(--fresh-text); margin: 6px 0 0; }
+.mtx-card { background: var(--fresh-surface); border-radius: var(--fresh-radius-card); padding: 15px 16px; }
+.mtx-card-label { font-family: var(--fresh-font); font-size: 16.5px; font-weight: 800; color: var(--fresh-text); letter-spacing: -0.01em; }
+.mtx-card-key { font-family: var(--fresh-font); font-size: 12.5px; font-weight: 700; color: var(--fresh-link); margin-top: 2px; }
+.mtx-card-essence { font-family: var(--fresh-font); font-size: 14px; line-height: 1.55; color: var(--fresh-text); margin: 8px 0 0; }
+.mtx-card-rep { color: var(--fresh-muted); }
+.mtx-card-arc { font-family: var(--fresh-font); font-size: 11px; font-weight: 600; color: var(--fresh-muted); margin-top: 8px; opacity: 0.85; }
 
 /* ── «Стихии в карте» — спектр-бар + легенда ── */
 .cib { padding: 4px 20px 10px; }
