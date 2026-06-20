@@ -13,7 +13,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const access = await requireAdminAccess(req);
     const text =
-      'Lumia — тест уведомлений.\n\nЕсли ты видишь это сообщение, доставка работает: BOT_TOKEN и Telegram настроены верно.';
+      '✨ Lumia на связи\n\nСообщение дошло — уведомления работают. Так они и будут приходить: коротко, по делу и с кнопкой внутрь приложения.';
     const result = await sendTelegramTextMessage(String(access.requesterId), text);
     if (!result.ok) {
       return res.status(502).json({ success: false, error: result.error || 'Telegram send failed' });

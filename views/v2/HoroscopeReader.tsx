@@ -200,12 +200,6 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
     { id: 'month', label: language === 'ru' ? 'Месяц' : 'Month' },
   ]), [language]);
 
-  const periodLabel = period === 'today'
-    ? (language === 'ru' ? 'Сегодня' : 'Today')
-    : period === 'week'
-      ? (language === 'ru' ? 'Неделя' : 'This week')
-      : (language === 'ru' ? 'Месяц' : 'This month');
-
   /* Дата/период для шапки */
   const dateLine = useMemo(() => {
     if (period === 'week') return formatWeekRangePretty(getMoscowIsoWeekKey(), language);
@@ -247,8 +241,8 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
   const shareReading = () => {
     const hook = reading?.headline || (language === 'ru' ? 'Узнай, что тебя ждёт' : 'See what is ahead');
     const text = language === 'ru'
-      ? `${signLabel} · ${periodLabel.toLowerCase()}\n«${hook}»\n\nЗагляни в Lumia — посмотри свой разбор.`
-      : `${signLabel} · ${periodLabel.toLowerCase()}\n“${hook}”\n\nOpen Lumia — see your reading.`;
+      ? `Гороскоп · ${signLabel}\n«${hook}»\n\nУзнай свой в Lumia — по дате рождения, бесплатно.`
+      : `Horoscope · ${signLabel}\n“${hook}”\n\nGet yours in Lumia — by birth date, free.`;
     shareToTelegram(text);
   };
 
