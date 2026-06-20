@@ -27,7 +27,8 @@ const LOCAL_SIGN_KEY = 'lumia:selected-zodiac-sign';
    Знаки открываются по тапу — без авто-префетча, чтобы не жечь API. */
 const HORO_EXTRA_KEY = 'lumia:horo-extra-signs';
 const FREE_EXTRA_QUOTA = 1;
-const PREMIUM_EXTRA_QUOTA = 3;
+// Премиум — все знаки без лимита (11 чужих + свой = 12); квота 12 фактически не упирается.
+const PREMIUM_EXTRA_QUOTA = 12;
 
 function readExtraSigns(today: string): string[] {
   try {
@@ -123,6 +124,9 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
   const canOpenMore = openedSigns.length < extraQuota;
   const signState: 'open' | 'can-open' | 'locked' = isOpened ? 'open' : canOpenMore ? 'can-open' : 'locked';
 
+  // Free: только «Сегодня». Неделя и месяц — премиум.
+  const periodLocked = !premium && period !== 'today';
+
   /* Открыть знак по кнопке — тратит дневную квоту и запускает загрузку (никакого авто-фетча). */
   const openCurrent = () => {
     if (isOpened || !canOpenMore) return;
@@ -136,7 +140,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
 
   /* Загружаем только открытый знак и только текущий (без префетча соседей). */
   useEffect(() => {
-    if (!isOpened) return;
+    if (!isOpened || periodLocked) return;
     let alive = true;
     const loadFor = async (s: string, p: Period) => {
       const kk = keyOf(s, p);
@@ -156,7 +160,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
     };
     void loadFor(sign, period);
     return () => { alive = false; };
-  }, [sign, period, language, today, isOpened]);
+  }, [sign, period, language, today, isOpened, periodLocked]);
 
   const goToIndex = (next: number, direction: number) => {
     lumiaSelectionHaptic();
@@ -300,11 +304,27 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
               </div>
               <div className="fresh-hero-icon" aria-hidden><ZodiacIcon sign={sign} size={72} strokeWidth={1.1} /></div>
               <div className="fresh-sticky" style={{ transform: 'rotate(-2deg)' }}>
-                {signState === 'open' ? (reading?.headline || (language === 'ru' ? 'Готовим разбор…' : 'Preparing…')) : signLabel}
+                {signState === 'open' && !periodLocked ? (reading?.headline || (language === 'ru' ? 'Готовим разбор…' : 'Preparing…')) : signLabel}
               </div>
             </div>
             <div className="horo-uni-body">
-              {signState === 'open' ? (
+              {periodLocked ? (
+                <div className="horo-lock">
+                  <div className="horo-lock-title">
+                    {period === 'week'
+                      ? (language === 'ru' ? 'Гороскоп на неделю — в Premium' : 'Weekly horoscope — Premium')
+                      : (language === 'ru' ? 'Гороскоп на месяц — в Premium' : 'Monthly horoscope — Premium')}
+                  </div>
+                  <p className="horo-lock-text">
+                    {language === 'ru' ? 'Бесплатно — гороскоп на сегодня. Неделя и месяц открываются в Premium.' : 'Free — today’s horoscope. Week and month open in Premium.'}
+                  </p>
+                  {onRequestPremium ? (
+                    <button type="button" className="fresh-btn-primary" style={{ marginTop: 12, width: '100%' }} onClick={() => { lumiaSelectionHaptic(); onRequestPremium(); }}>
+                      {language === 'ru' ? 'Открыть Premium' : 'Open Premium'}
+                    </button>
+                  ) : null}
+                </div>
+              ) : signState === 'open' ? (
                 <>
                   <p className="horo-uni-summary">
                     {loading ? (language === 'ru' ? 'Готовим разбор…' : 'Preparing reading…') : reading?.summary}
@@ -330,7 +350,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
                   <div className="horo-lock-title">{language === 'ru' ? `Гороскоп · ${signLabel}` : `Horoscope · ${signLabel}`}</div>
                   <p className="horo-lock-text">
                     {premium
-                      ? (language === 'ru' ? `Откроется по кнопке. Сегодня доступно ещё ${extraQuota - openedSigns.length} из ${extraQuota}.` : `Tap to open. ${extraQuota - openedSigns.length} of ${extraQuota} left today.`)
+                      ? (language === 'ru' ? 'Откроется по кнопке — в Premium доступны все знаки.' : 'Tap to open — Premium opens every sign.')
                       : (language === 'ru' ? 'Откроется по кнопке. Бесплатно — 1 другой знак в день.' : 'Tap to open. Free — 1 other sign a day.')}
                   </p>
                   <button type="button" className="fresh-btn-primary" style={{ marginTop: 12, width: '100%' }} onClick={openCurrent}>
@@ -344,7 +364,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
                   </div>
                   <p className="horo-lock-text">
                     {premium
-                      ? (language === 'ru' ? 'В Premium — 3 знака в день, кроме своего. Новые — завтра.' : 'Premium opens 3 other signs a day. More tomorrow.')
+                      ? (language === 'ru' ? 'В Premium доступны все знаки без лимита.' : 'Premium opens every sign, no limit.')
                       : (language === 'ru' ? 'Бесплатно — свой знак и ещё 1 в день. Все знаки — в Premium.' : 'Free — your sign plus 1 a day. All signs in Premium.')}
                   </p>
                   {!premium && onRequestPremium ? (
