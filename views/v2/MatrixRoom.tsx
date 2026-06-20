@@ -6,6 +6,7 @@ import { getArcana, MATRIX_TITLE, MATRIX_SUBTITLE } from '../../lib/matrixArcana
 import { toDateInputValue } from '../../lib/date-utils';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
 import { shareToTelegram } from '../../lib/botLink';
+import { HoroscopeActivityBar } from '../../components/Horoscope/HoroscopeActivityBar';
 
 type Props = {
   profile: UserProfile;
@@ -114,9 +115,16 @@ export function MatrixRoom({ profile, onBack }: Props) {
             })}
           </div>
 
-          <button type="button" className="union-share" onClick={share}>
-            {ru ? 'Поделиться матрицей' : 'Share my matrix'}
-          </button>
+          <p className="mtx-share-hook">{ru ? 'Поделись матрицей — покажи, кто ты.' : 'Share your matrix — show who you are.'}</p>
+          {self ? (
+            <HoroscopeActivityBar
+              userId={profile.id ? String(profile.id) : undefined}
+              sign={`arcana_${self.arcana}`}
+              date="2000-01-01"
+              language={lang}
+              onShare={share}
+            />
+          ) : null}
         </div>
       )}
 

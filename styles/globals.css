@@ -4172,6 +4172,7 @@ a,
 .mtx-hero-name { font-family: var(--fresh-font); font-size: 24px; font-weight: 900; margin-top: 2px; letter-spacing: -0.01em; }
 .mtx-hero-essence { font-family: var(--fresh-font); font-size: 14.5px; line-height: 1.55; margin: 10px 0 0; color: rgba(255, 255, 255, 0.95); }
 .mtx-note { padding: 0 20px 14px; margin: 0; font-size: 12px; line-height: 1.5; color: var(--fresh-muted); }
+.mtx-share-hook { text-align: center; font-family: var(--fresh-font); font-size: 13px; font-weight: 700; color: var(--fresh-text); margin: 18px 16px 0; }
 .mtx-tag { display: inline-block; margin-top: 6px; font-family: var(--fresh-font); font-size: 11.5px; font-weight: 700; text-transform: lowercase; letter-spacing: 0.02em; color: var(--fresh-link); }
 .mtx-hero .mtx-tag { color: rgba(255, 255, 255, 0.9); }
 .mtx-strong { margin-left: 6px; padding: 1px 7px; border-radius: 999px; background: #FEF3C7; color: #92400E; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; }

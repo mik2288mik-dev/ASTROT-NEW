@@ -40,6 +40,10 @@ export function normalizeZodiacKey(value: string | null | undefined): ZodiacKey 
  */
 export function normalizeEngagementKey(value: string | null | undefined): string | null {
   const raw = String(value || '').trim();
+  if (raw.startsWith('arcana_')) {
+    const n = Number.parseInt(raw.slice(7), 10);
+    return Number.isInteger(n) && n >= 1 && n <= 22 ? `arcana_${n}` : null;
+  }
   if (raw.includes('_')) {
     const parts = raw.split('_');
     if (parts.length !== 2) return null;
