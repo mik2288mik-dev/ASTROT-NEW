@@ -11,7 +11,7 @@ import { lumiaSelectionHaptic } from '../../lib/haptics';
 import { getCompatScore, sunSignFromDate, DIMENSION_LABELS, type CompatResult, type CompatDimension } from '../../lib/synastry/compatScore';
 import { ZodiacIcon } from '../../components/icons/ZodiacIcon';
 import { ChevronRightIcon } from '../../components/icons/UiIcons';
-import { FreshSignWheel } from '../../components/fresh-ui';
+import { FreshSignWheel, InfoNote } from '../../components/fresh-ui';
 import { ZODIAC_KEYS } from '../../lib/horoscope/signDaily';
 import { shareToTelegram } from '../../lib/botLink';
 import { HoroscopeActivityBar } from '../../components/Horoscope/HoroscopeActivityBar';
@@ -272,6 +272,13 @@ export function UnionRoom(props: UnionRoomProps) {
         <p style={{ padding: '0 20px 16px', fontSize: 14, lineHeight: 1.5, color: 'var(--fresh-muted)' }}>
           {ru ? 'Сравни по знакам за секунду — или разбери конкретного человека по дате рождения.' : 'Compare by signs in a second — or read a specific person by birth date.'}
         </p>
+        <div style={{ padding: '0 20px 12px' }}>
+          <InfoNote title={ru ? 'Как считается совместимость?' : 'How is compatibility calculated?'}>
+            {ru
+              ? 'Быстрая проверка — по знакам Солнца обоих: это общий фон характеров. Точный разбор строится по двум натальным картам, когда добавляешь дату (а лучше время и место) рождения человека.'
+              : 'The quick check uses both Sun signs — a general background of temperaments. A precise reading is built from two natal charts once you add the person’s birth date (ideally time and place too).'}
+          </InfoNote>
+        </div>
 
         {/* Быстро по знакам */}
         <div className="compat-quick">

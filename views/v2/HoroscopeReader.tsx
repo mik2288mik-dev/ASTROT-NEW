@@ -15,7 +15,7 @@ import {
 } from '../../services/astrologyService';
 import { saveProfile } from '../../services/storageService';
 import { shareToTelegram } from '../../lib/botLink';
-import { FreshTabs, FreshSignCarousel } from '../../components/fresh-ui';
+import { FreshTabs, FreshSignCarousel, InfoNote } from '../../components/fresh-ui';
 import { ZodiacIcon } from '../../components/icons/ZodiacIcon';
 import { ChevronRightIcon } from '../../components/icons/UiIcons';
 import { HoroscopeActivityBar } from '../../components/Horoscope/HoroscopeActivityBar';
@@ -279,6 +279,14 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
         activeTab={period}
         onTabChange={(id) => { lumiaSelectionHaptic(); setDir(0); setPeriod(id as Period); }}
       />
+
+      <div style={{ padding: '0 20px' }}>
+        <InfoNote title={language === 'ru' ? 'На чём основан гороскоп?' : 'What is this based on?'}>
+          {language === 'ru'
+            ? 'Это общий гороскоп по знаку Солнца — один ориентир на период для всех с этим знаком. Личный разбор по твоей дате, времени и месту рождения — в разделе «Личный день».'
+            : 'This is a general horoscope for your Sun sign — one shared cue for everyone with that sign. A personal reading from your exact birth data is in "Personal day".'}
+        </InfoNote>
+      </div>
 
       {/* Единая свайп-карточка: весь гороскоп + советы вместе (свайп ← → меняет знак) */}
       <div className="horo-uni-wrap">
