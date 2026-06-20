@@ -4097,6 +4097,9 @@ a,
 .fresh-combo-input::placeholder { color: var(--fresh-muted); }
 .fresh-combo-input:disabled { opacity: 0.6; }
 .fresh-combo-chev { color: var(--fresh-muted); display: flex; flex-shrink: 0; }
+.fresh-combo-send { flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%; border: none; background: var(--fresh-link); color: #fff; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.fresh-combo-send:active { transform: scale(0.94); }
+.fresh-combo-send:disabled { opacity: 0.5; }
 .fresh-combo-lock { font-size: 11px; font-weight: 800; color: var(--fresh-link); letter-spacing: 0.02em; flex-shrink: 0; }
 .fresh-combo-list {
   position: absolute; left: 0; right: 0; bottom: calc(100% + 8px);

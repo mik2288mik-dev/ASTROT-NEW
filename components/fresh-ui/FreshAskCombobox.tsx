@@ -35,6 +35,7 @@ export function FreshAskCombobox({
 }: FreshAskComboboxProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const [selected, setSelected] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const blurTimer = useRef<number | null>(null);
 
@@ -44,15 +45,36 @@ export function FreshAskCombobox({
     return questions.filter((item) => item.toLowerCase().includes(q));
   }, [query, questions]);
 
+  // Что отправим: выбранный пресет или ровно совпавший по тексту вопрос.
+  const sendable = useMemo(() => {
+    if (selected) return selected;
+    const q = query.trim().toLowerCase();
+    return questions.find((item) => item.toLowerCase() === q) || null;
+  }, [selected, query, questions]);
+
   useEffect(() => () => { if (blurTimer.current) window.clearTimeout(blurTimer.current); }, []);
 
+  // Тап по пресету = ВЫБРАТЬ (заполнить строку), а не отправить — отправка отдельной кнопкой.
+  // Для премиум-локед оставляем мгновенный onPick: родитель покажет пейвол.
   const pick = (question: string) => {
     if (disabled) return;
     lumiaSelectionHaptic();
-    setQuery('');
+    if (locked) { onPick(question); return; }
+    setQuery(question);
+    setSelected(question);
     setOpen(false);
     inputRef.current?.blur();
-    onPick(question);
+  };
+
+  const send = () => {
+    if (disabled || !sendable) return;
+    lumiaSelectionHaptic();
+    const q = sendable;
+    setQuery('');
+    setSelected(null);
+    setOpen(false);
+    inputRef.current?.blur();
+    onPick(q);
   };
 
   return (
@@ -103,12 +125,26 @@ export function FreshAskCombobox({
           value={query}
           placeholder={placeholder}
           disabled={disabled}
-          onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
+          onChange={(e) => { setQuery(e.target.value); setSelected(null); setOpen(true); }}
+          onKeyDown={(e) => { if (e.key === 'Enter' && sendable) { e.preventDefault(); send(); } }}
           onFocus={() => setOpen(true)}
           onBlur={() => { blurTimer.current = window.setTimeout(() => setOpen(false), 150); }}
         />
         {locked ? (
           <span className="fresh-combo-lock">{lockLabel}</span>
+        ) : sendable ? (
+          <button
+            type="button"
+            className="fresh-combo-send"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={send}
+            disabled={disabled}
+            aria-label="Отправить"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+              <path d="M2.5 8h9M8 4.5L11.5 8 8 11.5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
         ) : (
           <motion.span
             className="fresh-combo-chev"
