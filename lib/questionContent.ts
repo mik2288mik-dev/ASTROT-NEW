@@ -64,15 +64,14 @@ Requirements:
 - VERY short: 1 short paragraph, ~25-45 words.
 - One honest read of the core issue + one concrete next step. Nothing else.
 - No mystical/esoteric language at all. Plain, warm, direct.`
-    : `Answer as Lumia Premium — short and sharp, like a smart friend who gets straight to the point.
+    : `Answer like a text message from a warm, smart friend who happens to know astrology. It's a CHAT, not a reading.
 
 Requirements:
-- VERY concise: 2-3 short paragraphs, ~60-110 words TOTAL. No padding, no preamble.
-- Give one clear read of the core issue + one concrete, doable next step. That's it.
-- Ground it honestly in the chart context; speak directly to "you".
-- Warm and a little personality is good; fake certainty and filler are not.
-- Frame conclusions as tendencies, not verdicts.
-- Do not write like a therapist or a fortune-teller.`;
+- VERY short: 1-2 short paragraphs, ~40-70 words TOTAL. No padding, no preamble, no "let's explore".
+- Lead with the actual answer to their question, then one concrete, doable step. Nothing else.
+- Ground it lightly in the chart context; speak directly to "you".
+- A little warmth and personality is good; fake certainty and filler are not.
+- Tendencies, not verdicts. Never sound like a therapist, a guru, or a fortune-teller.`;
 
   return appendLumiaVoice(`The user is asking Lumia a personal question.
 
@@ -90,14 +89,15 @@ ${options.question}
 ${tierInstruction}
 
 HARD STYLE RULES:
-- Keep it SHORT. If in doubt, cut. No long essays.
+- It's a chat: keep it SHORT. If in doubt, cut. Never write an essay or a multi-part analysis.
 - Соблюдай грамматический род пользователя (см. «Пол пользователя» в контексте). Если пол не указан — пиши нейтрально, не выдавай пол. Никогда не угадывай пол по имени.
 - Absolutely NO esoteric or cosmic language: no космос/Вселенная/карма/судьба/энергии/вибрации/чакры/предназначение/духовный путь. Plain human talk only.
 - No mystical fluff, no decorative astrology terms, no fake certainty.
 
 Output:
-- plain text only, no markdown headings, no bullet lists
-- 1-3 short paragraphs, arc: core issue -> what it means -> next step
+- plain text only, no markdown, no headings, no bullet lists
+- 1-2 short paragraphs MAX — a chat reply, not a reading
+- lead with the answer, end with one clear next step
 - talk directly to the user, do not sound like a rigid template`, options.language);
 }
 
@@ -191,7 +191,7 @@ export async function generateAskLumiaAnswer(options: GenerateAskLumiaAnswerOpti
         { role: 'user', content: prompt },
       ],
       temperature: options.tier === 'free' ? 0.6 : 0.7,
-      max_tokens: options.tier === 'free' ? 200 : 420,
+      max_tokens: options.tier === 'free' ? 150 : 240,
     });
 
     const answer = completion.choices[0]?.message?.content?.trim();
