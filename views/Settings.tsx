@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { UserProfile, Language, Theme, NotificationFrequency } from '../types';
+import { UserProfile, Language, NotificationFrequency } from '../types';
 import { getText } from '../constants';
 import { saveProfile } from '../services/storageService';
 import { updateUserNotificationSettings, getTelegramInitDataHeaders } from '../services/sessionService';
@@ -37,33 +37,6 @@ interface SettingsProps {
 
 const NOTIFICATION_FREQUENCIES: NotificationFrequency[] = ['quiet', 'important', 'daily', 'twice_daily'];
 
-const notificationLabels: Record<NotificationFrequency, { ru: string; en: string; ruBody: string; enBody: string }> = {
-    quiet: {
-        ru: 'Тихо',
-        en: 'Quiet',
-        ruBody: 'Без ежедневных напоминаний.',
-        enBody: 'No daily reminders.',
-    },
-    important: {
-        ru: 'Только важное',
-        en: 'Important only',
-        ruBody: 'Луна, события и сильные личные акценты.',
-        enBody: 'Moon, events, and strong personal accents.',
-    },
-    daily: {
-        ru: 'Каждый день',
-        en: 'Every day',
-        ruBody: 'Один теплый фокус дня.',
-        enBody: 'One warm daily focus.',
-    },
-    twice_daily: {
-        ru: 'Утро + вечер',
-        en: 'Morning + evening',
-        ruBody: 'Мягкий старт и спокойное закрытие дня.',
-        enBody: 'A soft start and calm close.',
-    },
-};
-
 const notificationPreferenceKey = (userId?: string) => `lumia.notificationFrequency.${userId || 'anonymous'}`;
 
 function readStoredNotificationFrequency(userId?: string): NotificationFrequency | null {
@@ -76,26 +49,51 @@ function readStoredNotificationFrequency(userId?: string): NotificationFrequency
     }
 }
 
-function storeNotificationFrequency(userId: string | undefined, frequency: NotificationFrequency) {
-    if (typeof window === 'undefined') return;
+// Лимит смены профиля: free — 1 раз всего, premium — 3 раза в календарный месяц.
+// Журнал правок в localStorage (мягкий лимит на устройстве).
+const profileEditsKey = (userId?: string) => `lumia.profileEdits.${userId || 'anonymous'}`;
+
+function readProfileEdits(userId?: string): number[] {
+    if (typeof window === 'undefined') return [];
     try {
-        window.localStorage.setItem(notificationPreferenceKey(userId), frequency);
+        const raw = window.localStorage.getItem(profileEditsKey(userId));
+        const arr = raw ? JSON.parse(raw) : [];
+        return Array.isArray(arr) ? arr.filter((n): n is number => typeof n === 'number') : [];
     } catch {
-        /* Preference remains in memory for the current session. */
+        return [];
     }
 }
 
-export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPremiumPreview, onRequestPremium, onOpenAdmin, onOpenCharts }) => {
+function recordProfileEdit(userId?: string) {
+    if (typeof window === 'undefined') return;
+    try {
+        const arr = readProfileEdits(userId);
+        arr.push(Date.now());
+        window.localStorage.setItem(profileEditsKey(userId), JSON.stringify(arr.slice(-60)));
+    } catch {
+        /* лимит держится в памяти на текущую сессию */
+    }
+}
+
+function profileEditsThisMonth(userId?: string): number {
+    const now = new Date();
+    return readProfileEdits(userId).filter((t) => {
+        const d = new Date(t);
+        return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+    }).length;
+}
+
+export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPremiumPreview, onRequestPremium, onOpenAdmin }) => {
     const [tgUser, setTgUser] = useState<{ first_name?: string; last_name?: string; photo_url?: string } | null>(null);
     const [editing, setEditing] = useState(false);
     const [tempName, setTempName] = useState(profile.name);
     const [tempPlace, setTempPlace] = useState(profile.birthPlace);
-    const [notificationFrequency, setNotificationFrequency] = useState<NotificationFrequency>(
-        profile.notificationFrequency || 'important'
-    );
     const [selfTest, setSelfTest] = useState<'idle' | 'sending' | 'ok' | 'err'>('idle');
     const [dailyPush, setDailyPush] = useState<'idle' | 'sending' | 'ok' | 'err'>('idle');
     const [dailyPushInfo, setDailyPushInfo] = useState('');
+    const [editsUsed, setEditsUsed] = useState(() =>
+        hasActivePremium(profile) ? profileEditsThisMonth(profile.id) : readProfileEdits(profile.id).length
+    );
 
     const sendSelfTest = async () => {
         if (selfTest === 'sending') return;
@@ -150,6 +148,9 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
         ? getText(profile.language, 'settings.language_ru')
         : getText(profile.language, 'settings.language_en');
     const activePremium = hasActivePremium(profile);
+    const profileEditLimit = activePremium ? 3 : 1;
+    const profileEditsLeft = Math.max(0, profileEditLimit - editsUsed);
+    const canEditProfile = profileEditsLeft > 0;
     const trialDaysLeft = profile.premiumUntil
         ? Math.max(0, Math.ceil((new Date(profile.premiumUntil).getTime() - Date.now()) / 86_400_000))
         : 0;
@@ -163,7 +164,6 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
 
     useEffect(() => {
         const freq = readStoredNotificationFrequency(profile.id) || profile.notificationFrequency || 'important';
-        setNotificationFrequency(freq);
         // Регистрируем пользователя в движке уведомлений (таймзона + флаги) — иначе планировщики его не видят
         void updateUserNotificationSettings({ ...notificationFlagsFor(freq), timezone: localTimezone() });
     }, [profile.id, profile.notificationFrequency]);
@@ -186,28 +186,22 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
         });
     };
 
-    const handleThemeToggle = (newTheme: Theme) => {
-        const updated = { ...profile, theme: newTheme };
-        console.log('[Settings] Theme changed to:', newTheme);
-        onUpdate(updated);
-        saveProfile(updated).catch(error => {
-            console.error('[Settings] Failed to save theme:', error);
-        });
-    };
+    const genderStorageKey = `lumia.gender.${profile.id || 'anonymous'}`;
 
-    const handleNotificationFrequencyChange = (frequency: NotificationFrequency) => {
-        setNotificationFrequency(frequency);
-        storeNotificationFrequency(profile.id, frequency);
-        const updated = { ...profile, notificationFrequency: frequency };
-        onUpdate(updated);
-        saveProfile(updated).catch(error => {
-            console.error('[Settings] Failed to save notification preference:', error);
-        });
-        // Реальная регистрация в движке уведомлений (таблица user_notification_settings)
-        void updateUserNotificationSettings({ ...notificationFlagsFor(frequency), timezone: localTimezone() });
-    };
+    // Пол иногда терялся при перезагрузке профиля и сбрасывался на «не указывать».
+    // Дублируем выбор в localStorage и восстанавливаем его — как частоту уведомлений.
+    useEffect(() => {
+        let stored: string | null = null;
+        try { stored = window.localStorage.getItem(genderStorageKey); } catch { /* ignore */ }
+        if (stored && ['male', 'female', 'unspecified'].includes(stored) && (profile.gender || null) !== stored) {
+            const updated = { ...profile, gender: stored as 'male' | 'female' | 'unspecified' };
+            onUpdate(updated);
+            saveProfile(updated).catch(() => { /* ignore */ });
+        }
+    }, [profile.id, profile.gender, onUpdate]);
 
     const handleGenderChange = (gender: 'male' | 'female' | 'unspecified') => {
+        try { window.localStorage.setItem(genderStorageKey, gender); } catch { /* ignore */ }
         const updated = { ...profile, gender };
         onUpdate(updated);
         saveProfile(updated).catch(error => {
@@ -216,17 +210,21 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
     };
 
     const handleSaveProfile = () => {
+        const nameChanged = (tempName || '') !== (profile.name || '');
+        const placeChanged = (tempPlace || '') !== (profile.birthPlace || '');
+        if ((!nameChanged && !placeChanged) || !canEditProfile) {
+            setEditing(false);
+            return;
+        }
         const updated = { ...profile, name: tempName, birthPlace: tempPlace };
-        console.log('[Settings] Saving profile changes:', {
-            name: tempName,
-            birthPlace: tempPlace
-        });
         onUpdate(updated);
         saveProfile(updated).then(() => {
             console.log('[Settings] Profile saved successfully');
         }).catch(error => {
             console.error('[Settings] Failed to save profile:', error);
         });
+        recordProfileEdit(profile.id);
+        setEditsUsed((n) => n + 1);
         setEditing(false);
     };
 
@@ -314,51 +312,6 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                 </div>
             </section>
 
-            {onOpenCharts && (
-                <button onClick={onOpenCharts} className={rowCardClass}>
-                    <div className="flex items-center justify-between gap-4">
-                        <div>
-                            <h3 className="font-serif text-lg text-mono-ink">
-                                {getText(profile.language, 'settings.charts_title')}
-                            </h3>
-                            <p className="lumia-muted mt-1 text-sm">{getText(profile.language, 'settings.charts_body')}</p>
-                        </div>
-                        <span className="text-mono-muted/70">→</span>
-                    </div>
-                </button>
-            )}
-
-            <div className={`${sectionClass} flex items-center justify-between gap-3`}>
-                <div className="min-w-0 pr-2">
-                    <h3 className="font-serif text-lg text-mono-ink">{getText(profile.language, 'settings.theme')}</h3>
-                    <p className="lumia-muted mt-1 text-sm leading-snug">{getText(profile.language, 'settings.theme_body')}</p>
-                    <p className="lumia-label mt-1.5 tracking-wider">
-                        {profile.theme === 'light' ? getText(profile.language, 'settings.theme_light') : getText(profile.language, 'settings.theme_dark')}
-                    </p>
-                </div>
-                <div className="flex shrink-0 rounded-xl bg-mono-ink/[0.06] p-0.5 ring-1 ring-mono-ink/[0.05]">
-                    <button 
-                        type="button"
-                        onClick={() => handleThemeToggle('dark')}
-                        className={`rounded-lg p-2 transition-colors ${profile.theme === 'dark' ? 'bg-mono-black/90 text-white shadow-sm ring-1 ring-white/12' : 'text-mono-muted'}`}
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                        </svg>
-                    </button>
-                    <button 
-                        type="button"
-                        onClick={() => handleThemeToggle('light')}
-                        className={`rounded-lg p-2 transition-colors ${profile.theme === 'light' ? 'bg-white text-black shadow-sm ring-1 ring-black/8' : 'text-mono-muted'}`}
-                        aria-label="Light theme"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M12 6a6 6 0 110 12 6 6 0 010-12z" />
-                        </svg>
-                    </button>
-                </div>
-            </div>
-
             <div className={`${sectionClass} flex items-center justify-between gap-3`}>
                 <div className="min-w-0 pr-2">
                     <h3 className="font-serif text-lg text-mono-ink">{getText(profile.language, 'settings.language')}</h3>
@@ -376,52 +329,19 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
 
             <div className={sectionClass}>
                 <div className="flex items-start justify-between gap-4">
-                    <div>
-                        <h3 className="font-serif text-lg text-mono-ink">
-                            {profile.language === 'en' ? 'Notifications' : 'Оповещения'}
-                        </h3>
-                        <p className="lumia-muted mt-1 text-sm leading-snug">
-                            {profile.language === 'en'
-                                ? 'Choose how often Lumia should bring you back to the day.'
-                                : 'Выбери, как часто Lumia будет возвращать тебя к дню.'}
-                        </p>
-                    </div>
-                </div>
-                <div className="mt-4 grid grid-cols-1 gap-2">
-                    {NOTIFICATION_FREQUENCIES.map((frequency) => {
-                        const label = notificationLabels[frequency];
-                        const active = notificationFrequency === frequency;
-                        return (
-                            <button
-                                key={frequency}
-                                type="button"
-                                aria-pressed={active}
-                                onClick={() => handleNotificationFrequencyChange(frequency)}
-                                className={`rounded-2xl px-4 py-3 text-left transition-[background,box-shadow,transform] active:scale-[0.99] ${
-                                    active
-                                        ? 'bg-mono-ink text-white shadow-sm ring-1 ring-mono-ink/10'
-                                        : 'bg-white/56 text-mono-ink ring-1 ring-black/[0.05] hover:bg-white/78'
-                                }`}
-                            >
-                                <span className="block text-sm font-semibold">
-                                    {profile.language === 'en' ? label.en : label.ru}
-                                </span>
-                                <span className={`mt-1 block text-xs leading-relaxed ${active ? 'text-white/72' : 'text-text-muted'}`}>
-                                    {profile.language === 'en' ? label.enBody : label.ruBody}
-                                </span>
-                            </button>
-                        );
-                    })}
-                </div>
-            </div>
-
-            <div className={sectionClass}>
-                <div className="flex items-start justify-between gap-4">
                     <h3 className="font-serif text-lg text-mono-ink">{getText(profile.language, 'settings.profile')}</h3>
                     {!editing && (
-                        <button onClick={() => setEditing(true)} className={inlineActionClass}>
-                            {getText(profile.language, 'settings.edit')}
-                        </button>
+                        canEditProfile ? (
+                            <button onClick={() => setEditing(true)} className={inlineActionClass}>
+                                {getText(profile.language, 'settings.edit')}
+                            </button>
+                        ) : (
+                            <span className="text-[10px] uppercase tracking-wider text-mono-muted">
+                                {profile.language === 'en'
+                                    ? (activePremium ? 'Limit 3/mo' : 'Edit used')
+                                    : (activePremium ? 'Лимит 3/мес' : 'Уже изменено')}
+                            </span>
+                        )
                     )}
                 </div>
 
@@ -460,8 +380,16 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                     </div>
 
                     {editing && (
+                        <p className="text-xs leading-snug text-mono-muted">
+                            {profile.language === 'en'
+                                ? (activePremium ? `Profile edits left this month: ${profileEditsLeft}` : 'Free: you can change your profile once')
+                                : (activePremium ? `Смен профиля в этом месяце осталось: ${profileEditsLeft}` : 'Free: профиль можно изменить один раз')}
+                        </p>
+                    )}
+
+                    {editing && (
                         <div className="flex gap-2">
-                            <button 
+                            <button
                                 onClick={handleSaveProfile}
                                 className="flex-1 rounded-mono-pill bg-mono-black px-4 py-3 text-sm font-semibold text-white"
                             >
