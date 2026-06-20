@@ -4176,6 +4176,11 @@ a,
 .mtx-hero-also { font-family: var(--fresh-font); font-size: 12px; font-weight: 700; margin-top: 12px; opacity: 0.82; letter-spacing: 0.01em; }
 .mtx-note-toggle { display: inline-block; margin: 16px 0 0; padding: 0; background: none; border: none; font-family: var(--fresh-font); font-size: 12.5px; font-weight: 700; color: var(--fresh-link); cursor: pointer; }
 .mtx-note { padding: 8px 0 0; margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--fresh-muted); }
+/* Сноска-объяснение «i» — единый стиль пояснений астро/таро-терминов */
+.info-note { margin-top: 8px; }
+.info-note-toggle { display: inline-flex; align-items: center; gap: 6px; padding: 0; background: none; border: none; font-family: var(--fresh-font); font-size: 12.5px; font-weight: 700; color: var(--fresh-link); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.info-note-i { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; border: 1.4px solid var(--fresh-link); font-size: 10px; font-weight: 800; font-style: italic; line-height: 1; }
+.info-note-text { margin: 8px 0 0; font-family: var(--fresh-font); font-size: 12.5px; line-height: 1.5; color: var(--fresh-muted); }
 .mtx-share-hook { text-align: center; font-family: var(--fresh-font); font-size: 13px; font-weight: 700; color: var(--fresh-text); margin: 18px 16px 0; }
 .mtx-grid { display: flex; flex-direction: column; gap: 12px; margin-top: 14px; }
 .mtx-card { background: var(--fresh-surface); border-radius: var(--fresh-radius-card); padding: 15px 16px; }

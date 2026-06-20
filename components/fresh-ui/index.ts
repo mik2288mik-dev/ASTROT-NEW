@@ -21,3 +21,5 @@ export { FreshSignCarousel } from './FreshSignCarousel';
 export { FreshSignWheel } from './FreshSignWheel';
 
 export { FreshAskCombobox } from './FreshAskCombobox';
+
+export { InfoNote } from './InfoNote';

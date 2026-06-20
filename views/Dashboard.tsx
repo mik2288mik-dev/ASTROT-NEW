@@ -36,6 +36,7 @@ import { ActionWindows } from './v2/ActionWindows';
 import { HomeFaq } from '../components/Dashboard/HomeFaq';
 import { MATRIX_HOME_LABEL, MATRIX_HOME_SUB } from '../lib/matrixArcana';
 import { sunSignFromDate } from '../lib/synastry/compatScore';
+import { InfoNote } from '../components/fresh-ui';
 
 /* ── Вспомогательные функции ── */
 function formatDate(todayKey: string, lang: 'ru' | 'en'): string {
@@ -251,6 +252,11 @@ export const Dashboard = memo<DashboardProps>(({
           ) : null}
         </div>
         <div className="home-today-sub">{moon.meaning}</div>
+        <InfoNote title={language === 'ru' ? 'Что такое фаза луны?' : 'What is a moon phase?'}>
+          {language === 'ru'
+            ? 'Фаза луны — сколько её освещено сейчас, от новолуния к полнолунию и обратно. Растущая — время начинать и набирать, убывающая — завершать и отпускать. Это общий ритм месяца, а не предсказание.'
+            : 'A moon phase is how much of the Moon is lit now, from new to full and back. Waxing is for starting and building, waning for finishing and letting go. It is a monthly rhythm, not a prediction.'}
+        </InfoNote>
         <ActionWindows
           compact
           profile={profile}
