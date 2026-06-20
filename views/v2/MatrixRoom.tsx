@@ -26,20 +26,27 @@ export function MatrixRoom({ profile, onBack }: Props) {
   const calc = () => { lumiaSelectionHaptic(); setComputedDate(date); };
 
   const self = result?.positions.find((p) => p.key === 'self');
-  const rest = useMemo(() => result?.positions.filter((p) => p.key !== 'self') || [], [result]);
   const selfArcana = self ? getArcana(self.arcana) : null;
 
-  // Дедуп: текст аркана показываем ОДИН раз. Повтор — компактно, со ссылкой куда смотреть.
-  const positionsView = useMemo(() => {
-    const firstLabel = new Map<number, string>();
-    if (self) firstLabel.set(self.arcana, self.label);
-    return rest.map((pos) => {
-      const ref = firstLabel.get(pos.arcana) || '';
-      const isRepeat = firstLabel.has(pos.arcana);
-      if (!isRepeat) firstLabel.set(pos.arcana, pos.label);
-      return { pos, isRepeat, ref, arcana: getArcana(pos.arcana) };
+  // Группируем позиции по теме (по аркану), чтобы один и тот же смысл не повторялся
+  // на нескольких карточках. Каждая тема показывается ОДИН раз + перечень её областей.
+  const { selfGroup, themeGroups } = useMemo(() => {
+    const map = new Map<number, { arcana: ReturnType<typeof getArcana>; labels: string[]; hasSelf: boolean }>();
+    (result?.positions || []).forEach((p) => {
+      const g = map.get(p.arcana) || { arcana: getArcana(p.arcana), labels: [], hasSelf: false };
+      g.labels.push(p.label);
+      if (p.key === 'self') g.hasSelf = true;
+      map.set(p.arcana, g);
     });
-  }, [rest, self]);
+    const all = [...map.values()];
+    return { selfGroup: all.find((g) => g.hasSelf) || null, themeGroups: all.filter((g) => !g.hasSelf) };
+  }, [result]);
+
+  // Другие области, где «звучит» тема сути (без слова «усилена» — просто перечень).
+  const selfAlsoLabels = useMemo(
+    () => (selfGroup && self ? selfGroup.labels.filter((l) => l !== self.label) : []),
+    [selfGroup, self],
+  );
 
   const share = () => {
     if (!result || !selfArcana) return;
@@ -82,41 +89,36 @@ export function MatrixRoom({ profile, onBack }: Props) {
               <div className="mtx-hero-kicker">{self.label}</div>
               <div className="mtx-hero-key">{ru ? selfArcana.keyword : selfArcana.keywordEn}</div>
               <p className="mtx-hero-essence">{ru ? selfArcana.essence : selfArcana.essenceEn}</p>
-              <div className="mtx-hero-arcana">{ru ? 'Аркан' : 'Arcana'} {self.arcana} · {ru ? selfArcana.name : selfArcana.nameEn}</div>
+              {selfAlsoLabels.length ? (
+                <div className="mtx-hero-also">{ru ? 'Также проявляется: ' : 'Also shows in: '}{selfAlsoLabels.join(' · ')}</div>
+              ) : null}
             </motion.div>
           ) : null}
 
           <div className="mtx-grid">
-            {positionsView.map(({ pos, isRepeat, ref, arcana: a }, i) => (
+            {themeGroups.map((g, i) => (
               <motion.div
-                key={pos.key}
+                key={`${g.arcana.n}-${i}`}
                 className="mtx-card"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: 0.04 * i }}
               >
-                <div className="mtx-card-label">{pos.label}</div>
-                <div className="mtx-card-key">{ru ? a.keyword : a.keywordEn}</div>
-                {isRepeat ? (
-                  <p className="mtx-card-essence mtx-card-rep">
-                    {ru ? `Та же тема, что в «${ref}» — здесь она усилена.` : `Same theme as "${ref}" — amplified here.`}
-                  </p>
-                ) : (
-                  <p className="mtx-card-essence">{ru ? a.essence : a.essenceEn}</p>
-                )}
-                <div className="mtx-card-arc">{ru ? 'Аркан' : 'Arcana'} {pos.arcana} · {ru ? a.name : a.nameEn}</div>
+                <div className="mtx-card-label">{ru ? g.arcana.keyword : g.arcana.keywordEn}</div>
+                <div className="mtx-areas">{g.labels.join(' · ')}</div>
+                <p className="mtx-card-essence">{ru ? g.arcana.essence : g.arcana.essenceEn}</p>
               </motion.div>
             ))}
           </div>
 
           <button type="button" className="mtx-note-toggle" onClick={() => { lumiaSelectionHaptic(); setNoteOpen((v) => !v); }} aria-expanded={noteOpen}>
-            {ru ? 'Что такое аркан?' : 'What is an arcana?'}
+            {ru ? 'Что это значит?' : 'What does this mean?'}
           </button>
           {noteOpen ? (
             <p className="mtx-note">
               {ru
-                ? 'Аркан — образ-архетип; число 1–22 выводится из твоей даты рождения. Это про самопонимание, а не предсказание. Повтор аркана на нескольких позициях = тема усилена.'
-                : 'An arcana is an archetype; the 1–22 number comes from your birth date. It is for self-understanding, not prediction. A repeated arcana = an amplified theme.'}
+                ? 'Матрица судьбы — это расклад из чисел твоей даты рождения. Каждое число описывает одну тему характера: сильные стороны, зону роста, отношения, цели. Это про самопонимание, а не предсказание. Если одна тема выпадает на нескольких позициях — она у тебя выражена сильнее.'
+                : 'The Destiny Matrix is a layout of numbers from your birth date. Each number describes one theme of character — strengths, growth, relationships, goals. It is for self-understanding, not prediction. If one theme appears in several positions, it is stronger for you.'}
             </p>
           ) : null}
 

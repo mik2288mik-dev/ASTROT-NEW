@@ -38,15 +38,16 @@ export function reduceToArcana(n: number): number {
   return x === 0 ? 22 : x;
 }
 
+// Подписи позиций — простым языком, без эзотерики («кармическая задача», «предназначение»).
 const POSITION_META: Record<MatrixPositionKey, { ru: string; en: string; hintRu: string; hintEn: string }> = {
-  self: { ru: 'Твоя суть', en: 'Your core', hintRu: 'Главный аркан — кто ты внутри', hintEn: 'Your central archetype' },
-  portrait: { ru: 'Каким тебя видят', en: 'How others see you', hintRu: 'Первое впечатление и портрет', hintEn: 'First impression' },
-  talents: { ru: 'Таланты и сильные стороны', en: 'Talents & strengths', hintRu: 'На что опираться', hintEn: 'What to lean on' },
-  karma: { ru: 'Кармическая задача', en: 'Karmic task', hintRu: 'Главный урок и зона роста', hintEn: 'Main lesson' },
-  comfort: { ru: 'Зона комфорта', en: 'Comfort zone', hintRu: 'Где тебе спокойно и устойчиво', hintEn: 'Where you feel steady' },
-  personalPurpose: { ru: 'Личное предназначение', en: 'Personal purpose', hintRu: 'Что важно реализовать для себя', hintEn: 'For yourself' },
-  socialPurpose: { ru: 'Социальное предназначение', en: 'Social purpose', hintRu: 'Чем ты полезен другим', hintEn: 'For others' },
-  spiritualPurpose: { ru: 'Главное предназначение', en: 'Main purpose', hintRu: 'Куда ведёт твой путь', hintEn: 'Where your path leads' },
+  self: { ru: 'Твоя суть', en: 'Your core', hintRu: 'Кто ты внутри', hintEn: 'Who you are inside' },
+  portrait: { ru: 'Каким тебя видят', en: 'How others see you', hintRu: 'Первое впечатление', hintEn: 'First impression' },
+  talents: { ru: 'Сильные стороны', en: 'Strengths', hintRu: 'На что опираться', hintEn: 'What to lean on' },
+  karma: { ru: 'Зона роста', en: 'Growth area', hintRu: 'Главный урок', hintEn: 'Main lesson' },
+  comfort: { ru: 'Зона комфорта', en: 'Comfort zone', hintRu: 'Где тебе спокойно', hintEn: 'Where you feel steady' },
+  personalPurpose: { ru: 'Личные цели', en: 'Personal goals', hintRu: 'Что важно для себя', hintEn: 'For yourself' },
+  socialPurpose: { ru: 'Роль среди людей', en: 'Role among people', hintRu: 'Чем ты полезен другим', hintEn: 'For others' },
+  spiritualPurpose: { ru: 'Твой путь', en: 'Your path', hintRu: 'Куда ты идёшь', hintEn: 'Where you are heading' },
 };
 
 /**
