@@ -18,7 +18,6 @@ import { NatalChartIcon, HeartIcon, ChatIcon } from '../components/icons/UiIcons
 import { getMoonPhase } from '../lib/horoscope/moonPhase';
 import { MoonPhaseIcon } from '../components/Horoscope/MoonPhaseIcon';
 import { DaySheet } from '../components/lumia-ui/DaySheet';
-import { PersonalDailyStories } from '../components/lumia-ui/PersonalDailyStories';
 import {
   getCachedDailySignHoroscope,
   ensureDailySignHoroscope,
@@ -100,7 +99,6 @@ export const Dashboard = memo<DashboardProps>(({
   const [, setPersonalLoading] = useState(hasChart && premium && !personal);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [sheetDate, setSheetDate] = useState<string | null>(null);
-  const [personalStoryOpen, setPersonalStoryOpen] = useState(false);
   const [sky, setSky] = useState<SkyToday | null>(null);
 
   /* Небо сегодня: ретроградные планеты (серверный расчёт, с кэшем) */
@@ -345,7 +343,7 @@ export const Dashboard = memo<DashboardProps>(({
             type="button"
             onClick={() => {
               lumiaSelectionHaptic();
-              if (hasChart && premium) { setPersonalStoryOpen(true); }
+              if (hasChart && premium) { onOpenPersonalDaily('overview'); }
               else if (!hasChart) { onCreateNatalChart?.(); }
               else { onRequestPremium?.('personal_day'); }
             }}
@@ -475,14 +473,6 @@ export const Dashboard = memo<DashboardProps>(({
         isPremium={premium}
         onClose={() => setSheetDate(null)}
         onRequestPremium={() => onRequestPremium?.('calendar')}
-      />
-      <PersonalDailyStories
-        open={personalStoryOpen}
-        profile={profile}
-        chartData={chartData}
-        chartId={chartId}
-        language={language}
-        onClose={() => setPersonalStoryOpen(false)}
       />
     </div>
   );

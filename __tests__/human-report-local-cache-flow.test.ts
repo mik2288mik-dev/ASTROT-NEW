@@ -25,7 +25,9 @@ describe('human report local-cache flow', () => {
 
   it('keeps paid map sections click-only on initial render', () => {
     expect(source).toContain('HUMAN_MAP_SECTION_KEYS remain click-only below and never trigger generation here.');
-    expect(source).toMatch(/onOpen=\{\(\) => handleOpenPaid\(key\)\}/);
+    // Премиум-карточки тем грузят разбор только по тапу (toggleTopic), не на рендере.
+    expect(source).toMatch(/onToggle=\{\(\) => toggleTopic\(key\)\}/);
+    expect(source).toMatch(/const toggleTopic[\s\S]*if \(!paidSections\[key\]\) void openPaidSection\(key\)/);
     expect(source).not.toMatch(/useEffect\([\s\S]*HUMAN_MAP_SECTION_KEYS\.map[\s\S]*loadHumanPaidSection/);
   });
 

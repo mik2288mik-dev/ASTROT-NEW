@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
-import { ChevronDown, Crown, Lock, Sparkles, X } from 'lucide-react';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { ChevronDown, Crown, Lock, X } from 'lucide-react';
 import type {
   InterpretationSection,
   NatalChartData,
@@ -124,48 +124,67 @@ const SectionText: React.FC<{ section: InterpretationSection; index?: number }> 
   );
 };
 
-const LockedPreview: React.FC<{
-  sectionKey: HumanPaidSectionKey;
-  isLoading: boolean;
-  opened?: InterpretationSection;
-  onOpen: () => void;
-}> = ({ sectionKey, isLoading, opened, onOpen }) => {
-  const meta = HUMAN_PAID_SECTION_META[sectionKey];
+const TOPIC_ACCENTS = ['#FF7E8B', '#A98CEC', '#34C39A', '#5BB6EC', '#FF9B6A', '#6D5BDF', '#E8636F', '#3FA7A0', '#C77DD6', '#F2A65A'];
 
-  if (opened) {
-    return <SectionText section={opened} />;
-  }
+/**
+ * Премиум-карточка темы как продолжение базового разбора: тап раскрывает реальный
+ * текст по этой теме (теми же стилями .natal-sec-*, что и базовые секции). Без замка
+ * и без размытого фейк-текста — премиум уже открыт.
+ */
+const PaidTopicCard: React.FC<{
+  sectionKey: HumanPaidSectionKey;
+  index: number;
+  isLoading: boolean;
+  expanded: boolean;
+  reading?: InterpretationSection;
+  onToggle: () => void;
+}> = ({ sectionKey, index, isLoading, expanded, reading, onToggle }) => {
+  const meta = HUMAN_PAID_SECTION_META[sectionKey];
+  const accent = TOPIC_ACCENTS[index % TOPIC_ACCENTS.length];
 
   return (
-    <motion.button
-      type="button"
-      onClick={onOpen}
-      disabled={isLoading}
-      whileTap={{ scale: 0.99 }}
-      className="group w-full border-t border-mono-line py-6 text-left transition disabled:opacity-60"
-    >
-      <div className="flex items-start gap-3">
-        <span className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-mono-plate text-mono-ink">
-          <Lock size={15} strokeWidth={1.9} />
+    <div className="mt-2.5 overflow-hidden rounded-mono-card border border-mono-line bg-white first:mt-0">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition active:bg-mono-plate"
+      >
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[13px] font-bold text-white" style={{ background: accent }}>
+          {index + 1}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block font-sans text-[19px] font-semibold leading-tight tracking-[-0.01em] text-[#1f1f1f]">
-            {meta.title}
-          </span>
-          <span className="mt-2 block font-sans text-[14px] leading-relaxed text-[#626262]">{meta.teaser}</span>
-          <span className="relative mt-4 block max-h-[4.8rem] overflow-hidden rounded-mono-card bg-mono-plate px-4 py-3">
-            <span className="block select-none font-sans text-[14px] leading-[1.65] text-[#2f2f2f] blur-[2.5px]">
-              Личный разбор по теме «{meta.title}» — что у тебя сильнее всего, где ловушка и что с этим делать. Текст соберётся по твоей карте.
-            </span>
-            <span className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/10 via-white/45 to-white" />
-          </span>
-          <span className="mt-4 inline-flex items-center gap-2 rounded-mono-pill bg-mono-black px-4 py-2 text-[13px] font-medium text-white">
-            <Sparkles size={14} strokeWidth={2} />
-            {isLoading ? 'Открываем...' : 'Прочитать все о себе'}
-          </span>
+          <span className="block font-sans text-[16px] font-semibold leading-tight tracking-[-0.01em] text-[#1f1f1f]">{meta.title}</span>
+          <span className="mt-0.5 block font-sans text-[11.5px] uppercase tracking-[0.1em] text-[#a0a0a0]">{meta.subtitle}</span>
         </span>
-      </div>
-    </motion.button>
+        {isLoading ? (
+          <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-mono-line border-t-mono-ink" aria-label="Загрузка" />
+        ) : (
+          <ChevronDown size={18} strokeWidth={2} className={`shrink-0 text-[#9b9b9b] transition-transform duration-300 ${expanded ? 'rotate-180' : ''}`} />
+        )}
+      </button>
+      <AnimatePresence initial={false}>
+        {expanded && reading ? (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: MONO_EASE }}
+            className="overflow-hidden"
+          >
+            <div className="px-4 pb-5 pt-1" style={{ borderTop: `2px solid ${accent}26` }}>
+              <div className="natal-sec-body">
+                <FormattedAiText text={reading.content} className="max-w-none" paragraphClassName="natal-sec-p" />
+              </div>
+              {reading.bullets?.length ? (
+                <ul className="natal-sec-bullets">
+                  {reading.bullets.map((item, i) => <li key={`${sectionKey}-${i}`}>{item}</li>)}
+                </ul>
+              ) : null}
+            </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+    </div>
   );
 };
 
@@ -315,6 +334,7 @@ export const HumanReport: React.FC<Props> = ({
   const [paidLoading, setPaidLoading] = useState<HumanPaidSectionKey | null>(null);
   const [sectionError, setSectionError] = useState<string | null>(null);
   const [unlockTarget, setUnlockTarget] = useState<HumanPaidSectionKey | null>(null);
+  const [expandedKey, setExpandedKey] = useState<HumanPaidSectionKey | null>(null);
 
   const isPremium = hasActivePremium(profile);
   const visibleFreeKeys = useMemo(() => new Set<string>(HUMAN_FREE_SECTION_KEYS), []);
@@ -399,6 +419,13 @@ export const HumanReport: React.FC<Props> = ({
     setUnlockTarget(key);
   };
 
+  // Премиум: тап по карточке темы раскрывает/сворачивает её разбор; грузим текст при первом открытии.
+  const toggleTopic = (key: HumanPaidSectionKey) => {
+    if (expandedKey === key) { setExpandedKey(null); return; }
+    setExpandedKey(key);
+    if (!paidSections[key]) void openPaidSection(key);
+  };
+
   return (
     <article className="relative bg-white pb-16 pt-1">
       <div className="relative z-10 mx-auto w-full max-w-reading-wide px-5">
@@ -445,17 +472,23 @@ export const HumanReport: React.FC<Props> = ({
             <p className="mt-2 font-sans text-[14px] leading-relaxed text-[#5f5f5f]">
               10 личных разделов по твоей карте — каждый написан под тебя. Загляни, что внутри.
             </p>
-          ) : null}
+          ) : (
+            <p className="mt-2 font-sans text-[14px] leading-relaxed text-[#5f5f5f]">
+              Выбери тему — прочитаешь подробно о себе по ней. Это продолжение твоего разбора.
+            </p>
+          )}
 
           <div className="mt-4">
             {isPremium ? (
-              HUMAN_MAP_SECTION_KEYS.map((key) => (
-                <LockedPreview
+              HUMAN_MAP_SECTION_KEYS.map((key, i) => (
+                <PaidTopicCard
                   key={key}
                   sectionKey={key}
+                  index={i}
                   isLoading={paidLoading === key}
-                  opened={paidSections[key]}
-                  onOpen={() => handleOpenPaid(key)}
+                  expanded={expandedKey === key}
+                  reading={paidSections[key]}
+                  onToggle={() => toggleTopic(key)}
                 />
               ))
             ) : (

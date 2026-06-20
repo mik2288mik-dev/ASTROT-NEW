@@ -1,5 +1,5 @@
 import React, { memo, useEffect, useMemo, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, type PanInfo } from 'framer-motion';
 import { canAccessFeature } from '../lib/accessMatrix';
 import type {
   ForecastDaypartReading,
@@ -193,6 +193,21 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
   const isLoading = loadingKey === activeTab.id;
   const hasError = errorKey === activeTab.id && !hasContent;
 
+  // Свайп между темами — как в гороскопе (табы остаются индикатором).
+  const [dir, setDir] = useState(0);
+  const activeIndex = DAILY_TABS.findIndex((t) => t.id === activeSection);
+  const goToSection = (nextIndex: number, direction: number) => {
+    const idx = (nextIndex + DAILY_TABS.length) % DAILY_TABS.length;
+    lumiaSelectionHaptic();
+    setDir(direction);
+    setActiveSection(DAILY_TABS[idx].id);
+  };
+  const onDragEnd = (_e: unknown, info: PanInfo) => {
+    const power = info.offset.x + info.velocity.x * 0.2;
+    if (power < -70) goToSection(activeIndex + 1, 1);
+    else if (power > 70) goToSection(activeIndex - 1, -1);
+  };
+
   useEffect(() => {
     let alive = true;
     if (!access.allowed || !profile.id || !chartData) return () => { alive = false; };
@@ -270,13 +285,25 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
       <FreshTabs tabs={tabItems} activeTab={activeSection} onTabChange={(id) => { lumiaSelectionHaptic(); setActiveSection(id as PersonalDailySection); }} />
 
       <div style={{ padding: '6px 20px 0' }}>
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="wait" custom={dir}>
           <motion.div
             key={activeTab.id}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            custom={dir}
+            variants={{
+              enter: (d: number) => ({ opacity: 0, x: d > 0 ? 44 : d < 0 ? -44 : 0 }),
+              center: { opacity: 1, x: 0 },
+              exit: (d: number) => ({ opacity: 0, x: d > 0 ? -44 : d < 0 ? 44 : 0 }),
+            }}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+            drag="x"
+            dragDirectionLock
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.4}
+            onDragEnd={onDragEnd}
+            style={{ touchAction: 'pan-y' }}
           >
             {access.status === 'needs_chart' ? (
               <Notice
