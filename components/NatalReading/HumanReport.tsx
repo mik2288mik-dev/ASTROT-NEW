@@ -143,23 +143,20 @@ const PaidTopicCard: React.FC<{
   const accent = TOPIC_ACCENTS[index % TOPIC_ACCENTS.length];
 
   return (
-    <div className="mt-2.5 overflow-hidden rounded-mono-card border border-mono-line bg-white first:mt-0">
+    <div className="mt-2.5 overflow-hidden rounded-mono-card border border-mono-line bg-white first:mt-0" style={{ borderLeft: `3px solid ${accent}` }}>
       <button
         type="button"
         onClick={onToggle}
-        className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition active:bg-mono-plate"
+        className="flex w-full items-center gap-3 px-4 py-4 text-left transition active:bg-mono-plate"
       >
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[13px] font-bold text-white" style={{ background: accent }}>
-          {index + 1}
-        </span>
         <span className="min-w-0 flex-1">
-          <span className="block font-sans text-[16px] font-semibold leading-tight tracking-[-0.01em] text-[#1f1f1f]">{meta.title}</span>
-          <span className="mt-0.5 block font-sans text-[11.5px] uppercase tracking-[0.1em] text-[#a0a0a0]">{meta.subtitle}</span>
+          <span className="block font-sans text-[16.5px] font-semibold leading-tight tracking-[-0.01em] text-mono-ink">{meta.title}</span>
+          <span className="mt-1 block font-sans text-[12.5px] leading-snug text-mono-muted">{meta.subtitle}</span>
         </span>
         {isLoading ? (
           <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-mono-line border-t-mono-ink" aria-label="Загрузка" />
         ) : (
-          <ChevronDown size={18} strokeWidth={2} className={`shrink-0 text-[#9b9b9b] transition-transform duration-300 ${expanded ? 'rotate-180' : ''}`} />
+          <ChevronDown size={18} strokeWidth={2} className={`shrink-0 text-mono-muted transition-transform duration-300 ${expanded ? 'rotate-180' : ''}`} />
         )}
       </button>
       <AnimatePresence initial={false}>
@@ -171,7 +168,7 @@ const PaidTopicCard: React.FC<{
             transition={{ duration: 0.3, ease: MONO_EASE }}
             className="overflow-hidden"
           >
-            <div className="px-4 pb-5 pt-1" style={{ borderTop: `2px solid ${accent}26` }}>
+            <div className="border-t border-mono-line px-4 pb-5 pt-3">
               <div className="natal-sec-body">
                 <FormattedAiText text={reading.content} className="max-w-none" paragraphClassName="natal-sec-p" />
               </div>
