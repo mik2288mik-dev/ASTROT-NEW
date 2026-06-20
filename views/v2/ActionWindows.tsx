@@ -108,17 +108,17 @@ function MiniPulseLine({ points, nowH, accent, reduce, ru }: { points: PulsePoin
   );
 }
 
-function ActionTracks({ rows, points, nowH, ru, reduce, hideHero }: { rows: Row[]; points: PulsePoint[]; nowH: number; ru: boolean; reduce: boolean | null; hideHero?: boolean }) {
+function ActionTracks({ rows, points, nowH, ru, reduce, hideHero, nowTitle, nowText }: { rows: Row[]; points: PulsePoint[]; nowH: number; ru: boolean; reduce: boolean | null; hideHero?: boolean; nowTitle?: string; nowText?: string }) {
   const best = rows.find((r) => r.rec.state === 'now')
     || [...rows].sort((a, b) => ((a.start - nowH + 24) % 24) - ((b.start - nowH + 24) % 24))[0];
 
   return (
     <div className="awt">
       {hideHero ? null : (
-        <div className="awt-hero">
-          <span className="awt-hero-k">{ru ? 'сейчас лучше' : 'best now'}</span>
-          <span className="awt-hero-a" style={{ color: best?.action.color }}>{ru ? best?.action.ru : best?.action.en}</span>
-          {best?.rec.bestWindow?.label ? <span className="awt-hero-w">{best.rec.bestWindow.label}</span> : null}
+        <div className="aw-now">
+          <span className="aw-now-k">{ru ? 'сейчас' : 'now'}</span>
+          {nowTitle ? <span className="aw-now-title">{nowTitle}</span> : null}
+          {nowText ? <p className="aw-now-text">{nowText}</p> : null}
         </div>
       )}
 
@@ -127,13 +127,16 @@ function ActionTracks({ rows, points, nowH, ru, reduce, hideHero }: { rows: Row[
       <div className="aw-windows">
         {rows.map((r) => {
           const isNow = r.rec.state === 'now';
+          // Честно: если окно дня уже прошло — это завтрашнее окно, не «сегодня».
+          const passed = !isNow && r.end <= nowH;
+          const when = isNow
+            ? (ru ? 'сейчас' : 'now')
+            : `${passed ? (ru ? 'завтра' : 'tmrw') : (ru ? 'сегодня' : 'today')} ${fmtRange(r.start, r.end)}`;
           return (
             <div className={`aw-win${isNow ? ' aw-win--now' : ''}`} key={r.action.key}>
               <span className="aw-win-dot" style={{ background: r.action.color }} />
               <span className="aw-win-name">{ru ? r.action.ru : r.action.en}</span>
-              <span className={`aw-win-time${isNow ? ' aw-win-time--now' : ''}`}>
-                {isNow ? (ru ? 'сейчас' : 'now') : fmtRange(r.start, r.end)}
-              </span>
+              <span className={`aw-win-time${isNow ? ' aw-win-time--now' : ''}`}>{when}</span>
             </div>
           );
         })}
@@ -190,6 +193,10 @@ export function ActionWindows({ profile, chartData, chartId, onOpenChart, onRequ
     [home],
   );
 
+  const currentPoint = home && home.status === 'ready' ? home.pulse.currentPoint : null;
+  const nowTitle = currentPoint?.title;
+  const nowText = currentPoint?.summary;
+
   if (compact) {
     if (!hasChart) {
       return (
@@ -210,9 +217,9 @@ export function ActionWindows({ profile, chartData, chartId, onOpenChart, onRequ
     if (rows.length === 0) {
       return <div className="aw-mini aw-mini--load">{ru ? 'Считаю окна дня…' : 'Calculating windows…'}</div>;
     }
-    const best = rows.find((r) => r.rec.state === 'now')
-      || [...rows].sort((a, b) => ((a.start - nowH + 24) % 24) - ((b.start - nowH + 24) % 24))[0];
-    const isNow = best?.rec.state === 'now';
+    // Честный «сейчас»: если что-то реально хорошо прямо сейчас — показываем это
+    // дело; иначе — простое состояние момента (без «лучше» про прошедшее окно).
+    const nowGood = rows.find((r) => r.rec.state === 'now');
     return (
       <div className="aw-mini-wrap">
         <button
@@ -221,9 +228,11 @@ export function ActionWindows({ profile, chartData, chartId, onOpenChart, onRequ
           onClick={() => { lumiaSelectionHaptic(); setExpanded((v) => !v); }}
           aria-expanded={expanded}
         >
-          <span className="aw-mini-dot" style={{ background: best?.action.color }} />
-          <span className="aw-mini-label">{isNow ? (ru ? 'Сейчас лучше' : 'Best now') : (ru ? 'Лучше' : 'Best')}</span>
-          <span className="aw-mini-action" style={{ color: best?.action.color }}>{ru ? best?.action.ru : best?.action.en}</span>
+          <span className="aw-mini-dot" style={{ background: nowGood?.action.color || '#6366F1' }} />
+          <span className="aw-mini-label">{nowGood ? (ru ? 'Сейчас хорошо' : 'Good now') : (ru ? 'Сейчас' : 'Now')}</span>
+          <span className="aw-mini-action" style={{ color: nowGood?.action.color }}>
+            {nowGood ? (ru ? nowGood.action.ru : nowGood.action.en) : (nowTitle || (ru ? 'спокойно' : 'calm'))}
+          </span>
           <svg className="aw-mini-chev" data-open={expanded ? 'true' : 'false'} width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>
             <path d="M4 6L8 10L12 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
@@ -237,7 +246,7 @@ export function ActionWindows({ profile, chartData, chartId, onOpenChart, onRequ
               transition={reduce ? { duration: 0 } : { duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
               style={{ overflow: 'hidden' }}
             >
-              <ActionTracks rows={rows} points={points} nowH={nowH} ru={ru} reduce={reduce} hideHero />
+              <ActionTracks rows={rows} points={points} nowH={nowH} ru={ru} reduce={reduce} nowTitle={nowTitle} nowText={nowText} hideHero />
             </motion.div>
           ) : null}
         </AnimatePresence>
@@ -265,7 +274,7 @@ export function ActionWindows({ profile, chartData, chartId, onOpenChart, onRequ
       ) : rows.length === 0 ? (
         <div className="awt-skeleton" />
       ) : (
-        <ActionTracks rows={rows} points={points} nowH={nowH} ru={ru} reduce={reduce} />
+        <ActionTracks rows={rows} points={points} nowH={nowH} ru={ru} reduce={reduce} nowTitle={nowTitle} nowText={nowText} />
       )}
     </section>
   );

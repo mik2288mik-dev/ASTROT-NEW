@@ -4372,6 +4372,11 @@ a,
 .aw-line-legend span { display: inline-flex; align-items: center; gap: 5px; }
 .aw-line-peak i { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
 .aw-line-low i { width: 7px; height: 7px; border-radius: 50%; display: inline-block; background: #fff; border: 1.6px solid; }
+/* «Сейчас»-вердикт простыми словами над графиком */
+.aw-now { margin-bottom: 12px; }
+.aw-now-k { font-family: var(--fresh-font); font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fresh-muted); }
+.aw-now-title { font-family: var(--fresh-font); font-size: 16px; font-weight: 900; color: var(--fresh-text); margin-left: 8px; letter-spacing: -0.01em; }
+.aw-now-text { font-family: var(--fresh-font); font-size: 13px; line-height: 1.45; color: var(--fresh-muted); margin: 5px 0 0; }
 .aw-windows { display: flex; flex-direction: column; gap: 5px; }
 .aw-win { display: flex; align-items: center; gap: 9px; padding: 6px 8px; border-radius: 12px; }
 .aw-win--now { background: rgba(99, 102, 241, 0.08); }
