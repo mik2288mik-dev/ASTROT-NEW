@@ -94,10 +94,10 @@ module.exports = {
         'glow': '0 0 15px var(--highlight)',
       },
       fontFamily: {
-        /** Display / section titles — Outfit (no Times/Cormorant). `font-serif` maps here for legacy classes. */
-        serif: ['"Outfit"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+        /** Единый шрифт приложения — Inter. `font-serif`/`font-outfit` сведены к Inter; Outfit остался только у лого LUMIA. */
+        serif: ['"Inter"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
         sans: ['"Inter"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
-        outfit: ['"Outfit"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+        outfit: ['"Inter"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
         lumiaHome: ['"Inter"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
         lumiaHomeDisplay: ['"Inter"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
         lora: ['"Inter"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
