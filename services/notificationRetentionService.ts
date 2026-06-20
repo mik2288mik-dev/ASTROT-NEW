@@ -12,6 +12,7 @@ import {
   sendTelegramPhotoMessage,
   sendTelegramTextMessage,
 } from '../lib/telegramBot';
+import { buildMiniAppButtonUrl } from '../lib/notificationDeepLink';
 import { resolveTodayPulseForUser } from '../lib/todayPulseResolver';
 import type {
   AdminScheduledNotificationQueueItem,
@@ -1127,9 +1128,10 @@ export async function dispatchScheduledNotifications(
       }
 
       logId = await createNotificationLogFromQueue(row, payload);
+      const section = payload.section || payload.deepLink || typeToSection(row.notification_type);
       const deepLink = buildNotificationDeepLink({
         baseUrl: appBaseUrl(),
-        section: payload.section || payload.deepLink || typeToSection(row.notification_type),
+        section,
         scenarioKey: row.notification_type,
         logId,
         notificationId: Number(row.id),
@@ -1137,12 +1139,16 @@ export async function dispatchScheduledNotifications(
         segment: row.segment || null,
         variant: row.template_id != null ? String(row.template_id) : 'fallback',
       });
+      // Кнопка открывает мини-апп (t.me/<bot>?startapp=...), а не браузер. Если имя бота
+      // не задано — откатываемся на web-deep-link, чтобы поведение не ломалось.
+      const buttonUrl = buildMiniAppButtonUrl(section, logId) || deepLink;
       const finalPayload = {
         ...payload,
         deepLink,
+        buttonUrl,
       };
       const replyMarkup = buildRetentionInlineKeyboard({
-        deepLink,
+        deepLink: buttonUrl,
         buttonText: payload.buttonText || 'Открыть',
         notificationId: Number(row.id),
         notificationType: row.notification_type,

@@ -94,6 +94,8 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
         profile.notificationFrequency || 'important'
     );
     const [selfTest, setSelfTest] = useState<'idle' | 'sending' | 'ok' | 'err'>('idle');
+    const [dailyPush, setDailyPush] = useState<'idle' | 'sending' | 'ok' | 'err'>('idle');
+    const [dailyPushInfo, setDailyPushInfo] = useState('');
 
     const sendSelfTest = async () => {
         if (selfTest === 'sending') return;
@@ -108,6 +110,35 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
             setSelfTest('err');
         }
         setTimeout(() => setSelfTest('idle'), 4000);
+    };
+
+    const sendDailyPush = async () => {
+        if (dailyPush === 'sending') return;
+        setDailyPush('sending');
+        setDailyPushInfo('');
+        try {
+            const res = await fetch('/api/admin/notifications/run-self', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
+            });
+            const data = await res.json().catch(() => ({} as any));
+            if (res.ok && data?.success) {
+                setDailyPush('ok');
+                const d = data.diagnostics || {};
+                const hints: string[] = [];
+                if (d.optInEnabled === false) hints.push('opt-in выключен');
+                if (d.hasPrimaryChart === false) hints.push('нет карты — «карта дня» не сработает');
+                if (d.inQuietHours) hints.push('сейчас тихие часы');
+                if (d.buttonOpensApp === false) hints.push('кнопка без ссылки на мини-апп (нет username бота)');
+                setDailyPushInfo(hints.length ? `Доставлено. Регулярные могут молчать: ${hints.join('; ')}.` : 'Доставлено — проверь чат с ботом.');
+            } else {
+                setDailyPush('err');
+                setDailyPushInfo(data?.error ? String(data.error) : '');
+            }
+        } catch {
+            setDailyPush('err');
+        }
+        setTimeout(() => { setDailyPush('idle'); setDailyPushInfo(''); }, 9000);
     };
     const sectionClass = 'rounded-mono-card border border-mono-line bg-mono-white p-4 sm:p-[18px]';
     const rowCardClass =
@@ -505,6 +536,28 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                             </p>
                         </div>
                         <span className="text-mono-muted/70">{selfTest === 'ok' ? '✓' : selfTest === 'err' ? '✕' : '→'}</span>
+                    </div>
+                </button>
+            )}
+
+            {profile.isAdmin && (
+                <button type="button" onClick={sendDailyPush} disabled={dailyPush === 'sending'} className={rowCardClass}>
+                    <div className="flex items-center justify-between gap-4">
+                        <div>
+                            <h3 className="font-serif text-lg text-mono-ink">
+                                {profile.language === 'en' ? 'Send my daily push now' : 'Прислать дневной пуш себе сейчас'}
+                            </h3>
+                            <p className="lumia-muted mt-1 text-sm">
+                                {dailyPush === 'sending'
+                                    ? (profile.language === 'en' ? 'Sending…' : 'Отправляю…')
+                                    : dailyPush === 'ok'
+                                        ? (dailyPushInfo || (profile.language === 'en' ? 'Sent — check the bot chat.' : 'Отправлено — проверь чат с ботом.'))
+                                        : dailyPush === 'err'
+                                            ? (dailyPushInfo || (profile.language === 'en' ? 'Failed.' : 'Не вышло.'))
+                                            : (profile.language === 'en' ? 'Real reminder with an app button + tells why the schedule may be silent (admin).' : 'Реальное напоминание с кнопкой в приложение + покажет, почему расписание может молчать (админ).')}
+                            </p>
+                        </div>
+                        <span className="text-mono-muted/70">{dailyPush === 'ok' ? '✓' : dailyPush === 'err' ? '✕' : '→'}</span>
                     </div>
                 </button>
             )}
