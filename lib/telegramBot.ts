@@ -44,6 +44,30 @@ export function buildRetentionInlineKeyboard(input: {
   };
 }
 
+// Имя бота для ссылок-кнопок мини-аппа. Берём из env; если его нет — спрашиваем у
+// Telegram через getMe по BOT_TOKEN и кешируем. Так кнопка пуша всегда открывает
+// мини-апп, не требуя отдельной переменной окружения.
+let cachedBotUsername: string | null = null;
+export async function resolveBotUsername(): Promise<string> {
+  const fromEnv = (
+    process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME ||
+    process.env.TELEGRAM_BOT_USERNAME ||
+    process.env.BOT_USERNAME ||
+    ''
+  ).replace(/^@/, '').trim();
+  if (fromEnv) return fromEnv;
+  if (cachedBotUsername !== null) return cachedBotUsername;
+  if (!BOT_TOKEN) { cachedBotUsername = ''; return ''; }
+  try {
+    const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getMe`);
+    const data = await response.json();
+    cachedBotUsername = String(data?.result?.username || '').replace(/^@/, '').trim();
+  } catch {
+    cachedBotUsername = '';
+  }
+  return cachedBotUsername;
+}
+
 export async function sendTelegramTextMessage(
   chatId: string,
   text: string,

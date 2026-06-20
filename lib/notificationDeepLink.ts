@@ -10,7 +10,6 @@
  * start_param допускает только [A-Za-z0-9_-] и до 64 символов, поэтому секции кодируем
  * короткими токенами без подчёркиваний, а logId отделяем дефисом.
  */
-import { getBotUsername } from './botLink';
 
 /** section (как в payload.section / deep_link) → короткий код для start_param */
 const SECTION_TO_CODE: Record<string, string> = {
@@ -83,11 +82,11 @@ export function resolveStartParamRoute(startParam: string | null | undefined): {
 
 /**
  * Ссылка-кнопка, открывающая мини-апп на нужном разделе.
- * Пусто, если NEXT_PUBLIC_TELEGRAM_BOT_USERNAME не задан — тогда вызывающий код
- * откатывается на старый web-deep-link (поведение не ломается).
+ * botUsername резолвит вызывающий код (env или getMe). Пусто, если имя бота
+ * неизвестно — тогда вызывающий откатывается на web-deep-link (не ломаемся).
  */
-export function buildMiniAppButtonUrl(section: string | null | undefined, logId?: number | null): string {
-  const bot = getBotUsername();
+export function buildMiniAppButtonUrl(botUsername: string | null | undefined, section: string | null | undefined, logId?: number | null): string {
+  const bot = String(botUsername || '').replace(/^@/, '').trim();
   if (!bot) return '';
   const code = sectionToStartCode(section);
   const param = logId != null && Number.isFinite(Number(logId)) ? `${code}-${logId}` : code;

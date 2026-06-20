@@ -11,6 +11,7 @@ import {
   buildRetentionInlineKeyboard,
   sendTelegramPhotoMessage,
   sendTelegramTextMessage,
+  resolveBotUsername,
 } from '../lib/telegramBot';
 import { buildMiniAppButtonUrl } from '../lib/notificationDeepLink';
 import { resolveTodayPulseForUser } from '../lib/todayPulseResolver';
@@ -1141,7 +1142,8 @@ export async function dispatchScheduledNotifications(
       });
       // Кнопка открывает мини-апп (t.me/<bot>?startapp=...), а не браузер. Если имя бота
       // не задано — откатываемся на web-deep-link, чтобы поведение не ломалось.
-      const buttonUrl = buildMiniAppButtonUrl(section, logId) || deepLink;
+      const botUsername = await resolveBotUsername();
+      const buttonUrl = buildMiniAppButtonUrl(botUsername, section, logId) || deepLink;
       const finalPayload = {
         ...payload,
         deepLink,

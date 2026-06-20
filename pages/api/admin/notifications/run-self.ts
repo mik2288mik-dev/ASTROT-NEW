@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { requireAdminAccess, handleAdminError, AdminAuthError } from '../../../../lib/adminAuth';
-import { sendTelegramTextMessage, buildRetentionInlineKeyboard } from '../../../../lib/telegramBot';
+import { sendTelegramTextMessage, buildRetentionInlineKeyboard, resolveBotUsername } from '../../../../lib/telegramBot';
 import { buildMiniAppButtonUrl } from '../../../../lib/notificationDeepLink';
 import { buildPersonalizationContext, planRetentionNotifications } from '../../../../services/notificationRetentionService';
 import { isWithinQuietHours } from '../../../../lib/notificationEngineRules';
@@ -35,7 +35,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         ? `${firstName}, гороскоп для знака ${signLabel} на сегодня готов. Загляни — это минута.`
         : `${firstName}, твой разбор дня готов. Загляни в Lumia — это минута.`;
 
-    const buttonUrl = buildMiniAppButtonUrl(card ? 'daily_card' : 'horoscope');
+    const botUsername = await resolveBotUsername();
+    const buttonUrl = buildMiniAppButtonUrl(botUsername, card ? 'daily_card' : 'horoscope');
     const replyMarkup = buttonUrl
       ? buildRetentionInlineKeyboard({ deepLink: buttonUrl, buttonText: card ? 'Открыть карту дня' : 'Открыть гороскоп' })
       : undefined;
