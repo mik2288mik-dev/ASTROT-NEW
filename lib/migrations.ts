@@ -2166,6 +2166,19 @@ async function lumia029EnableNotificationScenarios(pool: Pool) {
   log.info('Migration lumia_029_enable_notification_scenarios applied');
 }
 
+// Сценарии 'pulse_day' и 'personal_day' убраны из продукта (таких фич нет) —
+// выключаем их в проде, чтобы планировщик их не слал.
+async function lumia030DisableRemovedScenarios(pool: Pool) {
+  const migrationName = 'lumia_030_disable_removed_notification_scenarios';
+  if (await isMigrationApplied(pool, migrationName)) return;
+  await pool.query(
+    `UPDATE notification_scenarios SET enabled = FALSE, updated_at = CURRENT_TIMESTAMP
+     WHERE key IN ('pulse_day', 'personal_day')`
+  );
+  await markMigrationApplied(pool, migrationName);
+  log.info('Migration lumia_030_disable_removed_notification_scenarios applied');
+}
+
 // Тексты шаблонов всегда подтягиваются из каталога (источник правды) при каждом
 // деплое — чтобы правки копий доходили до прода без отдельной миграции каждый раз.
 async function syncNotificationTemplateTextFromCatalog(pool: Pool) {
@@ -2241,6 +2254,7 @@ export async function runMigrations(): Promise<void> {
   await lumia027ContentMatrixCache(pool);
   await lumia028HoroscopeEngagement(pool);
   await lumia029EnableNotificationScenarios(pool);
+  await lumia030DisableRemovedScenarios(pool);
   await syncNotificationTemplateTextFromCatalog(pool);
   await verifyTablesExist(pool);
 

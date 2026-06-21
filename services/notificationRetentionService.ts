@@ -433,14 +433,15 @@ const FALLBACK_COPY: Record<RetentionNotificationType, { title: string; body: st
 };
 
 function jobAllowedTypes(jobType: RetentionJobType): RetentionNotificationType[] {
+  // Сценарии 'pulse_day' и 'personal_day' убраны — таких фич в приложении нет.
   if (jobType === 'morning-retention-planner') return ['birth_data_missing', 'birth_time_missing', 'natal_free', 'daily_card', 'assistant'];
-  if (jobType === 'midday-retention-planner') return ['pulse_day', 'work', 'money', 'love', 'assistant'];
-  if (jobType === 'evening-retention-planner') return ['personal_day', 'love', 'premium'];
+  if (jobType === 'midday-retention-planner') return ['work', 'money', 'love', 'assistant'];
+  if (jobType === 'evening-retention-planner') return ['love', 'money', 'synastry', 'premium'];
   if (jobType === 'inactive-user-reactivation') return ['inactive_2d', 'inactive_7d', 'inactive_14d'];
   if (jobType === 'premium-conversion-planner') return ['premium'];
   if (jobType === 'unfinished-action-reminder') return ['unfinished_action', 'birth_data_missing', 'birth_time_missing'];
   if (jobType === 'weekly-summary-generator') return ['daily_card'];
-  if (jobType === 'admin-campaign-runner') return ['daily_card', 'pulse_day', 'premium'];
+  if (jobType === 'admin-campaign-runner') return ['daily_card', 'premium'];
   return [];
 }
 
