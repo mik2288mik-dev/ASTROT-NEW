@@ -20,6 +20,15 @@ export type MatrixPosition = {
   arcana: number;
 };
 
+export type MatrixLifeAreaKey = 'money' | 'love' | 'health' | 'lineage';
+
+export type MatrixLifeArea = {
+  key: MatrixLifeAreaKey;
+  label: string;
+  hint: string;
+  arcana: number;
+};
+
 export type MatrixResult = {
   day: number;
   month: number;
@@ -27,6 +36,8 @@ export type MatrixResult = {
   /** Главный аркан (центр) */
   center: number;
   positions: MatrixPosition[];
+  /** Дополнительные сферы жизни — деньги, любовь, энергия, род */
+  lifeAreas: MatrixLifeArea[];
 };
 
 /** Свести число к диапазону 1..22 (как в матрице судьбы). */
@@ -48,6 +59,14 @@ const POSITION_META: Record<MatrixPositionKey, { ru: string; en: string; hintRu:
   personalPurpose: { ru: 'Личные цели', en: 'Personal goals', hintRu: 'Что важно для себя', hintEn: 'For yourself' },
   socialPurpose: { ru: 'Роль среди людей', en: 'Role among people', hintRu: 'Чем ты полезен другим', hintEn: 'For others' },
   spiritualPurpose: { ru: 'Твой путь', en: 'Your path', hintRu: 'Куда ты идёшь', hintEn: 'Where you are heading' },
+};
+
+// Сферы жизни — отдельный блок (простые подписи, без эзотерики).
+const LIFE_AREA_META: Record<MatrixLifeAreaKey, { ru: string; en: string; hintRu: string; hintEn: string }> = {
+  money: { ru: 'Деньги и достаток', en: 'Money', hintRu: 'Как у тебя с ресурсом', hintEn: 'Your relationship with resources' },
+  love: { ru: 'Любовь и близость', en: 'Love', hintRu: 'Что важно в отношениях', hintEn: 'What matters in relationships' },
+  health: { ru: 'Энергия и здоровье', en: 'Energy & health', hintRu: 'Где твой ресурс', hintEn: 'Where your energy comes from' },
+  lineage: { ru: 'Семейная линия', en: 'Family line', hintRu: 'Опора и опыт рода', hintEn: 'Roots and family experience' },
 };
 
 /**
@@ -88,5 +107,19 @@ export function computeMatrix(birthDate: string, language: 'ru' | 'en' = 'ru'): 
     hint: language === 'en' ? POSITION_META[key].hintEn : POSITION_META[key].hintRu,
   }));
 
-  return { day, month, year, center: E, positions };
+  // Сферы жизни — детерминированные комбинации базовых чисел (про самопонимание, не предсказание).
+  const lifeOrder: Array<[MatrixLifeAreaKey, number]> = [
+    ['money', reduceToArcana(B + D)],
+    ['love', reduceToArcana(A + personal)],
+    ['health', reduceToArcana(E + B)],
+    ['lineage', reduceToArcana(C + social)],
+  ];
+  const lifeAreas: MatrixLifeArea[] = lifeOrder.map(([key, arcana]) => ({
+    key,
+    arcana,
+    label: language === 'en' ? LIFE_AREA_META[key].en : LIFE_AREA_META[key].ru,
+    hint: language === 'en' ? LIFE_AREA_META[key].hintEn : LIFE_AREA_META[key].hintRu,
+  }));
+
+  return { day, month, year, center: E, positions, lifeAreas };
 }

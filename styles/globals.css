@@ -4183,6 +4183,7 @@ a,
 .info-note-text { margin: 8px 0 0; font-family: var(--fresh-font); font-size: 12.5px; line-height: 1.5; color: var(--fresh-muted); }
 .mtx-share-hook { text-align: center; font-family: var(--fresh-font); font-size: 13px; font-weight: 700; color: var(--fresh-text); margin: 18px 16px 0; }
 .mtx-grid { display: flex; flex-direction: column; gap: 12px; margin-top: 14px; }
+.mtx-life-head { font-family: var(--fresh-font); font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: var(--fresh-muted); margin: 22px 0 0; }
 .mtx-card { background: var(--fresh-surface); border-radius: var(--fresh-radius-card); padding: 15px 16px; }
 .mtx-card-label { font-family: var(--fresh-font); font-size: 16.5px; font-weight: 800; color: var(--fresh-text); letter-spacing: -0.01em; }
 .mtx-areas { font-family: var(--fresh-font); font-size: 12px; font-weight: 700; color: var(--fresh-link); margin-top: 3px; letter-spacing: 0.01em; }

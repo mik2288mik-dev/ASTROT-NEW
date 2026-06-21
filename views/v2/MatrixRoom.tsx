@@ -111,6 +111,30 @@ export function MatrixRoom({ profile, onBack }: Props) {
             ))}
           </div>
 
+          {result.lifeAreas?.length ? (
+            <>
+              <div className="mtx-life-head">{ru ? 'Сферы жизни' : 'Life areas'}</div>
+              <div className="mtx-grid">
+                {result.lifeAreas.map((la, i) => {
+                  const a = getArcana(la.arcana);
+                  return (
+                    <motion.div
+                      key={la.key}
+                      className="mtx-card"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: 0.04 * i }}
+                    >
+                      <div className="mtx-card-label">{la.label}</div>
+                      <div className="mtx-areas">{ru ? a.keyword : a.keywordEn}</div>
+                      <p className="mtx-card-essence">{ru ? a.essence : a.essenceEn}</p>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </>
+          ) : null}
+
           <button type="button" className="mtx-note-toggle" onClick={() => { lumiaSelectionHaptic(); setNoteOpen((v) => !v); }} aria-expanded={noteOpen}>
             {ru ? 'Что это значит?' : 'What does this mean?'}
           </button>
