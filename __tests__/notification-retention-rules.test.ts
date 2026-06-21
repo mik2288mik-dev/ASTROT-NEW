@@ -29,6 +29,8 @@ function makeContext(overrides: Partial<PersonalizationContext> = {}): Personali
     localTime: '09:30',
     localHour: 9,
     isPremium: false,
+    isBirthdayToday: false,
+    premiumDaysLeft: null,
     hasBirthDate: true,
     hasBirthTime: true,
     hasBirthPlace: true,

@@ -61,6 +61,9 @@ export type RetentionNotificationType =
   | 'sign_daily'
   | 'weekly_horoscope'
   | 'compatibility'
+  | 'birthday'
+  | 'premium_expiring'
+  | 'sunday_summary'
   | 'pulse_day'
   | 'assistant'
   | 'natal_free'
@@ -113,6 +116,8 @@ export type PersonalizationContext = {
   localTime: string;
   localHour: number;
   isPremium: boolean;
+  isBirthdayToday: boolean;
+  premiumDaysLeft: number | null;
   hasBirthDate: boolean;
   hasBirthTime: boolean;
   hasBirthPlace: boolean;
@@ -277,8 +282,9 @@ function defaultPreferences(row: any): PreferenceFlags {
 
 function preferenceForType(type: RetentionNotificationType): keyof PreferenceFlags {
   if (type === 'daily_card') return 'daily_card';
-  if (type === 'sign_daily' || type === 'weekly_horoscope') return 'daily_card';
+  if (type === 'sign_daily' || type === 'weekly_horoscope' || type === 'sunday_summary') return 'daily_card';
   if (type === 'compatibility') return 'synastry';
+  if (type === 'premium_expiring') return 'premium';
   if (type === 'pulse_day') return 'pulse_day';
   if (type === 'love') return 'love';
   if (type === 'money') return 'money';
@@ -320,6 +326,9 @@ function typeToSection(type: RetentionNotificationType) {
     sign_daily: 'horoscope',
     weekly_horoscope: 'horoscope',
     compatibility: 'synastry',
+    birthday: 'horoscope',
+    premium_expiring: 'premium',
+    sunday_summary: 'horoscope',
     pulse_day: 'pulse_day',
     assistant: 'assistant',
     natal_free: 'natal_free',
@@ -377,6 +386,21 @@ const FALLBACK_COPY: Record<RetentionNotificationType, { title: string; body: st
     title: 'Проверь совместимость',
     body: 'Узнай, насколько вы совпадаете — по знакам за секунду или по картам подробно.',
     button: 'Проверить совместимость',
+  },
+  birthday: {
+    title: 'С днём рождения ✨',
+    body: 'Пусть год будет добрым к тебе. Загляни — приготовили тёплый разбор на твой день.',
+    button: 'Открыть',
+  },
+  premium_expiring: {
+    title: 'Premium скоро закончится',
+    body: 'Через пару дней доступ к полным разборам закроется. Если он пригодился — можно продлить.',
+    button: 'Продлить Premium',
+  },
+  sunday_summary: {
+    title: 'Итог недели',
+    body: 'Спокойный вечер — хороший момент оглянуться на неделю и наметить пару шагов на следующую.',
+    button: 'Открыть',
   },
   pulse_day: {
     title: 'Есть ориентир по дню',
@@ -445,7 +469,7 @@ const FALLBACK_COPY: Record<RetentionNotificationType, { title: string; body: st
   },
   birth_time_missing: {
     title: 'Можно уточнить карту',
-    body: 'Без времени рождения часть карты будет менее точной: дома и Асцендент нельзя рассчитать полностью.',
+    body: 'Без времени рождения часть карты получится общей. Добавь время — и разбор станет точнее про тебя.',
     button: 'Добавить время',
   },
   unfinished_action: {
@@ -457,11 +481,11 @@ const FALLBACK_COPY: Record<RetentionNotificationType, { title: string; body: st
 
 function jobAllowedTypes(jobType: RetentionJobType): RetentionNotificationType[] {
   // Сценарии 'pulse_day' и 'personal_day' убраны — таких фич в приложении нет.
-  if (jobType === 'morning-retention-planner') return ['birth_data_missing', 'birth_time_missing', 'natal_free', 'daily_card', 'assistant'];
+  if (jobType === 'morning-retention-planner') return ['birthday', 'birth_data_missing', 'birth_time_missing', 'natal_free', 'daily_card', 'assistant'];
   if (jobType === 'midday-retention-planner') return ['work', 'money', 'love', 'sign_daily', 'compatibility', 'assistant'];
-  if (jobType === 'evening-retention-planner') return ['love', 'money', 'compatibility', 'synastry', 'premium'];
+  if (jobType === 'evening-retention-planner') return ['premium_expiring', 'sunday_summary', 'love', 'money', 'compatibility', 'synastry', 'premium'];
   if (jobType === 'inactive-user-reactivation') return ['inactive_2d', 'inactive_7d', 'inactive_14d'];
-  if (jobType === 'premium-conversion-planner') return ['premium'];
+  if (jobType === 'premium-conversion-planner') return ['premium_expiring', 'premium'];
   if (jobType === 'unfinished-action-reminder') return ['unfinished_action', 'birth_data_missing', 'birth_time_missing'];
   if (jobType === 'weekly-summary-generator') return ['weekly_horoscope'];
   if (jobType === 'admin-campaign-runner') return ['daily_card', 'sign_daily', 'premium'];
@@ -477,6 +501,9 @@ function candidatePriority(type: RetentionNotificationType, context: Personaliza
     sign_daily: 600,
     weekly_horoscope: 770,
     compatibility: 540,
+    birthday: 1200,
+    premium_expiring: 880,
+    sunday_summary: 700,
     pulse_day: 740,
     assistant: 650,
     love: 620 + context.interests.love * 10,
@@ -491,6 +518,12 @@ function candidatePriority(type: RetentionNotificationType, context: Personaliza
     unfinished_action: 860,
   };
   return base[type];
+}
+
+function localWeekday(localDate: string): number {
+  // 0 = воскресенье. Считаем по локальной дате пользователя (YYYY-MM-DD), без влияния таймзоны сервера.
+  const d = new Date(`${localDate}T12:00:00Z`);
+  return Number.isNaN(d.getTime()) ? -1 : d.getUTCDay();
 }
 
 function candidateAllowed(type: RetentionNotificationType, context: PersonalizationContext) {
@@ -508,6 +541,12 @@ function candidateAllowed(type: RetentionNotificationType, context: Personalizat
   // Недельный гороскоп — таймингом управляет недельный планировщик (понедельник).
   if (type === 'weekly_horoscope') return context.hasBirthDate;
   if (type === 'compatibility') return context.localHour >= 12 && context.localHour < 21;
+  // Поздравление с днём рождения — один раз в день рождения, утром.
+  if (type === 'birthday') return context.isBirthdayToday && context.localHour >= 8 && context.localHour < 13;
+  // Premium заканчивается (за 3 дня) или только что закончился (до 2 дней назад) — мягкое напоминание.
+  if (type === 'premium_expiring') return context.premiumDaysLeft != null && context.premiumDaysLeft <= 3 && context.premiumDaysLeft >= -2;
+  // Воскресный итог недели — вечером в воскресенье, тем у кого есть карта/знак.
+  if (type === 'sunday_summary') return context.hasBirthDate && localWeekday(context.localDate) === 0 && context.localHour >= 17 && context.localHour < 22;
   if (type === 'inactive_2d') return context.daysInactive >= 2 && context.daysInactive < 7;
   if (type === 'inactive_7d') return context.daysInactive >= 7 && context.daysInactive < 14;
   if (type === 'inactive_14d') return context.daysInactive >= 14;
@@ -595,6 +634,17 @@ async function pickTemplate(scenario: RetentionScenarioRow | null, context: Pers
   };
 }
 
+function scheduleJitterMs(seed: string, maxMinutes = 30): number {
+  // Детерминированный сдвиг 0..maxMinutes по (id+сценарий): рассылка «размазывается» во времени,
+  // а не уходит всем в одну и ту же минуту. Стабилен между прогонами планировщика.
+  let h = 2166136261;
+  for (let i = 0; i < seed.length; i += 1) {
+    h ^= seed.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return ((h >>> 0) % (maxMinutes * 60)) * 1000;
+}
+
 export function pickRetentionCandidate(
   context: PersonalizationContext,
   scenarios: RetentionScenarioRow[],
@@ -638,7 +688,7 @@ export function pickRetentionCandidate(
     },
     fallbackTitle: fallback.title,
     fallbackBody: fallback.body,
-    scheduledAt: new Date(),
+    scheduledAt: new Date(Date.now() + scheduleJitterMs(`${context.user.id}:${picked.type}`)),
     dedupeKey: picked.type,
   };
 }
@@ -806,6 +856,14 @@ async function buildContextForRecipient(user: RecipientRow, now: Date): Promise<
     [user.id]
   ).catch(() => ({ rows: [{ count: 0 }] } as any));
 
+  // День рождения сегодня (по локальной дате пользователя, сравниваем месяц-день).
+  const birthMd = user.birthDate ? String(user.birthDate).slice(5, 10) : '';
+  const isBirthdayToday = !!birthMd && info.localDate.slice(5, 10) === birthMd;
+  // Дней до конца премиума (отрицательное — уже истёк).
+  const premiumDaysLeft = user.premiumUntil
+    ? Math.ceil((new Date(user.premiumUntil).getTime() - now.getTime()) / 86_400_000)
+    : null;
+
   const base = {
     user,
     timezone,
@@ -813,6 +871,8 @@ async function buildContextForRecipient(user: RecipientRow, now: Date): Promise<
     localTime: info.localTime,
     localHour: info.localHour,
     isPremium: !!(user.premiumUntil && new Date(user.premiumUntil).getTime() > now.getTime()),
+    isBirthdayToday,
+    premiumDaysLeft,
     hasBirthDate: !!user.birthDate,
     hasBirthTime: !!user.birthTime,
     hasBirthPlace: !!user.birthPlace,

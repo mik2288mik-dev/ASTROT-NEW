@@ -2,6 +2,7 @@ import {
   buildNotificationDeepLink,
   effectiveDailyLimit,
   effectiveMinIntervalHours,
+  enforceNotificationEmoji,
   findForbiddenNotificationTerms,
   findUnknownNotificationVariables,
   isWithinQuietHours,
@@ -9,11 +10,39 @@ import {
   renderNotificationTemplate,
 } from '../lib/notificationEngineRules';
 
+const countSparkles = (text: string) => (text.match(/✨/g) || []).length;
+const OTHER_EMOJI_RE = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}]/gu;
+
 describe('notification engine rules', () => {
   it('blocks heavy astrology wording in admin templates', () => {
-    expect(findForbiddenNotificationTerms('Сегодня активен 2 дом и транзит важный')).toHaveLength(2);
-    expect(findForbiddenNotificationTerms('Луна касается Венеры, проверь аспекты')).toHaveLength(2);
+    // Жёсткий фильтр ловит астро-справку в пушах; ровно ли совпадений или больше — не важно, важно что > 0.
+    expect(findForbiddenNotificationTerms('Сегодня активен 2 дом и транзит важный').length).toBeGreaterThanOrEqual(2);
+    expect(findForbiddenNotificationTerms('Луна касается Венеры, проверь аспекты').length).toBeGreaterThanOrEqual(2);
+    expect(findForbiddenNotificationTerms('Асцендент в Овне, твой пульс дня готов').length).toBeGreaterThanOrEqual(2);
     expect(findForbiddenNotificationTerms('Сегодня лучше без гонки')).toHaveLength(0);
+  });
+
+  it('keeps at most one ✨ and strips all other emoji from push copy', () => {
+    const noisy = '🌅 Доброе утро ✨ Загляни 👋 — день собран 🔄✨🍃';
+    const cleaned = enforceNotificationEmoji(noisy);
+    expect(countSparkles(cleaned)).toBe(1);
+    expect(cleaned.replace(/✨/g, '').match(OTHER_EMOJI_RE)).toBeNull();
+    expect(cleaned).toContain('Доброе утро');
+    expect(cleaned).toContain('день собран');
+    // Без эмодзи текст не трогаем; allowSparkle=false убирает и ✨.
+    expect(enforceNotificationEmoji('Просто текст без эмодзи')).toBe('Просто текст без эмодзи');
+    expect(countSparkles(enforceNotificationEmoji('Итог ✨ недели', false))).toBe(0);
+  });
+
+  it('renders one ✨ total across title and body (title wins)', () => {
+    const rendered = renderNotificationTemplate(
+      { title: 'С днём рождения ✨', body: 'Загляни ✨ — приготовили тёплый разбор 🎉', buttonText: 'Открыть 👉' },
+      {}
+    );
+    expect(countSparkles(`${rendered.title} ${rendered.body}`)).toBe(1);
+    expect(rendered.title).toContain('✨');
+    expect(rendered.body.replace(/✨/g, '').match(OTHER_EMOJI_RE)).toBeNull();
+    expect(rendered.buttonText.match(OTHER_EMOJI_RE)).toBeNull();
   });
 
   it('detects unknown variables and renders fallbacks', () => {

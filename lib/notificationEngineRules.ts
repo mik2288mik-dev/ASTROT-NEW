@@ -69,7 +69,37 @@ const STRICT_LUMIA_FORBIDDEN_PATTERNS = [
   /не\s+пропусти\s+удачу/i,
   /кармическ/i,
   /предначертан/i,
+  /\bкарм[аыуе]\b/i,
+  // Астро-справка не для пуша: планеты, дома, транзиты, аспекты, Асцендент.
+  /асцендент/i,
+  /восходящ(ий|его|ему)\s+знак/i,
+  /секстил|квадратур|оппозици|тригон|\bтрин\b|соединени[ея]\s+планет/i,
+  /меркури|венер[аыуе]|юпитер|сатурн|\bуран\b|нептун|плутон|\bмарс[аеу]?\b/i,
+  // Удалённые из продукта фичи — не упоминать.
+  /пульс\s+дня|вечерн(яя|юю|ей)\s+отметк|окно\s+дня/i,
 ];
+
+// Правило продукта для пушей: один уместный ✨ на сообщение, никаких прочих эмодзи/иконок.
+// Покрывает эмодзи-пиктограммы, символы, стрелки, дингбаты и модификаторы (VS16/ZWJ/тон кожи).
+const NOTIFICATION_EMOJI_RE =
+  /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}\u{2300}-\u{23FF}\u{2900}-\u{297F}\u{FE0F}\u{200D}\u{1F3FB}-\u{1F3FF}\u{20E3}]/gu;
+
+/** Оставляет максимум один ✨ (первый, если allowSparkle) и убирает все прочие эмодзи; чистит пробелы. */
+export function enforceNotificationEmoji(text: string, allowSparkle = true): string {
+  let sparkleKept = false;
+  const stripped = String(text || '').replace(NOTIFICATION_EMOJI_RE, (match) => {
+    if (match === '✨' && allowSparkle && !sparkleKept) {
+      sparkleKept = true;
+      return '✨';
+    }
+    return '';
+  });
+  return stripped
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/[ \t]+([,.!?…:;])/g, '$1')
+    .replace(/[ \t]+\n/g, '\n')
+    .trim();
+}
 
 export function findForbiddenNotificationTerms(text: string): string[] {
   const value = String(text || '');
@@ -117,10 +147,11 @@ export function renderNotificationTemplate(
 ) {
   const rawTitle = template.title || '';
   const rawBody = template.body || template.text || '';
-  const title = renderNotificationText(rawTitle, variables, fallbacks);
-  const body = renderNotificationText(rawBody, variables, fallbacks);
+  // Один ✨ на всё сообщение: заголовок приоритетнее — тело сохраняет один, только если в заголовке его нет.
+  const title = enforceNotificationEmoji(renderNotificationText(rawTitle, variables, fallbacks));
+  const body = enforceNotificationEmoji(renderNotificationText(rawBody, variables, fallbacks), !title.includes('✨'));
   const caption = [title, body].filter(Boolean).join('\n\n').trim();
-  const buttonText = renderNotificationText(template.buttonText || 'Открыть LUMIA', variables, fallbacks);
+  const buttonText = enforceNotificationEmoji(renderNotificationText(template.buttonText || 'Открыть LUMIA', variables, fallbacks));
   return { title, body, caption, buttonText };
 }
 
