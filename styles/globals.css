@@ -4915,6 +4915,26 @@ a,
   cursor: default;
 }
 
+/* Вторичная кнопка — единый контурный вариант (отмена, переключатели) */
+.fresh-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--fresh-radius-btn);
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--fresh-link);
+  background: transparent;
+  border: 1.5px solid var(--fresh-border);
+  cursor: pointer;
+  font-family: var(--fresh-font);
+  -webkit-tap-highlight-color: transparent;
+  transition: border-color 0.15s ease, transform 0.1s ease;
+}
+.fresh-btn-ghost:active { transform: scale(0.98); }
+.fresh-btn-ghost:disabled { opacity: 0.4; cursor: default; }
+
 /* ── Форма: поля ввода и лейблы (онбординг, настройки) ── */
 .fresh-field-label {
   display: block;
@@ -4944,6 +4964,12 @@ a,
 .fresh-input::placeholder {
   color: var(--fresh-muted);
   opacity: 0.6;
+}
+
+.fresh-input:disabled {
+  color: var(--fresh-text);
+  opacity: 0.75;
+  border-bottom-color: var(--fresh-border);
 }
 
 .fresh-input:focus {

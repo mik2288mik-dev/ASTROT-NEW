@@ -142,8 +142,6 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
     const rowCardClass =
         'w-full rounded-mono-card border border-mono-line bg-mono-white p-4 text-left transition-transform active:scale-[0.99] sm:p-[18px]';
     const inlineActionClass = 'text-mono-muted text-[10px] uppercase tracking-wider hover:text-mono-ink transition-colors';
-    const editableInputClass = (enabled: boolean) =>
-        `w-full bg-transparent border-b ${enabled ? 'border-mono-accent' : 'border-mono-line'} py-2 text-mono-ink text-sm focus:outline-none transition-colors font-serif`;
     const languageLabel = profile.language === 'ru'
         ? getText(profile.language, 'settings.language_ru')
         : getText(profile.language, 'settings.language_en');
@@ -294,9 +292,11 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
 
                 <div className="mt-4 flex flex-wrap gap-2">
                     <button
+                        type="button"
                         onClick={() => { if (!activePremium) onRequestPremium?.(); }}
                         disabled={activePremium}
-                        className="min-h-[44px] flex-1 rounded-mono-pill bg-mono-black px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+                        className="fresh-btn-primary"
+                        style={{ flex: 1, width: 'auto', margin: 0 }}
                     >
                         {activePremium ? getText(profile.language, 'settings.plan_active') : getText(profile.language, 'dashboard.get_premium')}
                     </button>
@@ -304,7 +304,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                         <button
                             onClick={onShowPremiumPreview}
                             type="button"
-                            className="min-h-[44px] rounded-xl bg-mono-ink/[0.06] px-4 py-2.5 text-sm font-medium text-mono-ink transition-[box-shadow] hover:ring-1 hover:ring-mono-accent/25"
+                            className="fresh-btn-ghost"
                         >
                             Lumia Premium
                         </button>
@@ -318,10 +318,10 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                     <p className="lumia-muted mt-1 text-sm leading-snug">{getText(profile.language, 'settings.language_body')}</p>
                     <p className="lumia-label mt-1.5 tracking-wider">{languageLabel}</p>
                 </div>
-                <button 
+                <button
                     type="button"
                     onClick={handleLanguageToggle}
-                    className="shrink-0 rounded-xl bg-mono-ink/[0.06] px-3.5 py-2 text-sm font-medium text-mono-ink ring-1 ring-mono-ink/[0.06] transition-[box-shadow] hover:ring-mono-accent/28"
+                    className="fresh-btn-ghost shrink-0"
                 >
                     {getText(profile.language, 'settings.switch_lang')}
                 </button>
@@ -347,7 +347,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
 
                 <div className="mt-4 space-y-4">
                     <div>
-                        <label className="mb-2 block text-[10px] uppercase tracking-widest text-mono-muted">
+                        <label className="fresh-field-label">
                             {getText(profile.language, 'settings.profile_name')}
                         </label>
                         <input 
@@ -355,11 +355,11 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                             value={tempName}
                             onChange={(e) => setTempName(e.target.value)}
                             disabled={!editing}
-                            className={editableInputClass(editing)}
+                            className="fresh-input"
                         />
                     </div>
                     <div>
-                        <label className="mb-2 block text-[10px] uppercase tracking-widest text-mono-muted">
+                        <label className="fresh-field-label">
                             {getText(profile.language, 'settings.profile_birth_place')}
                         </label>
                         <input 
@@ -367,11 +367,11 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                             value={tempPlace}
                             onChange={(e) => setTempPlace(e.target.value)}
                             disabled={!editing}
-                            className={editableInputClass(editing)}
+                            className="fresh-input"
                         />
                     </div>
                     <div>
-                         <label className="mb-2 block text-[10px] uppercase tracking-widest text-mono-muted">
+                         <label className="fresh-field-label">
                              {getText(profile.language, 'settings.profile_date_time')}
                          </label>
                          <p className="text-sm font-serif text-mono-ink/75">
@@ -390,18 +390,21 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                     {editing && (
                         <div className="flex gap-2">
                             <button
+                                type="button"
                                 onClick={handleSaveProfile}
-                                className="flex-1 rounded-mono-pill bg-mono-black px-4 py-3 text-sm font-semibold text-white"
+                                className="fresh-btn-primary"
+                                style={{ flex: 1, width: 'auto', margin: 0 }}
                             >
                                 {getText(profile.language, 'settings.save')}
                             </button>
                             <button
+                                type="button"
                                 onClick={() => {
                                     setEditing(false);
                                     setTempName(profile.name);
                                     setTempPlace(profile.birthPlace);
                                 }}
-                                className="rounded-xl bg-mono-ink/[0.06] px-4 py-2.5 text-sm font-medium text-mono-ink ring-1 ring-mono-ink/[0.06] transition-[box-shadow] hover:ring-mono-accent/25"
+                                className="fresh-btn-ghost"
                             >
                                 {getText(profile.language, 'settings.cancel')}
                             </button>

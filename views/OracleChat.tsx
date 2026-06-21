@@ -341,7 +341,8 @@ export const OracleChat: React.FC<OracleChatProps> = ({
                 <button
                   type="button"
                   onClick={onPremiumRequired}
-                  className="inline-flex min-h-[44px] items-center rounded-mono-pill border border-mono-line bg-mono-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-mono-ink"
+                  className="fresh-btn-primary"
+                  style={{ width: 'auto', margin: 0 }}
                 >
                   {getText(lang, 'oracle.state_open_premium')}
                 </button>
@@ -439,7 +440,8 @@ export const OracleChat: React.FC<OracleChatProps> = ({
                   <button
                     type="button"
                     onClick={onPremiumRequired}
-                    className="rounded-mono-pill border border-mono-line bg-mono-white px-3.5 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-mono-ink"
+                    className="fresh-btn-primary"
+                    style={{ width: 'auto', margin: 0 }}
                   >
                     {getText(lang, 'oracle.open_premium')}
                   </button>
@@ -448,7 +450,7 @@ export const OracleChat: React.FC<OracleChatProps> = ({
                     type="button"
                     onClick={handleRetry}
                     disabled={loading}
-                    className="rounded-mono-pill border border-mono-line bg-mono-white px-3.5 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-mono-ink disabled:opacity-50"
+                    className="fresh-btn-ghost"
                   >
                     {getText(lang, 'oracle.retry')}
                   </button>
