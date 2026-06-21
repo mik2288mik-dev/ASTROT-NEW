@@ -343,7 +343,11 @@ export const getChartData = async (): Promise<NatalChartData | null> => {
     log.info(`[getChartData] Sending GET request to: ${url}`);
 
     const startTime = Date.now();
-    const response = await fetchWithTimeout(url, { method: 'GET' }, CHART_GET_TIMEOUT_MS);
+    const response = await fetchWithTimeout(
+      url,
+      { method: 'GET', credentials: 'include', headers: { ...getTelegramInitDataHeaders() } },
+      CHART_GET_TIMEOUT_MS
+    );
     const duration = Date.now() - startTime;
 
     log.info(`[getChartData] Response received in ${duration}ms`, {

@@ -61,7 +61,16 @@ describe('app auth providers and API security', () => {
   it('sends Telegram auth headers and web guest cookies for natal chart requests', () => {
     const chartService = read('services/chartService.ts');
     expect(chartService).toContain('...getTelegramInitDataHeaders()');
-    expect(chartService.match(/credentials: 'include'/g)).toHaveLength(2);
+    // All four chart requests must carry auth: the two writes (calculate / force-recalculate)
+    // AND the two reads (getChartFromDB / getPrimaryChartId). The reads previously omitted the
+    // header, so /api/charts/:id returned 401 for Telegram users with no cookie session — which
+    // made getOrCalculateChart throw before calculating and blocked new users from adding a chart.
+    expect(chartService.match(/credentials: 'include'/g)).toHaveLength(4);
+    expect(chartService.match(/\.\.\.getTelegramInitDataHeaders\(\)/g)).toHaveLength(4);
+    // The storage-layer chart read must authenticate too, so a 401 is never mistaken for a 404.
+    expect(read('services/storageService.ts')).toContain(
+      "{ method: 'GET', credentials: 'include', headers: { ...getTelegramInitDataHeaders() } }"
+    );
   });
 
   it('boots the dashboard through guest session when Telegram is unavailable', () => {

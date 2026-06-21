@@ -39,7 +39,11 @@ export async function getPrimaryChartId(userId: string): Promise<number | null> 
   const url = `${API_BASE_URL}/api/charts?userId=${encodeURIComponent(safeUserId)}`;
 
   try {
-    const response = await fetchWithTimeout(url, { method: 'GET' }, 8_000);
+    const response = await fetchWithTimeout(
+      url,
+      { method: 'GET', credentials: 'include', headers: { ...getTelegramInitDataHeaders() } },
+      8_000
+    );
     if (!response.ok) {
       log.warn('[getPrimaryChartId] Non-OK response', { status: response.status });
       return null;
@@ -62,7 +66,11 @@ export async function getChartFromDB(userId: string): Promise<NatalChartData | n
   const url = `${API_BASE_URL}/api/charts/${safeUserId}`;
   let response: Response;
   try {
-    response = await fetchWithTimeout(url, { method: 'GET' }, CHART_FETCH_TIMEOUT_MS);
+    response = await fetchWithTimeout(
+      url,
+      { method: 'GET', credentials: 'include', headers: { ...getTelegramInitDataHeaders() } },
+      CHART_FETCH_TIMEOUT_MS
+    );
   } catch (err: any) {
     log.error('[getChartFromDB] Fetch failed (network/timeout)', {
       error: err?.message || err,
