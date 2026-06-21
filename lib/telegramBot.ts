@@ -29,19 +29,11 @@ export function buildRetentionInlineKeyboard(input: {
   notificationId?: number | null;
   notificationType?: string | null;
 }): TelegramReplyMarkup | undefined {
+  // Только кнопка перехода в приложение. Без вторичных «Позже / Не присылать /
+  // Выключить» — пользователю нужна одна понятная кнопка.
   const primary = buildInlineKeyboardUrl(input.deepLink, input.buttonText);
   if (!primary) return undefined;
-  const id = input.notificationId && Number.isFinite(Number(input.notificationId))
-    ? String(input.notificationId)
-    : '';
-  const type = String(input.notificationType || '').replace(/[^a-zA-Z0-9_:-]/g, '').slice(0, 64);
-  const secondary: TelegramInlineKeyboardButton[] = [];
-  if (id) secondary.push({ text: 'Позже', callback_data: `notif:later:${id}` });
-  if (id && type) secondary.push({ text: 'Не присылать такое', callback_data: `notif:mute_type:${id}:${type}` });
-  if (id) secondary.push({ text: 'Выключить уведомления', callback_data: `notif:disable_all:${id}` });
-  return {
-    inline_keyboard: secondary.length ? [...primary, secondary] : primary,
-  };
+  return { inline_keyboard: primary };
 }
 
 // Имя бота для ссылок-кнопок мини-аппа. Берём из env; если его нет — спрашиваем у
