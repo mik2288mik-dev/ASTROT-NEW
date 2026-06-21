@@ -58,6 +58,9 @@ export type RetentionSegment =
 
 export type RetentionNotificationType =
   | 'daily_card'
+  | 'sign_daily'
+  | 'weekly_horoscope'
+  | 'compatibility'
   | 'pulse_day'
   | 'assistant'
   | 'natal_free'
@@ -274,6 +277,8 @@ function defaultPreferences(row: any): PreferenceFlags {
 
 function preferenceForType(type: RetentionNotificationType): keyof PreferenceFlags {
   if (type === 'daily_card') return 'daily_card';
+  if (type === 'sign_daily' || type === 'weekly_horoscope') return 'daily_card';
+  if (type === 'compatibility') return 'synastry';
   if (type === 'pulse_day') return 'pulse_day';
   if (type === 'love') return 'love';
   if (type === 'money') return 'money';
@@ -312,6 +317,9 @@ export function detectUserSegments(context: Omit<PersonalizationContext, 'segmen
 function typeToSection(type: RetentionNotificationType) {
   const map: Record<RetentionNotificationType, string> = {
     daily_card: 'daily_card',
+    sign_daily: 'horoscope',
+    weekly_horoscope: 'horoscope',
+    compatibility: 'synastry',
     pulse_day: 'pulse_day',
     assistant: 'assistant',
     natal_free: 'natal_free',
@@ -351,9 +359,24 @@ function baseVariables(context: PersonalizationContext): NotificationRenderVaria
 
 const FALLBACK_COPY: Record<RetentionNotificationType, { title: string; body: string; button: string }> = {
   daily_card: {
-    title: 'Карта дня готова',
-    body: '{{daily_summary}}\n\nОткрой разбор: там коротко, что делать, где не давить и какое окно дня лучше использовать.',
+    title: 'Гороскоп на сегодня готов',
+    body: 'Твой личный гороскоп на сегодня собран по натальной карте — загляни на минуту.',
     button: 'Открыть карту дня',
+  },
+  sign_daily: {
+    title: 'Гороскоп на сегодня готов',
+    body: 'Загляни на минуту — посмотри, каким будет день для твоего знака.',
+    button: 'Открыть гороскоп',
+  },
+  weekly_horoscope: {
+    title: 'Гороскоп на неделю готов',
+    body: 'Один главный сюжет недели и пара тёплых советов — загляни.',
+    button: 'Открыть гороскоп',
+  },
+  compatibility: {
+    title: 'Проверь совместимость',
+    body: 'Узнай, насколько вы совпадаете — по знакам за секунду или по картам подробно.',
+    button: 'Проверить совместимость',
   },
   pulse_day: {
     title: 'Есть ориентир по дню',
@@ -435,13 +458,13 @@ const FALLBACK_COPY: Record<RetentionNotificationType, { title: string; body: st
 function jobAllowedTypes(jobType: RetentionJobType): RetentionNotificationType[] {
   // Сценарии 'pulse_day' и 'personal_day' убраны — таких фич в приложении нет.
   if (jobType === 'morning-retention-planner') return ['birth_data_missing', 'birth_time_missing', 'natal_free', 'daily_card', 'assistant'];
-  if (jobType === 'midday-retention-planner') return ['work', 'money', 'love', 'assistant'];
-  if (jobType === 'evening-retention-planner') return ['love', 'money', 'synastry', 'premium'];
+  if (jobType === 'midday-retention-planner') return ['work', 'money', 'love', 'sign_daily', 'compatibility', 'assistant'];
+  if (jobType === 'evening-retention-planner') return ['love', 'money', 'compatibility', 'synastry', 'premium'];
   if (jobType === 'inactive-user-reactivation') return ['inactive_2d', 'inactive_7d', 'inactive_14d'];
   if (jobType === 'premium-conversion-planner') return ['premium'];
   if (jobType === 'unfinished-action-reminder') return ['unfinished_action', 'birth_data_missing', 'birth_time_missing'];
-  if (jobType === 'weekly-summary-generator') return ['daily_card'];
-  if (jobType === 'admin-campaign-runner') return ['daily_card', 'premium'];
+  if (jobType === 'weekly-summary-generator') return ['weekly_horoscope'];
+  if (jobType === 'admin-campaign-runner') return ['daily_card', 'sign_daily', 'premium'];
   return [];
 }
 
@@ -451,6 +474,9 @@ function candidatePriority(type: RetentionNotificationType, context: Personaliza
     birth_time_missing: 950,
     natal_free: 900,
     daily_card: context.isPremium ? 820 : 760,
+    sign_daily: 600,
+    weekly_horoscope: 770,
+    compatibility: 540,
     pulse_day: 740,
     assistant: 650,
     love: 620 + context.interests.love * 10,
@@ -477,6 +503,11 @@ function candidateAllowed(type: RetentionNotificationType, context: Personalizat
   if (type === 'personal_day') return context.localHour >= 18 && context.localHour <= 22;
   if (type === 'pulse_day') return !!context.todayPulse && context.localHour >= 12 && context.localHour < 18;
   if (type === 'daily_card') return context.hasPrimaryChart && context.localHour >= 7 && context.localHour < 12;
+  // Дневной гороскоп по знаку — для всех, у кого есть знак (дата рождения), днём.
+  if (type === 'sign_daily') return context.hasBirthDate && context.localHour >= 11 && context.localHour < 16;
+  // Недельный гороскоп — таймингом управляет недельный планировщик (понедельник).
+  if (type === 'weekly_horoscope') return context.hasBirthDate;
+  if (type === 'compatibility') return context.localHour >= 12 && context.localHour < 21;
   if (type === 'inactive_2d') return context.daysInactive >= 2 && context.daysInactive < 7;
   if (type === 'inactive_7d') return context.daysInactive >= 7 && context.daysInactive < 14;
   if (type === 'inactive_14d') return context.daysInactive >= 14;

@@ -2179,27 +2179,57 @@ async function lumia030DisableRemovedScenarios(pool: Pool) {
   log.info('Migration lumia_030_disable_removed_notification_scenarios applied');
 }
 
-// Тексты шаблонов всегда подтягиваются из каталога (источник правды) при каждом
-// деплое — чтобы правки копий доходили до прода без отдельной миграции каждый раз.
-async function syncNotificationTemplateTextFromCatalog(pool: Pool) {
+// Каталог уведомлений — источник правды. При каждом деплое: НОВЫЕ сценарии
+// вставляются (enabled=TRUE), у существующих обновляются метаданные и тексты
+// шаблонов (enabled существующих НЕ трогаем — чтобы ручные отключения админа жили).
+async function syncNotificationCatalogFromSeed(pool: Pool) {
   try {
     for (const seed of RETENTION_NOTIFICATION_SCENARIO_SEEDS) {
-      const r = await pool.query(`SELECT id FROM notification_scenarios WHERE key = $1`, [seed.key]);
-      const scenarioId = Number(r.rows[0]?.id);
+      const scenarioResult = await pool.query(
+        `INSERT INTO notification_scenarios (
+           key, name, description, enabled, day_part, time_window_start, time_window_end, timezone_mode,
+           priority, trigger_rule_json, audience_rule_json, max_per_day, cooldown_hours, image_mode,
+           image_strategy_json, deep_link, buttons
+         )
+         VALUES ($1, $2, $3, TRUE, $4, $5::time, $6::time, 'user_local', $7, '{}'::jsonb, $8::jsonb,
+           $9, $10, 'auto', $11::jsonb, $12, $13::jsonb)
+         ON CONFLICT (key) DO UPDATE SET
+           name = EXCLUDED.name, description = EXCLUDED.description, day_part = EXCLUDED.day_part,
+           time_window_start = EXCLUDED.time_window_start, time_window_end = EXCLUDED.time_window_end,
+           priority = EXCLUDED.priority, deep_link = EXCLUDED.deep_link, buttons = EXCLUDED.buttons,
+           updated_at = CURRENT_TIMESTAMP
+         RETURNING id`,
+        [
+          seed.key, seed.name, seed.description, seed.dayPart, seed.timeWindowStart, seed.timeWindowEnd,
+          seed.priority, JSON.stringify({ segment: seed.segment }), seed.maxPerDay, seed.cooldownHours,
+          JSON.stringify({ tags: seed.imageTags, dayPart: seed.dayPart }), seed.deepLinkSection,
+          JSON.stringify([{ text: seed.templates[0]?.buttonText || 'Открыть', section: seed.deepLinkSection }]),
+        ]
+      );
+      const scenarioId = Number(scenarioResult.rows[0]?.id);
       if (!scenarioId) continue;
       for (let index = 0; index < seed.templates.length; index += 1) {
         const item = seed.templates[index];
         const name = `${seed.name} · ${String(index + 1).padStart(2, '0')}`;
         await pool.query(
-          `UPDATE notification_templates
-           SET title = $1, body = $2, text = $2, button_text = $3, updated_at = CURRENT_TIMESTAMP
-           WHERE scenario_id = $4 AND name = $5`,
-          [item.title, item.body, item.buttonText, scenarioId, name]
+          `INSERT INTO notification_templates (
+             scenario_id, name, slot, target_segment, message_type, title, body, text, button_text,
+             deep_link, is_active, sort_order, tags, weight, visual_mode, notes
+           )
+           VALUES ($1, $2, $3, $4, 'text', $5, $6, $6, $7, $8, TRUE, $9, $10::jsonb, $11, 'none', $12)
+           ON CONFLICT (scenario_id, name) WHERE scenario_id IS NOT NULL DO UPDATE SET
+             title = EXCLUDED.title, body = EXCLUDED.body, text = EXCLUDED.text,
+             button_text = EXCLUDED.button_text, is_active = TRUE, updated_at = CURRENT_TIMESTAMP`,
+          [
+            scenarioId, name, seed.dayPart === 'reactivation' ? 'custom' : seed.dayPart, seed.segment,
+            item.title, item.body, item.buttonText, seed.deepLinkSection, index,
+            JSON.stringify(item.tags), item.weight || 100, seed.description,
+          ]
         );
       }
     }
   } catch (e: any) {
-    log.warn('notification template text resync skipped', { error: e?.message });
+    log.warn('notification catalog sync skipped', { error: e?.message });
   }
 }
 
@@ -2255,7 +2285,7 @@ export async function runMigrations(): Promise<void> {
   await lumia028HoroscopeEngagement(pool);
   await lumia029EnableNotificationScenarios(pool);
   await lumia030DisableRemovedScenarios(pool);
-  await syncNotificationTemplateTextFromCatalog(pool);
+  await syncNotificationCatalogFromSeed(pool);
   await verifyTablesExist(pool);
 
     log.info('All Lumia migrations completed successfully');
