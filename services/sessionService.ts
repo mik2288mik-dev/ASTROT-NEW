@@ -128,12 +128,42 @@ export async function recordUserAppEvent(payload: {
   });
 }
 
+export type UserNotificationSettings = {
+  enabled: boolean;
+  morning_enabled: boolean;
+  day_enabled: boolean;
+  evening_enabled: boolean;
+  reactivation_enabled: boolean;
+  quiet_hours_start: string | null;
+  quiet_hours_end: string | null;
+  timezone: string | null;
+};
+
+export async function getUserNotificationSettings(): Promise<UserNotificationSettings | null> {
+  if (typeof window === 'undefined') return null;
+  const initData = getTelegramInitData();
+  if (!initData) return null;
+  try {
+    const response = await fetch(`${API_BASE}/api/users/notification-settings`, {
+      method: 'GET',
+      headers: { [INIT_DATA_HEADER]: initData },
+    });
+    if (!response.ok) return null;
+    const payload = await response.json();
+    return (payload?.settings as UserNotificationSettings) || null;
+  } catch {
+    return null;
+  }
+}
+
 export async function updateUserNotificationSettings(payload: {
   enabled?: boolean;
   morningEnabled?: boolean;
   dayEnabled?: boolean;
   eveningEnabled?: boolean;
   reactivationEnabled?: boolean;
+  quietHoursStart?: string;
+  quietHoursEnd?: string;
   timezone?: string | null;
 }): Promise<boolean> {
   if (typeof window === 'undefined') return false;

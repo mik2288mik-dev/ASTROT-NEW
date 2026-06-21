@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { UserProfile, Language, NotificationFrequency } from '../types';
 import { getText } from '../constants';
 import { saveProfile } from '../services/storageService';
-import { updateUserNotificationSettings, getTelegramInitDataHeaders } from '../services/sessionService';
+import { updateUserNotificationSettings, getUserNotificationSettings, getTelegramInitDataHeaders } from '../services/sessionService';
 import { hasActivePremium } from '../lib/accessMatrix';
 
 /** Частота из UI → флаги движка уведомлений (реальная таблица user_notification_settings) */
@@ -94,6 +94,39 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
     const [editsUsed, setEditsUsed] = useState(() =>
         hasActivePremium(profile) ? profileEditsThisMonth(profile.id) : readProfileEdits(profile.id).length
     );
+    const [notifEnabled, setNotifEnabled] = useState(true);
+    const [quietStart, setQuietStart] = useState('22:00');
+    const [quietEnd, setQuietEnd] = useState('08:00');
+
+    useEffect(() => {
+        let alive = true;
+        void getUserNotificationSettings().then((s) => {
+            if (!alive || !s) return;
+            setNotifEnabled(s.enabled !== false);
+            if (s.quiet_hours_start) setQuietStart(s.quiet_hours_start);
+            if (s.quiet_hours_end) setQuietEnd(s.quiet_hours_end);
+        });
+        return () => { alive = false; };
+    }, []);
+
+    const saveNotif = (patch: { enabled?: boolean; quietHoursStart?: string; quietHoursEnd?: string }) => {
+        void updateUserNotificationSettings({
+            enabled: notifEnabled,
+            quietHoursStart: quietStart,
+            quietHoursEnd: quietEnd,
+            timezone: localTimezone(),
+            ...patch,
+        });
+    };
+    const toggleNotif = () => {
+        const next = !notifEnabled;
+        setNotifEnabled(next);
+        saveNotif({ enabled: next });
+    };
+    const changeQuiet = (which: 'start' | 'end', value: string) => {
+        if (which === 'start') setQuietStart(value); else setQuietEnd(value);
+        saveNotif(which === 'start' ? { quietHoursStart: value } : { quietHoursEnd: value });
+    };
 
     const sendSelfTest = async () => {
         if (selfTest === 'sending') return;
@@ -325,6 +358,41 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                 >
                     {getText(profile.language, 'settings.switch_lang')}
                 </button>
+            </div>
+
+            <div className={sectionClass}>
+                <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0 pr-2">
+                        <h3 className="font-serif text-lg text-mono-ink">{profile.language === 'en' ? 'Notifications' : 'Уведомления'}</h3>
+                        <p className="lumia-muted mt-1 text-sm leading-snug">
+                            {profile.language === 'en' ? 'Warm nudges from Lumia.' : 'Тёплые напоминания от Lumia.'}
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        role="switch"
+                        aria-checked={notifEnabled}
+                        onClick={toggleNotif}
+                        className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${notifEnabled ? 'bg-mono-accent' : 'bg-mono-ink/15'}`}
+                    >
+                        <span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-[left] ${notifEnabled ? 'left-[22px]' : 'left-0.5'}`} />
+                    </button>
+                </div>
+                {notifEnabled && (
+                    <div className="mt-4">
+                        <p className="fresh-field-label">{profile.language === 'en' ? 'Quiet hours (do not disturb)' : 'Тихие часы (не беспокоить)'}</p>
+                        <div className="mt-2 flex items-center gap-3">
+                            <input type="time" value={quietStart} onChange={(e) => changeQuiet('start', e.target.value)} className="fresh-input" style={{ width: 'auto', minWidth: '6.5rem' }} />
+                            <span className="text-mono-muted">—</span>
+                            <input type="time" value={quietEnd} onChange={(e) => changeQuiet('end', e.target.value)} className="fresh-input" style={{ width: 'auto', minWidth: '6.5rem' }} />
+                        </div>
+                        <p className="lumia-muted mt-2 text-xs leading-snug">
+                            {profile.language === 'en'
+                                ? 'In this window we never send. Daily nudges: morning ~9:00, day ~13:00; win-backs by day.'
+                                : 'В эти часы ничего не присылаем. Обычно: утро ~9:00, день ~13:00; возвраты — по дням.'}
+                        </p>
+                    </div>
+                )}
             </div>
 
             <div className={sectionClass}>

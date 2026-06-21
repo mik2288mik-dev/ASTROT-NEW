@@ -6,6 +6,16 @@ function readBoolean(value: unknown): boolean | null {
   return typeof value === 'boolean' ? value : null;
 }
 
+function readTime(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const m = /^(\d{1,2}):(\d{2})$/.exec(value.trim());
+  if (!m) return null;
+  const h = Number(m[1]);
+  const min = Number(m[2]);
+  if (h < 0 || h > 23 || min < 0 || min > 59) return null;
+  return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+}
+
 function readTimezone(value: unknown): string | null {
   if (typeof value !== 'string') return null;
   const candidate = value.trim();
@@ -19,23 +29,38 @@ function readTimezone(value: unknown): string | null {
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') {
+  if (req.method !== 'POST' && req.method !== 'GET') {
     return res.status(405).json({ error: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' });
   }
 
   try {
     const telegramUser = getVerifiedTelegramUser(req);
+    const pool = getPool();
+
+    if (req.method === 'GET') {
+      const existing = await pool.query(
+        `SELECT enabled, morning_enabled, day_enabled, evening_enabled, reactivation_enabled,
+                to_char(quiet_hours_start, 'HH24:MI') AS quiet_hours_start,
+                to_char(quiet_hours_end, 'HH24:MI') AS quiet_hours_end, timezone
+         FROM user_notification_settings WHERE user_id = $1`,
+        [telegramUser.id]
+      );
+      return res.status(200).json({ success: true, settings: existing.rows[0] || null });
+    }
+
     const enabled = readBoolean(req.body?.enabled);
     const morningEnabled = readBoolean(req.body?.morningEnabled);
     const dayEnabled = readBoolean(req.body?.dayEnabled);
     const eveningEnabled = readBoolean(req.body?.eveningEnabled);
     const reactivationEnabled = readBoolean(req.body?.reactivationEnabled);
+    const quietHoursStart = readTime(req.body?.quietHoursStart);
+    const quietHoursEnd = readTime(req.body?.quietHoursEnd);
     const timezone = readTimezone(req.body?.timezone);
 
-    const pool = getPool();
     const result = await pool.query(
       `INSERT INTO user_notification_settings (
-         user_id, enabled, morning_enabled, day_enabled, evening_enabled, reactivation_enabled, timezone
+         user_id, enabled, morning_enabled, day_enabled, evening_enabled, reactivation_enabled,
+         quiet_hours_start, quiet_hours_end, timezone
        )
        VALUES (
          $1,
@@ -44,7 +69,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
          COALESCE($4::boolean, TRUE),
          COALESCE($5::boolean, TRUE),
          COALESCE($6::boolean, TRUE),
-         $7
+         $7::time, $8::time, $9
        )
        ON CONFLICT (user_id) DO UPDATE SET
          enabled = COALESCE($2::boolean, user_notification_settings.enabled),
@@ -52,9 +77,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
          day_enabled = COALESCE($4::boolean, user_notification_settings.day_enabled),
          evening_enabled = COALESCE($5::boolean, user_notification_settings.evening_enabled),
          reactivation_enabled = COALESCE($6::boolean, user_notification_settings.reactivation_enabled),
-         timezone = COALESCE($7::text, user_notification_settings.timezone),
+         quiet_hours_start = COALESCE($7::time, user_notification_settings.quiet_hours_start),
+         quiet_hours_end = COALESCE($8::time, user_notification_settings.quiet_hours_end),
+         timezone = COALESCE($9::text, user_notification_settings.timezone),
          updated_at = CURRENT_TIMESTAMP
-       RETURNING enabled, morning_enabled, day_enabled, evening_enabled, reactivation_enabled, timezone`,
+       RETURNING enabled, morning_enabled, day_enabled, evening_enabled, reactivation_enabled,
+                 to_char(quiet_hours_start, 'HH24:MI') AS quiet_hours_start,
+                 to_char(quiet_hours_end, 'HH24:MI') AS quiet_hours_end, timezone`,
       [
         telegramUser.id,
         enabled,
@@ -62,6 +91,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         dayEnabled,
         eveningEnabled,
         reactivationEnabled,
+        quietHoursStart,
+        quietHoursEnd,
         timezone,
       ]
     );
