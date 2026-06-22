@@ -27,6 +27,9 @@ const RECENT_OPEN_MINUTES = 60;
 const FREE_DAILY_LIMIT = 2;
 const PREMIUM_DAILY_LIMIT = 3;
 const IGNORED_LIMIT = 5;
+// Жёсткий предохранитель против спама: ни один юзер не получает два пуша ближе, чем за столько часов.
+// Действует на УРОВНЕ ОТПРАВКИ — даже если что-то задвоилось в очереди, дубли не уйдут.
+const NOTIFICATION_MIN_GAP_HOURS = Number(process.env.NOTIFICATION_MIN_GAP_HOURS) || 4;
 
 export type RetentionJobType =
   | 'notification-dispatcher'
@@ -1043,16 +1046,30 @@ async function lockDueNotifications(now: Date, limit: number) {
   try {
     await client.query('BEGIN');
     const result = await client.query(
-      `SELECT sn.*, u.name AS user_name
+      // Берём максимум ОДИН созревший пуш на юзера за прогон (rn = 1), и только если этому юзеру
+      // ничего не уходило за последние NOTIFICATION_MIN_GAP_HOURS часов. Спам/дубли невозможны структурно.
+      `WITH due AS (
+         SELECT sn.id,
+                ROW_NUMBER() OVER (PARTITION BY sn.user_id ORDER BY sn.scheduled_at ASC, sn.id ASC) AS rn
+         FROM scheduled_notifications sn
+         WHERE sn.status = 'scheduled'
+           AND sn.scheduled_at <= $1
+           AND (sn.next_retry_at IS NULL OR sn.next_retry_at <= $1)
+           AND NOT EXISTS (
+             SELECT 1 FROM scheduled_notifications prev
+             WHERE prev.user_id = sn.user_id
+               AND prev.status = 'sent'
+               AND prev.sent_at > $1::timestamptz - (INTERVAL '1 hour' * $3)
+           )
+       )
+       SELECT sn.*, u.name AS user_name
        FROM scheduled_notifications sn
+       JOIN due ON due.id = sn.id AND due.rn = 1
        LEFT JOIN users u ON u.id = sn.user_id
-       WHERE sn.status = 'scheduled'
-         AND sn.scheduled_at <= $1
-         AND (sn.next_retry_at IS NULL OR sn.next_retry_at <= $1)
        ORDER BY sn.scheduled_at ASC, sn.id ASC
        LIMIT $2
        FOR UPDATE OF sn SKIP LOCKED`,
-      [now, Math.max(1, Math.min(limit, 500))]
+      [now, Math.max(1, Math.min(limit, 500)), NOTIFICATION_MIN_GAP_HOURS]
     );
     const ids = result.rows.map((row: any) => Number(row.id));
     if (ids.length) {
@@ -1075,15 +1092,27 @@ async function lockDueNotifications(now: Date, limit: number) {
 
 async function previewDueNotifications(now: Date, limit: number) {
   const result = await getPool().query(
-    `SELECT sn.*, u.name AS user_name
+    `WITH due AS (
+       SELECT sn.id,
+              ROW_NUMBER() OVER (PARTITION BY sn.user_id ORDER BY sn.scheduled_at ASC, sn.id ASC) AS rn
+       FROM scheduled_notifications sn
+       WHERE sn.status = 'scheduled'
+         AND sn.scheduled_at <= $1
+         AND (sn.next_retry_at IS NULL OR sn.next_retry_at <= $1)
+         AND NOT EXISTS (
+           SELECT 1 FROM scheduled_notifications prev
+           WHERE prev.user_id = sn.user_id
+             AND prev.status = 'sent'
+             AND prev.sent_at > $1::timestamptz - (INTERVAL '1 hour' * $3)
+         )
+     )
+     SELECT sn.*, u.name AS user_name
      FROM scheduled_notifications sn
+     JOIN due ON due.id = sn.id AND due.rn = 1
      LEFT JOIN users u ON u.id = sn.user_id
-     WHERE sn.status = 'scheduled'
-       AND sn.scheduled_at <= $1
-       AND (sn.next_retry_at IS NULL OR sn.next_retry_at <= $1)
      ORDER BY sn.scheduled_at ASC, sn.id ASC
      LIMIT $2`,
-    [now, Math.max(1, Math.min(limit, 500))]
+    [now, Math.max(1, Math.min(limit, 500)), NOTIFICATION_MIN_GAP_HOURS]
   );
   return result.rows;
 }

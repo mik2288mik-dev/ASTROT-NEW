@@ -70,7 +70,7 @@ async function dispatchTick() {
 }
 
 function plannerTick() {
-  const { hour, minute, weekday, dateKey } = mskNow();
+  const { hour, minute, dateKey } = mskNow();
   // окно 2 минуты, чтобы не пропустить из-за дрейфа таймера; once-per-day защищает от повтора
   const at = (h: number, m: number) => hour === h && minute >= m && minute < m + 2;
 
@@ -81,7 +81,8 @@ function plannerTick() {
   if (at(11, 0)) void runOnce('inactive-user-reactivation', dateKey, () => planRetentionNotifications('inactive-user-reactivation', new Date(), { limit: PLANNER_LIMIT }));
   if (at(18, 0)) void runOnce('premium-conversion-planner', dateKey, () => planRetentionNotifications('premium-conversion-planner', new Date(), { limit: PLANNER_LIMIT }));
   if (at(21, 0)) void runOnce('unfinished-action-reminder', dateKey, () => planRetentionNotifications('unfinished-action-reminder', new Date(), { limit: PLANNER_LIMIT }));
-  if (weekday === 1 && at(10, 0)) void runOnce('weekly-summary-generator', dateKey, () => planRetentionNotifications('weekly-summary-generator', new Date(), { limit: PLANNER_LIMIT }));
+  // Недельный гороскоп больше НЕ шлём отдельным пушем ("гороскоп на неделю готов" = пустой зазыватель).
+  // Еженедельный контакт — воскресный итог (sunday_summary) через вечерний планировщик.
 
   // Кампании админа — каждые 15 минут (slotKey по 15-минутному слоту дня).
   if (minute % 15 === 0) {

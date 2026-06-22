@@ -2208,6 +2208,17 @@ async function syncNotificationCatalogFromSeed(pool: Pool) {
       );
       const scenarioId = Number(scenarioResult.rows[0]?.id);
       if (!scenarioId) continue;
+      const seedTemplateNames = seed.templates.map(
+        (_, index) => `${seed.name} · ${String(index + 1).padStart(2, '0')}`
+      );
+      // Деактивируем устаревшие шаблоны сценария (старый текст из прежних сидов), иначе планировщик
+      // продолжает случайно выбирать их вперемешку с актуальными — пуши уходят со старым текстом.
+      await pool.query(
+        `UPDATE notification_templates
+         SET is_active = FALSE, updated_at = CURRENT_TIMESTAMP
+         WHERE scenario_id = $1 AND is_active = TRUE AND name <> ALL($2::text[])`,
+        [scenarioId, seedTemplateNames]
+      );
       for (let index = 0; index < seed.templates.length; index += 1) {
         const item = seed.templates[index];
         const name = `${seed.name} · ${String(index + 1).padStart(2, '0')}`;
@@ -2230,6 +2241,22 @@ async function syncNotificationCatalogFromSeed(pool: Pool) {
     }
   } catch (e: any) {
     log.warn('notification catalog sync skipped', { error: e?.message });
+  }
+}
+
+// Гасим устаревший бэклог запланированных пушей: за прошлые дни или просроченные больше чем на 3 часа.
+// Иначе после деплоя накопившаяся очередь начинает сливаться пользователям (старый спам). Запускается всегда.
+async function cancelStaleScheduledNotifications(pool: Pool) {
+  try {
+    const result = await pool.query(
+      `UPDATE scheduled_notifications
+       SET status = 'cancelled', updated_at = CURRENT_TIMESTAMP
+       WHERE status = 'scheduled'
+         AND (local_date < CURRENT_DATE OR scheduled_at < NOW() - INTERVAL '3 hours')`
+    );
+    if (result.rowCount) log.info(`cancelled ${result.rowCount} stale scheduled notifications`);
+  } catch (e: any) {
+    log.warn('stale notification cleanup skipped', { error: e?.message });
   }
 }
 
@@ -2286,6 +2313,7 @@ export async function runMigrations(): Promise<void> {
   await lumia029EnableNotificationScenarios(pool);
   await lumia030DisableRemovedScenarios(pool);
   await syncNotificationCatalogFromSeed(pool);
+  await cancelStaleScheduledNotifications(pool);
   await verifyTablesExist(pool);
 
     log.info('All Lumia migrations completed successfully');
