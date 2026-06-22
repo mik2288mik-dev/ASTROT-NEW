@@ -308,12 +308,14 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
             onDragEnd={onDragEnd}
           >
             <div className="horo-uni-hero" style={{ background: ELEMENT_COLOR[sign.toLowerCase()] || 'var(--fresh-sky)' }}>
-              <div className="fresh-hero-icon" aria-hidden><ZodiacIcon sign={sign} size={72} strokeWidth={1.1} /></div>
+              <div className="horo-hero-glyph" aria-hidden>
+                <ZodiacIcon sign={sign} size={64} strokeWidth={1.1} />
+                {signState === 'open' ? <div className="horo-hero-date">{periodTag}</div> : null}
+              </div>
               <div className="horo-hero-stack">
                 <div className="fresh-sticky" style={{ transform: 'rotate(-2deg)' }}>
                   {signState === 'open' && !periodLocked ? (reading?.headline || (language === 'ru' ? 'Готовим разбор…' : 'Preparing…')) : signLabel}
                 </div>
-                {signState === 'open' ? <div className="horo-hero-date">{periodTag}</div> : null}
               </div>
             </div>
             <div className="horo-uni-body">

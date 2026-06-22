@@ -3320,7 +3320,8 @@ a,
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 18px var(--fresh-page-x) 8px;
+  /* Верх прижат как на Главной (.fresh-header), чтобы заголовок не «висел» в пустоте. */
+  padding: 2px var(--fresh-page-x) 10px;
 }
 
 .fresh-back-btn {
@@ -3466,6 +3467,22 @@ a,
   font-weight: 700;
   color: #fff;
   white-space: nowrap;
+}
+/* Глиф знака справа по центру, дата — ПОД ним. */
+.horo-hero-glyph {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  right: 18px;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  color: var(--fresh-text);
+}
+.horo-hero-glyph > svg {
+  opacity: 0.85;
 }
 
 /* Чип внутри hero (тёмный полупрозрачный — читается и на фото, и на цвете) */
