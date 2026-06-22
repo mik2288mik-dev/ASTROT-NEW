@@ -292,11 +292,6 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
         onBack={() => { lumiaSelectionHaptic(); void onBack(); }}
       />
 
-      <div className="pd-head">
-        <div className="pd-head-title">{activeTab.title}</div>
-        <div className="pd-head-sub">{activeTab.subtitle} · {formatLumiaDate(dateKey, language)}</div>
-      </div>
-
       <FreshTabs tabs={tabItems} activeTab={activeSection} onTabChange={(id) => { lumiaSelectionHaptic(); setActiveSection(id as PersonalDailySection); }} />
 
       <div style={{ padding: '6px 20px 0' }}>
@@ -320,6 +315,10 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
             onDragEnd={onDragEnd}
             style={{ touchAction: 'pan-y' }}
           >
+            <div className="pd-areahero" style={{ background: `linear-gradient(135deg, ${activeTab.accent}, ${activeTab.accent}cc)` }}>
+              <div className="pd-areahero-title">{activeTab.title}</div>
+              <div className="pd-areahero-sub">{activeTab.subtitle} · {formatLumiaDate(dateKey, language)}</div>
+            </div>
             {access.status === 'needs_chart' ? (
               <Notice
                 icon="chart"
