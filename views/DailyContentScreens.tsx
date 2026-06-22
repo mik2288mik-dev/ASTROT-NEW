@@ -111,19 +111,30 @@ function ForecastContent({ reading, accent }: { reading: ForecastDaypartReading;
   );
 }
 
-function SectionContent({ section }: { section: InterpretationSection }) {
+const PD_STAGGER = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.07, delayChildren: 0.04 } },
+};
+const PD_ITEM = {
+  hidden: { opacity: 0, y: 10 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.34, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] } },
+};
+
+function SectionContent({ section, accent }: { section: InterpretationSection; accent: string }) {
   const paragraphs = splitParagraphs(section.content);
   return (
     <div className="pd-body">
-      <div className="natal-sec-body" style={{ marginTop: 0 }}>
+      <motion.div className="natal-sec-body" style={{ marginTop: 0 }} variants={PD_STAGGER} initial="hidden" animate="show">
         {paragraphs.map((paragraph, index) => (
-          <p key={index} className="natal-sec-p" style={{ marginTop: index ? 12 : 0 }}>{paragraph}</p>
+          <motion.p key={index} className="natal-sec-p" style={{ marginTop: index ? 12 : 0 }} variants={PD_ITEM}>{paragraph}</motion.p>
         ))}
-      </div>
+      </motion.div>
       {section.bullets?.length ? (
-        <ul className="natal-sec-bullets" style={{ marginTop: 16 }}>
-          {section.bullets.slice(0, 4).map((bullet) => <li key={bullet}>{bullet}</li>)}
-        </ul>
+        <motion.ul className="pd-points" style={{ ['--pd-accent' as string]: accent } as React.CSSProperties} variants={PD_STAGGER} initial="hidden" animate="show">
+          {section.bullets.slice(0, 4).map((bullet) => (
+            <motion.li key={bullet} className="pd-point" variants={PD_ITEM}>{bullet}</motion.li>
+          ))}
+        </motion.ul>
       ) : null}
     </div>
   );
@@ -160,10 +171,10 @@ function DayLine({ points, nowHour, accent, ru }: { points: Array<{ hour: number
             <stop offset="1" stopColor={accent} stopOpacity="0" />
           </linearGradient>
         </defs>
-        <path d={area} fill="url(#dl-grad)" />
-        <path d={line} fill="none" stroke={accent} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        <motion.path d={area} fill="url(#dl-grad)" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, ease: 'easeOut' }} />
+        <motion.path d={line} fill="none" stroke={accent} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.85, ease: 'easeInOut' }} />
         <line x1={nx} y1={pad} x2={nx} y2={H - pad} stroke="var(--fresh-text)" strokeWidth="1" opacity="0.45" />
-        <circle cx={nx} cy={y(nearestNow.score)} r="4" fill={accent} stroke="#fff" strokeWidth="2" />
+        <motion.circle cx={nx} cy={y(nearestNow.score)} r="4" fill={accent} stroke="#fff" strokeWidth="2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.65, duration: 0.3 }} />
       </svg>
       <div className="dl-axis"><span>0</span><span>6</span><span>12</span><span>18</span><span>24</span></div>
       <div className="dl-cap">{ru ? 'Чем выше линия — тем больше энергии и удачных окон в этот час. Вертикаль — сейчас.' : 'The higher the line, the more energy and good windows that hour. The vertical marks now.'}</div>
@@ -337,7 +348,7 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
                 <ForecastContent reading={forecast} accent={activeTab.accent} />
               </>
             ) : activeDailySection ? (
-              <SectionContent section={activeDailySection} />
+              <SectionContent section={activeDailySection} accent={activeTab.accent} />
             ) : (
               <Skeleton />
             )}
