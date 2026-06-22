@@ -10,8 +10,8 @@ import {
   renderNotificationTemplate,
 } from '../lib/notificationEngineRules';
 
-const countSparkles = (text: string) => (text.match(/✨/g) || []).length;
-const OTHER_EMOJI_RE = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}]/gu;
+const EMOJI_RE = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}\u{2300}-\u{23FF}\u{2900}-\u{297F}\u{1F3FB}-\u{1F3FF}\u{20E3}]/gu;
+const countEmoji = (text: string) => (text.match(EMOJI_RE) || []).length;
 
 describe('notification engine rules', () => {
   it('blocks heavy astrology wording in admin templates', () => {
@@ -22,27 +22,28 @@ describe('notification engine rules', () => {
     expect(findForbiddenNotificationTerms('Сегодня лучше без гонки')).toHaveLength(0);
   });
 
-  it('keeps at most one ✨ and strips all other emoji from push copy', () => {
+  it('keeps at most one emoji (any) and strips the rest from push copy', () => {
     const noisy = '🌅 Доброе утро ✨ Загляни 👋 — день собран 🔄✨🍃';
     const cleaned = enforceNotificationEmoji(noisy);
-    expect(countSparkles(cleaned)).toBe(1);
-    expect(cleaned.replace(/✨/g, '').match(OTHER_EMOJI_RE)).toBeNull();
+    expect(countEmoji(cleaned)).toBe(1);
     expect(cleaned).toContain('Доброе утро');
     expect(cleaned).toContain('день собран');
-    // Без эмодзи текст не трогаем; allowSparkle=false убирает и ✨.
+    // Один уместный эмодзи остаётся (😄 у друга — норм).
+    expect(enforceNotificationEmoji('Зайди глянь 😄')).toContain('😄');
+    // Без эмодзи текст не трогаем; allowEmoji=false убирает любой.
     expect(enforceNotificationEmoji('Просто текст без эмодзи')).toBe('Просто текст без эмодзи');
-    expect(countSparkles(enforceNotificationEmoji('Итог ✨ недели', false))).toBe(0);
+    expect(countEmoji(enforceNotificationEmoji('Итог 😄 недели', false))).toBe(0);
   });
 
-  it('renders one ✨ total across title and body (title wins)', () => {
+  it('renders one emoji total across title and body (title wins)', () => {
     const rendered = renderNotificationTemplate(
-      { title: 'С днём рождения ✨', body: 'Загляни ✨ — приготовили тёплый разбор 🎉', buttonText: 'Открыть 👉' },
+      { title: 'С днём рождения ✨', body: 'Загляни 😄 — приготовили тёплый разбор 🎉', buttonText: 'Открыть 👉' },
       {}
     );
-    expect(countSparkles(`${rendered.title} ${rendered.body}`)).toBe(1);
+    expect(countEmoji(`${rendered.title} ${rendered.body}`)).toBe(1);
     expect(rendered.title).toContain('✨');
-    expect(rendered.body.replace(/✨/g, '').match(OTHER_EMOJI_RE)).toBeNull();
-    expect(rendered.buttonText.match(OTHER_EMOJI_RE)).toBeNull();
+    expect(countEmoji(rendered.body)).toBe(0);
+    expect(countEmoji(rendered.buttonText)).toBe(0);
   });
 
   it('detects unknown variables and renders fallbacks', () => {

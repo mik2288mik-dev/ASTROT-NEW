@@ -15,6 +15,8 @@ import {
 } from '../lib/telegramBot';
 import { buildMiniAppButtonUrl } from '../lib/notificationDeepLink';
 import { resolveTodayPulseForUser } from '../lib/todayPulseResolver';
+import { sunSignFromDate } from '../lib/synastry/compatScore';
+import { getZodiacSign } from '../constants';
 import type {
   AdminScheduledNotificationQueueItem,
   RetentionNotificationStatus,
@@ -355,8 +357,13 @@ function baseVariables(context: PersonalizationContext): NotificationRenderVaria
   const card = context.preparedDailyCard || preparedCardFromPulse(context.todayPulse);
   const peak = context.todayPulse?.peakPoint || context.todayPulse?.currentPoint || null;
   const avoid = context.todayPulse?.currentPoint?.avoid?.[0] || card.cautionText || 'резкие решения';
+  const firstName = String(context.user.name || '').split(/\s+/)[0] || '';
+  const signKey = context.user.birthDate ? sunSignFromDate(context.user.birthDate) : null;
+  const sign = signKey ? getZodiacSign('ru', signKey) : '';
   return {
-    first_name: String(context.user.name || '').split(/\s+/)[0] || 'ты',
+    first_name: firstName || 'ты',
+    name: firstName || 'ты',
+    sign: sign || firstName || 'ты',
     daily_theme: card.theme,
     daily_summary: card.summary,
     pulse_window: pulseWindow(context.todayPulse, peak),
@@ -371,13 +378,13 @@ function baseVariables(context: PersonalizationContext): NotificationRenderVaria
 
 const FALLBACK_COPY: Record<RetentionNotificationType, { title: string; body: string; button: string }> = {
   daily_card: {
-    title: 'Гороскоп на сегодня готов',
-    body: 'Твой личный гороскоп на сегодня собран по натальной карте — загляни на минуту.',
-    button: 'Открыть карту дня',
+    title: '{{sign}}, привет',
+    body: 'Твой день по карте уже собран. Глянь на минуту, что да как.',
+    button: 'Открыть мой день',
   },
   sign_daily: {
-    title: 'Гороскоп на сегодня готов',
-    body: 'Загляни на минуту — посмотри, каким будет день для твоего знака.',
+    title: '{{sign}}, привет',
+    body: 'Ты гороскоп на сегодня смотрел? Там коротко и по делу.',
     button: 'Открыть гороскоп',
   },
   weekly_horoscope: {

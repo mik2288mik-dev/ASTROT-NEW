@@ -42,6 +42,8 @@ export type NotificationDayContextLike = {
 
 const VARIABLE_RE = /\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g;
 const EXTRA_NOTIFICATION_VARIABLES = [
+  'sign',
+  'name',
   'daily_theme',
   'daily_summary',
   'pulse_window',
@@ -79,18 +81,23 @@ const STRICT_LUMIA_FORBIDDEN_PATTERNS = [
   /пульс\s+дня|вечерн(яя|юю|ей)\s+отметк|окно\s+дня/i,
 ];
 
-// Правило продукта для пушей: один уместный ✨ на сообщение, никаких прочих эмодзи/иконок.
+// Правило продукта для пушей: максимум ОДИН уместный эмодзи на сообщение (😄/✨/😉 — любой),
+// никакого эмодзи-спама и иконок-пиктограмм пачками.
 // Покрывает эмодзи-пиктограммы, символы, стрелки, дингбаты и модификаторы (VS16/ZWJ/тон кожи).
 const NOTIFICATION_EMOJI_RE =
   /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}\u{2300}-\u{23FF}\u{2900}-\u{297F}\u{FE0F}\u{200D}\u{1F3FB}-\u{1F3FF}\u{20E3}]/gu;
 
-/** Оставляет максимум один ✨ (первый, если allowSparkle) и убирает все прочие эмодзи; чистит пробелы. */
-export function enforceNotificationEmoji(text: string, allowSparkle = true): string {
-  let sparkleKept = false;
+export function hasNotificationEmoji(text: string): boolean {
+  return new RegExp(NOTIFICATION_EMOJI_RE.source, 'u').test(String(text || ''));
+}
+
+/** Оставляет максимум один эмодзи (первый, если allowEmoji) и убирает все остальные; чистит пробелы. */
+export function enforceNotificationEmoji(text: string, allowEmoji = true): string {
+  let kept = false;
   const stripped = String(text || '').replace(NOTIFICATION_EMOJI_RE, (match) => {
-    if (match === '✨' && allowSparkle && !sparkleKept) {
-      sparkleKept = true;
-      return '✨';
+    if (allowEmoji && !kept) {
+      kept = true;
+      return match;
     }
     return '';
   });
@@ -147,11 +154,11 @@ export function renderNotificationTemplate(
 ) {
   const rawTitle = template.title || '';
   const rawBody = template.body || template.text || '';
-  // Один ✨ на всё сообщение: заголовок приоритетнее — тело сохраняет один, только если в заголовке его нет.
+  // Один эмодзи на всё сообщение: заголовок приоритетнее — тело сохраняет эмодзи, только если в заголовке его нет.
   const title = enforceNotificationEmoji(renderNotificationText(rawTitle, variables, fallbacks));
-  const body = enforceNotificationEmoji(renderNotificationText(rawBody, variables, fallbacks), !title.includes('✨'));
+  const body = enforceNotificationEmoji(renderNotificationText(rawBody, variables, fallbacks), !hasNotificationEmoji(title));
   const caption = [title, body].filter(Boolean).join('\n\n').trim();
-  const buttonText = enforceNotificationEmoji(renderNotificationText(template.buttonText || 'Открыть LUMIA', variables, fallbacks));
+  const buttonText = enforceNotificationEmoji(renderNotificationText(template.buttonText || 'Открыть LUMIA', variables, fallbacks), false);
   return { title, body, caption, buttonText };
 }
 
