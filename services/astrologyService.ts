@@ -788,7 +788,8 @@ export const setHoroscopeReaction = async (
   sign: string,
   date: string,
   reactionKey: HoroscopeReactionKey,
-  language: 'ru' | 'en' = 'ru'
+  language: 'ru' | 'en' = 'ru',
+  period: 'today' | 'week' | 'month' = 'today'
 ): Promise<HoroscopeReactionSummary> => {
   if (!isValidUserId(userId)) {
     throw buildApiError('User id is required', 400, 'INVALID_USER_ID');
@@ -796,7 +797,7 @@ export const setHoroscopeReaction = async (
   const response = await fetchWithTimeout(`${API_BASE_URL}/api/content/horoscope/reactions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
-    body: JSON.stringify({ userId, sign, date, reactionKey, language }),
+    body: JSON.stringify({ userId, sign, date, reactionKey, language, period }),
   }, 6000);
 
   if (!response.ok) {
@@ -817,14 +818,15 @@ export const removeHoroscopeReaction = async (
   userId: string,
   sign: string,
   date: string,
-  language: 'ru' | 'en' = 'ru'
+  language: 'ru' | 'en' = 'ru',
+  period: 'today' | 'week' | 'month' = 'today'
 ): Promise<HoroscopeReactionSummary | null> => {
   if (!isValidUserId(userId)) return null;
   try {
     const response = await fetchWithTimeout(`${API_BASE_URL}/api/content/horoscope/reactions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
-      body: JSON.stringify({ userId, sign, date, remove: true, language }),
+      body: JSON.stringify({ userId, sign, date, remove: true, language, period }),
     }, 6000);
     if (!response.ok) return null;
     const payload = await response.json();
@@ -839,7 +841,8 @@ export const getHoroscopeReactionSummary = async (
   userId: string,
   sign: string,
   date: string,
-  language: 'ru' | 'en' = 'ru'
+  language: 'ru' | 'en' = 'ru',
+  period: 'today' | 'week' | 'month' = 'today'
 ): Promise<HoroscopeReactionSummary | null> => {
   if (!isValidUserId(userId)) return null;
   try {
@@ -847,7 +850,8 @@ export const getHoroscopeReactionSummary = async (
       + `?userId=${encodeURIComponent(userId)}`
       + `&sign=${encodeURIComponent(sign)}`
       + `&date=${encodeURIComponent(date)}`
-      + `&language=${language}`;
+      + `&language=${language}`
+      + `&period=${period}`;
     const response = await fetchWithTimeout(url, {
       method: 'GET',
       headers: { ...getTelegramInitDataHeaders() },

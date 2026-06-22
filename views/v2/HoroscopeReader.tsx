@@ -351,6 +351,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
                       userId={profile.id ? String(profile.id) : undefined}
                       sign={sign}
                       date={period === 'week' ? mondayKey(today) : period === 'month' ? `${getMoscowMonthKey()}-01` : today}
+                      period={period}
                       language={language}
                       onShare={shareReading}
                     />

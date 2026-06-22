@@ -22,6 +22,8 @@ type Props = {
   userId?: string;
   sign: string;
   date: string;
+  /** Период гороскопа — лайк раздельный: сегодня/неделя/месяц у одного знака не делят один лайк. */
+  period?: 'today' | 'week' | 'month';
   language: 'ru' | 'en';
   onShare: () => void;
 };
@@ -53,7 +55,7 @@ const Count: React.FC<{ value: number }> = ({ value }) => (
   </span>
 );
 
-export const HoroscopeActivityBar: React.FC<Props> = ({ userId, sign, date, language, onShare }) => {
+export const HoroscopeActivityBar: React.FC<Props> = ({ userId, sign, date, period = 'today', language, onShare }) => {
   const ru = language !== 'en';
   const [likes, setLikes] = useState(0);
   const [liked, setLiked] = useState(false);
@@ -71,13 +73,13 @@ export const HoroscopeActivityBar: React.FC<Props> = ({ userId, sign, date, lang
       if (!alive || !e) return;
       setViews(e.views);
     });
-    void getHoroscopeReactionSummary(userId, sign, date, language).then((s) => {
+    void getHoroscopeReactionSummary(userId, sign, date, language, period).then((s) => {
       if (!alive || !s) return;
       setLikes(spotOn(s));
       setLiked(s.userReaction === 'spot_on');
     });
     return () => { alive = false; };
-  }, [userId, sign, date, language]);
+  }, [userId, sign, date, period, language]);
 
   const onToggleLike = async () => {
     if (!userId || busy) return;
@@ -89,11 +91,11 @@ export const HoroscopeActivityBar: React.FC<Props> = ({ userId, sign, date, lang
     setLikes((c) => Math.max(0, c + (wasLiked ? -1 : 1)));
     try {
       if (wasLiked) {
-        const s = await removeHoroscopeReaction(userId, sign, date, language);
+        const s = await removeHoroscopeReaction(userId, sign, date, language, period);
         if (s) { setLikes(spotOn(s)); setLiked(s.userReaction === 'spot_on'); }
         else { setLiked(true); setLikes((c) => c + 1); } // снять не удалось — откат
       } else {
-        const s = await setHoroscopeReaction(userId, sign, date, 'spot_on', language);
+        const s = await setHoroscopeReaction(userId, sign, date, 'spot_on', language, period);
         setLikes(spotOn(s));
         setLiked(s.userReaction === 'spot_on');
       }
