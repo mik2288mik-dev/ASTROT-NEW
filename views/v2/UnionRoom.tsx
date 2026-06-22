@@ -189,7 +189,8 @@ export function UnionRoom(props: UnionRoomProps) {
     void getCharts(profile.id).then((d) => setPeople((d.charts || []).filter((c) => !c.is_primary))).catch(() => setPeople([]));
   }, [profile.id]);
 
-  useEffect(() => { setHistory(loadCompatHistory()); }, []);
+  // История — ТОЛЬКО по конкретным людям (имя+дата+разбор). Проверки по знакам не храним.
+  useEffect(() => { setHistory(loadCompatHistory().filter((e) => e.kind === 'person')); }, []);
 
   const theirSun = selected ? (selected.kind === 'sign' ? String(selected.sign).toLowerCase() : (sunSignFromDate(selected.date) || 'libra')) : 'libra';
   const score: CompatResult | null = selected ? getCompatScore(yourSun, theirSun, lang) : null;
@@ -212,12 +213,15 @@ export function UnionRoom(props: UnionRoomProps) {
     setSelected(s);
     setScreen('result');
     const their = sunOf(s);
-    const sc = getCompatScore(yourSun, their, lang);
-    setHistory(addCompatHistory({
-      id: buildCompatHistoryId(s.kind, s.sign, s.name, s.date),
-      kind: s.kind, sign: s.sign, name: s.name, date: s.date, time: s.time, place: s.place, chartId: s.chartId,
-      yourSun, theirSun: their, overall: sc.overall, ts: Date.now(),
-    }));
+    // Сохраняем в историю только разбор конкретного человека — по знакам не пишем (он и так везде).
+    if (s.kind === 'person') {
+      const sc = getCompatScore(yourSun, their, lang);
+      setHistory(addCompatHistory({
+        id: buildCompatHistoryId(s.kind, s.sign, s.name, s.date),
+        kind: s.kind, sign: s.sign, name: s.name, date: s.date, time: s.time, place: s.place, chartId: s.chartId,
+        yourSun, theirSun: their, overall: sc.overall, ts: Date.now(),
+      }));
+    }
   };
 
   const openFromHistory = (e: CompatHistoryEntry) => {
