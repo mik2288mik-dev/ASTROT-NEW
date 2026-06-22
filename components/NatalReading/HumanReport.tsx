@@ -386,6 +386,26 @@ export const HumanReport: React.FC<Props> = ({
     };
   }, [chartId, preloadedReport, profile, userId]);
 
+  // Префетч платных тем в фоне после загрузки портрета (премиум): к моменту тапа разбор уже
+  // в памяти/кэше и раскрывается мгновенно, а не запускает генерацию по клику.
+  useEffect(() => {
+    if (!isPremium || !userId || !report) return;
+    let cancelled = false;
+    void (async () => {
+      for (const key of HUMAN_MAP_SECTION_KEYS) {
+        if (cancelled) return;
+        try {
+          await loadHumanPaidSection(userId, key, chartId, { accessTier: 'premium' });
+        } catch {
+          /* префетч — best-effort, ошибки игнорируем */
+        }
+        if (cancelled) return;
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isPremium, userId, chartId, report]);
+
   const openPaidSection = async (key: HumanPaidSectionKey) => {
     if (!userId || paidLoading) return;
     setSectionError(null);
