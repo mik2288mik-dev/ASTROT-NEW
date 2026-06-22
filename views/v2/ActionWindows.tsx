@@ -16,12 +16,16 @@ type Props = {
   compact?: boolean;
 };
 
-const ACTIONS: Array<{ key: ActionTimingKey; ru: string; en: string; color: string }> = [
-  { key: 'message', ru: 'Написать', en: 'Message', color: '#5BB6EC' },
-  { key: 'serious_talk', ru: 'Разговор', en: 'Talk', color: '#A98CEC' },
-  { key: 'purchase', ru: 'Покупка', en: 'Purchase', color: '#FF7E8B' },
-  { key: 'work', ru: 'Работа', en: 'Work', color: '#34C39A' },
+const ACTIONS: Array<{ key: ActionTimingKey; ru: string; en: string; dru: string; den: string; color: string }> = [
+  { key: 'message', ru: 'Написать', en: 'Message', dru: 'сообщения и переписка', den: 'texts & chats', color: '#5BB6EC' },
+  { key: 'serious_talk', ru: 'Разговор', en: 'Serious talk', dru: 'важный разговор', den: 'an important talk', color: '#A98CEC' },
+  { key: 'purchase', ru: 'Покупка', en: 'Purchase', dru: 'покупки и траты', den: 'buying & spending', color: '#FF7E8B' },
+  { key: 'work', ru: 'Работа', en: 'Work', dru: 'дела и задачи', den: 'tasks & focus', color: '#34C39A' },
 ];
+
+const DAY_START = 6;
+const DAY_END = 24;
+const dayPct = (h: number) => ((Math.max(DAY_START, Math.min(DAY_END, h)) - DAY_START) / (DAY_END - DAY_START)) * 100;
 
 /* "HH:MM" → дробный час (13:30 → 13.5) */
 function toHour(value: string | undefined, fallback: number): number {
@@ -51,96 +55,80 @@ function fmtRange(start: number, end: number): string {
 }
 
 type Row = { action: typeof ACTIONS[number]; rec: ActionTimingRecommendation; start: number; end: number };
-type PulsePoint = { hour: number; score: number };
 
-/* Мини «линия дня»: плавная кривая пульса, нормализованная к своим min/max (чтобы разброс
-   был виден, а не плоская линия), с явными маркерами ПИК и СПАД + подписью. */
-function MiniPulseLine({ points, nowH, accent, reduce, ru }: { points: PulsePoint[]; nowH: number; accent: string; reduce: boolean | null; ru: boolean }) {
-  const W = 300;
-  const H = 60;
-  const pad = 7;
-  const sorted = [...points].filter((p) => Number.isFinite(p.hour) && Number.isFinite(p.score)).sort((a, b) => a.hour - b.hour);
-  if (sorted.length < 2) return null;
-  const scores = sorted.map((p) => p.score);
-  const minS = Math.min(...scores);
-  const span = Math.max(1, Math.max(...scores) - minS);
-  const x = (h: number) => pad + (Math.max(0, Math.min(24, h)) / 24) * (W - 2 * pad);
-  // нормализация к собственному диапазону (с полями 12–88%) — даже малый разброс читаем
-  const y = (s: number) => pad + (1 - (0.12 + ((s - minS) / span) * 0.76)) * (H - 2 * pad);
-  const line = sorted.map((p, i) => `${i ? 'L' : 'M'} ${x(p.hour).toFixed(1)} ${y(p.score).toFixed(1)}`).join(' ');
-  const area = `${line} L ${x(sorted[sorted.length - 1].hour).toFixed(1)} ${H - pad} L ${x(sorted[0].hour).toFixed(1)} ${H - pad} Z`;
-  const peak = sorted.reduce((b, p) => (p.score > b.score ? p : b), sorted[0]);
-  const low = sorted.reduce((b, p) => (p.score < b.score ? p : b), sorted[0]);
-  const nx = x(nowH);
-  const hh = (h: number) => `${String(Math.round(h)).padStart(2, '0')}:00`;
-
+/* Одна дорожка действия: что это + окно времени (текстом), и наглядная полоса дня 6–24
+   с подсвеченным окном и вертикалью «сейчас». Никаких абстрактных «пик/спад». */
+function ActionRow({ row, nowH, ru, reduce }: { row: Row; nowH: number; ru: boolean; reduce: boolean | null }) {
+  const isNow = row.rec.state === 'now';
+  const passed = !isNow && row.end <= nowH;
+  const when = isNow
+    ? (ru ? 'сейчас' : 'now')
+    : `${passed ? (ru ? 'завтра' : 'tomorrow') : (ru ? 'сегодня' : 'today')} ${fmtRange(row.start, row.end)}`;
+  const left = dayPct(row.start);
+  const width = Math.max(5, dayPct(row.end) - left);
+  const showNow = nowH >= DAY_START && nowH <= DAY_END;
   return (
-    <div className="aw-line">
-      <svg viewBox={`0 0 ${W} ${H}`} className="aw-line-svg" preserveAspectRatio="none" aria-hidden>
-        <defs>
-          <linearGradient id="aw-line-grad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor={accent} stopOpacity="0.26" />
-            <stop offset="1" stopColor={accent} stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        <path d={area} fill="url(#aw-line-grad)" />
-        <motion.path
-          d={line}
-          fill="none"
-          stroke={accent}
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          initial={reduce ? false : { pathLength: 0 }}
-          animate={{ pathLength: 1 }}
-          transition={reduce ? { duration: 0 } : { duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+    <div className={`awr${isNow ? ' awr--now' : ''}`}>
+      <div className="awr-head">
+        <span className="awr-dot" style={{ background: row.action.color }} />
+        <span className="awr-name">{ru ? row.action.ru : row.action.en}</span>
+        <span className="awr-desc">{ru ? row.action.dru : row.action.den}</span>
+        <span className={`awr-time${isNow ? ' awr-time--now' : ''}`}>{when}</span>
+      </div>
+      <div className="awr-track">
+        <motion.span
+          className="awr-fill"
+          style={{ background: row.action.color, left: `${left}%` }}
+          initial={reduce ? false : { width: 0, opacity: 0.4 }}
+          animate={{ width: `${width}%`, opacity: passed ? 0.4 : 1 }}
+          transition={reduce ? { duration: 0 } : { duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
         />
-        <line x1={nx} y1={pad} x2={nx} y2={H - pad} stroke="var(--fresh-text)" strokeWidth="1" opacity="0.32" />
-        <circle cx={x(low.hour)} cy={y(low.score)} r="3" fill="#fff" stroke={accent} strokeWidth="1.6" />
-        <circle cx={x(peak.hour)} cy={y(peak.score)} r="3.6" fill={accent} stroke="#fff" strokeWidth="1.6" />
-      </svg>
-      <div className="aw-line-axis"><span>6</span><span>12</span><span>18</span><span>24</span></div>
-      <div className="aw-line-legend">
-        <span className="aw-line-peak"><i style={{ background: accent }} />{ru ? 'пик' : 'peak'} {hh(peak.hour)}</span>
-        <span className="aw-line-low"><i style={{ borderColor: accent }} />{ru ? 'спад' : 'low'} {hh(low.hour)}</span>
+        {showNow ? <span className="awr-nowline" style={{ left: `${dayPct(nowH)}%` }} /> : null}
       </div>
     </div>
   );
 }
 
-function ActionTracks({ rows, points, nowH, ru, reduce, hideHero, nowTitle, nowText }: { rows: Row[]; points: PulsePoint[]; nowH: number; ru: boolean; reduce: boolean | null; hideHero?: boolean; nowTitle?: string; nowText?: string }) {
-  const best = rows.find((r) => r.rec.state === 'now')
-    || [...rows].sort((a, b) => ((a.start - nowH + 24) % 24) - ((b.start - nowH + 24) % 24))[0];
+function ActionTracks({ rows, nowH, ru, reduce, hideHero }: { rows: Row[]; nowH: number; ru: boolean; reduce: boolean | null; hideHero?: boolean }) {
+  const nowGood = rows.find((r) => r.rec.state === 'now');
+  const upcoming = [...rows]
+    .filter((r) => r.start > nowH && r.end > nowH)
+    .sort((a, b) => a.start - b.start)[0];
+  const hh = (h: number) => `${String(Math.round(h)).padStart(2, '0')}:00`;
 
   return (
     <div className="awt">
       {hideHero ? null : (
-        <div className="aw-now">
-          <span className="aw-now-k">{ru ? 'сейчас' : 'now'}</span>
-          {nowTitle ? <span className="aw-now-title">{nowTitle}</span> : null}
-          {nowText ? <p className="aw-now-text">{nowText}</p> : null}
+        <div className="aw-verdict">
+          <span className="aw-verdict-k">{ru ? 'Сейчас' : 'Now'}</span>
+          {nowGood ? (
+            <span className="aw-verdict-main">
+              {ru ? 'хорошее время — ' : 'a good time — '}
+              <b style={{ color: nowGood.action.color }}>{(ru ? nowGood.action.ru : nowGood.action.en).toLowerCase()}</b>
+            </span>
+          ) : (
+            <span className="aw-verdict-main">
+              {ru ? 'спокойный момент' : 'a calm stretch'}
+              {upcoming ? (
+                <>
+                  {ru ? ' · ближе к ' : ' · around '}{hh(upcoming.start)} —{' '}
+                  <b style={{ color: upcoming.action.color }}>{(ru ? upcoming.action.ru : upcoming.action.en).toLowerCase()}</b>
+                </>
+              ) : null}
+            </span>
+          )}
         </div>
       )}
 
-      <MiniPulseLine points={points} nowH={nowH} accent={best?.action.color || '#6366F1'} reduce={reduce} ru={ru} />
-
-      <div className="aw-windows">
-        {rows.map((r) => {
-          const isNow = r.rec.state === 'now';
-          // Честно: если окно дня уже прошло — это завтрашнее окно, не «сегодня».
-          const passed = !isNow && r.end <= nowH;
-          const when = isNow
-            ? (ru ? 'сейчас' : 'now')
-            : `${passed ? (ru ? 'завтра' : 'tmrw') : (ru ? 'сегодня' : 'today')} ${fmtRange(r.start, r.end)}`;
-          return (
-            <div className={`aw-win${isNow ? ' aw-win--now' : ''}`} key={r.action.key}>
-              <span className="aw-win-dot" style={{ background: r.action.color }} />
-              <span className="aw-win-name">{ru ? r.action.ru : r.action.en}</span>
-              <span className={`aw-win-time${isNow ? ' aw-win-time--now' : ''}`}>{when}</span>
-            </div>
-          );
-        })}
+      <div className="aw-rows">
+        {rows.map((r) => <ActionRow key={r.action.key} row={r} nowH={nowH} ru={ru} reduce={reduce} />)}
       </div>
+      <div className="aw-axis"><span>6:00</span><span>12:00</span><span>18:00</span><span>24:00</span></div>
+      <p className="aw-foot">
+        {ru
+          ? 'Полоса — лучшее время дня для этого по твоей карте. Вертикаль — сейчас.'
+          : 'The bar is the best time of day for it, from your chart. The line is now.'}
+      </p>
     </div>
   );
 }
@@ -188,14 +176,8 @@ export function ActionWindows({ profile, chartData, chartId, onOpenChart, onRequ
     }).filter((r): r is Row => !!r);
   }, [home]);
 
-  const points = useMemo<PulsePoint[]>(
-    () => (home && home.status === 'ready' ? home.pulse.points.map((p) => ({ hour: p.hour, score: p.score })) : []),
-    [home],
-  );
-
   const currentPoint = home && home.status === 'ready' ? home.pulse.currentPoint : null;
   const nowTitle = currentPoint?.title;
-  const nowText = currentPoint?.summary;
 
   if (compact) {
     if (!hasChart) {
@@ -246,7 +228,7 @@ export function ActionWindows({ profile, chartData, chartId, onOpenChart, onRequ
               transition={reduce ? { duration: 0 } : { duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
               style={{ overflow: 'hidden' }}
             >
-              <ActionTracks rows={rows} points={points} nowH={nowH} ru={ru} reduce={reduce} nowTitle={nowTitle} nowText={nowText} hideHero />
+              <ActionTracks rows={rows} nowH={nowH} ru={ru} reduce={reduce} hideHero />
             </motion.div>
           ) : null}
         </AnimatePresence>
@@ -274,7 +256,7 @@ export function ActionWindows({ profile, chartData, chartId, onOpenChart, onRequ
       ) : rows.length === 0 ? (
         <div className="awt-skeleton" />
       ) : (
-        <ActionTracks rows={rows} points={points} nowH={nowH} ru={ru} reduce={reduce} nowTitle={nowTitle} nowText={nowText} />
+        <ActionTracks rows={rows} nowH={nowH} ru={ru} reduce={reduce} />
       )}
     </section>
   );
