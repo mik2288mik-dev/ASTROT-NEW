@@ -3337,10 +3337,23 @@ a,
   -webkit-tap-highlight-color: transparent;
 }
 
+.fresh-inner-titles {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+}
 .fresh-inner-title {
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.12;
   color: var(--fresh-text);
+}
+.fresh-inner-sub {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fresh-muted);
+  margin-top: 2px;
 }
 
 /* ── Знак рядом с названием (гороскоп) ── */

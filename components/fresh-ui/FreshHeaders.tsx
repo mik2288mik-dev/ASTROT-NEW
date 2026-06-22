@@ -69,15 +69,17 @@ export const FreshPageTitle: React.FC<FreshPageTitleProps> = ({ kicker, title })
   );
 };
 
-/* ── Хедер внутренних экранов: кнопка назад + заголовок ── */
+/* ── Единый верх экранов: (назад) + центр-заголовок (+ подзаголовок) + правое действие ── */
 interface FreshInnerHeaderProps {
   title: string;
+  subtitle?: string;
   onBack?: () => void;
   rightAction?: React.ReactNode;
 }
 
 export const FreshInnerHeader: React.FC<FreshInnerHeaderProps> = ({
   title,
+  subtitle,
   onBack,
   rightAction,
 }) => {
@@ -92,7 +94,10 @@ export const FreshInnerHeader: React.FC<FreshInnerHeaderProps> = ({
       ) : (
         <div style={{ width: 34 }} />
       )}
-      <div className="fresh-inner-title" style={{ flex: 1, textAlign: 'center' }}>{title}</div>
+      <div className="fresh-inner-titles">
+        <div className="fresh-inner-title">{title}</div>
+        {subtitle ? <div className="fresh-inner-sub">{subtitle}</div> : null}
+      </div>
       {rightAction || <div style={{ width: 34 }} />}
     </div>
   );

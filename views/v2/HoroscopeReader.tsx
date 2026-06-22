@@ -3,6 +3,7 @@ import { motion, AnimatePresence, useReducedMotion, type PanInfo } from 'framer-
 import type { ForecastDailyReading, NatalChartData, UserProfile } from '../../types';
 import { getZodiacSign } from '../../constants';
 import { sunSignFromDate } from '../../lib/synastry/compatScore';
+import { FreshInnerHeader } from '../../components/fresh-ui/FreshHeaders';
 import { getMoscowTodayKey, getMoscowIsoWeekKey, getMoscowMonthKey, formatLumiaDate, formatWeekRangePretty, formatMonthPretty } from '../../lib/date-utils';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
 import { hasActivePremium, hasNatalChart } from '../../lib/accessMatrix';
@@ -258,12 +259,8 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
 
   return (
     <div className="fresh-page">
-      {/* Шапка: Гороскоп (крупно) → день недели и дата → знак, прижато к верху */}
-      <div className="horo-head">
-        <div className="horo-head-title">{language === 'ru' ? 'Гороскоп' : 'Horoscope'}</div>
-        <div className="horo-head-date">{dateLine}</div>
-        <div className="horo-head-sign">{signLabel}</div>
-      </div>
+      {/* Единый верх (как на всех экранах). Знак НЕ дублируем — он в селекторе и на карточке. */}
+      <FreshInnerHeader title={language === 'ru' ? 'Гороскоп' : 'Horoscope'} subtitle={dateLine} />
 
       {/* Личный день — премиум, наверху */}
       <button type="button" className="horo-premium" onClick={openPersonal}>
@@ -311,11 +308,6 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
             onDragEnd={onDragEnd}
           >
             <div className="horo-uni-hero" style={{ background: ELEMENT_COLOR[sign.toLowerCase()] || 'var(--fresh-sky)' }}>
-              {signState !== 'open' ? (
-                <div className="fresh-hero-chip" style={{ top: 14, right: 14 }}>
-                  {signState === 'can-open' ? (language === 'ru' ? 'Другой знак' : 'Other sign') : (language === 'ru' ? 'Закрыто' : 'Locked')}
-                </div>
-              ) : null}
               <div className="fresh-hero-icon" aria-hidden><ZodiacIcon sign={sign} size={72} strokeWidth={1.1} /></div>
               <div className="horo-hero-stack">
                 <div className="fresh-sticky" style={{ transform: 'rotate(-2deg)' }}>
@@ -364,7 +356,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
                 </>
               ) : signState === 'can-open' ? (
                 <div className="horo-lock">
-                  <div className="horo-lock-title">{language === 'ru' ? `Гороскоп · ${signLabel}` : `Horoscope · ${signLabel}`}</div>
+                  <div className="horo-lock-title">{language === 'ru' ? 'Гороскоп на сегодня' : 'Today’s horoscope'}</div>
                   <p className="horo-lock-text">
                     {premium
                       ? (language === 'ru' ? 'Откроется по кнопке — в Premium доступны все знаки.' : 'Tap to open — Premium opens every sign.')
