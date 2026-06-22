@@ -1,7 +1,8 @@
-import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
+import React, { memo, useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion, type PanInfo } from 'framer-motion';
 import type { ForecastDailyReading, NatalChartData, UserProfile } from '../../types';
 import { getZodiacSign } from '../../constants';
+import { sunSignFromDate } from '../../lib/synastry/compatScore';
 import { getMoscowTodayKey, getMoscowIsoWeekKey, getMoscowMonthKey, formatLumiaDate, formatWeekRangePretty, formatMonthPretty } from '../../lib/date-utils';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
 import { hasActivePremium, hasNatalChart } from '../../lib/accessMatrix';
@@ -93,11 +94,22 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
   const today = useMemo(() => getMoscowTodayKey(), []);
   const reduce = useReducedMotion();
 
+  // Свой знак считаем от ДАТЫ РОЖДЕНИЯ — как и везде в приложении (онбординг, дом),
+  // чтобы гороскоп не открывался на чужом знаке из устаревшего selectedZodiacSign/карты.
+  const ownSign = useMemo(() => {
+    const fromBirth = profile.birthDate ? (sunSignFromDate(profile.birthDate) || '') : '';
+    return (
+      fromBirth ||
+      (chartData?.sun?.sign ? String(chartData.sun.sign) : '') ||
+      String(profile.selectedZodiacSign || ZODIAC_KEYS[0])
+    ).toLowerCase();
+  }, [profile.birthDate, chartData, profile.selectedZodiacSign]);
+
+  // Гороскоп всегда открывается на своём знаке.
   const initialIndex = useMemo(() => {
-    const fromProfile = String(profile.selectedZodiacSign || chartData?.sun?.sign || '').trim().toLowerCase();
-    const idx = ZODIAC_KEYS.findIndex((s) => s.toLowerCase() === fromProfile);
+    const idx = ZODIAC_KEYS.findIndex((s) => s.toLowerCase() === ownSign);
     return idx >= 0 ? idx : 0;
-  }, [profile.selectedZodiacSign, chartData]);
+  }, [ownSign]);
 
   const [signIndex, setSignIndex] = useState(initialIndex);
   const [dir, setDir] = useState(0);
@@ -114,8 +126,6 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
   /* ── Доступ к знакам: свой знак всегда; «другие» — по дневной квоте, открываются КНОПКОЙ ── */
   const premium = hasActivePremium(profile);
   const extraQuota = premium ? PREMIUM_EXTRA_QUOTA : FREE_EXTRA_QUOTA;
-  const ownSignRef = useRef(String(chartData?.sun?.sign || profile.selectedZodiacSign || ZODIAC_KEYS[0]).toLowerCase());
-  const ownSign = chartData?.sun?.sign ? String(chartData.sun.sign).toLowerCase() : ownSignRef.current;
   const [openedSigns, setOpenedSigns] = useState<string[]>(() => readExtraSigns(today));
 
   const current = sign.toLowerCase();
@@ -301,12 +311,17 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
             onDragEnd={onDragEnd}
           >
             <div className="horo-uni-hero" style={{ background: ELEMENT_COLOR[sign.toLowerCase()] || 'var(--fresh-sky)' }}>
-              <div className="fresh-hero-chip" style={{ top: 14, right: 14 }}>
-                {signState === 'open' ? periodTag : signState === 'can-open' ? (language === 'ru' ? 'Другой знак' : 'Other sign') : (language === 'ru' ? 'Закрыто' : 'Locked')}
-              </div>
+              {signState !== 'open' ? (
+                <div className="fresh-hero-chip" style={{ top: 14, right: 14 }}>
+                  {signState === 'can-open' ? (language === 'ru' ? 'Другой знак' : 'Other sign') : (language === 'ru' ? 'Закрыто' : 'Locked')}
+                </div>
+              ) : null}
               <div className="fresh-hero-icon" aria-hidden><ZodiacIcon sign={sign} size={72} strokeWidth={1.1} /></div>
-              <div className="fresh-sticky" style={{ transform: 'rotate(-2deg)' }}>
-                {signState === 'open' && !periodLocked ? (reading?.headline || (language === 'ru' ? 'Готовим разбор…' : 'Preparing…')) : signLabel}
+              <div className="horo-hero-stack">
+                <div className="fresh-sticky" style={{ transform: 'rotate(-2deg)' }}>
+                  {signState === 'open' && !periodLocked ? (reading?.headline || (language === 'ru' ? 'Готовим разбор…' : 'Preparing…')) : signLabel}
+                </div>
+                {signState === 'open' ? <div className="horo-hero-date">{periodTag}</div> : null}
               </div>
             </div>
             <div className="horo-uni-body">

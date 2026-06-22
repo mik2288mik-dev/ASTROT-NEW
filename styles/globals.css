@@ -3425,6 +3425,36 @@ a,
   overflow-wrap: break-word;
 }
 
+/* Стек слева сверху: жёлтый стикер с заголовком, а ПОД ним — дата. */
+.horo-hero-stack {
+  position: absolute;
+  z-index: 2;
+  top: 18px;
+  left: 16px;
+  max-width: 66%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 9px;
+}
+.horo-hero-stack .fresh-sticky {
+  position: static;
+  top: auto;
+  left: auto;
+  max-width: 100%;
+}
+.horo-hero-date {
+  background: rgba(17, 24, 39, 0.50);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border-radius: var(--fresh-radius-pill);
+  padding: 5px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+}
+
 /* Чип внутри hero (тёмный полупрозрачный — читается и на фото, и на цвете) */
 .fresh-hero-chip {
   position: absolute;
