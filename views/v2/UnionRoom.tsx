@@ -16,6 +16,7 @@ import { ZODIAC_KEYS } from '../../lib/horoscope/signDaily';
 import { shareToTelegram } from '../../lib/botLink';
 import { HoroscopeActivityBar } from '../../components/Horoscope/HoroscopeActivityBar';
 import { loadCompatHistory, addCompatHistory, removeCompatHistory, buildCompatHistoryId, type CompatHistoryEntry } from '../../lib/compatHistory';
+import { FreshInnerHeader } from '../../components/fresh-ui/FreshHeaders';
 
 type SynastryPrefill = {
   source: 'saved-chart' | 'manual';
@@ -270,9 +271,7 @@ export function UnionRoom(props: UnionRoomProps) {
   if (screen === 'hub') {
     return (
       <div className="fresh-page">
-        <div className="fresh-page-title-block" style={{ paddingTop: 0, paddingBottom: 6 }}>
-          <div className="fresh-page-title">{ru ? 'Совместимость' : 'Compatibility'}</div>
-        </div>
+        <FreshInnerHeader title={ru ? 'Совместимость' : 'Compatibility'} />
         <p style={{ padding: '0 20px 16px', fontSize: 14, lineHeight: 1.5, color: 'var(--fresh-muted)' }}>
           {ru ? 'Сравни по знакам за секунду — или разбери конкретного человека по дате рождения.' : 'Compare by signs in a second — or read a specific person by birth date.'}
         </p>
@@ -355,13 +354,10 @@ export function UnionRoom(props: UnionRoomProps) {
   if (screen === 'add') {
     return (
       <div className="fresh-page">
-        <div className="fresh-inner-header">
-          <button className="fresh-back-btn" type="button" aria-label={ru ? 'Назад' : 'Back'} onClick={() => { lumiaSelectionHaptic(); setScreen('hub'); }}>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8L10 13" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-          </button>
-          <div className="fresh-inner-title" style={{ flex: 1, textAlign: 'center' }}>{ru ? 'Кто это?' : 'Who is this?'}</div>
-          <div style={{ width: 34 }} />
-        </div>
+        <FreshInnerHeader
+          title={ru ? 'Кто это?' : 'Who is this?'}
+          onBack={() => { lumiaSelectionHaptic(); setScreen('hub'); }}
+        />
 
         <div className="union-form" style={{ marginTop: 6 }}>
           <div>
@@ -401,13 +397,10 @@ export function UnionRoom(props: UnionRoomProps) {
 
   return (
     <div className="fresh-page">
-      <div className="fresh-inner-header">
-        <button className="fresh-back-btn" type="button" aria-label={ru ? 'Назад' : 'Back'} onClick={() => { lumiaSelectionHaptic(); setScreen('hub'); }}>
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8L10 13" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-        </button>
-        <div className="fresh-inner-title" style={{ flex: 1, textAlign: 'center' }}>{theirName}</div>
-        <div style={{ width: 34 }} />
-      </div>
+      <FreshInnerHeader
+        title={theirName}
+        onBack={() => { lumiaSelectionHaptic(); setScreen('hub'); }}
+      />
 
       <div className="people-split">
         <motion.div className="people-side" initial={reduce ? false : { x: -22, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ duration: 0.4, ease: 'easeOut' }}>

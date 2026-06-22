@@ -7,6 +7,7 @@ import { toDateInputValue } from '../../lib/date-utils';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
 import { shareToTelegram } from '../../lib/botLink';
 import { HoroscopeActivityBar } from '../../components/Horoscope/HoroscopeActivityBar';
+import { FreshInnerHeader } from '../../components/fresh-ui/FreshHeaders';
 
 type Props = {
   profile: UserProfile;
@@ -58,13 +59,10 @@ export function MatrixRoom({ profile, onBack }: Props) {
 
   return (
     <div className="fresh-page">
-      <div className="fresh-inner-header">
-        <button className="fresh-back-btn" type="button" aria-label={ru ? 'Назад' : 'Back'} onClick={() => { lumiaSelectionHaptic(); onBack(); }}>
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8L10 13" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-        </button>
-        <div className="fresh-inner-title" style={{ flex: 1, textAlign: 'center' }}>{ru ? MATRIX_TITLE.ru : MATRIX_TITLE.en}</div>
-        <div style={{ width: 34 }} />
-      </div>
+      <FreshInnerHeader
+        title={ru ? MATRIX_TITLE.ru : MATRIX_TITLE.en}
+        onBack={() => { lumiaSelectionHaptic(); onBack(); }}
+      />
 
       <p style={{ padding: '0 20px 8px', margin: 0, fontSize: 14, lineHeight: 1.5, color: 'var(--fresh-muted)' }}>
         {ru ? MATRIX_SUBTITLE.ru : MATRIX_SUBTITLE.en}

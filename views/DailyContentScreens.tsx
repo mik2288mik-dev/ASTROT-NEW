@@ -15,6 +15,7 @@ import { formatLumiaDate, getMoscowTodayKey } from '../lib/date-utils';
 import type { HumanDailySectionKey } from '../lib/natalHumanShared';
 import { lumiaSelectionHaptic } from '../lib/haptics';
 import { FreshTabs } from '../components/fresh-ui';
+import { FreshInnerHeader } from '../components/fresh-ui/FreshHeaders';
 
 type PersonalDailyScreenProps = {
   profile: UserProfile;
@@ -275,13 +276,10 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
 
   return (
     <div className="fresh-page">
-      <div className="fresh-inner-header">
-        <button className="fresh-back-btn" type="button" aria-label={language === 'en' ? 'Back' : 'Назад'} onClick={() => { lumiaSelectionHaptic(); void onBack(); }}>
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8L10 13" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-        </button>
-        <div className="fresh-inner-title" style={{ flex: 1, textAlign: 'center' }}>{language === 'en' ? 'Personal horoscope' : 'Личный гороскоп'}</div>
-        <div style={{ width: 34 }} />
-      </div>
+      <FreshInnerHeader
+        title={language === 'en' ? 'Personal horoscope' : 'Личный гороскоп'}
+        onBack={() => { lumiaSelectionHaptic(); void onBack(); }}
+      />
 
       <div className="pd-head">
         <div className="pd-head-title">{activeTab.title}</div>
