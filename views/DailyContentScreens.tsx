@@ -140,12 +140,17 @@ function DayLine({ points, nowHour, accent, ru }: { points: Array<{ hour: number
   const area = `${line} L ${x(sorted[sorted.length - 1].hour).toFixed(1)} ${H - pad} L ${x(sorted[0].hour).toFixed(1)} ${H - pad} Z`;
   const nearestNow = sorted.reduce((best, p) => (Math.abs(p.hour - nowHour) < Math.abs(best.hour - nowHour) ? p : best), sorted[0]);
   const nx = x(nowHour);
+  const level = nearestNow.score >= 66
+    ? (ru ? 'насыщенно' : 'high')
+    : nearestNow.score >= 40
+      ? (ru ? 'ровно' : 'steady')
+      : (ru ? 'спокойно' : 'calm');
 
   return (
     <div className="dl">
       <div className="dl-head">
         {ru ? 'Линия дня' : 'Day line'}
-        <span className="dl-now" style={{ color: accent }}>{ru ? 'сейчас' : 'now'} {Math.round(nearestNow.score)}</span>
+        <span className="dl-now" style={{ color: accent }}>{ru ? 'сейчас' : 'now'}: {level}</span>
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} className="dl-svg" preserveAspectRatio="none" aria-hidden>
         <defs>
@@ -160,6 +165,7 @@ function DayLine({ points, nowHour, accent, ru }: { points: Array<{ hour: number
         <circle cx={nx} cy={y(nearestNow.score)} r="4" fill={accent} stroke="#fff" strokeWidth="2" />
       </svg>
       <div className="dl-axis"><span>0</span><span>6</span><span>12</span><span>18</span><span>24</span></div>
+      <div className="dl-cap">{ru ? 'Чем выше линия — тем больше энергии и удачных окон в этот час. Вертикаль — сейчас.' : 'The higher the line, the more energy and good windows that hour. The vertical marks now.'}</div>
     </div>
   );
 }

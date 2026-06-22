@@ -4239,6 +4239,7 @@ a,
 .dl-now { font-size: 11px; font-weight: 800; text-transform: none; letter-spacing: 0; }
 .dl-svg { width: 100%; height: 84px; display: block; }
 .dl-axis { display: flex; justify-content: space-between; margin-top: 2px; font-family: var(--fresh-font); font-size: 10px; font-weight: 700; color: var(--fresh-muted); }
+.dl-cap { margin-top: 7px; font-family: var(--fresh-font); font-size: 11.5px; line-height: 1.4; color: var(--fresh-muted); }
 
 /* ── Онбординг-сторис ── */
 .onb-dots { display: flex; gap: 6px; justify-content: center; padding: 14px 0 8px; }
