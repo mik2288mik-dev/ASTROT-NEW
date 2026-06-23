@@ -2,9 +2,18 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import type { NatalChartData, TodayAssistantHomeResult, UserProfile } from '../../types';
 import { hasActivePremium, hasNatalChart } from '../../lib/accessMatrix';
-import { getCachedTodayAssistantHome, getTodayAssistantHome } from '../../services/astrologyService';
+import { getCachedTodayAssistantHome, getTodayAssistantHome, getFavorableDays, type FavorableDay } from '../../services/astrologyService';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
 import { ChevronRightIcon } from '../../components/icons/UiIcons';
+
+function parseDayKey(dk: string): Date {
+  const [y, m, d] = String(dk).split('-').map(Number);
+  return new Date(y || 2026, (m || 1) - 1, d || 1);
+}
+const weekdayFull = (dk: string, ru: boolean) => parseDayKey(dk).toLocaleDateString(ru ? 'ru-RU' : 'en-US', { weekday: 'long' });
+const weekdayShort = (dk: string, ru: boolean) => parseDayKey(dk).toLocaleDateString(ru ? 'ru-RU' : 'en-US', { weekday: 'short' });
+const dayMonth = (dk: string, ru: boolean) => parseDayKey(dk).toLocaleDateString(ru ? 'ru-RU' : 'en-US', { day: 'numeric', month: 'short' });
+const bestOf = (days: FavorableDay[]) => days.reduce<FavorableDay | null>((b, d) => (!b || d.score > b.score ? d : b), null);
 
 type Props = {
   profile: UserProfile;
@@ -82,8 +91,10 @@ function DayCurve({ points, nowH, color, reduce }: { points: PulsePoint[]; nowH:
   );
 }
 
-function DayPulse({ points, score, advice, nowH, ru, reduce }: { points: PulsePoint[]; score: number; advice: string | null; nowH: number; ru: boolean; reduce: boolean | null }) {
+function DayPulse({ points, score, advice, favorable, nowH, ru, reduce }: { points: PulsePoint[]; score: number; advice: string | null; favorable: FavorableDay[] | null; nowH: number; ru: boolean; reduce: boolean | null }) {
   const color = scoreColor(score);
+  const bestWeek = favorable && favorable.length ? bestOf(favorable.slice(0, 7)) : null;
+  const bestMonth = favorable && favorable.length ? bestOf(favorable) : null;
   return (
     <div className="dp">
       <div className="dp-top">
@@ -98,6 +109,38 @@ function DayPulse({ points, score, advice, nowH, ru, reduce }: { points: PulsePo
         <div className="dp-advice">
           <span className="dp-advice-k">{ru ? 'Совет дня' : "Today's tip"}</span>
           <p className="dp-advice-t">{advice}</p>
+        </div>
+      ) : null}
+      {bestWeek || bestMonth ? (
+        <div className="dp-fav">
+          <div className="dp-fav-bests">
+            {bestWeek ? (
+              <div className="dp-fav-best">
+                <span className="dp-fav-best-k">{ru ? 'Лучший день недели' : 'Best day this week'}</span>
+                <span className="dp-fav-best-v" style={{ color: scoreColor(bestWeek.score) }}>{weekdayFull(bestWeek.date, ru)}, {dayMonth(bestWeek.date, ru)}</span>
+              </div>
+            ) : null}
+            {bestMonth ? (
+              <div className="dp-fav-best">
+                <span className="dp-fav-best-k">{ru ? 'Лучший день месяца' : 'Best day this month'}</span>
+                <span className="dp-fav-best-v" style={{ color: scoreColor(bestMonth.score) }}>{weekdayFull(bestMonth.date, ru)}, {dayMonth(bestMonth.date, ru)}</span>
+              </div>
+            ) : null}
+          </div>
+          {favorable && favorable.length ? (
+            <>
+              <div className="dp-fav-k">{ru ? 'Удачные даты' : 'Favourable dates'}</div>
+              <div className="dp-cal">
+                {favorable.slice(0, 21).map((d) => (
+                  <div key={d.date} className={`dp-cal-cell${bestMonth && d.date === bestMonth.date ? ' dp-cal-cell--best' : ''}`}>
+                    <span className="dp-cal-wd">{weekdayShort(d.date, ru)}</span>
+                    <span className="dp-cal-bar-wrap"><span className="dp-cal-bar" style={{ background: scoreColor(d.score), height: `${Math.max(5, Math.round((d.score / 100) * 26))}px` }} /></span>
+                    <span className="dp-cal-dd">{parseDayKey(d.date).getDate()}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : null}
         </div>
       ) : null}
     </div>
@@ -133,6 +176,14 @@ export function ActionWindows({ profile, chartData, chartId, onOpenChart, onRequ
     const id = window.setInterval(() => setNowH(nowHourIn(timezone)), 60000);
     return () => window.clearInterval(id);
   }, [timezone]);
+
+  const [favorable, setFavorable] = useState<FavorableDay[] | null>(null);
+  useEffect(() => {
+    if (!premium || !hasChart || !profile.id) return;
+    let alive = true;
+    void getFavorableDays(String(profile.id)).then((d) => { if (alive && d) setFavorable(d); }).catch(() => undefined);
+    return () => { alive = false; };
+  }, [premium, hasChart, profile.id]);
 
   const points = useMemo<PulsePoint[]>(
     () => (home && home.status === 'ready' ? home.pulse.points.map((p) => ({ hour: p.hour, score: p.score })) : []),
@@ -191,7 +242,7 @@ export function ActionWindows({ profile, chartData, chartId, onOpenChart, onRequ
               transition={reduce ? { duration: 0 } : { duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
               style={{ overflow: 'hidden' }}
             >
-              <DayPulse points={points} score={dayScore} advice={advice} nowH={nowH} ru={ru} reduce={reduce} />
+              <DayPulse points={points} score={dayScore} advice={advice} favorable={favorable} nowH={nowH} ru={ru} reduce={reduce} />
             </motion.div>
           ) : null}
         </AnimatePresence>
@@ -219,7 +270,7 @@ export function ActionWindows({ profile, chartData, chartId, onOpenChart, onRequ
       ) : dayScore == null ? (
         <div className="awt-skeleton" />
       ) : (
-        <DayPulse points={points} score={dayScore} advice={advice} nowH={nowH} ru={ru} reduce={reduce} />
+        <DayPulse points={points} score={dayScore} advice={advice} favorable={favorable} nowH={nowH} ru={ru} reduce={reduce} />
       )}
     </section>
   );

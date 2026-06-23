@@ -656,6 +656,25 @@ function deriveSource(transits: CurrentTransits[]): TodayPulse['source'] {
   return 'mixed';
 }
 
+/**
+ * Лёгкая оценка ДНЯ (0–100) для диапазона дат — один транзит на полдень каждого дня
+ * (не 24 часа, как полный пульс). Для «лучших дней» и календаря удачных дат.
+ */
+export async function computeDailyScores(
+  chartData: NatalChartData,
+  dateKeys: string[],
+  timezone: string,
+): Promise<Array<{ date: string; score: number }>> {
+  const tz = normalizeTimezone(timezone);
+  const phase = phaseForHour(12).phase;
+  const middayDates = dateKeys.map((dk) => localHourToUtc(dk, 12, tz));
+  const transits = await Promise.all(middayDates.map((d) => getCurrentTransits(d)));
+  return dateKeys.map((dk, i) => {
+    const layers = calculateLayers(chartData, transits[i], 12, dk);
+    return { date: dk, score: calculateScore(layers, phase) };
+  });
+}
+
 export async function buildTodayPulse(options: BuildTodayPulseOptions): Promise<TodayPulse> {
   const startedAt = Date.now();
   const language = options.language === 'en' ? 'en' : 'ru';
