@@ -56,45 +56,24 @@ function fmtRange(start: number, end: number): string {
 
 type Row = { action: typeof ACTIONS[number]; rec: ActionTimingRecommendation; start: number; end: number };
 
-/* Одна дорожка действия: что это + окно времени (текстом), и наглядная полоса дня 6–24
-   с подсвеченным окном и вертикалью «сейчас». Никаких абстрактных «пик/спад». */
-function ActionRow({ row, nowH, ru, reduce }: { row: Row; nowH: number; ru: boolean; reduce: boolean | null }) {
-  const isNow = row.rec.state === 'now';
-  const passed = !isNow && row.end <= nowH;
-  const when = isNow
-    ? (ru ? 'сейчас' : 'now')
-    : `${passed ? (ru ? 'завтра' : 'tomorrow') : (ru ? 'сегодня' : 'today')} ${fmtRange(row.start, row.end)}`;
-  const left = dayPct(row.start);
-  const width = Math.max(5, dayPct(row.end) - left);
-  const showNow = nowH >= DAY_START && nowH <= DAY_END;
-  return (
-    <div className={`awr${isNow ? ' awr--now' : ''}`}>
-      <div className="awr-head">
-        <span className="awr-dot" style={{ background: row.action.color }} />
-        <span className="awr-name">{ru ? row.action.ru : row.action.en}</span>
-        <span className="awr-desc">{ru ? row.action.dru : row.action.den}</span>
-        <span className={`awr-time${isNow ? ' awr-time--now' : ''}`}>{when}</span>
-      </div>
-      <div className="awr-track">
-        <motion.span
-          className="awr-fill"
-          style={{ background: row.action.color, left: `${left}%` }}
-          initial={reduce ? false : { width: 0, opacity: 0.4 }}
-          animate={{ width: `${width}%`, opacity: passed ? 0.4 : 1 }}
-          transition={reduce ? { duration: 0 } : { duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        />
-        {showNow ? <span className="awr-nowline" style={{ left: `${dayPct(nowH)}%` }} /> : null}
-      </div>
-    </div>
-  );
-}
-
+/* Понятный график дня: ОДНА шкала 6–24, лучшие окна — цветными блоками (по дорожкам, чтобы
+   не наезжали), вертикальный маркер «сейчас». Ниже — расписание списком (время · действие). */
 function ActionTracks({ rows, nowH, ru, reduce, hideHero }: { rows: Row[]; nowH: number; ru: boolean; reduce: boolean | null; hideHero?: boolean }) {
+  const showNow = nowH >= DAY_START && nowH <= DAY_END;
+  const hhh = (h: number) => `${String(Math.round(h)).padStart(2, '0')}:00`;
   const nowGood = rows.find((r) => r.rec.state === 'now');
-  const upcoming = [...rows]
-    .filter((r) => r.start > nowH && r.end > nowH)
-    .sort((a, b) => a.start - b.start)[0];
-  const hh = (h: number) => `${String(Math.round(h)).padStart(2, '0')}:00`;
+  const upcoming = [...rows].filter((r) => r.start > nowH && r.end > nowH).sort((a, b) => a.start - b.start)[0];
+
+  // раскладка по дорожкам (макс 2), чтобы блоки не накладывались
+  const laneEnd: number[] = [];
+  const blocks = [...rows].sort((a, b) => a.start - b.start).map((r) => {
+    let lane = laneEnd.findIndex((e) => r.start >= e);
+    if (lane === -1) lane = laneEnd.length;
+    laneEnd[lane] = r.end;
+    return { ...r, lane: Math.min(lane, 1) };
+  });
+  const lanes = Math.min(2, Math.max(1, laneEnd.length));
+  const schedule = [...rows].sort((a, b) => a.start - b.start);
 
   return (
     <div className="awt">
@@ -103,16 +82,17 @@ function ActionTracks({ rows, nowH, ru, reduce, hideHero }: { rows: Row[]; nowH:
           <span className="aw-verdict-k">{ru ? 'Сейчас' : 'Now'}</span>
           {nowGood ? (
             <span className="aw-verdict-main">
-              {ru ? 'хорошее время — ' : 'a good time — '}
+              {ru ? 'хорошо для ' : 'good for '}
               <b style={{ color: nowGood.action.color }}>{(ru ? nowGood.action.ru : nowGood.action.en).toLowerCase()}</b>
             </span>
           ) : (
             <span className="aw-verdict-main">
-              {ru ? 'спокойный момент' : 'a calm stretch'}
+              {ru ? 'спокойно' : 'calm'}
               {upcoming ? (
                 <>
-                  {ru ? ' · ближе к ' : ' · around '}{hh(upcoming.start)} —{' '}
+                  {ru ? ' · скоро ' : ' · soon '}
                   <b style={{ color: upcoming.action.color }}>{(ru ? upcoming.action.ru : upcoming.action.en).toLowerCase()}</b>
+                  {ru ? ' в ' : ' at '}{hhh(upcoming.start)}
                 </>
               ) : null}
             </span>
@@ -120,15 +100,44 @@ function ActionTracks({ rows, nowH, ru, reduce, hideHero }: { rows: Row[]; nowH:
         </div>
       )}
 
-      <div className="aw-rows">
-        {rows.map((r) => <ActionRow key={r.action.key} row={r} nowH={nowH} ru={ru} reduce={reduce} />)}
+      <div className="awg">
+        <div className="awg-grid" style={{ height: lanes * 26 + 6 }}>
+          {[12, 18].map((h) => <span key={h} className="awg-vline" style={{ left: `${dayPct(h)}%` }} />)}
+          {blocks.map((r) => {
+            const left = dayPct(r.start);
+            const width = Math.max(7, dayPct(r.end) - left);
+            const passed = r.rec.state !== 'now' && r.end <= nowH;
+            return (
+              <motion.div
+                key={r.action.key}
+                className="awg-block"
+                style={{ left: `${left}%`, width: `${width}%`, top: r.lane * 26, background: r.action.color }}
+                initial={reduce ? false : { scaleX: 0.7, opacity: 0 }}
+                animate={{ scaleX: 1, opacity: passed ? 0.45 : 1 }}
+                transition={reduce ? { duration: 0 } : { duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+              />
+            );
+          })}
+          {showNow ? <span className="awg-now" style={{ left: `${dayPct(nowH)}%` }} /> : null}
+        </div>
+        <div className="awg-axis"><span>6:00</span><span>12:00</span><span>18:00</span><span>24:00</span></div>
       </div>
-      <div className="aw-axis"><span>6:00</span><span>12:00</span><span>18:00</span><span>24:00</span></div>
-      <p className="aw-foot">
-        {ru
-          ? 'Полоса — лучшее время дня для этого по твоей карте. Вертикаль — сейчас.'
-          : 'The bar is the best time of day for it, from your chart. The line is now.'}
-      </p>
+
+      <div className="awg-list">
+        {schedule.map((r) => {
+          const isNow = r.rec.state === 'now';
+          const passed = !isNow && r.end <= nowH;
+          const time = isNow ? (ru ? 'сейчас' : 'now') : `${passed ? (ru ? 'завтра ' : 'tmrw ') : ''}${fmtRange(r.start, r.end)}`;
+          return (
+            <div className={`awg-li${isNow ? ' awg-li--now' : ''}`} key={r.action.key}>
+              <span className="awg-li-time" style={{ color: isNow ? r.action.color : undefined }}>{time}</span>
+              <span className="awg-li-dot" style={{ background: r.action.color }} />
+              <span className="awg-li-name">{ru ? r.action.ru : r.action.en}</span>
+              <span className="awg-li-desc">{ru ? r.action.dru : r.action.den}</span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

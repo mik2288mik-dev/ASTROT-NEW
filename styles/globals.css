@@ -4483,23 +4483,25 @@ a,
 .awt-now { position: absolute; top: -3px; bottom: -3px; width: 2px; border-radius: 2px; background: var(--fresh-text); transform: translateX(-50%); z-index: 2; }
 .awt-time { font-family: var(--fresh-font); font-size: 11px; font-weight: 700; color: var(--fresh-muted); text-align: right; white-space: nowrap; }
 .awt-time--now { color: #10B981; font-weight: 800; }
-/* Понятные дорожки дня: вердикт + по строке на действие (что это + окно + полоса дня 6–24). */
-.aw-verdict { margin-bottom: 14px; }
+/* Понятный график дня: вердикт + одна шкала 6–24 с окнами-блоками + расписание списком. */
+.aw-verdict { margin-bottom: 13px; }
 .aw-verdict-k { font-family: var(--fresh-font); font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fresh-muted); }
 .aw-verdict-main { font-family: var(--fresh-font); font-size: 15px; font-weight: 700; color: var(--fresh-text); margin-left: 8px; }
 .aw-verdict-main b { font-weight: 800; }
-.aw-rows { display: flex; flex-direction: column; gap: 12px; }
-.awr-head { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; }
-.awr-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.awr-name { font-family: var(--fresh-font); font-size: 14px; font-weight: 800; color: var(--fresh-text); }
-.awr-desc { flex: 1; font-family: var(--fresh-font); font-size: 11.5px; font-weight: 600; color: var(--fresh-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.awr-time { font-family: var(--fresh-font); font-size: 12px; font-weight: 800; color: var(--fresh-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.awr-time--now { color: var(--fresh-link); }
-.awr-track { position: relative; height: 12px; border-radius: 6px; background: rgba(0, 0, 0, 0.05); }
-.awr-fill { position: absolute; top: 0; bottom: 0; border-radius: 6px; }
-.awr-nowline { position: absolute; top: -3px; bottom: -3px; width: 2px; border-radius: 2px; background: var(--fresh-text); opacity: 0.5; transform: translateX(-50%); z-index: 2; }
-.aw-axis { display: flex; justify-content: space-between; margin-top: 8px; font-family: var(--fresh-font); font-size: 10px; font-weight: 700; color: var(--fresh-muted); font-variant-numeric: tabular-nums; }
-.aw-foot { margin: 9px 0 0; font-family: var(--fresh-font); font-size: 11px; line-height: 1.4; color: var(--fresh-muted); }
+.awg { margin-bottom: 14px; }
+.awg-grid { position: relative; background: rgba(0, 0, 0, 0.04); border-radius: 12px; padding: 4px 0; }
+.awg-vline { position: absolute; top: 6px; bottom: 6px; width: 1px; background: rgba(0, 0, 0, 0.07); transform: translateX(-50%); }
+.awg-block { position: absolute; height: 22px; border-radius: 7px; display: flex; align-items: center; padding: 0 8px; overflow: hidden; box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12); }
+.awg-block-t { font-family: var(--fresh-font); font-size: 11px; font-weight: 800; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.awg-now { position: absolute; top: -2px; bottom: -2px; width: 2px; border-radius: 2px; background: var(--fresh-text); transform: translateX(-50%); z-index: 3; box-shadow: 0 0 0 2px var(--fresh-surface); }
+.awg-axis { display: flex; justify-content: space-between; margin-top: 6px; font-family: var(--fresh-font); font-size: 10px; font-weight: 700; color: var(--fresh-muted); font-variant-numeric: tabular-nums; }
+.awg-list { display: flex; flex-direction: column; gap: 2px; }
+.awg-li { display: flex; align-items: center; gap: 9px; padding: 7px 6px; border-radius: 10px; }
+.awg-li--now { background: rgba(0, 0, 0, 0.04); }
+.awg-li-time { width: 78px; flex-shrink: 0; font-family: var(--fresh-font); font-size: 12px; font-weight: 800; color: var(--fresh-muted); font-variant-numeric: tabular-nums; }
+.awg-li-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.awg-li-name { font-family: var(--fresh-font); font-size: 13.5px; font-weight: 800; color: var(--fresh-text); }
+.awg-li-desc { flex: 1; text-align: right; font-family: var(--fresh-font); font-size: 11.5px; font-weight: 600; color: var(--fresh-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .awt-skeleton { width: 100%; height: 188px; border-radius: var(--fresh-radius-card); background: linear-gradient(90deg, var(--fresh-surface), #eef1f5, var(--fresh-surface)); background-size: 200% 100%; animation: dw-sk 1.2s ease-in-out infinite; }
 @keyframes dw-sk { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 

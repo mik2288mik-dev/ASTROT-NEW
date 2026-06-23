@@ -9,6 +9,9 @@ import { shareToTelegram } from '../../lib/botLink';
 import { HoroscopeActivityBar } from '../../components/Horoscope/HoroscopeActivityBar';
 import { FreshInnerHeader } from '../../components/fresh-ui/FreshHeaders';
 
+// Единый регистр: каждый лейбл/ключевое слово начинается с заглавной (keyword в данных — строчными).
+const cap = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+
 type Props = {
   profile: UserProfile;
   onBack: () => void;
@@ -84,11 +87,11 @@ export function MatrixRoom({ profile, onBack }: Props) {
         <div className="mtx-result">
           {self && selfArcana ? (
             <motion.div className="mtx-hero" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
-              <div className="mtx-hero-kicker">{self.label}</div>
-              <div className="mtx-hero-key">{ru ? selfArcana.keyword : selfArcana.keywordEn}</div>
+              <div className="mtx-hero-kicker">{cap(self.label)}</div>
+              <div className="mtx-hero-key">{cap(ru ? selfArcana.keyword : selfArcana.keywordEn)}</div>
               <p className="mtx-hero-essence">{ru ? selfArcana.essence : selfArcana.essenceEn}</p>
               {selfAlsoLabels.length ? (
-                <div className="mtx-hero-also">{ru ? 'Также проявляется: ' : 'Also shows in: '}{selfAlsoLabels.join(' · ')}</div>
+                <div className="mtx-hero-also">{ru ? 'Также проявляется: ' : 'Also shows in: '}{selfAlsoLabels.map(cap).join(' · ')}</div>
               ) : null}
             </motion.div>
           ) : null}
@@ -102,8 +105,8 @@ export function MatrixRoom({ profile, onBack }: Props) {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: 0.04 * i }}
               >
-                <div className="mtx-card-label">{ru ? g.arcana.keyword : g.arcana.keywordEn}</div>
-                <div className="mtx-areas">{g.labels.join(' · ')}</div>
+                <div className="mtx-card-label">{cap(ru ? g.arcana.keyword : g.arcana.keywordEn)}</div>
+                <div className="mtx-areas">{g.labels.map(cap).join(' · ')}</div>
                 <p className="mtx-card-essence">{ru ? g.arcana.essence : g.arcana.essenceEn}</p>
               </motion.div>
             ))}
@@ -123,8 +126,8 @@ export function MatrixRoom({ profile, onBack }: Props) {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.3, delay: 0.04 * i }}
                     >
-                      <div className="mtx-card-label">{la.label}</div>
-                      <div className="mtx-areas">{ru ? a.keyword : a.keywordEn}</div>
+                      <div className="mtx-card-label">{cap(la.label)}</div>
+                      <div className="mtx-areas">{cap(ru ? a.keyword : a.keywordEn)}</div>
                       <p className="mtx-card-essence">{ru ? a.essence : a.essenceEn}</p>
                     </motion.div>
                   );
