@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import type { NatalChartData, TodayAssistantHomeResult, UserProfile } from '../../types';
 import { hasActivePremium, hasNatalChart } from '../../lib/accessMatrix';
@@ -13,6 +13,7 @@ function parseDayKey(dk: string): Date {
 const weekdayFull = (dk: string, ru: boolean) => parseDayKey(dk).toLocaleDateString(ru ? 'ru-RU' : 'en-US', { weekday: 'long' });
 const weekdayShort = (dk: string, ru: boolean) => parseDayKey(dk).toLocaleDateString(ru ? 'ru-RU' : 'en-US', { weekday: 'short' });
 const dayMonth = (dk: string, ru: boolean) => parseDayKey(dk).toLocaleDateString(ru ? 'ru-RU' : 'en-US', { day: 'numeric', month: 'short' });
+const monthShort = (dk: string, ru: boolean) => parseDayKey(dk).toLocaleDateString(ru ? 'ru-RU' : 'en-US', { month: 'short' });
 const bestOf = (days: FavorableDay[]) => days.reduce<FavorableDay | null>((b, d) => (!b || d.score > b.score ? d : b), null);
 
 type Props = {
@@ -95,6 +96,14 @@ function DayPulse({ points, score, advice, favorable, nowH, ru, reduce }: { poin
   const color = scoreColor(score);
   const bestWeek = favorable && favorable.length ? bestOf(favorable.slice(0, 7)) : null;
   const bestMonth = favorable && favorable.length ? bestOf(favorable) : null;
+  // Календарь показывает ОТНОСИТЕЛЬНУЮ удачность внутри месяца — иначе дни выглядят одинаково
+  // (астрологический разброс день-в-день небольшой). Лучший день = зелёный, худший = янтарный.
+  const favScores = favorable?.map((d) => d.score) ?? [];
+  const favMin = favScores.length ? Math.min(...favScores) : 0;
+  const favSpan = Math.max(1, (favScores.length ? Math.max(...favScores) : 100) - favMin);
+  const favRel = (s: number) => (s - favMin) / favSpan;
+  const relColor = (r: number) => (r >= 0.62 ? '#34C39A' : r >= 0.32 ? '#5BB6EC' : '#F5A623');
+  const carouselRef = useRef<HTMLDivElement>(null);
   return (
     <div className="dp">
       <div className="dp-top">
@@ -129,15 +138,36 @@ function DayPulse({ points, score, advice, favorable, nowH, ru, reduce }: { poin
           </div>
           {favorable && favorable.length ? (
             <>
-              <div className="dp-fav-k">{ru ? 'Удачные даты' : 'Favourable dates'}</div>
-              <div className="dp-cal">
-                {favorable.slice(0, 21).map((d) => (
-                  <div key={d.date} className={`dp-cal-cell${bestMonth && d.date === bestMonth.date ? ' dp-cal-cell--best' : ''}`}>
-                    <span className="dp-cal-wd">{weekdayShort(d.date, ru)}</span>
-                    <span className="dp-cal-bar-wrap"><span className="dp-cal-bar" style={{ background: scoreColor(d.score), height: `${Math.max(5, Math.round((d.score / 100) * 26))}px` }} /></span>
-                    <span className="dp-cal-dd">{parseDayKey(d.date).getDate()}</span>
-                  </div>
-                ))}
+              <div className="dp-fav-k">{ru ? 'Удачные даты · свайпни' : 'Lucky dates · swipe'}</div>
+              <div className="dp-carousel-vp" ref={carouselRef}>
+                <motion.div
+                  className="dp-carousel"
+                  drag="x"
+                  dragConstraints={carouselRef}
+                  dragElastic={0.12}
+                  dragTransition={{ power: 0.2, timeConstant: 220 }}
+                >
+                  {favorable.map((d) => {
+                    const r = favRel(d.score);
+                    const top = r >= 0.7;
+                    const c = relColor(r);
+                    return (
+                      <motion.div
+                        key={d.date}
+                        className={`dp-day${top ? ' dp-day--top' : ''}`}
+                        style={top ? { background: c, borderColor: c } : undefined}
+                        whileTap={{ scale: 0.94 }}
+                      >
+                        <span className="dp-day-wd">{weekdayShort(d.date, ru)}</span>
+                        <span className="dp-day-num">{parseDayKey(d.date).getDate()}</span>
+                        <span className="dp-day-mo">{monthShort(d.date, ru)}</span>
+                        {top
+                          ? <span className="dp-day-badge">{ru ? 'удачный' : 'lucky'}</span>
+                          : <span className="dp-day-dot" style={{ background: c }} />}
+                      </motion.div>
+                    );
+                  })}
+                </motion.div>
               </div>
             </>
           ) : null}

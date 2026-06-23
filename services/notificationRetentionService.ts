@@ -27,11 +27,11 @@ import type {
 const DEFAULT_TZ = 'Europe/Moscow';
 const RECENT_OPEN_MINUTES = 60;
 const FREE_DAILY_LIMIT = 2;
-const PREMIUM_DAILY_LIMIT = 3;
+const PREMIUM_DAILY_LIMIT = 2;
 const IGNORED_LIMIT = 5;
 // Жёсткий предохранитель против спама: ни один юзер не получает два пуша ближе, чем за столько часов.
-// Действует на УРОВНЕ ОТПРАВКИ — даже если что-то задвоилось в очереди, дубли не уйдут.
-const NOTIFICATION_MIN_GAP_HOURS = Number(process.env.NOTIFICATION_MIN_GAP_HOURS) || 4;
+// 7ч → за день максимум 2 пуша, расходятся на УТРО и ВЕЧЕР (дневной выпадает). Действует на ОТПРАВКЕ.
+const NOTIFICATION_MIN_GAP_HOURS = Number(process.env.NOTIFICATION_MIN_GAP_HOURS) || 7;
 
 export type RetentionJobType =
   | 'notification-dispatcher'
