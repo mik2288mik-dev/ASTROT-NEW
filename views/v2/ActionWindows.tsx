@@ -94,8 +94,11 @@ function DayCurve({ points, nowH, color, reduce }: { points: PulsePoint[]; nowH:
 
 function DayPulse({ points, score, advice, favorable, nowH, ru, reduce }: { points: PulsePoint[]; score: number; advice: string | null; favorable: FavorableDay[] | null; nowH: number; ru: boolean; reduce: boolean | null }) {
   const color = scoreColor(score);
-  const bestWeek = favorable && favorable.length ? bestOf(favorable.slice(0, 7)) : null;
-  const bestMonth = favorable && favorable.length ? bestOf(favorable) : null;
+  // Лучшие дни — среди ПРЕДСТОЯЩИХ (прошедшие в этом месяце не предлагаем).
+  const todayKey = new Date().toLocaleDateString('en-CA');
+  const upcoming = (favorable ?? []).filter((d) => d.date >= todayKey);
+  const bestWeek = upcoming.length ? bestOf(upcoming.slice(0, 7)) : null;
+  const bestMonth = upcoming.length ? bestOf(upcoming) : null;
   // Календарь показывает ОТНОСИТЕЛЬНУЮ удачность внутри месяца — иначе дни выглядят одинаково
   // (астрологический разброс день-в-день небольшой). Лучший день = зелёный, худший = янтарный.
   const favScores = favorable?.map((d) => d.score) ?? [];
@@ -103,7 +106,24 @@ function DayPulse({ points, score, advice, favorable, nowH, ru, reduce }: { poin
   const favSpan = Math.max(1, (favScores.length ? Math.max(...favScores) : 100) - favMin);
   const favRel = (s: number) => (s - favMin) / favSpan;
   const relColor = (r: number) => (r >= 0.62 ? '#34C39A' : r >= 0.32 ? '#5BB6EC' : '#F5A623');
-  const carouselRef = useRef<HTMLDivElement>(null);
+  // Свайп-карусель: меряем ширину ленты vs окна и задаём ЧИСЛОВЫЕ границы drag (ref-границы
+  // меряются во время раскрытия блока и дают 0 — карусель не двигается).
+  const vpRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [dragLimit, setDragLimit] = useState(0);
+  useEffect(() => {
+    const measure = () => {
+      const vp = vpRef.current;
+      const tr = trackRef.current;
+      if (!vp || !tr) return;
+      const lim = tr.scrollWidth - vp.offsetWidth;
+      setDragLimit(lim > 0 ? lim + 8 : 0);
+    };
+    measure();
+    const t = window.setTimeout(measure, 80);
+    window.addEventListener('resize', measure);
+    return () => { window.clearTimeout(t); window.removeEventListener('resize', measure); };
+  }, [favorable]);
   return (
     <div className="dp">
       <div className="dp-top">
@@ -139,31 +159,35 @@ function DayPulse({ points, score, advice, favorable, nowH, ru, reduce }: { poin
           {favorable && favorable.length ? (
             <>
               <div className="dp-fav-k">{ru ? 'Удачные даты · свайпни' : 'Lucky dates · swipe'}</div>
-              <div className="dp-carousel-vp" ref={carouselRef}>
+              <div className="dp-carousel-vp" ref={vpRef}>
                 <motion.div
+                  ref={trackRef}
                   className="dp-carousel"
                   drag="x"
-                  dragConstraints={carouselRef}
-                  dragElastic={0.12}
-                  dragTransition={{ power: 0.2, timeConstant: 220 }}
+                  dragConstraints={{ left: -dragLimit, right: 0 }}
+                  dragElastic={0.14}
+                  dragTransition={{ power: 0.25, timeConstant: 220 }}
+                  style={{ touchAction: 'pan-y' }}
                 >
                   {favorable.map((d) => {
+                    const past = d.date < todayKey;
+                    const isToday = d.date === todayKey;
                     const r = favRel(d.score);
-                    const top = r >= 0.7;
+                    const top = !past && r >= 0.7;
                     const c = relColor(r);
                     return (
                       <motion.div
                         key={d.date}
-                        className={`dp-day${top ? ' dp-day--top' : ''}`}
+                        className={`dp-day${top ? ' dp-day--top' : ''}${past ? ' dp-day--past' : ''}${isToday ? ' dp-day--today' : ''}`}
                         style={top ? { background: c, borderColor: c } : undefined}
-                        whileTap={{ scale: 0.94 }}
+                        whileTap={past ? undefined : { scale: 0.94 }}
                       >
                         <span className="dp-day-wd">{weekdayShort(d.date, ru)}</span>
                         <span className="dp-day-num">{parseDayKey(d.date).getDate()}</span>
-                        <span className="dp-day-mo">{monthShort(d.date, ru)}</span>
+                        <span className="dp-day-mo">{isToday ? (ru ? 'сегодня' : 'today') : monthShort(d.date, ru)}</span>
                         {top
                           ? <span className="dp-day-badge">{ru ? 'удачный' : 'lucky'}</span>
-                          : <span className="dp-day-dot" style={{ background: c }} />}
+                          : <span className="dp-day-dot" style={{ background: past ? 'var(--fresh-muted)' : c }} />}
                       </motion.div>
                     );
                   })}

@@ -7,16 +7,16 @@ import { withRateLimit, RATE_LIMIT_CONFIGS } from '../../../lib/rateLimit';
 import { computeDailyScores } from '../../../lib/todayPulse';
 import { getPremiumEntitlementState } from '../../../lib/contentArchitecture';
 
-// Оценка дня (0–100) на ближайший месяц — для «лучших дней» и календаря удачных дат.
-// Один транзит на полдень каждого дня. Кэш в памяти на 6 часов на пользователя.
-const DAYS = 31;
+// Оценка дня (0–100) на ВЕСЬ текущий календарный месяц (1-е → последнее число) — для
+// «лучших дней» и календаря удачных дат. Один транзит на полдень каждого дня. Кэш 6 часов.
 const memo = new Map<string, { exp: number; days: Array<{ date: string; score: number }> }>();
 
-function dateKeysFrom(tz: string, days: number): string[] {
-  const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' });
-  const base = Date.now();
+function monthDateKeys(tz: string): string[] {
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+  const [y, m] = today.split('-').map(Number);
+  const lastDay = new Date(y, m, 0).getDate();
   const out: string[] = [];
-  for (let i = 0; i < days; i += 1) out.push(fmt.format(new Date(base + i * 86_400_000)));
+  for (let d = 1; d <= lastDay; d += 1) out.push(`${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
   return out;
 }
 
@@ -41,7 +41,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     }
 
     const tz = (typeof chartData.timezone === 'string' && chartData.timezone) || 'Europe/Moscow';
-    const dateKeys = dateKeysFrom(tz, DAYS);
+    const dateKeys = monthDateKeys(tz);
     const cacheKey = `${userId}:${dateKeys[0]}`;
 
     const cached = memo.get(cacheKey);
