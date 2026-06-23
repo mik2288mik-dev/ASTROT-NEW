@@ -321,7 +321,7 @@ export const OracleChat: React.FC<OracleChatProps> = ({
       {!compact ? (
       <div className="shrink-0 border-b border-mono-line bg-mono-white/95 backdrop-blur-xl">
         <div className="space-y-3 px-4 pt-4 pb-3 sm:px-5">
-          <div className="rounded-mono-card border border-mono-line bg-mono-white px-4 py-4 sm:px-5 sm:py-5">
+          <div className="fresh-card px-4 py-4 sm:px-5 sm:py-5">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-mono-muted">{getText(lang, 'oracle.hero_label')}</p>
             <h1 className="mt-2 text-2xl font-bold text-mono-ink sm:text-[1.95rem]">
               {getText(lang, 'oracle.hero_title')}
@@ -331,7 +331,7 @@ export const OracleChat: React.FC<OracleChatProps> = ({
             </p>
           </div>
 
-          <div className="rounded-mono-card border border-mono-line bg-mono-plate px-4 py-4 sm:px-5">
+          <div className="fresh-card px-4 py-4 sm:px-5">
             <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-mono-muted">{stateCopy.label}</p>
             <p className="mt-2 text-base font-semibold text-mono-ink sm:text-lg">{stateCopy.title}</p>
             <p className="mt-2 text-sm leading-relaxed text-mono-muted">{stateCopy.body}</p>

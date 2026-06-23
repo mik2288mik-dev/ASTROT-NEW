@@ -143,7 +143,7 @@ const PaidTopicCard: React.FC<{
   const accent = TOPIC_ACCENTS[index % TOPIC_ACCENTS.length];
 
   return (
-    <div className="mt-2.5 overflow-hidden rounded-mono-card border border-mono-line bg-white first:mt-0" style={{ borderLeft: `3px solid ${accent}` }}>
+    <div className="mt-2.5 overflow-hidden fresh-card first:mt-0" style={{ borderLeft: `3px solid ${accent}` }}>
       <button
         type="button"
         onClick={onToggle}

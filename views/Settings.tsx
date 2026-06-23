@@ -172,9 +172,9 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
         }
         setTimeout(() => { setDailyPush('idle'); setDailyPushInfo(''); }, 9000);
     };
-    const sectionClass = 'rounded-mono-card border border-mono-line bg-mono-white p-4 sm:p-[18px]';
+    const sectionClass = 'fresh-card p-4 sm:p-[18px]';
     const rowCardClass =
-        'w-full rounded-mono-card border border-mono-line bg-mono-white p-4 text-left transition-transform active:scale-[0.99] sm:p-[18px]';
+        'w-full fresh-card p-4 text-left transition-transform active:scale-[0.99] sm:p-[18px]';
     const inlineActionClass = 'text-mono-muted text-[10px] uppercase tracking-wider hover:text-mono-ink transition-colors';
     const languageLabel = profile.language === 'ru'
         ? getText(profile.language, 'settings.language_ru')
@@ -265,7 +265,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
         <div className="fresh-page">
           <FreshInnerHeader title={profile.language === 'en' ? 'Settings' : 'Настройки'} />
           <div className="mx-auto max-w-reading-wide px-4 pt-2 pb-28">
-            <section className="rounded-mono-card border border-mono-line bg-mono-white p-5 mb-4">
+            <section className="fresh-card p-5 mb-4">
                 <div className="flex items-center gap-4">
                     {profilePhotoUrl ? (
                         <img

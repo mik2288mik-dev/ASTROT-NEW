@@ -221,7 +221,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
       <div className="mx-auto max-w-2xl space-y-4 px-4 pb-8">
         <MonoStagger>
           <MonoStaggerItem>
-            <div className="rounded-mono-card border border-mono-line bg-mono-white p-5">
+            <div className="fresh-card p-5">
               <MonoTag>{getText(lang, 'charts.action_title')}</MonoTag>
               <h2 className="mt-2 text-[24px] font-bold tracking-[-0.02em] text-mono-ink">
                 {getText(lang, 'charts.title')}
@@ -238,7 +238,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
                   + {getText(lang, 'charts.add_chart')}
                 </MonoButton>
               ) : (
-                <div className="mt-4 space-y-3 rounded-mono-card bg-mono-plate p-4">
+                <div className="mt-4 space-y-3 fresh-card fresh-card--flat p-4">
                   <p className="text-[14px] font-semibold text-mono-ink">{getText(lang, 'charts.slots_full_title')}</p>
                   <p className="text-[13px] text-mono-muted">{getText(lang, 'charts.limit_reached')}</p>
                   {showPremiumSlotsCta && (
@@ -267,7 +267,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
         ) : null}
 
         {charts.length === 0 ? (
-          <div className="rounded-mono-card border border-mono-line bg-mono-plate p-6 text-center">
+          <div className="fresh-card p-6 text-center">
             <p className="text-[16px] font-semibold text-mono-ink">{getText(lang, 'charts.empty_title')}</p>
             <p className="mt-2 text-[14px] text-mono-muted">{getText(lang, 'charts.empty_body')}</p>
           </div>
@@ -346,7 +346,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
         ) : null}
 
         {showAddForm ? (
-          <MonoFadeIn className="space-y-4 rounded-mono-card border border-mono-line bg-mono-white p-5">
+          <MonoFadeIn className="space-y-4 fresh-card p-5">
             <h3 className="text-[18px] font-bold text-mono-ink">{getText(lang, 'charts.add_form_title')}</h3>
             <MonoInput label={getText(lang, 'charts.field_name')} value={addName} onChange={(e) => setAddName(e.target.value)} placeholder={getText(lang, 'charts.default_chart_name')} />
             <MonoInput label={getText(lang, 'charts.field_birth_date')} type="date" value={addDate} onChange={(e) => setAddDate(e.target.value)} />
