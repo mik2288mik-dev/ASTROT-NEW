@@ -4125,6 +4125,24 @@ a,
 .oracle-presets-empty { font-size: 13px; color: var(--fresh-muted); padding: 6px 2px; }
 .oracle-hint { font-size: 12px; color: var(--fresh-muted); text-align: center; }
 
+/* ── Чат Lumia — единый fresh-вид (вместо mono): фон, бары, пузыри, текст ── */
+.oracle-chat { background: var(--fresh-bg); }
+.oracle-muted { color: var(--fresh-muted); }
+.oracle-ink { color: var(--fresh-text); }
+.oracle-eyebrow { font-family: var(--fresh-font); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--fresh-muted); }
+.oracle-bar { background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+.oracle-bar--top { border-bottom: 1px solid var(--mono-line); }
+.oracle-bar--bottom { border-top: 1px solid var(--mono-line); }
+.oracle-msg { max-width: 88%; border-radius: 18px; padding: 11px 14px; font-family: var(--fresh-font); font-size: 15px; line-height: 1.5; }
+.oracle-msg--me { background: var(--fresh-link); color: #fff; border-bottom-right-radius: 6px; }
+.oracle-msg--bot { background: var(--fresh-surface); color: var(--fresh-text); border-bottom-left-radius: 6px; }
+.oracle-typing { background: var(--fresh-surface); border-radius: 18px; padding: 13px 16px; display: inline-flex; gap: 5px; }
+.oracle-typing i { width: 6px; height: 6px; border-radius: 50%; background: var(--fresh-muted); display: inline-block; animation: oracle-bounce 1s infinite; }
+.oracle-typing i:nth-child(2) { animation-delay: 0.15s; }
+.oracle-typing i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes oracle-bounce { 0%, 60%, 100% { transform: translateY(0); opacity: 0.5; } 30% { transform: translateY(-4px); opacity: 1; } }
+.oracle-empty { border: 1px dashed var(--mono-line); background: var(--fresh-surface); border-radius: 14px; padding: 16px 16px 18px; font-family: var(--fresh-font); font-size: 14px; line-height: 1.5; color: var(--fresh-muted); }
+
 /* ── Шапка чата (компактный режим): по центру, не под кнопкой «назад» ── */
 .oracle-dm-head {
   flex-shrink: 0;
