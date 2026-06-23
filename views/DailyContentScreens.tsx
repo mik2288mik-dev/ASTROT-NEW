@@ -191,6 +191,7 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
   requestPremium,
   onCreateNatalChart,
 }) => {
+  void onBack; // навигацию назад берёт системная кнопка Telegram
   const language = profile.language === 'en' ? 'en' : 'ru';
   const dateKey = useMemo(() => getMoscowTodayKey(), []);
   const access = useMemo(
@@ -287,10 +288,8 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
 
   return (
     <div className="fresh-page">
-      <FreshInnerHeader
-        title={language === 'en' ? 'Personal horoscope' : 'Личный гороскоп'}
-        onBack={() => { lumiaSelectionHaptic(); void onBack(); }}
-      />
+      {/* Без своей «Назад» — навигацию назад берёт системная кнопка Telegram. */}
+      <FreshInnerHeader title={language === 'en' ? 'Personal horoscope' : 'Личный гороскоп'} />
 
       <FreshTabs tabs={tabItems} activeTab={activeSection} onTabChange={(id) => { lumiaSelectionHaptic(); setActiveSection(id as PersonalDailySection); }} />
 

@@ -18,6 +18,7 @@ type Props = {
 };
 
 export function MatrixRoom({ profile, onBack }: Props) {
+  void onBack; // назад берёт системная кнопка Telegram
   const ru = profile.language !== 'en';
   const lang: 'ru' | 'en' = ru ? 'ru' : 'en';
 
@@ -62,10 +63,8 @@ export function MatrixRoom({ profile, onBack }: Props) {
 
   return (
     <div className="fresh-page">
-      <FreshInnerHeader
-        title={ru ? MATRIX_TITLE.ru : MATRIX_TITLE.en}
-        onBack={() => { lumiaSelectionHaptic(); onBack(); }}
-      />
+      {/* Без своей «Назад» — назад берёт системная кнопка Telegram. */}
+      <FreshInnerHeader title={ru ? MATRIX_TITLE.ru : MATRIX_TITLE.en} />
 
       <p style={{ padding: '0 20px 8px', margin: 0, fontSize: 14, lineHeight: 1.5, color: 'var(--fresh-muted)' }}>
         {ru ? MATRIX_SUBTITLE.ru : MATRIX_SUBTITLE.en}
