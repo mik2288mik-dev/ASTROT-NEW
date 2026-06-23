@@ -6,6 +6,7 @@ import { HumanReport } from '../../components/NatalReading/HumanReport';
 import { ChartBalance } from '../../components/NatalReading/ChartBalance';
 import { ShimmerStyles } from '../../components/NatalReading/Skeleton';
 import { MonoIllustChart } from '../../components/mono-ui';
+import { FreshInnerHeader } from '../../components/fresh-ui/FreshHeaders';
 import { FreshPageTitle, FreshHeroCard } from '../../components/fresh-ui';
 import { PlanetIcon } from '../../components/icons/PlanetIcon';
 
@@ -65,16 +66,11 @@ export function NatalMagazine({
     <div className="fresh-page">
       <ShimmerStyles />
 
-      {/* Единая шапка — крупно, по центру, прижато к верху (без «Журнала» и дублей) */}
-      <div className="horo-head">
-        <div className="horo-head-title">{language === 'ru' ? 'Натальная карта' : 'Natal chart'}</div>
-        <div className="horo-head-sign">{profile.name}</div>
-        <div className="horo-head-date">
-          {formatLumiaDate(profile.birthDate, language)}
-          {profile.birthPlace ? ` · ${profile.birthPlace}` : ''}
-          {profile.birthTime ? ` · ${profile.birthTime}` : ''}
-        </div>
-      </div>
+      {/* Единый верх — как на всех экранах. Имя и дата рождения — в подзаголовке. */}
+      <FreshInnerHeader
+        title={language === 'ru' ? 'Натальная карта' : 'Natal chart'}
+        subtitle={`${profile.name} · ${formatLumiaDate(profile.birthDate, language)}`}
+      />
 
       {/* Большая тройка: Солнце / Луна / Асцендент */}
       <div className="natal-big3">

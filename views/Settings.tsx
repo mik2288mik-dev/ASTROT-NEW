@@ -5,6 +5,7 @@ import { getText } from '../constants';
 import { saveProfile } from '../services/storageService';
 import { updateUserNotificationSettings, getUserNotificationSettings, getTelegramInitDataHeaders } from '../services/sessionService';
 import { hasActivePremium } from '../lib/accessMatrix';
+import { FreshInnerHeader } from '../components/fresh-ui/FreshHeaders';
 
 /** Частота из UI → флаги движка уведомлений (реальная таблица user_notification_settings) */
 function notificationFlagsFor(frequency: NotificationFrequency) {
@@ -262,6 +263,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
 
     return (
         <div className="fresh-page">
+          <FreshInnerHeader title={profile.language === 'en' ? 'Settings' : 'Настройки'} />
           <div className="mx-auto max-w-reading-wide px-4 pt-2 pb-28">
             <section className="rounded-mono-card border border-mono-line bg-mono-white p-5 mb-4">
                 <div className="flex items-center gap-4">
