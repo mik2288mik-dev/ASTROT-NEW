@@ -1,20 +1,10 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import type { NatalChartData, TodayAssistantHomeResult, UserProfile } from '../../types';
 import { hasActivePremium, hasNatalChart } from '../../lib/accessMatrix';
-import { getCachedTodayAssistantHome, getTodayAssistantHome, getFavorableDays, type FavorableDay } from '../../services/astrologyService';
+import { getCachedTodayAssistantHome, getTodayAssistantHome } from '../../services/astrologyService';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
 import { ChevronRightIcon } from '../../components/icons/UiIcons';
-
-function parseDayKey(dk: string): Date {
-  const [y, m, d] = String(dk).split('-').map(Number);
-  return new Date(y || 2026, (m || 1) - 1, d || 1);
-}
-const weekdayFull = (dk: string, ru: boolean) => parseDayKey(dk).toLocaleDateString(ru ? 'ru-RU' : 'en-US', { weekday: 'long' });
-const weekdayShort = (dk: string, ru: boolean) => parseDayKey(dk).toLocaleDateString(ru ? 'ru-RU' : 'en-US', { weekday: 'short' });
-const dayMonth = (dk: string, ru: boolean) => parseDayKey(dk).toLocaleDateString(ru ? 'ru-RU' : 'en-US', { day: 'numeric', month: 'short' });
-const monthShort = (dk: string, ru: boolean) => parseDayKey(dk).toLocaleDateString(ru ? 'ru-RU' : 'en-US', { month: 'short' });
-const bestOf = (days: FavorableDay[]) => days.reduce<FavorableDay | null>((b, d) => (!b || d.score > b.score ? d : b), null);
 
 type Props = {
   profile: UserProfile;
@@ -92,38 +82,10 @@ function DayCurve({ points, nowH, color, reduce }: { points: PulsePoint[]; nowH:
   );
 }
 
-function DayPulse({ points, score, advice, favorable, nowH, ru, reduce }: { points: PulsePoint[]; score: number; advice: string | null; favorable: FavorableDay[] | null; nowH: number; ru: boolean; reduce: boolean | null }) {
+/* Оценка дня: крупное число 0–100 + кривая дня по часам. Без текстовых «советов» и календарей —
+   только честная картинка по карте. */
+function DayPulse({ points, score, nowH, ru, reduce }: { points: PulsePoint[]; score: number; nowH: number; ru: boolean; reduce: boolean | null }) {
   const color = scoreColor(score);
-  // Лучшие дни — среди ПРЕДСТОЯЩИХ (прошедшие в этом месяце не предлагаем).
-  const todayKey = new Date().toLocaleDateString('en-CA');
-  const upcoming = (favorable ?? []).filter((d) => d.date >= todayKey);
-  const bestWeek = upcoming.length ? bestOf(upcoming.slice(0, 7)) : null;
-  const bestMonth = upcoming.length ? bestOf(upcoming) : null;
-  // Календарь показывает ОТНОСИТЕЛЬНУЮ удачность внутри месяца — иначе дни выглядят одинаково
-  // (астрологический разброс день-в-день небольшой). Лучший день = зелёный, худший = янтарный.
-  const favScores = favorable?.map((d) => d.score) ?? [];
-  const favMin = favScores.length ? Math.min(...favScores) : 0;
-  const favSpan = Math.max(1, (favScores.length ? Math.max(...favScores) : 100) - favMin);
-  const favRel = (s: number) => (s - favMin) / favSpan;
-  const relColor = (r: number) => (r >= 0.62 ? '#34C39A' : r >= 0.32 ? '#5BB6EC' : '#F5A623');
-  // Свайп-карусель: меряем ширину ленты vs окна и задаём ЧИСЛОВЫЕ границы drag (ref-границы
-  // меряются во время раскрытия блока и дают 0 — карусель не двигается).
-  const vpRef = useRef<HTMLDivElement>(null);
-  const trackRef = useRef<HTMLDivElement>(null);
-  const [dragLimit, setDragLimit] = useState(0);
-  useEffect(() => {
-    const measure = () => {
-      const vp = vpRef.current;
-      const tr = trackRef.current;
-      if (!vp || !tr) return;
-      const lim = tr.scrollWidth - vp.offsetWidth;
-      setDragLimit(lim > 0 ? lim + 8 : 0);
-    };
-    measure();
-    const t = window.setTimeout(measure, 80);
-    window.addEventListener('resize', measure);
-    return () => { window.clearTimeout(t); window.removeEventListener('resize', measure); };
-  }, [favorable]);
   return (
     <div className="dp">
       <div className="dp-top">
@@ -134,69 +96,6 @@ function DayPulse({ points, score, advice, favorable, nowH, ru, reduce }: { poin
         </div>
       </div>
       <DayCurve points={points} nowH={nowH} color={color} reduce={reduce} />
-      {advice ? (
-        <div className="dp-advice">
-          <span className="dp-advice-k">{ru ? 'Совет дня' : "Today's tip"}</span>
-          <p className="dp-advice-t">{advice}</p>
-        </div>
-      ) : null}
-      {bestWeek || bestMonth ? (
-        <div className="dp-fav">
-          <div className="dp-fav-bests">
-            {bestWeek ? (
-              <div className="dp-fav-best">
-                <span className="dp-fav-best-k">{ru ? 'Лучший день недели' : 'Best day this week'}</span>
-                <span className="dp-fav-best-v" style={{ color: scoreColor(bestWeek.score) }}>{weekdayFull(bestWeek.date, ru)}, {dayMonth(bestWeek.date, ru)}</span>
-              </div>
-            ) : null}
-            {bestMonth ? (
-              <div className="dp-fav-best">
-                <span className="dp-fav-best-k">{ru ? 'Лучший день месяца' : 'Best day this month'}</span>
-                <span className="dp-fav-best-v" style={{ color: scoreColor(bestMonth.score) }}>{weekdayFull(bestMonth.date, ru)}, {dayMonth(bestMonth.date, ru)}</span>
-              </div>
-            ) : null}
-          </div>
-          {favorable && favorable.length ? (
-            <>
-              <div className="dp-fav-k">{ru ? 'Удачные даты · свайпни' : 'Lucky dates · swipe'}</div>
-              <div className="dp-carousel-vp" ref={vpRef}>
-                <motion.div
-                  ref={trackRef}
-                  className="dp-carousel"
-                  drag="x"
-                  dragConstraints={{ left: -dragLimit, right: 0 }}
-                  dragElastic={0.14}
-                  dragTransition={{ power: 0.25, timeConstant: 220 }}
-                  style={{ touchAction: 'pan-y' }}
-                >
-                  {favorable.map((d) => {
-                    const past = d.date < todayKey;
-                    const isToday = d.date === todayKey;
-                    const r = favRel(d.score);
-                    const top = !past && r >= 0.7;
-                    const c = relColor(r);
-                    return (
-                      <motion.div
-                        key={d.date}
-                        className={`dp-day${top ? ' dp-day--top' : ''}${past ? ' dp-day--past' : ''}${isToday ? ' dp-day--today' : ''}`}
-                        style={top ? { background: c, borderColor: c } : undefined}
-                        whileTap={past ? undefined : { scale: 0.94 }}
-                      >
-                        <span className="dp-day-wd">{weekdayShort(d.date, ru)}</span>
-                        <span className="dp-day-num">{parseDayKey(d.date).getDate()}</span>
-                        <span className="dp-day-mo">{isToday ? (ru ? 'сегодня' : 'today') : monthShort(d.date, ru)}</span>
-                        {top
-                          ? <span className="dp-day-badge">{ru ? 'удачный' : 'lucky'}</span>
-                          : <span className="dp-day-dot" style={{ background: past ? 'var(--fresh-muted)' : c }} />}
-                      </motion.div>
-                    );
-                  })}
-                </motion.div>
-              </div>
-            </>
-          ) : null}
-        </div>
-      ) : null}
     </div>
   );
 }
@@ -231,14 +130,6 @@ export function ActionWindows({ profile, chartData, chartId, onOpenChart, onRequ
     return () => window.clearInterval(id);
   }, [timezone]);
 
-  const [favorable, setFavorable] = useState<FavorableDay[] | null>(null);
-  useEffect(() => {
-    if (!premium || !hasChart || !profile.id) return;
-    let alive = true;
-    void getFavorableDays(String(profile.id)).then((d) => { if (alive && d) setFavorable(d); }).catch(() => undefined);
-    return () => { alive = false; };
-  }, [premium, hasChart, profile.id]);
-
   const points = useMemo<PulsePoint[]>(
     () => (home && home.status === 'ready' ? home.pulse.points.map((p) => ({ hour: p.hour, score: p.score })) : []),
     [home],
@@ -247,9 +138,6 @@ export function ActionWindows({ profile, chartData, chartId, onOpenChart, onRequ
     () => (points.length ? Math.round(points.reduce((s, p) => s + p.score, 0) / points.length) : null),
     [points],
   );
-  const advice = home && home.status === 'ready'
-    ? (home.pulse.currentPoint?.summary || home.pulse.peakPoint?.summary || null)
-    : null;
 
   if (compact) {
     if (!hasChart) {
@@ -296,7 +184,7 @@ export function ActionWindows({ profile, chartData, chartId, onOpenChart, onRequ
               transition={reduce ? { duration: 0 } : { duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
               style={{ overflow: 'hidden' }}
             >
-              <DayPulse points={points} score={dayScore} advice={advice} favorable={favorable} nowH={nowH} ru={ru} reduce={reduce} />
+              <DayPulse points={points} score={dayScore} nowH={nowH} ru={ru} reduce={reduce} />
             </motion.div>
           ) : null}
         </AnimatePresence>
@@ -324,7 +212,7 @@ export function ActionWindows({ profile, chartData, chartId, onOpenChart, onRequ
       ) : dayScore == null ? (
         <div className="awt-skeleton" />
       ) : (
-        <DayPulse points={points} score={dayScore} advice={advice} favorable={favorable} nowH={nowH} ru={ru} reduce={reduce} />
+        <DayPulse points={points} score={dayScore} nowH={nowH} ru={ru} reduce={reduce} />
       )}
     </section>
   );
