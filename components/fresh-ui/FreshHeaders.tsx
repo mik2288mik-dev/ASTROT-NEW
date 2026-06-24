@@ -10,6 +10,8 @@ interface FreshHeaderProps {
   onAvatarClick?: () => void;
   /** Контент справа на одном уровне с аватаром (например, дата) */
   rightSlot?: React.ReactNode;
+  /** Центрированная подача: аватар + приветствие + имя по центру (дата уезжает в контент). */
+  centered?: boolean;
 }
 
 export const FreshHeader: React.FC<FreshHeaderProps> = ({
@@ -19,6 +21,7 @@ export const FreshHeader: React.FC<FreshHeaderProps> = ({
   avatarInitial,
   onAvatarClick,
   rightSlot,
+  centered,
 }) => {
   const avatarInner = avatarUrl ? (
     <img src={avatarUrl} alt={name} />
@@ -27,7 +30,7 @@ export const FreshHeader: React.FC<FreshHeaderProps> = ({
   );
 
   return (
-    <div className="fresh-header">
+    <div className={`fresh-header${centered ? ' fresh-header--center' : ''}`}>
       {onAvatarClick ? (
         <button
           type="button"
@@ -44,7 +47,7 @@ export const FreshHeader: React.FC<FreshHeaderProps> = ({
         <div className="fresh-header-hello">{greeting}</div>
         <div className="fresh-header-name">{name}</div>
       </div>
-      {rightSlot ? <div className="fresh-header-right">{rightSlot}</div> : null}
+      {!centered && rightSlot ? <div className="fresh-header-right">{rightSlot}</div> : null}
     </div>
   );
 };

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { type AdminUserSegment, type AdminUsersOverview, type UserProfile } from '../types';
 import { fetchAdminUsers } from '../services/adminService';
 import { AdminAiSettingsTab } from './admin/AdminAiSettingsTab';
+import { AdminAnalyticsTab } from './admin/AdminAnalyticsTab';
 import { AdminAssetsTab } from './admin/AdminAssetsTab';
 import { AdminAutomationTab } from './admin/AdminAutomationTab';
 import { AdminChartsTab } from './admin/AdminChartsTab';
@@ -43,6 +44,13 @@ const sectionIcon = (section: AdminBackofficeSection) => {
           <path d="M7 16V9" strokeLinecap="round" />
           <path d="M12 16V5" strokeLinecap="round" />
           <path d="M17 16v-3" strokeLinecap="round" />
+        </svg>
+      );
+    case 'analytics':
+      return (
+        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <path d="M4 20V10M9 20V4M14 20v-6M19 20v-9" strokeLinecap="round" />
+          <path d="M3 20h18" strokeLinecap="round" />
         </svg>
       );
     case 'users':
@@ -126,6 +134,7 @@ const sectionIcon = (section: AdminBackofficeSection) => {
 const sectionLabel = (lang: 'ru' | 'en', section: AdminBackofficeSection) => {
   const keyMap: Record<AdminBackofficeSection, Parameters<typeof getAdminText>[1]> = {
     overview: 'section_overview',
+    analytics: 'section_analytics',
     users: 'section_users',
     economy: 'section_economy',
     charts: 'section_charts',
@@ -143,6 +152,8 @@ const sectionDescription = (lang: 'ru' | 'en', section: AdminBackofficeSection) 
   switch (section) {
     case 'overview':
       return lang === 'ru' ? 'Сводка по продукту и быстрые переходы.' : 'Product summary and quick actions.';
+    case 'analytics':
+      return lang === 'ru' ? 'Воронка, активность и где пользователи отваливаются.' : 'Funnel, activity, and where users drop off.';
     case 'users':
       return lang === 'ru' ? 'Поиск, сегменты, Premium, Lumi и активность.' : 'Search, segments, Premium, Lumi, and activity.';
     case 'economy':
@@ -350,6 +361,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onPatchOwnProfi
 
   const missionActions = [
     {
+      id: 'analytics',
+      title: lang === 'ru' ? 'Аналитика и воронка' : 'Analytics and funnel',
+      body:
+        lang === 'ru'
+          ? 'Понять, до какого шага доходят люди и где они отваливаются — чтобы знать, что дожимать.'
+          : 'See how far users get and where they drop off — so you know what to push.',
+      meta:
+        lang === 'ru'
+          ? `${overview.activeUsers7d} активны за неделю`
+          : `${overview.activeUsers7d} active this week`,
+      onClick: () => goSection('analytics'),
+    },
+    {
       id: 'users',
       title: lang === 'ru' ? 'Пользователи и сегменты' : 'Users and segments',
       body:
@@ -437,6 +461,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onPatchOwnProfi
     switch (activeSection) {
       case 'overview':
         return <AdminOverviewTab profile={profile} onOpenSection={openSection} onOpenUsersSegment={goUsersSegment} />;
+      case 'analytics':
+        return <AdminAnalyticsTab profile={profile} onOpenUsers={() => setActiveSection('users')} />;
       case 'users':
         return (
           <AdminUsersTab

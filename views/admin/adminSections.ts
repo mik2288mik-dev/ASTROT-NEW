@@ -1,5 +1,6 @@
 export type AdminBackofficeSection =
   | 'overview'
+  | 'analytics'
   | 'users'
   | 'economy'
   | 'charts'
@@ -25,7 +26,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     id: 'home',
     labelRu: 'Обзор',
     labelEn: 'Overview',
-    sections: ['overview'],
+    sections: ['overview', 'analytics'],
   },
   {
     id: 'people',

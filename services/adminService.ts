@@ -143,6 +143,36 @@ export async function getAdminStatus(): Promise<{ isAdmin: boolean; requesterId:
   return adminRequest<{ isAdmin: boolean; requesterId: string }>('/api/admin/me');
 }
 
+export interface AdminAnalyticsFunnelStep {
+  key: string;
+  users: number;
+  pctOfStart: number;
+  pctOfPrev: number;
+  droppedFromPrev: number;
+}
+
+export interface AdminAnalytics {
+  generatedAt: string;
+  totals: {
+    users: number;
+    premium: number;
+    premiumRate: number;
+    withBirth: number;
+    withChart: number;
+    returning: number;
+    newUsers14d: number;
+  };
+  active: { dau: number; wau: number; mau: number };
+  funnel: AdminAnalyticsFunnelStep[];
+  bottleneckKey: string | null;
+  newUsers: Array<{ date: string; count: number }>;
+  events: Array<{ type: string; count: number }>;
+}
+
+export async function fetchAdminAnalytics(): Promise<AdminAnalytics> {
+  return adminRequest<AdminAnalytics>('/api/admin/analytics');
+}
+
 export async function fetchAdminAiSettings(): Promise<{
   modelId: string;
   storedModelId: string | null;

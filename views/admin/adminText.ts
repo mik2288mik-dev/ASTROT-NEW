@@ -8,6 +8,7 @@ const ADMIN_TEXT = {
     refresh: 'Обновить',
 
     section_overview: 'Обзор',
+    section_analytics: 'Аналитика',
     section_users: 'Пользователи',
     section_economy: 'Экономика',
     section_charts: 'Карты',
@@ -211,6 +212,7 @@ const ADMIN_TEXT = {
     refresh: 'Refresh',
 
     section_overview: 'Overview',
+    section_analytics: 'Analytics',
     section_users: 'Users',
     section_economy: 'Economy',
     section_charts: 'Charts',
