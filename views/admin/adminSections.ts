@@ -1,17 +1,14 @@
+// Чистая навигация админки: всего 4 раздела, каждый из которых реально работает.
+// Никаких шаблонов/сценариев/генерации контента — только то, чем владелец
+// реально управляет: метрики, аналитика, пользователи и ручные уведомления.
+
 export type AdminBackofficeSection =
   | 'overview'
   | 'analytics'
   | 'users'
-  | 'economy'
-  | 'charts'
-  | 'send'
-  | 'templates'
-  | 'history'
-  | 'automation'
-  | 'ai'
-  | 'assets';
+  | 'send';
 
-export type AdminNavHub = 'home' | 'people' | 'comms' | 'system';
+export type AdminNavHub = 'home' | 'people';
 
 export type AdminNavGroup = {
   id: AdminNavHub;
@@ -20,48 +17,27 @@ export type AdminNavGroup = {
   sections: AdminBackofficeSection[];
 };
 
-/** Mobile-first IA: 4 hubs instead of a flat 10-item list. */
 export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
   {
     id: 'home',
-    labelRu: 'Обзор',
-    labelEn: 'Overview',
+    labelRu: 'Главное',
+    labelEn: 'Main',
     sections: ['overview', 'analytics'],
   },
   {
     id: 'people',
-    labelRu: 'Люди',
-    labelEn: 'People',
-    sections: ['users', 'economy', 'charts'],
-  },
-  {
-    id: 'comms',
-    labelRu: 'Рассылки',
-    labelEn: 'Comms',
-    sections: ['send', 'templates', 'history', 'automation'],
-  },
-  {
-    id: 'system',
-    labelRu: 'Система',
-    labelEn: 'System',
-    sections: ['ai', 'assets'],
+    labelRu: 'Управление',
+    labelEn: 'Manage',
+    sections: ['users', 'send'],
   },
 ];
 
+/** Порядок разделов для нижней навигации на мобильном. */
 export const ADMIN_PRIMARY_SECTIONS: AdminBackofficeSection[] = [
   'overview',
+  'analytics',
   'users',
-  'economy',
-  'charts',
   'send',
-  'automation',
-];
-
-export const ADMIN_SECONDARY_SECTIONS: AdminBackofficeSection[] = [
-  'templates',
-  'history',
-  'ai',
-  'assets',
 ];
 
 export function getAdminNavHub(section: AdminBackofficeSection): AdminNavHub {

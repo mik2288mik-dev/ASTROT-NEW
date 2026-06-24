@@ -6,7 +6,6 @@ const ROOT = path.resolve(__dirname, '..');
 const NOTIFICATION_COPY_FILES = [
   'lib/adminNotificationSeedCatalog.ts',
   'lib/notificationSlotCatalog.ts',
-  'views/admin/AdminNotificationsTab.tsx',
   'pages/api/admin/notifications/ai-drafts.ts',
 ].map((rel) => path.join(ROOT, rel));
 

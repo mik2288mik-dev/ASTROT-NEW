@@ -99,30 +99,24 @@ export const AdminOverviewTab: React.FC<Props> = ({ profile, onOpenSection, onOp
           <MetricCard label={getAdminText(lang, 'metric_attention')} value={overview.needAttentionUsers} />
         </div>
 
-        <div className="mt-5 grid gap-3 lg:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-5 grid gap-3 lg:grid-cols-3">
+          <QuickActionCard
+            title={getAdminText(lang, 'section_analytics')}
+            body={lang === 'ru' ? 'Воронка и активность: где люди отваливаются и что открывают.' : 'Funnel and activity: where users drop off and what they open.'}
+            actionLabel={lang === 'ru' ? 'Открыть аналитику' : 'Open analytics'}
+            onClick={() => onOpenSection('analytics')}
+          />
           <QuickActionCard
             title={getAdminText(lang, 'section_users')}
-            body={lang === 'ru' ? 'Открыть список пользователей и найти нужный аккаунт.' : 'Open the user list and find the needed account.'}
+            body={lang === 'ru' ? 'Найти пользователя, выдать Premium и посмотреть его путь.' : 'Find a user, grant Premium, and see their journey.'}
             actionLabel={getAdminText(lang, 'open_users')}
             onClick={() => onOpenSection('users')}
           />
           <QuickActionCard
             title={getAdminText(lang, 'section_send')}
-            body={lang === 'ru' ? 'Сделать личную или массовую рассылку с превью и картинкой.' : 'Send a personal or broadcast message with preview and image.'}
+            body={lang === 'ru' ? 'Отправить уведомление одному человеку или сегменту.' : 'Send a notification to one user or a segment.'}
             actionLabel={getAdminText(lang, 'open_send')}
             onClick={() => onOpenSection('send')}
-          />
-          <QuickActionCard
-            title={getAdminText(lang, 'section_automation')}
-            body={lang === 'ru' ? 'Настроить утро, день, вечер или кастомный автоматический сценарий.' : 'Configure morning, day, evening, or custom automation.'}
-            actionLabel={getAdminText(lang, 'open_automation')}
-            onClick={() => onOpenSection('automation')}
-          />
-          <QuickActionCard
-            title={getAdminText(lang, 'section_assets')}
-            body={lang === 'ru' ? 'Загрузить картинки и подготовить визуалы для уведомлений.' : 'Upload images and prepare visuals for notifications.'}
-            actionLabel={getAdminText(lang, 'open_assets')}
-            onClick={() => onOpenSection('assets')}
           />
         </div>
       </AdminSurface>
@@ -187,13 +181,13 @@ export const AdminOverviewTab: React.FC<Props> = ({ profile, onOpenSection, onOp
         <AdminSurface className="px-5 py-5 sm:px-6 sm:py-6">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="admin-label">{getAdminText(lang, 'section_history')}</p>
+              <p className="admin-label">{getAdminText(lang, 'section_send')}</p>
               <h3 className="admin-heading mt-2 text-2xl text-white">
                 {lang === 'ru' ? 'Последние отправки' : 'Recent sends'}
               </h3>
             </div>
-            <AdminButton tone="secondary" onClick={() => onOpenSection('history')}>
-              {getAdminText(lang, 'section_history')}
+            <AdminButton tone="secondary" onClick={() => onOpenSection('send')}>
+              {getAdminText(lang, 'section_send')}
             </AdminButton>
           </div>
 
@@ -216,7 +210,7 @@ export const AdminOverviewTab: React.FC<Props> = ({ profile, onOpenSection, onOp
                   <button
                     key={campaign.id}
                     type="button"
-                    onClick={() => onOpenSection('history')}
+                    onClick={() => onOpenSection('send')}
                     className="admin-surface-muted block w-full px-4 py-4 text-left transition hover:border-white/16 hover:bg-white/[0.05]"
                   >
                     <div className="flex items-start justify-between gap-3">
