@@ -3230,6 +3230,21 @@ a,
 .fresh-card--flat { box-shadow: none; }
 .fresh-card--pad { padding: 16px; }
 
+/* ── Логотип LUMIA по центру верха главной (тот же шрифт, что на сплэше) ── */
+.home-brand {
+  position: relative;
+  z-index: 61; /* поверх белого свечения .fresh-page::before (z-index 60) */
+  margin: 0;
+  padding: 0 var(--fresh-page-x) 2px;
+  text-align: center;
+  font-family: var(--lumia-brand-wordmark-font);
+  font-weight: var(--lumia-brand-wordmark-weight);
+  letter-spacing: var(--lumia-brand-wordmark-letter-spacing);
+  font-size: 19px;
+  line-height: 1;
+  color: #202020;
+}
+
 /* ── Хедер: аватар + приветствие ── */
 .fresh-header {
   display: flex;

@@ -221,13 +221,21 @@ export const Dashboard = memo<DashboardProps>(({
       className="fresh-page lumia-main-scroll lumia-bottom-tab-scroll"
       ref={scrollRef as React.RefObject<HTMLDivElement>}
     >
-      {/* ── Хедер: аватар + приветствие + имя по центру (дата — ниже, в лунной строке) ── */}
+      {/* ── Логотип LUMIA по центру верха (тем же шрифтом, что на загрузочном экране) ── */}
+      <div className="home-brand" aria-label="Lumia">LUMIA</div>
+
+      {/* ── Хедер: аватар + приветствие слева, дата справа ── */}
       <FreshHeader
-        centered
         name={profile.name || ''}
         greeting={getDayGreeting(language)}
         avatarUrl={avatarUrl || undefined}
         onAvatarClick={onOpenSettings ? () => { lumiaSelectionHaptic(); onOpenSettings(); } : undefined}
+        rightSlot={
+          <>
+            <div className="fresh-header-date-kicker">{language === 'ru' ? 'Сегодня' : 'Today'}</div>
+            <div className="fresh-header-date-value">{dateLabel}</div>
+          </>
+        }
       />
 
       {/* ── Сегодня: Луна + лучшее окно дня — компактно, в одном блоке ── */}
@@ -236,7 +244,7 @@ export const Dashboard = memo<DashboardProps>(({
           <span className="home-today-ico" aria-hidden>
             <MoonPhaseIcon slot={moon.slot} size={22} fill="#111827" outline="#111827" />
           </span>
-          <span className="home-today-moon">{weekdayLabel}, {dateLabel} · {moon.label}</span>
+          <span className="home-today-moon">{weekdayLabel} · {moon.label}</span>
           {retroLabel ? (
             <span className="home-today-retro">
               {retro.map((r) => (
