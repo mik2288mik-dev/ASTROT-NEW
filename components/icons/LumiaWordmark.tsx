@@ -12,26 +12,26 @@ export const LumiaWordmark: React.FC<{ className?: string; height?: number }> = 
 }) => (
   <svg
     className={className}
-    viewBox="-6 -6 460 112"
+    viewBox="-7 -7 468 94"
     style={{ height, width: 'auto', display: 'block' }}
     role="img"
     aria-label="LUMIA"
     fill="none"
     stroke="currentColor"
-    strokeWidth={4.5}
+    strokeWidth={7}
     strokeLinecap="butt"
     strokeLinejoin="miter"
     strokeMiterlimit={8}
   >
     {/* L */}
-    <path d="M0 0 L0 100 L46 100" />
-    {/* U — тонкая со скруглённым низом */}
-    <path d="M96 0 L96 72 Q96 100 124 100 Q152 100 152 72 L152 0" />
-    {/* M — геометрическая, средний вершина чуть ниже центра */}
-    <path d="M202 100 L202 0 L241 58 L280 0 L280 100" />
+    <path d="M0 0 L0 80 L50 80" />
+    {/* U — со скруглённым низом */}
+    <path d="M96 0 L96 54 Q96 80 127 80 Q158 80 158 54 L158 0" />
+    {/* M — геометрическая, средняя вершина чуть выше центра */}
+    <path d="M204 80 L204 0 L247 46 L290 0 L290 80" />
     {/* I */}
-    <path d="M330 0 L330 100" />
+    <path d="M336 0 L336 80" />
     {/* A — уголок без перекладины */}
-    <path d="M384 100 L416 0 L448 100" />
+    <path d="M382 80 L418 0 L454 80" />
   </svg>
 );
