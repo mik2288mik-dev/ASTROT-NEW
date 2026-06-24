@@ -125,12 +125,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .then((r) => r.rows as Array<{ date: string; count: number }>)
       .catch(() => [] as Array<{ date: string; count: number }>);
 
-    // Топ событий в приложении за 30 дней (что вообще нажимают).
+    // Самые открываемые экраны за 30 дней (из событий screen_view).
+    const screensRows = await pool
+      .query(
+        `SELECT COALESCE(section, 'unknown') AS section, COUNT(*)::int AS count
+         FROM user_app_events
+         WHERE event_type = 'screen_view' AND occurred_at >= NOW() - INTERVAL '30 days'
+         GROUP BY COALESCE(section, 'unknown')
+         ORDER BY count DESC
+         LIMIT 14`
+      )
+      .then((r) => r.rows as Array<{ section: string; count: number }>)
+      .catch(() => [] as Array<{ section: string; count: number }>);
+
+    // Топ действий за 30 дней (без screen_view — это отдельной панелью выше).
     const eventsRows = await pool
       .query(
         `SELECT event_type AS type, COUNT(*)::int AS count
          FROM user_app_events
-         WHERE occurred_at >= NOW() - INTERVAL '30 days'
+         WHERE occurred_at >= NOW() - INTERVAL '30 days' AND event_type <> 'screen_view'
          GROUP BY event_type
          ORDER BY count DESC
          LIMIT 14`
@@ -156,6 +169,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       funnel,
       bottleneckKey,
       newUsers: newUsersRows,
+      screens: screensRows,
       events: eventsRows,
     });
   } catch (error) {

@@ -1311,6 +1311,14 @@ const App: React.FC = () => {
         setView(newView);
     }, [getFeatureAccess, openNatalSetupOnboarding, profile, pushReturnView]);
 
+    // Аналитика экранов: фиксируем каждый вход на экран ровно один раз при смене.
+    // Завязано на view + profile.id (стабильный примитив), чтобы обновления полей
+    // профиля (Premium, баланс) не накручивали лишние события.
+    useEffect(() => {
+        if (!profile?.id) return;
+        void recordUserAppEvent({ eventType: 'screen_view', section: view });
+    }, [view, profile?.id]);
+
     const openPersonalDailyView = useCallback((section: PersonalDailySection = 'overview') => {
         lumiaDebugLog('navigation', {
             action: 'open_personal_daily',

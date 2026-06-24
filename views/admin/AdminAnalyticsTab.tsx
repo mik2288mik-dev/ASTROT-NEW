@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type { UserProfile } from '../../types';
 import { fetchAdminAnalytics, type AdminAnalytics } from '../../services/adminService';
 import { AdminBadge, AdminButton, AdminSectionHeader, AdminStateBanner, AdminSurface } from './AdminPrimitives';
+import { eventLabel, sectionTitle } from './analyticsLabels';
 
 type Props = {
   profile: UserProfile;
@@ -47,25 +48,10 @@ const FUNNEL_LABELS: Record<string, { ru: string; en: string; hint_ru: string; h
   },
 };
 
-const EVENT_LABELS: Record<string, { ru: string; en: string }> = {
-  click: { ru: 'Клик по уведомлению', en: 'Notification click' },
-  clicked: { ru: 'Клик по уведомлению', en: 'Notification click' },
-  open: { ru: 'Открытие из уведомления', en: 'Open from notification' },
-  opened_app: { ru: 'Открытие приложения', en: 'App open' },
-  opened_target_screen: { ru: 'Открытие экрана из пуша', en: 'Target screen from push' },
-  paywall_view: { ru: 'Показ экрана Premium', en: 'Paywall view' },
-  natal_upgrade_success: { ru: 'Покупка из натальной карты', en: 'Purchase from natal chart' },
-  later: { ru: 'Отложил уведомления', en: 'Snoozed notifications' },
-  muted_type: { ru: 'Отключил тип уведомлений', en: 'Muted notification type' },
-  disabled_all: { ru: 'Отключил все уведомления', en: 'Disabled all notifications' },
-};
-
 const funnelLabel = (lang: 'ru' | 'en', key: string) =>
   FUNNEL_LABELS[key] ? FUNNEL_LABELS[key][lang] : key;
 const funnelHint = (lang: 'ru' | 'en', key: string) =>
   FUNNEL_LABELS[key] ? FUNNEL_LABELS[key][lang === 'ru' ? 'hint_ru' : 'hint_en'] : '';
-const eventLabel = (lang: 'ru' | 'en', type: string) =>
-  EVENT_LABELS[type] ? EVENT_LABELS[type][lang] : type;
 
 const fmtNum = (n: number) => new Intl.NumberFormat('ru-RU').format(n);
 
@@ -99,6 +85,11 @@ export const AdminAnalyticsTab: React.FC<Props> = ({ profile, onOpenUsers }) => 
   const maxNewUsers = useMemo(
     () => (data?.newUsers?.length ? Math.max(...data.newUsers.map((d) => d.count)) : 0),
     [data],
+  );
+  const screens = data?.screens ?? [];
+  const maxScreenCount = useMemo(
+    () => (screens.length ? Math.max(...screens.map((s) => s.count)) : 0),
+    [screens],
   );
 
   const bottleneck = data?.bottleneckKey ? funnelLabel(lang, data.bottleneckKey) : null;
@@ -212,9 +203,8 @@ export const AdminAnalyticsTab: React.FC<Props> = ({ profile, onOpenUsers }) => 
         </div>
       </AdminSurface>
 
-      <div className="grid gap-5 xl:grid-cols-2">
-        {/* Новые пользователи */}
-        <AdminSurface className="px-5 py-5 sm:px-6 sm:py-6">
+      {/* Рост: новые пользователи — на всю ширину */}
+      <AdminSurface className="px-5 py-5 sm:px-6 sm:py-6">
           <p className="admin-label">{lang === 'ru' ? 'Рост' : 'Growth'}</p>
           <h3 className="admin-heading mt-2 text-xl text-white">
             {lang === 'ru' ? 'Новые пользователи · 14 дней' : 'New users · 14 days'}
@@ -242,6 +232,41 @@ export const AdminAnalyticsTab: React.FC<Props> = ({ profile, onOpenUsers }) => 
           <p className="mt-3 text-xs text-slate-500">
             {lang === 'ru' ? 'Сколько новых людей заходило каждый день.' : 'How many new users joined each day.'}
           </p>
+        </AdminSurface>
+
+      <div className="grid gap-5 xl:grid-cols-2">
+        {/* Самые открываемые экраны */}
+        <AdminSurface className="px-5 py-5 sm:px-6 sm:py-6">
+          <p className="admin-label">{lang === 'ru' ? 'Экраны' : 'Screens'}</p>
+          <h3 className="admin-heading mt-2 text-xl text-white">
+            {lang === 'ru' ? 'Самые открываемые экраны · 30 дней' : 'Most opened screens · 30 days'}
+          </h3>
+          <div className="mt-5 space-y-2.5">
+            {loading && !data ? (
+              <p className="text-sm text-slate-400">{lang === 'ru' ? 'Загружаем…' : 'Loading…'}</p>
+            ) : screens.length > 0 ? (
+              screens.map((s) => {
+                const w = maxScreenCount > 0 ? Math.round((s.count / maxScreenCount) * 100) : 0;
+                return (
+                  <div key={s.section}>
+                    <div className="flex items-center justify-between gap-2 text-xs">
+                      <span className="min-w-0 truncate text-slate-300">{sectionTitle(lang, s.section)}</span>
+                      <span className="shrink-0 tabular-nums text-slate-500">{fmtNum(s.count)}</span>
+                    </div>
+                    <div className="mt-1 h-2 overflow-hidden rounded-full bg-white/[0.05]">
+                      <div className="h-full rounded-full bg-violet-400/45" style={{ width: `${Math.max(2, w)}%` }} />
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <p className="text-sm text-slate-400">
+                {lang === 'ru'
+                  ? 'Пока нет данных по экранам. Они появятся, когда пользователи начнут открывать разделы (трекинг уже включён).'
+                  : 'No screen data yet. It will appear once users start opening sections (tracking is on).'}
+              </p>
+            )}
+          </div>
         </AdminSurface>
 
         {/* События */}

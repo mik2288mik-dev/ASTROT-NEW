@@ -166,6 +166,7 @@ export interface AdminAnalytics {
   funnel: AdminAnalyticsFunnelStep[];
   bottleneckKey: string | null;
   newUsers: Array<{ date: string; count: number }>;
+  screens: Array<{ section: string; count: number }>;
   events: Array<{ type: string; count: number }>;
 }
 
@@ -189,6 +190,20 @@ export async function saveAdminAiModel(modelId: string): Promise<{ success: bool
 export async function fetchAdminUserDetail(userId: string): Promise<AdminUserDetail> {
   const data = await adminRequest<{ user: AdminUserDetail }>(`/api/admin/users/${encodeURIComponent(userId)}`);
   return data.user;
+}
+
+export interface AdminUserEvent {
+  eventType: string;
+  section: string | null;
+  source: string | null;
+  occurredAt: string | null;
+}
+
+export async function fetchAdminUserEvents(userId: string, limit = 50): Promise<AdminUserEvent[]> {
+  const data = await adminRequest<{ events: AdminUserEvent[] }>(
+    `/api/admin/users/${encodeURIComponent(userId)}/events?limit=${encodeURIComponent(String(limit))}`,
+  );
+  return data.events || [];
 }
 
 export async function updateAdminPremium(userId: string, action: 'grant' | 'revoke'): Promise<AdminUserDetail> {

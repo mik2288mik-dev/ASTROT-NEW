@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   type AdminUsersOverview,
   type AdminPremiumFilter,
@@ -22,7 +22,9 @@ import {
   AdminStateBanner,
   AdminSurface,
 } from './AdminPrimitives';
-import { formatAdminText, getAdminText } from './adminText';
+import { getAdminText } from './adminText';
+import { eventLabel, sectionTitle } from './analyticsLabels';
+import { fetchAdminUserEvents, type AdminUserEvent } from '../../services/adminService';
 import { useAdminUserDetail } from './hooks/useAdminUserDetail';
 import { useAdminUsersList } from './hooks/useAdminUsersList';
 
@@ -69,6 +71,14 @@ const formatDateOnly = (lang: 'ru' | 'en', value?: string | null) => {
     month: 'short',
     year: 'numeric',
   }).format(new Date(value));
+};
+
+const describeEvent = (lang: 'ru' | 'en', ev: AdminUserEvent): string => {
+  if (ev.eventType === 'screen_view') {
+    return `${eventLabel(lang, 'screen_view')} · ${sectionTitle(lang, ev.section || 'unknown')}`;
+  }
+  const base = eventLabel(lang, ev.eventType);
+  return ev.section ? `${base} · ${sectionTitle(lang, ev.section)}` : base;
 };
 
 const getSegmentLabel = (lang: 'ru' | 'en', segment: AdminUserSegment) => {
@@ -119,8 +129,26 @@ export const AdminUsersTab: React.FC<AdminUsersTabProps> = ({
   const usersList = useAdminUsersList({ segment, onOverviewChange });
   const detail = useAdminUserDetail({ currentUserId: profile.id || '', onPatchOwnProfile });
   const [sessionDetailsOpen, setSessionDetailsOpen] = useState<Record<string, boolean>>({});
+  const [userEvents, setUserEvents] = useState<AdminUserEvent[]>([]);
+  const [userEventsLoading, setUserEventsLoading] = useState(false);
 
   const combinedError = detail.error || usersList.error;
+
+  // Таймлайн действий выбранного пользователя — грузим лениво при открытии карточки.
+  const selectedUserId = detail.selectedUser?.id;
+  useEffect(() => {
+    if (!detail.detailOpen || !selectedUserId) {
+      setUserEvents([]);
+      return;
+    }
+    let alive = true;
+    setUserEventsLoading(true);
+    void fetchAdminUserEvents(selectedUserId, 60)
+      .then((events) => { if (alive) setUserEvents(events); })
+      .catch(() => { if (alive) setUserEvents([]); })
+      .finally(() => { if (alive) setUserEventsLoading(false); });
+    return () => { alive = false; };
+  }, [detail.detailOpen, selectedUserId]);
 
   const segmentCount = useMemo(() => {
     switch (segment) {
@@ -392,6 +420,35 @@ export const AdminUsersTab: React.FC<AdminUsersTabProps> = ({
               ) : (
                 <>
                   <IdentityCard detail={detail.selectedUser} lang={lang} onCopyTelegramId={() => void handleCopyTelegramId()} />
+
+                  <DetailAccordion
+                    title={lang === 'ru' ? 'Путь по приложению' : 'App journey'}
+                    subtitle={lang === 'ru' ? 'Последние действия: что открывал и нажимал.' : 'Recent actions: what they opened and tapped.'}
+                    defaultOpen
+                  >
+                    {userEventsLoading ? (
+                      <p className="text-sm text-slate-400">{lang === 'ru' ? 'Загружаем…' : 'Loading…'}</p>
+                    ) : userEvents.length === 0 ? (
+                      <p className="text-sm text-slate-400">
+                        {lang === 'ru'
+                          ? 'Событий пока нет. Они появятся, когда пользователь начнёт открывать экраны и нажимать кнопки.'
+                          : 'No events yet. They will appear once the user starts opening screens and tapping.'}
+                      </p>
+                    ) : (
+                      <ol className="space-y-2.5">
+                        {userEvents.map((ev, index) => (
+                          <li key={`${ev.occurredAt}-${index}`} className="flex items-start gap-3">
+                            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-sky-400/70" aria-hidden />
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm leading-5 text-white">{describeEvent(lang, ev)}</p>
+                              <p className="mt-0.5 text-xs text-slate-500">{formatDateTime(lang, ev.occurredAt)}</p>
+                            </div>
+                          </li>
+                        ))}
+                      </ol>
+                    )}
+                  </DetailAccordion>
+
                   <DetailAccordion
                     title={getAdminText(lang, 'economy')}
                     subtitle={getAdminText(lang, 'economy_subtitle')}
