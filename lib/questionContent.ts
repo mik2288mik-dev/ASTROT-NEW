@@ -4,6 +4,7 @@ import type { AskLumiaState, AskLumiaTier } from '../types';
 import { SYSTEM_PROMPT_ASTRA, addLanguageInstruction } from './prompts';
 import { appendLumiaVoice, LUMIA_VOICE_BLOCK_EN } from './lumiaVoice';
 import { getOpenAIModelForContent } from './appSettings';
+import { buildOpenAIChatParams } from './openaiChat';
 import { db } from './db';
 import { getPremiumEntitlementState } from './contentArchitecture';
 import { normalizeAskLumiaTier } from './contentAccessTier';
@@ -184,15 +185,15 @@ export async function generateAskLumiaAnswer(options: GenerateAskLumiaAnswerOpti
 
   try {
     const { model } = await getQuestionModel(options.tier);
-    const completion = await openai.chat.completions.create({
-      model,
+    const completion = await openai.chat.completions.create(buildOpenAIChatParams(model, {
       messages: [
         { role: 'system', content: SYSTEM_PROMPT_ASTRA },
         { role: 'user', content: prompt },
       ],
       temperature: options.tier === 'free' ? 0.6 : 0.7,
-      max_tokens: options.tier === 'free' ? 150 : 240,
-    });
+      maxTokens: options.tier === 'free' ? 150 : 240,
+      jsonMode: false,
+    }));
 
     const answer = completion.choices[0]?.message?.content?.trim();
     if (!answer) {

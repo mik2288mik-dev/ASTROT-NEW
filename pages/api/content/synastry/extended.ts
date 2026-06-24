@@ -5,6 +5,7 @@ import { AdminAuthError, handleAdminError } from '../../../../lib/adminAuth';
 import { requireAppUser } from '../../../../lib/auth/appAuth';
 import { toPublicAppProfile } from '../../../../lib/auth/profile';
 import { getOpenAIModelForContent } from '../../../../lib/appSettings';
+import { buildOpenAIChatParams } from '../../../../lib/openaiChat';
 import { calculateNatalChart } from '../../../../lib/swisseph-calculator';
 import { db } from '../../../../lib/db';
 import {
@@ -300,16 +301,15 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         contentSurface: 'synastry',
         contentVariant: 'full',
       });
-      const completion = await openai.chat.completions.create({
-        model: modelId,
+      const completion = await openai.chat.completions.create(buildOpenAIChatParams(modelId, {
         messages: [
           { role: 'system', content: prompt.system },
           { role: 'user', content: prompt.user },
         ],
-        response_format: { type: 'json_object' },
         temperature: 0.72,
-        max_tokens: 2500,
-      });
+        maxTokens: 2500,
+        jsonMode: true,
+      }));
       const content = completion.choices[0]?.message?.content || '{}';
       const parsed = parseLumiaJson<FullSynastryAIResponse & { summary?: string; compatibilityScore?: number }>(
         content,

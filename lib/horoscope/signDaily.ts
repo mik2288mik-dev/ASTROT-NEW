@@ -2,6 +2,7 @@ import OpenAI from 'openai';
 import type { ForecastDailyReading, Language } from '../../types';
 import { getModelForTier } from '../appSettings';
 import { getContentPolicy } from '../contentMatrix';
+import { buildOpenAIChatParams } from '../openaiChat';
 import { buildSignDailyHoroscopePrompt, parseLumiaJson } from '../contentPromptBuilders';
 import { db } from '../db';
 import { getZodiacSign } from '../../constants';
@@ -194,16 +195,15 @@ async function generateSignReading(
 
   try {
     const model = await getModelForTier(getContentPolicy('sign_daily_horoscope').modelTier);
-    const completion = await openai.chat.completions.create({
-      model,
+    const completion = await openai.chat.completions.create(buildOpenAIChatParams(model, {
       messages: [
         { role: 'system', content: prompt.system },
         { role: 'user', content: prompt.user },
       ],
-      response_format: { type: 'json_object' },
       temperature: 0.82,
-      max_tokens: 500,
-    });
+      maxTokens: 500,
+      jsonMode: true,
+    }));
     const parsed = parseLumiaJson<{ headline?: string; text?: string; advice?: string }>(completion.choices[0]?.message?.content, {});
     return normalizeReading({ ...parsed, summary: parsed.text, reading: parsed.text, focus: parsed.advice, advice: parsed.advice ? [parsed.advice] : [] }, sign, date, language);
   } catch (error: any) {

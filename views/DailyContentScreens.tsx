@@ -42,6 +42,8 @@ const DAILY_TABS: DailyTabConfig[] = [
   { id: 'money', label: 'Деньги', title: 'Деньги сегодня', subtitle: 'Решения, покупки и устойчивость', accent: '#34C39A', sectionKey: 'daily_money' },
   { id: 'work', label: 'Работа', title: 'Работа сегодня', subtitle: 'Фокус, задачи и рабочий ритм', accent: '#5BB6EC', sectionKey: 'daily_work_business' },
   { id: 'goals', label: 'Цели', title: 'Дела и цели', subtitle: 'Один ясный следующий шаг', accent: '#FF9B6A', sectionKey: 'daily_goals' },
+  { id: 'family', label: 'Дом', title: 'Дом и семья', subtitle: 'Опора, близкие и атмосфера дома', accent: '#E07A5F', sectionKey: 'daily_family' },
+  { id: 'friends', label: 'Друзья', title: 'Друзья и общение', subtitle: 'Контакты, поддержка и разговоры', accent: '#56C2B6', sectionKey: 'daily_friendship' },
 ];
 
 function splitParagraphs(value?: string | null): string[] {

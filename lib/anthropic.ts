@@ -15,6 +15,7 @@ import type {
   ContentVariant,
 } from '../types';
 import { getOpenAIModelForContent } from './appSettings';
+import { buildOpenAIChatParams } from './openaiChat';
 
 let cachedClient: OpenAI | null = null;
 
@@ -42,20 +43,25 @@ export type ReadingCallOptions = {
   temperature?: number;
 };
 
+function readingMessages(opts: ReadingCallOptions) {
+  return [
+    { role: 'system' as const, content: opts.system },
+    { role: 'user' as const, content: opts.user },
+  ];
+}
+
 export async function llmJson<T = any>(opts: ReadingCallOptions): Promise<T> {
   const client = getClient();
   const { model } = await getOpenAIModelForContent(opts.model);
 
-  const completion = await client.chat.completions.create({
-    model,
-    messages: [
-      { role: 'system', content: opts.system },
-      { role: 'user', content: opts.user },
-    ],
-    response_format: { type: 'json_object' },
-    temperature: opts.temperature ?? 0.7,
-    max_tokens: opts.maxTokens ?? 1800,
-  });
+  const completion = await client.chat.completions.create(
+    buildOpenAIChatParams(model, {
+      messages: readingMessages(opts),
+      maxTokens: opts.maxTokens,
+      temperature: opts.temperature,
+      jsonMode: true,
+    })
+  );
 
   const text = completion.choices[0]?.message?.content || '{}';
   return parseModelJson<T>(text);
@@ -65,15 +71,14 @@ export async function llmTagged(opts: ReadingCallOptions): Promise<string> {
   const client = getClient();
   const { model } = await getOpenAIModelForContent(opts.model);
 
-  const completion = await client.chat.completions.create({
-    model,
-    messages: [
-      { role: 'system', content: opts.system },
-      { role: 'user', content: opts.user },
-    ],
-    temperature: opts.temperature ?? 0.7,
-    max_tokens: opts.maxTokens ?? 1800,
-  });
+  const completion = await client.chat.completions.create(
+    buildOpenAIChatParams(model, {
+      messages: readingMessages(opts),
+      maxTokens: opts.maxTokens,
+      temperature: opts.temperature,
+      jsonMode: false,
+    })
+  );
 
   return (completion.choices[0]?.message?.content || '').trim();
 }

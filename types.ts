@@ -520,7 +520,7 @@ export type HoroscopeDailySectionKey =
   | 'daily_work_business'
   | 'daily_money'
   | 'daily_goals';
-export type PersonalDailySection = 'overview' | 'love' | 'money' | 'work' | 'goals';
+export type PersonalDailySection = 'overview' | 'love' | 'money' | 'work' | 'goals' | 'family' | 'friends';
 export type HoroscopeOpenOptions = {
   mode?: HoroscopeOpenMode;
   source?: string;

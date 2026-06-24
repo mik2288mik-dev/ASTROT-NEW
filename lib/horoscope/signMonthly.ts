@@ -3,6 +3,7 @@ import type { ForecastDailyReading, Language } from '../../types';
 import { getZodiacSign } from '../../constants';
 import { getModelForTier } from '../appSettings';
 import { getContentPolicy } from '../contentMatrix';
+import { buildOpenAIChatParams } from '../openaiChat';
 import { buildSignMonthlyHoroscopePrompt, parseLumiaJson } from '../contentPromptBuilders';
 import { getPool } from '../db';
 import { formatMonthPeriodLabel } from '../date-utils';
@@ -66,13 +67,12 @@ async function generate(sign: ZodiacKey, periodKey: string, language: Language):
   const prompt = buildSignMonthlyHoroscopePrompt({ language, context: { sign: signLabel, periodKey } });
   try {
     const model = await getModelForTier(policy.modelTier);
-    const completion = await openai.chat.completions.create({
-      model,
+    const completion = await openai.chat.completions.create(buildOpenAIChatParams(model, {
       messages: [{ role: 'system', content: prompt.system }, { role: 'user', content: prompt.user }],
-      response_format: { type: 'json_object' },
       temperature: 0.75,
-      max_tokens: 700,
-    });
+      maxTokens: 700,
+      jsonMode: true,
+    }));
     const parsed = parseLumiaJson<{ headline?: string; text?: string; advice?: string[] }>(completion.choices[0]?.message?.content, {});
     return normalize({ ...parsed, summary: parsed.text, reading: parsed.text, focus: parsed.advice?.[0] }, sign, periodKey, language);
   } catch {

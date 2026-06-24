@@ -26,6 +26,7 @@ import {
 import { getModelForTier, getOpenAIModelForContent } from './appSettings';
 import { getContentPolicy } from './contentMatrix';
 import { buildPersonalDailyPrompt, parseLumiaJson } from './contentPromptBuilders';
+import { buildOpenAIChatParams } from './openaiChat';
 import { getCurrentTransits } from './transits-calculator';
 import { formatIsoWeekPeriodLabel, formatMonthPeriodLabel, getMoscowTodayKey } from './date-utils';
 
@@ -261,16 +262,15 @@ export async function generateFreeDailyForecast(
       context: { date: dateKey, profile, chartData, transits },
     });
     const model = await getModelForTier(getContentPolicy('personal_daily').modelTier);
-    const completion = await openai.chat.completions.create({
-      model,
+    const completion = await openai.chat.completions.create(buildOpenAIChatParams(model, {
       messages: [
         { role: 'system', content: prompt.system },
         { role: 'user', content: prompt.user },
       ],
-      response_format: { type: 'json_object' },
       temperature: 0.7,
-      max_tokens: 800,
-    });
+      maxTokens: 800,
+      jsonMode: true,
+    }));
 
     const parsed = parseLumiaJson<DailyForecastV2AIResponse & { main?: string; relationships?: string; action?: string; why?: string }>(completion.choices[0]?.message?.content, {} as DailyForecastV2AIResponse);
     return normalizeDailyForecast(parsed, lang, dateKey);
@@ -330,16 +330,15 @@ export async function generatePremiumDaypartForecast(
       lang
     );
     const { model } = await getForecastModel('premium');
-    const completion = await openai.chat.completions.create({
-      model,
+    const completion = await openai.chat.completions.create(buildOpenAIChatParams(model, {
       messages: [
         { role: 'system', content: SYSTEM_PROMPT_ASTRA },
         { role: 'user', content: prompt },
       ],
-      response_format: { type: 'json_object' },
       temperature: 0.85,
-      max_tokens: 1650,
-    });
+      maxTokens: 1650,
+      jsonMode: true,
+    }));
 
     const content = completion.choices[0]?.message?.content || '{}';
     const parsed = JSON.parse(content) as DaypartForecastAIResponse;
@@ -558,16 +557,15 @@ export async function generateFreeWeeklyForecast(
       lang
     );
     const { model } = await getForecastModel('base');
-    const completion = await openai.chat.completions.create({
-      model,
+    const completion = await openai.chat.completions.create(buildOpenAIChatParams(model, {
       messages: [
         { role: 'system', content: SYSTEM_PROMPT_ASTRA },
         { role: 'user', content: prompt },
       ],
-      response_format: { type: 'json_object' },
       temperature: 0.72,
-      max_tokens: 900,
-    });
+      maxTokens: 900,
+      jsonMode: true,
+    }));
     const content = completion.choices[0]?.message?.content || '{}';
     const parsed = JSON.parse(content) as FreeWeeklyForecastV2AIResponse;
     return normalizeFreeWeekly(parsed, lang, periodKey, label);
@@ -596,16 +594,15 @@ export async function generatePremiumWeeklyForecast(
       lang
     );
     const { model } = await getForecastModel('premium');
-    const completion = await openai.chat.completions.create({
-      model,
+    const completion = await openai.chat.completions.create(buildOpenAIChatParams(model, {
       messages: [
         { role: 'system', content: SYSTEM_PROMPT_ASTRA },
         { role: 'user', content: prompt },
       ],
-      response_format: { type: 'json_object' },
       temperature: 0.82,
-      max_tokens: 2200,
-    });
+      maxTokens: 2200,
+      jsonMode: true,
+    }));
     const content = completion.choices[0]?.message?.content || '{}';
     const parsed = JSON.parse(content) as PremiumWeeklyForecastV2AIResponse;
     return normalizePremiumWeekly(parsed, lang, periodKey, label);
@@ -634,16 +631,15 @@ export async function generateFreeMonthlyForecast(
       lang
     );
     const { model } = await getForecastModel('base');
-    const completion = await openai.chat.completions.create({
-      model,
+    const completion = await openai.chat.completions.create(buildOpenAIChatParams(model, {
       messages: [
         { role: 'system', content: SYSTEM_PROMPT_ASTRA },
         { role: 'user', content: prompt },
       ],
-      response_format: { type: 'json_object' },
       temperature: 0.72,
-      max_tokens: 900,
-    });
+      maxTokens: 900,
+      jsonMode: true,
+    }));
     const content = completion.choices[0]?.message?.content || '{}';
     const parsed = JSON.parse(content) as FreeMonthlyForecastV2AIResponse;
     return normalizeFreeMonthly(parsed, lang, periodKey, label);
@@ -672,16 +668,15 @@ export async function generatePremiumMonthlyForecast(
       lang
     );
     const { model } = await getForecastModel('premium');
-    const completion = await openai.chat.completions.create({
-      model,
+    const completion = await openai.chat.completions.create(buildOpenAIChatParams(model, {
       messages: [
         { role: 'system', content: SYSTEM_PROMPT_ASTRA },
         { role: 'user', content: prompt },
       ],
-      response_format: { type: 'json_object' },
       temperature: 0.82,
-      max_tokens: 2600,
-    });
+      maxTokens: 2600,
+      jsonMode: true,
+    }));
     const content = completion.choices[0]?.message?.content || '{}';
     const parsed = JSON.parse(content) as PremiumMonthlyForecastV2AIResponse;
     return normalizePremiumMonthly(parsed, lang, periodKey, label);

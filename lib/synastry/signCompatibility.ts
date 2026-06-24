@@ -2,6 +2,7 @@ import OpenAI from 'openai';
 import type { Language } from '../../types';
 import { getZodiacSign } from '../../constants';
 import { getModelForTier } from '../appSettings';
+import { buildOpenAIChatParams } from '../openaiChat';
 import { buildContentCacheKey, getContentPolicy } from '../contentMatrix';
 import { buildSignCompatibilityPrompt, parseLumiaJson } from '../contentPromptBuilders';
 import { getPool } from '../db';
@@ -41,7 +42,7 @@ export async function getOrGenerateSignCompatibility(first: string, second: stri
   let payload = fallback(pair[0], pair[1], language); const model = await getModelForTier(policy.modelTier);
   if (openai) {
     const prompt = buildSignCompatibilityPrompt({ language, context: { signA: getZodiacSign(language, pair[0]), signB: getZodiacSign(language, pair[1]) } });
-    const completion = await openai.chat.completions.create({ model, messages: [{ role: 'system', content: prompt.system }, { role: 'user', content: prompt.user }], response_format: { type: 'json_object' }, temperature: 0.6, max_tokens: 700 });
+    const completion = await openai.chat.completions.create(buildOpenAIChatParams(model, { messages: [{ role: 'system', content: prompt.system }, { role: 'user', content: prompt.user }], temperature: 0.6, maxTokens: 700, jsonMode: true }));
     const raw = parseLumiaJson<Partial<SignCompatibilityResult>>(completion.choices[0]?.message?.content, payload);
     payload = { signA: pair[0], signB: pair[1], attraction: String(raw.attraction || payload.attraction).trim(), difficulty: String(raw.difficulty || payload.difficulty).trim(), communication: String(raw.communication || payload.communication).trim(), limitation: payload.limitation };
   }

@@ -17,6 +17,7 @@ import {
   NatalLivingAIResponse,
 } from './prompts';
 import { getModelForTier } from './appSettings';
+import { buildOpenAIChatParams } from './openaiChat';
 import { getContentPolicy } from './contentMatrix';
 import { getCurrentTransits } from './transits-calculator';
 import {
@@ -71,16 +72,15 @@ async function createJsonCompletion<T>({
     throw new Error('OPENAI_API_KEY is not configured');
   }
 
-  const completion = await openai.chat.completions.create({
-    model,
+  const completion = await openai.chat.completions.create(buildOpenAIChatParams(model, {
     messages: [
       { role: 'system', content: SYSTEM_PROMPT_ASTRA },
       { role: 'user', content: prompt },
     ],
-    response_format: { type: 'json_object' },
     temperature,
-    max_tokens: maxTokens,
-  });
+    maxTokens,
+    jsonMode: true,
+  }));
 
   const content = completion.choices[0]?.message?.content || '{}';
   return JSON.parse(content) as T;

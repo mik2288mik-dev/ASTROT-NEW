@@ -1,6 +1,7 @@
 import OpenAI from 'openai';
 import type { Language, NatalChartData, PlanetInsight, UserProfile } from '../types';
 import { getOpenAIModelForContent } from './appSettings';
+import { buildOpenAIChatParams } from './openaiChat';
 import {
   buildPlanetInsightCacheKey,
   getPlanetDisplayName,
@@ -68,16 +69,15 @@ export async function generatePlanetInsight(
       contentVariant: 'planet_insight',
     });
 
-    const completion = await openai.chat.completions.create({
-      model,
+    const completion = await openai.chat.completions.create(buildOpenAIChatParams(model, {
       messages: [
         { role: 'system', content: SYSTEM_PROMPT_ASTRA },
         { role: 'user', content: prompt },
       ],
-      response_format: { type: 'json_object' },
       temperature: 0.8,
-      max_tokens: 520,
-    });
+      maxTokens: 520,
+      jsonMode: true,
+    }));
 
     const raw = completion.choices[0]?.message?.content || '{}';
     const parsed = JSON.parse(raw) as PlanetInsightAIResponse;
