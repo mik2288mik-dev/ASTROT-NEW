@@ -163,6 +163,7 @@ export interface AdminAnalytics {
     newUsers14d: number;
   };
   active: { dau: number; wau: number; mau: number };
+  revenue: { totalStars: number; totalPayments: number; stars30d: number; payments30d: number };
   funnel: AdminAnalyticsFunnelStep[];
   bottleneckKey: string | null;
   newUsers: Array<{ date: string; count: number }>;
@@ -206,12 +207,16 @@ export async function fetchAdminUserEvents(userId: string, limit = 50): Promise<
   return data.events || [];
 }
 
-export async function updateAdminPremium(userId: string, action: 'grant' | 'revoke'): Promise<AdminUserDetail> {
+export async function updateAdminPremium(
+  userId: string,
+  action: 'grant' | 'revoke',
+  days?: number,
+): Promise<AdminUserDetail> {
   const data = await adminRequest<{ user: AdminUserDetail }>(
     `/api/admin/users/${encodeURIComponent(userId)}/premium`,
     {
       method: 'POST',
-      bodyJson: { action },
+      bodyJson: { action, ...(days ? { days } : {}) },
     }
   );
   return data.user;

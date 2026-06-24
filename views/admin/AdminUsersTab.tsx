@@ -172,14 +172,24 @@ export const AdminUsersTab: React.FC<AdminUsersTabProps> = ({
     usersList.pagination.total,
   ]);
 
-  const handlePremiumAction = async (action: 'grant' | 'revoke') => {
-    const ok = await detail.runPremiumAction(action, {
-      success: action === 'grant' ? getAdminText(lang, 'premium_granted') : getAdminText(lang, 'premium_revoked'),
+  const handlePremiumGrant = async (days: number) => {
+    const ok = await detail.runPremiumAction(
+      'grant',
+      {
+        success: lang === 'ru' ? `Premium продлён на ${days} дн.` : `Premium extended by ${days}d`,
+        failure: getAdminText(lang, 'update_premium_failed'),
+      },
+      days,
+    );
+    if (ok) await usersList.reload();
+  };
+
+  const handlePremiumRevoke = async () => {
+    const ok = await detail.runPremiumAction('revoke', {
+      success: getAdminText(lang, 'premium_revoked'),
       failure: getAdminText(lang, 'update_premium_failed'),
     });
-    if (ok) {
-      await usersList.reload();
-    }
+    if (ok) await usersList.reload();
   };
 
   const handleCopyTelegramId = async () => {
@@ -390,11 +400,21 @@ export const AdminUsersTab: React.FC<AdminUsersTabProps> = ({
               </div>
 
               <div className="mt-4 admin-surface-muted p-4">
+                <p className="admin-label mb-2">{lang === 'ru' ? 'Выдать Premium' : 'Grant Premium'}</p>
                 <div className="flex flex-wrap gap-2">
-                  <ActionPill active={detail.actionLoading === 'premium-grant'} onClick={() => void handlePremiumAction('grant')}>
-                    {getAdminText(lang, 'premium_plus')}
+                  <ActionPill active={detail.actionLoading === 'premium-grant'} onClick={() => void handlePremiumGrant(30)}>
+                    {lang === 'ru' ? '30 дней' : '30 days'}
                   </ActionPill>
-                  <ActionPill active={detail.actionLoading === 'premium-revoke'} onClick={() => void handlePremiumAction('revoke')}>
+                  <ActionPill onClick={() => void handlePremiumGrant(90)}>
+                    {lang === 'ru' ? '90 дней' : '90 days'}
+                  </ActionPill>
+                  <ActionPill onClick={() => void handlePremiumGrant(180)}>
+                    {lang === 'ru' ? '180 дней' : '180 days'}
+                  </ActionPill>
+                  <ActionPill onClick={() => void handlePremiumGrant(365)}>
+                    {lang === 'ru' ? '1 год' : '1 year'}
+                  </ActionPill>
+                  <ActionPill active={detail.actionLoading === 'premium-revoke'} onClick={() => void handlePremiumRevoke()}>
                     {getAdminText(lang, 'revoke')}
                   </ActionPill>
                   <ActionPill onClick={() => detail.selectedUser ? onSendNotification(detail.selectedUser.id) : undefined}>

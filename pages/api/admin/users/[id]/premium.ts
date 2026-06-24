@@ -3,7 +3,7 @@ import { requireAdminAccess, handleAdminError } from '../../../../../lib/adminAu
 import { db } from '../../../../../lib/db';
 import { serializeAdminUserDetail } from '../../../../../lib/adminSerializers';
 
-const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -30,10 +30,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     if (action === 'grant') {
+      const daysRaw = Number(req.body?.days);
+      const days = Number.isFinite(daysRaw) && daysRaw > 0 ? Math.min(Math.round(daysRaw), 3650) : 30;
       const now = Date.now();
       const existingUntil = user.premium_until ? new Date(user.premium_until).getTime() : 0;
       const baseTime = existingUntil > now ? existingUntil : now;
-      await db.users.setPremiumUntil(userId, new Date(baseTime + THIRTY_DAYS_MS).toISOString());
+      await db.users.setPremiumUntil(userId, new Date(baseTime + days * DAY_MS).toISOString());
     } else {
       await db.users.setPremiumUntil(userId, null);
     }

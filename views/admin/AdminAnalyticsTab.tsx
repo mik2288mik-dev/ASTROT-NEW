@@ -125,6 +125,22 @@ export const AdminAnalyticsTab: React.FC<Props> = ({ profile, onOpenUsers }) => 
         </div>
       </AdminSurface>
 
+      {/* Доход */}
+      {data?.revenue ? (
+        <AdminSurface className="px-5 py-5 sm:px-6 sm:py-6">
+          <p className="admin-label">{lang === 'ru' ? 'Доход' : 'Revenue'}</p>
+          <h3 className="admin-heading mt-2 text-xl text-white">
+            {lang === 'ru' ? 'Платежи Telegram Stars' : 'Telegram Stars payments'}
+          </h3>
+          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <KpiCard label={lang === 'ru' ? 'Всего Stars' : 'Total Stars'} value={fmtNum(data.revenue.totalStars)} accent="amber" />
+            <KpiCard label={lang === 'ru' ? 'Платежей' : 'Payments'} value={fmtNum(data.revenue.totalPayments)} />
+            <KpiCard label={lang === 'ru' ? 'Stars · 30 дн.' : 'Stars · 30d'} value={fmtNum(data.revenue.stars30d)} accent="amber" />
+            <KpiCard label={lang === 'ru' ? 'Платежей · 30 дн.' : 'Payments · 30d'} value={fmtNum(data.revenue.payments30d)} />
+          </div>
+        </AdminSurface>
+      ) : null}
+
       {/* Воронка */}
       <AdminSurface className="px-5 py-5 sm:px-6 sm:py-6">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">

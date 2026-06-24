@@ -151,6 +151,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .then((r) => r.rows as Array<{ type: string; count: number }>)
       .catch(() => [] as Array<{ type: string; count: number }>);
 
+    // Доход в Telegram Stars (реальные платежи).
+    const [totalStars, totalPayments, stars30d, payments30d] = await Promise.all([
+      scalar('SELECT COALESCE(SUM(stars_amount), 0) FROM star_payments'),
+      scalar('SELECT COUNT(*) FROM star_payments'),
+      scalar("SELECT COALESCE(SUM(stars_amount), 0) FROM star_payments WHERE created_at >= NOW() - INTERVAL '30 days'"),
+      scalar("SELECT COUNT(*) FROM star_payments WHERE created_at >= NOW() - INTERVAL '30 days'"),
+    ]);
+
     const newUsers14d = newUsersRows.reduce((sum, row) => sum + (Number(row.count) || 0), 0);
     const premiumRate = totalUsers > 0 ? Math.round((premiumUsers / totalUsers) * 1000) / 10 : 0;
 
@@ -166,6 +174,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         newUsers14d,
       },
       active,
+      revenue: { totalStars, totalPayments, stars30d, payments30d },
       funnel,
       bottleneckKey,
       newUsers: newUsersRows,

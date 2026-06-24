@@ -62,13 +62,14 @@ export function useAdminUserDetail(input: {
 
   const runPremiumAction = useCallback(async (
     action: 'grant' | 'revoke',
-    messages: { success: string; failure: string }
+    messages: { success: string; failure: string },
+    days?: number,
   ) => {
     if (!selectedUserId) return false;
     setActionLoading(`premium-${action}`);
     setError(null);
     try {
-      const updated = await updateAdminPremium(selectedUserId, action);
+      const updated = await updateAdminPremium(selectedUserId, action, days);
       setSelectedUser(updated);
       patchOwnProfileFromDetail(updated);
       setActionResult({ tone: 'success', message: messages.success });
