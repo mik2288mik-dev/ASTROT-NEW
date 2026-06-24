@@ -14,7 +14,6 @@ import { getDayGreeting } from '../lib/greeting';
 import { lumiaSelectionHaptic } from '../lib/haptics';
 import { ZodiacIcon } from '../components/icons/ZodiacIcon';
 import { PlanetIcon } from '../components/icons/PlanetIcon';
-import { LumiaWordmark } from '../components/icons/LumiaWordmark';
 import { NatalChartIcon, HeartIcon, ChatIcon } from '../components/icons/UiIcons';
 import { getMoonPhase } from '../lib/horoscope/moonPhase';
 import { MoonPhaseIcon } from '../components/Horoscope/MoonPhaseIcon';
@@ -222,8 +221,8 @@ export const Dashboard = memo<DashboardProps>(({
       className="fresh-page lumia-main-scroll lumia-bottom-tab-scroll"
       ref={scrollRef as React.RefObject<HTMLDivElement>}
     >
-      {/* ── Логотип LUMIA по центру верха (вектор, точно как на загрузочном экране) ── */}
-      <div className="home-brand"><LumiaWordmark height={28} /></div>
+      {/* ── Логотип LUMIA по центру верха (вырезан из загрузочного экрана 1:1) ── */}
+      <div className="home-brand"><img src="/lumia-logo.png" alt="Lumia" className="home-brand-img" /></div>
 
       {/* ── Хедер: аватар + приветствие слева, дата справа ── */}
       <FreshHeader
