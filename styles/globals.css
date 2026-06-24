@@ -3230,19 +3230,20 @@ a,
 .fresh-card--flat { box-shadow: none; }
 .fresh-card--pad { padding: 16px; }
 
-/* ── Логотип LUMIA по центру верха главной (тот же шрифт, что на сплэше) ── */
+/* ── Логотип LUMIA по центру верха главной — тонкий, с широкой разрядкой, как на сплэше ── */
 .home-brand {
   position: relative;
   z-index: 61; /* поверх белого свечения .fresh-page::before (z-index 60) */
   margin: 0;
-  padding: 0 var(--fresh-page-x) 2px;
+  padding: 0 var(--fresh-page-x) 12px;
   text-align: center;
   font-family: var(--lumia-brand-wordmark-font);
-  font-weight: var(--lumia-brand-wordmark-weight);
-  letter-spacing: var(--lumia-brand-wordmark-letter-spacing);
-  font-size: 19px;
+  font-weight: 300; /* тонкое начертание как на загрузочном экране */
+  letter-spacing: 0.36em; /* широкая разрядка между буквами */
+  text-indent: 0.36em; /* компенсируем трекинг, чтобы слово стояло по центру */
+  font-size: 25px;
   line-height: 1;
-  color: #202020;
+  color: #1f2430;
 }
 
 /* ── Хедер: аватар + приветствие ── */
@@ -3250,7 +3251,7 @@ a,
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 6px var(--fresh-page-x) 10px;
+  padding: 12px var(--fresh-page-x) 10px;
 }
 
 /* Центрированная подача главной: аватар + приветствие + имя по центру */
@@ -3276,8 +3277,8 @@ a,
 }
 
 .fresh-header-avatar {
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   background: linear-gradient(135deg, #A78BFA, #EC4899);
   display: flex;
