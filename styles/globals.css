@@ -2246,7 +2246,7 @@ a,
 
   .admin-dash-bottomnav {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 0.25rem;
     padding: 0.45rem 0.5rem calc(0.45rem + env(safe-area-inset-bottom, 0px));
     border-top: 1px solid rgba(255, 255, 255, 0.08);

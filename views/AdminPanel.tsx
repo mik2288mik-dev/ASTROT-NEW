@@ -4,6 +4,7 @@ import { fetchAdminUsers } from '../services/adminService';
 import { AdminAnalyticsTab } from './admin/AdminAnalyticsTab';
 import { AdminOverviewTab } from './admin/AdminOverviewTab';
 import { AdminSendTab } from './admin/AdminSendTab';
+import { AdminSystemTab } from './admin/AdminSystemTab';
 import { AdminUsersTab } from './admin/AdminUsersTab';
 import { AdminButton, AdminStateBanner } from './admin/AdminPrimitives';
 import { getAdminText } from './admin/adminText';
@@ -58,6 +59,13 @@ const sectionIcon = (section: AdminBackofficeSection) => {
           <path d="M18 14h1.5a2.5 2.5 0 0 1 0 5H18" strokeLinecap="round" />
         </svg>
       );
+    case 'system':
+      return (
+        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <circle cx="12" cy="12" r="3" />
+          <path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z" />
+        </svg>
+      );
     case 'send':
     default:
       return (
@@ -75,6 +83,7 @@ const sectionLabel = (lang: 'ru' | 'en', section: AdminBackofficeSection) => {
     analytics: 'section_analytics',
     users: 'section_users',
     send: 'section_send',
+    system: 'section_system',
   };
   return getAdminText(lang, keyMap[section]);
 };
@@ -87,6 +96,8 @@ const sectionDescription = (lang: 'ru' | 'en', section: AdminBackofficeSection) 
       return lang === 'ru' ? 'Воронка, активность и где пользователи отваливаются.' : 'Funnel, activity, and where users drop off.';
     case 'users':
       return lang === 'ru' ? 'Поиск, сегменты, Premium, карты и путь по приложению.' : 'Search, segments, Premium, charts, and app journey.';
+    case 'system':
+      return lang === 'ru' ? 'Генерация (AI-модель) и движок авто-уведомлений.' : 'Generation (AI model) and the auto-notification engine.';
     case 'send':
     default:
       return lang === 'ru' ? 'Ручная отправка уведомлений и история.' : 'Manual notification sending and history.';
@@ -173,6 +184,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, onPatchOwnProfi
             onSendNotification={openSendForUser}
           />
         );
+      case 'system':
+        return <AdminSystemTab profile={profile} />;
       case 'send':
       default:
         return (

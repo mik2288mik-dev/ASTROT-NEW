@@ -99,7 +99,7 @@ export const AdminOverviewTab: React.FC<Props> = ({ profile, onOpenSection, onOp
           <MetricCard label={getAdminText(lang, 'metric_attention')} value={overview.needAttentionUsers} />
         </div>
 
-        <div className="mt-5 grid gap-3 lg:grid-cols-3">
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <QuickActionCard
             title={getAdminText(lang, 'section_analytics')}
             body={lang === 'ru' ? 'Воронка и активность: где люди отваливаются и что открывают.' : 'Funnel and activity: where users drop off and what they open.'}
@@ -117,6 +117,12 @@ export const AdminOverviewTab: React.FC<Props> = ({ profile, onOpenSection, onOp
             body={lang === 'ru' ? 'Отправить уведомление одному человеку или сегменту.' : 'Send a notification to one user or a segment.'}
             actionLabel={getAdminText(lang, 'open_send')}
             onClick={() => onOpenSection('send')}
+          />
+          <QuickActionCard
+            title={getAdminText(lang, 'section_system')}
+            body={lang === 'ru' ? 'AI-модель генерации и движок авто-уведомлений.' : 'AI generation model and the auto-notification engine.'}
+            actionLabel={lang === 'ru' ? 'Открыть систему' : 'Open system'}
+            onClick={() => onOpenSection('system')}
           />
         </div>
       </AdminSurface>

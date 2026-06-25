@@ -6,9 +6,10 @@ export type AdminBackofficeSection =
   | 'overview'
   | 'analytics'
   | 'users'
-  | 'send';
+  | 'send'
+  | 'system';
 
-export type AdminNavHub = 'home' | 'people';
+export type AdminNavHub = 'home' | 'people' | 'system';
 
 export type AdminNavGroup = {
   id: AdminNavHub;
@@ -30,6 +31,12 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     labelEn: 'Manage',
     sections: ['users', 'send'],
   },
+  {
+    id: 'system',
+    labelRu: 'Система',
+    labelEn: 'System',
+    sections: ['system'],
+  },
 ];
 
 /** Порядок разделов для нижней навигации на мобильном. */
@@ -38,6 +45,7 @@ export const ADMIN_PRIMARY_SECTIONS: AdminBackofficeSection[] = [
   'analytics',
   'users',
   'send',
+  'system',
 ];
 
 export function getAdminNavHub(section: AdminBackofficeSection): AdminNavHub {
