@@ -1061,6 +1061,7 @@ export interface AdminUserDetail extends AdminUserSummary {
   birthDate: string;
   birthTime: string;
   birthPlace: string;
+  isBlocked: boolean;
   primaryChart: AdminChartSummary | null;
   latestStarsPayment: AdminRecentPayment | null;
   lastSeenAt: string | null;

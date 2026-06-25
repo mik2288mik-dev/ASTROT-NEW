@@ -24,7 +24,7 @@ import {
 } from './AdminPrimitives';
 import { getAdminText } from './adminText';
 import { eventLabel, sectionTitle } from './analyticsLabels';
-import { fetchAdminUserEvents, type AdminUserEvent } from '../../services/adminService';
+import { fetchAdminUserEvents, adminUpdateUser, adminDeleteUser, type AdminUserEvent } from '../../services/adminService';
 import { useAdminUserDetail } from './hooks/useAdminUserDetail';
 import { useAdminUsersList } from './hooks/useAdminUsersList';
 
@@ -190,6 +190,73 @@ export const AdminUsersTab: React.FC<AdminUsersTabProps> = ({
       failure: getAdminText(lang, 'update_premium_failed'),
     });
     if (ok) await usersList.reload();
+  };
+
+  // ── Правка / блокировка / удаление пользователя ──
+  const [edit, setEdit] = useState({ name: '', birthDate: '', chartSlots: 1 });
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const selectedDetailId = detail.selectedUser?.id;
+  useEffect(() => {
+    const u = detail.selectedUser;
+    setConfirmDelete(false);
+    if (u) setEdit({ name: u.name || '', birthDate: u.birthDate || '', chartSlots: u.chartSlots || 1 });
+  }, [detail.selectedUser, selectedDetailId]);
+
+  const saveEdit = async () => {
+    if (!detail.selectedUser) return;
+    setSavingEdit(true);
+    detail.setError(null);
+    try {
+      const updated = await adminUpdateUser(detail.selectedUser.id, {
+        name: edit.name.trim(),
+        birthDate: edit.birthDate || null,
+        chartSlots: edit.chartSlots,
+      });
+      detail.setSelectedUser(updated);
+      detail.setActionResult({ tone: 'success', message: lang === 'ru' ? 'Данные сохранены' : 'Saved' });
+      await usersList.reload();
+    } catch (e: any) {
+      detail.setError(e?.message || (lang === 'ru' ? 'Не удалось сохранить' : 'Failed to save'));
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const toggleBlock = async () => {
+    if (!detail.selectedUser) return;
+    const next = !detail.selectedUser.isBlocked;
+    setSavingEdit(true);
+    detail.setError(null);
+    try {
+      const updated = await adminUpdateUser(detail.selectedUser.id, { isBlocked: next });
+      detail.setSelectedUser(updated);
+      detail.setActionResult({
+        tone: 'info',
+        message: next ? (lang === 'ru' ? 'Пользователь заблокирован' : 'User blocked') : (lang === 'ru' ? 'Пользователь разблокирован' : 'User unblocked'),
+      });
+      await usersList.reload();
+    } catch (e: any) {
+      detail.setError(e?.message || (lang === 'ru' ? 'Не удалось' : 'Failed'));
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const doDelete = async () => {
+    if (!detail.selectedUser) return;
+    setDeleting(true);
+    detail.setError(null);
+    try {
+      await adminDeleteUser(detail.selectedUser.id);
+      detail.closeUser();
+      await usersList.reload();
+    } catch (e: any) {
+      detail.setError(e?.message || (lang === 'ru' ? 'Не удалось удалить' : 'Failed to delete'));
+      setDeleting(false);
+    }
   };
 
   const handleCopyTelegramId = async () => {
@@ -440,6 +507,60 @@ export const AdminUsersTab: React.FC<AdminUsersTabProps> = ({
               ) : (
                 <>
                   <IdentityCard detail={detail.selectedUser} lang={lang} onCopyTelegramId={() => void handleCopyTelegramId()} />
+
+                  <DetailAccordion
+                    title={lang === 'ru' ? 'Управление' : 'Manage'}
+                    subtitle={lang === 'ru' ? 'Правка данных, блокировка и удаление аккаунта.' : 'Edit data, block, and delete the account.'}
+                    defaultOpen
+                  >
+                    <div className="space-y-4">
+                      <div className="grid gap-3 sm:grid-cols-3">
+                        <div className="sm:col-span-1">
+                          <label className="admin-field-label">{lang === 'ru' ? 'Имя' : 'Name'}</label>
+                          <AdminInput value={edit.name} onChange={(e) => setEdit((s) => ({ ...s, name: e.target.value }))} />
+                        </div>
+                        <div>
+                          <label className="admin-field-label">{lang === 'ru' ? 'Дата рождения' : 'Birth date'}</label>
+                          <AdminInput type="date" value={edit.birthDate} onChange={(e) => setEdit((s) => ({ ...s, birthDate: e.target.value }))} />
+                        </div>
+                        <div>
+                          <label className="admin-field-label">{lang === 'ru' ? 'Слоты карт' : 'Chart slots'}</label>
+                          <AdminInput type="number" min={1} max={50} value={edit.chartSlots} onChange={(e) => setEdit((s) => ({ ...s, chartSlots: Math.max(1, Math.min(50, Number(e.target.value) || 1)) }))} />
+                        </div>
+                      </div>
+                      <AdminButton tone="primary" onClick={() => void saveEdit()} disabled={savingEdit}>
+                        {savingEdit ? (lang === 'ru' ? 'Сохраняем…' : 'Saving…') : (lang === 'ru' ? 'Сохранить' : 'Save')}
+                      </AdminButton>
+
+                      <div className="admin-divider flex flex-wrap items-center gap-3 pt-4">
+                        <AdminButton tone={detail.selectedUser.isBlocked ? 'secondary' : 'danger'} onClick={() => void toggleBlock()} disabled={savingEdit}>
+                          {detail.selectedUser.isBlocked ? (lang === 'ru' ? 'Разблокировать' : 'Unblock') : (lang === 'ru' ? 'Заблокировать' : 'Block')}
+                        </AdminButton>
+                        {detail.selectedUser.isBlocked ? <AdminBadge tone="danger">{lang === 'ru' ? 'Заблокирован' : 'Blocked'}</AdminBadge> : null}
+                        <span className="text-xs text-slate-500">
+                          {lang === 'ru' ? 'Заблокированный не сможет открыть приложение.' : 'A blocked user cannot open the app.'}
+                        </span>
+                      </div>
+
+                      <div className="admin-divider pt-4">
+                        {confirmDelete ? (
+                          <div className="flex flex-wrap items-center gap-3">
+                            <span className="text-sm text-red-200">{lang === 'ru' ? 'Удалить навсегда? Это необратимо.' : 'Delete permanently? This cannot be undone.'}</span>
+                            <AdminButton tone="danger" onClick={() => void doDelete()} disabled={deleting}>
+                              {deleting ? (lang === 'ru' ? 'Удаляем…' : 'Deleting…') : (lang === 'ru' ? 'Да, удалить' : 'Yes, delete')}
+                            </AdminButton>
+                            <AdminButton tone="ghost" onClick={() => setConfirmDelete(false)} disabled={deleting}>
+                              {lang === 'ru' ? 'Отмена' : 'Cancel'}
+                            </AdminButton>
+                          </div>
+                        ) : (
+                          <AdminButton tone="ghost" onClick={() => setConfirmDelete(true)}>
+                            {lang === 'ru' ? 'Удалить пользователя' : 'Delete user'}
+                          </AdminButton>
+                        )}
+                      </div>
+                    </div>
+                  </DetailAccordion>
 
                   <DetailAccordion
                     title={lang === 'ru' ? 'Путь по приложению' : 'App journey'}

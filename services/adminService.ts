@@ -207,6 +207,21 @@ export async function fetchAdminUserEvents(userId: string, limit = 50): Promise<
   return data.events || [];
 }
 
+export async function adminUpdateUser(
+  userId: string,
+  patch: { name?: string; birthDate?: string | null; language?: 'ru' | 'en'; chartSlots?: number; isBlocked?: boolean },
+): Promise<AdminUserDetail> {
+  const data = await adminRequest<{ user: AdminUserDetail }>(
+    `/api/admin/users/${encodeURIComponent(userId)}`,
+    { method: 'PATCH', bodyJson: patch as Record<string, any> },
+  );
+  return data.user;
+}
+
+export async function adminDeleteUser(userId: string): Promise<void> {
+  await adminRequest(`/api/admin/users/${encodeURIComponent(userId)}`, { method: 'DELETE' });
+}
+
 export async function updateAdminPremium(
   userId: string,
   action: 'grant' | 'revoke',

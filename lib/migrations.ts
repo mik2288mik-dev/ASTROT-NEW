@@ -2312,6 +2312,7 @@ export async function runMigrations(): Promise<void> {
   await lumia028HoroscopeEngagement(pool);
   await lumia029EnableNotificationScenarios(pool);
   await lumia030DisableRemovedScenarios(pool);
+  await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS is_blocked BOOLEAN DEFAULT FALSE');
   await syncNotificationCatalogFromSeed(pool);
   await cancelStaleScheduledNotifications(pool);
   await verifyTablesExist(pool);

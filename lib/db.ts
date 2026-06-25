@@ -671,6 +671,7 @@ export const db = {
           is_premium: isPremium,
           is_setup: isSetup,
           chart_slots: u.chart_slots ?? 1,
+          is_blocked: u.is_blocked ?? false,
         };
       } catch (error: any) {
         log.error('[DB] Error getting user', { error: error.message, userId });
@@ -3453,6 +3454,7 @@ export const db = {
         is_premium: user.is_premium,
         login_streak: user.login_streak ?? 0,
         chart_slots: user.chart_slots ?? 1,
+        is_blocked: user.is_blocked ?? false,
         saved_charts_count: charts.length,
         is_admin: user.is_admin ?? false,
         created_at: user.created_at,
@@ -3472,6 +3474,31 @@ export const db = {
         recent_oracle_questions: recentOracleQuestions,
         latest_stars_payment: latestStarsPayment,
       };
+    },
+
+    async updateUser(userId: string, patch: {
+      name?: string;
+      birthDate?: string | null;
+      language?: string;
+      chartSlots?: number;
+      isBlocked?: boolean;
+    }) {
+      const id = toUserId(userId);
+      const sets: string[] = [];
+      const vals: any[] = [];
+      let i = 1;
+      if (patch.name !== undefined) { sets.push(`name = $${i++}`); vals.push(patch.name); }
+      if (patch.birthDate !== undefined) { sets.push(`birth_date = $${i++}`); vals.push(patch.birthDate || null); }
+      if (patch.language !== undefined) { sets.push(`language = $${i++}`); vals.push(patch.language); }
+      if (patch.chartSlots !== undefined) { sets.push(`chart_slots = $${i++}`); vals.push(patch.chartSlots); }
+      if (patch.isBlocked !== undefined) { sets.push(`is_blocked = $${i++}`); vals.push(patch.isBlocked); }
+      if (!sets.length) return;
+      vals.push(id);
+      await getPool().query(`UPDATE users SET ${sets.join(', ')} WHERE id = $${i}`, vals);
+    },
+
+    async deleteUser(userId: string) {
+      await getPool().query('DELETE FROM users WHERE id = $1', [toUserId(userId)]);
     },
 
       async getNotificationRecipients(segment: AdminDbNotificationSegment) {

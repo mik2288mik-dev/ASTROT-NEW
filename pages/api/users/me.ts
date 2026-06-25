@@ -10,6 +10,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const auth = await requireAppUser(req, { allowGuest: true });
     const user = await db.users.get(auth.userId);
     if (!user) return res.status(404).json({ error: 'User not found' });
+    if ((user as { is_blocked?: boolean }).is_blocked) {
+      return res.status(403).json({ error: 'ACCOUNT_BLOCKED', code: 'ACCOUNT_BLOCKED', message: 'Аккаунт заблокирован.' });
+    }
     return res.status(200).json(toPublicAppProfile(user, auth));
   } catch (error) { return handleAdminError(res, error); }
 }

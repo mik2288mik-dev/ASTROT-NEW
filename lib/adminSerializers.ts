@@ -52,6 +52,7 @@ export function serializeAdminUserDetail(row: any) {
     chartSlots: row.chart_slots ?? 1,
     savedChartsCount: row.saved_charts_count ?? 0,
     isAdmin: isEffectiveAdmin(row.id, row.is_admin),
+    isBlocked: !!row.is_blocked,
     createdAt: row.created_at ?? null,
     lastLogin: row.last_login ?? null,
     lastSeenAt: row.last_seen_at ?? null,
