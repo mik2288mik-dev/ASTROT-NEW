@@ -140,7 +140,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         : 'Location not found. Please check the spelling of your birth place.';
     } else if (errorMsg.includes('chart slots limit')) {
       statusCode = 403;
-    } else if (errorMsg.includes('ephemeris') || errorMsg.includes('initialize')) {
+    } else if (
+      errorMsg.includes('ephemeris') || errorMsg.includes('initialize')
+      || errorMsg.includes('эфемерид') || errorMsg.includes('астрономическ') || errorMsg.includes('инициализаци')
+    ) {
       statusCode = 503;
       message = userLanguage === 'ru'
         ? 'Ошибка астрологических расчётов. Попробуйте позже.'

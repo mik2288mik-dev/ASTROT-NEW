@@ -5,6 +5,11 @@ const nextConfig = {
   // Нативные/серверные пакеты не бандлим в серверный билд (в т.ч. instrumentation),
   // иначе webpack пытается разрешить нативный .node и падает.
   serverExternalPackages: ['swisseph-v2', 'pg', 'pg-native', 'tz-lookup'],
+  // Кладём файлы эфемерид (.se1) в standalone-сборку, иначе в проде их не найти
+  // и расчёт уходит в Moshier-фолбэк. С ними — высокая точность Swiss Ephemeris.
+  outputFileTracingIncludes: {
+    '/api/**/*': ['./ephe/**/*'],
+  },
   // Оптимизация изображений
   images: {
     domains: ['cdn.telegram.org'], // Telegram CDN для аватарок

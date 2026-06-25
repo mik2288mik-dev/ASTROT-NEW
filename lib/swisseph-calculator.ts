@@ -93,6 +93,15 @@ interface NatalAspectData {
 // Глобальная инициализация Swiss Ephemeris
 let sweInstance: any = null;
 let isInitialized = false;
+// Если высокоточные файлы .se1 недоступны (типично для serverless/Next-сборки),
+// считаем через встроенную Moshier-эфемериду — без файлов, точность достаточная
+// для натальной карты (знаки/градусы). Лучше так, чем падать у каждого юзера.
+let useMoshier = false;
+
+/** Базовый флаг эфемериды для расчётов планет (SWIEPH с файлами или MOSEPH без). */
+function ephemerisBaseFlag(swe: any): number {
+  return useMoshier ? (swe.SEFLG_MOSEPH ?? 4) : (swe.SEFLG_SWIEPH ?? 2);
+}
 let swissephModule: any = null;
 let swissephLoadError: Error | null = null;
 
@@ -128,7 +137,7 @@ export function getSwissEphemerisHealth(): { ok: boolean; code?: string; message
       };
     }
     const julianDay = swe.swe_julday(2026, 1, 1, 12, 1);
-    const result = swe.swe_calc_ut(julianDay, PLANETS.SUN, swe.SEFLG_SWIEPH | swe.SEFLG_SPEED);
+    const result = swe.swe_calc_ut(julianDay, PLANETS.SUN, ephemerisBaseFlag(swe) | swe.SEFLG_SPEED);
     if (!result || typeof result.longitude !== 'number') {
       return {
         ok: false,
@@ -211,42 +220,40 @@ function initSwissEph() {
           }
         });
         
-        if (ephePath) {
-          // Проверяем наличие файлов эфемерид
-          const files = fs.readdirSync(ephePath);
-          const epheFiles = files.filter((f: string) => f.endsWith('.se1'));
-          
-          if (epheFiles.length === 0) {
-            throw new Error(`Папка эфемерид найдена (${ephePath}), но файлы .se1 отсутствуют`);
-          }
-          
+        const epheFiles: string[] = ephePath
+          ? fs.readdirSync(ephePath).filter((f: string) => f.endsWith('.se1'))
+          : [];
+
+        if (ephePath && epheFiles.length > 0) {
           sweInstance.swe_set_ephe_path(ephePath);
-          
+          useMoshier = false;
           log.info(`✓ Ephemeris path set to: ${ephePath}`, {
             path: ephePath,
             filesCount: epheFiles.length,
             note: 'Using high-precision Swiss Ephemeris files (.se1) for calculations'
           });
         } else {
-          const errorMsg = `Эфемериды не найдены. Проверенные пути: ${possiblePaths.join(', ')}`;
-          log.error(errorMsg, {
+          // Файлов .se1 нет (типично для прод-сборки) — НЕ падаем, а переходим
+          // на встроенную Moshier-эфемериду. Натальная карта считается корректно.
+          useMoshier = true;
+          log.warn('Ephemeris .se1 files not found — falling back to built-in Moshier ephemeris', {
             cwd: process.cwd(),
             envEPHE_PATH: process.env.EPHE_PATH,
-            checkedPaths: possiblePaths
+            checkedPaths: possiblePaths,
           });
-          throw new Error(errorMsg);
         }
       } else {
-        log.warn('swe_set_ephe_path is not available', {
-          note: 'Library may use built-in ephemeris data. Calculations will still be accurate.'
+        useMoshier = true;
+        log.warn('swe_set_ephe_path is not available — using built-in (Moshier) ephemeris', {
+          note: 'Calculations remain accurate enough for natal charts.'
         });
       }
     } catch (epheError: any) {
-      log.error('Ephemeris path setup failed', { 
+      // Любая проблема с путём/файлами эфемерид — не повод валить расчёт целиком.
+      useMoshier = true;
+      log.warn('Ephemeris path setup failed — falling back to built-in Moshier ephemeris', {
         error: epheError.message,
-        note: 'Cannot proceed without ephemeris files'
       });
-      throw new Error(`Ошибка настройки астрономических данных: ${epheError.message}`);
     }
     
     isInitialized = true;
@@ -571,8 +578,8 @@ function calculatePlanetPosition(
   planetName: string
 ): PlanetPosition | null {
   try {
-    // Используем флаги для точных расчетов: SEFLG_SWIEPH | SEFLG_SPEED
-    const flags = swe.SEFLG_SWIEPH | swe.SEFLG_SPEED;
+    // Флаг эфемериды: высокоточные файлы (.se1) если есть, иначе встроенный Moshier.
+    const flags = ephemerisBaseFlag(swe) | swe.SEFLG_SPEED;
     const result = swe.swe_calc_ut(julday, planetId, flags);
     
     if (!result || typeof result.longitude !== 'number') {
