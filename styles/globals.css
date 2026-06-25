@@ -5186,3 +5186,128 @@ a,
   line-height: 1.4;
   margin-top: 2px;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   ADMIN — светлая тема (как в трендовых дашбордах): тёмный сайдбар + светлый
+   контент. Этот блок НЕ в @layer, поэтому перекрывает тёмные значения выше.
+   Сайдбар (.admin-dash-sidebar*) намеренно не трогаем — он остаётся тёмным.
+   ═══════════════════════════════════════════════════════════════════════ */
+.admin-app-bg { background: #e9edf3; }
+.admin-dash-root { background: #e9edf3; }
+.admin-dash-main { background: #f3f5f9; }
+.admin-dash-topbar {
+  background: #ffffff;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.03);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.admin-surface {
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 10px 26px rgba(15, 23, 42, 0.05);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.admin-surface-muted { background: #f5f7fa; border: 1px solid rgba(15, 23, 42, 0.07); }
+
+.admin-heading { color: #0f172a; }
+.admin-label { color: #64748b; }
+.admin-field-label { color: #64748b; }
+.admin-section-lead { color: #64748b; }
+
+.admin-input, .admin-select, .admin-textarea {
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  color: #0f172a;
+  box-shadow: none;
+}
+.admin-input::placeholder, .admin-textarea::placeholder { color: #94a3b8; }
+.admin-input:focus, .admin-select:focus, .admin-textarea:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+}
+
+.admin-button-primary {
+  background: #2563eb;
+  border: 1px solid #2563eb;
+  color: #ffffff;
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.24);
+}
+.admin-button-secondary { background: #ffffff; border: 1px solid rgba(15, 23, 42, 0.14); color: #1f2937; }
+.admin-button-ghost { background: transparent; border: 1px solid transparent; color: #475569; }
+.admin-button-danger { background: #fee2e2; border: 1px solid rgba(220, 38, 38, 0.28); color: #b91c1c; }
+.admin-button-secondary:hover:not(:disabled) { background: #f1f5f9; }
+
+.admin-section-subnav { background: #ffffff; border-bottom: 1px solid rgba(15, 23, 42, 0.08); }
+.admin-section-subnav-item { background: #f1f5f9; border: 1px solid rgba(15, 23, 42, 0.08); color: #475569; }
+.admin-section-subnav-item[data-active='true'] { background: rgba(37, 99, 235, 0.1); border-color: rgba(37, 99, 235, 0.35); color: #1d4ed8; }
+
+.admin-dash-bottomnav { background: #ffffff; border-top: 1px solid rgba(15, 23, 42, 0.08); backdrop-filter: none; -webkit-backdrop-filter: none; }
+.admin-dash-bottomnav-item { color: #64748b; }
+.admin-dash-bottomnav-item[data-active='true'] { background: rgba(37, 99, 235, 0.1); border-color: rgba(37, 99, 235, 0.2); color: #1d4ed8; }
+.admin-dash-bottomnav-hint { color: #94a3b8; }
+.admin-dash-bottomnav-item[data-active='true'] .admin-dash-bottomnav-hint { color: #1d4ed8; }
+
+.admin-divider { border-top: 1px solid rgba(15, 23, 42, 0.08); }
+
+/* Перекрытие тёмных Tailwind-утилит ТОЛЬКО в области контента (.admin-dash-main),
+   сайдбар не затрагивается. */
+.admin-dash-main .text-white { color: #0f172a; }
+.admin-dash-main .text-slate-200 { color: #1e293b; }
+.admin-dash-main .text-slate-300 { color: #475569; }
+.admin-dash-main .text-slate-400 { color: #64748b; }
+.admin-dash-main .text-slate-500 { color: #8a95a5; }
+.admin-dash-main .text-slate-600 { color: #475569; }
+.admin-dash-main .text-cyan-400\/90,
+.admin-dash-main .text-cyan-200\/90 { color: #2563eb; }
+.admin-dash-main .text-amber-300, .admin-dash-main .text-amber-200, .admin-dash-main .text-amber-100 { color: #b45309; }
+.admin-dash-main .text-sky-300, .admin-dash-main .text-sky-200, .admin-dash-main .text-sky-100 { color: #0369a1; }
+.admin-dash-main .text-emerald-300, .admin-dash-main .text-emerald-200, .admin-dash-main .text-emerald-100 { color: #047857; }
+.admin-dash-main .text-red-300, .admin-dash-main .text-red-200, .admin-dash-main .text-red-100 { color: #b91c1c; }
+.admin-dash-main .text-yellow-200 { color: #854d0e; }
+.admin-dash-main .text-fuchsia-200 { color: #a21caf; }
+.admin-dash-main .border-white\/10,
+.admin-dash-main .border-white\/16,
+.admin-dash-main .border-white\/12,
+.admin-dash-main .border-white\/8,
+.admin-dash-main .border-white\/\[0\.06\] { border-color: rgba(15, 23, 42, 0.1); }
+.admin-dash-main .bg-white\/5,
+.admin-dash-main .bg-white\/\[0\.02\],
+.admin-dash-main .bg-white\/\[0\.03\],
+.admin-dash-main .bg-white\/\[0\.035\],
+.admin-dash-main .bg-white\/\[0\.04\],
+.admin-dash-main .bg-white\/\[0\.045\],
+.admin-dash-main .bg-white\/\[0\.05\],
+.admin-dash-main .bg-white\/\[0\.06\],
+.admin-dash-main .bg-white\/\[0\.08\] { background-color: #f5f7fa; }
+.admin-dash-main .hover\:bg-white\/\[0\.05\]:hover,
+.admin-dash-main .hover\:bg-white\/\[0\.06\]:hover,
+.admin-dash-main .hover\:bg-white\/\[0\.08\]:hover { background-color: #eef2f7; }
+.admin-dash-main .hover\:border-white\/16:hover,
+.admin-dash-main .hover\:border-white\/12:hover { border-color: rgba(15, 23, 42, 0.16); }
+.admin-dash-main .divide-white\/8 > * + * { border-color: rgba(15, 23, 42, 0.08); }
+
+/* Цветные KPI-плитки на обзоре (как на референсе) */
+.admin-kpi-tiles { display: grid; gap: 1rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 1100px) { .admin-kpi-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.admin-kpi-tile {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1rem;
+  padding: 1.15rem 1.25rem 1.35rem;
+  color: #ffffff;
+  min-height: 8.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.admin-kpi-tile--purple { background: linear-gradient(135deg, #6d5bdf, #8b5cf6); }
+.admin-kpi-tile--blue { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+.admin-kpi-tile--amber { background: linear-gradient(135deg, #f6ab3e, #ef8f2e); }
+.admin-kpi-tile--red { background: linear-gradient(135deg, #ef5d68, #e0414f); }
+.admin-kpi-tile-value { font-size: 1.75rem; font-weight: 800; line-height: 1.05; letter-spacing: -0.02em; }
+.admin-kpi-tile-sub { margin-top: 0.2rem; font-size: 0.8rem; font-weight: 600; opacity: 0.92; }
+.admin-kpi-tile-label { font-size: 0.85rem; font-weight: 600; opacity: 0.95; }
+.admin-kpi-spark { margin-top: 0.6rem; width: 100%; height: 38px; display: block; opacity: 0.9; }
