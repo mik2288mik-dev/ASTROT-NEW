@@ -124,7 +124,13 @@ async function calculateChart(profile: UserProfile): Promise<NatalChartData> {
   const safeUserId = assertValidUserId(profile.id);
   log.info(`[calculateChart] Calculating for userId=${safeUserId}`);
 
-  const url = `${API_BASE_URL}/api/charts`;
+  // Use the canonical calculation endpoint for onboarding/repair flows.
+  // `/api/charts` is a multi-chart create route and can reject a user whose only
+  // existing row is an incomplete primary chart because that row still consumes
+  // the free chart slot. The canonical endpoint runs the server-side Swiss
+  // Ephemeris calculator and persists/replaces the primary chart idempotently,
+  // so onboarding can recover from partial saves.
+  const url = `${API_BASE_URL}/api/astrology/natal-chart`;
 
   let response: Response;
   try {
@@ -233,7 +239,7 @@ export async function forceRecalculateChart(profile: UserProfile): Promise<Natal
 
   log.info(`[forceRecalculateChart] Force recalculating for userId=${userId}`);
 
-  const url = `${API_BASE_URL}/api/charts`;
+  const url = `${API_BASE_URL}/api/astrology/natal-chart`;
 
   const response = await fetchWithTimeout(
     url,

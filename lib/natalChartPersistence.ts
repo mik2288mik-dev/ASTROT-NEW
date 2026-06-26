@@ -1,4 +1,4 @@
-import { db } from './db';
+import { db, getPool } from './db';
 import { calculateNatalChart, getCoordinates } from './swisseph-calculator';
 import {
   buildCanonicalNatalInputHash,
@@ -8,6 +8,48 @@ import {
   normalizeBirthTimeInput,
 } from './natalChartCanonical';
 import type { BirthTimeQuality, ChartQuality } from '../types';
+
+
+let canonicalSchemaReady: Promise<void> | null = null;
+
+async function ensureCanonicalNatalPersistenceSchema(): Promise<void> {
+  if (!canonicalSchemaReady) {
+    canonicalSchemaReady = (async () => {
+      const pool = getPool();
+
+      // This endpoint is the onboarding critical path. In production, deploys can
+      // reach the API before the latest migration has been run; without these
+      // columns the calculation succeeds but persistence fails and the user sees
+      // "Не удалось рассчитать натальную карту". Keep this DDL idempotent and
+      // narrow to the canonical natal chart columns used by persistPrimary().
+      await pool.query(`
+        ALTER TABLE natal_charts
+          ADD COLUMN IF NOT EXISTS name TEXT DEFAULT 'Моя карта',
+          ADD COLUMN IF NOT EXISTS is_primary BOOLEAN DEFAULT TRUE,
+          ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION,
+          ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION,
+          ADD COLUMN IF NOT EXISTS timezone TEXT,
+          ADD COLUMN IF NOT EXISTS sun_sign TEXT,
+          ADD COLUMN IF NOT EXISTS moon_sign TEXT,
+          ADD COLUMN IF NOT EXISTS ascendant_sign TEXT,
+          ADD COLUMN IF NOT EXISTS input_hash TEXT,
+          ADD COLUMN IF NOT EXISTS calculation_version TEXT,
+          ADD COLUMN IF NOT EXISTS birth_date DATE,
+          ADD COLUMN IF NOT EXISTS birth_time TIME,
+          ADD COLUMN IF NOT EXISTS birth_place TEXT,
+          ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      `);
+      await pool.query('ALTER TABLE natal_charts DROP CONSTRAINT IF EXISTS natal_charts_user_id_key');
+      await pool.query('CREATE INDEX IF NOT EXISTS idx_natal_charts_user_hash_v2 ON natal_charts(user_id, input_hash) WHERE input_hash IS NOT NULL');
+      await pool.query('CREATE INDEX IF NOT EXISTS idx_natal_charts_user_primary_v2 ON natal_charts(user_id) WHERE is_primary = TRUE');
+    })().catch((error) => {
+      canonicalSchemaReady = null;
+      throw error;
+    });
+  }
+
+  return canonicalSchemaReady;
+}
 
 type EnsurePrimaryArgs = {
   userId: string;
@@ -93,6 +135,8 @@ export async function ensureCanonicalPrimaryChart(args: EnsurePrimaryArgs): Prom
   const normalizedBirthTime = normalizeBirthTimeInput(args.birthTime);
   const normalizedBirthPlace = normalizeBirthPlaceInput(args.birthPlace);
 
+  await ensureCanonicalNatalPersistenceSchema();
+
   const coordinates = await getCoordinates(normalizedBirthPlace);
   const inputHash = buildCanonicalNatalInputHash({
     birthDate: normalizedBirthDate,
@@ -146,6 +190,8 @@ export async function createOrReuseCanonicalChart(args: CreateOrReuseArgs): Prom
   const birthTimeQuality = inferBirthTimeQuality(args.birthTime);
   const normalizedBirthTime = normalizeBirthTimeInput(args.birthTime);
   const normalizedBirthPlace = normalizeBirthPlaceInput(args.birthPlace);
+
+  await ensureCanonicalNatalPersistenceSchema();
 
   const coordinates = await getCoordinates(normalizedBirthPlace);
   const inputHash = buildCanonicalNatalInputHash({
