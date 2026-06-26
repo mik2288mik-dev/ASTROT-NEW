@@ -6,7 +6,8 @@ import { normalizeEngagementKey } from '../../../../lib/horoscope/signDaily';
 import { hydrateReactionSummaryLabels } from '../../../../lib/todayOverview';
 import { RATE_LIMIT_CONFIGS, withRateLimit } from '../../../../lib/rateLimit';
 import { invalidUserIdPayload, isValidUserId } from '../../../../lib/userId';
-import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../../../../lib/adminAuth';
+import { AdminAuthError, handleAdminError } from '../../../../lib/adminAuth';
+import { requireAppUser } from '../../../../lib/auth/appAuth';
 
 const REACTION_KEYS = new Set<HoroscopeReactionKey>(['spot_on', 'funny', 'gentle', 'not_mine']);
 
@@ -41,7 +42,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     return res.status(400).json(invalidUserIdPayload(language));
   }
   try {
-    requireTelegramUserId(req, userId);
+    await requireAppUser(req, { expectedUserId: userId, allowGuest: true });
   } catch (error) {
     if (error instanceof AdminAuthError) {
       return handleAdminError(res, error);
