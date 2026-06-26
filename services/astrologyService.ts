@@ -1472,7 +1472,7 @@ export const getPlanetInsight = async (
  * - Если карты нет или данные изменились - рассчитывает и сохраняет
  */
 export const calculateNatalChart = async (profile: UserProfile, forceRecalculate = false): Promise<NatalChartData> => {
-  const url = `${API_BASE_URL}/api/astrology/natal-chart`;
+  const url = `${API_BASE_URL}/api/charts`;
   log.info('[calculateNatalChart] Starting calculation', {
     userId: profile.id,
     name: profile.name,
