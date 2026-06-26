@@ -3,7 +3,7 @@ import { db, getPool } from '../../../lib/db';
 import { AdminAuthError, getConfiguredOwnerId, handleAdminError } from '../../../lib/adminAuth';
 import { requireAppUser } from '../../../lib/auth/appAuth';
 import { hasDatabaseUrl } from '../../../lib/database-url';
-import { getMoscowTodayKey, toDateInputValue } from '../../../lib/date-utils';
+import { toDateInputValue } from '../../../lib/date-utils';
 import { invalidUserIdPayload, isValidUserId } from '../../../lib/userId';
 
 // Logging utility

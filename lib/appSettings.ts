@@ -7,7 +7,6 @@ import type {
 import { db } from './db';
 import type { LumiaModelTier } from './contentMatrix';
 import {
-  DEFAULT_INTERPRETATION_MODEL,
   DEFAULT_PREMIUM_INTERPRETATION_MODEL,
   getInterpretationModelFromEnv,
   INTERPRETATION_MODEL_SETTING_KEY,

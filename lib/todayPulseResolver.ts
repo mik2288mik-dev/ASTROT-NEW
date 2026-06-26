@@ -138,7 +138,7 @@ export async function resolveTodayPulseForUser({
   chartId,
   dateKey = getMoscowTodayKey(),
   profileFallback,
-  chartDataFallback,
+  chartDataFallback: _chartDataFallback,
 }: {
   userId: string;
   chartId?: number | null;

@@ -140,7 +140,6 @@ export function hasNatalChart(
   profileOrState?: (ProfileAccessState & ChartAccessState) | NatalChartData | null,
   chartState?: ChartAccessState | NatalChartData | null
 ): boolean {
-  const profile = profileOrState as (ProfileAccessState & ChartAccessState) | null;
   const states = [chartState, profileOrState].filter(Boolean);
 
   for (const state of states) {

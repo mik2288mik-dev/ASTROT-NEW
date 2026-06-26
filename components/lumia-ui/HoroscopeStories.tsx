@@ -111,7 +111,6 @@ export function HoroscopeStories({
       ? buildReadingSlides(reading, eyebrow, language)
       : [{ id: 'loading', eyebrow, title: language === 'ru' ? 'Готовим прогноз…' : 'Preparing…', loading: true } as StorySlide];
     return [picker, ...readingSlides];
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sign, reading, language]);
 
   return (

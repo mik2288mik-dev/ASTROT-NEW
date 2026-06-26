@@ -57,7 +57,7 @@ describe('local natal chart app flow', () => {
 
     expect(app).toContain('writeLocalNatalChart(fullProfile, generatedChart)');
     expect(app).toContain('writeLocalNatalChart(fullProfile, generatedChart, primaryChartId)');
-    expect(chartService).toContain('writeLocalNatalChart(profile, chartData as NatalChartData)');
+    expect(chartService).toContain('writeLocalNatalChart(profile, chartData)');
   });
 
   it('clears or refreshes cache when multi-chart primary changes', () => {

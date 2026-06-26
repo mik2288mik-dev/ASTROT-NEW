@@ -120,7 +120,7 @@ type ResolvedAccess = {
   entitlement: Awaited<ReturnType<typeof getPremiumEntitlementState>>['entitlement'];
 };
 
-async function resolveAccess(userId: string, profile?: { isPremium?: boolean }): Promise<ResolvedAccess | null> {
+async function resolveAccess(userId: string, _profile?: { isPremium?: boolean }): Promise<ResolvedAccess | null> {
   const entitlementState = await getPremiumEntitlementState(userId);
 
   if (!entitlementState.isPremium) {

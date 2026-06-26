@@ -59,7 +59,7 @@ export async function resolveReadingContext(
   userId: string,
   chartId: number | null,
   profileFallback?: Partial<UserProfile>,
-  chartDataFallback?: NatalChartData | null
+  _chartDataFallback?: NatalChartData | null
 ): Promise<ReadingContext | null> {
   const user = await db.users.get(userId);
   if (!user) return null;
