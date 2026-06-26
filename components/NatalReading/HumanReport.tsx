@@ -317,7 +317,7 @@ export const HumanReport: React.FC<Props> = ({
   chartData,
   chartId,
   requestPremium,
-  onUpdateProfile,
+  onUpdateProfile: _onUpdateProfile,
   preloadedReport,
   hideIntro,
 }) => {

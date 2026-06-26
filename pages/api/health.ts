@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { resolveDatabaseUrl } from '../../lib/database-url';
 import { getSwissEphemerisHealth } from '../../lib/swisseph-calculator';
 import { getTodayPulseMetricsSnapshot } from '../../lib/todayPulse';
+import { getProductionObservabilitySnapshot } from '../../lib/productionObservability';
 
 /**
  * Health check endpoint for Railway deployment monitoring
@@ -29,11 +30,17 @@ export default async function handler(
     calculationMetrics: {
       todayPulseSources: getTodayPulseMetricsSnapshot(),
     },
+    observability: await getProductionObservabilitySnapshot(),
     database: {
       connected: false,
       tablesExist: false,
     },
   };
+
+  if (!health.observability.ok && health.status !== 'error') {
+    health.status = 'warning';
+    health.message = health.observability.alerts[0] || 'Production observability reported warnings';
+  }
 
   if (!health.swissEphemeris.ok) {
     health.status = process.env.NODE_ENV === 'production' ? 'error' : 'warning';

@@ -88,9 +88,11 @@ export async function getChartFromDB(userId: string): Promise<NatalChartData | n
     throw new Error(`Не удалось загрузить карту из базы: ${response.status}`);
   }
 
+  let payload: any;
   let chartData: NatalChartData;
   try {
-    chartData = await response.json();
+    payload = await response.json();
+    chartData = (payload?.chart_data || payload?.chartData || payload) as NatalChartData;
   } catch {
     log.error('[getChartFromDB] Invalid JSON from storage');
     throw new Error('Хранилище карты вернуло некорректный ответ.');
@@ -122,7 +124,7 @@ async function calculateChart(profile: UserProfile): Promise<NatalChartData> {
   const safeUserId = assertValidUserId(profile.id);
   log.info(`[calculateChart] Calculating for userId=${safeUserId}`);
 
-  const url = `${API_BASE_URL}/api/astrology/natal-chart`;
+  const url = `${API_BASE_URL}/api/charts`;
 
   let response: Response;
   try {
@@ -160,9 +162,11 @@ async function calculateChart(profile: UserProfile): Promise<NatalChartData> {
     throw new Error(errorMessage);
   }
 
+  let payload: any;
   let chartData: NatalChartData;
   try {
-    chartData = await response.json();
+    payload = await response.json();
+    chartData = (payload?.chart_data || payload?.chartData || payload) as NatalChartData;
   } catch {
     log.error('[calculateChart] Failed to parse response');
     throw new Error('Ошибка обработки ответа сервера.');
@@ -229,7 +233,7 @@ export async function forceRecalculateChart(profile: UserProfile): Promise<Natal
 
   log.info(`[forceRecalculateChart] Force recalculating for userId=${userId}`);
 
-  const url = `${API_BASE_URL}/api/astrology/natal-chart`;
+  const url = `${API_BASE_URL}/api/charts`;
 
   const response = await fetchWithTimeout(
     url,
@@ -255,12 +259,13 @@ export async function forceRecalculateChart(profile: UserProfile): Promise<Natal
     throw new Error(error.message || `Calculation failed: ${response.status}`);
   }
 
-  const chartData = await response.json();
+  const payload = await response.json();
+  const chartData = (payload?.chart_data || payload?.chartData || payload) as NatalChartData;
 
   log.info('[forceRecalculateChart] RECALCULATED: chart updated');
 
-  writeLocalNatalChart(profile, chartData as NatalChartData);
-  return chartData as NatalChartData;
+  writeLocalNatalChart(profile, chartData);
+  return chartData;
 }
 
 export function birthDataChanged(

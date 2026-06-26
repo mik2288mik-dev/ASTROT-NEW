@@ -1,5 +1,5 @@
 import { toZonedTime } from 'date-fns-tz';
-import { db, getPool } from '../lib/db';
+import { getPool } from '../lib/db';
 import {
   buildNotificationDeepLink,
   findForbiddenNotificationTerms,

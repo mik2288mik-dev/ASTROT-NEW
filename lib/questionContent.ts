@@ -2,7 +2,7 @@ import OpenAI from 'openai';
 import { createHash } from 'crypto';
 import type { AskLumiaState, AskLumiaTier } from '../types';
 import { SYSTEM_PROMPT_ASTRA, addLanguageInstruction } from './prompts';
-import { appendLumiaVoice, LUMIA_VOICE_BLOCK_EN } from './lumiaVoice';
+import { appendLumiaVoice } from './lumiaVoice';
 import { getOpenAIModelForContent } from './appSettings';
 import { buildOpenAIChatParams } from './openaiChat';
 import { db } from './db';

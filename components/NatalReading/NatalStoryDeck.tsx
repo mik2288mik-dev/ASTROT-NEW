@@ -564,7 +564,7 @@ export const NatalStoryDeck = memo<NatalStoryDeckProps>(
     chartData,
     chartId,
     requestPremium,
-    onUpdateProfile,
+    onUpdateProfile: _onUpdateProfile,
     onOpenTodaySection,
     onScrollToFullReport,
     onBack,

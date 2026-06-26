@@ -6,7 +6,7 @@
  */
 
 import { AstroEvidenceItem, NatalChartData, NatalHumanSection, UserProfile } from "../types";
-import { appendLumiaVoice, LUMIA_VOICE_BLOCK_RU } from "./lumiaVoice";
+import { LUMIA_VOICE_BLOCK_RU } from "./lumiaVoice";
 
 /**
  * Lumia System Prompt — глобальный тон для всех интерпретаций

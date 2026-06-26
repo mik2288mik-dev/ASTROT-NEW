@@ -40,7 +40,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
   profile,
   onBack,
   onChartSelect,
-  onProfileUpdate,
+  onProfileUpdate: _onProfileUpdate,
   onUseInSynastry,
   onPrimaryChartUpdated,
   onRequestPremium,

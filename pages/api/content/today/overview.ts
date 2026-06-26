@@ -23,18 +23,6 @@ const SCOPE = 'today-overview';
 
 const GENERATION_RETRY_AFTER_MS = 2500;
 
-type ApiErrorWithCode = Error & {
-  code?: string;
-  status?: number;
-};
-
-function buildApiError(message: string, code: string, status = 500): ApiErrorWithCode {
-  const error = new Error(message) as ApiErrorWithCode;
-  error.code = code;
-  error.status = status;
-  return error;
-}
-
 function isForecastDailyReading(value: unknown): value is ForecastDailyReading {
   const reading = value as ForecastDailyReading | null;
   return !!reading &&

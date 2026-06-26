@@ -1472,7 +1472,7 @@ export const getPlanetInsight = async (
  * - Если карты нет или данные изменились - рассчитывает и сохраняет
  */
 export const calculateNatalChart = async (profile: UserProfile, forceRecalculate = false): Promise<NatalChartData> => {
-  const url = `${API_BASE_URL}/api/astrology/natal-chart`;
+  const url = `${API_BASE_URL}/api/charts`;
   log.info('[calculateNatalChart] Starting calculation', {
     userId: profile.id,
     name: profile.name,
@@ -1552,9 +1552,11 @@ export const calculateNatalChart = async (profile: UserProfile, forceRecalculate
       throw new Error(userFriendlyError);
     }
 
+    let payload: any;
     let chartData: NatalChartData;
     try {
-      chartData = await response.json() as NatalChartData;
+      payload = await response.json();
+      chartData = (payload?.chart_data || payload?.chartData || payload) as NatalChartData;
     } catch (parseError: any) {
       log.error('[calculateNatalChart] Failed to parse response JSON', {
         error: parseError.message

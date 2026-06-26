@@ -560,17 +560,6 @@ function toUserId(userId: string): string {
   return String(userId).trim();
 }
 
-/** Positive int32 for pg_advisory_xact_lock (per-user serialization). */
-function advisoryXactLockKey(userId: string): number {
-  let h = 2166136261 >>> 0;
-  for (let i = 0; i < userId.length; i++) {
-    h ^= userId.charCodeAt(i);
-    h = Math.imul(h, 16777619) >>> 0;
-  }
-  const n = h >>> 0;
-  return n % 2147483646 + 1;
-}
-
 function isFutureTimestamp(value: unknown): boolean {
   if (!value) return false;
   const timestamp = value instanceof Date ? value.getTime() : new Date(String(value)).getTime();

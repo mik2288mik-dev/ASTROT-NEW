@@ -175,9 +175,6 @@ async function saveStartupProfileWithRetry(profile: UserProfile, maxAttempts = 3
     return false;
 }
 
-function wait(ms: number): Promise<null> {
-    return new Promise((resolve) => setTimeout(() => resolve(null), ms));
-}
 
 const NOTIFICATION_QUERY_VIEWS = new Set<ViewState>([
     'dashboard',
@@ -272,7 +269,7 @@ function getNotificationLaunchParams(): NotificationLaunchParams | null {
 const App: React.FC = () => {
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [chartData, setChartData] = useState<NatalChartData | null>(null);
-    const [chartLoadState, setChartLoadState] = useState<ChartLoadState>('idle');
+    const [_chartLoadState, setChartLoadState] = useState<ChartLoadState>('idle');
     const [preloadedHumanReport, setPreloadedHumanReport] = useState<NatalInterpretationReport | null>(null);
     const [activeChartId, setActiveChartId] = useState<number | undefined>(undefined);
     const [primaryChartId, setPrimaryChartId] = useState<number | null>(null);
@@ -931,11 +928,9 @@ const App: React.FC = () => {
         try {
             // Шаг 1: Сохраняем профиль в БД (критично для persistence)
             setLoadingProgress(20);
-            let profileSaved = false;
             for (let attempt = 1; attempt <= 2; attempt++) {
                 try {
                     await saveProfile(fullProfile);
-                    profileSaved = true;
                     console.log('[App] Profile saved successfully');
                     break;
                 } catch (saveError: any) {
