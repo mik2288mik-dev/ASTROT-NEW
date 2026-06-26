@@ -20,7 +20,6 @@ import { MoonPhaseIcon } from '../components/Horoscope/MoonPhaseIcon';
 import { DaySheet } from '../components/lumia-ui/DaySheet';
 import {
   getCachedDailySignHoroscope,
-  ensureDailySignHoroscope,
   getCachedTodayAssistantHome,
   getTodayAssistantHome,
   getSkyToday,
@@ -113,13 +112,12 @@ export const Dashboard = memo<DashboardProps>(({
     return () => { alive = false; };
   }, [today]);
 
-  /* Загрузка гороскопа знака */
+  /* Только чтение кэша гороскопа знака: генерация запускается явной кнопкой открытия. */
   useEffect(() => {
     if (!selectedSign) { setSignLoading(false); return; }
     let alive = true;
     setSignLoading(true);
     void getCachedDailySignHoroscope(selectedSign, today, language)
-      .then((cached) => cached || ensureDailySignHoroscope(selectedSign, today, language))
       .then((reading) => { if (alive) setSignReading(reading); })
       .catch(() => { if (alive) setSignReading(null); })
       .finally(() => { if (alive) setSignLoading(false); });
@@ -177,7 +175,7 @@ export const Dashboard = memo<DashboardProps>(({
   /* Текст hero-карточки — полный заголовок (без обрезки слов; CSS усечёт с …) */
   const heroTitle = signReading?.headline
     || signReading?.summary
-    || (language === 'ru' ? 'Заглядываем в звёзды…' : 'Reading the stars…');
+    || (language === 'ru' ? 'Нажми, чтобы прочитать гороскоп' : 'Tap to read your horoscope');
 
   /* Быстрые кнопки */
   const quickItems = [

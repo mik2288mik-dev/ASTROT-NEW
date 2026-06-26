@@ -20,7 +20,6 @@ import { normalizeZodiacKey } from '../../lib/horoscope/signDaily';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
 import {
   getCachedDailySignHoroscope,
-  ensureDailySignHoroscope,
   getCachedTodayAssistantHome,
   getTodayAssistantHome,
 } from '../../services/astrologyService';
@@ -89,6 +88,7 @@ export const TodayFeed = memo<TodayFeedProps>(({
     setSignB(defaultPartnerSign(selectedSign));
   }, [selectedSign]);
 
+  // Read only cached sign horoscope here; generation starts from the explicit Read button.
   useEffect(() => {
     if (!selectedSign) {
       setSignLoading(false);
@@ -97,7 +97,6 @@ export const TodayFeed = memo<TodayFeedProps>(({
     let alive = true;
     setSignLoading(true);
     void getCachedDailySignHoroscope(selectedSign, today, language)
-      .then((cached) => cached || ensureDailySignHoroscope(selectedSign, today, language))
       .then((reading) => {
         if (alive) setSignReading(reading);
       })
@@ -176,8 +175,8 @@ export const TodayFeed = memo<TodayFeedProps>(({
     : (language === 'ru' ? 'Гороскоп' : 'Horoscope');
 
   const horoscopeSummary = signLoading
-    ? (language === 'ru' ? 'Готовим разбор дня…' : 'Preparing today’s reading…')
-    : signReading?.summary || (language === 'ru' ? 'Открой полный разбор знака на сегодня' : 'Open your full sign reading for today');
+    ? (language === 'ru' ? 'Проверяем готовый гороскоп…' : 'Checking today’s saved reading…')
+    : signReading?.summary || (language === 'ru' ? 'Нажми «Читать», чтобы открыть и подготовить разбор' : 'Tap Read to open and prepare your reading');
 
   const natalSummary = !hasChart
     ? (language === 'ru' ? 'Создай карту — узнай, кто ты на самом деле' : 'Create your chart to see who you really are')

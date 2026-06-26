@@ -1,6 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '../../../lib/db';
-import { repairCanonicalChartForUser } from '../../../lib/natalChartPersistence';
 import { buildCanonicalNatalInputHash, isCanonicalNatalChartDataComplete } from '../../../lib/natalChartCanonical';
 import { invalidUserIdPayload, isValidUserId } from '../../../lib/userId';
 import { AdminAuthError, handleAdminError } from '../../../lib/adminAuth';
@@ -28,12 +27,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     await requireAppUser(req, { expectedUserId: userId, allowGuest: true });
 
     if (req.method === 'GET') {
-      let chartRecord = await db.natal_charts.get(userId);
-
-      if (!chartRecord || !isCanonicalNatalChartDataComplete(chartRecord.chart_data)) {
-        const repaired = await repairCanonicalChartForUser(userId);
-        chartRecord = repaired?.chart || chartRecord;
-      }
+      const chartRecord = await db.natal_charts.get(userId);
 
       if (!chartRecord || !chartRecord.chart_data || !isCanonicalNatalChartDataComplete(chartRecord.chart_data)) {
         return res.status(404).json({ error: 'Chart not found' });
