@@ -58,6 +58,13 @@ describe('app auth providers and API security', () => {
     expect(read('pages/api/content/natal/human-daily.ts')).not.toContain('if (profile?.isPremium)');
   });
 
+  it('does not auto-repair or calculate a chart during primary chart reads', () => {
+    const route = read('pages/api/charts/[id].ts');
+    expect(route).not.toContain('repairCanonicalChartForUser');
+    expect(route).not.toContain('const repaired = await');
+    expect(route).toContain("return res.status(404).json({ error: 'Chart not found' });");
+  });
+
   it('sends Telegram auth headers and web guest cookies for natal chart requests', () => {
     const chartService = read('services/chartService.ts');
     expect(chartService).toContain('...getTelegramInitDataHeaders()');

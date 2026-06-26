@@ -14,10 +14,14 @@ describe('compact content-matrix home', () => {
     expect(source).not.toContain('loadHumanPaidSection');
   });
 
-  it('loads sign horoscope and local daily motivation on home', () => {
+  it('reads cached sign horoscope on home and leaves generation to the explicit read button', () => {
     const source = read('views/v2/TodayFeed.tsx');
-    expect(source).toContain('ensureDailySignHoroscope');
+    const dashboard = read('views/Dashboard.tsx');
+    expect(source).not.toContain('ensureDailySignHoroscope');
+    expect(dashboard).not.toContain('ensureDailySignHoroscope');
     expect(source).toContain('getCachedDailySignHoroscope');
+    expect(dashboard).toContain('getCachedDailySignHoroscope');
+    expect(source).toContain('generation starts from the explicit Read button');
     expect(source).toContain('getDailyMotivation');
     expect(source).toContain('getLocalDailyMetrics');
     expect(source).toContain('getPulseDailyMetrics');
