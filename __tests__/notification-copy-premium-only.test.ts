@@ -6,7 +6,6 @@ const ROOT = path.resolve(__dirname, '..');
 const NOTIFICATION_COPY_FILES = [
   'lib/adminNotificationSeedCatalog.ts',
   'lib/notificationSlotCatalog.ts',
-  'pages/api/admin/notifications/ai-drafts.ts',
 ].map((rel) => path.join(ROOT, rel));
 
 const FORBIDDEN_PATTERNS: Array<{ label: string; pattern: RegExp }> = [

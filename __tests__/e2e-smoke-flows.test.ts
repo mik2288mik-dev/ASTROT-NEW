@@ -44,14 +44,15 @@ describe('E2E smoke flow contracts', () => {
     expect(access).toContain("status: 'needs_premium'");
   });
 
-  it('payment activation and admin notification self-test routes remain wired', () => {
+  it('payment activation routes remain wired', () => {
     const createInvoice = read('pages/api/telegram/create-invoice.ts');
     const activate = read('pages/api/subscriptions/activate.ts');
-    const selfTest = read('pages/api/admin/notifications/send-self-test.ts');
     expect(createInvoice).toContain('premium_week');
     expect(createInvoice).toContain('createInvoiceLink');
     expect(activate).toContain('activatePremium');
-    expect(selfTest).toContain('sendTelegramTextMessage');
+    // NOTE: admin notification self-test route was part of the legacy admin (removed in
+    // the admin v2 rebuild) and will return with the Communications phase. The live
+    // notification scheduler is in-process and unaffected.
   });
 
   it('production observability is exposed through health checks for notification and error signals', () => {

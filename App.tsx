@@ -24,7 +24,7 @@ import { HoroscopeReader } from './views/v2/HoroscopeReader';
 import { PersonalDailyScreen } from './views/DailyContentScreens';
 import { OracleChat } from './views/OracleChat';
 import { Settings } from './views/Settings';
-import { AdminPanel } from './views/AdminPanel';
+import { AdminApp } from './views/admin2/AdminApp';
 import { Header } from './components/Header';
 import { Loading } from './components/ui/Loading';
 import { getText } from './constants';
@@ -1585,13 +1585,7 @@ const App: React.FC = () => {
                     />
                 </div>
                 {view === 'admin' ? (
-                    <AdminPanel
-                        profile={profile}
-                        onPatchOwnProfile={handleAdminOwnProfilePatch}
-                        onClose={() => {
-                            void handleBack();
-                        }}
-                    />
+                    <AdminApp onClose={() => { void handleBack(); }} />
                 ) : view === 'hook' && chartData ? (
                     <HookChat 
                         profile={profile} 
