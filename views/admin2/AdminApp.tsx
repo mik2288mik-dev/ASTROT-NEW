@@ -9,6 +9,9 @@ import {
   type AdminEntry,
   type AdminAuditRow,
   type AdminRole,
+  type AdminChartRow,
+  type AdminChartDetail,
+  type AdminChartTestResult,
 } from '../../services/admin2Service';
 
 /**
@@ -17,11 +20,12 @@ import {
  * Сервер — единственный источник правды по доступу; клиент лишь прячет недоступное.
  */
 
-type SectionId = 'dashboard' | 'users' | 'roles' | 'audit';
+type SectionId = 'dashboard' | 'users' | 'charts' | 'roles' | 'audit';
 
 const SECTIONS: Array<{ id: SectionId; label: string; perm: string }> = [
   { id: 'dashboard', label: 'Дашборд', perm: 'analytics.view' },
   { id: 'users', label: 'Пользователи', perm: 'users.view' },
+  { id: 'charts', label: 'Натальные профили', perm: 'charts.view' },
   { id: 'roles', label: 'Роли и доступы', perm: 'roles.manage' },
   { id: 'audit', label: 'Журнал действий', perm: 'audit.view' },
 ];
@@ -76,20 +80,47 @@ function DashboardSection() {
         <Stat label="Платежей" value={k.totalPayments} />
         <Stat label="Без даты рожд." value={k.usersWithoutBirthData} />
       </div>
-      <div className={card}>
-        <p className="mb-3 text-sm font-semibold text-white">Воронка</p>
-        <div className="space-y-2">
-          {data.funnel.map((s) => (
-            <div key={s.key}>
-              <div className="flex items-center justify-between text-xs text-slate-300">
-                <span>{s.label}</span>
-                <span className="text-slate-400">{s.users} · {s.pctOfStart}%{s.key !== 'signup' ? ` · ${s.pctOfPrev}% от пред.` : ''}</span>
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+        <div className={card}>
+          <p className="mb-3 text-sm font-semibold text-white">Воронка</p>
+          <div className="space-y-2">
+            {data.funnel.map((s) => (
+              <div key={s.key}>
+                <div className="flex items-center justify-between text-xs text-slate-300">
+                  <span>{s.label}</span>
+                  <span className="text-slate-400">{s.users} · {s.pctOfStart}%{s.key !== 'signup' ? ` · ${s.pctOfPrev}% от пред.` : ''}</span>
+                </div>
+                <div className="mt-1 h-2 overflow-hidden rounded-full bg-white/[0.06]">
+                  <div className="h-full rounded-full bg-cyan-500" style={{ width: `${Math.max(2, s.pctOfStart)}%` }} />
+                </div>
               </div>
-              <div className="mt-1 h-2 overflow-hidden rounded-full bg-white/[0.06]">
-                <div className="h-full rounded-full bg-cyan-500" style={{ width: `${Math.max(2, s.pctOfStart)}%` }} />
-              </div>
+            ))}
+          </div>
+        </div>
+        <div className="space-y-3">
+          <div className={card}>
+            <p className="mb-3 text-sm font-semibold text-white">Retention (когорты 90д)</p>
+            <div className="grid grid-cols-3 gap-2 text-center">
+              {([['D1', data.retention.d1], ['D7', data.retention.d7], ['D30', data.retention.d30]] as const).map(([k, v]) => (
+                <div key={k} className="rounded-xl bg-white/[0.04] py-3">
+                  <p className="text-[11px] text-slate-400">{k}</p>
+                  <p className="text-xl font-bold text-white">{v == null ? '—' : `${v}%`}</p>
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
+          <div className={card}>
+            <p className="mb-2 text-sm font-semibold text-white">События за 30 дней</p>
+            <div className="space-y-1">
+              {data.events.length === 0 ? <p className="text-xs text-slate-500">Пока нет данных</p> : null}
+              {data.events.slice(0, 8).map((e) => (
+                <div key={e.type} className="flex items-center justify-between text-xs text-slate-300">
+                  <span className="truncate">{e.label}</span>
+                  <span className="text-slate-400">{e.count}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -296,6 +327,165 @@ function AuditSection() {
   );
 }
 
+// ────────────────────────────── Charts (natal profiles) ──────────────────────────────
+function TestModePanel() {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState('Тест');
+  const [date, setDate] = useState('');
+  const [time, setTime] = useState('12:00');
+  const [place, setPlace] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [out, setOut] = useState<AdminChartTestResult | null>(null);
+
+  const run = async () => {
+    setBusy(true); setOut(null);
+    try { setOut(await admin2.testChart({ name, birthDate: date, birthTime: time, birthPlace: place })); }
+    catch (e: any) { setOut({ ok: false, error: e.message }); }
+    finally { setBusy(false); }
+  };
+
+  return (
+    <div className={card}>
+      <button className="flex w-full items-center justify-between" onClick={() => setOpen((v) => !v)}>
+        <span className="text-sm font-semibold text-white">Тест-режим расчёта</span>
+        <span className="text-xs text-slate-400">{open ? 'скрыть' : 'открыть'}</span>
+      </button>
+      {open ? (
+        <div className="mt-3 space-y-2">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <input className={inputCls} placeholder="Имя" value={name} onChange={(e) => setName(e.target.value)} />
+            <input className={inputCls} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            <input className={inputCls} type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+            <input className={inputCls} placeholder="Город" value={place} onChange={(e) => setPlace(e.target.value)} />
+          </div>
+          <button className={btnPrimary} disabled={busy || !date || !place} onClick={run}>{busy ? 'Считаю…' : 'Проверить расчёт'}</button>
+          {out ? (
+            out.ok ? (
+              <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-100">
+                <p>OK · {out.durationMs}ms · {out.coordinates?.timezone} ({out.coordinates?.lat}, {out.coordinates?.lon})</p>
+                <p className="mt-1 text-white">☉ {out.result?.sun?.sign} · ☽ {out.result?.moon?.sign} · ASC {out.result?.ascendant?.sign} · {out.result?.element} · домов {out.result?.houses} · аспектов {out.result?.aspects}</p>
+              </div>
+            ) : <ErrorNote>{out.error}{out.code ? ` [${out.code}]` : ''}</ErrorNote>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function ChartDetailPanel({ id, canPii, canRecalc, onClose }: { id: number; canPii: boolean; canRecalc: boolean; onClose: () => void }) {
+  const [chart, setChart] = useState<AdminChartDetail | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+  const load = (pii = false) => admin2.getChart(id, pii).then(setChart).catch((e) => setError(e.message));
+  useEffect(() => { load(false); /* eslint-disable-next-line */ }, [id]);
+
+  if (error && !chart) return <div className={card}><ErrorNote>{error}</ErrorNote></div>;
+  if (!chart) return <div className={card}><p className="text-sm text-slate-400">Загрузка…</p></div>;
+
+  return (
+    <div className={`${card} space-y-3`}>
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-lg font-bold text-white">{chart.name}</p>
+          <p className="text-xs text-slate-400">карта #{chart.id} · юзер {chart.userId} · {chart.version || '—'}</p>
+        </div>
+        <button className={btnGhost} onClick={onClose}>Закрыть</button>
+      </div>
+      {note ? <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-100">{note}</div> : null}
+      <div className="grid grid-cols-3 gap-2 text-xs text-slate-300">
+        <div>☉ Солнце: <b className="text-white">{chart.result.sun?.sign || '—'}</b></div>
+        <div>☽ Луна: <b className="text-white">{chart.result.moon?.sign || '—'}</b></div>
+        <div>ASC: <b className="text-white">{chart.result.ascendant?.sign || '—'}</b></div>
+        <div>Стихия: <b className="text-white">{chart.result.element || '—'}</b></div>
+        <div>Домов: <b className="text-white">{chart.result.housesCount}</b></div>
+        <div>Аспектов: <b className="text-white">{chart.result.aspectsCount}</b></div>
+      </div>
+      <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Вход расчёта (PII)</p>
+          {canPii && chart.input.birthDate === '•••' ? <button className={btnGhost} disabled={busy} onClick={() => load(true)}>Показать</button> : null}
+        </div>
+        <div className="mt-2 grid grid-cols-3 gap-2 text-xs text-slate-300">
+          <div>Дата: <b className="text-white">{chart.input.birthDate || '—'}</b></div>
+          <div>Время: <b className="text-white">{chart.input.birthTime || '—'}</b></div>
+          <div>Место: <b className="text-white">{chart.input.birthPlace || '—'}</b></div>
+          <div>Коорд.: <b className="text-white">{chart.input.latitude ?? '—'}, {chart.input.longitude ?? '—'}</b></div>
+          <div>TZ: <b className="text-white">{chart.input.timezone || '—'}</b></div>
+        </div>
+      </div>
+      {canRecalc ? (
+        <button className={btnPrimary} disabled={busy} onClick={async () => {
+          setBusy(true); setError(null); setNote(null);
+          try { const r = await admin2.recalcChart(id); setNote(`Пересчитано (${r.source}): ☉ ${r.result?.sunSign} · ☽ ${r.result?.moonSign} · ASC ${r.result?.ascendantSign}`); await load(chart.input.birthDate !== '•••'); }
+          catch (e: any) { setError(e.message); } finally { setBusy(false); }
+        }}>{busy ? 'Пересчёт…' : 'Пересчитать карту'}</button>
+      ) : null}
+      {error ? <ErrorNote>{error}</ErrorNote> : null}
+    </div>
+  );
+}
+
+function ChartsSection({ me }: { me: AdminMe }) {
+  const [rows, setRows] = useState<AdminChartRow[] | null>(null);
+  const [q, setQ] = useState('');
+  const [pageNum, setPageNum] = useState(1);
+  const [pages, setPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [selected, setSelected] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const canPii = me.permissions.includes('user.pii.view');
+  const canRecalc = me.permissions.includes('charts.recalc');
+
+  const load = () => admin2.listCharts({ q, page: pageNum }).then((d) => { setRows(d.charts); setPages(d.pagination.totalPages); setTotal(d.pagination.total); }).catch((e) => setError(e.message));
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [pageNum]);
+
+  return (
+    <div className="space-y-3">
+      <TestModePanel />
+      <div className="flex gap-2">
+        <input className={`${inputCls} flex-1`} placeholder="Поиск по имени карты / владельцу / ID…" value={q}
+          onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { setPageNum(1); load(); } }} />
+        <button className={btnPrimary} onClick={() => { setPageNum(1); load(); }}>Найти</button>
+      </div>
+      {error ? <ErrorNote>{error}</ErrorNote> : null}
+      {selected != null ? <ChartDetailPanel id={selected} canPii={canPii} canRecalc={canRecalc} onClose={() => setSelected(null)} /> : null}
+      {rows ? (
+        <>
+          <div className="overflow-x-auto rounded-2xl border border-white/10">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-white/[0.04] text-[11px] uppercase tracking-wide text-slate-400">
+                <tr><th className="px-3 py-2">Профиль</th><th className="px-3 py-2">☉/☽/ASC</th><th className="px-3 py-2">Статус</th><th className="px-3 py-2">Создан</th><th className="px-3 py-2"></th></tr>
+              </thead>
+              <tbody>
+                {rows.map((c) => (
+                  <tr key={c.id} className="border-t border-white/[0.06] text-slate-200">
+                    <td className="px-3 py-2"><div className="font-medium text-white">{c.name}</div><div className="text-[11px] text-slate-500">{c.ownerName || c.userId}{c.isPrimary ? ' · основная' : ''}</div></td>
+                    <td className="px-3 py-2 text-xs">{c.sunSign || '—'} / {c.moonSign || '—'} / {c.ascendantSign || '—'}</td>
+                    <td className="px-3 py-2 text-xs">{c.status === 'ok' ? <span className="text-emerald-400">ok</span> : <span className="text-red-400">error</span>}</td>
+                    <td className="px-3 py-2 text-xs text-slate-400">{fmtDate(c.createdAt)}</td>
+                    <td className="px-3 py-2"><button className={btnGhost} onClick={() => setSelected(c.id)}>Открыть</button></td>
+                  </tr>
+                ))}
+                {rows.length === 0 ? <tr><td colSpan={5} className="px-3 py-6 text-center text-slate-500">Карты не найдены</td></tr> : null}
+              </tbody>
+            </table>
+          </div>
+          <div className="flex items-center justify-between text-xs text-slate-400">
+            <span>Всего: {total}</span>
+            <div className="flex gap-2">
+              <button className={btnGhost} disabled={pageNum <= 1} onClick={() => setPageNum((p) => Math.max(1, p - 1))}>Назад</button>
+              <span className="px-2 py-2">{pageNum} / {pages}</span>
+              <button className={btnGhost} disabled={pageNum >= pages} onClick={() => setPageNum((p) => p + 1)}>Вперёд</button>
+            </div>
+          </div>
+        </>
+      ) : <p className="text-sm text-slate-400">Загрузка…</p>}
+    </div>
+  );
+}
+
 // ────────────────────────────── Shell ──────────────────────────────
 export const AdminApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [me, setMe] = useState<AdminMe | null>(null);
@@ -341,6 +531,7 @@ export const AdminApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           <main className="min-h-0 flex-1 overflow-y-auto p-4">
             {active === 'dashboard' && <DashboardSection />}
             {active === 'users' && <UsersSection me={me} />}
+            {active === 'charts' && <ChartsSection me={me} />}
             {active === 'roles' && <RolesSection />}
             {active === 'audit' && <AuditSection />}
           </main>

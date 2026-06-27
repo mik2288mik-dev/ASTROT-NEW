@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { handleAdminError } from '../../../../lib/adminAuth';
 import { requireAdminPermission } from '../../../../lib/admin/rbac';
 import { db, getPool } from '../../../../lib/db';
+import { eventLabel } from '../../../../lib/admin/eventTaxonomy';
 
 /** Ключевые метрики дашборда (реальные числа из БД). Право analytics.view. */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -10,7 +11,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     await requireAdminPermission(req, 'analytics.view');
     const pool = getPool();
 
-    const [overview, growth, charts, active, revenue, funnel] = await Promise.all([
+    const [overview, growth, charts, active, revenue, funnel, retention, events] = await Promise.all([
       db.admin.getUsersOverview(),
       pool.query(`SELECT
           COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '1 day')::int AS d1,
@@ -35,6 +36,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           (SELECT COUNT(DISTINCT user_id)::int FROM user_app_events WHERE event_type IN ('paywall_view','paywall_viewed')) AS paywall,
           (SELECT COUNT(*)::int FROM users WHERE premium_until IS NOT NULL) AS purchased
         FROM users`),
+      // Retention D1/D7/D30: вернулся ли юзер в окно дня N после регистрации.
+      // Когорта — за последние 90 дней; знаменатель = юзеры подходящего возраста.
+      pool.query(`
+        SELECT
+          ROUND(100.0 * AVG(CASE WHEN age >= 1 THEN r1::int END))::int AS d1,
+          ROUND(100.0 * AVG(CASE WHEN age >= 7 THEN r7::int END))::int AS d7,
+          ROUND(100.0 * AVG(CASE WHEN age >= 30 THEN r30::int END))::int AS d30
+        FROM (
+          SELECT
+            EXTRACT(DAY FROM NOW() - u.created_at) AS age,
+            EXISTS(SELECT 1 FROM user_app_events e WHERE e.user_id = u.id AND e.occurred_at >= u.created_at + INTERVAL '1 day' AND e.occurred_at < u.created_at + INTERVAL '2 day') AS r1,
+            EXISTS(SELECT 1 FROM user_app_events e WHERE e.user_id = u.id AND e.occurred_at >= u.created_at + INTERVAL '7 day' AND e.occurred_at < u.created_at + INTERVAL '8 day') AS r7,
+            EXISTS(SELECT 1 FROM user_app_events e WHERE e.user_id = u.id AND e.occurred_at >= u.created_at + INTERVAL '30 day' AND e.occurred_at < u.created_at + INTERVAL '31 day') AS r30
+          FROM users u
+          WHERE u.created_at >= NOW() - INTERVAL '90 day' AND u.created_at <= NOW() - INTERVAL '1 day'
+        ) t`).catch(() => ({ rows: [{ d1: null, d7: null, d30: null }] })),
+      pool.query(`
+        SELECT event_type, COUNT(*)::int AS count
+          FROM user_app_events
+          WHERE occurred_at >= NOW() - INTERVAL '30 days'
+          GROUP BY event_type ORDER BY count DESC LIMIT 12`).catch(() => ({ rows: [] })),
     ]);
 
     const g = growth.rows[0] || {};
@@ -77,6 +99,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           : 0,
       },
       funnel: funnelWithPct,
+      retention: {
+        d1: retention.rows[0]?.d1 ?? null,
+        d7: retention.rows[0]?.d7 ?? null,
+        d30: retention.rows[0]?.d30 ?? null,
+      },
+      events: events.rows.map((r: any) => ({ type: r.event_type, label: eventLabel(r.event_type), count: Number(r.count) })),
     });
   } catch (error) {
     return handleAdminError(res, error);

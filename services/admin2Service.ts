@@ -25,6 +25,28 @@ export type AdminDashboard = {
     totalStars: number; totalPayments: number; stars30d: number; premiumRate: number;
   };
   funnel: Array<{ key: string; label: string; users: number; pctOfStart: number; pctOfPrev: number }>;
+  retention: { d1: number | null; d7: number | null; d30: number | null };
+  events: Array<{ type: string; label: string; count: number }>;
+};
+
+export type AdminChartRow = {
+  id: number; userId: string; ownerName: string | null; name: string;
+  sunSign: string | null; moonSign: string | null; ascendantSign: string | null;
+  version: string | null; timezone: string | null; isPrimary: boolean;
+  hasBirthDate: boolean; hasBirthTime: boolean; status: 'ok' | 'error'; createdAt: string | null;
+};
+
+export type AdminChartDetail = {
+  id: number; userId: string; name: string; isPrimary: boolean; version: string | null;
+  input: { birthDate: string | null; birthTime: string | null; birthPlace: string | null; latitude: number | null; longitude: number | null; timezone: string | null };
+  result: { sun: any; moon: any; ascendant: any; housesCount: number; aspectsCount: number; element: string | null; rulingPlanet: string | null };
+  status: 'ok' | 'error'; createdAt: string | null; updatedAt: string | null;
+};
+
+export type AdminChartTestResult = {
+  ok: boolean; error?: string; code?: string | null; durationMs?: number;
+  coordinates?: { lat: number; lon: number; timezone: string };
+  result?: { sun: any; moon: any; ascendant: any; element: string; rulingPlanet: string; houses: number; aspects: number; birthTimeQuality: string };
 };
 
 export type AdminUserRow = {
@@ -106,6 +128,18 @@ export const admin2 = {
   listAdmins: () => req<{ admins: AdminEntry[]; roles: AdminRole[] }>('/api/admin/v2/roles'),
   setRole: (userId: string, role: AdminRole) => req<{ ok: boolean }>('/api/admin/v2/roles', { method: 'POST', body: { userId, role } }),
   removeAdmin: (userId: string) => req<{ ok: boolean }>('/api/admin/v2/roles', { method: 'DELETE', body: { userId } }),
+  listCharts: (params: { q?: string; page?: number } = {}) => {
+    const s = new URLSearchParams();
+    if (params.q) s.set('q', params.q);
+    if (params.page) s.set('page', String(params.page));
+    const suffix = s.toString() ? `?${s}` : '';
+    return req<{ charts: AdminChartRow[]; pagination: { page: number; pageSize: number; total: number; totalPages: number } }>(`/api/admin/v2/charts${suffix}`);
+  },
+  getChart: (id: number, pii = false) =>
+    req<{ chart: AdminChartDetail }>(`/api/admin/v2/charts/${id}${pii ? '?pii=1' : ''}`).then((d) => d.chart),
+  recalcChart: (id: number) => req<{ ok: boolean; source: string | null; result: any }>(`/api/admin/v2/charts/${id}/recalculate`, { method: 'POST' }),
+  testChart: (body: { name?: string; birthDate: string; birthTime?: string; birthPlace: string }) =>
+    req<AdminChartTestResult>('/api/admin/v2/charts/verify', { method: 'POST', body }),
   audit: (params: { page?: number; action?: string } = {}) => {
     const s = new URLSearchParams();
     if (params.page) s.set('page', String(params.page));
