@@ -2279,6 +2279,11 @@ async function reconcileUserColumns(pool: Pool): Promise<void> {
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_blocked BOOLEAN DEFAULT FALSE",
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS premium_until TIMESTAMP",
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+    // Заделы под мультиплатформу (миграция на iOS/Android позже). Default — telegram.
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS platform TEXT DEFAULT 'telegram'",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS auth_provider TEXT DEFAULT 'telegram'",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS app_version TEXT",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS country TEXT",
   ];
   for (const sql of statements) {
     try {
@@ -2288,6 +2293,62 @@ async function reconcileUserColumns(pool: Pool): Promise<void> {
     }
   }
   log.info('User columns reconciled (gender/chart_slots/is_setup/…)');
+}
+
+/**
+ * Фундамент новой админки: RBAC (admin_users) + неизменяемый журнал действий
+ * (admin_audit_log). Идемпотентно. Owner (OWNER_ID) получает роль super_admin.
+ */
+async function lumia031AdminFoundation(pool: Pool): Promise<void> {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS admin_users (
+      user_id BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      role TEXT NOT NULL DEFAULT 'read_only',
+      status TEXT NOT NULL DEFAULT 'active',
+      created_by BIGINT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS admin_audit_log (
+      id BIGSERIAL PRIMARY KEY,
+      actor_user_id BIGINT,
+      actor_role TEXT,
+      action TEXT NOT NULL,
+      entity_type TEXT,
+      entity_id TEXT,
+      before_json JSONB,
+      after_json JSONB,
+      ip TEXT,
+      user_agent TEXT,
+      result TEXT NOT NULL DEFAULT 'ok',
+      error TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_admin_audit_created ON admin_audit_log(created_at DESC)');
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_admin_audit_actor ON admin_audit_log(actor_user_id, created_at DESC)');
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_admin_audit_action ON admin_audit_log(action, created_at DESC)');
+
+  // Бэк-заполнение: существующие is_admin=TRUE пользователи становятся 'admin';
+  // OWNER_ID — super_admin. Не перетираем уже заданную роль.
+  await pool.query(`
+    INSERT INTO admin_users (user_id, role, status, created_at)
+    SELECT id, 'admin', 'active', CURRENT_TIMESTAMP FROM users WHERE is_admin = TRUE
+    ON CONFLICT (user_id) DO NOTHING
+  `);
+  const ownerId = process.env.NEXT_PUBLIC_OWNER_ID || process.env.OWNER_ID || '';
+  if (ownerId && /^\d+$/.test(ownerId.trim())) {
+    await pool.query(
+      `INSERT INTO admin_users (user_id, role, status, created_at)
+       VALUES ($1, 'super_admin', 'active', CURRENT_TIMESTAMP)
+       ON CONFLICT (user_id) DO UPDATE SET role = 'super_admin', status = 'active', updated_at = CURRENT_TIMESTAMP`,
+      [ownerId.trim()]
+    );
+  }
+  log.info('Migration lumia_031_admin_foundation applied');
 }
 
 export async function runMigrations(): Promise<void> {
@@ -2347,6 +2408,7 @@ export async function runMigrations(): Promise<void> {
   await lumia028HoroscopeEngagement(pool);
   await lumia029EnableNotificationScenarios(pool);
   await lumia030DisableRemovedScenarios(pool);
+  await lumia031AdminFoundation(pool);
   await syncNotificationCatalogFromSeed(pool);
   await cancelStaleScheduledNotifications(pool);
   await verifyTablesExist(pool);
