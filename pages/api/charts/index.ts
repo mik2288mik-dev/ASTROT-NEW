@@ -34,7 +34,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     if (req.method === 'POST') {
-      const { name, birthDate, birthTime, birthPlace, chartData, language } = req.body || {};
+      const { name, birthDate, birthTime, birthPlace, chartData, language, latitude, longitude, timezone } = req.body || {};
 
       const rawBirthTime = typeof birthTime === 'string' ? birthTime.trim() : '';
       const normalizedBirthTime = rawBirthTime || '12:00';
@@ -61,6 +61,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
       }
 
+      const lat = Number(latitude);
+      const lon = Number(longitude);
+      const clientCoordinates =
+        Number.isFinite(lat) && Number.isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180 && !(lat === 0 && lon === 0)
+          ? { lat, lon, timezone: typeof timezone === 'string' ? timezone : undefined }
+          : null;
+
       const result = await createOrReuseCanonicalChart({
         userId,
         name: name || 'Моя карта',
@@ -69,6 +76,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         birthPlace,
         chartData,
         language: userLanguage,
+        coordinates: clientCoordinates,
       });
 
       log.info(result.reused ? 'Chart reused' : 'Chart created', {

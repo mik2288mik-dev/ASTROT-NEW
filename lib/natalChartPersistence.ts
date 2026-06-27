@@ -1,5 +1,5 @@
 import { db } from './db';
-import { calculateNatalChart, getCoordinates } from './swisseph-calculator';
+import { calculateNatalChart, resolveBirthCoordinates } from './swisseph-calculator';
 import {
   buildCanonicalNatalInputHash,
   isCanonicalNatalChartDataComplete,
@@ -9,6 +9,10 @@ import {
 } from './natalChartCanonical';
 import type { BirthTimeQuality, ChartQuality } from '../types';
 
+// Координаты, разрешённые на стороне клиента (автокомплит города). Если переданы —
+// сервер не геокодит место заново. Опционально: при отсутствии — обычный геокодинг.
+type ProvidedCoordinates = { lat?: number | null; lon?: number | null; timezone?: string | null };
+
 type EnsurePrimaryArgs = {
   userId: string;
   name: string;
@@ -17,6 +21,7 @@ type EnsurePrimaryArgs = {
   birthPlace: string;
   language?: string;
   forceRecalculate?: boolean;
+  coordinates?: ProvidedCoordinates | null;
 };
 
 type CreateOrReuseArgs = {
@@ -27,6 +32,7 @@ type CreateOrReuseArgs = {
   birthPlace: string;
   chartData?: any;
   language?: string;
+  coordinates?: ProvidedCoordinates | null;
 };
 
 function inferBirthTimeQuality(rawBirthTime?: string | null): BirthTimeQuality {
@@ -93,7 +99,7 @@ export async function ensureCanonicalPrimaryChart(args: EnsurePrimaryArgs): Prom
   const normalizedBirthTime = normalizeBirthTimeInput(args.birthTime);
   const normalizedBirthPlace = normalizeBirthPlaceInput(args.birthPlace);
 
-  const coordinates = await getCoordinates(normalizedBirthPlace);
+  const coordinates = await resolveBirthCoordinates(normalizedBirthPlace, args.coordinates);
   const inputHash = buildCanonicalNatalInputHash({
     birthDate: normalizedBirthDate,
     birthTime: normalizedBirthTime,
@@ -147,7 +153,7 @@ export async function createOrReuseCanonicalChart(args: CreateOrReuseArgs): Prom
   const normalizedBirthTime = normalizeBirthTimeInput(args.birthTime);
   const normalizedBirthPlace = normalizeBirthPlaceInput(args.birthPlace);
 
-  const coordinates = await getCoordinates(normalizedBirthPlace);
+  const coordinates = await resolveBirthCoordinates(normalizedBirthPlace, args.coordinates);
   const inputHash = buildCanonicalNatalInputHash({
     birthDate: normalizedBirthDate,
     birthTime: normalizedBirthTime,

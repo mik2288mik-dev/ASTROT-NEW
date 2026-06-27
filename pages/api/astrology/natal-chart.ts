@@ -32,7 +32,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   let lockKey: string | null = null;
 
   try {
-    const { userId, name, birthDate, birthTime, birthPlace, language, forceRecalculate } = req.body || {};
+    const { userId, name, birthDate, birthTime, birthPlace, language, forceRecalculate, latitude, longitude, timezone } = req.body || {};
     const userLanguage = language === 'en' ? 'en' : 'ru';
     if (!isValidUserId(userId)) {
       return res.status(400).json(invalidUserIdPayload(userLanguage));
@@ -82,6 +82,14 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       });
     }
 
+    // Координаты, разрешённые на клиенте, — используем их вместо серверного геокодинга.
+    const lat = Number(latitude);
+    const lon = Number(longitude);
+    const clientCoordinates =
+      Number.isFinite(lat) && Number.isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180 && !(lat === 0 && lon === 0)
+        ? { lat, lon, timezone: typeof timezone === 'string' ? timezone : undefined }
+        : null;
+
     const result = await ensureCanonicalPrimaryChart({
       userId: authenticatedUserId,
       name,
@@ -90,6 +98,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       birthPlace,
       language: userLanguage,
       forceRecalculate: !!forceRecalculate,
+      coordinates: clientCoordinates,
     });
 
     releaseLock(lockKey);
@@ -128,12 +137,17 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
     const userLanguage = req.body?.language === 'en' ? 'en' : 'ru';
     const errorMsg = String(error.message || '').toLowerCase();
+    const errorCode = String((error as any)?.code || '');
     let statusCode = 500;
     let message = userLanguage === 'ru'
       ? 'Не удалось рассчитать натальную карту. Попробуйте позже.'
       : 'Failed to calculate natal chart. Please try again later.';
 
-    if (errorMsg.includes('location') || errorMsg.includes('coordinates') || errorMsg.includes('nominatim')) {
+    if (
+      errorCode === 'GEOCODING_FAILED'
+      || errorMsg.includes('location') || errorMsg.includes('coordinates') || errorMsg.includes('nominatim')
+      || errorMsg.includes('место') || errorMsg.includes('координат') || errorMsg.includes('геокод')
+    ) {
       statusCode = 400;
       message = userLanguage === 'ru'
         ? 'Не удалось найти место рождения. Проверьте правильность написания.'

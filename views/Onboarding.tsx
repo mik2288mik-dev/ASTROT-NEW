@@ -36,6 +36,9 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [place, setPlace] = useState('');
+  // Координаты, разрешённые автокомплитом при выборе города. Если юзер выбрал город
+  // из подсказок — отдаём их серверу, и он не геокодит место заново (надёжнее).
+  const [placeCoords, setPlaceCoords] = useState<{ lat: number; lon: number; timezone?: string } | null>(null);
   const [notify, setNotify] = useState(true);
   const [error, setError] = useState('');
 
@@ -78,6 +81,9 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
       birthDate: date,
       birthTime: time,
       birthPlace: place.trim(),
+      birthLatitude: placeCoords?.lat ?? null,
+      birthLongitude: placeCoords?.lon ?? null,
+      birthTimezone: placeCoords?.timezone ?? null,
       isSetup: true,
       language: 'ru',
       theme: 'light',
@@ -169,7 +175,13 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                 value={place}
                 inputRef={placeRef}
                 placeholder="Начни вводить город…"
-                onChange={(v) => { setPlace(v); if (error) setError(''); }}
+                onChange={(v, coords) => {
+                  setPlace(v);
+                  // coords приходят только при выборе города из подсказок; при ручном
+                  // вводе их нет — тогда сбрасываем, чтобы не отправить устаревшие.
+                  setPlaceCoords(coords ?? null);
+                  if (error) setError('');
+                }}
               />
             </label>
 

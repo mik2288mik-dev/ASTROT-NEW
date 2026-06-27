@@ -41,6 +41,12 @@ export interface UserProfile {
   birthDate: string; // YYYY-MM-DD
   birthTime: string; // HH:MM
   birthPlace: string;
+  // Координаты места рождения, уже разрешённые на клиенте (через автокомплит города).
+  // Передаются на сервер, чтобы он НЕ геокодил место повторно с серверного IP
+  // (который часто лимитят/банят) — главная причина, по которой карта не строилась.
+  birthLatitude?: number | null;
+  birthLongitude?: number | null;
+  birthTimezone?: string | null;
   isSetup: boolean;
   language: Language;
   theme: Theme; 

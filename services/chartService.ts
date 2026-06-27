@@ -146,6 +146,11 @@ async function calculateChart(profile: UserProfile): Promise<NatalChartData> {
           birthDate: profile.birthDate,
           birthTime: profile.birthTime,
           birthPlace: profile.birthPlace,
+          // Координаты, разрешённые на клиенте — сервер использует их напрямую и не
+          // геокодит место заново (главная причина прежних сбоев у новых юзеров).
+          latitude: profile.birthLatitude ?? undefined,
+          longitude: profile.birthLongitude ?? undefined,
+          timezone: profile.birthTimezone ?? undefined,
           language: profile.language,
         }),
       },
@@ -253,6 +258,9 @@ export async function forceRecalculateChart(profile: UserProfile): Promise<Natal
         birthDate: profile.birthDate,
         birthTime: profile.birthTime,
         birthPlace: profile.birthPlace,
+        latitude: profile.birthLatitude ?? undefined,
+        longitude: profile.birthLongitude ?? undefined,
+        timezone: profile.birthTimezone ?? undefined,
         language: profile.language,
         forceRecalculate: true,
       }),

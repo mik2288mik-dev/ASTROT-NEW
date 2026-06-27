@@ -7,6 +7,7 @@ import path from 'path';
 import tzLookup from 'tz-lookup';
 import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { CANONICAL_NATAL_CALCULATION_VERSION, normalizeCoordinateForStorage } from './natalChartCanonical';
+import { lookupCityCoordinates } from './cityGazetteer';
 import type { BirthTimeQuality, ChartQuality } from '../types';
 
 // Logging utility
@@ -391,15 +392,64 @@ async function geocodeViaOpenMeteo(placeName: string): Promise<Coordinates | nul
 
 /**
  * Получение координат и часового пояса по названию места.
- * Open-Meteo первым (надёжный для серверов), Nominatim — фолбэком (шире покрытие).
+ * Порядок: локальный справочник (офлайн, мгновенно, для частых городов) →
+ * Open-Meteo (надёжен для серверов) → Nominatim (шире покрытие).
+ * Если все источники недоступны — бросаем ошибку с кодом GEOCODING_FAILED,
+ * чтобы API отдал понятную 400 «место не найдено», а не общую 500.
  */
 export async function getCoordinates(placeName: string): Promise<Coordinates> {
+  // 1. Офлайн-справочник — не зависит от сети и серверных лимитов геокодеров.
+  const offline = lookupCityCoordinates(placeName);
+  if (offline) {
+    const coords = { lat: offline.lat, lon: offline.lon, timezone: resolveTimezone(offline.lat, offline.lon) };
+    log.info('Coordinates resolved via offline gazetteer', { placeName, ...coords });
+    return coords;
+  }
+
+  // 2. Open-Meteo (бесплатно, без ключа, дружелюбен к серверным IP).
   const viaOpenMeteo = await geocodeViaOpenMeteo(placeName);
   if (viaOpenMeteo) {
     log.info('Coordinates resolved via Open-Meteo', { placeName, ...viaOpenMeteo });
     return viaOpenMeteo;
   }
-  return geocodeViaNominatim(placeName);
+
+  // 3. Nominatim — последний шанс (часто блокирует серверные IP).
+  try {
+    return await geocodeViaNominatim(placeName);
+  } catch (error: any) {
+    const wrapped: any = new Error(
+      `Could not resolve coordinates (geocoding failed) for location "${placeName}": ${error?.message || 'unknown error'}`
+    );
+    wrapped.code = 'GEOCODING_FAILED';
+    wrapped.cause = error;
+    throw wrapped;
+  }
+}
+
+/**
+ * Возвращает координаты для расчёта карты, используя ПЕРЕДАННЫЕ клиентом координаты,
+ * если они валидны (клиентский автокомплит уже разрешил их с IP пользователя), и
+ * только иначе обращается к геокодеру. Это убирает хрупкий повторный геокодинг с
+ * серверного IP — главную причину, по которой карта не строилась у новых юзеров.
+ */
+export async function resolveBirthCoordinates(
+  placeName: string,
+  provided?: { lat?: number | null; lon?: number | null; timezone?: string | null } | null
+): Promise<Coordinates> {
+  const lat = Number(provided?.lat);
+  const lon = Number(provided?.lon);
+  const hasValidCoords =
+    Number.isFinite(lat) && Number.isFinite(lon) &&
+    Math.abs(lat) <= 90 && Math.abs(lon) <= 180 &&
+    !(lat === 0 && lon === 0);
+
+  if (hasValidCoords) {
+    const timezone = (provided?.timezone && String(provided.timezone).trim()) || resolveTimezone(lat, lon);
+    log.info('Using client-provided birth coordinates', { placeName, lat, lon, timezone });
+    return { lat, lon, timezone };
+  }
+
+  return getCoordinates(placeName);
 }
 
 /**
