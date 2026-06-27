@@ -368,6 +368,10 @@ function resolveTimezone(lat: number, lon: number): string {
   }
 }
 
+// Open-Meteo отдаёт 403 на «неброузерный» User-Agent (по умолчанию axios шлёт
+// "axios/x.y.z" → блок). Притворяемся обычным мобильным браузером — тогда работает.
+const BROWSER_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
+
 /**
  * Геокодинг через Open-Meteo — бесплатно, без ключа, дружелюбен к серверным IP
  * (в отличие от Nominatim, который часто лимитит/банит хостинг). Возврат null при неудаче.
@@ -376,7 +380,9 @@ async function geocodeViaOpenMeteo(placeName: string): Promise<Coordinates | nul
   try {
     const response = await axios.get('https://geocoding-api.open-meteo.com/v1/search', {
       params: { name: placeName, count: 1, language: 'ru', format: 'json' },
-      headers: { Accept: 'application/json' },
+      // Браузерный UA обязателен: иначе Open-Meteo блокирует запрос (403) и сервер
+      // вынужден уходить на Nominatim, который с IP Railway часто банится → карта не строилась.
+      headers: { Accept: 'application/json', 'User-Agent': BROWSER_UA },
       timeout: 15000,
     });
     const r = response.data?.results?.[0];
