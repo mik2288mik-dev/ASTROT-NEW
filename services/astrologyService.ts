@@ -796,6 +796,7 @@ export const setHoroscopeReaction = async (
   }
   const response = await fetchWithTimeout(`${API_BASE_URL}/api/content/horoscope/reactions`, {
     method: 'POST',
+    credentials: 'include',
     headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
     body: JSON.stringify({ userId, sign, date, reactionKey, language, period }),
   }, 6000);
@@ -825,6 +826,7 @@ export const removeHoroscopeReaction = async (
   try {
     const response = await fetchWithTimeout(`${API_BASE_URL}/api/content/horoscope/reactions`, {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
       body: JSON.stringify({ userId, sign, date, remove: true, language, period }),
     }, 6000);
@@ -854,6 +856,7 @@ export const getHoroscopeReactionSummary = async (
       + `&period=${period}`;
     const response = await fetchWithTimeout(url, {
       method: 'GET',
+      credentials: 'include',
       headers: { ...getTelegramInitDataHeaders() },
     }, 6000);
     if (!response.ok) return null;
@@ -878,6 +881,7 @@ export const getHoroscopeEngagement = async (
       + `&date=${encodeURIComponent(date)}`;
     const response = await fetchWithTimeout(url, {
       method: 'GET',
+      credentials: 'include',
       headers: { ...getTelegramInitDataHeaders() },
     }, 6000);
     if (!response.ok) return null;
@@ -898,6 +902,7 @@ const postHoroscopeEngagement = async (
   try {
     const response = await fetchWithTimeout(`${API_BASE_URL}/api/content/horoscope/engagement`, {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
       body: JSON.stringify({ userId, sign, date, action }),
     }, 6000);

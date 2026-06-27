@@ -45,6 +45,23 @@ function writeExtraSigns(today: string, signs: string[]) {
   try { window.localStorage.setItem(HORO_EXTRA_KEY, JSON.stringify({ date: today, signs })); } catch { /* optional */ }
 }
 
+/* Свой знак тоже открывается ТОЛЬКО по кнопке — без авто-генерации при входе на экран
+   (экономим API/деньги). Запоминаем на текущий день, чтобы при возврате не жать снова. */
+const HORO_OWN_OPENED_KEY = 'lumia:horo-own-opened';
+
+function readOwnOpened(today: string, sign: string): boolean {
+  try {
+    const raw = window.localStorage.getItem(HORO_OWN_OPENED_KEY);
+    if (!raw) return false;
+    const obj = JSON.parse(raw);
+    return !!obj && obj.date === today && String(obj.sign) === sign;
+  } catch { return false; }
+}
+
+function writeOwnOpened(today: string, sign: string) {
+  try { window.localStorage.setItem(HORO_OWN_OPENED_KEY, JSON.stringify({ date: today, sign })); } catch { /* optional */ }
+}
+
 type Period = 'today' | 'week' | 'month';
 
 export type HoroscopeReaderProps = {
@@ -128,19 +145,32 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
   const premium = hasActivePremium(profile);
   const extraQuota = premium ? PREMIUM_EXTRA_QUOTA : FREE_EXTRA_QUOTA;
   const [openedSigns, setOpenedSigns] = useState<string[]>(() => readExtraSigns(today));
+  // Свой знак открыт сегодня? (по кнопке, без авто-генерации при входе)
+  const [ownOpened, setOwnOpened] = useState<boolean>(() => readOwnOpened(today, ownSign));
+  useEffect(() => { setOwnOpened(readOwnOpened(today, ownSign)); }, [today, ownSign]);
 
   const current = sign.toLowerCase();
   const isOwnSign = current === ownSign;
-  const isOpened = isOwnSign || openedSigns.includes(current);
-  const canOpenMore = openedSigns.length < extraQuota;
-  const signState: 'open' | 'can-open' | 'locked' = isOpened ? 'open' : canOpenMore ? 'can-open' : 'locked';
+  const isOpened = (isOwnSign && ownOpened) || openedSigns.includes(current);
+  const canOpenExtra = openedSigns.length < extraQuota;
+  // Свой знак можно открыть всегда (бесплатно); чужой — пока есть дневная квота.
+  const canOpen = isOwnSign || canOpenExtra;
+  const signState: 'open' | 'can-open' | 'locked' = isOpened ? 'open' : canOpen ? 'can-open' : 'locked';
 
   // Free: только «Сегодня». Неделя и месяц — премиум.
   const periodLocked = !premium && period !== 'today';
 
-  /* Открыть знак по кнопке — тратит дневную квоту и запускает загрузку (никакого авто-фетча). */
+  /* Открыть гороскоп по кнопке — никакого авто-фетча/авто-генерации (экономим API/деньги).
+     Свой знак — бесплатно; чужой — тратит дневную квоту. */
   const openCurrent = () => {
-    if (isOpened || !canOpenMore) return;
+    if (isOpened) return;
+    if (isOwnSign) {
+      lumiaSelectionHaptic();
+      setOwnOpened(true);
+      writeOwnOpened(today, ownSign);
+      return;
+    }
+    if (!canOpenExtra) return;
     lumiaSelectionHaptic();
     const next = [...openedSigns, current];
     setOpenedSigns(next);
@@ -359,11 +389,17 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
                 </>
               ) : signState === 'can-open' ? (
                 <div className="horo-lock">
-                  <div className="horo-lock-title">{language === 'ru' ? 'Гороскоп на сегодня' : 'Today’s horoscope'}</div>
+                  <div className="horo-lock-title">
+                    {isOwnSign
+                      ? (language === 'ru' ? 'Твой гороскоп' : 'Your horoscope')
+                      : (language === 'ru' ? 'Гороскоп на сегодня' : 'Today’s horoscope')}
+                  </div>
                   <p className="horo-lock-text">
-                    {premium
-                      ? (language === 'ru' ? 'Откроется по кнопке — в Premium доступны все знаки.' : 'Tap to open — Premium opens every sign.')
-                      : (language === 'ru' ? 'Откроется по кнопке. Бесплатно — 1 другой знак в день.' : 'Tap to open. Free — 1 other sign a day.')}
+                    {isOwnSign
+                      ? (language === 'ru' ? 'Откроется по кнопке — это твой знак.' : 'Tap to open — this is your sign.')
+                      : premium
+                        ? (language === 'ru' ? 'Откроется по кнопке — в Premium доступны все знаки.' : 'Tap to open — Premium opens every sign.')
+                        : (language === 'ru' ? 'Откроется по кнопке. Бесплатно — 1 другой знак в день.' : 'Tap to open. Free — 1 other sign a day.')}
                   </p>
                   <button type="button" className="fresh-btn-primary" style={{ marginTop: 12, width: '100%' }} onClick={openCurrent}>
                     {language === 'ru' ? 'Открыть гороскоп' : 'Open horoscope'}
