@@ -618,8 +618,24 @@ function getPlanetDescription(planetName: string): string {
   return descriptions[planetName] || 'Planetary influence.';
 }
 
+/** Один вызов swe_calc_ut с заданным флагом. Возвращает валидный результат или null. */
+function rawPlanetCalc(swe: any, julday: number, planetId: number, baseFlag: number): any | null {
+  try {
+    const result = swe.swe_calc_ut(julday, planetId, baseFlag | swe.SEFLG_SPEED);
+    if (result && typeof result.longitude === 'number' && Number.isFinite(result.longitude)) {
+      return result;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 /**
- * Рассчитывает положение планеты в натальной карте используя Swiss Ephemeris
+ * Рассчитывает положение планеты в натальной карте используя Swiss Ephemeris.
+ * Если высокоточная эфемерида (.se1) не смогла посчитать планету (файл на нужный
+ * диапазон отсутствует/неполон), ПЕРЕсчитываем через встроенный Moshier — он не
+ * требует файлов. Так Солнце/Луна/планеты считаются всегда, и карта не падает.
  */
 function calculatePlanetPosition(
   swe: NonNullable<typeof sweInstance>,
@@ -628,15 +644,22 @@ function calculatePlanetPosition(
   planetName: string
 ): PlanetPosition | null {
   try {
-    // Флаг эфемериды: высокоточные файлы (.se1) если есть, иначе встроенный Moshier.
-    const flags = ephemerisBaseFlag(swe) | swe.SEFLG_SPEED;
-    const result = swe.swe_calc_ut(julday, planetId, flags);
-    
+    // 1) Базовый флаг (SWIEPH с файлами или MOSEPH, если файлов нет).
+    let result = rawPlanetCalc(swe, julday, planetId, ephemerisBaseFlag(swe));
+
+    // 2) Фолбэк: если считали по файлам и не вышло — пробуем Moshier (без файлов).
+    if (!result && !useMoshier) {
+      result = rawPlanetCalc(swe, julday, planetId, swe.SEFLG_MOSEPH ?? 4);
+      if (result) {
+        log.warn(`${planetName}: SWIEPH calc failed, recomputed via built-in Moshier ephemeris`);
+      }
+    }
+
     if (!result || typeof result.longitude !== 'number') {
       log.error(`Failed to calculate ${planetName}`, { result });
       return null;
     }
-    
+
     const longitude = result.longitude;
     
     const sign = getZodiacSign(longitude);
@@ -667,6 +690,18 @@ function calculatePlanetPosition(
 /**
  * Рассчитывает Асцендент и дома через Swiss Ephemeris
  */
+function housesWithSystem(swe: any, julday: number, lat: number, lon: number, system: string): any | null {
+  try {
+    const result = swe.swe_houses(julday, lat, lon, system);
+    if (result && typeof result.ascendant === 'number' && Number.isFinite(result.ascendant)) {
+      return result;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 function calculateAnglesAndHouses(
   swe: NonNullable<typeof sweInstance>,
   julday: number,
@@ -674,13 +709,20 @@ function calculateAnglesAndHouses(
   lon: number
 ): { ascendant: PlanetPosition; houses: NatalHouseData[] } | null {
   try {
-    const result = swe.swe_houses(julday, lat, lon, 'P');
+    // Placidus ('P') не определён за полярным кругом (|lat| > ~66°) — там swe_houses
+    // не возвращает корректный асцендент. Фолбэк на Whole Sign ('W'), который
+    // работает на любой широте, чтобы карта строилась и у северных пользователей.
+    let result = housesWithSystem(swe, julday, lat, lon, 'P');
+    if (!result) {
+      result = housesWithSystem(swe, julday, lat, lon, 'W');
+      if (result) log.warn('Placidus houses unavailable (polar latitude?), fell back to Whole Sign');
+    }
 
     if (!result || typeof result.ascendant !== 'number') {
-      log.error('Failed to calculate ascendant', { result });
+      log.error('Failed to calculate ascendant', { result, lat, lon });
       return null;
     }
-    
+
     const ascendant = result.ascendant;
     
     const sign = getZodiacSign(ascendant);
