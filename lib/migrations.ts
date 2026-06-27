@@ -2351,6 +2351,50 @@ async function lumia031AdminFoundation(pool: Pool): Promise<void> {
   log.info('Migration lumia_031_admin_foundation applied');
 }
 
+/**
+ * Монетизация (Admin v2 Фаза 3). Делает star_payments провайдер-агностичным журналом
+ * платежей (provider/status/product/currency/platform — заделы под App Store/Google Play/
+ * Stripe при миграции на native) и заводит промокоды. Идемпотентно.
+ */
+async function lumia032Monetization(pool: Pool): Promise<void> {
+  const cols = [
+    "ALTER TABLE star_payments ADD COLUMN IF NOT EXISTS provider TEXT DEFAULT 'telegram_stars'",
+    "ALTER TABLE star_payments ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'paid'",
+    "ALTER TABLE star_payments ADD COLUMN IF NOT EXISTS product TEXT",
+    "ALTER TABLE star_payments ADD COLUMN IF NOT EXISTS currency TEXT DEFAULT 'XTR'",
+    "ALTER TABLE star_payments ADD COLUMN IF NOT EXISTS platform TEXT DEFAULT 'telegram'",
+    "ALTER TABLE star_payments ADD COLUMN IF NOT EXISTS refunded_at TIMESTAMP",
+  ];
+  for (const sql of cols) {
+    try { await pool.query(sql); } catch (e: any) { log.warn(`lumia032: ${sql} failed`, { error: e?.message }); }
+  }
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS promo_codes (
+      code TEXT PRIMARY KEY,
+      type TEXT NOT NULL DEFAULT 'premium_days',
+      value INTEGER NOT NULL DEFAULT 30,
+      max_uses INTEGER NOT NULL DEFAULT 0,
+      used_count INTEGER NOT NULL DEFAULT 0,
+      status TEXT NOT NULL DEFAULT 'active',
+      starts_at TIMESTAMP,
+      expires_at TIMESTAMP,
+      created_by BIGINT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS promo_redemptions (
+      id BIGSERIAL PRIMARY KEY,
+      code TEXT NOT NULL,
+      user_id BIGINT,
+      redeemed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_promo_redemptions_code ON promo_redemptions(code)');
+  log.info('Migration lumia_032_monetization applied');
+}
+
 export async function runMigrations(): Promise<void> {
   if (!DATABASE_URL) {
     log.warn('DATABASE_URL not set. Skipping migrations.');
@@ -2409,6 +2453,7 @@ export async function runMigrations(): Promise<void> {
   await lumia029EnableNotificationScenarios(pool);
   await lumia030DisableRemovedScenarios(pool);
   await lumia031AdminFoundation(pool);
+  await lumia032Monetization(pool);
   await syncNotificationCatalogFromSeed(pool);
   await cancelStaleScheduledNotifications(pool);
   await verifyTablesExist(pool);

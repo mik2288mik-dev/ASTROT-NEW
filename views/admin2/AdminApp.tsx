@@ -12,6 +12,10 @@ import {
   type AdminChartRow,
   type AdminChartDetail,
   type AdminChartTestResult,
+  type AdminPaymentRow,
+  type AdminSubscriptionRow,
+  type AdminRevenue,
+  type AdminPromo,
 } from '../../services/admin2Service';
 
 /**
@@ -20,12 +24,13 @@ import {
  * Сервер — единственный источник правды по доступу; клиент лишь прячет недоступное.
  */
 
-type SectionId = 'dashboard' | 'users' | 'charts' | 'roles' | 'audit';
+type SectionId = 'dashboard' | 'users' | 'charts' | 'billing' | 'roles' | 'audit';
 
 const SECTIONS: Array<{ id: SectionId; label: string; perm: string }> = [
   { id: 'dashboard', label: 'Дашборд', perm: 'analytics.view' },
   { id: 'users', label: 'Пользователи', perm: 'users.view' },
   { id: 'charts', label: 'Натальные профили', perm: 'charts.view' },
+  { id: 'billing', label: 'Монетизация', perm: 'billing.view' },
   { id: 'roles', label: 'Роли и доступы', perm: 'roles.manage' },
   { id: 'audit', label: 'Журнал действий', perm: 'audit.view' },
 ];
@@ -486,6 +491,138 @@ function ChartsSection({ me }: { me: AdminMe }) {
   );
 }
 
+// ────────────────────────────── Billing (monetization) ──────────────────────────────
+function BillingSection({ me }: { me: AdminMe }) {
+  type Tab = 'revenue' | 'payments' | 'subs' | 'promo';
+  const [tab, setTab] = useState<Tab>('revenue');
+  const canRefund = me.permissions.includes('billing.refund');
+  const canPromo = me.permissions.includes('promo.manage');
+
+  const [rev, setRev] = useState<AdminRevenue | null>(null);
+  const [pays, setPays] = useState<AdminPaymentRow[] | null>(null);
+  const [subs, setSubs] = useState<AdminSubscriptionRow[] | null>(null);
+  const [promos, setPromos] = useState<AdminPromo[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [pCode, setPCode] = useState(''); const [pVal, setPVal] = useState(30);
+
+  useEffect(() => {
+    setError(null);
+    if (tab === 'revenue') admin2.revenue().then(setRev).catch((e) => setError(e.message));
+    if (tab === 'payments') admin2.payments(1).then((d) => setPays(d.payments)).catch((e) => setError(e.message));
+    if (tab === 'subs') admin2.subscriptions(1).then((d) => setSubs(d.subscriptions)).catch((e) => setError(e.message));
+    if (tab === 'promo' && canPromo) admin2.listPromos().then((d) => setPromos(d.promos)).catch((e) => setError(e.message));
+  }, [tab, canPromo]);
+
+  const refund = async (id: number) => {
+    if (!window.confirm('Точно вернуть платёж? Это необратимо.')) return;
+    setBusy(true); setError(null);
+    try { await admin2.refund(id); const d = await admin2.payments(1); setPays(d.payments); }
+    catch (e: any) { setError(e.message); } finally { setBusy(false); }
+  };
+
+  const tabs: Array<[Tab, string, boolean]> = [
+    ['revenue', 'Доход', true], ['payments', 'Платежи', true], ['subs', 'Подписки', true], ['promo', 'Промокоды', canPromo],
+  ];
+
+  return (
+    <div className="space-y-3">
+      <div className="flex gap-1 overflow-x-auto">
+        {tabs.filter((t) => t[2]).map(([id, label]) => (
+          <button key={id} onClick={() => setTab(id)} className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-sm ${tab === id ? 'bg-cyan-500/15 text-cyan-300' : 'text-slate-400 hover:text-slate-200'}`}>{label}</button>
+        ))}
+      </div>
+      {error ? <ErrorNote>{error}</ErrorNote> : null}
+
+      {tab === 'revenue' && (rev ? (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <Stat label="Звёзды всего" value={rev.totalStars} sub={`${rev.totalPayments} платежей`} />
+          <Stat label="За 30 дней" value={rev.stars30d} sub={`${rev.payments30d} платежей`} />
+          <Stat label="Активный премиум" value={rev.activePremium} />
+          <Stat label="Триалы" value={rev.trials} />
+          <Stat label="Возвраты" value={rev.refunds} sub={`${rev.refundedStars}⭐`} />
+        </div>
+      ) : <p className="text-sm text-slate-400">Загрузка…</p>)}
+
+      {tab === 'payments' && (pays ? (
+        <div className="overflow-x-auto rounded-2xl border border-white/10">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-white/[0.04] text-[11px] uppercase tracking-wide text-slate-400">
+              <tr><th className="px-3 py-2">Юзер</th><th className="px-3 py-2">Сумма</th><th className="px-3 py-2">Провайдер</th><th className="px-3 py-2">Статус</th><th className="px-3 py-2">Когда</th><th className="px-3 py-2"></th></tr>
+            </thead>
+            <tbody>
+              {pays.map((p) => (
+                <tr key={p.id} className="border-t border-white/[0.06] text-slate-200">
+                  <td className="px-3 py-2"><div className="text-white">{p.ownerName || p.userId}</div><div className="text-[11px] text-slate-500">{p.userId}</div></td>
+                  <td className="px-3 py-2">{p.amount} {p.currency}</td>
+                  <td className="px-3 py-2 text-xs">{p.provider} · {p.platform}</td>
+                  <td className="px-3 py-2 text-xs">{p.status === 'refunded' ? <span className="text-amber-400">возврат</span> : <span className="text-emerald-400">{p.status}</span>}</td>
+                  <td className="px-3 py-2 text-xs text-slate-400">{fmtDate(p.createdAt)}</td>
+                  <td className="px-3 py-2">{canRefund && p.status !== 'refunded' ? <button className={btnGhost} disabled={busy} onClick={() => refund(p.id)}>Вернуть</button> : null}</td>
+                </tr>
+              ))}
+              {pays.length === 0 ? <tr><td colSpan={6} className="px-3 py-6 text-center text-slate-500">Платежей нет</td></tr> : null}
+            </tbody>
+          </table>
+        </div>
+      ) : <p className="text-sm text-slate-400">Загрузка…</p>)}
+
+      {tab === 'subs' && (subs ? (
+        <div className="overflow-x-auto rounded-2xl border border-white/10">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-white/[0.04] text-[11px] uppercase tracking-wide text-slate-400">
+              <tr><th className="px-3 py-2">Юзер</th><th className="px-3 py-2">Статус</th><th className="px-3 py-2">Платформа</th><th className="px-3 py-2">До</th></tr>
+            </thead>
+            <tbody>
+              {subs.map((s) => (
+                <tr key={s.userId} className="border-t border-white/[0.06] text-slate-200">
+                  <td className="px-3 py-2"><div className="text-white">{s.name || s.userId}</div><div className="text-[11px] text-slate-500">{s.userId}</div></td>
+                  <td className="px-3 py-2 text-xs">{s.status === 'active' ? <span className="text-cyan-400">активна</span> : s.status === 'trial' ? <span className="text-amber-400">триал</span> : <span className="text-slate-500">истекла</span>}</td>
+                  <td className="px-3 py-2 text-xs">{s.provider} · {s.platform}</td>
+                  <td className="px-3 py-2 text-xs text-slate-400">{fmtDate(s.premiumUntil)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : <p className="text-sm text-slate-400">Загрузка…</p>)}
+
+      {tab === 'promo' && canPromo && (
+        <div className="space-y-3">
+          <div className={`${card} flex flex-wrap items-end gap-2`}>
+            <input className={`${inputCls} flex-1`} placeholder="КОД (A-Z 0-9)" value={pCode} onChange={(e) => setPCode(e.target.value.toUpperCase())} />
+            <div><label className="block text-[11px] text-slate-400">дней премиум</label><input className={`${inputCls} w-24`} type="number" value={pVal} onChange={(e) => setPVal(Number(e.target.value))} /></div>
+            <button className={btnPrimary} disabled={busy || pCode.trim().length < 3} onClick={async () => {
+              setBusy(true); setError(null);
+              try { await admin2.createPromo({ code: pCode.trim(), value: pVal }); setPCode(''); const d = await admin2.listPromos(); setPromos(d.promos); }
+              catch (e: any) { setError(e.message); } finally { setBusy(false); }
+            }}>Создать</button>
+          </div>
+          <div className="overflow-x-auto rounded-2xl border border-white/10">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-white/[0.04] text-[11px] uppercase tracking-wide text-slate-400">
+                <tr><th className="px-3 py-2">Код</th><th className="px-3 py-2">Награда</th><th className="px-3 py-2">Исп.</th><th className="px-3 py-2">Статус</th><th className="px-3 py-2"></th></tr>
+              </thead>
+              <tbody>
+                {(promos || []).map((p) => (
+                  <tr key={p.code} className="border-t border-white/[0.06] text-slate-200">
+                    <td className="px-3 py-2 font-medium text-white">{p.code}</td>
+                    <td className="px-3 py-2 text-xs">{p.value} дн. премиум</td>
+                    <td className="px-3 py-2 text-xs">{p.usedCount}{p.maxUses ? `/${p.maxUses}` : ''}</td>
+                    <td className="px-3 py-2 text-xs">{p.status === 'active' ? <span className="text-emerald-400">активен</span> : <span className="text-slate-500">{p.status}</span>}</td>
+                    <td className="px-3 py-2">{p.status === 'active' ? <button className={btnGhost} disabled={busy} onClick={async () => { setBusy(true); try { await admin2.disablePromo(p.code); const d = await admin2.listPromos(); setPromos(d.promos); } catch (e: any) { setError(e.message); } finally { setBusy(false); } }}>Отключить</button> : null}</td>
+                  </tr>
+                ))}
+                {promos && promos.length === 0 ? <tr><td colSpan={5} className="px-3 py-6 text-center text-slate-500">Промокодов нет</td></tr> : null}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ────────────────────────────── Shell ──────────────────────────────
 export const AdminApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [me, setMe] = useState<AdminMe | null>(null);
@@ -532,6 +669,7 @@ export const AdminApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             {active === 'dashboard' && <DashboardSection />}
             {active === 'users' && <UsersSection me={me} />}
             {active === 'charts' && <ChartsSection me={me} />}
+            {active === 'billing' && <BillingSection me={me} />}
             {active === 'roles' && <RolesSection />}
             {active === 'audit' && <AuditSection />}
           </main>

@@ -60,6 +60,26 @@ export async function resolveBotUsername(): Promise<string> {
   return cachedBotUsername;
 }
 
+/** Возврат Telegram Stars по charge id. Используется админкой (billing.refund). */
+export async function refundStarPayment(
+  userId: string,
+  telegramPaymentChargeId: string
+): Promise<{ ok: boolean; error?: string }> {
+  if (!BOT_TOKEN) return { ok: false, error: 'BOT_TOKEN is not configured' };
+  try {
+    const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/refundStarPayment`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: Number(userId), telegram_payment_charge_id: telegramPaymentChargeId }),
+    });
+    const data = await response.json().catch(() => ({} as any));
+    if (!response.ok || !data?.ok) return { ok: false, error: data?.description || `Telegram refund failed: ${response.status}` };
+    return { ok: true };
+  } catch (e: any) {
+    return { ok: false, error: e?.message || 'refund request failed' };
+  }
+}
+
 export async function sendTelegramTextMessage(
   chatId: string,
   text: string,

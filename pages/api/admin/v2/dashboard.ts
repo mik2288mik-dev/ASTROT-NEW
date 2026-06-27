@@ -28,7 +28,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           COALESCE(SUM(stars_amount), 0)::bigint AS total_stars,
           COUNT(*)::int AS total_payments,
           COALESCE(SUM(stars_amount) FILTER (WHERE created_at >= NOW() - INTERVAL '30 days'), 0)::bigint AS stars_30d
-        FROM star_payments WHERE status = 'paid'`).catch(() => ({ rows: [{ total_stars: 0, total_payments: 0, stars_30d: 0 }] })),
+        FROM star_payments`).catch(() => ({ rows: [{ total_stars: 0, total_payments: 0, stars_30d: 0 }] })),
       pool.query(`SELECT
           COUNT(*)::int AS signups,
           COUNT(*) FILTER (WHERE birth_date IS NOT NULL)::int AS with_birth,

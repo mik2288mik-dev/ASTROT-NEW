@@ -77,6 +77,24 @@ export type AdminEntry = {
   userId: string; name: string | null; role: AdminRole; status: string; isOwner: boolean; createdAt: string | null;
 };
 
+export type AdminPaymentRow = {
+  id: number; userId: string; ownerName: string | null; provider: string; status: string;
+  amount: number; currency: string; product: string | null; platform: string;
+  chargeId: string | null; createdAt: string | null; refundedAt: string | null;
+};
+export type AdminSubscriptionRow = {
+  userId: string; name: string | null; plan: string; status: string; provider: string;
+  platform: string; premiumUntil: string | null; trialStartedAt: string | null;
+};
+export type AdminRevenue = {
+  totalStars: number; totalPayments: number; stars30d: number; payments30d: number;
+  refunds: number; refundedStars: number; activePremium: number; trials: number;
+};
+export type AdminPromo = {
+  code: string; type: string; value: number; maxUses: number; usedCount: number;
+  status: string; startsAt: string | null; expiresAt: string | null; createdAt: string | null;
+};
+
 export type AdminAuditRow = {
   id: number; actorUserId: string | null; actorRole: string | null; action: string;
   entityType: string | null; entityId: string | null; before: unknown; after: unknown;
@@ -140,6 +158,13 @@ export const admin2 = {
   recalcChart: (id: number) => req<{ ok: boolean; source: string | null; result: any }>(`/api/admin/v2/charts/${id}/recalculate`, { method: 'POST' }),
   testChart: (body: { name?: string; birthDate: string; birthTime?: string; birthPlace: string }) =>
     req<AdminChartTestResult>('/api/admin/v2/charts/verify', { method: 'POST', body }),
+  payments: (page = 1) => req<{ payments: AdminPaymentRow[]; pagination: { page: number; pageSize: number; total: number; totalPages: number } }>(`/api/admin/v2/billing/payments?page=${page}`),
+  subscriptions: (page = 1) => req<{ subscriptions: AdminSubscriptionRow[]; pagination: { page: number; pageSize: number; total: number; totalPages: number } }>(`/api/admin/v2/billing/subscriptions?page=${page}`),
+  revenue: () => req<AdminRevenue>('/api/admin/v2/billing/revenue'),
+  refund: (paymentId: number) => req<{ ok: boolean }>('/api/admin/v2/billing/refund', { method: 'POST', body: { paymentId } }),
+  listPromos: () => req<{ promos: AdminPromo[] }>('/api/admin/v2/promo'),
+  createPromo: (body: { code: string; type?: string; value?: number; maxUses?: number; expiresAt?: string | null }) => req<{ ok: boolean }>('/api/admin/v2/promo', { method: 'POST', body }),
+  disablePromo: (code: string) => req<{ ok: boolean }>('/api/admin/v2/promo', { method: 'DELETE', body: { code } }),
   audit: (params: { page?: number; action?: string } = {}) => {
     const s = new URLSearchParams();
     if (params.page) s.set('page', String(params.page));
