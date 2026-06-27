@@ -2260,6 +2260,36 @@ async function cancelStaleScheduledNotifications(pool: Pool) {
   }
 }
 
+/**
+ * Идемпотентная сверка колонок таблицы `users`. Защищает от «дрейфа схемы», когда
+ * колонку дописывали в УЖЕ применённую миграцию (она помечена выполненной и
+ * пропускается, а новый ALTER внутри неё не исполняется). Все ADD COLUMN IF NOT EXISTS
+ * безопасны при повторном запуске. Каждый ALTER — отдельно, чтобы один сбой не блокировал
+ * остальные. Запускается РАНО (после lumia_002) и не зависит от поздних миграций.
+ */
+async function reconcileUserColumns(pool: Pool): Promise<void> {
+  const statements = [
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS gender TEXT",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS chart_slots INTEGER DEFAULT 1",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_setup BOOLEAN DEFAULT FALSE",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS selected_zodiac_sign TEXT",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS trial_started_at TIMESTAMP",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS notification_frequency TEXT",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS weather_city TEXT",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_blocked BOOLEAN DEFAULT FALSE",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS premium_until TIMESTAMP",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+  ];
+  for (const sql of statements) {
+    try {
+      await pool.query(sql);
+    } catch (error: any) {
+      log.warn(`reconcileUserColumns: "${sql}" failed (continuing)`, { error: error?.message });
+    }
+  }
+  log.info('User columns reconciled (gender/chart_slots/is_setup/…)');
+}
+
 export async function runMigrations(): Promise<void> {
   if (!DATABASE_URL) {
     log.warn('DATABASE_URL not set. Skipping migrations.');
@@ -2285,6 +2315,11 @@ export async function runMigrations(): Promise<void> {
     await migrationReset(pool);
     await lumia001FullSchema(pool);
     await lumia002MultiChart(pool);
+    // КРИТИЧНО и РАНО: сверяем колонки users сразу после базовой схемы, ДО длинной
+    // цепочки миграций (любая из которых может упасть). Колонки вроде `gender` были
+    // дописаны в уже применённую lumia_002 и потому отсутствовали в проде — из-за чего
+    // db.users.set падал и НИ ОДИН новый пользователь не мог создать карту.
+    await reconcileUserColumns(pool);
     await lumia003StarPayments(pool);
     await lumia004AdminBackoffice(pool);
   await lumia005AppSettings(pool);
@@ -2312,7 +2347,6 @@ export async function runMigrations(): Promise<void> {
   await lumia028HoroscopeEngagement(pool);
   await lumia029EnableNotificationScenarios(pool);
   await lumia030DisableRemovedScenarios(pool);
-  await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS is_blocked BOOLEAN DEFAULT FALSE');
   await syncNotificationCatalogFromSeed(pool);
   await cancelStaleScheduledNotifications(pool);
   await verifyTablesExist(pool);
