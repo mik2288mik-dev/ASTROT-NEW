@@ -164,18 +164,14 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         : 'Astrology calculation error. Please try again later.';
     }
 
-    // ВРЕМЕННАЯ ДИАГНОСТИКА: для необъяснённой 500 показываем краткую реальную причину
-    // прямо в тексте (прод-логи недоступны), чтобы точно установить корень. Убрать после.
+    // Краткий код причины — в JSON (не показывается юзеру), удобно для диагностики.
     const rawReason = String((error as any)?.code || error?.message || 'unknown').slice(0, 200);
-    if (statusCode === 500) {
-      message = `${message} [${rawReason}]`;
-    }
 
     return res.status(statusCode).json({
       error: 'Calculation failed',
       message,
       reason: rawReason,
-      details: error?.message,
+      details: process.env.NODE_ENV === 'development' ? error?.message : undefined,
     });
   }
 }
