@@ -19,6 +19,7 @@ function makeContext(overrides: Partial<PersonalizationContext> = {}): Personali
       birthPlace: 'Moscow',
       premiumUntil: null,
       lastLogin: new Date().toISOString(),
+      lastActivity: new Date().toISOString(),
       language: 'ru',
       chartId: 1,
       chartTimezone: 'Europe/Moscow',
@@ -165,6 +166,16 @@ describe('retention notification rules', () => {
       })
     );
     expect(active).toEqual(expect.arrayContaining(['free_natal_opened_no_premium', 'love_interested', 'assistant_user', 'high_intent_premium']));
+  });
+
+  it('treats a daily-active premium user as active, never inactive_*', () => {
+    const segments = detectUserSegments(
+      makeContext({ isPremium: true, daysInactive: 0, segments: [] })
+    );
+    expect(segments).toContain('daily_active_premium');
+    expect(segments).not.toContain('inactive_2_days');
+    expect(segments).not.toContain('inactive_7_days');
+    expect(segments).not.toContain('inactive_14_days');
   });
 
   it('applies quiet hours, daily limits and setup priority', () => {

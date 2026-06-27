@@ -93,6 +93,8 @@ type RecipientRow = {
   birthPlace: string | null;
   premiumUntil: string | null;
   lastLogin: string | null;
+  /** Реальная последняя активность: max(last_login, created_at, последнее событие в user_app_events). */
+  lastActivity: string | null;
   language: string;
   chartId: number | null;
   chartTimezone: string | null;
@@ -712,6 +714,11 @@ async function listRecipients(limit = 250): Promise<RecipientRow[]> {
             u.birth_place,
             u.premium_until,
             u.last_login,
+            GREATEST(
+              u.last_login,
+              u.created_at,
+              (SELECT MAX(e.occurred_at) FROM user_app_events e WHERE e.user_id = u.id)
+            ) AS last_activity,
             COALESCE(u.language, 'ru') AS language,
             nc.id AS chart_id,
             nc.timezone AS chart_timezone
@@ -734,6 +741,7 @@ async function listRecipients(limit = 250): Promise<RecipientRow[]> {
     birthPlace: row.birth_place || null,
     premiumUntil: row.premium_until ? new Date(row.premium_until).toISOString() : null,
     lastLogin: row.last_login ? new Date(row.last_login).toISOString() : null,
+    lastActivity: row.last_activity ? new Date(row.last_activity).toISOString() : null,
     language: row.language || 'ru',
     chartId: row.chart_id != null ? Number(row.chart_id) : null,
     chartTimezone: row.chart_timezone || null,
@@ -793,6 +801,11 @@ async function getPreparedDailyCard(userId: string, dateKey: string): Promise<Pr
 export async function buildPersonalizationContext(userId: string, now = new Date()): Promise<PersonalizationContext> {
   const result = await getPool().query(
     `SELECT u.id, u.name, u.birth_date, u.birth_time, u.birth_place, u.premium_until, u.last_login,
+            GREATEST(
+              u.last_login,
+              u.created_at,
+              (SELECT MAX(e.occurred_at) FROM user_app_events e WHERE e.user_id = u.id)
+            ) AS last_activity,
             COALESCE(u.language, 'ru') AS language, nc.id AS chart_id, nc.timezone AS chart_timezone
      FROM users u
      LEFT JOIN LATERAL (
@@ -811,6 +824,7 @@ export async function buildPersonalizationContext(userId: string, now = new Date
     birthPlace: row.birth_place || null,
     premiumUntil: row.premium_until ? new Date(row.premium_until).toISOString() : null,
     lastLogin: row.last_login ? new Date(row.last_login).toISOString() : null,
+    lastActivity: row.last_activity ? new Date(row.last_activity).toISOString() : null,
     language: row.language || 'ru',
     chartId: row.chart_id != null ? Number(row.chart_id) : null,
     chartTimezone: row.chart_timezone || null,
@@ -891,7 +905,11 @@ async function buildContextForRecipient(user: RecipientRow, now: Date): Promise<
     preparedDailyCard,
     recentScreens: recent,
     lockedBlockEvents: Number(locked.rows[0]?.count || 0),
-    daysInactive: dateDiffDays(user.lastLogin, now),
+    // Неактивность считаем от РЕАЛЬНОЙ активности (последнее событие в user_app_events,
+    // которое пишется на каждый screen_view), а НЕ от last_login — он нигде не обновляется
+    // и всегда NULL → давал daysInactive=999 → активные (в т.ч. премиум) юзеры ошибочно
+    // попадали в сегмент inactive_14_days и получали реактивационные пуши.
+    daysInactive: dateDiffDays(user.lastActivity ?? user.lastLogin, now),
     daysWithoutClick: 0,
     ignoredLastCount: Number(ignored.rows[0]?.ignored || 0),
     notificationsSentToday: Number(logStats.rows[0]?.sent_today || 0),
