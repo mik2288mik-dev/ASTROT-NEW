@@ -8,7 +8,7 @@ describe('canonical natal chart persistence flow', () => {
     const persistence = read('lib/natalChartPersistence.ts');
     const api = read('pages/api/astrology/natal-chart.ts');
 
-    expect(persistence).toContain("import { calculateNatalChart, getCoordinates } from './swisseph-calculator';");
+    expect(persistence).toContain("import { calculateNatalChart, resolveBirthCoordinates } from './swisseph-calculator';");
     expect(persistence).toContain('await calculateNatalChart(');
     expect(persistence).toContain('await db.natal_charts.persistPrimary');
     expect(api).toContain('ensureCanonicalPrimaryChart({');
