@@ -95,6 +95,11 @@ export type AdminPromo = {
   status: string; startsAt: string | null; expiresAt: string | null; createdAt: string | null;
 };
 
+export type AdminPromptRow = { id: number; key: string; type: string; locale: string; version: number; status: string; updatedAt: string | null };
+export type AdminPromptDetail = AdminPromptRow & { body: string; versions: Array<{ version: number; body: string; createdAt: string | null }> };
+export type AdminCmsRow = { id: number; type: string; locale: string; status: string; title: string | null; version: number; category: string | null; updatedAt: string | null; publishedAt: string | null };
+export type AdminCmsDetail = AdminCmsRow & { body: string; versions: Array<{ version: number; body: string; createdAt: string | null }> };
+
 export type AdminAuditRow = {
   id: number; actorUserId: string | null; actorRole: string | null; action: string;
   entityType: string | null; entityId: string | null; before: unknown; after: unknown;
@@ -165,6 +170,20 @@ export const admin2 = {
   listPromos: () => req<{ promos: AdminPromo[] }>('/api/admin/v2/promo'),
   createPromo: (body: { code: string; type?: string; value?: number; maxUses?: number; expiresAt?: string | null }) => req<{ ok: boolean }>('/api/admin/v2/promo', { method: 'POST', body }),
   disablePromo: (code: string) => req<{ ok: boolean }>('/api/admin/v2/promo', { method: 'DELETE', body: { code } }),
+  // AI prompts
+  listPrompts: () => req<{ prompts: AdminPromptRow[] }>('/api/admin/v2/ai'),
+  getPrompt: (id: number) => req<{ prompt: AdminPromptDetail; versions: any[] }>(`/api/admin/v2/ai/${id}`).then((d) => ({ ...d.prompt, versions: d.versions })),
+  createPrompt: (body: { key: string; type?: string; locale?: string; body: string }) => req<{ ok: boolean; id: number }>('/api/admin/v2/ai', { method: 'POST', body }),
+  updatePrompt: (id: number, body: string) => req<{ ok: boolean; version: number }>(`/api/admin/v2/ai/${id}`, { method: 'PATCH', body: { body } }),
+  publishPrompt: (id: number) => req<{ ok: boolean }>(`/api/admin/v2/ai/${id}`, { method: 'POST', body: { action: 'publish' } }),
+  archivePrompt: (id: number) => req<{ ok: boolean }>(`/api/admin/v2/ai/${id}`, { method: 'POST', body: { action: 'archive' } }),
+  // CMS
+  listCms: (type?: string) => req<{ items: AdminCmsRow[] }>(`/api/admin/v2/cms${type ? `?type=${encodeURIComponent(type)}` : ''}`),
+  getCms: (id: number) => req<{ item: AdminCmsDetail; versions: any[] }>(`/api/admin/v2/cms/${id}`).then((d) => ({ ...d.item, versions: d.versions })),
+  createCms: (body: { type: string; locale?: string; title?: string; body: string }) => req<{ ok: boolean; id: number }>('/api/admin/v2/cms', { method: 'POST', body }),
+  updateCms: (id: number, body: string, title?: string) => req<{ ok: boolean; version: number }>(`/api/admin/v2/cms/${id}`, { method: 'PATCH', body: { body, title } }),
+  publishCms: (id: number) => req<{ ok: boolean }>(`/api/admin/v2/cms/${id}`, { method: 'POST', body: { action: 'publish' } }),
+  archiveCms: (id: number) => req<{ ok: boolean }>(`/api/admin/v2/cms/${id}`, { method: 'POST', body: { action: 'archive' } }),
   audit: (params: { page?: number; action?: string } = {}) => {
     const s = new URLSearchParams();
     if (params.page) s.set('page', String(params.page));

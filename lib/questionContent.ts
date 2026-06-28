@@ -5,6 +5,7 @@ import { SYSTEM_PROMPT_ASTRA, addLanguageInstruction } from './prompts';
 import { appendLumiaVoice } from './lumiaVoice';
 import { getOpenAIModelForContent } from './appSettings';
 import { buildOpenAIChatParams } from './openaiChat';
+import { resolveActivePrompt } from './admin/contentStore';
 import { db } from './db';
 import { getPremiumEntitlementState } from './contentArchitecture';
 import { normalizeAskLumiaTier } from './contentAccessTier';
@@ -187,7 +188,9 @@ export async function generateAskLumiaAnswer(options: GenerateAskLumiaAnswerOpti
     const { model } = await getQuestionModel(options.tier);
     const completion = await openai.chat.completions.create(buildOpenAIChatParams(model, {
       messages: [
-        { role: 'system', content: SYSTEM_PROMPT_ASTRA },
+        // Промпт можно переопределить из админки (CMS → AI-промпты, ключ chat_system);
+        // если активного override нет — используется код-дефолт (поведение не меняется).
+        { role: 'system', content: await resolveActivePrompt('chat_system', SYSTEM_PROMPT_ASTRA, options.language === 'en' ? 'en' : 'ru') },
         { role: 'user', content: prompt },
       ],
       temperature: options.tier === 'free' ? 0.6 : 0.7,

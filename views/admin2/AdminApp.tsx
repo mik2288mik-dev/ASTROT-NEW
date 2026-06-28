@@ -16,6 +16,10 @@ import {
   type AdminSubscriptionRow,
   type AdminRevenue,
   type AdminPromo,
+  type AdminPromptRow,
+  type AdminPromptDetail,
+  type AdminCmsRow,
+  type AdminCmsDetail,
 } from '../../services/admin2Service';
 
 /**
@@ -24,13 +28,15 @@ import {
  * Меню и действия гейтятся по правам из /api/admin/v2/me (сервер — источник правды).
  */
 
-type SectionId = 'dashboard' | 'users' | 'charts' | 'billing' | 'roles' | 'audit';
+type SectionId = 'dashboard' | 'users' | 'charts' | 'billing' | 'cms' | 'ai' | 'roles' | 'audit';
 
 const NAV: Array<{ id: SectionId; label: string; perm: string; icon: string }> = [
   { id: 'dashboard', label: 'Дашборд', perm: 'analytics.view', icon: 'M4 13h6V4H4v9Zm0 7h6v-5H4v5Zm9 0h7V11h-7v9Zm0-16v5h7V4h-7Z' },
   { id: 'users', label: 'Пользователи', perm: 'users.view', icon: 'M16 11a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm-8 1a3 3 0 1 0-3-3 3 3 0 0 0 3 3Zm0 2c-2.7 0-8 1.3-8 4v2h9v-2c0-1 .4-1.9 1-2.6A14 14 0 0 0 8 14Zm8 0c-3 0-9 1.5-9 4.5V21h18v-2.5c0-3-6-4.5-9-4.5Z' },
   { id: 'charts', label: 'Натальные профили', perm: 'charts.view', icon: 'M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2Zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8Zm1-13h-2v6l5 3 1-1.7-4-2.3Z' },
   { id: 'billing', label: 'Монетизация', perm: 'billing.view', icon: 'M3 6h18v12H3V6Zm2 2v2h14V8H5Zm0 4v4h8v-4H5Z' },
+  { id: 'cms', label: 'Контент', perm: 'content.view', icon: 'M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm2 4v2h10V7H7Zm0 4v2h10v-2H7Zm0 4v2h7v-2H7Z' },
+  { id: 'ai', label: 'AI-промпты', perm: 'ai.view', icon: 'M12 2a2 2 0 0 1 2 2v1h3a2 2 0 0 1 2 2v3h1a2 2 0 0 1 0 4h-1v3a2 2 0 0 1-2 2h-3v-2a2 2 0 0 0-4 0v2H7a2 2 0 0 1-2-2v-3H4a2 2 0 0 1 0-4h1V7a2 2 0 0 1 2-2h3V4a2 2 0 0 1 2-2Z' },
   { id: 'roles', label: 'Роли и доступы', perm: 'roles.manage', icon: 'M12 1 3 5v6c0 5.5 3.8 10.7 9 12 5.2-1.3 9-6.5 9-12V5l-9-4Zm0 10.9h7c-.5 4.1-3.3 7.8-7 8.9V12H5V6.3l7-3.1v8.7Z' },
   { id: 'audit', label: 'Журнал действий', perm: 'audit.view', icon: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm2 16H8v-2h8v2Zm0-4H8v-2h8v2Zm-3-5V3.5L18.5 9H13Z' },
 ];
@@ -552,6 +558,140 @@ function AuditSection() {
   );
 }
 
+// ────────────────────────────── status badge ──────────────────────────────
+function StatusBadge({ status }: { status: string }) {
+  const map: Record<string, string> = {
+    active: 'bg-[#56CA00]/12 text-[#56CA00]', published: 'bg-[#56CA00]/12 text-[#56CA00]',
+    draft: 'bg-[#FFB400]/15 text-[#E6A200]', scheduled: 'bg-[#16B1FF]/12 text-[#16B1FF]',
+    archived: 'bg-slate-100 text-slate-400',
+  };
+  const ru: Record<string, string> = { active: 'активен', published: 'опубликован', draft: 'черновик', scheduled: 'запланирован', archived: 'архив' };
+  return <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${map[status] || 'bg-slate-100 text-slate-500'}`}>{ru[status] || status}</span>;
+}
+
+// ────────────────────────────── AI prompts ──────────────────────────────
+function PromptsSection({ me }: { me: AdminMe }) {
+  const [rows, setRows] = useState<AdminPromptRow[] | null>(null);
+  const [sel, setSel] = useState<AdminPromptDetail | null>(null);
+  const [body, setBody] = useState(''); const [error, setError] = useState<string | null>(null); const [busy, setBusy] = useState(false);
+  const [nkey, setNkey] = useState(''); const [nbody, setNbody] = useState('');
+  const canEdit = me.permissions.includes('ai.edit'); const canPublish = me.permissions.includes('ai.publish');
+  const load = () => admin2.listPrompts().then((d) => setRows(d.prompts)).catch((e) => setError(e.message));
+  useEffect(() => { load(); }, []);
+  const open = async (id: number) => { setError(null); try { const p = await admin2.getPrompt(id); setSel(p); setBody(p.body); } catch (e: any) { setError(e.message); } };
+  const act = async (fn: () => Promise<any>) => { setBusy(true); setError(null); try { await fn(); await load(); if (sel) await open(sel.id); } catch (e: any) { setError(e.message); } finally { setBusy(false); } };
+  return (
+    <div className="space-y-4">
+      {error ? <ErrorNote>{error}</ErrorNote> : null}
+      <p className="text-[13px] text-slate-500">Активный промпт по ключу переопределяет код-дефолт в живой генерации. Уже подключён ключ <b className="text-slate-700">chat_system</b> (чат «Спросить Lumia»).</p>
+      {canEdit ? (
+        <Card title="Новый промпт">
+          <div className="space-y-2">
+            <input className={`${inputCls} w-full`} placeholder="ключ (напр. chat_system)" value={nkey} onChange={(e) => setNkey(e.target.value)} />
+            <textarea className={`${inputCls} h-28 w-full font-mono text-xs`} placeholder="текст промпта…" value={nbody} onChange={(e) => setNbody(e.target.value)} />
+            <button className={btnPrimary} disabled={busy || nkey.trim().length < 3 || !nbody.trim()} onClick={() => act(async () => { await admin2.createPrompt({ key: nkey.trim(), body: nbody.trim() }); setNkey(''); setNbody(''); })}>Создать черновик</button>
+          </div>
+        </Card>
+      ) : null}
+      {sel ? (
+        <div className={`${card} space-y-3`}>
+          <div className="flex items-center justify-between">
+            <div><p className="font-bold text-[#312D4B]">{sel.key} <span className="text-xs text-slate-400">v{sel.version} · {sel.locale}</span></p></div>
+            <div className="flex items-center gap-2"><StatusBadge status={sel.status} /><button className={btnGhost} onClick={() => setSel(null)}>Закрыть</button></div>
+          </div>
+          <textarea className={`${inputCls} h-48 w-full font-mono text-xs`} value={body} onChange={(e) => setBody(e.target.value)} disabled={!canEdit} />
+          <div className="flex flex-wrap gap-2">
+            {canEdit ? <button className={btnGhost} disabled={busy || body === sel.body} onClick={() => act(() => admin2.updatePrompt(sel.id, body))}>Сохранить (новая версия)</button> : null}
+            {canPublish ? <button className={btnPrimary} disabled={busy || sel.status === 'active'} onClick={() => act(() => admin2.publishPrompt(sel.id))}>Опубликовать</button> : null}
+            {canEdit ? <button className={btnGhost} disabled={busy || sel.status === 'archived'} onClick={() => act(() => admin2.archivePrompt(sel.id))}>В архив</button> : null}
+          </div>
+          {!canPublish ? <p className="text-[11px] text-slate-400">Публикация промпта — только у super_admin (ai.publish).</p> : null}
+        </div>
+      ) : null}
+      <div className={tableWrap}>
+        <table className="w-full text-left text-sm">
+          <thead><tr>{['Ключ', 'Тип', 'Версия', 'Статус', ''].map((h, i) => <th key={i} className={th}>{h}</th>)}</tr></thead>
+          <tbody>
+            {(rows || []).map((p) => (
+              <tr key={p.id} className={trow}>
+                <td className={`${td} font-semibold text-[#312D4B]`}>{p.key}</td>
+                <td className={`${td} text-xs`}>{p.type} · {p.locale}</td>
+                <td className={`${td} text-xs`}>v{p.version}</td>
+                <td className={td}><StatusBadge status={p.status} /></td>
+                <td className={td}><button className={btnGhost} onClick={() => open(p.id)}>Открыть</button></td>
+              </tr>
+            ))}
+            {rows && rows.length === 0 ? <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-400">Промптов нет</td></tr> : null}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ────────────────────────────── CMS ──────────────────────────────
+function ContentSection({ me }: { me: AdminMe }) {
+  const [rows, setRows] = useState<AdminCmsRow[] | null>(null);
+  const [sel, setSel] = useState<AdminCmsDetail | null>(null);
+  const [body, setBody] = useState(''); const [title, setTitle] = useState(''); const [error, setError] = useState<string | null>(null); const [busy, setBusy] = useState(false);
+  const [nt, setNt] = useState(''); const [ntitle, setNtitle] = useState(''); const [nbody, setNbody] = useState('');
+  const canEdit = me.permissions.includes('content.edit'); const canPublish = me.permissions.includes('content.publish');
+  const load = () => admin2.listCms().then((d) => setRows(d.items)).catch((e) => setError(e.message));
+  useEffect(() => { load(); }, []);
+  const open = async (id: number) => { setError(null); try { const c = await admin2.getCms(id); setSel(c); setBody(c.body); setTitle(c.title || ''); } catch (e: any) { setError(e.message); } };
+  const act = async (fn: () => Promise<any>) => { setBusy(true); setError(null); try { await fn(); await load(); if (sel) await open(sel.id); } catch (e: any) { setError(e.message); } finally { setBusy(false); } };
+  return (
+    <div className="space-y-4">
+      {error ? <ErrorNote>{error}</ErrorNote> : null}
+      <p className="text-[13px] text-slate-500">Авторский контент: онбординг, paywall, FAQ, тексты пушей и т.п. — со статусами черновик → опубликован → архив и версиями.</p>
+      {canEdit ? (
+        <Card title="Новый материал">
+          <div className="space-y-2">
+            <div className="flex gap-2">
+              <input className={`${inputCls} w-40`} placeholder="тип (faq, paywall…)" value={nt} onChange={(e) => setNt(e.target.value)} />
+              <input className={`${inputCls} flex-1`} placeholder="заголовок" value={ntitle} onChange={(e) => setNtitle(e.target.value)} />
+            </div>
+            <textarea className={`${inputCls} h-24 w-full`} placeholder="текст…" value={nbody} onChange={(e) => setNbody(e.target.value)} />
+            <button className={btnPrimary} disabled={busy || nt.trim().length < 2 || !nbody.trim()} onClick={() => act(async () => { await admin2.createCms({ type: nt.trim(), title: ntitle.trim(), body: nbody.trim() }); setNt(''); setNtitle(''); setNbody(''); })}>Создать черновик</button>
+          </div>
+        </Card>
+      ) : null}
+      {sel ? (
+        <div className={`${card} space-y-3`}>
+          <div className="flex items-center justify-between">
+            <p className="font-bold text-[#312D4B]">{sel.type} <span className="text-xs text-slate-400">v{sel.version} · {sel.locale}</span></p>
+            <div className="flex items-center gap-2"><StatusBadge status={sel.status} /><button className={btnGhost} onClick={() => setSel(null)}>Закрыть</button></div>
+          </div>
+          <input className={`${inputCls} w-full`} placeholder="заголовок" value={title} onChange={(e) => setTitle(e.target.value)} disabled={!canEdit} />
+          <textarea className={`${inputCls} h-40 w-full`} value={body} onChange={(e) => setBody(e.target.value)} disabled={!canEdit} />
+          <div className="flex flex-wrap gap-2">
+            {canEdit ? <button className={btnGhost} disabled={busy || (body === sel.body && title === (sel.title || ''))} onClick={() => act(() => admin2.updateCms(sel.id, body, title))}>Сохранить (новая версия)</button> : null}
+            {canPublish ? <button className={btnPrimary} disabled={busy || sel.status === 'published'} onClick={() => act(() => admin2.publishCms(sel.id))}>Опубликовать</button> : null}
+            {canEdit ? <button className={btnGhost} disabled={busy || sel.status === 'archived'} onClick={() => act(() => admin2.archiveCms(sel.id))}>В архив</button> : null}
+          </div>
+        </div>
+      ) : null}
+      <div className={tableWrap}>
+        <table className="w-full text-left text-sm">
+          <thead><tr>{['Тип', 'Заголовок', 'Версия', 'Статус', ''].map((h, i) => <th key={i} className={th}>{h}</th>)}</tr></thead>
+          <tbody>
+            {(rows || []).map((c) => (
+              <tr key={c.id} className={trow}>
+                <td className={`${td} font-semibold text-[#312D4B]`}>{c.type}</td>
+                <td className={`${td} text-xs`}>{c.title || '—'}</td>
+                <td className={`${td} text-xs`}>v{c.version}</td>
+                <td className={td}><StatusBadge status={c.status} /></td>
+                <td className={td}><button className={btnGhost} onClick={() => open(c.id)}>Открыть</button></td>
+              </tr>
+            ))}
+            {rows && rows.length === 0 ? <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-400">Контента нет</td></tr> : null}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 // ────────────────────────────── Shell ──────────────────────────────
 export const AdminApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [me, setMe] = useState<AdminMe | null>(null);
@@ -623,6 +763,8 @@ export const AdminApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             {active === 'users' && <UsersSection me={me} />}
             {active === 'charts' && <ChartsSection me={me} />}
             {active === 'billing' && <BillingSection me={me} />}
+            {active === 'cms' && <ContentSection me={me} />}
+            {active === 'ai' && <PromptsSection me={me} />}
             {active === 'roles' && <RolesSection />}
             {active === 'audit' && <AuditSection />}
           </main>

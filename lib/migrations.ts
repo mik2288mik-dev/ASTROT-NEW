@@ -2395,6 +2395,72 @@ async function lumia032Monetization(pool: Pool): Promise<void> {
   log.info('Migration lumia_032_monetization applied');
 }
 
+/**
+ * CMS + AI-промпты (Admin v2 Фаза 4). Хранилище авторского контента и промптов с
+ * версионированием и статусами draft/active(published)/archived. Идемпотентно.
+ */
+async function lumia033ContentCms(pool: Pool): Promise<void> {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS ai_prompts (
+      id BIGSERIAL PRIMARY KEY,
+      key TEXT NOT NULL,
+      type TEXT NOT NULL DEFAULT 'chat',
+      locale TEXT NOT NULL DEFAULT 'ru',
+      version INTEGER NOT NULL DEFAULT 1,
+      status TEXT NOT NULL DEFAULT 'draft',
+      body TEXT NOT NULL DEFAULT '',
+      tone_rules JSONB,
+      author_id BIGINT,
+      approved_by BIGINT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS ai_prompt_versions (
+      id BIGSERIAL PRIMARY KEY,
+      prompt_id BIGINT NOT NULL REFERENCES ai_prompts(id) ON DELETE CASCADE,
+      version INTEGER NOT NULL,
+      body TEXT NOT NULL,
+      editor_id BIGINT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_ai_prompts_key ON ai_prompts(key, locale)');
+  await pool.query("CREATE INDEX IF NOT EXISTS idx_ai_prompts_active ON ai_prompts(key, locale) WHERE status = 'active'");
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS cms_content (
+      id BIGSERIAL PRIMARY KEY,
+      type TEXT NOT NULL,
+      locale TEXT NOT NULL DEFAULT 'ru',
+      status TEXT NOT NULL DEFAULT 'draft',
+      title TEXT,
+      body TEXT NOT NULL DEFAULT '',
+      tags TEXT,
+      category TEXT,
+      version INTEGER NOT NULL DEFAULT 1,
+      author_id BIGINT,
+      scheduled_at TIMESTAMP,
+      published_at TIMESTAMP,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS cms_content_versions (
+      id BIGSERIAL PRIMARY KEY,
+      content_id BIGINT NOT NULL REFERENCES cms_content(id) ON DELETE CASCADE,
+      version INTEGER NOT NULL,
+      body TEXT NOT NULL,
+      editor_id BIGINT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_cms_content_type ON cms_content(type, locale, status)');
+  log.info('Migration lumia_033_content_cms applied');
+}
+
 export async function runMigrations(): Promise<void> {
   if (!DATABASE_URL) {
     log.warn('DATABASE_URL not set. Skipping migrations.');
@@ -2454,6 +2520,7 @@ export async function runMigrations(): Promise<void> {
   await lumia030DisableRemovedScenarios(pool);
   await lumia031AdminFoundation(pool);
   await lumia032Monetization(pool);
+  await lumia033ContentCms(pool);
   await syncNotificationCatalogFromSeed(pool);
   await cancelStaleScheduledNotifications(pool);
   await verifyTablesExist(pool);
