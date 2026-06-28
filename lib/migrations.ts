@@ -2461,6 +2461,37 @@ async function lumia033ContentCms(pool: Pool): Promise<void> {
   log.info('Migration lumia_033_content_cms applied');
 }
 
+/** Поддержка/тикеты (Admin v2 Фаза 5). Идемпотентно. */
+async function lumia034Support(pool: Pool): Promise<void> {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS support_tickets (
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT,
+      subject TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'open',
+      priority TEXT NOT NULL DEFAULT 'normal',
+      assignee_id BIGINT,
+      tags TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS support_messages (
+      id BIGSERIAL PRIMARY KEY,
+      ticket_id BIGINT NOT NULL REFERENCES support_tickets(id) ON DELETE CASCADE,
+      author_type TEXT NOT NULL DEFAULT 'user',
+      author_id BIGINT,
+      body TEXT NOT NULL,
+      internal BOOLEAN NOT NULL DEFAULT FALSE,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_support_tickets_status ON support_tickets(status, updated_at DESC)');
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_support_messages_ticket ON support_messages(ticket_id, created_at)');
+  log.info('Migration lumia_034_support applied');
+}
+
 export async function runMigrations(): Promise<void> {
   if (!DATABASE_URL) {
     log.warn('DATABASE_URL not set. Skipping migrations.');
@@ -2521,6 +2552,7 @@ export async function runMigrations(): Promise<void> {
   await lumia031AdminFoundation(pool);
   await lumia032Monetization(pool);
   await lumia033ContentCms(pool);
+  await lumia034Support(pool);
   await syncNotificationCatalogFromSeed(pool);
   await cancelStaleScheduledNotifications(pool);
   await verifyTablesExist(pool);

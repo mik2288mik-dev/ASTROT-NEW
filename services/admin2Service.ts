@@ -100,6 +100,10 @@ export type AdminPromptDetail = AdminPromptRow & { body: string; versions: Array
 export type AdminCmsRow = { id: number; type: string; locale: string; status: string; title: string | null; version: number; category: string | null; updatedAt: string | null; publishedAt: string | null };
 export type AdminCmsDetail = AdminCmsRow & { body: string; versions: Array<{ version: number; body: string; createdAt: string | null }> };
 
+export type AdminTicketRow = { id: number; userId: string | null; userName: string | null; subject: string; status: string; priority: string; messages: number; updatedAt: string | null };
+export type AdminTicketDetail = { ticket: { id: number; userId: string | null; userName: string | null; subject: string; status: string; priority: string }; messages: Array<{ authorType: string; body: string; internal: boolean; createdAt: string | null }> };
+export type AdminSendResult = { ok: boolean; total: number; sent: number; failed: number; capped: boolean };
+
 export type AdminAuditRow = {
   id: number; actorUserId: string | null; actorRole: string | null; action: string;
   entityType: string | null; entityId: string | null; before: unknown; after: unknown;
@@ -184,6 +188,14 @@ export const admin2 = {
   updateCms: (id: number, body: string, title?: string) => req<{ ok: boolean; version: number }>(`/api/admin/v2/cms/${id}`, { method: 'PATCH', body: { body, title } }),
   publishCms: (id: number) => req<{ ok: boolean }>(`/api/admin/v2/cms/${id}`, { method: 'POST', body: { action: 'publish' } }),
   archiveCms: (id: number) => req<{ ok: boolean }>(`/api/admin/v2/cms/${id}`, { method: 'POST', body: { action: 'archive' } }),
+  // Communications
+  sendPush: (body: { mode: 'user' | 'segment'; userId?: string; segment?: string; text: string }) => req<AdminSendResult>('/api/admin/v2/comms/send', { method: 'POST', body }),
+  // Support
+  listTickets: (status = 'all') => req<{ tickets: AdminTicketRow[] }>(`/api/admin/v2/support?status=${encodeURIComponent(status)}`),
+  getTicket: (id: number) => req<AdminTicketDetail>(`/api/admin/v2/support/${id}`),
+  createTicket: (body: { userId?: string; subject?: string; body: string }) => req<{ ok: boolean; id: number }>('/api/admin/v2/support', { method: 'POST', body }),
+  replyTicket: (id: number, body: string, internal = false) => req<{ ok: boolean }>(`/api/admin/v2/support/${id}`, { method: 'POST', body: { action: 'reply', body, internal } }),
+  setTicketStatus: (id: number, status: string) => req<{ ok: boolean }>(`/api/admin/v2/support/${id}`, { method: 'POST', body: { action: 'status', status } }),
   audit: (params: { page?: number; action?: string } = {}) => {
     const s = new URLSearchParams();
     if (params.page) s.set('page', String(params.page));

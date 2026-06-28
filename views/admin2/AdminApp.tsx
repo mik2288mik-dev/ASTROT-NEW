@@ -20,6 +20,9 @@ import {
   type AdminPromptDetail,
   type AdminCmsRow,
   type AdminCmsDetail,
+  type AdminTicketRow,
+  type AdminTicketDetail,
+  type AdminSendResult,
 } from '../../services/admin2Service';
 
 /**
@@ -28,7 +31,7 @@ import {
  * Меню и действия гейтятся по правам из /api/admin/v2/me (сервер — источник правды).
  */
 
-type SectionId = 'dashboard' | 'users' | 'charts' | 'billing' | 'cms' | 'ai' | 'roles' | 'audit';
+type SectionId = 'dashboard' | 'users' | 'charts' | 'billing' | 'cms' | 'ai' | 'comms' | 'support' | 'roles' | 'audit';
 
 const NAV: Array<{ id: SectionId; label: string; perm: string; icon: string }> = [
   { id: 'dashboard', label: 'Дашборд', perm: 'analytics.view', icon: 'M4 13h6V4H4v9Zm0 7h6v-5H4v5Zm9 0h7V11h-7v9Zm0-16v5h7V4h-7Z' },
@@ -37,6 +40,8 @@ const NAV: Array<{ id: SectionId; label: string; perm: string; icon: string }> =
   { id: 'billing', label: 'Монетизация', perm: 'billing.view', icon: 'M3 6h18v12H3V6Zm2 2v2h14V8H5Zm0 4v4h8v-4H5Z' },
   { id: 'cms', label: 'Контент', perm: 'content.view', icon: 'M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm2 4v2h10V7H7Zm0 4v2h10v-2H7Zm0 4v2h7v-2H7Z' },
   { id: 'ai', label: 'AI-промпты', perm: 'ai.view', icon: 'M12 2a2 2 0 0 1 2 2v1h3a2 2 0 0 1 2 2v3h1a2 2 0 0 1 0 4h-1v3a2 2 0 0 1-2 2h-3v-2a2 2 0 0 0-4 0v2H7a2 2 0 0 1-2-2v-3H4a2 2 0 0 1 0-4h1V7a2 2 0 0 1 2-2h3V4a2 2 0 0 1 2-2Z' },
+  { id: 'comms', label: 'Рассылки', perm: 'push.send', icon: 'M2 4l20 8-20 8 4-8-4-8Zm4 8H2' },
+  { id: 'support', label: 'Поддержка', perm: 'support.view', icon: 'M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2ZM7 9h10v2H7V9Zm0 4h7v2H7v-2Z' },
   { id: 'roles', label: 'Роли и доступы', perm: 'roles.manage', icon: 'M12 1 3 5v6c0 5.5 3.8 10.7 9 12 5.2-1.3 9-6.5 9-12V5l-9-4Zm0 10.9h7c-.5 4.1-3.3 7.8-7 8.9V12H5V6.3l7-3.1v8.7Z' },
   { id: 'audit', label: 'Журнал действий', perm: 'audit.view', icon: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm2 16H8v-2h8v2Zm0-4H8v-2h8v2Zm-3-5V3.5L18.5 9H13Z' },
 ];
@@ -692,6 +697,113 @@ function ContentSection({ me }: { me: AdminMe }) {
   );
 }
 
+// ────────────────────────────── Communications ──────────────────────────────
+function CommsSection() {
+  const [mode, setMode] = useState<'segment' | 'user'>('segment');
+  const [segment, setSegment] = useState('all');
+  const [userId, setUserId] = useState('');
+  const [text, setText] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [out, setOut] = useState<AdminSendResult | null>(null);
+  const segments = [['all', 'Все'], ['premium', 'Премиум'], ['free', 'Бесплатные'], ['active_7d', 'Активные 7д'], ['inactive_7d', 'Неактивные 7д'], ['need_attention', 'Требуют внимания']];
+  const send = async () => {
+    const isBroadcast = mode === 'segment';
+    if (isBroadcast && !window.confirm(`Отправить пуш сегменту «${segment}»? Это массовая рассылка.`)) return;
+    setBusy(true); setError(null); setOut(null);
+    try { setOut(await admin2.sendPush({ mode, segment, userId, text })); }
+    catch (e: any) { setError(e.message); } finally { setBusy(false); }
+  };
+  return (
+    <div className="space-y-4">
+      <Card title="Ручная рассылка">
+        <div className="space-y-3">
+          <div className="flex gap-2">
+            <button className={`rounded-full px-4 py-2 text-sm font-semibold ${mode === 'segment' ? 'bg-[#8C57FF] text-white' : 'bg-white text-slate-500 border border-slate-200'}`} onClick={() => setMode('segment')}>Сегмент</button>
+            <button className={`rounded-full px-4 py-2 text-sm font-semibold ${mode === 'user' ? 'bg-[#8C57FF] text-white' : 'bg-white text-slate-500 border border-slate-200'}`} onClick={() => setMode('user')}>Один юзер</button>
+          </div>
+          {mode === 'segment'
+            ? <select className={`${inputCls} w-full`} value={segment} onChange={(e) => setSegment(e.target.value)}>{segments.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
+            : <input className={`${inputCls} w-full`} placeholder="Telegram user ID" value={userId} onChange={(e) => setUserId(e.target.value)} />}
+          <textarea className={`${inputCls} h-32 w-full`} placeholder="Текст пуша…" value={text} onChange={(e) => setText(e.target.value)} />
+          <button className={btnPrimary} disabled={busy || text.trim().length < 3 || (mode === 'user' && !userId.trim())} onClick={send}>{busy ? 'Отправляю…' : 'Отправить'}</button>
+          {error ? <ErrorNote>{error}</ErrorNote> : null}
+          {out ? <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-3 text-sm text-emerald-700">Отправлено: <b>{out.sent}</b> · ошибок: {out.failed} · всего {out.total}{out.capped ? ' (лимит 300 — для бóльших используйте авто-сценарии)' : ''}</div> : null}
+        </div>
+      </Card>
+      <p className="text-[13px] text-slate-500">Это ручная рассылка. Регулярные авто-уведомления (ретеншн) идут отдельным движком и здесь не настраиваются.</p>
+    </div>
+  );
+}
+
+// ────────────────────────────── Support ──────────────────────────────
+function SupportSection({ me }: { me: AdminMe }) {
+  const [rows, setRows] = useState<AdminTicketRow[] | null>(null);
+  const [filter, setFilter] = useState('open');
+  const [sel, setSel] = useState<AdminTicketDetail | null>(null);
+  const [reply, setReply] = useState(''); const [internal, setInternal] = useState(false);
+  const [error, setError] = useState<string | null>(null); const [busy, setBusy] = useState(false);
+  const canAct = me.permissions.includes('support.act');
+  const load = () => admin2.listTickets(filter).then((d) => setRows(d.tickets)).catch((e) => setError(e.message));
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [filter]);
+  const open = async (id: number) => { setError(null); try { setSel(await admin2.getTicket(id)); } catch (e: any) { setError(e.message); } };
+  const act = async (fn: () => Promise<any>) => { setBusy(true); setError(null); try { await fn(); await load(); if (sel) await open(sel.ticket.id); } catch (e: any) { setError(e.message); } finally { setBusy(false); } };
+  return (
+    <div className="space-y-4">
+      {error ? <ErrorNote>{error}</ErrorNote> : null}
+      <div className="flex gap-1.5">
+        {[['open', 'Открытые'], ['pending', 'В ожидании'], ['closed', 'Закрытые'], ['all', 'Все']].map(([v, l]) => (
+          <button key={v} onClick={() => setFilter(v)} className={`rounded-full px-3.5 py-1.5 text-sm font-semibold ${filter === v ? 'bg-[#8C57FF] text-white' : 'bg-white text-slate-500'}`}>{l}</button>
+        ))}
+      </div>
+      {sel ? (
+        <div className={`${card} space-y-3`}>
+          <div className="flex items-center justify-between">
+            <div><p className="font-bold text-[#312D4B]">{sel.ticket.subject}</p><p className="text-xs text-slate-400">#{sel.ticket.id} · {sel.ticket.userName || sel.ticket.userId || 'гость'}</p></div>
+            <div className="flex items-center gap-2"><StatusBadge status={sel.ticket.status} /><button className={btnGhost} onClick={() => setSel(null)}>Закрыть</button></div>
+          </div>
+          <div className="max-h-72 space-y-2 overflow-y-auto rounded-2xl bg-slate-50 p-3">
+            {sel.messages.map((m, i) => (
+              <div key={i} className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm ${m.authorType === 'admin' ? 'ml-auto bg-[#8C57FF] text-white' : 'bg-white text-slate-700 shadow-sm'}`}>
+                {m.internal ? <span className="mr-1 rounded bg-amber-100 px-1 text-[10px] text-amber-700">внутр.</span> : null}{m.body}
+              </div>
+            ))}
+            {sel.messages.length === 0 ? <p className="text-xs text-slate-400">Нет сообщений</p> : null}
+          </div>
+          {canAct ? (
+            <div className="space-y-2">
+              <textarea className={`${inputCls} h-20 w-full`} placeholder="Ответ пользователю…" value={reply} onChange={(e) => setReply(e.target.value)} />
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="flex items-center gap-1.5 text-xs text-slate-500"><input type="checkbox" checked={internal} onChange={(e) => setInternal(e.target.checked)} /> внутренняя заметка</label>
+                <button className={btnPrimary} disabled={busy || reply.trim().length < 1} onClick={() => act(async () => { await admin2.replyTicket(sel.ticket.id, reply.trim(), internal); setReply(''); })}>Ответить</button>
+                <button className={btnGhost} disabled={busy} onClick={() => act(() => admin2.setTicketStatus(sel.ticket.id, 'closed'))}>Закрыть тикет</button>
+                <button className={btnGhost} disabled={busy} onClick={() => act(() => admin2.setTicketStatus(sel.ticket.id, 'open'))}>Открыть</button>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+      <div className={tableWrap}>
+        <table className="w-full text-left text-sm">
+          <thead><tr>{['Тема', 'Юзер', 'Сообщ.', 'Статус', ''].map((h, i) => <th key={i} className={th}>{h}</th>)}</tr></thead>
+          <tbody>
+            {(rows || []).map((t) => (
+              <tr key={t.id} className={trow}>
+                <td className={`${td} font-semibold text-[#312D4B]`}>{t.subject}</td>
+                <td className={`${td} text-xs`}>{t.userName || t.userId || 'гость'}</td>
+                <td className={`${td} text-xs`}>{t.messages}</td>
+                <td className={td}><StatusBadge status={t.status} /></td>
+                <td className={td}><button className={btnGhost} onClick={() => open(t.id)}>Открыть</button></td>
+              </tr>
+            ))}
+            {rows && rows.length === 0 ? <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-400">Тикетов нет</td></tr> : null}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 // ────────────────────────────── Shell ──────────────────────────────
 export const AdminApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [me, setMe] = useState<AdminMe | null>(null);
@@ -765,6 +877,8 @@ export const AdminApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             {active === 'billing' && <BillingSection me={me} />}
             {active === 'cms' && <ContentSection me={me} />}
             {active === 'ai' && <PromptsSection me={me} />}
+            {active === 'comms' && <CommsSection />}
+            {active === 'support' && <SupportSection me={me} />}
             {active === 'roles' && <RolesSection />}
             {active === 'audit' && <AuditSection />}
           </main>
