@@ -6,6 +6,7 @@ import { appendLumiaVoice } from './lumiaVoice';
 import { getOpenAIModelForContent } from './appSettings';
 import { buildOpenAIChatParams } from './openaiChat';
 import { resolveActivePrompt } from './admin/contentStore';
+import { getFlagBool } from './admin/featureFlags';
 import { db } from './db';
 import { getPremiumEntitlementState } from './contentArchitecture';
 import { normalizeAskLumiaTier } from './contentAccessTier';
@@ -180,7 +181,8 @@ export { normalizeAskLumiaTier };
 export async function generateAskLumiaAnswer(options: GenerateAskLumiaAnswerOptions): Promise<string> {
   const prompt = addLanguageInstruction(buildAskLumiaPrompt(options), options.language);
 
-  if (!openai) {
+  // Глобальный рубильник AI-генерации из админки (feature flag). Off → нон-AI фолбэк.
+  if (!openai || !(await getFlagBool('ai_generation_enabled', true))) {
     return buildQuestionFallback(options.question, options.language, options.tier);
   }
 

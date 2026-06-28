@@ -103,6 +103,7 @@ export type AdminCmsDetail = AdminCmsRow & { body: string; versions: Array<{ ver
 export type AdminTicketRow = { id: number; userId: string | null; userName: string | null; subject: string; status: string; priority: string; messages: number; updatedAt: string | null };
 export type AdminTicketDetail = { ticket: { id: number; userId: string | null; userName: string | null; subject: string; status: string; priority: string }; messages: Array<{ authorType: string; body: string; internal: boolean; createdAt: string | null }> };
 export type AdminSendResult = { ok: boolean; total: number; sent: number; failed: number; capped: boolean };
+export type AdminFlag = { key: string; value: any; description: string | null; updatedAt: string | null };
 
 export type AdminAuditRow = {
   id: number; actorUserId: string | null; actorRole: string | null; action: string;
@@ -196,6 +197,10 @@ export const admin2 = {
   createTicket: (body: { userId?: string; subject?: string; body: string }) => req<{ ok: boolean; id: number }>('/api/admin/v2/support', { method: 'POST', body }),
   replyTicket: (id: number, body: string, internal = false) => req<{ ok: boolean }>(`/api/admin/v2/support/${id}`, { method: 'POST', body: { action: 'reply', body, internal } }),
   setTicketStatus: (id: number, status: string) => req<{ ok: boolean }>(`/api/admin/v2/support/${id}`, { method: 'POST', body: { action: 'status', status } }),
+  // Settings / feature flags
+  listFlags: () => req<{ flags: AdminFlag[] }>('/api/admin/v2/settings'),
+  setFlag: (key: string, value: any, description?: string) => req<{ ok: boolean }>('/api/admin/v2/settings', { method: 'PUT', body: { key, value, description } }),
+  deleteFlag: (key: string) => req<{ ok: boolean }>('/api/admin/v2/settings', { method: 'DELETE', body: { key } }),
   audit: (params: { page?: number; action?: string } = {}) => {
     const s = new URLSearchParams();
     if (params.page) s.set('page', String(params.page));

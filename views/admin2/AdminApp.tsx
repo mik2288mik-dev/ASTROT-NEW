@@ -23,6 +23,7 @@ import {
   type AdminTicketRow,
   type AdminTicketDetail,
   type AdminSendResult,
+  type AdminFlag,
 } from '../../services/admin2Service';
 
 /**
@@ -31,7 +32,7 @@ import {
  * Меню и действия гейтятся по правам из /api/admin/v2/me (сервер — источник правды).
  */
 
-type SectionId = 'dashboard' | 'users' | 'charts' | 'billing' | 'cms' | 'ai' | 'comms' | 'support' | 'roles' | 'audit';
+type SectionId = 'dashboard' | 'users' | 'charts' | 'billing' | 'cms' | 'ai' | 'comms' | 'support' | 'roles' | 'audit' | 'settings';
 
 const NAV: Array<{ id: SectionId; label: string; perm: string; icon: string }> = [
   { id: 'dashboard', label: 'Дашборд', perm: 'analytics.view', icon: 'M4 13h6V4H4v9Zm0 7h6v-5H4v5Zm9 0h7V11h-7v9Zm0-16v5h7V4h-7Z' },
@@ -44,6 +45,7 @@ const NAV: Array<{ id: SectionId; label: string; perm: string; icon: string }> =
   { id: 'support', label: 'Поддержка', perm: 'support.view', icon: 'M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2ZM7 9h10v2H7V9Zm0 4h7v2H7v-2Z' },
   { id: 'roles', label: 'Роли и доступы', perm: 'roles.manage', icon: 'M12 1 3 5v6c0 5.5 3.8 10.7 9 12 5.2-1.3 9-6.5 9-12V5l-9-4Zm0 10.9h7c-.5 4.1-3.3 7.8-7 8.9V12H5V6.3l7-3.1v8.7Z' },
   { id: 'audit', label: 'Журнал действий', perm: 'audit.view', icon: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm2 16H8v-2h8v2Zm0-4H8v-2h8v2Zm-3-5V3.5L18.5 9H13Z' },
+  { id: 'settings', label: 'Настройки', perm: 'settings.manage', icon: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm9 4-2 1.5.3 2.5-2.4 1-1.6 2-2.4-.6L11 22l-1.9-1.6-2.4.6-1.6-2-2.4-1 .3-2.5L1 12l2-1.5-.3-2.5 2.4-1 1.6-2 2.4.6L11 2l1.9 1.6 2.4-.6 1.6 2 2.4 1-.3 2.5L21 12Z' },
 ];
 
 const ROLE_LABEL: Record<AdminRole, string> = {
@@ -804,6 +806,50 @@ function SupportSection({ me }: { me: AdminMe }) {
   );
 }
 
+// ────────────────────────────── Settings (feature flags) ──────────────────────────────
+function SettingsSection() {
+  const [flags, setFlags] = useState<AdminFlag[] | null>(null);
+  const [error, setError] = useState<string | null>(null); const [busy, setBusy] = useState(false);
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [nk, setNk] = useState(''); const [nv, setNv] = useState('false'); const [nd, setNd] = useState('');
+  const load = () => admin2.listFlags().then((d) => { setFlags(d.flags); setDrafts(Object.fromEntries(d.flags.map((f) => [f.key, JSON.stringify(f.value)]))); }).catch((e) => setError(e.message));
+  useEffect(() => { load(); }, []);
+  const save = async (key: string, raw: string, description?: string) => {
+    let value: any;
+    try { value = JSON.parse(raw); } catch { setError(`Некорректный JSON для ${key} (примеры: true, false, 30, "текст")`); return; }
+    setBusy(true); setError(null);
+    try { await admin2.setFlag(key, value, description); await load(); } catch (e: any) { setError(e.message); } finally { setBusy(false); }
+  };
+  return (
+    <div className="space-y-4">
+      {error ? <ErrorNote>{error}</ErrorNote> : null}
+      <p className="text-[13px] text-slate-500">Feature flags управляют поведением приложения в рантайме. Уже работает <b className="text-slate-700">ai_generation_enabled</b> — глобальный рубильник AI-чата (off → честный нон-AI ответ). Значение — JSON (<code>true</code>, <code>false</code>, число, строка).</p>
+      <Card title="Новый флаг">
+        <div className="flex flex-wrap items-end gap-2">
+          <input className={`${inputCls} w-44`} placeholder="ключ (a-z 0-9 _)" value={nk} onChange={(e) => setNk(e.target.value)} />
+          <input className={`${inputCls} w-28`} placeholder="JSON" value={nv} onChange={(e) => setNv(e.target.value)} />
+          <input className={`${inputCls} flex-1`} placeholder="описание" value={nd} onChange={(e) => setNd(e.target.value)} />
+          <button className={btnPrimary} disabled={busy || nk.trim().length < 2} onClick={async () => { await save(nk.trim(), nv, nd); setNk(''); setNv('false'); setNd(''); }}>Добавить</button>
+        </div>
+      </Card>
+      <div className="space-y-2">
+        {(flags || []).map((f) => (
+          <div key={f.key} className={`${card} flex flex-wrap items-center gap-2`}>
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold text-[#312D4B]">{f.key}</p>
+              {f.description ? <p className="text-[12px] text-slate-400">{f.description}</p> : null}
+            </div>
+            <input className={`${inputCls} w-40 font-mono text-xs`} value={drafts[f.key] ?? ''} onChange={(e) => setDrafts((d) => ({ ...d, [f.key]: e.target.value }))} />
+            <button className={btnPrimary} disabled={busy} onClick={() => save(f.key, drafts[f.key] ?? '', f.description || undefined)}>Сохранить</button>
+            <button className={btnGhost} disabled={busy} onClick={async () => { if (window.confirm(`Удалить флаг ${f.key}?`)) { setBusy(true); try { await admin2.deleteFlag(f.key); await load(); } catch (e: any) { setError(e.message); } finally { setBusy(false); } } }}>Удалить</button>
+          </div>
+        ))}
+        {flags && flags.length === 0 ? <Card><p className="text-center text-sm text-slate-400">Флагов нет</p></Card> : null}
+      </div>
+    </div>
+  );
+}
+
 // ────────────────────────────── Shell ──────────────────────────────
 export const AdminApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [me, setMe] = useState<AdminMe | null>(null);
@@ -881,6 +927,7 @@ export const AdminApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             {active === 'support' && <SupportSection me={me} />}
             {active === 'roles' && <RolesSection />}
             {active === 'audit' && <AuditSection />}
+            {active === 'settings' && <SettingsSection />}
           </main>
         ) : (!error ? <p className="p-6 text-sm text-slate-400">Загрузка…</p> : null)}
       </div>

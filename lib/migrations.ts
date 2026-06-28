@@ -2492,6 +2492,28 @@ async function lumia034Support(pool: Pool): Promise<void> {
   log.info('Migration lumia_034_support applied');
 }
 
+/** Feature flags / настройки (Admin v2 Фаза 6). Идемпотентно. */
+async function lumia035FeatureFlags(pool: Pool): Promise<void> {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS feature_flags (
+      key TEXT PRIMARY KEY,
+      value JSONB NOT NULL DEFAULT 'true'::jsonb,
+      description TEXT,
+      updated_by BIGINT,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+  // Базовые флаги (не перетираем, если уже заданы).
+  await pool.query(
+    `INSERT INTO feature_flags (key, value, description) VALUES
+       ('ai_generation_enabled', 'true'::jsonb, 'Глобальный рубильник AI-генерации (чат). Off → честный нон-AI фолбэк.'),
+       ('maintenance_mode', 'false'::jsonb, 'Режим обслуживания (для будущего экрана техработ).'),
+       ('min_app_version', '""'::jsonb, 'Минимальная версия приложения (для native).')
+     ON CONFLICT (key) DO NOTHING`
+  );
+  log.info('Migration lumia_035_feature_flags applied');
+}
+
 export async function runMigrations(): Promise<void> {
   if (!DATABASE_URL) {
     log.warn('DATABASE_URL not set. Skipping migrations.');
@@ -2553,6 +2575,7 @@ export async function runMigrations(): Promise<void> {
   await lumia032Monetization(pool);
   await lumia033ContentCms(pool);
   await lumia034Support(pool);
+  await lumia035FeatureFlags(pool);
   await syncNotificationCatalogFromSeed(pool);
   await cancelStaleScheduledNotifications(pool);
   await verifyTablesExist(pool);
