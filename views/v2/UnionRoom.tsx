@@ -270,12 +270,12 @@ export function UnionRoom(props: UnionRoomProps) {
   /* ── ХАБ ── */
   if (screen === 'hub') {
     return (
-      <div className="fresh-page">
+      <div className="fresh-page compat-hub-page">
         <FreshInnerHeader title={ru ? 'Совместимость' : 'Compatibility'} />
-        <p style={{ padding: '0 20px 16px', fontSize: 14, lineHeight: 1.5, color: 'var(--fresh-muted)' }}>
+        <p className="compat-hub-intro">
           {ru ? 'Сравни по знакам за секунду — или разбери конкретного человека по дате рождения.' : 'Compare by signs in a second — or read a specific person by birth date.'}
         </p>
-        <div style={{ padding: '0 20px 12px' }}>
+        <div className="compat-info-wrap">
           <InfoNote title={ru ? 'Как считается совместимость?' : 'How is compatibility calculated?'}>
             {ru
               ? 'Быстрая проверка — по знакам Солнца обоих: это общий фон характеров. Точный разбор строится по двум натальным картам, когда добавляешь дату (а лучше время и место) рождения человека.'
@@ -292,7 +292,7 @@ export function UnionRoom(props: UnionRoomProps) {
             <span className="compat-chip compat-chip--them"><ZodiacIcon sign={pickSign} size={18} /> {getZodiacSign(lang, pickSign)}</span>
           </div>
           <FreshSignWheel signs={ZODIAC_KEYS} active={pickSign} language={profile.language} onPick={(s) => { lumiaSelectionHaptic(); setPickSign(s); }} />
-          <button type="button" className="fresh-btn-primary" style={{ margin: '4px 0 0', width: '100%' }} onClick={() => openResult({ kind: 'sign', sign: pickSign })}>
+          <button type="button" className="fresh-btn-primary compat-check-btn" onClick={() => openResult({ kind: 'sign', sign: pickSign })}>
             {ru ? 'Проверить' : 'Check'}
           </button>
         </div>

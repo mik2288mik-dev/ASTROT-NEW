@@ -21,10 +21,18 @@ interface Props {
 }
 
 const SIGN_BG: Record<string, string> = {
-  aries: 'var(--fresh-coral)', leo: 'var(--fresh-coral)', sagittarius: 'var(--fresh-coral)',
-  taurus: 'var(--fresh-mint)', virgo: 'var(--fresh-mint)', capricorn: 'var(--fresh-mint)',
-  gemini: 'var(--fresh-sky)', libra: 'var(--fresh-sky)', aquarius: 'var(--fresh-sky)',
-  cancer: 'var(--fresh-lavender)', scorpio: 'var(--fresh-lavender)', pisces: 'var(--fresh-lavender)',
+  aries: 'linear-gradient(135deg, #FF4D2E 0%, #FF8A00 54%, #FFE143 100%)',
+  leo: 'linear-gradient(135deg, #FF7A00 0%, #FF3D6E 56%, #FFEA3D 100%)',
+  sagittarius: 'linear-gradient(135deg, #FF3D4F 0%, #A855F7 48%, #27D5FF 100%)',
+  taurus: 'linear-gradient(135deg, #17D45B 0%, #C8FF2E 52%, #00B8FF 100%)',
+  virgo: 'linear-gradient(135deg, #00C853 0%, #FFE044 50%, #FF7A1A 100%)',
+  capricorn: 'linear-gradient(135deg, #1EE88A 0%, #111827 54%, #73F000 100%)',
+  gemini: 'linear-gradient(135deg, #1B7CFF 0%, #00E0FF 48%, #FFE43D 100%)',
+  libra: 'linear-gradient(135deg, #00B8FF 0%, #7C3DFF 52%, #FF4FD8 100%)',
+  aquarius: 'linear-gradient(135deg, #006BFF 0%, #00F0FF 50%, #7CFF4D 100%)',
+  cancer: 'linear-gradient(135deg, #FF4FB8 0%, #8B5CFF 48%, #3DDCFF 100%)',
+  scorpio: 'linear-gradient(135deg, #FF2D55 0%, #7C2DFF 52%, #111827 100%)',
+  pisces: 'linear-gradient(135deg, #19D3FF 0%, #8B5CFF 52%, #FF55C7 100%)',
 };
 
 const SIGN_ELEMENT: Record<string, { ru: string; en: string }> = {
