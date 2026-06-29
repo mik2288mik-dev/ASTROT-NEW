@@ -4,6 +4,22 @@ import { getTelegramInitDataHeaders } from './sessionService';
 
 const API_BASE = typeof window !== 'undefined' ? '' : process.env.NEXT_PUBLIC_API_URL || '';
 
+type PaymentPlanView = {
+  days: number;
+  stars: number;
+};
+
+function paymentCopy(plan: PaymentPlanView) {
+  const periodRu = plan.days >= 365 ? 'год' : plan.days >= 90 ? '3 месяца' : plan.days >= 30 ? 'месяц' : `${plan.days} дней`;
+  const periodEn = plan.days >= 365 ? '1 year' : plan.days >= 90 ? '3 months' : plan.days >= 30 ? '1 month' : `${plan.days} days`;
+  return {
+    titleRu: `Lumia Premium · ${periodRu}`,
+    descRu: `Полный доступ на ${periodRu} за ${plan.stars} Stars`,
+    titleEn: `Lumia Premium · ${periodEn}`,
+    descEn: `Full access for ${periodEn} for ${plan.stars} Stars`,
+  };
+}
+
 /**
  * Request Premium payment via Telegram Stars for a given plan.
  * - With BOT_TOKEN: creates real invoice, opens via openInvoice
@@ -17,13 +33,6 @@ export const requestStarsPayment = async (profile: UserProfile, planId: PremiumP
   }
 
   const tg = (window as any).Telegram?.WebApp;
-  const plan = PREMIUM_PLANS[planId] || PREMIUM_PLANS.premium_week;
-  const periodRu = plan.days >= 365 ? 'год' : plan.days >= 90 ? '3 месяца' : plan.days >= 30 ? 'месяц' : `${plan.days} дней`;
-  const periodEn = plan.days >= 365 ? '1 year' : plan.days >= 90 ? '3 months' : plan.days >= 30 ? '1 month' : `${plan.days} days`;
-  const TITLE_RU = `Lumia Premium · ${periodRu}`;
-  const DESC_RU = `Полный доступ на ${periodRu} за ${plan.stars} Stars`;
-  const TITLE_EN = `Lumia Premium · ${periodEn}`;
-  const DESC_EN = `Full access for ${periodEn} for ${plan.stars} Stars`;
 
   try {
     const res = await fetch(`${API_BASE}/api/telegram/create-invoice`, {
@@ -46,7 +55,11 @@ export const requestStarsPayment = async (profile: UserProfile, planId: PremiumP
     }
 
     if (data.simMode) {
-      return simPaymentFlow(tg, profile, TITLE_RU, DESC_RU, TITLE_EN, DESC_EN, userId, planId);
+      const plan = data.plan && typeof data.plan === 'object'
+        ? data.plan as PaymentPlanView
+        : (PREMIUM_PLANS[planId] || PREMIUM_PLANS.premium_week);
+      const copy = paymentCopy(plan);
+      return simPaymentFlow(tg, profile, copy.titleRu, copy.descRu, copy.titleEn, copy.descEn, userId, planId, plan.stars);
     }
 
     console.warn('[TelegramService] No invoice URL and not sim mode');
@@ -65,9 +78,9 @@ async function simPaymentFlow(
   titleEn: string,
   descEn: string,
   userId: string,
-  planId: PremiumPlanId
+  planId: PremiumPlanId,
+  stars: number
 ): Promise<boolean> {
-  const stars = (PREMIUM_PLANS[planId] || PREMIUM_PLANS.premium_week).stars;
   if (!tg) {
     return new Promise((resolve) => {
       const ok = window.confirm(`Simulate Payment: ${descEn}?`);

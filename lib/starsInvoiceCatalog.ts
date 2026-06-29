@@ -1,4 +1,4 @@
-import { PREMIUM_WEEK_DAYS, PREMIUM_WEEK_STARS, PREMIUM_PLANS, getPremiumPlan, type PremiumPlanId } from './premiumPricing';
+import { PREMIUM_WEEK_DAYS, PREMIUM_WEEK_STARS, PREMIUM_PLANS, getPremiumPlan, type PremiumPlan, type PremiumPlanId } from './premiumPricing';
 
 export { PREMIUM_WEEK_STARS, PREMIUM_WEEK_DAYS };
 
@@ -8,6 +8,7 @@ export type ParsedStarsInvoicePayload = {
   userId: string;
   type: StarsInvoiceType;
   starsAmount: number;
+  durationDays: number | null;
   nonce: string | null;
   raw: Record<string, unknown>;
 };
@@ -34,11 +35,14 @@ export function parseInvoicePayload(rawPayload: string): ParsedStarsInvoicePaylo
 
     const amountRaw = raw.a ?? raw.starsAmount;
     const starsAmount = Number(amountRaw ?? getStarsAmountForInvoiceType(type));
+    const durationDaysRaw = raw.d ?? raw.durationDays;
+    const parsedDurationDays = durationDaysRaw != null ? Number(durationDaysRaw) : NaN;
 
     return {
       userId,
       type,
       starsAmount,
+      durationDays: Number.isFinite(parsedDurationDays) && parsedDurationDays > 0 ? Math.round(parsedDurationDays) : null,
       nonce: raw.n != null ? String(raw.n) : raw.nonce != null ? String(raw.nonce) : null,
       raw,
     };
@@ -59,14 +63,26 @@ export function buildInvoicePayload(input: BuildInvoiceInput): {
   description: string;
   label: string;
 } {
+  const plan = getPremiumPlan(input.type) || PREMIUM_PLANS.premium_week;
+  return buildInvoicePayloadForPlan(input, plan);
+}
+
+export function buildInvoicePayloadForPlan(input: BuildInvoiceInput, plan: PremiumPlan): {
+  payload: Record<string, unknown>;
+  starsAmount: number;
+  title: string;
+  description: string;
+  label: string;
+} {
   const userId = String(input.userId).trim();
   const type = input.type;
-  const starsAmount = getStarsAmountForInvoiceType(type);
+  const starsAmount = plan.stars;
 
   const payload: Record<string, unknown> = {
     u: userId,
     t: type,
     a: starsAmount,
+    d: plan.days,
     n: Date.now(),
   };
 
@@ -75,7 +91,7 @@ export function buildInvoicePayload(input: BuildInvoiceInput): {
     throw new Error('PAYLOAD_TOO_LONG');
   }
 
-  const productCopy = getInvoiceCopy(type);
+  const productCopy = getInvoiceCopy(plan);
 
   return {
     payload,
@@ -84,8 +100,7 @@ export function buildInvoicePayload(input: BuildInvoiceInput): {
   };
 }
 
-function getInvoiceCopy(type: StarsInvoiceType) {
-  const plan = getPremiumPlan(type) || PREMIUM_PLANS.premium_week;
+function getInvoiceCopy(plan: PremiumPlan) {
   return {
     title: 'Lumia Premium',
     description: `Full access for ${plan.days} days`,

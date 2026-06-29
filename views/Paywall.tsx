@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { UserProfile } from '../types';
-import { PREMIUM_PLANS, type PremiumPlanId } from '../lib/premiumPricing';
+import { PREMIUM_PLANS, type PremiumPlan, type PremiumPlanId } from '../lib/premiumPricing';
 import { lumiaSelectionHaptic } from '../lib/haptics';
 
 interface PaywallProps {
@@ -12,6 +12,12 @@ interface PaywallProps {
 }
 
 const ORDER: PremiumPlanId[] = ['premium_month', 'premium_quarter', 'premium_year'];
+
+type PaywallPlan = PremiumPlan & {
+  isActive?: boolean;
+  sortOrder?: number;
+  badge?: string | null;
+};
 
 const PERIOD: Record<PremiumPlanId, { ru: string; en: string }> = {
   premium_week: { ru: 'Неделя', en: '1 week' },
@@ -39,6 +45,34 @@ export const Paywall: React.FC<PaywallProps> = ({ profile, onPurchase, onClose, 
   const ru = profile.language !== 'en';
   const [selected, setSelected] = useState<PremiumPlanId>('premium_year');
   const [paying, setPaying] = useState(false);
+  const [plans, setPlans] = useState<Record<PremiumPlanId, PaywallPlan>>(PREMIUM_PLANS);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/subscriptions/plans')
+      .then((res) => res.ok ? res.json() : null)
+      .then((payload) => {
+        if (cancelled || !Array.isArray(payload?.plans)) return;
+        const next = { ...PREMIUM_PLANS } as Record<PremiumPlanId, PaywallPlan>;
+        for (const plan of payload.plans) {
+          if (plan?.id && next[plan.id as PremiumPlanId]) {
+            next[plan.id as PremiumPlanId] = { ...next[plan.id as PremiumPlanId], ...plan };
+          }
+        }
+        setPlans(next);
+      })
+      .catch(() => undefined);
+    return () => { cancelled = true; };
+  }, []);
+
+  const visibleOrder = useMemo(() => {
+    const ids = ORDER.filter((id) => plans[id]?.isActive !== false);
+    return ids.length ? ids : ORDER;
+  }, [plans]);
+
+  useEffect(() => {
+    if (!visibleOrder.includes(selected)) setSelected(visibleOrder[0]);
+  }, [selected, visibleOrder]);
 
   const premiumUntil = profile.premiumUntil ? new Date(profile.premiumUntil) : null;
   const daysLeft = premiumUntil ? Math.max(0, Math.ceil((premiumUntil.getTime() - Date.now()) / 86_400_000)) : 0;
@@ -64,11 +98,11 @@ export const Paywall: React.FC<PaywallProps> = ({ profile, onPurchase, onClose, 
         { label: 'Yearly forecasts', free: false },
       ];
 
-  const priceText = (id: PremiumPlanId) => (ru ? `${PREMIUM_PLANS[id].priceRub} ₽` : `$${PREMIUM_PLANS[id].priceUsd}`);
+  const priceText = (id: PremiumPlanId) => (ru ? `${plans[id].priceRub} ₽` : `$${plans[id].priceUsd}`);
   const savings = (id: PremiumPlanId) => {
-    const base = PREMIUM_PLANS.premium_month.priceRub;
-    const months = PREMIUM_PLANS[id].days / 30;
-    const perMonth = PREMIUM_PLANS[id].priceRub / months;
+    const base = plans.premium_month.priceRub;
+    const months = plans[id].days / 30;
+    const perMonth = plans[id].priceRub / months;
     return Math.max(0, Math.round((1 - perMonth / base) * 100));
   };
 
@@ -116,7 +150,7 @@ export const Paywall: React.FC<PaywallProps> = ({ profile, onPurchase, onClose, 
       </div>
 
       <div className="pw2-plans">
-        {ORDER.map((id) => {
+        {visibleOrder.map((id) => {
           const best = id === 'premium_year';
           const save = savings(id);
           const sel = selected === id;

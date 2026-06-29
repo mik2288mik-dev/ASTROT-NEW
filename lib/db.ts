@@ -259,6 +259,7 @@ const ADMIN_USER_METRICS_CTE = `
       COALESCE(u.login_streak, 0) AS login_streak,
       COALESCE(u.chart_slots, 1) AS chart_slots,
       COALESCE(u.is_admin, FALSE) AS is_admin,
+      COALESCE(u.is_blocked, FALSE) AS is_blocked,
       u.created_at,
       u.last_login,
       COALESCE(MAX(us.last_seen_at), u.last_login) AS last_seen_at,
@@ -3370,6 +3371,7 @@ export const db = {
             last_login: row.last_login,
             last_seen_at: row.last_seen_at ?? row.last_login ?? null,
             is_admin: row.is_admin ?? false,
+            is_blocked: row.is_blocked ?? false,
           })),
           pagination: {
             page,

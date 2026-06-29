@@ -35,6 +35,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         createdAt: u.created_at,
         lastSeenAt: u.last_seen_at,
         isAdmin: u.is_admin,
+        isBlocked: u.is_blocked,
       })),
       pagination: list.pagination,
       overview: {

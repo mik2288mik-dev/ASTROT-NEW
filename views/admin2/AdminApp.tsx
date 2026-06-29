@@ -16,6 +16,7 @@ import {
   type AdminSubscriptionRow,
   type AdminRevenue,
   type AdminPromo,
+  type AdminPremiumPlan,
   type AdminPromptRow,
   type AdminPromptDetail,
   type AdminCmsRow,
@@ -24,6 +25,9 @@ import {
   type AdminTicketDetail,
   type AdminSendResult,
   type AdminFlag,
+  type AdminNotificationsOverview,
+  type AdminNotificationScenario,
+  type AdminNotificationTemplate,
 } from '../../services/admin2Service';
 
 /**
@@ -172,8 +176,16 @@ function UserDetailPanel({ id, canPii, onClose, onChanged }: { id: string; canPi
   const [user, setUser] = useState<AdminUserDetailV2 | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [nameDraft, setNameDraft] = useState('');
+  const [slotsDraft, setSlotsDraft] = useState(1);
+  const [premiumDays, setPremiumDays] = useState(30);
   const load = (pii = false) => admin2.getUser(id, pii).then(setUser).catch((e) => setError(e.message));
   useEffect(() => { load(false); /* eslint-disable-next-line */ }, [id]);
+  useEffect(() => {
+    if (!user) return;
+    setNameDraft(user.name || '');
+    setSlotsDraft(user.chartSlots || 1);
+  }, [user?.id, user?.name, user?.chartSlots]);
   const act = async (fn: () => Promise<any>) => {
     setBusy(true); setError(null);
     try { await fn(); await load(user?.pii.revealed ?? false); onChanged(); }
@@ -206,9 +218,15 @@ function UserDetailPanel({ id, canPii, onClose, onChanged }: { id: string; canPi
         </div>
         {!canPii ? <p className="mt-1 text-[11px] text-slate-400">Нет права на просмотр персональных данных.</p> : null}
       </div>
+      <div className="grid gap-2 rounded-2xl bg-slate-50 p-4 sm:grid-cols-[1fr_120px_auto]">
+        <input className={inputCls} value={nameDraft} onChange={(e) => setNameDraft(e.target.value)} placeholder="Имя" />
+        <input className={inputCls} type="number" min={1} max={50} value={slotsDraft} onChange={(e) => setSlotsDraft(Number(e.target.value))} />
+        <button className={btnGhost} disabled={busy || (!nameDraft.trim() && slotsDraft === user.chartSlots)} onClick={() => act(() => admin2.patchUser(id, { name: nameDraft.trim(), chartSlots: Math.max(1, Math.min(50, Math.round(slotsDraft || 1))) }))}>Сохранить профиль</button>
+      </div>
       <div className="flex flex-wrap gap-2">
         <button className={btnGhost} disabled={busy} onClick={() => act(() => admin2.patchUser(id, { isBlocked: !user.isBlocked }))}>{user.isBlocked ? 'Разблокировать' : 'Заблокировать'}</button>
-        <button className={btnPrimary} disabled={busy} onClick={() => act(() => admin2.setPremium(id, 'grant', 30))}>+30 дней Premium</button>
+        <input className={`${inputCls} w-28`} type="number" min={1} max={3650} value={premiumDays} onChange={(e) => setPremiumDays(Number(e.target.value))} />
+        <button className={btnPrimary} disabled={busy} onClick={() => act(() => admin2.setPremium(id, 'grant', Math.max(1, Math.min(3650, Math.round(premiumDays || 30)))))}>Выдать Premium</button>
         <button className={btnGhost} disabled={busy} onClick={() => act(() => admin2.setPremium(id, 'revoke'))}>Снять Premium</button>
       </div>
     </div>
@@ -218,17 +236,64 @@ function UserDetailPanel({ id, canPii, onClose, onChanged }: { id: string; canPi
 function UsersSection({ me }: { me: AdminMe }) {
   const [page, setPage] = useState<AdminUsersPage | null>(null);
   const [q, setQ] = useState('');
+  const [premium, setPremium] = useState('all');
+  const [segment, setSegment] = useState('all');
+  const [sortBy, setSortBy] = useState('last_seen');
+  const [sortOrder, setSortOrder] = useState('desc');
+  const [pageSize, setPageSize] = useState(25);
   const [pageNum, setPageNum] = useState(1);
   const [selected, setSelected] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const canPii = me.permissions.includes('user.pii.view');
-  const load = () => admin2.listUsers({ q, page: pageNum, pageSize: 25 }).then(setPage).catch((e) => setError(e.message));
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [pageNum]);
+  const load = () => { setError(null); return admin2.listUsers({ q, premium, segment, sortBy, sortOrder, page: pageNum, pageSize }).then(setPage).catch((e) => setError(e.message)); };
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [pageNum, premium, segment, sortBy, sortOrder, pageSize]);
+  const resetAndLoad = () => { if (pageNum === 1) void load(); else setPageNum(1); };
   return (
     <div className="space-y-4">
-      <div className="flex gap-2">
-        <input className={`${inputCls} flex-1`} placeholder="Поиск по имени или ID…" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { setPageNum(1); load(); } }} />
-        <button className={btnPrimary} onClick={() => { setPageNum(1); load(); }}>Найти</button>
+      {page ? (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+          <Kpi color="blue" label="Всего" value={page.overview.totalUsers} />
+          <Kpi color="violet" label="Premium" value={page.overview.activePremiumUsers} />
+          <Kpi color="emerald" label="Активны 7д" value={page.overview.activeUsers7d} />
+          <Kpi color="amber" label="Требуют внимания" value={page.overview.needAttentionUsers} />
+          <Kpi color="rose" label="Без даты рождения" value={page.overview.usersWithoutBirthData} />
+        </div>
+      ) : null}
+      <div className="grid gap-2 lg:grid-cols-[1fr_auto]">
+        <input className={`${inputCls} flex-1`} placeholder="Поиск по имени или ID…" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') resetAndLoad(); }} />
+        <button className={btnPrimary} onClick={resetAndLoad}>Найти</button>
+      </div>
+      <div className={`${card} grid gap-2 md:grid-cols-5`}>
+        <select className={inputCls} value={premium} onChange={(e) => { setPremium(e.target.value); setPageNum(1); }}>
+          <option value="all">Все тарифы</option>
+          <option value="premium">Только Premium</option>
+          <option value="free">Только free</option>
+        </select>
+        <select className={inputCls} value={segment} onChange={(e) => { setSegment(e.target.value); setPageNum(1); }}>
+          <option value="all">Все сегменты</option>
+          <option value="active_7d">Активные 7д</option>
+          <option value="inactive_7d">Неактивные 7д</option>
+          <option value="inactive_30d">Неактивные 30д</option>
+          <option value="need_attention">Требуют внимания</option>
+          <option value="new_user_no_birth_data">Без даты рождения</option>
+          <option value="high_intent_premium">High intent Premium</option>
+        </select>
+        <select className={inputCls} value={sortBy} onChange={(e) => { setSortBy(e.target.value); setPageNum(1); }}>
+          <option value="last_seen">Сорт: онлайн</option>
+          <option value="created_at">Сорт: регистрация</option>
+          <option value="premium_until">Сорт: Premium до</option>
+          <option value="saved_charts_count">Сорт: карты</option>
+          <option value="name">Сорт: имя</option>
+        </select>
+        <select className={inputCls} value={sortOrder} onChange={(e) => { setSortOrder(e.target.value); setPageNum(1); }}>
+          <option value="desc">По убыванию</option>
+          <option value="asc">По возрастанию</option>
+        </select>
+        <select className={inputCls} value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPageNum(1); }}>
+          <option value={25}>25 строк</option>
+          <option value={50}>50 строк</option>
+          <option value={100}>100 строк</option>
+        </select>
       </div>
       {error ? <ErrorNote>{error}</ErrorNote> : null}
       {selected ? <UserDetailPanel id={selected} canPii={canPii} onClose={() => setSelected(null)} onChanged={load} /> : null}
@@ -236,18 +301,19 @@ function UsersSection({ me }: { me: AdminMe }) {
         <>
           <div className={tableWrap}>
             <table className="w-full text-left text-sm">
-              <thead><tr>{['Имя', 'Премиум', 'Карты', 'Онлайн', ''].map((h, i) => <th key={i} className={th}>{h}</th>)}</tr></thead>
+              <thead><tr>{['Имя', 'Статус', 'Премиум', 'Карты', 'Онлайн', ''].map((h, i) => <th key={i} className={th}>{h}</th>)}</tr></thead>
               <tbody>
                 {page.users.map((u: AdminUserRow) => (
                   <tr key={u.id} className={trow}>
                     <td className={td}><div className="font-semibold text-slate-800">{u.name}</div><div className="text-[11px] text-slate-400">{u.id}</div></td>
+                    <td className={td}>{u.isBlocked ? <span className="rounded-full bg-rose-50 px-2 py-0.5 text-xs font-semibold text-rose-600">blocked</span> : u.isAdmin ? <span className="rounded-full bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-600">admin</span> : <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-600">active</span>}</td>
                     <td className={td}>{u.isPremium ? <span className="rounded-full bg-[#8C57FF]/10 px-2 py-0.5 text-xs font-semibold text-[#8C57FF]">Premium</span> : '—'}</td>
                     <td className={td}>{u.savedCharts}</td>
                     <td className={`${td} text-xs text-slate-400`}>{fmtDate(u.lastSeenAt)}</td>
                     <td className={td}><button className={btnGhost} onClick={() => setSelected(u.id)}>Открыть</button></td>
                   </tr>
                 ))}
-                {page.users.length === 0 ? <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-400">Ничего не найдено</td></tr> : null}
+                {page.users.length === 0 ? <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400">Ничего не найдено</td></tr> : null}
               </tbody>
             </table>
           </div>
@@ -396,16 +462,18 @@ function ChartsSection({ me }: { me: AdminMe }) {
 
 // ────────────────────────────── Billing ──────────────────────────────
 function BillingSection({ me }: { me: AdminMe }) {
-  type Tab = 'revenue' | 'payments' | 'subs' | 'promo';
+  type Tab = 'revenue' | 'plans' | 'payments' | 'subs' | 'promo';
   const [tab, setTab] = useState<Tab>('revenue');
-  const canRefund = me.permissions.includes('billing.refund'); const canPromo = me.permissions.includes('promo.manage');
+  const canRefund = me.permissions.includes('billing.refund'); const canPromo = me.permissions.includes('promo.manage'); const canPlans = me.permissions.includes('paywall.manage');
   const [rev, setRev] = useState<AdminRevenue | null>(null); const [pays, setPays] = useState<AdminPaymentRow[] | null>(null);
   const [subs, setSubs] = useState<AdminSubscriptionRow[] | null>(null); const [promos, setPromos] = useState<AdminPromo[] | null>(null);
+  const [plans, setPlans] = useState<AdminPremiumPlan[] | null>(null);
   const [error, setError] = useState<string | null>(null); const [busy, setBusy] = useState(false);
   const [pCode, setPCode] = useState(''); const [pVal, setPVal] = useState(30);
   useEffect(() => {
     setError(null);
     if (tab === 'revenue') admin2.revenue().then(setRev).catch((e) => setError(e.message));
+    if (tab === 'plans') admin2.premiumPlans().then((d) => setPlans(d.plans)).catch((e) => setError(e.message));
     if (tab === 'payments') admin2.payments(1).then((d) => setPays(d.payments)).catch((e) => setError(e.message));
     if (tab === 'subs') admin2.subscriptions(1).then((d) => setSubs(d.subscriptions)).catch((e) => setError(e.message));
     if (tab === 'promo' && canPromo) admin2.listPromos().then((d) => setPromos(d.promos)).catch((e) => setError(e.message));
@@ -415,7 +483,13 @@ function BillingSection({ me }: { me: AdminMe }) {
     setBusy(true); setError(null);
     try { await admin2.refund(id); const d = await admin2.payments(1); setPays(d.payments); } catch (e: any) { setError(e.message); } finally { setBusy(false); }
   };
-  const tabs: Array<[Tab, string, boolean]> = [['revenue', 'Доход', true], ['payments', 'Платежи', true], ['subs', 'Подписки', true], ['promo', 'Промокоды', canPromo]];
+  const updatePlan = (id: string, patch: Partial<AdminPremiumPlan>) => setPlans((items) => (items || []).map((plan) => plan.id === id ? { ...plan, ...patch } : plan));
+  const savePlans = async () => {
+    if (!plans) return;
+    setBusy(true); setError(null);
+    try { const d = await admin2.savePremiumPlans(plans); setPlans(d.plans); } catch (e: any) { setError(e.message); } finally { setBusy(false); }
+  };
+  const tabs: Array<[Tab, string, boolean]> = [['revenue', 'Доход', true], ['plans', 'Тарифы', true], ['payments', 'Платежи', true], ['subs', 'Подписки', true], ['promo', 'Промокоды', canPromo]];
   return (
     <div className="space-y-4">
       <div className="flex gap-1.5 overflow-x-auto">
@@ -431,6 +505,31 @@ function BillingSection({ me }: { me: AdminMe }) {
           <Kpi color="violet" label="Активный премиум" value={rev.activePremium} />
           <Kpi color="sky" label="Триалы" value={rev.trials} />
           <Kpi color="emerald" label="Возвраты" value={rev.refunds} sub={`${rev.refundedStars}⭐`} />
+        </div>
+      ) : <p className="text-sm text-slate-400">Загрузка…</p>)}
+      {tab === 'plans' && (plans ? (
+        <div className="space-y-3">
+          {plans.map((plan) => (
+            <div key={plan.id} className={`${card} grid gap-3 lg:grid-cols-[1.2fr_90px_100px_110px_110px_1fr_90px]`}>
+              <div>
+                <p className="text-sm font-bold text-[#312D4B]">{plan.id}</p>
+                <label className="mt-2 flex items-center gap-2 text-xs font-semibold text-slate-500">
+                  <input type="checkbox" checked={plan.isActive} disabled={!canPlans || busy} onChange={(e) => updatePlan(plan.id, { isActive: e.target.checked })} />
+                  активен в оплате
+                </label>
+              </div>
+              <label className="text-[11px] font-semibold text-slate-400">Дней<input className={`${inputCls} mt-1 w-full`} type="number" min={1} value={plan.days} disabled={!canPlans} onChange={(e) => updatePlan(plan.id, { days: Number(e.target.value) })} /></label>
+              <label className="text-[11px] font-semibold text-slate-400">Stars<input className={`${inputCls} mt-1 w-full`} type="number" min={1} value={plan.stars} disabled={!canPlans} onChange={(e) => updatePlan(plan.id, { stars: Number(e.target.value) })} /></label>
+              <label className="text-[11px] font-semibold text-slate-400">Рубли<input className={`${inputCls} mt-1 w-full`} type="number" min={0} value={plan.priceRub} disabled={!canPlans} onChange={(e) => updatePlan(plan.id, { priceRub: Number(e.target.value) })} /></label>
+              <label className="text-[11px] font-semibold text-slate-400">USD<input className={`${inputCls} mt-1 w-full`} type="number" min={0} step="0.01" value={plan.priceUsd} disabled={!canPlans} onChange={(e) => updatePlan(plan.id, { priceUsd: Number(e.target.value) })} /></label>
+              <label className="text-[11px] font-semibold text-slate-400">Label<input className={`${inputCls} mt-1 w-full`} value={plan.label} disabled={!canPlans} onChange={(e) => updatePlan(plan.id, { label: e.target.value })} /></label>
+              <label className="text-[11px] font-semibold text-slate-400">Порядок<input className={`${inputCls} mt-1 w-full`} type="number" value={plan.sortOrder} disabled={!canPlans} onChange={(e) => updatePlan(plan.id, { sortOrder: Number(e.target.value) })} /></label>
+            </div>
+          ))}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs text-slate-400">Эти значения используются при создании Telegram Stars invoice и на paywall.</p>
+            {canPlans ? <button className={btnPrimary} disabled={busy} onClick={savePlans}>{busy ? 'Сохраняю…' : 'Сохранить тарифы'}</button> : <span className="text-xs text-slate-400">Нет права paywall.manage</span>}
+          </div>
         </div>
       ) : <p className="text-sm text-slate-400">Загрузка…</p>)}
       {tab === 'payments' && (pays ? (
@@ -701,6 +800,8 @@ function ContentSection({ me }: { me: AdminMe }) {
 
 // ────────────────────────────── Communications ──────────────────────────────
 function CommsSection() {
+  type CommsTab = 'manual' | 'stats' | 'scenarios' | 'templates';
+  const [tab, setTab] = useState<CommsTab>('manual');
   const [mode, setMode] = useState<'segment' | 'user'>('segment');
   const [segment, setSegment] = useState('all');
   const [userId, setUserId] = useState('');
@@ -708,7 +809,13 @@ function CommsSection() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [out, setOut] = useState<AdminSendResult | null>(null);
-  const segments = [['all', 'Все'], ['premium', 'Премиум'], ['free', 'Бесплатные'], ['active_7d', 'Активные 7д'], ['inactive_7d', 'Неактивные 7д'], ['need_attention', 'Требуют внимания']];
+  const [overview, setOverview] = useState<AdminNotificationsOverview | null>(null);
+  const [scenarioDraft, setScenarioDraft] = useState<AdminNotificationScenario | null>(null);
+  const [audienceRaw, setAudienceRaw] = useState('{}');
+  const [templateDraft, setTemplateDraft] = useState<Partial<AdminNotificationTemplate> | null>(null);
+  const segments = [['all', 'Все'], ['premium', 'Премиум'], ['free', 'Бесплатные'], ['active_7d', 'Активные 7д'], ['inactive_7d', 'Неактивные 7д'], ['inactive_30d', 'Неактивные 30д'], ['need_attention', 'Требуют внимания'], ['high_intent_premium', 'High intent Premium']];
+  const loadNotifications = () => admin2.notifications().then(setOverview).catch((e) => setError(e.message));
+  useEffect(() => { loadNotifications(); }, []);
   const send = async () => {
     const isBroadcast = mode === 'segment';
     if (isBroadcast && !window.confirm(`Отправить пуш сегменту «${segment}»? Это массовая рассылка.`)) return;
@@ -716,9 +823,53 @@ function CommsSection() {
     try { setOut(await admin2.sendPush({ mode, segment, userId, text })); }
     catch (e: any) { setError(e.message); } finally { setBusy(false); }
   };
+  const openScenario = (scenario: AdminNotificationScenario) => {
+    setScenarioDraft(scenario);
+    setAudienceRaw(JSON.stringify(scenario.audienceRuleJson || {}, null, 2));
+  };
+  const saveScenario = async () => {
+    if (!scenarioDraft) return;
+    let audienceRuleJson: Record<string, any>;
+    try { audienceRuleJson = JSON.parse(audienceRaw || '{}'); } catch { setError('Некорректный JSON аудитории'); return; }
+    setBusy(true); setError(null);
+    try {
+      await admin2.updateNotificationScenario(scenarioDraft.id, { ...scenarioDraft, audienceRuleJson });
+      setScenarioDraft(null);
+      await loadNotifications();
+    } catch (e: any) { setError(e.message); } finally { setBusy(false); }
+  };
+  const newTemplate = () => setTemplateDraft({
+    scenarioId: overview?.scenarios[0]?.id ?? null,
+    name: '',
+    slot: 'custom',
+    targetSegment: 'all',
+    title: '',
+    body: '',
+    text: '',
+    buttonText: 'Открыть',
+    deepLink: 'today',
+    isActive: true,
+    weight: 100,
+    notes: null,
+  });
+  const saveTemplate = async () => {
+    if (!templateDraft) return;
+    setBusy(true); setError(null);
+    try {
+      await admin2.saveNotificationTemplate({ ...templateDraft, text: templateDraft.body || templateDraft.text || '' });
+      setTemplateDraft(null);
+      await loadNotifications();
+    } catch (e: any) { setError(e.message); } finally { setBusy(false); }
+  };
   return (
     <div className="space-y-4">
-      <Card title="Ручная рассылка">
+      <div className="flex gap-1.5 overflow-x-auto">
+        {([['manual', 'Ручная отправка'], ['stats', 'Статистика'], ['scenarios', 'Сценарии'], ['templates', 'Шаблоны']] as Array<[CommsTab, string]>).map(([id, label]) => (
+          <button key={id} onClick={() => setTab(id)} className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold ${tab === id ? 'bg-[#8C57FF] text-white' : 'bg-white text-slate-500 hover:bg-slate-50'}`}>{label}</button>
+        ))}
+      </div>
+      {error ? <ErrorNote>{error}</ErrorNote> : null}
+      {tab === 'manual' ? <Card title="Ручная рассылка">
         <div className="space-y-3">
           <div className="flex gap-2">
             <button className={`rounded-full px-4 py-2 text-sm font-semibold ${mode === 'segment' ? 'bg-[#8C57FF] text-white' : 'bg-white text-slate-500 border border-slate-200'}`} onClick={() => setMode('segment')}>Сегмент</button>
@@ -729,11 +880,104 @@ function CommsSection() {
             : <input className={`${inputCls} w-full`} placeholder="Telegram user ID" value={userId} onChange={(e) => setUserId(e.target.value)} />}
           <textarea className={`${inputCls} h-32 w-full`} placeholder="Текст пуша…" value={text} onChange={(e) => setText(e.target.value)} />
           <button className={btnPrimary} disabled={busy || text.trim().length < 3 || (mode === 'user' && !userId.trim())} onClick={send}>{busy ? 'Отправляю…' : 'Отправить'}</button>
-          {error ? <ErrorNote>{error}</ErrorNote> : null}
-          {out ? <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-3 text-sm text-emerald-700">Отправлено: <b>{out.sent}</b> · ошибок: {out.failed} · всего {out.total}{out.capped ? ' (лимит 300 — для бóльших используйте авто-сценарии)' : ''}</div> : null}
+          {out ? <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-3 text-sm text-emerald-700">Отправлено: <b>{out.sent}</b> · ошибок: {out.failed} · всего {out.total}{out.capped ? ' (лимит 300 — для больших запусков используйте сценарии)' : ''}</div> : null}
         </div>
-      </Card>
-      <p className="text-[13px] text-slate-500">Это ручная рассылка. Регулярные авто-уведомления (ретеншн) идут отдельным движком и здесь не настраиваются.</p>
+      </Card> : null}
+      {tab === 'stats' && overview ? (
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <Kpi color="blue" label="Отправлено 30д" value={overview.stats.sent} />
+            <Kpi color="emerald" label="Клики" value={overview.stats.clicked} sub={`${Math.round(overview.stats.ctr * 100)}% CTR`} />
+            <Kpi color="sky" label="Открытия app" value={overview.stats.openedApp} />
+            <Kpi color="rose" label="Ошибки" value={overview.stats.errors} />
+          </div>
+          <Card title="Лучшие шаблоны">
+            <div className="space-y-2">
+              {overview.stats.bestTemplates.map((t) => <div key={t.templateId} className="flex justify-between text-sm"><span className="truncate text-slate-600">{t.title || `#${t.templateId}`}</span><span className="font-semibold text-slate-400">{t.clicked}/{t.sent}</span></div>)}
+              {overview.stats.bestTemplates.length === 0 ? <p className="text-xs text-slate-400">Пока нет данных</p> : null}
+            </div>
+          </Card>
+        </div>
+      ) : null}
+      {tab === 'scenarios' && overview ? (
+        <div className="space-y-4">
+          {scenarioDraft ? (
+            <div className={`${card} space-y-3`}>
+              <div className="flex items-center justify-between"><p className="font-bold text-[#312D4B]">{scenarioDraft.key}</p><button className={btnGhost} onClick={() => setScenarioDraft(null)}>Закрыть</button></div>
+              <div className="grid gap-2 md:grid-cols-4">
+                <label className="text-[11px] font-semibold text-slate-400">Название<input className={`${inputCls} mt-1 w-full`} value={scenarioDraft.name} onChange={(e) => setScenarioDraft({ ...scenarioDraft, name: e.target.value })} /></label>
+                <label className="text-[11px] font-semibold text-slate-400">Старт<input className={`${inputCls} mt-1 w-full`} type="time" value={scenarioDraft.timeWindowStart} onChange={(e) => setScenarioDraft({ ...scenarioDraft, timeWindowStart: e.target.value })} /></label>
+                <label className="text-[11px] font-semibold text-slate-400">Финиш<input className={`${inputCls} mt-1 w-full`} type="time" value={scenarioDraft.timeWindowEnd} onChange={(e) => setScenarioDraft({ ...scenarioDraft, timeWindowEnd: e.target.value })} /></label>
+                <label className="text-[11px] font-semibold text-slate-400">Приоритет<input className={`${inputCls} mt-1 w-full`} type="number" value={scenarioDraft.priority} onChange={(e) => setScenarioDraft({ ...scenarioDraft, priority: Number(e.target.value) })} /></label>
+              </div>
+              <textarea className={`${inputCls} h-24 w-full`} value={scenarioDraft.description} onChange={(e) => setScenarioDraft({ ...scenarioDraft, description: e.target.value })} />
+              <textarea className={`${inputCls} h-32 w-full font-mono text-xs`} value={audienceRaw} onChange={(e) => setAudienceRaw(e.target.value)} />
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="flex items-center gap-2 text-xs font-semibold text-slate-500"><input type="checkbox" checked={scenarioDraft.enabled} onChange={(e) => setScenarioDraft({ ...scenarioDraft, enabled: e.target.checked })} /> сценарий включен</label>
+                <button className={btnPrimary} disabled={busy} onClick={saveScenario}>Сохранить сценарий</button>
+              </div>
+            </div>
+          ) : null}
+          <div className={tableWrap}>
+            <table className="w-full text-left text-sm">
+              <thead><tr>{['Сценарий', 'Окно', 'Шаблоны', 'Метрики', ''].map((h, i) => <th key={i} className={th}>{h}</th>)}</tr></thead>
+              <tbody>
+                {overview.scenarios.map((s) => (
+                  <tr key={s.id} className={trow}>
+                    <td className={td}><div className="font-semibold text-slate-800">{s.name}</div><div className="text-[11px] text-slate-400">{s.key}</div></td>
+                    <td className={`${td} text-xs`}>{s.dayPart} · {s.timeWindowStart}-{s.timeWindowEnd}</td>
+                    <td className={`${td} text-xs`}>{s.activeTemplatesCount}/{s.templatesCount}</td>
+                    <td className={`${td} text-xs`}>{s.clickedCount}/{s.sentCount} · {Math.round(s.ctr * 100)}%</td>
+                    <td className={`${td} space-x-2`}><button className={btnGhost} disabled={busy} onClick={() => admin2.updateNotificationScenario(s.id, { enabled: !s.enabled }).then(loadNotifications).catch((e) => setError(e.message))}>{s.enabled ? 'Выключить' : 'Включить'}</button><button className={btnGhost} onClick={() => openScenario(s)}>Открыть</button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : null}
+      {tab === 'templates' && overview ? (
+        <div className="space-y-4">
+          <button className={btnPrimary} onClick={newTemplate}>Новый шаблон</button>
+          {templateDraft ? (
+            <div className={`${card} space-y-3`}>
+              <div className="flex items-center justify-between"><p className="font-bold text-[#312D4B]">{templateDraft.id ? `Шаблон #${templateDraft.id}` : 'Новый шаблон'}</p><button className={btnGhost} onClick={() => setTemplateDraft(null)}>Закрыть</button></div>
+              <div className="grid gap-2 md:grid-cols-3">
+                <select className={inputCls} value={templateDraft.scenarioId ?? ''} onChange={(e) => setTemplateDraft({ ...templateDraft, scenarioId: e.target.value ? Number(e.target.value) : null })}>
+                  <option value="">Без сценария</option>
+                  {overview.scenarios.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+                <input className={inputCls} placeholder="Название" value={templateDraft.name || ''} onChange={(e) => setTemplateDraft({ ...templateDraft, name: e.target.value })} />
+                <select className={inputCls} value={templateDraft.targetSegment || 'all'} onChange={(e) => setTemplateDraft({ ...templateDraft, targetSegment: e.target.value })}>{segments.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
+              </div>
+              <input className={`${inputCls} w-full`} placeholder="Заголовок" value={templateDraft.title || ''} onChange={(e) => setTemplateDraft({ ...templateDraft, title: e.target.value })} />
+              <textarea className={`${inputCls} h-28 w-full`} placeholder="Текст" value={templateDraft.body || templateDraft.text || ''} onChange={(e) => setTemplateDraft({ ...templateDraft, body: e.target.value, text: e.target.value })} />
+              <div className="grid gap-2 md:grid-cols-3">
+                <input className={inputCls} placeholder="Кнопка" value={templateDraft.buttonText || ''} onChange={(e) => setTemplateDraft({ ...templateDraft, buttonText: e.target.value })} />
+                <input className={inputCls} placeholder="Deep link" value={templateDraft.deepLink || ''} onChange={(e) => setTemplateDraft({ ...templateDraft, deepLink: e.target.value })} />
+                <label className="flex items-center gap-2 text-xs font-semibold text-slate-500"><input type="checkbox" checked={templateDraft.isActive !== false} onChange={(e) => setTemplateDraft({ ...templateDraft, isActive: e.target.checked })} /> активен</label>
+              </div>
+              <button className={btnPrimary} disabled={busy || !(templateDraft.body || templateDraft.text)} onClick={saveTemplate}>Сохранить шаблон</button>
+            </div>
+          ) : null}
+          <div className={tableWrap}>
+            <table className="w-full text-left text-sm">
+              <thead><tr>{['Шаблон', 'Сценарий', 'Сегмент', 'Статус', ''].map((h, i) => <th key={i} className={th}>{h}</th>)}</tr></thead>
+              <tbody>
+                {overview.templates.map((t) => (
+                  <tr key={t.id} className={trow}>
+                    <td className={td}><div className="font-semibold text-slate-800">{t.name}</div><div className="max-w-md truncate text-[11px] text-slate-400">{t.body || t.text}</div></td>
+                    <td className={`${td} text-xs`}>{t.scenarioKey || '—'}</td>
+                    <td className={`${td} text-xs`}>{t.targetSegment || 'all'}</td>
+                    <td className={td}><StatusBadge status={t.isActive ? 'active' : 'archived'} /></td>
+                    <td className={`${td} space-x-2`}><button className={btnGhost} onClick={() => setTemplateDraft(t)}>Открыть</button><button className={btnGhost} disabled={busy} onClick={async () => { if (!window.confirm('Удалить шаблон?')) return; setBusy(true); try { await admin2.deleteNotificationTemplate(t.id); await loadNotifications(); } catch (e: any) { setError(e.message); } finally { setBusy(false); } }}>Удалить</button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

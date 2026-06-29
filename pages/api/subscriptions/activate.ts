@@ -1,8 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { activatePremium } from '../../../services/premiumService';
 import { db } from '../../../lib/db';
-import { getPremiumPlan } from '../../../lib/premiumPricing';
 import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../../../lib/adminAuth';
+import { getManagedPremiumPlan } from '../../../lib/premiumPlanSettings';
 
 const log = {
   info: (msg: string, data?: any) => console.log(`[API/subscriptions/activate] ${msg}`, data || ''),
@@ -52,7 +52,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
-  const plan = getPremiumPlan(type);
+  const plan = await getManagedPremiumPlan(type);
   if (!plan) {
     return res.status(400).json({
       error: 'Invalid activation type',

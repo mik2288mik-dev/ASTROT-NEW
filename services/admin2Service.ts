@@ -52,7 +52,7 @@ export type AdminChartTestResult = {
 export type AdminUserRow = {
   id: string; name: string; isPremium: boolean; premiumUntil: string | null;
   hasBirthData: boolean; savedCharts: number; chartSlots: number; loginStreak: number;
-  createdAt: string | null; lastSeenAt: string | null; isAdmin: boolean;
+  createdAt: string | null; lastSeenAt: string | null; isAdmin: boolean; isBlocked: boolean;
 };
 
 export type AdminUsersPage = {
@@ -95,6 +95,11 @@ export type AdminPromo = {
   status: string; startsAt: string | null; expiresAt: string | null; createdAt: string | null;
 };
 
+export type AdminPremiumPlan = {
+  id: string; days: number; stars: number; priceRub: number; priceUsd: number;
+  label: string; isActive: boolean; sortOrder: number; badge: string | null;
+};
+
 export type AdminPromptRow = { id: number; key: string; type: string; locale: string; version: number; status: string; updatedAt: string | null };
 export type AdminPromptDetail = AdminPromptRow & { body: string; versions: Array<{ version: number; body: string; createdAt: string | null }> };
 export type AdminCmsRow = { id: number; type: string; locale: string; status: string; title: string | null; version: number; category: string | null; updatedAt: string | null; publishedAt: string | null };
@@ -104,6 +109,33 @@ export type AdminTicketRow = { id: number; userId: string | null; userName: stri
 export type AdminTicketDetail = { ticket: { id: number; userId: string | null; userName: string | null; subject: string; status: string; priority: string }; messages: Array<{ authorType: string; body: string; internal: boolean; createdAt: string | null }> };
 export type AdminSendResult = { ok: boolean; total: number; sent: number; failed: number; capped: boolean };
 export type AdminFlag = { key: string; value: any; description: string | null; updatedAt: string | null };
+
+export type AdminNotificationScenario = {
+  id: number; key: string; name: string; description: string; enabled: boolean;
+  dayPart: string; timeWindowStart: string; timeWindowEnd: string; priority: number;
+  audienceRuleJson: Record<string, any>; triggerRuleJson: Record<string, any>;
+  maxPerDay: number; cooldownHours: number; deepLink: string;
+  templatesCount: number; activeTemplatesCount: number; sentCount: number; clickedCount: number; ctr: number; errorCount: number;
+};
+
+export type AdminNotificationTemplate = {
+  id: number; scenarioId: number | null; scenarioKey: string | null; name: string; slot: string;
+  targetSegment: string | null; title?: string; body?: string; text: string; buttonText: string;
+  deepLink: string; isActive: boolean; weight?: number; notes: string | null; updatedAt: string | null;
+};
+
+export type AdminNotificationStats = {
+  sent: number; delivered: number; clicked: number; ctr: number; openedApp: number;
+  disabledNotifications: number; errors: number;
+  byScenario: Array<{ scenarioKey: string; sent: number; clicked: number; ctr: number; errors: number }>;
+  bestTemplates: Array<{ templateId: number; title: string; sent: number; clicked: number; ctr: number }>;
+};
+
+export type AdminNotificationsOverview = {
+  stats: AdminNotificationStats;
+  scenarios: AdminNotificationScenario[];
+  templates: AdminNotificationTemplate[];
+};
 
 export type AdminAuditRow = {
   id: number; actorUserId: string | null; actorRole: string | null; action: string;
@@ -138,10 +170,13 @@ async function req<T>(path: string, opts: { method?: string; body?: any } = {}):
 export const admin2 = {
   me: () => req<AdminMe>('/api/admin/v2/me'),
   dashboard: () => req<AdminDashboard>('/api/admin/v2/dashboard'),
-  listUsers: (params: { q?: string; premium?: string; page?: number; pageSize?: number } = {}) => {
+  listUsers: (params: { q?: string; premium?: string; segment?: string; sortBy?: string; sortOrder?: string; page?: number; pageSize?: number } = {}) => {
     const s = new URLSearchParams();
     if (params.q) s.set('q', params.q);
     if (params.premium && params.premium !== 'all') s.set('premium', params.premium);
+    if (params.segment && params.segment !== 'all') s.set('segment', params.segment);
+    if (params.sortBy) s.set('sortBy', params.sortBy);
+    if (params.sortOrder) s.set('sortOrder', params.sortOrder);
     if (params.page) s.set('page', String(params.page));
     if (params.pageSize) s.set('pageSize', String(params.pageSize));
     const suffix = s.toString() ? `?${s}` : '';
@@ -172,6 +207,8 @@ export const admin2 = {
   subscriptions: (page = 1) => req<{ subscriptions: AdminSubscriptionRow[]; pagination: { page: number; pageSize: number; total: number; totalPages: number } }>(`/api/admin/v2/billing/subscriptions?page=${page}`),
   revenue: () => req<AdminRevenue>('/api/admin/v2/billing/revenue'),
   refund: (paymentId: number) => req<{ ok: boolean }>('/api/admin/v2/billing/refund', { method: 'POST', body: { paymentId } }),
+  premiumPlans: () => req<{ plans: AdminPremiumPlan[] }>('/api/admin/v2/billing/plans'),
+  savePremiumPlans: (plans: AdminPremiumPlan[]) => req<{ ok: boolean; plans: AdminPremiumPlan[] }>('/api/admin/v2/billing/plans', { method: 'PUT', body: { plans } }),
   listPromos: () => req<{ promos: AdminPromo[] }>('/api/admin/v2/promo'),
   createPromo: (body: { code: string; type?: string; value?: number; maxUses?: number; expiresAt?: string | null }) => req<{ ok: boolean }>('/api/admin/v2/promo', { method: 'POST', body }),
   disablePromo: (code: string) => req<{ ok: boolean }>('/api/admin/v2/promo', { method: 'DELETE', body: { code } }),
@@ -191,6 +228,13 @@ export const admin2 = {
   archiveCms: (id: number) => req<{ ok: boolean }>(`/api/admin/v2/cms/${id}`, { method: 'POST', body: { action: 'archive' } }),
   // Communications
   sendPush: (body: { mode: 'user' | 'segment'; userId?: string; segment?: string; text: string }) => req<AdminSendResult>('/api/admin/v2/comms/send', { method: 'POST', body }),
+  notifications: () => req<AdminNotificationsOverview>('/api/admin/v2/notifications'),
+  updateNotificationScenario: (id: number, patch: Partial<AdminNotificationScenario>) =>
+    req<{ ok: boolean; scenario: AdminNotificationScenario }>(`/api/admin/v2/notifications/scenarios/${id}`, { method: 'PATCH', body: patch }),
+  saveNotificationTemplate: (body: Partial<AdminNotificationTemplate>) =>
+    req<{ ok: boolean; template: AdminNotificationTemplate }>('/api/admin/v2/notifications/templates', { method: 'POST', body }),
+  deleteNotificationTemplate: (id: number) =>
+    req<{ ok: boolean }>(`/api/admin/v2/notifications/templates/${id}`, { method: 'DELETE' }),
   // Support
   listTickets: (status = 'all') => req<{ tickets: AdminTicketRow[] }>(`/api/admin/v2/support?status=${encodeURIComponent(status)}`),
   getTicket: (id: number) => req<AdminTicketDetail>(`/api/admin/v2/support/${id}`),

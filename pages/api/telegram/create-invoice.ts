@@ -1,9 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import {
-  buildInvoicePayload,
+  buildInvoicePayloadForPlan,
   type StarsInvoiceType,
 } from '../../../lib/starsInvoiceCatalog';
 import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../../../lib/adminAuth';
+import { getManagedPremiumPlan } from '../../../lib/premiumPlanSettings';
 
 const log = {
   info: (msg: string, data?: any) => console.log(`[API/telegram/create-invoice] ${msg}`, data || ''),
@@ -49,11 +50,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   let product;
+  let plan;
   try {
-    product = buildInvoicePayload({
+    plan = await getManagedPremiumPlan(type as StarsInvoiceType);
+    if (!plan) {
+      return res.status(400).json({
+        error: 'Inactive invoice type',
+        code: 'INVOICE_TYPE_INACTIVE',
+        message: `Invoice type is not active: ${type}.`,
+      });
+    }
+    product = buildInvoicePayloadForPlan({
       userId: String(userId).trim(),
       type: type as StarsInvoiceType,
-    });
+    }, plan);
   } catch (error: any) {
     const code = error?.message || 'INVOICE_BUILD_FAILED';
     log.error('Error building invoice payload', { error: error.message, type, userId });
@@ -69,6 +79,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     invoiceType: type,
     type,
     starsAmount: product.starsAmount,
+    plan,
+    planDays: plan.days,
     paymentNonce,
     payload: product.payload,
   };
