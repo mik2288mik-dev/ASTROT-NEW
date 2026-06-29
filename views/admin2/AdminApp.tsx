@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   admin2,
+  admin2Auth,
+  Admin2Error,
   type AdminMe,
   type AdminDashboard,
   type AdminUsersPage,
@@ -107,6 +109,99 @@ function Card({ title, children, className = '' }: { title?: string; children: R
   return <div className={`${card} ${className}`}>{title ? <p className="mb-4 text-base font-bold text-slate-800">{title}</p> : null}{children}</div>;
 }
 
+function AdminAccessScreen({
+  error,
+  busy,
+  onRetry,
+  onClose,
+}: {
+  error: Admin2Error | Error | null;
+  busy: boolean;
+  onRetry: () => void;
+  onClose: () => void;
+}) {
+  const storedAuth = admin2Auth.getStoredDevAuth();
+  const [userId, setUserId] = useState(storedAuth?.userId || '');
+  const [secret, setSecret] = useState(storedAuth?.secret || '');
+  const [formError, setFormError] = useState<string | null>(null);
+  const code = error instanceof Admin2Error ? error.code : null;
+  const hasTelegramAuth = admin2Auth.hasTelegramAuth();
+
+  const saveAndRetry = () => {
+    setFormError(null);
+    if (!userId.trim() || !secret) {
+      setFormError('Укажите admin user ID и secret.');
+      return;
+    }
+    admin2Auth.saveDevAuth(userId, secret);
+    onRetry();
+  };
+
+  const clearAndRetry = () => {
+    admin2Auth.clearDevAuth();
+    setSecret('');
+    onRetry();
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 text-[#312D4B]" style={{ background: PAGE_BG }}>
+      <div className="w-full max-w-5xl overflow-hidden rounded-[28px] bg-white shadow-[0_24px_80px_rgba(20,30,60,0.14)]">
+        <div className="grid lg:grid-cols-[0.9fr_1.1fr]">
+          <div className="bg-[#312D4B] p-8 text-white">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/12">
+              <svg viewBox="0 0 24 24" className="h-6 w-6" fill="currentColor"><path d="M12 1 3 5v6c0 5.5 3.8 10.7 9 12 5.2-1.3 9-6.5 9-12V5l-9-4Zm0 3.2 6 2.7V11c0 4-2.5 7.6-6 8.8C8.5 18.6 6 15 6 11V6.9l6-2.7Zm-1 10.6 6-6-1.4-1.4L11 12l-2.1-2.1-1.4 1.4 3.5 3.5Z" /></svg>
+            </div>
+            <h1 className="mt-6 text-3xl font-bold leading-tight">Админ-доступ Lumia</h1>
+            <p className="mt-3 text-sm leading-6 text-white/70">В Telegram Mini App вход происходит автоматически. В локальном браузере нужен включенный browser-dev доступ.</p>
+            <div className="mt-8 space-y-3 text-sm">
+              <div className="rounded-2xl bg-white/10 p-4">
+                <p className="text-white/50">Режим</p>
+                <p className="mt-1 font-semibold">{hasTelegramAuth ? 'Telegram initData' : storedAuth ? 'Browser-dev credentials' : 'Ожидает доступа'}</p>
+              </div>
+              <div className="rounded-2xl bg-white/10 p-4">
+                <p className="text-white/50">Ответ API</p>
+                <p className="mt-1 font-semibold">{code || '—'}</p>
+              </div>
+            </div>
+          </div>
+          <div className="p-6 sm:p-8">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xl font-bold text-[#312D4B]">Подключить админку</p>
+                <p className="mt-1 text-sm text-slate-400">Для browser-dev: `ADMIN_WEB_DEV_AUTH_ENABLED=1` и `ADMIN_WEB_DEV_SECRET` на сервере.</p>
+              </div>
+              <button className={btnGhost} onClick={onClose}>В приложение</button>
+            </div>
+
+            {error ? <div className="mt-5"><ErrorNote>{error.message}</ErrorNote></div> : null}
+            {formError ? <div className="mt-3"><ErrorNote>{formError}</ErrorNote></div> : null}
+
+            <div className="mt-6 space-y-3">
+              <label className="block text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                Admin user ID
+                <input className={`${inputCls} mt-1 w-full`} value={userId} onChange={(e) => setUserId(e.target.value)} placeholder="Telegram ID администратора" />
+              </label>
+              <label className="block text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                Browser-dev secret
+                <input className={`${inputCls} mt-1 w-full`} type="password" value={secret} onChange={(e) => setSecret(e.target.value)} placeholder="ADMIN_WEB_DEV_SECRET" />
+              </label>
+              <div className="flex flex-wrap gap-2 pt-2">
+                <button className={btnPrimary} disabled={busy} onClick={saveAndRetry}>{busy ? 'Проверяю…' : 'Подключить доступ'}</button>
+                <button className={btnGhost} disabled={busy} onClick={onRetry}>Повторить Telegram</button>
+                {storedAuth ? <button className={btnGhost} disabled={busy} onClick={clearAndRetry}>Сбросить browser-dev</button> : null}
+              </div>
+            </div>
+
+            <div className="mt-6 rounded-2xl bg-slate-50 p-4 text-xs leading-5 text-slate-500">
+              <b className="text-slate-700">Production:</b> откройте админку внутри Telegram Mini App. <b className="text-slate-700">Local:</b> включите browser-dev env и введите ID администратора, который уже имеет роль или совпадает с OWNER_ID.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ────────────────────────────── Dashboard ──────────────────────────────
 function DashboardSection() {
   const [data, setData] = useState<AdminDashboard | null>(null);
@@ -172,7 +267,21 @@ function DashboardSection() {
 }
 
 // ────────────────────────────── Users ──────────────────────────────
-function UserDetailPanel({ id, canPii, onClose, onChanged }: { id: string; canPii: boolean; onClose: () => void; onChanged: () => void }) {
+function UserDetailPanel({
+  id,
+  canPii,
+  canEdit,
+  canBlock,
+  onClose,
+  onChanged,
+}: {
+  id: string;
+  canPii: boolean;
+  canEdit: boolean;
+  canBlock: boolean;
+  onClose: () => void;
+  onChanged: () => void;
+}) {
   const [user, setUser] = useState<AdminUserDetailV2 | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -219,15 +328,16 @@ function UserDetailPanel({ id, canPii, onClose, onChanged }: { id: string; canPi
         {!canPii ? <p className="mt-1 text-[11px] text-slate-400">Нет права на просмотр персональных данных.</p> : null}
       </div>
       <div className="grid gap-2 rounded-2xl bg-slate-50 p-4 sm:grid-cols-[1fr_120px_auto]">
-        <input className={inputCls} value={nameDraft} onChange={(e) => setNameDraft(e.target.value)} placeholder="Имя" />
-        <input className={inputCls} type="number" min={1} max={50} value={slotsDraft} onChange={(e) => setSlotsDraft(Number(e.target.value))} />
-        <button className={btnGhost} disabled={busy || (!nameDraft.trim() && slotsDraft === user.chartSlots)} onClick={() => act(() => admin2.patchUser(id, { name: nameDraft.trim(), chartSlots: Math.max(1, Math.min(50, Math.round(slotsDraft || 1))) }))}>Сохранить профиль</button>
+        <input className={inputCls} disabled={!canEdit} value={nameDraft} onChange={(e) => setNameDraft(e.target.value)} placeholder="Имя" />
+        <input className={inputCls} disabled={!canEdit} type="number" min={1} max={50} value={slotsDraft} onChange={(e) => setSlotsDraft(Number(e.target.value))} />
+        <button className={btnGhost} disabled={!canEdit || busy || (!nameDraft.trim() && slotsDraft === user.chartSlots)} onClick={() => act(() => admin2.patchUser(id, { name: nameDraft.trim(), chartSlots: Math.max(1, Math.min(50, Math.round(slotsDraft || 1))) }))}>Сохранить профиль</button>
       </div>
+      {!canEdit ? <p className="text-xs text-slate-400">У вашей роли нет права users.edit, поэтому изменения профиля и Premium недоступны.</p> : null}
       <div className="flex flex-wrap gap-2">
-        <button className={btnGhost} disabled={busy} onClick={() => act(() => admin2.patchUser(id, { isBlocked: !user.isBlocked }))}>{user.isBlocked ? 'Разблокировать' : 'Заблокировать'}</button>
-        <input className={`${inputCls} w-28`} type="number" min={1} max={3650} value={premiumDays} onChange={(e) => setPremiumDays(Number(e.target.value))} />
-        <button className={btnPrimary} disabled={busy} onClick={() => act(() => admin2.setPremium(id, 'grant', Math.max(1, Math.min(3650, Math.round(premiumDays || 30)))))}>Выдать Premium</button>
-        <button className={btnGhost} disabled={busy} onClick={() => act(() => admin2.setPremium(id, 'revoke'))}>Снять Premium</button>
+        <button className={btnGhost} disabled={!canBlock || busy} onClick={() => act(() => admin2.patchUser(id, { isBlocked: !user.isBlocked }))}>{user.isBlocked ? 'Разблокировать' : 'Заблокировать'}</button>
+        <input className={`${inputCls} w-28`} disabled={!canEdit} type="number" min={1} max={3650} value={premiumDays} onChange={(e) => setPremiumDays(Number(e.target.value))} />
+        <button className={btnPrimary} disabled={!canEdit || busy} onClick={() => act(() => admin2.setPremium(id, 'grant', Math.max(1, Math.min(3650, Math.round(premiumDays || 30)))))}>Выдать Premium</button>
+        <button className={btnGhost} disabled={!canEdit || busy} onClick={() => act(() => admin2.setPremium(id, 'revoke'))}>Снять Premium</button>
       </div>
     </div>
   );
@@ -243,11 +353,58 @@ function UsersSection({ me }: { me: AdminMe }) {
   const [pageSize, setPageSize] = useState(25);
   const [pageNum, setPageNum] = useState(1);
   const [selected, setSelected] = useState<string | null>(null);
+  const [checkedIds, setCheckedIds] = useState<string[]>([]);
+  const [bulkDays, setBulkDays] = useState(7);
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const canPii = me.permissions.includes('user.pii.view');
-  const load = () => { setError(null); return admin2.listUsers({ q, premium, segment, sortBy, sortOrder, page: pageNum, pageSize }).then(setPage).catch((e) => setError(e.message)); };
+  const canEdit = me.permissions.includes('users.edit');
+  const canBlock = me.permissions.includes('users.block');
+  const load = () => {
+    setError(null);
+    return admin2.listUsers({ q, premium, segment, sortBy, sortOrder, page: pageNum, pageSize })
+      .then((next) => {
+        setPage(next);
+        setCheckedIds((ids) => ids.filter((id) => next.users.some((u) => u.id === id)));
+      })
+      .catch((e) => setError(e.message));
+  };
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [pageNum, premium, segment, sortBy, sortOrder, pageSize]);
   const resetAndLoad = () => { if (pageNum === 1) void load(); else setPageNum(1); };
+  const visibleIds = page?.users.map((u) => u.id) || [];
+  const allVisibleChecked = visibleIds.length > 0 && visibleIds.every((id) => checkedIds.includes(id));
+  const toggleAllVisible = () => {
+    setCheckedIds((ids) => allVisibleChecked
+      ? ids.filter((id) => !visibleIds.includes(id))
+      : Array.from(new Set([...ids, ...visibleIds])));
+  };
+  const toggleOne = (id: string) => {
+    setCheckedIds((ids) => ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id]);
+  };
+  const bulkAct = async (label: string, fn: (id: string) => Promise<any>) => {
+    if (!checkedIds.length) return;
+    const ids = [...checkedIds];
+    let failed = 0;
+    let lastError = '';
+    setBulkBusy(true);
+    setError(null);
+    setNote(null);
+    for (const id of ids) {
+      try {
+        await fn(id);
+      } catch (e: any) {
+        failed += 1;
+        lastError = e.message || String(e);
+      }
+    }
+    await load();
+    setCheckedIds([]);
+    setBulkBusy(false);
+    const done = ids.length - failed;
+    if (done > 0) setNote(`${label}: выполнено ${done} из ${ids.length}.`);
+    if (failed > 0) setError(`${label}: не удалось ${failed} из ${ids.length}${lastError ? ` (${lastError})` : ''}`);
+  };
   return (
     <div className="space-y-4">
       {page ? (
@@ -296,15 +453,38 @@ function UsersSection({ me }: { me: AdminMe }) {
         </select>
       </div>
       {error ? <ErrorNote>{error}</ErrorNote> : null}
-      {selected ? <UserDetailPanel id={selected} canPii={canPii} onClose={() => setSelected(null)} onChanged={load} /> : null}
+      {note ? <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-3.5 py-2.5 text-sm text-emerald-700">{note}</div> : null}
+      {checkedIds.length > 0 ? (
+        <div className={`${card} flex flex-wrap items-center gap-2`}>
+          <div className="mr-auto">
+            <p className="text-sm font-bold text-[#312D4B]">Выбрано: {checkedIds.length}</p>
+            <p className="text-xs text-slate-400">Массовые действия выполняются последовательно и пишутся в audit.</p>
+          </div>
+          <input className={`${inputCls} w-24`} disabled={!canEdit || bulkBusy} type="number" min={1} max={3650} value={bulkDays} onChange={(e) => setBulkDays(Number(e.target.value))} />
+          <button className={btnPrimary} disabled={!canEdit || bulkBusy} onClick={() => bulkAct('Premium выдан', (id) => admin2.setPremium(id, 'grant', Math.max(1, Math.min(3650, Math.round(bulkDays || 7)))))}>Premium +дни</button>
+          <button className={btnGhost} disabled={!canEdit || bulkBusy} onClick={() => bulkAct('Premium снят', (id) => admin2.setPremium(id, 'revoke'))}>Снять Premium</button>
+          <button className={btnGhost} disabled={!canBlock || bulkBusy} onClick={() => bulkAct('Пользователи заблокированы', (id) => admin2.patchUser(id, { isBlocked: true }))}>Заблокировать</button>
+          <button className={btnGhost} disabled={!canBlock || bulkBusy} onClick={() => bulkAct('Пользователи разблокированы', (id) => admin2.patchUser(id, { isBlocked: false }))}>Разблокировать</button>
+          <button className={btnGhost} disabled={bulkBusy} onClick={() => setCheckedIds([])}>Снять выбор</button>
+        </div>
+      ) : null}
+      {selected ? <UserDetailPanel id={selected} canPii={canPii} canEdit={canEdit} canBlock={canBlock} onClose={() => setSelected(null)} onChanged={load} /> : null}
       {page ? (
         <>
           <div className={tableWrap}>
             <table className="w-full text-left text-sm">
-              <thead><tr>{['Имя', 'Статус', 'Премиум', 'Карты', 'Онлайн', ''].map((h, i) => <th key={i} className={th}>{h}</th>)}</tr></thead>
+              <thead>
+                <tr>
+                  <th className={th}>
+                    <input type="checkbox" aria-label="Выбрать всех на странице" checked={allVisibleChecked} onChange={toggleAllVisible} />
+                  </th>
+                  {['Имя', 'Статус', 'Премиум', 'Карты', 'Онлайн', ''].map((h, i) => <th key={i} className={th}>{h}</th>)}
+                </tr>
+              </thead>
               <tbody>
                 {page.users.map((u: AdminUserRow) => (
                   <tr key={u.id} className={trow}>
+                    <td className={td}><input type="checkbox" aria-label={`Выбрать ${u.name || u.id}`} checked={checkedIds.includes(u.id)} onChange={() => toggleOne(u.id)} /></td>
                     <td className={td}><div className="font-semibold text-slate-800">{u.name}</div><div className="text-[11px] text-slate-400">{u.id}</div></td>
                     <td className={td}>{u.isBlocked ? <span className="rounded-full bg-rose-50 px-2 py-0.5 text-xs font-semibold text-rose-600">blocked</span> : u.isAdmin ? <span className="rounded-full bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-600">admin</span> : <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-600">active</span>}</td>
                     <td className={td}>{u.isPremium ? <span className="rounded-full bg-[#8C57FF]/10 px-2 py-0.5 text-xs font-semibold text-[#8C57FF]">Premium</span> : '—'}</td>
@@ -313,7 +493,7 @@ function UsersSection({ me }: { me: AdminMe }) {
                     <td className={td}><button className={btnGhost} onClick={() => setSelected(u.id)}>Открыть</button></td>
                   </tr>
                 ))}
-                {page.users.length === 0 ? <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400">Ничего не найдено</td></tr> : null}
+                {page.users.length === 0 ? <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-400">Ничего не найдено</td></tr> : null}
               </tbody>
             </table>
           </div>
@@ -1097,16 +1277,34 @@ function SettingsSection() {
 // ────────────────────────────── Shell ──────────────────────────────
 export const AdminApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [me, setMe] = useState<AdminMe | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Admin2Error | Error | null>(null);
+  const [booting, setBooting] = useState(true);
   const [active, setActive] = useState<SectionId>('dashboard');
   const [navOpen, setNavOpen] = useState(false);
 
-  useEffect(() => { admin2.me().then(setMe).catch((e) => setError(e.message)); }, []);
+  const loadMe = () => {
+    setBooting(true);
+    setError(null);
+    admin2.me()
+      .then(setMe)
+      .catch((e) => {
+        setMe(null);
+        setError(e instanceof Error ? e : new Error(String(e)));
+      })
+      .finally(() => setBooting(false));
+  };
+
+  useEffect(() => { loadMe(); }, []);
   const visible = useMemo(() => (me ? NAV.filter((s) => me.permissions.includes(s.perm)) : []), [me]);
   useEffect(() => { if (visible.length && !visible.some((s) => s.id === active)) setActive(visible[0].id); }, [visible, active]);
 
   const go = (id: SectionId) => { setActive(id); setNavOpen(false); };
   const activeLabel = visible.find((s) => s.id === active)?.label || 'Админка';
+  const authMode = admin2Auth.hasTelegramAuth() ? 'Telegram' : admin2Auth.getStoredDevAuth() ? 'Browser-dev' : 'Нет доступа';
+
+  if (!me && !booting) {
+    return <AdminAccessScreen error={error} busy={booting} onRetry={loadMe} onClose={onClose} />;
+  }
 
   const Sidebar = (
     <aside className="flex h-full w-64 shrink-0 flex-col border-r border-slate-100 bg-white">
@@ -1154,10 +1352,14 @@ export const AdminApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             </button>
             <h1 className="text-xl font-bold text-[#312D4B]">{activeLabel}</h1>
           </div>
-          <button className={btnGhost} onClick={onClose}>В приложение</button>
+          <div className="flex items-center gap-2">
+            <span className="hidden rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-500 sm:inline-flex">{authMode}</span>
+            <button className={btnGhost} disabled={booting} onClick={loadMe}>{booting ? 'Проверяю…' : 'Проверить доступ'}</button>
+            <button className={btnGhost} onClick={onClose}>В приложение</button>
+          </div>
         </header>
 
-        {error ? <div className="p-4"><ErrorNote>{error}</ErrorNote></div> : null}
+        {error ? <div className="p-4"><ErrorNote>{error.message}</ErrorNote></div> : null}
 
         {me ? (
           <main className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
@@ -1173,7 +1375,7 @@ export const AdminApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             {active === 'audit' && <AuditSection />}
             {active === 'settings' && <SettingsSection />}
           </main>
-        ) : (!error ? <p className="p-6 text-sm text-slate-400">Загрузка…</p> : null)}
+        ) : <p className="p-6 text-sm text-slate-400">Загрузка…</p>}
       </div>
     </div>
   );

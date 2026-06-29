@@ -23,6 +23,8 @@ describe('adminAuth Telegram initData validation', () => {
     jest.resetModules();
     process.env.BOT_TOKEN = BOT_TOKEN;
     delete process.env.TELEGRAM_INIT_DATA_MAX_AGE_SECONDS;
+    delete process.env.ADMIN_WEB_DEV_AUTH_ENABLED;
+    delete process.env.ADMIN_WEB_DEV_SECRET;
   });
 
   it('accepts signed initData when Telegram user id matches', async () => {
@@ -69,6 +71,69 @@ describe('adminAuth Telegram initData validation', () => {
     expect(thrown).toMatchObject({
       status: 401,
       code: 'INIT_DATA_EXPIRED',
+    });
+  });
+
+  it('accepts browser dev auth only when enabled with a matching secret', async () => {
+    process.env.ADMIN_WEB_DEV_AUTH_ENABLED = '1';
+    process.env.ADMIN_WEB_DEV_SECRET = 'local-secret';
+    const { getVerifiedTelegramUser } = await import('../lib/adminAuth');
+
+    const user = getVerifiedTelegramUser({
+      headers: {
+        'x-admin-dev-user-id': '123',
+        'x-admin-dev-secret': 'local-secret',
+      },
+    } as any);
+
+    expect(user).toMatchObject({
+      id: '123',
+      rawUser: { auth_provider: 'admin_dev' },
+    });
+  });
+
+  it('rejects browser dev auth with a wrong secret', async () => {
+    process.env.ADMIN_WEB_DEV_AUTH_ENABLED = '1';
+    process.env.ADMIN_WEB_DEV_SECRET = 'local-secret';
+    const { getVerifiedTelegramUser } = await import('../lib/adminAuth');
+    let thrown: any;
+
+    try {
+      getVerifiedTelegramUser({
+        headers: {
+          'x-admin-dev-user-id': '123',
+          'x-admin-dev-secret': 'wrong',
+        },
+      } as any);
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toMatchObject({
+      status: 401,
+      code: 'ADMIN_DEV_AUTH_INVALID',
+    });
+  });
+
+  it('keeps browser dev auth disabled by default', async () => {
+    process.env.ADMIN_WEB_DEV_SECRET = 'local-secret';
+    const { getVerifiedTelegramUser } = await import('../lib/adminAuth');
+    let thrown: any;
+
+    try {
+      getVerifiedTelegramUser({
+        headers: {
+          'x-admin-dev-user-id': '123',
+          'x-admin-dev-secret': 'local-secret',
+        },
+      } as any);
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toMatchObject({
+      status: 401,
+      code: 'INIT_DATA_REQUIRED',
     });
   });
 });

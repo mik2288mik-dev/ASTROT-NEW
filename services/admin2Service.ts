@@ -1,9 +1,14 @@
 /**
- * Клиент новой админки (Admin v2). Все запросы идут с подписанными Telegram initData;
- * сервер проверяет роль/право (RBAC) и пишет audit. См. lib/admin/*.
+ * Клиент новой админки (Admin v2). В production запросы идут с подписанными Telegram
+ * initData; локально можно включить browser-dev доступ через ADMIN_WEB_DEV_AUTH_ENABLED.
+ * Сервер проверяет роль/право (RBAC) и пишет audit. См. lib/admin/*.
  */
 const API_BASE = typeof window !== 'undefined' ? '' : process.env.NEXT_PUBLIC_API_URL || '';
 const INIT_DATA_HEADER = 'x-telegram-init-data';
+const ADMIN_DEV_USER_HEADER = 'x-admin-dev-user-id';
+const ADMIN_DEV_SECRET_HEADER = 'x-admin-dev-secret';
+const ADMIN_DEV_USER_KEY = 'lumia_admin_dev_user_id';
+const ADMIN_DEV_SECRET_KEY = 'lumia_admin_dev_secret';
 
 export type AdminRole =
   | 'super_admin' | 'admin' | 'content_manager' | 'support'
@@ -148,14 +153,67 @@ export class Admin2Error extends Error {
   constructor(message: string, status: number, code?: string) { super(message); this.status = status; this.code = code; }
 }
 
-function initData(): string {
+export type AdminDevAuth = {
+  userId: string;
+  secret: string;
+};
+
+function telegramInitData(): string {
+  if (typeof window === 'undefined') return '';
   const value = (window as any).Telegram?.WebApp?.initData;
-  if (!value || typeof value !== 'string') throw new Admin2Error('Telegram initData required', 401, 'INIT_DATA_REQUIRED');
-  return value;
+  return typeof value === 'string' ? value : '';
+}
+
+function storageGet(key: string): string {
+  if (typeof window === 'undefined') return '';
+  try {
+    return window.localStorage.getItem(key) || '';
+  } catch {
+    return '';
+  }
+}
+
+function storageSet(key: string, value: string) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    // localStorage может быть недоступен в приватном режиме; форма всё равно покажет ошибку API.
+  }
+}
+
+function storageRemove(key: string) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.removeItem(key);
+  } catch {
+    // ignore
+  }
+}
+
+function getStoredDevAuth(): AdminDevAuth | null {
+  const userId = storageGet(ADMIN_DEV_USER_KEY).trim();
+  const secret = storageGet(ADMIN_DEV_SECRET_KEY);
+  return userId && secret ? { userId, secret } : null;
+}
+
+function authHeaders(): Record<string, string> {
+  const initData = telegramInitData();
+  if (initData.trim()) return { [INIT_DATA_HEADER]: initData };
+
+  const devAuth = getStoredDevAuth();
+  if (devAuth) {
+    return {
+      [ADMIN_DEV_USER_HEADER]: devAuth.userId,
+      [ADMIN_DEV_SECRET_HEADER]: devAuth.secret,
+    };
+  }
+
+  throw new Admin2Error('Откройте админку внутри Telegram Mini App или подключите browser-dev доступ.', 401, 'ADMIN_AUTH_REQUIRED');
 }
 
 async function req<T>(path: string, opts: { method?: string; body?: any } = {}): Promise<T> {
-  const headers: Record<string, string> = { [INIT_DATA_HEADER]: initData() };
+  const headers: Record<string, string> = authHeaders();
   if (opts.body) headers['Content-Type'] = 'application/json';
   const res = await fetch(`${API_BASE}${path}`, {
     method: opts.method || 'GET',
@@ -166,6 +224,19 @@ async function req<T>(path: string, opts: { method?: string; body?: any } = {}):
   if (!res.ok) throw new Admin2Error(payload.message || payload.error || `Request failed: ${res.status}`, res.status, payload.error);
   return payload as T;
 }
+
+export const admin2Auth = {
+  hasTelegramAuth: () => !!telegramInitData().trim(),
+  getStoredDevAuth,
+  saveDevAuth: (userId: string, secret: string) => {
+    storageSet(ADMIN_DEV_USER_KEY, userId.trim());
+    storageSet(ADMIN_DEV_SECRET_KEY, secret);
+  },
+  clearDevAuth: () => {
+    storageRemove(ADMIN_DEV_USER_KEY);
+    storageRemove(ADMIN_DEV_SECRET_KEY);
+  },
+};
 
 export const admin2 = {
   me: () => req<AdminMe>('/api/admin/v2/me'),

@@ -4,6 +4,8 @@ import { db } from './db';
 
 const BOT_TOKEN = process.env.BOT_TOKEN || '';
 const INIT_DATA_HEADER = 'x-telegram-init-data';
+const ADMIN_DEV_USER_HEADER = 'x-admin-dev-user-id';
+const ADMIN_DEV_SECRET_HEADER = 'x-admin-dev-secret';
 const DEFAULT_INIT_DATA_MAX_AGE_SECONDS = 24 * 60 * 60;
 
 function getInitDataMaxAgeSeconds(): number {
@@ -37,6 +39,43 @@ function getHeaderValue(req: NextApiRequest, headerName: string): string {
   const value = req.headers?.[headerName];
   if (Array.isArray(value)) return value[0] || '';
   return typeof value === 'string' ? value : '';
+}
+
+function isAdminWebDevAuthEnabled(): boolean {
+  return process.env.ADMIN_WEB_DEV_AUTH_ENABLED === '1' && process.env.NODE_ENV !== 'production';
+}
+
+function getVerifiedAdminDevUser(req: NextApiRequest): VerifiedTelegramUser | null {
+  const userId = getHeaderValue(req, ADMIN_DEV_USER_HEADER).trim();
+  const secret = getHeaderValue(req, ADMIN_DEV_SECRET_HEADER);
+
+  if (!isAdminWebDevAuthEnabled()) return null;
+  if (!userId && !secret) return null;
+
+  const expectedSecret = process.env.ADMIN_WEB_DEV_SECRET || '';
+  if (!expectedSecret) {
+    throw new AdminAuthError(500, 'ADMIN_DEV_AUTH_NOT_CONFIGURED', 'ADMIN_WEB_DEV_SECRET is required for browser admin auth');
+  }
+
+  if (!userId || !secret) {
+    throw new AdminAuthError(401, 'ADMIN_DEV_AUTH_REQUIRED', 'Admin browser credentials are required');
+  }
+
+  if (secret !== expectedSecret) {
+    throw new AdminAuthError(401, 'ADMIN_DEV_AUTH_INVALID', 'Admin browser credentials are invalid');
+  }
+
+  if (!/^-?\d+$/.test(userId)) {
+    throw new AdminAuthError(400, 'INVALID_ADMIN_DEV_USER', 'Admin browser user id must be numeric');
+  }
+
+  return {
+    id: userId,
+    rawUser: {
+      id: userId,
+      auth_provider: 'admin_dev',
+    },
+  };
 }
 
 function verifyTelegramInitData(initData: string): VerifiedTelegramUser {
@@ -104,6 +143,15 @@ function verifyTelegramInitData(initData: string): VerifiedTelegramUser {
 
 export function getVerifiedTelegramUser(req: NextApiRequest): VerifiedTelegramUser {
   const initData = getHeaderValue(req, INIT_DATA_HEADER);
+  if (initData.trim()) return verifyTelegramInitData(initData);
+
+  const devUser = getVerifiedAdminDevUser(req);
+  if (devUser) return devUser;
+
+  if (isAdminWebDevAuthEnabled()) {
+    throw new AdminAuthError(401, 'ADMIN_DEV_AUTH_REQUIRED', 'Telegram initData or admin browser credentials are required');
+  }
+
   return verifyTelegramInitData(initData);
 }
 
