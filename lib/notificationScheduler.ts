@@ -45,11 +45,43 @@ function mskNow(date = new Date()): MskNow {
 
 const lastRun = new Map<string, string>(); // jobKey -> dateKey (или slotKey)
 
+// Живой статус планировщика — отдаётся в админку (diagnostics), чтобы видеть, что
+// in-process крон реально работает и когда последний раз флашил очередь.
+type SchedulerStatus = {
+  started: boolean;
+  startedAt: string | null;
+  lastDispatchAt: string | null;
+  lastDispatchOk: boolean | null;
+  lastDispatchSent: number;
+  lastDispatchFailed: number;
+  lastPlannerJob: string | null;
+  lastPlannerAt: string | null;
+  dispatchIntervalMs: number;
+};
+
+const status: SchedulerStatus = {
+  started: false,
+  startedAt: null,
+  lastDispatchAt: null,
+  lastDispatchOk: null,
+  lastDispatchSent: 0,
+  lastDispatchFailed: 0,
+  lastPlannerJob: null,
+  lastPlannerAt: null,
+  dispatchIntervalMs: DISPATCH_INTERVAL_MS,
+};
+
+export function getSchedulerStatus(): SchedulerStatus {
+  return { ...status };
+}
+
 async function runOnce(job: string, slotKey: string, fn: () => Promise<unknown>) {
   if (lastRun.get(job) === slotKey) return;
   lastRun.set(job, slotKey);
   try {
     await fn();
+    status.lastPlannerJob = job;
+    status.lastPlannerAt = new Date().toISOString();
     console.log(`[cron] ${job} done`);
   } catch (error) {
     console.warn(`[cron] ${job} failed:`, error instanceof Error ? error.message : error);
@@ -61,8 +93,14 @@ async function dispatchTick() {
   if (dispatching) return;
   dispatching = true;
   try {
-    await dispatchScheduledNotifications(new Date(), 100);
+    const result = await dispatchScheduledNotifications(new Date(), 100);
+    status.lastDispatchAt = new Date().toISOString();
+    status.lastDispatchOk = !!result?.ok;
+    status.lastDispatchSent = Number(result?.successCount || 0);
+    status.lastDispatchFailed = Number(result?.failureCount || 0);
   } catch (error) {
+    status.lastDispatchAt = new Date().toISOString();
+    status.lastDispatchOk = false;
     console.warn('[cron] dispatch failed:', error instanceof Error ? error.message : error);
   } finally {
     dispatching = false;
@@ -96,6 +134,8 @@ let started = false;
 export function startNotificationScheduler() {
   if (started) return;
   started = true;
+  status.started = true;
+  status.startedAt = new Date().toISOString();
 
   // первичная отправка через 15с после старта — флашим очередь
   setTimeout(() => void dispatchTick(), 15 * 1000);

@@ -1324,6 +1324,110 @@ export async function dispatchScheduledNotifications(
   };
 }
 
+export type NotificationSelfTestResult = {
+  ok: boolean;
+  error?: string;
+  dryRun?: boolean;
+  type?: string;
+  title?: string;
+  body?: string;
+  telegramMessageId?: number | null;
+};
+
+/**
+ * Сквозной тест доставки: подбирает реальный сценарий+шаблон для пользователя, рендерит его
+ * (с проверкой запретных слов), строит кнопку мини-аппа и шлёт настоящее сообщение в Telegram.
+ * Возвращает честный результат (в т.ч. дословную ошибку Telegram — «bot was blocked», «chat not
+ * found» и т.п.). Используется кнопкой «Отправить себе тест» в админке: проверяет ВЕСЬ путь,
+ * минуя только продуктовые гейты частоты/тихих часов (это не часть доставки).
+ */
+export async function sendNotificationSelfTest(userId: string): Promise<NotificationSelfTestResult> {
+  if (!process.env.BOT_TOKEN) {
+    return { ok: false, dryRun: true, error: 'BOT_TOKEN не задан — реальная отправка отключена (dry-run)' };
+  }
+  if (process.env.NOTIFICATION_DRY_RUN === '1') {
+    return { ok: false, dryRun: true, error: 'NOTIFICATION_DRY_RUN=1 — реальная отправка отключена' };
+  }
+
+  const context = await buildPersonalizationContext(userId);
+  const scenarios = await listEnabledRetentionScenarios();
+  if (!scenarios.length) {
+    return { ok: false, error: 'Нет включённых сценариев — каталог пуст или выключен' };
+  }
+
+  // Осмысленный выбор: личный гороскоп дня при наличии карты, иначе — гороскоп по знаку,
+  // иначе — приглашение построить карту. Дальше — любой сценарий по приоритету.
+  const preferredKey = context.hasPrimaryChart ? 'daily_card' : context.hasBirthDate ? 'sign_daily' : 'natal_free';
+  const ordered = [...scenarios].sort((a, b) =>
+    a.key === preferredKey ? -1 : b.key === preferredKey ? 1 : b.priority - a.priority
+  );
+
+  let lastError = 'Не удалось подобрать ни одного шаблона для отправки';
+  for (const scenario of ordered) {
+    const type = scenario.key as RetentionNotificationType;
+    const fallback = FALLBACK_COPY[type];
+    if (!fallback) continue;
+    const template = await pickTemplate(scenario, context);
+    const candidate: RetentionCandidate = {
+      type,
+      segment: segmentForType(type, context),
+      scenario,
+      template,
+      priority: scenario.priority,
+      reason: 'selftest',
+      section: typeToSection(type),
+      buttonText: fallback.button,
+      variables: { ...baseVariables(context), interest_topic: type, days_inactive: context.daysInactive },
+      fallbackTitle: fallback.title,
+      fallbackBody: fallback.body,
+      scheduledAt: new Date(),
+      dedupeKey: `selftest:${Date.now()}`,
+    };
+
+    let rendered: ReturnType<typeof renderCandidate>;
+    try {
+      rendered = renderCandidate(candidate);
+    } catch (error: any) {
+      lastError = error?.message || 'render failed';
+      continue;
+    }
+
+    const section = candidate.template?.deep_link || candidate.scenario?.deep_link || candidate.section;
+    const botUsername = await resolveBotUsername();
+    const buttonUrl =
+      buildMiniAppButtonUrl(botUsername, section, null) ||
+      buildNotificationDeepLink({ baseUrl: appBaseUrl(), section, scenarioKey: type, segment: candidate.segment, variant: 'selftest' });
+    const replyMarkup = buildRetentionInlineKeyboard({
+      deepLink: buttonUrl,
+      buttonText: rendered.buttonText || 'Открыть',
+      notificationType: type,
+    });
+
+    const result = candidate.template?.asset_public_url
+      ? await sendTelegramPhotoMessage(userId, absoluteAssetUrl(candidate.template.asset_public_url), rendered.caption || rendered.body, { replyMarkup })
+      : await sendTelegramTextMessage(userId, rendered.caption || [rendered.title, rendered.body].filter(Boolean).join('\n\n'), { replyMarkup });
+
+    await recordEvent({
+      userId,
+      notificationType: type,
+      eventType: result.ok ? 'sent' : 'failed',
+      source: 'selftest',
+      metadata: result.ok ? { telegramMessageId: result.messageId ?? null, selfTest: true } : { error: result.error, selfTest: true },
+    }).catch(() => undefined);
+
+    return {
+      ok: result.ok,
+      error: result.ok ? undefined : result.error,
+      type,
+      title: rendered.title,
+      body: rendered.body,
+      telegramMessageId: result.messageId ?? null,
+    };
+  }
+
+  return { ok: false, error: lastError };
+}
+
 export async function generateDailyCards(now: Date = new Date(), options?: { limit?: number; userId?: string | null }) {
   const recipients = options?.userId
     ? [await buildPersonalizationContext(options.userId, now).then((ctx) => ctx.user)]
@@ -1554,6 +1658,54 @@ export async function recordRetentionAttribution(input: {
     [input.userId, input.eventType]
   );
   return { success: true };
+}
+
+export type NotificationDeliveryHealth = {
+  scenarios: { total: number; enabled: number };
+  templates: { active: number };
+  queue: { scheduled: number; dueNow: number; sending: number; sentLast24h: number; failedLast24h: number };
+  lastSentAt: string | null;
+  lastError: { at: string | null; message: string | null };
+  recipients: { withChart: number; withBirthDate: number };
+};
+
+/** Свод здоровья доставки уведомлений для админ-диагностики. Только чтение. */
+export async function getNotificationDeliveryHealth(now: Date = new Date()): Promise<NotificationDeliveryHealth> {
+  const pool = getPool();
+  const [scen, tpl, queue, lastSent, lastErr, recips] = await Promise.all([
+    pool.query(`SELECT COUNT(*)::int AS total, COUNT(*) FILTER (WHERE enabled)::int AS enabled FROM notification_scenarios`),
+    pool.query(`SELECT COUNT(*)::int AS active FROM notification_templates WHERE is_active = TRUE`),
+    pool.query(
+      `SELECT
+         COUNT(*) FILTER (WHERE status = 'scheduled')::int AS scheduled,
+         COUNT(*) FILTER (WHERE status = 'scheduled' AND scheduled_at <= $1)::int AS due_now,
+         COUNT(*) FILTER (WHERE status = 'sending')::int AS sending,
+         COUNT(*) FILTER (WHERE status = 'sent' AND sent_at > NOW() - INTERVAL '24 hours')::int AS sent_24h,
+         COUNT(*) FILTER (WHERE status = 'failed' AND updated_at > NOW() - INTERVAL '24 hours')::int AS failed_24h
+       FROM scheduled_notifications`,
+      [now]
+    ),
+    pool.query(`SELECT sent_at FROM scheduled_notifications WHERE status = 'sent' AND sent_at IS NOT NULL ORDER BY sent_at DESC LIMIT 1`),
+    pool.query(`SELECT updated_at, error FROM scheduled_notifications WHERE error IS NOT NULL ORDER BY updated_at DESC LIMIT 1`),
+    pool.query(`SELECT (SELECT COUNT(*) FROM natal_charts)::int AS charts, (SELECT COUNT(*) FROM users WHERE birth_date IS NOT NULL)::int AS with_bd`),
+  ]);
+  return {
+    scenarios: { total: Number(scen.rows[0]?.total || 0), enabled: Number(scen.rows[0]?.enabled || 0) },
+    templates: { active: Number(tpl.rows[0]?.active || 0) },
+    queue: {
+      scheduled: Number(queue.rows[0]?.scheduled || 0),
+      dueNow: Number(queue.rows[0]?.due_now || 0),
+      sending: Number(queue.rows[0]?.sending || 0),
+      sentLast24h: Number(queue.rows[0]?.sent_24h || 0),
+      failedLast24h: Number(queue.rows[0]?.failed_24h || 0),
+    },
+    lastSentAt: lastSent.rows[0]?.sent_at ? new Date(lastSent.rows[0].sent_at).toISOString() : null,
+    lastError: {
+      at: lastErr.rows[0]?.updated_at ? new Date(lastErr.rows[0].updated_at).toISOString() : null,
+      message: lastErr.rows[0]?.error || null,
+    },
+    recipients: { withChart: Number(recips.rows[0]?.charts || 0), withBirthDate: Number(recips.rows[0]?.with_bd || 0) },
+  };
 }
 
 export async function listScheduledNotificationQueue(limit = 100, status?: string | null): Promise<AdminScheduledNotificationQueueItem[]> {

@@ -142,6 +142,41 @@ export type AdminNotificationsOverview = {
   templates: AdminNotificationTemplate[];
 };
 
+export type AdminNotificationDiagnostics = {
+  ok: boolean;
+  healthy: boolean;
+  problems: string[];
+  env: {
+    botTokenPresent: boolean; dryRun: boolean; webhookSecretPresent: boolean;
+    cronSecretPresent: boolean; miniAppUrlPresent: boolean; botUsername: string | null;
+    inProcessCronDisabled: boolean;
+  };
+  scheduler: {
+    started: boolean; startedAt: string | null; lastDispatchAt: string | null;
+    lastDispatchOk: boolean | null; lastDispatchSent: number; lastDispatchFailed: number;
+    lastPlannerJob: string | null; lastPlannerAt: string | null; dispatchIntervalMs: number;
+  };
+  health: {
+    scenarios: { total: number; enabled: number };
+    templates: { active: number };
+    queue: { scheduled: number; dueNow: number; sending: number; sentLast24h: number; failedLast24h: number };
+    lastSentAt: string | null;
+    lastError: { at: string | null; message: string | null };
+    recipients: { withChart: number; withBirthDate: number };
+  };
+  checkedAt: string;
+};
+
+export type AdminNotificationRunResult = {
+  ok: boolean;
+  action: string;
+  result: {
+    ok?: boolean; error?: string; dryRun?: boolean; type?: string; title?: string; body?: string;
+    telegramMessageId?: number | null;
+    total?: number; successCount?: number; failureCount?: number; enqueued?: number; jobType?: string;
+  };
+};
+
 export type AdminAuditRow = {
   id: number; actorUserId: string | null; actorRole: string | null; action: string;
   entityType: string | null; entityId: string | null; before: unknown; after: unknown;
@@ -306,6 +341,9 @@ export const admin2 = {
     req<{ ok: boolean; template: AdminNotificationTemplate }>('/api/admin/v2/notifications/templates', { method: 'POST', body }),
   deleteNotificationTemplate: (id: number) =>
     req<{ ok: boolean }>(`/api/admin/v2/notifications/templates/${id}`, { method: 'DELETE' }),
+  notificationsDiagnostics: () => req<AdminNotificationDiagnostics>('/api/admin/v2/notifications/diagnostics'),
+  runNotifications: (body: { action: 'selftest' | 'dispatch' | 'plan'; userId?: string; jobType?: string }) =>
+    req<AdminNotificationRunResult>('/api/admin/v2/notifications/run', { method: 'POST', body }),
   // Support
   listTickets: (status = 'all') => req<{ tickets: AdminTicketRow[] }>(`/api/admin/v2/support?status=${encodeURIComponent(status)}`),
   getTicket: (id: number) => req<AdminTicketDetail>(`/api/admin/v2/support/${id}`),

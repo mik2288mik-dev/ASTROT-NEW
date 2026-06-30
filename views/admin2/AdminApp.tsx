@@ -30,6 +30,7 @@ import {
   type AdminNotificationsOverview,
   type AdminNotificationScenario,
   type AdminNotificationTemplate,
+  type AdminNotificationDiagnostics,
 } from '../../services/admin2Service';
 
 /**
@@ -980,8 +981,8 @@ function ContentSection({ me }: { me: AdminMe }) {
 
 // ────────────────────────────── Communications ──────────────────────────────
 function CommsSection() {
-  type CommsTab = 'manual' | 'stats' | 'scenarios' | 'templates';
-  const [tab, setTab] = useState<CommsTab>('manual');
+  type CommsTab = 'health' | 'manual' | 'stats' | 'scenarios' | 'templates';
+  const [tab, setTab] = useState<CommsTab>('health');
   const [mode, setMode] = useState<'segment' | 'user'>('segment');
   const [segment, setSegment] = useState('all');
   const [userId, setUserId] = useState('');
@@ -994,8 +995,32 @@ function CommsSection() {
   const [audienceRaw, setAudienceRaw] = useState('{}');
   const [templateDraft, setTemplateDraft] = useState<Partial<AdminNotificationTemplate> | null>(null);
   const segments = [['all', 'Все'], ['premium', 'Премиум'], ['free', 'Бесплатные'], ['active_7d', 'Активные 7д'], ['inactive_7d', 'Неактивные 7д'], ['inactive_30d', 'Неактивные 30д'], ['need_attention', 'Требуют внимания'], ['high_intent_premium', 'High intent Premium']];
+  const [diag, setDiag] = useState<AdminNotificationDiagnostics | null>(null);
+  const [diagBusy, setDiagBusy] = useState(false);
+  const [runOut, setRunOut] = useState<{ ok: boolean; msg: string } | null>(null);
   const loadNotifications = () => admin2.notifications().then(setOverview).catch((e) => setError(e.message));
-  useEffect(() => { loadNotifications(); }, []);
+  const loadDiagnostics = () => admin2.notificationsDiagnostics().then(setDiag).catch((e) => setError(e.message));
+  useEffect(() => { loadNotifications(); loadDiagnostics(); }, []);
+  const runSelfTest = async () => {
+    setDiagBusy(true); setError(null); setRunOut(null);
+    try {
+      const r = await admin2.runNotifications({ action: 'selftest' });
+      const res = r.result || {};
+      setRunOut(res.ok
+        ? { ok: true, msg: `Тест отправлен (${res.type || 'push'}) — проверь Telegram` }
+        : { ok: false, msg: res.error || 'Не удалось отправить тест' });
+      await loadDiagnostics();
+    } catch (e: any) { setError(e.message); } finally { setDiagBusy(false); }
+  };
+  const runDispatch = async () => {
+    setDiagBusy(true); setError(null); setRunOut(null);
+    try {
+      const r = await admin2.runNotifications({ action: 'dispatch' });
+      const res = r.result || {};
+      setRunOut({ ok: (res.failureCount ?? 0) === 0, msg: `Очередь разослана: отправлено ${res.successCount ?? 0}, ошибок ${res.failureCount ?? 0}` });
+      await loadDiagnostics();
+    } catch (e: any) { setError(e.message); } finally { setDiagBusy(false); }
+  };
   const send = async () => {
     const isBroadcast = mode === 'segment';
     if (isBroadcast && !window.confirm(`Отправить пуш сегменту «${segment}»? Это массовая рассылка.`)) return;
@@ -1044,11 +1069,53 @@ function CommsSection() {
   return (
     <div className="space-y-4">
       <div className="flex gap-1.5 overflow-x-auto">
-        {([['manual', 'Ручная отправка'], ['stats', 'Статистика'], ['scenarios', 'Сценарии'], ['templates', 'Шаблоны']] as Array<[CommsTab, string]>).map(([id, label]) => (
+        {([['health', 'Состояние'], ['manual', 'Ручная отправка'], ['stats', 'Статистика'], ['scenarios', 'Сценарии'], ['templates', 'Шаблоны']] as Array<[CommsTab, string]>).map(([id, label]) => (
           <button key={id} onClick={() => setTab(id)} className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold ${tab === id ? 'bg-[#8C57FF] text-white' : 'bg-white text-slate-500 hover:bg-slate-50'}`}>{label}</button>
         ))}
       </div>
       {error ? <ErrorNote>{error}</ErrorNote> : null}
+      {tab === 'health' ? (
+        <div className="space-y-4">
+          {diag ? (
+            <>
+              <div className={`rounded-2xl border p-4 ${diag.healthy ? 'border-emerald-200 bg-emerald-50' : 'border-amber-200 bg-amber-50'}`}>
+                <div className="flex items-center justify-between gap-2">
+                  <p className={`font-bold ${diag.healthy ? 'text-emerald-700' : 'text-amber-700'}`}>{diag.healthy ? 'Уведомления работают' : 'Есть проблемы с доставкой'}</p>
+                  <button className={btnGhost} disabled={diagBusy} onClick={loadDiagnostics}>Обновить</button>
+                </div>
+                {diag.problems.length
+                  ? <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-amber-800">{diag.problems.map((p, i) => <li key={i}>{p}</li>)}</ul>
+                  : <p className="mt-1 text-sm text-emerald-700">Все проверки пройдены — пуши доставляются.</p>}
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <button className={btnPrimary} disabled={diagBusy} onClick={runSelfTest}>{diagBusy ? 'Минуту…' : 'Отправить себе тест'}</button>
+                <button className={btnGhost} disabled={diagBusy} onClick={runDispatch}>Разослать очередь сейчас</button>
+              </div>
+              {runOut ? <div className={`rounded-2xl border p-3 text-sm ${runOut.ok ? 'border-emerald-100 bg-emerald-50 text-emerald-700' : 'border-rose-100 bg-rose-50 text-rose-700'}`}>{runOut.msg}</div> : null}
+
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                <Kpi color={!diag.env.dryRun ? 'emerald' : 'rose'} label="Отправка в Telegram" value={diag.env.dryRun ? 'выкл' : 'вкл'} sub={diag.env.botUsername ? `@${diag.env.botUsername}` : 'нет BOT_TOKEN'} />
+                <Kpi color={diag.scheduler.started ? 'emerald' : 'rose'} label="Планировщик" value={diag.scheduler.started ? 'жив' : 'стоп'} sub={diag.scheduler.lastDispatchAt ? `флаш ${fmtDate(diag.scheduler.lastDispatchAt)}` : 'нет флашей'} />
+                <Kpi color={diag.health.scenarios.enabled > 0 ? 'blue' : 'rose'} label="Сценарии вкл." value={`${diag.health.scenarios.enabled}/${diag.health.scenarios.total}`} sub={`${diag.health.templates.active} шаблонов`} />
+                <Kpi color="sky" label="Очередь" value={diag.health.queue.scheduled} sub={`созрело ${diag.health.queue.dueNow}`} />
+              </div>
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                <Kpi color="emerald" label="Отправлено 24ч" value={diag.health.queue.sentLast24h} sub={diag.health.lastSentAt ? fmtDate(diag.health.lastSentAt) : '—'} />
+                <Kpi color="rose" label="Ошибок 24ч" value={diag.health.queue.failedLast24h} />
+                <Kpi color="blue" label="С натальной картой" value={diag.health.recipients.withChart} />
+                <Kpi color="sky" label="Со знаком (есть дата)" value={diag.health.recipients.withBirthDate} />
+              </div>
+              {diag.health.lastError.message ? (
+                <Card title="Последняя ошибка отправки">
+                  <p className="text-sm text-rose-600">{diag.health.lastError.message}</p>
+                  <p className="mt-1 text-xs text-slate-400">{fmtDate(diag.health.lastError.at)}</p>
+                </Card>
+              ) : null}
+            </>
+          ) : <p className="text-sm text-slate-400">Загрузка диагностики…</p>}
+        </div>
+      ) : null}
       {tab === 'manual' ? <Card title="Ручная рассылка">
         <div className="space-y-3">
           <div className="flex gap-2">

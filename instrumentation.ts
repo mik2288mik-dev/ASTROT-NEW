@@ -12,6 +12,18 @@ export async function register() {
     && (process.env.NODE_ENV === 'production' || process.env.ENABLE_INPROCESS_CRON === '1');
   if (!enabled) return;
 
+  // Самоисцеление доставки уведомлений на старте: переутверждаем каталог сценариев как
+  // enabled, синхронизируем тексты и гасим протухшую очередь. Деплой на Railway —
+  // `node server.js` (без `npm run migrate`), поэтому без этого шага каталог в проде мог
+  // оставаться рассинхронизированным/выключенным → планировщик слал 0 пушей.
+  // Не блокируем запуск планировщика, если шаг упал.
+  try {
+    const { bootstrapNotificationDelivery } = await import('./lib/migrations');
+    await bootstrapNotificationDelivery();
+  } catch (error) {
+    console.warn('[instrumentation] notification bootstrap failed:', error instanceof Error ? error.message : error);
+  }
+
   try {
     const { startNotificationScheduler } = await import('./lib/notificationScheduler');
     startNotificationScheduler();

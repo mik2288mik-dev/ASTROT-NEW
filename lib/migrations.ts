@@ -2179,9 +2179,16 @@ async function lumia030DisableRemovedScenarios(pool: Pool) {
   log.info('Migration lumia_030_disable_removed_notification_scenarios applied');
 }
 
-// Каталог уведомлений — источник правды. При каждом деплое: НОВЫЕ сценарии
-// вставляются (enabled=TRUE), у существующих обновляются метаданные и тексты
-// шаблонов (enabled существующих НЕ трогаем — чтобы ручные отключения админа жили).
+// Каталог уведомлений — источник правды. При КАЖДОМ старте сервера (см.
+// bootstrapNotificationDelivery + instrumentation.ts) штатные сценарии продукта
+// переутверждаются как enabled=TRUE, метаданные и тексты шаблонов синхронизируются,
+// устаревшие шаблоны деактивируются.
+//
+// ВАЖНО (исторический баг): раньше сценарии сидились enabled=FALSE (ensureScenarioSeeds)
+// или ON CONFLICT не трогал enabled — и планировщик отбрасывал ВСЁ (нет ни одного
+// enabled-сценария → нет кандидатов → ни одного пуша). Поэтому каталог теперь жёстко
+// включает свои сценарии. Точечное отключение через админку действует в рантайме до
+// следующего деплоя (для постоянного отключения нужен отдельный override-флаг — TODO).
 async function syncNotificationCatalogFromSeed(pool: Pool) {
   try {
     for (const seed of RETENTION_NOTIFICATION_SCENARIO_SEEDS) {
@@ -2197,6 +2204,7 @@ async function syncNotificationCatalogFromSeed(pool: Pool) {
            name = EXCLUDED.name, description = EXCLUDED.description, day_part = EXCLUDED.day_part,
            time_window_start = EXCLUDED.time_window_start, time_window_end = EXCLUDED.time_window_end,
            priority = EXCLUDED.priority, deep_link = EXCLUDED.deep_link, buttons = EXCLUDED.buttons,
+           enabled = TRUE,
            updated_at = CURRENT_TIMESTAMP
          RETURNING id`,
         [
@@ -2257,6 +2265,36 @@ async function cancelStaleScheduledNotifications(pool: Pool) {
     if (result.rowCount) log.info(`cancelled ${result.rowCount} stale scheduled notifications`);
   } catch (e: any) {
     log.warn('stale notification cleanup skipped', { error: e?.message });
+  }
+}
+
+/**
+ * Бут-тайм самоисцеление доставки уведомлений. Вызывается из instrumentation.ts при КАЖДОМ
+ * старте сервера, ДО запуска планировщика. Идемпотентно, быстро и НИКОГДА не бросает:
+ *   1) переутверждает штатный каталог сценариев как enabled=TRUE + синхронизирует тексты;
+ *   2) гасит «протухшую» очередь (старые/просроченные пуши), чтобы после деплоя не было спама.
+ *
+ * Это гарантирует, что у планировщика всегда есть включённые сценарии для подбора кандидатов.
+ * Без этого один сценарий, засиженный enabled=FALSE, тихо обнулял весь пайплайн уведомлений.
+ *
+ * Работает на рантайм-пуле (lib/db), без отдельного соединения. Ленивый импорт — чтобы не
+ * создавать цикл зависимостей на уровне модулей.
+ */
+export async function bootstrapNotificationDelivery(): Promise<{ ok: boolean; scenariosEnabled?: number; error?: string }> {
+  try {
+    const { getPool } = await import('./db');
+    const pool = getPool() as unknown as Pool;
+    await syncNotificationCatalogFromSeed(pool);
+    await cancelStaleScheduledNotifications(pool);
+    const enabled = await pool
+      .query(`SELECT COUNT(*)::int AS c FROM notification_scenarios WHERE enabled = TRUE`)
+      .then((r) => Number(r.rows[0]?.c || 0))
+      .catch(() => undefined);
+    log.info(`notification delivery bootstrap complete (${enabled ?? '?'} scenarios enabled)`);
+    return { ok: true, scenariosEnabled: enabled };
+  } catch (error: any) {
+    log.warn('bootstrapNotificationDelivery failed', { error: error?.message });
+    return { ok: false, error: error?.message || 'error' };
   }
 }
 
