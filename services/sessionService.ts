@@ -111,16 +111,17 @@ export async function recordUserAppEvent(payload: {
   source?: string | null;
   eventPayload?: Record<string, any>;
 }): Promise<void> {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined' || !payload.eventType) return;
 
+  // Считаем всех: Telegram (по initData-заголовку) И веб-гостей (по cookie-сессии,
+  // поэтому credentials:'include'). Раньше при отсутствии initData событие терялось.
   const initData = getTelegramInitData();
-  if (!initData || !payload.eventType) return;
-
   await fetch(`${API_BASE}/api/users/events`, {
     method: 'POST',
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
-      [INIT_DATA_HEADER]: initData,
+      ...(initData ? { [INIT_DATA_HEADER]: initData } : {}),
     },
     body: JSON.stringify(payload),
   }).catch((error) => {

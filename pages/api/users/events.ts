@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { getVerifiedTelegramUser } from '../../../lib/adminAuth';
+import { requireAppUser } from '../../../lib/auth/appAuth';
 import { getPool } from '../../../lib/db';
 
 const MAX_EVENT_TYPE_LENGTH = 80;
@@ -17,7 +17,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const telegramUser = getVerifiedTelegramUser(req);
+    // Считаем ВСЕХ app-юзеров: Telegram И веб-гостей (раньше было только Telegram —
+    // гости вообще не попадали в аналитику/DAU). allowGuest = да.
+    const appUser = await requireAppUser(req, { allowGuest: true });
     const eventType = normalizeText(req.body?.eventType, MAX_EVENT_TYPE_LENGTH);
     if (!eventType) {
       return res.status(400).json({
@@ -31,7 +33,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       `INSERT INTO user_app_events (user_id, event_type, section, source, payload_json)
        VALUES ($1, $2, $3, $4, $5::jsonb)`,
       [
-        telegramUser.id,
+        appUser.userId,
         eventType,
         normalizeText(req.body?.section, 80),
         normalizeText(req.body?.source, 80),
