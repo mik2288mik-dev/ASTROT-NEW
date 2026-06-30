@@ -1615,12 +1615,20 @@ export const getNatalIntro = async (
 
 const signCompatibilityClientCache = new Map<string, SignCompatibilityResult>();
 
-export async function getSignCompatibility(signA: string, signB: string, language: 'ru' | 'en'): Promise<SignCompatibilityResult> {
-  const key = [signA.toLowerCase(), signB.toLowerCase()].sort().join(':') + `:${language}`;
+export async function getSignCompatibility(
+  signA: string,
+  signB: string,
+  language: 'ru' | 'en',
+  genderA?: string | null,
+  genderB?: string | null,
+): Promise<SignCompatibilityResult> {
+  // Порядок и пол ВАЖНЫ для текста (м+ж ≠ ж+м), поэтому ключ кеша не сортируем и включаем пол.
+  const g = (v?: string | null) => (v === 'male' || v === 'female' ? v : 'x');
+  const key = `${signA.toLowerCase()}:${g(genderA)}:${signB.toLowerCase()}:${g(genderB)}:${language}`;
   const cachedLocal = signCompatibilityClientCache.get(key);
   if (cachedLocal) return cachedLocal;
   // Текст совместимости по знакам — из нашей базы (локальный композитор), без OpenAI.
-  const result = buildLocalSignCompatibility(signA, signB, language);
+  const result = buildLocalSignCompatibility(signA, signB, language, genderA, genderB);
   if (!result) throw buildApiError('Sign compatibility content is missing');
   signCompatibilityClientCache.set(key, result);
   return result;

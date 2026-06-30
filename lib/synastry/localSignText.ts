@@ -77,7 +77,80 @@ const DYNAMIC: Record<'same' | 'harmonious' | 'challenging', { attract: string; 
 
 function cap(s: string): string { return s.charAt(0).toUpperCase() + s.slice(1); }
 
-export function buildLocalSignCompatibility(first: string, second: string, language: Language): SignCompatibilityResult | null {
+export type CompatGender = 'male' | 'female';
+
+function asGender(value?: string | null): CompatGender | null {
+  return value === 'male' || value === 'female' ? value : null;
+}
+
+/** «Мужчина-Овен» / «Женщина-Весы» (или просто знак, если пол не задан). */
+function genderedSign(signName: string, gender: CompatGender | null, ru: boolean): string {
+  if (!gender) return cap(signName);
+  if (ru) return `${gender === 'male' ? 'Мужчина' : 'Женщина'}-${cap(signName)}`;
+  return `${gender === 'male' ? 'Male' : 'Female'} ${cap(signName)}`;
+}
+
+type ComboCopy = { attract: string; tension: string; talk: string };
+
+// Гендерный слой поверх базы по знакам/стихиям. 4 комбинации (м+ж, ж+м, м+м, ж+ж) —
+// тёплые, современные формулировки про динамику пары, без грубых стереотипов.
+const COMBO_RU: Record<'mf' | 'fm' | 'mm' | 'ff', ComboCopy> = {
+  mf: {
+    attract: 'Его инициатива и её чуткость хорошо дополняют друг друга — в этом контрасте много притяжения.',
+    tension: 'Ему чаще важны ясность и действия, ей — внимание к настроению: разный язык близости иногда путает.',
+    talk: 'Ему говори прямую просьбу, ей показывай, что её чувства замечены, — и держите оба этих слоя.',
+  },
+  fm: {
+    attract: 'Её энергия ведёт, его спокойная опора держит — баланс, где инициатива по очереди у каждого.',
+    tension: 'Ей может хотеться больше динамики, ему — устойчивости; молчаливая борьба за темп выматывает обоих.',
+    talk: 'Договоритесь, где ведёт она, а где он, — тогда роли перестанут соперничать.',
+  },
+  mm: {
+    attract: 'Двое мужчин понимают азарт и амбиции друг друга — союз на уважении, драйве и общем деле.',
+    tension: 'Сложнее всего с соперничеством и нежеланием первым показать слабое место.',
+    talk: 'Признавайте вклад друг друга вслух и не превращайте близость в соревнование.',
+  },
+  ff: {
+    attract: 'Две женщины дают паре глубину, эмпатию и тонкое чувствование друг друга почти без слов.',
+    tension: 'Риск — раствориться в эмоциях друг друга и копить недосказанное, пока не накопится.',
+    talk: 'Оставляйте друг другу воздух и говорите о потребностях прямо, без намёков.',
+  },
+};
+
+const COMBO_EN: Record<'mf' | 'fm' | 'mm' | 'ff', ComboCopy> = {
+  mf: {
+    attract: 'His drive and her attunement complement each other — there’s real pull in that contrast.',
+    tension: 'He tends to want clarity and action, she wants attention to mood: two languages of closeness can confuse.',
+    talk: 'Give him a direct ask, show her that her feelings are seen — keep both layers.',
+  },
+  fm: {
+    attract: 'Her energy leads, his steady support holds — a balance where initiative takes turns.',
+    tension: 'She may want more momentum, he wants stability; a silent tug over pace drains both.',
+    talk: 'Agree where she leads and where he does — then the roles stop competing.',
+  },
+  mm: {
+    attract: 'Two men get each other’s drive and ambition — a bond built on respect and a shared mission.',
+    tension: 'The hard part is rivalry and not wanting to show a weak spot first.',
+    talk: 'Name each other’s contribution out loud and don’t turn closeness into a contest.',
+  },
+  ff: {
+    attract: 'Two women bring depth, empathy and a fine read on each other, almost without words.',
+    tension: 'The risk is dissolving into each other’s emotions and storing up the unsaid.',
+    talk: 'Leave each other air and state needs directly, without hints.',
+  },
+};
+
+function comboKey(gA: CompatGender, gB: CompatGender): 'mf' | 'fm' | 'mm' | 'ff' {
+  return `${gA === 'male' ? 'm' : 'f'}${gB === 'male' ? 'm' : 'f'}` as 'mf' | 'fm' | 'mm' | 'ff';
+}
+
+export function buildLocalSignCompatibility(
+  first: string,
+  second: string,
+  language: Language,
+  genderFirst?: string | null,
+  genderSecond?: string | null,
+): SignCompatibilityResult | null {
   const a = normalizeZodiacKey(first);
   const b = normalizeZodiacKey(second);
   if (!a || !b) return null;
@@ -93,6 +166,13 @@ export function buildLocalSignCompatibility(first: string, second: string, langu
   const nameB = getZodiacSign(language, kb);
   const same = ka === kb;
 
+  const gA = asGender(genderFirst);
+  const gB = asGender(genderSecond);
+  // Гендерный слой включаем только когда известны ОБА пола — иначе остаёмся нейтральными.
+  const combo = gA && gB ? (ru ? COMBO_RU : COMBO_EN)[comboKey(gA, gB)] : null;
+  const labelA = genderedSign(nameA, gA, ru);
+  const labelB = genderedSign(nameB, gB, ru);
+
   let attraction: string;
   let difficulty: string;
   let communication: string;
@@ -100,7 +180,7 @@ export function buildLocalSignCompatibility(first: string, second: string, langu
   if (ru) {
     attraction = same
       ? `Вы очень похожи: оба про ${pa.trait}. Это даёт быстрое узнавание и ощущение «свой человек». ${dyn.attract}`
-      : `${cap(nameA)} приносит ${pa.trait}, а ${nameB} — ${pb.trait}. ${dyn.attract} Вместе это и притягивает: каждый добавляет то, чего не хватает другому.`;
+      : `${labelA} приносит ${pa.trait}, а ${labelB} — ${pb.trait}. ${dyn.attract} Вместе это и притягивает: каждый добавляет то, чего не хватает другому.`;
     difficulty = same
       ? `Общая слабость тоже удваивается: ${pa.friction} с обеих сторон. ${dyn.tension}`
       : `Сложности появляются там, где встречаются ${pa.friction} и ${pb.friction}. ${dyn.tension}`;
@@ -108,11 +188,18 @@ export function buildLocalSignCompatibility(first: string, second: string, langu
   } else {
     attraction = same
       ? `You’re very alike: both about ${pa.traitEn}. That brings quick recognition. ${dyn.attractEn}`
-      : `${cap(nameA)} brings ${pa.traitEn}, while ${nameB} brings ${pb.traitEn}. ${dyn.attractEn} That’s the pull: each adds what the other lacks.`;
+      : `${labelA} brings ${pa.traitEn}, while ${labelB} brings ${pb.traitEn}. ${dyn.attractEn} That’s the pull: each adds what the other lacks.`;
     difficulty = same
       ? `The shared weak spot doubles too: ${pa.frictionEn} on both sides. ${dyn.tensionEn}`
       : `Difficulty shows up where ${pa.frictionEn} meets ${pb.frictionEn}. ${dyn.tensionEn}`;
     communication = `To understand each other: ${pa.talkEn}; ${pb.talkEn}. ${dyn.adviceEn}`;
+  }
+
+  // Вплетаем гендерный слой (если оба пола известны).
+  if (combo) {
+    attraction = `${attraction} ${combo.attract}`;
+    difficulty = `${difficulty} ${combo.tension}`;
+    communication = `${communication} ${combo.talk}`;
   }
 
   return {
@@ -122,7 +209,7 @@ export function buildLocalSignCompatibility(first: string, second: string, langu
     difficulty,
     communication,
     limitation: ru
-      ? 'Это общий разбор только по двум знакам. Время и место рождения, Луна и Венера могут заметно изменить картину.'
-      : 'A general two-sign reading. Birth time and place, the Moon and Venus can change the picture.',
+      ? 'Это общий разбор по двум знакам с учётом пола. Время и место рождения, Луна и Венера могут заметно изменить картину.'
+      : 'A general two-sign reading that accounts for gender. Birth time and place, the Moon and Venus can change the picture.',
   };
 }

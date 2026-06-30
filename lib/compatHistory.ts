@@ -16,6 +16,9 @@ export type CompatHistoryEntry = {
   chartId?: number;
   yourSun: string;
   theirSun: string;
+  /** Пол сторон (для гендерного текста). Необязательны — старые записи без них валидны. */
+  yourGender?: 'male' | 'female' | null;
+  theirGender?: 'male' | 'female' | null;
   overall: number;
   ts: number;
 };

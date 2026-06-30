@@ -4808,6 +4808,74 @@ a,
   font-weight: 950;
 }
 
+/* ── Совместимость: выбор стороны (ты/партнёр) + пол ── */
+.compat-pick {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  padding: 6px;
+  border-radius: 16px;
+  border: 1.5px solid transparent;
+  transition: border-color 0.18s ease, background 0.18s ease;
+}
+.compat-pick.is-active {
+  border-color: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.12);
+}
+.compat-pick .compat-chip {
+  cursor: pointer;
+}
+.compat-pick-hint {
+  text-align: center;
+  margin: -4px 0 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.compat-gender {
+  display: inline-flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+}
+.compat-gender-btn {
+  min-width: 30px;
+  height: 26px;
+  padding: 0 9px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
+}
+.compat-gender-btn.is-on {
+  background: #fff;
+  color: #16141f;
+  box-shadow: 0 4px 12px rgba(17, 24, 39, 0.18);
+}
+.compat-gender-btn:active {
+  transform: scale(0.93);
+}
+
+/* В форме «конкретный человек» переключатель пола стоит на светлом фоне */
+.union-form .compat-gender {
+  background: var(--fresh-bg, rgba(17, 24, 39, 0.06));
+}
+.union-form .compat-gender-btn {
+  color: var(--fresh-muted, #6b7280);
+}
+.union-form .compat-gender-btn.is-on {
+  background: var(--fresh-text, #16141f);
+  color: #fff;
+}
+
 .compat-quick .signwheel {
   margin: 4px 0 0;
 }

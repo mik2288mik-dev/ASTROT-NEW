@@ -17,6 +17,7 @@ import { shareToTelegram } from '../../lib/botLink';
 import { HoroscopeActivityBar } from '../../components/Horoscope/HoroscopeActivityBar';
 import { loadCompatHistory, addCompatHistory, removeCompatHistory, buildCompatHistoryId, type CompatHistoryEntry } from '../../lib/compatHistory';
 import { FreshInnerHeader } from '../../components/fresh-ui/FreshHeaders';
+import type { CompatGender } from '../../lib/synastry/localSignText';
 
 type SynastryPrefill = {
   source: 'saved-chart' | 'manual';
@@ -38,7 +39,36 @@ type UnionRoomProps = {
   onUpdateProfile?: (profile: UserProfile) => void;
 };
 
-type Selected = { kind: 'sign' | 'person'; sign?: string; name?: string; date?: string; time?: string; place?: string; chartId?: number };
+type Selected = {
+  kind: 'sign' | 'person';
+  youSign: string;
+  youGender: CompatGender;
+  themGender: CompatGender;
+  sign?: string;
+  name?: string;
+  date?: string;
+  time?: string;
+  place?: string;
+  chartId?: number;
+};
+
+/* Переключатель пола М/Ж — две кнопки, без эмодзи. */
+function GenderToggle({ value, onChange, ru }: { value: CompatGender; onChange: (g: CompatGender) => void; ru: boolean }) {
+  return (
+    <div className="compat-gender" role="group" aria-label={ru ? 'Пол' : 'Gender'}>
+      <button type="button" className={`compat-gender-btn ${value === 'male' ? 'is-on' : ''}`} aria-pressed={value === 'male'} onClick={() => { lumiaSelectionHaptic(); onChange('male'); }}>
+        {ru ? 'М' : 'M'}
+      </button>
+      <button type="button" className={`compat-gender-btn ${value === 'female' ? 'is-on' : ''}`} aria-pressed={value === 'female'} onClick={() => { lumiaSelectionHaptic(); onChange('female'); }}>
+        {ru ? 'Ж' : 'F'}
+      </button>
+    </div>
+  );
+}
+
+function genderWord(g: CompatGender, ru: boolean): string {
+  return ru ? (g === 'male' ? 'Мужчина' : 'Женщина') : (g === 'male' ? 'Male' : 'Female');
+}
 
 const REL_BACKEND: Record<CompatDimension, string> = {
   love: 'любовь', relationship: 'отношения', friendship: 'дружба', work: 'работа',
@@ -168,17 +198,27 @@ export function UnionRoom(props: UnionRoomProps) {
     [chartData, profile.selectedZodiacSign, profile.birthDate],
   );
 
+  // Пол по умолчанию: «ты» — из профиля (иначе М), партнёр — противоположный (как в трендовых приложениях).
+  const initialYouGender: CompatGender = profile.gender === 'female' ? 'female' : 'male';
+  const initialThemGender: CompatGender = initialYouGender === 'male' ? 'female' : 'male';
+
   const [screen, setScreen] = useState<'hub' | 'add' | 'result'>(initialPrefill ? 'result' : 'hub');
   const [people, setPeople] = useState<ChartListItem[]>([]);
   const [history, setHistory] = useState<CompatHistoryEntry[]>([]);
   const [pickSign, setPickSign] = useState<string>(() => ZODIAC_KEYS.find((s) => s.toLowerCase() !== yourSun) || ZODIAC_KEYS[0]);
+  // «Твой» знак теперь можно менять (не жёстко из карты). По умолчанию — солнечный знак из карты.
+  const [youSign, setYouSign] = useState<string>(yourSun);
+  const [youGender, setYouGender] = useState<CompatGender>(initialYouGender);
+  const [themGender, setThemGender] = useState<CompatGender>(initialThemGender);
+  // Какую сторону сейчас крутит колесо знаков: «ты» или партнёр.
+  const [activeSide, setActiveSide] = useState<'you' | 'them'>('them');
   const [selected, setSelected] = useState<Selected | null>(
     initialPrefill
-      ? { kind: 'person', name: initialPrefill.partnerName || '', date: toDateInputValue(initialPrefill.partnerDate || ''), time: initialPrefill.partnerTime, place: initialPrefill.partnerPlace, chartId: initialPrefill.partnerChartId }
+      ? { kind: 'person', youSign: yourSun, youGender: initialYouGender, themGender: initialThemGender, name: initialPrefill.partnerName || '', date: toDateInputValue(initialPrefill.partnerDate || ''), time: initialPrefill.partnerTime, place: initialPrefill.partnerPlace, chartId: initialPrefill.partnerChartId }
       : null,
   );
 
-  const [fName, setFName] = useState(''); const [fDate, setFDate] = useState(''); const [fTime, setFTime] = useState(''); const [fPlace, setFPlace] = useState('');
+  const [fName, setFName] = useState(''); const [fDate, setFDate] = useState(''); const [fTime, setFTime] = useState(''); const [fPlace, setFPlace] = useState(''); const [fGender, setFGender] = useState<CompatGender>(initialThemGender);
 
   const [signText, setSignText] = useState<SignCompatibilityResult | null>(null);
   const [deep, setDeep] = useState<SynastryResult | null>(null);
@@ -193,19 +233,23 @@ export function UnionRoom(props: UnionRoomProps) {
   // История — ТОЛЬКО по конкретным людям (имя+дата+разбор). Проверки по знакам не храним.
   useEffect(() => { setHistory(loadCompatHistory().filter((e) => e.kind === 'person')); }, []);
 
+  // «Левая» сторона результата = выбранный «твой» знак/пол (а не жёстко из карты).
+  const leftSun = selected?.youSign || yourSun;
+  const leftGender = selected?.youGender ?? youGender;
+  const rightGender = selected?.themGender ?? themGender;
   const theirSun = selected ? (selected.kind === 'sign' ? String(selected.sign).toLowerCase() : (sunSignFromDate(selected.date) || 'libra')) : 'libra';
-  const score: CompatResult | null = selected ? getCompatScore(yourSun, theirSun, lang) : null;
+  const score: CompatResult | null = selected ? getCompatScore(leftSun, theirSun, lang) : null;
   const theirName = selected ? (selected.kind === 'sign' ? getZodiacSign(lang, theirSun) : (selected.name || (ru ? 'Человек' : 'Person'))) : '';
 
   useEffect(() => {
     if (screen !== 'result' || !selected) return;
     setSignText(null); setDeep(null); setError(null);
     let alive = true;
-    void getSignCompatibility(yourSun, theirSun, lang)
+    void getSignCompatibility(leftSun, theirSun, lang, leftGender, rightGender)
       .then((r) => { if (alive) setSignText(r); })
       .catch(() => { /* optional */ });
     return () => { alive = false; };
-  }, [screen, selected, yourSun, theirSun, lang]);
+  }, [screen, selected, leftSun, theirSun, lang, leftGender, rightGender]);
 
   const sunOf = (s: Selected) => (s.kind === 'sign' ? String(s.sign).toLowerCase() : (sunSignFromDate(s.date) || 'libra'));
 
@@ -216,18 +260,21 @@ export function UnionRoom(props: UnionRoomProps) {
     const their = sunOf(s);
     // Сохраняем в историю только разбор конкретного человека — по знакам не пишем (он и так везде).
     if (s.kind === 'person') {
-      const sc = getCompatScore(yourSun, their, lang);
+      const sc = getCompatScore(s.youSign, their, lang);
       setHistory(addCompatHistory({
         id: buildCompatHistoryId(s.kind, s.sign, s.name, s.date),
         kind: s.kind, sign: s.sign, name: s.name, date: s.date, time: s.time, place: s.place, chartId: s.chartId,
-        yourSun, theirSun: their, overall: sc.overall, ts: Date.now(),
+        yourSun: s.youSign, theirSun: their, yourGender: s.youGender, theirGender: s.themGender, overall: sc.overall, ts: Date.now(),
       }));
     }
   };
 
   const openFromHistory = (e: CompatHistoryEntry) => {
-    if (e.kind === 'sign') openResult({ kind: 'sign', sign: e.sign });
-    else openResult({ kind: 'person', name: e.name, date: e.date, time: e.time, place: e.place, chartId: e.chartId });
+    const yg: CompatGender = e.yourGender === 'female' ? 'female' : 'male';
+    const tg: CompatGender = e.theirGender === 'male' ? 'male' : 'female';
+    const base = { youSign: e.yourSun || yourSun, youGender: yg, themGender: tg };
+    if (e.kind === 'sign') openResult({ kind: 'sign', sign: e.sign, ...base });
+    else openResult({ kind: 'person', name: e.name, date: e.date, time: e.time, place: e.place, chartId: e.chartId, ...base });
   };
 
   const deleteHistory = (id: string, ev: React.MouseEvent) => {
@@ -249,7 +296,7 @@ export function UnionRoom(props: UnionRoomProps) {
   const submitAdd = () => {
     if (!fName.trim() || !fDate) { setError(ru ? 'Добавь имя и дату рождения.' : 'Add a name and birth date.'); return; }
     setError(null);
-    openResult({ kind: 'person', name: fName.trim(), date: fDate, time: fTime || undefined, place: fPlace || undefined });
+    openResult({ kind: 'person', name: fName.trim(), date: fDate, time: fTime || undefined, place: fPlace || undefined, youSign: yourSun, youGender, themGender: fGender });
   };
 
   const runDeep = async () => {
@@ -283,16 +330,34 @@ export function UnionRoom(props: UnionRoomProps) {
           </InfoNote>
         </div>
 
-        {/* Быстро по знакам */}
+        {/* Быстро по знакам — обе стороны выбираемы, с полом */}
         <div className="compat-quick">
           <div className="compat-quick-head">{ru ? 'По знакам · быстро' : 'By signs · quick'}</div>
           <div className="compat-pair">
-            <span className="compat-chip"><ZodiacIcon sign={yourSun} size={18} /> {ru ? 'Ты' : 'You'} · {getZodiacSign(lang, yourSun)}</span>
+            <div className={`compat-pick ${activeSide === 'you' ? 'is-active' : ''}`}>
+              <button type="button" className="compat-chip" onClick={() => { lumiaSelectionHaptic(); setActiveSide('you'); }}>
+                <ZodiacIcon sign={youSign} size={18} /> {ru ? 'Ты' : 'You'} · {getZodiacSign(lang, youSign)}
+              </button>
+              <GenderToggle value={youGender} onChange={setYouGender} ru={ru} />
+            </div>
             <span className="compat-x">×</span>
-            <span className="compat-chip compat-chip--them"><ZodiacIcon sign={pickSign} size={18} /> {getZodiacSign(lang, pickSign)}</span>
+            <div className={`compat-pick ${activeSide === 'them' ? 'is-active' : ''}`}>
+              <button type="button" className="compat-chip compat-chip--them" onClick={() => { lumiaSelectionHaptic(); setActiveSide('them'); }}>
+                <ZodiacIcon sign={pickSign} size={18} /> {getZodiacSign(lang, pickSign)}
+              </button>
+              <GenderToggle value={themGender} onChange={setThemGender} ru={ru} />
+            </div>
           </div>
-          <FreshSignWheel signs={ZODIAC_KEYS} active={pickSign} language={profile.language} onPick={(s) => { lumiaSelectionHaptic(); setPickSign(s); }} />
-          <button type="button" className="fresh-btn-primary compat-check-btn" onClick={() => openResult({ kind: 'sign', sign: pickSign })}>
+          <div className="compat-pick-hint">
+            {activeSide === 'you' ? (ru ? 'Меняешь свой знак' : 'Choosing your sign') : (ru ? 'Меняешь знак партнёра' : 'Choosing their sign')}
+          </div>
+          <FreshSignWheel
+            signs={ZODIAC_KEYS}
+            active={activeSide === 'you' ? youSign : pickSign}
+            language={profile.language}
+            onPick={(s) => { lumiaSelectionHaptic(); if (activeSide === 'you') setYouSign(s); else setPickSign(s); }}
+          />
+          <button type="button" className="fresh-btn-primary compat-check-btn" onClick={() => openResult({ kind: 'sign', sign: pickSign, youSign, youGender, themGender })}>
             {ru ? 'Проверить' : 'Check'}
           </button>
         </div>
@@ -334,7 +399,7 @@ export function UnionRoom(props: UnionRoomProps) {
               {people.map((c) => {
                 const s = getCompatScore(yourSun, sunSignFromDate(c.birth_date) || 'libra', lang);
                 return (
-                  <button key={c.id} type="button" className="people-card" onClick={() => openResult({ kind: 'person', name: c.name, date: toDateInputValue(c.birth_date), time: c.birth_time || undefined, place: c.birth_place || undefined, chartId: c.id })}>
+                  <button key={c.id} type="button" className="people-card" onClick={() => openResult({ kind: 'person', name: c.name, date: toDateInputValue(c.birth_date), time: c.birth_time || undefined, place: c.birth_place || undefined, chartId: c.id, youSign: yourSun, youGender, themGender })}>
                     <span className="people-card-score" style={{ color: 'var(--fresh-link)' }}>{s.overall}</span>
                     <span className="people-card-name">{c.name}</span>
                     <span className="people-card-sign">{getZodiacSign(lang, sunSignFromDate(c.birth_date) || '')}</span>
@@ -367,6 +432,10 @@ export function UnionRoom(props: UnionRoomProps) {
           <div>
             <label className="fresh-field-label">{ru ? 'Дата рождения' : 'Birth date'}</label>
             <input className="fresh-input" type="date" value={fDate} onChange={(e) => setFDate(e.target.value)} />
+          </div>
+          <div>
+            <label className="fresh-field-label">{ru ? 'Пол' : 'Gender'}</label>
+            <div style={{ marginTop: 6 }}><GenderToggle value={fGender} onChange={setFGender} ru={ru} /></div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
             <div>
@@ -404,9 +473,9 @@ export function UnionRoom(props: UnionRoomProps) {
 
       <div className="people-split">
         <motion.div className="people-side" initial={reduce ? false : { x: -22, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ duration: 0.4, ease: 'easeOut' }}>
-          <div className="people-side-ico"><ZodiacIcon sign={yourSun} size={32} strokeWidth={1.4} /></div>
+          <div className="people-side-ico"><ZodiacIcon sign={leftSun} size={32} strokeWidth={1.4} /></div>
           <div className="people-side-name">{ru ? 'Вы' : 'You'}</div>
-          <div className="people-side-sign">{getZodiacSign(lang, yourSun)}</div>
+          <div className="people-side-sign">{genderWord(leftGender, ru)} · {getZodiacSign(lang, leftSun)}</div>
         </motion.div>
 
         <div className="people-center">
@@ -417,7 +486,7 @@ export function UnionRoom(props: UnionRoomProps) {
         <motion.div className="people-side" initial={reduce ? false : { x: 22, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ duration: 0.4, ease: 'easeOut' }}>
           <div className="people-side-ico"><ZodiacIcon sign={theirSun} size={32} strokeWidth={1.4} /></div>
           <div className="people-side-name">{theirName}</div>
-          <div className="people-side-sign">{getZodiacSign(lang, theirSun)}</div>
+          <div className="people-side-sign">{genderWord(rightGender, ru)} · {getZodiacSign(lang, theirSun)}</div>
         </motion.div>
       </div>
 
@@ -478,7 +547,7 @@ export function UnionRoom(props: UnionRoomProps) {
       <div className="union-pad" style={{ marginTop: 6 }}>
         <HoroscopeActivityBar
           userId={profile.id ? String(profile.id) : undefined}
-          sign={`${yourSun}_${theirSun}`}
+          sign={`${leftSun}_${theirSun}`}
           date="2000-01-01"
           language={lang}
           onShare={shareCompat}
