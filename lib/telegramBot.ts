@@ -1,4 +1,4 @@
-const BOT_TOKEN = process.env.BOT_TOKEN || '';
+import { getTelegramBotToken } from './telegramEnv';
 
 type TelegramSendResult = {
   ok: boolean;
@@ -49,9 +49,10 @@ export async function resolveBotUsername(): Promise<string> {
   ).replace(/^@/, '').trim();
   if (fromEnv) return fromEnv;
   if (cachedBotUsername !== null) return cachedBotUsername;
-  if (!BOT_TOKEN) { cachedBotUsername = ''; return ''; }
+  const botToken = getTelegramBotToken();
+  if (!botToken) { cachedBotUsername = ''; return ''; }
   try {
-    const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getMe`);
+    const response = await fetch(`https://api.telegram.org/bot${botToken}/getMe`);
     const data = await response.json();
     cachedBotUsername = String(data?.result?.username || '').replace(/^@/, '').trim();
   } catch {
@@ -65,9 +66,10 @@ export async function refundStarPayment(
   userId: string,
   telegramPaymentChargeId: string
 ): Promise<{ ok: boolean; error?: string }> {
-  if (!BOT_TOKEN) return { ok: false, error: 'BOT_TOKEN is not configured' };
+  const botToken = getTelegramBotToken();
+  if (!botToken) return { ok: false, error: 'BOT_TOKEN is not configured' };
   try {
-    const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/refundStarPayment`, {
+    const response = await fetch(`https://api.telegram.org/bot${botToken}/refundStarPayment`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ user_id: Number(userId), telegram_payment_charge_id: telegramPaymentChargeId }),
@@ -85,7 +87,8 @@ export async function sendTelegramTextMessage(
   text: string,
   options?: { replyMarkup?: TelegramReplyMarkup }
 ): Promise<TelegramSendResult> {
-  if (!BOT_TOKEN) {
+  const botToken = getTelegramBotToken();
+  if (!botToken) {
     return {
       ok: false,
       error: 'BOT_TOKEN is not configured',
@@ -102,7 +105,7 @@ export async function sendTelegramTextMessage(
       body.reply_markup = options.replyMarkup;
     }
 
-    const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+    const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -140,7 +143,8 @@ export async function sendTelegramPhotoBuffer(
   caption: string,
   options?: { replyMarkup?: TelegramReplyMarkup }
 ): Promise<TelegramSendResult> {
-  if (!BOT_TOKEN) {
+  const botToken = getTelegramBotToken();
+  if (!botToken) {
     return { ok: false, error: 'BOT_TOKEN is not configured' };
   }
 
@@ -156,7 +160,7 @@ export async function sendTelegramPhotoBuffer(
       formData.append('reply_markup', JSON.stringify(options.replyMarkup));
     }
 
-    const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+    const response = await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
       method: 'POST',
       body: formData,
     });
@@ -187,7 +191,8 @@ export async function sendTelegramPhotoMessage(
   caption: string,
   options?: { replyMarkup?: TelegramReplyMarkup }
 ): Promise<TelegramSendResult> {
-  if (!BOT_TOKEN) {
+  const botToken = getTelegramBotToken();
+  if (!botToken) {
     return {
       ok: false,
       error: 'BOT_TOKEN is not configured',
@@ -209,7 +214,7 @@ export async function sendTelegramPhotoMessage(
       body.reply_markup = options.replyMarkup;
     }
 
-    const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+    const response = await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -241,9 +246,10 @@ export async function answerTelegramCallbackQuery(
   callbackQueryId: string,
   text?: string
 ): Promise<{ ok: boolean; error?: string }> {
-  if (!BOT_TOKEN) return { ok: false, error: 'BOT_TOKEN is not configured' };
+  const botToken = getTelegramBotToken();
+  if (!botToken) return { ok: false, error: 'BOT_TOKEN is not configured' };
   try {
-    const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/answerCallbackQuery`, {
+    const response = await fetch(`https://api.telegram.org/bot${botToken}/answerCallbackQuery`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
