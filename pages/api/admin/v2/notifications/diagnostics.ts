@@ -4,6 +4,7 @@ import { requireAdminPermission } from '../../../../../lib/admin/rbac';
 import { getNotificationDeliveryHealth } from '../../../../../services/notificationRetentionService';
 import { getSchedulerStatus } from '../../../../../lib/notificationScheduler';
 import { resolveBotUsername } from '../../../../../lib/telegramBot';
+import { getTelegramBotTokenEnvKey, hasTelegramBotToken } from '../../../../../lib/telegramEnv';
 
 /**
  * Здоровье системы уведомлений: окружение (токен/вебхук/URL мини-аппа), статус in-process
@@ -15,7 +16,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     await requireAdminPermission(req, 'push.send');
 
-    const botTokenPresent = !!process.env.BOT_TOKEN;
+    const botTokenEnvKey = getTelegramBotTokenEnvKey();
+    const botTokenPresent = hasTelegramBotToken();
     const dryRun = !botTokenPresent || process.env.NOTIFICATION_DRY_RUN === '1';
     const miniAppUrl = (
       process.env.TELEGRAM_MINI_APP_URL ||
@@ -31,6 +33,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const env = {
       botTokenPresent,
+      botTokenEnvKey,
       dryRun,
       webhookSecretPresent: !!process.env.WEBHOOK_SECRET_TOKEN,
       cronSecretPresent: !!process.env.CRON_SECRET,

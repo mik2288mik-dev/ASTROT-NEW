@@ -1,3 +1,4 @@
+import { hasTelegramBotToken } from '../lib/telegramEnv';
 import { toZonedTime } from 'date-fns-tz';
 import { db, getPool } from '../lib/db';
 import {
@@ -797,7 +798,7 @@ async function markSendResult(
 }
 
 async function sendPrepared(prepared: PreparedNotification, options?: { dryRun?: boolean }) {
-  const dryRun = options?.dryRun || process.env.NOTIFICATION_DRY_RUN === '1' || !process.env.BOT_TOKEN;
+  const dryRun = options?.dryRun || process.env.NOTIFICATION_DRY_RUN === '1' || !hasTelegramBotToken();
   if (dryRun) {
     prepared.deepLink = buildNotificationDeepLink({
       baseUrl: appBaseUrl(),
@@ -864,7 +865,7 @@ export async function runNotificationEngineCron(
     }
   }
 
-  const dryRunMode = options?.dryRun || process.env.NOTIFICATION_DRY_RUN === '1' || !process.env.BOT_TOKEN;
+  const dryRunMode = options?.dryRun || process.env.NOTIFICATION_DRY_RUN === '1' || !hasTelegramBotToken();
   if (!dryRunMode) {
     await db.notification_delivery_log.create({
       templateId: null,

@@ -1,3 +1,4 @@
+import { hasTelegramBotToken } from '../lib/telegramEnv';
 import { toZonedTime } from 'date-fns-tz';
 import { getPool } from '../lib/db';
 import {
@@ -1249,7 +1250,7 @@ export async function dispatchScheduledNotifications(
   limit = 100,
   options?: { dryRun?: boolean }
 ) {
-  const dryRun = options?.dryRun || process.env.NOTIFICATION_DRY_RUN === '1' || !process.env.BOT_TOKEN;
+  const dryRun = options?.dryRun || process.env.NOTIFICATION_DRY_RUN === '1' || !hasTelegramBotToken();
   const rows = dryRun ? await previewDueNotifications(now, limit) : await lockDueNotifications(now, limit);
   const results: Array<{ id: number; ok: boolean; detail: string; dryRun?: boolean }> = [];
   let successCount = 0;
@@ -1342,7 +1343,7 @@ export type NotificationSelfTestResult = {
  * минуя только продуктовые гейты частоты/тихих часов (это не часть доставки).
  */
 export async function sendNotificationSelfTest(userId: string): Promise<NotificationSelfTestResult> {
-  if (!process.env.BOT_TOKEN) {
+  if (!hasTelegramBotToken()) {
     return { ok: false, dryRun: true, error: 'BOT_TOKEN не задан — реальная отправка отключена (dry-run)' };
   }
   if (process.env.NOTIFICATION_DRY_RUN === '1') {
