@@ -147,7 +147,7 @@ export type AdminNotificationDiagnostics = {
   healthy: boolean;
   problems: string[];
   env: {
-    botTokenPresent: boolean; dryRun: boolean; webhookSecretPresent: boolean;
+    botTokenPresent: boolean; botTokenEnvKey?: string | null; dryRun: boolean; webhookSecretPresent: boolean;
     cronSecretPresent: boolean; miniAppUrlPresent: boolean; botUsername: string | null;
     inProcessCronDisabled: boolean;
   };
@@ -164,6 +164,11 @@ export type AdminNotificationDiagnostics = {
     lastError: { at: string | null; message: string | null };
     recipients: { withChart: number; withBirthDate: number };
   };
+  ownerProbe: {
+    candidateNow: { job: string; type: string } | null;
+    jobs: Array<{ job: string; result: string }>;
+    recentQueue: Array<{ id: number; type: string; status: string; scheduledAt: string | null; sentAt: string | null; error: string | null }>;
+  } | null;
   checkedAt: string;
 };
 

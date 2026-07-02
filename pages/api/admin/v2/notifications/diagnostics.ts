@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { handleAdminError } from '../../../../../lib/adminAuth';
 import { requireAdminPermission } from '../../../../../lib/admin/rbac';
-import { getNotificationDeliveryHealth } from '../../../../../services/notificationRetentionService';
+import { getNotificationDeliveryHealth, probeOwnerNotifications } from '../../../../../services/notificationRetentionService';
 import { getSchedulerStatus } from '../../../../../lib/notificationScheduler';
 import { resolveBotUsername } from '../../../../../lib/telegramBot';
 import { getTelegramBotTokenEnvKey, hasTelegramBotToken } from '../../../../../lib/telegramEnv';
@@ -14,7 +14,7 @@ import { getTelegramBotTokenEnvKey, hasTelegramBotToken } from '../../../../../l
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'METHOD_NOT_ALLOWED' });
   try {
-    await requireAdminPermission(req, 'push.send');
+    const ctx = await requireAdminPermission(req, 'push.send');
 
     const botTokenEnvKey = getTelegramBotTokenEnvKey();
     const botTokenPresent = hasTelegramBotToken();
@@ -26,9 +26,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       ''
     ).trim();
 
-    const [health, botUsername] = await Promise.all([
+    const [health, botUsername, ownerProbe] = await Promise.all([
       getNotificationDeliveryHealth(),
       resolveBotUsername().catch(() => ''),
+      probeOwnerNotifications(ctx.userId).catch(() => null),
     ]);
 
     const env = {
@@ -60,6 +61,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       env,
       scheduler,
       health,
+      ownerProbe,
       checkedAt: new Date().toISOString(),
     });
   } catch (error) {

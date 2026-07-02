@@ -1709,6 +1709,63 @@ export async function getNotificationDeliveryHealth(now: Date = new Date()): Pro
   };
 }
 
+export type OwnerNotificationProbe = {
+  candidateNow: { job: string; type: string } | null;
+  jobs: Array<{ job: string; result: string }>;
+  recentQueue: Array<{ id: number; type: string; status: string; scheduledAt: string | null; sentAt: string | null; error: string | null }>;
+};
+
+/**
+ * Диагностика «почему юзеру не приходят пуши»: прогоняет планировщики в dry-run (без отправки)
+ * для одного пользователя и показывает, произвёл бы хоть один сценарий кандидата ПРЯМО СЕЙЧАС,
+ * плюс последние строки его очереди. Помогает отличить «планировщик не срабатывал» (теперь
+ * catch-up) от «кандидат отсеян гейтами» (тихие часы / лимит в день / окно времени сценария).
+ */
+export async function probeOwnerNotifications(userId: string, now: Date = new Date()): Promise<OwnerNotificationProbe> {
+  const jobs: RetentionJobType[] = [
+    'morning-retention-planner',
+    'midday-retention-planner',
+    'evening-retention-planner',
+    'inactive-user-reactivation',
+    'premium-conversion-planner',
+    'unfinished-action-reminder',
+    'admin-campaign-runner',
+  ];
+  const jobResults: Array<{ job: string; result: string }> = [];
+  let candidateNow: { job: string; type: string } | null = null;
+  for (const job of jobs) {
+    try {
+      const r = await planRetentionNotifications(job, now, { userId, dryRun: true, limit: 1 });
+      const item = r.results[0];
+      if (item?.status === 'dry_run' && item.type) {
+        jobResults.push({ job, result: `кандидат: ${item.type}` });
+        if (!candidateNow) candidateNow = { job, type: item.type };
+      } else {
+        jobResults.push({ job, result: item?.detail || item?.status || 'no_candidate' });
+      }
+    } catch (error: any) {
+      jobResults.push({ job, result: `ошибка: ${error?.message || 'failed'}` });
+    }
+  }
+  const q = await getPool().query(
+    `SELECT id, notification_type, status, scheduled_at, sent_at, error
+     FROM scheduled_notifications WHERE user_id = $1 ORDER BY id DESC LIMIT 8`,
+    [userId]
+  ).catch(() => ({ rows: [] } as any));
+  return {
+    candidateNow,
+    jobs: jobResults,
+    recentQueue: q.rows.map((r: any) => ({
+      id: Number(r.id),
+      type: String(r.notification_type || ''),
+      status: String(r.status || ''),
+      scheduledAt: r.scheduled_at ? new Date(r.scheduled_at).toISOString() : null,
+      sentAt: r.sent_at ? new Date(r.sent_at).toISOString() : null,
+      error: r.error || null,
+    })),
+  };
+}
+
 export async function listScheduledNotificationQueue(limit = 100, status?: string | null): Promise<AdminScheduledNotificationQueueItem[]> {
   const result = await getPool().query(
     `SELECT sn.*, u.name AS user_name, s.key AS scenario_key

@@ -109,16 +109,20 @@ async function dispatchTick() {
 
 function plannerTick() {
   const { hour, minute, dateKey } = mskNow();
-  // окно 2 минуты, чтобы не пропустить из-за дрейфа таймера; once-per-day защищает от повтора
-  const at = (h: number, m: number) => hour === h && minute >= m && minute < m + 2;
+  // CATCH-UP, а не жёсткое 2-минутное окно. Раньше задача срабатывала только если процесс был
+  // жив ровно в свои 2 минуты (hour===h && minute∈[m,m+2)). На Railway контейнер перезапускается,
+  // сбрасывая in-memory таймеры и дедуп, — и если рестарт пришёлся мимо окна, планировщик за
+  // сутки НЕ отрабатывал → очередь пустая → пуши не приходили (ручной self-test при этом работал,
+  // т.к. шлёт напрямую). Теперь: «нужное время ИЛИ ПОЗЖЕ, один раз за день» (runOnce по dateKey).
+  const due = (h: number, m: number) => hour > h || (hour === h && minute >= m);
 
-  if (at(6, 30)) void runOnce('daily-card-generator', dateKey, () => generateDailyCards(new Date(), { limit: 250 }));
-  if (at(9, 0)) void runOnce('morning-retention-planner', dateKey, () => planRetentionNotifications('morning-retention-planner', new Date(), { limit: PLANNER_LIMIT }));
-  if (at(13, 0)) void runOnce('midday-retention-planner', dateKey, () => planRetentionNotifications('midday-retention-planner', new Date(), { limit: PLANNER_LIMIT }));
-  if (at(20, 0)) void runOnce('evening-retention-planner', dateKey, () => planRetentionNotifications('evening-retention-planner', new Date(), { limit: PLANNER_LIMIT }));
-  if (at(11, 0)) void runOnce('inactive-user-reactivation', dateKey, () => planRetentionNotifications('inactive-user-reactivation', new Date(), { limit: PLANNER_LIMIT }));
-  if (at(18, 0)) void runOnce('premium-conversion-planner', dateKey, () => planRetentionNotifications('premium-conversion-planner', new Date(), { limit: PLANNER_LIMIT }));
-  if (at(21, 0)) void runOnce('unfinished-action-reminder', dateKey, () => planRetentionNotifications('unfinished-action-reminder', new Date(), { limit: PLANNER_LIMIT }));
+  if (due(6, 30)) void runOnce('daily-card-generator', dateKey, () => generateDailyCards(new Date(), { limit: 250 }));
+  if (due(9, 0)) void runOnce('morning-retention-planner', dateKey, () => planRetentionNotifications('morning-retention-planner', new Date(), { limit: PLANNER_LIMIT }));
+  if (due(11, 0)) void runOnce('inactive-user-reactivation', dateKey, () => planRetentionNotifications('inactive-user-reactivation', new Date(), { limit: PLANNER_LIMIT }));
+  if (due(13, 0)) void runOnce('midday-retention-planner', dateKey, () => planRetentionNotifications('midday-retention-planner', new Date(), { limit: PLANNER_LIMIT }));
+  if (due(18, 0)) void runOnce('premium-conversion-planner', dateKey, () => planRetentionNotifications('premium-conversion-planner', new Date(), { limit: PLANNER_LIMIT }));
+  if (due(20, 0)) void runOnce('evening-retention-planner', dateKey, () => planRetentionNotifications('evening-retention-planner', new Date(), { limit: PLANNER_LIMIT }));
+  if (due(21, 0)) void runOnce('unfinished-action-reminder', dateKey, () => planRetentionNotifications('unfinished-action-reminder', new Date(), { limit: PLANNER_LIMIT }));
   // Недельный гороскоп больше НЕ шлём отдельным пушем ("гороскоп на неделю готов" = пустой зазыватель).
   // Еженедельный контакт — воскресный итог (sunday_summary) через вечерний планировщик.
 
@@ -137,10 +141,14 @@ export function startNotificationScheduler() {
   status.started = true;
   status.startedAt = new Date().toISOString();
 
-  // первичная отправка через 15с после старта — флашим очередь
-  setTimeout(() => void dispatchTick(), 15 * 1000);
+  // Немедленный catch-up после старта: наполняем очередь (планировщики) и флашим её, чтобы
+  // деплой/перезапуск сразу приводил к отправке, не дожидаясь точного часа по Москве.
+  setTimeout(() => void dispatchTick(), 15 * 1000);      // флашим то, что уже в очереди
+  setTimeout(() => { plannerTick(); }, 25 * 1000);       // наполняем очередь за сегодня (catch-up)
+  setTimeout(() => void dispatchTick(), 50 * 1000);      // отправляем только что наполненное
+
   setInterval(() => void dispatchTick(), DISPATCH_INTERVAL_MS);
   setInterval(() => plannerTick(), 60 * 1000);
 
-  console.log('[cron] in-process notification scheduler started (dispatch every 3m, planners on Moscow schedule)');
+  console.log('[cron] in-process notification scheduler started (catch-up planners + dispatch every 3m)');
 }

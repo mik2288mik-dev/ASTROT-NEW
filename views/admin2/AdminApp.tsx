@@ -1095,7 +1095,7 @@ function CommsSection() {
               {runOut ? <div className={`rounded-2xl border p-3 text-sm ${runOut.ok ? 'border-emerald-100 bg-emerald-50 text-emerald-700' : 'border-rose-100 bg-rose-50 text-rose-700'}`}>{runOut.msg}</div> : null}
 
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                <Kpi color={!diag.env.dryRun ? 'emerald' : 'rose'} label="Отправка в Telegram" value={diag.env.dryRun ? 'выкл' : 'вкл'} sub={diag.env.botUsername ? `@${diag.env.botUsername}` : 'нет BOT_TOKEN'} />
+                <Kpi color={!diag.env.dryRun ? 'emerald' : 'rose'} label="Отправка в Telegram" value={diag.env.dryRun ? 'выкл' : 'вкл'} sub={diag.env.botUsername ? `@${diag.env.botUsername}${diag.env.botTokenEnvKey ? ` · ${diag.env.botTokenEnvKey}` : ''}` : (diag.env.botTokenEnvKey || 'нет BOT_TOKEN')} />
                 <Kpi color={diag.scheduler.started ? 'emerald' : 'rose'} label="Планировщик" value={diag.scheduler.started ? 'жив' : 'стоп'} sub={diag.scheduler.lastDispatchAt ? `флаш ${fmtDate(diag.scheduler.lastDispatchAt)}` : 'нет флашей'} />
                 <Kpi color={diag.health.scenarios.enabled > 0 ? 'blue' : 'rose'} label="Сценарии вкл." value={`${diag.health.scenarios.enabled}/${diag.health.scenarios.total}`} sub={`${diag.health.templates.active} шаблонов`} />
                 <Kpi color="sky" label="Очередь" value={diag.health.queue.scheduled} sub={`созрело ${diag.health.queue.dueNow}`} />
@@ -1110,6 +1110,36 @@ function CommsSection() {
                 <Card title="Последняя ошибка отправки">
                   <p className="text-sm text-rose-600">{diag.health.lastError.message}</p>
                   <p className="mt-1 text-xs text-slate-400">{fmtDate(diag.health.lastError.at)}</p>
+                </Card>
+              ) : null}
+              {diag.ownerProbe ? (
+                <Card title="Диагностика для тебя (почему приходит / не приходит)">
+                  <div className={`rounded-xl border p-2.5 text-sm ${diag.ownerProbe.candidateNow ? 'border-emerald-100 bg-emerald-50 text-emerald-700' : 'border-amber-100 bg-amber-50 text-amber-800'}`}>
+                    {diag.ownerProbe.candidateNow
+                      ? `Прямо сейчас планировщик подобрал бы тебе: ${diag.ownerProbe.candidateNow.type} (${diag.ownerProbe.candidateNow.job})`
+                      : 'Прямо сейчас ни один сценарий не подходит тебе (окно времени/лимит/тихие часы). Планировщик наполнит очередь в своё время по Москве.'}
+                  </div>
+                  <div className="mt-2 space-y-1">
+                    {diag.ownerProbe.jobs.map((j) => (
+                      <div key={j.job} className="flex justify-between gap-2 text-xs">
+                        <span className="text-slate-500">{j.job}</span>
+                        <span className={`font-semibold ${j.result.startsWith('кандидат') ? 'text-emerald-600' : 'text-slate-400'}`}>{j.result}</span>
+                      </div>
+                    ))}
+                  </div>
+                  {diag.ownerProbe.recentQueue.length ? (
+                    <>
+                      <div className="mt-3 mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Твоя очередь (последние)</div>
+                      <div className="space-y-1">
+                        {diag.ownerProbe.recentQueue.map((r) => (
+                          <div key={r.id} className="flex justify-between gap-2 text-xs">
+                            <span className="text-slate-600">{r.type}</span>
+                            <span className="text-slate-400">{r.status}{r.sentAt ? ` · ${fmtDate(r.sentAt)}` : r.scheduledAt ? ` · ${fmtDate(r.scheduledAt)}` : ''}{r.error ? ` · ${r.error}` : ''}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  ) : <p className="mt-2 text-xs text-slate-400">Очередь по тебе пуста — планировщик ещё не создавал тебе пушей.</p>}
                 </Card>
               ) : null}
             </>
