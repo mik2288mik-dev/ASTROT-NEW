@@ -58,13 +58,16 @@ export async function recordUserSession(telegramPlatform?: string | null): Promi
 
   const initData = getTelegramInitData();
   const sessionId = getOrCreateAppSessionId();
-  if (!initData || !sessionId) return;
+  if (!sessionId) return;
+  // Пишем вход и для веб-гостей (авторизация по signed cookie), поэтому credentials:'include',
+  // а initData — опционально. Раньше без initData выходили → входы веб-гостей терялись.
 
   const response = await fetch(`${API_BASE}/api/users/session`, {
     method: 'POST',
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
-      [INIT_DATA_HEADER]: initData,
+      ...(initData ? { [INIT_DATA_HEADER]: initData } : {}),
     },
     body: JSON.stringify({
       sessionId,

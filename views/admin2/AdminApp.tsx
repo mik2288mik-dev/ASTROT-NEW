@@ -315,7 +315,23 @@ function UserDetailPanel({
         <div>Статус: <b className="text-slate-800">{user.isBlocked ? 'заблокирован' : 'активен'}</b></div>
         <div>Карт: <b className="text-slate-800">{user.savedCharts}</b> / слотов {user.chartSlots}</div>
         <div>Был онлайн: <b className="text-slate-800">{fmtDate(user.lastSeenAt)}</b></div>
+        <div>Регистрация: <b className="text-slate-800">{fmtDate(user.createdAt)}</b></div>
+        <div>Стрик входов: <b className="text-slate-800">{user.loginStreak ?? 0} дн.</b></div>
+        <div>Устройство: <b className="text-slate-800">{user.currentDevice || '—'}</b></div>
       </div>
+      {user.recentSessions?.length ? (
+        <div className="rounded-2xl bg-slate-50 p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Последние входы</p>
+          <div className="mt-2 space-y-1">
+            {user.recentSessions.slice(0, 5).map((s: any, i: number) => (
+              <div key={s.session_id || i} className="flex justify-between gap-2 text-xs">
+                <span className="text-slate-600">{s.device_label || s.telegram_platform || 'устройство'}</span>
+                <span className="text-slate-400">{fmtDate(s.last_seen_at)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
       <div className="rounded-2xl bg-slate-50 p-4">
         <div className="flex items-center justify-between">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Данные рождения (PII)</p>

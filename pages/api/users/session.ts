@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { getVerifiedTelegramUser } from '../../../lib/adminAuth';
+import { requireAppUser } from '../../../lib/auth/appAuth';
 import { db } from '../../../lib/db';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -8,7 +8,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const telegramUser = getVerifiedTelegramUser(req);
+    // Считаем вход КАЖДОГО пользователя: Telegram (по initData) И веб-гостя (по signed cookie).
+    // Раньше эндпоинт был Telegram-only → входы веб-гостей нигде не фиксировались.
+    const appUser = await requireAppUser(req, { allowGuest: true });
     const sessionId = typeof req.body?.sessionId === 'string' ? req.body.sessionId.trim() : '';
     const telegramPlatform = typeof req.body?.telegramPlatform === 'string' ? req.body.telegramPlatform.trim() : '';
     const userAgent = Array.isArray(req.headers['user-agent'])
@@ -22,8 +24,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    const session = await db.user_sessions.upsert(telegramUser.id, sessionId, {
-      telegramPlatform,
+    // Фиксируем сам вход (last_login + login_streak) и трекаем устройство/сессию.
+    await db.users.recordLogin(appUser.userId).catch(() => undefined);
+    const session = await db.user_sessions.upsert(appUser.userId, sessionId, {
+      telegramPlatform: telegramPlatform || (appUser.provider === 'telegram' ? 'telegram' : appUser.provider),
       userAgent,
     });
 

@@ -262,11 +262,19 @@ const ADMIN_USER_METRICS_CTE = `
       COALESCE(u.is_blocked, FALSE) AS is_blocked,
       u.created_at,
       u.last_login,
-      COALESCE(MAX(us.last_seen_at), u.last_login) AS last_seen_at,
+      -- Последняя активность считается по ВСЕМ сигналам: сессии (Telegram), события приложения
+      -- (screen_view — есть и у веб-гостей), и last_login. GREATEST игнорирует NULL. Раньше бралось
+      -- только MAX(user_sessions) → веб-гости и юзеры без сессии выглядели «никогда не заходившими».
+      GREATEST(MAX(us.last_seen_at), MAX(ev.last_event), u.last_login) AS last_seen_at,
       COUNT(DISTINCT nc.id)::int AS saved_charts_count
     FROM users u
     LEFT JOIN natal_charts nc ON nc.user_id = u.id
     LEFT JOIN user_sessions us ON us.user_id = u.id
+    LEFT JOIN (
+      SELECT user_id, MAX(occurred_at) AS last_event
+      FROM user_app_events
+      GROUP BY user_id
+    ) ev ON ev.user_id = u.id
     GROUP BY u.id
   )
 `;
@@ -611,6 +619,33 @@ export const db = {
   },
 
   users: {
+    /**
+     * Фиксирует вход пользователя: обновляет last_login (был мёртв — нигде не писался) и
+     * реальный login_streak (подряд идущие дни). Вызывается на каждое открытие приложения
+     * из /api/users/session — для ВСЕХ (Telegram и веб-гости). Идемпотентно в пределах дня.
+     */
+    async recordLogin(userId: string) {
+      const id = toUserId(userId);
+      if (!DATABASE_URL) return;
+      try {
+        await getPool().query(
+          `UPDATE users SET
+             login_streak = CASE
+               WHEN last_login IS NULL THEN 1
+               WHEN last_login::date = CURRENT_DATE THEN GREATEST(COALESCE(login_streak, 0), 1)
+               WHEN last_login::date = CURRENT_DATE - 1 THEN COALESCE(login_streak, 0) + 1
+               ELSE 1
+             END,
+             last_login = CURRENT_TIMESTAMP,
+             updated_at = CURRENT_TIMESTAMP
+           WHERE id = $1`,
+          [id]
+        );
+      } catch (error: any) {
+        log.error('[DB] Error recording login', { error: error.message, userId });
+      }
+    },
+
     async get(userId: string) {
       const id = toUserId(userId);
       if (!DATABASE_URL) return null;
@@ -3432,7 +3467,16 @@ export const db = {
       const latestStarsPayment = await db.star_payments.getLatestByUser(userId);
       const recentSessions = await db.user_sessions.getRecentByUser(userId, 3);
       const recentOracleQuestions = await db.astro_questions.getByUser(userId, 3);
-      const lastSeenAt = recentSessions[0]?.last_seen_at ?? null;
+      // Последняя активность — по всем сигналам (сессии + события приложения + last_login),
+      // чтобы карточка веб-гостя (у него нет Telegram-сессии) показывала реальный последний вход.
+      const lastEvent = await getPool()
+        .query(`SELECT MAX(occurred_at) AS last_event FROM user_app_events WHERE user_id = $1`, [toUserId(userId)])
+        .then((r) => r.rows[0]?.last_event ?? null)
+        .catch(() => null);
+      const lastSeenCandidates = [recentSessions[0]?.last_seen_at ?? null, lastEvent, user.last_login ?? null]
+        .filter(Boolean)
+        .map((d: any) => new Date(d).getTime());
+      const lastSeenAt = lastSeenCandidates.length ? new Date(Math.max(...lastSeenCandidates)).toISOString() : null;
       const currentDeviceLabel = recentSessions[0]?.device_label ?? null;
 
       return {
