@@ -1196,10 +1196,51 @@ async function recordEvent(input: {
   );
 }
 
+// Постоянные ошибки доставки Telegram: пользователь заблокировал бота, не начинал диалог,
+// удалён и т.п. Ретраить бессмысленно — сразу помечаем 'failed' (без повторов), иначе такие
+// адресаты копят провалы по 3 попытки каждый и засоряют метрики/логи.
+function isPermanentTelegramError(error?: string | null): boolean {
+  const e = String(error || '').toLowerCase();
+  return (
+    e.includes('bot was blocked') ||
+    e.includes('chat not found') ||
+    e.includes('user is deactivated') ||
+    e.includes("bot can't initiate") ||
+    e.includes('bot can’t initiate') ||
+    e.includes('peer_id_invalid') ||
+    e.includes('user not found') ||
+    e.includes('chat_id is empty')
+  );
+}
+
+// Возвращаем «зависшие» строки: диспетчер залочил их (status='sending') и упал/рестартнулся
+// до отметки результата. lockDueNotifications берёт только 'scheduled', поэтому сами они не
+// восстановятся — сбрасываем обратно в 'scheduled' (или 'failed', если попытки исчерпаны).
+async function recoverStaleSendingLocks(now: Date, staleMinutes = 15) {
+  await getPool().query(
+    `UPDATE scheduled_notifications
+     SET status = CASE WHEN attempt_count >= 3 THEN 'failed' ELSE 'scheduled' END,
+         locked_at = NULL,
+         next_retry_at = NULL,
+         error = COALESCE(error, 'recovered from stale sending lock'),
+         updated_at = CURRENT_TIMESTAMP
+     WHERE status = 'sending'
+       AND locked_at IS NOT NULL
+       AND locked_at < $1::timestamptz - make_interval(mins => $2::int)`,
+    [now, staleMinutes]
+  ).catch(() => undefined);
+}
+
 async function markQueueResult(row: any, logId: number | null, result: { ok: boolean; messageId?: number; error?: string }, payload: any) {
   const pool = getPool();
-  const status: RetentionNotificationStatus = result.ok ? 'sent' : Number(row.attempt_count || 0) >= 3 ? 'failed' : 'scheduled';
-  const retryAt = result.ok ? null : new Date(Date.now() + Math.min(60, 5 * (Number(row.attempt_count || 1))) * 60000);
+  // Постоянные ошибки (бот заблокирован / чат не найден) — терминальны сразу, без ретраев.
+  const permanent = !result.ok && isPermanentTelegramError(result.error);
+  const status: RetentionNotificationStatus = result.ok
+    ? 'sent'
+    : permanent || Number(row.attempt_count || 0) >= 3
+      ? 'failed'
+      : 'scheduled';
+  const retryAt = result.ok || permanent ? null : new Date(Date.now() + Math.min(60, 5 * (Number(row.attempt_count || 1))) * 60000);
   await pool.query(
     `UPDATE scheduled_notifications
      SET status = $2,
@@ -1251,6 +1292,8 @@ export async function dispatchScheduledNotifications(
   options?: { dryRun?: boolean }
 ) {
   const dryRun = options?.dryRun || process.env.NOTIFICATION_DRY_RUN === '1' || !hasTelegramBotToken();
+  // Перед каждым проходом реанимируем зависшие 'sending'-локи, чтобы они не застревали навсегда.
+  if (!dryRun) await recoverStaleSendingLocks(now);
   const rows = dryRun ? await previewDueNotifications(now, limit) : await lockDueNotifications(now, limit);
   const results: Array<{ id: number; ok: boolean; detail: string; dryRun?: boolean }> = [];
   let successCount = 0;

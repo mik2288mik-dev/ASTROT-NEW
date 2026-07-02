@@ -91,7 +91,9 @@ export async function getProductionObservabilitySnapshot(): Promise<ProductionOb
     snapshot.notifications.latestFailure = row.latest_failure || null;
 
     if ((snapshot.notifications.sendingStale || 0) > 0) alerts.push('STALE_NOTIFICATION_DISPATCH_LOCKS');
-    if ((snapshot.notifications.failed24h || 0) > 0) alerts.push('NOTIFICATION_FAILURES_LAST_24H');
+    // Часть провалов неизбежна — юзеры блокируют бота / не жали Start ("bot was blocked by the user").
+    // Алертим только на ЗАМЕТНЫЙ всплеск (систёмная поломка: токен, сеть), а не на обычную убыль.
+    if ((snapshot.notifications.failed24h || 0) >= 25) alerts.push('NOTIFICATION_FAILURES_LAST_24H');
     snapshot.ok = alerts.length === 0;
     return snapshot;
   } catch (error: any) {
