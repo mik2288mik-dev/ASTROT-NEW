@@ -730,6 +730,21 @@ async function listRecipients(limit = 250): Promise<RecipientRow[]> {
        ORDER BY c.is_primary DESC NULLS LAST, c.id ASC
        LIMIT 1
      ) nc ON TRUE
+     -- Не шлём недостижимым: у кого за 7 дней была терминальная ошибка Telegram (заблокировал бота /
+     -- chat not found / удалён) И после неё не было успешной отправки. Иначе планировщик молотит
+     -- «мёртвых» адресатов (веб-гости, не жавшие Start) → 90%+ провалов. Самоисцеляется: вернутся —
+     -- появится успешная отправка/сброс, или окно в 7 дней истечёт, и юзер снова попадёт в рассылку.
+     WHERE NOT EXISTS (
+       SELECT 1 FROM scheduled_notifications sn
+       WHERE sn.user_id = u.id
+         AND sn.status = 'failed'
+         AND sn.updated_at > NOW() - INTERVAL '7 days'
+         AND (sn.error ILIKE '%blocked%' OR sn.error ILIKE '%chat not found%' OR sn.error ILIKE '%deactivated%' OR sn.error ILIKE '%user not found%')
+         AND NOT EXISTS (
+           SELECT 1 FROM scheduled_notifications s2
+           WHERE s2.user_id = u.id AND s2.status = 'sent' AND s2.sent_at > sn.updated_at
+         )
+     )
      ORDER BY COALESCE(u.last_login, u.created_at) DESC NULLS LAST, u.id DESC
      LIMIT $1`,
     [Math.max(1, Math.min(limit, 2000))]

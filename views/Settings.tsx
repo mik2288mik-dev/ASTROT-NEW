@@ -90,6 +90,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
     const [tempName, setTempName] = useState(profile.name);
     const [tempPlace, setTempPlace] = useState(profile.birthPlace);
     const [selfTest, setSelfTest] = useState<'idle' | 'sending' | 'ok' | 'err'>('idle');
+    const [selfTestInfo, setSelfTestInfo] = useState('');
     const [dailyPush, setDailyPush] = useState<'idle' | 'sending' | 'ok' | 'err'>('idle');
     const [dailyPushInfo, setDailyPushInfo] = useState('');
     const [editsUsed, setEditsUsed] = useState(() =>
@@ -132,16 +133,28 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
     const sendSelfTest = async () => {
         if (selfTest === 'sending') return;
         setSelfTest('sending');
+        setSelfTestInfo('');
         try {
-            const res = await fetch('/api/admin/notifications/send-self-test', {
+            // Admin v2: реальный сквозной пуш себе через движок. Старый /api/admin/notifications/*
+            // удалён при перестройке Admin V2 (27 июня) — отсюда и «не вышло».
+            const res = await fetch('/api/admin/v2/notifications/run', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
+                body: JSON.stringify({ action: 'selftest' }),
             });
-            setSelfTest(res.ok ? 'ok' : 'err');
-        } catch {
+            const data = await res.json().catch(() => ({} as any));
+            const result = data?.result || {};
+            if (res.ok && result.ok) {
+                setSelfTest('ok');
+            } else {
+                setSelfTest('err');
+                setSelfTestInfo(String(result.error || data?.message || data?.error || (res.status === 404 ? 'эндпоинт не найден' : `ошибка ${res.status}`)));
+            }
+        } catch (e: any) {
             setSelfTest('err');
+            setSelfTestInfo(String(e?.message || 'сеть недоступна'));
         }
-        setTimeout(() => setSelfTest('idle'), 4000);
+        setTimeout(() => { setSelfTest('idle'); setSelfTestInfo(''); }, 8000);
     };
 
     const sendDailyPush = async () => {
@@ -149,26 +162,29 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
         setDailyPush('sending');
         setDailyPushInfo('');
         try {
-            const res = await fetch('/api/admin/notifications/run-self', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
+            const headers = { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() };
+            // Гарантированная доставка (selftest) + honest-диагностика, почему регулярные могут молчать.
+            const res = await fetch('/api/admin/v2/notifications/run', {
+                method: 'POST', headers, body: JSON.stringify({ action: 'selftest' }),
             });
             const data = await res.json().catch(() => ({} as any));
-            if (res.ok && data?.success) {
+            const result = data?.result || {};
+            if (res.ok && result.ok) {
                 setDailyPush('ok');
-                const d = data.diagnostics || {};
+                const diag = await fetch('/api/admin/v2/notifications/diagnostics', { headers: getTelegramInitDataHeaders() })
+                    .then((x) => x.json()).catch(() => null);
                 const hints: string[] = [];
-                if (d.optInEnabled === false) hints.push('opt-in выключен');
-                if (d.hasPrimaryChart === false) hints.push('нет карты — «карта дня» не сработает');
-                if (d.inQuietHours) hints.push('сейчас тихие часы');
-                if (d.buttonOpensApp === false) hints.push('кнопка без ссылки на мини-апп (нет username бота)');
-                setDailyPushInfo(hints.length ? `Доставлено. Регулярные могут молчать: ${hints.join('; ')}.` : 'Доставлено — проверь чат с ботом.');
+                if (diag?.env?.dryRun) hints.push('отправка выключена (нет токена)');
+                if (diag?.ownerProbe && !diag.ownerProbe.candidateNow) hints.push('по расписанию сейчас тебе ничего не подходит (окно/лимит/тихие часы)');
+                if (Array.isArray(diag?.problems)) hints.push(...diag.problems);
+                setDailyPushInfo(hints.length ? `Доставлено. Регулярные могут молчать: ${hints.slice(0, 3).join('; ')}.` : 'Доставлено — проверь чат с ботом.');
             } else {
                 setDailyPush('err');
-                setDailyPushInfo(data?.error ? String(data.error) : '');
+                setDailyPushInfo(String(result.error || data?.message || data?.error || (res.status === 404 ? 'эндпоинт не найден' : `ошибка ${res.status}`)));
             }
-        } catch {
+        } catch (e: any) {
             setDailyPush('err');
+            setDailyPushInfo(String(e?.message || ''));
         }
         setTimeout(() => { setDailyPush('idle'); setDailyPushInfo(''); }, 9000);
     };
@@ -532,7 +548,9 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                                     : selfTest === 'ok'
                                         ? (profile.language === 'en' ? 'Sent — check your chat with the bot.' : 'Отправлено — проверь чат с ботом.')
                                         : selfTest === 'err'
-                                            ? (profile.language === 'en' ? 'Failed — check BOT_TOKEN in Railway.' : 'Не вышло — проверь BOT_TOKEN в Railway.')
+                                            ? (selfTestInfo
+                                                ? (profile.language === 'en' ? `Failed — ${selfTestInfo}` : `Не вышло — ${selfTestInfo}`)
+                                                : (profile.language === 'en' ? 'Failed.' : 'Не вышло.'))
                                             : (profile.language === 'en' ? 'Verifies Telegram delivery end-to-end (admin only).' : 'Проверяет доставку в Telegram end-to-end (только для админа).')}
                             </p>
                         </div>
