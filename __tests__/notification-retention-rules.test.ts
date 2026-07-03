@@ -52,6 +52,7 @@ function makeContext(overrides: Partial<PersonalizationContext> = {}): Personali
     daysWithoutClick: 0,
     ignoredLastCount: 0,
     notificationsSentToday: 0,
+    typesUsedToday: [],
     lastNotificationType: null,
     lastTemplateId: null,
     preferences: {
@@ -81,6 +82,7 @@ const enabledScenarios = [
   { id: 3, key: 'daily_card', enabled: true, priority: 10, max_per_day: 1, cooldown_hours: 20, deep_link: '' },
   { id: 4, key: 'inactive_7d', enabled: true, priority: 10, max_per_day: 1, cooldown_hours: 20, deep_link: '' },
   { id: 5, key: 'premium', enabled: true, priority: 10, max_per_day: 1, cooldown_hours: 72, deep_link: '' },
+  { id: 6, key: 'love', enabled: true, priority: 10, max_per_day: 1, cooldown_hours: 20, deep_link: '' },
 ];
 
 describe('retention notification rules', () => {
@@ -191,12 +193,40 @@ describe('retention notification rules', () => {
     expect(pickRetentionCandidate(setupContext, enabledScenarios as any)?.type).toBe('birth_data_missing');
   });
 
-  it('does not repeat recently opened sections and lets inactive chains through', () => {
+  it('keeps the daily anchor for active users but suppresses recently opened non-anchor sections', () => {
+    // Дневной гороскоп (якорь) НЕ отменяется тем, что юзер только что заходил на главную —
+    // активные (в т.ч. владелец, постоянно в приложении) тоже должны получать утренний пуш.
     expect(
       pickRetentionCandidate(
-        makeContext({ recentScreens: ['today'], localHour: 9 }),
+        makeContext({ recentScreens: ['today', 'daily_card'], localHour: 9 }),
         enabledScenarios as any,
         ['daily_card']
+      )?.type
+    ).toBe('daily_card');
+
+    // Не-якорная сфера, недавно открытая, по-прежнему подавляется (не дублируем то, что смотрят).
+    expect(
+      pickRetentionCandidate(
+        makeContext({ isPremium: true, localTime: '14:00', localHour: 14, recentScreens: ['love'] }),
+        enabledScenarios as any,
+        ['love']
+      )
+    ).toBeNull();
+    // …а без недавнего открытия премиум-юзер получает дневную сферу без порога интересов.
+    expect(
+      pickRetentionCandidate(
+        makeContext({ isPremium: true, localTime: '14:00', localHour: 14, recentScreens: [] }),
+        enabledScenarios as any,
+        ['love']
+      )?.type
+    ).toBe('love');
+
+    // Тип, уже отправленный сегодня, пропускается — планировщик переходит к следующему.
+    expect(
+      pickRetentionCandidate(
+        makeContext({ isPremium: true, localTime: '14:00', localHour: 14, typesUsedToday: ['love'] }),
+        enabledScenarios as any,
+        ['love']
       )
     ).toBeNull();
 

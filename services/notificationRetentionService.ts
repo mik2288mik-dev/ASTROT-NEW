@@ -29,11 +29,13 @@ import type {
 const DEFAULT_TZ = 'Europe/Moscow';
 const RECENT_OPEN_MINUTES = 60;
 const FREE_DAILY_LIMIT = 2;
-const PREMIUM_DAILY_LIMIT = 2;
+const PREMIUM_DAILY_LIMIT = 3;
 const IGNORED_LIMIT = 5;
 // Жёсткий предохранитель против спама: ни один юзер не получает два пуша ближе, чем за столько часов.
-// 7ч → за день максимум 2 пуша, расходятся на УТРО и ВЕЧЕР (дневной выпадает). Действует на ОТПРАВКЕ.
-const NOTIFICATION_MIN_GAP_HOURS = Number(process.env.NOTIFICATION_MIN_GAP_HOURS) || 7;
+// 4ч → за световой день (окна 8–21 локально) физически помещается до 3 пушей: утро/день/вечер
+// (≈9:00 → 13:00 → 17:00). При 7ч влезало максимум 2, поэтому премиум-лимит в 3 никогда не достигался.
+// Действует на ОТПРАВКЕ (dispatch), поверх дневного лимита и тихих часов.
+const NOTIFICATION_MIN_GAP_HOURS = Number(process.env.NOTIFICATION_MIN_GAP_HOURS) || 4;
 
 export type RetentionJobType =
   | 'notification-dispatcher'
@@ -140,6 +142,10 @@ export type PersonalizationContext = {
   daysWithoutClick: number;
   ignoredLastCount: number;
   notificationsSentToday: number;
+  // Типы, уже поставленные в очередь/отправленные СЕГОДНЯ (по локальной дате юзера). Планировщик
+  // исключает их, чтобы за день приходили РАЗНЫЕ пуши (утро — гороскоп, день — сфера, вечер — ещё),
+  // а не один и тот же самый приоритетный тип, который иначе дедуплится и блокирует остальные.
+  typesUsedToday: string[];
   lastNotificationType: string | null;
   lastTemplateId: number | null;
   preferences: PreferenceFlags;
@@ -627,16 +633,19 @@ function candidateAllowed(type: RetentionNotificationType, context: Personalizat
   // ДЕНЬ/ВЕЧЕР (12–21) — интересы/совместимость/премиум; настройка и реактивация — днём (10–20).
   const h = context.localHour;
 
-  // ── Утро: личный дневной гороскоп ──
-  if (type === 'daily_card') return context.hasPrimaryChart && h >= 8 && h < 12;
-  if (type === 'sign_daily') return context.hasBirthDate && h >= 8 && h < 13;
+  // ── Утро: личный дневной гороскоп (якорь дня). Окно 8–14, чтобы поздний старт контейнера/поздний
+  //    прогон планировщика всё равно доставил его до обеда, а не пропускал день целиком. ──
+  if (type === 'daily_card') return context.hasPrimaryChart && h >= 8 && h < 14;
+  if (type === 'sign_daily') return context.hasBirthDate && h >= 8 && h < 14;
   if (type === 'birthday') return context.isBirthdayToday && h >= 8 && h < 12;
   if (type === 'assistant') return context.interests.assistant >= 1 && h >= 9 && h < 12;
 
-  // ── День/вечер: по интересам, совместимость, премиум ──
-  if (type === 'love') return context.interests.love >= 2 && h >= 12 && h < 21;
-  if (type === 'money') return context.interests.money >= 2 && h >= 12 && h < 21;
-  if (type === 'work') return context.interests.work >= 2 && h >= 10 && h < 19;
+  // ── День/вечер: сферы жизни, совместимость, премиум. Для ПРЕМИУМА сферы (любовь/деньги/работа)
+  //    открыты БЕЗ порога интересов — это оплаченный личный дневной контент, он и есть 2-й/3-й пуш дня.
+  //    Free по-прежнему получает сферу, только если реально смотрел этот раздел (>=2 за 30 дней). ──
+  if (type === 'love') return (context.isPremium || context.interests.love >= 2) && h >= 13 && h < 21;
+  if (type === 'money') return (context.isPremium || context.interests.money >= 2) && h >= 13 && h < 21;
+  if (type === 'work') return (context.isPremium || context.interests.work >= 2) && h >= 13 && h < 21;
   if (type === 'compatibility') return h >= 13 && h < 21;
   if (type === 'synastry') return h >= 13 && h < 21;
   if (type === 'premium') return !context.isPremium && context.lockedBlockEvents > 0 && h >= 11 && h < 21;
@@ -676,6 +685,10 @@ function segmentForType(type: RetentionNotificationType, context: Personalizatio
 }
 
 function sectionRecentlyOpened(type: RetentionNotificationType, context: PersonalizationContext) {
+  // Дневной гороскоп — гарантированный якорь дня и краткая сводка «оценки дня»; его НЕ глушим только
+  // потому, что юзер заходил на главную. Иначе активные (в т.ч. владелец, постоянно в приложении)
+  // никогда не получают утренний пуш — планировщик видел свежий screen_view и отменял кандидата.
+  if (type === 'daily_card' || type === 'sign_daily') return false;
   const section = typeToSection(type);
   if (section === 'daily_card') return context.recentScreens.includes('daily_card') || context.recentScreens.includes('today');
   if (section === 'pulse_day') return context.recentScreens.includes('pulse') || context.recentScreens.includes('pulse_day');
@@ -761,6 +774,10 @@ export function pickRetentionCandidate(
   const types = allowedTypes.length ? allowedTypes : (Object.keys(FALLBACK_COPY) as RetentionNotificationType[]);
   const candidates = types
     .filter((type) => candidateAllowed(type, context))
+    // Уже отправляли/поставили в очередь этот тип сегодня → пропускаем, чтобы планировщик перешёл к
+    // следующему по приоритету и за день пришли РАЗНЫЕ пуши. Без этого он каждый прогон выбирал бы
+    // один и тот же самый приоритетный тип, тот дедуплился, и 2-й/3-й пуш дня просто не появлялись.
+    .filter((type) => !context.typesUsedToday.includes(type))
     .filter((type) => !sectionRecentlyOpened(type, context))
     .map((type) => {
       const scenario = scenarios.find((item) => item.key === type) || null;
@@ -820,12 +837,14 @@ async function listRecipients(limit = 250): Promise<RecipientRow[]> {
        ORDER BY c.is_primary DESC NULLS LAST, c.id ASC
        LIMIT 1
      ) nc ON TRUE
-     -- Не шлём недостижимым: у кого за 7 дней была терминальная ошибка Telegram (заблокировал бота /
-     -- chat not found / удалён) И после неё не было успешной отправки. Иначе планировщик молотит
-     -- «мёртвых» адресатов (веб-гости, не жавшие Start) → 90%+ провалов. Самоисцеляется: вернутся —
-     -- появится успешная отправка/сброс, или окно в 7 дней истечёт, и юзер снова попадёт в рассылку.
-     WHERE NOT EXISTS (
-       SELECT 1 FROM scheduled_notifications sn
+     -- Не шлём недостижимым: у кого за 7 дней НАКОПИЛОСЬ ≥2 терминальных ошибок Telegram (заблокировал
+     -- бота / chat not found / удалён) без успешной отправки после последней из них. Порог именно 2, а
+     -- не 1: одна разовая ошибка (смена токена бота, юзер ещё не нажал Start, временный сбой) НЕ должна
+     -- на неделю глушить реально достижимого человека — так владелец и живые премиум-юзеры выпадали из
+     -- рассылки после единичного фейла. Стойкий блокировщик фейлит каждый раз → быстро набирает 2 и
+     -- отсекается (нет 90%+ спама по «мёртвым»). Самоисцеляется: успешная отправка/7 дней → снова в базе.
+     WHERE (
+       SELECT COUNT(*) FROM scheduled_notifications sn
        WHERE sn.user_id = u.id
          AND sn.status = 'failed'
          AND sn.updated_at > NOW() - INTERVAL '7 days'
@@ -834,7 +853,7 @@ async function listRecipients(limit = 250): Promise<RecipientRow[]> {
            SELECT 1 FROM scheduled_notifications s2
            WHERE s2.user_id = u.id AND s2.status = 'sent' AND s2.sent_at > sn.updated_at
          )
-     )
+     ) < 2
      ORDER BY COALESCE(u.last_login, u.created_at) DESC NULLS LAST, u.id DESC
      LIMIT $1`,
     [Math.max(1, Math.min(limit, 2000))]
@@ -954,7 +973,12 @@ async function buildContextForRecipient(user: RecipientRow, now: Date): Promise<
   const interests = await interestScores(user.id).catch(() => ({ love: 0, money: 0, work: 0, assistant: 0, synastry: 0 }));
   const logStats = await pool.query(
     `SELECT
-       COUNT(*) FILTER (WHERE status = 'sent' AND sent_at::date = $2::date)::int AS sent_today,
+       COUNT(*) FILTER (WHERE status = 'sent' AND local_date = $2::date)::int AS sent_today,
+       COALESCE(
+         ARRAY_AGG(DISTINCT notification_type)
+           FILTER (WHERE local_date = $2::date AND status IN ('scheduled', 'sending', 'sent')),
+         '{}'
+       ) AS types_today,
        MAX(notification_type) FILTER (WHERE status = 'sent') AS last_queue_type,
        MAX(template_id) FILTER (WHERE status = 'sent') AS last_template_id
      FROM scheduled_notifications
@@ -1019,6 +1043,7 @@ async function buildContextForRecipient(user: RecipientRow, now: Date): Promise<
     daysWithoutClick: 0,
     ignoredLastCount: Number(ignored.rows[0]?.ignored || 0),
     notificationsSentToday: Number(logStats.rows[0]?.sent_today || 0),
+    typesUsedToday: Array.isArray(logStats.rows[0]?.types_today) ? logStats.rows[0].types_today.map(String) : [],
     lastNotificationType: logStats.rows[0]?.last_queue_type || null,
     lastTemplateId: logStats.rows[0]?.last_template_id != null ? Number(logStats.rows[0].last_template_id) : null,
     preferences: defaultPreferences(settingsRow),
