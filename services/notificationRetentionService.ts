@@ -18,6 +18,7 @@ import { buildMiniAppButtonUrl } from '../lib/notificationDeepLink';
 import { resolveTodayPulseForUser } from '../lib/todayPulseResolver';
 import { sunSignFromDate } from '../lib/synastry/compatScore';
 import { getZodiacSign } from '../constants';
+import { buildSignDailyFallback, normalizeZodiacKey } from '../lib/horoscope/signDaily';
 import type {
   AdminScheduledNotificationQueueItem,
   RetentionNotificationStatus,
@@ -378,6 +379,76 @@ function baseVariables(context: PersonalizationContext): NotificationRenderVaria
     days_inactive: context.daysInactive,
     unfinished_action: 'закончить настройку',
   };
+}
+
+/** Обрезка текста под длину пуша по границе предложения/слова (без обрыва посреди слова). */
+function trimForPush(text: string, max = 180): string {
+  const t = String(text || '').replace(/\s+/g, ' ').trim();
+  if (t.length <= max) return t;
+  const slice = t.slice(0, max);
+  const sentenceEnd = Math.max(slice.lastIndexOf('. '), slice.lastIndexOf('! '), slice.lastIndexOf('? '));
+  if (sentenceEnd > max * 0.5) return slice.slice(0, sentenceEnd + 1).trim();
+  const lastSpace = slice.lastIndexOf(' ');
+  return `${(lastSpace > 0 ? slice.slice(0, lastSpace) : slice).trim()}…`;
+}
+
+/**
+ * Персональная копия пуша ИЗ РЕАЛЬНОГО КОНТЕНТА, а не из шаблона:
+ *   • daily_card — расчёт дня по натальной карте (todayPulse: сводка, лучшее окно, чего избегать);
+ *   • sign_daily — гороскоп по знаку (для тех, у кого нет карты);
+ *   • love/money/work — текст сферы из карты дня + привязка к сегодняшнему окну.
+ * Возвращает {title, body} для личных ежедневных типов, иначе null (тогда шаблон/статичный фолбэк).
+ * БЕЗ вызова AI: всё уже посчитано в контексте юзера, поэтому пуш всегда свежий и разный по дням,
+ * и совпадает с тем, что человек видит в приложении.
+ */
+function buildPersonalPushCopy(type: RetentionNotificationType, context: PersonalizationContext): { title: string; body: string } | null {
+  const ru = context.user.language !== 'en';
+  const lang: 'ru' | 'en' = ru ? 'ru' : 'en';
+  const firstName = String(context.user.name || '').split(/\s+/)[0] || '';
+  const signKey = context.user.birthDate ? normalizeZodiacKey(sunSignFromDate(context.user.birthDate) || '') : null;
+  const sign = signKey ? getZodiacSign(lang, signKey) : (firstName || (ru ? 'ты' : 'you'));
+  const pulse = context.todayPulse;
+  const card = context.preparedDailyCard;
+
+  if (type === 'daily_card') {
+    if (!pulse && !card) return null;
+    const peak = pulse?.peakPoint || pulse?.currentPoint || null;
+    const summary = card?.summary || peak?.summary || pulse?.currentPoint?.summary || '';
+    const window = pulseWindow(pulse, peak);
+    const bestFor = (peak?.bestFor || []).slice(0, 2).join(', ');
+    const avoid = (pulse?.currentPoint?.avoid || peak?.avoid || [])[0] || '';
+    const parts: string[] = [];
+    if (summary) parts.push(summary);
+    if (window && bestFor) parts.push(ru ? `Лучшее окно — ${window}: ${bestFor}.` : `Best window — ${window}: ${bestFor}.`);
+    if (avoid) parts.push(ru ? `Лучше не тащить: ${avoid}.` : `Better to skip: ${avoid}.`);
+    const body = trimForPush(parts.join(' '));
+    if (!body) return null;
+    return { title: ru ? `${sign}, твой день` : `${sign}, your day`, body };
+  }
+
+  if (type === 'sign_daily' && signKey) {
+    const reading = buildSignDailyFallback(signKey, context.localDate, lang);
+    const body = trimForPush(`${reading.summary} ${reading.focus}`.trim());
+    if (!body) return null;
+    return { title: ru ? `${sign}, гороскоп на сегодня` : `${sign}, today’s horoscope`, body };
+  }
+
+  if ((type === 'love' || type === 'money' || type === 'work') && card) {
+    const areaText = type === 'love' ? card.loveText : type === 'money' ? card.moneyText : card.workText;
+    if (!areaText) return null;
+    const peak = pulse?.peakPoint || pulse?.currentPoint || null;
+    const window = pulseWindow(pulse, peak);
+    const tail = window ? (ru ? ` Лучшее окно дня — ${window}.` : ` Best window today — ${window}.`) : '';
+    const titles: Record<'love' | 'money' | 'work', [string, string]> = {
+      love: ['Отношения сегодня', 'Love today'],
+      money: ['Деньги сегодня', 'Money today'],
+      work: ['Работа сегодня', 'Work today'],
+    };
+    const [ruT, enT] = titles[type];
+    return { title: ru ? ruT : enT, body: trimForPush(`${areaText}${tail}`) };
+  }
+
+  return null;
 }
 
 const FALLBACK_COPY: Record<RetentionNotificationType, { title: string; body: string; button: string }> = {
@@ -970,6 +1041,19 @@ async function createCandidate(context: PersonalizationContext, scenarios: Reten
   const picked = pickRetentionCandidate(context, scenarios, allowedTypes);
   if (!picked) return null;
   const template = await pickTemplate(picked.scenario, context);
+
+  // Персональная копия из реального контента дня (пульс/карта/знак) — приоритет над шаблоном для
+  // личных ежедневных типов. Если вдруг не проходит проверку тона — безопасно откатываемся к шаблону.
+  const personal = buildPersonalPushCopy(picked.type, context);
+  if (personal) {
+    const personalized = { ...picked, template: null, fallbackTitle: personal.title, fallbackBody: personal.body };
+    try {
+      renderCandidate(personalized);
+      return personalized;
+    } catch {
+      /* персональная копия задела гард — используем шаблон */
+    }
+  }
   return { ...picked, template };
 }
 
@@ -1446,18 +1530,20 @@ export async function sendNotificationSelfTest(userId: string): Promise<Notifica
     const fallback = FALLBACK_COPY[type];
     if (!fallback) continue;
     const template = await pickTemplate(scenario, context);
+    // Тот же персональный контент, что и в реальной рассылке, — чтобы тест отражал реальность.
+    const personal = buildPersonalPushCopy(type, context);
     const candidate: RetentionCandidate = {
       type,
       segment: segmentForType(type, context),
       scenario,
-      template,
+      template: personal ? null : template,
       priority: scenario.priority,
       reason: 'selftest',
       section: typeToSection(type),
       buttonText: fallback.button,
       variables: { ...baseVariables(context), interest_topic: type, days_inactive: context.daysInactive },
-      fallbackTitle: fallback.title,
-      fallbackBody: fallback.body,
+      fallbackTitle: personal ? personal.title : fallback.title,
+      fallbackBody: personal ? personal.body : fallback.body,
       scheduledAt: new Date(),
       dedupeKey: `selftest:${Date.now()}`,
     };
