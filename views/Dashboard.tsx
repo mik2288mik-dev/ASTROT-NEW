@@ -10,7 +10,6 @@ import type {
 } from '../types';
 import { hasActivePremium, hasNatalChart } from '../lib/accessMatrix';
 import { getMoscowTodayKey } from '../lib/date-utils';
-import { getDayGreeting } from '../lib/greeting';
 import { lumiaSelectionHaptic } from '../lib/haptics';
 import { ZodiacIcon } from '../components/icons/ZodiacIcon';
 import { PlanetIcon } from '../components/icons/PlanetIcon';
@@ -26,7 +25,6 @@ import {
   type SkyToday,
 } from '../services/astrologyService';
 import {
-  FreshHeader,
   FreshHeroCard,
   FreshQuickBar,
   FreshSectionHeader,
@@ -36,15 +34,6 @@ import { HomeFaq } from '../components/Dashboard/HomeFaq';
 import { MATRIX_HOME_LABEL, MATRIX_HOME_SUB } from '../lib/matrixArcana';
 import { sunSignFromDate } from '../lib/synastry/compatScore';
 import { InfoNote } from '../components/fresh-ui';
-
-/* ── Вспомогательные функции ── */
-function formatDate(todayKey: string, lang: 'ru' | 'en'): string {
-  const [yr, mo, da] = todayKey.split('-').map(Number);
-  const d = new Date(Date.UTC(yr, mo - 1, da, 12));
-  return new Intl.DateTimeFormat(lang === 'ru' ? 'ru-RU' : 'en-US', {
-    timeZone: 'UTC', day: 'numeric', month: 'long',
-  }).format(d);
-}
 
 // Маппинг знаков на русские названия
 const SIGN_NAMES_RU: Record<string, string> = {
@@ -65,7 +54,6 @@ type DashboardProps = {
   onOpenOracle?: () => void;
   onOpenSynastry?: () => void;
   onOpenMatrix?: () => void;
-  onOpenSettings?: () => void;
   onRequestPremium?: (source?: string) => void;
   scrollRef?: React.RefObject<HTMLDivElement | null>;
   initialTodaySection?: string | null;
@@ -82,7 +70,6 @@ export const Dashboard = memo<DashboardProps>(({
   onOpenOracle,
   onOpenSynastry,
   onOpenMatrix,
-  onOpenSettings,
   onRequestPremium,
   scrollRef,
 }) => {
@@ -101,7 +88,6 @@ export const Dashboard = memo<DashboardProps>(({
     () => hasChart && premium ? getCachedTodayAssistantHome(profile, chartId, undefined, chartData) : null,
   );
   const [, setPersonalLoading] = useState(hasChart && premium && !personal);
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [sheetDate, setSheetDate] = useState<string | null>(null);
   const [sky, setSky] = useState<SkyToday | null>(null);
 
@@ -138,20 +124,12 @@ export const Dashboard = memo<DashboardProps>(({
     return () => { alive = false; };
   }, [chartData, chartId, hasChart, premium, profile]);
 
-  /* Аватар из Telegram */
-  useEffect(() => {
-    try {
-      const tgUser = (window as unknown as { Telegram?: { WebApp?: { initDataUnsafe?: { user?: { photo_url?: unknown } } } } })
-        ?.Telegram?.WebApp?.initDataUnsafe?.user;
-      setAvatarUrl(typeof tgUser?.photo_url === 'string' ? tgUser.photo_url : null);
-    } catch {
-      setAvatarUrl(null);
-    }
-  }, []);
-
   /* Вспомогательные данные */
   const signNameRu = SIGN_NAMES_RU[selectedSign] || selectedSign;
-  const dateLabel = formatDate(today, language);
+  const displayName = profile.name?.trim() || (language === 'ru' ? 'друг' : 'friend');
+  const periodTabs = language === 'ru'
+    ? ['Сегодня', 'Эта неделя', 'Этот месяц', 'Этот год']
+    : ['Today', 'This week', 'This month', 'This year'];
 
   /* Астро-контекст дня: день недели + фаза луны (фаза считается клиентски, точно) */
   const moon = useMemo(() => getMoonPhase(new Date(), language), [language]);
@@ -219,22 +197,30 @@ export const Dashboard = memo<DashboardProps>(({
       className="fresh-page lumia-main-scroll lumia-bottom-tab-scroll"
       ref={scrollRef as React.RefObject<HTMLDivElement>}
     >
-      {/* ── Логотип LUMIA по центру верха (вырезан из загрузочного экрана 1:1) ── */}
-      <div className="home-brand"><img src="/lumia-logo.png" alt="Lumia" className="home-brand-img" /></div>
-
-      {/* ── Хедер: аватар + приветствие слева, дата справа ── */}
-      <FreshHeader
-        name={profile.name || ''}
-        greeting={getDayGreeting(language)}
-        avatarUrl={avatarUrl || undefined}
-        onAvatarClick={onOpenSettings ? () => { lumiaSelectionHaptic(); onOpenSettings(); } : undefined}
-        rightSlot={
-          <>
-            <div className="fresh-header-date-kicker">{language === 'ru' ? 'Сегодня' : 'Today'}</div>
-            <div className="fresh-header-date-value">{dateLabel}</div>
-          </>
-        }
-      />
+      <section className="home-top" aria-label="LUMIA">
+        <h1 className="home-top-logo">LUMIA</h1>
+        <p className="home-top-greeting">
+          {language === 'ru' ? `Привет, ${displayName}` : `Hi, ${displayName}`}
+        </p>
+        <div className="home-period-tabs" role="tablist" aria-label={language === 'ru' ? 'Период' : 'Period'}>
+          {periodTabs.map((label, index) => {
+            const active = index === 0;
+            return (
+              <button
+                key={label}
+                type="button"
+                className={`home-period-tab${active ? ' is-active' : ''}`}
+                role="tab"
+                aria-selected={active}
+                aria-disabled={!active}
+                onClick={active ? () => { lumiaSelectionHaptic(); } : undefined}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      </section>
 
       {/* ── Сегодня: Луна + лучшее окно дня — компактно, в одном блоке ── */}
       <div className="home-today">

@@ -1,5 +1,6 @@
 import React from 'react';
 import { LayoutGroup, motion, useReducedMotion } from 'framer-motion';
+import { HeartHandshake, Home, Map, MessageCircleQuestion, MoreHorizontal, type LucideIcon } from 'lucide-react';
 import type { UserProfile, ViewState } from '../../types';
 import { cn } from '../../lib/cn';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
@@ -8,81 +9,31 @@ type LumiaBottomTabBarProps = {
   profile: UserProfile;
   view: ViewState;
   onOpenToday: () => void;
-  onOpenHoroscope: () => void;
   onOpenNatal: () => void;
   onOpenSynastry: () => void;
   onOpenAsk: () => void;
+  onOpenMore: () => void;
 };
 
-const SHOW_ON: ViewState[] = ['dashboard', 'horoscope', 'chart', 'synastry', 'oracle'];
-
-type IconProps = React.SVGProps<SVGSVGElement>;
-
-function HomeHouseIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M4.5 11.6 14 4.3l9.5 7.3" strokeWidth="2.2" />
-      <path d="M6.6 10v11.4a1 1 0 0 0 1 1h12.8a1 1 0 0 0 1-1V10" strokeWidth="2.2" />
-      <path d="M11.2 22.4v-6.2a1 1 0 0 1 1-1h3.6a1 1 0 0 1 1 1v6.2" strokeWidth="2.2" />
-    </svg>
-  );
-}
-
-
-function HoroscopeCompassIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <circle cx="14" cy="14" r="10.4" strokeWidth="2.1" />
-      <path d="M18.7 9.3l-3 6.4-6.4 3 3-6.4 6.4-3Z" strokeWidth="2" />
-      <circle cx="14" cy="14" r="1.15" fill="currentColor" stroke="none" />
-    </svg>
-  );
-}
-
-function NatalPieIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <circle cx="14" cy="14" r="10.3" strokeWidth="2.1" />
-      <path d="M14 14V3.7" strokeWidth="2.1" />
-      <path d="M14 14l8.95 5.05" strokeWidth="2.1" />
-    </svg>
-  );
-}
-
-function UnionHeartIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M14 23.4C6.9 18.9 3.4 14.8 3.4 10.6 3.4 7.5 5.9 5 9 5c1.97 0 3.78 1.04 5 2.86C15.22 6.04 17.03 5 19 5c3.1 0 5.6 2.5 5.6 5.6 0 4.2-3.5 8.3-10.6 12.8Z" strokeWidth="2.05" />
-    </svg>
-  );
-}
-
-function AskChatIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M6.5 7.5h15a2 2 0 0 1 2 2v8.5a2 2 0 0 1-2 2H12l-4.5 3.5V9.5a2 2 0 0 1 2-2Z" strokeWidth="2.05" />
-      <path d="M10 12.5h8M10 16h5.5" strokeWidth="2.05" />
-    </svg>
-  );
-}
+const SHOW_ON: ViewState[] = ['dashboard', 'chart', 'synastry', 'oracle', 'settings'];
 
 function getBottomNavLabels(language: UserProfile['language']) {
   if (language === 'en') {
     return {
       today: 'Today',
-      horoscope: 'Horoscope',
       chart: 'Map',
-      union: 'Union',
-      ask: 'Ask',
+      union: 'Compatibility',
+      ask: 'Questions',
+      more: 'More',
     };
   }
 
   return {
     today: 'Сегодня',
-    horoscope: 'Гороскоп',
-    chart: 'Карта',
-    union: 'Союз',
-    ask: 'Спроси',
+    chart: 'карта',
+    union: 'Совместимость',
+    ask: 'вопросы',
+    more: 'ещё',
   };
 }
 
@@ -90,51 +41,57 @@ export function LumiaBottomTabBar({
   profile,
   view,
   onOpenToday,
-  onOpenHoroscope,
   onOpenNatal,
   onOpenSynastry,
   onOpenAsk,
+  onOpenMore,
 }: LumiaBottomTabBarProps) {
   const labels = getBottomNavLabels(profile.language);
   const reduce = useReducedMotion();
 
   if (!SHOW_ON.includes(view)) return null;
 
-  const items = [
+  const items: Array<{
+    id: string;
+    label: string;
+    active: boolean;
+    icon: LucideIcon;
+    onClick: () => void;
+  }> = [
     {
       id: 'today',
       label: labels.today,
       active: view === 'dashboard',
-      icon: <HomeHouseIcon />,
+      icon: Home,
       onClick: onOpenToday,
-    },
-    {
-      id: 'horoscope',
-      label: labels.horoscope,
-      active: view === 'horoscope',
-      icon: <HoroscopeCompassIcon />,
-      onClick: onOpenHoroscope,
     },
     {
       id: 'chart',
       label: labels.chart,
       active: view === 'chart',
-      icon: <NatalPieIcon />,
+      icon: Map,
       onClick: onOpenNatal,
     },
     {
       id: 'union',
       label: labels.union,
       active: view === 'synastry',
-      icon: <UnionHeartIcon />,
+      icon: HeartHandshake,
       onClick: onOpenSynastry,
     },
     {
       id: 'ask',
       label: labels.ask,
       active: view === 'oracle',
-      icon: <AskChatIcon />,
+      icon: MessageCircleQuestion,
       onClick: onOpenAsk,
+    },
+    {
+      id: 'more',
+      label: labels.more,
+      active: view === 'settings',
+      icon: MoreHorizontal,
+      onClick: onOpenMore,
     },
   ];
 
@@ -142,31 +99,37 @@ export function LumiaBottomTabBar({
     <div className="lumia-bottom-tab-shell pointer-events-none">
       <LayoutGroup>
         <nav className="lumia-bottom-tab-bar pointer-events-auto" aria-label="Lumia">
-          {items.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              className={cn('lumia-bottom-tab-item', item.active && 'is-active')}
-              aria-label={item.label}
-              aria-current={item.active ? 'page' : undefined}
-              onClick={() => {
-                lumiaSelectionHaptic();
-                item.onClick();
-              }}
-            >
-              <span className="lumia-bottom-tab-icon relative">
+          {items.map((item) => {
+            const Icon = item.icon;
+
+            return (
+              <button
+                key={item.id}
+                type="button"
+                data-tab-id={item.id}
+                className={cn('lumia-bottom-tab-item', item.active && 'is-active')}
+                aria-label={item.label}
+                aria-current={item.active ? 'page' : undefined}
+                onClick={() => {
+                  lumiaSelectionHaptic();
+                  item.onClick();
+                }}
+              >
                 {item.active && !reduce ? (
                   <motion.span
-                    layoutId="mono-tab-pill"
-                    className="absolute inset-0 rounded-full bg-mono-black"
+                    layoutId="lumia-bottom-tab-pill"
+                    className="lumia-bottom-tab-active-pill"
                     transition={{ type: 'spring', stiffness: 380, damping: 32 }}
                   />
                 ) : null}
-                <span className="relative z-[1]">{item.icon}</span>
-              </span>
-              <span className="lumia-bottom-tab-label">{item.label}</span>
-            </button>
-          ))}
+                {item.active && reduce ? <span className="lumia-bottom-tab-active-pill" aria-hidden /> : null}
+                <span className="lumia-bottom-tab-icon">
+                  <Icon aria-hidden strokeWidth={1.75} />
+                </span>
+                <span className="lumia-bottom-tab-label">{item.label}</span>
+              </button>
+            );
+          })}
         </nav>
       </LayoutGroup>
     </div>

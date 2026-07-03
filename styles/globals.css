@@ -80,11 +80,11 @@ body,
   --lumia-home-radius-panel: 1.55rem;
   --lumia-home-radius-nav: 1.45rem;
   --lumia-home-icon-size: 2.45rem;
-  --lumia-bottom-tab-height: 3.6rem;
+  --lumia-bottom-tab-height: 4.6rem;
   --lumia-bottom-tab-safe-bottom: max(env(safe-area-inset-bottom, 0px), var(--tg-safe-area-inset-bottom, 0px), var(--tg-content-safe-area-inset-bottom, 0px));
-  --lumia-bottom-tab-bottom-gap: 0.38rem;
-  /* Нижний таб-бар удалён — клиренс сведён к небольшому отступу + safe-area. */
-  --lumia-bottom-tab-clearance: calc(var(--lumia-bottom-tab-safe-bottom) + 1.5rem);
+  --lumia-bottom-tab-bottom-gap: 0.75rem;
+  /* Floating bottom bar clearance: bar height + safe-area + breathing room. */
+  --lumia-bottom-tab-clearance: calc(var(--lumia-bottom-tab-height) + var(--lumia-bottom-tab-safe-bottom) + var(--lumia-bottom-tab-bottom-gap) + 0.65rem);
   --lumia-home-nav-height: var(--lumia-bottom-tab-height);
   --lumia-home-shadow-card: 0 16px 34px rgba(17, 19, 23, 0.08);
   --lumia-home-shadow-lifted: 0 14px 30px rgba(21, 94, 239, 0.22);
@@ -720,27 +720,28 @@ body.theme-lumia-air #__next {
   justify-content: center;
   padding:
     0
-    max(1.05rem, env(safe-area-inset-right, 0px), var(--tg-content-safe-area-inset-right, 0px))
+    max(0.95rem, env(safe-area-inset-right, 0px), var(--tg-content-safe-area-inset-right, 0px))
     calc(var(--lumia-bottom-tab-bottom-gap) + var(--lumia-bottom-tab-safe-bottom))
-    max(1.05rem, env(safe-area-inset-left, 0px), var(--tg-content-safe-area-inset-left, 0px));
+    max(0.95rem, env(safe-area-inset-left, 0px), var(--tg-content-safe-area-inset-left, 0px));
 }
 
 .lumia-bottom-tab-bar {
   position: relative;
   display: grid;
-  width: min(100%, 22rem);
+  width: min(100%, 24rem);
   min-height: var(--lumia-bottom-tab-height);
   grid-template-columns: repeat(5, minmax(0, 1fr));
   align-items: center;
-  gap: 0;
+  gap: 2px;
   border-radius: 9999px;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: #111111;
+  border: 1px solid rgba(255, 255, 255, 0.86);
+  background: rgba(255, 255, 255, 0.96);
   box-shadow:
-    0 10px 30px rgba(0, 0, 0, 0.24),
-    0 1px 0 rgba(255, 255, 255, 0.06) inset;
-  padding: 6px 8px;
+    0 18px 46px rgba(17, 24, 39, 0.16),
+    0 4px 14px rgba(17, 24, 39, 0.08),
+    0 1px 0 rgba(255, 255, 255, 0.9) inset;
+  padding: 7px;
 }
 
 .lumia-bottom-tab-bar::before,
@@ -753,14 +754,20 @@ body.theme-lumia-air #__next {
   z-index: 2;
   display: inline-flex;
   min-width: 0;
-  min-height: 2.9rem;
+  min-height: 3.7rem;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 3px;
   border: 0;
+  border-radius: 999px;
   background: transparent;
-  color: rgba(255, 255, 255, 0.55);
+  color: #3f3f46;
   font-family: var(--lumia-home-font-sans);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.05;
   -webkit-tap-highlight-color: transparent;
   transition:
     color 160ms ease,
@@ -771,12 +778,25 @@ body.theme-lumia-air #__next {
   transform: translateY(1px) scale(0.96);
 }
 
-/* Icon wrapper doubles as the active soft circle */
+.lumia-bottom-tab-active-pill {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #f05ba9 0%, #ff9d52 100%);
+  box-shadow: 0 10px 22px rgba(240, 91, 169, 0.28);
+}
+
+/* Thin line icon inside each tab item. */
 .lumia-bottom-tab-icon {
+  position: relative;
+  z-index: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.55rem;
+  width: 1.55rem;
+  height: 1.55rem;
+  padding: 0;
   border-radius: 9999px;
   background: transparent;
   color: currentColor;
@@ -784,14 +804,29 @@ body.theme-lumia-air #__next {
 }
 
 .lumia-bottom-tab-icon svg {
-  width: 1.5rem;
-  height: 1.5rem;
+  width: 1.28rem;
+  height: 1.28rem;
   display: block;
 }
 
-/* Icon-only bar — labels hidden per the reference */
+/* Small labels stay visible under the icons. */
 .lumia-bottom-tab-label {
-  display: none;
+  position: relative;
+  z-index: 1;
+  display: block;
+  max-width: 100%;
+  color: currentColor;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.05;
+  overflow: hidden;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lumia-bottom-tab-item[data-tab-id='union'] .lumia-bottom-tab-label {
+  font-size: 8px;
 }
 
 .lumia-bottom-tab-item.is-active {
@@ -800,7 +835,6 @@ body.theme-lumia-air #__next {
 }
 
 .lumia-bottom-tab-item.is-active .lumia-bottom-tab-icon {
-  background: var(--mono-accent);
   color: #ffffff;
 }
 
@@ -1564,7 +1598,7 @@ body.theme-lumia-air #__next {
   :root {
     --lumia-home-page-x: 0.9rem;
     --lumia-home-icon-size: 2.35rem;
-    --lumia-bottom-tab-height: 3.5rem;
+    --lumia-bottom-tab-height: 4.45rem;
     --lumia-home-nav-height: var(--lumia-bottom-tab-height);
   }
 
@@ -3243,6 +3277,105 @@ a,
   height: 22px;
   width: auto;
   display: block;
+}
+
+.home-top {
+  position: relative;
+  z-index: 61;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px var(--fresh-page-x) 12px;
+}
+
+.home-top-logo {
+  margin: 0;
+  color: #050505;
+  font-family: var(--lumia-brand-wordmark-font);
+  font-size: 48px;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 0.92;
+  text-align: center;
+}
+
+.home-top-greeting {
+  margin: 18px 0 0;
+  max-width: 100%;
+  color: #303030;
+  font-family: var(--fresh-font);
+  font-size: 28px;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.08;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.home-period-tabs {
+  display: grid;
+  width: 100%;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  margin-top: 26px;
+  padding: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow:
+    0 16px 38px rgba(24, 24, 27, 0.08),
+    0 1px 0 rgba(255, 255, 255, 0.92) inset;
+}
+
+.home-period-tab {
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #111111;
+  font-family: var(--fresh-font);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1.1;
+  text-align: center;
+  cursor: default;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.home-period-tab.is-active {
+  color: #ffffff;
+  background: linear-gradient(135deg, #f05ba9 0%, #ff9d52 100%);
+  box-shadow: 0 10px 22px rgba(240, 91, 169, 0.26);
+  cursor: pointer;
+}
+
+@media (max-width: 380px) {
+  .home-top {
+    padding-top: 6px;
+  }
+
+  .home-top-logo {
+    font-size: 42px;
+  }
+
+  .home-top-greeting {
+    margin-top: 15px;
+    font-size: 24px;
+  }
+
+  .home-period-tabs {
+    margin-top: 22px;
+  }
+
+  .home-period-tab {
+    min-height: 40px;
+    font-size: 12px;
+  }
 }
 
 /* ── Хедер: аватар + приветствие ── */

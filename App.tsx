@@ -26,6 +26,7 @@ import { OracleChat } from './views/OracleChat';
 import { Settings } from './views/Settings';
 import { AdminApp } from './views/admin2/AdminApp';
 import { Header } from './components/Header';
+import { LumiaBottomTabBar } from './components/lumia-ui/LumiaBottomTabBar';
 import { Loading } from './components/ui/Loading';
 import { getText } from './constants';
 import { PremiumPreview } from './components/PremiumPreview';
@@ -1457,6 +1458,10 @@ const App: React.FC = () => {
         navigateTo('synastry');
     }, [gateFeatureAccess, navigateTo]);
 
+    const openBottomToday = useCallback(() => {
+        navigateTo('dashboard', { replace: true });
+    }, [navigateTo]);
+
     const openBottomNatal = useCallback(() => {
         navigateTo('chart', { replace: true });
     }, [navigateTo]);
@@ -1578,7 +1583,6 @@ const App: React.FC = () => {
                         onOpenOracle={openOracle}
                         onOpenSynastry={openSynastryFromHome}
                         onOpenMatrix={openMatrix}
-                        onOpenSettings={openBottomAvatar}
                         onRequestPremium={requestPremium}
                         scrollRef={dashboardScrollRef}
                         initialTodaySection={initialTodaySection}
@@ -1711,6 +1715,17 @@ const App: React.FC = () => {
 
             {showPremiumPreview && (
                 <PremiumPreview language={profile?.language || 'ru'} onClose={() => setShowPremiumPreview(false)} onPurchase={requestPremium} />
+            )}
+            {!showPremiumPreview && (
+                <LumiaBottomTabBar
+                    profile={profile}
+                    view={view}
+                    onOpenToday={openBottomToday}
+                    onOpenNatal={openBottomNatal}
+                    onOpenSynastry={openSynastryFromHome}
+                    onOpenAsk={() => openOracle()}
+                    onOpenMore={openBottomAvatar}
+                />
             )}
         </div>
     );
