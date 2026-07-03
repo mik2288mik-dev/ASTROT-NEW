@@ -53,6 +53,7 @@ function makeContext(overrides: Partial<PersonalizationContext> = {}): Personali
     ignoredLastCount: 0,
     notificationsSentToday: 0,
     typesUsedToday: [],
+    hasPending: false,
     lastNotificationType: null,
     lastTemplateId: null,
     preferences: {
@@ -183,6 +184,8 @@ describe('retention notification rules', () => {
   it('applies quiet hours, daily limits and setup priority', () => {
     expect(pickRetentionCandidate(makeContext({ localTime: '23:10', localHour: 23 }), enabledScenarios as any)).toBeNull();
     expect(pickRetentionCandidate(makeContext({ notificationsSentToday: 2 }), enabledScenarios as any)).toBeNull();
+    // Уже есть неотправленный пуш в очереди → новый сейчас не ставим (наполняем по одному в такт отправке).
+    expect(pickRetentionCandidate(makeContext({ hasPending: true, localHour: 9 }), enabledScenarios as any)).toBeNull();
 
     const setupContext = makeContext({
       hasBirthDate: false,

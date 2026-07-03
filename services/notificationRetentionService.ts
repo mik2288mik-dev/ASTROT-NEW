@@ -146,6 +146,10 @@ export type PersonalizationContext = {
   // исключает их, чтобы за день приходили РАЗНЫЕ пуши (утро — гороскоп, день — сфера, вечер — ещё),
   // а не один и тот же самый приоритетный тип, который иначе дедуплится и блокирует остальные.
   typesUsedToday: string[];
+  // Уже есть неотправленный пуш в очереди (status='scheduled'). Тогда НЕ ставим ещё один: планировщик
+  // «наполняет» очередь по одному, в такт отправке (dispatch + разрыв), а не набивает вперёд лишние
+  // строки, которые потом протекли бы на следующий день как «вчерашний» пуш.
+  hasPending: boolean;
   lastNotificationType: string | null;
   lastTemplateId: number | null;
   preferences: PreferenceFlags;
@@ -636,7 +640,9 @@ function candidateAllowed(type: RetentionNotificationType, context: Personalizat
   // ── Утро: личный дневной гороскоп (якорь дня). Окно 8–14, чтобы поздний старт контейнера/поздний
   //    прогон планировщика всё равно доставил его до обеда, а не пропускал день целиком. ──
   if (type === 'daily_card') return context.hasPrimaryChart && h >= 8 && h < 14;
-  if (type === 'sign_daily') return context.hasBirthDate && h >= 8 && h < 14;
+  // Знаковый дневной — утренний гороскоп для тех, у кого НЕТ карты (у кого карта есть, утро занимает
+  // daily_card; иначе премиум с картой получал бы два похожих гороскопа утром, а день/вечер — пусто).
+  if (type === 'sign_daily') return !context.hasPrimaryChart && context.hasBirthDate && h >= 8 && h < 14;
   if (type === 'birthday') return context.isBirthdayToday && h >= 8 && h < 12;
   if (type === 'assistant') return context.interests.assistant >= 1 && h >= 9 && h < 12;
 
@@ -767,6 +773,10 @@ export function pickRetentionCandidate(
   allowedTypes: RetentionNotificationType[] = []
 ): RetentionCandidate | null {
   if (!context.preferences.enabled) return null;
+  // Уже есть неотправленный пуш в очереди → ждём его отправки, второй сейчас не ставим. Так очередь
+  // наполняется по одному в такт dispatch (+разрыв), а не набивается лишним вперёд (иначе хвост
+  // строк уехал бы на следующий день). Дежурный кандидат появится на следующем прогоне планировщика.
+  if (context.hasPending) return null;
   if (isWithinQuietHours(context.localTime, context.quietHoursStart, context.quietHoursEnd)) return null;
   if (context.ignoredLastCount >= IGNORED_LIMIT && !context.segments.some((s) => s.startsWith('inactive_'))) return null;
   if (context.notificationsSentToday >= (context.isPremium ? PREMIUM_DAILY_LIMIT : FREE_DAILY_LIMIT)) return null;
@@ -979,6 +989,7 @@ async function buildContextForRecipient(user: RecipientRow, now: Date): Promise<
            FILTER (WHERE local_date = $2::date AND status IN ('scheduled', 'sending', 'sent')),
          '{}'
        ) AS types_today,
+       COUNT(*) FILTER (WHERE status = 'scheduled')::int AS pending_now,
        MAX(notification_type) FILTER (WHERE status = 'sent') AS last_queue_type,
        MAX(template_id) FILTER (WHERE status = 'sent') AS last_template_id
      FROM scheduled_notifications
@@ -1044,6 +1055,7 @@ async function buildContextForRecipient(user: RecipientRow, now: Date): Promise<
     ignoredLastCount: Number(ignored.rows[0]?.ignored || 0),
     notificationsSentToday: Number(logStats.rows[0]?.sent_today || 0),
     typesUsedToday: Array.isArray(logStats.rows[0]?.types_today) ? logStats.rows[0].types_today.map(String) : [],
+    hasPending: Number(logStats.rows[0]?.pending_now || 0) > 0,
     lastNotificationType: logStats.rows[0]?.last_queue_type || null,
     lastTemplateId: logStats.rows[0]?.last_template_id != null ? Number(logStats.rows[0].last_template_id) : null,
     preferences: defaultPreferences(settingsRow),
