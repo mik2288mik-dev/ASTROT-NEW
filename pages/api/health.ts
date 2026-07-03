@@ -3,7 +3,7 @@ import { resolveDatabaseUrl } from '../../lib/database-url';
 import { getSwissEphemerisHealth } from '../../lib/swisseph-calculator';
 import { getTodayPulseMetricsSnapshot } from '../../lib/todayPulse';
 import { getProductionObservabilitySnapshot } from '../../lib/productionObservability';
-import { ensureNotificationScheduler } from '../../lib/notificationScheduler';
+import { ensureNotificationScheduler, getSchedulerStatus, isSchedulerAllowedByEnv } from '../../lib/notificationScheduler';
 
 /**
  * Health check endpoint for Railway deployment monitoring
@@ -37,6 +37,16 @@ export default async function handler(
       todayPulseSources: getTodayPulseMetricsSnapshot(),
     },
     observability: await getProductionObservabilitySnapshot(),
+    // Операционный статус планировщика уведомлений (без PII) — чтобы «почему не приходят пуши»
+    // было видно даже без админ-доступа. started=false при allowedByEnv=false ⇒ выключен окружением
+    // (см. inProcessCronDisabled / реальный NODE_ENV).
+    scheduler: {
+      started: getSchedulerStatus().started,
+      allowedByEnv: isSchedulerAllowedByEnv(),
+      inProcessCronDisabled: process.env.DISABLE_INPROCESS_CRON === '1',
+      nodeEnv: process.env.NODE_ENV || 'unset',
+      lastDispatchAt: getSchedulerStatus().lastDispatchAt,
+    },
     database: {
       connected: false,
       tablesExist: false,
