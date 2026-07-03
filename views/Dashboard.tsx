@@ -44,6 +44,20 @@ const SIGN_NAMES_RU: Record<string, string> = {
 };
 
 /* ── Типы пропсов ── */
+const HOME_CARD_IMAGES = {
+  todayHero: '/home/cards/today-hero.webp',
+  moonFocus: '/home/cards/moon-focus.webp',
+  natalMap: '/home/cards/natal-map.webp',
+  personalDay: '/home/cards/personal-day.webp',
+  matrix: '/home/cards/matrix.webp',
+  compatibility: '/home/cards/compatibility.webp',
+  questions: '/home/cards/questions.webp',
+} as const;
+
+const homeVisualStyle = (image: string): React.CSSProperties => ({
+  '--home-card-image': `url("${image}")`,
+} as React.CSSProperties);
+
 type DashboardProps = {
   profile: UserProfile;
   chartData: NatalChartData | null;
@@ -198,35 +212,42 @@ export const Dashboard = memo<DashboardProps>(({
       ref={scrollRef as React.RefObject<HTMLDivElement>}
     >
       <section className="home-top" aria-label="LUMIA">
-        <h1 className="home-top-logo">LUMIA</h1>
-        <p className="home-top-greeting">
-          {language === 'ru' ? `Привет, ${displayName}` : `Hi, ${displayName}`}
-        </p>
-        <div className="home-period-tabs" role="tablist" aria-label={language === 'ru' ? 'Период' : 'Period'}>
-          {periodTabs.map((label, index) => {
-            const active = index === 0;
-            return (
-              <button
-                key={label}
-                type="button"
-                className={`home-period-tab${active ? ' is-active' : ''}`}
-                role="tab"
-                aria-selected={active}
-                aria-disabled={!active}
-                onClick={active ? () => { lumiaSelectionHaptic(); } : undefined}
-              >
-                {label}
-              </button>
-            );
-          })}
+        <div className="home-logo-bar">
+          <img className="home-logo-image" src="/lumia-logo.png" alt="LUMIA" />
+        </div>
+        <div className="home-top-content">
+          <p className="home-top-greeting">
+            {language === 'ru' ? `Привет, ${displayName}` : `Hi, ${displayName}`}
+          </p>
+          <div className="home-period-tabs" role="tablist" aria-label={language === 'ru' ? 'Период' : 'Period'}>
+            {periodTabs.map((label, index) => {
+              const active = index === 0;
+              return (
+                <button
+                  key={label}
+                  type="button"
+                  className={`home-period-tab${active ? ' is-active' : ''}`}
+                  role="tab"
+                  aria-selected={active}
+                  aria-disabled={!active}
+                  onClick={active ? () => { lumiaSelectionHaptic(); } : undefined}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </section>
 
       {/* ── Сегодня: Луна + лучшее окно дня — компактно, в одном блоке ── */}
-      <div className="home-today">
+      <div
+        className="home-today home-visual-card home-visual-card--mood"
+        style={homeVisualStyle(HOME_CARD_IMAGES.moonFocus)}
+      >
         <div className="home-today-row">
           <span className="home-today-ico" aria-hidden>
-            <MoonPhaseIcon slot={moon.slot} size={22} fill="#111827" outline="#111827" />
+            <MoonPhaseIcon slot={moon.slot} size={22} fill="#fff" outline="#fff" />
           </span>
           <span className="home-today-moon">{weekdayLabel} · {moon.label}</span>
           {retroLabel ? (
@@ -257,12 +278,11 @@ export const Dashboard = memo<DashboardProps>(({
       {/* ── Hero-карточка: гороскоп дня ── */}
       <FreshHeroCard
         color="coral"
+        image={HOME_CARD_IMAGES.todayHero}
         chipText={signNameRu}
         chipPosition="top-right"
-        stickyText={heroTitle}
-        stickyRotation={-2}
+        title={heroTitle}
         softText={`${weekdayLabel} · ${moon.label}`}
-        icon={<ZodiacIcon sign={selectedSign} size={80} strokeWidth={1.1} />}
         onClick={() => { lumiaSelectionHaptic(); onOpenHoroscopeLayer('sign', { source: 'home_hero' }); }}
         style={{ cursor: 'pointer' }}
       />
@@ -279,7 +299,12 @@ export const Dashboard = memo<DashboardProps>(({
 
       {hasChart && chartData ? (
         <div style={{ padding: '0 20px' }}>
-          <button type="button" className="home-natal" onClick={() => { lumiaSelectionHaptic(); onCreateNatalChart?.(); }}>
+          <button
+            type="button"
+            className="home-natal home-visual-card home-visual-card--profile"
+            style={homeVisualStyle(HOME_CARD_IMAGES.natalMap)}
+            onClick={() => { lumiaSelectionHaptic(); onCreateNatalChart?.(); }}
+          >
             <div className="home-natal-three">
               {[
                 { k: 'sun', sign: chartData.sun?.sign },
@@ -306,22 +331,14 @@ export const Dashboard = memo<DashboardProps>(({
         <div style={{ padding: '0 20px' }}>
           <button
             type="button"
+            className="home-natal home-natal-empty home-visual-card home-visual-card--profile"
+            style={homeVisualStyle(HOME_CARD_IMAGES.natalMap)}
             onClick={() => { lumiaSelectionHaptic(); onCreateNatalChart?.(); }}
-            style={{
-              display: 'block',
-              width: '100%',
-              background: 'var(--fresh-surface)',
-              border: 'none',
-              borderRadius: 'var(--fresh-radius-card)',
-              padding: '16px',
-              textAlign: 'left',
-              cursor: 'pointer',
-            }}
           >
-            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--fresh-text)', marginBottom: 4 }}>
+            <div className="home-visual-title">
               {language === 'ru' ? 'Построить натальную карту' : 'Build natal chart'}
             </div>
-            <div style={{ fontSize: 12, color: 'var(--fresh-muted)' }}>
+            <div className="home-visual-sub">
               {language === 'ru' ? 'Узнайте положение планет в момент рождения' : 'Learn planet positions at birth'}
             </div>
           </button>
@@ -338,37 +355,23 @@ export const Dashboard = memo<DashboardProps>(({
         <div style={{ padding: '0 20px' }}>
           <button
             type="button"
+            className="home-personal-card home-visual-card home-visual-card--energy"
+            style={homeVisualStyle(HOME_CARD_IMAGES.personalDay)}
             onClick={() => {
               lumiaSelectionHaptic();
               if (hasChart && premium) { onOpenPersonalDaily('overview'); }
               else if (!hasChart) { onCreateNatalChart?.(); }
               else { onRequestPremium?.('personal_day'); }
             }}
-            style={{
-              display: 'block',
-              width: '100%',
-              background: 'var(--fresh-surface)',
-              border: 'none',
-              borderRadius: 'var(--fresh-radius-card)',
-              padding: '16px',
-              textAlign: 'left',
-              cursor: 'pointer',
-            }}
           >
-            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--fresh-text)', marginBottom: 4 }}>
+            <div className="home-visual-title">
               {language === 'ru' ? 'Разбор вашего дня по карте' : 'Your day breakdown by chart'}
             </div>
-            <div style={{ fontSize: 12, color: 'var(--fresh-muted)' }}>
+            <div className="home-visual-sub">
               {personalSubtitle}
             </div>
             {(!hasChart || !premium) && (
-              <div style={{
-                display: 'inline-block',
-                marginTop: 10,
-                fontSize: 11,
-                fontWeight: 700,
-                color: 'var(--fresh-link)',
-              }}>
+              <div className="home-visual-cta">
                 {!hasChart
                   ? (language === 'ru' ? 'Создать карту →' : 'Create chart →')
                   : (language === 'ru' ? 'Открыть Premium →' : 'Open Premium →')
@@ -386,22 +389,14 @@ export const Dashboard = memo<DashboardProps>(({
           <div style={{ padding: '0 20px 8px' }}>
             <button
               type="button"
+              className="home-matrix-card home-visual-card home-visual-card--planning"
+              style={homeVisualStyle(HOME_CARD_IMAGES.matrix)}
               onClick={() => { lumiaSelectionHaptic(); onOpenMatrix(); }}
-              style={{
-                width: '100%',
-                background: 'linear-gradient(135deg, #6D5BDF, #A855F7)',
-                border: 'none',
-                borderRadius: 'var(--fresh-radius-card)',
-                padding: '16px 18px',
-                textAlign: 'left',
-                cursor: 'pointer',
-                color: '#fff',
-              }}
             >
-              <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 3 }}>
+              <div className="home-visual-title home-visual-title--large">
                 {language === 'en' ? MATRIX_HOME_LABEL.en : MATRIX_HOME_LABEL.ru}
               </div>
-              <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.85)' }}>
+              <div className="home-visual-sub">
                 {language === 'en' ? MATRIX_HOME_SUB.en : MATRIX_HOME_SUB.ru}
               </div>
             </button>
@@ -410,48 +405,36 @@ export const Dashboard = memo<DashboardProps>(({
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, padding: '0 20px' }}>
           <button
             type="button"
+            className="home-section-card home-section-card--compat home-visual-card home-visual-card--people"
+            style={homeVisualStyle(HOME_CARD_IMAGES.compatibility)}
             onClick={() => { lumiaSelectionHaptic(); onOpenSynastry?.(); }}
-            style={{
-              background: 'var(--fresh-surface)',
-              border: 'none',
-              borderRadius: 'var(--fresh-radius-item)',
-              padding: 14,
-              textAlign: 'left',
-              cursor: 'pointer',
-            }}
           >
-            <div style={{ color: 'var(--fresh-text)', marginBottom: 8 }}><HeartIcon size={24} /></div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--fresh-text)', marginBottom: 2 }}>
+            <div className="home-section-card-icon"><HeartIcon size={24} /></div>
+            <div className="home-visual-title home-visual-title--small">
               {language === 'ru' ? 'Совместимость' : 'Compatibility'}
             </div>
-            <div style={{ fontSize: 11, color: 'var(--fresh-muted)' }}>
+            <div className="home-visual-sub home-visual-sub--small">
               {language === 'ru' ? 'По знакам и по карте' : 'By signs & chart'}
             </div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--fresh-link)', marginTop: 8 }}>
+            <div className="home-visual-cta">
               {language === 'ru' ? 'Открыть →' : 'Open →'}
             </div>
           </button>
 
           <button
             type="button"
+            className="home-section-card home-section-card--ask home-visual-card home-visual-card--chat"
+            style={homeVisualStyle(HOME_CARD_IMAGES.questions)}
             onClick={() => { lumiaSelectionHaptic(); onOpenOracle?.(); }}
-            style={{
-              background: 'var(--fresh-surface)',
-              border: 'none',
-              borderRadius: 'var(--fresh-radius-item)',
-              padding: 14,
-              textAlign: 'left',
-              cursor: 'pointer',
-            }}
           >
-            <div style={{ color: 'var(--fresh-text)', marginBottom: 8 }}><ChatIcon size={24} /></div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--fresh-text)', marginBottom: 2 }}>
+            <div className="home-section-card-icon"><ChatIcon size={24} /></div>
+            <div className="home-visual-title home-visual-title--small">
               {language === 'ru' ? 'Спросить Lumia' : 'Ask Lumia'}
             </div>
-            <div style={{ fontSize: 11, color: 'var(--fresh-muted)' }}>
+            <div className="home-visual-sub home-visual-sub--small">
               {language === 'ru' ? 'Личный вопрос' : 'Personal question'}
             </div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--fresh-link)', marginTop: 8 }}>
+            <div className="home-visual-cta">
               {language === 'ru' ? 'Открыть →' : 'Open →'}
             </div>
           </button>
