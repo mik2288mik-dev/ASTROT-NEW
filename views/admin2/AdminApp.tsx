@@ -31,6 +31,7 @@ import {
   type AdminNotificationScenario,
   type AdminNotificationTemplate,
   type AdminNotificationDiagnostics,
+  type AdminContentHealth,
 } from '../../services/admin2Service';
 
 /**
@@ -873,6 +874,53 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 // ────────────────────────────── AI prompts ──────────────────────────────
+function ContentHealthCard() {
+  const [h, setH] = useState<AdminContentHealth | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [ping, setPing] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  useEffect(() => { admin2.contentDiagnostics().then(setH).catch((e) => setErr(e.message)); }, []);
+  const runPing = async (tier: 'fast' | 'main' | 'deep') => {
+    setBusy(true); setErr(null); setPing(null);
+    try {
+      const r = await admin2.pingContentGeneration(tier);
+      const res = r.result || ({} as any);
+      setPing(res.ok
+        ? { ok: true, msg: `AI отвечает (${res.model || tier}, ${res.latencyMs}мс): «${res.sample || ''}»` }
+        : { ok: false, msg: res.error || 'модель не ответила' });
+    } catch (e: any) { setErr(e.message); } finally { setBusy(false); }
+  };
+  if (err) return <ErrorNote>{err}</ErrorNote>;
+  if (!h) return <p className="text-sm text-slate-400">Загрузка состояния генерации…</p>;
+  return (
+    <div className={`rounded-2xl border p-4 ${h.healthy ? 'border-emerald-200 bg-emerald-50' : 'border-amber-200 bg-amber-50'}`}>
+      <div className="flex items-center justify-between gap-2">
+        <p className={`font-bold ${h.healthy ? 'text-emerald-700' : 'text-amber-700'}`}>{h.healthy ? 'Генерация контента работает' : 'Проблема с генерацией контента'}</p>
+        <div className="flex gap-2">
+          <button className={btnGhost} disabled={busy} onClick={() => runPing('fast')}>Пинг fast</button>
+          <button className={btnPrimary} disabled={busy} onClick={() => runPing('main')}>{busy ? 'Проверяю…' : 'Проверить генерацию'}</button>
+        </div>
+      </div>
+      {h.problems.length
+        ? <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-amber-800">{h.problems.map((p, i) => <li key={i}>{p}</li>)}</ul>
+        : <p className="mt-1 text-sm text-emerald-700">Ключ задан, модели настроены — разборы персонализируются моделью, а не берутся из фолбэка.</p>}
+      {ping ? <div className={`mt-2 rounded-xl border p-2.5 text-sm ${ping.ok ? 'border-emerald-100 bg-emerald-50 text-emerald-700' : 'border-rose-100 bg-rose-50 text-rose-700'}`}>{ping.msg}</div> : null}
+      <div className="mt-3 grid gap-1 text-xs text-slate-500">
+        <div>Токен OpenAI: <b className={h.openaiKeyPresent ? 'text-emerald-600' : 'text-rose-600'}>{h.openaiKeyPresent ? 'задан' : 'НЕ задан'}</b></div>
+        <div>Модели: fast <b className="text-slate-700">{h.models.fast || '—'}</b> · main <b className="text-slate-700">{h.models.main || '—'}</b> · deep <b className="text-slate-700">{h.models.deep || '—'}</b></div>
+      </div>
+      <div className="mt-3 space-y-1">
+        {h.surfaces.map((s) => (
+          <div key={s.surface} className="flex justify-between gap-2 text-xs">
+            <span className="text-slate-600">{s.label}</span>
+            <span className="text-slate-400">{s.tier} · {s.model || '—'}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function PromptsSection({ me }: { me: AdminMe }) {
   const [rows, setRows] = useState<AdminPromptRow[] | null>(null);
   const [sel, setSel] = useState<AdminPromptDetail | null>(null);
@@ -886,6 +934,7 @@ function PromptsSection({ me }: { me: AdminMe }) {
   return (
     <div className="space-y-4">
       {error ? <ErrorNote>{error}</ErrorNote> : null}
+      <ContentHealthCard />
       <p className="text-[13px] text-slate-500">Активный промпт по ключу переопределяет код-дефолт в живой генерации. Уже подключён ключ <b className="text-slate-700">chat_system</b> (чат «Спросить Lumia»).</p>
       {canEdit ? (
         <Card title="Новый промпт">

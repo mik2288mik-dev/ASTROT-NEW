@@ -172,6 +172,21 @@ export type AdminNotificationDiagnostics = {
   checkedAt: string;
 };
 
+export type AdminContentHealth = {
+  ok: boolean;
+  healthy: boolean;
+  openaiKeyPresent: boolean;
+  models: { fast: string | null; main: string | null; deep: string | null };
+  surfaces: Array<{ surface: string; label: string; tier: string; model: string | null }>;
+  problems: string[];
+  checkedAt: string;
+};
+
+export type AdminContentPingResult = {
+  ok: boolean;
+  result: { ok: boolean; tier: string; model: string | null; latencyMs: number; sample?: string; error?: string };
+};
+
 export type AdminNotificationRunResult = {
   ok: boolean;
   action: string;
@@ -323,6 +338,10 @@ export const admin2 = {
   listPromos: () => req<{ promos: AdminPromo[] }>('/api/admin/v2/promo'),
   createPromo: (body: { code: string; type?: string; value?: number; maxUses?: number; expiresAt?: string | null }) => req<{ ok: boolean }>('/api/admin/v2/promo', { method: 'POST', body }),
   disablePromo: (code: string) => req<{ ok: boolean }>('/api/admin/v2/promo', { method: 'DELETE', body: { code } }),
+  // Content generation health
+  contentDiagnostics: () => req<AdminContentHealth>('/api/admin/v2/content/diagnostics'),
+  pingContentGeneration: (tier: 'fast' | 'main' | 'deep' = 'main') =>
+    req<AdminContentPingResult>('/api/admin/v2/content/diagnostics', { method: 'POST', body: { tier } }),
   // AI prompts
   listPrompts: () => req<{ prompts: AdminPromptRow[] }>('/api/admin/v2/ai'),
   getPrompt: (id: number) => req<{ prompt: AdminPromptDetail; versions: any[] }>(`/api/admin/v2/ai/${id}`).then((d) => ({ ...d.prompt, versions: d.versions })),
