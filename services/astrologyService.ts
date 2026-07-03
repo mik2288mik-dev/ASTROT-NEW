@@ -479,6 +479,42 @@ export const getTodayOverview = async (
   };
 };
 
+// Дневной ПЕРСИСТЕНТНЫЙ кэш (localStorage). In-memory Map живёт только в рамках одной загрузки
+// страницы, а мини-апп при каждом входе стартует заново → Map пуст → рефетч → «Считаю оценку дня…».
+// «Оценка дня» (и весь пульс) стабильна в течение локального дня, поэтому считаем её ОДИН раз в день
+// и дальше отдаём мгновенно из localStorage. Новый локальный день (или другая карта → другой ключ) —
+// пересчёт. Так пользователь больше не видит загрузку/подгрузку при повторных входах.
+const DAILY_LS_PREFIX = 'lumia.today.v1:';
+function localDayKey(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+function readPersistedDaily<T>(cacheKey: string): T | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(DAILY_LS_PREFIX + cacheKey);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { day?: string; result?: T } | null;
+    if (!parsed || !parsed.result) return null;
+    if (parsed.day !== localDayKey()) {
+      // Просрочено (наступил новый день) — чистим, чтобы не копить мусор и пересчитать.
+      window.localStorage.removeItem(DAILY_LS_PREFIX + cacheKey);
+      return null;
+    }
+    return parsed.result;
+  } catch {
+    return null;
+  }
+}
+function writePersistedDaily<T>(cacheKey: string, result: T): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(DAILY_LS_PREFIX + cacheKey, JSON.stringify({ day: localDayKey(), result }));
+  } catch {
+    /* приватный режим / переполнение квоты — тихо игнорируем */
+  }
+}
+
 const TODAY_PULSE_CLIENT_CACHE_TTL_MS = 10 * 60 * 1000;
 const todayPulseClientCache = new Map<string, { result?: TodayPulseResult; promise?: Promise<TodayPulseResult>; expiresAt: number }>();
 
@@ -506,9 +542,15 @@ function todayPulseClientCacheKey(profile: UserProfile, chartId?: number | null,
 }
 
 export function getCachedTodayPulse(profile: UserProfile, chartId?: number | null, date?: string, chartData?: NatalChartData | null): TodayPulseResult | null {
-  const entry = todayPulseClientCache.get(todayPulseClientCacheKey(profile, chartId, date, chartData));
-  if (!entry || !entry.result || entry.expiresAt <= Date.now()) return null;
-  return entry.result;
+  const cacheKey = todayPulseClientCacheKey(profile, chartId, date, chartData);
+  const entry = todayPulseClientCache.get(cacheKey);
+  if (entry?.result && entry.expiresAt > Date.now()) return entry.result;
+  const persisted = readPersistedDaily<TodayPulseResult>(cacheKey);
+  if (persisted && persisted.status === 'ready') {
+    todayPulseClientCache.set(cacheKey, { result: persisted, expiresAt: Date.now() + TODAY_PULSE_CLIENT_CACHE_TTL_MS });
+    return persisted;
+  }
+  return null;
 }
 
 export const getTodayPulse = async (
@@ -525,6 +567,12 @@ export const getTodayPulse = async (
   const cached = todayPulseClientCache.get(cacheKey);
   if (cached?.result && cached.expiresAt > Date.now()) return cached.result;
   if (cached?.promise && cached.expiresAt > Date.now()) return cached.promise;
+  // Персистентный дневной кэш: если уже считали сегодня — отдаём мгновенно, без сетевого запроса.
+  const persisted = readPersistedDaily<TodayPulseResult>(cacheKey);
+  if (persisted && persisted.status === 'ready') {
+    todayPulseClientCache.set(cacheKey, { result: persisted, expiresAt: Date.now() + TODAY_PULSE_CLIENT_CACHE_TTL_MS });
+    return persisted;
+  }
 
   const expiresAt = Date.now() + TODAY_PULSE_CLIENT_CACHE_TTL_MS;
   const promise = (async (): Promise<TodayPulseResult> => {
@@ -574,6 +622,7 @@ export const getTodayPulse = async (
   try {
     const result = await promise;
     todayPulseClientCache.set(cacheKey, { result, expiresAt });
+    if (result.status === 'ready') writePersistedDaily(cacheKey, result);
     return result;
   } catch (error) {
     todayPulseClientCache.delete(cacheKey);
@@ -606,9 +655,15 @@ export function getCachedTodayAssistantHome(
   date?: string,
   chartData?: NatalChartData | null
 ): TodayAssistantHomeResult | null {
-  const entry = todayAssistantClientCache.get(todayAssistantClientCacheKey(profile, chartId, date, chartData));
-  if (!entry || !entry.result || entry.expiresAt <= Date.now()) return null;
-  return entry.result;
+  const cacheKey = todayAssistantClientCacheKey(profile, chartId, date, chartData);
+  const entry = todayAssistantClientCache.get(cacheKey);
+  if (entry?.result && entry.expiresAt > Date.now()) return entry.result;
+  const persisted = readPersistedDaily<TodayAssistantHomeResult>(cacheKey);
+  if (persisted && persisted.status === 'ready') {
+    todayAssistantClientCache.set(cacheKey, { result: persisted, expiresAt: Date.now() + TODAY_ASSISTANT_CLIENT_CACHE_TTL_MS });
+    return persisted;
+  }
+  return null;
 }
 
 function setCachedTodayAssistantHome(
@@ -619,11 +674,16 @@ function setCachedTodayAssistantHome(
   chartData?: NatalChartData | null
 ) {
   const expiresAt = Date.now() + TODAY_ASSISTANT_CLIENT_CACHE_TTL_MS;
-  todayAssistantClientCache.set(todayAssistantClientCacheKey(profile, chartId, date, chartData), { result, expiresAt });
-  todayPulseClientCache.set(todayPulseClientCacheKey(profile, chartId, date, chartData), {
-    result: assistantToPulseResult(result),
-    expiresAt,
-  });
+  const assistantKey = todayAssistantClientCacheKey(profile, chartId, date, chartData);
+  const pulseKey = todayPulseClientCacheKey(profile, chartId, date, chartData);
+  const pulseResult = assistantToPulseResult(result);
+  todayAssistantClientCache.set(assistantKey, { result, expiresAt });
+  todayPulseClientCache.set(pulseKey, { result: pulseResult, expiresAt });
+  // Персистим на локальный день, чтобы повторные входы не пересчитывали «оценку дня».
+  if (result.status === 'ready') {
+    writePersistedDaily(assistantKey, result);
+    if (pulseResult.status === 'ready') writePersistedDaily(pulseKey, pulseResult);
+  }
 }
 
 export const getTodayAssistantHome = async (
@@ -640,6 +700,12 @@ export const getTodayAssistantHome = async (
   const cached = todayAssistantClientCache.get(cacheKey);
   if (cached?.result && cached.expiresAt > Date.now()) return cached.result;
   if (cached?.promise && cached.expiresAt > Date.now()) return cached.promise;
+  // Уже считали сегодня (сохранено в localStorage) — отдаём мгновенно, без повторного запроса.
+  const persisted = readPersistedDaily<TodayAssistantHomeResult>(cacheKey);
+  if (persisted && persisted.status === 'ready') {
+    todayAssistantClientCache.set(cacheKey, { result: persisted, expiresAt: Date.now() + TODAY_ASSISTANT_CLIENT_CACHE_TTL_MS });
+    return persisted;
+  }
 
   const expiresAt = Date.now() + TODAY_ASSISTANT_CLIENT_CACHE_TTL_MS;
   const promise = (async (): Promise<TodayAssistantHomeResult> => {
