@@ -109,27 +109,20 @@ async function dispatchTick() {
 
 function plannerTick() {
   const { hour, minute, dateKey } = mskNow();
-  // CATCH-UP, а не жёсткое 2-минутное окно. Раньше задача срабатывала только если процесс был
-  // жив ровно в свои 2 минуты (hour===h && minute∈[m,m+2)). На Railway контейнер перезапускается,
-  // сбрасывая in-memory таймеры и дедуп, — и если рестарт пришёлся мимо окна, планировщик за
-  // сутки НЕ отрабатывал → очередь пустая → пуши не приходили (ручной self-test при этом работал,
-  // т.к. шлёт напрямую). Теперь: «нужное время ИЛИ ПОЗЖЕ, один раз за день» (runOnce по dateKey).
   const due = (h: number, m: number) => hour > h || (hour === h && minute >= m);
 
+  // «Карта дня» — контент на день, генерим раз в сутки утром по Москве (для пуша есть фолбэк).
   if (due(6, 30)) void runOnce('daily-card-generator', dateKey, () => generateDailyCards(new Date(), { limit: 250 }));
-  if (due(9, 0)) void runOnce('morning-retention-planner', dateKey, () => planRetentionNotifications('morning-retention-planner', new Date(), { limit: PLANNER_LIMIT }));
-  if (due(11, 0)) void runOnce('inactive-user-reactivation', dateKey, () => planRetentionNotifications('inactive-user-reactivation', new Date(), { limit: PLANNER_LIMIT }));
-  if (due(13, 0)) void runOnce('midday-retention-planner', dateKey, () => planRetentionNotifications('midday-retention-planner', new Date(), { limit: PLANNER_LIMIT }));
-  if (due(18, 0)) void runOnce('premium-conversion-planner', dateKey, () => planRetentionNotifications('premium-conversion-planner', new Date(), { limit: PLANNER_LIMIT }));
-  if (due(20, 0)) void runOnce('evening-retention-planner', dateKey, () => planRetentionNotifications('evening-retention-planner', new Date(), { limit: PLANNER_LIMIT }));
-  if (due(21, 0)) void runOnce('unfinished-action-reminder', dateKey, () => planRetentionNotifications('unfinished-action-reminder', new Date(), { limit: PLANNER_LIMIT }));
-  // Недельный гороскоп больше НЕ шлём отдельным пушем ("гороскоп на неделю готов" = пустой зазыватель).
-  // Еженедельный контакт — воскресный итог (sunday_summary) через вечерний планировщик.
 
-  // Кампании админа — каждые 15 минут (slotKey по 15-минутному слоту дня).
-  if (minute % 15 === 0) {
-    const slot = `${dateKey}-${hour}-${Math.floor(minute / 15)}`;
-    void runOnce('admin-campaign-runner', slot, () => planRetentionNotifications('admin-campaign-runner', new Date(), { limit: PLANNER_LIMIT }));
+  // ЕДИНЫЙ «катящийся» планировщик — каждые 30 минут, КРУГЛОСУТОЧНО. Предлагает весь дневной набор,
+  // а КОГДА и ЧТО придёт конкретному юзеру решают ЛОКАЛЬНЫЕ окна (candidateAllowed): утро 8–12 —
+  // личный дневной гороскоп; день/вечер 12–21 — интересы/совместимость/премиум. Плюс тихие часы
+  // (22–08 локально), лимит 2/день и разрыв 7ч. Так пуши приходят в правильное ЛОКАЛЬНОЕ время в
+  // любой таймзоне, а не всем разом по Москве. Раньше были разрозненные планировщики по фикс-времени
+  // МСК → восточные таймзоны не попадали в свои утренние окна и не получали утренний гороскоп.
+  if (minute % 30 === 0) {
+    const slot = `${dateKey}-${hour}-${Math.floor(minute / 30)}`;
+    void runOnce('rolling-daily', slot, () => planRetentionNotifications('rolling-daily', new Date(), { limit: PLANNER_LIMIT }));
   }
 }
 
@@ -150,5 +143,5 @@ export function startNotificationScheduler() {
   setInterval(() => void dispatchTick(), DISPATCH_INTERVAL_MS);
   setInterval(() => plannerTick(), 60 * 1000);
 
-  console.log('[cron] in-process notification scheduler started (catch-up planners + dispatch every 3m)');
+  console.log('[cron] in-process notification scheduler started (rolling planner every 30m, timezone-aware; dispatch every 3m)');
 }

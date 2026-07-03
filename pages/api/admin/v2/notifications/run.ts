@@ -10,6 +10,7 @@ import {
 } from '../../../../../services/notificationRetentionService';
 
 const PLANNER_JOBS: RetentionJobType[] = [
+  'rolling-daily',
   'morning-retention-planner',
   'midday-retention-planner',
   'evening-retention-planner',

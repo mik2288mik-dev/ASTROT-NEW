@@ -37,6 +37,7 @@ const NOTIFICATION_MIN_GAP_HOURS = Number(process.env.NOTIFICATION_MIN_GAP_HOURS
 export type RetentionJobType =
   | 'notification-dispatcher'
   | 'daily-card-generator'
+  | 'rolling-daily'
   | 'morning-retention-planner'
   | 'midday-retention-planner'
   | 'evening-retention-planner'
@@ -494,6 +495,14 @@ const FALLBACK_COPY: Record<RetentionNotificationType, { title: string; body: st
 
 function jobAllowedTypes(jobType: RetentionJobType): RetentionNotificationType[] {
   // Сценарии 'pulse_day' и 'personal_day' убраны — таких фич в приложении нет.
+  // Единый «катящийся» планировщик: предлагает ВЕСЬ дневной набор, а КОГДА именно у юзера
+  // сработает утренний/вечерний тип — решают локальные окна в candidateAllowed (+ тихие часы,
+  // лимит 2/день и разрыв 7ч). Так пуши приходят в правильное локальное время в любой таймзоне.
+  if (jobType === 'rolling-daily') return [
+    'birthday', 'birth_data_missing', 'birth_time_missing', 'natal_free', 'daily_card', 'sign_daily',
+    'assistant', 'love', 'money', 'work', 'compatibility', 'synastry', 'premium', 'premium_expiring',
+    'sunday_summary', 'inactive_2d', 'inactive_7d', 'inactive_14d', 'unfinished_action',
+  ];
   if (jobType === 'morning-retention-planner') return ['birthday', 'birth_data_missing', 'birth_time_missing', 'natal_free', 'daily_card', 'assistant'];
   if (jobType === 'midday-retention-planner') return ['work', 'money', 'love', 'sign_daily', 'compatibility', 'assistant'];
   if (jobType === 'evening-retention-planner') return ['premium_expiring', 'sunday_summary', 'love', 'money', 'compatibility', 'synastry', 'premium'];
@@ -542,31 +551,41 @@ function localWeekday(localDate: string): number {
 function candidateAllowed(type: RetentionNotificationType, context: PersonalizationContext) {
   if (!context.preferences.enabled) return false;
   if (!context.preferences[preferenceForType(type)]) return false;
-  if (type === 'birth_data_missing') return !context.hasBirthDate || !context.hasBirthPlace;
-  if (type === 'birth_time_missing') return context.hasBirthDate && context.hasBirthPlace && !context.hasBirthTime;
-  if (type === 'natal_free') return context.hasPrimaryChart && context.segments.includes('free_natal_ready_not_opened');
-  if (type === 'premium') return !context.isPremium && context.lockedBlockEvents > 0;
-  if (type === 'personal_day') return context.localHour >= 18 && context.localHour <= 22;
-  if (type === 'pulse_day') return !!context.todayPulse && context.localHour >= 12 && context.localHour < 18;
-  if (type === 'daily_card') return context.hasPrimaryChart && context.localHour >= 7 && context.localHour < 12;
-  // Дневной гороскоп по знаку — для всех, у кого есть знак (дата рождения), днём.
-  if (type === 'sign_daily') return context.hasBirthDate && context.localHour >= 11 && context.localHour < 16;
-  // Недельный гороскоп — таймингом управляет недельный планировщик (понедельник).
-  if (type === 'weekly_horoscope') return context.hasBirthDate;
-  if (type === 'compatibility') return context.localHour >= 12 && context.localHour < 21;
-  // Поздравление с днём рождения — один раз в день рождения, утром.
-  if (type === 'birthday') return context.isBirthdayToday && context.localHour >= 8 && context.localHour < 13;
-  // Premium заканчивается (за 3 дня) или только что закончился (до 2 дней назад) — мягкое напоминание.
-  if (type === 'premium_expiring') return context.premiumDaysLeft != null && context.premiumDaysLeft <= 3 && context.premiumDaysLeft >= -2;
+  // Всё — по ЛОКАЛЬНОМУ часу пользователя (h). Тихие часы (22:00–08:00 по умолчанию) глушат ночь
+  // отдельно (в pickRetentionCandidate). Расписание: УТРО (8–12) — личный дневной гороскоп;
+  // ДЕНЬ/ВЕЧЕР (12–21) — интересы/совместимость/премиум; настройка и реактивация — днём (10–20).
+  const h = context.localHour;
+
+  // ── Утро: личный дневной гороскоп ──
+  if (type === 'daily_card') return context.hasPrimaryChart && h >= 8 && h < 12;
+  if (type === 'sign_daily') return context.hasBirthDate && h >= 8 && h < 13;
+  if (type === 'birthday') return context.isBirthdayToday && h >= 8 && h < 12;
+  if (type === 'assistant') return context.interests.assistant >= 1 && h >= 9 && h < 12;
+
+  // ── День/вечер: по интересам, совместимость, премиум ──
+  if (type === 'love') return context.interests.love >= 2 && h >= 12 && h < 21;
+  if (type === 'money') return context.interests.money >= 2 && h >= 12 && h < 21;
+  if (type === 'work') return context.interests.work >= 2 && h >= 10 && h < 19;
+  if (type === 'compatibility') return h >= 13 && h < 21;
+  if (type === 'synastry') return h >= 13 && h < 21;
+  if (type === 'premium') return !context.isPremium && context.lockedBlockEvents > 0 && h >= 11 && h < 21;
+  if (type === 'premium_expiring') return context.premiumDaysLeft != null && context.premiumDaysLeft <= 3 && context.premiumDaysLeft >= -2 && h >= 11 && h < 21;
   // Воскресный итог недели — вечером в воскресенье, тем у кого есть карта/знак.
-  if (type === 'sunday_summary') return context.hasBirthDate && localWeekday(context.localDate) === 0 && context.localHour >= 17 && context.localHour < 22;
-  if (type === 'inactive_2d') return context.daysInactive >= 2 && context.daysInactive < 7;
-  if (type === 'inactive_7d') return context.daysInactive >= 7 && context.daysInactive < 14;
-  if (type === 'inactive_14d') return context.daysInactive >= 14;
-  if (type === 'love') return context.interests.love >= 2;
-  if (type === 'money') return context.interests.money >= 2;
-  if (type === 'work') return context.interests.work >= 2;
-  if (type === 'assistant') return context.interests.assistant >= 1 || context.localHour < 12;
+  if (type === 'sunday_summary') return context.hasBirthDate && localWeekday(context.localDate) === 0 && h >= 18 && h < 21;
+
+  // ── Настройка / реактивация — время суток не важно (глушат тихие часы), окно широкое 9–21 ──
+  if (type === 'natal_free') return context.hasPrimaryChart && context.segments.includes('free_natal_ready_not_opened') && h >= 9 && h < 21;
+  if (type === 'birth_data_missing') return (!context.hasBirthDate || !context.hasBirthPlace) && h >= 9 && h < 21;
+  if (type === 'birth_time_missing') return context.hasBirthDate && context.hasBirthPlace && !context.hasBirthTime && h >= 9 && h < 21;
+  if (type === 'unfinished_action') return !context.hasPrimaryChart && h >= 9 && h < 21;
+  if (type === 'inactive_2d') return context.daysInactive >= 2 && context.daysInactive < 7 && h >= 9 && h < 21;
+  if (type === 'inactive_7d') return context.daysInactive >= 7 && context.daysInactive < 14 && h >= 9 && h < 21;
+  if (type === 'inactive_14d') return context.daysInactive >= 14 && h >= 9 && h < 21;
+
+  // ── Прочее ──
+  if (type === 'weekly_horoscope') return context.hasBirthDate;
+  if (type === 'personal_day') return h >= 18 && h <= 22; // dead-фича
+  if (type === 'pulse_day') return !!context.todayPulse && h >= 12 && h < 18; // dead-фича
   return true;
 }
 

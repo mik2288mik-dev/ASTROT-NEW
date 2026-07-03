@@ -82,20 +82,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.warn('[cron/tick] dispatch failed:', error instanceof Error ? error.message : error);
   }
 
-  // 2) Planners on the Moscow schedule. Gated by HOUR + a once-per-day guard, so the
-  //    first tick inside the target hour runs it once — robust to cron interval/drift.
+  // 2) Daily card content — once per day (morning MSK). Fallback exists for the push itself.
   if (hour === 6 && minute >= 30) await once('daily-card-generator', dateKey, () => generateDailyCards(now, { limit: 250 }), ran);
-  if (hour === 9) await once('morning-retention-planner', dateKey, () => planRetentionNotifications('morning-retention-planner', now, { limit: PLANNER_LIMIT }), ran);
-  if (hour === 13) await once('midday-retention-planner', dateKey, () => planRetentionNotifications('midday-retention-planner', now, { limit: PLANNER_LIMIT }), ran);
-  if (hour === 20) await once('evening-retention-planner', dateKey, () => planRetentionNotifications('evening-retention-planner', now, { limit: PLANNER_LIMIT }), ran);
-  if (hour === 11) await once('inactive-user-reactivation', dateKey, () => planRetentionNotifications('inactive-user-reactivation', now, { limit: PLANNER_LIMIT }), ran);
-  if (hour === 18) await once('premium-conversion-planner', dateKey, () => planRetentionNotifications('premium-conversion-planner', now, { limit: PLANNER_LIMIT }), ran);
-  if (hour === 21) await once('unfinished-action-reminder', dateKey, () => planRetentionNotifications('unfinished-action-reminder', now, { limit: PLANNER_LIMIT }), ran);
-  if (weekday === 1 && hour === 10) await once('weekly-summary-generator', dateKey, () => planRetentionNotifications('weekly-summary-generator', now, { limit: PLANNER_LIMIT }), ran);
 
-  // Admin campaigns — every 15-minute slot.
-  const slot = `${dateKey}-${hour}-${Math.floor(minute / 15)}`;
-  await once('admin-campaign-runner', slot, () => planRetentionNotifications('admin-campaign-runner', now, { limit: PLANNER_LIMIT }), ran);
+  // 3) Single rolling planner — offers the whole daily set; per-user LOCAL windows
+  //    (candidateAllowed) + quiet hours + 2/day + 7h gap decide what/when. Timezone-correct.
+  //    Runs at most once per 30-minute slot regardless of external cron frequency.
+  const slot = `${dateKey}-${hour}-${Math.floor(minute / 30)}`;
+  await once('rolling-daily', slot, () => planRetentionNotifications('rolling-daily', now, { limit: PLANNER_LIMIT }), ran);
 
   return res.status(200).json({
     ok: true,
