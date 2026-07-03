@@ -145,3 +145,40 @@ export function startNotificationScheduler() {
 
   console.log('[cron] in-process notification scheduler started (rolling planner every 30m, timezone-aware; dispatch every 3m)');
 }
+
+/**
+ * Разрешён ли планировщик в текущем окружении. НЕ привязываемся к NODE_ENV==='production':
+ * хостинг (Railway) может переопределить NODE_ENV на staging/пусто → раньше планировщик молча не
+ * стартовал и ВСЕ регулярные пуши пропадали (ручной self-test шлёт напрямую, поэтому баг был почти
+ * невидим). Теперь запускаем ВЕЗДЕ в Node-рантайме, КРОМЕ: локального `next dev` (development),
+ * тестов (jest) и явного аварийного выключателя DISABLE_INPROCESS_CRON=1.
+ */
+export function isSchedulerAllowedByEnv(): boolean {
+  if (process.env.NEXT_RUNTIME === 'edge') return false;
+  if (process.env.DISABLE_INPROCESS_CRON === '1') return false;
+  if (process.env.NODE_ENV === 'development') return false;
+  if (process.env.NODE_ENV === 'test') return false;
+  return true;
+}
+
+/**
+ * Идемпотентный «гарантированный старт» из ЛЮБОЙ горячей точки: instrumentation.register() на буте
+ * И первый заход на /api/health (Railway дёргает healthcheck каждые ~30с). Так планировщик поднимется
+ * даже если instrumentation по какой-то причине не выполнится в standalone-рантайме. Безопасно
+ * вызывать многократно — реальный старт произойдёт один раз (флаг started).
+ */
+export function ensureNotificationScheduler(source = 'unknown'): void {
+  if (started) return;
+  if (!isSchedulerAllowedByEnv()) return;
+  startNotificationScheduler();
+  console.log(`[cron] scheduler ensured (source=${source}, NODE_ENV=${process.env.NODE_ENV || 'unset'})`);
+  // Самоисцеление каталога сценариев/очереди — в фоне, не блокируя запуск таймеров.
+  void (async () => {
+    try {
+      const { bootstrapNotificationDelivery } = await import('./migrations');
+      await bootstrapNotificationDelivery();
+    } catch (error) {
+      console.warn('[cron] notification bootstrap failed:', error instanceof Error ? error.message : error);
+    }
+  })();
+}

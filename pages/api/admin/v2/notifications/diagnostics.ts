@@ -49,7 +49,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const problems: string[] = [];
     if (!botTokenPresent) problems.push('BOT_TOKEN не задан — реальная отправка отключена (dry-run).');
     if (process.env.NOTIFICATION_DRY_RUN === '1') problems.push('NOTIFICATION_DRY_RUN=1 — отправка отключена.');
-    if (!scheduler.started) problems.push('In-process планировщик не запущен (NODE_ENV != production или DISABLE_INPROCESS_CRON=1, и нет внешнего cron).');
+    if (!scheduler.started) {
+      const why = process.env.DISABLE_INPROCESS_CRON === '1'
+        ? 'на Railway задан DISABLE_INPROCESS_CRON=1 — убери эту переменную'
+        : `NODE_ENV=${process.env.NODE_ENV || 'unset'} (нужно, чтобы был НЕ development/test)`;
+      problems.push(`In-process планировщик не запущен: ${why}. Регулярные пуши не отправляются, пока он не поднят.`);
+    }
     if (health.scenarios.enabled === 0) problems.push('Нет ни одного включённого сценария — планировщик не создаёт кандидатов.');
     if (health.templates.active === 0) problems.push('Нет активных шаблонов.');
     if (botTokenPresent && !miniAppUrl) problems.push('Не задан URL мини-аппа — кнопка пуша откатится на web-deep-link.');

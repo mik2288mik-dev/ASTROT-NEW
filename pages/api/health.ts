@@ -3,6 +3,7 @@ import { resolveDatabaseUrl } from '../../lib/database-url';
 import { getSwissEphemerisHealth } from '../../lib/swisseph-calculator';
 import { getTodayPulseMetricsSnapshot } from '../../lib/todayPulse';
 import { getProductionObservabilitySnapshot } from '../../lib/productionObservability';
+import { ensureNotificationScheduler } from '../../lib/notificationScheduler';
 
 /**
  * Health check endpoint for Railway deployment monitoring
@@ -22,6 +23,11 @@ export default async function handler(
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
+
+  // Страховка: гарантированно поднимаем in-process планировщик уведомлений. Railway дёргает этот
+  // healthcheck каждые ~30с, поэтому даже если instrumentation.register() не выполнился в standalone,
+  // первый же health-пинг запустит планировщик (идемпотентно). Не должно влиять на ответ health.
+  try { ensureNotificationScheduler('health'); } catch { /* best-effort */ }
 
   const health: any = {
     status: 'ok',
