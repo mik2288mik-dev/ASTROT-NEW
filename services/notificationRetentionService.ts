@@ -29,13 +29,13 @@ import type {
 const DEFAULT_TZ = 'Europe/Moscow';
 const RECENT_OPEN_MINUTES = 60;
 const FREE_DAILY_LIMIT = 2;
-const PREMIUM_DAILY_LIMIT = 3;
+const PREMIUM_DAILY_LIMIT = 4;
 const IGNORED_LIMIT = 5;
 // Жёсткий предохранитель против спама: ни один юзер не получает два пуша ближе, чем за столько часов.
-// 4ч → за световой день (окна 8–21 локально) физически помещается до 3 пушей: утро/день/вечер
-// (≈9:00 → 13:00 → 17:00). При 7ч влезало максимум 2, поэтому премиум-лимит в 3 никогда не достигался.
-// Действует на ОТПРАВКЕ (dispatch), поверх дневного лимита и тихих часов.
-const NOTIFICATION_MIN_GAP_HOURS = Number(process.env.NOTIFICATION_MIN_GAP_HOURS) || 4;
+// 3ч → за световой день (окна 8–21 локально) помещается до 4 пушей для премиума: утро/день/вечер
+// (≈9:00 → 12:00 → 15:00 → 18:00). Free остаётся на 2/день (лимит), разрыв тот же. Действует на
+// ОТПРАВКЕ (dispatch), поверх дневного лимита и тихих часов.
+const NOTIFICATION_MIN_GAP_HOURS = Number(process.env.NOTIFICATION_MIN_GAP_HOURS) || 3;
 
 export type RetentionJobType =
   | 'notification-dispatcher'
@@ -155,7 +155,7 @@ export type PersonalizationContext = {
   preferences: PreferenceFlags;
   quietHoursStart: string;
   quietHoursEnd: string;
-  interests: Record<'love' | 'money' | 'work' | 'assistant' | 'synastry', number>;
+  interests: Record<'love' | 'money' | 'work' | 'assistant' | 'synastry' | 'natal', number>;
   segments: RetentionSegment[];
 };
 
@@ -620,7 +620,16 @@ function candidatePriority(type: RetentionNotificationType, context: Personaliza
     inactive_14d: 750,
     unfinished_action: 860,
   };
-  return base[type];
+  let score = base[type];
+  // Премиум: 2-й/3-й/4-й пуш дня активнее ведёт в НЕОТКРЫТЫЕ премиум-функции (чат Lumi, совместимость),
+  // а не крутит рутинные сферы. Как только юзер там реально побывал (interests>0) — буст исчезает сам,
+  // и слот отдаётся следующей функции/сфере. Натальный разбор (natal_free=900) и так доминирует.
+  // Утренний гороскоп не задет: его окно и окна этих типов не пересекаются (см. candidateAllowed).
+  if (context.isPremium) {
+    if (type === 'assistant' && context.interests.assistant === 0) score += 120;
+    if ((type === 'synastry' || type === 'compatibility') && context.interests.synastry === 0) score += 120;
+  }
+  return score;
 }
 
 function localWeekday(localDate: string): number {
@@ -644,7 +653,10 @@ function candidateAllowed(type: RetentionNotificationType, context: Personalizat
   // daily_card; иначе премиум с картой получал бы два похожих гороскопа утром, а день/вечер — пусто).
   if (type === 'sign_daily') return !context.hasPrimaryChart && context.hasBirthDate && h >= 8 && h < 14;
   if (type === 'birthday') return context.isBirthdayToday && h >= 8 && h < 12;
-  if (type === 'assistant') return context.interests.assistant >= 1 && h >= 9 && h < 12;
+  // Ассистент Lumi — премиум-функция. Премиума зовём в чат днём/вечером (13–21), даже если он туда ещё
+  // не заходил (это и есть «приглашение в неоткрытую премиум-часть»). Free — только если реально
+  // пользуется ассистентом (утренняя подсказка).
+  if (type === 'assistant') return (context.isPremium && context.interests.assistant === 0 && h >= 13 && h < 21) || (context.interests.assistant >= 1 && h >= 9 && h < 12);
 
   // ── День/вечер: сферы жизни, совместимость, премиум. Для ПРЕМИУМА сферы (любовь/деньги/работа)
   //    открыты БЕЗ порога интересов — это оплаченный личный дневной контент, он и есть 2-й/3-й пуш дня.
@@ -660,7 +672,14 @@ function candidateAllowed(type: RetentionNotificationType, context: Personalizat
   if (type === 'sunday_summary') return context.hasBirthDate && localWeekday(context.localDate) === 0 && h >= 18 && h < 21;
 
   // ── Настройка / реактивация — время суток не важно (глушат тихие часы), окно широкое 9–21 ──
-  if (type === 'natal_free') return context.hasPrimaryChart && context.segments.includes('free_natal_ready_not_opened') && h >= 9 && h < 21;
+  // Натальный разбор — премиум-функция (глубокие разделы по сферам).
+  if (type === 'natal_free') {
+    // free: карта готова, но её не открывали — весь день.
+    if (context.segments.includes('free_natal_ready_not_opened')) return context.hasPrimaryChart && h >= 9 && h < 21;
+    // премиум: зовём в глубокий разбор днём/вечером (не утром — утро за гороскопом), пока не заходил
+    // в карту за 30 дней; сходил — промо само отключается и слот отдаётся другой функции/сфере.
+    return context.isPremium && context.hasPrimaryChart && context.interests.natal === 0 && h >= 13 && h < 21;
+  }
   if (type === 'birth_data_missing') return (!context.hasBirthDate || !context.hasBirthPlace) && h >= 9 && h < 21;
   if (type === 'birth_time_missing') return context.hasBirthDate && context.hasBirthPlace && !context.hasBirthTime && h >= 9 && h < 21;
   if (type === 'unfinished_action') return !context.hasPrimaryChart && h >= 9 && h < 21;
@@ -905,7 +924,7 @@ async function interestScores(userId: string) {
      GROUP BY 1`,
     [userId]
   );
-  const scores = { love: 0, money: 0, work: 0, assistant: 0, synastry: 0 };
+  const scores = { love: 0, money: 0, work: 0, assistant: 0, synastry: 0, natal: 0 };
   for (const row of result.rows) {
     const screen = String(row.screen || '');
     const count = Number(row.count || 0);
@@ -914,6 +933,7 @@ async function interestScores(userId: string) {
     if (screen.includes('work')) scores.work += count;
     if (screen.includes('assistant')) scores.assistant += count;
     if (screen.includes('synastry') || screen.includes('union')) scores.synastry += count;
+    if (screen.includes('natal') || screen.includes('chart')) scores.natal += count;
   }
   return scores;
 }
@@ -980,7 +1000,7 @@ async function buildContextForRecipient(user: RecipientRow, now: Date): Promise<
   const pulse = resolved?.status === 'ready' ? resolved.pulse : null;
   const preparedDailyCard = await getPreparedDailyCard(user.id, info.localDate).catch(() => null);
   const recent = await recentScreens(user.id, RECENT_OPEN_MINUTES).catch(() => []);
-  const interests = await interestScores(user.id).catch(() => ({ love: 0, money: 0, work: 0, assistant: 0, synastry: 0 }));
+  const interests = await interestScores(user.id).catch(() => ({ love: 0, money: 0, work: 0, assistant: 0, synastry: 0, natal: 0 }));
   const logStats = await pool.query(
     `SELECT
        COUNT(*) FILTER (WHERE status = 'sent' AND local_date = $2::date)::int AS sent_today,
