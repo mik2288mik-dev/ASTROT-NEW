@@ -302,6 +302,9 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
       </button>
 
       {/* Лента знаков — селектор: тап по любому знаку (активный по центру) */}
+      <div className="horo-sign-cover" aria-hidden="true">
+        <img src="/home/cards/horoscope-main.webp" alt="" />
+      </div>
       <FreshSignCarousel signs={ZODIAC_KEYS} active={sign} language={language} onPick={chooseSign} />
 
       {/* Период */}

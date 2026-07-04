@@ -3788,8 +3788,8 @@ a,
 
 .home-cover-hero .fresh-hero-scrim {
   background:
-    linear-gradient(180deg, rgba(0, 26, 92, 0) 32%, rgba(0, 44, 142, 0.20) 100%),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0) 52%);
+    linear-gradient(180deg, rgba(92, 31, 24, 0) 32%, rgba(92, 31, 24, 0.18) 100%),
+    linear-gradient(90deg, rgba(255, 232, 186, 0.12) 0%, rgba(255, 255, 255, 0) 52%);
 }
 
 .home-cover-hero .fresh-hero-img {
@@ -3802,11 +3802,11 @@ a,
   max-width: min(72%, 278px);
   padding: 9px 12px;
   border-radius: 16px;
-  color: #073cc6;
+  color: #4b2119;
   background: rgba(255, 255, 255, 0.88);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  box-shadow: 0 12px 26px rgba(0, 27, 104, 0.16);
+  box-shadow: 0 12px 26px rgba(79, 28, 20, 0.16);
   font-size: 14.5px;
   font-weight: 850;
   line-height: 1.16;
@@ -3815,10 +3815,10 @@ a,
 }
 
 .home-cover-hero .fresh-hero-chip {
-  color: #073cc6;
-  background: linear-gradient(135deg, #fff07b 0%, #ffd642 100%);
+  color: #512319;
+  background: linear-gradient(135deg, #fff0a3 0%, #f8bd63 100%);
   box-shadow:
-    0 10px 22px rgba(255, 214, 66, 0.28),
+    0 10px 22px rgba(248, 189, 99, 0.30),
     0 1px 0 rgba(255, 255, 255, 0.52) inset;
   font-weight: 900;
 }
@@ -3830,7 +3830,7 @@ a,
   color: rgba(255, 255, 255, 0.78);
   font-weight: 750;
   text-align: right;
-  text-shadow: 0 1px 12px rgba(0, 26, 92, 0.40);
+  text-shadow: 0 1px 12px rgba(79, 28, 20, 0.42);
 }
 
 @media (max-width: 380px) {
@@ -3841,6 +3841,23 @@ a,
 }
 
 /* ── Лента знаков зодиака (горизонтальный селектор) ── */
+.horo-sign-cover {
+  height: 88px;
+  margin: 0 20px 10px;
+  overflow: hidden;
+  border-radius: 24px;
+  background: #7d342c;
+  box-shadow: 0 16px 34px rgba(79, 28, 20, 0.14);
+}
+
+.horo-sign-cover img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: brightness(1.08) saturate(1.10) contrast(1.02);
+}
+
 .fresh-sign-rail {
   display: flex;
   gap: 8px;
