@@ -12,6 +12,7 @@ import { hasActivePremium, hasNatalChart } from '../lib/accessMatrix';
 import { getMoscowTodayKey } from '../lib/date-utils';
 import { lumiaSelectionHaptic } from '../lib/haptics';
 import { PlanetIcon } from '../components/icons/PlanetIcon';
+import { ZodiacIcon } from '../components/icons/ZodiacIcon';
 import { HeartIcon, ChatIcon } from '../components/icons/UiIcons';
 import { getMoonPhase } from '../lib/horoscope/moonPhase';
 import { MoonPhaseIcon } from '../components/Horoscope/MoonPhaseIcon';
@@ -41,13 +42,21 @@ const SIGN_NAMES_RU: Record<string, string> = {
   capricorn: 'Козерог', aquarius: 'Водолей', pisces: 'Рыбы',
 };
 
+// Родительный падеж («для Овна», «для Рыб») — для тёплого приглашающего текста на карточке гороскопа.
+const SIGN_NAMES_RU_GENITIVE: Record<string, string> = {
+  aries: 'Овна', taurus: 'Тельца', gemini: 'Близнецов',
+  cancer: 'Рака', leo: 'Льва', virgo: 'Девы',
+  libra: 'Весов', scorpio: 'Скорпиона', sagittarius: 'Стрельца',
+  capricorn: 'Козерога', aquarius: 'Водолея', pisces: 'Рыб',
+};
+
 /* ── Типы пропсов ── */
 const HOME_CARD_IMAGES = {
   todayHero: '/home/cards/horoscope-main.webp',
   moonFocus: '/home/cards/moon-board-cover.webp',
   natalMap: '/home/cards/natal-drive-cover.webp',
   personalDay: '/home/cards/energy-cover.webp',
-  matrix: '/home/cards/matrix-destiny.webp',
+  matrix: '/home/cards/matrix-destiny-text.webp',
   compatibility: '/home/cards/compatibility-cover.webp',
   questions: '/home/cards/questions-cover.webp',
 } as const;
@@ -162,10 +171,12 @@ export const Dashboard = memo<DashboardProps>(({
       ? (retro.length === 1 ? `${retro[0].nameRu} ретроградный` : `Ретроградны: ${retro.map((r) => r.nameRu).join(', ')}`)
       : (retro.length === 1 ? `${retro[0].nameEn} retrograde` : `Retrograde: ${retro.map((r) => r.nameEn).join(', ')}`);
 
-  /* Текст hero-карточки — полный заголовок (без обрезки слов; CSS усечёт с …) */
+  /* Текст hero-карточки — тёплое личное приглашение с упоминанием знака, а не общая фраза. */
+  const signGenitiveRu = SIGN_NAMES_RU_GENITIVE[selectedSign] || signNameRu;
+  const signNameEn = selectedSign ? selectedSign.charAt(0).toUpperCase() + selectedSign.slice(1) : 'you';
   const heroTitle = language === 'ru'
-    ? 'Узнай, что сегодня у тебя по гороскопу'
-    : 'See what your horoscope says today';
+    ? `Для ${signGenitiveRu} сегодня в гороскопе много полезного`
+    : `Plenty of useful stuff in today's horoscope for ${signNameEn}`;
   const heroChipText = signNameRu || (language === 'ru' ? 'Рыбы' : 'Pisces');
 
 
@@ -217,26 +228,28 @@ export const Dashboard = memo<DashboardProps>(({
         className="home-today home-visual-card home-visual-card--mood"
         style={homeVisualStyle(HOME_CARD_IMAGES.moonFocus)}
       >
-        <div className="home-today-row">
-          <span className="home-today-ico" aria-hidden>
-            <MoonPhaseIcon slot={moon.slot} size={22} fill="#111827" outline="#111827" />
-          </span>
-          <span className="home-today-moon">{weekdayLabel} · {moon.label}</span>
-          {retroLabel ? (
-            <span className="home-today-retro">
-              {retro.map((r) => (
-                <PlanetIcon key={r.key} planet={r.key} size={13} strokeWidth={1.6} />
-              ))}
-              <span>{retroLabel}</span>
+        <div className="home-today-board">
+          <div className="home-today-row">
+            <span className="home-today-ico" aria-hidden>
+              <MoonPhaseIcon slot={moon.slot} size={22} fill="#111827" outline="#111827" />
             </span>
-          ) : null}
+            <span className="home-today-moon">{weekdayLabel} · {moon.label}</span>
+            {retroLabel ? (
+              <span className="home-today-retro">
+                {retro.map((r) => (
+                  <PlanetIcon key={r.key} planet={r.key} size={13} strokeWidth={1.6} />
+                ))}
+                <span>{retroLabel}</span>
+              </span>
+            ) : null}
+          </div>
+          <div className="home-today-sub">{moon.meaning}</div>
+          <InfoNote title={language === 'ru' ? 'Что такое фаза луны?' : 'What is a moon phase?'}>
+            {language === 'ru'
+              ? 'Фаза луны — сколько её освещено сейчас, от новолуния к полнолунию и обратно. Растущая — время начинать и набирать, убывающая — завершать и отпускать. Это общий ритм месяца, а не предсказание.'
+              : 'A moon phase is how much of the Moon is lit now, from new to full and back. Waxing is for starting and building, waning for finishing and letting go. It is a monthly rhythm, not a prediction.'}
+          </InfoNote>
         </div>
-        <div className="home-today-sub">{moon.meaning}</div>
-        <InfoNote title={language === 'ru' ? 'Что такое фаза луны?' : 'What is a moon phase?'}>
-          {language === 'ru'
-            ? 'Фаза луны — сколько её освещено сейчас, от новолуния к полнолунию и обратно. Растущая — время начинать и набирать, убывающая — завершать и отпускать. Это общий ритм месяца, а не предсказание.'
-            : 'A moon phase is how much of the Moon is lit now, from new to full and back. Waxing is for starting and building, waning for finishing and letting go. It is a monthly rhythm, not a prediction.'}
-        </InfoNote>
         <ActionWindows
           compact
           profile={profile}
@@ -253,9 +266,9 @@ export const Dashboard = memo<DashboardProps>(({
         color="coral"
         image={HOME_CARD_IMAGES.todayHero}
         chipText={heroChipText}
+        chipIcon={selectedSign ? <ZodiacIcon sign={selectedSign} size={15} strokeWidth={1.6} /> : undefined}
         chipPosition="top-right"
         title={heroTitle}
-        softText={`${weekdayLabel} · ${moon.label}`}
         onClick={() => { lumiaSelectionHaptic(); onOpenHoroscopeLayer('sign', { source: 'home_hero' }); }}
         style={{ cursor: 'pointer' }}
       />
@@ -275,6 +288,12 @@ export const Dashboard = memo<DashboardProps>(({
             style={homeVisualStyle(HOME_CARD_IMAGES.natalMap)}
             onClick={() => { lumiaSelectionHaptic(); onCreateNatalChart?.(); }}
           >
+            <div className="home-visual-title home-visual-title--large">
+              {language === 'ru' ? 'Прочитай свою натальную карту' : 'Read your natal chart'}
+            </div>
+            <div className="home-visual-sub" style={{ marginBottom: 10 }}>
+              {language === 'ru' ? 'Узнай всё о себе и открой много нового' : 'Learn all about yourself and discover more'}
+            </div>
             <div className="home-natal-three">
               {[
                 { k: 'sun', sign: chartData.sun?.sign },
@@ -363,9 +382,13 @@ export const Dashboard = memo<DashboardProps>(({
               style={homeVisualStyle(HOME_CARD_IMAGES.matrix)}
               onClick={() => { lumiaSelectionHaptic(); onOpenMatrix(); }}
             >
-              <div className="home-visual-title home-visual-title--large">
-                {language === 'en' ? MATRIX_HOME_LABEL.en : MATRIX_HOME_LABEL.ru}
-              </div>
+              {/* RU-картинка уже содержит красиво набранный заголовок «Прочитай свою Матрицу судьбы»,
+                  поэтому свой заголовок рисуем только для EN (там нет локализованной версии картинки). */}
+              {language === 'en' && (
+                <div className="home-visual-title home-visual-title--large">
+                  {MATRIX_HOME_LABEL.en}
+                </div>
+              )}
               <div className="home-visual-sub">
                 {language === 'en' ? MATRIX_HOME_SUB.en : MATRIX_HOME_SUB.ru}
               </div>

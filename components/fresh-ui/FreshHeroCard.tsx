@@ -12,6 +12,8 @@ interface FreshHeroCardProps {
   stickyRotation?: number;
   /** Чип в углу (без эмодзи) */
   chipText?: string;
+  /** SVG-иконка внутри чипа, перед текстом (НЕ эмодзи) */
+  chipIcon?: React.ReactNode;
   chipPosition?: 'top-right' | 'top-left' | 'bottom-left' | 'bottom-right';
   /** Главный заголовок поверх карточки (внизу слева) */
   title?: string;
@@ -31,6 +33,7 @@ export const FreshHeroCard: React.FC<FreshHeroCardProps> = ({
   stickyText,
   stickyRotation = -2,
   chipText,
+  chipIcon,
   chipPosition = 'top-right',
   title,
   softText,
@@ -73,6 +76,7 @@ export const FreshHeroCard: React.FC<FreshHeroCardProps> = ({
       {/* Чип */}
       {chipText && (
         <div className="fresh-hero-chip" style={chipStyles[chipPosition]}>
+          {chipIcon && <span className="fresh-hero-chip-icon" aria-hidden>{chipIcon}</span>}
           {chipText}
         </div>
       )}

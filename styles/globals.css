@@ -3282,7 +3282,7 @@ a,
 }
 
 .home-top {
-  --home-fixed-logo-offset: 70px;
+  --home-fixed-logo-offset: 58px;
   --home-safe-top: max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px), 18px);
   position: relative;
   z-index: 61;
@@ -3346,7 +3346,7 @@ a,
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 10px var(--fresh-page-x) 0;
+  padding: 3px var(--fresh-page-x) 0;
 }
 
 .home-top-logo {
@@ -3417,7 +3417,7 @@ a,
 
 @media (max-width: 380px) {
   .home-top {
-    --home-fixed-logo-offset: 68px;
+    --home-fixed-logo-offset: 56px;
   }
 
   .home-logo-bar {
@@ -3749,6 +3749,9 @@ a,
 .fresh-hero-chip {
   position: absolute;
   z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   background: rgba(17,24,39,0.50);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
@@ -3758,6 +3761,11 @@ a,
   font-weight: 700;
   color: #fff;
   white-space: nowrap;
+}
+
+.fresh-hero-chip-icon {
+  display: inline-flex;
+  flex-shrink: 0;
 }
 
 /* SVG-иконка (вотермарк) справа по центру */
@@ -3820,12 +3828,12 @@ a,
 
 .home-cover-hero .fresh-hero-scrim {
   background:
-    linear-gradient(180deg, rgba(92, 31, 24, 0) 32%, rgba(92, 31, 24, 0.18) 100%),
-    linear-gradient(90deg, rgba(255, 232, 186, 0.12) 0%, rgba(255, 255, 255, 0) 52%);
+    linear-gradient(200deg, rgba(58, 32, 110, 0.40) 0%, rgba(45, 22, 84, 0.14) 45%, rgba(24, 12, 46, 0.46) 100%),
+    linear-gradient(180deg, rgba(20, 10, 40, 0) 30%, rgba(20, 10, 40, 0.34) 100%);
 }
 
 .home-cover-hero .fresh-hero-img {
-  filter: brightness(1.08) saturate(1.14) contrast(1.04);
+  filter: brightness(1.02) saturate(0.88) hue-rotate(-16deg) contrast(1.05);
 }
 
 .home-cover-hero .fresh-hero-title {
@@ -3847,22 +3855,24 @@ a,
 }
 
 .home-cover-hero .fresh-hero-chip {
+  gap: 6px;
+  padding: 7px 15px;
   color: #512319;
   background: linear-gradient(135deg, #fff0a3 0%, #f8bd63 100%);
   box-shadow:
     0 10px 22px rgba(248, 189, 99, 0.30),
     0 1px 0 rgba(255, 255, 255, 0.52) inset;
+  font-size: 13.5px;
   font-weight: 900;
 }
 
-.home-cover-hero .fresh-hero-soft {
-  right: 14px;
-  bottom: 16px;
-  max-width: 28%;
-  color: rgba(255, 255, 255, 0.78);
-  font-weight: 750;
-  text-align: right;
-  text-shadow: 0 1px 12px rgba(79, 28, 20, 0.42);
+.home-cover-hero .fresh-hero-chip-icon {
+  color: #512319;
+}
+
+.home-cover-hero .fresh-hero-chip-icon svg {
+  width: 16px;
+  height: 16px;
 }
 
 @media (max-width: 380px) {
@@ -4805,14 +4815,15 @@ a,
 }
 
 .home-visual-card--matrix::before {
-  background-position: 54% 50%;
-  filter: brightness(1.16) saturate(1.24) contrast(1.04);
+  background-position: 50% 42%;
+  /* Картинка уже содержит готовый заголовок с собственным контрастом — не перебиваем его белым фейдом,
+     только лёгкая коррекция тона, иначе градиентный текст «выгорает». */
+  filter: brightness(1.03) saturate(1.06) contrast(1.02);
 }
 
 .home-visual-card--matrix::after {
-  background:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.94) 0%, rgba(255, 255, 255, 0.76) 42%, rgba(255, 255, 255, 0.10) 78%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0%, rgba(235, 250, 255, 0.24) 100%);
+  /* Только тёмный низ — чтобы наш маленький подзаголовок читался поверх занятой картинки внизу. */
+  background: linear-gradient(180deg, rgba(8, 6, 20, 0) 55%, rgba(8, 6, 20, 0.62) 100%);
 }
 
 .home-visual-card--people::after {
@@ -4829,18 +4840,27 @@ a,
 
 .home-today.home-visual-card {
   margin-bottom: 8px;
-  min-height: 188px;
-  padding: 16px 16px 14px;
+  min-height: 240px;
+  /* Верхняя треть картинки — ряд фаз луны (декор); текст начинается ниже, на пустой доске. */
+  padding: 62px 16px 16px;
 }
 
 .home-today.home-visual-card::before {
-  background-position: 57% 45%;
+  background-position: 57% 42%;
   filter: brightness(1.06) saturate(1.08) contrast(1.02);
 }
 
-.home-today.home-visual-card .home-today-row,
-.home-today.home-visual-card .home-today-sub,
-.home-today.home-visual-card .info-note-toggle,
+/* «Доска» под текст: лёгкая подложка поверх пустого поля картинки, где стоит журнал. */
+.home-today.home-visual-card .home-today-board {
+  max-width: min(58%, 300px);
+  background: rgba(255, 255, 255, 0.50);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-radius: 14px;
+  padding: 10px 12px;
+  box-shadow: 0 8px 22px rgba(17, 24, 39, 0.07);
+}
+
 .home-today.home-visual-card .aw-mini-wrap,
 .home-today.home-visual-card .aw-mini {
   max-width: min(58%, 300px);
@@ -5017,7 +5037,7 @@ a,
 .home-matrix-card {
   border-radius: var(--fresh-radius-card);
   padding: 16px 18px;
-  min-height: 132px;
+  min-height: 150px;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -5025,17 +5045,19 @@ a,
 
 .home-visual-card--matrix .home-visual-title,
 .home-visual-card--matrix .home-visual-sub {
-  max-width: min(58%, 240px);
+  max-width: min(64%, 260px);
 }
 
+/* Заголовок рисуется только для EN (RU-картинка уже несёт готовый набранный заголовок) —
+   поверх тёмного космического фона нужен светлый, а не тёмно-навигационный текст. */
 .home-visual-card--matrix .home-visual-title {
-  color: #08143c;
-  text-shadow: 0 1px 16px rgba(255, 255, 255, 0.82);
+  color: #ffffff;
+  text-shadow: 0 1px 14px rgba(6, 4, 18, 0.55);
 }
 
 .home-visual-card--matrix .home-visual-sub {
-  color: rgba(8, 20, 60, 0.72);
-  text-shadow: 0 1px 14px rgba(255, 255, 255, 0.72);
+  color: rgba(255, 255, 255, 0.86);
+  text-shadow: 0 1px 12px rgba(6, 4, 18, 0.55);
 }
 
 .home-section-card {
