@@ -16,9 +16,9 @@ type Props = {
   compact?: boolean;
 };
 
-type PulsePoint = { hour: number; score: number };
+export type PulsePoint = { hour: number; score: number };
 
-function nowHourIn(timeZone: string): number {
+export function nowHourIn(timeZone: string): number {
   try {
     const parts = new Intl.DateTimeFormat('en-GB', { timeZone, hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(new Date());
     const h = Number(parts.find((p) => p.type === 'hour')?.value ?? '0');
@@ -30,10 +30,10 @@ function nowHourIn(timeZone: string): number {
   }
 }
 
-function scoreColor(s: number): string {
+export function scoreColor(s: number): string {
   return s >= 70 ? '#34C39A' : s >= 50 ? '#5BB6EC' : s >= 35 ? '#F5A623' : '#9AA0A6';
 }
-function scoreLabel(s: number, ru: boolean): string {
+export function scoreLabel(s: number, ru: boolean): string {
   if (s >= 78) return ru ? 'отличный день' : 'great day';
   if (s >= 58) return ru ? 'хороший день' : 'good day';
   if (s >= 42) return ru ? 'ровный день' : 'steady day';
@@ -41,7 +41,7 @@ function scoreLabel(s: number, ru: boolean): string {
 }
 
 /* Кривая дня: плавный график «энергии» по часам (0–24) с маркером «сейчас». Цвет — по оценке дня. */
-function DayCurve({ points, nowH, color, reduce }: { points: PulsePoint[]; nowH: number; color: string; reduce: boolean | null }) {
+export function DayCurve({ points, nowH, color, reduce }: { points: PulsePoint[]; nowH: number; color: string; reduce: boolean | null }) {
   const W = 300;
   const H = 72;
   const pad = 8;

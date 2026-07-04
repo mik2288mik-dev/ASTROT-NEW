@@ -1,4 +1,5 @@
 import React, { memo, useEffect, useMemo, useState } from 'react';
+import { useReducedMotion } from 'framer-motion';
 import type {
   ForecastDailyReading,
   HoroscopeLayer,
@@ -14,8 +15,7 @@ import { lumiaSelectionHaptic } from '../lib/haptics';
 import { PlanetIcon } from '../components/icons/PlanetIcon';
 import { ZodiacIcon } from '../components/icons/ZodiacIcon';
 import { HeartIcon, ChatIcon } from '../components/icons/UiIcons';
-import { getMoonPhase } from '../lib/horoscope/moonPhase';
-import { MoonPhaseIcon } from '../components/Horoscope/MoonPhaseIcon';
+import { getMoonPhase, type MoonPhaseSlot } from '../lib/horoscope/moonPhase';
 import { DaySheet } from '../components/lumia-ui/DaySheet';
 import {
   getCachedDailySignHoroscope,
@@ -28,11 +28,10 @@ import {
   FreshHeroCard,
   FreshSectionHeader,
 } from '../components/fresh-ui';
-import { ActionWindows } from './v2/ActionWindows';
+import { scoreColor, scoreLabel, nowHourIn, DayCurve } from './v2/ActionWindows';
 import { HomeFaq } from '../components/Dashboard/HomeFaq';
 import { MATRIX_HOME_LABEL, MATRIX_HOME_SUB } from '../lib/matrixArcana';
 import { sunSignFromDate } from '../lib/synastry/compatScore';
-import { InfoNote } from '../components/fresh-ui';
 
 // Маппинг знаков на русские названия
 const SIGN_NAMES_RU: Record<string, string> = {
@@ -49,6 +48,23 @@ const SIGN_NAMES_RU_GENITIVE: Record<string, string> = {
   libra: 'Весов', scorpio: 'Скорпиона', sagittarius: 'Стрельца',
   capricorn: 'Козерога', aquarius: 'Водолея', pisces: 'Рыб',
 };
+
+/* Арт moon-board-cover рисует 5 фаз: новолуние · растущий серп · первая четверть ·
+   растущая · полнолуние. Восьмислотовую фазу сводим к нужной рамке (убывающие
+   подсвечивают рамку с той же освещённостью). */
+const MOON_SLOT_FRAME: Record<MoonPhaseSlot, number> = {
+  'new': 0,
+  'waxing-crescent': 1,
+  'first-quarter': 2,
+  'waxing-gibbous': 3,
+  'full': 4,
+  'waning-gibbous': 3,
+  'last-quarter': 2,
+  'waning-crescent': 1,
+};
+/* Центры 5 рамок по X в координатах карточки (сцена 7/5, арт обрезан по бокам симметрично);
+   промерено по пикселям фактической cover-обрезки: рамки идут ровно с шагом ~17.8%. */
+const MOON_FRAME_X = [8, 25, 43, 61, 79];
 
 /* ── Типы пропсов ── */
 const HOME_CARD_IMAGES = {
@@ -111,6 +127,8 @@ export const Dashboard = memo<DashboardProps>(({
   const [, setPersonalLoading] = useState(hasChart && premium && !personal);
   const [sheetDate, setSheetDate] = useState<string | null>(null);
   const [sky, setSky] = useState<SkyToday | null>(null);
+  const [moonInfoOpen, setMoonInfoOpen] = useState(false);
+  const [dayOpen, setDayOpen] = useState(false);
 
   /* Небо сегодня: ретроградные планеты (серверный расчёт, с кэшем) */
   useEffect(() => {
@@ -171,6 +189,31 @@ export const Dashboard = memo<DashboardProps>(({
       ? (retro.length === 1 ? `${retro[0].nameRu} ретроградный` : `Ретроградны: ${retro.map((r) => r.nameRu).join(', ')}`)
       : (retro.length === 1 ? `${retro[0].nameEn} retrograde` : `Retrograde: ${retro.map((r) => r.nameEn).join(', ')}`);
 
+  /* Подсветка текущей фазы: какую из 5 нарисованных рамок на арте обвести. */
+  const reduce = useReducedMotion();
+  const frameX = MOON_FRAME_X[MOON_SLOT_FRAME[moon.slot] ?? 3];
+  const moonExplain = language === 'ru'
+    ? 'Фаза луны — сколько её освещено сейчас, от новолуния к полнолунию и обратно. Растущая — время начинать и набирать, убывающая — завершать и отпускать. Это общий ритм месяца, а не предсказание.'
+    : 'A moon phase is how much of the Moon is lit now, from new to full and back. Waxing is for starting and building, waning for finishing and letting go. It is a monthly rhythm, not a prediction.';
+
+  /* Оценка дня по карте — для бейджа «на дневнике» (данные те же, что у персонального дня). */
+  const dayPulse = personal && personal.status === 'ready' ? personal.pulse : null;
+  const dayPoints = useMemo(
+    () => (dayPulse ? dayPulse.points.map((p) => ({ hour: p.hour, score: p.score })) : []),
+    [dayPulse],
+  );
+  const dayScore = useMemo(
+    () => (dayPoints.length ? Math.round(dayPoints.reduce((s, p) => s + p.score, 0) / dayPoints.length) : null),
+    [dayPoints],
+  );
+  const dayTimezone = dayPulse?.timezone || 'Europe/Moscow';
+  const [nowH, setNowH] = useState(() => nowHourIn('Europe/Moscow'));
+  useEffect(() => {
+    setNowH(nowHourIn(dayTimezone));
+    const id = window.setInterval(() => setNowH(nowHourIn(dayTimezone)), 60000);
+    return () => window.clearInterval(id);
+  }, [dayTimezone]);
+
   /* Текст hero-карточки — тёплое личное приглашение с упоминанием знака, а не общая фраза. */
   const signGenitiveRu = SIGN_NAMES_RU_GENITIVE[selectedSign] || signNameRu;
   const signNameEn = selectedSign ? selectedSign.charAt(0).toUpperCase() + selectedSign.slice(1) : 'you';
@@ -188,6 +231,42 @@ export const Dashboard = memo<DashboardProps>(({
     ? (language === 'ru' ? 'Доступно в Premium' : 'Available in Premium')
     : (personal && personal.status === 'ready' ? personal.pulse.currentPoint.summary : undefined)
       || (language === 'ru' ? 'Ваш разбор дня готов' : 'Your day breakdown is ready');
+
+  /* Оценка дня — бейдж поверх дневника на арте (со всеми состояниями доступа). */
+  const dayBadge = !hasChart ? (
+    <button
+      type="button"
+      className="home-day-badge home-day-badge--cta"
+      onClick={() => { lumiaSelectionHaptic(); onCreateNatalChart?.(); }}
+    >
+      <span className="home-day-badge-k">{language === 'ru' ? 'Оценка дня' : 'Day score'}</span>
+      <span className="home-day-badge-cta">{language === 'ru' ? 'Создать карту' : 'Create chart'}</span>
+    </button>
+  ) : !premium ? (
+    <button
+      type="button"
+      className="home-day-badge home-day-badge--cta"
+      onClick={() => { lumiaSelectionHaptic(); onRequestPremium?.('action_windows'); }}
+    >
+      <span className="home-day-badge-k">{language === 'ru' ? 'Оценка дня' : 'Day score'}</span>
+      <span className="home-day-badge-cta">Premium</span>
+    </button>
+  ) : dayScore == null ? (
+    <div className="home-day-badge home-day-badge--load">{language === 'ru' ? 'Считаю…' : 'Scoring…'}</div>
+  ) : (
+    <button
+      type="button"
+      className="home-day-badge"
+      onClick={() => { lumiaSelectionHaptic(); setDayOpen((v) => !v); }}
+      aria-expanded={dayOpen}
+    >
+      <span className="home-day-badge-k">{language === 'ru' ? 'Оценка дня' : 'Day score'}</span>
+      <span className="home-day-badge-score" style={{ color: scoreColor(dayScore) }}>
+        {dayScore}<i>/100</i>
+      </span>
+      <span className="home-day-badge-label">{scoreLabel(dayScore, language === 'ru')}</span>
+    </button>
+  );
 
   return (
     <div
@@ -223,41 +302,51 @@ export const Dashboard = memo<DashboardProps>(({
         </div>
       </section>
 
-      {/* ── Сегодня: Луна + лучшее окно дня — компактно, в одном блоке ── */}
-      <div
-        className="home-today home-visual-card home-visual-card--mood"
-        style={homeVisualStyle(HOME_CARD_IMAGES.moonFocus)}
-      >
-        <div className="home-today-board">
-          <div className="home-today-row">
-            <span className="home-today-ico" aria-hidden>
-              <MoonPhaseIcon slot={moon.slot} size={22} fill="#111827" outline="#111827" />
-            </span>
-            <span className="home-today-moon">{weekdayLabel} · {moon.label}</span>
-            {retroLabel ? (
-              <span className="home-today-retro">
-                {retro.map((r) => (
-                  <PlanetIcon key={r.key} planet={r.key} size={13} strokeWidth={1.6} />
-                ))}
-                <span>{retroLabel}</span>
-              </span>
+      {/* ── Сегодня: фазы луны + доска (текст фазы) + оценка дня на дневнике ── */}
+      <div className="home-today">
+        <div className="home-today-stage" style={homeVisualStyle(HOME_CARD_IMAGES.moonFocus)}>
+          {/* Подсветка текущей фазы среди 5 нарисованных рамок */}
+          <span className="home-moon-mark" style={{ left: `${frameX}%` }} aria-hidden />
+
+          {/* Доска: текст фазы */}
+          <div className="home-today-board">
+            <div className="home-today-board-kicker">{weekdayLabel} · {moon.shortLabel}</div>
+            <p className="home-today-board-text">{moon.meaning}</p>
+            <button
+              type="button"
+              className="home-today-board-info"
+              onClick={() => { lumiaSelectionHaptic(); setMoonInfoOpen((v) => !v); }}
+              aria-expanded={moonInfoOpen}
+            >
+              {language === 'ru' ? 'Что такое фаза луны?' : 'What is a moon phase?'}
+            </button>
+          </div>
+
+          {/* Оценка дня — на дневнике */}
+          {dayBadge}
+
+          {/* Ретроградные планеты (если есть) */}
+          {retroLabel ? (
+            <div className="home-today-retro-chip">
+              {retro.map((r) => (
+                <PlanetIcon key={r.key} planet={r.key} size={12} strokeWidth={1.6} />
+              ))}
+              <span>{retroLabel}</span>
+            </div>
+          ) : null}
+        </div>
+
+        {/* Раскрытия уезжают под сцену, чтобы не ломать раскладку арта */}
+        {(moonInfoOpen || (dayOpen && dayScore != null && dayPoints.length > 0)) && (
+          <div className="home-today-panel">
+            {moonInfoOpen ? <p className="home-today-explain">{moonExplain}</p> : null}
+            {dayOpen && dayScore != null && dayPoints.length > 0 ? (
+              <div className="home-day-detail">
+                <DayCurve points={dayPoints} nowH={nowH} color={scoreColor(dayScore)} reduce={reduce} />
+              </div>
             ) : null}
           </div>
-          <div className="home-today-sub">{moon.meaning}</div>
-          <InfoNote title={language === 'ru' ? 'Что такое фаза луны?' : 'What is a moon phase?'}>
-            {language === 'ru'
-              ? 'Фаза луны — сколько её освещено сейчас, от новолуния к полнолунию и обратно. Растущая — время начинать и набирать, убывающая — завершать и отпускать. Это общий ритм месяца, а не предсказание.'
-              : 'A moon phase is how much of the Moon is lit now, from new to full and back. Waxing is for starting and building, waning for finishing and letting go. It is a monthly rhythm, not a prediction.'}
-          </InfoNote>
-        </div>
-        <ActionWindows
-          compact
-          profile={profile}
-          chartData={chartData}
-          chartId={chartId}
-          onOpenChart={onCreateNatalChart}
-          onRequestPremium={() => onRequestPremium?.('action_windows')}
-        />
+        )}
       </div>
 
       {/* ── Hero-карточка: гороскоп дня ── */}

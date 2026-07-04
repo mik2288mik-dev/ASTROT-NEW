@@ -3213,6 +3213,9 @@ a,
 
   /* Типографика */
   --fresh-font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  /* Скруглённый «молодёжный» шрифт для акцентных заголовков (SF Pro Rounded на iOS,
+     мягкий системный фолбэк на остальных — без внешних загрузок, CSP-safe). */
+  --fresh-font-round: ui-rounded, 'SF Pro Rounded', 'Hiragino Maru Gothic ProN', 'Nunito', 'Segoe UI', var(--fresh-font);
   --fresh-size-hero: 34px;
   --fresh-size-section: 17px;
   --fresh-size-item-title: 14px;
@@ -3827,9 +3830,8 @@ a,
 }
 
 .home-cover-hero .fresh-hero-scrim {
-  background:
-    linear-gradient(200deg, rgba(58, 32, 110, 0.40) 0%, rgba(45, 22, 84, 0.14) 45%, rgba(24, 12, 46, 0.46) 100%),
-    linear-gradient(180deg, rgba(20, 10, 40, 0) 30%, rgba(20, 10, 40, 0.34) 100%);
+  /* только мягкая нижняя тень под заголовок — арт не перекрываем целиком */
+  background: linear-gradient(180deg, rgba(22, 10, 28, 0) 44%, rgba(20, 8, 26, 0.52) 100%);
 }
 
 .home-cover-hero .fresh-hero-img {
@@ -3837,21 +3839,24 @@ a,
 }
 
 .home-cover-hero .fresh-hero-title {
-  right: auto;
-  bottom: 14px;
-  max-width: min(72%, 278px);
-  padding: 9px 12px;
-  border-radius: 16px;
-  color: #4b2119;
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  box-shadow: 0 12px 26px rgba(79, 28, 20, 0.16);
-  font-size: 14.5px;
-  font-weight: 850;
-  line-height: 1.16;
-  text-shadow: none;
-  -webkit-line-clamp: 2;
+  left: 18px;
+  right: 18px;
+  bottom: 16px;
+  max-width: none;
+  padding: 0;
+  border-radius: 0;
+  background: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+  color: #fff;
+  font-family: var(--fresh-font-round);
+  font-size: 21px;
+  font-weight: 800;
+  line-height: 1.12;
+  letter-spacing: -0.015em;
+  text-shadow: 0 2px 12px rgba(20, 6, 24, 0.62), 0 1px 3px rgba(20, 6, 24, 0.55);
+  -webkit-line-clamp: 3;
 }
 
 .home-cover-hero .fresh-hero-chip {
@@ -3877,8 +3882,7 @@ a,
 
 @media (max-width: 380px) {
   .home-cover-hero .fresh-hero-title {
-    max-width: 68%;
-    font-size: 13.5px;
+    font-size: 19px;
   }
 }
 
@@ -4733,13 +4737,232 @@ a,
 .pw2-free { margin: 12px 20px 0; background: transparent; border: none; color: var(--fresh-muted); font-family: var(--fresh-font); font-size: 14px; font-weight: 700; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 .pw2-foot { font-family: var(--fresh-font); font-size: 11.5px; line-height: 1.45; color: var(--fresh-muted); text-align: center; margin: 16px 24px 0; }
 
-/* ── Главная: верхний блок «Сегодня» = Луна + лучшее окно дня (компактно) ── */
-.home-today { margin: 0 16px 4px; background: var(--fresh-surface); border-radius: var(--fresh-radius-card); padding: 12px 14px; }
-.home-today-row { display: flex; align-items: center; gap: 9px; }
-.home-today-ico { flex-shrink: 0; display: inline-flex; }
-.home-today-moon { font-family: var(--fresh-font); font-size: 13.5px; font-weight: 700; color: var(--fresh-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.home-today-sub { font-family: var(--fresh-font); font-size: 12.5px; line-height: 1.4; color: var(--fresh-muted); margin-top: 5px; }
-.home-today-retro { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; font-family: var(--fresh-font); font-size: 11px; font-weight: 700; color: var(--fresh-amber); white-space: nowrap; }
+/* ══ Сегодня: фазы луны + доска + оценка дня на дневнике ══
+   Арт moon-board-cover.webp (1400×788): сверху ряд из 5 рамок-фаз, слева светлая
+   «доска» под текст, справа девушка с открытым дневником. Сцена зафиксирована по
+   aspect-ratio (7/5) и обрезается по бокам симметрично, поэтому проценты ниже
+   стабильно попадают в нужные зоны на любой ширине экрана. */
+.home-today {
+  position: relative;
+  margin: 0 16px 12px;
+  border-radius: var(--fresh-radius-card);
+  background: var(--fresh-surface);
+  box-shadow: 0 16px 34px rgba(17, 24, 39, 0.09);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.home-today-stage {
+  position: relative;
+  aspect-ratio: 7 / 5;
+  overflow: hidden;
+}
+/* Фолбэк для старых WebView без aspect-ratio — иначе сцена схлопнется в 0 высоты. */
+@supports not (aspect-ratio: 1 / 1) {
+  .home-today-stage { height: 0; padding-bottom: 71.43%; }
+}
+
+.home-today-stage::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-image: var(--home-card-image);
+  background-position: 50% 50%;
+  background-size: cover;
+  filter: saturate(1.06) contrast(1.02);
+}
+
+.home-today-stage::after {
+  /* только лёгкая нижняя тень для глубины — арт НЕ перекрываем */
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(24, 16, 46, 0) 64%, rgba(24, 16, 46, 0.13) 100%);
+}
+
+/* ── Подсветка текущей фазы: гало вокруг нужной рамки (одной из 5) ── */
+.home-moon-mark {
+  position: absolute;
+  z-index: 2;
+  top: 15%;
+  width: 15%;
+  height: 24%;
+  transform: translate(-50%, -50%);
+  border-radius: 13px;
+  pointer-events: none;
+  box-shadow:
+    0 0 0 2.5px rgba(255, 214, 120, 0.95),
+    0 0 22px 6px rgba(255, 199, 92, 0.55);
+}
+.home-moon-mark::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 16px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3) inset;
+}
+
+/* ── Доска: текст фазы (мягкое перо-подсветка вместо жёсткой плашки) ── */
+.home-today-board {
+  position: absolute;
+  z-index: 3;
+  left: 4%;
+  width: 46%;
+  top: 30.5%;
+}
+.home-today-board::before {
+  content: '';
+  position: absolute;
+  inset: -14% -12% -16% -10%;
+  z-index: -1;
+  border-radius: 22px;
+  background: radial-gradient(118% 122% at 32% 42%,
+    rgba(255, 253, 248, 0.84) 0%,
+    rgba(255, 253, 248, 0.52) 46%,
+    rgba(255, 253, 248, 0) 78%);
+}
+.home-today-board-kicker {
+  font-family: var(--fresh-font-round);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #6a4a8a;
+}
+.home-today-board-text {
+  margin: 5px 0 0;
+  font-family: var(--fresh-font);
+  font-size: 13.5px;
+  font-weight: 750;
+  line-height: 1.2;
+  color: #1c1633;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.home-today-board-info {
+  margin-top: 7px;
+  padding: 0;
+  background: none;
+  border: none;
+  font-family: var(--fresh-font);
+  font-size: 12px;
+  font-weight: 800;
+  color: #6b3fc4;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ── Оценка дня — на дневнике (правая страница) ── */
+.home-day-badge {
+  position: absolute;
+  z-index: 3;
+  left: 53%;
+  right: 10%;
+  top: 47%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  padding: 9px 11px;
+  border: none;
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+  box-shadow: 0 10px 24px rgba(17, 24, 39, 0.12);
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.home-day-badge--load {
+  cursor: default;
+  color: #5a4a6a;
+  font-family: var(--fresh-font);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.home-day-badge-k {
+  font-family: var(--fresh-font-round);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #6a4a8a;
+}
+.home-day-badge-score {
+  font-family: var(--fresh-font-round);
+  font-size: 30px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.home-day-badge-score i {
+  font-size: 13px;
+  font-weight: 800;
+  font-style: normal;
+  opacity: 0.5;
+}
+.home-day-badge-label {
+  margin-top: 1px;
+  font-family: var(--fresh-font);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #4a3a5e;
+}
+.home-day-badge-cta {
+  margin-top: 1px;
+  font-family: var(--fresh-font);
+  font-size: 12px;
+  font-weight: 800;
+  color: #6b3fc4;
+}
+
+/* ── Ретроградные планеты (если есть) — компактный чип на столе ── */
+.home-today-retro-chip {
+  position: absolute;
+  z-index: 3;
+  left: 4%;
+  bottom: 5%;
+  max-width: 46%;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.64);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  box-shadow: 0 6px 16px rgba(17, 24, 39, 0.1);
+  font-family: var(--fresh-font);
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #7a3e12;
+}
+.home-today-retro-chip span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Панель раскрытия под сценой: пояснение фазы + кривая дня ── */
+.home-today-panel {
+  padding: 12px 14px 14px;
+  border-top: 1px solid var(--fresh-border);
+}
+.home-today-explain {
+  margin: 0;
+  font-family: var(--fresh-font);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--fresh-muted);
+}
+.home-day-detail { margin-top: 10px; }
 
 .home-visual-card {
   position: relative;
@@ -4777,12 +5000,6 @@ a,
 .home-visual-card > * {
   position: relative;
   z-index: 2;
-}
-
-.home-visual-card--mood::after {
-  background:
-    linear-gradient(90deg, rgba(255, 250, 240, 0.04) 0%, rgba(255, 250, 240, 0.02) 48%, rgba(255, 255, 255, 0.10) 100%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0%, rgba(255, 242, 220, 0.10) 100%);
 }
 
 .home-visual-card--profile::after,
@@ -4836,134 +5053,6 @@ a,
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0%, rgba(255, 255, 255, 0.64) 100%),
     linear-gradient(90deg, rgba(255, 255, 255, 0.84) 0%, rgba(255, 255, 255, 0.22) 100%);
-}
-
-.home-today.home-visual-card {
-  margin-bottom: 8px;
-  min-height: 240px;
-  /* Верхняя треть картинки — ряд фаз луны (декор); текст начинается ниже, на пустой доске. */
-  padding: 62px 16px 16px;
-}
-
-.home-today.home-visual-card::before {
-  background-position: 57% 42%;
-  filter: brightness(1.06) saturate(1.08) contrast(1.02);
-}
-
-/* «Доска» под текст: лёгкая подложка поверх пустого поля картинки, где стоит журнал. */
-.home-today.home-visual-card .home-today-board {
-  max-width: min(58%, 300px);
-  background: rgba(255, 255, 255, 0.50);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border-radius: 14px;
-  padding: 10px 12px;
-  box-shadow: 0 8px 22px rgba(17, 24, 39, 0.07);
-}
-
-.home-today.home-visual-card .aw-mini-wrap,
-.home-today.home-visual-card .aw-mini {
-  max-width: min(58%, 300px);
-}
-
-.home-today.home-visual-card .home-today-moon,
-.home-today.home-visual-card .home-today-retro,
-.home-today.home-visual-card .home-today-sub,
-.home-today.home-visual-card .aw-mini-win,
-.home-today.home-visual-card .aw-mini-action,
-.home-today.home-visual-card .aw-mini-cta,
-.home-today.home-visual-card .aw-mini-chev,
-.home-today.home-visual-card .dp-toggle-k,
-.home-today.home-visual-card .dp-toggle-score,
-.home-today.home-visual-card .dp-toggle-label {
-  color: #121826;
-  text-shadow: 0 1px 14px rgba(255, 255, 255, 0.72);
-}
-
-.home-today.home-visual-card .home-today-sub,
-.home-today.home-visual-card .aw-mini-label,
-.home-today.home-visual-card .dp-toggle-label {
-  color: rgba(18, 24, 38, 0.78);
-}
-
-.home-today.home-visual-card .home-today-row {
-  gap: 7px;
-}
-
-.home-today.home-visual-card .home-today-ico svg {
-  width: 18px;
-  height: 18px;
-}
-
-.home-today.home-visual-card .home-today-moon {
-  font-size: 12px;
-  font-weight: 850;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.home-today.home-visual-card .home-today-sub {
-  margin-top: 9px;
-  color: #141820;
-  font-size: 17px;
-  font-weight: 850;
-  line-height: 1.14;
-  text-shadow: 0 1px 16px rgba(255, 255, 255, 0.88);
-  text-wrap: balance;
-}
-
-.home-today.home-visual-card .info-note-toggle {
-  margin-top: 8px;
-  font-weight: 850;
-}
-
-.home-today.home-visual-card .aw-mini-wrap {
-  margin-top: 10px;
-}
-
-.home-today.home-visual-card .aw-mini {
-  border-top-color: rgba(18, 24, 38, 0.10);
-}
-
-.home-today.home-visual-card .dp-toggle {
-  gap: 6px;
-  padding: 8px 10px;
-  background: rgba(255, 255, 255, 0.74);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  box-shadow: 0 10px 24px rgba(17, 24, 39, 0.08);
-}
-
-.home-today.home-visual-card .dp-toggle-k {
-  font-size: 11px;
-  white-space: nowrap;
-}
-
-.home-today.home-visual-card .dp-toggle-score {
-  font-size: 22px;
-}
-
-.home-today.home-visual-card .dp-toggle-label {
-  min-width: 0;
-  font-size: 11px;
-  line-height: 1.1;
-}
-
-.home-today.home-visual-card .info-note-toggle {
-  color: #0f65d8;
-  opacity: 1;
-}
-
-.home-today.home-visual-card .info-note-i {
-  color: #0f65d8;
-  border-color: rgba(15, 101, 216, 0.62);
-}
-
-.home-today.home-visual-card .info-note-text {
-  color: rgba(18, 24, 38, 0.74);
-  padding: 8px 10px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.60);
 }
 
 .home-visual-title {
