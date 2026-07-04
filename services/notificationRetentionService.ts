@@ -989,7 +989,7 @@ async function buildContextForRecipient(user: RecipientRow, now: Date): Promise<
            FILTER (WHERE local_date = $2::date AND status IN ('scheduled', 'sending', 'sent')),
          '{}'
        ) AS types_today,
-       COUNT(*) FILTER (WHERE status = 'scheduled')::int AS pending_now,
+       COUNT(*) FILTER (WHERE status = 'scheduled' AND local_date = $2::date)::int AS pending_now,
        MAX(notification_type) FILTER (WHERE status = 'sent') AS last_queue_type,
        MAX(template_id) FILTER (WHERE status = 'sent') AS last_template_id
      FROM scheduled_notifications
