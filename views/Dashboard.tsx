@@ -45,13 +45,13 @@ const SIGN_NAMES_RU: Record<string, string> = {
 
 /* ── Типы пропсов ── */
 const HOME_CARD_IMAGES = {
-  todayHero: '/home/cards/today-hero.webp',
-  moonFocus: '/home/cards/moon-focus.webp',
-  natalMap: '/home/cards/natal-map.webp',
-  personalDay: '/home/cards/personal-day.webp',
-  matrix: '/home/cards/matrix.webp',
-  compatibility: '/home/cards/compatibility.webp',
-  questions: '/home/cards/questions.webp',
+  todayHero: '/home/cards/today-hero-cover.webp',
+  moonFocus: '/home/cards/mood-cover.webp',
+  natalMap: '/home/cards/profile-cover.webp',
+  personalDay: '/home/cards/energy-cover.webp',
+  matrix: '/home/cards/matrix-cover.webp',
+  compatibility: '/home/cards/compatibility-cover.webp',
+  questions: '/home/cards/questions-cover.webp',
 } as const;
 
 const homeVisualStyle = (image: string): React.CSSProperties => ({
@@ -167,7 +167,7 @@ export const Dashboard = memo<DashboardProps>(({
   /* Текст hero-карточки — полный заголовок (без обрезки слов; CSS усечёт с …) */
   const heroTitle = signReading?.headline
     || signReading?.summary
-    || (language === 'ru' ? 'Нажми, чтобы прочитать гороскоп' : 'Tap to read your horoscope');
+    || (language === 'ru' ? 'Сегодня твои идеи могут найти отклик' : 'Today, your ideas can find resonance');
 
   /* Быстрые кнопки */
   const quickItems = [
@@ -247,7 +247,7 @@ export const Dashboard = memo<DashboardProps>(({
       >
         <div className="home-today-row">
           <span className="home-today-ico" aria-hidden>
-            <MoonPhaseIcon slot={moon.slot} size={22} fill="#fff" outline="#fff" />
+            <MoonPhaseIcon slot={moon.slot} size={22} fill="#111827" outline="#111827" />
           </span>
           <span className="home-today-moon">{weekdayLabel} · {moon.label}</span>
           {retroLabel ? (
@@ -277,6 +277,7 @@ export const Dashboard = memo<DashboardProps>(({
 
       {/* ── Hero-карточка: гороскоп дня ── */}
       <FreshHeroCard
+        className="home-cover-hero"
         color="coral"
         image={HOME_CARD_IMAGES.todayHero}
         chipText={signNameRu}
