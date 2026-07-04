@@ -47,7 +47,7 @@ const HOME_CARD_IMAGES = {
   moonFocus: '/home/cards/mood-cover.webp',
   natalMap: '/home/cards/profile-cover.webp',
   personalDay: '/home/cards/energy-cover.webp',
-  matrix: '/home/cards/matrix-cover.webp',
+  matrix: '/home/cards/matrix-destiny.webp',
   compatibility: '/home/cards/compatibility-cover.webp',
   questions: '/home/cards/questions-cover.webp',
 } as const;
@@ -359,7 +359,7 @@ export const Dashboard = memo<DashboardProps>(({
           <div style={{ padding: '0 20px 8px' }}>
             <button
               type="button"
-              className="home-matrix-card home-visual-card home-visual-card--planning"
+              className="home-matrix-card home-visual-card home-visual-card--planning home-visual-card--matrix"
               style={homeVisualStyle(HOME_CARD_IMAGES.matrix)}
               onClick={() => { lumiaSelectionHaptic(); onOpenMatrix(); }}
             >

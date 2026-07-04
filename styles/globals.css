@@ -4730,6 +4730,17 @@ a,
     linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.50) 100%);
 }
 
+.home-visual-card--matrix::before {
+  background-position: 54% 50%;
+  filter: brightness(1.16) saturate(1.24) contrast(1.04);
+}
+
+.home-visual-card--matrix::after {
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.94) 0%, rgba(255, 255, 255, 0.76) 42%, rgba(255, 255, 255, 0.10) 78%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0%, rgba(235, 250, 255, 0.24) 100%);
+}
+
 .home-visual-card--people::after {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.66) 100%),
@@ -4866,6 +4877,25 @@ a,
 .home-matrix-card {
   border-radius: var(--fresh-radius-card);
   padding: 16px 18px;
+  min-height: 132px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.home-visual-card--matrix .home-visual-title,
+.home-visual-card--matrix .home-visual-sub {
+  max-width: min(58%, 240px);
+}
+
+.home-visual-card--matrix .home-visual-title {
+  color: #08143c;
+  text-shadow: 0 1px 16px rgba(255, 255, 255, 0.82);
+}
+
+.home-visual-card--matrix .home-visual-sub {
+  color: rgba(8, 20, 60, 0.72);
+  text-shadow: 0 1px 14px rgba(255, 255, 255, 0.72);
 }
 
 .home-section-card {
