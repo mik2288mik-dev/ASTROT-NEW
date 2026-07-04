@@ -1182,8 +1182,29 @@ function CommsSection() {
                   <div className={`rounded-xl border p-2.5 text-sm ${diag.ownerProbe.candidateNow ? 'border-emerald-100 bg-emerald-50 text-emerald-700' : 'border-amber-100 bg-amber-50 text-amber-800'}`}>
                     {diag.ownerProbe.candidateNow
                       ? `Прямо сейчас планировщик подобрал бы тебе: ${diag.ownerProbe.candidateNow.type} (${diag.ownerProbe.candidateNow.job})`
-                      : 'Прямо сейчас ни один сценарий не подходит тебе (окно времени/лимит/тихие часы). Планировщик наполнит очередь в своё время по Москве.'}
+                      : (() => {
+                          // Точная причина «почему нет кандидата» — из реальных гейтов планировщика.
+                          const g = diag.ownerProbe.gates;
+                          if (!g) return 'Прямо сейчас ни один сценарий не подходит тебе. Планировщик наполнит очередь в своё время.';
+                          const reasons: string[] = [];
+                          if (!g.notificationsEnabled) reasons.push('уведомления выключены в твоих настройках');
+                          if (g.quietHoursNow) reasons.push(`сейчас тихие часы (${g.quietHours}, у тебя ${g.localTime})`);
+                          if (g.dailyLimitReached) reasons.push(`дневной лимит исчерпан (${g.sentToday}/${g.dailyLimit})`);
+                          if (g.hasPending) reasons.push('в очереди уже ждёт неотправленный пуш — новый встанет после него');
+                          if (g.ignoreMuted) reasons.push(`пауза за игнор: последние ${g.ignoredLastCount} пушей без реакции и ${g.daysInactive} дн. без захода — шлём не чаще раза в неделю`);
+                          if (!reasons.length) reasons.push(`окна времени пока закрыты (у тебя ${g.localTime}) или сегодняшние типы уже использованы${g.typesUsedToday.length ? ` (${g.typesUsedToday.join(', ')})` : ''}`);
+                          return `Прямо сейчас кандидата нет: ${reasons.join('; ')}.`;
+                        })()}
                   </div>
+                  {diag.ownerProbe.gates ? (
+                    <div className="mt-2 flex flex-wrap gap-1.5 text-[11px]">
+                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-slate-500">{diag.ownerProbe.gates.timezone} · {diag.ownerProbe.gates.localTime}</span>
+                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-slate-500">сегодня {diag.ownerProbe.gates.sentToday}/{diag.ownerProbe.gates.dailyLimit}</span>
+                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-slate-500">тихие часы {diag.ownerProbe.gates.quietHours}</span>
+                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-slate-500">игнор {diag.ownerProbe.gates.ignoredLastCount}/5</span>
+                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-slate-500">неактивность {diag.ownerProbe.gates.daysInactive} дн.</span>
+                    </div>
+                  ) : null}
                   <div className="mt-2 space-y-1">
                     {diag.ownerProbe.jobs.map((j) => (
                       <div key={j.job} className="flex justify-between gap-2 text-xs">

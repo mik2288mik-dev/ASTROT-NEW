@@ -167,6 +167,22 @@ export type AdminNotificationDiagnostics = {
   ownerProbe: {
     candidateNow: { job: string; type: string } | null;
     jobs: Array<{ job: string; result: string }>;
+    gates: {
+      notificationsEnabled: boolean;
+      timezone: string;
+      localTime: string;
+      quietHours: string;
+      quietHoursNow: boolean;
+      sentToday: number;
+      dailyLimit: number;
+      dailyLimitReached: boolean;
+      hasPending: boolean;
+      typesUsedToday: string[];
+      ignoredLastCount: number;
+      daysInactive: number;
+      daysSinceLastSent: number;
+      ignoreMuted: boolean;
+    } | null;
     recentQueue: Array<{ id: number; type: string; status: string; scheduledAt: string | null; sentAt: string | null; error: string | null }>;
   } | null;
   checkedAt: string;

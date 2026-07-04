@@ -141,6 +141,9 @@ export type PersonalizationContext = {
   daysInactive: number;
   daysWithoutClick: number;
   ignoredLastCount: number;
+  // Дней с последнего ОТПРАВЛЕННОГО пуша (999 — не отправляли вовсе). Нужен игнор-стопу:
+  // неактивному игнорщику снижаем частоту до ~1 пуша в неделю, а не молчим/спамим ежедневно.
+  daysSinceLastSent: number;
   notificationsSentToday: number;
   // Типы, уже поставленные в очередь/отправленные СЕГОДНЯ (по локальной дате юзера). Планировщик
   // исключает их, чтобы за день приходили РАЗНЫЕ пуши (утро — гороскоп, день — сфера, вечер — ещё),
@@ -797,7 +800,13 @@ export function pickRetentionCandidate(
   // строк уехал бы на следующий день). Дежурный кандидат появится на следующем прогоне планировщика.
   if (context.hasPending) return null;
   if (isWithinQuietHours(context.localTime, context.quietHoursStart, context.quietHoursEnd)) return null;
-  if (context.ignoredLastCount >= IGNORED_LIMIT && !context.segments.some((s) => s.startsWith('inactive_'))) return null;
+  // Игнор-стоп. Срабатывает ТОЛЬКО когда юзер и пуши игнорирует (5 последних без клика И без захода
+  // в приложение после них), И сам в приложение не ходит (daysInactive >= 2) — тогда шлём не чаще
+  // раза в неделю (реактивация остаётся, но без ежедневного спама по «мёртвым»). Активных НЕ глушим:
+  // они голосуют использованием продукта, а кнопку пуша могут просто не нажимать. Раньше правило
+  // работало наоборот: неактивные проходили через inactive_*-сегменты, а активный владелец после
+  // 5 отправленных без клика подряд замолкал НАВСЕГДА (новых пушей нет → кликнуть нечего).
+  if (context.ignoredLastCount >= IGNORED_LIMIT && context.daysInactive >= 2 && context.daysSinceLastSent < 7) return null;
   if (context.notificationsSentToday >= (context.isPremium ? PREMIUM_DAILY_LIMIT : FREE_DAILY_LIMIT)) return null;
 
   const types = allowedTypes.length ? allowedTypes : (Object.keys(FALLBACK_COPY) as RetentionNotificationType[]);
@@ -1010,15 +1019,20 @@ async function buildContextForRecipient(user: RecipientRow, now: Date): Promise<
          '{}'
        ) AS types_today,
        COUNT(*) FILTER (WHERE status = 'scheduled' AND local_date = $2::date)::int AS pending_now,
+       MAX(sent_at) FILTER (WHERE status = 'sent') AS last_sent_at,
        MAX(notification_type) FILTER (WHERE status = 'sent') AS last_queue_type,
        MAX(template_id) FILTER (WHERE status = 'sent') AS last_template_id
      FROM scheduled_notifications
      WHERE user_id = $1`,
     [user.id, info.localDate]
   ).catch(() => ({ rows: [{}] } as any));
+  // «Проигнорированный» пуш = после него не было НИ клика по кнопке, НИ захода в приложение
+  // в течение 36 часов. Раньше считались только клики по кнопке пуша (notification_events) —
+  // юзер, который читает пуш и открывает приложение сам (с домашнего экрана), набирал 5 «игноров»
+  // и навсегда выпадал из рассылки: новые пуши не приходят → кликнуть нечего → счётчик не сбросить.
   const ignored = await pool.query(
     `WITH last_sent AS (
-       SELECT sn.id
+       SELECT sn.id, sn.sent_at
        FROM scheduled_notifications sn
        WHERE sn.user_id = $1 AND sn.status = 'sent'
        ORDER BY sn.sent_at DESC NULLS LAST
@@ -1029,7 +1043,13 @@ async function buildContextForRecipient(user: RecipientRow, now: Date): Promise<
      WHERE NOT EXISTS (
        SELECT 1 FROM notification_events e
        WHERE e.notification_id = ls.id AND e.event_type IN ('clicked', 'opened_app', 'opened_target_screen')
-     )`,
+     )
+       AND NOT EXISTS (
+         SELECT 1 FROM user_app_events ae
+         WHERE ae.user_id = $1
+           AND ae.occurred_at > ls.sent_at
+           AND ae.occurred_at <= ls.sent_at + INTERVAL '36 hours'
+       )`,
     [user.id]
   ).catch(() => ({ rows: [{ ignored: 0 }] } as any));
   const locked = await pool.query(
@@ -1073,6 +1093,10 @@ async function buildContextForRecipient(user: RecipientRow, now: Date): Promise<
     daysInactive: dateDiffDays(user.lastActivity ?? user.lastLogin, now),
     daysWithoutClick: 0,
     ignoredLastCount: Number(ignored.rows[0]?.ignored || 0),
+    daysSinceLastSent: dateDiffDays(
+      logStats.rows[0]?.last_sent_at ? new Date(logStats.rows[0].last_sent_at).toISOString() : null,
+      now
+    ),
     notificationsSentToday: Number(logStats.rows[0]?.sent_today || 0),
     typesUsedToday: Array.isArray(logStats.rows[0]?.types_today) ? logStats.rows[0].types_today.map(String) : [],
     hasPending: Number(logStats.rows[0]?.pending_now || 0) > 0,
@@ -1933,6 +1957,24 @@ export type OwnerNotificationProbe = {
   candidateNow: { job: string; type: string } | null;
   jobs: Array<{ job: string; result: string }>;
   recentQueue: Array<{ id: number; type: string; status: string; scheduledAt: string | null; sentAt: string | null; error: string | null }>;
+  // Реальные гейты пользователя ПРЯМО СЕЙЧАС — чтобы админка называла точную причину
+  // «почему не приходит», а не угадывала («окно/лимит/тихие часы»).
+  gates: {
+    notificationsEnabled: boolean;
+    timezone: string;
+    localTime: string;
+    quietHours: string;
+    quietHoursNow: boolean;
+    sentToday: number;
+    dailyLimit: number;
+    dailyLimitReached: boolean;
+    hasPending: boolean;
+    typesUsedToday: string[];
+    ignoredLastCount: number;
+    daysInactive: number;
+    daysSinceLastSent: number;
+    ignoreMuted: boolean;
+  } | null;
 };
 
 /**
@@ -1942,7 +1984,10 @@ export type OwnerNotificationProbe = {
  * catch-up) от «кандидат отсеян гейтами» (тихие часы / лимит в день / окно времени сценария).
  */
 export async function probeOwnerNotifications(userId: string, now: Date = new Date()): Promise<OwnerNotificationProbe> {
+  // 'rolling-daily' — первым: именно его гоняет in-process планировщик каждые 30 минут.
+  // Остальные — legacy-джобы, доступные через /api/cron/* для ручного/внешнего запуска.
   const jobs: RetentionJobType[] = [
+    'rolling-daily',
     'morning-retention-planner',
     'midday-retention-planner',
     'evening-retention-planner',
@@ -1953,6 +1998,33 @@ export async function probeOwnerNotifications(userId: string, now: Date = new Da
   ];
   const jobResults: Array<{ job: string; result: string }> = [];
   let candidateNow: { job: string; type: string } | null = null;
+
+  // Контекст юзера один раз — из него называем ТОЧНУЮ причину блокировки (те же гейты, что
+  // применяет pickRetentionCandidate), а не предлагаем угадывать по списку «no_candidate».
+  let gates: OwnerNotificationProbe['gates'] = null;
+  try {
+    const ctx = await buildPersonalizationContext(userId, now);
+    const dailyLimit = ctx.isPremium ? PREMIUM_DAILY_LIMIT : FREE_DAILY_LIMIT;
+    gates = {
+      notificationsEnabled: ctx.preferences.enabled,
+      timezone: ctx.timezone,
+      localTime: ctx.localTime,
+      quietHours: `${ctx.quietHoursStart}–${ctx.quietHoursEnd}`,
+      quietHoursNow: isWithinQuietHours(ctx.localTime, ctx.quietHoursStart, ctx.quietHoursEnd),
+      sentToday: ctx.notificationsSentToday,
+      dailyLimit,
+      dailyLimitReached: ctx.notificationsSentToday >= dailyLimit,
+      hasPending: ctx.hasPending,
+      typesUsedToday: ctx.typesUsedToday,
+      ignoredLastCount: ctx.ignoredLastCount,
+      daysInactive: ctx.daysInactive,
+      daysSinceLastSent: ctx.daysSinceLastSent,
+      ignoreMuted: ctx.ignoredLastCount >= IGNORED_LIMIT && ctx.daysInactive >= 2 && ctx.daysSinceLastSent < 7,
+    };
+  } catch {
+    gates = null;
+  }
+
   for (const job of jobs) {
     try {
       const r = await planRetentionNotifications(job, now, { userId, dryRun: true, limit: 1 });
@@ -1975,6 +2047,7 @@ export async function probeOwnerNotifications(userId: string, now: Date = new Da
   return {
     candidateNow,
     jobs: jobResults,
+    gates,
     recentQueue: q.rows.map((r: any) => ({
       id: Number(r.id),
       type: String(r.notification_type || ''),

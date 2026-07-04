@@ -51,6 +51,7 @@ function makeContext(overrides: Partial<PersonalizationContext> = {}): Personali
     daysInactive: 0,
     daysWithoutClick: 0,
     ignoredLastCount: 0,
+    daysSinceLastSent: 999,
     notificationsSentToday: 0,
     typesUsedToday: [],
     hasPending: false,
@@ -273,5 +274,35 @@ describe('retention notification rules', () => {
       segments: ['inactive_7_days'],
     });
     expect(pickRetentionCandidate(inactive, enabledScenarios as any, ['inactive_7d'])?.type).toBe('inactive_7d');
+  });
+
+  it('never mutes an ACTIVE user for ignoring push buttons (owner bug: 5 sent without click = permanent silence)', () => {
+    // Активный юзер (заходит в приложение каждый день) не кликает кнопки пушей — открывает апп сам.
+    // Раньше после 5 отправленных без клика он замолкал НАВСЕГДА: новых пушей нет → кликнуть нечего.
+    const activeIgnorer = makeContext({
+      localTime: '09:30',
+      localHour: 9,
+      daysInactive: 0,
+      ignoredLastCount: 5,
+      daysSinceLastSent: 1,
+      segments: ['daily_active_free'],
+    });
+    expect(pickRetentionCandidate(activeIgnorer, enabledScenarios as any, ['daily_card'])?.type).toBe('daily_card');
+  });
+
+  it('throttles a truly disengaged ignorer to at most one push per week', () => {
+    const deadIgnorer = (daysSinceLastSent: number) =>
+      makeContext({
+        localTime: '11:00',
+        localHour: 11,
+        daysInactive: 8,
+        ignoredLastCount: 5,
+        daysSinceLastSent,
+        segments: ['inactive_7_days'],
+      });
+    // Игнорирует пуши И не ходит в приложение, последний пуш 2 дня назад → пауза (не спамим ежедневно).
+    expect(pickRetentionCandidate(deadIgnorer(2), enabledScenarios as any, ['inactive_7d'])).toBeNull();
+    // Прошла неделя — одна реактивационная попытка снова разрешена.
+    expect(pickRetentionCandidate(deadIgnorer(8), enabledScenarios as any, ['inactive_7d'])?.type).toBe('inactive_7d');
   });
 });
