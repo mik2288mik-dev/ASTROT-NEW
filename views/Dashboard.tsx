@@ -11,9 +11,8 @@ import type {
 import { hasActivePremium, hasNatalChart } from '../lib/accessMatrix';
 import { getMoscowTodayKey } from '../lib/date-utils';
 import { lumiaSelectionHaptic } from '../lib/haptics';
-import { ZodiacIcon } from '../components/icons/ZodiacIcon';
 import { PlanetIcon } from '../components/icons/PlanetIcon';
-import { NatalChartIcon, HeartIcon, ChatIcon } from '../components/icons/UiIcons';
+import { HeartIcon, ChatIcon } from '../components/icons/UiIcons';
 import { getMoonPhase } from '../lib/horoscope/moonPhase';
 import { MoonPhaseIcon } from '../components/Horoscope/MoonPhaseIcon';
 import { DaySheet } from '../components/lumia-ui/DaySheet';
@@ -26,7 +25,6 @@ import {
 } from '../services/astrologyService';
 import {
   FreshHeroCard,
-  FreshQuickBar,
   FreshSectionHeader,
 } from '../components/fresh-ui';
 import { ActionWindows } from './v2/ActionWindows';
@@ -167,35 +165,10 @@ export const Dashboard = memo<DashboardProps>(({
   /* Текст hero-карточки — полный заголовок (без обрезки слов; CSS усечёт с …) */
   const heroTitle = signReading?.headline
     || signReading?.summary
-    || (language === 'ru' ? 'Сегодня твои идеи могут найти отклик' : 'Today, your ideas can find resonance');
+    || (language === 'ru'
+      ? `Посмотри, что сегодня у ${signNameRu || 'твоего знака'}`
+      : `See what is highlighted for ${signNameRu || 'your sign'} today`);
 
-  /* Быстрые кнопки */
-  const quickItems = [
-    {
-      id: 'chart',
-      icon: <NatalChartIcon />,
-      label: language === 'ru' ? 'Карта' : 'Chart',
-      onClick: () => { lumiaSelectionHaptic(); onCreateNatalChart?.(); },
-    },
-    {
-      id: 'horoscope',
-      icon: <ZodiacIcon sign={selectedSign} size={23} />,
-      label: language === 'ru' ? 'Гороскоп' : 'Horoscope',
-      onClick: () => { lumiaSelectionHaptic(); onOpenHoroscopeLayer('sign', { source: 'home_quick' }); },
-    },
-    {
-      id: 'synastry',
-      icon: <HeartIcon />,
-      label: language === 'ru' ? 'Совместимость' : 'Compatibility',
-      onClick: () => { lumiaSelectionHaptic(); onOpenSynastry?.(); },
-    },
-    {
-      id: 'oracle',
-      icon: <ChatIcon />,
-      label: language === 'ru' ? 'Чат' : 'Chat',
-      onClick: () => { lumiaSelectionHaptic(); onOpenOracle?.(); },
-    },
-  ];
 
   /* Планеты для списка */
   /* Персональный день: подпись */
@@ -287,9 +260,6 @@ export const Dashboard = memo<DashboardProps>(({
         onClick={() => { lumiaSelectionHaptic(); onOpenHoroscopeLayer('sign', { source: 'home_hero' }); }}
         style={{ cursor: 'pointer' }}
       />
-
-      {/* ── Быстрые кнопки ── */}
-      <FreshQuickBar items={quickItems} />
 
       {/* ── Натальная карта ── */}
       <FreshSectionHeader

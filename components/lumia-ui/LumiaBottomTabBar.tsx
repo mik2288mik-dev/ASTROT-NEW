@@ -1,9 +1,10 @@
 import React from 'react';
 import { LayoutGroup, motion, useReducedMotion } from 'framer-motion';
-import { HeartHandshake, Home, Map, MessageCircleQuestion, MoreHorizontal, type LucideIcon } from 'lucide-react';
+import { MoreHorizontal } from 'lucide-react';
 import type { UserProfile, ViewState } from '../../types';
 import { cn } from '../../lib/cn';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
+import { ChatIcon, HeartIcon, HoroscopeIcon, NatalChartIcon } from '../icons/UiIcons';
 
 type LumiaBottomTabBarProps = {
   profile: UserProfile;
@@ -23,17 +24,17 @@ function getBottomNavLabels(language: UserProfile['language']) {
       today: 'Today',
       chart: 'Map',
       union: 'Compatibility',
-      ask: 'Questions',
+      ask: 'Ask',
       more: 'More',
     };
   }
 
   return {
     today: 'Сегодня',
-    chart: 'карта',
+    chart: 'Карта',
     union: 'Совместимость',
-    ask: 'вопросы',
-    more: 'ещё',
+    ask: 'Спросить',
+    more: 'Ещё',
   };
 }
 
@@ -55,42 +56,42 @@ export function LumiaBottomTabBar({
     id: string;
     label: string;
     active: boolean;
-    icon: LucideIcon;
+    icon: React.ReactNode;
     onClick: () => void;
   }> = [
     {
       id: 'today',
       label: labels.today,
       active: view === 'dashboard',
-      icon: Home,
+      icon: <HoroscopeIcon />,
       onClick: onOpenToday,
     },
     {
       id: 'chart',
       label: labels.chart,
       active: view === 'chart',
-      icon: Map,
+      icon: <NatalChartIcon />,
       onClick: onOpenNatal,
     },
     {
       id: 'union',
       label: labels.union,
       active: view === 'synastry',
-      icon: HeartHandshake,
+      icon: <HeartIcon />,
       onClick: onOpenSynastry,
     },
     {
       id: 'ask',
       label: labels.ask,
       active: view === 'oracle',
-      icon: MessageCircleQuestion,
+      icon: <ChatIcon />,
       onClick: onOpenAsk,
     },
     {
       id: 'more',
       label: labels.more,
       active: view === 'settings',
-      icon: MoreHorizontal,
+      icon: <MoreHorizontal aria-hidden strokeWidth={1.75} />,
       onClick: onOpenMore,
     },
   ];
@@ -100,8 +101,6 @@ export function LumiaBottomTabBar({
       <LayoutGroup>
         <nav className="lumia-bottom-tab-bar pointer-events-auto" aria-label="Lumia">
           {items.map((item) => {
-            const Icon = item.icon;
-
             return (
               <button
                 key={item.id}
@@ -124,7 +123,7 @@ export function LumiaBottomTabBar({
                 ) : null}
                 {item.active && reduce ? <span className="lumia-bottom-tab-active-pill" aria-hidden /> : null}
                 <span className="lumia-bottom-tab-icon">
-                  <Icon aria-hidden strokeWidth={1.75} />
+                  {item.icon}
                 </span>
                 <span className="lumia-bottom-tab-label">{item.label}</span>
               </button>
