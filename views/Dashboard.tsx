@@ -44,8 +44,8 @@ const SIGN_NAMES_RU: Record<string, string> = {
 /* ── Типы пропсов ── */
 const HOME_CARD_IMAGES = {
   todayHero: '/home/cards/horoscope-main.webp',
-  moonFocus: '/home/cards/mood-cover.webp',
-  natalMap: '/home/cards/profile-cover.webp',
+  moonFocus: '/home/cards/moon-board-cover.webp',
+  natalMap: '/home/cards/natal-drive-cover.webp',
   personalDay: '/home/cards/energy-cover.webp',
   matrix: '/home/cards/matrix-destiny.webp',
   compatibility: '/home/cards/compatibility-cover.webp',
@@ -271,7 +271,7 @@ export const Dashboard = memo<DashboardProps>(({
         <div style={{ padding: '0 20px' }}>
           <button
             type="button"
-            className="home-natal home-visual-card home-visual-card--profile"
+            className="home-natal home-visual-card home-visual-card--profile home-visual-card--natal-drive"
             style={homeVisualStyle(HOME_CARD_IMAGES.natalMap)}
             onClick={() => { lumiaSelectionHaptic(); onCreateNatalChart?.(); }}
           >
@@ -301,7 +301,7 @@ export const Dashboard = memo<DashboardProps>(({
         <div style={{ padding: '0 20px' }}>
           <button
             type="button"
-            className="home-natal home-natal-empty home-visual-card home-visual-card--profile"
+            className="home-natal home-natal-empty home-visual-card home-visual-card--profile home-visual-card--natal-drive"
             style={homeVisualStyle(HOME_CARD_IMAGES.natalMap)}
             onClick={() => { lumiaSelectionHaptic(); onCreateNatalChart?.(); }}
           >

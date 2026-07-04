@@ -302,9 +302,6 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
       </button>
 
       {/* Лента знаков — селектор: тап по любому знаку (активный по центру) */}
-      <div className="horo-sign-cover" aria-hidden="true">
-        <img src="/home/cards/horoscope-main.webp" alt="" />
-      </div>
       <FreshSignCarousel signs={ZODIAC_KEYS} active={sign} language={language} onPick={chooseSign} />
 
       {/* Период */}
@@ -340,7 +337,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
             dragElastic={0.5}
             onDragEnd={onDragEnd}
           >
-            <div className="horo-uni-hero" style={{ background: ELEMENT_COLOR[sign.toLowerCase()] || 'var(--fresh-sky)' }}>
+            <div className="horo-uni-hero" style={{ backgroundColor: ELEMENT_COLOR[sign.toLowerCase()] || 'var(--fresh-sky)' }}>
               <div className="horo-hero-glyph" aria-hidden>
                 <ZodiacIcon sign={sign} size={64} strokeWidth={1.1} />
                 {signState === 'open' ? <div className="horo-hero-date">{periodTag}</div> : null}

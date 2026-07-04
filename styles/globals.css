@@ -3282,10 +3282,11 @@ a,
 }
 
 .home-top {
-  --home-fixed-logo-offset: 34px;
+  --home-fixed-logo-offset: 70px;
+  --home-safe-top: max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px), 18px);
   position: relative;
   z-index: 61;
-  padding: var(--home-fixed-logo-offset) 0 8px;
+  padding: var(--home-fixed-logo-offset) 0 10px;
 }
 
 .home-logo-bar {
@@ -3294,16 +3295,20 @@ a,
   right: 0;
   left: 0;
   z-index: 70;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px), 18px) + 32px);
+  min-height: calc(var(--home-safe-top) + 54px);
   padding:
-    max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px), 18px)
+    calc(var(--home-safe-top) + 14px)
     var(--fresh-page-x)
-    6px;
-  background: rgba(255, 255, 255, 0.98);
-  box-shadow: 0 10px 24px rgba(17, 24, 39, 0.045);
+    13px;
+  background:
+    linear-gradient(115deg, rgba(255, 255, 255, 0.99) 0%, rgba(255, 248, 239, 0.98) 34%, rgba(241, 246, 255, 0.98) 68%, rgba(232, 229, 224, 0.98) 100%);
+  background-size: 240% 240%;
+  box-shadow: 0 12px 30px rgba(17, 24, 39, 0.06);
+  animation: homeLogoBarShift 18s ease-in-out infinite alternate;
 }
 
 .home-logo-image {
@@ -3313,6 +3318,28 @@ a,
   max-width: min(136px, 40vw);
   filter: contrast(1.18) saturate(1.03);
   object-fit: contain;
+}
+
+@keyframes homeLogoBarShift {
+  0% {
+    background-position: 0% 50%;
+    box-shadow: 0 12px 28px rgba(17, 24, 39, 0.045);
+  }
+  50% {
+    background-position: 62% 50%;
+    box-shadow: 0 14px 34px rgba(80, 68, 58, 0.075);
+  }
+  100% {
+    background-position: 100% 50%;
+    box-shadow: 0 13px 32px rgba(35, 42, 58, 0.065);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-logo-bar {
+    animation: none;
+    background-position: 50% 50%;
+  }
 }
 
 .home-top-content {
@@ -3390,12 +3417,13 @@ a,
 
 @media (max-width: 380px) {
   .home-top {
-    --home-fixed-logo-offset: 32px;
+    --home-fixed-logo-offset: 68px;
   }
 
   .home-logo-bar {
-    min-height: calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px), 18px) + 30px);
-    padding-bottom: 5px;
+    min-height: calc(var(--home-safe-top) + 52px);
+    padding-top: calc(var(--home-safe-top) + 13px);
+    padding-bottom: 12px;
   }
 
   .home-logo-image {
@@ -3684,6 +3712,9 @@ a,
   padding: 8px 11px;
   -webkit-line-clamp: 3;
   border-radius: 8px;
+  background: linear-gradient(135deg, #fff18d 0%, #ffd35b 100%);
+  color: #3b2114;
+  box-shadow: 0 10px 24px rgba(68, 30, 15, 0.18);
 }
 .horo-hero-date {
   background: rgba(17, 24, 39, 0.50);
@@ -3707,7 +3738,8 @@ a,
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  color: var(--fresh-text);
+  color: rgba(255, 244, 216, 0.94);
+  filter: drop-shadow(0 4px 18px rgba(72, 25, 18, 0.28));
 }
 .horo-hero-glyph > svg {
   opacity: 0.85;
@@ -3841,23 +3873,6 @@ a,
 }
 
 /* ── Лента знаков зодиака (горизонтальный селектор) ── */
-.horo-sign-cover {
-  height: 88px;
-  margin: 0 20px 10px;
-  overflow: hidden;
-  border-radius: 24px;
-  background: #7d342c;
-  box-shadow: 0 16px 34px rgba(79, 28, 20, 0.14);
-}
-
-.horo-sign-cover img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  filter: brightness(1.08) saturate(1.10) contrast(1.02);
-}
-
 .fresh-sign-rail {
   display: flex;
   gap: 8px;
@@ -4055,7 +4070,27 @@ a,
 
 .horo-uni:active { cursor: grabbing; }
 
-.horo-uni-hero { position: relative; min-height: 132px; }
+.horo-uni-hero {
+  position: relative;
+  min-height: 132px;
+  overflow: hidden;
+  background-image:
+    linear-gradient(90deg, rgba(80, 28, 20, 0.18) 0%, rgba(80, 28, 20, 0.05) 48%, rgba(80, 28, 20, 0.18) 100%),
+    url("/home/cards/horoscope-main.webp");
+  background-position: center;
+  background-size: cover;
+}
+
+.horo-uni-hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 82% 50%, rgba(255, 238, 190, 0.14), rgba(255, 238, 190, 0) 34%),
+    linear-gradient(180deg, rgba(255, 247, 224, 0.06) 0%, rgba(90, 33, 24, 0.18) 100%);
+}
 
 .horo-uni-body { background: #fff; padding: 16px 18px 20px; }
 
@@ -4736,8 +4771,8 @@ a,
 
 .home-visual-card--mood::after {
   background:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.90) 0%, rgba(255, 255, 255, 0.64) 52%, rgba(255, 255, 255, 0.12) 100%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0.48) 100%);
+    linear-gradient(90deg, rgba(255, 250, 240, 0.04) 0%, rgba(255, 250, 240, 0.02) 48%, rgba(255, 255, 255, 0.10) 100%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0%, rgba(255, 242, 220, 0.10) 100%);
 }
 
 .home-visual-card--profile::after,
@@ -4745,6 +4780,28 @@ a,
   background:
     linear-gradient(90deg, rgba(255, 255, 255, 0.94) 0%, rgba(255, 255, 255, 0.70) 56%, rgba(255, 255, 255, 0.14) 100%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.50) 100%);
+}
+
+.home-visual-card--natal-drive::before {
+  background-position: 43% 50%;
+  filter: brightness(1.12) saturate(1.18) contrast(1.04);
+}
+
+.home-visual-card--natal-drive::after {
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.62) 38%, rgba(255, 255, 255, 0.06) 74%),
+    linear-gradient(180deg, rgba(255, 244, 252, 0.06) 0%, rgba(255, 255, 255, 0.20) 100%);
+}
+
+.home-natal-empty.home-visual-card--natal-drive::before {
+  background-position: 68% 50%;
+  transform: scaleX(-1) scale(1.02);
+}
+
+.home-natal-empty.home-visual-card--natal-drive::after {
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.94) 0%, rgba(255, 255, 255, 0.72) 46%, rgba(255, 255, 255, 0.10) 78%),
+    linear-gradient(180deg, rgba(255, 245, 252, 0.08) 0%, rgba(255, 255, 255, 0.24) 100%);
 }
 
 .home-visual-card--matrix::before {
@@ -4772,7 +4829,21 @@ a,
 
 .home-today.home-visual-card {
   margin-bottom: 8px;
-  padding: 14px;
+  min-height: 188px;
+  padding: 16px 16px 14px;
+}
+
+.home-today.home-visual-card::before {
+  background-position: 57% 45%;
+  filter: brightness(1.06) saturate(1.08) contrast(1.02);
+}
+
+.home-today.home-visual-card .home-today-row,
+.home-today.home-visual-card .home-today-sub,
+.home-today.home-visual-card .info-note-toggle,
+.home-today.home-visual-card .aw-mini-wrap,
+.home-today.home-visual-card .aw-mini {
+  max-width: min(58%, 300px);
 }
 
 .home-today.home-visual-card .home-today-moon,
@@ -4792,7 +4863,42 @@ a,
 .home-today.home-visual-card .home-today-sub,
 .home-today.home-visual-card .aw-mini-label,
 .home-today.home-visual-card .dp-toggle-label {
-  color: rgba(18, 24, 38, 0.68);
+  color: rgba(18, 24, 38, 0.78);
+}
+
+.home-today.home-visual-card .home-today-row {
+  gap: 7px;
+}
+
+.home-today.home-visual-card .home-today-ico svg {
+  width: 18px;
+  height: 18px;
+}
+
+.home-today.home-visual-card .home-today-moon {
+  font-size: 12px;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.home-today.home-visual-card .home-today-sub {
+  margin-top: 9px;
+  color: #141820;
+  font-size: 17px;
+  font-weight: 850;
+  line-height: 1.14;
+  text-shadow: 0 1px 16px rgba(255, 255, 255, 0.88);
+  text-wrap: balance;
+}
+
+.home-today.home-visual-card .info-note-toggle {
+  margin-top: 8px;
+  font-weight: 850;
+}
+
+.home-today.home-visual-card .aw-mini-wrap {
+  margin-top: 10px;
 }
 
 .home-today.home-visual-card .aw-mini {
@@ -4800,10 +4906,27 @@ a,
 }
 
 .home-today.home-visual-card .dp-toggle {
-  background: rgba(255, 255, 255, 0.62);
+  gap: 6px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.74);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   box-shadow: 0 10px 24px rgba(17, 24, 39, 0.08);
+}
+
+.home-today.home-visual-card .dp-toggle-k {
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.home-today.home-visual-card .dp-toggle-score {
+  font-size: 22px;
+}
+
+.home-today.home-visual-card .dp-toggle-label {
+  min-width: 0;
+  font-size: 11px;
+  line-height: 1.1;
 }
 
 .home-today.home-visual-card .info-note-toggle {
