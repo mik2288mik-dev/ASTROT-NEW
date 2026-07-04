@@ -3788,41 +3788,55 @@ a,
 
 .home-cover-hero .fresh-hero-scrim {
   background:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.94) 0%, rgba(255, 255, 255, 0.72) 43%, rgba(255, 255, 255, 0.12) 100%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.02) 36%, rgba(255, 255, 255, 0.55) 100%);
+    linear-gradient(180deg, rgba(0, 26, 92, 0) 32%, rgba(0, 44, 142, 0.20) 100%),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0) 52%);
 }
 
 .home-cover-hero .fresh-hero-img {
-  filter: brightness(1.10) saturate(1.26) contrast(1.05);
+  filter: brightness(1.08) saturate(1.14) contrast(1.04);
 }
 
 .home-cover-hero .fresh-hero-title {
-  right: 112px;
-  max-width: min(66%, 236px);
-  color: #111827;
-  font-size: 20px;
-  font-weight: 900;
-  line-height: 1.1;
-  text-shadow: 0 1px 18px rgba(255, 255, 255, 0.86);
+  right: auto;
+  bottom: 14px;
+  max-width: min(72%, 278px);
+  padding: 9px 12px;
+  border-radius: 16px;
+  color: #073cc6;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 12px 26px rgba(0, 27, 104, 0.16);
+  font-size: 14.5px;
+  font-weight: 850;
+  line-height: 1.16;
+  text-shadow: none;
+  -webkit-line-clamp: 2;
 }
 
 .home-cover-hero .fresh-hero-chip {
-  color: #ffffff;
-  background: linear-gradient(135deg, rgba(0, 191, 174, 0.92), rgba(20, 120, 255, 0.92), rgba(122, 77, 255, 0.92));
-  box-shadow: 0 8px 18px rgba(20, 120, 255, 0.22);
+  color: #073cc6;
+  background: linear-gradient(135deg, #fff07b 0%, #ffd642 100%);
+  box-shadow:
+    0 10px 22px rgba(255, 214, 66, 0.28),
+    0 1px 0 rgba(255, 255, 255, 0.52) inset;
+  font-weight: 900;
 }
 
 .home-cover-hero .fresh-hero-soft {
-  color: rgba(17, 24, 39, 0.72);
+  right: 14px;
+  bottom: 16px;
+  max-width: 28%;
+  color: rgba(255, 255, 255, 0.78);
   font-weight: 750;
-  text-shadow: 0 1px 14px rgba(255, 255, 255, 0.72);
+  text-align: right;
+  text-shadow: 0 1px 12px rgba(0, 26, 92, 0.40);
 }
 
 @media (max-width: 380px) {
   .home-cover-hero .fresh-hero-title {
-    right: 92px;
-    max-width: 64%;
-    font-size: 18px;
+    max-width: 68%;
+    font-size: 13.5px;
   }
 }
 

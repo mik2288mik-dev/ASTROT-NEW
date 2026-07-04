@@ -43,7 +43,7 @@ const SIGN_NAMES_RU: Record<string, string> = {
 
 /* ── Типы пропсов ── */
 const HOME_CARD_IMAGES = {
-  todayHero: '/home/cards/today-hero-cover.webp',
+  todayHero: '/home/cards/horoscope-main.webp',
   moonFocus: '/home/cards/mood-cover.webp',
   natalMap: '/home/cards/profile-cover.webp',
   personalDay: '/home/cards/energy-cover.webp',
@@ -163,11 +163,10 @@ export const Dashboard = memo<DashboardProps>(({
       : (retro.length === 1 ? `${retro[0].nameEn} retrograde` : `Retrograde: ${retro.map((r) => r.nameEn).join(', ')}`);
 
   /* Текст hero-карточки — полный заголовок (без обрезки слов; CSS усечёт с …) */
-  const heroTitle = signReading?.headline
-    || signReading?.summary
-    || (language === 'ru'
-      ? `Посмотри, что сегодня у ${signNameRu || 'твоего знака'}`
-      : `See what is highlighted for ${signNameRu || 'your sign'} today`);
+  const heroTitle = language === 'ru'
+    ? 'Узнай, что сегодня у тебя по гороскопу'
+    : 'See what your horoscope says today';
+  const heroChipText = signNameRu || (language === 'ru' ? 'Рыбы' : 'Pisces');
 
 
   /* Планеты для списка */
@@ -253,7 +252,7 @@ export const Dashboard = memo<DashboardProps>(({
         className="home-cover-hero"
         color="coral"
         image={HOME_CARD_IMAGES.todayHero}
-        chipText={signNameRu}
+        chipText={heroChipText}
         chipPosition="top-right"
         title={heroTitle}
         softText={`${weekdayLabel} · ${moon.label}`}
