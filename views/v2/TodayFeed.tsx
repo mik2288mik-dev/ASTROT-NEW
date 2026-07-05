@@ -274,7 +274,7 @@ export const TodayFeed = memo<TodayFeedProps>(({
 
           <MonoStaggerItem>
             <LzAskPresets
-              title={language === 'ru' ? 'Спроси Lumia' : 'Ask Lumia'}
+              title={language === 'ru' ? 'Спроси астролога' : 'Ask the astrologer'}
               questions={askQuestions}
               onPick={(question) => onOpenOracle?.(question)}
             />

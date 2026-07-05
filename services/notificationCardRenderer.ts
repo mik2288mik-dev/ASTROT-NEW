@@ -60,7 +60,7 @@ export type CardRenderInput = {
 
 function buildSvg(cfg: CardPresetConfig, input: CardRenderInput): string {
   const preset = cfg;
-  const titleLines = wrapLines(input.title || 'Lumia', MAX_TITLE_CHARS_PER_LINE, MAX_TITLE_LINES);
+  const titleLines = wrapLines(input.title || 'Твой Гороскоп', MAX_TITLE_CHARS_PER_LINE, MAX_TITLE_LINES);
   const subLines = wrapLines(input.subtitle, MAX_SUB_CHARS, MAX_SUB_LINES);
   const bodyLines = wrapLines(input.body, MAX_BODY_CHARS_PER_LINE, MAX_BODY_LINES);
   const accent = (input.accent || '').trim().slice(0, MAX_ACCENT_CHARS).toUpperCase();

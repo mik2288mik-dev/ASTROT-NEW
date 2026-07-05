@@ -99,7 +99,7 @@ export function LumiaBottomTabBar({
   return (
     <div className="lumia-bottom-tab-shell pointer-events-none">
       <LayoutGroup>
-        <nav className="lumia-bottom-tab-bar pointer-events-auto" aria-label="Lumia">
+        <nav className="lumia-bottom-tab-bar pointer-events-auto" aria-label="Твой Гороскоп">
           {items.map((item) => {
             return (
               <button

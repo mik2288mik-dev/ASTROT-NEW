@@ -146,7 +146,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       error: 'Premium required',
       code: 'PREMIUM_REQUIRED',
       premiumRequired: true,
-      message: 'Planet insight is available in Lumia Premium.',
+      message: 'Planet insight is available in Premium.',
     });
   }
 

@@ -306,8 +306,8 @@ export function buildAccuracySummary(checkins: DailyCheckIn[], languageInput: La
       historyCount,
       title: language === 'en' ? 'No evening marks yet' : 'Пока нет вечерних отметок',
       summary: language === 'en'
-        ? 'Close one day, and Lumia will start comparing the forecast with real life.'
-        : 'Закрой один день, и Lumia начнёт сравнивать прогноз с реальностью.',
+        ? 'Close one day, and the astrologer will start comparing the forecast with real life.'
+        : 'Закрой один день, и астролог начнёт сравнивать прогноз с реальностью.',
       bestMatchedLayer: 'none',
       forecastFitRate: 0,
       progressToInsight: { current: 0, target: progressTarget },
@@ -344,8 +344,8 @@ export function buildPersonalPatterns(
       windowDays: 7,
       title: language === 'en' ? 'First repeat found' : 'Первый повтор найден',
       summary: language === 'en'
-        ? `You more often mark ${focusLabel(focusTop[0], language)}. Tomorrow Lumia can lift work windows a little higher.`
-        : `Ты чаще отмечаешь ${focusLabel(focusTop[0], language)}. Завтра Lumia может поднять рабочие окна чуть выше.`,
+        ? `You more often mark ${focusLabel(focusTop[0], language)}. Tomorrow the astrologer can lift work windows a little higher.`
+        : `Ты чаще отмечаешь ${focusLabel(focusTop[0], language)}. Завтра астролог может поднять рабочие окна чуть выше.`,
       evidence: language === 'en'
         ? `${focusTop[1]} of the last ${Math.min(recent.length, 7)} marks`
         : `${focusTop[1]} из последних ${Math.min(recent.length, 7)} отметок`,
@@ -378,8 +378,8 @@ export function buildPersonalPatterns(
       windowDays: 30,
       title: language === 'en' ? 'Your month is taking shape' : 'Твой месяц начинает складываться',
       summary: language === 'en'
-        ? `The most repeated state is ${moodLabel(moodTop[0], language)}. Lumia will use it carefully, not as a fixed label.`
-        : `Чаще всего повторяется состояние: ${moodLabel(moodTop[0], language)}. Lumia будет учитывать это аккуратно, не как ярлык.`,
+        ? `The most repeated state is ${moodLabel(moodTop[0], language)}. the astrologer will use it carefully, not as a fixed label.`
+        : `Чаще всего повторяется состояние: ${moodLabel(moodTop[0], language)}. астролог будет учитывать это аккуратно, не как ярлык.`,
       evidence: language === 'en'
         ? `${moodTop[1]} of ${recent.length} evening marks`
         : `${moodTop[1]} из ${recent.length} вечерних отметок`,
@@ -410,7 +410,7 @@ export function buildPatternTeaser(
     state: 'collecting',
     title: language === 'en' ? 'Personal rhythm is collecting' : 'Личный ритм собирается',
     summary: language === 'en'
-      ? `${left} more evening mark${left === 1 ? '' : 's'} until Lumia can show the first honest repeat.`
+      ? `${left} more evening mark${left === 1 ? '' : 's'} until the astrologer can show the first honest repeat.`
       : `Ещё ${left} вечерн${left === 1 ? 'яя отметка' : left > 1 && left < 5 ? 'ие отметки' : 'их отметок'} до первого честного повтора.`,
     progress: { current: Math.min(checkins.length, target), target },
   };

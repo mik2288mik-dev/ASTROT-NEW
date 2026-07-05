@@ -9,7 +9,7 @@ describe('chart onboarding and lazy sections', () => {
     const chart = read('views/v2/NatalMagazine.tsx');
     const app = read('App.tsx');
     expect(chart).toContain('Создай натальную карту');
-    expect(chart).toContain('Lumia рассчитает карту по дате, времени и месту рождения');
+    expect(chart).toContain('Астролог рассчитает карту по дате, времени и месту рождения');
     expect(chart).toContain('onCreateChart');
     expect(app).not.toContain("if (newView === 'chart' && getFeatureAccess('natal_basic').status === 'needs_chart')");
     expect(app).toContain("onCreateChart={() => openNatalSetupOnboarding('chart', 'chart')}");

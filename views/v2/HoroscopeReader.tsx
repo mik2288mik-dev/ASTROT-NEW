@@ -282,8 +282,8 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
   const shareReading = () => {
     const hook = reading?.headline || (language === 'ru' ? 'Узнай, что тебя ждёт' : 'See what is ahead');
     const text = language === 'ru'
-      ? `Гороскоп · ${signLabel}\n«${hook}»\n\nУзнай свой в Lumia — по дате рождения, бесплатно.`
-      : `Horoscope · ${signLabel}\n“${hook}”\n\nGet yours in Lumia — by birth date, free.`;
+      ? `Гороскоп · ${signLabel}\n«${hook}»\n\nУзнай свой в «Твой Гороскоп» — по дате рождения, бесплатно.`
+      : `Horoscope · ${signLabel}\n“${hook}”\n\nGet yours in Your Horoscope — by birth date, free.`;
     shareToTelegram(text);
   };
 

@@ -288,8 +288,8 @@ export function UnionRoom(props: UnionRoomProps) {
     const strong = DIMENSION_LABELS[score.strongest][lang];
     const them = selected.kind === 'sign' ? getZodiacSign(lang, theirSun) : (selected.name || '');
     const text = ru
-      ? `Совместимость с ${them}: ${score.overall}/100 — ${score.verdict}. Сильнее всего — ${strong}.\n\nПроверь свою совместимость в Lumia.`
-      : `Compatibility with ${them}: ${score.overall}/100 — ${score.verdict}. Strongest — ${strong}.\n\nCheck yours in Lumia.`;
+      ? `Совместимость с ${them}: ${score.overall}/100 — ${score.verdict}. Сильнее всего — ${strong}.\n\nПроверь свою совместимость в «Твой Гороскоп».`
+      : `Compatibility with ${them}: ${score.overall}/100 — ${score.verdict}. Strongest — ${strong}.\n\nCheck yours in Your Horoscope.`;
     shareToTelegram(text);
   };
 

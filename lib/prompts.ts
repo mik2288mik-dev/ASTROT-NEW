@@ -121,7 +121,7 @@ ${natalDataJson}
 Current transits:
 ${transitsJson}
 
-Task: create a serious personal daily forecast for Lumia.
+Task: create a serious personal daily forecast.
 
 Rules:
 - Speak to the user as a real person, not as a zodiac sign.
@@ -184,7 +184,7 @@ ${transitsJson}
 Task: create a premium-quality personal forecast for this specific part of the day.
 
 Rules:
-- This is the full daily reading used by Lumia Premium. It must feel meaningfully stronger than the free daily reading through richer nuance, sharper situational precision, and a clearer sense of what is happening in real life.
+- This is the full daily reading used by Premium. It must feel meaningfully stronger than the free daily reading through richer nuance, sharper situational precision, and a clearer sense of what is happening in real life.
 - It should feel close to the user's real state, decisions, relationships, money, and tension points in this exact part of the day.
 - Explicitly differ from a single-day summary: this slice is about how the day *feels and behaves* in this part of the day (energy, social tone, practical risk, inner tempo).
 - Treat it like a full daily natal card segment: mix the user's inner state with concrete situations, triggers, and moments that may surface in this slot.
@@ -220,7 +220,7 @@ Language: ${profile.language}
 Natal chart:
 ${natalDataJson}
 
-Task: create the user's natal chart reading for Lumia.
+Task: create the user's natal chart reading.
 
 Rules:
 - This is the first complete natal reading a user sees. It must feel valuable on its own.
@@ -233,7 +233,7 @@ Rules:
 - No long lists of planets/houses/aspects. Translate the chart into human language.
 - Do not greet the user. Do not write "hello", "hi", "привет", or the user's name as an opener.
 - Do not use user-facing internal words: free, premium, layer, unlock, upsell, sale, trial, "бесплатный", "премиум", "слой", "живой слой", "твоя основа", "опорная карта".
-- Follow Lumia voice: no mystical, fatalistic, or bureaucratic wording.
+- Follow the app voice: no mystical, fatalistic, or bureaucratic wording.
 - Keep language human and mature. No slang, no theatrical phrasing, no astrological conspiracy wording.
 
 Return strict JSON with these fields:
@@ -269,7 +269,7 @@ ${natalDataJson}
 Current transits and live influences:
 ${transitsJson}
 
-Task: create today's personal natal reading for Lumia.
+Task: create today's personal natal reading.
 
 Rules:
 - This is a fuller daily reading inside the user's natal chart. It should feel precise, useful, and current.
@@ -330,7 +330,7 @@ Editorial standard:
 - Use only facts present in astroEvidence and the chart JSON. If a fact is not present, do not invent it.
 - Do not greet the user and do not open with the user's name.
 - Do not use internal product words: free, premium, layer, unlock, upsell, sale, trial, "бесплатный", "премиум", "слой", "живой слой", "твоя основа", "опорная карта".
-- Follow Lumia voice: no fatalistic, mystical, or bureaucratic wording.
+- Follow the app voice: no fatalistic, mystical, or bureaucratic wording.
 - Avoid these exact empty formulas: ${NATAL_EDITORIAL_BANNED.map((item) => `"${item}"`).join(', ')}.
 - No medical, legal, or financial advice. For money/work, speak about state, focus, pressure, and decision hygiene.
 - Short paragraphs. No emoji. No decorative symbols.
@@ -347,7 +347,7 @@ export const createNatalAnchorPromptV3 = (
 
   return `${natalEditorialRules(profile.language)}
 
-Task: create the canonical natal reading for Lumia in a human planet-by-planet format.
+Task: create the canonical natal reading in a human planet-by-planet format.
 
 This is a complete first reading, not a teaser. It should feel like a real personal chart, grounded in planets, signs, houses, and aspects, but written in clean human language.
 
@@ -529,7 +529,7 @@ ${natalDataJson}
 Reference summary:
 ${options.anchorSummary}
 
-Task: write a short personal natal insight for one placement in Lumia's dashboard insight panel.
+Task: write a short personal natal insight for one placement in the app's dashboard insight panel.
 
 Rules:
 - You are an astrologer-psychologist writing for a real person.
@@ -643,7 +643,7 @@ ${natalDataJson}
 Current transits (context):
 ${transitsJson}
 
-Task: Lumia FREE weekly layer — one honest, compact orientation for this calendar week.
+Task: FREE weekly layer — one honest, compact orientation for this calendar week.
 
 Rules:
 - Short and useful: this is not the premium deep layer.
@@ -685,7 +685,7 @@ ${natalDataJson}
 Current transits:
 ${transitsJson}
 
-Task: Lumia PREMIUM weekly layer — full-class forecast for the week (stronger than free, not just longer).
+Task: PREMIUM weekly layer — full-class forecast for the week (stronger than free, not just longer).
 
 Rules:
 - This is a premium weekly consultation, not a teaser expanded for length.
@@ -733,7 +733,7 @@ ${natalDataJson}
 Transits context:
 ${transitsJson}
 
-Task: Lumia FREE monthly layer — compact month orientation.
+Task: FREE monthly layer — compact month orientation.
 
 Rules:
 - Brief but serious; personal; no gimmicks.
@@ -771,7 +771,7 @@ ${natalDataJson}
 Transits:
 ${transitsJson}
 
-Task: Lumia PREMIUM monthly layer — deep month reading (premium class, not inflated length).
+Task: PREMIUM monthly layer — deep month reading (premium class, not inflated length).
 
 Rules:
 - This is a premium monthly consultation: dense, nuanced, and grounded in how the month is actually likely to unfold.

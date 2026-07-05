@@ -596,7 +596,7 @@ const App: React.FC = () => {
         const safetyTimer = window.setTimeout(() => {
             if (cancelled || safetyCleared) return;
             console.error('[App] Startup exceeded safety budget - unlocking loading UI');
-            setStartupError('Lumia не успела загрузить профиль. Обнови страницу и попробуй ещё раз.');
+            setStartupError('«Твой Гороскоп» не успел загрузить профиль. Обнови страницу и попробуй ещё раз.');
             setLoadingProgress(100);
             setView('dashboard');
             setLoading(false);
@@ -859,7 +859,7 @@ const App: React.FC = () => {
                     resetPrimaryChartState();
                     showStartupDashboard('dashboard');
                 } else {
-                    setStartupError('Не удалось загрузить профиль Lumia. Проверь, что приложение открыто внутри Telegram, и попробуй ещё раз.');
+                    setStartupError('Не удалось загрузить профиль. Проверь, что приложение открыто внутри Telegram, и попробуй ещё раз.');
                     resetPrimaryChartState();
                     showStartupDashboard('dashboard');
                 }

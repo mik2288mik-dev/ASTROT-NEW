@@ -41,7 +41,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         await pool.query(`UPDATE support_tickets SET status = 'pending', updated_at = CURRENT_TIMESTAMP WHERE id = $1`, [id]);
         // публичный ответ доставляем пользователю в Telegram
         if (!internal && t.rows[0].user_id) {
-          await sendTelegramTextMessage(String(t.rows[0].user_id), `Поддержка Lumia:\n\n${body}`).catch(() => undefined);
+          await sendTelegramTextMessage(String(t.rows[0].user_id), `Поддержка «Твой Гороскоп»:\n\n${body}`).catch(() => undefined);
         }
         await recordAdminAction({ req, actor: ctx, action: 'user_edited', entityType: 'support_ticket', entityId: id, after: { reply: true, internal } });
         return res.status(200).json({ ok: true });

@@ -5,7 +5,7 @@ export default async function handler(_req: NextApiRequest, res: NextApiResponse
   return res.status(410).json({
     error: 'Content unlock endpoint removed',
     code: 'CONTENT_UNLOCK_REMOVED',
-    message: 'Content unlock purchases are no longer supported. Use Lumia Premium.',
+    message: 'Content unlock purchases are no longer supported. Use Premium.',
     premiumRequired: true,
   });
 }

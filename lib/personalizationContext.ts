@@ -324,7 +324,7 @@ export function describePersonalizationContext(context: PersonalizationContext, 
   }
 
   if (context.recentQuestions.length) {
-    lines.push('Recent Ask Lumia questions:');
+    lines.push('Recent Ask the astrologer questions:');
     for (const item of context.recentQuestions.slice(0, 5)) {
       lines.push(`- ${item.question}`);
     }

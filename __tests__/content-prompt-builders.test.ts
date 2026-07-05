@@ -34,8 +34,8 @@ describe('Lumia content prompt builders', () => {
       const prompt = build({ context: { example: 'разговор после работы' } });
       expect(prompt.responseFormat).toBe('json_object');
       expect(prompt.promptVersion).toMatch(/\.v\d+$/);
-      expect(prompt.system).toContain('Верни только валидный JSON');
-      expect(prompt.user).toContain('Общий объём всех текстовых полей');
+      expect(prompt.user).toContain('Верни только валидный JSON');
+      expect(prompt.user).toContain('Объём: не больше');
       expect(prompt.user).toContain('конкретный жизненный пример');
     }
   });
@@ -43,16 +43,16 @@ describe('Lumia content prompt builders', () => {
   it('encodes the strict personal daily schema and limits', () => {
     const prompt = buildPersonalDailyPrompt({ context: { date: '2026-06-06', chart: 'test chart' } });
     for (const field of ['headline', 'main', 'relationships', 'action', 'risk', 'why']) expect(prompt.user).toContain(`"${field}"`);
-    expect(prompt.user).toContain('90-130 слов');
+    expect(prompt.user).toContain('не больше 130 слов');
     expect(prompt.user).toContain('why — максимум 15 слов');
     expect(prompt.user).toContain('Не больше двух астрологических терминов');
   });
 
   it('keeps daily, weekly, natal, compatibility, and relationship prompts focused', () => {
-    expect(buildSignDailyHoroscopePrompt().user).toContain('60-80 слов');
+    expect(buildSignDailyHoroscopePrompt().user).toContain('не больше 80 слов');
     expect(buildSignDailyHoroscopePrompt().user).toContain('Не перечисляй подряд любовь');
     expect(buildSignWeeklyHoroscopePrompt().user).toContain('ровно два коротких практичных совета');
-    expect(buildNatalSectionPrompt({ title: 'Как ты любишь' }).user).toContain('150-200 слов');
+    expect(buildNatalSectionPrompt({ title: 'Как ты любишь' }).user).toContain('не больше 200 слов');
     expect(buildSignCompatibilityPrompt().user).toContain('без счёта совместимости');
     expect(buildSynastryPrompt().user).toContain('Не используй термин «синастрия»');
   });

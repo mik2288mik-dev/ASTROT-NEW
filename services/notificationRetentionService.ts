@@ -524,7 +524,7 @@ const FALLBACK_COPY: Record<RetentionNotificationType, { title: string; body: st
   assistant: {
     title: 'Можно быстро проверить действие',
     body: 'Если есть вопрос, выбери действие в личном помощнике: написать, купить, поговорить, работать или отдыхать.',
-    button: 'Спросить Lumia',
+    button: 'Спросить астролога',
   },
   natal_free: {
     title: 'Твоя карта готова',
@@ -548,7 +548,7 @@ const FALLBACK_COPY: Record<RetentionNotificationType, { title: string; body: st
   },
   personal_day: {
     title: 'День почти закрыт',
-    body: 'Отметь вечер: фокус, настроение и совпал ли ориентир дня. Так Lumia будет точнее завтра.',
+    body: 'Отметь вечер: фокус, настроение и совпал ли ориентир дня. Так астролог будет точнее завтра.',
     button: 'Отметить день',
   },
   synastry: {
@@ -564,7 +564,7 @@ const FALLBACK_COPY: Record<RetentionNotificationType, { title: string; body: st
   inactive_2d: {
     title: 'Глянь, что на сегодня',
     body: 'Загляни на минуту — что сегодня лучше сделать, а где не давить. Без длинного текста.',
-    button: 'Открыть Lumia',
+    button: 'Открыть «Твой Гороскоп»',
   },
   inactive_7d: {
     title: 'Загляни, давно тебя не было',
@@ -588,7 +588,7 @@ const FALLBACK_COPY: Record<RetentionNotificationType, { title: string; body: st
   },
   unfinished_action: {
     title: 'Можно закончить настройку',
-    body: '{{unfinished_action}} займёт меньше минуты. После этого Lumia покажет следующий полезный шаг.',
+    body: '{{unfinished_action}} займёт меньше минуты. После этого астролог покажет следующий полезный шаг.',
     button: 'Продолжить',
   },
 };

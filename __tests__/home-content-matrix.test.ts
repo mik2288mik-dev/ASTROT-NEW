@@ -29,7 +29,7 @@ describe('compact content-matrix home', () => {
 
   it('shows v2 feed blocks for horoscope, chart, union, and ask', () => {
     const source = read('views/v2/TodayFeed.tsx');
-    for (const title of ['LzMetricsBento', 'LzFeedHeroCard', 'LzUnionCompact', 'LzAskPresets', 'Спроси Lumia']) {
+    for (const title of ['LzMetricsBento', 'LzFeedHeroCard', 'LzUnionCompact', 'LzAskPresets', 'Спроси астролога']) {
       expect(source).toContain(title);
     }
     expect(source).toContain('onOpenHoroscopeLayer');

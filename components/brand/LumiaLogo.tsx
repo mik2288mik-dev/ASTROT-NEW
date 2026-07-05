@@ -53,7 +53,7 @@ export const LumiaLogo = memo<LumiaLogoProps>(({ variant = 'row', className = ''
         className={`lumia-brand-wordmark-row ${textClass}`}
         style={{ fontFeatureSettings: '"smcp" 0' }}
       >
-        LUMIA
+        Твой Гороскоп
       </span>
     </span>
   );

@@ -28,8 +28,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       code: 'PREMIUM_REQUIRED',
       premiumRequired: true,
       message: ctx.profile.language === 'en'
-        ? 'The weekly reading is available in Lumia Premium.'
-        : 'Weekly reading is available in Lumia Premium.',
+        ? 'The weekly reading is available in Premium.'
+        : 'Weekly reading is available in Premium.',
     });
   }
 

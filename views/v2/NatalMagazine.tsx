@@ -46,8 +46,8 @@ export function NatalMagazine({
         </FreshHeroCard>
         <p style={{ padding: '0 20px', margin: '0 0 18px', fontSize: 15, lineHeight: 1.5, color: 'var(--fresh-muted)' }}>
           {language === 'ru'
-            ? 'Lumia рассчитает карту по дате, времени и месту рождения.'
-            : 'Lumia calculates your chart from birth date, time, and place.'}
+            ? 'Астролог рассчитает карту по дате, времени и месту рождения.'
+            : 'The astrologer calculates your chart from birth date, time, and place.'}
         </p>
         <button type="button" className="fresh-btn-primary" onClick={onCreateChart}>
           {language === 'ru' ? 'Создать карту' : 'Create chart'}

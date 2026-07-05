@@ -320,7 +320,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                         <div className="mt-1 text-[17px] font-bold">
                             {trialDaysLeft > 0
                                 ? (profile.language === 'ru' ? `Premium активен — ${trialDaysLeft} дн.` : `Premium active — ${trialDaysLeft}d`)
-                                : 'Lumia Premium'}
+                                : (profile.language === 'ru' ? 'Твой Гороскоп Premium' : 'Your Horoscope Premium')}
                         </div>
                         <div className="mt-0.5 text-[12.5px] text-white/85">
                             {profile.language === 'ru' ? 'Месяц · 3 месяца · Год' : 'Month · 3 months · Year'}
@@ -357,7 +357,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                             type="button"
                             className="fresh-btn-ghost"
                         >
-                            Lumia Premium
+                            {profile.language === 'ru' ? 'Твой Гороскоп Premium' : 'Your Horoscope Premium'}
                         </button>
                     )}
                 </div>
@@ -383,7 +383,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                     <div className="min-w-0 pr-2">
                         <h3 className="font-serif text-lg text-mono-ink">{profile.language === 'en' ? 'Notifications' : 'Уведомления'}</h3>
                         <p className="lumia-muted mt-1 text-sm leading-snug">
-                            {profile.language === 'en' ? 'Warm nudges from Lumia.' : 'Тёплые напоминания от Lumia.'}
+                            {profile.language === 'en' ? 'Warm nudges from the astrologer.' : 'Тёплые напоминания от астролога.'}
                         </p>
                     </div>
                     <button

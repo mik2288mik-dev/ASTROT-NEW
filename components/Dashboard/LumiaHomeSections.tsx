@@ -298,8 +298,8 @@ function PulseSetupState({ language, onSetup }: { language: LumiaHomeLanguage; o
         </p>
         <p className="mb-0 mt-2 font-lumiaHome text-[0.76rem] font-semibold leading-snug text-[#4c4650]">
           {language === 'ru'
-            ? 'Тогда Lumia честно рассчитает твой ритм по наталу, транзитам и локальному времени.'
-            : 'Then Lumia can calculate your rhythm from natal data, transits, and local time.'}
+            ? 'Тогда астролог честно рассчитает твой ритм по наталу, транзитам и локальному времени.'
+            : 'Then the astrologer can calculate your rhythm from natal data, transits, and local time.'}
         </p>
         {onSetup ? (
           <button
@@ -890,8 +890,8 @@ export function TodayAssistantCard({
             : (language === 'ru' ? 'Сегодня уже есть отметка. Ниже видно, что ты сравнил с прогнозом.' : 'Today is already saved. Below is what you compared with the forecast.'))
         : (language === 'ru' ? 'Отвечаем на вопросы ниже именно по этому ориентиру дня.' : 'Answer the questions below against this exact day cue.'))
     : (language === 'ru'
-        ? 'Выбери действие, а Lumia подскажет: сейчас, позже или без сильного преимущества.'
-        : 'Choose an action, and Lumia will say: now, later, or no strong edge.');
+        ? 'Выбери действие, а астролог подскажет: сейчас, позже или без сильного преимущества.'
+        : 'Choose an action, and the astrologer will say: now, later, or no strong edge.');
 
   const submit = async (input: DailyCheckInInput) => {
     setIsSubmitting(true);

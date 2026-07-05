@@ -228,8 +228,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       code: 'PREMIUM_REQUIRED',
       premiumRequired: true,
       message: langRu
-        ? 'Полный разбор совместимости доступен в Lumia Premium.'
-        : 'The full compatibility reading is available in Lumia Premium.',
+        ? 'Полный разбор совместимости доступен в Premium.'
+        : 'The full compatibility reading is available in Premium.',
     });
   }
 

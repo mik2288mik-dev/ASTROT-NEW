@@ -53,14 +53,14 @@ function buildAskLumiaPrompt(options: GenerateAskLumiaAnswerOptions) {
   const historyBlock = options.history.length
     ? options.history
         .slice(-6)
-        .map((item) => `${item.role === 'user' ? 'User' : 'Lumia'}: ${item.text}`)
+        .map((item) => `${item.role === 'user' ? 'User' : 'Astrologer'}: ${item.text}`)
         .join('\n')
     : 'No relevant prior conversation.';
 
   // Ответы — короткие и ёмкие (премиум), без эзотерики. Free-ветка почти не используется
   // (чат премиум-only), но держим её ещё короче.
   const tierInstruction = options.tier === 'free'
-    ? `Answer as a short Lumia reading.
+    ? `Answer as a short reading from the astrologer.
 
 Requirements:
 - VERY short: 1 short paragraph, ~25-45 words.
@@ -76,7 +76,7 @@ Requirements:
 - Tendencies, not verdicts. Never sound like a therapist, a guru, or a fortune-teller.`;
 
   // Голос уже в SYSTEM (SYSTEM_PROMPT_ASTRA = единый голос). Здесь — только задача чата.
-  return `The user is asking Lumia a personal question.
+  return `The user is asking the astrologer a personal question.
 
 Question tier: ${getTierLabel(options.tier, options.language)}
 
@@ -201,7 +201,7 @@ export async function generateAskLumiaAnswer(options: GenerateAskLumiaAnswerOpti
 
     const answer = completion.choices[0]?.message?.content?.trim();
     if (!answer) {
-      throw new Error('Empty Ask Lumia response');
+      throw new Error('Empty astrologer chat response');
     }
 
     return answer;

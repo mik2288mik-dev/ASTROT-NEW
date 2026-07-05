@@ -25,8 +25,8 @@ const DUPLICATE_WINDOW_SECONDS = 20;
 function mapErrorMessage(code: string, lang: 'ru' | 'en') {
   const messages = {
     QUESTION_REQUIRED: {
-      ru: 'Введите вопрос для Lumia.',
-      en: 'Enter a question for Lumia.',
+      ru: 'Введите вопрос для астролога.',
+      en: 'Enter a question for the astrologer.',
     },
     QUESTION_TOO_SHORT: {
       ru: 'Вопрос слишком короткий. Добавьте немного контекста.',
@@ -37,24 +37,24 @@ function mapErrorMessage(code: string, lang: 'ru' | 'en') {
       en: 'Your question is too long. Shorten it and try again.',
     },
     USER_NOT_FOUND: {
-      ru: 'Профиль не найден. Открой Lumia заново.',
-      en: 'Profile not found. Reopen Lumia and try again.',
+      ru: 'Профиль не найден. Открой приложение заново.',
+      en: 'Profile not found. Reopen the app and try again.',
     },
     FREE_QUESTION_ALREADY_USED: {
       ru: 'Стартовый бесплатный вопрос уже использован. Продолжить можно в Premium.',
       en: 'The starter free question has already been used. Continue in Premium.',
     },
     PREMIUM_REQUIRED: {
-      ru: 'Чат с астрологом доступен в Lumia Premium.',
-      en: 'Astrologer chat is available in Lumia Premium.',
+      ru: 'Чат с астрологом доступен в Premium.',
+      en: 'Astrologer chat is available in Premium.',
     },
     DAILY_LIMIT_REACHED: {
       ru: 'На сегодня лимит исчерпан — 3 вопроса в день. Возвращайся завтра.',
       en: "You've reached today's limit of 3 questions. Come back tomorrow.",
     },
     ASK_UPSTREAM_ERROR: {
-      ru: 'Lumia не смогла подготовить ответ. Попробуйте ещё раз.',
-      en: 'Lumia could not prepare an answer. Please try again.',
+      ru: 'Астролог не смог подготовить ответ. Попробуйте ещё раз.',
+      en: 'The astrologer could not prepare an answer. Please try again.',
     },
     PERSIST_FAILED: {
       ru: 'Ответ был подготовлен, но не сохранился. Попробуйте ещё раз.',
@@ -266,7 +266,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       metadata: { error: error?.message || 'generation_failed' },
     });
     return res.status(502).json({
-      error: 'Ask Lumia failed',
+      error: 'Ask the astrologer failed',
       code: 'ASK_UPSTREAM_ERROR',
       message: mapErrorMessage('ASK_UPSTREAM_ERROR', lang),
       state,

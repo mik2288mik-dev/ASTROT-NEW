@@ -234,8 +234,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
         status: 'needs_setup',
         code: 'PROFILE_BIRTH_DATA_REQUIRED',
         message: context.profile.language === 'en'
-          ? 'Add birth date and place so Lumia can calculate your personal day pulse.'
-          : 'Добавь дату и место рождения, чтобы Lumia рассчитала персональный пульс дня.',
+          ? 'Add birth date and place so the astrologer can calculate your personal day pulse.'
+          : 'Добавь дату и место рождения, чтобы астролог рассчитал персональный пульс дня.',
         actionLabel: context.profile.language === 'en' ? 'Complete profile' : 'Заполнить профиль',
       });
     }

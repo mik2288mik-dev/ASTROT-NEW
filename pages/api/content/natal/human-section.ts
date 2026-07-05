@@ -113,7 +113,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       error: 'Premium required',
       code: 'PREMIUM_REQUIRED',
       premiumRequired: true,
-      message: 'Этот раздел доступен в Lumia Premium.',
+      message: 'Этот раздел доступен в Premium.',
     });
   }
 

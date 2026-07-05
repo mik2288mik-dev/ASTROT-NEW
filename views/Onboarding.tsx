@@ -70,7 +70,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   };
 
   const handleSubmit = () => {
-    if (!name.trim()) { setError('Добавь имя, чтобы Lumia обращалась к тебе лично.'); focusField('name'); return; }
+    if (!name.trim()) { setError('Добавь имя, чтобы астролог обращался к тебе лично.'); focusField('name'); return; }
     if (!date) { setError('Укажи дату рождения.'); focusField('date'); return; }
     if (!time) { setError('Укажи время рождения.'); focusField('time'); return; }
     if (!place.trim()) { setError('Укажи место рождения.'); focusField('place'); return; }
@@ -195,7 +195,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
             {error ? <p style={{ margin: '0 20px 12px', fontSize: 12.5, lineHeight: 1.45, color: '#B91C1C' }}>{error}</p> : null}
             <button type="button" className="fresh-btn-primary" disabled={!canSubmit} onClick={handleSubmit}>Открыть карту</button>
             <p style={{ margin: '12px 20px 0', maxWidth: '20rem', fontSize: 10.5, lineHeight: 1.45, color: 'var(--fresh-muted)' }}>
-              Расчёты Lumia опираются на точные астрономические данные и Swiss Ephemeris — это реальная карта, а не общий шаблон.
+              Расчёты «Твой Гороскоп» опираются на точные астрономические данные и Swiss Ephemeris — это реальная карта, а не общий шаблон.
             </p>
           </div>
         </div>

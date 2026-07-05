@@ -511,7 +511,7 @@ export const Dashboard = memo<DashboardProps>(({
           >
             <div className="home-section-card-icon"><ChatIcon size={24} /></div>
             <div className="home-visual-title home-visual-title--small">
-              {language === 'ru' ? 'Спросить Lumia' : 'Ask Lumia'}
+              {language === 'ru' ? 'Спросить астролога' : 'Ask the astrologer'}
             </div>
             <div className="home-visual-sub home-visual-sub--small">
               {language === 'ru' ? 'Личный вопрос' : 'Personal question'}

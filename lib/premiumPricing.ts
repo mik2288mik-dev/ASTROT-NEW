@@ -6,7 +6,7 @@ function readPremiumWeekStars() {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 250;
 }
 
-/** Telegram Stars price for one week of Lumia Premium. */
+/** Telegram Stars price for one week of Premium. */
 export const PREMIUM_WEEK_STARS = readPremiumWeekStars();
 export const PREMIUM_WEEK_DAYS = 7;
 
@@ -35,10 +35,10 @@ function starsFor(envKey: string, fallback: number): number {
 }
 
 export const PREMIUM_PLANS: Record<PremiumPlanId, PremiumPlan> = {
-  premium_week: { id: 'premium_week', days: PREMIUM_WEEK_DAYS, stars: PREMIUM_WEEK_STARS, priceRub: 149, priceUsd: 1.99, label: 'Lumia Premium · 1 week' },
-  premium_month: { id: 'premium_month', days: 30, stars: starsFor('PREMIUM_MONTH_STARS', 299), priceRub: 399, priceUsd: 4.99, label: 'Lumia Premium · 1 month' },
-  premium_quarter: { id: 'premium_quarter', days: 90, stars: starsFor('PREMIUM_QUARTER_STARS', 599), priceRub: 899, priceUsd: 9.99, label: 'Lumia Premium · 3 months' },
-  premium_year: { id: 'premium_year', days: 365, stars: starsFor('PREMIUM_YEAR_STARS', 1990), priceRub: 2999, priceUsd: 32.99, label: 'Lumia Premium · 1 year' },
+  premium_week: { id: 'premium_week', days: PREMIUM_WEEK_DAYS, stars: PREMIUM_WEEK_STARS, priceRub: 149, priceUsd: 1.99, label: 'Premium · 1 week' },
+  premium_month: { id: 'premium_month', days: 30, stars: starsFor('PREMIUM_MONTH_STARS', 299), priceRub: 399, priceUsd: 4.99, label: 'Premium · 1 month' },
+  premium_quarter: { id: 'premium_quarter', days: 90, stars: starsFor('PREMIUM_QUARTER_STARS', 599), priceRub: 899, priceUsd: 9.99, label: 'Premium · 3 months' },
+  premium_year: { id: 'premium_year', days: 365, stars: starsFor('PREMIUM_YEAR_STARS', 1990), priceRub: 2999, priceUsd: 32.99, label: 'Premium · 1 year' },
 };
 
 export function getPremiumPlan(id: string): PremiumPlan | null {

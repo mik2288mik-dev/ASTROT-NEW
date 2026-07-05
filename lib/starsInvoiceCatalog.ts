@@ -102,7 +102,7 @@ export function buildInvoicePayloadForPlan(input: BuildInvoiceInput, plan: Premi
 
 function getInvoiceCopy(plan: PremiumPlan) {
   return {
-    title: 'Lumia Premium',
+    title: 'Premium',
     description: `Full access for ${plan.days} days`,
     label: plan.label,
   };

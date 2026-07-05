@@ -101,7 +101,7 @@ export const Synastry: React.FC<Props> = ({ profile, chartData, chartId, request
       ) : !hasChart ? (
         <div className="union-pad">
           <p style={{ fontSize: 15, lineHeight: 1.55, color: 'var(--fresh-muted)', margin: '0 0 14px' }}>
-            {ru ? 'Чтобы увидеть «Что между вами», Lumia сначала нужна твоя карта. Совместимость по знакам остаётся бесплатной без неё.' : 'To see what is between you, Lumia needs your chart first. Sign compatibility stays free without it.'}
+            {ru ? 'Чтобы увидеть «Что между вами», астрологу сначала нужна твоя карта. Совместимость по знакам остаётся бесплатной без неё.' : 'To see what is between you, the astrologer needs your chart first. Sign compatibility stays free without it.'}
           </p>
           <button type="button" className="fresh-btn-primary" style={{ margin: 0, width: '100%' }} onClick={onCreateNatalChart}>{ru ? 'Создать карту' : 'Create chart'}</button>
         </div>

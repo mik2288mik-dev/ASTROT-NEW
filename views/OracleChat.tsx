@@ -362,7 +362,7 @@ export const OracleChat: React.FC<OracleChatProps> = ({
               <circle cx="18.5" cy="5.5" r="1.4" fill="currentColor" />
             </svg>
           </span>
-          <h1 className="oracle-dm-title">{lang === 'ru' ? 'Чат Lumia' : 'Lumia chat'}</h1>
+          <h1 className="oracle-dm-title">{lang === 'ru' ? 'Твой Гороскоп' : 'Your Horoscope'}</h1>
           <p className="oracle-dm-sub">{lang === 'ru' ? 'с астрологом' : 'with the astrologer'}</p>
           {showPremiumCta && onPremiumRequired ? (
             <button type="button" onClick={onPremiumRequired} className="oracle-dm-premium">
@@ -468,7 +468,7 @@ export const OracleChat: React.FC<OracleChatProps> = ({
                 ? (lang === 'ru' ? '3 вопроса в день. Новые — завтра.' : '3 questions a day. More tomorrow.')
                 : showPremiumCta
                   ? (lang === 'ru' ? 'Чат с астрологом доступен в Premium.' : 'Astrologer chat is available in Premium.')
-                  : (lang === 'ru' ? 'Выбери вопрос — Lumia ответит по твоей карте, коротко и по делу.' : 'Pick a question — Lumia answers from your chart, short and clear.')}
+                  : (lang === 'ru' ? 'Выбери вопрос — астролог ответит по твоей карте, коротко и по делу.' : 'Pick a question — the astrologer answers from your chart, short and clear.')}
             </p>
           </div>
         </div>

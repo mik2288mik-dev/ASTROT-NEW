@@ -171,8 +171,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       code: 'PREMIUM_REQUIRED',
       premiumRequired: true,
       message: context.profile.language === 'ru'
-        ? 'Weekly forecast is available in Lumia Premium.'
-        : 'The full weekly forecast is available in Lumia Premium.',
+        ? 'Weekly forecast is available in Premium.'
+        : 'The full weekly forecast is available in Premium.',
     });
   }
 
@@ -242,8 +242,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       error: 'Premium required',
       code: 'PREMIUM_REQUIRED',
       message: context.profile.language === 'ru'
-        ? 'Полный недельный прогноз доступен в Lumia Premium.'
-        : 'The full weekly forecast is available in Lumia Premium.',
+        ? 'Полный недельный прогноз доступен в Premium.'
+        : 'The full weekly forecast is available in Premium.',
     });
   }
 

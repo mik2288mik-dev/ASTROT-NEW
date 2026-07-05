@@ -186,7 +186,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       error: 'Premium required',
       code: 'PREMIUM_REQUIRED',
       premiumRequired: true,
-      message: 'Персональный разбор дня доступен в Lumia Premium.',
+      message: 'Персональный разбор дня доступен в Premium.',
     });
   }
 
