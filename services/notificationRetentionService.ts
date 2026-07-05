@@ -18,7 +18,7 @@ import { buildMiniAppButtonUrl } from '../lib/notificationDeepLink';
 import { resolveTodayPulseForUser } from '../lib/todayPulseResolver';
 import { sunSignFromDate } from '../lib/synastry/compatScore';
 import { getZodiacSign } from '../constants';
-import { buildSignDailyFallback, normalizeZodiacKey } from '../lib/horoscope/signDaily';
+import { normalizeZodiacKey } from '../lib/horoscope/signDaily';
 import type {
   AdminScheduledNotificationQueueItem,
   RetentionNotificationStatus,
@@ -405,60 +405,76 @@ function trimForPush(text: string, max = 180): string {
   return `${(lastSpace > 0 ? slice.slice(0, lastSpace) : slice).trim()}…`;
 }
 
+/** Стабильный по дню/юзеру выбор варианта: пуш живой и разный день ото дня, но не «прыгает» внутри дня. */
+function pushRotation(seed: string, n: number): number {
+  let h = 2166136261;
+  for (let i = 0; i < seed.length; i++) {
+    h ^= seed.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0) % Math.max(1, n);
+}
+
 /**
- * Персональная копия пуша ИЗ РЕАЛЬНОГО КОНТЕНТА, а не из шаблона:
- *   • daily_card — расчёт дня по натальной карте (todayPulse: сводка, лучшее окно, чего избегать);
- *   • sign_daily — гороскоп по знаку (для тех, у кого нет карты);
- *   • love/money/work — текст сферы из карты дня + привязка к сегодняшнему окну.
- * Возвращает {title, body} для личных ежедневных типов, иначе null (тогда шаблон/статичный фолбэк).
- * БЕЗ вызова AI: всё уже посчитано в контексте юзера, поэтому пуш всегда свежий и разный по дням,
- * и совпадает с тем, что человек видит в приложении.
+ * Тёплая, ЖИВАЯ копия пуша — как пишет добрый друг, а не бот. Пуш по-доброму зовёт заглянуть и
+ * тизерит, что внутри есть кое-что для тебя; сам разбор человек читает уже в приложении.
+ * Сознательно НЕ вываливаем в пуш сухой расчёт дня («план, быт, короткие задачи, без резкого
+ * старта…») — это звучало как робо-шаблон. Личное — по имени/знаку; вариант стабилен на день
+ * (seed = тип+дата+юзер), но меняется день ото дня, чтобы не приедалось.
  */
 function buildPersonalPushCopy(type: RetentionNotificationType, context: PersonalizationContext): { title: string; body: string } | null {
   const ru = context.user.language !== 'en';
-  const lang: 'ru' | 'en' = ru ? 'ru' : 'en';
+  if (!ru) return null; // EN — через шаблоны каталога
   const firstName = String(context.user.name || '').split(/\s+/)[0] || '';
   const signKey = context.user.birthDate ? normalizeZodiacKey(sunSignFromDate(context.user.birthDate) || '') : null;
-  const sign = signKey ? getZodiacSign(lang, signKey) : (firstName || (ru ? 'ты' : 'you'));
-  const pulse = context.todayPulse;
-  const card = context.preparedDailyCard;
+  const sign = signKey ? getZodiacSign('ru', signKey) : '';
+  const who = firstName || sign || 'друг';
+  const seed = `${type}:${context.localDate}:${context.user.id}`;
+  const pick = (variants: Array<[string, string]>): { title: string; body: string } => {
+    const [title, body] = variants[pushRotation(seed, variants.length)];
+    return { title, body: trimForPush(body) };
+  };
 
   if (type === 'daily_card') {
-    if (!pulse && !card) return null;
-    const peak = pulse?.peakPoint || pulse?.currentPoint || null;
-    const summary = card?.summary || peak?.summary || pulse?.currentPoint?.summary || '';
-    const window = pulseWindow(pulse, peak);
-    const bestFor = (peak?.bestFor || []).slice(0, 2).join(', ');
-    const avoid = (pulse?.currentPoint?.avoid || peak?.avoid || [])[0] || '';
-    const parts: string[] = [];
-    if (summary) parts.push(summary);
-    if (window && bestFor) parts.push(ru ? `Лучшее окно — ${window}: ${bestFor}.` : `Best window — ${window}: ${bestFor}.`);
-    if (avoid) parts.push(ru ? `Лучше не тащить: ${avoid}.` : `Better to skip: ${avoid}.`);
-    const body = trimForPush(parts.join(' '));
-    if (!body) return null;
-    return { title: ru ? `${sign}, твой день` : `${sign}, your day`, body };
+    return pick([
+      [`Доброе утро, ${who}`, 'Твой день на сегодня уже готов — там пара любопытных моментов. Загляни на минуту 😄'],
+      [`${who}, доброе утро`, 'Заглянула в твою карту на сегодня. Есть что подсказать, как провести день полегче — открой?'],
+      ['С добрым утром', `${who}, твой личный день собрался. Внутри — что сегодня сделать, а что отложить. Это минутка.`],
+      [`Утро доброе, ${who}`, 'Кое-что для тебя на сегодня уже ждёт внутри. По-доброму и по делу — заходи.'],
+    ]);
   }
 
-  if (type === 'sign_daily' && signKey) {
-    const reading = buildSignDailyFallback(signKey, context.localDate, lang);
-    const body = trimForPush(`${reading.summary} ${reading.focus}`.trim());
-    if (!body) return null;
-    return { title: ru ? `${sign}, гороскоп на сегодня` : `${sign}, today’s horoscope`, body };
+  if (type === 'sign_daily') {
+    return pick([
+      [`${who}, привет`, 'Гороскоп на сегодня готов. Коротко и тепло — глянь, пока день не закрутился.'],
+      [`Привет, ${who}`, 'Заглянула в твой знак на сегодня — есть пара мыслей. Открой на минутку 😄'],
+      [`Как пройдёт день, ${who}?`, 'Пара тёплых подсказок на сегодня уже ждёт. Загляни — там интересно.'],
+      [`${who}, лови сегодняшний`, 'Свежий гороскоп на день готов. Открой, это правда минута.'],
+    ]);
   }
 
-  if ((type === 'love' || type === 'money' || type === 'work') && card) {
-    const areaText = type === 'love' ? card.loveText : type === 'money' ? card.moneyText : card.workText;
-    if (!areaText) return null;
-    const peak = pulse?.peakPoint || pulse?.currentPoint || null;
-    const window = pulseWindow(pulse, peak);
-    const tail = window ? (ru ? ` Лучшее окно дня — ${window}.` : ` Best window today — ${window}.`) : '';
-    const titles: Record<'love' | 'money' | 'work', [string, string]> = {
-      love: ['Отношения сегодня', 'Love today'],
-      money: ['Деньги сегодня', 'Money today'],
-      work: ['Работа сегодня', 'Work today'],
-    };
-    const [ruT, enT] = titles[type];
-    return { title: ru ? ruT : enT, body: trimForPush(`${areaText}${tail}`) };
+  if (type === 'love') {
+    return pick([
+      ['Кое-что про отношения', `${who}, на сегодня есть мягкая подсказка про близких. Открой, когда будет минутка.`],
+      [`${who}, про отношения на сегодня`, 'Заглянула в тему любви на сегодня — есть о чём подумать. Тёплая мысль ждёт внутри.'],
+      ['Минутка про близких', 'Открой раздел про отношения — там короткая добрая подсказка на сегодня для тебя.'],
+    ]);
+  }
+
+  if (type === 'money') {
+    return pick([
+      ['Пара мыслей про деньги', `${who}, на сегодня есть спокойная подсказка про покупки и решения. Загляни, прежде чем тратить.`],
+      [`${who}, про деньги на сегодня`, 'Заглянула в денежную тему дня — есть что подсказать. Открой на минуту.'],
+      ['Момент про финансы', 'Сегодня деньги любят паузу. Добрая подсказка на день уже ждёт внутри.'],
+    ]);
+  }
+
+  if (type === 'work') {
+    return pick([
+      ['Про дела на сегодня', `${who}, собрала подсказку по работе на день. Открой — станет яснее, за что взяться.`],
+      [`${who}, момент про работу`, 'Есть пара мыслей, как провести рабочий день полегче. Загляни на минутку 😄'],
+      ['Дела сегодня', 'Открой раздел про работу — там короткая добрая подсказка, с чего начать.'],
+    ]);
   }
 
   return null;
