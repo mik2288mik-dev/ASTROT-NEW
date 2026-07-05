@@ -275,7 +275,7 @@ export const Dashboard = memo<DashboardProps>(({
     >
       <section className="home-top" aria-label="LUMIA">
         <div className="home-logo-bar">
-          <img className="home-logo-image" src="/lumia-logo.png" alt="LUMIA" />
+          <span className="home-logo-wordmark">Твой Гороскоп</span>
         </div>
         <div className="home-top-content">
           <p className="home-top-greeting">

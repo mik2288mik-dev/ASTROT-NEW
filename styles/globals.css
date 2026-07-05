@@ -3314,13 +3314,13 @@ a,
   animation: homeLogoBarShift 18s ease-in-out infinite alternate;
 }
 
-.home-logo-image {
-  display: block;
-  width: auto;
-  height: 18px;
-  max-width: min(136px, 40vw);
-  filter: contrast(1.18) saturate(1.03);
-  object-fit: contain;
+.home-logo-wordmark {
+  font-family: var(--fresh-font-round);
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: #241f36;
+  white-space: nowrap;
 }
 
 @keyframes homeLogoBarShift {
@@ -3429,8 +3429,8 @@ a,
     padding-bottom: 12px;
   }
 
-  .home-logo-image {
-    height: 17px;
+  .home-logo-wordmark {
+    font-size: 16px;
   }
 
   .home-top-greeting {

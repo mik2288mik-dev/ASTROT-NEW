@@ -4,14 +4,15 @@ import path from 'path';
 const ROOT = path.join(__dirname, '..');
 
 describe('loading screen', () => {
-  it('uses full-screen splash that fills the viewport', () => {
+  it('renders a milky-white splash with the app name, no image', () => {
     const source = fs.readFileSync(path.join(ROOT, 'components/ui/Loading.tsx'), 'utf8');
-    expect(source).toContain('/lumiastart.webp');
-    expect(source).toContain('object-cover');
-    expect(source).toContain('object-top');
-    expect(source).toContain('absolute inset-0 h-full w-full');
-    expect(source).not.toContain('object-contain');
+    expect(source).toContain('Твой Гороскоп');
+    expect(source).toContain('#FBFAF6');
     expect(source).toContain('min-h-[100dvh]');
+    expect(source).not.toContain('/lumiastart.webp');
+    expect(source).not.toContain('/lumia-logo.png');
+    expect(source).not.toContain('object-cover');
+    expect(source).not.toContain('<img');
     expect(source).not.toContain('LumiaLogo');
     expect(source).not.toContain('loading-main.webp');
   });
@@ -44,9 +45,9 @@ describe('loading screen', () => {
     }
   });
 
-  it('loading splash asset exists in public', () => {
-    const webp = path.join(ROOT, 'public', 'lumiastart.webp');
-    expect(fs.existsSync(webp)).toBe(true);
-    expect(fs.statSync(webp).size).toBeGreaterThan(0);
+  it('no longer ships the removed Lumia splash/logo raster assets', () => {
+    for (const rel of ['public/lumiastart.webp', 'public/lumia-logo.png']) {
+      expect(fs.existsSync(path.join(ROOT, rel))).toBe(false);
+    }
   });
 });

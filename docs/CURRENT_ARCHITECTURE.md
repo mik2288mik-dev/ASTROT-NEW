@@ -9,6 +9,6 @@ This document is the concise source of truth for the active application architec
 - Natal chart calculation remains available at `/api/astrology/natal-chart` while chart clients are migrated to `/api/charts/*`.
 - Horoscope, Natal, and Synastry UI flows use the current content endpoints. Synastry extended readings use `/api/content/synastry/extended`.
 - Database migrations are immutable history and must never be deleted during legacy cleanup.
-- Static client assets live in `public/` only where still required: startup splash (`lumiastart.webp`), symbol font, and admin notification uploads under `public/uploads/notifications/`. Legacy raster/video background packs were removed; UI uses CSS surfaces instead.
+- Static client assets live in `public/` only where still required: symbol font and admin notification uploads under `public/uploads/notifications/`. The startup splash and logo raster (`lumiastart.webp`, `lumia-logo.png`) were removed — the loading screen and home header are now plain "Твой Гороскоп" text on a milky-white surface. Legacy raster/video background packs were removed; UI uses CSS surfaces instead.
 
 Legacy `profile.generatedContent` types may remain only as compatibility input for server-side fallback resolvers. New client flows must not generate, synchronize, or read that aggregate.
