@@ -2,7 +2,6 @@ import OpenAI from 'openai';
 import { createHash } from 'crypto';
 import type { AskLumiaState, AskLumiaTier } from '../types';
 import { SYSTEM_PROMPT_ASTRA, addLanguageInstruction } from './prompts';
-import { appendLumiaVoice } from './lumiaVoice';
 import { getOpenAIModelForContent } from './appSettings';
 import { buildOpenAIChatParams } from './openaiChat';
 import { resolveActivePrompt } from './admin/contentStore';
@@ -76,7 +75,8 @@ Requirements:
 - A little warmth and personality is good; fake certainty and filler are not.
 - Tendencies, not verdicts. Never sound like a therapist, a guru, or a fortune-teller.`;
 
-  return appendLumiaVoice(`The user is asking Lumia a personal question.
+  // Голос уже в SYSTEM (SYSTEM_PROMPT_ASTRA = единый голос). Здесь — только задача чата.
+  return `The user is asking Lumia a personal question.
 
 Question tier: ${getTierLabel(options.tier, options.language)}
 
@@ -94,14 +94,13 @@ ${tierInstruction}
 HARD STYLE RULES:
 - It's a chat: keep it SHORT. If in doubt, cut. Never write an essay or a multi-part analysis.
 - Соблюдай грамматический род пользователя (см. «Пол пользователя» в контексте). Если пол не указан — пиши нейтрально, не выдавай пол. Никогда не угадывай пол по имени.
-- Absolutely NO esoteric or cosmic language: no космос/Вселенная/карма/судьба/энергии/вибрации/чакры/предназначение/духовный путь. Plain human talk only.
-- No mystical fluff, no decorative astrology terms, no fake certainty.
+- Tendencies, not verdicts. No fake certainty.
 
 Output:
 - plain text only, no markdown, no headings, no bullet lists
 - 1-2 short paragraphs MAX — a chat reply, not a reading
 - lead with the answer, end with one clear next step
-- talk directly to the user, do not sound like a rigid template`, options.language);
+- talk directly to the user, do not sound like a rigid template`;
 }
 
 function buildQuestionFallback(question: string, language: 'ru' | 'en', tier: AskLumiaTier) {

@@ -1,4 +1,5 @@
 import { getContentPolicy, type LumiaContentType } from './contentMatrix';
+import { getLumiaSystemVoice } from './lumiaVoice';
 
 export type LumiaPromptLanguage = 'ru' | 'en';
 export type LumiaPrompt = {
@@ -13,22 +14,22 @@ type PromptInput = {
   context?: unknown;
 };
 
-const FORBIDDEN = 'Не используй фразы «энергии вселенной», «космос направляет», «судьба говорит», мистический туман, фатализм, запугивание и гарантии. Не давай медицинских, юридических или финансовых обещаний.';
-const VOICE = 'Пиши на «ты», мягко, конкретно и человеческим языком. Первое предложение должно цеплять. Один блок — одна мысль. Лучше меньше, но точнее.';
-
 function contextBlock(context: unknown): string {
   if (context == null || context === '') return 'Контекст не передан.';
   return typeof context === 'string' ? context : JSON.stringify(context, null, 2);
 }
 
+// SYSTEM = единый голос приложения (lib/lumiaVoice.ts). TASK ниже добавляет только
+// конкретную задачу фичи и формат ответа, НЕ переопределяя голос.
 function buildPrompt(type: LumiaContentType, schema: string, task: string, input: PromptInput = {}, extra = ''): LumiaPrompt {
   const policy = getContentPolicy(type);
-  const language = input.language === 'en' ? 'English' : 'Russian';
+  const lang: LumiaPromptLanguage = input.language === 'en' ? 'en' : 'ru';
+  const language = lang === 'en' ? 'English' : 'Russian';
   return {
     promptVersion: policy.promptVersion,
     responseFormat: 'json_object',
-    system: `Ты — редактор Lumia. ${VOICE} ${FORBIDDEN} Верни только валидный JSON без markdown и текста вокруг JSON.`,
-    user: `${task}\n\nПравила типа контента:\n- Язык ответа: ${language}.\n- Общий объём всех текстовых полей: ${policy.words.min}-${policy.words.max} слов.\n- Назначение: ${policy.purpose}.\n- Стиль: ${policy.style}\n- Добавь хотя бы один конкретный жизненный пример или наблюдаемую ситуацию.\n${extra}\n\nСхема JSON:\n${schema}\n\nКонтекст:\n${contextBlock(input.context)}`,
+    system: getLumiaSystemVoice(lang),
+    user: `${task}\n\nПравила типа контента:\n- Язык ответа: ${language}.\n- Объём: не больше ${policy.words.max} слов на весь ответ (это потолок). Если мысль короче — оставь короче, не добивай водой ради объёма.\n- Назначение: ${policy.purpose}.\n- Стиль: ${policy.style}\n- Добавь хотя бы один конкретный жизненный пример или наблюдаемую ситуацию.\n${extra}\n\nВерни только валидный JSON по схеме, без markdown и текста вокруг.\nСхема JSON:\n${schema}\n\nКонтекст:\n${contextBlock(input.context)}`,
   };
 }
 

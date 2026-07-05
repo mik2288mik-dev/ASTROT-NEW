@@ -48,6 +48,9 @@ const TECHNICAL_TOKEN_REPLACEMENTS: Array<[RegExp, string]> = [
   [/Deep Dive/g, ''],
   [/Deep dive/g, ''],
   [/deep dive/g, ''],
+  // Имя ассета «Матрицы судьбы» (matrix-destiny-*.webp) — техническое имя файла, а не
+  // пользовательская копия; иначе EN-правило «destiny» ловит путь к картинке.
+  [/matrix-destiny[\w-]*/g, ''],
 ];
 
 const FORBIDDEN_RU: Array<{ label: string; pattern: RegExp }> = [

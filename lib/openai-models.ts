@@ -2,8 +2,11 @@
  * OpenAI chat models for Lumia AI interpretations (admin-configurable + env fallback).
  */
 
+// ЕДИНАЯ недорогая модель для ВСЕХ генераций — gpt-5.4-mini (main/deep/fast сходятся к ней).
+// Достаточно умная для наших текстов и дешёвая. Дорогие модели (gpt-5.5 и т.п.) — только
+// точечно через env/админку, если реально понадобится.
 export const DEFAULT_INTERPRETATION_MODEL = 'gpt-5.4-mini';
-export const DEFAULT_PREMIUM_INTERPRETATION_MODEL = 'gpt-5.4';
+export const DEFAULT_PREMIUM_INTERPRETATION_MODEL = 'gpt-5.4-mini';
 
 export const INTERPRETATION_MODEL_SETTING_KEY = 'openai_interpretation_model';
 
